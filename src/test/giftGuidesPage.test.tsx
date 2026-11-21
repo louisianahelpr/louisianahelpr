@@ -29,7 +29,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
  * @mutate src/pages/info/GiftGuides.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
- * @mutate src/pages/info/GiftGuides.tsx | {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
+ * @mutate src/pages/info/GiftGuides.tsx | {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   { slug: "him", dot: "green" }, |   { slug: "him", dot: "red" },
@@ -43,7 +43,7 @@
  * @mutate src/pages/info/GiftGuides.tsx |   const slug = myListPage ? undefined : rawSlug; |   const slug = undefined as string \| undefined; void rawSlug;
  * @mutate src/pages/info/GiftGuides.tsx |   if (!slug && !shared && !myListPage && fromHash) return | if (!slug && !shared && !myListPage && fromHash && false) return
  * @mutate src/pages/info/GiftGuides.tsx |   if (moved) return | if (moved && false) return
- * @mutate src/pages/info/GiftGuides.tsx | backTo={guide \|\| deals \|\| myList \|\| shared \|\| group ? "/gift-guides" : "/"} | backTo={guide \|\| deals \|\| myList \|\| shared \|\| group ? "/gift-guides/" : "/"}
+ * @mutate src/pages/info/GiftGuides.tsx | const backTo = guide \|\| deals \|\| myList \|\| shared \|\| group ? "/gift-guides" : "/"; | const backTo = guide \|\| deals \|\| myList \|\| shared \|\| group ? "/gift-guides/" : "/";
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | className="gg-thumb" loading="lazy" decoding="async" | className="gg-thumb" decoding="async"
  * @mutate src/content/giftGuidesAmazon.ts | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=louisianahelpr-20"], | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=hggguidepage-20"],
  * @mutate src/content/giftGuideCatalog.ts |   return hit; |   return "amazon" as GiftStore;
@@ -69,7 +69,7 @@
  * @mutate src/content/giftGuideIndex.ts |   { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" }, |   { group: "By store", tint: "green", slug: "store-shopmy", title: "ShopMy", lead: "shop" },\n  { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" },
  * @mutate src/content/giftGuideIndex.ts | { group: "By career", tint: "oat", slug: "stay-at-home-parents" | { group: "Life moments", tint: "oat", slug: "stay-at-home-parents"
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx |         {g.age && <span className="gg-count">{g.age}</span>} |         <span className="gg-count">{g.age ?? ""}{g.picks.length} picks</span>
- * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | <p className="gg-arch-foot">Louisiana Helpr</p> | <p className="gg-line">25 picks</p><p className="gg-arch-foot">Louisiana Helpr</p>
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |             <h1 id={titleId}>{title}</h1>\n          </div> |             <h1 id={titleId}>{title}</h1>\n            <p className="gg-arch-foot">Louisiana Helpr</p>\n          </div>
  * @mutate src/content/giftGuides.ts |   { rank: 1, store: "Muck Boot", code: "TAKE25", | { rank: 8, store: "Muck Boot US", code: "TAKE25",
  */
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
@@ -166,25 +166,28 @@ describe("gift guides: one header on every page (owner 11-21)", () => {
   // then move the 3 icons to the right of order by dec 15 etc"): every gift guides page, the landing too, has the shared
   // header row (back arrow + "Holiday gift guides"), then ONE row: the shipping pill, then search + heart + Share. The
   // centered "top-rated finds / Holiday Gift Guides" block is gone.
-  // @mutate src/pages/info/GiftGuides.tsx | titleTag={banner ? "p" : "h1"} | titleTag="p"
-  // @mutate src/pages/info/GiftGuides.tsx | title={G.headerTitle} titleTag= | title={G.title} titleTag=
+  // Owner 11-21 (later): "all of this should be on the same row": the back arrow + title, the pill and the tools are ONE
+  // row the page draws (one line from 768px up; a phone wraps it).
+  // @mutate src/pages/info/GiftGuides.tsx | {banner ? <p className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</p> : <h1 | {banner ? <h1 className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</h1> : <h1
   // @mutate src/pages/info/GiftGuides.tsx |           {shipPill}\n |           {null}\n
-  it("the header row reads 'Holiday gift guides' by a back arrow; the pill and the tools share the row under it; no second title", () => {
+  // @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (min-width:768px){.gg-head-title{flex:0 0 auto}.gg-headrow{flex-wrap:nowrap} | @media (min-width:768px){.gg-head-title{flex:1 1 100%}.gg-headrow{flex-wrap:wrap}
+  it("one header row: back arrow + 'Holiday gift guides', the pill and the tools; no second title", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
     let checked = 0;
     for (const [url, tag, back] of [["/gift-guides", "H1", "/"], ["/gift-guides/her", "P", "/gift-guides"], ["/gift-guides/mom", "P", "/gift-guides"]] as const) {
       const { container } = renderAt(url);
-      const row = container.querySelector("[data-test-header-row]");
-      expect(row, url).not.toBeNull();
-      expect(row!.getAttribute("data-back-to"), url).toBe(back);
-      expect(row!.querySelector("[data-test-title]")?.textContent, url).toBe("Holiday gift guides");
-      expect(row!.querySelector("[data-test-title]")?.tagName, url).toBe(tag);
+      // The shell's own header row is off; the page's row holds everything.
+      expect(container.querySelector("[data-test-header-row]"), url).toBeNull();
       const head = container.querySelector("[data-gift-headrow]");
       expect(head, url).not.toBeNull();
-      // The pill on the left, then the tools (search, heart, Share), on one row inside the page.
+      expect(head!.querySelector("[data-gift-back-to]")?.getAttribute("data-gift-back-to"), url).toBe(back);
+      expect(head!.querySelector("[data-gift-back-to] button[aria-label]"), url).not.toBeNull();
+      expect(head!.querySelector("[data-gift-head-name]")?.textContent, url).toBe("Holiday gift guides");
+      expect(head!.querySelector("[data-gift-head-name]")?.tagName, url).toBe(tag);
+      // Arrow + title, then the pill, then the tools (search, heart, Share), as siblings of the one row.
       const kids = [...head!.children];
-      expect(kids.map((k) => (k.matches("[data-gift-ship]") ? "ship" : k.matches("[data-gift-quick]") ? "tools" : k.tagName)), url).toEqual(["ship", "tools"]);
+      expect(kids.map((k) => (k.matches("[data-gift-head-title]") ? "title" : k.matches("[data-gift-ship]") ? "ship" : k.matches("[data-gift-quick]") ? "tools" : k.tagName)), url).toEqual(["title", "ship", "tools"]);
       // No centered title block: the landing has none, a guide keeps only its cover banner (its own h1).
       expect(container.querySelector("[data-gift-words]:not([data-gift-banner])"), url).toBeNull();
       expect(container.textContent, url).not.toMatch(/top-rated finds/i);
@@ -351,7 +354,8 @@ describe("gift guides: the landing opens to the guides", () => {
     // The tool row carries no text: an empty My list shows no "0" badge (pre-launch audit 11-18 PM).
     // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {n > 0 && <span className="gg-icon-count" |       {true && <span className="gg-icon-count"
     // Owner 11-21: the tool row moved up beside the shipping pill, so the banner holds only its arch.
-    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMomLouisiana Helpr"]);
+    // Owner 11-21: "remove louisiana helpr from the [banner]".
+    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMom"]);
     cleanup();
     expect(renderAt("/gift-guides/mom").container.querySelector("[data-gift-headrow] [data-gift-quick]")?.textContent).toBe("");
     cleanup();
@@ -363,7 +367,7 @@ describe("gift guides: the landing opens to the guides", () => {
       expect(head.getAttribute("data-gift-banner"), slug).toBe(g.tint);
       expect(head.querySelector(".gg-banner")?.className, slug).toBe(`gg-banner gg-check gg-${g.tint}`);
       const arch = head.querySelector("[data-gift-arch]")!;
-      expect([...arch.children].map((x) => x.textContent), slug).toEqual([g.age ? `${g.lead}, ${g.age}` : g.lead, g.title, "Louisiana Helpr"]);
+      expect([...arch.children].map((x) => x.textContent), slug).toEqual([g.age ? `${g.lead}, ${g.age}` : g.lead, g.title]);
       // Live audit r3 #7: the guide's name is the page's ONE h1; the header's "Gift guides" is a plain line.
       expect(arch.querySelector("h1")?.id, slug).toBe("gift-guide-title");
       expect(c.querySelectorAll("h1").length, slug).toBe(1);
@@ -534,7 +538,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(g.picks.length);
       // Owner 11-18 PM ("double back button?? does the same thing"): one way back, the header's arrow, to All guides.
       expect(container.querySelector("a[data-gift-back]"), slug).toBeNull();
-      expect(container.querySelector("[data-test-header-row]")?.getAttribute("data-back-to"), slug).toBe("/gift-guides");
+      expect(container.querySelector("[data-gift-back-to]")?.getAttribute("data-gift-back-to"), slug).toBe("/gift-guides");
       cleanup();
     }
   }, 90_000);
@@ -623,6 +627,8 @@ describe("gift guides: links and disclosures on every view", () => {
           if (href === GIFT_WRAP_JOB_PATH) continue;
           // The menu's Louisiana Holiday Hub entry (owner 11-21: moved from the landing's card to the left panel), and only that.
           if (href === "/holidays" && a.hasAttribute("data-gift-side-holiday-hub")) continue;
+          // ... and its Shop Small entry (owner 11-21: the LOUISIANA group).
+          if (href === "/shop-small" && a.hasAttribute("data-gift-side-shop-small")) continue;
           // 1120: a merged guide's section link carries its anchor ("/gift-guides/girls#girls-babies").
           expect(href, url).toMatch(/^\/gift-guides(?:\/[a-z0-9-]+(?:#[a-z0-9-]+)?|\?group=[a-z-]+(?:#[a-z-]+)?|\?list=mine|#[a-z0-9-]+)?$/);
           continue;
@@ -855,11 +861,13 @@ describe("gift guides: design audit round 2 UI fixes", () => {
       expect(quick.getAttribute("aria-label"), url).toBe("Gift guide tools");
       expect(quick.querySelector("input[type=search][aria-label='Search gift guides']"), url).not.toBeNull();
       const controls = [...quick.querySelectorAll("a, button")].filter((el) => !el.closest("[data-gift-search-results]"));
-      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(["My Wish List, 0 saved", "Share"]);
+      // Owner 11-21: an owner-list guide (Mom is Her's view) adds the Sort by price menu to the tool row.
+      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(url === "/gift-guides/mom" ? ["Sort by price", "My Wish List, 0 saved", "Share"] : ["My Wish List, 0 saved", "Share"]);
+      const share = controls[controls.length - 1];
       // Icons only: 44px tap targets (RoundIconButton w-11 h-11; .gg-icon 44px), and no visible words.
-      expect(controls[1].className, url).toMatch(/\bw-11\b.*\bh-11\b/);
+      expect(share.className, url).toMatch(/\bw-11\b.*\bh-11\b/);
       expect(GIFT_GUIDES_CSS).toMatch(/\.gg-icon\{[^}]*width:44px;height:44px/);
-      expect(controls[1].textContent, url).toBe("");
+      expect(share.textContent, url).toBe("");
       // The old pills are gone: no Text link, Codes button or Share pill outside the menu.
       expect(container.textContent, url).not.toMatch(/Text th(is|ese) guides?|\bCodes\b/);
       expect(container.querySelector("[data-gift-text]"), url).toBeNull();

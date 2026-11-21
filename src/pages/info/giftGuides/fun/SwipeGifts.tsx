@@ -294,6 +294,9 @@ export default function SwipeGifts() {
               className={drag.current ? "gg-swipe-card is-dragging" : "gg-swipe-card"}
               style={{ transform: `translateX(${dx}px) rotate(${dx / 18}deg)` }}
               onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { drag.current = null; setDx(0); }}
+              // Owner 2026-11-21: dragging the photo dragged the picture instead of the card. The browser's native image
+              // drag is off (here and in CSS: the photo takes no pointer events), so the whole card moves.
+              onDragStart={(e) => e.preventDefault()}
               data-swipe-card={card.href}
             >
               <span className="gg-swipe-tag save" style={{ opacity: Math.max(0, Math.min(1, dx / SWIPE_DISTANCE)) }} aria-hidden="true">{W.swipeSave}</span>

@@ -284,6 +284,15 @@ describe("swipe rounds", () => {
   });
 });
 
+describe("swipe card drag (owner 2026-11-21: dragging the photo slid the picture, not the card)", () => {
+  it("the card turns off the browser's own image drag, so the whole card moves", () => {
+    const view = readFileSync("src/pages/info/giftGuides/fun/SwipeGifts.tsx", "utf8");
+    const css = readFileSync("src/pages/info/giftGuides/fun/FunPage.tsx", "utf8");
+    expect(view).toMatch(/onDragStart=\{\(e\) => e\.preventDefault\(\)\}/); // @mutate onDragStart={(e) => e.preventDefault()} -> onDragStart={() => undefined}
+    expect(css).toMatch(/\.gg-swipe-card img\{[^}]*pointer-events:none/); // @mutate .gg-swipe-card img{-webkit-user-drag:none;user-drag:none;pointer-events:none} -> .gg-swipe-card img{-webkit-user-drag:none;user-drag:none}
+  });
+});
+
 describe("gift planner money", () => {
   const plan: GiftPlan = {
     updatedAt: 1,

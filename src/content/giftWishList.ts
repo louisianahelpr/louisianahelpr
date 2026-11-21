@@ -23,7 +23,6 @@ export const WISH = {
   removedToast: "Removed",
   undo: "Undo",
   undoLabel: (name: string) => `Undo: put ${name} back on your wish list`,
-  visit: "Visit",
   share: "Share my list",
   sharing: "Getting your link…",
   shareMenuLabel: "Share your list",
@@ -74,5 +73,4 @@ export const HINTS = {
   seeList: "See my list",
   budget: "Tap a price to see gifts in your budget.",
   share: "Send your list by text, Messenger or a link. They don't need to sign in.",
-  deals: "Deals hide when they expire. Codes copy with a tap.",
 } as const;

@@ -180,7 +180,9 @@ describe("deal and Small Business cards heart too, and come back from their refs
       return r!;
     });
     expect(row.textContent).toContain(b.name);
-    expect(row.textContent).toContain(WISH.visit);
+    // Owner 11-21: no "Visit"/"Shop" button; the business's name and photo are the link to its own page.
+    expect(row.querySelector("a[data-gift-sb-out] .gg-nm-name")?.textContent).toBe(b.name);
+    expect(row.querySelector("[data-gift-shop]")).toBeNull();
   });
 });
 
@@ -205,7 +207,7 @@ describe("My Wish List page", () => {
     expect(JSON.parse(window.localStorage.getItem("lh-gift-list")!).name).toBe("Mom's Christmas List");
     const rows = view.container.querySelectorAll("[data-gift-wish-item]");
     expect(rows.length).toBe(2);
-    expect(rows[0].querySelector("[data-gift-shop]")?.closest("a")?.getAttribute("href")).toBe(`https://${g.picks[0].href.replace(/^https:\/\//, "")}`);
+    expect(rows[0].querySelector(".gg-nm-name")?.closest("a")?.getAttribute("href")).toBe(`https://${g.picks[0].href.replace(/^https:\/\//, "")}`);
     // Owner 11-20: no "Remove" text buttons; a filled heart in the card's top-right corner.
     expect(view.container.textContent).not.toMatch(/\bRemove\b/);
     const heart = rows[0].querySelector<HTMLButtonElement>("[data-gift-wish-remove]")!;
@@ -269,7 +271,7 @@ describe("a shared list renders for a guest", () => {
     expect(getSharedList).toHaveBeenCalledWith("abc123defghi");
     expect(view.container.querySelector("#gift-shared-list")?.textContent).toBe("Mom's Christmas List");
     expect(view.container.querySelector("[data-gift-wish-remove]")).toBeNull();
-    const first = view.container.querySelector("[data-gift-wish-item] [data-gift-shop]")?.closest("a");
+    const first = view.container.querySelector("[data-gift-wish-item] .gg-nm-name")?.closest("a");
     expect(first?.getAttribute("href")).toBe(`https://${g.picks[0].href.replace(/^https:\/\//, "")}`);
     expect(first?.getAttribute("rel")).toBe("sponsored noopener");
     expect(document.head.querySelector('meta[name="robots"]')?.getAttribute("content")).toBe("noindex");
@@ -455,7 +457,7 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
         expect(r).not.toBeNull();
         return r!;
       });
-      expect(r2.querySelector("[data-gift-shop]")).toBeNull();
+      expect(r2.querySelector("a")).toBeNull();
     }
   });
 

@@ -38,7 +38,6 @@ export const DEALS_WORDS: {
   title: string;
   laterTitle: string;
   lead: string;
-  intro: string;
   disclosure: string;
   featuredLine: string;
   featuredCta: string;

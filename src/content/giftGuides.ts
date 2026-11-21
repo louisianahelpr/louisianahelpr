@@ -248,17 +248,18 @@ export const giftGuides = {
    * one deals page (src/content/giftGuideDeals.mjs DEAL_EVENTS on feat/guide-deals-bfcm-1121).
    */
   sideDeals: [
-    { id: "black-friday", label: "Black Friday deals" },
+    { id: "black-friday", label: "Black Friday" },
     { id: "small-business-saturday", label: "Small Business Saturday" },
     { id: "cyber-monday", label: "Cyber Monday" },
   ],
+  /** The left menu's group headings (owner 11-21: "guides, deals, free, make it fun should all be their own section"). */
+  sideHeads: { guides: "Guides", deals: "Deals", free: "Free printables", louisiana: "Louisiana" },
+  sideHolidayHub: "Holiday Hub",
+  sideShopSmall: "Shop Small",
   /** The left menu's entry for the 25 Days sponsors page (owner 11-21: "move 25 day sponsors to the left panel"). */
   sideSponsorsLabel: "25 Days sponsors",
   shopLabel: "Shop",
   /** Every item's visible Shop pill (holistic review 11-18 H4): "Shop at Amazon", or plain "Shop" with no store name. */
-  shopAt: (store: string) => (store ? `Shop at ${store}` : "Shop"),
-  /** The item card's Shop link, for screen readers (owner 11-21: the card shows only "Shop"). */
-  shopSr: (name: string, store: string) => `${name}${store ? ` at ${store}` : ""}, opens in a new tab`,
   /** The kids age rows (holistic review 11-18 H1): the landing's For kids section and the Niece, Nephew and Cousins pages. */
   agesTitle: "Kids by age",
   byAgeLabel: "By age",
@@ -359,6 +360,16 @@ export const giftGuides = {
   budgetUnder: (n: number) => `Under $${n}`,
   budgetNote: "Items without a checked price aren't shown in a budget view.",
   budgetNone: "Nothing in this budget yet. Try a higher one.",
+  /** The price sections on Her, Him and Kids (owner 2026-11-21: "they all need to be sorted in sections by price"). */
+  priceSection: {
+    "under-25": "Under $25",
+    "25-to-50": "$25 to $50",
+    "50-to-75": "$50 to $75",
+    "75-to-100": "$75 to $100",
+    "100-and-up": "$100 and up",
+    "price-soon": "Price coming soon",
+  },
+  priceSectionCount: (n: number) => ` (${n})`,
   /** The price sort on Her, Him and Kids (owner 2026-11-21: "the guides should be able to be sorted by price"). */
   sortLabel: "Sort by price",
   sortLowHigh: "Price: low to high",

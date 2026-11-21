@@ -1499,9 +1499,11 @@ export default defineConfig(({ mode, command }) => ({
             // cost /home 0.4 KB gz, so the gift guides' countdown loads it once the page has settled) and the deep
             // link's matchmakerLink / moneyLimits (here they put the 25 Days words on /profile?tab=earnings, +39 KB gz;
             // GiftGuideHelpr writes its one param out instead). Guard: src/test/publicPagesSkipSignedInChunks.test.ts.
+            // The covers' content hashes (src/lib/giftGuideCoverVersions.mjs, ~3 KB, no imports, 2026-11-21) ride here too: in
+            // signed-in-deep they put /gift-guides/<slug> at 593 KB gz on the critical path (budget 336; #4857 bundle-size run).
             {
               name: "public-page-reads",
-              test: /[\\/]src[\\/](lib[\\/](sponsor[\\/](api|dates|placeholders)|giftGuideFunApi|giftWishListApi|giftNameClean)|content[\\/](sponsorPage|giftGuideFun1120))\.ts$/,
+              test: /[\\/]src[\\/](lib[\\/](sponsor[\\/](api|dates|placeholders)|giftGuideFunApi|giftWishListApi|giftNameClean)|content[\\/](sponsorPage|giftGuideFun1120))\.ts$|[\\/]src[\\/]lib[\\/]giftGuideCoverVersions\.mjs$/,
               priority: 16.7,
               minSize: 0,
               includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,

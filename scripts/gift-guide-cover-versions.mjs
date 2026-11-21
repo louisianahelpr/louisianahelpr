@@ -11,7 +11,7 @@
  * Guard: src/test/giftGuideCoverVersions1121.test.ts.
  */
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -41,7 +41,13 @@ export function versionsSource(root = ROOT) {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const text = versionsSource();
   if (process.argv.includes("--check")) {
-    const ok = existsSync(VERSIONS_FILE) && readFileSync(VERSIONS_FILE, "utf8") === text;
+    let current = null;
+    try {
+      current = readFileSync(VERSIONS_FILE, "utf8");
+    } catch (e) {
+      if (e?.code !== "ENOENT") throw e; // a missing file is simply stale
+    }
+    const ok = current === text;
     console.log(ok ? "gift-guide-cover-versions: current" : "gift-guide-cover-versions: STALE (run node scripts/gift-guide-cover-versions.mjs)");
     process.exit(ok ? 0 : 1);
   }

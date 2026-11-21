@@ -110,6 +110,8 @@ export interface DownloadProduct {
   ready: boolean;
   /** A small picture of the first page, under public/. */
   preview: string;
+  /** Which group the card sits in on the page (owner 2026-11-21: "a subsection for tags, banner and color books so it's not all mixed up"). Default "more". */
+  section?: "coloring" | "banners" | "more";
   /** One button per file: the 12-, 24- and 25-day elf plans each get one. */
   files: { label: string; href: string }[];
   guides: string[];
@@ -173,7 +175,7 @@ export const PRINTABLES: Printable[] = [
     unit: "page",
     // One stand-in until the owner's letter and certificate arrive (Santa-letter-Nice-list/).
     designs: [
-      { id: "nice-list", name: "Nice List", image: "/printables/santa/nice-list.svg", boxes: { name: { x: 1.25, y: 4.55, w: 6, h: 1.1 } }, ink: SITE_RED, labels: false, siteLine: { y: 10.55, color: "#7b6a55" } },
+      { id: "nice-list", name: "Nice List", image: "/printables/santa/nice-list.svg", boxes: { name: { x: 1.25, y: 4.55, w: 6, h: 1.1 } }, ink: SITE_RED, labels: false, siteLine: false },
     ],
     guides: [],
   },
@@ -197,6 +199,7 @@ export const PRINTABLES: Printable[] = [
   {
     kind: "download",
     id: "coloring-book",
+    section: "coloring",
     title: "Christmas coloring book",
     blurb: "20 simple pages to color plus a cover, ready to print at home.",
     // Owner 2026-11-21: "both color books are ready for launch" (Boys approved first, then Girls).
@@ -211,6 +214,7 @@ export const PRINTABLES: Printable[] = [
   {
     kind: "download",
     id: "thanksgiving-banner",
+    section: "banners",
     title: "Happy Thanksgiving banner",
     blurb: "A 2-to-1 banner to print at Walgreens or any photo counter (a 12 x 24 in print fits it).",
     // Owner 2026-11-21: "add this to the free printables, it's a banner they can print at walgreens" (her Canva design).
@@ -437,7 +441,15 @@ export const PRINTABLES_WORDS = {
   make: "Make yours",
   making: "Making",
   moreTitle: "More free printables",
+  /** Section headings on the page (owner 2026-11-21). */
+  sectionTags: "Gift tags",
+  sectionColoring: "Coloring books",
+  sectionBanners: "Banners",
   design: "Design",
+  designHint: "Pick a design. Press and hold one, or use its magnifier, to see it bigger.",
+  zoom: (name: string) => `Bigger look at ${name}`,
+  useDesign: "Use this design",
+  close: "Close",
   font: "Name style",
   names: "Names",
   modeSame: (unit: string) => (unit === "page" ? "One name" : `Same names on every ${unit}`),

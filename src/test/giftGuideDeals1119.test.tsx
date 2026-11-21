@@ -170,7 +170,10 @@ describe("deals page: the page", () => {
     expect(sbs.querySelectorAll("[data-gift-sb]").length).toBe((SMALL_BIZ as unknown[]).length);
     for (const a of c.querySelectorAll("[data-gift-deal] a")) expect(a.getAttribute("rel")).toBe("sponsored noopener");
     expect(c.querySelector("[data-gift-price], .gg-price")).toBeNull();
-    expect(c.querySelector("[data-gift-deals-ad]")!.textContent).toBe("#ad, some links earn us a small commission.");
+    // Owner 2026-11-21 ("remove this"): no intro paragraph, "#ad" line or helper line on the deals page.
+    // @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <DealsAndCodes open /> |       <p data-gift-deals-ad="">#ad</p><DealsAndCodes open />
+    expect(c.querySelector("[data-gift-deals-ad], [data-gift-deals-help], .gg-deals-intro")).toBeNull();
+    expect(c.textContent).not.toMatch(/big sales are here|#ad|Codes copy with a tap/);
   });
 
   it("each card: the code chip, Starts before an announced deal begins, Ends otherwise", async () => {

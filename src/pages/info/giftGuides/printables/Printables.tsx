@@ -52,6 +52,12 @@ function DownloadCard({ p }: { p: DownloadProduct }) {
   );
 }
 
+const DOWNLOAD_SECTIONS = [
+  { key: "coloring", title: W.sectionColoring },
+  { key: "banners", title: W.sectionBanners },
+  { key: "more", title: W.moreTitle },
+] as const;
+
 export default function Printables() {
   const shown = shownPrintables();
   const makers = shown.filter((p): p is OverlayProduct => p.kind === "overlay");
@@ -71,6 +77,7 @@ export default function Printables() {
       <FunBody title={W.title} path={PRINTABLES_PATH}>
         <style>{PAGE_CSS}</style>
         <p className="gg-fun-lead">{W.lead}</p>
+        {makers.length > 0 && <h2 className="pr-section" id="pr-tags">{W.sectionTags}</h2>}
         {makers.length > 0 && (
           // One maker at a time: a radio group (arrow keys move between them), not a row of toggle buttons.
           <div className="pr-makers" role="radiogroup" aria-label={W.title}>
@@ -94,12 +101,17 @@ export default function Printables() {
             </Suspense>
           </section>
         )}
-        {downloads.length > 0 && (
-          <section aria-labelledby="pr-more">
-            <h2 id="pr-more">{W.moreTitle}</h2>
-            <ul className="pr-cards">{downloads.map((p) => <DownloadCard key={p.id} p={p} />)}</ul>
-          </section>
-        )}
+        {/* Owner 2026-11-21: tags, banners and coloring books each get their own subsection. */}
+        {DOWNLOAD_SECTIONS.map((sec) => {
+          const list = downloads.filter((p) => (p.section ?? "more") === sec.key);
+          if (list.length === 0) return null;
+          return (
+            <section key={sec.key} aria-labelledby={`pr-${sec.key}`} className="pr-group">
+              <h2 className="pr-section" id={`pr-${sec.key}`}>{sec.title}</h2>
+              <ul className="pr-cards">{list.map((p) => <DownloadCard key={p.id} p={p} />)}</ul>
+            </section>
+          );
+        })}
       </FunBody>
     </PublicHeaderPage>
   );
@@ -113,6 +125,8 @@ const PAGE_CSS = `
 .pr-maker-card small{display:block;font-size:12.5px;color:var(--gg-muted);margin-top:2px}
 .pr-makers .pr-maker-card.is-on{border-color:var(--gg-olive);box-shadow:inset 0 0 0 1px var(--gg-olive);background:var(--gg-soft)}
 .pr-maker-card:focus-within{outline:2px solid var(--gg-olive);outline-offset:2px}
+.pr-section{font-size:18px;font-weight:700;margin:22px 0 10px;color:var(--gg-ink)}
+.pr-group{margin-top:4px}
 .pr-cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 .pr-card{display:flex;gap:12px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card));padding:12px;min-width:0}
 .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12)}

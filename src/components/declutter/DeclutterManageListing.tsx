@@ -140,7 +140,7 @@ export function ManageListingSheet({
   const pause = useListingAction(() => pauseListing(item.id), t("lp.m.tPaused"), close);
   const relist = useListingAction(() => relistListing(item.id), t("lp.m.tBack"), close);
   // A2-5: "Mark sold elsewhere" keeps the listing in the seller's history; Delete stays a withdraw.
-  // F335: the toast names the listing and where it went (it stays under Taken down in Selling, with Relist).
+  // F335: the toast names the listing and where it went (it stays under History in Selling, with Relist).
   const takeDown = useListingAction(() => (view === "sold" ? markSoldElsewhere(item.id) : withdrawItem(item.id)),
     view === "sold" ? t("lp.m.tSoldDone") : t("lp.m.tDeleted", { title: item.title }),
     () => { close(); if (view !== "sold") onDeleted?.(); });
@@ -162,6 +162,8 @@ export function ManageListingSheet({
         {view === "menu" && (
           <div className="space-y-3">
             <ListingSummary item={item} coverUrl={coverUrl} />
+            {/* Audit 11-20 night #3: a paused listing has no Preview or Edit row; this says why and what to do. */}
+            {paused && <p className="px-1 text-ds-13 text-muted-foreground" data-manage-paused-note="">{t("lp.m.pausedEdit")}</p>}
             {/* Audit 11-10 F336: 13 rows in one list; now grouped under Price, How it gets to buyers and Listing, with
                 Delete last. A group whose rows all render nothing (a setting not deployed, shipping off) hides itself. */}
             <ul className={`${MANAGE_GROUP} [&:not(:has(li))]:hidden`}>

@@ -17,7 +17,6 @@ import { report } from "@/lib/errorLogger";
 import { clearPendingSignup } from "@/lib/pendingSignup";
 import "@/lib/i18n/enVerify";
 import { useLanguage } from "@/lib/i18n/language";
-import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { Button } from "@/components/ui/button";
 import { ConfirmLinkPanel } from "./signupPending/ConfirmLinkPanel";
@@ -87,7 +86,6 @@ const SignupPending = () => {
   });
   const [resending, setResending] = useState(false);
   // AUD31-57 sibling: the ID-check promise below shows only while the identity_check switch is on.
-  const idCheckOn = useIdentityCheckOnStore();
   const turnstileRef = useRef<TurnstileHandle>(null);
   const [resent, setResent] = useState(false);
   // Counts down 60s after each successful resend so the button doesn't
@@ -356,11 +354,8 @@ const SignupPending = () => {
               {/* F030 (owner UI audit 11-09): the steps are short, and step 3 no longer says "you'll land straight in
                   the app", which confused someone signing up on the website. */}
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }} data-pending-step="3">You're in.</p>
-              {idCheckOn && (
-                <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  Once per account there's a quick ID check: when you post a job, get hired, or at your first payout.
-                </p>
-              )}
+              {/* Audit 11-20 night #20/#25 (owner 11-20): no ID talk on a sign-up screen. The check comes later
+                  (a poster's first offer, a Helpr's first hire, a delivery) and is explained there. */}
             </div>
           </div>
         </div>

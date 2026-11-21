@@ -59,6 +59,20 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
+export const EDIT_JOB_TITLE_MAX = 32;
+export const EDIT_JOB_DESCRIPTION_MAX = 1000;
+
+/** What is wrong with the title or description, in words naming the field; null when both are fine. */
+export function editJobTextProblem(title: string, description: string): string | null {
+  const t = [...title.trim()].length;
+  const d = [...description.trim()].length;
+  if (t === 0) return "Add a job title.";
+  if (t > EDIT_JOB_TITLE_MAX) return `Shorten the job title to ${EDIT_JOB_TITLE_MAX} characters or fewer.`;
+  if (d === 0) return "Add a description.";
+  if (d > EDIT_JOB_DESCRIPTION_MAX) return `Shorten the description to ${EDIT_JOB_DESCRIPTION_MAX} characters or fewer.`;
+  return null;
+}
+
 export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   // A0-L1: one id for "Date needed" and whichever date control is showing.
   const dateId = useId();
@@ -132,6 +146,16 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     if (!isFlexible && !startTime) {
       toast.error("Pick a start time, or mark the schedule as flexible.");
       return;
+    }
+    // Audit 11-20 night #16: the same checks as the post form (jobs_title_length / jobs_description_length:
+    // 32 and 1000), said by field name instead of a refused save or a blank job card. Only while the fields
+    // can be edited (they lock once a Helpr is booked).
+    if (!hasHelper) {
+      const problem = editJobTextProblem(title, description);
+      if (problem) {
+        toast.error(problem);
+        return;
+      }
     }
     setSaving(true);
     const scheduleChanged =
@@ -301,11 +325,11 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             <SectionHeading>The job</SectionHeading>
             <div className="space-y-1.5">
               <Label className="text-ds-14 font-sans font-semibold text-foreground">Title</Label>
-              <Input aria-label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={hasHelper} autoCapitalize="sentences" enterKeyHint="next" />
+              <Input aria-label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={EDIT_JOB_TITLE_MAX} disabled={hasHelper} autoCapitalize="sentences" enterKeyHint="next" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-ds-14 font-sans font-semibold text-foreground">Description</Label>
-              <Textarea aria-label="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={hasHelper} autoCapitalize="sentences" />
+              <Textarea aria-label="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={EDIT_JOB_DESCRIPTION_MAX} disabled={hasHelper} autoCapitalize="sentences" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-ds-14 font-sans font-semibold text-foreground">Category</Label>

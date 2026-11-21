@@ -162,6 +162,7 @@ export const es: Record<MsgKey, string> = {
   "lang.legalInEnglish": "Los términos legales están en inglés. Hay un resumen en español en la página de Términos.",
 
   "nav.home": "Inicio",
+  "nav.goHome": "Ir a Inicio",
   "nav.dockHome": "Inicio",
   "nav.posts": "Publicaciones",
   "nav.jobs": "Trabajos",
@@ -292,7 +293,7 @@ export const es: Record<MsgKey, string> = {
   "signup.referralAsk": "¿Tiene un código de referido?",
   "signup.referral": "Código de referido",
   "signup.referralExample": "p. ej. FUHNW3",
-  "signup.referralHelp": "¿Un amigo le dio un código? Escríbalo y los dos recibirán $5 cuando usted termine su primer trabajo.",
+  "signup.referralHelp": "¿Un amigo le dio un código? Escríbalo y cada uno recibirá $5 cuando los dos hayan terminado un trabajo o una venta o compra en Declutter.",
 
   // Sign up (the page: step titles, checks, messages)
   "signup.aboutTitle": "Un poco sobre usted",

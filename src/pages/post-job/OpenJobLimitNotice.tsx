@@ -22,6 +22,8 @@ export function OpenJobLimitNotice({ count = 5 }: { count?: number }) {
         border: "1px solid hsl(var(--destructive) / 0.35)",
       }}
       role="alert"
+      tabIndex={-1}
+      data-open-job-limit=""
     >
       <div className="flex-1 min-w-0">
         <p className="text-ds-13 font-semibold" style={{ color: "hsl(var(--destructive-ink))" }}>

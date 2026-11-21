@@ -248,6 +248,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   );
   // JA-41: a group tap starts the form at that group's kinds (screen 2); a one-category group or a search
   // match is the category and goes on to Details. The 5-open-job cap stops it here (its notice sits above).
+  // Audit 11-20 night #18: at the cap a tile tap used to do nothing. It now brings the limit notice back into view
+  // (and focus, so a screen reader hears it again) instead of failing silently.
+  const showLimitNotice = () => {
+    const notice = document.querySelector<HTMLElement>("[data-open-job-limit]");
+    notice?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    notice?.focus({ preventScroll: true });
+  };
   const groupGrid = (
     <JobCategoryGroups
       category={form.category}
@@ -255,13 +262,14 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       setTitle={form.setTitle}
       group={null}
       setGroup={(g) => {
-        if (atOpenJobLimit || !g) return;
+        if (atOpenJobLimit) return showLimitNotice();
+        if (!g) return;
         form.startFresh();
         form.setFormPage(1);
         form.setCategoryGroup(g);
       }}
       onPicked={() => {
-        if (atOpenJobLimit) return;
+        if (atOpenJobLimit) return showLimitNotice();
         form.startFresh();
         form.setFormPage(2);
       }}

@@ -283,6 +283,11 @@ function endedLines(cart: CartLine[]): CartLine[] {
 export type BuyingTracker = {
   /** Null until the cart has answered. */
   ready: boolean;
+  /** Audit 11-20 night #11: the cart read has not answered yet, or failed with nothing loaded; `retry` reads again. */
+  loading?: boolean;
+  failed?: boolean;
+  error?: unknown;
+  retry?: () => void;
   views: Map<string, BuyerOrderView>;
   checkouts: number;
   ended: CartLine[];
@@ -408,7 +413,7 @@ export function useBuyingTracker(): BuyingTracker {
   counts.needs_you = homeRows.length;
   const ended = endedLines(lines);
   counts.cancelled += ended.length;
-  return { ready: !!cart.data, views, checkouts, ended, counts, live, bookings: bookings.data, pickupsSettled: !bookings.isLoading && problemsRead.answered };
+  return { ready: !!cart.data, loading: cart.isLoading, failed: cart.isError && !cart.data, error: cart.error, retry: () => void cart.refetch(), views, checkouts, ended, counts, live, bookings: bookings.data, pickupsSettled: !bookings.isLoading && problemsRead.answered };
 }
 
 /**
@@ -532,7 +537,8 @@ function endedWords(line: Pick<CartLine, "status" | "order_id" | "order_status" 
   if ((line.total_cents ?? 0) === 0) {
     return sellerFault ? "The seller cancelled this free pickup." : "This free pickup was cancelled.";
   }
-  return sellerFault ? "The seller cancelled this sale. Your refund is on its way to your card." : "This sale was cancelled. Your refund is on its way to your card.";
+  // Audit 11-20 night #14: an order paid all by gift card goes back to the gift balance, so this never names a card.
+  return sellerFault ? "The seller cancelled this sale. Your refund is on its way." : "This sale was cancelled. Your refund is on its way.";
 }
 
 export function EndedLine({ line }: { line: CartLine }) {

@@ -41,7 +41,7 @@ export const enPublic = {
   "fees.declutter": "On Declutter, the buyer pays the item price plus a buyer's fee of {pct}% of the item price plus {cents} cents, once per checkout. The seller receives the whole item price.",
 
   "safety.title": "Safety",
-  "safety.idChecked": "Every member who posts or does jobs is ID checked: a photo ID, once per account, before they first post or get hired.",
+  "safety.idChecked": "Every member who hires or does jobs is ID checked: a photo ID, once per account, before they first send an offer or get hired.",
   "safety.moneyHeld": "Your money is held safely until you approve the work.",
   "safety.report": "You can report a problem from any job.",
   // Design audit areas 11-18 #9: the Declutter side of the same promises.

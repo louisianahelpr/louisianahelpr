@@ -167,7 +167,7 @@ export const enScreens = {
   "signup.referralAsk": "Have a referral code?",
   "signup.referral": "Referral code",
   "signup.referralExample": "e.g. FUHNW3",
-  "signup.referralHelp": "Got a code from a friend? Enter it and you both get $5 once you finish your first job.",
+  "signup.referralHelp": "Got a code from a friend? Enter it and you each get $5 once you have both finished a job or a Declutter sale or purchase.",
 
   // Sign up (the page: step titles, checks, messages)
   "signup.aboutTitle": "A little about you",

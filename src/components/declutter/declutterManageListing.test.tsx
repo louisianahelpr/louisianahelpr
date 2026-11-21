@@ -189,6 +189,8 @@ describe("Manage a listing (board 158)", () => {
     sheet({ status: "paused" });
     await screen.findByText("Relist");
     expect(screen.queryByText("Edit listing")).toBeNull();
+    // Audit 11-20 night #3: the sheet says why Edit and Preview are missing.
+    expect(screen.getByText("Relist it first to edit or preview it.")).toBeTruthy();
   });
 
   it("before the migration reaches prod, only taking it down is offered", async () => {

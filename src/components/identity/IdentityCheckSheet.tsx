@@ -32,7 +32,7 @@ const LEAD: Record<IdentityCheckReason, string> = {
   shop_buy: "Before your first order from a shop, Stripe checks a photo ID and a selfie.",
   shop_list: "Before your first shop item goes live, Stripe checks a photo ID and a selfie.",
   deliver: "Before you take a delivery, Stripe checks a photo ID and a selfie.",
-  general: "Stripe checks a photo ID and a selfie once: before you post, head out on a job or get your first payout, or before your first delivery.",
+  general: "Stripe checks a photo ID and a selfie once: before you send an offer, head out on a job, or take your first delivery.",
 };
 
 const COPY: Record<Exclude<IdentityView, "start">, { title: string; body: string }> = {

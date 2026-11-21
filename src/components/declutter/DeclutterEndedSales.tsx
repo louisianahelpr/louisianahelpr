@@ -10,6 +10,8 @@ import { useQuery } from "@tanstack/react-query";
 import { PackageX } from "lucide-react";
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
 import { itemPriceLabel } from "@/lib/declutter/distance";
+import "@/lib/i18n/enDeclutter";
+import { t } from "@/lib/i18n/language";
 
 /** The seller's ended sales: the same read and key as the Selling counts, so this adds no request. */
 export function useEndedSales(): CartLine[] {
@@ -37,11 +39,11 @@ function endedSaleWords(l: Pick<CartLine, "status" | "order_status" | "price_cen
   // seller (declutter_seller_cancel_sale refuses). So the words name only what the status proves. Its own notice says
   // "Your item is back on sale" when the seller is not at fault.
   if (l.order_status === "refunded") {
-    if (l.status === "missed") return free ? "Cancelled after it was claimed. Your item is back up." : "Cancelled after the buyer paid. They were refunded, and your item is back on sale.";
-    return free ? "Cancelled on your side after it was claimed." : "Cancelled on your side after the buyer paid. They were refunded.";
+    if (l.status === "missed") return free ? t("dsl.end.missedRefundFree") : t("dsl.end.missedRefund");
+    return free ? t("dsl.end.sellerRefundFree") : t("dsl.end.sellerRefund");
   }
-  if (l.status === "missed") return free ? "The buyer didn't pick a pickup in 48 hours." : "The buyer didn't check out in time. Nothing was charged.";
-  return "You called off the sale. Nothing was charged.";
+  if (l.status === "missed") return free ? t("dsl.end.missedFree") : t("dsl.end.missed");
+  return t("dsl.end.calledOff");
 }
 
 /** The rows, inside Selling history (DeclutterTakenDown's section). */

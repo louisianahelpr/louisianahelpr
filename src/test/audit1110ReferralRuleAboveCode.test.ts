@@ -12,7 +12,7 @@ import { blankComments } from "./helpers/blankNonCode";
 describe("F466: the referral rule reads above the code", () => {
   it("the $5 rule comes before 'Your referral code' in the card", () => {
     const src = blankComments(readFileSync("src/components/ReferralSection.tsx", "utf8"));
-    const rule = src.indexOf("you both earn $5");
+    const rule = src.indexOf("you each get $5");
     const code = src.indexOf("Your referral code");
     expect(rule, "the rule sentence is gone").toBeGreaterThan(-1);
     expect(code).toBeGreaterThan(-1);

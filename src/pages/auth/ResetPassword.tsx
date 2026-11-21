@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n/language";
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -255,7 +256,7 @@ const ResetPassword = () => {
                 navigate("/home", { replace: true });
               }}
             >
-              Go to Dashboard
+              {t("nav.goHome")}
             </Button>
           </div>
         ) : !ready && verifying ? (

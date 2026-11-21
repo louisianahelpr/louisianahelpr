@@ -58,7 +58,7 @@ export const esLanding: Record<keyof typeof enLanding, string> = {
   "landing.how.sell3Desc": "Se encuentran o lo deja en el porche. Se le paga cuando el comprador dice que lo recibió.",
   "landing.shell.jobsTitle": "Trabajos abiertos cerca de usted",
   "landing.shell.jobsLine": "Usted elige quién le ayuda. Se paga solo cuando está hecho.",
-  "landing.shell.jobsLineId": "Se verifica una identificación con foto antes de publicar o salir a un trabajo. Se paga solo cuando está hecho.",
+  "landing.shell.jobsLineId": "Se verifica una identificación con foto antes de contratar o salir a un trabajo. Se paga solo cuando está hecho.",
   "landing.shell.declutterTitle": "Lo más popular en Declutter",
   "landing.shell.declutterLine": "Recójalo, reúnanse o pida que un Helpr se lo entregue.",
   "landing.shell.noJobsTitle": "Lo nuevo en Declutter cerca de usted",

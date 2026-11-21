@@ -40,4 +40,4 @@ export function useIdCheckOnForViewer(): boolean {
 
 /** The owner's rule (10-30) in one clause, for the legal pages' short versions. */
 export const ID_ONCE_PER_ACCOUNT =
-  "a photo ID, checked once per account: the first time you post a job, get hired or take a delivery";
+  "a photo ID, checked once per account: the first time you send a Helpr an offer, get hired or take a delivery";

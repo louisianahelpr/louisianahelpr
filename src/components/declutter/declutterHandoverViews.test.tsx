@@ -2250,7 +2250,7 @@ describe("Low 6: the paid-order card in Spanish", () => {
     const v = seller();
     expect(await screen.findByText("Puede tomar la foto del porche mañana.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Pagado: recogida y entrega" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Ventas pagadas" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Vendidos y pagados" })).toBeInTheDocument();
     v.unmount();
     state.bookings = [{ ...slot(-60), pickup_day: key(today) }];
     seller();

@@ -252,8 +252,8 @@ describe("Declutter settings", () => {
       open();
       await waitFor(() => expect(document.querySelector("[data-settings-index]")).not.toBeNull());
       expect(screen.getByRole("heading", { level: 1, name: "Ajustes de Declutter" })).toBeInTheDocument();
-      const selling = screen.getByRole("region", { name: "Ventas" });
-      expect(within(selling).getByRole("heading", { level: 2, name: "Ventas" })).toBeInTheDocument();
+      const selling = screen.getByRole("region", { name: "Vendiendo" });
+      expect(within(selling).getByRole("heading", { level: 2, name: "Vendiendo" })).toBeInTheDocument();
       const index = within(selling).getByRole("navigation", { name: "En esta página" });
       expect(within(index).queryByRole("button", { name: "Notifications" })).toBeNull();
       const targets: Array<[string, () => Element | null]> = [

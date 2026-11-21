@@ -30,6 +30,8 @@ vi.mock("@/integrations/supabase/client", () => ({
         })),
       })),
     })),
+    // The cancel quote answers (audit 11-21, G4: a paid job whose quote read FAILED holds Confirm until Try again).
+    functions: { invoke: () => Promise.resolve({ data: { can_cancel: true }, error: null }) },
     rpc: (...a: unknown[]) => {
       rpcMock(...a);
       return Promise.resolve({ data: null, error: rpcError });

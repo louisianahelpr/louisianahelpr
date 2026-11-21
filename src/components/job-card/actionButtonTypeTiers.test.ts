@@ -82,6 +82,8 @@ const NOT_ACTION_ROWS = new Set([
   // The poster's half of the same job page bar (moved out of JobPage.tsx, 10-31): its primary and its
   // Message / Edit / Cancel / More buttons are the page bar's spec sizes, not the step row's chips.
   "src/pages/jobs/jobPage/posterPageActions.tsx",
+  // The viewer's one button (Apply, View application, ...), moved out of JobPage.tsx for its 600-line cap (11-21).
+  "src/pages/jobs/jobPage/ViewerPrimaryBar.tsx",
   // Job page v2 (owner 11-01, mockups 4-5): the page's own action row (both sides), page-level buttons at the
   // page bar's size with one-line pair labels (pairLabel.ts), not a card step row's 11px chips.
   "src/pages/jobs/jobPage/JobPageActionRow.tsx",

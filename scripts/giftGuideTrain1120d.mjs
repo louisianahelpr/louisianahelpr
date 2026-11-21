@@ -324,5 +324,33 @@ export function applyTrain1120d(pageList, spec, ctx) {
     counts.sectionCapOut += out.size;
     if (out.size) pageList[slug] = page(slug).filter((p) => !out.has(p));
   }
+  // 7. Sections by use (owner 11-20, ~/.lh-shots/gg-reference-1120/STANDARD.md: "a very rounded price guide and it has
+  // aesthetic items"): a guide named in `byUse` is re-cut into sections named for when the gift is used, holding only
+  // the picks its rule names (each with one short plain reason); every other pick of ours leaves the page. Sponsors
+  // and the owner's own picks are never dropped: one no section names joins the first section. The old sections' ids
+  // (and the old guide slugs that opened them) open the guide's top.
+  for (const u of spec.byUse ?? []) {
+    const list = page(u.guide);
+    if (!list.length) { say("byUse (no guide)", u); continue; }
+    const used = new Set();
+    const oldIds = [...new Set(list.map((p) => p.sectionId).filter(Boolean))];
+    const out = [];
+    for (const sec of u.sections) {
+      const picks = [];
+      for (const r of sec.picks) {
+        const p = list.find((x) => !used.has(x) && matches(x, r));
+        if (!p) { if (!r.optional) say("byUse", { guide: u.guide, match: r.match }); continue; }
+        used.add(p);
+        picks.push({ ...p, ...(r.line ? { line: r.line } : {}), ...(r.set ?? {}), section: sec.title, sectionId: sec.id });
+      }
+      out.push(picks);
+    }
+    for (const p of list) if (!used.has(p) && (p.sponsor || p.ownerPick)) out[0].push({ ...p, section: u.sections[0].title, sectionId: u.sections[0].id });
+    counts.byUseOut = (counts.byUseOut ?? 0) + list.length - out.flat().length;
+    pageList[u.guide] = out.flatMap((picks) => picks.map((p, k) => ({ p, k })).sort((x, y) => rateOf(y.p) - rateOf(x.p) || x.k - y.k).map((x) => x.p));
+    for (const k of Object.keys(ctx.anchors ?? {})) if (ctx.parentOf?.(k) === u.guide) delete ctx.anchors[k];
+    const ids = new Set(u.sections.map((x) => x.id));
+    aliases[u.guide] = { ...Object.fromEntries(Object.keys(aliases[u.guide] ?? {}).map((k) => [k, ""])), ...Object.fromEntries(oldIds.filter((k) => !ids.has(k)).map((k) => [k, ""])) };
+  }
   return { counts, missing, aliases };
 }

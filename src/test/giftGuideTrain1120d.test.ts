@@ -152,6 +152,41 @@ describe("sections (holiday audit A #60, owner 11-19 fold thin sections)", () =>
   });
 });
 
+describe("sections by use (owner standard 11-20, ~/.lh-shots/gg-reference-1120/STANDARD.md)", () => {
+  const byUse = (JSON.parse(readFileSync("scripts/gift-guide-train-1120d.json", "utf8")) as { byUse: { guide: string; sections: { id: string; title: string; picks: { match: string }[] }[] }[] }).byUse;
+
+  it("a by-use guide holds exactly its rule's sections, a short reason on every pick and a rounded price spread", () => {
+    expect(byUse.map((u) => u.guide)).toContain("healthcare");
+    for (const u of byUse) {
+      const picks = guide(u.guide) as (Row & { line?: string })[];
+      expect([...new Set(picks.map((p) => `${p.sectionId}:${p.section}`))], u.guide).toEqual(u.sections.map((x) => `${x.id}:${x.title}`));
+      expect(picks.length, u.guide).toBe(u.sections.reduce((n, x) => n + x.picks.length, 0));
+      const noLine = picks.filter((p) => !p.line || p.line.length < 15 || p.line.length > 110 || p.line === p.name).map((p) => p.name);
+      expect(noLine, u.guide).toEqual([]);
+      const priced = picks.filter((p) => typeof p.price === "number").map((p) => p.price!);
+      // The owner's bar: at least 4 checked prices under $25, a real middle, at least 3 splurges.
+      expect(priced.filter((x) => x < 25).length, u.guide).toBeGreaterThanOrEqual(4);
+      expect(priced.filter((x) => x >= 25 && x < 100).length, u.guide).toBeGreaterThanOrEqual(6);
+      expect(priced.filter((x) => x >= 100).length, u.guide).toBeGreaterThanOrEqual(3);
+      // The Splurges section holds no checked price under $100.
+      expect(picks.filter((p) => p.sectionId === "splurges" && typeof p.price === "number" && p.price < 100).map((p) => p.name), u.guide).toEqual([]);
+      expect(Object.values(SECTION_ALIASES[u.guide] ?? {}).every((x) => x === ""), u.guide).toBe(true);
+    }
+  });
+
+  it("applyTrain1120d re-cuts a synthetic guide by use: unnamed picks leave, owner picks and sponsors stay, old links open the top", () => {
+    const row = (name: string, id: string, extra: Partial<Row> = {}) => ({ name, href: `https://x.test/${name}`, type: `t-${name}`, commission: 5, section: id.toUpperCase(), sectionId: id, ...extra });
+    const pages: Record<string, Row[]> = { g: [row("pen", "a"), row("filler", "a"), row("mug", "b", { commission: 9 }), row("ring", "b"), row("hers", "b", { ownerPick: true }), row("spons", "b", { sponsor: true, commission: null })] };
+    const anchors: Record<string, string> = { "old-a": "a", other: "z" };
+    const t = applyTrain1120d(pages, { sectionMin: 1, sectionCap: 25, byUse: [{ guide: "g", sections: [{ id: "treats", title: "Treats", picks: [{ match: "pen", line: "A pen she will use." }, { match: "mug" }] }, { id: "splurges", title: "Splurges", picks: [{ match: "ring" }, { match: "gone" }] }] }] }, { sponsorsGuide: "25-days-sponsors", anchors, parentOf: (k: string) => (k === "old-a" ? "g" : "h") });
+    expect(pages.g.map((p) => `${p.sectionId}:${p.name}`)).toEqual(["treats:mug", "treats:pen", "treats:hers", "treats:spons", "splurges:ring"]);
+    expect((pages.g.find((p) => p.name === "pen") as Row & { line?: string }).line).toBe("A pen she will use.");
+    expect(t.missing).toEqual(["byUse: g gone"]);
+    expect(t.aliases.g).toEqual({ a: "", b: "" });
+    expect(anchors).toEqual({ other: "z" });
+  });
+});
+
 describe("tap targets (holiday audit A #6, #71)", () => {
   it("the section jump links and the Gift of the Day link are at least 44px tall", () => {
     expect(GIFT_GUIDES_CSS).toMatch(/\.gg-secnav \.gg-chip\{[^}]*min-height:44px/);

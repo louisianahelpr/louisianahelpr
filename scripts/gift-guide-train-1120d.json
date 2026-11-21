@@ -361,5 +361,204 @@
    "optional": true
   }
  ],
- "sponsorMoves": "Arey The System (a national 25 Days sponsor's one spot) moved from Mom > Mother-in-Law to Her > Wife in scripts/gift-guide-train-1120b.json (audit A #12: a gray-hair routine is an awkward Mother-in-Law gift; Her's self-care fits better)."
+ "sponsorMoves": "Arey The System (a national 25 Days sponsor's one spot) moved from Mom > Mother-in-Law to Her > Wife in scripts/gift-guide-train-1120b.json (audit A #12: a gray-hair routine is an awkward Mother-in-Law gift; Her's self-care fits better).",
+ "byUse": [
+  {
+   "guide": "healthcare",
+   "why": "owner 11-20 (gg-reference-1120/STANDARD.md): sections by use, a rounded price spread, one short reason per pick; the role sections (Nurses, Doctors & Providers, Therapy, Dental/Lab/Pharmacy, Support Staff) repeated the same scrubs, socks and bottles five times",
+   "sections": [
+    {
+     "id": "small-treats",
+     "title": "Small Treats & Stocking Stuffers",
+     "picks": [
+      {
+       "match": "Kitsch Rhinestone Cloud Claw Clip",
+       "line": "Holds a full bun through a 12-hour shift."
+      },
+      {
+       "match": "Elyse Breanne Design Badge Reel",
+       "line": "A pretty badge reel to swap for the plain one."
+      },
+      {
+       "match": "Voluspa Bergamot Rose",
+       "line": "A small candle for the first quiet night off."
+      },
+      {
+       "match": "Kate Spade New York Large Spiral Notebook",
+       "line": "For report notes, lists and reminders."
+      },
+      {
+       "match": "T3 Silk Scrunchies",
+       "line": "Soft on hair that stays up all shift."
+      },
+      {
+       "match": "BIC 4-Color Pens",
+       "line": "Four colors in one pen, the one every unit borrows."
+      },
+      {
+       "match": "Kate Spade Badge Reel",
+       "line": "A dressier badge reel for clinic days."
+      },
+      {
+       "match": "Barefoot in the Wild Fuzzy Socks",
+       "line": "Soft socks to pull on once the shoes come off."
+      },
+      {
+       "match": "Kate Spade Card Case Lanyard",
+       "line": "Badge, card and key in one spot."
+      },
+      {
+       "match": "Kitsch Satin Pillowcase",
+       "line": "A satin pillowcase for day sleepers."
+      }
+     ]
+    },
+    {
+     "id": "on-shift",
+     "title": "Used on Every Shift",
+     "picks": [
+      {
+       "match": "Stanley Quencher Luxe",
+       "line": "Stays cold from first rounds to last."
+      },
+      {
+       "match": "Owala FreeSip 24 oz",
+       "line": "A no-spill bottle that fits a station cup holder."
+      },
+      {
+       "match": "Comrad Recycled Cotton Compression Socks",
+       "line": "Compression socks for legs that stand all day."
+      },
+      {
+       "match": "Bombas Over-the-Calf Compression Socks",
+       "line": "A second pair, because one is always in the wash."
+      },
+      {
+       "match": "Crocs Classic Clogs",
+       "line": "Wipe-clean clogs, easy on and off."
+      },
+      {
+       "match": "Clove Forte",
+       "line": "Sneakers made for hospital floors and spills."
+      },
+      {
+       "match": "3M Littmann Classic III",
+       "line": "The everyday stethoscope, in a color she will not lose."
+      },
+      {
+       "match": "lululemon Everywhere Belt Bag",
+       "line": "Keeps phone, pens and lip balm on her, not in a locker."
+      },
+      {
+       "match": "YETI Daytrip 20L",
+       "line": "Carries lunch, snacks and drinks for a long shift."
+      },
+      {
+       "match": "Fabletics Evolve 3-Pocket Scrub Top, Navy",
+       "line": "A soft scrub top with pockets that hold everything."
+      },
+      {
+       "match": "Fabletics High-Rise Wide Leg Scrub Pant, Navy",
+       "line": "The matching wide-leg scrub pant."
+      },
+      {
+       "match": "21 Collective Core Mockneck"
+      }
+     ]
+    },
+    {
+     "id": "after-shift",
+     "title": "After-Shift Recovery",
+     "picks": [
+      {
+       "match": "Barefoot Dreams CozyChic Ribbed Robe",
+       "line": "The soft robe to change into after a 12-hour shift."
+      },
+      {
+       "match": "Jojo Mommy Kane Revive",
+       "line": "Cushioned recovery shoes for tired feet."
+      },
+      {
+       "match": "SkinCeuticals Phyto Corrective",
+       "line": "Calms skin after hours under a mask."
+      },
+      {
+       "match": "Therabody Sleep Mask",
+       "line": "Blocks daylight for sleep after a night shift."
+      },
+      {
+       "match": "Vuori Women's Halo Essential Hoodie",
+       "line": "A soft hoodie for the drive home."
+      },
+      {
+       "match": "Vuori Women's Relaxed Fit Performance Jogger",
+       "line": "Joggers to change into the minute scrubs come off."
+      },
+      {
+       "match": "OOFOS OOriginal Sandal",
+       "line": "Recovery sandals for sore arches."
+      },
+      {
+       "match": "HoMedics Shiatsu Foot Massager",
+       "line": "A foot massage waiting at home."
+      },
+      {
+       "match": "Therabody Theragun Relief",
+       "line": "Works out tight shoulders and calves."
+      },
+      {
+       "match": "Bombas Everyday Compression Sock 2-Pack",
+       "line": "Lighter compression socks for days off."
+      }
+     ]
+    },
+    {
+     "id": "splurges",
+     "title": "Splurges",
+     "picks": [
+      {
+       "match": "Oura Ring 5",
+       "line": "Tracks sleep around a changing schedule."
+      },
+      {
+       "match": "Therabody TheraFace Mask Glo",
+       "line": "A light-therapy face mask for nights in."
+      },
+      {
+       "match": "Therabody Theragun Mini",
+       "line": "A small massage gun that fits a work bag."
+      },
+      {
+       "match": "Therabody SmartGoggles",
+       "line": "Heat and massage for tired eyes."
+      },
+      {
+       "match": "HOKA Bondi 9",
+       "line": "The most cushioned HOKA, for long days on hard floors."
+      },
+      {
+       "match": "HOKA Arahi 9",
+       "line": "A supportive HOKA for feet that roll in."
+      },
+      {
+       "match": "Patagonia Lightweight Synchilla",
+       "line": "A fleece for cold units and cold mornings."
+      },
+      {
+       "match": "Therabody TheraFace Depuffing Wand",
+       "line": "Cools puffy eyes after a night shift."
+      },
+      {
+       "match": "Anker MagGo 3-in-1",
+       "line": "Charges phone, watch and earbuds on one stand."
+      },
+      {
+       "match": "Littmann Cardiology IV",
+       "line": "The upgrade stethoscope, a classic graduation gift."
+      }
+     ]
+    }
+   ]
+  }
+ ]
 }

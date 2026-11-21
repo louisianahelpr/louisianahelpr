@@ -325,7 +325,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
         expect(isLouisianaItem(p, hosts), `${slug}: ${p.name} (${p.brand})`).toBe(false);
       }
     }
-    expect(checked).toBeGreaterThan(1100); // holiday audit A (11-20): page-level type caps, cuts and thin-section folds; measured 2026-11-20: 1,195; // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,400)
+    expect(checked).toBeGreaterThan(1000); // owner standard 11-20 (Healthcare by use, 85 -> 42): 1,079 measured; // holiday audit A (11-20): page-level type caps, cuts and thin-section folds; measured 2026-11-20: 1,195; // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (~1,400)
   });
   it("Under $5 holds 25+ picks, none over $5 (the Walmart under-$5 links, lead 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs | "_later-brands.json", "_walmart-under5-1118.json"] | "_later-brands.json"]

@@ -210,6 +210,17 @@ export const PRINTABLES: Printable[] = [
   },
   {
     kind: "download",
+    id: "thanksgiving-banner",
+    title: "Happy Thanksgiving banner",
+    blurb: "A 2-to-1 banner to print at Walgreens or any photo counter (a 12 x 24 in poster print fits it).",
+    // Owner 2026-11-21: "add this to the free printables, it's a banner they can print at walgreens" (her Canva design).
+    ready: true,
+    preview: "/printables/thanksgiving-banner/preview.webp",
+    files: [{ label: "Download the banner (free)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner.jpg" }],
+    guides: [],
+  },
+  {
+    kind: "download",
     id: "elf-kit",
     title: "Elf Adventure Kit",
     blurb: "A plan for what your elf does each day, with the supply list and the arrival letter.",

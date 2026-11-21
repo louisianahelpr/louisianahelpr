@@ -7,6 +7,10 @@
  * @mutate src/pages/info/legal/TermsSection.tsx |     <TermsSummaryEs open={lang === "es"} | <TermsSummaryEs open={false}
  * @mutate src/pages/info/legal/TermsSummaryEs.tsx |         {COURTESY_NOTE_ES} |         Resumen
  * @mutate src/pages/info/legal/TermsSummaryEs.tsx | ${feeLabel ? `: ${feeLabel}` : ""}, una sola vez | , una sola vez
+ *
+ * Owner 11-21 ("move to bottom or above questions?"): the summary is the LAST block before the Questions footer, after
+ * every section, not above the English short version.
+ * @mutate src/pages/info/legal/TermsSection.tsx |   <div className="space-y-3">\n | <div className="space-y-3"><TermsSummaryEs open={false} idOn={false} feeLabel={null} posterPaysNothing />\n
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
@@ -81,5 +85,19 @@ describe("F260r: the Terms carry a Spanish courtesy summary", () => {
     await act(async () => { await ensureLangLoaded(); });
     renderTerms();
     expect(summary()!.open).toBe(true);
+  });
+
+  it("sits at the end of the Terms, directly above the Questions footer (owner 11-21)", () => {
+    const { container } = renderTerms();
+    const s = summary()!;
+    const blocks = [...(container.firstElementChild as HTMLElement).children];
+    expect(blocks.length).toBeGreaterThan(5);
+    const i = blocks.findIndex((b) => b.contains(s));
+    expect(i).toBeGreaterThan(0);
+    // Nothing but the Questions footer after it, and every policy section before it.
+    expect(blocks.slice(i + 1).map((b) => b.textContent ?? "").join(" ")).toMatch(/^\s*Questions\?/);
+    expect(blocks.slice(i + 1)).toHaveLength(1);
+    expect(blocks[0].textContent).toContain("The short version");
+    expect(container.querySelectorAll("[data-terms-summary-es]")).toHaveLength(1);
   });
 });

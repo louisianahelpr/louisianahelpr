@@ -28,7 +28,8 @@ const uses = files.flatMap((f) => {
 
 describe("the brand mark is the H alone", () => {
   it("finds the app's HelprMark uses", () => {
-    expect(uses.length).toBeGreaterThan(12);
+    // 11 since owner 11-21: Login's and Create account's card heads draw the H through the shared AuthCardMarkRow.
+    expect(uses.length).toBeGreaterThan(11);
     expect(uses.some((u) => u.f === "src/components/declutter/DeclutterGuest.tsx")).toBe(true);
   });
 

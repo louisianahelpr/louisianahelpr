@@ -61,8 +61,6 @@ export const TermsContent = () => {
   const shippingOn = useFeature("declutter_shipping"); // Shipping rules only where the switch is on (declutterShippingCopy.ts).
   return (
   <div className="space-y-3">
-    {/* F260r (owner 11-11): the Spanish summary, a courtesy translation; open when Spanish is chosen. */}
-    <TermsSummaryEs open={lang === "es"} idOn={idOn} feeLabel={feeLabel} posterPaysNothing={POSTER_FEE_ON_DEFAULT_CENTS === 0} />
     <TldrCard
       items={[
         `You must be 18+. Every account verifies its email address before it can post or take jobs.${idOn ? ` You also verify ${ID_ONCE_PER_ACCOUNT}.` : ""}`,
@@ -581,6 +579,10 @@ export const TermsContent = () => {
         body={<TaxGuidanceLine />}
       />
     </PolicySection>
+
+    {/* F260r (owner 11-11): the Spanish summary, a courtesy translation; open when Spanish is chosen. Owner 11-21 ("move
+        to bottom or above questions?"): the last thing before the Questions footer, no longer above the short version. */}
+    <TermsSummaryEs open={lang === "es"} idOn={idOn} feeLabel={feeLabel} posterPaysNothing={POSTER_FEE_ON_DEFAULT_CENTS === 0} />
 
     <HideOnSearch>
       <PolicyFooter updated={LAST_UPDATED.terms} />

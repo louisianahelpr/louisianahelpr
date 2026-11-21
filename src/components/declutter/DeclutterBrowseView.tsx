@@ -44,7 +44,6 @@ import { FiltersIconButton } from "@/components/dashboard/browseTasksToolbar/Fil
 import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapToggleButton";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 import { DeclutterDeviceNote, DeclutterLocationButton } from "./DeclutterMilesFrom";
-import { SectionHomeLink } from "@/components/sections/SectionHomeLink";
 import { DeclutterActiveFilters } from "./DeclutterActiveFilters";
 import { declutterFilterSections, sortChoices } from "./DeclutterFilterPanel";
 import { DeclutterResultsBar, DeclutterResultsHead } from "./DeclutterResultsBar";
@@ -405,12 +404,15 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
     ? {
         count: listLoading || preview || items.isError ? undefined : rows.length,
         end: (
-          <div data-feed-strip="" className="ml-auto flex shrink-0 items-center gap-1 pb-0.5">
+          // Owner 11-21 (header polish): a guest's row is centred (DeclutterGuestHome), so the strip adds no bottom
+          // padding there (it lifted the controls 2px off the count's centre line, measured on www at 1440); a member's
+          // strip still sits on SectionTabs' underline (items-end), 2px up as before.
+          <div data-feed-strip="" className={`ml-auto flex shrink-0 items-center gap-2 ${member ? "pb-0.5" : ""}`}>
             {/* F073 (UI audit 11-09, lead 11-09): a visible field on desktop, as on the phone. */}
             <InlineListSearch value={query} onChange={setQuery} label={t("decl.searchItems")} pinned />
             {/* Owner 11-20 (site polish A4): "Use my location" is a compact button beside the search, not a row. */}
             {itemsPhase !== "offline-empty" && <DeclutterLocationButton ask={ask} />}
-            <FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} />
+            <FiltersIconButton outlined open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} />
             {member && <MapToggleButton visible={mapVisible} onToggle={toggleMap} disabled={items.isError} />}
           </div>
         ),
@@ -588,7 +590,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
 
   const head = chrome(header);
   return (
-    <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs} homeLink={member ? undefined : <SectionHomeLink />}>
+    <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs} homeBack={!member}>
       <div ref={fill.ref} className="contents" />
       {top}
       {body}

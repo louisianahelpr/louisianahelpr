@@ -6,7 +6,7 @@ import { hadSessionOnThisBrowser } from "@/lib/hadSession";
 import { postAuthDestination, rememberSignupRedirect, signupUrlFor } from "@/lib/jobIntent";
 import { rememberReferralFromUrl } from "@/lib/pendingReferral";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { HelprMark } from "@/components/HelprMark";
+import { AuthCardMarkRow } from "@/components/auth/AuthCardHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -343,11 +343,8 @@ const Login = () => {
             Guard: src/test/loginBoard37.test.ts. */}
         {!mfaChallenge && (
           <div className="flex flex-col items-center text-center gap-1.5" data-testid="login-card-head">
-            {/* Board 37/55: no back arrow; the round H icon is the way home. */}
-            <div className="mb-2">
-              {/* The H mark used everywhere else (owner 2026-10-20: never in a circle). */}
-              <HelprMark to="/" size="lg" emblemOnly />
-            </div>
+            {/* The H (links home) with the back arrow at the card's top-left (owner 11-21, AuthCardMarkRow). */}
+            <AuthCardMarkRow />
             {/* Signup-confusion 11-19: which form this is, before anything else (AuthModeTabs). */}
             <div className="w-full mb-3"><AuthModeTabs active="login" signupHref={signupHref} email={email} /></div>
             <h1 className="text-page-title text-foreground">{t("login.title")}</h1>

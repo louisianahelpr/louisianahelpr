@@ -9,6 +9,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { Button } from "@/components/ui/button";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
+import BackButton from "@/components/BackButton";
 import { sectionByKey, type SectionAdd, type SectionKey } from "./sectionsConfig";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
@@ -121,6 +122,7 @@ export function AppTopBar({
   mine,
   showAdd = true,
   add,
+  backHome = false,
 }: {
   /** Omit on Dashboard: the logo shows instead. */
   title?: string;
@@ -146,6 +148,12 @@ export function AppTopBar({
   showAdd?: boolean;
   /** This member's own add action when it differs from the section's (SectionCreateFab's `add`). */
   add?: SectionAdd;
+  /**
+   * Owner 11-21 ("move the back button to the left of declutter"): the shared back arrow FIRST on the title's own row,
+   * always to Home, named "Go to Home". A guest's public Declutter passes it (SectionScreen `homeBack`); it replaced
+   * the small "<- Home" link that sat on its own line above the title. Guard: src/test/declutterGuestHomeLinks1120.test.tsx.
+   */
+  backHome?: boolean;
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
@@ -162,6 +170,14 @@ export function AppTopBar({
   void explore;
   const title = sectionTitle;
   if (isWebDesktop && !title) return null;
+  const back = backHome ? { onBack: () => navigate("/"), label: tr("nav.goHome") } : undefined;
+  // The visible title, drawn once: alone, or after the back arrow on the same row (owner 11-21).
+  const titleEl = title ? <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> : null;
+  const backEl = back && (
+    <div className="shrink-0" data-top-bar-back="">
+      <BackButton onClick={back.onBack} label={back.label} />
+    </div>
+  );
   const actions = isWebDesktop && showAdd && section && sectionByKey(section).add ? <SectionAddButton section={section} add={add} /> : undefined;
   // The phone bar's right side: the Inbox (owner 11-15), then You. Help is INTO You (You > Help, one tap).
   const personal = (
@@ -208,12 +224,14 @@ export function AppTopBar({
   return (
     <PageTitleBar
       title={title ?? ""}
+      back={back}
       actions={actions}
       desktopGap={desktopGap}
       phone={
         search ? (
           <header className={COMPACT_TOP_ROW} data-testid="app-top-bar" data-compact-top="">
             {title && <h1 className="sr-only">{title}</h1>}
+            {backEl}
             <div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div>
             <div className="flex items-center shrink-0">
               {personal}
@@ -222,9 +240,12 @@ export function AppTopBar({
           </header>
         ) : (
           <header className={TITLE_TOP_ROW} data-testid="app-top-bar">
-            {title ? (
-              <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1>
-            ) : (
+            {titleEl && backEl ? (
+              <div className="flex min-w-0 items-center gap-3">
+                {backEl}
+                {titleEl}
+              </div>
+            ) : titleEl ?? (
               <HelprMark size="sm" emblemOnly to="/home" />
             )}
             <div className="flex items-center shrink-0 gap-1">

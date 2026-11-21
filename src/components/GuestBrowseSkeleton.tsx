@@ -3,6 +3,7 @@ import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import PageHeader from "@/components/PageHeader";
 import { PUBLIC_CONTAINER } from "@/lib/publicContainer";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { t } from "@/lib/i18n/language";
 
 /**
  * The guest feed's card grid. ONE definition, shared with DashboardGuest, so
@@ -109,10 +110,11 @@ const GuestBrowseSkeleton = () => {
     {/* PublicLayout's nav spacer, verbatim. src/test/listArrivesInOneWave
         compares the two strings, so this cannot drift from the page again. */}
     <div aria-hidden style={{ height: "calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))" }} />
-    {/* No back arrow: /browse is a top-level page (F019, owner UI audit 11-09), as DashboardGuest draws it. */}
+    {/* Owner 11-21: the page has a back arrow left of its title "Jobs" now (DashboardGuest); its loading frame holds
+        the arrow's box (reserveBackSlot, the same BACK_BUTTON_BOX_CLASS) so the title does not move when it lands. */}
     {/* F017: the same 78rem container PublicHeaderPage holds the title and body to. */}
     <div className={PUBLIC_CONTAINER}>
-    <PageHeader title="Browse jobs" hideBack width="public" topInsetHandled />
+    <PageHeader title={t("nav.jobs")} hideBack reserveBackSlot width="public" topInsetHandled />
     <div className="px-5 sm:px-8 lg:px-12 pb-16">
       <div className="mx-auto page-measure">
         <div className={`${GUEST_FEED_GRID_CLASS} ${GUEST_FEED_RESERVE_CLASS}`}>

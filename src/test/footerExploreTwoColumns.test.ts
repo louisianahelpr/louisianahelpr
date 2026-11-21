@@ -5,8 +5,13 @@
  * re-ordering). From 620px the 12-column 4/3/2/3 layout is unchanged. jsdom cannot lay out, so this pins the classes.
  * It replaces footerLinkGroupsOneRow (owner 2026-09-23: Explore, Legal and Follow on one row from 360px).
  *
- * @mutate src/components/Footer.tsx | className="grid grid-cols-2 gap-x-4 min-[620px]:block | className="space-y-2 min-[620px]:block
- * @mutate src/components/Footer.tsx | <div className="col-span-2 min-[620px]:col-span-3"> | <div className="min-[620px]:col-span-3">
+ * Owner 11-21 ("explore can be 2 rows so it doesn't make the end so long"): the two columns now hold at EVERY width,
+ * and from 620px Explore takes four of the twelve columns (the brand three) so the two columns fit their longest link.
+ *
+ * @mutate src/components/Footer.tsx | className="grid grid-cols-2 gap-x-3 whitespace-nowrap | className="space-y-2 min-[620px]:block
+ * @mutate src/components/Footer.tsx | className="grid grid-cols-2 gap-x-3 whitespace-nowrap min-[620px]:[@media(pointer:fine)]:gap-y-2 | className="grid grid-cols-2 gap-x-3 whitespace-nowrap min-[620px]:block min-[620px]:[@media(pointer:fine)]:gap-y-2
+ * @mutate src/components/Footer.tsx | <div className="col-span-2 min-[620px]:col-span-4">\n | <div className="col-span-2 min-[620px]:col-span-3">\n
+ * @mutate src/components/Footer.tsx | <div className="col-span-2 min-[620px]:col-span-4"> | <div className="min-[620px]:col-span-4">
  * @mutate src/components/Footer.tsx | <div className="grid grid-cols-2 gap-x-4 gap-y-6 md:gap-8 min-[620px]:grid-cols-12"> | <div className="grid grid-cols-2 min-[360px]:grid-cols-[auto_auto_auto] gap-x-4 gap-y-6 md:gap-8 min-[620px]:grid-cols-12">
  */
 import { describe, it, expect } from "vitest";
@@ -23,11 +28,19 @@ describe("footer on a phone: Explore in two columns, Legal and Follow under it",
   });
 
   it("Explore spans the full row below 620px and its list is a two-column grid with no vertical gap", () => {
-    expect(src).toContain('<div className="col-span-2 min-[620px]:col-span-3">');
+    expect(src).toContain('<div className="col-span-2 min-[620px]:col-span-4">');
     const ul = /<ul data-footer-explore="" className="([^"]+)"/.exec(src)?.[1] ?? "";
     const cls = ul.split(/\s+/);
-    expect(cls).toEqual(expect.arrayContaining(["grid", "grid-cols-2", "min-[620px]:block"]));
+    expect(cls).toEqual(expect.arrayContaining(["grid", "grid-cols-2", "whitespace-nowrap"]));
     expect(cls.filter((c) => /^(gap-y-|space-y-)/.test(c))).toEqual([]); // the 44px links touch; no added spacing below 620
+  });
+
+  it("owner 11-21: the two columns hold on desktop too (no switch back to one column), brand 3 / Explore 4 / Legal 2 / Follow 3", () => {
+    const ul = /<ul data-footer-explore="" className="([^"]+)"/.exec(src)?.[1] ?? "";
+    expect(ul.split(/\s+/).filter((c) => /:(block|flex|grid-cols-1)$/.test(c))).toEqual([]);
+    const spans = [...src.matchAll(/min-\[620px\]:col-span-(\d+)/g)].map((m) => Number(m[1]));
+    expect(spans).toEqual([3, 4, 2, 3]);
+    expect(spans.reduce((a, b) => a + b, 0)).toBe(12);
   });
 
   it("every footer link keeps its 44px tap height, and no group is re-ordered", () => {

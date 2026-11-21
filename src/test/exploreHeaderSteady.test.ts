@@ -26,7 +26,7 @@
  * @mutate src/index.css | .page-title-card:has(.explore-header) { padding: 0 !important; border-width: 0 !important; } | .page-title-card:has(.explore-header) { border-width: 0 !important; }
  * @mutate src/index.css | :root.page-scrolled[data-theme] .page-title-card:has(.explore-header) {\n  transition: none !important; | :root.page-scrolled[data-theme] .page-title-card:has(.explore-header) {
  * @mutate src/components/sections/SectionScreen.tsx |         {section && (\n          // py/gap | {false && (\n          // py/gap
- * @mutate src/components/sections/AppTopBar.tsx |             <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> |             <h1 className="sr-only">{title}</h1>
+ * @mutate src/components/sections/AppTopBar.tsx | <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> | <h1 className="sr-only">{title}</h1>
  * @mutate src/components/rentals/listings/RentBrowse.tsx | title={preview ? "Coming soon" | title={preview ? "Opens soon"
  * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !unknown && (!on \|\| isPreview(s)); |     const soon = !unknown && (!on);
  * @mutate src/components/sections/SectionScreen.tsx |           <div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>\n |           <div className={`flex flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>\n            {section && <p role="status">Coming soon – early preview</p>}\n
@@ -89,7 +89,7 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     expect(header).toBeGreaterThan(0);
     expect(scroll).toBeGreaterThan(header);
     // The header's own block closes before the scroll column opens.
-    expect(screen.slice(header, scroll)).toMatch(/<AppTopBar title=\{title\} explore section=\{section\} search=\{barSearch\} mine=\{mine\} showAdd=\{showAdd\} add=\{add\} \/>\s*\{tabs\}\s*\{globalSearch && <ExploreSearchEntry \/>\}\s*<\/div>/);
+    expect(screen.slice(header, scroll)).toMatch(/<AppTopBar title=\{title\} explore section=\{section\} search=\{barSearch\} mine=\{mine\} showAdd=\{showAdd\} add=\{add\} backHome=\{guestFrame && homeBack\} \/>\s*\{tabs\}\s*\{globalSearch && <ExploreSearchEntry \/>\}\s*<\/div>/);
     for (const f of ["src/components/declutter/DeclutterHomeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/RentalsHomeView.tsx"]) {
       expect({ f, tabsProp: /<SectionScreen[^>]*\btabs=\{/.test(code(f)) }).toEqual({ f, tabsProp: true });
     }
@@ -109,8 +109,10 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
   // bell and the photo inline on its right (src/test/compactTopRow.test.tsx).
   it("3. on a phone a bar with a search is ONE row (hidden h1, the search, the bell and the photo); a bar without one shows its visible title; no chips row", () => {
     const bar = code("src/components/sections/AppTopBar.tsx");
-    expect(bar).toMatch(/<header className=\{COMPACT_TOP_ROW\}[^>]*>\s*\{title && <h1 className="sr-only">\{title\}<\/h1>\}\s*<div data-testid="app-top-bar-search" className="min-w-0 flex-1">\{search\}<\/div>/);
-    expect(bar).toMatch(/<header className=\{TITLE_TOP_ROW\}[^>]*>\s*\{title \? \(\s*<h1 className="min-w-0 truncate text-page-title text-foreground" title=\{title\}>\{title\}<\/h1>/);
+    expect(bar).toMatch(/<header className=\{COMPACT_TOP_ROW\}[^>]*>\s*\{title && <h1 className="sr-only">\{title\}<\/h1>\}\s*\{backEl\}\s*<div data-testid="app-top-bar-search" className="min-w-0 flex-1">\{search\}<\/div>/);
+    // The visible title is drawn once (titleEl), alone or after the guest's back arrow (owner 11-21).
+    expect(bar).toContain('const titleEl = title ? <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> : null;');
+    expect(bar).toMatch(/<header className=\{TITLE_TOP_ROW\}[^>]*>\s*\{titleEl && backEl \? \([\s\S]{0,200}?\) : titleEl \?\? \(/);
     expect(bar).not.toMatch(/<ExploreSwitcher/);
   });
 

@@ -50,8 +50,6 @@ export const enJobs = {
   "jobPage.repliesSooner": "Want replies sooner?",
   "jobPage.addPhoto": "Add a photo",
   "jobPage.addPhotoWhy": "Jobs with photos are easier to say yes to",
-  "jobPage.changePrice": "Change the price",
-  "jobPage.youreAt": "You're at",
   "jobPage.editJob": "Edit job",
   "jobPage.cancelJob": "Cancel job",
 } as const;

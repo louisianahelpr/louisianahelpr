@@ -101,7 +101,7 @@ describe("design audit round 3 fixes", () => {
   it("#9 job page in Spanish: the fact rows, the no-applicants card and Edit / Cancel read the dictionary", async () => {
     const { enJobs } = await import("@/lib/i18n/enJobs");
     const { es } = await import("@/lib/i18n/es");
-    const keys = ["jobPage.whenRow", "jobPage.whereRow", "jobPage.noApplicants", "jobPage.tellYou", "jobPage.addPhoto", "jobPage.changePrice", "jobPage.editJob", "jobPage.cancelJob"] as const;
+    const keys = ["jobPage.whenRow", "jobPage.whereRow", "jobPage.noApplicants", "jobPage.tellYou", "jobPage.addPhoto", "jobPage.editJob", "jobPage.cancelJob"] as const;
     for (const k of keys) {
       expect(enJobs[k], k).toBeTruthy();
       expect((es as Record<string, string>)[k], k).toBeTruthy();

@@ -18,7 +18,8 @@ import { createElement } from "react";
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
 import { AmazonCartForList } from "@/pages/info/giftGuides/AmazonCartButton";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { amazonAsin, amazonCartUrl } from "@/lib/retailerCart";
 

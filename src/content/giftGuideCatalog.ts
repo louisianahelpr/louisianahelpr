@@ -83,6 +83,9 @@ export interface CatalogPick {
   band?: 25 | 50 | 100 | 500;
   /** Ships later than usual (pre-order, 1120: 21 Collective). */
   preorder?: true;
+  /** The gift type from the import ("skincare", "can-cooler"): never shown; the gift finder reads it to keep its close
+   *  matches right for the person (no skincare for Dad) and to show one of each brand's gift type (gg-live-1120). */
+  type?: string;
   /** The brand's discount code shown on the card (1120: 21 Collective, COLLECTIVE10). */
   code?: string;
   /** The code's last day (YYYY-MM-DD, Louisiana; 1120c: XTRATUF XT25 ends Nov 29): the chip hides after it. */
@@ -244,7 +247,7 @@ const toPick = (p: ResearchedPick): CatalogPick => {
   const store = researchedStore(p);
   const badges = withShopLouisiana(badgesFor(p.brand, p), store);
   return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}),
-    ...(p.sectionId ? { sectionId: p.sectionId } : {}), ...(p.band && store !== "amazon" ? { band: p.band } : {}), ...(p.preorder ? { preorder: p.preorder } : {}), ...(p.code ? { code: p.code, ...(p.codeEnds ? { codeEnds: p.codeEnds } : {}) } : {}),
+    ...(p.sectionId ? { sectionId: p.sectionId } : {}), ...(p.band && store !== "amazon" ? { band: p.band } : {}), ...(p.preorder ? { preorder: p.preorder } : {}), ...(p.type ? { type: p.type } : {}), ...(p.code ? { code: p.code, ...(p.codeEnds ? { codeEnds: p.codeEnds } : {}) } : {}),
     // Never an Amazon price (Associates rule), whatever the generated file holds.
     ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) };
 };

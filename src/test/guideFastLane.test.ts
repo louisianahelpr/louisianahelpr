@@ -22,7 +22,8 @@
  * @mutate src/lib/giftGuideShareImages.mjs | export const OG_JPG_SLUGS | export function pick() { return 1; }\nexport const OG_JPG_SLUGS
  * @mutate .github/workflows/vitest.yml |             test "$LANE" = "success" |             true
  * @mutate .github/workflows/vitest.yml |     needs: scope\n    if: ${{ !cancelled() && needs.scope.outputs.guide_only != 'true' }}\n    runs-on: ubuntu-latest\n    timeout-minutes: 25 |     needs: scope\n    if: ${{ needs.scope.outputs.guide_only != 'true' }}\n    runs-on: ubuntu-latest\n    timeout-minutes: 25
- * @mutate .github/workflows/vitest.yml |       - name: Production build\n        run: npm run build\n |
+ * @mutate .github/workflows/vitest.yml | \n        run: npm run build |
+ * @mutate .github/workflows/vitest.yml | \n          VITE_SUPABASE_URL: "https://fncmgoasalhdgfwzhsqa.supabase.co" |
  * @mutate .github/workflows/e2e-happy-path.yml |       - name: Run happy-path smoke tests\n        if: github.event_name != 'pull_request' \|\| (steps.filter.outputs.ui == 'true' && steps.guide.outputs.guide_only != 'true') |       - name: Run happy-path smoke tests\n        if: github.event_name != 'pull_request' \|\| steps.guide.outputs.guide_only != 'true'
  * @mutate .github/workflows/lighthouse.yml |       - "!public/sitemap.xml"\n |
  */
@@ -177,5 +178,36 @@ describe("the workflows skip only on an explicit 'true' and gate the required ch
     const paths = wf("lighthouse.yml").on.pull_request.paths ?? [];
     const neg = paths.filter((p) => p.startsWith("!")).map((p) => p.slice(1));
     expect(neg).toEqual(GUIDE_CONTENT.filter((g) => /^(src|public)\//.test(g)));
+  });
+});
+
+/**
+ * 2026-11-20: the fast lane's "Production build" step shipped with no VITE_SUPABASE_* env, so vite.config.ts's
+ * require-build-env plugin refused the build and the required "Vitest unit tests" check went red on every
+ * guide-only PR. The class: any workflow step that runs `npm run build` without the env the build demands.
+ */
+describe("every workflow step that runs the production build has the env vite.config.ts requires", () => {
+  type EnvStep = Step & { env?: Record<string, unknown> };
+  type EnvJob = Omit<Job, "steps"> & { env?: Record<string, unknown>; steps?: EnvStep[] };
+  it("each REQUIRED_BUILD_ENV key is set on the step, its job or its workflow (floor: >3 build steps, incl. the fast lane)", () => {
+    const decl = read("vite.config.ts").match(/const REQUIRED_BUILD_ENV = \[([^\]]*)\]/)?.[1] ?? "";
+    const required = [...decl.matchAll(/"(VITE_[A-Z_]+)"/g)].map((m) => m[1]);
+    expect(required).toContain("VITE_SUPABASE_URL");
+    const builds: string[] = [];
+    const missing: string[] = [];
+    for (const f of tracked.filter((p) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(p))) {
+      const w = parse(read(f)) as { env?: Record<string, unknown>; jobs?: Record<string, EnvJob> };
+      for (const [id, j] of Object.entries(w.jobs ?? {})) {
+        for (const s of j.steps ?? []) {
+          if (!/\bnpm run build(?![:\w-])/.test(s.run ?? "")) continue;
+          builds.push(`${f}:${id}`);
+          const env = { ...(w.env ?? {}), ...(j.env ?? {}), ...(s.env ?? {}) };
+          for (const k of required) if (!env[k]) missing.push(`${f} ${id} "${s.name ?? ""}": ${k}`);
+        }
+      }
+    }
+    expect(builds.length).toBeGreaterThan(3);
+    expect(builds).toContain(".github/workflows/vitest.yml:guide-fast-lane");
+    expect(missing).toEqual([]);
   });
 });

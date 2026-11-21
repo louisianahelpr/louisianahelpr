@@ -27,8 +27,8 @@ export const FINDER_WHO: { id: FinderWho; label: string; guides: { slug: string;
   { id: "kids", label: "Kids", guides: [{ slug: "kids", sections: ["little-kids"] }, { slug: "kids", sections: ["big-kids"] }] },
   // Owner 11-20 evening: Teens is its own guide.
   { id: "teen", label: "Teen", guides: [{ slug: "teens" }] },
-  { id: "friend", label: "Friend", guides: [{ slug: "friends-and-coworkers", sections: ["friends"] }] },
-  { id: "coworker", label: "Coworker", guides: [{ slug: "friends-and-coworkers", sections: ["coworkers-and-boss"] }] },
+  { id: "friend", label: "Friend", guides: [{ slug: "friends-and-coworkers", sections: ["for-your-best-friend"] }] },
+  { id: "coworker", label: "Coworker", guides: [{ slug: "friends-and-coworkers", sections: ["for-the-office-coworkers-and-the-boss"] }] },
   { id: "grandparent", label: "Grandparent", guides: [{ slug: "grandparents" }] },
 ];
 export const FINDER_BUDGETS: { id: FinderBudget; label: string }[] = [

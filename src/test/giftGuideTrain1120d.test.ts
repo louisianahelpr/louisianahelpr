@@ -26,7 +26,8 @@ import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 const DIR = "src/content/giftGuidePicks";
 type Row = { name: string; brand?: string; href: string; type?: string; price?: number; section?: string; sectionId?: string; commission?: number | null; sponsor?: true; ownerPick?: true; from?: string };
 const chunks = readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => ({ slug: f.replace(/\.json$/, ""), picks: (JSON.parse(readFileSync(`${DIR}/${f}`, "utf8")) as { picks: Row[] }).picks }));
-const guide = (slug: string) => chunks.find((c) => c.slug === slug)?.picks ?? [];
+// A filtered view (Mom on Her, Dad on Him) has no file of its own: its picks are the ones the page marks as from it.
+const guide = (slug: string) => chunks.find((c) => c.slug === slug)?.picks ?? chunks.flatMap((c) => c.picks.filter((p) => p.from === slug));
 const spec = JSON.parse(readFileSync("scripts/gift-guide-train-1120d.json", "utf8")) as {
   sectionMin: number; sectionCap: number;
   pageCaps: { max: number; brandTypeMax: number; exemptTypes: string[]; typeMax: Record<string, number>; guides: Record<string, { max?: number; brandTypeMax?: number; exemptTypes?: string[] }> };

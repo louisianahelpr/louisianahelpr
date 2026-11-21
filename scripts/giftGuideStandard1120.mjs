@@ -47,13 +47,17 @@ export function applyStandard(pageList, spec, ctx = {}) {
     for (const s of [pageList, ...snaps]) for (const [k, l] of Object.entries(s)) { if (k === slug) continue; const p = findPick(l, none, want); if (p) return p; }
     return undefined;
   };
-  for (const [slug, g] of Object.entries(spec.guides ?? {})) {
+  for (let [slug, g] of Object.entries(spec.guides ?? {})) {
     const list = pageList[slug];
     if (!list?.length) { missing.push(`${slug}: no guide`); continue; }
     counts.guides++;
     const used = new Set();
     const ownFrom = list.some((p) => p.from === slug);
     const placed = new Map(); // old pick -> section index
+    // A section that keeps its heading keeps its id (Kids "babies"): old links, the finder and the anchors still land.
+    const idOf = new Map(list.filter((p) => p.sectionId && p.section).map((p) => [p.section, p.sectionId]));
+    const taken = new Set(g.sections.map((x) => x.id));
+    g = { ...g, sections: g.sections.map((x) => (idOf.has(x.title) && !taken.has(idOf.get(x.title)) ? { ...x, id: idOf.get(x.title) } : x)) };
     const secs = g.sections.map(() => []);
     g.sections.forEach((sec, i) => {
       for (const want of sec.picks) {

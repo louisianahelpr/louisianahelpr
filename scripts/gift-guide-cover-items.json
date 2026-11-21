@@ -117,6 +117,11 @@
     "image": "https://static.shopmy.us/uploads/pretty-prod-1787259620812"
    },
    {
+    "name": "BaubleBar Pisa Custom Bracelet",
+    "key": "baublebar:bracelet",
+    "image": "https://static.shopmy.us/pins/zoom-107884964-1795117379161-63994_G_02_RS_SQ_2026_d15441b4-8c12-43cc-946d-067373ee73ee.jpg"
+   },
+   {
     "name": "MAC Retro Matte Lipstick",
     "key": "maccosmetics:lipstick",
     "image": "https://cdn.shopify.com/s/files/1/0774/8481/8690/files/mac_sku_M0N916_1x1_0_44fa46a9-7e37-4923-a4f8-de22757a00bb.png?v=1795022824"
@@ -135,11 +140,6 @@
     "name": "Twelve South HiRise 3 Deluxe 3-in-1 Wireless Charger",
     "key": "twelvesouth:charger",
     "image": "https://static.shopmy.us/uploads/pretty-prod-1763629543529"
-   },
-   {
-    "name": "Rifle Paper Co. 2027 Hardcover Planner with Pen",
-    "key": "riflepaperco:pen",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1779313322167"
    }
   ]
  },
@@ -246,6 +246,11 @@
   "section": "By budget",
   "items": [
    {
+    "name": "Privet House Woodland Lodge Shield Gift Tags",
+    "key": "privethouse:tags",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/privet-house-papers-prints-privet-house-woodland-l-0047b7.webp"
+   },
+   {
     "name": "Rifle Paper Co. Christmas Delivery Gift Tags",
     "key": "riflepaperco:tags",
     "image": "https://cdn.shopify.com/s/files/1/0630/7148/6146/files/gtdx013-01.jpg"
@@ -259,11 +264,6 @@
     "name": "Current Holiday Horses Christmas Jumbo Rolled Gift Wrap, 23 in x 28 ft",
     "key": "current:wrap",
     "image": "https://i5.walmartimages.com/asr/fb88acd5-16c1-4cb7-9584-583e1db15b2c.9f2393ea21e09d3414ed7a12fc8b3885.jpeg?odnHeight=500&odnWidth=500&odnBg=FFFFFF"
-   },
-   {
-    "name": "Privet House Woodland Lodge Shield Gift Tags",
-    "key": "privethouse:tags",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/privet-house-papers-prints-privet-house-woodland-l-0047b7.webp"
    }
   ]
  },
@@ -316,6 +316,11 @@
     "image": "https://cdn.shopify.com/s/files/1/0723/4584/6077/files/LSUClaw_WEMB_hoodie_HoodieCharcoal_center.png?v=1794512626"
    },
    {
+    "name": "Rebecca Illustrated Café du Monde - Art Print",
+    "key": "rebeccaillustrated:print",
+    "image": "https://cdn.shopify.com/s/files/1/0276/5540/5642/files/cafedu1.png?v=1742939761"
+   },
+   {
     "name": "Southern Marsh Youth Regatta Stretch Chino",
     "key": "southernmarsh:chino",
     "image": "https://static.shopmy.us/uploads/img-1759936062863"
@@ -324,6 +329,11 @@
     "name": "Basic Bee Bitty Bit of Honey Gift Set",
     "key": "basicbee:gift",
     "image": "https://images.squarespace-cdn.com/content/v1/6086a8c4e8b430296f102e5f/63df424a-8c5c-4740-8f35-548ea8aa9765/Basic+Bee+2025-9.png?format=1000w"
+   },
+   {
+    "name": "Geometry Greetings From Louisiana Tea Towel",
+    "key": "geometry:towel",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1754059813127"
    }
   ]
  },
@@ -349,6 +359,16 @@
     "name": "HydroJug Camo Can Cooler",
     "key": "hydrojug:cooler",
     "image": "https://static.shopmy.us/pins/zoom-107814880-1795110407994-16ozCan-Camo-WPI.png"
+   },
+   {
+    "name": "GCI Outdoor Freestyle Rocker Folding Rocking Camping Chair",
+    "key": "gcioutdoor:chair",
+    "image": "https://i5.walmartimages.com/asr/c2cccdf8-0e28-4c66-a424-a3e3acd05e53.a3e2487cd0c9397ea6994a59e20ec3f1.jpeg?odnHeight=500&odnWidth=500&odnBg=FFFFFF"
+   },
+   {
+    "name": "Bayou Classic 82 qt Stainless Boiler with Boil Basket",
+    "key": "bayouclassic:basket",
+    "image": "https://static.shopmy.us/pins/zoom-107931910-1795122294706-2416110"
    }
   ]
  },
@@ -420,11 +440,6 @@
   "section": "Hobbies",
   "items": [
    {
-    "name": "YETI LoadOut GoBox 30 Gear Case",
-    "key": "yeti:case",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1781086052288"
-   },
-   {
     "name": "XTRATUF Men's Mossy Oak Elements Ankle Deck Boot",
     "key": "xtratuf:boot",
     "image": "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMABMOH_gray_main_720x720_59db2aaa-8f4d-49ed-8456-794b7efaa58c.jpg?v=1753455694"
@@ -438,6 +453,11 @@
     "name": "Corkcicle Sierra Leakproof Cruiser",
     "key": "corkcicle:cruiser",
     "image": "https://static.shopmy.us/uploads/pretty-prod-1758522599556"
+   },
+   {
+    "name": "YETI Hopper Flip 12 Soft Cooler",
+    "key": "yeti:cooler",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1756835127318"
    }
   ]
  },
@@ -450,9 +470,9 @@
     "image": "https://static.shopmy.us/pins/zoom-108009938-1795132016404-Penny-Linn-Blue-Needlepoint-Print-Magnetic-Ort-Bowl_e6d4c572-3164-4647-8b95-7ae879dff6e9.png"
    },
    {
-    "name": "Tractor Supply 4-Drawer Tool Cart with Wood Top",
-    "key": "tractorsupply:top",
-    "image": "https://static.shopmy.us/uploads/img-product-1794578080224"
+    "name": "YETI LoadOut GoBox 60 Gear Case",
+    "key": "yeti:case",
+    "image": "https://static.shopmy.us/uploads/img-product-1758442211311"
    },
    {
     "name": "DEWALT 20V MAX XR Brushless Drill Driver Kit",
@@ -490,9 +510,9 @@
     "image": "https://static.shopmy.us/uploads/img-product-1792438955323"
    },
    {
-    "name": "YETI Rambler Mug",
-    "key": "yeti:drink",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1765195910374"
+    "name": "Corkcicle Pure Taste Mug",
+    "key": "corkcicle:drink",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1760011948670"
    },
    {
     "name": "Jellycat Amuseables Croissant Bag Charm",
@@ -504,6 +524,11 @@
  "fitness": {
   "section": "Hobbies",
   "items": [
+   {
+    "name": "BÉIS Sport Duffle Backpack",
+    "key": "béis:backpack",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1789134449887"
+   },
    {
     "name": "lululemon Shake It Out High-Rise Running Short 2.5\"",
     "key": "lululemon:short",
@@ -518,11 +543,6 @@
     "name": "LMNT Variety Pack",
     "key": "lmnt:variety",
     "image": "https://res.cloudinary.com/drinklmnt/image/upload/f_auto,q_auto/v1766170017/lmnt-new-variety-box-and-sticks_f0chvs.webp"
-   },
-   {
-    "name": "Therabody WaveSolo Vibrating Roller",
-    "key": "therabody:roller",
-    "image": "https://static.shopmy.us/pins/zoom-107903447-1795119295418-Wave-Solo-PLP-Thumbnail-1.png"
    }
   ]
  },
@@ -573,6 +593,11 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/paddywax-sweet-like-peppermint-candle-64753a.webp"
    },
    {
+    "name": "Lands' End Open Top Canvas Tote (monogrammable)",
+    "key": "landsend:monogrammable",
+    "image": "https://static.shopmy.us/uploads/img-product-1795049282785"
+   },
+   {
     "name": "Graphic Image Desk Mat in Italian Leather",
     "key": "graphicimage:leather",
     "image": "https://cdn.shopify.com/s/files/1/0058/8991/7016/products/DM2-VND-NTN-4_5b3992a6-7691-429f-8e95-bf3bf99bb544.jpg?v=1684415347"
@@ -586,11 +611,6 @@
     "name": "Longchamp Le Pliage Cosmetics Case",
     "key": "longchamp:case",
     "image": "https://n.nordstrommedia.com/it/ef876d1c-df3c-43e7-8642-e12ad986b8b8.jpeg"
-   },
-   {
-    "name": "Dagne Dover Landon Carryall, Large",
-    "key": "dagnedover:large",
-    "image": "https://static.shopmy.us/pins/zoom-107797261-1795108579687-DD841001101_1_1.jpg"
    }
   ]
  },
@@ -872,6 +892,11 @@
     "image": "https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-The_Quencher_ProTour_Flip_Straw_Tumbler-30_oz_0.89_L-Popsicle_Plaid-Front.png"
    },
    {
+    "name": "Stanley Quencher H2.0 FlowState Tumbler, 40 oz",
+    "key": "stanley:stanley quencher h2 0 flowstate tumbler 40 oz",
+    "image": "https://static.shopmy.us/pins/zoom-107578809-1795060166012-Web_PNG_Square-The_Quencher_H2.0_FlowState_Tumbler_40OZ_-_Purple_Dust_-_Front.png"
+   },
+   {
     "name": "Stanley Classic Legendary Camp Mug, 12 OZ",
     "key": "stanley:stanley classic legendary camp mug 12 oz",
     "image": "https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-TheStay-HotCampMug12OZ-Shale-Front.png"
@@ -885,11 +910,6 @@
     "name": "Stanley Adventure Happy Hour Cocktail Shaker Set",
     "key": "stanley:stanley adventure happy hour cocktail shaker set",
     "image": "https://cdn.shopify.com/s/files/1/0375/3269/6635/files/B2B_Web_PNG-The-Happy-Hour-Cocktail-Shaker-Set-20OZ-Matte-Black-Front_fc039d77-a7ea-49d8-9ae9-f788933d4114.png"
-   },
-   {
-    "name": "Stanley The Reserve Wine Tumbler, 11 OZ",
-    "key": "stanley:stanley the reserve wine tumbler 11 oz",
-    "image": "https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-The_Reserve_Wine_Tumbler_11OZ_-_Rose_Quartz_-_Front.png"
    }
   ]
  },

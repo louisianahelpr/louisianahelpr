@@ -200,7 +200,8 @@ describe("a guest opening a shared link", () => {
     openLink();
     await screen.findByText("Sign up to apply");
     fireEvent.click(screen.getByRole("button", { name: "Log in" }));
-    expect(screen.getByTestId("where").textContent).toBe(`/login?redirect=${encodeURIComponent(`/jobs/${JOB_ID}`)}`);
+    // Audit 11-21 (P1): the open job's Log in says why (reason=apply), so Login never calls a public job private.
+    expect(screen.getByTestId("where").textContent).toBe(`/login?redirect=${encodeURIComponent(`/jobs/${JOB_ID}`)}&reason=apply`);
   });
 
   // F286a (audit 11-10, High): an email or push link to a hired, done or cancelled job, opened signed out,

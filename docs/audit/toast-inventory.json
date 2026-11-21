@@ -16229,7 +16229,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 268,
+      "line": 267,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16239,7 +16239,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 328,
+      "line": 327,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16249,7 +16249,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 332,
+      "line": 331,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -16259,7 +16259,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 352,
+      "line": 351,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16269,7 +16269,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 372,
+      "line": 371,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -16279,7 +16279,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 385,
+      "line": 384,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16289,7 +16289,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 449,
+      "line": 448,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -16299,7 +16299,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 454,
+      "line": 453,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -16309,7 +16309,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 458,
+      "line": 457,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -16319,7 +16319,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 477,
+      "line": 476,
       "kind": "toast.error",
       "title": {
         "form": "literal",

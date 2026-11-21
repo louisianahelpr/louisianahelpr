@@ -203,7 +203,8 @@ describe("every pop-up title is sentence case", () => {
     // 244 (owner 2026-11-20): -1, the free claim's first-time fee screen (FreeClaimFirstTime) is gone with the Declutter $2.
     // 243 (owner 11-20): -1 "Is it still available?" (DeclutterStillAvailable removed with the free-listing ask).
     // 244 (inbox polish 11-20): +1 "Delete this conversation for you?" (useDeleteForMe, the Delete-for-me confirm).
-    expect(all.length).toBe(244);
+    // 245 (Holiday Hub filters 11-21): +1 "Filters" (the /holidays filter panel, the shared FilterSheet's title).
+    expect(all.length).toBe(245);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

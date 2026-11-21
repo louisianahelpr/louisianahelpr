@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { ROWS, STORES, guideBySlug, guidesIn, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { GiftOut } from "./GiftOut";
+import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
+import { FUN_TOOLS, FUN_WORDS } from "@/content/giftGuideFun1120";
+import { EXTRAS_WORDS, FINDER_ANCHOR as FINDER_ID } from "@/content/giftGuideExtras1120";
+import { PRINTABLES_PATH, PRINTABLES_WORDS, shownPrintables } from "@/content/printables";
 
 /**
  * Every guide by group (owner's final design 2026-11-18): a 220px sticky menu beside the page on desktop, after it on
@@ -15,19 +19,30 @@ import { GiftOut } from "./GiftOut";
  * Gender-Neutral (owner 2026-11-18); their age guides open from those pages. Keyed on the open guide, so moving to
  * another guide resets which group is open.
  */
-export function GiftGuidesSidebar({ active, myList = false }: { active: CatalogGuide | null; myList?: boolean }) {
-  const current = (slug: string | null) => (!myList && (active?.slug ?? null) === slug ? ({ "aria-current": "page" } as const) : {});
+export function GiftGuidesSidebar({ active, myList = false, page }: { active: CatalogGuide | null; myList?: boolean; page?: string }) {
+  const current = (slug: string | null) => (!myList && (page ?? active?.slug ?? null) === slug ? ({ "aria-current": "page" } as const) : {});
   return (
-    <nav key={active?.slug ?? ""} className="gg-side" aria-label={G.sidebarLabel} data-gift-sidebar="">
-      {/* Owner redesign 11-18 PM: search and My list moved to the slim row under the title, and the codes and sales to
-          the page's one "Deals & codes" section; the menu is only the guides. */}
+    <nav key={page ?? active?.slug ?? ""} className="gg-side" aria-label={G.sidebarLabel} data-gift-sidebar="">
+      {/* Owner redesign 11-18 PM: search and My list moved to the slim row under the title. Owner 11-21 ("i dont see the
+          discount codes or sales on the left section either"; "there will also need to be a free section for our tags
+          color book elf guides"): Deals & codes and Free printables are entries of their own, each opening its own page,
+          never mixed into a guide's list. */}
       <ul>
         <li><Link to="/gift-guides" {...current(null)} data-gift-side="">{G.allGuidesLabel}</Link></li>
+        <li><Link to={`/gift-guides/${DEALS_SLUG}`} {...current(DEALS_SLUG)} data-gift-side-deals="">{G.dealsAndCodesLabel}</Link></li>
+        {shownPrintables().length > 0 && <li><Link to={PRINTABLES_PATH} data-gift-side-printables="">{PRINTABLES_WORDS.tile.title}</Link></li>}
       </ul>
       {/* Owner 11-20 12:30 PM ("tidier desktop sidebar"): the tools first, then the guide groups, each group's guide
-          count drawn beside its name (a CSS counter of the data attribute, so the name stays the summary's only text). */}
-      {/* Owner 11-21 ("launch the 3 guides remove the rest that are live"): the menu is the live guides' groups only (Her,
-          Him, Kids: src/content/giftGuideLive.mjs); no tools list (its decks drew from the retired guides). */}
+          count drawn beside its name (a CSS counter of the data attribute, so the name stays the summary's only text).
+          Owner 11-21 ("i also dont see the fun features anymore like the quiz"): the tools are back (FUN_TOOLS), the
+          menu's guide groups are still the live guides only (src/content/giftGuideLive.mjs). */}
+      <p className="gg-side-h">{FUN_WORDS.toolsTitle}</p>
+      <ul data-gift-side-tools="">
+        <li><Link to={`/gift-guides#${FINDER_ID}`} data-gift-side-tool="finder">{EXTRAS_WORDS.finderTitle}</Link></li>
+        {FUN_TOOLS.map((t) => (
+          <li key={t.to}><Link to={t.to} data-gift-side-tool={t.to}>{t.title}</Link></li>
+        ))}
+      </ul>
       <p className="gg-side-h">{G.sideGuidesHead}</p>
       {ROWS.filter(({ row }) => guidesIn(row).length > 0).map(({ row, label, tint }) => (
         <details key={row} open={row === active?.row} data-gift-group={row}>
@@ -139,9 +154,11 @@ export function SalesList({ sales, first = SALES_FIRST }: { sales: readonly Sale
  * "Deals & codes" (owner redesign 11-18 PM: "Codes should be a section with the other discount stuff right?"): ONE
  * section holding the discount codes and the store sales, after the landing's guide rows and after a guide's picks.
  * It starts COLLAPSED on every page and screen and never opens by itself (owner 11-18: "discount code shouldn't open
- * expanded"; no open state is remembered across pages). Hidden while it holds nothing.
+ * expanded"; no open state is remembered across pages). Hidden while it holds nothing. The one exception is the deals
+ * page itself (owner 11-21: "i dont see the discount codes or sales"), whose purpose is the codes and sales: there it
+ * starts open (`open`).
  */
-export function DealsAndCodes({ guide }: { guide?: CatalogGuide } = {}) {
+export function DealsAndCodes({ guide, open = false }: { guide?: CatalogGuide; open?: boolean } = {}) {
   const today = localToday();
   const allCodes = activeCodes([...discountCodes, ...DEAL_CODES], today);
   const allSales = liveSales(SALES, today);
@@ -151,7 +168,7 @@ export function DealsAndCodes({ guide }: { guide?: CatalogGuide } = {}) {
   const stores = codesByStore(codes).length;
   const codeRows = Math.min(stores, DEALS_ROWS);
   return (
-    <details id="gift-codes" className="gg-deals" data-gift-deals-codes="">
+    <details id="gift-codes" className="gg-deals" open={open} data-gift-deals-codes="">
       <summary><span className="gg-deals-title">{G.dealsAndCodesLabel}</span><span className="gg-deals-count" data-gift-deals-count="">{G.dealsCount(sales.length, codes.length)}</span></summary>
       <DiscountCodes codes={codes} first={codeRows} />
       <SalesList sales={sales} first={DEALS_ROWS - codeRows} />

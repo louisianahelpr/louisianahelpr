@@ -25,11 +25,18 @@ type Pick = { name: string; href: string; image?: string; store?: string; price?
 const page = (JSON.parse(readFileSync(join(ROOT, "src", "content", "giftGuidePicks", "her.json"), "utf8")).picks ?? []) as Pick[];
 
 /** The owner's saves, copied from her Desktop notes (Her-saved-amazon-1121.md, Her-saved-shopmy-1121.md), not from the module. */
-const AMAZON_ASINS = ["B0D3L9BYFZ", "B0CPB1MWMP", "B0FVFV7V1R", "B0FFMJMB6K", "B0FDKC619F", "B0C246HFWN", "B0HFYLTJR7", "B0FPCH9S11", "B0HJVYHH35", "B0FKN7FGPY", "B0B1RWJ4QJ"];
+const AMAZON_ASINS = ["B0D3L9BYFZ", "B0CPB1MWMP", "B0FVFV7V1R", "B0FFMJMB6K", "B0FDKC619F", "B0C246HFWN", "B0FPCH9S11", "B0HJVYHH35", "B0FKN7FGPY", "B0B1RWJ4QJ"];
 /** Her Amazon cart saves (Her-saved-amazon-cart-1121.md; owner 2026-11-21: "we can have more than 25 items its fine"). */
-const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B08X8P91FX", "B0C7LTPXBV", "B0D7TR9PBZ", "B08D3FXF64", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV"];
+const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B08X8P91FX", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV"];
 const SHOPMY_PINS = ["p-108613972", "p-108613754", "p-108613500", "p-108613356", "p-108613192", "p-108612982", "p-108611500", "p-108610992", "p-108609900", "p-108607824", "p-107555566", "p-108605514", "p-108604684", "p-108604054"];
-const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...SHOPMY_PINS.map((p) => `https://go.shopmy.us/${p}`)]);
+/**
+ * Commission switches 11-21 (owner: "if the items on the guides can we fund at another place for higher commison just
+ * change the link"; Desktop note Commission-switches-1121.md): the same item at the same price, moved from Amazon to a
+ * better-paying store. TATCHA Kissu (Amazon B08D3FXF64, 10%) -> Tatcha 20%; L'OCCITANE Shea Butter Classics (Amazon
+ * B0HFYLTJR7, 10%) -> Anthropologie 15%.
+ */
+const SWITCHED_PINS = ["p-108732256", "p-108732809"];
+const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
@@ -63,8 +70,8 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick never carries a price and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(22);
-    expect(shopmy.length).toBe(14);
+    expect(amazon.length).toBe(20);
+    expect(shopmy.length).toBe(16);
     for (const p of amazon) {
       expect(p.price, p.name).toBeUndefined();
       expect(p.priceAt, p.name).toBeUndefined();

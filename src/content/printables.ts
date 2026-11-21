@@ -198,10 +198,14 @@ export const PRINTABLES: Printable[] = [
     kind: "download",
     id: "coloring-book",
     title: "Christmas coloring book",
-    blurb: "Pages to color, ready to print at home.",
-    ready: false,
-    preview: "/printables/coloring-book/preview.webp",
-    files: [{ label: "Download & print (free)", href: "/printables/coloring-book/christmas-coloring-book.pdf" }],
+    blurb: "20 simple pages to color plus a cover, ready to print at home.",
+    // Owner 2026-11-21: "both color books are ready for launch" (Boys approved first, then Girls).
+    ready: true,
+    preview: "/printables/coloring-book/preview-girls.webp",
+    files: [
+      { label: "Girls book (free)", href: "/printables/coloring-book/christmas-coloring-book-girls.pdf" },
+      { label: "Boys book (free)", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf" },
+    ],
     guides: [],
   },
   {
@@ -418,6 +422,8 @@ export const PRINTABLES_WORDS = {
   title: "Free holiday printables",
   lead: "Gift tags with names and more, made by Louisiana Helpr. Type the names, see them on the design, and print at home. Free, no sign-up, nothing saved.",
   tile: { title: "Free printables", body: "Gift tags with names and more, free to print." },
+  /** The gift guides landing's card (owner 11-21): the ready printables by name, so it never promises one still hidden. */
+  landingLine: (titles: string[]) => `${titles.join(", ")}. Free to print at home.`,
   guideLink: (title: string) => `Free printable: ${title}`,
   make: "Make yours",
   making: "Making",

@@ -7,9 +7,12 @@
  * (node scripts/gift-guide-picks.mjs && node scripts/gift-guide-search-index.mjs && node scripts/generate-sitemap.mjs).
  * The relationship pages (mom, wife, dad ... src/content/giftGuidePeople.mjs RELATION_PAGES) are views of Her and Him
  * and stay with them. "25-days-sponsors" is the 25 Days of Giveaways sponsors page, not a gift guide: it stays as is.
- * Guard: src/test/giftGuideOnlyThree1121.test.ts.
+ * "black-friday-cyber-monday" is the deals page (deals and discount codes in one place, src/content/giftGuideDeals.mjs),
+ * back on 11-21 (owner: "i dont see the discount codes or sales on the left section either"; "Codes and deals shouldn't
+ * randomly show in sections"): it has its own sidebar entry and no tile. Small Business Saturday stays retired.
+ * Guard: src/test/giftGuideOnlyThree1121.test.tsx.
  */
-export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors"];
+export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday-cyber-monday"];
 
 /** Whether a guide slug is live (LIVE_GUIDES_1121). */
 export const isLiveGuide = (slug) => LIVE_GUIDES_1121.includes(slug);

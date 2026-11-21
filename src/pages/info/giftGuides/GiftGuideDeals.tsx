@@ -9,6 +9,7 @@ import { HINTS, WISH } from "@/content/giftWishList";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { dealName } from "./wishListItems";
+import { DealsAndCodes } from "./GiftGuidesSidebar";
 
 /**
  * /gift-guides/black-friday-cyber-monday (owner 2026-11-19): the deals guide. Deals first, one section per category
@@ -126,6 +127,9 @@ export function GiftGuideDeals({ now }: { now?: Date }) {
       <p className="gg-deals-ad" data-gift-deals-ad="">{W.disclosure}</p>
       {/* Owner 2026-11-20 hints: the deals page's helper line. */}
       <p className="gg-deals-ad" data-gift-deals-help="">{HINTS.deals}</p>
+      {/* Owner 11-21 ("i dont see the discount codes or sales"): the store codes and sales live on this page, open, and
+          nowhere else on the landing ("Codes and deals shouldn't randomly show in sections"). */}
+      <DealsAndCodes open />
       {deals === null ? (
         <p className="gg-deal-meta" role="status">{W.loading}</p>
       ) : sections.length === 0 ? (

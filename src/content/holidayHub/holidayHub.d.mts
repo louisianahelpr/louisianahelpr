@@ -31,10 +31,11 @@ export interface HolidayEvent extends HolidayItemBase { category: HolidayEventCa
 export type HolidayItem = HolidayLight | HolidayEvent;
 
 export const HOLIDAY_HUB_PATH: "/holidays";
-export const HOLIDAY_LIGHTS_PATH: "/holidays/lights";
-export const HOLIDAY_EVENTS_PATH: "/holidays/events";
 export const HOLIDAY_HIRE_PATH: "/holidays/hire-a-helpr";
 export const HOLIDAY_HUB_PATHS: string[];
+/** The "What" filter's choices: "lights", "events", or one kind of event. */
+export type HolidayWhat = "lights" | "events" | HolidayEventCategory;
+export const HOLIDAY_WHAT: { slug: HolidayWhat; label: string }[];
 export const HOLIDAY_REGIONS: { slug: HolidayRegion; label: string }[];
 export const HOLIDAY_EVENT_CATEGORIES: { slug: HolidayEventCategory; label: string }[];
 export const HOLIDAY_EVENT_KIND: Record<HolidayEventCategory, string>;
@@ -49,16 +50,20 @@ export function runsBetween(item: Pick<HolidayItemBase, "tba" | "start" | "end">
 export function holidayMapsQuery(item: Pick<HolidayItemBase, "name" | "address" | "city">): string;
 export interface LightFilters { region?: HolidayRegion | null; way?: "drive" | "walk" | null; cost?: HolidayCost | null }
 export function filterLights(items: readonly HolidayLight[], filters?: LightFilters, today?: string): HolidayLight[];
-export function lightsByRegion(items: readonly HolidayLight[]): { region: { slug: HolidayRegion; label: string }; items: HolidayLight[] }[];
-export interface EventFilters { region?: HolidayRegion | null; category?: HolidayEventCategory | null; weekend?: boolean }
+export interface EventFilters { region?: HolidayRegion | null; category?: HolidayEventCategory | null; cost?: HolidayCost | null; weekend?: boolean }
 export function filterEvents(items: readonly HolidayEvent[], filters?: EventFilters, today?: string): HolidayEvent[];
-export function eventsByDay(items: readonly HolidayEvent[], today: string): { key: string; day: string | null; items: HolidayEvent[] }[];
+export function isHolidayLight(item: HolidayItem): item is HolidayLight;
+export function resolveHolidayWhat(what: string | null, kind?: string | null): HolidayWhat | null;
+export function holidayLegacyHref(path: string, search?: string): string;
+export interface HolidayFilters { what?: HolidayWhat | null; region?: HolidayRegion | null; cost?: HolidayCost | null; weekend?: boolean }
+export function filterHolidayItems(lights: readonly HolidayLight[], events: readonly HolidayEvent[], filters?: HolidayFilters, today?: string): HolidayItem[];
+export function holidayCountLabel(items: readonly HolidayItem[]): string;
+export function holidayItemsByDay<T extends Pick<HolidayItemBase, "tba" | "start" | "end" | "name">>(items: readonly T[], today: string): { key: string; day: string | null; items: T[] }[];
 export function holidayDayHeading(day: string, today?: string): string;
 export const HOLIDAY_HELP: { title: string; body: string; category: string }[];
 export const HOLIDAY_WORDS: {
   hubTitle: string; hubIntro: string;
-  lightsTitle: string; lightsCard: string; lightsIntro: string;
-  eventsTitle: string; eventsCard: string; eventsIntro: string;
-  hireTitle: string; hireCard: string; hireIntro: string;
+  stripTitle: string; stripLine: string; stripCta: string;
+  hireTitle: string; hireIntro: string;
   checkFirst: string;
 };

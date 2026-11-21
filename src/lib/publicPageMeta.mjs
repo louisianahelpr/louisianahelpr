@@ -176,28 +176,15 @@ export const PUBLIC_PAGE_META = {
     ogDescription:
       "Free to enter: Louisiana businesses give away gifts every day, December 1–25. One entry covers all 25 days. Louisiana residents 18+.",
   },
-  // Louisiana Holiday Hub (owner-approved 2026-11-20): indexed, in the sitemap, with a pre-JS body and JSON-LD
-  // (src/lib/holidayHubSeo.mjs: ItemList on the lights, Event on each dated event). src/content/holidayHub/holidayHub.mjs.
+  // Louisiana Holiday Hub (owner-approved 2026-11-20; lights and events on one page 2026-11-21, the old
+  // /holidays/lights and /holidays/events redirect here): indexed, in the sitemap, with a pre-JS body and JSON-LD
+  // (src/lib/holidayHubSeo.mjs: ItemList of the lights, Event on each dated event). src/content/holidayHub/holidayHub.mjs.
   "/holidays": {
     title: "Louisiana Holiday Hub 2026: Christmas lights and events — Helpr",
-    description: "Christmas lights, parades, boat parades, markets and holiday events across Louisiana for 2026, plus local holiday help from Louisiana Helpr.",
+    description: "Christmas lights, parades, boat parades, markets, Santa and holiday events across Louisiana for 2026, in one list by date with maps, plus local holiday help from Louisiana Helpr.",
     canonical: `${SITE_ORIGIN}/holidays`,
     ogTitle: "Louisiana Holiday Hub 2026 from Louisiana Helpr",
     ogDescription: "Christmas lights, parades and holiday events across Louisiana, and local help for the holidays.",
-  },
-  "/holidays/lights": {
-    title: "Christmas lights in Louisiana 2026: drive-throughs and displays — Helpr",
-    description: "Where to see Christmas lights in Louisiana in 2026: drive-throughs, park light festivals and neighborhood displays from Lafayette to Shreveport, with dates, prices and maps.",
-    canonical: `${SITE_ORIGIN}/holidays/lights`,
-    ogTitle: "Christmas lights in Louisiana 2026",
-    ogDescription: "Drive-throughs, park light festivals and neighborhood displays across Louisiana, by region.",
-  },
-  "/holidays/events": {
-    title: "Louisiana holiday events 2026: parades, markets and Santa — Helpr",
-    description: "Christmas parades, boat parades, holiday markets, Santa visits, tree lightings, bonfires on the levee and Réveillon dinners across Louisiana in 2026, by date.",
-    canonical: `${SITE_ORIGIN}/holidays/events`,
-    ogTitle: "Louisiana holiday events 2026, by date",
-    ogDescription: "Parades, boat parades, markets, Santa, bonfires and Réveillon across Louisiana. See what's on this weekend.",
   },
   "/holidays/hire-a-helpr": {
     title: "Holiday help in Louisiana: lights, decorating and cleaning — Helpr",

@@ -4006,7 +4006,7 @@ STANDARD_SNAPSHOTS.push(Object.fromEntries(Object.entries(pageList).map(([k, l])
 // FOR HER = THE OWNER'S OWN SAVES (owner 2026-11-21, scripts/giftGuideHer1121.mjs): in place before the landing strip
 // reads the pages, so the strip never shows a Her pick the page no longer lists; set again after the final sweep below.
 console.log(`gift-guide-picks: her 1121 (before the Top 10) ${JSON.stringify(applyHer1121(pageList, storeList))}`);
-console.log(`gift-guide-picks: him + kids 1121 (before the Top 10) ${JSON.stringify(applyHimKids1121(pageList))}`);
+console.log(`gift-guide-picks: him + kids 1121 (before the Top 10) ${JSON.stringify(applyHimKids1121(pageList, storeList))}`);
 /**
  * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks over the last 7 days
  * (scripts/gift-guide-go-clicks.json, measured from prod analytics), then effective commission x item popularity, among
@@ -4099,7 +4099,7 @@ console.log(`gift-guide-picks: final sweep ${JSON.stringify(finalSweep)}`);
 {
   const t = applyHer1121(pageList, storeList);
   console.log(`gift-guide-picks: her 1121 (after the final sweep) ${JSON.stringify(t)}`);
-  console.log(`gift-guide-picks: him + kids 1121 (after the final sweep) ${JSON.stringify(applyHimKids1121(pageList))}`);
+  console.log(`gift-guide-picks: him + kids 1121 (after the final sweep) ${JSON.stringify(applyHimKids1121(pageList, storeList))}`);
 }
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
@@ -4111,6 +4111,14 @@ const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).
 const liveChunkSlugs = chunkSlugs.filter(isLiveGuide);
 // Owner 2026-11-21 ("if all details are not confirmed they should not be on the list"): a sponsor still missing a prize,
 // value or delivery (scripts/gift-guide-sponsor-order-1121.json notConfirmed) is off the sponsors page until it is.
+{
+  // The sponsors page's name-only list (NAME_ONLY_SPONSORS) leaves them out too.
+  const unconfirmedNames = [...NOT_CONFIRMED].map((n) => shortSponsorName(n).toLowerCase());
+  for (let i = NAME_ONLY.length - 1; i >= 0; i--) {
+    const b = String(NAME_ONLY[i].brand ?? "").toLowerCase();
+    if (NAME_ONLY[i].guide === SPONSORS_GUIDE && unconfirmedNames.some((n) => b.startsWith(n))) NAME_ONLY.splice(i, 1); // "HOTWORX" (both gyms) stays for Denham Springs
+  }
+}
 if (pageList[SPONSORS_GUIDE]) {
   const unconfirmed = [...NOT_CONFIRMED].map((n) => shortSponsorName(n).toLowerCase());
   pageList[SPONSORS_GUIDE] = pageList[SPONSORS_GUIDE].filter((p) => !unconfirmed.some((n) => String(p.brand ?? "").toLowerCase().startsWith(n) || n.startsWith(String(p.brand ?? "").toLowerCase() || "\u0000")));

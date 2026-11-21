@@ -1,10 +1,9 @@
 /**
- * The Louisiana Holiday Hub's shared parts (owner-approved 2026-11-20): the column, the page-view event, a filter row
- * of shared FilterChips, and one card per light display or event with its "Open in Maps" link. Words and rules live in
+ * The Louisiana Holiday Hub's shared parts (owner-approved 2026-11-20): the column, the page-view event, and one card
+ * per light display or event with its "Open in Maps" link (the filters live on HolidayHub, in the shared FilterSheet). Words and rules live in
  * src/content/holidayHub/holidayHub.mjs. Guard: src/test/holidayHub.test.tsx.
  */
 import { useEffect, type ReactNode } from "react";
-import { FilterChip } from "@/components/ui/FilterChip";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
 import { mapsSearchUrl } from "@/lib/mapsLink";
@@ -16,32 +15,10 @@ export const HUB_COLUMN = "mx-auto max-w-[1040px]";
 export const HUB_HEADER_COLUMN = "mx-auto max-w-[calc(1040px+2.5rem)] sm:max-w-[calc(1040px+4rem)] lg:max-w-[calc(1040px+6rem)]";
 
 /** One page_view per hub page opened (no personal data: the page's name only). */
-export function useHolidayPageView(page: "holidays" | "holidays_lights" | "holidays_events" | "holidays_hire") {
+export function useHolidayPageView(page: "holidays" | "holidays_hire") {
   useEffect(() => {
     track("page_view", { page });
   }, [page]);
-}
-
-/** A labelled row of shared filter chips, one pressed. Scrolls sideways on a phone, wraps from sm up. */
-export function HolidayFilterRow<T extends string>({ label, options, value, onChange, attr }: {
-  label: string;
-  options: readonly { value: T; label: string }[];
-  value: T;
-  onChange: (v: T) => void;
-  attr: `data-${string}`;
-}) {
-  return (
-    <div className="min-w-0">
-      <p className="mb-1.5 text-ds-13 font-semibold text-muted-foreground" aria-hidden="true">{label}</p>
-      <div role="group" aria-label={label} className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-        {options.map((o) => (
-          <FilterChip key={o.value} pressed={value === o.value} onClick={() => onChange(o.value)} className="shrink-0" {...{ [attr]: o.value }}>
-            {o.label}
-          </FilterChip>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 /** "Open in Maps": a plain maps search on the place's name and address (no API key), with its outbound-click event. */

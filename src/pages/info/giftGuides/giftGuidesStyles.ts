@@ -225,6 +225,25 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-helpr span{font-size:13px;color:#55554a}
 .gg-helpr-btn{display:inline-flex;align-items:center;min-height:44px;background:hsl(var(--bark));color:#fff;font-weight:700;font-size:13px;padding:0 16px;border-radius:999px;white-space:nowrap;text-decoration:none}
 @media (max-width:480px){.gg-helpr{flex-direction:column;align-items:flex-start}}
+.gg-divider{height:0;margin:20px 0 0;border:0;border-top:1px solid var(--gg-line)}
+.gg .gg-landing{padding-top:8px}
+.gg .gg-landing>*{margin-top:0;margin-bottom:0}
+.gg .gg-landing>*+*{margin-top:28px}
+.gg-wrap-three{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 12px}
+@media (min-width:768px){.gg-wrap-three{gap:20px 20px}}
+.gg-fun-tools,.gg-extras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;list-style:none;margin:0;padding:0}
+.gg-extras{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:767px){.gg-fun-tools,.gg-extras{grid-template-columns:minmax(0,1fr)}}
+.gg-fun-tools>li,.gg-extras>li{min-width:0}
+.gg-fun-tool{display:flex;flex-direction:column;justify-content:center;height:100%;min-height:76px;border:1px solid var(--gg-line);border-radius:14px;padding:12px 16px;text-decoration:none;color:var(--gg-ink);background:hsl(var(--card))}
+.gg-fun-tool:hover,.gg-fun-tool:focus-visible{border-color:var(--gg-olive)}
+.gg-fun-tool b{display:block;font-size:14px;color:var(--gg-olive)}
+.gg-fun-tool span{display:block;font-size:13px;line-height:1.4;color:var(--gg-muted);margin-top:2px}
+.gg-extra{flex-direction:row;align-items:center;justify-content:flex-start;gap:14px}
+.gg-fun-tool .gg-extra-thumbs{display:flex;flex:none;margin:0}
+.gg-extra-thumbs img{width:40px;height:40px;object-fit:cover;border-radius:6px;box-shadow:0 0 0 2px hsl(var(--card))}
+.gg-extra-thumbs img+img{margin-left:-12px}
+.gg-fun-tool .gg-extra-words{display:flex;flex-direction:column;min-width:0;margin:0;color:var(--gg-ink)}
 .gg-more{display:flex;flex-wrap:wrap;gap:0 20px;margin-top:12px}
 
 .gg-disc{border-top:1px solid var(--gg-line);margin-top:26px;padding-top:14px;font-size:12px;color:var(--gg-muted);text-align:center}

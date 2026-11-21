@@ -29,22 +29,17 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/holidays</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/holidays/events</loc>
     <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.louisianahelpr.com/holidays/lights</loc>
-    <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/25-days-sponsors</loc>
     <lastmod>2026-11-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/black-friday-cyber-monday</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -86,6 +81,7 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/him</loc>
+    <lastmod>2026-11-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

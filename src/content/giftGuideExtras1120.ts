@@ -102,6 +102,8 @@ const pickBand = (p: CatalogPick): 25 | 50 | 100 | 500 | undefined => {
 
 /** The guides whose sections are budgets ("Under $25", "Under $100"): the finder borrows from them when a person's own guide runs short. */
 export const FINDER_BUDGET_GUIDES = ["gifts-by-budget", "splurge"];
+/** Fewer picks than this and the finder points to the person's own guide too (holiday audit A #65). */
+export const FINDER_FEW = 3;
 
 /** Toys and kids' things: a grown-up's finder never borrows them; a kid's borrows only them. */
 const KID_THING = /\b(play-?doh|rainbow loom|loomi|melissa (&|and) doug|squish\w*|lincoln logs|barbie|dolls?|plush|play ?sets?|toys?|paint sticks|dive buddies|ms\.? rachel|lego|stacker|kids?'?)\b/i;
@@ -193,6 +195,27 @@ export const giftFinder = (pool: CatalogPick[], budget: FinderBudget, vibe: Find
   return { exact, close };
 };
 
+/**
+ * The budgets worth offering one person (owner 11-21, finder back on the landing): "Any budget", and each other budget
+ * only when at least one of their picks (or a budget guide's that suits them) is known to fit it. Him and Kids are the
+ * owner's Amazon lists, which carry no price, so they get "Any budget" alone rather than a dead "Under $25".
+ */
+export const finderBudgets = (pool: CatalogPick[], who: FinderWho, borrow: CatalogPick[] = []) =>
+  FINDER_BUDGETS.filter((b) => {
+    if (b.id === 0) return true;
+    const r = giftFinder(pool, b.id, "cozy", borrow, who);
+    return r.exact.length + r.close.length > 0;
+  });
+
+/** The answers in a share link's query ("?who=her&budget=50&vibe=cozy"), each checked against its options. */
+export const readFinder = (params: URLSearchParams): { who?: FinderWho; budget?: FinderBudget; vibe?: FinderVibe } => {
+  const who = FINDER_WHO.find((x) => x.id === params.get("who"))?.id;
+  const b = params.get("budget");
+  const budget = FINDER_BUDGETS.find((x) => String(x.id) === b)?.id;
+  const vibe = FINDER_VIBES.find((x) => x.id === params.get("vibe"))?.id;
+  return { ...(who ? { who } : {}), ...(budget !== undefined ? { budget } : {}), ...(vibe ? { vibe } : {}) };
+};
+
 // ---------------------------------------------------------------------------------------------------------------
 // (b) Shipping deadlines
 
@@ -232,3 +255,23 @@ export const GIFT_GUIDE_FLAGS = {
 export const giveawayBannerOn = (today: string, flags: { on: boolean; from: string } = GIFT_GUIDE_FLAGS.giveawayBanner) => flags.on && today >= flags.from;
 /** Whether the Declutter link shows. */
 export const declutterTieInOn = (flags: { on: boolean } = GIFT_GUIDE_FLAGS.declutterTieIn) => flags.on;
+
+/** The finder's anchor on the landing (/gift-guides#gift-finder opens it; the sidebar links it). */
+export const FINDER_ANCHOR = "gift-finder";
+
+/** The gift finder's words (restored with the finder, owner 11-21: "i also dont see the fun features anymore like the quiz"). */
+export const EXTRAS_WORDS = {
+  finderTitle: "Find a gift in 3 taps",
+  finderLead: "Pick who it's for, your budget and their vibe. We'll show you a short list.",
+  finderFolded: "Who, budget, vibe. We'll show you a short list.",
+  finderWho: "Who's it for?",
+  finderBudget: "Your budget",
+  finderVibe: "Their vibe",
+  finderResults: "Our picks for you",
+  finderShare: "Copy link to these picks",
+  finderCopied: "Link copied",
+  finderAgain: "Start over",
+  finderClose: "Close matches",
+  finderNone: "No picks for them yet. Try someone else.",
+  finderFew: (guide: string) => `Only a few fit. See every gift in the ${guide} guide`,
+};

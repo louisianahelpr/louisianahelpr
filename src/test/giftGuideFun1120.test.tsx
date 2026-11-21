@@ -256,11 +256,13 @@ describe("swipe rounds", () => {
     // retire the swipe tool with the guides, or refill these budgets from Her, Him and Kids. Never add to this list.
     // Owner 11-21 (later): Him and Kids are now her own Amazon saves, which carry no price on the site, so a budget
     // round finds nothing in them; only "any budget" deals for Dad and Him.
+    // Commission switches 11-21 (4 Amazon picks moved to the same item at a better-paying ShopMy store, which shows a
+    // price): rounds got fuller and me/100 now deals 8+ (measured 2026-11-21).
     // @two-way src/test/giftGuideFun1120.test.tsx:expect(thin).toEqual(KNOWN_THIN)
     const KNOWN_THIN = [
-      "me/25: 1", "me/50: 3", "me/100: 5", "mom/25: 1", "mom/50: 3", "mom/100: 5",
-      "dad/25: 0", "dad/50: 0", "dad/100: 0", "dad/0: 5", "her/25: 1", "her/50: 3", "her/100: 5",
-      "him/25: 0", "him/50: 0", "him/100: 0", "him/0: 5", "kids/25: 0", "kids/50: 0", "kids/100: 0", "kids/0: 0",
+      "me/25: 1", "me/50: 5", "mom/25: 1", "mom/50: 5", "mom/100: 7",
+      "dad/25: 0", "dad/50: 0", "dad/100: 1", "dad/0: 7", "her/25: 1", "her/50: 5", "her/100: 7",
+      "him/25: 0", "him/50: 0", "him/100: 1", "him/0: 7", "kids/25: 0", "kids/50: 0", "kids/100: 0", "kids/0: 0",
     ];
     expect(thin).toEqual(KNOWN_THIN);
   });

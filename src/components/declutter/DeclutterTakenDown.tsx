@@ -11,6 +11,8 @@ import { itemPriceLabel } from "@/lib/declutter/distance";
 import { SectionHeading } from "./DeclutterTabParts";
 import { EndedSaleRows } from "./DeclutterEndedSales";
 import { ReopenListingButton } from "./DeclutterReopenListing";
+import "@/lib/i18n/enDeclutter";
+import { t } from "@/lib/i18n/language";
 
 /**
  * The Selling tab's history: every listing taken down (withdrawn, with Relist) or marked sold elsewhere (A2-5,
@@ -20,8 +22,8 @@ import { ReopenListingButton } from "./DeclutterReopenListing";
 export function TakenDownSection({ items, ended = [] }: { items: DeclutterItem[]; ended?: CartLine[] }) {
   if (items.length === 0 && ended.length === 0) return null;
   return (
-    <section className="space-y-2" aria-label="Selling history" data-taken-down="">
-      <SectionHeading title="Selling history" />
+    <section className="space-y-2" aria-label={t("dsl.hist.title")} data-taken-down="">
+      <SectionHeading title={t("dsl.hist.title")} />
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
         {items.map((item) => (
           <li key={item.id} className="px-4 py-3" data-taken-down-row="">
@@ -31,7 +33,7 @@ export function TakenDownSection({ items, ended = [] }: { items: DeclutterItem[]
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={item.title}>{item.title}</p>
                 <p className="line-clamp-2 text-ds-13 text-muted-foreground">
-                  {item.status === "sold_elsewhere" ? "Sold elsewhere." : "Taken down. Buyers can't see it."}
+                  {item.status === "sold_elsewhere" ? t("dsl.hist.soldElsewhere") : t("dsl.hist.takenDown")}
                 </p>
               </div>
               {/* Q2580 (audit 1102a): seven taken-down rows stacked seven full olive Relist buttons, each on its own line

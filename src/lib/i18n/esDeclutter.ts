@@ -344,4 +344,10 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "dsl.views": "{n} vistas",
   "dsl.item.buyersPay": "Los compradores pagan {amount} con la tarifa",
   "dsl.item.publicPage": "Ver su página pública",
+  "dsl.hist.title": "Historial de ventas",
+  "dsl.hist.soldElsewhere": "Vendido en otro lugar.",
+  "dsl.hist.takenDown": "Retirado. Los compradores no lo ven.",
+  "dsl.hist.relisted": "Volvió a sus anuncios. Agregue fotos y publíquelo de nuevo.",
+  "dsl.hist.relisting": "Publicando de nuevo…",
+  "dsl.hist.relist": "Volver a publicar",
 };

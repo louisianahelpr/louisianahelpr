@@ -93,7 +93,7 @@ export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } 
           <ul className="space-y-3">
             {lines.map((l) => (
               <li key={l.line_id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
-                <p className="font-semibold">{l.item_title}{kind === "swap" ? " · Trade" : ` · ${itemPriceLabel(l.price_cents)}`}</p>
+                <p className="font-semibold">{l.item_title}{kind === "swap" ? ` · ${t("dsl.trade")}` : ` · ${itemPriceLabel(l.price_cents)}`}</p>
                 {/* A3-24 (audit 11-01): the shared next-step line with the hold's end ("by 7:45 PM": 30 minutes for Buy
                     now, 24 hours after an accepted offer, the line's checkout_by); the button below is the way out. */}
                 <NextStep className="!text-sm" value={{ who: "them", text: WORDS[kind].line, by: kind === "paid" ? byClock(l.checkout_by) : timeLeft(l.checkout_by) }} />

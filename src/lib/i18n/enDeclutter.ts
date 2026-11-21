@@ -247,6 +247,12 @@ export const enDeclutter = {
   "dsl.views": "{n} views",
   "dsl.item.buyersPay": "Buyers pay {amount} with the fee",
   "dsl.item.publicPage": "See your public page",
+  "dsl.hist.title": "Selling history",
+  "dsl.hist.soldElsewhere": "Sold elsewhere.",
+  "dsl.hist.takenDown": "Taken down. Buyers can't see it.",
+  "dsl.hist.relisted": "Back in your listings. Add photos and put it up again.",
+  "dsl.hist.relisting": "Relisting…",
+  "dsl.hist.relist": "Relist",
 } as const;
 
 addEnglish(enDeclutter);

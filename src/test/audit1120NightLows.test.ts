@@ -75,4 +75,12 @@ describe("audit 11-20 night quick Lows", () => {
     expect(entry).toContain('document.querySelector<HTMLElement>("[data-open-job-limit]")');
     expect(readSource("src/pages/post-job/OpenJobLimitNotice.tsx")).toContain('data-open-job-limit=""');
   });
+  it("6 (part): Selling history, Relist and the waiting trade label read the dictionary", () => {
+    const down = readSource("src/components/declutter/DeclutterTakenDown.tsx");
+    expect(down).toContain('t("dsl.hist.title")');
+    expect(down).not.toContain('"Sold elsewhere."');
+    expect(readSource("src/components/declutter/DeclutterReopenListing.tsx")).toContain('t("dsl.hist.relist")');
+    expect(readSource("src/components/declutter/DeclutterSalesWaiting.tsx")).not.toContain('" · Trade"');
+    expect(readSource("src/lib/i18n/esDeclutter.ts")).toContain('"dsl.hist.relist": "Volver a publicar"');
+  });
 });

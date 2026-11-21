@@ -77,6 +77,7 @@ export const enPublic = {
   "pub.fact.Pay": "Pay",
   "pub.fact.earn": "You'd earn after fees",
   "pub.job.signUpApply": "Sign up to apply",
+  "pub.job.seeWhole": "See the whole job",
   "pub.job.member": "Already a member?",
   "pub.job.details": "Details",
   "pub.pw.1": "Weak",

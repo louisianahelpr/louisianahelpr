@@ -65,6 +65,7 @@ export const esPublic: Record<keyof typeof enPublic, string> = {
   "pub.fact.Pay": "Pago",
   "pub.fact.earn": "Usted ganaría (neto)",
   "pub.job.signUpApply": "Regístrese para postularse",
+  "pub.job.seeWhole": "Ver el trabajo completo",
   "pub.job.member": "¿Ya es miembro?",
   "pub.job.details": "Detalles",
   "pub.pw.1": "Débil",

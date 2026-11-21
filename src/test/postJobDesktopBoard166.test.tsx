@@ -17,7 +17,7 @@ describe("board 166: the step rail", () => {
     const onPick = vi.fn();
     const { unmount } = render(<PostJobStepRail screen="price" onPick={onPick} canPick={(s) => s === "groups" || s === "where"} />);
     const items = screen.getAllByRole("listitem");
-    expect(items.map((li) => li.textContent?.replace(/, done.*$/, ""))).toEqual(["What you need", "When", "3Budget", "4Post"]);
+    expect(items.map((li) => li.textContent?.replace(/, done.*$/, ""))).toEqual(["What you need", "When", "3Budget", "Post"]); // G13 (audit 11-21): Post is the ready mark, never a 4th number
     expect(screen.getByText("Budget").closest("[aria-current]")?.getAttribute("aria-current")).toBe("step");
     const back = screen.getAllByRole("button");
     expect(back).toHaveLength(2);

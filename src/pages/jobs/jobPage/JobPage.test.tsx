@@ -2164,8 +2164,10 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
 
   // Area 03 H1 (design audit 11-18, money safety): a Helpr who never arrived. The sticky lead is "Report no-show" (the card's
   // NoShowDialog), and "Mark done and release" (which pays the no-show Helpr) is only a "..." menu row, never the lead.
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const noShowLead = !job.is_group_job && (posterWait === "overdue_no_show" \|\| posterWait === "started_no_checkin"); |   const noShowLead = false;
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx |     ? { label: t("jp.reportNoShow"), go: posterFlows.noShow, disabled: !posterFlows.ready } |     ? { label: t("jp.reportNoShow"), go: posterFlows.finish, disabled: !posterFlows.ready }
+  // Audit 11-21 (G15): the no-show step is a negative action, so it leads OUTLINED, never olive.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const noShowLead = !job.is_group_job && NO_ARRIVAL_WAITS.has(posterWait ?? ""); |   const noShowLead = false;
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |     ? { label: t("jp.reportNoShow"), go: posterFlows.noShow, disabled: !posterFlows.ready, plain: true } |     ? { label: t("jp.reportNoShow"), go: posterFlows.finish, disabled: !posterFlows.ready, plain: true }
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | go: posterFlows.noShow, disabled: !posterFlows.ready, plain: true } | go: posterFlows.noShow, disabled: !posterFlows.ready }
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | ...(noShowLead && posterFinish.lead ? | ...(false && posterFinish.lead ?
   it("a no-show job: Report no-show leads the bar and the release is never the primary action", async () => {
     continueState.row = null;
@@ -2177,7 +2179,9 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     const rowEl = document.querySelector('[data-job-row="poster"]') as HTMLElement;
     const names = barNames(rowEl);
     expect(names.length).toBeGreaterThan(0);
-    expect(names[names.length - 1]).toBe("Report no-show");
+    expect(names).toContain("Report no-show");
+    // G15: outlined, never the olive primary (a negative action dressed as the main one).
+    expect(btn.className).not.toMatch(/btn-grad-primary/);
     expect(within(rowEl).queryByRole("button", { name: "Mark done and release" })).toBeNull();
     expect(within(rowEl).queryByRole("button", { name: "Approve and release" })).toBeNull();
     fireEvent.click(btn);

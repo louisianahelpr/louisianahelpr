@@ -1,7 +1,8 @@
 import { Navigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
-import { readLastSection, useSectionIsListed, useSectionIsOn } from "@/components/sections/ExploreSwitcher";
+import { useSectionIsListed, useSectionIsOn } from "@/components/sections/ExploreSwitcher";
+import { readLastSection } from "@/components/sections/lastSection";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 
 /**

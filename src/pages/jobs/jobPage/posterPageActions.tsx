@@ -30,7 +30,8 @@ import { useWithdrawOffer } from "./useWithdrawOffer";
 import type { JobPageRow } from "./useJobPage";
 import type { PosterPageFlows } from "./usePosterPageFlows";
 
-export type PagePrimary = { label: string; go: () => void; disabled?: boolean };
+/** `plain`: the step leads but is drawn outlined, never olive (audit 11-21, G15: "Report no-show" is a negative action). */
+export type PagePrimary = { label: string; go: () => void; disabled?: boolean; plain?: boolean };
 
 /** The statuses a poster may still cancel from (the card's own check refuses one the Helpr already set off on). */
 const CANCELLABLE = new Set(["open", "accepted"]);
@@ -162,7 +163,7 @@ export function usePosterPageActions({
       <>
       {/* The card's own words above its buttons (a crew's Tip rows; why a Tip can't be sent yet). */}
       {cardSteps && <div ref={flows.setAskHost} data-card-ask="" className="empty:hidden" />}
-      <JobPageActionRow tag="poster" lead={lead} leadIsStep={!!step} extras={extras} cardCount={cardCount} cardInMenu={cardSteps && flows.loneSos}
+      <JobPageActionRow tag="poster" lead={lead} leadIsStep={!!step} plainLead={!!step?.plain} extras={extras} cardCount={cardCount} cardInMenu={cardSteps && flows.loneSos}
         cardLead={cardLead} setCardLeadHost={flows.setLeadHost} setCardSecondHost={flows.setSecondHost} setCardListHost={flows.setListHost} menuHost={opts.menuHost} />
       </>
     );

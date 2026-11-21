@@ -114,6 +114,7 @@ const SITES: Site[] = [
 
 /** Picker file -> the bucket its chosen files go to (and where an accept={CONST} is declared). */
 const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
+  "src/pages/jobs/jobPage/NoApplicantsYet.tsx": { bucket: "job-photos" },
   "src/components/DisputeDialog.tsx": { bucket: "proof-photos" },
   "src/components/shops/ShopPermitSection.tsx": { bucket: "user-documents" },
   "src/components/jobs/MissedReturnSheet.tsx": { bucket: "proof-photos" },

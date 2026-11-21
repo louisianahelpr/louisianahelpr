@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
 import BackButton from "@/components/BackButton";
 import { sectionByKey, type SectionAdd, type SectionKey } from "./sectionsConfig";
+import { writeLastSection } from "./lastSection";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import { avatarButtonLabel } from "@/lib/avatarImage";
@@ -157,6 +158,8 @@ export function AppTopBar({
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
+  // Audit 11-21 (P8): every section screen remembers itself for /explore (members per account, guests per device).
+  useEffect(() => { if (section) writeLastSection(user?.id, section); }, [user?.id, section]);
   const isWebDesktop = useIsWebDesktop();
   // Design audit 11-17 #1 (High): under the public header (a guest on /declutter, /helprs, /search on the web) the
   // header already carries Log in / Join free, so this bar draws no second pair.

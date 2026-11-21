@@ -27,6 +27,17 @@
  * @mutate src/hooks/useNoIndex.ts |     el.setAttribute("content", "noindex, follow"); |     el.setAttribute("content", "index, follow");
  * @mutate src/pages/post-job/PostJob.tsx |   useNoIndex();\n |
  *
+ * G15: "Mark done and release" was offered (More options) before the Helpr arrived, with no warning.
+ * @mutate src/components/jobs/PosterFinishSheet.tsx |           {notArrived && ( |           {false && (
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | refundOpen, notArrived: finishBeforeArrival }); | refundOpen });
+ *
+ * P8: /explore never remembered the last section (only an unmounted component wrote it; guests read null).
+ * @mutate src/components/sections/lastSection.ts |     return (safeStorage.getItem(`${LAST_KEY}:${userId ?? GUEST}`) as SectionKey \| null) ?? null; |     return userId ? ((safeStorage.getItem(`${LAST_KEY}:${userId}`) as SectionKey \| null) ?? null) : null;
+ * @mutate src/components/sections/AppTopBar.tsx |   useEffect(() => { if (section) writeLastSection(user?.id, section); }, [user?.id, section]);\n |
+ *
+ * G13: the phone said "1 of 3 … Ready" and the desktop rail numbered four steps.
+ * @mutate src/components/postjob/PostJobStepRail.tsx | {done \|\| n > POST_JOB_SCREEN_COUNT ? <Check | {done ? <Check
+ *
  * G3: the card hold was explained three different ways (held until accepted / not charged until accepted / saved).
  * @mutate supabase/functions/_shared/cardHoldCopy.ts | postPromise: "Pay by card and you're only charged when you hire a Helpr. | postPromise: "Your card is held, not charged, until a Helpr accepts your offer.
  * @mutate src/lib/i18n/enJobPoster.ts | "Your card isn't charged until you hire a Helpr." | "Your card isn't charged until a Helpr accepts your offer."
@@ -203,6 +214,48 @@ describe("P14: tool pages are noindex, /helprs has its own head, an unavailable 
     expect(code("src/pages/search/SearchPage.tsx")).toMatch(/\buseNoIndex\(\);/);
     expect(code("src/pages/helprs/FindHelprs.tsx")).toMatch(/canonical: "https:\/\/www\.louisianahelpr\.com\/helprs"/);
     expect(code("src/pages/jobs/JobDetail.tsx")).toMatch(/robots: !authLoading && !user && !isLoading && !isError && !job \? "noindex, follow" : undefined/);
+  });
+});
+
+describe("G15: releasing before the Helpr checked in warns first", () => {
+  it("the release confirm names the no-show report when the Helpr never checked in, and says nothing extra otherwise", async () => {
+    const { PosterFinishSheet } = await import("@/components/jobs/PosterFinishSheet");
+    const base = { open: true, onOpenChange: () => {}, jobTitle: "Mow the lawn", helperFirst: "Eli", jobPrice: 90, onContinueDay: false, missedOffered: false, busy: false, onConfirm: () => {} };
+    const a = render(<PosterFinishSheet {...base} notArrived />);
+    expect(document.querySelector("[data-poster-finish-not-arrived]")?.textContent).toMatch(/Eli hasn't checked in\..*report a no-show instead\./);
+    a.unmount();
+    render(<PosterFinishSheet {...base} />);
+    expect(document.querySelector("[data-poster-finish-not-arrived]")).toBeNull();
+  });
+  it("the page passes the no-arrival waits into the finish confirm", () => {
+    expect(code("src/pages/jobs/jobPage/JobPage.tsx")).toMatch(/usePosterFinish\(\{[^}]*notArrived: finishBeforeArrival \}\)/);
+  });
+});
+
+describe("P8: /explore remembers the last section, for members and guests", () => {
+  it("what a section screen writes is what Explore reads back (a guest per device)", async () => {
+    const { readLastSection, writeLastSection } = await import("@/components/sections/lastSection");
+    writeLastSection(undefined, "declutter");
+    expect(readLastSection(undefined)).toBe("declutter");
+    writeLastSection("m1", "jobs");
+    expect(readLastSection("m1")).toBe("jobs");
+    expect(readLastSection(undefined), "a member's choice leaked into the guest key").toBe("declutter");
+  });
+  it("every section screen's top bar writes it (nothing mounts ExploreSwitcher any more)", () => {
+    expect(code("src/components/sections/AppTopBar.tsx")).toMatch(/useEffect\(\(\) => \{ if \(section\) writeLastSection\(user\?\.id, section\); \}, \[user\?\.id, section\]\);/);
+  });
+});
+
+describe("G13: the desktop rail numbers the same three steps the phone does", () => {
+  it("the rail shows 1, 2, 3 and a ready mark for Post, never a 4", async () => {
+    const { PostJobStepRail } = await import("@/components/postjob/PostJobStepRail");
+    const { POST_JOB_SCREEN_COUNT, POST_JOB_STEPS } = await import("@/components/postjob/postJobScreens");
+    render(<PostJobStepRail screen="details" />);
+    const nums = [...document.querySelectorAll("nav ol li")].map((li) => li.querySelector("span[aria-hidden]")?.textContent ?? "");
+    // Inventory floor: every rail step drew.
+    expect(nums.length).toBe(POST_JOB_STEPS.length);
+    expect(nums.filter((x) => /^\d+$/.test(x)).map(Number)).toEqual([1, 2, 3].slice(0, POST_JOB_SCREEN_COUNT));
+    expect(document.querySelectorAll("[data-rail-final]").length).toBe(1);
   });
 });
 

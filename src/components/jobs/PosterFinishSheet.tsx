@@ -22,6 +22,7 @@ export function PosterFinishSheet({
   onContinueDay,
   missedOffered,
   busy,
+  notArrived = false,
   onConfirm,
 }: {
   open: boolean;
@@ -35,6 +36,8 @@ export function PosterFinishSheet({
   /** "Didn't come back" is offered on the page: the sheet names it for unfinished work. */
   missedOffered: boolean;
   busy: boolean;
+  /** The Helpr never checked in: warn before releasing (audit 11-21, G15). */
+  notArrived?: boolean;
   onConfirm: () => void;
 }) {
   const who = (helperFirst ?? "").trim() || "your Helpr";
@@ -43,6 +46,11 @@ export function PosterFinishSheet({
       <SheetContent side="bottom" data-poster-finish-sheet="">
         <SheetHero title={`${POSTER_FINISH_LABEL}?`} />
         <div className="space-y-2 text-ds-14 leading-relaxed">
+          {notArrived && (
+            <p data-poster-finish-not-arrived="" role="alert" className="font-semibold" style={{ color: "hsl(var(--sienna-ink))" }}>
+              {who === "your Helpr" ? "Your Helpr hasn't" : `${who} hasn't`} checked in. Release only if the work was really done. If nobody came, close this and report a no-show instead.
+            </p>
+          )}
           <p data-poster-finish-amount="">
             {jobPrice ? (
               <>The <strong className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>${formatPriceExact(jobPrice)}</strong> job price for "{jobTitle}" is released to {endSentence(who)}</>

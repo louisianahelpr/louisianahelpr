@@ -37,7 +37,7 @@ import { readLineup, shortName as shortSponsorName } from "./gift-guide-sponsor-
 import { applyOwner1120d } from "./giftGuideOwner1120d.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { applyBudgetCaps } from "./giftGuideBudgetCaps.mjs";
-import { applyTrain1120d } from "./giftGuideTrain1120d.mjs";
+import { applyTrain1120d, typeFix } from "./giftGuideTrain1120d.mjs";
 import { applyPeople } from "./giftGuidePeople1120.mjs";
 import { applyStandard } from "./giftGuideStandard1120.mjs";
 import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
@@ -3985,6 +3985,8 @@ STANDARD_SNAPSHOTS.push(Object.fromEntries(Object.entries(pageList).map(([k, l])
   const spec = JSON.parse(readFileSync(new URL("./gift-guide-standard-1120.json", import.meta.url), "utf8"));
   const t = applyStandard(pageList, spec, { snapshots: STANDARD_SNAPSHOTS, anchors: SECTION_ANCHORS, aliases: SECTION_ALIASES, parentOf: (k) => MERGED_INTO[k]?.parent });
   Object.assign(SECTION_ALIASES, t.aliases);
+  // A pick the plan brings back from a snapshot skipped the train's type pass (a dress filed as "pants"): re-typed here.
+  for (const slug of Object.keys(pageList)) pageList[slug] = pageList[slug].map((p) => { const ty = typeFix(p); return ty ? { ...p, type: ty } : p; });
   fillPrices();
   console.log(`gift-guide-picks: standard 1120 ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}${t.extras.length ? `; NOT IN PLAN, removed (${t.extras.length}): ${t.extras.join(" | ")}` : ""}${t.kept.length ? `; NOT IN PLAN, kept (sponsor or owner pick, ${t.kept.length}): ${t.kept.join(" | ")}` : ""}`);
 }

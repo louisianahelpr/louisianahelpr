@@ -30,7 +30,7 @@ export default function HolidayHire() {
   const signedIn = Boolean(user);
   return (
     <PublicHeaderPage title={W.hireTitle} backTo={HOLIDAY_HUB_PATH} wrapTitle bottomPaddingClassName="pb-12 md:pb-16" headerWrapperClassName={HUB_HEADER_COLUMN}>
-      <div className={`${HUB_COLUMN} space-y-8 font-sans`} data-holiday-page="hire">
+      <div className={`${HUB_COLUMN} space-y-section font-sans`} data-holiday-page="hire">
         <section className="space-y-4">
           <p className="max-w-[68ch] text-ds-17 text-foreground">
             The holidays are busy. A neighbor can hang the lights, get the house ready and clean up after the party, so you

@@ -24,7 +24,7 @@ export default function HolidayHub() {
   useHolidayPageView("holidays");
   return (
     <PublicHeaderPage title={W.hubTitle} backTo="/" wrapTitle bottomPaddingClassName="pb-12 md:pb-16" headerWrapperClassName={HUB_HEADER_COLUMN}>
-      <div className={`${HUB_COLUMN} space-y-6 font-sans`} data-holiday-page="hub">
+      <div className={`${HUB_COLUMN} space-y-section font-sans`} data-holiday-page="hub">
         <p className="max-w-[68ch] text-ds-17 text-foreground">{W.hubIntro}</p>
         <ul className="grid gap-4 md:grid-cols-3" data-holiday-cards="">
           {CARDS.map((c) => (

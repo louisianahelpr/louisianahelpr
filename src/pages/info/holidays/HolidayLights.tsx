@@ -45,7 +45,7 @@ export default function HolidayLights() {
   const shown = groups.reduce((n, g) => n + g.items.length, 0);
   return (
     <PublicHeaderPage title={W.lightsTitle} backTo={HOLIDAY_HUB_PATH} wrapTitle bottomPaddingClassName="pb-12 md:pb-16" headerWrapperClassName={HUB_HEADER_COLUMN}>
-      <div className={`${HUB_COLUMN} space-y-6 font-sans`} data-holiday-page="lights">
+      <div className={`${HUB_COLUMN} space-y-section font-sans`} data-holiday-page="lights">
         <p className="max-w-[68ch] text-ds-15 text-muted-foreground">{W.lightsIntro}</p>
         <div className="space-y-3" data-holiday-filters="">
           <HolidayFilterRow label="Region" options={REGION_OPTIONS} value={region} onChange={(v) => set("region", v)} attr="data-holiday-region" />

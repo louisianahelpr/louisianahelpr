@@ -69,6 +69,7 @@ const STORE_DIRECTORY: Record<string, string> = {
   "src/content/giftGuideIndex.ts": "the gift guides' By store directory (Walmart, Wayfair guides)",
   "src/content/giftGuideCoverSlugs.ts": "generated: the slugs of gift guides with a cover file, including the By store guides store-walmart and store-wayfair",
   "src/content/giftGuidePicks.ts": "the gift guides' researched store pages and their sales (generated: every store we hold an affiliate link for)",
+  "src/content/giftGuides.ts": "the /gift-guides landing's By store card line (\"Target, Walmart & more\", calm landing 2026-11-20): the same By store directory",
 };
 
 const isSource = (f: string) =>

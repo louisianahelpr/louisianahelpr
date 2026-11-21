@@ -45,7 +45,7 @@ export default function HolidayEvents() {
   const shown = groups.reduce((n, g) => n + g.items.length, 0);
   return (
     <PublicHeaderPage title={W.eventsTitle} backTo={HOLIDAY_HUB_PATH} wrapTitle bottomPaddingClassName="pb-12 md:pb-16" headerWrapperClassName={HUB_HEADER_COLUMN}>
-      <div className={`${HUB_COLUMN} space-y-6 font-sans`} data-holiday-page="events">
+      <div className={`${HUB_COLUMN} space-y-section font-sans`} data-holiday-page="events">
         <p className="max-w-[68ch] text-ds-15 text-muted-foreground">{W.eventsIntro}</p>
         <div className="space-y-3" data-holiday-filters="">
           <HolidayFilterRow label="When" options={WHEN_OPTIONS} value={when} onChange={(v) => set("when", v)} attr="data-holiday-when-filter" />

@@ -226,7 +226,7 @@ const HowItWorksSection = () => {
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.08)]"
                   style={{ color: "var(--lp-action)" }}
                 >
-                  <Icon key={side} className="h-5 w-5" strokeWidth={1.75} />
+                  <Icon key={side} className="h-5 w-5" />
                 </span>
               </div>
               {/* `key={side}` remounts ONLY this text block when the toggle

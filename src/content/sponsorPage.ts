@@ -196,7 +196,7 @@ export const sponsorPage = {
    * The final lineup (owner 2026-11-16: "each person will have their own day" is no longer true; some days have
    * two or three brands, each with its own winner). Source: the owner's 25 Days Sponsor Tracker (const S and D); owner 2026-11-17: every sponsor who said yes by
    * email or Facebook is listed on their tracker day. Owner 2026-11-18 (nothing stale anywhere): lineup.days is exactly
-   * the tracker's calendar (176 giveaways as of 2026-11-20 6:45 PM; 175 after the owner dropped R&R Wedding Co. on 2026-11-20). Check drift with `node scripts/check-25days-lineup.mjs`,
+   * the tracker's calendar (176 giveaways as of 2026-11-20 6:45 PM; 175 after the owner dropped one Dec 5 sponsor on 2026-11-20). Check drift with `node scripts/check-25days-lineup.mjs`,
    * regenerate with `--print` (manual; never in CI).
    * Business names, prizes and Facebook Page links ONLY: never a contact person's name, email or phone (this page and repo are public).
    * Owner 2026-11-19: three sponsors show by their own name (David Rabalais; Tevin Lewis, District 2 Alderman, linked to his own page;

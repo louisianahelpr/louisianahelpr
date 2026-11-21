@@ -78,7 +78,7 @@ describe("the final lineup", () => {
     expect(got).toEqual(FINAL);
     for (const d of days) for (const p of d.partners) expect(p.prize.trim().length, `Dec ${d.day} ${p.brand} prize`).toBeGreaterThan(2);
     // 175 giveaways (owner 2026-11-19: show the full sponsor list; the tracker's calendar as of 2026-11-20 6:45 PM, 176,
-    // less R&R Wedding Co., which the owner dropped 2026-11-20), and no brand twice on one day (each partner's row is keyed by its brand).
+    // less the Dec 5 sponsor the owner dropped 2026-11-20), and no brand twice on one day (each partner's row is keyed by its brand).
     expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(175);
     for (const d of days) expect(new Set(d.partners.map((p) => p.brand)).size, `Dec ${d.day}`).toBe(d.partners.length);
   });
@@ -115,7 +115,7 @@ describe("the final lineup", () => {
     expect(tileCount(NO_DB, 12)).toBe(8);
     expect(tileCount(NO_DB, 1)).toBe(7);
     expect(tileCount(NO_DB, 3)).toBe(7);
-    expect(tileCount(NO_DB, 5)).toBe(6); // owner 2026-11-20: R&R Wedding Co. dropped from Dec 5
+    expect(tileCount(NO_DB, 5)).toBe(6); // owner 2026-11-20: one sponsor dropped from Dec 5
     expect(tileCount(NO_DB, 10)).toBe(7);
     expect(tileCount({ dayCounts: { 2: 7 } }, 2)).toBe(7);
     render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);

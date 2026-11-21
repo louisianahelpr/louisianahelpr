@@ -28620,6 +28620,54 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/holidays",
+      "persona": "anon",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/holidays",
+      "status": "no-placeholder",
+      "note": "NOT browser-measured (lander 4, train 1120f, 2026-11-20): a static Louisiana Holiday Hub page whose lists ship in its own chunk and which reads nothing from the server; the next full measure run replaces this row",
+      "requests": 0
+    },
+    {
+      "url": "/holidays/lights",
+      "persona": "anon",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/holidays/lights",
+      "status": "no-placeholder",
+      "note": "NOT browser-measured (lander 4, train 1120f, 2026-11-20): a static Louisiana Holiday Hub page whose lists ship in its own chunk and which reads nothing from the server; the next full measure run replaces this row",
+      "requests": 0
+    },
+    {
+      "url": "/holidays/events",
+      "persona": "anon",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/holidays/events",
+      "status": "no-placeholder",
+      "note": "NOT browser-measured (lander 4, train 1120f, 2026-11-20): a static Louisiana Holiday Hub page whose lists ship in its own chunk and which reads nothing from the server; the next full measure run replaces this row",
+      "requests": 0
+    },
+    {
+      "url": "/holidays/hire-a-helpr",
+      "persona": "anon",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/holidays/hire-a-helpr",
+      "status": "no-placeholder",
+      "note": "NOT browser-measured (lander 4, train 1120f, 2026-11-20): a static Louisiana Holiday Hub page whose lists ship in its own chunk and which reads nothing from the server; the next full measure run replaces this row",
+      "requests": 0
     }
   ],
   "merged": [

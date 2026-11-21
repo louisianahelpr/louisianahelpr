@@ -32,6 +32,9 @@ function Choices<T extends string | number>({ label, options, value, onPick, att
   );
 }
 
+/** The finder's heading id; the folded card and the open finder each render it, never both at once. */
+const FINDER_TITLE_ID = "gift-finder-title";
+
 export function GiftFinder() {
   const { search, hash } = useLocation();
   const navigate = useNavigate();
@@ -69,22 +72,23 @@ export function GiftFinder() {
   };
   if (!open) {
     return (
-      <section id={FINDER_ID} aria-labelledby="gift-finder-title" className="gg-finder gg-finder-folded" data-gift-finder="" data-gift-finder-folded="">
-        <h2 id="gift-finder-title" className="gg-finder-title">
-          <button type="button" className="gg-finder-open" aria-expanded={false} aria-controls={`${FINDER_ID}-steps`} onClick={() => setOpen(true)} data-gift-finder-open="">
+      <section id={FINDER_ID} aria-labelledby={FINDER_TITLE_ID} className="gg-finder gg-finder-folded" data-gift-finder="" data-gift-finder-folded="">
+        <h2 id={FINDER_TITLE_ID} className="gg-finder-title">
+          {/* The shared Button (OWN-SHARED, noNewHandMadeControls); .gg-finder-open restyles it as the card's row. */}
+          <Button type="button" variant="ghost" size="inline" className="gg-finder-open" aria-expanded={false} aria-controls={`${FINDER_ID}-steps`} onClick={() => setOpen(true)} data-gift-finder-open="">
             <span className="gg-finder-open-words">
               <span>{W.finderTitle}</span>
               <small>{W.finderFolded}</small>
             </span>
             <span className="gg-finder-arrow" aria-hidden="true">→</span>
-          </button>
+          </Button>
         </h2>
       </section>
     );
   }
   return (
-    <section id={FINDER_ID} aria-labelledby="gift-finder-title" className="gg-finder" data-gift-finder="">
-      <h2 id="gift-finder-title" className="gg-finder-title">{W.finderTitle}</h2>
+    <section id={FINDER_ID} aria-labelledby={FINDER_TITLE_ID} className="gg-finder" data-gift-finder="">
+      <h2 id={FINDER_TITLE_ID} className="gg-finder-title">{W.finderTitle}</h2>
       <div id={`${FINDER_ID}-steps`} className="gg-finder-steps">
       {!a.who && <p className="gg-finder-lead">{W.finderLead}</p>}
       <Choices label={W.finderWho} options={FINDER_WHO.map((x) => ({ id: x.id, label: x.label }))} value={a.who} onPick={(v) => set({ who: v })} attr="who" />

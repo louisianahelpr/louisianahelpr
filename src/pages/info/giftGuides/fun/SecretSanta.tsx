@@ -181,7 +181,7 @@ export default function SecretSanta() {
           </div>
           <p className="gg-fun-note">{W.santaKeepNote}</p>
           {confirmReset ? (
-            <div className="gg-fun-card" role="alertdialog" aria-labelledby="santa-reset-q" data-santa-reset-confirm="">
+            <div className="gg-fun-card" role="group" aria-labelledby="santa-reset-q" data-santa-reset-confirm="">
               <p id="santa-reset-q" className="m-0 font-semibold">{W.santaResetQ}</p>
               <p className="gg-fun-note mt-1">{W.santaResetWarn}</p>
               {resetError && <p className="gg-fun-err" role="alert" data-santa-reset-error="">{W.santaResetFailed}</p>}

@@ -2,6 +2,8 @@ import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction 
 import { report } from "@/lib/errorLogger";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { toast } from "sonner";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
 import { snoozeThread, toggleThreadMute, unmuteThread } from "@/lib/threadMutes";
 import type { Conversation } from "@/components/messages/types";
 
@@ -79,7 +81,7 @@ export function useThreadMuteActions({
         });
         patchMuteState(convo.jobId, other, prevMuted, prevUntil);
         hapticError();
-        toast.error("Couldn't update mute — try again?");
+        toast.error(t("msg.muteFailed"));
       }
     },
     [userId, patchMuteState],
@@ -130,7 +132,7 @@ export function useThreadMuteActions({
         });
         patchMuteState(convo.jobId, other, prevMuted, prevUntil);
         hapticError();
-        toast.error("Couldn't update mute — try again?");
+        toast.error(t("msg.muteFailed"));
       }
     },
     [userId, patchMuteState],
@@ -158,7 +160,7 @@ export function useThreadMuteActions({
         });
         patchMuteState(convo.jobId, other, prevMuted, prevUntil);
         hapticError();
-        toast.error("Couldn't update mute — try again?");
+        toast.error(t("msg.muteFailed"));
       }
     },
     [userId, patchMuteState],

@@ -6,7 +6,7 @@ import { STORES, guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, rel
 import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
 import { GiftGuideHelpr } from "./GiftGuideHelpr";
-import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
+import { NAME_ONLY_SPONSORS, SECTION_ALIASES, SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { HINTS, WISH } from "@/content/giftWishList";
@@ -16,6 +16,7 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { AgeChips } from "./GiftGuideAges";
+import { PeopleChips } from "./GiftGuidePeopleChips";
 import { SmallBizLink } from "./GiftGuideSmallBiz";
 import { PrintablesLink } from "./printables/PrintablesLink";
 import { SHOP_SMALL_GUIDE } from "@/content/giftGuideSmallBiz.mjs";
@@ -191,8 +192,11 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
   };
   const navKey = nav.map((x) => x.id).join(" ");
   useEffect(() => {
-    const id = decodeURIComponent(window.location.hash.replace(/^#/, ""));
-    if (id && navKey.split(" ").includes(id)) jump(id);
+    const raw = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+    // An old #section link (a section folded into a sibling, or an old guide's slug) opens its section now (1120d).
+    const ids = navKey.split(" ");
+    const id = ids.includes(raw) ? raw : SECTION_ALIASES[guide.slug]?.[raw] || SECTION_ANCHORS[raw] || "";
+    if (id && ids.includes(id)) jump(id);
     // Once per guide, when its list is in (the hash is read only on arrival).
      
   }, [navKey]);
@@ -346,6 +350,8 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
       {/* Holistic review 11-18 H1: Niece, Nephew and Cousins open their kids age guides by age. */}
       <AgeChips slug={guide.slug} />
+      {/* For Her + For Him (owner pop-up 11-20): Mom, Wife ... chips filter the same list (each its own page). */}
+      <PeopleChips guide={guide} />
       {/* Big batch 1120: Shop Small Louisiana opens with the way to the Small Business Saturday page. */}
       {guide.slug === SHOP_SMALL_GUIDE && <SmallBizLink />}
       {/* Owner 2026-11-20: the free printables this guide links to (gift tags on Gift Wrap & Cards), once each is ready. */}

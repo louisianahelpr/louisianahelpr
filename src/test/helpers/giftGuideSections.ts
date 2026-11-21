@@ -50,7 +50,9 @@ export function sectionPageOf<T>(slug: string, root = process.cwd()): T[] {
     return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")).picks as (T & WithSection)[]).filter((p) => p.from === slug) : [];
   }
   const file = join(root, DIR, `${slug}.json`);
-  if (!existsSync(file)) return [];
+  // A filtered view (Mom, Dad, the in-laws on Her and Him, since the people pass 1120) has no chunk and is not a merged
+  // guide: its picks sit on the parent page naming it in `from`, so its list is those picks wherever they are.
+  if (!existsSync(file)) return (sectionChunks<T>(root)[slug] ?? []) as T[];
   const picks = JSON.parse(readFileSync(file, "utf8")).picks as (T & WithSection)[];
   return picks.filter((p) => !p.from || p.from === slug);
 }

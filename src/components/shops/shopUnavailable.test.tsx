@@ -3,7 +3,7 @@
  * available" as the title AND as the body (the server's shop_not_found copy), with "Go to Dashboard" for a buyer or a
  * signed-out visitor who has no dashboard. Now: "This shop isn't taking orders right now." once, and "Browse shops".
  *
- * @mutate src/components/shops/shopsUi.tsx |             <Link to="/shops">Browse shops</Link> |             <Link to="/home">Go to Dashboard</Link>
+ * @mutate src/components/shops/shopsUi.tsx |             <Link to="/shops">Browse shops</Link> |             <Link to="/home">{t("nav.goHome")}</Link>
  * @mutate src/components/shops/shopsUi.tsx |         body={sameAsTitle ? "Check back later, or find another local shop." : body} |         body={body ?? ""}
  */
 import { describe, expect, it, vi } from "vitest";

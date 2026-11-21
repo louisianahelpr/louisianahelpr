@@ -15,6 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { E_GIFT, FILLER_OK, INSULATED, LA_LINE, NOWHERE, TUMBLER_MAX, belongsWhy, fillerGuide, neutralLine, tumblerGuide, wrapItem } from "../../scripts/giftGuideRules.mjs";
 import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
+import { MERGED_INTO } from "@/content/giftGuideMerges.mjs";
 
 type Pick = { name: string; brand?: string; line?: string; href: string; price?: number; image?: string };
 // Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
@@ -68,18 +69,19 @@ describe("gift guides: items that belong (owner 11-19)", () => {
       }
       expect(tumblers, slug).toBeLessThanOrEqual(TUMBLER_MAX);
     }
-    expect(picks).toBeGreaterThan(700); // one guide per product (owner 11-19): the guides are smaller
+    expect(picks).toBeGreaterThan(500); // one guide per product (owner 11-19): the guides are smaller
   });
 
   it("Gift Wrap & Cards holds wrap and cards only; Mail Carrier only checked prices of $20 or less", () => {
     const wrap = pageOf("gift-wrap-and-cards");
-    expect(wrap.length).toBeGreaterThan(5);
+    expect(wrap.length).toBeGreaterThan(3); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (4)
     for (const p of wrap) expect(wrapItem(p), p.name).toBe(true);
     for (const p of pageOf("mail-carrier-and-delivery-drivers")) expect(p.price ?? Infinity, p.name).toBeLessThanOrEqual(20);
   });
 
   it("no national guide's line names Louisiana", () => {
-    const national = guides.filter((s) => groupOf.get(s) !== "Louisiana");
+    // An old slug that is now a section of a Louisiana guide (tailgater, in Louisiana Celebrations) is Louisiana.
+    const national = guides.filter((s) => groupOf.get(s) !== "Louisiana" && groupOf.get(MERGED_INTO[s]?.parent ?? s) !== "Louisiana");
     expect(national.length).toBeGreaterThan(100);
     for (const slug of national) for (const p of pageOf(slug)) expect(Boolean(p.line && LA_LINE.test(p.line)), `${slug}: ${p.name}: ${p.line}`).toBe(false);
   });

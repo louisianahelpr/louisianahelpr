@@ -32,7 +32,9 @@ export function useBulkSelect() {
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const toggle = (id: string) => setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const stop = () => { setSelecting(false); setPicked(new Set()); };
-  return { selecting, start: () => setSelecting(true), stop, picked, toggle };
+  /** Audit 11-20 night #8: after a bulk action some listings refused, only those stay ticked. */
+  const keep = (ids: string[]) => setPicked(new Set(ids));
+  return { selecting, start: () => setSelecting(true), stop, keep, picked, toggle };
 }
 
 /**
@@ -71,34 +73,38 @@ export function BulkHeading({ title, items, bulk }: { title: string; items: Decl
 type Action = "pause" | "resume" | "sold";
 
 /** Runs one listing action over many, one at a time; how many went through. */
-export async function runEach(ids: string[], act: (id: string) => Promise<unknown>): Promise<{ done: number; failed: number }> {
+export async function runEach(ids: string[], act: (id: string) => Promise<unknown>): Promise<{ done: number; failed: number; failedIds: string[]; firstError: unknown }> {
   let done = 0;
-  let failed = 0;
+  const failedIds: string[] = [];
+  let firstError: unknown = null;
   for (const id of ids) {
     try {
       await act(id);
       done += 1;
     } catch (err) {
-      // Each listing keeps its own refusal (a sold or reserved one cannot be paused); the toast counts them.
-      failed += 1;
-      void err;
+      // Each listing keeps its own refusal (a sold or reserved one cannot be paused). Audit 11-20 night #8: the
+      // toast says the first reason and the refused listings stay ticked, so the seller sees which and why.
+      if (failedIds.length === 0) firstError = err;
+      failedIds.push(id);
     }
   }
-  return { done, failed };
+  return { done, failed: failedIds.length, failedIds, firstError };
 }
 
-export function BulkBar({ items, picked, onDone }: { items: DeclutterItem[]; picked: Set<string>; onDone: () => void }) {
+export function BulkBar({ items, picked, onDone, onKeep }: { items: DeclutterItem[]; picked: Set<string>; onDone: () => void; onKeep?: (failedIds: string[]) => void }) {
   const qc = useQueryClient();
-  const [asking, setAsking] = useState<"discount" | "sold" | "pause" | null>(null);
+  const [asking, setAsking] = useState<"discount" | "sold" | "pause" | "resume" | null>(null);
   const [pct, setPct] = useState<number>(15);
   const chosen = items.filter((i) => picked.has(i.id) && bulkPickable(i));
   const live = chosen.filter((i) => i.status === "live").map((i) => i.id);
   const paused = chosen.filter((i) => i.status === "paused").map((i) => i.id);
-  const finish = (done: number, total: number, failed: number) => {
-    toast(failed > 0 ? `${t("dt5.bulk.doneN", { n: done, total })} ${t("dt5.bulk.someFailed", { n: failed })}` : t("dt5.bulk.doneN", { n: done, total }));
+  const finish = (done: number, total: number, failedIds: string[] = [], firstError: unknown = null) => {
+    const failed = failedIds.length;
+    toast(failed > 0 ? `${t("dt5.bulk.doneN", { n: done, total })} ${t("dt5.bulk.failedWhy", { n: failed, why: declutterErrorMessage(firstError) })}` : t("dt5.bulk.doneN", { n: done, total }));
     void qc.invalidateQueries({ queryKey: ["declutter"] });
     setAsking(null);
-    onDone();
+    if (failed > 0 && onKeep) onKeep(failedIds);
+    else onDone();
   };
   const each = useMutation({
     mutationFn: async (a: Action) => {
@@ -106,12 +112,12 @@ export function BulkBar({ items, picked, onDone }: { items: DeclutterItem[]; pic
       const act = a === "pause" ? pauseListing : a === "resume" ? relistListing : markSoldElsewhere;
       return { ...(await runEach(ids, act)), total: ids.length };
     },
-    onSuccess: (r) => finish(r.done, r.total, r.failed),
+    onSuccess: (r) => finish(r.done, r.total, r.failedIds, r.firstError),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const discount = useMutation({
     mutationFn: () => bulkDiscount(chosen.map((i) => i.id), pct),
-    onSuccess: (n) => finish(n, chosen.length, 0),
+    onSuccess: (n) => finish(n, chosen.length),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const busy = each.isPending || discount.isPending;
@@ -126,7 +132,7 @@ export function BulkBar({ items, picked, onDone }: { items: DeclutterItem[]; pic
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => setAsking("discount")} data-bulk-action="discount">{t("dt5.bulk.discount")}</Button>
         {live.length > 0 && <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => setAsking("pause")} data-bulk-action="pause">{t("dt5.bulk.pause")}</Button>}
-        {paused.length > 0 && <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => each.mutate("resume")} data-bulk-action="resume">{t("dt5.bulk.resume")}</Button>}
+        {paused.length > 0 && <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => setAsking("resume")} data-bulk-action="resume">{t("dt5.bulk.resume")}</Button>}
         <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => setAsking("sold")} data-bulk-action="sold">{t("dt5.bulk.sold")}</Button>
       </div>
       <ConfirmSheet pair open={asking === "discount"} plain title={chosen.length === 1 ? t("dt5.bulk.discountTitle1") : t("dt5.bulk.discountTitle", { n: chosen.length })} confirmLabel={t("dt5.bulk.discountConfirm")}
@@ -145,6 +151,10 @@ export function BulkBar({ items, picked, onDone }: { items: DeclutterItem[]; pic
       <ConfirmSheet pair open={asking === "pause"} plain title={live.length === 1 ? t("dt5.bulk.pauseTitle1") : t("dt5.bulk.pauseTitle", { n: live.length })}
         confirmLabel={t("dt5.bulk.pause")} pending={each.isPending} onConfirm={() => each.mutate("pause")} onClose={() => setAsking(null)} testId="declutter-bulk-pause">
         {t("dt5.bulk.pauseBody")}
+      </ConfirmSheet>
+      <ConfirmSheet pair open={asking === "resume"} plain title={paused.length === 1 ? t("dt5.bulk.resumeTitle1") : t("dt5.bulk.resumeTitle", { n: paused.length })}
+        confirmLabel={t("dt5.bulk.resume")} pending={each.isPending} onConfirm={() => each.mutate("resume")} onClose={() => setAsking(null)} testId="declutter-bulk-resume">
+        {t("dt5.bulk.resumeBody")}
       </ConfirmSheet>
     </div>
   );

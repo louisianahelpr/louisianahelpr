@@ -812,12 +812,6 @@
     },
     {
       "guide": "kids",
-      "section": "Top picks",
-      "type": "toy",
-      "max": 2
-    },
-    {
-      "guide": "kids",
       "section": "Babies",
       "type": "baby",
       "max": 2
@@ -1152,6 +1146,7 @@
     },
     {
       "brand": "SRI Labs",
+      "sponsorsOnly": true,
       "guide": "her",
       "section": "Girlfriend",
       "fromSponsorsGuide": "SRI Labs",
@@ -1175,8 +1170,9 @@
     },
     {
       "brand": "Arey",
-      "guide": "mom",
-      "section": "Mother-in-Law",
+      "sponsorsOnly": true,
+      "guide": "her",
+      "section": "Wife",
       "row": {
         "name": "Arey The System",
         "href": "https://arey.com/products/the-system",
@@ -1187,6 +1183,7 @@
     },
     {
       "brand": "Oyu Botanica",
+      "sponsorsOnly": true,
       "guide": "mom",
       "section": "Mother-in-Law",
       "fromSponsorsGuide": "OYU Botanica",
@@ -1197,7 +1194,7 @@
     },
     {
       "brand": "Boston Mints",
-      "guide": "kids",
+      "guide": "teens",
       "section": "Teens",
       "row": {
         "name": "BostonMints Dot Rose Lip Gloss",

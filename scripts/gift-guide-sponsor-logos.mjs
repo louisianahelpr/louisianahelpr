@@ -25,6 +25,11 @@ const OUT = join(REPO, "src/content/giftGuideSponsorLogos.json");
 const PICKS = join(REPO, "src/content/giftGuidePicks");
 /** Our own Christmas Day giveaway is no sponsor. */
 const NOT_A_SPONSOR = new Set(["Louisiana Helpr"]);
+/**
+ * Sponsors the owner dropped (owner 11-20: R&R Wedding Co.): no logo, no guide card, no name, even while the public
+ * lineup still lists them (holiday audit B, scripts/gift-guide-holiday-b-1120.json droppedSponsors).
+ */
+export const DROPPED_SPONSORS = new Set(["R&R Wedding Co."]);
 /** Logos drawn white on clear (INDEX.md: "use on a dark background"): their circle is dark. */
 const DARK_LOGOS = new Set(["Everyday Dose", "3 Redneck Tenors"]);
 /**
@@ -57,7 +62,7 @@ export const shortName = (name) => String(name).split(/\s*[:(·]\s*/)[0].replace
 
 /** The lineup's brands (every `brand: "..."` in the days list) and its Facebook links. */
 export function readLineup(src) {
-  const brands = [...new Set([...src.matchAll(/\{ brand: "([^"]+)", prize:/g)].map((m) => m[1]))].filter((b) => !NOT_A_SPONSOR.has(b));
+  const brands = [...new Set([...src.matchAll(/\{ brand: "([^"]+)", prize:/g)].map((m) => m[1]))].filter((b) => !NOT_A_SPONSOR.has(b) && !DROPPED_SPONSORS.has(b));
   const links = {};
   for (const m of src.matchAll(/^\s+"([^"]+)": "(https:\/\/[^"]+)",$/gm)) links[m[1]] = m[2];
   return { brands, links };

@@ -52,6 +52,10 @@ type Kind = "money-gate" | "hides" | "tags" | "alerts" | "safety-skip" | "locks"
 /** Every SQL function whose newest body reads is_seed. EXACT both ways. */
 // @two-way src/test/isSeedCarveOutsNeedEnrolment.test.ts:toEqual(Object.keys(SQL_CARVE_OUTS).sort())
 const SQL_CARVE_OUTS: Record<string, Kind> = {
+  // 20261121035500 (referral bonus counts Declutter): a test Declutter order never counts as the finished sale or
+  // purchase that earns the $5; is_seed only keeps a bonus from paying (fails safe), it never lets one pay.
+  check_referral_bonus_declutter: "hides",
+  referral_member_has_completed_job: "hides",
   get_helper_completed_counts: "hides", // b62 (20261030015205): test data never counts in this total
   get_helper_on_time_percents: "hides", // b62 (20261030015205): test data never counts in this total
   get_helper_repeat_hire_percents: "hides", // b62 (20261030015205): test data never counts in this total

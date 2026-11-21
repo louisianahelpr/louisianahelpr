@@ -23,12 +23,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { newestFunction } from "@/test/helpers/parityReaders";
 import { blankSqlComments } from "@/test/helpers/blankNonCode";
 
-const calls = vi.hoisted(() => ({ paused: [] as string[], away: null as null | { back_on: string }, until: null as string | null }));
+const calls = vi.hoisted(() => ({ paused: [] as string[], away: null as null | { back_on: string }, awayFails: false, until: null as string | null }));
 vi.mock("@/lib/declutter/api", () => ({
   pauseListing: async (id: string) => { if (id === "bad") throw new Error("item_not_editable"); calls.paused.push(id); return "paused"; },
   relistListing: async () => "live",
   markSoldElsewhere: async () => undefined,
-  fetchMyAway: async () => calls.away,
+  fetchMyAway: async () => { if (calls.awayFails) throw new Error("network"); return calls.away; },
   fetchSellerAwayUntil: async () => calls.until,
 }));
 
@@ -71,7 +71,7 @@ describe("Declutter top 5 #5: bulk actions and away mode", () => {
   });
 
   it("one action over many counts what went through and what was refused", async () => {
-    expect(await runEach(["a", "bad", "b"], async (id) => { if (id === "bad") throw new Error("no"); })).toEqual({ done: 2, failed: 1 });
+    expect(await runEach(["a", "bad", "b"], async (id) => { if (id === "bad") throw new Error("no"); })).toMatchObject({ done: 2, failed: 1, failedIds: ["bad"] });
   });
 
   it("the bar offers Pause only with a live listing ticked and pauses each one", async () => {
@@ -89,6 +89,23 @@ describe("Declutter top 5 #5: bulk actions and away mode", () => {
     fireEvent.click(confirm);
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(calls.paused).toEqual(["a"]);
+  });
+
+  it("audit 11-20 night #8: a refused listing stays ticked, and Put back on sale asks first", async () => {
+    calls.paused = [];
+    const onDone = vi.fn();
+    const onKeep = vi.fn();
+    wrap(<BulkBar items={[item("a", "live"), item("bad", "live"), item("p", "paused")]} picked={new Set(["a", "bad", "p"])} onDone={onDone} onKeep={onKeep} />);
+    fireEvent.click(screen.getByText("Pause"));
+    const sheet = await screen.findByText("Pause 2 listings?");
+    fireEvent.click([...sheet.closest("[data-confirm-sheet]")!.querySelectorAll("button")].find((b) => b.textContent === "Pause")!);
+    await waitFor(() => expect(onKeep).toHaveBeenCalledWith(["bad"]));
+    expect(onDone).not.toHaveBeenCalled();
+    expect(calls.paused).toEqual(["a"]);
+    // Resume opens the same in-app confirm instead of running from the button.
+    fireEvent.click(screen.getByText("Put back on sale"));
+    expect(await screen.findByText("Put 1 listing back on sale?")).toBeTruthy();
+    expect(onDone).not.toHaveBeenCalled();
   });
 
   it("11-20 #4: while the bar is up the floating + Sell steps aside, and comes back when it goes", () => {
@@ -117,6 +134,19 @@ describe("Declutter top 5 #5: bulk actions and away mode", () => {
 
   it("11-20 #2: the away choices say 3 days, 1 week, 2 weeks", () => {
     expect([3, 7, 14].map(awayChoiceWords)).toEqual(["3 days", "1 week", "2 weeks"]);
+  });
+
+  // Audit 11-20 night #9: a failed read drew nothing, so an away seller could not see or end away mode.
+  // @mutate src/components/declutter/AwayMode.tsx | if (away.isError) return <ErrorState | if (away.isError) return null; if (away.isError) return <ErrorState
+  it("away: a failed read says so with Try again, and the retry brings the card back", async () => {
+    calls.awayFails = true;
+    calls.away = { back_on: "2026-11-30" };
+    const a = wrap(<AwayCard userId="u1" />);
+    expect(await screen.findByText("We couldn't load away mode.")).toBeTruthy();
+    calls.awayFails = false;
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("I'm back")).toBeTruthy();
+    a.unmount();
   });
 
   it("away: the card offers Go away, and while away says until when with I'm back; the public page shows the date", async () => {

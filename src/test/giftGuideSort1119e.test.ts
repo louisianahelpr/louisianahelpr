@@ -17,24 +17,35 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { readdirSync } from "./helpers/trackedFiles";
+import { PEOPLE_GUIDES } from "@/content/giftGuidePeople.mjs";
+import { LA_MEN_FIRST } from "../../scripts/giftGuidePeople1120.mjs";
 import { GUIDE_CAP, TYPE_MAX, buildRateData, byCommission, commissionOf, pickType, typeMax } from "../../scripts/giftGuideSort.mjs";
 
-type Pick = { name: string; brand?: string; href: string; image?: string; commission?: number | null; type?: string; swappedFrom?: string; campaignEnds?: string; sectionId?: string; from?: string; ownerPick?: boolean };
+type Pick = { name: string; brand?: string; href: string; image?: string; commission?: number | null; type?: string; swappedFrom?: string; campaignEnds?: string; sectionId?: string; from?: string; ownerPick?: boolean; sponsor?: boolean };
 const DIR = "src/content/giftGuidePicks";
 const pageOf = (slug: string): Pick[] => (existsSync(`${DIR}/${slug}.json`) ? JSON.parse(readFileSync(`${DIR}/${slug}.json`, "utf8")).picks : []);
 /** Lists with their own order (scripts/gift-guide-picks.mjs SORT_FIXED) keep it; the sponsors guide is a sponsor list. */
 const FIXED = new Set(["subscriptions", "gift-cards", "gift-wrap-and-cards", "mail-carrier-and-delivery-drivers", "25-days-sponsors"]);
 const guideSlugs = readdirSync(DIR).filter((f: string) => f.endsWith(".json")).map((f: string) => f.replace(/\.json$/, "")).filter((s: string) => !s.startsWith("store-") && s !== "25-days-sponsors");
+const PEOPLE_SLUGS = new Set<string>(PEOPLE_GUIDES.map((g: { slug: string }) => g.slug));
 /** Each list a shopper reads as one: a guide, or each section of a merged guide (its old slug; "top-picks" is the guide's own). */
+/** The guide each list sits on (a planned guide's lists are keyed by the plan's section ids). */
+const PARENT = new Map<string, string>();
 const sectionLists = (): [string, Pick[]][] => guideSlugs.flatMap((slug: string) => {
   const by = new Map<string, Pick[]>();
   for (const p of pageOf(slug)) {
-    const k = p.sectionId && p.sectionId !== "top-picks" ? p.sectionId : slug;
+    const k = p.sectionId && PEOPLE_SLUGS.has(slug) ? `${slug}/${p.sectionId}` : p.sectionId && p.sectionId !== "top-picks" ? p.sectionId : slug;
     by.set(k, [...(by.get(k) ?? []), p]);
+    PARENT.set(k, slug);
   }
   return [...by.entries()];
 });
+// Owner's standard plan (11-20 evening, scripts/gift-guide-standard-1120.json): she chose every pick, section and order on
+// the planned guides, so the plan wins there (guarded by giftGuideStandard1120.test.ts).
+const PLANNED = new Set(Object.keys((JSON.parse(readFileSync("scripts/gift-guide-standard-1120.json", "utf8")) as { guides: Record<string, unknown> }).guides));
 const lists = sectionLists();
+/** The For Her / For Him interest sections, each its own list ("her/under-25"). */
+const PEOPLE = new Set(PEOPLE_GUIDES.flatMap((g: { slug: string; sections: readonly { id: string }[] }) => g.sections.map((s) => `${g.slug}/${s.id}`)));
 const guides = lists.map(([slug]) => slug);
 const pageOfList = new Map(lists);
 
@@ -45,7 +56,7 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
   });
 
   it("every guide pick carries its commission and type; each guide lists by commission, high to low, unknown last", () => {
-    expect(guides.length).toBeGreaterThan(70); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (86 lists)
+    expect(guides.length).toBeGreaterThan(55); // audits A+B combined (11-20): 62 lists measured; // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (86 lists)
     const bad: string[] = [];
     let picks = 0;
     let known = 0;
@@ -57,15 +68,17 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
         if (typeof p.type !== "string" || !p.type) bad.push(`${slug}: no type: ${p.name}`);
         if (typeof p.commission === "number") known += 1;
       }
-      if (FIXED.has(slug)) continue;
+      // The owner's plan sets the planned guides' order (her order beats the commission order).
+      if (FIXED.has(slug) || PLANNED.has(PARENT.get(slug) ?? slug)) continue;
       const rate = (p: Pick) => (typeof p.commission === "number" ? p.commission : -1);
       // A list with its own order (FIXED) that joined a section keeps it, leading; the rest are by commission.
-      const sorted = list.filter((p) => !FIXED.has(p.from ?? ""));
+      // His Classic Style leads with the brands Louisiana men wear (owner 11-20), each group by commission.
+      const sorted = list.filter((p) => !FIXED.has(p.from ?? "")).filter((p) => slug !== "him/classic-style" || !LA_MEN_FIRST.test(String(p.brand ?? "").trim()));
       sorted.forEach((p, i) => { if (i > 0 && rate(p) > rate(sorted[i - 1])) bad.push(`${slug} #${i + 1}: ${p.name} (${p.commission}) above-rate after ${sorted[i - 1].name} (${sorted[i - 1].commission})`); });
     }
     // Follow-up 1120: ~1,500 guide picks on the ~30 guides, measured 2026-11-20 (2,000+ on the 65 guides before).
-    expect(picks).toBeGreaterThan(1300);
-    expect(known).toBeGreaterThan(1100);
+    expect(picks).toBeGreaterThan(530); // audits A+B combined (11-20): ~1,130 measured
+    expect(known).toBeGreaterThan(600); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (649); // owner standard 11-20 (Healthcare by use): 1,078 measured
     expect(bad.slice(0, 10)).toEqual([]);
   });
 
@@ -73,6 +86,9 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
     const bad: string[] = [];
     for (const slug of guides) {
       const list = pageOfList.get(slug)!;
+      // A planned guide holds the picks the owner chose, section by section (her list beats the 25 cap and the type
+      // cap: Him's grill section has three Lodge pieces by her plan); the caps hold on every unplanned list.
+      if (PLANNED.has(PARENT.get(slug) ?? slug)) continue;
       if (list.length > GUIDE_CAP) bad.push(`${slug}: ${list.length} picks`);
       if (FIXED.has(slug)) continue;
       const n = new Map<string, number>();
@@ -81,7 +97,8 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
       const cap = (t: string) => Math.max(typeMax(slug, t), ...list.filter((p) => (p.type ?? "other") === t).map((p) => typeMax(p.from ?? slug, t)));
       // Follow-up 1120 (lead 11-20: "her picks beat our rules except her own firm rules"): the owner's own picks are not
       // held to the type cap, and ours give way to them (ours never push a type past its cap).
-      const mine = (t: string) => list.filter((p) => !FIXED.has(p.from ?? "") && p.ownerPick && (p.type ?? "other") === t).length;
+      // For Her / For Him 1120: a 25 Days sponsor's one spot and a joined campaign keep their place past the cap too.
+      const mine = (t: string) => list.filter((p) => !FIXED.has(p.from ?? "") && (p.ownerPick || (PEOPLE.has(slug) && (p.sponsor || p.campaignEnds))) && (p.type ?? "other") === t).length;
       for (const [t, c] of n) if (c - mine(t) > Math.max(0, cap(t) - mine(t))) bad.push(`${slug}: ${c} x ${t}`);
     }
     expect(bad).toEqual([]);

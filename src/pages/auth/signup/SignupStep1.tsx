@@ -432,7 +432,7 @@ export function SignupStep1({
       {/* Design audit 11-17 #30: 13px (was 12) and a 44px hit area on Log in (tap-44), as on the policy links above. */}
       <p className="text-center text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         {t("signup.haveAccount")}{" "}
-        <Link to="/login" className="tap-44 font-semibold hover:underline whitespace-nowrap" style={{ color: "hsl(var(--bark))" }}>
+        <Link to={loginHref} className="tap-44 font-semibold hover:underline whitespace-nowrap" style={{ color: "hsl(var(--bark))" }}>
           {t("login.submit")}
         </Link>
       </p>

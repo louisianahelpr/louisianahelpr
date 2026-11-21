@@ -57,7 +57,7 @@ describe("F335: Delete listing leaves the item page and names what went", () => 
     fireEvent.click(screen.getByRole("button", { name: "Delete listing" }));
     await waitFor(() => expect(calls).toContain("withdraw"));
     await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
-    expect(toast).toHaveBeenCalledWith("Deleted. Mid-century lamp is gone from buyers; it's kept under Taken down in Selling.");
+    expect(toast).toHaveBeenCalledWith("Deleted. Mid-century lamp is gone from buyers; it's kept under History in Selling.");
   });
 
   it("Mark sold elsewhere stays on the page", async () => {

@@ -12,6 +12,8 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { invalidateTasks } from "./useTaskSteps";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { SellerMoveHelprPickup } from "./SellerMoveHelprPickup";
+import "@/lib/i18n/enDeclutter";
+import { t } from "@/lib/i18n/language";
 
 const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -22,22 +24,22 @@ export function SellerHandedOver({ taskId, orderId, who, handedOverAt, pickupAt 
     mutationFn: () => markHandedOver(taskId),
     onSettled: () => setAsk(false),
     onSuccess: () => {
-      toast("Thanks. The Helpr can mark it picked up now.");
+      toast(t("dsl.ho.thanks"));
       invalidateTasks(qc);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  if (handedOverAt) return <p className="text-sm" data-handed-over="">You said you handed it over · {clock(handedOverAt)}</p>;
+  if (handedOverAt) return <p className="text-sm" data-handed-over="">{t("dsl.ho.said", { time: clock(handedOverAt) })}</p>;
   return (
     <>
       <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={handed.isPending} onClick={() => setAsk(true)}>
-        Handed over
+        {t("dsl.ho.button")}
       </Button>
       {/* BUY-42: until it is handed over, the seller may move the Helpr's pickup once. */}
       <SellerMoveHelprPickup taskId={taskId} orderId={orderId} who={who} current={pickupAt} />
-      <ConfirmSheet open={ask} title={`Did you hand it to ${who}?`} confirmLabel="Handed over" pending={handed.isPending}
+      <ConfirmSheet open={ask} title={t("dsl.ho.ask", { who })} confirmLabel={t("dsl.ho.button")} pending={handed.isPending}
         onConfirm={() => handed.mutate()} onClose={() => setAsk(false)} testId="delivery-handed-over">
-        Tap this only once the item is in the Helpr's hands. They can then mark it picked up.
+        {t("dsl.ho.body")}
       </ConfirmSheet>
     </>
   );

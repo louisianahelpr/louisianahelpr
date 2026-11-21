@@ -7,7 +7,7 @@
  * @mutate src/components/shops/shopsUi.tsx |   if (settled) return <ShopsOpensSoon title={title} backTo={backTo} sectionRoot={!!skeleton} />; |   if (settled) return null;
  * @mutate src/components/shops/shopsUi.tsx |       title="Coming soon" |       title="Opens soon"
  * @mutate src/components/shops/shopsUi.tsx |   if (sectionRoot) { |   if (false) {
- * @mutate src/components/shops/shopsUi.tsx |           <Link to="/home">Go to Dashboard</Link> |           <Link to="/">Go to Dashboard</Link>
+ * @mutate src/components/shops/shopsUi.tsx |           <Link to="/home">{t("nav.goHome")}</Link> |           <Link to="/">{t("nav.goHome")}</Link>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -61,7 +61,7 @@ describe("Shops switched off shows Coming soon, never the 404 (Q2005; F139: one 
     expect(screen.getByText("Coming soon")).toBeTruthy();
     expect(screen.queryByText("Opens soon")).toBeNull();
     expect(screen.getByText(SHOPS_OPENS_SOON_BODY)).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Go to Dashboard" }).getAttribute("href")).toBe("/home");
+    expect(screen.getByRole("link", { name: "Go to Home" }).getAttribute("href")).toBe("/home");
     expect(screen.getAllByText(title).length).toBeGreaterThan(0);
     expect(screen.queryByText(/page not found|404/i)).toBeNull();
     expect(reported.calls).toBe(0);

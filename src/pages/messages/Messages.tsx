@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -384,7 +385,7 @@ const Messages = () => {
     if (!trimmed) return;
     if (trimmed.length > MESSAGE_MAX_LENGTH) {
       hapticError();
-      toast.error(`Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters.`);
+      toast.error(t("chat.limit", { count: MESSAGE_MAX_LENGTH.toLocaleString() }));
       return;
     }
     const { data, error } = await supabase
@@ -394,7 +395,7 @@ const Messages = () => {
       .select("id, edited_at");
     if (error || !data || data.length === 0) {
       hapticError();
-      toast.error("Couldn't save that edit — give it another try?");
+      toast.error(t("msg.editFailed"));
       return;
     }
     const editedAt = data[0].edited_at ?? new Date().toISOString();

@@ -15,6 +15,11 @@ import { SECTION_ANCHORS, SECTION_PICK_COUNTS } from "@/content/giftGuidePicks";
  * Kids page at that age's section, "/gift-guides/kids#toddlers", when the section holds picks; else null.
  */
 const ageLink = (tail: string) => {
+  // Teens is its own guide (owner 11-20 evening): the 13+ chip opens it.
+  if (tail === "teens") {
+    const t = guideBySlug("teens");
+    return t && !t.empty ? { slug: "teens", to: "/gift-guides/teens" } : null;
+  }
   const g = guideBySlug(KIDS_HUB);
   const id = SECTION_ANCHORS[`girls-${tail}`] ?? SECTION_ANCHORS[`boys-${tail}`] ?? SECTION_ANCHORS[`gender-neutral-${tail}`];
   return g && !g.empty && id && (SECTION_PICK_COUNTS[id] ?? 0) > 0 ? { slug: id, to: `/gift-guides/${KIDS_HUB}#${id}` } : null;

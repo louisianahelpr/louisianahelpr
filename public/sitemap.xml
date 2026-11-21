@@ -54,6 +54,16 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/boyfriend</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/brother</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/car-lover</loc>
     <lastmod>2026-11-20</lastmod>
     <changefreq>weekly</changefreq>
@@ -73,7 +83,6 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/dad</loc>
-    <lastmod>2026-11-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -85,6 +94,11 @@
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/family</loc>
     <lastmod>2026-11-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/father-in-law</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -115,6 +129,11 @@
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/gifts-by-color</loc>
     <lastmod>2026-11-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/girlfriend</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -155,6 +174,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/husband</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.louisianahelpr.com/gift-guides/kids</loc>
     <lastmod>2026-11-20</lastmod>
     <changefreq>weekly</changefreq>
@@ -186,7 +210,11 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/mom</loc>
-    <lastmod>2026-11-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/mother-in-law</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -215,6 +243,11 @@
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/shop-small-louisiana</loc>
     <lastmod>2026-11-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/sister</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -371,6 +404,17 @@
   </url>
   <url>
     <loc>https://www.louisianahelpr.com/gift-guides/swipe</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/teens</loc>
+    <lastmod>2026-11-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/wife</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

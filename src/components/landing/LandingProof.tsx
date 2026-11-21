@@ -14,7 +14,7 @@
  *     It is a dated record, not a live count: replace it with the next real one.
  *   - Photo ID: identity_is_verified gates a member's first posted job and a
  *     Helpr heading out (20261021081258). Browsing and applying are not gated,
- *     so the line says "before anyone posts or heads out", never "every member".
+ *     so the line says "before anyone hires or heads out", never "every member".
  *     While the ID check is off (switch `identity_check`, owner 2026-10-23:
  *     "just remove the verify id entirely") the ID line is not shown: it would
  *     be false.
@@ -30,7 +30,7 @@ import { useGuestSpanish } from "./useGuestSpanish";
 /** The Jobs section's one line under its heading: the two facts, ID first while the ID check is on. */
 export function proofLine(idOn: boolean): string {
   return idOn
-    ? "Photo ID checked before anyone posts or heads out. Paid only when it’s done."
+    ? "Photo ID checked before anyone hires or heads out. Paid only when it’s done."
     : "You pick who helps. Paid only when it’s done.";
 }
 

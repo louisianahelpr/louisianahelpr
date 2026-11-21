@@ -699,7 +699,7 @@ describe("Selling tab: Taken down, with Relist", () => {
  * @mutate src/components/declutter/DeclutterTakenDown.tsx |         <EndedSaleRows lines={ended} />\n |
  * @mutate src/components/declutter/DeclutterTakenDown.tsx |   if (items.length === 0 && ended.length === 0) return null; |   if (items.length === 0) return null;
  * @mutate src/components/declutter/DeclutterEndedSales.tsx |   if (l.order_status === "refunded") { |   if (false) {
- * @mutate src/components/declutter/DeclutterEndedSales.tsx | : "Cancelled after the buyer paid. They were refunded, and your item is back on sale."; | : "Cancelled. The buyer missed the pickup.";
+ * @mutate src/components/declutter/DeclutterEndedSales.tsx | free ? t("dsl.end.missedRefundFree") : t("dsl.end.missedRefund"); | free ? t("dsl.end.missedRefundFree") : t("dsl.end.missed");
  */
 describe("Selling history: sales that ended without a handover (A2-20)", () => {
   beforeEach(() => {

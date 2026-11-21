@@ -153,7 +153,7 @@ const COUNTDOWN_CSS = `
 .gg-today-days{font-weight:600;color:var(--gg-olive)}
 .gg-today-words{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
 .gg-today-gift{display:flex;align-items:center;gap:10px;margin-top:10px;min-width:0}
-.gg-today-link{display:flex;align-items:center;gap:12px;flex:1;min-width:0;color:var(--gg-ink);text-decoration:none}
+.gg-today-link{display:flex;align-items:center;gap:12px;flex:1;min-width:0;min-height:44px;color:var(--gg-ink);text-decoration:none}
 .gg-today-link .gg-thumb{width:56px;height:56px;border-radius:12px;padding:4px;background:#fff;border:0}
 .gg-today-link .gg-photo{border-radius:12px;background:#fff}
 .gg-today-name{min-width:0;font-size:14px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}

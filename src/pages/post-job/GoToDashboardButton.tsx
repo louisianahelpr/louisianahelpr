@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n/language";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { safeStorage } from "@/lib/safeStorage";
@@ -23,7 +24,7 @@ export function GoToDashboardButton() {
       className="w-full rounded-full"
       style={{ color: "hsl(var(--bark))" }}
     >
-      Go to Dashboard
+      {t("nav.goHome")}
     </Button>
   );
 }

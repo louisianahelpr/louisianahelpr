@@ -9,7 +9,7 @@
  * @mutate src/lib/categoryEmoji.ts | ai: PenLine, | ai: ClipboardList,
  * @mutate src/pages/post-job/EntryChoice.tsx |       {groupGrid}\n\n      {/* The other ways to start | \n      {/* The other ways to start
  * @mutate src/pages/post-job/EntryChoice.tsx |         form.startFresh();\n        form.setFormPage(1);\n        form.setCategoryGroup(g); |         form.setCategoryGroup(g);
- * @mutate src/pages/post-job/EntryChoice.tsx |         if (atOpenJobLimit) return;\n        form.startFresh();\n        form.setFormPage(2); |         form.startFresh();\n        form.setFormPage(2);
+ * @mutate src/pages/post-job/EntryChoice.tsx |         if (atOpenJobLimit) return showLimitNotice();\n        form.startFresh();\n        form.setFormPage(2); |         form.startFresh();\n        form.setFormPage(2);
  * @mutate src/pages/post-job/usePostJobForm.ts |         if (!hasKind && !skipEntry) { |         if (false) {
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";

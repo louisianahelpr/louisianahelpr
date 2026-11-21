@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
 import { jobIsExpiredListing, expiredCopyFor } from "@/lib/expiredListingInThread";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -369,7 +371,7 @@ export function createSendHandlers({
           return;
         }
       }
-      toast.error("Message didn't go through — tap it to try again.");
+      toast.error(t("msg.sendFailed"));
       setMessages((prev) =>
         prev.map((m) =>
           m.clientId === optimistic.clientId ? { ...m, sendStatus: "failed" } : m,

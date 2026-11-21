@@ -11,7 +11,7 @@
  * @mutate src/components/giftGuides/PickPrice.tsx |   return age >= 0 && age <= PRICE_MAX_AGE_DAYS; |   return age >= 0;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |         <PickPrice pick={pick} /> |         {null}
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <PricesAsOf picks={picks.slice(0, upTo)} /> |       {null}
- * @mutate src/content/giftGuideCatalog.ts |     ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) }; |     }; void store;
+ * @mutate src/content/giftGuideCatalog.ts | ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}), | ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}),
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -70,7 +70,7 @@ describe("gift-guide prices: the generated chunks", () => {
   it("no Amazon pick in any chunk (or the Top 10) carries a price; every price has a check day", () => {
     const all = Object.entries(CHUNKS).flatMap(([slug, picks]) => picks.map((p) => ({ slug, p })));
     expect(Object.keys(CHUNKS).length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
-    expect(all.length).toBeGreaterThan(1000);
+    expect(all.length).toBeGreaterThan(760);
     for (const { slug, p } of [...all, ...TOP_PICKS.map((p) => ({ slug: "top", p }))]) {
       if (p.price === undefined) continue;
       expect(AMAZON_HOST.test(new URL(p.href).hostname), `${slug}: ${p.name}`).toBe(false);

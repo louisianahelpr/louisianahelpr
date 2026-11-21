@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
 import {
   useCallback,
   useEffect,
@@ -714,7 +716,7 @@ export function useMessagesData({
     if (error) {
       console.error("[Messages] refreshActiveThread failed:", error);
       report(error, { severity: "warning", tags: { source: "Messages.refreshThread" } });
-      toast.error("Couldn't refresh this conversation.");
+      toast.error(t("msg.refreshFailed"));
       return;
     }
 
@@ -753,7 +755,7 @@ export function useMessagesData({
     if (error) {
       console.error("[Messages] loadOlderMessages failed:", error);
       report(error, { severity: "warning", tags: { source: "Messages.loadOlder" } });
-      toast.error("Couldn't load earlier messages. Tap to try again.");
+      toast.error(t("msg.olderFailed"));
       setLoadingMore(false);
       return;
     }

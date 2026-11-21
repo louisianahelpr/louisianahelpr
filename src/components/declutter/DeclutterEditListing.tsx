@@ -23,6 +23,7 @@ import {
   type DeclutterItem, type DeliverySize, type SellerHandover,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { report } from "@/lib/errorLogger";
 import { FULL_LISTING_COPY, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
 import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL, TaxStatementsCheck } from "./declutterUi";
 import { SuggestCategory } from "@/components/SuggestCategory";
@@ -51,6 +52,9 @@ export const EDIT_RULE = {
   instant: "Condition, size and how buyers get it save at once. It stays up and offers stay open.",
 } as const;
 
+/** The words saved but a photo step failed (audit 11-20 night #1). */
+class EditPhotoFailed extends Error {}
+
 export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; onDone: () => void }) {
   const qc = useQueryClient();
   const { user } = useCurrentUser();
@@ -64,6 +68,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
   const [size, setSize] = useState<DeliverySize>(item.delivery_size);
   const [ways, setWays] = useState<SellerHandover[]>(item.porch_ok ? ["porch"] : []);
   const [attested, setAttested] = useState(false);
+  const [asked, setAsked] = useState(false);
   // DC-8: photo changes wait on the device until Save.
   const [held, setHeld] = useState<File[]>([]);
   const [removed, setRemoved] = useState<string[]>([]);
@@ -80,8 +85,19 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
     mutationFn: async (): Promise<keyof typeof EDIT_SAVED> => {
       const status = await editListing(item.id, { title: title.trim(), description: description.trim(), category, conditionStars: condition, deliverySize: size, handovers: sentWays });
       // New photos first, then the removed ones, so the listing always keeps one (too_few_photos).
+      try {
       for (const f of held) await addPhotoSteadily(user!.id, item.id, f, FULL_LISTING_COPY);
       for (const id of removed) await removePhoto(id);
+      } catch (err) {
+        // Audit 11-20 night #1: the words are saved by now. A photo that failed used to skip the automatic check, so a
+        // changed listing sat hidden until the server's sweep; the check is still asked for, and the seller is told
+        // the words saved but the photo did not.
+        report(err, { tags: { source: "DeclutterEditListing.photos" } });
+        if (status !== "live" || held.length + removed.length > 1) { // more than one photo step: an earlier one may have landed
+          await requestAiCheckWithRetry(item.id, { tries: 2 }).catch((e) => report(e, { tags: { source: "DeclutterEditListing.checkAfterPhotoFail" } }));
+        }
+        throw new EditPhotoFailed();
+      }
       if (status === "live" && !photosChanged) return "saved";
       // A big change: the automatic check judges the new words and photos now (asked twice); the server puts a clean
       // listing back live by itself. What the seller is told is read back from the row, never assumed.
@@ -93,7 +109,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
       toast(t(`lp.ed.saved.${outcome}` as MsgKey));
       onDone();
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onError: (err) => toast.error(err instanceof EditPhotoFailed ? t("lp.ed.photoFailed") : declutterErrorMessage(err)),
     onSettled: () => {
       for (const key of [["declutter", "mine"], ["declutter", "item", item.id], ["declutter", "handovers", item.id], ["declutter", "item-handovers", item.id], ["declutter", "item-photos", item.id]]) {
         void qc.invalidateQueries({ queryKey: key });
@@ -101,8 +117,14 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
     },
   });
   const ready = attested && title.trim().length >= 3 && sentWays.length > 0 && photoTotal >= DECLUTTER_MIN_PHOTOS && !!user && !photos.isLoading && !save.isPending;
+  // Audit 11-20 night #2: Save was greyed out with no reason. It stays tappable and a tap says the first missing thing.
+  const missing = photoTotal < DECLUTTER_MIN_PHOTOS ? (DECLUTTER_MIN_PHOTOS === 1 ? t("lp.ed.keepOne") : t("lp.ed.keepN", { n: DECLUTTER_MIN_PHOTOS }))
+    : title.trim().length < 3 ? t("lp.ed.needTitle")
+    : sentWays.length === 0 ? t("lp.ed.needWay")
+    : !attested ? t("lp.ed.needTick")
+    : null;
   return (
-    <form className="space-y-5" data-edit-listing="" onSubmit={(e) => { e.preventDefault(); if (ready) save.mutate(); }}>
+    <form className="space-y-5" data-edit-listing="" onSubmit={(e) => { e.preventDefault(); if (ready) save.mutate(); else setAsked(true); }}>
       <div className="space-y-2" data-edit-photos="">
         <p className="text-ds-14 font-semibold text-foreground">{t("lp.ed.photos")}</p>
         <SellPhotos
@@ -136,7 +158,8 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
         {big ? t("lp.ed.rule.checked") : t("lp.ed.rule.instant")}
       </p>
       <TaxStatementsCheck id="edit-tax" checked={attested} onChange={setAttested} free={free} />
-      <Button type="submit" variant="primary" size="sm" className="w-full px-5 text-ds-15 font-semibold" disabled={!ready}>
+      {asked && missing && <p className="text-ds-13 font-semibold text-destructive-ink" role="alert" data-edit-missing="">{missing}</p>}
+      <Button type="submit" variant="primary" size="sm" className="w-full px-5 text-ds-15 font-semibold" disabled={!user || photos.isLoading || save.isPending}>
         {save.isPending ? t("lp.ed.saving") : t("lp.ed.save")}
       </Button>
     </form>

@@ -27,7 +27,7 @@ import { fetchMySellerDelivery } from "@/lib/declutter/sellerDelivery";
 /** The page's index (F346): each name is the aria-label of a section on this page. */
 const SETTINGS_INDEX = ["Pickup places", "Meet spots", "Listing defaults", "Notifications"] as const;
 /** Area 06b L6: Meet spots is headed by its own h2 (aria-labelledby), so its index chip finds it by its test id. */
-const INDEX_TARGET: Partial<Record<(typeof SETTINGS_INDEX)[number], string>> = { "Meet spots": '[data-testid="sell-meetup-spots"]' };
+const INDEX_TARGET: Partial<Record<(typeof SETTINGS_INDEX)[number], string>> = { "Meet spots": '[data-testid="sell-meetup-spots"]', "Pickup places": "[data-porch-places-card]" };
 
 /**
  * ONE SETTLED PAINT (Q169; prod-audit 43691657529 on 2026-11-15 page-settle): each card read its own data and grew when it landed

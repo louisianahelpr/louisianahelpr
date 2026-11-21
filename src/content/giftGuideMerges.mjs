@@ -115,6 +115,8 @@ const FOLLOW_UP_1120 = {
   "life-moments": ["new-baby-and-parents", "graduate", "new-homeowner", "get-well-soon", "thinking-of-you", "big-moments"],
   kids: ["girls", "boys", "gender-neutral"],
 };
+/** The old teen lists: their own guide, Teens (owner 11-20 evening), no longer a Kids section. */
+export const TEEN_LISTS = ["girls-teens", "boys-teens", "gender-neutral-teens"];
 const FOLDED_1120 = new Set(Object.values(FOLLOW_UP_1120).flat());
 /**
  * THE GUIDE MERGES as shipped: every 11-19 merge whose parent stays, then each follow-up parent with its old guides
@@ -123,7 +125,9 @@ const FOLDED_1120 = new Set(Object.values(FOLLOW_UP_1120).flat());
 /** @type {{ parent: string; sections: string[] }[]} */
 export const GUIDE_MERGES = [
   ...BASE_MERGES.filter((m) => !FOLDED_1120.has(m.parent)),
-  ...Object.entries(FOLLOW_UP_1120).map(([parent, olds]) => ({ parent, sections: olds.flatMap(withSections) })),
+  // Kids by age and Teens are two guides (owner 11-20 evening): the three old teen lists make the Teens guide.
+  ...Object.entries(FOLLOW_UP_1120).map(([parent, olds]) => ({ parent, sections: olds.flatMap(withSections).filter((s) => parent !== "kids" || !TEEN_LISTS.includes(s)) })),
+  { parent: "teens", sections: TEEN_LISTS },
 ];
 
 /**
@@ -290,17 +294,24 @@ export const SECTION_GROUPS = {
     ],
   },
   // One Kids guide by age (owner 11-20 1:10 AM): each age mixes girls, boys and any; a pick's `from` keeps which.
+  // Owner 11-20 evening: sections are the four age bands only. The old all-ages lists (Girls, Boys, Gender-Neutral: the
+  // former "Top picks") join the band their maker's age range names (pins below; the rest are ages 4-7), and Teens is
+  // its own guide.
   kids: {
-    own: "top-picks",
     groups: [
-      { id: "top-picks", title: "Top picks", from: ["girls", "boys", "gender-neutral"] },
       { id: "babies", title: "Babies (ages 0–1)", from: ["girls-babies", "boys-babies", "gender-neutral-babies"] },
       { id: "toddlers", title: "Toddlers (ages 1–3)", from: ["girls-toddlers", "boys-toddlers", "gender-neutral-toddlers"] },
-      { id: "little-kids", title: "Little Kids (ages 4–7)", from: ["girls-little-kids", "boys-little-kids", "gender-neutral-little-kids"] },
+      { id: "little-kids", title: "Little Kids (ages 4–7)", from: ["girls-little-kids", "boys-little-kids", "gender-neutral-little-kids", "girls", "boys", "gender-neutral"] },
       { id: "big-kids", title: "Big Kids (ages 8–12)", from: ["girls-big-kids", "boys-big-kids", "gender-neutral-big-kids"] },
-      { id: "teens", title: "Teens (ages 13+)", from: ["girls-teens", "boys-teens", "gender-neutral-teens"] },
+    ],
+    pins: [
+      { name: /^Hape Bunny Stacker/i, group: "babies" },
+      { name: /^(Green Toys Seaplane|Melissa & Doug Water WOW|Step2 Whisper Ride|Fisher-Price Little People)/i, group: "toddlers" },
+      { name: /^(Stanley The IceFlow|LEGO Harry Potter|LEGO Minecraft|Pokémon x Crocs|Kid Made Modern|Minecraft Steve|Pokemon TCG|Snap Circuits|Nerf Elite)/i, group: "big-kids" },
     ],
   },
+  // Teens (owner 11-20 evening): its own guide, one list (24 picks; boys' and any-teen picks alone are under the section floor).
+  teens: { groups: [{ id: "teens", title: "Teens (ages 13+)", from: ["girls-teens", "boys-teens", "gender-neutral-teens"] }] },
 };
 
 /**
@@ -328,7 +339,7 @@ export const STORE_PAGES_HELD = ["store-tj-maxx-marshalls", "store-jcpenney"];
 /** The merged guides with no list of their own, only their sections (each listed in giftGuideIndex.ts). */
 export const NEW_PARENTS = ["gifts-by-color", "louisiana-food-gifts", "louisiana-by-region", "pets", "splurge", "shop-small-louisiana",
   "fitness", "family", "friends-and-coworkers", "heroes", "work-life", "outdoors-and-travel", "home-and-kitchen",
-  "creative-and-entertainment", "gifts-by-budget", "louisiana-celebrations", "life-moments"];
+  "creative-and-entertainment", "gifts-by-budget", "louisiana-celebrations", "life-moments", "teens"];
 /**
  * The big batch's merged guides that had no list of their own and are sections now (follow-up 1120): they still take no
  * picks themselves in the sort (their sections' old guides do), as before the follow-up merges.

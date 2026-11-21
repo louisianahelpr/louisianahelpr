@@ -1,0 +1,1420 @@
+{
+ "about": "Gift guides train 1120d (holiday design audit A, 2026-11-20, ~/.lh-shots/holiday-audit-1120/A-findings.md): retypes, swaps, Splurge without its under-$100 section, page-level type caps, thin sections folded. Applied after the budget caps by scripts/gift-guide-picks.mjs through scripts/giftGuideTrain1120d.mjs.",
+ "sectionMin": 10,
+ "sectionCap": 25,
+ "retype": [],
+ "moves": [
+  {
+   "guide": "splurge",
+   "match": "Leatherman Wingman",
+   "to": "dad",
+   "why": "audit A #20/#60: a giftable Dad pick under $50, out of Splurge"
+  },
+  {
+   "guide": "kids",
+   "match": "GentleStyle Brush",
+   "to": "kids",
+   "section": "Toddlers",
+   "why": "audit A #51: a hair brush fits Toddlers better than 4-7 boys"
+  },
+  {
+   "guide": "grandparents",
+   "match": "Birdfy Smart Bird Feeder",
+   "to": "grandparents",
+   "section": "Grandpa",
+   "why": "audit A #37: the top-picks section folds into Grandma; the feeder suits Grandpa"
+  },
+  {
+   "guide": "dad",
+   "match": "WORX Trivac",
+   "to": "outdoors-and-travel",
+   "section": "Gardeners & Plant Lovers",
+   "why": "audit A #20: a leaf blower is a utility buy, not a Dad gift; this Creator Connections campaign keeps its one spot where yard work fits"
+  },
+  {
+   "guide": "dad",
+   "match": "Rhino USA Retractable Ratchet Straps",
+   "to": "car-lover",
+   "why": "audit A #20: ratchet straps are a utility buy, not a Dad gift; this Creator Connections campaign keeps its one spot on Car Lover (truck gear)"
+  },
+  {
+   "guide": "mom",
+   "match": "Foton Pearled Candle",
+   "to": "home-and-kitchen",
+   "section": "Cozy & Self-Care",
+   "why": "audit A #13: an obscure candle brand on Mom next to Sol de Janeiro and Diptyque; this Creator Connections campaign keeps its one spot in Cozy & Self-Care"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "Papier x Anthropologie Wellness Guided Journal",
+   "to": "fitness",
+   "set": {
+    "line": "A guided journal for habits, sleep and workouts."
+   },
+   "why": "owner 11-20 (gg-reference-1120/STANDARD.md): Fitness had no checked pick under $25; moved from Stocking Stuffers (one product, one guide)"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "Barefoot Dreams CozyChic Heathered Socks",
+   "to": "fitness",
+   "set": {
+    "line": "Soft socks for rest days."
+   },
+   "why": "owner 11-20 (gg-reference-1120/STANDARD.md): Fitness had no checked pick under $25; moved from Stocking Stuffers (one product, one guide)"
+  }
+ ],
+ "sets": [
+  {
+   "guide": "family",
+   "match": "BÉIS Carry-On Roller",
+   "set": {
+    "name": "BÉIS The Carry-On Roller in Olive"
+   },
+   "why": "audit A #44: the name said Glossy Midnight, the photo is olive (photo viewed 11-20); the color stays in the name so Life Moments' other colorway is not a twin"
+  },
+  {
+   "guide": "fitness",
+   "match": "Fabletics The Go-To Oversized Quarter Zip",
+   "set": {
+    "line": "An oversized quarter zip for the walk to the gym."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "HOKA Mach Remastered",
+   "set": {
+    "line": "A light, quick shoe for faster runs."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "HOKA Clifton 11",
+   "set": {
+    "line": "The cushioned everyday trainer runners keep rebuying."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "On Cloud 6",
+   "set": {
+    "line": "A light sneaker for walks, errands and the gym."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "lululemon Flow Y Bra",
+   "set": {
+    "line": "A soft, light-support bra for yoga and Pilates."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "lululemon Swiftly Tech",
+   "set": {
+    "line": "A seamless tee that stays cool on long runs.",
+    "type": "shirt"
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "BÉIS Sport Duffle",
+   "set": {
+    "line": "A gym bag that carries as a duffle or a backpack."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "Owala FreeSip Water Bottle 24 oz",
+   "set": {
+    "line": "Sip or swig, and it does not leak in a gym bag."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "lululemon Shake It Out",
+   "set": {
+    "line": "A lined running short with a pocket for a key."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "Therabody WaveSolo",
+   "set": {
+    "line": "A small vibrating roller for sore spots."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "Cocolillys Coco Leggings",
+   "set": {
+    "line": "Soft high-rise leggings for class or the couch."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "YETI Rambler 42 oz Straw Mug",
+   "set": {
+    "line": "A big straw mug that fits a cup holder."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "Shokz OpenRun Pro 2",
+   "set": {
+    "line": "Open-ear headphones, so she still hears traffic on a run."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Caraway Whistling Tea Kettle",
+   "set": {
+    "line": "A stovetop kettle pretty enough to leave out on the stove."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Corkcicle Pure Taste Mug",
+   "set": {
+    "line": "A ceramic-lined mug, so the coffee never tastes like metal."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Jellycat Amuseables Croissant Bag Charm",
+   "set": {
+    "line": "A little croissant for her keys or work bag."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Bodum Gooseneck Electric Kettle",
+   "set": {
+    "line": "A gooseneck kettle for a slow, even pour-over."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Bodum Brazil French Press",
+   "set": {
+    "line": "A simple French press for a full pot at home."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "AeroPress XL Coffee Press",
+   "set": {
+    "line": "Makes two smooth cups in about a minute, and it travels well."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Fellow Ode Brew Grinder Gen 2",
+   "set": {
+    "line": "A quiet grinder made for drip and pour-over."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "YETI Rambler Mug",
+   "set": {
+    "line": "Keeps coffee hot through the whole morning."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Community Coffee Dark Roast",
+   "set": {
+    "line": "A dark roast in the big 40 oz bag, enough for the whole month."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Fire Department Coffee Backdraft",
+   "set": {
+    "line": "A bold roast from a company run by firefighters."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "car-lover",
+   "match": "Anker Zolo Magnetic Power Bank",
+   "set": {
+    "line": "Snaps onto the phone to charge it on a long drive."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "car-lover",
+   "match": "Chemical Guys Foam Cannon",
+   "set": {
+    "line": "Covers the truck in thick foam before a hand wash."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "car-lover",
+   "match": "Meguiar's Ultimate Car Care Kit",
+   "set": {
+    "line": "Wash, wax and interior care in one box."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "car-lover",
+   "match": "WeatherTech CupFone Phone Mount",
+   "set": {
+    "line": "Holds the phone steady in a cup holder."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "car-lover",
+   "match": "NOCO Boost Jump Starter",
+   "set": {
+    "line": "Jump-starts a dead battery without a second car."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "splurge",
+   "match": "Coach Cargo Logo Canvas Tote",
+   "set": {
+    "line": "A roomy everyday tote she will carry for years."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "splurge",
+   "match": "YETI Tundra Haul Wheeled Cooler",
+   "set": {
+    "line": "A wheeled cooler that holds ice through a long weekend."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "splurge",
+   "match": "YETI Crossroads 29",
+   "set": {
+    "line": "Hard-wearing checked luggage for a long trip."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "splurge",
+   "match": "Muck Arctic Pro Boot",
+   "set": {
+    "line": "A warm, waterproof boot for cold, wet mornings outside."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "splurge",
+   "match": "BedJet 3 Climate Comfort Sleep System",
+   "set": {
+    "line": "Cools or warms the bed for hot sleepers."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "splurge",
+   "match": "BaubleBar Fallon 14K Gold Bezel Earrings",
+   "set": {
+    "line": "Real gold studs she can wear every day."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Caraway 10.5\" Ceramic Fry Pan",
+   "set": {
+    "line": "A non-stick ceramic pan that cleans up with a wipe."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Anthropologie Brynn Gingham Apron",
+   "set": {
+    "line": "A gingham apron with pockets for holiday cooking."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Weezie Holiday Kitchen Towel Trio",
+   "set": {
+    "line": "Three embroidered holiday towels for the oven door."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Geometry Greetings From",
+   "set": {
+    "line": "A soft tea towel that dries dishes fast."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "West & June Cashmere Candle",
+   "set": {
+    "line": "A soft, warm scent for the kitchen counter."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Printfresh x Furbish Merry Little Christmas",
+   "set": {
+    "line": "A needlepoint pillow she will bring out every December."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "KitchenAid 7-Speed Hand Mixer",
+   "set": {
+    "line": "Enough power for cookie dough without the big mixer."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Le Creuset Silicone 5-Piece Utensil Set",
+   "set": {
+    "line": "Five everyday utensils in a matching crock."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Material The Three Tool Set",
+   "set": {
+    "line": "A spoon, a spatula and tongs that look good on the counter."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Material The reBoard Cutting Boards",
+   "set": {
+    "line": "Three cutting boards that are easy on knives."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Riedel Extreme Red Wine Glass",
+   "set": {
+    "line": "Four big red wine glasses for the host."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Rifle Paper Co. Fleece Blanket",
+   "set": {
+    "line": "A floral fleece throw for the sofa."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Stanley Adventure Happy Hour Cocktail Shaker",
+   "set": {
+    "line": "A shaker and cups that pack into one piece."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Ooni Koda 16 Gas Pizza Oven",
+   "set": {
+    "line": "Bakes a 16-inch pizza in about a minute."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "SUNNYLiFE Round Picnic Cooler Basket",
+   "set": {
+    "line": "A cooler basket for picnics and the beach."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Waterford Opulence 5x7 Photo Frame",
+   "set": {
+    "line": "A crystal frame for a favorite family photo."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Ooni Koda 2 Gas Pizza Oven",
+   "set": {
+    "line": "A gas pizza oven for the back patio."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "YETI 12\" Cast Iron Skillet",
+   "set": {
+    "line": "A heavy skillet that goes from stove to oven to table."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "YETI Tank 45 Ice Bucket",
+   "set": {
+    "line": "Holds drinks on ice for the whole party."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Haven Haus Co. Recipe Binder",
+   "set": {
+    "line": "A place to keep the family recipes together."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Friend of Mine Heat-Resistant Apron",
+   "set": {
+    "line": "A heat-resistant apron for the grill or the oven."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Smeg 50s Style 2-Slice Toaster",
+   "set": {
+    "line": "A retro toaster that looks good left out."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Hydro Flask 10 oz Wine Tumbler",
+   "set": {
+    "line": "Keeps wine cold on the porch."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Lodge Seasoned Cast Iron Combo Cooker",
+   "set": {
+    "line": "A skillet and a deep pot in one, good for baking bread."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Lodge Cast Iron Burger Press",
+   "set": {
+    "line": "Presses smash burgers flat on the griddle."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Blackstone 22-Piece Griddle Accessory Kit",
+   "set": {
+    "line": "Spatulas, bottles and a scraper for griddle nights."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "KitchenAid Artisan Plus 5-Qt Stand Mixer",
+   "set": {
+    "line": "The stand mixer bakers keep for decades."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "YETI Hopper Tote Soft Cooler",
+   "set": {
+    "line": "A soft cooler tote that carries like a beach bag."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Le Creuset Stainless Steel Corkscrew",
+   "set": {
+    "line": "A sturdy corkscrew and a stopper for the open bottle."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Lancôme Lip Idôle Butterglow",
+   "set": {
+    "line": "A tinted balm that keeps lips soft."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "VOESH Pedi Moments Pedicure Kit",
+   "set": {
+    "line": "A pedicure at home in four small steps."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "DROWSY Eyelash Protecting Sleep Mask",
+   "set": {
+    "line": "A padded silk mask that does not press on lashes."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Parachute Cloud Cotton Robe",
+   "set": {
+    "line": "A light cotton robe for slow mornings."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Intelligent Change Five Minute Journal",
+   "set": {
+    "line": "A few minutes of journaling, morning and night."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "MAC Lustreglass Sheer-Shine Lipstick",
+   "set": {
+    "line": "A sheer, shiny lipstick that is easy to wear."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Slip Back to Basics Skinny Scrunchies",
+   "set": {
+    "line": "Silk scrunchies that do not crease or pull hair."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Slip King Zippered Silk Pillowcase",
+   "set": {
+    "line": "A silk pillowcase that is gentle on hair and skin."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Dyson Airstrait Straightener",
+   "set": {
+    "line": "Dries and straightens hair in one pass."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "SkinCeuticals Anti-Aging Hydration Heroes",
+   "set": {
+    "line": "A set of the brand's hydrating favorites."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Beekman 1802 Milk RX Face & Body Duo",
+   "set": {
+    "line": "Goat milk creams for dry winter skin."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Printfresh Eco Satin Robe",
+   "set": {
+    "line": "A printed satin robe that feels dressed up."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "The Mayfair Group Empathy Wide-Leg Sweatpants",
+   "set": {
+    "line": "Soft wide-leg sweats for a day at home."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Printfresh Eco Satin Sweet Dreams Pajama Set",
+   "set": {
+    "line": "Printed satin pajamas she will not buy for herself."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Southern Tide Colorblock Lounge Pant",
+   "set": {
+    "line": "A soft lounge pant for weekends at home."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Splendid Leopard Fuzzy Sweater PJ Set",
+   "set": {
+    "line": "A fuzzy pajama set for cold nights."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Medicube Merry Night Glow Trio",
+   "set": {
+    "line": "Three skincare steps for the night routine."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Comfrt Airplane Mode Travel Hoodie",
+   "set": {
+    "line": "A heavy, roomy hoodie for flights and the sofa."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  }
+ ],
+ "cuts": [
+  {
+   "guide": "dad",
+   "match": "lululemon Men's Pace Breaker Lined Short",
+   "why": "audit A #21: shorts in a Christmas guide, shown on a model"
+  },
+  {
+   "guide": "dad",
+   "match": "HUK Men's Next Level",
+   "why": "audit A #21/#22: shorts in a Christmas guide, raw Amazon title"
+  },
+  {
+   "guide": "her",
+   "match": "FORM Slim Strap Cami",
+   "why": "audit A #25: shapewear-style bodysuit on a model, not a gift"
+  },
+  {
+   "guide": "her",
+   "match": "lululemon Align Tank Top",
+   "why": "audit A #26: summer tank",
+   "optional": true
+  },
+  {
+   "guide": "her",
+   "match": "lululemon Ebb to Street Ribbed Tank Top",
+   "why": "audit A #26: summer tank",
+   "optional": true
+  },
+  {
+   "guide": "her",
+   "match": "Eberjey Gisele Short PJ Set",
+   "why": "audit A #28: short PJ set in a Christmas guide",
+   "optional": true
+  },
+  {
+   "guide": "her",
+   "match": "Southern Tide Ella Pleated Tennis Dress",
+   "why": "audit A #28: tennis dress in a Christmas guide"
+  },
+  {
+   "guide": "him",
+   "match": "Duck Head x Smathers & Branson Needlepoint Camo Belt",
+   "why": "audit A #32: three near-identical $195 needlepoint belts; one stays"
+  },
+  {
+   "guide": "him",
+   "match": "Vineyard Vines Dreamcloth Shep Shirt",
+   "why": "audit A #30: shown in pink on a men's guide",
+   "optional": true
+  },
+  {
+   "guide": "him",
+   "match": "BOTE Kula 5 Magnepod Cooler",
+   "why": "audit A #31: lime green cooler on a men's guide; the YETI Tundra 35 stays"
+  },
+  {
+   "guide": "grandparents",
+   "match": "Waterford Golden Teddy Ornament",
+   "why": "audit A #37: a teddy ornament is no grandparent top pick"
+  },
+  {
+   "guide": "grandparents",
+   "match": "CALPAK Terra Hanging Toiletry Bag",
+   "why": "audit A #37: weak grandparent gift",
+   "optional": true
+  },
+  {
+   "guide": "grandparents",
+   "match": "YETI Rambler 10 oz Stackable Mug",
+   "why": "audit A #36: pink mug in the Grandpa section"
+  },
+  {
+   "guide": "grandparents",
+   "match": "HUK Camouflage Long Sleeve Hooded Fishing Shirt with Mask",
+   "why": "audit A #38: a masked hoodie is an odd grandpa gift, shown on a model"
+  },
+  {
+   "guide": "grandparents",
+   "match": "Longchamp Le Pliage Filet Knit Shoulder Bag",
+   "why": "audit A #39: neon yellow"
+  },
+  {
+   "guide": "family",
+   "match": "lululemon Men's Zeroed In Linerless Short",
+   "why": "audit A #41: the photo is a black T-shirt, and shorts in a Christmas guide"
+  },
+  {
+   "guide": "family",
+   "match": "Rawlings Baseball Glove",
+   "why": "audit A #42: generic Amazon filler with no model"
+  },
+  {
+   "guide": "family",
+   "match": "Wilson NFL Football",
+   "why": "audit A #42: generic Amazon filler with no model"
+  },
+  {
+   "guide": "family",
+   "match": "Nerf Elite 2.0 Blaster",
+   "why": "audit A #42: generic Amazon filler with no model"
+  },
+  {
+   "guide": "family",
+   "match": "Hot Wheels Track Set",
+   "why": "audit A #42: generic Amazon filler with no model"
+  },
+  {
+   "guide": "family",
+   "match": "Victoria's Secret Body Care Gift Set",
+   "why": "audit A #42: odd for a niece"
+  },
+  {
+   "guide": "family",
+   "match": "LEGO Technic Lamborghini",
+   "why": "audit A #45: a collector set with no price"
+  },
+  {
+   "guide": "family",
+   "match": "Riedel Wine-Friendly Wine Glasses",
+   "why": "audit A #43: one glassware set stays (Waterford Lismore)"
+  },
+  {
+   "guide": "family",
+   "match": "materialkitchen.com MATERIAL - Serve Platter",
+   "why": "audit A #43: two Material sets; The Iconics stays"
+  },
+  {
+   "guide": "friends-and-coworkers",
+   "match": "BonWellness Big Year Energy Wellness Kit",
+   "why": "audit A #48: unknown brand at the top of Coworkers"
+  },
+  {
+   "guide": "friends-and-coworkers",
+   "match": "CALPAK Terra Sling Bag",
+   "why": "audit A #49: over a Secret Santa budget, no price"
+  },
+  {
+   "guide": "kids",
+   "match": "Stanley The IceFlow Flip Straw Tumbler 2.0, 30 oz",
+   "why": "audit A #50: a drink cup should not headline the kids guide"
+  },
+  {
+   "guide": "kids",
+   "match": "Bits & Bows Lifeguard Hat",
+   "why": "audit A #52: summer item"
+  },
+  {
+   "guide": "kids",
+   "match": "SUNNYLiFE Kids Beach Poncho Towel",
+   "why": "audit A #52: summer item"
+  },
+  {
+   "guide": "kids",
+   "match": "minnow",
+   "why": "audit A #52: summer rashguards",
+   "all": true
+  },
+  {
+   "guide": "kids",
+   "match": "SUNNYLiFE Vintage Beach Paddles",
+   "why": "audit A #52: summer item"
+  },
+  {
+   "guide": "kids",
+   "match": "BabyBjörn Baby Carrier Harmony",
+   "why": "audit A #54: parent gear; the bouncer stays"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "LANEIGE Water Sleeping Mask",
+   "why": "audit A #57: an $8 mini from an obscure reseller, named as the full size"
+  },
+  {
+   "guide": "gift-wrap-and-cards",
+   "match": "Meri Meri Nutcracker Gift Tags",
+   "why": "audit A #62: the photo is the Maisonette logo (the product page is gone, 404)"
+  },
+  {
+   "guide": "car-lover",
+   "match": "Madewell Mylie Shoulder Bag",
+   "why": "owner 11-20 standard: trim filler; not a car gift"
+  },
+  {
+   "guide": "car-lover",
+   "match": "J.Crew Oversized Cashmere Crewneck Sweater",
+   "why": "owner 11-20 standard: trim filler; not a car gift"
+  }
+ ],
+ "adds": [
+  {
+   "guide": "him",
+   "why": "audit A #34: a Him gift under $25",
+   "row": {
+    "name": "Carhartt Knit Cuffed Beanie",
+    "brand": "Carhartt",
+    "line": "The classic cuffed watch hat for cold mornings.",
+    "href": "https://go.shopmy.us/p-107847394",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1775934017921",
+    "store": "store-carhartt",
+    "type": "hat"
+   },
+   "section": "Boyfriend or Husband"
+  },
+  {
+   "guide": "mom",
+   "why": "audit A #17: a Mom gift under $25",
+   "row": {
+    "name": "Glossier You Perfume Discovery Set",
+    "brand": "Glossier",
+    "line": "Four Glossier You scents to try before the full bottle.",
+    "href": "https://go.shopmy.us/p-107946038",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1759335116494",
+    "store": "store-sephora",
+    "type": "fragrance"
+   },
+   "section": "Top picks"
+  },
+  {
+   "guide": "splurge",
+   "why": "audit A #60: a real splurge in place of the under-$100 section",
+   "row": {
+    "name": "Nespresso Lattissima One Espresso Machine",
+    "brand": "Nespresso",
+    "line": "One-touch lattes and cappuccinos with fresh milk at home.",
+    "href": "https://go.shopmy.us/p-107940248",
+    "image": "https://static.shopmy.us/pins/zoom-107940248-1795123278564-00000000_zi_47117f4a-8d82-4d38-bf0c-65577bcb7e11.jpg",
+    "store": "store-dillards",
+    "type": "kitchen-appliance"
+   },
+   "section": "$100 & Up"
+  },
+  {
+   "guide": "gift-wrap-and-cards",
+   "why": "audit A #63: bows and tags in place of a fourth tag set",
+   "row": {
+    "name": "Hallmark Wrap Accessory Kit, Bows and Tags",
+    "brand": "Hallmark",
+    "line": "Matching bows, ribbon and tags in blue, silver and gold.",
+    "href": "https://www.amazon.com/dp/B088SNQCWV?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/81IzUUQ33yL._AC_SL1500_.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "gift-wrap"
+   }
+  },
+  {
+   "guide": "fitness",
+   "why": "owner 11-20 (gg-reference-1120/STANDARD.md): Fitness had no checked pick under $25; already on the Old Navy store page with a checked price and a flat photo (viewed 11-20)",
+   "row": {
+    "name": "Old Navy Snug Crop Ribbed T-Shirt",
+    "brand": "OLD NAVY",
+    "line": "A fitted ribbed tee to wear to class.",
+    "href": "https://go.shopmy.us/p-103880975",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1787863879403",
+    "store": "store-old-navy",
+    "type": "shirt",
+    "commission": 8
+   }
+  }
+ ],
+ "splurge": {
+  "guide": "splurge",
+  "dropSection": "under-100",
+  "moveTo": {
+   "guide": "gifts-by-budget",
+   "section": "under-50",
+   "max": 50
+  }
+ },
+ "pageCaps": {
+  "max": 2,
+  "brandTypeMax": 1,
+  "exemptTypes": [
+   "other",
+   "gift-card",
+   "subscription"
+  ],
+  "typeMax": {
+   "can-cooler": 1,
+   "advent-calendar": 6
+  },
+  "guides": {
+   "mom": {},
+   "dad": {},
+   "her": {},
+   "him": {},
+   "grandparents": {},
+   "friends-and-coworkers": {},
+   "splurge": {},
+   "family": {
+    "max": 3
+   },
+   "gifts-by-budget": {
+    "max": 3
+   },
+   "kids": {
+    "max": 3,
+    "brandTypeMax": 2,
+    "exemptTypes": [
+     "toy",
+     "building-toy",
+     "plush",
+     "doll",
+     "art-supplies",
+     "ride-on",
+     "toy-vehicle",
+     "book",
+     "game",
+     "board-game",
+     "craft-kit"
+    ]
+   }
+  }
+ },
+ "folds": [
+  {
+   "guide": "heroes",
+   "section": "paramedics-and-dispatchers",
+   "into": "police-and-deputies",
+   "title": "Firefighters, Police & EMTs",
+   "optional": true
+  },
+  {
+   "guide": "heroes",
+   "section": "firefighters",
+   "into": "police-and-deputies",
+   "title": "Firefighters, Police & EMTs",
+   "optional": true
+  }
+ ],
+ "sponsorMoves": "Arey The System (a national 25 Days sponsor's one spot) moved from Mom > Mother-in-Law to Her > Wife in scripts/gift-guide-train-1120b.json (audit A #12: a gray-hair routine is an awkward Mother-in-Law gift; Her's self-care fits better).",
+ "byUse": [
+  {
+   "guide": "healthcare",
+   "why": "owner 11-20 (gg-reference-1120/STANDARD.md): sections by use, a rounded price spread, one short reason per pick; the role sections (Nurses, Doctors & Providers, Therapy, Dental/Lab/Pharmacy, Support Staff) repeated the same scrubs, socks and bottles five times",
+   "sections": [
+    {
+     "id": "small-treats",
+     "title": "Small Treats & Stocking Stuffers",
+     "picks": [
+      {
+       "match": "Kitsch Rhinestone Cloud Claw Clip",
+       "line": "Holds a full bun through a 12-hour shift."
+      },
+      {
+       "match": "Elyse Breanne Design Badge Reel",
+       "line": "A pretty badge reel to swap for the plain one."
+      },
+      {
+       "match": "Voluspa Bergamot Rose",
+       "line": "A small candle for the first quiet night off."
+      },
+      {
+       "match": "Kate Spade New York Large Spiral Notebook",
+       "line": "For report notes, lists and reminders."
+      },
+      {
+       "match": "T3 Silk Scrunchies",
+       "line": "Soft on hair that stays up all shift."
+      },
+      {
+       "match": "BIC 4-Color Pens",
+       "line": "Four colors in one pen, the one every unit borrows."
+      },
+      {
+       "match": "Kate Spade Badge Reel",
+       "line": "A dressier badge reel for clinic days."
+      },
+      {
+       "match": "Barefoot in the Wild Fuzzy Socks",
+       "line": "Soft socks to pull on once the shoes come off."
+      },
+      {
+       "match": "Kate Spade Card Case Lanyard",
+       "line": "Badge, card and key in one spot."
+      },
+      {
+       "match": "Kitsch Satin Pillowcase",
+       "line": "A satin pillowcase for day sleepers."
+      }
+     ]
+    },
+    {
+     "id": "on-shift",
+     "title": "Used on Every Shift",
+     "picks": [
+      {
+       "match": "Stanley Quencher Luxe",
+       "line": "Stays cold from first rounds to last."
+      },
+      {
+       "match": "Owala FreeSip 24 oz",
+       "line": "A no-spill bottle that fits a station cup holder."
+      },
+      {
+       "match": "Comrad Recycled Cotton Compression Socks",
+       "line": "Compression socks for legs that stand all day."
+      },
+      {
+       "match": "Bombas Over-the-Calf Compression Socks",
+       "line": "A second pair, because one is always in the wash."
+      },
+      {
+       "match": "Crocs Classic Clogs",
+       "line": "Wipe-clean clogs, easy on and off."
+      },
+      {
+       "match": "Clove Forte",
+       "line": "Sneakers made for hospital floors and spills."
+      },
+      {
+       "match": "3M Littmann Classic III",
+       "line": "The everyday stethoscope, in a color she will not lose."
+      },
+      {
+       "match": "lululemon Everywhere Belt Bag",
+       "line": "Keeps phone, pens and lip balm on her, not in a locker."
+      },
+      {
+       "match": "YETI Daytrip 20L",
+       "line": "Carries lunch, snacks and drinks for a long shift."
+      },
+      {
+       "match": "Fabletics Evolve 3-Pocket Scrub Top, Navy",
+       "line": "A soft scrub top with pockets that hold everything."
+      },
+      {
+       "match": "Fabletics High-Rise Wide Leg Scrub Pant, Navy",
+       "line": "The matching wide-leg scrub pant."
+      },
+      {
+       "match": "21 Collective Core Mockneck"
+      }
+     ]
+    },
+    {
+     "id": "after-shift",
+     "title": "After-Shift Recovery",
+     "picks": [
+      {
+       "match": "Barefoot Dreams CozyChic Ribbed Robe",
+       "line": "The soft robe to change into after a 12-hour shift."
+      },
+      {
+       "match": "Jojo Mommy Kane Revive",
+       "line": "Cushioned recovery shoes for tired feet."
+      },
+      {
+       "match": "SkinCeuticals Phyto Corrective",
+       "line": "Calms skin after hours under a mask."
+      },
+      {
+       "match": "Therabody Sleep Mask",
+       "line": "Blocks daylight for sleep after a night shift."
+      },
+      {
+       "match": "Vuori Women's Halo Essential Hoodie",
+       "line": "A soft hoodie for the drive home."
+      },
+      {
+       "match": "Vuori Women's Relaxed Fit Performance Jogger",
+       "line": "Joggers to change into the minute scrubs come off."
+      },
+      {
+       "match": "OOFOS OOriginal Sandal",
+       "line": "Recovery sandals for sore arches."
+      },
+      {
+       "match": "HoMedics Shiatsu Foot Massager",
+       "line": "A foot massage waiting at home."
+      },
+      {
+       "match": "Therabody Theragun Relief",
+       "line": "Works out tight shoulders and calves."
+      },
+      {
+       "match": "Bombas Everyday Compression Sock 2-Pack",
+       "line": "Lighter compression socks for days off."
+      }
+     ]
+    },
+    {
+     "id": "splurges",
+     "title": "Splurges",
+     "picks": [
+      {
+       "match": "Oura Ring 5",
+       "line": "Tracks sleep around a changing schedule."
+      },
+      {
+       "match": "Therabody TheraFace Mask Glo",
+       "line": "A light-therapy face mask for nights in."
+      },
+      {
+       "match": "Therabody Theragun Mini",
+       "line": "A small massage gun that fits a work bag."
+      },
+      {
+       "match": "Therabody SmartGoggles",
+       "line": "Heat and massage for tired eyes."
+      },
+      {
+       "match": "HOKA Bondi 9",
+       "line": "The most cushioned HOKA, for long days on hard floors."
+      },
+      {
+       "match": "HOKA Arahi 9",
+       "line": "A supportive HOKA for feet that roll in."
+      },
+      {
+       "match": "Patagonia Lightweight Synchilla",
+       "line": "A fleece for cold units and cold mornings."
+      },
+      {
+       "match": "Therabody TheraFace Depuffing Wand",
+       "line": "Cools puffy eyes after a night shift."
+      },
+      {
+       "match": "Anker MagGo 3-in-1",
+       "line": "Charges phone, watch and earbuds on one stand."
+      },
+      {
+       "match": "Littmann Cardiology IV",
+       "line": "The upgrade stethoscope, a classic graduation gift."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "guide": "heroes",
+   "why": "owner 11-20 (gg-reference-1120/STANDARD.md): sections by use and one short reason per pick; cut as filler: Blackstone griddle and Lodge skillet (cookware, not a first-responder gift), UGG Scuffette (a women's slipper in a mostly men's list)",
+   "sections": [
+    {
+     "id": "small-treats",
+     "title": "Small Treats & Everyday Carry",
+     "picks": [
+      {
+       "match": "Smathers & Branson American Flag Needlepoint Can Cooler",
+       "line": "A hand-stitched flag can cooler for the cookout."
+      },
+      {
+       "match": "Simple Modern 40 oz Tumbler",
+       "line": "A big handled tumbler that fits the truck cup holder."
+      },
+      {
+       "match": "CamelBak Chute Mag",
+       "line": "An insulated bottle with a cap that stays out of the way."
+      },
+      {
+       "match": "Anker Power Bank 20,000mAh",
+       "line": "Keeps a phone and radio charged through a long shift."
+      },
+      {
+       "match": "Gerber Suspension NXT",
+       "line": "Fifteen tools on one pair of pocket pliers."
+      },
+      {
+       "match": "BLACK DIAMOND Spot 400",
+       "line": "A bright headlamp that leaves both hands free."
+      },
+      {
+       "match": "Fenix PD35",
+       "line": "A rechargeable pocket flashlight for the duty belt."
+      },
+      {
+       "match": "Rothco Shemagh",
+       "line": "A cotton scarf for sun, dust and cold mornings."
+      },
+      {
+       "match": "Under Armour Freedom Tech Tee",
+       "line": "A quick-dry tee with a small flag on the sleeve."
+      },
+      {
+       "match": "The Greatest Beer Run Ever",
+       "line": "A true story of friendship from the Vietnam War."
+      },
+      {
+       "match": "DisplayGifts Military Challenge Coin Display Case",
+       "line": "A wood case that shows off challenge coins."
+      }
+     ]
+    },
+    {
+     "id": "on-duty",
+     "title": "Used on Duty",
+     "picks": [
+      {
+       "match": "YETI Rambler 36 oz Chug",
+       "line": "Cold water for a full shift, with a cap that chugs."
+      },
+      {
+       "match": "YETI Daytrip 9L",
+       "line": "A soft lunch box that keeps a meal cold all day."
+      },
+      {
+       "match": "5.11 Tactical Rush 24",
+       "line": "A tough day pack with room for every bit of gear."
+      },
+      {
+       "match": "Under Armour Micro G Valsetz",
+       "line": "A light side-zip boot that feels like a sneaker."
+      },
+      {
+       "match": "5.11 Tactical A/T 6",
+       "line": "A cushioned duty boot for long days on foot."
+      },
+      {
+       "match": "LEATHERMAN Raptor Rescue",
+       "line": "Folding trauma shears with a strap cutter and ring cutter."
+      },
+      {
+       "match": "Streamlight 90540 Survivor",
+       "line": "The right-angle light that clips to turnout gear."
+      },
+      {
+       "match": "Oakley Si Ballistic",
+       "line": "Impact-rated sunglasses for the range and the field."
+      },
+      {
+       "match": "Oakley Gascan",
+       "line": "Classic wraparound sunglasses in matte black."
+      },
+      {
+       "match": "Carhartt Rugged Flex Pants",
+       "line": "Work pants with stretch for climbing and kneeling."
+      },
+      {
+       "match": "Carhartt Rain Defender Heavyweight Hooded Shirt Jac",
+       "line": "A hooded shirt jacket that sheds light rain."
+      }
+     ]
+    },
+    {
+     "id": "off-duty",
+     "title": "Off-Duty Recovery & Splurges",
+     "picks": [
+      {
+       "match": "Carhartt Paxton Quarter-Zip",
+       "line": "A heavyweight quarter zip for cold mornings."
+      },
+      {
+       "match": "Under Armour Freedom Hoodie",
+       "line": "A warm flag hoodie for days off."
+      },
+      {
+       "match": "Ororo Men's Heated Vest",
+       "line": "A battery-heated vest for cold nights outside."
+      },
+      {
+       "match": "Muck Boot Company Muckster Lite",
+       "line": "A waterproof slip-on clog for the yard after work."
+      },
+      {
+       "match": "Sunbeam Royal Luxe Heated Throw",
+       "line": "A heated throw for the recliner after a long shift."
+      },
+      {
+       "match": "RENPHO Eyeris 1",
+       "line": "A heated eye massager for winding down."
+      },
+      {
+       "match": "Slip Silk Sleep Mask",
+       "line": "A silk mask for sleeping after a night shift."
+      },
+      {
+       "match": "Hatch Restore 3",
+       "line": "A sunrise alarm and sound machine for odd sleep hours."
+      },
+      {
+       "match": "Bose SoundLink Max",
+       "line": "A big portable speaker for the station or the patio."
+      },
+      {
+       "match": "Garmin Instinct 3 Tactical",
+       "line": "A rugged solar GPS watch with a stealth mode."
+      },
+      {
+       "match": "Durango Workhorse",
+       "line": "A ventilated work boot for hot days."
+      },
+      {
+       "match": "Costa Del Mar Blackfin",
+       "line": "Polarized sunglasses for days off on the water."
+      },
+      {
+       "match": "Americanflat Folded Flag Display Case",
+       "line": "A mahogany case for a folded memorial flag."
+      }
+     ]
+    }
+   ],
+   "priceSpread": false
+  }
+ ]
+}

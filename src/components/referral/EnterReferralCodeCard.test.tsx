@@ -58,7 +58,7 @@ describe("EnterReferralCodeCard", () => {
     const input = (await screen.findByLabelText(/^referral code$/i)) as HTMLInputElement;
     expect(input.value).toBe("FUHNW3");
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
-    await screen.findByText(/you and your friend each get \$5/i);
+    await screen.findByText(/you each get \$5 once you have both finished/i);
     expect(rpc).toHaveBeenCalledWith("claim_my_referral_code", { p_code: "FUHNW3" });
     expect(localStorage.getItem(PENDING_REF_KEY)).toBeNull();
     expect(screen.queryByRole("button", { name: "Add" })).toBeNull();

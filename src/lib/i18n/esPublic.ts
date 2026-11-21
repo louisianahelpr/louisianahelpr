@@ -33,7 +33,7 @@ export const esPublic: Record<keyof typeof enPublic, string> = {
   "fees.declutter": "En Declutter, el comprador paga el precio del artículo más un cargo de comprador del {pct}% del precio del artículo más {cents} centavos, una vez por compra. El vendedor recibe el precio completo del artículo.",
 
   "safety.title": "Seguridad",
-  "safety.idChecked": "Se verifica la identidad de cada miembro que publica o hace trabajos: una identificación con foto, una sola vez por cuenta, antes de publicar o ser contratado por primera vez.",
+  "safety.idChecked": "Se verifica la identidad de cada miembro que contrata o hace trabajos: una identificación con foto, una sola vez por cuenta, antes de enviar su primera oferta o ser contratado por primera vez.",
   "safety.moneyHeld": "Su dinero se guarda de forma segura hasta que usted apruebe el trabajo.",
   "safety.report": "Puede reportar un problema desde cualquier trabajo.",
   "safety.declutter": "En Declutter usted paga en la app y tiene 24 horas después de la entrega para reportar un problema con un artículo.",

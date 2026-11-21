@@ -113,7 +113,7 @@ describe("every refusal a messages INSERT trigger raises is classified for the c
   it("the composer's send path and the bubble use the classification", () => {
     const send = blankComments(readFileSync(join(ROOT, "src/pages/messages/messagesData/sendHandlers.ts"), "utf8"));
     const at = send.indexOf("classifySendRefusal(");
-    const generic = send.indexOf("Message didn't go through");
+    const generic = send.indexOf('t("msg.sendFailed")');
     expect(at).toBeGreaterThan(0);
     expect(at).toBeLessThan(generic);
     // AUD31-42: the refused bubble's label says why; a toast there covered it at 375.

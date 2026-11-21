@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { reopenListing } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import "@/lib/i18n/enDeclutter";
+import { t } from "@/lib/i18n/language";
 
 /** Relist a taken-down listing: back to a draft, then the sell flow on it (photos first: they were deleted). */
 function useReopenListing() {
@@ -16,7 +18,7 @@ function useReopenListing() {
   return useMutation({
     mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId),
     onSuccess: (itemId) => {
-      toast("Back in your listings. Add photos and put it up again.");
+      toast(t("dsl.hist.relisted"));
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       navigate(`/declutter/sell?item=${itemId}`);
     },
@@ -29,7 +31,7 @@ export function ReopenListingButton({ itemId, quiet = false }: { itemId: string;
   const reopen = useReopenListing();
   return (
     <Button type="button" size="sm" variant={quiet ? "outline" : undefined} className={quiet ? "rounded-full" : undefined} disabled={reopen.isPending} onClick={() => reopen.mutate(itemId)}>
-      {reopen.isPending ? "Relisting…" : "Relist"}
+      {reopen.isPending ? t("dsl.hist.relisting") : t("dsl.hist.relist")}
     </Button>
   );
 }

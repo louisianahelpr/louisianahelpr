@@ -11,6 +11,8 @@ import { ChevronRight } from "lucide-react";
 import { fetchUnansweredQuestions } from "@/lib/declutter/api";
 import { myItemsQuery } from "./myItemsQuery";
 import { SectionHeading } from "./DeclutterTabHeads";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclutter";
 
 /** Listings a buyer can still ask about. */
 const ASKABLE = new Set(["live", "paused"]);
@@ -36,8 +38,8 @@ export function QuestionsToAnswer({ userId }: { userId: string }) {
   const { rows } = useUnansweredQuestions(userId);
   if (rows.length === 0) return null;
   return (
-    <section className="space-y-2" aria-label="Questions to answer" data-questions-to-answer="">
-      <SectionHeading title="Questions to answer" todo={rows.length} todoWords="to answer" />
+    <section className="space-y-2" aria-label={t("dsl.qa.title")} data-questions-to-answer="">
+      <SectionHeading title={t("dsl.qa.title")} todo={rows.length} todoWords={t("dsl.qa.toAnswer")} />
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
         {rows.map((r) => (
           <li key={r.id}>
@@ -47,7 +49,7 @@ export function QuestionsToAnswer({ userId }: { userId: string }) {
                 <span className="block text-ds-13 font-semibold text-muted-foreground [overflow-wrap:anywhere]">{r.title}</span>
                 <span className="block text-ds-15 text-foreground [overflow-wrap:anywhere]">{r.question}</span>
               </span>
-              <span className="shrink-0 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">Answer</span>
+              <span className="shrink-0 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">{t("dsl.qa.answer")}</span>
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
             </Link>
           </li>

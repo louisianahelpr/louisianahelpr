@@ -65,7 +65,7 @@ export const BRAND_SITES = [] as const;
  * The affiliate networks' link hosts a pick's `affiliate_href` may use (follow-up batch 2026-11-18: Later/Mavely,
  * Walmart Creator, CJ, Awin, Rakuten, ShopMy product links). Exact hosts; two-way (each is used by some link).
  */
-export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "www.kqzyfj.com", "click.linksynergy.com", "go.shopmy.us", "samsclub.co"] as const;
+export const AFFILIATE_HOSTS = ["mavely.app.link", "walmrt.us", "www.anrdoezrs.net", "click.linksynergy.com", "go.shopmy.us", "samsclub.co"] as const;
 
 /**
  * Louisiana shops and 25 Days sponsors the researched picks link to (lead 2026-11-18, ~/Desktop/Gift-guide-picks:
@@ -87,7 +87,10 @@ export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du M
  */
 // Follow-up 1120 (owner 11-20 ~12:40 AM): every confirmed Louisiana sponsor on Shop Small Louisiana links its website,
 // Facebook or Instagram (src/content/giftGuideSmallBiz.json); City Sightseeing New Orleans on Louisiana by Region.
-export const SPONSOR_SITES = ["thestrandtheatre.com", "www.hotworx.net", "www.marykay.com", "basicbee.co", "www.facebook.com", "www.zydecochopchop.com", "www.beaversabundance.com", "www.faulkcalls.com", "davidrabalaisfilm.com", "www.softlifecollective.org", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.botanicalnailandskinstudio.com", "www.crabtrapfunctionalfitness.com", "streamsideparks.com", "www.lepetittheatre.com", "www.creolequeen.com", "www.theallwayslounge.net", "brittcreatesstudio.com", "jessicalanhamphoto.com", "www.instagram.com", "suzimarquesphotography.com", "citysightseeingneworleans.com"] as const;
+// Owner's standard plan (11-20 evening) + holiday audit B (a name-only sponsor is never carded): Shop Small Louisiana cards
+// the 10 sponsors with a shop photo, so the 14 hosts no card links any more left this list (hotworx, Mary Kay, Facebook,
+// Instagram and the sponsors' own sites); a sponsor carded again adds its host back.
+export const SPONSOR_SITES = ["thestrandtheatre.com", "basicbee.co", "www.zydecochopchop.com", "www.faulkcalls.com", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.lepetittheatre.com", "www.theallwayslounge.net", "citysightseeingneworleans.com"] as const;
 /**
  * The national 25 Days sponsors' own shops (train 1120b, owner 11-20 ~8:35 AM: each gets one best-fit guide spot with
  * the sponsor badge, 0% allowed). Kept apart from SPONSOR_SITES, which are Louisiana businesses: a Louisiana host's

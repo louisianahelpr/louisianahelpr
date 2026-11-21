@@ -9,6 +9,8 @@ import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS, SECTION_ALIASES, SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
+import { onAnyList, requestSaveFor, saveItemOf } from "./saveForPeople";
+import { usePlan } from "./fun/plannerStore";
 import { HINTS, WISH } from "@/content/giftWishList";
 import { Hint } from "./GiftHint";
 import { Button } from "@/components/ui/button";
@@ -73,7 +75,9 @@ export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: numbe
 }
 
 export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) {
-  const saved = isSaved(useGiftList(), itemId(pick.href));
+  // Owner 11-21: filled when the gift is on My Wish List or on anyone's list (saveForPeople).
+  const [wish, plan] = [useGiftList(), usePlan()];
+  const saved = isSaved(wish, itemId(pick.href)) || onAnyList(plan, pick.href);
   // Big batch 1120: a pick wears Trending (or "Trending on TikTok") only from its own flag. The old "first 3 of a guide"
   // badge went with the featured order (owner 11-19 ~6:40 PM: every guide sorts by commission now).
   const badges = pick.badges;
@@ -106,7 +110,7 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         </span>
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
-      <Heart saved={saved} label={WISH.saveLabel(pick.name)} onToggle={() => heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) }))} className="gg-heart-pick" />
+      <Heart saved={saved} label={WISH.saveForLabel(pick.name)} onToggle={() => { if (!requestSaveFor(saveItemOf(pick, guide))) heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) })); }} className="gg-heart-pick" />
     </li>
   );
 }

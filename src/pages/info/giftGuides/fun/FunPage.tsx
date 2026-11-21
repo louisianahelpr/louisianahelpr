@@ -71,6 +71,24 @@ const FUN_CSS = `
 .gg-plan-idea .gg-plan-iname{flex:1;min-width:0;font-size:14px;overflow-wrap:anywhere}
 .gg-plan-idea.bought .gg-plan-iname{text-decoration:line-through;color:var(--gg-muted)}
 .gg-plan-price{width:90px;flex:none}
+.gg-plan-idea .gg-photo,.gg-plan-idea .gg-thumb{width:40px;height:40px;flex:none}
+.gg-plan-idea .gg-letter{font-size:9px;overflow:hidden}
+.gg-plan-iname-t{display:block}
+.gg-plan-shop{display:inline-flex;align-items:center;min-height:28px;font-size:13px;font-weight:600}
+.gg-plan-picker{padding:0;max-width:none}
+.gg-plan-picker-chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.gg-plan-picks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;max-height:min(52vh,440px);overflow-y:auto;overscroll-behavior:contain}
+.gg-plan-pick{display:flex;gap:10px;align-items:center;width:100%;min-height:60px;padding:6px;border:0;border-radius:12px;background:transparent;text-align:left;cursor:pointer;color:var(--gg-ink)}
+.gg-plan-pick:hover:not(:disabled){background:hsl(var(--muted))}
+.gg-plan-pick:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:2px}
+.gg-plan-pick:disabled{cursor:default;opacity:.6}
+.gg-plan-pick .gg-photo,.gg-plan-pick .gg-thumb{width:48px;height:48px;flex:none}
+.gg-plan-pick-nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.gg-plan-pick-name{font-size:14px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gg-plan-pick-nm small{font-size:13px;color:var(--gg-muted)}
+.gg-plan-pick-act{flex:none;min-width:44px;text-align:center;font-size:13px;font-weight:700;color:var(--gg-olive)}
+.gg-plan-pick-act.add{font-size:22px;font-weight:600;line-height:1}
+@media (max-width:479px){.gg-plan-idea{gap:4px}.gg-plan-idea .gg-photo,.gg-plan-idea .gg-thumb{width:34px;height:34px}.gg-plan-idea .gg-plan-price{width:62px}}
 .gg-plan-head .gg-plan-budget,.gg-fun-row>.gg-plan-price,.gg-plan-idea .gg-plan-price{flex:0 0 auto}
 .gg-plan-add{flex-wrap:wrap}
 @media (max-width:379px){.gg-plan-add>input:first-child{flex:1 1 100%}}

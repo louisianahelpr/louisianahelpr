@@ -8,6 +8,8 @@ import { loadModule } from "@/lib/loadModule";
 import { WISH } from "@/content/giftWishList";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
+import { onAnyList, requestSaveFor } from "./saveForPeople";
+import { usePlan } from "./fun/plannerStore";
 import { dealName } from "./wishListItems";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
@@ -67,7 +69,9 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
   const [photoOk, setPhotoOk] = useState(true);
   // My Wish List (owner 2026-11-20): a deal card hearts like any gift; its ref is the deals page and its link's id.
   const id = itemId(deal.href);
-  const saved = isSaved(useGiftList(), id);
+  // Owner 11-21: filled when the deal is on My Wish List or on anyone's list (saveForPeople).
+  const [wish, plan] = [useGiftList(), usePlan()];
+  const saved = isSaved(wish, id) || onAnyList(plan, deal.href);
   const name = dealName(deal);
   // An announced deal not started yet says when it starts; otherwise its end day, when it has one.
   const when = dealStartsLater(deal, today) ? W.startsOn(deal.starts!) : deal.ends ? W.endsOn(deal.ends) : "";
@@ -88,7 +92,7 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
         )}
         <span className="sr-only">{W.shop(deal.brand)} ({G.newTab})</span>
       </GiftOut>
-      <Heart saved={saved} label={WISH.saveLabel(name)} onToggle={() => heartTapped(togglePick({ href: deal.href, name, guide: DEALS_SLUG, id }))} className="gg-heart-deal" />
+      <Heart saved={saved} label={WISH.saveForLabel(name)} onToggle={() => { if (!requestSaveFor({ href: deal.href, name, guide: DEALS_SLUG, ...(deal.image ? { image: deal.image } : {}) })) heartTapped(togglePick({ href: deal.href, name, guide: DEALS_SLUG, id })); }} className="gg-heart-deal" />
       <p className="gg-deal-brand">{deal.brand}</p>
       <p className="gg-deal-text" data-gift-deal-text="">{deal.deal}</p>
       {deal.code && (

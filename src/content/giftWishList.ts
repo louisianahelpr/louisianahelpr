@@ -63,6 +63,42 @@ export const WISH = {
   retry: "Try again",
   sharedCta: "Make your own wish list",
   sharedEmpty: "This list is empty right now.",
+  // Save for someone and My lists (owner 2026-11-21: "save items per person ... it shows the total amount they have
+  // added, and they can add/remove stuff as they are browsing the guides"; "they should also be able to share all lists").
+  /** The heart's label on a gift, now that it asks for whom. */
+  saveForLabel: (name: string) => `Save ${name} for someone`,
+  saveForTitle: "Save for someone",
+  saveForMe: "Me",
+  saveForMeSub: (n: number) => `My Wish List · ${n === 1 ? "1 gift" : `${n} gifts`}`,
+  saveForLoading: "Loading your lists…",
+  saveForFull: "That list is full (30). Remove one to add more.",
+  saveForAdd: "Add a person",
+  saveForName: "Name",
+  saveForBudget: "Budget (optional)",
+  saveForAddButton: "Add",
+  saveForDone: "Done",
+  saveForPick: (name: string, gift: string) => `Save ${gift} for ${name}`,
+  saveForUnpick: (name: string, gift: string) => `Remove ${gift} from ${name}'s list`,
+  /** "3 gifts · $54" (no amount while nothing on it has a price). */
+  listCount: (gifts: number, amount: string | null) => `${gifts === 1 ? "1 gift" : `${gifts} gifts`}${amount ? ` · ${amount}` : ""}`,
+  myLists: "My lists",
+  myListsOpen: (summary: string) => `My lists: ${summary}`,
+  listBudget: (amount: string, budget: string) => `${amount} of ${budget} budget`,
+  listOver: (over: string) => `${over} over budget`,
+  listEmpty: "Nothing saved for them yet.",
+  listRemove: (gift: string, name: string) => `Remove ${gift} from ${name}'s list`,
+  openPlanner: "Open planner",
+  shareThisList: "Share this list",
+  shareAllLists: "Share all my lists",
+  shareListsMessage: "Here are my gift lists from the Louisiana Helpr gift guides.",
+  shareListsNote: "Anyone with the link can see these names and gifts for 90 days. Budgets and Bought marks are never shared.",
+  sharePrivate: (n: number) => (n === 1 ? "1 gift you typed in stays private: only gifts from our guides are shared." : `${n} gifts you typed in stay private: only gifts from our guides are shared.`),
+  /** A shared page holding several people's lists. */
+  sharedListsLead: "Someone shared their gift lists with you",
+  sharedListsTitle: "Gift lists",
+  // Amazon Buy Now (owner 2026-11-21): Amazon's add-to-cart form, credited to our tag (src/lib/retailerCart.ts).
+  amazonCartList: (name: string) => `Add ${name.trim().endsWith("s") ? `${name.trim()}'` : `${name.trim()}'s`} Amazon items to my cart`,
+  sharedListTotal: (gifts: number, amount: string | null) => `${gifts === 1 ? "1 gift" : `${gifts} gifts`}${amount ? ` · about ${amount}` : ""}`,
 } as const;
 
 /** The how-to hints (dismissible, shown once). */

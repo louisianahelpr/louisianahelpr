@@ -5705,6 +5705,7 @@ export type Database = {
           created_at: string
           is_seed: boolean
           items: Json
+          lists: Json | null
           name: string
           updated_at: string
           user_id: string | null
@@ -5714,6 +5715,7 @@ export type Database = {
           created_at?: string
           is_seed?: boolean
           items?: Json
+          lists?: Json | null
           name?: string
           updated_at?: string
           user_id?: string | null
@@ -5723,6 +5725,7 @@ export type Database = {
           created_at?: string
           is_seed?: boolean
           items?: Json
+          lists?: Json | null
           name?: string
           updated_at?: string
           user_id?: string | null
@@ -18629,6 +18632,10 @@ export type Database = {
       gift_wish_list_prune: { Args: never; Returns: Json }
       gift_wish_list_save: {
         Args: { p_items: Json; p_name: string; p_test?: boolean }
+        Returns: string
+      }
+      gift_wish_lists_share: {
+        Args: { p_lists: Json; p_test?: boolean }
         Returns: string
       }
       giveaway_entry_url: { Args: never; Returns: string | null }

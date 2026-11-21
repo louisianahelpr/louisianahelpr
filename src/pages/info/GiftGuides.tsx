@@ -15,6 +15,7 @@ import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
 import { GiftGuideSharedList } from "./giftGuides/GiftGuideSharedList";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
+import { SAVE_FOR_CSS, SaveForSomeone } from "./giftGuides/SaveForSomeone";
 import { WISH } from "@/content/giftWishList";
 import { MY_LIST_SLUG } from "./giftGuides/giftList";
 import { GiftGuideTools } from "./giftGuides/GiftGuideShare";
@@ -155,9 +156,11 @@ export default function GiftGuides() {
     // search + heart + share are ONE row (the page draws it, so the shell's own header row is off); a phone wraps it to
     // two rows (arrow + title, then the pill and the icons).
     <PublicHeaderPage title={G.headerTitle} titleTag={banner ? "p" : "h1"} backTo={backTo} hideHeader bottomPaddingClassName="pb-12 md:pb-16">
-      <style>{GIFT_GUIDES_CSS + GIFT_WISH_CSS}</style>
+      <style>{GIFT_GUIDES_CSS + GIFT_WISH_CSS + SAVE_FOR_CSS}</style>
       {/* The first heart's one-time "Saved to your wish list" note (owner 2026-11-20 hints), on every gift guides page. */}
       <FirstHeartHint />
+      {/* Owner 2026-11-21: a guide's hearts save for someone (the picker) and the My lists pill, on guide and deals pages. */}
+      {(guide || deals) && !smallBiz && <SaveForSomeone />}
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
       <div className="gg w-full" data-gift-guides="">
         {/* Owner's mockup (2026-11-18): the way back and the header words run across the top, above the menu and the guides. */}

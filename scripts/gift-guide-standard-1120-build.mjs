@@ -29,7 +29,9 @@ for (const [slug, g] of Object.entries(plan)) {
 // The 25 new items and both women's Muck picks are still undecided and stay exactly as they are.
 const OWNER_1120_NIGHT = {
   cut: {
-    her: [/^Printfresh Eco Satin Soho Pajama Set/i, /^Southern Tide Textured Knit Lounge Pant/i, /^Southern Tide Textured Knit Lounge Quarter Zip/i, /^Olive & June Gel Mani System/i, /^lululemon Define Cropped Jacket Nulu/i],
+    her: [/^Printfresh Eco Satin Soho Pajama Set/i, /^Southern Tide Textured Knit Lounge Pant/i, /^Southern Tide Textured Knit Lounge Quarter Zip/i, /^Olive & June Gel Mani System/i, /^lululemon Define Cropped Jacket Nulu/i,
+      // Owner 11-20 9:33 PM: more popular gifts beat these three sponsor picks; they stay on the 25 Days sponsors guide only.
+      /^SRI Labs DryQ Blow Dryer/i, /^OYU Botanica Winter Radiance Duo/i, /^Arey The System/i],
     him: [/^Southern Marsh Marshlux Augusta Quarter-Zip/i, /^Southern Marsh FieldTec Bozeman Vest/i],
     kids: [/^Southern Marsh Youth Regatta Stretch Chino/i],
     "coffee-lover": [/^Community Coffee/i],
@@ -42,6 +44,10 @@ const OWNER_1120_NIGHT = {
     ["her", "Cozy nights at home", /^Le Creuset Mugs Set Of 4/i],
     ["her", "Cozy nights at home", /^Rifle Paper Co\. Embroidered Journal/i],
     ["her", "Out the door", /^Theo Grace Oval Monogram Signet Ring/i],
+    // The three freed sponsor spots (owner 11-20 9:33 PM) go to well-known picks the plan had cut from this same list.
+    ["her", "Getting ready", /^Lanc.me Juicy Tubes Lip Gloss/i],
+    ["her", "Getting ready", /^OLAPLEX No\.7 Bonding Hair Oil/i],
+    ["her", "Getting ready", /^Charlotte Tilbury Hollywood Flawless Filter/i],
   ],
   // [from guide, to guide, section title, name pattern]: a Louisiana-brand pick moves to a Louisiana guide
   move: [

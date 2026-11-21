@@ -3,8 +3,9 @@
  * data and the train's rule module (scripts/giftGuideTrain1120b.mjs, rules in scripts/gift-guide-train-1120b.json):
  *   - the re-audit's Highs are gone: blank or 404 photos, the BedJet in "Under $100", Milk Bar in the Louisiana sweets,
  *     the Walmart house brands in its deals box, the MX Master twice;
- *   - every national 25 Days sponsor holds exactly ONE guide spot with the sponsor badge, never in a guide's first
- *     row of cards (owner 11-20 ~8:45 AM: not covers, not the Top 10, not the first row);
+ *   - a national 25 Days sponsor holds at most ONE guide spot with the sponsor badge (owner 11-20 9:33 PM: a sponsor
+ *     is guaranteed no spot; SRI Labs, Arey and Oyu Botanica live on the sponsors guide only), outside a guide's first
+ *     row of cards except where the plan orders it there (owner 11-20 ~8:45 AM: not covers, not the Top 10);
  *   - "Our 25 Days sponsors": every lineup sponsor once, A to Z, each logo file on disk, links internal or https;
  *   - Microtel and Wingate appear nowhere; no gift over $500 is added; the rules themselves.
  *
@@ -53,18 +54,36 @@ describe("gift guides train 1120b", () => {
     expect(SALES.find((s) => s.store === "Georgia Boot")).toMatchObject({ ends: "2026-11-25", slug: "store-georgia-boot" });
   });
 
-  it("every national 25 Days sponsor holds exactly one guide spot, badged, never in a guide's first section", () => {
-    for (const s of SPEC.nationalSponsors as { brand: string; guide: string }[]) {
+  it("a national 25 Days sponsor holds at most one guide spot, badged; a sponsors-only brand holds none and stays on the sponsors guide", () => {
+    // Owner 11-20 9:33 PM: being a 25 Days sponsor guarantees no spot on a regular guide ("there are more popular
+    // items ... even if they are our sponsor they can be removed"). A spot the plan keeps is still one spot, badged.
+    // The plan (the owner's standard, later than her 8:45 AM first-row rule) orders these four into a first row.
+    // EXACT: a sponsor that moves down, or a new one that moves up, changes this list.
+    const FIRST_ROW_BY_PLAN = new Set(["RYSE", "Boston Mints", "Rock Bottom Golf", "Sky & Sol"]);
+    const sponsorsGuide = picks("25-days-sponsors");
+    let held = 0;
+    for (const s of SPEC.nationalSponsors as { brand: string; guide: string; sponsorsOnly?: boolean }[]) {
       const spots = guideChunks.flatMap(([slug, c]) => c.picks.filter((p) => isBrandPick(p, s.brand) || (s.brand === "FELCO North America" && /felco/i.test(p.name))).map((p) => ({ slug, p })));
+      if (s.sponsorsOnly) {
+        expect(spots.map((x) => `${x.slug}: ${x.p.name}`), s.brand).toEqual([]);
+        expect(sponsorsGuide.filter((p) => isBrandPick(p, s.brand)).length, s.brand).toBe(1);
+        continue;
+      }
+      expect(spots.length, s.brand).toBeLessThanOrEqual(1);
+      if (!spots.length) continue;
+      held += 1;
       // For Her / For Him (owner 11-20 evening): a sponsor placed on Mom or Dad sits on For Her or For Him.
-      expect(spots.map((x) => x.slug), s.brand).toEqual([peopleGuideOf(s.guide) ?? s.guide]);
+      expect(spots[0].slug, s.brand).toBe(peopleGuideOf(s.guide) ?? s.guide);
       const { p } = spots[0];
       expect(p.sponsor, s.brand).toBe(true);
       const list = picks(peopleGuideOf(s.guide) ?? s.guide);
-      // Never in a guide's first row (its first 8 cards): each spot sits at the end of its section.
-      expect(list.indexOf(p), s.brand).toBeGreaterThanOrEqual(8);
+      // Not in a guide's first row (its first 8 cards), except where the plan itself orders it there.
+      expect(list.indexOf(p) < 8, s.brand).toBe(FIRST_ROW_BY_PLAN.has(s.brand));
       expect(p.image, s.brand).toMatch(/^https:\/\//);
     }
+    // Not vacuous: the plan still keeps most sponsors' spots.
+    expect(held).toBeGreaterThanOrEqual(20);
+    expect((SPEC.nationalSponsors as { brand: string; sponsorsOnly?: boolean }[]).filter((x) => x.sponsorsOnly).map((x) => x.brand).sort()).toEqual(["Arey", "Oyu Botanica", "SRI Labs"]);
   });
 
   it("the sponsor logo row lists every lineup sponsor once, A to Z, with real logo files and safe links", () => {

@@ -1146,6 +1146,7 @@
     },
     {
       "brand": "SRI Labs",
+      "sponsorsOnly": true,
       "guide": "her",
       "section": "Girlfriend",
       "fromSponsorsGuide": "SRI Labs",
@@ -1169,6 +1170,7 @@
     },
     {
       "brand": "Arey",
+      "sponsorsOnly": true,
       "guide": "her",
       "section": "Wife",
       "row": {
@@ -1181,6 +1183,7 @@
     },
     {
       "brand": "Oyu Botanica",
+      "sponsorsOnly": true,
       "guide": "mom",
       "section": "Mother-in-Law",
       "fromSponsorsGuide": "OYU Botanica",

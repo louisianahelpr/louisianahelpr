@@ -2013,24 +2013,21 @@
        "line": "A repair mask for hair that sees a lot of heat."
       },
       {
-       "name": "SRI Labs DryQ Blow Dryer",
-       "href": "https://srilabs.com/",
-       "line": "A blow dryer that cuts drying time on busy mornings."
-      },
-      {
-       "name": "OYU Botanica Winter Radiance Duo",
-       "href": "https://www.oyubotanica.com/",
-       "line": "A two-piece set for dull winter skin."
-      },
-      {
-       "name": "Arey The System",
-       "href": "https://arey.com/products/the-system",
-       "line": "A daily system for hair that is starting to gray."
-      },
-      {
        "name": "Kitsch Holiday Advent Calendar",
        "href": "https://go.shopmy.us/p-107813665",
        "line": "A new hair accessory to open every day of December."
+      },
+      {
+       "name": "Lancôme Juicy Tubes Lip Gloss",
+       "href": "https://www.amazon.com/dp/B0GQD9BZ98?tag=louisianahelpr-20"
+      },
+      {
+       "name": "OLAPLEX No.7 Bonding Hair Oil",
+       "href": "https://go.shopmy.us/p-108004120"
+      },
+      {
+       "name": "Charlotte Tilbury Hollywood Flawless Filter",
+       "href": "https://go.shopmy.us/p-107883387"
       }
      ]
     },
@@ -2140,20 +2137,12 @@
      "href": "https://www.amazon.com/dp/B00175S7T8?tag=louisianahelpr-20"
     },
     {
-     "name": "Lancôme Juicy Tubes Lip Gloss",
-     "href": "https://www.amazon.com/dp/B0GQD9BZ98?tag=louisianahelpr-20"
-    },
-    {
      "name": "Estée Lauder Beautiful Magnolia Eau de Parfum",
      "href": "https://www.amazon.com/dp/B09CWWZNTK?tag=louisianahelpr-20"
     },
     {
      "name": "Bobbi Brown Pot Rouge",
      "href": "https://www.amazon.com/dp/B0FLC9G23N?tag=louisianahelpr-20"
-    },
-    {
-     "name": "OLAPLEX No.7 Bonding Hair Oil",
-     "href": "https://go.shopmy.us/p-108004120"
     },
     {
      "name": "OLAPLEX No.9 Bond Protector Hair Serum",
@@ -2174,10 +2163,6 @@
     {
      "name": "Omnilux Contour Face LED Light Therapy Mask",
      "href": "https://go.shopmy.us/p-108080465"
-    },
-    {
-     "name": "Charlotte Tilbury Hollywood Flawless Filter",
-     "href": "https://go.shopmy.us/p-107883387"
     },
     {
      "name": "YETI x Ten Thousand Rambler 36 oz Bottle",
@@ -2290,6 +2275,18 @@
     {
      "name": "lululemon Define Cropped Jacket Nulu",
      "href": "https://go.shopmy.us/p-107825470"
+    },
+    {
+     "name": "SRI Labs DryQ Blow Dryer",
+     "href": "https://srilabs.com/"
+    },
+    {
+     "name": "OYU Botanica Winter Radiance Duo",
+     "href": "https://www.oyubotanica.com/"
+    },
+    {
+     "name": "Arey The System",
+     "href": "https://arey.com/products/the-system"
     }
    ],
    "ownerCall": []

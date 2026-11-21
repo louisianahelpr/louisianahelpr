@@ -4,15 +4,16 @@
  * picks build (scripts/giftGuideStandard1120.mjs). What must hold on every planned guide's generated list:
  *   - a pick the plan cut stays cut (the guard for a later pass or a re-added source putting it back);
  *   - a kept pick sits in the section the plan names, and the sections come in the plan's order;
- *   - nothing the plan never listed is on the page, unless it is a sponsor or an owner pick;
+ *   - nothing the plan never listed is on the page, unless it is an owner pick (a sponsor badge keeps a pick only on
+ *     the sponsors guide and the Louisiana small-shop guide: owner 11-20 9:33 PM, a sponsor is guaranteed no spot);
  *   - Louisiana-brand picks the owner moved live only in a Louisiana guide; her five splurges stay off Her.
  * The full comparison (missing picks included) is scripts/check-gift-guide-standard.mjs.
  *
  * @mutate scripts/giftGuideStandard1120.mjs |       if (gone.has(p)) continue; |       if (gone.has(p)) { secs[at].push(p); continue; }
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { applyStandard, findPick } from "../../scripts/giftGuideStandard1120.mjs";
+import { SPONSOR_HOME_GUIDES, applyStandard, findPick } from "../../scripts/giftGuideStandard1120.mjs";
 
 type Want = { name: string; href: string; line?: string };
 type Row = { name: string; href: string; section?: string; sectionId?: string; line?: string; sponsor?: true; ownerPick?: true };
@@ -68,9 +69,29 @@ describe("gift guide standard 1120: the plan is what the pages show", () => {
       for (const n of names(slug)) expect(/^Southern Marsh (Marshlux Augusta|FieldTec Bozeman|Youth Regatta)|^Geometry Greetings From Louisiana|^Community Coffee/i.test(n), `${slug}: ${n}`).toBe(false);
     }
   });
+
+  it("the owner's 9:33 PM decision holds: three sponsor picks live on the sponsors guide only, and popular picks took their Her spots", () => {
+    const OFF = /^(SRI Labs DryQ|OYU Botanica Winter Radiance|Arey The System)/i;
+    const seen: string[] = [];
+    for (const f of readdirSync("src/content/giftGuidePicks").filter((x) => x.endsWith(".json"))) {
+      for (const p of page(f.slice(0, -5))) if (OFF.test(p.name)) seen.push(`${f.slice(0, -5)}: ${p.name.match(OFF)![0]}`);
+    }
+    expect(seen.sort()).toEqual(["25-days-sponsors: Arey The System", "25-days-sponsors: OYU Botanica Winter Radiance", "25-days-sponsors: SRI Labs DryQ"]);
+    const ready = page("her").filter((p) => p.section === "Getting ready").map((p) => p.name);
+    for (const n of ["Lancôme Juicy Tubes Lip Gloss", "OLAPLEX No.7 Bonding Hair Oil", "Charlotte Tilbury Hollywood Flawless Filter"]) expect(ready, n).toContain(n);
+  });
 });
 
 describe("applyStandard", () => {
+  it("a sponsor badge keeps an unplanned pick only on the sponsors guide and the Louisiana small-shop guide", () => {
+    const g: Guide = { sections: [{ id: "one", title: "One", picks: [{ name: "A", href: "a" }] }], cut: [], ownerCall: [] };
+    const rows = (): Row[] => [{ name: "A", href: "a" }, { name: "Sponsor stray", href: "s", sponsor: true }, { name: "Owner pick", href: "o", ownerPick: true }];
+    const pageList: Record<string, Row[]> = { her: rows(), "25-days-sponsors": rows(), "shop-small-louisiana": rows() };
+    applyStandard(pageList, { guides: { her: g, "25-days-sponsors": g, "shop-small-louisiana": g } }, { snapshots: [], anchors: {}, aliases: {}, parentOf: () => undefined });
+    expect(pageList.her.map((p) => p.name)).toEqual(["A", "Owner pick"]);
+    expect([...SPONSOR_HOME_GUIDES].sort()).toEqual(["25-days-sponsors", "shop-small-louisiana"]);
+  });
+
   const specOf = (g: Guide) => ({ guides: { g } });
   it("cuts, orders and sections a list, and leaves an owner call in place", () => {
     const pageList: Record<string, Row[]> = { g: [

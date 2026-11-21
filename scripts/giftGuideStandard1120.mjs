@@ -6,13 +6,17 @@
  *   - each kept pick sits in the plan's section, in the plan's order, with the plan's shopper reason (a kept pick the
  *     plan gives no reason keeps the line it had);
  *   - a pick on the page the plan never listed (neither kept nor cut) leaves too and is reported (the plan wins over
- *     later reworks); a sponsor or one of the owner's own picks is never dropped: it stays after the pick it followed;
+ *     later reworks); one of the owner's own picks is never dropped: it stays after the pick it followed. A sponsor badge
+ *     keeps an unplanned pick only on SPONSOR_HOME_GUIDES (owner 11-20 9:33 PM: a sponsor is guaranteed no regular spot);
  *   - the old section ids of the guide open its top (aliases).
  * Picks match on name + href; a renamed pick matches on its href alone when one pick on the page has it, then on its
  * name alone. A kept pick an earlier pass took off the page comes back (ctx.snapshots: the pages before those passes).
  * Nothing new is ever added. Guard: src/test/giftGuideStandard1120.test.ts.
  */
 const fold = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/** Guides where a 25 Days sponsor pick stays without the plan naming it (owner 11-20 9:33 PM). */
+export const SPONSOR_HOME_GUIDES = new Set(["25-days-sponsors", "shop-small-louisiana"]);
 
 export function findPick(list, used, want) {
   const free = list.filter((p) => !used.has(p));
@@ -97,7 +101,10 @@ export function applyStandard(pageList, spec, ctx = {}) {
       // The plan wins: a pick it never listed leaves (reported), unless it is the owner's call, a sponsor or her own pick.
       // A sponsor's pick the plan keeps on another guide lives there only (one place per item; store pages do not count).
       const elsewhere = !calls.has(p) && Object.entries(spec.guides).some(([k, o]) => k !== slug && !k.startsWith("store-") && o.sections.some((x) => x.picks.some((w) => (w.href && w.href === p.href) || fold(w.name) === fold(p.name))));
-      if ((!calls.has(p) && !p.sponsor && !p.ownerPick) || elsewhere) { counts.extraOut++; extras.push(`${slug}: "${p.name}"`); continue; }
+      // Owner 11-20 9:33 PM: a 25 Days sponsor holds no guaranteed spot on a regular guide. The badge protects a pick
+      // only on the sponsors guide and the Louisiana small-shop guide; anywhere else it stays only if the plan keeps it.
+      const sponsorHome = p.sponsor && SPONSOR_HOME_GUIDES.has(slug);
+      if ((!calls.has(p) && !sponsorHome && !p.ownerPick) || elsewhere) { counts.extraOut++; extras.push(`${slug}: "${p.name}"`); continue; }
       secs[at].push({ ...p, section: sec.title, sectionId: sec.id });
       if (calls.has(p)) counts.ownerCall++;
       else { counts.extraKept++; kept.push(`${slug}: "${p.name}"`); }

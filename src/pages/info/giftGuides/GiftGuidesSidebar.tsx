@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { guideBySlug, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { GiftOut } from "./GiftOut";
-import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
+import { louisianaDay } from "@/content/giftGuideDeals.mjs";
 import { FUN_TOOLS, FUN_WORDS } from "@/content/giftGuideFun1120";
 import { EXTRAS_WORDS, FINDER_ANCHOR as FINDER_ID } from "@/content/giftGuideExtras1120";
 import { PRINTABLES_PATH, shownPrintables } from "@/content/printables";
@@ -64,8 +64,10 @@ export function GiftGuidesSidebar({ active, myList = false, page }: { active: Ca
       </ul>
       <p className="gg-side-h" id="gg-side-deals">{G.sideHeads.deals}</p>
       <ul data-gift-side-deals-group="" aria-labelledby="gg-side-deals">
-        {G.sideDeals.map((d, i) => (
-          <li key={d.id}><Link to={`/gift-guides/${DEALS_SLUG}#${d.id}`} {...(i === 0 ? current(DEALS_SLUG) : {})} data-gift-side-deals={d.id}>{d.label}</Link></li>
+        {/* Holiday audit 1121 (High): each day is its own page, so each entry opens that page and is marked current on
+            it (it was a #anchor on the one-page address that never scrolled, with Black Friday always marked). */}
+        {G.sideDeals.map((d) => (
+          <li key={d.id}><Link to={`/gift-guides/${d.id}`} {...current(d.id)} data-gift-side-deals={d.id}>{d.label}</Link></li>
         ))}
       </ul>
       {printables.length > 0 && (
@@ -93,11 +95,11 @@ export function GiftGuidesSidebar({ active, myList = false, page }: { active: Ca
   );
 }
 
-/** Today as YYYY-MM-DD in the visitor's own time zone. */
-const localToday = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
+/**
+ * Today as YYYY-MM-DD in Louisiana, the day every code, sale and deal card is dated by (holiday audit 1121: the codes
+ * box used the visitor's own zone while the deal cards used Louisiana's, so near midnight the two disagreed).
+ */
+const localToday = () => louisianaDay(new Date());
 
 /**
  * "Discount codes" (owner 2026-11-18), inside the collapsed "Deals & codes" section: one box per store, by rank, each

@@ -40,7 +40,7 @@ export const DEAL_EVENTS = [
     description: "Black Friday Deals 2026: hand-checked Black Friday sales and codes from brands you already love, picked by Louisiana Helpr.",
     before: "Fri, Nov 27. Plenty of these sales are on already.",
     on: "Today, Fri, Nov 27. These sales are on now.",
-    after: "Black Friday was Nov 27. These sales are still on.",
+    after: "Black Friday was Nov 27. Some of these sales run a little longer.",
   },
   {
     id: "small-business-saturday", kind: "small-biz", day: "2026-11-28", title: "Small Business Saturday",
@@ -56,7 +56,7 @@ export const DEAL_EVENTS = [
     description: "Cyber Monday Deals 2026: hand-checked Cyber Monday and Cyber Week sales and codes from brands you already love, picked by Louisiana Helpr.",
     before: "Mon, Nov 30. Cyber Week sales, and deals that run through Cyber Monday.",
     on: "Today, Mon, Nov 30. Last call on Cyber Week sales.",
-    after: "Cyber Monday was Nov 30. These sales are still on.",
+    after: "Cyber Monday was Nov 30. Some of these sales run a little longer.",
   },
 ];
 
@@ -116,13 +116,37 @@ export function louisianaDay(now) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
 }
 
+/** "XTRATUF", "Xtratuf " -> "xtratuf": a store or brand name, compared loosely. */
+const storeKey = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
 /**
- * Whether a deal shows on `today` (YYYY-MM-DD, Louisiana): through its `ends` day, never after. An "announced" deal
- * (the brand told us it is coming) shows before its `starts` day too, with "Starts <day>" on its card (dealStartsLater),
- * so a section reads sensibly before its date.
+ * The day a deal ends (YYYY-MM-DD), or undefined when nobody published one: its own `ends`, else the expiry of the
+ * store code it carries (the same code, for the same store, in the discount codes list: XTRATUF's XT25 sale is the
+ * code, and the code ends Nov 29). Holiday audit 1121 (High): the codes box hid XT25 on Nov 30 while its card kept it.
  */
-export function dealShows(deal, today) {
-  return !(deal.ends && deal.ends < today);
+export function dealEnds(deal, codes = []) {
+  if (deal.ends) return deal.ends;
+  if (!deal.code) return undefined;
+  return codes.find((c) => c.code === deal.code && c.expires && storeKey(c.store) === storeKey(deal.brand))?.expires;
+}
+
+/** The code a deal card offers on `today`, or undefined once that store code has expired (even if the sale runs on). */
+export function dealCode(deal, today, codes = []) {
+  if (!deal.code) return undefined;
+  const expires = dealEnds({ brand: deal.brand, code: deal.code }, codes);
+  return expires && expires < today ? undefined : deal.code;
+}
+
+/**
+ * Whether a deal shows on `today` (YYYY-MM-DD, Louisiana): through its end day (dealEnds), never after. A deal with no
+ * known end shows only through RETITLE_AFTER (Dec 1, the day after Cyber Monday): holiday audit 1121 (High) found 20
+ * of 28 cards had no end and stayed up for good, under "These sales are still on". No end day is ever made up for a
+ * card; the card simply goes. An "announced" deal (the brand told us it is coming) shows before its `starts` day too,
+ * with "Starts <day>" on its card (dealStartsLater), so a section reads sensibly before its date.
+ */
+export function dealShows(deal, today, codes = []) {
+  const ends = dealEnds(deal, codes);
+  return ends ? ends >= today : today <= RETITLE_AFTER;
 }
 
 /** Whether a deal's card says "Starts <day>": an announced deal whose start day is still ahead. */
@@ -131,8 +155,8 @@ export function dealStartsLater(deal, today) {
 }
 
 /** The deals that show on `today`, in their order. */
-export function liveDeals(deals, today) {
-  return deals.filter((d) => dealShows(d, today));
+export function liveDeals(deals, today, codes = []) {
+  return deals.filter((d) => dealShows(d, today, codes));
 }
 
 /** Where `today` falls against a section's day: "before", "on" or "after". */

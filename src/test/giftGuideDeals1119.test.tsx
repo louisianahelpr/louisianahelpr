@@ -14,13 +14,13 @@
  *   - deals never show inside Her, Him or Kids (no deals file or deal card on a guide page);
  *   - the landing slot Nov 23 through Dec 1, opening the next day still ahead; "Holiday Deals" after Dec 1.
  *
- * @mutate src/content/giftGuideDeals.mjs |   return !(deal.ends && deal.ends < today); |   return !(deal.ends && deal.ends < "2000-01-01");
+ * @mutate src/content/giftGuideDeals.mjs |   return ends ? ends >= today : today <= RETITLE_AFTER; |   return ends ? ends >= "2000-01-01" : today <= RETITLE_AFTER;
  * @mutate src/content/giftGuideDeals.mjs |   return deal.status === "announced" && !!deal.starts && deal.starts > today; |   return false;
  * @mutate src/content/giftGuideDeals.mjs |   return [...open, ...past]; |   return DEAL_EVENTS.slice();
  * @mutate src/content/giftGuideDeals.mjs |   return today >= FEATURE_FROM && today <= FEATURE_TO; |   return today <= FEATURE_TO;
  * @mutate src/content/giftGuideDeals.mjs |   return today > RETITLE_AFTER ? DEALS_WORDS.laterTitle : DEALS_WORDS.title; |   return DEALS_WORDS.title;
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const list = deals ? dealsIn(liveDeals(deals, today), day.id) : []; |   const list = deals ? liveDeals(deals, today) : [];
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const list = deals ? dealsIn(liveDeals(deals, today), day.id) : []; |   const list = deals ? dealsIn(deals, day.id) : [];
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const list = deals ? dealsIn(liveDeals(deals, today, STORE_CODES), day.id) : []; |   const list = deals ? liveDeals(deals, today, STORE_CODES) : [];
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const list = deals ? dealsIn(liveDeals(deals, today, STORE_CODES), day.id) : []; |   const list = deals ? dealsIn(deals, day.id) : [];
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           <DealsAndCodes on={codesDay(day, today)} /> |           <DealsAndCodes />
  * @mutate src/content/giftGuideDeals.mjs |   return today > event.day ? today : event.day; |   return today;
  * @mutate src/content/giftGuideDeals.mjs |   return dealDay(String(hash ?? "").replace(/^#/, ""))?.id ?? DEAL_EVENTS[0].id; |   return DEAL_EVENTS[0].id;
@@ -150,7 +150,9 @@ describe("deals page: dates", () => {
   it("dealShows: through its end day, never after; an announced deal says Starts until its start day", () => {
     expect(dealShows({ ends: "2026-11-28" }, "2026-11-28")).toBe(true);
     expect(dealShows({ ends: "2026-11-28" }, "2026-11-29")).toBe(false);
-    expect(dealShows({}, "2027-01-01")).toBe(true);
+    // Holiday audit 1121 (High): a deal with no known end shows through Dec 1 (RETITLE_AFTER), never for good.
+    expect(dealShows({}, "2026-12-01")).toBe(true);
+    expect(dealShows({}, "2026-12-02")).toBe(false);
     expect(dealStartsLater({ starts: "2026-11-26", status: "announced" }, "2026-11-25")).toBe(true);
     expect(dealStartsLater({ starts: "2026-11-26", status: "announced" }, "2026-11-26")).toBe(false);
     expect(dealStartsLater({ starts: "2026-11-26", status: "live" }, "2026-11-25")).toBe(false);

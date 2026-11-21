@@ -144,7 +144,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
         expect(codes, `${slug}: the codes and sales box`).not.toBeNull();
         expect(codes!.open, slug).toBe(false);
       }
-      expect(container.querySelector("[data-gift-side-deals='black-friday']")?.getAttribute("aria-current"), slug).toBe("page");
+      // Holiday audit 1121: the menu marks the open day itself (it marked Black Friday on every day).
+      expect(container.querySelector(`[data-gift-side-deals='${slug}']`)?.getAttribute("aria-current"), slug).toBe("page");
       expect(container.querySelector("[data-gift-sidebar] a[data-gift-side='']")?.getAttribute("aria-current"), slug).toBeNull();
       cleanup();
     }
@@ -210,9 +211,9 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     for (const ul of side.querySelectorAll("ul")) expect(side.querySelector(`#${ul.getAttribute("aria-labelledby")}`), ul.outerHTML.slice(0, 40)).not.toBeNull();
     const group = (sel: string) => [...side.querySelectorAll(`${sel} a`)].map((a) => [a.textContent, a.getAttribute("href")]);
     expect(group("[data-gift-side-deals-group]")).toEqual([
-      ["Black Friday", `/gift-guides/${DEALS_SLUG}#black-friday`],
-      ["Small Business Saturday", `/gift-guides/${DEALS_SLUG}#small-business-saturday`],
-      ["Cyber Monday", `/gift-guides/${DEALS_SLUG}#cyber-monday`],
+      ["Black Friday", "/gift-guides/black-friday"],
+      ["Small Business Saturday", "/gift-guides/small-business-saturday"],
+      ["Cyber Monday", "/gift-guides/cyber-monday"],
     ]);
     expect(group("[data-gift-side-printables-group]")).toEqual([
       ["Gift tags", `${PRINTABLES}#pr-tags`], ["Coloring books", `${PRINTABLES}#pr-coloring`], ["Banners", `${PRINTABLES}#pr-banners`],
@@ -227,7 +228,7 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     // No link anywhere on the landing to a retired guide.
     const hrefs = [...container.querySelectorAll<HTMLAnchorElement>("a[href^='/gift-guides/']")].map((a) => a.getAttribute("href")!.slice("/gift-guides/".length).split("#")[0]);
     expect(hrefs.length).toBeGreaterThan(2);
-    const pages = ["my-list", DEALS_SLUG, ...[...TOOLS, PRINTABLES].map((t) => t.slice("/gift-guides/".length))];
+    const pages = ["my-list", ...DEAL_DAY_SLUGS, ...[...TOOLS, PRINTABLES].map((t) => t.slice("/gift-guides/".length))];
     for (const h of hrefs) expect([...LIVE, SPONSORS, ...pages], h).toContain(h);
     cleanup();
     // A guide's page has no divider and no deals box (owner 11-21: "Codes and deals shouldn't randomly show in sections").

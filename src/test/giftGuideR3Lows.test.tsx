@@ -15,7 +15,7 @@
  * @mutate api/share.ts |     ...("robots" in page && typeof page.robots === "string" ? { robots: page.robots } : {}), |
  * @mutate src/content/giftGuideCatalog.ts |     const keyword = q !== "" && (SEARCH_KEYWORDS[g.slug] ?? "").split(" ").includes(q); |     const keyword = false;
  * @mutate src/content/giftGuideCatalog.ts |   nurses: ["healthcare"], |   "nurses-gone": ["healthcare"],
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | to: `/gift-guides?group=for-kids#${KIDS_BY_AGE_ID}` | to: "/gift-guides?group=for-kids"
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |           {r.row === "for-kids" && <KidsByAge />} |           {null}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -28,7 +28,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 import GiftGuides from "@/pages/info/GiftGuides";
-import { QUICK_PICKS, topCardName } from "@/pages/info/giftGuides/GiftGuideLanding";
+import { topCardName } from "@/pages/info/giftGuides/GiftGuideLanding";
 import { KIDS_BY_AGE_ID } from "@/pages/info/giftGuides/GiftGuideAges";
 import { readdirSync } from "./helpers/trackedFiles";
 
@@ -55,7 +55,7 @@ describe("gift guides r3 UX Lows", () => {
   // Follow-up 1120 (owner 11-20 ~1:10 AM): Girls, Boys and Gender-Neutral are sections of ONE Kids guide, so the For kids
   // row is the Kids tile alone (no hub tiles left to caption).
   it("#10: the For kids row shows the one Kids tile; Girls, Boys and Gender-neutral have no tiles of their own", () => {
-    const { container } = renderAt("/gift-guides");
+    const { container } = renderAt("/gift-guides?group=for-kids");
     const row = container.querySelector("[data-gift-row='for-kids']")!;
     expect([...row.querySelectorAll("[data-gift-tile]")].map((t) => t.getAttribute("data-gift-tile"))).toEqual(["kids"]);
     for (const slug of ["girls", "boys", "gender-neutral"]) expect(row.querySelector(`[data-gift-tile='${slug}']`), slug).toBeNull();
@@ -93,10 +93,8 @@ describe("gift guides r3 UX Lows", () => {
     expect(hits).toEqual([]);
   });
 
-  it("#17: the Kids by age chip opens the Kids by age block", () => {
-    const chip = QUICK_PICKS.find((c) => c.to.startsWith("/gift-guides?group=for-kids"));
-    expect(chip?.to).toBe(`/gift-guides?group=for-kids#${KIDS_BY_AGE_ID}`);
-    const { container } = renderAt(chip!.to);
+  it("#17: the For kids group's page opens with the Kids by age block (its old landing chip is gone, owner 11-20 PM)", () => {
+    const { container } = renderAt(`/gift-guides?group=for-kids#${KIDS_BY_AGE_ID}`);
     expect(container.querySelector(`#${KIDS_BY_AGE_ID}[data-gift-ages]`)).not.toBeNull();
   });
 });

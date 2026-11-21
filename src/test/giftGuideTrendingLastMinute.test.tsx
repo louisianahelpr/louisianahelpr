@@ -8,7 +8,7 @@
  *
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const badges = pick.badges; |   const badges = ["trending" as const, ...(pick.badges ?? [])];
  * @mutate src/content/giftGuideShipping.ts |   return month === 12 && day >= 15 && day <= 25; |   return month === 12 && day >= 14 && day <= 25;
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       {!group && <LastMinute />} |       {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LastMinute /> |       {null}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
@@ -102,7 +102,7 @@ describe("gift guides: Last-minute gifts, Dec 15-25 in Louisiana", () => {
   it("hidden before Dec 15", () => {
     at("2026-12-14T18:00:00Z");
     const { container } = renderAt("/gift-guides");
-    expect(container.querySelector("[data-gift-rows]")).not.toBeNull();
+    expect(container.querySelector("[data-gift-browse]")).not.toBeNull();
     expect(container.querySelector("[data-gift-last-minute]")).toBeNull();
     expect(container.textContent).not.toContain(LAST_MINUTE.title);
   });
@@ -123,8 +123,8 @@ describe("gift guides: Last-minute gifts, Dec 15-25 in Louisiana", () => {
     expect(tiles).toEqual(expect.arrayContaining(["gifts-by-budget"]));
     for (const t of sec.querySelectorAll("[data-gift-tile]")) expect(t.getAttribute("href")).toBe(`/gift-guides/${t.getAttribute("data-gift-tile")}`);
     expect(sec.querySelector("[data-gift-last-minute-note]")?.textContent).toBe(`Arrives by Christmas: ${SHIP_LINES.late}`);
-    // Above every guide row.
-    const firstRow = container.querySelector("[data-gift-rows]")!;
+    // Above the guides grid.
+    const firstRow = container.querySelector("[data-gift-browse]")!;
     expect(sec.compareDocumentPosition(firstRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

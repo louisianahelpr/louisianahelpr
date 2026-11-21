@@ -13,7 +13,7 @@
  * @mutate src/content/giftGuideDeals.mjs |   return today >= FEATURE_FROM && today <= FEATURE_TO; |   return today <= FEATURE_TO;
  * @mutate src/content/giftGuideDeals.mjs |   return today > RETITLE_AFTER ? DEALS_WORDS.laterTitle : DEALS_WORDS.title; |   return DEALS_WORDS.title;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const sections = deals ? dealSections(liveDeals(deals, today)) : []; |   const sections = deals ? dealSections(deals) : [];
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       {!group && <DealsFeature />} |       {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <DealsFeature /> |       {null}
  * @mutate api/share.ts |     if (slug === DEALS_SLUG) { |     if (slug === "no-such-guide") {
  */
 import { existsSync } from "node:fs";
@@ -173,7 +173,7 @@ describe("deals guide: the landing's featured slot and the retitle", () => {
     expect(feature(noon("2026-12-02"))).toBeNull();
   });
 
-  it("sits at the very top of the landing, above the quick picks, inside the window only", async () => {
+  it("sits at the very top of the landing, above the gift finder, inside the window only", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(noon("2026-11-24"));
     const { container } = render(
@@ -182,7 +182,7 @@ describe("deals guide: the landing's featured slot and the retitle", () => {
       </MemoryRouter>,
     );
     const slot = container.querySelector("[data-gift-deals-feature]")!;
-    const quick = container.querySelector("[data-gift-quick-picks]")!;
+    const quick = container.querySelector("[data-gift-finder]")!;
     expect(slot).not.toBeNull();
     expect(slot.compareDocumentPosition(quick) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(slot.textContent).toContain(DEALS_WORDS.title);

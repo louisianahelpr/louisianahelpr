@@ -158,7 +158,7 @@ describe("hearts persist and one heart covers the gift everywhere", () => {
       expect(giftListNow().picks.length).toBe(1);
       // Blocked storage never breaks the landing (it still draws its rows).
       const view = renderAt("/gift-guides");
-      expect(view.container.querySelector("[data-gift-rows]")).not.toBeNull();
+      expect(view.container.querySelector("[data-gift-browse]")).not.toBeNull();
     } finally {
       get.mockRestore();
       set.mockRestore();

@@ -226,7 +226,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
   it("a cover heart toggles aria-pressed, stays on the page, and counts on the tool row's My list icon", () => {
     window.localStorage.clear();
     resetGiftListForTests();
-    const { container } = renderAt("/gift-guides");
+    const { container } = renderAt("/gift-guides?group=by-person");
     const heart = screen.getAllByRole("button", { name: "Save Mom to My Wish List" })[0];
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(heart.closest("a")).toBeNull();
@@ -263,7 +263,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     const spy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    renderAt("/gift-guides");
+    renderAt("/gift-guides?group=by-person");
     const heart = screen.getAllByRole("button", { name: "Save Dad to My Wish List" })[0];
     fireEvent.click(heart);
     expect(heart.getAttribute("aria-pressed")).toBe("true");

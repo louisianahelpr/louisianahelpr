@@ -89,8 +89,6 @@ article[data-gift-guide]>section:first-child>.gg-list,article[data-gift-guide]>.
 .gg-itemcount{margin:6px 0 4px;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--gg-muted)}
 .gg-chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
 .gg-chip{border-radius:999px;font-weight:600;white-space:nowrap}
-.gg-picks{margin:10px 0 2px}
-@media (max-width:767px){.gg-picks-row{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}.gg-picks-row>li{flex:none}}
 .gg-ages{margin:12px 0 4px;padding:12px 14px;border:1px solid var(--gg-line);border-radius:14px;background:#fffdf7}
 .gg-ages ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 .gg-ages li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
@@ -168,10 +166,39 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-bdg-sponsor{background:#f3dcd8;color:#8c3b3b}
 .gg-bdg-tiktok{background:#e9e4f5;color:#4b3a7a}.gg-bdg-preorder{background:#fbefd9;color:#7a5413}.gg-bdg-code{background:var(--gg-soft,#f4efe6);color:var(--gg-ink);letter-spacing:.04em}.gg-bdg-ship{background:#e6eef3;color:#2d4f63}
 .gg-secnav,.gg-budget{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}.gg-secnav{align-items:center}.gg-secnav-label{flex-basis:100%;font-size:13px;color:var(--gg-muted)}.gg-sec{scroll-margin-top:84px}
-.gg-finder{margin:8px 0 4px;padding:16px 16px 8px;border:1px solid var(--gg-line);border-radius:18px;background:linear-gradient(180deg,var(--gg-soft),transparent 140px)}.gg-finder-step{margin:6px 0 10px}.gg-finder-q{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--gg-ink)}
-.gg-finder-title{margin:0;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:24px;line-height:1.15;font-weight:700;color:var(--gg-ink)}.gg-finder-lead{margin:4px 0 10px;font-size:14px;color:var(--gg-muted)}
-@media (min-width:768px){.gg-finder{padding:20px 22px 10px}.gg-finder-title{font-size:28px}}
-.gg-groups{display:flex;flex-wrap:wrap;align-items:flex-start;gap:0 32px}.gg-groups>section{flex:0 1 auto;min-width:0;max-width:100%}.gg-groups .gg-row{overflow-x:auto}.gg-groups [data-gift-ages]{max-width:340px}@media (max-width:767px){.gg-groups{gap:0 12px}}
+.gg-finder{margin:12px 0 4px;padding:16px 16px 8px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card))}.gg-finder-step{margin:6px 0 10px}.gg-finder-q{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--gg-ink)}
+.gg-finder-title{margin:0;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:22px;line-height:1.15;font-weight:600;color:var(--gg-ink)}.gg-finder-lead{margin:4px 0 10px;font-size:14px;color:var(--gg-muted)}
+@media (min-width:768px){.gg-finder{padding:18px 22px 10px}.gg-finder-title{font-size:24px}}
+.gg-finder-folded{padding:0}
+.gg-finder-open{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:12px 16px;border:0;border-radius:16px;background:transparent;text-align:left;cursor:pointer;color:var(--gg-ink);font:inherit}
+.gg-finder-open:focus-visible{outline:2px solid var(--gg-olive);outline-offset:2px}
+.gg-finder-open-words{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.gg-finder-open-words>span{font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:19px;font-weight:600;line-height:1.2}
+.gg-finder-open-words small{font-family:Montserrat,sans-serif;font-size:13px;font-weight:500;color:var(--gg-muted)}
+.gg-finder-arrow{flex:none;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:999px;background:var(--gg-soft);color:var(--gg-olive);font-family:Montserrat,sans-serif;font-size:17px;font-weight:600}
+.gg-finder-open:hover .gg-finder-arrow{background:hsl(var(--bark) / .22)}
+.gg-words-landing{border-bottom:0;padding:22px 0 4px;margin-bottom:0}
+.gg-words-landing h1{font-size:32px;margin:0}
+.gg-sub{margin:6px auto 0;max-width:36rem;font-size:14px;line-height:1.45;color:var(--gg-muted)}
+.gg-sub-ship{display:block;font-weight:600;color:var(--gg-olive)}
+.gg-words-landing .gg-tools{margin-top:16px;max-width:520px}
+.gg-words-landing .gg-icon,.gg-words-landing .gg-mylist-icon{color:var(--gg-muted)}
+.gg-words-landing .gg-search input{border-color:var(--gg-line)}
+@media (min-width:768px){.gg-words-landing{padding-top:28px}.gg-words-landing h1{font-size:40px}.gg-sub{font-size:15px}}
+.gg-browse{margin:30px 0 4px}
+.gg-browse-title{margin:0 0 14px;font-size:17px;font-weight:700;color:var(--gg-ink)}
+.gg-entries{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 14px;list-style:none;margin:0;padding:0}
+@media (min-width:640px){.gg-entries{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 18px}}
+@media (min-width:1180px){.gg-entries{grid-template-columns:repeat(6,minmax(0,1fr))}}
+.gg-entries>li{min-width:0}
+.gg-entry{display:flex;flex-direction:column;color:var(--gg-ink);text-decoration:none}
+.gg-entry-photo{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.07)}
+.gg-entry:hover .gg-entry-photo,.gg-entry:focus-visible .gg-entry-photo{outline:2px solid var(--gg-olive);outline-offset:2px}
+.gg-entry-title{margin-top:10px;font-size:15px;font-weight:700;line-height:1.25}
+.gg-entry-sub{margin-top:2px;font-size:12.5px;line-height:1.35;color:var(--gg-muted)}
+.gg-more-groups{display:flex;flex-wrap:wrap;align-items:center;gap:0 18px;margin-top:16px;padding-top:6px;border-top:1px solid var(--gg-line)}
+.gg-more-groups-k{font-size:13px;font-weight:600;color:var(--gg-muted)}
+.gg-more-groups ul{display:flex;flex-wrap:wrap;gap:0 18px;list-style:none;margin:0;padding:0}
 .gg-gated{display:flex;flex-direction:column;gap:6px;margin:4px 0 12px}
 .gg-item:hover .gg-nm,.gg-item:focus-visible .gg-nm{text-decoration:underline}
 .gg-price{font-size:13px;font-weight:700;color:var(--gg-ink);white-space:nowrap;font-variant-numeric:tabular-nums}

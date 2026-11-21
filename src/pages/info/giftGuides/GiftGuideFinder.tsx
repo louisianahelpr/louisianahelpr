@@ -33,11 +33,17 @@ function Choices<T extends string | number>({ label, options, value, onPick, att
 }
 
 export function GiftFinder() {
-  const { search } = useLocation();
+  const { search, hash } = useLocation();
   const navigate = useNavigate();
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
   const a = readFinder(new URLSearchParams(search));
   const [copied, setCopied] = useState(false);
+  // Owner 11-20 PM ("still a busy mess"): folded into ONE card until tapped; a shared answer link
+  // (?who=...#gift-finder) or "Start over" (#gift-finder) opens it straight away.
+  const [open, setOpen] = useState(() => a.who !== undefined || hash === `#${FINDER_ID}`);
+  useEffect(() => {
+    if (a.who !== undefined || hash === `#${FINDER_ID}`) setOpen(true);
+  }, [a.who, hash]);
   const set = (next: { who?: FinderWho; budget?: FinderBudget; vibe?: FinderVibe }) => {
     const q = new URLSearchParams(search);
     for (const [k, v] of Object.entries({ ...a, ...next })) if (v !== undefined) q.set(k, String(v));
@@ -61,10 +67,25 @@ export function GiftFinder() {
       () => setCopied(false),
     );
   };
+  if (!open) {
+    return (
+      <section id={FINDER_ID} aria-labelledby="gift-finder-title" className="gg-finder gg-finder-folded" data-gift-finder="" data-gift-finder-folded="">
+        <h2 id="gift-finder-title" className="gg-finder-title">
+          <button type="button" className="gg-finder-open" aria-expanded={false} aria-controls={`${FINDER_ID}-steps`} onClick={() => setOpen(true)} data-gift-finder-open="">
+            <span className="gg-finder-open-words">
+              <span>{W.finderTitle}</span>
+              <small>{W.finderFolded}</small>
+            </span>
+            <span className="gg-finder-arrow" aria-hidden="true">→</span>
+          </button>
+        </h2>
+      </section>
+    );
+  }
   return (
     <section id={FINDER_ID} aria-labelledby="gift-finder-title" className="gg-finder" data-gift-finder="">
-      {/* Owner 11-20 12:30 PM landing plan: the finder is the big "Find a gift in 3 taps" call to action at the top. */}
       <h2 id="gift-finder-title" className="gg-finder-title">{W.finderTitle}</h2>
+      <div id={`${FINDER_ID}-steps`} className="gg-finder-steps">
       {!a.who && <p className="gg-finder-lead">{W.finderLead}</p>}
       <Choices label={W.finderWho} options={FINDER_WHO.map((x) => ({ id: x.id, label: x.label }))} value={a.who} onPick={(v) => set({ who: v })} attr="who" />
       {a.who && <Choices label={W.finderBudget} options={FINDER_BUDGETS} value={a.budget} onPick={(v) => set({ budget: v })} attr="budget" />}
@@ -86,6 +107,7 @@ export function GiftFinder() {
           </span>
         </div>
       )}
+      </div>
     </section>
   );
 }

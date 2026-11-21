@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { loadSearchItems, newSlugFor, topPicks, type SearchItem } from "@/content/giftGuideCatalog";
+import { guideBySlug, guidePicksVersion, loadGuidePicks, loadSearchItems, newSlugFor, subscribeGuidePicks, topPicks, type SearchItem } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDE_FLAGS } from "@/content/giftGuideExtras1120";
-import { FUN_WORDS as W, christmasCountdown, giftOfTheDay, giveawayTieInOn } from "@/content/giftGuideFun1120";
-import { PickPrice } from "@/components/giftGuides/PickPrice";
+import { FUN_WORDS as W, christmasCountdown, giftOfTheDay, giveawayTieInOn, louisianaYmd } from "@/content/giftGuideFun1120";
+import { PickPrice, showsPrice } from "@/components/giftGuides/PickPrice";
+import { PickThumb } from "../GiftGuideView";
 import { loadModule } from "@/lib/loadModule";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { GiftOut } from "../GiftOut";
@@ -35,17 +36,30 @@ export function giftOfTheDayPath(name: string, items: readonly SearchItem[] | nu
 /** The gift's short name: a trailing "(…)" spec list dropped, as the Top 10 cards do. */
 const shortName = (name: string) => name.replace(/\s*\([^()]*\)\s*$/, "") || name;
 
+/** The guide whose checked prices feed the Gift of the Day (its Stocking Stuffers, Under $25 and Under $50 sections). */
+export const GOTD_SOURCE_GUIDE = "gifts-by-budget";
+
 /**
- * On the /gift-guides landing (owner 2026-11-20; ONE slim line since owner 11-20 12:30 PM, "very busy and not well
- * organized"): the Christmas countdown (Louisiana days) and the Gift of the Day (one of the curated Top 10 picks, the
- * same all day, a new one each day; no Amazon price, PickPrice's own rule) with a small Share, and Dec 1-25 a small
- * "25 Days of Louisiana Giveaways is on" link behind the existing OFF flag (GIFT_GUIDE_FLAGS.giveawayBanner; the lead
- * flips it). No tip box. The fun tools are their own row (GiftTools). Guard: src/test/giftGuideFun1120.test.tsx.
+ * On the /gift-guides landing (owner 2026-11-20): the Christmas countdown (Louisiana days) and the Gift of the Day as
+ * ONE small card, below the guides (owner 11-20 PM, "still a busy mess": out of the top of the page). The gift is an
+ * affordable, priced pick (owner 11-20: "The gift of the day shouldn't be expensive": giftOfTheDay, $50 or less, a
+ * checked non-Amazon price, a well-known brand), from the Gifts by Budget picks (one small lazy chunk, fetched by this
+ * card) and the Top 10; its whole name shows (wrapping, never cut with "..."), with its photo, price and a small
+ * Share. Dec 1-25 a small "25 Days of Louisiana Giveaways is on" link behind the existing OFF flag
+ * (GIFT_GUIDE_FLAGS.giveawayBanner; the lead flips it). Guard: src/test/giftGuideFun1120.test.tsx.
  */
 export function GiftCountdown({ now: nowProp }: { now?: Date }) {
   const now = nowProp ?? new Date();
   const c = christmasCountdown(now);
-  const gift = giftOfTheDay(topPicks(), now);
+  useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
+  useEffect(() => {
+    loadGuidePicks(GOTD_SOURCE_GUIDE).catch((e: unknown) => {
+      // The card then shows the countdown alone (no gift qualifies without the budget picks' prices).
+      console.warn("gift of the day: budget picks chunk failed", e);
+    });
+  }, []);
+  const today = louisianaYmd(now);
+  const gift = giftOfTheDay([...(guideBySlug(GOTD_SOURCE_GUIDE)?.picks ?? []), ...topPicks()], now, (p) => showsPrice(p, today));
   const [msg, setMsg] = useState<string | null>(null);
   // The gift search index (about 40 KB gzipped) names each pick's guide: fetched once the page has settled, never on
   // its critical path, so the share can open the pick's guide.
@@ -84,18 +98,25 @@ export function GiftCountdown({ now: nowProp }: { now?: Date }) {
   return (
     <section aria-label={W.gotdTitle} className="gg-today" data-gift-countdown="">
       <style>{COUNTDOWN_CSS}</style>
-      {c.kind !== "after" && (
-        <span className="gg-today-days" data-gift-countdown-days={c.kind === "days" ? c.days : c.kind}>
-          {c.kind === "days" ? <><b>{c.days}</b> {W.daysLeft(c.days)}</> : <b>{c.kind === "eve" ? W.eve : W.today}</b>}
-        </span>
-      )}
+      <p className="gg-today-head">
+        {gift && <span className="gg-today-k">{W.gotdTitle}</span>}
+        {c.kind !== "after" && (
+          <span className="gg-today-days" data-gift-countdown-days={c.kind === "days" ? c.days : c.kind}>
+            {c.kind === "days" ? <>{c.days} {W.daysLeft(c.days)}</> : c.kind === "eve" ? W.eve : W.today}
+          </span>
+        )}
+      </p>
       {gift && (
-        <span className="gg-today-gift" id={GOTD_ID} data-gift-of-the-day={gift.href}>
-          <span className="gg-today-k">{W.gotdTitle}:</span>
-          <GiftOut href={gift.href} className="gg-today-name">{shortName(gift.name)}<span className="sr-only"> (opens in a new tab)</span></GiftOut>
-          <PickPrice pick={gift} />
+        <div className="gg-today-gift" id={GOTD_ID} data-gift-of-the-day={gift.href}>
+          <GiftOut href={gift.href} className="gg-today-link">
+            <PickThumb pick={gift} size={56} />
+            <span className="gg-today-words">
+              <span className="gg-today-name">{shortName(gift.name)}<span className="sr-only"> (opens in a new tab)</span></span>
+              <PickPrice pick={gift} />
+            </span>
+          </GiftOut>
           <Button type="button" variant="ghost" size="inline" className="gg-today-share" aria-label={W.gotdShareLabel} onClick={() => void share()} data-gift-gotd-share="">{msg ?? W.gotdShare}</Button>
-        </span>
+        </div>
       )}
       {giveawayTieInOn(now, GIFT_GUIDE_FLAGS.giveawayBanner.on) && (
         <Link to="/25days" className="gg-link" data-gift-giveaway-on="">{W.giveawayOn} ›</Link>
@@ -126,13 +147,18 @@ export function GiftTools() {
 
 /** Scoped under .gg, shipped with the landing's own lazy chunk. */
 const COUNTDOWN_CSS = `
-.gg-today{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:12px 0 2px;padding:8px 12px;border-radius:12px;background:var(--gg-soft);font-size:13px;color:var(--gg-ink);min-width:0}
-.gg-today-days{white-space:nowrap;color:var(--gg-olive);font-weight:600}
-.gg-today-days b{font-weight:800}
-.gg-today-gift{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 220px}
-.gg-today-k{font-weight:700;white-space:nowrap}
-.gg-today-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gg-ink);text-decoration:underline;text-underline-offset:2px}
-.gg-today-share{flex:none;min-height:32px;margin-left:auto;padding:0 12px;border-radius:999px;border:1px solid var(--gg-line);background:hsl(var(--card));font-size:12px;font-weight:600;color:var(--gg-ink)}
+.gg-today{margin:26px 0 4px;padding:14px 16px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card));color:var(--gg-ink);min-width:0}
+.gg-today-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 12px;margin:0;font-size:13px}
+.gg-today-k{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gg-ink)}
+.gg-today-days{font-weight:600;color:var(--gg-olive)}
+.gg-today-words{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.gg-today-gift{display:flex;align-items:center;gap:10px;margin-top:10px;min-width:0}
+.gg-today-link{display:flex;align-items:center;gap:12px;flex:1;min-width:0;color:var(--gg-ink);text-decoration:none}
+.gg-today-link .gg-thumb{width:56px;height:56px;border-radius:12px;padding:4px;background:#faf6ee;border:0}
+.gg-today-link .gg-photo{border-radius:12px;background:#faf6ee}
+.gg-today-name{min-width:0;font-size:14px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.gg-today-link:hover .gg-today-name,.gg-today-link:focus-visible .gg-today-name{text-decoration:underline}
+.gg-today-share{flex:none;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--gg-line);background:transparent;font-size:12.5px;font-weight:600;color:var(--gg-ink)}
 `;
 const TOOLS_CSS = `
 .gg-fun-tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;list-style:none;margin:0;padding:0}

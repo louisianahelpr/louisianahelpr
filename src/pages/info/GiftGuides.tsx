@@ -88,10 +88,14 @@ export default function GiftGuides() {
       {ship.endsWith(shipTail) && <span className="hidden sm:inline">{shipTail}</span>}
     </p>
   ) : undefined;
+  // The landing itself (owner 11-20 PM, "still a busy mess"): ONE title. No header row ("Gift guides" over "Holiday Gift
+  // Guides"); the shipping words ride the title's short subline instead of a pill.
+  const shipNote = ship ? <span className="gg-sub-ship" data-gift-ship="">{ship}</span> : null;
   // The old My list address (?list=mine) opens My Wish List's own page.
   const oldMyList = !slug && !shared && !myListPage && params.get("list") === "mine";
   const myList = myListPage;
   const group = ROWS.find((r) => r.row === groupParam)?.row ?? (null as GuideRow | null);
+  const landing = !slug && !shared && !myListPage && !group;
 
   // Pins link to /gift-guides#for-her, /gift-guides/for-her or a folded guide (/gift-guides/female-nurses): send each
   // old slug, folded guide or #<slug> to the guide's page now (newSlugFor).
@@ -118,7 +122,7 @@ export default function GiftGuides() {
     // Holistic review 11-18 L6: the landing's back arrow went home; the landing has none now (the bar's logo is the way
     // home), and My list or a group's page goes back to the landing.
     <PublicHeaderPage title={G.pageTitle} titleTag="p" backTo={guide || deals || myList || shared || group ? "/gift-guides" : "/"} hideBack={!guide && !deals && !myList && !shared && !group} bottomPaddingClassName="pb-12 md:pb-16"
-      titleActions={shipPill}>
+      titleActions={landing ? undefined : shipPill} hideHeader={landing}>
       <style>{GIFT_GUIDES_CSS + GIFT_WISH_CSS}</style>
       {/* The first heart's one-time "Saved to your wish list" note (owner 2026-11-20 hints), on every gift guides page. */}
       <FirstHeartHint />
@@ -143,7 +147,8 @@ export default function GiftGuides() {
           <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint}
             tools={<GiftGuideTools path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />} />
         ) : (
-          <GiftGuidesWords lead={G.bandLead} title={G.title} titleId="gift-guides-title" tools={<GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />} />
+          <GiftGuidesWords lead={landing ? "" : G.bandLead} title={G.title} titleId="gift-guides-title" tools={<GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />}
+            sub={landing ? <p className="gg-sub" data-gift-sub="">{G.landingSub}{shipNote}</p> : undefined} />
         )}
         <div className="gg-layout">
           <GiftGuidesSidebar active={guide} myList={myList} />

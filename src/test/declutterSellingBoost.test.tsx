@@ -269,7 +269,7 @@ describe("New this week", () => {
 
   it("the row is its own chunk (lazy), never a static import of Browse", () => {
     const src = blankComments(readFileSync("src/components/declutter/DeclutterBrowseView.tsx", "utf8"));
-    expect(src).toContain('const loadNewThisWeek = () => import("./DeclutterNewThisWeek");');
+    expect(src).toContain('const DeclutterNewThisWeek = lazy(() => import("./DeclutterNewThisWeek"));');
     expect(src).not.toMatch(/import\s+[^;]*from\s+"\.\/DeclutterNewThisWeek"/);
   });
 });

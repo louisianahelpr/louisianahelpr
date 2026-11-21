@@ -68,16 +68,17 @@ import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
 import "@/lib/i18n/enDeclBrowse";
 import { BROWSE_EMPTY_SLOT, CHIPS_ROW_PAD } from "@/components/sections/browseHeaderSpacing";
+import { loadModule } from "@/lib/loadModule";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
 const DeclutterMap = lazy(() => import("./DeclutterMap"));
 const GiftGuidesPromo = lazy(() => import("@/components/GiftGuidesPromo"));
 // Selling boost (owner 11-20): the "New this week" row is its own chunk, off Browse's critical path (Q178). It starts
 // downloading as Browse's own module runs, beside the list read, so it is in hand by the time the cards paint.
-const loadNewThisWeek = () => import("./DeclutterNewThisWeek");
-const DeclutterNewThisWeek = lazy(loadNewThisWeek);
+const DeclutterNewThisWeek = lazy(() => import("./DeclutterNewThisWeek"));
 if (typeof window !== "undefined") {
-  void loadNewThisWeek().catch(() => {
+  // loadModule (dynamicImportThenDoesNoWork): the early start does no work on the module, it only warms the chunk.
+  void loadModule(() => import("./DeclutterNewThisWeek")).catch(() => {
     // A failed early start costs nothing: lazy() asks for the chunk again when the row renders.
   });
 }

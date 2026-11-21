@@ -3,19 +3,19 @@
  * this sale covered an amount you owed from an earlier refund", though nothing owed was taken. The $0 reason now comes
  * from the payout row: refunded_cents (the refund) and debt_cents (what owed was actually taken).
  *
- * @mutate src/lib/declutter/payoutWords.ts |   if ((p.refunded_cents ?? 0) >= sale) return "Nothing to pay out: the buyer was refunded for this sale."; |
- * @mutate src/lib/declutter/payoutWords.ts |   if (p.debt_cents > 0) return "Nothing to pay out: this sale covered an amount you owed from an earlier refund."; |
+ * @mutate src/lib/declutter/payoutWords.ts |   if ((p.refunded_cents ?? 0) >= sale) return t("dpo.none.refunded"); |
+ * @mutate src/lib/declutter/payoutWords.ts |   if (p.debt_cents > 0) return t("dpo.none.debt"); |
  * @mutate src/lib/declutter/payoutWords.ts |   const sale = p.items_cents + (p.delivery_cents ?? 0); |   const sale = p.items_cents + (p.delivery_cents ?? 0) + 1;
- * @mutate src/lib/declutter/payoutWords.ts | owed ? ` after the ${formatPrice(refunded)} refund and ${owed}` : | false ? "" :
+ * @mutate src/lib/declutter/payoutWords.ts | owed ? t("dpo.br.afterRefundAnd", { refund: formatPrice(refunded), owed }) : | false ? "" :
  *
  * NIGHT-SELL-soldstates-4 (buying.md #47): a failed payout says honestly whether we are still trying. The payout run
  * stops after its last try (the NEWEST declutter_payouts_due: attempts < 12, read below) and nothing restarts it but
  * Support; the seller reads attempts through the column grant 20261031184338 (proof:
  * src/test/pglite/declutterPayoutAttemptsReadable.pglite.mjs).
- * @mutate src/lib/declutter/payoutWords.ts |   if ((p.status === "failed" \|\| p.status === "pending") && (p.attempts ?? 0) >= PAYOUT_TRIES) return PAYOUT_GAVE_UP; |
+ * @mutate src/lib/declutter/payoutWords.ts |   if ((p.status === "failed" \|\| p.status === "pending") && (p.attempts ?? 0) >= PAYOUT_TRIES) return t(PAYOUT_GAVE_UP); |
  * @mutate src/lib/declutter/payoutWords.ts |   if ((p.status === "failed" \|\| p.status === "pending") && | if (p.status === "failed" &&
  * @mutate src/lib/declutter/payoutWords.ts | export const PAYOUT_TRIES = 12; | export const PAYOUT_TRIES = 13;
- * @mutate src/lib/declutter/payoutWords.ts |   if (p.status === "failed" && p.attempts === undefined) return PAYOUT_FAILED_UNKNOWN; |
+ * @mutate src/lib/declutter/payoutWords.ts |   if (p.status === "failed" && p.attempts === undefined) return t(PAYOUT_FAILED_UNKNOWN); |
  * @mutate src/lib/declutter/payoutReads.ts |   const res = await supabase.from("declutter_payouts").select(`${cols}, attempts`).eq("seller_id", userId); |   const res = await supabase.from("declutter_payouts").select(cols).eq("seller_id", userId);
  * @mutate supabase/migrations/20261031184338_declutter_payout_attempts_readable.sql | GRANT SELECT (attempts) ON TABLE public.declutter_payouts TO authenticated; | GRANT SELECT (status) ON TABLE public.declutter_payouts TO authenticated;
  */

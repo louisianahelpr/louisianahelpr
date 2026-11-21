@@ -145,11 +145,12 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       .map((sel) => container.querySelector(sel));
     for (const el of order) expect(el).not.toBeNull();
     for (let i = 1; i < order.length; i++) expect(order[i - 1]!.compareDocumentPosition(order[i]!) & Node.DOCUMENT_POSITION_FOLLOWING, `${i}`).toBeTruthy();
-    // The fun tools, exactly; the free printables name only what is ready (the gift tags), never the coloring book or elf kit.
+    // The fun tools, exactly; the free printables name only what is ready (the gift tags and, owner 11-21 "boys coloring
+    // pages are ready for site", the coloring book), never the elf kit.
     expect([...container.querySelectorAll("[data-gift-fun-tools] a")].map((a) => a.getAttribute("href"))).toEqual(TOOLS);
     const printables = container.querySelector("a[data-gift-printables]");
     expect(printables?.getAttribute("href")).toBe(PRINTABLES);
-    expect(printables?.textContent).toBe("Free printablesGift tags with names. Free to print at home.");
+    expect(printables?.textContent).toBe("Free printablesGift tags with names, Christmas coloring book. Free to print at home.");
     expect(container.querySelector("a[data-gift-deals-link]")?.getAttribute("href")).toBe(`/gift-guides/${DEALS_SLUG}`);
     // Codes and sales live only on the deals page; the deleted Gift of the Day and the retired strips stay gone.
     expect(container.querySelector("[data-gift-top], [data-gift-countdown], [data-gift-of-the-day], [data-gift-deals-codes], [data-gift-codes], [data-gift-sales], [data-gift-entries], [data-gift-more-groups]")).toBeNull();
@@ -173,8 +174,9 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     const who = [...container.querySelectorAll('[data-gift-finder-step="who"] [data-gift-finder-choice]')].map((b) => b.getAttribute("data-gift-finder-choice"));
     expect(who).toEqual(["who:her", "who:him", "who:mom", "who:dad", "who:kids"]);
     const budgets = [...container.querySelectorAll('[data-gift-finder-step="budget"] [data-gift-finder-choice]')].map((b) => b.getAttribute("data-gift-finder-choice"));
-    // Him is the owner's Amazon list: no prices, so "Any budget" alone (measured 2026-11-21).
-    expect(budgets).toEqual(["budget:0"]);
+    // Him is the owner's Amazon list (no prices) plus the two commission switches to priced ShopMy picks ($99.95 and
+    // $189.99, feat/guide-commission-1121), so "$100 and up" and "Any budget" (measured 2026-11-21).
+    expect(budgets).toEqual(["budget:100", "budget:0"]);
     cleanup();
     const herBudgets = [...renderAt("/gift-guides?who=her#gift-finder").container.querySelectorAll('[data-gift-finder-step="budget"] [data-gift-finder-choice]')].length;
     expect(herBudgets).toBeGreaterThan(1);

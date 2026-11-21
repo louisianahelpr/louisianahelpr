@@ -56,6 +56,9 @@ export function ConversationList({
   mainEmptyBody = mainInboxEmptyBody(false),
   orderTalks = null,
   inboxLead = null,
+  archivedView = false,
+  onArchivedViewChange,
+  onDeleteForMe,
 }: ConversationListProps) {
   const {
     navigate, isWebDesktop, searchOnOwnLine, showAllConvos, setShowAllConvos, selectMode, selectedKeys,
@@ -68,7 +71,7 @@ export function ConversationList({
     refreshing, isPulling, canTrigger, listHandleRef,
   } = useConversationListState({
     conversations, allConversations, loading, loadError, userId, loadConversations, setDeleteConvoConfirm,
-    onBatchArchive, resetSelectionNonce,
+    onBatchArchive, resetSelectionNonce, archivedView, onArchivedViewChange,
   });
 
   // The title card holds the toolbar itself — the name, the Select/Search
@@ -523,6 +526,7 @@ export function ConversationList({
       openConvo={openConvo}
       toggleSelect={toggleSelect}
       handleArchive={handleArchive}
+      onDeleteForMe={onDeleteForMe}
       handleTogglePin={handleTogglePin}
       setShowAllConvos={setShowAllConvos}
       hasThreads={hasThreads}

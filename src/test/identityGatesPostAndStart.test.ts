@@ -6,8 +6,8 @@
  * Read from the code that ships (effective SQL definitions, the migrations'
  * CREATE TRIGGER statements, the edge function), comments blanked:
  *   1. THE RULE identity_is_verified is idv_status = 'verified' alone.
- *   2. POST: a BEFORE INSERT trigger on jobs judges only the member's OWN post,
- *      never a server write, an admin, or an enrolled test account.
+ *   2. POST: no longer gated (owner 2026-11-20, 20261120205350): the poster's ID moved to sending an offer
+ *      (src/test/posterIdAtOffer.test.ts); trg_jobs_identity_before_post and its function are dropped.
  *   3. START: BEFORE UPDATE triggers on jobs and the crew roster fire only on
  *      the departure/arrival stamps and status, and judge only when the ACTING
  *      member is the Helpr. The poster's confirm/release columns are not in the
@@ -62,13 +62,9 @@ describe("Stripe Identity gates the first accept, a post and On the way (owner 2
     expect(rule).not.toMatch(/OR p_stripe_identity_verified/);
   });
 
-  it("POST: a member's own insert, never a server write, an admin or a test account", () => {
-    const fn = body("enforce_identity_before_post");
-    expect(fn).toMatch(/IF public\.is_server_context\(\) OR auth\.uid\(\) IS NULL THEN RETURN NEW;/);
-    expect(fn).toMatch(/IF NEW\.customer_id IS DISTINCT FROM auth\.uid\(\) THEN RETURN NEW;/);
-    expect(fn).toMatch(/public\.has_role\(auth\.uid\(\), 'admin'\) OR public\.identity_check_exempt\(auth\.uid\(\)\)/);
-    expect(fn).toMatch(/IF NOT public\.is_identity_verified\(auth\.uid\(\)\) THEN RAISE EXCEPTION 'identity_required_to_post'/);
-    expect(trigger("trg_jobs_identity_before_post")).toMatch(/BEFORE INSERT ON public\.jobs FOR EACH ROW EXECUTE FUNCTION public\.enforce_identity_before_post\(\)/);
+  it("POST: never gated any more (the poster's ID is asked at the offer, 20261120205350)", () => {
+    expect(defs.has("enforce_identity_before_post")).toBe(false);
+    expect(flat(readFileSync(join(MIG, "20261120205350_poster_id_at_offer_not_post.sql"), "utf8"))).toContain("DROP TRIGGER IF EXISTS trg_jobs_identity_before_post ON public.jobs;");
   });
 
   it("START: only the departure/arrival stamps and status, only when the acting member is the Helpr", () => {

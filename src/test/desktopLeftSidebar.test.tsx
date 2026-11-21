@@ -11,7 +11,8 @@
  * @mutate src/components/DesktopSidebarNav.tsx | <HelprMark to="/home" size="md" emblemOnly /> | <HelprMark to="/home" size="md" />
  * @mutate src/components/DesktopSidebarNav.tsx |           onClick={() => setCreateOpen(true)} |           onClick={() => navigate("/post-job")}
  * @mutate src/components/DesktopSidebarNav.tsx |     leftItems[0],\n    exploreItem, |     leftItems[0],
- * @mutate src/components/DesktopSidebarNav.tsx |                         // Count badges are --alert, never rust (spec v2 §1.1).\n                        background: "hsl(var(--alert))", |                         // Count badges are --alert, never rust (spec v2 §1.1).\n                        background: "hsl(var(--burnt-sienna))",
+ * @mutate src/components/DesktopSidebarNav.tsx |                       // Count badges are --alert, never rust (spec v2 §1.1).\n                      background: "hsl(var(--alert))", |                       // Count badges are --alert, never rust (spec v2 §1.1).\n                      background: "hsl(var(--burnt-sienna))",
+ * @mutate src/components/DesktopSidebarNav.tsx |                 {count > 0 && (\n                  <span\n                    data-sidebar-badge | {false && (\n                  <span\n                    data-sidebar-badge
  * @mutate src/components/sidePanelOpen.tsx |   return true;\n}; |   return safeStorage.getItem(STORAGE_KEY) !== "0";\n};
  * @mutate src/components/DesktopTopNav.tsx |       data-rail-inset="" |       data-rail-off=""
  * @mutate src/components/DesktopTopNav.tsx |                 aria-label={avatarButtonLabel("Profile", profile?.full_name)}\n                data-testid="desktop-top-profile" |                 aria-label="Settings"\n                data-testid="desktop-top-profile"
@@ -134,6 +135,23 @@ describe("the LEFT sidebar (board 11)", () => {
     expect(badges.length).toBeGreaterThan(1);
     for (const b of badges) expect(b.getAttribute("style")).toContain("hsl(var(--alert))");
     expect(document.querySelector('[data-sidebar-item="/messages"] [data-sidebar-badge]')?.textContent).toBe("12"); // area 02 #16: the shared 99+ cap, as the header
+  });
+
+  it("owner polish 11-20: each count sits at the right end of its row, never on the icon", () => {
+    state.shared = 9;
+    mount();
+    const rows = [...document.querySelectorAll("[data-sidebar-item]")].filter((r) => r.querySelector("[data-sidebar-badge]"));
+    expect(rows.length).toBeGreaterThan(1); // Jobs (2) and Inbox (9)
+    for (const row of rows) {
+      const badge = row.querySelector("[data-sidebar-badge]") as HTMLElement;
+      // A direct child of the row, after the label: not inside the icon's wrapper, not absolutely placed on it.
+      expect(badge.parentElement).toBe(row);
+      expect(row.lastElementChild).toBe(badge);
+      expect(badge.className).toMatch(/\bml-auto\b/);
+      expect(badge.className).not.toMatch(/\babsolute\b/);
+      expect(row.querySelector("svg")?.parentElement?.querySelector("[data-sidebar-badge]")).toBeNull();
+    }
+    expect(document.querySelector('[data-sidebar-item="/messages"] [data-sidebar-badge]')?.textContent).toBe("9");
   });
 
   it("the Messages row is Inbox (owner 11-15): the last tab viewed, the icon's combined badge", () => {

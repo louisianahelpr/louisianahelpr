@@ -9,32 +9,31 @@
  */
 import { lazy, Suspense } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { SectionTabs } from "@/components/sections/SectionTabs";
 import { ScrollAwayRows } from "@/components/sections/ScrollAway";
 import { GuestSectionSwitch } from "@/components/sections/GuestSectionSwitch";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { t } from "@/lib/i18n/language";
-import type { DeclutterTab } from "@/lib/declutter/tabs";
 import type { DeclutterBrowseHeader, DeclutterChrome } from "./DeclutterBrowseView";
 import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
 import { DeclutterHomeSkeleton } from "./DeclutterSkeletons";
 import "@/lib/i18n/enDeclutter";
+import "@/lib/i18n/enDeclBrowse";
 
 // The same module DeclutterHomeView's member Browse and src/boot/declutterRoute.ts start, so one chunk serves all three.
 const DeclutterBrowse = lazy(() => loadModule(() => import("./DeclutterBrowseView")).then((m) => (m ? { default: m.DeclutterBrowse } : untilReload())));
 
 export function DeclutterGuestHome() {
   const desktop = useIsWebDesktop();
+  // Owner 11-20 (site polish A3): a guest has Browse alone, so a lone "Browse 41" tab read as a tab row of one. The row
+  // says "41 items" plainly (nothing while the list loads), with the same search and Filters at its end.
   const chrome = (browse: DeclutterBrowseHeader): DeclutterChrome => desktop ? {
     tabs: (
-      <SectionTabs<DeclutterTab>
-        label={t("decl.hv.view")}
-        browseCount={browse.count}
-        end={browse.end}
-        value="browse"
-        onChange={() => undefined}
-        tabs={[]}
-      />
+      <div data-testid="section-tabs" data-guest-count-row="" className="flex items-end gap-1 border-b border-border/60">
+        <p data-testid="browse-count-only" className="flex h-11 min-w-0 flex-1 items-center text-ds-15 font-semibold tabular-nums text-foreground">
+          {browse.count === undefined ? null : browse.count === 1 ? t("decl.results.one") : t("decl.results.many", { n: browse.count })}
+        </p>
+        {browse.end}
+      </div>
     ),
   } : {
     // M13: the "Jobs | Declutter" switch sits ABOVE the category chips (under them it read as one more filter row).

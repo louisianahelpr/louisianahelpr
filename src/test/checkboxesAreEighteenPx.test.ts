@@ -4,7 +4,6 @@
 // @mutate src/pages/auth/completeProfile/ConsentStep.tsx | onCheckedChange={(v) => setAdult(v === true)} className="mt-px shrink-0" | onCheckedChange={(v) => setAdult(v === true)} className="h-3.5 w-3.5 mt-px shrink-0"
 // @mutate src/components/admin/AdminExceptionQueue.tsx | className="h-[18px] w-[18px] min-h-0 min-w-0 accent-[hsl(var(--primary))]" | className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--primary))]"
 // @mutate src/components/messages/ConversationRow.tsx | className="w-[18px] h-[18px] rounded-full | className="w-6 h-6 rounded-full
-// @mutate src/components/firstRun/FirstRun.tsx | className="shrink-0 w-[18px] h-[18px] rounded-[5px] | className="shrink-0 w-7 h-7 rounded-[5px]
 // @mutate src/components/declutter/declutterUi.tsx | <label htmlFor={id} className="min-h-11 flex-1">{TAX_TICK_LABEL}</label> | <label htmlFor={id}>{TAX_TICK_LABEL}</label>
 // @mutate src/components/shops/ShopEditView.tsx | <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 flex-col justify-center font-normal leading-snug"> | <Label htmlFor="shop-quotes" className="font-normal">
 // @mutate src/components/admin/adminPayoutBatches/BatchRow.tsx | <label className="-m-[13px] flex shrink-0 cursor-pointer p-[13px]"> | <label className="flex shrink-0">
@@ -111,7 +110,7 @@ describe("every checkbox is an 18 px box with a 12 px tick, tapped through a 44 
   it("finds the checkboxes (the parser works)", () => {
     expect(r.checkboxes).toBeGreaterThan(25);
     expect(r.natives).toBeGreaterThan(10);
-    expect(r.handMade).toBeGreaterThan(1);
+    expect(r.handMade).toBeGreaterThan(0); // owner 11-20: the first run's picks are one-tap cards now, not checkboxes
   });
   it("the shared Checkbox draws 18 px with a 12 px tick", () => {
     expect(shared).toMatch(/"peer h-\[18px\] w-\[18px\] /);

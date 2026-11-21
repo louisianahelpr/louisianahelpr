@@ -17,11 +17,13 @@ import { definitelyGuest } from "@/lib/persistedAuthToken";
  * /shops/<id> (a shop's share link, PublicShopView for a guest) and /book/<userId> (a Helpr's booking link) were the last
  * two: both are AppPage pages, so they wear the frame the same way (Q2784 leftovers, 11-15).
  *
+ * /post-job (owner 11-20, ease batch): a guest can start a job post before signing up (src/lib/guestPostDraft.ts).
+ *
  * Exact paths match only themselves; an entry ending in "/" matches the pages under it. /declutter/sell,
  * /declutter/move and the other member-only pages under /declutter are not here: a guest is sent to log in there.
  * Guard: src/test/guestPagesWearPublicFrame.test.tsx.
  */
-export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/", "/shops/", "/book/"] as const;
+export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/", "/shops/", "/book/", "/post-job"] as const;
 /** Member-only pages under a prefix above (a guest is sent to log in there). */
 const NOT_GUEST_PAGES = ["/jobs/settings", "/shops/mine", "/shops/orders", "/shops/dashboard"];
 

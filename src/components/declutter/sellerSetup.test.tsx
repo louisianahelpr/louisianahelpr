@@ -1,18 +1,19 @@
 /**
  * Owner 2026-10-30: "Make them set up location, pick up info and that kind of stuff before listing so it's not asked
  * every time they post." A seller missing something sees only that, once, with the reason; a returning seller never
- * sees it; nothing is guessed: no pickup time is preselected, the area comes from the address, an address with no
+ * sees it (ease batch 11-20: this screen is now in front of Sell a bunch and the moving sale only; one item asks inline,
+ * sellOneQuickList.test.tsx); nothing is guessed here: no pickup time is preselected, the area comes from the address, an address with no
  * point is asked again, and a saved place with no exact point sends the seller here.
  *
  * @mutate src/components/declutter/SellerSetup.tsx |   const [windows, setWindows] = useState<PickupWindow[]>([]); |   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
  * Tester 5, 10-30: setup saved a town-only match as the exact point and called a lookup that was down "not found".
- * @mutate src/components/declutter/SellerSetup.tsx |         const found = await place.locate(address); |         const found = await place.locate(address, { allowApproximate: true });
+ * @mutate src/components/declutter/SellerSetup.tsx | locate: place.locate, | locate: (a: string) => place.locate(a, { allowApproximate: true }),
  * @mutate src/components/declutter/SellerSetup.tsx |             <AddressNeedsExactSpot typedAddress={address} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} /> |
  * @mutate src/components/declutter/SellerSetup.tsx |         address_lookup_unavailable: declutterErrorMessage({ message: "address_lookup_unavailable" }), |         address_lookup_unavailable: "We couldn't find that address. Check the street, city and ZIP.",
- * @mutate src/components/declutter/SellerSetup.tsx |     pickup: !s.hasPickup, |     pickup: false,
- * @mutate src/components/declutter/SellerSetup.tsx |     defaults: !s.hasSettings, |     defaults: false,
- * @mutate src/components/declutter/SellerSetup.tsx | const anyNeeded = (n: SetupNeeds) => n.pickup \|\| n.times; | const anyNeeded = (n: SetupNeeds) => n.pickup \|\| n.times \|\| n.defaults;
- * @mutate src/components/declutter/SellerSetup.tsx |         const defaults: SellerDefaults = { ...SELLER_DEFAULTS, acceptsTrades: false }; |         const defaults: SellerDefaults = { ...SELLER_DEFAULTS, freeAfterDays: 30, acceptsTrades: false };
+ * @mutate src/lib/declutter/sellerSetupSave.ts |     pickup: !s.hasPickup, |     pickup: false,
+ * @mutate src/lib/declutter/sellerSetupSave.ts |     defaults: !s.hasSettings, |     defaults: false,
+ * @mutate src/lib/declutter/sellerSetupSave.ts | export const anyNeeded = (n: SetupNeeds) => n.pickup \|\| n.times; | export const anyNeeded = (n: SetupNeeds) => n.pickup \|\| n.times \|\| n.defaults;
+ * @mutate src/lib/declutter/sellerSetupSave.ts |     const defaults: SellerDefaults = { ...SELLER_DEFAULTS, acceptsTrades: false }; |     const defaults: SellerDefaults = { ...SELLER_DEFAULTS, freeAfterDays: 30, acceptsTrades: false };
  * @mutate src/pages/declutter/DeclutterSellPage.tsx |         <SellerSetupGate>\n          <Suspense fallback={<DeclutterSellSkeleton />}>\n            <BunchFlow moving={params.get("mode") === "moving"} />\n          </Suspense>\n        </SellerSetupGate> |         <BunchFlow moving={params.get("mode") === "moving"} />
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -21,6 +22,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { blankComments } from "@/test/helpers/blankNonCode";
 
 const state = vi.hoisted(() => ({
   places: [] as unknown[],
@@ -63,7 +65,8 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
   },
 }));
 
-import { SellerSetupGate, setupNeeds } from "./SellerSetup";
+import { SellerSetupGate } from "./SellerSetup";
+import { setupNeeds } from "@/lib/declutter/sellerSetupSave";
 import { SellWayTiles } from "./SellHandoverChoices";
 
 const PLACE = { id: "p", position: 1, label: "Home", address: "1 Main St, Baton Rouge, LA", area: "Mid-City", lat: 30.45, lng: -91.15, weekdays: [6] };
@@ -217,10 +220,11 @@ describe("one-time setup before posting", () => {
     expect(setupNeeds({ hasPickup: true, hasWindows: true, hasSettings: true })).toEqual({ pickup: false, times: false, defaults: false });
   });
 
-  it("every posting flow is behind the gate; a saved draft is not", () => {
-    const sell = readFileSync(join(process.cwd(), "src/pages/declutter/DeclutterSellPage.tsx"), "utf8");
-    expect((sell.match(/<SellerSetupGate/g) ?? []).length).toBe(2);
-    expect(sell).toMatch(/params\.get\("item"\) \? \(\s*<SellFlow \/>/);
+  it("the bunch flows are behind the gate; one item and a saved draft are not (ease batch 11-20)", () => {
+    const sell = blankComments(readFileSync(join(process.cwd(), "src/pages/declutter/DeclutterSellPage.tsx"), "utf8"));
+    expect((sell.match(/<SellerSetupGate/g) ?? []).length).toBe(1);
+    // One item (and ?free=1, ?answer=, ?item=) opens the one Sell screen straight away: its setup is asked inline there.
+    expect(sell).toMatch(/\) : \(\s*<SellFlow \/>\s*\)\}/);
     // The moving sale is the bunch flow, behind the same gate; /declutter/move only redirects to it.
     expect(sell).toMatch(/<SellerSetupGate>\s*<Suspense[\s\S]{0,60}?<BunchFlow moving=/);
   });

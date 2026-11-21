@@ -80,6 +80,12 @@ const OWNERS = {
   "/gift-guides/planner": ["lh-copy-content", "lh-compliance-store"],
   // Free printables (owner 2026-11-20): the same lanes as the guides.
   "/gift-guides/printables": ["lh-copy-content", "lh-compliance-store"],
+  // Louisiana Holiday Hub (owner-approved 2026-11-20): public lights, events and holiday-help pages; content, plus SEO
+  // (indexed, Event / ItemList data). The hire page opens the gated /post-job form, which keeps its own owners.
+  "/holidays": ["lh-copy-content", "lh-seo-web"],
+  "/holidays/lights": ["lh-copy-content", "lh-seo-web"],
+  "/holidays/events": ["lh-copy-content", "lh-seo-web"],
+  "/holidays/hire-a-helpr": ["lh-copy-content", "lh-seo-web"],
   "/terms/full": ["lh-compliance-store"],
   "/privacy/full": ["lh-compliance-store"],
   // /gift-card (a redirect onto this tab) was deleted with Q194, 2026-09-23.

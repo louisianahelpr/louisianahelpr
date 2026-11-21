@@ -5,7 +5,7 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { useSyncExternalStore } from "react";
-import { ROWS, guideBySlug, guidePicksVersion, newSlugFor, subscribeGuidePicks, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
+import { ROWS, guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, subscribeGuidePicks, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
@@ -34,6 +34,19 @@ import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS, smallBizDay, smallBizTitle } from "@/c
  * link (GiftOut). The FTC disclosure (16 CFR Part 255) and Amazon's required Associates statement sit at the BOTTOM
  * as plain muted lines (owner decision 2026-11-18). Guard: src/test/giftGuidesPage.test.tsx.
  */
+/**
+ * Speed 11-20: a cold /gift-guides/<slug> starts its guide's picks chunk as soon as this module runs (it is started
+ * beside the app, src/boot/pathPageRoute.ts), not from GiftGuideView's effect after React has rendered the page. On
+ * prod (Slow 4G + 4x, 375, guest) the list drew at 8.1 s. Elsewhere (a prefetch from another page) it does nothing.
+ */
+const coldSlug = typeof window === "undefined" ? undefined : /^\/gift-guides\/([^/]+)\/?$/.exec(window.location.pathname)?.[1];
+if (coldSlug && guideBySlug(coldSlug)) {
+  loadGuidePicks(coldSlug).catch((e: unknown) => {
+    // GiftGuideView asks again on mount and owns the failure (its loading line stays).
+    console.warn("gift guides: early picks load failed", coldSlug, e);
+  });
+}
+
 /** The guide's head: its picks' first three names and their count (unique links, as src/prerender/seoData.ts counts). */
 function guideHead(guide: CatalogGuide) {
   const seen = new Set<string>();
@@ -62,7 +75,7 @@ export default function GiftGuides() {
   // SEO P1 (owner 11-19): its own description from its picks once they are in, as api/share.ts writes it before JS.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion);
   usePageMeta(
-    shared || myListPage ? { title: `${WISH.title} — Helpr`, description: PUBLIC_PAGE_META["/gift-guides"].description, robots: "noindex" }
+    shared || myListPage ? { title: `${shared ? WISH.sharedLead : WISH.title} — Louisiana Helpr`, description: PUBLIC_PAGE_META["/gift-guides"].description, robots: "noindex" }
     : deals ? giftGuidePageMeta(smallBiz ? SMALL_BIZ_SLUG : DEALS_SLUG) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],
   );
   const groupParam = params.get("group");
@@ -75,10 +88,14 @@ export default function GiftGuides() {
       {ship.endsWith(shipTail) && <span className="hidden sm:inline">{shipTail}</span>}
     </p>
   ) : undefined;
+  // The landing itself (owner 11-20 PM, "still a busy mess"): ONE title. No header row ("Gift guides" over "Holiday Gift
+  // Guides"); the shipping words ride the title's short subline instead of a pill.
+  const shipNote = ship ? <span className="gg-sub-ship" data-gift-ship="">{ship}</span> : null;
   // The old My list address (?list=mine) opens My Wish List's own page.
   const oldMyList = !slug && !shared && !myListPage && params.get("list") === "mine";
   const myList = myListPage;
   const group = ROWS.find((r) => r.row === groupParam)?.row ?? (null as GuideRow | null);
+  const landing = !slug && !shared && !myListPage && !group;
 
   // Pins link to /gift-guides#for-her, /gift-guides/for-her or a folded guide (/gift-guides/female-nurses): send each
   // old slug, folded guide or #<slug> to the guide's page now (newSlugFor).
@@ -105,7 +122,7 @@ export default function GiftGuides() {
     // Holistic review 11-18 L6: the landing's back arrow went home; the landing has none now (the bar's logo is the way
     // home), and My list or a group's page goes back to the landing.
     <PublicHeaderPage title={G.pageTitle} titleTag="p" backTo={guide || deals || myList || shared || group ? "/gift-guides" : "/"} hideBack={!guide && !deals && !myList && !shared && !group} bottomPaddingClassName="pb-12 md:pb-16"
-      titleActions={shipPill}>
+      titleActions={landing ? undefined : shipPill} hideHeader={landing}>
       <style>{GIFT_GUIDES_CSS + GIFT_WISH_CSS}</style>
       {/* The first heart's one-time "Saved to your wish list" note (owner 2026-11-20 hints), on every gift guides page. */}
       <FirstHeartHint />
@@ -130,7 +147,8 @@ export default function GiftGuides() {
           <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint}
             tools={<GiftGuideTools path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />} />
         ) : (
-          <GiftGuidesWords lead={G.bandLead} title={G.title} titleId="gift-guides-title" tools={<GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />} />
+          <GiftGuidesWords lead={landing ? "" : G.bandLead} title={G.title} titleId="gift-guides-title" tools={<GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />}
+            sub={landing ? <p className="gg-sub" data-gift-sub="">{G.landingSub}{shipNote}</p> : undefined} />
         )}
         <div className="gg-layout">
           <GiftGuidesSidebar active={guide} myList={myList} />

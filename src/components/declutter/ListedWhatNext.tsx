@@ -4,7 +4,7 @@ import { WhatNextSheet, type WhatNextStep } from "@/components/whatNext/WhatNext
 import { fetchItem, fetchItemDropState } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
 import { dropWhenLabel, nextPriceDrop } from "@/lib/declutter/priceDrop";
-import { ListingLinkCard, copyListingLink } from "./DeclutterShareCard";
+import { ListingLinkCard, ShareListingRow } from "./DeclutterShareCard";
 import "@/lib/i18n/enDeclutter";
 import { t } from "@/lib/i18n/language";
 
@@ -67,10 +67,17 @@ export function ListedWhatNext() {
       lead={<><strong>{it.title}</strong>{" "}{live ? (free ? t("decl.lwn.leadFree") : t("decl.lwn.leadLive")) : t("decl.lwn.leadReview")}</>}
       steps={steps}
       primary={{ label: t("decl.lwn.preview"), onClick: () => navigate(`/declutter/item/${it.id}?preview=buyer`) }}
-      // Board 192 (Builder 3c): share only a listing buyers can open now, never one paused or in review.
-      secondary={shareable ? { label: t("decl.lwn.copy"), onClick: () => void copyListingLink(it) } : undefined}
     >
-      {shareable ? <ListingLinkCard item={it} /> : null}
+      {/* Board 192 (Builder 3c): share only a listing buyers can open now, never one paused or in review. Selling boost
+          (owner 11-20): "Share your listing", the link's preview, then one-tap Share to Facebook, Copy link and the
+          local-groups post (ShareListingRow). */}
+      {shareable ? (
+        <section className="mt-3 space-y-3" aria-label={t("decl.share.title")} data-listed-share="">
+          <h3 className="text-ds-15 font-semibold">{t("decl.share.title")}</h3>
+          <ListingLinkCard item={it} />
+          <ShareListingRow item={it} surface="listed" />
+        </section>
+      ) : null}
     </WhatNextSheet>
   );
 }

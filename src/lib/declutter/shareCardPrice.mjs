@@ -1,20 +1,21 @@
 /**
- * The buyer's price for a Declutter item's link preview (api/share.ts), owner's UI audit 11-09, F076: the preview said
- * "$15" (the seller's price) while the site shows buyers "$16.45 incl. fee" (owner 11-07: Declutter shows the fee).
+ * The price on a Declutter item's link preview (api/share.ts og:title and product:price:amount).
+ *
+ * Owner 11-20 (site polish E, reverses the 11-09 F076 rule): the preview shows the SELLER's price ("$85"), not the
+ * buyer's fee-inclusive total ("$89.95"). The item page still shows buyers the fee-inclusive line.
  *
  * Plain dependency-free ESM, like browseShellCards.mjs: the serverless function imports it with no TypeScript step.
- * The rule is src/lib/declutter/money.ts's buyNowTotalCents (the one declutter_start_checkout freezes: price + 5% +
- * 70 cents, rounded half away from zero); src/test/declutterShareCard.test.ts holds the two equal for every price
- * from 1 cent to $1,000, so this copy can never drift from what checkout charges.
+ * Guard: src/test/declutterShareCard.test.ts.
  */
 
-/** What Buy now on one item costs at checkout, in cents (money.ts buyNowTotalCents). */
-export function shareCardBuyNowCents(priceCents) {
-  return priceCents + Math.round(priceCents * 0.05) + 70;
-}
-
-/** "Free" for $0, else the buyer's price with cents ("$16.45"), as the item page's "incl. fee" line shows it. */
+/** "Free" for $0, whole dollars without cents ("$85"), else dollars and cents ("$12.50"). */
 export function shareCardPriceLabel(priceCents) {
   if (!Number.isFinite(priceCents) || priceCents <= 0) return "Free";
-  return `$${(shareCardBuyNowCents(priceCents) / 100).toFixed(2)}`;
+  return priceCents % 100 === 0 ? `$${priceCents / 100}` : `$${(priceCents / 100).toFixed(2)}`;
+}
+
+/** The seller's price as product:price:amount wants it ("85.00"); null for a free item (no price to state). */
+export function shareCardPriceAmount(priceCents) {
+  if (!Number.isFinite(priceCents) || priceCents <= 0) return null;
+  return (priceCents / 100).toFixed(2);
 }

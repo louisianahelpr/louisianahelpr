@@ -204,7 +204,8 @@ export async function checkIdentityHold(
 /**
  * Owner 2026-11-20: no ID check for a Declutter seller, buyer or free claimer, so a Declutter seller's payout
  * ("declutter") never waits on it. A Declutter manager ("declutter_manager") is a Helpr-type role and keeps the ID
- * hold, as do a delivery Helpr ("helpr_task") and a Shops seller ("shop"). Guard: src/test/declutterNoIdNoSetupFee.test.ts.
+ * hold, as does a delivery Helpr ("helpr_task"). A Shops seller ("shop") skips it too, beside this call in declutter-money
+ * (owner 2026-11-20, 20261120203904). Guards: src/test/declutterNoIdNoSetupFee.test.ts, src/test/shopsNoIdCheck.test.ts.
  */
 export function declutterKindSkipsIdHold(kind: string): boolean {
   return kind === "declutter";

@@ -11,16 +11,25 @@ import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 vi.mock("@/components/SuggestCategory", () => ({ SuggestCategory: () => null }));
 
 describe("board 166: the step rail", () => {
-  it("names the six screens from the one list (JA-41: the group grid is the first screen), marks the current one, and reopens only a passed form screen", () => {
+  // Owner 11-20 (ease batch, item 1): the rail is the 3-step flow from the one list (POST_JOB_STEPS): What you need
+  // (the group grid, JA-41, is its first screen), When, Budget, then Post. Was six screens.
+  it("names the steps from the one list, marks the current one, and reopens only a passed step canPick allows", () => {
     const onPick = vi.fn();
-    render(<PostJobStepRail screen="price" onPick={onPick} canPick={(s) => s === "groups" || s === "details"} />);
+    const { unmount } = render(<PostJobStepRail screen="price" onPick={onPick} canPick={(s) => s === "groups" || s === "where"} />);
     const items = screen.getAllByRole("listitem");
-    expect(items.map((li) => li.textContent?.replace(/, done.*$/, ""))).toEqual(["What", "Kind of job", "Details", "4Price", "5When & where", "6Review"]);
-    expect(screen.getByText("Price").closest("[aria-current]")?.getAttribute("aria-current")).toBe("step");
+    expect(items.map((li) => li.textContent?.replace(/, done.*$/, ""))).toEqual(["What you need", "When", "3Budget", "4Post"]);
+    expect(screen.getByText("Budget").closest("[aria-current]")?.getAttribute("aria-current")).toBe("step");
     const back = screen.getAllByRole("button");
     expect(back).toHaveLength(2);
+    fireEvent.click(back[0]);
+    expect(onPick).toHaveBeenLastCalledWith("groups");
     fireEvent.click(back[1]);
-    expect(onPick).toHaveBeenCalledWith("details");
+    expect(onPick).toHaveBeenLastCalledWith("where");
+    unmount();
+    // A passed step canPick refuses is not a button; a step ahead never is.
+    render(<PostJobStepRail screen="where" onPick={onPick} canPick={(s) => s === "where"} />);
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getByText("When").closest("[aria-current]")?.getAttribute("aria-current")).toBe("step");
   });
 });
 

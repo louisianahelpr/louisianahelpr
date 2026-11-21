@@ -23,6 +23,7 @@ export const SEO_SITE_ORIGIN: string;
 export function escapeHtml(value: unknown): string;
 export function jsonLdScript(data: unknown): string;
 export function breadcrumbLd(crumbs: { name: string; path: string }[]): Record<string, unknown>;
+export function seoPageBody(crumbs: { name: string; path: string }[], inner: string): string;
 export function giftGuideBody(slug: string, guide: SeoGuide): string;
 export function dealsGuideBody(slug: string, name: string, intro: string, disclosure: string): string;
 export function giftGuideItemListLd(slug: string, guide: SeoGuide): Record<string, unknown>;

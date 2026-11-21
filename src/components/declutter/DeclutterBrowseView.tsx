@@ -33,6 +33,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
 import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, droppedQueryFromParams, isNewSince, newSinceFromParams, type DeclutterFilters } from "@/lib/declutter/browseFilters";
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
+import { newThisWeek } from "@/lib/declutter/newThisWeek";
 import { closeSearch, searchWords } from "@/lib/declutter/searchMatch";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
@@ -42,7 +43,8 @@ import { hasExtras } from "@/lib/savedSearches";
 import { FiltersIconButton } from "@/components/dashboard/browseTasksToolbar/FiltersIconButton";
 import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapToggleButton";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
-import { DeclutterMilesFrom } from "./DeclutterMilesFrom";
+import { DeclutterDeviceNote, DeclutterLocationButton } from "./DeclutterMilesFrom";
+import { SectionHomeLink } from "@/components/sections/SectionHomeLink";
 import { DeclutterActiveFilters } from "./DeclutterActiveFilters";
 import { declutterFilterSections, sortChoices } from "./DeclutterFilterPanel";
 import { DeclutterResultsBar, DeclutterResultsHead } from "./DeclutterResultsBar";
@@ -56,7 +58,7 @@ import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, DeclutterChi
 import { releaseDeclutterShellForCards } from "./declutterShell";
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
 import { guestSaveHref } from "@/lib/declutter/guestSave";
-import { SELL_CHOOSER_PATH, wantedAskHref } from "@/lib/declutter/sellChooser";
+import { SELL_START_PATH, wantedAskHref } from "@/lib/declutter/sellChooser";
 import { previewIsTopOfList, readFirstScreenPreview, type FirstScreenAnswer } from "@/lib/declutter/bootPrefetch";
 import { readGuestPreview } from "@/lib/declutter/guestBootPrefetch";
 import { useFirstRowPhotosSettled } from "./firstRowPhotoGate";
@@ -66,6 +68,7 @@ import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
 import "@/lib/i18n/enDeclBrowse";
 import { BROWSE_EMPTY_SLOT, CHIPS_ROW_PAD } from "@/components/sections/browseHeaderSpacing";
+import { DeclutterNewThisWeek } from "./declutterNewThisWeekLazy";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
 const DeclutterMap = lazy(() => import("./DeclutterMap"));
@@ -169,8 +172,8 @@ function NothingForSaleActions({ guest }: { guest: boolean }) {
       <HideSectionCreateFab active={!guest} />
       <EmptyStateActions
         primary={guest
-          ? { label: t("decl.signUpToSell"), to: `/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}` }
-          : { label: t("decl.sellSomething"), to: SELL_CHOOSER_PATH }}
+          ? { label: t("decl.signUpToSell"), to: `/signup?redirect=${encodeURIComponent(SELL_START_PATH)}` }
+          : { label: t("decl.sellSomething"), to: SELL_START_PATH }}
         secondary={wanted ? { label: t("decl.postWanted"), to: "/declutter?tab=wanted" } : null}
         secondaryIcon={Search}
       />
@@ -345,6 +348,9 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   // A search or a filter that found nothing is never "Opens soon" (lead walkthrough 2026-10-28, shot 04): it says
   // nothing matched, with a way to clear it and the Wanted link.
   const searched = q !== "" || filterCount > 0;
+  // Selling boost (owner 11-20): "New this week" from the full list only (a preview is nearest-first), plain list only.
+  const freshRows = useMemo(() => (items.data ? newThisWeek(items.data, userId, Date.now()) : []), [items.data, userId]);
+  const showFresh = !searched && !preview && freshRows.length > 0;
   // F310: a one-letter typo ("lamb") that finds nothing is offered the search that would ("lamp"), within the filters.
   const nearSearch = rows.length === 0 && q !== "" && !zipSearch ? closeSearch(query, others) : null;
   const nearFinds = nearSearch !== null && applyBrowseFilters(nearest, filters, nearSearch, drops.data, now, itemWays.data).length > 0;
@@ -402,6 +408,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
           <div data-feed-strip="" className="ml-auto flex shrink-0 items-center gap-1 pb-0.5">
             {/* F073 (UI audit 11-09, lead 11-09): a visible field on desktop, as on the phone. */}
             <InlineListSearch value={query} onChange={setQuery} label={t("decl.searchItems")} pinned />
+            {/* Owner 11-20 (site polish A4): "Use my location" is a compact button beside the search, not a row. */}
+            {itemsPhase !== "offline-empty" && <DeclutterLocationButton ask={ask} />}
             <FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} />
             {member && <MapToggleButton visible={mapVisible} onToggle={toggleMap} disabled={items.isError} />}
           </div>
@@ -484,10 +492,9 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
             draft={{ section: "declutter", query, category: filters.category, minDollars: filters.minDollars, maxDollars: filters.maxDollars, radiusMiles: from ? maxMiles : null, origin: from ?? null, extras: saveExtras }}
           />
         )}
-        {/* Where the miles are measured from, and "Use my location", in sight above the cards (DA-10). */}
-        {/* Owner 11-08 (the Vinted header): on a phone the grid starts right under the chips; the same line and "Use my
-            location" stay in the filter sheet. */}
-        {desktop && itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />}
+        {/* DA-10 / owner 11-08 / site polish A4 (11-20): "Use my location" sits beside the search (phone: the filter
+            sheet); only the device's note (denied, timed out) shows here, on a computer. */}
+        {desktop && itemsPhase !== "offline-empty" && <DeclutterDeviceNote ask={ask} />}
         {/* Audit 1110 F311: an emoji alone is no search, so every item shows; say why instead of looking like a match. */}
         {wordlessSearch && rows.length > 0 && (
           <p className="text-ds-13 text-muted-foreground" role="status" data-search-wordless="">{t("decl.wordless")}</p>
@@ -533,6 +540,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
           />
           </div>
         ) : (
+          <>
+          {showFresh && <Suspense fallback={null}><DeclutterNewThisWeek items={freshRows} cover={cover} from={origin.status === "ready" ? { lat: origin.lat, lng: origin.lng, approximate: origin.approximate } : null} /></Suspense>}
           <ul className={desktop && !mapVisible ? DECLUTTER_GRID_FULL : DECLUTTER_GRID}>
             {rows.map(({ item, miles }, index) => (
               <li key={item.id} className="min-w-0">
@@ -553,6 +562,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
               </li>
             ))}
           </ul>
+          </>
         )}
         {rows.length > 0 && !preview && (
           <BrowseEndCard
@@ -578,7 +588,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
 
   const head = chrome(header);
   return (
-    <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}>
+    <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs} homeLink={member ? undefined : <SectionHomeLink />}>
       <div ref={fill.ref} className="contents" />
       {top}
       {body}

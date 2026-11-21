@@ -1,15 +1,18 @@
 {
-  "generated": "2026-11-20T23:52:52.352Z",
-  "guards": 4296,
-  "registered": 4296,
+  "generated": "2026-11-21T02:55:16.681Z",
+  "guards": 4325,
+  "registered": 4325,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminTestMarkedRows.test.ts",
     "src/components/declutter/setupFeeNamesTheAmount.test.ts",
     "src/test/declutterGiftOnlyClose.test.ts",
+    "src/test/declutterOgItemCard.test.ts",
+    "src/test/giftGuideBudgetCaps1120.test.ts",
     "src/test/giftGuidesPromo.test.tsx",
-    "src/test/giveawayReminders.test.tsx"
+    "src/test/giveawayReminders.test.tsx",
+    "src/test/quoteInsertJobMirrorsJobsInsertPolicy.test.ts"
   ],
   "classD_selfReferential": [
     {
@@ -71,6 +74,7 @@
       "tests": [
         "src/test/detailsPlaceholdersAskOnContinue.test.tsx",
         "src/test/flexibleScheduleUnlocksSubmit.test.tsx",
+        "src/test/guestPostDraftSurvivesSignup.test.tsx",
         "src/test/priceContinueStopsOnWhenWhere.test.tsx",
         "src/components/quotes/postJobQuoteChoice.test.tsx"
       ],

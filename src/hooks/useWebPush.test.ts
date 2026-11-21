@@ -8,8 +8,8 @@
  *
  * @mutate src/hooks/useWebPush.ts |     if (answer === "granted") { |     if (true) {
  * @mutate src/hooks/useWebPush.ts |   track("web_push_ask", { kind, step: "shown" }); |
- * @mutate src/hooks/useWebPush.ts |   if (!agreed) track("web_push_ask", { kind, step: "not_now" }); |
- * @mutate src/pages/messages/messagesData/sendHandlers.ts |     if (!alreadyLanded) offerPushAfterAction(); |
+ * @mutate src/hooks/useWebPush.ts |   if (!agreed) track("web_push_ask", { kind, step: "not_now", context }); |
+ * @mutate src/pages/messages/messagesData/sendHandlers.ts |     if (!alreadyLanded) offerPushAfterAction("message"); |
  * @mutate src/hooks/useNotificationPermissionPrompt.ts |   window.dispatchEvent(ask); |
  * @mutate src/hooks/useWebPush.ts |   if (askInFlight) return; |
  * @mutate src/hooks/useWebPush.ts |   if (Number.isFinite(last) && last > 0 && now - last < WEB_PUSH_ASK_COOLDOWN_MS) return null; |
@@ -157,15 +157,15 @@ describe("PUSH-REACH: the ask is measured and offered after a sent message", () 
       return false;
     });
     await offerWebPushAfterJobAction();
-    expect(steps()).toEqual([{ kind: "ask", step: "shown" }, { kind: "ask", step: "not_now" }]);
+    expect(steps()).toEqual([{ kind: "ask", step: "shown" }, { kind: "ask", step: "not_now", context: null }]);
   });
   it("a stored message offers the ask; a retry that only recovered its row does not", () => {
     const src = readFileSync("src/pages/messages/messagesData/sendHandlers.ts", "utf8");
     expect(src.length, "inventory floor: the file was read").toBeGreaterThan(14000);
-    expect(src).toMatch(/if \(!alreadyLanded\) offerPushAfterAction\(\);/);
+    expect(src).toMatch(/if \(!alreadyLanded\) offerPushAfterAction\("message"\);/);
     const hook = readFileSync("src/hooks/useNotificationPermissionPrompt.ts", "utf8");
     expect(hook.length, "inventory floor: the file was read").toBeGreaterThan(2500);
-    expect(hook).toMatch(/export const offerPushAfterAction = \(\): void => \{[^}]*const ask = new Event\(JOB_ACTION_EVENT\);\s*window\.dispatchEvent\(ask\);\s*\};/);
+    expect(hook).toMatch(/export const offerPushAfterAction = \(context\?: string\): void => \{[^}]*const ask = jobActionEvent\(context\);\s*window\.dispatchEvent\(ask\);\s*\};/);
   });
 });
 

@@ -69,7 +69,7 @@ describe("JA-41: Post a job opens on the group grid", () => {
     expect(screen.getByRole("region", { name: "Category groups" }).querySelectorAll("[data-group-tile]").length).toBe(8);
     expect(screen.queryByText("How do you want to start?")).toBeNull();
     expect(screen.queryByRole("button", { name: /Start from scratch/ })).toBeNull();
-    expect(screen.getByRole("progressbar").getAttribute("aria-valuetext")).toBe("Step 1 of 6");
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuetext")).toBe("Step 1 of 3"); // owner 11-20: three steps
   });
 
   it("template, saved Helpr and AI are small links under the grid, each opening its panel", () => {

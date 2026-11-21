@@ -11,6 +11,7 @@ import { formatName } from "@/lib/utils";
 import { queryKeys } from "@/lib/queryKeys";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { declineTimeLeft, declineUntilClock, INSTANT_BOOK_DECLINE_HOURS, INSTANT_BOOK_GENERIC_ERROR } from "@/lib/instantBook";
+import { isPosterIdRefusal, openPosterIdCheckFor, posterIdAtOfferCopy } from "@/lib/posterIdAtOffer";
 
 export type InstantCandidate = {
   helper_id: string;
@@ -99,7 +100,9 @@ export function InstantBookPanel({ jobId, now }: { jobId: string; now?: number }
     },
     onError: (e: unknown) => {
       setConfirm(null);
-      setError(rpcErrorMessage("rpc_instant_book", e) ?? INSTANT_BOOK_GENERIC_ERROR);
+      // The poster's ID, asked at the offer (owner 2026-11-20, 20261120205350): open the one ID sheet.
+      if (isPosterIdRefusal(e)) void openPosterIdCheckFor(e);
+      setError(isPosterIdRefusal(e) ? posterIdAtOfferCopy() : rpcErrorMessage("rpc_instant_book", e) ?? INSTANT_BOOK_GENERIC_ERROR);
       void qc.invalidateQueries({ queryKey: candidatesKey(jobId) });
     },
   });

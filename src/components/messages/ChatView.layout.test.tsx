@@ -62,7 +62,8 @@ vi.mock("./chatView/useChatScroll", () => ({
 
 import { ChatView } from "./ChatView";
 
-const CAP = "max-w-[780px]";
+/** Any arbitrary-px reading cap, centred: the timeline wears one, the composer chain and the banner never do. */
+const CAP = /(?:^|\s)max-w-\[\d+px\](?:\s|$)/;
 
 function renderChat(embedded: boolean) {
   const noop = () => {};
@@ -122,7 +123,7 @@ function ancestorsWithinPane(el: HTMLElement): HTMLElement[] {
   return out;
 }
 
-const capped = (el: HTMLElement) => el.className.includes(CAP) && el.className.includes("mx-auto");
+const capped = (el: HTMLElement) => CAP.test(el.className) && el.className.includes("mx-auto");
 
 describe.each([
   ["embedded desktop pane", true],
@@ -135,12 +136,14 @@ describe.each([
     expect(chain.filter(capped)).toEqual([]);
   });
 
-  it("the message timeline keeps the centred 780px column on a phone, and spans the pane from lg (owner 11-01)", () => {
+  it("the message timeline keeps a centred 720px reading column (polish 2026-11-20, was 780px; an unprefixed reading measure, not a desktop page measure: onePageColumn)", () => {
     renderChat(embedded);
     const chain = ancestorsWithinPane(screen.getByTestId("chat-timeline"));
     const cap = chain.find(capped);
     expect(cap).toBeTruthy();
-    expect(cap!.className.split(/\s+/)).toContain("lg:max-w-none");
+    expect(cap!.className.split(/\s+/)).toContain("max-w-[720px]");
+    expect(cap!.className).not.toMatch(/\b(?:md|lg|xl|2xl):max-w-/);
+    expect(cap!.className.split(/\s+/)).toContain("mx-auto");
   });
 
   it("the safety banner spans the column, uncapped (owner, 2026-09-25: \"fill the space\")", () => {
@@ -170,8 +173,8 @@ describe.each([
  * moved back onto the composer's ancestors by a later edit. */
 
 // THE SPLIT ITSELF: the cap lives on the scroller, not the column.
-// @mutate src/components/messages/ChatView.tsx | const CHAT_READING_COLUMN = "w-full max-w-[780px] mx-auto lg:max-w-none"; | const CHAT_READING_COLUMN = "w-full";
-// @mutate src/components/messages/ChatView.tsx | const CHAT_READING_COLUMN = "w-full max-w-[780px] mx-auto lg:max-w-none"; | const CHAT_READING_COLUMN = "w-full max-w-[780px] mx-auto";
+// @mutate src/components/messages/ChatView.tsx | const CHAT_READING_COLUMN = "w-full max-w-[720px] mx-auto"; | const CHAT_READING_COLUMN = "w-full";
+// @mutate src/components/messages/ChatView.tsx | const CHAT_READING_COLUMN = "w-full max-w-[720px] mx-auto"; | const CHAT_READING_COLUMN = "w-full max-w-[720px] mx-auto lg:max-w-none";
 // …and the other direction — re-capping the column the composer dock sits in,
 // which is the regression the owner reported.
 // @mutate src/components/messages/ChatView.tsx | className="flex flex-col flex-1 min-h-0 w-full transition-[padding] duration-150" | className="flex flex-col flex-1 min-h-0 w-full max-w-[780px] mx-auto transition-[padding] duration-150"

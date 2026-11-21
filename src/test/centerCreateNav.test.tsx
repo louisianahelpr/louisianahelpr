@@ -229,7 +229,8 @@ describe("the phone top bar (F148, owner audit 2026-11-09)", () => {
 
   it.each([
     ["/jobs", "Jobs", "Post a job", "/post-job"],
-    ["/declutter", "Declutter", "Sell an item", "/declutter/sell?mode=choose"],
+    // Ease batch 11-20: one item straight away (the chooser is "More ways to sell" there).
+    ["/declutter", "Declutter", "Sell an item", "/declutter/sell"],
     ["/shops", "Shops", "Add an item or open a shop", "/shops/mine"],
     ["/rentals", "Homes", "Add a property", "/rentals?tab=own&add=1"],
   ])("on %s the + is the section's own create (%s: %s)", (at, title, label, path) => {
@@ -286,7 +287,7 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
   });
 
   // F135: Declutter's two outline buttons open the free Sell flow and the Wanted form.
-  // @mutate src/components/create/CreateSheet.tsx |       { label: t("cs.giveFree"), path: SELL_FREE_PATH }, |       { label: t("cs.giveFree"), path: SELL_CHOOSER_PATH },
+  // @mutate src/components/create/CreateSheet.tsx |       { label: t("cs.giveFree"), path: SELL_FREE_PATH }, |       { label: t("cs.giveFree"), path: SELL_START_PATH },
   it.each([
     [1, "/declutter/sell?free=1"],
     [2, "/declutter?tab=wanted&post=1"],
@@ -302,7 +303,7 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
 
   it.each([
     ["jobs", "/post-job"],
-    ["declutter", "/declutter/sell?mode=choose"],
+    ["declutter", "/declutter/sell"],
     ["shops", "/shops/mine"],
     ["homes", "/rentals?tab=own&add=1"],
   ])("the %s main action goes to %s", (key, path) => {

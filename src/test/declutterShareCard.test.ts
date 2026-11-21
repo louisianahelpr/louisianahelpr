@@ -14,14 +14,17 @@
  * @mutate api/share.ts |   if (route.kind === "declutter") {\n    const seg = safeIdSegment(route.id); |   if (false) {\n    const seg = safeIdSegment(route.id);
  * @mutate api/share.ts |     ogTitle: clean(`${title} · ${price}`, 100), |     ogTitle: title,
  *
- * The owner's UI audit 11-09, F076: the card said "$15" (the seller's price) while the site shows buyers "$16.45 incl.
- * fee", and its line said "pay in the app" on a website where a visitor can buy. It now shows the buyer's price
- * (shareCardPrice.mjs, held equal to money.ts's buyNowTotalCents for every price up to $1,000) and "From a neighbor
- * in <town> on Louisiana Helpr. Pick it up nearby."
- * @mutate src/lib/declutter/shareCardPrice.mjs |   return priceCents + Math.round(priceCents * 0.05) + 70; |   return priceCents;
- * @mutate api/share.ts |   const price = shareCardPriceLabel(item.price_cents); |   const price = `$${item.price_cents / 100}`;
+ * The owner's UI audit 11-09, F076: its line said "pay in the app" on a website where a visitor can buy; it says "From
+ * a neighbor in <town> on Louisiana Helpr. Pick it up nearby."
+ * Owner 11-20 (site polish E, reverses F076's price): the card shows the SELLER's price ("$85", not the fee-inclusive
+ * "$89.95"), also as product:price:amount / currency; the title in the item page's smart title case ("Vintage Duck Touch
+ * Lamp", titleCase.mjs); and its ONE og:image is api/og-item.ts's safe-crop card (src/test/declutterOgItemCard.test.ts).
+ * @mutate src/lib/declutter/shareCardPrice.mjs |   return priceCents % 100 === 0 ? `$${priceCents / 100}` : `$${(priceCents / 100).toFixed(2)}`; |   return `$${((priceCents + Math.round(priceCents * 0.05) + 70) / 100).toFixed(2)}`;
+ * @mutate api/share.ts |   const price = shareCardPriceLabel(item.price_cents); |   const price = `$${item.price_cents / 100}.00`;
  * @mutate src/lib/declutter/shareCardPrice.mjs |   if (!Number.isFinite(priceCents) \|\| priceCents <= 0) return "Free"; |   if (!Number.isFinite(priceCents)) return "Free";
- * @mutate api/share.ts |     url: `${SUPABASE_URL}/functions/v1/shop-photo?id=${id}&kind=declutter&w=1200&og=1`, |     url: `${SUPABASE_URL}/storage/v1/object/public/job-photos/${id}`,
+ * @mutate api/share.ts |   const title = clean(titleCase(item.title), 80); |   const title = clean(item.title, 80);
+ * @mutate api/share.ts |     productPrice: amount ? { amount, currency: "USD" } : undefined, |     productPrice: undefined,
+ * @mutate src/lib/declutter/titleCase.mjs |       if (i !== first && i !== last && SMALL.has(m[2])) return t; |
  * @mutate supabase/functions/shop-photo/index.ts |       kind === "declutter"\n        ? await admin.rpc("declutter_public_photo_path", { p_photo_id: id }) |       false\n        ? await admin.rpc("declutter_public_photo_path", { p_photo_id: id })
  * @mutate supabase/migrations/20261027194426_declutter_share_card.sql |           AND NOT i.seller_hidden\n |
  * (The row on the seller's own listing: its @mutate lives in src/components/declutter/declutterShareRow.test.tsx,
@@ -33,8 +36,9 @@ import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { newestFunction } from "./helpers/parityReaders";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
-import { buyNowTotalCents } from "@/lib/declutter/money";
-import { shareCardBuyNowCents, shareCardPriceLabel } from "@/lib/declutter/shareCardPrice.mjs";
+import { shareCardPriceAmount, shareCardPriceLabel } from "@/lib/declutter/shareCardPrice.mjs";
+import { titleCase } from "@/lib/declutter/titleCase.mjs";
+import { OG_ITEM_STYLE } from "@/lib/ogItemCard.mjs";
 
 const read = (p: string) => readFileSync(resolve(p), "utf8");
 const code = (name: string) => blankSqlComments(newestFunction(name).body).replace(/\s+/g, " ");
@@ -114,14 +118,20 @@ describe("Q2426: the link preview (api/share.ts + vercel.json)", () => {
     const res = await page(ITEM);
     expect(res.headers.get("Vercel-CDN-Cache-Control")).toBe("public, s-maxage=60, stale-while-revalidate=60");
     const html = await res.text();
-    // $25.00 + 5% ($1.25) + 70c = $26.95, the buyer's price (F076).
-    expect(html).toContain('<meta property="og:title" content="Oak rocking chair · $26.95"');
+    // Owner 11-20 (site polish E): the seller's price, whole dollars, and the title in smart title case.
+    expect(html).toContain('<meta property="og:title" content="Oak Rocking Chair · $25"');
+    expect(html).toContain('<meta property="product:price:amount" content="25.00" />');
+    expect(html).toContain('<meta property="product:price:currency" content="USD" />');
     expect(html).toContain('<meta property="og:description" content="From a neighbor in Mid-City, Baton Rouge on Louisiana Helpr. Pick it up nearby."');
     expect(html).not.toMatch(/pay in the app/i);
     expect(html).toContain('<meta name="robots" content="noindex, follow"');
     expect(html).toContain(`<meta property="og:url" content="https://www.louisianahelpr.com/declutter/item/${ITEM}"`);
     expect(html).toContain(`<link rel="canonical" href="https://www.louisianahelpr.com/declutter/item/${ITEM}"`);
-    expect(html).toContain(`<meta property="og:image" content="https://example.supabase.co/functions/v1/shop-photo?id=${PHOTO}&amp;kind=declutter&amp;w=1200&amp;og=1"`);
+    // Owner 11-20 (site polish E): the safe-crop card drawn by api/og-item.ts, a 1200x630 PNG.
+    expect(html).toContain(`<meta property="og:image" content="https://www.louisianahelpr.com/api/og-item?id=${ITEM}&amp;p=${PHOTO}&amp;v=${OG_ITEM_STYLE}"`);
+    expect(html).toContain('<meta property="og:image:type" content="image/png"');
+    expect(html).toContain('<meta property="og:image:width" content="1200"');
+    expect(html).toContain('<meta property="og:image:height" content="630"');
     // A concrete storage path (bucket, then a path: it starts with the owner's user id). index.html's guest /declutter
     // script names only the bucket's URL prefix, which carries no one's path (Q2705, 11-08).
     expect(html).not.toMatch(/job-photos(?:\/|%2F)[\w-]|storage\/v1\/object\/(?:public|sign|authenticated)\/[\w-]+\/[\w-]|storage\/v1\/render\/image\/(?:public|sign|authenticated)\/[\w-]+\/[\w-]/i);
@@ -131,27 +141,31 @@ describe("Q2426: the link preview (api/share.ts + vercel.json)", () => {
     expect(html.match(/<meta property="og:description" content="([^"]*)"/)?.[1]).not.toMatch(/fee/i);
   });
 
-  it("a free item says Free; cents print as dollars and cents", async () => {
+  it("a free item says Free (no product price); cents print as dollars and cents", async () => {
     answer = { title: "Kids' bike", price_cents: 0, area_label: "Lafayette", photo_id: null };
     let html = await (await page(ITEM)).text();
-    expect(html).toContain('<meta property="og:title" content="Kids&#39; bike · Free"');
+    expect(html).toContain('<meta property="og:title" content="Kids&#39; Bike · Free"');
+    expect(html).not.toContain("product:price:amount");
     expect(html).toContain('<meta property="og:description" content="From a neighbor in Lafayette on Louisiana Helpr. Pick it up nearby."');
-    // $12.50 + 5% (62.5c, rounded half up: 63c) + 70c = $13.83.
-    answer = { title: "Lamp", price_cents: 1250, area_label: null, photo_id: null };
+    answer = { title: "vintage duck touch Lamp", price_cents: 1250, area_label: null, photo_id: null };
     html = await (await page(ITEM)).text();
-    expect(html).toContain('<meta property="og:title" content="Lamp · $13.83"');
+    expect(html).toContain('<meta property="og:title" content="Vintage Duck Touch Lamp · $12.50"');
+    expect(html).toContain('<meta property="product:price:amount" content="12.50" />');
     expect(html).toContain('<meta property="og:description" content="From a neighbor on Louisiana Helpr. Pick it up nearby."');
   });
 
-  it("the card's buyer price is checkout's own rule (money.ts buyNowTotalCents) for every price up to $1,000", () => {
-    let checked = 0;
-    for (let cents = 1; cents <= 100_000; cents++) {
-      if (shareCardBuyNowCents(cents) !== buyNowTotalCents(cents)) throw new Error(`differs at ${cents} cents`);
-      checked++;
-    }
-    expect(checked).toBe(100_000);
-    expect(shareCardPriceLabel(1500)).toBe(`$${(buyNowTotalCents(1500) / 100).toFixed(2)}`);
+  it("the seller's price and the title case rules (owner 11-20)", () => {
+    expect(shareCardPriceLabel(8500)).toBe("$85");
+    expect(shareCardPriceLabel(8550)).toBe("$85.50");
+    expect(shareCardPriceLabel(5)).toBe("$0.05");
     expect(shareCardPriceLabel(0)).toBe("Free");
+    expect(shareCardPriceAmount(8500)).toBe("85.00");
+    expect(shareCardPriceAmount(0)).toBeNull();
+    expect(titleCase("vintage duck touch Lamp")).toBe("Vintage Duck Touch Lamp");
+    expect(titleCase("box of old iPhone cases")).toBe("Box of Old iPhone Cases");
+    expect(titleCase("mid-century chair w/ LSU cushion")).toBe("Mid-Century Chair w/ LSU Cushion");
+    expect(titleCase("3-piece set for the kitchen")).toBe("3-piece Set for the Kitchen");
+    expect(titleCase("the lamp i want to sell for")).toBe("The Lamp I Want to Sell For");
   });
 
   it("an item the card may not show, or a non-id path, is a noindex 'isn't available' card", async () => {

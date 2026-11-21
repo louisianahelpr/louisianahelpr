@@ -50,6 +50,17 @@ import "@/lib/i18n/enSections";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 // The Holiday Gift Guides banner (owner mockup A, 11-18): its own chunk, last in the side column, so nothing moves.
 const GiftGuidesPromo = lazy(() => import("@/components/GiftGuidesPromo"));
+// Owner polish 11-20: Recent messages and Your active listings and jobs, under Your sections. Their own chunk, asked
+// only once the page has settled, so they never weigh on Home's first load (/home's critical-path budget).
+const HomeMoreRows = lazy(() => loadModule(() => import("./homeDashboard/HomeMoreRows")).then((m) => (m ? { default: m.default } : untilReload())));
+// Owner polish 11-20: the "Needs you" short list and the empty Coming up buttons, in their own chunk (not on /home's
+// critical path, Q178): started as Home mounts; until it lands Home draws its single to-do card and a 44px hold.
+type FirstExtras = typeof import("./homeDashboard/homeFirstExtras");
+let firstExtras: FirstExtras | null = null;
+// A plain import (not lazyModule.ts, which would join home-shared on /home's critical path). A failed fetch keeps the
+// single card and the 44px hold, and the next mount tries again; the chunk-reload recovery is main.tsx's.
+// loadModule (dynamicImportThenDoesNoWork): an empty module (a prevented preload) answers null, the same as not loaded yet.
+const loadFirstExtras = () => loadModule(() => import("./homeDashboard/homeFirstExtras")).then((m) => (m ? (firstExtras = m) : null));
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
 // Drawn only when a Coming up read fails, so the error card (and EmptyState under it) loads on its own and never rides
 // Home's first load (/home's critical-path budget, 2026-11-14).
@@ -80,6 +91,8 @@ function whenLine(c: ComingUpItem) {
 const sectionDef = (key: string) => SECTIONS.find((d) => d.key === key) ?? SECTIONS[0];
 /** A section's name as the member reads it (F260q: "Ventas" in Spanish); the config keeps its English label. */
 const sectionLabel = (d: { path: string; label: string }) => { const k = navKey(d.path, d.label); return k ? tNow(k) : d.label; };
+/** A to-do's section icon and name, for the Needs you list rows (homeFirstExtras). */
+const sectionOf = (key: string) => { const d = sectionDef(key); return { Icon: d.icon, label: sectionLabel(d) }; };
 
 /**
  * HOME (owner final decisions, 2026-10-19; 2026-10-20 the three stat boxes became
@@ -101,8 +114,8 @@ export default function HomeDashboard() {
 
 /** The card's name (F083, owner UI audit 11-09: "Pick one label ('Needs you') and use it everywhere"). */
 const NEEDS_YOU_KEY = "home.needsYou" as const;
-/** Next up shows at most this many dots: five 44px targets fit the 320 card; See all lists the rest. */
-const NEXT_UP_MAX_DOTS = 5;
+/** Needs you lists at most this many to-dos (owner polish 11-20: a short list); See all lists the rest. */
+const NEXT_UP_LIST_MAX = 3;
 
 function HomeDashboardScreen() {
   const { t, lang } = useLanguage();
@@ -174,11 +187,16 @@ function HomeDashboardScreen() {
   }, [user?.id, profileFirst]);
   const today = greetingDate(new Date(), lang);
   const todoCount = summary.todos.length;
+  const [extras, setExtras] = useState<FirstExtras | null>(firstExtras);
+  useEffect(() => {
+    if (!extras) loadFirstExtras().then(setExtras, () => undefined /* the single card and the hold stay; see loadFirstExtras */);
+  }, [extras]);
 
-  // Next up is a carousel over the to-dos (mock-up 7: "Next up · 1 of 5"); it opens on the most urgent.
-  const [shown, setShown] = useState(0);
-  const at = Math.min(shown, Math.max(0, todoCount - 1));
-  const next = summary.todos[at];
+  // Owner polish 11-20: Needs you is a SHORT LIST of the to-dos (most urgent first), no longer a carousel with dots
+  // ("Needs you · 1 of 3"). One to-do keeps the big single card; more list up to NEXT_UP_LIST_MAX rows, each with its
+  // own action, and See all opens the rest below. Guards: src/test/homeBoard7.test.ts, src/test/dashboardsShell.test.tsx.
+  const next = summary.todos[0];
+  const listed = todoCount > 1 ? summary.todos.slice(0, NEXT_UP_LIST_MAX) : [];
   // Design audit A D3 (owner approved 11-08): a new member with nothing to do sees ONE welcome card (WelcomeCard) in
   // place of "You're all caught up" and an empty "Coming up". Same "new" rule as the first-job checklist below.
   const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && !next && !summary.todosLoading && !summary.waiting;
@@ -187,12 +205,18 @@ function HomeDashboardScreen() {
   const guide = (fresh: boolean) => (
     <GetStartedGuide userId={user?.id} fresh={fresh} declutterOpen={sellOpen} hasPhoto={!!profile?.avatar_url} alertsOff={firstJob ? firstJob.alertsOff : null} />
   );
-  const rest = Math.max(0, todoCount - 1);
-  // Owner 2026-11-17 (item 4): a quiet day (nothing needs you, nothing booked) shows "Near you" under Coming up, its
+  const rest = Math.max(0, todoCount - Math.max(1, listed.length));
+  // Owner 2026-11-17 (item 4): a quiet day (nothing needs you, nothing booked) showed "Near you" under Coming up, its
   // chunk and reads asked only once the page has settled (usePageSettled), so Home's first paint is unchanged.
+  // Owner polish 11-20 ("fill the empty space with useful rows"): every settled day, not only a quiet one.
   const pageSettled = usePageSettled();
   // Not for a new member: their own blocks (NewMemberHome, FirstJobHome) already list the jobs near them.
-  const quietDay = !welcome && !firstJob?.isNew && !summary.declutterPending && !next && !summary.todosLoading && !summary.waiting && !summary.loading && summary.upcoming.length === 0 && !summary.upcomingFailed;
+  // Only the new-member rule (their own blocks list what is near them), once that read has answered; no wait on the
+  // other reads (a Declutter read that never settles kept it hidden on a member's 1440 Home, 11-20).
+  // Parent 11-20 shot: a new member who sells or buys on Declutter (no FirstJobHome) saw a blank Home; Near you shows
+  // whenever the first-job block does not.
+  const firstJobShown = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending;
+  const nearYouDay = !welcome && firstJob !== null && !firstJobShown;
   // Q2706 (B98): while their reads are out, Next up and the money strip hold the height they had last time on this
   // device (reservedHeight.ts), so the blocks below them do not move when they land.
   const nextUpRef = useRef<HTMLElement>(null);
@@ -261,14 +285,14 @@ function HomeDashboardScreen() {
             <section ref={nextUpRef} data-testid="next-up" aria-label={t(NEEDS_YOU_KEY)} className="liquid-glass p-card flex flex-col gap-1.5" style={summary.todosLoading && nextUpReserve ? { minHeight: nextUpReserve } : undefined}>
               <div className="flex items-center justify-between gap-3">
                 <h2 data-testid="next-up-label" className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                  {!next && summary.waiting ? summary.waiting.label : todoCount > 1 ? t("home.needsYouOf", { at: at + 1, n: todoCount }) : t(NEEDS_YOU_KEY)}
+                  {!next && summary.waiting ? summary.waiting.label : todoCount > 1 ? t("home.needsYouN", { n: todoCount }) : t(NEEDS_YOU_KEY)}
                 </h2>
                 {!next && summary.waiting && (
                   <Button type="button" variant="ghost" size="sm" data-testid="next-up-see-job" onClick={() => navigate(`/jobs/${summary.waiting!.jobId}`)} className="px-1 -my-2 -mr-1 text-ds-13 tracking-normal text-primary">
                     {t("home.seeJob")}
                   </Button>
                 )}
-                {next && (() => {
+                {next && !(listed.length > 0 && extras) && (() => {
                   // Board 7: the to-do's section, by icon and name, top right.
                   const d = sectionDef(next.section);
                   const Icon = d.icon;
@@ -280,7 +304,9 @@ function HomeDashboardScreen() {
                   );
                 })()}
               </div>
-              {next ? (
+              {next && listed.length > 0 && extras ? (
+                <extras.NeedsYouList todos={listed} total={todoCount} rest={rest} open={todoOpen} onToggle={toggleTodo} sectionOf={sectionOf} onGo={(td) => navigate(todoTarget(td, requestHelperStep))} />
+              ) : next ? (
                 <>
                   <p data-testid="next-up-title" className="text-ds-18 font-bold leading-snug text-foreground [overflow-wrap:anywhere]">{next.title}</p>
                   <p className="text-ds-14 text-muted-foreground">
@@ -288,50 +314,9 @@ function HomeDashboardScreen() {
                     {next.money && " · "}
                     {next.meta}
                   </p>
-                  {/* Board 7: dots left, See all + the ONE action right. Every dot is a 44px target (index.css floor),
-                      so at 320/375 they cannot share a line with the rest: the See all + action group WRAPS as one
-                      piece below the dots (See all left, action right) instead of covering them (axe target-size,
-                      TRAIN23). At most 5 dots fit 320; See all lists every to-do. */}
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                    {todoCount > 1 && (
-                      <div className="flex items-center -ml-2 lg:hidden" role="group" aria-label={t("home.yourTodos")}>
-                        {summary.todos.slice(0, NEXT_UP_MAX_DOTS).map((td, i) => (
-                          <button
-                            key={td.id}
-                            type="button"
-                            data-next-up-dot={i}
-                            aria-label={t("home.todoDot", { at: i + 1, n: todoCount })}
-                            aria-current={i === at ? "true" : undefined}
-                            onClick={() => setShown(i)}
-                            className="h-11 w-5 flex items-center justify-center"
-                          >
-                            <span aria-hidden className={`h-1.5 rounded-full transition-all ${i === at ? "w-4 bg-primary" : "w-1.5 bg-border"}`} />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {/* Desktop (board 11): no dots; the action first, then See all beside it. */}
-                    <div data-next-up-actions className="ml-auto grow flex items-center justify-between gap-3 lg:ml-0 lg:grow-0 lg:flex-row-reverse lg:justify-end">
-                      {rest > 0 ? (
-                        // The shared link Button (owner 11-06 pop-up: switch; 2px narrower, desktop hover underline).
-                        <Button
-                          type="button"
-                          variant="link"
-                          size="sm"
-                          data-testid="next-up-see-all"
-                          aria-expanded={todoOpen}
-                          aria-controls={todoOpen ? "home-todo-list" : undefined}
-                          onClick={toggleTodo}
-                          className="px-1 -ml-1 text-ds-13 font-bold text-primary whitespace-nowrap"
-                        >
-                          {todoOpen ? t("home.hide") : t("home.seeAll", { n: todoCount })}
-                        </Button>
-                      ) : <span />}
-                      <Button type="button" size="sm" data-testid="next-up-action" onClick={() => navigate(todoTarget(next, requestHelperStep))} className="px-5 text-ds-15 font-semibold tracking-normal shadow-none shrink-0">
-                        {next.action}
-                      </Button>
-                    </div>
-                  </div>
+                  <Button type="button" size="sm" data-testid="next-up-action" onClick={() => navigate(todoTarget(next, requestHelperStep))} className="self-end mt-1 px-5 text-ds-15 font-semibold tracking-normal shadow-none shrink-0">
+                    {next.action}
+                  </Button>
                 </>
               ) : summary.todosLoading || money.pending || (!!firstJob?.isNew && summary.declutterPending) ? (
                 /* Q2706 (B98): the to-dos are still loading. Never "all caught up" before the reads answer; hold the
@@ -375,7 +360,7 @@ function HomeDashboardScreen() {
                 {/* Design audit area 02 #8 (11-18): the list repeated the to-do the card above still shows; it lists the
                     others ("rest") and the card keeps its own. */}
                 <GroupSection title={t("home.todo")} count={rest}>
-                  {summary.todos.filter((_, i) => i !== at).map((td, i, arr) => (
+                  {summary.todos.slice(listed.length).map((td, i, arr) => (
                     <GroupRow key={td.id} title={td.title} meta={td.meta} onClick={() => navigate(todoTarget(td, requestHelperStep))} last={i === arr.length - 1} />
                   ))}
                 </GroupSection>
@@ -430,7 +415,12 @@ function HomeDashboardScreen() {
             ) : welcome && summary.upcoming.length === 0 ? null : (
             <GroupSection title={t("home.comingUp")}>
               {summary.upcoming.length === 0 ? (
-                <p data-testid="coming-up-empty" className="px-4 py-4 text-ds-14 text-muted-foreground">{summary.hasBookedJob ? t("home.nothingElse") : t("home.nothingYet")}</p>
+                // Owner polish 11-20: the empty agenda offers Post a job and Find work (ComingUpCta).
+                <div className="px-4 py-4 flex flex-col gap-3">
+                  <p data-testid="coming-up-empty" className="text-ds-14 text-muted-foreground">{summary.hasBookedJob ? t("home.nothingElse") : t("home.nothingYet")}</p>
+                  {/* Its own chunk (homeFirstExtras); a 44px placeholder holds its row until it lands, so nothing moves. */}
+                  {extras ? <extras.ComingUpCta /> : <div aria-hidden data-coming-up-cta-hold="" className="h-11" />}
+                </div>
               ) : (
                 summary.upcoming.map((c, i) => {
                   const d = sectionDef(c.section);
@@ -474,7 +464,11 @@ function HomeDashboardScreen() {
               )}
             </GroupSection>
             )}
-            {quietDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />}
+            {/* Owner polish 11-20: under Coming up, where Home was blank. Below everything drawn at first paint, so their
+                late arrival moves nothing above them. Gated on the page settling ONLY (it fires within 4 s): the parent's
+                1440 shot showed nothing here while the near-you counts (same settle) had drawn. */}
+            {pageSettled && <Suspense fallback={null}><HomeMoreRows user={user} from={summary.activeFrom} /></Suspense>}
+            {nearYouDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />}
 
             {/* Design audit A D2 (owner approved 11-08): "Needs you" comes first, the first-week checklist after it as one
                 progress line. Board 189: before a member's first job, the first-job checklist and jobs near them.
@@ -493,7 +487,7 @@ function HomeDashboardScreen() {
                 was held with the blocks below Next up until the activity read answered (8.1 s for an 831-job poster)
                 although its own read had answered at 5.5 s. It is drawn as soon as the handle is known; only the
                 blocks that wait on the activity read are held. Guard: src/test/homeYourPageNotHeld.test.ts. */}
-            {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" />}
+            {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" line />}
             {holdBelowNextUp && <HeldBlocksSkeleton side />}
             {!holdBelowNextUp && <>
             <HomeMoneyTiles money={money} placement="side" />

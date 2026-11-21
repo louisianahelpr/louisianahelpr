@@ -188,7 +188,7 @@ describe("declutter-money: seller payouts (B53)", () => {
 
   // Owner 2026-11-20: no ID check anywhere in Declutter (supersedes 11-12's "seller ID before the first payout").
   // An unverified seller's payout goes on the first run; the ID question is not even asked for this kind.
-  // @mutate supabase/functions/declutter-money/index.ts |    const idHold = declutterKindSkipsIdHold(kind) ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId); |    const idHold = await checkIdentityHold(admin, payeeId);
+  // @mutate supabase/functions/declutter-money/index.ts |    const idHold = declutterKindSkipsIdHold(kind) \|\| kind === "shop" ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId); |    const idHold = kind === "shop" ? { kind: "clear" as const } : await checkIdentityHold(admin, payeeId);
   it("owner 11-20: an unverified seller's payout is sent, and the ID hold is never asked", async () => {
     scenario.rpc.payout_waits_on_identity = true;
     const paid = await run({ payouts: [payoutRow()] });

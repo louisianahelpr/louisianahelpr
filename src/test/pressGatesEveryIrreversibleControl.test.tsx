@@ -67,7 +67,7 @@ const NO_WRITE_COMMITS: Record<string, string> = {
   "src/components/profile/DeleteAccountDialog.tsx: Continue": "moves to step 2, whose commit is the delete",
   "src/components/profile/ProfileEditForm.tsx: Discard": "throws away unsaved profile edits and leaves; writes nothing (F261a)",
   "src/pages/posts/postedJobCard/ArriveConfirm.tsx: Yes, they're here": "confirms the Helpr arrived (the card's confirmArrival, Area 03 M8): a forward job step, not an irreversible write; gated at runtime by its data-commit marker",
-  "src/pages/messages/Messages.tsx: Hide": "hides a thread from this inbox only; Recently deleted restores it",
+  "src/pages/messages/Messages.tsx: Archive": "moves a thread to Archived for this member only (renamed from Hide, 2026-11-20); Restore brings it back",
   "src/pages/profile/petProfiles/PetForm.tsx: Discard": "throws away an unsaved form; writes nothing",
 };
 

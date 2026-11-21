@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type Pointe
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, subscribeGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
-import { FUN_WORDS as W, SWIPE_BUDGETS, SWIPE_WHO, borrowFits, santaRound, swipePool, swipeRound, type SwipeBudget, type SwipeWho } from "@/content/giftGuideFun1120";
+import { FUN_WORDS as W, SWIPE_BUDGETS, SWIPE_ROUND, SWIPE_WHO, borrowFits, santaRound, swipePool, swipeRound, type SwipeBudget, type SwipeWho } from "@/content/giftGuideFun1120";
 import { BUDGET_GUIDES } from "@/content/giftPickBand";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { PickPrice } from "@/components/giftGuides/PickPrice";
@@ -12,7 +12,7 @@ import { track } from "@/lib/analytics";
 import { saveWishList, sharedListPath } from "@/lib/giftWishListApi";
 import { PickThumb, storeLabel } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
-import { addToWishList, itemId, listName, listRefs, useGiftList } from "../giftList";
+import { MY_LIST_SLUG, addToWishList, itemId, listName, listRefs, useGiftList } from "../giftList";
 import { Hint } from "../GiftHint";
 import { FunBody, funHeader } from "./FunPage";
 import { useAccountSync } from "./plannerStore";
@@ -59,6 +59,8 @@ export default function SwipeGifts() {
   const [details, setDetails] = useState(false);
   const [dx, setDx] = useState(0);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  // Holiday audit C12a: a Save says so (the guide hearts toast; the deck announces it in its live line).
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
   const seen = useRef(new Set<string>());
   const drag = useRef<{ x: number; moved: boolean } | null>(null);
   const version = useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
@@ -68,16 +70,19 @@ export default function SwipeGifts() {
   const forName = santa ? santa.match : w?.forName ?? null;
   const saveWaits = !!forName && (santa ? !!user && !plannerReady : !plannerReady);
 
+  // A budget round (a Secret Santa's, or a chosen "Under $N") also borrows the budget guides' picks that suit this
+  // "who", so a strict budget still fills a round (holiday audit C1).
+  const borrowing = !!santaBudget || (!santa && !!budget);
   useEffect(() => {
     if (!w || !started) return;
     setLoadFailed(false);
-    Promise.all([...w.guides.map((g) => g.slug), ...(santaBudget ? BUDGET_GUIDES : [])].map((slug) => loadGuidePicks(slug))).catch((e: unknown) => {
+    Promise.all([...w.guides.map((g) => g.slug), ...(borrowing ? BUDGET_GUIDES : [])].map((slug) => loadGuidePicks(slug))).catch((e: unknown) => {
       console.warn("swipe: picks chunk failed", e);
       setLoadFailed(true);
     });
-  }, [w, started, santaBudget]);
+  }, [w, started, borrowing]);
 
-  const ready = !!w && w.guides.every((g) => picksReady(g.slug)) && (!santaBudget || BUDGET_GUIDES.every((g) => picksReady(g)));
+  const ready = !!w && w.guides.every((g) => picksReady(g.slug)) && (!borrowing || BUDGET_GUIDES.every((g) => picksReady(g)));
   const pool = useMemo((): Card[] => {
     if (!w || !started) return [];
     const from = new Map<string, string>();
@@ -89,13 +94,12 @@ export default function SwipeGifts() {
     return picks.map((p) => ({ ...p, guide: from.get(p.href) ?? w.guides[0].slug }));
     // version: re-read once each lazy chunk arrives.
   }, [w, started, version]);
-  // A Secret Santa with a budget also borrows the budget guides' picks that suit this "who".
   const borrow = useMemo((): Card[] => {
-    if (!w || !started || !santaBudget) return [];
+    if (!w || !started || !borrowing) return [];
     return BUDGET_GUIDES.flatMap((slug) => (guideBySlug(slug)?.picks ?? []).filter((p) => borrowFits(w.id, p)).map((p) => ({ ...p, guide: slug })));
     // version: re-read once each lazy chunk arrives.
-  }, [w, started, version, santaBudget]);
-  const makeRound = (): Card[] => (santa ? santaRound(pool, borrow, santa.budget, seen.current) : swipeRound(pool, budget ?? 0, seen.current));
+  }, [w, started, version, borrowing]);
+  const makeRound = (): Card[] => (santa ? santaRound(pool, borrow, santa.budget, seen.current) : swipeRound(pool, budget ?? 0, seen.current, Math.random, borrow));
 
   useEffect(() => {
     if (!started || budget === null || round.length || !pool.length || !ready) return;
@@ -104,6 +108,19 @@ export default function SwipeGifts() {
   }, [pool, borrow, ready, started, budget, round.length]);
 
   const card = round[at];
+  // Holiday audit C1: a strict budget can leave a short round; say so and offer the next budget up.
+  const budgetIdx = SWIPE_BUDGETS.findIndex((b) => b.id === budget);
+  const short = !santa && !!budget && round.length > 0 && round.length < SWIPE_ROUND;
+  const nextBudget = short ? SWIPE_BUDGETS.slice(budgetIdx + 1).find((b) => b.id !== 0) ?? null : null;
+  const fewNote = short ? W.swipeFew(round.length, SWIPE_BUDGETS[budgetIdx].label) : null;
+  const tryNextBudget = () => {
+    if (!nextBudget) return;
+    seen.current.clear();
+    setBudget(nextBudget.id);
+    setRound([]);
+    setSaved([]);
+    setShareMsg(null);
+  };
   const finished = started && round.length > 0 && at >= round.length;
   // UX audit L8: the next card's photo loads while this one is shown, so it appears at once.
   const nextImage = round[at + 1]?.image;
@@ -133,6 +150,7 @@ export default function SwipeGifts() {
         setSaved((s) => [...s, card]);
       }
     } else if (keep && addToWishList({ href: card.href, name: card.name, guide: card.guide, id: itemId(card.href) })) setSaved((s) => [...s, card]);
+    setLastSaved(keep ? card.name : null);
     setDetails(false);
     setDx(0);
     setAt((i) => i + 1);
@@ -167,7 +185,7 @@ export default function SwipeGifts() {
     if (!d) return;
     if (!d.moved) {
       setDx(0);
-      setDetails((v) => !v);
+      if (card?.line) setDetails((v) => !v);
       return;
     }
     if (dx > SWIPE_DISTANCE) next(true);
@@ -231,6 +249,8 @@ export default function SwipeGifts() {
           {saved.length > 0 && (
             <ul className="gg-fun-list mb-3">{saved.map((p) => <li key={p.href} className="text-sm">{forName ? "" : "♥ "}{p.name}</li>)}</ul>
           )}
+          {fewNote && <p className="gg-fun-note" data-swipe-few="">{fewNote}</p>}
+          {nextBudget && <Button type="button" variant="outline" className="mb-2" onClick={tryNextBudget} data-swipe-next-budget={nextBudget.id}>{W.swipeNextBudget(nextBudget.label)}</Button>}
           {forName && savedTo && <p className="gg-fun-note" data-swipe-saved-to={savedTo}>{savedTo === "planner" ? W.swipeSavedPlanner : W.santaSavedDevice}</p>}
           {santa ? (
             <div className="gg-fun-actions">
@@ -248,7 +268,7 @@ export default function SwipeGifts() {
           <div className="gg-fun-actions">
             <Button type="button" className="btn-grad-primary" onClick={anotherRound} data-swipe-more="">{W.swipeMore}</Button>
             {listRefs(list).length > 0 && <Button type="button" variant="outline" onClick={() => void shareMine()} data-swipe-share="">{W.swipeShare}</Button>}
-            <Button asChild variant="outline"><Link to="/gift-guides?list=mine" data-swipe-list="">{W.swipeSeeList}</Link></Button>
+            <Button asChild variant="outline"><Link to={`/gift-guides/${MY_LIST_SLUG}`} data-swipe-list="">{W.swipeSeeList}</Link></Button>
             <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => { setStarted(false); anotherRound(); }} data-swipe-change="">{W.swipeChange}</Button>
           </div>
           )}
@@ -262,7 +282,12 @@ export default function SwipeGifts() {
       ) : (
         <section aria-label={W.swipeTitle} data-swipe-deck="">
           <Hint id="fun-swipe">{W.hintSwipe}</Hint>
-          <p className="gg-fun-note text-center" aria-live="polite" data-swipe-count="">{W.swipeCount(at + 1, round.length)}</p>
+          <p className="gg-fun-note text-center" aria-live="polite" data-swipe-count="">
+            {W.swipeCount(at + 1, round.length)}
+            {saved.length > 0 && <span data-swipe-saved-count=""> · {W.swipeSavedSoFar(saved.length)}</span>}
+            {lastSaved && <span className="sr-only">{W.swipeSavedOne(lastSaved)}</span>}
+          </p>
+          {fewNote && at === 0 && <p className="gg-fun-note text-center m-0" data-swipe-few="">{fewNote}</p>}
           <div className="gg-swipe-stage">
             <div
               className={drag.current ? "gg-swipe-card is-dragging" : "gg-swipe-card"}
@@ -277,7 +302,8 @@ export default function SwipeGifts() {
               <p className="gg-swipe-meta m-0">{storeLabel(card) && <span>{storeLabel(card)}</span>}<PickPrice pick={card} /></p>
               {details && card.line && <p className="gg-fun-note text-center" data-swipe-line="">{card.line}</p>}
               <div className="gg-fun-actions justify-center">
-                <Button type="button" variant="link" size="inline" className="gg-link" aria-expanded={details} onClick={() => setDetails((v) => !v)} data-swipe-details="">{W.swipeDetails}</Button>
+                {/* Holiday audit C5: most picks have no line; Details shows only when there is one to show. */}
+                {card.line && <Button type="button" variant="link" size="inline" className="gg-link" aria-expanded={details} onClick={() => setDetails((v) => !v)} data-swipe-details="">{W.swipeDetails}</Button>}
                 <Button asChild variant="outline" size="sm" className="gg-shop-btn m-0">
                   <GiftOut href={card.href}>{W.swipeShop}<span className="sr-only"> {card.name} (opens in a new tab)</span></GiftOut>
                 </Button>

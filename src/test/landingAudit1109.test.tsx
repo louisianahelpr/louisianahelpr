@@ -32,8 +32,10 @@
  *
  * F008: How a job works' "I need help / I want to work" switch had 11px labels. It uses SegmentedControl's 13px label
  * size on the landing; every segment keeps the control's 44px row (h-11 min-h-11).
- * @mutate src/components/landing/HowItWorksSection.tsx |             labelSize="md"\n |
- * @mutate src/components/ui/SegmentedControl.tsx |               labelSize === "md" ? "text-ds-13" : "text-ds-11", |               "text-ds-11",
+ * Owner 11-20 (site polish B1): "a bit bigger" — 13px on a phone (12px under 375, so it fits 320), 15px from sm, on a
+ * 48px row (still >= 44px).
+ * @mutate src/components/landing/HowItWorksSection.tsx |               labelSize="lg"\n |
+ * @mutate src/components/ui/SegmentedControl.tsx |               labelSize === "lg" ? "text-ds-12 min-[375px]:text-ds-13 sm:text-ds-15" : labelSize === "md" ? "text-ds-13" : "text-ds-11", |               "text-ds-11",
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
@@ -165,17 +167,18 @@ describe("landing UI audit 2026-11-09", () => {
     unmount();
   });
 
-  it("F008: How a job works' side switch has 13px labels on a 44px row", async () => {
+  it("F008 / B1: How a job works' side switch has 13px labels (15px from sm) on a 48px row", async () => {
     const { default: HowItWorksSection } = await import("@/components/landing/HowItWorksSection");
     const { unmount } = render(<MemoryRouter><HowItWorksSection /></MemoryRouter>);
     const tabs = within(screen.getByRole("tablist", { name: "Which side of Helpr are you on" })).getAllByRole("tab");
     expect(tabs.map((t) => t.textContent)).toEqual(["I need help", "I want to work", "Buy or sell"]);
     for (const t of tabs) {
       const cls = t.className.split(" ");
-      expect(cls, t.textContent!).toContain("text-ds-13");
+      expect(cls, t.textContent!).toContain("min-[375px]:text-ds-13");
       expect(cls, t.textContent!).not.toContain("text-ds-11");
-      expect(cls, t.textContent!).toContain("h-11");
-      expect(cls, t.textContent!).toContain("min-h-11");
+      expect(cls, t.textContent!).toContain("sm:text-ds-15");
+      expect(cls, t.textContent!).toContain("h-12");
+      expect(cls, t.textContent!).toContain("min-h-12");
     }
     unmount();
   });

@@ -4,11 +4,11 @@
  * on the way to a commitment route such as /post-job), the first-run picker) are drawn by /admin/preview/onboarding, inertly:
  *  - the form draws on a blank sample profile held in the preview's own cache, never the admin's real (finished)
  *    one, which would send the page to /home; the app's own cache entry is never changed;
- *  - the picker's Continue never reorders the admin's own Home (no helpr_section_prefs write), and the coach marks
+ *  - the picker's answer (one tap, owner 11-20) never reorders the admin's own Home (no helpr_section_prefs write), and the coach marks
  *    follow;
  *  - nothing reaches the network: every Supabase request the screens make is answered by the preview backend.
  *
- * @mutate src/components/firstRun/FirstRun.tsx |           if (onPicks) onPicks( |           if (onPicks) putFirst(
+ * @mutate src/components/firstRun/FirstRun.tsx |             onPicks([o.section]); |             putFirst([o.section]);
  * @mutate src/pages/admin/preview/OnboardingPreviewPage.tsx |     if (me) { |     if (!me) {
  * @mutate src/pages/admin/preview/OnboardingPreviewPage.tsx | { updatedAt: Date.now() + NEVER_STALE } | { updatedAt: 0 }
  * @mutate src/pages/admin/preview/OnboardingPreviewPage.tsx | onboardingSampleProfile(me, stage === "profile") | onboardingSampleProfile(me, false)
@@ -102,14 +102,14 @@ describe("admin onboarding preview (Q2664 b)", () => {
     expect(supabaseCalls()).toEqual([]);
   });
 
-  it("draws the first-run picker; Continue leaves the admin's Home order alone and the coach marks follow", async () => {
+  it("draws the first-run picker; a tap leaves the admin's Home order alone and the coach marks follow", async () => {
     renderAt("picker");
-    expect(await screen.findByText("What brings you to Helpr?", {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText("What brings you here?", {}, { timeout: 5000 })).toBeInTheDocument();
     const before = localStorage.getItem(`helpr_section_prefs:${ME}`);
     const options = document.querySelectorAll<HTMLButtonElement>("[data-first-run-option]");
     expect(options.length).toBeGreaterThan(1);
-    fireEvent.click(options[options.length - 1]);
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Continue" })); });
+    // Owner 11-20: one tap is the answer (no Continue); in the preview it never leaves, and the tour follows.
+    await act(async () => { fireEvent.click(options[options.length - 1]); });
     expect(await screen.findByText("Home shows what needs you, and what's new near you")).toBeInTheDocument();
     expect(localStorage.getItem(`helpr_section_prefs:${ME}`)).toBe(before);
     expect(supabaseCalls()).toEqual([]);

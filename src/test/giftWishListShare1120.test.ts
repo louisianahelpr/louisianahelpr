@@ -6,7 +6,7 @@
  *
  * @mutate api/share.ts |     if (slug === MY_LIST_SLUG) return null; |     if (slug === "never") return null;
  * @mutate api/share.ts |   if (declared === "wishlist") return { kind: "wishlist", id: url.searchParams.get("_id") ?? "" }; |   if (declared === "never") return { kind: "wishlist", id: "" };
- * @mutate api/share.ts |     robots: "noindex, nofollow", |     robots: "index, follow",
+ * @mutate api/share.ts |     url: ok ? `${SITE_ORIGIN}/gift-guides/list/${code}` : `${SITE_ORIGIN}/gift-guides`,\n    robots: "noindex, nofollow", |     url: ok ? `${SITE_ORIGIN}/gift-guides/list/${code}` : `${SITE_ORIGIN}/gift-guides`,\n    robots: "index, follow",
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

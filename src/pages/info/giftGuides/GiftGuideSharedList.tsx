@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { WISH } from "@/content/giftWishList";
 import { getSharedList, type SharedList } from "@/lib/giftWishListApi";
 import { WishRow } from "./GiftGuideMyList";
+import { DEFAULT_LIST_NAME } from "./giftList";
 import { useWishItems } from "./wishListItems";
 
 /**
@@ -34,14 +35,19 @@ export function GiftGuideSharedList({ code, read = getSharedList }: { code: stri
       live = false;
     };
   }, [code, read, tries]);
+  // Holiday audit C9: the sender's own name for the list, or (unnamed, or our default "My Wish List", which reads as
+  // the recipient's own list) "A wish list for you"; a code with no list says "List not found".
+  const named = list?.name?.trim() && list.name.trim() !== DEFAULT_LIST_NAME ? list.name.trim() : null;
+  const title = list === null ? WISH.sharedMissingTitle : named ?? WISH.sharedUnnamed;
   useEffect(() => {
-    if (list?.name) document.title = `${list.name} — Helpr`;
-  }, [list?.name]);
+    if (list === undefined) return;
+    document.title = `${named ?? WISH.sharedLead} — Louisiana Helpr`;
+  }, [list, named]);
   const { items, loading, missing } = useWishItems(list?.items ?? []);
   return (
     <section aria-labelledby="gift-shared-list" data-gift-shared-list={code}>
       <p className="gg-wish-lead" data-gift-shared-lead="">{WISH.sharedLead}</p>
-      <h2 id="gift-shared-list" className="gg-wish-title">{list?.name || WISH.title}</h2>
+      <h2 id="gift-shared-list" className="gg-wish-title" data-gift-shared-title="">{title}</h2>
       {failed ? (
         <div className="gg-soon" role="alert" data-gift-shared-failed="">
           <p>{WISH.sharedFailed}</p>

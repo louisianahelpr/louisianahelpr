@@ -1,5 +1,7 @@
 import { useFeature } from "@/hooks/useFeature";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { track } from "@/lib/analytics";
+import { guestPostSignupUrl, wantsDraftResume } from "@/lib/guestPostDraft";
 import { asksTaxKind } from "@/lib/salesTax";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDeclutterIntent } from "./useDeclutterIntent";
@@ -39,7 +41,7 @@ export type { Step } from "./postJobFormTypes";
  */
 export function usePostJobForm() {
   const navigate = useNavigate();
-  const { profile } = useCurrentUser();
+  const { profile, user, isLoading: authLoading } = useCurrentUser();
   const [searchParams] = useSearchParams();
   const { draft, hasDraft, draftLoaded, saveDraft: saveAnyDraft, flushDraft: flushAnyDraft } = useDraftJob();
   // A Declutter haul-away or "Add a Helpr" job is never saved as a draft: a
@@ -323,7 +325,7 @@ export function usePostJobForm() {
   // prefill, LA smart defaults, direct-offer targeting, parish lookup,
   // debounced autosave). Extracted into useJobFormEffects; every effect and
   // dependency array is unchanged.
-  useJobFormEffects({
+  const { saveDraftNow } = useJobFormEffects({
     searchParams,
     profile,
     saveDraft,
@@ -445,6 +447,25 @@ export function usePostJobForm() {
       setCustomUrgentFee(false);
     },
   });
+
+  // Owner 11-20 (ease batch): a guest starts a post before signing up (src/lib/guestPostDraft.ts). The last step's
+  // button keeps the draft on the device and goes to sign-up; the verified sign-up comes back to ?resume=draft,
+  // which loads that draft once and opens Budget, the last step (its button sends the poster back to anything an
+  // earlier step still needs).
+  const isGuest = !authLoading && !user;
+  const finishAsGuest = useCallback(() => {
+    saveDraftNow();
+    track("post_job_guest_signup", { step: "asked" });
+    navigate(guestPostSignupUrl());
+  }, [saveDraftNow, navigate]);
+  const resumeDone = useRef(false);
+  useEffect(() => {
+    if (resumeDone.current || !user || !draftLoaded || !wantsDraftResume(searchParams)) return;
+    resumeDone.current = true;
+    if (!hasDraft) return;
+    track("post_job_guest_signup", { step: "resumed" });
+    setFormPage(loadDraftAndContinue() ? 4 : 1);
+  }, [user, draftLoaded, hasDraft, searchParams, loadDraftAndContinue]);
 
   // Review-gate + pre-submit checks + job-insert/payment flow. Extracted
   // into useJobSubmit; all form state is passed through so this hook stays
@@ -618,6 +639,9 @@ export function usePostJobForm() {
     skipEntry,
     formPage,
     setFormPage,
+    // Owner 11-20: a guest's post is kept on the device and finished after sign-up.
+    isGuest,
+    finishAsGuest,
     // A3-3: FormStep opens such a link at Details once its pre-filled category lands (usePrefillOpensDetails).
     isRepost: !!searchParams.get("rebook"),
     prefillOpensDetails: prefillOpensDetails(searchParams),

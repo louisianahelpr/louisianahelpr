@@ -61,6 +61,12 @@ export const ROUTES = [
   // A member's tabs (DeclutterHomeView) load apart from the page (Q2705, 11-14); declutterRoute.ts starts them beside it.
   { path: "/declutter?tab=selling", chunk: "DeclutterPage", with: ["DeclutterMineViews", "DeclutterHomeView"], withHost: "declutterRoute" },
   { path: "/declutter?tab=buying", chunk: "DeclutterPage", with: ["DeclutterBuyingViews", "DeclutterHomeView"], withHost: "declutterRoute" },
+  // The public pages a guest opens cold from a pin, a post or a sponsor email (speed 2026-11-20): every gift guide and the
+  // 25 Days pages (/sponsor and /25days are one page chunk). pathPageRoute.ts starts each beside the app. Their budget
+  // is what keeps signed-in code off them: their reads sat in signed-in-deep, whose static imports put ~95 files of
+  // shops, rentals, declutter and job code on both (vite.config.ts public-page-reads).
+  { path: "/gift-guides/:slug", chunk: "GiftGuides" },
+  { path: "/sponsor", chunk: "SponsorPage" },
 ];
 
 function die(msg) {
@@ -178,6 +184,8 @@ export function analyse(dist = DIST) {
       rounds: Math.max(...at.values()),
       chunks: onPath.length,
       jsKB: Math.round(onPath.reduce((a, f) => a + (gz.get(f) || 0), 0) / 1024),
+      // Each file on the path with its gzip bytes (--json), so a moved budget names the chunk that moved it.
+      files: Object.fromEntries(onPath.map((f) => [f, gz.get(f) || 0])),
     };
   });
   return {

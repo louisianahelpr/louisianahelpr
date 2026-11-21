@@ -1,7 +1,7 @@
 /**
  * Home = board 7 (owner-approved 2026-10-20), restyle only:
  *   - Next up names the to-do's section (icon + name) top right, and its row is
- *     dots (+ See all) left, the ONE action right;
+ *     one to-do keeps its ONE action under it; several are a short list (owner polish 11-20, no carousel dots);
  *   - Coming up sits ABOVE the section tiles, each row a section icon in a
  *     tinted circle + "<your side> · <when>" ("You hired" / "You're working");
  *   - no price on a Coming up job row (rust is money only; the board shows none).
@@ -10,11 +10,10 @@
  * @mutate src/pages/home/HomeDashboard.tsx | meta={<span data-coming-up-role={c.role}>{[t(`home.role.${c.role}`), whenLine(c)].filter(Boolean).join(" · ")}</span>} | meta={whenLine(c)}
  * @mutate src/pages/home/HomeDashboard.tsx |                       onClick={() => navigate(c.to)}\n                      last={last} |                       onClick={() => navigate(c.to)}\n                      right={<span className="text-ds-15 font-bold shrink-0">$1</span>}\n                      last={last}
  * @mutate src/pages/home/HomeDashboard.tsx | <span data-testid="next-up-section" | <span data-testid="next-up-section" hidden
- * @mutate src/pages/home/HomeDashboard.tsx | <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1"> | <div className="flex items-center gap-x-3 gap-y-1 mt-1">
- * @mutate src/pages/home/HomeDashboard.tsx | const NEXT_UP_MAX_DOTS = 5; | const NEXT_UP_MAX_DOTS = 8;
+ * @mutate src/pages/home/HomeDashboard.tsx | const NEXT_UP_LIST_MAX = 3; | const NEXT_UP_LIST_MAX = 8;
+ * @mutate src/pages/home/homeDashboard/homeFirstExtras.tsx | variant={i === 0 ? "primary" : "outline"} | variant="primary"
  * @mutate src/pages/home/HomeDashboard.tsx | xl:grid xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] | xl:flex
  * @mutate src/pages/home/HomeDashboard.tsx |               if (isWebDesktop) { |               if (false) {
- * @mutate src/pages/home/HomeDashboard.tsx | <div className="flex items-center -ml-2 lg:hidden" role="group" | <div className="flex items-center -ml-2" role="group"
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -23,6 +22,8 @@ import { blankComments } from "./helpers/blankNonCode";
 import { COMING_UP_ROLE } from "@/pages/home/homeDashboard/comingUp";
 
 const src = blankComments(readFileSync(resolve(__dirname, "../pages/home/HomeDashboard.tsx"), "utf8"));
+// Owner polish 11-20: the Needs you short list lives in its own chunk (homeFirstExtras.tsx, /home critical-path budget).
+const extrasSrc = blankComments(readFileSync(resolve(__dirname, "../pages/home/homeDashboard/homeFirstExtras.tsx"), "utf8"));
 
 describe("Home matches board 7", () => {
   it("is not vacuous", () => {
@@ -56,17 +57,18 @@ describe("Home matches board 7", () => {
     expect(src).toMatch(/<span data-testid="next-up-section"[^>]*>\s*<Icon/);
   });
 
-  it("the dots + See all + action row wraps, so the action never covers a dot (axe target-size at 320/375, TRAIN23)", () => {
-    const m = src.match(/<div className="([^"]*)">\s*\{todoCount > 1 && \(\s*<div className="flex items-center -ml-2[^"]*" role="group" aria-label=\{t\("home\.yourTodos"\)\}>/);
-    expect(m, "the Next up dots row").not.toBeNull();
-    expect(m![1]).toMatch(/\bflex-wrap\b/);
-    // See all + the action are ONE group that grows to the row's width when it wraps.
-    expect(src).toMatch(/<div data-next-up-actions className="[^"]*\bgrow\b[^"]*"/);
-    // Five 44px dot targets (the index.css floor) are 212px after the -ml-2; the 320 card gives 248.
-    const cap = Number(src.match(/const NEXT_UP_MAX_DOTS = (\d+);/)?.[1]);
+  it("owner polish 11-20: several to-dos are a SHORT LIST (no carousel dots), one primary action, See all for the rest", () => {
+    // No dots, no "1 of n": every listed to-do is a row with its own action.
+    expect(src).not.toMatch(/data-next-up-dot/);
+    expect(src).not.toMatch(/setShown/);
+    const cap = Number(src.match(/const NEXT_UP_LIST_MAX = (\d+);/)?.[1]);
     expect(cap).toBeGreaterThan(1);
-    expect(cap * 44 - 8).toBeLessThanOrEqual(248);
-    expect(src).toContain("summary.todos.slice(0, NEXT_UP_MAX_DOTS)");
+    expect(cap).toBeLessThanOrEqual(5); // short: See all lists the rest
+    expect(src).toContain("const listed = todoCount > 1 ? summary.todos.slice(0, NEXT_UP_LIST_MAX) : [];");
+    // Home keeps ONE primary action: the most urgent row's; the others are outline.
+    expect(extrasSrc).toContain('variant={i === 0 ? "primary" : "outline"}');
+    expect(src).toContain("<extras.NeedsYouList todos={listed}");
+    expect(src).toContain('t("home.needsYouN", { n: todoCount })');
   });
 
   it("desktop is board 11: two columns from 1280, sections on the right, Coming up as a table, no Next up dots", () => {
@@ -85,8 +87,7 @@ describe("Home matches board 7", () => {
     expect(table).toContain("grid-cols-[6.5rem_4.5rem_minmax(0,1fr)_auto]");
     expect(table).toMatch(/\{sectionLabel\(d\)\} · \{t\(`home\.role\.\$\{c\.role\}`\)\}/);
     expect(table).not.toMatch(/budget|price|money/);
-    // Next up on desktop: the action, then See all; no dots (board 11).
-    expect(src).toMatch(/<div className="flex items-center -ml-2 lg:hidden" role="group" aria-label=\{t\("home\.yourTodos"\)\}>/);
-    expect(src).toMatch(/data-next-up-actions className="[^"]*lg:flex-row-reverse lg:justify-end/);
+    // No Next up dots anywhere (owner polish 11-20: the to-dos are a short list).
+    expect(src).not.toMatch(/data-next-up-dot/);
   });
 });

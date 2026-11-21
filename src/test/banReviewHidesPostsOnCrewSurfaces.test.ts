@@ -10,7 +10,7 @@
  * BOTH rules. Inventory: every migration file, newest definition per object.
  *
  * @mutate supabase/migrations/20261115063613_ranked_jobs_hide_blocked_keep_guest_mask.sql |     -- Q1411: not while the poster is under an open ban settlement review.\n    AND NOT EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = j.customer_id AND q.review_state = 'open')\n    -- Blocks, either direction (20261115063613): no pin |     AND true\n    -- Blocks, either direction (20261115063613): no pin
- * @mutate supabase/migrations/20261114234033_guests_read_masked_job_text.sql |  AND (NOT (EXISTS ( SELECT 1 FROM ban_settlement_queue q WHERE q.user_id = jobs.customer_id AND q.review_state = 'open'::text))) |
+ * @mutate supabase/migrations/20261120221545_browse_and_detail_change_address_after_accept.sql |  AND (NOT (EXISTS ( SELECT 1 FROM ban_settlement_queue q WHERE q.user_id = jobs.customer_id AND q.review_state = 'open'::text))) |
  * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN |   IF false THEN
  */
 import { describe, expect, it } from "vitest";

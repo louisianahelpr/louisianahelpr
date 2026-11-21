@@ -11,6 +11,8 @@ const PROPER = new Set([
   "Declutter", "Shops", "Homes", "Explore", "Messages", "Venmo", "PayPal", "Zelle", "Facebook", "Instagram",
   "I", "I'm", "I've", "I'll", "OK", "Terms", "Use", "Privacy", "Policy", "Community", "Rules",
   "App", "Store", "AI", "Jobs", "Home", "Wrapped",
+  // Apple Maps by name ("Open in Maps", Louisiana Holiday Hub 2026-11-20).
+  "Maps",
   // Jobs tab names, when a line points at the tab ("See it under Posted", Q2392).
   "Posted",
   // The You page and its Money page, when a link names them ("Back to You", "Go to Money"; owner UI audit 11-09 F094/F097).

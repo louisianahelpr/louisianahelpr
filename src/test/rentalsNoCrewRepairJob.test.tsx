@@ -13,7 +13,7 @@
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 
@@ -48,10 +48,20 @@ function Host({ crewAllowed, isGroupJob = false }: { crewAllowed?: boolean; isGr
   );
 }
 
-const jobTypes = () =>
-  within(screen.getByRole("radiogroup", { name: "Job type" }))
+/** Owner 11-20 (ease batch, item 1): Job type sits in When's folded "More options"; open it (a filled fold starts open). */
+function openMoreOptions() {
+  const fold = document.querySelector<HTMLElement>('[data-testid="post-job-more-options"]');
+  expect(fold, "When's More options fold").toBeTruthy();
+  if (!fold!.hasAttribute("data-open")) fireEvent.click(within(fold!).getByRole("button", { name: /More options/ }));
+  expect(fold!.hasAttribute("data-open")).toBe(true);
+}
+
+const jobTypes = () => {
+  openMoreOptions();
+  return within(screen.getByRole("radiogroup", { name: "Job type" }))
     .getAllByRole("radio")
     .map((r) => ({ label: r.textContent?.trim(), on: r.getAttribute("aria-checked") === "true" }));
+};
 
 const code = (p: string) => blankComments(readFileSync(p, "utf8"));
 

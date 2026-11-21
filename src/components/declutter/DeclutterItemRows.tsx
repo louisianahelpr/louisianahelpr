@@ -28,7 +28,8 @@ type From = { lat: number; lng: number; approximate: boolean } | null;
 /** A row card's width: two and a bit on a phone (the next card peeks), more as the screen widens. */
 const ROW_CARD = "w-[42%] min-w-[132px] shrink-0 snap-start sm:w-[28%] lg:w-[18%]";
 
-function Row({ id, title, items, cover, from }: { id?: string; title: string; items: DeclutterItem[]; cover: Map<string, string>; from: From }) {
+/** A sideways row of Browse's card. Also Browse's "New this week" row (DeclutterNewThisWeek.tsx, owner 11-20). */
+export function Row({ id, title, items, cover, from }: { id?: string; title: string; items: DeclutterItem[]; cover: Map<string, string>; from: From }) {
   return (
     <section id={id} className="scroll-mt-20 space-y-2" aria-label={title} data-item-row="">
       <h2 className="text-base font-semibold">{title}</h2>

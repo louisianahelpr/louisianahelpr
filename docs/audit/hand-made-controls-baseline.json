@@ -207,9 +207,6 @@
     "src/components/declutter/SellFormParts.tsx": {
       "input": 2
     },
-    "src/components/firstRun/FirstRun.tsx": {
-      "button": 1
-    },
     "src/components/job-card/JobCardShell.tsx": {
       "button": 1
     },
@@ -423,7 +420,7 @@
       "button": 1
     },
     "src/pages/home/HomeDashboard.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/pages/home/homeDashboard/FirstJobHome.tsx": {
       "button": 1

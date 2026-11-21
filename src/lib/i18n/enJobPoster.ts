@@ -42,6 +42,8 @@ export const enJobPoster = {
   "jp.arriveNo": "Not yet",
   // M12: the applicants list with nobody in it yet.
   "jp.noApplicantsBody": "No one has applied yet. Share the link or boost it to reach more Helprs.",
+  // Owner 2026-11-20: the poster's ID check is asked when they send an offer (src/lib/posterIdAtOffer.ts).
+  "jp.idAtOffer": "Verify your ID with Stripe before you send an offer. It takes about 2 minutes, once. Then send it again.",
 } as const;
 
 addEnglish(enJobPoster);

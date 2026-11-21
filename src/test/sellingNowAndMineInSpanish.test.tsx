@@ -73,9 +73,12 @@ describe("Selling now and the Buying/Selling chips follow the member's language 
       .map((f) => blankComments(readFileSync(f, "utf8"))).join("\n");
     for (const k of ["decl.hv.moreWays", "decl.hv.settings", "decl.hv.settingsSub", "decl.hv.view", "decl.hv.sell"]) expect(src, k).toContain(`t("${k}")`);
     expect(src).not.toMatch(/"Declutter settings"|"Declutter view"|text="Sell"|"More ways to sell"|>Listing defaults/);
-    // The settings row and the gear's name (DECLUTTER_SETTINGS.label) both read it; the tab row's name is read 3 times.
+    // The settings row and the gear's name (DECLUTTER_SETTINGS.label) both read it; the tab row's name is read 2 times.
+    // A guest has no tab row since site polish A3 (11-20): its plain "41 items" count reads the dictionary instead.
     expect(src.split('t("decl.hv.settings")').length - 1).toBe(2);
-    expect(src.split('t("decl.hv.view")').length - 1).toBe(3);
+    expect(src.split('t("decl.hv.view")').length - 1).toBe(2);
+    expect(src).toContain('t("decl.results.one")');
+    expect(src).toContain('t("decl.results.many", { n: browse.count })');
     const hv = (Object.keys(enDeclutter) as (keyof typeof enDeclutter)[]).filter((k) => k.startsWith("decl.hv."));
     expect(hv.length).toBe(11); // 5 here + 6 in sellingPanelsInSpanish
     for (const k of hv) {

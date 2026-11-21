@@ -22,8 +22,8 @@ describe("/admin's icon pin", () => {
   it("is Admin's own icons, none an earlier pin takes", () => {
     const admin = adminIconFiles(ROOT);
     expect(admin.size).toBeGreaterThan(10);
-    const { own, shared, declutter } = guestIconSplit(ROOT);
-    const taken = new Set([...bootIconFiles(ROOT), ...homeIconFiles(ROOT), ...itemIconFiles(ROOT), ...own, ...shared, ...declutter]);
+    const { own, shared, landing, declutter } = guestIconSplit(ROOT);
+    const taken = new Set([...bootIconFiles(ROOT), ...homeIconFiles(ROOT), ...itemIconFiles(ROOT), ...own, ...shared, ...landing, ...declutter]);
     expect([...admin].filter((i) => taken.has(i))).toEqual([]);
   });
 

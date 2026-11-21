@@ -10,7 +10,7 @@
  * @mutate src/components/firstRun/FirstRun.tsx |     { target: "home", text: "Home shows what needs you, and what's new near you" }, |     { target: "home", text: "Dashboard shows what needs you" },
  * @mutate src/components/firstRun/FirstRun.tsx |   const declutterFirst = sells && (sell \|\| deal) && !earn && !hire; |   const declutterFirst = false;
  * @mutate src/components/firstRun/FirstRun.tsx |   return { left: centred, width: w, top: rect.top + rect.height + 16 }; |   return { left: rect.right + 16, top: rect.top, width: 320 };
- * @mutate src/components/firstRun/FirstRun.tsx |             if (userId) saveFirstRunPicks(userId, picks); |             void saveFirstRunPicks;
+ * @mutate src/components/firstRun/FirstRun.tsx |           if (userId) saveFirstRunPicks(userId, [o.id]); |           void saveFirstRunPicks;
  * @mutate src/components/mobileNav/TabButton.tsx |     data-dock-tab={dockPath} | data-dock-x={dockPath}
  * @mutate src/pages/home/homeDashboard/GetStartedGuide.tsx |   apply: (f) => f.applied, |   apply: () => false,
  * @mutate src/pages/home/homeDashboard/GetStartedGuide.tsx |   if (steps.every((s) => s.done)) return null; |   void steps;
@@ -22,8 +22,8 @@
  * Owner 2026-11-17 (signed-in tweaks, item 4): a quiet day (nothing needs you, nothing booked) shows "Near you" under
  * Coming up: up to 3 jobs and up to 4 items, from the same reads and rows, after the page settles.
  * @mutate src/pages/home/homeDashboard/NewMemberHome.tsx | <ForSaleNearYou userId={userId} max={4} /> | <ForSaleNearYou userId={userId} />
- * @mutate src/pages/home/HomeDashboard.tsx |             {quietDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />} |             {quietDay && <NearYouBlock userId={user?.id} sell={sellOpen} />}
- * @mutate src/pages/home/HomeDashboard.tsx | !welcome && !firstJob?.isNew && !summary.declutterPending && !next && | !welcome && !firstJob?.isNew && !summary.declutterPending &&
+ * @mutate src/pages/home/HomeDashboard.tsx |             {nearYouDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />} |             {nearYouDay && <NearYouBlock userId={user?.id} sell={sellOpen} />}
+ * @mutate src/pages/home/HomeDashboard.tsx | const nearYouDay = !welcome && firstJob !== null && !firstJobShown; | const nearYouDay = !welcome && firstJob !== null;
  * @mutate src/pages/home/HomeDashboard.tsx |             {welcome ? <NewMemberHome userId={user?.id} sell={sellOpen} guide={guide(true)} /> : ( |             {welcome ? <WelcomeCard sell={sellOpen} /> : (
  */
 import { readFileSync } from "node:fs";
@@ -133,9 +133,9 @@ describe("3. the first-run tour points at today's chrome (owner 11-14)", () => {
     expect(rail.left).toBe(252);
   });
 
-  it("the picks are kept for Home's guide when the picker continues (never in the admin preview)", () => {
+  it("the pick is kept for Home's guide when it is tapped (never in the admin preview)", () => {
     const fr = src("src/components/firstRun/FirstRun.tsx");
-    expect(fr).toContain("if (userId) saveFirstRunPicks(userId, picks);");
+    expect(fr).toContain("if (userId) saveFirstRunPicks(userId, [o.id]);");
     expect(src("src/components/firstRun/FirstRunHost.tsx")).toContain("userId={userId}");
     saveFirstRunPicks("u1", ["sell", "earn"]);
     expect(readFirstRunPicks("u1")).toEqual(["earn", "sell"]);
@@ -271,11 +271,13 @@ describe("Home's quiet day: Near you under Coming up (owner 11-17, item 4)", () 
     expect(items.length).toBe(4);
   });
 
-  it("Home draws it only on a quiet day, after the page settles, from the new-member chunk", () => {
+  it("Home draws it on every settled day (owner polish 11-20; was quiet days only), after the page settles, from the new-member chunk", () => {
     const home = src("src/pages/home/HomeDashboard.tsx");
     expect(home).toContain("const NearYouBlock = newMemberBlock((m) => m.NearYouBlock);");
-    expect(home).toContain("{quietDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />}");
-    expect(home).toMatch(/const quietDay = !welcome && !firstJob\?\.isNew && !summary\.declutterPending && !next && !summary\.todosLoading && !summary\.waiting && !summary\.loading && summary\.upcoming\.length === 0 && !summary\.upcomingFailed;/);
+    expect(home).toContain("{nearYouDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />}");
+    // Not for a new member (their own blocks list what is near them), once that read has answered.
+    expect(home).toContain("const firstJobShown = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending;");
+    expect(home).toContain("const nearYouDay = !welcome && firstJob !== null && !firstJobShown;");
     expect(home).not.toMatch(/^import .*NewMemberHome/m);
   });
 });

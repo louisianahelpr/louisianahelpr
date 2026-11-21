@@ -109,6 +109,7 @@ const LEFT_ALONE: Record<string, string> = {
   // Not a stored file: a Small Business Saturday listing's own website/Facebook/Instagram, which the admin checks there.
   "pages/admin/sponsors/SbsReviewPanel.tsx::<a href={openableDocumentUrl(r.link) ?? undefined}>": "a business's own public page (the listing request's link), not a stored file",
   "components/admin/marketing/MarketingQueue.tsx::<a href={openableDocumentUrl(row.external_url) ?? undefined}>": "the published post on the social site, not a stored file",
+  "pages/info/holidays/holidayParts.tsx::<a href={openableDocumentUrl(item.url) ?? undefined}>": "a light display's or event's own public website (Louisiana Holiday Hub, 2026-11-20), not a stored file",
 };
 
 function scan() {

@@ -32,10 +32,13 @@ import { esTracker } from "./esTracker";
 import { esPorchPlaces } from "./esPorchPlaces";
 import { esSellingNow } from "./esSellingNow";
 import { esYourPage } from "./esYourPage";
+import { esHomeMore } from "./esHomeMore";
 import { esSuggest } from "./esSuggest";
 import { esItemPage } from "./esItemPage";
 import { esJobCats } from "./esJobCats";
 import { esGuest } from "./esGuest";
+import { esVerify } from "./esVerify";
+import { esPushAsk } from "./esPushAsk";
 import { esAccount } from "./esAccount";
 import { esJobSteps } from "./esJobSteps";
 import { esJobPoster } from "./esJobPoster";
@@ -85,10 +88,13 @@ export const es: Record<MsgKey, string> = {
   ...esPorchPlaces,
   ...esSellingNow,
   ...esYourPage,
+  ...esHomeMore,
   ...esSuggest,
   ...esItemPage,
   ...esJobCats,
   ...esGuest,
+  ...esVerify,
+  ...esPushAsk,
   ...esAccount,
   ...esJobSteps,
   ...esJobPoster,
@@ -375,6 +381,7 @@ export const es: Record<MsgKey, string> = {
   "signup.notifySubtitle": "Regístrese para recibir un aviso cuando llegue trabajo pagado.",
   "signup.itemSubtitle": "Regístrese y le llevaremos directamente de vuelta a este artículo.",
   "signup.jobSubtitle": "Regístrese para postularse y le llevaremos directamente de vuelta a este trabajo.",
+  "signup.postSubtitle": "Su trabajo quedó guardado en este dispositivo. Regístrese y verifique su correo, y le traeremos de vuelta para publicarlo.",
   "signup.saveItemSubtitle": "Regístrese para guardar artículos. Le llevaremos directamente de vuelta a donde estaba.",
   "zip.unknown": "No reconocemos ese código postal como de Louisiana. Los trabajos se asignan por parroquia, así que revíselo; si no, el trabajo cercano no le llegará.",
 
@@ -449,12 +456,31 @@ export const es: Record<MsgKey, string> = {
   "postJob.stepOfLong": "Paso {step} de {count}",
   "postJob.goBackToStep": "Volver al paso {step}",
   "postJob.steps": "Pasos para publicar un trabajo",
-  "postJob.rail.groups": "Qué",
-  "postJob.rail.kind": "Tipo de trabajo",
-  "postJob.rail.details": "Detalles",
-  "postJob.rail.price": "Precio",
-  "postJob.rail.where": "Cuándo y dónde",
-  "postJob.rail.review": "Revisar",
+  "postJob.rail.what": "Lo que necesita",
+  "postJob.rail.when": "Cuándo",
+  "postJob.rail.budget": "Presupuesto",
+  "postJob.rail.post": "Publicar",
+  "postJob.readyToPost": "Listo para publicar",
+  "postJob.readyShort": "Listo",
+  "postJob.extras.title": "Agregar fotos y más",
+  "postJob.extras.sub": "Opcional. Una foto ayuda a que los Helprs digan que sí.",
+  "postJob.extras.onePhoto": "1 foto agregada",
+  "postJob.extras.photos": "{n} fotos agregadas",
+  "postJob.extras.photosAfterSignup": "Puede agregar fotos después de registrarse. Todo lo demás que escriba aquí se guarda.",
+  "postJob.signUpToPost": "Regístrese para publicar",
+  "postJob.more.title": "Más opciones",
+  "postJob.more.sub": "Opcional: repetir, notas de acceso y estacionamiento.",
+  "postJob.hint.label": "Precio justo",
+  "postJob.hint.near": "La mayoría de los trabajos de {what} cerca de usted cuestan",
+  "postJob.hint.state": "La mayoría de los trabajos de {what} en Helpr cuestan",
+  "postJob.hint.typical": "Un buen precio para empezar en {what} es",
+  "postJob.hint.typicalSource": "Un rango típico en Luisiana. Usted pone el precio.",
+  "postJob.hint.realSource": "De {n} trabajos recientes publicados en Helpr.",
+  "postJob.hint.below": "Está por debajo del rango usual",
+  "postJob.hint.belowWhy": "Los precios más bajos suelen tardar más en llenarse.",
+  "postJob.hint.keep": "Dejar ${n}",
+  "postJob.hint.use": "Usar ${n}",
+  "postJob.hint.youre": "Usted puso ${n}.",
   "postJob.railDone": "{label}, listo. Volver a este paso",
   "postJob.groupsQ": "¿Qué necesita?",
   "postJob.groupsH": "Busque o elija una categoría.",

@@ -20,14 +20,14 @@
  * @mutate src/components/sections/SectionScreen.tsx |   const guestFrame = useGuestPublicFrame(); |   const guestFrame = false;
  * @mutate src/components/sections/SectionScreen.tsx |             className="sticky z-30 -mx-5 | className="z-30 -mx-5
  * @mutate src/hooks/useAppShellViewport.ts | \|\| (framedGuest && isGuestPublicFrameRoute(pathname))) { | ) {
- * @mutate src/lib/guestPublicFrame.ts | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/", "/shops/", "/book/"] as const; | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/helprs", "/search", "/jobs/", "/shops/", "/book/"] as const;
- * @mutate src/lib/guestPublicFrame.ts | "/jobs/", "/shops/", "/book/"] as const; | "/jobs/"] as const;
+ * @mutate src/lib/guestPublicFrame.ts | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/", "/shops/", "/book/", "/post-job"] as const; | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/helprs", "/search", "/jobs/", "/shops/", "/book/", "/post-job"] as const;
+ * @mutate src/lib/guestPublicFrame.ts | "/jobs/", "/shops/", "/book/", "/post-job"] as const; | "/jobs/", "/post-job"] as const;
  * @mutate src/lib/guestPublicFrame.ts | const NOT_GUEST_PAGES = ["/jobs/settings", "/shops/mine", "/shops/orders", "/shops/dashboard"]; | const NOT_GUEST_PAGES = ["/jobs/settings"];
  * @mutate src/lib/guestPublicFrame.ts |   !NOT_GUEST_PAGES.includes(pathname) && |
  * @mutate src/lib/guestPublicFrame.ts | export const isGuestViewer = (user: unknown, isReady: boolean): boolean => (isReady ? !user : definitelyGuest()); | export const isGuestViewer = (user: unknown, isReady: boolean): boolean => !user;
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, renderHook } from "@testing-library/react";
+import { render, renderHook, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -97,7 +97,7 @@ describe("signed-out pages wear the public frame and scroll the document (Q2784,
     expect(isGuestPublicFrameRoute("/jobs/settings")).toBe(false);
     expect(isGuestPublicFrameRoute("/jobs")).toBe(false);
     for (const p of ["/shops", "/shops/mine", "/shops/orders", "/shops/dashboard", "/book/"]) expect(isGuestPublicFrameRoute(p), p).toBe(false);
-    expect(GUEST_PUBLIC_FRAME_ROUTES.length).toBe(8);
+    expect(GUEST_PUBLIC_FRAME_ROUTES.length).toBe(9); // owner 11-20: /post-job (a guest starts a post)
   });
 
   it("guest: AppPage (item page, /helprs, /search) draws the public header and footer, not AppShell", () => {
@@ -110,9 +110,10 @@ describe("signed-out pages wear the public frame and scroll the document (Q2784,
     }
   });
 
-  it("guest: SectionScreen (/declutter) draws the public header and footer", () => {
+  it("guest: SectionScreen (/declutter) draws the public header and footer", async () => {
     const { container } = render(<SectionScreen section="declutter" title="Declutter">list</SectionScreen>, { wrapper: at("/declutter") });
-    expect(frameOf(container)).toBe("public");
+    // Owner polish 11-20: SectionScreen loads the guest frame on demand (members never download it, /home budget).
+    await waitFor(() => expect(frameOf(container)).toBe("public"));
     expect(container.querySelector("footer")).not.toBeNull();
     // The tab row stays put while the window scrolls (owner 2026-10-30; measured 11-15 at 1440: the tablist's top
     // 138px before and after a 1600px scroll): the section header is sticky right under the fixed public header.

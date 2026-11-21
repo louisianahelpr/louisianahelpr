@@ -73,7 +73,11 @@ color:var(--gg-ink)}
    is off, so this row keeps the shell's air above it (--shell-gap on a phone, 24px from sm up). */
 .gg-headrow{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:var(--shell-gap,12px) 0 12px}
 .gg-head-title{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 100%}
-.gg-head-title .text-page-title{margin:0;min-width:0;white-space:nowrap}
+/* Holiday audit 1121 (High): on a phone the title may wrap. Kept on one line it set the whole page's minimum width
+   (arrow 36 + gap + ~266px of title), so signed in, where the shell's column shrinks to fit its content, the page grew
+   wider than the screen and clipped share, the hearts and sort (at 375 on the old header, at 320 on today's). One line
+   from 768px up (the owner's one header row). */
+.gg-head-title .text-page-title{margin:0;min-width:0;overflow-wrap:anywhere}
 .gg-headrow .gg-ship{flex:none;max-width:none}
 .gg-headrow .gg-tools{margin:0 0 0 auto;flex:0 1 auto;justify-content:flex-end}
 /* A phone: the search is a 44px magnifier on the pill's row and opens across the row while typing. */
@@ -85,7 +89,7 @@ color:var(--gg-ink)}
 .gg-sort-check{display:inline-block;width:16px;flex:none}
 [data-gift-sort-menu]{min-width:200px}[data-gift-sort-menu] button{white-space:nowrap}
 @media (min-width:640px){.gg-headrow .gg-tools-search:not(:focus-within) .gg-search input::placeholder{color:var(--gg-muted)}.gg-headrow{padding-top:24px}.gg-headrow .gg-tools-search{flex:1 1 160px;max-width:300px}.gg-headrow .gg-tools-search:focus-within{position:relative;left:auto;right:auto}.gg-headrow .gg-tools-search .gg-search input{padding-right:12px;cursor:text}.gg-headrow .gg-tools{flex:1 1 300px}}
-@media (min-width:768px){.gg-head-title{flex:0 0 auto}.gg-headrow{flex-wrap:nowrap}.gg-headrow .gg-tools{flex:1 1 auto;min-width:0}}
+@media (min-width:768px){.gg-head-title{flex:0 0 auto}.gg-headrow{flex-wrap:nowrap}.gg-headrow .gg-tools{flex:1 1 auto;min-width:0}.gg-head-title .text-page-title{white-space:nowrap}}
 .gg-search-results{position:absolute;z-index:6;top:calc(100% + 6px);left:0;right:0;list-style:none;margin:0;padding:4px;max-height:60vh;overflow-y:auto;text-align:left;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);font-size:14px}
 .gg-search-results a{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:8px;color:var(--gg-ink);text-decoration:none}
 .gg-search-results a{gap:10px;padding:4px 12px}

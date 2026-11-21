@@ -1,5 +1,6 @@
 /**
- * Gift-guide prices (owner 11-18): "~$24" beside Shop on a pick whose price was checked in the last 3 days, and one
+ * Gift-guide prices (owner 11-18): "~$24" beside Shop on a pick whose price was checked in the last 30 days (holiday
+ * audit 1121, High: the old 3-day limit blanked every price on Wed Nov 25, Black Friday week), and one
  * "Prices as of <day>, may change" note per list. The researched import (scripts/giftGuidePrice.mjs) still keeps no
  * Amazon price. AMAZON PRICES ON THE OWNER'S LISTS (owner 2026-11-21 ~12:05 PM, "each item also needs a price"; warned
  * in a pop-up that Amazon allows prices only from its PA-API feed and that showing them risks the Associates account,
@@ -12,6 +13,8 @@
  * @mutate scripts/giftGuidePrice.mjs | p.price_currency !== "USD" \|\| !p.price_source | !p.price_source
  * @mutate src/components/giftGuides/PickPrice.tsx | => pickPriceShown(pick.price, pick.priceAt, today); | => pick.store !== "amazon" && pickPriceShown(pick.price, pick.priceAt, today);
  * @mutate src/lib/pickPriceShown.mjs |   return age >= 0 && age <= PRICE_MAX_AGE_DAYS; |   return age >= 0;
+ * @mutate src/lib/pickPriceShown.mjs | export const PRICE_MAX_AGE_DAYS = 30; | export const PRICE_MAX_AGE_DAYS = 3;
+ * @mutate src/pages/info/GiftGuides.tsx | isOwnerList(guide.slug) && priced ? { | isOwnerList(guide.slug) ? {
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <small className="gg-nm-meta"><PickPrice pick={pick} /></small> | <small className="gg-nm-meta">{null}</small>
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <PricesAsOf picks={picks.slice(0, upTo)} /> |       {null}
  * @mutate src/content/giftGuideCatalog.ts | ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}), | ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}),
@@ -119,15 +122,50 @@ describe("gift-guide prices: the page", () => {
     const unpriced: CatalogPick = { ...amazon, price: undefined };
     expect(row(unpriced).querySelector("[data-gift-price]")).toBeNull();
   });
-  it("a price older than 3 days on the day the page opens is hidden; one note per list, with the oldest day", () => {
-    expect(showsPrice({ ...walmart, priceAt: ago(4) })).toBe(false);
-    expect(showsPrice({ ...walmart, priceAt: ago(2) })).toBe(true);
+  it("a price older than 30 days on the day the page opens is hidden; one note per list, with the oldest day", () => {
+    expect(showsPrice({ ...walmart, priceAt: ago(31) })).toBe(false);
+    expect(showsPrice({ ...walmart, priceAt: ago(29) })).toBe(true);
+    expect(showsPrice({ ...walmart, priceAt: ago(4) })).toBe(true);
     const day = (ymd: string) => new Date(`${ymd}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-    const { container } = render(<PricesAsOf picks={[walmart, { ...walmart, name: "b", priceAt: ago(1) }, amazon, { ...walmart, name: "c", priceAt: ago(9) }]} />);
+    const { container } = render(<PricesAsOf picks={[walmart, { ...walmart, name: "b", priceAt: ago(1) }, amazon, { ...walmart, name: "c", priceAt: ago(40) }]} />);
     expect(container.querySelectorAll("[data-gift-prices-as-of]").length).toBe(1);
     expect(container.textContent).toBe(`Prices as of ${day(ago(1))}, may change`);
     cleanup();
-    expect(render(<PricesAsOf picks={[{ ...amazon, priceAt: ago(5) }]} />).container.textContent).toBe("");
+    expect(render(<PricesAsOf picks={[{ ...amazon, priceAt: ago(35) }]} />).container.textContent).toBe("");
+  });
+});
+
+describe("gift-guide prices: Black Friday week (holiday audit 1121, High)", () => {
+  // The live lists were all checked 2026-11-21; on the old 3-day limit, 0 of 47 Him rows showed a price on Nov 25.
+  const LIVE = ["her", "him", "kids"];
+  it("every Her, Him and Kids price checked on its newest day still shows through Cyber Monday and Dec 1", () => {
+    for (const slug of LIVE) {
+      const picks = CHUNKS[slug] ?? [];
+      expect(picks.length, slug).toBeGreaterThan(30); // inventory floor: 36 / 47 / 56 picks on 2026-11-21
+      const newest = picks.map((p) => p.priceAt ?? "").sort().at(-1)!;
+      const plus = (n: number) => new Date(Date.parse(`${newest}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+      for (const day of [plus(4), plus(10), plus(14)]) {
+        expect(picks.filter((p) => p.priceAt === newest && !showsPrice(p as CatalogPick, day)).map((p) => p.name), `${slug} on ${day}`).toEqual([]);
+      }
+    }
+  });
+  it("a list showing no price has no price sort (the sort control is gone, not left over an unpriced list)", async () => {
+    await loadAllGuidePicks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const at = (iso: string) => {
+      vi.setSystemTime(new Date(iso));
+      const r = render(
+        <MemoryRouter initialEntries={["/gift-guides/him"]}>
+          <Routes><Route path="/gift-guides/:slug" element={<GiftGuides />} /></Routes>
+        </MemoryRouter>,
+      );
+      const has = r.container.querySelector("[data-gift-sort-button]") !== null;
+      cleanup();
+      return has;
+    };
+    expect(at("2026-11-21T18:00:00Z")).toBe(true);
+    expect(at("2027-03-01T18:00:00Z")).toBe(false);
+    vi.useRealTimers();
   });
 });
 

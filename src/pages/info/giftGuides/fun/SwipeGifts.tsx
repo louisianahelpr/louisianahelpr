@@ -277,7 +277,7 @@ export default function SwipeGifts() {
         </section>
       ) : !card ? (
         <div className="gg-fun-card" data-swipe-waiting="">
-          <p className="m-0" role="status">{ready && pool.length && budget !== null && makeRound().length === 0 ? W.swipeEmpty : W.swipeLoading}</p>
+          <p className="m-0" role="status">{ready && budget !== null && (pool.length === 0 || makeRound().length === 0) ? W.swipeEmpty : W.swipeLoading}</p>
           <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => setStarted(false)}>{W.swipeChange}</Button>
         </div>
       ) : (

@@ -38,6 +38,7 @@ import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { applyBudgetCaps } from "./giftGuideBudgetCaps.mjs";
 import { applyTrain1120d } from "./giftGuideTrain1120d.mjs";
 import { applyPeople } from "./giftGuidePeople1120.mjs";
+import { applyStandard } from "./giftGuideStandard1120.mjs";
 import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 /** The merged guides whose picks feed For Her and For Him (the people guides and Mom and Dad). */
 const PEOPLE_PARENTS = new Set(PEOPLE_GUIDES.flatMap((g) => [g.slug, ...g.sources]));
@@ -3944,6 +3945,8 @@ export const SECTION_ALIASES = {};
  * fill and the budget caps once more for anything it added (scripts/giftGuideTrain1120d.mjs, rules in
  * scripts/gift-guide-train-1120d.json). SECTION_ALIASES: a folded section's old id -> its new one, per guide.
  */
+// The pages before the 1120d and people passes: the standard (last pass) restores a planned pick they took off.
+const STANDARD_SNAPSHOTS = [Object.fromEntries(Object.entries(pageList).map(([k, l]) => [k, [...l]]))];
 {
   const spec = JSON.parse(readFileSync(new URL("./gift-guide-train-1120d.json", import.meta.url), "utf8"));
   const t = applyTrain1120d(pageList, spec, { sponsorsGuide: SPONSORS_GUIDE, anchors: SECTION_ANCHORS, parentOf: (k) => MERGED_INTO[k]?.parent, fixedOrder: [...SORT_FIXED] });
@@ -3960,6 +3963,7 @@ export const SECTION_ALIASES = {};
 }
 // FOR HER + FOR HIM BY INTEREST (owner pop-up 11-20 ~6:50 PM): last, on the finished pages (scripts/giftGuidePeople1120.mjs);
 // its adds and moves take their checked prices from one more fill.
+STANDARD_SNAPSHOTS.push(Object.fromEntries(Object.entries(pageList).map(([k, l]) => [k, [...l]])));
 {
   const spec = JSON.parse(readFileSync(new URL("./gift-guide-people-1120.json", import.meta.url), "utf8"));
   const campaign = JSON.parse(readFileSync(new URL("./gift-guide-train-1120c.json", import.meta.url), "utf8"));
@@ -3967,6 +3971,15 @@ export const SECTION_ALIASES = {};
   fillPrices();
   console.log(`gift-guide-picks: people 1120 ${JSON.stringify({ her: t.counts.her, him: t.counts.him, moved: t.counts.moved, added: t.counts.added, cut: t.counts.cut.length, overflow: t.counts.overflow.length })}${t.missing.length ? `; NOT DONE (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
   if (process.env.GIFT_PEOPLE_VERBOSE) console.log(`  cut: ${t.counts.cut.join(" | ")}\n  overflow: ${t.counts.overflow.join(" | ")}`);
+}
+// THE STANDARD (owner 11-20): the verified plan, last of all (scripts/giftGuideStandard1120.mjs). Each planned guide
+// ends as scripts/gift-guide-standard-1120.json lists it: cuts gone, sections and order as planned, one reason a pick.
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-standard-1120.json", import.meta.url), "utf8"));
+  const t = applyStandard(pageList, spec, { snapshots: STANDARD_SNAPSHOTS, anchors: SECTION_ANCHORS, aliases: SECTION_ALIASES, parentOf: (k) => MERGED_INTO[k]?.parent });
+  Object.assign(SECTION_ALIASES, t.aliases);
+  fillPrices();
+  console.log(`gift-guide-picks: standard 1120 ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}${t.extras.length ? `; NOT IN PLAN, removed (${t.extras.length}): ${t.extras.join(" | ")}` : ""}${t.kept.length ? `; NOT IN PLAN, kept (sponsor or owner pick, ${t.kept.length}): ${t.kept.join(" | ")}` : ""}`);
 }
 /**
  * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks over the last 7 days

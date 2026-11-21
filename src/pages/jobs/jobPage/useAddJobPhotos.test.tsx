@@ -34,7 +34,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 vi.mock("@/lib/imageCompression", () => ({ compressImage: async (f: File) => new File([f], f.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 const toasts = vi.hoisted(() => ({ ok: [] as string[], err: [] as string[] }));
-vi.mock("sonner", () => ({ toast: { success: (m: string) => toasts.ok.push(m), error: (m: string) => toasts.err.push(m) } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: (m: string) => toasts.ok.push(m), error: (m: string) => toasts.err.push(m) }) }));
 
 import { useAddJobPhotos } from "./useAddJobPhotos";
 
@@ -65,7 +65,8 @@ describe("useAddJobPhotos: Add a photo on an open job really adds it", () => {
     expect(photos[0], "the photo already on the job was dropped").toBe("https://cdn/old.jpg");
     expect(photos).toHaveLength(3);
     expect(calls.updates[0].id).toBe("job-1");
-    expect(toasts.ok).toEqual(["2 photos added."]);
+    expect(toasts.ok).toEqual([]);
+    expect(toasts.err).toEqual([]);
   });
 
   it("keeps to the 5-photo cap and refuses a type the bucket would not take", async () => {

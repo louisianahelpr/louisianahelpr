@@ -50,8 +50,8 @@ export function useAddJobPhotos(jobId: string, existing: string[] | null | undef
         await supabase.from("jobs").update({ photos: [...have, ...urls] }).eq("id", jobId).select("id"),
         { action: "add these photos to your job" },
       );
+      // The photos show on the job as soon as it refetches; a success toast with no action is never drawn (toast policy).
       await qc.invalidateQueries({ queryKey: queryKeys.jobs.all });
-      toast.success(urls.length === 1 ? "Photo added." : `${urls.length} photos added.`);
       return true;
     } catch (err) {
       report(err as Error, { tags: { source: "useAddJobPhotos.attach" } });

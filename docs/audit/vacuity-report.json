@@ -1,8 +1,13 @@
 {
-  "generated": "2026-11-21T06:05:39.548Z",
-  "guards": 4339,
-  "registered": 4339,
-  "unregistered": [],
+  "generated": "2026-11-21T09:08:46.090Z",
+  "guards": 4345,
+  "registered": 4341,
+  "unregistered": [
+    "src/lib/categorySuggestions.test.ts",
+    "src/lib/celebrate.test.ts",
+    "src/lib/onboardingTourCompletion.test.ts",
+    "src/lib/rentals/rentReceipt.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/adminTestMarkedRows.test.ts",

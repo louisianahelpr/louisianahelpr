@@ -167,7 +167,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-last-note{display:inline-block;white-space:normal;max-width:none;margin:0 0 10px}
 .gg-bdg-sponsor{background:#f3dcd8;color:#8c3b3b}
 .gg-bdg-tiktok{background:#e9e4f5;color:#4b3a7a}.gg-bdg-preorder{background:#fbefd9;color:#7a5413}.gg-bdg-code{background:var(--gg-soft,#f4efe6);color:var(--gg-ink);letter-spacing:.04em}.gg-bdg-ship{background:#e6eef3;color:#2d4f63}
-.gg-secnav,.gg-budget{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}.gg-sec{scroll-margin-top:84px}
+.gg-secnav,.gg-budget{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}.gg-secnav{align-items:center}.gg-secnav-label{flex-basis:100%;font-size:13px;color:var(--gg-muted)}.gg-sec{scroll-margin-top:84px}
 .gg-finder{margin:8px 0 4px;padding:16px 16px 8px;border:1px solid var(--gg-line);border-radius:18px;background:linear-gradient(180deg,var(--gg-soft),transparent 140px)}.gg-finder-step{margin:6px 0 10px}.gg-finder-q{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--gg-ink)}
 .gg-finder-title{margin:0;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:24px;line-height:1.15;font-weight:700;color:var(--gg-ink)}.gg-finder-lead{margin:4px 0 10px;font-size:14px;color:var(--gg-muted)}
 @media (min-width:768px){.gg-finder{padding:20px 22px 10px}.gg-finder-title{font-size:28px}}

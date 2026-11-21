@@ -339,7 +339,7 @@ export const FUN_WORDS = {
     { to: "/gift-guides/draw-names", title: "Secret Santa drawer", body: "Draw names and text each person their match." },
     { to: "/gift-guides/planner", title: "Gift planner", body: "Who's left, what you bought, and your budget." },
     // Owner 11-20 12:30 PM landing plan: the fourth tool card (the printables page, #4811).
-    { to: "/gift-guides/printables", title: "Free printables", body: "Gift tags with names, coloring pages and more." },
+    { to: "/gift-guides/printables", title: "Free printables", body: "Gift tags with names, free to print." },
   ],
   // Countdown + Gift of the Day
   daysLeft: (d: number) => (d === 1 ? "day until Christmas" : "days until Christmas"),
@@ -491,3 +491,10 @@ export const FUN_WORDS = {
   hintSanta: "Tip: we never ask for emails or phone numbers. You send each link yourself.",
   hintPlanner: "Tip: tap Bought when you get a gift, and we'll add up what you've spent.",
 };
+
+/**
+ * The fun tools the landing and the sidebar link (owner 11-21: "i also dont see the fun features anymore like the quiz,
+ * etc."): Swipe, Secret Santa and the Gift planner, each its own page (App.tsx). The printables are their own entry
+ * ("a free section for our tags color book elf guides"), so they are left out here.
+ */
+export const FUN_TOOLS = FUN_WORDS.tools.filter((t) => t.to !== "/gift-guides/printables");

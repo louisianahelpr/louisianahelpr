@@ -221,7 +221,8 @@ export default function SwipeGifts() {
           <div role="group" aria-label={W.swipeWho} className="gg-finder-step">
             <p className="gg-finder-q">{W.swipeWho}</p>
             <span className="gg-chips">
-              {SWIPE_WHO.map((o) => (
+              {/* Owner 11-21: only people whose guide is live (src/content/giftGuideLive.mjs); a retired guide dealt an empty deck. */}
+              {SWIPE_WHO.filter((o) => o.guides.every((g) => guideBySlug(g.slug))).map((o) => (
                 <Button key={o.id} type="button" variant="outline" size="sm" className={who === o.id ? "gg-chip btn-grad-primary" : "gg-chip"} aria-pressed={who === o.id}
                   onClick={() => setWho(o.id)} data-swipe-who={o.id}>{o.label}</Button>
               ))}

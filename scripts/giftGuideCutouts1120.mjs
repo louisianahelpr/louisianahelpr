@@ -8,6 +8,12 @@
  */
 export const CUTOUT_BASE = "https://www.louisianahelpr.com/gift-guides/cutouts/";
 export const CUTOUTS_1120 = new Map([
+  // Melissa & Doug Super Smile Dentist Play Set (melissaanddoug.com box photo, plain white; replaces the kids-at-a-table photo)
+  ["https://www.melissaanddoug.com/cdn/shop/files/e7a572b0725772c6561bea26c1df68e40d6c5382_1024x1024.jpg", "melissa-doug-super-smile-dentist-play-set-b3c2a1.webp"],
+  // Glow Recipe Watermelon Glow Niacinamide Serum (glowrecipe.com Dew Drops photo, bottle and watermelon slice)
+  ["https://cdn.shopify.com/s/files/1/0543/8301/files/10_21_2410_21_24_WM_DEWDROPS-_1.jpg", "glow-recipe-watermelon-glow-niacinamide-serum-b3c2a2.webp"],
+  // Weezie Scalloped Hand Towels (2-Pack), Grey on White (weezietowels.com pair photo, plain grey; replaces the bathroom photo)
+  ["https://static.shopmy.us/pins/zoom-108005682-1795131438000-grey-on-white-2_bfe36f47-7ce5-47b9-b73f-6d841c8b9c9c.jpg", "weezie-scalloped-hand-towels-grey-on-white-b3c2a3.webp"],
   // Mejuri Stevie Hoop Earrings (mejuri.com US photo, cream backdrop)
   ["https://cdn.shopify.com/s/files/1/0631/8568/2616/files/3-THENEWHOOP-TheNewHoopVermeilHoopVermeilCharm-V-AngledFrontView_061_3f4f28ff-b6e1-45ba-9ddc-5ec29192b37a.jpg", "mejuri-stevie-hoop-earrings-b3c171.webp"],
   // Step2 Whisper Ride Cruiser

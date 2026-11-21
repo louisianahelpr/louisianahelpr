@@ -23,7 +23,7 @@
  * @mutate src/lib/guestSellDraft.ts | export const GUEST_SELL_RESUME_PATH = "/declutter/sell?resume=draft"; | export const GUEST_SELL_RESUME_PATH = "/declutter/sell";
  * @mutate src/pages/declutter/DeclutterSellPage.tsx | if (isReady && !user && !guestCanSell(params)) { | if (false) {
  * @mutate src/App.tsx | <ProtectedRoute fullProfile allowGuest><DeclutterSellPage /></ProtectedRoute> | <ProtectedRoute fullProfile><DeclutterSellPage /></ProtectedRoute>
- * @mutate src/components/landing/HowItWorksSection.tsx | export const SELL_SIGNED_OUT = SELL_PATH; | export const SELL_SIGNED_OUT = signupUrlFor(SELL_PATH);
+ * @mutate src/components/landing/HowItWorksSection.tsx | export const SELL_SIGNED_OUT = SELL_PATH; | export const SELL_SIGNED_OUT = "/signup?redirect=%2Fdeclutter%2Fsell";
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";

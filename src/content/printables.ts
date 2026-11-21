@@ -199,11 +199,13 @@ export const PRINTABLES: Printable[] = [
     id: "coloring-book",
     title: "Christmas coloring book",
     blurb: "20 simple pages to color plus a cover, ready to print at home.",
-    // Owner 2026-11-21: "boys coloring pages are ready for site". The Girls book joins as a second button once she
-    // approves it.
+    // Owner 2026-11-21: "both color books are ready for launch" (Boys approved first, then Girls).
     ready: true,
-    preview: "/printables/coloring-book/preview-boys.webp",
-    files: [{ label: "Boys book (free)", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf" }],
+    preview: "/printables/coloring-book/preview-girls.webp",
+    files: [
+      { label: "Girls book (free)", href: "/printables/coloring-book/christmas-coloring-book-girls.pdf" },
+      { label: "Boys book (free)", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf" },
+    ],
     guides: [],
   },
   {

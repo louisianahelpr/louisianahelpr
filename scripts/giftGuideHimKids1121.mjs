@@ -38,7 +38,7 @@ export const HIM_KIDS_STORES = {
   "store-dillards": "Dillard's", "store-exclusive-beauty-club": "Exclusive Beauty Club",
   // The owner's ShopMy saves for Him and Kids (11-21).
   "store-smathers-and-branson": "Smathers & Branson", "store-duck-head": "Duck Head", "store-grove": "Grove",
-  "store-clinique": "Clinique", "store-maisonette": "Maisonette", "store-wayfair": "Wayfair",
+  "store-clinique": "Clinique", "store-maisonette": "Maisonette", "store-wayfair": "Wayfair", "store-macys": "Macy's",
 };
 /** One row per pick: [ASIN, price she saw, Amazon image id, name, brand, type, commission %, line]. */
 const row = ([asin, sortPrice, img, name, brand, type, commission, line]) => ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, commission, type });
@@ -236,7 +236,46 @@ export const KIDS_SHOPMY_1121 = [
   ["108632104", 29.99, "https://static.shopmy.us/pins/zoom-108632104-1795250093805-DancingAlligator-5105-Main-sq.jpg", "PlanToys Dancing Alligator Pull Toy", "PlanToys", "store-grove", "pull-toy", 25, "A wiggly wooden alligator to pull along."],
   ["108632077", 117.99, "https://assets.wfcdn.com/im/45146626/compr-r85/4085/408563114/Wood+Furnished+Mansion.jpg", "Melissa & Doug Wood Furnished Mansion", "Melissa & Doug", "store-wayfair", "dollhouse", null, "A big wooden dollhouse with the furniture inside."],
   ["108632046", 55.99, "https://assets.wfcdn.com/im/84968246/compr-r85/1747/174755531/Preschool+Pretend+Grocery+Shopping+Accessories+with+Kitchen+Accessories.jpg", "Melissa & Doug Toy Shopping Cart", "Melissa & Doug", "store-wayfair", "pretend-play", null, "A sturdy metal shopping cart for pretend errands."],
+  // Owner 11-21 ("same for the kids, add all items i had on the things"; caps off for her picks): every other kids save
+  // still sold, priced on maisonette.com, wayfair.com and macys.com 2026-11-21. Left out, 2026-11-21: sold out or
+  // unavailable at the store her pin goes to (Maisonette vanity, dress-up unit, customizable tote, garbage truck, 4-wheel
+  // bike, Mustang, both torches, marble run, stacking jungle animals; Over The Moon music board; Macy's alphabet, tool
+  // kit, stacking trains, block cart, ABC/123 blocks, wallet, Hi-Rise dollhouse, Beep-Beep, car loader, parking garage,
+  // locks and latches, picture boards, jungle table, Mine to Love doll, cutting food box) and the Danny Digger (not listed).
+  ["108632430", 329, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/unORD3VQuzDRRzbMq1w_2taVM_6b58675d-6a24-48b1-8321-f3c6a6bc0c79.jpg", "Model U Zebra Ride-On", "PonyCycle", "store-maisonette", "ride-on", 16, "A plush zebra ride-on for little riders."],
+  ["108632133", 84.99, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/x2IuT5-1A8vUEdadpwkoOvMBw.jpg", "Freddo Swing Car with Flashing Wheels", "Freddo", "store-maisonette", "ride-on", 16, "A wiggle car with light-up wheels."],
+  ["108632086", 28.76, "https://assets.wfcdn.com/im/03058393/compr-r85/1765/176593778/24+Piece+Melissa+%26+Doug+Jumbo+Cardboard+Blocks+Learning+Tools.jpg", "Melissa & Doug Jumbo Cardboard Blocks, 24 Pieces", "Melissa & Doug", "store-wayfair", "blocks", null, "Big cardboard bricks for towers and forts."],
+  ["108632059", 74.99, "https://assets.wfcdn.com/im/70136508/compr-r85/8084/80848886/7.5+in.+Club+Chair+Kids+Club+Chair-38254990.jpg", "Melissa & Doug Kids Club Chair", "Melissa & Doug", "store-wayfair", "chair", null, "A little upholstered club chair just their size."],
+  ["108632004", 23.49, "https://slimages.macysassets.com/is/image/MCY/products/2/optimized/1779252_fpx.tif?wid=1000&fmt=jpeg", "Melissa & Doug Wooden Doorbell House", "Melissa & Doug", "store-macys", "pretend-play", 16, "A lock-and-key doorbell house with little dolls."],
+  ["108631991", 43.49, "https://slimages.macysassets.com/is/image/MCY/products/5/optimized/8290245_fpx.tif?wid=1000&fmt=jpeg", "Melissa & Doug Double-Sided Magnetic Tabletop Easel", "Melissa & Doug", "store-macys", "art", 16, "A tabletop easel with a chalkboard and a dry-erase side."],
+  ["108631978", 17.99, "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1836568_fpx.tif?wid=1000&fmt=jpeg", "Melissa & Doug Pull-Back Vehicle Toys", "Melissa & Doug", "store-macys", "car-toy", 16, "Soft pull-back cars that zoom across the floor."],
 ].map(shop);
+
+/**
+ * The rest of her Amazon kids list (owner 11-21: "same for the kids, add all items i had on the things"; brand and type
+ * caps off for her own picks): every row of Kids-saved-amazon-1121.md not already above (18), at her list's captured
+ * price. The kids camera's title was cut in the capture; Amazon's page names it a YEEHAO kids digital camera (11-21).
+ */
+export const KIDS_AMAZON_MORE_1121 = [
+  ["B0HGX9TVW6", 23.72, "511xpoNUL0L", "Skillmatics Aqua Puffs Christmas Ornaments", "Skillmatics", "craft", 3, "Puffy paint-by-number ornaments they make with water."],
+  ["B0FG2Z88P7", 9.99, "51HHk4qty0L", "JoyCat Christmas Paint with Water Books", "JoyCat", "book", 3, "Mess-free paint with water pages for toddlers."],
+  ["B0D6RMZ3D1", 17.79, "51KltfpitTL", "YEEHAO Kids Digital Camera", "YEEHAO", "camera", 3, "A dual-lens kids camera for photos, videos and selfies."],
+  ["B0D5ZN2YL8", 12.73, "51OP9VO0RuL", "Cupkin Christmas Sticker Book with Coloring Pages", "Cupkin", "book", 3, "A Christmas sticker book with coloring pages."],
+  ["B0DDYHBKG9", 16.96, "51XdoEqAXAL", "CreateOn Crayola Holiday Glitter Mini Magnetic Tiles", "CreateOn", "building-toy", 3, "Mini glitter magnetic tiles for holiday builds."],
+  ["B0DB9JTTJQ", 18.99, "51T6IcL0NTL", "CreateOn Crayola Holiday Glitter Magnetic Tiles", "CreateOn", "building-toy", 3, "Sparkly magnetic tiles to build a holiday scene."],
+  ["B0DCVF7YNW", 18.98, "41305yNiLyL", "Kinglucky Mini Karaoke Machine for Kids", "Kinglucky", "karaoke", 3, "A mini karaoke machine with a microphone."],
+  ["B0BFJWCYTL", 339, "41d-g6xWrfL", "Nintendo Switch with Blue and Red Joy-Con", "Nintendo", "game-console", 3, "The Switch that plays on the TV or on the go."],
+  ["B0F3GWXLTS", 499, "41A6+lQ6KSL", "Nintendo Switch 2", "Nintendo", "game-console", 3, "The new Nintendo Switch 2."],
+  ["B0FJ2ZHPDY", 99.99, "41cXR296U-L", "Toniebox 2 Starter Set, Cloud Pink", "tonies", "audio", 3, "A screen-free story and music player in pink."],
+  ["B0DB5SGHX2", 135.35, "3149VSu-bUL", "Segway Ninebot C2 Lite Kids Electric Scooter", "Segway", "scooter", 3, "An electric scooter made for kids."],
+  ["B0CRDG6KMT", 237.49, "31V05DQTV-L", "Segway Ninebot C2 Pro Kids Electric Scooter", "Segway", "scooter", 3, "A faster kids electric scooter for older riders."],
+  ["B0F62SVY89", 271.68, "31Bsjq4rZGL", "Segway Ninebot E2 Plus II Electric Scooter", "Segway", "scooter", 3, "A full-size electric scooter for teens."],
+  ["B0H3ZM1PMS", 299.99, "31q1HbybvGL", "Segway Ninebot S2 Kids Self-Balancing Scooter", "Segway", "hoverboard", 3, "A self-balancing scooter sized for kids."],
+  ["B0CT2WN59R", 484.49, "41l4bfCV9NL", "Segway Ninebot S2 Self-Balancing Scooter", "Segway", "hoverboard", 3, "A self-balancing scooter for big kids and teens."],
+  ["B09GXDQ122", 11.6, "41g75nJNagL", "Would You Rather Book for Kids", "", "book", 3, "Silly would-you-rather questions for car rides."],
+  ["B0GT16T874", 14.98, "51u+SjYL7DL", "Taba Squishies Fidget Toys, 3 Pack", "", "squishy", 3, "Three squishy fidget toys to squeeze."],
+  ["B0DDLZV8YM", 23.73, "51VHRxyCCdL", "Magic Gel Water Pets Kit", "", "craft", 3, "Make little gel water pets that come to life."],
+].map(row);
 
 export const KIDS_1121 = [
   ["152350675X", 3.44, "51J30U2ygrL", "Paint by Sticker Kids: Christmas", "Workman", "book", 3, "Sticker-by-number Christmas pictures, no mess."],
@@ -279,7 +318,7 @@ export const KIDS_1121 = [
   ["B0HDSSPY7Z", 127.49, "21gcm6OqZ0L", "Segway Ninebot C2 Go Kids Scooter", "Segway", "scooter", 3, "An electric scooter made for kids."],
   ["B0D2JGYX3F", 209, "31HNx5am69L", "Nex Playground", "Nex", "game-console", 3, "Active family games that get everyone moving."],
   ["B07V4GCFP9", 229, "31CHVspmUeL", "Nintendo Switch Lite", "Nintendo", "game-console", 3, "The handheld Switch for games on the go."],
-].map(row).concat(KIDS_SHOPMY_1121);
+].map(row).concat(KIDS_AMAZON_MORE_1121, KIDS_SHOPMY_1121);
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 

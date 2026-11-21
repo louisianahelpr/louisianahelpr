@@ -241,6 +241,21 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/pins/zoom-108626037-1795245901003-s9tzcdtbcihhguemerog.jpg", "dr-squatch-face-wash-febf5a.webp"],
   // dr squatch total moisture soap
   ["https://static.shopmy.us/pins/zoom-108625979-1795245875843-Unscented_Shea_Butter_3.png", "dr-squatch-total-moisture-soap-afb564.webp"],
+  // KIDS 11-21 (the rest of her saves; Apple Vision cutouts, the swing car with its floor reflection erased, the club chair without its props)
+  // freddo swing car side
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/x2IuT5-1A8vUEdadpwkoOvMBw.jpg", "freddo-swing-car-side-6bd8af.webp"],
+  // model u zebra ride on
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/unORD3VQuzDRRzbMq1w_2taVM_6b58675d-6a24-48b1-8321-f3c6a6bc0c79.jpg", "model-u-zebra-ride-on-63f18d.webp"],
+  // melissa doug jumbo cardboard blocks
+  ["https://assets.wfcdn.com/im/03058393/compr-r85/1765/176593778/24+Piece+Melissa+%26+Doug+Jumbo+Cardboard+Blocks+Learning+Tools.jpg", "melissa-doug-jumbo-cardboard-blocks-608ce0.webp"],
+  // melissa doug kids club chair
+  ["https://assets.wfcdn.com/im/70136508/compr-r85/8084/80848886/7.5+in.+Club+Chair+Kids+Club+Chair-38254990.jpg", "melissa-doug-kids-club-chair-8f6b24.webp"],
+  // melissa doug doorbell house
+  ["https://slimages.macysassets.com/is/image/MCY/products/2/optimized/1779252_fpx.tif", "melissa-doug-doorbell-house-bd8e8b.webp"],
+  // melissa doug magnetic tabletop easel
+  ["https://slimages.macysassets.com/is/image/MCY/products/5/optimized/8290245_fpx.tif", "melissa-doug-magnetic-tabletop-easel-a4b2f2.webp"],
+  // melissa doug pull back vehicles
+  ["https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1836568_fpx.tif", "melissa-doug-pull-back-vehicles-7ca9db.webp"],
 ]);
 
 /** The photo to show for `image`: its transparent cutout when one exists, else `image` itself. */

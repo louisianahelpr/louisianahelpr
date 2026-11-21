@@ -71,7 +71,8 @@ describe("gift guides follow-up 1120", () => {
         if (p.commission === 0) bad.push(`${slug}: 0% ${p.name}`);
       }
     }
-    expect(n).toBeGreaterThan(1300);
+    // Holiday audit B (11-20), measured: 1,292 rows after B's 128 cuts, thin folds and type trim.
+    expect(n).toBeGreaterThan(1250);
     expect(bad).toEqual([]);
   });
 
@@ -92,10 +93,16 @@ describe("gift guides follow-up 1120", () => {
     const shown = [...(CHUNKS.get("shop-small-louisiana") ?? []), ...(CHUNKS.get("louisiana-by-region") ?? [])];
     const missing = biz.filter((b) => {
       const name = b.name.replace(/\s*\([^)]*\)\s*$/, "");
-      return !shown.some((p) => p.sponsor && (p.name === name || (b.href && p.href === b.href))) && !(named["shop-small-louisiana"] ?? []).includes(name);
+      // Holiday audit B (11-20): a sponsor's card is a gift from its own shop (a product page, no longer its logo and
+      // home page), so a sponsor card on the shop's own site counts.
+      const host = (u?: string) => { try { return new URL(u ?? "").hostname.replace(/^www\./, ""); } catch { return ""; } };
+      return !shown.some((p) => p.sponsor && (p.name === name || (b.href && (p.href === b.href || (host(b.href) !== "" && !/facebook|instagram/.test(host(b.href)) && host(p.href) === host(b.href))))))
+        && !(named["shop-small-louisiana"] ?? []).includes(name);
     }).map((b) => b.name);
     expect(missing).toEqual([]);
-    expect(shown.filter((p) => p.sponsor).length).toBeGreaterThan(35);
+    // Holiday audit B (11-20), measured: logo-only cards left the Louisiana guides (B #1); a sponsor is a product card (12) or a name (35).
+    expect(shown.filter((p) => p.sponsor).length + (named["shop-small-louisiana"] ?? []).length).toBeGreaterThan(35);
+    expect(shown.filter((p) => p.sponsor).length).toBeGreaterThan(8);
   });
 
   it("the 26 store pages of the owner's final list, each 10-15 picks; one Weber griddle site-wide", () => {
@@ -112,7 +119,8 @@ describe("gift guides follow-up 1120", () => {
       expect(n, s).toBeLessThanOrEqual(15);
     }
     const griddles = [...CHUNKS.values()].flat().filter((p) => /\bweber\b/i.test(`${p.brand ?? ""} ${p.name}`) && /\bgriddle\b/i.test(p.name));
-    expect(griddles.length).toBe(1);
+    // Holiday audit B (11-20, B #30): the one Weber griddle fit a single grill model and left; never more than one.
+    expect(griddles.length).toBeLessThanOrEqual(1);
   });
 
   it("maps the audits' fixes: a store-page copy stays, a 0% cut leaves its guide, a move finds its section, a rename puts the brand first", () => {

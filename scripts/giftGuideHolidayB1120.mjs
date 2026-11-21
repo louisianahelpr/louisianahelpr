@@ -15,6 +15,8 @@
  * Each rule that finds nothing is reported (a stale rule never fails silently). Guard: src/test/giftGuideHolidayB1120.test.ts.
  */
 import { applyTrain1120b, fold, isBrandPick } from "./giftGuideTrain1120b.mjs";
+import { SECTION_MIN } from "../src/content/giftGuideMerges.mjs";
+import { typeMax } from "./giftGuideSort.mjs";
 
 /** A researcher's note, never shopper copy: a rate, a click count, a to-do, a photo source, an affiliate network. */
 export const NOTE_WORDS = new RegExp([
@@ -149,7 +151,9 @@ export function applyHolidayB1120(pageList, deals, spec, ctx) {
     if (dropped(brand)) continue;
     const mine = sgList.filter(sponsorOf(brand, spec.lineupAlias));
     let pick = mine[0];
-    if (!pick) {
+    // A sponsor in `sponsorNameOnly` is named here, never carded twice (Hilma's probiotic keeps its one guide spot).
+    const nameOnly = (spec.sponsorNameOnly ?? []).some((d) => fold(brand).startsWith(fold(d.brand)));
+    if (!pick && !nameOnly) {
       const copy = Object.entries(pageList).filter(([s]) => s !== SG && !s.startsWith("store-")).flatMap(([, l]) => l)
         .find((p) => p.sponsor && p.image && !LOGO_PATH.test(p.image) && sponsorOf(brand, spec.lineupAlias)(p));
       if (copy) { const { section: _s, sectionId: _i, from: _f, ...rest } = copy; pick = rest; }
@@ -176,6 +180,11 @@ export function applyHolidayB1120(pageList, deals, spec, ctx) {
   for (let i = nameOnly.length - 1; i >= 0; i -= 1) {
     const x = nameOnly[i];
     if (page(x.guide).some(sponsorOf(x.brand, spec.lineupAlias))) nameOnly.splice(i, 1);
+  }
+  // A business with several lineup rows (HOTWORX's two studios) is named once, by its `sponsorOneName` name.
+  for (const x of nameOnly) {
+    const one = (spec.sponsorOneName ?? []).find((d) => fold(x.brand).startsWith(fold(d.brand)));
+    if (one) x.brand = one.brand;
   }
   // One name per business: "HOTWORX" covers "HOTWORX Baton Rouge"; "Grand Kyiv Ballet" covers its show's long name.
   for (let i = nameOnly.length - 1; i >= 0; i -= 1) {
@@ -210,6 +219,68 @@ export function applyHolidayB1120(pageList, deals, spec, ctx) {
     const at = list.findIndex((p) => p.sectionId === m.id);
     if (at >= 0) pageList[m.guide] = [...list.slice(0, at).filter((p) => p.sectionId !== m.id), ...list.filter((p) => p.sectionId === m.id), ...list.slice(at).filter((p) => p.sectionId !== m.id)];
     c.sectionsMerged += n;
+  }
+
+  // A section the cuts left under SECTION_MIN joins its smaller neighbour (owner 11-20: thin sections are merged, never
+  // padded), under both names and the neighbour's id; a guide left with one section is a plain list. The joined section
+  // lists by commission like any other, and an old slug's anchor follows its section.
+  c.thinFolded = 0;
+  for (const m of ctx.merges ?? []) {
+    const inOrder = (list) => list.map((p, i) => [p, i]).sort(([a, i], [b, j]) => (ctx.sortFixed?.has(b.from ?? "") ? 1 : 0) - (ctx.sortFixed?.has(a.from ?? "") ? 1 : 0)
+      || (typeof b.commission === "number" ? b.commission : -1) - (typeof a.commission === "number" ? a.commission : -1) || i - j).map(([p]) => p);
+    for (let guard = 0; guard < 20; guard += 1) {
+      const list = page(m.parent);
+      const ids = [...new Set(list.map((p) => p.sectionId).filter(Boolean))];
+      if (ids.length < 2) break;
+      const size = (id) => list.filter((p) => p.sectionId === id).length;
+      const i = ids.findIndex((id) => size(id) < SECTION_MIN);
+      if (i === -1) break;
+      const near = [ids[i + 1], ids[i - 1]].filter(Boolean).sort((a, b) => size(a) - size(b));
+      const [thin, keep] = [ids[i], near[0]];
+      const [first, second] = ids.indexOf(keep) < i ? [keep, thin] : [thin, keep];
+      const titleOf = (id) => list.find((p) => p.sectionId === id)?.section ?? "";
+      const parts = [titleOf(first), titleOf(second)].flatMap((x) => x.split(/, | & /)).filter((x) => x && x !== "Top picks");
+      const title = parts.length <= 1 ? parts.join("") : `${parts.slice(0, -1).join(", ")} & ${parts[parts.length - 1]}`;
+      const id = keep === "top-picks" ? thin : keep;
+      const joined = inOrder(list.filter((p) => p.sectionId === thin || p.sectionId === keep)).map((p) => ({ ...p, section: title, sectionId: id }));
+      const at = list.findIndex((p) => p.sectionId === first);
+      const rest = (x) => x.filter((p) => p.sectionId !== thin && p.sectionId !== keep);
+      pageList[m.parent] = [...rest(list.slice(0, at)), ...joined, ...rest(list.slice(at))];
+      for (const sl of m.sections) if (ctx.anchors && (ctx.anchors[sl] === thin || ctx.anchors[sl] === keep)) ctx.anchors[sl] = id;
+      c.thinFolded += 1;
+    }
+    const left = new Set(page(m.parent).map((p) => p.sectionId).filter(Boolean));
+    if (left.size === 1 && !(ctx.keepSections ?? []).includes(m.parent)) {
+      pageList[m.parent] = page(m.parent).map(({ section: _s, sectionId: _i, ...p }) => p);
+      for (const sl of m.sections) if (ctx.anchors) delete ctx.anchors[sl];
+    }
+  }
+
+  // Variety holds after the audit's adds, moves and joins: a list a shopper reads as one (a section, or a plain guide)
+  // keeps at most its cap of one gift type (the cap of the old guides in it). The owner's picks and sponsors' spots
+  // never leave; ours give way, lowest rate first.
+  c.typeTrimmed = 0;
+  for (const slug of Object.keys(pageList)) {
+    if (slug.startsWith("store-") || slug === ctx.sponsorsGuide) continue;
+    const list = page(slug);
+    const key = (p) => (p.sectionId && p.sectionId !== "top-picks" ? p.sectionId : slug);
+    const out = new Set();
+    for (const k of new Set(list.map(key))) {
+      const run = list.filter((p) => key(p) === k && !ctx.sortFixed?.has(p.from ?? ""));
+      if (ctx.sortFixed?.has(k)) continue;
+      for (const type of new Set(run.map((p) => p.type ?? "other"))) {
+        const same = run.filter((p) => (p.type ?? "other") === type);
+        const cap = Math.max(typeMax(k, type), ...same.map((p) => typeMax(p.from ?? k, type)));
+        const held = same.filter((p) => p.ownerPick || p.sponsor);
+        let room = Math.max(0, cap - held.length);
+        for (const p of same) {
+          if (p.ownerPick || p.sponsor) continue;
+          if (room > 0) room -= 1;
+          else out.add(p);
+        }
+      }
+    }
+    if (out.size) { pageList[slug] = list.filter((p) => !out.has(p)); c.typeTrimmed += out.size; }
   }
 
   // Names and lines a shopper reads.

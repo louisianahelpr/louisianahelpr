@@ -44,8 +44,9 @@ describe("gift guides: owner follow-ups 11-19", () => {
   it("owner picks keep their badge on guides (no longer first: owner 11-19 ~6:40 PM sorts by commission); Advent Calendars and Gift Tags hold picks; a guide shows from one pick", () => {
     const withOwner = guides.filter((s: string) => pageOf(s).some((p) => p.ownerPick));
     expect(withOwner.length).toBeGreaterThan(20);
+    // Holiday audit B (11-20, B #65): Gift Tags keeps 2 tag products of its 5 (the rest of its list is wrap and cards).
     for (const s of ["advent-calendars", "gift-tags"]) {
-      expect(pageOf(s).length, s).toBeGreaterThan(3);
+      expect(pageOf(s).length, s).toBeGreaterThan(s === "gift-tags" ? 1 : 3);
       expect(guideBySlug(s)?.empty, s).toBeFalsy();
     }
     expect(GUIDE_MIN_PICKS).toBe(1);

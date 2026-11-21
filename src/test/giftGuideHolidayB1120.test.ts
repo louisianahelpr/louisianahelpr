@@ -125,4 +125,25 @@ describe("gift guides holiday audit B", () => {
     expect(cleanName("materialkitchen.com MATERIAL - Serve Platter", "materialkitchen.com")).toBe("Material Serve Platter");
     expect(cleanName("Ninja Fireside360 Fire Pit - Samsclub.com", "Ninja")).toBe("Ninja Fireside360 Fire Pit");
   });
+  it("a name-only sponsor is never carded on the sponsors guide, a two-studio business is named once, no section is thin", () => {
+    const sg = CHUNKS.get("25-days-sponsors")?.picks ?? [];
+    expect(SPEC.sponsorNameOnly.length).toBeGreaterThan(0);
+    for (const d of SPEC.sponsorNameOnly as { brand: string }[]) {
+      expect(sg.filter((p) => fold(p.brand).startsWith(fold(d.brand)) || fold(p.name).startsWith(fold(d.brand))).map((p) => p.name), d.brand).toEqual([]);
+      expect((NAME_ONLY["25-days-sponsors"] ?? []).filter((n) => fold(n).startsWith(fold(d.brand))), d.brand).toHaveLength(1);
+    }
+    for (const d of SPEC.sponsorOneName as { brand: string }[])
+      for (const [guide, names] of Object.entries(NAME_ONLY)) expect(names.filter((n) => fold(n).startsWith(fold(d.brand))).length, `${guide}: ${d.brand}`).toBeLessThanOrEqual(1);
+    // Thin sections fold into a neighbour (owner 11-20: merged, never padded): SECTION_MIN is 8.
+    const thin: string[] = [];
+    let sections = 0;
+    for (const [slug, c] of CHUNKS) {
+      const by = new Map<string, number>();
+      for (const p of c.picks) if (p.sectionId) by.set(p.sectionId, (by.get(p.sectionId) ?? 0) + 1);
+      sections += by.size;
+      if (by.size > 1) for (const [id, n] of by) if (n < 8) thin.push(`${slug}#${id}: ${n}`);
+    }
+    expect(sections).toBeGreaterThan(50);
+    expect(thin).toEqual([]);
+  });
 });

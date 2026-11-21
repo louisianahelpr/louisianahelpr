@@ -1301,7 +1301,8 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     }
     // Owner 11-18 PM: photo-less Amazon picks show their CDN photo (measured below the floor = the switch is off).
     // Follow-up 1120: ~30 guides and 26 store pages hold ~390 Amazon CDN photos (measured 2026-11-20; 500+ on 65 guides).
-    expect(amazonCdn).toBeGreaterThan(300);
+    // Holiday audit B (11-20), measured: 291 after B's cuts (was 300+).
+    expect(amazonCdn).toBeGreaterThan(270);
     // Brand-site photos (lead 11-18 PM): a photo-less Amazon pick takes the brand's own photo of the same product from
     // amazon-brand-images.json, its Amazon link kept (179 rows from 45 ASINs, measured 2026-11-18).
     // @mutate scripts/gift-guide-picks.mjs | if (!hasOwn && brand?.source === "brand-site" | if (false && brand?.source === "brand-site"

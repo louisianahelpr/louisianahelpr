@@ -218,11 +218,6 @@
   },
   {
    "guide": "healthcare",
-   "match": "21 Collective Core Mockneck",
-   "why": "B #49: a pre-order"
-  },
-  {
-   "guide": "healthcare",
    "match": "Amazon Echo Dot",
    "why": "B #49/#77: says nothing about the role; older Echo"
   },
@@ -359,11 +354,6 @@
   {
    "guide": "outdoors-and-travel",
    "match": "BÉIS The Dopp Kit",
-   "why": "B #37: 3 toiletry/dopp bags"
-  },
-  {
-   "guide": "outdoors-and-travel",
-   "match": "Weezie Large Toiletry Bag",
    "why": "B #37: 3 toiletry/dopp bags"
   },
   {
@@ -528,18 +518,6 @@
   },
   {
    "guide": "gifts-by-budget",
-   "match": "Rare Beauty Blush, Bronze & Luminize Custom Set",
-   "why": "B #66: $66 in Stocking Stuffers",
-   "section": "Stocking Stuffers"
-  },
-  {
-   "guide": "gifts-by-budget",
-   "match": "Olive & June Gel Mani System Essentials",
-   "why": "B #7/#66: $55; Olive & June on five guides",
-   "section": "Stocking Stuffers"
-  },
-  {
-   "guide": "gifts-by-budget",
    "match": "BÉIS The Jewelry Case",
    "why": "B #66: $48 in Stocking Stuffers",
    "section": "Stocking Stuffers"
@@ -666,16 +644,14 @@
    "guide": "store-lululemon",
    "match": "Scuba",
    "why": "B #73: two Scuba half-zips"
+  },
+  {
+   "guide": "shop-small-louisiana",
+   "match": "Smathers & Branson LSU Needlepoint Toiletry Bag",
+   "why": "B #17: Louisiana-themed, not Louisiana-made; Game Day already holds its 2 LSU items and Baton Rouge the same maker's LSU hat"
   }
  ],
  "moves": [
-  {
-   "guide": "home-and-kitchen",
-   "match": "Geometry Greetings From Louisiana Tea Towel",
-   "to": "shop-small-louisiana",
-   "section": "Louisiana-Made, Boutiques & Artists",
-   "why": "B #31: a Louisiana item in a non-Louisiana guide"
-  },
   {
    "guide": "home-and-kitchen",
    "match": "Caraway Whistling Tea Kettle",
@@ -694,13 +670,6 @@
    "match": "Fire Department Coffee Backdraft Coffee",
    "to": "coffee-lover",
    "why": "B #54: a food item (coffee) in Heroes"
-  },
-  {
-   "guide": "shop-small-louisiana",
-   "match": "Smathers & Branson LSU Needlepoint Toiletry Bag",
-   "to": "louisiana-celebrations",
-   "section": "Game Day, Tailgating & Crawfish Season",
-   "why": "B #17: Louisiana-themed, not Louisiana-made"
   },
   {
    "guide": "louisiana-celebrations",
@@ -1774,5 +1743,17 @@
   "Snake River Farms",
   "Xpluswear",
   "Shiko Beauty"
+ ],
+ "sponsorNameOnly": [
+  {
+   "brand": "Hilma",
+   "why": "its one gift is a probiotic (a health product): it keeps its one spot in Cozy & Self-Care and is named on the sponsors guide, never shown twice (B #8)"
+  }
+ ],
+ "sponsorOneName": [
+  {
+   "brand": "HOTWORX",
+   "why": "Two studios (Baton Rouge, Denham Springs) are one business: one name in every 'Also sponsoring' list."
+  }
  ]
 }

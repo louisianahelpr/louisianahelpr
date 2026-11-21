@@ -3919,7 +3919,7 @@ const fillPrices = () => {
   const spec = JSON.parse(readFileSync(new URL("./gift-guide-holiday-b-1120.json", import.meta.url), "utf8"));
   const { brands } = readLineup(readFileSync(new URL("../src/content/sponsorPage.ts", import.meta.url), "utf8"));
   const lineup = [...new Set(brands.map(shortSponsorName))];
-  const t = applyHolidayB1120(pageList, deals, spec, { sponsorsGuide: SPONSORS_GUIDE, readJson, sales, storePages: [...STORE_PAGES_KEPT], nameOnly: NAME_ONLY, dealCodes, lineup, blockedBrand });
+  const t = applyHolidayB1120(pageList, deals, spec, { sponsorsGuide: SPONSORS_GUIDE, readJson, sales, storePages: [...STORE_PAGES_KEPT], nameOnly: NAME_ONLY, dealCodes, lineup, blockedBrand, merges: GUIDE_MERGES, anchors: SECTION_ANCHORS, sortFixed: SORT_FIXED });
   console.log(`gift-guide-picks: holiday audit B ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
 }
 /**

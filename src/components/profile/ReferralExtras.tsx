@@ -56,7 +56,7 @@ export function ReferralExtras({ referralCount, earnedFromReferrals }: ReferralE
       </div>
       <p className="font-sans text-ds-13 text-muted-foreground leading-snug">
         {pct < 100 && `$${formatPriceExact(earnedFromReferrals)} of $25 earned. `}
-        {referralCount === 1 ? "1 friend has" : `${referralCount} friends have`} signed up with your code; you earn when their first job is done.
+        {referralCount === 1 ? "1 friend has" : `${referralCount} friends have`} signed up with your code. You each get $5 once you have both finished a job or a Declutter sale or purchase.
       </p>
     </div>
   );

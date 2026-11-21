@@ -10,7 +10,7 @@
  * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="text-page-title text-foreground">{t("signup.title")}</h1> | <h1 className="text-page-title text-foreground">Create your account</h1>
  * @mutate src/components/auth/OrRule.tsx | {t("auth.or")} | or
  * @mutate src/components/auth/SocialAuthButtons.tsx |   const label = t("auth.continueWith", { provider: providerName }); |   const label = `Continue with ${providerName}`;
- * @mutate src/pages/auth/signup/SignupStep2.tsx |             {t("signup.referralHelp")}\n |             Got a code from a friend? Enter it and you both get $5 once you finish your first job.\n
+ * @mutate src/pages/auth/signup/SignupStep2.tsx |             {t("signup.referralHelp")}\n |             Got a code from a friend? Enter it and you each get $5 once you have both finished a job or a Declutter sale or purchase.\n
  */
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";

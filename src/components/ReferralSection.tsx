@@ -82,7 +82,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     // iOS/Android build the page origin is `capacitor://localhost`, which
     // resolves to nothing on the recipient's phone.
     const url = `${getPublicSiteUrl()}/signup?ref=${encodeURIComponent(code)}`;
-    const text = `Join me on Louisiana Helpr — local job marketplace. Use code ${code} and we both earn $5 on your first job.`;
+    const text = `Join me on Louisiana Helpr — local job marketplace. Use code ${code} and we each get $5 once you have both finished a job or a Declutter sale or purchase.`;
     return { url, text, combined: `${text}\n${url}` };
   };
 
@@ -201,7 +201,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
               by running the live trigger in PGlite: the referrer topped out at
               $25 across 5 credits and the 6th was silently suppressed. The
               enforced ceiling is the dollar figure, so that is what we state. */}
-          When a friend completes their first job using your code, <span className="font-semibold not-italic" style={{ color: "hsl(var(--ink-deep))" }}>you both earn $5</span>, up to $25 in referral credits.
+          When a friend joins with your code, <span className="font-semibold not-italic" style={{ color: "hsl(var(--ink-deep))" }}>you each get $5</span> once you have both finished a job or a Declutter sale or purchase, up to $25 in referral credits.
         </p>
         <p className="text-ds-13 font-sans text-muted-foreground">
           Your referral code
@@ -346,7 +346,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           {[
             "Share your code with friends",
             "They enter it at sign-up, or within 7 days of joining",
-            "Once their first job is fully completed — whether they posted it or worked it — you earn",
+            "You each get $5 once you have both finished a job or a Declutter sale or purchase",
             "Cash out directly to your Stripe account",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-3">

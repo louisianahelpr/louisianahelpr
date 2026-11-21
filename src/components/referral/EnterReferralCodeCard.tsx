@@ -18,7 +18,7 @@ import { clearPendingReferral, readPendingReferral } from "@/lib/pendingReferral
 const REFERRAL_CLAIM_DAYS = 7;
 
 const ANSWERS: Record<string, string> = {
-  recorded: "Done. You and your friend each get $5 once you finish your first job.",
+  recorded: "Done. You each get $5 once you have both finished a job or a Declutter sale or purchase.",
   no_such_code: "We couldn't find that code. Check it with your friend and try again.",
   own_code: "That's your own code. Share it with friends instead.",
   already_referred: "Your account already has a referral code.",
@@ -91,7 +91,7 @@ export function EnterReferralCodeCard() {
         Referral code
       </Label>
       <p className="text-ds-13 text-muted-foreground">
-        Add it in the next {daysLeft} {daysLeft === 1 ? "day" : "days"} and you both get $5 once you finish your first job.
+        Add it in the next {daysLeft} {daysLeft === 1 ? "day" : "days"} and you each get $5 once you have both finished a job or a Declutter sale or purchase.
       </p>
       <div className="flex gap-2">
         <Input

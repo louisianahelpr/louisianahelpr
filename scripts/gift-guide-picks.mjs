@@ -4111,6 +4111,14 @@ const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).
 const liveChunkSlugs = chunkSlugs.filter(isLiveGuide);
 // Owner 2026-11-21 ("if all details are not confirmed they should not be on the list"): a sponsor still missing a prize,
 // value or delivery (scripts/gift-guide-sponsor-order-1121.json notConfirmed) is off the sponsors page until it is.
+{
+  // The sponsors page's name-only list (NAME_ONLY_SPONSORS) leaves them out too.
+  const unconfirmedNames = [...NOT_CONFIRMED].map((n) => shortSponsorName(n).toLowerCase());
+  for (let i = NAME_ONLY.length - 1; i >= 0; i--) {
+    const b = String(NAME_ONLY[i].brand ?? "").toLowerCase();
+    if (NAME_ONLY[i].guide === SPONSORS_GUIDE && unconfirmedNames.some((n) => b.startsWith(n) || (b && n.startsWith(b)))) NAME_ONLY.splice(i, 1);
+  }
+}
 if (pageList[SPONSORS_GUIDE]) {
   const unconfirmed = [...NOT_CONFIRMED].map((n) => shortSponsorName(n).toLowerCase());
   pageList[SPONSORS_GUIDE] = pageList[SPONSORS_GUIDE].filter((p) => !unconfirmed.some((n) => String(p.brand ?? "").toLowerCase().startsWith(n) || n.startsWith(String(p.brand ?? "").toLowerCase() || "\u0000")));

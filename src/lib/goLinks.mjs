@@ -18,7 +18,6 @@ export const GO_LINK_HOSTS = Object.freeze([
   "mavely.app.link",
   "walmrt.us",
   "www.anrdoezrs.net",
-  "www.kqzyfj.com",
   "click.linksynergy.com",
   "go.shopmy.us",
   // Sam's Club Creator membership links (gift guides, owner 11-19).

@@ -3,7 +3,7 @@
  * job of their own (posted or worked); then both get $5 together.
  * PGlite: src/test/pglite/referralBothMustWork.pglite.mjs (ALL PASS; 2 FAIL without the migration).
  *
- * @mutate supabase/migrations/20261027201034_referral_bonus_needs_a_job_from_each.sql |     CONTINUE WHEN NOT (public.referral_member_has_completed_job(v_ref.referrer_id) |     CONTINUE WHEN NOT (true
+ * @mutate supabase/migrations/20261121035500_referral_bonus_counts_declutter.sql |     CONTINUE WHEN NOT (public.referral_member_has_completed_job(v_ref.referrer_id) |     CONTINUE WHEN NOT (true
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";

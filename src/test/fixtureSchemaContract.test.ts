@@ -365,6 +365,9 @@ describe("every fixture literal could be inserted", () => {
     { file: "src/test/helpers/dataExportInventory.ts", keys: ["section", "by"] },
     // Gift guide picks (`{ name, href, section }`) and placeInSection results (`{ section, sectionId }`): a guide's section heading, not saved_searches rows.
     { file: "src/test/giftGuideTrain1120b.test.ts", keys: ["section"] },
+    // Gift guide pick rows (a guide's section title), not saved_searches rows (train 1120g, 2026-11-20).
+    { file: "src/test/giftGuideStandard1120.test.ts", keys: ["section"] },
+    { file: "src/test/giftGuideTrain1120d.test.ts", keys: ["href", "section"] },
     // A Stripe PaymentIntent mock (`{ id, status: "succeeded", amount_received, metadata: { tax_calculation_id, ... },
     // latest_charge }`), not a recurring_visit_payments row: Q2717 (B94) put job-site tax metadata on the crew PI, and
     // `tax_calculation_id` is a column only recurring_visit_payments has.

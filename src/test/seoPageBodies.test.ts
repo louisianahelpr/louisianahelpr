@@ -145,7 +145,7 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
     expectOwnPage(body, "Holiday Gift Guides");
     const links = [...rootOf(body).matchAll(/<a href="\/gift-guides\/([a-z0-9-]+)">/g)].map((m) => m[1]);
     expect(links.length).toBeGreaterThan(40); // follow-up 1120: 28 guides + 26 store pages = 54, measured 2026-11-20
-    expect(links).toContain("mom");
+    expect(links).toContain("her"); // Mom is a view of For Her since the owner's standard plan (2026-11-20)
     expect(types(body)).toContain("ItemList");
   });
 

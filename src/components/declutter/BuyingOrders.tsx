@@ -413,7 +413,7 @@ export function useBuyingTracker(): BuyingTracker {
   counts.needs_you = homeRows.length;
   const ended = endedLines(lines);
   counts.cancelled += ended.length;
-  return { ready: !!cart.data, loading: cart.isLoading, failed: cart.isError && !cart.data, error: cart.error, retry: () => void cart.refetch(), views, checkouts, ended, counts, live, bookings: bookings.data, pickupsSettled: !bookings.isLoading && problemsRead.answered };
+  return { ready: !!cart.data, loading: cart.isLoading, failed: cart.isError && !cart.data, error: cart.error, retry() { void cart.refetch(); }, views, checkouts, ended, counts, live, bookings: bookings.data, pickupsSettled: !bookings.isLoading && problemsRead.answered };
 }
 
 /**

@@ -1,5 +1,5 @@
 // @mutate src/components/declutter/DeclutterActiveFilters.tsx |   if (f.porchOnly) out.push( |   if (f.porchOnly && f.ways.length === 0) out.push(
-// @mutate src/components/declutter/DeclutterBrowseView.tsx |         <DeclutterActiveFilters filters={filters} maxMiles={maxMiles} onChange={(next) => { setFilters(next.filters); setMaxMiles(next.maxMiles); }} />\n |
+// @mutate src/components/declutter/DeclutterBrowseView.tsx |         <DeclutterActiveFilters filters={filters} maxMiles={from ? maxMiles : null} onChange={(next) => { setFilters(next.filters); setMaxMiles(next.maxMiles); }} />\n |
 /**
  * F055 (UI audit 11-09): after applying a filter only a tiny "1" on the filter icon said the list was filtered. Every
  * filter that is on now shows as a removable chip above the cards; the count on the icon and the chips agree.
@@ -40,6 +40,6 @@ describe("F055: each filter that is on shows as a removable chip", () => {
   it("Browse draws the chips above the cards", () => {
     const browse = blankComments(readFileSync(join(__dirname, "../components/declutter/DeclutterBrowseView.tsx"), "utf8"));
     expect(browse.length).toBeGreaterThan(1000);
-    expect(browse).toContain("<DeclutterActiveFilters filters={filters} maxMiles={maxMiles} onChange={(next) => { setFilters(next.filters); setMaxMiles(next.maxMiles); }} />");
+    expect(browse).toContain("<DeclutterActiveFilters filters={filters} maxMiles={from ? maxMiles : null} onChange={(next) => { setFilters(next.filters); setMaxMiles(next.maxMiles); }} />");
   });
 });

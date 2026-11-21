@@ -176,6 +176,174 @@
     "line": "Open-ear headphones, so she still hears traffic on a run."
    },
    "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Caraway Whistling Tea Kettle",
+   "set": {
+    "line": "A stovetop kettle pretty enough to leave out on the stove."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Corkcicle Pure Taste Mug",
+   "set": {
+    "line": "A ceramic-lined mug, so the coffee never tastes like metal."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Jellycat Amuseables Croissant Bag Charm",
+   "set": {
+    "line": "A little croissant for her keys or work bag."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Bodum Gooseneck Electric Kettle",
+   "set": {
+    "line": "A gooseneck kettle for a slow, even pour-over."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Bodum Brazil French Press",
+   "set": {
+    "line": "A simple French press for a full pot at home."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "AeroPress XL Coffee Press",
+   "set": {
+    "line": "Makes two smooth cups in about a minute, and it travels well."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Fellow Ode Brew Grinder Gen 2",
+   "set": {
+    "line": "A quiet grinder made for drip and pour-over."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "YETI Rambler Mug",
+   "set": {
+    "line": "Keeps coffee hot through the whole morning."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Community Coffee Dark Roast",
+   "set": {
+    "line": "A dark roast in the big 40 oz bag, enough for the whole month."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "coffee-lover",
+   "match": "Fire Department Coffee Backdraft",
+   "set": {
+    "line": "A bold roast from a company run by firefighters."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "car-lover",
+   "match": "Anker Zolo Magnetic Power Bank",
+   "set": {
+    "line": "Snaps onto the phone to charge it on a long drive."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "car-lover",
+   "match": "Chemical Guys Foam Cannon",
+   "set": {
+    "line": "Covers the truck in thick foam before a hand wash."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "car-lover",
+   "match": "Meguiar's Ultimate Car Care Kit",
+   "set": {
+    "line": "Wash, wax and interior care in one box."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "car-lover",
+   "match": "WeatherTech CupFone Phone Mount",
+   "set": {
+    "line": "Holds the phone steady in a cup holder."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "car-lover",
+   "match": "NOCO Boost Jump Starter",
+   "set": {
+    "line": "Jump-starts a dead battery without a second car."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "splurge",
+   "match": "Coach Cargo Logo Canvas Tote",
+   "set": {
+    "line": "A roomy everyday tote she will carry for years."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "splurge",
+   "match": "YETI Tundra Haul Wheeled Cooler",
+   "set": {
+    "line": "A wheeled cooler that holds ice through a long weekend."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "splurge",
+   "match": "YETI Crossroads 29",
+   "set": {
+    "line": "Hard-wearing checked luggage for a long trip."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "splurge",
+   "match": "Muck Arctic Pro Boot",
+   "set": {
+    "line": "A warm, waterproof boot for cold, wet mornings outside."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "splurge",
+   "match": "BedJet 3 Climate Comfort Sleep System",
+   "set": {
+    "line": "Cools or warms the bed for hot sleepers."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "splurge",
+   "match": "BaubleBar Fallon 14K Gold Bezel Earrings",
+   "set": {
+    "line": "Real gold studs she can wear every day."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
   }
  ],
  "cuts": [
@@ -354,6 +522,16 @@
    "guide": "gift-wrap-and-cards",
    "match": "Meri Meri Nutcracker Gift Tags",
    "why": "audit A #62: the photo is the Maisonette logo (the product page is gone, 404)"
+  },
+  {
+   "guide": "car-lover",
+   "match": "Madewell Mylie Shoulder Bag",
+   "why": "owner 11-20 standard: trim filler; not a car gift"
+  },
+  {
+   "guide": "car-lover",
+   "match": "J.Crew Oversized Cashmere Crewneck Sweater",
+   "why": "owner 11-20 standard: trim filler; not a car gift"
   }
  ],
  "adds": [

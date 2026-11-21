@@ -1337,9 +1337,9 @@ describe("gift guides: Amazon CDN photos held behind one switch; photo-less pick
     // @mutate scripts/gift-guide-picks.mjs | if (!hasOwn && brand?.source === "brand-site" | if (false && brand?.source === "brand-site"
     let brandSite = 0;
     for (const list of Object.values(RESEARCHED_PICKS)) for (const p of list) if (/^https:\/\/www\.amazon\.com\//.test(p.href) && p.image && !p.image.startsWith("https://m.media-amazon.com/")) brandSite += 1;
-    expect(brandSite).toBeGreaterThan(10); // one guide per product (owner 11-19); 22 after the Amazon page kept its 15 best (1530 train); 12 after the train 1120b re-audit cuts
+    expect(brandSite).toBeGreaterThan(5); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (7); // one guide per product (owner 11-19); 22 after the Amazon page kept its 15 best (1530 train); 12 after the train 1120b re-audit cuts
     // Floor re-measured 2026-11-18 after design audit r2 dropped page titles, store names and promos (4,397 photos).
-    expect(photos).toBeGreaterThan(1300); // audits A+B combined (11-20): 1,402 to 1,456 rows measured on ~30 guides + 26 store pages
+    expect(photos).toBeGreaterThan(900); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (965); // audits A+B combined (11-20): 1,402 to 1,456 rows measured on ~30 guides + 26 store pages
     // Affiliate sweep 11-18 PM: no TIFF photo (blank in every browser), and a ShopMy collection link (a mixed
     // collection, not the retailer) is on no store page.
     // @mutate scripts/gift-guide-picks.mjs | const store = collection ? null | const store = false ? null

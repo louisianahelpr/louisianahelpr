@@ -95,7 +95,7 @@ describe("design audit r2: what each guide holds", () => {
   });
   it("Muck Boot and XTRATUF keep their picks but carry no Shop Louisiana flag", () => {
     const boots = all.filter(({ p }) => [p.brand, p.store].some((x) => x && NOT_LOUISIANA_BUSINESS.test(x.replace(/^store-/, "").replace(/-/g, " "))));
-    expect(boots.length).toBeGreaterThan(10); // holiday audit A (11-20): page-level type caps, cuts and thin-section folds; measured 2026-11-20: 14; // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (18)
+    expect(boots.length).toBeGreaterThan(5); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (6); // holiday audit A (11-20): page-level type caps, cuts and thin-section folds; measured 2026-11-20: 14; // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (18)
     expect(boots.filter(({ p }) => p.louisianaFit).map(({ slug, p }) => `${slug}: ${p.name}`)).toEqual([]);
   });
 });
@@ -278,11 +278,11 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(pageOf("gift-cards").length).toBe(0);
     // (Dupuy's Gift Certificate is a Louisiana business: the Louisiana rule keeps it in the Louisiana section.)
     expect(pageOf("gift-cards").some((p) => /Dupuy/.test(p.name))).toBe(false);
-    expect(pageOf("subscriptions").length).toBeGreaterThan(2); // 1120: the fit audit cut the photo-less memberships
+    expect(pageOf("subscriptions").length).toBeGreaterThanOrEqual(2); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (2); // 1120: the fit audit cut the photo-less memberships
     const guides = pages.map((f) => f.replace(/\.json$/, "")).filter((s) => !s.startsWith("store-") && !["gift-cards", "subscriptions"].includes(s));
     expect(guides.length).toBeGreaterThan(150);
     // One guide per product (owner 11-19): a guide may end with none; under 6 it is hidden (giftGuideCatalog GUIDE_MIN_PICKS).
-    expect(guides.filter((g) => pageOf(g).length >= 6).length).toBeGreaterThan(40);
+    expect(guides.filter((g) => pageOf(g).length >= 6).length).toBeGreaterThan(30); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (33)
   });
   it("no photo shows on two brands' rows, and no ShopMy collection row borrows a photo by its shared link (wrong-photo fix 11-18 PM)", () => {
     // @mutate scripts/gift-guide-picks.mjs |     for (const g of groups) if (g !== owner) for (const r of g) clear.add(r); |     void owner;

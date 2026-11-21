@@ -116,7 +116,9 @@ describe("gift guides follow-up 1120", () => {
     // wait for a refill. EXACT (src/test/giftGuideTrain1120b.test.ts holds the same two).
     // 2026-11-20 night: BaubleBar holds 8 (two source picks are gone from its live catalog; a refill needs new items,
     // which need the owner's approval). EXACT: the same exception as giftGuideTrain1120b.test.ts.
-    const SHORT: Record<string, number> = { "store-baublebar": 8 };
+    // Apple and Old Navy hold 9: each one's only plan cut is a second version of a pick already on the page (Apple
+    // Watch SE 3 with cellular; a second SoSoft crew-neck cardigan), which the one-per-brand-and-type rule keeps off.
+    const SHORT: Record<string, number> = { "store-baublebar": 8, "store-apple": 9, "store-old-navy": 9 };
     for (const s of STORE_PAGES_KEPT) {
       const n = CHUNKS.get(s)?.length ?? 0;
       expect(n, s).toBeGreaterThanOrEqual(SHORT[s] ?? 10);

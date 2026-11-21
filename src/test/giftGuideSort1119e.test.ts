@@ -71,7 +71,7 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
     }
     // Follow-up 1120: ~1,500 guide picks on the ~30 guides, measured 2026-11-20 (2,000+ on the 65 guides before).
     expect(picks).toBeGreaterThan(530); // audits A+B combined (11-20): ~1,130 measured
-    expect(known).toBeGreaterThan(1000); // owner standard 11-20 (Healthcare by use): 1,078 measured
+    expect(known).toBeGreaterThan(600); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (649); // owner standard 11-20 (Healthcare by use): 1,078 measured
     expect(bad.slice(0, 10)).toEqual([]);
   });
 

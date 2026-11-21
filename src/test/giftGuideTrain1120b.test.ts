@@ -104,7 +104,7 @@ describe("gift guides train 1120b", () => {
     expect(rows.find((r) => /sprinkle/i.test(r.name))?.logo).toBeUndefined();
   });
 
-  it("Microtel and Wingate appear nowhere; store pages keep 10-15 picks (two dated exceptions)", () => {
+  it("Microtel and Wingate appear nowhere; store pages keep 10-15 picks (three dated exceptions)", () => {
     const everything = [...CHUNKS.values()].map((c) => JSON.stringify(c)).join("\n") + readFileSync("src/content/giftGuideSponsorLogos.json", "utf8") + readFileSync("src/content/giftGuideDeals.json", "utf8");
     expect(everything).not.toMatch(/microtel|wingate/i);
     // 2026-11-20: TJ Maxx's photos are hotlink-blocked (6 out) and JCPenney's house-brand picks are out; both wait for
@@ -112,7 +112,9 @@ describe("gift guides train 1120b", () => {
     // 2026-11-20 night: BaubleBar holds 8. The standard's plan keeps 9 and its only cut from this store (Horseshoe
     // Necklace) and one keep (Disney Stitch Pisa Bracelet) are not in BaubleBar's live catalog, so no pick from the
     // source list can refill it; new items need the owner's approval. EXACT: a refill clears this.
-    const SHORT: Record<string, number> = { "store-baublebar": 8 };
+    // Apple and Old Navy hold 9: each one's only plan cut is a second version of a pick already on the page (Apple
+    // Watch SE 3 with cellular; a second SoSoft crew-neck cardigan), which the one-per-brand-and-type rule keeps off.
+    const SHORT: Record<string, number> = { "store-baublebar": 8, "store-apple": 9, "store-old-navy": 9 };
     for (const s of STORE_PAGES_KEPT) {
       const n = picks(s).length;
       if (SHORT[s] !== undefined) expect(n, s).toBe(SHORT[s]);

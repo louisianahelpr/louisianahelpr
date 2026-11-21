@@ -42,6 +42,7 @@ import { applyPeople } from "./giftGuidePeople1120.mjs";
 import { applyStandard } from "./giftGuideStandard1120.mjs";
 import { applyHer1121 } from "./giftGuideHer1121.mjs";
 import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
+import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
 /** The merged guides whose picks feed For Her and For Him (the people guides and Mom and Dad). */
 const PEOPLE_PARENTS = new Set(PEOPLE_GUIDES.flatMap((g) => [g.slug, ...g.sources]));
 import { BRAND_CODES, CUTS_1120, budgetBand, importRows1120, productKey1120, swapCuts } from "./giftGuideBig1120.mjs";
@@ -4028,7 +4029,7 @@ export const weeklyTop = (() => {
   for (const [slug, n] of Object.entries(goClicks)) if (goMap[slug]?.url) clicksOf.set(goMap[slug].url, Number(n) || 0);
   const popOf = new Map(SORT_POOL.map((e) => [e.p.href, e.pop ?? 0]));
   const guideOf = new Map();
-  const cands = Object.entries(pageList).filter(([slug]) => !slug.startsWith("store-") && slug !== SPONSORS_GUIDE).flatMap(([slug, list]) => list.map((p) => (guideOf.has(p) ? p : (guideOf.set(p, slug), p))))
+  const cands = Object.entries(pageList).filter(([slug]) => isLiveGuide(slug) && !slug.startsWith("store-") && slug !== SPONSORS_GUIDE).flatMap(([slug, list]) => list.map((p) => (guideOf.has(p) ? p : (guideOf.set(p, slug), p))))
     // Only a pick the strip will keep when it is written (TOP_PICKS drops a dropped photo or an audit removal): a pick
     // dropped there left the strip one short (2026-11-21, Rare Beauty's trio).
     .filter((p) => p.image && looksLikeProduct(p) && !droppedPhoto(p.image) && auditFix1120("", p));
@@ -4099,7 +4100,9 @@ console.log(`gift-guide-picks: final sweep ${JSON.stringify(finalSweep)}`);
 }
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
-const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();
+// Owner 11-21 ("launch the 3 guides remove the rest that are live"): only the live guides (src/content/giftGuideLive.mjs)
+// ship a chunk; a retired guide's picks stay in the research data, never in the bundle, the search index or the sitemap.
+const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].filter(isLiveGuide).sort();
 for (const slug of chunkSlugs) {
   writeFileSync(new URL(`${slug}.json`, chunkDir), `${JSON.stringify({ picks: pageList[slug] ?? [], ...(deals[slug]?.length ? { deals: deals[slug] } : {}) })}\n`);
 }

@@ -85,6 +85,8 @@ import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
 import { NoHelprChoice } from "./DeclutterNoHelpr";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { BOOKING_ACTIONS, goToOrderControl } from "./orderControlScroll";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclSell";
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel }))); // Add a Helpr: the buyer's card only (Q178).
 
 /** Every paid order in `cart` (the cart's paid lines). The Buying and Selling tabs pass one side's lines and their own heading (PaidOrders in DeclutterTradeViews). */
@@ -95,6 +97,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   /** Which orders the chosen chip shows (all when absent). */
   show?: (orderId: string) => boolean;
 }) {
+  useLanguage(); // audit 11-20 night Low 6: the card's own words follow the member's language (dho.*)
   const { user, profile } = useCurrentUser();
   const userId = user?.id ?? "";
   const orders = paidOrdersFromCart(cart);
@@ -130,7 +133,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   // whole.
   const cardsWait = waitingOnReads || !problemsAnswered;
   if (bookings.isError) {
-    return <ErrorState variant="inline" title="We couldn't load your pickups." body={declutterErrorMessage(bookings.error)} onRetry={() => void bookings.refetch()} />;
+    return <ErrorState variant="inline" title={t("dho.loadErr")} body={declutterErrorMessage(bookings.error)} onRetry={() => void bookings.refetch()} />;
   }
   return (
     // Audit 11-10 F407: at 1440 each card stretched ~1,590px, the price stranded far from its title; capped like a reading column.
@@ -139,9 +142,9 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
     // pushed Offers off screen: Selling CLS 0.42-0.78 at 375). Until both reads answer, the section holds a card's
     // height (16rem, as PaidOrdersLoading's boxes) for each of its first 4 cards, so the cards grow into kept space.
     // Guard: paidOrdersWaitForBookings.
-    <section className="max-w-3xl space-y-3" aria-label={label ?? "Paid sales"} data-paid-orders-reserve={waitingOnReads ? "" : undefined} aria-busy={cardsWait || undefined}
+    <section className="max-w-3xl space-y-3" aria-label={label ?? t("dho.paidSales")} data-paid-orders-reserve={waitingOnReads ? "" : undefined} aria-busy={cardsWait || undefined}
       style={waitingOnReads ? { minHeight: `${Math.min(4, shown.length) * 16.75 + 2}rem` } : undefined}>
-      {heading ?? <h2 className="text-base font-semibold">Paid: pickup and handover</h2>}
+      {heading ?? <h2 className="text-base font-semibold">{t("dho.paidTitle")}</h2>}
       {cardsWait && shown.slice(0, 4).map((o) => <div key={o.orderId} className="h-64 rounded-[20px] border border-border bg-card" data-paid-order-bones="" aria-hidden />)}
       {!cardsWait && shown.map((o) => (
         <OrderCard
@@ -163,6 +166,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
 }
 
 function OrderCard({ order, userId, booking, payout, holdUnknown = false, payoutReady = true, setupPaused = true, view, problem, linked }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; holdUnknown?: boolean; payoutReady?: boolean; setupPaused?: boolean; view?: BuyerOrderView; problem: OpenProblem | null; linked: boolean }) {
+  useLanguage();
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const done = order.status === "handed_over";
@@ -260,7 +264,7 @@ function OrderCard({ order, userId, booking, payout, holdUnknown = false, payout
             {payout.status === "failed" && <FailedPayoutLink />}</p>}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>
-              <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={problem ? null : <ProblemForm orderId={order.orderId} side={order.side} stage="handover" triggerLabel="Ask Louisiana Helpr to look" />} />
+              <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={problem ? null : <ProblemForm orderId={order.orderId} side={order.side} stage="handover" triggerLabel={t("dho.askLook")} />} />
             </Suspense>
           )}
           {order.side === "buyer" && !refundRequests && !problem && <BuyerCheckWindow orderId={order.orderId} />}
@@ -287,7 +291,7 @@ function OrderCard({ order, userId, booking, payout, holdUnknown = false, payout
           {order.side === "seller" && <SellerDeliveryMoney itemsCents={items} problemOpen={!!problem} />}
           {order.deliveryTaskId
             ? <Suspense fallback={<HelprSpinner />}><OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} askGot={askGot} problemForm={!problem} /></Suspense>
-            : <p className="text-sm text-muted-foreground">Finding a Helpr for this delivery.</p>}
+            : <p className="text-sm text-muted-foreground">{t("dho.findingHelpr")}</p>}
           {/* BUY-22 / D2-9: the panel holds "Report a problem" until a Helpr has it or their pickup time is over
               (deliveryProblemTimeCame); still finding a Helpr, none. */}
         </>
@@ -295,7 +299,7 @@ function OrderCard({ order, userId, booking, payout, holdUnknown = false, payout
         <>
           {/* D-NEW11: the seller's side of "I'm on my way". The notice can be missed; the card says it too. */}
           {order.side === "seller" && !problem && buyerOnWayToday(booking) && (
-            <p className="text-sm font-semibold text-[hsl(var(--sage-ink))]" role="status" data-buyer-on-way="">Your buyer is on the way.</p>
+            <p className="text-sm font-semibold text-[hsl(var(--sage-ink))]" role="status" data-buyer-on-way="">{t("dho.buyerOnWay")}</p>
           )}
           {/* Q2425: a safe-spot meetup shows the public place, never the seller's home address. */}
           {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />}
@@ -341,6 +345,7 @@ function OrderCard({ order, userId, booking, payout, holdUnknown = false, payout
 }
 
 function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen, onProblem }: { order: PaidOrder; userId: string; slotStart: string; anyProblem: boolean; who: string; problemOpen: boolean; onProblem: () => void }) {
+  useLanguage();
   const qc = useQueryClient();
   // BUY-17 (owner 11-03): a porch buyer's "I got it" waits for the porch photo (set_out_at) whatever the day; see
   // GotItWaitsForPorchPhoto. The same handover row and key PorchOutPhoto reads, so nothing is read twice.
@@ -353,14 +358,14 @@ function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen,
   // LEAD-DOOR-PAYLINE: when the seller is paid is said once, in the sale card's money note (sellerPayoutRule, owner
   // 10-30 "Declutter handover money"). This line said it again and read as "paid 24 hours after Picked up". A free
   // claim has no money note, so it says what finishes the handover.
-  const rule = (how: string) => free ? <p className="text-sm text-muted-foreground">The handover is when {how}.</p> : null;
+  const rule = (words: string) => free ? <p className="text-sm text-muted-foreground">{words}</p> : null;
   const [photo, setPhoto] = useState<File | null>(null);
   const [asking, setAsking] = useState(false);
   const confirm = useMutation({
     mutationFn: () => confirmHandover(order.orderId),
     onSuccess: () => {
       markReviewPrompt(order.orderId);
-      toast("Handover done. Enjoy your item.");
+      toast(t("dho.done"));
       setAsking(false);
       invalidate(qc, order.orderId);
     },
@@ -385,28 +390,28 @@ function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen,
     if (anyProblem) return null;
     // Q2425: at a safe meeting spot the seller hands it over as at the door ("Picked up").
     if (order.handover !== "pickup_home" && order.handover !== "meetup") {
-      return rule('the buyer taps "I got it" or takes their pickup photo, or 24 hours after the later of the pickup time and your porch photo, if no problem is reported');
+      return rule(t("dho.rule.porch"));
     }
     const fileId = `dcl-door-${order.orderId}`;
     // Q2632 (audit 1102c R7): at a safe meeting spot the seller hands it over: "Handed over", "from the meeting time".
     const meet = order.handover === "meetup";
-    const done = meet ? "Handed over" : "Picked up";
-    const from = meet ? "the meeting time" : "the pickup time";
+    const done = meet ? t("dho.handedOver") : t("dho.pickedUp");
+    const from = meet ? t("dho.meetingTime") : t("dho.pickupTime");
     // A buyer's no-show report: the card's answer is the seller's way forward (the server refuses Picked up: no_show_reported).
     if (handoverRow.data?.no_show_reported_at) return null;
     // Owner 10-30: the seller's word waits for the buyer. Said once; toasts for a confirmation show nothing (toastPolicy).
     if (handoverRow.data?.seller_confirmed_at && !free) {
-      return <p role="status" className="text-sm text-foreground" data-seller-confirmed="">{`You said it was ${meet ? "handed over" : "picked up"}. We asked the buyer to confirm. If they don't say anything, you're paid in about 48 hours. If they report a problem, Louisiana Helpr decides.`}</p>;
+      return <p role="status" className="text-sm text-foreground" data-seller-confirmed="">{t(meet ? "dho.saidHanded" : "dho.saidPicked")}</p>;
     }
     // From the booked time only (the server checks again: before_pickup_time).
     if (Date.now() < new Date(slotStart).getTime()) {
-      return free ? rule(`the buyer taps "I got it" or you tap "${done}", from ${from}`)
-        : <p className="text-sm text-muted-foreground">{`You can tap "${done}" from ${from}.`}</p>;
+      return free ? rule(t("dho.rule.from", { done, from }))
+        : <p className="text-sm text-muted-foreground">{t("dho.canTapFrom", { done, from })}</p>;
     }
     return (
       <div className="space-y-2">
-        {rule(`the buyer taps "I got it" or you tap "${done}"`)}
-        <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional, taken where you hand it over)</label>
+        {rule(t("dho.rule.now", { done }))}
+        <label htmlFor={fileId} className="block text-xs font-medium">{t("dho.photoLabel")}</label>
         <PhotoPickButton id={fileId} picked={photo} disabled={pickedUp.isPending} onPick={setPhoto} />
         <Button type="button" variant="primary" size="sm" disabled={pickedUp.isPending} onClick={() => setAsking(true)}>
           {done}
@@ -425,13 +430,13 @@ function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen,
   // here_from_minutes_before).
   if ((order.handover === "meetup" || order.handover === "pickup_home") && !gotItOpen(slotStart)) {
     // Audit 11-10 F384: say WHEN the button appears, not only "an hour before".
-    return <p className="text-sm text-muted-foreground" data-got-it-wait="">The "I got it" button appears {orderWhen(gotItOpensAt(slotStart))}, an hour before the {order.handover === "meetup" ? "meeting" : "pickup"} time.</p>;
+    return <p className="text-sm text-muted-foreground" data-got-it-wait="">{t(order.handover === "meetup" ? "dho.appearsMeet" : "dho.appearsPickup", { when: orderWhen(gotItOpensAt(slotStart)) })}</p>;
   }
   // Audit 1028 D1-12: its own block, so "I got it" never sits edge to edge with "Report a problem" below it.
   return (
     <div>
       <Button type="button" variant="primary" size="sm" disabled={confirm.isPending} onClick={() => setAsking(true)}>
-        I got it
+        {t("dho.gotIt")}
       </Button>
       <GotItSheet
         open={asking}
@@ -448,6 +453,7 @@ function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen,
 }
 
 function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; userId: string; booking: MyBooking; who: string; held: boolean }) {
+  useLanguage();
   const qc = useQueryClient();
   const free = order.lines.every((l) => l.price_cents === 0); // #6: no pay words on a free claim
   // LEAD-PORCH-SR: while a problem holds the money, the photo pays nobody; its label and hint stop saying it does.
@@ -470,7 +476,7 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
   const [shot, setShot] = useState<File | null>(null);
   const timing = useMutation({
     mutationFn: (v: { mode: "all_day" | "until"; iso: string | null }) => setPorchTime(order.orderId, v.mode, v.iso),
-    onSuccess: () => { toast("Saved."); invalidate(qc, order.orderId); },
+    onSuccess: () => { toast(t("dho.saved")); invalidate(qc, order.orderId); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const photo = useMutation({
@@ -485,11 +491,11 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
       let noteProblem: string | null = null;
       if (r.result === "set_out" && order.side === "seller") {
         try {
-          if ((await porchNote(order.orderId, note ?? "")) === "not_deployed" && note) noteProblem = "Your note couldn't be saved yet.";
+          if ((await porchNote(order.orderId, note ?? "")) === "not_deployed" && note) noteProblem = t("dho.noteNotYet");
         } catch (err) {
           // The photo is in and the buyer is told; only the note failed. Say why, and keep the error in the logs.
           console.warn("[declutter] porch note not saved", err);
-          noteProblem = `Your note wasn't saved: ${declutterErrorMessage(err)}`;
+          noteProblem = t("dho.noteNotSaved", { why: declutterErrorMessage(err) });
         }
       }
       return { ...r, noteProblem };
@@ -497,10 +503,10 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
     onSuccess: (r) => {
       setPreview(null);
       setShot(null);
-      if (r.result === "set_out") toast(r.noteProblem ? `Left on porch. The buyer is told. ${r.noteProblem}` : "Left on porch. The buyer is told.");
-      else if (free) toast("Picked up. Enjoy it.");
-      else if (r.paid === false) toast("Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid.");
-      else toast("Picked up. If something is wrong, you can ask for a refund within 24 hours.");
+      if (r.result === "set_out") toast(r.noteProblem ? t("dho.leftOnPorchNote", { note: r.noteProblem }) : t("dho.leftOnPorch"));
+      else if (free) toast(t("dho.pickedFree"));
+      else if (r.paid === false) toast(t("dho.pickedHeld"));
+      else toast(t("dho.pickedRefund"));
       invalidate(qc, order.orderId);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -514,33 +520,33 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
           {/* Area 06 M4 (design audit 11-18): the booked line above already names the time, so "out until <time>" is said
               only once the porch photo is up (until then it repeated the same time a third way). */}
           {!(booking.porch_until && booking.porch_mode !== "all_day" && !posted) && <p className="text-sm" data-porch-out-line="">
-            {booking.porch_mode === "all_day" ? "You said it's out all day." : booking.porch_until ? `You said it's out until ${when(booking.porch_until)}.` : "When will it be out?"}
+            {booking.porch_mode === "all_day" ? t("dho.outAllDaySaid") : booking.porch_until ? t("dho.outUntilSaid", { when: when(booking.porch_until) }) : t("dho.whenOut")}
           </p>}
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" disabled={timing.isPending} onClick={() => timing.mutate({ mode: "all_day", iso: null })}>Out all day</Button>
-            <FoldedTimePicker id={`dcl-out-${order.orderId}`} openLabel="Out until a time…" title="Out until" fieldLabel="Out until"
-              confirmLabel="Out until then" pending={timing.isPending} onConfirm={(iso) => timing.mutate({ mode: "until", iso })} />
+            <Button type="button" variant="outline" size="sm" disabled={timing.isPending} onClick={() => timing.mutate({ mode: "all_day", iso: null })}>{t("dho.outAllDay")}</Button>
+            <FoldedTimePicker id={`dcl-out-${order.orderId}`} openLabel={t("dho.outUntilOpen")} title={t("dho.outUntil")} fieldLabel={t("dho.outUntil")}
+              confirmLabel={t("dho.outUntilThen")} pending={timing.isPending} onConfirm={(iso) => timing.mutate({ mode: "until", iso })} />
           </div>
         </>
       )}
       {buyerWaits ? null : notYet ? (
         // Night audit sold states #3: the card's status line already says "Put it out <day> and post the porch photo";
         // this one says only what is not there yet.
-        <p className="text-sm" data-porch-not-yet="">You can take the porch photo {onDay(photoDay as string)}.</p>
+        <p className="text-sm" data-porch-not-yet="">{t("dho.porchNotYet", { day: onDay(photoDay as string) })}</p>
       ) : (<>
       <label htmlFor={fileId} className="sr-only">
-        {order.side === "seller" ? `Photo of the item on your porch ("Left on porch"${payWords ? ": needed before you can be paid automatically)" : ")"}` : `Photo when you pick it up, taken at the address ("Picked up"${payWords ? ": this pays the seller 24 hours later)" : ")"}`}
+        {t(order.side === "seller" ? (payWords ? "dho.sr.sellerPay" : "dho.sr.seller") : (payWords ? "dho.sr.buyerPay" : "dho.sr.buyer"))}
       </label>
       {/* The shops' handover pattern (ShopHandoverActions): a hidden camera input opened by a real button. */}
       <HiddenFileInput id={fileId} accept="image/*" capture="environment" tabIndex={-1} disabled={photo.isPending}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (order.side === "seller") setPreview(f); else setShot(f); } e.target.value = ""; }} />
       <Button type="button" variant={order.side === "seller" && !posted ? "primary" : "outline"} size="sm" disabled={photo.isPending}
         onClick={() => document.getElementById(fileId)?.click()}>
-        {photo.isPending ? "Saving…" : order.side === "seller" ? (posted ? "Retake the porch photo" : "Take the porch photo") : "Take your pickup photo"}
+        {photo.isPending ? t("dho.saving") : order.side === "seller" ? (posted ? t("dho.retake") : t("dho.takePorch")) : t("dho.takePickup")}
       </Button>
       {!posted && (
         <p className="text-ds-12 text-muted-foreground">
-          {order.side === "seller" ? `One photo where the buyer will find it, taken at your address.${payWords ? " You need it before you can be paid automatically." : ""}` : `Taken at the address. It tells the seller you have it${payWords ? "; they're paid 24 hours later." : "."}`}
+          {t(order.side === "seller" ? (payWords ? "dho.hint.sellerPay" : "dho.hint.seller") : (payWords ? "dho.hint.buyerPay" : "dho.hint.buyer"))}
         </p>
       )}
       {!seller && (

@@ -5,11 +5,17 @@
  * into a notification, push or email that another member reads (Q2292). Staff screens keep full names.
  */
 import { caughtMessage } from "./caughtMessage.ts";
+/** A name suffix ("Jr.", "III"): never the last initial. */
+const NAME_SUFFIX = /^(jr|sr|ii|iii|iv|v)\.?,?$/i;
 export function memberDisplayName(fullName: string | null | undefined, fallback = "A neighbor"): string {
+  // The first word as is; after it, bracketed text is dropped and a suffix is never the initial (Jobs audit 11-21,
+  // G9; the same rule as formatName and public.member_display_name, 20261121233442).
   const parts = (fullName ?? "").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return fallback;
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${Array.from(parts[parts.length - 1])[0]}.`;
+  const rest = parts.slice(1).join(" ").replace(/\([^)]*\)/g, " ").split(" ").filter(Boolean);
+  if (rest.length === 0) return parts[0];
+  const last = [...rest].reverse().find((w) => !NAME_SUFFIX.test(w)) ?? rest[rest.length - 1];
+  return `${parts[0]} ${Array.from(last)[0]}.`;
 }
 
 /** What a deleted member is called in another member's notice (src/lib/deletedPerson.ts FORMER_MEMBER_LABEL, in a sentence). */

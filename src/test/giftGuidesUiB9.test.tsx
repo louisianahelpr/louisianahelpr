@@ -19,7 +19,7 @@
  * @mutate src/content/giftGuideCatalog.ts | (label.get(g.row) ?? []).includes(w)); | (label.get(g.row) ?? []).some((x) => x.includes(w)));
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <AgeChips slug={guide.slug} /> |
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <GiftOut href={pick.href} className="gg-item" data-gift-title-link=""> | <GiftOut href={pick.href} className="gg-item">
- * @mutate src/pages/info/GiftGuides.tsx | wrapTitle={!banner} backTo= | wrapTitle={!banner} hideBack={!guide} backTo=
+ * @mutate src/pages/info/GiftGuides.tsx | data-gift-back-to={backTo}><BackButton to={backTo} /> | data-gift-back-to={guide ? backTo : "hidden"}><BackButton to={backTo} />
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | className={label ? "gg-name" : "gg-name sr-only"} | className="gg-name"
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -170,11 +170,11 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
   // Owner 11-21 ("title on left with back arrow on the left of the title", like the other pages): the landing's back
   // arrow goes home; every other page's to the landing.
   it("the landing's back arrow goes home; a guide's goes to the landing", () => {
-    expect(renderAt("/gift-guides").container.querySelector("[data-test-back]")?.getAttribute("data-test-back")).toBe("/");
+    expect(renderAt("/gift-guides").container.querySelector("[data-gift-back-to]")?.getAttribute("data-gift-back-to")).toBe("/");
     cleanup();
-    expect(renderAt("/gift-guides/mom").container.querySelector("[data-test-back]")?.getAttribute("data-test-back")).toBe("/gift-guides");
+    expect(renderAt("/gift-guides/mom").container.querySelector("[data-gift-back-to]")?.getAttribute("data-gift-back-to")).toBe("/gift-guides");
     cleanup();
-    expect(renderAt("/gift-guides?group=by-person").container.querySelector("[data-test-back]")?.getAttribute("data-test-back")).toBe("/gift-guides");
+    expect(renderAt("/gift-guides?group=by-person").container.querySelector("[data-gift-back-to]")?.getAttribute("data-gift-back-to")).toBe("/gift-guides");
   });
 
   // Owner 11-21: "they don't need an option to heart the whole guide": no tile carries a heart.

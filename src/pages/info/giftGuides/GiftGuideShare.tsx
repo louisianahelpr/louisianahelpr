@@ -36,6 +36,60 @@ const Icon = ({ d, fill = "none" }: { d: string; fill?: string }) => (
 );
 const HEART = "M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.7 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.5 0 5.8 3.4 4.5 6.8-1.8 4.6-9.3 9.2-9.3 9.2z";
 const SHARE = "M12 15V3.5M7.5 8 12 3.5 16.5 8M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5";
+const SLIDERS = "M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4";
+
+/** A sort order the owner-list guides offer (src/content/giftGuidePriceSort.ts). */
+type SortOrder = "low" | "high";
+
+/**
+ * Sort by price (owner 2026-11-21: "add the filter button up with the search icons"): one 44px icon in the tool row
+ * that opens a small menu with "Price: low to high" (the default) and "Price: high to low", each a menuitemradio.
+ * Escape or a tap outside closes it; arrow keys move between the two choices.
+ */
+function GiftGuideSort({ order, onChange }: { order: SortOrder; onChange: (o: SortOrder) => void }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLSpanElement>(null);
+  const items = useRef<(HTMLButtonElement | null)[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    items.current[order === "low" ? 0 : 1]?.focus();
+    const away = (e: Event) => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open, order]);
+  const choices: { value: SortOrder; label: string }[] = [{ value: "low", label: G.sortLowHigh }, { value: "high", label: G.sortHighLow }];
+  const move = (e: React.KeyboardEvent, i: number) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    items.current[(i + 1) % 2]?.focus();
+  };
+  return (
+    <span ref={wrap} className="gg-share-wrap">
+      <RoundIconButton className="gg-icon" aria-label={G.sortLabel} aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)} data-gift-sort-button="">
+        <Icon d={SLIDERS} />
+      </RoundIconButton>
+      {open && (
+        <span className="gg-share-menu" role="menu" aria-label={G.sortLabel} data-gift-sort-menu="">
+          {choices.map((c, i) => (
+            <button key={c.value} type="button" role="menuitemradio" aria-checked={order === c.value} ref={(el) => { items.current[i] = el; }}
+              onKeyDown={(e) => move(e, i)} onClick={() => { onChange(c.value); setOpen(false); }} data-gift-sort-choice={c.value}>
+              <span className="gg-sort-check" aria-hidden="true">{order === c.value ? "✓" : ""}</span>{c.label}
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
+  );
+}
 
 /**
  * Share (owner redesign 11-18 PM: "Text the guides should be under share right?"): one icon; tapping it opens a small
@@ -113,7 +167,7 @@ function MyListIcon({ current }: { current: boolean }) {
  * The one slim row under every title (owner redesign 11-18 PM): a search field over every guide, My list (with its
  * count) and Share. Nothing else: no pill buttons, no Codes (a page section now).
  */
-export function GiftGuideTools({ path, title, image, many = false, myList = false }: { path: string; title: string; image?: string; many?: boolean; myList?: boolean }) {
+export function GiftGuideTools({ path, title, image, many = false, myList = false, sort }: { path: string; title: string; image?: string; many?: boolean; myList?: boolean; sort?: { order: SortOrder; onChange: (o: SortOrder) => void } }) {
   const [query, setQuery] = useState("");
   const found = query.trim() ? searchGuides(query) : [];
   // Holistic review 11-18 H5: product names too ("airpods"), from an index fetched on the first keystroke.
@@ -162,6 +216,7 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
           </ul>
         )}
       </div>
+      {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />}
       <MyListIcon current={myList} />
       <GiftGuideShare path={path} title={title} image={image} many={many} />
     </div>

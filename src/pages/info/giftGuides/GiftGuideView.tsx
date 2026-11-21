@@ -13,9 +13,8 @@ import { HINTS, WISH } from "@/content/giftWishList";
 import { Hint } from "./GiftHint";
 import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/ToggleChip";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { sortByPrice, type PriceOrder } from "@/content/giftGuidePriceSort";
-import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
+import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { AgeChips } from "./GiftGuideAges";
 import { PeopleChips } from "./GiftGuidePeopleChips";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
@@ -139,6 +138,36 @@ const sectionNav = (picks: CatalogPick[]) => {
   return out;
 };
 
+/**
+ * The price sections of the owner-list guides (owner 2026-11-21: "they all need to be sorted in sections by price"):
+ * Under $25, $25-$50, $50-$100, $100 and up, by the price the row SHOWS (rounded to the dollar, as "~$25" reads), and
+ * a last "Price coming soon" for a pick with no shown price. The picks arrive already in price order (low to high or
+ * reversed), so each section keeps that order and the sections follow it; an empty section never draws.
+ */
+const PRICE_SECTIONS = [
+  { id: "under-25", max: 25 },
+  { id: "25-to-50", max: 50 },
+  { id: "50-to-100", max: 100 },
+  { id: "100-and-up", max: Infinity },
+] as const;
+const priceSectionOf = (p: CatalogPick): string => {
+  if (!showsPrice(p)) return "price-soon";
+  const dollars = Math.max(1, Math.round(p.price ?? 0));
+  return PRICE_SECTIONS.find((s) => dollars < s.max)!.id;
+};
+const priceSections = (picks: CatalogPick[]): CatalogPick[] => {
+  const priced = picks.filter((p) => priceSectionOf(p) !== "price-soon");
+  const soon = picks.filter((p) => priceSectionOf(p) === "price-soon");
+  // Stable group-by in the order the sections first appear (low to high, or high to low when reversed).
+  const order: string[] = [];
+  for (const p of priced) { const id = priceSectionOf(p); if (!order.includes(id)) order.push(id); }
+  const grouped = order.flatMap((id) => priced.filter((p) => priceSectionOf(p) === id));
+  return [...grouped, ...soon].map((p) => {
+    const id = priceSectionOf(p);
+    return { ...p, sectionId: id, section: G.priceSection[id as keyof typeof G.priceSection] };
+  });
+};
+
 /** The budget filter's choices (owner-approved 11-19 9:05 PM): picks whose band is at most this. */
 export const BUDGETS = [25, 50, 100] as const;
 /** The picks a budget keeps: a known band at most the budget (the owner-list guides carry none: they sort by price instead). */
@@ -170,11 +199,12 @@ export const sectionLabel = (guide: Pick<CatalogGuide, "title">, title: string, 
   return title;
 };
 
-function GiftGuideList({ guide }: { guide: CatalogGuide }) {
+function GiftGuideList({ guide, order = "low" }: { guide: CatalogGuide; order?: PriceOrder }) {
   const [shown, setShown] = useState(PICKS_PAGE);
   const [budget, setBudget] = useState<number | null>(null);
-  // Her, Him, Kids and their relationship views (owner 11-21): low to high is the list as imported.
-  const [order, setOrder] = useState<PriceOrder>("low");
+  // Her, Him, Kids and their relationship views (owner 11-21): low to high is the list as imported. The order is chosen
+  // in the header's Sort by price menu (GiftGuideSort); a new order draws the list from its top again.
+  useEffect(() => { setShown(PICKS_PAGE); }, [order]);
   const sortable = isOwnerList(guide.slug);
   const ready = picksReady(guide.slug);
   // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.
@@ -200,7 +230,11 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
   const related = guide.empty ? relatedGuides(guide) : [];
   const banded = guide.picks.filter((p) => p.band !== undefined).length;
   const inBudget = withinBudget(guide.picks, budget);
-  const picks = sortable ? sortByPrice(inBudget, order) : inBudget;
+  // Owner 2026-11-21 ("they all need to be sorted in sections by price"; supersedes "one flat list"): Her, Him, Kids
+  // and their views list their picks in price sections (priceSections), low to high or reversed by the sort control.
+  const picks = sortable ? priceSections(sortByPrice(inBudget, order)) : inBudget;
+  const sectionCount = new Map<string, number>();
+  if (sortable) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
   // Six or fewer left: draw them all, no "Show more (1 more)" (design audit r2 #16).
   const upTo = picks.length - shown <= SHOW_ALL_UNDER ? picks.length : shown;
   const left = picks.length - upTo;
@@ -211,8 +245,14 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
     return rows.length ? [{ title: head ? r.title : undefined, id: head ? r.id : undefined, picks: { start: r.picks.start + (r.picks.rows.length - rows.length), rows } }] : [];
   });
   const draw = (from: number, to: number) => runs(from, to).map(({ title, id, picks: run }, i) => (
-        <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""} id={id ? `gg-sec-${id}` : undefined} className={id ? "gg-sec" : undefined}>
-          {title && <h3 className="gg-sec-title">{nav.length > 1 ? sectionLabel(guide, title, id) : title}</h3>}
+        <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""} id={id ? `gg-sec-${id}` : undefined} className={id ? "gg-sec" : undefined}
+          aria-labelledby={title && id ? `gg-sec-${id}-title` : undefined}>
+          {title && (
+            <h3 className="gg-sec-title" id={id ? `gg-sec-${id}-title` : undefined}>
+              {nav.length > 1 ? sectionLabel(guide, title, id) : title}
+              {sortable && id && <span className="gg-sec-count" data-gift-section-count="">{G.priceSectionCount(sectionCount.get(id) ?? 0)}</span>}
+            </h3>
+          )}
           <ol className="gg-list" data-gift-list="" style={run.start > 1 ? { counterReset: `gg ${run.start - 1}` } : undefined}>
             {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
           </ol>
@@ -227,17 +267,6 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
             <a key={s.id} href={`/gift-guides/${guide.slug}#${s.id}`} className="gg-chip" data-gift-section-link={s.id} onClick={(e) => { e.preventDefault(); window.history.replaceState(window.history.state, "", `#${s.id}`); jump(s.id); }}>{sectionLabel(guide, s.title, s.id)}</a>
           ))}
         </nav>
-      )}
-      {sortable && guide.picks.length > 1 && (
-        <div className="gg-sort" data-gift-sort="">
-          <SegmentedControl<PriceOrder>
-            ariaLabel={G.sortLabel}
-            value={order}
-            onChange={(o) => { setOrder(o); setShown(PICKS_PAGE); }}
-            labelSize="md"
-            options={[{ value: "low", label: G.sortLowHigh }, { value: "high", label: G.sortHighLow }]}
-          />
-        </div>
       )}
       {banded >= BUDGET_MIN_PICKS && <Hint id="budget">{HINTS.budget}</Hint>}
       {banded >= BUDGET_MIN_PICKS && (
@@ -343,7 +372,7 @@ function StoreDeals({ guide }: { guide: CatalogGuide }) {
 /** The guide where the Hire-a-Helpr box sits at the TOP (owner 2026-11-18). */
 const GIFT_WRAP_GUIDE = "gift-wrap-and-cards";
 
-export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
+export function GiftGuideView({ guide, order = "low" }: { guide: CatalogGuide; order?: PriceOrder }) {
   // PERF: the guide's picks are its own lazy chunk; re-render when it lands.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
   useEffect(() => {
@@ -378,7 +407,7 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
       ))}
       {/* Owner 11-21 ("Codes and deals shouldn't randomly show in sections"): no "Deals & codes" box on any guide page;
           the codes and sales live only on the deals page, which the left menu opens. */}
-      <GiftGuideList key={guide.slug} guide={guide} />
+      <GiftGuideList key={guide.slug} guide={guide} order={order} />
       {picksReady(guide.slug) && <StoreDeals key={`deals ${guide.slug}`} guide={guide} />}
       {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
     </article>

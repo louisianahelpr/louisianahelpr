@@ -40,7 +40,6 @@ export function GiftGuidesWords({ lead, title, titleId, tools, tint }: { lead: s
           <div className="gg-arch" data-gift-arch="">
             <p className="gg-lead">{lead}</p>
             <h1 id={titleId}>{title}</h1>
-            <p className="gg-arch-foot">Louisiana Helpr</p>
           </div>
         </div>
         {tools}

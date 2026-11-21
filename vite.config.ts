@@ -1501,10 +1501,11 @@ export default defineConfig(({ mode, command }) => ({
             // GiftGuideHelpr writes its one param out instead). Guard: src/test/publicPagesSkipSignedInChunks.test.ts.
             // The covers' content hashes (src/lib/giftGuideCoverVersions.mjs, ~3 KB, no imports, 2026-11-21) ride here too: in
             // signed-in-deep they put /gift-guides/<slug> at 593 KB gz on the critical path (budget 336; #4857 bundle-size run).
-            // src/lib/retailerCart.ts (the gift lists' Amazon add-to-cart link, no imports beyond the store tag, 11-21) rides here for the same reason.
+            // src/lib/retailerCart.ts (the gift lists' Amazon add-to-cart link, 11-21) and src/lib/wishLinks.ts (a pasted store link
+            // or idea on a gift list, 11-21) ride here for the same reason.
             {
               name: "public-page-reads",
-              test: /[\\/]src[\\/](lib[\\/](sponsor[\\/](api|dates|placeholders)|giftGuideFunApi|giftWishListApi|giftNameClean|retailerCart)|content[\\/](sponsorPage|giftGuideFun1120))\.ts$|[\\/]src[\\/]lib[\\/]giftGuideCoverVersions\.mjs$|[\\/]src[\\/]lib[\\/]pickPriceShown\.mjs$/,
+              test: /[\\/]src[\\/](lib[\\/](sponsor[\\/](api|dates|placeholders)|giftGuideFunApi|giftWishListApi|giftNameClean|retailerCart|wishLinks)|content[\\/](sponsorPage|giftGuideFun1120))\.ts$|[\\/]src[\\/]lib[\\/]giftGuideCoverVersions\.mjs$|[\\/]src[\\/]lib[\\/]pickPriceShown\.mjs$/,
               priority: 16.7,
               minSize: 0,
               includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,

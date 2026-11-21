@@ -118,7 +118,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     }
     for (const [slug, list] of guideChunks) if (!GUIDE_MERGES.some((m) => m.parent === slug) && list.length > SECTION_CAP) bad.push(`${slug}: ${list.length} picks`);
     // Follow-up 1120: 80 sections on the ~30 guides, measured 2026-11-20 (more on the 65 guides before).
-    expect(sections).toBeGreaterThan(60);
+    expect(sections).toBeGreaterThan(40); // audits A+B combined (11-20): 51 measured, sections under 10 merged
     expect(bad).toEqual([]);
   });
 
@@ -138,7 +138,7 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       }
     }
     // Follow-up 1120: ~1,500 guide picks on the ~30 guides, measured 2026-11-20 (2,000+ on the 65 guides before).
-    expect(n).toBeGreaterThan(1150); // holiday audit A (11-20): page-level type caps, cuts and thin-section folds; measured 2026-11-20: 1,255
+    expect(n).toBeGreaterThan(1000); // audits A+B combined (11-20): 1,131 measured
     expect(bad.slice(0, 10)).toEqual([]);
   });
 

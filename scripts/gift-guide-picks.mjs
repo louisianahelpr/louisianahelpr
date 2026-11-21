@@ -29,6 +29,8 @@ import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { applyTrain1120b } from "./giftGuideTrain1120b.mjs";
 import { applyTrain1120c } from "./giftGuideTrain1120c.mjs";
+import { applyHolidayB1120 } from "./giftGuideHolidayB1120.mjs";
+import { readLineup, shortName as shortSponsorName } from "./gift-guide-sponsor-logos.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { applyBudgetCaps } from "./giftGuideBudgetCaps.mjs";
 import { applyTrain1120d } from "./giftGuideTrain1120d.mjs";
@@ -3909,17 +3911,36 @@ const fillPrices = () => {
   const t = applyBudgetCaps(pageList, spec);
   console.log(`gift-guide-picks: budget caps ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT DONE (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
 }
+/** A folded section's old id -> its new one, per guide (audit B's folds, then train 1120d's). */
+export const SECTION_ALIASES = {};
+/**
+ * HOLIDAY AUDIT B (2026-11-20): shopper-only lines, the dropped sponsor, sponsor cards that show gifts, every 25 Days
+ * sponsor on the sponsors guide, the deals' blocked retailers and the audit's cuts, moves and photo fixes
+ * (scripts/giftGuideHolidayB1120.mjs, rules in scripts/gift-guide-holiday-b-1120.json). Before train 1120d, so the page caps, the under-10 fold and the 25 cap hold on what it adds, moves and joins;
+ * train 1120d's own adds carry shopper lines (guarded by giftGuideHolidayB1120.test.ts).
+ */
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-holiday-b-1120.json", import.meta.url), "utf8"));
+  const { brands } = readLineup(readFileSync(new URL("../src/content/sponsorPage.ts", import.meta.url), "utf8"));
+  const lineup = [...new Set(brands.map(shortSponsorName))];
+  const t = applyHolidayB1120(pageList, deals, spec, { sponsorsGuide: SPONSORS_GUIDE, readJson, sales, storePages: [...STORE_PAGES_KEPT], nameOnly: NAME_ONLY, dealCodes, lineup, blockedBrand, merges: GUIDE_MERGES, anchors: SECTION_ANCHORS, sortFixed: SORT_FIXED, sectionMin: 10, aliases: SECTION_ALIASES, thinFold: false });
+  console.log(`gift-guide-picks: holiday audit B ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
+}
 /**
  * TRAIN 1120d (holiday design audit A, 11-20): type fixes, swaps, Splurge without its under-$100 section, the PAGE caps
  * (max 2 of a gift type per page, one of a brand's same type), thin sections folded into a sibling, then the late price
  * fill and the budget caps once more for anything it added (scripts/giftGuideTrain1120d.mjs, rules in
  * scripts/gift-guide-train-1120d.json). SECTION_ALIASES: a folded section's old id -> its new one, per guide.
  */
-export const SECTION_ALIASES = {};
 {
   const spec = JSON.parse(readFileSync(new URL("./gift-guide-train-1120d.json", import.meta.url), "utf8"));
   const t = applyTrain1120d(pageList, spec, { sponsorsGuide: SPONSORS_GUIDE, anchors: SECTION_ANCHORS, parentOf: (k) => MERGED_INTO[k]?.parent, fixedOrder: [...SORT_FIXED] });
-  Object.assign(SECTION_ALIASES, t.aliases);
+  // Audit B's folds ran first: an old id it sent to a section this pass folds again follows on to the final one.
+  for (const [g, mine] of Object.entries(t.aliases)) {
+    const had = (SECTION_ALIASES[g] ??= {});
+    for (const k of Object.keys(had)) if (had[k] in mine) had[k] = mine[had[k]];
+    Object.assign(had, mine);
+  }
   console.log(`gift-guide-picks: train 1120d ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
   const n = fillPrices();
   const b = applyBudgetCaps(pageList, {});

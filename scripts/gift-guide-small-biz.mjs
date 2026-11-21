@@ -95,7 +95,9 @@ const https = (u) => (typeof u === "string" && /^https:\/\//.test(u) ? u : undef
 const shipsOf = (s) => (/\b(ship|mail|nationwide|online|digital)/i.test(String(s ?? "")) ? "ships" : "local");
 
 const src = JSON.parse(readFileSync(join(DIR, "_small-biz-saturday-1119.json"), "utf8"));
-const rows = [...src.businesses, ...ADDED.filter((a) => !src.businesses.some((b) => b.slug === a.slug))];
+/** Sponsors the owner dropped (owner 11-20: R&R Wedding Co.): off the page entirely (holiday audit B). */
+const DROPPED = new Set(["rr-wedding-co"]);
+const rows = [...src.businesses, ...ADDED.filter((a) => !src.businesses.some((b) => b.slug === a.slug))].filter((b) => !DROPPED.has(b.slug));
 rmSync(LOGOS, { recursive: true, force: true });
 mkdirSync(LOGOS, { recursive: true });
 const cards = [];

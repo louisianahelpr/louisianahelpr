@@ -155,7 +155,7 @@ export const THEME_TYPES = {
   ...Object.fromEntries(BABY_GUIDES.map((g) => [g, { baby: 6 }])),
   "gift-cards": { "gift-card": 25 }, subscriptions: { subscription: 25 }, "advent-calendars": { "advent-calendar": 25 },
   "gift-tags": { "gift-wrap": 25, other: 25 }, "gift-wrap-and-cards": { "gift-wrap": 12, stationery: 8 },
-  "book-lover": { book: 8, stationery: 3 }, "coffee-lover": { coffee: 5 }, "wine-lover": { "wine-bar": 5, glassware: 3 },
+  "book-lover": { book: 8, stationery: 3 }, "coffee-lover": { coffee: 5, "kitchen-appliance": 4 }, "car-lover": { "car-gear": 5 }, "wine-lover": { "wine-bar": 5, glassware: 3 },
   fishermen: { fishing: 4 }, hunters: { hunting: 4 }, golfer: { golf: 5 }, "grill-master": { grill: 3, "grill-tool": 3, food: 3 },
   gamer: { gaming: 5 }, "self-care-lover": { skincare: 4 }, "spa-days": { skincare: 4 }, "plant-lover": { plant: 5 }, gardener: { garden: 4, plant: 3 },
   crafter: { "art-supplies": 5 }, artist: { "art-supplies": 5 }, "music-lover": { music: 4 }, runner: { shoes: 3, fitness: 3 }, "gym-lover": { fitness: 4 },

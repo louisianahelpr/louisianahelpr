@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
-import { giftGuides as G } from "@/content/giftGuides";
-import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
+import { discountCodes, giftGuides as G } from "@/content/giftGuides";
+import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealEnds, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
+import { DEAL_CODES } from "@/content/giftGuidePicks";
 import { GiftOut } from "./GiftOut";
 import { loadModule } from "@/lib/loadModule";
 import { WISH } from "@/content/giftWishList";
@@ -65,6 +66,12 @@ export const DEALS_COVER = "/gift-guides/deals/black-friday-cyber-monday.webp";
 // loadModule: a prevented preload (a recovery reload in flight) gives null, and the page keeps "Loading deals…".
 const loadDeals = () => loadModule(() => import("@/content/giftGuideDeals.json"));
 
+/**
+ * Every store code we list, with its expiry (the codes box's own list): a deal card's code and its end day follow it
+ * (holiday audit 1121, High: XTRATUF's card kept the code XT25 after the box had dropped it on Nov 30).
+ */
+const STORE_CODES = [...discountCodes, ...DEAL_CODES];
+
 /** One deal's card. */
 function DealCard({ deal, today }: { deal: Deal; today: string }) {
   const [copied, setCopied] = useState(false);
@@ -76,7 +83,10 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
   const saved = isSaved(wish, id) || onAnyList(plan, deal.href);
   const name = dealName(deal);
   // An announced deal not started yet says when it starts; otherwise its end day, when it has one.
-  const when = dealStartsLater(deal, today) ? W.startsOn(deal.starts!) : deal.ends ? W.endsOn(deal.ends) : "";
+  const ends = dealEnds(deal, STORE_CODES);
+  const when = dealStartsLater(deal, today) ? W.startsOn(deal.starts!) : ends ? W.endsOn(ends) : "";
+  // The code chip goes once that code has expired, even on a card whose sale runs on.
+  const code = dealCode(deal, today, STORE_CODES);
   const copy = (code: string) => {
     void navigator.clipboard?.writeText(code).then(
       () => setCopied(true),
@@ -97,11 +107,11 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
       <Heart saved={saved} label={WISH.saveForLabel(name)} onToggle={() => { if (!requestSaveFor({ href: deal.href, name, guide: DEALS_SLUG, ...(deal.image ? { image: deal.image } : {}) })) heartTapped(togglePick({ href: deal.href, name, guide: DEALS_SLUG, id })); }} className="gg-heart-deal" />
       <p className="gg-deal-brand">{deal.brand}</p>
       <p className="gg-deal-text" data-gift-deal-text="">{deal.deal}</p>
-      {deal.code && (
-        <p className="gg-deal-meta gg-deal-code" data-gift-deal-code={deal.code}>
+      {code && (
+        <p className="gg-deal-meta gg-deal-code" data-gift-deal-code={code}>
           <span>{W.codeLabel}</span>
-          <code>{deal.code}</code>
-          <InlineTextButton className="no-underline" onClick={() => copy(deal.code!)} aria-label={`${G.copyCode} ${deal.code}`}>
+          <code>{code}</code>
+          <InlineTextButton className="no-underline" onClick={() => copy(code)} aria-label={`${G.copyCode} ${code}`}>
             {copied ? G.copiedCode : G.copyCode}
           </InlineTextButton>
         </p>
@@ -140,7 +150,7 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
   }, [kind]);
   const today = louisianaDay(now ?? new Date());
   // Only this day's cards, and only the ones still on (dealShows).
-  const list = deals ? dealsIn(liveDeals(deals, today), day.id) : [];
+  const list = deals ? dealsIn(liveDeals(deals, today, STORE_CODES), day.id) : [];
   return (
     <div data-gift-deals-page="" data-gift-deal-day-page={day.id} data-gift-deal-phase={eventPhase(day, today)}>
       <style>{DEALS_CSS}</style>

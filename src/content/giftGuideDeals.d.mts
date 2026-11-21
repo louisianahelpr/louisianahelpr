@@ -59,9 +59,13 @@ export const DEALS_WORDS: {
 };
 export function shortDay(ymd: string): string;
 export function louisianaDay(now: Date): string;
-export function dealShows(deal: Pick<Deal, "ends">, today: string): boolean;
+/** A store code with its expiry (the discount codes list): only `store`, `code` and `expires` are read. */
+export interface CodeExpiry { store: string; code: string; expires?: string }
+export function dealEnds(deal: Pick<Deal, "ends" | "code" | "brand">, codes?: readonly CodeExpiry[]): string | undefined;
+export function dealCode(deal: Pick<Deal, "code" | "brand">, today: string, codes?: readonly CodeExpiry[]): string | undefined;
+export function dealShows(deal: Pick<Deal, "ends" | "code" | "brand">, today: string, codes?: readonly CodeExpiry[]): boolean;
 export function dealStartsLater(deal: Pick<Deal, "starts" | "status">, today: string): boolean;
-export function liveDeals<T extends Pick<Deal, "ends">>(deals: readonly T[], today: string): T[];
+export function liveDeals<T extends Pick<Deal, "ends" | "code" | "brand">>(deals: readonly T[], today: string, codes?: readonly CodeExpiry[]): T[];
 export function eventPhase(event: Pick<DealEvent, "day">, today: string): "before" | "on" | "after";
 export function eventOrder(today: string): DealEvent[];
 export function dealsIn<T extends Pick<Deal, "event">>(deals: readonly T[], eventId: string): T[];

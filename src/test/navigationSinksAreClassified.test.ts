@@ -112,7 +112,6 @@ const CLASSIFIED: Record<string, string> = {
   "pages/info/giftGuides/fun/GiftCountdown.tsx::gift.href": "GiftOut's prop (the Gift of the Day is a Gifts by Budget or Top 10 pick, our content files); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/fun/GiftPlanner.tsx::i.href": "a planner idea's link, copied from a wish-list gift; cleanPlan (src/content/giftGuideFun1120.ts) keeps an idea's href only when it starts with https://, on every read from storage or the account",
   "pages/info/giftGuides/GiftGuideView.tsx::pick.href": "GiftOut's prop (a guide's picks, our content file); GiftOut forces the https:// scheme",
-  "pages/info/giftGuides/GiftGuideLanding.tsx::pick.href": "GiftOut's prop (the Top 10 strip's picks, our content file); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/printables/NameMaker.tsx::item.design.image": "an SVG <image href>, not a navigation: the design's picture, a fixed site-relative /printables/... path from our content file (src/content/printables.ts; printables1120.test.tsx checks every one exists)",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.facebook": "shareLinks(): a fixed https://www.facebook.com/sharer/... prefix + URLSearchParams",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.pinterest": "shareLinks(): a fixed https://www.pinterest.com/pin/create/... prefix + URLSearchParams",

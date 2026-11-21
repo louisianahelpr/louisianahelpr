@@ -66,11 +66,12 @@ describe("gift guides r3 UX Lows", () => {
     expect(readFileSync("api/share.ts", "utf8")).toContain('...("robots" in page && typeof page.robots === "string" ? { robots: page.robots } : {}),');
   });
 
-  it("#13: /gift-guides/nurses opens the landing now that Healthcare is retired (owner 11-21), before JS too", () => {
+  it("#13: /gift-guides/nurses opens the landing now that Healthcare is retired (owner 11-21)", () => {
     expect(guideBySlug("healthcare")).toBeUndefined();
     expect(newSlugFor("nurses")).toBeNull();
     const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as { redirects: { source: string; destination: string }[] };
-    expect(vercel.redirects.find((r) => r.source === "/gift-guides/nurses")?.destination).toBe("/gift-guides");
+    // No vercel.json redirect: api/share.ts 301s it to the landing (seoData's moved map), as the page does.
+    expect(vercel.redirects.find((r) => r.source === "/gift-guides/nurses")).toBeUndefined();
     expect(searchGuides("nurse").some((g) => g.slug === "healthcare")).toBe(false);
   });
 

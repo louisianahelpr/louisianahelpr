@@ -30,6 +30,7 @@ import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { applyTrain1120b } from "./giftGuideTrain1120b.mjs";
 import { applyTrain1120c } from "./giftGuideTrain1120c.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
+import { applyBudgetCaps } from "./giftGuideBudgetCaps.mjs";
 import { BRAND_CODES, CUTS_1120, budgetBand, importRows1120, productKey1120, swapCuts } from "./giftGuideBig1120.mjs";
 import { FRANCHISE_SPONSORS_1120, SPONSOR_SECTIONS_1120, auditActions1120, brandFirst, followUpOut, louisianaAdds1120, readAudits1120, renameOf, zeroSwaps1120 } from "./giftGuideFollowUp1120.mjs";
 import { BASE_MERGES, GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, NO_LIST_SECTIONS, STORE_PAGES_KEPT, SECTION_CAP, SECTION_GROUPS, SECTION_MAX, SECTION_MIN, isFoldedStore } from "../src/content/giftGuideMerges.mjs";
@@ -3821,7 +3822,7 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
  * price_source on ANY row of ANY picks file with the same link) is a checked price: every shown non-Amazon pick without
  * one takes it here, under the same verifiedPrice rules (fresh, USD, never Amazon).
  */
-{
+const checkedPrices = (() => {
   const checked = new Map();
   for (const f of readdirSync(dir).filter((x) => x.endsWith(".json"))) {
     let v;
@@ -3834,19 +3835,48 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
     };
     walk(v);
   }
-  let filled = 0;
+  return checked;
+})();
+/**
+ * PRICE CACHE (gg-live-1120, live check 11-20: Mom showed 11 non-Amazon picks with no price): a pick that came in
+ * through an extras file (_later.json, a brand-links file, a fill row) or a train pass (the sponsors) has no row
+ * fill_prices.py writes to, so the checked price it found sits only in ~/Desktop/Link-library/price-cache.json, keyed by
+ * product URL (a short link's product URL under "short:<link>"; Chrome-read prices for bot-walled stores come in through
+ * fill_prices.py --import-browser). That entry is a checked price too: same verifiedPrice rules (fresh, USD, never
+ * Amazon), and gift cards are excluded (a chosen amount, as fill_prices.py skips them).
+ */
+const PRICE_CACHE = (() => { try { return deskJson(join(LIB, "price-cache.json")); } catch { return {}; /* no cache yet: file prices only */ } })();
+const cachedPrice = (p) => {
+  const product = PRICE_CACHE[`short:${p.href}`]?.final ?? p.href;
+  const c = PRICE_CACHE[product];
+  if (!c?.price || !c.checked_at || /gift-?card|e-?gift/i.test(product)) return undefined;
+  let hosts;
+  try { hosts = [new URL(p.href).hostname, new URL(product).hostname]; } catch { return undefined; /* no URL: no price */ }
+  return verifiedPrice({ price: c.price, price_currency: c.currency, price_checked_at: c.checked_at, price_source: c.source_url || product }, hosts, p.store);
+};
+/** Every shown pick without a price takes a checked one: a picks-file row with its link first, then the price cache. */
+const fillPrices = () => {
+  const n = { rows: 0, cache: 0 };
   for (const slug of Object.keys(pageList)) {
     pageList[slug] = pageList[slug].map((p) => {
-      if (p.price != null || !checked.has(p.href)) return p;
-      let host = "";
-      try { host = new URL(p.href).hostname; } catch { return p; /* no URL: no price */ }
-      const priced = verifiedPrice(checked.get(p.href), [host], p.store);
+      if (p.price != null) return p;
+      let priced;
+      if (checkedPrices.has(p.href)) {
+        let host = "";
+        try { host = new URL(p.href).hostname; } catch { return p; /* no URL: no price */ }
+        priced = verifiedPrice(checkedPrices.get(p.href), [host], p.store);
+        if (priced) n.rows += 1;
+      }
+      if (!priced) { priced = cachedPrice(p); if (priced) n.cache += 1; }
       if (!priced) return p;
-      filled += 1;
       return { ...p, ...priced, ...(p.band ? {} : { band: budgetBand(priced.price) }) };
     });
   }
-  console.log(`gift-guide-picks: price backfill ${filled} picks from ${checked.size} checked rows`);
+  return n;
+};
+{
+  const n = fillPrices();
+  console.log(`gift-guide-picks: price backfill ${n.rows} picks from ${checkedPrices.size} checked rows, ${n.cache} from the price cache`);
 }
 /**
  * TRAIN 1120b (lead 44, 2026-11-20): the re-audit's fixes, the national 25 Days sponsors' one spot each, the Walmart
@@ -3866,6 +3896,17 @@ export const followUpCounts1120 = { sponsors: 0, namedOnly: 0, out: {}, griddles
   const spec = JSON.parse(readFileSync(new URL("./gift-guide-train-1120c.json", import.meta.url), "utf8"));
   const t = applyTrain1120c(pageList, deals, spec, { sponsorsGuide: SPONSORS_GUIDE, readJson, sales, storePages: [...STORE_PAGES_KEPT] });
   console.log(`gift-guide-picks: train 1120c ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
+}
+// The train passes add picks (sponsors, campaign adds) after the backfill: they take their checked prices here.
+{
+  const n = fillPrices();
+  console.log(`gift-guide-picks: late price fill ${n.rows} from picks files, ${n.cache} from the price cache`);
+}
+// BUDGET CAPS (gg-live-1120): last, once every price is in (scripts/giftGuideBudgetCaps.mjs).
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-budget-1120.json", import.meta.url), "utf8"));
+  const t = applyBudgetCaps(pageList, spec);
+  console.log(`gift-guide-picks: budget caps ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT DONE (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
 }
 /**
  * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks plus Shop clicks

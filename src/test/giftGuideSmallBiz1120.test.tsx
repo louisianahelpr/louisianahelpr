@@ -9,7 +9,7 @@
  *   - the page answers 200 with its own head before JavaScript, and it is in the sitemap.
  *
  * @mutate src/content/giftGuideSmallBiz.mjs |   return today >= SMALL_BIZ_FEATURE_FROM && today <= SMALL_BIZ_FEATURE_TO; |   return today >= SMALL_BIZ_FEATURE_FROM;
- * @mutate scripts/gift-guide-small-biz.mjs | const NO_LOGO = new Set(["sprinkle-in-time-too"]); | const NO_LOGO = new Set([]);
+ * @mutate scripts/gift-guide-small-biz.mjs | const NO_LOGO = new Set(["sprinkle-in-time-too", | const NO_LOGO = new Set([
  */
 import { existsSync, readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";

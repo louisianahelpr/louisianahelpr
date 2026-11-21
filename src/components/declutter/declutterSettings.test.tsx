@@ -221,7 +221,7 @@ describe("Declutter settings", () => {
   // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | const SETTINGS_INDEX = ["Pickup places", "Meet spots", "Listing defaults", "Notifications"] as const; | const SETTINGS_INDEX = ["Pickup places", "Listing defaults"] as const;
   // Area 06b L6: Meet spots has its chip too, and it reaches the Meet spots card.
   // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | const SETTINGS_INDEX = ["Pickup places", "Meet spots", "Listing defaults", "Notifications"] as const; | const SETTINGS_INDEX = ["Pickup places", "Listing defaults", "Notifications"] as const;
-  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | { "Meet spots": '[data-testid="sell-meetup-spots"]' } | {}
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | { "Meet spots": '[data-testid="sell-meetup-spots"]', "Pickup places": "[data-porch-places-card]" } | { "Pickup places": "[data-porch-places-card]" }
   it("Q2574: the seller setup is headed Selling and points a buyer to the notifications", async () => {
     open();
     await screen.findByRole("button", { name: "Add a pickup place" });

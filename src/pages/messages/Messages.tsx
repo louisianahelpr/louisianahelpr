@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enScreens";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";

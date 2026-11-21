@@ -3,7 +3,7 @@
  * a The North Face fleece for a Columbia one). scripts/giftGuidePhotoFixes1120.mjs lists each wrong photo with the
  * right one from the maker's page, or "" to drop it; the picks generator applies it, so no generated guide carries one.
  *
- * @mutate scripts/giftGuidePhotoFixes1120.mjs |   return fix === undefined ? image : fix || undefined; |   return image;
+ * @mutate scripts/giftGuidePhotoFixes1120.mjs |   return fix === undefined ? image : fix \|\| undefined; |   return image;
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";

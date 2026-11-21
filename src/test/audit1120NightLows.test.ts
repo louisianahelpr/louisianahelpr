@@ -1,8 +1,8 @@
-// @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx :: "        Try again\n      </Button>" => "        Retry\n      </Button>"
-// @mutate src/components/declutter/DeclutterBrowseView.tsx :: "<DeclutterActiveFilters filters={filters} maxMiles={from ? maxMiles : null}" => "<DeclutterActiveFilters filters={filters} maxMiles={maxMiles}"
-// @mutate src/pages/auth/signup/SignupStep1.tsx :: "<Link to={loginHref} className=\"tap-44" => "<Link to=\"/login\" className=\"tap-44"
-// @mutate src/pages/declutter/DeclutterSettingsPage.tsx :: ", \"Pickup places\": \"[data-porch-places-card]\"" => ""
-// @mutate src/lib/i18n/enListingParts.ts :: "it's kept under History in Selling." => "it's kept under Taken down in Selling."
+// @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx |         Try again\n      </Button> |         Retry\n      </Button>
+// @mutate src/components/declutter/DeclutterBrowseView.tsx | <DeclutterActiveFilters filters={filters} maxMiles={from ? maxMiles : null} | <DeclutterActiveFilters filters={filters} maxMiles={maxMiles}
+// @mutate src/pages/auth/signup/SignupStep1.tsx | <Link to={loginHref} className="tap-44 | <Link to="/login" className="tap-44
+// @mutate src/pages/declutter/DeclutterSettingsPage.tsx | , "Pickup places": "[data-porch-places-card]" | 
+// @mutate src/lib/i18n/enListingParts.ts | it's kept under History in Selling. | it's kept under Taken down in Selling.
 /**
  * App audit 2026-11-20 night, quick Lows (findings 19, 13, 26, 7, 5):
  *  19 the applicants error button reads "Try again", as its own words say;

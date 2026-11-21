@@ -4,7 +4,7 @@ import { PEOPLE_GUIDES } from "@/content/giftGuidePeople.mjs";
 import { guideBySlug, type CatalogGuide } from "@/content/giftGuideCatalog";
 
 /** The chip row's words (owner pop-up 11-20: For Her + For Him, relationship chips filter the same list). */
-export const PEOPLE_CHIP_WORDS = { label: "Shopping for", all: "Everyone" };
+const PEOPLE_CHIP_WORDS = { label: "Shopping for", all: "Everyone" };
 
 /**
  * For Her and For Him (owner pop-up 2026-11-20 ~6:50 PM): one chip per relationship at the top of the guide (Her: Mom,

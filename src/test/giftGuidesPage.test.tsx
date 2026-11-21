@@ -29,7 +29,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details key={row} open={row === active?.row} | <details key={row} open
  * @mutate src/content/giftGuideCatalog.ts |     ...(children?.length ? { children } : {}), | 
- * @mutate src/content/giftGuideCatalog.ts | g.row === row && !g.parent); | g.row === row && !g.parent && g.slug !== KIDS_HUB);
+ * @mutate src/content/giftGuideCatalog.ts | g.row === row && !g.parent && !g.view); | g.row === row && !g.parent && !g.view && g.slug !== KIDS_HUB);
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | : `/gift-guides?group=${row}`; | : "/gift-guides";
  * @mutate src/content/giftGuideCatalog.ts | 8978491: "mom", | 8978491: "nowhere", 
  * @mutate src/content/giftGuideCatalog.ts | 9000047: "gardener", | 9000047: "no-guide", 

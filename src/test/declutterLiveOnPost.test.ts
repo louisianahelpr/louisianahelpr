@@ -103,7 +103,9 @@ describe("item B: a listing goes live when posted; only a failed automatic check
       const s = code(p);
       // Awaited where it is asked, or (Post, LEAD-POST-SLOW) asked right after publishing, not awaited.
       const n = (s.match(/(?:await|void) requestAiCheckWithRetry\(/g) ?? []).length;
-      expect(n, p).toBe(1);
+      // Audit 2026-11-20 night #1: Edit also asks when a photo step fails after the words saved, so it has two
+      // askers (the photo-failure path and the normal one); the other screens still have exactly one.
+      expect(n, p).toBe(p.endsWith("DeclutterEditListing.tsx") ? 2 : 1);
       calls += n;
       // The single-try call is gone from every caller.
       expect(s, p).not.toMatch(/await requestAiCheck\(/);

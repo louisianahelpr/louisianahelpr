@@ -3,6 +3,7 @@ import { report } from "@/lib/errorLogger";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
 import { snoozeThread, toggleThreadMute, unmuteThread } from "@/lib/threadMutes";
 import type { Conversation } from "@/components/messages/types";
 

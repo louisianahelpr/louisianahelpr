@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
 import {
   useCallback,
   useEffect,

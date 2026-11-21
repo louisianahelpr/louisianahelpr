@@ -11,7 +11,7 @@
  * @mutate src/components/giftGuides/PickPrice.tsx |   return age >= 0 && age <= PRICE_MAX_AGE_DAYS; |   return age >= 0;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |         <PickPrice pick={pick} /> |         {null}
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <PricesAsOf picks={picks.slice(0, upTo)} /> |       {null}
- * @mutate src/content/giftGuideCatalog.ts |     ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}) }; |     }; void store;
+ * @mutate src/content/giftGuideCatalog.ts | ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}), | ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}),
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";

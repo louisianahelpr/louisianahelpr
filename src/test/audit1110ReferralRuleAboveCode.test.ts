@@ -3,7 +3,7 @@
  * $5 when a friend completes their first job") far below. The rule now reads above the code, so the two numbers make
  * sense on first sight.
  *
- * @mutate src/components/ReferralSection.tsx | you both earn $5 | you earn
+ * @mutate src/components/ReferralSection.tsx | you each get $5 | you get
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

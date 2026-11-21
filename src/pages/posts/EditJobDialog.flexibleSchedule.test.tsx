@@ -44,7 +44,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 const { EditJobDialog } = await import("./EditJobDialog");
 
 const job = (over: Partial<Job>) =>
-  ({ id: "j1", title: "Shelves", description: "", category: "cleaning", location: "Baton Rouge", date_needed: jobLocalDateISO(7),
+  ({ id: "j1", title: "Shelves", description: "Hang two shelves.", category: "cleaning", location: "Baton Rouge", date_needed: jobLocalDateISO(7),
      start_time: null, special_requirements: null, helper_id: null, payment_status: "unpaid", stripe_session_id: null,
      is_flexible_schedule: false, ...over }) as unknown as Job;
 

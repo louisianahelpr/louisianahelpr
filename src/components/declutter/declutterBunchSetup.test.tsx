@@ -35,7 +35,6 @@ vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => state.places }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => { await state.gate; return state.last; } }));
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
-vi.mock("@/components/declutter/BunchFeeGate", () => ({ BunchFeeGate: () => null, useSetupFeeDueCents: () => null }));
 vi.mock("@/components/declutter/BunchDraftsSection", () => ({ BunchDraftsSection: () => null }));
 vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<object>()), fetchMyPickupWindows: async () => [] }));
 

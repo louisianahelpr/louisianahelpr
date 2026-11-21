@@ -597,6 +597,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/gift-guides/printables",
+      "destination": "/index.html"
+    },
+    {
       "source": "/gift-guides/secret-santa/:code/:token",
       "destination": "/index.html"
     },

@@ -51,12 +51,11 @@ import {
 import { buyerOnWayToday } from "@/lib/declutter/pickupDay";
 import { ProblemOpenNote } from "./DeclutterProblemOpen";
 import { OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
-import { payoutLine, setupFeeAheadByOrder, setupFeeAheadFromServer, setupFeeUnsureOrders } from "./declutterPayoutWords";
+import { payoutLine } from "./declutterPayoutWords";
 import { payoutAccountReady } from "@/lib/payoutAccountReady";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { ManagerSaleShareGate } from "./ManagerSaleShareGate";
 import { useOpenProblemsRead } from "./useOpenProblems";
-import { useSellerSetupFee } from "./useSellerSetupFee";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { BuyerCheckWindow } from "./BuyerCheckWindow";
 import { CancelledOrderNote } from "./CancelledOrderNote";
@@ -110,13 +109,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
     queryFn: () => fetchMyPayouts(userId),
     enabled: !!userId && orders.some((o) => o.side === "seller"),
   });
-  // F360b: the one-time setup fee comes out of a first payout at its send while the ID check is on (never an admin's;
-  // declutter_setup_fee_from_payout_cents), so the card's "You get" is the row's amount less it. Read only when it can
-  // apply: the seller has not paid it (profiles.onboarding_fee_paid, the SQL's own test) and a payout is still unsent.
-  // Read only when a row could take it: a payout still unsent. Unknown inputs (switch, admin check, fee read) hide the
-  // unsent rows' figure rather than show one too high by the fee (lh-money-escrow reviews 11-11).
-  const setupFee = useSellerSetupFee((payouts.data ?? []).some((p) => p.status === "pending" || p.status === "failed"));
-  const feeUnknown = setupFee.unknown;
+  // Owner 2026-11-20: no setup fee comes out of a Declutter payout, so the card's "You get" is the row's own amount.
   const payoutReady = payoutAccountReady(profile);
   const setupPaused = usePayoutSetupPaused();
   // Audit 1b D2-2: an open problem shows on both cards and hides booking and a second report.
@@ -128,11 +121,6 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   // the sales still to hand over, then handed over, then refunded.
   const shown = views ? byBucket(chosen, views) : liveSalesFirst(chosen);
   if (shown.length === 0 || !userId) return null;
-  // Owner 11-11 ~3:25 PM: the server names the one sale the fee comes out of (declutter_my_setup_fee); before it is
-  // deployed, the client's own reading (one row only, else no figure).
-  const feeAhead = setupFee.server ? setupFeeAheadFromServer(payouts.data ?? [], setupFee.cents, setupFee.orderId)
-    : setupFeeAheadByOrder(payouts.data ?? [], setupFee.cents);
-  const feeUnsure = setupFee.server ? new Set<string>() : setupFeeUnsureOrders(payouts.data ?? [], setupFee.cents);
   const waitingOnReads = bookings.isLoading || payouts.isLoading;
   // VERIFY 11-20 (measured with a layout-shift + ResizeObserver run at 390, ~/.lh-shots/declutter-selling-shift-1120):
   // the reserve kept the section's height, but the cards still drew first with no booking ("Paid. Waiting on the buyer
@@ -163,8 +151,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
           userId={userId}
           booking={(bookings.data ?? []).find((b) => b.order_id === o.orderId) ?? null}
           payout={(payouts.data ?? []).find((p) => p.order_id === o.orderId) ?? null}
-          setupFeeAhead={feeAhead.get(o.orderId) ?? 0}
-          holdUnknown={feeUnknown || !problemsSettled || feeUnsure.has(o.orderId)}
+          holdUnknown={!problemsSettled}
           payoutReady={payoutReady}
           setupPaused={setupPaused}
           problem={problems.get(o.orderId) ?? null}
@@ -175,7 +162,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   );
 }
 
-function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnknown = false, payoutReady = true, setupPaused = true, view, problem, linked }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; setupFeeAhead?: number; holdUnknown?: boolean; payoutReady?: boolean; setupPaused?: boolean; view?: BuyerOrderView; problem: OpenProblem | null; linked: boolean }) {
+function OrderCard({ order, userId, booking, payout, holdUnknown = false, payoutReady = true, setupPaused = true, view, problem, linked }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; holdUnknown?: boolean; payoutReady?: boolean; setupPaused?: boolean; view?: BuyerOrderView; problem: OpenProblem | null; linked: boolean }) {
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const done = order.status === "handed_over";
@@ -264,10 +251,10 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
           {/* BUY-31: said once (the buyer's head line; SellerDeliveryStatus to the seller). NIGHT-SELL-soldstates-7: a finished delivery shows the tracker at its end too. */}
           {order.handover === "delivery" && !view && <DeliveryDoneStatus free={items === 0} refunded={fullRefund} />}
           {order.side === "seller" && items > 0 && <ManagerSaleShareGate orderId={order.orderId} itemsCents={items} itemCount={order.lines.length} />}
-          {/* An unsent payout's day waits on every hold read: the fee inputs, the open problems, and the refund request
+          {/* An unsent payout's day waits on every hold read: the open problems and the refund request
               (declutter_payouts_due holds on an open problem or a running request; a declined one moves the day). */}
           {order.side === "seller" && payout && items > 0 && !((holdUnknown || (refundRequests && !refund.isSuccess) || lastProblem.isLoading) && (payout.status === "pending" || payout.status === "failed")) && <p className="text-sm"><PayoutLineText line={payoutLine(payout, !!problem, {
-            handedOverAt: handoverRow.data?.confirmed_at ?? null, refundOpen: refundIsOpen(refundStatus), setupFeeAhead, payoutReady, setupPaused,
+            handedOverAt: handoverRow.data?.confirmed_at ?? null, refundOpen: refundIsOpen(refundStatus), payoutReady, setupPaused,
             declinedAt: refundStatus === "declined" ? refund.data?.request?.declined_at ?? null : null,
             refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, saleDecided, })} />
             {payout.status === "failed" && <FailedPayoutLink />}</p>}

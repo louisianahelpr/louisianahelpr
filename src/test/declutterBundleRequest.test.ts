@@ -7,9 +7,8 @@
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | v_req.buyer_id, least(v_row.price_cents, v_item.o_price_cents) | v_req.buyer_id, v_row.price_cents
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | IF NOT FOUND OR v_req.seller_id <> v_uid THEN | IF NOT FOUND THEN
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | EXCEPTION WHEN SQLSTATE '55000' OR SQLSTATE 'PT404' OR SQLSTATE 'P0002' OR SQLSTATE '22023' THEN | EXCEPTION WHEN SQLSTATE 'XX999' THEN
- * @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |   PERFORM public.declutter_identity_gate(v_uid, 'identity_required_to_buy'); |   PERFORM 1;
  * @mutate supabase/migrations/20261104103528_declutter_bundle_request.sql | GRANT EXECUTE ON FUNCTION public.declutter_bundle_sweep() TO service_role; | GRANT EXECUTE ON FUNCTION public.declutter_bundle_sweep() TO authenticated;
- * @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |     SELECT * INTO v_item FROM public.declutter_lock_buyable_item(v_item_id, v_uid); |     SELECT seller_id AS o_seller_id, current_price_cents AS o_price_cents INTO v_item FROM public.declutter_items WHERE id = v_item_id;
+ * @mutate supabase/migrations/20261120184430_declutter_no_id_no_setup_fee.sql |     SELECT * INTO v_item FROM public.declutter_lock_buyable_item(v_item_id, v_uid); |     SELECT seller_id AS o_seller_id, current_price_cents AS o_price_cents INTO v_item FROM public.declutter_items WHERE id = v_item_id;
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -36,8 +35,8 @@ describe("Declutter bundle request (Q2268)", () => {
   });
 
   it("the buyer's checks run on every asked item (card, blocks, own item, seed rules, still live)", () => {
-    // Review 11-04 (blocker): the first-purchase ID check runs at the ask, as the buyer.
-    expect(body("declutter_request_bundle")).toMatch(/PERFORM\s+public\.declutter_identity_gate\(v_uid,\s*'identity_required_to_buy'\)/i);
+    // Owner 2026-11-20: no first-purchase ID check at the ask any more (review 11-04 had added one).
+    expect(body("declutter_request_bundle")).not.toMatch(/declutter_identity_gate/i);
     expect(body("declutter_request_bundle")).toMatch(/FOREACH\s+v_item_id\s+IN\s+ARRAY\s+v_ids\s+LOOP\s+SELECT\s+\*\s+INTO\s+v_item\s+FROM\s+public\.declutter_lock_buyable_item\(v_item_id,\s*v_uid\)/i);
   });
 

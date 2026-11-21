@@ -26,8 +26,6 @@ import AppPage from "@/components/AppPage";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { queryKeys } from "@/lib/queryKeys";
-import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 import { fetchItemsCanShip, fetchMyCart, fetchPhotos, photoPublicUrl, startCheckoutPayment, type CartLine, type Handover, type ShipQuote } from "@/lib/declutter/api";
 import { buyerFeeCentsShip } from "@/lib/shipping/policy";
 import { ShipToMe } from "./ShipToMe";
@@ -183,20 +181,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const needsPlace = chosen === "porch" || chosen === "pickup_home" || delivering;
   const porchPlaces = useSellerPorchPlaces(sellerId, itemsTotalCents, needsPlace);
   const placeReady = !needsPlace || porchPlaces.ready;
-  // Q2352 (owner 2026-10-22, terms #9): the one-time account setup fee rides the first purchase of an account that
-  // never paid it (declutter_start_checkout freezes the same platform amount on the order, outside the sale's
-  // total). The same "still owed" answer every payout preview reads: 0 once paid, and 0 until known.
-  const setupFeeCents = useFirstPayoutFeeCents();
-  // lh-silent-failure review of the Q2352 rebase #4: the fee flag is read from the cached profile, which nothing
-  // refreshes after it flips elsewhere (the standalone fee page, another Declutter purchase), so a cart opened
-  // later would show the fee and a total $2 too high. Re-read the profile whenever a checkout panel opens.
-  const profileQc = useQueryClient();
+  // Owner 2026-11-20: a Declutter purchase never carries the one-time account setup fee (declutter_start_checkout
+  // freezes setup_fee_cents = 0), so the total is the sale, the way and the service fee.
   const { user: me } = useCurrentUser();
-  useEffect(() => {
-    if (me?.id) void profileQc.invalidateQueries({ queryKey: queryKeys.currentUser.byId(me.id) });
-  }, [profileQc, me?.id]);
-  // Until the fee answer is in (or if its read failed) the total may be short by it: say so, never a figure $2 low.
-  const setupFeeKnown = useFirstPayoutFeeKnown();
   const sellerDelivering = chosen === "seller_delivery";
   // BUY-9: the last drop-off this buyer sent (theirs only) fills "Deliver to" once, while the box is still empty and
   // untouched; asked only when a way that delivers is chosen.
@@ -242,11 +229,11 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const sdAmounts = sdRate !== null ? sellerDeliveryAmounts(netItemsCents, sdRate) : null;
   // Shipping: the server's fee rule f1_ship (5% of items + shipping, + 70c) on the discounted items, plus the postage.
   const payCents = (shipRate !== null ? netItemsCents + buyerFeeCentsShip(netItemsCents, shipRate) + shipRate
-    : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
+    : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents);
   // Owner 11-07 ~5:10 PM (replaces #20 "Words only" for Declutter): the service fee is its own summary line, the total
-  // less every other line (items after the discount, the way's price, the setup fee). Tax is $0: declutter-checkout
+  // less every other line (items after the discount, the way's price). Tax is $0: declutter-checkout
   // refuses an order with tax_cents != 0.
-  const listedCents = netItemsCents + (delivering && liveQuote ? liveQuote.delivery_cents : 0) + (sdRate ?? 0) + (shipRate ?? 0) + setupFeeCents;
+  const listedCents = netItemsCents + (delivering && liveQuote ? liveQuote.delivery_cents : 0) + (sdRate ?? 0) + (shipRate ?? 0);
   const sdReady = sellerDelivering && sdState === "pick" && !!slot && !!handoff && sdChecked !== null;
   // BUY-8 (audit 10-30): Pay was grey with nothing saying why, and at 375 the choice it waited on was far above it,
   // past the bill. The first thing it waits on, in the buyer's words, right above it.
@@ -261,14 +248,14 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               : null;
   const addressId = `dcl-dropoff-${sellerId}`;
   // Q2106 S5: the buyer's own gift card pays first (DeclutterGiftPicker); the split is from the total Pay carries,
-  // and only once that total is whole (priced delivery or postage, the setup fee known).
+  // and only once that total is whole (priced delivery or postage).
   const gifts = giftsForCheckout(useSpendableGiftCards().cards);
   const [giftPick, setGiftPick] = useState<string | null>(null);
   const [giftError, setGiftError] = useState<string | null>(null);
   // Lead 12:36 AM: a gift the server refused stays unavailable here, so Pay never repeats the refusal.
   const [giftRefused, setGiftRefused] = useState<Record<string, string>>({});
   const gift = gifts.find((g) => g.id === giftPick && !(g.id in giftRefused)) ?? null;
-  const totalWhole = setupFeeKnown && !(delivering && !liveQuote) && !(shipping && !shipQuote);
+  const totalWhole = !(delivering && !liveQuote) && !(shipping && !shipQuote);
   const split = gift && totalWhole ? giftSplit(payCents, gift.amountCents) : null;
   return (
     // BUY-15 (audit 10-30): at 1440 this was one stretched column (Pay 1110 px wide, far down the page). From lg the
@@ -360,7 +347,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           only, owner 11-07 ~5:10 PM), then the Total. The fee is the total less every other line, so they add up. */}
       <CheckoutPriceSummary itemCount={itemCount} itemsCents={itemsTotalCents} discountCents={discountCents} way={chosen}
         wayCents={delivering ? liveQuote?.delivery_cents ?? null : shipping ? shipRate : sellerDelivering ? sdRate : 0}
-        serviceFeeCents={payCents - listedCents} setupFeeCents={setupFeeCents} setupFeeKnown={setupFeeKnown} taxCents={0} payCents={payCents}
+        serviceFeeCents={payCents - listedCents} taxCents={0} payCents={payCents}
         gift={split && !split.cardPartTooSmall ? split : null} />
         {/* Spec v2 §9.11: Declutter buyer screens may say what the seller keeps; sellers keep the whole price. */}
       </div>

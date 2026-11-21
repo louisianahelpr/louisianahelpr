@@ -17,8 +17,8 @@
 // @mutate src/components/declutter/DeclutterBundleRow.tsx |   if (!summary.offer) return null; |   if (false) return null;
 // @mutate src/components/declutter/DeclutterItemView.tsx |       {!isSeller && afterPaint && ( |       {!isSeller && (
 // @mutate src/components/declutter/DeclutterItemView.tsx | <DeclutterItemRows item={it} viewerId={user?.id ?? null} | <DeclutterItemRows item={it} viewerId={user!.id}
-// @mutate src/components/declutter/DeclutterItemView.tsx |               {forSale && listedAgo(it.live_at) && | {false && listedAgo(it.live_at) &&
-// @mutate src/components/declutter/DeclutterItemView.tsx |               {it.porch_ok !== false && <span data-item-porch-free="" | {false && <span data-item-porch-free=""
+// @mutate src/components/declutter/DeclutterItemView.tsx | {forSale && listedAgo(it.live_at) && (\n                <li data-item-listed="" | {false && listedAgo(it.live_at) && (\n                <li data-item-listed=""
+// @mutate src/components/declutter/DeclutterItemView.tsx | {it.porch_ok !== false && <span data-item-porch-free=""> | {false && <span data-item-porch-free="">
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -124,12 +124,21 @@ describe("the item page wiring", () => {
     expect(src).toMatch(/\{!isSeller && afterPaint && \(\s*<div className="mt-8">\s*<DeclutterItemRows item=\{it\} viewerId=\{user\?\.id \?\? null\}/);
     expect(src).toMatch(/<SellerTrustBadges sellerId=\{it\.seller_id\} itemId=\{it\.id\} after=\{afterPaint\} \/>/);
   });
-  // Design audit 11-17 #17: "Listed 1 week ago" moved from beside the condition chip into the grey where-line.
-  it("Listed ends the where-line; Free porch pickup leads it; the bundle box", () => {
-    const where = src.slice(src.indexOf('data-item-where=""'), src.indexOf("</p>", src.indexOf('data-item-where=""')));
-    expect(where).toMatch(/\{forSale && listedAgo\(it\.live_at\) && <span data-item-listed="">/);
+  // Design audit 11-17 #17 put "Listed 1 week ago" in the grey where-line; owner 11-20 #5 made that ONE icon row under the
+  // condition chip: Buyer protection, then the place with porch pickup, then Listed last.
+  it("one meta row under the chip: protection, place + porch pickup, Listed last; the bundle box", () => {
+    const meta = src.slice(src.indexOf('data-item-meta=""'), src.indexOf("</ul>", src.indexOf('data-item-meta=""')));
+    const at = (s: string) => meta.indexOf(s);
+    expect(at("<li data-item-protected")).toBeGreaterThan(0);
+    expect(at("<li data-item-where")).toBeGreaterThan(at("<li data-item-protected"));
+    expect(at("<li data-item-listed")).toBeGreaterThan(at("<li data-item-where"));
+    expect(meta).toMatch(/\{forSale && listedAgo\(it\.live_at\) && \(\s*<li data-item-listed=""/);
+    expect(meta).toMatch(/<ShieldCheck [^>]*\/>\s*\{t\("ip\.buyerProtection"\)\}/);
+    expect(meta).toMatch(/<MapPin [^>]*\/>/);
+    expect(meta).toMatch(/<Clock [^>]*\/>/);
+    expect(src.indexOf('data-item-meta=""')).toBeGreaterThan(src.indexOf('data-item-chips=""'));
     expect(src).toMatch(/<div className="flex flex-wrap items-center gap-2" data-item-chips="">\s*<ConditionChip stars=\{it\.condition_stars\} \/>/);
-    expect(src).toMatch(/\{it\.porch_ok !== false && <span data-item-porch-free=""[^>]*>\{t\("decl\.item\.freePorch"\)\} · <\/span>\}/);
+    expect(meta).toMatch(/\{it\.porch_ok !== false && <span data-item-porch-free="">\{`\$\{it\.area_label \|\| away \? " · " : ""\}\$\{t\("ip\.porchPickup"\)\}`\}<\/span>\}/);
     expect(src).toMatch(/<BundleSaveBox summary=\{bundle\} \/>/);
   });
 });

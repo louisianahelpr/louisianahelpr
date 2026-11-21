@@ -44,3 +44,14 @@ export function pagePhoto(publicUrl: string): { src: string; srcSet: string; pho
     phoneSrcSet: PAGE_PHOTO_WIDTHS.map((w) => `${pagePhonePhotoUrl(publicUrl, w)} ${w}w`).join(", "),
   };
 }
+
+/**
+ * Owner 11-20 (item page polish #2): the computer's thumbnail row under the photo. A 160px square (two pixels per CSS
+ * pixel of the 64px thumb), centre-cropped, quality 60: a few KB each, never the 720/1080 frame photo. Null when the URL
+ * is not a public Storage object (the thumb then shows the frame's own photo). The row is hidden below lg, and a hidden
+ * lazy image is not fetched, so a phone downloads none of these.
+ */
+export function pageThumbUrl(publicUrl: string): string | null {
+  const base = pagePhotoUrl(publicUrl, 720);
+  return base && base.replace("?width=720&quality=75", "?width=160&height=160&resize=cover&quality=60");
+}

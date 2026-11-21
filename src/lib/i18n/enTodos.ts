@@ -27,9 +27,6 @@ export const enTodos = {
   "todo.left": "{task} · {time} left",
   "todo.by": "{task} · by {day}",
   // Owner 11-12 seller ID at first payout: needsYouTodos.ts's Home to-do reads these (lander joined them in train 1112-d).
-  "todo.idPayout": "Verify your ID to get paid {money}",
-  "todo.idPayoutMeta": "You sold · Declutter",
-  "todo.verifyId": "Verify your ID",
 } as const;
 
 addEnglish(enTodos);

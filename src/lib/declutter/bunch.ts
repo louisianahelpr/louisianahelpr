@@ -638,12 +638,9 @@ export function sentPhotosToTakeOff(it: Pick<BunchItem, "photoKeys" | "uploaded"
   return sent.filter((k) => !it.photoKeys.includes(k) || (canSendAgain && outOfPlace.includes(k)));
 }
 
-/**
- * The items a listing run takes. While the setup fee is due, only the free ones: declutter_setup_fee_before_list asks
- * no fee at price 0. The server stays the protection; this only keeps a priced item from being refused after its work.
- */
-export function bunchListable(items: BunchItem[], feeDue: boolean): BunchItem[] {
-  return items.filter((it) => !bunchItemProblem(it) && (!feeDue || !!it.free));
+/** The items a listing run takes: every item with nothing left to fix (owner 2026-11-20: no setup fee holds a priced one). */
+export function bunchListable(items: BunchItem[]): BunchItem[] {
+  return items.filter((it) => !bunchItemProblem(it));
 }
 
 /* ---- Listing them all ---------------------------------------------------- */

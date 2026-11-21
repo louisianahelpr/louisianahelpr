@@ -13170,6 +13170,57 @@ export type Database = {
           },
         ]
       }
+      sbs_featured_submissions: {
+        Row: {
+          business_name: string
+          category: string
+          contact_email: string
+          created_at: string
+          deal: string | null
+          id: string
+          link: string
+          logo_path: string | null
+          participating: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          town: string
+          updated_at: string
+        }
+        Insert: {
+          business_name: string
+          category: string
+          contact_email: string
+          created_at?: string
+          deal?: string | null
+          id?: string
+          link: string
+          logo_path?: string | null
+          participating: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          town: string
+          updated_at?: string
+        }
+        Update: {
+          business_name?: string
+          category?: string
+          contact_email?: string
+          created_at?: string
+          deal?: string | null
+          id?: string
+          link?: string
+          logo_path?: string | null
+          participating?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          town?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       secret_santa_groups: {
         Row: {
           budget: number | null
@@ -18579,6 +18630,12 @@ export type Database = {
       }
       giveaway_entry_url: { Args: never; Returns: string | null }
       giveaway_reminder_sweep: { Args: never; Returns: Json }
+      sbs_admin_list: { Args: never; Returns: Json }
+      sbs_admin_review: { Args: { p_id: string; p_status: string }; Returns: undefined }
+      sbs_public_featured: { Args: never; Returns: Json }
+      sbs_service_create: { Args: { p_row: Json }; Returns: Json }
+      sbs_service_logo_path: { Args: { p_any: boolean; p_id: string }; Returns: string }
+      sbs_town_key: { Args: { p_town: string }; Returns: string }
       secret_santa_create: { Args: { p_avoid?: number[]; p_budget?: number; p_exchange_on?: string; p_gives_to: number[]; p_names: string[] }; Returns: Json }
       secret_santa_expire: { Args: never; Returns: Json }
       secret_santa_reveal: { Args: { p_code: string; p_token: string }; Returns: Json }
@@ -18626,7 +18683,6 @@ export type Database = {
       }
       declutter_stop_my_seller_delivery: { Args: never; Returns: number }
       declutter_withdraw_free_request: { Args: { p_request_id: string }; Returns: undefined }
-      declutter_free_claim_gate: { Args: { p_member: string }; Returns: undefined }
       declutter_free_requests_for_item: {
         Args: { p_item_id: string }
         Returns: {

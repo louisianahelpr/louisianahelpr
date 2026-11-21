@@ -6,7 +6,6 @@
  *
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |   return tr("free.rulesLine", { lead: |   return "When you ask, you pick a pickup time."; tr("free.rulesLine", { lead:
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |     : offered.length === 2 ? tr("free.howBoth") |     : offered.length === 2 ? " to pick it up at their home or from their porch"
- * @mutate src/lib/declutter/freePickSteps.ts |   return idCheckOn ? t("free.stepsId") : t("free.stepsNoId"); |   return idCheckOn ? t("free.stepsId") : "you choose your pickup time and get the address";
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {t((trade ? TRADE_HANDOVER : FREE_HANDOVER)[h].title)} | {(trade ? TRADE_HANDOVER : FREE_HANDOVER)[h].title}
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {t("free.pick")} | Pick
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | >{t("free.requests", { n: rows.length })}</h2> | >Requests ({rows.length})</h2>
@@ -116,15 +115,6 @@ describe("free items follow the member's language (F260q)", () => {
     show(<FreeClaimPanel item={ITEM} />);
     fireEvent.click(await screen.findByRole("button", { name: "Cómo funciona" }));
     expect(await screen.findByText(/^Gratis, no se cobra nada\. Al pedirlo.* para recogerlo en su casa o en su porche\. Puede pedir hasta 3 artículos gratis a la vez\.$/)).toBeTruthy();
-  });
-
-  it("the first-pick steps follow the language", async () => {
-    const { firstPickSteps } = await import("@/lib/declutter/freePickSteps");
-    __resetLangForTests();
-    expect(firstPickSteps(false)).toBe("you choose your pickup time and get the address");
-    await spanish();
-    expect(firstPickSteps(false)).toBe(esFree["free.stepsNoId"]);
-    expect(firstPickSteps(true)).toBe(esFree["free.stepsId"]);
   });
 
   it("pickup day words: English word for word, Spanish day names", async () => {

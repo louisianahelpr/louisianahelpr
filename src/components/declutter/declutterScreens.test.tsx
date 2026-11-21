@@ -49,7 +49,6 @@ const state = {
 // Q2268: the bundle-request reads (no request here).
 // The Selling tab's "Your page" link reads the member's handle (its own test: src/test/yourPageLink.test.tsx).
 // Owner 11-11 ~3:25 PM: declutter_my_setup_fee not deployed in these specs (PGRST202): the client's own fee reading.
-vi.mock("@/lib/declutter/mySetupFee", () => ({ fetchMySetupFee: async () => null }));
 vi.mock("@/components/profile/YourPageLink", () => ({ YourPageLink: () => null }));
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
 // Q2471: the offer box asks declutter-ai-reply for a suggested amount; no suggestion here (the box works without it).
@@ -492,7 +491,7 @@ describe("Declutter screens", () => {
       state.card = { brand: "visa", last4: "4242" };
       rememberAfterCard(ID, "offer");
       returnTo("/declutter?card=saved");
-      expect(await screen.findByRole("heading", { name: "Oak rocking chair", level: 1 })).toBeInTheDocument();
+      expect((await screen.findAllByRole("heading", { name: "Oak Rocking Chair", level: 1 }))[0]).toBeInTheDocument();
       expect(await screen.findByLabelText("Your offer")).toBeInTheDocument();
     });
 

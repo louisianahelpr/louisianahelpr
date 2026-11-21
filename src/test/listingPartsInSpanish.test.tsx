@@ -43,7 +43,6 @@ import { handoverSummary } from "@/components/declutter/SellHandoverChoices";
 vi.mock("@/components/declutter/SellPorchPlaces", async (orig) => ({ ...(await orig<object>()), SellPorchPlaces: () => null }));
 const { SavedPlacesComeFirst } = await import("@/components/declutter/SellPorchPlaces");
 vi.mock("@/components/declutter/SellPorchDays", () => ({ SellPorchDays: () => null }));
-vi.mock("@/components/declutter/useSellerSetupFee", () => ({ useSellerSetupFee: () => ({ unknown: false, server: false, orderId: null, cents: 0 }) }));
 
 const { AutoFreeChoice } = await import("@/components/declutter/AutoFreeRow");
 const { KeepUpSwitch } = await import("@/components/declutter/KeepUpRow");

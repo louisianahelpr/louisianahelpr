@@ -108,7 +108,6 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.item.unsave": "Quitar de guardados",
   "decl.item.share": "Compartir este artículo",
   "decl.item.priceAndCondition": "Precio y estado",
-  "decl.item.freePorch": "Recogida gratis en el porche",
   "decl.item.claimed": "Usted pidió este artículo.",
   "decl.item.bought": "Usted compró esto.",
   "decl.item.pickupIn": "Su recogida y sus mensajes están en",

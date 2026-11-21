@@ -803,6 +803,9 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "booking_sources.helpr_id": { reason: "B59 2026-10-29: the Helpr side of the same attribution row; it pays nothing and is shown only in the admin report; removed with either account (ON DELETE CASCADE)" },
   // 25 Days of Louisiana Giveaways (20261109162829, owner 2026-11-09): service role only, no account behind either row.
   "sponsor_signups.email": { reason: "a brand's business contact address typed on the public /sponsor form while signed out; the row has no user_id or account, so export_my_data has no person to scope it by (admin@ answers a brand's request for its row)" },
+  // Small Business Saturday "Featured local" (20261120152039, owner 2026-11-20): service role only, no account behind it.
+  "sbs_featured_submissions.contact_email": { reason: "a business's contact address typed on the public Small Business Saturday form while signed out; the row has no user_id or account, so export_my_data has no person to scope it by (admin@ answers a business's request for its row)" },
+  "sbs_featured_submissions.reviewed_by": { reason: "the admin who approved or rejected a business's free listing; staff moderation, not the admin's own data" },
   "sponsor_invites.email": { reason: "an optional business contact address the admin typed for a brand's invite link; no account behind it, so export_my_data has no person to scope it by" },
   "signup_leads.email": { reason: "owner 2026-10-09: the sign-up step-1 address saved BEFORE an account exists (service role only); for a member it holds only the address the account already exports plus a source and timestamps, and a completed row is deleted at 30 days" },
   "retained_bans.email_sha256": { reason: "ban-evasion hash kept AFTER deletion; a live account's ban is exported via user_bans" },

@@ -24,7 +24,7 @@ const line = (k: string) => document.querySelector(`[data-summary-line="${k}"]`)
 describe("owner 11-07: the checkout price summary", () => {
   it("porch pickup: item, service fee, pickup Free, sales tax, Total; every line has its info tip", async () => {
     render(<CheckoutPriceSummary itemCount={1} itemsCents={300} discountCents={0} way="porch" wayCents={0} serviceFeeCents={85}
-      setupFeeCents={0} setupFeeKnown taxCents={0} payCents={385} />);
+      taxCents={0} payCents={385} />);
     const labels = [...document.querySelectorAll("dt")].map((d) => d.textContent);
     expect(labels).toEqual(["Item", "Service fee", "Pickup", "Sales tax", "Total"]);
     expect(line("way")?.querySelector("dd")?.textContent).toBe("Free");
@@ -45,32 +45,33 @@ describe("owner 11-07: the checkout price summary", () => {
     expect(sellerDeliveryAmounts(3000, 1000).premiumCents).toBe(70 + Math.round(4000 * 0.05));
     for (const t of [SUMMARY_TIPS.serviceFee, SUMMARY_TIPS.serviceFeeSellerDelivery, SUMMARY_TIPS.serviceFeeShip]) expect(t).toContain("The seller gets the full item price.");
     const { unmount } = render(<CheckoutPriceSummary itemCount={1} itemsCents={3000} discountCents={0} way="seller_delivery" wayCents={1000} serviceFeeCents={270}
-      setupFeeCents={0} setupFeeKnown taxCents={0} payCents={4270} />);
+      taxCents={0} payCents={4270} />);
     fireEvent.click(screen.getByRole("button", { name: "About Service fee" }));
     expect(await screen.findByText(SUMMARY_TIPS.serviceFeeSellerDelivery)).toBeInTheDocument();
     unmount();
     render(<CheckoutPriceSummary itemCount={1} itemsCents={3000} discountCents={0} way="ship" wayCents={900} serviceFeeCents={265}
-      setupFeeCents={0} setupFeeKnown taxCents={0} payCents={4165} />);
+      taxCents={0} payCents={4165} />);
     fireEvent.click(screen.getByRole("button", { name: "About Service fee" }));
     expect(await screen.findByText(SUMMARY_TIPS.serviceFeeShip)).toBeInTheDocument();
   });
 
   it("Helpr delivery priced: its own line with the amount; not priced yet: no line, the Total says + delivery", () => {
     const { rerender } = render(<CheckoutPriceSummary itemCount={2} itemsCents={700} discountCents={0} way="delivery" wayCents={4000} serviceFeeCents={105}
-      setupFeeCents={200} setupFeeKnown taxCents={0} payCents={5005} />);
+      taxCents={0} payCents={4805} />);
     expect(line("way")?.textContent).toBe("Helpr delivery$40.00");
-    expect(line("setup-fee")?.textContent).toBe("One-time setup fee$2.00");
-    const sum = ["items", "service-fee", "way", "setup-fee", "tax"].reduce((a, k) => a + cents(line(k)!.querySelector("dd")), 0);
+    // Owner 2026-11-20: no setup fee line on a Declutter checkout.
+    expect(line("setup-fee")).toBeFalsy();
+    const sum = ["items", "service-fee", "way", "tax"].reduce((a, k) => a + cents(line(k)!.querySelector("dd")), 0);
     expect(sum).toBe(cents(line("total")!.querySelector("dd")));
     rerender(<CheckoutPriceSummary itemCount={2} itemsCents={700} discountCents={0} way="delivery" wayCents={null} serviceFeeCents={105}
-      setupFeeCents={0} setupFeeKnown taxCents={0} payCents={805} />);
+      taxCents={0} payCents={805} />);
     expect(line("way")).toBeNull();
     expect(line("total")?.textContent).toBe("Total$8.05+ delivery");
   });
 
   it("lead money review 11-07: a gift card takes its part off and the summary ends with what goes on the card", () => {
     render(<CheckoutPriceSummary itemCount={1} itemsCents={4000} discountCents={0} way="porch" wayCents={0} serviceFeeCents={270}
-      setupFeeCents={0} setupFeeKnown taxCents={0} payCents={4270} gift={{ fromGiftCents: 2500, onCardCents: 1770 }} />);
+      taxCents={0} payCents={4270} gift={{ fromGiftCents: 2500, onCardCents: 1770 }} />);
     expect(line("total")?.textContent).toBe("Total$42.70");
     expect(line("gift")?.textContent).toBe("Gift card−$25.00");
     expect(line("pay-by-card")?.textContent).toBe("Pay by card$17.70");

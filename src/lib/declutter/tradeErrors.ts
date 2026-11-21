@@ -45,8 +45,6 @@ export const TRADE_RPC_ERROR_COPY = {
   declutter_offer_swap: {
     ...MEMBER,
     free_item_no_trades: TRADE_ERROR_COPY.free_item_no_trades,
-    identity_required_to_buy: DC.identity_required_to_buy,
-    identity_required_to_list: DC.identity_required_to_list,
     invalid_trade: TRADE_ERROR_COPY.invalid_trade,
     item_not_available: DC.item_not_available,
     item_not_found: DC.item_not_found,

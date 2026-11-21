@@ -7,7 +7,7 @@ import type { OverlayDesign } from "./printables";
  * `layout` is the owner's sheet for it: "10" (wide, 2 x 5) or "9" (everything else, 3 x 3, shrunk to fit).
  * `boxes` is where each name is drawn, in inches from the tag's top-left corner, laid on the tag's own To/From line or
  * right after its printed To/From word (labels: false: every final tag prints the words). A tag with no words would
- * get To:/From: drawn (labels: true). siteLine: false where the art leaves no clear spot for louisianahelpr.com.
+ * get To:/From: drawn (labels: true). siteLine: false where the art leaves no clear spot for louisianahelpr.com. Owner 2026-11-21: "remove our website from the labels" -> every tag is false (no website line).
  * To add one: put <name>.jpg (the Canva PNG saved as a JPEG, quality ~90, under 300 KB: the repo cap) and a 200 px
  * <name>.webp in public/printables/tags/ and add an entry here. To change one, replace its .jpg under the same name.
  * Guard: src/test/printables1120.test.tsx (every picture exists, every box sits inside its tag).
@@ -22,7 +22,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 2.04, y: 1.22, w: 1.1, h: 0.2, align: "left" }, from: { x: 2.15, y: 1.44, w: 0.99, h: 0.2, align: "left" } },
     ink: "#a8323a",
     labels: false,
-    siteLine: { y: 1.78, color: "#a8323a", x: 2.6 },
+    siteLine: false,
     layout: "10",
   },
   {
@@ -34,7 +34,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 1.64, y: 1.625, w: 0.66, h: 0.22, align: "left" }, from: { x: 2.83, y: 1.625, w: 0.58, h: 0.22, align: "left" } },
     ink: "#7a1414",
     labels: false,
-    siteLine: { y: 1.96, color: "#3d3530", x: 2.3 },
+    siteLine: false,
     layout: "10",
   },
   {
@@ -58,7 +58,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.55, y: 1.07, w: 0.89, h: 0.32, align: "left" }, from: { x: 0.68, y: 1.4, w: 0.79, h: 0.32, align: "left" } },
     ink: "#4a6e52",
     labels: false,
-    siteLine: { y: 1.82, color: "#4a6e52" },
+    siteLine: false,
     layout: "10",
   },
   {
@@ -70,7 +70,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.48, y: 2.876, w: 1.37, h: 0.24, align: "left" }, from: { x: 0.7, y: 3.086, w: 1.15, h: 0.24, align: "left" } },
     ink: "#2f4f3a",
     labels: false,
-    siteLine: { y: 3.45, color: "#6f6f6f" },
+    siteLine: false,
     layout: "9",
   },
   {
@@ -82,7 +82,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 1.31, y: 1.65, w: 1.05, h: 0.19 }, from: { x: 1.31, y: 2.12, w: 1.05, h: 0.19 } },
     ink: "#1f5f3a",
     labels: false,
-    siteLine: { y: 2.44, color: "#1f5f3a", x: 0.7 },
+    siteLine: false,
     layout: "9",
   },
   {
@@ -94,7 +94,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.66, y: 1.1, w: 0.98, h: 0.3, align: "left" }, from: { x: 2.12, y: 1.1, w: 0.87, h: 0.3, align: "left" } },
     ink: "#c8373f",
     labels: false,
-    siteLine: { y: 1.58, color: "#8a6a50" },
+    siteLine: false,
     layout: "10",
   },
   {
@@ -106,7 +106,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 1.78, y: 0.95, w: 1.52, h: 0.36, align: "left" }, from: { x: 1.87, y: 1.38, w: 1.43, h: 0.36, align: "left" } },
     ink: "#5e4e26",
     labels: false,
-    siteLine: { y: 1.94, color: "#5e4e26" },
+    siteLine: false,
     layout: "10",
   },
   {
@@ -118,7 +118,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.48, y: 0.95, w: 1.24, h: 0.3, align: "left" }, from: { x: 0.6, y: 1.25, w: 1.12, h: 0.3, align: "left" } },
     ink: "#b8323a",
     labels: false,
-    siteLine: { y: 3.46, color: "#7a6a5a" },
+    siteLine: false,
     layout: "9",
   },
   {
@@ -130,7 +130,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.86, y: 1.69, w: 0.69, h: 0.16, align: "left" }, from: { x: 0.92, y: 1.82, w: 0.56, h: 0.16, align: "left" } },
     ink: "#a51c1c",
     labels: false,
-    siteLine: { y: 2.12, color: "#a51c1c", x: 1.0 },
+    siteLine: false,
     layout: "9",
   },
   {
@@ -142,7 +142,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.86, y: 1.69, w: 0.69, h: 0.16, align: "left" }, from: { x: 0.92, y: 1.82, w: 0.56, h: 0.16, align: "left" } },
     ink: "#a51c1c",
     labels: false,
-    siteLine: { y: 2.12, color: "#a51c1c", x: 1.0 },
+    siteLine: false,
     layout: "9",
   },
   {
@@ -154,7 +154,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.86, y: 1.69, w: 0.69, h: 0.16, align: "left" }, from: { x: 0.92, y: 1.82, w: 0.56, h: 0.16, align: "left" } },
     ink: "#a51c1c",
     labels: false,
-    siteLine: { y: 2.12, color: "#a51c1c", x: 1.0 },
+    siteLine: false,
     layout: "9",
   },
   {
@@ -166,7 +166,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.86, y: 1.69, w: 0.69, h: 0.16, align: "left" }, from: { x: 0.92, y: 1.82, w: 0.56, h: 0.16, align: "left" } },
     ink: "#a51c1c",
     labels: false,
-    siteLine: { y: 2.12, color: "#a51c1c", x: 1.0 },
+    siteLine: false,
     layout: "9",
   },
   {
@@ -178,7 +178,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.86, y: 1.69, w: 0.69, h: 0.16, align: "left" }, from: { x: 0.92, y: 1.82, w: 0.56, h: 0.16, align: "left" } },
     ink: "#a51c1c",
     labels: false,
-    siteLine: { y: 2.12, color: "#a51c1c", x: 1.0 },
+    siteLine: false,
     layout: "9",
   },
   {
@@ -190,7 +190,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.86, y: 1.69, w: 0.69, h: 0.16, align: "left" }, from: { x: 0.92, y: 1.82, w: 0.56, h: 0.16, align: "left" } },
     ink: "#a51c1c",
     labels: false,
-    siteLine: { y: 2.12, color: "#a51c1c", x: 1.0 },
+    siteLine: false,
     layout: "9",
   },
   {
@@ -202,7 +202,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.86, y: 1.69, w: 0.69, h: 0.16, align: "left" }, from: { x: 0.92, y: 1.82, w: 0.56, h: 0.16, align: "left" } },
     ink: "#a51c1c",
     labels: false,
-    siteLine: { y: 2.12, color: "#a51c1c", x: 1.0 },
+    siteLine: false,
     layout: "9",
   },
   {
@@ -214,7 +214,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.86, y: 1.69, w: 0.69, h: 0.16, align: "left" }, from: { x: 0.92, y: 1.82, w: 0.56, h: 0.16, align: "left" } },
     ink: "#a51c1c",
     labels: false,
-    siteLine: { y: 2.12, color: "#a51c1c", x: 1.0 },
+    siteLine: false,
     layout: "9",
   },
   {
@@ -226,7 +226,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.86, y: 1.69, w: 0.69, h: 0.16, align: "left" }, from: { x: 0.92, y: 1.82, w: 0.56, h: 0.16, align: "left" } },
     ink: "#a51c1c",
     labels: false,
-    siteLine: { y: 2.12, color: "#a51c1c", x: 1.0 },
+    siteLine: false,
     layout: "9",
   },
   {
@@ -250,7 +250,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.67, y: 1.1, w: 0.97, h: 0.3, align: "left" }, from: { x: 2.14, y: 1.1, w: 0.85, h: 0.3, align: "left" } },
     ink: "#c8373f",
     labels: false,
-    siteLine: { y: 1.56, color: "#8a6a50" },
+    siteLine: false,
     layout: "10",
   },
   {
@@ -262,7 +262,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.4, y: 0.14, w: 1.03, h: 0.2, align: "left" }, from: { x: 2.43, y: 1.63, w: 0.95, h: 0.2, align: "left" } },
     ink: "#2f4f1f",
     labels: false,
-    siteLine: { y: 1.95, color: "#2f4f1f" },
+    siteLine: false,
     layout: "10",
   },
   {
@@ -274,7 +274,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     boxes: { to: { x: 0.81, y: 1.12, w: 2.09, h: 0.24, align: "left" }, from: { x: 0.88, y: 1.32, w: 2.02, h: 0.24, align: "left" } },
     ink: "#fff8ec",
     labels: false,
-    siteLine: { y: 1.68, color: "#fff8ec" },
+    siteLine: false,
     layout: "10",
   },
 ];

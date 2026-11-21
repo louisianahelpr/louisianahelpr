@@ -193,7 +193,7 @@ describe("names", () => {
 });
 
 describe("the maker and the page", () => {
-  it("draws the typed names and louisianahelpr.com on every tag, with cut lines, on each design's own sheet", async () => {
+  it("draws the typed names on every tag, with cut lines, on each design's own sheet, and no website line (owner 2026-11-21)", async () => {
     render(<NameMaker product={tags} />);
     fireEvent.change(screen.getByLabelText("To"), { target: { value: "Mia" } });
     fireEvent.change(screen.getByLabelText("From"), { target: { value: "Aunt Lexi" } });
@@ -201,7 +201,8 @@ describe("the maker and the page", () => {
     // The first tag is wide: 10 to the page (2026-11-20).
     await waitFor(() => expect(root.querySelectorAll("[data-printable-item]").length).toBe(10));
     expect(root.querySelectorAll("[data-printable-cut]").length).toBe(10);
-    expect(root.querySelectorAll("[data-printable-site]").length).toBe(10);
+    // Owner 2026-11-21: "remove our website from the labels".
+    expect(root.querySelectorAll("[data-printable-site]").length).toBe(0);
     // The first tag prints its own "To:" (labels: false), so only the name is drawn on its line.
     expect(tags.designs[0].labels).toBe(false);
     expect([...root.querySelectorAll('[data-printable-line="to"]')].map((t) => t.textContent)).toEqual(Array(10).fill("Mia"));

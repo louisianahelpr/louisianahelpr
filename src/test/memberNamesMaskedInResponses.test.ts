@@ -341,7 +341,8 @@ describe("members never see another member's last name in a response", () => {
 
   it("member_display_name splits on formatName's exact whitespace set, never the locale's \\s", () => {
     const body = bodyOf(defs.get("member_display_name")!.stmt);
-    expect(defs.get("member_display_name")!.file).toBe(THIS);
+    // 20261121233442 (Jobs audit 11-21, G9) restates it to skip a name suffix and bracketed text, same whitespace set.
+    expect(defs.get("member_display_name")!.file).toBe("20261121233442_member_display_name_skips_suffixes.sql");
     expect(body).not.toMatch(/\\s/);
     expect(body.match(/\[\\t\\n\\v\\f\\r \\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff\]\+/g)?.length).toBe(3);
   });

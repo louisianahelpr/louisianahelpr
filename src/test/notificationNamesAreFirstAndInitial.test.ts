@@ -135,15 +135,18 @@ describe("notifications name other members as 'First L.' (Q2292)", () => {
   });
 
   it("the edge helper and formatName are the same rule", () => {
-    for (const s of ["Andre Landry", "  Andre   Jean  Landry ", "Madonna", "", "   ", null, undefined, "Mary-Kate O'Neil"]) {
+    for (const s of ["Andre Landry", "  Andre   Jean  Landry ", "Madonna", "", "   ", null, undefined, "Mary-Kate O'Neil",
+      "John Smith Jr.", "Tremaine Broussard II", "John Jr", "Jean-Baptiste (Seed 16)", "(Seed 3)", "(Jane) Landry"]) {
       expect(memberDisplayName(s, "X"), String(s)).toBe(formatName(s, "X"));
     }
   });
 
-  it("the SQL helper is defined once, on the same rule (first word + last word's initial + '.')", () => {
+  it("the SQL helper is defined once, on the same rule (first word + the last non-suffix word's initial + '.')", () => {
     const def = defs.get("member_display_name");
-    // Restated in 20261021131322 with formatName's exact whitespace set (src/test/memberNamesMaskedInResponses.test.ts).
-    expect(def?.file).toBe("20261021131322_member_names_first_and_initial.sql");
-    expect(def!.stmt).toMatch(/v\.parts\[1\] \|\| ' ' \|\| left\(v\.parts\[array_length\(v\.parts, 1\)\], 1\) \|\| '\.'/);
+    // Restated in 20261021131322 with formatName's exact whitespace set (src/test/memberNamesMaskedInResponses.test.ts);
+    // 20261121233442 (Jobs audit 11-21, G9) skips a suffix and bracketed text (src/test/memberNamesSkipSuffixes.test.ts).
+    expect(def?.file).toBe("20261121233442_member_display_name_skips_suffixes.sql");
+    expect(def!.stmt).toMatch(/v\.parts\[1\] \|\| ' ' \|\| left\(coalesce\(/);
+    expect(def!.stmt).toMatch(/r\.rest\[cardinality\(r\.rest\)\]\), 1\) \|\| '\.'/);
   });
 });

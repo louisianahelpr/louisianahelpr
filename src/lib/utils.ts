@@ -65,6 +65,13 @@ export function endSentence(text: string): string {
 }
 
 /** Format a full name as "First L." for privacy. */
+/** A name suffix is never the last initial ("John Smith Jr." is "John S."; Jobs audit 11-21, G9). The same rule in
+ *  public.member_display_name (20261121233442) and supabase/functions/_shared/memberDisplayName.ts. */
+const NAME_SUFFIX = /^(jr|sr|ii|iii|iv|v)\.?,?$/i;
+/** The words after the first, bracketed text dropped. The first word is never changed, so a short name never shows
+ *  more of a name than before (lh-authz-rls review: "(Jane) Landry" must not become "Landry"). */
+const laterWords = (parts: string[]) => parts.slice(1).join(" ").replace(/\([^)]*\)/g, " ").split(" ").filter(Boolean);
+
 export function formatName(fullName: string | null | undefined, fallback = "A neighbor"): string {
   // Trim FIRST, then check for emptiness — without this, a whitespace-only
   // string ("   ") was truthy in the `||` check but trimmed to "" and
@@ -77,10 +84,12 @@ export function formatName(fullName: string | null | undefined, fallback = "A ne
   if (trimmed.length === 0) return fallback;
   const parts = trimmed.split(/\s+/).filter(Boolean);
   if (parts.length === 0) return fallback;
-  if (parts.length > 1) {
-    return `${parts[0]} ${parts[parts.length - 1][0]}.`;
-  }
-  return parts[0];
+  // G9: the first word is kept as is; in the words after it, bracketed text ("(Seed 16)", "(he/him)") is dropped,
+  // and the initial is the last of them that is not a suffix (every one a suffix, "John Jr": the last one).
+  const rest = laterWords(parts);
+  if (rest.length === 0) return parts[0];
+  const last = [...rest].reverse().find((w) => !NAME_SUFFIX.test(w)) ?? rest[rest.length - 1];
+  return `${parts[0]} ${last[0]}.`;
 }
 
 /**

@@ -2,7 +2,7 @@
  * The gift guides' extras (owner 2026-11-18): the date-driven shipping banner, the sidebar search, the hearts / My
  * list and the merged discount codes. The main page guard is src/test/giftGuidesPage.test.tsx.
  *
- * @mutate src/content/giftGuideShipping.ts |   if (month !== 12 \|\| day < 15) return SHIP_LINES.early; |   if (month !== 12 \|\| day <= 15) return SHIP_LINES.early;
+ * @mutate src/content/giftGuideShipping.ts |   if (month === 11 \|\| (month === 12 && day < 15)) return SHIP_LINES.early; |   if (month === 11 \|\| (month === 12 && day <= 15)) return SHIP_LINES.early;
  * @mutate src/content/giftGuideShipping.ts |   if (day <= 20) return SHIP_LINES.late; |   if (day < 20) return SHIP_LINES.late;
  * @mutate src/content/giftGuideShipping.ts |   if (day <= 25) return SHIP_LINES.instant; |   if (day <= 31) return SHIP_LINES.instant;
  * @mutate src/content/giftGuideShipping.ts | timeZone: "America/Chicago" | timeZone: "UTC"
@@ -16,8 +16,8 @@
  * @mutate src/pages/info/giftGuides/giftList.tsx |     window.localStorage.setItem(KEY, JSON.stringify(next)); |     window.localStorage.setItem(KEY, "{}");
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.shipsFast ? (["ships-fast"] as const) : []), |   ...(flags.trending ? (["ships-fast"] as const) : []),
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping" }) | t: "Gift wrap" })
- * @mutate src/content/giftGuideCatalog.ts | return rest.every((w) => hay.includes(w) \|\| | return rest.some((w) => hay.includes(w) \|\|
- * @mutate src/content/giftGuideCatalog.ts | hay.includes(w) \|\| (label.get(g.row) ?? []).includes(w)); | hay.includes(w));
+ * @mutate src/content/giftGuideCatalog.ts | return rest.every((w) => hasWordStart(hay, w) \|\| | return rest.some((w) => hasWordStart(hay, w) \|\|
+ * @mutate src/content/giftGuideCatalog.ts | hasWordStart(hay, w) \|\| (label.get(g.row) ?? []).includes(w)); | hasWordStart(hay, w));
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         {query.trim() && ( |         {false && (
  * @mutate src/content/giftGuideCatalog.ts |   loaded.set(slug, { picks: chunk.picks.map(toPick), | loaded.set(slug, { picks: [],
  */
@@ -94,7 +94,10 @@ describe("gift guides: the shipping banner follows the date in Louisiana", () =>
     expect(shippingLine(at("2026-12-25T18:00:00Z"))).toBe(SHIP_LINES.instant);
     expect(shippingLine(at("2026-12-26T18:00:00Z"))).toBeNull();
     expect(shippingLine(at("2026-12-31T18:00:00Z"))).toBeNull();
-    expect(shippingLine(at("2027-01-02T18:00:00Z"))).toBe(SHIP_LINES.early);
+    // Holiday audit 1121: hidden from Dec 26 through Oct 31 (it came back every January), back on Nov 1.
+    expect(shippingLine(at("2027-01-02T18:00:00Z"))).toBeNull();
+    expect(shippingLine(at("2027-10-31T18:00:00Z"))).toBeNull();
+    expect(shippingLine(at("2027-11-01T18:00:00Z"))).toBe(SHIP_LINES.early);
   });
   it("uses Louisiana's date, not UTC: 11 PM Chicago on Dec 14 is 05:00Z Dec 15", () => {
     expect(shippingLine(at("2026-12-15T05:00:00Z"))).toBe(SHIP_LINES.early);

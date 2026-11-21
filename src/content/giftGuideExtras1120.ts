@@ -209,6 +209,17 @@ export const finderBudgets = (pool: CatalogPick[], who: FinderWho, borrow: Catal
     return r.exact.length + r.close.length > 0;
   });
 
+/**
+ * The vibes worth offering one person at one budget (holiday audit 1121: "Louisiana" gave 0 exact picks for everyone,
+ * so its 9 results were all unrelated "close matches"; "Trendy" gave 0 for Him): each vibe only when at least one of
+ * their picks is exactly that vibe, the same rule the budgets follow. When none has one, every vibe stays, so the
+ * finder never dead-ends.
+ */
+export const finderVibes = (pool: CatalogPick[], who: FinderWho, budget: FinderBudget, borrow: CatalogPick[] = []) => {
+  const live = FINDER_VIBES.filter((v) => giftFinder(pool, budget, v.id, borrow, who).exact.length > 0);
+  return live.length > 0 ? live : FINDER_VIBES;
+};
+
 /** The answers in a share link's query ("?who=her&budget=50&vibe=cozy"), each checked against its options. */
 export const readFinder = (params: URLSearchParams): { who?: FinderWho; budget?: FinderBudget; vibe?: FinderVibe } => {
   const who = FINDER_WHO.find((x) => x.id === params.get("who"))?.id;

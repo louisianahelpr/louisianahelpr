@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, subscribeGuidePicks } from "@/content/giftGuideCatalog";
 import {
-  EXTRAS_WORDS as W, FINDER_ANCHOR, FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_FEW, FINDER_VIBES, FINDER_WHO, finderBudgets, finderPool, giftFinder, readFinder,
+  EXTRAS_WORDS as W, FINDER_ANCHOR, FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_FEW, FINDER_VIBES, FINDER_WHO, finderBudgets, finderPool, finderVibes, giftFinder, readFinder,
   type FinderBudget, type FinderVibe, type FinderWho,
 } from "@/content/giftGuideExtras1120";
 import { PickRow } from "./GiftGuideView";
@@ -71,8 +71,11 @@ export function GiftFinder() {
   const budgets = a.who ? finderBudgets(pool, a.who, FINDER_BUDGET_GUIDES.flatMap(picksOf)) : FINDER_BUDGETS;
   // A budget from a link that this person's picks cannot fill shows as unpicked.
   const budget = budgets.some((b) => b.id === a.budget) ? a.budget : undefined;
-  const done = a.who !== undefined && budget !== undefined && a.vibe !== undefined;
-  const result = done ? giftFinder(pool, budget, a.vibe!, FINDER_BUDGET_GUIDES.flatMap(picksOf), a.who) : { exact: [], close: [] };
+  // Only vibes with at least one exact pick for this person and budget; a vibe from a link that has none shows unpicked.
+  const vibes = a.who && budget !== undefined ? finderVibes(pool, a.who, budget, FINDER_BUDGET_GUIDES.flatMap(picksOf)) : FINDER_VIBES;
+  const vibe = vibes.some((v) => v.id === a.vibe) ? a.vibe : undefined;
+  const done = a.who !== undefined && budget !== undefined && vibe !== undefined;
+  const result = done ? giftFinder(pool, budget, vibe!, FINDER_BUDGET_GUIDES.flatMap(picksOf), a.who) : { exact: [], close: [] };
   const shown = result.exact.length + result.close.length;
   const ownGuide = who ? guideBySlug(who.guides[0].slug) : undefined;
   const copy = () => {
@@ -105,7 +108,7 @@ export function GiftFinder() {
       {!a.who && <p className="gg-finder-lead">{W.finderLead}</p>}
       <Choices label={W.finderWho} options={people.map((x) => ({ id: x.id, label: x.label }))} value={a.who} onPick={(v) => set({ who: v })} attr="who" />
       {a.who && <Choices label={W.finderBudget} options={budgets} value={budget} onPick={(v) => set({ budget: v })} attr="budget" />}
-      {a.who && budget !== undefined && <Choices label={W.finderVibe} options={FINDER_VIBES.map((x) => ({ id: x.id, label: x.label }))} value={a.vibe} onPick={(v) => set({ vibe: v })} attr="vibe" />}
+      {a.who && budget !== undefined && <Choices label={W.finderVibe} options={vibes.map((x) => ({ id: x.id, label: x.label }))} value={vibe} onPick={(v) => set({ vibe: v })} attr="vibe" />}
       {done && (
         <div data-gift-finder-results="">
           <p className="gg-finder-q">{W.finderResults}</p>

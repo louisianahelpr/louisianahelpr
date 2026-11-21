@@ -71,10 +71,11 @@ export const PUBLIC_PAGE_META = {
   // guide that holds picks (scripts/generate-sitemap.mjs allGiftGuidePaths); each guide's own head is giftGuidePageMeta (giftGuidePageMeta.mjs).
   "/gift-guides": {
     title: "Holiday gift guides 2026 — Helpr",
-    description: "Gift ideas for everyone on your list, from Louisiana Helpr: by person, budget, career and store, plus Louisiana favorites.",
+    // Holiday audit 1121: only Her, Him and Kids are live (src/content/giftGuideLive.mjs), so the head names only them.
+    description: "Gift ideas for her, him and the kids from Louisiana Helpr, every pick with its price and sorted by budget.",
     canonical: `${SITE_ORIGIN}/gift-guides`,
     ogTitle: "Holiday gift guides 2026 from Louisiana Helpr",
-    ogDescription: "Gift ideas for everyone on your list, plus Louisiana favorites.",
+    ogDescription: "Gift ideas for her, him and the kids, every pick with its price.",
   },
   // Gift guides fun features (owner 2026-11-20): in the sitemap with the guides; giftGuidePageMeta.mjs answers these
   // three before its noindex fallback for an unknown /gift-guides/<slug>.
@@ -93,10 +94,10 @@ export const PUBLIC_PAGE_META = {
     ogDescription: "Budgets, gift ideas and what you've bought, all in one place.",
   },
   "/gift-guides/draw-names": {
-    title: "Secret Santa name drawer — Helpr",
+    title: "Secret Santa name draw — Helpr",
     description: "Draw Secret Santa names for free and send each person a private link to their match. No emails or phone numbers.",
     canonical: `${SITE_ORIGIN}/gift-guides/draw-names`,
-    ogTitle: "Free Secret Santa drawer from Louisiana Helpr",
+    ogTitle: "Free Secret Santa name draw from Louisiana Helpr",
     ogDescription: "Draw names, then text each person their match.",
   },
   // Free holiday printables (owner 2026-11-20): gift tags with names, made in the browser.

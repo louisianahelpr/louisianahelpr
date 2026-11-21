@@ -145,6 +145,10 @@ export default function GiftGuides() {
   const hashSlug = decodeURIComponent(hash.replace(/^#/, ""));
   const fromHash = hashSlug ? newSlugFor(hashSlug) : null;
   if (oldMyList) return <Navigate to={`/gift-guides/${MY_LIST_SLUG}`} replace />;
+  // Holiday audit 1121: a slug typed in capitals (/gift-guides/HER) opens its guide, not the landing.
+  if (rawSlug && rawSlug !== rawSlug.toLowerCase()) return <Navigate to={`/gift-guides/${rawSlug.toLowerCase()}${hash}`} replace />;
+  // The old "Deals & codes" anchor on the landing: the codes live on the deals days now (Black Friday first).
+  if (!slug && !shared && !myListPage && hash === "#gift-codes") return <Navigate to="/gift-guides/black-friday#gift-codes" replace />;
   if (!slug && !shared && !myListPage && fromHash) return <Navigate to={`/gift-guides/${fromHash}`} replace />;
   // For Her + For Him (owner 11-20): an old people section link (/gift-guides/her#wife, /gift-guides/mom#mother-in-law)
   // opens that relationship's page; a hash never reaches the server, so the page forwards it.
@@ -219,7 +223,8 @@ export default function GiftGuides() {
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
         {landing && <hr className="gg-divider" data-gift-divider="" />}
         <div className="gg-layout">
-          <GiftGuidesSidebar active={guide} myList={myList} page={deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined} />
+          {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
+          <GiftGuidesSidebar active={guide} myList={myList || shared} page={deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined} />
           <div className="gg-main">
             {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
           </div>

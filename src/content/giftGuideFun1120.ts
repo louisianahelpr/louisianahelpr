@@ -340,7 +340,8 @@ export const FUN_WORDS = {
   toolsTitle: "Make it fun",
   tools: [
     { to: "/gift-guides/swipe", title: "Swipe to find gifts", body: "Swipe right to save, left to skip." },
-    { to: "/gift-guides/draw-names", title: "Secret Santa drawer", body: "Draw names and text each person their match." },
+    // Holiday audit 1121: the same name as the page itself (santaTitle; "drawer" read as furniture, audit C15e).
+    { to: "/gift-guides/draw-names", title: "Secret Santa name draw", body: "Draw names and text each person their match." },
     { to: "/gift-guides/planner", title: "Gift planner", body: "Who's left, what you bought, and your budget." },
     // Owner 11-20 12:30 PM landing plan: the fourth tool card (the printables page, #4811).
     { to: "/gift-guides/printables", title: "Free printables", body: "Gift tags with names, free to print." },

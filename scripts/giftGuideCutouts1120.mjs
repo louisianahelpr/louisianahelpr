@@ -118,6 +118,35 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/uploads/6bf7fbb4-6ccc-41ff-9fe2-2614f404c0f7_image-1790168566381", "paddywax-sweet-like-peppermint-candle-64753a.webp"],
   // AeroPress Clear Coffee Press
   ["https://static.shopmy.us/uploads/21aa3a79-d9f9-46aa-b7ec-43dd0c2fc390_aeropress-clear-coffee-press-xl.jpg", "aeropress-clear-coffee-press-473649.webp"],
+  // FOR HER 11-21 (the owner's 14 ShopMy saves, scripts/giftGuideHer1121.mjs): Apple Vision cutouts unless noted.
+  // On Cloud 6 Sneakers, Glacier/White
+  ["https://static.shopmy.us/pins/zoom-108613972-1795240704146-3MF10070_050", "on-cloud-6-sneakers-glacier-white-4f6466.webp"],
+  // BIODANCE Hydro Cera-Nol Real Deep Mask (flood-filled from its white ground; Vision lifted only the box art)
+  ["https://static.shopmy.us/uploads/c5e32645-7fc2-4c8a-af7f-d12b9c83bc61imageye___-_imgi_1_4201001452-847__1.jpeg", "biodance-hydro-cera-nol-real-deep-mask-08b369.webp"],
+  // Hatch Restore 3, Putty
+  ["https://static.shopmy.us/pins/zoom-108613500-1795240519319-R3_Putty.jpg", "hatch-restore-3-putty-37e619.webp"],
+  // Ember Mug 2, Brown
+  ["https://static.shopmy.us/pins/zoom-108613356-1795240468332-17103719_fpx.tif", "ember-mug-2-6dfd0f.webp"],
+  // Owala FreeSip 24 oz, Open Air
+  ["https://static.shopmy.us/pins/zoom-108613192-1795240422444-C07940_450", "owala-freesip-24-oz-open-air-3af608.webp"],
+  // Therabody Theragun Mini
+  ["https://static.shopmy.us/pins/zoom-108612982-1795240352615-253765107_0435.jpg", "therabody-theragun-mini-a30abd.webp"],
+  // Camp Snap CS-8 Micro Video Camera Keychain
+  ["https://static.shopmy.us/pins/zoom-106643598-1794927315931-micro1.jpg", "camp-snap-cs-8-micro-video-camera-keychain-60114e.webp"],
+  // Stanley All Day Julienne Midi Cooler
+  ["https://www.rei.com/media/40f2076a-b808-4b12-b912-240e6fa0e847", "stanley-all-day-julienne-midi-cooler-792e50.webp"],
+  // YETI Camino 35 Carryall, Cape Taupe
+  ["https://static.shopmy.us/uploads/pretty-prod-1787425474692", "yeti-camino-35-carryall-cape-taupe-2e1972.webp"],
+  // BaubleBar Fallon 14K Gold Bezel Earrings
+  ["https://static.shopmy.us/uploads/adc16a77-2764-49c6-8995-55c0e42754c9_s-blob-v1-IMAGE-DBeu-uRDNQQ.png", "baublebar-fallon-gold-bezel-earrings-099398.webp"],
+  // Shark Depuffi Hot & Cold Face Sculpting Tool
+  ["https://asset.sephora.co.uk/img/prod/pid/P1000211062/114692_media_principal_extendedaten_gb_0_extended_06-05-26-09-52-04.jpg", "shark-depuffi-hot-cold-face-tool-154ac1.webp"],
+  // CurrentBody LED Red Light Therapy Face Mask
+  ["https://static.shopmy.us/uploads/pretty-prod-1789545457784", "currentbody-led-red-light-face-mask-86c492.webp"],
+  // UGG Goldenstar Evelina Clog, Beige
+  ["https://static.shopmy.us/pins/zoom-108604684-1795237968140-108971391_025_b", "ugg-goldenstar-evelina-clog-beige-39d6c0.webp"],
+  // Lola Blankets Original Throw (flood-filled, grey shadow removed; Vision lifted only the label)
+  ["https://static.shopmy.us/uploads/346f926f-f41b-444e-b686-921455d30264_74A53B12-D898-44DD-8ADB-BBB0CD895907.jpg", "lola-blankets-original-throw-green-ac1ca0.webp"],
 ]);
 
 /** The photo to show for `image`: its transparent cutout when one exists, else `image` itself. */

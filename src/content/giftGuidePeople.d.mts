@@ -9,3 +9,5 @@ export const RELATION_PAGES: Readonly<Record<string, { guide: string; label: str
 export const OLD_PEOPLE_SLUGS: Readonly<Record<string, string>>;
 export const OLD_PEOPLE_ANCHORS: Readonly<Record<string, Readonly<Record<string, string>>>>;
 export function peopleGuideOf(slug: string): string | null;
+export const OWNER_LIST_GUIDES: readonly string[];
+export function isOwnerList(slug: string): boolean;

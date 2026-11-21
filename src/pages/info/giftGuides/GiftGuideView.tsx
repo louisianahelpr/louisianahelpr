@@ -17,6 +17,7 @@ import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { AgeChips } from "./GiftGuideAges";
 import { PeopleChips } from "./GiftGuidePeopleChips";
+import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { SmallBizLink } from "./GiftGuideSmallBiz";
 import { PrintablesLink } from "./printables/PrintablesLink";
 import { SHOP_SMALL_GUIDE } from "@/content/giftGuideSmallBiz.mjs";
@@ -351,7 +352,8 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
       {/* Holistic review 11-18 H1: Niece, Nephew and Cousins open their kids age guides by age. */}
       <AgeChips slug={guide.slug} />
       {/* For Her + For Him (owner pop-up 11-20): Mom, Wife ... chips filter the same list (each its own page). */}
-      <PeopleChips guide={guide} />
+      {/* Owner 11-21: For Her is her own 25 saves, one flat list: no relationship chips. */}
+      {!isOwnerList(guide.slug) && <PeopleChips guide={guide} />}
       {/* Big batch 1120: Shop Small Louisiana opens with the way to the Small Business Saturday page. */}
       {guide.slug === SHOP_SMALL_GUIDE && <SmallBizLink />}
       {/* Owner 2026-11-20: the free printables this guide links to (gift tags on Gift Wrap & Cards), once each is ready. */}
@@ -370,7 +372,7 @@ export function GiftGuideView({ guide }: { guide: CatalogGuide }) {
       ))}
       {/* Owner redesign 11-18 PM: the codes and sales are one collapsed section in the list (after pick 10, or after
           a shorter list), never a button; a new one per guide, so it is closed again on the next guide. */}
-      <GiftGuideList key={guide.slug} guide={guide} after={<DealsAndCodes key={guide.slug} guide={guide} />} />
+      <GiftGuideList key={guide.slug} guide={guide} after={isOwnerList(guide.slug) ? null : <DealsAndCodes key={guide.slug} guide={guide} />} />
       {picksReady(guide.slug) && <StoreDeals key={`deals ${guide.slug}`} guide={guide} />}
       {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
     </article>

@@ -16,13 +16,17 @@ import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { auditFix1120 } from "../../scripts/giftGuideSectionAudit1120.mjs";
 import { SPONSOR_HOME_GUIDES, applyStandard, findPick } from "../../scripts/giftGuideStandard1120.mjs";
+import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 
 type Want = { name: string; href: string; line?: string };
 type Row = { name: string; href: string; section?: string; sectionId?: string; line?: string; sponsor?: true; ownerPick?: true };
 type Guide = { sections: { id: string; title: string; picks: Want[] }[]; cut: Want[]; ownerCall: Want[] };
 const spec = JSON.parse(readFileSync("scripts/gift-guide-standard-1120.json", "utf8")) as { guides: Record<string, Guide> };
 const page = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Row[] }).picks;
+// For Her is the owner's own 25 saves since 11-21 (scripts/giftGuideHer1121.mjs, guarded by giftGuideHer1121.test.ts):
+// her list replaces the plan's Her, so the plan's Her checks no longer apply. Every other planned guide is checked.
 const guides = Object.entries(spec.guides);
+const checked = guides.filter(([slug]) => !isOwnerList(slug));
 
 describe("gift guide standard 1120: the plan is what the pages show", () => {
   it("covers the planned guides", () => {
@@ -32,7 +36,7 @@ describe("gift guide standard 1120: the plan is what the pages show", () => {
 
   it("a pick the plan cut is not on its guide", () => {
     const back: string[] = [];
-    for (const [slug, g] of guides) {
+    for (const [slug, g] of checked) {
       const picks = page(slug);
       const kept = new Set(g.sections.flatMap((s) => s.picks).map((p) => `${p.name}|${p.href}`));
       for (const c of g.cut) if (!kept.has(`${c.name}|${c.href}`) && picks.some((p) => p.name === c.name && (!c.href || p.href === c.href))) back.push(`${slug}: ${c.name}`);
@@ -42,7 +46,7 @@ describe("gift guide standard 1120: the plan is what the pages show", () => {
 
   it("each kept pick is in the plan's section, in the plan's order, and nothing unplanned is on the page", () => {
     const wrong: string[] = [];
-    for (const [slug, g] of guides) {
+    for (const [slug, g] of checked) {
       const picks = page(slug);
       const used = new Set<Row>();
       let last = -1;
@@ -65,8 +69,9 @@ describe("gift guide standard 1120: the plan is what the pages show", () => {
 
   it("the owner's 9:12 PM decisions hold", () => {
     const names = (slug: string) => page(slug).map((p) => p.name);
+    // Her's 9:12 PM removals stay off; her keeps (Camino, Kitsch advent, lululemon) were superseded by her 11-21 list.
     for (const n of ["Printfresh Eco Satin Soho Pajama Set", "Southern Tide Textured Knit Lounge Pant", "Southern Tide Textured Knit Lounge Quarter Zip", "Olive & June Gel Mani System", "lululemon Define Cropped Jacket Nulu"]) expect(names("her"), n).not.toContain(n);
-    for (const n of ["YETI Camino 35 Carryall Tote", "Kitsch Holiday Advent Calendar", "lululemon Define Jacket Luon"]) expect(names("her"), n).toContain(n);
+    expect(isOwnerList("her")).toBe(true);
     const louisiana = /^(louisiana-|shop-small-louisiana$)/;
     for (const [slug] of guides) {
       if (louisiana.test(slug)) continue;
@@ -81,8 +86,9 @@ describe("gift guide standard 1120: the plan is what the pages show", () => {
       for (const p of page(f.slice(0, -5))) if (OFF.test(p.name)) seen.push(`${f.slice(0, -5)}: ${p.name.match(OFF)![0]}`);
     }
     expect(seen.sort()).toEqual(["25-days-sponsors: Arey The System", "25-days-sponsors: OYU Botanica Winter Radiance", "25-days-sponsors: SRI Labs DryQ"]);
-    const ready = page("her").filter((p) => p.section === "Getting ready").map((p) => p.name);
-    for (const n of ["Lancôme Juicy Tubes Lip Gloss", "OLAPLEX No.7 Bonding Hair Oil", "Charlotte Tilbury Hollywood Flawless Filter"]) expect(ready, n).toContain(n);
+    // The popular picks that took those Her spots (Juicy Tubes, OLAPLEX, Flawless Filter) left with the plan's Her on 11-21,
+    // when For Her became the owner's own 25 saves; none of the three sponsors is back on it.
+    expect(page("her").filter((p) => p.sponsor)).toEqual([]);
   });
 });
 

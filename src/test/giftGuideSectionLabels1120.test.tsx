@@ -20,7 +20,11 @@ describe("gift guides: section headings read as parts of one guide (owner 11-20)
 
   it("every shipped person-guide page with two sections gets distinct, non-bare headings", () => {
     // For Her / For Him (owner 11-20 evening): Dad and Mom fold into For Him and For Her, sectioned by use.
-    for (const [slug, title] of [["him", "For Him"], ["her", "For Her"]] as const) {
+    // For Her is the owner's own 25 saves since 11-21 (scripts/giftGuideHer1121.mjs): one flat list, no headings at all.
+    const her = (JSON.parse(readFileSync("src/content/giftGuidePicks/her.json", "utf8")) as { picks: { section?: string }[] }).picks;
+    expect(her.length).toBe(25);
+    expect(her.filter((p) => p.section !== undefined)).toEqual([]);
+    for (const [slug, title] of [["him", "For Him"]] as const) {
       const picks = (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: { section?: string; sectionId?: string }[] }).picks;
       const heads = [...new Map(picks.map((p) => [p.sectionId, p.section])).entries()].map(([id, t]) => sectionLabel({ title }, String(t), id));
       expect(heads.length, slug).toBeGreaterThan(1);

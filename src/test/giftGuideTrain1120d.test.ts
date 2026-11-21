@@ -22,12 +22,16 @@ import { describe, expect, it } from "vitest";
 import { BRAND_TYPE_FREE, applyTrain1120d, typeFix } from "../../scripts/giftGuideTrain1120d.mjs";
 import { SECTION_ALIASES, TOP_PICKS } from "@/content/giftGuidePicks";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
+import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 
 const DIR = "src/content/giftGuidePicks";
-type Row = { name: string; brand?: string; href: string; type?: string; price?: number; section?: string; sectionId?: string; commission?: number | null; sponsor?: true; ownerPick?: true; from?: string };
+type Row = { name: string; brand?: string; href: string; type?: string; price?: number; section?: string; sectionId?: string; commission?: number | null; sponsor?: true; ownerPick?: true; from?: string; rels?: string[] };
 const chunks = readdirSync(DIR).filter((f) => f.endsWith(".json")).map((f) => ({ slug: f.replace(/\.json$/, ""), picks: (JSON.parse(readFileSync(`${DIR}/${f}`, "utf8")) as { picks: Row[] }).picks }));
 // A filtered view (Mom on Her, Dad on Him) has no file of its own: its picks are the ones the page marks as from it.
-const guide = (slug: string) => chunks.find((c) => c.slug === slug)?.picks ?? chunks.flatMap((c) => c.picks.filter((p) => p.from === slug));
+// For Her is the owner's own 25 saves (11-21, scripts/giftGuideHer1121.mjs): its relationship pages (Mom ...) are its
+// picks tagged for them, as the page draws them.
+const guide = (slug: string) => chunks.find((c) => c.slug === slug)?.picks
+  ?? (isOwnerList(slug) ? chunks.flatMap((c) => c.picks.filter((p) => p.rels?.includes(slug))) : chunks.flatMap((c) => c.picks.filter((p) => p.from === slug)));
 const spec = JSON.parse(readFileSync("scripts/gift-guide-train-1120d.json", "utf8")) as {
   sectionMin: number; sectionCap: number;
   pageCaps: { max: number; brandTypeMax: number; exemptTypes: string[]; typeMax: Record<string, number>; guides: Record<string, { max?: number; brandTypeMax?: number; exemptTypes?: string[] }> };
@@ -52,6 +56,7 @@ describe("page-level type caps (holiday audit A #1)", () => {
       expect(picks.length, slug).toBeGreaterThan(chunks.some((c) => c.slug === slug) ? 5 : 3);
       pages += 1;
       if (PLANNED.has(slug)) continue; // the owner's plan wins on a planned guide (comment above)
+      if (isOwnerList(slug)) continue; // the owner's own 25 saves (11-21): she kept three face tools and every shoe
       const exempt = new Set([...spec.pageCaps.exemptTypes, ...(g.exemptTypes ?? [])]);
       const byType = new Map<string, Row[]>();
       for (const p of picks) byType.set(p.type ?? "other", [...(byType.get(p.type ?? "other") ?? []), p]);

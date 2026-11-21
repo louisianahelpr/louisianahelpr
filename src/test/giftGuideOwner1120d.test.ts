@@ -23,6 +23,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { MEN_COLOR_GUIDES, MEN_PASTEL, OWNER_REMOVED, elderBootOff, menPastelOff, menStyleWhy, neonOff, ownerStyleOff, womenBlackCupOff } from "../../scripts/giftGuideRules.mjs";
 import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
+import { HER_1121 } from "../../scripts/giftGuideHer1121.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image?: string; line?: string; store?: string; price?: number; type?: string; from?: string; section?: string; sectionId?: string };
 const DIR = "src/content/giftGuidePicks";
@@ -33,7 +34,11 @@ const NAMED = [/heydude austin lift/i, /bombas sunday slipper|^sunday slipper$/i
 describe("gift guides: owner 11-20 removals and style rules", () => {
   it("the named removals and Lilly Pulitzer are on no page, store pages included", () => {
     expect(CHUNKS.size).toBeGreaterThan(40);
-    const hits = [...CHUNKS.entries()].flatMap(([slug, picks]) => picks.filter((p) => NAMED.some((re) => re.test(`${p.brand ?? ""} ${p.name}`)) || /p-107836771\b/.test(p.href) || OWNER_REMOVED(p) || blockedBrand(p)).map((p) => `${slug}: ${p.name}`));
+    // Owner 11-21: For Her is her own 25 saves (scripts/giftGuideHer1121.mjs) and keeps her HEYDUDE Austin Lift (it is
+    // banned from the men's guides only, by the men's style rule below). That one link on For Her alone is allowed.
+    const ownerKept = (slug: string, p: Pick) => slug === "her" && HER_1121.some((r) => r.href === p.href);
+    expect(CHUNKS.get("her")?.filter((p) => /austin lift/i.test(p.name)).length).toBe(1);
+    const hits = [...CHUNKS.entries()].flatMap(([slug, picks]) => picks.filter((p) => !ownerKept(slug, p)).filter((p) => NAMED.some((re) => re.test(`${p.brand ?? ""} ${p.name}`)) || /p-107836771\b/.test(p.href) || OWNER_REMOVED(p) || blockedBrand(p)).map((p) => `${slug}: ${p.name}`));
     expect(hits).toEqual([]);
   });
 

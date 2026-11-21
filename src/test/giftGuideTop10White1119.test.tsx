@@ -225,7 +225,9 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
         if (n) shared.push(`${a} / ${b}: ${n}`);
       }
     }
-    expect(pairs).toBeGreaterThan(40);
+    // For Her = the owner's 25 saves (11-21): Mom, Wife, Girlfriend, Sister and Mother-in-law are no longer lists of their
+    // own (their picks are Her's, all ownerPick): 31 pairs measured 2026-11-21.
+    expect(pairs).toBeGreaterThan(30);
     expect(shared).toEqual([]);
   });
 

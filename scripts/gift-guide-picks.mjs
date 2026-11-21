@@ -27,6 +27,9 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
+import { droppedPhoto, rightPhoto } from "./giftGuidePhotoFixes1120.mjs";
+import { cutoutPhoto } from "./giftGuideCutouts1120.mjs";
+import { auditFix1120 } from "./giftGuideSectionAudit1120.mjs";
 import { applyTrain1120b } from "./giftGuideTrain1120b.mjs";
 import { applyTrain1120c } from "./giftGuideTrain1120c.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
@@ -460,8 +463,10 @@ function toPick(p, where) {
   // The owner approved Amazon product images for these (11-18 PM): the CDN photo, on an Amazon link only (Associates).
   const amazonFound = Boolean(found) && AMAZON_IMAGE_HOST.test(new URL(found).hostname);
   const swap = ownImage ? BADGE_PHOTO_SWAPS.get(ownImage.split("?")[0]) : undefined;
-  const image = swap !== undefined ? (swap && AMAZON_CDN_PHOTOS && (AMAZON.has(host) || AMAZON.has(plainHost)) ? swap : undefined) : ownImage ?? (found && found.startsWith("https://") && !brokenImage(found) && !isTiff(found)
+  // A photo of the wrong product (photo review 11-20) shows the right one, or nothing: scripts/giftGuidePhotoFixes1120.mjs.
+  const pickedImage = swap !== undefined ? (swap && AMAZON_CDN_PHOTOS && (AMAZON.has(host) || AMAZON.has(plainHost)) ? swap : undefined) : ownImage ?? (found && found.startsWith("https://") && !brokenImage(found) && !isTiff(found)
     && (!amazonFound || (new URL(found).hostname === "m.media-amazon.com" && (AMAZON.has(host) || AMAZON.has(plainHost)))) ? found : undefined);
+  const image = droppedPhoto(p.image) ? undefined : rightPhoto(pickedImage);
   // PRICES (owner 11-18): only a checked, fresh, non-Amazon price (scripts/giftGuidePrice.mjs).
   const priced = verifiedPrice(p, [host, plainHost], store);
   // A brand field naming the store (Macy's, Target, Tractor Supply) takes the maker the name opens with (fit audit r4).
@@ -3963,6 +3968,15 @@ export const weeklyTop = (() => {
   }
   return out;
 })();
+// Photo review 11-20 (scripts/giftGuidePhotoFixes1120.mjs), last pass: picks that reach a page by a later path (train
+// adds, store fill) never pass createPick, so a wrong photo is swapped or its row dropped (no photo, no row) here too.
+for (const slug of Object.keys(pageList)) {
+  pageList[slug] = pageList[slug].filter((p) => !droppedPhoto(p.image)).map((p) => (p.image && rightPhoto(p.image) !== p.image ? { ...p, image: rightPhoto(p.image) } : p));
+  // Section audit 11-20 (scripts/giftGuideSectionAudit1120.mjs): sold-out, dead-link and old-edition picks go; misnamed cards take the real name.
+  pageList[slug] = pageList[slug].map((p) => auditFix1120(slug, p)).filter(Boolean);
+  // Photo cutouts 11-20 (scripts/giftGuideCutouts1120.mjs): a busy-background photo shows as its transparent cutout.
+  pageList[slug] = pageList[slug].map((p) => (p.image && cutoutPhoto(p.image) !== p.image ? { ...p, image: cutoutPhoto(p.image) } : p));
+}
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
 const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();
@@ -3991,7 +4005,7 @@ writeFileSync(
     `/** Codes the researched deals name (the sidebar's Discount codes, after the owner's; each hidden after its end date). */\n` +
     `export const DEAL_CODES: { rank: number; store: string; code: string; offer: string; expires?: string }[] = ${JSON.stringify(dealCodes)};\n` +
     `/** The landing's "Top 10 This Week": go-link clicks first, then commission x popularity (scripts/gift-guide-picks.mjs weeklyTop). */\n` +
-    `export const TOP_PICKS: ResearchedPick[] = ${JSON.stringify(weeklyTop)};\n` +
+    `export const TOP_PICKS: ResearchedPick[] = ${JSON.stringify(weeklyTop.filter((p) => !droppedPhoto(p.image)).map((p) => auditFix1120("", p)).filter(Boolean).map((p) => (p.image ? { ...p, image: cutoutPhoto(p.image) } : p)))};\n` +
     `/** The sidebar's Sales (each hidden after its end date). */\n` +
     `export const SALES: Sale[] = ${JSON.stringify(sales)};\n` +
     `/** Each guide's chunk, fetched only when its page opens (Vite splits every file into its own chunk). */\n` +

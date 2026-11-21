@@ -49,7 +49,10 @@ PICKS = os.path.join(ROOT, "src", "content", "giftGuidePicks")
 OUT = os.path.join(ROOT, "public", "gift-guides", "covers")
 OG = os.path.join(ROOT, "public", "gift-guides", "og")
 CACHE = os.environ.get("GIFT_COVER_CACHE", os.path.expanduser("~/.lh-shots/gg-cover-cache"))
-GEN = os.path.expanduser("~/Desktop/Pin-cover-generator")
+# The owner's generator moved on her Desktop (11-20); $GIFT_COVER_GEN overrides, else the first folder holding pin_covers.py.
+GEN = next((d for d in [os.environ.get("GIFT_COVER_GEN") or "", os.path.expanduser("~/Desktop/Pin-cover-generator"),
+                        os.path.expanduser("~/Desktop/Louisiana Helpr Work/Social and Pinterest/Pin-cover-generator")]
+            if d and os.path.exists(os.path.join(d, "pin_covers.py"))), os.path.expanduser("~/Desktop/Pin-cover-generator"))
 sys.path.insert(0, GEN)
 import pin_covers as pc  # noqa: E402 - the owner's generator, so the covers are the pins' own style
 # The three agreed families (owner 11-18: "we agreed on the red green and beige earlier"), each the committed text-only
@@ -75,7 +78,9 @@ TIGHT = re.compile(r"airpods", re.I)
 # The cover audit's six per guide (11-18; "idk that a girl wants a grill toy"), then the fit audit's final_top25 for
 # that guide (owner 11-18: "Make sure all gifts are appropriate per section"). Only the guide's own picks are used
 # (never another guide's photo); a guide the fit audit did not cover (most store pages) uses its own featured order.
-AUDIT_DIR = os.path.expanduser("~/Desktop/Gift-guide-picks")
+AUDIT_DIR = next((d for d in [os.environ.get("GIFT_COVER_AUDIT_DIR") or "", os.path.expanduser("~/Desktop/Gift-guide-picks"),
+                              os.path.expanduser("~/Desktop/Louisiana Helpr Work/Gift guides and affiliate/Gift-guide-picks")]
+                  if d and os.path.isdir(d)), os.path.expanduser("~/Desktop/Gift-guide-picks"))
 
 
 def _load(name):
@@ -208,6 +213,13 @@ def targets(rows):
 
 
 def fetch(url):
+    # A photo the site hosts itself (a sponsor photo, a 11-20 cutout) is read from public/: it may not be deployed yet,
+    # and a 404 would be remembered in the cache as a dead photo.
+    own = "https://www.louisianahelpr.com/gift-guides/"
+    if url.startswith(own):
+        local = os.path.join(ROOT, "public", "gift-guides", *url[len(own):].split("?")[0].split("/"))
+        if os.path.exists(local):
+            return open(local, "rb").read()
     os.makedirs(CACHE, exist_ok=True)
     path = os.path.join(CACHE, hashlib.sha1(url.encode()).hexdigest())
     if os.path.exists(path):
@@ -432,11 +444,35 @@ def allowed(slug, p, taken, group=""):
     return not (ks & set().union(*[kinds(t) for t in taken])) if taken else True
 
 
+# A cover shows only products that are in that guide right now (owner 11-20: "The covers need to have correct
+# pictures": the Dad cover still showed a removed slide, and store covers drew bestseller photos of products the page
+# never listed), and never an Amazon photo (Amazon images are not edited, so they cannot be cut out for a cover).
+# $GIFT_COVER_ALSO_IN names a second picks folder (a train branch's): a product must be on the guide's list there too,
+# so a cover drawn on a branch still holds once the train's removals land.
+AMAZON = re.compile(r"(^|[./])(amazon\.[a-z.]+|media-amazon\.com|ssl-images-amazon\.com|amzn\.to|a\.co)(/|$)", re.I)
+ALSO_IN = os.environ.get("GIFT_COVER_ALSO_IN") or ""
+_ALSO = {}
+
+
+def is_amazon(p):
+    return any(AMAZON.search(re.sub(r"^https?://", "", p.get(k) or "").split("?")[0].split("/")[0] + "/") for k in ("image", "href")) or p.get("store") == "store-amazon"
+
+
 def own_picks(slug):
     try:
-        return json.load(open(os.path.join(PICKS, f"{slug}.json"), encoding="utf8"))["picks"]
+        picks = json.load(open(os.path.join(PICKS, f"{slug}.json"), encoding="utf8"))["picks"]
     except FileNotFoundError:
         return []
+    picks = [q for q in picks if not is_amazon(q)]
+    if ALSO_IN:
+        if slug not in _ALSO:
+            try:
+                _ALSO[slug] = {(q.get("name"), q.get("image")) for q in json.load(open(os.path.join(ALSO_IN, f"{slug}.json"), encoding="utf8"))["picks"]}
+            except FileNotFoundError:
+                _ALSO[slug] = None
+        if _ALSO[slug] is not None:
+            picks = [q for q in picks if (q.get("name"), q.get("image")) in _ALSO[slug]]
+    return picks
 
 
 _STORE_POOL = {}
@@ -503,10 +539,7 @@ def candidates(slug):
             rx = re.compile(COLOR_WORDS[slug], re.I)
             own = [q for q in own if rx.search(q.get("name") or "")] + [q for q in own if not rx.search(q.get("name") or "")]
     if slug.startswith("store-"):
-        shown = [{"name": x.get("product") or x.get("name") or "", "brand": "", "image": x.get("image"), "store": slug}
-                 for x in STORE_IMAGES.get(slug, []) + STORE_FILL.get(slug, [])
-                 if isinstance(x, dict) and x.get("image") not in STORE_REJECTS]
-        return own + [q for q in store_pool(slug) if q.get("store") == slug and q not in own] + shown
+        return own  # only what the store page lists (owner 11-20), never another guide's or a bestseller photo
     fit = FIT.get(slug) if isinstance(FIT.get(slug), dict) else None
     if not fit or not fit.get("final_top25"):
         return own
@@ -770,7 +803,7 @@ def render(row, prods):
 def top_three(row):
     """The share image's products (design review M7): the guide's first three listed picks that pass the photo checks."""
     got = []
-    for p in own_picks(row["slug"]) + (candidates(row["slug"]) if row["slug"].startswith("store-") else []):
+    for p in candidates(row["slug"]):
         u = p.get("image")
         if len(got) >= 3:
             break
@@ -931,7 +964,7 @@ def main():
         elif len(prods) == 4:
             four.append(row["slug"])
         manifest[row["slug"]] = {"section": row["group"],
-                                 "items": [{"name": t.get("name"), "key": cover_key(t, own_brand)} for t in taken]}
+                                 "items": [{"name": t.get("name"), "key": cover_key(t, own_brand), "image": t.get("image")} for t in taken]}
         out = os.path.join(OUT, f"{row['slug']}.webp")
         # GIFT_COVER_REDRAW=a,b redraws those covers too (a drawing change, such as the two-line names, with the same products).
         redraw = row["slug"] in os.environ.get("GIFT_COVER_REDRAW", "").split(",")

@@ -24,7 +24,7 @@ describe("gift guide covers carry no repeats within a section", () => {
   it("lists every cover with its section and products", () => {
     // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (54 covers).
     expect(Object.keys(manifest).length).toBeGreaterThan(45);
-    expect(Object.values(manifest).reduce((n, c) => n + c.items.length, 0)).toBeGreaterThan(250); // follow-up 1120: 294 measured 2026-11-20
+    expect(Object.values(manifest).reduce((n, c) => n + c.items.length, 0)).toBeGreaterThan(200); // Builder 3 1120b (no Amazon photos, only picks still in the guide): 244 measured 2026-11-20
     for (const c of Object.values(manifest)) expect(typeof c.section).toBe("string");
   });
 

@@ -32,7 +32,7 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
   // The seller's usual pickup times (b9 place times reads them on the edit form): none saved.
   fetchMyPickupWindows: async () => [],
   fetchPhotos: async () => photoRows.value,
-  addPhotoSteadily: async (_u: string, id: string, f: File) => { calls.push(`add:${id}:${f.name}`); return "new"; },
+  addPhotoSteadily: async (_u: string, id: string, f: File) => { if (f.name === "bad.jpg") throw new Error("upload_failed"); calls.push(`add:${id}:${f.name}`); return "new"; },
   removePhoto: async (id: string) => { calls.push(`remove:${id}`); },
   requestAiCheckWithRetry: async (id: string) => { calls.push(`check:${id}`); return { checked: true, flagged: false }; },
   fetchItem: async () => ({ status: "live" }),
@@ -80,9 +80,14 @@ describe("D1-1: edit a live listing", () => {
     expect(review()).toBe("no");
     expect(screen.getByText(EDIT_RULE.instant)).toBeInTheDocument();
     const save = screen.getByRole("button", { name: "Save changes" });
-    expect(save).toBeDisabled();
-    fireEvent.click(screen.getByRole("checkbox", { name: TAX_TICK_LABEL }));
+    // Audit 11-20 night #2: Save stays tappable; without the tax box a tap saves nothing and says what is missing.
     expect(save).toBeEnabled();
+    expect(screen.queryByText("Tick the box about this item before you save.")).toBeNull();
+    fireEvent.click(save);
+    expect(await screen.findByText("Tick the box about this item before you save.")).toBeInTheDocument();
+    expect(editListing).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("checkbox", { name: TAX_TICK_LABEL }));
+    expect(screen.queryByText("Tick the box about this item before you save.")).toBeNull();
     fireEvent.click(save);
     await waitFor(() => expect(editListing).toHaveBeenCalledWith("i1", expect.objectContaining({ conditionStars: 5, title: "Oak rocking chair", handovers: ["porch"] })));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
@@ -131,6 +136,21 @@ describe("DC-8: a live listing's photos", () => {
     expect(toast).toHaveBeenCalledWith(EDIT_SAVED.live_again);
   });
 
+  // Audit 11-20 night #1: a failed photo skipped the automatic check and gave only a generic error.
+  // @mutate src/components/declutter/DeclutterEditListing.tsx | await requestAiCheckWithRetry(item.id, { tries: 2 }).catch( | await Promise.resolve().catch(
+  it("a photo that fails after a big word change: the check is still asked for, and the toast says the words saved", async () => {
+    editListing.mockImplementationOnce(async () => { calls.push("edit"); return "pending_review"; });
+    const onDone = open();
+    await screen.findByAltText("Photo 1");
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Oak rocking chair, refinished" } });
+    fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("bad.jpg")] } });
+    fireEvent.click(screen.getByRole("checkbox", { name: TAX_TICK_LABEL }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Your words were saved, but a photo change didn't go through. Open Edit and try the photo again."));
+    expect(calls).toEqual(["edit", "check:i1"]);
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
   it("swapping the only photo: the new one goes up BEFORE the old one comes off", async () => {
     open();
     await screen.findByAltText("Photo 1");
@@ -139,7 +159,9 @@ describe("DC-8: a live listing's photos", () => {
     // With no photo left it will not save, and says why.
     expect(screen.getByText("Keep at least 1 photo.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("checkbox", { name: TAX_TICK_LABEL }));
-    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(editListing).not.toHaveBeenCalled();
     fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("new.jpg")] } });
     await screen.findByAltText("Photo 1");
     expect(screen.queryByText("Keep at least 1 photo.")).toBeNull();

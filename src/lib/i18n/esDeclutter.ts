@@ -283,6 +283,7 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.mv.bk.done": "Completados",
   "decl.mv.bk.cancelled": "Cancelados",
   "decl.mv.noneBought": "Todavía no ha comprado nada.",
+  "decl.mv.ordersFailed": "No pudimos cargar sus pedidos.",
   "decl.mv.noneBoughtBody": "Cuando un vendedor acepta su oferta, o usted toca Comprar, el artículo llega aquí. Comprar ahora lo aparta 30 minutos; una oferta aceptada le da 24 horas para pagar.",
   "decl.mv.ended": "Terminados",
   "decl.mv.toAnswer": "Por responder",

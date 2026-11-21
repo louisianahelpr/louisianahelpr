@@ -183,6 +183,7 @@ export const enDeclutter = {
   "decl.mv.bk.done": "Done",
   "decl.mv.bk.cancelled": "Cancelled",
   "decl.mv.noneBought": "Nothing bought yet.",
+  "decl.mv.ordersFailed": "We couldn't load your orders.",
   "decl.mv.noneBoughtBody": "When a seller accepts your offer, or you tap Buy, the item comes here. Buy now holds it 30 minutes; an accepted offer gives you 24 hours to check out.",
   "decl.mv.ended": "Ended",
   "decl.mv.toAnswer": "To answer",

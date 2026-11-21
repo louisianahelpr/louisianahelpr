@@ -20,6 +20,8 @@ import { DeclutterTabBones } from "./DeclutterSkeletons";
 import { ORDER_BUCKETS } from "./OrderSteps";
 import { usePaySettling } from "./DeclutterPaySettling";
 import { DeclutterNotice } from "./declutterUi";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { FreePauseLine, MyFreeAsks, useMyFreeAsks } from "./DeclutterFreeClaim";
 import { WatchingList } from "./DeclutterWatching";
 import { BundleRequestsSection } from "./DeclutterBundleRequests";
@@ -78,6 +80,12 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   // and open-problem reads answer; the chips and cart drew first and were pushed down 289px (Buying CLS 0.33-0.58 at 375
   // on a seeded buyer). With a paid order to pick up, the tab shows its bones until those two reads answer (or fail),
   // so the pickup card arrives with the rest. Guard: paidOrdersWaitForBookings.
+  // Audit 11-20 night #11: the tab was blank (no orders, no message, no retry) while the orders read loaded or
+  // after it failed. Bones while it loads; the cart's own error words and a retry when it fails.
+  if (trk.loading) return <DeclutterTabBones />;
+  if (trk.failed) {
+    return <ErrorState variant="inline" title={t("decl.mv.ordersFailed")} body={declutterErrorMessage(trk.error)} onRetry={() => trk.retry?.()} />;
+  }
   if (trk.ready && trk.live.length > 0 && !trk.pickupsSettled) return <DeclutterTabBones />;
   return (
     <div className="space-y-6">

@@ -37,7 +37,7 @@ describe("gift guides: owner follow-ups 11-19", () => {
   it("the named removals and old electronics show on no page, store pages included", () => {
     let n = 0;
     const bad = slugs.flatMap((s: string) => pageOf(s).filter((p) => { n += 1; return !p.ownerPick && (OWNER_REMOVED(p) || OLD_ELECTRONICS.test(p.name)); }).map((p) => `${s}: ${p.name}`));
-    expect(n).toBeGreaterThan(1300); // audits A+B combined (11-20): 1,402 to 1,456 rows measured on ~30 guides + 26 store pages
+    expect(n).toBeGreaterThan(740); // audits A+B combined (11-20): 1,402 to 1,456 rows measured on ~30 guides + 26 store pages
     expect(bad).toEqual([]);
   });
 

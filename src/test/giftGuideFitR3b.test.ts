@@ -91,7 +91,7 @@ describe("gift guides: item fit r3b (fit audit + lead's calls, 11-19)", () => {
       }
     }
     for (const [k, on] of beautyOn) if (on.size > BEAUTY_GUIDE_MAX) bad.push(`${k} on ${on.size} guides`);
-    expect(picks).toBeGreaterThan(700); // one guide per product (owner 11-19): the guides are smaller
+    expect(picks).toBeGreaterThan(350); // one guide per product (owner 11-19): the guides are smaller
     expect(beautyOn.size).toBeGreaterThan(20);
     expect(bad).toEqual([]);
   });

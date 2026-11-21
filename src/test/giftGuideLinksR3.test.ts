@@ -79,7 +79,7 @@ describe("gift guides: links audit r3 (dead, UK/EU, wrong page, sold out, homepa
         for (const i of d.items ?? []) expect(bannedLink(i.href), `${slug}: deal item ${i.name}`).toBe("");
       }
     }
-    expect(picks).toBeGreaterThan(1300); // audits A+B combined (11-20): 1,402 to 1,456 rows measured on ~30 guides + 26 store pages
+    expect(picks).toBeGreaterThan(760); // audits A+B combined (11-20): 1,402 to 1,456 rows measured on ~30 guides + 26 store pages
     expect(deals).toBeGreaterThan(30); // 1120: the deal sections of the kept store pages; train 1120b dropped 42 Walmart house-brand and marketplace rows (33 measured 2026-11-20)
   });
 

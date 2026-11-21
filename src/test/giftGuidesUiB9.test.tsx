@@ -91,7 +91,7 @@ describe("H5: search finds what shoppers type", () => {
 
   it("product names are searched from the item index, which matches the picks exactly (two-way)", () => {
     const items = ITEMS as unknown as SearchItem[];
-    expect(items.length).toBeGreaterThan(1000);
+    expect(items.length).toBeGreaterThan(690);
     // The committed index is what the generator writes from today's picks; run `node scripts/gift-guide-search-index.mjs`.
     expect(readFileSync("src/content/giftGuideSearchIndex.json", "utf8")).toBe(indexText(buildIndex()));
     for (const [name, slug] of items.slice(0, 200)) {

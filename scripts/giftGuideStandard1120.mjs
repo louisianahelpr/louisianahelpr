@@ -95,7 +95,9 @@ export function applyStandard(pageList, spec, ctx = {}) {
       if (gone.has(p)) continue;
       const sec = g.sections[at];
       // The plan wins: a pick it never listed leaves (reported), unless it is the owner's call, a sponsor or her own pick.
-      if (!calls.has(p) && !p.sponsor && !p.ownerPick) { counts.extraOut++; extras.push(`${slug}: "${p.name}"`); continue; }
+      // A sponsor's pick the plan keeps on another guide lives there only (one place per item).
+      const elsewhere = !calls.has(p) && Object.entries(spec.guides).some(([k, o]) => k !== slug && o.sections.some((x) => x.picks.some((w) => w.href && w.href === p.href)));
+      if ((!calls.has(p) && !p.sponsor && !p.ownerPick) || elsewhere) { counts.extraOut++; extras.push(`${slug}: "${p.name}"`); continue; }
       secs[at].push({ ...p, section: sec.title, sectionId: sec.id });
       if (calls.has(p)) counts.ownerCall++;
       else { counts.extraKept++; kept.push(`${slug}: "${p.name}"`); }
@@ -104,7 +106,7 @@ export function applyStandard(pageList, spec, ctx = {}) {
     const ids = new Set(g.sections.map((s) => s.id));
     const oldIds = [...new Set(list.map((p) => p.sectionId).filter(Boolean))].filter((k) => !ids.has(k));
     aliases[slug] = Object.fromEntries([...Object.keys(ctx.aliases?.[slug] ?? {}), ...oldIds].filter((k) => !ids.has(k)).map((k) => [k, ""]));
-    for (const k of Object.keys(ctx.anchors ?? {})) if (ctx.parentOf?.(k) === slug) delete ctx.anchors[k];
+    for (const k of Object.keys(ctx.anchors ?? {})) if (ctx.parentOf?.(k) === slug && !ids.has(ctx.anchors[k])) delete ctx.anchors[k];
   }
   return { counts, missing, extras, kept, aliases };
 }

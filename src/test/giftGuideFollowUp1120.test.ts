@@ -74,7 +74,7 @@ describe("gift guides follow-up 1120", () => {
         if (p.commission === 0) bad.push(`${slug}: 0% ${p.name}`);
       }
     }
-    expect(n).toBeGreaterThan(1000); // audits A+B combined (11-20): 1,131 measured
+    expect(n).toBeGreaterThan(530); // audits A+B combined (11-20): 1,131 measured
     expect(bad).toEqual([]);
   });
 

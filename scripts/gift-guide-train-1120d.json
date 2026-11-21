@@ -696,6 +696,171 @@
      ]
     }
    ]
+  },
+  {
+   "guide": "heroes",
+   "why": "owner 11-20 (gg-reference-1120/STANDARD.md): sections by use and one short reason per pick; cut as filler: Blackstone griddle and Lodge skillet (cookware, not a first-responder gift), UGG Scuffette (a women's slipper in a mostly men's list)",
+   "sections": [
+    {
+     "id": "small-treats",
+     "title": "Small Treats & Everyday Carry",
+     "picks": [
+      {
+       "match": "Smathers & Branson American Flag Needlepoint Can Cooler",
+       "line": "A hand-stitched flag can cooler for the cookout."
+      },
+      {
+       "match": "Simple Modern 40 oz Tumbler",
+       "line": "A big handled tumbler that fits the truck cup holder."
+      },
+      {
+       "match": "CamelBak Chute Mag",
+       "line": "An insulated bottle with a cap that stays out of the way."
+      },
+      {
+       "match": "Anker Power Bank 20,000mAh",
+       "line": "Keeps a phone and radio charged through a long shift."
+      },
+      {
+       "match": "Gerber Suspension NXT",
+       "line": "Fifteen tools on one pair of pocket pliers."
+      },
+      {
+       "match": "BLACK DIAMOND Spot 400",
+       "line": "A bright headlamp that leaves both hands free."
+      },
+      {
+       "match": "Fenix PD35",
+       "line": "A rechargeable pocket flashlight for the duty belt."
+      },
+      {
+       "match": "Rothco Shemagh",
+       "line": "A cotton scarf for sun, dust and cold mornings."
+      },
+      {
+       "match": "Under Armour Freedom Tech Tee",
+       "line": "A quick-dry tee with a small flag on the sleeve."
+      },
+      {
+       "match": "The Greatest Beer Run Ever",
+       "line": "A true story of friendship from the Vietnam War."
+      },
+      {
+       "match": "DisplayGifts Military Challenge Coin Display Case",
+       "line": "A wood case that shows off challenge coins."
+      }
+     ]
+    },
+    {
+     "id": "on-duty",
+     "title": "Used on Duty",
+     "picks": [
+      {
+       "match": "YETI Rambler 36 oz Chug",
+       "line": "Cold water for a full shift, with a cap that chugs."
+      },
+      {
+       "match": "YETI Daytrip 9L",
+       "line": "A soft lunch box that keeps a meal cold all day."
+      },
+      {
+       "match": "5.11 Tactical Rush 24",
+       "line": "A tough day pack with room for every bit of gear."
+      },
+      {
+       "match": "Under Armour Micro G Valsetz",
+       "line": "A light side-zip boot that feels like a sneaker."
+      },
+      {
+       "match": "5.11 Tactical A/T 6",
+       "line": "A cushioned duty boot for long days on foot."
+      },
+      {
+       "match": "LEATHERMAN Raptor Rescue",
+       "line": "Folding trauma shears with a strap cutter and ring cutter."
+      },
+      {
+       "match": "Streamlight 90540 Survivor",
+       "line": "The right-angle light that clips to turnout gear."
+      },
+      {
+       "match": "Oakley Si Ballistic",
+       "line": "Impact-rated sunglasses for the range and the field."
+      },
+      {
+       "match": "Oakley Gascan",
+       "line": "Classic wraparound sunglasses in matte black."
+      },
+      {
+       "match": "Carhartt Rugged Flex Pants",
+       "line": "Work pants with stretch for climbing and kneeling."
+      },
+      {
+       "match": "Carhartt Rain Defender Heavyweight Hooded Shirt Jac",
+       "line": "A hooded shirt jacket that sheds light rain."
+      }
+     ]
+    },
+    {
+     "id": "off-duty",
+     "title": "Off-Duty Recovery & Splurges",
+     "picks": [
+      {
+       "match": "Carhartt Paxton Quarter-Zip",
+       "line": "A heavyweight quarter zip for cold mornings."
+      },
+      {
+       "match": "Under Armour Freedom Hoodie",
+       "line": "A warm flag hoodie for days off."
+      },
+      {
+       "match": "Ororo Men's Heated Vest",
+       "line": "A battery-heated vest for cold nights outside."
+      },
+      {
+       "match": "Muck Boot Company Muckster Lite",
+       "line": "A waterproof slip-on clog for the yard after work."
+      },
+      {
+       "match": "Sunbeam Royal Luxe Heated Throw",
+       "line": "A heated throw for the recliner after a long shift."
+      },
+      {
+       "match": "RENPHO Eyeris 1",
+       "line": "A heated eye massager for winding down."
+      },
+      {
+       "match": "Slip Silk Sleep Mask",
+       "line": "A silk mask for sleeping after a night shift."
+      },
+      {
+       "match": "Hatch Restore 3",
+       "line": "A sunrise alarm and sound machine for odd sleep hours."
+      },
+      {
+       "match": "Bose SoundLink Max",
+       "line": "A big portable speaker for the station or the patio."
+      },
+      {
+       "match": "Garmin Instinct 3 Tactical",
+       "line": "A rugged solar GPS watch with a stealth mode."
+      },
+      {
+       "match": "Durango Workhorse",
+       "line": "A ventilated work boot for hot days."
+      },
+      {
+       "match": "Costa Del Mar Blackfin",
+       "line": "Polarized sunglasses for days off on the water."
+      },
+      {
+       "match": "Americanflat Folded Flag Display Case",
+       "line": "A mahogany case for a folded memorial flag."
+      }
+     ]
+    }
+   ],
+   "priceSpread": false
   }
  ]
 }

@@ -579,11 +579,10 @@ describe("gift guides: the landing opens to the guides", () => {
       expect(childrenOf(g), hub).toEqual([]);
       // 1120 section groups (owner: "by role, not job title"): every section is one its roles point to.
       const ids = [...new Set(g.picks.map((p) => p.sectionId).filter((x) => x && x !== "top-picks"))];
-      // Owner standard 11-20 (gg-reference-1120): Healthcare's sections are by use, not by role (train 1120d `byUse`).
-      const byUse = hub === "healthcare" ? ["small-treats", "on-shift", "after-shift", "splurges"] : null;
+      // Owner standard 11-20 (gg-reference-1120): Healthcare's and Heroes' sections are by use, not by role (train 1120d `byUse`).
+      const byUse = hub === "healthcare" ? ["small-treats", "on-shift", "after-shift", "splurges"] : hub === "heroes" ? ["small-treats", "on-duty", "off-duty"] : null;
       for (const id of ids) expect(byUse ?? roles.map((r) => SECTION_ANCHORS[r]), `${hub}#${id}`).toContain(id);
       if (byUse) expect(ids, hub).toEqual(byUse);
-      // Audits A+B combined (11-20): Heroes holds 2 sections (first responders, military) once roles under 10 merged.
       expect(ids.length, hub).toBeGreaterThan(1);
     }
     expect(newSlugFor("teachers")).toBe(`work-life#${SECTION_ANCHORS.teachers}`);

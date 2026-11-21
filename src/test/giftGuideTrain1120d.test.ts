@@ -153,7 +153,7 @@ describe("sections (holiday audit A #60, owner 11-19 fold thin sections)", () =>
 });
 
 describe("sections by use (owner standard 11-20, ~/.lh-shots/gg-reference-1120/STANDARD.md)", () => {
-  const byUse = (JSON.parse(readFileSync("scripts/gift-guide-train-1120d.json", "utf8")) as { byUse: { guide: string; sections: { id: string; title: string; picks: { match: string }[] }[] }[] }).byUse;
+  const byUse = (JSON.parse(readFileSync("scripts/gift-guide-train-1120d.json", "utf8")) as { byUse: { guide: string; priceSpread?: boolean; sections: { id: string; title: string; picks: { match: string }[] }[] }[] }).byUse;
 
   it("Fitness: a short reason on every pick and checked prices under $25 (it had none)", () => {
     const picks = guide("fitness") as (Row & { line?: string })[];
@@ -172,6 +172,10 @@ describe("sections by use (owner standard 11-20, ~/.lh-shots/gg-reference-1120/S
       expect(picks.length, u.guide).toBe(u.sections.reduce((n, x) => n + x.picks.length, 0));
       const noLine = picks.filter((p) => !p.line || p.line.length < 15 || p.line.length > 110 || p.line === p.name).map((p) => p.name);
       expect(noLine, u.guide).toEqual([]);
+      expect(Object.values(SECTION_ALIASES[u.guide] ?? {}).every((x) => x === ""), u.guide).toBe(true);
+      // Heroes is nearly all Amazon picks, which never show a price (owner 11-18), so its price spread cannot be
+      // measured (`priceSpread: false` in the rule; 4 checked prices, none under $25, measured 11-20).
+      if (u.priceSpread === false) continue;
       const priced = picks.filter((p) => typeof p.price === "number").map((p) => p.price!);
       // The owner's bar: at least 4 checked prices under $25, a real middle, at least 3 splurges.
       expect(priced.filter((x) => x < 25).length, u.guide).toBeGreaterThanOrEqual(4);

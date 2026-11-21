@@ -90,8 +90,6 @@ const FUN_CSS = `
 .gg-plan-pick-act.add{font-size:22px;font-weight:600;line-height:1}
 @media (max-width:479px){.gg-plan-idea{gap:4px}.gg-plan-idea .gg-photo,.gg-plan-idea .gg-thumb{width:34px;height:34px}.gg-plan-idea .gg-plan-price{width:62px}}
 .gg-plan-head .gg-plan-budget,.gg-fun-row>.gg-plan-price,.gg-plan-idea .gg-plan-price{flex:0 0 auto}
-.gg-plan-add{flex-wrap:wrap}
-@media (max-width:379px){.gg-plan-add>input:first-child{flex:1 1 100%}}
 .gg-plan-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
 .gg-plan-totals b{display:block;font-size:18px}
 .gg-plan-totals span{font-size:12px;color:var(--gg-muted)}

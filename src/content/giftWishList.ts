@@ -98,6 +98,21 @@ export const WISH = {
   sharedListsTitle: "Gift lists",
   // Amazon Buy Now (owner 2026-11-21): Amazon's add-to-cart form, credited to our tag (src/lib/retailerCart.ts).
   amazonCartList: (name: string) => `Add ${name.trim().endsWith("s") ? `${name.trim()}'` : `${name.trim()}'s`} Amazon items to my cart`,
+  // Add from any store (owner 2026-11-21): paste a link or type an idea (src/pages/info/giftGuides/AnyStoreAdd.tsx).
+  anyLabel: (name: string) => `Type a gift idea or paste a link for ${name || "them"}`,
+  anyPlaceholder: "Type a gift idea or paste a link",
+  anyGo: "Add",
+  anyName: "What is it?",
+  anyAdd: "Add it",
+  anyAmazon: "We'll use our Amazon link for it.",
+  anyPlain: "Saved with the link you pasted.",
+  anyShort: "Saved with the link you pasted. Short links aren't opened, so it keeps the name you give it.",
+  anyBadLink: "Paste a link that starts with https://, or type an idea.",
+  anyClosest: "Closest from our guides:",
+  anyPick: (gift: string) => `Add ${gift}`,
+  anyWords: "Add my words instead",
+  anyAdded: (gift: string) => `Added ${gift}.`,
+  sharedSupports: "Buying through these links supports Louisiana Helpr.",
   sharedListTotal: (gifts: number, amount: string | null) => `${gifts === 1 ? "1 gift" : `${gifts} gifts`}${amount ? ` · about ${amount}` : ""}`,
 } as const;
 

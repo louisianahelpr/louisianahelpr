@@ -214,7 +214,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       {...interactiveProps}
     >
       {/* The card's words are its name (no aria-label, WCAG 2.5.3); this says what a tap does. */}
-      {!isGuest && <span className="sr-only">View </span>}
+      <span className="sr-only">View </span>
       {/* Clipped inner surface — rounds the rail, body, and guest CTA to
           the card shape. The category tab + rail both live inside this clip
           so they share the card's rounded top-left corner and read as one

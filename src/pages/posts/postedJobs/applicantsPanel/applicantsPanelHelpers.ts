@@ -1,14 +1,15 @@
+import { avatarInitials } from "@/lib/avatarImage";
+
 /**
  * Pure helpers extracted from ApplicantsPanel. No hooks, no component state
  * — safe to unit-test. Behaviour is byte-identical to the inline logic they
  * replaced.
  */
 
-/** Up-to-two-letter uppercase initials from a helper's display name.
-    Mirrors the inline `name.split(...).map(w => w[0]).join(...)` chain. */
+/** Up-to-two-letter uppercase initials from a helper's display name ("" for none).
+    Audit 11-21 (P20): one rule for initials (avatarInitials: first and last word), so a member is "EH" on every screen. */
 export function helperInitialsFrom(helperName: string): string {
-  return helperName
-    .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  return avatarInitials(helperName, "");
 }
 
 /** True when an attachment URL points at a raster image (used to pick the

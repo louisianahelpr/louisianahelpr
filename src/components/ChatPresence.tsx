@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ReceiptToggleButton } from "@/components/ui/ReceiptToggleButton";
+import { avatarInitials } from "@/lib/avatarImage";
 
 /**
  * Presence dot. Online is the assumed default, so we render nothing when the
@@ -103,13 +104,8 @@ export const ReadReceipt = ({
   const readAtLabel = readAt
     ? new Date(readAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
     : null;
-  const initials = (recipientName ?? "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "?";
+  // Audit 11-21 (P20): one rule for initials (avatarInitials: first and last word), so a member is "EH" on every screen.
+  const initials = avatarInitials(recipientName);
   return (
     <ReceiptToggleButton
       onClick={() => setRevealed((v) => !v)}

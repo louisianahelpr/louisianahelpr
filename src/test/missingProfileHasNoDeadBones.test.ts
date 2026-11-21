@@ -3,7 +3,7 @@
  * header that never resolved, and a "Go back" that duplicated the header's back
  * arrow. The no-profile states draw no action placeholders; the way on is Jobs.
  *
- * @mutate src/pages/user/UserProfile.tsx |         <PageHeader eyebrow={headerEyebrow} title={headerTitle} meta={headerMeta} />\n        <div className="page-measure | <PageHeader eyebrow={headerEyebrow} title={headerTitle} meta={headerMeta} titleActions={headerActionPlaceholder} />\n        <div className="page-measure
+ * @mutate src/pages/user/UserProfile.tsx |         <PageHeader eyebrow={headerEyebrow} title={headerTitle} wrapTitle={isOwnProfile} meta={headerMeta} />\n        <div className="page-measure | <PageHeader eyebrow={headerEyebrow} title={headerTitle} wrapTitle={isOwnProfile} meta={headerMeta} titleActions={headerActionPlaceholder} />\n        <div className="page-measure
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

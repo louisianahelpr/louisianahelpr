@@ -11,6 +11,7 @@ export const enYourPage = {
   "yp.hiddenEmailAction": "Account and security",
   "yp.hiddenOther": "Neighbors can't open it while your account is under review. A test account never has a public page.",
   "yp.askWhy": "Ask us why",
+  "yp.goToProfile": "Go to your profile",
   "yp.copied": "Link copied",
   "yp.copyFailed": "Couldn't copy the link. Press and hold it to copy.",
   "yp.page": "Your public profile",

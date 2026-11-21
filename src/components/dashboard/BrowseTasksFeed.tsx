@@ -405,7 +405,8 @@ export function BrowseTasksFeed({
       <div className="px-3 pt-4 flex-1 min-h-0 flex">
         <ErrorState
           title="Can't load jobs right now."
-          body={offline ? "You're offline. Jobs will load when you're back online." : "Pull down to refresh, or tap Try again."}
+          // Audit 11-21 (P16): no "pull" or "tap" (desktop web has neither), the guest board's words.
+          body={offline ? "You're offline. Jobs will load when you're back online." : "Try again. If it sticks, our end is having a hiccup, not yours."}
           onRetry={refresh}
         />
       </div>

@@ -4,7 +4,7 @@ import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 import { computeJobExpiresAt } from "@/lib/jobExpiry";
 import { DEFAULT_OFFER_RESPONSE_HOURS } from "@/lib/offerResponseWindow";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
-import { asksTaxKind, isLaborTaxable, salesTaxCents } from "@/lib/salesTax";
+import { isLaborTaxable, salesTaxCents, taxKindFor } from "@/lib/salesTax";
 import { POSTER_SERVICE_FEE_PERCENT } from "@/lib/posterFees";
 import { composeLocationString } from "./postJobFormHelpers";
 import { jobLastDay, weekWindowEnd } from "@/lib/jobDateWindow";
@@ -190,7 +190,8 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
   // reconciles with the amount.
   // Owner 2026-11-06: a category that does not ask the taxed-kind question has no answer (tax_kind NULL), whatever
   // the form held, so neither the stored tax nor the row can carry a stale one.
-  const taxKind = asksTaxKind(category) ? (taxKindAnswer ?? null) : null;
+  // Audit 11-21 (S32): nor an answer that category does not offer.
+  const taxKind = taxKindFor(category, taxKindAnswer);
   const lockedSalesTaxRate = isLaborTaxable(category, taxKind) ? salesTaxRate : 0;
   // The urgent bonus is taxed like the labor (owner 2026-10-21, Q1843), so the
   // taxed base is budget + bonus; an exempt category taxes neither.

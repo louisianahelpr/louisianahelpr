@@ -64,6 +64,38 @@ export function asksTaxKind(category: string | null | undefined): boolean {
   return TAX_KIND_ASKED_CATEGORIES.has(category ?? "");
 }
 
+type TaxKind = "item_repair" | "fabric_cleaning" | "clothes_cleaning" | "clothing_alterations";
+const ITEM_REPAIR_ONLY: readonly TaxKind[] = ["item_repair"];
+const ALL_TAX_KINDS: readonly TaxKind[] = ["item_repair", "fabric_cleaning", "clothes_cleaning", "clothing_alterations"];
+/**
+ * Audit 11-21 (S32): the question listed all four taxed kinds on Electrical, where only "It fixes an item" can apply.
+ * Each asking category offers only the kinds its work can be (the reasons in TAX_KIND_ASKED_CATEGORIES' note above):
+ * cleaning cleans fabric or clothes (item 5), pressure washing a rug or cushions (item 5), the repair-type trades fix a
+ * movable item (item 7), and Other keeps all four. Every category in TAX_KIND_ASKED_CATEGORIES has an entry
+ * (taxKindOnlyWhereAsked.test.tsx).
+ */
+const TAX_KINDS_BY_CATEGORY: Readonly<Record<string, readonly TaxKind[]>> = {
+  cleaning: ["fabric_cleaning", "clothes_cleaning"],
+  pressure_washing: ["fabric_cleaning"],
+  handyman: ITEM_REPAIR_ONLY,
+  carpentry: ITEM_REPAIR_ONLY,
+  welding: ITEM_REPAIR_ONLY,
+  electrical: ITEM_REPAIR_ONLY,
+  painting: ITEM_REPAIR_ONLY,
+  hvac: ITEM_REPAIR_ONLY,
+  other: ALL_TAX_KINDS,
+};
+
+/** The taxed kinds the question offers for this category (none where it is not asked). */
+export function taxKindsFor(category: string | null | undefined): readonly TaxKind[] {
+  return asksTaxKind(category) ? TAX_KINDS_BY_CATEGORY[category ?? ""] ?? [] : [];
+}
+
+/** The answer a job in this category can carry: the poster's, if the question offers it there, else none (NULL). */
+export function taxKindFor<K extends string>(category: string | null | undefined, answer: K | null | undefined): K | null {
+  return answer && (taxKindsFor(category) as readonly string[]).includes(answer) ? answer : null;
+}
+
 /** Whether the job's LABOR line is subject to LA sales tax: a taxed category, or a taxed kind. */
 export function isLaborTaxable(category: string | null | undefined, taxKind?: string | null): boolean {
   return TAXABLE_CATEGORIES.has(category ?? "") || TAXED_KINDS.has(taxKind ?? "");

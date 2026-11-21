@@ -137,7 +137,8 @@ export default function FindHelprs() {
             {rpcErrorMessage("find_helprs", q.error)}
           </p>
         ) : (
-          <ErrorState variant="inline" onRetry={() => { void q.refetch(); }} />
+          // Audit 11-21 (P16): it said the generic "We couldn't load this."; it names what did not load, as /browse does.
+          <ErrorState variant="inline" title={w("pub.helprs.loadFailed", "We couldn't load Helprs.")} body={w("pub.retryBody", "Try again. If it sticks, our end is having a hiccup, not yours.")} onRetry={() => { void q.refetch(); }} />
         ))}
         {q.data?.notReady && (
           <p className="text-ds-14 text-muted-foreground" data-testid="find-helprs-not-ready">

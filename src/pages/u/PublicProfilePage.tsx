@@ -32,6 +32,8 @@ import { ID_VERIFIED_LABEL, ID_VERIFIED_PILL_STYLE, IdVerifiedShield } from "@/c
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import "@/lib/i18n/enYourPage";
+import { t } from "@/lib/i18n/language";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { itemPriceLabel } from "@/lib/declutter/distance";
@@ -470,14 +472,20 @@ export default function PublicProfilePage() {
   // profile_page_hidden, 20261105172514). The owner gets told it is their page and why it is hidden; everyone else
   // keeps the generic card, which never says why (test: publicProfileOwnHiddenPage).
   const ownHidden = !!handle && !!me?.handle && me.handle === handle;
+  // Audit 11-21 (P20): the reason here said "once your email is verified and your account is in good standing" while
+  // Home's "Your public profile" card said "under review", and the button read "Go to You". One explanation now, the
+  // card's own words (YourPageLink: an unconfirmed email is the reason a member can act on, anything else is a review).
+  const ownHiddenEmail = me?.email_verified === false;
   const unavailable = ownHidden ? (
     <EmptyState
       icon={UserX}
-      title="Your public profile is hidden right now"
-      body="Neighbors can't open it yet. Your public profile shows once your email is verified and your account is in good standing. A test account never has a public page."
+      title={t("yp.hidden")}
+      body={ownHiddenEmail ? t("yp.hiddenEmail") : t("yp.hiddenOther")}
       action={
         <Button asChild className="btn-grad-primary rounded-full">
-          <Link to="/profile">Go to You</Link>
+          {ownHiddenEmail
+            ? <Link to="/profile?tab=security">{t("yp.hiddenEmailAction")}</Link>
+            : <Link to="/profile">{t("yp.goToProfile")}</Link>}
         </Button>
       }
     />

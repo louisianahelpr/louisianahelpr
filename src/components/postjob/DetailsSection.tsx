@@ -140,7 +140,7 @@ export function DetailsSection({
           Owner 2026-11-06: asked ONLY where that can be true (asksTaxKind).
           Stays out of the fold above: it changes what the poster is charged. One row until Change (G12). */}
       {setTaxKind && asksTaxKind(category) && (
-        <TaxKindQuestion taxKind={taxKind ?? null} setTaxKind={setTaxKind} />
+        <TaxKindQuestion category={category} taxKind={taxKind ?? null} setTaxKind={setTaxKind} />
       )}
     </SectionCard>
   );

@@ -17,7 +17,9 @@
  * @mutate src/components/ProtectedRoute.tsx |   if (!user && allowGuest) return <>{children}</>; |   if (allowGuest) return <>{children}</>;
  * @mutate src/pages/jobs/JobDetail.tsx | category, budget, location, urgent_fee, | category, budget, location, customer_id, urgent_fee,
  * @mutate src/pages/jobs/JobDetail.tsx | "id, title, description, category, budget, location, urgent_fee, | "id, title, category, budget, location, urgent_fee,
- * @mutate src/pages/jobs/JobDetail.tsx | navigate(signupUrlFor(id ? `/jobs/${id}` : null)) | navigate("/signup")
+ * @mutate src/pages/jobs/JobDetail.tsx | navigate(signupUrlFor(id ? `/jobs/${id}${location.search}` : null)) | navigate("/signup")
+ * Audit 11-21 (P18): a stranger's stale link leads with open jobs, Log in second.
+ * @mutate src/pages/jobs/JobDetail.tsx |                      onClick={() => navigate("/browse")}\n                      className="w-full max-w-[280px] rounded-full" |                      onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`)}\n                      className="w-full max-w-[280px] rounded-full"
  * @mutate src/pages/jobs/JobDetail.tsx | onBrowse={() => navigate("/browse")} | onBrowse={() => navigate("/home")}
  * @mutate src/pages/jobs/JobDetail.tsx |             <GuestJobPage job={job} | <GuestJobPreview onClose={() => navigate("/browse")} job={job}
  * @mutate src/components/dashboard/GuestJobPage.tsx |       {details && ( |       {false && (
@@ -183,9 +185,10 @@ describe("a guest opening a shared link", () => {
     openLink();
     fireEvent.click(await screen.findByText("Sign up to apply"));
     const where = screen.getByTestId("where").textContent!;
-    expect(where).toBe(`/signup?redirect=${encodeURIComponent(`/jobs/${JOB_ID}`)}`);
+    // Audit 11-21 (P28): the link's ?ref=share rides through sign-up (it was dropped; Login always kept it).
+    expect(where).toBe(`/signup?redirect=${encodeURIComponent(`/jobs/${JOB_ID}?ref=share`)}`);
     rememberSignupRedirect(new URLSearchParams(where.split("?")[1]).get("redirect"));
-    expect(postAuthDestination()).toBe(`/jobs/${JOB_ID}`);
+    expect(postAuthDestination()).toBe(`/jobs/${JOB_ID}?ref=share`);
   });
 
   it("its way out goes to the public Browse list, never a page that bounces them to log in", async () => {
@@ -206,21 +209,22 @@ describe("a guest opening a shared link", () => {
 
   // F286a (audit 11-10, High): an email or push link to a hired, done or cancelled job, opened signed out,
   // said "This job isn't available" (read as "my job was cancelled") with no way to log in.
-  it("a job that is not public leads with Log in carrying the job, and still offers Browse", async () => {
+  // Audit 11-21 (P18): a stranger's stale link leads with open jobs; Log in (carrying the job) is the second button.
+  it("a job that is not public offers Log in carrying the job, and leads with open jobs", async () => {
     state.row = null;
     openLink();
-    expect(await screen.findByText("Log in to see this job")).toBeTruthy();
-    expect(screen.getByText(/only visible to the person who posted it and the person doing it/)).toBeTruthy();
+    expect(await screen.findByText("This job isn't open anymore")).toBeTruthy();
+    expect(screen.getByText(/If you posted it or you're doing it, log in to see it/)).toBeTruthy();
     expect(screen.queryByText("This job isn't available")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Log in" }));
+    fireEvent.click(screen.getByRole("button", { name: "Posted it or working it? Log in" }));
     expect(screen.getByTestId("where").textContent).toBe(`/login?redirect=${encodeURIComponent(`/jobs/${JOB_ID}`)}`);
   });
 
   it("the Browse way out stays on the not-public state", async () => {
     state.row = null;
     openLink();
-    await screen.findByText("Log in to see this job");
-    fireEvent.click(screen.getByRole("button", { name: /^browse jobs$/i })); // design audit areas 11-18 #19: "Browse jobs", the 404's words
+    await screen.findByText("This job isn't open anymore");
+    fireEvent.click(screen.getByRole("button", { name: /^see open jobs$/i })); // audit 11-21 P18: the primary
     expect(screen.getByTestId("where").textContent).toBe("/browse");
   });
 

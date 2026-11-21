@@ -8,7 +8,7 @@
  * Search now prices a job hit with the browse card's own rule, through the
  * shared computeNet: take-home for anyone else, the set budget on one's own job.
  *
- * @mutate src/pages/search/SearchPage.tsx |                 price={searchJobPrice(j, user?.id ?? null, viewerFee, firstPayoutFee)} |                 price={typeof j.budget === "number" && j.budget > 0 ? `$${j.budget}` : null}
+ * @mutate src/pages/search/SearchPage.tsx |           price={searchJobPrice(j, user?.id ?? null, viewerFee, firstPayoutFee)} |                 price={typeof j.budget === "number" && j.budget > 0 ? `$${j.budget}` : null}
  * @mutate src/pages/search/searchJobPrice.ts |   if (viewerId && job.customer_id === viewerId) return `$${formatPrice(job.budget)}`; |   if (false) return `$${formatPrice(job.budget)}`;
  * @mutate src/pages/search/searchJobPrice.ts | helpers, firstPayoutFeeDollars, job); | helpers, 0, job);
  * @mutate src/pages/search/searchJobPrice.ts |   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1; |   const helpers = 1;

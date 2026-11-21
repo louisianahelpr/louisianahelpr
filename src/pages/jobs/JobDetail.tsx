@@ -1,5 +1,5 @@
 import { lazy, Suspense, useRef } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useLocation, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Briefcase } from "lucide-react";
 
@@ -53,6 +53,7 @@ const JobDetail = () => {
   useLanguage(); // design audit areas 11-18 #1: re-render when the Spanish words arrive
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isLoading: authLoading, profileQuery, refresh: refreshCurrentUser } = useCurrentUser();
   // F260o (audit 11-10): a member whose session ended on this page (Apply gave 401s) fell through to the guest branch,
   // and a job the public view does not list (their own, or one they applied to) read "This job isn't available. It may
@@ -153,7 +154,8 @@ const JobDetail = () => {
     );
   }
 
-  const requireSignup = () => navigate(signupUrlFor(id ? `/jobs/${id}` : null));
+  // Audit 11-21 (P28): the job link's query (?ref=share) rides through sign-up, as it does through Login.
+  const requireSignup = () => navigate(signupUrlFor(id ? `/jobs/${id}${location.search}` : null));
   // F268a: the branch below that draws the guest's job page (every other branch is a state: offline, signed out,
   // loading, error, not available).
   const showsGuestPage = !!job && !authLoading && !isLoading && !isError && !sessionLost && phase !== "offline-empty";
@@ -235,28 +237,31 @@ const JobDetail = () => {
                done, cancelled, expired) is what an email or push link opens for its
                own poster or Helpr once the session is gone. The public view hides
                it, so this branch used to say "This job isn't available" with no way
-               to log in: members read it as "my job was cancelled". Lead with Log in,
-               carrying the job so Login lands back on it. */
-            /* Design audit areas 11-18 #19: the 404's card (NotFound.tsx): 440px wide, no full stop on the title, Log in
-               the one big primary pill, "Browse jobs" an outline pill, and Spanish for a Spanish reader (#1). */
+               to log in: members read it as "my job was cancelled". Log in stays on the card,
+               carrying the job so Login lands back on it (since audit 11-21 P18 as the second button). */
+            /* Design audit areas 11-18 #19: the 404's card (NotFound.tsx): 440px wide, no full stop on the title, one big
+               primary pill over an outline pill, and Spanish for a Spanish reader (#1). */
             <div className="mx-auto w-full max-w-[440px] flex" data-job-not-found="login">
               <EmptyState
                 variant="inline"
                 icon={Briefcase}
-                title={w("pub.job.loginTitle", "Log in to see this job")}
-                body={w("pub.job.loginBody", "It's only visible to the person who posted it and the person doing it. If it was filled, expired or removed, Browse has what's open today.")}
+                title={w("pub.job.notOpenTitle", "This job isn't open anymore")}
+                body={w("pub.job.notOpenBody", "It may have been filled, expired or removed. If you posted it or you're doing it, log in to see it.")}
                 action={
+                  /* Audit 11-21 (P18): a stranger opening a stale shared link was led with a big Log in. Open jobs
+                     lead now; the poster or Helpr (whose own browser gets the signed-out state above) keeps Log in. */
                   <div className="flex flex-col items-center gap-3 w-full">
                     <Button
                       variant="primary"
                       size="lg"
-                      onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`)}
+                      onClick={() => navigate("/browse")}
                       className="w-full max-w-[280px] rounded-full"
+                      data-job-not-found-primary="browse"
                     >
-                      {w("pub.logIn", "Log in")}
+                      {w("pub.job.seeOpen", "See open jobs")}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => navigate("/browse")} className="rounded-full">
-                      {w("pub.browseJobs", "Browse jobs")}
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`)} className="rounded-full">
+                      {w("pub.job.postedOrWorking", "Posted it or working it? Log in")}
                     </Button>
                   </div>
                 }

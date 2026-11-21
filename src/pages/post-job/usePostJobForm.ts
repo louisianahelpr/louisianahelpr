@@ -2,7 +2,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
 import { guestPostSignupUrl, wantsDraftResume } from "@/lib/guestPostDraft";
-import { asksTaxKind } from "@/lib/salesTax";
+import { taxKindFor } from "@/lib/salesTax";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDeclutterIntent } from "./useDeclutterIntent";
 import { useDraftJob } from "@/hooks/useDraftJob";
@@ -131,7 +131,8 @@ export function usePostJobForm() {
      builder drops one too: buildJobInsertPayload). null = neither / not asked. */
   const [taxKind, setTaxKind] = useState<"item_repair" | "fabric_cleaning" | "clothes_cleaning" | "clothing_alterations" | null>(null);
   useEffect(() => {
-    if (!asksTaxKind(category)) setTaxKind(null);
+    // Audit 11-21 (S32): an answer the new category does not offer (Cleaning's carpet on a move to Electrical) clears too.
+    setTaxKind((kind) => taxKindFor(category, kind));
   }, [category]);
   /* Pet profiles attached to this job — written to `job_pets` after the insert.
      Cleared when the category leaves pet_care so a poster who starts a dog-walk

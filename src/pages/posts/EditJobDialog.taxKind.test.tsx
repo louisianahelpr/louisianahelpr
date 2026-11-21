@@ -7,8 +7,10 @@
  *   2. a FUNDED taxed-by-answer job greys the non-asking categories (moving there would drop the tax and cross the
  *      line trg_funded_category_tax_class refuses) and keeps the asking ones.
  *
- * @mutate src/pages/posts/EditJobDialog.tsx |       ...(!asksTaxKind(category) && ((job as { tax_kind?: string \| null }).tax_kind ?? null) != null ? { tax_kind: null } : {}), |
- * @mutate src/pages/posts/EditJobDialog.tsx | isLaborTaxable(value, asksTaxKind(value) ? jobTaxKind : null) | isLaborTaxable(value, jobTaxKind)
+ * @mutate src/pages/posts/EditJobDialog.tsx | (!asksTaxKind(category) \|\| (category !== job.category && taxKindFor(category, (job as { tax_kind?: string \| null }).tax_kind) == null)) | false
+ * @mutate src/pages/posts/EditJobDialog.tsx | (!asksTaxKind(category) \|\| (category !== job.category && | (!asksTaxKind(category) \|\| (
+ * @mutate src/pages/posts/EditJobDialog.tsx |     funded && value !== job.category && isLaborTaxable( |     funded && isLaborTaxable(
+ * @mutate src/pages/posts/EditJobDialog.tsx | isLaborTaxable(value, taxKindFor(value, jobTaxKind)) | isLaborTaxable(value, jobTaxKind)
  * @mutate src/pages/posts/EditJobDialog.tsx | job.helper_id ? { require_photo_proof: requirePhotoProof } : updateData | updateData
  */
 import { describe, it, expect, vi } from "vitest";
@@ -68,13 +70,16 @@ async function saveAfterPicking(category: string, j: Job) {
 }
 
 describe("Edit job never keeps a stale taxed-kind answer (owner 11-06)", () => {
-  it("Cleaning + carpet answer edited to Yard work sends tax_kind NULL; to Handyman sends no tax_kind change", async () => {
+  it("Cleaning + carpet answer edited to Yard work sends tax_kind NULL; to Pressure washing sends no tax_kind change", async () => {
     const yard = await saveAfterPicking("yard_work", job({}));
     expect(yard.category).toBe("yard_work");
     expect(yard).toHaveProperty("tax_kind", null);
+    const wash = await saveAfterPicking("pressure_washing", job({}));
+    expect(wash.category).toBe("pressure_washing");
+    expect(wash).not.toHaveProperty("tax_kind");
+    // Audit 11-21 (S32): Handyman asks, but only "It fixes an item"; a carpet answer cannot stay there.
     const handy = await saveAfterPicking("handyman", job({}));
-    expect(handy.category).toBe("handyman");
-    expect(handy).not.toHaveProperty("tax_kind");
+    expect(handy).toHaveProperty("tax_kind", null);
     // A job with no answer has nothing to clear.
     const none = await saveAfterPicking("yard_work", job({ tax_kind: null }));
     expect(none).not.toHaveProperty("tax_kind");
@@ -92,6 +97,17 @@ describe("Edit job never keeps a stale taxed-kind answer (owner 11-06)", () => {
     expect(writes[0]).toEqual({ require_photo_proof: false });
   });
 
+  // lh-money-escrow review of S32: a job answered before the per-category lists (Electrical + carpet) keeps its
+  // answer when its category stays: a plain save sends no tax_kind, and its own category is not greyed.
+  it("a legacy answer the category no longer offers survives a save that keeps the category", async () => {
+    const legacy = await saveAfterPicking("electrical", job({ category: "electrical", tax_kind: "fabric_cleaning" }));
+    expect(legacy).not.toHaveProperty("tax_kind");
+    render(<EditJobDialog job={job({ category: "electrical", tax_kind: "fabric_cleaning", payment_status: "escrow" })} onClose={() => {}} onSaved={() => {}} />);
+    const own = document.querySelector('li[data-value="electrical"]');
+    expect(own).toBeTruthy();
+    expect(own!.getAttribute("aria-disabled")).not.toBe("true");
+  });
+
   it("a funded job taxed by its answer greys the categories that would drop the answer, and only those", () => {
     render(<EditJobDialog job={job({ payment_status: "escrow" })} onClose={() => {}} onSaved={() => {}} />);
     const disabled = new Set(Array.from(document.querySelectorAll("li[data-value]")).filter((li) => li.getAttribute("aria-disabled") === "true").map((li) => li.getAttribute("data-value")));
@@ -99,7 +115,10 @@ describe("Edit job never keeps a stale taxed-kind answer (owner 11-06)", () => {
     expect(disabled.size).toBeGreaterThan(10);
     expect(disabled.has("yard_work")).toBe(true);
     expect(disabled.has("moving")).toBe(true);
-    expect(disabled.has("handyman")).toBe(false);
+    // Audit 11-21 (S32): Handyman offers only "It fixes an item", so a carpet answer would drop there too.
+    expect(disabled.has("handyman")).toBe(true);
+    expect(disabled.has("pressure_washing")).toBe(false);
+    expect(disabled.has("other")).toBe(false);
     expect(disabled.has("auto_repair")).toBe(false); // taxed either way
   });
 });

@@ -16919,7 +16919,7 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 224,
+      "line": 225,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -17141,7 +17141,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 180,
+      "line": 181,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -17151,7 +17151,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 204,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -17161,7 +17161,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 212,
+      "line": 213,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -17174,7 +17174,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 227,
+      "line": 228,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -17184,7 +17184,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 305,
+      "line": 306,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -17204,7 +17204,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 320,
+      "line": 321,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -17612,7 +17612,7 @@
     },
     {
       "file": "src/pages/u/PublicProfilePage.tsx",
-      "line": 135,
+      "line": 137,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

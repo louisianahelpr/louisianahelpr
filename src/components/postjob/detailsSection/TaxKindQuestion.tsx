@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RadioCardList } from "@/components/ui/RadioCardList";
 import { hapticLight } from "@/lib/haptics";
+import { taxKindsFor } from "@/lib/salesTax";
 
 export type JobTaxKind = "item_repair" | "fabric_cleaning" | "clothes_cleaning" | "clothing_alterations";
 
@@ -30,12 +31,17 @@ const OPTIONS: Array<{ value: JobTaxKind | null; label: string; sub: string }> =
 const NONE = "none";
 
 export function TaxKindQuestion({
+  category,
   taxKind,
   setTaxKind,
 }: {
+  /** Audit 11-21 (S32): only the taxed kinds this category's work can be are offered (taxKindsFor). */
+  category: string;
   taxKind: JobTaxKind | null;
   setTaxKind: (next: JobTaxKind | null) => void;
 }) {
+  const offered = taxKindsFor(category);
+  const options = OPTIONS.filter((o) => o.value === null || offered.includes(o.value));
   // Jobs audit 11-21 (G12): the five large cards took about a phone screen on every cleaning or handyman post, where
   // "None of these" fits most jobs, and pushed the rest of Details down. The question is one row now, saying the answer
   // (None of these) with Change; Change, or any answer but None, shows the five cards. The answer and the tax it sets
@@ -66,7 +72,7 @@ export function TaxKindQuestion({
       </div>
       <RadioCardList
         label="Is this one of these jobs?"
-        options={OPTIONS.map(({ value, label, sub }) => ({ value: value ?? NONE, label, sub }))}
+        options={options.map(({ value, label, sub }) => ({ value: value ?? NONE, label, sub }))}
         value={taxKind ?? NONE}
         onChange={(next, via) => {
           if (via === "click") hapticLight();

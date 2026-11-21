@@ -115,6 +115,7 @@ const CLASSIFIED: Record<string, string> = {
   "pages/info/giftGuides/GiftGuideShare.tsx::links.facebook": "shareLinks(): a fixed https://www.facebook.com/sharer/... prefix + URLSearchParams",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.pinterest": "shareLinks(): a fixed https://www.pinterest.com/pin/create/... prefix + URLSearchParams",
   "pages/info/giftGuides/GiftGuideShare.tsx::smsHref(links.url, title, typeof navigator === \"undefined\" ? \"\" : navigator.userAgent)": "smsHref(): a fixed sms: scheme + encodeURIComponent(the guide's own URL and title) (\"Text this guide\", owner 2026-11-18)",
+  "pages/info/giftGuides/GiftGuideDeals.tsx::`#${e.id}`": "an in-page anchor to a day section; e.id is one of the fixed DEAL_EVENTS ids in src/content/giftGuideDeals.mjs (black-friday, small-business-saturday, cyber-monday)",
   "pages/info/giftGuides/GiftGuideDeals.tsx::deal.href": "GiftOut's prop (the Black Friday & Cyber Monday deals, generated from our content file; the generator keeps https:// affiliate links only); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideView.tsx::d.href": "GiftOut's prop (a store page's deal sections, generated from our content files; the import keeps https:// affiliate links only); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideMyList.tsx::href": "PlainOut's own anchor (a wish list's small-business row, 20261120): renders a link only for an https:// URL, else plain text",

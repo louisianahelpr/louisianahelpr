@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/DeclutterMineViews.tsx |     <SellerPayoutPrompt />\n |
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |     titles.push(...s.titles); |     if (!titles.length) titles.push(...s.titles);
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |     s.titles.push(l.item_title); |     if (!s.titles.length) s.titles.push(l.item_title);
- * @mutate src/components/declutter/SellerPayoutPrompt.tsx |   return `${titles[0]}, ${titles[1]} and ${titles.length - 2} more`; |   return `${titles[0]}, ${titles[1]} and more`;
+ * @mutate src/components/declutter/SellerPayoutPrompt.tsx |   return t("dpo.more", { a: titles[0], b: titles[1], n: titles.length - 2 }); |   return t("dpo.more", { a: titles[0], b: titles[1], n: titles.length - 3 });
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";

@@ -33,6 +33,20 @@ describe("audit 11-20 night quick Lows", () => {
     expect(src).toContain("<Link to={loginHref}");
   });
 
+  it("6 (settings): Declutter settings reads the dictionary, and its chips find their sections in either language", () => {
+    const src = readSource("src/pages/declutter/DeclutterSettingsPage.tsx");
+    expect(src).not.toMatch(/(?:title|aria-label)="[A-Z]/);
+    expect(src).not.toMatch(/>(?:Declutter notifications|Choose what you hear)/);
+    // The chip looks its section up by the same translated words the section's aria-label carries.
+    expect(src).toContain('`section[aria-label="${t(INDEX_LABEL[name])}"]`');
+    expect(src).toContain('aria-label={t("dset.defaults")}');
+    expect(src).toContain('aria-label={t("dset.notifications")}');
+    for (const key of ["dset.pageTitle", "dset.title", "dset.selling", "dset.onThisPage", "dset.defaults", "dset.notifications", "dset.notifRow", "dset.notifHint"]) {
+      expect(readSource("src/lib/i18n/enDeclSell.ts"), key).toContain(`"${key}": "`);
+      expect(readSource("src/lib/i18n/esDeclSell.ts"), key).toContain(`"${key}": "`);
+    }
+  });
+
   it("7: the Pickup places chip targets the card's attribute, which the card carries", () => {
     expect(readSource("src/pages/declutter/DeclutterSettingsPage.tsx")).toContain('"Pickup places": "[data-porch-places-card]"');
     expect(readSource("src/components/declutter/SellPorchPlaces.tsx")).toContain('data-porch-places-card=""');
@@ -86,5 +100,38 @@ describe("audit 11-20 night quick Lows", () => {
     expect(readSource("src/components/declutter/SellerHandedOver.tsx")).not.toContain('confirmLabel="Handed over"');
     expect(readSource("src/components/declutter/SellerQuestionsToAnswer.tsx")).not.toContain('title="Questions to answer"');
     expect(readSource("src/lib/i18n/esDeclutter.ts")).toContain('"dsl.qa.title": "Preguntas por responder"');
+  });
+  it("6 (payouts): the payout prompt, the payout line and its setup link read the dictionary", () => {
+    const prompt = readSource("src/components/declutter/SellerPayoutPrompt.tsx");
+    // The Sell and Move screens load neither Declutter dictionary: the prompt brings its own words.
+    expect(prompt).toContain('import "@/lib/i18n/enDeclPayout";');
+    expect(prompt).toContain('title={t("dpo.promptTitle", { amount: formatPrice(cents) })}');
+    expect(prompt).not.toMatch(/Set up payouts <|You sold \$\{|held safely/);
+    const link = readSource("src/components/declutter/FailedPayoutLink.tsx");
+    expect(link).toContain("payoutLineWaitsOnSetup(line)");
+    expect(link).not.toMatch(/once you set up payouts in Settings\||>Check your payouts<|>Set up payouts</);
+    const line = readSource("src/components/declutter/declutterPayoutWords.ts");
+    expect(line).not.toMatch(/`\$\{gets\}[,. ]+[A-Za-z]/);
+    expect(readSource("src/lib/declutter/payoutWords.ts")).not.toMatch(/"Nothing to pay out|you owed`|refund`/);
+    expect(readSource("src/lib/declutter/timeLeft.ts")).not.toContain('toLocaleDateString("en-US"');
+    const es = readSource("src/lib/i18n/esDeclPayout.ts");
+    expect(es).toContain('"dpo.setUp": "Configurar pagos"');
+    expect(es).toContain('"dpo.onceSetup": "{gets} cuando configure los pagos en Ajustes."');
+    expect(readSource("src/lib/i18n/es.ts")).toContain("...esDeclPayout,");
+    expect(readSource("src/lib/i18n/en.ts")).toContain("...enDeclPayout,");
+  });
+  it("6 (order card): the paid-order card's own words read the dictionary", () => {
+    const views = readSource("src/components/declutter/DeclutterHandoverViews.tsx") ?? "";
+    expect(views).toContain('import "@/lib/i18n/enDeclSell";');
+    expect(views.match(/\bt\("dho\./g)?.length ?? 0).toBeGreaterThan(30);
+    expect(views.match(/^ {2}useLanguage\(\);/gm)?.length).toBe(4);
+    expect(views).not.toMatch(/>(Paid: pickup and handover|Out all day|Finding a Helpr for this delivery\.|Your buyer is on the way\.)</);
+    expect(views).not.toMatch(/"(Saving…|Take the porch photo|Retake the porch photo|Take your pickup photo|Saved\.|When will it be out\?)"/);
+    expect(views).not.toMatch(/toast\((r\.noteProblem \? `|"[A-Z])/);
+    expect(views).not.toMatch(/The handover is when|You said it|Photo of the|Out until/);
+    expect(readSource("src/components/declutter/DeclutterPorchHandover.tsx")).not.toContain("`on ${w}`");
+    const es = readSource("src/lib/i18n/esDeclSell.ts");
+    expect(es).toContain('"dho.takePorch": "Tomar la foto del porche"');
+    expect(es).toContain('"dho.gotIt": "Lo recibí"');
   });
 });

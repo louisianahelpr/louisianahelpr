@@ -269,8 +269,8 @@ describe("Q2425: a safe-spot meetup order", () => {
 
   // Q2632 (audit 1102c R7): the tracker said "Met" and the time line "Meeting", but the seller's buttons and help said
   // pickup ("Move the pickup", "Picked up", "from the pickup time"). A meeting reads as a meeting; the door is unchanged.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     const done = meet ? "Handed over" : "Picked up"; |     const done = "Picked up";
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     const from = meet ? "the meeting time" : "the pickup time"; |     const from = "the pickup time";
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     const done = meet ? t("dho.handedOver") : t("dho.pickedUp"); |     const done = t("dho.pickedUp");
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     const from = meet ? t("dho.meetingTime") : t("dho.pickupTime"); |     const from = t("dho.pickupTime");
   // @mutate src/components/declutter/DeclutterBookingPanel.tsx |   const what = order.handover === "meetup" ? "meeting" : "pickup"; |   const what = "pickup";
   // @mutate src/components/declutter/DeclutterHandoverSheets.tsx | disabled={pending}>{label}</SheetPrimaryAction> | disabled={pending}>Picked up</SheetPrimaryAction>
   it("Q2632: at the meeting time the seller gets Handed over (the door keeps Picked up)", async () => {
@@ -449,7 +449,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   // door tips told the seller to "Pick a daytime slot" (the buyer's step), and a porch card said "Put it out <day>" twice.
   // @mutate src/components/declutter/DeclutterBookingPanel.tsx |         Date.now() >= new Date(booked).getTime() ? null : <FoldedTimePicker |         <FoldedTimePicker
   // @mutate src/components/declutter/DeclutterOrderBits.tsx |         {side === "buyer" && <li>Pick a daytime slot.</li>} |         <li>Pick a daytime slot.</li>
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | data-porch-not-yet="">You can take the porch photo {onDay( | data-porch-not-yet="">Put it out {onDay(
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | data-porch-not-yet="">{t("dho.porchNotYet", { day: onDay(photoDay as string) })}</p> | data-porch-not-yet="">{t("dho.outAllDay")}</p>
   it("sold states #3: no Move once the seller's time has started, seller door tips are the seller's, the porch day is said once", async () => {
     // Before the time: the seller can still move it once.
     state.bookings = [{ ...slot(-60), buyer_reschedules: 0, seller_reschedules: 0 }];
@@ -1140,7 +1140,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(blankComments(readFileSync("src/components/declutter/DeclutterDeliveryViews.tsx", "utf8"))).not.toMatch(/type="datetime-local"/);
     const hv = blankComments(readFileSync("src/components/declutter/DeclutterHandoverViews.tsx", "utf8"));
     expect(hv).not.toMatch(/type="datetime-local"/);
-    expect(hv).toMatch(/Take the porch photo/);
+    expect(hv).toMatch(/t\("dho\.takePorch"\)/);
   });
 });
 
@@ -1241,12 +1241,12 @@ describe("boards 159 + 160: handover sheets", () => {
 // pick it up"), and the handover words promised a refund window and a payout on $0.
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const money = free ? null |   const money = false ? null
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |     handover, side, free, booked: !!slot, |     handover, side, free: false, booked: !!slot,
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | free ? <p className="text-sm text-muted-foreground">The handover is when {how}.</p> : null; | <p className="text-sm text-muted-foreground">{"You're paid 24 hours after the handover. "}The handover is when {how}.</p>;
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | free ? <p className="text-sm text-muted-foreground">{words}</p> : null; | <p className="text-sm text-muted-foreground">{"You're paid 24 hours after the handover. "}{words}</p>;
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         porch={order.handover === "porch"} free={free} |         porch={order.handover === "porch"}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} free={free} pending={pickedUp.isPending} | who={who} pending={pickedUp.isPending}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {refundRequests && (
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && payout && items > 0 && !((holdUnknown | {order.side === "seller" && payout && !((holdUnknown
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | you have it${payWords ? "; they're paid 24 hours later." : "."} | you have it${"; they're paid 24 hours later."}
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | (payWords ? "dho.hint.buyerPay" : "dho.hint.buyer"))} | ("dho.hint.buyerPay"))}
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const paid = free ? t("dsl.nx.claimed") : t("dsl.nx.paid"); |   const paid = false ? t("dsl.nx.claimed") : t("dsl.nx.paid");
 describe("#6: a free claim never reads like a paid order", () => {
   // No leading \b: textContent runs the step labels together ("DonePaid").
@@ -2216,12 +2216,59 @@ describe("audit 11-10: the buyer's Report a problem form", () => {
 });
 
 // Audit 11-10 F407: on a wide screen the order cards ran ~1,590px wide; the list is capped at a reading width.
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |     <section className="max-w-3xl space-y-3" aria-label={label ?? "Paid sales"} data-paid-orders-reserve | <section className="space-y-3" aria-label={label ?? "Paid sales"} data-paid-orders-reserve
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |     <section className="max-w-3xl space-y-3" aria-label={label ?? t("dho.paidSales")} data-paid-orders-reserve | <section className="space-y-3" aria-label={label ?? t("dho.paidSales")} data-paid-orders-reserve
 describe("F407: the paid orders list has a reading width", () => {
   it("caps the list at max-w-3xl (768px)", async () => {
     state.bookings = [];
     show([line()]);
     const list = await screen.findByRole("region", { name: "Paid sales" });
     expect(list.className.split(/\s+/)).toContain("max-w-3xl");
+  });
+});
+
+// Audit 11-20 night Low 6: the card's own words (title, porch photo, timing, the "I got it" rule) were English only.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | <h2 className="text-base font-semibold">{t("dho.paidTitle")}</h2> | <h2 className="text-base font-semibold">Paid: pickup and handover</h2>
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | (posted ? t("dho.retake") : t("dho.takePorch")) | (posted ? "Retake the porch photo" : "Take the porch photo")
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx | w === "Tomorrow" ? t("dho.tomorrow") | w === "Tomorrow" ? "tomorrow"
+describe("Low 6: the paid-order card in Spanish", () => {
+  const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  beforeEach(async () => {
+    const lang = await import("@/lib/i18n/language");
+    lang.__resetLangForTests();
+    lang.setLang("es");
+    await lang.ensureLangLoaded();
+    state.handover = { side: "seller" };
+  });
+  afterEach(async () => { (await import("@/lib/i18n/language")).__resetLangForTests(); state.handover = null; state.porchDays = []; });
+
+  it("the seller's porch card: title, the day line, the photo button and its hint", async () => {
+    const today = new Date();
+    const tomorrow = key(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1));
+    state.porchDays = [tomorrow];
+    state.bookings = [{ ...slot(-60 * 24), pickup_day: tomorrow }];
+    const seller = () => show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+    const v = seller();
+    expect(await screen.findByText("Puede tomar la foto del porche mañana.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pagado: recogida y entrega" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Vendidos y pagados" })).toBeInTheDocument();
+    v.unmount();
+    state.bookings = [{ ...slot(-60), pickup_day: key(today) }];
+    seller();
+    expect(await screen.findByRole("button", { name: "Tomar la foto del porche" })).toBeInTheDocument();
+    expect(screen.getByText(/La necesita para que le paguemos automáticamente/)).toBeInTheDocument();
+    expect(screen.queryByText(/Take the porch photo|Out all day|When will it be out/)).toBeNull();
+  });
+
+  it("every card key has Spanish with the same placeholders", async () => {
+    const { enDeclSell } = await import("@/lib/i18n/enDeclSell");
+    const { esDeclSell } = await import("@/lib/i18n/esDeclSell");
+    const keys = (Object.keys(enDeclSell) as (keyof typeof enDeclSell)[]).filter((k) => k.startsWith("dho."));
+    expect(keys.length).toBeGreaterThan(45);
+    const holes = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort().join();
+    for (const k of keys) {
+      expect(esDeclSell[k], k).toBeTruthy();
+      expect(esDeclSell[k], k).not.toBe(enDeclSell[k]);
+      expect(holes(esDeclSell[k]), k).toBe(holes(enDeclSell[k]));
+    }
   });
 });

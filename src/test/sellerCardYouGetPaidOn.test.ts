@@ -13,7 +13,7 @@
  * unless the buyer asks for a refund." (no date), and "Your earnings: $25 after the buyer's refund." (no amount refunded);
  * before the handover "You get $50 ($45 for the sale and $5 for delivering it)".
  *
- * @mutate src/components/declutter/declutterPayoutWords.ts | ends ? `${gets}, paid on ${payoutDayAfterWindow(ends)} unless the buyer asks for a refund.` | ends ? `${gets}. We send it once the sale is final.`
+ * @mutate src/components/declutter/declutterPayoutWords.ts | ends ? t("dpo.onUnlessRefund", { gets, day: payoutDayAfterWindow(ends) }) | ends ? `${gets}. We send it once the sale is final.`
  * lh-money-escrow review (11-11): no ready payout account promises no day; a declined refund moves the day; a fee read
  * not answered yet shows no figure; dates only.
  * @mutate src/components/declutter/declutterPayoutWords.ts | if (ctx.payoutReady === false) return | if (false) return
@@ -21,7 +21,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | !((holdUnknown \|\| (refundRequests && !refund.isSuccess) \|\| lastProblem.isLoading) && | !((holdUnknown \|\| lastProblem.isLoading) &&
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | \|\| lastProblem.isLoading) && (payout.status | ) && (payout.status
  * @mutate src/lib/declutter/timeLeft.ts | return payoutDay(new Date(Date.parse(windowEnds) + PAYOUT_SEND_MARGIN_MS).toISOString()); | return payoutDay(windowEnds);
- * @mutate src/lib/declutter/payoutWords.ts | : ` after the ${formatPrice(refunded)} refund`; | : " after the buyer's refund";
+ * @mutate src/lib/declutter/payoutWords.ts | : t("dpo.br.afterRefund", { refund: formatPrice(refunded) })}`; | : "after the buyer's refund"}`;
  * @mutate src/components/declutter/declutterPayoutWords.ts | const parts = addsUp ? payoutBreakdown(payout) : ""; | const parts = payoutBreakdown(payout);
  * @mutate src/components/declutter/declutterPayoutWords.ts | if (ctx.refundOpen) return | if (false) return
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | refundOpen: refundIsOpen(refundStatus), payoutReady, | refundOpen: false, payoutReady,
@@ -29,7 +29,7 @@
  * (declutter_payouts_due: no refund_request_part refund pending/failed), then the sale is decided (declutter_sale_decided:
  * a request 'agreed') and final at once, so no "paid on" day 24 hours out.
  * @mutate src/components/declutter/declutterPayoutWords.ts | if (ctx.refundAgreed && REFUND_HOLDS.has(ctx.refundAgreed)) return | if (false) return
- * @mutate src/components/declutter/declutterPayoutWords.ts |   if (ctx.refundAgreed) return `${gets}. The sale is final, so we send it next.`; |
+ * @mutate src/components/declutter/declutterPayoutWords.ts |   if (ctx.refundAgreed) return final; |
  * @mutate src/components/declutter/declutterPayoutWords.ts | new Set(["pending", "failed", "held_for_review", "unknown"]) | new Set(["pending", "failed", "unknown", "settled_by_hand"])
  * @mutate src/components/declutter/declutterPayoutWords.ts | new Set(["pending", "failed", "held_for_review", "unknown"]) | new Set(["pending", "failed", "unknown"])
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, | refundAgreed: null,
@@ -39,7 +39,7 @@
  * @mutate src/components/declutter/declutterPayoutWords.ts |   return itemsCents + Math.max(0, deliveryCents); |   return itemsCents + Math.max(0, deliveryCents) - 200;
  * F360b loose end (lead 11-11): a problem Louisiana Helpr decided, or a handover an admin confirmed, makes the sale final
  * at once (declutter_sale_decided), so no "paid on" day 24 hours out.
- * @mutate src/components/declutter/declutterPayoutWords.ts |   if (ctx.saleDecided) return `${gets}. The sale is final, so we send it next.`; |
+ * @mutate src/components/declutter/declutterPayoutWords.ts |   if (ctx.saleDecided) return final; |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | const saleDecided = lastProblem.data?.status === "decided" \|\| handoverRow.data?.confirmed_by === "admin"; | const saleDecided = lastProblem.data?.status === "decided";
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | const saleDecided = lastProblem.data?.status === "decided" \|\| | const saleDecided =
  */

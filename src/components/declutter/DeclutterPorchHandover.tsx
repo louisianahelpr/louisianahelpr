@@ -67,7 +67,7 @@ export function useMyHandover(orderId: string) {
 /** "today", "tomorrow", "on Thu, Oct 30". */
 export function onDay(day: string): string {
   const w = porchDayWords(day);
-  return w === "Today" || w === "Tomorrow" ? w.toLowerCase() : `on ${w}`;
+  return w === "Today" ? t("dho.today") : w === "Tomorrow" ? t("dho.tomorrow") : t("dho.onDay", { day: w });
 }
 
 /** A3-18 (lead 11-01 5:01 PM): the checkout time once booked ("Sat 11/2, 3–5 PM"), or "by <book_by>" while nothing is. */

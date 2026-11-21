@@ -10,7 +10,7 @@
  *     from the AST by scripts/toast-inventory.mjs, kept current by check-generated-current) never goes up. Lower
  *     SUPPRESSED_CEILING when you convert more.
  *
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       toast("Handover done. Enjoy your item."); |       toast.success("Handover done. Enjoy your item.");
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       toast(t("dho.done")); |       toast.success(t("dho.done"));
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |       toast("Report taken back. Nothing is held for it now."); |       toast.info("Report taken back. Nothing is held for it now.");
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |     onSuccess: () => { toast("Refund sent. The buyer is told."); | onSuccess: () => { toast.success("Refund sent. The buyer is told.");
  */

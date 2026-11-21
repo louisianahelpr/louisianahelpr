@@ -6,8 +6,8 @@
  *  - F365 / F375: a handed-over order inside the buyer's 24 hours says until when they can report a problem, and is
  *    filed under Needs you, not Done.
  *
- * @mutate src/lib/declutter/payoutWords.ts |   held_for_review: "On hold while Louisiana Helpr checks this payout. If it doesn't arrive soon, message Support.", |
- * @mutate src/lib/declutter/payoutWords.ts | return PAYOUT_WORDS[p.status] ?? PAYOUT_UNKNOWN; | return PAYOUT_WORDS[p.status];
+ * @mutate src/lib/declutter/payoutWords.ts |   held_for_review: "dpo.st.held_for_review", |
+ * @mutate src/lib/declutter/payoutWords.ts | return t(PAYOUT_WORDS[p.status] ?? PAYOUT_UNKNOWN); | return t(PAYOUT_WORDS[p.status]);
  * @mutate src/components/declutter/OrderSteps.tsx |   if (f.done) return f.checkOpen ? "needs_you" : "done"; |   if (f.done) return "done";
  */
 import { readFileSync, readdirSync } from "node:fs";

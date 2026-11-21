@@ -17,9 +17,9 @@
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 457,
+      "literal": 452,
       "template": 99,
-      "dynamic": 759,
+      "dynamic": 764,
       "jsx": 0
     }
   },
@@ -5203,69 +5203,26 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 363,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Handover done. Enjoy your item."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 367,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 380,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 473,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Saved."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 474,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 500,
+      "line": 368,
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "r.noteProblem ? `Left on porch. The buyer is told. ${r.noteProblem}` : \"Left on porch. The buyer is told.\"",
+        "text": "t(\"dho.done\")",
+        "from": "src/lib/i18n/language.ts",
         "branches": [
           {
-            "form": "template",
-            "text": "Left on porch. The buyer is told. ${r.noteProblem}"
-          },
-          {
-            "form": "literal",
-            "text": "Left on porch. The buyer is told."
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
           }
         ]
       },
@@ -5273,37 +5230,199 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 501,
-      "kind": "toast",
+      "line": 372,
+      "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Picked up. Enjoy it."
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 502,
-      "kind": "toast",
+      "line": 385,
+      "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid."
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 503,
+      "line": 479,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Picked up. If something is wrong, you can ask for a refund within 24 hours."
+        "form": "dynamic",
+        "text": "t(\"dho.saved\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 480,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
       "line": 506,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "r.noteProblem ? t(\"dho.leftOnPorchNote\", { note: r.noteProblem }) : t(\"dho.leftOnPorch\")",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "t(\"dho.leftOnPorchNote\", { note: r.noteProblem })",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "dynamic",
+            "text": "t(\"dho.leftOnPorch\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 507,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"dho.pickedFree\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 508,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"dho.pickedHeld\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 509,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"dho.pickedRefund\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 512,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

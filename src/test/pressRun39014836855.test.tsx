@@ -70,7 +70,9 @@ describe("press-every-control: a write on a job card lands on, and is remembered
     const got = screen.getByRole("button", { name: "Got it" });
     expect(DESTRUCTIVE_RX.test(got.textContent ?? "")).toBe(true);
     const handover = readFileSync(resolve(repoRoot, "src/components/declutter/DeclutterHandoverViews.tsx"), "utf8");
-    expect(handover).toMatch(/>\s*I got it\s*</);
+    // Audit 11-20 night Low 6: the button's label comes from the dictionary; the English word is unchanged.
+    expect(handover).toMatch(/>\s*\{t\("dho\.gotIt"\)\}\s*</);
+    expect(readFileSync(resolve(repoRoot, "src/lib/i18n/enDeclSell.ts"), "utf8")).toContain('"dho.gotIt": "I got it",');
     expect(DESTRUCTIVE_RX.test("I got it")).toBe(true);
   });
 

@@ -51,7 +51,7 @@ const PAYOUT_SEND_MARGIN_MS = 10 * 60_000;
  * about 10 minutes of the time it allows and the bank shows it later, so the minute would claim more than is known.
  */
 export function payoutDay(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { timeZone: CENTRAL, weekday: "short", month: "short", day: "numeric" });
+  return new Date(iso).toLocaleDateString(locale(), { timeZone: CENTRAL, weekday: "short", month: "short", day: "numeric" });
 }
 
 /** The day an unsent payout goes, from the end of the buyer's window: declutter_sale_final allows the send 10 minutes

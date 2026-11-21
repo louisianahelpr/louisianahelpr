@@ -23,11 +23,17 @@ import { MY_MEETUP_SPOTS_KEY, fetchMeetupSuggestions, fetchMyMeetupSpots } from 
 import { MY_PORCH_PLACES_KEY, fetchMyPorchPlaces } from "@/lib/declutter/porchPlaces";
 import { fetchSellerDefaults } from "@/lib/declutter/sellerDefaults";
 import { fetchMySellerDelivery } from "@/lib/declutter/sellerDelivery";
+import type { MsgKey } from "@/lib/i18n/en";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclSell";
+import "@/lib/i18n/enListingParts";
 
-/** The page's index (F346): each name is the aria-label of a section on this page. */
+/** The page's index (F346): each name is the English aria-label of a section on this page; INDEX_LABEL holds its words in the reader's language. */
 const SETTINGS_INDEX = ["Pickup places", "Meet spots", "Listing defaults", "Notifications"] as const;
 /** Area 06b L6: Meet spots is headed by its own h2 (aria-labelledby), so its index chip finds it by its test id. */
 const INDEX_TARGET: Partial<Record<(typeof SETTINGS_INDEX)[number], string>> = { "Meet spots": '[data-testid="sell-meetup-spots"]', "Pickup places": "[data-porch-places-card]" };
+/** Audit 11-20 night Low 6: what each chip says, and the aria-label of its section, in the reader's language. */
+const INDEX_LABEL: Record<(typeof SETTINGS_INDEX)[number], MsgKey> = { "Pickup places": "lp.pp.title", "Meet spots": "lp.ms.title", "Listing defaults": "dset.defaults", "Notifications": "dset.notifications" };
 
 /**
  * ONE SETTLED PAINT (Q169; prod-audit 43691657529 on 2026-11-15 page-settle): each card read its own data and grew when it landed
@@ -77,31 +83,33 @@ function useSettingsReadsSettled(userId: string): boolean {
  * settings they sat at y 1507 at 375 and sellers couldn't find how to add a second address. The 404 unless 'declutter' is on (DeclutterGate).
  */
 function DeclutterSettings() {
-  usePageTitle("Declutter settings — Helpr");
+  useLanguage();
+  usePageTitle(t("dset.pageTitle"));
   const { user } = useCurrentUser();
   if (!user) return null;
   return <DeclutterSettingsBody user={user} />;
 }
 
 function DeclutterSettingsBody({ user }: { user: { id: string } }) {
+  useLanguage();
   const ready = useSettingsReadsSettled(user.id);
   if (!ready) return <DeclutterSettingsSkeleton />;
   return (
-    <AppPage title="Declutter settings" backTo="/declutter?tab=selling">
+    <AppPage title={t("dset.title")} backTo="/declutter?tab=selling">
       <div className="space-y-section pb-6" data-testid="declutter-settings">
         {/* Q2574 (audit 1102a): Browse's gear opens this page, and a buyer met only seller setup (places, meet spots,
             listing defaults) with Notifications, the one part for them, below a long scroll. The seller block says it
             is for selling; places still come first in it (sellers couldn't find how to add a second address). */}
-        <section className="space-y-2" aria-label="Selling" data-settings-selling="">
-          <SectionHeading title="Selling" />
+        <section className="space-y-2" aria-label={t("dset.selling")} data-settings-selling="">
+          <SectionHeading title={t("dset.selling")} />
           {/* Audit 11-10 F346: "Notifications ... are at the end." was an odd first line; a short index says what is on
               the page and still takes a buyer straight to Notifications (Q2574). */}
           {/* Area 06b L6 (design audit 11-18): 44px chips, Meet spots included (were 19px text links that skipped it). */}
-          <nav aria-label="On this page" className="flex flex-wrap items-center gap-2" data-settings-index="">
+          <nav aria-label={t("dset.onThisPage")} className="flex flex-wrap items-center gap-2" data-settings-index="">
             {SETTINGS_INDEX.map((name) => (
               <Button key={name} variant="ghost" size="wrapSm" data-settings-index-chip=""
                 className="border border-border bg-card font-medium tracking-normal text-foreground"
-                onClick={() => document.querySelector(INDEX_TARGET[name] ?? `section[aria-label="${name}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{name}</Button>
+                onClick={() => document.querySelector(INDEX_TARGET[name] ?? `section[aria-label="${t(INDEX_LABEL[name])}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{t(INDEX_LABEL[name])}</Button>
             ))}
           </nav>
           <div className="space-y-section">
@@ -110,8 +118,8 @@ function DeclutterSettingsBody({ user }: { user: { id: string } }) {
             <SellMeetupSpots />
             {/* Lead's call 2026-10-31: the usual times are only for meetups, so they show only when a meetup is offered. */}
             <MeetupTimesCard userId={user.id} />
-            <section className="space-y-2" aria-label="Listing defaults">
-              <SectionHeading title="Listing defaults" />
+            <section className="space-y-2" aria-label={t("dset.defaults")}>
+              <SectionHeading title={t("dset.defaults")} />
               <ListingDefaultsCard userId={user.id} />
             </section>
           </div>
@@ -119,16 +127,16 @@ function DeclutterSettingsBody({ user }: { user: { id: string } }) {
         {/* LEAD-BUNDLE-DROPDOWN / LEAD-DELIVER-TWICE (owner 2026-10-31): the bundle discount is a row in Listing defaults
             under the free-after row, and delivery's price and times open under its "I'll deliver" tick, so the old
             "Delivery and bundles" section is gone. */}
-        <section className="space-y-2" aria-label="Notifications">
-          <SectionHeading title="Notifications" />
+        <section className="space-y-2" aria-label={t("dset.notifications")}>
+          <SectionHeading title={t("dset.notifications")} />
           <Link
             to="/profile?tab=notifications&show=declutter"
             className="flex min-h-11 items-center gap-3 rounded-[20px] border border-border bg-card px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Bell className="h-5 w-5 shrink-0" aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold">Declutter notifications</span>
-              <span className="block text-xs text-muted-foreground">Choose what you hear about buying and selling</span>
+              <span className="block text-sm font-semibold">{t("dset.notifRow")}</span>
+              <span className="block text-xs text-muted-foreground">{t("dset.notifHint")}</span>
             </span>
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           </Link>

@@ -15,7 +15,7 @@
  * @mutate src/components/Navbar.tsx |             {location.pathname !== "/" && !navHomeHiddenOn(location.pathname) && ( |             {false && (
  * @mutate src/components/Navbar.tsx |             {location.pathname !== "/" && !navHomeHiddenOn(location.pathname) && ( |             {location.pathname !== "/" && (
  * @mutate src/components/Navbar.tsx | path === p \|\| path.startsWith(`${p}/`) | path.startsWith(p)
- * @mutate src/components/sections/AppTopBar.tsx |               <div className="flex min-w-0 items-center gap-3">\n                {backEl}\n                <h1 |               <div className="flex min-w-0 flex-col">\n                {backEl}\n                <h1
+ * @mutate src/components/sections/AppTopBar.tsx |               <div className="flex min-w-0 items-center gap-3">\n                {backEl}\n                {titleEl} |               <div className="flex min-w-0 flex-col">\n                {backEl}\n                {titleEl}
  * @mutate src/components/sections/AppTopBar.tsx |   const back = backHome ? { onBack: () => navigate("/"), label: tr("nav.goHome") } : undefined; |   const back = backHome ? { onBack: () => navigate(-1), label: tr("nav.goHome") } : undefined;
  * @mutate src/components/sections/AppTopBar.tsx |             {backEl}\n            <div data-testid="app-top-bar-search" |             <div data-testid="app-top-bar-search"
  */

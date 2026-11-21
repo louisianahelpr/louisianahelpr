@@ -171,6 +171,8 @@ export function AppTopBar({
   const title = sectionTitle;
   if (isWebDesktop && !title) return null;
   const back = backHome ? { onBack: () => navigate("/"), label: tr("nav.goHome") } : undefined;
+  // The visible title, drawn once: alone, or after the back arrow on the same row (owner 11-21).
+  const titleEl = title ? <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> : null;
   const backEl = back && (
     <div className="shrink-0" data-top-bar-back="">
       <BackButton onClick={back.onBack} label={back.label} />
@@ -238,14 +240,12 @@ export function AppTopBar({
           </header>
         ) : (
           <header className={TITLE_TOP_ROW} data-testid="app-top-bar">
-            {title && backEl ? (
+            {titleEl && backEl ? (
               <div className="flex min-w-0 items-center gap-3">
                 {backEl}
-                <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1>
+                {titleEl}
               </div>
-            ) : title ? (
-              <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1>
-            ) : (
+            ) : titleEl ?? (
               <HelprMark size="sm" emblemOnly to="/home" />
             )}
             <div className="flex items-center shrink-0 gap-1">

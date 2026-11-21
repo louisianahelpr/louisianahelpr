@@ -5,6 +5,7 @@
  * node scripts/check-gift-guide-standard.mjs [--json]   (exit 0 always: it reports; the guard test pins what must hold)
  */
 import { readFileSync } from "node:fs";
+import { auditFix1120 } from "./giftGuideSectionAudit1120.mjs";
 import { findPick } from "./giftGuideStandard1120.mjs";
 const spec = JSON.parse(readFileSync(new URL("./gift-guide-standard-1120.json", import.meta.url), "utf8"));
 const rows = [];
@@ -16,7 +17,7 @@ for (const [slug, g] of Object.entries(spec.guides)) {
   const issues = [];
   const at = [];
   for (const want of planned) {
-    const p = findPick(picks, used, want);
+    const p = findPick(picks, used, want) ?? findPick(picks, used, auditFix1120(slug, want) ?? want); // the later section audit may rename or relink a planned pick
     if (!p) { issues.push(`missing: "${want.name}" (${want.section})`); continue; }
     used.add(p);
     at.push(picks.indexOf(p));

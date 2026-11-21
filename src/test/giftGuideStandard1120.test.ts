@@ -13,6 +13,7 @@
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { auditFix1120 } from "../../scripts/giftGuideSectionAudit1120.mjs";
 import { SPONSOR_HOME_GUIDES, applyStandard, findPick } from "../../scripts/giftGuideStandard1120.mjs";
 
 type Want = { name: string; href: string; line?: string };
@@ -45,7 +46,9 @@ describe("gift guide standard 1120: the plan is what the pages show", () => {
       const used = new Set<Row>();
       let last = -1;
       for (const s of g.sections) for (const want of s.picks) {
-        const p = findPick(picks, used, want) as Row | undefined;
+        // The section audit runs after the plan and may give a planned pick the name and link its retailer sells
+        // today (the Carhartt beanie in Carhartt Brown): the same pick, found under the audit's name.
+        const p = (findPick(picks, used, want) ?? findPick(picks, used, auditFix1120(slug, want) ?? want)) as Row | undefined;
         if (!p) continue; // a planned pick no source holds any more: reported by the check script, not a guard failure
         used.add(p);
         if (p.section !== s.title) wrong.push(`${slug}: "${p.name}" is in "${p.section}", plan "${s.title}"`);

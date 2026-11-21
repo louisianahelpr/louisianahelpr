@@ -98,7 +98,9 @@ describe("gift guides train 1120b", () => {
     expect(new Set(rows.map((r) => r.slug)).size).toBe(rows.length);
     expect(rows.map((r) => r.name)).toEqual([...rows].sort(sponsorRowOrder).map((r) => r.name));
     for (const r of rows) expect(r.group, r.name).toBe((SPONSOR_ORDER.national as string[]).includes(r.name) ? "us" : "la");
-    expect(rows.findIndex((r) => r.group === "us")).toBeGreaterThan(rows.findLastIndex((r) => r.group === "la"));
+    const firstNational = rows.findIndex((r) => r.group === "us");
+    expect(firstNational).toBeGreaterThan(0);
+    expect(rows.slice(firstNational).every((r) => r.group === "us")).toBe(true);
     for (const r of rows) {
       if (r.logo) expect(existsSync(`public${r.logo}`), r.logo).toBe(true);
       expect(r.href, r.name).toMatch(r.external ? /^https:\/\// : /^\/gift-guides\//);

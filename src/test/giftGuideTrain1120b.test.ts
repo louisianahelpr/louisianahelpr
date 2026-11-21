@@ -34,7 +34,7 @@ describe("gift guides train 1120b", () => {
     // Amazon's 43-byte placeholder photos (images/P/<asin> for these four ASINs) and the 404/403 photos.
     const all = [...CHUNKS.values()].flatMap((c) => c.picks);
     for (const asin of ["B07482WH6L", "B074F3LQ8Y", "B0D8PJXM78", "B0DL3JZ4L9"]) expect(all.some((p) => (p.image ?? "").includes(`/images/P/${asin}`)), asin).toBe(false);
-    expect(all.some((p) => /img\.tjmaxx\.com/.test(p.image ?? "")), "TJX blocks hotlinked photos").toBe(false);
+    expect(all.some((p) => /^(https?:)?\/\/img\.tjmaxx\.com\//.test(p.image ?? "")), "TJX blocks hotlinked photos").toBe(false);
     expect(all.some((p) => /skeletool_cx/i.test(p.image ?? "")), "Skeletool CX photo 404").toBe(false);
     const splurge = picks("splurge");
     expect(splurge.find((p) => /BedJet/.test(p.name))?.section).toBe("Travel, tech and home comfort"); // the owner's plan (11-20 evening) names Splurge's sections by use

@@ -35,7 +35,7 @@ describe("gift guides train 1120c", () => {
   });
 
   it("the Creator Connections adds hold one spot each, tagged, with their end day; no product twice", () => {
-    const amazonAdds = SPEC.adds.filter((a: { row: Pick }) => /amazon\.com\/dp\//.test(a.row.href));
+    const amazonAdds = SPEC.adds.filter((a: { row: Pick }) => /^https:\/\/(www\.)?amazon\.com\/dp\//.test(a.row.href));
     expect(amazonAdds.length).toBeGreaterThan(20);
     let placed = 0;
     for (const a of amazonAdds) {

@@ -82,7 +82,7 @@ describe("gift guides holiday audit B", () => {
     expect(ALL.filter((p) => rr.test(`${p.name} ${p.brand ?? ""} ${p.href}`)).map((p) => p.name)).toEqual([]);
     expect(JSON.stringify(NAME_ONLY)).not.toMatch(rr);
     for (const f of ["src/content/giftGuideSponsorLogos.json", "src/content/giftGuideSmallBiz.json", "src/content/giftGuideSearchIndex.json"]) expect(readFileSync(f, "utf8"), f).not.toMatch(rr);
-    expect(readFileSync("src/content/giftGuides.ts", "utf8")).not.toMatch(/rrweddingco\.com/);
+    expect(readFileSync("src/content/giftGuides.ts", "utf8")).not.toContain("rrweddingco.com");
   });
 
   it("guide cards show gifts, never a sponsor's logo file", () => {

@@ -356,6 +356,10 @@ export const giftGuides = {
   budgetUnder: (n: number) => `Under $${n}`,
   budgetNote: "Amazon items aren't sorted by price here (Amazon doesn't let us list its prices).",
   budgetNone: "Nothing in this budget yet. Try a higher one.",
+  /** The price sort on Her, Him and Kids (owner 2026-11-21: "the guides should be able to be sorted by price"). */
+  sortLabel: "Sort by price",
+  sortLowHigh: "Price: low to high",
+  sortHighLow: "Price: high to low",
   sections: [
     {
       id: "for-her",

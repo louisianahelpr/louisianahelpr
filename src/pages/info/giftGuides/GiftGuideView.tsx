@@ -13,6 +13,8 @@ import { HINTS, WISH } from "@/content/giftWishList";
 import { Hint } from "./GiftHint";
 import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/ToggleChip";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { sortByPrice, type PriceOrder } from "@/content/giftGuidePriceSort";
 import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { AgeChips } from "./GiftGuideAges";
@@ -181,6 +183,9 @@ export const sectionLabel = (guide: Pick<CatalogGuide, "title">, title: string, 
 function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNode }) {
   const [shown, setShown] = useState(PICKS_PAGE);
   const [budget, setBudget] = useState<number | null>(null);
+  // Her, Him, Kids and their relationship views (owner 11-21): low to high is the list as imported.
+  const [order, setOrder] = useState<PriceOrder>("low");
+  const sortable = isOwnerList(guide.slug);
   const ready = picksReady(guide.slug);
   // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.
   const nav = ready ? sectionNav(guide.picks) : [];
@@ -204,7 +209,8 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
   if (!ready) return <p className="gg-soon" role="status" data-gift-picks-loading="">{G.loadingPicks}</p>;
   const related = guide.empty ? relatedGuides(guide) : [];
   const banded = guide.picks.filter((p) => p.band !== undefined).length;
-  const picks = withinBudget(guide.picks, budget);
+  const inBudget = withinBudget(guide.picks, budget);
+  const picks = sortable ? sortByPrice(inBudget, order) : inBudget;
   // Six or fewer left: draw them all, no "Show more (1 more)" (design audit r2 #16).
   const upTo = picks.length - shown <= SHOW_ALL_UNDER ? picks.length : shown;
   const left = picks.length - upTo;
@@ -231,6 +237,17 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
             <a key={s.id} href={`/gift-guides/${guide.slug}#${s.id}`} className="gg-chip" data-gift-section-link={s.id} onClick={(e) => { e.preventDefault(); window.history.replaceState(window.history.state, "", `#${s.id}`); jump(s.id); }}>{sectionLabel(guide, s.title, s.id)}</a>
           ))}
         </nav>
+      )}
+      {sortable && guide.picks.length > 1 && (
+        <div className="gg-sort" data-gift-sort="">
+          <SegmentedControl<PriceOrder>
+            ariaLabel={G.sortLabel}
+            value={order}
+            onChange={(o) => { setOrder(o); setShown(PICKS_PAGE); }}
+            labelSize="md"
+            options={[{ value: "low", label: G.sortLowHigh }, { value: "high", label: G.sortHighLow }]}
+          />
+        </div>
       )}
       {banded >= BUDGET_MIN_PICKS && <Hint id="budget">{HINTS.budget}</Hint>}
       {banded >= BUDGET_MIN_PICKS && (

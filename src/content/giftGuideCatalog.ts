@@ -94,6 +94,9 @@ export interface CatalogPick {
   codeEnds?: string;
   /** For Her / For Him (owner 11-20): the relationship pages it shows on ("mom", "wife" ...), from the import. Never shown. */
   rels?: string[];
+  /** Her, Him, Kids (owner 11-21): the pick's place in the cheapest-first order, from the import. Never shown, never a
+   *  price; the price sort reads it (src/content/giftGuidePriceSort.ts). */
+  priceRank?: number;
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
@@ -258,7 +261,8 @@ const toPick = (p: ResearchedPick): CatalogPick => {
   return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}),
     ...(p.sectionId ? { sectionId: p.sectionId } : {}), ...(p.band && store !== "amazon" ? { band: p.band } : {}), ...(p.preorder ? { preorder: p.preorder } : {}), ...(p.type ? { type: p.type } : {}), ...(p.code ? { code: p.code, ...(p.codeEnds ? { codeEnds: p.codeEnds } : {}) } : {}),
     // Never an Amazon price (Associates rule), whatever the generated file holds.
-    ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}), ...(p.rels ? { rels: p.rels } : {}) };
+    ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}), ...(p.rels ? { rels: p.rels } : {}),
+    ...(typeof p.priceRank === "number" ? { priceRank: p.priceRank } : {}) };
 };
 /** The landing's "Top 10 most-loved" row (owner 2026-11-18): the picks the most guides list, photos first (generated). */
 export const topPicks = (): CatalogPick[] => TOP_PICKS.map(toPick);

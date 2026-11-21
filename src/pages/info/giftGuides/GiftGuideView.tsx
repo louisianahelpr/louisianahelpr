@@ -16,6 +16,7 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { sortByPrice, type PriceOrder } from "@/content/giftGuidePriceSort";
 import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
+import { PrimeTrialLink } from "@/components/giftGuides/PrimeTrialLink";
 import { AgeChips } from "./GiftGuideAges";
 import { PeopleChips } from "./GiftGuidePeopleChips";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
@@ -258,6 +259,7 @@ function GiftGuideList({ guide }: { guide: CatalogGuide }) {
       {budget !== null && <p className="gg-price-note" data-gift-budget-note="">{picks.length ? G.budgetNote : G.budgetNone}</p>}
       {draw(0, upTo)}
       <PricesAsOf picks={picks.slice(0, upTo)} />
+      <PrimeTrialLink picks={picks.slice(0, upTo)} />
       {left > 0 && (
         <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
           {G.showMorePicks(left)}

@@ -32,7 +32,9 @@ import { BuyerPreviewCard } from "./BuyerPreviewCard";
 import { DEFAULT_DROP_PCT } from "@/lib/declutter/priceDrop";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { wantsDraftResume } from "@/lib/guestPostDraft";
+import { SellGuestSignup } from "./SellGuestSignup";
 import { savedSellWork } from "@/lib/declutter/bunchSaved";
 import { SELL_BUNCH_PATH, SELL_CHOOSER_PATH, SELL_MOVE_PATH } from "@/lib/declutter/sellChooser";
 import { FirstSalePickup, firstSaleProblem, useFirstSale, type FirstSale } from "./FirstSalePickup";
@@ -58,15 +60,20 @@ function postProblems(s: SellFlow, first: FirstSale): { message: string; at: Whe
     // A first sale asks the address in its own Pickup box (FirstSalePickup), so the address and city are marked there.
     const row = problemRow(code);
     const at: Where = row === "settings" && first.needs?.pickup ? "pickup" : row;
+    // A guest is asked only the owner's six (photos, title, details, price, category, condition) and the size: the
+    // address, times and tax box come after sign-up, on this same screen (owner 11-21, guestSellDraft.ts).
+    if (s.isGuest && row === "settings") break;
     out.push({ message: formProblemWords(code), at });
     if (at === "settings" || at === "pickup") break;
     probe = at === "title" ? { ...probe, title: "Answered" } : { ...probe, price: "100", floor: "1", dropPct: DEFAULT_DROP_PCT };
   }
-  if (first.timesProblem) out.push({ message: first.timesProblem, at: "pickup" });
-  if (s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push({ message: tr("sf.chooseWay"), at: "settings" });
+  // A guest has no pickup times, ways or tax box to answer yet (they come after sign-up).
+  const member = !s.isGuest;
+  if (member && first.timesProblem) out.push({ message: first.timesProblem, at: "pickup" });
+  if (member && s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push({ message: tr("sf.chooseWay"), at: "settings" });
   // Nobody buys a give-away (audit 1110 F340): that form names the person picking it up.
   if (!writing && !s.sizeKnown) out.push({ message: tr(s.form.free ? "sf.sizeProblemFree" : "sf.sizeProblem"), at: "size" });
-  if (!s.attested) out.push({ message: tr("sf.tickBox"), at: "tax" });
+  if (member && !s.attested) out.push({ message: tr("sf.tickBox"), at: "tax" });
   return out;
 }
 
@@ -102,7 +109,13 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   useLanguage(); // re-render in the member's language when it changes or loads (F260q)
   const { user, underAge, form, held, setHeld, photos, uploading, aiAsk, ai, savedWays, windows, autoFreeWanted } = s;
   // LEAD-POST-PLACES (owner 2026-10-31): with saved places, each shows with its own days and hours, not one area.
-  const pickup = usePickupLines(savedWays, form.areaLabel, windows);
+  const pickup = usePickupLines(savedWays, form.areaLabel, windows, !!user);
+  // Owner 11-21: a guest's Post opens the sign-up step (SellGuestSignup) instead of posting.
+  const [askSignup, setAskSignup] = useState(false);
+  // Back from sign-up (?resume=draft): the kept listing is on screen, so it opens at what Post still needs.
+  const [params] = useSearchParams();
+  const resuming = !!user && wantsDraftResume(params);
+  const resumed = useRef(false);
   const [open, setOpen] = useState<SummaryField | null>(null);
   const [tried, setTried] = useState(false);
   // Post was tapped while the AI was still writing: it posts by itself when that finishes, unless something is missing.
@@ -120,7 +133,13 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
     return () => clearTimeout(t);
   }, [postWhenWritten, writing]);
 
-  if (!user) return null;
+  useEffect(() => {
+    if (resumed.current || !resuming || !s.keptWork.restored || !first.settled) return;
+    resumed.current = true;
+    requestAnimationFrame(() => (document.querySelector('[data-sell-row="pickup"]') ?? document.querySelector('[data-sell-row="tax"]'))?.scrollIntoView?.({ block: "center" }));
+  }, [resuming, s.keptWork.restored, first.settled]);
+
+  if (!user && !s.isGuest) return null;
   if (underAge) {
     return (
       <AppPage title={tr("sf.sellAnItem")} backTo="/declutter">
@@ -151,6 +170,14 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
       setTried(true);
       if (bad.at === "title" || bad.at === "price" || bad.at === "size") setOpen(bad.at);
       requestAnimationFrame(() => document.querySelector(`[data-sell-row="${bad.at}"]`)?.scrollIntoView?.({ block: "center" }));
+      return;
+    }
+    if (s.isGuest) {
+      setTried(false);
+      setAskSignup(true);
+      // On the device now, not after the save delay: the next tap may leave for sign-up.
+      void s.keptWork.saveNow();
+      requestAnimationFrame(() => document.querySelector("[data-sell-guest-signup]")?.scrollIntoView?.({ block: "center" }));
       return;
     }
     if (writing) {
@@ -196,14 +223,14 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
         )}
         {s.keptWork.restored && !s.freeChoice && (
           <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-[20px] border border-border bg-card p-4" data-sell-kept="">
-            <p className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">{tr("sf.kept")}</p>
+            <p className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">{tr(resuming ? "sf.gu.back" : "sf.kept")}</p>
             <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => void s.keptWork.finish().then(onStartOver)}>{tr("sf.startOver")}</Button>
           </div>
         )}
         {s.keptWork.note && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-sell-not-kept="">{s.keptWork.note}</p>}
 
         <section className="space-y-4" aria-labelledby="sell-step" data-sell-row="photos">
-          <StepHead title={tr("sf.showItOff")} sub={tr(DECLUTTER_MIN_PHOTOS === 1 ? "sf.photosSubOne" : "sf.photosSub", { n: DECLUTTER_MIN_PHOTOS, max: MAX_PHOTOS })} />
+          <StepHead title={tr("sf.showItOff")} sub={tr(s.isGuest ? "sf.gu.photosSub" : DECLUTTER_MIN_PHOTOS === 1 ? "sf.photosSubOne" : "sf.photosSub", { n: DECLUTTER_MIN_PHOTOS, max: MAX_PHOTOS })} />
           <SellPhotos
             uploaded={photos.data ?? []}
             held={held}
@@ -224,7 +251,7 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
           {!form.free && ai.state.status !== "done" && !s.keptWork.restored && <SellItForMeEntry />}
           {problemAt("photos")}
           {/* Every Sell button opens this screen now (ease batch 11-20); the other ways stay one tap away. */}
-          {s.photoTotal === 0 && !s.keptWork.restored && (
+          {s.photoTotal === 0 && !s.keptWork.restored && !s.isGuest && (
             <Button asChild variant="link" size="wrapSm" className="justify-start px-0 text-left font-semibold text-[hsl(var(--sage-ink))]">
               {kept.data?.bunch
                 ? <Link to={kept.data.moving ? SELL_MOVE_PATH : SELL_BUNCH_PATH} data-sell-continue-bunch="">{tr("sf.continueBunch")}</Link>
@@ -244,7 +271,7 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
           priceExtras={form.free ? <div className="pt-1"><SellFreeNote /></div> : <div className="pt-1"><SellOffersToggle s={s} /></div>}
           // What will happen, before Post (owner 2026-11-01): the seller's settings as rows of this card, one Change to
           // Settings. The choices themselves are made ahead (owner 2026-10-30).
-          settingsRows={(
+          settingsRows={s.isGuest ? null : (
             <SellingSettingsRows
               pickup={pickup}
               drops={form.free ? null : dropsValue(form)}
@@ -259,7 +286,7 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
             problem={<>{problemAt("pickup")}{setupNote && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-first-sale-problem="">{setupNote}</p>}</>} />
         )}
 
-        <div className="space-y-2" data-sell-row="tax"><SellTaxBox s={s} />{problemAt("tax")}</div>
+        {!s.isGuest && <div className="space-y-2" data-sell-row="tax"><SellTaxBox s={s} />{problemAt("tax")}</div>}
 
         <BuyerPreview s={s} />
         {s.failedHeld > 0 && (
@@ -288,14 +315,17 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
         {/* Owner 2026-11-01: while it goes up, a clear in-progress view (Uploading photos -> Checking -> Live), not only a
             greyed button; the done view after is unchanged. */}
         {s.publishing && <SellProgress title={tr("sf.posting")} rows={[{ name: form.title.trim() || tr("sf.yourItem"), step: s.postStage }]} note={s.postStep ? `${s.postStep}. ${tr("sf.keepOpen")}` : tr("sf.keepOpen")} />}
+        {/* The sign-up step takes the button's place once asked for: one next step on screen, not two. */}
+        {s.isGuest && askSignup ? <SellGuestSignup onCreate={s.finishAsGuest} /> : (
         <Button type="button" className="w-full rounded-full" disabled={s.publishing || s.saving || postWhenWritten || settingUp} onClick={() => void post()}>
-          {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : settingUp ? tr("sf.fs.saving") : tr("sf.postIt")}
+          {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : settingUp ? tr("sf.fs.saving") : s.isGuest ? tr("sf.gu.cta") : tr("sf.postIt")}
         </Button>
+        )}
         <p role="status" className="sr-only" data-post-step="">{s.publishing ? s.postStep : ""}</p>
         {/* Payouts: only once money is owed (owner 2026-10-27, list first, set up at first sale); never on a give-away,
             which earns nothing (audit 1110 F340). Audit 11-10 F327: under Post it, not over the form: it arrives after
             its reads and pushed the whole form down (layout shift 0.169). */}
-        {!form.free && <SellerPayoutPrompt />}
+        {!form.free && !s.isGuest && <SellerPayoutPrompt />}
       </div>
     </AppPage>
   );

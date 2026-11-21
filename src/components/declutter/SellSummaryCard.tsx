@@ -19,6 +19,7 @@ import { FieldLabel, SELL_INPUT, SellPriceInput, SellYouGet } from "./SellFormPa
 import { SellTradesRow } from "./SellTradesRow";
 import "@/lib/i18n/enDeclPanels";
 import "@/lib/i18n/enSellSummary";
+import "@/lib/i18n/enSellForm";
 import { t, useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import type { SellFlow } from "./useSellFlowState";
@@ -105,7 +106,8 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, setti
     <section className="space-y-2" aria-labelledby="sell-summary-head">
       <h2 id="sell-summary-head" className="font-display font-moment text-ds-24 font-semibold leading-tight text-foreground">{t("sell.yourListing")}</h2>
       <p className="text-ds-14 text-muted-foreground">
-        {t(busy ? "sell.writing" : draft ? "sell.wrote" : "sell.addPhotos")}
+        {/* Owner 11-21: a guest's photos are never sent, so nothing is written for them until they have an account. */}
+        {s.isGuest ? t("sf.gu.aiNote") : t(busy ? "sell.writing" : draft ? "sell.wrote" : "sell.addPhotos")}
       </p>
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card" aria-busy={busy} data-sell-summary={busy ? "busy" : draft ? "done" : "empty"}>
         <Row {...row("title")} title={t("sell.title")} value={form.title.trim()} empty={!form.title.trim()}>

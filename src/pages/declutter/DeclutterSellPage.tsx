@@ -1,11 +1,13 @@
 import { lazy, Suspense } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { DeclutterGate } from "@/components/declutter/declutterUi";
 import { DeclutterSellSkeleton } from "@/components/declutter/DeclutterSkeletons";
 import SellFlow from "@/components/declutter/DeclutterSellView";
 import SellChooser from "@/components/declutter/DeclutterSellChooser";
 import { SellerSetupGate } from "@/components/declutter/SellerSetup";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { wantsBunch, wantsSellChooser } from "@/lib/declutter/sellChooser";
+import { guestCanSell } from "@/lib/guestSellDraft";
 
 // "Sell a bunch" (owner 2026-10-29) loads only when it is asked for.
 const BunchFlow = lazy(() => import("@/components/declutter/DeclutterBunchView"));
@@ -17,9 +19,16 @@ const BunchFlow = lazy(() => import("@/components/declutter/DeclutterBunchView")
  * ?mode=choose is "What do you want to sell?" (owner 2026-10-30), now reached from "More ways to sell" on the one
  * screen: every Sell button opens one item straight away (SELL_START_PATH, ease batch 11-20); any other deep link
  * (?mode=bunch, ?mode=moving, ?item=, ?answer=, ?free=1, or none) opens its flow straight away.
+ * Owner 11-21 (src/lib/guestSellDraft.ts): a guest opens the one-item screen and fills it before signing up; every
+ * other way to sell still asks them to log in first (guestCanSell).
  */
 export default function DeclutterSellPage() {
   const [params] = useSearchParams();
+  const location = useLocation();
+  const { user, isReady } = useAuthReady();
+  if (isReady && !user && !guestCanSell(params)) {
+    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
+  }
   return (
     <DeclutterGate skeleton={<DeclutterSellSkeleton />}>
       {wantsSellChooser(params) ? (

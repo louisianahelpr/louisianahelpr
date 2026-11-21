@@ -54,7 +54,7 @@ export function useSellSaved(
   const finished = useRef(false);
   const { form, coords, ways, windows, keepUpWanted, autoFreeWanted, createdId } = work;
   const hasWork = photos.length > 0 || !!createdId || !!form.title.trim() || !!form.description.trim() || !!form.price.trim();
-  const { note, clearSaved } = useDeviceSaved<SellOneWork & { photos: BunchPhoto[] }, SavedSellOne>({
+  const { note, flush, clearSaved } = useDeviceSaved<SellOneWork & { photos: BunchPhoto[] }, SavedSellOne>({
     store,
     userId,
     snapshot: { ...work, photos },
@@ -105,5 +105,6 @@ export function useSellSaved(
     return clearSaved();
   }, [clearSaved]);
 
-  return { note, restored, dismissRestored: () => setRestored(false), finish };
+  // `saveNow`: a guest's "Create your free account" waits for the listing to be on the device before leaving (guestSellDraft.ts).
+  return { note, restored, dismissRestored: () => setRestored(false), finish, saveNow: flush };
 }

@@ -81,7 +81,7 @@ function FreebiesAndDeals() {
         <li>
           <Link to={PRINTABLES_PATH} className="gg-fun-tool gg-extra" data-gift-printables="">
             <span className="gg-extra-thumbs" aria-hidden="true">
-              {thumbs.slice(0, 3).map((src) => <img key={src} src={src} alt="" width={56} height={56} loading="lazy" decoding="async" />)}
+              {thumbs.slice(0, 3).map((src) => <img key={src} loading="lazy" decoding="async" src={src} alt="" width={56} height={56} />)}
             </span>
             <span className="gg-extra-words">
               <b>{PRINTABLES_WORDS.tile.title}</b>

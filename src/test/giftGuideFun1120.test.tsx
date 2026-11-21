@@ -27,7 +27,6 @@
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-plan-head .gg-plan-budget,.gg-fun-row>.gg-plan-price,.gg-plan-idea .gg-plan-price{flex:0 0 auto} | .gg-plan-budget{flex:none}
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | display:grid;grid-template-columns:minmax(0,1fr);gap:8px} | display:grid;gap:8px}
  * @mutate src/pages/info/giftGuides/fun/SecretSanta.tsx |  onChange={() => setError(null)} | 
- * @mutate src/pages/info/giftGuides/fun/GiftCountdown.tsx |   return to ? `/gift-guides/${to}` : `/gift-guides#${GOTD_ID}`; |   return `/gift-guides#${GOTD_ID}`;
  * @mutate supabase/migrations/20261120062334_gift_guide_secret_santa_planner.sql |      AND me.token_hash = encode(sha256(convert_to(p_token, 'UTF8')), 'hex')\n     AND g.expires_at > now()\n$fn$; |      AND g.expires_at > now()\n$fn$;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -39,7 +38,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { newestFunction } from "./helpers/parityReaders";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
-import { guideBySlug, loadAllGuidePicks, loadSearchItems, topPicks } from "@/content/giftGuideCatalog";
+import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { SWIPE_BUDGETS, SWIPE_PER_STORE, SWIPE_ROUND, SWIPE_WHO, duplicateName, swipePool, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giveawayTieInOn, parseDollars, SANTA_PATH, borrowFits, cleanName, cleanNames, nameProblem, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan } from "@/content/giftGuideFun1120";
 import { BUDGET_GUIDES, pickCeiling } from "@/content/giftPickBand";
 
@@ -61,7 +60,6 @@ vi.mock("@/lib/giftGuideFunApi", () => ({
 }));
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import SecretSantaReveal from "@/pages/info/giftGuides/fun/SecretSantaReveal";
-import { giftOfTheDayPath } from "@/pages/info/giftGuides/fun/GiftCountdown";
 import { giftListNow, resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { planActions, resetPlanStoreForTests, setPlanViewer, useAccountSync, usePlan } from "@/pages/info/giftGuides/fun/plannerStore";
@@ -258,6 +256,7 @@ describe("swipe rounds", () => {
     // retire the swipe tool with the guides, or refill these budgets from Her, Him and Kids. Never add to this list.
     // Owner 11-21 (later): Him and Kids are now her own Amazon saves, which carry no price on the site, so a budget
     // round finds nothing in them; only "any budget" deals for Dad and Him.
+    // @two-way src/test/giftGuideFun1120.test.tsx:expect(thin).toEqual(KNOWN_THIN)
     const KNOWN_THIN = [
       "me/25: 1", "me/50: 3", "me/100: 5", "mom/25: 1", "mom/50: 3", "mom/100: 5",
       "dad/25: 0", "dad/50: 0", "dad/100: 0", "dad/0: 5", "her/25: 1", "her/50: 3", "her/100: 5",
@@ -445,18 +444,6 @@ describe("verify audit of #4791", () => {
     const css = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/fun/FunPage.tsx"), "utf8");
     expect(css).toMatch(/\.gg-fun-list\{[^}]*display:grid;grid-template-columns:minmax\(0,1fr\)/);
     expect(css).toContain(".gg-fun-list>li{min-width:0}");
-  });
-  it("M7: a shared Gift of the Day opens the pick's own guide", async () => {
-    const items = await loadSearchItems();
-    const top = topPicks();
-    expect(top.length).toBeGreaterThan(3);
-    const paths = top.map((p) => giftOfTheDayPath(p.name, items));
-    const toGuides = paths.filter((x) => x.startsWith("/gift-guides/"));
-    expect(toGuides.length).toBeGreaterThan(top.length / 2);
-    for (const x of toGuides) expect(guideBySlug(x.replace("/gift-guides/", "").split("#")[0]), x).toBeDefined();
-    // Until the index is in, and for a pick no guide lists: the landing at the card.
-    expect(giftOfTheDayPath(top[0].name, null)).toBe("/gift-guides#gift-of-the-day");
-    expect(giftOfTheDayPath("No such gift", items)).toBe("/gift-guides#gift-of-the-day");
   });
   it("a refusal clears as soon as the form changes", () => {
     const src = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/fun/SecretSanta.tsx"), "utf8");

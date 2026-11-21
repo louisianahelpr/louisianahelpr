@@ -18,7 +18,7 @@ import { SponsorRow } from "./GiftGuideSponsorRow";
 const SPONSORS_PAGE = "25-days-sponsors";
 
 /** The landing's tiles: the live guides in the owner's order (Her, Him, Kids), each that holds picks. */
-export const liveGuideTiles = (): CatalogGuide[] =>
+const liveGuideTiles = (): CatalogGuide[] =>
   LIVE_GUIDES_1121.filter((slug) => slug !== SPONSORS_PAGE).flatMap((slug) => {
     const g = GUIDES.find((x) => x.slug === slug && !x.view);
     return g && !g.empty ? [g] : [];

@@ -62,7 +62,7 @@ const loadBiz = () =>
 /** A pick's item id (its link). */
 const pickItemId = (p: { href: string }) => itemId(p.href);
 /** A deal card's item id (its link). */
-export const dealItemId = (d: Deal) => itemId(d.href);
+const dealItemId = (d: Deal) => itemId(d.href);
 /** A business's item id (its slug: its Visit link can change between website and Facebook). */
 export const bizItemId = (b: SmallBiz) => itemId(`biz:${b.slug}`);
 

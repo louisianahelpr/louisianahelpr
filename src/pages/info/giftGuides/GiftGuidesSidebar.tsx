@@ -55,7 +55,7 @@ const localToday = () => {
  * "Discount codes" (owner 2026-11-18), inside the collapsed "Deals & codes" section: one box per store, by rank, each
  * code with its own copy button. Hidden while there are none.
  */
-export function DiscountCodes({ codes, first = Infinity }: { codes: DiscountCode[]; first?: number }) {
+function DiscountCodes({ codes, first = Infinity }: { codes: DiscountCode[]; first?: number }) {
   const [all, setAll] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   if (codes.length === 0) return null;

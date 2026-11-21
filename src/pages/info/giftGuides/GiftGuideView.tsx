@@ -131,7 +131,7 @@ const sectionsOf = (picks: CatalogPick[]) => {
 };
 
 /** A merged guide's sections (1120), in order: [id, title, the pick count up to and including it]. */
-export const sectionNav = (picks: CatalogPick[]) => {
+const sectionNav = (picks: CatalogPick[]) => {
   const out: { id: string; title: string; end: number }[] = [];
   picks.forEach((p, i) => {
     if (!p.sectionId || !p.section) return;
@@ -163,7 +163,7 @@ const SHOW_ALL_UNDER = 6;
  * Deals & codes sit BELOW the whole pick list (owner 11-20: "codes and deals shouldn't randomly show in sections"; it
  * was after pick 10, in the middle of a section). One place per guide, never between picks.
  */
-export const DEALS_BELOW_LIST = true;
+const DEALS_BELOW_LIST = true;
 
 /** The person guides (giftGuideIndex "By person"): a merged section of one reads "For your father-in-law". */
 const PERSON_SECTIONS = new Set(GUIDE_INDEX.filter((g) => g.group === "By person").map((g) => g.slug));
@@ -292,7 +292,7 @@ const liveDeals = (guide: CatalogGuide) => {
 };
 
 /** The deal rows a store page lists, each link once and none already a pick on the page. */
-export const storeDealRows = (guide: CatalogGuide) => {
+const storeDealRows = (guide: CatalogGuide) => {
   const norm = (n: string) => n.trim().toLowerCase().replace(/\s+/g, " ");
   const seen = new Set<string>(guide.picks.flatMap((p) => [p.href, norm(p.name)]));
   const rows: { title: string; href: string; ends?: string }[] = [];
@@ -310,7 +310,7 @@ export const storeDealRows = (guide: CatalogGuide) => {
 };
 
 /** Deal rows a store page shows before "See all deals". */
-export const STORE_DEALS_FIRST = 6;
+const STORE_DEALS_FIRST = 6;
 
 function StoreDeals({ guide }: { guide: CatalogGuide }) {
   const [all, setAll] = useState(false);

@@ -34,7 +34,6 @@ const CSS_FILES = [
   "src/pages/info/giftGuides/GiftGuideSponsorRow.tsx",
   "src/pages/info/giftGuides/GiftGuideSmallBiz.tsx",
   "src/pages/info/giftGuides/fun/FunPage.tsx",
-  "src/pages/info/giftGuides/fun/GiftCountdown.tsx",
 ];
 const css = (f: string) => blankComments(readFileSync(f, "utf8"));
 /** Every `selector{declarations}` in a file, from its CSS template strings. */

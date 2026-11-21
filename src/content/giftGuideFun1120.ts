@@ -329,48 +329,6 @@ export const giveawayTieInOn = (now: Date, flagOn: boolean) => {
   return flagOn && md >= "12-01" && md <= "12-25";
 };
 
-/** The Gift of the Day's price cap (owner 11-20: "The gift of the day shouldn't be expensive"; it was a ~$750 Dyson). */
-export const GOTD_MAX_PRICE = 50;
-/**
- * The well-known, broadly giftable brands the Gift of the Day may come from (owner 11-20): home, drinkware, cozy and
- * travel names anyone on a list could get, so no pick is aimed at one gender or one age. A pick's brand (or the start
- * of its name) must be one of these.
- */
-export const GOTD_BRANDS = ["Stanley", "YETI", "Barefoot Dreams", "Lodge", "Corkcicle", "Bath & Body Works", "Brooklinen", "Away", "Staub", "Jellycat", "XTRATUF", "Hydro Flask", "Owala", "Le Creuset", "Ember"];
-/** A name aimed at one gender or a kid ("Women's Muckster", "Boys' ..."): never the Gift of the Day. */
-const GOTD_ONE_GROUP = /\b(?:wo)?men'?s\b|\b(?:boy|girl|kid)s?'?(?=\s|$)/i;
-const GOTD_BRAND_KEYS = GOTD_BRANDS.map((b) => b.toLowerCase());
-const gotdBrandOk = (p: CatalogPick) => {
-  const brand = (p.brand ?? "").trim().toLowerCase();
-  const name = p.name.toLowerCase();
-  return GOTD_BRAND_KEYS.some((b) => brand === b || name.startsWith(`${b} `));
-};
-
-/**
- * The picks the Gift of the Day may be: a checked price shown today (`pricedToday`, the page's own PickPrice rule:
- * non-Amazon, fresh) of at most GOTD_MAX_PRICE, from a GOTD_BRANDS brand, not aimed at one group; each link once,
- * in name order (so the day's pick does not depend on which guide's picks arrived first).
- */
-export function giftOfTheDayPool(picks: CatalogPick[], pricedToday: (p: CatalogPick) => boolean): CatalogPick[] {
-  const seen = new Set<string>();
-  return picks
-    .filter((p) => p.name && p.href && pricedToday(p) && typeof p.price === "number" && p.price > 0 && p.price <= GOTD_MAX_PRICE && gotdBrandOk(p) && !GOTD_ONE_GROUP.test(p.name))
-    .filter((p) => !seen.has(p.href) && Boolean(seen.add(p.href)))
-    .sort((a, b) => a.name.localeCompare(b.name));
-}
-
-/**
- * The Gift of the Day: one pick from giftOfTheDayPool (owner 11-20: affordable and priced, never a splurge), the
- * same all day for everyone (by the Louisiana date), a different one each day in turn. Null when none qualifies today
- * (the line then shows the countdown alone).
- */
-export function giftOfTheDay(picks: CatalogPick[], now: Date, pricedToday: (p: CatalogPick) => boolean): CatalogPick | null {
-  const list = giftOfTheDayPool(picks, pricedToday);
-  if (!list.length) return null;
-  const n = dayNumber(louisianaYmd(now));
-  return list[((n % list.length) + list.length) % list.length];
-}
-
 // ---------------------------------------------------------------------------------------------------------------
 // Words
 

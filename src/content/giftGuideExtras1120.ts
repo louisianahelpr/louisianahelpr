@@ -45,7 +45,7 @@ export const FINDER_VIBES: { id: FinderVibe; label: string; words: RegExp }[] = 
   { id: "outdoorsy", label: "Outdoorsy", words: /\b(yeti|cooler|fishing|fish|hunting|hunt|camp|camping|hiking|costa|huk|simms|aftco|columbia|boots?|rain|kayak|boat|grill|solo stove|duck|deer|outdoor)\b/i },
 ];
 /** How many picks the finder shows (owner 11-20: always a list, 6 to 12): the exact matches, then close ones up to this. */
-export const FINDER_COUNT = 9;
+const FINDER_COUNT = 9;
 
 /**
  * Gift types (the import's `type`) that are a vibe whatever the name says (holiday audit A #67: Her + Outdoorsy listed
@@ -94,7 +94,7 @@ const sectionBand = (p: CatalogPick): 25 | 50 | 100 | 500 | undefined => {
  * budget section it sits in ("Under $25"). Amazon picks carry no band or price (Amazon allows no price outside its
  * own site), so a budget section is the only way one joins a budget; the band is only used to sort, never shown.
  */
-export const pickBand = (p: CatalogPick): 25 | 50 | 100 | 500 | undefined => {
+const pickBand = (p: CatalogPick): 25 | 50 | 100 | 500 | undefined => {
   if (p.band !== undefined) return p.band;
   if (p.price !== undefined && p.store !== "amazon") return p.price <= 25 ? 25 : p.price <= 50 ? 50 : p.price <= 100 ? 100 : 500;
   return sectionBand(p);
@@ -102,13 +102,6 @@ export const pickBand = (p: CatalogPick): 25 | 50 | 100 | 500 | undefined => {
 
 /** The guides whose sections are budgets ("Under $25", "Under $100"): the finder borrows from them when a person's own guide runs short. */
 export const FINDER_BUDGET_GUIDES = ["gifts-by-budget", "splurge"];
-/**
- * The Louisiana guides: the "Louisiana" vibe draws from them for every person (holiday audit A #64: Dad, Friend, Kids
- * and Mom + Louisiana listed no Louisiana item at all, since Louisiana things live only in these guides).
- */
-export const FINDER_LOUISIANA_GUIDES = ["shop-small-louisiana", "louisiana-by-region", "louisiana-celebrations", "louisiana-food-gifts"];
-/** Fewer picks than this and the finder points to the person's own guide too (holiday audit A #65). */
-export const FINDER_FEW = 3;
 
 /** Toys and kids' things: a grown-up's finder never borrows them; a kid's borrows only them. */
 const KID_THING = /\b(play-?doh|rainbow loom|loomi|melissa (&|and) doug|squish\w*|lincoln logs|barbie|dolls?|plush|play ?sets?|toys?|paint sticks|dive buddies|ms\.? rachel|lego|stacker|kids?'?)\b/i;
@@ -162,8 +155,8 @@ const ANY_TYPE = new Set(["other", ""]);
  *   2. this person's picks within the budget, any vibe;
  *   3. the budget guides' picks within the budget that suit this person (men's/women's, kids), vibe first;
  *   4. for "Louisiana", the Louisiana guides' picks that suit this person within the budget.
- * A pick with no known price fits only "Any budget" (Amazon shows none). Fewer than FINDER_FEW in all and the page links
- * the person's own guide. Each tier keeps the guide's own order (commission, high to low).
+ * A pick with no known price fits only "Any budget" (Amazon shows none). Each tier keeps the guide's own order
+ * (commission, high to low).
  */
 export const giftFinder = (pool: CatalogPick[], budget: FinderBudget, vibe: FinderVibe, borrow: CatalogPick[] = [], who?: FinderWho, local: CatalogPick[] = []): FinderResult => {
   const fits = (p: CatalogPick) => { const b = pickBand(p); return budget === 0 || (b !== undefined && b <= budget); };
@@ -198,15 +191,6 @@ export const giftFinder = (pool: CatalogPick[], budget: FinderBudget, vibe: Find
   const room = FINDER_COUNT - exact.length;
   for (const tier of [own.filter(fits), lent.filter(vibed), lent, louisiana]) take(tier, close, room, 1);
   return { exact, close };
-};
-
-/** The answers in a share link's query ("?who=her&budget=50&vibe=cozy"), each checked against its options. */
-export const readFinder = (params: URLSearchParams): { who?: FinderWho; budget?: FinderBudget; vibe?: FinderVibe } => {
-  const who = FINDER_WHO.find((x) => x.id === params.get("who"))?.id;
-  const b = params.get("budget");
-  const budget = FINDER_BUDGETS.find((x) => String(x.id) === b)?.id;
-  const vibe = FINDER_VIBES.find((x) => x.id === params.get("vibe"))?.id;
-  return { ...(who ? { who } : {}), ...(budget !== undefined ? { budget } : {}), ...(vibe ? { vibe } : {}) };
 };
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -248,23 +232,3 @@ export const GIFT_GUIDE_FLAGS = {
 export const giveawayBannerOn = (today: string, flags: { on: boolean; from: string } = GIFT_GUIDE_FLAGS.giveawayBanner) => flags.on && today >= flags.from;
 /** Whether the Declutter link shows. */
 export const declutterTieInOn = (flags: { on: boolean } = GIFT_GUIDE_FLAGS.declutterTieIn) => flags.on;
-
-export const EXTRAS_WORDS = {
-  finderTitle: "Find a gift in 3 taps",
-  // Owner 11-20 12:30 PM landing plan: the big call to action's one line under its title.
-  finderLead: "Pick who it's for, your budget and their vibe. We'll show 6 gifts.",
-  // Owner 11-20 PM ("still a busy mess"): the finder is folded into one card; its short line while folded.
-  finderFolded: "Who, budget, vibe. We'll show 6 gifts.",
-  finderWho: "Who's it for?",
-  finderBudget: "Your budget",
-  finderVibe: "Their vibe",
-  finderResults: "Our picks for you",
-  finderShare: "Copy link to these picks",
-  finderCopied: "Link copied",
-  finderAgain: "Start over",
-  finderClose: "Close matches",
-  finderNone: "No picks for them yet. Try someone else.",
-  finderFew: (guide: string) => `Only a few fit. See every gift in the ${guide} guide`,
-  giveawayBanner: "25 Days of Louisiana Giveaways: a new Louisiana prize every day, Dec 1 to 25. See how to enter",
-  declutterTieIn: "Sell what you don't use to pay for gifts, on Declutter",
-};

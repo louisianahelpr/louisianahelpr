@@ -226,10 +226,8 @@ describe("sections by use (owner standard 11-20, ~/.lh-shots/gg-reference-1120/S
 });
 
 describe("tap targets (holiday audit A #6, #71)", () => {
-  it("the section jump links and the Gift of the Day link are at least 44px tall", () => {
+  it("the section jump links are at least 44px tall", () => {
     expect(GIFT_GUIDES_CSS).toMatch(/\.gg-secnav \.gg-chip\{[^}]*min-height:44px/);
-    const countdown = readFileSync("src/pages/info/giftGuides/fun/GiftCountdown.tsx", "utf8");
-    expect(countdown).toMatch(/\.gg-today-link\{[^}]*min-height:44px/);
   });
 });
 

@@ -155,6 +155,15 @@ describe("sections (holiday audit A #60, owner 11-19 fold thin sections)", () =>
 describe("sections by use (owner standard 11-20, ~/.lh-shots/gg-reference-1120/STANDARD.md)", () => {
   const byUse = (JSON.parse(readFileSync("scripts/gift-guide-train-1120d.json", "utf8")) as { byUse: { guide: string; sections: { id: string; title: string; picks: { match: string }[] }[] }[] }).byUse;
 
+  it("Fitness: a short reason on every pick and checked prices under $25 (it had none)", () => {
+    const picks = guide("fitness") as (Row & { line?: string })[];
+    expect(picks.filter((p) => !p.line || p.line.length < 15 || p.line.length > 110).map((p) => p.name)).toEqual([]);
+    const priced = picks.filter((p) => typeof p.price === "number").map((p) => p.price!);
+    // Measured 11-20: 3 under $25 (the owner's bar is 4: one more needs the Chrome price step), 8 at $25-$99, 3 at $100+.
+    expect(priced.filter((x) => x < 25).length).toBeGreaterThanOrEqual(3);
+    expect(priced.filter((x) => x >= 100).length).toBeGreaterThanOrEqual(3);
+  });
+
   it("a by-use guide holds exactly its rule's sections, a short reason on every pick and a rounded price spread", () => {
     expect(byUse.map((u) => u.guide)).toContain("healthcare");
     for (const u of byUse) {

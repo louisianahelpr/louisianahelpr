@@ -43,6 +43,24 @@
    "to": "home-and-kitchen",
    "section": "Cozy & Self-Care",
    "why": "audit A #13: an obscure candle brand on Mom next to Sol de Janeiro and Diptyque; this Creator Connections campaign keeps its one spot in Cozy & Self-Care"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "Papier x Anthropologie Wellness Guided Journal",
+   "to": "fitness",
+   "set": {
+    "line": "A guided journal for habits, sleep and workouts."
+   },
+   "why": "owner 11-20 (gg-reference-1120/STANDARD.md): Fitness had no checked pick under $25; moved from Stocking Stuffers (one product, one guide)"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "Barefoot Dreams CozyChic Heathered Socks",
+   "to": "fitness",
+   "set": {
+    "line": "Soft socks for rest days."
+   },
+   "why": "owner 11-20 (gg-reference-1120/STANDARD.md): Fitness had no checked pick under $25; moved from Stocking Stuffers (one product, one guide)"
   }
  ],
  "sets": [
@@ -53,6 +71,111 @@
     "name": "BÉIS The Carry-On Roller in Olive"
    },
    "why": "audit A #44: the name said Glossy Midnight, the photo is olive (photo viewed 11-20); the color stays in the name so Life Moments' other colorway is not a twin"
+  },
+  {
+   "guide": "fitness",
+   "match": "Fabletics The Go-To Oversized Quarter Zip",
+   "set": {
+    "line": "An oversized quarter zip for the walk to the gym."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "HOKA Mach Remastered",
+   "set": {
+    "line": "A light, quick shoe for faster runs."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "HOKA Clifton 11",
+   "set": {
+    "line": "The cushioned everyday trainer runners keep rebuying."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "On Cloud 6",
+   "set": {
+    "line": "A light sneaker for walks, errands and the gym."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "lululemon Flow Y Bra",
+   "set": {
+    "line": "A soft, light-support bra for yoga and Pilates."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "lululemon Swiftly Tech",
+   "set": {
+    "line": "A seamless tee that stays cool on long runs.",
+    "type": "shirt"
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "BÉIS Sport Duffle",
+   "set": {
+    "line": "A gym bag that carries as a duffle or a backpack."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "Owala FreeSip Water Bottle 24 oz",
+   "set": {
+    "line": "Sip or swig, and it does not leak in a gym bag."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "lululemon Shake It Out",
+   "set": {
+    "line": "A lined running short with a pocket for a key."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "Therabody WaveSolo",
+   "set": {
+    "line": "A small vibrating roller for sore spots."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "Cocolillys Coco Leggings",
+   "set": {
+    "line": "Soft high-rise leggings for class or the couch."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "YETI Rambler 42 oz Straw Mug",
+   "set": {
+    "line": "A big straw mug that fits a cup holder."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
+  },
+  {
+   "guide": "fitness",
+   "match": "Shokz OpenRun Pro 2",
+   "set": {
+    "line": "Open-ear headphones, so she still hears traffic on a run."
+   },
+   "why": "owner 11-20 standard: one short plain reason per pick"
   }
  ],
  "cuts": [
@@ -288,6 +411,20 @@
     "store": "store-amazon",
     "commission": 3,
     "type": "gift-wrap"
+   }
+  },
+  {
+   "guide": "fitness",
+   "why": "owner 11-20 (gg-reference-1120/STANDARD.md): Fitness had no checked pick under $25; already on the Old Navy store page with a checked price and a flat photo (viewed 11-20)",
+   "row": {
+    "name": "Old Navy Snug Crop Ribbed T-Shirt",
+    "brand": "OLD NAVY",
+    "line": "A fitted ribbed tee to wear to class.",
+    "href": "https://go.shopmy.us/p-103880975",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1787863879403",
+    "store": "store-old-navy",
+    "type": "shirt",
+    "commission": 8
    }
   }
  ],

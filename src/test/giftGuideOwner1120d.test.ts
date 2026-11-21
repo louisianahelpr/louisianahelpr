@@ -24,6 +24,7 @@ import { describe, expect, it } from "vitest";
 import { MEN_COLOR_GUIDES, MEN_PASTEL, OWNER_REMOVED, elderBootOff, menPastelOff, menStyleWhy, neonOff, ownerStyleOff, womenBlackCupOff } from "../../scripts/giftGuideRules.mjs";
 import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
 import { HER_1121 } from "../../scripts/giftGuideHer1121.mjs";
+import { HIM_1121 } from "../../scripts/giftGuideHimKids1121.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image?: string; line?: string; store?: string; price?: number; type?: string; from?: string; section?: string; sectionId?: string };
 const DIR = "src/content/giftGuidePicks";
@@ -88,9 +89,12 @@ describe("gift guides: owner 11-20 removals and style rules", () => {
   // no Grandpa section and no checked price under $25; both gaps are flagged for her in the lander handoff. Him, the
   // guide a shopper for Dad lands on, keeps the bar.
   it("Him (with Dad's picks) shows at least 5 priced gifts under $25 (none had any)", () => {
-    const under = (picks: Pick[]) => picks.filter((p) => typeof p.price === "number" && p.price < 25 && p.store !== "store-amazon").length;
-    expect(under(CHUNKS.get("him") ?? [])).toBeGreaterThanOrEqual(5);
-    expect((CHUNKS.get("him") ?? []).some((p) => (p as { from?: string }).from === "dad")).toBe(true);
+    // Owner 11-21 ~2:47 AM: Him is her own Amazon men list now (Dad's old picks left with the old list). The site never
+    // shows an Amazon price, so the bar reads the prices she saw when she saved them: 10 under $25, measured 2026-11-21.
+    const under = (HIM_1121 as { name: string; sortPrice: number }[]).filter((r) => r.sortPrice < 25);
+    expect(under.length).toBeGreaterThanOrEqual(5);
+    const names = new Set((CHUNKS.get("him") ?? []).map((p) => p.name));
+    expect(under.filter((r) => names.has(r.name)).length).toBeGreaterThanOrEqual(5);
   });
 
   // Owner's standard plan (11-20 evening): Mom is a filter on Her and the plan places these where she chose (the UGG

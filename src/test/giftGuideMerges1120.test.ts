@@ -92,7 +92,8 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       const want = SECTION_ANCHORS[s] ? `${parent}#${SECTION_ANCHORS[s]}` : parent;
       expect(newSlugFor(s), s).toBe(want);
       expect(moved[s], `route map: ${s}`).toBe(want);
-      if (SECTION_ANCHORS[s]) expect((CHUNKS.get(parent) ?? []).some((p) => p.sectionId === SECTION_ANCHORS[s]), `${s} -> an empty section`).toBe(true);
+      // Owner 11-21: Her, Him and Kids are flat lists of her own saves, so an old slug's section can be empty there.
+      if (SECTION_ANCHORS[s] && !isOwnerList(parent)) expect((CHUNKS.get(parent) ?? []).some((p) => p.sectionId === SECTION_ANCHORS[s]), `${s} -> an empty section`).toBe(true);
       expect(CHUNKS.has(s), `${s} still writes a chunk`).toBe(false);
     }
     const folded = GUIDE_INDEX.filter((g) => isFoldedStore(g.slug)).map((g) => g.slug);
@@ -236,7 +237,8 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     const fold = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
     for (const [guide, remove, add] of SWAPS_1119) {
       // Mom's swap-in (the needlepoint pillow) left with For Her's old list: Her is the owner's own 25 saves since 11-21.
-      if (!isOwnerList(guide)) expect(on(guide).some((p) => fold(p.name).startsWith(fold(add).slice(0, 16))), `${guide}: ${add}`).toBe(true);
+      // Same for Kids (owner 11-21 ~2:47 AM): girls-babies folded into Kids, now her own Amazon kids list.
+      if (!isOwnerList(guide) && !isOwnerList(MERGED_INTO[guide]?.parent ?? guide)) expect(on(guide).some((p) => fold(p.name).startsWith(fold(add).slice(0, 16))), `${guide}: ${add}`).toBe(true);
       expect(on(guide).some((p) => fold(p.name).startsWith(fold(remove).slice(0, 16))), `${guide}: ${remove}`).toBe(false);
     }
   });

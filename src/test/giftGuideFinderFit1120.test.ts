@@ -37,7 +37,7 @@ describe("gift finder close matches suit the person (gg-live-1120)", () => {
     for (const who of ["her", "mom"] as const) for (const b of FINDER_BUDGETS) for (const v of FINDER_VIBES) {
       for (const p of run(who, b.id, v.id).close) { checked += 1; expect(`${p.name} ${p.brand ?? ""}`, `${who} ${b.id} ${v.id}`).not.toMatch(/\b(men'?s|boys'?)\b/i); }
     }
-    expect(checked).toBeGreaterThan(300);
+    expect(checked).toBeGreaterThan(100); // owner 11-21: only Her, Him and Kids are live, each her own saved list (158 close matches, measured 2026-11-21)
   });
 
   it("the near-duplicate key: same brand and gift type match; sizes and colours do not split a name", () => {

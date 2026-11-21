@@ -11,7 +11,7 @@ import { HIM_1121, KIDS_1121, applyHimKids1121, him1121Picks, kids1121Picks } fr
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image: string; store: string; type?: string; price?: unknown; sortPrice?: unknown; rels?: string[] };
-const chunk = (slug: string) => (JSON.parse(readFileSync(new URL(`../content/giftGuidePicks/${slug}.json`, import.meta.url), "utf8")) as { picks: Pick[] }).picks;
+const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Pick[] }).picks;
 const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})));
 
 describe.each([
@@ -62,7 +62,7 @@ describe("the generator sets Him and Kids last", () => {
   });
 
   it("runs after the final sweep and before the pages are written", () => {
-    const src = readFileSync(new URL("../../scripts/gift-guide-picks.mjs", import.meta.url), "utf8");
+    const src = readFileSync("scripts/gift-guide-picks.mjs", "utf8");
     const sweep = src.indexOf("console.log(`gift-guide-picks: final sweep");
     const apply = src.lastIndexOf("applyHimKids1121(pageList)");
     const write = src.indexOf("writeFileSync(new URL(`${slug}.json`, chunkDir)");

@@ -12,7 +12,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | export const withinBudget = (picks: CatalogPick[], budget: number \| null) => (budget ? picks.filter((p) => p.band !== undefined && p.band <= budget) : picks); | export const withinBudget = (picks: CatalogPick[], budget: number \| null) => picks;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDE_FLAGS, SHIP_DEADLINES, deadlineChip, declutterTieInOn, giveawayBannerOn } from "@/content/giftGuideExtras1120";
@@ -78,12 +78,9 @@ describe("a guide's budget filter and section links", () => {
     for (const b of BUDGETS) for (const p of withinBudget(all, b)) expect(p.band!, p.name).toBeLessThanOrEqual(b);
     expect(withinBudget(all, null)).toBe(all);
     expect(all.filter((p) => p.store === "amazon").every((p: CatalogPick) => p.band === undefined)).toBe(true);
+    // Owner 11-21 ~2:47 AM: Him is her own Amazon men list too (no bands), so it shows no budget chips either.
     const { container } = renderAt("/gift-guides/him");
-    const choices = container.querySelectorAll("[data-gift-budget-choice]");
-    expect(choices.length).toBe(4);
-    fireEvent.click(container.querySelector('[data-gift-budget-choice="25"]')!);
-    const shown = container.querySelectorAll("[data-gift-list] li[data-gift-pick]").length;
-    expect(shown).toBe(Math.min(withinBudget(all, 25).length, 56));
+    expect(container.querySelectorAll("[data-gift-budget-choice]").length).toBe(0);
     const her = renderAt("/gift-guides/her").container;
     expect(her.querySelectorAll("[data-gift-budget-choice]").length).toBe(0);
   });

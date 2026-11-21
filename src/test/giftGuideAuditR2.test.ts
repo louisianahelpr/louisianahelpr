@@ -25,6 +25,7 @@ import { describe, expect, it } from "vitest";
 import { SALES } from "@/content/giftGuidePicks";
 import { SEARCH_KEYWORDS, guideBySlug, searchGuides, sectionWords } from "@/content/giftGuideCatalog";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, WRONG_IMAGES, brokenImage, fitsGuide, isLouisianaItem, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
 import { LOUISIANA_SHOPS, SPONSOR_SITES } from "@/content/giftGuides";
 import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
@@ -88,7 +89,8 @@ describe("design audit r2: what each guide holds", () => {
     expect(fitsGuide("store-imarku", { name: "8-Inch Japanese Chef Knife" })).toBe(true);
     for (const { slug, p } of all) {
       if (slug.startsWith("store-")) continue;
-      if (!KNIFE_OK_GUIDES.includes(slug)) expect(/\bkni(fe|ves)\b/i.test(p.name), `${slug}: ${p.name}`).toBe(false);
+      // Owner 11-21: Her, Him and Kids are her own saves, kept as she saved them (Him has her engraved pocket knife).
+      if (!KNIFE_OK_GUIDES.includes(slug) && !isOwnerList(slug)) expect(/\bkni(fe|ves)\b/i.test(p.name), `${slug}: ${p.name}`).toBe(false);
       if (EXPERIENCE_GUIDES.includes(slug) || slug === "gift-cards") expect(fitsGuide(slug, p), `${slug}: ${p.name}`).toBe(true);
     }
     // Follow-up 1120 (owner 11-20 ~12:20 AM: "REMOVE ALL 0% gift cards"): the Gift Cards list holds none.
@@ -96,7 +98,7 @@ describe("design audit r2: what each guide holds", () => {
   });
   it("Muck Boot and XTRATUF keep their picks but carry no Shop Louisiana flag", () => {
     const boots = all.filter(({ p }) => [p.brand, p.store].some((x) => x && NOT_LOUISIANA_BUSINESS.test(x.replace(/^store-/, "").replace(/-/g, " "))));
-    expect(boots.length).toBeGreaterThan(5); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (6); // holiday audit A (11-20): page-level type caps, cuts and thin-section folds; measured 2026-11-20: 14; // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (18)
+    expect(boots.length).toBeGreaterThan(3); // owner 11-21: only Her, Him and Kids are live, each her own saved list, measured 2026-11-21 (5); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (6); // holiday audit A (11-20): page-level type caps, cuts and thin-section folds; measured 2026-11-20: 14; // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20 (18)
     expect(boots.filter(({ p }) => p.louisianaFit).map(({ slug, p }) => `${slug}: ${p.name}`)).toEqual([]);
   });
 });
@@ -206,7 +208,8 @@ describe("gift guides: no repeats and trending first (owner 11-18 PM: \"Don't re
       expect(twice, `${slug}: repeated product`).toEqual([]);
     }
     // Follow-up 1120: ~30 guides with their sections and 26 store pages (~250 lists, measured 2026-11-20).
-    expect(pages).toBeGreaterThan(200);
+    // owner 11-21: only Her, Him and Kids are live, each her own saved list (200 lists with the store data kept, measured 2026-11-21).
+    expect(pages).toBeGreaterThan(150);
     // Variants are one product; the Thin Blue and Thin Red Line flags are two.
     expect(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 15pc.")).toBe(key("Assorted Chocolate Gold Gift Box, Red Ribbon, 30pc."));
     expect(key("Thin Blue Line US Flag, 3x5")).not.toBe(key("Thin Red Line US Flag, 3x5"));
@@ -231,7 +234,7 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(brokenImage("https://res.cloudinary.com/mavely/image/upload/v1/Sonos_logo_c655260285.jpg")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/1033/0751/files/LinkSharing-SEO-Thumbnail_1.jpg?v=1")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/0001/files/carhartt-iconic-beanie.jpg")).toBe(false);
-    expect(pages.length).toBeGreaterThan(200); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
+    expect(pages.length).toBeGreaterThan(150); // owner 11-21: only Her, Him and Kids are live, each her own saved list (200, measured 2026-11-21); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
     for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, ""))) if (p.image) expect(brokenImage(p.image), `${f}: ${p.name}`).toBe(false);
   });
   it("drops picks named after a web page, and the wrong-guide picks (curling iron in Him, dumbbell stand in Home Cook)", () => {

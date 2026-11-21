@@ -270,7 +270,8 @@ describe("gift guides: the content inventory", () => {
     expect(kids.children ?? []).toEqual([]);
     const sections = [...new Set(kids.picks.map((p) => p.sectionId).filter(Boolean))];
     expect(sections.filter((x) => x !== "top-picks")).toEqual(["babies", "toddlers", "little-kids", "big-kids", "teens"].filter((x) => sections.includes(x)));
-    expect(sections.length).toBeGreaterThan(3);
+    // Owner 11-21 ~2:47 AM: Kids is her own Amazon kids list, one flat list with no age sections.
+    expect(sections).toEqual([]);
     for (const who of ["girls", "boys", "gender-neutral"]) {
       expect(guideBySlug(who), who).toBeUndefined();
       for (const age of GUIDE_INDEX.filter((x) => x.parent === who).map((x) => x.slug)) {
@@ -284,7 +285,6 @@ describe("gift guides: the content inventory", () => {
     }
     for (const empty of REMOVED_GUIDES) expect(guideBySlug(empty), empty).toBeUndefined();
     expect(unplacedGuides()).toEqual([]);
-    expect(kids.picks.find((p) => p.sectionId === "toddlers")?.section).toBe("Toddlers (ages 1–3)");
   });
 
   it("the owner's guide list drives the order and the palettes; every listed guide with content is shown", () => {

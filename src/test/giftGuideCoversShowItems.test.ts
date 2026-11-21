@@ -41,11 +41,17 @@ import {
 // Owner 11-21 ("launch the 3 guides remove the rest that are live"): every entry here (Heroes, HOKA, BaubleBar, Amazon,
 // Louisiana by Region, Car Lover) was a guide now retired (src/content/giftGuideLive.mjs), so none is shown; the shown
 // covers (Her, Him, Kids, the sponsors page and the relationship pages) each show products.
-const TEXT_ONLY: Record<string, string> = {};
+// Owner 11-21 (later, "add all of the things ... launch the 3 guides"): Him and Kids are now her own Amazon saves only,
+// and an Amazon photo never goes on a cover, so both covers are the text-only arch until her ShopMy saves for Him and
+// Kids are added (non-Amazon photos). Two-way: each entry fails once its cover gains products.
+const TEXT_ONLY: Record<string, string> = {
+  him: "every pick is one of the owner's Amazon saves; Amazon photos never go on a cover",
+  kids: "every pick is one of the owner's Amazon saves; Amazon photos never go on a cover",
+};
 const PIXEL_PALE: Record<string, string> = {};
 /** Measured 2026-11-21 after the retirement (owner 11-21: only Her, Him and Kids live). */
 const SHOWN_FLOOR = 3; // 4 shown: her, him, kids, 25-days-sponsors
-const CHECKED_FLOOR = 4;
+const CHECKED_FLOOR = 2; // her and the sponsors page; him and kids are text only (above)
 
 const manifest = readManifest();
 const covers = new Set(COVER_SLUGS);

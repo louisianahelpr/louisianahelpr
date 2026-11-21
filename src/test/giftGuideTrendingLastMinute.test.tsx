@@ -63,7 +63,9 @@ describe("gift guides: Trending only where the pick is trending (big batch 1120)
   });
   it("some guide shows a Trending on TikTok pill, drawn as a badge", () => {
     const slug = ["him", "her", "mom", "dad", "healthcare", "game-day", "brother"].find((s) => guideBySlug(s)?.picks.some((p) => p.badges?.includes("tiktok")));
-    expect(slug).toBeTruthy();
+    // Owner 11-21: only Her, Him and Kids are live, each her own saved list, and none of her saves carries the TikTok
+    // badge today; the pill is checked whenever a live guide has one.
+    if (!slug) { expect(["him", "her", "kids"].some((s) => guideBySlug(s)?.picks.some((p) => p.badges?.includes("tiktok")))).toBe(false); return; }
     const { container } = renderAt(`/gift-guides/${slug}`);
     const pill = container.querySelector('[data-gift-badge="tiktok"]')!;
     expect(pill.tagName).toBe("I");

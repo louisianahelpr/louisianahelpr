@@ -196,9 +196,9 @@ export default function GiftPlanner() {
       </form>
       <p className="gg-fun-note" data-plan-sync={sync}>
         {sync === "account" ? W.plannerSavedAccount : W.plannerSaved}{" "}
-        {!user && <Link to="/login" className="gg-link min-h-0">{W.plannerSignIn}</Link>}
+        {!user && <Link to="/login" className="gg-link">{W.plannerSignIn}</Link>}
       </p>
-      <Button asChild variant="link" size="inline" className="gg-link"><Link to="/gift-guides/swipe">{W.plannerFindGifts} ›</Link></Button>
+      <Link to="/gift-guides/swipe" className="gg-link">{W.plannerFindGifts} ›</Link>
       {/* Owner 2026-11-20: the printable gift list and budget sheet, once the owner's file is in (src/content/printables.ts). */}
       {PLANNER_SHEET && isShown(PLANNER_SHEET) && (
         <Button asChild variant="link" size="inline" className="gg-link"><Link to={`${PRINTABLES_PATH}#${PLANNER_SHEET.id}`} data-plan-printable="">{PLANNER_SHEET.title} ›</Link></Button>

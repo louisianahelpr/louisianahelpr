@@ -58,14 +58,14 @@
     "image": "https://static.shopmy.us/uploads/pretty-prod-1764742009311"
    },
    {
-    "name": "Oakley Split Shot Prizm Deep Water Polarized Sunglasses",
-    "key": "oakley:sunglasses",
-    "image": "https://static.shopmy.us/pins/zoom-107936427-1795122832760-qwsnbjjcaxwy78vuae59.jpg"
-   },
-   {
     "name": "Ray-Ban Clubmaster Classic Sunglasses",
     "key": "rayban:sunglasses",
     "image": "https://images2.ray-ban.com//prod-onecp-record-files/pieyewear/0db3121e-4066-4643-b758-b35d00d06419/0RB3016__W0365__STD__shad__qt.png"
+   },
+   {
+    "name": "Leatherman Rebar Multitool",
+    "key": "leatherman:multitool",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1762321589112"
    }
   ]
  },
@@ -108,11 +108,6 @@
   "section": "By person",
   "items": [
    {
-    "name": "Coach Signature MagSafe Wallet",
-    "key": "coach:wallet",
-    "image": "https://static.shopmy.us/pins/zoom-107886171-1795117503965-CH_Essential_Magnetic_Card_Case_SignatureCharcoal_CH054020_PDP3.jpg"
-   },
-   {
     "name": "Costa Tailfin Polarized Sunglasses",
     "key": "costa:sunglasses",
     "image": "https://static.shopmy.us/pins/zoom-107792692-1795108127675-26084918_fpx.tif"
@@ -126,6 +121,11 @@
     "name": "Southern Tide Schooner Quarter Zip",
     "key": "southerntide:zip",
     "image": "https://static.shopmy.us/uploads/pretty-prod-1772665606654"
+   },
+   {
+    "name": "Oakley Holbrook Sunglasses",
+    "key": "oakley:sunglasses",
+    "image": "https://static.shopmy.us/pins/zoom-104123859-1794426941677-OLKF-MG2_V1.jpg"
    },
    {
     "name": "HEYDUDE Paul Pro Classic",
@@ -143,6 +143,11 @@
   "section": "By person",
   "items": [
    {
+    "name": "YETI Rambler Half Gallon Jug",
+    "key": "yeti:drink",
+    "image": "https://static.shopmy.us/pins/zoom-107793305-1795108195054-2581785"
+   },
+   {
     "name": "Birdfy Smart Bird Feeder with Camera",
     "key": "birdfy:camera",
     "image": "https://i5.walmartimages.com/asr/07379990-02b2-4cf5-b882-02f66141bab2.5a7d4c4d3b06a71d6dd59b68cb9cd797.png?odnHeight=500&odnWidth=500&odnBg=FFFFFF"
@@ -151,11 +156,6 @@
     "name": "Sol de Janeiro Cheirosa 59 Perfume Mist",
     "key": "soldejaneiro:fragrance",
     "image": "https://static.shopmy.us/uploads/pretty-prod-1785728381086"
-   },
-   {
-    "name": "Charlotte Tilbury Airbrush Bronzer",
-    "key": "charlottetilbury:bronzer",
-    "image": "https://static.shopmy.us/pins/zoom-107883478-1795117235715-Refill_AFF_Bronzer_Medium.png"
    },
    {
     "name": "Lands' End Medium Embroidered 5-Pocket Canvas Tote",
@@ -198,14 +198,14 @@
     "image": "https://static.shopmy.us/pins/zoom-108102652-1795144506866-BourbonBottles_ClassicNavy__KeyFob_Primary_LowRes.jpg"
    },
    {
-    "name": "lululemon Men's Zeroed In Linerless Short 7\"",
-    "key": "lululemon:short",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1786696032941"
-   },
-   {
     "name": "BÉIS The Cosmetic Case",
     "key": "béis:case",
     "image": "https://static.shopmy.us/uploads/pretty-prod-1782464861550"
+   },
+   {
+    "name": "YETI Panga 28L Waterproof Backpack",
+    "key": "yeti:backpack",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1791479348417"
    }
   ]
  },
@@ -216,6 +216,11 @@
     "name": "OLAPLEX Lashbond Building Serum",
     "key": "olaplex:serum",
     "image": "https://static.shopmy.us/pins/zoom-108004164-1795131221139-1-Lashbond_product_1440_3990eae3-28a0-4067-b184-7cd326d4cdd8.png"
+   },
+   {
+    "name": "BaubleBar Enamel Pisa Custom Bracelet",
+    "key": "baublebar:bracelet",
+    "image": "https://static.shopmy.us/pins/zoom-107884997-1795117382489-63965_G_02_RS_SQ_2026_b748f3e7-3db6-495d-81a6-66d5a1638dbc.jpg"
    },
    {
     "name": "MAC Cosmetics MAC Retro Matte Lipstick",
@@ -236,11 +241,6 @@
     "name": "Rifle Paper Co. 2027 Hardcover Planner with Pen",
     "key": "riflepaperco:pen",
     "image": "https://static.shopmy.us/uploads/pretty-prod-1779313322167"
-   },
-   {
-    "name": "lululemon Steady State Oversized Funnel Full-Zip",
-    "key": "lululemon:zip",
-    "image": "https://static.shopmy.us/pins/zoom-107825545-1795111437480-LW3JX5S_076546_1"
    }
   ]
  },
@@ -372,9 +372,9 @@
     "image": "https://saltycat.com/cdn/shop/files/2_50865b12-2349-4b30-83a8-47eac89de861.jpg?v=1790892344&width=1920"
    },
    {
-    "name": "Crew Dog Embroidered LSU Crewneck",
-    "key": "crewdog:crewneck",
-    "image": "https://crew-dog.com/cdn/shop/files/Copy_of_Untitled_Design_1_22c48a21-66c4-494b-9224-d372312a73d3.png?v=1763244053"
+    "name": "homerunPET Pet-Friendly Space Heater",
+    "key": "homerunpet:heater",
+    "image": "https://cdn.shopify.com/s/files/1/0599/1012/7811/files/shop_ph20_1600x1600_1.png"
    }
   ]
  },
@@ -387,11 +387,6 @@
     "image": "https://cdn.shopify.com/s/files/1/2422/6603/products/StLouis-MatteOyster-Front.png"
    },
    {
-    "name": "Smathers & Branson LSU Needlepoint Toiletry Bag, Purple",
-    "key": "smathersbranson:purple",
-    "image": "https://static.shopmy.us/pins/zoom-107976651-1795127698819-LSU_Toiletry_Bag_Low_Res_695e403b-4296-4008-acf2-a08453c932ec.jpg"
-   },
-   {
     "name": "Crew Dog LSU Claw Heritage Embroidered Hoodie",
     "key": "crewdog:hoodie",
     "image": "https://cdn.shopify.com/s/files/1/0723/4584/6077/files/LSUClaw_WEMB_hoodie_HoodieCharcoal_center.png?v=1794512626"
@@ -400,6 +395,11 @@
     "name": "Rebecca Illustrated Café du Monde - Art Print",
     "key": "rebeccaillustrated:print",
     "image": "https://cdn.shopify.com/s/files/1/0276/5540/5642/files/cafedu1.png?v=1742939761"
+   },
+   {
+    "name": "Julie Vos Savoy Hoop Earrings",
+    "key": "julievos:earrings",
+    "image": "https://static.shopmy.us/uploads/img-product-1765321853148"
    }
   ]
  },
@@ -491,14 +491,14 @@
     "image": "https://static.shopmy.us/uploads/pretty-prod-1788767591045"
    },
    {
+    "name": "Waterford Opulence 5x7 Photo Frame",
+    "key": "waterford:frame",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1787080818025"
+   },
+   {
     "name": "YETI Tank 45 Ice Bucket",
     "key": "yeti:bucket",
     "image": "https://static.shopmy.us/uploads/pretty-prod-1762332275204"
-   },
-   {
-    "name": "Haven Haus Co. Recipe Binder",
-    "key": "havenhausco:binder",
-    "image": "https://cdn.shopify.com/s/files/1/0617/0968/0887/files/8bf6eec2c2d4158a604cb0358a72dc4100ffea8cad96775c5089f27343d447f8.jpg?v=1794597821"
    }
   ]
  },
@@ -650,41 +650,20 @@
     "image": "https://cdn.shopify.com/s/files/1/0671/4097/6867/files/Y2K-Mini-Grape-Blast-Thumbnail.webp"
    },
    {
-    "name": "Stanley Quencher Tumbler",
-    "key": "stanley:drink",
-    "image": "https://www.stanley1913.com/cdn/shop/files/Web_PNG_Square-The_Quencher_Flowstate_Ornament_Set_PACKAGING-NoCapacity-Farm_Rio_Multi-Hero.png?v=1793666792"
-   },
-   {
     "name": "lululemon Daily Multi-Pocket Tote Bag 20L",
     "key": "lululemon:bag",
     "image": "https://static.shopmy.us/uploads/pretty-prod-1789525276830"
+   },
+   {
+    "name": "Kate Spade New York Large Spiral Notebook, Scatter Dots",
+    "key": "katespadenewyork:dots",
+    "image": "https://assets.wfcdn.com/im/33419702/compr-r85/9501/95011323/Large+Spiral+Notebook%2C+Scatter+Dots.jpg"
    }
   ]
  },
  "heroes": {
   "section": "By career",
-  "items": [
-   {
-    "name": "Fire Department Coffee Backdraft Coffee",
-    "key": "firedepartmentcoffee:coffee",
-    "image": "https://www.firedeptcoffee.com/cdn/shop/files/FDC-Backdraft-Coffee-12oz-Bag-Front_c3a12e21-b85f-4563-a84b-541f8727921a_1024x1024.jpg?v=1789063113"
-   },
-   {
-    "name": "Durango Workhorse Ventilated Work Boot",
-    "key": "durango:boot",
-    "image": "https://cdn.shopify.com/s/files/1/0676/2876/1269/files/ddb0563_g.jpg?v=1789494137"
-   },
-   {
-    "name": "Smathers & Branson American Flag Needlepoint Can Cooler",
-    "key": "smathersbranson:cooler",
-    "image": "https://cdn.shopify.com/s/files/1/0767/9233/2592/files/American_Flag_Multi__Can_Cooler_Primary_Low_Res_b7bf1179-7ea9-4542-b427-8ba8e22c653d.jpg"
-   },
-   {
-    "name": "Muck Boot Company Muckster Lite Men's EVA Clog",
-    "key": "muckbootcompany:boot,shoe",
-    "image": "https://cdn.shopify.com/s/files/1/0918/9123/7146/files/mmlmmogl_profile_g_07ed2526-c6b3-4a3a-aec8-1f2ac697d6e5.jpg?v=1769786163"
-   }
-  ]
+  "items": []
  },
  "work-life": {
   "section": "By career",
@@ -800,11 +779,6 @@
     "image": "https://d307biz9bwtpmz.cloudfront.net/products/primary/zoom/product_96453.jpg"
    },
    {
-    "name": "Madhappy Blue Ugg Edition Ultra Mini Boots",
-    "key": "ugg:boot",
-    "image": "https://static.shopmy.us/pins/zoom-104229755-1794440453474-blue-ugg-edition-ultra-mini-boots.jpg"
-   },
-   {
     "name": "Cecil & Lou Women's Pink Christmas Candy Pajamas",
     "key": "cecillou:pajamas",
     "image": "https://static.shopmy.us/uploads/pretty-prod-1792980324864"
@@ -813,6 +787,11 @@
     "name": "Bogg Bag Bitty Tote (Light Blue)",
     "key": "boggbag:blue",
     "image": "https://assets.designerbrands.com/match/Site_Name/623352_453_ss_01/?$pdp$"
+   },
+   {
+    "name": "Mejuri Stevie Hoop Earrings",
+    "key": "mejuri:earrings",
+    "image": "https://cdn.shopify.com/s/files/1/0837/7489/8461/files/3-THENEWHOOP-VermeilHoopCharm-V-Angled_100.jpg"
    }
   ]
  },
@@ -1074,9 +1053,9 @@
     "image": "https://static.shopmy.us/uploads/pretty-prod-1781215554707"
    },
    {
-    "name": "Nike Everyday Plus Cushioned Crew Socks, 6-Pack",
-    "key": "nike:nike everyday plus cushioned crew socks 6 pack",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1755180962389"
+    "name": "Nike P-6000 Sneakers",
+    "key": "nike:nike p 6000 sneakers",
+    "image": "https://static.shopmy.us/pins/zoom-107915597-1795120506150-W%2BNIKE%2BP-6000.png"
    }
   ]
  },
@@ -1303,11 +1282,6 @@
   "section": "By store",
   "items": [
    {
-    "name": "Coach Signature MagSafe Wallet",
-    "key": "coach:coach signature magsafe wallet",
-    "image": "https://static.shopmy.us/pins/zoom-107886171-1795117503965-CH_Essential_Magnetic_Card_Case_SignatureCharcoal_CH054020_PDP3.jpg"
-   },
-   {
     "name": "Coach Essential Slim Leather Wallet",
     "key": "coach:coach essential slim leather wallet",
     "image": "https://static.shopmy.us/pins/zoom-107886125-1795117499668-nm_5871437_100106_m"
@@ -1331,6 +1305,11 @@
     "name": "Coach Rowan Large Satchel",
     "key": "coach:coach rowan large satchel",
     "image": "https://static.shopmy.us/uploads/pretty-prod-1785937356712"
+   },
+   {
+    "name": "Coach Bleecker Bucket Bag",
+    "key": "coach:coach bleecker bucket bag",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1785470192580"
    }
   ]
  },

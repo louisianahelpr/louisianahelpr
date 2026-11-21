@@ -84,7 +84,7 @@ export const sponsorPage = {
       "Open to Louisiana residents 18 and older.",
       "One entry covers all 25 days of drawings.",
       "Each person can win once.",
-      "Winners are drawn at random and messaged on Facebook.",
+      "Winners are drawn at random and tagged in a winner post on Facebook.",
       "Prizes with alcohol go to winners 21 and older, with ID.",
       "We never ask for payment or card details to claim a prize.",
     ],
@@ -733,7 +733,7 @@ export const sponsorPage = {
       },
       {
         heading: "Drawings and winners",
-        body: "Each day's winners are drawn at random from all eligible entries. One win per person across the whole giveaway: once you win a prize, you are not eligible to win another. Winners are announced on the Louisiana Helpr Facebook page and group and notified by Facebook message. A winner must claim the prize within 48 hours of notification, or the prize is forfeited and a new winner is drawn at random. The odds of winning depend on the number of eligible entries received. Louisiana Helpr will never ask a winner for payment, card details or a fee to claim a prize, and winners are messaged only by the Louisiana Helpr Facebook page. A list of winners is available by emailing admin@louisianahelpr.com.",
+        body: "Each day's winners are drawn at random from all eligible entries. One win per person across the whole giveaway: once you win a prize, you are not eligible to win another. Winners are announced in a winner post on the Louisiana Helpr Facebook page, where each winner is tagged. To claim a prize, a winner must message the Louisiana Helpr Facebook page within 48 hours of the winner post, or the prize is forfeited and an alternate winner is drawn at random. The odds of winning depend on the number of eligible entries received. Louisiana Helpr will never ask a winner for payment, card details or a fee to claim a prize, and winners are announced only by the Louisiana Helpr Facebook page. A list of winners is available by emailing admin@louisianahelpr.com.",
       },
       {
         heading: "Prizes and fulfillment",
@@ -741,7 +741,7 @@ export const sponsorPage = {
       },
       {
         heading: "Prize details",
-        body: "Each prize is listed with its sponsor on louisianahelpr.com/25days and in that day's giveaway post, with its approximate retail value where the business has given one. The approximate retail value is set by the business that donated the prize, and the winner is not owed any difference between it and the actual value.",
+        body: "Each day's prizes are described in that day's giveaway post on the Louisiana Helpr Facebook page, with each prize's approximate retail value where the business has given one. The approximate retail value is set by the business that donated the prize, and the winner is not owed any difference between it and the actual value.",
       },
       {
         heading: "Alcohol prizes",
@@ -750,6 +750,10 @@ export const sponsorPage = {
       {
         heading: "Facebook release",
         body: "This giveaway is in no way sponsored, endorsed or administered by, or associated with, Facebook or Meta. By entering, you release Facebook and Meta from any and all liability related to this giveaway. You are providing your information to Louisiana Helpr, not to Facebook.",
+      },
+      {
+        heading: "Apple",
+        body: "Apple is not a sponsor of this giveaway and is not involved in any way.",
       },
       {
         heading: "General",

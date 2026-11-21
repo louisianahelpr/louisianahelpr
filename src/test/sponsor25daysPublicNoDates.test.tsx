@@ -11,6 +11,8 @@
  * @mutate src/content/sponsorPage.ts | a Louisiana favorite. Entry details coming soon on our Facebook page. | a Louisiana favorite. To enter: share this post and tag 2 friends.
  * @mutate src/content/sponsorPage.ts |         body: "Enter as described in the official giveaway post on the Louisiana Helpr Facebook page. Limit one entry per person. Entries from more than one account or profile by the same person are void, and so are automated or bulk entries.", |         body: "Like the post. Limit one entry per person per day.",
  * @mutate src/content/sponsorPage.ts | may only be claimed by a winner who is 21 years of age or older, who must show valid photo ID | may be claimed by any winner
+ * @mutate src/content/sponsorPage.ts |         body: "Apple is not a sponsor of this giveaway and is not involved in any way.", |         body: "Questions about the app go to Apple.",
+ * @mutate src/content/sponsorPage.ts | To claim a prize, a winner must message the Louisiana Helpr Facebook page within 48 hours of the winner post | Winners are messaged on Facebook and must reply within 48 hours
  * @mutate src/content/sponsorPage.ts | The odds of winning depend on the number of eligible entries received. | Everyone has a great chance.
  * @mutate src/components/sponsor/Sections.tsx |       const prize = withAlcoholNote(prizeWithoutBrand(p.brand, p.prize)); |       const prize = prizeWithoutBrand(p.brand, p.prize);
  * @mutate src/content/sponsorPage.ts |           { brand: "David Rabalais", prize: "Toy Magnalite pot" }, |           { brand: "Mary Kay · Crystal Fakier", prize: "Toy Magnalite pot" },
@@ -96,7 +98,7 @@ describe("25 Days public pages: no sponsor day, no entry steps, no removed spons
  *
  * @mutate src/pages/sponsor/SponsorPage.tsx |             <BusinessAsk />\n |             <BusinessAsk />\n            <ClaimSection state={state} greetingBrand={null} refCode={refCode} onSubmit={(p, logo) => backend.submit(p, logo)} />\n
  * @mutate src/content/sponsorPage.ts | One win per person across the whole giveaway: once you win a prize, you are not eligible to win another. | Winners may win more than once.
- * @mutate src/content/sponsorPage.ts | A winner must claim the prize within 48 hours of notification | A winner must claim the prize within 7 days of notification
+ * @mutate src/content/sponsorPage.ts | message the Louisiana Helpr Facebook page within 48 hours of the winner post | message the Louisiana Helpr Facebook page within 7 days of the winner post
  * @mutate src/content/sponsorPage.ts |     approved: true, |     approved: false,
  * @mutate src/content/sponsorPage.ts | run by Louisiana Helpr, Delcambre, Louisiana. | run by Louisiana Helpr, 314 Lynn Street, Delcambre, Louisiana.
  */
@@ -155,7 +157,13 @@ describe("/25days is the page for people entering; the official rules are final"
       "One entry covers all 25 days",
       "One win per person",
       "within 48 hours",
-      "a new winner is drawn",
+      "an alternate winner is drawn",
+      // 25 Days readiness audit (11-20): Facebook only lets the Page message recent commenters, so winners are tagged
+      // in a winner post and message the Page to claim; Apple is named as not involved.
+      "tagged",
+      "must message the Louisiana Helpr Facebook page within 48 hours of the winner post",
+      "Apple is not a sponsor of this giveaway and is not involved in any way.",
+      "described in that day's giveaway post",
       "Prizes are provided by the participating businesses",
       "in no way sponsored, endorsed or administered by, or associated with, Facebook or Meta",
       "Void where prohibited",

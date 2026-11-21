@@ -17,8 +17,7 @@
  * unless it says the check is NOT asked there (no / not / never / without /
  * doesn't).
  *
- * @mutate src/pages/auth/SignupPending.tsx | Once per account there's a quick ID check: when you post a job, get hired, or at your first payout. | Signing up adds a quick ID check.
- * @mutate src/pages/info/helpCenter/helpCenterContent.ts | confirmed email. We ask for your ID once: when you post a job, when you're hired, before your first payout, or when you take a delivery. Buying, selling and free items on Declutter never ask for it." | confirmed email and a quick identity check through Stripe."
+ * @mutate src/pages/info/helpCenter/helpCenterContent.ts | confirmed email. We ask for your ID once: when you send a Helpr an offer, when you're hired, or when you take a delivery. Buying, selling and free items on Declutter never ask for it." | confirmed email and a quick identity check through Stripe."
  */
 import { describe, it, expect } from "vitest";
 import { resolve, relative } from "node:path";

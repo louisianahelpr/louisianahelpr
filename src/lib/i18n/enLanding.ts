@@ -66,7 +66,7 @@ export const enLanding = {
   // the English those files draw.
   "landing.shell.jobsTitle": "Open jobs near you",
   "landing.shell.jobsLine": "You pick who helps. Paid only when it’s done.",
-  "landing.shell.jobsLineId": "Photo ID checked before anyone posts or heads out. Paid only when it’s done.",
+  "landing.shell.jobsLineId": "Photo ID checked before anyone hires or heads out. Paid only when it’s done.",
   "landing.shell.declutterTitle": "Popular on Declutter",
   "landing.shell.declutterLine": "Pick it up, meet up, or have a Helpr deliver it.",
   "landing.shell.noJobsTitle": "New on Declutter near you",

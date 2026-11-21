@@ -296,10 +296,8 @@ describe("SignupPending", () => {
     });
   });
 
-  // ID check copy (owner decisions 10-30, "Job poster: ID when posting"): once per account, at posting a
-  // job, being hired, listing, buying or claiming on Declutter, or the first payout (lead 10-31, B49's Help wording).
-  // Never shown while the switch is off.
-  // @mutate src/pages/auth/SignupPending.tsx | {idCheckOn && ( | {true && (
+  // ID check copy (owner 11-20): this sign-up screen never mentions an ID check, switch on or off.
+  // The check is explained where it happens (a poster's first offer, a Helpr's first hire, a delivery).
   describe("the ID check line", () => {
     afterEach(() => setIdentityCheckOn(false));
 
@@ -310,18 +308,12 @@ describe("SignupPending", () => {
       expect(screen.queryByText(/\bID\b|identity/i)).toBeNull();
     });
 
-    it("names every moment the owner set, once per account, while the switch is on", async () => {
+    // Audit 11-20 night #20/#25 (owner 11-20): no ID talk on a sign-up screen, switch on or off.
+    it("says nothing about an ID check even while the switch is on", async () => {
       setIdentityCheckOn(true);
       renderWithRouterState(EMAIL);
-      const line = await screen.findByText(/ID check/);
-      const text = line.textContent ?? "";
-      expect(text).toMatch(/once per account/i);
-      expect(text).toMatch(/post a job/);
-      expect(text).toMatch(/get hired/);
-      // Owner 2026-11-20: Declutter (list, buy, claim) never asks for the ID check.
-      expect(text).toContain("Once per account there's a quick ID check: when you post a job, get hired, or at your first payout.");
-      expect(text).not.toMatch(/Declutter/);
-      expect(text).toMatch(/first payout/);
+      await screen.findByText("You're in.");
+      expect(screen.queryByText(/\bID\b|identity/i)).toBeNull();
     });
   });
 });

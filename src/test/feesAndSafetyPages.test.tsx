@@ -60,7 +60,7 @@ describe("F255: /fees and /safety (owner 2026-11-11)", () => {
     const items = [...container.querySelectorAll("[data-safety-body] li")].map((li) => li.textContent);
     expect(items.length).toBeGreaterThan(2);
     // Owner 2026-11-20: the ID check is for posting and doing jobs, never Declutter.
-    expect(items[0]).toMatch(/^Every member who posts or does jobs is ID checked/);
+    expect(items[0]).toMatch(/^Every member who hires or does jobs is ID checked/);
     expect(items).toContain("Your money is held safely until you approve the work.");
     expect(items).toContain("You can report a problem from any job.");
     unmount();

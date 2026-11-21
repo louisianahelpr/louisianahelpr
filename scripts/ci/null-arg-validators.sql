@@ -51,7 +51,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('rentals_caller_is_active_tenant_of','allow', 'is the caller an active tenant of this property (Rentals S1 read policies, 20261017205605)'),
   ('home_talk_listing_ok',          'allow',    'Homes messages (20261106182837): TRUE = the listing''s threads are open (live, paused or leased; owner in good standing)'),
   ('rentals_listing_visible',       'allow',    'may this Homes listing show in the browse (live, not expired, ownership approved, owner not banned; 20261019043000)'),
-  ('referral_member_has_completed_job','allow', 'referral bonus (20261027201034): TRUE = this member has a completed job, one of the two conditions for paying a referral'),
+  ('referral_member_has_completed_job','allow', 'referral bonus (20261027201034): TRUE = this member has a completed job or a handed-over paid Declutter order (20261121035500), one of the two conditions for paying a referral'),
   ('declutter_item_link_visible',   'allow',    'Q2426 share card (20261027194426): may a public link card show this Declutter item (live/reserved, seller not out, Declutter not off)'),
   ('declutter_item_sold_visible',  'allow',    'F061 sold card (20261109194234): may a sold item''s page show what it was (sold/completed, never reported, seller not out, Declutter not off)'),
   ('rentals_tenancy_party',         'allow',    'is the caller the landlord or tenant of this tenancy (Homes rent tracker read policies, 20261019073106)'),

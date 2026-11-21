@@ -24,4 +24,15 @@ describe("referral bonus: both people must finish a job first", () => {
     const body = blankSqlComments(defs.get("referral_settle_for")?.stmt ?? "");
     expect(body).toMatch(/CONTINUE WHEN NOT \(public\.referral_member_has_completed_job\(v_ref\.referrer_id\)\s+AND public\.referral_member_has_completed_job\(v_ref\.referred_id\)\)/);
   });
+
+  // Audit 11-20 night #23 (owner 2026-11-19): a paid, handed-over Declutter order counts too.
+  // PGlite: src/test/pglite/referralCountsDeclutter.pglite.mjs (ALL PASS; 5 FAIL without 20261121035500).
+  it("a handed-over paid Declutter order qualifies, and handing one over settles both parties", () => {
+    const has = blankSqlComments(defs.get("referral_member_has_completed_job")?.stmt ?? "");
+    expect(has).toMatch(/FROM public\.jobs j/);
+    expect(has).toMatch(/FROM public\.declutter_orders o\s+WHERE o\.status = 'handed_over' AND o\.items_cents > 0 AND NOT o\.is_seed/);
+    const trg = blankSqlComments(defs.get("check_referral_bonus_declutter")?.stmt ?? "");
+    expect(trg).toMatch(/referral_settle_for\(NEW\.buyer_id, NULL\)/);
+    expect(trg).toMatch(/referral_settle_for\(NEW\.seller_id, NULL\)/);
+  });
 });

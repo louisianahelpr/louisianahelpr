@@ -121,7 +121,7 @@ export type BrowseShellCopy = { readonly title: string; readonly line: string; r
 const SHELL_WORD_KEYS: Record<string, string> = {
   "Open jobs near you": "landing.shell.jobsTitle",
   "You pick who helps. Paid only when it’s done.": "landing.shell.jobsLine",
-  "Photo ID checked before anyone posts or heads out. Paid only when it’s done.": "landing.shell.jobsLineId",
+  "Photo ID checked before anyone hires or heads out. Paid only when it’s done.": "landing.shell.jobsLineId",
   "Popular on Declutter": "landing.shell.declutterTitle",
   "Pick it up, meet up, or have a Helpr deliver it.": "landing.shell.declutterLine",
   "New on Declutter near you": "landing.shell.noJobsTitle",

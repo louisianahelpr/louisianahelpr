@@ -24,7 +24,15 @@ const isMobileUa = (ua: string) => /iPhone|iPad|iPod|Android/.test(ua);
 /** Messenger's share link (the app, on a phone). */
 const messengerHref = (url: string) => `fb-messenger://share/?link=${encodeURIComponent(url)}`;
 
-export function GiftWishShare({ name, refs, save, signedIn = false }: { name: string; refs: WishRef[]; save: (name: string, refs: WishRef[]) => Promise<string>; signedIn?: boolean }) {
+/**
+ * `label` / `message` / `hint` (owner 2026-11-21, "share all lists"): the same menu shares a person's list or every
+ * list (My lists, the gift planner), with its own button words and message and without the wish list's hint.
+ */
+export function GiftWishShare({ name, refs, save, signedIn = false, label = WISH.share, message = WISH.shareMessage, hint = true, quiet = false }: {
+  name: string; refs: WishRef[]; save: (name: string, refs: WishRef[]) => Promise<string>; signedIn?: boolean; label?: string; message?: string; hint?: boolean;
+  /** An outline button (a list's Share inside a panel with its own primary action). */
+  quiet?: boolean;
+}) {
   const [state, setState] = useState<"idle" | "saving" | "menu" | "failed">("idle");
   const [error, setError] = useState("");
   const [url, setUrl] = useState("");
@@ -32,7 +40,6 @@ export function GiftWishShare({ name, refs, save, signedIn = false }: { name: st
   const [rotated, setRotated] = useState(false);
   const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
   const native = typeof navigator !== "undefined" && typeof navigator.share === "function";
-  const message = WISH.shareMessage;
 
   const fail = (e: unknown) => {
     // Not silent: the visitor is told in plain words, and can try again; nothing was shared.
@@ -89,9 +96,9 @@ export function GiftWishShare({ name, refs, save, signedIn = false }: { name: st
 
   return (
     <div className="gg-wish-share" data-gift-wish-share="">
-      <Hint id="share">{HINTS.share}</Hint>
-      <Button type="button" className="btn-grad-primary gg-wish-share-btn" disabled={refs.length === 0 || state === "saving"} onClick={() => void go()} data-gift-wish-share-btn="">
-        {state === "saving" ? WISH.sharing : WISH.share}
+      {hint && <Hint id="share">{HINTS.share}</Hint>}
+      <Button type="button" {...(quiet ? { variant: "outline" as const, size: "sm" as const, className: "gg-wish-share-btn" } : { className: "btn-grad-primary gg-wish-share-btn" })} disabled={refs.length === 0 || state === "saving"} onClick={() => void go()} data-gift-wish-share-btn="">
+        {state === "saving" ? WISH.sharing : label}
       </Button>
       {state === "failed" && <p role="alert" className="gg-price-note" data-gift-wish-share-failed="">{error}</p>}
       {state === "menu" && url && (

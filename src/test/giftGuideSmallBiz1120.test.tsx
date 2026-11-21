@@ -70,7 +70,7 @@ describe("Small Business Saturday: the businesses", () => {
     const expected = Object.keys(TRACKER_NAME).filter((s) => confirmedLocal(s, order)).sort();
     expect(rows.map((b) => b.slug).sort()).toEqual(expected);
     expect(rows.map((b) => b.slug)).not.toContain("sprinkle-in-time-too");
-    for (const s of ["basic-bee", "written-on-the-river", "megan-benoits-closet", "humble-home-decor-candles", "barclell-photography", "birdwells", "accesorios-para-ninas", "rr-wedding-co"]) {
+    for (const s of ["written-on-the-river", "megan-benoits-closet", "humble-home-decor-candles", "barclell-photography", "birdwells", "accesorios-para-ninas", "rr-wedding-co"]) {
       expect(rows.map((b) => b.slug), s).not.toContain(s);
     }
     // A national or unconfirmed name is refused even when the tracker lists a value for it.
@@ -100,11 +100,11 @@ describe("Small Business Saturday: the page", () => {
     expect(render(<MemoryRouter><SmallBizFeature now={new Date("2026-12-02T18:00:00Z")} /></MemoryRouter>).container.querySelector("[data-gift-sb-feature]")).toBeNull();
   });
 
-  it("has its own indexed head; out of the sitemap while retired (owner 11-21)", () => {
+  it("has its own indexed head; in the sitemap as a deals day (owner 11-21: each day its own page)", () => {
     const meta = giftGuidePageMeta(SMALL_BIZ_SLUG);
     expect(meta.canonical).toBe(`https://www.louisianahelpr.com/gift-guides/${SMALL_BIZ_SLUG}`);
     expect("robots" in meta).toBe(false);
-    // Owner 11-21: the page is retired with every guide but Her, Him and Kids (src/content/giftGuideLive.mjs).
-    expect(readFileSync("public/sitemap.xml", "utf8")).not.toContain(`<loc>https://www.louisianahelpr.com/gift-guides/${SMALL_BIZ_SLUG}</loc>`);
+    // Owner 11-21 (later): Small Business Saturday is a deals day page again (src/content/giftGuideDeals.mjs DEAL_EVENTS).
+    expect(readFileSync("public/sitemap.xml", "utf8")).toContain(`<loc>https://www.louisianahelpr.com/gift-guides/${SMALL_BIZ_SLUG}</loc>`);
   });
 });

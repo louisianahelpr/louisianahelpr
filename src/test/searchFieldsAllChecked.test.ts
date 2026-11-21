@@ -73,6 +73,7 @@ const NO_X: Record<string, string> = {
   // Owner 2026-11-18: the gift guides' menu search (public /gift-guides pages, signed out like the hero, so the
   // signed-in press specs never reach it). A native type="search" box: the browser's own clear control empties it.
   "src/pages/info/giftGuides/GiftGuideShare.tsx": "gift guides search (the slim tool row under every title since the 11-18 PM redesign; was the menu search in GiftGuidesSidebar): public signed-out pages the signed-in press specs never open; native type=search clear (owner 2026-11-18)",
+  "src/pages/info/giftGuides/fun/GuidePicksPicker.tsx": "the Gift planner's From our guides picker (owner 2026-11-21): a search in a dialog on a public signed-out page the signed-in press specs never open; native type=search clear, like the gift guides search above",
 };
 
 /** ✕ files that render ONLY below the desktop breakpoint, so the press spec
@@ -250,7 +251,8 @@ describe("every search field is driven in a real browser (inventory minus checke
     // 2026-11-09 (F034, owner UI audit): +1, the Help center's "Search help" (HelpCenter), a permanent field with a
     // "Clear search" ✕.
     // 2026-11-18 (owner): +1, the gift guides' search (GiftGuideShare's tool row since the 11-18 PM redesign, on NO_X).
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(19);
+    // 2026-11-21 (owner): +1, the Gift planner's "Search gifts" in its From our guides picker (GuidePicksPicker, on NO_X).
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(20);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",

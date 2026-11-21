@@ -45,8 +45,7 @@ import { fileURLToPath } from "node:url";
 import { LEGAL_PAGE_META } from "../src/lib/publicPageMeta.mjs";
 import { allTownPagePaths } from "../src/lib/townPages.mjs";
 import { GIFT_GUIDE_SEO } from "../src/content/giftGuideSeo.mjs";
-import { DEALS_SLUG } from "../src/content/giftGuideDeals.mjs";
-import { SMALL_BIZ_SLUG } from "../src/content/giftGuideSmallBiz.mjs";
+import { DEAL_DAY_SLUGS } from "../src/content/giftGuideDeals.mjs";
 import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -62,9 +61,9 @@ const SITEMAP = path.join(repoRoot, "public", "sitemap.xml");
 export function allGiftGuidePaths() {
   const slugs = Object.keys(GIFT_GUIDE_SEO);
   if (slugs.length === 0) throw new Error("generate-sitemap: src/content/giftGuideSeo.mjs lists no guide");
-  // The two own pages (no catalog guide, indexed): the deals guide (#4776 left it out) and Small Business Saturday (1120).
-  // Owner 11-21: the deals and Small Business Saturday pages are listed only while live (src/content/giftGuideLive.mjs).
-  return ["/gift-guides", ...slugs.sort().map((slug) => `/gift-guides/${slug}`), ...[DEALS_SLUG, SMALL_BIZ_SLUG].filter(isLiveGuide).map((slug) => `/gift-guides/${slug}`)];
+  // The deals days' own pages (no catalog guide, indexed; owner 11-21: "each day has its own section"): Black Friday,
+  // Small Business Saturday and Cyber Monday, listed only while live (src/content/giftGuideLive.mjs).
+  return ["/gift-guides", ...slugs.sort().map((slug) => `/gift-guides/${slug}`), ...DEAL_DAY_SLUGS.filter(isLiveGuide).map((slug) => `/gift-guides/${slug}`)];
 }
 
 /** Canonical origin — must match src/lib/sitemap.test.ts. */

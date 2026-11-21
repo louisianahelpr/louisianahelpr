@@ -17,7 +17,8 @@
  *            already carries.
  *
  * Seed and test accounts are `profiles.is_seed = true` (every Playwright
- * account is); their rows never count, EXCEPT when INCLUDE_SEED=1 — the
+ * account is), and a test runner's browser tags its rows `automated: true`
+ * (signed out included); neither kind of row counts, EXCEPT when INCLUDE_SEED=1 — the
  * fire drill, which inserts one row tagged `drill:true` under a seed account
  * and expects this check to see it.
  *
@@ -61,9 +62,13 @@ export const REQUEST_SOURCES = [
   "unhandledrejection",
 ];
 
+// A robot is not a real user: rows from a test runner's browser carry tags.automated = true (errorLogger.ts tags every
+// navigator.webdriver session) and never count, the same rule as the user-error-screen alert's
+// user_error_screen_is_real. 2026-11-21: a local Playwright audit's request rewriter answered /u/neighbor-33's read with
+// the wrong CORS origin on www, and its 3 "We couldn't load this profile." rows read as a real guest's.
 const seedClause = INCLUDE_SEED
   ? "true"
-  : "(e.user_id IS NULL OR e.user_id NOT IN (SELECT user_id FROM public.profiles WHERE is_seed))";
+  : "(e.user_id IS NULL OR e.user_id NOT IN (SELECT user_id FROM public.profiles WHERE is_seed)) AND coalesce(e.tags ->> 'automated', '') <> 'true'";
 
 const inList = (xs) => xs.map((s) => `'${s.replace(/'/g, "''")}'`).join(",");
 

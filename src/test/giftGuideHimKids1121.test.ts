@@ -37,10 +37,16 @@ const SAVES: Record<string, Record<string, string>> = {
   him: {
     ...sm(["108628349"], "store-smathers-and-branson"), ...sm(["108628518"], "store-duck-head"),
     ...sm(["108626053", "108626008", "108626036", "108625988"], "store-grove"), ...sm(["108625882", "108625877"], "store-clinique"),
+    // Owner 11-21 ("Him = ALL of her men's saves"): every other in-stock, non-LSU Smathers & Branson save, two more Dr. Squatch.
+    ...sm(["108628554", "108628535", "108628533", "108628457", "108628432", "108628429", "108628421", "108628411", "108628379", "108628348", "108628058", "108628052", "108628047"], "store-smathers-and-branson"),
+    ...sm(["108626037", "108625979"], "store-grove"),
   },
   kids: {
     ...sm(["108632461", "108632432", "108632392", "108632273", "108632257", "108632317", "108632251", "108632230", "108632184", "108632365", "108632379", "108632481", "108632592"], "store-maisonette"),
     ...sm(["108632104"], "store-grove"), ...sm(["108632077", "108632046"], "store-wayfair"),
+    // Owner 11-21 ("same for the kids, add all items i had on the things"): every other kids save still sold.
+    ...sm(["108632430", "108632133"], "store-maisonette"), ...sm(["108632086", "108632059"], "store-wayfair"),
+    ...sm(["108632004", "108631991", "108631978"], "store-macys"),
   },
 };
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug] });
@@ -100,9 +106,10 @@ describe.each([
     expect((sorted as unknown as Pick[]).map((r) => r.href)).toEqual(page.map((p) => p.href));
   });
 
-  it("holds at most 2 of one brand and 2 of one item type", () => {
-    expect(most(page.map((p) => p.brand ?? "").filter(Boolean))).toBeLessThanOrEqual(2);
-    expect(most(page.map((p) => p.type ?? ""))).toBeLessThanOrEqual(2);
+  // Owner 2026-11-21: "Him = ALL of her men's saves" and "same for the kids": brand and type caps off for her own picks
+  // (each page held at most 2 of a brand and 2 of a type until then), so a brand she saved many of shows many times.
+  it("holds every save of a brand she saved many of (the 2-per-brand cap is off for her own picks)", () => {
+    expect(most(page.map((p) => p.brand ?? "").filter(Boolean))).toBeGreaterThan(2);
   });
 
   it("shows as one flat owner list (no chips, no codes box)", () => {
@@ -125,8 +132,28 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
         expect(r.name, r.name).not.toMatch(/\bLSU\b/);
       }
     }
-    expect(HIM_SHOPMY_1121.length).toBe(8);
-    expect(KIDS_SHOPMY_1121.length).toBe(16);
+    expect(HIM_SHOPMY_1121.length).toBe(23);
+    expect(KIDS_SHOPMY_1121.length).toBe(23);
+  });
+});
+
+describe("For Him holds every one of her men's saves (owner 11-21)", () => {
+  it("116 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the six left out named", () => {
+    // Left out, 2026-11-21: B001DPHF4U LaCrosse Grange and B0FKCJNHWB Theragun Prime (on the page at their better-paying
+    // stores, above), B0002A7GMS / B07M9LRQ4J / B0FDXLSNN1 (second listings of the same items), B09ZYT939N YETI
+    // Crossroads Backpack (Amazon showed no price).
+    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]);
+    expect(amazon.length).toBe(116);
+    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N"]) expect(amazon, asin).not.toContain(asin);
+    for (const asin of ["B0H7CRMDKS", "B0F22HTHMJ", "B0CQ4QM7Q2", "B0FR98X1DZ", "B0FT97QYYZ", "B0D31TCLN2"]) expect(amazon, asin).toContain(asin);
+  });
+});
+
+describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
+  it("all 58 Amazon rows in Kids-saved-amazon-1121.md are on the page", () => {
+    const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
+    expect(amazon.length).toBe(58);
+    for (const asin of ["B0F3GWXLTS", "B0BFJWCYTL", "B0FJ2ZHPDY", "B0CT2WN59R", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
   });
 });
 

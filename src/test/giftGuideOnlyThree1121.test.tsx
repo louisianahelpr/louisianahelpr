@@ -11,6 +11,11 @@
  * the deals page (DEALS_SLUG) is live again as one page with the three day sections; the standalone Small Business
  * Saturday page stays retired (its businesses are the deals page's middle section).
  *
+ * Owner 11-21, later ("remove small business stuff from black friday stuff. like each day has its own section, no need
+ * to put them all in 1"; "[Deals & codes box] should open collapsed"): each deals day is its own live page,
+ * /gift-guides/black-friday, /gift-guides/small-business-saturday and /gift-guides/cyber-monday (DEAL_DAY_SLUGS), each
+ * with its codes box collapsed; the old one-page address opens Black Friday (its #<day> anchors that day), a 301 before JS.
+ *
  * Owner 11-21, later the same day ("put like a line ... under search bar"; "i also dont see the fun features anymore
  * like the quiz, etc. or the tags"; "i dont see the discount codes or sales on the left section either"; "there will
  * also need to be a free section for our tags color book elf guides"; "move the 25 days of giveaways up"): the deals
@@ -26,11 +31,13 @@
  * card. The left menu holds Her, Him, Kids, then Black Friday deals, Small Business Saturday, Cyber Monday (the deals
  * page's sections), Free printables, Louisiana Holiday Hub and 25 Days sponsors, then the fun tools.
  *
- * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday-cyber-monday"]; | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday-cyber-monday", "teens"];
+ * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"]; | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday", "teens"];
+ * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"]; | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday", "cyber-monday"];
+ * @mutate src/pages/info/GiftGuides.tsx |   if (slug === DEALS_SLUG) return <Navigate to={`/gift-guides/${oldDealsTarget(hash)}`} replace />; |   if (slug === DEALS_SLUG) return <Navigate to="/gift-guides/black-friday" replace />;
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   LIVE_GUIDES_1121.filter((slug) => !NOT_TILES.has(slug)).flatMap((slug) => { |   LIVE_GUIDES_1121.flatMap((slug) => {
  * @mutate src/pages/info/GiftGuides.tsx |         {landing && <hr className="gg-divider" data-gift-divider="" />} |         {null}
  * @mutate src/content/printables.ts |   if (!p.ready) return false; |   if (false) return false;
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <DealsAndCodes open /> |       {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           <DealsAndCodes on={codesDay(day, today)} /> |           {null}
  * @mutate src/content/giftGuideCatalog.ts | draftOf.has(slug) && isLiveGuide(slug) && | draftOf.has(slug) &&
  * @mutate src/prerender/seoData.ts | else if (!to && !guides[old]) moved[old] = ""; | else if (!to && !guides[old] && old.startsWith("store-")) moved[old] = "";
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       {null}
@@ -38,7 +45,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   if (finderAsked(search, hash)) return | if (false) return
  * @mutate src/content/giftGuides.ts |     { id: "cyber-monday", label: "Cyber Monday" }, |
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       <LiveGuides /><aside data-gift-holiday-hub="" />
- * @mutate api/share.ts | if ((slug === SMALL_BIZ_SLUG \|\| slug === DEALS_SLUG) && !isLiveGuide(slug)) | if (false)
+ * @mutate api/share.ts |     if (slug === DEALS_SLUG) return { kind: "moved", |     if (false) return { kind: "moved",
  */
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -57,9 +64,8 @@ import { GUIDES, ROWS, guidesIn, loadAllGuidePicks, newSlugFor, searchGuides } f
 import { RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { CHUNK_SLUGS, PICK_CHUNKS } from "@/content/giftGuidePicks";
-import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
+import { DEAL_DAY_SLUGS, DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
 import { shownPrintables } from "@/content/printables";
-import { SMALL_BIZ_SLUG } from "@/content/giftGuideSmallBiz.mjs";
 import { buildSeoData } from "@/prerender/seoData";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
 
@@ -88,8 +94,9 @@ const renderAt = (url: string) =>
   );
 
 describe("only Her, Him and Kids are live (owner 11-21)", () => {
-  it("the live list is exactly Her, Him, Kids, the 25 Days sponsors page and the deals page; every other guide is a relationship view of Her or Him", () => {
-    expect([...LIVE_GUIDES_1121]).toEqual([...LIVE, SPONSORS, DEALS_SLUG]);
+  it("the live list is exactly Her, Him, Kids, the 25 Days sponsors page and the three deals days; every other guide is a relationship view of Her or Him", () => {
+    expect([...LIVE_GUIDES_1121]).toEqual([...LIVE, SPONSORS, "black-friday", "small-business-saturday", "cyber-monday"]);
+    expect([...DEAL_DAY_SLUGS]).toEqual(["black-friday", "small-business-saturday", "cyber-monday"]);
     const own = GUIDES.filter((g) => !g.view).map((g) => g.slug).sort();
     expect(own).toEqual([...LIVE, SPONSORS].sort());
     const views = GUIDES.filter((g) => g.view);
@@ -108,7 +115,7 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
   it("a retired guide's old link opens the landing page, in the page and as a 301 from the pre-JS page", async () => {
     for (const slug of RETIRED) expect(newSlugFor(slug), slug).toBeNull();
     for (const slug of [...LIVE, SPONSORS, "mom", "dad"]) expect(newSlugFor(slug), slug).toBe(slug);
-    for (const slug of ["teens", "store-amazon", "gifts-by-color", SMALL_BIZ_SLUG]) {
+    for (const slug of ["teens", "store-amazon", "gifts-by-color"]) {
       const { container } = renderAt(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-test-where]")?.textContent, slug).toBe("/gift-guides");
       cleanup();
@@ -119,38 +126,53 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     const d = await buildSeoData();
     expect(Object.keys(d.guides).sort()).toEqual(GUIDES.map((g) => g.slug).sort());
     for (const slug of RETIRED) expect(d.moved[slug], slug).toBe("");
-    // The Small Business Saturday page answers a 301 to the landing before JS too; the deals page (live again 11-21) is a page.
+  });
+
+  it("each deals day opens as its own page with its own banner title, its codes box collapsed, and the menu marks the deals (owner 11-21)", () => {
+    const titles: Record<string, string> = { "black-friday": "Black Friday Deals", "small-business-saturday": "Small Business Saturday", "cyber-monday": "Cyber Monday Deals" };
+    for (const slug of DEAL_DAY_SLUGS) {
+      const { container } = renderAt(`/gift-guides/${slug}`);
+      expect(container.querySelector("[data-test-where]")?.textContent, slug).toBe(`/gift-guides/${slug}`);
+      expect(container.querySelector("[data-gift-deal-day-page]")?.getAttribute("data-gift-deal-day-page"), slug).toBe(slug);
+      expect(container.querySelector("#gift-guide-title")?.textContent, slug).toBe(titles[slug]);
+      // The banner holds the lead and the title only (owner 11-21: "remove louisiana helpr from the [banner]").
+      expect(container.querySelector("[data-gift-arch]")?.textContent, slug).not.toMatch(/Louisiana Helpr/i);
+      expect(container.querySelector("[data-gift-deals-jump]"), slug).toBeNull();
+      const codes = container.querySelector<HTMLDetailsElement>("[data-gift-deals-page] details[data-gift-deals-codes]");
+      if (slug === "small-business-saturday") expect(codes, slug).toBeNull();
+      else {
+        expect(codes, `${slug}: the codes and sales box`).not.toBeNull();
+        expect(codes!.open, slug).toBe(false);
+      }
+      expect(container.querySelector("[data-gift-side-deals='black-friday']")?.getAttribute("aria-current"), slug).toBe("page");
+      expect(container.querySelector("[data-gift-sidebar] a[data-gift-side='']")?.getAttribute("aria-current"), slug).toBeNull();
+      cleanup();
+    }
+  });
+
+  it("the old one-page deals address opens Black Friday, and each old #day anchor that day's page, before JS too", async () => {
+    for (const [from, to] of [
+      [`/gift-guides/${DEALS_SLUG}`, "/gift-guides/black-friday"],
+      [`/gift-guides/${DEALS_SLUG}#black-friday`, "/gift-guides/black-friday"],
+      [`/gift-guides/${DEALS_SLUG}#small-business-saturday`, "/gift-guides/small-business-saturday"],
+      [`/gift-guides/${DEALS_SLUG}#cyber-monday`, "/gift-guides/cyber-monday"],
+    ]) {
+      const { container } = renderAt(from);
+      expect(container.querySelector("[data-test-where]")?.textContent, from).toBe(to);
+      cleanup();
+    }
     ensureOgShellSnapshot(resolve("."));
     const sharePath = ["..", "..", "api", "share"].join("/");
     const handler = (await import(/* @vite-ignore */ sharePath)).default as { fetch: (r: Request) => Promise<Response> };
-    const small = await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=page&_id=gift-guides/${SMALL_BIZ_SLUG}`));
-    expect(small.status).toBe(301);
-    expect(small.headers.get("location")).toBe("https://www.louisianahelpr.com/gift-guides");
-    const deals = await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=page&_id=gift-guides/${DEALS_SLUG}`));
-    expect(deals.status).toBe(200);
-  });
-
-  it("the deals page opens as itself, its codes and sales open on it, and the menu marks it (owner 11-21)", () => {
-    const { container } = renderAt(`/gift-guides/${DEALS_SLUG}`);
-    expect(container.querySelector("[data-test-where]")?.textContent).toBe(`/gift-guides/${DEALS_SLUG}`);
-    expect(container.querySelector("[data-gift-deals-page]")).not.toBeNull();
-    const codes = container.querySelector<HTMLDetailsElement>("[data-gift-deals-page] details[data-gift-deals-codes]");
-    expect(codes, "the codes and sales box").not.toBeNull();
-    expect(codes!.open).toBe(true);
-    expect(container.querySelector("[data-gift-side-deals='black-friday']")?.getAttribute("aria-current")).toBe("page");
-    expect(container.querySelector("[data-gift-sidebar] a[data-gift-side='']")?.getAttribute("aria-current")).toBeNull();
-  });
-
-  it("the deals page opens as itself (owner 11-21), before JS too", async () => {
-    const { container } = renderAt(`/gift-guides/${DEALS_SLUG}`);
-    expect(container.querySelector("[data-test-where]")?.textContent).toBe(`/gift-guides/${DEALS_SLUG}`);
-    expect(container.querySelector("[data-gift-deals-page]")).not.toBeNull();
-    cleanup();
-    ensureOgShellSnapshot(resolve("."));
-    const sharePath = ["..", "..", "api", "share"].join("/");
-    const handler = (await import(/* @vite-ignore */ sharePath)).default as { fetch: (r: Request) => Promise<Response> };
-    const res = await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=page&_id=gift-guides/${DEALS_SLUG}`));
-    expect(res.status).toBe(200);
+    const old = await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=page&_id=gift-guides/${DEALS_SLUG}`));
+    expect(old.status).toBe(301);
+    expect(old.headers.get("location")).toBe("https://www.louisianahelpr.com/gift-guides/black-friday");
+    for (const slug of DEAL_DAY_SLUGS) {
+      const res = await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=page&_id=gift-guides/${slug}`));
+      expect(res.status, slug).toBe(200);
+      const html = await res.text();
+      expect(html, slug).toContain(`https://www.louisianahelpr.com/gift-guides/${slug}`);
+    }
   });
 
   it("the 25 Days sponsors page still opens as itself", () => {
@@ -242,15 +264,15 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     for (const q of ["teens", "amazon", "color", "nurse", "coffee"]) {
       for (const g of searchGuides(q)) expect([...LIVE, SPONSORS, ...Object.keys(RELATION_PAGES)], `${q}: ${g.slug}`).toContain(g.slug);
     }
-    const allowed = new Set([...LIVE, SPONSORS, DEALS_SLUG, ...Object.keys(RELATION_PAGES)]);
+    const allowed = new Set([...LIVE, SPONSORS, ...DEAL_DAY_SLUGS, ...Object.keys(RELATION_PAGES)]);
     const sitemap = [...readFileSync("public/sitemap.xml", "utf8").matchAll(/\/gift-guides\/([a-z0-9-]+)</g)].map((m) => m[1]);
     const tools = new Set(["swipe", "planner", "draw-names", "printables"]);
     expect(sitemap.filter((s) => !tools.has(s)).length).toBeGreaterThan(3);
     for (const s of sitemap) if (!tools.has(s)) expect(allowed.has(s), `sitemap: ${s}`).toBe(true);
     for (const s of Object.keys(GIFT_GUIDE_SEO)) expect(allowed.has(s), `SEO: ${s}`).toBe(true);
-    // The deals page is in the sitemap; the retired Small Business Saturday page is not.
-    expect(sitemap).toContain(DEALS_SLUG);
-    expect(sitemap).not.toContain(SMALL_BIZ_SLUG);
+    // The three deals days are in the sitemap; the old one-page address (a redirect now) is not.
+    for (const slug of DEAL_DAY_SLUGS) expect(sitemap).toContain(slug);
+    expect(sitemap).not.toContain(DEALS_SLUG);
     const index = JSON.parse(readFileSync("src/content/giftGuideSearchIndex.json", "utf8")) as [string, string][];
     expect(index.length).toBeGreaterThan(20);
     for (const [, s] of index) expect([...LIVE, SPONSORS], `search index: ${s}`).toContain(s);

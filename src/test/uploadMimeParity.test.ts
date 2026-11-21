@@ -84,6 +84,7 @@ const SITES: Site[] = [
   { file: "src/lib/portfolioStorage.ts", bucket: "avatars", gate: ["src/lib/avatarStorage.ts", "AVATAR_MIME_EXT"], via: ["PORTFOLIO_MIME_EXT"] },
   { file: "src/components/admin/marketing/marketingMedia.ts", bucket: "marketing-media", gate: ["src/components/admin/marketing/marketingMedia.ts", "MARKETING_MEDIA_MIME_EXT"], via: ["MARKETING_MEDIA_MIME_EXT"] },
   { file: "src/pages/post-job/useJobMediaUpload.ts", bucket: "job-photos", gate: ["src/pages/post-job/useJobMediaUpload.ts", "allowedImageTypes"], via: ["allowedImageTypes"] },
+  { file: "src/pages/jobs/jobPage/useAddJobPhotos.ts", bucket: "job-photos", gate: ["src/pages/jobs/jobPage/useAddJobPhotos.ts", "PHOTO_TYPES"], via: ["PHOTO_TYPES"] }, // audit 11-21 High: Add a photo on the open job
   // Declutter listing photos: cleaned to JPEG first (src/lib/declutter/photos.ts).
   { file: "src/lib/rentals/api.ts", bucket: "user-documents", gate: [UT, "RENTALS_PROOF_TYPES"], via: ["isAllowedUploadType", "RENTALS_PROOF_TYPES"] },
   { file: "src/lib/rentals/api.ts", bucket: "user-documents", gate: [UT, "RENTALS_REQUEST_PHOTO_TYPES"], via: ["isAllowedUploadType", "RENTALS_REQUEST_PHOTO_TYPES"] },
@@ -131,6 +132,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/pages/auth/signup/SignupStep2.tsx": { bucket: "avatars" },
   "src/pages/auth/completeProfile/CompleteProfileAvatar.tsx": { bucket: "avatars" }, // CompleteProfile's photo picker (Q806)
   "src/components/postjob/detailsSection/PhotoUpload.tsx": { bucket: "job-photos" },
+  "src/pages/jobs/jobPage/NoApplicantsYet.tsx": { bucket: "job-photos" }, // audit 11-21 High: the open job's Add a photo
   "src/components/postjob/detailsSection/PhotoReorderGrid.tsx": { bucket: "job-photos" }, // Q1299: split out of PhotoUpload
   "src/components/postjob/detailsSection/VideoScope.tsx": { bucket: "job-photos" },
   // The listing photo picker moved to the photo-first step 1 (DeclutterSellPhotos, 2026-10-19).

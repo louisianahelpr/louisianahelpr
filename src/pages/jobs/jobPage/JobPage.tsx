@@ -495,7 +495,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {/* Board 57: the poster's open, paid job that nobody has applied to yet; never while an offer or booking is
               out (JA-48 / JA-49: "Copy link" and "Edit job" beside a booked Helpr). */}
           {isPoster && open && !offerOut && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0 && (
-            <NoApplicantsYet job={job} onManage={posterActions.edit} />
+            <NoApplicantsYet job={job} />
           )}
         </div>
 

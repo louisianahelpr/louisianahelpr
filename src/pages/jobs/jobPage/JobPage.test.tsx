@@ -200,6 +200,9 @@ vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }))
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "instant_book" || (key === "card_hold_at_post" && state.cardHold) }));
 // The Posted card's own flows on the page (usePosterPageFlows; its wiring is posterPageFlows.test.tsx): record each call.
 const flowCalls = vi.hoisted(() => [] as string[]);
+// The no-applicants card's own photo add (useAddJobPhotos; its upload and write are useAddJobPhotos.test.ts).
+const addPhotosCalls = vi.hoisted(() => [] as File[][]);
+vi.mock("./useAddJobPhotos", () => ({ useAddJobPhotos: () => ({ add: async (f: File[]) => { addPhotosCalls.push(f); return true; }, busy: false }) }));
 // OnTheWayNow's position read (onTheWayPosition.ts): no position unless a test sets one.
 vi.mock("./onTheWayPosition", () => ({ fetchOnTheWayPosition: async () => state.position }));
 // The Apple map loads MapKit's script and a token over the network: a stand-in that says where it was pointed.
@@ -1215,18 +1218,33 @@ describe("board 57: the poster's open job with no applicants", () => {
     expect(screen.queryByText(/Sent to/)).toBeNull();
   });
 
-  it("a paid, open job nobody applied to says so, with only what the poster can do", async () => {
+  // Audit 11-21 (High): "Add a photo" and "Change the price" both opened EditJobDialog, which has no photo field and
+  // locks a paid price, so both led nowhere. Every row on the card must do the thing it names, never open the edit.
+  // @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx | go: () => photoInput.current?.click() } | go: () => {} }
+  // @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |             if (files.length) void photos.add(files); |             void files;
+  it("a paid, open job nobody applied to says so, and every row does what it names (no dead edit, no price row)", async () => {
     state.job = row({ customer_id: ME });
+    addPhotosCalls.length = 0;
+    flowCalls.length = 0;
     renderPage();
-    expect(await screen.findByRole("heading", { name: "No applicants yet" })).toBeTruthy();
+    const card = (await screen.findByRole("heading", { name: "No applicants yet" })).closest("section") as HTMLElement;
     expect(screen.getByText(/It's out to Helprs near Delcambre\./)).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Add a photo/ })).toBeTruthy();
-    const price = screen.getByRole("button", { name: /Change the price/ });
-    expect(price.textContent).toContain("You're at $90");
     expect(screen.queryByText(/quotes/i)).toBeNull();
-    fireEvent.click(price);
-    // The card's own edit, on this page (LEAD-JOBPAGE-LAYOUT).
-    expect(flowCalls).toEqual(["edit"]);
+    expect(within(card).queryByRole("button", { name: /price/i }), "a paid price cannot change: no row may offer it").toBeNull();
+    // Inventory floor: the card has its rows (share + add a photo), and none of them opens the edit dialog.
+    const rows = within(card).getAllByRole("button");
+    expect(rows.length).toBeGreaterThan(1);
+    const input = within(card).getByTestId("no-applicants-photo-input") as HTMLInputElement;
+    expect(input.type).toBe("file");
+    expect(input.accept).toContain("image/jpeg");
+    let picked = 0;
+    input.addEventListener("click", (e) => { picked++; e.preventDefault(); });
+    fireEvent.click(within(card).getByRole("button", { name: /Add a photo/ }));
+    expect(picked, "Add a photo did not open the photo picker").toBe(1);
+    const file = new File(["x"], "porch.jpg", { type: "image/jpeg" });
+    fireEvent.change(input, { target: { files: [file] } });
+    expect(addPhotosCalls.map((c) => c.map((f) => f.name))).toEqual([["porch.jpg"]]);
+    expect(flowCalls, "a no-applicants row opened the edit dialog, which can't add photos or change a paid price").toEqual([]);
   });
 
   it("an unpaid post, a post with a photo, or one with applicants does not claim it", async () => {
@@ -1600,18 +1618,12 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const canEdit = !draft && status === "open" && !job.is_group_job && job.direct_offer_status !== "pending"; |   const canEdit = false;
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx | <NoApplicantsYet job={job} onManage={posterActions.edit} /> | <NoApplicantsYet job={job} onManage={() => navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`)} />
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | label: t("jobPage.editJob"), go: flows.edit, | label: t("jobPage.editJob"), go: () => navigate(`/posts?highlight=${id}&manage=1`),
-  it("an open job: Edit job, and the no-applicants rows (photo, price) open the card's own edit ON the page", () => {
+  it("an open job: Edit job opens the card's own edit ON the page", () => {
     state.job = row({ customer_id: ME });
     state.applicants = { total: 0, pending: 0 };
-    const { unmount } = renderPage();
-    pressAction("Edit job");
-    expect(flowCalls).toEqual(["edit"]);
-    unmount();
-    flowCalls.length = 0;
     renderPage();
-    fireEvent.click(screen.getByRole("button", { name: /Change the price/ }));
+    pressAction("Edit job");
     expect(flowCalls).toEqual(["edit"]);
     expect(screen.queryByTestId("where")).toBeNull();
     expect(faceRequests).toEqual([]);

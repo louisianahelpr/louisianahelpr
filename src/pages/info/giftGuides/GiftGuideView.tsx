@@ -9,12 +9,16 @@ import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS, SECTION_ALIASES, SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
+import { onAnyList, requestSaveFor, saveItemOf } from "./saveForPeople";
+import { usePlan } from "./fun/plannerStore";
 import { HINTS, WISH } from "@/content/giftWishList";
 import { Hint } from "./GiftHint";
 import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/ToggleChip";
-import { sortByPrice, type PriceOrder } from "@/content/giftGuidePriceSort";
+import { sortByPrice } from "@/content/giftGuidePriceSort";
+import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGuideEarnOrder";
 import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
+import { PrimeTrialLink } from "@/components/giftGuides/PrimeTrialLink";
 import { AgeChips } from "./GiftGuideAges";
 import { PeopleChips } from "./GiftGuidePeopleChips";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
@@ -73,7 +77,9 @@ export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: numbe
 }
 
 export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) {
-  const saved = isSaved(useGiftList(), itemId(pick.href));
+  // Owner 11-21: filled when the gift is on My Wish List or on anyone's list (saveForPeople).
+  const [wish, plan] = [useGiftList(), usePlan()];
+  const saved = isSaved(wish, itemId(pick.href)) || onAnyList(plan, pick.href);
   // Big batch 1120: a pick wears Trending (or "Trending on TikTok") only from its own flag. The old "first 3 of a guide"
   // badge went with the featured order (owner 11-19 ~6:40 PM: every guide sorts by commission now).
   const badges = pick.badges;
@@ -106,7 +112,7 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         </span>
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
-      <Heart saved={saved} label={WISH.saveLabel(pick.name)} onToggle={() => heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) }))} className="gg-heart-pick" />
+      <Heart saved={saved} label={WISH.saveForLabel(pick.name)} onToggle={() => { if (!requestSaveFor(saveItemOf(pick, guide))) heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) })); }} className="gg-heart-pick" />
     </li>
   );
 }
@@ -200,7 +206,7 @@ export const sectionLabel = (guide: Pick<CatalogGuide, "title">, title: string, 
   return title;
 };
 
-function GiftGuideList({ guide, order = "low" }: { guide: CatalogGuide; order?: PriceOrder }) {
+function GiftGuideList({ guide, order = "top" }: { guide: CatalogGuide; order?: GuideOrder }) {
   const [shown, setShown] = useState(PICKS_PAGE);
   const [budget, setBudget] = useState<number | null>(null);
   // Her, Him, Kids and their relationship views (owner 11-21): low to high is the list as imported. The order is chosen
@@ -233,7 +239,10 @@ function GiftGuideList({ guide, order = "low" }: { guide: CatalogGuide; order?: 
   const inBudget = withinBudget(guide.picks, budget);
   // Owner 2026-11-21 ("they all need to be sorted in sections by price"; supersedes "one flat list"): Her, Him, Kids
   // and their views list their picks in price sections (priceSections), low to high or reversed by the sort control.
-  const picks = sortable ? priceSections(sortByPrice(inBudget, order)) : inBudget;
+  // Lead 11-21 ("reorder by what earns"): on "Recommended" (the default) the sections run low to high and the most
+  // clicked picks lead their own section (src/content/giftGuideEarnOrder.ts); the price choices stay pure price.
+  const sectioned = sortable ? priceSections(sortByPrice(inBudget, order === "high" ? "high" : "low")) : inBudget;
+  const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned;
   const sectionCount = new Map<string, number>();
   if (sortable) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
   // Six or fewer left: draw them all, no "Show more (1 more)" (design audit r2 #16).
@@ -282,6 +291,7 @@ function GiftGuideList({ guide, order = "low" }: { guide: CatalogGuide; order?: 
       {budget !== null && <p className="gg-price-note" data-gift-budget-note="">{picks.length ? G.budgetNote : G.budgetNone}</p>}
       {draw(0, upTo)}
       <PricesAsOf picks={picks.slice(0, upTo)} />
+      <PrimeTrialLink picks={picks.slice(0, upTo)} />
       {left > 0 && (
         <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
           {G.showMorePicks(left)}
@@ -373,7 +383,7 @@ function StoreDeals({ guide }: { guide: CatalogGuide }) {
 /** The guide where the Hire-a-Helpr box sits at the TOP (owner 2026-11-18). */
 const GIFT_WRAP_GUIDE = "gift-wrap-and-cards";
 
-export function GiftGuideView({ guide, order = "low" }: { guide: CatalogGuide; order?: PriceOrder }) {
+export function GiftGuideView({ guide, order = "top" }: { guide: CatalogGuide; order?: GuideOrder }) {
   // PERF: the guide's picks are its own lazy chunk; re-render when it lands.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
   useEffect(() => {

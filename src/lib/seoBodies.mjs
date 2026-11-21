@@ -14,6 +14,7 @@
  */
 
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, townPagePath } from "./townPages.mjs";
+import { pickPriceShown, shownDollars } from "./pickPriceShown.mjs";
 
 export const SEO_SITE_ORIGIN = "https://www.louisianahelpr.com";
 
@@ -102,8 +103,9 @@ export function giftGuideBody(slug, guide) {
 }
 
 /**
- * /gift-guides/black-friday-cyber-monday (owner 2026-11-19): the deals guide is no catalog guide (its deals load in the
- * page), so its body is the breadcrumb, its H1 (the day's name), its intro and the disclosure.
+ * A deals day, /gift-guides/black-friday, /small-business-saturday or /cyber-monday (owner 2026-11-19; one page per day
+ * owner 2026-11-21): no catalog guide (its cards load in the page), so its body is the breadcrumb, its H1 (the day's
+ * name), its intro and one more line (the disclosure, or the day line on Small Business Saturday).
  */
 export function dealsGuideBody(slug, name, intro, disclosure) {
   return page(
@@ -112,8 +114,22 @@ export function dealsGuideBody(slug, name, intro, disclosure) {
   );
 }
 
-/** ItemList JSON-LD for a guide: each pick's name and shop URL (no Product offers: prices change daily). */
-export function giftGuideItemListLd(slug, guide) {
+/** A photo URL a Product may carry: https, or a site path made absolute. */
+function productImage(src) {
+  if (typeof src !== "string") return null;
+  if (/^\/[^/\s"'<>][^\s"'<>]*$/.test(src)) return `${SEO_SITE_ORIGIN}${src}`;
+  return safeHref(src);
+}
+
+/**
+ * ItemList JSON-LD for a guide (structured data, lead 11-21). A pick whose card shows a price on `today` (the shared
+ * rule, pickPriceShown.mjs) is a schema.org Product with its photo and one Offer at the dollars the card shows; any
+ * other pick stays a plain ListItem (name and shop link), because a Product with no offers, review or rating is an
+ * error in Google's Product rules. Only visible data: no availability (we show none), no rating, no review, ever.
+ * Note (Google, 11-21): list pages of other stores' links are not eligible for US product rich results (the product
+ * carousel is EEA/Türkiye/South Africa and same-domain only); the markup is still valid for other readers.
+ */
+export function giftGuideItemListLd(slug, guide, today) {
   const picks = (Array.isArray(guide.picks) ? guide.picks : []).filter((p) => safeHref(p[2]));
   return {
     "@context": "https://schema.org",
@@ -121,7 +137,36 @@ export function giftGuideItemListLd(slug, guide) {
     name: guide.name,
     url: `${SEO_SITE_ORIGIN}/gift-guides/${slug}`,
     numberOfItems: picks.length,
-    itemListElement: picks.map(([name, , href], i) => ({ "@type": "ListItem", position: i + 1, name, url: href })),
+    itemListElement: picks.map(([name, , href, extra], i) => {
+      const x = extra && typeof extra === "object" ? extra : {};
+      if (!pickPriceShown(x.price, x.priceAt, today)) return { "@type": "ListItem", position: i + 1, name, url: href };
+      const image = productImage(x.image);
+      return {
+        "@type": "ListItem",
+        position: i + 1,
+        item: {
+          "@type": "Product",
+          name,
+          url: href,
+          ...(image ? { image } : {}),
+          offers: { "@type": "Offer", price: shownDollars(x.price), priceCurrency: "USD", url: href },
+        },
+      };
+    }),
+  };
+}
+
+/** ItemList JSON-LD for one deals day page (`slug`): each of its cards showing on `today` (through its last day), name and shop link. */
+export function dealsItemListLd(name, deals, today, slug) {
+  const live = (Array.isArray(deals) ? deals : []).filter(([item, href, ends, event]) => event === slug && item && safeHref(href) && !(ends && ends < today));
+  if (live.length === 0) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name,
+    url: `${SEO_SITE_ORIGIN}/gift-guides/${slug}`,
+    numberOfItems: live.length,
+    itemListElement: live.map(([item, href], i) => ({ "@type": "ListItem", position: i + 1, name: item, url: href })),
   };
 }
 

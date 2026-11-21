@@ -210,6 +210,52 @@ export const CUTOUTS_1120 = new Map([
   ["https://assets.wfcdn.com/im/45146626/compr-r85/4085/408563114/Wood+Furnished+Mansion.jpg", "melissa-doug-wood-furnished-mansion-825096.webp"],
   // melissa doug shopping cart
   ["https://assets.wfcdn.com/im/84968246/compr-r85/1747/174755531/Preschool+Pretend+Grocery+Shopping+Accessories+with+Kitchen+Accessories.jpg", "melissa-doug-shopping-cart-c485e9.webp"],
+  // HIM 11-21 (the rest of her ShopMy saves, Apple Vision cutouts)
+  // sb rainbow trout tumbler
+  ["https://static.shopmy.us/pins/zoom-108628554-1795247624550-RainbowTrout_ClassicNavy__TumblerwithLid_LowRes.jpg", "sb-rainbow-trout-tumbler-175288.webp"],
+  // sb redfish bottle opener
+  ["https://static.shopmy.us/pins/zoom-108628535-1795247604494-Redfish_Dark_Navy__Bottle_Opener_Low_Res.jpg", "sb-redfish-bottle-opener-52c731.webp"],
+  // sb redfish key fob
+  ["https://static.shopmy.us/pins/zoom-108628533-1795247603379-Redfish_Dark_Navy__Key_Fob_Primary_Low_Res.jpg", "sb-redfish-key-fob-1f91a1.webp"],
+  // sb fishing flies coasters
+  ["https://static.shopmy.us/pins/zoom-108628457-1795247557821-Fishing_Fly_Black__Coaster_Primary_Low_Res.jpg", "sb-fishing-flies-coasters-f66b87.webp"],
+  // sb upland shoot tumbler
+  ["https://static.shopmy.us/pins/zoom-108628432-1795247539414-UplandShoot_Multi__TumblerwithLid_LowRes.jpg", "sb-upland-shoot-tumbler-f4bc50.webp"],
+  // sb upland shoot key fob
+  ["https://static.shopmy.us/pins/zoom-108628429-1795247534926-Upland_Shoot_Multi__Key_Fob_Primary_Low_Res.jpg", "sb-upland-shoot-key-fob-10774f.webp"],
+  // sb upland shoot card wallet
+  ["https://static.shopmy.us/pins/zoom-108628421-1795247530982-Upland_Shoot_CCW_Low_Res.jpg", "sb-upland-shoot-card-wallet-8310db.webp"],
+  // sb upland shoot can cooler
+  ["https://static.shopmy.us/pins/zoom-108628411-1795247528384-Upland_Shoot_Multi__Can_Cooler_Primary_Low_Res.jpg", "sb-upland-shoot-can-cooler-7f5371.webp"],
+  // sb upland shoot sunglass strap
+  ["https://static.shopmy.us/pins/zoom-108628379-1795247500915-Upland_Shoot_Multi__Sunglass_Straps_Primary_Low_Res.jpg", "sb-upland-shoot-sunglass-strap-b75498.webp"],
+  // sb wood duck bottle opener
+  ["https://static.shopmy.us/pins/zoom-108628348-1795247475480-WoodDuckDecoy_AntiqueBlue__BottleOpener_LowRes_f009c4b4-eb66-4d44-b476-0fec3a2f3d84.jpg", "sb-wood-duck-bottle-opener-5cb78a.webp"],
+  // sb monogrammed valet tray
+  ["https://static.shopmy.us/pins/zoom-108628058-1795247283281-ValetTray_ChestnutWood__FramedEdenMonogram_LowRes.jpg", "sb-monogrammed-valet-tray-019c7d.webp"],
+  // sb monogrammed coasters
+  ["https://static.shopmy.us/pins/zoom-108628052-1795247281134-CoasterSet_CircleSans48_MonogramBlueberryMelon_LowRes_df4b15df-1cf6-4073-b69b-5a3ad20aa27d.jpg", "sb-monogrammed-coasters-c0421f.webp"],
+  // sb monogrammed key fob
+  ["https://static.shopmy.us/pins/zoom-108628047-1795247277928-KeyFob_Block10_MonogramBlueberrywhite_LowRes_22103605-b81e-4f6b-b8a6-31809f82245c.jpg", "sb-monogrammed-key-fob-175faf.webp"],
+  // dr squatch face wash
+  ["https://static.shopmy.us/pins/zoom-108626037-1795245901003-s9tzcdtbcihhguemerog.jpg", "dr-squatch-face-wash-febf5a.webp"],
+  // dr squatch total moisture soap
+  ["https://static.shopmy.us/pins/zoom-108625979-1795245875843-Unscented_Shea_Butter_3.png", "dr-squatch-total-moisture-soap-afb564.webp"],
+  // KIDS 11-21 (the rest of her saves; Apple Vision cutouts, the swing car with its floor reflection erased, the club chair without its props)
+  // freddo swing car side
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/x2IuT5-1A8vUEdadpwkoOvMBw.jpg", "freddo-swing-car-side-6bd8af.webp"],
+  // model u zebra ride on
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/unORD3VQuzDRRzbMq1w_2taVM_6b58675d-6a24-48b1-8321-f3c6a6bc0c79.jpg", "model-u-zebra-ride-on-63f18d.webp"],
+  // melissa doug jumbo cardboard blocks
+  ["https://assets.wfcdn.com/im/03058393/compr-r85/1765/176593778/24+Piece+Melissa+%26+Doug+Jumbo+Cardboard+Blocks+Learning+Tools.jpg", "melissa-doug-jumbo-cardboard-blocks-608ce0.webp"],
+  // melissa doug kids club chair
+  ["https://assets.wfcdn.com/im/70136508/compr-r85/8084/80848886/7.5+in.+Club+Chair+Kids+Club+Chair-38254990.jpg", "melissa-doug-kids-club-chair-8f6b24.webp"],
+  // melissa doug doorbell house
+  ["https://slimages.macysassets.com/is/image/MCY/products/2/optimized/1779252_fpx.tif", "melissa-doug-doorbell-house-bd8e8b.webp"],
+  // melissa doug magnetic tabletop easel
+  ["https://slimages.macysassets.com/is/image/MCY/products/5/optimized/8290245_fpx.tif", "melissa-doug-magnetic-tabletop-easel-a4b2f2.webp"],
+  // melissa doug pull back vehicles
+  ["https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1836568_fpx.tif", "melissa-doug-pull-back-vehicles-7ca9db.webp"],
 ]);
 
 /** The photo to show for `image`: its transparent cutout when one exists, else `image` itself. */

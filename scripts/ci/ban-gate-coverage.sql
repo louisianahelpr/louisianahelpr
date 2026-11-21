@@ -268,7 +268,8 @@ rpc_exempt(fn, why) AS (
   ('secret_santa_create', 'Gift guides Secret Santa (20261120062334, owner 11-20): stores a drawn group (first names, slots, a budget, a day) with no account; anon-callable by design (the drawer is signed out), rate limited per address, posts no content to anyone and moves no money; refusing a banned member would only stop them drawing names'),
   ('secret_santa_set_wish_list', 'Gift guides Secret Santa (20261120062334): attaches a wish list code to the one row its token hash opens; anon-callable by design (reveal links have no account), posts no content and moves no money'),
   ('secret_santa_cancel', 'Gift guides Secret Santa (20261121011706, holiday audit C2): deletes a drawn group only when the caller presents the token of every person in it (the organizer before a redraw); anon-callable by design (the drawer has no account), posts no content to anyone and moves no money; refusing a banned member would only stop them cancelling their own draw'),
-  ('gift_wish_list_new_link', 'Gift guides wish list (20261120062130, security review #5): gives the caller own list a new share code so an old link stops working; it only reduces what others can see, moves no money and posts nothing')
+  ('gift_wish_list_new_link', 'Gift guides wish list (20261120062130, security review #5): gives the caller own list a new share code so an old link stops working; it only reduces what others can see, moves no money and posts nothing'),
+  ('gift_wish_lists_share', 'Gift guides lists share (20261121204723, owner 11-21 "share all lists"): saves a snapshot of several named gift lists (guide slug + item id refs, user_id NULL) for one share code; anon-callable by design, rate limited on the same budget as gift_wish_list_save, posts no content to anyone else and moves no money; refusing a banned member would only stop them sharing gift ideas')
 ),
 ops(op, bit) AS (VALUES ('INSERT', 4), ('DELETE', 8), ('UPDATE', 16)),
 tbls AS (

@@ -241,6 +241,14 @@ export const giftGuides = {
   disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
   /** Amazon Associates Operating Agreement: the exact statement every site with Amazon links must show. */
   amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.",
+  /**
+   * Amazon Associates bounty (lead 11-21, owner pop-up: all of the growth items). Amazon's Commission Income Statement
+   * (affiliate-program.amazon.com/welcome/compensation, read 2026-11-21) lists "Prime Free Trial", homepage
+   * "https://www.amazon.com/prime", bounty $12.00; its Program Policies (updated April 14, 2026) say "Special Links to
+   * the bounty-specific homepages listed in the Appendix are permitted". The link is that homepage with our tag; the
+   * Amazon statement above covers it. One per guide page, under a list that shows an Amazon pick.
+   */
+  primeTrial: { label: "Try Prime free for fast holiday shipping", href: "https://www.amazon.com/prime?tag=louisianahelpr-20" },
   allGuidesLabel: "All guides",
   sidebarLabel: "Gift guides",
   /**
@@ -372,6 +380,7 @@ export const giftGuides = {
   priceSectionCount: (n: number) => ` (${n})`,
   /** The price sort on Her, Him and Kids (owner 2026-11-21: "the guides should be able to be sorted by price"). */
   sortLabel: "Sort by price",
+  sortTop: "Recommended",
   sortLowHigh: "Price: low to high",
   sortHighLow: "Price: high to low",
   sections: [

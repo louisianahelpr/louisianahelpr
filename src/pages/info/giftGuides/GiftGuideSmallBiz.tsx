@@ -2,18 +2,19 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
-import { SHOP_SMALL_GUIDE, SMALL_BIZ_SLUG, SMALL_BIZ_WORDS as W, smallBizDay, smallBizFeatured, smallBizSections, smallBizTitle, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
+import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS as W, smallBizDay, smallBizFeatured, smallBizTitle, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { loadModule } from "@/lib/loadModule";
 import { WISH } from "@/content/giftWishList";
-import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { SB_CARD_CSS } from "./smallBizCardStyles";
 
 /**
- * /gift-guides/small-business-saturday (owner 2026-11-19 ~7:05 PM: "Yes do small business with our small business
- * sponsors"; ~7:15 PM: "We can link their facebooks or website for people to reach out"). One section per category,
- * each card the business's logo (or its name), name and town, a one-line description, its best gift idea, a "25 Days
+ * The Small Business Saturday sponsors (owner 2026-11-19 ~7:05 PM: "Yes do small business with our small business
+ * sponsors"; ~7:15 PM: "We can link their facebooks or website for people to reach out"). Owner 2026-11-21: their page
+ * is the Small Business Saturday deals day, /gift-guides/small-business-saturday (GiftGuideDeals.tsx renders
+ * SmallBizGrid); the old standalone page with its category sections was removed, its free listings and sign-up form
+ * live on /shop-small. Each card the business's logo (or its name), name and town, a one-line description, its best gift idea, a "25 Days
  * sponsor" badge (never a giveaway day), whether it ships, and "Visit" (website, else Facebook, else Instagram) with
  * its Facebook and Instagram beside it. These are the businesses' own pages, not affiliate links: plain links that open
  * in a new tab (rel noopener). Featured on the landing Nov 24-29; after Nov 29 the page is "Shop Small Louisiana".
@@ -23,7 +24,6 @@ import { SB_CARD_CSS } from "./smallBizCardStyles";
 const SMALL_BIZ_CSS = `
 .gg-sb-intro{margin:10px 0 4px;font-size:15px;line-height:1.5;color:var(--gg-ink);max-width:46rem}
 ${SB_CARD_CSS}
-.gg-sb-guide{display:inline-block;margin:16px 0 4px}
 .gg-sb-feature{display:flex;align-items:center;gap:14px;margin:4px 0 14px;padding:12px;border-radius:14px;border:1px solid var(--gg-line);background:hsl(var(--card));color:var(--gg-ink);text-decoration:none}
 .gg-sb-feature b{display:block;font-size:16px}
 .gg-sb-feature span{display:block;font-size:13px;color:var(--gg-muted);margin-top:2px}
@@ -32,13 +32,6 @@ ${SB_CARD_CSS}
 
 /** The businesses file, loaded alone (loadModule: a prevented preload gives null and the page keeps its loading line). */
 const loadSmallBiz = () => loadModule(() => import("@/content/giftGuideSmallBiz.json"));
-
-/**
- * "Featured local" (owner 2026-11-20): approved free listings BELOW the sponsors, then the "Get your business
- * featured" card. Its own chunk (SmallBizLocal.tsx), loaded after the page opens; its form is a further chunk.
- */
-type LocalModule = typeof import("./SmallBizLocal");
-const loadLocal = () => loadModule(() => import("./SmallBizLocal"));
 
 /** A business's own page, in a new tab (not an affiliate link: no "sponsored"). */
 function Out({ href, className, children, label }: { href: string; className?: string; children: React.ReactNode; label?: string }) {
@@ -83,57 +76,6 @@ function SmallBizCard({ b, compact = false }: { b: SmallBiz; compact?: boolean }
         )}
       </span>
     </li>
-  );
-}
-
-/** The page's body. `now` is for tests. */
-export function GiftGuideSmallBiz() {
-  const [rows, setRows] = useState<SmallBiz[] | null>(null);
-  useEffect(() => {
-    let live = true;
-    void loadSmallBiz().then(
-      (m) => live && m && setRows(m.default as SmallBiz[]),
-      // The chunk failed to load (offline, a stale deploy): the page says so rather than spin.
-      () => live && setRows([]),
-    );
-    return () => {
-      live = false;
-    };
-  }, []);
-  const sections = rows ? smallBizSections(rows) : [];
-  const [Local, setLocal] = useState<LocalModule["SmallBizLocal"] | null>(null);
-  useEffect(() => {
-    let live = true;
-    // A chunk that fails to load leaves the page as it was (sponsors only).
-    void loadLocal().then((m) => live && m && setLocal(() => m.SmallBizLocal), () => undefined);
-    return () => {
-      live = false;
-    };
-  }, []);
-  return (
-    <div data-gift-small-biz-page="">
-      <style>{SMALL_BIZ_CSS}</style>
-      <p className="gg-sb-intro">{W.intro}</p>
-      <a href="#get-featured" className="gg-link" data-gift-sbs-introlink="">{SBS_WORDS.introLink} ›</a>
-      {rows === null ? (
-        <p className="gg-sb-town" role="status">{W.loading}</p>
-      ) : sections.length === 0 ? (
-        <p className="gg-sb-intro" data-gift-sb-none="">{W.none}</p>
-      ) : (
-        sections.map(({ category, rows: list }) => {
-          const id = `gift-sb-${category.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-")}`;
-          return (
-            <section key={category} aria-labelledby={id} data-gift-sb-section={category}>
-              <div className="gg-rowhead"><h2 id={id}>{category}<span className="gg-rowcount">&nbsp;({list.length})</span></h2></div>
-              <ul className="gg-sb-grid">{list.map((b) => <SmallBizCard key={b.slug} b={b} />)}</ul>
-            </section>
-          );
-        })
-      )}
-      {/* Sponsors first, always (owner 11-20); the free listings and the sign-up card come after them. */}
-      {rows !== null && Local && <Local sponsors={(rows ?? []).map((b) => ({ name: b.name, links: [b.href, b.website, b.facebook, b.instagram] }))} />}
-      <Link to={`/gift-guides/${SHOP_SMALL_GUIDE}`} className="gg-link gg-sb-guide" data-gift-sb-guide="">{W.guideLink} ›</Link>
-    </div>
   );
 }
 

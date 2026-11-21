@@ -11,7 +11,11 @@
  * and "they all need to be sorted in sections by price": the rows sit in price sections (Under $25, $25 to $50, $50
  * to $75, $75 to $100, $100 and up; "Price coming soon" last), each a labelled section with its count, reversed for high to low.
  *
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const picks = sortable ? priceSections(sortByPrice(inBudget, order)) : inBudget; | const picks = sortable ? sortByPrice(inBudget, order) : inBudget;
+ * Lead 11-21 (earn order): the menu's first choice is "Recommended", the default, which on an EMPTY click-rank map is
+ * exactly low to high. This file mocks the map empty so it stays a pure price guard; the click order itself is guarded
+ * by src/test/giftGuideEarnOrder1121.test.tsx.
+ *
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const sectioned = sortable ? priceSections(sortByPrice(inBudget, order === "high" ? "high" : "low")) : inBudget; | const sectioned = sortable ? sortByPrice(inBudget, order === "high" ? "high" : "low") : inBudget;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   return PRICE_SECTIONS.find((s) => dollars < s.max)!.id; |   return PRICE_SECTIONS.find((s) => dollars <= s.max)!.id;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />} |       {null}
  * @mutate src/content/giftGuidePriceSort.ts | return [...known, ...unknown]; | return [...unknown, ...known];
@@ -21,6 +25,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+
+vi.mock("@/content/giftGuideEarnRank.json", () => ({ default: { ranks: {} } }));
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
@@ -53,7 +59,14 @@ const renderAt = (url: string) =>
     </MemoryRouter>,
   );
 /** The names of the rows on screen, top to bottom. */
-const shownNames = (c: HTMLElement) => [...c.querySelectorAll("[data-gift-pick] .gg-nm-name")].map((n) => n.textContent);
+/** Every row's name, after opening every "Show more" (the page shows 50 at a time; Him holds 141 since 11-21). */
+const shownNames = (c: HTMLElement) => {
+  for (let b = within(c).queryByRole("button", { name: /^Show more/ }); b; b = within(c).queryByRole("button", { name: /^Show more/ })) {
+    const more = b;
+    act(() => { fireEvent.click(more); });
+  }
+  return [...c.querySelectorAll("[data-gift-pick] .gg-nm-name")].map((n) => n.textContent);
+};
 
 describe("the price sort key in the three chunks (owner 11-21)", () => {
   it("every pick has an integer priceRank, 1..n in the list's cheapest-first order", () => {
@@ -92,13 +105,13 @@ const checked = () => {
 };
 
 describe("the sort control on the page (owner 11-21)", () => {
-  it.each(["her", "him", "kids", "mom", "dad"])("/gift-guides/%s opens low to high and flips to high to low", async (slug) => {
+  it.each(["her", "him", "kids", "mom", "dad"])("/gift-guides/%s opens on Recommended (low to high with no clicks) and flips to high to low", async (slug) => {
     await act(async () => { await loadGuidePicks(slug); });
     const { container } = renderAt(`/gift-guides/${slug}`);
     // No big two-button toggle above the list any more; the menu lives in the header's tool row.
     expect(screen.queryByRole("radiogroup", { name: G.sortLabel })).toBeNull();
     expect(container.querySelector("[data-gift-headrow] [data-gift-sort-button]")).not.toBeNull();
-    expect(checked()).toEqual([G.sortLowHigh]);
+    expect(checked()).toEqual([G.sortTop]);
     const base = slug === "mom" ? "her" : slug === "dad" ? "him" : slug;
     const expected = CHUNKS[base].filter((r) => base === slug || r.rels?.includes(slug)).map((r) => r.name);
     expect(expected.length, slug).toBeGreaterThan(5);
@@ -107,6 +120,7 @@ describe("the sort control on the page (owner 11-21)", () => {
     expect(checked()).toEqual([G.sortHighLow]);
     expect(shownNames(container)).toEqual([...expected].reverse());
     choose(G.sortLowHigh);
+    expect(checked()).toEqual([G.sortLowHigh]);
     expect(shownNames(container)).toEqual(expected);
   });
 
@@ -153,7 +167,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
     vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
     await act(async () => { await loadGuidePicks(slug); });
     const { container } = renderAt(`/gift-guides/${slug}`);
-    fireEvent.click(container.querySelector("[data-gift-more-picks]") ?? document.body);
+    // Every "Show more" (50 at a time; Him holds 141 of her saves since 11-21).
+    for (let m = container.querySelector("[data-gift-more-picks]"); m; m = container.querySelector("[data-gift-more-picks]")) fireEvent.click(m);
     const low = sections(container);
     // Owner 11-21: "Each guide should have sections that go by price 25 50 75 100+".
     const order = ["Under $25", "$25 to $50", "$50 to $75", "$75 to $100", "$100 and up"];
@@ -167,16 +182,17 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       expect(x.dollars, x.title).toEqual([...x.dollars].sort((a, b) => a - b));
     }
     choose(G.sortHighLow);
-    fireEvent.click(container.querySelector("[data-gift-more-picks]") ?? document.body);
+    // Every "Show more" (50 at a time; Him holds 141 of her saves since 11-21).
+    for (let m = container.querySelector("[data-gift-more-picks]"); m; m = container.querySelector("[data-gift-more-picks]")) fireEvent.click(m);
     const high = sections(container);
     expect(high.map((x) => x.title), slug).toEqual([...low.map((x) => x.title)].reverse());
     for (const x of high) expect(x.dollars, x.title).toEqual([...x.dollars].sort((a, b) => b - a));
     expect(high.reduce((n, x) => n + x.dollars.length, 0)).toBe(CHUNKS[slug].length);
-    // Counts per band, measured 2026-11-21 from the shown (rounded) prices: exact, so a moved boundary shows.
+    // Counts per band, measured 2026-11-21 from the shown (rounded) prices (all of her saves: Him 141, Kids 81, Her 47): exact, so a moved boundary shows.
     const COUNTS: Record<string, Record<string, number>> = {
-      him: { "Under $25": 15, "$25 to $50": 16, "$50 to $75": 5, "$75 to $100": 6, "$100 and up": 5 },
-      kids: { "Under $25": 21, "$25 to $50": 19, "$50 to $75": 5, "$75 to $100": 3, "$100 and up": 8 },
-      her: { "Under $25": 12, "$25 to $50": 13, "$50 to $75": 1, "$75 to $100": 1, "$100 and up": 9 },
+      him: { "Under $25": 44, "$25 to $50": 40, "$50 to $75": 19, "$75 to $100": 10, "$100 and up": 28 },
+      kids: { "Under $25": 33, "$25 to $50": 21, "$50 to $75": 5, "$75 to $100": 5, "$100 and up": 17 },
+      her: { "Under $25": 18, "$25 to $50": 15, "$50 to $75": 2, "$75 to $100": 2, "$100 and up": 10 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

@@ -1,9 +1,13 @@
 /**
- * The deals page, /gift-guides/black-friday-cyber-monday (owner 2026-11-19: "You can build the rest of the Black Friday
- * and Cyber Monday guides asap"; owner 2026-11-21: "we still need to do the black friday section, small business
- * saturday, and cyber monday deals", and "Codes and deals shouldn't randomly show in sections": deals live on this one
- * page, never inside Her, Him or Kids). Three sections in calendar order: Black Friday (Fri Nov 27), Small Business
- * Saturday (Sat Nov 28, the confirmed Louisiana 25 Days sponsors) and Cyber Monday (Mon Nov 30). Its words, its dates
+ * The deals days (owner 2026-11-19: "You can build the rest of the Black Friday and Cyber Monday guides asap"; owner
+ * 2026-11-21: "we still need to do the black friday section, small business saturday, and cyber monday deals", and
+ * "Codes and deals shouldn't randomly show in sections": deals never show inside Her, Him or Kids). Owner 2026-11-21
+ * later: "remove small business stuff from black friday stuff. like each day has its own section, no need to put them
+ * all in 1": each day is its OWN page, /gift-guides/<DEAL_EVENTS id>: /gift-guides/black-friday (Fri Nov 27),
+ * /gift-guides/small-business-saturday (Sat Nov 28, the confirmed Louisiana 25 Days sponsors) and
+ * /gift-guides/cyber-monday (Mon Nov 30), each with only its own cards and codes. The old one-page address
+ * /gift-guides/black-friday-cyber-monday (DEALS_SLUG) opens Black Friday, and its old #<day> anchors open that day's
+ * page (oldDealsTarget). Its words, its dates
  * and the rules that hide a deal live here, in plain JS, so the page (GiftGuideDeals.tsx), the pre-JS head
  * (giftGuidePageMeta.mjs, api/share.ts) and the generator (scripts/gift-guide-deals.mjs) all read one copy.
  * The deals themselves are src/content/giftGuideDeals.json (generated; loaded only when the page opens).
@@ -11,6 +15,10 @@
  * Guard: src/test/giftGuideDeals1119.test.tsx. Types: giftGuideDeals.d.mts.
  */
 
+/**
+ * The old one-page address (now a redirect, oldDealsTarget) and the wish list's key for a hearted deal card (saved
+ * lists already hold it, so it never changes).
+ */
 export const DEALS_SLUG = "black-friday-cyber-monday";
 
 /** The landing features the guide at its top from this day through FEATURE_TO (owner brief 2026-11-19). */
@@ -20,29 +28,61 @@ export const FEATURE_TO = "2026-12-01";
 export const RETITLE_AFTER = "2026-12-01";
 
 /**
- * The page's three sections, in calendar order. `kind`: "deals" (cards from giftGuideDeals.json with this event) or
- * "small-biz" (the 25 Days sponsors from giftGuideSmallBiz.json). Each says its day before it, on it and after it.
+ * The three day pages, in calendar order; `id` is the page's slug. `kind`: "deals" (cards from giftGuideDeals.json
+ * with this event) or "small-biz" (the 25 Days sponsors from giftGuideSmallBiz.json). `pageTitle` is the banner's
+ * title, `lead` the line above it and `description` its search result line (owner 11-21: no intro on the page). Each says
+ * its day before it, on it and after it.
  */
 export const DEAL_EVENTS = [
   {
     id: "black-friday", kind: "deals", day: "2026-11-27", title: "Black Friday",
+    pageTitle: "Black Friday Deals", lead: "the best",
+    description: "Black Friday Deals 2026: hand-checked Black Friday sales and codes from brands you already love, picked by Louisiana Helpr.",
     before: "Fri, Nov 27. Plenty of these sales are on already.",
     on: "Today, Fri, Nov 27. These sales are on now.",
     after: "Black Friday was Nov 27. These sales are still on.",
   },
   {
     id: "small-business-saturday", kind: "small-biz", day: "2026-11-28", title: "Small Business Saturday",
+    pageTitle: "Small Business Saturday", lead: "shop small",
+    description: "Small Business Saturday 2026: Louisiana shops, makers and local favorites sponsoring Louisiana Helpr's 25 Days of Giveaways, with a link to each one.",
     before: "Sat, Nov 28. Shop Louisiana: these local businesses are all sponsors of our 25 Days of Giveaways.",
     on: "Today, Sat, Nov 28. Shop Louisiana: these local businesses are all sponsors of our 25 Days of Giveaways.",
     after: "Small Business Saturday was Nov 28. These Louisiana businesses, all 25 Days sponsors, are open all season.",
   },
   {
     id: "cyber-monday", kind: "deals", day: "2026-11-30", title: "Cyber Monday",
+    pageTitle: "Cyber Monday Deals", lead: "the best",
+    description: "Cyber Monday Deals 2026: hand-checked Cyber Monday and Cyber Week sales and codes from brands you already love, picked by Louisiana Helpr.",
     before: "Mon, Nov 30. Cyber Week sales, and deals that run through Cyber Monday.",
     on: "Today, Mon, Nov 30. Last call on Cyber Week sales.",
     after: "Cyber Monday was Nov 30. These sales are still on.",
   },
 ];
+
+/** The day pages' slugs, in calendar order. */
+export const DEAL_DAY_SLUGS = DEAL_EVENTS.map((e) => e.id);
+
+/** The day page a slug names, or null. */
+export function dealDay(slug) {
+  return DEAL_EVENTS.find((e) => e.id === slug) ?? null;
+}
+
+/**
+ * Where the old one-page address goes (owner 11-21: each day its own page): its #<day> anchor's page, else Black
+ * Friday. `hash` is "" or "#small-business-saturday".
+ */
+export function oldDealsTarget(hash) {
+  return dealDay(String(hash ?? "").replace(/^#/, ""))?.id ?? DEAL_EVENTS[0].id;
+}
+
+/**
+ * The day a day page's codes and sales must still work on: the day itself, or today once it has passed (a code that
+ * ended after the day is gone). A code with no dates works every day, so it shows on both deals days.
+ */
+export function codesDay(event, today) {
+  return today > event.day ? today : event.day;
+}
 
 /** At most this many deals from one brand on the whole page (owner 11-20: about 2 of a brand at most). */
 export const DEALS_PER_BRAND = 2;
@@ -50,7 +90,6 @@ export const DEALS_PER_BRAND = 2;
 export const DEALS_WORDS = {
   title: "Black Friday & Cyber Monday Deals",
   laterTitle: "Holiday Deals",
-  lead: "the best",
   // Owner 2026-11-21 ("remove this"): no intro paragraph, "#ad" line or helper line on the deals page. The page keeps
   // the gift guides' standard affiliate disclosure in its footer (GiftGuides.tsx); the pre-JS body (api/share.ts)
   // carries the same words.
@@ -61,7 +100,7 @@ export const DEALS_WORDS = {
   codeLabel: "Code",
   endsOn: (ymd) => `Ends ${shortDay(ymd)}`,
   startsOn: (ymd) => `Starts ${shortDay(ymd)}`,
-  jumpLabel: "Jump to a day",
+  shopSmall: "More Louisiana small businesses on Shop Small",
   none: "These deals have ended. Our gift guides are still full of ideas.",
   noneCta: "Browse the gift guides",
   loading: "Loading deals…",

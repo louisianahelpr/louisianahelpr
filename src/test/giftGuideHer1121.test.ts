@@ -27,7 +27,9 @@ const page = (JSON.parse(readFileSync(join(ROOT, "src", "content", "giftGuidePic
 /** The owner's saves, copied from her Desktop notes (Her-saved-amazon-1121.md, Her-saved-shopmy-1121.md), not from the module. */
 const AMAZON_ASINS = ["B0D3L9BYFZ", "B0CPB1MWMP", "B0FVFV7V1R", "B0FFMJMB6K", "B0FDKC619F", "B0C246HFWN", "B0FPCH9S11", "B0HJVYHH35", "B0FKN7FGPY", "B0B1RWJ4QJ"];
 /** Her Amazon cart saves (Her-saved-amazon-cart-1121.md; owner 2026-11-21: "we can have more than 25 items its fine"). */
-const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B08X8P91FX", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV"];
+const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B08X8P91FX", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV",
+  // Owner 11-21 ("women too"): the rest of her cart and saved-for-later, but the duplicate ZDEER listing and Mighty Patch.
+  "B0HJ9ZJ8KM", "B091NJQ29P", "B0CMJZVT5P", "B0G6CR9TGW", "B0FSJQ3KJT", "B0F19YY96Z", "B0GT3W5DQL", "B0H2G28G12", "B0HFXZ9F46", "B0CVLJ85KP", "B0DT1CZ58V"];
 // p-108755104 is her iHerb pin for the BIODANCE masks (11-21), replacing her Sephora UK pin p-108613754 that US shoppers cannot use.
 const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", "p-108613192", "p-108612982", "p-108611500", "p-108831058", "p-108609900", "p-108607824", "p-107555566", "p-108605514", "p-108604684", "p-108604054"];
 /**
@@ -41,9 +43,9 @@ const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS].map((a) => `https://w
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 36 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(36);
-    expect(page.length).toBe(36);
+  it("the page holds exactly her 47 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(47);
+    expect(page.length).toBe(47);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
   });
 
@@ -61,7 +63,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     const seen = new Map(HER_1121.map((r) => [r.href, r.sortPrice]));
     const prices = page.map((p) => seen.get(p.href) as number);
     expect(prices).toEqual([...prices].sort((a, b) => a - b));
-    expect(page[0].name).toMatch(/leggings/i);
+    expect(page[0].name).toMatch(/eye gel/i);
     expect(page[page.length - 1].name).toMatch(/currentbody/i);
     // The module sorts by itself: fed in reverse, it still lists cheapest first.
     const again = her1121Picks([...HER_1121].reverse()).map((p) => seen.get(p.href) as number);
@@ -75,7 +77,7 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(20);
+    expect(amazon.length).toBe(31);
     expect(shopmy.length).toBe(16);
     const captured = new Map(HER_1121.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {

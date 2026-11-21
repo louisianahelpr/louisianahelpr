@@ -10,15 +10,15 @@
  * @mutate scripts/giftGuidePrice.mjs |   if ([p.store, p.retailer, p.brand].some((x) => typeof x === "string" && /^amazon\b/i.test(x.trim()))) return undefined; |   if (false) return undefined;
  * @mutate scripts/giftGuidePrice.mjs |   if (now - at > PRICE_MAX_AGE_DAYS * DAY_MS \|\| at - now > DAY_MS / 24) return undefined; |   if (at - now > DAY_MS / 24) return undefined;
  * @mutate scripts/giftGuidePrice.mjs | p.price_currency !== "USD" \|\| !p.price_source | !p.price_source
- * @mutate src/components/giftGuides/PickPrice.tsx | !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt)) return false; | !/^\d{4}-\d{2}-\d{2}$/.test(pick.priceAt) \|\| pick.store === "amazon") return false;
- * @mutate src/components/giftGuides/PickPrice.tsx |   return age >= 0 && age <= PRICE_MAX_AGE_DAYS; |   return age >= 0;
+ * @mutate src/components/giftGuides/PickPrice.tsx | => pickPriceShown(pick.price, pick.priceAt, today); | => pick.store !== "amazon" && pickPriceShown(pick.price, pick.priceAt, today);
+ * @mutate src/lib/pickPriceShown.mjs |   return age >= 0 && age <= PRICE_MAX_AGE_DAYS; |   return age >= 0;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <small className="gg-nm-meta"><PickPrice pick={pick} /></small> | <small className="gg-nm-meta">{null}</small>
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <PricesAsOf picks={picks.slice(0, upTo)} /> |       {null}
  * @mutate src/content/giftGuideCatalog.ts | ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}), | ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt } : {}),
  * @mutate scripts/giftGuideHimKids1121.mjs |     const shown = isAmazon(r) ? r.sortPrice : price; |     const shown = isAmazon(r) ? undefined : price;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import type { PickChunk } from "@/content/giftGuidePicks";
 import { TOP_PICKS } from "@/content/giftGuidePicks";
@@ -162,6 +162,11 @@ describe("gift-guide prices: a real guide page", () => {
       </MemoryRouter>,
     );
     await screen.findAllByText(/^~\$\d+$/);
+    // Him holds all of the owner's men's saves (141, 11-21): the page shows 50 at a time behind "Show more".
+    for (let b = screen.queryByRole("button", { name: /^Show more/ }); b; b = screen.queryByRole("button", { name: /^Show more/ })) {
+      const more = b;
+      act(() => { fireEvent.click(more); });
+    }
     const rows = [...container.querySelectorAll("li[data-gift-pick]")];
     expect(rows.length).toBe(CHUNKS.him.length);
     const shown = rows.map((li) => li.querySelector("[data-gift-price]")?.textContent ?? "none");

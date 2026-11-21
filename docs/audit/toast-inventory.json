@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1261,
-    "files": 365,
-    "rendering": 1183,
+    "calls": 1265,
+    "files": 366,
+    "rendering": 1187,
     "suppressedByPolicy": 78,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 11,
       "successToast": 2,
       "toast": 254,
-      "toast.error": 848,
+      "toast.error": 852,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 84,
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 452,
-      "template": 99,
-      "dynamic": 764,
+      "literal": 454,
+      "template": 100,
+      "dynamic": 765,
       "jsx": 0
     }
   },
@@ -15553,6 +15553,46 @@
       "title": {
         "form": "dynamic",
         "text": "e.userMessage ?? t(\"lfs.deleteFail\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/jobPage/useAddJobPhotos.ts",
+      "line": 28,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Photos must be JPG, PNG, WebP or GIF."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/jobPage/useAddJobPhotos.ts",
+      "line": 31,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "A job takes up to ${MAX_JOB_PHOTOS} photos."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/jobPage/useAddJobPhotos.ts",
+      "line": 46,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your photo didn't upload. Check your connection and try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/jobPage/useAddJobPhotos.ts",
+      "line": 58,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Your photo didn't save. Try again.\")"
       },
       "renders": true
     },

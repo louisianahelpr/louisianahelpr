@@ -7,8 +7,7 @@
 
 import { SITE_ORIGIN, NOINDEX_ROBOTS, PUBLIC_PAGE_META, publicPageMetaFor } from "./publicPageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "../content/giftGuideSeo.mjs";
-import { DEALS_SLUG, dealsTitle, louisianaDay } from "../content/giftGuideDeals.mjs";
-import { SMALL_BIZ_SLUG, smallBizDay, smallBizTitle } from "../content/giftGuideSmallBiz.mjs";
+import { dealDay } from "../content/giftGuideDeals.mjs";
 
 /** "A, B and C" */
 function joinNames(names) {
@@ -39,8 +38,8 @@ export function giftGuideDescription(name, topNames, count) {
  * holds) give it its own description; without them, the template.
  */
 export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count = 0) {
-  if (slug === DEALS_SLUG) return dealsPageMeta(new Date());
-  if (slug === SMALL_BIZ_SLUG) return smallBizPageMeta(new Date());
+  const day = dealDay(slug);
+  if (day) return dealDayPageMeta(day);
   const named = Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, slug) ? GIFT_GUIDE_SEO[slug] : null;
   const name = named ?? `${fallbackTitle} gift guide`;
   const description =
@@ -56,23 +55,12 @@ export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count
 }
 
 /**
- * The Black Friday & Cyber Monday deals guide's head (owner 2026-11-19): indexed, named for the day (dealsTitle:
- * "Holiday Deals" after Dec 1). It is no catalog guide, so it is not in GIFT_GUIDE_SEO.
+ * A deals day's head (owner 2026-11-21: "each day has its own section"): /gift-guides/black-friday,
+ * /gift-guides/small-business-saturday and /gift-guides/cyber-monday, each indexed under its own banner title and its
+ * own description (giftGuideDeals.mjs DEAL_EVENTS). No catalog guide, so not in GIFT_GUIDE_SEO.
  */
-export function dealsPageMeta(now) {
-  const name = dealsTitle(louisianaDay(now));
-  const description = `${name} 2026: hand-checked Black Friday and Cyber Monday sales from brands like Charlotte Tilbury, Stanley, BaubleBar and Yoto, plus Louisiana small businesses for Small Business Saturday, picked by Louisiana Helpr.`;
-  return { title: `${name} — Helpr`, description, canonical: `${SITE_ORIGIN}/gift-guides/${DEALS_SLUG}`, ogTitle: name, ogDescription: description };
-}
-
-/**
- * The Small Business Saturday page's head (owner 2026-11-19, big batch 1120): indexed, named for the day
- * ("Shop Small Louisiana" after Nov 29). No catalog guide, so not in GIFT_GUIDE_SEO.
- */
-export function smallBizPageMeta(now) {
-  const name = smallBizTitle(smallBizDay(now));
-  const description = `${name}: Louisiana shops, makers and local favorites sponsoring Louisiana Helpr's 25 Days of Giveaways, with a link to each one.`;
-  return { title: `${name} — Helpr`, description, canonical: `${SITE_ORIGIN}/gift-guides/${SMALL_BIZ_SLUG}`, ogTitle: name, ogDescription: description };
+export function dealDayPageMeta(day) {
+  return { title: `${day.pageTitle} — Helpr`, description: day.description, canonical: `${SITE_ORIGIN}/gift-guides/${day.id}`, ogTitle: day.pageTitle, ogDescription: day.description };
 }
 
 /** publicPageMetaFor plus the indexed gift guides (api/share.ts's pre-JS head and route table). */
@@ -80,8 +68,7 @@ export function publicOrGiftGuidePageMetaFor(pathname, tabParam) {
   const path = pathname.replace(/\/+$/, "") || "/";
   const gift = path.match(/^\/gift-guides\/([a-z0-9-]+)$/)?.[1];
   if (gift && Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, gift)) return giftGuidePageMeta(gift);
-  if (gift === DEALS_SLUG) return dealsPageMeta(new Date());
-  if (gift === SMALL_BIZ_SLUG) return smallBizPageMeta(new Date());
+  if (gift && dealDay(gift)) return dealDayPageMeta(dealDay(gift));
   // The fun pages (owner 2026-11-20: swipe, planner, the Secret Santa drawer) are public pages of their own.
   if (gift && Object.prototype.hasOwnProperty.call(PUBLIC_PAGE_META, path)) return PUBLIC_PAGE_META[path];
   // Any other /gift-guides/<slug> (a store page the link audits emptied, a hub, a mistyped slug) is noindex before JS

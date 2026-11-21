@@ -9,7 +9,12 @@
  *
  * @mutate src/pages/post-job/usePostStepHistory.ts |       if (t < depth) back.current(); |       if (false) back.current();
  * @mutate src/pages/post-job/usePostStepHistory.ts |     if (depth > (tag ?? base.current)) { |     if (false) {
- * @mutate src/pages/post-job/usePostStepHistory.ts |       if (tag !== null) navigate(-tag); |       if (false) navigate(-tag);
+ * @mutate src/pages/post-job/usePostStepHistory.ts |       if (pushed !== null) navigate(-pushed); |       if (pushed !== null) navigate(-(tag as number));
+ * @mutate src/pages/post-job/usePostStepHistory.ts |       if (pushed !== null) navigate(-pushed); |       if (false) navigate(-pushed);
+ *
+ * Audit 11-21 (High): a reload mid-post went back by the depth tag, but the depth skips (groups 0 -> kinds 2), so it
+ * overshot /post-job to /home or about:blank. The mount now goes back by the count of entries the flow pushed.
+ * Red first (2026-11-21) on f21fdc64ab: "reload at When-and-where left Post a job".
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
@@ -107,15 +112,44 @@ describe("F303: Back inside the post flow goes to the previous step", () => {
     expect(r.current.location.pathname).toBe("/post-job");
   });
 
+  it("a reload mid-post stays on /post-job: the mount goes back by the entries the flow pushed, not by the depth tag", async () => {
+    // Audit 11-21 (High): the groups (depth 0) jump straight to a group's kinds (2), so the flow pushes fewer
+    // entries than the depth tag says. Going back by the tag overshot past /post-job (to /home, or to about:blank
+    // when /post-job was the tab's first page). Record the real entries the flow pushes, then remount on them.
+    const { result: r, unmount } = mount();
+    const pushed: Array<{ pathname: string; state: unknown }> = [];
+    const record = () => { const st = r.current.location.state; if (postStepFromHistory(st) !== null) pushed.push({ pathname: "/post-job", state: st }); };
+    await act(async () => { r.current.form.startFresh(); r.current.form.setFormPage(1); r.current.form.setCategoryGroup("home"); });
+    record();
+    await act(async () => { r.current.form.setCategory("cleaning"); r.current.form.setTitle("Clean the kitchen"); });
+    await act(async () => { r.current.form.setCategoryGroup(null); r.current.form.setFormPage(2); });
+    record();
+    await act(async () => { r.current.form.setFormPage(3); });
+    record();
+    unmount();
+    // Inventory floor: three forward screens pushed three entries, and the deepest tag (4) exceeds that count.
+    expect(pushed.length).toBe(3);
+    expect(postStepFromHistory(pushed[2].state)).toBeGreaterThan(pushed.length);
+
+    for (const first of [["/home", "/post-job"], ["/post-job"]]) {
+      cleanup();
+      const { result: r2 } = mount([...first, ...pushed]);
+      await act(async () => {});
+      expect(r2.current.location.pathname, `reload at When-and-where left Post a job (history ${first.join(" > ")})`).toBe("/post-job");
+      expect(postStepFromHistory(r2.current.location.state), "the reload did not return to the flow's first entry").toBeNull();
+    }
+  });
+
   it("landing on an entry the flow pushed (a reload, or Back from the page a posted job went to) returns to the flow's first entry", async () => {
     const { result: r } = mount([
       "/messages",
       "/post-job",
-      { pathname: "/post-job", state: { postStep: 2 } },
-      { pathname: "/post-job", state: { postStep: 3 } },
+      { pathname: "/post-job", state: { postStep: 2, postPushed: 1 } },
+      { pathname: "/post-job", state: { postStep: 3, postPushed: 2 } },
     ]);
     await act(async () => {});
     expect(postStepFromHistory(r.current.location.state), "a finished form's entries were left to walk").toBeNull();
+    expect(r.current.location.pathname, "the flow's first entry is still Post a job").toBe("/post-job");
     await browserBack(r);
     expect(r.current.location.pathname).toBe("/messages");
   });

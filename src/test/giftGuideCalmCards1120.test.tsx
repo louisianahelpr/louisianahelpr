@@ -12,7 +12,7 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-photo{border-radius:12px;background:#fff} | .gg-list .gg-photo{border-radius:12px;background:#faf6ee}
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | aspect-ratio:1/1;border-radius:10px;background:#fff; | aspect-ratio:1/1;border-radius:10px;background:#faf6ee;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply} | img.gg-thumb{background:transparent;mix-blend-mode:multiply}
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <Heart saved={saved} label={WISH.saveLabel(pick.name)} |       <GiftOut href={pick.href} className="gg-shop-btn">Shop</GiftOut><Heart saved={saved} label={WISH.saveLabel(pick.name)}
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <Heart saved={saved} label={WISH.saveForLabel(pick.name)} |       <GiftOut href={pick.href} className="gg-shop-btn">Shop</GiftOut><Heart saved={saved} label={WISH.saveForLabel(pick.name)}
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |       {heart && ( |       <Out href={item.href} className="gg-shop-btn">Shop</Out>{heart && (
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-item:hover .gg-nm-name,.gg-item:focus-visible .gg-nm-name{text-decoration:underline; | .gg-item:hover .gg-nm-name,.gg-item:focus-visible .gg-nm-name{text-decoration:none;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | padding:0 6px 0 0;border:0;border-radius:0;background:none; | padding:0 6px 0 0;border:1px solid;border-radius:999px;background:none;

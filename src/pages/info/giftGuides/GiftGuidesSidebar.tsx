@@ -185,25 +185,23 @@ export function SalesList({ sales, first = SALES_FIRST }: { sales: readonly Sale
 
 /**
  * "Deals & codes" (owner redesign 11-18 PM: "Codes should be a section with the other discount stuff right?"): ONE
- * section holding the discount codes and the store sales, on the deals page only (owner 11-21: "Codes and deals
+ * section holding the discount codes and the store sales, on the deals days only (owner 11-21: "Codes and deals
  * shouldn't randomly show in sections": no guide page carries it).
- * It starts COLLAPSED on every page and screen and never opens by itself (owner 11-18: "discount code shouldn't open
- * expanded"; no open state is remembered across pages). Hidden while it holds nothing. The one exception is the deals
- * page itself (owner 11-21: "i dont see the discount codes or sales"), whose purpose is the codes and sales: there it
- * starts open (`open`).
+ * It starts COLLAPSED on every page and screen, the deals days too, and never opens by itself (owner 11-18: "discount
+ * code shouldn't open expanded"; owner 11-21: "[Deals & codes box] should open collapsed"; no open state is remembered
+ * across pages). Hidden while it holds nothing. `on` (a deals day, YYYY-MM-DD) keeps only the codes and sales that
+ * still work on that day (owner 11-21: each day its own page with its own codes; giftGuideDeals.mjs codesDay).
  */
-export function DealsAndCodes({ open = false }: { open?: boolean } = {}) {
-  const today = localToday();
-  const allCodes = activeCodes([...discountCodes, ...DEAL_CODES], today);
-  const allSales = liveSales(SALES, today);
-  const codes = allCodes;
-  const sales = allSales;
+export function DealsAndCodes({ on }: { on?: string } = {}) {
+  const day = on ?? localToday();
+  const codes = activeCodes([...discountCodes, ...DEAL_CODES], day);
+  const sales = liveSales(SALES, day);
   if (codes.length === 0 && sales.length === 0) return null;
   // Design spec 11-18 H5: a cream card; open, at most 8 rows show (codes first, then sales), each list with its See all.
   const stores = codesByStore(codes).length;
   const codeRows = Math.min(stores, DEALS_ROWS);
   return (
-    <details id="gift-codes" className="gg-deals" open={open} data-gift-deals-codes="">
+    <details id="gift-codes" className="gg-deals" data-gift-deals-codes="">
       <summary><span className="gg-deals-title">{G.dealsAndCodesLabel}</span><span className="gg-deals-count" data-gift-deals-count="">{G.dealsCount(sales.length, codes.length)}</span></summary>
       <DiscountCodes codes={codes} first={codeRows} />
       <SalesList sales={sales} first={DEALS_ROWS - codeRows} />

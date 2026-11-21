@@ -89,6 +89,22 @@ export const HER_1121 = [
   { name: "UGG Goldenstar Evelina Clog, Beige", brand: "UGG", line: "Fuzzy-lined UGG clogs she can slip on and go.", href: shopmy("p-108604684"), image: "https://static.shopmy.us/pins/zoom-108604684-1795237968140-108971391_025_b", store: "store-anthropologie", sortPrice: 175, price: 175, commission: 15, type: "shoes" },
   { name: "Therabody Theragun Mini", brand: "Therabody", line: "A pocket massage gun for sore shoulders and legs.", href: shopmy("p-108612982"), image: "https://static.shopmy.us/pins/zoom-108612982-1795240352615-253765107_0435.jpg", store: "store-haven-well-within", sortPrice: 219.99, price: 219.99, commission: 16, type: "massager" },
   { name: "CurrentBody LED Red Light Therapy Face Mask", brand: "CurrentBody", line: "An LED red light mask for skin care at home.", href: shopmy("p-108605514"), image: "https://static.shopmy.us/uploads/pretty-prod-1789545457784", store: "store-currentbody", sortPrice: 469.99, price: 469.99, commission: 10, type: "beauty-device" },
+  // Owner 11-21 ("same, kids should be all of my saves. women too. they all need to have prices"): the rest of her Amazon
+  // cart and saved-for-later (Her-saved-amazon-cart-1121.md), at her capture's price; the Marshall speaker and Sampeel
+  // set had no photo in the capture and were read on Amazon 2026-11-21. Left out: the second ZDEER GS5 listing
+  // (B0FX7WH9DJ, the same gua sha as above) and Hero Mighty Patch (B074PVTPBW: pimple patches are on the not-a-gift list,
+  // scripts/giftGuideRules.mjs NOT_A_GIFT_ITEM; the owner can say to add it).
+  { name: "Maybelline Mascara Holiday Gift Set", brand: "Maybelline", line: "A best-selling mascara in a holiday gift set.", href: amz("B0HJ9ZJ8KM"), image: amzImg("81jCLp4vnML"), store: "store-amazon", sortPrice: 6.99, commission: 3, type: "makeup" },
+  { name: "Good Molecules Yerba Mate Wake Up Eye Gel", brand: "Good Molecules", line: "A cooling eye gel for tired mornings.", href: amz("B091NJQ29P"), image: amzImg("71QsFtfDUCL"), store: "store-amazon", sortPrice: 4.77, commission: 3, type: "skincare" },
+  { name: "e.l.f. Glow Reviver Lip Oil", brand: "e.l.f.", line: "A glossy tinted lip oil she will keep in every bag.", href: amz("B0CMJZVT5P"), image: amzImg("610BzlDTpDL"), store: "store-amazon", sortPrice: 9, commission: 3, type: "lip" },
+  { name: "Hobo Bag, Small Everyday Purse", brand: "", line: "A slouchy everyday shoulder bag.", href: amz("B0G6CR9TGW"), image: amzImg("71BdMf6S+zL"), store: "store-amazon", sortPrice: 18.56, commission: 4, type: "bag" },
+  { name: "Anua Salmon DNA PDRN Glow Essential Starter Kit", brand: "Anua", line: "A Korean skincare starter kit for glowy skin.", href: amz("B0FSJQ3KJT"), image: amzImg("71YVdkGE+YL"), store: "store-amazon", sortPrice: 20, commission: 3, type: "skincare" },
+  { name: "Summer Fridays Jet Lag Hydrating Eye Patches", brand: "Summer Fridays", line: "Hydrating eye patches for a quick refresh.", href: amz("B0F19YY96Z"), image: amzImg("61zGRUYBPzL"), store: "store-amazon", sortPrice: 24, commission: 10, type: "skincare" },
+  { name: "Sampeel Two Piece Lounge Set, Brown Stripe", brand: "Sampeel", line: "A matching mock neck lounge set for travel days.", href: amz("B0GT3W5DQL"), image: amzImg("71KJvzDkkzL"), store: "store-amazon", sortPrice: 27.99, commission: 4, type: "matching-set" },
+  { name: "Salt & Stone Hair & Body Spray", brand: "Salt & Stone", line: "A clean hair and body fragrance mist.", href: amz("B0H2G28G12"), image: amzImg("61AWYM-olSL"), store: "store-amazon", sortPrice: 45, commission: 10, type: "fragrance" },
+  { name: "L'OCCITANE Softening Almond Trio", brand: "L'OCCITANE", line: "Almond shower oil and body care, ready to give.", href: amz("B0HFXZ9F46"), image: amzImg("712txcFaEQL"), store: "store-amazon", sortPrice: 59, commission: 10, type: "gift-set" },
+  { name: "Crocs Dylan Platform Clog", brand: "Crocs", line: "Comfy platform clogs for everyday errands.", href: amz("B0CVLJ85KP"), image: amzImg("61eFgBSya0L"), store: "store-amazon", sortPrice: 99, commission: 4, type: "shoes" },
+  { name: "Marshall Emberton III Bluetooth Speaker, Cream", brand: "Marshall", line: "A rugged, waterproof speaker with big sound.", href: amz("B0DT1CZ58V"), image: amzImg("81gRxBMDtdL"), store: "store-amazon", sortPrice: 119.99, commission: 3, type: "speaker" },
 ];
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);

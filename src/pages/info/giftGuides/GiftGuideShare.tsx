@@ -39,20 +39,23 @@ const SHARE = "M12 15V3.5M7.5 8 12 3.5 16.5 8M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11
 const SLIDERS = "M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4";
 
 /** A sort order the owner-list guides offer (src/content/giftGuidePriceSort.ts). */
-type SortOrder = "low" | "high";
+type SortOrder = "top" | "low" | "high";
 
 /**
  * Sort by price (owner 2026-11-21: "add the filter button up with the search icons"): one 44px icon in the tool row
  * that opens a small menu with "Price: low to high" (the default) and "Price: high to low", each a menuitemradio.
  * Escape or a tap outside closes it; arrow keys move between the two choices.
  */
+/** The menu's choices in order (lead 11-21: "Recommended", clicked picks first in each price section, is the default). */
+const SORT_VALUES: SortOrder[] = ["top", "low", "high"];
+
 function GiftGuideSort({ order, onChange }: { order: SortOrder; onChange: (o: SortOrder) => void }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
   const items = useRef<(HTMLButtonElement | null)[]>([]);
   useEffect(() => {
     if (!open) return;
-    items.current[order === "low" ? 0 : 1]?.focus();
+    items.current[Math.max(0, SORT_VALUES.indexOf(order))]?.focus();
     const away = (e: Event) => {
       if (!wrap.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -66,11 +69,11 @@ function GiftGuideSort({ order, onChange }: { order: SortOrder; onChange: (o: So
       document.removeEventListener("keydown", esc);
     };
   }, [open, order]);
-  const choices: { value: SortOrder; label: string }[] = [{ value: "low", label: G.sortLowHigh }, { value: "high", label: G.sortHighLow }];
+  const choices: { value: SortOrder; label: string }[] = [{ value: "top", label: G.sortTop }, { value: "low", label: G.sortLowHigh }, { value: "high", label: G.sortHighLow }];
   const move = (e: React.KeyboardEvent, i: number) => {
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
     e.preventDefault();
-    items.current[(i + 1) % 2]?.focus();
+    items.current[(i + (e.key === "ArrowDown" ? 1 : SORT_VALUES.length - 1)) % SORT_VALUES.length]?.focus();
   };
   return (
     <span ref={wrap} className="gg-share-wrap">

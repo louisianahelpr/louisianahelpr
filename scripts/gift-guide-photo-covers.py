@@ -318,6 +318,15 @@ def cutout(data, tight=False):
     # The opening above shaves thin attached parts (grill legs, glasses arms, cords): put back raw pixels touching them.
     keep |= raw & ndimage.binary_dilation(keep, iterations=3)
     fg = ndimage.binary_fill_holes(keep)
+    # Owner 11-21 ("no guides images have background like the stanley cooler ... has white in the background of the
+    # handle"): a hole the product encloses (a bag's handle, a mug's ear) that is the photo's own backdrop is cut out
+    # too, so the gingham shows through it. Only a sizeable hole of near-backdrop colour; the product's own white
+    # panels are shaded or printed and stay.
+    holes, nh = ndimage.label(fg & ~keep | (fg & (off <= 8)))
+    for i in range(1, nh + 1):
+        h = holes == i
+        if h.sum() >= 0.004 * h.size and not (h[0].any() or h[-1].any() or h[:, 0].any() or h[:, -1].any()) and (off[h] <= 10).mean() > 0.9:
+            fg &= ~h
     edge = np.concatenate([fg[:2].ravel(), fg[-2:].ravel(), fg[:, :2].ravel(), fg[:, -2:].ravel()])
     # A product standing on the photo's bottom edge (Dillard's crops shoes and bags tight to the floor) is whole: only
     # the bottom edge touched, along at most half its width.

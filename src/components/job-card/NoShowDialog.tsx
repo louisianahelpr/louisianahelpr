@@ -95,18 +95,17 @@ export function NoShowDialog({ jobId, job, helperName, onClose, onConfirm, repor
         <DialogBody>
           {waitLine && <p data-testid="no-show-opens-line"><strong>{waitLine}</strong></p>}
           <p data-testid="no-show-outcome">{noShowRefundLine(refundCents)} {who} gets a strike.</p>
-          {/* Audit 11-21 (G16): the sheet told the poster to pick a new date but offered no way to; the date is picked
-              AFTER the report, on the reopened job. Say that plainly, and fold the strike policy behind one line. */}
-          <p data-testid="no-show-next">Reporting takes {who === "The Helpr" ? "them" : who} off your job and reopens it. Then pick a new date on the job to hire someone else. Our team is told.</p>
-          <details className="text-ds-13">
-            <summary className="cursor-pointer min-h-11 py-2 font-semibold text-foreground">How strikes work</summary>
-            <p>{NO_SHOW_LADDER_SENTENCE}</p>
-          </details>
+          <p>Are you sure the Helpr didn't show up? This will:</p>
+          <ul className="space-y-1 list-disc pl-5">
+            <li>Go on the Helpr's record — {NO_SHOW_LADDER_SENTENCE}</li>
+            <li>Take them off your job. Its start time has passed, so to hire someone else, change the date right away</li>
+            <li>Notify the admin team</li>
+          </ul>
         </DialogBody>
         <DialogFooter>
           <DialogSecondaryAction onClick={onClose}>Cancel</DialogSecondaryAction>
           <DialogDestructiveAction onClick={() => jobId && onConfirm(jobId)} disabled={reporting || !open}>
-            {reporting ? "Reporting…" : "Confirm no-show"}
+            {reporting ? "Reporting…" : "Confirm No-Show"}
           </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>

@@ -26,7 +26,7 @@ export const esJobPoster: Record<keyof typeof enJobPoster, string> = {
   "jp.applicantOne": "1 solicitud",
   "jp.applicantN": "{n} solicitudes",
   "jp.unpaid": "Aún sin pagar. Los Helprs no ven este trabajo hasta que se pague.",
-  "jp.heldLine": "No se cobra su tarjeta hasta que usted contrate a un Helpr.",
+  "jp.heldLine": "No se cobra su tarjeta hasta que un Helpr acepte su oferta.",
   "jp.seeReceipt": "Ver su recibo",
   "jp.arriveTitle": "¿Llegó {name}?",
   "jp.arriveTitleNoName": "¿Llegó su Helpr?",

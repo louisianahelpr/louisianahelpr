@@ -28,23 +28,6 @@ const SEARCH_HINTS: [RegExp, JobCategory[]][] = [
   // Guard: src/test/area03JobsPosterPass2.test.tsx.
   [/\b(?:wash(?:ing)?|laundry|ironing|dishes)\b/, ["cleaning", "errands"]],
   [/\b(?:car|truck|boat)\s*wash|\bdetail(?:ing)?\b/, ["cleaning", "auto_repair"]],
-  // Audit 11-21 (G19): "gutter" found nothing, one of the commonest home jobs here. Common Louisiana asks the
-  // category names do not contain. Guard: src/test/jobsAudit1121PostSearch.test.tsx.
-  [/\bgutters?\b/, ["handyman", "storm_prep", "roofing"]],
-  [/\b(?:moss|mulch|trim(?:ming)?|trees?|branch(?:es)?|stumps?|garden(?:ing)?|landscap\w*)\b/, ["yard_work"]],
-  [/\b(?:hurricane|storm|shutters?|tarps?|sandbags?|generator|flood(?:ing)?)\b/, ["storm_prep"]],
-  [/\b(?:leaks?|faucets?|toilets?|drains?|clogs?|water\s*heater|sinks?)\b/, ["plumbing"]],
-  [/\b(?:outlets?|lights?|light\s*fixtures?|ceiling\s*fans?|breakers?|wiring)\b/, ["electrical"]],
-  [/\b(?:a\/?c|air\s*condition\w*|furnace|thermostat)\b/, ["hvac"]],
-  [/\b(?:shingles?|roof)\b/, ["roofing"]],
-  [/\b(?:dog|cat|pets?|walk(?:ing)?|sit(?:ting|ter)?)\b/, ["pet_care"]],
-  [/\b(?:groceries|grocery|pick\s*up|drop\s*off|pharmacy)\b/, ["errands", "delivery"]],
-  [/\b(?:party|crawfish\s*boil|wedding|catering)\b/, ["events"]],
-  [/\b(?:tiles?|carpet|laminate|hardwood)\b/, ["flooring"]],
-  [/\b(?:deck|cabinets?|trim\s*work|doors?)\b/, ["carpentry", "handyman"]],
-  [/\b(?:ikea|crib|desk|bed\s*frame|grill)\b/, ["assembly"]],
-  [/\b(?:junk|clutter|garage|attic|closet)\b/, ["declutter_help", "moving"]],
-  [/\b(?:washer|dryer|fridge|refrigerator|dishwasher|oven|stove)\b/, ["appliance_repair"]],
 ];
 
 /* A tile's title and examples are t("postJob.group.<id>") / t("postJob.groupEx.<id>"): their English is

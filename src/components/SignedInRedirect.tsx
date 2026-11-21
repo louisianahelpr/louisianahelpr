@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface SignedInRedirectProps {
@@ -16,8 +16,6 @@ interface SignedInRedirectProps {
    * the length of the auth round-trip.
    */
   pendingFallback?: ReactNode;
-  /** Carry the page's query string to `to` (audit 11-21, P7: /browse?cat=plumbing must land on /jobs?cat=plumbing). */
-  keepQuery?: boolean;
 }
 
 /**
@@ -37,7 +35,6 @@ const SignedInRedirect = ({
   to,
   children,
   pendingFallback = <div className="min-h-screen bg-premium-page" />,
-  keepQuery = false,
 }: SignedInRedirectProps) => {
   // `isLoading` here means "auth state has not yet been determined" — the
   // supabase auth INITIAL_SESSION event hasn't fired (or, on native, the
@@ -46,7 +43,6 @@ const SignedInRedirect = ({
   // null before the persisted session lands — i.e. the exact person we are
   // redirecting would be shown the marketing page and left there.
   const { user, isLoading } = useCurrentUser();
-  const { search } = useLocation();
 
   // A PLAIN surface, not RouteSuspenseFallback's content skeleton, and the
   // same one <MarketingRedirect>'s Suspense fallback uses. At this point we do
@@ -57,7 +53,7 @@ const SignedInRedirect = ({
   // until the real destination paints its own skeleton.
   if (isLoading) return <>{pendingFallback}</>;
 
-  if (user) return <Navigate to={keepQuery && search ? `${to}${search}` : to} replace />;
+  if (user) return <Navigate to={to} replace />;
 
   return <>{children}</>;
 };

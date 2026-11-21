@@ -43,7 +43,7 @@ describe("board 186: the pay line names only live wallets", () => {
   });
 
   it("with the card hold on, the price step, the review step and the Stripe page make ONE promise (audit 11-10 F299)", () => {
-    expect(CARD_HOLD_COPY.postPromise).toBe("Pay by card and you're only charged when you hire a Helpr. Pay by bank and it's charged when you post. Either way the money is held until the job is done.");
+    expect(CARD_HOLD_COPY.postPromise).toBe("Your card is held, not charged, until a Helpr accepts your offer. A bank payment is charged when you post. Either way the money is held until the job is done.");
     const review = blankComments(readFileSync("src/pages/post-job/CheckoutStepView.tsx", "utf8"));
     expect(review).toContain("? `Check your job. ${CARD_HOLD_COPY.postPromise}`");
     expect(review).not.toMatch(/isn't charged until|A bank payment is charged when you post/);

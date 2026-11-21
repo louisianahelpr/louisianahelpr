@@ -65,7 +65,7 @@ describe("F284: a no-show report opens 30 minutes after the start", () => {
 describe("F284: the sheet keeps Confirm off until the report opens", () => {
   afterEach(() => { cleanup(); vi.useRealTimers(); });
   const job = { id: "j1", date_needed: "2037-11-12", start_time: "09:00:00" };
-  const confirm = () => screen.getByRole("button", { name: /Confirm no-show/ });
+  const confirm = () => screen.getByRole("button", { name: /Confirm No-Show/ });
 
   it("at 9:10 AM: says it opens at 9:30 AM and Confirm is off", () => {
     vi.useFakeTimers({ toFake: ["Date"] });

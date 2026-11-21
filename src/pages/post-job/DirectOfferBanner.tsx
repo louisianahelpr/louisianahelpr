@@ -39,10 +39,7 @@ export function DirectOfferBanner({
 }: DirectOfferBannerProps) {
   // "First L." (owner 2026-10-21: never a member's last name); formatName is
   // a no-op on a name already in that form.
-  // The raw full name (useJobFormEffects stores it unformatted): formatted here once. A profile with no name reads
-  // "this Helpr" (audit 11-21, P2: it read "this H." when the name was formatted twice, and "your saved Helpr" was
-  // wrong for an offer from a public profile the poster never saved).
-  const name = formatName(offerToHelperName, "this Helpr");
+  const name = formatName(offerToHelperName, "your saved Helpr");
   return (
     // Spec v2 rebuild (audit 2026-10-21): the one card, sentence case. It was a
     // thick olive-bordered tinted box titled "Direct Offer to …".

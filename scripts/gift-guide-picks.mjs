@@ -29,6 +29,8 @@ import { join } from "node:path";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { applyTrain1120b } from "./giftGuideTrain1120b.mjs";
 import { applyTrain1120c } from "./giftGuideTrain1120c.mjs";
+import { applyHolidayB1120 } from "./giftGuideHolidayB1120.mjs";
+import { readLineup, shortName as shortSponsorName } from "./gift-guide-sponsor-logos.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { applyBudgetCaps } from "./giftGuideBudgetCaps.mjs";
 import { BRAND_CODES, CUTS_1120, budgetBand, importRows1120, productKey1120, swapCuts } from "./giftGuideBig1120.mjs";
@@ -3907,6 +3909,18 @@ const fillPrices = () => {
   const spec = JSON.parse(readFileSync(new URL("./gift-guide-budget-1120.json", import.meta.url), "utf8"));
   const t = applyBudgetCaps(pageList, spec);
   console.log(`gift-guide-picks: budget caps ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT DONE (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
+}
+/**
+ * HOLIDAY AUDIT B (2026-11-20): shopper-only lines, the dropped sponsor, sponsor cards that show gifts, every 25 Days
+ * sponsor on the sponsors guide, the deals' blocked retailers and the audit's cuts, moves and photo fixes
+ * (scripts/giftGuideHolidayB1120.mjs, rules in scripts/gift-guide-holiday-b-1120.json). Last, so nothing re-adds a note.
+ */
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-holiday-b-1120.json", import.meta.url), "utf8"));
+  const { brands } = readLineup(readFileSync(new URL("../src/content/sponsorPage.ts", import.meta.url), "utf8"));
+  const lineup = [...new Set(brands.map(shortSponsorName))];
+  const t = applyHolidayB1120(pageList, deals, spec, { sponsorsGuide: SPONSORS_GUIDE, readJson, sales, storePages: [...STORE_PAGES_KEPT], nameOnly: NAME_ONLY, dealCodes, lineup, blockedBrand });
+  console.log(`gift-guide-picks: holiday audit B ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
 }
 /**
  * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks over the last 7 days

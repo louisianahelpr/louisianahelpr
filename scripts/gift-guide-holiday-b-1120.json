@@ -1,0 +1,1778 @@
+{
+ "about": "Holiday design audit B (2026-11-20, ~/.lh-shots/holiday-audit-1120/B-findings.md): the non-people guides, By Budget's Stocking Stuffers and Advent sections, Deals & codes and the store pages. Applied last by scripts/gift-guide-picks.mjs through scripts/giftGuideHolidayB1120.mjs. Rule shapes as in gift-guide-train-1120b.json, plus droppedSponsors, sponsorPhotos, logoCards, sponsorGroups, lineupAlias, sponsorLines and dealsBlocked.",
+ "notDone": "Left for the owner or a later pass (listed in the PR): the affiliate disclosure placement (B #4, owner decision); prices on Apple, Bass Pro, Best Buy, Coach, Dick's, Dillard's, Sephora and Target (B #9, needs the Chrome price check); store pages that need new store links to show what the store is known for (B #73: Bass Pro fishing gear, Dillard's, Old Navy family PJs; Mavely/ShopMy links are made in the owner's accounts); Louisiana by Region sections (B #23: sections of 2-4 conflict with the owner's merge-thin-sections rule); image resizing (B #10, #75); advent calendars hiding after Dec 1 (B #68, needs a page change); the owner's own creator codes (B #70).",
+ "cuts": [
+  {
+   "guide": "heroes",
+   "match": "Blackstone 22\" Tabletop Griddle",
+   "why": "B #52: two Blackstone griddles on one page; the 28\" stays"
+  },
+  {
+   "guide": "heroes",
+   "match": "YETI Rambler 26 oz Bottle with Chug Cap",
+   "why": "B #52: two YETI chug bottles; the 36 oz stays"
+  },
+  {
+   "guide": "heroes",
+   "match": "5.11 Tactical Backpack",
+   "why": "B #51/#52: vague name and a second 5.11 pack (the Rush 24 stays)",
+   "exact": true
+  },
+  {
+   "guide": "heroes",
+   "match": "LEATHERMAN Wave Plus 18-in-1 Multi-Tool, Black",
+   "why": "B #7/#52: the same Wave+ twice on one page"
+  },
+  {
+   "guide": "heroes",
+   "match": "Streamlight Wedge XT",
+   "why": "B #51/#52: vague name; 6 flashlights on one page"
+  },
+  {
+   "guide": "heroes",
+   "match": "Streamlight MicroStream",
+   "why": "B #52: 6 flashlights on one page"
+  },
+  {
+   "guide": "heroes",
+   "match": "Streamlight Stylus Pro",
+   "why": "B #52: 6 flashlights on one page"
+  },
+  {
+   "guide": "heroes",
+   "match": "Oakley Flak 2.0 XL",
+   "why": "B #7: the same Oakley Flak 2.0 XL is on Work Life (it stays there)"
+  },
+  {
+   "guide": "heroes",
+   "match": "Under Armour Tactical Tee",
+   "why": "B #51/#52: vague name; 4 Under Armour on one page"
+  },
+  {
+   "guide": "heroes",
+   "match": "Fossil Men's Watch",
+   "why": "B #51: vague placeholder name"
+  },
+  {
+   "guide": "heroes",
+   "match": "Samsonite Duffel",
+   "why": "B #51: vague placeholder name"
+  },
+  {
+   "guide": "heroes",
+   "match": "Columbia Men's Fleece",
+   "why": "B #51: vague placeholder name"
+  },
+  {
+   "guide": "heroes",
+   "match": "Smartwool Socks",
+   "why": "B #51: vague name; hiking socks (owner: no one hikes here)"
+  },
+  {
+   "guide": "heroes",
+   "match": "Anker Prime Power Bank",
+   "why": "B #51: vague name; a second Anker power bank on the page"
+  },
+  {
+   "guide": "heroes",
+   "match": "Rothco Vintage Veteran Low Profile Cap",
+   "why": "B #53: shows VETERAN AIR FORCE in Marines & Veterans"
+  },
+  {
+   "guide": "heroes",
+   "match": "HEYDUDE Wally Sox",
+   "why": "B #7: HEYDUDE Wally on three guides; Healthcare keeps it"
+  },
+  {
+   "guide": "heroes",
+   "match": "Rumpl Puffy Blanket",
+   "why": "B #7: Rumpl puffy on three guides; Outdoors keeps it"
+  },
+  {
+   "guide": "work-life",
+   "match": "YETI Daytrip 6L Lunch Bag",
+   "why": "B #7/#56: pink, and the same lunch bag is on Healthcare"
+  },
+  {
+   "guide": "work-life",
+   "match": "YETI Roadie 32 Wheeled Cooler",
+   "why": "B #56: pink cooler for Farmers & Ranchers"
+  },
+  {
+   "guide": "work-life",
+   "match": "Bose SoundLink Micro",
+   "why": "B #55: two Bose speakers in one section; the Flex stays"
+  },
+  {
+   "guide": "work-life",
+   "match": "Riedel Vinum Martini Glass",
+   "why": "B #55: two Riedel sets in one section"
+  },
+  {
+   "guide": "work-life",
+   "match": "BabylissPRO Nano Titanium Ionic Hair Straightener",
+   "why": "B #55: BaBylissPRO dryer and straightener together; the dryer stays"
+  },
+  {
+   "guide": "work-life",
+   "match": "Durango Rebel Ultra-Lite Steel Toe Work Boot",
+   "why": "B #55: two Durango boots in Trades"
+  },
+  {
+   "guide": "work-life",
+   "match": "Yellow Jacket 42004",
+   "why": "B #57: a technician's own gauge set, not a gift (typed jacket)"
+  },
+  {
+   "guide": "work-life",
+   "match": "FLUKE-101 Digital Multimeter",
+   "why": "B #57: a tool of the trade, not a gift"
+  },
+  {
+   "guide": "work-life",
+   "match": "Anker 735 Charger",
+   "why": "B #57/#77: a 2022 charger"
+  },
+  {
+   "guide": "work-life",
+   "match": "Chapman Piloting",
+   "why": "B #57: a textbook"
+  },
+  {
+   "guide": "work-life",
+   "match": "The Nine: Inside the Secret World",
+   "why": "B #57: a 2007 book"
+  },
+  {
+   "guide": "work-life",
+   "match": "Oakley Radar EV",
+   "why": "B #55: 3 Oakley on one page; vague name"
+  },
+  {
+   "guide": "work-life",
+   "match": "Costa Del Mar Fantail PRO",
+   "why": "B #7: the same Costa Fantail Pro is on Outdoors (it stays there)"
+  },
+  {
+   "guide": "work-life",
+   "match": "JBL Go 4",
+   "why": "B #7: the same JBL Go 4 is on Creative & Entertainment"
+  },
+  {
+   "guide": "work-life",
+   "match": "Capri Blue Volcano Signature Jar Candle",
+   "why": "B #7: Capri Blue Volcano on four guides; Healthcare keeps one"
+  },
+  {
+   "guide": "work-life",
+   "match": "HOKA Women's Bondi 9",
+   "why": "B #7: the same Bondi 9 is on Healthcare"
+  },
+  {
+   "guide": "work-life",
+   "match": "Barefoot Dreams CozyChic Robe",
+   "why": "B #7: the CozyChic robe is on Healthcare"
+  },
+  {
+   "guide": "work-life",
+   "match": "Olive & June Holiday Gel Mani System",
+   "why": "B #7: Olive & June Gel Mani on five guides"
+  },
+  {
+   "guide": "work-life",
+   "match": "HEYDUDE Wally Stretch",
+   "why": "B #7: HEYDUDE Wally on three guides; Healthcare keeps it",
+   "exact": true
+  },
+  {
+   "guide": "work-life",
+   "match": "Streamlight Headlamp",
+   "why": "B #51: vague name",
+   "exact": true
+  },
+  {
+   "guide": "healthcare",
+   "match": "Stanley Quencher Tumbler",
+   "why": "B #7/#48: the Stanley Quencher twice on the page (the Luxe stays)",
+   "exact": true
+  },
+  {
+   "guide": "healthcare",
+   "match": "Therabody Theragun Mini, Grape Blast",
+   "why": "B #48/#77: the older Theragun Mini; the 3rd Gen stays"
+  },
+  {
+   "guide": "healthcare",
+   "match": "Moleskine Classic Notebook Large",
+   "why": "B #7/#48: the Moleskine Classic twice on the page"
+  },
+  {
+   "guide": "healthcare",
+   "match": "Littmann Classic III Stethoscope, Pearl Pink",
+   "why": "B #7/#48: the Littmann Classic III twice on the page"
+  },
+  {
+   "guide": "healthcare",
+   "match": "Yoto Mini Kids Audio Player",
+   "why": "B #49: a kids' audio player in Therapy"
+  },
+  {
+   "guide": "healthcare",
+   "match": "21 Collective Core Mockneck",
+   "why": "B #49: a pre-order"
+  },
+  {
+   "guide": "healthcare",
+   "match": "Amazon Echo Dot",
+   "why": "B #49/#77: says nothing about the role; older Echo"
+  },
+  {
+   "guide": "healthcare",
+   "match": "Dearfoams Women's Fireside Slippers",
+   "why": "B #49: says nothing about the role"
+  },
+  {
+   "guide": "healthcare",
+   "match": "Bearaby Weighted Blanket",
+   "why": "B #7/#49: Bearaby is on Life Moments"
+  },
+  {
+   "guide": "healthcare",
+   "match": "GIANTmicrobes Brain Cell Plush",
+   "why": "B #48: two GIANTmicrobes plushes"
+  },
+  {
+   "guide": "healthcare",
+   "match": "Old World Christmas Doctor Tools Microscope",
+   "why": "B #48: two glass ornaments"
+  },
+  {
+   "guide": "healthcare",
+   "match": "Bath & Body Works Aromatherapy Stress Relief Body Lotion",
+   "why": "B #49: Bath & Body Works sold through Amazon"
+  },
+  {
+   "guide": "healthcare",
+   "match": "Barefoot Dreams CozyChic Long Robe",
+   "why": "B #48: two Barefoot Dreams robes on the page"
+  },
+  {
+   "guide": "healthcare",
+   "match": "Sockwell Women's Plantar Ease Socks",
+   "why": "B #50: the photo is a foot brace, not socks"
+  },
+  {
+   "guide": "healthcare",
+   "match": "Barefoot Dreams CozyChic Lite Ribbed Throw",
+   "why": "B #50: white throw on grey, nearly invisible"
+  },
+  {
+   "guide": "healthcare",
+   "match": "Hyperice Hypervolt Go 2",
+   "why": "B #77: an older Hypervolt"
+  },
+  {
+   "guide": "life-moments",
+   "match": "SKIMS Cozy Knit Oversized Hoodie",
+   "why": "B #58: the photo is a black skeleton-print (Halloween) hoodie"
+  },
+  {
+   "guide": "life-moments",
+   "match": "Splendid Sugar Cookie Marna Pillowsoft PJ Set",
+   "why": "B #59: 4 Splendid PJ sets"
+  },
+  {
+   "guide": "life-moments",
+   "match": "Splendid Snow Flake Fuzzy Sweater PJ Set",
+   "why": "B #59: 4 Splendid PJ sets"
+  },
+  {
+   "guide": "life-moments",
+   "match": "YETI Ranchero 22L Commuter Backpack",
+   "why": "B #59: two YETI backpacks in Graduation"
+  },
+  {
+   "guide": "life-moments",
+   "match": "Nanit The Best Sellers Bundle",
+   "why": "B #59: two Nanit items"
+  },
+  {
+   "guide": "life-moments",
+   "match": "Modern Sprout Creative Archetype Seed Balls",
+   "why": "B #59: two Modern Sprout items"
+  },
+  {
+   "guide": "life-moments",
+   "match": "BabyBjörn Baby Carrier Harmony",
+   "why": "B #59: two baby carriers (Solly Baby stays)"
+  },
+  {
+   "guide": "life-moments",
+   "match": "BÉIS Medium Check-In Roller",
+   "why": "B #59: two BÉIS rollers"
+  },
+  {
+   "guide": "life-moments",
+   "match": "Bryan Anthonys Grit Statement Bracelet",
+   "why": "B #60: the photo is mostly a message card (owner: no message-card jewelry)"
+  },
+  {
+   "guide": "life-moments",
+   "match": "Bryan Anthonys You Hold The Key Necklace",
+   "why": "B #60: the photo is mostly a message card (owner: no message-card jewelry)"
+  },
+  {
+   "guide": "life-moments",
+   "match": "Slip Pure Silk Glam Band",
+   "why": "B #60: a grey strip on cream"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "YETI GoBox 15 Gear Case",
+   "why": "B #37: two GoBox cases that look the same; the 30 stays"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "YETI Hopper M20 Backpack Soft Cooler",
+   "why": "B #37/#38: magenta in Fishermen; 3 YETI coolers"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Huk Airweight Raglan Hoodie",
+   "why": "B #37: 3 Huk hoodies (orange, on a model)"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Huk Pursuit Hoodie",
+   "why": "B #37: 3 Huk hoodies (on a model)"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Vineyard Vines America250 Baseball Hat",
+   "why": "B #36: a July 4, 2026 hat on clearance"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Smathers & Branson Boat Drink Needlepoint Can Cooler",
+   "why": "B #37: two S&B can coolers; 7 S&B items"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "BÉIS The Dopp Kit",
+   "why": "B #37: 3 toiletry/dopp bags"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Weezie Large Toiletry Bag",
+   "why": "B #37: 3 toiletry/dopp bags"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Patagonia Retro Pile Jacket",
+   "why": "B #35: mountain gear (owner: no one hikes here)"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Columbia Steens Mountain Fleece",
+   "why": "B #35: mountain gear (owner: no one hikes here)"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Smartwool Merino Beanie",
+   "why": "B #35: mountain gear (owner: no one hikes here)"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "The North Face 1996 Retro Nuptse Jacket",
+   "why": "B #35: mountain gear in Travel & Camping"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Southern Tide Larisa Eyelet Tank",
+   "why": "B #35: summer wear in a Christmas guide"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Tommy Bahama St. Lucia Linen Coverup Dress",
+   "why": "B #35: summer wear in a Christmas guide"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Tommy Bahama High-Rise Linen Easy Pants",
+   "why": "B #35: summer wear in a Christmas guide"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Chaco Z/Cloud Sandal",
+   "why": "B #35: summer wear in a Christmas guide"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Match South Golf Bag Matchstick Striker",
+   "why": "B #39: a novelty match striker typed bag"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "AeroGarden Harvest",
+   "why": "B #39/#77: AeroGarden announced its shutdown"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Garmin Approach S12",
+   "why": "B #77: an older Garmin golf watch"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Riedel Vinum Bordeaux Wine Glasses",
+   "why": "B #29: two Riedel sets; the Extreme set stays"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Stanley The Reserve Wine Tumbler",
+   "why": "B #29: two wine tumblers"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Cuisinart Precision Master 5.5 qt Stand Mixer",
+   "why": "B #29: two stand mixers; the KitchenAid stays"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Ooni Dough Tools",
+   "why": "B #29: 3 Ooni items"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Anthropologie Sophie Faux-Fur Throw Blanket",
+   "why": "B #29: two faux-fur throws (the sponsor's stays)"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Intelligent Change Mindful Affirmations Cards",
+   "why": "B #29: the journal and its cards together"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Lodge Cast Iron 9x13 Casserole Dish",
+   "why": "B #29: 3 Lodge pieces"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Weber Spirit 300 3b Grill Griddle",
+   "why": "B #30: fits one Weber model only"
+  },
+  {
+   "guide": "creative-and-entertainment",
+   "match": "Pokémon TCG: Mega Evolution Phantasmal Flames Elite Trainer Box",
+   "why": "B #42: a Nov 2025 set (Kids carries the current one)"
+  },
+  {
+   "guide": "creative-and-entertainment",
+   "match": "Meta Adventurer Classic Black",
+   "why": "B #41: the name does not say what it is"
+  },
+  {
+   "guide": "fitness",
+   "match": "lululemon Swiftly Tech Long-Sleeve 2.0",
+   "why": "B #46: two Swiftly tops"
+  },
+  {
+   "guide": "fitness",
+   "match": "Shokz OpenSwim Pro Headphones",
+   "why": "B #46: two Shokz"
+  },
+  {
+   "guide": "car-lover",
+   "match": "Smathers & Branson x Tervis Mallard Needlepoint Tumbler",
+   "why": "B #47: not a car gift"
+  },
+  {
+   "guide": "car-lover",
+   "match": "YETI Camo Trucker Hat",
+   "why": "B #47: not a car gift"
+  },
+  {
+   "guide": "gifts-by-color",
+   "match": "Hunter Original Short Rain Boots Yellow",
+   "why": "B #63: its link is a green Hunter Play boot, not yellow"
+  },
+  {
+   "guide": "gifts-by-color",
+   "match": "Smeg 4 Slice Toaster TSF03",
+   "why": "B #64: 3 kitchen appliances in Red/Pink"
+  },
+  {
+   "guide": "gifts-by-color",
+   "match": "Herschel Unisex Adult Classic Backpack",
+   "why": "B #64: two Herschel backpacks"
+  },
+  {
+   "guide": "gifts-by-color",
+   "match": "Caden Lane Personalized Color Blanket",
+   "why": "B #64: a baby blanket (owner: baby items only on baby guides)"
+  },
+  {
+   "guide": "gift-wrap-and-cards",
+   "match": "Sugar Paper Christmas Peel-and-Stick Gift Tags",
+   "why": "B #65: 5 tag products; 2 stay"
+  },
+  {
+   "guide": "gift-wrap-and-cards",
+   "match": "Spritz To & From Gift Tags",
+   "why": "B #65: 5 tag products; 2 stay"
+  },
+  {
+   "guide": "gift-wrap-and-cards",
+   "match": "Meri Meri Nutcracker Gift Tags",
+   "why": "B #65: the photo is the Maisonette logo; 5 tag products"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "Rare Beauty Blush, Bronze & Luminize Custom Set",
+   "why": "B #66: $66 in Stocking Stuffers",
+   "section": "Stocking Stuffers"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "Olive & June Gel Mani System Essentials",
+   "why": "B #7/#66: $55; Olive & June on five guides",
+   "section": "Stocking Stuffers"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "BÉIS The Jewelry Case",
+   "why": "B #66: $48 in Stocking Stuffers",
+   "section": "Stocking Stuffers"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "Malbon Script Beanie",
+   "why": "B #66: $48 in Stocking Stuffers",
+   "section": "Stocking Stuffers"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "Staub Petite Tomato Cocotte",
+   "why": "B #66: $45 in Stocking Stuffers",
+   "section": "Stocking Stuffers"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "Stanley The Everyday Slim Can Cooler Cup",
+   "why": "B #7/#66: also in Under $25",
+   "section": "Stocking Stuffers"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "Longchamp Le Pliage Leather Key Ring",
+   "why": "B #67: the photo shows number charms"
+  },
+  {
+   "guide": "gifts-by-budget",
+   "match": "Pura Vida 24 Day Advent Calendar",
+   "why": "B #68: no commission; Pura Vida string bracelets"
+  },
+  {
+   "guide": "shop-small-louisiana",
+   "match": "University Press of Mississippi Dictionary of Louisiana French",
+   "why": "B #17: a reference book, not Louisiana-made"
+  },
+  {
+   "guide": "shop-small-louisiana",
+   "match": "Totally Bamboo Slice of Life Louisiana",
+   "why": "B #17: a California brand on Amazon, not Louisiana-made"
+  },
+  {
+   "guide": "louisiana-celebrations",
+   "match": "Old World Christmas Mardi Gras Mask Glass Ornament",
+   "why": "B #20: 3 glass ornaments; the crawfish stays"
+  },
+  {
+   "guide": "louisiana-celebrations",
+   "match": "Old World Christmas Mike The Tiger",
+   "why": "B #20: 3 glass ornaments"
+  },
+  {
+   "guide": "louisiana-celebrations",
+   "match": "Southern Tide Team Colors Runaround Quarter Zip",
+   "why": "B #21: a light-blue women's zip, no Louisiana team's colors"
+  },
+  {
+   "guide": "louisiana-celebrations",
+   "match": "Fanatics NEW ORLEANS SAINTS",
+   "why": "B #20/#21: shown on a woman; 5 Saints items"
+  },
+  {
+   "guide": "louisiana-celebrations",
+   "match": "WinCraft New Orleans Saints Large 3x5 Flag",
+   "why": "B #20: 5 Saints items"
+  },
+  {
+   "guide": "louisiana-celebrations",
+   "match": "FOCO New Orleans Saints NFL Helmet Shadowbox",
+   "why": "B #20: 5 Saints items"
+  },
+  {
+   "guide": "louisiana-celebrations",
+   "match": "Rumpl Fleece Puffy Blanket",
+   "why": "B #7: Rumpl puffy on three guides; Outdoors keeps it"
+  },
+  {
+   "guide": "louisiana-by-region",
+   "match": "The Duck Commander Collection",
+   "why": "B #23: dated (the show ended in 2017)"
+  },
+  {
+   "guide": "louisiana-by-region",
+   "match": "Julie Vos Coin Pendant Necklace",
+   "why": "B #23: not regional"
+  },
+  {
+   "guide": "louisiana-food-gifts",
+   "match": "Aunt Sally's Bananas Foster Pralines",
+   "why": "B #25: two Aunt Sally's boxes"
+  },
+  {
+   "guide": "louisiana-food-gifts",
+   "match": "Chef John Folse's Plantation Celebrations",
+   "why": "B #25: 3 cookbooks; 2 stay"
+  },
+  {
+   "guide": "pets",
+   "match": "Bird Buddy Smart Bird Feeder",
+   "why": "B #61: a wild-bird feeder in Bird Lover (pet birds)"
+  },
+  {
+   "guide": "pets",
+   "match": "Droll Yankees Bird Feeder",
+   "why": "B #61: a wild-bird feeder in Bird Lover (pet birds)"
+  },
+  {
+   "guide": "pets",
+   "match": "Sibley Guide to Birds",
+   "why": "B #61: backyard birding, not pet birds"
+  },
+  {
+   "guide": "store-target",
+   "match": "Pink Sugar Spider Webs",
+   "why": "B #74: a Halloween Stanley"
+  },
+  {
+   "guide": "store-apple",
+   "match": "Apple Watch SE 3 GPS + Cellular 40mm Smartwatch",
+   "why": "B #74: an Amazon link on the Apple page; a second SE 3"
+  },
+  {
+   "guide": "store-lululemon",
+   "match": "Scuba",
+   "why": "B #73: two Scuba half-zips"
+  }
+ ],
+ "moves": [
+  {
+   "guide": "home-and-kitchen",
+   "match": "Geometry Greetings From Louisiana Tea Towel",
+   "to": "shop-small-louisiana",
+   "section": "Louisiana-Made, Boutiques & Artists",
+   "why": "B #31: a Louisiana item in a non-Louisiana guide"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Caraway Whistling Tea Kettle",
+   "to": "coffee-lover",
+   "why": "B #33/#44: a kettle under Bakers; Coffee Lover is thin"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "VEVOR 24 ft Inflatable Movie Screen",
+   "to": "creative-and-entertainment",
+   "section": "Book Lovers, Gamers, Movies & Music",
+   "why": "B #33: a movie screen under Home Cooks & Hosts"
+  },
+  {
+   "guide": "heroes",
+   "match": "Fire Department Coffee Backdraft Coffee",
+   "to": "coffee-lover",
+   "why": "B #54: a food item (coffee) in Heroes"
+  },
+  {
+   "guide": "shop-small-louisiana",
+   "match": "Smathers & Branson LSU Needlepoint Toiletry Bag",
+   "to": "louisiana-celebrations",
+   "section": "Game Day, Tailgating & Crawfish Season",
+   "why": "B #17: Louisiana-themed, not Louisiana-made"
+  },
+  {
+   "guide": "louisiana-celebrations",
+   "match": "Ooni Koda 2 Gas Pizza Oven",
+   "to": "home-and-kitchen",
+   "section": "Home Cooks & Hosts",
+   "why": "B #22: a pizza oven in Game Day (Home & Kitchen keeps one Ooni oven)"
+  },
+  {
+   "guide": "pets",
+   "match": "Mackenzie-Childs Courtly Bird Feeder",
+   "to": "outdoors-and-travel",
+   "section": "Gardeners & Plant Lovers",
+   "why": "B #61: a wild-bird feeder belongs with gardeners"
+  },
+  {
+   "guide": "work-life",
+   "match": "XTRATUF Unisex Beanie",
+   "to": "gifts-by-budget",
+   "section": "Stocking Stuffers",
+   "why": "B #66: a men's stocking stuffer"
+  },
+  {
+   "guide": "heroes",
+   "match": "Carhartt Men's Iconic A18 Watch Cap Beanie",
+   "to": "gifts-by-budget",
+   "section": "Stocking Stuffers",
+   "why": "B #66: a men's stocking stuffer"
+  },
+  {
+   "guide": "work-life",
+   "match": "Huk Performance Fishing Trucker Hat",
+   "to": "gifts-by-budget",
+   "section": "Stocking Stuffers",
+   "why": "B #66: a men's stocking stuffer"
+  }
+ ],
+ "sets": [
+  {
+   "guide": "home-and-kitchen",
+   "match": "Ooni Pizza Peel Bundle",
+   "set": {
+    "type": "kitchen-tool"
+   },
+   "why": "B #6: typed skincare"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Nordic Ware Anniversary Bundt Pan",
+   "set": {
+    "type": "cookware"
+   },
+   "why": "B #6: typed drinkware"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "Material The reBoard Cutting Boards",
+   "set": {
+    "type": "kitchen-tool"
+   },
+   "why": "B #6: typed knife"
+  },
+  {
+   "guide": "home-and-kitchen",
+   "match": "KitchenAid Artisan Plus 5-Qt Stand Mixer",
+   "set": {
+    "type": "kitchen-appliance"
+   },
+   "why": "B #6: typed tech-accessory"
+  },
+  {
+   "guide": "creative-and-entertainment",
+   "match": "Tractor Supply 4-Drawer Tool Cart",
+   "set": {
+    "type": "tools"
+   },
+   "why": "B #6: typed shirt"
+  },
+  {
+   "guide": "creative-and-entertainment",
+   "match": "Sculpey III",
+   "set": {
+    "type": "art-supplies"
+   },
+   "why": "B #6: typed food"
+  },
+  {
+   "guide": "creative-and-entertainment",
+   "match": "Sonos Era 300 Speaker",
+   "set": {
+    "brand": "Sonos"
+   },
+   "why": "B #41: brand read Crate & Barrel"
+  },
+  {
+   "guide": "creative-and-entertainment",
+   "match": "West Bend Stir Crazy Popcorn Popper",
+   "set": {
+    "type": "kitchen-appliance"
+   },
+   "why": "B #6: typed food"
+  },
+  {
+   "guide": "pets",
+   "match": "Fable Pets Fable Hybrid Feeder Toy",
+   "set": {
+    "type": "toy"
+   },
+   "why": "B #6: typed makeup"
+  },
+  {
+   "guide": "pets",
+   "match": "Fable Pets Fable Orthopedic Pet Bed",
+   "set": {
+    "type": "pet"
+   },
+   "why": "B #6: typed skincare"
+  },
+  {
+   "guide": "pets",
+   "match": "Prevue Pet Products Prevue Parrot Play Stand",
+   "set": {
+    "type": "pet"
+   },
+   "why": "B #6: typed tech-accessory"
+  },
+  {
+   "guide": "pets",
+   "match": "Yeti Boomer 4 Dog Bowl",
+   "set": {
+    "louisianaFit": null
+   },
+   "why": "B #62: flagged louisianaFit"
+  },
+  {
+   "guide": "heroes",
+   "match": "Hatch Restore 3",
+   "set": {
+    "type": "smart-home"
+   },
+   "why": "B #6/#54: typed baby"
+  },
+  {
+   "guide": "heroes",
+   "match": "The Greatest Beer Run Ever",
+   "set": {
+    "type": "book",
+    "brand": "Little, Brown"
+   },
+   "why": "B #6/#54: typed wine-bar, brand 'The'"
+  },
+  {
+   "guide": "work-life",
+   "match": "Carhartt Blanket-Lined Detroit Jacket",
+   "set": {
+    "type": "jacket"
+   },
+   "why": "B #6: typed throw-blanket"
+  },
+  {
+   "guide": "work-life",
+   "match": "Lands' End Open Top Canvas Tote",
+   "set": {
+    "type": "bag"
+   },
+   "why": "B #6: typed shirt"
+  },
+  {
+   "guide": "louisiana-celebrations",
+   "match": "YETI Hopper M15 Tote Soft Cooler",
+   "set": {
+    "type": "cooler"
+   },
+   "why": "B #6: typed bag"
+  },
+  {
+   "guide": "louisiana-food-gifts",
+   "match": "Zapp's New Orleans Voodoo Potato Chips",
+   "set": {
+    "type": "food"
+   },
+   "why": "B #6: typed bag"
+  },
+  {
+   "guide": "outdoors-and-travel",
+   "match": "Bushnell Tour V6 Shift Laser Rangefinder",
+   "set": {
+    "type": "golf"
+   },
+   "why": "B #6: typed experience"
+  },
+  {
+   "guide": "gifts-by-color",
+   "match": "Ninja Creami 7-in-1 Ice Cream Maker",
+   "set": {
+    "type": "kitchen-appliance"
+   },
+   "why": "B #6: typed skincare"
+  },
+  {
+   "guide": "gifts-by-color",
+   "match": "Kitsch Sage Green Pillow Cases",
+   "set": {
+    "type": "pillow"
+   },
+   "why": "B #6: typed skincare"
+  },
+  {
+   "guide": "gifts-by-color",
+   "match": "Le Creuset Signature Dutch Oven, Nectar",
+   "set": {
+    "name": "Le Creuset Mini Round Cocotte, Nectar",
+    "href": "https://www.amazon.com/dp/B0BWX3T222?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/51T+6dTAfIL._AC_SL500_.jpg",
+    "type": "cookware",
+    "line": "A little round cocotte in Le Creuset's sunny Nectar yellow."
+   },
+   "why": "B #63: its link was a rectangular butter dish (ASIN B0H5RFTWQX); the round Nectar cocotte, checked by its Amazon photo"
+  },
+  {
+   "guide": "gifts-by-color",
+   "match": "splendid.com SPLENDID - Merlot Cozy Fuzzy Cable Socks",
+   "set": {
+    "name": "Splendid Merlot Cozy Fuzzy Cable Socks"
+   },
+   "why": "B #12: raw retailer title"
+  },
+  {
+   "guide": "gifts-by-color",
+   "match": "Kathy Kuo Home Juliska Berry Thread",
+   "set": {
+    "name": "Juliska Berry & Thread Chambray Mug",
+    "brand": "Juliska"
+   },
+   "why": "B #12: retailer name before the brand"
+  },
+  {
+   "guide": "life-moments",
+   "match": "materialkitchen.com MATERIAL - The Bestsellers Set",
+   "set": {
+    "name": "Material The Bestsellers Set",
+    "brand": "Material"
+   },
+   "why": "B #12/#60: raw retailer title"
+  },
+  {
+   "guide": "life-moments",
+   "match": "Bearaby Snuggler Weighted Heated Bottle",
+   "set": {
+    "type": "other"
+   },
+   "why": "B #6: typed drinkware"
+  },
+  {
+   "guide": "fitness",
+   "match": "Under Armour Women's Rival Fleece Hoodie",
+   "set": {
+    "type": "sweatshirt"
+   },
+   "why": "B #46: type"
+  },
+  {
+   "guide": "louisiana-food-gifts",
+   "match": "Commander's Palace Holiday Dinner for 4",
+   "set": {
+    "line": "A Garden District icon's holiday dinner, shipped for four."
+   },
+   "why": "B #1/#25: line read 'Goldbelly 12%'"
+  },
+  {
+   "guide": "louisiana-food-gifts",
+   "match": "Dooky Chase Creole Jambalaya",
+   "set": {
+    "line": "Leah Chase's legendary Tremé jambalaya, three quarts."
+   },
+   "why": "B #1/#25"
+  },
+  {
+   "guide": "louisiana-food-gifts",
+   "match": "Mother's Restaurant Family Favorites Po'Boy",
+   "set": {
+    "line": "Famous Poydras Street po'boys to build at home."
+   },
+   "why": "B #1/#25"
+  },
+  {
+   "guide": "louisiana-food-gifts",
+   "match": "Lasyone's Large Cajun Crawfish Pies",
+   "set": {
+    "line": "The Natchitoches institution's crawfish pies."
+   },
+   "why": "B #1/#25"
+  },
+  {
+   "guide": "louisiana-food-gifts",
+   "match": "Sucré Signature Macarons",
+   "set": {
+    "line": "Magazine Street macarons in a pretty gift box."
+   },
+   "why": "B #1/#25"
+  },
+  {
+   "guide": "louisiana-food-gifts",
+   "match": "TABASCO Hot Sauce Variety Gift Set",
+   "set": {
+    "line": "The Avery Island classic, in a gift set of flavors."
+   },
+   "why": "B #2: Amazon star rating in the line"
+  },
+  {
+   "guide": "louisiana-food-gifts",
+   "match": "Commander's Palace: New Orleans Cookbook",
+   "set": {
+    "line": "Recipes from the Garden District's famous Commander's Palace."
+   },
+   "why": "B #26: thin line"
+  },
+  {
+   "guide": "louisiana-food-gifts",
+   "match": "Chasing the Gator",
+   "set": {
+    "line": "Isaac Toups's bold, modern take on Cajun cooking."
+   },
+   "why": "B #26: thin line"
+  },
+  {
+   "guide": "louisiana-food-gifts",
+   "match": "Aunt Sally's Creole Pralines Aunt Sally's Creamy Classic Pralines",
+   "set": {
+    "name": "Aunt Sally's Creamy Classic Pralines, Box of 12",
+    "brand": "Aunt Sally's"
+   },
+   "why": "B #12: brand said twice"
+  },
+  {
+   "guide": "gift-wrap-and-cards",
+   "match": "Privet House Papers & Prints Privet House Woodland Lodge Shield Gift Tags",
+   "set": {
+    "name": "Privet House Woodland Lodge Shield Gift Tags",
+    "brand": "Privet House"
+   },
+   "why": "B #12: brand said twice"
+  },
+  {
+   "guide": "shop-small-louisiana",
+   "match": "Toups and Co Organics Merry & Bright Set",
+   "set": {
+    "line": "A holiday set of clean skincare made in Walker, Louisiana."
+   },
+   "why": "B #1: note-style line"
+  }
+ ],
+ "images": [
+  {
+   "guide": "25-days-sponsors",
+   "match": "Manta PRO Sleep Mask",
+   "image": "https://cdn.shopify.com/s/files/1/1582/3265/products/Manta-PRO-Buy-Box-1.png?v=1636380988&width=800",
+   "why": "B #14: the Manta logo, not the mask (mantasleep.com's product photo, checked)"
+  },
+  {
+   "guide": "life-moments",
+   "match": "Manta PRO Sleep Mask",
+   "image": "https://cdn.shopify.com/s/files/1/1582/3265/products/Manta-PRO-Buy-Box-1.png?v=1636380988&width=800",
+   "why": "B #60: the Manta logo, not the mask"
+  },
+  {
+   "guide": "25-days-sponsors",
+   "match": "Tushbaby Convertible Carrier",
+   "image": "https://cdn.shopify.com/s/files/1/0060/9982/8802/files/MarbleTushbabyandblacksnug3.webp?v=1762200997&width=800",
+   "why": "B #14: the tush baby wordmark (tushbaby.com's 2-in-1 Convertible Carrier photo, checked)"
+  }
+ ],
+ "renames": [],
+ "adds": [
+  {
+   "guide": "pets",
+   "section": "Horse Lovers, Fish & Birds",
+   "why": "B #61: pet-bird gifts (Bird Lover means pet birds)",
+   "row": {
+    "name": "Good Night Bird Cage Cover with Play Top",
+    "brand": "Colorday",
+    "line": "A cozy cover that tucks the bird in at night, with a play top for daytime.",
+    "href": "https://www.amazon.com/dp/B07ZCTJRXX?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/516GcQEGKOL.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "pet"
+   }
+  },
+  {
+   "guide": "pets",
+   "section": "Horse Lovers, Fish & Birds",
+   "why": "B #61: pet-bird gifts (Bird Lover means pet birds)",
+   "row": {
+    "name": "Bird Swing, Ladder and Hammock Toy Set",
+    "brand": "lovyoCoCo",
+    "line": "A swing, ladder and hammock set for the cage.",
+    "href": "https://www.amazon.com/dp/B08RXV363J?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/61VcGEs8lKL.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "toy"
+   }
+  },
+  {
+   "guide": "pets",
+   "section": "Horse Lovers, Fish & Birds",
+   "why": "B #61: pet-bird gifts (Bird Lover means pet birds)",
+   "row": {
+    "name": "Seagrass Foraging Wall Toy",
+    "brand": "YIXUND",
+    "line": "A seagrass wall toy to forage and shred for hours.",
+    "href": "https://www.amazon.com/dp/B09WD4Q8J8?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/714HmSn33SL.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "toy"
+   }
+  },
+  {
+   "guide": "pets",
+   "section": "Horse Lovers, Fish & Birds",
+   "why": "B #61: pet-bird gifts (Bird Lover means pet birds)",
+   "row": {
+    "name": "Natural Grape Wood Perch Set, 6-Piece",
+    "brand": "LIMIO",
+    "line": "Natural grapewood perches that are good for little feet.",
+    "href": "https://www.amazon.com/dp/B0CD1XJXZF?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/71iG6oTYElL.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "pet"
+   }
+  },
+  {
+   "guide": "pets",
+   "section": "Horse Lovers, Fish & Birds",
+   "why": "B #61: pet-bird gifts (Bird Lover means pet birds)",
+   "row": {
+    "name": "Lixit Quick Lock Cage Bird Bath",
+    "brand": "Lixit",
+    "line": "A clip-on bath that keeps splashes inside the cage.",
+    "href": "https://www.amazon.com/dp/B000I6ORHS?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/51+TbL5y6gS.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "pet"
+   }
+  },
+  {
+   "guide": "pets",
+   "section": "Horse Lovers, Fish & Birds",
+   "why": "B #61: pet-bird gifts (Bird Lover means pet birds)",
+   "row": {
+    "name": "The Aviator Bird Harness and Leash",
+    "brand": "The Aviator",
+    "line": "A soft harness and leash for safe time outside.",
+    "href": "https://www.amazon.com/dp/B000TF748W?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/81-Xo0rQ2tL.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "pet"
+   }
+  },
+  {
+   "guide": "pets",
+   "section": "Horse Lovers, Fish & Birds",
+   "why": "B #61: aquarium gifts (Fish needs more than 2 items)",
+   "row": {
+    "name": "NICREW 2.5-Gallon Nano Betta Aquarium Kit",
+    "brand": "NICREW",
+    "line": "A nano tank kit sized right for a betta.",
+    "href": "https://www.amazon.com/dp/B0DMNV8MXG?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/81sKZ2P2qsL.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "pet"
+   }
+  },
+  {
+   "guide": "pets",
+   "section": "Horse Lovers, Fish & Birds",
+   "why": "B #61: aquarium gifts (Fish needs more than 2 items)",
+   "row": {
+    "name": "AQUANEAT Full-Spectrum LED Aquarium Light",
+    "brand": "AQUANEAT",
+    "line": "A full-spectrum LED light that makes plants and fish glow.",
+    "href": "https://www.amazon.com/dp/B07T9Y7LQ4?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/61UcsXNJKkL.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "pet"
+   }
+  },
+  {
+   "guide": "pets",
+   "section": "Horse Lovers, Fish & Birds",
+   "why": "B #61: aquarium gifts (Fish needs more than 2 items)",
+   "row": {
+    "name": "Amazon Sword Live Aquarium Plants, 3-Pack",
+    "brand": "Water Plants",
+    "line": "Three live Amazon sword plants for a planted tank.",
+    "href": "https://www.amazon.com/dp/B07D1Y87T9?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/71iCDSrSGtL.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "plant"
+   }
+  },
+  {
+   "guide": "pets",
+   "section": "Horse Lovers, Fish & Birds",
+   "why": "B #61: aquarium gifts (Fish needs more than 2 items)",
+   "row": {
+    "name": "API Freshwater Master Test Kit",
+    "brand": "API",
+    "line": "The test kit every fish keeper reaches for.",
+    "href": "https://www.amazon.com/dp/B000255NCI?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/61Kd-mEEjXL.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "pet"
+   }
+  },
+  {
+   "guide": "coffee-lover",
+   "why": "B #44: Coffee Lover had 9 picks and no grinder",
+   "row": {
+    "name": "Fellow Opus 2 Conical Burr Grinder",
+    "brand": "Fellow",
+    "line": "A conical burr grinder for everything from espresso to cold brew.",
+    "href": "https://go.shopmy.us/p-107960332",
+    "image": "https://static.shopmy.us/pins/zoom-107960332-1795125674771-00000000_zi_1979f5dd-5156-4dca-9c87-94b6b1d54450.jpg",
+    "store": "store-dillards",
+    "commission": 8,
+    "type": "coffee"
+   }
+  },
+  {
+   "guide": "coffee-lover",
+   "why": "B #44: no Fellow Stagg kettle",
+   "row": {
+    "name": "Fellow Stagg EKG Matte Electric Kettle",
+    "brand": "Fellow",
+    "line": "The gooseneck kettle pour-over fans want, with a precise temperature dial.",
+    "href": "https://go.shopmy.us/p-107960457",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1760816174291",
+    "store": "store-haven-well-within",
+    "commission": 16,
+    "type": "kitchen-appliance"
+   }
+  },
+  {
+   "guide": "coffee-lover",
+   "why": "B #44: no grinder",
+   "row": {
+    "name": "Baratza Encore Coffee Grinder",
+    "brand": "Baratza",
+    "line": "The classic first burr grinder for fresh coffee every morning.",
+    "href": "https://go.shopmy.us/p-107904988",
+    "image": "https://static.shopmy.us/uploads/pretty-prod-1755866508912",
+    "store": "store-ratio",
+    "commission": 10,
+    "type": "coffee"
+   }
+  },
+  {
+   "guide": "coffee-lover",
+   "why": "B #44: no Ember mug",
+   "row": {
+    "name": "Ember Mug 3 10 oz Smart Mug, Black",
+    "brand": "Ember",
+    "line": "Keeps coffee at just the right temperature until the last sip.",
+    "href": "https://go.shopmy.us/p-107935962",
+    "image": "https://static.shopmy.us/pins/zoom-107935962-1795122775018-GUEST_18403122-c24f-46f6-b77b-12c8211b1b90",
+    "store": "store-target",
+    "commission": 4,
+    "type": "drinkware"
+   }
+  },
+  {
+   "guide": "car-lover",
+   "why": "B #47: car gifts (dash cam)",
+   "row": {
+    "name": "ROVE R2-4K Dual Dash Cam Front and Rear",
+    "brand": "ROVE",
+    "line": "A 4K front-and-rear dash cam that records every drive.",
+    "href": "https://www.amazon.com/dp/B0D6J5B98H?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/81ockFWJLsL._AC_SL500_.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "car-gear"
+   }
+  },
+  {
+   "guide": "car-lover",
+   "why": "B #47: car gifts (tire inflator)",
+   "row": {
+    "name": "Fanttik X8 APEX Tire Inflator Portable Air Compressor",
+    "brand": "Fanttik",
+    "line": "A cordless tire inflator that tops off all four tires in minutes.",
+    "href": "https://www.amazon.com/dp/B09YD2D96V?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/61iKKq+XPXL._AC_SL500_.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "car-gear"
+   }
+  },
+  {
+   "guide": "car-lover",
+   "why": "B #47: car gifts (trunk organizer)",
+   "row": {
+    "name": "WeatherTech Trunk Organizer",
+    "brand": "WeatherTech",
+    "line": "A collapsible organizer that keeps the trunk tidy.",
+    "href": "https://www.amazon.com/dp/B00HYG8Z00?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/619XpgAF07L._AC_SL500_.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "car-gear"
+   }
+  },
+  {
+   "guide": "car-lover",
+   "why": "B #47: car gifts (detailing kit)",
+   "row": {
+    "name": "Chemical Guys Dirt Destroyer Ultimate Wash Kit (9-piece)",
+    "brand": "Chemical Guys",
+    "line": "A nine-piece wash kit for a showroom shine at home.",
+    "href": "https://go.shopmy.us/p-107796823",
+    "image": "https://static.shopmy.us/uploads/img-product-1792745769439",
+    "store": "store-tractor-supply",
+    "commission": 8,
+    "type": "car-gear"
+   }
+  },
+  {
+   "guide": "gift-wrap-and-cards",
+   "why": "B #65: gift bags (no bags before)",
+   "row": {
+    "name": "JOYIN 24-Piece Christmas Kraft Gift Bags, Assorted Sizes",
+    "brand": "JOYIN",
+    "line": "Two dozen kraft gift bags in every size, ready for tissue.",
+    "href": "https://www.amazon.com/dp/B077J67LBM?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/918a4zzHToL._AC_SL600_.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "gift-wrap"
+   }
+  },
+  {
+   "guide": "gift-wrap-and-cards",
+   "why": "B #65: ribbon (none before)",
+   "row": {
+    "name": "500 Yards Silver Curling Ribbon",
+    "brand": "Unbranded",
+    "line": "A giant spool of silver curling ribbon for every bow.",
+    "href": "https://www.amazon.com/dp/B07KJZD5KK?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/71RTd5Sj6uL._AC_SL600_.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "gift-wrap"
+   }
+  },
+  {
+   "guide": "gift-wrap-and-cards",
+   "why": "B #65: more wrapping paper (2 papers before)",
+   "row": {
+    "name": "WRAPAHOLIC 30-Inch Jumbo Christmas Wrapping Paper Roll, Red Green Gold and Silver",
+    "brand": "WRAPAHOLIC",
+    "line": "A jumbo roll of classic red, green and gold paper.",
+    "href": "https://www.amazon.com/dp/B09Y1QT2JT?tag=louisianahelpr-20",
+    "image": "https://m.media-amazon.com/images/I/71QuVwgHCdL._AC_SL600_.jpg",
+    "store": "store-amazon",
+    "commission": 3,
+    "type": "gift-wrap"
+   }
+  }
+ ],
+ "droppedSponsors": [
+  {
+   "brand": "R&R Wedding Co",
+   "hosts": [
+    "rrweddingco.com",
+    "rrwedco.com"
+   ],
+   "why": "owner 11-20: R&R Wedding Co. dropped as a sponsor (remove everywhere)"
+  }
+ ],
+ "logoCards": [
+  "HOTWORX 1 Month Membership",
+  "Mary Kay Gift Set",
+  "Grand Kyiv Ballet",
+  "Crew Dog Embroidered LSU Crewneck"
+ ],
+ "sponsorPhotos": {
+  "Basic Bee": {
+   "name": "Basic Bee Bitty Bit of Honey Gift Set",
+   "image": "https://images.squarespace-cdn.com/content/v1/6086a8c4e8b430296f102e5f/63df424a-8c5c-4740-8f35-548ea8aa9765/Basic+Bee+2025-9.png?format=1000w",
+   "href": "https://basicbee.co/shop/p/bitty-bit-of-honey-collection",
+   "price": 16.0,
+   "priceAt": "2026-11-20",
+   "band": 25
+  },
+  "Zydeco Chop Chop": {
+   "name": "Zydeco Chop Chop Seasoning, 10 oz Shaker",
+   "image": "https://images.squarespace-cdn.com/content/v1/588b820a5016e10c5241303f/87cf543b-8541-4803-8a75-7974df3a4047/Zydeco-Chop-Chop-10oz-Shaker.jpg?format=1000w",
+   "href": "https://www.zydecochopchop.com/store-1/zydeco-chop-chop",
+   "price": 9.0,
+   "priceAt": "2026-11-20",
+   "band": 25
+  },
+  "Faulk's": {
+   "name": "Faulk's GS-12 Duck & Goose Call Gift Set",
+   "image": "https://static.wixstatic.com/media/47ea03_6496e7b113ba4516a92c65aee2e2a712~mv2_d_1750_1628_s_2.jpg/v1/fit/w_800,h_800,q_90/file.jpg",
+   "href": "https://www.faulkcalls.com/product-page/duck-goose-set",
+   "price": 79.95,
+   "priceAt": "2026-11-20",
+   "band": 100
+  },
+  "Written on the River": {
+   "name": "Written on the River Cajun Seafood & Seasonings Tea Towel",
+   "image": "https://static.wixstatic.com/media/2a1fa0_a9fe60e29752429eb03a2e3b56aa7024~mv2.jpeg/v1/fit/w_800,h_800,q_90/file.jpg",
+   "href": "https://www.writtenontheriver.com/product-page/cajun-seafood-and-seasonings-tea-towel",
+   "price": 32,
+   "priceAt": "2026-11-20",
+   "band": 50
+  },
+  "Cajun Belle": {
+   "name": "Cajun Belle Studio Swamp Lotus Tea Print",
+   "image": "https://static.wixstatic.com/media/f1eaca_c6838916cc774554a137ece01ec5fa77~mv2.png/v1/fit/w_800,h_1000,q_90/file.png",
+   "href": "https://www.rozlecompte.com/product-page/swamp-lotus-tea-print",
+   "price": 75,
+   "priceAt": "2026-11-20",
+   "band": 100
+  },
+  "Megan Benoit": {
+   "name": "Megan Benoit's Closet Tiny Initial Necklace",
+   "image": "https://cdn.shopify.com/s/files/1/0676/7286/6870/files/IMG_1489.jpg?v=1792900822&width=800",
+   "href": "https://meganbenoitscloset.com/products/tiny-gold-initial-necklace",
+   "price": 50.0,
+   "priceAt": "2026-11-20",
+   "band": 50
+  },
+  "The Fois": {
+   "name": "The Fois Christmas Sweater",
+   "image": "https://cdn.shopify.com/s/files/1/0738/0569/3126/files/foischristmaslongsleeve.png?v=1795109045&width=800",
+   "href": "https://ncapparelllc.com/products/fois-christmas-sweater",
+   "price": 35.0,
+   "priceAt": "2026-11-20",
+   "band": 50
+  },
+  "Birdwell": {
+   "name": "Birdwell's Apotheke Earl Grey Bitters Petite Candle",
+   "image": "https://cdn.shopify.com/s/files/1/1112/4048/files/02657ba3542d796fd1ed33d1a80bf60d6e1b19b963f76d2146932589156b3dcb.jpg?v=1793799014&width=800",
+   "href": "https://shopbirdwells.com/products/apotheke-earl-grey-bitters-petite-candle",
+   "price": 25.0,
+   "priceAt": "2026-11-20",
+   "band": 25
+  },
+  "Le Petit": {
+   "name": "Le Petit Théâtre: The Secret Garden",
+   "image": "https://www.lepetittheatre.com/wp-content/uploads/2026/10/Instagram-Post-1080x1350-1.jpg",
+   "href": "https://www.lepetittheatre.com/events/the-secret-garden"
+  },
+  "The AllWays": {
+   "name": "The AllWays Lounge & Cabaret Tote Bag",
+   "image": "https://www.theallwayslounge.net/uploads/1/4/4/2/144283776/allways-tote-bags_orig.jpeg",
+   "href": "https://www.theallwayslounge.net/boutique.html"
+  },
+  "Crew Dog": {
+   "name": "Crew Dog LSU Landscape Embroidered Crewneck",
+   "image": "https://cdn.shopify.com/s/files/1/0723/4584/6077/files/LSULandscapeEMB_crewneck_CrewneckClay_center.png?v=1795194165&width=800",
+   "href": "https://crew-dog.com/products/lsu-landscape-embroidered-crewneck",
+   "price": 102.0,
+   "priceAt": "2026-11-20",
+   "band": 500
+  }
+ },
+ "sponsorGroups": {
+  "Louisiana Shops & Makers": {
+   "id": "louisiana-shops",
+   "brands": []
+  },
+  "Louisiana Experiences & Events": {
+   "id": "louisiana-experiences",
+   "brands": [
+    "CMI Entertainment",
+    "The Strand Theatre",
+    "Oil Center",
+    "Le Petit Theatre",
+    "World Ballet Company",
+    "Grand Kyiv Ballet",
+    "3 Redneck Tenors",
+    "The Nutcracker",
+    "Paddlewheeler Creole Queen",
+    "Rip Van Winkle Gardens",
+    "City Sightseeing New Orleans",
+    "HOTWORX",
+    "Dupuy's",
+    "Playtopia",
+    "Cat 5 Fishing Charters",
+    "Crabtrap Functional Fitness",
+    "God's Country RV Resort",
+    "AllWays Lounge",
+    "Celebration Station",
+    "Botanical Nail and Skin Studio",
+    "Tiffany Morton Cosmetic Tattooing",
+    "Hello Darlin'",
+    "Phyllis Guy Dance Center",
+    "Hair Fashion and Spa",
+    "Britt Creates",
+    "Hannahbelle Photography",
+    "Jessica Lanham Photography",
+    "Olivia Grace Photography",
+    "Suzi Marques Photography",
+    "Summar T. Photography",
+    "Barclell Photography",
+    "Haylie Rudisill",
+    "Ripley's Crawfish",
+    "Tevin Lewis"
+   ]
+  },
+  "National Brands": {
+   "id": "national-brands",
+   "brands": [
+    "homerunPET",
+    "RYSE",
+    "FELCO",
+    "Boston Mints",
+    "Everyday Dose",
+    "K18",
+    "Kate McLeod",
+    "Oyu Botanica",
+    "OYU Botanica",
+    "IOKA",
+    "Rock Bottom Golf",
+    "Mind the Skin",
+    "Timeless Skin Care",
+    "Active Beauty",
+    "GentleStyle",
+    "CLM Creations",
+    "Criquet",
+    "IDRA",
+    "aosu",
+    "SRI Labs",
+    "Manta",
+    "The Sculpt Society",
+    "Aeva",
+    "E-Gift Card",
+    "Deming Delights",
+    "Sky & Sol",
+    "Cat Lady",
+    "CatLady",
+    "LMNT",
+    "Saranoni",
+    "Tushbaby",
+    "Salty Cat",
+    "Bashi",
+    "Arey",
+    "Mary Kay",
+    "Hilma"
+   ]
+  }
+ },
+ "sponsorDefaultGroup": "Louisiana Shops & Makers",
+ "lineupAlias": {
+  "Manta Sleep": [
+   "Manta"
+  ],
+  "HOTWORX Baton Rouge": [
+   "HOTWORX"
+  ],
+  "HOTWORX Denham Springs": [
+   "HOTWORX"
+  ],
+  "K18 Hair": [
+   "K18"
+  ],
+  "IOKA Skin+Science": [
+   "IOKA",
+   "Gift Card"
+  ],
+  "Dupuy's Abbeville": [
+   "Dupuy's"
+  ],
+  "Le Petit Theatre": [
+   "Le Petit"
+  ],
+  "Playtopia Lafayette": [
+   "Playtopia"
+  ],
+  "Cat Lady": [
+   "CatLady",
+   "Cat Lady"
+  ],
+  "GentleStyle Brush": [
+   "GentleStyle",
+   "CLM Creations"
+  ],
+  "World Ballet Company": [
+   "The Nutcracker with a Live Orchestra",
+   "World Ballet"
+  ],
+  "3 Redneck Tenors": [
+   "3 Redneck Tenors"
+  ],
+  "Aeva Beauty": [
+   "Aeva",
+   "E-Gift Card"
+  ],
+  "AllWays Lounge & Cabaret": [
+   "AllWays"
+  ],
+  "Oyu Botanica": [
+   "OYU Botanica",
+   "Oyu"
+  ],
+  "The Sculpt Society": [
+   "The Sculpt Society"
+  ],
+  "Criquet Shirts": [
+   "Criquet"
+  ],
+  "IDRA Wellness": [
+   "IDRA"
+  ],
+  "Mind the Skin Labs": [
+   "Mind the Skin",
+   "Mind The Skin"
+  ],
+  "Britt Creates": [
+   "Britt Creates"
+  ],
+  "Faulk's Game Call Co.": [
+   "Faulk's"
+  ],
+  "Wicks NOLA Candle Company": [
+   "Wicks NOLA"
+  ],
+  "David Rabalais": [
+   "The Fois",
+   "David Rabalais"
+  ],
+  "Cajun Belle Studio": [
+   "Cajun Belle"
+  ],
+  "Paddlewheeler Creole Queen": [
+   "Paddlewheeler Creole Queen",
+   "Creole Queen"
+  ],
+  "Faith & Fire BBQ": [
+   "Faith & Fire"
+  ],
+  "The Humble Home Decor & Candles": [
+   "The Humble Home"
+  ],
+  "FELCO North America": [
+   "FELCO"
+  ],
+  "Timeless Skin Care": [
+   "Timeless Skin Care"
+  ],
+  "The Soft Life Collective": [
+   "The Soft Life"
+  ],
+  "Basic Bee": [
+   "Basic Bee"
+  ],
+  "Crew Dog": [
+   "Crew Dog"
+  ]
+ },
+ "sponsorLines": [
+  {
+   "match": "homerunPET Pet-Friendly Space Heater",
+   "line": "A pet-safe space heater for chilly nights with the dog."
+  },
+  {
+   "match": "RYSE Fuel",
+   "line": "A 12-pack of RYSE Fuel energy drinks for early workouts."
+  },
+  {
+   "match": "Rock Bottom Golf Gift Card",
+   "line": "A gift card for clubs, balls and gear at the golf discounter."
+  },
+  {
+   "match": "Timeless Skin Care Skincare Package",
+   "line": "A skincare package of serums made in the USA."
+  },
+  {
+   "match": "SRI Labs DryQ",
+   "line": "The DryQ blow dryer with KeeWee shampoo."
+  },
+  {
+   "match": "The Sculpt Society Workout Membership",
+   "line": "A membership to Megan Roup's sculpt and dance cardio classes."
+  },
+  {
+   "match": "E-Gift Card",
+   "brand": "Aeva",
+   "name": "Aeva Beauty E-Gift Card",
+   "line": "An e-gift card for Aeva Beauty's lash and brow care."
+  },
+  {
+   "match": "K18 FutureIQ",
+   "line": "K18's leave-in repair mask, the salon favorite for damaged hair."
+  },
+  {
+   "match": "Kate McLeod Daily Stone",
+   "line": "A solid body-butter stone that melts into dry skin."
+  },
+  {
+   "match": "Manta PRO Sleep Mask",
+   "line": "A blackout sleep mask with adjustable eye cups."
+  },
+  {
+   "match": "LMNT Variety Pack",
+   "line": "Zero-sugar electrolyte drink mix in every flavor."
+  },
+  {
+   "match": "Tushbaby Convertible Carrier",
+   "line": "A hip-seat carrier that converts for newborns to toddlers."
+  },
+  {
+   "match": "OYU Botanica Winter Radiance Duo",
+   "line": "A winter skincare duo for sensitive skin."
+  },
+  {
+   "match": "IOKA",
+   "brand": "IOKA",
+   "name": "IOKA Gift Card",
+   "line": "A gift card for IOKA's science-backed skincare."
+  },
+  {
+   "match": "Salty Cat Cat Treat Bundle",
+   "line": "Small-batch cat treats the picky ones love."
+  },
+  {
+   "match": "Dupuy's",
+   "line": "A gift certificate to Dupuy's seafood restaurant in Abbeville."
+  },
+  {
+   "match": "Rip Van Winkle Gardens House Tours",
+   "line": "A gift certificate for a house and garden tour on Jefferson Island."
+  }
+ ],
+ "sectionMerges": [
+  {
+   "guide": "shop-small-louisiana",
+   "sections": [
+    "25 Days Sponsors: Shops & Makers",
+    "25 Days Sponsors: Kids, Experiences & Services"
+   ],
+   "title": "Our 25 Days Sponsors",
+   "id": "sponsors-shops-and-makers",
+   "why": "B #19: the kids-and-services section held one kids' place; with the logo cards gone both sponsor sections are thin (owner: merge thin sections)"
+  }
+ ],
+ "dealsBlocked": [
+  "Gilt",
+  "Rue La La",
+  "Groupon",
+  "CVS",
+  "Walgreens",
+  "Giftcards.com",
+  "VistaPrint",
+  "Mac Duggal",
+  "Novilla",
+  "MOSH",
+  "Snake River Farms",
+  "Xpluswear",
+  "Shiko Beauty"
+ ]
+}

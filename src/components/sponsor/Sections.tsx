@@ -425,7 +425,7 @@ export function prizeWithoutBrand(brand: string, prize: string): string {
  * with ID. Added here, not in lineup.days, so the lineup stays exactly the owner's tracker (check-25days-lineup.mjs).
  */
 const ALCOHOL_WORDS = /\b(cocktails?|wines?|beers?|bourbon|whiske?y|vodka|rum|tequila|gin|liquor|champagne|mimosas?|margaritas?|sake|lager|ipa|hard seltzer|hard cider|alcohol(ic)?)\b/i;
-export const ALCOHOL_NOTE = "(alcohol 21+ with ID)";
+const ALCOHOL_NOTE = "(alcohol 21+ with ID)";
 export function withAlcoholNote(prize: string): string {
   return ALCOHOL_WORDS.test(prize) && !/\b21\+/.test(prize) ? `${prize} ${ALCOHOL_NOTE}` : prize;
 }

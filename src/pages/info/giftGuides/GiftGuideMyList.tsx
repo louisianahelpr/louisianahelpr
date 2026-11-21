@@ -45,7 +45,10 @@ function PlainOut({ href, className, children }: { href: string; className?: str
   return <a href={href} target="_blank" rel="noopener noreferrer" className={className} data-gift-sb-out="">{children}</a>;
 }
 
-/** One gift on a wish list: photo, name, where, Shop (our link) and, on the owner's own list, the heart. */
+/**
+ * One gift on a wish list: photo and name as ONE link (owner 11-21: "remove the shop at button, when they click the
+ * title of the image it will go there to the link"), where, and, on the owner's own list, the heart (outside the link).
+ */
 export function WishRow({ item, heart }: { item: WishItem; heart?: { saved: boolean; onToggle: () => void } }) {
   const Out = item.out === "plain" ? PlainOut : GiftOut;
   return (
@@ -59,14 +62,6 @@ export function WishRow({ item, heart }: { item: WishItem; heart?: { saved: bool
         </span>
         <span className="sr-only"> ({G.newTab})</span>
       </Out>
-      <span className="gg-wish-actions">
-        {/* Owner 11-20 ("too busy looking"): a plain text link like every pick's, no pill. */}
-        {item.href && <Out href={item.href} className="gg-shop-btn">
-          <span data-gift-shop="">{item.out === "plain" ? WISH.visit : G.shopAt(item.store)}</span>
-          <span aria-hidden="true">&nbsp;›</span>
-          <span className="sr-only">: {item.name} ({G.newTab})</span>
-        </Out>}
-      </span>
       {heart && (
         <Heart saved={heart.saved} label={heart.saved ? WISH.removeLabel(item.name) : WISH.saveLabel(item.name)} onToggle={heart.onToggle} className="gg-heart-pick gg-heart-wish"
           data={{ "data-gift-wish-remove": item.id }} />

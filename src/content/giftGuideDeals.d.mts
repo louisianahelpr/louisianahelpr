@@ -27,7 +27,6 @@ export interface DealEvent {
   /** The day page's banner title ("Black Friday Deals"). */
   pageTitle: string;
   lead: string;
-  intro: string;
   description: string;
   before: string;
   on: string;

@@ -81,11 +81,16 @@ describe("gift guides 11-19/11-20: photos sit on a plain white box with no borde
 describe("gift guides 11-19: every Shop button sits on the same line in a row", () => {
   it("each grid card is a full-height flex column with the Shop button pushed to its foot (tablet and desktop)", () => {
     expect(GIFT_GUIDES_CSS.match(/\.gg-list\{display:grid;[^}]*align-items:stretch\}/g)?.length).toBe(2);
-    expect(GIFT_GUIDES_CSS.match(/\.gg-list>li\{position:relative;display:flex;flex-direction:column;height:100%;border-top:0\}/g)?.length).toBe(2);
-    expect(GIFT_GUIDES_CSS.match(/\.gg-list \.gg-shop-btn\{display:inline-flex;align-self:flex-start;width:auto;margin:0;margin-top:auto\}/g)?.length).toBe(2);
+    // Owner 11-21 ("this needs polishing"): each grid card is the link (photo + name + price) beside a 44px heart column,
+    // so the heart never sits on the photo; the price follows the name with no forced gap.
+    expect(GIFT_GUIDES_CSS.match(/\.gg-list>li\{position:relative;display:grid;grid-template-columns:minmax\(0,1fr\) 44px;/g)?.length).toBe(2);
+    expect(GIFT_GUIDES_CSS.match(/\.gg-list \.gg-heart-pick\{position:static\}/g)?.length).toBe(2);
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-nm-name\{min-height/);
+    // Owner 11-21: no Shop button on a card any more (the photo and name are the link), so no grid rule for one.
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-list \.gg-shop-btn\{/);
     // Every photo is the same square, and the heart stays on it.
     expect(GIFT_GUIDES_CSS.match(/\.gg-list \.gg-thumb\{width:100%;height:auto;aspect-ratio:1\/1/g)?.length).toBe(2);
-    expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-heart-pick{position:absolute;top:6px;right:6px");
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-list \.gg-heart-pick\{position:absolute/);
   });
 });
 

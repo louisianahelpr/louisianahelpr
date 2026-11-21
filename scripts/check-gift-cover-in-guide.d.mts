@@ -5,4 +5,6 @@ export const MANIFEST: string;
 export const PICKS_DIR: string;
 export function isAmazonPhoto(u?: string): boolean;
 export function guidePicks(slug: string, dir?: string): Pick[];
-export function coverStrays(manifest: Manifest, picksOf?: (slug: string) => Pick[]): string[];
+export const PINS_FILE: string;
+export function pinnedPhotos(): Record<string, Record<string, string>>;
+export function coverStrays(manifest: Manifest, picksOf?: (slug: string) => Pick[], standIns?: Record<string, Record<string, string>>): string[];

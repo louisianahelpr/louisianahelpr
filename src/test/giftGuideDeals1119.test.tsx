@@ -188,7 +188,7 @@ describe("deals days: one page per day (owner 11-21)", () => {
     }
   });
 
-  it("Black Friday (today, Nov 21): only Black Friday's cards, its day line, the #ad line, no other day and no jump row; no price", async () => {
+  it("Black Friday (today, Nov 21): only Black Friday's cards and its day line; no intro, #ad line, other day, jump row or price", async () => {
     const c = await renderDay(BF, "2026-11-21");
     expect(c.querySelector("[data-gift-deal-day-page]")!.getAttribute("data-gift-deal-day-page")).toBe("black-friday");
     expect(c.querySelector("[data-gift-deal-day]")!.textContent).toBe(BF.before);
@@ -200,7 +200,10 @@ describe("deals days: one page per day (owner 11-21)", () => {
     expect(c.textContent).not.toMatch(/Small Business Saturday|Cyber Monday/);
     for (const a of c.querySelectorAll("[data-gift-deal] a")) expect(a.getAttribute("rel")).toBe("sponsored noopener");
     expect(c.querySelector("[data-gift-price], .gg-price")).toBeNull();
-    expect(c.querySelector("[data-gift-deals-ad]")!.textContent).toBe("#ad, some links earn us a small commission.");
+    // Owner 2026-11-21 ("remove this"): no intro paragraph, "#ad" line or helper line on the deals page.
+    // @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           <DealsAndCodes on={codesDay(day, today)} /> |           <p data-gift-deals-ad="">#ad</p><DealsAndCodes on={codesDay(day, today)} />
+    expect(c.querySelector("[data-gift-deals-ad], [data-gift-deals-help], .gg-deals-intro")).toBeNull();
+    expect(c.textContent).not.toMatch(/big sales are here|#ad|Codes copy with a tap/);
   });
 
   it("Cyber Monday: only Cyber Monday's cards", async () => {

@@ -5,7 +5,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
 import { loadModule } from "@/lib/loadModule";
-import { HINTS, WISH } from "@/content/giftWishList";
+import { WISH } from "@/content/giftWishList";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { dealName } from "./wishListItems";
@@ -17,8 +17,8 @@ import { SmallBizGrid } from "./GiftGuideSmallBiz";
  * saturday, and cyber monday deals"; later "remove small business stuff from black friday stuff. like each day has its
  * own section, no need to put them all in 1"): each day is its own page, /gift-guides/black-friday (Nov 27),
  * /gift-guides/small-business-saturday (Nov 28) and /gift-guides/cyber-monday (Nov 30) (giftGuideDeals.mjs
- * DEAL_EVENTS), with no links between the days on the page. A day page is its intro, one line with its day (worded for
- * before, on and after the day), the #ad line, its own "Deals & codes" box (collapsed; only the codes and sales that
+ * DEAL_EVENTS), with no links between the days on the page. A day page is one line with its day (worded for before,
+ * on and after the day; owner 11-21 "remove this": no intro, #ad or helper line), its own "Deals & codes" box (collapsed; only the codes and sales that
  * still work on that day, codesDay), then only its own cards. Deal cards: the brand, the sale in the brand's words, a CODE chip with a copy button when
  * there is a code, "Starts <day>" (announced, not started yet) or "Ends <day>", the photo and a Shop link with our
  * affiliate link. Never a price. The order is the generator's (our commission, high to low;
@@ -31,7 +31,6 @@ import { SmallBizGrid } from "./GiftGuideSmallBiz";
 
 const DEALS_CSS = `
 .gg-deals-intro{margin:10px 0 4px;font-size:15px;line-height:1.5;color:var(--gg-ink);max-width:46rem}
-.gg-deals-ad{margin:0 0 6px;font-size:12px;color:var(--gg-muted)}
 .gg-deal-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media (min-width:640px){.gg-deal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (min-width:1100px){.gg-deal-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -141,13 +140,10 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
   return (
     <div data-gift-deals-page="" data-gift-deal-day-page={day.id} data-gift-deal-phase={eventPhase(day, today)}>
       <style>{DEALS_CSS}</style>
-      <p className="gg-deals-intro">{day.intro}</p>
+      {/* Owner 2026-11-21 ("remove this"): no intro, "#ad" or helper line here; the footer's affiliate disclosure stays. */}
       <p className="gg-deals-day" data-gift-deal-day="">{day[eventPhase(day, today)]}</p>
       {kind === "deals" ? (
         <>
-          <p className="gg-deals-ad" data-gift-deals-ad="">{W.disclosure}</p>
-          {/* Owner 2026-11-20 hints: the deals page's helper line. */}
-          <p className="gg-deals-ad" data-gift-deals-help="">{HINTS.deals}</p>
           {/* Owner 11-21: "[Deals & codes box] should open collapsed"; each day only the codes and sales that still work on it. */}
           <DealsAndCodes on={codesDay(day, today)} />
           {deals === null ? (

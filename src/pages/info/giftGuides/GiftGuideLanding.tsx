@@ -12,8 +12,8 @@ import { GiftFinder } from "./GiftGuideFinder";
 /**
  * OWNER + LEAD 11-21 (supersedes the order below where they differ): the main column is the three tiles, sharing the
  * full width, each with a quiet "Her · 36 gifts" line and no heading over them; then the 25 Days giveaways card; nothing
- * else. The gift finder (the quiz) shows under them only when the menu's "Find a gift in 3 taps" or a shared finder link
- * asks for it (finderAsked). The deals days, Free printables, the Holiday
+ * else. The menu's "Find a gift in 3 taps" (or a shared finder link) shows the gift finder ALONE in the main column
+ * (finderAsked; owner 11-21: "only the section I click in the left panel should be displayed"). The deals days, Free printables, the Holiday
  * Hub, the 25 Days sponsors and the fun tools are all in the left menu (owner: "i have already said free printables,
  * louisiana hub, sponsors go in the left panel ... and black friday deals, small business saturday and cyber monday"),
  * never in the main column.
@@ -90,11 +90,14 @@ function GroupPage({ group }: { group: GuideRow }) {
  * finder link (/gift-guides?who=her&budget=50&vibe=cozy). Otherwise the main column is only the tiles and the 25 Days
  * card (owner 11-21: the main column is ONLY the three tiles and the 25 Days card; the quiz is a fun tool in the menu).
  */
-const finderAsked = (search: string, hash: string) => hash === `#${FINDER_ANCHOR}` || new URLSearchParams(search).has("who");
+export const finderAsked = (search: string, hash: string) => hash === `#${FINDER_ANCHOR}` || new URLSearchParams(search).has("who");
 
 export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
   const { search, hash } = useLocation();
   if (group) return <GroupPage group={group} />;
+  // Owner 11-21: "if I click find a gift in 3 steps the guides shouldn't be opened up here. only the section I click in
+  // the left panel should be displayed, nothing else": the finder view is the finder alone.
+  if (finderAsked(search, hash)) return <div className="gg-landing" data-gift-landing="" data-gift-finder-view=""><GiftFinder /></div>;
   return (
     <div className="gg-landing" data-gift-landing="">
       <LiveGuides />
@@ -107,7 +110,6 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
         </div>
         <a href={sponsorPage.links.facebookPage} target="_blank" rel="noopener noreferrer" className="gg-helpr-btn" data-gift-social="">{G.giveaways.cta}</a>
       </aside>
-      {finderAsked(search, hash) && <GiftFinder />}
     </div>
   );
 }

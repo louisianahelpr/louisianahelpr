@@ -9,6 +9,7 @@
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { COVER_WEBP_SLUGS, OG_JPG_SLUGS } from "@/lib/giftGuideShareImages.mjs";
+import { COVER_VERSIONS, OG_VERSIONS } from "@/lib/giftGuideCoverVersions.mjs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
@@ -45,7 +46,8 @@ describe("gift guide share preview (api/share.ts)", () => {
   it.each(["mom", "dad", "him", "her"])("/gift-guides/%s previews with its own share JPG", async (slug) => {
     expect(existsSync(`public/gift-guides/og/${slug}.jpg`)).toBe(true);
     const head = await headFor(`gift-guides/${slug}`);
-    const url = `${ORIGIN}/gift-guides/og/${slug}.jpg`;
+    // ?v= is the share JPG's content hash (owner 11-21: a redrawn card is a new URL; src/lib/giftGuideCoverVersions.mjs).
+    const url = `${ORIGIN}/gift-guides/og/${slug}.jpg?v=${OG_VERSIONS[slug]}`;
     expect(head).toContain(`<meta property="og:image" content="${url}"`);
     expect(head).toContain('<meta property="og:image:type" content="image/jpeg"');
     expect(head).toContain('<meta property="og:image:width" content="600"');
@@ -64,7 +66,7 @@ describe("gift guide share preview (api/share.ts)", () => {
     OG_JPG_SLUGS.delete("mom");
     try {
       const head = await headFor("gift-guides/mom");
-      expect(head).toContain(`<meta property="og:image" content="${ORIGIN}/gift-guides/covers/mom.webp"`);
+      expect(head).toContain(`<meta property="og:image" content="${ORIGIN}/gift-guides/covers/mom.webp?v=${COVER_VERSIONS.mom}"`);
       expect(head).toContain('<meta property="og:image:type" content="image/webp"');
     } finally {
       OG_JPG_SLUGS.add("mom");

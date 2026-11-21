@@ -36,12 +36,12 @@ color:var(--gg-ink)}
 .gg-side summary::after{content:"+";margin-left:auto;font-size:15px;line-height:1}
 .gg-side details[open] summary::after{content:"\\2212"}
 .gg-side ul{list-style:none;margin:0 0 8px;padding:0}
-.gg-side .gg-side-more{padding-top:8px;border-top:1px solid var(--gg-line)}
+.gg-side>.gg-side-h:first-child{margin-top:0;padding-top:0;border-top:0}
 .gg-side details a{padding-left:28px}
 .gg-side ul ul a{padding-left:44px;font-size:12.5px}
 .gg-side ul ul{margin:0}
 
-.gg-side a{display:flex;align-items:center;min-height:34px;padding:5px 10px;border-radius:8px;color:var(--gg-ink);text-decoration:none}
+.gg-side a{display:flex;align-items:center;min-height:44px;padding:4px 10px;border-radius:8px;color:var(--gg-ink);text-decoration:none}
 .gg-side a:hover{background:hsl(var(--muted) / .6)}
 .gg-side a[aria-current="page"]{background:var(--gg-soft);color:var(--gg-olive);font-weight:700}
 .gg-main{padding:8px 0 28px 24px;min-width:0}
@@ -62,16 +62,30 @@ color:var(--gg-ink)}
 .gg-words{text-align:center;padding:10px 16px 14px;border-bottom:1px solid var(--gg-line);margin-bottom:4px}.gg-banner-wrap{padding:4px 0 10px}.gg-banner{display:flex;justify-content:center;align-items:flex-end;height:184px;padding:14px 16px 0;border-radius:14px;overflow:hidden}.gg-arch{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:min(440px,72%);height:100%;padding:34px 18px 10px;background:#fffdf7;border:1px solid #e6dccd;border-bottom:0;border-radius:999px 999px 0 0;box-shadow:0 0 0 7px rgba(255,253,247,.85)}.gg-banner .gg-lead{font-size:18px;line-height:1.1}.gg-banner h1{font-size:30px;line-height:1.08;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}@media (max-width:767px){.gg-banner{height:148px;padding-top:10px}.gg-arch{width:min(300px,64%);padding:22px 10px 8px}.gg-banner .gg-lead{font-size:15px}.gg-banner h1{font-size:22px}}:root[data-theme="dark"] .gg-banner .gg-lead,:root[data-theme="dark"] .gg-banner h1{color:#3b2a20}
 .gg-words .gg-lead{font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-style:italic;font-size:22px;color:#6b5a48;margin:0}
 .gg-words h1{font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-weight:500;font-size:34px;line-height:1.1;margin:0 0 8px;color:#3b2a20;text-wrap:balance}
+/* Owner 11-21 ("move gifts for up, it's too close to the main title"): a clear gap between the banner's lead and its name. */
+.gg-banner .gg-lead{margin:0 0 12px}
 
 .gg-ship{margin:0;font-size:12px;font-weight:600;line-height:1.3;color:#3f5a1c;background:#eef2e6;border-radius:999px;padding:5px 12px;white-space:nowrap}@media (max-width:479px){.gg-ship{white-space:normal;max-width:52vw;font-size:11px;text-align:center;padding:4px 10px;border-radius:14px}}
 .gg-tools{display:flex;align-items:center;justify-content:center;gap:4px;max-width:440px;margin:8px auto 0}
 .gg-tools-search{position:relative;flex:1;min-width:0}
-/* Owner 11-21: the row under the header, the shipping pill left and search + heart + Share right; a phone wraps it. */
-.gg-headrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:0 0 12px}
-.gg-headrow-noship{justify-content:flex-end}
-.gg-headrow .gg-tools{margin:0;flex:1 1 280px;max-width:420px;justify-content:flex-end}
-.gg-headrow .gg-ship{flex:none}
-@media (max-width:479px){.gg-headrow .gg-ship{max-width:none}.gg-headrow .gg-tools{max-width:none}}
+/* Owner 11-21: ONE header row from 768px up: back arrow + title, the shipping pill, then search + heart + share
+   pushed right, all centred; a phone wraps it (arrow + title, then the pill and the icons). The shell's own header row
+   is off, so this row keeps the shell's air above it (--shell-gap on a phone, 24px from sm up). */
+.gg-headrow{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:var(--shell-gap,12px) 0 12px}
+.gg-head-title{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 100%}
+.gg-head-title .text-page-title{margin:0;min-width:0;white-space:nowrap}
+.gg-headrow .gg-ship{flex:none;max-width:none}
+.gg-headrow .gg-tools{margin:0 0 0 auto;flex:0 1 auto;justify-content:flex-end}
+/* A phone: the search is a 44px magnifier on the pill's row and opens across the row while typing. */
+.gg-headrow .gg-tools-search{flex:0 0 44px;min-width:44px}
+.gg-headrow .gg-tools-search .gg-search input{padding-right:0;cursor:pointer}
+.gg-headrow .gg-tools-search:focus-within{position:absolute;left:0;right:0;z-index:7;background:hsl(var(--background))}
+.gg-headrow .gg-tools-search:focus-within .gg-search input{padding-right:12px;cursor:text}
+.gg-headrow .gg-tools-search:not(:focus-within) .gg-search input::placeholder{color:transparent}
+.gg-sort-check{display:inline-block;width:16px;flex:none}
+[data-gift-sort-menu]{min-width:200px}[data-gift-sort-menu] button{white-space:nowrap}
+@media (min-width:640px){.gg-headrow .gg-tools-search:not(:focus-within) .gg-search input::placeholder{color:var(--gg-muted)}.gg-headrow{padding-top:24px}.gg-headrow .gg-tools-search{flex:1 1 160px;max-width:300px}.gg-headrow .gg-tools-search:focus-within{position:relative;left:auto;right:auto}.gg-headrow .gg-tools-search .gg-search input{padding-right:12px;cursor:text}.gg-headrow .gg-tools{flex:1 1 300px}}
+@media (min-width:768px){.gg-head-title{flex:0 0 auto}.gg-headrow{flex-wrap:nowrap}.gg-headrow .gg-tools{flex:1 1 auto;min-width:0}}
 .gg-search-results{position:absolute;z-index:6;top:calc(100% + 6px);left:0;right:0;list-style:none;margin:0;padding:4px;max-height:60vh;overflow-y:auto;text-align:left;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);font-size:14px}
 .gg-search-results a{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:8px;color:var(--gg-ink);text-decoration:none}
 .gg-search-results a{gap:10px;padding:4px 12px}
@@ -130,6 +144,9 @@ article[data-gift-guide]>section:first-child>.gg-list,article[data-gift-guide]>.
 .gg-store-deals li,.gg-codes li[data-gift-sale]{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;padding:4px 0;border-top:1px solid var(--gg-line)}
 .gg-store-deals li .gg-link,.gg-codes li[data-gift-sale] .gg-link{min-height:40px;font-weight:600}
 .gg-sec-title{margin:24px 0 0;font-size:15px;font-weight:700;color:var(--gg-ink)}
+/* Owner 11-21 price sections: the count beside a section heading, quiet. */
+.gg-sec-count{font-weight:500;color:var(--gg-muted)}
+.gg-sec+.gg-sec .gg-sec-title,.gg-sort+section .gg-sec-title{margin-top:20px}
 .gg-more-picks{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin:12px 0 0;border-radius:999px;border:1px solid var(--gg-olive);background:transparent;color:var(--gg-olive);font-weight:700;font-size:13px}
 .gg-list>li{border-top:1px solid var(--gg-line);counter-increment:gg}
 .gg-item{display:flex;align-items:center;gap:14px;padding:11px 0;color:var(--gg-ink);text-decoration:none;font-size:15px;min-height:44px}
@@ -147,26 +164,22 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list>li{align-items:flex-start}
 @media (min-width:1024px){
 .gg-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 20px;align-items:stretch}
-.gg-list>li{position:relative;display:flex;flex-direction:column;height:100%;border-top:0}
+.gg-list>li{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:start;column-gap:2px;border-top:0}
 .gg-list .gg-item{flex-direction:column;align-items:stretch;align-self:stretch;padding:0;gap:10px}
 .gg-list .gg-photo{width:100%;border-radius:16px}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
 .gg-list .gg-letter{font-size:16px}
-.gg-list .gg-heart-pick{position:absolute;top:6px;right:6px}
-.gg-list .gg-shop-btn{display:inline-flex;align-self:flex-start;width:auto;margin:0;margin-top:auto}
-.gg-list .gg-nm-name{min-height:2.6em}
-.gg-list .gg-item{margin-bottom:10px}
+.gg-list .gg-heart-pick{position:static}
+.gg-list .gg-item{margin-bottom:6px}
 }
 @media (min-width:768px) and (max-width:1023px){
 .gg-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 20px;align-items:stretch}
-.gg-list>li{position:relative;display:flex;flex-direction:column;height:100%;border-top:0}
+.gg-list>li{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:start;column-gap:2px;border-top:0}
 .gg-list .gg-item{flex-direction:column;align-items:stretch;align-self:stretch;padding:0;gap:10px}
 .gg-list .gg-photo{width:100%;border-radius:16px}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
-.gg-list .gg-heart-pick{position:absolute;top:6px;right:6px}
-.gg-list .gg-shop-btn{display:inline-flex;align-self:flex-start;width:auto;margin:0;margin-top:auto}
-.gg-list .gg-nm-name{min-height:2.6em}
-.gg-list .gg-item{margin-bottom:10px}
+.gg-list .gg-heart-pick{position:static}
+.gg-list .gg-item{margin-bottom:6px}
 }
 .gg-letter{display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;overflow:hidden;overflow-wrap:anywhere;line-height:1.05;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:10px;font-weight:700;color:var(--gg-olive)}
 .gg-nm{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -206,7 +219,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-more-groups-k{font-size:13px;font-weight:600;color:var(--gg-muted)}
 .gg-more-groups ul{display:flex;flex-wrap:wrap;gap:0 18px;list-style:none;margin:0;padding:0}
 .gg-gated{display:flex;flex-direction:column;gap:6px;margin:4px 0 12px}
-.gg-item:hover .gg-nm,.gg-item:focus-visible .gg-nm{text-decoration:underline}
+.gg-item:hover .gg-nm-name,.gg-item:focus-visible .gg-nm-name{text-decoration:underline;text-underline-offset:3px}
 .gg-price{font-size:13px;font-weight:700;color:var(--gg-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
 .gg-price-note{margin:8px 0 0;font-size:12px;color:var(--gg-muted)}
 .gg-codes li{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid var(--gg-line)}
@@ -249,10 +262,10 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 /* Owner 11-21: on a phone the menu sits AFTER the page (not hidden), so the 25 Days sponsors and the Holiday Hub,
    which left the main column, stay one tap away. */
 .gg-side{order:2;position:static;max-height:none;overflow:visible;border-right:0;border-top:1px solid var(--gg-line);padding:12px 0 8px}
-.gg-side a{min-height:44px}
 .gg-main{padding:4px 0 24px;order:1}
 .gg-item{gap:10px;padding:8px 0;font-size:14px}
 .gg-banner-wrap{padding:0 0 4px}.gg-banner{height:96px;padding-top:8px;border-radius:12px}.gg-arch{width:min(260px,70%);padding:14px 10px 6px;box-shadow:0 0 0 5px rgba(255,253,247,.85)}.gg-banner .gg-lead{font-size:13px}.gg-banner h1{font-size:20px;-webkit-line-clamp:1}.gg-tools{margin-top:6px}
+.gg-banner .gg-lead{margin-bottom:7px}
 }
 .gg-code-row code{white-space:nowrap;overflow-wrap:normal;font-size:12px}
 `;

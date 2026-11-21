@@ -30,14 +30,13 @@ export const RETITLE_AFTER = "2026-12-01";
 /**
  * The three day pages, in calendar order; `id` is the page's slug. `kind`: "deals" (cards from giftGuideDeals.json
  * with this event) or "small-biz" (the 25 Days sponsors from giftGuideSmallBiz.json). `pageTitle` is the banner's
- * title, `lead` the line above it, `intro` the page's opening line and `description` its search result line. Each says
+ * title, `lead` the line above it and `description` its search result line (owner 11-21: no intro on the page). Each says
  * its day before it, on it and after it.
  */
 export const DEAL_EVENTS = [
   {
     id: "black-friday", kind: "deals", day: "2026-11-27", title: "Black Friday",
     pageTitle: "Black Friday Deals", lead: "the best",
-    intro: "Y'all, the big sales are here. We checked each Black Friday sale with the store itself, so you can knock out your list and still save a little for the gumbo pot.",
     description: "Black Friday Deals 2026: hand-checked Black Friday sales and codes from brands you already love, picked by Louisiana Helpr.",
     before: "Fri, Nov 27. Plenty of these sales are on already.",
     on: "Today, Fri, Nov 27. These sales are on now.",
@@ -46,7 +45,6 @@ export const DEAL_EVENTS = [
   {
     id: "small-business-saturday", kind: "small-biz", day: "2026-11-28", title: "Small Business Saturday",
     pageTitle: "Small Business Saturday", lead: "shop small",
-    intro: "Shop small, shop Louisiana. Buy a gift, book a visit, or just give these local shops and makers a follow.",
     description: "Small Business Saturday 2026: Louisiana shops, makers and local favorites sponsoring Louisiana Helpr's 25 Days of Giveaways, with a link to each one.",
     before: "Sat, Nov 28. Shop Louisiana: these local businesses are all sponsors of our 25 Days of Giveaways.",
     on: "Today, Sat, Nov 28. Shop Louisiana: these local businesses are all sponsors of our 25 Days of Giveaways.",
@@ -55,7 +53,6 @@ export const DEAL_EVENTS = [
   {
     id: "cyber-monday", kind: "deals", day: "2026-11-30", title: "Cyber Monday",
     pageTitle: "Cyber Monday Deals", lead: "the best",
-    intro: "Cyber Week is here. We checked each Cyber Monday sale with the store itself, so you can finish your list from the couch.",
     description: "Cyber Monday Deals 2026: hand-checked Cyber Monday and Cyber Week sales and codes from brands you already love, picked by Louisiana Helpr.",
     before: "Mon, Nov 30. Cyber Week sales, and deals that run through Cyber Monday.",
     on: "Today, Mon, Nov 30. Last call on Cyber Week sales.",
@@ -93,7 +90,10 @@ export const DEALS_PER_BRAND = 2;
 export const DEALS_WORDS = {
   title: "Black Friday & Cyber Monday Deals",
   laterTitle: "Holiday Deals",
-  disclosure: "#ad, some links earn us a small commission.",
+  // Owner 2026-11-21 ("remove this"): no intro paragraph, "#ad" line or helper line on the deals page. The page keeps
+  // the gift guides' standard affiliate disclosure in its footer (GiftGuides.tsx); the pre-JS body (api/share.ts)
+  // carries the same words.
+  disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
   featuredLine: "Hand-checked sales from brands you already love, all in one place.",
   featuredCta: "See the deals",
   shop: (brand) => `Shop ${brand}`,

@@ -12,7 +12,7 @@ const TAG = "postStep";
 const PUSHED = "postPushed";
 
 /** How many entries this flow pushed up to and including this one, or null when this flow did not push it. */
-export function postPushedFromHistory(state: unknown): number | null {
+function postPushedFromHistory(state: unknown): number | null {
   const v = (state as Record<string, unknown> | null | undefined)?.[PUSHED];
   return typeof v === "number" && Number.isInteger(v) && v > 0 ? v : null;
 }

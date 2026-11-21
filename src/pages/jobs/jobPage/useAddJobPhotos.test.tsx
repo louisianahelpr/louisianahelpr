@@ -36,7 +36,9 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 const toasts = vi.hoisted(() => ({ ok: [] as string[], err: [] as string[] }));
 vi.mock("sonner", () => ({ toast: { success: (m: string) => toasts.ok.push(m), error: (m: string) => toasts.err.push(m) } }));
 
-import { useAddJobPhotos, MAX_JOB_PHOTOS } from "./useAddJobPhotos";
+import { useAddJobPhotos } from "./useAddJobPhotos";
+
+const MAX_JOB_PHOTOS = 5; // Post a job's cap (useJobMediaUpload), the same here
 
 const wrap = ({ children }: { children: ReactNode }) => <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>;
 const img = (n: string) => new File(["x"], n, { type: "image/png" });

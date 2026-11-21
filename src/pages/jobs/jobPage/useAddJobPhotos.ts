@@ -11,7 +11,7 @@ import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 
 /** The photo types a job takes, and how many (the same allowlist and cap as Post a job, useJobMediaUpload). */
 const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-export const MAX_JOB_PHOTOS = 5;
+const MAX_JOB_PHOTOS = 5;
 
 /**
  * Audit 11-21 (High): the open job with no applicants offered "Add a photo", but it opened EditJobDialog, which has

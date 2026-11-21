@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { ListRow } from "@/components/ui/ListRow";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { getCity } from "@/lib/locationUtils";
@@ -63,12 +64,10 @@ export function NoApplicantsYet({ job }: { job: JobPageRow }) {
             ))}
           </ul>
         )}
-        <input
+        <HiddenFileInput
           ref={photoInput}
-          type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
           multiple
-          className="sr-only"
           tabIndex={-1}
           aria-hidden
           data-testid="no-applicants-photo-input"

@@ -12,6 +12,7 @@
  * @mutate src/content/giftGuideMerges.mjs |   heroes: ["first-responders", "military"], |   heroes: ["first-responders"],
  * @mutate scripts/giftGuideFollowUp1120.mjs |     if (copy) { out.counts.skipped += 1; continue; } |     if (false) { out.counts.skipped += 1; continue; }
  */
+import { LIVE_GUIDES_1121, isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
@@ -45,14 +46,15 @@ describe("gift guides follow-up 1120", () => {
         expect(MERGED_INTO[s]?.parent, s).toBe(parent);
         const to = newSlugFor(s);
         // For Her / For Him (owner 11-20 evening): Brother and Sister are filter pages of those guides now.
-        expect(to === parent || to === `${parent}#${SECTION_ANCHORS[s]}` || (peopleGuideOf(s) !== null && to === s), `${s} -> ${to}`).toBe(true);
+        // Owner 11-21: a retired parent (src/content/giftGuideLive.mjs) has no page; its old guides land on the landing (null).
+        const live = to === parent || to === `${parent}#${SECTION_ANCHORS[s]}` || (peopleGuideOf(s) !== null && to === s);
+        expect(isLiveGuide(parent) || peopleGuideOf(s) !== null ? live : to === null, `${s} -> ${to}`).toBe(true);
       }
     }
-    // Owner "FINAL MERGES -> ~30": 28 guides measured 2026-11-20.
-    // A relationship filter page (Mom, Dad ... on For Her / For Him) is a view of its guide, not another guide.
+    // Owner "FINAL MERGES -> ~30": 28 guides measured 2026-11-20; owner 11-21: only Her, Him and Kids (and the 25 Days
+    // sponsors page) stay live. A relationship filter page (Mom, Dad ... on For Her / For Him) is a view, not a guide.
     const shown = GUIDES.filter((g) => !g.empty && !g.slug.startsWith("store-") && !(g as { view?: unknown }).view);
-    expect(shown.length).toBeGreaterThan(24);
-    expect(shown.length).toBeLessThan(34);
+    expect(shown.map((g) => g.slug).sort()).toEqual([...LIVE_GUIDES_1121].sort());
   });
 
   it("no gift card and no 0% pick except a 25 Days sponsor's; the rule itself", () => {

@@ -6,9 +6,11 @@
  *     Gift cards and Subscriptions tiles and an "Arrives by Christmas" note carrying the shipping pill's words; hidden
  *     before Dec 15 and after Dec 25.
  *
+ * Owner 11-21: store pages and the landing's Last-minute row are retired with every guide but Her, Him and Kids
+ * (src/content/giftGuideLive.mjs); their tests are gone, the date window stays for its return.
+ *
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const badges = pick.badges; |   const badges = ["trending" as const, ...(pick.badges ?? [])];
  * @mutate src/content/giftGuideShipping.ts |   return month === 12 && day >= 15 && day <= 25; |   return month === 12 && day >= 14 && day <= 25;
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LastMinute /> |       {null}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
@@ -69,12 +71,6 @@ describe("gift guides: Trending only where the pick is trending (big batch 1120)
     expect(pill.textContent).toBe("Trending on TikTok");
   });
 
-  it("a store page's list wears no Trending pill", () => {
-    const { container } = renderAt("/gift-guides/store-walmart");
-    expect(rowBadges(container).length).toBeGreaterThan(3);
-    expect(container.querySelector('[data-gift-badge="trending"]')).toBeNull();
-  });
-
   it("the pill is the site's olive, not its own colour", async () => {
     const { GIFT_GUIDES_CSS } = await import("@/pages/info/giftGuides/giftGuidesStyles").then((m) => ({ GIFT_GUIDES_CSS: Object.values(m).filter((v) => typeof v === "string").join("\n") }));
     expect(GIFT_GUIDES_CSS).toContain(".gg-bdg{");
@@ -110,28 +106,6 @@ describe("gift guides: Last-minute gifts, Dec 15-25 in Louisiana", () => {
   it("hidden after Dec 25", () => {
     at("2026-12-26T18:00:00Z");
     expect(renderAt("/gift-guides").container.querySelector("[data-gift-last-minute]")).toBeNull();
-  });
-
-  it("shows at the top on Dec 18, with the Gift cards and Subscriptions tiles and the shipping note", () => {
-    at("2026-12-18T18:00:00Z");
-    const { container } = renderAt("/gift-guides");
-    const sec = container.querySelector<HTMLElement>("[data-gift-last-minute]")!;
-    expect(sec).not.toBeNull();
-    expect(sec.querySelector("h2")?.textContent).toBe("Last-minute gifts");
-    const tiles = [...sec.querySelectorAll("[data-gift-tile]")].map((a) => a.getAttribute("data-gift-tile"));
-    // Follow-up 1120: the memberships and advent calendars (every 0% gift card out) are a section of Gifts by Budget.
-    expect(tiles).toEqual(expect.arrayContaining(["gifts-by-budget"]));
-    for (const t of sec.querySelectorAll("[data-gift-tile]")) expect(t.getAttribute("href")).toBe(`/gift-guides/${t.getAttribute("data-gift-tile")}`);
-    expect(sec.querySelector("[data-gift-last-minute-note]")?.textContent).toBe(`Arrives by Christmas: ${SHIP_LINES.late}`);
-    // Above the guides grid.
-    const firstRow = container.querySelector("[data-gift-browse]")!;
-    expect(sec.compareDocumentPosition(firstRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it("on Dec 23 the note carries the instant-gift line", () => {
-    at("2026-12-23T18:00:00Z");
-    const { container } = renderAt("/gift-guides");
-    expect(container.querySelector("[data-gift-last-minute-note]")?.textContent).toBe(`Arrives by Christmas: ${SHIP_LINES.instant}`);
   });
 
   it("not on a group's See all page", () => {

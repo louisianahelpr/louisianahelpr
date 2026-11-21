@@ -8,6 +8,10 @@
  *   - featured on the landing Nov 24-29 (Louisiana), then gone; "Shop Small Louisiana" after Nov 29;
  *   - the page answers 200 with its own head before JavaScript, and it is in the sitemap.
  *
+ * Owner 11-21 ("launch the 3 guides remove the rest that are live"): the Small Business Saturday page is retired
+ * (src/content/giftGuideLive.mjs) and its old link lands on /gift-guides (src/test/giftGuideOnlyThree1121.test.tsx);
+ * the page-render test is gone, the data and feature-window checks stay for its return.
+ *
  * @mutate src/content/giftGuideSmallBiz.mjs |   return today >= SMALL_BIZ_FEATURE_FROM && today <= SMALL_BIZ_FEATURE_TO; |   return today >= SMALL_BIZ_FEATURE_FROM;
  * @mutate scripts/gift-guide-small-biz.mjs | const NO_LOGO = new Set(["sprinkle-in-time-too", | const NO_LOGO = new Set([
  */
@@ -56,25 +60,6 @@ describe("Small Business Saturday: the businesses", () => {
 });
 
 describe("Small Business Saturday: the page", () => {
-  it("draws every business with its badge, and a Visit button only where it has a link", async () => {
-    const { container } = render(
-      <MemoryRouter initialEntries={[`/gift-guides/${SMALL_BIZ_SLUG}`]}>
-        <Routes><Route path="/gift-guides/:slug" element={<GiftGuides />} /></Routes>
-      </MemoryRouter>,
-    );
-    await waitFor(() => expect(container.querySelectorAll("li[data-gift-sb]").length).toBe(rows.length));
-    for (const li of container.querySelectorAll("li[data-gift-sb]")) {
-      const b = rows.find((x) => x.slug === li.getAttribute("data-gift-sb"))!;
-      expect(li.querySelector('[data-gift-badge="sponsor"]')?.textContent).toBe("25 Days sponsor");
-      const out = [...li.querySelectorAll("a[data-gift-sb-out]")];
-      expect(out.length > 0, b.name).toBe(Boolean(b.href));
-      for (const a of out) {
-        expect(a.getAttribute("target")).toBe("_blank");
-        expect(a.getAttribute("rel")).toContain("noopener");
-      }
-    }
-    expect(container.querySelector("[data-gift-sb-guide]")?.getAttribute("href")).toBe("/gift-guides/shop-small-louisiana");
-  });
 
   it("is featured on the landing Nov 24-29 only, and retitled after", () => {
     expect(smallBizFeatured("2026-11-23")).toBe(false);
@@ -89,10 +74,11 @@ describe("Small Business Saturday: the page", () => {
     expect(render(<MemoryRouter><SmallBizFeature now={new Date("2026-12-02T18:00:00Z")} /></MemoryRouter>).container.querySelector("[data-gift-sb-feature]")).toBeNull();
   });
 
-  it("has its own indexed head and is in the sitemap", () => {
+  it("has its own indexed head; out of the sitemap while retired (owner 11-21)", () => {
     const meta = giftGuidePageMeta(SMALL_BIZ_SLUG);
     expect(meta.canonical).toBe(`https://www.louisianahelpr.com/gift-guides/${SMALL_BIZ_SLUG}`);
     expect("robots" in meta).toBe(false);
-    expect(readFileSync("public/sitemap.xml", "utf8")).toContain(`<loc>https://www.louisianahelpr.com/gift-guides/${SMALL_BIZ_SLUG}</loc>`);
+    // Owner 11-21: the page is retired with every guide but Her, Him and Kids (src/content/giftGuideLive.mjs).
+    expect(readFileSync("public/sitemap.xml", "utf8")).not.toContain(`<loc>https://www.louisianahelpr.com/gift-guides/${SMALL_BIZ_SLUG}</loc>`);
   });
 });

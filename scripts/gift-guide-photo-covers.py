@@ -68,9 +68,11 @@ def soften(pal, k=0.30, kb=0.15):
 
 
 FAMILY = {
-    "green": soften(((123, 148, 119), (186, 198, 180), CREAM_O), 0.45, 0.30),
+    # Owner 11-21: "we also agreed on a more christmas red and christmas green": deep holly green and berry red checks,
+    # no longer softened toward cream (beige stays as it was).
+    "green": ((38, 94, 60), (150, 178, 154), CREAM_O),
     "tan": soften(((206, 186, 154), (228, 215, 196), CREAM_O), 0.30, 0.15),
-    "red": soften(((177, 104, 100), (215, 176, 168), CREAM_O), 0.45, 0.30),
+    "red": ((168, 36, 42), (222, 150, 148), CREAM_O),
 }
 TINT = {"By person": "green", "By store": "green", "Life moments": "green", "Louisiana": "green",
         "By budget": "tan", "By career": "tan", "Colors": "tan", "For kids": "red", "Hobbies": "red", "Pets": "red"}

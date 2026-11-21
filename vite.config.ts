@@ -1222,6 +1222,41 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
+            // More supabase/functions files shared-late (every route's boot) took though only one area reads them
+            // (2026-11-21: /login and /signup sat over their critical-path budgets after /shop-small and the header
+            // follow-ups). Each gets its own chunk, so it loads with its readers only.
+            // the sponsor claim form, its admin page and src/lib/sponsor/types.ts.
+            {
+              name: "sponsor-signup",
+              test: /[\\/]supabase[\\/]functions[\\/]_shared[\\/]sponsorSignup\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false,
+            },
+            // src/lib/declutter/delivery.ts.
+            {
+              name: "money-shared",
+              test: /[\\/]supabase[\\/]functions[\\/]_shared[\\/]money\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false,
+            },
+            // the post-job checkout and src/lib/cardHoldRead.ts.
+            {
+              name: "card-hold-copy",
+              test: /[\\/]supabase[\\/]functions[\\/]_shared[\\/]cardHoldCopy\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false,
+            },
+            // the Declutter sell form and the address lookup.
+            {
+              name: "address-match",
+              test: /[\\/]supabase[\\/]functions[\\/]_shared[\\/]addressMatch\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false,
+            },
             // The parish tables and the location hook. Only the job lists, the
             // location hook and address checks read them, but several lazy
             // screens share them, so app-shared captured them onto EVERY page's

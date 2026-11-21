@@ -231,7 +231,15 @@ export const enDeclutter = {
   "decl.sl.takeDownQ": "Take this item off sale?",
   "decl.sl.draftWords": "Its photos are removed and it moves to your selling history.",
   "decl.sl.takeDownWords": "Its photos are removed and open offers close. Nothing is charged. You can relist it from History, but you'll need new photos.",
-  "decl.lwn.copy": "Copy link for local groups",
+  // Declutter selling boost (owner 11-20): sharing a live listing (DeclutterShareCard.tsx).
+  "decl.share.title": "Share your listing",
+  "decl.share.facebook": "Share to Facebook",
+  "decl.share.copy": "Copy link",
+  "decl.share.copied": "Link copied. Paste it in your local groups.",
+  "decl.share.tipTitle": "Share to your local groups",
+  "decl.share.tipBody": "Neighbors look in their town's buy and sell groups first. Here's a post you can paste:",
+  "decl.share.copyPost": "Copy this post",
+  "decl.share.postCopied": "Post copied. Paste it in your group.",
   // The item page's owner lines and view count (11-18 train, Q178): here, not in enDeclSell, so a cold public item page
   // does not fetch the whole seller dictionary (+3.3 KB gz on /declutter/item/:id) for four words.
   "dsl.view": "{n} view",

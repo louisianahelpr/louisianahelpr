@@ -33,6 +33,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
 import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, droppedQueryFromParams, isNewSince, newSinceFromParams, type DeclutterFilters } from "@/lib/declutter/browseFilters";
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
+import { newThisWeek } from "@/lib/declutter/newThisWeek";
 import { closeSearch, searchWords } from "@/lib/declutter/searchMatch";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
@@ -71,6 +72,15 @@ import { BROWSE_EMPTY_SLOT, CHIPS_ROW_PAD } from "@/components/sections/browseHe
 // The map (and the MapKit script it asks for) loads only when a map is shown.
 const DeclutterMap = lazy(() => import("./DeclutterMap"));
 const GiftGuidesPromo = lazy(() => import("@/components/GiftGuidesPromo"));
+// Selling boost (owner 11-20): the "New this week" row is its own chunk, off Browse's critical path (Q178). It starts
+// downloading as Browse's own module runs, beside the list read, so it is in hand by the time the cards paint.
+const loadNewThisWeek = () => import("./DeclutterNewThisWeek");
+const DeclutterNewThisWeek = lazy(loadNewThisWeek);
+if (typeof window !== "undefined") {
+  void loadNewThisWeek().catch(() => {
+    // A failed early start costs nothing: lazy() asks for the chunk again when the row renders.
+  });
+}
 
 /** What Browse hands the tabs row: the desktop end cluster and count, or the phone's search row under the tabs. */
 export interface DeclutterBrowseHeader {
@@ -346,6 +356,10 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   // A search or a filter that found nothing is never "Opens soon" (lead walkthrough 2026-10-28, shot 04): it says
   // nothing matched, with a way to clear it and the Wanted link.
   const searched = q !== "" || filterCount > 0;
+  // Selling boost (owner 11-20): "New this week", from the full list only (a cold load's preview is a nearest-first
+  // slice, so its newest are not the newest), and only on the plain list: a search or a filter shows its own matches.
+  const freshRows = useMemo(() => (items.data ? newThisWeek(items.data, userId, Date.now()) : []), [items.data, userId]);
+  const showFresh = !searched && !preview && freshRows.length > 0;
   // F310: a one-letter typo ("lamb") that finds nothing is offered the search that would ("lamp"), within the filters.
   const nearSearch = rows.length === 0 && q !== "" && !zipSearch ? closeSearch(query, others) : null;
   const nearFinds = nearSearch !== null && applyBrowseFilters(nearest, filters, nearSearch, drops.data, now, itemWays.data).length > 0;
@@ -538,6 +552,12 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
           />
           </div>
         ) : (
+          <>
+          {showFresh && (
+            <Suspense fallback={null}>
+              <DeclutterNewThisWeek items={freshRows} cover={cover} from={origin.status === "ready" ? { lat: origin.lat, lng: origin.lng, approximate: origin.approximate } : null} />
+            </Suspense>
+          )}
           <ul className={desktop && !mapVisible ? DECLUTTER_GRID_FULL : DECLUTTER_GRID}>
             {rows.map(({ item, miles }, index) => (
               <li key={item.id} className="min-w-0">
@@ -558,6 +578,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
               </li>
             ))}
           </ul>
+          </>
         )}
         {rows.length > 0 && !preview && (
           <BrowseEndCard

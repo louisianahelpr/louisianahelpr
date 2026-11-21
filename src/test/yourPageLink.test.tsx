@@ -14,7 +14,7 @@
  * @mutate src/components/profile/YourPageLink.tsx |         {line && <span>{t("yp.lineLead")}</span>} | {null}
  * @mutate src/components/profile/YourPageLink.tsx | if (await copyToClipboard(profileLinkUrl(handle))) | if (await copyToClipboard(handle))
  * @mutate src/components/profile/YourPageLink.tsx |   if (forSale > 0) { |   if (forSale < 0) {
- * @mutate src/components/declutter/DeclutterShareCard.tsx | data-listing-share="" onClick={() => shareListing(item)} | data-listing-share="" onClick={() => undefined}
+ * @mutate src/components/declutter/DeclutterShareCard.tsx | data-listing-share="" onClick={() => shareListing(item, "listings")} | data-listing-share="" onClick={() => undefined}
  * @mutate src/components/profile/YourPageLink.tsx |     enabled: !knownHandle, |     enabled: true,
  * @mutate src/components/profile/YourPageLink.tsx |   if (publicPage === null) { |   if (publicPage === undefined && false) {
  * @mutate src/components/profile/YourPageLink.tsx |   queryFn: () => fetchPublicProfile(handle), |   queryFn: async () => fetchPublicProfile(handle).catch(() => null),
@@ -102,7 +102,7 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     expect(view.indexOf("<YourPageLink")).toBeLessThan(view.indexOf("<ListedWhatNext"));
     expect(home).toMatch(/\{item\.status === "live" && <ListingShareButton item=\{item\} \/>\}/);
     const card = code("src/components/declutter/DeclutterShareCard.tsx");
-    expect(card).toMatch(/<Button[^>]*aria-label=\{`Share \$\{item\.title\}`\}[^>]*onClick=\{\(\) => shareListing\(item\)\}/);
+    expect(card).toMatch(/<Button[^>]*aria-label=\{`Share \$\{item\.title\}`\}[^>]*onClick=\{\(\) => shareListing\(item, "listings"\)\}/);
   });
 
   it("Home shows it from the profile row it already has: no extra read (owner request 11-05)", async () => {

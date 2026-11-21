@@ -7,7 +7,7 @@
  *
  * HER SHOPMY SAVES 11-21 (owner ~2:45 AM: "i also added some man and kids stuff in shop my"; later: "the him and kids
  * need gifts on their covers"): HIM_SHOPMY_1121 and KIDS_SHOPMY_1121 add the ones her rules keep (Desktop notes
- * Him-saved-shopmy-1121.md and Kids-saved-shopmy-1121.md; also no LSU, nothing out of stock). Their non-Amazon photos are
+ * Him-saved-shopmy-1121.md and Kids-saved-shopmy-1121.md; nothing out of stock; LSU allowed since the owner's 11-21 PM "You can list LSU stuff"). Their non-Amazon photos are
  * what the Him and Kids covers draw.
  *
  * scripts/gift-guide-picks.mjs runs applyHimKids1121 LAST, next to applyHer1121, so no earlier pass can drop or reorder
@@ -39,6 +39,7 @@ export const HIM_KIDS_STORES = {
   // The owner's ShopMy saves for Him and Kids (11-21).
   "store-smathers-and-branson": "Smathers & Branson", "store-duck-head": "Duck Head", "store-grove": "Grove",
   "store-clinique": "Clinique", "store-maisonette": "Maisonette", "store-wayfair": "Wayfair", "store-macys": "Macy's",
+  "store-yeti": "YETI",
 };
 /** One row per pick: [ASIN, price she saw, Amazon image id, name, brand, type, commission %, line]. */
 const row = ([asin, sortPrice, img, name, brand, type, commission, line]) => ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, commission, type });
@@ -47,7 +48,7 @@ const shop = ([pin, price, image, name, brand, store, type, commission, line]) =
 
 /**
  * Her men's ShopMy saves (Desktop note Him-saved-shopmy-1121.md, 43 pins), 8 kept by her rules: at most 2 of a brand
- * (Smathers & Branson made ~30 of them; the camo belt she saved at Duck Head is theirs too), 2 of an item type, no LSU,
+ * (Smathers & Branson made ~30 of them; the camo belt she saved at Duck Head is theirs too), 2 of an item type, no LSU (until the owner's 11-21 PM "You can list LSU stuff", below),
  * nothing out of stock. Counts and prices measured 2026-11-21 on each store's own page (Grove, Clinique, S&B, Duck Head).
  */
 export const HIM_SHOPMY_1121 = [
@@ -60,7 +61,8 @@ export const HIM_SHOPMY_1121 = [
   ["108625882", 29.4, "https://www.clinique.com/cdn/shop/files/cl_sku_V2Y701_3000x3000_0.png", "Clinique For Men Oil-Free Moisturizer", "Clinique", "store-clinique", "skincare", 21, "A light gel moisturizer that never feels greasy."],
   ["108625877", 23.1, "https://www.clinique.com/cdn/shop/files/cl_sku_651705_3000x3000_0.png", "Clinique For Men Post-Shave Soother", "Clinique", "store-clinique", "shave", 21, "An aloe lotion that calms skin after a shave."],
   // Owner 11-21 ("Him = ALL of her men's saves", caps off): every other in-stock, non-LSU Smathers & Branson save, and two
-  // more Dr. Squatch, priced on smathersandbranson.com and grove.co 2026-11-21. Left out: LSU items (her rule), the
+  // more Dr. Squatch, priced on smathersandbranson.com and grove.co 2026-11-21. Left out: LSU items (her rule then; added
+  // below since "You can list LSU stuff"), the
   // Upland Shoot luggage tag, Duck Decoys strap and coasters, Wood Duck tumbler, World's Best Dad can cooler and Onward
   // Reserve key fob (sold out), the Wood Duck tumbler set (not listed), and both Kiehl's bundles (not on kiehls.com).
   ["108628554", 49.5, "https://static.shopmy.us/pins/zoom-108628554-1795247624550-RainbowTrout_ClassicNavy__TumblerwithLid_LowRes.jpg", "Smathers & Branson Rainbow Trout Tervis Tumbler", "Smathers & Branson", "store-smathers-and-branson", "drinkware", 15, "A needlepoint trout on a Tervis tumbler."],
@@ -78,6 +80,22 @@ export const HIM_SHOPMY_1121 = [
   ["108628047", 50, "https://static.shopmy.us/pins/zoom-108628047-1795247277928-KeyFob_Block10_MonogramBlueberrywhite_LowRes_22103605-b81e-4f6b-b8a6-31809f82245c.jpg", "Smathers & Branson Monogrammed Key Fob", "Smathers & Branson", "store-smathers-and-branson", "accessory", 15, "A needlepoint key fob with his initials."],
   ["108626037", 16, "https://static.shopmy.us/pins/zoom-108626037-1795245901003-s9tzcdtbcihhguemerog.jpg", "Dr. Squatch Cool Fresh Aloe Face Wash", "Dr. Squatch", "store-grove", "skincare", 25, "A cooling aloe face wash from Dr. Squatch."],
   ["108625979", 6.99, "https://static.shopmy.us/pins/zoom-108625979-1795245875843-Unscented_Shea_Butter_3.png", "Dr. Squatch Total Moisture Bar Soap", "Dr. Squatch", "store-grove", "soap", 25, "A shea butter bar soap for dry skin."],
+  // Owner 2026-11-21 PM ("You can list LSU stuff"): her LSU saves, priced on smathersandbranson.com 2026-11-21 (each
+  // product's .js). Left out: the LSU sunglass strap and luggage tag (sold out there). The toiletry bag and wallet were
+  // saved as monogrammed; the price is the item's own (the monogram fee shows only once one is chosen). The flask is a
+  // final-sale markdown ($125 to $75).
+  ["108628318", 65, "https://static.shopmy.us/pins/zoom-108628318-1795247451663-LSU_CCW_Primary_LowRes.jpg", "Smathers & Branson LSU Card Wallet", "Smathers & Branson", "store-smathers-and-branson", "wallet", 15, "A purple and gold needlepoint card wallet for game day."],
+  ["108628311", 35, "https://static.shopmy.us/pins/zoom-108628311-1795247447134-LSU_Fairisle_Ornament_Purple_White_Cord__Low_Res.jpg", "Smathers & Branson LSU Fairisle Ornament", "Smathers & Branson", "store-smathers-and-branson", "ornament", 15, "A hand-stitched purple and gold ornament for the tree."],
+  ["108628309", 35, "https://static.shopmy.us/pins/zoom-108628309-1795247445313-LSU_BottleOpener_Primary_LowRes.jpg", "Smathers & Branson LSU Bottle Opener", "Smathers & Branson", "store-smathers-and-branson", "bottle-opener", 15, "A purple and gold needlepoint bottle opener for game day."],
+  ["108628296", 75, "https://static.shopmy.us/pins/zoom-108628296-1795247441296-LSU_Cufflinks_Primary_Low_Res.jpg", "Smathers & Branson LSU Cufflinks", "Smathers & Branson", "store-smathers-and-branson", "cufflinks", 15, "Purple and gold needlepoint cufflinks for a game-day suit."],
+  ["108628280", 155, "https://static.shopmy.us/pins/zoom-108628280-1795247430486-LSU_Toiletry_Bag_Low_Res_695e403b-4296-4008-acf2-a08453c932ec.jpg", "Smathers & Branson LSU Toiletry Bag", "Smathers & Branson", "store-smathers-and-branson", "bag", 15, "A purple and gold needlepoint toiletry bag, monogram optional."],
+  ["108628276", 170, "https://static.shopmy.us/pins/zoom-108628276-1795247429638-LSU_Wallet_Primary_LowRes_2fc565e0-ca2b-4bf3-9ab3-ea6e42f35e3d.jpg", "Smathers & Branson LSU Bi-Fold Wallet", "Smathers & Branson", "store-smathers-and-branson", "wallet", 15, "A purple and gold needlepoint bi-fold wallet, monogram optional."],
+  ["108628274", 110, "https://static.shopmy.us/pins/zoom-108628274-1795247427405-LSUDHTLowResPrimary.jpg", "Smathers & Branson LSU Driver Headcover", "Smathers & Branson", "store-smathers-and-branson", "golf", 15, "A white leather driver cover stitched in purple and gold."],
+  ["108628018", 75, "https://static.shopmy.us/pins/zoom-108628018-1795247257926-LSU_Flask_Primary_LowRes.jpg", "Smathers & Branson LSU Flask", "Smathers & Branson", "store-smathers-and-branson", "flask", 15, "A purple and gold needlepoint flask for the tailgate."],
+  // Owner 2026-11-21 PM ("Find a replacement for the yeti backpack one with a price"): her Amazon save (B09ZYT939N, YETI
+  // Crossroads Backpack, Alpine Brown) had no Amazon price, so this is the same backpack and color on her existing YETI
+  // pin, $160 on yeti.com 2026-11-21 (20% off $200; Alpine Brown in stock).
+  ["107838580", 160, "https://static.shopmy.us/uploads/pretty-prod-1758467247287", "YETI Crossroads 22L Backpack, Alpine Brown", "YETI", "store-yeti", "backpack", 8, "A tough everyday backpack with a padded laptop sleeve."],
 ].map(shop);
 
 /**
@@ -85,7 +103,7 @@ export const HIM_SHOPMY_1121 = [
  * ALL of her men's saves", brand and type caps off for her own picks). Every row of Him-saved-amazon-1121.md not already
  * above, except four duplicates (the second LaCrosse Grange, braided line and Colster listings; the Theragun Prime and
  * LaCrosse Grange already link to their better-paying stores above) and the YETI Crossroads Backpack (Amazon showed no
- * price, 2026-11-21). Prices are her list's capture; the three YETI Crossroads prices were read on Amazon 2026-11-21.
+ * price, 2026-11-21; it is in HIM_SHOPMY_1121 on her YETI pin). Prices are her list's capture; the three YETI Crossroads prices were read on Amazon 2026-11-21.
  */
 export const HIM_AMAZON_MORE_1121 = [
   ["B0DVM13SRM", 300, "41VoCFBBOlL", "YETI LoadOut GoBox 60 Gear Case", "YETI", "gear-case", 3, "A tough, divided gear box for the truck bed or boat."],

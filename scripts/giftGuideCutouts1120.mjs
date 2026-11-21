@@ -255,7 +255,25 @@ export const CUTOUTS_1120 = new Map([
   // melissa doug magnetic tabletop easel
   ["https://slimages.macysassets.com/is/image/MCY/products/5/optimized/8290245_fpx.tif", "melissa-doug-magnetic-tabletop-easel-a4b2f2.webp"],
   // melissa doug pull back vehicles
-  ["https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1836568_fpx.tif", "melissa-doug-pull-back-vehicles-7ca9db.webp"],
+  ["https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1836568_fpx.tif", "melissa-doug-pull-back-vehicles-7ca9db.webp"],  // HIM 11-21 PM (owner: "You can list LSU stuff"; "Find a replacement for the yeti backpack one with a price"): Apple Vision cutouts
+  // sb lsu card wallet
+  ["https://static.shopmy.us/pins/zoom-108628318-1795247451663-LSU_CCW_Primary_LowRes.jpg", "sb-lsu-card-wallet-b17b9d.webp"],
+  // sb lsu fairisle ornament
+  ["https://static.shopmy.us/pins/zoom-108628311-1795247447134-LSU_Fairisle_Ornament_Purple_White_Cord__Low_Res.jpg", "sb-lsu-fairisle-ornament-4b16b2.webp"],
+  // sb lsu bottle opener
+  ["https://static.shopmy.us/pins/zoom-108628309-1795247445313-LSU_BottleOpener_Primary_LowRes.jpg", "sb-lsu-bottle-opener-13ce2c.webp"],
+  // sb lsu cufflinks
+  ["https://static.shopmy.us/pins/zoom-108628296-1795247441296-LSU_Cufflinks_Primary_Low_Res.jpg", "sb-lsu-cufflinks-45a9a7.webp"],
+  // sb lsu toiletry bag
+  ["https://static.shopmy.us/pins/zoom-108628280-1795247430486-LSU_Toiletry_Bag_Low_Res_695e403b-4296-4008-acf2-a08453c932ec.jpg", "sb-lsu-toiletry-bag-531d88.webp"],
+  // sb lsu wallet
+  ["https://static.shopmy.us/pins/zoom-108628276-1795247429638-LSU_Wallet_Primary_LowRes_2fc565e0-ca2b-4bf3-9ab3-ea6e42f35e3d.jpg", "sb-lsu-wallet-c3075b.webp"],
+  // sb lsu driver headcover
+  ["https://static.shopmy.us/pins/zoom-108628274-1795247427405-LSUDHTLowResPrimary.jpg", "sb-lsu-driver-headcover-2e803f.webp"],
+  // sb lsu flask
+  ["https://static.shopmy.us/pins/zoom-108628018-1795247257926-LSU_Flask_Primary_LowRes.jpg", "sb-lsu-flask-4354f0.webp"],
+  // yeti crossroads 22l backpack, alpine brown
+  ["https://static.shopmy.us/uploads/pretty-prod-1758467247287", "yeti-crossroads-22l-alpine-brown-468ab3.webp"],
 ]);
 
 /** The photo to show for `image`: its transparent cutout when one exists, else `image` itself. */

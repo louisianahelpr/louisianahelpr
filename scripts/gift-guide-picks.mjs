@@ -4116,7 +4116,7 @@ const liveChunkSlugs = chunkSlugs.filter(isLiveGuide);
   const unconfirmedNames = [...NOT_CONFIRMED].map((n) => shortSponsorName(n).toLowerCase());
   for (let i = NAME_ONLY.length - 1; i >= 0; i--) {
     const b = String(NAME_ONLY[i].brand ?? "").toLowerCase();
-    if (NAME_ONLY[i].guide === SPONSORS_GUIDE && unconfirmedNames.some((n) => b.startsWith(n) || (b && n.startsWith(b)))) NAME_ONLY.splice(i, 1);
+    if (NAME_ONLY[i].guide === SPONSORS_GUIDE && unconfirmedNames.some((n) => b.startsWith(n))) NAME_ONLY.splice(i, 1); // "HOTWORX" (both gyms) stays for Denham Springs
   }
 }
 if (pageList[SPONSORS_GUIDE]) {

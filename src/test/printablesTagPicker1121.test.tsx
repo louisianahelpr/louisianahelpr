@@ -62,7 +62,7 @@ describe("the gift-tag design picker", () => {
     fireEvent.click(label(d.id), { detail: 1 });
     expect(radio(d.id).checked).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Use this design" }));
-    await waitFor(() => expect(dialog()).toBeNull());
+    expect(dialog()).toBeNull(); // the open preview closes in the same act (no waitFor on emptiness: waitForEmptyIsVacuous)
     expect(radio(d.id).checked).toBe(true);
     expect(radio(tags.designs[0].id).checked).toBe(false);
   });
@@ -95,7 +95,7 @@ describe("the gift-tag design picker", () => {
     // Portaled to <body>, outside the maker.
     expect(document.querySelector("[data-printable-maker]")!.contains(dialog())).toBe(false);
     fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
-    await waitFor(() => expect(dialog()).toBeNull());
+    expect(dialog()).toBeNull(); // the open preview closes in the same act (no waitFor on emptiness: waitForEmptyIsVacuous)
     await waitFor(() => expect(document.activeElement).toBe(zoom));
     // Closing without "Use this design" picks nothing.
     expect(radio(d.id).checked).toBe(false);

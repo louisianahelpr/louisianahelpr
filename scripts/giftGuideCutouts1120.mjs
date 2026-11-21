@@ -46,6 +46,70 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/uploads/img-product-1792156479004", "vuori-logo-hoodie-8921ae.webp"],
   // Vuori Women's Relaxed Fit Performance Jogger
   ["https://static.shopmy.us/pins/zoom-107935304-1795122690356-VW303BTH_FA26_W_BOTTOMS_SIDE_3_7cb50704-e7b9-4c71-bf90-c3cf5d721031.png", "vuori-women-s-relaxed-fit-performance-jogger-eedae8.webp"],
+  // Fabletics Evolve 3-Pocket Scrub Top, Onyx
+  ["https://cdn.fabletics.com/assets/images/skus/TS2500501-0770", "fabletics-evolve-3-pocket-scrub-top-onyx-41ff66.webp"],
+  // Fabletics High-Rise Wide Leg Scrub Pant, Onyx
+  ["https://cdn.fabletics.com/assets/images/skus/PN2500506-0770", "fabletics-high-rise-wide-leg-scrub-pant-onyx-8d77d5.webp"],
+  // Barefoot Dreams CozyChic Ribbed Robe
+  ["https://cdn.shopify.com/s/files/1/0270/6977/5965/files/SP25_BDUCC23148_DustyRose_1074_HRW_3.jpg", "barefoot-dreams-cozychic-ribbed-robe-4a57c9.webp"],
+  // Elyse Breanne Design Badge Reel
+  ["https://cdn.shopify.com/s/files/1/0436/4484/6230/files/BDGR004.jpg", "elyse-breanne-design-badge-reel-a794f1.webp"],
+  // Vuori Women's Halo Essential Hoodie
+  ["https://static.shopmy.us/pins/zoom-107935469-1795122711385-VW226xBLACKHEATHERxPrimary_78657540.jpg", "vuori-women-s-halo-essential-hoodie-729379.webp"],
+  // Sky & Sol Tallow Magnesium Night Balm
+  ["https://cdn.shopify.com/s/files/1/0764/9466/8076/files/sky-and-sol-tallow-magnesium-night-balm-6951218.webp", "sky-sol-tallow-magnesium-night-balm-b16ed7.webp"],
+  // Eberjey Gisele Short PJ Set, Navy
+  ["https://static.shopmy.us/pins/zoom-108002657-1795131003013-49556467_041_b", "eberjey-gisele-short-pj-set-navy-2a60b4.webp"],
+  // Weezie Towel Wrap, Daybreak Yellow
+  ["https://static.shopmy.us/pins/zoom-108005718-1795131442444-DayBreak-1.jpg", "weezie-towel-wrap-daybreak-yellow-940080.webp"],
+  // Barefoot Dreams Men's CozyChic Lite Hoodie
+  ["https://static.shopmy.us/uploads/db9b3db2-31ae-4937-996e-78782d8358ecBDMCL21076_CCLMensHoodie_Black0731_2000x2631.png", "barefoot-dreams-men-s-cozychic-lite-hoodie-9e4df2.webp"],
+  // Weezie Holiday Kitchen Towel Trio
+  ["https://static.shopmy.us/uploads/57605306-b0ce-4bae-a80a-a5f25d2fcde2_festive-trio-3_600x_1010x1010.jpg", "weezie-holiday-kitchen-towel-trio-0ed5b4.webp"],
+  // Maisonette Ducks Baby Pajamas
+  ["https://static.shopmy.us/pins/zoom-108100673-1795144222288-WXZdEMYzF3p1mC184cAVhLxQo.jpg", "maisonette-ducks-baby-pajamas-642147.webp"],
+  // VEVOR Portable Basketball Hoop
+  ["https://static.shopmy.us/uploads/img-product-1792439614308", "vevor-portable-basketball-hoop-db3412.webp"],
+  // Called to Surf Rainbow Striped Cardigan
+  ["https://cdn.shopify.com/s/files/1/3000/9920/files/A_young_woman_wearing_a_modest_rainbow_stripe_button_down_cardigan_with_long_sleeves..jpg", "called-to-surf-rainbow-striped-cardigan-748b11.webp"],
+  // Caden Lane Mommy & Me Pointelle Lounge Sets
+  ["https://cdn.shopify.com/s/files/1/1275/3323/files/MommyAndMe_RoseGarden_product0001.jpg", "caden-lane-mommy-me-pointelle-lounge-sets-5e7048.webp"],
+  // Splendid Sugar Cookie Marna Pillowsoft PJ Set
+  ["https://static.shopmy.us/pins/zoom-104382386-1794464488284-web_HO25_RPF2028SE_HKO_4.jpg", "splendid-sugar-cookie-marna-pillowsoft-pj-set-7615a3.webp"],
+  // Weezie Baby Hooded Towel, Matcha
+  ["https://static.shopmy.us/pins/zoom-108005727-1795131443781-Matcha-1_2b3e3143-2471-4008-b0ec-b0ec0e599494.jpg", "weezie-baby-hooded-towel-matcha-e39877.webp"],
+  // Paddywax Smoked Pistachio Cowboy Boot Candle
+  ["https://static.shopmy.us/uploads/63ca53c5-0d37-4595-b335-ee61a0fa346b_image-1772082373032", "paddywax-smoked-pistachio-cowboy-boot-candle-34a349.webp"],
+  // Modern Sprout Hydroponic Grow Kit, Cactus
+  ["https://static.shopmy.us/uploads/img-product-1793668113498", "modern-sprout-hydroponic-grow-kit-cactus-71ec42.webp"],
+  // Modern Sprout Creative Archetype Seed Balls, Set of 5
+  ["https://static.shopmy.us/uploads/img-product-1794774025652", "modern-sprout-creative-archetype-seed-balls-set-of-7db2e8.webp"],
+  // Southern Tide Team Colors Runaround Quarter Zip
+  ["https://static.shopmy.us/uploads/img-product-1758383704156", "southern-tide-team-colors-runaround-quarter-zip-0f6be4.webp"],
+  // Aunt Sally's Creole Pralines Aunt Sally's Creamy Classic Pralines - Box of 12
+  ["https://goldbelly.imgix.net/uploads/showcase_media_asset/image/95943/creamy-classic-pralines-box-of-12.cfaa56fc14fda975e48dd34e8fcc9589.png", "aunt-sally-s-creole-pralines-aunt-sally-s-creamy-c-15e04c.webp"],
+  // Foton Pearled Candle, 18 oz
+  ["https://cdn.shopify.com/s/files/1/0568/9776/5573/files/18oz_Unscented_Colored_with_Swatch_-_White.png", "foton-pearled-candle-18-oz-85a43b.webp"],
+  // Southern Tide Levitt Lounge Pant
+  ["https://static.shopmy.us/uploads/img-product-1763060984280", "southern-tide-levitt-lounge-pant-551fb3.webp"],
+  // Barefoot Dreams CozyChic Cotton Long Cardigan
+  ["https://cdn.shopify.com/s/files/1/0270/6977/5965/files/BDWNV27078_DeepGarnet_6562_W.jpg", "barefoot-dreams-cozychic-cotton-long-cardigan-6ccf4c.webp"],
+  // Chewy Solid Wood Removable Bolster Cat Window Perch
+  ["https://static.shopmy.us/pins/zoom-103905618-1794379690182-069e78cb-0d47-7a90-8000-3d66b9a9388a._AC_SS1800_V1_.jpg", "chewy-solid-wood-removable-bolster-cat-window-perc-a831f4.webp"],
+  // Tushbaby Tushpuppy Hip Seat Pet Carrier
+  ["https://cdn.shopify.com/s/files/1/0060/9982/8802/files/1_1d893b4f-034d-476e-b67f-7a8901cb652a.png", "tushbaby-tushpuppy-hip-seat-pet-carrier-31d46a.webp"],
+  // Huk Pursuit Hoodie
+  ["https://static.shopmy.us/pins/zoom-107794758-1795108334212-00000000_zi_658f3e74-aab2-41ce-a7b2-331ee6d6c4bd.jpg", "huk-pursuit-hoodie-f6d950.webp"],
+  // Nike Sportswear Club Fleece Hoodie
+  ["https://static.shopmy.us/uploads/2a8cddc4-4db4-4479-ab05-24d03633871eimgi_1_M%2BCLUB%2BBB%2BHOODIE%2BCWASH.png", "nike-sportswear-club-fleece-hoodie-b44dcb.webp"],
+  // Hickory Farms Savory Snacks Gift Box
+  ["https://static.shopmy.us/pins/zoom-108165589-1795157355359-522c0afc-1816-4611-a47d-14473b4ecb9b.f34c4828ce66a07183ce544443810628.jpeg", "hickory-farms-savory-snacks-gift-box-d4132e.webp"],
+  // Old Navy High-Waisted Wow Wide-Leg Jeans
+  ["https://static.shopmy.us/uploads/1dd59d27-2c41-45e5-af53-51d0877c1950_cn61704405_1605x2140.png", "old-navy-high-waisted-wow-wide-leg-jeans-5e16a8.webp"],
+  // Paddywax Sweet Like Peppermint Candle
+  ["https://static.shopmy.us/uploads/6bf7fbb4-6ccc-41ff-9fe2-2614f404c0f7_image-1790168566381", "paddywax-sweet-like-peppermint-candle-64753a.webp"],
+  // AeroPress Clear Coffee Press
+  ["https://static.shopmy.us/uploads/21aa3a79-d9f9-46aa-b7ec-43dd0c2fc390_aeropress-clear-coffee-press-xl.jpg", "aeropress-clear-coffee-press-473649.webp"],
 ]);
 
 /** The photo to show for `image`: its transparent cutout when one exists, else `image` itself. */

@@ -116,6 +116,22 @@ describe("the dialog shows the server's number and nothing else", () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("poster_cancel_job", expect.objectContaining({ p_job_id: "job-1", p_expected_fee_cents: 2500 })));
   });
 
+  // Audit 11-21 (G4): the quote call failed (fetchPosterCancelQuote answers null) and the dialog showed no refund and
+  // no fee, yet still let the poster cancel. It says so, offers Try again, and holds Confirm until the quote loads.
+  // @mutate src/components/CancellationDialog.tsx | disabled={cancelling \|\| quoteLoading \|\| quoteFailed}> | disabled={cancelling \|\| quoteLoading}>
+  // @mutate src/components/CancellationDialog.tsx |   const quoteFailed = wasFunded && quoteAnswered && !quoteLoading && quote === null; |   const quoteFailed = false;
+  it("a paid job whose quote failed says so, offers Try again, and holds Confirm until it loads", async () => {
+    invoke.mockResolvedValueOnce({ data: null, error: new Error("network") });
+    render(<CancellationDialog {...props} />);
+    const box = await screen.findByTestId("cancel-quote-failed");
+    expect(box).toHaveTextContent("We couldn’t load what you’d get back");
+    expect(screen.getByRole("button", { name: /^cancel( ·| job)/i })).toBeDisabled();
+    invoke.mockResolvedValue({ data: { can_cancel: true, fee_cents: 0, fee_percent: 0, back_to_you_cents: 10000, unquoted_reason: null, charge_state: "captured" }, error: null });
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(screen.getByTestId("cancel-back-to-you")).toHaveTextContent("$100"));
+    expect(screen.getByRole("button", { name: /^cancel · refund \$100(\.00)?$/i })).not.toBeDisabled();
+  });
+
   it("no quote, no number: the line says why, by the server's reason, and the policy stops promising a number here (F268)", async () => {
     invoke.mockResolvedValue({ data: { can_cancel: true, fee_cents: 2500, back_to_you_cents: null, unquoted_reason: "earlier_refund", charge_state: null }, error: null });
     const { unmount } = render(<CancellationDialog {...props} />);

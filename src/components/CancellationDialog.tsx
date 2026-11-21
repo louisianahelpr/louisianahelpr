@@ -147,22 +147,31 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // "Back to you" is only ever its number: the exact refund needs the
   // charge's Stripe fee, tax, any gift and a first job's setup fee, none of
   // which this screen knows. Its fee is what poster_cancel_job is asked to
-  // charge (p_expected_fee_cents). Null = not read (or not quotable): no
-  // amount is shown, the cancel still works.
+  // charge (p_expected_fee_cents). A quotable-but-unknown amount comes back as
+  // a quote with no back_to_you_cents (the reason says why) and the cancel
+  // works. Null = the read itself failed: on a paid job the dialog says so and
+  // holds Confirm until Try again loads one (audit 11-21, G4).
   const [quote, setQuote] = useState<PosterCancelQuote | null>(null);
+  // The quote read has answered at least once since the dialog opened (so the
+  // first render, before the fetch starts, never flashes "couldn't load").
+  const [quoteAnswered, setQuoteAnswered] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteNonce, setQuoteNonce] = useState(0);
   useEffect(() => {
-    if (!open) return;
+    if (!open) { setQuoteAnswered(false); return; }
     let alive = true;
     setQuoteLoading(true);
     void fetchPosterCancelQuote(jobId).then((q) => {
       if (!alive) return;
       setQuote(q);
       setQuoteLoading(false);
+      setQuoteAnswered(true);
     });
     return () => { alive = false; };
   }, [open, jobId, quoteNonce]);
+  // Audit 11-21 (G4): a paid job whose quote did not load (fetchPosterCancelQuote answers null) showed no refund and
+  // no fee and still let the poster confirm. It now says so, offers Try again, and holds Confirm until it loads.
+  const quoteFailed = wasFunded && quoteAnswered && !quoteLoading && quote === null;
   // The server's fee, for a single booking (a crew prices per member below).
   const quotedFeeCents = !crew && typeof quote?.fee_cents === "number" ? quote.fee_cents : null;
   const backToYouCents = typeof quote?.back_to_you_cents === "number" ? quote.back_to_you_cents : null;
@@ -438,7 +447,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
           )}
 
           {/* Boards 66/172 slice 2: "Back to you" is only ever the SERVER's number (see CancelBackToYou). */}
-          {wasFunded && <CancelBackToYou quote={quote} quoteLoading={quoteLoading} backToYouCents={backToYouCents} />}
+          {wasFunded && <CancelBackToYou quote={quote} quoteLoading={quoteLoading} backToYouCents={backToYouCents} quoteFailed={quoteFailed} onRetry={() => setQuoteNonce((n) => n + 1)} />}
           {/* Q1674 kept setup fee: ALWAYS visible right under "Back to you", never only inside the closed policy link
               (lh-money-escrow review 11-08: a poster must see it before confirming). nobodyLeft says it in its own card. */}
           {!nobodyLeft && keptFeeSentence && (
@@ -580,7 +589,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             Keep the job
           </DialogSecondaryAction>
           {/* Held while the quote loads, so the fee confirmed is the one quoted. */}
-          <DialogDestructiveAction onClick={handleCancel} disabled={cancelling || quoteLoading}>
+          <DialogDestructiveAction onClick={handleCancel} disabled={cancelling || quoteLoading || quoteFailed}>
             {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel · pay $${formatPrice(cancellationFee)}` : backToYouCents !== null && backToYouCents > 0 ? `Cancel · refund $${formatPrice(backToYouCents / 100)}` : "Cancel job"}
           </DialogDestructiveAction>
         </DialogFooter>

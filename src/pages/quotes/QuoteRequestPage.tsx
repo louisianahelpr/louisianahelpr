@@ -103,6 +103,7 @@ function QuoteCard({ quote, requestOpen, requestId }: { quote: RequestQuote; req
           quoteId={quote.id}
           priceCents={quote.price_cents}
           acceptLabel={`Accept ${dollars(quote.price_cents)}`}
+          acceptNote="Your other quotes close. Then you book and pay, and the money is held until the job is done."
           invalidate={[["quotes", "request", requestId], ["quotes", "my-requests"]]}
         />
       )}

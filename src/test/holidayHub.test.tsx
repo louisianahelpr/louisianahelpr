@@ -349,10 +349,11 @@ describe("/holidays: lights and events in one list", () => {
 
   it("/holidays/hire-a-helpr: Post a job and Find work, each holiday job opens Post a job filled in, and no ID prompt", () => {
     const { container } = at("/holidays/hire-a-helpr", <HolidayHire />);
-    expect(container.querySelector("[data-holiday-post]")!.getAttribute("href")).toBe(`/signup?redirect=${encodeURIComponent("/post-job")}`);
+    // Audit 11-21 (P0, owner 11-20/21): a guest starts the post and signs up at the end.
+    expect(container.querySelector("[data-holiday-post]")!.getAttribute("href")).toBe("/post-job");
     expect(container.querySelector("[data-holiday-find-work]")!.getAttribute("href")).toBe("/browse");
     const lights = container.querySelector('[data-holiday-help-post="Hang Christmas lights"]')!.getAttribute("href")!;
-    expect(decodeURIComponent(lights)).toBe("/signup?redirect=/post-job?mm=1&cat=handyman&t=Hang+Christmas+lights");
+    expect(decodeURIComponent(lights)).toBe("/post-job?mm=1&cat=handyman&t=Hang+Christmas+lights");
     expect(container.querySelectorAll("[data-holiday-help]").length).toBe(7);
     expect(container.textContent).not.toMatch(/\bID\b|identity|verify your/i);
   });

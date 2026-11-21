@@ -254,7 +254,6 @@ export const giftGuides = {
   ],
   /** The left menu's entry for the 25 Days sponsors page (owner 11-21: "move 25 day sponsors to the left panel"). */
   sideSponsorsLabel: "25 Days sponsors",
-  seeAllLabel: "See all",
   shopLabel: "Shop",
   /** Every item's visible Shop pill (holistic review 11-18 H4): "Shop at Amazon", or plain "Shop" with no store name. */
   shopAt: (store: string) => (store ? `Shop at ${store}` : "Shop"),
@@ -290,15 +289,9 @@ export const giftGuides = {
   pricesAsOf: (day: string) => `Prices as of ${day}, may change`,
   /** The landing's photo-card strip of the picks the most guides list, after the first guide rows (owner 11-18 PM). */
   topTitle: "Top 10 This Week",
-  /** The landing's sponsor logo row (train 1120b, owner 11-20 ~8:40 AM; GiftGuideSponsorRow.tsx). No giveaway days. */
+  /** A sponsor tile with no guide spot links to the 25 Days sponsors page (GiftGuideSponsorRow.tsx SponsorTile). */
   sponsorRow: {
-    title: "Our 25 Days sponsors",
-    intro: "Thank you to the businesses giving away gifts in our 25 Days of Louisiana Giveaways.",
     allHref: "/gift-guides/25-days-sponsors",
-    left: "Scroll sponsors left",
-    right: "Scroll sponsors right",
-    louisiana: "Louisiana",
-    national: "National",
   },
   /** The 25 Days card on the landing (owner 2026-11-18). No shopper page exists yet, so it points to the Facebook page. */
   // Louisiana Holiday Hub (owner-approved 2026-11-20): the landing's link to /holidays.

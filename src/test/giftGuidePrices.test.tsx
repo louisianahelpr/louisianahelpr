@@ -116,7 +116,7 @@ describe("gift-guide prices: the page", () => {
     expect(row(amazon).querySelector("[data-gift-price]")?.textContent).toBe("~$30");
     cleanup();
     expect(showsPrice({ ...walmart, store: "amazon" })).toBe(true);
-    const { price: _p, ...unpriced } = amazon;
+    const unpriced: CatalogPick = { ...amazon, price: undefined };
     expect(row(unpriced).querySelector("[data-gift-price]")).toBeNull();
   });
   it("a price older than 3 days on the day the page opens is hidden; one note per list, with the oldest day", () => {

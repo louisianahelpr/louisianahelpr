@@ -6,6 +6,13 @@
 import type { SbsFieldError } from "../../supabase/functions/_shared/sbsSubmission";
 
 export const SBS_WORDS = {
+  // /shop-small (owner 2026-11-21: "add the feature that small business can sign their business up to be featured on
+  // the site"): the live page for these listings and the form, now the Small Business Saturday guide page is retired.
+  pageTitle: "Shop Small Louisiana",
+  pageLead: "Louisiana small businesses, listed free. Small Business Saturday is Nov 28: buy a gift, book a visit, or give them a follow.",
+  pageSectionTitle: "Louisiana small businesses",
+  pageSectionIntro: "Local shops and makers taking part in Small Business Saturday, Nov 28.",
+  landingLink: "Own a Louisiana small business? Get featured free",
   sectionTitle: "Featured local",
   sectionIntro: "More Louisiana small businesses taking part in Small Business Saturday, Nov 28.",
   badge: "Featured local",

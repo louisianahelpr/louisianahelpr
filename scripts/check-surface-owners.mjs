@@ -86,6 +86,8 @@ const OWNERS = {
   "/holidays/lights": ["lh-copy-content", "lh-seo-web"],
   "/holidays/events": ["lh-copy-content", "lh-seo-web"],
   "/holidays/hire-a-helpr": ["lh-copy-content", "lh-seo-web"],
+  // Shop Small Louisiana (owner 2026-11-21): free listings + a signed-out sign-up form whose email stays private.
+  "/shop-small": ["lh-copy-content", "lh-authz-rls"],
   "/terms/full": ["lh-compliance-store"],
   "/privacy/full": ["lh-compliance-store"],
   // /gift-card (a redirect onto this tab) was deleted with Q194, 2026-09-23.

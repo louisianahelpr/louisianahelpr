@@ -295,6 +295,10 @@
       "destination": "/api/share?_og=page&_id=holidays/hire-a-helpr"
     },
     {
+      "source": "/shop-small",
+      "destination": "/api/share?_og=page&_id=shop-small"
+    },
+    {
       "source": "/",
       "destination": "/index.html"
     },
@@ -412,6 +416,10 @@
     },
     {
       "source": "/holidays/hire-a-helpr",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/shop-small",
       "destination": "/index.html"
     },
     {

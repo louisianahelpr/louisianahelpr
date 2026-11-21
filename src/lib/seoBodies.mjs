@@ -231,6 +231,12 @@ const INFO_PAGES = {
     intro: "Pick a gift tag design, type the To and From names, and print a sheet of 9 or 10 tags with cut lines at home. Free, with no sign-up, and nothing is saved.",
     links: [["/gift-guides", "Holiday gift guides"], ["/gift-guides/gift-wrap-and-cards", "Gift wrap and card ideas"]],
   },
+  "/shop-small": {
+    name: "Shop Small Louisiana",
+    h1: "Shop Small Louisiana",
+    intro: "Louisiana small businesses, listed free for Small Business Saturday, Nov 28. Own a Louisiana small business? Ask to be featured free: we review each one and add it within a day.",
+    links: [["/gift-guides", "Holiday gift guides"], ["/holidays", "Louisiana Holiday Hub"]],
+  },
   "/declutter": {
     name: "Declutter",
     h1: "Declutter: used things for sale near you in Louisiana",

@@ -327,6 +327,7 @@ export const HISTORICAL = {
  * reason. A script that starts writing a committed file must move out of here.
  */
 export const WRITES_NOT_COMMITTED = {
+  "scripts/gift-guide-owner-removals-sync.mjs": "copies the owner's tapped removals (~/.lh-shots/gg-owner-removals-1120, outside the repo) into scripts/gift-guide-owner-removals-1120.json, an owner-content input the picks import reads; additive, run by the committer when she taps more, never derived from repo state",
   "scripts/gift-guide-shopmy-cdn.mjs": "the checked ShopMy S3 -> static.shopmy.us photo map, _shopmy-cdn-photos.json in the lead's picks folder (~/Desktop/Gift-guide-picks, outside the repo); scripts/gift-guide-picks.mjs reads it; never a repo file",
   "scripts/ci/guide-only.mjs": "guide fast lane (2026-11-20): guide_only=true|false to $GITHUB_OUTPUT in vitest.yml / e2e-happy-path.yml / mobile-viewports.yml (a step output, never a repo file)",
   "scripts/ci/previous-refresh-pr-red.mjs":"Q2395: red=/message= lines to $GITHUB_OUTPUT in scoreboard.yml's land job (a step output, never a repo file)",

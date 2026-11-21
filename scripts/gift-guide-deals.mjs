@@ -28,6 +28,7 @@ import { join, resolve } from "node:path";
 import { DEAL_CATEGORIES, DEALS_PER_SECTION, louisianaDay } from "../src/content/giftGuideDeals.mjs";
 import { blockedBrand } from "./giftGuideBlocklist.mjs";
 import { applyDealsPage1120b } from "./giftGuideTrain1120b.mjs";
+import { fableticsPhoto } from "./giftGuideOwner1120e.mjs";
 
 const REPO = resolve(import.meta.dirname, "..");
 const OUT = join(REPO, "src/content/giftGuideDeals.json");
@@ -197,7 +198,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const train = applyDealsPage1120b(built.deals, JSON.parse(readFileSync(join(REPO, "scripts/gift-guide-train-1120b.json"), "utf8")).dealsPage);
   // Train 1120c (scripts/gift-guide-train-1120c.json, dealsPage): XTRATUF XT25.
   const train2 = applyDealsPage1120b(train.deals, JSON.parse(readFileSync(join(REPO, "scripts/gift-guide-train-1120c.json"), "utf8")).dealsPage);
-  const deals = train2.deals;
+  // Owner 11-20: Fabletics photos on the standard model (no model=p in the image link), as in the guides.
+  const deals = train2.deals.map((d) => (d.image ? { ...d, image: fableticsPhoto(d.image) } : d));
   if (train.missing.length) console.log(`Train 1120b NOT FOUND: ${train.missing.join(" | ")}`);
   if (train2.missing.length) console.log(`Train 1120c NOT FOUND: ${train2.missing.join(" | ")}`);
   for (const [c, b, r] of order) console.log(`${c.padEnd(15)} ${String(r).padStart(5)}%  ${b}`);

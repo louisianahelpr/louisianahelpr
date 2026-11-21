@@ -691,66 +691,6 @@
    }
   ]
  },
- "pets": {
-  "section": "Pets",
-  "items": [
-   {
-    "name": "Smathers & Branson Duck Decoys Needlepoint Dog Collar",
-    "key": "smathersbranson:collar",
-    "image": "https://static.shopmy.us/uploads/img-product-1763274888543"
-   },
-   {
-    "name": "Ruffwear Front Range Dog Harness",
-    "key": "ruffwear:harness",
-    "image": "https://image.chewy.com/catalog/general/images/ruffwear-front-range-reflective-front-clip-dog-harness-river-rock-green-small-22-to-27in-chest/img-220917._AC_SS1800_V1_.jpg"
-   },
-   {
-    "name": "PetLibro Granary Smart Camera Feeder",
-    "key": "petlibro:feeder",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1790772199252"
-   },
-   {
-    "name": "BARK Grrradelli Puppermint Bark Dog Toy",
-    "key": "bark:toy",
-    "image": "https://image.chewy.com/catalog/general/images/moe/068fc2d6-1797-71ca-8000-42aa07b9dbfd._AC_SS1800_V1_.jpg"
-   },
-   {
-    "name": "Chewy Solid Wood Removable Bolster Cat Window Perch",
-    "key": "chewy:perch",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/chewy-solid-wood-removable-bolster-cat-window-perc-a831f4.webp"
-   },
-   {
-    "name": "LickiMat Cat Lick Mat Variety 2-Pack",
-    "key": "lickimat:variety",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1780608944343"
-   }
-  ]
- },
- "gifts-by-color": {
-  "section": "Colors",
-  "items": [
-   {
-    "name": "Juliska Berry & Thread Chambray Mug",
-    "key": "juliska:drink",
-    "image": "https://d307biz9bwtpmz.cloudfront.net/products/primary/zoom/product_96453.jpg"
-   },
-   {
-    "name": "Terrain Ruffled Marble Bowl",
-    "key": "terrain:bowl",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/terrain-ruffled-marble-bowl-b353c5.webp"
-   },
-   {
-    "name": "Cecil & Lou Women's Pink Christmas Candy Pajamas",
-    "key": "cecillou:pajamas",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1792980324864"
-   },
-   {
-    "name": "Bogg Bag Bitty Tote (Light Blue)",
-    "key": "boggbag:blue",
-    "image": "https://assets.designerbrands.com/match/Site_Name/623352_453_ss_01/?$pdp$"
-   }
-  ]
- },
  "store-amazon": {
   "section": "By store",
   "items": []

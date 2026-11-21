@@ -368,7 +368,11 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
   "store-whokeys", "store-directdeals", "store-hero-wars", "store-skytours", "store-oojo", "store-cheapvuelos", "store-ovago", "store-hopegoo",
   "store-air-india", "store-ocean-hotels", "store-rent-cars", "store-vip-cars", "store-carla-car-rental", "store-rvshare", "store-undercover-tourist", "store-pariscityvision",
   // Lead 11-19 (1530 train): blocked stores (Free Country, Gilt, Literie) and the diecast store; their brands are blocked too.
-  "store-free-country", "store-gilt", "store-literie-candle", "store-diecast-models", "store-bade-sofa"];
+  "store-free-country", "store-gilt", "store-literie-candle", "store-diecast-models", "store-bade-sofa",
+  // Owner 11-20 9:50 PM ("remove the color guides"): By Color and every color guide are gone; an old link lands on the main page.
+  "gifts-by-color", "red-lover", "pink-lover", "purple-lover", "blue-lover", "green-lover", "yellow-lover", "black-lover", "neutral-lover",
+  // Owner 11-20 9:53 PM ("remove the pet guides"): Pet Lovers and every pet guide are gone; their items move nowhere.
+  "pets", "dog-lover", "cat-person", "new-puppy", "new-kitten", "horse-lover", "fish-lover", "bird-lover"];
 
 /**
  * Guides the owner folded into others (2026-11-18: Female Nurses and Male Nurses go into RNs, LPNs and CNAs). Each
@@ -630,8 +634,6 @@ export const SEARCH_SYNONYMS: { words: string[]; slugs: string[] }[] = [
   { words: ["father", "daddy"], slugs: ["dad"] },
   { words: ["cooking", "cook", "chef", "kitchen"], slugs: ["home-cook", "louisiana-kitchen"] },
   { words: ["workout", "fitness", "gym"], slugs: ["gym-lover"] },
-  { words: ["dog", "dogs", "puppy"], slugs: ["dog-lover", "new-puppy"] },
-  { words: ["cat", "cats", "kitten"], slugs: ["cat-person", "new-kitten"] },
   { words: ["cajun", "creole"], slugs: ["acadiana", "louisiana-made", "louisiana-kitchen"] },
 ];
 

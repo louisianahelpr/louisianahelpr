@@ -1,0 +1,641 @@
+{
+ "_about": "Owner removals by tap, 11-20 ~9:40 PM (~/.lh-shots/gg-owner-removals-1120). keys = slug of the item name (lowercase, non-alphanumerics to '-', trimmed, first 60). names is for readers only.",
+ "removals": {
+  "car-lover": [
+   {
+    "key": "innova-5610-bidirectional-obd2-scanner",
+    "name": "Innova 5610 Bidirectional OBD2 Scanner"
+   }
+  ],
+  "coffee-lover": [
+   {
+    "key": "chemex-coffeemaker",
+    "name": "Chemex Coffeemaker"
+   },
+   {
+    "key": "bodum-brazil-french-press-black",
+    "name": "Bodum Brazil French Press, Black"
+   },
+   {
+    "key": "corkcicle-pure-taste-mug",
+    "name": "Corkcicle Pure Taste Mug"
+   },
+   {
+    "key": "jellycat-amuseables-croissant-bag-charm",
+    "name": "Jellycat Amuseables Croissant Bag Charm"
+   }
+  ],
+  "creative-and-entertainment": [
+   {
+    "key": "the-proper-stitch-magnolia-needlepoint-canvas",
+    "name": "The Proper Stitch Magnolia Needlepoint Canvas"
+   },
+   {
+    "key": "the-proper-stitch-troop-project-bag-large-pink",
+    "name": "The Proper Stitch Troop Project Bag Large Pink"
+   },
+   {
+    "key": "penny-linn-pink-mini-heirloom-nutcracker-needlepoint-kit",
+    "name": "Penny Linn Pink Mini Heirloom Nutcracker Needlepoint Kit"
+   },
+   {
+    "key": "penny-linn-magnetic-ort-bowl-blue",
+    "name": "Penny Linn Magnetic Ort Bowl, Blue"
+   },
+   {
+    "key": "faber-castell-polychromos-artists-color-pencils",
+    "name": "Faber-Castell Polychromos Artists' Color Pencils"
+   },
+   {
+    "key": "copic-ciao",
+    "name": "Copic Ciao"
+   },
+   {
+    "key": "golden-open-slow-drying-acrylics",
+    "name": "Golden OPEN Slow-Drying Acrylics"
+   },
+   {
+    "key": "speedball-deluxe-block-printing-kit",
+    "name": "Speedball Deluxe Block Printing Kit"
+   },
+   {
+    "key": "831-stories-only-one-bed-keychain",
+    "name": "831 Stories Only One Bed Keychain"
+   },
+   {
+    "key": "831-stories-bookends",
+    "name": "831 Stories Bookends"
+   },
+   {
+    "key": "pok-mon-tcg-azure-legends-tin",
+    "name": "Pokémon TCG: Azure Legends Tin"
+   },
+   {
+    "key": "xbox-wireless-controller-series-x-s",
+    "name": "XBOX Wireless Controller (Series X/S)"
+   },
+   {
+    "key": "kindle-colorsoft",
+    "name": "Kindle Colorsoft"
+   },
+   {
+    "key": "audio-technica-at-lp60x-turntable",
+    "name": "Audio-Technica AT-LP60X Turntable"
+   },
+   {
+    "key": "penguin-clothbound-classics",
+    "name": "Penguin Clothbound Classics"
+   },
+   {
+    "key": "moleskine-reading-journal",
+    "name": "Moleskine Reading Journal"
+   }
+  ],
+  "family": [
+   {
+    "key": "southern-tide-sara-lounge-pullover",
+    "name": "Southern Tide Sara Lounge Pullover"
+   },
+   {
+    "key": "under-armour-rival-fleece-hoodie",
+    "name": "Under Armour Rival Fleece Hoodie"
+   },
+   {
+    "key": "cecil-lou-smocked-strawberry-bow-heirloom-dress",
+    "name": "Cecil & Lou Smocked Strawberry & Bow Heirloom Dress"
+   },
+   {
+    "key": "papier-x-anthropologie-wooden-dominoes",
+    "name": "Papier x Anthropologie Wooden Dominoes"
+   },
+   {
+    "key": "caraway-large-ceramic-baking-pan",
+    "name": "Caraway Large Ceramic Baking Pan"
+   },
+   {
+    "key": "yeti-camino-50-carryall-tote",
+    "name": "YETI Camino 50 Carryall Tote"
+   }
+  ],
+  "fitness": [
+   {
+    "key": "cocolillys-coco-leggings",
+    "name": "cocolillys-coco-leggings"
+   },
+   {
+    "key": "hoka-clifton-11-sneakers",
+    "name": "hoka-clifton-11-sneakers"
+   },
+   {
+    "key": "hoka-mach-remastered-sneakers",
+    "name": "hoka-mach-remastered-sneakers"
+   }
+  ],
+  "friends-and-coworkers": [
+   {
+    "key": "cecil-lou-women-s-mahjong-shorty-pajama-set",
+    "name": "Cecil & Lou Women's Mahjong Shorty Pajama Set"
+   },
+   {
+    "key": "eberjey-gisele-long-pj-set-ivory",
+    "name": "Eberjey Gisele Long PJ Set, Ivory"
+   },
+   {
+    "key": "southern-tide-sabina-sweatshirt",
+    "name": "Southern Tide Sabina Sweatshirt"
+   },
+   {
+    "key": "lululemon-steady-state-oversized-funnel-full-zip",
+    "name": "lululemon Steady State Oversized Funnel Full-Zip"
+   },
+   {
+    "key": "lululemon-groove-nulu-high-rise-flared-pant",
+    "name": "lululemon Groove Nulu High-Rise Flared Pant"
+   },
+   {
+    "key": "printfresh-x-gilmore-girls-oversized-pouch-duo",
+    "name": "Printfresh x Gilmore Girls Oversized Pouch Duo"
+   },
+   {
+    "key": "corkcicle-go-cup-xl",
+    "name": "Corkcicle Go Cup XL"
+   },
+   {
+    "key": "bonwellness-big-year-energy-wellness-kit",
+    "name": "BonWellness Big Year Energy Wellness Kit"
+   },
+   {
+    "key": "ioka-skin-science-gift-card",
+    "name": "IOKA Skin+Science Gift Card"
+   },
+   {
+    "key": "voluspa-12-day-alpine-advent-calendar",
+    "name": "Voluspa 12 Day Alpine Advent Calendar"
+   },
+   {
+    "key": "twelve-south-hirise-3-deluxe-3-in-1-wireless-charger",
+    "name": "Twelve South HiRise 3 Deluxe 3-in-1 Wireless Charger"
+   },
+   {
+    "key": "smeg-drip-filter-coffee-machine-cream",
+    "name": "Smeg Drip Filter Coffee Machine (Cream)"
+   },
+   {
+    "key": "mud-pie-christmas-tree-chenille-socks",
+    "name": "Mud Pie Christmas Tree Chenille Socks"
+   },
+   {
+    "key": "exploding-kittens-throw-throw-burrito",
+    "name": "Exploding Kittens Throw Throw Burrito"
+   },
+   {
+    "key": "deming-delights-hand-poured-soy-candle",
+    "name": "Deming Delights Hand-Poured Soy Candle"
+   },
+   {
+    "key": "royce-new-york-heart-shaped-leather-key-chain",
+    "name": "Royce New York Heart-Shaped Leather Key Chain"
+   },
+   {
+    "key": "aeva-beauty-gift-card",
+    "name": "Aeva Beauty Gift Card"
+   },
+   {
+    "key": "dhc-lip-cream-3-pack",
+    "name": "DHC Lip Cream, 3 Pack"
+   },
+   {
+    "key": "printworks-shut-the-box-classic-board-game",
+    "name": "Printworks Shut the Box Classic Board Game"
+   },
+   {
+    "key": "calpak-terra-sling-bag-olive",
+    "name": "CALPAK Terra Sling Bag, Olive"
+   }
+  ],
+  "gift-wrap-and-cards": [
+   {
+    "key": "privet-house-woodland-lodge-shield-gift-tags",
+    "name": "privet-house-woodland-lodge-shield-gift-tags"
+   },
+   {
+    "key": "rifle-paper-co-christmas-delivery-gift-tags",
+    "name": "rifle-paper-co-christmas-delivery-gift-tags"
+   },
+   {
+    "key": "paper-source-holiday-wax-seal-kit",
+    "name": "paper-source-holiday-wax-seal-kit"
+   },
+   {
+    "key": "current-holiday-horses-christmas-jumbo-rolled-gift-wrap-23-i",
+    "name": "current-holiday-horses-christmas-jumbo-rolled-gift-wrap-23-i"
+   },
+   {
+    "key": "hallmark-medium-christmas-gift-boxes-with-lids-12-shirt-boxe",
+    "name": "hallmark-medium-christmas-gift-boxes-with-lids-12-shirt-boxe"
+   },
+   {
+    "key": "papyrus-boxed-christmas-cards-with-envelopes-christmas-trees",
+    "name": "papyrus-boxed-christmas-cards-with-envelopes-christmas-trees"
+   }
+  ],
+  "gifts-by-budget": [
+   {
+    "key": "frankie-s-on-the-park-squishy-mystery-dumpling",
+    "name": "frankie-s-on-the-park-squishy-mystery-dumpling"
+   },
+   {
+    "key": "stanley-the-everyday-slim-can-cooler-cup-10-oz",
+    "name": "stanley-the-everyday-slim-can-cooler-cup-10-oz"
+   },
+   {
+    "key": "hitster-music-party-card-game",
+    "name": "hitster-music-party-card-game"
+   },
+   {
+    "key": "jellycat-amuseables-cinnamon-bun-plush",
+    "name": "jellycat-amuseables-cinnamon-bun-plush"
+   },
+   {
+    "key": "muck-women-s-muckster-lite-eva-clog",
+    "name": "muck-women-s-muckster-lite-eva-clog"
+   },
+   {
+    "key": "southern-tide-nance-embroidered-shorts",
+    "name": "southern-tide-nance-embroidered-shorts"
+   },
+   {
+    "key": "brooklinen-mulberry-silk-eye-mask",
+    "name": "brooklinen-mulberry-silk-eye-mask"
+   },
+   {
+    "key": "atlas-coffee-club-12-month-coffee-club-gift-subscription",
+    "name": "atlas-coffee-club-12-month-coffee-club-gift-subscription"
+   }
+  ],
+  "grandparents": [
+   {
+    "key": "le-creuset-classic-whistling-tea-kettle-1-7-qt-cerise",
+    "name": "Le Creuset Classic Whistling Tea Kettle 1.7 qt (Cerise)"
+   },
+   {
+    "key": "lands-end-medium-embroidered-5-pocket-canvas-tote",
+    "name": "Lands' End Medium Embroidered 5-Pocket Canvas Tote"
+   },
+   {
+    "key": "waterford-golden-teddy-ornament",
+    "name": "Waterford Golden Teddy Ornament"
+   },
+   {
+    "key": "aura-aspen-digital-photo-frame",
+    "name": "Aura Aspen Digital Photo Frame"
+   },
+   {
+    "key": "amazon-echo-show-8",
+    "name": "Amazon Echo Show 8"
+   },
+   {
+    "key": "apple-watch-se-3-gps-cellular-40mm-smartwatch",
+    "name": "Apple Watch SE 3 GPS + Cellular 40mm Smartwatch"
+   },
+   {
+    "key": "apple-airpods-4",
+    "name": "Apple AirPods 4"
+   },
+   {
+    "key": "xtratuf-men-s-ankle-deck-boot",
+    "name": "XTRATUF Men's Ankle Deck Boot"
+   },
+   {
+    "key": "kiehl-s-creme-de-corps-whipped-body-butter",
+    "name": "Kiehl's Creme de Corps Whipped Body Butter"
+   },
+   {
+    "key": "lands-end-cashmere-lined-leather-touchscreen-gloves",
+    "name": "Lands' End Cashmere-Lined Leather Touchscreen Gloves"
+   }
+  ],
+  "healthcare": [
+   {
+    "key": "elyse-breanne-design-badge-reel",
+    "name": "Elyse Breanne Design Badge Reel"
+   },
+   {
+    "key": "t3-silk-scrunchies-set-of-3",
+    "name": "T3 Silk Scrunchies (Set of 3)"
+   },
+   {
+    "key": "voluspa-bergamot-rose-2-wick-tin-candle",
+    "name": "Voluspa Bergamot Rose 2-Wick Tin Candle"
+   },
+   {
+    "key": "kate-spade-new-york-large-spiral-notebook-scatter-dots",
+    "name": "Kate Spade New York Large Spiral Notebook, Scatter Dots"
+   },
+   {
+    "key": "kate-spade-badge-reel",
+    "name": "Kate Spade Badge Reel"
+   },
+   {
+    "key": "kate-spade-card-case-lanyard",
+    "name": "Kate Spade Card Case Lanyard"
+   },
+   {
+    "key": "kitsch-satin-pillowcase-leopard",
+    "name": "Kitsch Satin Pillowcase, Leopard"
+   },
+   {
+    "key": "stanley-quencher-luxe-h2-0-flowstate-tumbler-30-oz",
+    "name": "Stanley Quencher Luxe H2.0 FlowState Tumbler 30 oz"
+   },
+   {
+    "key": "clove-forte-shoes-for-healthcare-workers",
+    "name": "Clove Forte Shoes for Healthcare Workers"
+   },
+   {
+    "key": "crocs-classic-clogs",
+    "name": "Crocs Classic Clogs"
+   },
+   {
+    "key": "comrad-recycled-cotton-compression-socks",
+    "name": "Comrad Recycled Cotton Compression Socks"
+   },
+   {
+    "key": "jojo-mommy-kane-revive-recovery-shoe-white-spring-speckle",
+    "name": "Jojo Mommy Kane Revive Recovery Shoe White/Spring Speckle"
+   },
+   {
+    "key": "oofos-ooriginal-sandal",
+    "name": "OOFOS OOriginal Sandal"
+   },
+   {
+    "key": "vuori-women-s-halo-essential-hoodie",
+    "name": "Vuori Women's Halo Essential Hoodie"
+   },
+   {
+    "key": "bombas-everyday-compression-sock-2-pack-gift-box",
+    "name": "Bombas Everyday Compression Sock 2-Pack Gift Box"
+   },
+   {
+    "key": "vuori-women-s-relaxed-fit-performance-jogger",
+    "name": "Vuori Women's Relaxed Fit Performance Jogger"
+   },
+   {
+    "key": "therabody-sleep-mask-with-gentle-vibration",
+    "name": "Therabody Sleep Mask with Gentle Vibration"
+   },
+   {
+    "key": "therabody-theraface-depuffing-wand",
+    "name": "Therabody TheraFace Depuffing Wand"
+   },
+   {
+    "key": "therabody-smartgoggles-2nd-gen-heated-eye-massager",
+    "name": "Therabody SmartGoggles 2nd Gen Heated Eye Massager"
+   },
+   {
+    "key": "littmann-cardiology-iv-stethoscope-plum",
+    "name": "Littmann Cardiology IV Stethoscope, Plum"
+   },
+   {
+    "key": "hoka-arahi-9-sneakers",
+    "name": "HOKA Arahi 9 Sneakers"
+   }
+  ],
+  "her": [
+   {
+    "key": "sri-labs-dryq-blow-dryer",
+    "name": "SRI Labs DryQ Blow Dryer"
+   },
+   {
+    "key": "arey-the-system",
+    "name": "Arey The System"
+   },
+   {
+    "key": "oyu-botanica-winter-radiance-duo",
+    "name": "OYU Botanica Winter Radiance Duo"
+   },
+   {
+    "key": "le-creuset-mugs-set-of-4",
+    "name": "Le Creuset Mugs Set Of 4"
+   },
+   {
+    "key": "voluspa-mini-forbidden-fig-decorative-tin-candle-4-oz-113-g",
+    "name": "VOLUSPA Mini Forbidden Fig Decorative Tin Candle 4 oz/ 113 g"
+   },
+   {
+    "key": "mom-rules-needlepoint-pillow",
+    "name": "Mom Rules Needlepoint Pillow"
+   },
+   {
+    "key": "friend-of-mine-serial-hobbyist-needlepoint-pillow",
+    "name": "Friend of Mine Serial Hobbyist Needlepoint Pillow"
+   },
+   {
+    "key": "liou-perla-hoop-earrings",
+    "name": "éliou Perla Hoop Earrings"
+   },
+   {
+    "key": "southern-tide-ella-pleated-tennis-dress",
+    "name": "Southern Tide Ella Pleated Tennis Dress"
+   },
+   {
+    "key": "b-is-the-weekender",
+    "name": "BÉIS The Weekender"
+   },
+   {
+    "key": "southern-tide-levitt-lounge-pant",
+    "name": "Southern Tide Levitt Lounge Pant"
+   },
+   {
+    "key": "printfresh-tiger-queen-pajama-set",
+    "name": "Printfresh Tiger Queen Pajama Set"
+   },
+   {
+    "key": "sky-sol-tallow-magnesium-night-balm",
+    "name": "Sky & Sol Tallow Magnesium Night Balm"
+   },
+   {
+    "key": "rifle-paper-co-embroidered-journal-burgundy-rose",
+    "name": "Rifle Paper Co. Embroidered Journal, Burgundy Rose"
+   },
+   {
+    "key": "brooklinen-mulberry-silk-pillowcase",
+    "name": "Brooklinen Mulberry Silk Pillowcase"
+   }
+  ],
+  "heroes": [
+   {
+    "key": "5-11-tactical-a-t-6-boot",
+    "name": "5-11-tactical-a-t-6-boot"
+   },
+   {
+    "key": "rothco-shemagh-tactical-desert-keffiyeh-scarf",
+    "name": "rothco-shemagh-tactical-desert-keffiyeh-scarf"
+   },
+   {
+    "key": "oakley-si-ballistic-sunglasses",
+    "name": "oakley-si-ballistic-sunglasses"
+   },
+   {
+    "key": "the-greatest-beer-run-ever-a-wild-story-of-friendship",
+    "name": "the-greatest-beer-run-ever-a-wild-story-of-friendship"
+   },
+   {
+    "key": "displaygifts-military-challenge-coin-display-case",
+    "name": "displaygifts-military-challenge-coin-display-case"
+   },
+   {
+    "key": "americanflat-folded-flag-display-case-mahogany",
+    "name": "americanflat-folded-flag-display-case-mahogany"
+   }
+  ],
+  "him": [
+   {
+    "key": "yeti-roadie-24-hard-cooler",
+    "name": "YETI Roadie 24 Hard Cooler"
+   },
+   {
+    "key": "weber-original-kettle-grill-22-in",
+    "name": "Weber Original Kettle Grill (22 in.)"
+   },
+   {
+    "key": "southern-tide-sullivan-five-pocket-pant",
+    "name": "Southern Tide Sullivan Five Pocket Pant"
+   },
+   {
+    "key": "lululemon-always-in-motion-boxer-brief-5-3-pack",
+    "name": "lululemon Always in Motion Boxer Brief 5\" 3-Pack"
+   },
+   {
+    "key": "southern-tide-channel-marker-7-chino-short",
+    "name": "Southern Tide Channel Marker 7\" Chino Short"
+   },
+   {
+    "key": "sony-wh-1000xm6-wireless-noise-canceling-headphones",
+    "name": "Sony WH-1000XM6 Wireless Noise Canceling Headphones"
+   }
+  ],
+  "home-and-kitchen": [
+   {
+    "key": "yeti-12-cast-iron-skillet",
+    "name": "yeti-12-cast-iron-skillet"
+   },
+   {
+    "key": "yeti-tank-45-ice-bucket",
+    "name": "yeti-tank-45-ice-bucket"
+   }
+  ],
+  "kids": [
+   {
+    "key": "maniere-crochet-collar-romper",
+    "name": "Maniere Crochet Collar Romper"
+   },
+   {
+    "key": "cecil-lou-peach-floral-smocked-bubble",
+    "name": "Cecil & Lou Peach Floral Smocked Bubble"
+   },
+   {
+    "key": "barefoot-dreams-cozychic-barefoot-in-the-wild-baby-blanket",
+    "name": "Barefoot Dreams CozyChic Barefoot in the Wild Baby Blanket"
+   },
+   {
+    "key": "monogram-mary-complete-baby-bundle",
+    "name": "Monogram Mary Complete Baby Bundle"
+   },
+   {
+    "key": "babybj-rn-bouncer-begin-brushed-woven-beige",
+    "name": "BabyBjörn Bouncer Begin, Brushed Woven Beige"
+   },
+   {
+    "key": "mushie-stacking-cups",
+    "name": "mushie Stacking Cups"
+   },
+   {
+    "key": "green-toys-my-first-stacker",
+    "name": "Green Toys My First Stacker"
+   },
+   {
+    "key": "jellycat-bashful-bunny",
+    "name": "Jellycat Bashful Bunny"
+   },
+   {
+    "key": "caden-lane-birdie-babes-ruffle-zipper-footie",
+    "name": "Caden Lane Birdie Babes Ruffle Zipper Footie"
+   },
+   {
+    "key": "angel-dear-pointer-pups-and-duck-buddies-2-way-zipper-footie",
+    "name": "Angel Dear Pointer Pups and Duck Buddies 2-Way Zipper Footie"
+   },
+   {
+    "key": "yoto-mini-4th-gen-sesame-street-bundle",
+    "name": "Yoto Mini 4th Gen + Sesame Street Bundle"
+   },
+   {
+    "key": "cecil-lou-pink-heirloom-lace-dress",
+    "name": "Cecil & Lou Pink Heirloom Lace Dress"
+   },
+   {
+    "key": "cecil-lou-navy-red-plaid-smocked-dress",
+    "name": "Cecil & Lou Navy & Red Plaid Smocked Dress"
+   },
+   {
+    "key": "jellycat-bartholomew-bear-bathrobe",
+    "name": "Jellycat Bartholomew Bear Bathrobe"
+   },
+   {
+    "key": "gentlestyle-brush",
+    "name": "GentleStyle Brush"
+   },
+   {
+    "key": "owala-bunny-business-freesip-bottle-16-oz",
+    "name": "Owala Bunny Business FreeSip Bottle 16 oz"
+   },
+   {
+    "key": "paradise-horses-chicken-coop-playset",
+    "name": "Paradise Horses Chicken Coop Playset"
+   },
+   {
+    "key": "roller-rabbit-kids-monkey-pima-cotton-pajamas",
+    "name": "Roller Rabbit Kids Monkey Pima Cotton Pajamas"
+   },
+   {
+    "key": "vevor-glow-in-the-dark-fort-building-kit",
+    "name": "VEVOR Glow-in-the-Dark Fort Building Kit"
+   },
+   {
+    "key": "maileg-baby-mouse-in-carry-cot",
+    "name": "Maileg Baby Mouse in Carry Cot"
+   },
+   {
+    "key": "hydro-flask-kids-straw-lid-water-bottle",
+    "name": "Hydro Flask Kids Straw Lid Water Bottle"
+   },
+   {
+    "key": "kitsch-ultra-petite-satin-scrunchies-6-pack",
+    "name": "Kitsch Ultra Petite Satin Scrunchies, 6 Pack"
+   },
+   {
+    "key": "roller-rabbit-kids-deck-the-halls-pajamas",
+    "name": "Roller Rabbit Kids Deck the Halls Pajamas"
+   },
+   {
+    "key": "micro-kickboard-maxi-led-scooter",
+    "name": "Micro Kickboard Maxi LED Scooter"
+   },
+   {
+    "key": "sunnylife-underwater-camera",
+    "name": "SUNNYLiFE Underwater Camera"
+   },
+   {
+    "key": "bits-bows-lifeguard-hat-blue",
+    "name": "Bits & Bows Lifeguard Hat Blue"
+   }
+  ],
+  "teens": [
+   {
+    "key": "ugg-classic-ultra-mini-boot-chestnut",
+    "name": "UGG Classic Ultra Mini Boot, Chestnut"
+   }
+  ]
+ }
+}

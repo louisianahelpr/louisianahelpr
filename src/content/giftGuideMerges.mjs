@@ -30,8 +30,7 @@ export const BASE_MERGES = [
   { parent: "oilfield-and-trades", sections: ["electricians", "plumbers", "hvac-techs", "linemen", "pipefitters", "welders", "machinists", "crane-operators", "heavy-equipment-operators", "construction-workers", "mechanics", "oilfield-workers", "offshore-workers", "pipeline-workers", "refinery-and-plant-workers", "truck-drivers", "boat-captains-and-deckhands", "commercial-fishermen-and-shrimpers"] },
   // 6 Service Industry.
   { parent: "service-industry", sections: ["restaurant-servers", "bartenders", "baristas", "cooks-and-kitchen-staff", "cashiers", "retail-workers", "customer-service-reps", "hotel-staff", "housekeepers", "hairstylists", "nail-techs", "mail-carrier-and-delivery-drivers", "delivery-drivers", "flight-attendants"] },
-  // 7 Gifts by Color (purple-and-gold goes to Game Day, owner ~8:55 PM).
-  { parent: "gifts-by-color", sections: ["red-lover", "pink-lover", "purple-lover", "blue-lover", "green-lover", "yellow-lover", "black-lover", "neutral-lover"] },
+  // 7 Gifts by Color: gone (owner 11-20 9:50 PM, "remove the color guides"); the old links land on the gift guides page (REMOVED_GUIDES).
   // 8 Kids: Girls, Boys and Gender-Neutral, each with its five ages as sections (15 guides -> 3).
   { parent: "girls", sections: ["girls-babies", "girls-toddlers", "girls-little-kids", "girls-big-kids", "girls-teens"] },
   { parent: "boys", sections: ["boys-babies", "boys-toddlers", "boys-little-kids", "boys-big-kids", "boys-teens"] },
@@ -45,7 +44,7 @@ export const BASE_MERGES = [
   { parent: "dad", sections: ["father-in-law"] },
   { parent: "brother", sections: ["brother-in-law"] },
   { parent: "sister", sections: ["big-sisters", "sister-in-law"] },
-  { parent: "pets", sections: ["dog-lover", "new-puppy", "cat-person", "new-kitten", "horse-lover", "fish-lover", "bird-lover"] },
+  // Pets: gone (owner 11-20 9:53 PM, "remove the pet guides"); the old links land on the gift guides page (REMOVED_GUIDES).
   // 11 Office & Professional.
   { parent: "office-and-professional", sections: ["accountants", "lawyers", "engineers", "real-estate-agents", "small-business-owners", "social-workers"] },
   // 12 New Baby & Parents.
@@ -156,16 +155,6 @@ export const SECTION_GROUPS = {
     // Owner 11-19: the Fabletics scrubs in a different color in each section (navy, onyx, green).
     pins: [{ name: /^Fabletics .*Scrub.*Navy/i, group: "nurses" }, { name: /^Fabletics .*Scrub.*Onyx/i, group: "doctors-and-providers" }, { name: /^Fabletics .*Scrub.*Green/i, group: "support-staff" }],
   },
-  "gifts-by-color": {
-    groups: [
-      { id: "red-and-pink", title: "Red & Pink", from: ["red-lover", "pink-lover"] },
-      { id: "purple", title: "Purple", from: ["purple-lover"] },
-      { id: "blue", title: "Blue", from: ["blue-lover"] },
-      { id: "green", title: "Green", from: ["green-lover"] },
-      { id: "yellow", title: "Yellow", from: ["yellow-lover"] },
-      { id: "black-and-neutral", title: "Black & Neutral", from: ["black-lover", "neutral-lover"] },
-    ],
-  },
   "louisiana-food-gifts": {
     groups: [
       { id: "pantry-and-kitchen", title: "Pantry & Kitchen", from: ["louisiana-pantry", "louisiana-kitchen"] },
@@ -194,14 +183,6 @@ export const SECTION_GROUPS = {
     groups: [
       { id: "gift-cards", title: "Gift Cards", from: ["gift-cards"] },
       { id: "subscriptions-and-advent-calendars", title: "Subscriptions & Advent Calendars", from: ["subscriptions", "advent-calendars"] },
-    ],
-  },
-  pets: {
-    groups: [
-      { id: "dogs", title: "Dog Lovers", from: ["dog-lover", "new-puppy"] },
-      { id: "cats", title: "Cat Lovers", from: ["cat-person", "new-kitten"] },
-      { id: "horses", title: "Horse Lovers", from: ["horse-lover"] },
-      { id: "fish-and-birds", title: "Fish & Birds", from: ["fish-lover", "bird-lover"] },
     ],
   },
   // FOLLOW-UP 1120 (owner pop-ups 11-19 11:58 PM "DEEPER MERGES" + 11-20 1:10 AM "FINAL MERGES"): the ~30 guides' sections.
@@ -337,7 +318,7 @@ export const STORE_PAGES_KEPT = [
 export const STORE_PAGES_HELD = ["store-tj-maxx-marshalls", "store-jcpenney"];
 
 /** The merged guides with no list of their own, only their sections (each listed in giftGuideIndex.ts). */
-export const NEW_PARENTS = ["gifts-by-color", "louisiana-food-gifts", "louisiana-by-region", "pets", "splurge", "shop-small-louisiana",
+export const NEW_PARENTS = ["louisiana-food-gifts", "louisiana-by-region", "splurge", "shop-small-louisiana",
   "fitness", "family", "friends-and-coworkers", "heroes", "work-life", "outdoors-and-travel", "home-and-kitchen",
   "creative-and-entertainment", "gifts-by-budget", "louisiana-celebrations", "life-moments", "teens"];
 /**

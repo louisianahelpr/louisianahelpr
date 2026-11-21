@@ -1485,3 +1485,45 @@ export const KIDS_TOY = /\b(breyer|schleich|plush(ie)?s?|stuffed (animals?|horse
 export const ADULT_HOBBY_GUIDES = ["horse-lover"];
 export const kidsToyOff = (slug, p) => (GUIDE_GROUPS.get(slug) === "Hobbies" || ADULT_HOBBY_GUIDES.includes(slug))
   && KIDS_TOY.test(`${p.name} ${p.brand ?? ""}`) && !/\b(dogs?|cats?|pets?|for horses|horse toy)\b/i.test(String(p.name ?? ""));
+
+/**
+ * OWNER 11-20 9:55 PM: "we literally need just 1 crew dog in all guides, i've seen too much stuff of one brand".
+ * - ONE_ITEM_BRANDS: a brand that shows exactly once on the whole site, on the named guide (its first item there).
+ * - BRAND_MAX_1120E: every other brand shows at most twice on one guide. Her own picks and keeps take the two spots
+ *   first, then the cheapest; a store's own page and the sponsors' prize page are not brand-capped.
+ * Applied by the last pass of the import (scripts/giftGuideOwner1120e.mjs). Guard: src/test/giftGuideFlatAffordable1120.test.ts.
+ */
+export const ONE_ITEM_BRANDS = { crewdog: "25-days-sponsors" };
+export const BRAND_MAX_1120E = 2;
+export const brandCapExempt1120e = (slug) => slug.startsWith("store-") || slug === "25-days-sponsors";
+export const brandOf1120e = (p) => {
+  const text = `${p.brand ?? ""} ${p.name ?? ""}`.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  for (const one of Object.keys(ONE_ITEM_BRANDS)) if (text.includes(one)) return one;
+  return GENERIC_BRAND.test(String(p.brand ?? "").trim()) ? "" : brandKey(p.brand ?? "");
+};
+/** The picks of `list` (one guide) the brand rules remove. `kept(p)` is true for an item the owner picked or kept. */
+export const brandCapCuts1120e = (slug, list, kept = () => false) => {
+  const cuts = new Set();
+  const groups = new Map();
+  list.forEach((p, i) => { const b = brandOf1120e(p); if (b) groups.set(b, [...(groups.get(b) ?? []), { p, i }]); });
+  for (const [b, rows] of groups) {
+    if (ONE_ITEM_BRANDS[b]) { rows.forEach((r, n) => { if (ONE_ITEM_BRANDS[b] !== slug || n > 0) cuts.add(r.p); }); continue; }
+    if (brandCapExempt1120e(slug) || rows.length <= BRAND_MAX_1120E) continue;
+    const price = (p) => (typeof p.price === "number" ? p.price : Infinity);
+    // Her own picks and keeps never leave by this rule; the rest take what is left of the two spots, cheapest first.
+    const mine = rows.filter((r) => kept(r.p)).length;
+    const rest = rows.filter((r) => !kept(r.p)).sort((a, c) => price(a.p) - price(c.p) || a.i - c.i);
+    rest.slice(Math.max(0, BRAND_MAX_1120E - mine)).forEach((r) => cuts.add(r.p));
+  }
+  return cuts;
+};
+
+/**
+ * OWNER 11-20 9:59 PM: "a lot of the sponsor stuff does not fit in the guides right now". A 25 Days sponsor's items
+ * (any brand on the sponsors page) show only on the sponsors page and in the Louisiana guides; every other guide drops
+ * them. A brand's own store page is its shelf and stays.
+ */
+export const SPONSORS_GUIDE_1120E = "25-days-sponsors";
+export const sponsorBrands1120e = (sponsorPicks) => new Set((sponsorPicks ?? []).map((p) => brandOf1120e(p)).filter(Boolean));
+export const sponsorOff1120e = (slug, p, sponsorBrands, louisianaGuides) =>
+  slug !== SPONSORS_GUIDE_1120E && !slug.startsWith("store-") && !louisianaGuides.has(slug) && sponsorBrands.has(brandOf1120e(p));

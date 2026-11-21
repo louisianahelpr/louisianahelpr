@@ -6,7 +6,7 @@ import { STORES, guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, rel
 import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftOut } from "./GiftOut";
 import { GiftGuideHelpr } from "./GiftGuideHelpr";
-import { NAME_ONLY_SPONSORS, SECTION_ALIASES, SECTION_ANCHORS } from "@/content/giftGuidePicks";
+import { NAME_ONLY_SPONSORS } from "@/content/giftGuidePicks";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { HINTS, WISH } from "@/content/giftWishList";
@@ -116,20 +116,9 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
 
 /** A guide's items: the numbered list, or (holding nothing) related guides, then its full-guide links. */
 /**
- * A list split at each change of its picks' section (store-amazon's "Louisiana Helpr Picks", "By person"...; design
- * audit 11-18 #3). A list with no sections is one untitled run; a pick with none joins the run before it.
+ * A merged guide's sections (1120), in order: [id, title, the pick count up to and including it]. The page draws no
+ * sections since owner 11-20 ("just remove the sections and make it one guide"); the data keeps them for the sort.
  */
-const sectionsOf = (picks: CatalogPick[]) => {
-  const runs: { title?: string; id?: string; picks: { start: number; rows: CatalogPick[] } }[] = [];
-  picks.forEach((p, i) => {
-    const last = runs[runs.length - 1];
-    if (last && (!p.section || p.section === last.title)) last.picks.rows.push(p);
-    else runs.push({ title: p.section, id: p.sectionId, picks: { start: i + 1, rows: [p] } });
-  });
-  return runs;
-};
-
-/** A merged guide's sections (1120), in order: [id, title, the pick count up to and including it]. */
 export const sectionNav = (picks: CatalogPick[]) => {
   const out: { id: string; title: string; end: number }[] = [];
   picks.forEach((p, i) => {
@@ -181,25 +170,6 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
   const [shown, setShown] = useState(PICKS_PAGE);
   const [budget, setBudget] = useState<number | null>(null);
   const ready = picksReady(guide.slug);
-  // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.
-  const nav = ready ? sectionNav(guide.picks) : [];
-  const jump = (id: string) => {
-    const s = nav.find((x) => x.id === id);
-    if (!s) return;
-    setBudget(null);
-    setShown((n) => Math.max(n, s.end));
-    requestAnimationFrame(() => document.getElementById(`gg-sec-${id}`)?.scrollIntoView({ block: "start" }));
-  };
-  const navKey = nav.map((x) => x.id).join(" ");
-  useEffect(() => {
-    const raw = decodeURIComponent(window.location.hash.replace(/^#/, ""));
-    // An old #section link (a section folded into a sibling, or an old guide's slug) opens its section now (1120d).
-    const ids = navKey.split(" ");
-    const id = ids.includes(raw) ? raw : SECTION_ALIASES[guide.slug]?.[raw] || SECTION_ANCHORS[raw] || "";
-    if (id && ids.includes(id)) jump(id);
-    // Once per guide, when its list is in (the hash is read only on arrival).
-     
-  }, [navKey]);
   if (!ready) return <p className="gg-soon" role="status" data-gift-picks-loading="">{G.loadingPicks}</p>;
   const related = guide.empty ? relatedGuides(guide) : [];
   const banded = guide.picks.filter((p) => p.band !== undefined).length;
@@ -207,30 +177,8 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
   // Six or fewer left: draw them all, no "Show more (1 more)" (design audit r2 #16).
   const upTo = picks.length - shown <= SHOW_ALL_UNDER ? picks.length : shown;
   const left = picks.length - upTo;
-  const runs = (from: number, to: number) => sectionsOf(picks.slice(0, to)).flatMap((r) => {
-    const rows = r.picks.rows.filter((_, k) => r.picks.start + k > from);
-    // A section cut by the deals keeps its heading only above its first part.
-    const head = r.picks.start > from;
-    return rows.length ? [{ title: head ? r.title : undefined, id: head ? r.id : undefined, picks: { start: r.picks.start + (r.picks.rows.length - rows.length), rows } }] : [];
-  });
-  const draw = (from: number, to: number) => runs(from, to).map(({ title, id, picks: run }, i) => (
-        <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""} id={id ? `gg-sec-${id}` : undefined} className={id ? "gg-sec" : undefined}>
-          {title && <h3 className="gg-sec-title">{nav.length > 1 ? sectionLabel(guide, title, id) : title}</h3>}
-          <ol className="gg-list" data-gift-list="" style={run.start > 1 ? { counterReset: `gg ${run.start - 1}` } : undefined}>
-            {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
-          </ol>
-        </section>
-      ));
   return (
     <>
-      {nav.length > 1 && (
-        <nav aria-label={G.sectionNavLabel} className="gg-secnav" data-gift-section-nav="">
-          <span className="gg-secnav-label" aria-hidden="true">{G.sectionNavLabel}:</span>
-          {nav.map((s) => (
-            <a key={s.id} href={`/gift-guides/${guide.slug}#${s.id}`} className="gg-chip" data-gift-section-link={s.id} onClick={(e) => { e.preventDefault(); window.history.replaceState(window.history.state, "", `#${s.id}`); jump(s.id); }}>{sectionLabel(guide, s.title, s.id)}</a>
-          ))}
-        </nav>
-      )}
       {banded >= BUDGET_MIN_PICKS && <Hint id="budget">{HINTS.budget}</Hint>}
       {banded >= BUDGET_MIN_PICKS && (
         <div role="group" aria-label={G.budgetLabel} className="gg-budget" data-gift-budget="">
@@ -242,7 +190,12 @@ function GiftGuideList({ guide, after }: { guide: CatalogGuide; after?: ReactNod
         </div>
       )}
       {budget !== null && <p className="gg-price-note" data-gift-budget-note="">{picks.length ? G.budgetNote : G.budgetNone}</p>}
-      {draw(0, upTo)}
+      {/* Owner 11-20 ("just remove the sections and make it one guide"): one flat list, no section headings or jump chips. */}
+      {upTo > 0 && (
+        <ol className="gg-list" data-gift-list="">
+          {picks.slice(0, upTo).map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
+        </ol>
+      )}
       <PricesAsOf picks={picks.slice(0, upTo)} />
       {left > 0 && (
         <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">

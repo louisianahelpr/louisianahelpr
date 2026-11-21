@@ -40,6 +40,7 @@ import { applyBudgetCaps } from "./giftGuideBudgetCaps.mjs";
 import { applyTrain1120d } from "./giftGuideTrain1120d.mjs";
 import { applyPeople } from "./giftGuidePeople1120.mjs";
 import { applyStandard } from "./giftGuideStandard1120.mjs";
+import { applyOwner1120e } from "./giftGuideOwner1120e.mjs";
 import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 /** The merged guides whose picks feed For Her and For Him (the people guides and Mom and Dad). */
 const PEOPLE_PARENTS = new Set(PEOPLE_GUIDES.flatMap((g) => [g.slug, ...g.sources]));
@@ -3988,6 +3989,10 @@ STANDARD_SNAPSHOTS.push(Object.fromEntries(Object.entries(pageList).map(([k, l])
   fillPrices();
   console.log(`gift-guide-picks: standard 1120 ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT FOUND (${t.missing.length}): ${t.missing.join(" | ")}` : ""}${t.extras.length ? `; NOT IN PLAN, removed (${t.extras.length}): ${t.extras.join(" | ")}` : ""}${t.kept.length ? `; NOT IN PLAN, kept (sponsor or owner pick, ${t.kept.length}): ${t.kept.join(" | ")}` : ""}`);
 }
+// OWNER 11-20 NIGHT (scripts/giftGuideOwner1120e.mjs): her tapped removals, the price rule, one flat order. Here before
+// the Top 10 is drawn, and once more after the last renames.
+const OWNER_1120E_SPEC = { ...JSON.parse(readFileSync(new URL("./gift-guide-owner-removals-1120.json", import.meta.url), "utf8")), louisianaGuides: [...LOUISIANA_GUIDES] };
+export const owner1120eLog = applyOwner1120e(pageList, OWNER_1120E_SPEC);
 /**
  * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks over the last 7 days
  * (scripts/gift-guide-go-clicks.json, measured from prod analytics), then effective commission x item popularity, among
@@ -4073,6 +4078,9 @@ for (const slug of Object.keys(pageList)) {
   // Photo cutouts 11-20 (scripts/giftGuideCutouts1120.mjs): a busy-background photo shows as its transparent cutout.
   pageList[slug] = pageList[slug].map((p) => (p.image && cutoutPhoto(p.image) !== p.image ? { ...p, image: cutoutPhoto(p.image) } : p));
 }
+applyOwner1120e(pageList, OWNER_1120E_SPEC, owner1120eLog);
+console.log(`gift-guide-picks: owner 1120e ${owner1120eLog.tapped.length} tapped removals, ${owner1120eLog.notes.length} by her notes, ${owner1120eLog.price.length} over the price cap, ${owner1120eLog.brand.length} over the brand cap, ${owner1120eLog.sponsor.length} sponsor items off regular guides`);
+if (process.env.GIFT_OWNER_1120E_LOG) writeFileSync(process.env.GIFT_OWNER_1120E_LOG, `${JSON.stringify(owner1120eLog, null, 1)}\n`);
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
 const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).filter((s) => storeList[s])])].sort();

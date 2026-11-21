@@ -15,6 +15,7 @@
  * @mutate api/share.ts | /^([a-z0-9-]+(#[a-z0-9-]+)?)?$/.test(d.moved[slug]) | /^[a-z0-9-]+$/.test(d.moved[slug])
  * @mutate scripts/giftGuideBig1120.mjs |       if (kept.some((k) => sameProduct(k, r) && | if (false && kept.some((k) => sameProduct(k, r) &&
  */
+import { LIVE_GUIDES_1121, isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -79,12 +80,20 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       // For Her / For Him (owner 11-20 evening): the old Mom, Dad, Wife ... slugs are filter pages now, guarded by giftGuidePeople1120.test.ts.
       if (peopleGuideOf(s) || peopleGuideOf(parent) || s in OLD_PEOPLE_SLUGS) continue;
       expect(guideBySlug(s), `${s} keeps a page`).toBeUndefined();
+      // Owner 11-21: a retired parent (src/content/giftGuideLive.mjs) has no page; its old guides 301 to the landing.
+      if (!isLiveGuide(parent)) {
+        expect(guideBySlug(parent), parent).toBeUndefined();
+        expect(newSlugFor(s), s).toBeNull();
+        expect(moved[s], `route map: ${s}`).toBe("");
+        continue;
+      }
       expect(guideBySlug(parent), parent).toBeTruthy();
       // The section groups (owner 11-20) name the section the old guide's picks joined.
       const want = SECTION_ANCHORS[s] ? `${parent}#${SECTION_ANCHORS[s]}` : parent;
       expect(newSlugFor(s), s).toBe(want);
       expect(moved[s], `route map: ${s}`).toBe(want);
-      if (SECTION_ANCHORS[s]) expect((CHUNKS.get(parent) ?? []).some((p) => p.sectionId === SECTION_ANCHORS[s]), `${s} -> an empty section`).toBe(true);
+      // Owner 11-21: Her, Him and Kids are flat lists of her own saves, so an old slug's section can be empty there.
+      if (SECTION_ANCHORS[s] && !isOwnerList(parent)) expect((CHUNKS.get(parent) ?? []).some((p) => p.sectionId === SECTION_ANCHORS[s]), `${s} -> an empty section`).toBe(true);
       expect(CHUNKS.has(s), `${s} still writes a chunk`).toBe(false);
     }
     const folded = GUIDE_INDEX.filter((g) => isFoldedStore(g.slug)).map((g) => g.slug);
@@ -228,16 +237,16 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     const fold = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
     for (const [guide, remove, add] of SWAPS_1119) {
       // Mom's swap-in (the needlepoint pillow) left with For Her's old list: Her is the owner's own 25 saves since 11-21.
-      if (!isOwnerList(guide)) expect(on(guide).some((p) => fold(p.name).startsWith(fold(add).slice(0, 16))), `${guide}: ${add}`).toBe(true);
+      // Same for Kids (owner 11-21 ~2:47 AM): girls-babies folded into Kids, now her own Amazon kids list.
+      if (!isOwnerList(guide) && !isOwnerList(MERGED_INTO[guide]?.parent ?? guide)) expect(on(guide).some((p) => fold(p.name).startsWith(fold(add).slice(0, 16))), `${guide}: ${add}`).toBe(true);
       expect(on(guide).some((p) => fold(p.name).startsWith(fold(remove).slice(0, 16))), `${guide}: ${remove}`).toBe(false);
     }
   });
 
-  it("the page lists ~30 guides (from ~250), every one reachable", () => {
+  it("the page lists only the live guides (owner 11-21: Her, Him and Kids, plus the 25 Days sponsors page)", () => {
     // A relationship filter page (Mom, Dad ... on For Her / For Him) is a view of its guide, not another guide.
     const shown = GUIDES.filter((g) => !g.empty && !g.slug.startsWith("store-") && !(g as { view?: unknown }).view);
-    // Follow-up 1120 (owner "FINAL MERGES -> ~30"): 28 guides measured 2026-11-20.
-    expect(shown.length).toBeGreaterThan(24);
-    expect(shown.length).toBeLessThan(34);
+    // Follow-up 1120 (owner "FINAL MERGES -> ~30"): 28 guides measured 2026-11-20; owner 11-21: the live list only.
+    expect(shown.map((g) => g.slug).sort()).toEqual([...LIVE_GUIDES_1121].sort());
   });
 });

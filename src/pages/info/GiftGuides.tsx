@@ -9,7 +9,7 @@ import { ROWS, guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, subsc
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
-import { GiftGuideLanding } from "./giftGuides/GiftGuideLanding";
+import { GiftGuideLanding, rowTiles } from "./giftGuides/GiftGuideLanding";
 import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
 import { GiftGuideSharedList } from "./giftGuides/GiftGuideSharedList";
 import { useWishListSync } from "./giftGuides/wishListSync";
@@ -25,6 +25,7 @@ import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "@/content/gif
 import { GiftGuideSmallBiz } from "./giftGuides/GiftGuideSmallBiz";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS, smallBizDay, smallBizTitle } from "@/content/giftGuideSmallBiz.mjs";
+import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 
 /**
  * /gift-guides and /gift-guides/<slug> (owner 2026-11-16, public 2026-11-18; rebuilt 2026-11-18 to the owner's final
@@ -69,8 +70,10 @@ export default function GiftGuides() {
   // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is its own page, not a catalog list of picks.
   // The Small Business Saturday page (owner 2026-11-19, big batch 1120) is its own page too. `deals` covers both own
   // pages wherever the page only asks "is this a catalog guide?".
-  const smallBiz = slug === SMALL_BIZ_SLUG;
-  const deals = slug === DEALS_SLUG || smallBiz;
+  // Owner 11-21: both pages are retired with every guide but Her, Him and Kids (src/content/giftGuideLive.mjs); their
+  // old links land on /gift-guides until a slug is listed live again.
+  const smallBiz = slug === SMALL_BIZ_SLUG && isLiveGuide(SMALL_BIZ_SLUG);
+  const deals = (slug === DEALS_SLUG && isLiveGuide(DEALS_SLUG)) || smallBiz;
   const dealsName = smallBiz ? smallBizTitle(smallBizDay(new Date())) : dealsTitle(louisianaDay(new Date()));
   // SEO (follow-up 2026-11-18): the landing's head, or the open guide's own (one not in the sitemap is noindex).
   // SEO P1 (owner 11-19): its own description from its picks once they are in, as api/share.ts writes it before JS.
@@ -95,7 +98,8 @@ export default function GiftGuides() {
   // The old My list address (?list=mine) opens My Wish List's own page.
   const oldMyList = !slug && !shared && !myListPage && params.get("list") === "mine";
   const myList = myListPage;
-  const group = ROWS.find((r) => r.row === groupParam)?.row ?? (null as GuideRow | null);
+  // Owner 11-21: a group with no live guide left (By store, By budget ...) opens the landing itself.
+  const group = ROWS.find((r) => r.row === groupParam && rowTiles(r.row).length > 0)?.row ?? (null as GuideRow | null);
   const landing = !slug && !shared && !myListPage && !group;
 
   // Pins link to /gift-guides#for-her, /gift-guides/for-her or a folded guide (/gift-guides/female-nurses): send each

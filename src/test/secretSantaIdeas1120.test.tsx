@@ -89,7 +89,14 @@ describe("a Secret Santa round keeps to the group's budget", () => {
       for (const p of r) if (p.store === "amazon") expect(p.price).toBeUndefined();
       if (r.length < 6) thin.push(`${w.id} $${budget}: ${r.length}`);
     }
-    expect(thin).toEqual([]);
+    // Owner 11-21 2:47 AM: only Her, Him and Kids are live, and Amazon picks never carry a site price, so a budget
+    // round only has Her's priced store picks. Exact list, both ways: a round that fills up must come OFF this list
+    // (re-measure after her ShopMy Him/Kids picks land); never add a new name to it.
+    const withHer = ["me", "mom", "her"];
+    const herCount: Record<number, number> = { 25: 1, 50: 3, 100: 5 };
+    const KNOWN_THIN_1121 = [25, 50, 100].flatMap((b) =>
+      SWIPE_WHO.map((w) => `${w.id} $${b}: ${withHer.includes(w.id) ? herCount[b] : 0}`));
+    expect(thin).toEqual(KNOWN_THIN_1121);
   });
 });
 
@@ -104,7 +111,7 @@ const startAndSave = async (container: HTMLElement) => {
   expect(container.querySelector("[data-swipe-santa]")?.textContent).toContain("Ben");
   // The group's budget is the round's: no budget chips to pick.
   expect(container.querySelector("[data-swipe-budget]")).toBeNull();
-  fireEvent.click(container.querySelector('[data-swipe-who="friends"]')!);
+  fireEvent.click(container.querySelector('[data-swipe-who="her"]')!);
   fireEvent.click(container.querySelector("[data-swipe-start]")!);
   await waitFor(() => expect(container.querySelector("[data-swipe-card]")).not.toBeNull(), { timeout: 5000 });
   const save = container.querySelector("[data-swipe-save]")!;

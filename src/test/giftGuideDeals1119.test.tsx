@@ -8,30 +8,29 @@
  *   - the data holds only READY deals (an affiliate link that reaches the brand's sale), never a price, each section
  *     sorted by our commission and at most 25.
  *
+ * Owner 11-21 ("launch the 3 guides remove the rest that are live"): the deals page is retired with every guide but
+ * Her, Him and Kids (src/content/giftGuideLive.mjs) and its old link lands on /gift-guides
+ * (src/test/giftGuideOnlyThree1121.test.tsx), so its landing-slot, page and pre-JS tests are gone; the data and
+ * component checks stay for its return.
+ *
  * @mutate src/content/giftGuideDeals.mjs |   if (deal.ends && deal.ends < today) return false; |   if (deal.ends && deal.ends < "2000-01-01") return false;
  * @mutate src/content/giftGuideDeals.mjs |   if (deal.status === "announced" && deal.starts && deal.starts > today) return false; |   if (deal.status === "announced" && deal.starts && deal.starts > "2099-01-01") return false;
  * @mutate src/content/giftGuideDeals.mjs |   return today >= FEATURE_FROM && today <= FEATURE_TO; |   return today <= FEATURE_TO;
  * @mutate src/content/giftGuideDeals.mjs |   return today > RETITLE_AFTER ? DEALS_WORDS.laterTitle : DEALS_WORDS.title; |   return DEALS_WORDS.title;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const sections = deals ? dealSections(liveDeals(deals, today)) : []; |   const sections = deals ? dealSections(deals) : [];
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <DealsFeature /> |       {null}
- * @mutate api/share.ts |     if (slug === DEALS_SLUG) { |     if (slug === "no-such-guide") {
  */
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
 import { cleanup, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 import DEALS from "@/content/giftGuideDeals.json";
 import {
   DEAL_CATEGORIES, DEALS_PER_SECTION, DEALS_SLUG, DEALS_WORDS, dealShows, dealsFeatured, dealsTitle, louisianaDay, type Deal,
 } from "@/content/giftGuideDeals.mjs";
-import { dealsPageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuidePageMeta.mjs";
+import { dealsPageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { buildDeals, type DealSources, type RawDeal } from "../../scripts/gift-guide-deals.mjs";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
-import GiftGuides from "@/pages/info/GiftGuides";
 import { DealsFeature, GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
 
 const deals = DEALS as Deal[];
@@ -173,29 +172,6 @@ describe("deals guide: the landing's featured slot and the retitle", () => {
     expect(feature(noon("2026-12-02"))).toBeNull();
   });
 
-  it("sits at the very top of the landing, above the gift finder, inside the window only", async () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(noon("2026-11-24"));
-    const { container } = render(
-      <MemoryRouter initialEntries={["/gift-guides"]}>
-        <Routes><Route path="/gift-guides" element={<GiftGuides />} /></Routes>
-      </MemoryRouter>,
-    );
-    const slot = container.querySelector("[data-gift-deals-feature]")!;
-    const quick = container.querySelector("[data-gift-finder]")!;
-    expect(slot).not.toBeNull();
-    expect(slot.compareDocumentPosition(quick) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(slot.textContent).toContain(DEALS_WORDS.title);
-    cleanup();
-    vi.setSystemTime(noon("2026-11-20"));
-    const later = render(
-      <MemoryRouter initialEntries={["/gift-guides"]}>
-        <Routes><Route path="/gift-guides" element={<GiftGuides />} /></Routes>
-      </MemoryRouter>,
-    );
-    expect(later.container.querySelector("[data-gift-deals-feature]")).toBeNull();
-  });
-
   it("is Black Friday & Cyber Monday Deals through Dec 1, then Holiday Deals (page, slot, head)", () => {
     expect(dealsTitle("2026-11-19")).toBe("Black Friday & Cyber Monday Deals");
     expect(dealsTitle("2026-12-01")).toBe("Black Friday & Cyber Monday Deals");
@@ -203,38 +179,5 @@ describe("deals guide: the landing's featured slot and the retitle", () => {
     expect(feature(noon("2026-12-01"))!.textContent).toContain("Black Friday & Cyber Monday Deals");
     expect(dealsPageMeta(noon("2026-11-24")).title).toBe("Black Friday & Cyber Monday Deals — Helpr");
     expect(dealsPageMeta(noon("2026-12-02")).title).toBe("Holiday Deals — Helpr");
-  });
-
-  it("the guide's page opens (never redirected to the landing) under the day's title; its head is indexed", async () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(noon("2026-12-03"));
-    const { container } = render(
-      <MemoryRouter initialEntries={[`/gift-guides/${DEALS_SLUG}`]}>
-        <Routes>
-          <Route path="/gift-guides" element={<p data-landing="" />} />
-          <Route path="/gift-guides/:slug" element={<GiftGuides />} />
-        </Routes>
-      </MemoryRouter>,
-    );
-    expect(container.querySelector("[data-landing]")).toBeNull();
-    expect(container.querySelector("h1")!.textContent).toBe("Holiday Deals");
-    expect(container.querySelector("[data-gift-deals-page]")).not.toBeNull();
-    const head = publicOrGiftGuidePageMetaFor(`/gift-guides/${DEALS_SLUG}`, null)!;
-    expect(head.canonical).toBe(`https://www.louisianahelpr.com/gift-guides/${DEALS_SLUG}`);
-    expect(head).not.toHaveProperty("robots");
-  });
-
-  it("the pre-JS page (api/share.ts) answers 200 with the guide's name, body and its own share card, never a 404", async () => {
-    ensureOgShellSnapshot(resolve("."));
-    const sharePath = ["..", "..", "api", "share"].join("/");
-    const handler = (await import(/* @vite-ignore */ sharePath)).default as { fetch: (r: Request) => Promise<Response> };
-    const res = await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=page&_id=gift-guides/${DEALS_SLUG}`));
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    const title = dealsTitle(louisianaDay(new Date()));
-    expect(html).toContain(`<meta property="og:image" content="https://www.louisianahelpr.com/gift-guides/deals/${DEALS_SLUG}.jpg"`);
-    expect(html).toContain(`<h1>${title.replace(/&/g, "&amp;")}</h1>`);
-    expect(existsSync(`public/gift-guides/deals/${DEALS_SLUG}.jpg`)).toBe(true);
-    expect(existsSync(`public/gift-guides/deals/${DEALS_SLUG}.webp`)).toBe(true);
   });
 });

@@ -36,38 +36,7 @@
  },
  "him": {
   "section": "By person",
-  "items": [
-   {
-    "name": "XTRATUF Fleece Lined Ankle Deck Boot Sport",
-    "key": "xtratuf:boot",
-    "image": "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/xadsm104_g.jpg"
-   },
-   {
-    "name": "YETI Tundra 35 Hard Cooler",
-    "key": "yeti:cooler",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1772575807120"
-   },
-   {
-    "name": "Ooni Digital Infrared Thermometer",
-    "key": "ooni:thermometer",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1791337245541"
-   },
-   {
-    "name": "Lodge Square Cast Iron Grill Pan, 10.5\"",
-    "key": "lodge:griddle",
-    "image": "https://static.athome.com/images/w_600,h_600,c_pad,f_auto,fl_lossy,q_auto/v1629493174/p/124282433/lodge-square-cast-iron-grill-pan-10.5.jpg"
-   },
-   {
-    "name": "Stanley Classic Legendary Camp Mug, 12 OZ",
-    "key": "stanley:drink",
-    "image": "https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-TheStay-HotCampMug12OZ-Shale-Front.png"
-   },
-   {
-    "name": "Shark TurboBlade Cool + Heat Bladeless Tower Fan & Heater",
-    "key": "shark:heater",
-    "image": "https://static.shopmy.us/pins/zoom-108154407-1795153498531-TH202_01.jpg"
-   }
-  ]
+  "items": []
  },
  "grandparents": {
   "section": "By person",
@@ -176,38 +145,7 @@
  },
  "kids": {
   "section": "For kids",
-  "items": [
-   {
-    "name": "Maniere Crochet Collar Romper",
-    "key": "maniere:romper",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1781961575012"
-   },
-   {
-    "name": "Barefoot Dreams CozyChic Barefoot in the Wild Baby Blanket",
-    "key": "barefootdreams:blanket",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1784294333165"
-   },
-   {
-    "name": "BabyBjörn Bouncer Begin, Brushed Woven Beige",
-    "key": "babybjörn:beige",
-    "image": "https://static.shopmy.us/pins/zoom-108020907-1795133572961-Vcdk-lxQkQoTr82GWRt7hieAs.jpg"
-   },
-   {
-    "name": "Melissa & Doug Water WOW! Multi-Activity Drawing Set",
-    "key": "melissadoug:drawing",
-    "image": "https://www.melissaanddoug.com/cdn/shop/files/7b160d44991f8d9f27402dbeff9e52f39f5b65f4_1024x1024.jpg?v=1758722733"
-   },
-   {
-    "name": "Barn Star Kids Toy Wheelbarrow",
-    "key": "tractorsupply:wheelbarrow",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1773588277513"
-   },
-   {
-    "name": "VEVOR Outdoor Mud Kitchen for Kids",
-    "key": "vevor:kids",
-    "image": "https://static.shopmy.us/uploads/pretty-prod-1780602624347"
-   }
-  ]
+  "items": []
  },
  "teens": {
   "section": "For kids",

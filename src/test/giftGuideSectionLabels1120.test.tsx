@@ -22,14 +22,13 @@ describe("gift guides: section headings read as parts of one guide (owner 11-20)
     // For Her / For Him (owner 11-20 evening): Dad and Mom fold into For Him and For Her, sectioned by use.
     // For Her is the owner's own 25 saves since 11-21 (scripts/giftGuideHer1121.mjs): one flat list, no headings at all.
     const her = (JSON.parse(readFileSync("src/content/giftGuidePicks/her.json", "utf8")) as { picks: { section?: string }[] }).picks;
-    expect(her.length).toBe(25);
+    expect(her.length).toBeGreaterThanOrEqual(25); // owner 11-21 ~2:15 AM: "we can have more than 25 items its fine" (36)
     expect(her.filter((p) => p.section !== undefined)).toEqual([]);
-    for (const [slug, title] of [["him", "For Him"]] as const) {
-      const picks = (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: { section?: string; sectionId?: string }[] }).picks;
-      const heads = [...new Map(picks.map((p) => [p.sectionId, p.section])).entries()].map(([id, t]) => sectionLabel({ title }, String(t), id));
-      expect(heads.length, slug).toBeGreaterThan(1);
-      expect(new Set(heads).size, slug).toBe(heads.length);
-      for (const h of heads) expect(h, slug).not.toMatch(/^(Top picks|Father-in-Law|Mother-in-Law|undefined)$/);
+    // For Him is her own Amazon men list since 11-21 ~2:47 AM (scripts/giftGuideHimKids1121.mjs): flat too, like Kids.
+    for (const slug of ["him", "kids"]) {
+      const picks = (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: { section?: string }[] }).picks;
+      expect(picks.length, slug).toBeGreaterThanOrEqual(25);
+      expect(picks.filter((x) => x.section !== undefined), slug).toEqual([]);
     }
   });
 

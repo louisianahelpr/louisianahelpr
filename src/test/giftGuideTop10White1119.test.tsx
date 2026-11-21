@@ -8,6 +8,9 @@
  * Food Gifts), no magazines, women's Sperrys, Life is Good, Bass Pro home decor or off-brand decor on the people guides,
  * nixplay canvas / photo book, the Ring doorbell and CHORD's plaid cap where they do not belong, and no shared top-12
  * pick between sibling guides (mom / wife ...). Reads the rules, the styles, PickThumb and every generated chunk.
+ * Owner 11-21: the landing shows no Top 10 any more (only Her, Him and Kids are live,
+ * src/content/giftGuideLive.mjs), so its landing-note test is gone; TOP_PICKS's own rules stay.
+ *
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply} | img.gg-thumb{background:transparent;border:0}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-topcard .gg-photo{border-radius:14px;background:#fff} | .gg-topcard .gg-photo{border-radius:14px}
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | onLoad={(e) => { if (photoFailed(e.currentTarget)) setFailed(true); }} | onLoad={() => undefined}
@@ -100,11 +103,6 @@ describe("gift guides 11-19: the Top 10 is ten real holiday best-sellers", () =>
     }
     const brands = TOP_PICKS.map((p) => p.name.split(" ")[0].toLowerCase());
     expect(new Set(brands).size).toBe(10);
-  });
-
-  it("the landing hides the 'Prices as of' note when most Top 10 cards show no price", () => {
-    const src = readFileSync("src/pages/info/giftGuides/GiftGuideLanding.tsx", "utf8");
-    expect(src).toContain("{top.filter((p) => showsPrice(p)).length * 2 > top.length && <PricesAsOf picks={top} />}");
   });
 });
 
@@ -227,7 +225,8 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     }
     // For Her = the owner's 25 saves (11-21): Mom, Wife, Girlfriend, Sister and Mother-in-law are no longer lists of their
     // own (their picks are Her's, all ownerPick): 31 pairs measured 2026-11-21.
-    expect(pairs).toBeGreaterThan(30);
+    // Him and Kids are her saved lists too (owner 11-21 ~2:47 AM): 25 pairs measured 2026-11-21.
+    expect(pairs).toBeGreaterThan(20);
     expect(shared).toEqual([]);
   });
 

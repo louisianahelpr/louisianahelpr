@@ -1,5 +1,4 @@
-import { useEffect, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { KID_AGE_BANDS, KIDS_HUB, guideBySlug } from "@/content/giftGuideCatalog";
@@ -26,38 +25,6 @@ const ageLink = (tail: string) => {
 };
 
 const ages = (b: (typeof KID_AGE_BANDS)[number]) => b.ages;
-
-/** The Kids by age block's anchor: the landing's "Kids by age" chip links to it (gg-r3 UX audit #17). */
-export const KIDS_BY_AGE_ID = "kids-by-age";
-
-/** "Kids by age" (landing, For kids): one chip per age band ("Little kids 4–7"), each opening that section of Kids. */
-export function KidsByAge() {
-  const { hash } = useLocation();
-  const ref = useRef<HTMLDivElement>(null);
-  // React Router does not scroll to a hash on its own: opened from the chip, the block scrolls into view.
-  useEffect(() => {
-    if (hash === `#${KIDS_BY_AGE_ID}`) ref.current?.scrollIntoView({ block: "start" });
-  }, [hash]);
-  const bands = KID_AGE_BANDS.flatMap((b) => {
-    const g = ageLink(b.tail);
-    return g ? [{ b, g }] : [];
-  });
-  if (bands.length === 0) return null;
-  return (
-    <div ref={ref} id={KIDS_BY_AGE_ID} className="gg-ages" aria-labelledby="gift-ages" data-gift-ages="" role="group">
-      <h3 id="gift-ages" className="gg-ages-title">{G.agesTitle}</h3>
-      <span className="gg-chips">
-        {bands.map(({ b, g }) => (
-          <Button key={b.tail} asChild variant="outline" size="sm" className="gg-chip">
-            <Link to={g.to} data-gift-age-link={g.slug} data-gift-age-band={b.tail}>
-              {b.label} {ages(b)}
-            </Link>
-          </Button>
-        ))}
-      </span>
-    </div>
-  );
-}
 
 /** Which guides show BY AGE chips at their top (follow-up 1120: Family, whose Niece & Nephew section shops by age). */
 const AGE_CHIPS_ON = new Set(["family"]);

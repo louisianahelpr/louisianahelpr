@@ -56,11 +56,6 @@
       "permanent": true
     },
     {
-      "source": "/gift-guides/nurses",
-      "destination": "/gift-guides/healthcare",
-      "permanent": true
-    },
-    {
       "source": "/gift-",
       "destination": "/gift-guides",
       "permanent": true

@@ -28,7 +28,6 @@ import {
  * here have only lifestyle or model shots, photos the store's CDN refuses (L.L.Bean answers 403), or under four
  * products at all. Two-way: an entry whose cover gains products fails until it is removed.
  */
-const FEW_PHOTOS = "fewer than 4 clean product-only photos";
 /**
  * Re-measured 2026-11-19 after the r3 follow-up gathered store photos (scripts/gift-guide-store-cover-photos.json): 52
  * of the 59 store pages here now show products. These seven could not get four photos of products the store sells:
@@ -39,15 +38,20 @@ const FEW_PHOTOS = "fewer than 4 clean product-only photos";
 // Follow-up 1120 (~30 guides, the owner's 26 store pages): rebuilt from the cover script's TEXT ONLY line, 2026-11-20.
 // Builder 3 1120b: covers now draw only non-Amazon picks that are still in the guide after the owner's removals, so more
 // guides fall under four usable photos. Rebuilt from the cover script's TEXT ONLY line, 2026-11-20 8:17 PM.
+// Owner 11-21 ("launch the 3 guides remove the rest that are live"): every entry here (Heroes, HOKA, BaubleBar, Amazon,
+// Louisiana by Region, Car Lover) was a guide now retired (src/content/giftGuideLive.mjs), so none is shown; the shown
+// covers (Her, Him, Kids, the sponsors page and the relationship pages) each show products.
+// Owner 11-21 (later, "add all of the things ... launch the 3 guides"): Him and Kids are now her own Amazon saves only,
+// and an Amazon photo never goes on a cover, so both covers are the text-only arch until her ShopMy saves for Him and
+// Kids are added (non-Amazon photos). Two-way: each entry fails once its cover gains products.
 const TEXT_ONLY: Record<string, string> = {
-  heroes: `${FEW_PHOTOS}: 3 clean, fitting product photos once the sold-out Durango work boot left the guide (section audit 2026-11-20)`,
-  "store-hoka": `${FEW_PHOTOS}: 3 of its 10 picks cut out cleanly (the rest are on-foot or coloured-backdrop shots), measured 2026-11-20`,
-  "store-baublebar": `${FEW_PHOTOS}: 1 of its 10 picks is on white (the rest are coloured-backdrop shots), measured 2026-11-20`,
-  "store-amazon": `${FEW_PHOTOS}: every pick is an Amazon photo, and Amazon photos never go on a cover`,
-  "louisiana-by-region": `${FEW_PHOTOS}: 2 of its 8 non-Amazon picks are usable, measured 2026-11-20`,
-  "car-lover": `${FEW_PHOTOS}: 1 of its 2 non-Amazon picks is usable, measured 2026-11-20`,
+  him: "every pick is one of the owner's Amazon saves; Amazon photos never go on a cover",
+  kids: "every pick is one of the owner's Amazon saves; Amazon photos never go on a cover",
 };
 const PIXEL_PALE: Record<string, string> = {};
+/** Measured 2026-11-21 after the retirement (owner 11-21: only Her, Him and Kids live). */
+const SHOWN_FLOOR = 3; // 4 shown: her, him, kids, 25-days-sponsors
+const CHECKED_FLOOR = 2; // her and the sponsors page; him and kids are text only (above)
 
 const manifest = readManifest();
 const covers = new Set(COVER_SLUGS);
@@ -78,8 +82,9 @@ function plainGingham(): Buffer {
 
 describe("gift guide covers show their products", () => {
   it("reads every shown guide's cover", () => {
-    expect(shown.length).toBeGreaterThan(45); // follow-up 1120: ~30 guides + 26 store pages (54 covers drawn, 2026-11-20)
-    expect(checked.length).toBeGreaterThanOrEqual(43); // 43 measured 2026-11-20 night: the owner standard left Coffee Lover (7) and Gift Wrap & Cards (6) under SMALL_GUIDE picks (51 shown, 6 text only)
+    // Owner 11-21: only Her, Him and Kids (and their relationship pages, and the sponsors page) are shown.
+    expect(shown.length).toBeGreaterThan(SHOWN_FLOOR);
+    expect(checked.length).toBeGreaterThanOrEqual(CHECKED_FLOOR); // was 43 before the 11-21 retirement; // 43 measured 2026-11-20 night: the owner standard left Coffee Lover (7) and Gift Wrap & Cards (6) under SMALL_GUIDE picks (51 shown, 6 text only)
     for (const s of shown) expect(existsSync(`${COVER_DIR}/${s}.webp`), s).toBe(true);
   });
 

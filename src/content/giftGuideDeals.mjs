@@ -51,9 +51,10 @@ export const DEALS_WORDS = {
   title: "Black Friday & Cyber Monday Deals",
   laterTitle: "Holiday Deals",
   lead: "the best",
-  intro:
-    "Y'all, the big sales are here. Black Friday, Small Business Saturday and Cyber Monday, all on one page. We checked each sale with the store itself, so you can knock out your list and still save a little for the gumbo pot.",
-  disclosure: "#ad, some links earn us a small commission.",
+  // Owner 2026-11-21 ("remove this"): no intro paragraph, "#ad" line or helper line on the deals page. The page keeps
+  // the gift guides' standard affiliate disclosure in its footer (GiftGuides.tsx); the pre-JS body (api/share.ts)
+  // carries the same words.
+  disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
   featuredLine: "Hand-checked sales from brands you already love, all in one place.",
   featuredCta: "See the deals",
   shop: (brand) => `Shop ${brand}`,

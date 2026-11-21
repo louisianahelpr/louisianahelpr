@@ -9,7 +9,7 @@
  * brand cap, type cap, beauty cap, sponsor rule, men's style, standard plan) can drop or reorder these. That is the
  * owner-kept allowance, and it is narrow on purpose: it touches only the "her" page and only these rows. She kept,
  * by name (11-21): all 9 items over $100, all three face tools (ZDEER gua sha, Shark Depuffi, CurrentBody mask) and the
- * sold-out Stanley cooler (she is looking for it on Amazon). The HEYDUDE Austin Lift is banned from men's guides only.
+ * Stanley cooler (Cream at Stanley direct since 11-21). The HEYDUDE Austin Lift is banned from men's guides only.
  *
  * Page rules (owner): ONE flat list, cheapest first (no sections, no relationship chips, no codes or deals box; see
  * OWNER_LIST_GUIDES in src/content/giftGuidePeople.mjs). An Amazon pick shows the price she saw on her own saved list
@@ -36,7 +36,7 @@ export const HER_STORES = {
   "store-jd-sports": "JD Sports", "store-sephora": "Sephora", "store-hatch": "Hatch", "store-macys": "Macy's",
   "store-haven-well-within": "Haven Well Within", "store-camp-snap": "Camp Snap", "store-rei": "REI",
   "store-the-swank-company": "The Swank Company", "store-baublebar": "BaubleBar", "store-currentbody": "CurrentBody",
-  "store-anthropologie": "Anthropologie", "store-tatcha": "Tatcha", "store-iherb": "iHerb",
+  "store-anthropologie": "Anthropologie", "store-tatcha": "Tatcha", "store-iherb": "iHerb", "store-stanley": "Stanley",
 };
 
 /**
@@ -77,8 +77,9 @@ export const HER_1121 = [
   { name: "BaubleBar Fallon 14K Gold Bezel Earrings", brand: "BaubleBar", line: "Gold bezel drop earrings that go with everything.", href: shopmy("p-108607824"), image: "https://static.shopmy.us/uploads/adc16a77-2764-49c6-8995-55c0e42754c9_s-blob-v1-IMAGE-DBeu-uRDNQQ.png", store: "store-baublebar", sortPrice: 64, price: 64, commission: 20, type: "jewelry" },
   { name: "Ember Mug 2, Brown", brand: "Ember", line: "A heated mug that keeps her coffee hot to the last sip.", href: shopmy("p-108613356"), image: "https://static.shopmy.us/pins/zoom-108613356-1795240468332-17103719_fpx.tif", store: "store-macys", sortPrice: 89.99, price: 89.99, commission: 16, type: "mug" },
   { name: "Lola Blankets Original Throw Blanket", brand: "Lola Blankets", line: "The famously soft Lola throw for couch nights.", href: shopmy("p-108604054"), image: "https://static.shopmy.us/uploads/346f926f-f41b-444e-b686-921455d30264_74A53B12-D898-44DD-8ADB-BBB0CD895907.jpg", store: "store-anthropologie", sortPrice: 135, price: 135, commission: 15, type: "throw-blanket" },
-  // Sold out at Stanley (11-21); stays in while the owner looks for it on Amazon.
-  { name: "Stanley All Day Julienne Midi Cooler", brand: "Stanley", line: "A soft cooler bag for tailgates and beach days.", href: shopmy("p-108610992"), image: "https://www.rei.com/media/40f2076a-b808-4b12-b912-240e6fa0e847", store: "store-rei", sortPrice: 140, price: 140, commission: 8, type: "cooler" },
+  // Owner 11-21 (pop-up): switched from the purple one at REI (p-108610992, $140, 8%) to Cream at Stanley direct, on sale
+  // $105 through Nov 30, 18% (her new ShopMy link p-108831058; her older Stanley pin p-107863923 goes to a sold-out listing).
+  { name: "Stanley All Day Julienne Midi Cooler, Cream", brand: "Stanley", line: "A soft cooler bag for tailgates and beach days.", href: shopmy("p-108831058"), image: "https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-The_All-Day_Julienne_Midi_Cooler_12QT_-_Cream_-_Front.png", store: "store-stanley", sortPrice: 105, price: 105, commission: 18, type: "cooler" },
   // Switched 11-21 from her Sephora UK pin (US shoppers cannot use it) to her existing SharkNinja US pin. Her Ulta pin (13%) would pay more.
   { name: "Shark Depuffi Hot & Cold Face Sculpting Tool", brand: "Shark", line: "A hot and cold face tool that depuffs in minutes.", href: shopmy("p-107555566"), image: "https://asset.sephora.co.uk/img/prod/pid/P1000211062/114692_media_principal_extendedaten_gb_0_extended_06-05-26-09-52-04.jpg", store: "store-sharkninja", sortPrice: 149.99, price: 149.99, commission: 8, type: "beauty-device" },
   { name: "On Cloud 6 Sneakers, Glacier/White", brand: "On", line: "Light, cushioned sneakers for walks and long days.", href: shopmy("p-108613972"), image: "https://static.shopmy.us/pins/zoom-108613972-1795240704146-3MF10070_050", store: "store-jd-sports", sortPrice: 160, price: 160, commission: 15, type: "shoes" },

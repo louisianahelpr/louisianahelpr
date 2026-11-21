@@ -4,12 +4,13 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
+import BackButton from "@/components/BackButton";
 import { ROWS, guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, subscribeGuidePicks, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
-import { GiftGuideLanding, rowTiles } from "./giftGuides/GiftGuideLanding";
+import { GiftGuideLanding, finderAsked, rowTiles } from "./giftGuides/GiftGuideLanding";
 import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
 import { GiftGuideSharedList } from "./giftGuides/GiftGuideSharedList";
 import { useWishListSync } from "./giftGuides/wishListSync";
@@ -17,6 +18,8 @@ import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
 import { WISH } from "@/content/giftWishList";
 import { MY_LIST_SLUG } from "./giftGuides/giftList";
 import { GiftGuideTools } from "./giftGuides/GiftGuideShare";
+import type { PriceOrder } from "@/content/giftGuidePriceSort";
+import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
@@ -67,6 +70,11 @@ export default function GiftGuides() {
   const { hash } = useLocation();
   const [params] = useSearchParams();
   const guide = guideBySlug(slug) ?? null;
+  // Sort by price (owner 11-21: "add the filter button up with the search icons"): the header's menu sets the order of
+  // an owner-list guide (Her, Him, Kids and their views); a new guide starts low to high.
+  const [order, setOrder] = useState<{ slug: string; order: PriceOrder }>({ slug: "", order: "low" });
+  const sortOrder: PriceOrder = guide && order.slug === guide.slug ? order.order : "low";
+  const sort = guide && isOwnerList(guide.slug) ? { order: sortOrder, onChange: (o: PriceOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
   // The Black Friday & Cyber Monday deals guide (owner 2026-11-19) is its own page, not a catalog list of picks.
   // The Small Business Saturday page (owner 2026-11-19, big batch 1120) is its own page too. `deals` covers both own
   // pages wherever the page only asks "is this a catalog guide?".
@@ -90,7 +98,7 @@ export default function GiftGuides() {
   const shipPill = ship ? (
     <p className="gg-ship whitespace-nowrap" data-gift-ship="">
       {ship.endsWith(shipTail) ? ship.slice(0, -shipTail.length) : ship}
-      {ship.endsWith(shipTail) && <span className="hidden sm:inline">{shipTail}</span>}
+      {ship.endsWith(shipTail) && <span className="hidden lg:inline">{shipTail}</span>}
     </p>
   ) : undefined;
   // The old My list address (?list=mine) opens My Wish List's own page.
@@ -128,10 +136,12 @@ export default function GiftGuides() {
   // The search, My list heart and Share for this page (one set, on the row under the header).
   const tools = smallBiz ? <GiftGuideTools path={`/gift-guides/${SMALL_BIZ_SLUG}`} title={dealsName} />
     : deals ? <GiftGuideTools path={`/gift-guides/${DEALS_SLUG}`} title={dealsName} image={DEALS_COVER} />
-    : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} />
+    : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} sort={sort} />
     : <GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />;
   // A guide or deals page keeps its banner (its own h1); every other page's h1 is the header title.
   const banner = Boolean(deals || guide);
+  // The landing's arrow goes home; every other page's to the landing.
+  const backTo = guide || deals || myList || shared || group ? "/gift-guides" : "/";
 
   return (
     // Owner 2026-11-21 ~12:30 PM ("holiday gift guides needs the same set up as the other pages. title on left with back
@@ -141,7 +151,10 @@ export default function GiftGuides() {
     // the shipping pill on the left, search + My list heart + Share on the right (wrapping on a phone). The centered
     // "top-rated finds / Holiday Gift Guides" title block is gone. The landing's arrow goes home; every other page's to
     // the landing.
-    <PublicHeaderPage title={G.headerTitle} titleTag={banner ? "p" : "h1"} wrapTitle={!banner} backTo={guide || deals || myList || shared || group ? "/gift-guides" : "/"} bottomPaddingClassName="pb-12 md:pb-16">
+    // Owner 11-21 (later): "all of this should be on the same row": from 768px up the back arrow + title, the pill and
+    // search + heart + share are ONE row (the page draws it, so the shell's own header row is off); a phone wraps it to
+    // two rows (arrow + title, then the pill and the icons).
+    <PublicHeaderPage title={G.headerTitle} titleTag={banner ? "p" : "h1"} backTo={backTo} hideHeader bottomPaddingClassName="pb-12 md:pb-16">
       <style>{GIFT_GUIDES_CSS + GIFT_WISH_CSS}</style>
       {/* The first heart's one-time "Saved to your wish list" note (owner 2026-11-20 hints), on every gift guides page. */}
       <FirstHeartHint />
@@ -155,6 +168,10 @@ export default function GiftGuides() {
             Share's menu and the codes are a "Deals & codes" section of the page. The banner title is the page's h1
             (live audit r3 #7); the header's "Gift guides" is a plain line (titleTag="p"). */}
         <div className={shipPill ? "gg-headrow" : "gg-headrow gg-headrow-noship"} data-gift-headrow="">
+          <div className="gg-head-title" data-gift-head-title="">
+            <span className="contents" data-gift-back-to={backTo}><BackButton to={backTo} /></span>
+            {banner ? <p className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</p> : <h1 className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</h1>}
+          </div>
           {shipPill}
           {tools}
         </div>
@@ -171,9 +188,9 @@ export default function GiftGuides() {
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
         {landing && <hr className="gg-divider" data-gift-divider="" />}
         <div className="gg-layout">
-          <GiftGuidesSidebar active={guide} myList={myList} page={deals && !smallBiz ? DEALS_SLUG : undefined} />
+          <GiftGuidesSidebar active={guide} myList={myList} page={deals && !smallBiz ? DEALS_SLUG : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined} />
           <div className="gg-main">
-            {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
+            {smallBiz ? <GiftGuideSmallBiz /> : deals ? <GiftGuideDeals /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
           </div>
         </div>
       </div>

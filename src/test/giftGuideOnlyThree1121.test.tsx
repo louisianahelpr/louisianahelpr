@@ -28,16 +28,16 @@
  *
  * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday-cyber-monday"]; | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday-cyber-monday", "teens"];
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   LIVE_GUIDES_1121.filter((slug) => !NOT_TILES.has(slug)).flatMap((slug) => { |   LIVE_GUIDES_1121.flatMap((slug) => {
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       {finderAsked(search, hash) && <GiftFinder />} |       <GiftFinder />
  * @mutate src/pages/info/GiftGuides.tsx |         {landing && <hr className="gg-divider" data-gift-divider="" />} |         {null}
  * @mutate src/content/printables.ts |   if (!p.ready) return false; |   if (false) return false;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <DealsAndCodes open /> |       {null}
  * @mutate src/content/giftGuideCatalog.ts | draftOf.has(slug) && isLiveGuide(slug) && | draftOf.has(slug) &&
  * @mutate src/prerender/seoData.ts | else if (!to && !guides[old]) moved[old] = ""; | else if (!to && !guides[old] && old.startsWith("store-")) moved[old] = "";
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       {null}
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" data-gift-side-holiday-hub="">{G.holidayHub.title}</Link></li> |         {null}
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" data-gift-side-holiday-hub="">{G.sideHolidayHub}</Link></li> |         {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   if (finderAsked(search, hash)) return | if (false) return
  * @mutate src/content/giftGuides.ts |     { id: "cyber-monday", label: "Cyber Monday" }, |
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       {finderAsked(search, hash) && <GiftFinder />} |       {finderAsked(search, hash) && <GiftFinder />}<aside data-gift-holiday-hub="" />
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       <LiveGuides /><aside data-gift-holiday-hub="" />
  * @mutate api/share.ts | if ((slug === SMALL_BIZ_SLUG \|\| slug === DEALS_SLUG) && !isLiveGuide(slug)) | if (false)
  */
 import { readFileSync } from "node:fs";
@@ -171,22 +171,31 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     // finder (the quiz) shows under them only when the menu's link (#gift-finder) or a shared finder link asks for it.
     const kinds = (c: HTMLElement) => [...c.querySelector(".gg-landing")!.children].map((x) => (x.matches("[data-gift-browse]") ? "tiles" : x.matches("[data-gift-giveaways]") ? "giveaways" : x.matches("[data-gift-finder]") ? "finder" : x.outerHTML.slice(0, 60)));
     expect(kinds(container)).toEqual(["tiles", "giveaways"]);
+    // Owner 11-21: "only the section I click in the left panel should be displayed, nothing else": the finder view is
+    // the finder alone, and the menu marks it (not All guides).
     for (const url of ["/gift-guides#gift-finder", "/gift-guides?who=her&budget=50&vibe=cozy"]) {
       const asked = renderAt(url).container;
-      expect(kinds(asked), url).toEqual(["tiles", "giveaways", "finder"]);
+      expect(kinds(asked), url).toEqual(["finder"]);
+      expect(asked.querySelector('[data-gift-sidebar] a[aria-current="page"]')?.getAttribute("data-gift-side-tool"), url).toBe("finder");
       asked.remove();
     }
+    expect(container.querySelector('[data-gift-sidebar] a[aria-current="page"]')?.getAttribute("href")).toBe("/gift-guides");
     expect(container.querySelector(".gg-main")!.querySelector("[data-gift-holiday-hub], [data-gift-sponsors], .gg-spons, [data-gift-tools], [data-gift-extras], a[data-gift-printables], a[data-gift-deals-link]"), "main column").toBeNull();
-    // The left menu: the three guides, then the deals days, printables, the Holiday Hub and the sponsors, then the tools.
-    const more = [...container.querySelectorAll("[data-gift-side-more] a")].map((a) => [a.textContent, a.getAttribute("href")]);
-    expect(more).toEqual([
-      ["Black Friday deals", `/gift-guides/${DEALS_SLUG}#black-friday`],
+    // The left menu (owner 11-21: "guides, deals, free, make it fun should all be their own section"): five headed groups.
+    const side = container.querySelector("[data-gift-sidebar]")!;
+    expect([...side.querySelectorAll(".gg-side-h")].map((h) => h.textContent)).toEqual(["Guides", "Deals", "Free printables", "Make it fun", "Louisiana"]);
+    for (const h of side.querySelectorAll(".gg-side-h")) expect(h.closest("a, button"), h.textContent!).toBeNull();
+    for (const ul of side.querySelectorAll("ul")) expect(side.querySelector(`#${ul.getAttribute("aria-labelledby")}`), ul.outerHTML.slice(0, 40)).not.toBeNull();
+    const group = (sel: string) => [...side.querySelectorAll(`${sel} a`)].map((a) => [a.textContent, a.getAttribute("href")]);
+    expect(group("[data-gift-side-deals-group]")).toEqual([
+      ["Black Friday", `/gift-guides/${DEALS_SLUG}#black-friday`],
       ["Small Business Saturday", `/gift-guides/${DEALS_SLUG}#small-business-saturday`],
       ["Cyber Monday", `/gift-guides/${DEALS_SLUG}#cyber-monday`],
-      ["Free printables", PRINTABLES],
-      ["Louisiana Holiday Hub", "/holidays"],
-      ["25 Days sponsors", `/gift-guides/${SPONSORS}`],
     ]);
+    expect(group("[data-gift-side-printables-group]")).toEqual([
+      ["Gift tags", `${PRINTABLES}#pr-tags`], ["Coloring books", `${PRINTABLES}#pr-coloring`], ["Banners", `${PRINTABLES}#pr-banners`],
+    ]);
+    expect(group("[data-gift-side-more]")).toEqual([["Holiday Hub", "/holidays"], ["25 Days sponsors", `/gift-guides/${SPONSORS}`], ["Shop Small", "/shop-small"]]);
     expect([...container.querySelectorAll("[data-gift-side-tools] a")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides#gift-finder", ...TOOLS]);
     // The free printables show only what is ready (the gift tags and, owner 11-21 "boys coloring pages are ready for
     // site", the coloring book; owner 11-21 "add this to the free printables", the Thanksgiving banner), never the elf kit.

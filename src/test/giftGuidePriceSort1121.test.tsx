@@ -6,7 +6,14 @@
  * and on their relationship views (/gift-guides/mom). The rank is a position, never a price: an Amazon row still shows
  * no price in either order (Associates rule).
  *
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const picks = sortable ? sortByPrice(inBudget, order) : inBudget; | const picks = inBudget;
+ * Owner 11-21 (later): "add the filter button up with the search icons": the sort is a 44px "Sort by price" icon in
+ * the header's tool row that opens a menu (menuitemradio "Price: low to high", the default, and "Price: high to low");
+ * and "they all need to be sorted in sections by price": the rows sit in price sections (Under $25, $25 to $50, $50
+ * to $75, $75 to $100, $100 and up; "Price coming soon" last), each a labelled section with its count, reversed for high to low.
+ *
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const picks = sortable ? priceSections(sortByPrice(inBudget, order)) : inBudget; | const picks = sortable ? sortByPrice(inBudget, order) : inBudget;
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   return PRICE_SECTIONS.find((s) => dollars < s.max)!.id; |   return PRICE_SECTIONS.find((s) => dollars <= s.max)!.id;
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />} |       {null}
  * @mutate src/content/giftGuidePriceSort.ts | return [...known, ...unknown]; | return [...unknown, ...known];
  * @mutate scripts/giftGuidePriceRank1121.mjs | priceRank: known ? ++rank : null | priceRank: ++rank
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <PickPrice pick={pick} /></small> | <PickPrice pick={pick} />{pick.priceRank}</small>
@@ -72,22 +79,34 @@ describe("the price sort key in the three chunks (owner 11-21)", () => {
   });
 });
 
+/** Choose an order in the header's Sort by price menu; returns the chosen item's aria-checked after reopening. */
+const choose = (label: string) => {
+  fireEvent.click(screen.getByRole("button", { name: G.sortLabel }));
+  fireEvent.click(within(screen.getByRole("menu", { name: G.sortLabel })).getByRole("menuitemradio", { name: new RegExp(label.replace(/[$:]/g, ".")) }));
+};
+const checked = () => {
+  fireEvent.click(screen.getByRole("button", { name: G.sortLabel }));
+  const on = within(screen.getByRole("menu", { name: G.sortLabel })).getAllByRole("menuitemradio").filter((m) => m.getAttribute("aria-checked") === "true").map((m) => m.textContent?.replace("✓", ""));
+  fireEvent.keyDown(document, { key: "Escape" });
+  return on;
+};
+
 describe("the sort control on the page (owner 11-21)", () => {
   it.each(["her", "him", "kids", "mom", "dad"])("/gift-guides/%s opens low to high and flips to high to low", async (slug) => {
     await act(async () => { await loadGuidePicks(slug); });
     const { container } = renderAt(`/gift-guides/${slug}`);
-    const group = screen.getByRole("radiogroup", { name: G.sortLabel });
-    const low = within(group).getByRole("radio", { name: G.sortLowHigh });
-    const high = within(group).getByRole("radio", { name: G.sortHighLow });
-    expect(low.getAttribute("aria-checked")).toBe("true");
+    // No big two-button toggle above the list any more; the menu lives in the header's tool row.
+    expect(screen.queryByRole("radiogroup", { name: G.sortLabel })).toBeNull();
+    expect(container.querySelector("[data-gift-headrow] [data-gift-sort-button]")).not.toBeNull();
+    expect(checked()).toEqual([G.sortLowHigh]);
     const base = slug === "mom" ? "her" : slug === "dad" ? "him" : slug;
     const expected = CHUNKS[base].filter((r) => base === slug || r.rels?.includes(slug)).map((r) => r.name);
     expect(expected.length, slug).toBeGreaterThan(5);
     expect(shownNames(container)).toEqual(expected);
-    fireEvent.click(high);
-    expect(high.getAttribute("aria-checked")).toBe("true");
+    choose(G.sortHighLow);
+    expect(checked()).toEqual([G.sortHighLow]);
     expect(shownNames(container)).toEqual([...expected].reverse());
-    fireEvent.click(low);
+    choose(G.sortLowHigh);
     expect(shownNames(container)).toEqual(expected);
   });
 
@@ -105,7 +124,7 @@ describe("the sort control on the page (owner 11-21)", () => {
     const first = dollars();
     expect(first).toEqual([...first].sort((a, b) => a - b));
     for (const name of [G.sortLowHigh, G.sortHighLow]) {
-      fireEvent.click(screen.getByRole("radio", { name }));
+      choose(name);
       const rows = [...container.querySelectorAll<HTMLElement>("[data-gift-pick]")];
       expect(rows.length).toBe(CHUNKS.her.length);
       let amazon = 0;
@@ -119,5 +138,46 @@ describe("the sort control on the page (owner 11-21)", () => {
       expect(d).toEqual([...d].sort((a, b) => (name === G.sortLowHigh ? a - b : b - a)));
     }
     vi.useRealTimers();
+  });
+});
+
+describe("price sections (owner 11-21: \"they all need to be sorted in sections by price\")", () => {
+  const sections = (c: HTMLElement) => [...c.querySelectorAll<HTMLElement>("section[data-gift-section]")].map((sec) => ({
+    title: sec.querySelector("h3")?.firstChild?.textContent ?? "",
+    count: sec.querySelector("[data-gift-section-count]")?.textContent ?? "",
+    labelled: sec.getAttribute("aria-labelledby") === sec.querySelector("h3")?.id,
+    dollars: [...sec.querySelectorAll("[data-gift-price]")].map((p) => Number(p.textContent!.replace("~$", ""))),
+  }));
+  it.each(["him", "kids", "her"])("/gift-guides/%s: Under $25, $25 to $50, $50 to $75, $75 to $100, $100 and up, each labelled with its count; reversed high to low", async (slug) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
+    await act(async () => { await loadGuidePicks(slug); });
+    const { container } = renderAt(`/gift-guides/${slug}`);
+    fireEvent.click(container.querySelector("[data-gift-more-picks]") ?? document.body);
+    const low = sections(container);
+    // Owner 11-21: "Each guide should have sections that go by price 25 50 75 100+".
+    const order = ["Under $25", "$25 to $50", "$50 to $75", "$75 to $100", "$100 and up"];
+    expect(low.length, slug).toBeGreaterThan(2);
+    expect(low.map((x) => x.title), slug).toEqual(order.filter((t) => low.some((x) => x.title === t)));
+    const bounds: Record<string, [number, number]> = { "Under $25": [1, 24], "$25 to $50": [25, 49], "$50 to $75": [50, 74], "$75 to $100": [75, 99], "$100 and up": [100, 1e9] };
+    for (const x of low) {
+      expect(x.labelled, x.title).toBe(true);
+      expect(x.count, x.title).toBe(` (${x.dollars.length})`);
+      for (const d of x.dollars) expect(d >= bounds[x.title][0] && d <= bounds[x.title][1], `${x.title}: ${d}`).toBe(true);
+      expect(x.dollars, x.title).toEqual([...x.dollars].sort((a, b) => a - b));
+    }
+    choose(G.sortHighLow);
+    fireEvent.click(container.querySelector("[data-gift-more-picks]") ?? document.body);
+    const high = sections(container);
+    expect(high.map((x) => x.title), slug).toEqual([...low.map((x) => x.title)].reverse());
+    for (const x of high) expect(x.dollars, x.title).toEqual([...x.dollars].sort((a, b) => b - a));
+    expect(high.reduce((n, x) => n + x.dollars.length, 0)).toBe(CHUNKS[slug].length);
+    // Counts per band, measured 2026-11-21 from the shown (rounded) prices: exact, so a moved boundary shows.
+    const COUNTS: Record<string, Record<string, number>> = {
+      him: { "Under $25": 15, "$25 to $50": 16, "$50 to $75": 5, "$75 to $100": 6, "$100 and up": 5 },
+      kids: { "Under $25": 21, "$25 to $50": 19, "$50 to $75": 5, "$75 to $100": 3, "$100 and up": 8 },
+      her: { "Under $25": 12, "$25 to $50": 13, "$50 to $75": 1, "$75 to $100": 1, "$100 and up": 9 },
+    };
+    expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });
 });

@@ -183,6 +183,7 @@ img.gg-thumb{background:transparent;mix-blend-mode:multiply}
 .gg-code-row code{flex:1;border:1px dashed var(--gg-line);border-radius:8px;padding:6px 8px;font-size:13px;letter-spacing:.06em}
 .gg-code-row button{min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--gg-olive);color:var(--gg-olive);background:transparent;font-weight:700;font-size:12px}
 .gg-soon{text-align:center;padding:36px 16px;border-top:1px solid var(--gg-line);margin-top:16px}
+.gg-soon[data-gift-picks-loading]{min-height:100vh}
 .gg-soon h3{font-size:18px;font-weight:700;margin:0 0 6px}
 .gg-soon p{margin:0 auto 8px;max-width:44ch;color:var(--gg-muted);font-size:14px}
 .gg-also{margin:12px 0 0;font-size:13px;color:var(--gg-muted)}

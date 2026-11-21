@@ -157,6 +157,9 @@ export const CWV_INIT = () => {
     try { new PerformanceObserver((list) => list.getEntries().forEach(fn)).observe({ type, buffered: true }); } catch { /* unsupported here */ }
   };
   observe("paint", (e) => { if (e.name === "first-contentful-paint") cwv.fcp = e.startTime; });
+  // Main-thread long tasks (> 50 ms), for Total Blocking Time and a TTI estimate (speed 11-20).
+  cwv.longTasks = [];
+  observe("longtask", (e) => { cwv.longTasks.push({ t: e.startTime, d: e.duration }); });
   // React's first commit replaces index.html's #boot-loader: the moment the app itself first draws.
   const watchBoot = () => {
     if (!document.getElementById("boot-loader")) { cwv.appDrawn = performance.now(); return; }
@@ -262,7 +265,16 @@ export async function readCwv(page) {
     .map((r) => ({ name: short(r.name), start: Math.round(r.start), end: Math.round(r.end) }))
     .sort((a, b) => a.start - b.start);
   const { cls, window } = clsOf(cwv.shifts);
+  // Lighthouse's TBT: each long task's time past 50 ms, from FCP on. TTI here is the end of the last long task
+  // (or FCP when there is none): the moment the main thread was last busy for 50 ms or more before the settle.
+  const fcpT = cwv.fcp ?? 0;
+  const lts = (cwv.longTasks ?? []).filter((x) => x.t + x.d > fcpT);
+  const tbt = Math.round(lts.reduce((sum, x) => sum + Math.max(0, x.t + x.d - Math.max(x.t, fcpT) - 50), 0));
+  const tti = Math.round(Math.max(fcpT, ...lts.map((x) => x.t + x.d)));
   return {
+    tbt,
+    tti,
+    jsKBall: Math.round(js.reduce((a, r) => a + r.size, 0) / 1024),
     supported: cwv.supported,
     ttfb: ttfb == null ? null : Math.round(ttfb),
     fcp: cwv.fcp == null ? null : Math.round(cwv.fcp),
@@ -901,7 +913,7 @@ async function main() {
               }
               rows.push({ browser: browserName, profile: profileName, route, landed, kind, run, signedIn, expired: flag("expired"), throttled, wallMs: Date.now() - t0, error, ...m, blocked: blocked.slice(blockedFrom), allowedReads: allowed.slice(allowedFrom) });
               const r = rows[rows.length - 1];
-              console.log(`${browserName.padEnd(8)} ${profileName.padEnd(7)} ${kind.padEnd(4)} ${route.padEnd(10)} ttfb=${String(r.ttfb).padStart(4)} fcp=${String(r.fcp).padStart(5)} lcp=${String(r.lcp).padStart(5)} cls=${String(r.cls).padEnd(6)} ${landed !== route ? "→" + landed + " " : ""}${error ?? ""}`);
+              console.log(`${browserName.padEnd(8)} ${profileName.padEnd(7)} ${kind.padEnd(4)} ${route.padEnd(10)} ttfb=${String(r.ttfb).padStart(4)} fcp=${String(r.fcp).padStart(5)} lcp=${String(r.lcp).padStart(5)} tbt=${String(r.tbt).padStart(5)} tti=${String(r.tti).padStart(5)} jsKB=${r.jsKBall} cls=${String(r.cls).padEnd(6)} ${landed !== route ? "→" + landed + " " : ""}${error ?? ""}`);
               console.log(`    lcpEl: ${r.lcpEl}  breakdown: ${JSON.stringify(r.breakdown)}  appDrawn=${r.marks?.appDrawn} jsDone=${r.marks?.jsDone} js=${r.marks?.jsCountBeforeLcp}/${r.marks?.jsKBbeforeLcp}KB`);
               if (r.marks?.ready?.length) console.log(`    READY ${r.marks.ready.map((x) => `${x.spec}=${x.t}`).join("  ")}`);
               if (r.allowedReads.length) console.log(`    ALLOWED ${r.allowedReads.length} reads: ${[...new Set(r.allowedReads.map((x) => x.read))].join("  ")}`);
@@ -940,6 +952,7 @@ async function main() {
     return {
       browser: browserName, profile: profileName, route, kind, n: rs.length,
       ttfb: median(rs.map((r) => r.ttfb)), fcp: median(rs.map((r) => r.fcp)), lcp: median(rs.map((r) => r.lcp)),
+      tbt: median(rs.map((r) => r.tbt)), tti: median(rs.map((r) => r.tti)), jsKBall: median(rs.map((r) => r.jsKBall)),
       cls: rs.reduce((a, r) => Math.max(a, r.cls ?? 0), 0), lcpEl: rs[rs.length - 1].lcpEl, errors: rs.filter((r) => r.error).length,
       ready: (rs[0].marks?.ready ?? []).map((x, i) => ({ spec: x.spec, t: median(rs.map((r) => r.marks?.ready?.[i]?.t ?? null)) })),
     };

@@ -230,4 +230,12 @@ export const esDeclSell: Record<keyof typeof enDeclSell, string> = {
   "dho.hint.sellerPay": "Una foto donde el comprador lo encontrará, tomada en su dirección. La necesita para que le paguemos automáticamente.",
   "dho.hint.buyer": "Tomada en la dirección. Le avisa al vendedor que usted lo tiene.",
   "dho.hint.buyerPay": "Tomada en la dirección. Le avisa al vendedor que usted lo tiene; se le paga 24 horas después.",
+  "dset.pageTitle": "Ajustes de Declutter — Helpr",
+  "dset.title": "Ajustes de Declutter",
+  "dset.selling": "Ventas",
+  "dset.onThisPage": "En esta página",
+  "dset.defaults": "Valores iniciales de publicación",
+  "dset.notifications": "Notificaciones",
+  "dset.notifRow": "Notificaciones de Declutter",
+  "dset.notifHint": "Elija qué avisos recibe sobre compras y ventas",
 };

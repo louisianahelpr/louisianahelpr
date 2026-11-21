@@ -235,6 +235,15 @@ export const enDeclSell = {
   "dho.hint.sellerPay": "One photo where the buyer will find it, taken at your address. You need it before you can be paid automatically.",
   "dho.hint.buyer": "Taken at the address. It tells the seller you have it.",
   "dho.hint.buyerPay": "Taken at the address. It tells the seller you have it; they're paid 24 hours later.",
+  // Audit 11-20 night Low 6: /declutter/settings.
+  "dset.pageTitle": "Declutter settings — Helpr",
+  "dset.title": "Declutter settings",
+  "dset.selling": "Selling",
+  "dset.onThisPage": "On this page",
+  "dset.defaults": "Listing defaults",
+  "dset.notifications": "Notifications",
+  "dset.notifRow": "Declutter notifications",
+  "dset.notifHint": "Choose what you hear about buying and selling",
 } as const;
 
 addEnglish(enDeclSell);

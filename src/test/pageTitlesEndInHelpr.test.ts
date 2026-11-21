@@ -37,7 +37,11 @@ describe("tab titles read '<Page> — Helpr' (F137)", () => {
   it("the inventory is real: many screens, some literal titles", () => {
     expect(screens.length).toBeGreaterThan(500);
     // 5 today: Search's title moved to the dictionary (usePageTitle(t("srch.pageTitle")), train 11-18).
-    expect(literalTitles().length).toBeGreaterThan(4);
+    // 4 today: Declutter settings' title moved there too (usePageTitle(t("dset.pageTitle")), audit 11-20 night Low 6).
+    expect(literalTitles().length).toBeGreaterThan(3);
+    for (const dict of ["src/lib/i18n/enDeclSell.ts", "src/lib/i18n/esDeclSell.ts"]) {
+      expect(readFileSync(join(ROOT, dict), "utf8"), dict).toMatch(/"dset\.pageTitle": "[^"]+ — Helpr"/);
+    }
   });
 
   it("every literal usePageTitle ends with ' — Helpr'", () => {

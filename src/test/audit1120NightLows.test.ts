@@ -33,6 +33,20 @@ describe("audit 11-20 night quick Lows", () => {
     expect(src).toContain("<Link to={loginHref}");
   });
 
+  it("6 (settings): Declutter settings reads the dictionary, and its chips find their sections in either language", () => {
+    const src = readSource("src/pages/declutter/DeclutterSettingsPage.tsx");
+    expect(src).not.toMatch(/(?:title|aria-label)="[A-Z]/);
+    expect(src).not.toMatch(/>(?:Declutter notifications|Choose what you hear)/);
+    // The chip looks its section up by the same translated words the section's aria-label carries.
+    expect(src).toContain('`section[aria-label="${t(INDEX_LABEL[name])}"]`');
+    expect(src).toContain('aria-label={t("dset.defaults")}');
+    expect(src).toContain('aria-label={t("dset.notifications")}');
+    for (const key of ["dset.pageTitle", "dset.title", "dset.selling", "dset.onThisPage", "dset.defaults", "dset.notifications", "dset.notifRow", "dset.notifHint"]) {
+      expect(readSource("src/lib/i18n/enDeclSell.ts"), key).toContain(`"${key}": "`);
+      expect(readSource("src/lib/i18n/esDeclSell.ts"), key).toContain(`"${key}": "`);
+    }
+  });
+
   it("7: the Pickup places chip targets the card's attribute, which the card carries", () => {
     expect(readSource("src/pages/declutter/DeclutterSettingsPage.tsx")).toContain('"Pickup places": "[data-porch-places-card]"');
     expect(readSource("src/components/declutter/SellPorchPlaces.tsx")).toContain('data-porch-places-card=""');

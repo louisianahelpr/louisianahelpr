@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import type { SellerDefaults } from "@/lib/declutter/sellerDefaults";
 import DeclutterSettingsPage from "@/pages/declutter/DeclutterSettingsPage";
 import { SellPorchPlaces } from "@/components/declutter/SellPorchPlaces";
+import { __resetLangForTests, ensureLangLoaded, setLang } from "@/lib/i18n/language";
 
 const state = {
   saved: null as SellerDefaults | null,
@@ -215,9 +216,9 @@ describe("Declutter settings", () => {
 
   // Q2574 (audit 1102a): Browse's gear opens this page; the seller setup is one block headed Selling that says where
   // the notifications are, and Notifications stands outside it.
-  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx |           <SectionHeading title="Selling" /> |           {null}
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx |           <SectionHeading title={t("dset.selling")} /> |           {null}
   // Audit 11-10 F346: the pointer line became a short index whose links reach each section, Notifications included.
-  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | document.querySelector(INDEX_TARGET[name] ?? `section[aria-label="${name}"]`)?.scrollIntoView | document.querySelector(`[data-none="${name}"]`)?.scrollIntoView
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | document.querySelector(INDEX_TARGET[name] ?? `section[aria-label="${t(INDEX_LABEL[name])}"]`)?.scrollIntoView | document.querySelector(`[data-none="${name}"]`)?.scrollIntoView
   // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | const SETTINGS_INDEX = ["Pickup places", "Meet spots", "Listing defaults", "Notifications"] as const; | const SETTINGS_INDEX = ["Pickup places", "Listing defaults"] as const;
   // Area 06b L6: Meet spots has its chip too, and it reaches the Meet spots card.
   // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | const SETTINGS_INDEX = ["Pickup places", "Meet spots", "Listing defaults", "Notifications"] as const; | const SETTINGS_INDEX = ["Pickup places", "Listing defaults", "Notifications"] as const;
@@ -238,6 +239,45 @@ describe("Declutter settings", () => {
     spy.mockRestore();
     for (const name of ["Pickup places", "Listing defaults"]) expect(within(selling).getByRole("region", { name })).toBeInTheDocument();
     expect(selling.contains(screen.getByRole("region", { name: "Notifications" }))).toBe(false);
+  });
+
+  // Audit 11-20 night Low 6: the page's own words in Spanish; each chip still scrolls to its section.
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | <section className="space-y-2" aria-label={t("dset.notifications")}> | <section className="space-y-2" aria-label="Notifications">
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | >{t(INDEX_LABEL[name])}</Button> | >{name}</Button>
+  it("Low 6: in Spanish the page reads Spanish and every chip finds its section", async () => {
+    __resetLangForTests();
+    setLang("es");
+    await ensureLangLoaded();
+    try {
+      open();
+      await waitFor(() => expect(document.querySelector("[data-settings-index]")).not.toBeNull());
+      expect(screen.getByRole("heading", { level: 1, name: "Ajustes de Declutter" })).toBeInTheDocument();
+      const selling = screen.getByRole("region", { name: "Ventas" });
+      expect(within(selling).getByRole("heading", { level: 2, name: "Ventas" })).toBeInTheDocument();
+      const index = within(selling).getByRole("navigation", { name: "En esta página" });
+      expect(within(index).queryByRole("button", { name: "Notifications" })).toBeNull();
+      const targets: Array<[string, () => Element | null]> = [
+        ["Lugares de recogida", () => document.querySelector("[data-porch-places-card]")],
+        ["Lugares de encuentro", () => document.querySelector('[data-testid="sell-meetup-spots"]')],
+        ["Valores iniciales de publicación", () => screen.getByRole("region", { name: "Valores iniciales de publicación" })],
+        ["Notificaciones", () => screen.getByRole("region", { name: "Notificaciones" })],
+      ];
+      const scrolled: Element[] = [];
+      const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) { scrolled.push(this); });
+      for (const [name, target] of targets) {
+        const before = scrolled.length;
+        fireEvent.click(within(index).getByRole("button", { name }));
+        expect(scrolled.length, name).toBe(before + 1);
+        expect(scrolled[scrolled.length - 1], name).toBe(target());
+      }
+      spy.mockRestore();
+      expect(screen.getByText("Notificaciones de Declutter")).toBeInTheDocument();
+      expect(screen.getByText("Elija qué avisos recibe sobre compras y ventas")).toBeInTheDocument();
+      expect(screen.queryByText("Declutter notifications")).toBeNull();
+      await waitFor(() => expect(document.title).toBe("Ajustes de Declutter — Helpr"));
+    } finally {
+      __resetLangForTests();
+    }
   });
 
   it("pickup places have their own card, first on the page so a seller finds them", async () => {

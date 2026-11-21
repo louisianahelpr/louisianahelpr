@@ -92,7 +92,8 @@ function cardEmblemPages(): string[] {
     const file = join(ROOT, "src", `${page}.tsx`);
     const stepDir = join(ROOT, "src", page.replace(/[^/]+$/, (n) => n.toLowerCase()));
     const own = [file, ...(page.toLowerCase() !== page && statSafe(stepDir) ? walk(stepDir).filter((f) => /\.tsx$/.test(f) && !/\.test\./.test(f)) : [])];
-    return own.some((f) => /<HelprMark\b[^>]*size="lg"/.test(readFileSync(f, "utf8")));
+    // Owner 11-21: Login and Signup's first step draw it through AuthCardMarkRow (the H with the back arrow beside it).
+    return own.some((f) => /<HelprMark\b[^>]*size="lg"|<AuthCardMarkRow\b/.test(readFileSync(f, "utf8")));
   });
 }
 function statSafe(p: string): boolean {

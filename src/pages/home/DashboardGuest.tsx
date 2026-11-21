@@ -275,7 +275,7 @@ const DashboardGuest = () => {
       // opens against it instead of floating.
       filtersAnchorRef={filtersButtonRef}
       titleSrOnly
-      // WEB renders this page through `PublicHeaderPage title="Browse Jobs"`,
+      // WEB renders this page through `PublicHeaderPage title="Jobs"`,
       // which draws a visible <h1>. Without this the toolbar's own sr-only
       // heading made a SECOND one on the same page. Native has no visible
       // title (PageScaffold's card is the H logo), so there the toolbar's
@@ -516,6 +516,9 @@ const DashboardGuest = () => {
     );
   }
 
+  // Owner 11-21: the web title row's back arrow always goes Home (see PublicHeaderPage below).
+  const goHome = () => navigate("/");
+
   // Web: the SAME shell as /legal, /help and /support — marketing Navbar
   // (which already renders Jobs | Log in · Join free for a signed-out visitor)
   // above, the site Footer (Company/Legal columns) below. See the shell-split
@@ -536,10 +539,14 @@ const DashboardGuest = () => {
     // above. The search and filter icons are gone from BOTH shells, because
     // this page is ONE surface: diverging them would give the phone-sized
     // website a control the native app does not have.
+    // Owner 11-21: "needs a back button to the left of browse jobs" and "just name it jobs not browse jobs". The arrow
+    // sits on the title's row (PageHeader's own back slot) and always goes Home, as Declutter's guest page does; the
+    // title is "Jobs", the app's own name for this tab (the native branch's AppTopBar says the same).
     <PublicHeaderPage
-      title="Browse jobs"
+      title={tr("nav.jobs")}
       width="public"
-      hideBack
+      onBack={goHome}
+      backLabel={tr("nav.goHome")}
       // Owner 2026-11-17: pb-4, not pb-16. With the feed's own pb-4 a short list left ~80px of blank page above the
       // footer; now 32px. The raw-HTML shell (browseShellCards.mjs) draws the same padding.
       bottomPaddingClassName="pb-4"

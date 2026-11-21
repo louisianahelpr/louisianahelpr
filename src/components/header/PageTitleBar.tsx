@@ -54,7 +54,7 @@ export interface PageTitleBarProps {
   /** The page title, the one `h1`. */
   title: ReactNode;
   /** A back arrow before the title (sub-screens). */
-  back?: { onBack?: () => void; backTo?: string };
+  back?: { onBack?: () => void; backTo?: string; label?: string };
   /** Page actions ("+", gear, menus): on desktop right before the bell and photo. */
   actions?: ReactNode;
   /** The page's own row on a phone / native / a route without the desktop bar, unchanged. */
@@ -86,7 +86,7 @@ function DesktopRow({ title, back, actions, moment, titleHidden, titleTag = "h1"
     <div className="flex items-center gap-3 min-w-0 w-full" data-page-title-row="">
       {back && (
         <div className="shrink-0">
-          <BackButton onClick={back.onBack} to={back.backTo} />
+          <BackButton onClick={back.onBack} to={back.backTo} label={back.label} />
         </div>
       )}
       {titleTag === "p" ? (

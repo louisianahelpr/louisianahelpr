@@ -6,7 +6,7 @@
  * width (the lg two-panel split is gone). Restyle only: the form still submits
  * through handleLogin, and Log in and Create account stay separate flows.
  *
- * @mutate src/pages/auth/Login.tsx | <HelprMark to="/" size="lg" emblemOnly /> | <img src="/apple-touch-icon.png" alt="" className="w-16 h-16 rounded-full" />
+ * @mutate src/components/auth/AuthCardHead.tsx | <HelprMark to="/" size="lg" emblemOnly /> | <img src="/apple-touch-icon.png" alt="" className="w-16 h-16 rounded-full" />
  * @mutate src/pages/auth/Login.tsx | <AuthShell hideHeader hideBack centerColumn | <AuthShell hideHeader centerColumn
  * @mutate src/pages/auth/Login.tsx | import { AlertCircle, Clock, Loader2, Eye, EyeOff, Check, ShieldCheck, X } from "lucide-react"; | import { AlertCircle, Clock, Loader2, Eye, EyeOff, Check, ShieldCheck, X, Mail } from "lucide-react";
  * @mutate src/components/auth/SocialAuthButtons.tsx | aria-label={loading ? t("auth.connecting") : undefined} | aria-label={loading ? t("auth.connecting") : label}
@@ -14,7 +14,8 @@
  * @mutate src/pages/auth/signup/SignupStep1.tsx | import { ArrowBigUp, Eye, EyeOff, Check, X } from "lucide-react"; | import { ArrowBigUp, Eye, EyeOff, Check, X, Lock } from "lucide-react";
  * @mutate src/pages/auth/Signup.tsx | { hideBack: true } : { backOnClick: | { backTo: "/" } : { backOnClick:
  * @mutate src/components/auth/SocialAuthButtons.tsx | style={provider === "apple" ? { backgroundColor: "hsl(var(--foreground))", color: "hsl(var(--background))" } : undefined} | style={undefined}
- * @mutate src/pages/auth/Login.tsx |               <HelprMark to="/" size="lg" emblemOnly /> |               <HelprMark to="/home" size="lg" emblemOnly />
+ * @mutate src/components/auth/AuthCardHead.tsx |       <HelprMark to="/" size="lg" emblemOnly /> |       <HelprMark to="/home" size="lg" emblemOnly />
+ * @mutate src/pages/auth/Login.tsx | <AuthCardMarkRow /> | <span />
  * @mutate src/pages/auth/Login.tsx |         <div className="grid gap-6 w-full [&>*]:min-w-0"> |         <div className={SOCIAL_SIGN_IN_ENABLED ? "grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch" : "grid gap-6 w-full"}>
  * @mutate src/lib/i18n/enScreens.ts | "login.title": "Log in", | "login.title": "Log In",
  * @mutate src/lib/i18n/enScreens.ts |   "login.forgot": "Forgot password?", |   "login.forgot": "Forgot Password?",
@@ -43,8 +44,12 @@ describe("Log in matches board 37", () => {
   });
 
   it("the card opens with the ROUND H app icon, 'Log in' and the welcome line; no wordmark", () => {
-    // Owner 2026-10-20: the H mark used everywhere, never the round app icon in a circle.
-    expect(src).toMatch(/<HelprMark to="\/" size="lg" emblemOnly \/>/);
+    // Owner 2026-10-20: the H mark used everywhere, never the round app icon in a circle. Since owner 11-21 it is drawn
+    // by the card's shared top row (AuthCardMarkRow, with the back arrow), which the card opens with.
+    expect(src).toContain("<AuthCardMarkRow />");
+    const head = blankComments(readFileSync(resolve(__dirname, "../components/auth/AuthCardHead.tsx"), "utf8"));
+    expect(head).toMatch(/<HelprMark to="\/" size="lg" emblemOnly \/>/);
+    expect(head).not.toMatch(/apple-touch-icon/);
     expect(src).not.toMatch(/apple-touch-icon/);
     // The words come from the dictionary (Spanish option, 2026-10-29); English is en.ts.
     expect(src).toContain('>{t("login.title")}</h1>');
@@ -97,7 +102,9 @@ describe("Log in matches board 37", () => {
     expect([en["login.title"], en["login.submit"], en["login.forgot"], en["login.createAccount"]]).toEqual(["Log in", "Log in", "Forgot password?", "Create an account"]);
   });
 
-  it("board 37/55 leftovers: no back arrow, no field icons, the H links home, Apple is the solid button", () => {
+  // Owner 11-21 reversed board 37/55's "no back arrow": the card's top row (AuthCardMarkRow) holds the H, linking home,
+  // with the shared back arrow at its left; the shell above the card still draws none (hideBack).
+  it("board 37/55 leftovers: no back arrow ABOVE the card, no field icons, the H links home, Apple is the solid button", () => {
     const step1 = blankComments(readFileSync(resolve(__dirname, "../pages/auth/signup/SignupStep1.tsx"), "utf8"));
     const signup = blankComments(readFileSync(resolve(__dirname, "../pages/auth/Signup.tsx"), "utf8"));
     const social = blankComments(readFileSync(resolve(__dirname, "../components/auth/SocialAuthButtons.tsx"), "utf8"));
@@ -106,8 +113,10 @@ describe("Log in matches board 37", () => {
     for (const f of [src, step1]) {
       expect(f).not.toMatch(/\b(Mail|Lock)\b[^;]*from "lucide-react"/);
       expect(f).not.toMatch(/<(Mail|Lock)\s/);
-      expect(f).toMatch(/<HelprMark to="\/" size="lg" emblemOnly \/>/);
+      expect(f).toContain("<AuthCardMarkRow />");
     }
+    const head = blankComments(readFileSync(resolve(__dirname, "../components/auth/AuthCardHead.tsx"), "utf8"));
+    expect(head).toMatch(/<HelprMark to="\/" size="lg" emblemOnly \/>/);
     expect(social).toContain('style={provider === "apple" ? { backgroundColor: "hsl(var(--foreground))", color: "hsl(var(--background))" } : undefined}');
   });
 });

@@ -8,6 +8,9 @@ interface BackButtonProps {
   /** Override the default navigation. When provided, `to` is ignored
    *  and history-back fallback is skipped. */
   onClick?: () => void;
+  /** The accessible name when the arrow always goes to one named place (owner 11-21: the public Declutter and Jobs
+   *  pages' arrow goes Home, so it says "Go to Home"). Default "Go back". */
+  label?: string;
 }
 
 /**
@@ -53,7 +56,7 @@ export const BACK_BUTTON_BOX_CLASS = "w-11 h-11 -ml-2";
  * `rounded-full` on purpose: it is the same shape every other way out of a
  * surface wears, declared once in src/index.css. See the note there.
  */
-const BackButton = ({ to, className, onClick }: BackButtonProps) => {
+const BackButton = ({ to, className, onClick, label }: BackButtonProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -98,6 +101,9 @@ const BackButton = ({ to, className, onClick }: BackButtonProps) => {
       type="button"
       onClick={handleClick}
       aria-label="Go back"
+      // A named destination ("Go to Home") replaces it; the literal default stays readable to the back-control
+      // inventory (scripts/back-control-inventory.mjs reads a literal aria-label).
+      {...(label ? { "aria-label": label } : {})}
       className={`${BACK_BUTTON_BOX_CLASS} ctl-exit flex items-center justify-center ctl-tint active:scale-[0.97] shrink-0 ${className ?? ""}`}
       style={{ color: "hsl(var(--olivewood))" }}
     >

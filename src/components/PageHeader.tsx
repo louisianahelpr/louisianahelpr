@@ -76,6 +76,8 @@ interface PageHeaderProps {
    */
   wrapTitle?: boolean;
   hideBack?: boolean;
+  /** The back arrow's accessible name when it always goes to one named place (BackButton `label`). */
+  backLabel?: string;
   /**
    * Keep the back button's BOX when `hideBack` is set, empty and inert.
    *
@@ -227,7 +229,7 @@ const LONG_TITLE_CHARS = 24;
 // `meta` stays destructured-but-unpainted per the 2026-08-13 owner decision
 // recorded in the retirement note below (title only; ~15 call sites still pass it).
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phoneHidesTitle = false, hidesTitle = false, titleTag = "h1", stickyTitle = false, wrapTitle = false, hideBack = false, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
+const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phoneHidesTitle = false, hidesTitle = false, titleTag = "h1", stickyTitle = false, wrapTitle = false, hideBack = false, backLabel, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
   // `eyebrow` is accepted by PageHeaderProps for call-site compatibility but
   // intentionally not destructured/rendered — see the removal note below.
   const { outer, inner } = WIDTH_CLASS[width];
@@ -267,7 +269,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
   return (
     <PageTitleBar
       title={title}
-      back={hideBack ? undefined : { onBack, backTo }}
+      back={hideBack ? undefined : { onBack, backTo, label: backLabel }}
       actions={desktopActions}
       titleHidden={hidesTitle}
       titleTag={titleTag}
@@ -335,7 +337,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
           <div className="flex items-center gap-3">
             {!hideBack && (
               <div className="shrink-0">
-                <BackButton onClick={onBack} to={backTo} />
+                <BackButton onClick={onBack} to={backTo} label={backLabel} />
               </div>
             )}
             {/* The chevron's box, held open on a page that has no chevron —

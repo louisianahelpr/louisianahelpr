@@ -1,13 +1,11 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useDataExport } from "@/hooks/useDataExport";
-import { DATA_EXPORT_ANCHOR, dataRightsTarget } from "./dataExportAnchor";
+import { DATA_EXPORT_ANCHOR } from "./dataExportAnchor";
 
-/** The card's anchor: on the Legal tab's Privacy panel when signed in,
- *  `/privacy` when signed out (see dataRightsTarget). */
+/** The card's anchor (the Legal tab's Privacy panel and /privacy alike). */
 export { DATA_EXPORT_ANCHOR } from "./dataExportAnchor";
 
 /**
@@ -23,8 +21,11 @@ export { DATA_EXPORT_ANCHOR } from "./dataExportAnchor";
  * document that grants the right. The `/data-rights` redirect that pointed
  * here was deleted with Q194 (2026-09-23): links name this anchor directly.
  *
- * Signed out (the public /privacy page), the button is a sign-in link rather
- * than a disabled control — there is no one to export for yet.
+ * Signed out (the public /privacy page) the card is not drawn at all (owner
+ * 11-21: "don't show download your data, only show it for signed in users"):
+ * there is no one to export for. The policy's own written right to a copy
+ * (the "Data portability" row) and the GDPR/CCPA line stay for everyone; the
+ * line keeps this section's anchor, so the row's in-page link still lands.
  *
  * Deliberately NOT here: account deletion (GDPR Art. 17 erasure). It lives on
  * the Profile landing / Settings screen, so there is exactly ONE entry point
@@ -46,10 +47,12 @@ export function DataExportCard() {
   const userId = user?.id ?? null;
   // The export itself is shared with Settings' "Download my data" row (A3-I4).
   const { exporting, startExport } = useDataExport(userId);
+  // Signed out, once the snapshot has settled: no card (owner 11-21). While it is still settling the neutral disabled
+  // card holds its place, so a signed-in reader's card never pops in under the text.
+  const signedOut = isReady && !userId;
 
-  // Scroll to the card when the URL names it — the sign-in link returns to
-  // this anchor (on /profile?tab=legal&doc=privacy; see dataRightsTarget),
-  // and the policy's own "Data portability" row
+  // Scroll to the card when the URL names it — links from Settings and the
+  // policy's own "Data portability" row
   // links here in-page. Mirrors PolicySection's hash handling.
   useEffect(() => {
     const check = () => {
@@ -65,7 +68,7 @@ export function DataExportCard() {
 
   return (
     <section id={DATA_EXPORT_ANCHOR} aria-labelledby="legal-data-export" className="space-y-2 scroll-mt-20">
-      <div className="rounded-2xl liquid-glass squircle p-card">
+      {!signedOut && <div className="rounded-2xl liquid-glass squircle p-card" data-data-export-card="">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <Download className="w-4 h-4" aria-hidden />
@@ -109,19 +112,9 @@ export function DataExportCard() {
             >
               {exporting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />Preparing…</> : "Download my data"}
             </Button>
-          ) : (
-            <Button variant="primary" size="sm" className="shrink-0" asChild>
-              {/* Straight to where a signed-in reader finds this card — the
-                  in-app Legal tab — not through /data-rights (Q194: no link we
-                  mint goes through a redirect), and not /privacy, which is the
-                  nav-less public page. */}
-              <Link to={`/login?redirect=${encodeURIComponent(dataRightsTarget(true))}`}>
-                Sign in to download
-              </Link>
-            </Button>
-          )}
+          ) : null}
         </div>
-      </div>
+      </div>}
 
       {/* The GDPR/CCPA footnote travels WITH the export control. It no longer
           carries its own "contact support" link (VN-47): the policy's

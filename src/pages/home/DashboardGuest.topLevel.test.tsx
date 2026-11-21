@@ -5,9 +5,14 @@
  * draw the same header (no arrow) and the same empty state, so nothing moves at the handoff (browseShellEmptyState,
  * listArrivesInOneWave).
  *
- * @mutate src/pages/home/DashboardGuest.tsx |       hideBack\n |
+ * Owner 11-21 REVERSED the arrow half: "needs a back button to the left of browse jobs" and "just name it jobs". The
+ * page now draws the shared arrow left of its title "Jobs", named "Go to Home", always to "/"
+ * (src/test/browseJobsBackAndTitle1121.test.tsx); the skeleton holds the arrow's box, inert, so nothing moves.
+ * The Declutter half (no jobs -> "Browse Declutter while you wait") is unchanged.
+ *
+ * @mutate src/pages/home/DashboardGuest.tsx |       backLabel={tr("nav.goHome")}\n |       hideBack\n
  * @mutate src/components/dashboard/GuestEmptyStateActions.tsx |       <Button type="button" variant="link" size="sm" className="text-muted-foreground" onClick={onDeclutter}> |       <Button type="button" variant="link" size="sm" className="text-muted-foreground" onClick={onHire}>
- * @mutate src/components/GuestBrowseSkeleton.tsx | <PageHeader title="Browse jobs" hideBack width="public" topInsetHandled /> | <PageHeader title="Browse jobs" backTo="/" width="public" topInsetHandled />
+ * @mutate src/components/GuestBrowseSkeleton.tsx | <PageHeader title={t("nav.jobs")} hideBack reserveBackSlot width="public" topInsetHandled /> | <PageHeader title={t("nav.jobs")} hideBack width="public" topInsetHandled />
  */
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -44,21 +49,22 @@ function mount() {
   );
 }
 
-describe("F019: guest /browse is a top-level page with a way on to Declutter", () => {
-  it("no back arrow; with no jobs it offers Browse Declutter while you wait, which opens Declutter", async () => {
+describe("F019 + owner 11-21: guest /browse, a way Home left of 'Jobs', and a way on to Declutter", () => {
+  it("the Go to Home arrow; with no jobs it offers Browse Declutter while you wait, which opens Declutter", async () => {
     mount();
     const declutter = await screen.findByRole("button", { name: "Browse Declutter while you wait" });
-    expect(screen.queryByRole("link", { name: "Go back" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Go back" })).toBeNull();
-    expect(screen.getByRole("heading", { level: 1, name: "Browse jobs" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Go to Home" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Jobs" })).toBeTruthy();
     fireEvent.click(declutter);
     expect(screen.getByText("DECLUTTER")).toBeTruthy();
   });
 
-  it("the loading skeleton draws the same header, with no arrow", () => {
+  it("the loading skeleton draws the same header: 'Jobs' after the arrow's held box (inert, no button)", () => {
     const html = renderToStaticMarkup(<QueryClientProvider client={new QueryClient()}><MemoryRouter><GuestBrowseSkeleton /></MemoryRouter></QueryClientProvider>);
-    expect(html).toContain(">Browse jobs</h1>");
-    expect(html).not.toContain('aria-label="Go back"');
+    expect(html).toContain(">Jobs</h1>");
+    expect(html).toMatch(/<div class="shrink-0" aria-hidden="true"><span class="w-11 h-11 -ml-2 block"><\/span><\/div>/);
+    expect(html).not.toContain("aria-label=");
     expect(html.length).toBeGreaterThan(500);
   });
 });

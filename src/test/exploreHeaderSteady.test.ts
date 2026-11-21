@@ -89,7 +89,7 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     expect(header).toBeGreaterThan(0);
     expect(scroll).toBeGreaterThan(header);
     // The header's own block closes before the scroll column opens.
-    expect(screen.slice(header, scroll)).toMatch(/<AppTopBar title=\{title\} explore section=\{section\} search=\{barSearch\} mine=\{mine\} showAdd=\{showAdd\} add=\{add\} \/>\s*\{tabs\}\s*\{globalSearch && <ExploreSearchEntry \/>\}\s*<\/div>/);
+    expect(screen.slice(header, scroll)).toMatch(/<AppTopBar title=\{title\} explore section=\{section\} search=\{barSearch\} mine=\{mine\} showAdd=\{showAdd\} add=\{add\} backHome=\{guestFrame && homeBack\} \/>\s*\{tabs\}\s*\{globalSearch && <ExploreSearchEntry \/>\}\s*<\/div>/);
     for (const f of ["src/components/declutter/DeclutterHomeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/RentalsHomeView.tsx"]) {
       expect({ f, tabsProp: /<SectionScreen[^>]*\btabs=\{/.test(code(f)) }).toEqual({ f, tabsProp: true });
     }
@@ -109,8 +109,8 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
   // bell and the photo inline on its right (src/test/compactTopRow.test.tsx).
   it("3. on a phone a bar with a search is ONE row (hidden h1, the search, the bell and the photo); a bar without one shows its visible title; no chips row", () => {
     const bar = code("src/components/sections/AppTopBar.tsx");
-    expect(bar).toMatch(/<header className=\{COMPACT_TOP_ROW\}[^>]*>\s*\{title && <h1 className="sr-only">\{title\}<\/h1>\}\s*<div data-testid="app-top-bar-search" className="min-w-0 flex-1">\{search\}<\/div>/);
-    expect(bar).toMatch(/<header className=\{TITLE_TOP_ROW\}[^>]*>\s*\{title \? \(\s*<h1 className="min-w-0 truncate text-page-title text-foreground" title=\{title\}>\{title\}<\/h1>/);
+    expect(bar).toMatch(/<header className=\{COMPACT_TOP_ROW\}[^>]*>\s*\{title && <h1 className="sr-only">\{title\}<\/h1>\}\s*\{backEl\}\s*<div data-testid="app-top-bar-search" className="min-w-0 flex-1">\{search\}<\/div>/);
+    expect(bar).toMatch(/<header className=\{TITLE_TOP_ROW\}[^>]*>\s*\{title && backEl \? \([\s\S]{0,200}?\) : title \? \(\s*<h1 className="min-w-0 truncate text-page-title text-foreground" title=\{title\}>\{title\}<\/h1>/);
     expect(bar).not.toMatch(/<ExploreSwitcher/);
   });
 

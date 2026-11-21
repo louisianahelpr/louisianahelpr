@@ -28,7 +28,9 @@ export function DeclutterGuestHome() {
   // says "41 items" plainly (nothing while the list loads), with the same search and Filters at its end.
   const chrome = (browse: DeclutterBrowseHeader): DeclutterChrome => desktop ? {
     tabs: (
-      <div data-testid="section-tabs" data-guest-count-row="" className="flex items-end gap-1 border-b border-border/60">
+      // Owner 11-21 (header polish): the count, search, location and Filters on ONE centre line (items-center), with
+      // the same 4px under them as above the hairline.
+      <div data-testid="section-tabs" data-guest-count-row="" className="flex items-center gap-1 pb-1 border-b border-border/60">
         <p data-testid="browse-count-only" className="flex h-11 min-w-0 flex-1 items-center text-ds-15 font-semibold tabular-nums text-foreground">
           {browse.count === undefined ? null : browse.count === 1 ? t("decl.results.one") : t("decl.results.many", { n: browse.count })}
         </p>

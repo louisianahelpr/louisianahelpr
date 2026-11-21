@@ -16,7 +16,8 @@
  */
 // @mutate scripts/prod-errors-check.mjs |  AND coalesce(e.tags ->> 'automated', '') <> 'true'"; | ";
 import { describe, expect, it } from "vitest";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { blankComments, blankHashComments, blankSqlComments } from "./helpers/blankNonCode";
 

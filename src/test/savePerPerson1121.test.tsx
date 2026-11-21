@@ -247,7 +247,7 @@ describe("the planner shows the same lists, and every list can be shared", () =>
     await waitFor(() => expect(mom.querySelectorAll("[data-gift-wish-item]")).toHaveLength(2));
     const sum = Math.round(her[0].price! + her[1].price!);
     expect(mom.querySelector("[data-gift-shared-person-total]")!.textContent).toBe(`2 gifts · about $${sum}`);
-    expect(mom.querySelector("[data-gift-shop]")!.closest("a")!.getAttribute("href")).toBe(`https://${her[0].href.replace(/^https:\/\//, "")}`);
+    expect(mom.querySelector("a.gg-item")!.getAttribute("href")).toBe(`https://${her[0].href.replace(/^https:\/\//, "")}`);
     cleanup();
     // The server's answer is read into lists (names + refs only); an old answer has none.
     expect(asSharedList({ name: "Gift lists", items: [], lists: [{ n: "Mom", items: [{ g: "her", i: "abc1", x: 1 }, { g: "her", i: "BAD!" }] }, { n: 5, items: [] }] }))

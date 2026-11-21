@@ -9,8 +9,8 @@ import { SponsorRow } from "./GiftGuideSponsorRow";
 /**
  * /gift-guides (owner 2026-11-21 2:47 AM: "launch the 3 guides remove the rest that are live ... should we jsut do him,
  * her and kids?"; after 11-20 PM's "The gift guide page is still a busy mess"): ONE title with its short subline, then
- * the three guides' cover tiles (For Her, For Him, Kids), then the 25 Days sponsors' row (its "See all" opens the
- * sponsors page) and the giveaways card. No Top 10, Gift of the Day, finder, deals, codes, budget, store or color
+ * the three guides' cover tiles (For Her, For Him, Kids), the Holiday Hub link, then the 25 Days sponsors' row (its
+ * "See all" opens the sponsors page) and the giveaways card. No Top 10, Gift of the Day, finder, deals, codes, budget, store or color
  * strips: they drew from the retired guides (src/content/giftGuideLive.mjs). Guard: src/test/giftGuideOnlyThree1121.test.ts.
  */
 
@@ -71,6 +71,14 @@ export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
   return (
     <>
       <LiveGuides />
+      {/* Louisiana Holiday Hub (owner-approved 2026-11-20): lights, events and holiday help, one tap from the guides. */}
+      <aside className="gg-helpr" aria-label={G.holidayHub.title} data-gift-holiday-hub="">
+        <div>
+          <b>{G.holidayHub.title}</b>
+          <span>{G.holidayHub.body}</span>
+        </div>
+        <Link to="/holidays" className="gg-helpr-btn" data-gift-holiday-hub-link="">{G.holidayHub.cta}</Link>
+      </aside>
       {/* Train 1120b (owner 11-20 ~8:40 AM): the 25 Days sponsors' logo row; its "See all" opens the sponsors page. */}
       <SponsorRow />
       {/* Owner 2026-11-18: the 25 Days card. App.tsx has no shopper giveaway page (/25days is the sponsors' page), so

@@ -157,6 +157,57 @@ export const CUTOUTS_1120 = new Map([
   ["https://cdn.shopify.com/s/files/1/2959/8080/files/therabody-theragun-prime-massage-gun-black.png", "therabody-theragun-prime-6th-gen-e4ad1b.webp"],
   // LaCrosse Men's Grange 18" Rubber Boot, OD Green (dillards.com photo)
   ["https://dimg.dillards.com/is/image/DillardsZoom/zoom/lacrosse-mens-grange-18-tall-waterproof-rubber-hunting-work-boots/00000000_zi_ac01ed80-ad36-4d40-8cca-066a3f05fcbd.jpg", "lacrosse-grange-18-rubber-boot-906f98.webp"],
+  // BIODANCE Hydro Cera-Nol Real Deep Mask, 4 sheets (iherb.com photo, white gaps cleared; switched from Sephora UK 11-21)
+  ["https://cloudinary.images-iherb.com/image/upload/f_auto,q_auto:eco/images/bdo/bdo36097/l/19.jpg", "biodance-hydro-cera-nol-real-deep-mask-4-sheets-5ff79f.webp"],
+  // FOR HIM and FOR KIDS 11-21 (the owner's ShopMy saves, scripts/giftGuideHimKids1121.mjs): Apple Vision cutouts unless noted.
+  // smathers branson duck decoys key fob
+  ["https://static.shopmy.us/pins/zoom-108628349-1795247477620-DuckDecoys_AntiqueBlue__KeyFob_Primary_LowRes_c251e80f-b48c-4193-88c2-0b366856e967.jpg", "smathers-branson-duck-decoys-key-fob-f959a7.webp"],
+  // smathers branson camo needlepoint belt
+  ["https://static.shopmy.us/uploads/img-product-1792092560933", "smathers-branson-camo-needlepoint-belt-9362af.webp"],
+  // phils face beard serum
+  ["https://static.shopmy.us/pins/zoom-108626053-1795245908121-FaceBeardSerum.jpg", "phils-face-beard-serum-c7d424.webp"],
+  // dr squatch fresh falls bar soap (flood filled from its white ground; Vision lifted only the logo)
+  ["https://static.shopmy.us/pins/zoom-108626008-1795245889562-iewmi44ymwp5whivvent.jpg", "dr-squatch-fresh-falls-bar-soap-655c35.webp"],
+  // dr squatch hand body lotion
+  ["https://static.shopmy.us/pins/zoom-108626036-1795245900235-scay0j7x7kubjvla5qrv.jpg", "dr-squatch-hand-body-lotion-337147.webp"],
+  // method men body wash sea surf
+  ["https://static.shopmy.us/pins/zoom-108625988-1795245880004-qtvoydnznvaowxmbx9or.jpg", "method-men-body-wash-sea-surf-7c385f.webp"],
+  // clinique for men oil free moisturizer
+  ["https://www.clinique.com/cdn/shop/files/cl_sku_V2Y701_3000x3000_0.png", "clinique-for-men-oil-free-moisturizer-0b9a93.webp"],
+  // clinique for men post shave soother
+  ["https://www.clinique.com/cdn/shop/files/cl_sku_651705_3000x3000_0.png", "clinique-for-men-post-shave-soother-3ebdc1.webp"],
+  // steffi love baby doctor playset
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/eWo2uVncVtpsQvebn-mR5bF0A.jpg", "steffi-love-baby-doctor-playset-6217a1.webp"],
+  // mentari puppy on wheels
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/0dnFbFKBx5K6e6OmCfMNzo-dI.jpg", "mentari-puppy-on-wheels-90b238.webp"],
+  // tender leaf rocket construction
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/1ZzbSn-AD4C1Zcfr2WzDUTQmE.jpg", "tender-leaf-rocket-construction-f554d4.webp"],
+  // mentari wooden ramp racer
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/CaauQ70t8wMJ7uoE4RIz-0T7I.jpg", "mentari-wooden-ramp-racer-daccf5.webp"],
+  // colored organics truck bath toys
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/DbI113V-lJpF_YY2t9LI_4_q4.jpg", "colored-organics-truck-bath-toys-73c1cf.webp"],
+  // asweets round around
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/ASDi5ER268eeqg9QDRplkfnBw.jpg", "asweets-round-around-7d804b.webp"],
+  // asweets sand and water table
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/e3bkcRFq2cOoChymkqAzOUnxU.jpg", "asweets-sand-and-water-table-4fc56a.webp"],
+  // highwaykick 1 scooter ash
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/07fMtvSKy51XUzMcnMjlI4vks.jpg", "highwaykick-1-scooter-ash-467e09.webp"],
+  // freddo 3 wheel balance bike
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/OED6YgUaANM9D31fVA1qZUCTA.jpg", "freddo-3-wheel-balance-bike-b29eb6.webp"],
+  // model u horse ride on
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/xuh1iRemTEjNomia7C6j_bKqU.jpg", "model-u-horse-ride-on-aac217.webp"],
+  // hape captains rocking boat
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/EP6NaZng2SVj-x3HxemGP-5QQ.jpg", "hape-captains-rocking-boat-6e6b18.webp"],
+  // bits bows babys 1st christmas tote
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/HtPxvujQFBYNQ2lbeag2NGhew.jpg", "bits-bows-babys-1st-christmas-tote-83998c.webp"],
+  // nellapima wooden toys gown
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/YVDrFHlUiF5bHBL0uzS5MXo_w.jpg", "nellapima-wooden-toys-gown-295613.webp"],
+  // plantoys dancing alligator
+  ["https://static.shopmy.us/pins/zoom-108632104-1795250093805-DancingAlligator-5105-Main-sq.jpg", "plantoys-dancing-alligator-20c33e.webp"],
+  // melissa doug wood furnished mansion
+  ["https://assets.wfcdn.com/im/45146626/compr-r85/4085/408563114/Wood+Furnished+Mansion.jpg", "melissa-doug-wood-furnished-mansion-825096.webp"],
+  // melissa doug shopping cart
+  ["https://assets.wfcdn.com/im/84968246/compr-r85/1747/174755531/Preschool+Pretend+Grocery+Shopping+Accessories+with+Kitchen+Accessories.jpg", "melissa-doug-shopping-cart-c485e9.webp"],
 ]);
 
 /** The photo to show for `image`: its transparent cutout when one exists, else `image` itself. */

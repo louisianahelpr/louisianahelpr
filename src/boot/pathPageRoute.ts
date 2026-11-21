@@ -18,6 +18,8 @@
  *
  * Its own tiny chunk, like declutterRoute.ts: a preload list lives in the file that holds the import, so only a load
  * of one of these pages pays for it, and bootReach.mjs (which does not follow `import()`) reads no new first screen.
+ * - The gift guides and the 25 Days page (speed 11-20): see their branch below.
+ *
  * Rules: no static imports; the links it adds carry the mark index.html's boot watchdog skips; App.tsx's lazy imports
  * of the same modules own any failure.
  */
@@ -58,6 +60,20 @@ if (path.startsWith("/declutter/item/")) {
   });
 } else if (path.startsWith("/hire/")) {
   import("@/pages/info/HireTownPage").catch(() => {
+    /* App.tsx's lazy import of the same module owns the failure */
+  });
+} else if (path === "/sponsor" || path === "/25days") {
+  // Speed 11-20: on prod (www, Slow 4G + 4x, 375, guest, 2 runs) SponsorPage was asked for only once App.tsx had run,
+  // so its sponsor_public_state read (the page waits on it: it says whether the giveaway is on) started at 6.9-7.0 s
+  // and the first words drew at 8.3-8.6 s. The page, and with it the client its read needs, now start beside the app.
+  import("@/pages/sponsor/SponsorPage").catch(() => {
+    /* App.tsx's lazy import of the same module owns the failure */
+  });
+} else if (path.startsWith("/gift-guides") && !/^\/gift-guides\/(?:draw-names|swipe|planner)$/.test(path)) {
+  // Speed 11-20: the gift guides page starts beside the app (the fun pages, draw-names, swipe and planner, are their
+  // own chunks). On prod (same profile) the landing's covers drew at 7.3 s and a guide's list at 8.1 s. The page's own
+  // module starts the guide's picks chunk as it runs (GiftGuides.tsx), before React renders it.
+  import("@/pages/info/GiftGuides").catch(() => {
     /* App.tsx's lazy import of the same module owns the failure */
   });
 }

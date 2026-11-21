@@ -1400,6 +1400,24 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,
             },
+            // The public pages' own shared code (speed 11-20): the 25 Days page's reads and the gift guides' wish list,
+            // fun tools and name check. They sat in signed-in-deep, so a guest's /sponsor and every /gift-guides page
+            // fetched that whole chunk and, through its static imports, ~95 files (shops, rentals, declutter and job
+            // code) beside the page's own, on a phone link it all shared: on prod (Slow 4G + 4x, 375, guest) /sponsor's
+            // first words drew at 8.0-8.6 s. Their own deps are light (the client, loadModule, the pages' own words).
+            // The two pages' shared words (content/sponsorPage.ts, content/giftGuideFun1120.ts: only these pages and admin
+            // read them) ride along: two chunks both pages fetched become this one, which keeps main's preload table
+            // (on every page's path, /home's budget among them) from growing. Above the signed-in groups so it wins them. Kept out on purpose: the share sheet (nativeShare; its own chunk
+            // cost /home 0.4 KB gz, so the gift guides' countdown loads it once the page has settled) and the deep
+            // link's matchmakerLink / moneyLimits (here they put the 25 Days words on /profile?tab=earnings, +39 KB gz;
+            // GiftGuideHelpr writes its one param out instead). Guard: src/test/publicPagesSkipSignedInChunks.test.ts.
+            {
+              name: "public-page-reads",
+              test: /[\\/]src[\\/](lib[\\/](sponsor[\\/](api|dates|placeholders)|giftGuideFunApi|giftWishListApi|giftNameClean)|content[\\/](sponsorPage|giftGuideFun1120))\.ts$/,
+              priority: 16.7,
+              minSize: 0,
+              includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,
+            },
             {
               name: "signed-in-chrome",
               test: /[\\/]src[\\/](lib[\\/](capturedPayment|consent|helprTasks[\\/]online|helprTasks[\\/]onlineHandoff)\.ts|hooks[\\/](useInstantQuery\.ts|use-mobile\.tsx))$/,

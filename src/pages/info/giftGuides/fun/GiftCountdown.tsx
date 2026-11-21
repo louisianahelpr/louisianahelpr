@@ -5,10 +5,18 @@ import { loadSearchItems, newSlugFor, topPicks, type SearchItem } from "@/conten
 import { GIFT_GUIDE_FLAGS } from "@/content/giftGuideExtras1120";
 import { FUN_WORDS as W, christmasCountdown, giftOfTheDay, giveawayTieInOn } from "@/content/giftGuideFun1120";
 import { PickPrice } from "@/components/giftGuides/PickPrice";
-import { shareNative } from "@/lib/nativeShare";
+import { loadModule } from "@/lib/loadModule";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { GiftOut } from "../GiftOut";
 import { track } from "@/lib/analytics";
+
+/**
+ * The share sheet (src/lib/nativeShare.ts) lives in the signed-in-shared chunk, whose static imports are signed-in
+ * code; imported here it put that chunk on every gift guide's first load (speed 11-20). It is loaded once the landing
+ * has settled, with the search index below, so a tap on Share still opens the sheet inside the tap (./countdownShare).
+ */
+let shareModule: Promise<typeof import("./countdownShare") | null> | null = null;
+const loadShare = () => (shareModule ??= loadModule(() => import("./countdownShare")));
 
 /** The line's anchor on the landing (the share's fallback when the pick names no guide). */
 const GOTD_ID = "gift-of-the-day";
@@ -48,12 +56,27 @@ export function GiftCountdown({ now: nowProp }: { now?: Date }) {
         // The share falls back to the landing's line; nothing else needs the index here.
         console.warn("gift of the day: search index failed", e);
       });
+      loadShare().catch((e: unknown) => {
+        // A failed fetch is retried by the tap below (loadModule's own stale-chunk recovery applies).
+        shareModule = null;
+        console.warn("gift of the day: share sheet failed to load", e);
+      });
     }, 2500);
     return () => window.clearTimeout(t);
   }, []);
   const share = async () => {
     if (!gift) return;
-    const out = await shareNative({ title: W.gotdTitle, text: W.gotdShareText(gift.name), url: `${getPublicOrigin()}${giftOfTheDayPath(gift.name, items)}`, suppressCopyConfirmation: true });
+    let m: Awaited<ReturnType<typeof loadShare>>;
+    try {
+      m = await loadShare();
+    } catch (e) {
+      shareModule = null;
+      console.warn("gift of the day: share sheet failed to load", e);
+      return;
+    }
+    // null: a recovery reload is on its way (loadModule); nothing to share into.
+    if (!m) return;
+    const out = await m.shareNative({ title: W.gotdTitle, text: W.gotdShareText(gift.name), url: `${getPublicOrigin()}${giftOfTheDayPath(gift.name, items)}`, suppressCopyConfirmation: true });
     setMsg(out === "copied" ? W.gotdCopied : null);
     if (out === "shared" || out === "copied") track("gift_of_the_day_shared", { how: out });
   };

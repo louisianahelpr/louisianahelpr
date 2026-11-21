@@ -106,12 +106,14 @@ async function retiredPages(): Promise<{ slug: string; file: string }[]> {
     if (!imp) throw new Error(`GiftGuides.tsx: no import for ${constName}`);
     const mod = (await import(/* @vite-ignore */ resolveImport(pageFile, imp[2])!)) as Record<string, unknown>;
     const slug = String(mod[constName]);
-    // The component the gate renders: `<gate> ? <Component`.
-    const comp = new RegExp(`\\b${gateVar}\\s*\\?\\s*<(\\w+)`).exec(src)?.[1];
-    if (!comp) throw new Error(`GiftGuides.tsx: gate ${gateVar} renders no component`);
-    const compImp = [...src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']/g)].find((i) => i[1].split(",").map((s) => s.trim()).includes(comp));
-    if (!compImp) throw new Error(`GiftGuides.tsx: no import for ${comp}`);
-    if (!isLiveGuide(slug)) out.push({ slug, file: resolveImport(pageFile, compImp[2])! });
+    // Every component the gate renders: each `<gate> ? <Component` (the page body and, since 11-21, its tool row).
+    const comps = [...src.matchAll(new RegExp(`\\b${gateVar}\\s*\\?\\s*<(\\w+)`, "g"))].map((c) => c[1]);
+    if (comps.length === 0) throw new Error(`GiftGuides.tsx: gate ${gateVar} renders no component`);
+    for (const comp of comps) {
+      const compImp = [...src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']/g)].find((i) => i[1].split(",").map((s) => s.trim()).includes(comp));
+      if (!compImp) throw new Error(`GiftGuides.tsx: no import for ${comp}`);
+      if (!isLiveGuide(slug)) out.push({ slug, file: resolveImport(pageFile, compImp[2])! });
+    }
   }
   return out;
 }

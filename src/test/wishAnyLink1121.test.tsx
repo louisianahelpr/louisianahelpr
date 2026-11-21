@@ -26,6 +26,12 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
+// The link request is wishLinkQueue1121.test.tsx's; here it never reaches a server.
+vi.mock("@/lib/giftWishListApi", async (orig) => ({
+  ...(await orig<typeof import("@/lib/giftWishListApi")>()),
+  requestWishLink: vi.fn(async () => ({ id: "11111111-2222-4333-8444-555555555555", link: null })),
+  readWishLinks: vi.fn(async () => new Map()),
+}));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: true }) }));
 vi.mock("@/lib/giftGuideFunApi", () => ({
   revealSecretSanta: vi.fn(), setSecretSantaWishList: vi.fn(), createSecretSanta: vi.fn(), SantaSaveError: class extends Error {},
@@ -83,7 +89,7 @@ describe("reading a pasted link (never opened)", () => {
 
   it("a starting name from the link's words; typed words find up to 3 of our closest picks", () => {
     expect(nameFromLink(u("https://www.walmart.com/ip/Cozy-Sherpa-Throw-Blanket/123456"))).toBe("Cozy Sherpa Throw Blanket");
-    expect(nameFromLink(u("https://shop.example.com/12345"))).toBe("A gift from shop.example.com");
+    expect(nameFromLink(u("https://shop.example.com/12345"))).toBe("A gift from Example");
     const word = her[0].name.split(/\s+/).find((w) => w.length > 4)!.toLowerCase();
     const hits = closestPicks(`${word} please`, her, 3);
     expect(hits.length).toBeGreaterThan(0);

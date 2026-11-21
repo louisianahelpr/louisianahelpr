@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { WISH } from "@/content/giftWishList";
-import { getSharedList, type SharedList, type SharedPersonList } from "@/lib/giftWishListApi";
+import { getSharedList, type SharedAnyItem, type SharedList, type SharedPersonList } from "@/lib/giftWishListApi";
 import { dollars } from "@/content/giftGuideFun1120";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { WishRow } from "./GiftGuideMyList";
 import { DEFAULT_LIST_NAME } from "./giftList";
+import { shopName } from "@/lib/wishLinks";
 import { useWishItems } from "./wishListItems";
 
 /**
@@ -22,6 +23,36 @@ import { useWishItems } from "./wishListItems";
  * prices the guides show today ("3 gifts · about $54"), and its gifts as on any shared list. No budget or Bought mark
  * is ever in a share (gift_wish_lists_share stores names and refs only).
  */
+/** A shop's short name from our link ("Etsy"), or none when the link does not read. */
+const shopOf = (href: string) => {
+  try {
+    return shopName(new URL(href));
+  } catch {
+    // An unreadable link names no shop.
+    return "";
+  }
+};
+
+/**
+ * A gift from any store on a shared list (owner 11-21): the sender's words, and a Shop link only once we made our own
+ * link for it ("Link coming soon" until then; nothing promised for one we dismissed). The link they pasted is never
+ * shown here (gift_wish_list_get never returns it).
+ */
+function SharedAnyRow({ item }: { item: SharedAnyItem }) {
+  if (item.href) return <WishRow item={{ id: item.id, name: item.name, store: shopOf(item.href), href: item.href, out: "affiliate" }} />;
+  return (
+    <li className="gg-wish-row" data-gift-shared-any={item.id}>
+      <span className="gg-item">
+        <span className="gg-thumb gg-letter" aria-hidden="true">{item.name.charAt(0).toUpperCase()}</span>
+        <span className="gg-nm">
+          <span className="gg-nm-name">{item.name}</span>
+          {!item.dismissed && <small className="gg-nm-meta" data-gift-shared-any-soon="">{WISH.sharedAnySoon}</small>}
+        </span>
+      </span>
+    </li>
+  );
+}
+
 function SharedPerson({ list, index }: { list: SharedPersonList; index: number }) {
   const { items, loading, missing } = useWishItems(list.items);
   const amount = Math.round(items.reduce((t, it) => t + (it.pick && showsPrice(it.pick) ? it.pick.price ?? 0 : 0), 0));
@@ -29,9 +60,12 @@ function SharedPerson({ list, index }: { list: SharedPersonList; index: number }
   return (
     <section aria-labelledby={id} className="gg-shared-person" data-gift-shared-person={list.name}>
       <h3 id={id} className="gg-shared-person-name">{list.name}</h3>
-      {!loading && <p className="gg-price-note" data-gift-shared-person-total="">{WISH.sharedListTotal(items.length, amount > 0 ? dollars(amount) : null)}</p>}
-      {loading && items.length === 0 ? <p className="gg-soon" role="status">{WISH.loading}</p> : (
-        <ol className="gg-list gg-wish-list" data-gift-list="">{items.map((row) => <WishRow key={row.id} item={row} />)}</ol>
+      {!loading && <p className="gg-price-note" data-gift-shared-person-total="">{WISH.sharedListTotal(items.length + (list.any ?? []).length, amount > 0 ? dollars(amount) : null)}</p>}
+      {loading && items.length === 0 && (list.any ?? []).length === 0 ? <p className="gg-soon" role="status">{WISH.loading}</p> : (
+        <ol className="gg-list gg-wish-list" data-gift-list="">
+          {items.map((row) => <WishRow key={row.id} item={row} />)}
+          {(list.any ?? []).map((row) => <SharedAnyRow key={row.id} item={row} />)}
+        </ol>
       )}
       {missing > 0 && <p className="gg-wish-missing" data-gift-wish-missing="">{WISH.missing(missing)}</p>}
     </section>

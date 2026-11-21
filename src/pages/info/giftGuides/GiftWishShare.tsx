@@ -8,6 +8,7 @@ import { newWishLink, sharedListPath, wishErrorCopy } from "@/lib/giftWishListAp
 import { smsHref } from "./GiftGuideShare";
 import { Hint, dismissHint } from "./GiftHint";
 import type { WishRef } from "./giftList";
+import type { ShareRef } from "@/lib/giftWishListApi";
 
 /**
  * "Share my list" (owner 2026-11-20: "send their list to someone"). The first tap saves the list (signed out: a
@@ -28,8 +29,8 @@ const messengerHref = (url: string) => `fb-messenger://share/?link=${encodeURICo
  * `label` / `message` / `hint` (owner 2026-11-21, "share all lists"): the same menu shares a person's list or every
  * list (My lists, the gift planner), with its own button words and message and without the wish list's hint.
  */
-export function GiftWishShare({ name, refs, save, signedIn = false, label = WISH.share, message = WISH.shareMessage, hint = true, quiet = false }: {
-  name: string; refs: WishRef[]; save: (name: string, refs: WishRef[]) => Promise<string>; signedIn?: boolean; label?: string; message?: string; hint?: boolean;
+export function GiftWishShare<R extends WishRef | ShareRef = WishRef>({ name, refs, save, signedIn = false, label = WISH.share, message = WISH.shareMessage, hint = true, quiet = false }: {
+  name: string; refs: R[]; save: (name: string, refs: R[]) => Promise<string>; signedIn?: boolean; label?: string; message?: string; hint?: boolean;
   /** An outline button (a list's Share inside a panel with its own primary action). */
   quiet?: boolean;
 }) {

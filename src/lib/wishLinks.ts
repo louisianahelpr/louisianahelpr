@@ -96,9 +96,16 @@ function keptHref(u: URL): string {
   return href.length <= KEPT_HREF_MAX ? href : `${c.origin}${c.pathname}`.slice(0, KEPT_HREF_MAX);
 }
 
+/** A shop's short name from a link ("www.etsy.com" -> "Etsy"): never a web address (names show on shared lists). */
+export function shopName(u: URL): string {
+  const parts = u.hostname.toLowerCase().replace(/^www\./, "").split(".");
+  const word = parts.length > 1 ? parts[parts.length - 2] : parts[0];
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 /** A starting name from the link's own words, or "A gift from <shop>". */
 export function nameFromLink(u: URL): string {
-  const shop = u.hostname.toLowerCase().replace(/^www\./, "");
+  const shop = shopName(u);
   const words = u.pathname.split("/").map((s) => {
     try {
       return decodeURIComponent(s);

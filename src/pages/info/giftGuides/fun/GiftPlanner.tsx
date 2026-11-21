@@ -22,6 +22,7 @@ import { plannerPrice, shareListOf } from "../saveForPeople";
 import { ShareAllLists } from "../SaveForSomeone";
 import { AmazonCartForList } from "../AmazonCartButton";
 import { AnyStoreAdd } from "../AnyStoreAdd";
+import { useOurLinkSync } from "../wishLinkSync";
 import { GiftWishShare } from "../GiftWishShare";
 import { WISH } from "@/content/giftWishList";
 import { shareGiftLists } from "@/lib/giftWishListApi";
@@ -159,6 +160,8 @@ export default function GiftPlanner() {
   const plan = usePlan();
   const { user, isReady } = useAuthReady();
   const sync = useAccountSync(user?.id ?? null, isReady);
+  // Owner 11-21: gifts from any store switch to our link once we made it (never before the account's plan is merged).
+  useOurLinkSync(plan, isReady && (!user || sync !== "device"));
   const [name, setName] = useState("");
   const total = planMoney(plan);
   const add = (e: FormEvent) => {

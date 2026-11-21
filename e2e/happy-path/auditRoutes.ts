@@ -496,6 +496,8 @@ export const ADMIN_VIEWS = [
   // Design audit area 10 #2/#3 (11-18): the Declutter queue (cards moved out of Settings), the one list of stage
   // previews, and 25 Days (redirects to /admin/sponsors).
   "declutter", "previews", "sponsors",
+  // Gift lists (owner 11-21): gifts added from any store, waiting for our affiliate link (20261121221514).
+  "wishlinks",
 ] as const;
 
 const adminRules = () => [mockTable("user_roles", [{ role: "admin" }])];

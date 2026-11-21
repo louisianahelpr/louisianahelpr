@@ -23,6 +23,7 @@ import {
   Settings,
   Share2,
   Link2,
+  ListPlus,
   MonitorPlay,
   Package,
   ShieldAlert,
@@ -140,6 +141,8 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "growth", label: "Growth links", icon: Link2 },
       // Design audit area 10 #3 (11-18): the 25 Days sponsor admin (/admin/sponsors) had no menu or ⌘K row.
       { id: "sponsors", label: "25 Days", icon: CalendarHeart },
+      // Gift lists (owner 11-21): gifts added from any store, waiting for our affiliate link.
+      { id: "wishlinks", label: "Wish list links", icon: ListPlus },
     ],
   },
   {

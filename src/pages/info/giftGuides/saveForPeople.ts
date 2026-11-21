@@ -3,7 +3,8 @@ import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { PLAN_MAX_IDEAS, type GiftPlan, type PlanPerson } from "@/content/giftGuideFun1120";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { planActions } from "./fun/plannerStore";
-import { itemId, type WishRef } from "./giftList";
+import type { ShareRef } from "@/lib/giftWishListApi";
+import { itemId } from "./giftList";
 
 /**
  * Save for someone (owner 2026-11-21: "they should also be able to save items per person, like add a list or
@@ -57,12 +58,13 @@ export function togglePersonItem(plan: GiftPlan, personId: string, item: SaveIte
  * A person's list as a share holds it (owner 11-21: "share all lists"): the name and the gifts from our guides as
  * refs. A typed idea (no guide) has no ref and stays private; so do the budget and the Bought marks.
  */
-export const shareListOf = (p: PlanPerson): { n: string; items: WishRef[] } => ({
+export const shareListOf = (p: PlanPerson): { n: string; items: ShareRef[] } => ({
   n: p.name.trim() || "Someone",
-  items: p.ideas.flatMap((i) => (i.guide && i.href ? [{ g: i.guide, i: itemId(i.href) }] : [])),
+  // Owner 11-21: a gift from any store goes as its link request ({r}): the list shows its words and our link once made.
+  items: p.ideas.flatMap((i): ShareRef[] => (i.guide && i.href ? [{ g: i.guide, i: itemId(i.href) }] : i.req ? [{ r: i.req }] : [])),
 });
-/** How many of a person's ideas a share leaves out (typed ones, with no guide). */
-export const privateIdeas = (people: PlanPerson[]) => people.reduce((t, p) => t + p.ideas.filter((i) => !(i.guide && i.href)).length, 0);
+/** How many of a person's ideas a share leaves out (typed before they could be sent to us, with no guide). */
+export const privateIdeas = (people: PlanPerson[]) => people.reduce((t, p) => t + p.ideas.filter((i) => !(i.guide && i.href) && !i.req).length, 0);
 
 // ---------------------------------------------------------------------------------------------------------------
 // The heart's request: one picker per page (SaveForSomeone), opened for one gift.

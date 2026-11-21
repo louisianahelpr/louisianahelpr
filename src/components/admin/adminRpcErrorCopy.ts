@@ -522,6 +522,17 @@ export const ADMIN_RPC_ERROR_COPY = {
   sponsor_admin_delete_testimonial: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD, not_found: "That testimonial was already deleted. Refresh the page." },
   // Small Business Saturday "Featured local" review (/admin/sponsors, 20261120152039).
   sbs_admin_list: { not_authorized: "Only an admin can see the Small Business Saturday requests." },
+  // Gift lists' links to create (20261121221514).
+  admin_wish_link_requests: { not_authorized: "Only an admin can see the wish list links." },
+  admin_wish_link_request_fill: {
+    not_authorized: "Only an admin can add our link.",
+    invalid_url: "Paste a full link that starts with https://.",
+    not_found: "That gift is gone. Refresh the page.",
+  },
+  admin_wish_link_request_dismiss: {
+    not_authorized: "Only an admin can dismiss a gift.",
+    not_found: "That gift is gone. Refresh the page.",
+  },
   sbs_admin_review: {
     not_authorized: "Only an admin can approve or reject a listing.",
     not_found: "That listing is gone. Refresh the page.",

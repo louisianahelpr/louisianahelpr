@@ -45,6 +45,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/AdminShopsOrders.tsx` | input×4, textarea×2 | text, radio | 500 | admin-shops-hand-refund · Loading the Shops queue · admin-shops-not-deployed · admin-shops-problem · admin-shops-problem-photo · admin-shops-refund · admin-shops-payout · admin-shops-strike |
 | `src/components/admin/AdminUserNotes.tsx` | textarea×2, select×2 |  |  | New admin note · Note category · Edit note · Delete note |
 | `src/components/admin/AdminUsers.tsx` | input×1, select×1 | search |  | Name, email, phone, job ID · Clear search · Sort by · admin-user-summaries-failed |
+| `src/components/admin/AdminWishLinks.tsx` | input×1 | text | 500 | Paste our affiliate link (https://…) |
 | `src/components/admin/BanDialog.tsx` | textarea×1, select×1 |  |  | Action type · Reason · Reason note · Ban duration |
 | `src/components/admin/credentialQueue/ExpiryField.tsx` | input×1, date/calendar×1 | date |  |  |
 | `src/components/admin/dashboard/DateRangeBar.tsx` | input×1 | number |  | custom-days |

@@ -265,6 +265,9 @@ export const enDeclutter = {
   "dsl.ho.button": "Handed over",
   "dsl.ho.ask": "Did you hand it to {who}?",
   "dsl.ho.body": "Tap this only once the item is in the Helpr's hands. They can then mark it picked up.",
+  "dsl.qa.title": "Questions to answer",
+  "dsl.qa.toAnswer": "to answer",
+  "dsl.qa.answer": "Answer",
 } as const;
 
 addEnglish(enDeclutter);

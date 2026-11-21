@@ -84,5 +84,7 @@ describe("audit 11-20 night quick Lows", () => {
     expect(readSource("src/lib/i18n/esDeclutter.ts")).toContain('"dsl.hist.relist": "Volver a publicar"');
     expect(readSource("src/components/declutter/DeclutterEndedSales.tsx")).not.toContain("Nothing was charged.");
     expect(readSource("src/components/declutter/SellerHandedOver.tsx")).not.toContain('confirmLabel="Handed over"');
+    expect(readSource("src/components/declutter/SellerQuestionsToAnswer.tsx")).not.toContain('title="Questions to answer"');
+    expect(readSource("src/lib/i18n/esDeclutter.ts")).toContain('"dsl.qa.title": "Preguntas por responder"');
   });
 });

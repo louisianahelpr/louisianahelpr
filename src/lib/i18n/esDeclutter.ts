@@ -362,4 +362,7 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "dsl.ho.button": "Entregado",
   "dsl.ho.ask": "¿Se lo entregó a {who}?",
   "dsl.ho.body": "Toque esto solo cuando el artículo esté en manos del Helpr. Después podrá marcarlo como recogido.",
+  "dsl.qa.title": "Preguntas por responder",
+  "dsl.qa.toAnswer": "por responder",
+  "dsl.qa.answer": "Responder",
 };

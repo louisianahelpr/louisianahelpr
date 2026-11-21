@@ -51,11 +51,14 @@ export function QuoteAnswerControls({
   quoteId,
   priceCents,
   acceptLabel,
+  acceptNote = "You agree to this price, and they are told. You can't take it back.",
   invalidate,
 }: {
   quoteId: string;
   priceCents: number;
   acceptLabel: string;
+  /** What accepting does, said in the confirm (audit 11-21, G8). */
+  acceptNote?: string;
   /** React Query keys to refresh after an answer. */
   invalidate: readonly (readonly unknown[])[];
 }) {
@@ -65,6 +68,9 @@ export function QuoteAnswerControls({
   const [note, setNote] = useState("");
   // Decline ends this quote for good (AUD31-63): one tap used to send it.
   const [confirmDecline, setConfirmDecline] = useState(false);
+  // Audit 11-21 (G8): Accept agrees a price (and on a poster's request closes the other quotes) yet took one tap,
+  // while the smaller Decline asked first. Accept asks too, saying what it does.
+  const [confirmAccept, setConfirmAccept] = useState(false);
   const counterDollars = parseWholeDollars(price);
 
   const answer = useMutation({
@@ -135,7 +141,7 @@ export function QuoteAnswerControls({
 
   return (
     <div className="mt-3 flex flex-wrap gap-2">
-      <Button type="button" size="sm" disabled={answer.isPending} onClick={() => answer.mutate("accept")}>
+      <Button type="button" size="sm" disabled={answer.isPending} onClick={() => setConfirmAccept(true)}>
         {acceptLabel}
       </Button>
       <Button type="button" size="sm" variant="outline" disabled={answer.isPending} onClick={() => setCountering(true)}>
@@ -156,6 +162,18 @@ export function QuoteAnswerControls({
           answer.mutate("decline");
         }}
         secondaryLabel="Keep it"
+      />
+      <BrandConfirmDialog
+        open={confirmAccept}
+        onOpenChange={setConfirmAccept}
+        title={`Accept ${dollars(priceCents)}?`}
+        description={acceptNote}
+        primaryLabel={acceptLabel}
+        onPrimary={() => {
+          setConfirmAccept(false);
+          answer.mutate("accept");
+        }}
+        secondaryLabel="Not yet"
       />
     </div>
   );

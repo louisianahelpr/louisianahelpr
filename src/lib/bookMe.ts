@@ -6,8 +6,8 @@
  * masked "First L." name, photo and counts (get_safe_profiles +
  * get_public_profile_stats, both already granted to anon). "Book <First>"
  * opens Post a job with a direct offer to that Helpr set (?offerTo=); a
- * visitor who is not signed up goes through signup and comes back to the same
- * offer (signupUrlFor -> rememberSignupRedirect).
+ * visitor who is not signed up starts the offer and signs up at the end (audit
+ * 11-21, P0; guest Post a job keeps the draft through sign-up).
  *
  * Which Helpr brought a new poster is recorded by record_booking_source
  * (migration 20261030013347): self only, set once, new posters only. It pays
@@ -16,7 +16,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { shareNative, type ShareOutcome } from "@/lib/nativeShare";
-import { signupUrlFor } from "@/lib/jobIntent";
 import { safeStorage, trackKey } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
@@ -41,11 +40,11 @@ function bookOfferPath(userId: string): string {
 }
 
 /**
- * Where "Book <First>" goes: straight to the offer when signed in, else
- * through signup and back to the same offer.
+ * Where "Book <First>" goes: straight to the offer, signed in or not. Audit 11-21 (P0, owner 11-20/21): a guest
+ * starts the post and signs up at the end (guest Post a job keeps the draft through sign-up).
  */
-export function bookCtaHref(userId: string, signedIn: boolean): string {
-  return signedIn ? bookOfferPath(userId) : signupUrlFor(bookOfferPath(userId));
+export function bookCtaHref(userId: string, _signedIn: boolean): string {
+  return bookOfferPath(userId);
 }
 
 /** The first name shown on the CTA ("Book Marie"). Masked names are "First L.". */

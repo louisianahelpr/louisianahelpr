@@ -43,7 +43,7 @@ import { readdirSync } from "@/test/helpers/trackedFiles";
 import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "@/test/helpers/blankNonCode";
 import { resolve } from "node:path";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -268,7 +268,13 @@ describe("the poster's quotes on a request", () => {
     expect(screen.getByRole("button", { name: "Counter" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Decline" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Set my own price instead" })).toBeInTheDocument();
+    // Audit 11-21 (G8): Accept asks first, saying what it does; nothing is sent on the first tap.
+    // @mutate src/components/quotes/QuoteAnswerControls.tsx | onClick={() => setConfirmAccept(true)}> | onClick={() => answer.mutate("accept")}>
     fireEvent.click(screen.getByRole("button", { name: "Accept $250" }));
+    const ask = await screen.findByRole("alertdialog", { name: "Accept $250?" });
+    expect(ask.textContent).toContain("Your other quotes close.");
+    expect(state.calls.some((c) => c.fn === "respond_to_job_quote")).toBe(false);
+    fireEvent.click(within(ask).getByRole("button", { name: "Accept $250" }));
     await waitFor(() => expect(state.calls.some((c) => c.fn === "respond_to_job_quote")).toBe(true));
     expect(state.calls.find((c) => c.fn === "respond_to_job_quote")?.args).toEqual({
       p_quote_id: "q1", p_action: "accept", p_price_cents: undefined, p_note: undefined,

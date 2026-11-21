@@ -269,4 +269,16 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-banner .gg-lead{margin-bottom:7px}
 }
 .gg-code-row code{white-space:nowrap;overflow-wrap:normal;font-size:12px}
+/* The landing's Top 10 (owner 11-21 ~5:05 PM): the guides' card standing up (photo on top, name, price, heart over the
+   photo's corner), a sideways row on a phone and a grid of five from 768px. After the .gg-list rules so it wins. */
+.gg-top10-wrap{margin:24px 0 8px}
+.gg-top10-h{margin:0;font-size:20px;font-weight:600;color:var(--gg-ink)}
+.gg-top10{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(148px,44%);grid-template-columns:none;gap:16px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;margin:12px 0 0;padding:0 0 8px;scrollbar-width:thin}
+.gg-top10>li{position:relative;display:block;border-top:0;scroll-snap-align:start;min-width:0}
+.gg-top10 .gg-item{flex-direction:column;align-items:stretch;padding:0;gap:8px;margin:0}
+.gg-top10 .gg-photo{width:100%;border-radius:14px}
+.gg-top10 .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:10px;border-radius:14px}
+.gg-top10 .gg-nm-name{font-size:14px}
+.gg-top10 .gg-heart-pick{position:absolute;top:2px;right:2px}
+@media (min-width:768px){.gg-top10{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:20px 16px}}
 `;

@@ -32,6 +32,17 @@ SELECT properties->>'href' AS href, count(*)::int AS clicks
  ORDER BY 2 DESC, 1
  LIMIT 5000`;
 
+/** [{ href, clicks }] -> { href: clicks } (repeats summed), the same rows rankFromClicks keeps. */
+export function clicksByHref(rows) {
+  const out = {};
+  for (const r of Array.isArray(rows) ? rows : []) {
+    const href = String(r?.href ?? "");
+    const clicks = Number(r?.clicks) || 0;
+    if (/^https:\/\/[^\s"'<>]+$/.test(href) && href.length <= 600 && clicks > 0) out[href] = (out[href] ?? 0) + clicks;
+  }
+  return out;
+}
+
 /** [{ href, clicks }] -> { href: rank }, most clicks first, ties by link; non-https or zero-click rows dropped. */
 export function rankFromClicks(rows) {
   const ok = (Array.isArray(rows) ? rows : [])
@@ -43,8 +54,9 @@ export function rankFromClicks(rows) {
   return Object.fromEntries(sorted.map(([href], i) => [href, i + 1]));
 }
 
-export function fileBody(ranks, day) {
-  return `${JSON.stringify({ generated: day, windowDays: WINDOW_DAYS, source: "analytics_events_real gift_out_click (scripts/gift-guide-earn-rank.mjs)", ranks }, null, 2)}\n`;
+/** The file: ranks (the guides' order) and raw 14-day clicks (the landing Top 10's 20-click rule, giftGuideTop10.ts). */
+export function fileBody(ranks, day, clicks = {}) {
+  return `${JSON.stringify({ generated: day, windowDays: WINDOW_DAYS, source: "analytics_events_real gift_out_click (scripts/gift-guide-earn-rank.mjs)", ranks, clicks }, null, 2)}\n`;
 }
 
 async function liveRows() {
@@ -71,7 +83,7 @@ async function main(argv) {
   if (!Array.isArray(rows)) throw new Error("click rows: expected an array");
   const ranks = rankFromClicks(rows);
   const day = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
-  const body = fileBody(ranks, day);
+  const body = fileBody(ranks, day, clicksByHref(rows));
   if (argv.includes("--dry-run")) process.stdout.write(body);
   else writeFileSync(OUT, body);
   console.error(`gift-guide-earn-rank: ${rows.length} row(s) read, ${Object.keys(ranks).length} link(s) ranked${argv.includes("--dry-run") ? " (dry run)" : ` -> ${OUT}`}`);

@@ -41,8 +41,9 @@ export async function buildSeoData(): Promise<SeoData> {
   for (const old of [...Object.keys(OLD_SLUGS), ...Object.keys(MERGED_GUIDES), ...RETIRED_SLUGS()]) {
     const to = newSlugFor(old);
     if (to && to !== old && !guides[old]) moved[old] = to;
-    // 1120: a folded store page (no page of its own, its items in the guides) opens the gift guides landing page ("").
-    else if (!to && !guides[old] && old.startsWith("store-")) moved[old] = "";
+    // 1120: a folded store page (no page of its own, its items in the guides) opens the gift guides landing page ("");
+    // owner 11-21: so does every retired guide (src/content/giftGuideLive.mjs: only Her, Him and Kids stay).
+    else if (!to && !guides[old]) moved[old] = "";
   }
   const groups: SeoData["groups"] = ROWS.map((r) => [
     r.label,

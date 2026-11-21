@@ -1,17 +1,18 @@
 /**
- * FOR HER = THE OWNER'S 25 SAVES (owner 2026-11-21 ~1:10 AM: "i saved alot of things for women in my amazon and in shop
- * my"). For Her holds EXACTLY these 25 picks and nothing else: 11 from her Amazon shopping list and 14 from her ShopMy
- * links (Desktop notes Her-saved-amazon-1121.md and Her-saved-shopmy-1121.md). She picked every one herself, so none is
- * added, dropped or swapped by any rule.
+ * FOR HER = THE OWNER'S SAVES (owner 2026-11-21 ~1:10 AM: "i saved alot of things for women in my amazon and in shop
+ * my"; ~2:15 AM: "we can have more than 25 items its fine"). For Her holds EXACTLY these 36 picks and nothing else: 11
+ * from her Amazon shopping list, 11 more from her Amazon cart and 14 from her ShopMy links (Desktop notes
+ * Her-saved-amazon-1121.md, Her-saved-amazon-cart-1121.md and Her-saved-shopmy-1121.md). She picked every one herself,
+ * so none is added, dropped or swapped by any rule.
  *
  * scripts/gift-guide-picks.mjs runs applyHer1121 LAST, after the final sweep, so no earlier pass (blocklist, price cap,
  * brand cap, type cap, beauty cap, sponsor rule, men's style, standard plan) can drop or reorder these. That is the
- * owner-kept allowance, and it is narrow on purpose: it touches only the "her" page and only these 25 rows. She kept,
+ * owner-kept allowance, and it is narrow on purpose: it touches only the "her" page and only these rows. She kept,
  * by name (11-21): all 9 items over $100, all three face tools (ZDEER gua sha, Shark Depuffi, CurrentBody mask) and the
  * sold-out Stanley cooler (she is looking for it on Amazon). The HEYDUDE Austin Lift is banned from men's guides only.
  *
  * Page rules (owner): ONE flat list, cheapest first (no sections, no relationship chips, no codes or deals box; see
- * OWNER_FLAT_GUIDES in src/content/giftGuideOwnerLists.mjs). An Amazon pick never carries a price (Associates rule), and
+ * OWNER_LIST_GUIDES in src/content/giftGuidePeople.mjs). An Amazon pick never carries a price (Associates rule), and
  * its photo is Amazon's own, never edited; `sortPrice` is the price she saw, used only to order the list and never
  * written to the page. A ShopMy pick shows its price checked 11-21 (the page rounds it, "~$30") and its photo as a
  * transparent cutout (scripts/giftGuideCutouts1120.mjs). Each pick keeps its relationship tags (`rels`), so /mom,
@@ -38,25 +39,36 @@ export const HER_STORES = {
 };
 
 /**
- * The 25, cheapest first (sortPrice). One row per pick, so a link swap is a one-line change. `price` only on a ShopMy
+ * Her saves, cheapest first (sortPrice). One row per pick, so a link swap is a one-line change. `price` only on a ShopMy
  * pick; never on an Amazon one.
  */
 export const HER_1121 = [
   { name: "YUDSUD High Waisted Leggings", brand: "YUDSUD", line: "Soft high-waisted leggings she will live in all winter.", href: amz("B0D3L9BYFZ"), image: amzImg("31wNp8LsF5L"), store: "store-amazon", sortPrice: 6.64, commission: 4, type: "pants" },
-  { name: "Yoosteel Birthstone Bracelet", brand: "Yoosteel", line: "A dainty gold-plated bracelet with her birthstone.", href: amz("B0FDKC619F"), image: amzImg("215l57oAwYL"), store: "store-amazon", sortPrice: 7.99, commission: 4, type: "jewelry" },
+  { name: "Yoosteel Birthstone Bracelet", brand: "Yoosteel", line: "A dainty gold-plated bracelet with her birthstone.", href: amz("B0FDKC619F"), image: amzImg("51PDHgtzHAL"), store: "store-amazon", sortPrice: 7.99, commission: 4, type: "jewelry" },
+  { name: "eos Vanilla Cashmere Holiday Gift Set", brand: "eos", line: "A vanilla cashmere lotion and lip balm set, ready to gift.", href: amz("B0CWRFQCWF"), image: amzImg("71XNXXEbQEL"), store: "store-amazon", sortPrice: 10, commission: 3, type: "gift-set" },
   { name: "Personalized Embroidered Canvas Tote Bag", brand: "", line: "A canvas tote embroidered just for her.", href: amz("B0FKN7FGPY"), image: amzImg("41-9rV6lp9L"), store: "store-amazon", sortPrice: 11.99, commission: 4, type: "bag" },
   { name: "Loritta Long Plaid Winter Scarf", brand: "Loritta", line: "A long plaid scarf that doubles as a cozy wrap.", href: amz("B0C246HFWN"), image: amzImg("51J4ztPBNYL"), store: "store-amazon", sortPrice: 13.99, commission: 4, type: "scarf" },
+  { name: "Kitsch Satin Pillowcase With Zipper", brand: "Kitsch", line: "A satin pillowcase that is kind to hair and skin.", href: amz("B0CCWSGSCT"), image: amzImg("81zPpWuuXHL"), store: "store-amazon", sortPrice: 15.19, commission: 3, type: "bedding" },
   { name: "Personalized Floral Mama Quarter Zip Sweatshirt", brand: "", line: "A cozy quarter zip with Mama stitched in florals.", href: amz("B0HJVYHH35"), image: amzImg("41LM2AYUzKL"), store: "store-amazon", sortPrice: 18.15, commission: 4, type: "sweatshirt" },
   // OWNER SWAP PENDING (11-21): this pin goes to Sephora UK; replace the href with her Sephora US pin (and keep store-sephora).
   { name: "BIODANCE Hydro Cera-Nol Real Deep Mask, 4 Pack", brand: "BIODANCE", line: "Overnight hydrogel masks she peels off to glowy skin.", href: shopmy("p-108613754"), image: "https://static.shopmy.us/uploads/c5e32645-7fc2-4c8a-af7f-d12b9c83bc61imageye___-_imgi_1_4201001452-847__1.jpeg", store: "store-sephora", sortPrice: 19, price: 19, commission: 16, type: "skincare" },
+  { name: "Summer Fridays Tinted Lip Butter Balm", brand: "Summer Fridays", line: "The tinted lip balm everyone keeps in their bag.", href: amz("B0D82LVR3N"), image: amzImg("51s-g+euH5L"), store: "store-amazon", sortPrice: 19.2, commission: 10, type: "lip" },
+  { name: "Kitsch XL Microfiber Hair Towel Wrap", brand: "Kitsch", line: "A quick-dry hair towel wrap for after the shower.", href: amz("B0CDF7GJ4Y"), image: amzImg("81h7Kvf9ttL"), store: "store-amazon", sortPrice: 19.24, commission: 3, type: "hair" },
+  { name: "Amazon Essentials Women's Flannel Pajamas", brand: "Amazon Essentials", line: "Soft flannel pajamas for cold mornings.", href: amz("B08X8P91FX"), image: amzImg("71vZPpqtf5L"), store: "store-amazon", sortPrice: 20.69, commission: 4, type: "pajamas" },
+  { name: "TULA Spresso Energizing Eye Balm", brand: "TULA", line: "A cooling eye balm that wakes up tired eyes.", href: amz("B0C7LTPXBV"), image: amzImg("71N7JF4XK1L"), store: "store-amazon", sortPrice: 22.8, commission: 10, type: "skincare" },
   { name: "nodpod Weighted Sleep Mask", brand: "nodpod", line: "A gently weighted eye mask that helps her drift off.", href: amz("B0B1RWJ4QJ"), image: amzImg("31+H+LGa0OL"), store: "store-amazon", sortPrice: 28.5, commission: null, type: "sleep-mask" },
+  { name: "Tyler Candle Company Diva Glamorous Gift Suite", brand: "Tyler Candle Company", line: "The Diva scent in a candle gift set.", href: amz("B0D7TR9PBZ"), image: amzImg("718bvTOBovL"), store: "store-amazon", sortPrice: 28.68, commission: 3, type: "candle" },
+  { name: "TATCHA Kissu Lip Mask", brand: "TATCHA", line: "An overnight lip mask for soft lips.", href: amz("B08D3FXF64"), image: amzImg("41rTJDQgTpL"), store: "store-amazon", sortPrice: 29, commission: 10, type: "lip" },
   { name: "Owala FreeSip 24 oz Bottle, Open Air", brand: "Owala", line: "The leak-proof bottle she can sip or swig from.", href: shopmy("p-108613192"), image: "https://static.shopmy.us/pins/zoom-108613192-1795240422444-C07940_450", store: "store-jd-sports", sortPrice: 29.99, price: 29.99, commission: 15, type: "drinkware" },
+  { name: "Bedsure Bubble Faux Fur Christmas Throw Blanket", brand: "Bedsure", line: "A fluffy faux fur throw for the couch.", href: amz("B0F5N7S36V"), image: amzImg("91HJeXmiufL"), store: "store-amazon", sortPrice: 32.48, commission: 3, type: "throw-blanket" },
   { name: "JEIBKOUY Oversized Camo Hoodie, Maple Leaf", brand: "JEIBKOUY", line: "An oversized camo hoodie with a maple leaf print.", href: amz("B0FFMJMB6K"), image: amzImg("41tsU8jZI3L"), store: "store-amazon", sortPrice: 32.99, commission: 4, type: "sweatshirt" },
   { name: "Anoumcy Leopard Barrel Joggers", brand: "Anoumcy", line: "Leopard barrel-leg joggers that feel like sweats.", href: amz("B0FVFV7V1R"), image: amzImg("51F+lcxZoPL"), store: "store-amazon", sortPrice: 33.14, commission: 4, type: "pants" },
+  { name: "Sol de Janeiro Cheirosa Sol & Go Mini Perfume Mist", brand: "Sol de Janeiro", line: "A mini perfume mist in a best-loved scent.", href: amz("B0H42QZ8BW"), image: amzImg("71uJ6m6sS1L"), store: "store-amazon", sortPrice: 36, commission: 10, type: "fragrance" },
   { name: "ZDEER GS5 Heated Gua Sha Tool", brand: "ZDEER", line: "A heated gua sha with red light for a spa night in.", href: amz("B0FPCH9S11"), image: amzImg("31iCM-w+Z6L"), store: "store-amazon", sortPrice: 39.99, commission: 3, type: "beauty-device" },
   { name: "Camp Snap CS-8 Micro Video Camera Keychain, Blind Box", brand: "Camp Snap", line: "A tiny video camera on a keychain, color a surprise.", href: shopmy("p-108611500"), image: "https://static.shopmy.us/pins/zoom-106643598-1794927315931-micro1.jpg", store: "store-camp-snap", sortPrice: 39.99, price: 39.99, commission: 10, type: "accessory" },
   { name: "L'OCCITANE Shea Butter Classics Gift Set", brand: "L'OCCITANE", line: "Shea butter hand and body care, ready to give.", href: amz("B0HFYLTJR7"), image: amzImg("41h6A280IZL"), store: "store-amazon", sortPrice: 40, commission: 10, type: "gift-set" },
   { name: "HEYDUDE Austin Lift Platform Mule", brand: "HEYDUDE", line: "Easy slip-on platform mules for everyday errands.", href: amz("B0CPB1MWMP"), image: amzImg("315u2EGcJpL"), store: "store-amazon", sortPrice: 44.99, commission: null, type: "shoes" },
+  { name: "Trendy Queen Mock Neck 2 Piece Sweat Set", brand: "Trendy Queen", line: "A matching mock neck sweat set for travel days.", href: amz("B0H2D9Q7CV"), image: amzImg("61-DZ19Gx3L"), store: "store-amazon", sortPrice: 48.99, commission: 4, type: "matching-set" },
   { name: "BaubleBar Fallon 14K Gold Bezel Earrings", brand: "BaubleBar", line: "Gold bezel drop earrings that go with everything.", href: shopmy("p-108607824"), image: "https://static.shopmy.us/uploads/adc16a77-2764-49c6-8995-55c0e42754c9_s-blob-v1-IMAGE-DBeu-uRDNQQ.png", store: "store-baublebar", sortPrice: 64, price: 64, commission: 20, type: "jewelry" },
   { name: "Ember Mug 2, Brown", brand: "Ember", line: "A heated mug that keeps her coffee hot to the last sip.", href: shopmy("p-108613356"), image: "https://static.shopmy.us/pins/zoom-108613356-1795240468332-17103719_fpx.tif", store: "store-macys", sortPrice: 89.99, price: 89.99, commission: 16, type: "mug" },
   { name: "Lola Blankets Original Throw Blanket", brand: "Lola Blankets", line: "The famously soft Lola throw for couch nights.", href: shopmy("p-108604054"), image: "https://static.shopmy.us/uploads/346f926f-f41b-444e-b686-921455d30264_74A53B12-D898-44DD-8ADB-BBB0CD895907.jpg", store: "store-anthropologie", sortPrice: 135, price: 135, commission: 15, type: "throw-blanket" },
@@ -86,7 +98,7 @@ export function her1121Picks(rows = HER_1121) {
   });
 }
 
-/** Replaces the For Her page with the owner's 25 (and names any store the list lacks). Returns what it did. */
+/** Replaces the For Her page with the owner's saves (and names any store the list lacks). Returns what it did. */
 export function applyHer1121(pageList, storeList) {
   const had = new Set((pageList[HER_GUIDE] ?? []).map((p) => p.href));
   const before = had.size;

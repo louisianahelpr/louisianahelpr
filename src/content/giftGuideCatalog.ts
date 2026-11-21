@@ -14,6 +14,7 @@ import { COVER_SLUGS } from "@/content/giftGuideCoverSlugs";
 import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, SECTION_ANCHORS, TOP_PICKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
+import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 
 /**
  * The owner's list plus every store page the researched picks name (follow-up batch 2026-11-18: every store or brand
@@ -422,7 +423,9 @@ for (const [from, { parent }] of Object.entries(MERGED_INTO)) {
 }
 // For Her + For Him (owner 11-20): a relationship page (Mom, Wife ...) is a filtered view built below, and an old people
 // slug (Boyfriend or Husband, Sister-in-Law ...) opens its relationship page; neither is a guide of its own.
-const filled = (slug: string) => draftOf.has(slug) && !REMOVED_GUIDES.includes(slug) && !MERGED_GUIDES[slug] && !MERGED_INTO[slug] && !isFoldedStore(slug)
+// Owner 11-21 2:47 AM ("launch the 3 guides remove the rest that are live"): only Her, Him and Kids (and the 25 Days
+// sponsors page) have a page; every other guide is retired (src/content/giftGuideLive.mjs) and its old link lands on /gift-guides.
+const filled = (slug: string) => draftOf.has(slug) && isLiveGuide(slug) && !REMOVED_GUIDES.includes(slug) && !MERGED_GUIDES[slug] && !MERGED_INTO[slug] && !isFoldedStore(slug)
   && !RELATION_PAGES[slug] && !OLD_PEOPLE_SLUGS[slug];
 
 /** Where an old or folded guide's link now goes (null: no such guide). */
@@ -439,7 +442,10 @@ export const newSlugFor = (slug: string): string | null => {
   return GUIDES.some((g) => g.slug === to) ? to : null;
 };
 /** Every old slug the merges (1120) and the folded store pages retire: each answers a 301 (api/share.ts). */
-export const RETIRED_SLUGS = (): string[] => [...Object.keys(MERGED_INTO).filter((s) => !RELATION_PAGES[s]), ...Object.keys(OLD_PEOPLE_SLUGS), ...GUIDE_INDEX.filter((g) => isFoldedStore(g.slug)).map((g) => g.slug)];
+// Owner 11-21: so does every guide retired by the live list (src/content/giftGuideLive.mjs), the removed guides and every
+// store page: each opens the landing page.
+export const RETIRED_SLUGS = (): string[] => [...new Set([...Object.keys(MERGED_INTO).filter((s) => !RELATION_PAGES[s]), ...Object.keys(OLD_PEOPLE_SLUGS), ...GUIDE_INDEX.filter((g) => isFoldedStore(g.slug)).map((g) => g.slug),
+  ...[...GUIDE_INDEX.map((g) => g.slug), ...REMOVED_GUIDES, ...Object.keys(RESEARCHED_STORES)].filter((s) => !isLiveGuide(s) && !RELATION_PAGES[s])])];
 const parentOf = new Map(Object.entries(HUBS).flatMap(([hub, groups]) => groups.flatMap((x) => x.slugs.map((c) => [c, hub] as const))));
 
 

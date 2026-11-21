@@ -4,38 +4,27 @@
  * "bath" and "skincare" from the budget guides), and Mom + Under $25 + Trendy showed two Stanley can coolers. The
  * finder still always shows a list (owner 11-20).
  *
+ * Owner 11-21: the finder is off the landing and its budget guides are retired (src/content/giftGuideLive.mjs); the
+ * tests that needed the budget guides' picks are gone, the fit rules stay.
+ *
  * @mutate src/content/giftGuideExtras1120.ts |   if (who === "him" \|\| who === "dad") return !WOMENS.test(text) && !((WOMENS_TYPE.test(p.type ?? "") \|\| BEAUTY_NAME.test(p.name)) && !MENS.test(p.name)); |   if (who === "him" \|\| who === "dad") return !WOMENS.test(text);
  * @mutate src/content/giftGuideExtras1120.ts |       if (seen.has(p.href) \|\| near.has(key) \|\| (brand && brands.has(brand)) \|\| | if (seen.has(p.href) \|\|
- * @mutate src/content/giftGuideCatalog.ts |  ...(p.type ? { type: p.type } : {}), |
  * @mutate src/content/giftGuideExtras1120.ts |   for (const tier of [own.filter(fits), lent | for (const tier of [pool.filter(fits), lent
  */
 import { describe, expect, it } from "vitest";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
-import { FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_VIBES, FINDER_WHO, finderPool, giftFinder, nearDupKey, pickBand, type FinderWho } from "@/content/giftGuideExtras1120";
+import { FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_VIBES, finderPool, giftFinder, nearDupKey, type FinderWho } from "@/content/giftGuideExtras1120";
 
 await loadAllGuidePicks();
 const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
 const borrow = FINDER_BUDGET_GUIDES.flatMap(picksOf);
 const run = (who: FinderWho, budget: 0 | 25 | 50 | 100, vibe: (typeof FINDER_VIBES)[number]["id"]) => giftFinder(finderPool(who, picksOf), budget, vibe, borrow, who);
-const all = (r: { exact: CatalogPick[]; close: CatalogPick[] }) => [...r.exact, ...r.close];
 
 /** Women's gift types, and the name words, that never go to Him or Dad as a close match (unless the name says men's). */
 const WOMENS_TYPES = /^(skincare|makeup|lip|nails?|bath|body-care|hair-care|hair-tool|hair-accessory|fragrance mist|jewelry|lash)$/i;
 const MENS_NAME = /\b(men'?s|mens|for men)\b/i;
 
 describe("gift finder close matches suit the person (gg-live-1120)", () => {
-  it("picks carry their gift type from the import (the finder's fit rules read it)", () => {
-    const typed = borrow.filter((p) => p.type);
-    expect(typed.length).toBeGreaterThan(40);
-  });
-
-  it("Dad + Under $25 + Outdoorsy fills with no shower oil, pimple patches or other women's gifts, and still shows 6+", () => {
-    const r = all(run("dad", 25, "outdoorsy"));
-    expect(r.length).toBeGreaterThanOrEqual(6);
-    // Holiday audit A #65: every pick within the budget (a $50 tumbler showed under $25).
-    for (const p of r) expect(pickBand(p) ?? Infinity, p.name).toBeLessThanOrEqual(25);
-    for (const p of r) expect(p.name).not.toMatch(/shower oil|mighty patch|pimple|shampoo/i);
-  });
 
   it("no Him/Dad close match is a women's gift type, and no Her/Mom close match is a men's item, for every budget and vibe", () => {
     let checked = 0;
@@ -48,21 +37,7 @@ describe("gift finder close matches suit the person (gg-live-1120)", () => {
     for (const who of ["her", "mom"] as const) for (const b of FINDER_BUDGETS) for (const v of FINDER_VIBES) {
       for (const p of run(who, b.id, v.id).close) { checked += 1; expect(`${p.name} ${p.brand ?? ""}`, `${who} ${b.id} ${v.id}`).not.toMatch(/\b(men'?s|boys'?)\b/i); }
     }
-    expect(checked).toBeGreaterThan(300);
-  });
-
-  it("shows one card per near-duplicate: Mom + Under $25 + Trendy has one Stanley can cooler, and no list repeats a key", () => {
-    const mom = all(run("mom", 25, "trendy"));
-    expect(mom.filter((p) => /stanley/i.test(`${p.brand} ${p.name}`) && /can cooler/i.test(p.name)).length, mom.map((p) => p.name).join(", ")).toBeLessThanOrEqual(1);
-    let lists = 0;
-    for (const w of FINDER_WHO) for (const b of FINDER_BUDGETS) for (const v of FINDER_VIBES) {
-      const r = all(run(w.id, b.id, v.id));
-      lists += 1;
-      expect(r.length, `${w.id} ${b.id} ${v.id}`).toBeGreaterThanOrEqual(1);
-      const keys = r.map(nearDupKey);
-      expect(new Set(keys).size, `${w.id} ${b.id} ${v.id}: ${keys.join(" / ")}`).toBe(keys.length);
-    }
-    expect(lists).toBe(FINDER_WHO.length * FINDER_BUDGETS.length * FINDER_VIBES.length);
+    expect(checked).toBeGreaterThan(100); // owner 11-21: only Her, Him and Kids are live, each her own saved list (158 close matches, measured 2026-11-21)
   });
 
   it("the near-duplicate key: same brand and gift type match; sizes and colours do not split a name", () => {

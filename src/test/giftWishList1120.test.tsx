@@ -9,6 +9,9 @@
  *   - every hint is dismissible and stays dismissed; storage that throws never breaks the page.
  * Server side: src/test/pglite/giftWishLists.pglite.mjs.
  *
+ * Owner 11-21: the deals and Small Business Saturday pages are retired (src/content/giftGuideLive.mjs), so their
+ * card-heart, helper-line and colour tests are gone; a saved deal ref still reads back (the store keeps it).
+ *
  * @mutate src/pages/info/giftGuides/giftList.tsx | export function addToWishList(pick: SavedPick): boolean {\n  const cur = read();\n  const id = pickId(pick);\n  if (isSaved(cur, id)) return true; | export function addToWishList(pick: SavedPick): boolean {\n  const cur = read();\n  const id = pickId(pick);\n  if (false) return true;
  * @mutate src/pages/info/giftGuides/giftList.tsx | const refOf = (p: SavedPick): WishRef \| null => (p.guide ? { g: p.guide, i: pickId(p) } : null); | const refOf = (p: SavedPick): WishRef \| null => (p.guide ? { g: p.guide, i: p.href } : null);
  * @mutate src/pages/info/giftGuides/GiftHint.tsx |     window.localStorage.setItem(PREFIX + id, "1"); |     void id;
@@ -39,11 +42,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import deals from "@/content/giftGuideDeals.json";
 import smallBiz from "@/content/giftGuideSmallBiz.json";
-import { DEALS_SLUG, type Deal } from "@/content/giftGuideDeals.mjs";
+import { type Deal } from "@/content/giftGuideDeals.mjs";
 import { SMALL_BIZ_SLUG, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
-import { GUIDES, guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
+import { GUIDES, loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { HINTS, WISH } from "@/content/giftWishList";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
@@ -73,7 +75,7 @@ import { GIFT_WISH_CSS } from "@/pages/info/giftGuides/giftWishStyles";
 import { giftNameProblem } from "@/lib/giftNameClean";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { resetFirstHeartForTests } from "@/pages/info/giftGuides/GiftGuideHints";
-import { bizItemId, dealItemId, dealName } from "@/pages/info/giftGuides/wishListItems";
+import { bizItemId, dealName } from "@/pages/info/giftGuides/wishListItems";
 
 await loadAllGuidePicks();
 
@@ -110,7 +112,7 @@ const pickedGuides = GUIDES.filter((g) => g.picks.length > 0);
 
 describe("hearts persist and one heart covers the gift everywhere", () => {
   it("has guides with picks to test against", () => {
-    expect(pickedGuides.length).toBeGreaterThan(20);
+    expect(pickedGuides.length).toBeGreaterThan(10); // owner 11-21: Her, Him, Kids, the sponsors page and the relationship pages (14)
   });
 
   it("a pick heart writes a ref (guide + item id) to storage, and a fresh read (reload) still has it", () => {
@@ -167,29 +169,6 @@ describe("hearts persist and one heart covers the gift everywhere", () => {
 });
 
 describe("deal and Small Business cards heart too, and come back from their refs", () => {
-  it("a deal card's heart saves a ref to the deals page; My Wish List shows it with our link", async () => {
-    const view = renderAt(`/gift-guides/${DEALS_SLUG}`);
-    const heart = await waitFor(() => {
-      const h = view.container.querySelector<HTMLButtonElement>("[data-gift-deal] [data-gift-heart]");
-      expect(h).not.toBeNull();
-      return h!;
-    });
-    fireEvent.click(heart);
-    expect(heart.getAttribute("aria-pressed")).toBe("true");
-    const ref = listRefs(giftListNow())[0];
-    expect(ref.g).toBe(DEALS_SLUG);
-    const deal = (deals as Deal[]).find((d) => dealItemId(d) === ref.i);
-    expect(deal).toBeDefined();
-    cleanup();
-    const mine = renderAt("/gift-guides/my-list");
-    const row = await waitFor(() => {
-      const r = mine.container.querySelector(`[data-gift-wish-item="${ref.i}"]`);
-      expect(r).not.toBeNull();
-      return r!;
-    });
-    expect(row.querySelector("a[data-gift-out]")?.getAttribute("href")).toBe(`https://${deal!.href.replace(/^https:\/\//, "")}`);
-    expect(row.querySelector("a[data-gift-out]")?.getAttribute("rel")).toBe("sponsored noopener");
-  });
 
   it("a business card hearts by its slug and comes back as a Visit link", async () => {
     const b = (smallBiz as SmallBiz[]).find((x) => x.href)!;
@@ -364,12 +343,6 @@ describe("how-to hints dismiss and stay dismissed", () => {
       vi.useRealTimers();
     }
   });
-
-  it("the deals page carries its helper line", async () => {
-    const view = renderAt(`/gift-guides/${DEALS_SLUG}`);
-    expect(view.container.querySelector("[data-gift-deals-help]")?.textContent).toBe(HINTS.deals);
-    expect(guideBySlug(DEALS_SLUG)).toBeUndefined();
-  });
 });
 
 describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes", () => {
@@ -539,18 +512,6 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     const view = renderAt("/gift-guides/my-list");
     await waitFor(() => expect(view.container.querySelector("[data-gift-wish-sync-problem]")?.textContent).toBe(GIFT_WISH_RPC_ERROR_COPY.gift_wish_list_save.invalid_name));
     expect(view.container.querySelector("[data-gift-wish-where]")).toBeNull();
-  });
-
-  it("verify M: deal and Small Biz cards use the theme's card colour (readable in dark mode)", async () => {
-    const sb = renderAt("/gift-guides/small-business-saturday");
-    await waitFor(() => expect(sb.container.querySelector("[data-gift-sb]")).not.toBeNull());
-    const css = [...sb.container.querySelectorAll("style")].map((s) => s.textContent).join("");
-    expect(css).toMatch(/\.gg-sb\{[^}]*background:hsl\(var\(--card\)\);color:var\(--gg-ink\)/);
-    expect(css).not.toMatch(/\.gg-sb\{[^}]*background:#fff/);
-    cleanup();
-    const dl = renderAt(`/gift-guides/${DEALS_SLUG}`);
-    const css2 = [...dl.container.querySelectorAll("style")].map((s) => s.textContent).join("");
-    expect(css2).toMatch(/\.gg-deal\{[^}]*background:hsl\(var\(--card\)\)/);
   });
 
   it("L3: the share text is a sentence, never the list name twice", () => {

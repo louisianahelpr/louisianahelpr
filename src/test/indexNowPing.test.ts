@@ -23,7 +23,7 @@ describe("IndexNow ping", () => {
   it("sends the sitemap's own URLs only, with the key and its location", () => {
     const xml = readFileSync(resolve(ROOT, "public/sitemap.xml"), "utf8");
     const urls = sitemapUrls(xml);
-    expect(urls.length).toBeGreaterThan(100); // 111 on 2026-11-20 (follow-up 1120: the gift guides merged into ~30, 26 store pages)
+    expect(urls.length).toBeGreaterThan(70); // 111 on 2026-11-20; 77 on 2026-11-21 (owner 11-21: only Her, Him and Kids guides live)
     expect(urls).toContain("https://www.louisianahelpr.com/gift-guides/mom");
     expect(sitemapUrls("<loc>https://evil.example/x</loc><loc>http://www.louisianahelpr.com/y</loc>")).toEqual([]);
     const [body] = indexNowBodies(urls);

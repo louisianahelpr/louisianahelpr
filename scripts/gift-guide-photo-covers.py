@@ -95,6 +95,13 @@ def _load(name):
 
 
 AUDIT = _load("_cover-picks-1118.json")
+# The owner's own cover picks (11-21, e.g. "for the her guide remove the camera and the biodance from the cover. replace
+# those with the hatch alarm clock and the current body red light mask"): scripts/gift-guide-cover-pins.json, in the repo.
+# A guide listed there draws its "items" first, by name, before any audit list. "photos" gives an Amazon-linked pick a
+# photo of the same product from another store (a transparent cutout under public/gift-guides/cutouts/), so it can be on
+# the cover while Amazon's own photo is never edited or drawn (Associates terms; scripts/check-gift-cover-in-guide.mjs).
+COVER_PINS = {k: v for k, v in json.load(open(os.path.join(ROOT, "scripts", "gift-guide-cover-pins.json"), encoding="utf8")).items()
+              if not k.startswith("_")}
 FIT = _load("_fit-audit-1118.json")
 MANIFEST = os.path.join(ROOT, "scripts", "gift-guide-cover-items.json")
 # Store covers show what a store sells (owner 11-18: "the images on the store only would show what items the store
@@ -478,7 +485,9 @@ def own_picks(slug):
         picks = json.load(open(os.path.join(PICKS, f"{slug}.json"), encoding="utf8"))["picks"]
     except FileNotFoundError:
         return []
-    picks = [q for q in picks if not is_amazon(q)]
+    photos = COVER_PINS.get(slug, {}).get("photos", {})
+    picks = [dict(q, image=photos[q.get("name")]) if is_amazon(q) and q.get("name") in photos else q
+             for q in picks if not is_amazon(q) or q.get("name") in photos]
     if ALSO_IN:
         if slug not in _ALSO:
             try:
@@ -553,6 +562,10 @@ def candidates(slug):
         if slug in COLOR_WORDS:
             rx = re.compile(COLOR_WORDS[slug], re.I)
             own = [q for q in own if rx.search(q.get("name") or "")] + [q for q in own if not rx.search(q.get("name") or "")]
+    pins = COVER_PINS.get(slug, {}).get("items", [])
+    if pins:  # the owner's own cover picks first, in her order (the rest only if one of hers cannot be drawn)
+        first = [q for n in pins for q in own if q.get("name") == n][:len(pins)]
+        return first + [q for q in own if q not in first]
     if slug.startswith("store-"):
         return own  # only what the store page lists (owner 11-20), never another guide's or a bestseller photo
     fit = FIT.get(slug) if isinstance(FIT.get(slug), dict) else None
@@ -593,6 +606,7 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_b
         seen.add(u)
         cands.append(p)
     got, taken, light = (list(pre[0]), list(pre[1]), []) if pre else ([], [], [])
+    pinned = set(COVER_PINS.get(slug, {}).get("items", []))  # the owner's own cover picks skip the variety and light rules
     why = {}  # why each candidate was passed over, printed when a cover comes up short (r3 H1: fail loudly)
 
     def no(reason):
@@ -606,7 +620,7 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_b
             skip = COVER_SKIP.get(slug)
             if len(got) >= need or any(p is t for t in taken):
                 continue
-            if (skip and skip.search(p.get("name") or "")) or not allowed(slug, p, taken, group):
+            if p.get("name") not in pinned and ((skip and skip.search(p.get("name") or "")) or not allowed(slug, p, taken, group)):
                 no("variety/fit rule")
                 continue
             if not boots_ok and "boot" in kinds(p) and not slug.startswith("store-"):
@@ -635,7 +649,7 @@ def photos(slug, need=6, group="", used=(), reserved=None, boots_ok=True, seen_b
                 no("clothes on a model")
             elif c is None:
                 no("photo not on white")
-            elif is_light(c) and slug not in LIGHT_OK:
+            elif is_light(c) and slug not in LIGHT_OK and p.get("name") not in pinned:
                 light.append((c, p))  # blends into the cream arch (owner 11-18: "Like the Owala bottle is light")
             else:
                 got.append(c)
@@ -872,6 +886,15 @@ def brand_stores(rows):
     return out
 
 
+def write_versions():
+    """Each cover's and share image's content hash, so its URL changes when the art does (owner 11-21: "the colors on the
+    cover need to match the color when you click into the guide"; browsers and the service worker kept the old file at
+    the unchanged URL). scripts/gift-guide-cover-versions.mjs writes src/lib/giftGuideCoverVersions.mjs; the catalog and
+    api/share.ts add ?v=<hash>. Guard: src/test/giftGuideCoverVersions1121.test.ts."""
+    import subprocess
+    subprocess.run(["node", os.path.join(ROOT, "scripts", "gift-guide-cover-versions.mjs")], check=True)
+
+
 def main():
     rows = index()
     stores_only = sys.argv[1:] == ["--stores"]
@@ -1007,6 +1030,7 @@ def main():
             have = sorted(f[: -len(ext)] for f in os.listdir(folder) if f.endswith(ext) and f != "landing.jpg")
             text = re.sub(rf"export const {name} = new Set\(\[.*?\]\);", f"export const {name} = new Set({json.dumps(have, separators=(', ', ': '))});", text)
         open(share, "w", encoding="utf8").write(text)
+    write_versions()
     print(f"covers: {len(manifest)} drawn, {len(four)} with 4 items, {len(kept)} text only (fewer than 4 usable photos)")
     if short:  # r3 H1: never silently; src/test/giftGuideCoversShowItems.test.ts fails any of these the site shows
         print(f"TEXT ONLY ({len(short)}), fewer than 4 usable product photos: " + ", ".join(kept), file=sys.stderr)

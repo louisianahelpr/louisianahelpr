@@ -1,0 +1,15 @@
+{
+  "_": "The owner's own cover picks per guide (read by scripts/gift-guide-photo-covers.py). items: product names, drawn first in this order. photos: an Amazon-linked pick's photo of the same product from another store, as a transparent cutout (never Amazon's own photo). Guard: src/test/giftGuideCoverPins1121.test.ts.",
+  "her": {
+    "_why": "Owner 2026-11-21: \"for the her guide remove the camera and the biodance from the cover. replace those with the hatch alarm clock and the current body red light mask\"",
+    "items": [
+      "Ember Mug 2, Brown",
+      "Lola Blankets Original Throw Blanket",
+      "Stanley All Day Julienne Midi Cooler, Cream",
+      "On Cloud 6 Sneakers, Glacier/White",
+      "Hatch Restore 3, Putty",
+      "CurrentBody LED Red Light Therapy Face Mask"
+    ],
+    "photos": {}
+  }
+}

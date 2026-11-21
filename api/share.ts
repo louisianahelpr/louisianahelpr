@@ -96,6 +96,7 @@ import { titleCase } from "../src/lib/declutter/titleCase.mjs";
 import { OG_ITEM_HEIGHT, OG_ITEM_WIDTH, ogItemImageUrl } from "../src/lib/ogItemCard.mjs";
 import { jobShareDescription } from "../src/lib/jobShareLine.mjs";
 import { COVER_WEBP_SLUGS, OG_JPG_SLUGS } from "../src/lib/giftGuideShareImages.mjs";
+import { COVER_VERSIONS, OG_VERSIONS } from "../src/lib/giftGuideCoverVersions.mjs";
 import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "../src/content/giftGuideDeals.mjs";
 import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS, smallBizDay, smallBizTitle } from "../src/content/giftGuideSmallBiz.mjs";
 import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
@@ -1318,8 +1319,10 @@ function giftGuideCover(id: string, name: string): Meta["image"] | undefined {
   // The free printables page's own 1200x630 card (owner 2026-11-20): three gift tags with names on the gingham.
   if (slug === "printables") return { url: `${SITE_ORIGIN}/printables/og-printables.jpg?v=1`, type: "image/jpeg", width: 1200, height: 630, alt: "Free printable Christmas gift tags with names from Louisiana Helpr" };
   // The share JPG first (600x600 JPEG, the format every link-preview crawler takes), then the WebP cover.
-  if (OG_JPG_SLUGS.has(slug)) return { url: `${SITE_ORIGIN}/gift-guides/og/${slug}.jpg`, type: "image/jpeg", width: 600, height: 600, alt: name };
-  if (COVER_WEBP_SLUGS.has(slug)) return { url: `${SITE_ORIGIN}/gift-guides/covers/${slug}.webp`, type: "image/webp", width: 480, height: 480, alt: name };
+  // ?v= is each file's content hash (scripts/gift-guide-cover-versions.mjs), so a redrawn card is a new URL to crawlers.
+  const v = (h: string | undefined) => (h ? `?v=${h}` : "");
+  if (OG_JPG_SLUGS.has(slug)) return { url: `${SITE_ORIGIN}/gift-guides/og/${slug}.jpg${v(OG_VERSIONS[slug])}`, type: "image/jpeg", width: 600, height: 600, alt: name };
+  if (COVER_WEBP_SLUGS.has(slug)) return { url: `${SITE_ORIGIN}/gift-guides/covers/${slug}.webp${v(COVER_VERSIONS[slug])}`, type: "image/webp", width: 480, height: 480, alt: name };
   return undefined;
 }
 

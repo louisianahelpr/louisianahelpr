@@ -355,7 +355,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
           );
         })}
       </ul>
-      {bulk.selecting && <BulkBar items={list} picked={bulk.picked} onDone={bulk.stop} />}
+      {bulk.selecting && <BulkBar items={list} picked={bulk.picked} onDone={bulk.stop} onKeep={bulk.keep} />}
       <ConfirmSheet open={!!asking} title={asking?.status === "draft" ? t("decl.sl.deleteQ") : t("decl.sl.takeDownQ")}
         confirmLabel={asking?.status === "draft" ? t("decl.sl.delete") : t("decl.sl.takeDown")} pending={takeDown.isPending} testId="declutter-take-down"
         onConfirm={() => asking && takeDown.mutate(asking.id)} onClose={() => setAsking(null)}>

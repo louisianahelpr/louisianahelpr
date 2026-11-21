@@ -71,7 +71,7 @@ describe("Declutter top 5 #5: bulk actions and away mode", () => {
   });
 
   it("one action over many counts what went through and what was refused", async () => {
-    expect(await runEach(["a", "bad", "b"], async (id) => { if (id === "bad") throw new Error("no"); })).toEqual({ done: 2, failed: 1 });
+    expect(await runEach(["a", "bad", "b"], async (id) => { if (id === "bad") throw new Error("no"); })).toMatchObject({ done: 2, failed: 1, failedIds: ["bad"] });
   });
 
   it("the bar offers Pause only with a live listing ticked and pauses each one", async () => {
@@ -89,6 +89,23 @@ describe("Declutter top 5 #5: bulk actions and away mode", () => {
     fireEvent.click(confirm);
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(calls.paused).toEqual(["a"]);
+  });
+
+  it("audit 11-20 night #8: a refused listing stays ticked, and Put back on sale asks first", async () => {
+    calls.paused = [];
+    const onDone = vi.fn();
+    const onKeep = vi.fn();
+    wrap(<BulkBar items={[item("a", "live"), item("bad", "live"), item("p", "paused")]} picked={new Set(["a", "bad", "p"])} onDone={onDone} onKeep={onKeep} />);
+    fireEvent.click(screen.getByText("Pause"));
+    const sheet = await screen.findByText("Pause 2 listings?");
+    fireEvent.click([...sheet.closest("[data-confirm-sheet]")!.querySelectorAll("button")].find((b) => b.textContent === "Pause")!);
+    await waitFor(() => expect(onKeep).toHaveBeenCalledWith(["bad"]));
+    expect(onDone).not.toHaveBeenCalled();
+    expect(calls.paused).toEqual(["a"]);
+    // Resume opens the same in-app confirm instead of running from the button.
+    fireEvent.click(screen.getByText("Put back on sale"));
+    expect(await screen.findByText("Put 1 listing back on sale?")).toBeTruthy();
+    expect(onDone).not.toHaveBeenCalled();
   });
 
   it("11-20 #4: while the bar is up the floating + Sell steps aside, and comes back when it goes", () => {

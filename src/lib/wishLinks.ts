@@ -1,4 +1,5 @@
-import { AMAZON_TAG, SEARCH_FILLER, type CatalogPick } from "@/content/giftGuideCatalog";
+import { AMAZON_TAG, SEARCH_FILLER } from "@/content/giftGuideConstants";
+import type { CatalogPick } from "@/content/giftGuideCatalog";
 
 /**
  * "Add from any store" for the gift lists (owner 2026-11-21: "people can put in the wish list ... we see the list,

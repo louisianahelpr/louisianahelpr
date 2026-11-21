@@ -81,6 +81,8 @@ const renderAt = (url: string) => render(
 );
 const stored = () => cleanPlan((JSON.parse(window.localStorage.getItem(PLANNER_KEY) ?? "{}") as { plan?: unknown }).plan);
 const picker = () => document.querySelector<HTMLElement>("[data-savefor-picker]");
+/** The picker's chunk loads after the guide draws (off the critical path); a heart before that saves to My Wish List. */
+const pickerLoaded = () => waitFor(() => expect(document.querySelector("[data-savefor-ready]")).not.toBeNull());
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -107,6 +109,7 @@ describe("save for someone from a guide", () => {
     // Inventory floor: For Her holds 36 picks today.
     expect(her.length).toBeGreaterThan(20);
     const view = renderAt("/gift-guides/her");
+    await pickerLoaded();
     const heart = view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!;
     expect(heart.getAttribute("aria-label")).toBe(`Save ${her[0].name} for someone`);
     expect(heart.getAttribute("aria-pressed")).toBe("false");
@@ -146,6 +149,7 @@ describe("save for someone from a guide", () => {
   it("Add a person adds someone with a budget and saves the gift for them; the panel shows the list, total, budget and remove", async () => {
     setPlanViewer(null);
     const view = renderAt("/gift-guides/her");
+    await pickerLoaded();
     const her = guideBySlug("her")!.picks;
     const hearts = view.container.querySelectorAll<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]");
     fireEvent.click(hearts[0]);
@@ -182,6 +186,7 @@ describe("save for someone from a guide", () => {
   it("Me still saves to My Wish List (the heart's old job), so wish list links keep working", async () => {
     setPlanViewer(null);
     const view = renderAt("/gift-guides/her");
+    await pickerLoaded();
     const her = guideBySlug("her")!.picks;
     fireEvent.click(view.container.querySelector("[data-gift-pick] [data-gift-heart]")!);
     fireEvent.click(picker()!.querySelector("[data-savefor-me]")!);
@@ -194,6 +199,7 @@ describe("save for someone from a guide", () => {
     let release: (v: null) => void = () => {};
     loadAccountPlan.mockImplementation(() => new Promise((r) => { release = r; }));
     const view = renderAt("/gift-guides/her");
+    await pickerLoaded();
     fireEvent.click(view.container.querySelector("[data-gift-pick] [data-gift-heart]")!);
     expect(picker()!.querySelector<HTMLButtonElement>("[data-savefor-add]")!.disabled).toBe(true);
     release(null);

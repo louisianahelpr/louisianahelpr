@@ -1,4 +1,4 @@
-import { AMAZON_TAG } from "@/content/giftGuideCatalog";
+import { AMAZON_TAG } from "@/content/giftGuideConstants";
 
 /**
  * Buy-now links for the gift guides (owner 2026-11-21, pop-up choice "Amazon + Walmart Buy Now").

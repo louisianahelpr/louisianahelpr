@@ -16,6 +16,7 @@ import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, SECTION_ANCHORS, TOP_PICKS
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { AMAZON_TAG, SEARCH_FILLER } from "./giftGuideConstants";
 
 /**
  * The owner's list plus every store page the researched picks name (follow-up batch 2026-11-18: every store or brand
@@ -56,8 +57,8 @@ export function storeOf(href: string): GiftStore {
   return hit;
 }
 
-/** The Amazon Associates ID every Amazon link must carry (owner 2026-11-17). */
-export const AMAZON_TAG = "louisianahelpr-20";
+// The Amazon Associates ID (owner 2026-11-17) and the search filler words live in a no-import module (giftGuideConstants.ts).
+export { AMAZON_TAG, SEARCH_FILLER };
 
 /** The three Christmas-neutral gingham palettes of the owner's covers (green, oat, red), one per group, taking turns (GUIDE_INDEX). */
 export type GuideTint = (typeof GUIDE_INDEX)[number]["tint"];
@@ -608,11 +609,6 @@ const fold = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").t
 /** A query's words: folded, punctuation dropped (a "$" and an apostrophe kept), split on spaces and hyphens. */
 const queryWords = (query: string) => fold(query).replace(/[^a-z0-9$' ]+/g, " ").split(/\s+/).filter(Boolean);
 
-/**
- * Words that carry no meaning in a gift search (holistic review 11-18 H5: "gift for mom" listed Mom plus 18 Life
- * moments guides). Dropped before matching, unless the query is nothing else.
- */
-export const SEARCH_FILLER = new Set(["gift", "gifts", "for", "my", "a", "an", "the", "ideas", "idea", "to", "who", "that", "someone", "present", "presents", "of", "and", "is", "likes", "loves"]);
 
 /** The kids age bands, by the guides' own slug tail ("girls-little-kids"), with the ages each covers (GUIDE_INDEX `age`). */
 export const KID_AGE_BANDS = [

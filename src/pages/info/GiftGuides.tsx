@@ -4,7 +4,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
 import BackButton from "@/components/BackButton";
 import { ROWS, guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, subscribeGuidePicks, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
@@ -15,7 +15,8 @@ import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
 import { GiftGuideSharedList } from "./giftGuides/GiftGuideSharedList";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
-import { SAVE_FOR_CSS, SaveForSomeone } from "./giftGuides/SaveForSomeone";
+import { loadModule } from "@/lib/loadModule";
+import { report } from "@/lib/errorLogger";
 import { WISH } from "@/content/giftWishList";
 import { MY_LIST_SLUG } from "./giftGuides/giftList";
 import { GiftGuideTools } from "./giftGuides/GiftGuideShare";
@@ -56,6 +57,36 @@ function guideHead(guide: CatalogGuide) {
   const seen = new Set<string>();
   const picks = guide.picks.filter((p) => p.name && p.href && !seen.has(p.href) && seen.add(p.href));
   return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length);
+}
+
+/**
+ * The save-for-someone picker and My lists pill (owner 2026-11-21) load once the page has drawn, never on its
+ * critical path: with the dialog, the input and the planner store they put /gift-guides/<slug> at 372 KB gz against
+ * a 336 KB budget (train 1121f build). Until the chunk is in, a heart saves to My Wish List as before
+ * (requestSaveFor is false with no picker mounted). Its CSS ships in the same chunk.
+ */
+type SaveForModule = { SaveForSomeone: ComponentType; SAVE_FOR_CSS: string };
+const loadSaveFor = () => loadModule(() => import("./giftGuides/SaveForSomeone"));
+function LazySaveForSomeone() {
+  const [mod, setMod] = useState<SaveForModule | null>(null);
+  useEffect(() => {
+    let live = true;
+    void loadSaveFor().then(
+      (m) => { if (live && m) setMod(m); },
+      (e) => report(e as Error, { tags: { source: "GiftGuides.loadSaveFor" } }),
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (!mod) return null;
+  const { SaveForSomeone, SAVE_FOR_CSS } = mod;
+  return (
+    <>
+      <style data-savefor-ready="">{SAVE_FOR_CSS}</style>
+      <SaveForSomeone />
+    </>
+  );
 }
 
 export default function GiftGuides() {
@@ -151,11 +182,11 @@ export default function GiftGuides() {
     // search + heart + share are ONE row (the page draws it, so the shell's own header row is off); a phone wraps it to
     // two rows (arrow + title, then the pill and the icons).
     <PublicHeaderPage title={G.headerTitle} titleTag={banner ? "p" : "h1"} backTo={backTo} hideHeader bottomPaddingClassName="pb-12 md:pb-16">
-      <style>{GIFT_GUIDES_CSS + GIFT_WISH_CSS + SAVE_FOR_CSS}</style>
+      <style>{GIFT_GUIDES_CSS + GIFT_WISH_CSS}</style>
       {/* The first heart's one-time "Saved to your wish list" note (owner 2026-11-20 hints), on every gift guides page. */}
       <FirstHeartHint />
       {/* Owner 2026-11-21: a guide's hearts save for someone (the picker) and the My lists pill, on guide and deals pages. */}
-      {(guide || deals?.kind === "deals") && <SaveForSomeone />}
+      {(guide || deals?.kind === "deals") && <LazySaveForSomeone />}
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
       <div className="gg w-full" data-gift-guides="">
         {/* Owner's mockup (2026-11-18): the way back and the header words run across the top, above the menu and the guides. */}

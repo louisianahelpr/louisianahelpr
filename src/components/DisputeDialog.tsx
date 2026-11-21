@@ -27,6 +27,7 @@ import {
 } from "@/components/disputeReasons";
 import { queryKeys } from "@/lib/queryKeys";
 import { supabase } from "@/integrations/supabase/client";
+import { shrinkDisputePhotos } from "@/lib/disputeEvidencePhotos";
 import { toast } from "sonner";
 import { PROOF_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { report } from "@/lib/errorLogger";
@@ -63,8 +64,6 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
   const reasons = disputeReasonsFor(side);
   const detailsOk = details.trim().length >= DISPUTE_DETAILS_MIN;
 
-  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
   // Known precondition codes get human copy; anything else keeps the raw
   // message (still more useful than a generic string when it is an RLS or
   // network failure). Raw Postgres codes like "dispute_already_open" were
@@ -74,20 +73,23 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
     lifecycleErrorMessage(error) ??
     userFacingError(error, "Couldn't file the dispute — try again?");
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const validFiles = files.filter((f) => {
+  // Audit 11-20 night #17: photos are shrunk first (as job photos are); 5 MB is only the after-shrinking backstop.
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const files = Array.from(input.files || []);
+    const allowed = files.filter((f) => {
       if (!isAllowedUploadType(f, PROOF_PHOTO_TYPES)) {
         toast.error(unsupportedUploadCopy(f, "a JPG, PNG, WebP or HEIC photo"));
         return false;
       }
-      if (f.size > MAX_FILE_SIZE) {
-        toast.error(`"${f.name}" exceeds 5 MB limit.`);
-        return false;
-      }
       return true;
     });
-    setEvidenceFiles((prev) => [...prev, ...validFiles].slice(0, 5));
+    const { ready, tooBig } = await shrinkDisputePhotos(allowed);
+    for (const f of tooBig) {
+      toast.error(`"${f.name}" is too large to attach, even after we shrank it. Try a screenshot of the photo instead.`);
+    }
+    setEvidenceFiles((prev) => [...prev, ...ready].slice(0, 5));
+    input.value = "";
   };
 
   const removeFile = (index: number) => {

@@ -155,17 +155,20 @@ describe("the gated banners (OFF until the lead flips them on the owner's word)"
 
 describe("a guide's budget filter and section links", () => {
   it("keeps only picks within the budget; Amazon picks carry no band", () => {
-    const all = picksOf("her");
+    // For Him (For Her is the owner's own flat list since 11-21: no bands, so no budget chips; checked below).
+    const all = picksOf("him");
     expect(BUDGETS).toEqual([25, 50, 100]);
     for (const b of BUDGETS) for (const p of withinBudget(all, b)) expect(p.band!, p.name).toBeLessThanOrEqual(b);
     expect(withinBudget(all, null)).toBe(all);
     expect(all.filter((p) => p.store === "amazon").every((p: CatalogPick) => p.band === undefined)).toBe(true);
-    const { container } = renderAt("/gift-guides/her");
+    const { container } = renderAt("/gift-guides/him");
     const choices = container.querySelectorAll("[data-gift-budget-choice]");
     expect(choices.length).toBe(4);
     fireEvent.click(container.querySelector('[data-gift-budget-choice="25"]')!);
     const shown = container.querySelectorAll("[data-gift-list] li[data-gift-pick]").length;
     expect(shown).toBe(Math.min(withinBudget(all, 25).length, 56));
+    const her = renderAt("/gift-guides/her").container;
+    expect(her.querySelectorAll("[data-gift-budget-choice]").length).toBe(0);
   });
 
   it("a merged guide lists its sections as links, each opening its section", () => {

@@ -20,7 +20,8 @@ import { readdirSync } from "./helpers/trackedFiles";
 import { beforeAll, describe, expect, it } from "vitest";
 import { GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, SECTION_CAP, SECTION_MAX, SECTION_MIN, STORE_PAGES_HELD, STORE_PAGES_KEPT, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
-import { OLD_PEOPLE_SLUGS, peopleGuideOf } from "@/content/giftGuidePeople.mjs";
+import { OLD_PEOPLE_SLUGS, isOwnerList, peopleGuideOf } from "@/content/giftGuidePeople.mjs";
+import { HER_1121 } from "../../scripts/giftGuideHer1121.mjs";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { GUIDES, guideBySlug, newSlugFor } from "@/content/giftGuideCatalog";
 import { buildSeoData } from "@/prerender/seoData";
@@ -144,7 +145,10 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       for (const p of list) {
         n += 1;
         const at = `${slug}#${p.sectionId ?? ""}`;
-        const keys = [`h:${p.href}`, `n:${p.name.toLowerCase()}`, ...(p.image ? [`i:${p.image}`] : []), `p:${productKey1120(p.brand, p.name, plain)}#${colorOf(p.name)}`];
+        // Owner 11-21: For Her is her own 25 saves (scripts/giftGuideHer1121.mjs); one she picked may also sit on another
+        // guide (the Theragun Mini is on Healthcare too), so her picks are checked for repeats within For Her only.
+        const own = slug === "her" && HER_1121.some((r) => r.href === p.href) ? "her-owner:" : "";
+        const keys = [`h:${p.href}`, `n:${p.name.toLowerCase()}`, ...(p.image ? [`i:${p.image}`] : []), `p:${productKey1120(p.brand, p.name, plain)}#${colorOf(p.name)}`].map((k) => own + k);
         for (const k of keys) {
           if (seen.has(k)) bad.push(`${k.slice(0, 80)} at ${seen.get(k)} and ${at}`);
           else seen.set(k, at);
@@ -223,7 +227,8 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
     const on = (slug: string) => (peopleGuideOf(slug) ? (CHUNKS.get(peopleGuideOf(slug)!) ?? []).filter((p) => p.from === slug) : MERGED_INTO[slug] ? (CHUNKS.get(MERGED_INTO[slug].parent) ?? []).filter((p) => p.from === slug) : (CHUNKS.get(slug) ?? []).filter((p) => !p.from || p.from === slug));
     const fold = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
     for (const [guide, remove, add] of SWAPS_1119) {
-      expect(on(guide).some((p) => fold(p.name).startsWith(fold(add).slice(0, 16))), `${guide}: ${add}`).toBe(true);
+      // Mom's swap-in (the needlepoint pillow) left with For Her's old list: Her is the owner's own 25 saves since 11-21.
+      if (!isOwnerList(guide)) expect(on(guide).some((p) => fold(p.name).startsWith(fold(add).slice(0, 16))), `${guide}: ${add}`).toBe(true);
       expect(on(guide).some((p) => fold(p.name).startsWith(fold(remove).slice(0, 16))), `${guide}: ${remove}`).toBe(false);
     }
   });

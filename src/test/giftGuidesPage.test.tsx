@@ -1239,7 +1239,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
 describe("gift guides: Discount codes stay closed while moving between guides (owner 11-18 PM)", () => {
   // Owner: "if I click something like gift for her the discount codes open and expand again ... they should only open
   // if clicked". Closed on the landing, still closed after opening Her from the menu; a click opens it.
-  it("landing -> Gifts for Her -> Mom keeps the codes collapsed, every code inside", () => {
+  it("landing -> Gifts for Her -> Him -> Dad keeps the codes collapsed, every code inside", () => {
     const { container } = renderAt("/gift-guides");
     // Owner redesign 11-18 PM: the codes are inside the page's one "Deals & codes" section.
     const codesNow = () => container.querySelector("details[data-gift-deals-codes]") as HTMLDetailsElement;
@@ -1262,11 +1262,17 @@ describe("gift guides: Discount codes stay closed while moving between guides (o
     const herPicks = [...container.querySelectorAll("li[data-gift-pick]")];
     expect(DEALS_BELOW_LIST).toBe(true);
     if (codesNow()) expect(herPicks.filter((li) => li.compareDocumentPosition(codesNow()) & Node.DOCUMENT_POSITION_FOLLOWING).length).toBe(herPicks.length);
-    // For Her + For Him (owner 11-20): Mom is a chip on For Her (the list filtered to Mom), no longer a sidebar guide.
-    const mom = container.querySelector('a[data-gift-people-chip="mom"]')!;
-    expect(mom.getAttribute("href")).toBe("/gift-guides/mom");
-    fireEvent.click(mom);
-    expect(container.querySelector('[data-testid="where"]')?.textContent).toBe("/gift-guides/mom");
+    // Owner 11-21: For Her is her own 25 saves, one flat list: no relationship chips and no codes box on it.
+    expect(container.querySelector("[data-gift-people-chips]")).toBeNull();
+    expect(codesNow()).toBeNull();
+    // For Him keeps both (owner 11-20): Dad is a chip on For Him (the list filtered to Dad), no longer a sidebar guide.
+    fireEvent.click([...container.querySelectorAll("[data-gift-sidebar] a")].find((a) => a.getAttribute("href") === "/gift-guides/him")!);
+    expect(container.querySelector('[data-testid="where"]')?.textContent).toBe("/gift-guides/him");
+    if (codesNow()) codesNow().open = true;
+    const dad = container.querySelector('a[data-gift-people-chip="dad"]')!;
+    expect(dad.getAttribute("href")).toBe("/gift-guides/dad");
+    fireEvent.click(dad);
+    expect(container.querySelector('[data-testid="where"]')?.textContent).toBe("/gift-guides/dad");
     expect(codesNow()?.open ?? false).toBe(false);
   });
 });

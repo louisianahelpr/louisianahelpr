@@ -31,6 +31,10 @@ import { applyTrain1120b } from "./giftGuideTrain1120b.mjs";
 import { applyTrain1120c } from "./giftGuideTrain1120c.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { applyBudgetCaps } from "./giftGuideBudgetCaps.mjs";
+import { applyPeople } from "./giftGuidePeople1120.mjs";
+import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
+/** The merged guides whose picks feed For Her and For Him (the people guides and Mom and Dad). */
+const PEOPLE_PARENTS = new Set(PEOPLE_GUIDES.flatMap((g) => [g.slug, ...g.sources]));
 import { BRAND_CODES, CUTS_1120, budgetBand, importRows1120, productKey1120, swapCuts } from "./giftGuideBig1120.mjs";
 import { FRANCHISE_SPONSORS_1120, SPONSOR_SECTIONS_1120, auditActions1120, brandFirst, followUpOut, louisianaAdds1120, readAudits1120, renameOf, zeroSwaps1120 } from "./giftGuideFollowUp1120.mjs";
 import { BASE_MERGES, GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, NO_LIST_SECTIONS, STORE_PAGES_KEPT, SECTION_CAP, SECTION_GROUPS, SECTION_MAX, SECTION_MIN, isFoldedStore } from "../src/content/giftGuideMerges.mjs";
@@ -3578,14 +3582,14 @@ export const SECTION_ANCHORS = {};
   // The small shops the owner asked for by name (BRAND_SITES, OWNER_SHOPS_1120) hold their places in a section: they
   // claim theirs first (no type or brand cap), the rest fill by commission, and the section then lists by commission.
   const ownerShop = (p) => { try { return BRANDS.has(new URL(p.href).hostname); } catch { return false; } };
-  const fill = (rows, ownSlug) => {
-    const out = rows.filter(ownerShop).filter((p, i, all) => all.findIndex((x) => x.href === p.href) === i).slice(0, SECTION_CAP);
+  const fill = (rows, ownSlug, cap = SECTION_CAP) => {
+    const out = rows.filter(ownerShop).filter((p, i, all) => all.findIndex((x) => x.href === p.href) === i).slice(0, cap);
     // SORT_FIXED rows keep their own order and lead; the rest by commission.
     // Follow-up 1120 (lead 11-20): the owner's own picks claim their places first; the owner's firm rules still hold
     // (one place per item and color, two of a gift type, two LSU items, one lash item), then the rest by commission.
     const ranked = rows.map((p, i) => ({ p, i })).sort((x, y) => Number(SORT_FIXED.has(y.p.from)) - Number(SORT_FIXED.has(x.p.from)) || Number(Boolean(y.p.ownerPick)) - Number(Boolean(x.p.ownerPick)) || (SORT_FIXED.has(x.p.from) && SORT_FIXED.has(y.p.from) ? x.i - y.i : byCommission({ ...x.p, _at: x.i }, { ...y.p, _at: y.i })));
     for (const { p } of ranked) {
-      if (out.length >= SECTION_CAP) break;
+      if (out.length >= cap) break;
       // Her picks are held to her own one-place rule (the same item and color), not to our name-start match.
       if (out.some((x) => x.href === p.href || (!p.ownerPick && variantKey(x) === variantKey(p)) || (p.ownerPick && compact(x.name) === compact(p.name)))) continue;
       // A list with its own order (memberships, gift cards, wrap, Mail Carrier: SORT_FIXED) keeps every row it had.
@@ -3601,6 +3605,9 @@ export const SECTION_ANCHORS = {};
     }
     return out.map((p, i) => ({ p, i })).sort((x, y) => Number(SORT_FIXED.has(y.p.from)) - Number(SORT_FIXED.has(x.p.from)) || (SORT_FIXED.has(x.p.from) && SORT_FIXED.has(y.p.from) ? x.i - y.i : byCommission({ ...x.p, _at: x.i }, { ...y.p, _at: y.i }))).map((x) => x.p);
   };
+  // For Her + For Him (owner pop-up 11-20 ~6:50 PM): the people guides' sections and Family's Siblings are only the pool
+  // scripts/giftGuidePeople1120.mjs sorts into interest sections (capped there), so they keep every pick here.
+  const peopleCap = (parent, id) => (PEOPLE_PARENTS.has(parent) || (parent === "family" && id === "siblings") ? Infinity : SECTION_CAP);
   for (const m of GUIDE_MERGES) {
     const spec = SECTION_GROUPS[m.parent];
     const own = NEW_MERGE_PARENTS.has(m.parent) ? [] : (pageList[m.parent] ?? []).map((p) => ({ ...p, from: m.parent }));
@@ -3619,7 +3626,7 @@ export const SECTION_ANCHORS = {};
       if (!to) continue;
       for (const g of groups) if (g !== to) { const moved = g.rows.filter((p) => pin.name.test(p.name)); g.rows = g.rows.filter((p) => !pin.name.test(p.name)); to.rows.push(...moved.map((p) => ({ ...p, pinned: true }))); }
     }
-    const capped = () => groups.forEach((g) => { g.picks = fill(g.rows, g.from[0]); });
+    const capped = () => groups.forEach((g) => { g.picks = fill(g.rows, g.from[0], peopleCap(m.parent, g.id)); });
     capped();
     if (process.env.GIFT_SECTIONS_DEBUG) console.error(`SECTIONS ${m.parent}: ${groups.map((g) => `${g.id}=${g.picks.length}/${g.rows.length}`).join(" ")}`);
     groups = groups.filter((g) => g.picks.length);
@@ -3631,7 +3638,7 @@ export const SECTION_ANCHORS = {};
       const parts = [...x.parts, ...y.parts].filter((t, k, all) => t !== "Top picks" || all.length === 1);
       const id = keep.id === "top-picks" ? (x === keep ? y.id : x.id) : keep.id;
       const merged = { id, parts, from: [...x.from, ...y.from], rows: [...x.rows, ...y.rows] };
-      merged.picks = fill(merged.rows, merged.from[0]);
+      merged.picks = fill(merged.rows, merged.from[0], peopleCap(m.parent, id));
       groups.splice(Math.max(i, j), 1);
       groups.splice(Math.min(i, j), 1, merged);
     };
@@ -3908,6 +3915,15 @@ const fillPrices = () => {
   const t = applyBudgetCaps(pageList, spec);
   console.log(`gift-guide-picks: budget caps ${JSON.stringify(t.counts)}${t.missing.length ? `; NOT DONE (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
 }
+// FOR HER + FOR HIM BY INTEREST (owner pop-up 11-20 ~6:50 PM): last, on the finished pages (scripts/giftGuidePeople1120.mjs);
+// its adds and moves take their checked prices from one more fill.
+{
+  const spec = JSON.parse(readFileSync(new URL("./gift-guide-people-1120.json", import.meta.url), "utf8"));
+  const t = applyPeople(pageList, spec);
+  fillPrices();
+  console.log(`gift-guide-picks: people 1120 ${JSON.stringify({ her: t.counts.her, him: t.counts.him, moved: t.counts.moved, added: t.counts.added, cut: t.counts.cut.length, overflow: t.counts.overflow.length })}${t.missing.length ? `; NOT DONE (${t.missing.length}): ${t.missing.join(" | ")}` : ""}`);
+  if (process.env.GIFT_PEOPLE_VERBOSE) console.log(`  cut: ${t.counts.cut.join(" | ")}\n  overflow: ${t.counts.overflow.join(" | ")}`);
+}
 /**
  * TOP 10 THIS WEEK (owner-approved 11-19 9:05 PM): the landing strip, ranked by go-link clicks over the last 7 days
  * (scripts/gift-guide-go-clicks.json, measured from prod analytics), then effective commission x item popularity, among
@@ -3955,7 +3971,7 @@ for (const slug of chunkSlugs) {
 writeFileSync(
   out,
   `/** GENERATED by scripts/gift-guide-picks.mjs from ~/Desktop/Gift-guide-picks (re-run it after any change there). Do not edit. */\n` +
-    `export interface ResearchedPick { name: string; brand: string; line: string; href: string; image?: string; price?: number; priceAt?: string; store?: string; section?: string; louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true; ownerPick?: true; commission?: number | null; type?: string; swappedFrom?: string; swappedFromPct?: number; campaignEnds?: string; fallback_href?: string; switch_on?: string; sectionId?: string; from?: string; band?: 25 | 50 | 100 | 500; preorder?: true; code?: string; codeEnds?: string; tiktok?: true }\n` +
+    `export interface ResearchedPick { name: string; brand: string; line: string; href: string; image?: string; price?: number; priceAt?: string; store?: string; section?: string; louisianaFit?: true; trending?: true; shipsFast?: true; localPickup?: true; sponsor?: true; ownerPick?: true; commission?: number | null; type?: string; swappedFrom?: string; swappedFromPct?: number; campaignEnds?: string; fallback_href?: string; switch_on?: string; sectionId?: string; from?: string; band?: 25 | 50 | 100 | 500; preorder?: true; code?: string; codeEnds?: string; tiktok?: true; rels?: string[] }\n` +
     `export interface StoreDeal { title: string; href: string; ends?: string; items?: { name: string; href: string }[] }\n` +
     `export interface Sale { store: string; slug: string; offer: string; ends: string; href: string }\n` +
     `/** One guide's chunk (src/content/giftGuidePicks/<slug>.json): its final picks and, on a store page, its deal sections. */\n` +
@@ -4017,6 +4033,16 @@ for (const slug of chunkSlugs) {
   if (usedNames.has(named.toLowerCase())) named = `${named} (${slug.startsWith("store-") ? "store" : slug})`;
   usedNames.add(named.toLowerCase());
   seo[slug] = named;
+}
+// For Her + For Him (owner pop-up 11-20 ~6:50 PM): each relationship page (/gift-guides/mom, /dad, /wife ...) is the
+// guide filtered to that relationship, indexed under its own name ("Gifts for Mom") while it holds picks.
+for (const g of PEOPLE_GUIDES) {
+  if (!seo[g.slug]) continue;
+  for (const r of g.rels) {
+    if (!(pageList[g.slug] ?? []).some((p) => p.rels?.includes(r.slug))) continue;
+    const title = entryOf(r.slug)?.title ?? r.label;
+    seo[r.slug] = `Gifts for ${title}`;
+  }
 }
 writeFileSync(
   seoOut,

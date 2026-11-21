@@ -94,6 +94,7 @@ article[data-gift-guide]>section:first-child>.gg-list,article[data-gift-guide]>.
 .gg-ages ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 .gg-ages li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
 .gg-age-name{min-width:120px;font-size:14px;font-weight:700}.gg-age-name small{font-weight:500;color:var(--gg-muted)}
+.gg-people{margin:4px 0 12px}.gg-people-q{margin:0 0 6px;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gg-muted)}
 .gg-ages-title{display:block;margin:0 0 8px;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gg-muted)}
 .gg-agechips{margin:4px 0 10px}
 .gg-toprow>li{width:148px}

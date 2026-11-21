@@ -98,6 +98,7 @@ import { isLouisianaItem } from "../../scripts/giftGuideRules.mjs";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { TEEN_TILES } from "@/pages/info/giftGuides/GiftGuideLanding";
 import { GUIDE_MERGES, MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
+import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { newSlugFor } from "@/content/giftGuideCatalog";
 import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
@@ -349,9 +350,10 @@ describe("gift guides: the content inventory", () => {
   it("the owner's guide list drives the order and the palettes; every listed guide with content is shown", () => {
     expect(ROWS.map((r) => r.label)).toEqual(ROW_LABELS);
     expect(ROWS.map((r) => r.tint)).toEqual(["green", "red", "oat", "green", "red", "oat", "green", "red", "oat", "green"]);
-    const shown = GUIDES.filter((g) => GUIDE_INDEX.some((x) => x.slug === g.slug)).map((g) => g.slug);
+    // For Her + For Him (owner 11-20): the relationship pages (Mom, Wife ...) are filtered views, listed after the guides.
+    const shown = GUIDES.filter((g) => !g.view && GUIDE_INDEX.some((x) => x.slug === g.slug)).map((g) => g.slug);
     expect(shown).toEqual(GUIDE_INDEX.filter((x) => shown.includes(x.slug)).map((x) => x.slug));
-    expect(shown).toEqual(GUIDE_INDEX.filter((x) => !REMOVED_GUIDES.includes(x.slug) && !MERGED_GUIDES[x.slug] && !MERGED_INTO[x.slug] && !isFoldedStore(x.slug)).map((x) => x.slug));
+    expect(shown).toEqual(GUIDE_INDEX.filter((x) => !REMOVED_GUIDES.includes(x.slug) && !MERGED_GUIDES[x.slug] && !MERGED_INTO[x.slug] && !isFoldedStore(x.slug) && !RELATION_PAGES[x.slug] && !OLD_PEOPLE_SLUGS[x.slug]).map((x) => x.slug));
     // Follow-up 1120: ~30 guides (with sections) and 26 store pages; 41+ shown on the owner's list, measured 2026-11-20.
     expect(shown.length).toBeGreaterThan(35);
     for (const g of GUIDES) expect(ROWS.find((r) => r.row === g.row), g.slug).toBeTruthy();
@@ -367,7 +369,7 @@ describe("gift guides: the content inventory", () => {
 describe("gift guides: the landing opens to the guides", () => {
   it("shows one tile row per group, in order, each with See all; every top-level guide's tile links to /gift-guides/<slug>", () => {
     const top = ROWS.flatMap((r) => [
-      ...GUIDES.filter((g) => !g.empty && !g.thin && g.row === r.row && !g.parent),
+      ...GUIDES.filter((g) => !g.empty && !g.thin && g.row === r.row && !g.parent && !g.view),
       ...(r.row === "for-kids" ? TEEN_TILES.map((t) => guideBySlug(t.slug)!).filter((g) => g && !g.empty) : []),
     ]);
     const { container } = renderAt("/gift-guides");
@@ -1001,7 +1003,8 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
 describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () => {
   it("SheVibe, King Palm, AnyListingSEO, Loren and Restoro never reach a guide, store page or deal; _cj.json is read", () => {
     expect([...BLOCKED_BRANDS]).toEqual(["SheVibe", "King Palm", "AnyListingSEO", "Loren", "Restoro", "Yeloly", "Serika", "Parallels", "HerbsPro", "ZazzMode", "NordVPN", "Surfshark", "Keeper Security", "NordPass", "hide.me", "Intego", "Corel", "Clip Studio Paint", "Daz 3D", "Wondershare", "Roxio", "Pinnacle Studio", "Lalal.ai", "Ashampoo", "AOMEI", "PandaOffice", "Jalbum", "O&O Software", "Abelssoft", "Paragon Software", "GearUP", "YUPLAY", "Whokeys", "DirectDeals", "Hero Wars", "Skytours", "Oojo", "Cheapvuelos", "Ovago", "HopeGoo", "Air India", "Ocean Hotels", "Rent Cars", "VIP Cars", "Carla Car Rental", "RVshare", "Undercover Tourist", "PARISCityVISION", "Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets", "Dragontree", "Dragontree Apothecary", "Deme by Gabriella", "Deme", "CHORD", "Life is Good", "The Jacket Maker", "Diamond Art Club", "Lubiwood", "nixplay", "onn.", "Mainstays", "Hyper Tough", "Holiday Time", "Better Homes & Gardens", "Better Homes and Gardens", "Great Value", "Time and Tru", "DiecastModelsWholesale", "Diecast Models Wholesale", "Kaiya Baby", "Magic Story", "TechPals", "ZonliHome", "Zonli", "Kitty Kick Stix", "Makerfire", "Bonne et Filou", "The Fort Kit", "Cocinare", "Maker Wine", "Magic Makers", "The Fidget Company", "Gisada", "Imarku", "TOUCHBeauty", "Baleaf", "SILK THE RICH", "True Beauty Lashes", "Cashmere Boutique", "MelodySusie", "Lofree", "AndaSeat", "Xplora", "Byrokko", "Frost Buddy", "Forte Chocolate", "TempSpike", "TempPro", "Hairmax", "AmScope", "Adagio Teas", "Free Country", "BADESOFA", "Literie", "Ozark Trail",
-      "Kendra Scott", "Labubu", "Smiski", "Sonny Angel", "Lovesac", "Fishwife"]);
+      "Kendra Scott", "Labubu", "Smiski", "Sonny Angel", "Lovesac", "Fishwife",
+      "Vineyard Vines", "Lilly Pulitzer"]);
     // ... and no code for one (the codes table and the codes the researched deals name).
     // @mutate scripts/gift-guide-picks.mjs | if (blockedBrand({ ...d, store })) continue; | void d;
     expect(src("scripts/gift-guide-picks.mjs")).toContain("if (blockedBrand({ ...d, store })) continue;");
@@ -1229,8 +1232,11 @@ describe("gift guides: Discount codes stay closed while moving between guides (o
     // @mutate src/pages/info/giftGuides/GiftGuideView.tsx | export const DEALS_AFTER_PICKS = 10; | export const DEALS_AFTER_PICKS = 0;
     const herPicks = [...container.querySelectorAll("li[data-gift-pick]")];
     if (codesNow() && herPicks.length > DEALS_AFTER_PICKS) expect(herPicks.filter((li) => li.compareDocumentPosition(codesNow()) & Node.DOCUMENT_POSITION_FOLLOWING).length).toBe(DEALS_AFTER_PICKS);
-    const mom = [...container.querySelectorAll("[data-gift-sidebar] a")].find((a) => a.getAttribute("href") === "/gift-guides/mom")!;
+    // For Her + For Him (owner 11-20): Mom is a chip on For Her (the list filtered to Mom), no longer a sidebar guide.
+    const mom = container.querySelector('a[data-gift-people-chip="mom"]')!;
+    expect(mom.getAttribute("href")).toBe("/gift-guides/mom");
     fireEvent.click(mom);
+    expect(container.querySelector('[data-testid="where"]')?.textContent).toBe("/gift-guides/mom");
     expect(codesNow()?.open ?? false).toBe(false);
   });
 });

@@ -326,12 +326,16 @@ export const giveawayTieInOn = (now: Date, flagOn: boolean) => {
   return flagOn && md >= "12-01" && md <= "12-25";
 };
 
+/** Picks that never show as the Gift of the Day (owner 11-20: "Dyson Airwrap ... never Gift of the Day"). */
+export const NEVER_GIFT_OF_THE_DAY = /\bairwrap\b/i;
+
 /**
  * The Gift of the Day: one pick from the curated list (the landing's Top 10, the most-loved and best-paying picks),
  * the same all day for everyone (by the Louisiana date), a different one each day in turn.
  */
 export function giftOfTheDay(picks: CatalogPick[], now: Date): CatalogPick | null {
-  const list = picks.filter((p) => p.name && p.href);
+  // Owner 11-20: the Dyson Airwrap stays in For Her (Mom) but is never the Gift of the Day.
+  const list = picks.filter((p) => p.name && p.href && !NEVER_GIFT_OF_THE_DAY.test(`${p.brand ?? ""} ${p.name}`));
   if (!list.length) return null;
   const n = dayNumber(louisianaYmd(now));
   return list[((n % list.length) + list.length) % list.length];

@@ -23,6 +23,7 @@ import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
 import { DEALS_SLUG, DEALS_WORDS, dealsTitle, louisianaDay } from "@/content/giftGuideDeals.mjs";
 import { GiftGuideSmallBiz } from "./giftGuides/GiftGuideSmallBiz";
+import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS, smallBizDay, smallBizTitle } from "@/content/giftGuideSmallBiz.mjs";
 
 /**
@@ -86,6 +87,10 @@ export default function GiftGuides() {
   const fromHash = hashSlug ? newSlugFor(hashSlug) : null;
   if (oldMyList) return <Navigate to={`/gift-guides/${MY_LIST_SLUG}`} replace />;
   if (!slug && !shared && !myListPage && fromHash) return <Navigate to={`/gift-guides/${fromHash}`} replace />;
+  // For Her + For Him (owner 11-20): an old people section link (/gift-guides/her#wife, /gift-guides/mom#mother-in-law)
+  // opens that relationship's page; a hash never reaches the server, so the page forwards it.
+  const peopleTo = slug && hashSlug ? OLD_PEOPLE_ANCHORS[slug]?.[hashSlug] : undefined;
+  if (peopleTo) return <Navigate to={`/gift-guides/${peopleTo}`} replace />;
   const moved = slug && !guide && !deals ? newSlugFor(slug) : null;
   if (moved) return <Navigate to={`/gift-guides/${moved}`} replace />;
   if (slug && !guide && !deals) return <Navigate to="/gift-guides" replace />;

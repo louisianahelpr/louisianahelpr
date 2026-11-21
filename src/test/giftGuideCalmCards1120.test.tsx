@@ -33,6 +33,7 @@ const CSS_FILES = [
   "src/pages/info/giftGuides/GiftGuideDeals.tsx",
   "src/pages/info/giftGuides/GiftGuideSponsorRow.tsx",
   "src/pages/info/giftGuides/GiftGuideSmallBiz.tsx",
+  "src/pages/info/giftGuides/smallBizCardStyles.ts",
   "src/pages/info/giftGuides/fun/FunPage.tsx",
 ];
 const css = (f: string) => blankComments(readFileSync(f, "utf8"));

@@ -33,7 +33,7 @@ import { auditFix1120 } from "./giftGuideSectionAudit1120.mjs";
 import { applyTrain1120b } from "./giftGuideTrain1120b.mjs";
 import { applyTrain1120c } from "./giftGuideTrain1120c.mjs";
 import { applyHolidayB1120 } from "./giftGuideHolidayB1120.mjs";
-import { readLineup, shortName as shortSponsorName } from "./gift-guide-sponsor-logos.mjs";
+import { NOT_CONFIRMED, readLineup, shortName as shortSponsorName } from "./gift-guide-sponsor-logos.mjs";
 import { applyOwner1120d } from "./giftGuideOwner1120d.mjs";
 import { verifiedPrice } from "./giftGuidePrice.mjs";
 import { applyBudgetCaps } from "./giftGuideBudgetCaps.mjs";
@@ -4109,6 +4109,12 @@ const chunkSlugs = [...new Set([...Object.keys(pageList), ...Object.keys(deals).
 // (src/content/giftGuideLive.mjs) are in CHUNK_SLUGS and PICK_CHUNKS, so a retired chunk is never in the bundle, the
 // search index, the sitemap or the SEO list.
 const liveChunkSlugs = chunkSlugs.filter(isLiveGuide);
+// Owner 2026-11-21 ("if all details are not confirmed they should not be on the list"): a sponsor still missing a prize,
+// value or delivery (scripts/gift-guide-sponsor-order-1121.json notConfirmed) is off the sponsors page until it is.
+if (pageList[SPONSORS_GUIDE]) {
+  const unconfirmed = [...NOT_CONFIRMED].map((n) => shortSponsorName(n).toLowerCase());
+  pageList[SPONSORS_GUIDE] = pageList[SPONSORS_GUIDE].filter((p) => !unconfirmed.some((n) => String(p.brand ?? "").toLowerCase().startsWith(n) || n.startsWith(String(p.brand ?? "").toLowerCase() || "\u0000")));
+}
 for (const slug of chunkSlugs) {
   writeFileSync(new URL(`${slug}.json`, chunkDir), `${JSON.stringify({ picks: pageList[slug] ?? [], ...(deals[slug]?.length ? { deals: deals[slug] } : {}) })}\n`);
 }

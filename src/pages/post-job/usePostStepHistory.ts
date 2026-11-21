@@ -4,6 +4,18 @@ import type { EntryPanel, Step } from "./postJobFormTypes";
 
 /** The tag this flow writes on the history entries it pushes: how many screens deep the form was. */
 const TAG = "postStep";
+/**
+ * How many entries this flow has pushed up to and including this one. Not the depth: the groups (0) jump straight to
+ * a group's kinds (2), so the depth runs ahead of the entries behind it (audit 11-21, High: a reload went back by
+ * the depth, overshot /post-job and landed on /home, or on about:blank when /post-job was the tab's first page).
+ */
+const PUSHED = "postPushed";
+
+/** How many entries this flow pushed up to and including this one, or null when this flow did not push it. */
+function postPushedFromHistory(state: unknown): number | null {
+  const v = (state as Record<string, unknown> | null | undefined)?.[PUSHED];
+  return typeof v === "number" && Number.isInteger(v) && v > 0 ? v : null;
+}
 
 /** The screen depth a history entry was pushed for, or null when this flow did not push it. */
 export function postStepFromHistory(state: unknown): number | null {
@@ -31,7 +43,8 @@ export function postScreenDepth(s: { step: Step; formPage: number; entryPanel: E
  * entry this flow pushed (its tag equals the screen's depth), else steps back in place, as before.
  *
  * Landing on a tagged entry at mount (a reload, or Back from the page a posted job went to) means the form started
- * over, so it goes back past the entries it pushed to the flow's first one: Back never walks a finished form again.
+ * over, so it goes back past the entries it pushed (their count, PUSHED) to the flow's first one: Back never walks a
+ * finished form again, and the reload stays on /post-job.
  */
 export function usePostStepHistory(depth: number, stepBack: () => void) {
   const navigate = useNavigate();
@@ -50,8 +63,11 @@ export function usePostStepHistory(depth: number, stepBack: () => void) {
     prev.current = { depth, key: location.key };
     if (!last) {
       base.current = depth;
-      // Each of the `tag` entries below this one was pushed by this flow on the same page: all in-app.
-      if (tag !== null) navigate(-tag);
+      // This entry and the ones below it that this flow pushed are all in-app on the same page: go back by that
+      // count, never by the depth tag, so the reload lands on the flow's first entry, still on /post-job. An entry
+      // tagged before the count existed has no count: stay put rather than guess how far back the flow began.
+      const pushed = tag !== null ? postPushedFromHistory(location.state) : null;
+      if (pushed !== null) navigate(-pushed);
       return;
     }
     const moved = last.key !== location.key;
@@ -69,7 +85,8 @@ export function usePostStepHistory(depth: number, stepBack: () => void) {
       return;
     }
     if (depth > (tag ?? base.current)) {
-      navigate({ pathname: location.pathname, search: location.search }, { state: { ...((location.state as object | null) ?? {}), [TAG]: depth } });
+      const pushed = (postPushedFromHistory(location.state) ?? 0) + 1;
+      navigate({ pathname: location.pathname, search: location.search }, { state: { ...((location.state as object | null) ?? {}), [TAG]: depth, [PUSHED]: pushed } });
     }
     // Runs on a screen change or a navigation; the router state and navigate it reads belong to that same key.
   }, [depth, location.key]);

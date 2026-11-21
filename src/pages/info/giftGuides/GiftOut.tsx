@@ -27,11 +27,11 @@ export function giftOutProps(href: string): { host: string; link: string } | nul
  * visibilitychange). scripts/gift-guide-picks.mjs ranks the landing's Top 10 by these counts.
  */
 export function GiftOut({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
-  const url = `https://${href.replace(/^https:\/\//, "")}`;
   return (
-    <a href={url} target="_blank" rel="sponsored noopener" className={className} data-gift-out=""
-      onClick={() => {
-        const props = giftOutProps(url);
+    <a href={`https://${href.replace(/^https:\/\//, "")}`} target="_blank" rel="sponsored noopener" className={className} data-gift-out=""
+      onClick={(e) => {
+        // The anchor's own href (the https:// URL above), so the sink stays a fixed-scheme template literal.
+        const props = giftOutProps(e.currentTarget.href);
         if (props) track("gift_out_click", props);
       }}>
       {children}

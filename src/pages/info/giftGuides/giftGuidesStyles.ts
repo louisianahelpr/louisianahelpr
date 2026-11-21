@@ -55,7 +55,10 @@ color:var(--gg-ink)}
 .gg-tile{display:block;color:var(--gg-ink);text-decoration:none}
 .gg-cover{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .gg-tile:hover .gg-cover,.gg-tile:focus-visible .gg-cover{outline:2px solid var(--gg-olive);outline-offset:2px}
-.gg-green{--c-dark:rgba(124,148,118,.55);--c-dot:#7c9476}.gg-red{--c-dark:rgba(178,104,98,.55);--c-dot:#b26862}.gg-oat{--c-dark:rgba(206,186,152,.55);--c-dot:#ceba98}
+/* The three cover families, exactly the covers' gingham (scripts/gift-guide-photo-covers.py FAMILY: check, band, cream;
+   owner 11-21: "a more christmas red and christmas green", beige softened as on the covers), so a guide's banner, text
+   cover and menu dot match its cover photo. */
+.gg-green{--c-cross:rgb(38 94 60);--c-band:rgb(150 178 154);--c-dot:#265e3c}.gg-red{--c-cross:rgb(168 36 42);--c-band:rgb(222 150 148);--c-dot:#a8242a}.gg-oat{--c-cross:rgb(219 204 180);--c-band:rgb(231 220 202);--c-dot:#ceba98}
 .gg-words{text-align:center;padding:10px 16px 14px;border-bottom:1px solid var(--gg-line);margin-bottom:4px}.gg-banner-wrap{padding:4px 0 10px}.gg-banner{display:flex;justify-content:center;align-items:flex-end;height:184px;padding:14px 16px 0;border-radius:14px;overflow:hidden}.gg-arch{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:min(440px,72%);height:100%;padding:34px 18px 10px;background:#fffdf7;border:1px solid #e6dccd;border-bottom:0;border-radius:999px 999px 0 0;box-shadow:0 0 0 7px rgba(255,253,247,.85)}.gg-banner .gg-lead{font-size:18px;line-height:1.1}.gg-banner h1{font-size:30px;line-height:1.08;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.gg-arch-foot{margin:6px 0 0;font:600 9px Montserrat,sans-serif;letter-spacing:.32em;text-transform:uppercase;color:#6b5a48}@media (max-width:767px){.gg-banner{height:148px;padding-top:10px}.gg-arch{width:min(300px,64%);padding:22px 10px 8px}.gg-banner .gg-lead{font-size:15px}.gg-banner h1{font-size:22px}.gg-arch-foot{font-size:8px;letter-spacing:.24em}}:root[data-theme="dark"] .gg-banner .gg-lead,:root[data-theme="dark"] .gg-banner h1{color:#3b2a20}
 .gg-words .gg-lead{font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-style:italic;font-size:22px;color:#6b5a48;margin:0}
 .gg-words h1{font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-weight:500;font-size:34px;line-height:1.1;margin:0 0 8px;color:#3b2a20;text-wrap:balance}
@@ -85,7 +88,7 @@ color:var(--gg-ink)}
 .gg-share-menu a,.gg-share-menu button{display:flex;align-items:center;min-height:44px;padding:0 12px;font-size:13px;font-weight:600;color:var(--gg-ink);text-decoration:none;background:none;border:0;text-align:left;border-radius:8px}
 .gg-share-menu a:hover,.gg-share-menu button:hover{background:hsl(var(--muted) / .6)}
 :root[data-theme="dark"] .gg-words .gg-lead,:root[data-theme="dark"] .gg-words h2,:root[data-theme="dark"] .gg-words > h1{color:var(--gg-ink)}
-.gg-check{background-color:#faf7f0;background-image:repeating-linear-gradient(0deg,var(--c-dark) 0 30px,transparent 30px 60px),repeating-linear-gradient(90deg,var(--c-dark) 0 30px,transparent 30px 60px)}
+.gg-check{background-color:rgb(250 247 239);background-image:conic-gradient(at 30px 30px,var(--c-band) 0 90deg,transparent 0 180deg,var(--c-band) 0 270deg,var(--c-cross) 0);background-size:60px 60px}
 .gg-dot{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.1);margin-right:8px;flex:none;background:var(--c-dot)}
 .gg-textcover{display:flex;align-items:center;justify-content:center;padding:14%;text-align:center;border:1px solid var(--gg-line)}
 .gg-textcover strong{display:block;background:#fffdf7;border:1px solid #e6dccd;border-radius:999px 999px 10px 10px;padding:30% 8% 18%;width:100%;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:15px;font-weight:500;line-height:1.15;color:#3b2a20;overflow-wrap:anywhere}

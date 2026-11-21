@@ -327,6 +327,26 @@ serve(async (req) => {
     (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
   )
 
+  // Saved-gift price alerts (owner 2026-11-21): the link turns off exactly those emails for that address
+  // (gift_price_alerts.unsubscribed_at), which may belong to no account. Never a profile flag. Zero rows is answered
+  // as success (no row means nothing is mailed, and the answer must not tell whether an address signed up); a failed
+  // write fails the request, so the page and the mail client are never told an opt-out happened when it did not.
+  if (list === 'gift_price_alerts') {
+    const { error: alertError } = await supabase
+      .from('gift_price_alerts')
+      .update({ unsubscribed_at: action === 'resubscribe' ? null : new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('email', email)
+      .select('id')
+    if (alertError) {
+      console.error('[email-unsubscribe] gift_price_alerts write failed:', alertError.message)
+      return fail('failed', 500, 'Unsubscribe failed, please retry')
+    }
+    console.log(`[email-unsubscribe] ${action} recorded`, { list, fromPage })
+    const giftStatus = action === 'resubscribe' ? 'resubscribed' as const : 'unsubscribed' as const
+    if (fromPage) return json({ status: giftStatus, list }, 200)
+    return text(giftStatus === 'resubscribed' ? 'Resubscribed' : 'Unsubscribed', 200)
+  }
+
   let profile: { user_id: string } | null
   try {
     profile = await findProfile(supabase, email)

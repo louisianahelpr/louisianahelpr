@@ -14,7 +14,7 @@
  * preflight either.
  */
 
-type UnsubscribeList = "promotions" | "job_matches";
+type UnsubscribeList = "promotions" | "job_matches" | "gift_price_alerts";
 
 export type UnsubscribeLink = { e: string; sig: string; list: UnsubscribeList };
 
@@ -24,7 +24,8 @@ export function parseUnsubscribeLink(search: string): UnsubscribeLink | null {
   const e = q.get("e");
   const sig = q.get("sig");
   if (!e || !sig) return null;
-  return { e, sig, list: q.get("list") === "job_matches" ? "job_matches" : "promotions" };
+  const list = q.get("list");
+  return { e, sig, list: list === "job_matches" || list === "gift_price_alerts" ? list : "promotions" };
 }
 
 /**
@@ -59,7 +60,7 @@ export async function sendUnsubscribeChoice(
   // The signed link travels in the BODY, never the URL: a request URL is what
   // Sentry breadcrumbs and session replay record (lh-authz-rls, Q1655 #1).
   const form = new URLSearchParams({ action, e: link.e, sig: link.sig });
-  if (link.list === "job_matches") form.set("list", "job_matches");
+  if (link.list !== "promotions") form.set("list", link.list);
   let res: Response;
   try {
     res = await fetchImpl(`${functionsBase.replace(/\/+$/, "")}/functions/v1/email-unsubscribe`, {

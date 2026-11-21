@@ -274,6 +274,10 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # the function checks it itself with verifyCronSecret.
   [functions.welcome-emails]
     verify_jwt = false
+  # gift-price-alerts (saved-gift price alerts, owner 2026-11-21): pg_cron posts `Bearer <service_role_key>` (not a JWT);
+  # the function checks it itself with verifyCronSecret.
+  [functions.gift-price-alerts]
+    verify_jwt = false
   # declutter-ai-draft (LEAD-CHECK-SWEEP, 20261101031241): pg_cron posts `Bearer <service_role_key>` (not a JWT)
   # with mode check_sweep, checked in the handler by verifyCronSecret (./checkSweep.ts); every member call is
   # checked in the handler with auth.getUser() and refused (401) without a signed-in member, as before.

@@ -1,10 +1,12 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent } from "react";
 import { createPortal } from "react-dom";
+import { ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NativeRadio } from "@/components/ui/NativeRadio";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
+import { Dialog, DialogContent, DialogFooter, DialogHero, DialogPrimaryAction, DialogSecondaryAction } from "@/components/ui/dialog";
 import { canPrintDocument, saveOrShareFile } from "@/lib/fileExport";
 import {
   NAME_FONTS,
@@ -230,6 +232,55 @@ async function makePdf(product: OverlayProduct, layout: SheetLayout, pages: Shee
 
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * Press and hold a design (~400 ms, owner 2026-11-21: "can they hold the picture down to make it bigger") opens the big
+ * preview; a quick tap still just picks it. A finger that moves (a scroll) cancels the hold. The click that ends a hold is
+ * swallowed so the hold does not also pick the design ("Use this design" does that).
+ */
+const HOLD_MS = 400;
+function useLongPress(onHold: (id: string) => void) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const held = useRef(false);
+  const clear = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    start.current = null;
+  };
+  useEffect(() => clear, []);
+  return {
+    bind: (id: string) => ({
+      onPointerDown: (e: RPointerEvent) => {
+        if (e.button > 0) return;
+        clear();
+        held.current = false;
+        start.current = { x: e.clientX, y: e.clientY };
+        timer.current = setTimeout(() => {
+          timer.current = null;
+          held.current = true;
+          onHold(id);
+        }, HOLD_MS);
+      },
+      onPointerMove: (e: RPointerEvent) => {
+        const s = start.current;
+        if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) clear();
+      },
+      onPointerUp: clear,
+      onPointerCancel: clear,
+      onPointerLeave: clear,
+      onContextMenu: (e: RMouseEvent) => {
+        if (held.current || timer.current) e.preventDefault();
+      },
+      onClick: (e: RMouseEvent) => {
+        // detail 0 is a keyboard press (Space on the radio): never swallowed, whatever an earlier hold left behind.
+        if (!held.current || e.detail === 0) return;
+        held.current = false;
+        e.preventDefault();
+      },
+    }),
+  };
+}
+
 const emptyNames = (p: OverlayProduct): Names => Object.fromEntries(p.fields.map((f) => [f.key, ""]));
 
 export default function NameMaker({ product }: { product: OverlayProduct }) {
@@ -244,6 +295,9 @@ export default function NameMaker({ product }: { product: OverlayProduct }) {
   const [fontsTick, setFontsTick] = useState(0);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [zoomId, setZoomId] = useState<string | null>(null);
+  const zoomDesign = zoomId ? product.designs.find((d) => d.id === zoomId) : undefined;
+  const hold = useLongPress(setZoomId);
   const font = NAME_FONTS.find((f) => f.id === fontId) ?? NAME_FONTS[0];
   // A design that names its sheet prints on it (gift tags); otherwise the shopper's choice.
   const designLayouts = product.designs.some((d) => d.layout);
@@ -290,15 +344,34 @@ export default function NameMaker({ product }: { product: OverlayProduct }) {
       <style>{MAKER_CSS}</style>
       <fieldset className="pr-set">
         <legend>{W.design}</legend>
-        <div className="pr-designs">
+        <p className="pr-hint">{W.designHint}</p>
+        <div className="pr-designs" data-printable-designs="">
           {product.designs.map((d) => (
-            <label key={d.id} className={`pr-design${d.id === designId ? " is-on" : ""}`}>
-              <NativeRadio name={`${uid}-design`} value={d.id} checked={d.id === designId} onChange={() => setDesignId(d.id)} className="sr-only" data-printable-design={d.id} />
-              <img loading="lazy" decoding="async" src={d.thumb ?? d.image} alt="" width={designSize(product, d).w * 24} height={designSize(product, d).h * 24} />
-              <span>{d.name}</span>
-            </label>
+            <div key={d.id} className={`pr-design-cell${d.id === designId ? " is-on" : ""}`}>
+              <label className="pr-design" {...hold.bind(d.id)}>
+                <NativeRadio name={`${uid}-design`} value={d.id} checked={d.id === designId} onChange={() => setDesignId(d.id)} className="sr-only" data-printable-design={d.id} />
+                <img loading="lazy" decoding="async" src={d.thumb ?? d.image} alt="" draggable={false} width={designSize(product, d).w * 24} height={designSize(product, d).h * 24} />
+                <span>{d.name}</span>
+              </label>
+              <RoundIconButton size="sm" className="pr-zoom" aria-label={W.zoom(d.name)} onClick={() => setZoomId(d.id)} data-printable-zoom={d.id}>
+                <span className="pr-zoom-dot" aria-hidden="true"><ZoomIn className="h-3.5 w-3.5" /></span>
+              </RoundIconButton>
+            </div>
           ))}
         </div>
+        <Dialog open={!!zoomDesign} onOpenChange={(o) => !o && setZoomId(null)}>
+          {zoomDesign && (
+            <DialogContent data-printable-zoom-dialog={zoomDesign.id}>
+              <DialogHero title={zoomDesign.name} />
+              {/* The full-size picture loads only now, when the preview opens; the grid shows the light thumbs. */}
+              <img className="pr-zoom-img" src={zoomDesign.image} alt={zoomDesign.name} width={designSize(product, zoomDesign).w * 200} height={designSize(product, zoomDesign).h * 200} data-printable-zoom-img="" />
+              <DialogFooter>
+                <DialogSecondaryAction onClick={() => setZoomId(null)}>{W.close}</DialogSecondaryAction>
+                <DialogPrimaryAction onClick={() => { setDesignId(zoomDesign.id); setZoomId(null); }} data-printable-zoom-use="">{W.useDesign}</DialogPrimaryAction>
+              </DialogFooter>
+            </DialogContent>
+          )}
+        </Dialog>
         {product.designs.length > 1 && (
           <label className="pr-check min-h-11">
             <Checkbox checked={mixDesigns} onCheckedChange={(v) => setMixDesigns(v === true)} data-printable-mix-designs="" />
@@ -422,11 +495,23 @@ const MAKER_CSS = `${fontFaces}
 .pr-maker{display:grid;gap:14px}
 .pr-set{border:0;margin:0;padding:0;min-width:0}
 .pr-set>legend{font-size:13px;font-weight:700;color:var(--gg-ink);margin:0 0 8px;padding:0}
-.pr-designs{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;scroll-snap-type:x proximity}
-.pr-maker .pr-design{flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px;border:2px solid transparent;border-radius:12px;cursor:pointer;scroll-snap-align:start;font-size:12px;margin:0;font-weight:600;color:var(--gg-ink)}
-.pr-design img{width:auto;height:72px;max-width:100px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
-.pr-maker .pr-design.is-on{border-color:var(--gg-olive);background:var(--gg-soft)}
-.pr-design:focus-within,.pr-chip:focus-within{outline:2px solid var(--gg-olive);outline-offset:2px}
+/* Every design in a wrapping grid (owner 2026-11-21: the sideways row hid the rest): 3 a row on a phone, 6-8 on a desktop. */
+.pr-hint{font-size:12.5px;color:var(--gg-muted);margin:-4px 0 8px}
+.pr-designs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:2px}
+@media (min-width:480px){.pr-designs{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}}
+.pr-design-cell{position:relative;min-width:0;border:2px solid transparent;border-radius:12px}
+.pr-design-cell.is-on{border-color:var(--gg-olive);background:var(--gg-soft)}
+.pr-maker .pr-design{display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px;cursor:pointer;font-size:12px;line-height:1.25;text-align:center;margin:0;font-weight:600;color:var(--gg-ink);-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.pr-design img{display:block;width:auto;height:72px;max-width:100%;object-fit:contain;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12);-webkit-touch-callout:none;pointer-events:none}
+.pr-maker .pr-design:focus-within{outline:2px solid var(--gg-olive);outline-offset:0;border-radius:10px}
+.pr-chip:focus-within{outline:2px solid var(--gg-olive);outline-offset:2px}
+/* The magnifier: a 44 px hit box (the app's tap floor) drawn as a small 28 px dot in the cell's corner, so it never hides the tag. */
+.pr-maker .pr-zoom{position:absolute;top:-6px;right:-4px;background:transparent;color:var(--gg-ink)}
+.pr-zoom-dot{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:999px;background:hsl(var(--card));border:1px solid var(--gg-line);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.pr-zoom:hover .pr-zoom-dot{border-color:var(--gg-olive)}
+.pr-zoom:focus-visible{outline:none}
+.pr-zoom:focus-visible .pr-zoom-dot{outline:2px solid var(--gg-olive);outline-offset:2px}
+.pr-zoom-img{display:block;width:100%;height:auto;max-height:min(55vh,560px);object-fit:contain;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
 .pr-chips{display:flex;flex-wrap:wrap;gap:8px}
 .pr-maker .pr-chip{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1px solid var(--gg-line);border-radius:999px;cursor:pointer;font-size:20px;color:var(--gg-ink);background:hsl(var(--card));margin:0}
 .pr-maker .pr-chip-plain{font:600 14px Montserrat,sans-serif}

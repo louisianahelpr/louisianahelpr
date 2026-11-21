@@ -4,6 +4,7 @@ import { TrustRow } from "@/components/TrustRow";
 import { PersonTile } from "@/components/PersonTile";
 import type { EnrichedJob } from "./types";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
+import { avatarInitials } from "@/lib/avatarImage";
 
 /** What the tile names a poster it could not look up; the dashboard lists use the same words. */
 export const POSTER_NAME_FALLBACK = "a neighbor";
@@ -57,8 +58,8 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
      the paid tier and the repeat-hire relationship. (`posterIdVerified` was a
      third signal here until owner, 2026-09-14 moved the ID-verified pill to
      the profile only — VN-1.) */
-  const posterInitials = (job.posterName || "User")
-    .split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  // Audit 11-21 (P20): one rule for initials (avatarInitials: first and last word), so a member is "EH" on every screen.
+  const posterInitials = avatarInitials(job.posterName || "User");
 
   // Any paying tier opens the trust row. This was a literal
   // elite/pro/basic list and it dropped Plus (CC-019), so a $15/mo poster's

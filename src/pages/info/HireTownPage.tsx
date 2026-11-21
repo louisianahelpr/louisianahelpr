@@ -64,16 +64,18 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
             Need {service.phrase} in {town.name}? Post the job on Louisiana Helpr and a local Helpr can take it.
           </p>
           {/* Design audit 11-17 #13: the two calls were 48 px / 17 px and 40 px / 13 px. One row, one size now. */}
-          <div className="flex flex-wrap gap-3" data-town-ctas="">
+          {/* Audit 11-21 (P30): at 375 the outline filled row 1 and the primary sat alone on row 2. Phones stack both
+              full width with the primary on top (column-reverse keeps it last in the DOM, right of the pair from sm up). */}
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap" data-town-ctas="">
           {/* Train 11-18: the green primary on the right of the pair, both on one line (buttonPairsPrimaryRight). */}
           {/* L014: the page named no Helprs; the directory, filtered to this town, is one tap away. */}
           {/* F260t (audit 11-10): read as plain text at 1440 and in dark; now the secondary button it is. */}
-          <Button asChild variant="outline" size="default" className="rounded-full">
+          <Button asChild variant="outline" size="default" className="rounded-full w-full sm:w-auto">
             <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} data-town-helprs="">
               See Helprs in {town.name}
             </Link>
           </Button>
-          <Button asChild size="default" className="rounded-full">
+          <Button asChild size="default" className="rounded-full w-full sm:w-auto">
             <Link
               to={post}
               onClick={(e) => {

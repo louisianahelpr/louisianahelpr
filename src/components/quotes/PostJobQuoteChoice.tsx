@@ -32,6 +32,7 @@ import { quoteErrorMessage } from "@/lib/quotes/errors";
 import "@/lib/i18n/enPostJob";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
+import { taxKindFor } from "@/lib/salesTax";
 
 export type PriceMode = "price" | "quotes";
 
@@ -195,7 +196,8 @@ export function useAskForQuotes(windowHours: QuoteWindowHours) {
         windowHours,
         // Q2083 (b): the booked job's checkout prices sales tax at this ZIP; cut like Post a Job's (jobSubmitHelpers).
         zipCode: f.zipCode.replace(/\D/g, "").slice(0, 5),
-        taxKind: f.taxKind,
+        // Audit 11-21 (S32): only an answer this category offers, as buildJobInsertPayload does.
+        taxKind: taxKindFor(f.category, f.taxKind),
       });
       void qc.invalidateQueries({ queryKey: ["quotes"] });
       toast("Your request is up", { description: "We'll let you know when quotes come in." });

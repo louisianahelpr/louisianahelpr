@@ -21,7 +21,7 @@ vi.mock("@/lib/haptics", () => ({ hapticLight: () => {} }));
 describe("TaxKindQuestion", () => {
   it("offers None of these, fixes an item, cleans carpet/rugs/furniture, cleans clothes, alters clothes; a tap sets the answer", () => {
     const set = vi.fn();
-    render(<TaxKindQuestion taxKind={null} setTaxKind={set} />);
+    render(<TaxKindQuestion category="other" taxKind={null} setTaxKind={set} />);
     fireEvent.click(screen.getByRole("button", { name: "Change" }));
     const radios = screen.getAllByRole("radio");
     expect(radios.map((r) => r.textContent)).toEqual([
@@ -41,11 +41,31 @@ describe("TaxKindQuestion", () => {
     fireEvent.click(radios[4]);
     expect(set).toHaveBeenCalledWith("clothing_alterations");
   });
+
+  // Audit 11-21 (S32): Electrical listed carpet, clothes and alterations; only "It fixes an item" can apply there.
+  it("offers only the kinds the category's work can be", () => {
+    const names = (category: string) => {
+      const { unmount } = render(<TaxKindQuestion category={category} taxKind={null} setTaxKind={() => {}} />);
+      fireEvent.click(screen.getByRole("button", { name: "Change" }));
+      const out = screen.getAllByRole("radio").map((r) => r.textContent ?? "");
+      unmount();
+      return out;
+    };
+    const electrical = names("electrical");
+    expect(electrical).toHaveLength(2);
+    expect(electrical[0]).toMatch(/^None of these/);
+    expect(electrical[1]).toMatch(/^It fixes an item/);
+    const cleaning = names("cleaning");
+    expect(cleaning).toHaveLength(3);
+    expect(cleaning[1]).toMatch(/^It cleans carpet/);
+    expect(cleaning[2]).toMatch(/^It washes or cleans clothes/);
+    expect(names("other")).toHaveLength(5);
+  });
 });
 
 describe("one row until Change (Jobs audit 11-21, G12)", () => {
   it("unanswered: one row saying none of these, no cards; Change shows the five cards", () => {
-    render(<TaxKindQuestion taxKind={null} setTaxKind={() => {}} />);
+    render(<TaxKindQuestion category="other" taxKind={null} setTaxKind={() => {}} />);
     expect(screen.queryAllByRole("radio")).toHaveLength(0);
     expect(document.querySelector("[data-tax-kind-collapsed]")!.textContent).toMatch(/Sales tax: none of these jobs/);
     fireEvent.click(screen.getByRole("button", { name: "Change" }));
@@ -53,7 +73,7 @@ describe("one row until Change (Jobs audit 11-21, G12)", () => {
   });
 
   it("an answer other than None shows the cards with it picked", () => {
-    render(<TaxKindQuestion taxKind="item_repair" setTaxKind={() => {}} />);
+    render(<TaxKindQuestion category="other" taxKind="item_repair" setTaxKind={() => {}} />);
     const radios = screen.getAllByRole("radio");
     expect(radios).toHaveLength(5);
     expect(radios[1]).toHaveAttribute("aria-checked", "true");

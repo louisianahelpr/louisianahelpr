@@ -13,8 +13,8 @@
  * @mutate src/lib/declutter/searchMatch.ts |   return words.every((w) => text.includes(w)); |   return text.includes(words.join(" "));
  * @mutate src/lib/declutter/searchMatch.ts |   if (w.length > 3 && w.endsWith("s") && !w.endsWith("ss")) return w.slice(0, -1); |
  * @mutate src/lib/declutter/searchMatch.ts |   return [title, description ?? "", (category ?? "").replace(/_/g, " ")] |   return [title]
- * @mutate src/pages/search/SearchPage.tsx |         .or(searchOrFilter(q) ?? "title.ilike.*") |         .ilike("title", likePattern(q))
- * @mutate src/pages/search/SearchPage.tsx |       const rows = all.filter((it) => matchesSearch(q, it)).sort( |       const rows = all.sort(
+ * @mutate src/pages/search/SearchPage.tsx | read(searchOrFilter(q) ?? "title.ilike.*")]); | read(searchOrFilter(q, ["title", "title", "title"]) ?? "title.ilike.*")]);
+ * @mutate src/pages/search/SearchPage.tsx | !seen.has(it.id) && matchesSearch(q, it) | !seen.has(it.id)
  * @mutate src/lib/declutter/searchMatch.ts |     const loose = w.length >= 3 && w.endsWith("y") ? w.slice(0, -1) : w; |     const loose = w;
  * @mutate src/lib/declutter/searchMatch.ts |     return `or(${t}.ilike.*${loose}*,${d}.ilike.*${loose}*,${c}.ilike.*${loose}*)`; |     return `or(${t}.ilike.*${loose}*)`;
  * @mutate supabase/migrations/20261102025235_declutter_saved_search_alerts_wanted_matches.sql |       AND public.declutter_search_matches(s.query, v_item.title, v_item.description, v_item.category) |       AND (s.query IS NULL OR strpos(lower(v_item.title), lower(btrim(s.query))) > 0)
@@ -77,8 +77,10 @@ describe("Declutter search words (DA-1)", () => {
     const src = blankComments(readFileSync("src/pages/search/SearchPage.tsx", "utf8"));
     const hook = src.slice(src.indexOf("function useItemHits"), src.indexOf("function Thumb"));
     expect(hook.length).toBeGreaterThan(200);
-    expect(hook).toContain(".or(searchOrFilter(q)");
-    expect(hook).toContain("all.filter((it) => matchesSearch(q, it))");
+    // Audit 11-21 (P15): the wide read and a title-only read (title hits lead) both use the one rule.
+    expect(hook).toContain("read(searchOrFilter(q) ?? \"title.ilike.*\")");
+    expect(hook).toContain(".or(filter)");
+    expect(hook).toContain("all.filter((it) => !seen.has(it.id) && matchesSearch(q, it))");
     expect(hook).toContain("description");
     expect(hook).not.toContain('.ilike("title"');
   });

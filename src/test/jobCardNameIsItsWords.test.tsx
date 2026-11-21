@@ -8,8 +8,8 @@
  * The spoken price is the chip's own text now, so it is the figure the chip shows, with the first-payout
  * setup fee taken off (Q753), never a second computation beside it.
  *
- * @mutate src/components/dashboard/jobCardInteractiveProps.ts |         tabIndex: 0,\n |         tabIndex: 0,\n        "aria-label": `View ${job.title}`,\n
- * @mutate src/components/dashboard/JobCard.tsx |       {!isGuest && <span className="sr-only">View </span>} | {null}
+ * @mutate src/components/dashboard/jobCardInteractiveProps.ts |     tabIndex: 0,\n |     tabIndex: 0,\n    "aria-label": `View ${job.title}`,\n
+ * @mutate src/components/dashboard/JobCard.tsx |       <span className="sr-only">View </span> | {null}
  * e2e follows the name (Q1816, e2e-journeys #2436: apply-sheet still looked for "View <title> — $" and timed out on 5
  * journeys): no e2e spec selects a job card by the old label.
  * @mutate e2e/journeys/apply-sheet.spec.ts |   const card = page.locator('[data-feed-card][role="button"]').filter({ hasText: BROWSE_FIXTURE_TITLE }).first(); |   const card = page.getByRole("button", { name: new RegExp(`^View ${BROWSE_FIXTURE_TITLE} — \\$`) }).first();
@@ -101,10 +101,13 @@ describe("a signed-in job card's accessible name is its own words (WCAG 2.5.3)",
     expect(name).toContain("setupfee");
   });
 
-  it("a guest card (no role) gets no 'View ' text", () => {
+  // Audit 11-21 (P29): the guest card was a bare div (no role, not focusable). It is the same button as the member card.
+  it("a guest card is a focusable button named by its words after 'View '", () => {
     const card = draw("guest").querySelector("[data-feed-card]")!;
-    expect(card.getAttribute("role")).toBeNull();
-    expect(card.querySelector(".sr-only")?.textContent ?? "").not.toBe("View ");
+    expect(card.getAttribute("role")).toBe("button");
+    expect(card.getAttribute("tabindex")).toBe("0");
+    expect(card.getAttribute("aria-label")).toBeNull();
+    expect(card.querySelector(".sr-only")?.textContent ?? "").toBe("View ");
   });
 
   it("no e2e spec looks for a job card by the old 'View <title> — $' label", () => {

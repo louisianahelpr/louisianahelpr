@@ -15,7 +15,7 @@
  * the target (Q2709; it used -my-2 on a 44px button before). Mocked harness, 375/1440 light+dark, 3 and 4
  * results: Save, group and Shops row move 0px.
  *
- * @mutate src/pages/search/SearchPage.tsx | const GROUP_HEAD_CLASS = "flex min-h-7 items-center justify-between px-1"; | const GROUP_HEAD_CLASS = "flex items-baseline justify-between px-1";
+ * @mutate src/pages/search/SearchPage.tsx | const GROUP_HEAD_CLASS = "flex min-h-7 items-center justify-between px-4"; | const GROUP_HEAD_CLASS = "flex items-baseline justify-between px-1";
  * @mutate src/pages/search/SearchPage.tsx | <InlineTextButton onClick={onSeeAll} className="font-sans font-semibold text-ds-13" | <InlineTextButton onClick={onSeeAll} className="font-sans font-semibold text-ds-13 min-h-[44px]"
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";

@@ -13,7 +13,7 @@
  * @mutate src/components/notificationPanel/quickActions.ts |   if (n.type === "warning" \|\| n.type === "job_update") { |   if (n.type === "job_update") {
  * @mutate src/components/NotificationPanelView.tsx |                               const action = quickActionFor(n, destinationOf); |                               const action = n.type === "expired" ? { label: "Repost", href: "/post-job" } : null;
  * @mutate src/components/sponsor/ClaimSection.tsx |           <p className="lh25-thanks-body" data-testid="sponsor-thanks-days-note">{C.thankYou.daysNote}</p> |           {done.anyDay ? null : <a href="data:text/calendar,">Add to calendar</a>}
- * @mutate src/pages/info/HireTownPage.tsx |           <Button asChild variant="outline" size="default" className="rounded-full"> |           <p className="text-ds-15">
+ * @mutate src/pages/info/HireTownPage.tsx |           <Button asChild variant="outline" size="default" className="rounded-full w-full sm:w-auto"> |           <p className="text-ds-15">
  * @mutate src/components/profile/profileLanding/YouMenu.tsx |         <div className="mt-8 border-t border-border pt-4" data-delete-account-apart=""> |         <div data-delete-account-apart="">
  */
 import { describe, expect, it, vi } from "vitest";

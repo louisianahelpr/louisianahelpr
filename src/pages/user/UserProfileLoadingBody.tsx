@@ -14,6 +14,7 @@ export function UserProfileForwardWait({ own }: { own: boolean }) {
     <div className="min-h-screen bg-premium-page pb-safe-nav" data-testid="user-profile-forward-wait">
       <PageHeader
         title={own ? "Public profile" : "Profile"}
+        wrapTitle={own}
         titleActions={own ? null : (
           <div className="flex items-center gap-1" aria-hidden>
             <div className="h-10 w-10 rounded-ds-md bg-muted motion-safe:animate-pulse" />

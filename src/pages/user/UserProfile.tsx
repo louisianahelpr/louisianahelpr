@@ -32,6 +32,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUnblock } from "./useUnblock";
+import { avatarInitials } from "@/lib/avatarImage";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -248,6 +249,8 @@ const UserProfile = () => {
         <PageHeader
           eyebrow={headerEyebrow}
           title={headerTitle}
+          // Audit 11-21 (P20): at 375 the share and edit buttons cut "Public profile" to "Public …"; it wraps instead.
+          wrapTitle={isOwnProfile}
           meta={headerMeta}
           titleActions={headerActionPlaceholder}
         />
@@ -263,7 +266,7 @@ const UserProfile = () => {
   const stateCard = (card: ReactNode) =>
     wrap(
       <>
-        <PageHeader eyebrow={headerEyebrow} title={headerTitle} meta={headerMeta} />
+        <PageHeader eyebrow={headerEyebrow} title={headerTitle} wrapTitle={isOwnProfile} meta={headerMeta} />
         <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
           <div className="flex">{card}</div>
         </div>
@@ -298,14 +301,9 @@ const UserProfile = () => {
   // painted a coloured square with nothing in it. (ProfileHeaderCard carries
   // its own last-resort guard too; this one keeps the bad value from being
   // manufactured in the first place.)
-  const initials =
-    (profile.full_name || "")
-      .split(/\s+/)
-      .filter(Boolean)
-      .map(w => w[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2) || "?";
+  // Audit 11-21 (P20): one rule for initials (avatarInitials: first and last word), so a member is "EH" on every screen
+  // (this page read the first two words, "ET", while Home's avatar read "EH").
+  const initials = avatarInitials(profile.full_name);
   // NO `computeBadges` CALL HERE ANY MORE. Owner, 2026-09-11: the
   // performance-badge group (Highly Rated / Trusted / On Fire / Fast
   // Responder / Community Fav / Reliable) is deleted from this page — it
@@ -337,6 +335,7 @@ const UserProfile = () => {
         // header's `default` width resolves to, so the two share one edge.
         eyebrow={headerEyebrow}
         title={headerTitle}
+        wrapTitle={isOwnProfile}
         meta={headerMeta}
         // ONE header, not two. These used to ride in `rightSlot`, which renders
         // its own sticky `.glass-header` bar ABOVE the title block — so this

@@ -52,9 +52,9 @@ export function loginNotice(o: {
       : connectName
       ? `Log in to the account you already have. Next you'll connect ${connectName} to it, so that button opens this same account from now on.`
       : o.sessionLost || (o.bouncedFromGatedRoute && o.hadSessionHere)
-      ? "You were signed out on this browser. Log back in and we'll take you right back to where you were."
+      ? SESSION_LOST_NOTICE
       : o.signedOutForInactivity
-      ? "You were signed out after 30 minutes of inactivity. Log back in to pick up where you left off."
+      ? INACTIVITY_NOTICE
       : o.arrivedFromSignup
         ? "If that email already has an account, log in below. Forgot your password? Reset it and you'll be back in."
         : o.bouncedFromGatedRoute
@@ -65,9 +65,14 @@ export function loginNotice(o: {
   // F252: the returning-member lines (payment, finish profile) end with LOG_BACK_IN, so they do not lead with sign-up.
   // F286a: a private job link is the poster's or Helpr's, so it leads with Log in too.
   const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && notice !== JOB_LINK_NOTICE && notice.endsWith(BACK_TO_IT);
-  return { accountChoice, notice, leadWithSignup };
+  // Audit 11-21 (P27): the notice wore a clock for every reason, which read as a time-out on a plain login wall. Only
+  // the two signed-out lines are about time; the rest get an info mark (Login picks the icon from this).
+  const timedOut = notice === SESSION_LOST_NOTICE || notice === INACTIVITY_NOTICE;
+  return { accountChoice, notice, leadWithSignup, timedOut };
 }
 
+const SESSION_LOST_NOTICE = "You were signed out on this browser. Log back in and we'll take you right back to where you were.";
+const INACTIVITY_NOTICE = "You were signed out after 30 minutes of inactivity. Log back in to pick up where you left off.";
 const BACK_TO_IT = "Create an account, or log in and we'll take you straight back to it.";
 /** F286a: the one gated line that does not end with BACK_TO_IT, so the form leads with Log in. */
 /** Log in from an open job a guest was reading (guestLogInUrl): it is public, so never "only visible to". */
@@ -81,11 +86,12 @@ export const JOB_LINK_NOTICE = "This job is only visible to the person who poste
  */
 const GATED_PAGE_LINES: readonly [prefix: string, line: string][] = [
   ["/post-job", "Posting a job needs a free account."],
-  ["/tips", "Sending a tip needs a free account."],
   ["/shops", "Shops needs a free account."],
   ["/jobs", "Your jobs need an account."],
   ["/profile", "Your profile needs an account."],
   ["/home", "Your home page needs an account."],
+  // Audit 11-21 (P27): /posts said the generic "That page needs a free account."
+  ["/posts", "Your posts need an account."],
 ];
 
 /**
@@ -99,6 +105,10 @@ const RETURNING_PAGE_LINES: readonly [prefix: string, line: string][] = [
   // F418 (audit 11-10): a link into /messages comes from a message email, notice or a member's own app, so the
   // person holding it already has an account. Log in leads.
   ["/messages", "Log in to see your messages."],
+  // Audit 11-21 (P27): /tips/:id and /quotes/* links come from a member's own notifications (a tip prompt after a
+  // job, a quote asked for or received), so the holder already has an account. They led with Create an account.
+  ["/tips", "Log in to send your tip."],
+  ["/quotes", "Log in to see your quote."],
 ];
 const LOG_BACK_IN = "We'll take you straight back to it.";
 
@@ -151,14 +161,16 @@ const NOTICE_KEYS: readonly [english: string, key: string][] = [
   ["This job is only visible to the person who posted it and the person doing it. Log in and we'll take you straight back to it.", "ln.jobLink"],
   ["We'll take you straight back to it.", "ln.logBackIn"],
   ["Posting a job needs a free account.", "ln.g.postJob"],
-  ["Sending a tip needs a free account.", "ln.g.tips"],
   ["Shops needs a free account.", "ln.g.shops"],
   ["Your jobs need an account.", "ln.g.jobs"],
   ["Your profile needs an account.", "ln.g.profile"],
   ["Your home page needs an account.", "ln.g.home"],
+  ["Your posts need an account.", "ln.g.posts"],
   ["Log in to see your payment.", "ln.r.payment"],
   ["Log in to finish your profile.", "ln.r.profile"],
   ["Log in to see your messages.", "ln.r.messages"],
+  ["Log in to send your tip.", "ln.r.tips"],
+  ["Log in to see your quote.", "ln.r.quotes"],
   ["That's an item for sale on Declutter, neighbors selling what they don't need.", "ln.d.item"],
   ["Selling on Declutter needs an account.", "ln.d.sell"],
   ["Your Declutter settings need an account.", "ln.d.settings"],

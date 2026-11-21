@@ -23,8 +23,10 @@ export const FINDER_WHO: { id: FinderWho; label: string; guides: { slug: string;
   { id: "him", label: "Him", guides: [{ slug: "him" }] },
   { id: "mom", label: "Mom", guides: [{ slug: "mom" }] },
   { id: "dad", label: "Dad", guides: [{ slug: "dad" }] },
-  // Follow-up 1120: Kids is one guide by age; Friends and Coworkers are sections of Friends & Coworkers.
-  { id: "kids", label: "Kids", guides: [{ slug: "kids", sections: ["little-kids"] }, { slug: "kids", sections: ["big-kids"] }] },
+  // Holiday audit 1121 (High): Kids is the owner's one flat list (no sections since 11-21), so the finder takes the
+  // whole guide; the old "little-kids" / "big-kids" sections matched none of its 56 picks and Kids came up empty.
+  // Friends and Coworkers are sections of Friends & Coworkers.
+  { id: "kids", label: "Kids", guides: [{ slug: "kids" }] },
   // Owner 11-20 evening: Teens is its own guide.
   { id: "teen", label: "Teen", guides: [{ slug: "teens" }] },
   // Owner's standard plan 11-20 evening: "For your best friend" holds 11 picks, 8 once the finder keeps one per brand and

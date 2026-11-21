@@ -22,6 +22,7 @@ import type { PriceOrder } from "@/content/giftGuidePriceSort";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
+import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
 import { DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
@@ -72,7 +73,9 @@ export default function GiftGuides() {
   // an owner-list guide (Her, Him, Kids and their views); a new guide starts low to high.
   const [order, setOrder] = useState<{ slug: string; order: PriceOrder }>({ slug: "", order: "low" });
   const sortOrder: PriceOrder = guide && order.slug === guide.slug ? order.order : "low";
-  const sort = guide && isOwnerList(guide.slug) ? { order: sortOrder, onChange: (o: PriceOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
+  // Holiday audit 1121: no price sort over a list that shows no price (a list still loading keeps it, so it never jumps).
+  const priced = guide ? guide.picks.length === 0 || guide.picks.some((p) => showsPrice(p)) : false;
+  const sort = guide && isOwnerList(guide.slug) && priced ? { order: sortOrder, onChange: (o: PriceOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
   // The deals days (owner 2026-11-21: "like each day has its own section, no need to put them all in 1"): Black Friday,
   // Small Business Saturday and Cyber Monday are each their own page (src/content/giftGuideDeals.mjs DEAL_EVENTS), not
   // a catalog list of picks. `deals` is the open day wherever the page only asks "is this a catalog guide?".

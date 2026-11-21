@@ -7,9 +7,15 @@ import type { CatalogPick } from "@/content/giftGuideCatalog";
  * warned in a pop-up that Amazon allows prices only from its PA-API feed and that showing them risks the Associates
  * account, she chose "Show Amazon prices anyway". An Amazon pick's price is the one captured from her own saved list.
  * A price older than PRICE_MAX_AGE_DAYS on the day the page opens is hidden, so a file nobody re-imported never shows
- * an old price. Guard: src/test/giftGuidePrices.test.tsx.
+ * a months-old price. Holiday audit 1121 (High): the limit was 3 days and nothing refreshes the files on a schedule
+ * (prices are re-imported by hand, scripts/gift-guide-picks.mjs), so every price checked Nov 21 went blank on Wed
+ * Nov 25, the week of Black Friday, and the price sections and sort fell apart with them. The limit is now 30 days:
+ * each list still says "Prices as of <check day>, may change" (PricesAsOf), so the shopper sees how old a price is,
+ * and scripts/gift-guide-price-age.mjs exits 1 once the newest check is 2+ days old so the refresh is noticed long
+ * before anything hides. The import keeps its own 3-day limit (scripts/giftGuidePrice.mjs). Never an invented price.
+ * Guard: src/test/giftGuidePrices.test.tsx.
  */
-const PRICE_MAX_AGE_DAYS = 3;
+const PRICE_MAX_AGE_DAYS = 30;
 const todayInLouisiana = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
 const dayNumber = (ymd: string) => Date.parse(`${ymd}T12:00:00Z`) / 86400000;
 

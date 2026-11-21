@@ -224,6 +224,7 @@ export const FOOTWEAR: RegExp;
 export const WOMENS_LINK: RegExp;
 export const FEMININE_COLOR: RegExp;
 export const MEN_FUNKY_COLOR: RegExp;
+export const MEN_PHOTO_OFF: string[];
 export const menStyleWhy: (p: StylePick) => string;
 export const menPastelOff: (slug: string, p: StylePick) => boolean;
 export const NEON: RegExp;

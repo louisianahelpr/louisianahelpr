@@ -19,6 +19,13 @@ export function applyOwner1120d(pageList, spec) {
     if (!list.some((p) => String(p.section ?? "") === a.section)) { missing.push(`${a.guide}: no section ${a.section} for ${a.row.name}`); continue; }
     pageList[a.guide] = placeInSection(list, { ...a.row }, a.section);
     counts.adds += 1;
+    // Every product shows on one guide (owner 11-19): a row already on another guide moves here.
+    for (const slug of Object.keys(pageList)) {
+      if (slug === a.guide || slug.startsWith("store-") || slug === "25-days-sponsors") continue;
+      const before = pageList[slug].length;
+      pageList[slug] = pageList[slug].filter((p) => p.href !== a.row.href);
+      counts.moved = (counts.moved ?? 0) + before - pageList[slug].length;
+    }
   }
   return { counts, missing };
 }

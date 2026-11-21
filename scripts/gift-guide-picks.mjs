@@ -1952,7 +1952,7 @@ let holisticWhy = () => "";
     if (NEUTRAL_GUIDES.includes(slug) && ONE_GENDER.test(p.name)) return "gendered";
     if (PET_ONLY[slug] && !PET_ONLY[slug](p) && !PETS_FILL.get(slug)?.has(p.href)) return "not for this pet";
     if (PET_ITEM.test(p.name) && !PET_OK.has(slug)) return "pet item outside Pets";
-    if (WORK_BOOT_OFF.includes(slug) && (WORK_BOOT.test(p.name) || DECK_BOOT.test(`${p.name} ${p.brand ?? ""}`) || /^muck boot$/i.test(p.brand ?? ""))) return "work boot";
+    if (WORK_BOOT_OFF.includes(slug) && (WORK_BOOT.test(p.name) || (DECK_BOOT.test(`${p.name} ${p.brand ?? ""}`) && !/\bwomen's\b/i.test(p.name)) || /^muck boot$/i.test(p.brand ?? ""))) return "work boot";
     if (WOMEN_GUIDES.includes(slug) && mensItem(p)) return "men's item";
     if (INSTAX_OFF.includes(slug) && instaxItem(p)) return "instax";
     if (slug === "gender-neutral-teens" && GENDERED.test(p.name)) return "gendered";

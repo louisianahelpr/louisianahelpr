@@ -1359,6 +1359,7 @@ export const WOMENS_FOOTWEAR = /\b(platforms?|flatforms?|lift|wedges?|heels?|sti
 export const FOOTWEAR = /\b(shoes?|slippers?|sandals?|slides?|mules?|clogs?|loafers?|sneakers?|boots?|moccasins?|flip ?flops?|footwear)\b/i;
 export const WOMENS_LINK = /\bwom[ae]ns?\b|\bladies\b|\bfemale\b/i;
 export const FEMININE_COLOR = /(pink|mauve|blush|lilac|lavender|fuchsia|magenta|rose ?gold|bubblegum|orchid|peony|cotton ?candy|baby ?blue|seafoam|pastel)/i;
+export const MEN_PHOTO_OFF = ["pretty-prod-1778122455746", "pretty-prod-1789655101789"];
 export const MEN_FUNKY_COLOR = /\b(mint|aqua|turquoise|teal|seafoam|sea ?glass|coral|sherbet|lime|neon|chartreuse)\b/i;
 const decodeSafe = (u) => {
   try { return decodeURIComponent(u); } catch { /* a malformed escape keeps the raw link text */ return u; }
@@ -1369,6 +1370,9 @@ export const menStyleWhy = (p) => {
   const links = decodeSafe([p.href, p.affiliate_href, p.fallback_href, p.product_url].map((u) => String(u ?? "")).join(" "));
   const image = String(p.image ?? "");
   if (FOOTWEAR.test(`${name} ${type}`) && WOMENS_FOOTWEAR.test(name)) return "women's footwear style";
+  // Photo review 11-20 (every photo viewed): a women's cat-eye Ray-Ban (RB4167), a women's Roller Rabbit set (W- code),
+  // a lilac FootJoy Quantum and a pink YETI 10 oz stackable mug whose names carry no color word.
+  if (/\brb ?4167\b/i.test(name) || /[/_-]W-[A-Z]{2,}/.test(image) || MEN_PHOTO_OFF.some((id) => image.includes(id))) return "women's style in the photo";
   if (WOMENS_LINK.test(links.replace(/[-_/?=&.+]/g, " ")) || /[-_]female[-_.]/i.test(image)) return "women's product link";
   const colorText = `${links} ${image} ${p.line ?? ""} ${p.color ?? ""} ${p.colour ?? ""} ${p.variant ?? ""} ${p.colorway ?? ""}`;
   if (FEMININE_COLOR.test(colorText)) return "feminine colorway";

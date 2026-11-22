@@ -339,6 +339,8 @@ export const CUTOUTS_1120 = new Map([
   ["https://slimages.macysassets.com/is/image/MCY/products/7/optimized/26752727_fpx.tif", "play22usa-10ft-hoop-macys-b7.webp"],
   ["https://target.scene7.com/is/image/Target/GUEST_e24e9f30-ae18-4fd5-b2c0-e0bee49629b0", "step2-rain-showers-target-c1.webp"],
   ["https://static.shopmy.us/uploads/pretty-prod-1764597442673", "burts-bees-little-ducks-c1.webp"],
+  ["https://static.shopmy.us/pins/zoom-108100673-1795144222288-WXZdEMYzF3p1mC184cAVhLxQo.jpg", "maisonette-american-ducks-c1.webp"],
+  ["https://static.shopmy.us/pins/zoom-107895388-1795118461682-6165186", "duck-commander-starter-call-c1.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

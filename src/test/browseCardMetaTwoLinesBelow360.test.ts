@@ -13,8 +13,9 @@
  *
  * @mutate src/components/dashboard/JobCard.tsx | flex-nowrap max-[359px]:flex-wrap overflow-hidden | flex-nowrap overflow-hidden
  * @mutate src/components/dashboard/JobCard.tsx | <span aria-hidden data-meta-break className="hidden max-[359px]:block basis-full h-0.5" /> | <span aria-hidden data-meta-break className="hidden" />
- * @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | <div className="flex items-center gap-x-2 max-[359px]:flex-wrap"> | <div className="flex items-center gap-x-2">
+ * @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | <div className="job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden"> | <div className="flex items-center gap-x-2">
  * @mutate src/index.css |   .job-card-media-col .job-meta-row { flex-wrap: wrap; } |   .job-card-media-col .job-meta-row { flex-wrap: nowrap; }
+ * @mutate src/index.css | .job-card-media-col { container-type: inline-size; }\n@container (max-width: 459px) { | @media (max-width: 767px) {
  * @mutate src/index.css |   .job-card-media-col .job-meta-row > [data-meta-break] { display: block; } |   .job-card-media-col .job-meta-row > [data-meta-break] { display: none; }
  */
 import { readFileSync } from "node:fs";
@@ -44,16 +45,21 @@ describe("the Browse card meta row takes two lines below 360px (Q2222)", () => {
   });
 
   it("the loading bone takes the same two lines below 360px", () => {
-    expect(BONE).toContain('<div className="flex items-center gap-x-2 max-[359px]:flex-wrap">');
-    expect(BONE).toContain('<span aria-hidden className="hidden max-[359px]:block basis-full h-0.5" />');
+    // Jobs audit 11-21 (P10): the bone's meta row IS the card's (same classes, same break), so the same CSS gives it
+    // the same lines: below 360px (Q2222) and in a narrow media column (P9's container query).
+    expect(BONE).toContain('<div className="job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden">');
+    expect(BONE).toContain('<span aria-hidden data-meta-break className="hidden max-[359px]:block basis-full h-0.5" />');
     expect(BONE.match(/className="invisible w-0[^"]*"/g)?.length ?? 0).toBeGreaterThan(1);
   });
 });
 
-describe("on a phone every photo-first card takes the two-line meta row (Q2043)", () => {
-  it("below 768px the media column's meta row wraps, its break shows and the dot after it drops", () => {
-    const at = CSS.indexOf("@media (max-width: 767px) {\n  .job-card-media-col .job-meta-row");
-    expect(at, "the phone media-column block is in src/index.css").toBeGreaterThan(-1);
+describe("a narrow text column takes the two-line meta row, at any screen width (Q2043, Jobs audit 11-21 P9)", () => {
+  it("below 460px of column the meta row wraps, its break shows and the dot after it drops", () => {
+    // P9: a viewport rule (max-width: 767px) missed the 768 two-column grid, whose ~284px column clipped the time.
+    expect(CSS).toContain(".job-card-media-col { container-type: inline-size; }");
+    expect(CSS).not.toContain("@media (max-width: 767px) {\n  .job-card-media-col");
+    const at = CSS.indexOf("@container (max-width: 459px) {\n  .job-card-media-col .job-meta-row");
+    expect(at, "the media-column container block is in src/index.css").toBeGreaterThan(-1);
     const block = CSS.slice(at, CSS.indexOf("}\n}", at) + 3);
     expect(block).toContain(".job-card-media-col .job-meta-row { flex-wrap: wrap; }");
     expect(block).toContain(".job-card-media-col .job-meta-row > [data-meta-break] { display: block; }");

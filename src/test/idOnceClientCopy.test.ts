@@ -11,14 +11,14 @@
  *
  * @mutate src/lib/awardGate.ts |   return `${who} verifies their ID when they accept.`; |   return `${who} can't be hired until they verify their ID.`;
  * @mutate src/lib/seriesDates.ts |   if (r.missing.length === 0) return null; |   if (r.missing.length >= 0) return null;
- * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantIdNote.tsx |       {applicantIdNote(formatName(fullName, ""))} |       {null}
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantIdNote.tsx |       {APPLICANTS_ID_NOTE} |       {null}
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { applicantIdNote } from "@/lib/awardGate";
+import { APPLICANTS_ID_NOTE, applicantIdNote } from "@/lib/awardGate";
 import { claimSetupStep } from "@/lib/seriesDates";
 
 // These cases test the ID check while it is ON. The owner switched it off on
@@ -43,12 +43,17 @@ describe("poster: an unverified applicant is named, never refused", () => {
     expect(line).not.toMatch(/can't|cannot|not be hired|hire yet/i);
   });
 
-  it("the applicant card renders it for an applicant whose ID is not verified", () => {
+  it("the applicants list says it ONCE, above the list, while any applicant's ID is not verified (Jobs audit 11-21, G10)", () => {
     const panel = blankComments(readFileSync(resolve(__dirname, "../pages/posts/postedJobs/ApplicantsPanel.tsx"), "utf8"));
-    expect(panel).toContain("<ApplicantIdNote fullName={app.profiles.full_name} idVerified={app.profiles.is_id_verified} />");
+    expect(panel).toContain("<ApplicantIdNote anyUnverified={applications.some((a) => !!a.profiles && a.profiles.is_id_verified !== true)} />");
+    expect(panel.match(/<ApplicantIdNote\b/g)?.length).toBe(1);
+    const table = blankComments(readFileSync(resolve(__dirname, "../pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx"), "utf8"));
+    expect(table).not.toMatch(/applicantIdNote|data-applicant-id-note/);
     const note = blankComments(readFileSync(resolve(__dirname, "../pages/posts/postedJobs/applicantsPanel/ApplicantIdNote.tsx"), "utf8"));
-    expect(note).toMatch(/if \(!idOn \|\| idVerified === true\) return null;/);
-    expect(note).toContain("{applicantIdNote(formatName(fullName, \"\"))}");
+    expect(note).toMatch(/if \(!idOn \|\| !anyUnverified\) return null;/);
+    expect(note).toContain("{APPLICANTS_ID_NOTE}");
+    expect(APPLICANTS_ID_NOTE).not.toMatch(PRONOUNS);
+    expect(APPLICANTS_ID_NOTE).not.toMatch(/can't|cannot|not be hired|hire yet/i);
   });
 });
 

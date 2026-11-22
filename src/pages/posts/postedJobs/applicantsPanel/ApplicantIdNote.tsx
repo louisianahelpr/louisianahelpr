@@ -1,18 +1,17 @@
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
-import { formatName } from "@/lib/utils";
-import { applicantIdNote } from "@/lib/awardGate";
+import { APPLICANTS_ID_NOTE } from "@/lib/awardGate";
 
 /**
- * The applicant row's "verifies their ID when they accept" note, shown only while
- * the ID check is on (owner 2026-10-23: it is off) and the applicant is not
- * ID-verified yet.
+ * The applicants list's "verifies their ID when they accept" line, shown only while the ID check is on and at least
+ * one applicant is not ID-verified yet. ONCE above the list (Jobs audit 11-21, G10): it was repeated on every
+ * unverified card ("Andre verifies their ID when they accept."), the same words down the whole list.
  */
-export function ApplicantIdNote({ fullName, idVerified }: { fullName: string | null | undefined; idVerified: boolean | null | undefined }) {
+export function ApplicantIdNote({ anyUnverified }: { anyUnverified: boolean }) {
   const idOn = useIdentityCheckOnStore();
-  if (!idOn || idVerified === true) return null;
+  if (!idOn || !anyUnverified) return null;
   return (
-    <span className="block mt-0.5 text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood))" }} data-applicant-id-note="">
-      {applicantIdNote(formatName(fullName, ""))}
-    </span>
+    <p className="mb-3 text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood))" }} data-applicant-id-note="">
+      {APPLICANTS_ID_NOTE}
+    </p>
   );
 }

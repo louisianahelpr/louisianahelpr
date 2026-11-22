@@ -40,6 +40,8 @@ export function jobNextStep(
     const by = Number.isNaN(untilMs) || untilMs <= Date.now() ? null : t("ns.until", { when: laTime(untilMs) });
     return { who: "them", text: t("ns.waitAccept", { name: other || t("ns.theHelpr") }), by };
   }
+  // Audit 11-21 (G6): an unpaid job's next step is paying, never "Choose a Helpr · 1 applied" (nobody can see it).
+  if (o.side === "poster" && progress.unpaid) return { who: "you", text: t("ns.payToPost"), body: t("ns.payToPostBody") };
   if (o.side === "poster" && progress.stage === 0) {
     const n = o.pendingApplicants ?? 0;
     // Q2693 (audit 1102e row 2): the page looked like a plain open listing after the hired Helpr cancelled.

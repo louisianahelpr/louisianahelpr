@@ -17,6 +17,8 @@ export const esJobLines: Record<keyof typeof enJobLines, string> = {
   "jl.passed": "Usted no eligió a esta persona",
   "jl.notPicked": "No lo eligieron esta vez",
   "jl.waitPayment": "Esperando su pago",
+  "jl.notPosted": "Aún no publicado",
+  "jl.payToPost": "Pague para publicarlo",
   "jl.waitApply": "Esperando a que los Helprs se postulen",
   "jl.pick": "Elija a su Helpr",
   "jl.openForHelprs": "Abierto para Helprs",
@@ -89,4 +91,5 @@ export const esJobLines: Record<keyof typeof enJobLines, string> = {
   "jl.nowConfirmNote": "Usted confirmará cuando diga que ya llegó.",
   "jl.approveLeft": "Le quedan {left} para aprobar o pedir un cambio; después interviene el soporte de Helpr",
   "jl.approveLate": "Todavía puede aprobar. El soporte de Helpr se comunicará con usted; su pago sigue retenido",
+  "jl.approveLateShort": "aún puede aprobar; el soporte de Helpr se comunicará",
 };

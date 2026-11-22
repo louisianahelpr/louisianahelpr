@@ -1390,7 +1390,7 @@ describe("a crew member's own job page (A2-B8)", () => {
 // Guarantee at the very bottom. "Get help now" is off the page (help is the header icon). On a phone the column boxes
 // are `contents`, so each part's `order-N` places it in the one stack (jsdom draws no layout: the classes are read).
 // Layout V2 (owner 11-01): the order is the DOM's own now (no `order-N`), read by "job page layout V2" below.
-// @mutate src/pages/jobs/jobPage/JobPage.tsx | <div data-job-details="" className="space-y-4 lg:col-span-2"> | <div data-job-details="" className="space-y-4">
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | <div data-job-details="" className="space-y-4 lg:col-start-1"> | <div data-job-details="" className="space-y-4">
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | <section aria-label={t("jobPage.summary")} data-job-head="" | <section aria-label={t("jobPage.summary")} data-job-head-gone=""
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | <div data-job-guarantee="" className="empty:hidden"> | <div data-job-guarantee-gone="" className="empty:hidden">
 // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     posterWait === "confirm_still_on" |     false
@@ -1875,8 +1875,10 @@ describe("job page layout V2 (owner 11-01, mockups 4 and 5)", () => {
     const card = page.querySelector("[data-job-side] [data-job-card]");
     const guarantee = page.querySelector("[data-job-side] [data-job-guarantee]");
     expect(follows(head, details) && follows(details, steps) && follows(steps, photos) && follows(photos, card) && follows(card, guarantee)).toBe(true);
-    expect((details!.getAttribute("class") ?? "")).toContain("lg:col-span-2");
-    expect((steps!.getAttribute("class") ?? "")).toContain("lg:col-span-2");
+    // Jobs audit 11-21 (G14): two real columns from 1024 up; Details and the tracker are the left column's (the side
+    // card is the right column from the top), so neither half stands empty. src/test/jobPageHeadKeepsLeftColumn.test.ts.
+    expect((details!.getAttribute("class") ?? "")).toContain("lg:col-start-1");
+    expect((steps!.getAttribute("class") ?? "")).toContain("lg:col-start-1");
     expect((page.querySelector("[data-job-main]")!.getAttribute("class") ?? "")).toContain("lg:col-start-1");
     // The right column is sticky on a computer.
     expect((page.querySelector("[data-job-side]")!.getAttribute("class") ?? "")).toMatch(/lg:sticky/);
@@ -2003,11 +2005,12 @@ describe("job page, a disputed job (JA-30)", () => {
 
 /**
  * Lead 11-01 (B107): at 1440 a stage with nothing in the main column (Done, Cancelled: no photos, crew or fix) left the
- * left column EMPTY beside the side card. The main column hides when empty, and the card then takes its place.
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |  lg:[[data-job-main]:empty+&]:col-span-2"> | ">
+ * left column EMPTY beside the side card. Jobs audit 11-21 (G14): the side card is the right column from the FIRST row
+ * now, beside the head, Details and the tracker, so an empty main column leaves no dead half either way.
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | lg:col-start-2 lg:row-start-1 lg:row-span-4 lg:self-start | lg:col-start-2 lg:self-start
  */
 describe("job page, no dead column at 1440", () => {
-  it("a Done job with no photos: the main column is empty (hidden) and the card moves into it", () => {
+  it("a Done job with no photos: the main column is empty (hidden) and the card stands beside the head from the top", () => {
     state.job = row({ customer_id: ME, helper_id: POSTER, status: "completed", payment_status: "released" });
     state.party = true;
     renderPage();
@@ -2015,11 +2018,10 @@ describe("job page, no dead column at 1440", () => {
     const side = document.querySelector("[data-job-side]")!;
     expect(main.childNodes.length).toBe(0);
     expect(main.className.split(/\s+/)).toContain("empty:hidden");
-    // The card is the main column's next sibling, and moves to column 1 when it is empty (CSS: :empty + aside).
     expect(main.nextElementSibling).toBe(side);
-    // Full content width, right under the tracker (owner via lead 11-01): the first column AND both columns.
-    expect(side.className.split(/\s+/)).toContain("lg:[[data-job-main]:empty+&]:col-start-1");
-    expect(side.className.split(/\s+/)).toContain("lg:[[data-job-main]:empty+&]:col-span-2");
+    // The right column from row 1, spanning the left column's rows (head, Details, steps, main).
+    expect(side.className.split(/\s+/)).toEqual(expect.arrayContaining(["lg:col-start-2", "lg:row-start-1", "lg:row-span-4"]));
+    expect(document.querySelector("[data-job-head]")!.className.split(/\s+/)).toContain("lg:col-start-1");
   });
 });
 
@@ -2099,13 +2101,20 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
   });
 
   it("a set day: both sides read 'Continuing Thu, Nov 5 at 9:00 AM', the poster waiting on the Helpr by name", async () => {
-    continueState.row = setRow();
-    state.job = underWay();
-    state.party = true;
-    renderPage();
-    // The When row reads the next visit (Q2680), not day 1.
-    await waitFor(() => expect(document.querySelector("[data-job-meta]")?.textContent).toBe("Continuing Thu, Nov 5 at 9:00 AM"));
-    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Rhonda comes back Thu, Nov 5 at 9:00 AM · nothing for you to do; Rhonda confirms next"); // F289a
+    // The day still ahead (Jobs audit 11-21, G17: once it has passed the poster's line says so, continueDay.test.ts).
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-04T18:00:00Z"));
+    try {
+      continueState.row = setRow();
+      state.job = underWay();
+      state.party = true;
+      renderPage();
+      // The When row reads the next visit (Q2680), not day 1.
+      await waitFor(() => expect(document.querySelector("[data-job-meta]")?.textContent).toBe("Continuing Thu, Nov 5 at 9:00 AM"));
+      expect(document.querySelector("[data-next-step]")?.textContent).toBe("Rhonda comes back Thu, Nov 5 at 9:00 AM · nothing for you to do; Rhonda confirms next"); // F289a
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("a Helpr's ask: 'Confirm new day' leads on the right (one tap) over Approve", async () => {

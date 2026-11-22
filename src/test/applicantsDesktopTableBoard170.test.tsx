@@ -201,9 +201,12 @@ describe("board 170: the desktop table", () => {
     expect(onHire).toHaveBeenCalledWith(apps[1]);
     fireEvent.click(screen.getByRole("button", { name: "Decline Andre L." }));
     expect(onDecline).toHaveBeenCalledWith(apps[0]);
-    fireEvent.click(screen.getByRole("button", { name: "Report Deon W.'s application" }));
+    // Jobs audit 11-21 (G10): Report and Block are rows of each row's "..." menu (ApplicantMoreMenu).
+    fireEvent.keyDown(screen.getByRole("button", { name: "More for Deon W." }), { key: "Enter" });
+    fireEvent.click(screen.getByRole("menuitem", { name: "Report application" }));
     expect(onReport).toHaveBeenCalledWith(apps[1]);
-    fireEvent.click(screen.getByRole("button", { name: "Block Andre L." }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "More for Andre L." }), { key: "Enter" });
+    fireEvent.click(screen.getByRole("menuitem", { name: "Block Andre L." }));
     expect(onBlock).toHaveBeenCalledWith(apps[0]);
   });
 });

@@ -26,6 +26,8 @@ export const enPostJob = {
   // Owner 11-20: the optional parts of each step, folded
   "postJob.extras.title": "Add photos and more",
   "postJob.extras.sub": "Optional. A photo helps Helprs say yes.",
+  "postJob.extras.titleTrade": "Photos, and who can apply",
+  "postJob.extras.subTrade": "Optional. Ask for licensed or insured Helprs, or add a photo.",
   "postJob.extras.onePhoto": "1 photo added",
   "postJob.extras.photos": "{n} photos added",
   "postJob.extras.photosAfterSignup": "You can add photos after you sign up. Everything else you type here is kept.",

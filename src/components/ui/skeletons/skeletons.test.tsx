@@ -23,7 +23,7 @@ import type { ReactElement } from "react";
 import { JobCardSkeleton, RecommendedJobCardSkeleton } from "./JobCardSkeleton";
 import { ApplicationCardSkeleton, PostedListBones, WorkingListBones } from "./ApplicationCardSkeleton";
 import { MessageThreadSkeleton } from "./MessageThreadSkeleton";
-import { JOB_CARD_FRAME } from "@/components/job/cardGeometry";
+import { JOB_CARD_FRAME, JOB_CARD_ROW_FRAME } from "@/components/job/cardGeometry";
 import { JOB_CARD_SHELL_FRAME } from "@/components/job-card/JobCardShell";
 import { CONVERSATION_ROW_FRAME } from "@/components/messages/ConversationRow";
 
@@ -31,7 +31,7 @@ const cases = [
   {
     name: "JobCardSkeleton",
     el: <JobCardSkeleton />,
-    frame: JOB_CARD_FRAME,
+    frame: JOB_CARD_ROW_FRAME,
     source: "JobCard (cardGeometry)",
     minBones: 5,
   },
@@ -88,7 +88,8 @@ describe("card-matching skeletons", () => {
     // Not a second hand-drawn card: it composes JobCardSkeleton, so the two
     // cannot disagree about the box the way the old pair did.
     const { container } = render(<RecommendedJobCardSkeleton />);
-    const inner = container.querySelector(`[class="${JOB_CARD_FRAME.trim()}"]`);
+    // Jobs audit 11-21 (P10): the card's ROW frame, the form every feed card takes.
+    const inner = container.querySelector(`[class="${JOB_CARD_ROW_FRAME.trim()}"]`);
     expect(inner, "recommended skeleton must reuse JobCardSkeleton's frame").not.toBeNull();
   });
 

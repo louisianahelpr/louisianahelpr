@@ -20,7 +20,7 @@
 // @mutate src/components/reportDialog/reportReasons.ts | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application" \| "declutter_item" \| "declutter_wanted" \| "declutter_question" \| "declutter_answer" \| "declutter_review" \| "shop" \| "shop_item" \| "shop_talk_message" \| "home_listing" \| "home_talk_message" \| "shop_review"; | type ReportedType = "job" \| "message" \| "user" \| "review" \| "declutter_item" \| "declutter_wanted" \| "declutter_question" \| "declutter_answer" \| "declutter_review" \| "shop" \| "shop_item" \| "shop_talk_message" \| "home_listing" \| "home_talk_message" \| "shop_review";
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | reportedType="application" | reportedType="user"
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | blockedUserId={blockApp.helper_id} | blockedUserId={blockApp.id}
-// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | onClick={() => { hapticLight(); setBlockApp(app); }} | onClick={() => { hapticLight(); }}
+// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | onBlock={() => setBlockApp(app)} | onBlock={() => {}}
 // @mutate supabase/migrations/20260924182505_report_against_application.sql | 'review'::text, 'application'::text])); | 'review'::text]));
 // @mutate supabase/migrations/20260924182505_report_against_application.sql | SELECT a.helper_id INTO v_subject FROM public.applications a WHERE a.id = NEW.reported_id; | v_subject := NEW.reported_id;
 // @mutate src/components/admin/adminReports/fetchReports.ts | r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null | r.reported_type === "application" ? r.reported_id
@@ -67,8 +67,11 @@ describe("Q366: report or block an applicant", () => {
 
   it("each applicant row reports the application and blocks the applicant", () => {
     const src = read("src/pages/posts/postedJobs/ApplicantsPanel.tsx");
-    expect(src).toContain("onClick={() => { hapticLight(); setReportApp(app); }}");
-    expect(src).toContain("onClick={() => { hapticLight(); setBlockApp(app); }}");
+    // Jobs audit 11-21 (G10): Report and Block are rows of the applicant's "..." menu (ApplicantMoreMenu), on every row.
+    expect(src).toContain("onReport={() => setReportApp(app)} onBlock={() => setBlockApp(app)}");
+    const menu = read("src/pages/posts/postedJobs/applicantsPanel/ApplicantMoreMenu.tsx");
+    expect(menu).toContain("onClick={() => { hapticLight(); onReport(); }}");
+    expect(menu).toContain("onClick={() => { hapticLight(); onBlock(); }}");
     expect(src).toContain('reportedType="application"');
     expect(src).toContain("reportedId={reportApp.id}");
     expect(src).toContain("blockedUserId={blockApp.helper_id}");

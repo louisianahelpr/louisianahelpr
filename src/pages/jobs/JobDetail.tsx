@@ -15,7 +15,8 @@ import { useFooterAfterContent } from "@/hooks/useFooterAfterContent";
 import { queryKeys } from "@/lib/queryKeys";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { signedOutOnPurposeRecently } from "@/lib/unexpectedSignOut";
-import PublicLayout from "@/components/marketing/PublicLayout";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
+import { NARROW_COLUMN, NARROW_HEADER_COLUMN } from "@/lib/publicContainer";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase, useProfileWaitPhase } from "@/hooks/useFeedPhase";
@@ -170,11 +171,23 @@ const JobDetail = () => {
   // can reuse it without a hook landing after an early return.)
 
   return (
-    <PublicLayout noNavSpacer footer={footerReady}>
-      <div ref={contentRef} className="pt-20 pb-safe-nav px-5">
-        <div className="container mx-auto max-w-lg">
-          {/* F268a: on the job's own page the title is the visible heading; every other branch keeps it for readers. */}
-          <h1 data-job-detail-title="" className={showsGuestPage ? "mb-4 text-page-title leading-tight break-words" : "sr-only"}>{headingText}</h1>
+    // Audit 11-21 (P6): the shared public shell (PublicHeaderPage, as /browse, /hire and /u use), not a hand-built
+    // `pt-20 px-5` + `container max-w-lg` that doubled the gutter (content x=52-323 at 375) and set the title 352px
+    // right of the logo at 1440, with no back arrow. The arrow goes back, else to Browse. F268a: on the job's own
+    // page the title is the visible heading; every other branch keeps it for readers (hidesTitle).
+    <PublicHeaderPage
+      title={headingText}
+      backTo="/browse"
+      width="public"
+      wrapTitle
+      hidesTitle={!showsGuestPage}
+      bottomPaddingClassName="pb-safe-nav"
+      footer={footerReady}
+      headerWrapperClassName={NARROW_HEADER_COLUMN}
+    >
+      {/* The town page's ~760px column (F063), title included, so the facts rows read across a reading width. */}
+      <div ref={contentRef} data-job-detail-body="" className={`mx-auto ${NARROW_COLUMN}`}>
+        <div>
           {(authLoading ? authPhase : phase) === "offline-empty" ? (
             <OfflineEmptyState
               body="This job will load here as soon as you're back online."
@@ -272,7 +285,7 @@ const JobDetail = () => {
           )}
         </div>
       </div>
-    </PublicLayout>
+    </PublicHeaderPage>
   );
 };
 

@@ -426,8 +426,15 @@
 /* Photo-first job cards (Q2043): on a phone the picture tile takes ~84px of the
    row, so the meta line takes the two-line form the card already uses below
    360px (place, then date and time), instead of clipping the start time. Every
-   card carries the tile, so every card stays one height. */
-@media (max-width: 767px) {
+   card carries the tile, so every card stays one height.
+   Jobs audit 11-21 (P9): it was a VIEWPORT rule (max-width: 767px), so the 768
+   two-column grid, whose text column is ~284px like a phone's, kept the one-line
+   row and clipped "9:00 AM" and "New Iberia". It follows the text column's own
+   width now (a container query, as .job-steps does): two lines below 460px of
+   column, at any screen width. Every card in a grid has the same column width,
+   so they stay one height. */
+.job-card-media-col { container-type: inline-size; }
+@container (max-width: 459px) {
   .job-card-media-col .job-meta-row { flex-wrap: wrap; }
   .job-card-media-col .job-meta-row > [data-meta-break] { display: block; }
   .job-card-media-col .job-meta-row > [data-meta-break] + span { display: none; }

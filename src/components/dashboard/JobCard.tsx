@@ -27,8 +27,7 @@ import {
   JOB_CARD_BODY,
   JOB_CARD_CLIP,
   JOB_CARD_META,
-  JOB_CARD_TITLE_ROW,
-} from "@/components/job/cardGeometry";
+  JOB_CARD_TITLE_ROW, JOB_CARD_ROW_FRAME } from "@/components/job/cardGeometry";
 import type { JobCardProps } from "./jobCardProps";
 import { jobDayLabel } from "@/lib/jobDateWindow";
 
@@ -209,7 +208,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         bare
           ? "group relative h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           : row
-          ? "group relative h-full cursor-pointer border-b border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          ? JOB_CARD_ROW_FRAME
           : "group relative h-full rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       }
       {...interactiveProps}

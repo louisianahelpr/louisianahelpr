@@ -468,6 +468,8 @@ export const es: Record<MsgKey, string> = {
   "postJob.readyShort": "Listo",
   "postJob.extras.title": "Agregar fotos y más",
   "postJob.extras.sub": "Opcional. Una foto ayuda a que los Helprs digan que sí.",
+  "postJob.extras.titleTrade": "Fotos, y quién puede postularse",
+  "postJob.extras.subTrade": "Opcional. Pida Helprs con licencia o seguro, o agregue una foto.",
   "postJob.extras.onePhoto": "1 foto agregada",
   "postJob.extras.photos": "{n} fotos agregadas",
   "postJob.extras.photosAfterSignup": "Puede agregar fotos después de registrarse. Todo lo demás que escriba aquí se guarda.",

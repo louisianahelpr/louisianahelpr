@@ -54,6 +54,8 @@ export function DetailsSection({
     }
   }, [category, credentialTier, setCredentialTier]);
 
+  // A trade's fold also holds "Who can apply?" (licensed / insured), so its title says so (G12).
+  const tradeTier = CREDENTIAL_TIER_CATEGORIES.has(category);
   return (
     <SectionCard
       stepNumber={stepNumber}
@@ -76,21 +78,15 @@ export function DetailsSection({
         placeholdersRefused={placeholdersRefused}
       />
 
-      {/* Q2083 (owner Option 1): the poster says whether the job fixes a movable
-          item, cleans carpet, rugs, furniture or clothes, or alters clothes, the
-          work Louisiana taxes (La. R.S. 47:301.3 items 5 and 7; jobs.tax_kind).
-          Owner 2026-11-06: asked ONLY where that can be true (asksTaxKind).
-          Stays out of the fold below: it changes what the poster is charged. */}
-      {setTaxKind && asksTaxKind(category) && (
-        <TaxKindQuestion taxKind={taxKind ?? null} setTaxKind={setTaxKind} />
-      )}
-
       {/* Owner 11-20 (ease batch): photos, who can apply, photo proof and the
           video are optional, folded under one row. */}
+      {/* Jobs audit 11-21 (G12): the fold sits right under the description (above the tax row, which was a phone screen
+          tall and buried it), and on a trade its title names "who can apply", which it holds. Photos stay inside it
+          (owner 11-20, ease batch). */}
       <OptionalExtras
         icon={Camera}
-        title={tr("postJob.extras.title")}
-        summary={imagePreviews.length > 0 ? tr(imagePreviews.length === 1 ? "postJob.extras.onePhoto" : "postJob.extras.photos", { n: imagePreviews.length }) : tr("postJob.extras.sub")}
+        title={tr(tradeTier ? "postJob.extras.titleTrade" : "postJob.extras.title")}
+        summary={imagePreviews.length > 0 ? tr(imagePreviews.length === 1 ? "postJob.extras.onePhoto" : "postJob.extras.photos", { n: imagePreviews.length }) : tr(tradeTier ? "postJob.extras.subTrade" : "postJob.extras.sub")}
         filled={imagePreviews.length > 0 || credentialTier > 0 || !!scopeVideoUrl}
         testId="post-job-extras"
       >
@@ -98,7 +94,7 @@ export function DetailsSection({
           trade categories where licensing/insurance makes sense.
           For all others the tier stays at 0 (open) and this block
           is hidden to keep the form clean. */}
-      {CREDENTIAL_TIER_CATEGORIES.has(category) && (
+      {tradeTier && (
         <>
           <CredentialTierSelector
             credentialTier={credentialTier}
@@ -137,6 +133,15 @@ export function DetailsSection({
         />
       )}
       </OptionalExtras>
+
+      {/* Q2083 (owner Option 1): the poster says whether the job fixes a movable
+          item, cleans carpet, rugs, furniture or clothes, or alters clothes, the
+          work Louisiana taxes (La. R.S. 47:301.3 items 5 and 7; jobs.tax_kind).
+          Owner 2026-11-06: asked ONLY where that can be true (asksTaxKind).
+          Stays out of the fold above: it changes what the poster is charged. One row until Change (G12). */}
+      {setTaxKind && asksTaxKind(category) && (
+        <TaxKindQuestion taxKind={taxKind ?? null} setTaxKind={setTaxKind} />
+      )}
     </SectionCard>
   );
 }

@@ -242,6 +242,21 @@ const ITEM = {
   condition_stars: 4, delivery_size: "large", price_cents: 4000, current_price_cents: 4000,
   area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, created_at: "2026-10-14", live_at: "2026-10-14", porch_ok: true,
 };
+/**
+ * Deep audit 11-22 #49 (lead Option A): a sold or completed item is its sale card, not a Your listings row too; a search
+ * of the seller's own listings still lists it, with the row's own words. Each sold-row check below first proves the
+ * row is gone without a search, then searches (every fixture carries "zz") to read the row.
+ */
+const tagged = <T extends object>(items: T[]) => items.map((i) => ({ ...i, description: "zz" }));
+async function soldRowsOnlyInSearch(container: HTMLElement, soldTitles: string[]) {
+  await screen.findByRole("heading", { name: /^Your listings/ });
+  const rowTitles = () => Array.from(container.querySelectorAll("[data-listing-row]")).map((r) => r.textContent ?? "");
+  for (const title of soldTitles) expect(rowTitles().some((r) => r.includes(title)), `${title} is not a row without a search`).toBe(false);
+  const icon = screen.queryByRole("button", { name: "Search your listings" });
+  if (icon) fireEvent.click(icon);
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search your listings" }), { target: { value: "zz" } });
+  for (const title of soldTitles) await waitFor(() => expect(rowTitles().some((r) => r.includes(title)), `${title} is found by a search`).toBe(true));
+}
 /** One listing in each status a seller manages from this list. */
 const EVERY_STATUS = [
   ITEM,
@@ -620,15 +635,20 @@ describe("Selling tab: Taken down, with Relist", () => {
   // NIGHT-SELL-Sellinglist-2 (night audit 2026-10-30): "Listed · 7" opened 9 rows. The chip counted only on-sale statuses while
   // Your listings shows every row but the history ones (sold, completed and rejected too). The chip now counts the
   // rows it opens, from the one shared set.
-  // @mutate src/components/declutter/DeclutterMineViews.tsx | .filter((i) => !PAST_LISTING.has(i.status)).length | .filter((i) => ["draft", "pending_review", "live", "paused", "reserved"].includes(i.status)).length
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | .filter((i) => isListingsRow(i)).length | .filter((i) => ["draft", "pending_review", "live", "paused", "reserved"].includes(i.status)).length
   // Audit 11-10 F406: the chip says "Listings" (the list it opens), not "Listed" (read as still for sale).
   // @mutate src/lib/i18n/enDeclutter.ts | "decl.mv.listings": "Listings", | "decl.mv.listings": "Listed",
+  // Deep audit 11-22 #49: sold and completed items are their sale cards, so they are neither rows nor counted here.
+  // @mutate src/components/declutter/myItemsQuery.ts |   !PAST_LISTING.has(i.status) && (searching \|\| !ON_A_SALE_CARD.has(i.status)); |   !PAST_LISTING.has(i.status);
+  // @mutate src/components/declutter/myItemsQuery.ts |   !PAST_LISTING.has(i.status) && (searching \|\| !ON_A_SALE_CARD.has(i.status)); |   !PAST_LISTING.has(i.status) && !ON_A_SALE_CARD.has(i.status);
   it("the Listings chip counts exactly the rows under Your listings (Sellinglist-2, F406)", async () => {
     const statuses = ["draft", "pending_review", "live", "paused", "reserved", "rejected", "sold", "completed", "withdrawn", "sold_elsewhere"] as const;
     state.mine = statuses.map((s, n) => ({ ...ITEM, id: `c${n}`, status: s, title: `Row ${s}` }));
     const { container } = at("/declutter?tab=selling");
     const listings = await screen.findByRole("region", { name: "Your listings" });
-    await within(listings).findByText("Row completed");
+    await within(listings).findByText("Row rejected");
+    expect(within(listings).queryByText("Row sold")).toBeNull();
+    expect(within(listings).queryByText("Row completed")).toBeNull();
     const rows = listings.querySelectorAll("[data-selling-list] > li").length;
     expect(rows).toBeGreaterThan(5);
     const chip = container.querySelector('[data-status-box="listings"]') as HTMLElement;
@@ -799,13 +819,13 @@ describe("Selling tab: a claimed free item is never 'Sold'", () => {
   });
 
   it("free + reserved reads 'Claimed', free + sold 'Claimed · waiting for pickup', a paid sale 'Sold'", async () => {
-    state.mine = [
+    state.mine = tagged([
       { ...ITEM, id: "f1", status: "reserved", title: "Free lamp", current_price_cents: 0 },
       { ...ITEM, id: "f2", status: "sold", title: "Free chair", current_price_cents: 0 },
       { ...ITEM, id: "p1", status: "sold", title: "Paid desk", current_price_cents: 3200 },
-    ];
+    ]);
     const { container } = at("/declutter?tab=selling");
-    await screen.findByText("Paid desk");
+    await soldRowsOnlyInSearch(container, ["Free chair", "Paid desk"]);
     const line = (title: string) => {
       const row = Array.from(container.querySelectorAll("[data-listing-row]")).find((r) => r.textContent?.includes(title))!;
       return row.querySelector("[data-listing-status]")!.textContent;
@@ -847,23 +867,24 @@ describe("Selling tab: a sold listing shows what it sold for", () => {
   };
 
   it("sold and handed over: the sold price; live: the current price", async () => {
-    state.mine = [
+    state.mine = tagged([
       { ...ITEM, id: "s1", status: "completed", title: "Blue enamel mug", price_cents: 4000, current_price_cents: 4000 },
       { ...ITEM, id: "s2", status: "sold", title: "Oak desk", price_cents: 9000, current_price_cents: 9000 },
       { ...ITEM, id: "s3", status: "live", title: "Floor lamp", price_cents: 2500, current_price_cents: 2000 },
-    ];
+    ]);
     state.sales = new Map([["s1", { cents: 3200, orderId: "o1" }], ["s2", { cents: 7500, orderId: "o2" }]]);
     const { container } = at("/declutter?tab=selling");
+    await soldRowsOnlyInSearch(container, ["Blue enamel mug", "Oak desk"]);
     await waitFor(() => expect(price(container, "Blue enamel mug")).toBe("$32"));
     expect(price(container, "Oak desk")).toBe("$75");
     expect(price(container, "Floor lamp")).toBe("$20");
   });
 
   it("a sold listing whose sale price is unknown shows no figure, never its list price", async () => {
-    state.mine = [{ ...ITEM, id: "s1", status: "completed", title: "Blue enamel mug", price_cents: 4000, current_price_cents: 4000 }];
+    state.mine = tagged([{ ...ITEM, id: "s1", status: "completed", title: "Blue enamel mug", price_cents: 4000, current_price_cents: 4000 }]);
     state.sales = new Map();
     const { container } = at("/declutter?tab=selling");
-    await screen.findByText("Blue enamel mug");
+    await soldRowsOnlyInSearch(container, ["Blue enamel mug"]);
     await new Promise((r) => setTimeout(r, 50));
     expect(price(container, "Blue enamel mug")).toBeNull();
     expect(container.querySelector("[data-selling-list]")!.textContent).not.toContain("$40");
@@ -888,13 +909,13 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
 
   it("paid out (dated), payout pending, sold before the handover, a handed-over sale with no payout row yet, a free claim", async () => {
     const PAID_AT = "2026-10-29T15:00:00Z";
-    state.mine = [
+    state.mine = tagged([
       { ...ITEM, id: "a1", status: "completed", title: "Blue enamel mug" },
       { ...ITEM, id: "a2", status: "completed", title: "Oak desk" },
       { ...ITEM, id: "a3", status: "sold", title: "Floor lamp" },
       { ...ITEM, id: "a4", status: "completed", title: "Rocking chair" },
       { ...ITEM, id: "a5", status: "sold", title: "Wicker basket", current_price_cents: 0 },
-    ];
+    ]);
     state.sales = new Map([
       ["a1", { cents: 3200, orderId: "o1" }], ["a2", { cents: 7500, orderId: "o2" }], ["a3", { cents: 2000, orderId: "o3" }],
       ["a4", { cents: 5000, orderId: "o4" }], ["a5", { cents: 0, orderId: "o5" }],
@@ -905,6 +926,7 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
     ];
     const day = new Date(PAID_AT).toLocaleDateString([], { month: "short", day: "numeric" }).replace(/ /g, "\u00a0");
     const { container } = at("/declutter?tab=selling");
+    await soldRowsOnlyInSearch(container, ["Blue enamel mug", "Oak desk", "Floor lamp", "Rocking chair", "Wicker basket"]);
     await waitFor(() => expect(statusOf(container, "Blue enamel mug")).toBe(`Handed over · Paid out ${day}`));
     expect(statusOf(container, "Oak desk")).toBe("Handed over · Payout once the sale is final");
     expect(statusOf(container, "Floor lamp")).toBe("Sold · Paid 24 hours after the handover");
@@ -918,11 +940,12 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
   // problem held the money. The row reads the order's open problem by the sale's order id.
   // @mutate src/components/declutter/DeclutterHomeView.tsx | listingNextStep(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id), | listingNextStep(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), false,
   it("an open problem: the sold row says the money is held; another sale's row is unchanged (D2-2)", async () => {
-    state.mine = [{ ...ITEM, id: "a3", status: "sold", title: "Floor lamp" }, { ...ITEM, id: "a6", status: "sold", title: "Side table" }];
+    state.mine = tagged([{ ...ITEM, id: "a3", status: "sold", title: "Floor lamp" }, { ...ITEM, id: "a6", status: "sold", title: "Side table" }]);
     state.sales = new Map([["a3", { cents: 2000, orderId: "o3" }], ["a6", { cents: 2500, orderId: "o6" }]]);
     state.payouts = [];
     state.problems = [{ id: "p1", order_id: "o3", reporter_side: "buyer", reason: "damaged" }];
     const { container } = at("/declutter?tab=selling");
+    await soldRowsOnlyInSearch(container, ["Floor lamp", "Side table"]);
     await waitFor(() => expect(statusOf(container, "Floor lamp")).toBe("Sold · Held while Louisiana Helpr looks at a problem"));
     expect(statusOf(container, "Side table")).toBe("Sold · Paid 24 hours after the handover");
     state.problems = [];

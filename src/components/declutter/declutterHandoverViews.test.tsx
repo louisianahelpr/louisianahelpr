@@ -2272,3 +2272,67 @@ describe("Low 6: the paid-order card in Spanish", () => {
     }
   });
 });
+
+/**
+ * Deep audit 11-22 #49 (owner rule: a listing never shows twice; lead 11-22 Option A): a sold item is no longer also a
+ * Your listings row, so every state that row used to say lives on its SALE CARD, and each is pinned here (moved from
+ * sellingDash.test.tsx's SE-4, SE-5, #60 and D2-2 row checks):
+ *  - SE-5: what it sold for (the paid line), never the list price;
+ *  - SE-4: a free item is "Claimed", never "Sold";
+ *  - #60: where the payout stands (paid on a day, waiting, none on a free claim);
+ *  - D2-2: the money is held while a problem is open.
+ * @mutate src/components/declutter/OrderCardHead.tsx | {trade ? t("dsl.trade") : itemPriceLabel(items)} | {trade ? t("dsl.trade") : ""}
+ * @mutate src/components/declutter/DeclutterPorchHandover.tsx |           ? <>{strongAmount(t("dsl.heldWhile", { amount: formatPrice(sellerCents) }), formatPrice(sellerCents))}</> |           ? null
+ */
+describe("#49: a sold item's states are on its sale card", () => {
+  const PAID_AT = "2026-10-29T15:00:00Z";
+  const card = async () => {
+    await waitFor(() => expect(document.querySelector("article")).not.toBeNull());
+    await new Promise((r) => setTimeout(r, 60));
+    return document.querySelector("article") as HTMLElement;
+  };
+  beforeEach(() => {
+    state.calls = [];
+    state.payouts = [];
+    state.handover = null;
+    state.problems = [];
+    state.bookings = [];
+    state.refundRequest = null;
+  });
+  afterEach(cleanup);
+
+  it("SE-5: the card shows what it sold for, never the list price", async () => {
+    show([line({ my_side: "seller", price_cents: 3200, total_cents: 3470 })]);
+    const head = (await card()).querySelector("[data-order-head]") as HTMLElement;
+    await waitFor(() => expect(head.textContent).toContain("$32"));
+    expect((await card()).textContent).not.toContain("$40");
+  });
+
+  it("SE-4: a free item's card says Claimed, never Sold; a paid one says Paid", async () => {
+    const r = show([line({ my_side: "seller", price_cents: 0, premium_cents: 0, total_cents: 0, handover: "porch" })]);
+    await waitFor(async () => expect((await card()).textContent).toMatch(/Claimed\. Waiting on Dana to pick a pickup time\./));
+    expect((await card()).textContent).not.toMatch(/\bSold\b|You get|paid on/);
+    r.unmount();
+    show([line({ my_side: "seller", price_cents: 3200 })]);
+    await waitFor(async () => expect((await card()).textContent).toMatch(/Paid\. Waiting on Dana to book a pickup time\./));
+  });
+
+  it("#60: the card says where the payout stands: paid on its day, or what it waits for", async () => {
+    state.handover = { confirmed_at: "2026-10-28T15:00:00Z" };
+    state.payouts = [{ order_id: "o1", items_cents: 3200, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, amount_cents: 3200, status: "succeeded", executed_at: PAID_AT }];
+    const r = show([line({ my_side: "seller", price_cents: 3200, order_status: "handed_over" })]);
+    const day = new Date(PAID_AT).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" });
+    await waitFor(async () => expect((await card()).textContent).toContain(`You get $32, paid on ${day}.`));
+    r.unmount();
+    state.payouts = [{ order_id: "o1", items_cents: 7500, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, amount_cents: 7500, status: "pending", executed_at: null }];
+    show([line({ my_side: "seller", price_cents: 7500, order_status: "handed_over" })]);
+    await waitFor(async () => expect((await card()).textContent).toMatch(/You get \$75 once your payout account is ready\./));
+  });
+
+  it("D2-2: with a problem open the card says the money is held", async () => {
+    state.problems = [{ id: "p1", order_id: "o1", reporter_side: "buyer", reason: "damaged" }];
+    show([line({ my_side: "seller", price_cents: 2000 })]);
+    await waitFor(async () => expect((await card()).textContent).toContain("Your $20 is held while Louisiana Helpr looks at the problem."));
+    expect((await card()).textContent).not.toMatch(/You get \$20 after the handover/);
+  });
+});

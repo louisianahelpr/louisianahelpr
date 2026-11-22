@@ -15,7 +15,7 @@ import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
-import { myItemsQuery, PAST_LISTING } from "./myItemsQuery";
+import { isListingsRow, myItemsQuery } from "./myItemsQuery";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import { OffersSection } from "./DeclutterOffersSection";
 import { PaidOrders } from "./DeclutterTabParts";
@@ -69,7 +69,8 @@ export function SellingDash({ todo, userId, listings, settings, searching = fals
   // The same read (and key) My listings uses, so this adds no request.
   const mine = useQuery(myItemsQuery(userId));
   // NIGHT-SELL-Sellinglist-2: the rows Your listings shows (everything but history), so "Listed · n" opens n rows.
-  const listed = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status)).length;
+  // Deep audit 11-22 #49: a sold item is its sale card, so it is not counted here as well (isListingsRow).
+  const listed = (mine.data ?? []).filter((i) => isListingsRow(i)).length;
   // Owner 2026-10-28 (shots 48-49): a taken-down listing keeps its history here, with Relist; A2-5: so does one
   // marked sold elsewhere (no Relist: it was sold).
   const takenDown = (mine.data ?? []).filter((i) => i.status === "withdrawn" || i.status === "sold_elsewhere");

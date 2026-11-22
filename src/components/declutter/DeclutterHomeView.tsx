@@ -78,7 +78,7 @@ import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { DeclutterHomeSkeleton, DeclutterTabBones, ListingsSkeleton, TabSkeleton } from "./DeclutterSkeletons";
 import { ListingThumb } from "./ListingThumb";
-import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
+import { isListingsRow, myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
 import { useOpenProblems } from "./useOpenProblems";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { t, useLanguage } from "@/lib/i18n/language";
@@ -218,8 +218,8 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
     return <ErrorState variant="inline" title={t("decl.sl.loadFail")} body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   }
   if (mine.isLoading) return <ListingsSkeleton />;
-  const all = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status));
   const searching = search.trim().length > 0;
+  const all = (mine.data ?? []).filter((i) => isListingsRow(i, searching));
   const list = searching ? all.filter((i) => matchesListingSearch(i, search)) : all;
   if (all.length === 0) {
     // Area 06 M15 (11-18): a seller with past listings (taken down, sold, ended) is not new here; "You haven't listed

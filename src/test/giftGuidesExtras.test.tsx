@@ -15,7 +15,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx |         {g.age && <span className="gg-count">{g.age}</span>} |         {g.age && <span className="gg-count">{g.age}</span>}<button type="button" data-gift-heart="" aria-label="Save" />
  * @mutate src/pages/info/giftGuides/giftList.tsx |     window.localStorage.setItem(KEY, JSON.stringify(next)); |     window.localStorage.setItem(KEY, "{}");
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.shipsFast ? (["ships-fast"] as const) : []), |   ...(flags.trending ? (["ships-fast"] as const) : []),
- * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping" }) | t: "Gift wrap" })
+ * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping", d: GIFT_WRAP_DESCRIPTION }) | t: "Gift wrap", d: GIFT_WRAP_DESCRIPTION })
  * @mutate src/content/giftGuideCatalog.ts | return rest.every((w) => hasWordStart(hay, w) \|\| | return rest.some((w) => hasWordStart(hay, w) \|\|
  * @mutate src/content/giftGuideCatalog.ts | hasWordStart(hay, w) \|\| (label.get(g.row) ?? []).includes(w)); | hasWordStart(hay, w));
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         {showResults && ( |         {false && (

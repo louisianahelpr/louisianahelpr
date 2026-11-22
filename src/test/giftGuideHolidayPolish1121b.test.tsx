@@ -28,8 +28,8 @@
  * @mutate src/pages/info/ShopSmall.tsx |            <SmallBizGrid /> |            {null}
  * @mutate src/pages/info/ShopSmall.tsx |       <GuidesFrame title={W.pageTitle} path="/shop-small" disclosures={false}> |       <GuidesFrame title={W.pageTitle} path="/gift-guides" disclosures={false}>
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | [data-gift-guide="25-days-sponsors"] .gg-nm-name{-webkit-line-clamp:3} | [data-gift-guide="25-days-sponsors"] .gg-nm-name{}
- * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx |     requestAnimationFrame(() => openButton.current?.focus()); |     void 0;
- * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx |       {Form && <div hidden={!open} data-gift-sbs-form-wrap=""><Form onClose={close} /></div>} |       {Form && open && <div data-gift-sbs-form-wrap=""><Form onClose={close} /></div>}
+ * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |     requestAnimationFrame(() => openButton.current?.focus()); |     void 0;
+ * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |       {Form && <div hidden={!open} data-gift-sbs-form-wrap=""><Form onClose={close} /></div>} |       {Form && open && <div data-gift-sbs-form-wrap=""><Form onClose={close} /></div>}
  * @mutate src/pages/info/giftGuides/SmallBizSubmitForm.tsx | .gg-sbs-cta p.gg-sbs-err{color:hsl(var(--destructive-ink));margin:0} | .gg-sbs-cta p.gg-sbs-x{}
  * @mutate src/content/giftGuideFun1120.ts |   finderWho("her", "Her", ["her"], "Her"), |   { id: "her", label: "Her", guides: finderGuides("her"), forName: "Her" },
  * @mutate scripts/gift-guide-small-biz.mjs | export const shipsFor = (b) => (VISIT_CATEGORIES.has(b.category) \|\| VENUE_SLUGS.has(b.slug) ? "local" : shipsOf(b.shipping)); | export const shipsFor = (b) => shipsOf(b.shipping);

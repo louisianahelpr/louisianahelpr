@@ -74,7 +74,7 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
         {maps && (
           <a href={maps} target="_blank" rel="noopener noreferrer" data-holiday-maps={item.id}
             onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}
-            className="inline-flex min-h-11 min-w-0 flex-1 items-center gap-1.5 text-ds-13 text-muted-foreground no-underline hover:underline focus-visible:underline">
+            className="inline-flex min-h-11 min-w-0 flex-1 items-center gap-1.5 text-ds-13 text-muted-foreground link-standard">
             <MapPin className="h-4 w-4 shrink-0 text-[hsl(var(--olivewood))]" aria-hidden />
             <span className="truncate">{item.address || "Open in Maps"}</span>
             <span className="sr-only"> (open in Maps, a new tab)</span>
@@ -82,7 +82,7 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
         )}
         {site && (
           <a href={site} target="_blank" rel="noopener noreferrer" data-holiday-site={item.id}
-            className="inline-flex min-h-11 shrink-0 items-center text-ds-13 font-semibold text-[hsl(var(--olivewood))] no-underline hover:underline focus-visible:underline">
+            className="inline-flex min-h-11 shrink-0 items-center text-ds-13 font-semibold text-[hsl(var(--olivewood))] link-standard">
             Website<span className="sr-only"> for {item.name} (opens in a new tab)</span>
           </a>
         )}
@@ -95,7 +95,7 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
         )}
         {item.note && item.note.length > 60 && !more && (
           <button type="button" onClick={() => setMore(true)} data-holiday-more={item.id}
-            className="inline-flex min-h-11 shrink-0 items-center text-ds-13 font-semibold text-[hsl(var(--olivewood))] hover:underline">
+            className="inline-flex min-h-11 shrink-0 items-center text-ds-13 font-semibold text-[hsl(var(--olivewood))] link-standard">
             More details
           </button>
         )}

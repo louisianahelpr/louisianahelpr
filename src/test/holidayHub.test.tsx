@@ -36,7 +36,7 @@
  * @mutate src/content/holidayHub/holidayHub.mjs |     if (today && isOver(e, today)) return false; |
  * @mutate src/components/Footer.tsx |               <Link to="/holidays" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" data-gift-side-holiday-hub=""> |         <li><Link to="/help" data-gift-side-holiday-hub="">
- * @mutate src/pages/info/holidays/holidayParts.tsx |         onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}> |         >
+ * @mutate src/pages/info/holidays/holidayParts.tsx |             onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })} |
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -548,7 +548,7 @@ describe("Holiday Hub SEO before JavaScript", () => {
  * @mutate src/content/holidayHub/holidayHub.mjs |     if ((e.tba \|\| (!e.start && !e.end)) && isHolidayLight(e)) lightsTba.push(e); |     if (false) lightsTba.push(e);
  * @mutate src/pages/info/holidays/holidayParts.tsx |   const price = holidayPriceLabel(item.price); |   const price = item.price;
  * @mutate src/content/holidayHub/holidayHub.mjs |   if (region && region.toLowerCase().startsWith(item.city.toLowerCase())) return region; |
- * @mutate src/pages/info/holidays/HolidayHub.tsx |     }, today).filter((i) => !endedEarlierToday(i, today, minutes)), |     }, today),
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |     }, today).filter((i) => !endedEarlierToday(i, today, minutes) && matchesQuery(i, query)), |     }, today).filter((i) => matchesQuery(i, query)),
  * @mutate src/pages/info/holidays/HolidayHub.tsx | <Link to="/shop-small" className="link-standard inline-flex min-h-11 items-center"> | <Link to="/shop-small" className="link-standard">
  */
 describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices, places, closed today, tap targets", () => {

@@ -4,7 +4,9 @@
  * covers all 25 days", the /25days/rules page) was wrong as well as off-policy.
  *
  *   1. No user-facing source says how entries work or quotes the old rules: no "covers all 25", "one entry covers",
- *      "enter once", "win once", "one win per person" anywhere in src/ (non-test), api/ or supabase/functions/.
+ *      "enter once", "win once", "one win per person", "claim the prize within 48 hours" anywhere in src/ (non-test),
+ *      api/ or supabase/functions/. Owner 2026-11-21 (later that night, via the lead): people CAN win more than one day,
+ *      so every "win once" wording is wrong as well as off-policy.
  *   2. /25days says, in one plain line, that how to enter and the official rules are on our Facebook post, beside the
  *      entry button (sponsor_settings.entry_url, else the Facebook Page). Its entrant sections carry no rule.
  *   3. /25days/rules serves no rules: vercel.json redirects it to /25days (no rewrite renders it), App.tsx has no route
@@ -16,6 +18,7 @@
  * @mutate src/App.tsx |       <Route path="/25days" element= |       <Route path="/25days/rules" element={<Navigate to="/25days" replace />} />\n      <Route path="/25days" element=
  * @mutate vercel.json |       "source": "/25days/rules",\n      "destination": "/25days", |       "source": "/25days/rulesx",\n      "destination": "/25days",
  * @mutate src/lib/publicPageMeta.mjs | Louisiana neighbors. How to enter is on our Facebook post." | Louisiana neighbors. One entry covers all 25 days."
+ * @mutate src/content/sponsorPage.ts |     subhead: "Every day from December 1 to 25, Louisiana businesses are giving away gifts to Louisiana neighbors.", |     subhead: "Every day from December 1 to 25, Louisiana businesses are giving away gifts. Each person can win once.",
  * @mutate src/lib/seoBodies.mjs | It is free to enter. How to enter and the official rules | It is free to enter, and one entry covers all 25 days. How to enter and the official rules
  */
 import { describe, expect, it } from "vitest";
@@ -34,7 +37,8 @@ const ROOT = path.resolve(__dirname, "../..");
 const read = (p: string) => fs.readFileSync(path.join(ROOT, p), "utf8");
 
 /** The old rules and entry method, in every wording that reached the site. */
-const OLD_RULES = /covers all 25|one entry covers|enter once|can win once|one win per person|official giveaway rules/i;
+const OLD_RULES =
+  /covers all 25|one entry covers|enter once|win (only )?once|only win once|once you win|one win per person|claim (the|your) prize within|within 48 hours of notification|official giveaway rules/i;
 const LINE = "How to enter and the official rules are on our Facebook post.";
 
 function allStrings(v: unknown, out: string[] = []): string[] {

@@ -160,7 +160,10 @@ describe("a Secret Santa participant's own wish list", () => {
     });
     fireEvent.click(add);
     expect(santa()[KEY].ideas).toEqual([expect.objectContaining({ name: her[0].name, href: her[0].href, guide: "her" })]);
-    await waitFor(() => expect(c.querySelector("[data-santa-add-saved]")).toBeNull());
+    await waitFor(() => {
+      expect(santa()[KEY].ideas).toHaveLength(1);
+      expect(c.querySelector("[data-santa-add-saved]")).toBeNull();
+    });
   });
 
   it("our links made later are swapped in on this list; a request that is gone is forgotten", () => {

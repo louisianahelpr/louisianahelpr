@@ -253,9 +253,11 @@ describe("PaymentSuccess", () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(4_000);
       });
-      await waitFor(() => expect(screen.queryByText(/we couldn't confirm your payment/i)).toBeNull());
+      await waitFor(() => {
+        expect(maybeSingle.mock.calls.length).toBeGreaterThan(1);
+        expect(screen.queryByText(/we couldn't confirm your payment/i)).toBeNull();
+      });
       expect(screen.queryByText(/couldn't confirm this job on your account/i)).toBeNull();
-      expect(maybeSingle.mock.calls.length).toBeGreaterThan(1);
     });
   });
 

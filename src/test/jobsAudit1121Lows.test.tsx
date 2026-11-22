@@ -165,8 +165,10 @@ describe("P29: the guest job sheet hands focus back to the card", () => {
     const dialog = await screen.findByRole("dialog");
     expect(document.activeElement).not.toBe(card);
     fireEvent.keyDown(dialog, { key: "Escape" });
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    await waitFor(() => expect(document.activeElement).toBe(card));
+    await waitFor(() => {
+      expect(document.activeElement).toBe(card);
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
   });
   it("the guest card says what a tap does, like the member card", () => {
     expect(src("src/components/dashboard/JobCard.tsx")).toContain('<span className="sr-only">View </span>');

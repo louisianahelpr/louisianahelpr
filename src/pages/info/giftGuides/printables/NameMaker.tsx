@@ -17,6 +17,7 @@ import {
   fitLine,
   layoutFor,
   pageSlots,
+  pickerDesigns,
   sheetPages,
   slotTransform,
   MAX_NAME,
@@ -238,6 +239,24 @@ async function makePdf(product: OverlayProduct, layout: SheetLayout, pages: Shee
  * swallowed so the hold does not also pick the design ("Use this design" does that).
  */
 const HOLD_MS = 400;
+/** How long after a hold's finger lifts its follow-up click is swallowed. */
+const SWALLOW_MS = 600;
+
+/**
+ * Swallows the next click anywhere on the page, once, within SWALLOW_MS (holiday audit 1121 area 5 #2): when the held
+ * design sat low on the screen, the click the browser sends as the finger lifts landed on the preview's own Close or
+ * "Use this design", which then closed it at once. Capture phase, so it never reaches the button under the finger.
+ */
+function swallowNextClick(ms = SWALLOW_MS) {
+  const swallow = (ev: MouseEvent) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    document.removeEventListener("click", swallow, true);
+  };
+  document.addEventListener("click", swallow, true);
+  setTimeout(() => document.removeEventListener("click", swallow, true), ms);
+}
+
 function useLongPress(onHold: (id: string) => void) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
@@ -265,7 +284,14 @@ function useLongPress(onHold: (id: string) => void) {
         const s = start.current;
         if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) clear();
       },
-      onPointerUp: clear,
+      onPointerUp: () => {
+        // A hold that opened the preview: its lift's click goes nowhere (not to the preview's buttons, not to the tile).
+        if (held.current) {
+          held.current = false;
+          swallowNextClick();
+        }
+        clear();
+      },
       onPointerCancel: clear,
       onPointerLeave: clear,
       onContextMenu: (e: RMouseEvent) => {
@@ -296,7 +322,8 @@ export default function NameMaker({ product }: { product: OverlayProduct }) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [zoomId, setZoomId] = useState<string | null>(null);
-  const zoomDesign = zoomId ? product.designs.find((d) => d.id === zoomId) : undefined;
+  const zoomDesign = zoomId ? pickerDesigns(product).find((d) => d.id === zoomId) ?? product.designs.find((d) => d.id === zoomId) : undefined;
+  const chosenSet = product.designs.find((d) => d.id === designId)?.set;
   const hold = useLongPress(setZoomId);
   const font = NAME_FONTS.find((f) => f.id === fontId) ?? NAME_FONTS[0];
   // A design that names its sheet prints on it (gift tags); otherwise the shopper's choice.
@@ -346,10 +373,13 @@ export default function NameMaker({ product }: { product: OverlayProduct }) {
         <legend>{W.design}</legend>
         <p className="pr-hint">{W.designHint}</p>
         <div className="pr-designs" data-printable-designs="">
-          {product.designs.map((d) => (
-            <div key={d.id} className={`pr-design-cell${d.id === designId ? " is-on" : ""}`}>
+          {pickerDesigns(product).map((d) => {
+            // A set's tile is on whichever of its tags is chosen (holiday audit 1121 area 5 #19).
+            const on = d.id === designId || (!!d.set && chosenSet === d.set);
+            return (
+            <div key={d.id} className={`pr-design-cell${on ? " is-on" : ""}`}>
               <label className="pr-design" {...hold.bind(d.id)}>
-                <NativeRadio name={`${uid}-design`} value={d.id} checked={d.id === designId} onChange={() => setDesignId(d.id)} className="sr-only" data-printable-design={d.id} />
+                <NativeRadio name={`${uid}-design`} value={d.id} checked={on} onChange={() => setDesignId(d.id)} className="sr-only" data-printable-design={d.id} />
                 <img loading="lazy" decoding="async" src={d.thumb ?? d.image} alt="" draggable={false} width={designSize(product, d).w * 24} height={designSize(product, d).h * 24} />
                 <span>{d.name}</span>
               </label>
@@ -357,7 +387,8 @@ export default function NameMaker({ product }: { product: OverlayProduct }) {
                 <span className="pr-zoom-dot" aria-hidden="true"><ZoomIn className="h-3.5 w-3.5" /></span>
               </RoundIconButton>
             </div>
-          ))}
+            );
+          })}
         </div>
         <Dialog open={!!zoomDesign} onOpenChange={(o) => !o && setZoomId(null)}>
           {zoomDesign && (

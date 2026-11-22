@@ -132,6 +132,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     labels: false,
     siteLine: false,
     layout: "9",
+    set: "vintage-scallop",
   },
   {
     id: "red-green-white-vintage-2",
@@ -144,6 +145,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     labels: false,
     siteLine: false,
     layout: "9",
+    set: "vintage-scallop",
   },
   {
     id: "red-green-white-vintage-3",
@@ -156,6 +158,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     labels: false,
     siteLine: false,
     layout: "9",
+    set: "vintage-scallop",
   },
   {
     id: "red-green-white-vintage-4",
@@ -168,6 +171,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     labels: false,
     siteLine: false,
     layout: "9",
+    set: "vintage-scallop",
   },
   {
     id: "red-green-white-vintage-5",
@@ -180,6 +184,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     labels: false,
     siteLine: false,
     layout: "9",
+    set: "vintage-scallop",
   },
   {
     id: "red-green-white-vintage-6",
@@ -192,6 +197,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     labels: false,
     siteLine: false,
     layout: "9",
+    set: "vintage-scallop",
   },
   {
     id: "red-green-white-vintage-7",
@@ -204,6 +210,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     labels: false,
     siteLine: false,
     layout: "9",
+    set: "vintage-scallop",
   },
   {
     id: "red-green-white-vintage-8",
@@ -216,6 +223,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     labels: false,
     siteLine: false,
     layout: "9",
+    set: "vintage-scallop",
   },
   {
     id: "red-green-white-vintage-9",
@@ -228,6 +236,7 @@ export const OWNER_TAGS: OverlayDesign[] = [
     labels: false,
     siteLine: false,
     layout: "9",
+    set: "vintage-scallop",
   },
   {
     id: "green-cream-vintage",

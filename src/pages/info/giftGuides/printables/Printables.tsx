@@ -33,8 +33,14 @@ function DownloadCard({ p }: { p: DownloadProduct }) {
     }
   };
   return (
-    <li id={p.id} className="pr-card" data-printable-card={p.id}>
-      <img loading="lazy" decoding="async" src={p.preview} alt="" className="pr-card-img" width={160} height={207} />
+    <li id={p.id} className={`pr-card${p.previews && p.previews.length > 1 ? " pr-card-two" : ""}`} data-printable-card={p.id}>
+      {p.previews && p.previews.length > 1 ? (
+        <span className="pr-card-pair" data-printable-previews="">
+          {p.previews.map((src) => <img key={src} loading="lazy" decoding="async" src={src} alt="" className="pr-card-img" width={160} height={207} />)}
+        </span>
+      ) : (
+        <img loading="lazy" decoding="async" src={p.preview} alt="" className="pr-card-img" width={160} height={207} />
+      )}
       <div className="pr-card-body">
         <h3>{p.title}</h3>
         <p>{p.blurb}</p>
@@ -78,7 +84,9 @@ export default function Printables() {
         <style>{PAGE_CSS}</style>
         <p className="gg-fun-lead">{W.lead}</p>
         {makers.length > 0 && <h2 className="pr-section" id="pr-tags">{W.sectionTags}</h2>}
-        {makers.length > 0 && (
+        {/* Holiday audit 1121 area 5 #6: the picker shows only when there is a choice (one live maker drew a one-option
+            card that did nothing, between two headings of the same words). */}
+        {makers.length > 1 && (
           // One maker at a time: a radio group (arrow keys move between them), not a row of toggle buttons.
           <div className="pr-makers" role="radiogroup" aria-label={W.title}>
             {makers.map((m) => (
@@ -94,8 +102,8 @@ export default function Printables() {
           </div>
         )}
         {product && (
-          <section className="gg-fun-card" aria-label={`${W.making}: ${product.title}`}>
-            <h2>{product.title}</h2>
+          <section id={makers.length > 1 ? undefined : product.id} className="gg-fun-card" aria-label={`${W.making}: ${product.title}`}>
+            {makers.length > 1 && <h2>{product.title}</h2>}
             <Suspense fallback={<p className="gg-fun-note" role="status">{W.loading}</p>}>
               <NameMaker key={product.id} product={product} />
             </Suspense>
@@ -120,7 +128,7 @@ export default function Printables() {
 const PAGE_CSS = `
 .pr-makers{margin:0 0 14px;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
 .pr-makers .pr-maker-card{margin:0;font-size:inherit;display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--gg-line);border-radius:14px;background:hsl(var(--card));padding:10px 12px;cursor:pointer;color:var(--gg-ink);min-height:44px}
-.pr-maker-card img{flex:none;width:44px;height:auto;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.pr-maker-card img{flex:none;width:44px;height:auto;border-radius:4px;border:1px solid var(--gg-line)}
 .pr-maker-card b{display:block;font-size:15px}
 .pr-maker-card small{display:block;font-size:12.5px;color:var(--gg-muted);margin-top:2px}
 .pr-makers .pr-maker-card.is-on{border-color:var(--gg-olive);box-shadow:inset 0 0 0 1px var(--gg-olive);background:var(--gg-soft)}
@@ -129,7 +137,13 @@ const PAGE_CSS = `
 .pr-group{margin-top:4px}
 .pr-cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 .pr-card{display:flex;gap:12px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card));padding:12px;min-width:0}
-.pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+/* Holiday audit 1121 area 5 #11 (owner rule: no box behind any photo): no drop shadow, a hairline edge so a white page
+   still reads as a page. */
+.pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;border:1px solid var(--gg-line)}
+.pr-card-pair{flex:none;display:flex;gap:6px;align-self:flex-start}
+.pr-card-pair .pr-card-img{width:64px}
+/* Two covers: they sit above the words, so the two book buttons get the card's full width (at 375 and in the two-across grid). */
+.pr-card-two{flex-direction:column}.pr-card-two .pr-card-pair .pr-card-img{width:96px}
 .pr-card-body{min-width:0;flex:1}
 .pr-card-body h3{font-size:16px;font-weight:700;margin:0 0 4px;color:var(--gg-ink)}
 .pr-card-body p{font-size:13px;color:var(--gg-muted);margin:0 0 8px}

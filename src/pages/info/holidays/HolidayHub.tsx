@@ -30,13 +30,15 @@ import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import {
   DATES_TBA, HOLIDAY_EVENT_KIND, HOLIDAY_HIRE_PATH, HOLIDAY_LIGHT_FORMAT, HOLIDAY_REGIONS, HOLIDAY_WHAT, HOLIDAY_WORDS as W,
   endedEarlierToday, filterHolidayItems, holidayCountLabel, holidayDayHeading, holidayItemsByDay, isHolidayLight, louisianaMinutes, louisianaToday,
-  resolveHolidayWhat, type HolidayCostFilter, type HolidayItem, type HolidayRegion,
+  resolveHolidayWhat, type HolidayCostFilter, type HolidayItem, type HolidayRegion, type HolidayWhen,
 } from "@/content/holidayHub/holidayHub.mjs";
 import { HUB_COLUMN, HUB_HEADER_COLUMN, HolidayCard, HolidayNothing, HolidaySection, useHolidayPageView } from "./holidayParts";
 
 type Option = { value: string; label: string };
 const WHAT_OPTIONS: Option[] = [{ value: "all", label: "Everything" }, ...HOLIDAY_WHAT.map((w) => ({ value: w.slug, label: w.label }))];
-const WHEN_OPTIONS: Option[] = [{ value: "all", label: "All dates" }, { value: "weekend", label: "This weekend" }];
+// Holiday audit 1121 area 5 #20: Today and Next 7 days beside This weekend.
+const WHEN_OPTIONS: Option[] = [{ value: "all", label: "All dates" }, { value: "today", label: "Today" }, { value: "weekend", label: "This weekend" }, { value: "week", label: "Next 7 days" }];
+const WHEN_NOTHING: Record<string, string> = { weekend: "this weekend", today: "today", week: "in the next 7 days" };
 const REGION_OPTIONS: Option[] = [{ value: "all", label: "All regions" }, ...HOLIDAY_REGIONS.map((r) => ({ value: r.slug, label: r.label }))];
 // Holiday audit 1121 area 5 #3: items with no cost listed have their own choice (they showed under neither Free nor Paid).
 const COST_OPTIONS: Option[] = [{ value: "all", label: "Any" }, { value: "free", label: "Free" }, { value: "paid", label: "Paid" }, { value: "unlisted", label: "Cost not listed" }];
@@ -88,7 +90,7 @@ export default function HolidayHub() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filtersButton = useRef<HTMLButtonElement>(null);
   const what = resolveHolidayWhat(params.get("what"), params.get("kind")) ?? "all";
-  const when = pick<"weekend">(params.get("when"), WHEN_OPTIONS);
+  const when = pick<HolidayWhen>(params.get("when"), WHEN_OPTIONS);
   const region = pick<HolidayRegion>(params.get("region"), REGION_OPTIONS);
   const cost = pick<HolidayCostFilter>(params.get("cost"), COST_OPTIONS);
   const set = (key: string, value: string) => {
@@ -110,7 +112,7 @@ export default function HolidayHub() {
       what: what === "all" ? null : what,
       region: region === "all" ? null : region,
       cost: cost === "all" ? null : cost,
-      weekend: when === "weekend",
+      when: when === "all" ? null : when,
     }, today).filter((i) => !endedEarlierToday(i, today, minutes)),
     [what, region, cost, when, today, minutes],
   );
@@ -121,7 +123,7 @@ export default function HolidayHub() {
       what: what === "all" ? null : what,
       region: region === "all" ? null : region,
       cost: "unlisted",
-      weekend: when === "weekend",
+      when: when === "all" ? null : when,
     }, today).length : 0),
     [what, region, cost, when, today],
   );
@@ -198,7 +200,7 @@ export default function HolidayHub() {
         <p className="text-ds-14 text-muted-foreground" aria-live="polite" data-holiday-count="">{shown.length ? holidayCountLabel(shown) : ""}{unlisted > 0 && <span data-holiday-unlisted="">{` · plus ${unlisted} with no cost listed`}</span>}</p>
         {groups.length === 0 ? (
           <HolidayNothing onClear={clearAll}>
-            {when === "weekend" ? "Nothing matches these filters this weekend." : "Nothing matches these filters."}
+            {when !== "all" ? `Nothing matches these filters ${WHEN_NOTHING[when]}.` : "Nothing matches these filters."}
           </HolidayNothing>
         ) : (
           groups.map((g) => (

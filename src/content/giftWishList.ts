@@ -52,13 +52,6 @@ export const WISH = {
   syncedNote: "Saved to your account, so it's on every device you sign in on.",
   syncFailed: "Couldn't save to your account just now. It's kept on this device and we'll try again.",
   syncRetry: "Try again",
-  stopSharing: "Stop sharing this link",
-  sharingStopped: "Link stopped. It doesn't open anymore.",
-  deleteMyList: "Delete my list",
-  deleteMyListTitle: "Delete your wish list?",
-  deleteMyListBody: "This deletes your list and its link from your account and this device. Anyone you sent the link to won't be able to open it. It can't be undone.",
-  deleteMyListDone: "Your list and its link are deleted.",
-  deleteMyListFailed: "We couldn't delete your list just now. Try again.",
   deviceNote: "Saved on this device. Sign in to keep it on all your devices.",
   /** The shared list's page. */
   /** Above the list's name on a shared list: the name is the sender's own words, never ours (security review #4). */
@@ -85,9 +78,6 @@ export const WISH = {
   saveForName: "Name",
   saveForBudget: "Budget (optional)",
   saveForAddButton: "Add",
-  /** Holiday audit 1121 (#11): Add with no name, or at the 50-person limit, says why instead of doing nothing. */
-  nameFirst: "Type a name first.",
-  peopleFull: "You can plan for up to 50 people. Remove someone to add another.",
   saveForDone: "Done",
   saveForPick: (name: string, gift: string) => `Save ${gift} for ${name}`,
   saveForUnpick: (name: string, gift: string) => `Remove ${gift} from ${name}'s list`,
@@ -95,10 +85,6 @@ export const WISH = {
    *  a typed idea, a link from another store) is never quietly left out of the amount: "3 gifts · $54 + 1 with no price". */
   listCount: (gifts: number, amount: string | null, unpriced = 0) =>
     `${gifts === 1 ? "1 gift" : `${gifts} gifts`}${amount ? ` · ${amount}${unpriced > 0 ? ` + ${unpriced} with no price` : ""}` : ""}`,
-  /** A list gift with a store link but no price we can show (a deal): where its price is (holiday audit 1121 #5). */
-  priceAtStore: "Price at store",
-  /** Holiday audit 1121 (#8): what has been marked Bought, after the list's count, total and budget ("· $12 bought"). */
-  listBought: (amount: string) => `${amount} bought`,
   myLists: "My lists",
   myListsOpen: (summary: string) => `My lists: ${summary}`,
   listBudget: (amount: string, budget: string) => `${amount} of ${budget} budget`,

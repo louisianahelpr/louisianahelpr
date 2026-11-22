@@ -7,8 +7,8 @@
  *   - Signed in, "Delete my list" asks first in the app's own dialog, deletes the account's list
  *     (gift_wish_list_delete) and empties it here, not synced, so nothing is saved back.
  *
- * @mutate src/lib/giftWishListApi.ts |   if (data === true) writeTokens({ ...readTokens(), [code]: token }); |   if (data !== null) writeTokens({ ...readTokens(), [code]: token });
- * @mutate src/lib/giftWishListApi.ts |   const { data, error } = await sb.rpc("gift_wish_list_unshare", { p_code: code, p_token: token }); |   const { data, error } = await sb.rpc("gift_wish_list_unshare", { p_code: code, p_token: "0".repeat(64) });
+ * @mutate src/lib/giftWishListOwnApi.ts |   if (data === true) writeTokens({ ...readTokens(), [code]: token }); |   if (data !== null) writeTokens({ ...readTokens(), [code]: token });
+ * @mutate src/lib/giftWishListOwnApi.ts |   const { data, error } = await sb.rpc("gift_wish_list_unshare", { p_code: code, p_token: token }); |   const { data, error } = await sb.rpc("gift_wish_list_unshare", { p_code: code, p_token: "0".repeat(64) });
  * @mutate src/pages/info/giftGuides/GiftWishShare.tsx |           {canStop && <Button | {false && <Button
  * @mutate src/pages/info/giftGuides/giftList.tsx | export const forgetAccountList = () => write({ ...read(), picks: [], name: "", synced: null }); | export const forgetAccountList = () => write({ ...read(), picks: [] });
  * @mutate src/pages/info/giftGuides/DeleteMyList.tsx |       await deleteMyWishList(); |       void deleteMyWishList;
@@ -26,7 +26,7 @@ import { DeleteMyList } from "@/pages/info/giftGuides/DeleteMyList";
 import { canStopSharing, claimShare, stopSharing } from "@/lib/giftWishListApi";
 import { addToWishList, giftListNow, resetGiftListForTests, setListName } from "@/pages/info/giftGuides/giftList";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
-import { WISH } from "@/content/giftWishList";
+import { LISTS } from "@/content/giftListsManage";
 
 const CODE = "abcdef123456";
 const tokens = () => JSON.parse(window.localStorage.getItem("lh-gift-share-tokens") ?? "{}") as Record<string, string>;
@@ -68,7 +68,7 @@ describe("stopping a shared link", () => {
       return b!;
     });
     fireEvent.click(stop);
-    await waitFor(() => expect(view.container.querySelector("[data-gift-wish-stopped]")?.textContent).toBe(WISH.sharingStopped));
+    await waitFor(() => expect(view.container.querySelector("[data-gift-wish-stopped]")?.textContent).toBe(LISTS.sharingStopped));
     expect(view.container.querySelector("[data-gift-wish-link]")).toBeNull();
   });
 });
@@ -80,14 +80,19 @@ describe("deleting my list (signed in)", () => {
     rpc.mockResolvedValue({ data: true, error: null });
     const view = render(<DeleteMyList />);
     fireEvent.click(view.container.querySelector("[data-gift-wish-delete]")!);
-    const dialog = await waitFor(() => [...document.querySelectorAll<HTMLElement>("[role='alertdialog'], [role='dialog']")].find((d) => d.textContent?.includes(WISH.deleteMyListTitle))!);
+    // The confirm dialog loads on the first tap, so wait until it is really there.
+    const dialog = await waitFor(() => {
+      const d = [...document.querySelectorAll<HTMLElement>("[role='alertdialog'], [role='dialog']")].find((x) => x.textContent?.includes(LISTS.deleteMyListTitle));
+      expect(d).toBeTruthy();
+      return d!;
+    });
     expect(rpc).not.toHaveBeenCalled();
-    fireEvent.click([...dialog.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === WISH.deleteMyList)!);
+    fireEvent.click([...dialog.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === LISTS.deleteMyList)!);
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("gift_wish_list_delete"));
     await waitFor(() => expect(giftListNow().picks).toEqual([]));
     expect(giftListNow().name).toBe("");
     expect(giftListNow().synced).toBeNull();
-    expect(view.container.querySelector("[data-gift-wish-delete-said]")?.textContent?.trim()).toBe(WISH.deleteMyListDone);
+    expect(view.container.querySelector("[data-gift-wish-delete-said]")?.textContent?.trim()).toBe(LISTS.deleteMyListDone);
   });
 
   it("a failed delete says so and keeps the list", async () => {
@@ -95,9 +100,14 @@ describe("deleting my list (signed in)", () => {
     rpc.mockResolvedValue({ data: null, error: { message: "network down" } });
     const view = render(<DeleteMyList />);
     fireEvent.click(view.container.querySelector("[data-gift-wish-delete]")!);
-    const dialog = await waitFor(() => [...document.querySelectorAll<HTMLElement>("[role='alertdialog'], [role='dialog']")].find((d) => d.textContent?.includes(WISH.deleteMyListTitle))!);
-    fireEvent.click([...dialog.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === WISH.deleteMyList)!);
-    await waitFor(() => expect(view.container.querySelector("[data-gift-wish-delete-said]")?.textContent?.trim()).toBe(WISH.deleteMyListFailed));
+    // The confirm dialog loads on the first tap, so wait until it is really there.
+    const dialog = await waitFor(() => {
+      const d = [...document.querySelectorAll<HTMLElement>("[role='alertdialog'], [role='dialog']")].find((x) => x.textContent?.includes(LISTS.deleteMyListTitle));
+      expect(d).toBeTruthy();
+      return d!;
+    });
+    fireEvent.click([...dialog.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === LISTS.deleteMyList)!);
+    await waitFor(() => expect(view.container.querySelector("[data-gift-wish-delete-said]")?.textContent?.trim()).toBe(LISTS.deleteMyListFailed));
     expect(giftListNow().picks).toHaveLength(1);
   });
 });

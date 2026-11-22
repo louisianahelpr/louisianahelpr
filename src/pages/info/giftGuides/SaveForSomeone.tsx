@@ -5,10 +5,12 @@ import { Dialog, DialogAcknowledgeAction, DialogContent, DialogFooter, DialogHer
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WISH } from "@/content/giftWishList";
+import { LISTS } from "@/content/giftListsManage";
 import { dollars, parseDollars, type GiftPlan, type PlanPerson } from "@/content/giftGuideFun1120";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareGiftLists } from "@/lib/giftWishListApi";
-import { planActions, useAccountSync, usePlan } from "./fun/plannerStore";
+import { planActions, usePlan } from "./fun/plannerStore";
+import { useAccountSync } from "./fun/plannerSync";
 import { GiftWishShare } from "./GiftWishShare";
 import { useOurLinkSync } from "./wishLinkSync";
 import { isSaved, itemId, togglePick, useGiftList } from "./giftList";
@@ -78,11 +80,11 @@ function AddPerson({ item, ready, onAdded }: { item: SaveItem; ready: boolean; o
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!ready) return;
-    if (!name.trim()) return setErr(WISH.nameFirst);
+    if (!name.trim()) return setErr(LISTS.nameFirst);
     const b = budget.trim() ? parseDollars(budget) : undefined;
     if (budget.trim() && b === undefined) return setErr("Type an amount like 25 or 25.50.");
     const id = planActions.addPerson(name.trim());
-    if (!id) return setErr(WISH.peopleFull);
+    if (!id) return setErr(LISTS.peopleFull);
     if (b !== undefined) planActions.setBudget(id, b);
     planActions.addIdea(id, { name: item.name, href: item.href, ...(item.guide ? { guide: item.guide } : {}), ...(item.image ? { image: item.image } : {}), ...(item.price !== undefined ? { price: item.price } : {}) });
     onAdded(id, name.trim());
@@ -96,8 +98,8 @@ function AddPerson({ item, ready, onAdded }: { item: SaveItem; ready: boolean; o
   }
   return (
     <form className="gg-savefor-form" onSubmit={submit} data-savefor-form="">
-      <Input aria-label={WISH.saveForName} placeholder={WISH.saveForName} value={name} maxLength={40} autoFocus aria-invalid={err === WISH.nameFirst || undefined}
-        aria-describedby={err ? "gg-savefor-add-err" : undefined} onChange={(e) => { setName(e.target.value); if (err === WISH.nameFirst) setErr(null); }} data-savefor-name="" />
+      <Input aria-label={WISH.saveForName} placeholder={WISH.saveForName} value={name} maxLength={40} autoFocus aria-invalid={err === LISTS.nameFirst || undefined}
+        aria-describedby={err ? "gg-savefor-add-err" : undefined} onChange={(e) => { setName(e.target.value); if (err === LISTS.nameFirst) setErr(null); }} data-savefor-name="" />
       <Input aria-label={WISH.saveForBudget} placeholder={WISH.saveForBudget} inputMode="decimal" value={budget} onChange={(e) => setBudget(e.target.value)} data-savefor-budget="" />
       <Button type="submit" className="btn-grad-primary" data-savefor-add-submit="">{WISH.saveForAddButton}</Button>
       {err && <p id="gg-savefor-add-err" className="gg-price-note" role="alert" data-savefor-add-err="">{err}</p>}

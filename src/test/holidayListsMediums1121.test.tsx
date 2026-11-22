@@ -22,9 +22,9 @@
  * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |         <span>{W.plannerBoughtAmount(dollars(m.spent))}</span> | <span>{dollars(m.spent)} of {dollars(m.budget)} · {dollars(m.left)} left</span>
  * @mutate src/content/giftWishList.ts |   sharedIntro: "Tap a gift to see it at the store. | sharedIntro: "Tap Shop to buy any gift.
  * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |     heartTapped(r, true); |     heartTapped(r);
- * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |     successToast(WISH.removedGift(p.name), { action: { label: WISH.undo, onClick: () => A.restorePerson(p, index) } }); |     void index;
+ * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |     successToast(WISH.removedGift(p.name), { action: { label: WISH.undo, onClick: () => restorePerson(p, index) } }); |     void index;
  * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |     successToast(WISH.removedGift(idea.name), { action: { label: WISH.undo, onClick: () => A.restoreIdea(p.id, idea, at) } }); |     void at;
- * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |     write({ ...cur, people: [...cur.people.slice(0, at), person, ...cur.people.slice(at)] }); |     write({ ...cur, people: [...cur.people, person] });
+ * @mutate src/pages/info/giftGuides/fun/plannerSync.ts |   write({ ...cur, people: [...cur.people.slice(0, at), person, ...cur.people.slice(at)] }); |   write({ ...cur, people: [...cur.people, person] });
  * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx | data-plan-budget={p.id} /></span>\n      </div> | data-plan-budget={p.id} /></span>\n        <button type="button" onClick={removePerson} data-plan-remove={p.id}>x</button>\n      </div>
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

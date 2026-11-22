@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { SITE_ORIGIN } from "@/lib/publicPageMeta.mjs";
 import { track } from "@/lib/analytics";
 import { WISH, HINTS } from "@/content/giftWishList";
+import { LISTS } from "@/content/giftListsManage";
 import { canStopSharing, claimShare, newWishLink, sharedListPath, stopSharing, wishErrorCopy } from "@/lib/giftWishListApi";
 import { smsHref } from "./GiftGuideShare";
 import { Hint, dismissHint } from "./GiftHint";
@@ -136,7 +137,7 @@ export function GiftWishShare<R extends WishRef | ShareRef = WishRef>({ name, re
         {state === "saving" ? WISH.sharing : label}
       </Button>
       {state === "failed" && <p role="alert" className="gg-price-note" data-gift-wish-share-failed="">{error}</p>}
-      {state === "stopped" && <p role="status" className="gg-price-note" data-gift-wish-stopped="">{WISH.sharingStopped}</p>}
+      {state === "stopped" && <p role="status" className="gg-price-note" data-gift-wish-stopped="">{LISTS.sharingStopped}</p>}
       {state === "menu" && url && (
         <div className="gg-wish-share-menu" role="group" aria-label={WISH.shareMenuLabel} data-gift-wish-share-menu="">
           {native && (
@@ -155,7 +156,7 @@ export function GiftWishShare<R extends WishRef | ShareRef = WishRef>({ name, re
             )}
           </span>
           <p className="gg-price-note">{WISH.shareNote}</p>
-          {canStop && <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => void stop()} data-gift-wish-stop="">{WISH.stopSharing}</Button>}
+          {canStop && <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => void stop()} data-gift-wish-stop="">{LISTS.stopSharing}</Button>}
           {signedIn && (
             <p className="gg-price-note" data-gift-wish-rotate-row="">
               {rotated ? <span role="status" data-gift-wish-rotated="">{WISH.newLinkDone}</span> : (

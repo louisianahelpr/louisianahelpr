@@ -7,7 +7,7 @@ import { DEAL_CODES } from "@/content/giftGuidePicks";
 import { cleanCodes } from "@/lib/giftGuideOfferCopy.mjs";
 import { GiftOut } from "./GiftOut";
 import { loadModule, untilReload } from "@/lib/loadModule";
-import { WISH } from "@/content/giftWishList";
+import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor } from "./saveForPeople";

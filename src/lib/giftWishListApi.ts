@@ -46,16 +46,7 @@ export const GIFT_WISH_RPC_ERROR_COPY = {
   gift_wish_list_new_link: {
     not_authenticated: "Sign in again to make a new link.",
   },
-  // Delete a list or stop a shared link (holiday audit 1121, migration 20261122024017).
-  gift_wish_list_delete: {
-    not_authenticated: "Sign in again to delete your list.",
-  },
-  gift_wish_list_claim: {
-    invalid_token: "This link can't be stopped from here.",
-  },
-  gift_wish_list_unshare: {
-    invalid_token: "This link can't be stopped from here.",
-  },
+  // Delete a list or stop a shared link: GIFT_WISH_OWN_RPC_ERROR_COPY in giftWishListOwnApi.ts (loaded on use).
   // Add from any store (owner 11-21): the gift is always kept on the device; these say why we could not also ask for
   // our link (shown under the box).
   wish_link_request_add: {
@@ -71,10 +62,13 @@ export const GIFT_WISH_RPC_ERROR_COPY = {
 } satisfies Record<string, Record<string, string>>;
 
 /** Words for an error a wish list call returned, or null when it is not one of its codes (whole-token match). */
-export function rpcErrorMessage(rpc: keyof typeof GIFT_WISH_RPC_ERROR_COPY, error: unknown): string | null {
+function rpcErrorMessage(rpc: keyof typeof GIFT_WISH_RPC_ERROR_COPY, error: unknown): string | null {
+  return copyFor(GIFT_WISH_RPC_ERROR_COPY[rpc], error);
+}
+/** The words in `table` for the code an error names (whole-token match), or null. */
+export function copyFor(table: Record<string, string>, error: unknown): string | null {
   const m = typeof error === "string" ? error : (error as { message?: unknown } | null)?.message;
   const raw = typeof m === "string" ? m : "";
-  const table: Record<string, string> = GIFT_WISH_RPC_ERROR_COPY[rpc];
   for (const code of Object.keys(table)) {
     if (new RegExp(`(^|[^a-z0-9_])${code}($|[^a-z0-9_])`).test(raw)) return table[code];
   }
@@ -237,30 +231,6 @@ export async function readWishLinks(ids: string[]): Promise<Map<string, string |
   return out;
 }
 
-// ---------------------------------------------------------------------------------------------------------------
-// Delete a list, or stop a shared link (holiday audit 1121: "No way to delete a wish list or stop a shared link";
-// migration 20261122024017). The browser that makes a shared snapshot keeps a random token for it (localStorage
-// "lh-gift-share-tokens", by code; only its hash is on the server), so it can stop that link later.
-
-export const TOKENS_KEY = "lh-gift-share-tokens";
-export const readTokens = (): Record<string, string> => {
-  try {
-    const v = JSON.parse(window.localStorage.getItem(TOKENS_KEY) ?? "{}") as unknown;
-    if (!v || typeof v !== "object") return {};
-    return Object.fromEntries(Object.entries(v as Record<string, unknown>).filter((e): e is [string, string] => LIST_CODE.test(e[0]) && typeof e[1] === "string" && /^[0-9a-f]{64}$/.test(e[1])));
-  } catch {
-    // Storage blocked or not ours: no link can be stopped from this browser.
-    return {};
-  }
-};
-/** True when this browser can stop the shared link with this code. */
-export const canStopSharing = (code: string) => code in readTokens();
-
-// The three calls below load their code (src/lib/giftWishListOwnApi.ts) only when used (lander3, train 1121i: the
-// /gift-guides/:slug critical path was over its budget, and every guide page loads this module).
-/** Right after a share: keep a token so this browser can stop the link. Throws when the server could not be asked. */
-export const claimShare = async (code: string): Promise<void> => (await import("./giftWishListOwnApi")).claimShare(code);
-/** Stop a shared link this browser made: the list is deleted and the link stops opening. False when it could not be. */
-export const stopSharing = async (code: string): Promise<boolean> => (await import("./giftWishListOwnApi")).stopSharing(code);
-/** Signed in: delete the account's own list (its link stops at once). True when there was one. */
-export const deleteMyWishList = async (): Promise<boolean> => (await import("./giftWishListOwnApi")).deleteMyWishList();
+// Delete a list, or stop a shared link (holiday audit 1121, migration 20261122024017): src/lib/giftWishListOwnApi.ts,
+// imported only by the screens that offer them (My Wish List's Share and Delete), never by a guide page (lander3,
+// train 1121i: /gift-guides/:slug critical-path budget).

@@ -23,7 +23,7 @@ vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 
 import { GiftWishShare } from "@/pages/info/giftGuides/GiftWishShare";
 import { DeleteMyList } from "@/pages/info/giftGuides/DeleteMyList";
-import { canStopSharing, claimShare, stopSharing } from "@/lib/giftWishListApi";
+import { canStopSharing, claimShare, stopSharing } from "@/lib/giftWishListOwnApi";
 import { addToWishList, giftListNow, resetGiftListForTests, setListName } from "@/pages/info/giftGuides/giftList";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { LISTS } from "@/content/giftListsManage";

@@ -12,12 +12,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 
+// A share keeps a token to stop its link (giftWishListOwnApi.ts, wishListDelete1121.test.tsx); here it never reaches a server.
+vi.mock("@/lib/giftWishListOwnApi", async (orig) => ({ ...(await orig<typeof import("@/lib/giftWishListOwnApi")>()), claimShare: vi.fn(async () => undefined) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "acct-1" }, isReady: true }) }));
 const api = vi.hoisted(() => ({ mine: vi.fn(), save: vi.fn() }));
 vi.mock("@/lib/giftWishListApi", async (orig) => ({
   ...(await orig<typeof import("@/lib/giftWishListApi")>()),
   // A share now keeps a token to stop its link (wishListDelete1121.test.tsx); here it never reaches a server.
-  claimShare: vi.fn(async () => undefined),
   getMyWishList: api.mine,
   saveWishList: api.save,
 }));

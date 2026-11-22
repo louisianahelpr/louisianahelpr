@@ -9,7 +9,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { guideBySlug, loadSearchItems, searchGuides, searchItemDollars, searchItems, searchPages, type SearchItem } from "@/content/giftGuideCatalog";
 import { MY_LIST_SLUG, useGiftList } from "./giftList";
 import { openMyLists } from "./saveForPeople";
-import { WISH } from "@/content/giftWishList";
+import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 
 /** The share links for a gift-guides page (owner 2026-11-18): Facebook's sharer and Pinterest's pin builder, no SDK script. */
 const shareLinks = (path: string, title: string, image?: string) => {

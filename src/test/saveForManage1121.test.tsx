@@ -30,6 +30,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const toasts = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+// A share keeps a token to stop its link (giftWishListOwnApi.ts, wishListDelete1121.test.tsx); here it never reaches a server.
+vi.mock("@/lib/giftWishListOwnApi", async (orig) => ({ ...(await orig<typeof import("@/lib/giftWishListOwnApi")>()), claimShare: vi.fn(async () => undefined) }));
 vi.mock("@/lib/toast", () => ({ successToast: toasts.success, errorToast: toasts.error }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: true }) }));
@@ -40,7 +42,6 @@ vi.mock("@/lib/giftGuideFunApi", () => ({
 vi.mock("@/lib/giftWishListApi", async (orig) => ({
   ...(await orig<typeof import("@/lib/giftWishListApi")>()),
   // A share now keeps a token to stop its link (wishListDelete1121.test.tsx); here it never reaches a server.
-  claimShare: vi.fn(async () => undefined),
   requestWishLink: vi.fn(async () => ({ id: "11111111-2222-4333-8444-555555555555", link: null })),
   readWishLinks: vi.fn(async (ids: string[]) => new Map(ids.map((id) => [id, null]))),
   shareGiftLists: vi.fn(async () => "abcdef123456"),

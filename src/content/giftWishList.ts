@@ -3,18 +3,15 @@
  * can add to their list and send their list to someone"; "add hints or things so they know how to use everything").
  * Short, friendly and human (owner's copy rules). Kept out of src/content/giftGuides.ts (the guide data file).
  */
+import { WISH_CORE } from "./giftWishListCore";
+
 export const WISH = {
-  title: "My Wish List",
-  /** The heart's label on a gift. */
-  saveLabel: (name: string) => `Save ${name} to My Wish List`,
-  /** The heart icon's label with its count. */
-  countLabel: (n: number) => `My Wish List, ${n} saved`,
+  ...WISH_CORE,
   nameLabel: "List name",
   namePlaceholder: "My Wish List",
   nameHelp: "Give it a name, like “Mom's Christmas List.”",
   empty: "Tap ♥ on any gift to save it here.",
   emptyCta: "Browse the gift guides",
-  loading: "Loading your list…",
   guidesTitle: "Saved guides",
   giftsTitle: (n: number) => `Saved gifts (${n})`,
   /** The filled heart on a saved gift on My Wish List (owner 11-20: a heart, not a Remove button). */
@@ -37,10 +34,6 @@ export const WISH = {
   sendWith: "Send with…",
   newLink: "Make a new link",
   newLinkDone: "New link made. The old link no longer works.",
-  /** The 101st heart (UX audit M2). */
-  listFull: "Your list is full (100). Remove one to add more.",
-  /** The same, on a narrow screen (verify audit H1: one line at 320). */
-  listFullShort: "List full (100)",
   /** Under the name field while it holds a link or phone number (it is not kept until it doesn't). */
   nameProblem: "Please use a name without a link or phone number.",
   /** Read out after Remove (UX audit M3). */
@@ -50,25 +43,19 @@ export const WISH = {
   missing: (n: number) => (n === 1 ? "1 gift isn't in our guides anymore." : `${n} gifts aren't in our guides anymore.`),
   shareNote: "Anyone with the link can see this list. No sign-in needed.",
   syncedNote: "Saved to your account, so it's on every device you sign in on.",
-  syncFailed: "Couldn't save to your account just now. It's kept on this device and we'll try again.",
   syncRetry: "Try again",
   deviceNote: "Saved on this device. Sign in to keep it on all your devices.",
   /** The shared list's page. */
-  /** Above the list's name on a shared list: the name is the sender's own words, never ours (security review #4). */
-  sharedLead: "Someone shared their wish list with you",
   /** Holiday audit C9: an unnamed (or default-named) shared list never shows the recipient "My Wish List". */
   sharedUnnamed: "A wish list for you",
   sharedMissingTitle: "List not found",
   sharedIntro: "Tap a gift to see it at the store. Prices and stock are on the store's site.",
   sharedMissing: "This list isn't here anymore, or the link is incomplete.",
-  sharedFailed: "Couldn't load this list. Check your connection and try again.",
   retry: "Try again",
   sharedCta: "Make your own wish list",
   sharedEmpty: "This list is empty right now.",
   // Save for someone and My lists (owner 2026-11-21: "save items per person ... it shows the total amount they have
   // added, and they can add/remove stuff as they are browsing the guides"; "they should also be able to share all lists").
-  /** The heart's label on a gift, now that it asks for whom. */
-  saveForLabel: (name: string) => `Save ${name} for someone`,
   saveForTitle: "Save for someone",
   saveForMe: "Me",
   saveForMeSub: (n: number) => `My Wish List · ${n === 1 ? "1 gift" : `${n} gifts`}`,
@@ -154,14 +141,5 @@ export const WISH = {
     `${gifts === 1 ? "1 gift" : `${gifts} gifts`}${amount ? ` · about ${amount}${unpriced > 0 ? ` + ${unpriced} with no price` : ""}` : ""}`,
 } as const;
 
-/** The how-to hints (dismissible, shown once). */
-export const HINTS = {
-  // Holiday audit 1121 (#12): the same words on a phone and a desktop ("Saved ♥ View list" vs "Saved to your wish
-  // list. See my list"); only a very narrow screen (340 and under) takes the short form; the link says "View list" as the Done toast does.
-  firstHeart: "Saved to your wish list",
-  firstHeartShort: "Saved ♥",
-  seeListShort: "View list",
-  seeList: "View list",
-  budget: "Tap a price to see gifts in your budget.",
-  share: "Send your list by text, Messenger or a link. They don't need to sign in.",
-} as const;
+export { HINTS } from "./giftWishListCore";
+

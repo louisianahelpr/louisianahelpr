@@ -197,6 +197,26 @@ export function useChatScroll({
     return () => cancelAnimationFrame(raf);
   }, [activeConvo.jobId, activeConvo.otherUserId, messages.length]);
 
+  /* STAY ON THE NEWEST MESSAGE WHILE THE CHAT LAYS OUT (audit 1122 #142, measured: a 131-message thread with no
+     unread opened 214px short of the bottom, behind "Jump to latest", at 375 and 1440). `openConvo`'s double-rAF
+     `scrollToBottom()` runs before the DealCard and the safety banner above the thread (and images inside it) have
+     their height, so the thread shrinks or grows afterwards and the bottom slides out of view. No scroll event fires
+     for that, so nearBottomRef still says "parked at the bottom": while it does, every size change of the thread or
+     of its content re-pins to the bottom. A reader scrolled up (more than 120px) is never pulled down, and a thread
+     that opened on its first unread message keeps that landing. */
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const pin = () => {
+      if (!nearBottomRef.current || initialFirstUnreadIdRef.current) return;
+      el.scrollTop = el.scrollHeight;
+    };
+    const ro = new ResizeObserver(pin);
+    ro.observe(el);
+    for (const child of Array.from(el.children)) ro.observe(child);
+    return () => ro.disconnect();
+  }, [activeConvo.jobId, activeConvo.otherUserId, messages.length]);
+
   // Reset the jump button whenever the conversation changes so a stale
   // "scrolled up" state from a previous thread doesn't bleed through.
   useEffect(() => {

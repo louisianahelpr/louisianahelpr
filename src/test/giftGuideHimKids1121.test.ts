@@ -122,7 +122,11 @@ describe.each([
 
   it("is cheapest first", () => {
     const sorted = [...rows].sort((a, b) => a.sortPrice - b.sortPrice);
-    expect((sorted as unknown as Pick[]).map((r) => r.href)).toEqual(page.map((p) => p.href));
+    // Owner 2026-11-22 ("put the ducks designs together ..."): only ties may move, a same-brand same-design row next to
+    // its group (src/test/giftGuideSameDesignTogether1122.test.ts); the prices in order and the rows are exactly these.
+    const price = new Map(rows.map((r) => [r.href, r.sortPrice]));
+    expect(page.map((p) => price.get(p.href))).toEqual(sorted.map((r) => r.sortPrice));
+    expect([...page.map((p) => p.href)].sort()).toEqual([...(sorted as unknown as Pick[]).map((r) => r.href)].sort());
   });
 
   // Owner 2026-11-21: "Him = ALL of her men's saves" and "same for the kids": brand and type caps off for her own picks

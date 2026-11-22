@@ -94,6 +94,9 @@ function LazySaveForSomeone() {
   );
 }
 
+/** "gifts for Her" -> "Gifts for Her". */
+const capitalFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 export default function GiftGuides() {
   const { slug: rawSlug, code } = useParams<{ slug?: string; code?: string }>();
   // My Wish List is /gift-guides/my-list (owner 2026-11-20); a shared list is /gift-guides/list/<code>.
@@ -174,7 +177,8 @@ export default function GiftGuides() {
 
   // The search, My list heart and Share for this page (one set, on the row under the header).
   const tools = deals ? <GiftGuideTools path={`/gift-guides/${deals.id}`} title={deals.pageTitle} image={deals.kind === "deals" ? DEALS_COVER : undefined} />
-    : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} sort={sort} />
+    // Holiday audit 1121: shared text opens with a capital ("Gifts for Her", not "gifts for Her https://...").
+    : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={capitalFirst(`${guide.lead} ${guide.title}`)} image={guide.cover} sort={sort} />
     : <GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />;
   // A guide or deals page keeps its banner (its own h1); every other page's h1 is the header title.
   const banner = Boolean(deals || guide);

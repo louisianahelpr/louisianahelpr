@@ -49,6 +49,7 @@ export const DEALS_WORDS: {
   featuredLine: string;
   featuredCta: string;
   shop: (brand: string) => string;
+  shopShort: string;
   codeLabel: string;
   endsOn: (ymd: string) => string;
   startsOn: (ymd: string) => string;

@@ -29,7 +29,7 @@
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import DEALS from "@/content/giftGuideDeals.json";
 import SMALL_BIZ from "@/content/giftGuideSmallBiz.json";
@@ -70,7 +70,8 @@ const renderDay = async (day: typeof BF, ymd: string) => {
   );
   if (day.kind === "deals") {
     const first = deals.find((d) => d.event === day.id && dealShows(d, ymd));
-    if (first) await screen.findAllByText(DEALS_WORDS.shop(first.brand));
+    // Holiday audit 1121: the card link reads "Shop" (the brand is sr-only), so wait on the cards themselves.
+    if (first) await waitFor(() => expect(document.querySelector(`[data-gift-deal="${first.brand}"]`)).not.toBeNull());
     else await screen.findByText(DEALS_WORDS.none, { exact: false });
   } else await screen.findAllByText((SMALL_BIZ as { name: string }[])[0].name);
   return view.container;
@@ -246,7 +247,7 @@ describe("deals days: one page per day (owner 11-21)", () => {
       expect(shown, day.id).toEqual(want);
       counts.push(shown.length);
       expect(box.querySelector("[data-gift-deals-count]")!.textContent, day.id).toContain(`${want.length} code`);
-      expect(box.querySelector("[data-gift-deals-count]")!.textContent, day.id).toContain(`${liveSales(SALES, on).length} deal`);
+      expect(box.querySelector("[data-gift-deals-count]")!.textContent, day.id).toContain(`${liveSales(SALES, on).length} store sale`); // holiday audit 1121: store sales, not "deals"
       cleanup();
     }
     // The dated codes land on their own day only: Black Friday's TAKE25 and XT25, Cyber Monday's CYBER.

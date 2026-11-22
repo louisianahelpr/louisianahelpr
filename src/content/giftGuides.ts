@@ -354,7 +354,8 @@ export const giftGuides = {
   moreShare: "More ways to share",
   /** One collapsed section for every discount (owner 11-18 PM: "Codes should be a section with the other discount stuff"). */
   dealsAndCodesLabel: "Deals & codes",
-  dealsCount: (deals: number, codes: number) => [deals ? `${deals} deal${deals === 1 ? "" : "s"}` : "", codes ? `${codes} code${codes === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · "),
+  // Holiday audit 1121: the box's sales are store sales (the page's deal cards are something else).
+  dealsCount: (deals: number, codes: number) => [deals ? `${deals} store sale${deals === 1 ? "" : "s"}` : "", codes ? `${codes} code${codes === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · "),
   allCodesLabel: (n: number) => `See all codes (${n})`,
   /** A store page's compact deals list (live audit r3 #1): its first few rows, then this opens the rest. */
   allDealsLabel: (n: number) => `See all deals (${n})`,

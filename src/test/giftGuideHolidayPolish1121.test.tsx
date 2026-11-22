@@ -16,7 +16,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |             <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1> |             <h1 id={titleId}>{title}</h1>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { FUN_WORDS } from "@/content/giftGuideFun1120";
 import { FINDER_BUDGET_GUIDES, FINDER_VIBES, FINDER_WHO, finderBudgets, finderPool, finderVibes, giftFinder } from "@/content/giftGuideExtras1120";
@@ -103,7 +103,7 @@ describe("heading order never skips a level (holiday audit 1121: h1 then h3 on t
     await loadAllGuidePicks();
     for (const path of ["/gift-guides/her", "/gift-guides/wife", "/gift-guides/25-days-sponsors", "/gift-guides/black-friday"]) {
       const { container } = renderAt(path);
-      if (path.endsWith("black-friday")) await screen.findAllByText(/^Shop /);
+      if (path.endsWith("black-friday")) await waitFor(() => expect(document.querySelector("[data-gift-deal]")).not.toBeNull());
       const levels = [...container.querySelectorAll("h1, h2, h3, h4, h5, h6")].map((h) => Number(h.tagName[1]));
       expect(levels.length, path).toBeGreaterThan(1);
       expect(levels[0], path).toBe(1);

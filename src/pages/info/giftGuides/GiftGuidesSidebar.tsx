@@ -175,6 +175,8 @@ export const liveSales = (sales: readonly Sale[], today: string) => {
 
 /** Rows Deals & codes shows when opened, codes first (design spec 11-18 H5). */
 const DEALS_ROWS = 8;
+/** Of those, the rows the sales always keep while there are sales. */
+const SALES_MIN = 3;
 
 /** The sales the list shows before "See all sales". */
 const SALES_FIRST = 12;
@@ -222,7 +224,9 @@ export function DealsAndCodes({ on }: { on?: string } = {}) {
   if (codes.length === 0 && sales.length === 0) return null;
   // Design spec 11-18 H5: a cream card; open, at most 8 rows show (codes first, then sales), each list with its See all.
   const stores = codesByStore(codes).length;
-  const codeRows = Math.min(stores, DEALS_ROWS);
+  // Holiday audit 1121: with 18 code stores all 8 rows went to codes, and "Sales" showed a heading over no rows; the
+  // sales keep at least SALES_MIN rows whenever there are any.
+  const codeRows = Math.min(stores, sales.length > 0 ? DEALS_ROWS - SALES_MIN : DEALS_ROWS);
   return (
     <details id="gift-codes" className="gg-deals" data-gift-deals-codes="">
       <summary><span className="gg-deals-title">{G.dealsAndCodesLabel}</span><span className="gg-deals-count" data-gift-deals-count="">{G.dealsCount(sales.length, codes.length)}</span></summary>

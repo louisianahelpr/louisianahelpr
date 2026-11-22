@@ -337,3 +337,22 @@ describe("holiday audit 1121 #66 / #63: the 25 Days sponsors page's photos and p
     for (const when of container.querySelectorAll(".gg-card-when")) expect(when.textContent).toMatch(/^Ends /);
   });
 });
+
+describe("audit 11-22 #4: our own sponsor photos carry no cream or pink square", () => {
+  it("every sponsor photo's four corners are see-through or a real picture, never the cream padding", async () => {
+    const { readdirSync } = await import("node:fs");
+    const sharp = (await import("sharp")).default;
+    const dir = resolve(ROOT, "public/gift-guides/sponsor-picks");
+    const files = readdirSync(dir).filter((f) => f.endsWith(".webp"));
+    expect(files.length).toBeGreaterThan(30);
+    for (const f of files) {
+      const { data, info } = await sharp(resolve(dir, f)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      for (const [x, y] of [[0, 0], [info.width - 1, 0], [0, info.height - 1], [info.width - 1, info.height - 1]]) {
+        const i = (y * info.width + x) * 4;
+        const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+        const cream = a > 200 && r > 240 && g > 238 && b > 228 && r - b < 20;
+        expect(cream, `${f} corner ${x},${y} is cream (${r},${g},${b})`).toBe(false);
+      }
+    }
+  });
+});

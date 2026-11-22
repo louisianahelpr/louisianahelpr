@@ -290,9 +290,11 @@ export default function GiftGuides() {
         {/* Owner redesign 11-18 PM: under the title ONE slim row (search, My list, Share); Text and Copy link sit in
             Share's menu and the codes are a "Deals & codes" section of the page. The banner title is the page's h1
             (live audit r3 #7); the header's "Gift guides" is a plain line (titleTag="p"). */}
-        {/* The one top of every guides page (GuidesTop): the head row, the phone's chip row, the banner. A phone's guide
+        {/* The one top of every guides page (GuidesTop): the head row, the banner. A phone's guide
             page and the 25 Days sponsors page put the pill and the icons on the count row under the banner. */}
-        <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} pillInRow={!countRow}
+        {/* Owner 11-22 (phone): the head row's heart and three-line menu replace the chip row on every page; a guide's
+            own count row under its banner is kept as it is ("she didn't ask to change it"). */}
+        <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} pillInRow={!countRow} onMyList={myList}
           below={(shipPill) => countRow && guide && (
             <div className="gg-countrow" data-gift-countrow="">
               <div className="gg-countrow-left">

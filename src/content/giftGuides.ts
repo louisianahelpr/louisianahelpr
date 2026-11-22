@@ -298,10 +298,13 @@ export const giftGuides = {
   /** The left menu's group headings (owner 11-21: "guides, deals, free, make it fun should all be their own section"). */
   sideHeads: { guides: "Guides", deals: "Deals", free: "Free printables", louisiana: "Louisiana" },
   sideHolidayHub: "Holiday Hub",
-  /** The phone's chip row and menu sheet (owner 11-21: "We need a way to organize this on the phones"). */
-  phoneNavLabel: "Gift guides menu",
-  phoneNavPrintables: "Printables",
-  phoneNavMenu: "More",
+  /**
+   * The phone's head row (owner 2026-11-22: "Remove everything under the holiday gift guides on the phone view ... Only
+   * thing that will stay is the 3 line with no circle around it and the heart. Both of those will go on the right"):
+   * the three-line icon that opens the menu sheet, and the heart's name (its count when something is saved).
+   */
+  phoneMenuLabel: "Guides menu",
+  phoneHeartLabel: (n: number) => (n > 0 ? `Wish list, ${n} saved` : "Wish list"),
   /** The left menu's entry for the 25 Days sponsors page (owner 11-21: "move 25 day sponsors to the left panel"). */
   sideSponsorsLabel: "25 Days sponsors",
   shopLabel: "Shop",

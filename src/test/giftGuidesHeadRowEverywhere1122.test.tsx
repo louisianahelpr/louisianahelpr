@@ -5,7 +5,7 @@
  * arrow and "Holiday gift guides" (a plain line, not the h1), and the page's own title as its only h1, below that row.
  *
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | <GuidesTop backTo="/gift-guides" banner={banner} | <GuidesTop backTo="/gift-guides" banner={null}
- * @mutate src/pages/info/giftGuides/GuidesHeadRow.tsx | : <p className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</p>} | : <p className="text-page-title leading-tight" data-gift-head-name="">Gift guides</p>}
+ * @mutate src/pages/info/giftGuides/GuidesHeadRow.tsx | : <p className="text-page-title leading-tight" data-gift-head-name="">{name}</p>} | : <p className="text-page-title leading-tight" data-gift-head-name="">Gift guides</p>}
  * @mutate src/pages/info/giftGuides/GuidesTop.tsx | titleIsH1={!banner} | titleIsH1
  * @mutate src/pages/info/giftGuides/printables/NameMaker.tsx | grid-template-columns:repeat(3,minmax(0,1fr));align-items:start; | grid-template-columns:repeat(3,minmax(0,1fr));
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-nm{display:flex;flex:1;flex-direction:column;padding-bottom:0} | .gg-top10 .gg-nm{padding-bottom:0}

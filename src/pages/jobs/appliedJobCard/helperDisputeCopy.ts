@@ -94,7 +94,7 @@ export function helperDisputeCopy(
     awaitingAdmin,
     iOpenedIt,
     headline: awaitingAdmin
-      ? "An admin is on it."
+      ? "Helpr support is deciding this one."
       : iOpenedIt
         ? "You opened this. The person who posted this job can answer it."
         : "Both sides are talking it out.",
@@ -106,7 +106,7 @@ export function helperDisputeCopy(
         // already settled to an admin for no reason.
         `Waiting it out isn't a win — if nobody settles this by the deadline, Helpr support decides it and the payment stays on hold until then. Talk it through, ${
           disputeLive ? "withdraw it if it's sorted, " : ""
-        }or ask an admin to decide.`
+        }or ask Helpr support to decide.`
       : "If nobody settles this by the deadline, Helpr support decides it. The payment stays on hold until then.",
     canRespond: respondableStatus && !iOpenedIt,
     canWithdraw: iOpenedIt && disputeLive,

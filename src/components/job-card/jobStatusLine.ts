@@ -402,7 +402,7 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
      overrides the bucket's "Needs You" because "Needs you · Payment on hold"
      loses the one word that matters. */
   dispute: { detail: "Payment on hold", eyebrow: "Dispute open", tone: "alarm" },
-  dispute_escalated: { detail: "Payment on hold", eyebrow: "Admin reviewing", tone: "alarm" },
+  dispute_escalated: { detail: "Payment on hold", eyebrow: "In review", tone: "alarm" },
   /* MONEY PROBLEMS (Q360). jobs.status cannot show them: a chargeback leaves
      the job 'completed' (or wherever it was) and a declined card leaves it
      'open'. Same words on both tabs — see PAYMENT_PROBLEM_COPY. */
@@ -904,7 +904,7 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   overdue_arrival_unconfirmed: { detail: "Day passed — arrival not confirmed" },
   overdue_after_photo: { detail: "Day passed — take the after photo" },
   dispute: { detail: "Payment on hold", eyebrow: "Dispute open", tone: "alarm" },
-  dispute_escalated: { detail: "Payment on hold", eyebrow: "Admin reviewing", tone: "alarm" },
+  dispute_escalated: { detail: "Payment on hold", eyebrow: "In review", tone: "alarm" },
   ...problemCopy(),
   /* Q344, the Helpr's half: see POSTER_WAIT.dispute_settling. */
   dispute_settling: { detail: "Decided — payment processing", eyebrow: "Dispute decided", tone: "them" },

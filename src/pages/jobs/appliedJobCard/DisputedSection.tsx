@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { JobActionChip, JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, History, LifeBuoy, MessageSquare, Send, Undo2 } from "lucide-react";
+import { AlertTriangle, Camera, History, LifeBuoy, MessageSquare, Send, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { isExpectedLifecycleRefusal, lifecycleErrorMessage } from "@/lib/lifecycleErrors";
@@ -146,7 +146,7 @@ export function DisputedSection({
               — while the paragraph a few lines further down said "An admin is
               deciding this one." One card, two contradictory answers to the
               only question the helper has. */}
-          {awaitingAdmin ? "Admin reviewing" : "Dispute open"}
+          {awaitingAdmin ? "In review" : "Dispute open"}
         </span>
         <p
           className="font-display font-bold leading-tight mt-2 text-ds-16"
@@ -177,7 +177,7 @@ export function DisputedSection({
       {job.dispute_deadline && (
         <DeadlineCountdown
           deadline={job.dispute_deadline}
-          expiredText="Deadline passed — Helpr support is deciding"
+          expiredText="Deadline passed"
           /* Both branches state the SAME mechanism —
              `auto-resolve-disputes` settles every non-escalated expired
              dispute with `_outcome: "helper"` (index.ts:196) — but only one of
@@ -258,8 +258,8 @@ export function DisputedSection({
               className="font-sans text-ds-11"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
-              An admin is deciding this one. You can still add your side — it goes
-              into the record they read before they decide.
+              You can still add your side and photos. Helpr support reads them
+              before deciding.
             </p>
           )}
           {/* The FORM stays here, above the row — it is this state's ask. The
@@ -371,8 +371,8 @@ export function DisputedSection({
     /* "Respond to dispute" implies the poster is still the one listening.
        Once it is escalated they are not. */
     <JobStepPrimaryButton
-      icon={MessageSquare}
-      label={awaitingAdmin ? "Add photos" : "Respond to dispute"}
+      icon={awaitingAdmin ? Camera : MessageSquare}
+      label={awaitingAdmin ? "Add your side" : "Respond to dispute"}
       onClick={() => setRespondingJobId(app.job_id)}
     />
   ) : null;

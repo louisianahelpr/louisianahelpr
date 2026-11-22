@@ -883,7 +883,7 @@ describe("the strip reads without colour, announces as one sentence, and is not 
     expect(open.dataset.jobStatusTone).toBe("alarm");
     expect(open.hasAttribute("data-dispute-open-badge")).toBe(true);
     const esc = renderStrip("dispute_escalated");
-    expect(esc.textContent).toContain("Admin reviewing");
+    expect(esc.textContent).toContain("In review");
   });
 });
 

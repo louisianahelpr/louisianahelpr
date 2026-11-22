@@ -515,9 +515,8 @@ export const DisputeTimelineDialog = ({
                 className="font-sans text-ds-12 pt-1"
                 style={{ color: "hsl(var(--olivewood) / 0.85)" }}
               >
-                Only the person who filed can add evidence here. Your side of it
-                goes in the response box on this job's card, and an admin reads
-                both before deciding.
+                Only the person who filed can add evidence here. Add your side and
+                photos from the job card; Helpr support reads both before deciding.
               </p>
             )}
 
@@ -567,7 +566,7 @@ export const DisputeTimelineDialog = ({
             <p className="font-sans text-ds-12 text-muted-foreground">
               Questions?{" "}
               <Link to="/support?topic=message" onClick={onClose} className="font-semibold" style={{ color: "hsl(var(--bark))" }}>
-                Talk to a real person
+                Talk to Helpr support
               </Link>
             </p>
           </div>

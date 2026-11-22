@@ -122,7 +122,10 @@ color:var(--gg-ink)}
 .gg-search-item{display:flex;flex-direction:column;min-width:0}.gg-search-item-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}.gg-search-item small{font-size:12px;color:var(--gg-muted)}
 .gg-search-results a:hover,.gg-search-results a:focus-visible{background:hsl(var(--muted) / .6)}
 .gg-icon{position:relative;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;border-radius:999px;color:var(--gg-ink);background:transparent;border:0;text-decoration:none}
-.gg-icon:hover,.gg-icon:focus-visible,.gg-icon[aria-expanded="true"]{background:hsl(var(--muted) / .7)}
+/* Owner 11-22, no circles on header icons: a tap on a phone leaves :hover set on iOS, so the hover and open-menu fill
+   apply only where a real pointer hovers; keyboard focus shows a ring, never a filled circle. */
+.gg-icon:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:-2px;border-radius:8px}
+@media (hover:hover){.gg-icon:hover,.gg-icon[aria-expanded="true"]{background:hsl(var(--muted) / .7)}}
 .gg-mylist-icon{color:#8c3b3b}
 .gg-icon-dot{position:absolute;top:9px;right:9px;width:9px;height:9px;border-radius:50%;background:#8c3b3b;box-shadow:0 0 0 2px hsl(var(--background))}
 .gg-icon-count{position:absolute;top:4px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#8c3b3b;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}

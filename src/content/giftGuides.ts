@@ -183,30 +183,33 @@ export interface DiscountCode {
   /** The store's affiliate link, so a shopper who copies the code can open the store (holiday audit 1121 #81). */
   href?: string;
 }
+// Holiday audit 1121 #81 (lead 11-21: look each brand up ourselves): each code carries its store link, the brand's
+// affiliate link where we have one (CJ / Rakuten deep link to the home page, from the Link-library master-links.csv),
+// else the brand's plain https home page. Guard: src/test/giftGuideHolidayPolish1121c.test.tsx.
 export const discountCodes: DiscountCode[] = [
-  { rank: 1, store: "Muck Boot", code: "CYBER", offer: "20% off sitewide", dates: "Nov 29 – Dec 6", starts: "2026-11-29", expires: "2026-12-06" },
-  { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", starts: "2026-11-20", expires: "2026-11-28" },
+  { rank: 1, store: "Muck Boot", code: "CYBER", offer: "20% off sitewide", dates: "Nov 29 – Dec 6", starts: "2026-11-29", expires: "2026-12-06", href: "https://www.anrdoezrs.net/click-101930553-15735627?url=https%3A%2F%2Fwww.muckbootcompany.com%2F" },
+  { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", starts: "2026-11-20", expires: "2026-11-28", href: "https://www.anrdoezrs.net/click-101930553-15735627?url=https%3A%2F%2Fwww.muckbootcompany.com%2F" },
   // Train 1120c (lead 11-20 11:31 AM, CJ): XTRATUF's Black Friday code, 25% off sitewide, free shipping on $99+.
-  { rank: 1, store: "XTRATUF", code: "XT25", offer: "25% off sitewide (Black Friday); free shipping on $99+", dates: "Nov 20 – 29", starts: "2026-11-20", expires: "2026-11-29" },
-  { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+" },
-  { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions" },
-  { rank: 5, store: "Bruno Marc", code: "GREEN20", offer: "20% off sitewide" },
+  { rank: 1, store: "XTRATUF", code: "XT25", offer: "25% off sitewide (Black Friday); free shipping on $99+", dates: "Nov 20 – 29", starts: "2026-11-20", expires: "2026-11-29", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2F" },
+  { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+", href: "https://www.anrdoezrs.net/click-101930553-15736401?url=https%3A%2F%2Fwww.durangoboots.com%2F" },
+  { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions", href: "https://cookmagnifique.com/" },
+  { rank: 5, store: "Bruno Marc", code: "GREEN20", offer: "20% off sitewide", href: "https://www.brunomarc.com/" },
   // Follow-up batch 2026-11-18: the rest of her list (the brands' own codes for her; Instant Funding still left out).
-  { rank: 8, store: "Everyday Dose", code: "ONBRAND-LEXI", offer: "10% off your first order; stacks with sales, one use per person" },
-  { rank: 10, store: "Aurate", code: "LEXIL-20", offer: "20% off" },
-  { rank: 11, store: "Camp Snap", code: "LEXILOMBAS7", offer: "7% off" },
-  { rank: 12, store: "Bon Wellness", code: "LEXI20", offer: "20% off" },
-  { rank: 13, store: "Club Recess", code: "LEXI15", offer: "15% off" },
-  { rank: 14, store: "Thrive Creative", code: "LEXIL20", offer: "20% off" },
-  { rank: 15, store: "YVO Warrior", code: "LEXI15", offer: "15% off" },
-  { rank: 16, store: "Daily Crunch Snacks", code: "LEXI15", offer: "15% off" },
+  { rank: 8, store: "Everyday Dose", code: "ONBRAND-LEXI", offer: "10% off your first order; stacks with sales, one use per person", href: "https://everydaydose.com/" },
+  { rank: 10, store: "Aurate", code: "LEXIL-20", offer: "20% off", href: "https://auratenewyork.com/" },
+  { rank: 11, store: "Camp Snap", code: "LEXILOMBAS7", offer: "7% off", href: "https://campsnapphoto.com/" },
+  { rank: 12, store: "Bon Wellness", code: "LEXI20", offer: "20% off", href: "https://bonwellness.com/" },
+  { rank: 13, store: "Club Recess", code: "LEXI15", offer: "15% off", href: "https://clubrecess.com/" },
+  { rank: 14, store: "Thrive Creative", code: "LEXIL20", offer: "20% off", href: "https://thrivecreative.us/" },
+  { rank: 15, store: "YVO Warrior", code: "LEXI15", offer: "15% off", href: "https://yvowarrior.com/" },
+  { rank: 16, store: "Daily Crunch Snacks", code: "LEXI15", offer: "15% off", href: "https://dailycrunchsnacks.com/" },
   // Affiliate sweep 11-18 #10: the brands in her code list that have a pick here (Bonheur's Celine Huggy Hoops, Spa
   // Days). EF Collection, Quip and The Foggy Dog have no pick, so their codes stay off. BLKFRIDAY35 is embargoed to Nov 26.
-  { rank: 17, store: "Bonheur Jewelry", code: "SHOPMY25", offer: "25% off" },
-  { rank: 17, store: "Bonheur Jewelry", code: "BONHEUR15", offer: "15% off" },
-  { rank: 17, store: "Bonheur Jewelry", code: "BLKFRIDAY35", offer: "35% off (Black Friday)", dates: "From Nov 26", starts: "2026-11-26" },
+  { rank: 17, store: "Bonheur Jewelry", code: "SHOPMY25", offer: "25% off", href: "https://bonheurjewelry.com/" },
+  { rank: 17, store: "Bonheur Jewelry", code: "BONHEUR15", offer: "15% off", href: "https://bonheurjewelry.com/" },
+  { rank: 17, store: "Bonheur Jewelry", code: "BLKFRIDAY35", offer: "35% off (Black Friday)", dates: "From Nov 26", starts: "2026-11-26", href: "https://bonheurjewelry.com/" },
   // Tushbaby confirmed LAHELPR25 for us (11-18 PM; we told the brand we'd list it): shows Dec 1, hides after Dec 25.
-  { rank: 18, store: "Tushbaby", code: "LAHELPR25", offer: "25% off sitewide", dates: "Dec 1 – 25", starts: "2026-12-01", expires: "2026-12-25" },
+  { rank: 18, store: "Tushbaby", code: "LAHELPR25", offer: "25% off sitewide", dates: "Dec 1 – 25", starts: "2026-12-01", expires: "2026-12-25", href: "https://click.linksynergy.com/deeplink?id=pqYaS88pNmA&mid=53904&murl=https%3A%2F%2Ftushbaby.com%2F" },
 ];
 
 /** The codes still good on `today` (YYYY-MM-DD, local): a code is shown through its `expires` day. */

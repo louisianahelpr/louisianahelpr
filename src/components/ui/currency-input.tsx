@@ -224,7 +224,9 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
 
     if (hero) {
       return (
-        <div className={cn("flex items-center justify-center gap-0.5 rounded-ds-md px-2 focus-within:ring-2 focus-within:ring-[hsl(var(--olivewood)/0.35)]", className)}>
+        // Deep audit 11-22 #9: text-ds-40 on the wrapper too. On a phone the anti-zoom rule (index.css, pointer: coarse)
+        // sets every input to max(16px, 1em), and 1em is the PARENT's size, so the digits fell to 16px beside a 28px "$".
+        <div className={cn("flex items-center justify-center gap-0.5 rounded-ds-md px-2 text-ds-40 focus-within:ring-2 focus-within:ring-[hsl(var(--olivewood)/0.35)]", className)}>
           {/* Design audit r2 #2: the "$" is the number's size, muted; the digits are the text colour. */}
           <span aria-hidden="true" className="font-sans text-ds-40 font-bold text-muted-foreground">
             $

@@ -83,6 +83,11 @@ export function entryCardCount(known: { draftCard: boolean; repostCard: boolean 
   return ENTRY_BASE_CARD_COUNT + (known.draftCard ? 1 : 0) + (known.repostCard ? 1 : 0);
 }
 
+/** Audit 11-21 (S39): at 1440 the first screen stretched its search field and group cards across 1152px. It keeps a
+ *  768px column (max-w-3xl, the /search and settings reading column), left-aligned under the title, the same in its
+ *  loading bones so nothing moves when it lands. */
+const ENTRY_COLUMN = "flex flex-col gap-3 lg:max-w-3xl";
+
 function EntryChoiceSkeleton({ draftCard, links, grid }: { draftCard: boolean; links: number; grid: ReactNode }) {
   return (
     <div className="flex flex-col gap-3" role="status" aria-busy="true" data-testid="entry-choice-skeleton">
@@ -282,7 +287,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       repostCard: postedBefore === true,
     });
     return (
-      <div className="flex flex-col gap-3">
+      <div className={ENTRY_COLUMN}>
         {startHeader}
         <EntryChoiceSkeleton draftCard={draftCard} links={count - (draftCard ? 1 : 0)} grid={groupGrid} />
       </div>
@@ -398,6 +403,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             open
             headless
             onOpenChange={(next) => form.setEntryPanel(next ? "ai" : null)}
+            onBlankForm={() => form.setEntryPanel(null)}
             locationContext=""
             onGenerated={(job) => {
               form.applyAiJob(job);
@@ -416,7 +422,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     // Step 0 (owner 2026-10-21, mock-up helpr-postjob-flow-mockup.png): "How do you want to start?",
     // four cards, sentence case, an olive-circle icon each. A returning poster's kept draft and recent
     // jobs follow as the same card (counted by the skeleton above, so the column lands once).
-    <div className="flex flex-col gap-3">
+    <div className={ENTRY_COLUMN}>
       {startHeader}
       {/* Q2003 (owner 2026-11-03): one notice at a time. At the 5-open-job cap the gift hint waits (nothing can be
           posted, so "ready to spend on your next job" is not true yet); it comes back once a job closes. */}

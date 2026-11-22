@@ -46,10 +46,13 @@ export function QuotesSideBySide({ quotes }: { quotes: RequestQuote[] }) {
               <th scope="row" className="py-2 pr-3 font-semibold text-muted-foreground">When</th>
               {live.map((q) => <td key={q.id} className="py-2 pr-3">{q.available_note || "—"}</td>)}
             </tr>
-            <tr className="border-t border-border align-top">
-              <th scope="row" className="py-2 pr-3 font-semibold text-muted-foreground">Past work photos</th>
-              {live.map((q) => <td key={q.id} className="py-2 pr-3 tabular-nums">{(q.photo_paths ?? []).length}</td>)}
-            </tr>
+            {/* Audit 11-21 (L34): "Past work photos 0 0 0" took a whole row; the row shows only when a quote has one. */}
+            {live.some((q) => (q.photo_paths ?? []).length > 0) && (
+              <tr className="border-t border-border align-top" data-quotes-photos-row="">
+                <th scope="row" className="py-2 pr-3 font-semibold text-muted-foreground">Past work photos</th>
+                {live.map((q) => <td key={q.id} className="py-2 pr-3 tabular-nums">{(q.photo_paths ?? []).length}</td>)}
+              </tr>
+            )}
             <tr className="border-t border-border align-top">
               <th scope="row" className="py-2 pr-3 font-semibold text-muted-foreground">Good until</th>
               {live.map((q) => <td key={q.id} className="py-2 pr-3">{q.respond_until ? until(q.respond_until) : "—"}</td>)}

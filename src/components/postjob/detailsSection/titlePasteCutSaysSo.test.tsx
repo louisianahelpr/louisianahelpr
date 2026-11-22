@@ -5,6 +5,8 @@
  *
  * @mutate src/components/postjob/detailsSection/TitleField.tsx |     pasteCut.current = kept + e.clipboardData.getData("text").length > TITLE_MAX; |     pasteCut.current = false;
  * @mutate src/components/postjob/detailsSection/TitleField.tsx |       {!overLimit && !leak && cut && ( |       {false && (
+ * Audit 11-21 (L32): the cut ended mid-word ("...house bef"); it ends at the last whole word.
+ * @mutate src/components/postjob/detailsSection/TitleField.tsx | setTitle(wasCut ? atWordEnd(e.target.value) : e.target.value); | setTitle(e.target.value);
  */
 import { describe, it, expect } from "vitest";
 import { useState } from "react";
@@ -28,6 +30,16 @@ describe("a pasted title that does not fit says it was cut (F306)", () => {
     expect(note()?.textContent).toBe("Titles can be 32 characters, so the end of what you pasted was cut.");
     fireEvent.change(input, { target: { value: LONG.slice(0, 31) } });
     expect(note()).toBeNull();
+  });
+
+  it("the cut title ends at a whole word, never mid-word (audit 11-21 L32)", () => {
+    render(<Harness />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    fireEvent.paste(input, { clipboardData: { getData: () => LONG } });
+    fireEvent.change(input, { target: { value: LONG.slice(0, 32) } });
+    // "Hang three floating shelves in t" -> "Hang three floating shelves in"
+    expect(LONG.slice(0, 32).endsWith(" t")).toBe(true);
+    expect(input.value).toBe("Hang three floating shelves in");
   });
 
   it("a paste that fits says nothing", () => {

@@ -14,7 +14,9 @@ export default function JobsSettings() {
   const groups = JOBS_SETTINGS_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => instantBookOn || i.key !== "instant-book") }));
   return (
     <AppPage title="Jobs settings" backTo="/jobs?tab=posted">
-      <div className="space-y-4 pb-6" data-testid="jobs-settings">
+      {/* Audit 11-21 (L35): at 1920 each row ran about 1600px with its chevron at the far right. A 768px reading column
+          (max-w-3xl, as /search), left-aligned under the title. */}
+      <div className="space-y-4 pb-6 max-w-3xl" data-testid="jobs-settings">
         {groups.map((group) => (
           <SettingsGroup key={group.title} group={group} onSelect={(item) => item.href && navigate(item.href)} />
         ))}

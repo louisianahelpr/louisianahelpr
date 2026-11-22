@@ -302,6 +302,13 @@ export function TimePickerWheel({ value, onChange, disabled, className, ariaLabe
           Pick AM or PM
         </p>
       )}
+      {/* Audit 11-21 (L33): an empty time rests the wheels on 12 : 00 with neither AM nor PM picked, which read as a
+          time that would be saved (noon? midnight?). Nothing is set until the poster picks; this says so. */}
+      {!hasValue && !awaitingPeriod && (
+        <p className="text-ds-13 text-center text-muted-foreground" data-testid="time-pick-empty">
+          No time picked yet
+        </p>
+      )}
     </div>
   );
 }

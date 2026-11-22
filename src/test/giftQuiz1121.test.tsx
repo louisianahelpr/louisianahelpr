@@ -11,7 +11,7 @@
  * @mutate src/content/giftQuiz.ts |   const key = (p: CatalogPick): [number, number, number] => [top.get(p.href) ?? 99, | const key = (p: CatalogPick): [number, number, number] => [99,
  * @mutate src/content/giftQuiz.ts |   const list = picked.length > 0 ? picked : rank(people, a.budget); |   const list = picked;
  * @mutate src/content/giftQuiz.ts |   const intoIds = who ? [...(who === "kids" ? KIDS_INTO : ADULT_INTO), ANY].map((x) => x.id) : []; |   const intoIds: string[] = [];
- * @mutate src/pages/info/giftGuides/GiftGuideFinder.tsx |     const shown = result.picks.slice(0, more ? result.picks.length : QUIZ_FIRST); |     const shown = result.picks;
+ * @mutate src/pages/info/giftGuides/GiftGuideFinder.tsx |     const shown = result.picks.slice(0, more ? result.picks.length : QUIZ_FIRST); |     const shown = result.picks.slice(0, QUIZ_FIRST);
  * @mutate src/pages/info/giftGuides/GiftGuideFinder.tsx | } else if (step === "age") { | } else if (step === "age" && false) {
  * @mutate src/content/giftQuiz.ts |     for (const [re, tag] of NAME_TAGS) if (re.test(pick.name) && !(tag === "cozy" && NOT_COZY_TYPES.has(pick.type ?? ""))) tags.add(tag); |     for (const [re, tag] of NAME_TAGS) if (re.test(pick.name)) tags.add(tag);
  * @mutate src/content/giftQuiz.ts |   [/\b(owala\|water bottle)\b/i, "fitness"], |   [/\b(owala\|bottle)\b/i, "fitness"],
@@ -174,8 +174,8 @@ describe("the quiz on the page: one question per screen, then a short list", () 
     tap(container, "into:any");
     expect(container.querySelector("[data-test-search]")?.textContent).toBe("?who=her&budget=under-25&into=any");
     expect(container.querySelector("[data-gift-quiz-result-title]")?.textContent).toBe(W.quizResults("her"));
-    expect(container.querySelectorAll("[data-gift-finder-results] [data-gift-pick]")).toHaveLength(QUIZ_FIRST);
-    fireEvent.click(screen.getByText(W.quizMore));
+    // Owner 2026-11-22 ("make everything open expanded"): every matching pick shows at once, with no "Show me more".
+    expect(screen.queryByText(W.quizMore)).toBeNull();
     const all = container.querySelectorAll("[data-gift-finder-results] [data-gift-pick]");
     expect(all.length).toBeGreaterThan(QUIZ_FIRST);
     expect(all.length).toBeLessThanOrEqual(QUIZ_MAX);

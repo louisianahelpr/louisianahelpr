@@ -45,7 +45,7 @@
  * @mutate src/pages/messages/useMessageSections.tsx |     homes: homesOn && !!openToEveryone?.has("rentals"), |     homes: homesOn,
  * @mutate src/components/messages/SectionInboxEmpty.tsx |   return empty.Lead ? <empty.Lead empty={box} /> : box; |   return box;
  * Q2663: Unread with nothing unread has its own empty line, not "No messages yet".
- * @mutate src/pages/messages/useMessageSections.tsx |   if (section === "unread" && shown.length === 0) { |   if (section === "unread" && shown.length < 0) {
+ * @mutate src/pages/messages/useMessageSections.tsx |   if (section === "unread" && shown.length === 0 && orderTalkUnread.length === 0) { |   if (section === "unread" && shown.length < 0 && orderTalkUnread.length === 0) {
  * @mutate src/components/messages/ConversationListBody.tsx | <div className="space-y-2">{sectionEmpty?.Lead && !searchQuery.trim() && !selectMode && <sectionEmpty.Lead empty={null} />} | <div className="space-y-2">{null}
  */
 import { readFileSync } from "node:fs";

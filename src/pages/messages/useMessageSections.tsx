@@ -14,6 +14,7 @@ import type { Conversation } from "@/components/messages/types";
 import type { OrderTalkInbox } from "@/components/messages/DeclutterOrderTalkInbox";
 import type { SectionEmpty } from "@/components/messages/SectionInboxEmpty";
 import { fetchMyOrderTalks, MY_ORDER_TALKS_KEY } from "@/lib/declutter/orderTalk";
+import { unreadOrderTalks } from "@/lib/declutter/orderTalkUnread";
 import { fetchShopTalkSummary, SHOP_TALKS_SUMMARY_KEY, SHOP_TALKS_UNREAD_EVENT } from "@/lib/shops/talkUnread";
 import {
   coerceInboxFilter,
@@ -120,7 +121,9 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     [allConversations, section],
   );
 
-  const unread = conversations.filter((c) => c.unread > 0).length + shopUnread;
+  // Audit 1122 #138: an unread order chat counts, and lists under Unread, like an unread job thread.
+  const orderTalkUnread = unreadOrderTalks(orderTalks.data ?? []);
+  const unread = conversations.filter((c) => c.unread > 0).length + shopUnread + orderTalkUnread.length;
   const chips: { value: InboxFilter; label: string }[] = [
     { value: "all", label: t("msg.filterAll") },
     // The real unread-thread count, or no number at all (never "· 0").
@@ -150,7 +153,7 @@ export function useMessageSections(conversations: Conversation[], allConversatio
   }
   // Q2663 (account audit 1102d row 23): Unread with nothing unread said "No messages yet", even beside a full
   // All tab. It says what is true and goes back to All.
-  if (section === "unread" && shown.length === 0) {
+  if (section === "unread" && shown.length === 0 && orderTalkUnread.length === 0) {
     empty = { icon: MailCheck, title: t("msg.noUnread"), body: t("msg.noUnreadBody"), action: { label: t("msg.seeAll"), to: "/messages" } };
     if (shopUnread > 0) empty.Lead = ShopTalkUnreadLead;
   }
@@ -162,11 +165,13 @@ export function useMessageSections(conversations: Conversation[], allConversatio
         : null;
 
   // F420 (audit 11-10): the order chats are inbox rows, mixed with the threads newest first, under All and under the
-  // Declutter chip (ConversationListBody). Not under Unread (the server has no unread flag for them), Jobs, Shops or Homes.
+  // Declutter chip (ConversationListBody), and the unread ones under Unread (#138). Not under Jobs, Shops or Homes.
   const orderTalkInbox: OrderTalkInbox | null =
     section === "all" || section === "declutter"
       ? { rows: orderTalks.data ?? [], pending: orderTalks.isPending, error: orderTalks.isError ? orderTalks.error : null, reload: () => void orderTalks.refetch() }
-      : null;
+      : section === "unread" && orderTalkUnread.length > 0
+        ? { rows: orderTalkUnread, pending: false, error: null, reload: () => void orderTalks.refetch() }
+        : null;
   return {
     section, strip, conversations: shown, allConversations: shownAll, sectionEmpty: empty, orderTalks: orderTalkInbox, inboxLead,
     archivedView: section === "archived", setSection,

@@ -8,7 +8,7 @@
  *      part when the message part changes, and the navs fill it (useShopTalksInBadge).
  *
  * @mutate src/pages/messages/useMessageSections.tsx | (k === "declutter" && hasOrderTalks) \|\| (k === "shops" && hasShopTalks), | (k === "declutter" && hasOrderTalks),
- * @mutate src/pages/messages/useMessageSections.tsx | const unread = conversations.filter((c) => c.unread > 0).length + shopUnread; | const unread = conversations.filter((c) => c.unread > 0).length;
+ * @mutate src/pages/messages/useMessageSections.tsx | const unread = conversations.filter((c) => c.unread > 0).length + shopUnread + orderTalkUnread.length; | const unread = conversations.filter((c) => c.unread > 0).length + orderTalkUnread.length;
  * @mutate src/pages/messages/useMessageSections.tsx |     section === "all" && hasShopTalks ? ShopTalkLead | section === "all" && false ? ShopTalkLead
  * @mutate src/components/mobileNav/useNavUnreadCount.ts |     store.count = store.messages + shop; |     store.count = store.messages;
  * @mutate src/components/mobileNav/useShopTalksInBadge.ts |       s.setShop(shown); |       void shown;

@@ -20,7 +20,8 @@ import { ListRow } from "@/components/ui/ListRow";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { orderTalkPhotoUrl, type OrderTalkListRow } from "@/lib/declutter/orderTalk";
 import { OptimizedImage } from "@/components/ui/optimized-image";
-import { CONVERSATION_ROW_AVATAR, CONVERSATION_ROW_FRAME } from "./ConversationRow";
+import { CONVERSATION_ROW_AVATAR, CONVERSATION_ROW_FRAME, UNREAD_MARK } from "./ConversationRow";
+import { MESSAGE_STATUS_CHIP } from "./messageStatusChip";
 import { rowAge } from "./rowAge";
 import "@/lib/i18n/enMessages";
 import { t } from "@/lib/i18n/language";
@@ -48,6 +49,14 @@ export function orderTalkRowTitle(row: Pick<OrderTalkListRow, "title">): string 
   return row.title ?? t("msg.ot.yourOrder");
 }
 
+/** Audit 1122 #138: where the order stands, on the row's second line like a job row's status chip (none when unknown). */
+const STAGE_KEY = { paid: "msg.ot.stage.paid", handed_over: "msg.ot.stage.handed_over", refunded: "msg.ot.stage.refunded" } as const;
+export function orderTalkStageWords(row: Pick<OrderTalkListRow, "stage" | "open">): string | null {
+  if (!row.open || !row.stage) return null; // an ended chat says Ended instead
+  const key = STAGE_KEY[row.stage as keyof typeof STAGE_KEY];
+  return key ? t(key) : null;
+}
+
 /** One order chat as an inbox row; tapping it opens that order's chat sheet (?order_talk=<order id>) over Messages. */
 export function OrderTalkRow({ row }: { row: OrderTalkListRow }) {
   const [params, setParams] = useSearchParams();
@@ -57,6 +66,7 @@ export function OrderTalkRow({ row }: { row: OrderTalkListRow }) {
     setParams(next);
   };
   const photo = orderTalkPhotoUrl(row);
+  const stage = orderTalkStageWords(row);
   return (
     <ListRow className={`${CONVERSATION_ROW_FRAME} justify-start`}
       onClick={() => openTalk(row.order_id)} data-order-talk-row={row.order_id}>
@@ -70,15 +80,18 @@ export function OrderTalkRow({ row }: { row: OrderTalkListRow }) {
           <Sofa className="w-5 h-5" />
         </span>
       )}
+      {/* Audit 1122 #138: the job row's unread mark, on the photo's corner. */}
+      {row.unread && <span className="relative -ml-3 -mt-9 h-2.5 w-2.5 shrink-0 self-start rounded-full" style={UNREAD_MARK} role="status" aria-label={t("msg.ot.unread")} data-order-talk-unread="" />}
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-1.5">
-          <span className="font-sans font-semibold truncate min-w-0 grow text-ds-15" title={orderTalkRowTitle(row)}>{orderTalkRowTitle(row)}</span>
+          <span className={`font-sans ${row.unread ? "font-bold" : "font-semibold"} truncate min-w-0 grow text-ds-15`} title={orderTalkRowTitle(row)}>{orderTalkRowTitle(row)}</span>
           <span className="ml-auto shrink-0 text-ds-11 text-muted-foreground whitespace-nowrap">{rowAge(row.last_at)}</span>
         </span>
         <span className="block text-ds-12 text-muted-foreground line-clamp-2 [overflow-wrap:anywhere]" data-order-talk-line=""
           title={`${row.side !== "buyer" ? t("msg.ot.sold") : t("msg.ot.bought")} · ${orderTalkRowLine(row)}`}>
           {/* Design audit 11-17 #6: "Ended" rides this second line (as a job row's status chip does), so the title
               keeps the whole first line instead of truncating at ~12 characters. */}
+          {stage && <span className="mr-1.5 inline-block align-middle text-ds-11 font-semibold px-1.5 py-0.5 rounded-full" style={{ color: MESSAGE_STATUS_CHIP.text, background: MESSAGE_STATUS_CHIP.bg }} data-order-talk-stage={row.stage}>{stage}</span>}
           {!row.open && <span className="mr-1.5 inline-block align-middle text-ds-11 font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground" data-order-talk-ended="">{t("msg.ot.ended")}</span>}
           {row.side === "buyer" ? t("msg.ot.bought") : t("msg.ot.sold")} · {orderTalkRowLine(row)}
         </span>

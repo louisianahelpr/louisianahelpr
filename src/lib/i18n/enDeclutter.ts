@@ -213,6 +213,8 @@ export const enDeclutter = {
   "decl.sl.empty": "You haven't listed anything yet.",
   // Owner 11-13: Selling's search finds nothing among the seller's own listings (never a jump to Browse).
   "decl.sl.noMatch": "No listings match \u201c{q}\u201d",
+  "decl.sl.matchOne": "1 listing matches \u201c{q}\u201d",
+  "decl.sl.matchMany": "{n} listings match \u201c{q}\u201d",
   "decl.sl.clear": "Clear",
   "decl.sl.emptyBody": "Take a few photos and set your price. Listing is free.",
   "decl.sl.allDrafts": "List all my drafts",

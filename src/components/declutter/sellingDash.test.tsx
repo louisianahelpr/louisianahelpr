@@ -1135,6 +1135,31 @@ describe("Selling's search finds the seller's own listings in place (owner 11-13
     expect(field()).toHaveValue("");
   });
 
+  // Deep audit 11-22 #53: "lamp" filtered Your listings to one row ~7,000 px down, under the to-dos, chips and sale
+  // cards, so the search seemed to do nothing. While searching, only the listings show, with the count at the top.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   if (searching) return <div className="space-y-6" data-selling-searching="">{listings}</div>; |   void searching;
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |         searching={searching} |         searching={false}
+  it("#53: while searching, the sales, offers, chips and promos step aside and the count shows first", async () => {
+    state.cart = [{ line_id: "l-o1", item_id: "i-o1", item_title: "Sale o1", my_side: "seller", seller_id: "u1", price_cents: 3000, status: "paid",
+      checkout_by: "2026-10-27T12:00:00Z", order_id: "o1", order_status: "paid", handover: "seller_delivery", premium_cents: 0, total_cents: 3000 }];
+    const { container } = at("/declutter?tab=selling");
+    await screen.findByRole("heading", { name: /^Your listings/ });
+    await waitFor(() => expect(container.querySelector("[data-paid-order='o1']")).not.toBeNull());
+    const before = ["[data-status-chips]", "[data-paid-order='o1']", "[data-sell-more]"].filter((q) => container.querySelector(q));
+    expect(before.length).toBe(3);
+    expect(screen.getByRole("region", { name: "Offers on your items" })).toBeInTheDocument();
+    fireEvent.change(field(), { target: { value: "rug" } });
+    expect(rows()).toEqual(["Rug"]);
+    for (const q of ["[data-status-chips]", "[data-paid-order]", "[data-sell-more]", "[data-shop-tools]"]) expect(container.querySelector(q), q).toBeNull();
+    expect(screen.queryByRole("region", { name: "Offers on your items" })).toBeNull();
+    const count = container.querySelector("[data-selling-search-count]") as HTMLElement;
+    expect(count.textContent).toBe("1 listing matches \u201crug\u201d");
+    // The count is the first thing under the heading, before any row.
+    expect(count.compareDocumentPosition(container.querySelector("[data-listing-row]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.change(field(), { target: { value: "" } });
+    await waitFor(() => expect(container.querySelector("[data-status-chips]")).not.toBeNull());
+  });
+
   it("switching tabs clears the search (OWNER-DECISIONS 11-13)", async () => {
     at("/declutter?tab=selling");
     await screen.findByRole("heading", { name: /^Your listings/ });

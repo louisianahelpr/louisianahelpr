@@ -63,7 +63,8 @@ function StatusChips<K extends string>({ chips, value, onPick }: { chips: readon
 const SELLING = ["listings", "offers", "waiting", "sold", "taken"] as const;
 type SellingGroup = (typeof SELLING)[number];
 
-export function SellingDash({ todo, userId, listings, settings }: { todo: DeclutterTodo | null; userId: string; listings: ReactNode; settings?: ReactNode }) {
+/** `searching` (deep audit 11-22 #53): a search of the seller's own listings is on, so only the listings show. */
+export function SellingDash({ todo, userId, listings, settings, searching = false }: { todo: DeclutterTodo | null; userId: string; listings: ReactNode; settings?: ReactNode; searching?: boolean }) {
   const [only, toggle] = useStatusFilter(SELLING);
   // The same read (and key) My listings uses, so this adds no request.
   const mine = useQuery(myItemsQuery(userId));
@@ -104,6 +105,10 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
     <SellerPayoutPrompt />
     <PaidOrders side="seller" />
   </>;
+  // Deep audit 11-22 #53: searching "lamp" filtered Your listings to one row about 7,000 px down, under the to-dos, the
+  // chips and every sale card, so the search looked like it did nothing. While a search is on, only the listings show
+  // (with "1 listing matches" or the no-match card at the top, MyListingsView).
+  if (searching) return <div className="space-y-6" data-selling-searching="">{listings}</div>;
   if (mine.isPending || !topSettled) return <DeclutterTabBones />;
   return (
     <div className="space-y-6">

@@ -313,6 +313,8 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.sl.emptyNow": "No tiene nada a la venta ahora.",
   "decl.sl.empty": "Aún no ha publicado nada.",
   "decl.sl.noMatch": "Ninguna publicación coincide con «{q}»",
+  "decl.sl.matchOne": "1 publicación coincide con «{q}»",
+  "decl.sl.matchMany": "{n} publicaciones coinciden con «{q}»",
   "decl.sl.clear": "Borrar",
   "decl.sl.emptyBody": "Tome algunas fotos y ponga su precio. Publicar es gratis.",
   "decl.sl.allDrafts": "Publicar todos mis borradores",

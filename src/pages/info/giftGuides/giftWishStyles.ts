@@ -16,7 +16,18 @@ export const GIFT_WISH_CSS = `
 .gg-wish-list>li.gg-wish-row{grid-template-columns:minmax(0,1fr)}
 .gg-wish-mine{position:relative}
 .gg-wish-mine .gg-heart-wish{position:absolute;top:6px;right:6px}
-@media (max-width:767px){.gg-wish-mine>.gg-item{padding-right:52px}}
+/* Phone (owner 2026-11-22, on the guides' rows: "On the phone the heart goes in the bottom right below the price"): a wish
+   row reads like a guide row. Its "On Amazon · ~$4" line sat in the name's top-right column and squeezed the name to
+   about four letters ("Mrs. Mey..." at 375), so below 768px the name takes the whole text column and the store and
+   price go on one line under it; on My Wish List the heart sits at the row's bottom-right (its icon at the box's right
+   edge) and that line stops 48px short of it (the name is two lines at most, so only that line reaches the heart's
+   height), so a row stays the photo's height. The computer keeps the card. */
+@media (max-width:767px){
+.gg-wish-list .gg-nm{grid-template-columns:minmax(0,1fr)}
+.gg-wish-list .gg-nm .gg-nm-meta{grid-column:1;grid-row:2;justify-content:flex-start;flex-wrap:wrap;gap:0 6px;margin-top:4px;min-width:0}
+.gg-wish-mine .gg-heart-wish{top:auto;bottom:0;right:0;justify-content:flex-end}
+.gg-wish-mine .gg-nm .gg-nm-meta{padding-right:48px}
+}
 .gg-toast .gg-toast-undo{border:0;background:transparent;min-height:44px;padding:0 14px;font:inherit;font-weight:700;cursor:pointer}
 .gg-wish-own{display:inline-block;margin:18px 0 4px}
 .gg-deal{position:relative}

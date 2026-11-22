@@ -78,7 +78,8 @@ describe("Home matches board 7", () => {
     expect(cols![1]).toMatch(/\bxl:grid\b/);
     expect(cols![1]).toMatch(/xl:grid-cols-\[minmax\(0,3fr\)_minmax\(0,2fr\)\]/);
     const main = src.indexOf("<div data-home-main");
-    const side = src.indexOf('<section data-home-side className="flex flex-col gap-2 min-w-0" aria-label={t("home.yourSections")}>');
+    // Owner 11-21: the column holds the boxed profile + sections card, then the money tiles (gap-section between cards).
+    const side = src.indexOf('<section data-home-side className="flex flex-col gap-section min-w-0" aria-label={t("home.yourSections")}>');
     expect(main).toBeGreaterThan(src.indexOf("<div data-home-columns"));
     expect(side).toBeGreaterThan(src.indexOf('<GroupSection title={t("home.comingUp")}>'));
     expect(src.indexOf('data-testid="next-up"')).toBeGreaterThan(main);

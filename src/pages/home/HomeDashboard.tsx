@@ -50,6 +50,7 @@ import "@/lib/i18n/enSections";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 // The Holiday Gift Guides banner (owner mockup A, 11-18): its own chunk, last in the side column, so nothing moves.
 const GiftGuidesPromo = lazy(() => import("@/components/GiftGuidesPromo"));
+import { giftPromoShows } from "@/components/giftGuidesPromoGate";
 // Owner polish 11-20: Recent messages and Your active listings and jobs, under Your sections. Their own chunk, asked
 // only once the page has settled, so they never weigh on Home's first load (/home's critical-path budget).
 const HomeMoreRows = lazy(() => loadModule(() => import("./homeDashboard/HomeMoreRows")).then((m) => (m ? { default: m.default } : untilReload())));
@@ -186,6 +187,7 @@ function HomeDashboardScreen() {
     if (user?.id && profileFirst !== null) saveGreetingName(user.id, profileFirst);
   }, [user?.id, profileFirst]);
   const today = greetingDate(new Date(), lang);
+  const [promoShows] = useState(() => giftPromoShows());
   const todoCount = summary.todos.length;
   const [extras, setExtras] = useState<FirstExtras | null>(firstExtras);
   useEffect(() => {
@@ -253,6 +255,10 @@ function HomeDashboardScreen() {
           phone={<h1 className="sr-only">{t("home.h1")}</h1>}
         />
         {isWebDesktop && <p className="text-ds-14 text-muted-foreground pt-5 -mb-2" data-home-date="">{today}</p>}
+        {/* Owner 11-21 ("move this to under good evening lexi like one long strip"): the gift guides strip, right under the
+            greeting (phone: the top of the page). Its chunk is lazy; its 48px slot is held from the first paint while it
+            loads, so nothing under it moves. Guard: src/test/homeGiftStripAndSideBox1121.test.tsx. */}
+        {promoShows && <Suspense fallback={<div aria-hidden data-gift-promo-hold="" className="h-12" />}><GiftGuidesPromo where="home" /></Suspense>}
 
         {/* Board 11 (desktop): TWO columns under the greeting from 1280px (below that the left column is
             too narrow for the Coming up table). Left (~60%): Next up, To do, Coming up (a table from
@@ -479,7 +485,11 @@ function HomeDashboardScreen() {
             </>}
           </div>
 
-          <section data-home-side className="flex flex-col gap-2 min-w-0" aria-label={t("home.yourSections")}>
+          {/* Owner 11-21 ("your profile etc needs a box around it"): the profile line and Your sections sit in ONE card, the
+              same liquid-glass card as Needs you and Get started (empty:hidden: nothing in it yet draws no empty box); the
+              held bones and the money tiles follow it, cards of their own. */}
+          <section data-home-side className="flex flex-col gap-section min-w-0" aria-label={t("home.yourSections")}>
+            <div data-home-side-card="" className="liquid-glass p-card flex flex-col gap-2 min-w-0 empty:hidden">
             {/* Owner request 11-05: "add their URL to the home page somewhere so they can easily find it to share". The
                 handle comes from the profile row Home already has, so this makes no request; outline buttons only, so
                 Home keeps its one primary action. Owner 11-10: the card sits at the TOP of the right column.
@@ -488,9 +498,7 @@ function HomeDashboardScreen() {
                 although its own read had answered at 5.5 s. It is drawn as soon as the handle is known; only the
                 blocks that wait on the activity read are held. Guard: src/test/homeYourPageNotHeld.test.ts. */}
             {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" line />}
-            {holdBelowNextUp && <HeldBlocksSkeleton side />}
             {!holdBelowNextUp && <>
-            <HomeMoneyTiles money={money} placement="side" />
             <div className="flex items-baseline justify-between px-1">
               {/* Design audit 11-17 #27: the same eyebrow as "Needs you" and "Coming up" (GroupSection). */}
               <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">{t("home.yourSections")}</h2>
@@ -530,7 +538,9 @@ function HomeDashboardScreen() {
             {soonLine && <p data-testid="sections-opening-soon" className="px-1 text-ds-13 text-muted-foreground">{soonLine}</p>}
             </> : <div data-section-chips-held="" aria-hidden className="h-9" />}
             </>}
-            <Suspense fallback={null}><GiftGuidesPromo where="home" /></Suspense>
+            </div>
+            {holdBelowNextUp && <HeldBlocksSkeleton side />}
+            {!holdBelowNextUp && <HomeMoneyTiles money={money} placement="side" />}
           </section>
         </div>}
 

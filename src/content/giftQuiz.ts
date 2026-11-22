@@ -113,6 +113,8 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   tracker: ["tech"], smartwatch: ["tech", "fitness"], "pizza-oven": ["kitchen", "outdoors"],
   // Him batch 1 of her Nov 19 pins (11-22): a fire pit and duck calls go outdoors.
   "fire-pit": ["outdoors"], "duck-call": ["outdoors"],
+  // Him batch 2: a nugget ice maker is kitchen.
+  "ice-maker": ["kitchen"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {

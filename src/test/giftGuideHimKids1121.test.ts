@@ -119,8 +119,8 @@ describe.each([
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
       // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day and the Dad fill-in book (owner
-      // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) and the Him batch 2 Amazon items (GE Opal Mini, method body wash) were priced 11-22.
-      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || /B0H51ZX6SB|B0BT1WN3ZD/.test(p.href) || popular.has(p.href) ? "2026-11-22" : "2026-11-21");
+      // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) and the Him batch 2 Amazon items (the GE Opal Mini) were priced 11-22.
+      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) ? "2026-11-22" : "2026-11-21");
     }
   });
 
@@ -190,8 +190,8 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // stores, above), B0002A7GMS / B07M9LRQ4J / B0FDXLSNN1 (second listings of the same items), B09ZYT939N YETI
     // Crossroads Backpack (Amazon showed no price), and the 6 rate switches 11-21 night (3 XTRATUF, TNF beanie, Burlebo hoodie + cap).
     // Plus the Battery Daddy (B089F9YDFC), which the owner asked for on 11-22, and B0GWXJ3PYM, the Dad fill-in book (owner
-    // via the lead 11-22, her screenshot list), and Him batch 2's GE Opal Mini and method body wash: none is from her saved list.
-    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM" && a !== "B0H51ZX6SB" && a !== "B0BT1WN3ZD");
+    // via the lead 11-22, her screenshot list), and Him batch 2's GE Opal Mini: none is from her saved list.
+    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM" && a !== "B0H51ZX6SB");
     expect(amazon.length).toBe(97); // 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 3 owner-approved adds (Banded handwarmer, Klola mat, and the MVP PRO men's 2-pack B0D9PX9RBD: the brown listing was women's), plus the 5 popular adds of 11-22 (AirPods, AirTags, Bose, Garmin, Gozney)
     expect(chunk("him").filter((p) => p.href.includes("B089F9YDFC")).length).toBe(1);
     expect(chunk("him").filter((p) => p.href.includes("B0GWXJ3PYM")).length).toBe(1);

@@ -131,13 +131,14 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     expect(document.querySelector("[data-section-list-back]")).toBeNull();
   });
 
-  it("on a phone the bar is ONE row: 'Search jobs', the Inbox and the photo, 'Jobs' a hidden h1 (the compact top, owner 11-14); '+ Post a job' floats; Posted, Working and Jobs settings are in My Jobs", async () => {
+  it("on a phone the bar is ONE row: 'Jobs' (visible until the search opens), the 'Search jobs' icon, the Inbox and the photo (the compact top, owner 11-14; just the icon, owner 11-21); '+ Post a job' floats; Posted, Working and Jobs settings are in My Jobs", async () => {
     open("/jobs");
     const bar = screen.getByTestId("app-top-bar");
     await within(bar).findByTestId("top-bar-inbox");
     const h1 = within(bar).getByRole("heading", { level: 1 });
     expect(h1.textContent).toBe("Jobs");
-    expect(h1.className.split(/\s+/)).toContain("sr-only");
+    expect(h1.className.split(/\s+/)).not.toContain("sr-only");
+    expect(h1.className.split(/\s+/)).toContain("group-has-[[data-search-open]]/top:!sr-only");
     const search = within(screen.getByTestId("app-top-bar-search")).getByRole("button", { name: "Search jobs" });
     expect(search.hasAttribute("data-section-search-bar")).toBe(true);
     expect(bar.contains(search)).toBe(true);

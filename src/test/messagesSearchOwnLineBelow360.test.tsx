@@ -10,6 +10,8 @@
  * is in the top bar, and there is no magnifier to press.
  * THE COMPACT TOP (owner 11-14): the slim search row is now the phone top bar's one row itself, with the bell and the
  * photo inline on its right; below 360 its words shorten to "Search" so they are never cut.
+ * JUST THE ICON (owner 11-21): the row starts as the magnifier beside the "more" menu; a tap opens the field in the
+ * same row, focused, and its X ("Close search") clears it and folds it back into the magnifier.
  */
 // @mutate src/components/messages/ConversationList.tsx |   const headerEl = phoneTopBar && !selectMode ? ( |   const headerEl = false ? (
 // @mutate src/components/messages/ConversationList.tsx | search={isWebDesktop \|\| inInbox ? undefined : phoneSearchRow} /> | />
@@ -92,18 +94,24 @@ afterEach(() => {
 
 describe("Messages search on a phone: the slim row, the top bar's one row (Q143 -> Q2231 -> owner 11-14)", () => {
   for (const width of [320, 375]) {
-    it(`${width}: the field is in the search row, inside the top bar, with no magnifier to press`, () => {
+    it(`${width}: the search row, inside the top bar, is the magnifier and the more menu; a tap opens the field there, focused; Close search folds it back`, () => {
       setViewport(width);
       renderInbox();
       const row = screen.getByTestId("messages-search-row");
-      const field = within(row).getByRole("searchbox", { name: "Search conversations" });
-      expect(field).toBeTruthy();
-      expect(within(row).getByRole("button", { name: "Inbox views and options" })).toBeTruthy();
       expect(screen.getByTestId("app-top-bar").contains(row)).toBe(true);
-      expect(screen.queryByRole("button", { name: "Search conversations" })).toBeNull();
+      expect(within(row).queryByRole("searchbox")).toBeNull();
+      expect(within(row).getByRole("button", { name: "Inbox views and options" })).toBeTruthy();
+      fireEvent.click(within(row).getByRole("button", { name: "Search conversations" }));
+      const openRow = screen.getByTestId("messages-search-row");
+      const field = within(openRow).getByRole("searchbox", { name: "Search conversations" });
+      expect(document.activeElement).toBe(field);
+      expect(within(openRow).getByRole("button", { name: "Inbox views and options" })).toBeTruthy();
+      expect(screen.getByTestId("app-top-bar").contains(openRow)).toBe(true);
       fireEvent.change(field, { target: { value: "faucet" } });
       expect((field as HTMLInputElement).value).toBe("faucet");
-      expect(within(row).getByRole("button", { name: "Clear search" })).toBeTruthy();
+      fireEvent.click(within(openRow).getByRole("button", { name: "Close search" }));
+      expect(screen.queryByRole("searchbox", { name: "Search conversations" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Search conversations" })).toBeTruthy();
     });
   }
 });

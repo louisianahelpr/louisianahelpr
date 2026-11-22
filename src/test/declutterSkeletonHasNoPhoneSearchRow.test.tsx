@@ -30,7 +30,10 @@ describe("Q1695: /declutter's loading frame draws the page's own phone header ro
     const r = render(<MemoryRouter><DeclutterHomeSkeleton /></MemoryRouter>);
     const search = r.container.querySelector("[data-slot='search']") as HTMLElement;
     expect(search.children).toHaveLength(1);
-    expect((search.children[0] as HTMLElement).className).toMatch(/\bh-11\b/);
+    // Owner 11-21 (search is just the icon): the bar's bones are the magnifier and Filters, 44px each, not a pill.
+    const icons = Array.from(search.children[0].children) as HTMLElement[];
+    expect(icons.map((c) => /\bh-11\b/.test(c.className) && /\bw-11\b/.test(c.className))).toEqual([true, true]);
+    expect(search.querySelector(".w-full")).toBeNull();
     const slot = r.container.querySelector("[data-slot='tabs']") as HTMLElement;
     expect(slot.children).toHaveLength(1);
     // Q2705 (11-09): the real row's box, a pb-2 row around a pb-1 row of 40px chips (44 + 8 = 52px, as measured).

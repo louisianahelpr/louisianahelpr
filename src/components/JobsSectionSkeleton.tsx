@@ -39,8 +39,8 @@ function JobsHeaderBones({ chips = false }: { chips?: boolean }) {
       {/* The section header's top row. On the DESKTOP WEBSITE it is the settled bar itself: the real "Jobs" title in
           the global top bar with its soft "+ Post a job", no back arrow (owner 2026-10-28: the loading frame draws exactly the settled
           header; src/test/sectionLoadingHeaderIsSettled.test.tsx), then the tabs row. On a phone (the Vinted header,
-          owner 11-08; the compact top, owner 11-14): ONE row, the 44px search with the Inbox icon and the photo inline on its
-          right, as bones (AppTopBar's COMPACT_TOP_ROW). */}
+          owner 11-08; the compact top, owner 11-14; just the icon, owner 11-21): ONE row, the title, the 44px search icon
+          and Filters, then the Inbox icon and the photo, as bones (AppTopBar's COMPACT_TOP_ROW). */}
       <PageTitleBar
         title="Jobs"
         desktopGap={false}
@@ -49,8 +49,18 @@ function JobsHeaderBones({ chips = false }: { chips?: boolean }) {
           <>
             <div className={COMPACT_TOP_ROW}>
               <span className="sr-only">Jobs</span>
-              <div className="min-w-0 flex-1">
-                <Skeleton className="h-11 w-full rounded-full" />
+              {/* Search is just the icon (owner 11-21): the bar shows the title again (flex-1; a bone, its word is English
+                  or Spanish), then the magnifier and Filters (SectionSearchBar's closed row, gap-1), each 44px. */}
+              <div className="min-w-0 flex-1" data-skeleton-part="title">
+                <Skeleton className="h-7 w-16 rounded-full" />
+              </div>
+              <div className="flex shrink-0 items-center justify-end gap-1" data-skeleton-part="search-icons">
+                <span className="h-11 w-11 shrink-0 flex items-center justify-center">
+                  <Skeleton className="h-5 w-5 rounded-full" />
+                </span>
+                <span className="h-11 w-11 shrink-0 flex items-center justify-center">
+                  <Skeleton className="h-5 w-5 rounded-full" />
+                </span>
               </div>
               <div className="flex items-center shrink-0">
                 <span className="h-11 w-11 shrink-0 flex items-center justify-center">

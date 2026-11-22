@@ -44,7 +44,7 @@ vi.mock("@/lib/sectionPrefsRow", () => ({
   fetchSectionPrefsRow: async () => ({ data: null, error: null }),
   saveSectionPrefsRow: async () => ({ error: null }),
 }));
-import { render, cleanup, within, waitFor } from "@testing-library/react";
+import { render, cleanup, within, waitFor, fireEvent } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -149,19 +149,21 @@ describe("Jobs: the search is an icon, never an expanded field", () => {
     });
   }
 
-  // On a phone the tab's search is the rounded field ("Search posted jobs", owner 11-08), the top bar's one row since
-  // the compact top (owner 11-14; F148 had put it in its own row under the bar), with the tabs row under it (F152); no
-  // icon, and still nothing searches from the chip row or the tabs row.
+  // On a phone the tab's search lives in the top bar's one row (owner 11-08 Vinted header; the compact top, owner 11-14;
+  // F148 had put it in its own row under the bar), with the tabs row under it (F152). Since owner 11-21 ("just the
+  // icon") it is the bar's magnifier, which opens the rounded field there; nothing searches from the chip row or tabs row.
   for (const tab of ["posted", "working"] as const) {
-    it(`phone, ${tab}: the search is the field in the top bar, never an icon, never in the status chip row (owner 11-08, F148)`, async () => {
+    it(`phone, ${tab}: the search is the top bar's icon, opening to the field in the bar, never in the status chip row (owner 11-21, F148)`, async () => {
       desktop.on = false;
       const { container } = wrap(<JobsSection />, `/jobs?tab=${tab}`);
       await waitFor(() => expect(container.querySelector("[data-jobs-toolbar]")).not.toBeNull());
       const row = within(container).getByTestId("app-top-bar-search");
       expect(within(container).getByTestId("app-top-bar").contains(row), "the top bar's own row").toBe(true);
+      const label = tab === "posted" ? "Search posted jobs" : "Search jobs you're working";
+      expect(row.querySelector("[role=search]"), "closed until tapped").toBeNull();
+      fireEvent.click(within(row).getByRole("button", { name: label }));
       const field = row.querySelector<HTMLElement>("[data-section-search-bar]");
       expect(field, "the bar's search").not.toBeNull();
-      const label = tab === "posted" ? "Search posted jobs" : "Search jobs you're working";
       expect(field!.getAttribute("role")).toBe("search");
       expect(within(field!).getByRole("searchbox", { name: label })).toBeInTheDocument();
       expect(container.querySelectorAll("[data-section-search-bar]"), "one search").toHaveLength(1);

@@ -58,13 +58,17 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(skeleton).toContain('<div className="flex min-h-full flex-col gap-4 pt-1 pb-6">');
   });
 
-  it("draws Dashboard's top bar: the compact top's one row (owner 11-14), the search with the bell and the avatar inline", () => {
-    // The compact top (owner 11-14, after Depop / Vinted): no logo row; the search is the bar's one row, the bell and
-    // the avatar inline on its right (src/test/compactTopRow.test.tsx). Both draw COMPACT_TOP_ROW.
-    expect(bar).toMatch(/<header className=\{COMPACT_TOP_ROW\}/);
-    expect(skeleton).toMatch(/<div className=\{COMPACT_TOP_ROW\}>\s*<div className="min-w-0 flex-1">\s*<Skeleton className="h-11 w-full rounded-full" \/>\s*<\/div>/);
-    expect(bar).toContain('<div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div>');
-    expect(skeleton).not.toMatch(/<Skeleton className="h-8 w-8 rounded-ds-md" \/>/);
+  it("draws Dashboard's top bar: the compact top's one row (owner 11-14), the logo, the search icon (owner 11-21), the bell and the avatar", () => {
+    // The compact top (owner 11-14, after Depop / Vinted) with search as just the icon (owner 11-21): ONE row, the H
+    // emblem (flex-1) where a page title would be, the 44px magnifier, then the bell and the avatar
+    // (src/test/compactTopRow.test.tsx). Both draw COMPACT_TOP_ROW; no full-width search pill bone any more.
+    expect(bar).toMatch(/<header className=\{`\$\{COMPACT_TOP_ROW\} group\/top`\}/);
+    expect(bar).toContain('<div className="flex min-w-0 flex-1 items-center group-has-[[data-search-open]]/top:hidden"><HelprMark size="sm" emblemOnly to="/home" /></div>');
+    expect(bar).toContain('<div data-testid="app-top-bar-search" className="flex min-w-0 shrink-0 justify-end has-[[data-search-open]]:flex-1">{search}</div>');
+    // The emblem is 32px tall (HelprMark sm: h-8) and 256x220, so 37px wide.
+    expect(read("src/components/HelprMark.tsx")).toContain('const emblemSizeMap = { sm: "h-8",');
+    expect(skeleton).toMatch(/<div className=\{COMPACT_TOP_ROW\}>\s*<div className="flex min-w-0 flex-1 items-center" data-skeleton-part="logo">\s*<Skeleton className="h-8 w-\[37px\] rounded-ds-md" \/>\s*<\/div>\s*<div className="flex min-w-0 shrink-0 justify-end" data-skeleton-part="search-icon">\s*<span className="h-11 w-11 flex items-center justify-center">/);
+    expect(skeleton).not.toMatch(/<Skeleton className="h-11 w-full rounded-full" \/>\s*<\/div>\s*<div className="flex items-center shrink-0">/);
     expect(home).toContain("<SectionScreen search={<SectionSearchBar");
     // The right cluster: two 44px controls, the Inbox icon (messages + notifications, owner 11-15) and the avatar ("+ Create" floats over the page).
     expect(bar).toContain('<div className="flex items-center shrink-0">');
@@ -110,7 +114,7 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
 });
 
 // Proof this is able to fail: each restores a real way the two drift.
-// @mutate src/components/DashboardRouteSkeleton.tsx |           <div className={COMPACT_TOP_ROW}>\n            <div className="min-w-0 flex-1"> |           <div className={COMPACT_TOP_ROW}>\n            <Skeleton className="h-8 w-8 rounded-ds-md" />\n            <div className="min-w-0 flex-1">
+// @mutate src/components/DashboardRouteSkeleton.tsx |             <div className="flex min-w-0 flex-1 items-center" data-skeleton-part="logo">\n              <Skeleton className="h-8 w-[37px] rounded-ds-md" />\n            </div> |             <div className="min-w-0 flex-1">\n              <Skeleton className="h-11 w-full rounded-full" />\n            </div>
 // @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton-part="next-up" style | data-skeleton-part="stats" style
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="h-11 w-36 mt-2 rounded-full" /> |
 // @mutate src/components/DashboardRouteSkeleton.tsx |             <div className="flex items-center shrink-0">\n              <span className="h-11 w-11 flex items-center justify-center">\n                <Skeleton className="h-6 w-6 rounded-full" />\n              </span>\n |             <div className="flex items-center shrink-0">\n

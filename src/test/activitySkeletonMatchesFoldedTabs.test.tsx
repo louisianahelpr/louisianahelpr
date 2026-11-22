@@ -25,7 +25,7 @@
  * @mutate src/components/JobsSectionSkeleton.tsx |       {header}\n      <StatusBoxBones />\n | {header}\n
  * @mutate src/components/JobsSectionSkeleton.tsx |       titleCard={header} | titleCard={<div className="flex flex-col gap-4">{header}<Skeleton className="h-10 w-full rounded-full" aria-hidden /></div>}
  * @mutate src/components/JobsSectionSkeleton.tsx |       {!titleInBar && <h1 className="sr-only">Jobs</h1>} |
- * @mutate src/components/JobsSectionSkeleton.tsx |               <Skeleton className="h-11 w-full rounded-full" />\n |
+ * @mutate src/components/JobsSectionSkeleton.tsx |                 <Skeleton className="h-7 w-16 rounded-full" />\n |
  * @mutate src/components/JobsSectionSkeleton.tsx |       <Skeleton className="h-11 w-full rounded-ds-md" /> |       {desktop && <Skeleton className="h-11 w-full rounded-ds-md" />}
  * @mutate src/components/JobsSectionSkeleton.tsx |             <div className={COMPACT_TOP_ROW}> |             <div className="app-top-bar flex items-center justify-between gap-2 h-12">
  */
@@ -80,21 +80,23 @@ describe("the /jobs placeholder draws the tab the URL opens on", () => {
 });
 
 describe("the placeholder's header is the loaded header's shape", () => {
-  it.each(["/jobs", "/jobs?tab=posted", "/jobs?tab=working"] as const)("%s: the phone header's one top row (the search, then the Inbox icon and the photo), the tabs row under it, no back row, and a single h1", (url) => {
-    // The compact top (owner 11-14, after Depop / Vinted): on a phone the top row is the 44px search with the bell and
-    // the photo inline on its right (AppTopBar's COMPACT_TOP_ROW), no visible title. No "+" (it floats:
-    // SectionCreateFab). The Browse | Posted | Working tabs stay under it on every tab (F152, owner audit 11-09), so
-    // every frame draws their 44px row and none draws a back row.
+  it.each(["/jobs", "/jobs?tab=posted", "/jobs?tab=working"] as const)("%s: the phone header's one top row (the title, the search icon and Filters, then the Inbox icon and the photo), the tabs row under it, no back row, and a single h1", (url) => {
+    // The compact top (owner 11-14, after Depop / Vinted) with search as just the icon (owner 11-21): on a phone the top
+    // row is the visible title (flex-1, a bone), the 44px magnifier and Filters, then the bell and the photo
+    // (AppTopBar's COMPACT_TOP_ROW). No "+" (it floats: SectionCreateFab). The Browse | Posted | Working tabs stay under
+    // it on every tab (F152, owner audit 11-09), so every frame draws their 44px row and none draws a back row.
     const { container } = at(url);
     const bar = container.querySelector(".app-top-bar");
     expect(bar, "the top row").not.toBeNull();
     expect(bar!.className).toBe(COMPACT_TOP_ROW);
     expect(bar!.querySelectorAll(".explore-switcher-bone"), "no chips' bone").toHaveLength(0);
-    expect(bar!.querySelectorAll(".h-7"), "no title bone").toHaveLength(0);
     const kids = [...bar!.children].filter((c) => !c.classList.contains("sr-only"));
-    expect(kids[0].querySelectorAll(".h-11.w-full.rounded-full"), "the search bar's bone first").toHaveLength(1);
+    expect(kids[0].className.split(/\s+/), "the title first, taking the row's slack").toContain("flex-1");
+    expect(kids[0].querySelectorAll(".h-7"), "the title bone").toHaveLength(1);
+    expect(bar!.querySelectorAll(".h-11.w-full.rounded-full"), "no full-width search pill bone").toHaveLength(0);
+    expect([...kids[1].children].map((c) => c.classList.contains("h-11") && c.classList.contains("w-11")), "the magnifier and Filters, 44px each").toEqual([true, true]);
     // The Inbox (owner 11-15, "Merge messages and notifications into one"): one icon replaces Messages and the bell.
-    expect(kids[1]?.children.length, "the Inbox icon, the photo").toBe(2);
+    expect(kids[2]?.children.length, "the Inbox icon, the photo").toBe(2);
     const row = bar!;
     expect(container.querySelectorAll(".h-11.w-full.rounded-ds-md"), "the tabs row on a phone").toHaveLength(1);
     expect(row.nextElementSibling?.className, "the tabs row right under the top row").toContain("h-11 w-full rounded-ds-md");

@@ -37,11 +37,31 @@ const LEGACY = new Set(["src/components/landing/HeroSection.tsx", "src/component
 
 const NOT_TYPING = /\btype=["'](?:checkbox|radio|range|file|color|button|submit|reset|hidden)["']/;
 
+/**
+ * Every `<input ...>` tag, read by brace depth: a `>` ends the tag only outside every `{...}` and quoted value. (A
+ * fixed-depth regex lost the Messages field once its Escape handler nested three braces deep, owner 11-21.)
+ */
+function inputTags(code: string): string[] {
+  const tags: string[] = [];
+  for (const m of code.matchAll(/<input\b/g)) {
+    let depth = 0;
+    let quote = "";
+    for (let i = m.index! + 6; i < code.length; i++) {
+      const c = code[i];
+      if (quote) { if (c === quote) quote = ""; continue; }
+      if (depth === 0 && (c === '"' || c === "'")) { quote = c; continue; }
+      if (c === "{") depth++;
+      else if (c === "}") depth--;
+      else if (c === ">" && depth === 0) { tags.push(code.slice(m.index!, i + 1)); break; }
+    }
+  }
+  return tags;
+}
+
 /** `<input>` tags with a bare `outline-none` and no `focus-visible:outline-none`. */
 function bareOutlineNoneInputs(src: string): string[] {
   const out: string[] = [];
-  for (const m of blankComments(src).matchAll(/<input\b(?:[^<>{}]|\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*?>/gs)) {
-    const tag = m[0];
+  for (const tag of inputTags(blankComments(src))) {
     if (NOT_TYPING.test(tag)) continue;
     if (!/(?:^|[\s"'`])outline-none\b/.test(tag)) continue;
     if (/focus-visible:!?outline-none\b/.test(tag)) continue;
@@ -68,7 +88,8 @@ describe("a typing field shows one focus ring (deep audit #46)", () => {
 
   it("the Browse search pill rings itself with an outline (a ring-* box-shadow loses to the .bg-card !important shadow)", () => {
     const src = blankComments(readFileSync(join(ROOT, "src/components/sections/SectionSearchRow.tsx"), "utf8"));
-    const form = src.match(/data-section-search=""[\s\S]*?className="([^"]+)"/);
+    // The OPEN row (owner 11-21: it starts as the icon, data-search-open marks the field form).
+    const form = src.match(/data-section-search=""\s*data-search-open=""[\s\S]*?className="([^"]+)"/);
     expect(form, "the search row form's className").not.toBeNull();
     const cls = form![1].split(/\s+/);
     expect(cls).toContain("bg-card");
@@ -82,6 +103,8 @@ describe("a typing field shows one focus ring (deep audit #46)", () => {
     expect(bareOutlineNoneInputs(before)).toHaveLength(1);
     expect(bareOutlineNoneInputs(before.replace("outline-none", "outline-none focus-visible:outline-none"))).toEqual([]);
     expect(bareOutlineNoneInputs(`<input type="radio" className="outline-none" />`)).toEqual([]);
+    // A handler three braces deep does not hide the tag from the scan.
+    expect(bareOutlineNoneInputs(`<input onKeyDown={(e) => { if (e.key === "Escape") { close(); } }} className="outline-none" />`)).toHaveLength(1);
   });
 
   it("no input in src/ hides the outline with a bare outline-none", () => {

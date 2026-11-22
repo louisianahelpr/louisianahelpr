@@ -35,7 +35,9 @@ describe("owner 11-12: Jobs and Declutter Browse share one layout", () => {
     expect(sp).toContain('export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-2 pb-0.5";');
     expect(sp).toContain('export const CHIPS_ROW_PAD = "pb-0";');
     for (const f of ["src/components/sections/AppTopBar.tsx", "src/components/DashboardRouteSkeleton.tsx", "src/components/JobsSectionSkeleton.tsx"]) {
-      expect({ f, pad: read(f).includes("className={COMPACT_TOP_ROW}") }).toEqual({ f, pad: true });
+      // The real bar adds its `group/top` hook (owner 11-21: the opened search hides the title) after the shared gaps.
+      const s = read(f);
+      expect({ f, pad: s.includes("className={COMPACT_TOP_ROW}") || s.includes("className={`${COMPACT_TOP_ROW} ") }).toEqual({ f, pad: true });
     }
     expect(read("src/components/declutter/DeclutterBrowseView.tsx")).toContain('<div data-declutter-chips-row="" className={CHIPS_ROW_PAD}>');
     expect(read("src/components/declutter/DeclutterSkeletons.tsx")).toContain("<div className={CHIPS_ROW_PAD} aria-hidden data-declutter-chip-bones=\"\">");

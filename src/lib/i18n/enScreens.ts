@@ -26,7 +26,6 @@ export const enScreens = {
   // F480 (audit 11-10): the field finds job titles too, and the placeholder says so.
   "chat.searchHint": "Search names, jobs and messages",
   "chat.closeSearch": "Close search",
-  "chat.clearSearch": "Clear search",
   "chat.loadFailed": "We couldn't load your messages.",
   "chat.emptyTitle": "No messages yet",
   "chat.browseJobs": "Browse jobs",

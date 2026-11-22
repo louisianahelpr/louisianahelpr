@@ -10,7 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
-import { DESKTOP_SEARCH_PILL_SURFACE, DESKTOP_SEARCH_PILL_WIDTH } from "@/components/sections/searchPill";
+import { SEARCH_ICON_BUTTON_CLASS } from "@/components/sections/SearchIconButton";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
@@ -241,10 +241,10 @@ function HomeDashboardScreen() {
           // Design audit area 02 #6 (11-18): the desktop website's Home had no search at all (the phone's sits in its top
           // row). The same /search link, as the desktop search pill, beside the greeting in the bar.
           actions={
-            <Link to="/search" data-testid="home-desktop-search" className={`${DESKTOP_SEARCH_PILL_SURFACE} ${DESKTOP_SEARCH_PILL_WIDTH} inline-flex items-center gap-2 px-4 text-ds-15 text-muted-foreground ctl-tint`}>
-              <Search className="h-4 w-4 shrink-0" aria-hidden />
-              {/* title: the full words stay reachable where a narrow pill cuts them (Q108). */}
-              <span className="truncate" title={`${t("section.search")} ${t("section.noun.jobsAndItems")}`}>{`${t("section.search")} ${t("section.noun.jobsAndItems")}`}</span>
+            // Owner 11-21 (pop-up, "just the icon"): the shared magnifier, never a wide always-open box; it opens /search.
+            <Link to="/search" data-testid="home-desktop-search" data-search-icon="" aria-label={`${t("section.search")} ${t("section.noun.jobsAndItems")}`}
+              title={`${t("section.search")} ${t("section.noun.jobsAndItems")}`} className={`${SEARCH_ICON_BUTTON_CLASS} min-h-11 min-w-11`}>
+              <Search className="w-5 h-5" aria-hidden />
             </Link>
           }
           // Phone: no greeting (owner 11-14, Depop/Vinted audit item 6: the page opens straight on Next up under the

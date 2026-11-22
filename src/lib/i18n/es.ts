@@ -122,7 +122,6 @@ export const es: Record<MsgKey, string> = {
   "chat.searchNoun": "conversaciones",
   "chat.searchHint": "Buscar nombres, trabajos y mensajes",
   "chat.closeSearch": "Cerrar la búsqueda",
-  "chat.clearSearch": "Borrar la búsqueda",
   "chat.loadFailed": "No pudimos cargar sus mensajes.",
   "chat.emptyTitle": "Aún no tiene mensajes",
   "chat.browseJobs": "Ver trabajos",

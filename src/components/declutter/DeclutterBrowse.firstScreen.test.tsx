@@ -134,7 +134,9 @@ describe("Browse's first cards when the list is longer than the first answer", (
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    // Owner 11-08 (the Vinted header): a phone's search is the "Search Declutter" field, always open.
+    // Owner 11-08 (the Vinted header): a phone's search is the "Search Declutter" bar; since 11-21 it starts as its icon.
+    // Coming back with ?q= opens it by itself with the words in it.
+    fireEvent.click(screen.getByRole("button", { name: "Search Declutter" }));
     fireEvent.change(screen.getByRole("searchbox", { name: "Search Declutter" }), { target: { value: "oak chair" } });
     await waitFor(() => expect(path).toBe("/declutter?tab=browse&q=oak+chair"));
     fireEvent.click(screen.getByRole("link", { name: "to item" }));

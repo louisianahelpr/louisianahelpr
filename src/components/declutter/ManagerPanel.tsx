@@ -114,7 +114,7 @@ function GrantSetup() {
           <div>
             {/* The shared search row (its ✕ clears the box; searchFieldsAllChecked presses it), named for this picker. */}
             <p className="mb-1 block text-ds-13 font-medium" aria-hidden>Member's name</p>
-            <SectionSearchRow value={query} onChange={setQuery} placeholder="Search by name" searchLabel="Member's name" />
+            <SectionSearchRow value={query} onChange={setQuery} placeholder="Search by name" searchLabel="Member's name" pinned />
             {hits.data && hits.data.length > 0 && (
               <ul className="mt-2 divide-y divide-border rounded-xl border border-border" aria-label="Members">
                 {hits.data.map((m) => (

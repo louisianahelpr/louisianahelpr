@@ -46,6 +46,10 @@ vi.mock("./SellPorchDays", () => ({ SellPorchDays: () => null }));
 import { DeclutterEditListing, EDIT_RULE, EDIT_SAVED } from "./DeclutterEditListing";
 import { TAX_TICK_LABEL } from "./declutterUi";
 import { toast } from "sonner";
+import { enListingParts } from "@/lib/i18n/enListingParts";
+import { esListingParts } from "@/lib/i18n/esListingParts";
+import { enSellSummary } from "@/lib/i18n/enSellSummary";
+import { esDeclPanels } from "@/lib/i18n/esDeclPanels";
 
 const ITEM = {
   id: "i1", seller_id: "u1", status: "live", title: "Oak rocking chair", description: "Solid.", category: "furniture",
@@ -98,23 +102,24 @@ describe("D1-1: edit a live listing", () => {
   it("a new title, description or category says it gets the automatic check", async () => {
     open();
     await screen.findByAltText("Photo 1");
-    for (const [label, value] of [["Title", "Oak rocker"], ["Description", "Solid oak."]] as const) {
+    for (const [label, field, value] of [["Title", "title", "Oak rocker"], ["Details", "description", "Solid oak."]] as const) {
       fireEvent.change(screen.getByLabelText(label), { target: { value } });
       expect(review()).toBe("yes");
-      fireEvent.change(screen.getByLabelText(label), { target: { value: (ITEM as Record<string, unknown>)[label.toLowerCase()] as string } });
+      fireEvent.change(screen.getByLabelText(label), { target: { value: ITEM[field] } });
       expect(review()).toBe("no");
     }
-    fireEvent.click(screen.getByRole("radio", { name: "Home decor" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Home/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Home decor/ }));
     expect(review()).toBe("yes");
-    fireEvent.click(screen.getByRole("radio", { name: "Furniture" }));
+    fireEvent.click(screen.getByRole("button", { name: /Furniture/ }));
     expect(review()).toBe("no");
   });
 
-  it("uses the sell form's editors: chips for category, condition and size, no native selects (DC-8)", async () => {
+  it("uses the sell form's editors: chips for condition and size, no native selects (DC-8)", async () => {
     open();
     await screen.findByAltText("Photo 1");
     expect(document.querySelector("[data-edit-listing] select")).toBeNull();
-    for (const g of ["Category", "Condition", "Size"]) expect(screen.getByRole("radiogroup", { name: g })).toBeInTheDocument();
+    for (const g of ["Condition", "Size"]) expect(screen.getByRole("radiogroup", { name: g })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Lightly used" })).toHaveAttribute("aria-checked", "true");
   });
 });
@@ -178,5 +183,40 @@ describe("DC-8: a live listing's photos", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: TAX_TICK_LABEL }));
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(calls).toEqual(["edit", "remove:p2", "check:i1"]));
+  });
+});
+
+/**
+ * Audit 1122 #54: the Edit listing sheet worked differently from the sell form: about 35 category chips in a wall over
+ * two screens (the sell form has the drill-down), the field was "Description" here and "Details" there, and the rule
+ * line said some fields "save at once" while every field waits for Save. CLASS CHECK: the edit sheet and the sell form
+ * use the same category picker and the same field name, and no line says anything saves before Save.
+ * @mutate src/components/declutter/DeclutterEditListing.tsx |       <CategoryDrillDown label={t("lp.ed.category")} groups={CATEGORY_GROUPS} value={category} onChange={setCategory} /> |       <ChipGroup label={t("lp.ed.category")} options={[]} groups={CATEGORY_GROUPS} value={category} onChange={setCategory} />
+ */
+describe("#54: the Edit listing sheet works like the sell form", () => {
+  it("the category is the sell form's drill-down, already showing the chosen one, not a wall of chips", async () => {
+    open();
+    await screen.findByAltText("Photo 1");
+    const sheet = document.querySelector<HTMLElement>("[data-edit-listing]")!;
+    expect(sheet.querySelector("[data-category-drilldown]")).not.toBeNull();
+    expect(screen.queryByRole("radiogroup", { name: "Category" })).toBeNull();
+    expect(screen.getByRole("group", { name: "Category" })).toBeInTheDocument();
+    // The heading row names the chosen category, as on the sell form.
+    expect(screen.getByRole("button", { name: /Furniture/ })).toBeInTheDocument();
+    // Fewer than 10 rows to start (the five headings), not ~35 chips.
+    expect(sheet.querySelectorAll("[data-category-drilldown] [data-category-heading]").length).toBeGreaterThan(2);
+    expect(sheet.querySelectorAll("[data-category-drilldown] button, [data-category-drilldown] [role=radio]").length).toBeLessThan(10);
+  });
+
+  it("the written field has the sell form's name, and no rule line says a field saves before Save", async () => {
+    open();
+    await screen.findByAltText("Photo 1");
+    expect(screen.getByLabelText("Details")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Description")).toBeNull();
+    expect(enListingParts["lp.ed.description"]).toBe(enSellSummary["sell.details"]);
+    expect(esListingParts["lp.ed.description"]).toBe(esDeclPanels["sell.details"]);
+    for (const line of [EDIT_RULE.instant, EDIT_RULE.checked, enListingParts["lp.ed.rule.instant"], esListingParts["lp.ed.rule.instant"]]) {
+      expect(line).not.toMatch(/at once|right away|instantly|al instante|de inmediato/i);
+    }
   });
 });

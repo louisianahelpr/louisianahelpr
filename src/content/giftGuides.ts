@@ -372,7 +372,6 @@ export const giftGuides = {
   dealsFailed: "The deals didn't load. Check your connection and try again.",
   loadRetry: "Try again",
   /** Under a long list (design audit 11-18 #3: store-amazon drew 827 rows at once): the next 50. */
-  showMorePicks: (left: number) => `Show more (${left} more)`,
   /** A merged guide's section links under its banner (1120): one per section, "Jump to" read by screen readers. */
   sectionNavLabel: "Jump to a section",
   /** A brand's discount code on its cards (1120: 21 Collective). */

@@ -78,8 +78,9 @@ describe("every way into the gift lists lands on a real page (owner 11-22: the M
   it.each(targets)("%s -> %s is an App.tsx route (not the Not Found catch-all) and stays put", async (_file, to) => {
     const hit = matchRoutes(APP_ROUTES, to);
     expect(hit, to).not.toBeNull();
-    expect(hit!.at(-1)!.route.path, to).not.toBe("*");
-    if (hit!.at(-1)!.route.path === "/gift-guides/:slug") expect(await landsAt(to), to).toBe(to);
+    const leaf = hit![hit!.length - 1];
+    expect(leaf.route.path, to).not.toBe("*");
+    if (leaf.route.path === "/gift-guides/:slug") expect(await landsAt(to), to).toBe(to);
   });
 
   it("the server never answers My Wish List's address with the unknown-guide 404", () => {

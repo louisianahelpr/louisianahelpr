@@ -128,8 +128,10 @@ describe("the chips narrow, and every chip offered is a real list", () => {
 
   it("the owner's Top 10 comes first among the matches", () => {
     const r = giftQuiz(POOL.her, { who: "her", budget: "100-plus", into: "any" }).picks.map((p) => p.name);
-    expect(r[0]).toMatch(/^Lola Blankets/);
-    expect(r[1]).toMatch(/^Shark Depuffi/);
+    // Her Top 10 spots 1-3 over $100 (owner 11-21 evening: spot 1 is the Theragun Mini).
+    expect(r[0]).toMatch(/^Therabody Theragun Mini/);
+    expect(r[1]).toMatch(/^Lola Blankets/);
+    expect(r[2]).toMatch(/^Shark Depuffi/);
   });
 
   it("reads a shared link, and Mom and Dad are no longer people of their own", () => {

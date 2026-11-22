@@ -10,12 +10,14 @@
  *  - "Remove show more just list everything" (guarded in giftGuidesPage.test.tsx).
  *
  * @mutate src/pages/info/GiftGuides.tsx |   const countRow = phone && Boolean(guide) && !deals; |   const countRow = false;
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |   const open = searchOpen \|\| !!query; |   const open = true;
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }} | onKeyDown={() => undefined}
  * @mutate src/pages/info/GiftGuides.tsx |           {!countRow && tools} |           {tools}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1; | .gg-list .gg-nm .gg-nm-meta{grid-column:1;grid-row:2;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0} | .gg-list .gg-heart-pick{position:absolute;right:-6px;top:0}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
@@ -63,7 +65,7 @@ describe("phone guide page: the count, the pill and the icons on one row under t
     expect(banner.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(row.querySelector("[data-gift-item-count]")?.textContent).toMatch(/^\d+ gifts$/);
     expect(row.querySelector("[data-gift-ship]")?.textContent).toMatch(/^Order by Dec 15/);
-    expect(row.querySelector("[data-gift-quick] [data-gift-search]")).not.toBeNull();
+    expect(row.querySelector("[data-gift-quick] [data-gift-search-button]")).not.toBeNull();
     expect(row.querySelector("[data-gift-quick] [data-gift-share]")).not.toBeNull();
     // One count on the page (the list's own count is not drawn twice), one tool row.
     expect(c.querySelectorAll("[data-gift-item-count]").length).toBe(1);
@@ -94,5 +96,31 @@ describe("every card: price top-right, heart bottom-right (owner 11-21)", () => 
     const link = li.querySelector("a[data-gift-title-link]")!;
     expect(link.querySelector(".gg-nm > .gg-nm-name + .sr-only + .gg-nm-meta [data-gift-price]")).not.toBeNull();
     expect(link.contains(li.querySelector("[data-gift-heart]"))).toBe(false);
+  });
+});
+
+describe("the search is an icon at every width (owner 11-21: \"make search an icon always\")", () => {
+  it.each([375, 1440])("at %ipx: a magnifier icon; tapping it opens the focused field; Escape shuts it; it stays open while a query is typed", async (width) => {
+    const c = await renderAt("/gift-guides/kids", width);
+    const tools = c.querySelector("[data-gift-quick]")!;
+    expect(tools.querySelector("input")).toBeNull();
+    const button = tools.querySelector<HTMLButtonElement>("button[data-gift-search-button]")!;
+    expect(button.getAttribute("aria-label")).toBe("Search gift guides");
+    expect(button.className).toMatch(/\bgg-icon\b/);
+    await act(async () => { fireEvent.click(button); });
+    const input = tools.querySelector<HTMLInputElement>("input[data-gift-search]")!;
+    expect(input).not.toBeNull();
+    expect(document.activeElement).toBe(input);
+    // A query keeps it open (and shows results); Escape clears it and shuts it.
+    await act(async () => { fireEvent.change(input, { target: { value: "lego" } }); });
+    await act(async () => { fireEvent.blur(input); });
+    expect(tools.querySelector("input[data-gift-search]")).not.toBeNull();
+    await act(async () => { fireEvent.keyDown(tools.querySelector("input[data-gift-search]")!, { key: "Escape" }); });
+    expect(tools.querySelector("input")).toBeNull();
+    expect(tools.querySelector("button[data-gift-search-button]")).not.toBeNull();
+    // The close button shuts it too.
+    await act(async () => { fireEvent.click(tools.querySelector("button[data-gift-search-button]")!); });
+    await act(async () => { fireEvent.click(tools.querySelector("button[data-gift-search-close]")!); });
+    expect(tools.querySelector("input")).toBeNull();
   });
 });

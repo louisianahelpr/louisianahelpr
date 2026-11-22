@@ -7,7 +7,7 @@
  */
 // @mutate .github/workflows/vitest.yml |           test "$SHARDS" = "success" |           true
 // @mutate .github/workflows/vitest.yml |     if: ${{ always() }}\n    runs-on: ubuntu-latest\n    timeout-minutes: 5 |     runs-on: ubuntu-latest\n    timeout-minutes: 5
-// @mutate .github/workflows/vitest.yml |         shard: [1, 2, 3, 4, 5, 6] |         shard: [1, 2, 3, 4, 5]
+// @mutate .github/workflows/vitest.yml |     timeout-minutes: 25\n    strategy:\n      fail-fast: false\n      matrix:\n        shard: [1, 2, 3, 4, 5, 6] |     timeout-minutes: 25\n    strategy:\n      fail-fast: false\n      matrix:\n        shard: [1, 2, 3, 4, 5]
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -23,7 +23,7 @@ const PAIRS = [
   { gate: "Coverage floor", shardJob: "coverage-shard", resultVar: "COV_SHARDS" },
 ];
 // @mutate .github/workflows/vitest.yml |           test "$COV_SHARDS" = "success" |           true
-// @mutate .github/workflows/vitest.yml |         shard: [1, 2, 3, 4] |         shard: [1, 2, 3]
+// @mutate .github/workflows/vitest.yml |     timeout-minutes: 30\n    strategy:\n      fail-fast: false\n      matrix:\n        shard: [1, 2, 3, 4, 5, 6] |     timeout-minutes: 30\n    strategy:\n      fail-fast: false\n      matrix:\n        shard: [1, 2, 3, 4, 5]
 // @mutate .github/workflows/vitest.yml |     needs: [scope, coverage-shard]\n    if: ${{ always() && github.event_name != 'merge_group' }} |     needs: [scope, coverage-shard]
 describe("each sharded check passes only when every one of its shards passed", () => {
   const entries = Object.entries(wf.jobs);

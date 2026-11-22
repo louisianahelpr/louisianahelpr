@@ -260,20 +260,29 @@ jobs:
     # "Coverage floor" job below merges them (vitest --merge-reports) and runs
     # the floor on the WHOLE suite's coverage. A local trial merged two shards'
     # blobs to exactly the unsharded run's figure (132/12481 lines).
-    name: Coverage shard ${{ matrix.shard }}/4
+    #
+    # SIX shards since 2026-11-22: with four, shard 1 alone outgrew the 30-min
+    # limit while still printing results (27.7 min on main run 44964200555,
+    # then cancelled at 30.0 on PR #4868's head and on main run 45015102967,
+    # 11:02-11:32Z, last test output 11:30Z), and shards 2-4 took 21-28 min.
+    # More shards, not a longer limit: the same suite in six slices, as the
+    # Vitest shards have it.
+    name: Coverage shard ${{ matrix.shard }}/6
     # Not in the merge queue: the floor is not a required check, and the PR before
-    # it and the push after it both run it. Four shards at about 15 min each would
-    # be the largest part of every queue entry. Not on a guide-only PR either:
-    # the guide lane is outside src/lib and src/hooks code, the floor's scope.
+    # it and the push after it both run it. The coverage shards (20-30 min each
+    # with four, 2026-11-22) would be the largest part of every queue entry.
+    # Not on a guide-only PR either: the guide lane is outside src/lib and
+    # src/hooks code, the floor's scope.
     needs: scope
     if: ${{ !cancelled() && github.event_name != 'merge_group' && needs.scope.outputs.guide_only != 'true' }}
     runs-on: ubuntu-latest
-    # 30: a quarter of a ~58-minute run plus install, with headroom.
+    # 30: a sixth of the suite under coverage (2026-11-22; a quarter outgrew it)
+    # plus install, with headroom.
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
 
     steps:
       - name: Checkout
@@ -316,7 +325,7 @@ jobs:
         if: ${{ steps.scope.outputs.docs_only != 'true' }}
         id: shard_cov
         continue-on-error: true
-        run: npx vitest run --reporter=dot --reporter=blob --outputFile.blob=coverage-blobs/blob-${{ matrix.shard }}-4.json --coverage --testTimeout=60000 --shard=${{ matrix.shard }}/4
+        run: npx vitest run --reporter=dot --reporter=blob --outputFile.blob=coverage-blobs/blob-${{ matrix.shard }}-6.json --coverage --testTimeout=60000 --shard=${{ matrix.shard }}/6
 
       # Fails closed: a shard that wrote no blob (it crashed before reporting)
       # must never merge into a partial, lower coverage figure. The test
@@ -327,20 +336,20 @@ jobs:
           TESTS_OUTCOME: ${{ steps.shard_cov.outcome }}
         run: |
           echo "coverage shard test run outcome: $TESTS_OUTCOME"
-          test -s coverage-blobs/blob-${{ matrix.shard }}-4.json
+          test -s coverage-blobs/blob-${{ matrix.shard }}-6.json
 
       - name: Upload blob
         if: ${{ steps.scope.outputs.docs_only != 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-blob-${{ matrix.shard }}
-          path: coverage-blobs/blob-${{ matrix.shard }}-4.json
+          path: coverage-blobs/blob-${{ matrix.shard }}-6.json
           retention-days: 3
           if-no-files-found: error
 
   coverage:
     # The check name stays "Coverage floor" (scripts/land-queue.mjs gates on
-    # it). It merges the four coverage shards' blobs and floors the whole suite.
+    # it). It merges the six coverage shards' blobs and floors the whole suite.
     name: Coverage floor
     needs: [scope, coverage-shard]
     if: ${{ always() && github.event_name != 'merge_group' }}
@@ -404,11 +413,11 @@ jobs:
           merge-multiple: true
           path: coverage-blobs
 
-      - name: All four blobs arrived
+      - name: All six blobs arrived
         if: ${{ steps.scope.outputs.docs_only != 'true' && needs.scope.outputs.guide_only != 'true' }}
         run: |
           ls -l coverage-blobs
-          test "$(ls coverage-blobs/blob-*-4.json | wc -l)" -eq 4
+          test "$(ls coverage-blobs/blob-*-6.json | wc -l)" -eq 6
 
       - name: Merge shard coverage
         if: ${{ steps.scope.outputs.docs_only != 'true' && needs.scope.outputs.guide_only != 'true' }}

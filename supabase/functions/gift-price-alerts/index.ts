@@ -6,7 +6,7 @@
 // gift-price-alerts: saved-gift price alerts (owner approved in a pop-up, 2026-11-21: "Saved-list price alerts —
 // opt-in email when a saved gift drops in price, plus a reminder before Dec 15"). Layers: _shared/giftPriceAlerts.ts.
 //
-// Each run, scheduled at 15:29 and 21:29 UTC by cron job gift-price-alerts (migration *_gift_price_alerts.sql):
+// Each run, scheduled at 15:32 and 21:32 UTC by cron job gift-price-alerts (migration *_gift_price_alerts.sql):
 //   1. Read today's prices from the live site's /gift-guides/price-feed.json (written by the build from the guide
 //      picks the daily price train updates), so the prices compared are the ones the deployed guides show. No feed,
 //      or an empty one, stops the run before any email (500).

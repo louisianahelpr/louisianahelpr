@@ -369,6 +369,7 @@ describe("one footer convention", () => {
     "src/components/create/CreateSheet.tsx": "a menu (board 1): each row's chips go straight to their flow; the sheet's close is the exit",
     "src/components/sections/MySectionSheet.tsx": "a menu (\"My …\" under the photo, owner 11-08): each row is a link that goes and closes; the sheet's X is the exit",
     "src/components/sections/ChoiceFilterRow.tsx": "a radio list: a tap picks and closes",
+    "src/pages/info/giftGuides/GiftGuidesPhoneSheet.tsx": "the gift guides' phone menu (owner 11-21): each row is a link that goes and closes; the sheet's X is the exit",
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx": "a comparison table (boards 22/170): each column ends in its own Hire; the sheet's close is the exit",
     "src/components/admin/AdminCommandPalette.tsx": "⌘K palette — Esc is the exit",
     "src/components/admin/adminJobs/JobDetailDialog.tsx": "read-only admin record",

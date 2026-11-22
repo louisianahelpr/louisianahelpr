@@ -27,7 +27,7 @@
 --     sender never mails a seed row outside its own test mode, and process-email-queue suppresses test recipients.
 --   * send_claimed_at: stamped with the claim, cleared once the email is queued; the sender reports a claim left
 --     unqueued for 2 hours (a run killed between claim and enqueue), as come-back-emails does.
---   * cron job gift-price-alerts: twice a day (15:29 and 21:29 UTC; 9:29 AM and 3:29 PM in Louisiana in winter)
+--   * cron job gift-price-alerts: twice a day (15:32 and 21:32 UTC; 9:32 AM and 3:32 PM in Louisiana in winter)
 --     calls the gift-price-alerts edge function, which compares each subscription with the live price feed and sends
 --     at most one digest per address per run, and the reminder from Dec 10 (caught up through Dec 14).
 --   * cleanup: gift_price_alerts_expire() (hourly with the rate-limit hits) deletes subscriptions on Jan 31 after
@@ -239,7 +239,7 @@ BEGIN
   IF to_regclass('public.cron_work_expectations') IS NOT NULL THEN
     INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note, work_visibility, work_exempt_reason)
     VALUES ('gift-price-alerts', interval '20 hours',
-            'Owner 2026-11-21: twice a day (15:29 and 21:29 UTC) emails each opted-in address one digest of its saved gifts that dropped at least $5 or 10% since saved (or since the last drop email), and the before-Dec-15 reminder from Dec 10. 20 hours: the overnight gap 21:29 -> 15:29 is 18 hours.',
+            'Owner 2026-11-21: twice a day (15:32 and 21:32 UTC) emails each opted-in address one digest of its saved gifts that dropped at least $5 or 10% since saved (or since the last drop email), and the before-Dec-15 reminder from Dec 10. 20 hours: the overnight gap 21:29 -> 15:29 is 18 hours.',
             'exempt',
             'No drop and no reminder due is the healthy state on most runs, so a run that sends nothing is not a silent failure. A run that cannot read the price feed or the subscriptions, or cannot queue an email, answers 500 through cronResult.'),
            ('gift-price-alerts-expire', interval '3 hours',
@@ -251,7 +251,7 @@ BEGIN
   END IF;
 
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
-    PERFORM cron.schedule('gift-price-alerts', '29 15,21 * * *', $c$SELECT public.cron_http_tag(q.request_id, 'gift-price-alerts')
+    PERFORM cron.schedule('gift-price-alerts', '32 15,21 * * *', $c$SELECT public.cron_http_tag(q.request_id, 'gift-price-alerts')
   FROM (
       SELECT net.http_post(timeout_milliseconds := 120000,
         url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_url' LIMIT 1)
@@ -263,7 +263,7 @@ BEGIN
         body := '{}'::jsonb
       )
 ) AS q(request_id);$c$);
-    PERFORM cron.schedule('gift-price-alerts-expire', '47 * * * *',
+    PERFORM cron.schedule('gift-price-alerts-expire', '2 * * * *',
       $c$SELECT public.cron_record_work('gift-price-alerts-expire', to_jsonb(public.gift_price_alerts_expire()));$c$);
   END IF;
 END

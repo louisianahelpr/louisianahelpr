@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
+import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import { giftGuides as G } from "@/content/giftGuides";
 import type { CatalogGuide } from "@/content/giftGuideCatalog";
 import { DEAL_DAY_SLUGS, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
@@ -71,7 +72,7 @@ export function GiftGuidesPhoneNav({ active, myList = false, page }: { active: C
         <li><Button type="button" variant="outline" size="sm" className={chip(false)} aria-haspopup="dialog" onClick={() => setSheet("la")} data-gift-chip="louisiana">{G.sideHeads.louisiana}</Button></li>
         <li>
           <Button type="button" variant="outline" size="sm" className="gg-chip-nav gg-chip-menu" aria-haspopup="dialog" onClick={() => setSheet("guides")} data-gift-chip="menu">
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" /></svg>
             {G.phoneNavMenu}
           </Button>
         </li>

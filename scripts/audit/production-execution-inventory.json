@@ -135,5 +135,10 @@
     "observable": "payout_setup_reminders.sent_at (and the notifications it inserts)",
     "why": "Owner 2026-10-25: one ledger row per reminder sent to a hired Helpr without payout setup, stamped sent_at after the notice and email; behind payout_after_hire AND payout_setup (payout_setup is off on prod), so none yet",
     "status": "NEVER"
+  },
+  "gift-price-alerts": {
+    "observable": "email_send_log rows with template_name gift_price_drop or gift_price_reminder",
+    "why": "Owner 2026-11-21: twice a day the cron emails each opted-in address one digest of its saved gifts that dropped in price, plus one reminder before Dec 15; each email it sends logs an email_send_log row. Not money: the name matches 'gift'. Built 2026-11-21, so none yet",
+    "status": "NEVER"
   }
 }

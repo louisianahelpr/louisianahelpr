@@ -220,7 +220,7 @@ describe("the database: no client privilege, anon only through the validated fun
     expect(sql).toMatch(/is_seed boolean NOT NULL DEFAULT false/);
   });
   it("the cron calls the sender twice a day", () => {
-    expect(sql).toContain("cron.schedule('gift-price-alerts', '29 15,21 * * *'");
+    expect(sql).toContain("cron.schedule('gift-price-alerts', '32 15,21 * * *'");
     expect(sql).toContain("'/functions/v1/gift-price-alerts'");
   });
 });

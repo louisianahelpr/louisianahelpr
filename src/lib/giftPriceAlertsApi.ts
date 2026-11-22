@@ -7,6 +7,7 @@
  */
 import { loadModule } from "@/lib/loadModule";
 import type { GiftPlan } from "@/content/giftGuideFun1120";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 type Err = { code?: string; message?: string } | null;
 type Rpc = (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: Err }>;
@@ -77,7 +78,7 @@ export async function subscribePriceAlerts(email: string, items: AlertItemIn[], 
   const sb = m.supabase as unknown as { rpc: Rpc };
   const { data, error } = await sb.rpc("gift_price_alert_subscribe", { p_email: email.trim(), p_items: items, p_consent: consent });
   if (error) {
-    if (error.code === "PGRST202") throw new PriceAlertError(error.message ?? "not found", NOT_READY_WORDS);
+    if (isMissingRpcNamed(error, "gift_price_alert_subscribe")) throw new PriceAlertError(error.message ?? "not found", NOT_READY_WORDS);
     throw new PriceAlertError(error.message ?? "failed", rpcErrorMessage("gift_price_alert_subscribe", error) ?? FAILED_WORDS);
   }
   const d = data as { items?: unknown; was_unsubscribed?: unknown } | null;

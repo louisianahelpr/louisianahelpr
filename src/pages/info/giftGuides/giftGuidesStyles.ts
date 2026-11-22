@@ -271,7 +271,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 @media (max-width:767px){
 
 .gg-layout{grid-template-columns:minmax(0,1fr)}
-/* Owner 11-21 ("We need a way to organize this on the phones"): a phone draws no sidebar (it sat at the page's foot);
+/* Owner 11-21 (the phones need a way to organize this): a phone draws no sidebar (it sat at the page's foot);
    the chip row under the header and its menu sheet carry the same menu (GiftGuidesPhoneNav). */
 .gg-side{display:none}
 .gg-main{padding:4px 0 24px;order:1}
@@ -292,7 +292,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 @media (min-width:640px) and (max-width:767px){.gg-pnav{margin:0 -32px}.gg-pnav-row{padding:0 32px}}
 .gg-chip-nav{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--gg-line);background:hsl(var(--card));font:600 13px Montserrat,sans-serif;color:var(--gg-ink);white-space:nowrap;text-decoration:none;cursor:pointer}
 .gg-chip-nav .gg-dot{margin-right:0}
-.gg-chip-nav.is-on{background:var(--gg-olive);border-color:var(--gg-olive);color:#fff}
+.gg-chip-nav.is-on{background:var(--gg-olive);border-color:var(--gg-olive);color:hsl(var(--primary-foreground))}
 .gg-chip-nav:focus-visible{outline:2px solid var(--gg-olive);outline-offset:2px}
 /* The menu sheet: the sidebar's groups, rows and current-page look. */
 .gg-sheet-menu .gg-sheet-menu-body{max-height:70dvh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}

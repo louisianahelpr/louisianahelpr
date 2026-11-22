@@ -24,7 +24,7 @@ const row = (pick: CatalogPick) => render(<MemoryRouter><ol><PickRow pick={pick}
 
 describe("the cart icon on an Amazon card", () => {
   it("an Amazon item: one cart link with its ASIN and our tag, outside the card link, sponsored and in a new tab", () => {
-    const amazon = guideBySlug("her")!.picks.filter((p) => /amazon\.com\/dp\//.test(p.href));
+    const amazon = guideBySlug("her")!.picks.filter((p) => /^https:\/\/(www\.)?amazon\.com\/dp\//.test(p.href));
     // Inventory floor: the Her guide carries many Amazon picks today.
     expect(amazon.length).toBeGreaterThan(5);
     for (const pick of amazon.slice(0, 5)) {
@@ -45,7 +45,7 @@ describe("the cart icon on an Amazon card", () => {
   });
 
   it("another store's item has no cart link", () => {
-    const other = guideBySlug("her")!.picks.find((p) => !/amazon\.com/.test(p.href))!;
+    const other = guideBySlug("her")!.picks.find((p) => !/^https:\/\/(www\.)?amazon\.com\//.test(p.href))!;
     expect(other).toBeTruthy();
     expect(row(other).querySelector("a.gg-cart")).toBeNull();
   });

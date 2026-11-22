@@ -157,9 +157,9 @@ describe("the sort control on the page (owner 11-21)", () => {
 
 describe("price sections (owner 11-21: \"they all need to be sorted in sections by price\")", () => {
   const sections = (c: HTMLElement) => [...c.querySelectorAll<HTMLElement>("section[data-gift-section]")].map((sec) => ({
-    title: sec.querySelector("h3")?.firstChild?.textContent ?? "",
+    title: sec.querySelector("h2")?.firstChild?.textContent ?? "", // h2 under the banner h1 (holiday polish 2)
     count: sec.querySelector("[data-gift-section-count]")?.textContent ?? "",
-    labelled: sec.getAttribute("aria-labelledby") === sec.querySelector("h3")?.id,
+    labelled: sec.getAttribute("aria-labelledby") === sec.querySelector("h2")?.id,
     dollars: [...sec.querySelectorAll("[data-gift-price]")].map((p) => Number(p.textContent!.replace("~$", ""))),
   }));
   it.each(["him", "kids", "her"])("/gift-guides/%s: Under $25, $25 to $50, $50 to $75, $75 to $100, $100 and up, each labelled with its count; reversed high to low", async (slug) => {

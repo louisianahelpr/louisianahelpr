@@ -102,7 +102,7 @@ const renderAt = (url: string) =>
   );
 const sections = (c: HTMLElement) =>
   [...c.querySelectorAll<HTMLElement>("section[data-gift-section]")].map((sec) => ({
-    title: sec.querySelector("h3")?.firstChild?.textContent ?? "",
+    title: sec.querySelector("h2")?.firstChild?.textContent ?? "", // h2 under the banner h1 (holiday polish 2)
     hrefs: [...sec.querySelectorAll<HTMLAnchorElement>("[data-gift-pick] a[data-gift-out]:not(.gg-cart)")].map((a) => a.href).filter((h, i, all) => all.indexOf(h) === i),
   }));
 const choose = (label: string) => {

@@ -6,7 +6,7 @@ import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { SITE_ORIGIN } from "@/lib/publicPageMeta.mjs";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import { giftGuides as G } from "@/content/giftGuides";
-import { guideBySlug, loadSearchItems, searchGuides, searchItems, searchPages, type SearchItem } from "@/content/giftGuideCatalog";
+import { guideBySlug, loadSearchItems, searchGuides, searchItemDollars, searchItems, searchPages, type SearchItem } from "@/content/giftGuideCatalog";
 import { MY_LIST_SLUG, useGiftList } from "./giftList";
 import { WISH } from "@/content/giftWishList";
 
@@ -254,16 +254,21 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
               </li>
             ))}
             {foundItems.length > 0 && <li className="gg-search-head" aria-hidden="true">{G.searchItemsTitle}</li>}
-            {foundItems.map(([name, slug]) => (
+            {foundItems.map((item) => {
+              const [name, slug] = item;
+              // Holiday audit 1121 #7: the price beside the guide, by the card's own rule (fresh, rounded).
+              const dollars = searchItemDollars(item);
+              return (
               <li key={`${slug} ${name}`}>
                 <Link to={`/gift-guides/${slug}`} onClick={() => setQuery("")} data-gift-found-item={slug}>
                   <span className="gg-search-item">
                     <span className="gg-search-item-name">{name}</span>
-                    <small>{G.searchItemIn(guideBySlug(slug)?.title ?? "")}</small>
+                    <small>{G.searchItemIn(guideBySlug(slug)?.title ?? "")}{dollars !== null && <span data-gift-found-price="">{` · ${G.priceApprox(dollars)}`}</span>}</small>
                   </span>
                 </Link>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>

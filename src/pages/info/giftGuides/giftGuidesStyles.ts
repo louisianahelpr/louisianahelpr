@@ -242,7 +242,8 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-price-note{margin:8px 0 0;font-size:12px;color:var(--gg-muted)}
 .gg-prime-trial{display:inline-block;padding:12px 0;color:inherit;text-decoration:underline;text-underline-offset:2px}
 .gg-codes li{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid var(--gg-line)}
-.gg-code-store{font-weight:700}
+.gg-code-store{font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gg-code-shop{display:inline-flex;align-items:center;min-height:44px;font-size:12px;font-weight:700;color:var(--gg-olive);text-decoration:none}
 .gg-code-one{display:flex;flex-direction:column;gap:2px;margin-top:4px}
 .gg-code-offer{font-size:12px;color:var(--gg-muted)}
 .gg-code-row{display:flex;align-items:center;gap:8px;margin-top:4px}

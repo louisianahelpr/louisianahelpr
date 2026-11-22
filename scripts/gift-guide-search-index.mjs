@@ -3,7 +3,9 @@
  * The gift-guide item search index (holistic review 11-18 H5: "airpods" found nothing because search read only guide
  * names). Reads every guide's picks chunk (src/content/giftGuidePicks/<slug>.json, written by
  * scripts/gift-guide-picks.mjs) and writes src/content/giftGuideSearchIndex.json: one row per product name,
- * [name, the guide it sits in], the guide being the first non-store guide that lists it (else its store page).
+ * [name, the guide it sits in], the guide being the first non-store guide that lists it (else its store page), plus
+ * [..., price, priceAt] when the pick has a checked price (holiday audit 1121 #7: "under $25" lists the gifts under
+ * $25; the page shows a price only while pickPriceShown says it is fresh).
  * The page imports it lazily, only once a shopper types in search, so it costs nothing on the landing's first paint.
  * Registered in scripts/check-generated-current.mjs (gift-guide-search-index): `npm run inventories:refresh` rewrites
  * it after any picks change. Guard: src/test/giftGuidesUiB9.test.tsx.
@@ -30,7 +32,7 @@ export function buildIndex() {
       const key = name.toLowerCase();
       if (!key || seen.has(key)) continue;
       seen.add(key);
-      rows.push([name, slug]);
+      rows.push(typeof p.price === "number" && typeof p.priceAt === "string" ? [name, slug, p.price, p.priceAt] : [name, slug]);
     }
   }
   return rows;

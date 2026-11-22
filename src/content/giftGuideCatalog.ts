@@ -16,6 +16,7 @@ import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, SECTION_ANCHORS, TOP_PICKS
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { pickPriceShown, shownDollars } from "@/lib/pickPriceShown.mjs";
 import { AMAZON_TAG, SEARCH_FILLER } from "./giftGuideConstants";
 
 /**
@@ -646,6 +647,8 @@ export const SEARCH_SYNONYMS: { words: string[]; slugs: string[] }[] = [
   { words: ["mother", "mama", "mommy"], slugs: ["mom"] },
   { words: ["father", "daddy"], slugs: ["dad"] },
   { words: ["niece", "nephew", "daughter", "son", "child", "children", "toddler", "baby", "girl", "boy"], slugs: ["kids"] },
+  // Holiday audit 1121 #7: "nurse" still said "No guides match" (its keywords sat on the retired Healthcare guides).
+  { words: ["nurse", "nurses", "rn", "rns", "lpn", "lpns"], slugs: ["her", "him"] },
 ];
 
 /** Words naming a kid's sex, and the hub they point to. */
@@ -808,7 +811,8 @@ export const searchPages = (query: string): { to: string; title: string; tint: "
 };
 
 /** One item row of the search index (scripts/gift-guide-search-index.mjs): its name and the guide it sits in. */
-export type SearchItem = [name: string, guide: string];
+/** One item search row: its name and guide, plus its checked price and the day it was checked when it has one (#7). */
+export type SearchItem = [name: string, guide: string, price?: number, priceAt?: string];
 let itemIndex: Promise<SearchItem[]> | null = null;
 /** The item index, fetched once on the first keystroke (its own lazy chunk: nothing on the landing's first paint). */
 // Holiday audit 1121: a failed fetch is forgotten, so the next keystroke tries again (it was cached for the whole visit,
@@ -823,16 +827,43 @@ export const loadSearchItems = () =>
   ));
 
 /**
+ * The dollar budget a query names ("under $25", "$40", "25 dollars", "less than 50"), or null. A bare number is no
+ * budget ("4 year old" is an age), as in searchIntent.
+ */
+export const queryBudget = (words: string[]): number | null => {
+  for (let i = 0; i < words.length; i++) {
+    const n = /^\$?(\d+)$/.exec(words[i])?.[1];
+    if (n === undefined) continue;
+    const isMoney = words[i].startsWith("$") || ["under", "below", "less", "than", "max"].includes(words[i - 1] ?? "") || ["dollars", "dollar", "bucks"].includes(words[i + 1] ?? "");
+    if (isMoney && Number(n) > 0) return Number(n);
+  }
+  return null;
+};
+
+const searchToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
+
+/** The whole dollars an item search row shows ("~$24", the card's own rule: fresh, rounded), or null (#7). */
+export const searchItemDollars = ([, , price, priceAt]: SearchItem, today: string = searchToday()): number | null =>
+  pickPriceShown(price, priceAt, today) ? shownDollars(price) : null;
+
+/**
  * The items whose name holds every meaningful word of the query (holistic review 11-18 H5: "airpods" found nothing),
  * names starting with the first word first, at most `max`. Filler words are dropped as in searchGuides.
+ * Holiday audit 1121 #7: a budget ("under $25", "cheap ... under 40") keeps only the items whose shown price is at or
+ * under it, cheapest first; with no other word it lists the cheapest gifts under it. An item with no price showing
+ * today (none checked, or older than PRICE_MAX_AGE_DAYS) is never listed under a budget.
  */
-export const searchItems = (items: SearchItem[], query: string, max = 6): SearchItem[] => {
-  const words = queryWords(query).filter((w) => !SEARCH_FILLER.has(w) && w.length > 1);
-  if (words.length === 0) return [];
-  const hits = items.filter(([name]) => {
+export const searchItems = (items: SearchItem[], query: string, max = 6, today: string = searchToday()): SearchItem[] => {
+  const all = queryWords(query).filter((w) => !SEARCH_FILLER.has(w));
+  const budget = queryBudget(all);
+  const words = all.filter((w) => w.length > 1 && (budget === null || (!BUDGET_WORDS.has(w) && !/^\$?\d+$/.test(w))));
+  if (words.length === 0 && budget === null) return [];
+  const hits = items.filter(([name, , price, priceAt]) => {
+    if (budget !== null && !(pickPriceShown(price, priceAt, today) && (price as number) <= budget)) return false;
     const n = fold(name);
     return words.every((w) => hasWordStart(n, w));
   });
-  const starts = (n: string) => (fold(n).startsWith(words[0]) ? 0 : 1);
-  return hits.map((h, i) => [h, i] as const).sort(([a, i], [b, j]) => starts(a[0]) - starts(b[0]) || i - j).slice(0, max).map(([h]) => h);
+  const starts = (n: string) => (words.length && fold(n).startsWith(words[0]) ? 0 : 1);
+  const cost = (h: SearchItem) => (budget === null ? 0 : (h[2] as number));
+  return hits.map((h, i) => [h, i] as const).sort(([a, i], [b, j]) => starts(a[0]) - starts(b[0]) || cost(a) - cost(b) || i - j).slice(0, max).map(([h]) => h);
 };

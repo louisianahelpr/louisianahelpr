@@ -48,6 +48,7 @@ import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
 const PEOPLE_PARENTS = new Set(PEOPLE_GUIDES.flatMap((g) => [g.slug, ...g.sources]));
 import { BRAND_CODES, CUTS_1120, budgetBand, importRows1120, productKey1120, swapCuts } from "./giftGuideBig1120.mjs";
 import { FRANCHISE_SPONSORS_1120, SPONSOR_SECTIONS_1120, auditActions1120, brandFirst, followUpOut, louisianaAdds1120, readAudits1120, renameOf, zeroSwaps1120 } from "./giftGuideFollowUp1120.mjs";
+import { cleanCodes, cleanSales } from "../src/lib/giftGuideOfferCopy.mjs";
 import { BASE_MERGES, GUIDE_MERGES, MERGED_INTO, NEW_PARENTS, NO_LIST_SECTIONS, STORE_PAGES_KEPT, SECTION_CAP, SECTION_GROUPS, SECTION_MAX, SECTION_MIN, isFoldedStore } from "../src/content/giftGuideMerges.mjs";
 import { GUIDE_CAP, buildRateData, byCommission, ccTwin, commissionOf, guideRanks, itemPopularity, pickType, sectionGuides, typeMax, CROWD_TYPES, KNOWN_BRAND, THIN_TARGET } from "./giftGuideSort.mjs";
 import { BRAND_CASE, LA_LINE, MAIL_CARRIER, MAIL_CARRIER_MAX, bannedLink, belongsWhy, homepageLink, neutralLine, wrapItem, NEW_MOM_CARE, NOT_A_GIFT_ITEM, NOT_LOUISIANA_BUSINESS, PET_ITEM, PET_ONLY, WOMEN_GUIDES, WORK_BOOT, WORK_BOOT_OFF, brokenImage, collectionLink, fitsGuide, isLouisianaItem, mensItem, nonUsUrl, INSTAX_OFF, instaxItem, placeholderName, productName, tidyName, BEAUTY_GUIDE_MAX, BRAND_NAME, DECK_BOOT, NEUTRAL_GUIDES, ONE_GENDER, beautyGuide, beautyItem, beautyRank, brandFromName, brandKey, onceKey, utilityCare, BADGE_PHOTO_SWAPS, fixName, fixedBrand, modelYearName, GUIDE_GROUPS, foodOff, TREATS_GUIDE, resaleOrUkShop, LASH, VERA_BRADLEY, DIGITAL_FRAME, FOOD_SUB_MAX, isFoodSub, PHOTO_PRODUCT, PHOTO_BOOK_GUIDES, JIGSAW, PUZZLE_MAX, applySiblingOverlap, siblingOverlap, SIBLING_FAMILIES, approvalLine, newApprovalSlot, fitR4Why, typeCaps, beautyPreference, NORTH_LA, NORTH_LA_GUIDE, placeRow, retailerBrand, r4Name, MEN_PASTEL, MEN_COLOR_GUIDES, menPastelOff, menStyleWhy, ownerStyleOff, followUpOff, OLD_ELECTRONICS, OWNER_REMOVED, HIKING, nonGiftService, PRICE_MAX, DUP_GUIDE_MAX, SHOPMY_S3, INSULATED, TUMBLER_MAX, fillerGuide, FILLER_OK, R4_OFF, kidsToyOff } from "./giftGuideRules.mjs";
@@ -1410,7 +1411,8 @@ for (const f of ["_later-deals.json", "_later-promos.json", "_awin-offers.json"]
     if (blockedBrand({ ...d, store })) continue;
     const words = (d.title ?? d.offer ?? "").trim();
     const ends = endDate(d.ends);
-    dealCodes.push({ rank: 50, store, code, offer: words && noPrice(words) ? words : "Holiday code", ...(ends ? { expires: ends } : {}) });
+    // Holiday audit 1121 #81: the row's affiliate link rides along so the codes box can open the store.
+    dealCodes.push({ rank: 50, store, code, offer: words && noPrice(words) ? words : "Holiday code", ...(ends ? { expires: ends } : {}), ...(okLink(d.affiliate_href) ? { href: d.affiliate_href } : {}) });
   }
 }
 
@@ -4148,11 +4150,11 @@ writeFileSync(
     `/** How many picks each merged guide's section holds (1120: old slug -> count), so a link to an empty section is never drawn. */\n` +
     `export const SECTION_PICK_COUNTS: Record<string, number> = ${JSON.stringify(Object.fromEntries(Object.values(pageList).flat().filter((p) => p.sectionId && p.sectionId !== "top-picks").reduce((m, p) => m.set(p.sectionId, (m.get(p.sectionId) ?? 0) + 1), new Map())))};\n` +
     `/** Codes the researched deals name (the sidebar's Discount codes, after the owner's; each hidden after its end date). */\n` +
-    `export const DEAL_CODES: { rank: number; store: string; code: string; offer: string; expires?: string }[] = ${JSON.stringify(dealCodes)};\n` +
+    `export const DEAL_CODES: { rank: number; store: string; code: string; offer: string; expires?: string; href?: string }[] = ${JSON.stringify(cleanCodes(dealCodes))};\n` +
     `/** The landing's "Top 10 This Week": go-link clicks first, then commission x popularity (scripts/gift-guide-picks.mjs weeklyTop). */\n` +
     `export const TOP_PICKS: ResearchedPick[] = ${JSON.stringify(weeklyTop.filter((p) => !droppedPhoto(p.image)).map((p) => auditFix1120("", p)).filter(Boolean).map((p) => (p.image ? { ...p, image: cutoutPhoto(p.image) } : p)))};\n` +
     `/** The sidebar's Sales (each hidden after its end date). */\n` +
-    `export const SALES: Sale[] = ${JSON.stringify(sales)};\n` +
+    `export const SALES: Sale[] = ${JSON.stringify(cleanSales(sales))};\n` +
     `/** Each live guide's chunk, fetched only when its page opens (Vite splits every file into its own chunk; a retired guide's file is not listed, so never bundled). */\n` +
     `export const PICK_CHUNKS = import.meta.glob<PickChunk>(${JSON.stringify(liveChunkSlugs.map((x) => `./giftGuidePicks/${x}.json`))}, { import: "default" });\n`,
 );

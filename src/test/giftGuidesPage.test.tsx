@@ -29,7 +29,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
  * @mutate src/pages/info/GiftGuides.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
- * @mutate src/pages/info/GiftGuides.tsx | {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />} | {footer}{deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />}
+ * @mutate src/pages/info/GiftGuides.tsx | {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />} | {footer}{deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   { slug: "him", dot: "green" }, |   { slug: "him", dot: "red" },
@@ -96,7 +96,7 @@ import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { DEAL_CODES, type PickChunk } from "@/content/giftGuidePicks";
 import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, REMOVED_GUIDES, guidesIn, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
-import { GiftGuideView, PICKS_PAGE, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
+import { GiftGuideView, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
@@ -517,12 +517,12 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       const g = guideBySlug(slug)!;
       const { container } = renderAt(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-gift-words] h1")?.textContent, slug).toBe(`${g.age ? `${g.lead}, ${g.age}` : g.lead} ${g.title}`);
-      // Design audit 2026-11-18 #3: a long list draws 50 rows, then "Show more" adds 50 at a time (store-amazon drew 827).
-      // ... and with six or fewer left it draws them all (design audit r2 #16: "Show more (1 more)").
-      // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const upTo = picks.length - shown <= SHOW_ALL_UNDER ? picks.length : shown; |   const upTo = picks.length;
-      expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(g.picks.length - PICKS_PAGE <= 6 ? g.picks.length : PICKS_PAGE);
-      expandAll(container);
+      // Owner 2026-11-21: "Remove show more just list everything." Every gift is drawn at once, with no Show more button
+      // (was 50 rows, then 50 more per tap); off-screen cards skip their paint (content-visibility) and photos load lazily.
+      // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const upTo = picks.length;\n |   const upTo = Math.min(picks.length, 50);\n
       expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(g.picks.length);
+      expect(container.querySelector("[data-gift-more-picks]"), slug).toBeNull();
+      expect(container.textContent, slug).not.toMatch(/Show more \(/);
       // Owner 11-18 PM ("double back button?? does the same thing"): one way back, the header's arrow, to All guides.
       expect(container.querySelector("a[data-gift-back]"), slug).toBeNull();
       expect(container.querySelector("[data-gift-back-to]")?.getAttribute("data-gift-back-to"), slug).toBe("/gift-guides");

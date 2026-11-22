@@ -1,14 +1,14 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1266,
-    "files": 366,
-    "rendering": 1188,
+    "calls": 1268,
+    "files": 367,
+    "rendering": 1190,
     "suppressedByPolicy": 78,
     "byKind": {
       "confirmConsequential": 33,
-      "errorToast": 11,
-      "successToast": 2,
+      "errorToast": 12,
+      "successToast": 3,
       "toast": 254,
       "toast.error": 853,
       "toast.loading": 1,
@@ -17,9 +17,9 @@
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 454,
+      "literal": 455,
       "template": 100,
-      "dynamic": 766,
+      "dynamic": 768,
       "jsx": 0
     }
   },
@@ -2584,6 +2584,20 @@
       "title": {
         "form": "literal",
         "text": "Couldn't load users — refresh to retry."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminWishLinks.tsx",
+      "line": 113,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "That change was not saved"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Try again in a moment.\")"
       },
       "renders": true
     },
@@ -14488,7 +14502,27 @@
     },
     {
       "file": "src/pages/admin/sponsors/SbsReviewPanel.tsx",
-      "line": 102,
+      "line": 106,
+      "kind": "successToast",
+      "title": {
+        "form": "dynamic",
+        "text": "v.status === \"approved\" ? `${v.name ?? \"The listing\"} is on Shop Small` : `${v.name ?? \"The listing\"} was rejected`",
+        "branches": [
+          {
+            "form": "template",
+            "text": "${v.name ?? \"The listing\"} is on Shop Small"
+          },
+          {
+            "form": "template",
+            "text": "${v.name ?? \"The listing\"} was rejected"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/admin/sponsors/SbsReviewPanel.tsx",
+      "line": 110,
       "kind": "errorToast",
       "title": {
         "form": "literal",

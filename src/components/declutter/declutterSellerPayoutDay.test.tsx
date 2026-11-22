@@ -3,7 +3,7 @@
  * had no idea when the money comes. Now the status says when it was handed over and the money line names the payout
  * day: 24 hours after the handover (checkWindowEnds), unless the buyer reports a problem before then.
  *
- * @mutate src/components/declutter/DeclutterPorchHandover.tsx |        ? sellerPaidWhen(sellerCents, handedOverAt, refunded \|\| problemOpen, payoutReady, setupPaused) |        ? null
+ * @mutate src/components/declutter/DeclutterPorchHandover.tsx |        ? sellerPaidWhen(paidCents, handedOverAt, refunded \|\| problemOpen, payoutReady, setupPaused, refundParts) |        ? null
  * F360b (lh-money-escrow review): no ready payout account, no day (the run puts the payout off); the day is a date only.
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx |   if (!payoutReady) return | if (false) return
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx |  const handedOverAt = done ? h.data?.confirmed_at ?? null : null; |  const handedOverAt = null;

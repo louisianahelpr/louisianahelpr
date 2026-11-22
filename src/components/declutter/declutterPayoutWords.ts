@@ -108,3 +108,18 @@ export function payoutLine(payout: MyPayout, problemOpen: boolean, ctx: PayoutLi
 export function preHandoverSellerCents(itemsCents: number, deliveryCents: number): number {
   return itemsCents + Math.max(0, deliveryCents);
 }
+
+/**
+ * Deep audit 1122 #5: the seller's handed-over "You get" before a payout row shows: items + delivery minus what this
+ * order already refunded (declutter_rebook_payout books items_cents + delivery_cents - p_refunded_cents, less any
+ * manager share or fee debt, which only the payout row knows; once that row is in, its payoutLine shows instead).
+ * It said "You get $60" right above "The buyer got $20 back" on a $40 payout.
+ */
+export function handedOverSellerCents(itemsCents: number, deliveryCents: number, refundedCents: number): number {
+  return Math.max(0, preHandoverSellerCents(itemsCents, deliveryCents) - Math.max(0, refundedCents));
+}
+
+/** A part refund the seller agreed to (the request's settled amount, the same one "The buyer got $X back" names). */
+export function agreedRefundCents(request: { status: string; refund_cents: number | null } | null | undefined): number {
+  return request?.status === "agreed" && request.refund_cents != null ? Math.max(0, request.refund_cents) : 0;
+}

@@ -75,7 +75,6 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.cantFind": "¿No lo encuentra?",
   "decl.askFor": "Pida “{what}”",
   "decl.postWanted": "Publique lo que busca",
-  "decl.signUpToSell": "Regístrese para vender",
   "decl.sellSomething": "Vender algo",
   "decl.searchItems": "Buscar artículos",
   "decl.loadFailed": "No pudimos cargar los artículos.",

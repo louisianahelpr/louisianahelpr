@@ -48,13 +48,14 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav:has(+.gg-divider){border-bottom-color:transparent} | .gg-pnav:has(+.gg-divider){}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ComponentProps } from "react";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "@/pages/info/giftGuides/giftWishStyles";
-import { GuidesFrame } from "@/pages/info/giftGuides/fun/FunPage";
+import { FunBody } from "@/pages/info/giftGuides/fun/FunPage";
 import { FUN_WORDS } from "@/content/giftGuideFun1120";
 import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
 import { HolidayCard } from "@/pages/info/holidays/holidayParts";
@@ -69,10 +70,11 @@ vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsL
 afterEach(cleanup);
 await loadAllGuidePicks();
 
-const frameAt = (path: string) =>
+// Through FunBody, the frame pages' one way in (GuidesFrame is the module's own since /shop-small became a 301).
+const frameAt = (path: ComponentProps<typeof FunBody>["path"]) =>
   render(
     <MemoryRouter initialEntries={[path]}>
-      <GuidesFrame title="Page" path={path}><p>body</p></GuidesFrame>
+      <FunBody title="Page" path={path}><p>body</p></FunBody>
     </MemoryRouter>,
   ).container;
 
@@ -88,7 +90,7 @@ describe("polish audit 1122 #2: the desktop guides menu fits", () => {
 });
 
 describe("polish audit 1122 #3/#6: the phone chip row on every frame page, More pinned", () => {
-  const pages = ["/gift-guides/printables/gift-tags", "/gift-guides/printables/coloring-books", "/gift-guides/printables/banners", "/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner"];
+  const pages = ["/gift-guides/printables/gift-tags", "/gift-guides/printables/coloring-books", "/gift-guides/printables/banners", "/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner"] as const;
   it("each of the 6 pages draws the chip row right under the head row", () => {
     expect(pages.length).toBeGreaterThan(5);
     for (const path of pages) {

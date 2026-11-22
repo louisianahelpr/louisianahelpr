@@ -87,7 +87,8 @@ describe("gift guides 11-19: every Shop button sits on the same line in a row", 
     expect(GIFT_GUIDES_CSS.match(/\.gg-list>li\{position:relative;display:grid;grid-template-columns:minmax\(0,1fr\);/g)?.length).toBe(3);
     // Owner 11-21 ("should we put the cart by the heart?"): the text area keeps a row free for the cart and heart.
     expect(GIFT_GUIDES_CSS.match(/\.gg-list \.gg-nm\{padding-bottom:44px\}/g)?.length).toBe(2);
-    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-nm-name\{min-height/);
+    // (Polish audit 1122 #20: only the landing's Top 10 holds its names to two lines' height, so its prices line up.)
+    expect(GIFT_GUIDES_CSS).not.toMatch(/(?<!\.gg-top10 )\.gg-nm-name\{min-height/);
     // Owner 11-21: no Shop button on a card any more (the photo and name are the link), so no grid rule for one.
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-list \.gg-shop-btn\{/);
     // Every photo is the same square; the heart is pinned to the card's bottom-right, below the photo (never top:0 on it).

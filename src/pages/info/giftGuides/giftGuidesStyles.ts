@@ -359,7 +359,10 @@ article[data-gift-guide="25-days-sponsors"] .gg-list>li:not(:has(.gg-cart)) .gg-
    the end of the price line. */
 .gg-top10>li{display:flex;flex-direction:column}.gg-top10>li>.gg-item{flex:1}
 .gg-top10 .gg-nm{display:flex;flex:1;flex-direction:column;padding-bottom:0}
-.gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:auto;padding-top:4px;min-height:28px;padding-right:36px}
+/* Polish audit 1122 #20: the price right under a name held to two lines' height, and any chip under the price, so a
+   card with a code chip (Camp Snap) keeps its price in line with the row's others. */
+.gg-top10 .gg-nm-name{min-height:2lh}
+.gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0;padding-top:4px;min-height:28px;padding-right:36px}
 .gg-top10 .gg-badges{padding-right:0}
 .gg-top10 .gg-cart{right:-10px;bottom:-10px}
 /* Top 10 rank (owner 11-21 evening: "number the top 10 gifts"): a small cream disc with an olive serif numeral on the

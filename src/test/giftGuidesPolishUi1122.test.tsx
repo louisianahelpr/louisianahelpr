@@ -35,6 +35,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | const codes = codesOn(day).filter((c) => !shownCodes.has(c.code.toUpperCase())); | const codes = codesOn(day);
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           <CodeChip code={code} /> |           <code>{code}</code>
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-card-more{min-height:44px; | .gg-card-more{min-height:32px;
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0; | .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:auto;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow .gg-ship-order{display:none} | .gg-countrow .gg-ship-order{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav:has(+.gg-divider){border-bottom-color:transparent} | .gg-pnav:has(+.gg-divider){}
  */
@@ -194,5 +195,12 @@ describe("polish audit 1122 #12/#20/#30: one deal card design", () => {
     expect(container.querySelectorAll('[data-gift-code-copy="XT25"]').length).toBe(1);
     expect(container.querySelector("[data-gift-open-site], [data-gift-deal-jump]")).toBeNull();
     expect(src("src/pages/info/giftGuides/GiftGuideDealCards.tsx")).toContain(".gg-card-more{min-height:44px;");
+  });
+});
+
+describe("polish audit 1122 #20: Top 10 prices line up", () => {
+  it("the price sits right under a two-line name box, never pushed down past a code chip", () => {
+    expect(GIFT_GUIDES_CSS).toContain(".gg-top10 .gg-nm-name{min-height:2lh}");
+    expect(GIFT_GUIDES_CSS).toMatch(/\.gg-top10 \.gg-nm \.gg-nm-meta\{justify-content:flex-start;margin-top:0;/);
   });
 });

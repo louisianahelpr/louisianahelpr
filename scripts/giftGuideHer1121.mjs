@@ -190,9 +190,7 @@ const popular = (asin, sortPrice, img, name, brand, type, commission, line) =>
   ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, priceAt: "2026-11-22", commission, type });
 export const HER_POPULAR_1122 = [
   popular("B0GGTPW6Q9", 119.99, "61gxq-CHHrL", "Shark ChillPill 3-in-1 Personal Cooling Fan", "Shark", "personal-fan", 3, "A pocket cooling fan for hot flashes and hot days."),
-  // COMMISSION SWITCH 11-22 (Price-rate-check-1122, owner-approved): was Amazon B0HJ9ZXCSD at 1% ($329); the same Light Gold / Sand Sport Band S/M watch (Walmart item 20988714918)
-  // sold and shipped by Walmart.com at 2.8% (Walmart creator rate), $329.00.
-  { name: "Apple Watch Series 12, GPS 42mm", brand: "Apple", line: "The newest Apple Watch for workouts and texts.", href: "https://walmrt.us/4Cj35Bx", image: "https://i5.walmartimages.com/seo/Apple-Watch-Series-12-GPS-42mm-Light-Gold-Aluminum-Case-with-Sand-Sport-Band-S-M_5b08d6fd-ff8b-4f54-8000-4dabf3fb61c9.e449d00081146eb8827c8987998e1d82.jpeg", store: "store-walmart", sortPrice: 329, price: 329, commission: 2.8, type: "smartwatch", priceAt: "2026-11-22" },
+  popular("B0HJ9ZXCSD", 329, "61YX4bH7zaL", "Apple Watch Series 12, GPS 42mm", "Apple", "smartwatch", 1, "The newest Apple Watch for workouts and texts."),
   popular("B0DWHDM15Q", 69, "81AV7BtkRvL", "The Ridge 20W Magnetic Power Bank", "The Ridge", "power-bank", 4, "A slim magnetic charger that snaps onto her phone."),
   popular("B0F41DGFXT", 42.49, "61+YocOS65L", "Matador Global Travel Adapter", "Matador", "travel-adapter", 4, "One adapter for plugs in every country."),
   popular("B0BGQT41ZZ", 42.49, "419M2kqpsCL", "TRUFF Chef Starter Kit, Set of 3", "TRUFF", "gift-set", 4, "Three truffle hot sauces in one gift box."),

@@ -32,8 +32,6 @@ export const KIDS_GUIDE = "kids";
 const amz = (asin) => `https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20`;
 const amzImg = (id) => `https://m.media-amazon.com/images/I/${id}._SL500_.jpg`;
 const shopmy = (pin) => `https://go.shopmy.us/${pin}`;
-/** A Walmart pick: [short walmrt.us code, price on Walmart's own page 11-22, Walmart photo, name, brand, type, commission %, line]. Sold and shipped by Walmart.com. */
-const walmart = ([code, price, image, name, brand, type, commission, line]) => ({ name, brand, line, href: `https://walmrt.us/${code}`, image, store: "store-walmart", sortPrice: price, price, priceAt: "2026-11-22", commission, type });
 /** The day the switched picks' ShopMy prices were checked (Louisiana day). */
 export const HIM_KIDS_PRICE_AT = "2026-11-21";
 /** Stores a switched pick goes to that the store list may not hold yet (key -> shown name). */
@@ -46,8 +44,7 @@ export const HIM_KIDS_STORES = {
   "store-tractor-supply": "Tractor Supply", "store-onward-reserve": "Onward Reserve", "store-target": "Target",
 };
 /** One row per pick: [ASIN, price she saw, Amazon image id, name, brand, type, commission %, line]. */
-const row = (r) => (Array.isArray(r) ? amazonRow(r) : r);
-const amazonRow = ([asin, sortPrice, img, name, brand, type, commission, line]) => ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, commission, type });
+const row = ([asin, sortPrice, img, name, brand, type, commission, line]) => ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, commission, type });
 /** One of her ShopMy saves: [pin, price on the store's own page 11-21, store photo, name, brand, store, type, commission %, line]. */
 const shop = ([pin, price, image, name, brand, store, type, commission, line]) => ({ name, brand, line, href: shopmy(`p-${pin}`), image, store, sortPrice: price, price, commission, type });
 
@@ -345,8 +342,7 @@ export const KIDS_AMAZON_MORE_1121 = [
   ["B0DB9JTTJQ", 18.99, "51T6IcL0NTL", "CreateOn Crayola Holiday Glitter Magnetic Tiles", "CreateOn", "building-toy", 3, "Sparkly magnetic tiles to build a holiday scene."],
   ["B0DCVF7YNW", 18.98, "41305yNiLyL", "Kinglucky Mini Karaoke Machine for Kids", "Kinglucky", "karaoke", 3, "A mini karaoke machine with a microphone."],
   // Amazon pays 1% on video game consoles, not 3% (Commission-audit-1121-night.md).
-  // COMMISSION SWITCH 11-22 (Price-rate-check-1122, owner-approved): was Amazon B0F3GWXLTS at 1% ($499); the same item sold and shipped by Walmart.com at 2.8% (Walmart creator rate), $499.00.
-  walmart(["4jcdiao", 499, "https://i5.walmartimages.com/seo/Nintendo-Switch-2-System_e54b513c-cf10-44a5-8a78-14a5f70644a8.dca71e01a5172a18dbc2bc689f959469.jpeg", "Nintendo Switch 2", "Nintendo", "game-console", 2.8, "The new Nintendo Switch 2."]),
+  ["B0F3GWXLTS", 499, "41A6+lQ6KSL", "Nintendo Switch 2", "Nintendo", "game-console", 1, "The new Nintendo Switch 2."],
   ["B0FJ2ZHPDY", 99.99, "41cXR296U-L", "Toniebox 2 Starter Set, Cloud Pink", "tonies", "audio", 3, "A screen-free story and music player in pink."],
   ["B0F62SVY89", 271.68, "31Bsjq4rZGL", "Segway Ninebot E2 Plus II Electric Scooter", "Segway", "scooter", 3, "A full-size electric scooter for teens."],
   // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0CT2WN59R at 3% ($484.49); the same black Segway S2 at Tractor Supply
@@ -402,8 +398,7 @@ export const KIDS_1121 = [
   ["B0FJ3S78NR", 99.97, "41PRwqm4mXL", "Toniebox 2, Sky Blue", "tonies", "audio", 3, "A screen-free story and music player."],
   ["B0HDSSPY7Z", 127.49, "21gcm6OqZ0L", "Segway Ninebot C2 Go Kids Scooter", "Segway", "scooter", 3, "An electric scooter made for kids."],
   ["B0D2JGYX3F", 209, "31HNx5am69L", "Nex Playground", "Nex", "game-console", 3, "Active family games that get everyone moving."],
-  // COMMISSION SWITCH 11-22 (Price-rate-check-1122, owner-approved): was Amazon B07V4GCFP9 at 1% ($229); the same item sold and shipped by Walmart.com at 2.8% (Walmart creator rate), $229.00.
-  walmart(["4ASkOyt", 229, "https://i5.walmartimages.com/seo/Nintendo-Switch-Lite-Handheld-Video-Game-Console-32-GB-Turquoise_42d1bc74-9262-423d-bddd-501cc3514224_1.855cfa7d7e08b816e7614e5db5b65ef0.jpeg", "Nintendo Switch Lite", "Nintendo", "game-console", 2.8, "The handheld Switch for games on the go."]),
+  ["B07V4GCFP9", 229, "31CHVspmUeL", "Nintendo Switch Lite", "Nintendo", "game-console", 1, "The handheld Switch for games on the go."],
   // owner 11-22 kids tech (builder-guide-adds-kids): the owner asked for popular tech; prices captured from Amazon 11-22.
   ["B0G4SCX27Q", 382, "61B-A4JhE9L", "Meta Quest 3S VR Headset, 256GB", "Meta", "vr", 3, "A mixed-reality headset for games and fitness, made for ages 10 and up."],
   ["B0D3WSFX3L", 26.56, "717IFJm-ZNL", "JLab JBuddies Studio 2 Wireless Kids Headphones", "JLab", "audio", 3, "Volume-limited Bluetooth headphones that fold up and keep little ears safe."],
@@ -425,10 +420,8 @@ export const KIDS_POPULAR_1122 = [
 
 // owner 11-22 popular approved (builder-guide-popular): Him, Amazon listings sold by Amazon.com or the brand, prices read 11-22.
 export const HIM_POPULAR_1122 = [
-  // COMMISSION SWITCH 11-22 (Price-rate-check-1122, owner-approved): was Amazon B0FQFB8FMG at 1% ($169.99); the same item sold and shipped by Walmart.com at 2.8% (Walmart creator rate), $179.00.
-  walmart(["4juazdA", 179, "https://i5.walmartimages.com/seo/AirPods-Pro-3_bbf7d96e-0ea2-4adc-93cc-f2aefe9c9fad.5094bad5696a875c3e764810e9670083.jpeg", "Apple AirPods Pro 3", "Apple", "earbuds", 2.8, "Noise-cancelling earbuds he will use daily."]),
-  // COMMISSION SWITCH 11-22 (Price-rate-check-1122, owner-approved): was Amazon B0GJTXVN9Z at 1% ($79); the same item sold and shipped by Walmart.com at 2.8% (Walmart creator rate), $79.99.
-  walmart(["4j6q3mB", 79.99, "https://i5.walmartimages.com/seo/Apple-AirTag-2nd-Generation-4-Pack-Item-Trackers-Precision-Finding-up-to-1-5-Range-Key-Wallet-Luggage-Finder-One-Tap-Setup_6e8bbd4e-2164-46f2-94a4-559559e7d3da.5db112defc481d3c999e30547acc0c7f.png", "Apple AirTag 4 Pack", "Apple", "tracker", 2.8, "Keys, wallet, bag: never lost again."]),
+  ["B0FQFB8FMG", 169.99, "61solmQSSlL", "Apple AirPods Pro 3", "Apple", "earbuds", 1, "Noise-cancelling earbuds he will use daily."],
+  ["B0GJTXVN9Z", 79, "611DjYhflAL", "Apple AirTag 4 Pack", "Apple", "tracker", 1, "Keys, wallet, bag: never lost again."],
   ["B0GXW9C8QC", 219, "615XBVqPGaL", "Bose QuietComfort Headphones, 2nd Gen", "Bose", "headphones", 3, "Noise-cancelling over-ear headphones with big sound."],
   ["B0CT3SGHXL", 191.99, "61m+fKy7wzL", "Garmin Forerunner 165 Running Smartwatch", "Garmin", "smartwatch", 3, "A bright running watch that tracks every mile."],
   ["B0GCGGWC1M", 349, "61YEzBsddpL", "Gozney Arc Lite Propane Pizza Oven", "Gozney", "pizza-oven", 4, "Real wood-fired-style pizza in his backyard."],

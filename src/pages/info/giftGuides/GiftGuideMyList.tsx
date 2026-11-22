@@ -12,6 +12,7 @@ import { GiftGuideTile } from "./GiftGuideTile";
 import { PickThumb } from "./GiftGuideView";
 import { GiftOut } from "./GiftOut";
 import { GiftWishShare } from "./GiftWishShare";
+import { DeleteMyList } from "./DeleteMyList";
 import { Heart, listName, listRefs, pickId, putBackInWishList, removeFromWishList, setListName, useGiftList, type SavedPick } from "./giftList";
 import { useWishItems, type WishItem } from "./wishListItems";
 import { retryWishListSync, useSyncProblem } from "./wishListSync";
@@ -147,6 +148,7 @@ export function GiftGuideMyList() {
           {user && syncProblem
             ? <p className="gg-price-note" role="alert"><span data-gift-wish-sync-problem="">{syncProblem}</span> <Button type="button" variant="link" size="inline" className="gg-link" onClick={retryWishListSync} data-gift-wish-sync-retry="">{WISH.syncRetry}</Button></p>
             : <p className="gg-price-note" data-gift-wish-where="">{user ? WISH.syncedNote : WISH.deviceNote}</p>}
+          {user && <DeleteMyList />}
           <div className="gg-rowhead"><h3>{WISH.giftsTitle(items.length)}</h3></div>
           {loading && items.length === 0 ? (
             <p className="gg-soon" role="status">{WISH.loading}</p>

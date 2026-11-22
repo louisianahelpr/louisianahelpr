@@ -155,6 +155,9 @@ export const cleanListName = (name: string): string => cleanGiftName(name, MAX_L
 /** The list's name as shown: the visitor's, or the default. */
 export const listName = (list: GiftList) => list.name.trim() || DEFAULT_LIST_NAME;
 
+/** After "Delete my list" (holiday audit 1121): empty, unnamed and not synced, so nothing is saved back until a gift is added. */
+export const forgetAccountList = () => write({ ...read(), picks: [], name: "", synced: null });
+
 /** "Clear list" (owner 11-21): every gift off My Wish List, its name kept (synced like any other change). */
 export const emptyWishList = () => write({ ...read(), picks: [] });
 

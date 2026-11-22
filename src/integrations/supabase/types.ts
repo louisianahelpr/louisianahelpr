@@ -5759,6 +5759,12 @@ export type Database = {
         }
         Relationships: []
       }
+      gift_wish_list_owners: {
+        Row: { code: string; created_at: string; token_hash: string }
+        Insert: { code: string; created_at?: string; token_hash: string }
+        Update: { code?: string; created_at?: string; token_hash?: string }
+        Relationships: []
+      }
       wish_link_requests: {
         Row: {
           affiliate_url: string | null
@@ -18748,6 +18754,9 @@ export type Database = {
         Returns: Json
       }
       wish_link_requests_get: { Args: { p_ids: string[] }; Returns: Json }
+      gift_wish_list_delete: { Args: never; Returns: boolean }
+      gift_wish_list_claim: { Args: { p_code: string; p_token: string }; Returns: boolean }
+      gift_wish_list_unshare: { Args: { p_code: string; p_token: string }; Returns: boolean }
       wish_link_url_key: { Args: { p_url: string }; Returns: string }
       wish_link_url_ok: { Args: { p_url: string }; Returns: boolean }
       admin_wish_link_requests: { Args: never; Returns: Json }

@@ -273,7 +273,10 @@ rpc_exempt(fn, why) AS (
   ('gift_wish_lists_share', 'Gift guides lists share (20261121204723, owner 11-21 "share all lists"): saves a snapshot of several named gift lists (guide slug + item id refs, user_id NULL) for one share code; anon-callable by design, rate limited on the same budget as gift_wish_list_save, posts no content to anyone else and moves no money; refusing a banned member would only stop them sharing gift ideas'),
   ('wish_link_request_add', 'Gift lists links to create (20261121221514, owner 11-21): queues a pasted shop link or typed gift idea (no account id stored) so an admin can make our affiliate link; anon-callable by design (the guides are signed out), rate limited, posts no content to anyone else and moves no money; refusing a banned member would only stop them asking for a gift link'),
   ('admin_wish_link_request_fill', 'admin-only (has_role admin first in the body); gift lists links to create, sets our affiliate link (20261121221514)'),
-  ('admin_wish_link_request_dismiss', 'admin-only (has_role admin first in the body); gift lists links to create, dismisses a request (20261121221514)')
+  ('admin_wish_link_request_dismiss', 'admin-only (has_role admin first in the body); gift lists links to create, dismisses a request (20261121221514)'),
+  ('gift_wish_list_delete', 'Gift guides (20261122024017, holiday audit 1121): deletes the caller own wish list row only; a banned member must still be able to delete their own data'),
+  ('gift_wish_list_claim', 'Gift guides (20261122024017): stores a token hash for a fresh guest share snapshot so the browser that made it can stop the link; anon-callable by design, posts nothing to anyone and moves no money'),
+  ('gift_wish_list_unshare', 'Gift guides (20261122024017): stops a guest share link with its token (deletes that snapshot); removing ones own shared data is always allowed, banned or not')
 ),
 ops(op, bit) AS (VALUES ('INSERT', 4), ('DELETE', 8), ('UPDATE', 16)),
 tbls AS (

@@ -10,7 +10,7 @@
  * (3) A Helpr who never checked in: the card said "Your Helpr didn't show up" and the job page "Hallie is on the way · since
  *     Mon, Nov 9". The page drops the on-the-way block then, and its next line is the card's own sentence.
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {isPoster && !continueDay.row && !noShowLead && <OnTheWayNow | {isPoster && !continueDay.row && <OnTheWayNow
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | continueStep={continueDay.step ?? (isPoster && noShowLead ? { who: "you", text: posterStatusLine(job as unknown as Job, pending, undefined, undefined, false, helperFirst).detail } | continueStep={continueDay.step ?? (false ? { who: "you", text: "" }
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | continueStep={continueDay.step ?? (isPoster && noShowLead ? youStep(posterStatusLine(job as unknown as Job, pending, undefined, undefined, false, helperFirst).detail, helperFirst) | continueStep={continueDay.step ?? (false ? youStep("", null)
  * (4) Past the review window the card said "time's up, Helpr support steps in", the page "You can still approve".
  * @mutate src/pages/posts/postedJobCard/PosterStatusStrip.tsx |   if (mins <= 0) return t("jl.approveLateShort"); |   if (mins <= 0) return "time's up, Helpr support steps in";
  */
@@ -55,7 +55,8 @@ describe("G6 (3): a no-show lead on the job page says the card's sentence, never
     expect(page).toContain("(isPoster && !continueDay.row && !noShowLead && showsNow(job, trackingStatus))");
   });
   it("the tracker's next line is posterStatusLine's detail, named, while the no-show leads", () => {
-    expect(page).toMatch(/continueStep=\{continueDay\.step \?\? \(isPoster && noShowLead \? \{ who: "you", text: posterStatusLine\(job as unknown as Job, pending, undefined, undefined, false, helperFirst\)\.detail \}/);
+    // #42 (deep audit 11-22): through youStep, so the Helpr's name keeps its capital ("Next: Hallie didn't show up").
+    expect(page).toMatch(/continueStep=\{continueDay\.step \?\? \(isPoster && noShowLead \? youStep\(posterStatusLine\(job as unknown as Job, pending, undefined, undefined, false, helperFirst\)\.detail, helperFirst\)/);
   });
 });
 

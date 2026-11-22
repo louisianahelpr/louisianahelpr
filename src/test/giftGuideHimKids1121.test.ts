@@ -119,7 +119,7 @@ describe.each([
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
       // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day and the Dad fill-in book (owner
-      // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) and the Him batch 2 Amazon items (the GE Opal Mini) were priced 11-22.
+      // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) and the GE Opal Mini (builder-guide-him, 2026-11-22) were priced 11-22.
       expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) ? "2026-11-22" : "2026-11-21");
     }
   });

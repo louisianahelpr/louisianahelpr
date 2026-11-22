@@ -40,6 +40,7 @@ import { rankByPrice } from "../../scripts/giftGuidePriceRank1121.mjs";
 import her from "@/content/giftGuidePicks/her.json";
 import him from "@/content/giftGuidePicks/him.json";
 import kids from "@/content/giftGuidePicks/kids.json";
+import { openPriceSections, sectionTitle } from "./helpers/openPriceSections";
 
 afterEach(() => {
   cleanup();
@@ -61,10 +62,7 @@ const renderAt = (url: string) =>
 /** The names of the rows on screen, top to bottom. */
 /** Every row's name, after opening every "Show more" (the page shows 50 at a time; Him holds 141 since 11-21). */
 const shownNames = (c: HTMLElement) => {
-  for (let b = within(c).queryByRole("button", { name: /^Show more/ }); b; b = within(c).queryByRole("button", { name: /^Show more/ })) {
-    const more = b;
-    act(() => { fireEvent.click(more); });
-  }
+  openPriceSections(c);
   return [...c.querySelectorAll("[data-gift-pick] .gg-nm-name")].map((n) => n.textContent);
 };
 
@@ -133,13 +131,13 @@ describe("the sort control on the page (owner 11-21)", () => {
     vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
     await act(async () => { await loadGuidePicks("her"); });
     const { container } = renderAt("/gift-guides/her");
-    const dollars = () => [...container.querySelectorAll<HTMLElement>("[data-gift-pick]")].map((li) => Number((li.querySelector("[data-gift-price]")?.textContent ?? "").replace("~$", "")));
+    const dollars = () => [...openPriceSections(container).querySelectorAll<HTMLElement>("[data-gift-pick]")].map((li) => Number((li.querySelector("[data-gift-price]")?.textContent ?? "").replace("~$", "")));
     // The default, before any tap, is low to high.
     const first = dollars();
     expect(first).toEqual([...first].sort((a, b) => a - b));
     for (const name of [G.sortLowHigh, G.sortHighLow]) {
       choose(name);
-      const rows = [...container.querySelectorAll<HTMLElement>("[data-gift-pick]")];
+      const rows = [...openPriceSections(container).querySelectorAll<HTMLElement>("[data-gift-pick]")];
       expect(rows.length).toBe(CHUNKS.her.length);
       let amazon = 0;
       for (const li of rows) {
@@ -157,7 +155,7 @@ describe("the sort control on the page (owner 11-21)", () => {
 
 describe("price sections (owner 11-21: \"they all need to be sorted in sections by price\")", () => {
   const sections = (c: HTMLElement) => [...c.querySelectorAll<HTMLElement>("section[data-gift-section]")].map((sec) => ({
-    title: sec.querySelector("h2")?.firstChild?.textContent ?? "", // h2 under the banner h1 (holiday polish 2)
+    title: sectionTitle(sec),
     count: sec.querySelector("[data-gift-section-count]")?.textContent ?? "",
     labelled: sec.getAttribute("aria-labelledby") === sec.querySelector("h2")?.id,
     dollars: [...sec.querySelectorAll("[data-gift-price]")].map((p) => Number(p.textContent!.replace("~$", ""))),
@@ -168,7 +166,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
     await act(async () => { await loadGuidePicks(slug); });
     const { container } = renderAt(`/gift-guides/${slug}`);
     // Every "Show more" (50 at a time; Him holds 141 of her saves since 11-21).
-    for (let m = container.querySelector("[data-gift-more-picks]"); m; m = container.querySelector("[data-gift-more-picks]")) fireEvent.click(m);
+    openPriceSections(container);
     const low = sections(container);
     // Owner 11-21: "Each guide should have sections that go by price 25 50 75 100+".
     const order = ["Under $25", "$25 to $50", "$50 to $75", "$75 to $100", "$100 and up"];
@@ -183,7 +181,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
     }
     choose(G.sortHighLow);
     // Every "Show more" (50 at a time; Him holds 141 of her saves since 11-21).
-    for (let m = container.querySelector("[data-gift-more-picks]"); m; m = container.querySelector("[data-gift-more-picks]")) fireEvent.click(m);
+    openPriceSections(container);
     const high = sections(container);
     expect(high.map((x) => x.title), slug).toEqual([...low.map((x) => x.title)].reverse());
     for (const x of high) expect(x.dollars, x.title).toEqual([...x.dollars].sort((a, b) => b - a));

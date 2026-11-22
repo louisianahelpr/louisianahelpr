@@ -77,6 +77,7 @@ import { giftNameProblem } from "@/lib/giftNameClean";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { resetFirstHeartForTests } from "@/pages/info/giftGuides/GiftGuideHints";
 import { bizItemId, dealName } from "@/pages/info/giftGuides/wishListItems";
+import { openPriceSections } from "./helpers/openPriceSections";
 
 /**
  * A guide card's heart now asks for whom (owner 2026-11-21, saveForPeople): tap it, then "Me" (My Wish List), then
@@ -157,7 +158,7 @@ describe("hearts persist and one heart covers the gift everywhere", () => {
     const [a, b, href] = pair!;
     addToWishList({ href, name: "x", guide: a });
     const view = renderAt(`/gift-guides/${b}`);
-    for (let more = view.container.querySelector<HTMLButtonElement>("[data-gift-more-picks]"); more; more = view.container.querySelector("[data-gift-more-picks]")) fireEvent.click(more);
+    openPriceSections(view.container);
     const row = [...view.container.querySelectorAll("[data-gift-pick]")].find((li) => li.querySelector(`a[href="https://${href.replace(/^https:\/\//, "")}"]`));
     expect(row?.querySelector("[data-gift-heart]")?.getAttribute("aria-pressed")).toBe("true");
   });

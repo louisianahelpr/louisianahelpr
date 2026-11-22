@@ -85,7 +85,8 @@ describe("gift guides 11-19: every Shop button sits on the same line in a row", 
     // grid card is one column (the link: photo, then name with the price top-right); the heart sits at its bottom-right
     // (src/test/giftGuidePhoneHeader1121.test.tsx), never on the photo; the text area keeps room for it.
     expect(GIFT_GUIDES_CSS.match(/\.gg-list>li\{position:relative;display:grid;grid-template-columns:minmax\(0,1fr\);/g)?.length).toBe(3);
-    expect(GIFT_GUIDES_CSS.match(/\.gg-list \.gg-nm\{min-height:72px\}/g)?.length).toBe(2);
+    // Owner 11-21 ("should we put the cart by the heart?"): the text area keeps a row free for the cart and heart.
+    expect(GIFT_GUIDES_CSS.match(/\.gg-list \.gg-nm\{padding-bottom:44px\}/g)?.length).toBe(2);
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-nm-name\{min-height/);
     // Owner 11-21: no Shop button on a card any more (the photo and name are the link), so no grid rule for one.
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-list \.gg-shop-btn\{/);

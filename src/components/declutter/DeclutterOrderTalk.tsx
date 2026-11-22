@@ -197,7 +197,7 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
         )}
         </div>
         {t && open && !talk.isError && (
-          <form id={formId} className="shrink-0 space-y-2 border-t border-border pt-3" data-order-talk-composer="" onSubmit={(e) => { e.preventDefault(); if (draft.trim() || photo) send.mutate(); }}>
+          <form id={formId} className="shrink-0 space-y-2 border-t border-border pt-3 pb-[max(var(--safe-area-bottom,0px),12px)]" data-order-talk-composer="" onSubmit={(e) => { e.preventDefault(); if (draft.trim() || photo) send.mutate(); }}>
             <label htmlFor={`order-talk-${orderId}`} className="sr-only">{tr("cp.ot.message")}</label>
             <Suspense fallback={null}><OrderTalkPhotoPicker file={photo} onChange={(f) => { setPhoto(f); setRefusal(null); }} disabled={send.isPending} /></Suspense>
             <div className="flex items-end gap-2">

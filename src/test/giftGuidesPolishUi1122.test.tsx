@@ -23,6 +23,7 @@
  *      line above Website / calendar / More details (measured: 0 of 40 places cut, were 18; 0 tags wrapped, were 12).
  * #28: /holidays and /shop-small hide Home in the top nav; the Hub's link to the guides sits under its intro.
  * #29: a Hub search with no match says 'No lights or events match "..."' with Clear search; the hint fits the field.
+ * #22: in the "Save for someone" popup each box's icons sit on the same line as its + (the open icon sat alone below).
  * #19: on a phone the hub shows one line above the greeting, and a guide's banner starts 16px under the chip row.
  *
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:36px} | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:44px}
@@ -42,6 +43,7 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0; | .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:auto;
  * @mutate src/pages/info/holidays/holidayParts.tsx |       <h3 className="text-ds-16 font-semibold leading-snug text-foreground">{item.name}</h3> |       <h3 className="text-ds-16 font-semibold leading-snug text-foreground">{item.name}{tag}</h3>
  * @mutate src/pages/info/holidays/HolidayHub.tsx |           query.trim() && active.length === 0 ? ( |           false ? (
+ * @mutate src/pages/info/giftGuides/giftWishStyles.ts | .gg-savefor-box{display:flex;flex-wrap:wrap;align-items:center} | .gg-savefor-box{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow .gg-ship-order{display:none} | .gg-countrow .gg-ship-order{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav:has(+.gg-divider){border-bottom-color:transparent} | .gg-pnav:has(+.gg-divider){}
  */
@@ -51,6 +53,7 @@ import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
+import { GIFT_WISH_CSS } from "@/pages/info/giftGuides/giftWishStyles";
 import { GuidesFrame } from "@/pages/info/giftGuides/fun/FunPage";
 import { FUN_WORDS } from "@/content/giftGuideFun1120";
 import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
@@ -233,5 +236,13 @@ describe("polish audit 1122 #17/#28/#29: the Holiday Hub", () => {
     expect(hub).toContain('<HolidayNothing onClear={() => setQuery("")} clearLabel="Clear search">');
     expect(hub).toContain("{`No lights or events match \"${query.trim()}\".`}");
     expect(hub.indexOf("data-holiday-guides-link")).toBeLessThan(hub.indexOf("data-holiday-filters"));
+  });
+});
+
+describe("polish audit 1122 #22: the save popup's boxes", () => {
+  it("the row and its icons share one line; an edit form drops under them at full width", () => {
+    expect(GIFT_WISH_CSS).toContain(".gg-savefor-box{display:flex;flex-wrap:wrap;align-items:center}");
+    expect(GIFT_WISH_CSS).toContain(".gg-savefor-box>.gg-savefor-row{flex:1 1 0;min-width:0}");
+    expect(GIFT_WISH_CSS).toContain(".gg-savefor-box>:not(.gg-savefor-row):not(.gg-savefor-tools){flex-basis:100%}");
   });
 });

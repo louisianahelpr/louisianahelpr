@@ -92,7 +92,6 @@ const NOINDEX = {
   "/payment-success": "post-checkout receipt screen, bound to one session",
   "/unsubscribe": "email opt-out step; needs the signed link from one email (Q1655)",
   "/sponsor": "25 Days sponsor page: reached from pitch emails, dark behind the sponsor_25days switch",
-  "/25days/rules": "25 Days giveaway rules: a draft until the owner approves it",
 };
 
 /**

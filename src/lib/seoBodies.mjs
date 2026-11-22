@@ -318,8 +318,8 @@ const INFO_PAGES = {
     name: TWENTY_FIVE_DAYS.name,
     h1: "25 Days of Louisiana Giveaways: December 1–25, 2026",
     intro:
-      "Every day from December 1 to December 25, 2026, Louisiana businesses give away gifts to Louisiana neighbors on Louisiana Helpr. It is free to enter, open to Louisiana residents 18 and older, and one entry covers all 25 days. Entry details are on the Louisiana Helpr Facebook page.",
-    links: [["/25days/rules", "Official giveaway rules"], ["/sponsor", "Become a sponsor"], ["/gift-guides", "Holiday gift guides"], ["/declutter", "Declutter"]],
+      "Every day from December 1 to December 25, 2026, Louisiana businesses give away gifts to Louisiana neighbors on Louisiana Helpr. It is free to enter. How to enter and the official rules are on the Louisiana Helpr Facebook post (owner 2026-11-21: all the rules are on Facebook, not the website).",
+    links: [["/sponsor", "Become a sponsor"], ["/gift-guides", "Holiday gift guides"], ["/declutter", "Declutter"]],
   },
 };
 

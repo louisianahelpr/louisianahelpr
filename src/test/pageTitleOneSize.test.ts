@@ -39,7 +39,6 @@ const EXEMPT: Record<string, string> = {
   "src/components/landing/HeroSection.tsx": "locked landing hero",
   // The 25 Days sponsor page (owner spec 2026-11-09): a stand-alone public page in its own design (sponsor.css), not an app screen.
   "src/components/sponsor/Sections.tsx": "25 Days sponsor page hero, its own design (sponsor.css lh25-h1)",
-  "src/pages/sponsor/SponsorRulesPage.tsx": "25 Days official rules title, its own design (sponsor.css .lh25-rules h1)",
   // The gift guides' banner title in its cover's own look (Bodoni, in the gingham arch; live audit 11-18 r3 #7).
   "src/pages/info/giftGuides/GiftGuideCover.tsx": "gift guide banner title, its own design (giftGuidesStyles .gg-banner h1)",
   // The decorative "404" numeral, not a page title.

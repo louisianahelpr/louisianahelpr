@@ -34,10 +34,9 @@ describe("member copy never calls Helpr work employment (F092)", () => {
     for (const f of files) {
       const raw = readSource(f);
       if (raw == null) continue;
-      const code = blankComments(raw).replace(/self-employ(ment|ed)/gi, "").replace(/\bnot (an? )?employees?\b/gi, "")
-        // The 25 Days official rules' standard sweepstakes exclusion (owner copy 2026-11-09, src/content/sponsorPage.ts):
-        // it names the company's and a sponsor's OWN staff who may not win a prize, not Helpr work. Exact phrase only.
-        .replace(/\bEmployees of Louisiana Helpr and of a participating business\b/g, "");
+      // The 25 Days rules' sweepstakes exclusion was exempt here until the owner moved every rule to Facebook
+      // (2026-11-21: "All the rules will be on Facebook not our website."), so the exemption is gone too.
+      const code = blankComments(raw).replace(/self-employ(ment|ed)/gi, "").replace(/\bnot (an? )?employees?\b/gi, "");
       code.split("\n").forEach((line, i) => {
         if (EMPLOY.test(line)) offenders.push(`${relative(ROOT, f)}:${i + 1}: ${line.trim().slice(0, 100)}`);
       });

@@ -27,8 +27,7 @@ export type NoindexPath =
   | "/signup-pending"
   | "/account-banned"
   | "/unsubscribe"
-  | "/sponsor"
-  | "/25days/rules";
+  | "/sponsor";
 export interface NoindexPageMeta extends PublicPageMeta {
   robots: string;
 }

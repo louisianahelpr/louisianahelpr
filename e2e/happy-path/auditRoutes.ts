@@ -224,7 +224,6 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // NotFound page; once on, the sponsor page, its alias and the rules page.
   { name: "sponsor-25days", url: "/sponsor" },
   { name: "sponsor-25days-alias", url: "/25days" },
-  { name: "sponsor-25days-rules", url: "/25days/rules" },
   // Redirect since 2026-08-18 (page merged into /profile?tab=legal). Kept
   // for the same reason /privacy, /terms and /rules are: the Privacy Policy
   // and the App Store listing both publish this URL, so the catalog should

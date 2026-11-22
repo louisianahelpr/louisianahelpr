@@ -27,7 +27,7 @@ import { normalizeRef } from "../../../supabase/functions/_shared/sponsorSignup"
 import { ClaimSection } from "@/components/sponsor/ClaimSection";
 import { PlaidTrim } from "@/components/sponsor/Decor";
 import {
-  About, BrandGets, BusinessAsk, EntrantHero, EntrantInfo, Faq, FinalCta, Footer, Founder, Hero, HowItWorks, Lineup,
+  About, BrandGets, BusinessAsk, EntrantHero, Faq, FinalCta, Footer, Founder, Hero, HowItWorks, Lineup,
   PlaceholderPreview, PreviewCard, Reach, SponsorWall, Testimonials, TrustStrip, WhatWeAsk,
 } from "@/components/sponsor/Sections";
 import "./sponsor.css";
@@ -150,7 +150,6 @@ export default function SponsorPage() {
           <SponsorChrome />
           <EntrantHero enterUrl={enterUrl} />
           <div className="lh25-main">
-            <EntrantInfo />
             <Lineup />
             <SponsorWall wall={state.wall} logoUrl={(id) => backend.logoUrl(id)} />
             <BusinessAsk />

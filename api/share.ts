@@ -1375,7 +1375,6 @@ const SPONSOR_CARD = { path: "/og-25days.png?v=2", alt: "You're Invited! 25 Days
 const NOINDEX_CARDS: Record<string, { path: string; alt: string }> = {
   sponsor: SPONSOR_CARD,
   "25days": ENTRANT_CARD,
-  "25days/rules": ENTRANT_CARD,
 };
 
 /**

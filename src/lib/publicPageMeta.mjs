@@ -170,12 +170,13 @@ export const PUBLIC_PAGE_META = {
   "/25days": {
     title: "25 Days of Louisiana Giveaways, December 1–25, 2026 — Helpr",
     // Owner 2026-11-19: /25days is for people entering (most arrive from Facebook), so its preview speaks to them.
+    // Owner 2026-11-21: "All the rules will be on Facebook not our website." No entry method or rule in the preview.
     description:
-      "Free to enter: every day from December 1 to 25, 2026, Louisiana businesses give away gifts to Louisiana neighbors. One entry covers all 25 days. Louisiana residents 18+.",
+      "Free to enter: every day from December 1 to 25, 2026, Louisiana businesses give away gifts to Louisiana neighbors. How to enter is on our Facebook post.",
     canonical: `${SITE_ORIGIN}/25days`,
     ogTitle: "25 Days of Louisiana Giveaways: December 1–25",
     ogDescription:
-      "Free to enter: Louisiana businesses give away gifts every day, December 1–25. One entry covers all 25 days. Louisiana residents 18+.",
+      "Free to enter: Louisiana businesses give away gifts every day, December 1–25. How to enter is on our Facebook post.",
   },
   // Louisiana Holiday Hub (owner-approved 2026-11-20; lights and events on one page 2026-11-21, the old
   // /holidays/lights and /holidays/events redirect here): indexed, in the sitemap, with a pre-JS body and JSON-LD
@@ -306,14 +307,6 @@ export const NOINDEX_PAGE_META = {
     ogTitle: "You're invited: 25 Days of Louisiana Giveaways",
     ogDescription:
       "Join the giveaways this December and get your brand in front of Louisiana families shopping for the holidays. No fees, no contracts.",
-    robots: NOINDEX_ROBOTS,
-  },
-  "/25days/rules": {
-    title: "Official giveaway rules for the 25 Days of Louisiana Giveaways — Helpr",
-    description: "Official rules for the 25 Days of Louisiana Giveaways on Louisiana Helpr, December 1–25, 2026.",
-    canonical: `${SITE_ORIGIN}/25days/rules`,
-    ogTitle: "Official giveaway rules: 25 Days of Louisiana Giveaways",
-    ogDescription: "Official rules for the 25 Days of Louisiana Giveaways on Louisiana Helpr, December 1–25, 2026.",
     robots: NOINDEX_ROBOTS,
   },
 };

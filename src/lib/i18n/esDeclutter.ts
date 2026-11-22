@@ -278,6 +278,7 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.lwn.leadReview": "se publica cuando se revise.",
   "decl.mv.filter": "Filtrar por estado",
   "decl.mv.all": "Todo",
+  "decl.mv.tools": "Herramientas",
   "decl.mv.bk.needs_you": "Pendiente",
   "decl.mv.bk.waiting": "En espera",
   "decl.mv.bk.upcoming": "Próximos",

@@ -31,6 +31,7 @@ import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 import { BundleRequestsSection, useBundleAsksToAnswer } from "./DeclutterBundleRequests";
 import { TradeOffersSection, useTradeOffersToAnswer } from "./DeclutterTradeOffers";
 import { SellingTodo, SellingWeek, useSellingTopSettled } from "./SellingHome";
+import { SectionHeading } from "./DeclutterTabHeads";
 import { DeclutterTabBones } from "./DeclutterSkeletons";
 import { useSalesToHandOver } from "./useSalesToHandOver";
 import { ShopSaleCard } from "./ShopSaleCard";
@@ -149,22 +150,25 @@ export function SellingDash({ todo, userId, listings, settings, searching = fals
       {show("waiting") && <SalesWaiting emptyNotice={only === "waiting"} />}
       {!soldFirst && sold}
       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />}
-      {/* Declutter top 5 (owner 11-19), after the work that waits on the seller (11-20 #5): the week's numbers (#2), the
-          shop-wide sale while something is for sale or a sale is set (#4), and away mode (#5). */}
-      {only === null && hasListings && (
-        <div className="space-y-3" data-shop-tools="">
-          <SellingWeek />
-          <div className="grid gap-3 sm:grid-cols-2">
-            {pricedLive && <ShopSaleCard userId={userId} />}
-            <AwayCard userId={userId} />
-          </div>
-        </div>
+      {/* Declutter top 5 (owner 11-19), after the work that waits on the seller (11-20 #5): the week's numbers (#2). */}
+      {only === null && hasListings && <SellingWeek />}
+      {/* Deep audit 11-22 #49: Shop sale, Away mode, Trades, Let a friend sell and the settings row sat one after another
+          down the tab; they are one "Tools" group now, after the work and the lists. The shop-wide sale shows while
+          something is for sale (#4); the trades card until answered (owner 11-08, F399); settings belong to the whole
+          tab, not one chip's list (DC-9). */}
+      {only === null && (
+        <section className="space-y-3" aria-label={t("decl.mv.tools")} data-selling-tools="">
+          <SectionHeading title={t("decl.mv.tools")} />
+          {hasListings && (
+            <div className="grid gap-3 sm:grid-cols-2" data-shop-tools="">
+              {pricedLive && <ShopSaleCard userId={userId} />}
+              <AwayCard userId={userId} />
+            </div>
+          )}
+          <DeclutterTradesPrompt userId={userId} />
+          {settings}
+        </section>
       )}
-      {/* Owner 11-08: the one-time "Turn on trades for all your listings?" card, until answered (on the account).
-          Audit 11-10 F399: after the to-dos and the lists, so the work that waits on the seller comes first. */}
-      {only === null && <DeclutterTradesPrompt userId={userId} />}
-      {/* The seller's settings belong to the whole tab, not to one chip's list (DC-9). */}
-      {only === null && settings}
     </div>
   );
 }

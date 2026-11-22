@@ -563,6 +563,23 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     }
   });
 
+  // Deep audit 11-22 #49: Shop sale, Away, Trades, Let a friend sell and the settings row are ONE Tools group, after
+  // the lists, not five blocks down the tab.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |           {settings}\n        </section>\n      )} |         </section>\n      )}\n      {only === null && settings}
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |           <SectionHeading title={t("decl.mv.tools")} />\n |
+  it("#49: the seller's tools are one Tools group after the lists", async () => {
+    state.mine = [ITEM];
+    const { container } = at("/declutter?tab=selling");
+    const tools = await screen.findByRole("region", { name: "Tools" });
+    expect(within(tools).getByRole("heading", { name: "Tools" })).toBeInTheDocument();
+    expect(within(tools).getByRole("link", { name: /Declutter settings/ })).toBeInTheDocument();
+    // Shop sale and Away sit in the group (their own cards are tested in sellingHome / awayMode tests).
+    expect(tools.querySelector("[data-shop-tools]")).not.toBeNull();
+    expect(container.querySelectorAll("[data-shop-tools]")).toHaveLength(1);
+    const listings = screen.getByRole("region", { name: "Your listings" });
+    expect(listings.compareDocumentPosition(tools) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("Selling has one row to Declutter settings after the lists; the settings cards are not on Selling any more", async () => {
     const { container } = at("/declutter?tab=selling");
     const row = await screen.findByRole("link", { name: /Declutter settings/ });

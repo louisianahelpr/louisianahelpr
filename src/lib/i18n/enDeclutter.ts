@@ -177,6 +177,7 @@ export const enDeclutter = {
   "decl.lwn.preview": "Preview",
   "decl.mv.filter": "Filter by status",
   "decl.mv.all": "All",
+  "decl.mv.tools": "Tools",
   "decl.mv.bk.needs_you": "Needs you",
   "decl.mv.bk.waiting": "Waiting",
   "decl.mv.bk.upcoming": "Upcoming",

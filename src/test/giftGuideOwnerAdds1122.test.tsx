@@ -93,6 +93,8 @@ const AMAZON_1122: [string, string, number][] = [
   ["B0DQLLPYGM", "her", 184.89], ["B0GP2R8TBS", "her", 199], ["B0GZSMBDYZ", "her", 237], ["B089F9YDFC", "him", 19.99],
   // Him batch 2: the GE Profile Opal Mini (the method body wash stayed out: Him already has it).
   ["B0H51ZX6SB", "him", 299],
+  // builder-guide-her4 block 2 (11-22)
+  ["B0H2FQ5FV1", "her", 39.99], ["B0FXYGCYK6", "her", 24.99], ["B0F5K3B4Q7", "her", 29.94], ["B0CHMS3PVZ", "her", 27.99], ["B0D7GQVNNN", "her", 23.8], ["B0D1X4PNFD", "her", 29.95], ["B0F7M3HPBD", "her", 229], ["B0H3YXW87L", "her", 42.99], ["B0H9L8Z1DY", "her", 21.99], ["B0F79VTVFQ", "her", 85],
 ];
 
 describe("the owner's launch-day picks (11-22)", () => {

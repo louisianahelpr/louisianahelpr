@@ -235,7 +235,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // BaubleBar spaced-letter necklace ($148).
       // builder-guide-links (11-22): Her + the Esker bubble soak ($75); builder-guide-adds-2: her Capri Blue Volcano capiz jar
       // pin (from $22).
-      her: { "Under $25": 38, "$25 to $50": 35, "$50 to $75": 10, "$75 to $100": 13, "$100 and up": 36 },
+      // builder-guide-her4 block 2 (11-22): 10 Amazon picks from her screenshots (HydroJugs, She's Birdie, CRZ YOGA pants
+      // and bra, Lemon Grace cards, Bose QC Ultra Earbuds, two personalized bags, YETI Daytrip lunch bag).
+      her: { "Under $25": 40, "$25 to $50": 41, "$50 to $75": 10, "$75 to $100": 14, "$100 and up": 37 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

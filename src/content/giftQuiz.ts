@@ -100,6 +100,7 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   // style pieces, the kitchen set and espresso machine are kitchen, a stick vacuum is a gadget, sleep earbuds both.
   "sleep-supplement": ["cozy", "fitness"], "home-fragrance": ["cozy"], journal: ["style"], planner: ["style"],
   "kitchen-knives": ["kitchen"], cookware: ["kitchen"], "coffee-maker": ["kitchen"], vacuum: ["tech"], "sleep-earbuds": ["tech", "cozy"],
+  "smart-ring": ["tech", "fitness"], nightgown: ["cozy", "style"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {

@@ -80,7 +80,12 @@ describe("deleting my list (signed in)", () => {
     rpc.mockResolvedValue({ data: true, error: null });
     const view = render(<DeleteMyList />);
     fireEvent.click(view.container.querySelector("[data-gift-wish-delete]")!);
-    const dialog = await waitFor(() => [...document.querySelectorAll<HTMLElement>("[role='alertdialog'], [role='dialog']")].find((d) => d.textContent?.includes(WISH.deleteMyListTitle))!);
+    // The confirm dialog loads on the first tap, so wait until it is really there.
+    const dialog = await waitFor(() => {
+      const d = [...document.querySelectorAll<HTMLElement>("[role='alertdialog'], [role='dialog']")].find((x) => x.textContent?.includes(WISH.deleteMyListTitle));
+      expect(d).toBeTruthy();
+      return d!;
+    });
     expect(rpc).not.toHaveBeenCalled();
     fireEvent.click([...dialog.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === WISH.deleteMyList)!);
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("gift_wish_list_delete"));
@@ -95,7 +100,12 @@ describe("deleting my list (signed in)", () => {
     rpc.mockResolvedValue({ data: null, error: { message: "network down" } });
     const view = render(<DeleteMyList />);
     fireEvent.click(view.container.querySelector("[data-gift-wish-delete]")!);
-    const dialog = await waitFor(() => [...document.querySelectorAll<HTMLElement>("[role='alertdialog'], [role='dialog']")].find((d) => d.textContent?.includes(WISH.deleteMyListTitle))!);
+    // The confirm dialog loads on the first tap, so wait until it is really there.
+    const dialog = await waitFor(() => {
+      const d = [...document.querySelectorAll<HTMLElement>("[role='alertdialog'], [role='dialog']")].find((x) => x.textContent?.includes(WISH.deleteMyListTitle));
+      expect(d).toBeTruthy();
+      return d!;
+    });
     fireEvent.click([...dialog.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === WISH.deleteMyList)!);
     await waitFor(() => expect(view.container.querySelector("[data-gift-wish-delete-said]")?.textContent?.trim()).toBe(WISH.deleteMyListFailed));
     expect(giftListNow().picks).toHaveLength(1);

@@ -22,7 +22,7 @@ describe("one feature name and one tab ending (audit 1122 #25)", () => {
     expect(giftGuides.sidebarLabel).toBe("Holiday gift guides");
   });
   it("an unknown guide's tab and the wish-list tabs end ' — Helpr'", () => {
-    expect(publicOrGiftGuidePageMetaFor("/gift-guides/nope", null).title).toBe("Holiday gift guides — Helpr");
+    expect(publicOrGiftGuidePageMetaFor("/gift-guides/nope", null)?.title).toBe("Holiday gift guides — Helpr");
     expect(read("src/pages/info/giftGuides/GiftGuideSharedList.tsx")).not.toContain("— Louisiana Helpr");
     expect(read("src/pages/info/GiftGuides.tsx")).not.toContain("— Louisiana Helpr");
     expect(PUBLIC_PAGE_META["/gift-guides"].title).toMatch(/ — Helpr$/);

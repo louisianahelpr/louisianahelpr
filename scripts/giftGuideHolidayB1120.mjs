@@ -145,6 +145,23 @@ export function applyHolidayB1120(pageList, deals, spec, ctx) {
     return spec.sponsorDefaultGroup;
   };
   const dropped = (brand) => (spec.droppedSponsors ?? []).some((d) => fold(brand).startsWith(fold(d.brand)));
+  // Owner 2026-11-22 ("Find images from their Facebook or use there logo so all are included"): a sponsor with no gift
+  // card of its own gets a logo card (its small logo from the sponsor logo row, ctx.sponsorLogos; else the shop's name
+  // tile), the gift it gives as its subtitle and its own site or page; never a name-only line. No price: only a
+  // captured price shows. Never a giveaway day (the days are not final).
+  c.logoCards = 0;
+  const logoCard = (brand) => {
+    const hit = Object.entries(spec.sponsorLogoCards ?? {}).find(([k]) => fold(brand).startsWith(fold(k)) || fold(k).startsWith(fold(brand)));
+    if (!hit) return undefined;
+    const [name, g] = hit;
+    const row = (ctx.sponsorLogos ?? []).find((r) => fold(r.name) === fold(name) || fold(brand).startsWith(fold(r.name)));
+    const href = g.href ?? (row?.external ? row.href : undefined);
+    if (!href || !/^https:\/\//.test(href)) { say(`logo card without a link: ${brand}`); return undefined; }
+    c.logoCards += 1;
+    // A logo drawn white on clear (the logo row's dark circle) takes its dark-ink copy in sponsor-picks/ (`image`).
+    const image = g.image ?? row?.logo;
+    return { name, brand: name, line: `${g.gift}.`, gift: g.gift, href, ...(image ? { image } : {}), store: "sponsor", sponsor: true };
+  };
   const cards = [];
   const sgList = page(SG);
   for (const brand of ctx.lineup ?? []) {
@@ -158,6 +175,8 @@ export function applyHolidayB1120(pageList, deals, spec, ctx) {
         .find((p) => p.sponsor && p.image && !LOGO_PATH.test(p.image) && sponsorOf(brand, spec.lineupAlias)(p));
       if (copy) { const { section: _s, sectionId: _i, from: _f, ...rest } = copy; pick = rest; }
     }
+    // A sponsor whose one gift is held off another guide (Hilma) is no copy, but still gets its logo card here.
+    pick ??= logoCard(brand);
     if (!pick) { addNameOnly(SG, brand); c.sponsorNamed += 1; continue; }
     const title = groupOf(brand);
     cards.push(...(mine.length ? mine : [pick]).map((p) => ({ ...p, sponsor: true, section: title, sectionId: groups[title]?.id ?? "sponsors" })));
@@ -179,7 +198,8 @@ export function applyHolidayB1120(pageList, deals, spec, ctx) {
   // A name-only sponsor that now has a card on that page is not named twice.
   for (let i = nameOnly.length - 1; i >= 0; i -= 1) {
     const x = nameOnly[i];
-    if (page(x.guide).some(sponsorOf(x.brand, spec.lineupAlias))) nameOnly.splice(i, 1);
+    // A logo card covers its business's longer names too ("Grand Kyiv Ballet" covers its show at The Strand).
+    if (page(x.guide).some(sponsorOf(x.brand, spec.lineupAlias)) || page(x.guide).some((p) => p.gift && fold(x.brand).startsWith(fold(p.brand)))) nameOnly.splice(i, 1);
   }
   // A business with several lineup rows (HOTWORX's two studios) is named once, by its `sponsorOneName` name.
   for (const x of nameOnly) {

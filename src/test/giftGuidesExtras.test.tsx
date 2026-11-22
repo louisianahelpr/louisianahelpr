@@ -153,11 +153,18 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     // guides' picks still follow the badge rules above, row by row.
     expect(picks.filter(({ p }) => p.badges?.includes("sponsor")).length).toBeGreaterThan(20);
   });
-  it("leaves out Hilma's probiotic (health product) but still names Hilma on the sponsors guide", () => {
-    expect(guideBySlug("25-days-sponsors")!.picks.some((p) => p.brand === "Hilma" || /probiotic/i.test(p.name))).toBe(false);
+  it("leaves out Hilma's probiotic product card; Hilma shows as its logo card (owner 11-22), no names-only line", () => {
+    // Owner 11-22 ("Find images from their Facebook or use there logo so all are included"): the "Also sponsoring"
+    // names became logo cards, Hilma's among them (its logo, the gift it gives, its site); its product card stays off.
+    const sg = guideBySlug("25-days-sponsors")!.picks;
+    expect(sg.some((p) => /probiotic/i.test(p.name))).toBe(false);
+    expect(sg.filter((p) => p.brand === "Hilma").map((p) => [p.name, p.gift])).toEqual([["Hilma", "Daily Pre + Probiotic + Herbs"]]);
     const { container } = renderAt("/gift-guides/25-days-sponsors");
-    expect([...container.querySelectorAll("[data-gift-also-sponsoring] [data-gift-also-name]")].map((n) => n.textContent)).toContain("Hilma"); // holiday audit 1121 #77: one chip per name // holiday audit B (11-20): every lineup sponsor without a card is named here
-    expect(container.querySelector('a[href*="hilma"]')).toBeNull();
+    expect(container.querySelector("[data-gift-also-sponsoring]")).toBeNull();
+    const hilma = container.querySelector<HTMLAnchorElement>('a[href^="https://www.hilma.co"]')!;
+    expect(hilma.textContent).toContain("Hilma");
+    expect(hilma.querySelector("[data-gift-sponsor-gift]")?.textContent).toBe("Daily Pre + Probiotic + Herbs");
+    expect(hilma.querySelector("[data-gift-price]")).toBeNull();
   });
   it("draws the badges on the list, no price but the checked one (owner 11-18), and every Shop link is sponsored + noopener", () => {
     // Owner 11-21: Shop Small Louisiana is retired (src/content/giftGuideLive.mjs); the sponsors page carries badges too.

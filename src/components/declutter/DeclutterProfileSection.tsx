@@ -93,8 +93,16 @@ export function DeclutterProfileSection({ userId }: { userId: string }) {
         <h2 id={`profile-declutter-${userId}`} className="font-sans uppercase tracking-wider text-ds-11 font-semibold" style={{ color: "hsl(var(--olivewood) / 0.75)", letterSpacing: "0.14em" }}>
           {all.length > 0 ? `Declutter reviews · ${all.length}` : "Declutter"}
         </h2>
-        {soldCount > 0 && <p className="shrink-0 text-ds-13 font-semibold text-foreground" data-profile-sold="">{soldCount} sold</p>}
+        {soldCount > 0 && all.length > 0 && <p className="shrink-0 text-ds-13 font-semibold text-foreground" data-profile-sold="">{soldCount} sold</p>}
       </div>
+      {/* Audit 11-21 (P21): with no reviews, "DECLUTTER · 6 sold" was a heading with nothing under it. The sold count is
+          the section's content then, in the same glass card the reviews use. */}
+      {all.length === 0 && (
+        <p className="rounded-2xl liquid-glass p-card text-ds-14 text-foreground" data-profile-sold="">
+          <span className="font-semibold">{soldCount} sold</span>
+          <span className="text-muted-foreground"> · No Declutter reviews yet</span>
+        </p>
+      )}
       {all.length > 0 && (
         <div className="space-y-4 rounded-2xl liquid-glass p-card">
           <ReviewGroup title="From buyers" reviews={all.filter((r) => r.reviewer_side === "buyer")} />

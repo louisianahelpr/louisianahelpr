@@ -4,6 +4,7 @@ import { hasInAppHistory } from "@/lib/inAppHistory";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Search, Send, Star } from "lucide-react";
 import AppPage from "@/components/AppPage";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -39,6 +40,10 @@ import { useLanguage } from "@/lib/i18n/language";
  * get_public_profile_stats the profile page reads, so the two never disagree.
  */
 const SKILL_CHIPS = JOB_CATEGORY_VALUES.filter((v) => v !== "other").map((v) => skillChipLabel(v));
+/** Audit 11-21 (S33): at 1440 all 25 skill chips wrapped to three rows. Desktop shows these first, then "More skills". */
+const SKILL_CHIPS_FIRST = 9;
+/** Audit 11-21 (S33): 30 cards (about 3600px) with no "more"; the list shows this many, then "Show more Helprs". */
+const HELPRS_PAGE = 12;
 
 async function fetchDirectory(skill: string, town: string): Promise<{ helprs: DirectoryHelpr[]; stats: Map<string, DirectoryStats>; notReady?: boolean }> {
   const res = await supabase.rpc("find_helprs", { p_skill: skill || undefined, p_town: town || undefined, p_limit: 30 });
@@ -57,11 +62,20 @@ export default function FindHelprs() {
   // The tab reads "Find a Helpr — Helpr": AppPage names it (F137, owner UI audit 11-09); a bare title here ran after
   // AppPage's and dropped the "— Helpr". Guard: src/test/pageTitlesEndInHelpr.test.ts.
   const navigate = useNavigate();
+  // Audit 11-21 (P14): the page had no description or canonical of its own (it kept the home page's).
+  usePageMeta({
+    title: "Find a Helpr — Helpr",
+    description: "Find a Louisiana Helpr by skill and town, see their reviews, and offer them a job at your price.",
+    canonical: "https://www.louisianahelpr.com/helprs",
+  });
   useLanguage(); // design audit areas 11-18 #1: re-render when the Spanish words arrive
   const [params, setParams] = useSearchParams();
   const skill = params.get("skill") ?? "";
   const town = params.get("town") ?? "";
   const [townDraft, setTownDraft] = useState(town);
+  const [allSkills, setAllSkills] = useState(false);
+  const [shownHelprs, setShownHelprs] = useState(HELPRS_PAGE);
+  useEffect(() => setShownHelprs(HELPRS_PAGE), [skill, town]);
   useEffect(() => setTownDraft(town), [town]);
   const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
 
@@ -86,7 +100,9 @@ export default function FindHelprs() {
 
   return (
     // L005 (landing audit 11-09): a cold-opened link had no in-app entry behind it, so back went to about:blank.
-    <AppPage title={w("pub.helprs.title", "Find a Helpr")} onBack={() => (hasInAppHistory() ? navigate(-1) : navigate("/", { replace: true }))}>
+    // Audit 11-21 (P23): mid-scroll the page collapsed to the title-only compact bar with no back arrow. The title row
+    // (back + title) stays pinned instead, as on the Declutter item page (AppPage stickyHeader).
+    <AppPage title={w("pub.helprs.title", "Find a Helpr")} stickyHeader onBack={() => (hasInAppHistory() ? navigate(-1) : navigate("/", { replace: true }))}>
       <div className="space-y-4 pb-6" data-testid="find-helprs">
         <p className="text-ds-14 text-muted-foreground">
           Find someone near you, then offer them your job at your price. If they pass, it opens to everyone.
@@ -106,15 +122,20 @@ export default function FindHelprs() {
 
         <div className="space-y-1.5">
           <p id="helpr-skill-label" className="text-ds-13 font-semibold text-foreground">{w("pub.helprs.skill", "Skill")}</p>
-          <div role="radiogroup" aria-labelledby="helpr-skill-label" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] lg:flex-wrap lg:overflow-visible">
-            {["", ...SKILL_CHIPS].map((label) => {
+          {/* Phone: one sideways row (as before). Desktop: the first chips and "More skills" (the picked one always shows). */}
+          <div role="radiogroup" aria-labelledby="helpr-skill-label" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] lg:flex-wrap lg:overflow-visible" data-helpr-skills="">
+            {["", ...SKILL_CHIPS].map((label, i) => {
               const on = (label || "") === skill;
+              const folded = !allSkills && i > SKILL_CHIPS_FIRST && !on;
               return (
-                <ChoicePill key={label || "any"} selected={on} onClick={() => setParam("skill", label)} className="shrink-0 whitespace-nowrap">
+                <ChoicePill key={label || "any"} selected={on} onClick={() => setParam("skill", label)} className={`shrink-0 whitespace-nowrap${folded ? " lg:hidden" : ""}`} data-skill-folded={folded ? "" : undefined}>
                   {label || w("pub.helprs.anySkill", "Any skill")}
                 </ChoicePill>
               );
             })}
+            <Button type="button" variant="ghost" size="sm" className="hidden lg:inline-flex shrink-0 font-semibold" onClick={() => setAllSkills((v) => !v)} aria-expanded={allSkills} data-more-skills="">
+              {allSkills ? w("pub.helprs.fewerSkills", "Fewer skills") : w("pub.helprs.moreSkills", "More skills")}
+            </Button>
           </div>
         </div>
 
@@ -130,7 +151,8 @@ export default function FindHelprs() {
             {rpcErrorMessage("find_helprs", q.error)}
           </p>
         ) : (
-          <ErrorState variant="inline" onRetry={() => { void q.refetch(); }} />
+          // Audit 11-21 (P16): it said the generic "We couldn't load this."; it names what did not load, as /browse does.
+          <ErrorState variant="inline" title={w("pub.helprs.loadFailed", "We couldn't load Helprs.")} body={w("pub.retryBody", "Try again. If it sticks, our end is having a hiccup, not yours.")} onRetry={() => { void q.refetch(); }} />
         ))}
         {q.data?.notReady && (
           <p className="text-ds-14 text-muted-foreground" data-testid="find-helprs-not-ready">
@@ -150,7 +172,7 @@ export default function FindHelprs() {
         )}
         {q.data && q.data.helprs.length > 0 && (
           <ul className="grid gap-3 lg:grid-cols-2" data-testid="find-helprs-list">
-            {q.data.helprs.map((h) => {
+            {q.data.helprs.slice(0, shownHelprs).map((h) => {
               const f = directoryCardFacts(h, q.data.stats.get(h.user_id));
               return (
                 <li key={h.user_id} className="rounded-2xl border border-border/60 bg-card p-4 shadow-[var(--card-shadow)]" data-testid="find-helprs-card">
@@ -192,10 +214,9 @@ export default function FindHelprs() {
                       )}
                     </div>
                   </div>
+                  {/* Audit 11-21 (S33): two buttons a card (60 on the page). The photo and the name already open the
+                      profile, so the card keeps its one action. */}
                   <div className="mt-3 flex gap-2">
-                    <Button asChild variant="outline" size="sm" className="flex-1">
-                      <Link to={memberProfilePath(h.user_id)}>{w("pub.helprs.viewProfile", "View profile")}</Link>
-                    </Button>
                     <Button
                       variant="primary"
                       size="sm"
@@ -211,6 +232,13 @@ export default function FindHelprs() {
               );
             })}
           </ul>
+        )}
+        {q.data && q.data.helprs.length > shownHelprs && (
+          <div className="flex justify-center">
+            <Button type="button" variant="outline" onClick={() => setShownHelprs((n) => n + HELPRS_PAGE)} data-more-helprs="">
+              {w("pub.helprs.showMore", "Show more Helprs")}
+            </Button>
+          </div>
         )}
       </div>
     </AppPage>

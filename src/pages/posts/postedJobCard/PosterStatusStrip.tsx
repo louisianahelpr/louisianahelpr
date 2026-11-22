@@ -8,6 +8,8 @@ import { jobNextStep } from "@/components/tracker/jobNextStep";
 import type { JobProgressState } from "@/components/tracker/jobProgressState";
 import { NextStep } from "@/components/ui/NextStep";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
+import "@/lib/i18n/enJobLines";
+import { t } from "@/lib/i18n/language";
 
 /** Lines that carry the offer's LIVE accept clock (DeadlineCountdown): they keep the strip (A3-15). */
 const LIVE_ACCEPT_CLOCK: ReadonlySet<string> = new Set(["offer_out", "unconfirmed"]);
@@ -15,7 +17,9 @@ const LIVE_ACCEPT_CLOCK: ReadonlySet<string> = new Set(["offer_out", "unconfirme
 /** The card's review window in the line: "23h 49m left" (the job page's line adds who steps in after). */
 function approveLeftShort(deadlineMs: number, now = Date.now()): string {
   const mins = Math.floor((deadlineMs - now) / 60_000);
-  if (mins <= 0) return "time's up, Helpr support steps in";
+  // Audit 11-21 (G6): past the window the job page says "You can still approve. Helpr support will check in" (F273,
+  // reviewTimeLeft); the card said "time's up, Helpr support steps in", as if it were too late. The same fact now.
+  if (mins <= 0) return t("jl.approveLateShort");
   return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m left` : `${mins}m left`;
 }
 

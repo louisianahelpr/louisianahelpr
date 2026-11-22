@@ -18,7 +18,22 @@ export function GuestSectionSwitch({ at, className = "" }: { at: GuestSection; c
   // Guest Declutter is only drawn while Declutter is open to everyone (DeclutterGate), so it asks nothing.
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { open } = useSectionsOpen(at !== "declutter");
+  const { open, settled } = useSectionsOpen(at !== "declutter");
+  // Jobs audit 11-21 (P10): while the answer is out the row is held (the same chip row, invisible), so a guest's
+  // /browse does not drop by a row when it comes back open, as it does today. A settled "not open" draws nothing.
+  if (at !== "declutter" && !settled) {
+    return (
+      <div className={`${className} invisible`} aria-hidden data-guest-section-switch-pending="">
+        <FilterChips<GuestSection>
+          chips={[{ value: "jobs", label: t("nav.jobs") }, { value: "declutter", label: t("nav.declutter") }]}
+          value={at}
+          onChange={() => {}}
+          label={t("nav.sections")}
+          chipAttr="data-guest-section-pending"
+        />
+      </div>
+    );
+  }
   if (at !== "declutter" && !open?.has("declutter")) return null;
   return (
     <div className={className} data-guest-section-switch="">

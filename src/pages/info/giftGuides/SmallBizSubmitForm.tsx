@@ -29,6 +29,9 @@ const FORM_CSS = `
 .gg-sbs-form .gg-sbs-l{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:700;color:var(--gg-ink);min-width:0}
 .gg-sbs-hint{font-size:12px;font-weight:500;color:var(--gg-muted)}
 .gg-sbs-err{font-size:13px;font-weight:600;color:hsl(var(--destructive-ink))}
+.gg-sbs-cta p.gg-sbs-err{color:hsl(var(--destructive-ink));margin:0}
+.gg-sbs-form [aria-invalid="true"]{border-color:hsl(var(--destructive-ink));box-shadow:0 0 0 1px hsl(var(--destructive-ink))}
+.gg-sbs-logo-row button{flex:none;white-space:nowrap}
 .gg-sbs-check{display:flex;align-items:flex-start;gap:10px;min-height:44px;font-size:14px;font-weight:600;color:var(--gg-ink)}
 .gg-sbs-check button{margin-top:2px}
 .gg-sbs-logo-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:13px;color:var(--gg-muted);min-width:0}
@@ -126,7 +129,7 @@ export function SmallBizSubmitForm({ onClose }: { onClose: () => void }) {
       <style>{FORM_CSS}</style>
       <label className="gg-sbs-l">
         {W.fields.businessName}
-        <Input value={f.businessName} maxLength={SBS_LIMITS.name} autoComplete="organization" onChange={(e) => set("businessName", e.target.value)} {...aria("businessName")} />
+        <Input value={f.businessName} maxLength={SBS_LIMITS.name} autoComplete="organization" autoCapitalize="words" onChange={(e) => set("businessName", e.target.value)} {...aria("businessName")} />
         {err("businessName")}
       </label>
       <label className="gg-sbs-l">
@@ -147,7 +150,7 @@ export function SmallBizSubmitForm({ onClose }: { onClose: () => void }) {
       <label className="gg-sbs-l">
         {W.fields.link}
         <span className="gg-sbs-hint">{W.fields.linkHint}</span>
-        <Input value={f.link} type="url" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={SBS_LIMITS.url} placeholder="https://" onChange={(e) => set("link", e.target.value)} {...aria("link")} />
+        <Input value={f.link} type="url" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={SBS_LIMITS.url} placeholder={W.fields.linkPlaceholder} onChange={(e) => set("link", e.target.value)} {...aria("link")} />
         {err("link")}
       </label>
       <label className="gg-sbs-l">

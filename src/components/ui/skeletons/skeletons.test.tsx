@@ -23,7 +23,7 @@ import type { ReactElement } from "react";
 import { JobCardSkeleton, RecommendedJobCardSkeleton } from "./JobCardSkeleton";
 import { ApplicationCardSkeleton, PostedListBones, WorkingListBones } from "./ApplicationCardSkeleton";
 import { MessageThreadSkeleton } from "./MessageThreadSkeleton";
-import { JOB_CARD_FRAME } from "@/components/job/cardGeometry";
+import { JOB_CARD_FRAME, JOB_CARD_ROW_FRAME } from "@/components/job/cardGeometry";
 import { JOB_CARD_SHELL_FRAME } from "@/components/job-card/JobCardShell";
 import { CONVERSATION_ROW_FRAME } from "@/components/messages/ConversationRow";
 
@@ -31,7 +31,7 @@ const cases = [
   {
     name: "JobCardSkeleton",
     el: <JobCardSkeleton />,
-    frame: JOB_CARD_FRAME,
+    frame: JOB_CARD_ROW_FRAME,
     source: "JobCard (cardGeometry)",
     minBones: 5,
   },
@@ -88,7 +88,8 @@ describe("card-matching skeletons", () => {
     // Not a second hand-drawn card: it composes JobCardSkeleton, so the two
     // cannot disagree about the box the way the old pair did.
     const { container } = render(<RecommendedJobCardSkeleton />);
-    const inner = container.querySelector(`[class="${JOB_CARD_FRAME.trim()}"]`);
+    // Jobs audit 11-21 (P10): the card's ROW frame, the form every feed card takes.
+    const inner = container.querySelector(`[class="${JOB_CARD_ROW_FRAME.trim()}"]`);
     expect(inner, "recommended skeleton must reuse JobCardSkeleton's frame").not.toBeNull();
   });
 
@@ -134,7 +135,7 @@ describe("card-matching skeletons", () => {
 // The whole thesis of these components: the skeleton IMPORTS the card's frame
 // instead of re-drawing it. A hand-written approximation is the owner's
 // "loading states jump" defect, and it used to be invisible here.
-// @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | <div className={JOB_CARD_FRAME} aria-hidden> | <div className="relative rounded-2xl overflow-hidden" aria-hidden>
+// @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | <div data-feed-row-skeleton="" className={JOB_CARD_ROW_FRAME} aria-hidden> | <div data-feed-row-skeleton="" className="relative rounded-2xl overflow-hidden" aria-hidden>
 // Same contract on the inbox row, whose bones were once a raised glass CARD
 // at a 76px pitch standing in for a flat 64px strip.
 // @mutate src/components/ui/skeletons/MessageThreadSkeleton.tsx | <div className={CONVERSATION_ROW_FRAME} aria-hidden> | <div className="p-3 rounded-ds-md liquid-glass" aria-hidden>

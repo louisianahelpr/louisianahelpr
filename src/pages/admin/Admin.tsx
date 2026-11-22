@@ -48,8 +48,9 @@ const AdminShopsOrders = lazy(() => import("@/components/admin/AdminShopsOrders"
 // Design audit area 10 #2/#3 (11-18): the Declutter queue view, and one list of the four stage previews.
 const AdminDeclutter = lazy(() => import("@/components/admin/AdminDeclutter"));
 const AdminStagePreviews = lazy(() => import("@/components/admin/AdminStagePreviews"));
+const AdminWishLinks = lazy(() => import("@/components/admin/AdminWishLinks"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled" | "shops" | "growth" | "declutter" | "previews" | "sponsors";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled" | "shops" | "growth" | "declutter" | "previews" | "sponsors" | "wishlinks";
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -90,6 +91,7 @@ const VIEW_LABELS: Record<View, string> = {
     declutter: "Declutter",
     previews: "Stage previews",
     sponsors: "25 Days",
+    wishlinks: "Wish list links",
   };
 
 const Admin = () => {
@@ -534,6 +536,7 @@ const Admin = () => {
       case "social": return <AdminSocialPosts />;
       case "declutter": return <AdminDeclutter />;
       case "previews": return <AdminStagePreviews />;
+      case "wishlinks": return <AdminWishLinks />;
       // Design audit area 10 #3: "25 Days" is a rail / ⌘K row like the rest; its screen is its own route.
       case "sponsors": return <Navigate to="/admin/sponsors" replace />;
       default: return (

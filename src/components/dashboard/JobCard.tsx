@@ -27,8 +27,7 @@ import {
   JOB_CARD_BODY,
   JOB_CARD_CLIP,
   JOB_CARD_META,
-  JOB_CARD_TITLE_ROW,
-} from "@/components/job/cardGeometry";
+  JOB_CARD_TITLE_ROW, JOB_CARD_ROW_FRAME } from "@/components/job/cardGeometry";
 import type { JobCardProps } from "./jobCardProps";
 import { jobDayLabel } from "@/lib/jobDateWindow";
 
@@ -209,13 +208,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         bare
           ? "group relative h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           : row
-          ? "group relative h-full cursor-pointer border-b border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          ? JOB_CARD_ROW_FRAME
           : "group relative h-full rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       }
       {...interactiveProps}
     >
       {/* The card's words are its name (no aria-label, WCAG 2.5.3); this says what a tap does. */}
-      {!isGuest && <span className="sr-only">View </span>}
+      <span className="sr-only">View </span>
       {/* Clipped inner surface — rounds the rail, body, and guest CTA to
           the card shape. The category tab + rail both live inside this clip
           so they share the card's rounded top-left corner and read as one

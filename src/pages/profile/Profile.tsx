@@ -41,6 +41,7 @@ import { PAGE_COLUMN } from "@/lib/pageColumn";
 import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { queryKeys } from "@/lib/queryKeys";
 import { joinName } from "@/lib/splitName";
+import { avatarInitials } from "@/lib/avatarImage";
 // speed7 (11-15): out of the first download; its Radix dialog stack (~13 KB gz) competed with the landing's chunks.
 const LogOutConfirmDialog = lazy(() => import("@/components/auth/SignOutConfirmDialog").then(m => ({ default: m.LogOutConfirmDialog })));
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
@@ -344,13 +345,8 @@ const ProfilePage = () => {
   }
 
   const displayName = profile?.full_name?.trim() || (user?.email ? user.email.split("@")[0] : "");
-  const initials = (profile?.full_name?.trim() || user?.email || "?")
-    .split(/[\s@.]/)
-    .filter(Boolean)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  // Audit 11-21 (P20): one rule for initials (avatarInitials: first and last word), so a member is "EH" on every screen.
+  const initials = avatarInitials(profile?.full_name?.trim() || displayName);
   // Take-home math (budget − per-job platform fee + net urgent bonus, divided
   // across a group job's roster, mirroring the release-payout edge function)
   // lives in `helperEarnings.ts` so this page, /wrapped, /work-record and the

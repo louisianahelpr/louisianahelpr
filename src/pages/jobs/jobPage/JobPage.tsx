@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
-import { ShareJobButton } from "@/components/jobs/ShareJobButton";
+import { JobHeaderShare, MenuShareProvider, useJobMenuShare } from "./menuShare";
 import { ScopeVideo } from "@/components/jobs/ScopeVideo";
 import { safeScopeVideoUrl } from "@/lib/scopeVideo";
 import { DeclutterGallery } from "@/components/declutter/DeclutterGallery";
@@ -33,7 +33,9 @@ import { OnTheWayNow, showsNow } from "./OnTheWayNow";
 import { JobPageActionRow, type RowAction } from "./JobPageActionRow";
 import { ReportJobControl } from "./ReportJobControl";
 import { useExpiredRepost } from "./ExpiredRepost";
-import { StickyActionBar, StickyActionSpacer } from "@/components/ui/StickyActionBar";
+import { StickyActionSpacer } from "@/components/ui/StickyActionBar";
+import { ViewerPrimaryBar, type ViewerPrimary } from "./ViewerPrimaryBar";
+import { useMemberCard } from "./useMemberCard";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { approveDeadlineMs, reviewTimeLeft } from "./reviewTimeLeft";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
@@ -45,7 +47,6 @@ import { jobPageViewerState } from "./viewerState";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { lazy, Suspense, useState } from "react";
-import { fetchSellerCard } from "@/lib/declutter/api";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { HIDE_WHEN_BLANK } from "./blankCard";
 import { posterStatusLine } from "@/components/job-card/jobStatusLine";
@@ -89,6 +90,8 @@ const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ 
 const PageOfferPanel = lazy(() => import("@/components/job-card/JobListPage").then((m) => ({ default: m.PageOfferPanel })));
 
 const CARD = "rounded-2xl border border-border bg-card";
+/** The poster waits on a Helpr who never checked in (posterStatusLine): no-show leads, release only warns (G15). */
+const NO_ARRIVAL_WAITS: ReadonlySet<string> = new Set(["overdue_no_show", "started_no_checkin"]);
 // Area 11 H2: no visible child (the phone bar portals out, step controls are hidden), no card.
 /** The hired Helpr's done step (helperFaceAction.ts, key "done"). */
 const DONE_FACE_LABEL = "Mark it done"; // helperFaceAction's done label (JA-56)
@@ -115,8 +118,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const trackingStatus = tracking.data ?? null;
   // The poster's "First L." (the same card PostedBy draws, so the read is shared), for "Waiting on Lexi".
   const posterId = q.data?.job.customer_id ?? null;
-  const posterCard = useQuery({ queryKey: ["declutter", "seller-card", posterId], queryFn: () => fetchSellerCard(posterId!), enabled: !!posterId && !isPoster });
-  const posterFirst = (posterCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  const { card: posterCard, first: posterFirst } = useMemberCard(posterId, !isPoster);
   // The hired Helpr's first name, off the card the poster's Message button reads (posterPageActions), so the tracker
   // names who the page names: "Eli is working" (B49, 10-31). JA-49 (B107): a direct offer out names the OFFERED Helpr
   // (no helper_id yet; offered_to_helper_id is not selectable, so the poster reads get_job_offer_targets, as Messages does).
@@ -127,16 +129,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     enabled: !!offerPending,
   });
   const helperId = isPoster ? q.data?.job.helper_id ?? (offerPending ? offerTarget.data ?? null : null) : null;
-  const helperCard = useQuery({ queryKey: ["declutter", "seller-card", helperId], queryFn: () => fetchSellerCard(helperId!), enabled: !!helperId });
-  const helperFirst = (helperCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  const { card: helperCard, first: helperFirst } = useMemberCard(helperId);
   // Q2693: the Helpr who cancelled (their closed application), named as the page names people ("Eli cancelled ...").
   const cancelledHelprId = isPoster && q.data?.job.status === "open" ? applicants.data?.helprCancelled?.helperId ?? null : null;
-  const cancelledHelprCard = useQuery({ queryKey: ["declutter", "seller-card", cancelledHelprId], queryFn: () => fetchSellerCard(cancelledHelprId!), enabled: !!cancelledHelprId });
-  const cancelledHelprFirst = (cancelledHelprCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  const cancelledHelprFirst = useMemberCard(cancelledHelprId).first;
   // Area 11 H3: a job cancelled after a no-show names who didn't show (report_helper_no_show clears helper_id).
   const noShowHelprId = isPoster && q.data?.job.status === "cancelled" && !q.data?.job.helper_id ? applicants.data?.noShowHelperId ?? null : null;
-  const noShowHelprCard = useQuery({ queryKey: ["declutter", "seller-card", noShowHelprId], queryFn: () => fetchSellerCard(noShowHelprId!), enabled: !!noShowHelprId });
-  const noShowHelprFirst = (noShowHelprCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  const noShowHelprFirst = useMemberCard(noShowHelprId).first;
   // The poster's Instant Release (the card's own read, PostedJobActions): the work is approved for them, so no clock.
   const { profile: ownProfile } = useCurrentUser();
   const instantRelease = !!(ownProfile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
@@ -149,6 +148,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const [caseOpen, setCaseOpen] = useState(false);
   // The top bar's "..." slot (owner pick 11-08, JP2): the action bar's menu button is drawn into it.
   const [menuHost, setMenuHost] = useState<HTMLElement | null>(null);
+  const menuShare = useJobMenuShare(q.data?.job); // L23: share is a line in that menu when there is one (menuShare.tsx)
   const seriesState = useJobSeriesState(isPoster ? null : q.data?.job);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
@@ -183,7 +183,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     onChanged: () => void q.refetch(),
   });
   // Owner 11-10: past its day with no done from the Helpr, the poster marks it done and releases (usePosterFinish).
-  const posterFinish = usePosterFinish({ job: q.data?.job, enabled: isPoster, day: continueDay.row, helperFirst, flows: posterFlows, refundOpen });
+  // Audit 11-21 (G15): releasing is still in More options when the Helpr never checked in (Area 03 H1 moved it off the
+  // main button); the confirm now warns first, naming the no-show report instead.
+  const finishBeforeArrival = isPoster && !!q.data && !q.data.job.is_group_job
+    && NO_ARRIVAL_WAITS.has(posterStatusLine(q.data.job as unknown as Job, applicants.data?.pending ?? 0).id);
+  const posterFinish = usePosterFinish({ job: q.data?.job, enabled: isPoster, day: continueDay.row, helperFirst, flows: posterFlows, refundOpen, notArrived: finishBeforeArrival });
 
   if (q.isPending) {
     return (
@@ -257,11 +261,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // "Report no-show" in the sticky main button, never "Mark done and release" (that paid the no-show Helpr in one
   // tap); the release moves into the "..." menu below. The report is the card's own NoShowDialog (posterFlows.noShow).
   // Guard: src/test/area03JobsPoster.test.tsx.
-  const noShowLead = !job.is_group_job && (posterWait === "overdue_no_show" || posterWait === "started_no_checkin");
+  const noShowLead = !job.is_group_job && NO_ARRIVAL_WAITS.has(posterWait ?? "");
   const posterStep = posterWait === "confirm_arrival"
     ? { label: arrival.confirming ? t("jp.confirming") : t("jp.confirmArrived"), go: () => void arrival.confirm(), disabled: arrival.confirming }
     : noShowLead
-    ? { label: t("jp.reportNoShow"), go: posterFlows.noShow, disabled: !posterFlows.ready }
+    ? { label: t("jp.reportNoShow"), go: posterFlows.noShow, disabled: !posterFlows.ready, plain: true }
     : jobIsUnfundedDraft(job)
     // JOBS-9: an unpaid job is on no list (owner 2026-09-27), so Manage job opened a list without it. Area 03 H2: it says
     // what it does, "Pay to post" (the copy, paid at its own checkout; owner 2026-09-27: no "finish paying" on a server
@@ -327,7 +331,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     <Button variant="primary" size="lg" className="w-full rounded-full text-ds-16" onClick={() => navigate(highlight)}>See the offer</Button>
   );
   // Everyone else's one button: Apply, View application, Open in working.
-  const primary = isPoster || hiredFace
+  const primary: ViewerPrimary | null = isPoster || hiredFace
     ? null
       // CMP-4: an instant booking is answered on its card below, never "See the offer" (or Apply after a decline).
     : instantUntil
@@ -346,14 +350,6 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               ? { label: "Browse jobs", go: () => navigate("/browse") }
               : null;
 
-  const share = open && !jobIsUnfundedDraft(job) ? (
-    <ShareJobButton
-      variant="icon"
-      bare
-      job={{ id: job.id, title: job.title, budget: job.budget, helper_fee_flat_cents: job.helper_fee_flat_cents, helper_fee_percent: job.helper_fee_percent, category: job.category, city: job.location ? getCity(job.location) : undefined }}
-    />
-  ) : null;
-
   // JA-48 / JA-49: an offer or a booking out to one Helpr; the page waits on them, never on "more applicants".
   // Q2604: a Hire's offer (accepted, not confirmed) is out too, and says until when (response_deadline).
   const offerOut = isPoster && offerIsOut(job);
@@ -364,6 +360,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // Q2693 (audit 1102e row 2): the hired Helpr cancelled and the job went back up: the poster's line says who and when.
   const cancelledRow = isPoster && open && !job.helper_id ? applicants.data?.helprCancelled ?? null : null;
   const helprCancelled = cancelledRow ? { name: cancelledHelprFirst, at: cancelledRow.at } : null;
+  // Board 57: the poster's open, paid job nobody has applied to yet (never while an offer or booking is out, JA-48/49).
+  // S38 (audit 11-21): its card is the page's one status card (no "Waiting for Helprs to apply" card above it; a no-show
+  // or a Helpr's cancel keeps the steps card, which says so), and its Copy link is the page's one share (L23).
+  const noApplicantsCard = isPoster && open && !offerOut && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0;
+  const cardIsStatus = noApplicantsCard && !noShowAt && !helprCancelled;
+  const canShare = open && !jobIsUnfundedDraft(job);
+  const share = canShare && !menuShare.inMenu && !noApplicantsCard ? <JobHeaderShare job={job} /> : null;
   // The review window, IN the next-step line (owner 11-01: "Next: approve Yusef's work · 23h 52m left, then Helpr
   // support steps in"); nothing releases on a timer (owner 2026-10-23), so the words say who steps in.
   // F274: a sent fix is timed by revision_acceptance_deadline, a fix not sent yet has no clock (approveDeadlineMs).
@@ -391,15 +394,16 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
    * Guard: src/test/jobPageLayoutV2.test.tsx.
    */
   return (
+    <MenuShareProvider value={canShare ? menuShare.ctx : null}>
     <AppPage
       title={job.title}
       backTo={isPoster ? "/posts" : "/jobs"}
       titleActions={<>{share}{!isPoster && <ReportJobControl jobId={job.id} posterId={job.customer_id ?? null} posterFirst={posterFirst} />}<span ref={setMenuHost} data-job-menu-host="" className="contents" /></>}
     >
       <div data-job-page="" data-layout="v2" className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-6 lg:gap-y-5">
-        {/* F274a (audit 11-10): at 1440 the facts rows ran the full page width ("When" ~1,100px from its value). The head
-            keeps to the left column's width (the grid's 7fr of 7fr+5fr, less the 1.5rem gap); the price stays in its row. */}
-        <section aria-label={t("jobPage.summary")} data-job-head="" className="space-y-2 lg:col-span-2 lg:max-w-[calc((100%_-_1.5rem)*7/12)]">
+        {/* Audit 11-21 (G14): two real columns from 1024 up, head / Details / tracker / main LEFT, the side card RIGHT from
+            the top (sticky); the capped head beside an empty half is gone. Guard: jobPageHeadKeepsLeftColumn.test.ts. */}
+        <section aria-label={t("jobPage.summary")} data-job-head="" className="space-y-2 lg:col-start-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
               {/* Owner 11-01: the category on its own line (semibold primary); the day, time and place are the facts
@@ -426,7 +430,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         </section>
 
         {(posterDetails || hasVideo) && (
-          <div data-job-details="" className="space-y-4 lg:col-span-2">
+          <div data-job-details="" className="space-y-4 lg:col-start-1">
             {/* The poster's scope video (A2-B6), for the poster and the Helpr alike; nothing when there is none. */}
             {hasVideo && <ScopeVideo url={job.scope_video_url} />}
             {posterDetails && (
@@ -447,22 +451,27 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           </div>
         )}
 
-        <section aria-label={t("jobPage.where")} data-job-steps="" className={`${CARD} space-y-4 p-4 empty:hidden lg:col-span-2 lg:p-5`}>
+        {!cardIsStatus && (
+        <section aria-label={t("jobPage.where")} data-job-steps="" className={`${CARD} space-y-4 p-4 empty:hidden lg:col-start-1 lg:p-5`}>
           {/* Owner 2026-11-01: "Yusef is on the way · since 8:51 AM" and where he is, ABOVE the tracker. */}
           {/* A continue day replaces the first day's "arrived" line: the next visit is what matters now. */}
-          {isPoster && !continueDay.row && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
+          {/* G6: no "on the way since Mon, Nov 9" over a no-show; the next line is the card's sentence (continueStep). */}
+          {isPoster && !continueDay.row && !noShowLead && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
           <JobTracker job={dayJob} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
-            hideNext={refundOpen || (isPoster && !continueDay.row && showsNow(job, trackingStatus))}
+            hideNext={refundOpen || (isPoster && !continueDay.row && !noShowLead && showsNow(job, trackingStatus)) || (isPoster && open && applicants.isError)}
             otherFirst={isPoster ? helperFirst ?? noShowHelprFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
             offerOut={offerOut} offerUntil={offerUntil} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft} helprCancelled={helprCancelled}
             crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined}
-            continueStep={continueDay.step ?? (isPoster && job.is_group_job ? crewPosterStep(posterFlows.crewRoster, posterFlows.crewNames ?? {}, job)
+            continueStep={continueDay.step ?? (isPoster && noShowLead ? { who: "you", text: posterStatusLine(job as unknown as Job, pending, undefined, undefined, false, helperFirst).detail }
+              : isPoster && job.is_group_job ? crewPosterStep(posterFlows.crewRoster, posterFlows.crewNames ?? {}, job)
               : !isPoster && onCrew ? crewMemberLine(crewSlot.data, job.status, posterFirst) : null)} />
           {/* JA-34 (audit 11-01): the card's own clock ("28m until the job starts"), so the page knows what its card knows. */}
           {(isPoster || isHired) && job.status === "accepted" && <CountdownRows variant="bare" clocks={collapsedClocks({ ...job, status: job.status }, isPoster)} />}
           {repost.inline}
         </section>
+        )}
+        {noApplicantsCard && <NoApplicantsYet job={job} />}
 
         <div data-job-main="" className="flex min-w-0 flex-col gap-4 empty:hidden lg:col-start-1">
           {(isPoster || isHired) && <RevisionAsk job={job} side={isPoster ? "poster" : "helpr"} posterFirst={posterFirst} />}
@@ -492,17 +501,19 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             leaveInMenu={leaveInMenu} leaveOpen={leaveOpen} onLeaveOpenChange={setLeaveOpen} />}
           {/* CMP-4: the poster's top 3 with Book now, or who is booked and until when. Nothing when nobody qualifies. */}
           {instantBookOn && isPoster && !job.is_group_job && job.status === "open" && <InstantBookPanel jobId={job.id} />}
-          {/* Board 57: the poster's open, paid job that nobody has applied to yet; never while an offer or booking is
-              out (JA-48 / JA-49: "Copy link" and "Edit job" beside a booked Helpr). */}
-          {isPoster && open && !offerOut && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0 && (
-            <NoApplicantsYet job={job} />
+          {/* Audit 11-21 (G5): the applicants read failed and the page showed "Pick your Helpr" with no list, no error
+              and no retry, so the poster could not tell whether anyone applied. Say so, with Try again; the tracker's
+              next step waits for the count (hideNext above). */}
+          {isPoster && open && applicants.isError && (
+            <div data-applicants-error="">
+              <ErrorState variant="inline" title="We couldn't load your applicants" body={t("jobPage.checkConnection")} onRetry={() => void applicants.refetch()} />
+            </div>
           )}
         </div>
 
-        {/* Lead 11-01 (B107): a stage with nothing in the main column (no photos, crew or fix: Done, Cancelled) left an
-            EMPTY left column beside the card at 1440. The card (and the Guarantee under it) then sits right under the
-            tracker at full content width, from 1024 up. */}
-        <aside aria-label={t("jobPage.side")} data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1 lg:[[data-job-main]:empty+&]:col-span-2">
+        {/* G14: column 2 from row 1 (row-span-4: head, Details, steps, main). Sticky top-2: the scroll area starts under the
+            top bar, so top-24 set the card 88px below the head (166 vs 78 at 1440). */}
+        <aside aria-label={t("jobPage.side")} data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-2 lg:col-start-2 lg:row-start-1 lg:row-span-4 lg:self-start">
           <section data-job-card="" className={`${CARD} space-y-4 p-4 ${HIDE_WHEN_BLANK} lg:p-5`}>
             {/* CMP-4: the booked Helpr's card, the same one the Working offer card shows (InstantBookingCard). */}
             {!isPoster && instantUntil && <InstantBookingCard jobId={job.id} title={job.title} declineUntil={instantUntil} sticky />}
@@ -541,20 +552,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {continueDay.sheet}{continueDay.missedSheet}{posterFinish.sheet}
             {isPoster && posterActions.panel}
             {hiredRow}
-            {primary && (
-              // The one button (Apply, View application, Open in Jobs, Browse jobs) in the same sticky bar (JP2).
-              <StickyActionBar label="Job actions" data-job-bar="viewer" spacer={false}>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  className="w-full rounded-full text-ds-16"
-                  onClick={primary.go}
-                  {...("gated" in primary ? primary.gated : {})}
-                >
-                  {primary.label}
-                </Button>
-              </StickyActionBar>
-            )}
+            {/* The one button (Apply, View application, Open in Jobs, Browse jobs) in the same sticky bar (JP2). */}
+            {primary && <ViewerPrimaryBar primary={primary} />}
             {!isPoster && !hiredFace && !instantUntil && viewer.action.kind === "see_offer" && (
               <Suspense fallback={seeOffer}>
                 <PageOfferPanel jobId={job.id} onChanged={refetchPage} fallback={seeOffer} />
@@ -592,5 +591,6 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       )}
       {posterActions.dialogs}
     </AppPage>
+    </MenuShareProvider>
   );
 }

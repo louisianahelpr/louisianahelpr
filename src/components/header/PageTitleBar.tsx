@@ -50,6 +50,23 @@ function useIsFirstTitleBar(id: string): boolean {
   );
 }
 
+/*
+ * Jobs audit 11-21 (L24): with a screen open on top (Applicants over Jobs), the page underneath still painted its
+ * title as an h1 in the desktop bar, so the screen read two h1s ("Jobs", "Applicants"). The page's title keeps its
+ * place and look in the bar (owner 10-28: "applicants and back arrow go under jobs") as a plain line, and the screen
+ * on top holds the one h1. Guard: src/components/header/pageTitleBarNested.test.tsx.
+ */
+function useIsCovered(id: string): boolean {
+  return useSyncExternalStore(
+    (l) => {
+      stackListeners.add(l);
+      return () => stackListeners.delete(l);
+    },
+    () => mounted.length > 1 && mounted[0] === id,
+    () => false,
+  );
+}
+
 export interface PageTitleBarProps {
   /** The page title, the one `h1`. */
   title: ReactNode;
@@ -90,7 +107,7 @@ function DesktopRow({ title, back, actions, moment, titleHidden, titleTag = "h1"
         </div>
       )}
       {titleTag === "p" ? (
-        <p className="text-page-title leading-tight min-w-0 truncate text-foreground">{title}</p>
+        <p className={`${titleHidden ? "sr-only " : ""}${moment ? "font-moment " : ""}text-page-title leading-tight min-w-0 truncate text-foreground`}>{title}</p>
       ) : (
         <h1 className={`${moment ? "font-moment " : ""}text-page-title leading-tight min-w-0 truncate text-foreground${titleHidden ? " sr-only" : ""}`}>{title}</h1>
       )}
@@ -109,7 +126,9 @@ export function useHeaderInDesktopBar(): boolean {
 export function PageTitleBar({ title, back, actions, phone, desktopGap = true, moment = false, titleHidden = false, titleTag = "h1" }: PageTitleBarProps) {
   const isWebDesktop = useIsWebDesktop();
   const target = useDesktopTitleSlot();
-  const first = useIsFirstTitleBar(useId());
+  const id = useId();
+  const first = useIsFirstTitleBar(id);
+  const covered = useIsCovered(id);
   if (isWebDesktop && target && !first) {
     // A screen on top of a page: its own row, under the bar, inside the screen.
     return (
@@ -121,7 +140,7 @@ export function PageTitleBar({ title, back, actions, phone, desktopGap = true, m
   if (isWebDesktop && target) {
     return (
       <>
-        {createPortal(<DesktopRow title={title} back={back} actions={actions} moment={moment} titleHidden={titleHidden} titleTag={titleTag} />, target)}
+        {createPortal(<DesktopRow title={title} back={back} actions={actions} moment={moment} titleHidden={titleHidden} titleTag={covered ? "p" : titleTag} />, target)}
         {/* The ONE gap between the bar and a page's first content, every page: 8px under the 70px bar, so a
             section's tabs row is level with the rail's Create (src/lib/desktopBar.ts). */}
         {desktopGap && <div aria-hidden className="h-2 shrink-0" data-page-title-gap="" />}

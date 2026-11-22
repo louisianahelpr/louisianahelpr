@@ -86,7 +86,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/gift-guides",  // Owner 2026-11-16: the Holiday Gift Guides
   "/holidays",     // Owner-approved 2026-11-20: the Louisiana Holiday Hub (and its three pages, prefix match)
   "/shop-small",   // Owner 2026-11-21: Louisiana small businesses, listed free (and their sign-up form)
-  // 25 Days of Louisiana Giveaways (owner 2026-11-09): the public sponsor page and /25days/rules, document scroll.
+  // 25 Days of Louisiana Giveaways (owner 2026-11-09): the public sponsor page and /25days, document scroll.
   "/sponsor",
   "/25days",
   // /browse — the guest browse feed. Web-only entry: it renders through

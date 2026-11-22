@@ -52,10 +52,12 @@ describe("gift guides r3 UX Lows", () => {
 
   // Follow-up 1120 (owner 11-20 ~1:10 AM): Girls, Boys and Gender-Neutral are sections of ONE Kids guide, so the For kids
   // row is the Kids tile alone (no hub tiles left to caption).
-  it("#10: the For kids row shows the one Kids tile; Girls, Boys and Gender-neutral have no tiles of their own", () => {
+  // Holiday audit 1121 #14: the group pages are gone (an old ?group=for-kids link opens the landing), so the landing's
+  // tiles are where a kids tile shows.
+  it("#10: the one Kids tile; Girls, Boys and Gender-neutral have no tiles of their own", () => {
     const { container } = renderAt("/gift-guides?group=for-kids");
-    const row = container.querySelector("[data-gift-row='for-kids']")!;
-    expect([...row.querySelectorAll("[data-gift-tile]")].map((t) => t.getAttribute("data-gift-tile"))).toEqual(["kids"]); // owner 11-21: Teens is retired, Kids is the one live kids guide
+    const row = container.querySelector("[data-gift-live-guides]")!;
+    expect([...row.querySelectorAll("[data-gift-tile]")].map((t) => t.getAttribute("data-gift-tile")).filter((s) => s === "kids" || s === "teens")).toEqual(["kids"]); // owner 11-21: Teens is retired, Kids is the one live kids guide
     for (const slug of ["girls", "boys", "gender-neutral"]) expect(row.querySelector(`[data-gift-tile='${slug}']`), slug).toBeNull();
   });
 

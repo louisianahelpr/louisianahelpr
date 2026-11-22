@@ -2,8 +2,8 @@ import { useFeature } from "@/hooks/useFeature";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
 import { guestPostSignupUrl, wantsDraftResume } from "@/lib/guestPostDraft";
-import { asksTaxKind } from "@/lib/salesTax";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { taxKindFor } from "@/lib/salesTax";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useDeclutterIntent } from "./useDeclutterIntent";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { safeStorage } from "@/lib/safeStorage";
@@ -42,7 +42,8 @@ export type { Step } from "./postJobFormTypes";
 export function usePostJobForm() {
   const navigate = useNavigate();
   const { profile, user, isLoading: authLoading } = useCurrentUser();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const { draft, hasDraft, draftLoaded, saveDraft: saveAnyDraft, flushDraft: flushAnyDraft } = useDraftJob();
   // A Declutter haul-away or "Add a Helpr" job is never saved as a draft: a
   // draft cannot carry its items or its order, so a job posted again from it
@@ -131,7 +132,8 @@ export function usePostJobForm() {
      builder drops one too: buildJobInsertPayload). null = neither / not asked. */
   const [taxKind, setTaxKind] = useState<"item_repair" | "fabric_cleaning" | "clothes_cleaning" | "clothing_alterations" | null>(null);
   useEffect(() => {
-    if (!asksTaxKind(category)) setTaxKind(null);
+    // Audit 11-21 (S32): an answer the new category does not offer (Cleaning's carpet on a move to Electrical) clears too.
+    setTaxKind((kind) => taxKindFor(category, kind));
   }, [category]);
   /* Pet profiles attached to this job — written to `job_pets` after the insert.
      Cleared when the category leaves pet_care so a poster who starts a dog-walk
@@ -666,7 +668,15 @@ export function usePostJobForm() {
     offerToHelperName,
     offerResponseHours,
     setOfferResponseHours,
-    clearOffer,
+    // Audit 11-21 (L32): clearing the offer banner left ?offerTo= in the address, so a reload brought the offer back.
+    // The param goes too, in place (the entry keeps its step-history state).
+    clearOffer: () => {
+      clearOffer();
+      if (!searchParams.has("offerTo")) return;
+      const next = new URLSearchParams(searchParams);
+      next.delete("offerTo");
+      setSearchParams(next, { replace: true, state: location.state });
+    },
     // draft prompt
     draft, // F305: the draft card names the draft (title · price)
     hasDraft,

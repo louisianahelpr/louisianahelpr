@@ -94,7 +94,9 @@ export function DescriptionField({
             className="text-ds-13 font-sans leading-snug"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            {tr("postJob.f.tip", { tips: unmet.join("; ") })}
+            {/* Audit 11-21 (L28): the tips were joined with "; " after their own question marks ("repair?; How many").
+                Each is its own sentence now. */}
+            {tr("postJob.f.tip", { tips: unmet.map((tip) => (/[.?!]$/.test(tip.trim()) ? tip.trim() : `${tip.trim()}.`)).join(" ") })}
           </p>
         );
       })()}

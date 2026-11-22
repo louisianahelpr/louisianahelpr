@@ -5,7 +5,7 @@
  * The job page's bar is AppPage -> ProfileTabHeader -> PageHeader with `wrapTitle` on.
  *
  * @mutate src/components/PageHeader.tsx | title.length > LONG_TITLE_CHARS ? " page-title-long" : "" | ""
- * @mutate src/index.css |   h1.text-page-title.page-title-long { font-size: 1.25rem !important; line-height: 1.2 !important; } |   h1.text-page-title.page-title-long { line-height: 1.2 !important; }
+ * @mutate src/index.css |   h1.text-page-title.page-title-wraps { font-size: 1.25rem !important; line-height: 1.2 !important; } |   h1.text-page-title.page-title-wraps { line-height: 1.2 !important; }
  * @mutate src/components/PageHeader.tsx | `break-words${ | `break-words line-clamp-2${
  */
 import { describe, expect, it } from "vitest";

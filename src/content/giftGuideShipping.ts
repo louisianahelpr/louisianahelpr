@@ -3,16 +3,16 @@
  * visitor's own zone:
  *   - Nov 1 through Dec 14: "Order by Dec 15 for Christmas delivery";
  *   - Dec 15 through Dec 20: "Last days for Christmas shipping: choose fast shipping";
- *   - Dec 21 through Dec 25: "Last-minute? Gift cards and digital gifts arrive instantly" (owner wording);
+ *   - Dec 21 through Dec 25: "Too late to ship? Print a free gift tag or coloring book today";
  *   - Dec 26 through Oct 31: no banner.
- * Holiday audit 1121: the early line came back every January (any month but December showed it). The last line still
- * names gift cards, which left the guides on 11-20: it is the owner's wording, so it is on her decision list.
+ * Holiday audit 1121: the early line came back every January (any month but December showed it). The last line named
+ * gift cards, which left the guides on 11-20; owner 2026-11-21: "Just don't mention gift cards."
  * Guard: src/test/giftGuidesExtras.test.tsx.
  */
 export const SHIP_LINES = {
   early: "Order by Dec 15 for Christmas delivery",
   late: "Last days for Christmas shipping: choose fast shipping",
-  instant: "Last-minute? Gift cards and digital gifts arrive instantly",
+  instant: "Too late to ship? Print a free gift tag or coloring book today",
 } as const;
 
 /** The month and day in America/Chicago at `now`. */

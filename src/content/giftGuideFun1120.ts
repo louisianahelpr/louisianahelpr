@@ -142,18 +142,30 @@ export type SwipeBudget = 25 | 50 | 100 | 0;
  * list; only "Me" saves to the wish list).
  */
 const finderGuides = (id: string) => FINDER_WHO.find((w) => w.id === id)?.guides ?? [];
-export const SWIPE_WHO: { id: SwipeWho; label: string; guides: { slug: string; sections?: string[] }[]; forName?: string }[] = [
-  { id: "me", label: "Me", guides: [...finderGuides("her"), ...finderGuides("him")] },
-  { id: "mom", label: "Mom", guides: finderGuides("mom"), forName: "Mom" },
-  { id: "dad", label: "Dad", guides: finderGuides("dad"), forName: "Dad" },
-  { id: "her", label: "Her", guides: finderGuides("her"), forName: "Her" },
-  { id: "him", label: "Him", guides: finderGuides("him"), forName: "Him" },
-  { id: "teen", label: "Teen", guides: finderGuides("teen"), forName: "Teen" },
-  { id: "kids", label: "Kids", guides: finderGuides("kids"), forName: "Kids" },
-  { id: "friends", label: "Friends", guides: finderGuides("friend"), forName: "Friends" },
-  { id: "coworkers", label: "Coworkers", guides: finderGuides("coworker"), forName: "Coworkers" },
+type SwipeGuides = { slug: string; sections?: string[] }[];
+/**
+ * A "who" whose guides are the finder's own lists, read on first use, not while this module loads. The production
+ * build puts this module and the finder's (giftGuideExtras1120.ts) in two chunks that import each other once the fun
+ * pages and Shop Small share the guides' menu (holiday audit 1121 #13 / #73), so a read at load time found FINDER_WHO
+ * still undefined and every gift guides page failed to load ("reading 'find'", measured in a vite build 2026-11-21).
+ */
+const finderWho = (id: SwipeWho, label: string, finderIds: string[], forName?: string) => {
+  let cached: SwipeGuides | null = null;
+  return { id, label, ...(forName ? { forName } : {}), get guides(): SwipeGuides { return (cached ??= finderIds.flatMap(finderGuides)); } };
+};
+export const SWIPE_WHO: { id: SwipeWho; label: string; guides: SwipeGuides; forName?: string }[] = [
+  finderWho("me", "Me", ["her", "him"]),
+  // Holiday audit 1121 #24: the finder's person order (Her, Him, Mom, Dad, Kids, Teen, ...), after "Me".
+  finderWho("her", "Her", ["her"], "Her"),
+  finderWho("him", "Him", ["him"], "Him"),
+  finderWho("mom", "Mom", ["mom"], "Mom"),
+  finderWho("dad", "Dad", ["dad"], "Dad"),
+  finderWho("kids", "Kids", ["kids"], "Kids"),
+  finderWho("teen", "Teen", ["teen"], "Teen"),
+  finderWho("friends", "Friends", ["friend"], "Friends"),
+  finderWho("coworkers", "Coworkers", ["coworker"], "Coworkers"),
   // Holiday audit C12c: the quiz has Grandparents, so the swipe deck does too.
-  { id: "grandparents", label: "Grandparents", guides: finderGuides("grandparent"), forName: "Grandparents" },
+  finderWho("grandparents", "Grandparents", ["grandparent"], "Grandparents"),
   { id: "louisiana", label: "Louisiana", guides: [{ slug: "louisiana-made" }, { slug: "shop-small-louisiana" }, { slug: "louisiana-food-gifts" }], forName: "Louisiana gifts" },
 ];
 export const SWIPE_BUDGETS: { id: SwipeBudget; label: string }[] = [
@@ -174,7 +186,40 @@ export const swipePool = (who: SwipeWho, picksOf: (slug: string) => CatalogPick[
 };
 
 /**
- * One round: up to 20 cards, strongest first, each link once, at most 5 per store, none already seen this visit. With
+ * Deal up to SWIPE_ROUND cards from `from` in order: each link once, none already seen, at most SWIPE_PER_STORE per
+ * store on the first pass. When the other stores run out, a second pass fills the rest of the round from the capped
+ * stores (holiday audit 1121 #11: the guides are Amazon-heavy, so the cap alone dealt Him 15 cards and Her under $25
+ * 6 of 12, and the "Only 6 gifts" note was then untrue). So a short round now means only that many picks fit. The
+ * round keeps the list's order.
+ */
+function dealRound<T extends CatalogPick>(from: readonly T[], seen: ReadonlySet<string>): T[] {
+  const perStore = new Map<string, number>();
+  const used = new Set<string>();
+  const out: T[] = [];
+  const ok = (p: T) => !!p.href && !!p.name && !seen.has(p.href) && !used.has(p.href);
+  for (const p of from) {
+    if (out.length >= SWIPE_ROUND) break;
+    if (!ok(p)) continue;
+    const n = perStore.get(p.store) ?? 0;
+    if (n >= SWIPE_PER_STORE) continue;
+    perStore.set(p.store, n + 1);
+    used.add(p.href);
+    out.push(p);
+  }
+  for (const rest of from) {
+    if (out.length >= SWIPE_ROUND) break;
+    if (!ok(rest)) continue;
+    used.add(rest.href);
+    out.push(rest);
+  }
+  // Back in the list's own order (strongest first; a Secret Santa round's closest-to-budget first), so a card the
+  // second pass added sits where it ranks, not at the end.
+  const rank = new Map(from.map((p, i) => [p, i] as const));
+  return out.sort((a, b) => (rank.get(a) ?? 0) - (rank.get(b) ?? 0));
+}
+
+/**
+ * One round: up to 20 cards, strongest first, each link once, at most 5 per store while other stores last (dealRound), none already seen this visit. With
  * a budget, ONLY picks known to fit it are dealt (fitsBudget: the checked price when there is one, else the price band,
  * else a budget section; holiday audit C1, 11-20: "Him under $25" dealt a $128 quarter zip because 249 priced picks had
  * no band, and unknown-price picks padded the deck). A pick with no known price is never in a budget round. `borrow`
@@ -184,18 +229,7 @@ export const swipePool = (who: SwipeWho, picksOf: (slug: string) => CatalogPick[
 export function swipeRound<T extends CatalogPick>(pool: T[], budget: SwipeBudget, seen: ReadonlySet<string>, rand: () => number = Math.random, borrow: readonly T[] = []): T[] {
   const fits = (p: CatalogPick) => fitsBudget(p, budget);
   const from = budget === 0 ? pool : [...pool, ...borrow];
-  const perStore = new Map<string, number>();
-  const used = new Set<string>();
-  const out: T[] = [];
-  for (const p of from.filter(fits)) {
-    if (out.length >= SWIPE_ROUND) break;
-    if (!p.href || !p.name || seen.has(p.href) || used.has(p.href)) continue;
-    const n = perStore.get(p.store) ?? 0;
-    if (n >= SWIPE_PER_STORE) continue;
-    perStore.set(p.store, n + 1);
-    used.add(p.href);
-    out.push(p);
-  }
+  const out = dealRound(from.filter(fits), seen);
   const mixed: T[] = [];
   for (let i = 0; i < out.length; i += 4) mixed.push(...shuffled(out.slice(i, i + 4), rand));
   return mixed;
@@ -228,26 +262,17 @@ export function santaRound<T extends CatalogPick>(pool: T[], borrow: T[], budget
   const ranked = [...pool.map((p, i) => ({ p, i })), ...borrow.map((p, i) => ({ p, i: pool.length + i }))]
     .filter(({ p }) => fitsBudget(p, budget))
     .sort((a, b) => (pickCeiling(b.p) ?? 0) - (pickCeiling(a.p) ?? 0) || a.i - b.i);
-  const perStore = new Map<string, number>();
-  const used = new Set<string>();
-  const out: T[] = [];
-  for (const { p } of ranked) {
-    if (out.length >= SWIPE_ROUND) break;
-    if (!p.href || !p.name || seen.has(p.href) || used.has(p.href)) continue;
-    const n = perStore.get(p.store) ?? 0;
-    if (n >= SWIPE_PER_STORE) continue;
-    perStore.set(p.store, n + 1);
-    used.add(p.href);
-    out.push(p);
-  }
-  return out;
+  return dealRound(ranked.map(({ p }) => p), seen);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
 // (3) Gift planner
 
-/** `image`: the guide pick's photo (owner 11-21, "let them add ideas from our guides"), https only, for the row's thumbnail. */
-export interface PlanIdea { id: string; name: string; price?: number; bought: boolean; href?: string; guide?: string; item?: string; image?: string }
+/** `image`: the guide pick's photo (owner 11-21, "let them add ideas from our guides"), https only, for the row's thumbnail.
+ *  `req`: a gift added from any store, its link request (owner 11-21, wish_link_requests): we make our link for it, the
+ *  planner swaps it in once made, and a share carries it as {r}. `ask`: sent to us, no answer yet (tried again when a
+ *  list opens). */
+export interface PlanIdea { id: string; name: string; price?: number; bought: boolean; href?: string; guide?: string; item?: string; image?: string; req?: string; ask?: true }
 export interface PlanPerson { id: string; name: string; budget?: number; ideas: PlanIdea[] }
 export interface GiftPlan { people: PlanPerson[]; updatedAt: number }
 export const EMPTY_PLAN: GiftPlan = { people: [], updatedAt: 0 };
@@ -255,6 +280,8 @@ export const PLAN_MAX_PEOPLE = 50;
 export const PLAN_MAX_IDEAS = 30;
 /** The longest photo link a planner idea keeps (the account row is capped at 64 KB). */
 const PLAN_IMAGE_MAX = 400;
+/** A link request id (a uuid, as wish_link_request_add makes them). */
+const PLAN_REQ = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const money = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v * 100) / 100 : undefined);
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
@@ -273,7 +300,8 @@ export function cleanPlan(v: unknown): GiftPlan {
       return [{ id: d.id, name: text(d.name, 120), bought: d.bought === true, ...(price !== undefined ? { price } : {}),
         ...(typeof d.href === "string" && /^https:\/\//.test(d.href) ? { href: d.href } : {}),
         ...(typeof d.guide === "string" ? { guide: d.guide } : {}), ...(typeof d.item === "string" ? { item: d.item } : {}),
-        ...(typeof d.image === "string" && /^https:\/\//.test(d.image) && d.image.length <= PLAN_IMAGE_MAX ? { image: d.image } : {}) }];
+        ...(typeof d.image === "string" && /^https:\/\//.test(d.image) && d.image.length <= PLAN_IMAGE_MAX ? { image: d.image } : {}),
+        ...(typeof d.req === "string" && PLAN_REQ.test(d.req) ? { req: d.req } : {}), ...(d.ask === true ? { ask: true as const } : {}) }];
     });
     const budget = money(q.budget);
     return [{ id: q.id, name: text(q.name, 40), ideas, ...(budget !== undefined ? { budget } : {}) }];
@@ -411,12 +439,16 @@ export const FUN_WORDS = {
   revealLoadFailed: "We couldn't open your match. Check your connection and try again.",
   revealBrowse: "Browse the gift guides",
   revealNoList: (name: string) => `${name} hasn't shared a wish list yet. Check back later, or browse the guides.`,
-  revealMyList: "Make your own wish list",
-  revealMyListHelp: "Heart gifts in the guides, then share your list so your Secret Santa can see it.",
-  revealShareMine: "Share my list with my Santa",
-  revealShared: "Your Secret Santa can see your wish list now.",
+  revealMyList: "Your wish list for your Secret Santa",
+  revealMyListHelp: "Type what you'd like or paste a link from any store. We add our links, then send it to your Secret Santa.",
+  revealShareMine: "Send my list to my Santa",
+  revealSendUpdate: "Send the update",
+  revealListFull: (n: number) => `Your list is full, so ${n === 1 ? "1 saved gift wasn't" : `${n} saved gifts weren't`} added. Remove one to make room.`,
+  revealSent: "Sent",
+  revealAddSaved: (n: number) => `Add the ${n === 1 ? "gift" : `${n} gifts`} I saved in the guides`,
+  revealNotReady: (n: number) => `${n === 1 ? "1 gift is" : `${n} gifts are`} still on the way to us. Send again in a minute to include ${n === 1 ? "it" : "them"}.`,
+  revealShared: "Your Secret Santa can see your wish list now, with our links as we add them.",
   revealShareFailed: "We couldn't share your list. Try again.",
-  revealEmptyList: "Your wish list is empty. Heart a few gifts first.",
   revealMissing: "This link doesn't work anymore. Ask your organizer to send you your link again.",
   revealLoading: "Opening your match...",
   revealRetry: "Try again",

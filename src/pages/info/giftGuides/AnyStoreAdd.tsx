@@ -4,9 +4,11 @@ import { Input } from "@/components/ui/input";
 import { guidePicksVersion, loadGuidePicks, subscribeGuidePicks } from "@/content/giftGuideCatalog";
 import { OWNER_LIST_GUIDES } from "@/content/giftGuidePeople.mjs";
 import { WISH } from "@/content/giftWishList";
-import type { PlanPerson } from "@/content/giftGuideFun1120";
+import type { PlanIdea, PlanPerson } from "@/content/giftGuideFun1120";
 import { PickPrice } from "@/components/giftGuides/PickPrice";
 import { closestPicks, nameFromLink, ourLink, pastedLink, type OurLink } from "@/lib/wishLinks";
+import { wishErrorCopy } from "@/lib/giftWishListApi";
+import { askForLink, type IdeaWriter } from "./wishLinkSync";
 import { planActions } from "./fun/plannerStore";
 import { livePicks, type GuidePick } from "./fun/GuidePicksPicker";
 import { PickThumb } from "./GiftGuideView";
@@ -20,9 +22,17 @@ import { saveItemOf } from "./saveForPeople";
  *   - Typed words show up to 3 of our closest picks to choose from, or "Add my words" keeps the idea as typed; with no
  *     close pick the words go straight on.
  *   - `extra`: buttons in the same row (the planner's "From our guides").
- * Nothing is fetched or opened (src/lib/wishLinks.ts). Guard: src/test/wishAnyLink1121.test.tsx.
+ *   - A pasted link (Amazon included) and typed words kept as typed are also sent to us (wish_link_request_add) to
+ *     make our link; the gift keeps the request id, and our link replaces the pasted one once made (wishLinkSync.ts).
+ * Nothing is fetched or opened (src/lib/wishLinks.ts). Guards: src/test/wishAnyLink1121.test.tsx,
+ * src/test/wishLinkQueue1121.test.tsx.
  */
-export function AnyStoreAdd({ person, disabled = false, extra }: { person: PlanPerson; disabled?: boolean; extra?: ReactNode }) {
+/** Where the box writes: the gift planner (default), or another list of the same shape (a Secret Santa wish list). */
+export interface IdeaActions extends IdeaWriter {
+  addIdea: (personId: string, idea: Omit<PlanIdea, "id" | "bought">) => string | null;
+}
+
+export function AnyStoreAdd({ person, disabled = false, extra, actions = planActions }: { person: PlanPerson; disabled?: boolean; extra?: ReactNode; actions?: IdeaActions }) {
   const [text, setText] = useState("");
   const [link, setLink] = useState<Exclude<OurLink, { kind: "pick" }> | null>(null);
   const [name, setName] = useState("");
@@ -45,7 +55,7 @@ export function AnyStoreAdd({ person, disabled = false, extra }: { person: PlanP
     setNote(said);
   };
   const addPick = (p: GuidePick) => {
-    if (!person.ideas.some((i) => i.href === p.href)) planActions.addIdea(person.id, saveItemOf(p, p.guide));
+    if (!person.ideas.some((i) => i.href === p.href)) actions.addIdea(person.id, saveItemOf(p, p.guide));
     reset(WISH.anyAdded(p.name));
   };
   const submit = (e: FormEvent) => {
@@ -68,15 +78,28 @@ export function AnyStoreAdd({ person, disabled = false, extra }: { person: PlanP
     if (close.length === 0) return addWords();
     setMatches(close);
   };
+  // Owner 11-21 ("we see the list, create the links if we don't have it"): a gift from any store is also sent to us to
+  // make our link (`ask` until the server answers; a failed send is tried again when a list opens). The gift is on the
+  // list either way; a failed send says so under the box.
+  const queue = (idea: { name: string; href?: string }) => {
+    const id = actions.addIdea(person.id, { ...idea, ask: true });
+    if (!id) return;
+    askForLink(person, { id, ...idea }, actions).catch((e: unknown) => {
+      console.warn("any-store add: link request failed", e);
+      setNote(wishErrorCopy(e) ?? WISH.anyQueueFailed);
+    });
+  };
   const addLink = (e: FormEvent) => {
     e.preventDefault();
     if (!link || !name.trim()) return;
-    planActions.addIdea(person.id, { name: name.trim().slice(0, 120), href: link.href });
-    reset(WISH.anyAdded(name.trim()));
+    const words = name.trim().slice(0, 120);
+    queue({ name: words, href: link.href });
+    reset(link.kind === "amazon" ? WISH.anyAdded(words) : WISH.anyAddedLink(words));
   };
   const addWords = () => {
-    planActions.addIdea(person.id, { name: text.trim().slice(0, 120) });
-    reset(WISH.anyAdded(text.trim()));
+    const words = text.trim().slice(0, 120);
+    queue({ name: words });
+    reset(WISH.anyAddedIdea(words));
   };
   return (
     <div className="gg-anystore" data-anystore={person.id}>

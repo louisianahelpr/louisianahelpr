@@ -1,13 +1,15 @@
-import { Link, useLocation } from "react-router-dom";
+import { useEffect, useState, type ComponentType } from "react";
+import { useLocation } from "react-router-dom";
+import { loadModule, untilReload } from "@/lib/loadModule";
+import { report } from "@/lib/errorLogger";
 import { giftGuides as G } from "@/content/giftGuides";
-import { GUIDES, ROWS, guidesIn, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
+import { GUIDES, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { LIVE_GUIDES_1121 } from "@/content/giftGuideLive.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
 import { DEAL_DAY_SLUGS } from "@/content/giftGuideDeals.mjs";
 import { CHUNK_PICK_COUNTS } from "@/content/giftGuidePicks";
-import { FINDER_ANCHOR } from "@/content/giftGuideExtras1120";
+import { EXTRAS_WORDS, FINDER_ANCHOR } from "@/content/giftGuideExtras1120";
 import { GiftGuideTile } from "./GiftGuideTile";
-import { GiftFinder } from "./GiftGuideFinder";
 import { GiftGuideTop10 } from "./GiftGuideTop10";
 
 /**
@@ -16,7 +18,7 @@ import { GiftGuideTop10 } from "./GiftGuideTop10";
  *
  * OWNER + LEAD 11-21 (supersedes the order below where they differ): the main column is the three tiles, sharing the
  * full width, each with a quiet "Her · 36 gifts" line and no heading over them; then the 25 Days giveaways card; nothing
- * else. The menu's "Find a gift in 3 taps" (or a shared finder link) shows the gift finder ALONE in the main column
+ * else. The menu's "Find a gift" (or a shared finder link) shows the gift finder ALONE in the main column
  * (finderAsked; owner 11-21: "only the section I click in the left panel should be displayed"). The deals days, Free printables, the Holiday
  * Hub, the 25 Days sponsors and the fun tools are all in the left menu (owner: "i have already said free printables,
  * louisiana hub, sponsors go in the left panel ... and black friday deals, small business saturday and cyber monday"),
@@ -26,7 +28,7 @@ import { GiftGuideTop10 } from "./GiftGuideTop10";
  * her and kids?"; after 11-20 PM's "The gift guide page is still a busy mess"): ONE title with its short subline and the
  * search row, a hairline across the page (GiftGuides.tsx), then, top to bottom: the three guides' cover tiles (For Her,
  * For Him, Kids); the 25 Days giveaways card (owner 11-21: "move the 25 days of giveaways up so people will see it
- * better"); the gift finder ("Find a gift in 3 taps") and the fun tools (Swipe, Secret Santa, Gift
+ * better"); the gift finder ("Find a gift") and the fun tools (Swipe, Secret Santa, Gift
  * planner; owner 11-21: "i also dont see the fun features anymore like the quiz"); the free printables and the deals
  * page as two cards ("there will also need to be a free section for our tags"; the codes themselves live only on the
  * deals page). The Holiday Hub and the 25 Days sponsors are entries in the left menu, not the main column (owner 11-21
@@ -44,9 +46,6 @@ const liveGuideTiles = (): CatalogGuide[] =>
     const g = GUIDES.find((x) => x.slug === slug && !x.view);
     return g && !g.empty ? [g] : [];
   });
-
-/** A landing row's tiles: its guides (a group's page, /gift-guides?group=<row>). */
-export const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => guidesIn(row).filter((g) => !NOT_TILES.has(g.slug)).map((g) => ({ g }));
 
 /** The first screen's covers load at once; there are only three. */
 const PRIORITY_COVERS = 3;
@@ -66,42 +65,55 @@ function LiveGuides() {
   );
 }
 
-/** A group's page (/gift-guides?group=<row>, an old "See all" link): its live guides as a wrapped grid, with a way back. */
-function GroupPage({ group }: { group: GuideRow }) {
-  const r = ROWS.find((x) => x.row === group)!;
-  const headingId = `gift-row-${r.row}`;
-  // Owner 11-18 PM: the heading carries its guide count, "By person (2)".
-  const list = rowTiles(r.row);
-  return (
-    <>
-      <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>
-      <div className="gg-rows" data-gift-rows="">
-        <section aria-labelledby={headingId} data-gift-row={r.row}>
-          <div className="gg-rowhead">
-            <h2 id={headingId}><i className={`gg-dot gg-${r.tint}`} aria-hidden="true" />{r.label}<span className="gg-rowcount" data-gift-row-count="">&nbsp;({list.length})</span></h2>
-          </div>
-          <ul className="gg-wrap">
-            {list.map(({ g, label }) => <GiftGuideTile key={g.slug} g={g} label={label} />)}
-          </ul>
-        </section>
-      </div>
-    </>
-  );
-}
-
 /**
- * Whether the gift finder is asked for: the left menu's "Find a gift in 3 taps" (/gift-guides#gift-finder) or a shared
+ * Whether the gift finder is asked for: the left menu's "Find a gift" (/gift-guides#gift-finder) or a shared
  * finder link (/gift-guides?who=her&budget=50&vibe=cozy). Otherwise the main column is only the tiles and the 25 Days
  * card (owner 11-21: the main column is ONLY the three tiles and the 25 Days card; the quiz is a fun tool in the menu).
  */
 export const finderAsked = (search: string, hash: string) => hash === `#${FINDER_ANCHOR}` || new URLSearchParams(search).has("who");
 
-export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
+/**
+ * The gift quiz (#gift-finder or ?who=) loads its own chunk (train 1121h): drawn only on its own view, never on a guide
+ * page, and with the quiz in it /gift-guides/<slug> measured 355 KB gz against its 352.8 KB budget. It says "Loading"
+ * until the chunk is in, and says so plainly if the chunk fails.
+ */
+const loadFinder = () => loadModule(() => import("./GiftGuideFinder"));
+/** Once loaded, a later visit to the quiz view draws it at once (no Loading flash on Start over or Back). */
+let loadedFinder: ComponentType | null = null;
+function LazyGiftFinder() {
+  const [Finder, setFinder] = useState<ComponentType | null>(() => loadedFinder);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    if (loadedFinder) return;
+    let live = true;
+    // An empty module (a stale-chunk reload on its way) waits on untilReload(); the loading line stays meanwhile.
+    void loadFinder()
+      .then((m) => m ?? untilReload())
+      .then(
+        (m) => {
+          loadedFinder = m.GiftFinder;
+          if (live) setFinder(() => m.GiftFinder);
+        },
+        (e) => {
+          // Not silent: reported, and the view says the quiz could not load.
+          report(e as Error, { tags: { source: "GiftGuideLanding.loadFinder" } });
+          if (live) setFailed(true);
+        },
+      );
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (failed) return <p className="gg-soon" role="alert">{EXTRAS_WORDS.finderLoadFailed}</p>;
+  if (!Finder) return <p className="gg-soon" role="status">{EXTRAS_WORDS.finderLoading}</p>;
+  return <Finder />;
+}
+
+export function GiftGuideLanding() {
   const { search, hash } = useLocation();
-  if (group) return <GroupPage group={group} />;
   // Owner 11-21: "if I click find a gift in 3 steps the guides shouldn't be opened up here. only the section I click in
   // the left panel should be displayed, nothing else": the finder view is the finder alone.
-  if (finderAsked(search, hash)) return <div className="gg-landing" data-gift-landing="" data-gift-finder-view=""><GiftFinder /></div>;
+  if (finderAsked(search, hash)) return <div className="gg-landing" data-gift-landing="" data-gift-finder-view=""><LazyGiftFinder /></div>;
   return (
     <div className="gg-landing" data-gift-landing="">
       <LiveGuides />

@@ -78,7 +78,8 @@ describe("the earnings milestone counts money that went out (JOBS2-40)", () => {
 describe("source-level words", () => {
   it("say what was not kept, and a crew goes ahead with who's on (JOBS-10, 20, 27, 52)", () => {
     // A3-3 (Spanish): the draft card reads t("postJob.draftBody"); its English lives in enPostJob.ts.
-    expect(code("src/pages/post-job/EntryChoice.tsx")).toContain('t("postJob.draftBody")');
+    // Audit 11-21: a guest's draft card has its own words (postJob.draftBodyGuest); a member's still reads draftBody.
+    expect(code("src/pages/post-job/EntryChoice.tsx")).toContain('t(form.isGuest ? "postJob.draftBodyGuest" : "postJob.draftBody")');
     expect(code("src/lib/i18n/enPostJob.ts")).toContain("add your photos and video again");
     expect(code("src/pages/post-job/FormStep.tsx")).toContain("We copied your last job.");
     expect(code("src/components/PhotoProof.tsx")).toContain("Show the job as you found it");

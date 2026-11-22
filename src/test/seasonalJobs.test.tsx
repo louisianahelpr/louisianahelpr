@@ -27,7 +27,9 @@ describe("Louisiana seasons (Q2016)", () => {
   it("covers the four seasons the owner named", () => {
     expect(seasonalJobs.length).toBeGreaterThan(3);
     expect(seasonalJobs.map((j) => j.id).sort()).toEqual(
-      ["back-to-school-move", "crawfish-boil-help", "mardi-gras-festival-help", "storm-cleanup-debris", "storm-prep-yard"].sort(),
+      ["back-to-school-move", "crawfish-boil-help", "mardi-gras-festival-help", "storm-cleanup-debris", "storm-prep-yard",
+        // Audit 11-21 (S39): the holidays.
+        "holiday-lights", "holiday-guest-clean", "holiday-furniture-move"].sort(),
     );
   });
 
@@ -36,7 +38,10 @@ describe("Louisiana seasons (Q2016)", () => {
     expect(ids(la("2026-04-15"))).toEqual(["crawfish-boil-help"]);
     expect(ids(la("2026-08-10"))).toEqual(["storm-prep-yard", "storm-cleanup-debris", "back-to-school-move"]);
     expect(ids(la("2026-10-01"))).toEqual(["storm-prep-yard", "storm-cleanup-debris", "mardi-gras-festival-help"]);
-    expect(ids(la("2026-12-15"))).toEqual([]);
+    // Audit 11-21 (S39): mid-December offers the holiday templates (it offered none).
+    expect(ids(la("2026-12-15"))).toEqual(["holiday-lights", "holiday-guest-clean", "holiday-furniture-move"]);
+    expect(ids(la("2026-11-21"))).toEqual(["storm-prep-yard", "storm-cleanup-debris", "holiday-lights", "holiday-guest-clean", "holiday-furniture-move"]);
+    expect(ids(la("2026-11-10"))).not.toContain("holiday-lights");
     // Hurricane season ends Nov 30 in Louisiana, even when it is already Dec 1 in UTC (11 PM CST = 05:00Z).
     expect(louisianaMonthDay(new Date("2026-12-01T05:00:00Z"))).toBe("11-30");
     expect(ids(new Date("2026-12-01T05:00:00Z"))).toContain("storm-prep-yard");

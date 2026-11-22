@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
-import { AlertCircle, Clock, Loader2, Eye, EyeOff, Check, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, Clock, Info, Loader2, Eye, EyeOff, Check, ShieldCheck, X } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useQueryClient } from "@tanstack/react-query";
@@ -109,7 +109,7 @@ const Login = () => {
       tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider ?? "unknown", code: oauthError.code },
     });
   }, [oauthError]);
-  const { accountChoice, notice, leadWithSignup } = loginNotice({ oauthError, connect: searchParams.get("connect"), signedOutForInactivity, sessionLost: searchParams.get("signed_out") === "session-lost", hadSessionHere: hadSessionOnThisBrowser(), arrivedFromSignup, bouncedFromGatedRoute, redirect: safeInternalRedirect(pendingRedirect) });
+  const { accountChoice, notice, leadWithSignup, timedOut } = loginNotice({ oauthError, connect: searchParams.get("connect"), signedOutForInactivity, sessionLost: searchParams.get("signed_out") === "session-lost", hadSessionHere: hadSessionOnThisBrowser(), arrivedFromSignup, bouncedFromGatedRoute, redirect: safeInternalRedirect(pendingRedirect), reason: searchParams.get("reason") });
   const queryClient = useQueryClient();
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/login"]);
@@ -320,8 +320,10 @@ const Login = () => {
         >
           {oauthError ? (
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />
-          ) : (
+          ) : timedOut ? (
             <Clock className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />
+          ) : (
+            <Info className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} aria-hidden="true" data-login-notice-info="" />
           )}
           <div className="min-w-0 space-y-2">
             <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>

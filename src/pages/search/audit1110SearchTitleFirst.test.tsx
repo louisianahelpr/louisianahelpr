@@ -3,8 +3,8 @@
  * description), so results looked random. Declutter hits whose title has every word now come first, newest first
  * within each group.
  *
- * @mutate src/pages/search/SearchPage.tsx | const rows = all.filter((it) => matchesSearch(q, it)).sort((a, b) => titleHit(a) - titleHit(b)); | const rows = all.filter((it) => matchesSearch(q, it));
- * @mutate src/pages/search/SearchPage.tsx | const titleHit = (it: ItemHit) => (matchesSearch(q, { title: it.title }) ? 0 : 1); | const titleHit = (it: ItemHit) => (matchesSearch(q, it) ? 0 : 1);
+ * @mutate src/pages/search/SearchPage.tsx | const rows = [...byTitle, ...all.filter((it) => !seen.has(it.id) && matchesSearch(q, it))] | const rows = all.filter((it) => matchesSearch(q, it))
+ * @mutate src/pages/search/SearchPage.tsx | ItemHit[]).filter((it) => matchesSearch(q, { title: it.title })); | ItemHit[]).filter((it) => matchesSearch(q, it));
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

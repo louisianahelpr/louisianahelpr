@@ -121,7 +121,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
       // (measured at 375: toast bottom 796 against a dock starting at 748).
       mobileOffset={{
         top: "calc(var(--safe-area-top, 0px) + 8px)",
-        bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))",
+        // Audit 11-21 (G20): on a screen with no dock (--bottom-nav-h is 0 there: Post a job's Review), the toast
+        // sat flush on the bottom edge over the pay button (measured top 740 / bottom 812 at 812). 12px of air always.
+        bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 12px)",
       }}
       offset={{ top: "24px", bottom: navShown ? "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 16px)" : "24px" }}
       toastOptions={{

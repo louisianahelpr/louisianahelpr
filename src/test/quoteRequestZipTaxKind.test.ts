@@ -81,7 +81,8 @@ describe("a quote-booked job carries the job ZIP and tax_kind (Q2083 b)", () => 
     expect(api).toMatch(/p_tax_kind: r\.taxKind \?\? undefined,/);
     const ask = src("src/components/quotes/PostJobQuoteChoice.tsx");
     expect(ask).toMatch(/zipCode: f\.zipCode\.replace\(\/\\D\/g, ""\)\.slice\(0, 5\),/);
-    expect(ask).toMatch(/taxKind: f\.taxKind,/);
+    // Audit 11-21 (S32): the answer is kept only when the category offers it (taxKindFor), as on Post a job.
+    expect(ask).toMatch(/taxKind: taxKindFor\(f\.category, f\.taxKind\),/);
     expect(src("src/pages/post-job/CheckoutStepView.tsx")).toMatch(/taxKind: form\.taxKind,\s*\}\);/);
   });
 });

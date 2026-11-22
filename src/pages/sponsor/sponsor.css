@@ -2,7 +2,7 @@
  * 25 Days of Louisiana Giveaways: this page's own look. Classic Christmas, matching the approved sponsor email (owner
  * 2026-11-09): hunter green, oxblood, cream and antique gold, a thin plaid trim, Bodoni Moda headings with italics,
  * small gold star rules and letter-spaced small-caps labels. Every rule is scoped under .lh25, so nothing here
- * touches the app's theme. Loaded only by the lazy /sponsor and /25days/rules chunks. No webfont of its own: the
+ * touches the app's theme. Loaded only by the lazy /sponsor and /25days chunk. No webfont of its own: the
  * headings use the app's self-hosted Bodoni Moda (index.css) and the body uses the system's Georgia.
  *
  * Contrast: antique gold (#b08d57) is used only for lines, borders and the SVG stars, never for text. Gold TEXT sits
@@ -237,9 +237,9 @@ a.lh25-lineup-brand { text-decoration: underline; text-decoration-color: var(--g
   .lh25-lineup-day.lh25-lineup-later { display: none; }
 }
 
-/* /25days (owner 11-19): the entrant points and the one line for businesses (Sections.tsx EntrantInfo, BusinessAsk). */
-.lh25-entrant-points { list-style: none; padding: 0; margin: 0 auto 18px; max-width: 520px; display: grid; gap: 10px; font-size: 17px; color: var(--ink); }
-.lh25-entrant-points li { display: flex; gap: 10px; align-items: baseline; }
+/* /25days: the one line that the entry method and rules are on Facebook (owner 2026-11-21; Sections.tsx EntrantHero),
+   and the one line for businesses (BusinessAsk). */
+.lh25-rules-note { font-size: 16px; font-weight: 600; color: var(--on-green); margin: -12px auto 22px; max-width: 520px; line-height: 1.45; }
 .lh25-business-ask { margin: 40px auto 8px; font-size: 16px; color: var(--muted); }
 .lh25-business-ask a { color: var(--ox); font-weight: 700; }
 
@@ -350,15 +350,6 @@ a.lh25-lineup-brand { text-decoration: underline; text-decoration-color: var(--g
 .lh25-spinner { width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(31, 58, 43, .2); border-top-color: var(--green); animation: lh25-spin .9s linear infinite; }
 @keyframes lh25-spin { to { transform: rotate(360deg); } }
 
-/* Rules page */
-.lh25-rules { max-width: 760px; margin: 0 auto; padding: 16px 16px 48px; }
-.lh25-draft { position: sticky; top: 0; z-index: 20; margin: 0 0 18px; padding: 12px 14px; text-align: center; background: var(--cream-2); color: var(--ox); border: 1px dashed var(--ox); font: 700 15px/1.35 var(--body); }
-.lh25-rules h1 { font-size: clamp(32px, 8vw, 46px); margin: 8px 0 6px; }
-.lh25-rules-sub { color: var(--ox); font-style: italic; margin: 0 0 28px; padding-bottom: 20px; border-bottom: 1px solid var(--gold); }
-.lh25-rules section { padding: 0 0 18px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
-.lh25-rules h2 { font-size: 22px; margin-bottom: 8px; }
-.lh25-rules section p { margin: 0; color: var(--ink); }
-.lh25-back { display: inline-flex; align-items: center; min-height: 44px; font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 4px; }
 
 /* ── Wider screens ───────────────────────────────────────────────────── */
 @media (min-width: 640px) {
@@ -398,4 +389,3 @@ a.lh25-lineup-brand { text-decoration: underline; text-decoration-color: var(--g
   .lh25 *, .lh25 *::before, .lh25 *::after { animation: none !important; transition: none !important; }
 }
 
-.lh25 .lh25-rules-pending { margin: 1.5rem 0; font-style: italic; line-height: 1.6; }

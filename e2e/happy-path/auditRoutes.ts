@@ -224,7 +224,6 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // NotFound page; once on, the sponsor page, its alias and the rules page.
   { name: "sponsor-25days", url: "/sponsor" },
   { name: "sponsor-25days-alias", url: "/25days" },
-  { name: "sponsor-25days-rules", url: "/25days/rules" },
   // Redirect since 2026-08-18 (page merged into /profile?tab=legal). Kept
   // for the same reason /privacy, /terms and /rules are: the Privacy Policy
   // and the App Store listing both publish this URL, so the catalog should
@@ -496,6 +495,8 @@ export const ADMIN_VIEWS = [
   // Design audit area 10 #2/#3 (11-18): the Declutter queue (cards moved out of Settings), the one list of stage
   // previews, and 25 Days (redirects to /admin/sponsors).
   "declutter", "previews", "sponsors",
+  // Gift lists (owner 11-21): gifts added from any store, waiting for our affiliate link (20261121221514).
+  "wishlinks",
 ] as const;
 
 const adminRules = () => [mockTable("user_roles", [{ role: "admin" }])];

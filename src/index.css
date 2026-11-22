@@ -426,8 +426,15 @@
 /* Photo-first job cards (Q2043): on a phone the picture tile takes ~84px of the
    row, so the meta line takes the two-line form the card already uses below
    360px (place, then date and time), instead of clipping the start time. Every
-   card carries the tile, so every card stays one height. */
-@media (max-width: 767px) {
+   card carries the tile, so every card stays one height.
+   Jobs audit 11-21 (P9): it was a VIEWPORT rule (max-width: 767px), so the 768
+   two-column grid, whose text column is ~284px like a phone's, kept the one-line
+   row and clipped "9:00 AM" and "New Iberia". It follows the text column's own
+   width now (a container query, as .job-steps does): two lines below 460px of
+   column, at any screen width. Every card in a grid has the same column width,
+   so they stay one height. */
+.job-card-media-col { container-type: inline-size; }
+@container (max-width: 459px) {
   .job-card-media-col .job-meta-row { flex-wrap: wrap; }
   .job-card-media-col .job-meta-row > [data-meta-break] { display: block; }
   .job-card-media-col .job-meta-row > [data-meta-break] + span { display: none; }
@@ -3837,6 +3844,22 @@ html.senior-mode .job-steps-grid .text-ds-11 { font-size: 11px !important; line-
     animation: none;
   }
 }
+/* Audit 11-21 (S40): the card a notification opened wears a soft olive ring for 2 s (useHighlightPulse); static, so
+   Reduce Motion still marks it. An overlay drawn on top of the card: an outer ring is clipped by the Jobs list's scroll
+   panel, and an outline on the wrapper is painted under the card inside it (both measured 11-21, computed style set,
+   pixels unchanged). */
+html [data-deep-linked] {
+  position: relative;
+}
+html [data-deep-linked]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid hsl(var(--bark) / 0.55);
+  border-radius: 1rem;
+  pointer-events: none;
+  z-index: 1;
+}
 
 /* Status-tier gold treatments — used by Pro / Elite subscription
    badges and by earned prestige (Top Rated, Elite Helpr). Matches the
@@ -5060,10 +5083,13 @@ label[for].bg-card,
 .page-title-card h1 { font-size: 1.75rem !important; line-height: 1.1 !important; }
 [data-app-page-scroll] h1.text-page-title { font-size: 1.75rem !important; line-height: 1.1 !important; }
 /* JA-14 (lead 11-01, B107): a long wrapping title is smaller on a phone so the WHOLE title shows (no "..." clamp).
-   PageHeader adds .page-title-long past LONG_TITLE_CHARS. Guard: src/test/pageTitleShowsInFull.test.tsx. */
+   PageHeader adds .page-title-long past LONG_TITLE_CHARS, and .page-title-wraps when a shorter title still wraps at the
+   large size (L23, audit 11-21, useTitleShrinksWhenItWraps). Guard: src/test/pageTitleShowsInFull.test.tsx. */
 @media (max-width: 639px) {
   [data-app-page-scroll] h1.text-page-title.page-title-long,
-  h1.text-page-title.page-title-long { font-size: 1.25rem !important; line-height: 1.2 !important; }
+  h1.text-page-title.page-title-long,
+  [data-app-page-scroll] h1.text-page-title.page-title-wraps,
+  h1.text-page-title.page-title-wraps { font-size: 1.25rem !important; line-height: 1.2 !important; }
 }
 html.page-scrolled .page-title-card {
   padding-top: 0.15rem !important;

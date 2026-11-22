@@ -40,6 +40,20 @@ interface NavbarProps {
 const NAV_HOME_HIDDEN_ON = ["/browse", "/jobs", "/declutter", "/gift-guides"] as const;
 const navHomeHiddenOn = (path: string) => NAV_HOME_HIDDEN_ON.some((p) => path === p || path.startsWith(`${p}/`));
 
+/**
+ * Audit 11-21 (P19): on /browse "Jobs" had aria-current but looked like every other link, and on /jobs/<id> no link was
+ * current at all. The section a path belongs to (a job page is Jobs, an item page is Declutter), and the visible mark
+ * the current link wears: the brand olive and an underline (colour is never the only signal).
+ */
+function navSection(path: string): "jobs" | "declutter" | "guides" | null {
+  const under = (p: string) => path === p || path.startsWith(p + "/");
+  if (under("/browse") || under("/jobs")) return "jobs";
+  if (under("/declutter")) return "declutter";
+  if (under("/gift-guides")) return "guides";
+  return null;
+}
+const NAV_CURRENT_MARK = "aria-[current=page]:text-[hsl(var(--bark))] aria-[current=page]:underline aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-[6px]";
+
 const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = false }, ref) => {
   // F017: the landing no longer changes the bar's container (one on every public page, PUBLIC_CONTAINER). D021 (landing
   // design audit 11-10): on a phone the landing's bar keeps only the logo, Log in and Join free; its hero already has
@@ -176,11 +190,11 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
               asChild
               variant="ghost"
               size="sm"
-              className={tight ? "rounded-full px-1.5 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]" : `rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]${phoneHidden}`}
+              className={tight ? `rounded-full px-1.5 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] ${NAV_CURRENT_MARK}` : `rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] ${NAV_CURRENT_MARK}${phoneHidden}`}
             >
               <Link
                 to="/browse"
-                aria-current={location.pathname === "/browse" ? "page" : undefined}
+                aria-current={navSection(location.pathname) === "jobs" ? "page" : undefined}
                 onMouseEnter={() => prefetchRoute("/browse")}
                 onFocus={() => prefetchRoute("/browse")}
               >
@@ -198,11 +212,11 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
               asChild
               variant="ghost"
               size="sm"
-              className={tight ? "rounded-full px-1.5 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]" : `rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]${phoneHidden}`}
+              className={tight ? `rounded-full px-1.5 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] ${NAV_CURRENT_MARK}` : `rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] ${NAV_CURRENT_MARK}${phoneHidden}`}
             >
               <Link
                 to="/declutter"
-                aria-current={location.pathname === "/declutter" ? "page" : undefined}
+                aria-current={navSection(location.pathname) === "declutter" ? "page" : undefined}
               >
                 {tight ? (
                   <>
@@ -218,11 +232,11 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
               asChild
               variant="ghost"
               size="sm"
-              className="hidden md:inline-flex rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+              className={`hidden md:inline-flex rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] ${NAV_CURRENT_MARK}`}
             >
               <Link
                 to="/gift-guides"
-                aria-current={location.pathname.startsWith("/gift-guides") ? "page" : undefined}
+                aria-current={navSection(location.pathname) === "guides" ? "page" : undefined}
                 data-testid="nav-gift-guides"
               >
                 Holiday Gift Guides
@@ -237,11 +251,11 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
               asChild
               variant="ghost"
               size="sm"
-              className={tight ? "md:hidden gap-1 rounded-full px-2 max-[374px]:px-1 max-[374px]:text-ds-13 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]" : "md:hidden gap-1 rounded-full px-2 max-[374px]:text-ds-13 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"}
+              className={`${tight ? "md:hidden gap-1 rounded-full px-2 max-[374px]:px-1 max-[374px]:text-ds-13 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]" : "md:hidden gap-1 rounded-full px-2 max-[374px]:text-ds-13 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"} ${NAV_CURRENT_MARK}`}
             >
               <Link
                 to="/gift-guides"
-                aria-current={location.pathname.startsWith("/gift-guides") ? "page" : undefined}
+                aria-current={navSection(location.pathname) === "guides" ? "page" : undefined}
                 data-testid="nav-gift-guides-phone"
               >
                 <Gift aria-hidden className={tight ? "max-[374px]:hidden" : undefined} />

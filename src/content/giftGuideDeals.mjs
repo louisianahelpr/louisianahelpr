@@ -97,6 +97,7 @@ export const DEALS_WORDS = {
   featuredLine: "Hand-checked sales from brands you already love, all in one place.",
   featuredCta: "See the deals",
   shop: (brand) => `Shop ${brand}`,
+  shopShort: "Shop",
   codeLabel: "Code",
   endsOn: (ymd) => `Ends ${shortDay(ymd)}`,
   startsOn: (ymd) => `Starts ${shortDay(ymd)}`,

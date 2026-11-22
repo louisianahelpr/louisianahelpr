@@ -30,6 +30,7 @@ const HUB_PATH_ALLOWED: Record<string, string> = {
   "src/App.tsx": "the route itself: <Route path=\"/quotes\"> renders QuotesHubRedirect",
   "src/lib/desktopNavRoutes.ts": "a route list (app chrome on /quotes/*), not a link",
   "src/components/mobileNav/mobileNavHelpers.ts": "a route list (app chrome on /quotes/*), not a link",
+  "src/pages/auth/loginNotice.ts": "a route prefix (the Log in line for a /quotes/* link, audit 11-21 P27), not a link",
 };
 
 function walk(dir: string, out: string[] = []): string[] {

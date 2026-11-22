@@ -18,7 +18,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping" }) | t: "Gift wrap" })
  * @mutate src/content/giftGuideCatalog.ts | return rest.every((w) => hasWordStart(hay, w) \|\| | return rest.some((w) => hasWordStart(hay, w) \|\|
  * @mutate src/content/giftGuideCatalog.ts | hasWordStart(hay, w) \|\| (label.get(g.row) ?? []).includes(w)); | hasWordStart(hay, w));
- * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         {query.trim() && ( |         {false && (
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         {showResults && ( |         {false && (
  * @mutate src/content/giftGuideCatalog.ts |   loaded.set(slug, { picks: chunk.picks.map(toPick), | loaded.set(slug, { picks: [],
  */
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
@@ -30,6 +30,8 @@ import type { PickChunk } from "@/content/giftGuidePicks";
 import { LOUISIANA_MADE_BRANDS, SPONSOR_BRANDS, giftGuides } from "@/content/giftGuides";
 import { badgesFor, guideBySlug, loadAllGuidePicks, searchGuides } from "@/content/giftGuideCatalog";
 
+// The guides record views and taps (src/lib/analytics.ts); here they go nowhere, never to Supabase (prodNetworkGuard).
+vi.mock("@/lib/analytics", async (orig) => ({ ...(await orig<object>()), track: vi.fn() }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -107,7 +109,8 @@ describe("gift guides: the shipping banner follows the date in Louisiana", () =>
     expect(Object.values(SHIP_LINES)).toEqual([
       "Order by Dec 15 for Christmas delivery",
       "Last days for Christmas shipping: choose fast shipping",
-      "Last-minute? Gift cards and digital gifts arrive instantly",
+      // Owner 2026-11-21 (holiday audit 1121, #28): "Just don't mention gift cards." (gift cards left the guides 11-20).
+      "Too late to ship? Print a free gift tag or coloring book today",
     ]);
   });
 });
@@ -145,7 +148,7 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
   it("leaves out Hilma's probiotic (health product) but still names Hilma on the sponsors guide", () => {
     expect(guideBySlug("25-days-sponsors")!.picks.some((p) => p.brand === "Hilma" || /probiotic/i.test(p.name))).toBe(false);
     const { container } = renderAt("/gift-guides/25-days-sponsors");
-    expect(container.querySelector("[data-gift-also-sponsoring]")?.textContent).toMatch(/^Also sponsoring: (.*, )?Hilma(,|$)/); // holiday audit B (11-20): every lineup sponsor without a card is named here
+    expect([...container.querySelectorAll("[data-gift-also-sponsoring] [data-gift-also-name]")].map((n) => n.textContent)).toContain("Hilma"); // holiday audit 1121 #77: one chip per name // holiday audit B (11-20): every lineup sponsor without a card is named here
     expect(container.querySelector('a[href*="hilma"]')).toBeNull();
   });
   it("draws the badges on the list, no price but the checked one (owner 11-18), and every Shop link is sponsored + noopener", () => {
@@ -212,7 +215,8 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     const { container } = renderAt("/gift-guides");
     // Owner 11-21: the tools sit on the row under the header, right of the shipping pill.
     const row = container.querySelector("[data-gift-headrow] [data-gift-quick]")!;
-    const input = screen.getByRole("searchbox", { name: "Search gift guides" });
+    // Holiday audit 1121 #20: the search field is a combobox that opens its results.
+    const input = screen.getByRole("combobox", { name: "Search gift guides" });
     expect(input.getAttribute("placeholder")).toBe("Search guides");
     expect(row.contains(input)).toBe(true);
     expect(container.querySelectorAll("input[data-gift-search]").length).toBe(1);
@@ -239,10 +243,10 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     resetGiftListForTests();
   });
   // Owner 2026-11-21: "they don't need an option to heart the whole guide". No guide tile carries a heart; the items do.
-  it("no guide tile has a heart (landing and a group's page); an item heart counts on the tool row's My list icon", () => {
+  it("no guide tile has a heart (the landing; the group pages are gone, holiday audit 1121 #14); an item heart counts on the tool row's My list icon", () => {
     window.localStorage.clear();
     resetGiftListForTests();
-    for (const url of ["/gift-guides", "/gift-guides?group=by-person"]) {
+    for (const url of ["/gift-guides"]) {
       const { container } = renderAt(url);
       const tiles = container.querySelectorAll("li.gg-tile-li");
       expect(tiles.length, url).toBeGreaterThan(1);

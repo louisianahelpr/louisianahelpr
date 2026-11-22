@@ -790,6 +790,23 @@ export const sectionWords = (slug: string): string => {
   return sectionWordsMemo.get(slug)!;
 };
 
+/**
+ * The gift guides' own pages that are not catalog guides (holiday audit 1121: "deals", "black friday", "cyber monday",
+ * "small business", "shop small" and "codes" all said "No guides match"): each live deals day and Shop Small, with the
+ * words a shopper types for them. A page shows when every meaningful query word starts one of its words.
+ */
+const SEARCH_PAGES: { to: string; title: string; tint: "red" | "green"; words: string; live: () => boolean }[] = [
+  { to: "/gift-guides/black-friday", title: "Black Friday deals", tint: "red", words: "black friday deals deal sales sale codes code coupons coupon discount", live: () => isLiveGuide("black-friday") },
+  { to: "/gift-guides/cyber-monday", title: "Cyber Monday deals", tint: "red", words: "cyber monday week deals deal sales sale codes code coupons coupon discount", live: () => isLiveGuide("cyber-monday") },
+  { to: "/gift-guides/small-business-saturday", title: "Small Business Saturday", tint: "green", words: "small business saturday shop local louisiana sponsors", live: () => isLiveGuide("small-business-saturday") },
+  { to: "/shop-small", title: "Shop Small Louisiana", tint: "green", words: "shop small local business businesses louisiana", live: () => true },
+];
+export const searchPages = (query: string): { to: string; title: string; tint: "red" | "green" }[] => {
+  const all = queryWords(query).filter((w) => !SEARCH_FILLER.has(w));
+  if (all.length === 0) return [];
+  return SEARCH_PAGES.filter((p) => p.live() && all.every((w) => hasWordStart(fold(`${p.title} ${p.words}`), w))).map(({ to, title, tint }) => ({ to, title, tint }));
+};
+
 /** One item row of the search index (scripts/gift-guide-search-index.mjs): its name and the guide it sits in. */
 export type SearchItem = [name: string, guide: string];
 let itemIndex: Promise<SearchItem[]> | null = null;

@@ -17,8 +17,8 @@
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx |                 {wide && (\n                  <ApplicantsDesktopTable |                 {false && (\n                  <ApplicantsDesktopTable
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {[selectedJob.title, selectedJob.date_needed ? jobDayLabel(selectedJob) : null] | {[selectedJob.title]
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | {app.flagged_hidden ? ( | {false ? (
- * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | onClick={() => { hapticLight(); onBlock(app); }} | onClick={() => { hapticLight(); }}
- * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | onClick={() => { hapticLight(); onReport(app); }} | onClick={() => { hapticLight(); }}
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | onBlock={() => onBlock(app)} /> | onBlock={() => {}} />
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | onReport={() => onReport(app)} onBlock | onReport={() => {}} onBlock
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | onAcceptApplication={() => onAcceptApplication(app)} | onAcceptApplication={() => {}}
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | {app.status === "pending" && <CompareCheck | {false && <CompareCheck
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsCompareCard.tsx |       {picked.length < 2 ? ( |       {picked.length < 1 ? (
@@ -201,9 +201,12 @@ describe("board 170: the desktop table", () => {
     expect(onHire).toHaveBeenCalledWith(apps[1]);
     fireEvent.click(screen.getByRole("button", { name: "Decline Andre L." }));
     expect(onDecline).toHaveBeenCalledWith(apps[0]);
-    fireEvent.click(screen.getByRole("button", { name: "Report Deon W.'s application" }));
+    // Jobs audit 11-21 (G10): Report and Block are rows of each row's "..." menu (ApplicantMoreMenu).
+    fireEvent.keyDown(screen.getByRole("button", { name: "More for Deon W." }), { key: "Enter" });
+    fireEvent.click(screen.getByRole("menuitem", { name: "Report application" }));
     expect(onReport).toHaveBeenCalledWith(apps[1]);
-    fireEvent.click(screen.getByRole("button", { name: "Block Andre L." }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "More for Andre L." }), { key: "Enter" });
+    fireEvent.click(screen.getByRole("menuitem", { name: "Block Andre L." }));
     expect(onBlock).toHaveBeenCalledWith(apps[0]);
   });
 });

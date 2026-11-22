@@ -77,6 +77,38 @@ export const seasonalJobs: SeasonalJob[] = [
     typical_duration_minutes: 180,
     seasons: [{ from: "07-15", to: "09-10" }],
   },
+  // Audit 11-21 (S39): in late November "In season" was only storm prep. The holidays get their own (Nov 15 to Dec 31;
+  // a window may not wrap past Dec 31). No price, as every seasonal template.
+  {
+    id: "holiday-lights",
+    category: "handyman",
+    icon: "🎄",
+    title: "Hang Christmas lights",
+    description:
+      "Hang string lights along the porch, the front windows and the bushes, and plug them into a timer. Lights and a ladder are here; nothing above the first floor.",
+    typical_duration_minutes: 120,
+    seasons: [{ from: "11-15", to: "12-31" }],
+  },
+  {
+    id: "holiday-guest-clean",
+    category: "cleaning",
+    icon: "🧹",
+    title: "Holiday clean before guests",
+    description:
+      "Clean the kitchen, two bathrooms and the living room, change the guest bed, and take out the trash before family arrives.",
+    typical_duration_minutes: 180,
+    seasons: [{ from: "11-15", to: "12-31" }],
+  },
+  {
+    id: "holiday-furniture-move",
+    category: "moving",
+    icon: "🛋️",
+    title: "Move furniture for holiday guests",
+    description:
+      "Move a couch and two chairs to make room for the tree and a second table, set up folding chairs, then put it all back after the holidays.",
+    typical_duration_minutes: 90,
+    seasons: [{ from: "11-15", to: "12-31" }],
+  },
 ];
 
 /** "MM-DD" of a date in Louisiana (America/Chicago), so the season turns at local midnight, not UTC's. */

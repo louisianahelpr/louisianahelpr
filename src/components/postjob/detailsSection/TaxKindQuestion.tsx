@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { RadioCardList } from "@/components/ui/RadioCardList";
 import { hapticLight } from "@/lib/haptics";
+import { taxKindsFor } from "@/lib/salesTax";
 
 export type JobTaxKind = "item_repair" | "fabric_cleaning" | "clothes_cleaning" | "clothing_alterations";
 
@@ -28,12 +31,37 @@ const OPTIONS: Array<{ value: JobTaxKind | null; label: string; sub: string }> =
 const NONE = "none";
 
 export function TaxKindQuestion({
+  category,
   taxKind,
   setTaxKind,
 }: {
+  /** Audit 11-21 (S32): only the taxed kinds this category's work can be are offered (taxKindsFor). */
+  category: string;
   taxKind: JobTaxKind | null;
   setTaxKind: (next: JobTaxKind | null) => void;
 }) {
+  const offered = taxKindsFor(category);
+  const options = OPTIONS.filter((o) => o.value === null || offered.includes(o.value));
+  // Jobs audit 11-21 (G12): the five large cards took about a phone screen on every cleaning or handyman post, where
+  // "None of these" fits most jobs, and pushed the rest of Details down. The question is one row now, saying the answer
+  // (None of these) with Change; Change, or any answer but None, shows the five cards. The answer and the tax it sets
+  // are unchanged (jobs.tax_kind, checkout prices from it).
+  const [open, setOpen] = useState(taxKind !== null);
+  if (!open && taxKind === null) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border px-4 py-2" data-tax-kind-question="" data-tax-kind-collapsed="">
+        <p className="min-w-0 text-ds-14">
+          <span className="font-semibold">Sales tax:</span> none of these jobs
+          <span className="block text-ds-11 font-sans leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            Taxed only if it fixes an item, cleans carpet, furniture or clothes, or alters clothes.
+          </span>
+        </p>
+        <Button type="button" variant="link" size="sm" className="shrink-0 px-0 text-ds-14 font-semibold" onClick={() => setOpen(true)} data-tax-kind-change="">
+          Change
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className="space-y-2.5" data-tax-kind-question="">
       <div className="space-y-0.5">
@@ -44,7 +72,7 @@ export function TaxKindQuestion({
       </div>
       <RadioCardList
         label="Is this one of these jobs?"
-        options={OPTIONS.map(({ value, label, sub }) => ({ value: value ?? NONE, label, sub }))}
+        options={options.map(({ value, label, sub }) => ({ value: value ?? NONE, label, sub }))}
         value={taxKind ?? NONE}
         onChange={(next, via) => {
           if (via === "click") hapticLight();

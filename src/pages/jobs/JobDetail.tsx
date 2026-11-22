@@ -1,5 +1,5 @@
 import { lazy, Suspense, useRef } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useLocation, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Briefcase } from "lucide-react";
 
@@ -15,7 +15,8 @@ import { useFooterAfterContent } from "@/hooks/useFooterAfterContent";
 import { queryKeys } from "@/lib/queryKeys";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { signedOutOnPurposeRecently } from "@/lib/unexpectedSignOut";
-import PublicLayout from "@/components/marketing/PublicLayout";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
+import { NARROW_COLUMN, NARROW_HEADER_COLUMN } from "@/lib/publicContainer";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase, useProfileWaitPhase } from "@/hooks/useFeedPhase";
@@ -52,6 +53,7 @@ const JobDetail = () => {
   useLanguage(); // design audit areas 11-18 #1: re-render when the Spanish words arrive
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isLoading: authLoading, profileQuery, refresh: refreshCurrentUser } = useCurrentUser();
   // F260o (audit 11-10): a member whose session ended on this page (Apply gave 401s) fell through to the guest branch,
   // and a job the public view does not list (their own, or one they applied to) read "This job isn't available. It may
@@ -137,6 +139,9 @@ const JobDetail = () => {
     canonical: id ? `https://www.louisianahelpr.com/jobs/${id}` : "https://www.louisianahelpr.com/browse",
     ogTitle: headingText,
     ogDescription: jobDescription,
+    // Audit 11-21 (P14): a job that is not public (hired, done, cancelled, gone) is noindex before JS (api/share.ts);
+    // the page said index after JS. Same answer both ways now.
+    robots: !authLoading && !user && !isLoading && !isError && !job ? "noindex, follow" : undefined,
   });
 
   // Signed in: the job's own page (it used to redirect to /home?quickApply=<id>;
@@ -149,7 +154,8 @@ const JobDetail = () => {
     );
   }
 
-  const requireSignup = () => navigate(signupUrlFor(id ? `/jobs/${id}` : null));
+  // Audit 11-21 (P28): the job link's query (?ref=share) rides through sign-up, as it does through Login.
+  const requireSignup = () => navigate(signupUrlFor(id ? `/jobs/${id}${location.search}` : null));
   // F268a: the branch below that draws the guest's job page (every other branch is a state: offline, signed out,
   // loading, error, not available).
   const showsGuestPage = !!job && !authLoading && !isLoading && !isError && !sessionLost && phase !== "offline-empty";
@@ -167,11 +173,23 @@ const JobDetail = () => {
   // can reuse it without a hook landing after an early return.)
 
   return (
-    <PublicLayout noNavSpacer footer={footerReady}>
-      <div ref={contentRef} className="pt-20 pb-safe-nav px-5">
-        <div className="container mx-auto max-w-lg">
-          {/* F268a: on the job's own page the title is the visible heading; every other branch keeps it for readers. */}
-          <h1 data-job-detail-title="" className={showsGuestPage ? "mb-4 text-page-title leading-tight break-words" : "sr-only"}>{headingText}</h1>
+    // Audit 11-21 (P6): the shared public shell (PublicHeaderPage, as /browse, /hire and /u use), not a hand-built
+    // `pt-20 px-5` + `container max-w-lg` that doubled the gutter (content x=52-323 at 375) and set the title 352px
+    // right of the logo at 1440, with no back arrow. The arrow goes back, else to Browse. F268a: on the job's own
+    // page the title is the visible heading; every other branch keeps it for readers (hidesTitle).
+    <PublicHeaderPage
+      title={headingText}
+      backTo="/browse"
+      width="public"
+      wrapTitle
+      hidesTitle={!showsGuestPage}
+      bottomPaddingClassName="pb-safe-nav"
+      footer={footerReady}
+      headerWrapperClassName={NARROW_HEADER_COLUMN}
+    >
+      {/* The town page's ~760px column (F063), title included, so the facts rows read across a reading width. */}
+      <div ref={contentRef} data-job-detail-body="" className={`mx-auto ${NARROW_COLUMN}`}>
+        <div>
           {(authLoading ? authPhase : phase) === "offline-empty" ? (
             <OfflineEmptyState
               body="This job will load here as soon as you're back online."
@@ -219,28 +237,31 @@ const JobDetail = () => {
                done, cancelled, expired) is what an email or push link opens for its
                own poster or Helpr once the session is gone. The public view hides
                it, so this branch used to say "This job isn't available" with no way
-               to log in: members read it as "my job was cancelled". Lead with Log in,
-               carrying the job so Login lands back on it. */
-            /* Design audit areas 11-18 #19: the 404's card (NotFound.tsx): 440px wide, no full stop on the title, Log in
-               the one big primary pill, "Browse jobs" an outline pill, and Spanish for a Spanish reader (#1). */
+               to log in: members read it as "my job was cancelled". Log in stays on the card,
+               carrying the job so Login lands back on it (since audit 11-21 P18 as the second button). */
+            /* Design audit areas 11-18 #19: the 404's card (NotFound.tsx): 440px wide, no full stop on the title, one big
+               primary pill over an outline pill, and Spanish for a Spanish reader (#1). */
             <div className="mx-auto w-full max-w-[440px] flex" data-job-not-found="login">
               <EmptyState
                 variant="inline"
                 icon={Briefcase}
-                title={w("pub.job.loginTitle", "Log in to see this job")}
-                body={w("pub.job.loginBody", "It's only visible to the person who posted it and the person doing it. If it was filled, expired or removed, Browse has what's open today.")}
+                title={w("pub.job.notOpenTitle", "This job isn't open anymore")}
+                body={w("pub.job.notOpenBody", "It may have been filled, expired or removed. If you posted it or you're doing it, log in to see it.")}
                 action={
+                  /* Audit 11-21 (P18): a stranger opening a stale shared link was led with a big Log in. Open jobs
+                     lead now; the poster or Helpr (whose own browser gets the signed-out state above) keeps Log in. */
                   <div className="flex flex-col items-center gap-3 w-full">
                     <Button
                       variant="primary"
                       size="lg"
-                      onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`)}
+                      onClick={() => navigate("/browse")}
                       className="w-full max-w-[280px] rounded-full"
+                      data-job-not-found-primary="browse"
                     >
-                      {w("pub.logIn", "Log in")}
+                      {w("pub.job.seeOpen", "See open jobs")}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => navigate("/browse")} className="rounded-full">
-                      {w("pub.browseJobs", "Browse jobs")}
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`)} className="rounded-full">
+                      {w("pub.job.postedOrWorking", "Posted it or working it? Log in")}
                     </Button>
                   </div>
                 }
@@ -269,7 +290,7 @@ const JobDetail = () => {
           )}
         </div>
       </div>
-    </PublicLayout>
+    </PublicHeaderPage>
   );
 };
 

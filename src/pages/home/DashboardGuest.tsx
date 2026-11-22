@@ -7,6 +7,7 @@ import { Search, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { wordInLang } from "@/lib/i18n/inLang";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
@@ -380,9 +381,12 @@ const DashboardGuest = () => {
         return (
         <div className={emptyWrapperClass}>
           {isError ? (
+          // Audit 11-21 (P16): "Pull down to refresh, or tap Try again" on desktop web, which has neither. The inline card
+          // and one retry line, as on /helprs and /search.
           <ErrorState
-            title="We couldn't load jobs."
-            body="Pull down to refresh, or tap Try again. If it sticks, our end is having a hiccup — not yours."
+            variant="inline"
+            title={wordInLang("pub.jobsLoadFailed", "We couldn't load jobs.")}
+            body={wordInLang("pub.retryBody", "Try again. If it sticks, our end is having a hiccup, not yours.")}
             onRetry={() => refetch()}
           />
           ) : (
@@ -408,7 +412,7 @@ const DashboardGuest = () => {
                 onClearFilters={filters.clearFilters}
                 clearLabel={browseFilteredEmptyCopy({ searchQuery: filters.searchQuery, activeFilterCount: filters.activeFilterCount, nearbyActive, currentMiles, nextMiles }).clearLabel}
                 onNotify={() => navigate(NOTIFY_SIGNUP_URL)}
-                onHire={() => navigate("/signup")}
+                onHire={() => navigate("/post-job")}
                 onDeclutter={() => navigate("/declutter")}
               />
             }

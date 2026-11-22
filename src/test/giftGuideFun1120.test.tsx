@@ -12,7 +12,7 @@
  *
  * @mutate src/content/giftGuideFun1120.ts |       if (taken[r] \|\| blocked[giver].has(r)) continue; |       if (taken[r]) continue;
  * @mutate src/content/giftGuideFun1120.ts |       blocked[b].add(a); |       blocked[b].add(b);
- * @mutate src/content/giftGuideFun1120.ts |   for (const p of from.filter(fits)) {\n    if (out.length >= SWIPE_ROUND) break;\n    if (!p.href \|\| !p.name \|\| seen.has(p.href) \|\| used.has(p.href)) continue; |   for (const p of from.filter(fits)) {\n    if (out.length >= SWIPE_ROUND) break;\n    if (!p.href \|\| !p.name \|\| used.has(p.href)) continue;
+ * @mutate src/content/giftGuideFun1120.ts |   const ok = (p: T) => !!p.href && !!p.name && !seen.has(p.href) && !used.has(p.href); |   const ok = (p: T) => !!p.href && !!p.name && !used.has(p.href);
  * @mutate src/content/giftGuideFun1120.ts |   const spent = sum(p.ideas.filter((i) => i.bought)); |   const spent = sum(p.ideas);
  * @mutate src/content/giftGuideFun1120.ts |   if (md > "12-25") return { kind: "after" }; |   if (md > "12-26") return { kind: "after" };
  * @mutate src/content/giftGuideFun1120.ts |   return flagOn && md >= "12-01" && md <= "12-25"; |   return md >= "12-01" && md <= "12-25";
@@ -57,6 +57,11 @@ vi.mock("@/lib/giftGuideFunApi", () => ({
   SantaSaveError: class extends Error {},
   loadAccountPlan: (...a: unknown[]) => loadAccountPlan(...a),
   saveAccountPlan: (...a: unknown[]) => saveAccountPlan(...a),
+}));
+// The match's list in place on the reveal (santaWishList1121.test.tsx covers it); here it reads nothing.
+vi.mock("@/lib/giftWishListApi", async (orig) => ({
+  ...(await orig<typeof import("@/lib/giftWishListApi")>()),
+  getSharedList: vi.fn(async () => null),
 }));
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import SecretSantaReveal from "@/pages/info/giftGuides/fun/SecretSantaReveal";
@@ -265,7 +270,9 @@ describe("swipe rounds", () => {
     // from its whole flat list now (it read sections the list no longer has): 8+ at every budget but kids/25, 6.
     // Train 1121g (the owner's LSU saves and the Kids cart/price picks together): kids/25 now deals 8+ (measured 2026-11-21).
     // @two-way src/test/giftGuideFun1120.test.tsx:expect(thin).toEqual(KNOWN_THIN)
-    const KNOWN_THIN = ["mom/25: 6", "her/25: 6"];
+    // Holiday audit 1121 #11 (2026-11-21): a round now fills from a capped store once the other stores run out
+    // (giftGuideFun1120.ts dealRound), so mom/25, her/25 and kids/25 deal every fitting pick and are 8+ (measured).
+    const KNOWN_THIN: string[] = [];
     expect(thin).toEqual(KNOWN_THIN);
   });
 

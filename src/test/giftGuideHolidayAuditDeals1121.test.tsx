@@ -9,10 +9,12 @@
  * @mutate src/content/giftGuideDeals.mjs |   return codes.find((c) => c.code === deal.code && c.expires && storeKey(c.store) === storeKey(deal.brand))?.expires; |   return undefined;
  * @mutate src/content/giftGuideDeals.mjs |   return expires && expires < today ? undefined : deal.code; |   return deal.code;
  * @mutate src/content/giftGuideDeals.mjs |   return ends ? ends >= today : today <= RETITLE_AFTER; |   return ends ? ends >= today : true;
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   const codeRows = Math.min(stores, sales.length > 0 ? DEALS_ROWS - SALES_MIN : DEALS_ROWS); |   const codeRows = Math.min(stores, DEALS_ROWS);
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | <span data-gift-shop="">{W.shopShort}<span className="sr-only"> {deal.brand}</span></span> | <span data-gift-shop="">{W.shop(deal.brand)}</span>
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <Link to={`/gift-guides/${d.id}`} {...current(d.id)} data-gift-side-deals={d.id}> | <Link to={`/gift-guides/black-friday-cyber-monday#${d.id}`} data-gift-side-deals={d.id}>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import DEALS from "@/content/giftGuideDeals.json";
 import { DEAL_EVENTS, RETITLE_AFTER, dealCode, dealDay, dealEnds, liveDeals, type Deal } from "@/content/giftGuideDeals.mjs";
@@ -49,7 +51,7 @@ describe("deal cards never outlive their sale (holiday audit 1121, High)", () =>
       const day = dealDay(d.event)!;
       for (const [ymd, has] of [[expires, true], [plus(expires, 1), false]] as const) {
         const { container } = render(<MemoryRouter><GiftGuideDeals day={day} now={new Date(`${ymd}T18:00:00Z`)} /></MemoryRouter>);
-        await screen.findAllByText(/Shop |These deals have ended/);
+        await screen.findAllByText(/^Shop$|These deals have ended/);
         expect(!!container.querySelector(`[data-gift-deal-code="${d.code}"]`), `${d.brand} ${d.code} on ${ymd}`).toBe(has);
         cleanup();
       }
@@ -67,6 +69,29 @@ describe("deal cards never outlive their sale (holiday audit 1121, High)", () =>
 
   it("the after-the-day line never says the sales are still on", () => {
     expect(DEAL_EVENTS.filter((e) => /still on/i.test(e.after)).map((e) => e.id)).toEqual([]);
+  });
+});
+
+describe("deal cards and the codes box read cleanly (holiday audit 1121, Lows)", () => {
+  it("no 'On <store>' line, 'Shop ›' on one line with the brand for screen readers, no campaign names in the text", async () => {
+    const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("black-friday")!} now={new Date("2026-11-25T18:00:00Z")} /></MemoryRouter>);
+    await waitFor(() => expect(document.querySelector("[data-gift-deal]")).not.toBeNull());
+    const cards = [...container.querySelectorAll("[data-gift-deal]")];
+    expect(cards.length).toBeGreaterThan(5);
+    for (const c of cards) {
+      expect(c.querySelector("[data-gift-deal-dates]")?.textContent ?? "", c.getAttribute("data-gift-deal")!).not.toMatch(/\bOn /);
+      const shop = c.querySelector("[data-gift-shop]")!;
+      expect(shop.firstChild?.textContent).toBe("Shop");
+      expect(shop.querySelector(".sr-only")?.textContent?.trim()).toBe(c.getAttribute("data-gift-deal"));
+    }
+    expect(deals.filter((d) => /turkey 12/i.test(d.deal)).map((d) => d.brand)).toEqual([]);
+  });
+  it("the codes box keeps rows for the sales whenever there are any (it showed a Sales heading over no rows)", async () => {
+    const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("black-friday")!} now={new Date("2026-11-25T18:00:00Z")} /></MemoryRouter>);
+    await waitFor(() => expect(document.querySelector("[data-gift-deal]")).not.toBeNull());
+    const sales = container.querySelector("[data-gift-deals-codes] [data-gift-sales]");
+    if (sales) expect(sales.querySelectorAll("li[data-gift-sale]").length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelector("[data-gift-deals-count]")?.textContent ?? "").not.toMatch(/\bdeals?\b/);
   });
 });
 

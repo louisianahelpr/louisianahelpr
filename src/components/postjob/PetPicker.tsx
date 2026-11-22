@@ -64,22 +64,39 @@ export function PetPicker({
 
   if (isError) report(error, { tags: { source: "PetPicker.pet_profiles" } });
 
+  // Audit 11-21 (P4): a guest's query never runs (enabled: !!user), so "Loading your pets…" never ended, and
+  // "Add a pet" went to /profile?tab=pets, a login wall that pulled the guest out of the post.
+  if (!user) {
+    return (
+      <div className="space-y-1" data-testid="pet-picker-guest">
+        <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>Which pet is this for?</p>
+        <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          You can add your pet&rsquo;s details after you sign up, and send them to your Helpr.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="text-ds-11 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-          Which Pet Is This For?
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+          Which pet is this for?
         </p>
         <Link
           to="/profile?tab=pets"
-          className="text-ds-11 font-medium inline-flex items-center gap-1 btn-press"
+          className="text-ds-13 font-medium inline-flex min-h-11 items-center gap-1 px-1 btn-press"
           style={{ color: "hsl(var(--bark))" }}
         >
-          <Plus className="w-3 h-3" /> Add a pet
+          <Plus className="w-3.5 h-3.5" aria-hidden /> Add a pet
         </Link>
       </div>
 
-      {!pets ? (
+      {isError ? (
+        <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          We couldn&rsquo;t load your pets. You can still post, and add their details in the description.
+        </p>
+      ) : !pets ? (
         <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Loading your pets…
         </p>

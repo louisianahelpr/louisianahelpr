@@ -32,6 +32,8 @@ import { ID_VERIFIED_LABEL, ID_VERIFIED_PILL_STYLE, IdVerifiedShield } from "@/c
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import "@/lib/i18n/enYourPage";
+import { t } from "@/lib/i18n/language";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { itemPriceLabel } from "@/lib/declutter/distance";
@@ -196,8 +198,18 @@ function Pane({ hidden, children }: { hidden: string; children: React.ReactNode 
   return <div className={`empty:hidden ${hidden}`}>{children}</div>;
 }
 
+/** The server's stand-in name for a member with no public name (member_display_name's fallback), or no name at all. */
+function isUnnamedProfile(name: string | null | undefined): boolean {
+  const n = (name ?? "").trim();
+  return n === "" || /^a neighbor$/i.test(n);
+}
+
 function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null, guestShell = false }: { p: PublicProfile; signedIn: boolean; isMe: boolean; ctaReady: boolean; viewerId?: string | null; guestShell?: boolean }) {
-  const first = p.name.split(/\s+/)[0] || "this member";
+  // Audit 11-21 (P3): a member with no public name comes back as "A neighbor" (public_profile_by_handle's
+  // member_display_name fallback), and its first word made "Share A's profile" and "A hasn't posted anything yet".
+  const unnamed = isUnnamedProfile(p.name);
+  const first = unnamed ? "this member" : p.name.trim().split(/\s+/)[0];
+  const shareLabel = unnamed ? "Share this profile" : `Share ${first}'s profile`;
   const skills = skillChips(p.skills);
   const work = p.portfolio_urls ?? [];
   const listingTotal = Math.max(p.listing_count ?? 0, p.listings.length);
@@ -267,10 +279,10 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null, guestShell 
           {ctaReady && !isMe && (team ? <MessageSupportButton /> : <HireMeButton handle={p.handle} signedIn={signedIn} />)}
           {ctaReady && <div className={isMe ? "mt-4 max-lg:mt-0 max-lg:w-full" : "mt-2 max-lg:order-2 max-lg:mt-0"}>
             <Button type="button" size="phoneSm" variant={isMe ? "default" : "outline"} className={isMe ? "btn-grad-primary w-full rounded-full" : "w-full rounded-full max-lg:w-auto"}
-              aria-label={isMe ? undefined : `Share ${first}'s profile`}
-              onClick={() => void shareMyProfile(p.handle, isMe ? null : p.name)}>
+              aria-label={isMe ? undefined : shareLabel}
+              onClick={() => void shareMyProfile(p.handle, isMe || unnamed ? null : p.name)}>
               <Share2 className="mr-2 h-4 w-4" aria-hidden />
-              {isMe ? "Share my profile" : (<><span className="max-lg:hidden">{`Share ${first}'s profile`}</span><span className="lg:hidden">Share</span></>)}
+              {isMe ? "Share my profile" : (<><span className="max-lg:hidden">{shareLabel}</span><span className="lg:hidden">Share</span></>)}
             </Button>
           </div>}
         </div>
@@ -314,7 +326,7 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null, guestShell 
       {ctaReady && isMe && <Pane hidden={hide("work")}><MyJobPhotosPicker handle={p.handle} /></Pane>}
 
       {nothing && (
-        <p className="text-center text-ds-14 text-muted-foreground">{first} hasn&apos;t posted anything yet.</p>
+        <p className="text-center text-ds-14 text-muted-foreground">{unnamed ? "This member" : first} hasn&apos;t posted anything yet.</p>
       )}
 
       {/* Profile leftovers 11-05: "See the whole sale" lands here now; the same moving-sale banner /user draws. */}
@@ -460,14 +472,20 @@ export default function PublicProfilePage() {
   // profile_page_hidden, 20261105172514). The owner gets told it is their page and why it is hidden; everyone else
   // keeps the generic card, which never says why (test: publicProfileOwnHiddenPage).
   const ownHidden = !!handle && !!me?.handle && me.handle === handle;
+  // Audit 11-21 (P20): the reason here said "once your email is verified and your account is in good standing" while
+  // Home's "Your public profile" card said "under review", and the button read "Go to You". One explanation now, the
+  // card's own words (YourPageLink: an unconfirmed email is the reason a member can act on, anything else is a review).
+  const ownHiddenEmail = me?.email_verified === false;
   const unavailable = ownHidden ? (
     <EmptyState
       icon={UserX}
-      title="Your public profile is hidden right now"
-      body="Neighbors can't open it yet. Your public profile shows once your email is verified and your account is in good standing. A test account never has a public page."
+      title={t("yp.hidden")}
+      body={ownHiddenEmail ? t("yp.hiddenEmail") : t("yp.hiddenOther")}
       action={
         <Button asChild className="btn-grad-primary rounded-full">
-          <Link to="/profile">Go to You</Link>
+          {ownHiddenEmail
+            ? <Link to="/profile?tab=security">{t("yp.hiddenEmailAction")}</Link>
+            : <Link to="/profile">{t("yp.goToProfile")}</Link>}
         </Button>
       }
     />

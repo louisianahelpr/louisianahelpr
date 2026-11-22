@@ -88,11 +88,13 @@ interface AppPageProps {
    * breadcrumb) and its own h1 for that width; a phone keeps the row and its back arrow.
    */
   desktopHidesHeader?: boolean;
+  /** A step-by-step flow (Post a job): a guest's public frame keeps its header and drops the site footer (P26). */
+  focusedFlow?: boolean;
   /** Page content. */
   children: ReactNode;
 }
 
-function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader: stickyAsked, wrapTitle, phoneBleed, desktopHidesHeader, children }: AppPageProps) {
+function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader: stickyAsked, wrapTitle, phoneBleed, desktopHidesHeader, focusedFlow, children }: AppPageProps) {
   // D12 (Cowork audit 2026-10-20): the browser tab names the page (an item, Sell an
   // item, ...), not the landing page. A page's own usePageTitle / usePageMeta wins.
   usePageTitle(`${title} — Helpr`);
@@ -107,7 +109,7 @@ function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTi
               {children}
             </ProfileTabBody>
   );
-  if (guestFrame) return <GuestPublicFrame>{body}</GuestPublicFrame>;
+  if (guestFrame) return <GuestPublicFrame focused={focusedFlow}>{body}</GuestPublicFrame>;
   return (
     <AppShell
       scrollable={false}

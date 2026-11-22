@@ -39,9 +39,11 @@ import { join } from "node:path";
  * check, then one RETURN QUERY SELECT, no INSERT/UPDATE/DELETE (read from the migration; re-check provolatile = 's' after deploy).
  * `admin_app_signins_week` added 2026-11-20 (owner app sign-ins, 20261120150247): plpgsql STABLE SECURITY DEFINER, an
  * admin check, then one SELECT into jsonb, no INSERT/UPDATE/DELETE (read from the migration; re-check provolatile = 's' after deploy).
+ * `admin_wish_link_requests` added 2026-11-21 (Santa wish links, 20261121221514): STABLE SECURITY DEFINER, an admin
+ * check, then one SELECT, no INSERT/UPDATE/DELETE (read from the migration; re-check provolatile = 's' after deploy).
  */
 export const READ_RPC =
-  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_support_replies(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|shops_admin_queue(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$)|admin_section_funnel(\?|$)|admin_sms_status(\?|$)|admin_approval_escalation_queue(\?|$)|admin_booking_sources(\?|$)|admin_signup_source_report(\?|$)|declutter_admin_fee_debts(\?|$)|declutter_funnel_counts(\?|$)|admin_payout_batch_money_modes(\?|$)|declutter_admin_ship_claims_due(\?|$)|admin_sales_tax_adjustments(\?|$)|admin_app_signins_week(\?|$))/;
+  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_support_replies(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|shops_admin_queue(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$)|admin_section_funnel(\?|$)|admin_sms_status(\?|$)|admin_approval_escalation_queue(\?|$)|admin_booking_sources(\?|$)|admin_signup_source_report(\?|$)|declutter_admin_fee_debts(\?|$)|declutter_funnel_counts(\?|$)|admin_payout_batch_money_modes(\?|$)|declutter_admin_ship_claims_due(\?|$)|admin_sales_tax_adjustments(\?|$)|admin_app_signins_week(\?|$)|admin_wish_link_requests(\?|$))/;
 
 /**
  * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is
@@ -49,6 +51,11 @@ export const READ_RPC =
  * this one". Each verified `provolatile = 'v'` on prod, 2026-09-20.
  */
 export const WRITE_RPC = new Set([
+  // 2026-11-21 (Santa wish links, 20261121221514): fill / dismiss one queued wish-link request; each plpgsql
+  // VOLATILE SECURITY DEFINER, admin only, updating wish_link_requests. The list (admin_wish_link_requests) is
+  // STABLE and sits in READ_RPC above.
+  "admin_wish_link_request_fill",
+  "admin_wish_link_request_dismiss",
   // 2026-11-03 (train 7, b66 shipping claims/return labels; 20261103212046, 20261103213005, 20261103214253): each
   // plpgsql VOLATILE SECURITY DEFINER, admin only, writing shipping_claim_payouts / shipping_return_labels. The due list
   // (declutter_admin_ship_claims_due) is STABLE and sits in READ_RPC above.

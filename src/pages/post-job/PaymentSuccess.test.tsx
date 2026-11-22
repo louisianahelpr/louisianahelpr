@@ -225,6 +225,42 @@ describe("PaymentSuccess", () => {
     });
   });
 
+  // Audit 11-21 (L29): a well-formed id whose read answers with no row was told "We couldn't reach our records".
+  // lh-money-escrow review: an empty read keeps polling; not-found only when every attempt is empty.
+  // @mutate src/pages/post-job/PaymentSuccess.tsx |           lastNoRow = true;\n          continue; |           lastNoRow = true;\n          break;
+  // @mutate src/pages/post-job/PaymentSuccess.tsx | sawReadError ? "unreachable" : lastNoRow ? "not-found" : "pending" | sawReadError ? "unreachable" : "pending"
+  describe("the read answers, but there is no such job on this account", () => {
+    it("every attempt empty: says it couldn't confirm the job yet (not that the records were unreachable), never a success or a failure", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      jobsLookup = { data: null, error: null };
+      renderAt();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(8_000);
+      });
+      await waitFor(() => expect(screen.getByText(/we couldn't confirm your payment/i)).toBeInTheDocument());
+      expectNoSuccessClaim();
+      expect(screen.getByText(/couldn't confirm this job on your account yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/does not mean your payment failed/i)).toBeInTheDocument();
+      expect(screen.queryByText(/couldn't reach our records/i)).toBeNull();
+      expect(maybeSingle.mock.calls.length).toBeGreaterThan(1);
+    });
+
+    it("an empty first read followed by a held row ends held (a just-paid poster is never told the job is missing)", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      jobsLookup = { data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: POSTER, status: "open" }, error: null };
+      maybeSingle.mockImplementationOnce(async () => ({ data: null, error: null }));
+      renderAt();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4_000);
+      });
+      await waitFor(() => {
+        expect(maybeSingle.mock.calls.length).toBeGreaterThan(1);
+        expect(screen.queryByText(/we couldn't confirm your payment/i)).toBeNull();
+      });
+      expect(screen.queryByText(/couldn't confirm this job on your account/i)).toBeNull();
+    });
+  });
+
   describe("no job reference at all", () => {
     it("admits it cannot confirm rather than defaulting to success", async () => {
       renderAt("");

@@ -8,7 +8,7 @@
  * @mutate src/index.css | .font-display:not(.landing-h1, .landing-h1 *, .font-moment) { | .font-display-off {
  * @mutate src/components/landing/HeroSection.tsx | className="landing-h1 relative | className="relative
  * @mutate src/components/dashboard/JobCard.tsx |         {/* No category rail: |         <span aria-hidden className={`${JOB_CARD_RAIL}`} />\n        {/* No category rail:
- * @mutate src/components/ui/skeletons/JobCardSkeleton.tsx |         {/* No category rail: |         <span className={JOB_CARD_RAIL} />\n        {/* No category rail:
+ * @mutate src/components/ui/skeletons/JobCardSkeleton.tsx |         {/* The tile, in the row's own py-3 | <span className={JOB_CARD_RAIL} />\n        {/* The tile, in the row's own py-3
  * @mutate src/components/job/JobCategoryTab.tsx | className={`job-cat-label inline-flex | className={`job-cat-label bg-primary inline-flex
  * @mutate src/main.tsx | installLargeTitles();\n |
  * @mutate src/components/dashboard/FilterSheet.tsx |         floor\n        // The Filters button |         floor={false}\n        // The Filters button

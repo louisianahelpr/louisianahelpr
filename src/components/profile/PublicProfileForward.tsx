@@ -96,10 +96,16 @@ export function BookHelprRoute({ children }: { children: ReactNode }) {
         icon={UserX}
         title="This Helpr isn't available"
         body="The link may be old, or this profile isn't public right now."
+        // Audit 11-21 (S35): "Go home" was the only way on. Someone who came to book a Helpr can find another one.
         action={
-          <Button asChild className="btn-grad-primary rounded-full">
-            <Link to={user ? "/home" : "/"}>Go home</Link>
-          </Button>
+          <div className="flex flex-col items-center gap-3">
+            <Button asChild className="btn-grad-primary rounded-full">
+              <Link to="/helprs" data-book-find-helpr="">Find a Helpr</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="rounded-full">
+              <Link to={user ? "/home" : "/"}>Go home</Link>
+            </Button>
+          </div>
         }
       />
     </AppPage>

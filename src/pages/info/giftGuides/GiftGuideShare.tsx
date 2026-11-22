@@ -6,7 +6,7 @@ import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { SITE_ORIGIN } from "@/lib/publicPageMeta.mjs";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import { giftGuides as G } from "@/content/giftGuides";
-import { guideBySlug, loadSearchItems, searchGuides, searchItems, type SearchItem } from "@/content/giftGuideCatalog";
+import { guideBySlug, loadSearchItems, searchGuides, searchItems, searchPages, type SearchItem } from "@/content/giftGuideCatalog";
 import { MY_LIST_SLUG, useGiftList } from "./giftList";
 import { WISH } from "@/content/giftWishList";
 
@@ -103,6 +103,8 @@ function GiftGuideShare({ path, title, image, many = false }: { path: string; ti
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLSpanElement>(null);
   const links = shareLinks(path, title, image);
   const url = links.url;
   const native = typeof navigator !== "undefined" && typeof navigator.share === "function";
@@ -111,16 +113,30 @@ function GiftGuideShare({ path, title, image, many = false }: { path: string; ti
     const away = (e: Event) => {
       if (!wrap.current?.contains(e.target as Node)) setOpen(false);
     };
+    // Holiday audit 1121 #21: Escape hands focus back to Share (it dropped to the page body).
     const esc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      button.current?.focus();
     };
     document.addEventListener("pointerdown", away);
     document.addEventListener("keydown", esc);
+    // The menu pattern role="menu" promises: focus moves into the menu when it opens.
+    menuItems(menu.current)[0]?.focus();
     return () => {
       document.removeEventListener("pointerdown", away);
       document.removeEventListener("keydown", esc);
     };
   }, [open]);
+  // Arrow keys move through the items (wrapping), Home / End jump to the ends.
+  const arrows = (e: React.KeyboardEvent) => {
+    const all = menuItems(menu.current);
+    const i = all.indexOf(document.activeElement as HTMLElement);
+    const to = e.key === "ArrowDown" ? (i + 1) % all.length : e.key === "ArrowUp" ? (i - 1 + all.length) % all.length : e.key === "Home" ? 0 : e.key === "End" ? all.length - 1 : -1;
+    if (to < 0) return;
+    e.preventDefault();
+    all[to]?.focus();
+  };
   const copy = () => {
     void navigator.clipboard?.writeText(url).then(
       () => setCopied(true),
@@ -135,12 +151,12 @@ function GiftGuideShare({ path, title, image, many = false }: { path: string; ti
   };
   return (
     <span ref={wrap} className="gg-share-wrap">
-      <RoundIconButton className="gg-icon" aria-label={G.shareLabel} aria-expanded={open} aria-haspopup="menu"
+      <RoundIconButton ref={button} className="gg-icon" aria-label={G.shareLabel} aria-expanded={open} aria-haspopup="menu"
         onClick={() => { setCopied(false); setOpen((o) => !o); }} data-gift-share="">
         <Icon d={SHARE} />
       </RoundIconButton>
       {open && (
-        <span className="gg-share-menu" role="menu" aria-label={G.shareMenuLabel} data-gift-share-menu="">
+        <span ref={menu} className="gg-share-menu" role="menu" aria-label={G.shareMenuLabel} onKeyDown={arrows} data-gift-share-menu="">
           <InlineTextButton role="menuitem" onClick={copy} data-gift-copy-link="">{copied ? G.linkCopied : G.copyLink}</InlineTextButton>
           <a role="menuitem" href={smsHref(links.url, title, typeof navigator === "undefined" ? "" : navigator.userAgent)} data-gift-text="">{many ? G.textGuides : G.textGuide}</a>
           {native && <InlineTextButton role="menuitem" onClick={shareSheet} data-gift-share-native="">{G.moreShare}</InlineTextButton>}
@@ -151,6 +167,9 @@ function GiftGuideShare({ path, title, image, many = false }: { path: string; ti
     </span>
   );
 }
+
+/** The focusable items of an open menu, in order. */
+const menuItems = (menu: HTMLElement | null): HTMLElement[] => (menu ? [...menu.querySelectorAll<HTMLElement>("[role=menuitem]")] : []);
 
 /** My Wish List as an icon with its count (a link to /gift-guides/my-list). */
 function MyListIcon({ current }: { current: boolean }) {
@@ -172,7 +191,22 @@ function MyListIcon({ current }: { current: boolean }) {
  */
 export function GiftGuideTools({ path, title, image, many = false, myList = false, sort }: { path: string; title: string; image?: string; many?: boolean; myList?: boolean; sort?: { order: SortOrder; onChange: (o: SortOrder) => void } }) {
   const [query, setQuery] = useState("");
+  // Holiday audit 1121 #20: the results close on a tap outside the search (they stayed over the tiles until Escape),
+  // and open again when the field is focused or typed in.
+  const [resultsOpen, setResultsOpen] = useState(true);
+  const searchBox = useRef<HTMLDivElement>(null);
+  const showResults = !!query.trim() && resultsOpen;
+  useEffect(() => {
+    if (!showResults) return;
+    const away = (e: Event) => {
+      if (!searchBox.current?.contains(e.target as Node)) setResultsOpen(false);
+    };
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [showResults]);
   const found = query.trim() ? searchGuides(query) : [];
+  // The deals days and Shop Small (holiday audit 1121): pages, not guides, found by their own words.
+  const pages = query.trim() ? searchPages(query) : [];
   // Holistic review 11-18 H5: product names too ("airpods"), from an index fetched on the first keystroke.
   const [items, setItems] = useState<SearchItem[] | null>(null);
   // Holiday audit 1121: offline, the gift results could not load and the box said "No guides match". It now says the
@@ -191,15 +225,24 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
   const foundItems = query.trim() && items ? searchItems(items, query) : [];
   return (
     <div className="gg-tools" role="group" aria-label={G.quickLabel} data-gift-quick="">
-      <div className="gg-tools-search">
+      <div ref={searchBox} className="gg-tools-search">
         <label id="gift-search" className="gg-search rounded-full focus-within:ring-2 focus-within:ring-ring">
           <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} /><path d="M20 20l-4-4" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" /></svg>
-          <Input look="bare" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={G.searchPlaceholder} aria-label={G.searchLabel} data-gift-search="" />
+          <Input look="bare" type="search" value={query} onChange={(e) => { setQuery(e.target.value); setResultsOpen(true); }} onFocus={() => setResultsOpen(true)}
+            placeholder={G.searchPlaceholder} aria-label={G.searchLabel} role="combobox" aria-autocomplete="list" aria-expanded={showResults} aria-controls="gift-search-results" data-gift-search="" />
         </label>
-        {query.trim() && (
-          <ul className="gg-search-results" data-gift-search-results="" aria-live="polite">
+        {showResults && (
+          <ul id="gift-search-results" className="gg-search-results" data-gift-search-results="" aria-live="polite">
             {itemsFailed && !items && <li className="gg-search-none" data-gift-search-offline="">{G.searchFailed}</li>}
-            {found.length === 0 && foundItems.length === 0 && !(itemsFailed && !items) && <li className="gg-search-none">{G.searchNone}</li>}
+            {found.length === 0 && foundItems.length === 0 && pages.length === 0 && !(itemsFailed && !items) && <li className="gg-search-none">{G.searchNone}</li>}
+            {pages.map((p) => (
+              <li key={p.to}>
+                <Link to={p.to} onClick={() => setQuery("")} data-gift-found-page={p.to}>
+                  <span className={`gg-search-thumb gg-check gg-${p.tint}`} aria-hidden="true" />
+                  <span>{p.title}</span>
+                </Link>
+              </li>
+            ))}
             {found.length > 0 && foundItems.length > 0 && <li className="gg-search-head" aria-hidden="true">{G.searchGuidesTitle}</li>}
             {found.slice(0, 12).map((g) => (
               <li key={g.slug}>

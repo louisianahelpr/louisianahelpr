@@ -28,6 +28,13 @@ interface TitleFieldProps {
  * made on 2026-08-25 and the hook is deleted; git history has it if dictation
  * ever comes back.
  */
+/** Audit 11-21 (L32): a paste cut at TITLE_MAX ended mid-word ("...house bef"); it ends at the last whole word. */
+function atWordEnd(value: string): string {
+  if (value.length < TITLE_MAX) return value;
+  const space = value.lastIndexOf(" ");
+  return space > TITLE_MAX / 2 ? value.slice(0, space) : value;
+}
+
 export function TitleField({ title, setTitle, category }: TitleFieldProps) {
   const { t: tr } = useLanguage();
   // `maxLength` stops TYPING past the limit, but not a programmatic prefill.
@@ -84,7 +91,7 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
         <Input
           id="title"
           value={title}
-          onChange={(e) => { setCut(pasteCut.current); pasteCut.current = false; setTitle(e.target.value); }}
+          onChange={(e) => { const wasCut = pasteCut.current; setCut(wasCut); pasteCut.current = false; setTitle(wasCut ? atWordEnd(e.target.value) : e.target.value); }}
           onPaste={onPaste}
           placeholder={titlePlaceholders[category] ?? titlePlaceholders.other}
           required

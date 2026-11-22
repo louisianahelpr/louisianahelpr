@@ -23,6 +23,7 @@ import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
+import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Input } from "@/components/ui/input";
@@ -70,11 +71,9 @@ function QuoteCard({ quote, requestOpen, requestId }: { quote: RequestQuote; req
     <li className="rounded-2xl border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          {quote.quoter_avatar_url ? (
-            <img src={quote.quoter_avatar_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-          ) : (
-            <span aria-hidden className="h-10 w-10 shrink-0 rounded-full bg-muted" />
-          )}
+          {/* Audit 11-21 (L34): a quoter with no photo was a blank grey circle; applicants show initials. The shared
+              avatar (photo, else initials on a colour) as everywhere else. */}
+          <UserAvatar userId={quote.quoter_id} src={quote.quoter_avatar_url} name={formatName(quote.quoter_name, "A member")} pixelSize={40} aria-hidden className="h-10 w-10 shrink-0" />
           <p className="min-w-0 font-semibold text-foreground break-words">{formatName(quote.quoter_name, "A member")}</p>
         </div>
         <p className="shrink-0 text-lg font-semibold tabular-nums text-foreground">{dollars(quote.price_cents)}</p>
@@ -103,6 +102,7 @@ function QuoteCard({ quote, requestOpen, requestId }: { quote: RequestQuote; req
           quoteId={quote.id}
           priceCents={quote.price_cents}
           acceptLabel={`Accept ${dollars(quote.price_cents)}`}
+          acceptNote="Your other quotes close. Then you book and pay, and the money is held until the job is done."
           invalidate={[["quotes", "request", requestId], ["quotes", "my-requests"]]}
         />
       )}

@@ -82,7 +82,10 @@ describe("photo-first Browse job cards", () => {
 
   it("on a phone the meta line takes two lines beside the tile instead of clipping the time", () => {
     const css = blankCssComments(fs.readFileSync("src/index.css", "utf8"));
-    const block = css.slice(css.indexOf("@media (max-width: 767px) {\n  .job-card-media-col"));
+    // Jobs audit 11-21 (P9): the column's own width decides (a container query), not the screen's.
+    const at = css.indexOf("@container (max-width: 459px) {\n  .job-card-media-col");
+    expect(at).toBeGreaterThan(-1);
+    const block = css.slice(at);
     expect(block).toContain(".job-card-media-col .job-meta-row { flex-wrap: wrap; }");
     expect(block).toContain(".job-card-media-col .job-meta-row > [data-meta-break] { display: block; }");
     expect(draw(job()).querySelector(".job-card-media-col .job-meta-row [data-meta-break]")).not.toBeNull();

@@ -268,14 +268,17 @@ export function BlockUserDialog({
               </div>
               {onReportAndBlock && (
                 <label htmlFor={reportId} className="flex min-h-11 items-start gap-3 cursor-pointer">
+                  {/* Audit 11-21 (L27): named by its own words as well as the wrapping label, for readers that miss the
+                      label-for on a button-based checkbox; the whole row (min-h-11) is the tap target. */}
                   <Checkbox
                     id={reportId}
+                    aria-labelledby={`${reportId}-text`}
                     checked={alsoReport}
                     onCheckedChange={(v) => setAlsoReport(v === true)}
                     disabled={submitting}
                     className="mt-0.5"
                   />
-                  <span className="text-ds-14 font-sans text-foreground">
+                  <span id={`${reportId}-text`} className="text-ds-14 font-sans text-foreground">
                     Also report {blockedUserName} to our team
                   </span>
                 </label>

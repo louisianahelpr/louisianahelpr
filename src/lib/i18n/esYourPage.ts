@@ -7,6 +7,7 @@ export const esYourPage: Record<keyof typeof enYourPage, string> = {
   "yp.hiddenEmailAction": "Cuenta y seguridad",
   "yp.hiddenOther": "Los vecinos no pueden abrirlo mientras revisamos su cuenta. Una cuenta de prueba nunca tiene perfil público.",
   "yp.askWhy": "Pregúntenos por qué",
+  "yp.goToProfile": "Ir a su perfil",
   "yp.copied": "Enlace copiado",
   "yp.copyFailed": "No se pudo copiar el enlace. Manténgalo presionado para copiarlo.",
   "yp.page": "Su perfil público",

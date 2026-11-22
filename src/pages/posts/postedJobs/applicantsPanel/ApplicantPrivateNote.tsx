@@ -1,6 +1,8 @@
 import { ListRow } from "@/components/ui/ListRow";
 import { Pencil } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { useId } from "react";
 
 /**
  * The poster's private note on one applicant: localStorage only, never sent to
@@ -28,15 +30,21 @@ export function ApplicantPrivateNote({
   onEdit: () => void;
   className?: string;
 }) {
+  const noteId = useId();
   if (!editing && !note) return null;
   return (
     <div className={className}>
       <div className="min-w-0 flex-1">
         {editing ? (
+          // Audit 11-21 (L27): an empty box with only "Save" beside it: no label, no placeholder, nothing saying it is
+          // private. The label says it; Save is the shared Button.
+          <div className="space-y-1">
+          <label htmlFor={noteId} className="block text-ds-12 font-semibold text-foreground">Private note: only you see this</label>
           <div className="flex gap-2 items-start">
             <Textarea
+              id={noteId}
               autoFocus
-              aria-label="Private note"
+              placeholder="e.g. Asked about weekend times"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -46,14 +54,10 @@ export function ApplicantPrivateNote({
               className="flex-1 text-ds-12 rounded-ds-sm border border-input bg-background px-2 py-1 resize-none min-h-0"
               rows={2}
             />
-            <button
-              type="button"
-              onClick={onSave}
-              className="text-ds-12 font-medium px-2 py-1 rounded"
-              style={{ color: "hsl(var(--sage))" }}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onSave}>
               Save
-            </button>
+            </Button>
+          </div>
           </div>
         ) : (
           <ListRow variant="flush"

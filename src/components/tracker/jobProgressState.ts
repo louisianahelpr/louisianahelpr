@@ -102,6 +102,8 @@ export type JobProgressState = {
   body?: string;
   /** True only while the job's payment is held (payment_status 'escrow'). */
   held: boolean;
+  /** The poster's job was never paid for (jobIsUnfundedDraft): nobody sees it, and its one step is paying (G6). */
+  unpaid?: boolean;
   /**
    * When each step happened, by index into JOB_PROGRESS_STEPS, for the full tracker's tap/hover time on a done
    * step (the old rail's tooltips, kept: owner 2026-10-23). The old rail's stamps exactly: Hired = the Helpr's
@@ -241,7 +243,8 @@ function stepStamps(j: ProgressJob): readonly (string | null)[] {
 
 export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState {
   if (o.continueDay && job.status === "in_progress") {
-    const step = continueDayNextStep(o.continueDay, { side: o.viewer, otherFirst: o.otherFirst });
+    // The caller's clock (o.now), so "the new day passed" is judged at the same moment as the rest of the line.
+    const step = continueDayNextStep(o.continueDay, { side: o.viewer, otherFirst: o.otherFirst, now: o.now });
     // Q2791: a caller that read the tracking row (the chat's job card, the job page) passes it, so the new day's rail
     // drops day 1's On the way / Arrived until that day's own check-ins; a caller that never reads it leaves it out.
     const newDay = o.tracking === undefined ? undefined : o.tracking?.status ?? null;
@@ -472,11 +475,15 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     // An applicant waiting on the poster's pick is the poster's move.
     if (o.application === "pending") return at(0, poster, "Posted", poster ? t("jl.applied", { name: other }) : t("jl.youApplied", { name: otherLow }), held);
     if (o.application === "rejected") return at(null, false, "Not picked", poster ? t("jl.passed") : t("jl.notPicked"), false);
-    // JOBS-9: nobody can see a job that never got paid for, so it is not waiting for anyone.
-    if (poster && jobIsUnfundedDraft(job)) return at(0, false, "Posted", t("jl.waitPayment"), false);
-    // JA-1: applicants waiting are the poster's move (the card's bar says so too, from the same count).
-    const picking = poster && (o.pendingApplicants ?? 0) > 0;
-    return at(0, picking, "Posted", poster ? (o.pendingApplicants === 0 ? t("jl.waitApply") : t("jl.pick")) : t("jl.openForHelprs"), held);
+    // JOBS-9: nobody can see a job that never got paid for, so it is not waiting for anyone. Audit 11-21 (G6): nor is it
+    // "Posted"; it says so ("Not posted yet", the step is paying), and the next line never offers "Choose a Helpr".
+    if (poster && jobIsUnfundedDraft(job)) return { ...at(0, true, t("jl.notPosted"), t("jl.payToPost"), false), unpaid: true };
+    // JA-1: applicants waiting are the poster's move (the card's bar says so too, from the same count). G6: a surface
+    // that passes no count but passes its card (the open Posted card's tracker) reads the card's own line, so the two
+    // never disagree ("No applicants yet" over "Pick your Helpr" and an Applicants button).
+    const pending = o.pendingApplicants ?? (o.card?.line.id === "no_applicants" ? 0 : undefined);
+    const picking = poster && (pending ?? 0) > 0;
+    return at(0, picking, "Posted", poster ? (pending === 0 ? t("jl.waitApply") : t("jl.pick")) : t("jl.openForHelprs"), held);
   }
 
   if (job.helper_id && o.threadHelprId && job.helper_id !== o.threadHelprId) {

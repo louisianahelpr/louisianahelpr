@@ -176,17 +176,21 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     expect(renderAt("/gift-guides").container.querySelector("[data-gift-back-to]")?.getAttribute("data-gift-back-to")).toBe("/");
     cleanup();
     expect(renderAt("/gift-guides/mom").container.querySelector("[data-gift-back-to]")?.getAttribute("data-gift-back-to")).toBe("/gift-guides");
+    // Holiday audit 1121 #14: an old group link opens the landing, whose arrow goes home.
     cleanup();
-    expect(renderAt("/gift-guides?group=by-person").container.querySelector("[data-gift-back-to]")?.getAttribute("data-gift-back-to")).toBe("/gift-guides");
+    expect(renderAt("/gift-guides?group=by-person").container.querySelector("[data-gift-back-to]")?.getAttribute("data-gift-back-to")).toBe("/");
   });
 
   // Owner 11-21: "they don't need an option to heart the whole guide": no tile carries a heart.
-  it("a cover tile does not repeat its cover's name, and has no heart", () => {
-    const { container } = renderAt("/gift-guides?group=by-person");
-    const tiles = [...container.querySelectorAll("[data-gift-row='by-person'] li.gg-tile-li")];
-    expect(tiles.length).toBeGreaterThanOrEqual(2); // owner 11-21: Her and Him (Mom, Dad ... are filters, not tiles)
+  it("a cover tile has no heart, and one child (its link)", () => {
+    // Holiday audit 1121 #14: the group pages are gone; the landing's tiles are the guide tiles.
+    const { container } = renderAt("/gift-guides");
+    const tiles = [...container.querySelectorAll("[data-gift-live-guides] li.gg-tile-li")];
+    expect(tiles.length).toBeGreaterThanOrEqual(2); // owner 11-21: Her, Him and Kids (Mom, Dad ... are filters, not tiles)
     for (const li of tiles) {
-      expect(li.querySelector("[data-gift-tile-name]")?.classList.contains("sr-only")).toBe(true);
+      // The landing's tiles carry a visible "Her · 36 gifts" line (lead 11-21 landing polish); the group pages' tiles,
+      // whose name was screen-reader only, are gone (holiday audit 1121 #14).
+      expect(li.querySelector("[data-gift-tile-name]")?.textContent).toMatch(/ · /);
       expect(li.querySelector("[data-gift-heart]")).toBeNull();
       expect(li.children.length).toBe(1);
     }

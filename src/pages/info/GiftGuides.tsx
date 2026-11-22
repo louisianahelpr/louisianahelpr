@@ -6,13 +6,12 @@ import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
 import BackButton from "@/components/BackButton";
-import { ROWS, guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, subscribeGuidePicks, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
+import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
-import { GiftGuideLanding, finderAsked, rowTiles } from "./giftGuides/GiftGuideLanding";
+import { GiftGuideLanding, finderAsked } from "./giftGuides/GiftGuideLanding";
 import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
-import { GiftGuideSharedList } from "./giftGuides/GiftGuideSharedList";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
 import { loadModule, untilReload } from "@/lib/loadModule";
@@ -94,6 +93,42 @@ function LazySaveForSomeone() {
   );
 }
 
+/** "gifts for Her" -> "Gifts for Her". */
+const capitalFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * A shared list (/gift-guides/list/<code>) loads its own chunk (train 1121h): once Secret Santa's wish list imported
+ * from it, it split out of this page's chunk and put /gift-guides/<slug> at 353 KB gz over its 352.8 KB budget, while
+ * no guide page ever draws it. It says "Loading" until the chunk is in, the same line the list shows while it reads.
+ */
+type SharedListModule = { GiftGuideSharedList: ComponentType<{ code: string }> };
+const loadSharedList = () => loadModule(() => import("./giftGuides/GiftGuideSharedList"));
+function LazySharedList({ code }: { code: string }) {
+  const [mod, setMod] = useState<SharedListModule | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    // An empty module (a stale-chunk reload on its way) waits on untilReload(); the loading line stays meanwhile.
+    void loadSharedList()
+      .then((m) => m ?? untilReload())
+      .then(
+        (m) => { if (live) setMod(m); },
+        (e) => {
+          // Not silent: reported, and the page says the list could not load.
+          report(e as Error, { tags: { source: "GiftGuides.loadSharedList" } });
+          if (live) setFailed(true);
+        },
+      );
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (failed) return <p className="gg-soon" role="alert" data-gift-shared-failed="">{WISH.sharedFailed}</p>;
+  if (!mod) return <p className="gg-soon" role="status">{WISH.loading}</p>;
+  const { GiftGuideSharedList } = mod;
+  return <GiftGuideSharedList code={code} />;
+}
+
 export default function GiftGuides() {
   const { slug: rawSlug, code } = useParams<{ slug?: string; code?: string }>();
   // My Wish List is /gift-guides/my-list (owner 2026-11-20); a shared list is /gift-guides/list/<code>.
@@ -137,15 +172,17 @@ export default function GiftGuides() {
   // The old My list address (?list=mine) opens My Wish List's own page.
   const oldMyList = !slug && !shared && !myListPage && params.get("list") === "mine";
   const myList = myListPage;
-  // Owner 11-21: a group with no live guide left (By store, By budget ...) opens the landing itself.
-  const group = ROWS.find((r) => r.row === groupParam && rowTiles(r.row).length > 0)?.row ?? (null as GuideRow | null);
-  const landing = !slug && !shared && !myListPage && !group;
+  const landing = !slug && !shared && !myListPage;
 
   // Pins link to /gift-guides#for-her, /gift-guides/for-her or a folded guide (/gift-guides/female-nurses): send each
   // old slug, folded guide or #<slug> to the guide's page now (newSlugFor).
   const hashSlug = decodeURIComponent(hash.replace(/^#/, ""));
   const fromHash = hashSlug ? newSlugFor(hashSlug) : null;
   if (oldMyList) return <Navigate to={`/gift-guides/${MY_LIST_SLUG}`} replace />;
+  // Holiday audit 1121 #14: an old group link (/gift-guides?group=by-person, a pre-redesign "See all") opens the
+  // landing itself; the group page (its own "All guides" link beside the header's back arrow, a green dot, small tiles)
+  // is gone. With three live guides the landing's tiles are every group.
+  if (landing && groupParam !== null) return <Navigate to={`/gift-guides${hash}`} replace />;
   // Holiday audit 1121: a slug typed in capitals (/gift-guides/HER) opens its guide, not the landing.
   if (rawSlug && rawSlug !== rawSlug.toLowerCase()) return <Navigate to={`/gift-guides/${rawSlug.toLowerCase()}${hash}`} replace />;
   // The old "Deals & codes" anchor on the landing: the codes live on the deals days now (Black Friday first).
@@ -174,14 +211,15 @@ export default function GiftGuides() {
 
   // The search, My list heart and Share for this page (one set, on the row under the header).
   const tools = deals ? <GiftGuideTools path={`/gift-guides/${deals.id}`} title={deals.pageTitle} image={deals.kind === "deals" ? DEALS_COVER : undefined} />
-    : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={`${guide.lead} ${guide.title}`} image={guide.cover} sort={sort} />
+    // Holiday audit 1121: shared text opens with a capital ("Gifts for Her", not "gifts for Her https://...").
+    : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={capitalFirst(`${guide.lead} ${guide.title}`)} image={guide.cover} sort={sort} />
     : <GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />;
   // A guide or deals page keeps its banner (its own h1); every other page's h1 is the header title.
   const banner = Boolean(deals || guide);
   // The open menu entry beyond the guides: the deals page, or the finder view on the landing.
   const sidePage = deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined;
   // The landing's arrow goes home; every other page's to the landing.
-  const backTo = guide || deals || myList || shared || group ? "/gift-guides" : "/";
+  const backTo = guide || deals || myList || shared ? "/gift-guides" : "/";
 
   return (
     // Owner 2026-11-21 ~12:30 PM ("holiday gift guides needs the same set up as the other pages. title on left with back
@@ -228,12 +266,16 @@ export default function GiftGuides() {
         {/* Owner 11-21 ("put like a line or something above all guides and under search bar all the way across to be a
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
         {landing && <hr className="gg-divider" data-gift-divider="" />}
+        {/* Holiday audit 1121 #22 / #27: the page comes first in the code (keyboard and screen readers met 16 menu links
+            before the gifts), then the menu, then the disclosures, so a phone reads and shows them in that order, the
+            disclosures at the very bottom. From 768px the CSS grid puts the menu on the left (GIFT_GUIDES_CSS). */}
         <div className="gg-layout">
+          <div className="gg-main">
+            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />}
+          </div>
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
           <GiftGuidesSidebar active={guide} myList={myList || shared} page={sidePage} />
-          <div className="gg-main">
-            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
-          </div>
+          {footer}
         </div>
       </div>
     </PublicHeaderPage>

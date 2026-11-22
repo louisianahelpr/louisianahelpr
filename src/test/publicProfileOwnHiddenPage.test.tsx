@@ -7,6 +7,9 @@
  * instead of the stranger's "link may be old" copy. A stranger on the same URL still gets the generic card.
  *
  * @mutate src/pages/u/PublicProfilePage.tsx | const ownHidden = !!handle && !!me?.handle && me.handle === handle; | const ownHidden = false;
+ * Audit 11-21 (P20): one explanation with Home's "Your public profile" card, and "Go to your profile".
+ * @mutate src/pages/u/PublicProfilePage.tsx |       body={ownHiddenEmail ? t("yp.hiddenEmail") : t("yp.hiddenOther")} |       body="Neighbors can't open it yet. Your public profile shows once your email is verified and your account is in good standing."
+ * @mutate src/pages/u/PublicProfilePage.tsx | : <Link to="/profile">{t("yp.goToProfile")}</Link>} | : <Link to="/profile">Go to You</Link>}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -17,11 +20,12 @@ import type { ReactNode } from "react";
 const rpc = vi.fn();
 let signedIn: { id: string } | null = null;
 let myHandle: string | null = null;
+let emailVerified: boolean | undefined;
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
 vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title?: ReactNode; children: ReactNode }) => <main><h1>{title}</h1>{children}</main> }));
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: () => undefined }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: signedIn, isReady: true }) }));
-vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: myHandle ? { handle: myHandle } : null, isLoading: false }) }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: myHandle ? { handle: myHandle, email_verified: emailVerified } : null, isLoading: false }) }));
 vi.mock("@/lib/nativeShare", () => ({ shareNative: vi.fn(async () => "shared") }));
 
 const { default: PublicProfilePage } = await import("@/pages/u/PublicProfilePage");
@@ -48,11 +52,25 @@ describe("the owner's own hidden /u page (F282a)", () => {
     myHandle = "hallie-h";
     show("/u/Hallie-H");
     expect(await screen.findByText("Your public profile is hidden right now")).toBeTruthy();
-    expect(screen.getByText(/email is verified/i)).toBeTruthy();
+    // Audit 11-21 (P20): the reason is Home's card's own words (under review, or a test account), and the way back
+    // reads "Go to your profile" (it read "Go to You").
+    expect(screen.getByText(/under review/i)).toBeTruthy();
     expect(screen.getByText(/test account/i)).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Go to You" }).getAttribute("href")).toBe("/profile");
+    expect(screen.queryByText(/good standing/i)).toBeNull();
+    expect(screen.getByRole("link", { name: "Go to your profile" }).getAttribute("href")).toBe("/profile");
+    expect(screen.queryByRole("link", { name: "Go to You" })).toBeNull();
     expect(screen.queryByText("This profile isn't available")).toBeNull();
     expect(screen.queryByText(/no longer on Helpr/)).toBeNull();
+  });
+
+  it("an unconfirmed email says so and goes to Account and security, as Home's card does (P20)", async () => {
+    signedIn = { id: "u-hallie" };
+    myHandle = "hallie-h";
+    emailVerified = false;
+    show("/u/Hallie-H");
+    expect(await screen.findByText(/until your email is confirmed/i)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Account and security" }).getAttribute("href")).toBe("/profile?tab=security");
+    emailVerified = undefined;
   });
 
   it("a stranger on the same hidden handle still gets the generic card", async () => {

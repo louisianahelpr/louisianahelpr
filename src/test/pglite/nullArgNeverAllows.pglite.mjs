@@ -384,7 +384,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Terms check (20261108154435): has this member accepted the current Terms; after its two helpers (HELPERS).
   "terms_accepted_is_current",
   // F061 sold card (20261109194234): may a sold item's page show what it was (loaded after the stubs: see AFTER_STUBS).
-  "declutter_item_sold_visible"];
+  "declutter_item_sold_visible",
+  // Santa wish links (20261121221514): is a pasted link a plain public https URL (pure SQL, no table).
+  "wish_link_url_ok"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).

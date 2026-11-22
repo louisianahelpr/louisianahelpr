@@ -45,8 +45,12 @@ export function regionLabel(slug: string): string;
 export function holidayDateLabel(item: Pick<HolidayItemBase, "tba" | "dates">): string;
 export function louisianaToday(now?: Date): string;
 export function weekendRange(today: string): [from: string, to: string];
-export function isOver(item: Pick<HolidayItemBase, "tba" | "start" | "end">, today: string): boolean;
-export function runsBetween(item: Pick<HolidayItemBase, "tba" | "start" | "end">, from: string, to: string): boolean;
+/** An item as the date rules read it; `dates` (the date words) is read only for "Opens" / "season" with no end. */
+type HubDated = Pick<HolidayItemBase, "tba" | "start" | "end"> & { dates?: string | null };
+export declare const HOLIDAY_SEASON_END: string;
+export function isOpenEnded(item: HubDated): boolean;
+export function isOver(item: HubDated, today: string): boolean;
+export function runsBetween(item: HubDated, from: string, to: string): boolean;
 export function holidayMapsQuery(item: Pick<HolidayItemBase, "name" | "address" | "city">): string;
 export interface LightFilters { region?: HolidayRegion | null; way?: "drive" | "walk" | null; cost?: HolidayCost | null }
 export function filterLights(items: readonly HolidayLight[], filters?: LightFilters, today?: string): HolidayLight[];

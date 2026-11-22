@@ -13,13 +13,15 @@ interface Props {
   onPick?: (s: PostJobScreen) => void;
   /** Which passed screens can be reopened from here. */
   canPick?: (s: PostJobScreen) => boolean;
+  /** A screen with no desktop step rail (EntryChoice): the bar shows at every width (audit 11-21 P26). */
+  barAtEveryWidth?: boolean;
 }
 
 /**
  * The head of every Post a Job screen (boards 23, 44, 3, 45, 46; step 0 and 1b since 2026-10-21): a segmented
  * progress bar with "n of 7", then the screen's question and one helper line.
  */
-export function PostJobStepHeader({ screen, question, helper, onPick, canPick }: Props) {
+export function PostJobStepHeader({ screen, question, helper, onPick, canPick, barAtEveryWidth = false }: Props) {
   // Owner 11-20: three steps; Review (the Post screen, step 4) shows the bar full with "Ready to post".
   const rawStep = screenNumber(screen);
   const ready = rawStep > POST_JOB_STEP_COUNT;
@@ -28,8 +30,9 @@ export function PostJobStepHeader({ screen, question, helper, onPick, canPick }:
   const { t } = useLanguage();
   return (
     <header className="space-y-4">
-      {/* Desktop shows the step rail instead (board 166, PostJobStepRail). */}
-      <div className="flex items-center gap-3 lg:hidden">
+      {/* Desktop shows the step rail instead (board 166, PostJobStepRail). A screen with no rail (the first screen, the
+          job groups) keeps this bar at every width: audit 11-21 P26 found no step indicator there at 1440. */}
+      <div className={`flex items-center gap-3${barAtEveryWidth ? "" : " lg:hidden"}`} data-step-bar="">
         <div
           role="progressbar"
           aria-label={t("postJob.progress")}

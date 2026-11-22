@@ -5,7 +5,6 @@
 // @mutate src/content/sponsorPage.ts |     websiteButton: "Explore the site", |     websiteButton: "Explore louisianahelpr.com",
 // @mutate src/content/sponsorPage.ts |     title: "How it works", |     title: "How It Works",
 // @mutate src/components/sponsor/ClaimSection.tsx |           <span>{F.agree}</span> |           <span>{F.agree} <span className="lh25-req" aria-hidden="true">*</span></span>
-// @mutate src/pages/sponsor/SponsorRulesPage.tsx |           {i < parts.length - 1 ? <a href={`mailto:${email}`}>{email}</a> : null} |           {i < parts.length - 1 ? email : null}
 // @mutate src/content/sponsorPage.ts |           { brand: "Megan Benoit's Closet", prize: "$30 gift card" }, |           { brand: "Megan Benoit's Closet REMOVED", prize: "$30 gift card" },
 // @mutate src/components/sponsor/ClaimSection.tsx |   return Math.max(state.dayCounts[day] ?? 0, lineupCount(day)); |   return state.dayCounts[day] ?? 0;
 // @mutate src/content/sponsorPage.ts | Brands share days, and every partner is featured and tagged on our socials. | More than one brand can share a day, and every sponsor gets their own spotlight post.
@@ -29,7 +28,6 @@ import { MemoryRouter } from "react-router-dom";
 import { sponsorPage } from "@/content/sponsorPage";
 import { NOINDEX_PAGE_META, PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { About, BrandGets, Faq, FinalCta, Hero, HowItWorks, Lineup, PreviewCard, WhatWeAsk, prizeWithoutBrand, publicPartners } from "@/components/sponsor/Sections";
-import { WithEmailLink } from "@/pages/sponsor/SponsorRulesPage";
 import { ClaimSection, tileCount } from "@/components/sponsor/ClaimSection";
 import type { SponsorPublicState } from "@/lib/sponsor/types";
 import { blankComments } from "./helpers/blankNonCode";
@@ -258,8 +256,9 @@ describe("25 Days copy polish (design audit r2 #25, #26; area 01 #4, #14)", () =
 
   it("section headings are sentence case (only the first word and proper names capitalised)", () => {
     const C = sponsorPage;
-    const headings = [C.howItWorks.title, C.brandGets.title, C.whatWeAsk.title, C.reach.title, C.preview.title, C.lineup.title, C.testimonials.title, C.claim.title, C.faq.title, C.rules.title, C.hero.headlineLead];
-    expect(headings.length).toBeGreaterThan(10);
+    const headings = [C.howItWorks.title, C.brandGets.title, C.whatWeAsk.title, C.reach.title, C.preview.title, C.lineup.title, C.testimonials.title, C.claim.title, C.faq.title, C.hero.headlineLead];
+    // Floor 10 -> 9: C.rules.title left with the rules (owner 2026-11-21: "All the rules will be on Facebook not our website.").
+    expect(headings.length).toBeGreaterThan(9);
     const PROPER = new Set(["Louisiana", "Helpr", "I'm", "Lexi!"]);
     for (const h of headings) {
       const words = h.replace(/^[^A-Za-z]+/, "").split(/\s+/).slice(1);
@@ -277,12 +276,5 @@ describe("25 Days copy polish (design audit r2 #25, #26; area 01 #4, #14)", () =
     const agree = container.querySelector("#lh25-agree")?.closest("label");
     expect(agree).not.toBeNull();
     expect(agree?.textContent).not.toContain("*");
-  });
-
-  it("the rules page's contact email is a mailto: link", () => {
-    const { container } = render(<WithEmailLink text={sponsorPage.rules.pendingNote} />);
-    const a = container.querySelector("a");
-    expect(a?.getAttribute("href")).toBe(`mailto:${sponsorPage.links.email}`);
-    expect(container.textContent).toBe(sponsorPage.rules.pendingNote);
   });
 });

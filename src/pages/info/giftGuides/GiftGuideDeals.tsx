@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { discountCodes, giftGuides as G } from "@/content/giftGuides";
@@ -46,6 +46,7 @@ const DEALS_CSS = `
 .gg-deal-text{margin:0;font-size:13px;line-height:1.4;color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal-meta{margin:0;font-size:12px;color:var(--gg-muted)}
 .gg-deal-code{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.gg-deal-code button{min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--gg-olive);color:var(--gg-olive);background:transparent;font-weight:700;font-size:12px}
 .gg-deal-code code{font-size:12px;font-weight:700;letter-spacing:.04em;padding:3px 8px;border-radius:999px;background:var(--gg-soft);color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal .gg-deal-shop{display:inline-flex;align-items:center;align-self:flex-start;min-height:44px;margin-top:auto;padding:0 4px 0 0;border:0;background:none;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
 .gg-deal .gg-deal-shop:hover,.gg-deal .gg-deal-shop:focus-visible{text-decoration:underline}
@@ -88,11 +89,29 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
   const when = dealStartsLater(deal, today) ? W.startsOn(deal.starts!) : ends ? W.endsOn(ends) : "";
   // The code chip goes once that code has expired, even on a card whose sale runs on.
   const code = dealCode(deal, today, STORE_CODES);
+  const codeEl = useRef<HTMLElement>(null);
+  // Holiday audit 1121: when the clipboard is refused (permissions, an old browser, no clipboard at all), the code's text
+  // is selected so a long press or Cmd+C copies it; nothing happened before.
+  const selectCode = () => {
+    const el = codeEl.current;
+    const sel = window.getSelection();
+    if (!el || !sel) return;
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
   const copy = (code: string) => {
-    void navigator.clipboard?.writeText(code).then(
+    if (!navigator.clipboard) {
+      selectCode();
+      return;
+    }
+    void navigator.clipboard.writeText(code).then(
       () => setCopied(true),
-      // Clipboard refused (permissions or an old browser): the code stays on screen to copy by hand.
-      () => setCopied(false),
+      () => {
+        setCopied(false);
+        selectCode();
+      },
     );
   };
   return (
@@ -111,20 +130,21 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
       {code && (
         <p className="gg-deal-meta gg-deal-code" data-gift-deal-code={code}>
           <span>{W.codeLabel}</span>
-          <code>{code}</code>
+          <code ref={codeEl}>{code}</code>
           <InlineTextButton className="no-underline" onClick={() => copy(code)} aria-label={`${G.copyCode} ${code}`}>
             {copied ? G.copiedCode : G.copyCode}
           </InlineTextButton>
         </p>
       )}
-      {(when || deal.store) && (
-        <p className="gg-deal-meta" data-gift-deal-dates="">
-          {[when, deal.store ? G.onStore(deal.store) : ""].filter(Boolean).join(" · ")}
-        </p>
+      {/* Holiday audit 1121: no "On <store>" line (owner 11-21 took it off the item cards); only when it starts or ends. */}
+      {when && (
+        <p className="gg-deal-meta" data-gift-deal-dates="">{when}</p>
       )}
       {/* Owner 11-20 ("too busy looking"): a plain text link like every pick's, no pill. */}
+      {/* Holiday audit 1121: "Shop ›" on one line like every card (a long "Shop <Brand>" wrapped and stranded the ›);
+          the brand stays in the link's name for screen readers. */}
       <GiftOut href={deal.href} className="gg-deal-shop">
-        <span data-gift-shop="">{W.shop(deal.brand)}</span>
+        <span data-gift-shop="">{W.shopShort}<span className="sr-only"> {deal.brand}</span></span>
         <span aria-hidden="true">&nbsp;›</span>
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>

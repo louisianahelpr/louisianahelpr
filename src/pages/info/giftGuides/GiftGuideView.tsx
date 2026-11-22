@@ -249,7 +249,9 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
   if (!ready && failed && onRetry) return <GiftGuideLoadError message={G.picksFailed} onRetry={onRetry} />;
   if (!ready) return <p className="gg-soon" role="status" data-gift-picks-loading="">{G.loadingPicks}</p>;
   const related = guide.empty ? relatedGuides(guide) : [];
-  const banded = guide.picks.filter((p) => p.band !== undefined).length;
+  // Holiday audit 1121: the budget chips filter by price, so they need prices a shopper can see (on the sponsors page
+  // the prices aged out while the chips stayed); a pick counts only when it has a band AND shows its price.
+  const banded = guide.picks.filter((p) => p.band !== undefined && showsPrice(p)).length;
   const inBudget = withinBudget(guide.picks, budget);
   // Owner 2026-11-21 ("they all need to be sorted in sections by price"; supersedes "one flat list"): Her, Him, Kids
   // and their views list their picks in price sections (priceSections), low to high or reversed by the sort control.
@@ -329,7 +331,12 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
       )}
       {NAME_ONLY_SPONSORS[guide.slug] && (
         // A sponsor whose gift is left out (lead 2026-11-18: Hilma's probiotic, a health product) is still named.
-        <p className="gg-also" data-gift-also-sponsoring="">{G.alsoSponsoring(NAME_ONLY_SPONSORS[guide.slug].join(", "))}</p>
+        // Holiday audit 1121 #77: one name per chip (a 57-name comma list ran ~25 lines on a phone, and "Tevin Lewis,
+        // District 2 Alderman" read as two names).
+        <section className="gg-also" aria-labelledby="gift-also-h" data-gift-also-sponsoring="">
+          <h2 id="gift-also-h" className="gg-also-h">{G.alsoSponsoringTitle}</h2>
+          <ul className="gg-also-list">{NAME_ONLY_SPONSORS[guide.slug].map((n) => <li key={n} data-gift-also-name="">{n}</li>)}</ul>
+        </section>
       )}
       {/* Owner 11-18 PM ("my full guides are already here with the links"): no "Shop the full guide" or "More on
           ShopMy" collection lines; each pick carries its own link. */}

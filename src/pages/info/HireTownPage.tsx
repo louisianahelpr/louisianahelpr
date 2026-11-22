@@ -9,7 +9,6 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { Button } from "@/components/ui/button";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import NotFound from "@/pages/info/NotFound";
 import { JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
@@ -17,10 +16,11 @@ import { MATCHMAKER_PARAM } from "@/lib/matchmakerLink";
 import { HIRE_STEPS } from "@/components/landing/hireSteps";
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, findTownPage, townPageMeta, townPagePath, type TownPageService, type TownPageTown } from "@/lib/townPages.mjs";
 import { wordInLang } from "@/lib/i18n/inLang";
+import { NARROW_COLUMN, NARROW_HEADER_COLUMN } from "@/lib/publicContainer";
 
 /** F063: the town page's column, and its header's (the column plus the shell's side padding at each breakpoint). */
-const TOWN_COLUMN = "max-w-[760px]";
-const TOWN_HEADER_COLUMN = "mx-auto max-w-[calc(760px+2.5rem)] sm:max-w-[calc(760px+4rem)] lg:max-w-[calc(760px+6rem)]";
+const TOWN_COLUMN = NARROW_COLUMN;
+const TOWN_HEADER_COLUMN = NARROW_HEADER_COLUMN;
 
 
 export default function HireTownPage() {
@@ -43,7 +43,6 @@ function unknownComboCategory(serviceSlug: string | undefined): string | null {
 
 function TownPage({ service, town }: { service: TownPageService; town: TownPageTown }) {
   usePageMeta(townPageMeta(service, town));
-  const { user } = useCurrentUser();
   // Under 18 (Q1586(c)): the link greys out and says why instead of opening the form. It stays a real link, so
   // search engines and signed-out visitors still follow it.
   const { underAge, explain, gatedProps } = useAgeGate();
@@ -51,7 +50,8 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
   // re-checked by readMatchmakerLink), so someone who chose Cleaning in Baton Rouge does not start from a blank form
   // after signing up. The form opens at Details with the category and town filled, all still editable.
   const form = `/post-job?${new URLSearchParams({ [MATCHMAKER_PARAM]: "1", cat: service.category, town: town.name }).toString()}`;
-  const post = user ? form : `/signup?redirect=${encodeURIComponent(form)}`;
+  // Audit 11-21 (P0, owner 11-20/21): a guest starts the post and signs up at the end, like /helprs' Offer a job.
+  const post = form;
   const ink = { color: "hsl(var(--ink-deep))" };
   return (
     // F063 (owner UI audit 11-09): the page is a ~760px column, centred, title included (the header's max width is the
@@ -64,16 +64,18 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
             Need {service.phrase} in {town.name}? Post the job on Louisiana Helpr and a local Helpr can take it.
           </p>
           {/* Design audit 11-17 #13: the two calls were 48 px / 17 px and 40 px / 13 px. One row, one size now. */}
-          <div className="flex flex-wrap gap-3" data-town-ctas="">
+          {/* Audit 11-21 (P30): at 375 the outline filled row 1 and the primary sat alone on row 2. Phones stack both
+              full width with the primary on top (column-reverse keeps it last in the DOM, right of the pair from sm up). */}
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap" data-town-ctas="">
           {/* Train 11-18: the green primary on the right of the pair, both on one line (buttonPairsPrimaryRight). */}
           {/* L014: the page named no Helprs; the directory, filtered to this town, is one tap away. */}
           {/* F260t (audit 11-10): read as plain text at 1440 and in dark; now the secondary button it is. */}
-          <Button asChild variant="outline" size="default" className="rounded-full">
+          <Button asChild variant="outline" size="default" className="rounded-full w-full sm:w-auto">
             <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} data-town-helprs="">
               See Helprs in {town.name}
             </Link>
           </Button>
-          <Button asChild size="default" className="rounded-full">
+          <Button asChild size="default" className="rounded-full w-full sm:w-auto">
             <Link
               to={post}
               onClick={(e) => {

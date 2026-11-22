@@ -9,6 +9,7 @@ import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { useFeatureStatus } from "@/hooks/useFeature";
@@ -17,6 +18,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useSectionsOpen } from "@/components/landing/useSectionsOpen";
 import { getBlockedUserIds } from "@/lib/userBlocks";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useNoIndex } from "@/hooks/useNoIndex";
 import { jobDayLabel } from "@/lib/jobDateWindow";
 import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { SEARCH_PARAM } from "@/components/landing/heroSearch";
@@ -28,7 +30,9 @@ import { fetchPhotos, photoPublicUrl } from "@/lib/declutter/api";
 import { squarePhotoUrl, THUMB_PHOTO_PX } from "@/lib/declutter/photoSizes";
 import { FallbackImg } from "@/components/declutter/FallbackImg";
 import { matchesSearch, searchOrFilter } from "@/lib/declutter/searchMatch";
-import { getCategoryIcon } from "@/lib/categoryIcons";
+import { CategoryIcon } from "@/components/job/CategoryIcon";
+import { jobCategoryTint } from "@/lib/jobCategoryTint.mjs";
+import { getCity } from "@/lib/locationUtils";
 import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { likePattern, type SearchSection } from "./searchQuery";
 import { SearchStart } from "./SearchStart";
@@ -61,7 +65,12 @@ const PER_SECTION = 3;
 /** A chip (or "See all") shows up to this many; beyond it, Jobs opens Browse. */
 const MAX_ROWS = 20;
 
-type JobHit = PricedJobHit & { id: string; title: string; category: string | null; parish: string | null; date_needed: string | null; date_window_end?: string | null };
+type JobHit = PricedJobHit & { id: string; title: string; category: string | null; parish: string | null; location?: string | null; date_needed: string | null; date_window_end?: string | null };
+/** Audit 11-21 (P15): the town, as the Browse card names it (getCity), else the parish. */
+function jobPlace(j: JobHit): string | null {
+  const town = getCity(j.location ?? "");
+  return town || (j.parish ? t("srch.parish", { parish: j.parish }) : null);
+}
 type ItemHit = { id: string; title: string; description: string | null; category: string | null; current_price_cents: number | null; price_cents: number | null; area_label: string | null };
 
 function useJobHits(q: string, userId: string | null) {
@@ -79,7 +88,8 @@ function useJobHits(q: string, userId: string | null) {
       // Q2408: + date_window_end, so a window job reads "Any day Nov 4-10" (jobDayLabel); through readJobsAheadOfDb,
       // which asks once more without it on a database that does not have it yet.
       const res = await readJobsAheadOfDb(
-        "id,title,category,budget,pricing_mode,parish,date_needed,date_window_end,urgent_fee,is_group_job,helpers_needed,customer_id,helper_fee_flat_cents,helper_fee_percent",
+        // Audit 11-21 (P15): + location, so a row names the town as the Browse card does ("New Iberia", not the parish).
+        "id,title,category,budget,pricing_mode,parish,location,date_needed,date_window_end,urgent_fee,is_group_job,helpers_needed,customer_id,helper_fee_flat_cents,helper_fee_percent",
         (columns) => {
           let query = supabase.from("open_jobs_browse").select(columns, { count: "exact" }).ilike("title", likePattern(q));
           if (blocked.length) query = query.not("customer_id", "in", `(${blocked.join(",")})`);
@@ -101,18 +111,23 @@ function useItemHits(q: string, on: boolean) {
       // Every word, in the title, description or category, plurals folded: the one Declutter rule (DA-1,
       // searchMatch.ts). The database filter is a little wider than the rule, so the rows are re-checked here;
       // when every candidate came back the count is the re-checked count, else the database's.
-      const res = await supabase
+      const read = (filter: string) => supabase
         .from("declutter_items")
         .select("id,title,description,category,current_price_cents,price_cents,area_label", { count: "exact" })
         .in("status", ["live", "reserved"])
-        .or(searchOrFilter(q) ?? "title.ilike.*")
+        .or(filter)
         .order("live_at", { ascending: false })
         .limit(MAX_ROWS);
+      // Audit 11-21 (P15): "clean" found 70 items and the newest 20 were mostly description hits (a duck lamp, zip
+      // pouches), so the title-first sort below had few title hits to lift. A title-only read runs beside the wide
+      // one, so the title hits lead even when they are older than the newest 20.
+      const [titled, res] = await Promise.all([read(searchOrFilter(q, ["title", "title", "title"]) ?? "title.ilike.*"), read(searchOrFilter(q) ?? "title.ilike.*")]);
       const all = (unwrap(res) ?? []) as ItemHit[];
       // F222 (audit 11-10): "chair" led with a blanket whose long description said chair, so results read as random.
-      // Items whose TITLE has every word come first; newest first within each (the sort is stable).
-      const titleHit = (it: ItemHit) => (matchesSearch(q, { title: it.title }) ? 0 : 1);
-      const rows = all.filter((it) => matchesSearch(q, it)).sort((a, b) => titleHit(a) - titleHit(b));
+      // Items whose TITLE has every word come first (the title read, re-checked), then the rest; newest first in each.
+      const byTitle = ((unwrap(titled) ?? []) as ItemHit[]).filter((it) => matchesSearch(q, { title: it.title }));
+      const seen = new Set(byTitle.map((it) => it.id));
+      const rows = [...byTitle, ...all.filter((it) => !seen.has(it.id) && matchesSearch(q, it))].slice(0, MAX_ROWS);
       const total = res.count ?? 0;
       return { rows, count: total <= all.length ? rows.length : total };
     },
@@ -154,7 +169,8 @@ const THUMB_CLASS = "shrink-0 w-11 h-11 rounded-xl";
    (index.css) made the row 44px only when a group held more than PER_SECTION rows, so no placeholder could
    match both. `-my-2` keeps its 44px target reaching 8px past the row: the group's space-y-2 below, half the
    page's space-y-4 above, so it covers no row. */
-const GROUP_HEAD_CLASS = "flex min-h-7 items-center justify-between px-1";
+// Audit 11-21 (P15): px-4, the row's own padding, so a heading's left edge meets its rows' (it sat 12px out).
+const GROUP_HEAD_CLASS = "flex min-h-7 items-center justify-between px-4";
 const GROUP_CARD_CLASS = "rounded-2xl overflow-hidden";
 
 /** The 44px square that leads every row: an item's cover photo, a job's category icon. The photo is the 160 px square
@@ -168,7 +184,18 @@ function Thumb({ photo, icon, seed }: { photo?: string | null; icon: LucideIcon;
   );
 }
 
-function Row({ to, title, sub, price, thumb }: { to: string; title: string; sub?: string | null; price?: string | null; thumb?: React.ReactNode }) {
+/** Audit 11-21 (P15): a job's square is the Browse card's category tile (JobCardMedia's tint), not a seeded placeholder
+ *  in another colour, so Cleaning is the same light blue here as on Browse. */
+function JobThumb({ category }: { category: string | null }) {
+  const tint = jobCategoryTint(category ?? "other");
+  return (
+    <span className={`${THUMB_CLASS} flex items-center justify-center`} style={{ background: tint.background }} aria-hidden data-search-job-tile="">
+      <CategoryIcon category={category ?? "other"} aria-hidden className="w-5 h-5" style={{ color: tint.color }} />
+    </span>
+  );
+}
+
+function Row({ to, title, sub, price, thumb, priceInk }: { to: string; title: string; sub?: string | null; price?: string | null; thumb?: React.ReactNode; priceInk?: boolean }) {
   return (
     <Link
       to={to}
@@ -181,7 +208,8 @@ function Row({ to, title, sub, price, thumb }: { to: string; title: string; sub?
         <span className="block font-sans font-semibold text-ds-14 leading-snug truncate" style={{ color: "hsl(var(--ink-deep))" }}>{title}</span>
         {sub && <span className="block font-sans text-ds-12 text-muted-foreground truncate">{sub}</span>}
       </span>
-      {price && <span className="shrink-0 font-sans font-bold text-ds-14 tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>{price}</span>}
+      {/* Audit 11-21 (P15): a job's price is ink, as on the Browse row (jobsHairlineRows); an item keeps Declutter's rust. */}
+      {price && <span className="shrink-0 font-sans font-bold text-ds-14 tabular-nums" style={{ color: priceInk ? "hsl(var(--ink-deep))" : "hsl(var(--burnt-sienna))" }}>{price}</span>}
     </Link>
   );
 }
@@ -261,6 +289,7 @@ function SoonLine({ names }: { names: string[] }) {
 export default function SearchPage() {
   useLanguage();
   usePageTitle(t("srch.pageTitle"));
+  useNoIndex();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const q = (params.get(SEARCH_PARAM) ?? "").trim();
@@ -338,13 +367,46 @@ export default function SearchPage() {
     ...(shopCount > 0 ? [{ key: "shops" as const, label: t("nav.shops"), count: shopCount }] : []),
   ];
   const show = (s: SearchSection) => section === "all" || section === s;
+  // Audit 11-21 (P15): Declutter always sat above Jobs ("clean": 70 items over the cleaning job). Jobs leads whenever a
+  // job matches by title; Declutter leads only when no job does and an item does. Order only, never a filter.
+  // (Counting title hits per section was tried first: Declutter's 20 rows outnumber a few jobs, screenshot 11-21.)
+  const titleHits = (rows: readonly { title: string }[] | undefined) => (rows ?? []).filter((r) => matchesSearch(q, { title: r.title })).length;
+  const jobsFirst = titleHits(jobs.data?.rows) > 0 || !declutterOn || titleHits(items.data?.rows) === 0;
   // AUD31-39: the box named Shops and Homes, both Coming soon, and was cut at 375; it names what it searches.
   const fieldLabel = t(declutterOn ? (shopsOn ? "srch.field" : "srch.fieldJI") : shopsOn ? "srch.fieldJS" : "srch.fieldJ");
+
+  const jobsGroup = q && jobCount > 0 && show("jobs") && (
+    <Group title={t("nav.jobs")} count={jobCount} onSeeAll={section === "all" ? () => setSection("jobs") : undefined}>
+      {jobs.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((j) => (
+        <Row
+          key={j.id}
+          to={`/jobs/${j.id}`}
+          title={j.title}
+          thumb={<JobThumb category={j.category} />}
+          sub={[jobPlace(j), j.date_needed ? jobDayLabel(j) : null].filter(Boolean).join(" · ") || null}
+          price={searchJobPrice(j, user?.id ?? null, viewerFee, firstPayoutFee)}
+          priceInk
+        />
+      ))}
+    </Group>
+  );
+  const declutterGroup = q && declutterOn && itemCount > 0 && show("declutter") && (
+    <Group title={t("nav.declutter")} count={itemCount} onSeeAll={section === "all" ? () => setSection("declutter") : undefined}>
+      {items.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((it) => {
+        const cents = it.current_price_cents ?? it.price_cents;
+        return (
+          <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} thumb={<Thumb photo={cover.get(it.id) ?? null} icon={categoryIcon(it.category)} seed={it.category} />} price={typeof cents === "number" ? itemPriceLabel(cents) : null} />
+        );
+      })}
+    </Group>
+  );
 
   return (
     // L005 (landing audit 11-09): a cold-opened link had no in-app entry behind it, so back went to about:blank.
     <AppPage title={t("srch.title")} onBack={() => (hasInAppHistory() ? navigate(-1) : navigate("/", { replace: true }))}>
-      <div className="space-y-4 pb-6" data-testid="search-page">
+      {/* Audit 11-21 (P15): at 1440 a row ran 1152px with its price far right. The results keep a 768px reading column
+          (max-w-3xl), left-aligned under the title. */}
+      <div className="space-y-4 pb-6 max-w-3xl" data-testid="search-page">
         <form role="search" aria-label={t("srch.formAria")} onSubmit={submit} className="flex items-center gap-2 h-12 pl-4 pr-1 rounded-full border border-border focus-within:ring-2 focus-within:ring-ring" style={{ background: "hsl(var(--card))" }}>
           <Search className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />
           <input
@@ -397,13 +459,16 @@ export default function SearchPage() {
         )}
 
         {!q && <SearchStart userId={user?.id ?? null} declutterOn={declutterOn} signedIn={!!user} />}
+        {/* Audit 11-21 (P16): a small red line here, a card on /helprs, a centred card on /browse. One ErrorState card,
+            inline, naming what did not load, on every discovery page. */}
         {q && failed && (
-          <div className="flex items-center justify-between gap-3 px-1" role="alert">
-            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--alert-ink))" }}>{t("srch.failed")}</p>
-            <button type="button" onClick={() => { void jobs.refetch(); if (declutterOn) void items.refetch(); if (shopsOn) void shopHits.refetch(); }} className="font-sans font-semibold text-ds-13 min-h-[44px] px-2" style={{ color: "hsl(var(--bark))" }}>
-              {t("srch.tryAgain")}
-            </button>
-          </div>
+          <ErrorState
+            variant="inline"
+            title={t("srch.failed")}
+            body={t("srch.failedBody")}
+            retryLabel={t("srch.tryAgain")}
+            onRetry={() => { void jobs.refetch(); if (declutterOn) void items.refetch(); if (shopsOn) void shopHits.refetch(); }}
+          />
         )}
         {q && loading && !failed && (
           <>
@@ -433,16 +498,8 @@ export default function SearchPage() {
           />
         )}
 
-        {q && declutterOn && itemCount > 0 && show("declutter") && (
-          <Group title={t("nav.declutter")} count={itemCount} onSeeAll={section === "all" ? () => setSection("declutter") : undefined}>
-            {items.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((it) => {
-              const cents = it.current_price_cents ?? it.price_cents;
-              return (
-                <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} thumb={<Thumb photo={cover.get(it.id) ?? null} icon={categoryIcon(it.category)} seed={it.category} />} price={typeof cents === "number" ? itemPriceLabel(cents) : null} />
-              );
-            })}
-          </Group>
-        )}
+        {jobsFirst ? jobsGroup : declutterGroup}
+        {jobsFirst ? declutterGroup : jobsGroup}
 
         {q && shopsOn && shopCount > 0 && show("shops") && (
           <Group title={t("nav.shops")} count={shopCount} onSeeAll={section === "all" ? () => setSection("shops") : undefined}>
@@ -452,20 +509,6 @@ export default function SearchPage() {
           </Group>
         )}
 
-        {q && jobCount > 0 && show("jobs") && (
-          <Group title={t("nav.jobs")} count={jobCount} onSeeAll={section === "all" ? () => setSection("jobs") : undefined}>
-            {jobs.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((j) => (
-              <Row
-                key={j.id}
-                to={`/jobs/${j.id}`}
-                title={j.title}
-                thumb={<Thumb icon={getCategoryIcon(j.category)} seed={j.category} />}
-                sub={[j.parish ? t("srch.parish", { parish: j.parish }) : null, j.date_needed ? jobDayLabel(j) : null].filter(Boolean).join(" · ") || null}
-                price={searchJobPrice(j, user?.id ?? null, viewerFee, firstPayoutFee)}
-              />
-            ))}
-          </Group>
-        )}
         {q && section === "jobs" && jobCount > MAX_ROWS && (
           <Link to={user ? `/jobs?tab=browse&${qs}` : `/browse?${qs}`} className="block text-center font-sans font-semibold text-ds-13 min-h-[44px] leading-[44px]" style={{ color: "hsl(var(--bark))" }}>
             {t("srch.seeAllJobs", { n: jobCount })}

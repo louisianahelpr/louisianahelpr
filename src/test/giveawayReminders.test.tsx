@@ -20,6 +20,11 @@
  * @mutate supabase/migrations/20261119200128_giveaway_reminders.sql | giveaway_reminders boolean NOT NULL DEFAULT true; | giveaway_reminders boolean NOT NULL DEFAULT false;
  * @mutate src/components/sponsor/Sections.tsx | href={enterUrl} target="_blank" | href={C.links.website} target="_blank"
  * @mutate src/pages/sponsor/SponsorPage.tsx | const enterUrl = entryQ.data ?? C.links.facebookPage; | const enterUrl = C.links.website;
+ * @mutate supabase/migrations/20261122012526_giveaway_reminders_daily_entry_copy.sql |  WHERE key IN ('not_too_late_dec5', 'not_too_late_dec10', 'not_too_late_dec15', 'not_too_late_dec19') |  WHERE key IN ('not_too_late_dec5', 'not_too_late_dec10', 'not_too_late_dec15')
+ *
+ * Owner 2026-11-21 ("All the rules will be on Facebook not our website."; each day is its own entry): the words are the
+ * seed's as reworded by every later guarded UPDATE (20261122012526). Before that date this pinned the seed's "Enter once
+ * for a chance at all 25 days" / "One entry covers every day left", which the new entry method made untrue.
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -56,24 +61,49 @@ function seededRows(): Array<{ key: string; at: string; message: string; link: s
   return out;
 }
 
+/**
+ * The words each reminder ends up with: the seed, then every later migration's
+ * `UPDATE public.giveaway_reminders SET message = '<new>' ... WHERE key [= '<k>' | IN (...)] AND message = '<old>'`,
+ * in file order, applied only where the row still holds <old> (as the database does).
+ */
+function effectiveRows(): Array<{ key: string; at: string; message: string; link: string }> {
+  const rows = seededRows().map((r) => ({ ...r }));
+  const sqlStr = "'((?:[^']|'')*)'";
+  const upd = new RegExp(
+    `UPDATE public\\.giveaway_reminders SET message = ${sqlStr}, updated_at = now\\(\\) WHERE key (?:= ${sqlStr}|IN \\(([^)]*)\\)) AND message = ${sqlStr};`,
+    "g",
+  );
+  const unq = (x: string) => x.replace(/''/g, "'");
+  for (const m of all.filter((x) => MIG && x.f > MIG.f)) {
+    for (const u of m.sql.matchAll(upd)) {
+      const keys = u[2] ? [u[2]] : [...u[3].matchAll(/'([a-z0-9_]+)'/g)].map((k) => k[1]);
+      for (const r of rows) if (keys.includes(r.key) && r.message === unq(u[4])) r.message = unq(u[1]);
+    }
+  }
+  return rows;
+}
+
 describe("25 Days giveaway reminders (owner 11-19)", () => {
   it("the config is the owner's schedule and words, in Louisiana time, opening /25days", () => {
-    const r = seededRows();
+    expect(seededRows().length).toBe(7);
+    const r = effectiveRows();
     expect(r.map((x) => `${x.at} | ${x.message}`)).toEqual([
-      "2026-11-30 18:00:00 | 🎄 25 Days of Louisiana Giveaways starts tomorrow! Enter once for a chance at all 25 days. Tap to see how.",
-      "2026-12-01 09:00:00 | It's here! Enter once and you're in for all 25 days of Louisiana giveaways 🎁",
-      "2026-12-05 18:00:00 | It's not too late! Enter our 25 Days of Louisiana Giveaways. One entry covers every day left.",
-      "2026-12-10 18:00:00 | It's not too late! Enter our 25 Days of Louisiana Giveaways. One entry covers every day left.",
-      "2026-12-15 18:00:00 | It's not too late! Enter our 25 Days of Louisiana Giveaways. One entry covers every day left.",
-      "2026-12-19 18:00:00 | It's not too late! Enter our 25 Days of Louisiana Giveaways. One entry covers every day left.",
+      "2026-11-30 18:00:00 | 🎄 25 Days of Louisiana Giveaways starts tomorrow! A new giveaway every day. Tap for details.",
+      "2026-12-01 09:00:00 | It's here! Enter today's Louisiana giveaway. There's a new one every day through December 25 🎁",
+      "2026-12-05 18:00:00 | It's not too late! Enter today's 25 Days of Louisiana Giveaways for a chance to win.",
+      "2026-12-10 18:00:00 | It's not too late! Enter today's 25 Days of Louisiana Giveaways for a chance to win.",
+      "2026-12-15 18:00:00 | It's not too late! Enter today's 25 Days of Louisiana Giveaways for a chance to win.",
+      "2026-12-19 18:00:00 | It's not too late! Enter today's 25 Days of Louisiana Giveaways for a chance to win.",
       "2026-12-23 18:00:00 | Last chance! Only a few days of giveaways left 🎄",
     ]);
+    // Owner 2026-11-21: each day is its own entry, so no reminder may say one entry covers every day.
+    expect(r.filter((x) => /enter once|one entry covers|all 25 days/i.test(x.message))).toEqual([]);
     expect(new Set(r.map((x) => x.key)).size).toBe(r.length);
     expect(r.every((x) => x.link === "/25days")).toBe(true);
   });
 
   it("no reminder or button says HOW people enter (owner: don't say exactly what the plan is)", () => {
-    const words = [...seededRows().map((x) => x.message), sponsorPage.entrant.enterCta].join(" ").toLowerCase();
+    const words = [...effectiveRows().map((x) => x.message), sponsorPage.entrant.enterCta].join(" ").toLowerCase();
     for (const how of ["share", "comment", "like ", "tag ", "follow"]) expect(words, how).not.toContain(how);
     expect(sponsorPage.entrant.enterCta).toBe("Entry details on our Facebook page");
   });

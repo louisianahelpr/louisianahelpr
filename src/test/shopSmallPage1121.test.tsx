@@ -19,7 +19,7 @@
  * public page must be registered (route, head, pre-JS body, both rewrites, sitemap) plus its link from the Holiday Hub.
  *
  * @mutate src/pages/info/GiftGuides.tsx |   const deals = slug && isLiveGuide(slug) ? dealDay(slug) : null; |   const deals = slug ? dealDay(slug) : null;
- * @mutate src/pages/info/ShopSmall.tsx |         <SmallBizLocal sponsors={[]} heading={{ title: W.pageSectionTitle, intro: W.pageSectionIntro }} /> |         {null}
+ * @mutate src/pages/info/ShopSmall.tsx |           <SmallBizLocal sponsors={[]} heading={{ title: W.pageSectionTitle, intro: W.pageSectionIntro }} /> |           {null}
  * @mutate src/App.tsx |       <Route path="/shop-small" element= |       <Route path="/shop-small-old" element=
  * @mutate src/pages/info/holidays/HolidayHub.tsx |           <Link to="/shop-small" className="link-standard"> |           <Link to="/gift-guides" className="link-standard">
  * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx | <h2 id="gift-sbs-local">{heading?.title ?? W.sectionTitle} | <h2 id="gift-sbs-local">{W.sectionTitle}
@@ -34,7 +34,9 @@ import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "./helpers/blankNonCode";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
-  PublicHeaderPage: ({ children, title }: { children: React.ReactNode; title: string }) => <main><h1>{title}</h1>{children}</main>,
+  // The shell draws no header row when the page draws its own (hideHeader; /shop-small sits in the guides' frame since
+  // holiday audit 1121 #73).
+  PublicHeaderPage: ({ children, title, hideHeader }: { children: React.ReactNode; title: string; hideHeader?: boolean }) => <main>{hideHeader ? null : <h1>{title}</h1>}{children}</main>,
 }));
 vi.mock("@/lib/sbsFeaturedApi", () => ({
   listFeaturedLocal: vi.fn(async () => [

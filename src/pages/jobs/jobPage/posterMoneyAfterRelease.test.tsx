@@ -97,7 +97,7 @@ describe("the poster's money after the release (F32)", () => {
   it("a held card says it is not charged yet; an unpaid post says Helprs can't see it", () => {
     show(row({ status: "open", payment_status: "held" }));
     expect(price()).toBe("$40");
-    expect(notes()).toContain("Your card isn't charged until a Helpr accepts your offer.");
+    expect(notes()).toContain("Your card isn't charged until you hire a Helpr.");
     document.body.innerHTML = "";
     show(row({ status: "open", payment_status: "unpaid" }));
     expect(notes()).toContain("Not paid yet. Helprs can't see this job until it's paid.");

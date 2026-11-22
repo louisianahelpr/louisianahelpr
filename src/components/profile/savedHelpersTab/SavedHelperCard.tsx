@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, Send, Star, StickyNote, Check, X } from "lucide-react";
+import { Briefcase, Heart, Send, StickyNote, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UserAvatar from "@/components/UserAvatar";
 import { formatName } from "@/lib/utils";
@@ -140,8 +140,9 @@ export function SavedHelperCard({
           {hasHistory && (
             <div className="flex items-center gap-x-2 gap-y-0.5 mt-1 font-sans flex-wrap text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {h.completed_jobs_together > 0 && (
+                // Audit 11-21 (L36): a star read as a rating; a briefcase is jobs.
                 <span className="flex items-center gap-1 text-primary">
-                  <Star className="w-3 h-3 fill-primary" />
+                  <Briefcase className="w-3 h-3" aria-hidden />
                   {h.completed_jobs_together} job{h.completed_jobs_together === 1 ? "" : "s"} together
                 </span>
               )}
@@ -158,12 +159,12 @@ export function SavedHelperCard({
 
                   It now inherits the row's own `--olivewood / 0.8` — 7.14:1
                   light, 7.96:1 dark — and nothing else about the row changes. */}
-              {h.completed_jobs_together > 0 && h.last_job_at && (
-                <span aria-hidden="true">·</span>
-              )}
+              {/* Audit 11-21 (L36): the dot dangled at the end of the line when the row wrapped, and "Last about 3 hours
+                  ago" did not say last what. The dot rides at the start of the second part, which says "Last job". */}
               {h.last_job_at && (
-                <span>
-                  Last {formatDistanceToNow(new Date(h.last_job_at), { addSuffix: true })}
+                <span className="whitespace-nowrap">
+                  {h.completed_jobs_together > 0 && <span aria-hidden="true">·{"\u00a0"}</span>}
+                  Last job {formatDistanceToNow(new Date(h.last_job_at), { addSuffix: true })}
                 </span>
               )}
             </div>

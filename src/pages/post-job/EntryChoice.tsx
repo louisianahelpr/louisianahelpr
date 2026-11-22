@@ -83,6 +83,11 @@ export function entryCardCount(known: { draftCard: boolean; repostCard: boolean 
   return ENTRY_BASE_CARD_COUNT + (known.draftCard ? 1 : 0) + (known.repostCard ? 1 : 0);
 }
 
+/** Audit 11-21 (S39): at 1440 the first screen stretched its search field and group cards across 1152px. It keeps a
+ *  768px column (max-w-3xl, the /search and settings reading column), left-aligned under the title, the same in its
+ *  loading bones so nothing moves when it lands. */
+const ENTRY_COLUMN = "flex flex-col gap-3 lg:max-w-3xl";
+
 function EntryChoiceSkeleton({ draftCard, links, grid }: { draftCard: boolean; links: number; grid: ReactNode }) {
   return (
     <div className="flex flex-col gap-3" role="status" aria-busy="true" data-testid="entry-choice-skeleton">
@@ -243,7 +248,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // The question paints with the screen; only the cards wait for their data.
   const startHeader = (
     <div className="mb-3">
-      <PostJobStepHeader screen="groups" question={t("postJob.groupsQ")} helper={t("postJob.groupsH")} />
+      <PostJobStepHeader screen="groups" question={t("postJob.groupsQ")} helper={t("postJob.groupsH")} barAtEveryWidth />
     </div>
   );
   // JA-41: a group tap starts the form at that group's kinds (screen 2); a one-category group or a search
@@ -282,7 +287,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       repostCard: postedBefore === true,
     });
     return (
-      <div className="flex flex-col gap-3">
+      <div className={ENTRY_COLUMN}>
         {startHeader}
         <EntryChoiceSkeleton draftCard={draftCard} links={count - (draftCard ? 1 : 0)} grid={groupGrid} />
       </div>
@@ -322,7 +327,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     }[panel];
     return (
       <div className="space-y-section">
-        <PostJobStepHeader screen="groups" question={head.q} helper={head.h} />
+        <PostJobStepHeader screen="groups" question={head.q} helper={head.h} barAtEveryWidth />
         {panel === "templates" && (
           <>
             <div className="grid grid-cols-2 gap-2.5">
@@ -398,6 +403,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             open
             headless
             onOpenChange={(next) => form.setEntryPanel(next ? "ai" : null)}
+            onBlankForm={() => form.setEntryPanel(null)}
             locationContext=""
             onGenerated={(job) => {
               form.applyAiJob(job);
@@ -416,7 +422,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     // Step 0 (owner 2026-10-21, mock-up helpr-postjob-flow-mockup.png): "How do you want to start?",
     // four cards, sentence case, an olive-circle icon each. A returning poster's kept draft and recent
     // jobs follow as the same card (counted by the skeleton above, so the column lands once).
-    <div className="flex flex-col gap-3">
+    <div className={ENTRY_COLUMN}>
       {startHeader}
       {/* Q2003 (owner 2026-11-03): one notice at a time. At the 5-open-job cap the gift hint waits (nothing can be
           posted, so "ready to spend on your next job" is not true yet); it comes back once a job closes. */}
@@ -435,7 +441,8 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           t("postJob.draftTitle"),
           draftCheckout === "open"
             ? "You started paying for this one. If you finished, it will show in Posts shortly, so check there before paying again."
-            : draftCardLine(form.draft, t("postJob.draftBody")),
+            // Audit 11-21 (P25): a guest cannot add a video, so their draft line asks only for the photos again.
+            : draftCardLine(form.draft, t(form.isGuest ? "postJob.draftBodyGuest" : "postJob.draftBody")),
           () => {
             // F25: a draft with its category picked opens at Details, as a template does.
             if (form.loadDraftAndContinue()) form.setFormPage(2);

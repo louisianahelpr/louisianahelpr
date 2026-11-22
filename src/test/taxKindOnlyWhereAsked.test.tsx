@@ -13,9 +13,16 @@
  * @mutate src/lib/salesTax.ts |   "cleaning",\n  "handyman", |   "cleaning",\n  "yard_work",\n  "handyman",
  * @mutate src/lib/salesTax.ts |   "carpentry",\n |
  * @mutate src/components/postjob/DetailsSection.tsx |       {setTaxKind && asksTaxKind(category) && ( |       {setTaxKind && category && (
- * @mutate src/pages/post-job/usePostJobForm.ts |     if (!asksTaxKind(category)) setTaxKind(null); |     void 0;
- * @mutate src/pages/post-job/jobSubmitHelpers.ts |   const taxKind = asksTaxKind(category) ? (taxKindAnswer ?? null) : null; |   const taxKind = taxKindAnswer ?? null;
+ * @mutate src/pages/post-job/usePostJobForm.ts |     setTaxKind((kind) => taxKindFor(category, kind)); |     void 0;
+ * @mutate src/pages/post-job/jobSubmitHelpers.ts |   const taxKind = taxKindFor(category, taxKindAnswer); |   const taxKind = taxKindAnswer ?? null;
+ *   4. (audit 11-21, S32) each asking category offers only the kinds its work can be: Electrical fixes an item, never
+ *      carpet or clothes; an answer the new category does not offer clears on the switch and never reaches the row.
+ * @mutate src/lib/salesTax.ts |   electrical: ITEM_REPAIR_ONLY, |   electrical: ALL_TAX_KINDS,
+ * @mutate src/lib/salesTax.ts |   return answer && (taxKindsFor(category) as readonly string[]).includes(answer) ? answer : null; |   return asksTaxKind(category) && answer ? answer : null;
+ * @mutate src/components/quotes/PostJobQuoteChoice.tsx |         taxKind: taxKindFor(f.category, f.taxKind), |         taxKind: f.taxKind,
  */
+import { readFileSync } from "node:fs";
+import { taxKindsFor } from "@/lib/salesTax";
 import { describe, expect, it, vi } from "vitest";
 import { act, render, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -93,6 +100,32 @@ describe("the sales-tax question shows only where its answer can change the tax 
     // The stale answer was cleared, not just hidden: back in Cleaning the question starts unanswered.
     act(() => result.current.setCategory("cleaning"));
     expect(result.current.taxKind).toBeNull();
+  });
+
+  it("every asking category offers a taxed kind, and only the ones its work can be (S32)", () => {
+    for (const c of ASKED) expect(taxKindsFor(c).length, c).toBeGreaterThan(0);
+    for (const c of JOB_CATEGORY_VALUES) if (!ASKED.includes(c)) expect(taxKindsFor(c), c).toEqual([]);
+    expect(taxKindsFor("electrical")).toEqual(["item_repair"]);
+    expect(taxKindsFor("cleaning")).toEqual(["fabric_cleaning", "clothes_cleaning"]);
+    expect(taxKindsFor("other")).toHaveLength(4);
+    // A carpet answer from Cleaning does not survive a move to Electrical: cleared in the form, dropped from the row.
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={qc}><MemoryRouter initialEntries={["/post-job"]}>{children}</MemoryRouter></QueryClientProvider>
+    );
+    const { result } = renderHook(() => usePostJobForm(), { wrapper });
+    act(() => result.current.setCategory("cleaning"));
+    act(() => result.current.setTaxKind("fabric_cleaning"));
+    act(() => result.current.setCategory("electrical"));
+    expect(result.current.taxKind).toBeNull();
+    const row = buildJobInsertPayload({ ...base, category: "electrical", taxKind: "fabric_cleaning" }) as Record<string, unknown>;
+    expect(row).not.toHaveProperty("tax_kind");
+    expect(row.sales_tax_amount ?? 0).toBe(0);
+    const fix = buildJobInsertPayload({ ...base, category: "electrical", taxKind: "item_repair" }) as Record<string, unknown>;
+    expect(fix.tax_kind).toBe("item_repair");
+    // The quote request (Get quotes) sends the same filtered answer as the row builder.
+    const quote = readFileSync("src/components/quotes/PostJobQuoteChoice.tsx", "utf8");
+    expect(quote).toContain("taxKind: taxKindFor(f.category, f.taxKind),");
   });
 
   it("the row builder drops an answer a non-asking category cannot have, and keeps one that can", () => {

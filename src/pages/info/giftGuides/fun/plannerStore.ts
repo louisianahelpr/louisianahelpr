@@ -99,9 +99,18 @@ export const resetPlanStoreForTests = () => {
 /** A short random id for a person or an idea (only ever inside the planner). */
 const newId = () => Math.random().toString(36).slice(2, 10);
 
+// Writes only when the person is there and something changed (lh-silent-failure review: a late answer for a person or
+// idea that is gone, or a viewer who signed out meanwhile, must not stamp a new, emptier plan).
 const mapPerson = (id: string, f: (p: PlanPerson) => PlanPerson) => {
   const cur = read();
-  write({ ...cur, people: cur.people.map((p) => (p.id === id ? f(p) : p)) });
+  let changed = false;
+  const people = cur.people.map((p) => {
+    if (p.id !== id) return p;
+    const next = f(p);
+    if (next !== p) changed = true;
+    return next;
+  });
+  if (changed) write({ ...cur, people });
 };
 
 export const planActions = {
@@ -122,17 +131,57 @@ export const planActions = {
     const cur = read();
     write({ ...cur, people: cur.people.filter((p) => p.id !== id) });
   },
-  // The new idea goes through cleanPlan's own rules too (an href only when it is https://).
-  addIdea: (personId: string, idea: Omit<PlanIdea, "id" | "bought">) => mapPerson(personId, (p) =>
-    p.ideas.length >= PLAN_MAX_IDEAS ? p : cleanPlan({ people: [{ ...p, ideas: [...p.ideas, { ...idea, id: newId(), bought: false }] }] }).people[0] ?? p),
-  setIdea: (personId: string, ideaId: string, patch: Partial<Omit<PlanIdea, "id">>) => mapPerson(personId, (p) => ({
-    ...p, ideas: p.ideas.map((i) => {
-      if (i.id !== ideaId) return i;
-      const next = { ...i, ...patch };
-      if ("price" in patch && patch.price === undefined) delete next.price;
-      return next;
-    }),
-  })),
+  // The new idea goes through cleanPlan's own rules too (an href only when it is https://). Its id, or null when the
+  // person is gone or their list is full.
+  addIdea(personId: string, idea: Omit<PlanIdea, "id" | "bought">): string | null {
+    const id = newId();
+    let added = false;
+    mapPerson(personId, (p) => {
+      if (p.ideas.length >= PLAN_MAX_IDEAS) return p;
+      added = true;
+      return cleanPlan({ people: [{ ...p, ideas: [...p.ideas, { ...idea, id, bought: false }] }] }).people[0] ?? p;
+    });
+    return added ? id : null;
+  },
+  /**
+   * What the server said about the link requests we asked about (owner 11-21, wish_link_requests): `found` holds each
+   * request that still exists, with our link once made (else null). A gift whose request has our link now uses it; a
+   * gift whose request is gone (pruned) forgets it, so a share no longer carries it.
+   */
+  applyOurLinks(asked: readonly string[], found: ReadonlyMap<string, string | null>) {
+    const ask = new Set(asked);
+    const cur = read();
+    let changed = false;
+    const people = cur.people.map((p) => ({
+      ...p, ideas: p.ideas.map((i) => {
+        if (!i.req || !ask.has(i.req)) return i;
+        if (!found.has(i.req)) {
+          changed = true;
+          const rest = { ...i };
+          delete rest.req;
+          return rest;
+        }
+        const link = found.get(i.req);
+        if (!link || link === i.href) return i;
+        changed = true;
+        return { ...i, href: link };
+      }),
+    }));
+    if (changed) write({ ...cur, people });
+  },
+  // A patch key set to undefined removes it (a price cleared, a request's `ask` once answered). No write when the idea
+  // is gone.
+  setIdea: (personId: string, ideaId: string, patch: Partial<Omit<PlanIdea, "id">>) => mapPerson(personId, (p) => {
+    if (!p.ideas.some((i) => i.id === ideaId)) return p;
+    return {
+      ...p, ideas: p.ideas.map((i) => {
+        if (i.id !== ideaId) return i;
+        const next: Record<string, unknown> = { ...i, ...patch };
+        for (const k of Object.keys(patch)) if (next[k] === undefined) delete next[k];
+        return next as unknown as PlanIdea;
+      }),
+    };
+  }),
   removeIdea: (personId: string, ideaId: string) => mapPerson(personId, (p) => ({ ...p, ideas: p.ideas.filter((i) => i.id !== ideaId) })),
 };
 

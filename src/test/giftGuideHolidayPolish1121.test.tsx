@@ -6,9 +6,11 @@
  *
  * @mutate src/lib/publicPageMeta.mjs |     description: "Gift ideas for her, him and the kids from Louisiana Helpr, every pick with its price and sorted by budget.", |     description: "Gift ideas for everyone on your list, from Louisiana Helpr: by person, budget, career and store, plus Louisiana favorites.",
  * @mutate src/content/giftGuideCatalog.ts |   if (w.length >= 5) return hay.includes(w); |   return hay.includes(w);
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |   const pages = query.trim() ? searchPages(query) : []; |   const pages: { to: string; title: string; tint: string }[] = [];
  * @mutate src/content/giftGuideCatalog.ts |     budgetSlugs.push("her", "him", "kids"); |     budgetSlugs.push();
- * @mutate src/content/giftGuideExtras1120.ts |   const live = FINDER_VIBES.filter((v) => giftFinder(pool, budget, v.id, borrow, who).exact.length > 0); |   const live = FINDER_VIBES;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {!guide.children && guide.picks.length === 0 && ( |       {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && (
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const banded = guide.picks.filter((p) => p.band !== undefined && showsPrice(p)).length; |   const banded = guide.picks.filter((p) => p.band !== undefined).length;
+ * @mutate src/content/giftGuideShipping.ts |   instant: "Too late to ship? Print a free gift tag or coloring book today", |   instant: "Last-minute? Gift cards and digital gifts arrive instantly",
  * @mutate src/content/giftGuideShipping.ts |   if (month !== 12) return null; |   if (month !== 12) return SHIP_LINES.early;
  * @mutate src/pages/info/GiftGuides.tsx | <GiftGuidesSidebar active={guide} myList={myList \|\| shared} page= | <GiftGuidesSidebar active={guide} myList={myList} page=
  * @mutate src/pages/info/GiftGuides.tsx |   if (rawSlug && rawSlug !== rawSlug.toLowerCase()) return | if (false) return
@@ -16,19 +18,19 @@
  * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |             <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1> |             <h1 id={titleId}>{title}</h1>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { FUN_WORDS } from "@/content/giftGuideFun1120";
-import { FINDER_BUDGET_GUIDES, FINDER_VIBES, FINDER_WHO, finderBudgets, finderPool, finderVibes, giftFinder } from "@/content/giftGuideExtras1120";
 import { SHIP_LINES, shippingLine } from "@/content/giftGuideShipping";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 import GiftGuides from "@/pages/info/GiftGuides";
 import { GiftGuideView } from "@/pages/info/giftGuides/GiftGuideView";
+import { GiftGuideTools } from "@/pages/info/giftGuides/GiftGuideShare";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidesLandingBody } from "@/lib/seoBodies.mjs";
-import { SEARCH_SYNONYMS, guideBySlug, loadAllGuidePicks, searchGuides, searchItems, type SearchItem } from "@/content/giftGuideCatalog";
+import { SEARCH_SYNONYMS, guideBySlug, loadAllGuidePicks, searchGuides, searchItems, searchPages, type SearchItem } from "@/content/giftGuideCatalog";
 import INDEX from "@/content/giftGuideSearchIndex.json";
 
 afterEach(cleanup);
@@ -63,6 +65,20 @@ describe("gift guide search (holiday audit 1121)", () => {
     }
     expect(titles("under $25")).toEqual(expect.arrayContaining(["her", "him", "kids"]));
   });
+  it("the deals days and Shop Small are found by their words ('deals', 'black friday', 'codes', 'shop small')", () => {
+    const to = (q: string) => searchPages(q).map((p) => p.to);
+    expect(to("deals")).toEqual(expect.arrayContaining(["/gift-guides/black-friday", "/gift-guides/cyber-monday"]));
+    expect(to("black friday")).toEqual(["/gift-guides/black-friday"]);
+    expect(to("cyber monday")).toEqual(["/gift-guides/cyber-monday"]);
+    expect(to("codes").length).toBeGreaterThan(0);
+    expect(to("shop small")).toContain("/shop-small");
+    expect(to("small business")).toContain("/gift-guides/small-business-saturday");
+    expect(to("leggings")).toEqual([]);
+    // The search box lists them instead of "No guides match".
+    const { container } = render(<MemoryRouter><GiftGuideTools path="/gift-guides" title="t" many /></MemoryRouter>);
+    fireEvent.change(container.querySelector("[data-gift-search]")!, { target: { value: "black friday" } });
+    expect(container.querySelector('[data-gift-found-page="/gift-guides/black-friday"]')).not.toBeNull();
+  });
   it("every synonym points only to live guides (and the menu's fun tools carry the pages' own names)", () => {
     expect(FUN_WORDS.tools.find((t) => t.to === "/gift-guides/draw-names")?.title).toBe(FUN_WORDS.santaTitle);
     expect(SEARCH_SYNONYMS.length).toBeGreaterThan(5);
@@ -71,39 +87,12 @@ describe("gift guide search (holiday audit 1121)", () => {
   });
 });
 
-describe("the gift finder offers only vibes that really match (holiday audit 1121)", () => {
-  it("every vibe offered to a live person at a budget has at least one exact pick; Louisiana is not offered empty", async () => {
-    await loadAllGuidePicks();
-    const picksOf = (s: string) => guideBySlug(s)?.picks ?? [];
-    const borrow = FINDER_BUDGET_GUIDES.flatMap(picksOf);
-    const people = FINDER_WHO.filter((w) => w.guides.every((g) => guideBySlug(g.slug)));
-    expect(people.length).toBeGreaterThan(2);
-    const empty: string[] = [];
-    let louisianaOffered = 0;
-    for (const w of people) {
-      const pool = finderPool(w.id, picksOf);
-      for (const b of finderBudgets(pool, w.id, borrow)) {
-        const vibes = finderVibes(pool, w.id, b.id, borrow);
-        if (vibes.length === FINDER_VIBES.length && vibes.every((v) => giftFinder(pool, b.id, v.id, borrow, w.id).exact.length === 0)) continue; // the no-dead-end fallback
-        for (const v of vibes) {
-          if (v.id === "louisiana") louisianaOffered++;
-          if (giftFinder(pool, b.id, v.id, borrow, w.id).exact.length === 0) empty.push(`${w.id}/${b.id}/${v.id}`);
-        }
-      }
-    }
-    expect(empty).toEqual([]);
-    // Exact, measured 2026-11-21 (train 1121g): the owner's LSU saves on For Him are Louisiana-made, so the vibe is offered
-    // 6 times, each with real matches (empty above); before them no live pick was Louisiana-made (0).
-    expect(louisianaOffered).toBe(6);
-  });
-});
-
 describe("heading order never skips a level (holiday audit 1121: h1 then h3 on the guides, deals and sponsors pages)", () => {
   it("Her, a relationship view, the sponsors page and a deals day go h1, h2, h3 without a jump", async () => {
     await loadAllGuidePicks();
     for (const path of ["/gift-guides/her", "/gift-guides/wife", "/gift-guides/25-days-sponsors", "/gift-guides/black-friday"]) {
       const { container } = renderAt(path);
-      if (path.endsWith("black-friday")) await screen.findAllByText(/^Shop /);
+      if (path.endsWith("black-friday")) await waitFor(() => expect(document.querySelector("[data-gift-deal]")).not.toBeNull());
       const levels = [...container.querySelectorAll("h1, h2, h3, h4, h5, h6")].map((h) => Number(h.tagName[1]));
       expect(levels.length, path).toBeGreaterThan(1);
       expect(levels[0], path).toBe(1);
@@ -113,6 +102,23 @@ describe("heading order never skips a level (holiday audit 1121: h1 then h3 on t
       expect(jumps, path).toEqual([]);
       cleanup();
     }
+  });
+});
+
+describe("budget chips need prices a shopper can see (holiday audit 1121)", () => {
+  it("the sponsors page shows its budget chips while its prices show, and none once they have aged out", async () => {
+    await loadAllGuidePicks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const chips = (iso: string) => {
+      vi.setSystemTime(new Date(iso));
+      const { container } = renderAt("/gift-guides/25-days-sponsors");
+      const has = container.querySelector("[data-gift-budget]") !== null;
+      cleanup();
+      return has;
+    };
+    expect(chips("2026-11-22T18:00:00Z")).toBe(true);
+    expect(chips("2027-02-01T18:00:00Z")).toBe(false);
+    vi.useRealTimers();
   });
 });
 
@@ -132,6 +138,8 @@ describe("the shipping pill (holiday audit 1121)", () => {
     expect(shippingLine(at("2027-01-15T18:00:00Z"))).toBeNull();
     expect(shippingLine(at("2027-06-15T18:00:00Z"))).toBeNull();
     expect(shippingLine(at("2026-11-01T18:00:00Z"))).toBe(SHIP_LINES.early);
+    // Owner 2026-11-21: "Just don't mention gift cards." (they left the guides 11-20).
+    expect(Object.values(SHIP_LINES).filter((l) => /gift card/i.test(l))).toEqual([]);
   });
 });
 

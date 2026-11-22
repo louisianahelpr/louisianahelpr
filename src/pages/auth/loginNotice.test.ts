@@ -42,7 +42,8 @@ describe("Login for a guest who opened a Declutter link (AUD31-16)", () => {
     const post = loginNotice({ ...base, redirect: "/post-job?category=cleaning" });
     expect(post.leadWithSignup).toBe(true);
     expect(post.notice).toBe("Posting a job needs a free account. Create an account, or log in and we'll take you straight back to it.");
-    expect(gatedPageNotice("/tips/abc")).toMatch(/^Sending a tip needs a free account\./);
+    // Audit 11-21 (P27): a tip link comes from the member's own notification, so it is a returning line now.
+    expect(gatedPageNotice("/tips/abc")).toBe("Log in to send your tip. We'll take you straight back to it.");
     expect(gatedPageNotice("/shops")).toMatch(/^Shops needs a free account\./);
     const other = loginNotice({ ...base, redirect: "/somewhere-new" });
     expect(other.leadWithSignup).toBe(true);
@@ -56,7 +57,7 @@ describe("Login for a guest who opened a Declutter link (AUD31-16)", () => {
 
   it("Login puts Create an account inside the notice when it leads", () => {
     const src = blankComments(readFileSync("src/pages/auth/Login.tsx", "utf8"));
-    expect(src).toContain("redirect: safeInternalRedirect(pendingRedirect) });");
+    expect(src).toContain(`redirect: safeInternalRedirect(pendingRedirect), reason: searchParams.get("reason") });`);
     expect(src).toMatch(/\{leadWithSignup && \(\s*<Link to=\{signupHref\}[^>]*data-login-lead-signup=""/);
   });
 });

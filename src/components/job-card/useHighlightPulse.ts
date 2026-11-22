@@ -33,6 +33,9 @@ import { useEffect, useRef, type RefObject } from "react";
  * posted read as an error state, not a "here it is". It still gets a soft olive
  * wash that fades (F436).
  */
+/** How long the deep-linked card wears its olive ring (S40). */
+const DEEP_LINK_RING_MS = 2000;
+
 export function useHighlightPulse(
   highlight: boolean,
   cardRef: RefObject<HTMLDivElement>,
@@ -52,6 +55,13 @@ export function useHighlightPulse(
       // wash that fades by itself: no outline, no burnt sienna, nothing static under Reduce Motion.
       const cls = ring ? "highlight-pulse" : "highlight-soft";
       el.classList.add(cls);
+      // Audit 11-21 (S40): the wash alone was easy to miss (and Reduce Motion drew nothing at all). The card also wears
+      // a soft olive ring for 2 seconds (static, so it shows under Reduce Motion too) and takes focus, so a keyboard or
+      // screen-reader user lands on it as well.
+      el.setAttribute("data-deep-linked", "");
+      window.setTimeout(() => el.removeAttribute("data-deep-linked"), DEEP_LINK_RING_MS);
+      if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+      el.focus({ preventScroll: true });
       // Remove the class after the animation ends so a future re-render
       // doesn't re-apply it and so the outline doesn't persist.
       const onEnd = () => el.classList.remove(cls);

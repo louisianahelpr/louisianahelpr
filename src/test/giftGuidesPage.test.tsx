@@ -29,7 +29,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
  * @mutate src/pages/info/GiftGuides.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
- * @mutate src/pages/info/GiftGuides.tsx | {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer} | {footer}{deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}
+ * @mutate src/pages/info/GiftGuides.tsx | {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />} | {footer}{deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   { slug: "him", dot: "green" }, |   { slug: "him", dot: "red" },
@@ -43,7 +43,7 @@
  * @mutate src/pages/info/GiftGuides.tsx |   const slug = myListPage ? undefined : rawSlug; |   const slug = undefined as string \| undefined; void rawSlug;
  * @mutate src/pages/info/GiftGuides.tsx |   if (!slug && !shared && !myListPage && fromHash) return | if (!slug && !shared && !myListPage && fromHash && false) return
  * @mutate src/pages/info/GiftGuides.tsx |   if (moved) return | if (moved && false) return
- * @mutate src/pages/info/GiftGuides.tsx | const backTo = guide \|\| deals \|\| myList \|\| shared \|\| group ? "/gift-guides" : "/"; | const backTo = guide \|\| deals \|\| myList \|\| shared \|\| group ? "/gift-guides/" : "/";
+ * @mutate src/pages/info/GiftGuides.tsx | const backTo = guide \|\| deals \|\| myList \|\| shared ? "/gift-guides" : "/"; | const backTo = guide \|\| deals \|\| myList \|\| shared ? "/gift-guides/" : "/";
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | className="gg-thumb" loading="lazy" decoding="async" | className="gg-thumb" decoding="async"
  * @mutate src/content/giftGuidesAmazon.ts | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=louisianahelpr-20"], | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=hggguidepage-20"],
  * @mutate src/content/giftGuideCatalog.ts |   return hit; |   return "amazon" as GiftStore;
@@ -99,7 +99,6 @@ import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, REMOVED_GUID
 import { GiftGuideView, PICKS_PAGE, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
-import { rowTiles } from "@/pages/info/giftGuides/GiftGuideLanding";
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { RETIRED_SLUGS, newSlugFor } from "@/content/giftGuideCatalog";
@@ -326,24 +325,8 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(lines).toEqual(["her", "him", "kids"].map((s) => `${s[0].toUpperCase()}${s.slice(1)} · , ${CHUNK_PICK_COUNTS[s]} gifts`));
     expect(CHUNK_PICK_COUNTS.him).toBeGreaterThan(100);
     cleanup();
-    // Owner 2026-11-18: no "25 picks" count and no subtitle under any title; a tile is its cover and its name (a kids
-    // age guide keeps its age band). The tiles are on the groups' pages (owner 11-20 PM).
-    // Owner 11-21: a group with no live guide opens the landing, so only the groups holding one are read.
-    const tiles = ROWS.filter((r) => rowTiles(r.row).length > 0).flatMap((r) => {
-      const page = renderAt(`/gift-guides?group=${r.row}`).container;
-      const found = [...page.querySelectorAll("a[data-gift-tile]")].map((t) => t.cloneNode(true) as Element);
-      cleanup();
-      return found;
-    });
-    // Follow-up 1120: 50+ tiles measured 2026-11-20; owner 11-21: Her, Him and Kids.
-    expect(tiles.length).toBeGreaterThan(2);
-    for (const t of tiles) {
-      const g = guideBySlug(t.getAttribute("data-gift-tile")!)!;
-      // The text cover (no cover file) repeats the name as a decorative, aria-hidden picture; the tile's words are the name.
-      const words = [...t.childNodes].filter((n) => !(n instanceof Element && n.getAttribute("aria-hidden") === "true")).map((n) => n.textContent).join("");
-      // The For kids row's Teens tiles are named apart ("Teen girls"; live audit r3 #4).
-      expect(words, g.slug).toBe(`${g.title}${g.age ?? ""}`);
-    }
+    // Owner 2026-11-18: no "25 picks" count and no subtitle under any title. The landing's tiles (checked above) are the
+    // only guide tiles now: the group pages that held the rest are gone (holiday audit 1121 #14).
     expect(renderAt("/gift-guides").container.textContent).not.toMatch(/\d+ picks?\b|\d+ guides\b|Coming soon|On ShopMy/);
     cleanup();
     const wordsOf = (path: string) => [...(renderAt(path).container.querySelector("[data-gift-words]")?.children ?? [])].map((c) => c.textContent);
@@ -422,11 +405,13 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(renderAt("/gift-guides/mom").container.querySelector("[data-gift-coming-soon]")).toBeNull();
   });
 
-  it("See all shows one group's guides as a wrapped grid, with a way back", () => {
+  // Holiday audit 1121 #14: an old "See all" group link opens the landing itself (the group page drew an "All guides"
+  // link beside the header's back arrow, a green dot and small tiles).
+  it("an old See all group link opens the landing, with no second way back", () => {
     const { container } = renderAt("/gift-guides?group=by-person");
-    expect([...container.querySelectorAll("[data-gift-row]")].map((r) => r.getAttribute("data-gift-row"))).toEqual(["by-person"]);
-    expect(container.querySelector("[data-gift-row] ul")?.className).toBe("gg-wrap");
-    expect(container.querySelector("a[data-gift-back]")?.getAttribute("href")).toBe("/gift-guides");
+    expect(container.querySelector("[data-gift-row]")).toBeNull();
+    expect(container.querySelector("a[data-gift-back]")).toBeNull();
+    expect(container.querySelector("[data-gift-live-guides]")).not.toBeNull();
   });
 
   // Owner 11-21: "since it's just 3 guides now you don't really need to filter it, maybe just do for her, him, kids with
@@ -799,23 +784,27 @@ describe("gift guides: blocked brands and the CJ input (lead 2026-11-18)", () =>
 });
 
 describe("gift guides: each row heading carries its guide count (owner 11-18 PM)", () => {
-  // Owner: "add the number in parentheses on the right of By Person". Computed: the tiles the row shows, the same
-  // number its See all page shows.
-  // @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | &nbsp;({list.length}) | &nbsp;(24)
-  it("every group page's (n) equals its tiles", () => {
-    // Owner 11-20 PM: the rows live on each group's page now (the landing has one grid of ways in).
+  // Owner: "add the number in parentheses on the right of By Person" (the group pages' count). Holiday audit 1121 #14:
+  // the group pages are gone; every old group link, for every row, opens the landing (no group page, no count).
+  // @mutate src/pages/info/GiftGuides.tsx |   if (landing && groupParam !== null) return | if (false) return
+  it("every old group link opens the landing", () => {
+    const Search = () => <p data-testid="search">{useLocation().search}</p>;
     const counts = new Map<string, number>();
-    // Owner 11-21: a group with no live guide opens the landing (no group page), so only the groups holding one.
-    for (const { row } of ROWS.filter((x) => rowTiles(x.row).length > 0)) {
-      const r = renderAt(`/gift-guides?group=${row}`).container.querySelector(`section[data-gift-row="${row}"]`)!;
-      const n = r.querySelectorAll(":scope > ul > li a[data-gift-tile], :scope > ul a[data-gift-tile]").length;
-      const shown = r.querySelector("h2 [data-gift-row-count]")?.textContent?.replace(/\u00a0/g, " ").trim();
-      expect(shown, row).toBe(`(${n})`);
-      counts.set(row, n);
+    for (const { row } of ROWS) {
+      const c = render(
+        <MemoryRouter initialEntries={[`/gift-guides?group=${row}`]}>
+          <Routes><Route path="/gift-guides" element={<><GiftGuides /><Search /></>} /></Routes>
+        </MemoryRouter>,
+      ).container;
+      // The address drops ?group= (a shared or pinned link reads as the landing it is).
+      expect(c.querySelector("[data-testid=search]")?.textContent, row).toBe("");
+      expect(c.querySelector(`section[data-gift-row="${row}"]`), row).toBeNull();
+      expect(c.querySelector("[data-gift-row-count]"), row).toBeNull();
+      counts.set(row, c.querySelectorAll("[data-gift-live-guides] a[data-gift-tile]").length);
       cleanup();
     }
-    expect(counts.size).toBeGreaterThan(1); // By person (Her, Him) and For kids (Kids), 2026-11-21
-    expect(new Set(counts.values()).size).toBeGreaterThan(1);
+    expect(counts.size).toBeGreaterThan(1); // 10 rows, 2026-11-21
+    expect([...new Set(counts.values())]).toEqual([3]); // Her, Him and Kids, from every old group link
   });
 });
 

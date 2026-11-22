@@ -281,10 +281,10 @@ export function BudgetSection({
               {tr("postJob.f.urgentHelp")}
             </p>
             <Label className="text-ds-11">{tr("postJob.f.urgentBonusRange", { min: formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS), max: formatDollarsWhole(MAX_URGENT_FEE_DOLLARS) })}</Label>
-            {/* Q2709: the four amounts + Custom are one pick-one set, so they are the shared switch (quiet tone). */}
+            {/* Q2709: the four amounts + Custom are one pick-one set, so they are the shared switch. Audit 11-21 (L25): in the
+                solid olive tone, like "Set a price" and "One-time" on the same screen (it was the white "quiet" pill). */}
             <SegmentedControl
               ariaLabel={tr("postJob.f.urgentBonus")}
-              tone="quiet"
               options={URGENT_FEE_OPTIONS}
               value={customUrgentFee ? "custom" : (URGENT_FEE_AMOUNTS as readonly string[]).includes(urgentFee) ? urgentFee : null}
               onChange={(v) => {

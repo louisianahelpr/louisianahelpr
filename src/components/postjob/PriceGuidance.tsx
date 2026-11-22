@@ -51,7 +51,7 @@ function useFairPriceHint(category: string | null | undefined): FairPriceHint | 
 }
 
 /**
- * The card under the price: "Most yard jobs near you are $40–$80", a bar with a marker at the poster's price; below
+ * The card under the price: "Most yard jobs near you  $40–$80" (headline left, range right), a bar with a marker at the poster's price; below
  * the range, a gentle nudge with "Use $40" / "Keep $25". Nothing while there is no range.
  */
 export function PriceGuidanceCard({ category, budget, onUse }: { category: string; budget: number; onUse: (dollars: number) => void }) {
@@ -74,13 +74,14 @@ function PriceGuidanceView({ g, category, budget, onUse }: { g: FairPriceHint; c
       <section aria-label={t("postJob.hint.label")} className="rounded-2xl border border-border bg-card p-4" data-testid="price-guidance-nudge" data-scope={g.scope}>
         <p className="font-semibold text-foreground">{t("postJob.hint.below")}</p>
         <p className="mt-1 text-ds-13 text-muted-foreground">
-          {headline} <span className="whitespace-nowrap" style={MONEY}>{range}</span>. {t("postJob.hint.belowWhy")}
+          {headline}: <span className="whitespace-nowrap" style={MONEY}>{range}</span>. {t("postJob.hint.belowWhy")}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button type="button" size="sm" variant="outline" onClick={() => setKept(budget)}>
             {t("postJob.hint.keep", { n: budget })}
           </Button>
-          <Button type="button" size="sm" className="btn-grad-primary" onClick={() => onUse(g.low)}>
+          {/* Audit 11-21 (S37): two olive buttons stood beside the page's own olive Review. A suggestion is outlined. */}
+          <Button type="button" size="sm" variant="outline" onClick={() => onUse(g.low)}>
             {t("postJob.hint.use", { n: g.low })}
           </Button>
         </div>
@@ -106,6 +107,13 @@ function PriceGuidanceView({ g, category, budget, onUse }: { g: FairPriceHint; c
         {source}
         {budget > 0 ? ` ${t("postJob.hint.youre", { n: budget })}` : ""}
       </p>
+      {/* Audit 11-21 (P24, S37): the price starts at $0 with $5 steps, so reaching $80 took 16 taps while this card
+          already knew the range. One tap starts the price at the low end; nothing is filled in until the poster taps. */}
+      {budget <= 0 && (
+        <Button type="button" size="sm" variant="outline" className="mt-3" onClick={() => onUse(g.low)} data-price-start-at="">
+          {t("postJob.hint.startAt", { n: g.low })}
+        </Button>
+      )}
     </section>
   );
 }

@@ -4,7 +4,7 @@ import { QueryClientContext } from "@tanstack/react-query";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { safeStorage } from "@/lib/safeStorage";
+import { writeLastSection } from "./lastSection";
 import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "./useSectionPrefs";
 import { sectionByKey, type SectionDef, type SectionKey } from "./sectionsConfig";
@@ -15,26 +15,6 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 import { SECTIONS_OPEN_QUERY_KEY } from "@/components/landing/useSectionsOpen";
 
-const LAST_KEY = "helpr_explore_last";
-
-/** The section Explore reopens on, per member ("<key>:<userId>", never one global key). */
-export function readLastSection(userId: string | undefined): SectionKey | null {
-  if (!userId) return null;
-  try {
-    return (safeStorage.getItem(`${LAST_KEY}:${userId}`) as SectionKey | null) ?? null;
-  } catch {
-    return null; // storage blocked: Explore opens on the first section
-  }
-}
-
-function writeLastSection(userId: string | undefined, key: SectionKey) {
-  if (!userId) return;
-  try {
-    safeStorage.setItem(`${LAST_KEY}:${userId}`, key);
-  } catch {
-    /* best-effort: Explore reopens on the first section instead */
-  }
-}
 
 /** Is this section open to the viewer (its switch on, or it has none)? */
 export function useSectionIsOn() {

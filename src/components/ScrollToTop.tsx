@@ -34,11 +34,20 @@ function footerInView(): boolean {
  */
 const GIVEAWAY_LOOK = { background: "#fbf7ee", border: "1px solid #b08d57", color: "#1f3a2b", boxShadow: "none" } as const;
 function onGiveawayPage(pathname: string): boolean {
-  return pathname === "/25days" || pathname.startsWith("/25days/");
+  return pathname === "/25days"; // its only page since /25days/rules left (owner 2026-11-21: rules on Facebook)
 }
 
 function onLanding(pathname: string): boolean {
   return pathname === "/";
+}
+
+/**
+ * Never on the gift guides and Shop Small pages (holiday audit 1121 #40 / #78): every row there ends in a heart at
+ * the right edge, so the button always sat on one, and a tap meant to save a gift scrolled the page up instead. The
+ * sticky top bar stays one tap away, as on the landing.
+ */
+function onHeartList(pathname: string): boolean {
+  return pathname === "/gift-guides" || pathname.startsWith("/gift-guides/") || pathname === "/shop-small";
 }
 
 /** How long an in-app #link keeps looking for its section while the page's lazy content mounts. */
@@ -207,7 +216,7 @@ const ScrollToTop = () => {
       // an entry left at the top came back mid-page (Q1312).
       if (currentKeyRef.current !== key) return;
       const pos = readPos();
-      setVisible(pos > REVEAL_AFTER_PX && !footerInView() && !onLanding(pathname));
+      setVisible(pos > REVEAL_AFTER_PX && !footerInView() && !onLanding(pathname) && !onHeartList(pathname));
       scrollPositions.set(key, pos);
     };
     onScroll();

@@ -2,6 +2,7 @@ import { HelpEntry } from "@/components/help/HelpEntry";
 import BackButton, { BACK_BUTTON_BOX_CLASS } from "@/components/BackButton";
 import HelprMark from "@/components/HelprMark";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
+import { useTitleShrinksWhenItWraps } from "@/components/header/useTitleShrinksWhenItWraps";
 import type { CSSProperties, ReactNode } from "react";
 
 interface PageHeaderProps {
@@ -230,6 +231,8 @@ const LONG_TITLE_CHARS = 24;
 // recorded in the retirement note below (title only; ~15 call sites still pass it).
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phoneHidesTitle = false, hidesTitle = false, titleTag = "h1", stickyTitle = false, wrapTitle = false, hideBack = false, backLabel, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
+  // L23 (audit 11-21): a wrapping title that still takes two lines at the large size is set at the long-title size.
+  const titleRef = useTitleShrinksWhenItWraps<HTMLHeadingElement>(wrapTitle, `${title}${hidesTitle}${phoneHidesTitle}`);
   // `eyebrow` is accepted by PageHeaderProps for call-site compatibility but
   // intentionally not destructured/rendered — see the removal note below.
   const { outer, inner } = WIDTH_CLASS[width];
@@ -379,7 +382,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
                   {title}
                 </p>
               ) : (
-                <h1 className={`text-page-title leading-tight ${wrapTitle ? `break-words${title.length > LONG_TITLE_CHARS ? " page-title-long" : ""}` : "truncate"}${hidesTitle ? " sr-only" : phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
+                <h1 ref={titleRef} className={`text-page-title leading-tight ${wrapTitle ? `break-words${title.length > LONG_TITLE_CHARS ? " page-title-long" : ""}` : "truncate"}${hidesTitle ? " sr-only" : phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
                   {title}
                 </h1>
               )}

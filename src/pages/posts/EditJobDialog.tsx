@@ -30,7 +30,7 @@ import { categories, type Job } from "../../components/job-card/activityConstant
 import { todayLocalISO } from "@/lib/dateUtils";
 import { formatPriceExact } from "@/lib/format";
 import { computeJobExpiresAt } from "@/lib/jobExpiry";
-import { asksTaxKind, isLaborTaxable } from "@/lib/salesTax";
+import { asksTaxKind, isLaborTaxable, taxKindFor } from "@/lib/salesTax";
 import { useJobAccessNote } from "@/hooks/useJobAccessNote";
 import { saveJobAccessNote } from "@/lib/jobAccessNotes";
 import { geocodeAddress } from "@/lib/geocode";
@@ -174,7 +174,11 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       require_photo_proof: requirePhotoProof,
       // Owner 2026-11-06: a category that does not ask the taxed-kind question has no answer, so moving a job there
       // clears it (else a Cleaning + carpet job edited to Yard work stayed taxed with no question to change it).
-      ...(!asksTaxKind(category) && ((job as { tax_kind?: string | null }).tax_kind ?? null) != null ? { tax_kind: null } : {}),
+      // Audit 11-21 (S32): moving to a category that does not offer the answer clears it the same way. Only on a move
+      // (lh-money-escrow review): a job answered before the per-category lists keeps its answer when its category
+      // stays, or every save of a funded or booked job would be refused (enforce_funded_category_tax_class,
+      // enforce_poster_jobs_money_lock) and an unfunded one would quietly lose its tax.
+      ...(((job as { tax_kind?: string | null }).tax_kind ?? null) != null && (!asksTaxKind(category) || (category !== job.category && taxKindFor(category, (job as { tax_kind?: string | null }).tax_kind) == null)) ? { tax_kind: null } : {}),
       // Moving the schedule MUST move the listing expiry with it. It didn't:
       // a job pushed 08-31 -> 09-03 kept its 08-31 expires_at, which is what
       // the feed and the map filter on, so the poster's paid listing stayed
@@ -281,8 +285,9 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   // the server would allow, never allow one it refuses.
   const jobTaxKind = (job as { tax_kind?: string | null }).tax_kind ?? null;
   // The answer the job WOULD carry in that category: none where the question is not asked (save clears it).
+  // The job's own category keeps its answer (see the save above), so it is never greyed.
   const crossesTaxClass = (value: string) =>
-    funded && isLaborTaxable(value, asksTaxKind(value) ? jobTaxKind : null) !== isLaborTaxable(job.category, jobTaxKind);
+    funded && value !== job.category && isLaborTaxable(value, taxKindFor(value, jobTaxKind)) !== isLaborTaxable(job.category, jobTaxKind);
 
   return (
     <>

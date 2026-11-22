@@ -20,8 +20,8 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
-// @mutate src/components/ui/sonner.tsx | bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))", | bottom: "calc(var(--safe-area-bottom, 0px) + 96px)",
-// @mutate src/pages/jobs/JobDetail.tsx | pt-20 pb-safe-nav | pt-20 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]
+// @mutate src/components/ui/sonner.tsx | bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 12px)", | bottom: "calc(var(--safe-area-bottom, 0px) + 96px + 12px)",
+// @mutate src/pages/jobs/JobDetail.tsx | bottomPaddingClassName="pb-safe-nav" | bottomPaddingClassName="pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]"
 // @mutate src/components/mobileNav/DockCurtain.tsx | const CURTAIN_BAND = "(var(--safe-area-bottom, 0px) + 96px + 24px)"; | const CURTAIN_BAND = "(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 24px)";
 // @mutate src/components/ui/PageScaffold.tsx | import type { CSSProperties, ReactNode } from "react"; | const __q265 = "calc(var(--safe-area-bottom, 0px) + 96px)"; import type { CSSProperties, ReactNode } from "react";
 

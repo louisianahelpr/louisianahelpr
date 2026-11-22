@@ -9,7 +9,7 @@
  * which Helpr brought a new poster (SQL behaviour: src/test/pglite/bookMeBookingSource.pglite.mjs).
  *
  * @mutate src/App.tsx |       <Route path="/book/:userId" element={<RouteErrorBoundary>{routeEl(<BookHelprRoute><BookHelprPage /></BookHelprRoute>)}</RouteErrorBoundary>} /> |       <Route path="/book/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BookHelprRoute><BookHelprPage /></BookHelprRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
- * @mutate src/lib/bookMe.ts |   return signedIn ? bookOfferPath(userId) : signupUrlFor(bookOfferPath(userId)); |   return signedIn ? bookOfferPath(userId) : "/signup";
+ * @mutate src/lib/bookMe.ts |   return bookOfferPath(userId); |   return "/signup";
  * @mutate src/lib/bookMe.ts |   if (remembered !== offerTo) return "none"; |   if (!remembered) return "none";
  * @mutate api/share.ts |   if (route.kind === "book") { |   if (false) {
  * @mutate vercel.json |       "destination": "/api/share?_og=book&_id=:userId" |       "destination": "/api/share?_og=user&_id=:userId"
@@ -43,7 +43,8 @@ describe("the link and the way in", () => {
   it("Book <First> opens Post a job with the direct offer set; signed out goes through signup and back to the same offer", async () => {
     const { bookCtaHref, firstNameOf } = await import("@/lib/bookMe");
     expect(bookCtaHref(HELPR, true)).toBe(`/post-job?offerTo=${HELPR}`);
-    expect(bookCtaHref(HELPR, false)).toBe(`/signup?redirect=${encodeURIComponent(`/post-job?offerTo=${HELPR}`)}`);
+    // Audit 11-21 (P0, owner 11-20/21): signed out starts the offer too, and signs up at the end.
+    expect(bookCtaHref(HELPR, false)).toBe(`/post-job?offerTo=${HELPR}`);
     expect(firstNameOf("Marie T.")).toBe("Marie");
     expect(firstNameOf("")).toBe("this Helpr");
   });

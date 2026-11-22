@@ -43,6 +43,9 @@ interface PublicHeaderPageProps {
   hideBack?: boolean;
   /** Forwarded to PageHeader: on a phone keep the h1 for screen readers only (the page paints the name itself; /u). */
   phoneHidesTitle?: boolean;
+  /** Forwarded to PageHeader: keep the h1 for screen readers only at every width (the job link's not-found, error
+   *  and loading states, whose card carries its own title; Jobs audit 11-21 P6). */
+  hidesTitle?: boolean;
   /** Forwarded to PageHeader: "p" when the page's body holds its own h1 (the gift guides' banner title). */
   titleTag?: "h1" | "p";
   /** No header row at all: the page's body opens with its own h1 and has no back arrow or title-row actions (the
@@ -79,6 +82,7 @@ export function PublicHeaderPage({
   footer = true,
   hideBack = false,
   phoneHidesTitle = false,
+  hidesTitle = false,
   titleTag = "h1",
   hideHeader = false,
   children,
@@ -91,6 +95,7 @@ export function PublicHeaderPage({
       backLabel={backLabel}
       hideBack={hideBack}
       phoneHidesTitle={phoneHidesTitle}
+      hidesTitle={hidesTitle}
       titleTag={titleTag}
       width={width}
       topInsetHandled
@@ -102,7 +107,11 @@ export function PublicHeaderPage({
     <PublicLayout footer={footer}>
       {/* F017 (owner UI audit 11-09): the title and body sit in the same 78rem container as the bar (Navbar
           PUBLIC_CONTAINER), so the logo, the title and the content share a left edge on every public page. */}
-      <div data-public-container="" className={PUBLIC_CONTAINER}>
+      {/* Holiday audit 1121 #1 (High, live): signed in, PublicLayout is AppShell, whose scroll area is a flex column, and
+          `mx-auto` on a flex item turns stretch off, so this box shrank-to-fit its content's min-content: the gift guides'
+          phone chip row (771px of nowrap chips) made every guide page 771px wide inside 375. `w-full min-w-0` keeps the
+          box the column's width (max-w still caps it). Guard: src/test/signedInPhoneGuidesFit1121.test.tsx. */}
+      <div data-public-container="" className={`${PUBLIC_CONTAINER} w-full min-w-0`}>
         {hideHeader ? null : headerWrapperClassName ? <div className={headerWrapperClassName}>{header}</div> : header}
         <div className={`px-5 sm:px-8 lg:px-12 ${bottomPaddingClassName}`}>
           {children}

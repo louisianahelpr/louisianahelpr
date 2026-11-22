@@ -41,7 +41,7 @@ export const HIM_KIDS_STORES = {
   "store-smathers-and-branson": "Smathers & Branson", "store-duck-head": "Duck Head", "store-grove": "Grove",
   "store-clinique": "Clinique", "store-maisonette": "Maisonette", "store-wayfair": "Wayfair", "store-macys": "Macy's",
   "store-yeti": "YETI", "store-xtratuf": "XTRATUF", "store-jd-sports": "JD Sports", "store-burlebo": "Burlebo",
-  "store-tractor-supply": "Tractor Supply", "store-onward-reserve": "Onward Reserve", "store-target": "Target",
+  "store-tractor-supply": "Tractor Supply", "store-onward-reserve": "Onward Reserve", "store-target": "Target", "store-burts-bees-baby": "Burt's Bees Baby",
 };
 /** One row per pick: [ASIN, price she saw, Amazon image id, name, brand, type, commission %, line]. */
 const row = ([asin, sortPrice, img, name, brand, type, commission, line]) => ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, commission, type });
@@ -365,6 +365,9 @@ export const KIDS_PLAY_1122 = [
   ["109160708", 153.99, "https://assets.wfcdn.com/im/45408439/compr-r85/2500/250031609/Step2+Panda+Climber+Outdoor+Climbing+Toy+for+Toddlers.jpg", "Step2 Panda Climber", "Step2", "store-wayfair", "backyard-play", 11, "A panda-shaped climber and slide for toddlers."],
   ["109160660", 72.99, "https://assets.wfcdn.com/im/96916567/compr-r85/2500/250033102/Step2+Gray+2-in-1+Toy+Box.jpg", "Step2 2-in-1 Toy Box and Art Lid", "Step2", "store-wayfair", "backyard-play", 11, "A toy box whose lid flips into a drawing table."],
   ["109160077", 229.99, "https://slimages.macysassets.com/is/image/MCY/products/7/optimized/26752727_fpx.tif", "PLAY22USA 10 ft Adjustable Basketball Hoop", "PLAY22USA", "store-macys", "sports", 16, "An adjustable driveway hoop that grows with them up to 10 ft."],
+  // owner 11-22 kids picks 2 (builder-guide-kids2): prices read from the store pages 11-22. Step2 water table is a ShopMy-created Target link (4%), logged in ShopMy-links-created-1122.md.
+  ["109218761", 84.99, "https://target.scene7.com/is/image/Target/GUEST_e24e9f30-ae18-4fd5-b2c0-e0bee49629b0", "Step2 Rain Showers Splash Pond Water Table", "Step2", "store-target", "backyard-play", 4, "A splash-pond water table with a rain shower to play under."],
+  ["107902887", 54.95, "https://static.shopmy.us/uploads/pretty-prod-1764597442673", "Burt's Bees Baby Little Ducks Bath Time Gift Set", "Burt's Bees Baby", "store-burts-bees-baby", "baby-clothes", 12, "A duck-print bath time set for baby, packed in its own tote."],
 ].map((r) => ({ ...shop(r), priceAt: "2026-11-22" }));
 
 

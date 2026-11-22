@@ -91,6 +91,8 @@ const SAVES: Record<string, Record<string, string>> = {
     // Owner 11-22 play saves (builder-guide-adds-kids).
     ...sm(["109160969", "109160922", "109160891", "109160773", "109160887", "109160813", "109160795", "109160719", "109160708", "109160660"], "store-wayfair"),
     ...sm(["109160077"], "store-macys"),
+    // Owner 11-22 kids picks 2 (builder-guide-kids2).
+    ...sm(["109218761"], "store-target"), ...sm(["107902887"], "store-burts-bees-baby"),
   },
 };
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug] });

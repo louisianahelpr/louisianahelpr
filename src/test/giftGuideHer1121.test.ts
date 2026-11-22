@@ -56,7 +56,8 @@ const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-10914343
   "p-109147619", "p-109151385", "p-109149968", "p-109152299", "p-109155568", "p-109155784"];
 // Launch day 11-22, from her screenshots (no ShopMy pin for these): CFUNIQ toiletry bag, Astercook knives and pans,
 // CASABREWS espresso machine, BISSELL FurGuard vacuum, eto decanter, Ozlo Sleepbuds 2.
-const POPULAR_1122_ASINS = ["B0GGTPW6Q9", "B0HJ9ZXCSD", "B0DWHDM15Q", "B0F41DGFXT", "B0BGQT41ZZ"];
+// B0HJ9ZXCSD (Apple Watch Series 12) moved to Walmart 11-22 (commission switch, owner-approved): WALMART_SWITCHES below.
+const POPULAR_1122_ASINS = ["B0GGTPW6Q9", "B0DWHDM15Q", "B0F41DGFXT", "B0BGQT41ZZ"];
 const ADDS_1122_ASINS = ["B0HKS18NW2", "B0C1YBPJ43", "B0F2937DQQ", "B09X3WGJ3R", "B0DQLLPYGM", "B0GP2R8TBS", "B0GZSMBDYZ"];
 // owner 11-22 screenshot list (builder-guide-adds-2): the creators' gift lists she sent ("Add these for her if we don't
 // have them yet"), each the same product as her picture (Desktop note Owner-adds-1122-screens.md), priced 2026-11-22.
@@ -68,7 +69,8 @@ const SCREENS_1122_PINS = ["p-103899561", "p-104053242", "p-103903056", "p-10389
 const SCREENS_1122_CJ = ["https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxwadbc10"];
 // Owner 11-22 PR picks (builder-guide-her3b).
 const PR_PINS = ["p-107965795", "p-103880845", "p-104580620", "p-103889854", "p-103784739", "p-103878765", "p-103883109", "p-103877715"];
-const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
+const WALMART_SWITCHES = ["https://walmrt.us/4Cj35Bx"];
+const SAVED = new Set([...WALMART_SWITCHES, ...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
 const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
@@ -110,8 +112,8 @@ describe("For Her = the owner's saves (11-21)", () => {
   // 11-21; before, this guard asserted the opposite (no Amazon price). Two-way: every pick priced, none invented.
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
-    const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(59);
+    const shopmy = page.filter((p) => !isAmazon(p) && !WALMART_SWITCHES.includes(p.href));
+    expect(amazon.length).toBe(58); // 59 minus the Apple Watch, switched to Walmart 11-22
     expect(shopmy.length).toBe(63);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
@@ -130,6 +132,15 @@ describe("For Her = the owner's saves (11-21)", () => {
       const head = readFileSync(file).subarray(0, 32);
       expect(head.subarray(12, 16).toString("latin1") === "VP8X" && (head[20] & 0x10) !== 0, `${file} has no alpha`).toBe(true);
     }
+  });
+
+  it("the Apple Watch is on Walmart, sold and shipped by Walmart.com, with its checked price (commission switch 11-22)", () => {
+    const w = page.filter((p) => WALMART_SWITCHES.includes(p.href));
+    expect(w.length).toBe(1);
+    expect(w[0].store).toBe("store-walmart");
+    expect(w[0].price).toBe(329);
+    expect(w[0].priceAt).toBe("2026-11-22");
+    expect(w[0].image).toMatch(/^https:\/\/i5\.walmartimages\.com\//);
   });
 
   it("no relationship chips or deals box on For Her and its relationship pages; each relationship page still has picks", () => {

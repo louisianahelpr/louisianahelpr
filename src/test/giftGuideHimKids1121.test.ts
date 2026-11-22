@@ -80,6 +80,11 @@ const SAVES: Record<string, Record<string, string>> = {
     ...sm(["109002741"], "store-macys"),
   },
 };
+/** Commission switches 11-22 to Walmart (Price-rate-check-1122, owner-approved; sold and shipped by Walmart.com, Walmart photo already on white). */
+const WALMART_1122: Record<string, Record<string, number>> = {
+  him: { "https://walmrt.us/4j6q3mB": 79.99, "https://walmrt.us/4juazdA": 179 },
+  kids: { "https://walmrt.us/4jcdiao": 499, "https://walmrt.us/4ASkOyt": 229 },
+};
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug] });
 const popular = new Set([...HIM_POPULAR_1122, ...KIDS_POPULAR_1122].map((r) => r.href));
 const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Pick[] }).picks;
@@ -107,7 +112,7 @@ describe.each([
     const captured = new Map(rows.map((r) => [r.href, r.sortPrice]));
     for (const p of page) {
       expect(p.sortPrice).toBeUndefined();
-      if (switched[p.href]) continue;
+      if (switched[p.href] || WALMART_1122[slug][p.href]) continue;
       expect(p.href).toMatch(/^https:\/\/www\.amazon\.com\/dp\/[A-Z0-9]{10}\?tag=louisianahelpr-20$/);
       expect(p.image).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
       expect(p.store).toBe("store-amazon");
@@ -116,6 +121,17 @@ describe.each([
       // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day and the Dad fill-in book (owner
       // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) were priced 11-22.
       expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || popular.has(p.href) ? "2026-11-22" : "2026-11-21");
+    }
+  });
+
+  it("the 11-22 Walmart switches are on Walmart with the checked price and Walmart's own photo", () => {
+    for (const [href, price] of Object.entries(WALMART_1122[slug])) {
+      const p = page.find((x) => x.href === href)!;
+      expect(p, href).toBeTruthy();
+      expect(p.store).toBe("store-walmart");
+      expect(p.price).toBe(price);
+      expect(p.priceAt).toBe("2026-11-22");
+      expect(p.image).toMatch(/^(https:\/\/i5\.walmartimages\.com\/|https:\/\/www\.louisianahelpr\.com\/gift-guides\/cutouts\/)/);
     }
   });
 
@@ -187,7 +203,7 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // Plus the Battery Daddy (B089F9YDFC), which the owner asked for on 11-22, and B0GWXJ3PYM, the Dad fill-in book (owner
     // via the lead 11-22, her screenshot list): neither is from her saved list.
     const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM");
-    expect(amazon.length).toBe(97); // 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 3 owner-approved adds (Banded handwarmer, Klola mat, and the MVP PRO men's 2-pack B0D9PX9RBD: the brown listing was women's), plus the 5 popular adds of 11-22 (AirPods, AirTags, Bose, Garmin, Gozney)
+    expect(amazon.length).toBe(95); // (97 before the AirTag and AirPods moved to Walmart 11-22) 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 3 owner-approved adds (Banded handwarmer, Klola mat, and the MVP PRO men's 2-pack B0D9PX9RBD: the brown listing was women's), plus the 5 popular adds of 11-22 (AirPods, AirTags, Bose, Garmin, Gozney)
     expect(chunk("him").filter((p) => p.href.includes("B089F9YDFC")).length).toBe(1);
     expect(chunk("him").filter((p) => p.href.includes("B0GWXJ3PYM")).length).toBe(1);
     for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P", "B0CQ4QM7Q2", "B0732FCCL4", "B09R5TGLFR"]) expect(amazon, asin).not.toContain(asin);
@@ -198,8 +214,9 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
 describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
   it("55 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (Segway S2 is at Tractor Supply; 11-22 the Switch with Joy-Con, the C2 Lite and C2 Pro, the Amazon S2 and the mini CreateOn tiles went as duplicates; the Quest 3S, iPad and JLab kids headphones were added)", () => {
     const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
-    expect(amazon.length).toBe(64); // 55 after the duplicate removals + the 9 popular adds of 11-22
-    for (const asin of ["B0F3GWXLTS", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
+    expect(amazon.length).toBe(62); // (64 before the Switch 2 and Switch Lite moved to Walmart 11-22) 55 after the duplicate removals + the 9 popular adds of 11-22
+    // B0F3GWXLTS (Switch Lite) moved to Walmart 11-22.
+    for (const asin of ["B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
     expect(amazon.some((p) => p.href.includes("B0CT2WN59R"))).toBe(false);
   });
 });

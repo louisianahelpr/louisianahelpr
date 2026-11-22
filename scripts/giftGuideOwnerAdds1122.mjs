@@ -124,6 +124,8 @@ export const ADDS_CUTOUTS_1122 = [
   ["https://cdn.shopify.com/s/files/1/0512/1661/3529/files/LCC_TUBE_TRANSARENT.png", "eadem-le-chouchou-lip-balm-29fc6e.webp"],
   ["https://cdn.shopify.com/s/files/1/1064/2306/files/APP-Rob_UnisexOrganicWaffle_Robe_AlpineWhite_D_FA23_17564.jpg", "aera-organic-waffle-robe-alpine-white-263d17.webp"],
   ["https://static.shopmy.us/pins/zoom-109145823-1795366241092-19414141_fpx.tif", "coravin-pivot-plus-979321.webp"],
+  // AirPods Pro 3 on Walmart (store switch 11-22; the Walmart photo has a grey backdrop).
+  ["https://i5.walmartimages.com/seo/AirPods-Pro-3_bbf7d96e-0ea2-4adc-93cc-f2aefe9c9fad.5094bad5696a875c3e764810e9670083.jpeg", "apple-airpods-pro-3-walmart-1122.webp"],
   // Batch 2.
   ["https://static.shopmy.us/pins/zoom-109147879-1795366520727-Open-bottle-sleep_1.png", "lemme-sleep-gummies-29d891.webp"],
   ["https://static.shopmy.us/pins/zoom-109152557-1795367135090-NESTNY_TECH_DIF_WALL_SET-1_1536x_jpg.webp", "nest-grapefruit-wall-diffuser-set-9ef8be.webp"],

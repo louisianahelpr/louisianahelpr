@@ -8,6 +8,8 @@ import { GIFT_PROMO_KEY, giftPromoClosedBefore, giftPromoOver } from "./giftGuid
 /** The promo's words (owner 11-21: "remove picked by a Louisiana nurse"). */
 const GIFT_PROMO_TITLE = "Holiday Gift Guides";
 const GIFT_PROMO_LINE = "Gifts, deals and codes";
+/** Home's strip height: two short lines on a phone, one line from sm (Home holds the same slot while it loads). */
+const GIFT_STRIP_HEIGHT = "h-14 sm:h-12";
 
 /**
  * The in-app way to the Holiday Gift Guides, owner mockup option A (claude.ai/artifact/SACKyXWeZ5CnCv4RHAKf1U), a
@@ -50,15 +52,17 @@ export default function GiftGuidesPromo({ where, now = new Date() }: { where: "h
         aria-label={GIFT_PROMO_TITLE}
         data-gift-promo={where}
         data-gift-promo-strip=""
-        className="relative flex h-12 items-center gap-2.5 rounded-2xl border pl-3.5 pr-0.5"
+        className={`relative flex ${GIFT_STRIP_HEIGHT} items-center gap-2.5 rounded-2xl border pl-3.5 pr-0.5`}
         // Holiday audit 1121 #30: the app's rose tint tokens (light and dark themes), not hard-coded hex.
         style={{ background: "hsl(var(--cat-tint-rose-bg))", borderColor: "hsl(var(--cat-tint-rose-fg) / 0.18)", color: "hsl(var(--foreground))" }}
       >
         <Gift className="h-5 w-5 shrink-0" style={{ color: "hsl(var(--cat-tint-rose-fg))" }} aria-hidden />
         <Link to="/gift-guides" className="flex min-w-0 flex-1 items-center gap-1.5 after:absolute after:inset-0 after:rounded-[inherit]" data-gift-promo-link="">
-          <span className="min-w-0 truncate text-ds-14">
-            <span className="font-bold">{GIFT_PROMO_TITLE}</span>
-            <span style={{ color: "hsl(var(--cat-tint-rose-fg))" }}> · {GIFT_PROMO_LINE}</span>
+          {/* At 375 the words did not fit one line ("Gifts, deals..." cut): two short lines on a phone, one from sm. */}
+          <span className="min-w-0 text-ds-14 leading-tight">
+            <span className="block truncate font-bold sm:inline">{GIFT_PROMO_TITLE}</span>
+            <span aria-hidden className="hidden sm:inline" style={{ color: "hsl(var(--cat-tint-rose-fg))" }}> · </span>
+            <span className="block truncate text-ds-13 sm:inline sm:text-ds-14" style={{ color: "hsl(var(--cat-tint-rose-fg))" }}>{GIFT_PROMO_LINE}</span>
           </span>
           <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--muted-foreground))" }} aria-hidden />
         </Link>

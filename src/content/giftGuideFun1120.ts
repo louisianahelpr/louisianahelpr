@@ -10,6 +10,7 @@ import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { FINDER_WHO } from "@/content/giftGuideExtras1120";
 import { cleanGiftName } from "@/lib/giftNameClean";
 import { fitsBudget, pickCeiling } from "@/content/giftPickBand";
+import { QUIZ_BUDGETS, quizInBudget, quizPool, quizRanked, type QuizAge, type QuizBudget } from "@/content/giftQuiz";
 
 // ---------------------------------------------------------------------------------------------------------------
 // Shared: today in Louisiana
@@ -133,7 +134,12 @@ export const SANTA_TOKEN = /^[a-f0-9]{64}$/;
 // ---------------------------------------------------------------------------------------------------------------
 // (2) Swipe to find gifts
 
-export type SwipeWho = "me" | "mom" | "dad" | "her" | "him" | "teen" | "kids" | "friends" | "coworkers" | "grandparents" | "louisiana";
+/**
+ * Who a swipe deck is for (owner 2026-11-21 evening: "I tapped Me and the first thing that came up was stuff for
+ * hunting but I'm a girl? How do we know if me is a girl or boy"): Her, Him or Kids, as in the quiz (giftQuiz.ts). "Me"
+ * is gone (we cannot know who "me" is), and Mom and Dad repeated Her and Him.
+ */
+export type SwipeWho = "her" | "him" | "kids";
 export type SwipeBudget = 25 | 50 | 100 | 0;
 
 /**
@@ -154,24 +160,34 @@ const finderWho = (id: SwipeWho, label: string, finderIds: string[], forName?: s
   return { id, label, ...(forName ? { forName } : {}), get guides(): SwipeGuides { return (cached ??= finderIds.flatMap(finderGuides)); } };
 };
 export const SWIPE_WHO: { id: SwipeWho; label: string; guides: SwipeGuides; forName?: string }[] = [
-  finderWho("me", "Me", ["her", "him"]),
-  // Holiday audit 1121 #24: the finder's person order (Her, Him, Mom, Dad, Kids, Teen, ...), after "Me".
   finderWho("her", "Her", ["her"], "Her"),
   finderWho("him", "Him", ["him"], "Him"),
-  finderWho("mom", "Mom", ["mom"], "Mom"),
-  finderWho("dad", "Dad", ["dad"], "Dad"),
   finderWho("kids", "Kids", ["kids"], "Kids"),
-  finderWho("teen", "Teen", ["teen"], "Teen"),
-  finderWho("friends", "Friends", ["friend"], "Friends"),
-  finderWho("coworkers", "Coworkers", ["coworker"], "Coworkers"),
-  // Holiday audit C12c: the quiz has Grandparents, so the swipe deck does too.
-  finderWho("grandparents", "Grandparents", ["grandparent"], "Grandparents"),
-  { id: "louisiana", label: "Louisiana", guides: [{ slug: "louisiana-made" }, { slug: "shop-small-louisiana" }, { slug: "louisiana-food-gifts" }], forName: "Louisiana gifts" },
-];
-export const SWIPE_BUDGETS: { id: SwipeBudget; label: string }[] = [
-  { id: 25, label: "Under $25" }, { id: 50, label: "Under $50" }, { id: 100, label: "Under $100" }, { id: 0, label: "Any budget" },
 ];
 export const SWIPE_ROUND = 20;
+/** A budget shows on the swipe page only with at least this many picks for the person (and the kid's age). */
+const SWIPE_MIN = 3;
+
+/**
+ * The budgets worth offering one person (and a kid's age): the quiz's bands (the guides' price sections) with at least
+ * SWIPE_MIN picks. QUIZ_BUDGETS is read here, on use, never in a module-level constant: the production build puts this
+ * module and giftQuiz.ts in chunks that import each other, so a load-time copy was undefined and the swipe page crashed
+ * on "Kids" (measured in a vite build 2026-11-21, "Cannot read properties of undefined (reading 'filter')").
+ */
+export function swipeBudgets<T extends CatalogPick>(pool: readonly T[], a: { who: SwipeWho; age?: QuizAge }): { id: QuizBudget; label: string }[] {
+  const people = quizPool(pool, a);
+  return QUIZ_BUDGETS.filter((b) => people.filter((p) => quizInBudget(p, b.id)).length >= SWIPE_MIN);
+}
+
+/**
+ * A plain deck (owner 2026-11-21 evening: Swipe matches the quiz): only this person's picks (and the kid's age band),
+ * only inside the chosen budget band, in the quiz's order (the owner's Top 10, then clicks, then the price that fits
+ * the band best; at most two of a brand), none already seen this visit, at most SWIPE_ROUND.
+ */
+export function swipeDeck<T extends CatalogPick>(pool: readonly T[], a: { who: SwipeWho; age?: QuizAge; budget: QuizBudget }, seen: ReadonlySet<string>): T[] {
+  const fit = quizPool(pool, a).filter((p) => !!p.href && !!p.name && !seen.has(p.href) && quizInBudget(p, a.budget));
+  return quizRanked(fit, a.budget).slice(0, SWIPE_ROUND);
+}
 /** At most this many cards from one store in a round (some variety). */
 export const SWIPE_PER_STORE = 5;
 
@@ -245,8 +261,8 @@ export const borrowFits = (who: SwipeWho, p: CatalogPick) => {
   const text = `${p.name} ${p.brand ?? ""}`;
   if (who === "kids") return KID_THING.test(text);
   if (KID_THING.test(text)) return false;
-  if (who === "mom" || who === "her") return !MENS.test(p.name) && !MENS.test(p.brand ?? "");
-  if (who === "dad" || who === "him") return !WOMENS.test(text);
+  if (who === "her") return !MENS.test(p.name) && !MENS.test(p.brand ?? "");
+  if (who === "him") return !WOMENS.test(text);
   return true;
 };
 
@@ -465,6 +481,7 @@ export const FUN_WORDS = {
   swipeTitle: "Swipe to find gifts",
   swipeWho: "Who's it for?",
   swipeBudget: "Your budget",
+  swipeAge: "How old?",
   swipeStart: "Start swiping",
   swipeSave: "Save",
   swipeSkip: "Skip",

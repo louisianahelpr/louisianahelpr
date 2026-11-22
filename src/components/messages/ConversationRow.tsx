@@ -74,7 +74,7 @@ interface ConversationRowProps {
    explicit that 8 was not the defect. Ringed in the surface tone so it reads
    as a badge ON the avatar rather than a hole punched in it.
    ─────────────────────────────────────────────────────────────────────────── */
-const UNREAD_MARK = {
+export const UNREAD_MARK = {
   background: "hsl(var(--bark))",
   boxShadow: "0 0 0 2px hsl(var(--ivory-sand))",
 } as const;

@@ -33,7 +33,7 @@ describe("Messages' order-chat rows follow the member's language (F260q)", () =>
 
   it("every word has its Spanish, and es.ts carries it", () => {
     const keys = (Object.keys(enMessages) as (keyof typeof enMessages)[]).filter((k) => k.startsWith("msg.ot."));
-    expect(keys.length).toBe(8);
+    expect(keys.length).toBe(12); // #138 added unread + the three stage words
     for (const k of keys) {
       expect(es[k], k).toBe(esMessages[k]);
       expect(esMessages[k], `${k} still English`).not.toBe(enMessages[k]);

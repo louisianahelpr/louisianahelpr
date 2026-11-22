@@ -338,8 +338,7 @@ export const CUTOUTS_1120 = new Map([
   ["https://cdn.shopify.com/s/files/1/0787/7476/3698/files/01_7290773436_dphh.jpg", "badgebuddy-christmas-plaid-tree-badge-reel-f93cee.webp"],
   ["https://cdn.shopify.com/s/files/1/0658/5466/8992/files/PRODUCTPICTURES_10.png", "vix-cherry-on-top-compression-socks-6fac5b.webp"],
   ["https://cdn.shopify.com/s/files/1/0658/5466/8992/files/PRODUCTPICTURES_5.png", "vix-flower-power-compression-socks-b1a660.webp"],
-  ["https://cdn.shopify.com/s/files/1/0573/7250/8344/files/1st_Image_2a7a8c06-67f4-4d0d-8f33-acfa7869b4f1.jpg", "dr-woof-cherries-berries-crew-compression-socks-c89674.webp"],
-  ["https://cdn.shopify.com/s/files/1/0652/8984/6859/files/bluepolkadot.png", "seven2seven-blue-polka-dot-nurse-mockneck-919d9e.webp"],
+  ["https://cdn.shopify.com/s/files/1/0652/8984/6859/files/greymockneck.png", "seven2seven-grey-nurse-mockneck-056634.webp"],
   ["https://cdn.shopify.com/s/files/1/0784/2863/5326/files/50B7C612-6B1C-488C-B43B-35CFF8AB5F57.png", "21-collective-respiratory-royal-blue-mockneck-cecdbd.webp"],
 ]);
 

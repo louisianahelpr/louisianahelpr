@@ -267,7 +267,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/pages/info/giftGuides/GiftGuideMyList.tsx` | input×1 | text |  | gift-my-list · gift-wish-name-help |
-| `src/pages/info/giftGuides/GiftGuideShare.tsx` | input×1 | search |  | gift-search |
+| `src/pages/info/giftGuides/GiftGuideShare.tsx` | input×1 | search |  | gift-search · gift-search-results |
 
 ## /gift-guides, /gift-guides/planner, /gift-guides/:slug, /gift-guides/list/:code
 
@@ -530,7 +530,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/info/giftGuides/SmallBizSubmitForm.tsx` | input×4, textarea×1, checkbox/switch/radio×1 | text, url, email |  | true · gg-sbs-towns · https:// |
+| `src/pages/info/giftGuides/SmallBizSubmitForm.tsx` | input×4, textarea×1, checkbox/switch/radio×1 | text, url, email |  | true · gg-sbs-towns |
 
 ## /shops
 

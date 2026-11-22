@@ -6,7 +6,7 @@
  * index.html) names the host, or it is an SDK-implied host listed below with
  * its reason. Inventory: the live connect-src list itself.
  *
- * @mutate vercel.json | https://vitals.vercel-insights.com; | https://vitals.vercel-insights.com https://api.openai.com;
+ * @mutate vercel.json | https://snofje0za8n8.cloud.run; frame-src | https://snofje0za8n8.cloud.run https://api.openai.com; frame-src
  */
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -21,6 +21,12 @@ const SDK_IMPLIED: Record<string, string> = {
   "posthog.com": "posthog-js ingest and assets",
   "sentry.io": "@sentry/react ingest; DSN comes from env",
   "vercel-insights.com": "@vercel/analytics and @vercel/speed-insights",
+  "facebook.com": "Meta Pixel: fbevents.js (src/lib/metaPixel.ts, the website only) sends its events to www.facebook.com/tr",
+  // Exact hosts, never a suffix: the owner's pixel config (connect.facebook.net/signals/config/2088408795197912, read
+  // 2026-11-22) turns on Meta's Conversions API Gateway ("openbridge"), and fbevents.js fetch()es these two. A new
+  // gateway host is blocked (csp-report drops that report as noise) until it is added here and in vercel.json.
+  "7r-3c0d146726ae4cb698a4c85f7b2ff5f9.ecs.us-west-2.on.aws": "Meta Conversions API Gateway (fbevents.js openbridge), the owner's pixel config",
+  "snofje0za8n8.cloud.run": "Meta Conversions API Gateway fallback (fbevents.js openbridge), the owner's pixel config",
 };
 
 function walk(dir: string): string[] {

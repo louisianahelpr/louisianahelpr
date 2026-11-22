@@ -150,7 +150,7 @@ describe("csp-report", () => {
   // own fallback (it draws the map without terrain shading), the exact shape
   // stored on prod 2026-10-12 and 10-13. Anything else asking for wasm-eval,
   // or a look-alike of MapKit's script, is still kept.
-  // @mutate supabase/functions/csp-report/report.ts | noisy(v.sourceFile) \|\| isMapKitHillshadeWasm(v)) | noisy(v.sourceFile))
+  // @mutate supabase/functions/csp-report/report.ts | noisy(v.sourceFile) \|\| isMapKitHillshadeWasm(v) \|\| | noisy(v.sourceFile) \|\|
   // @mutate supabase/functions/csp-report/report.ts | src.hostname === "cdn.apple-mapkit.com" && | src.hostname.endsWith("apple-mapkit.com") &&
   // @mutate supabase/functions/csp-report/report.ts |     src.pathname.startsWith("/ti/csr/"); |     true;
   // @mutate supabase/functions/csp-report/report.ts |   if (v.blockedURL.trim().toLowerCase() !== "wasm-eval") return false; |
@@ -208,6 +208,66 @@ describe("csp-report", () => {
       "violated-directive": "script-src",
       "source-file": sourceFile,
       "document-uri": "https://www.louisianahelpr.com/home",
+    }));
+    expect(res.status).toBe(204);
+    expect(inserts()).toHaveLength(1);
+  });
+
+  // Meta Pixel (owner 2026-11-22): fbevents.js "openbridge" fetch()es the owner's Conversions API Gateway. Today's two
+  // hosts are allowed exactly in vercel.json; a host Meta moves it to would be blocked on every page view, so that
+  // exact shape (connect-src, https *.on.aws / *.cloud.run, raised by a connect.facebook.net script) is dropped.
+  // @mutate supabase/functions/csp-report/report.ts |  \|\| isMetaGatewayFetch(v)) return true; | ) return true;
+  // @mutate supabase/functions/csp-report/report.ts | src.hostname === "connect.facebook.net" && | src.hostname.endsWith("facebook.net") &&
+  // @mutate supabase/functions/csp-report/report.ts |   if (v.effectiveDirective !== "connect-src") return false; |
+  // @mutate supabase/functions/csp-report/report.ts |   if (blocked.protocol !== "https:" \|\| blocked.port) return false; |
+  // @mutate supabase/functions/csp-report/report.ts | blocked.pathname === "/events" && blocked.searchParams.has("cee"); | blocked.pathname === "/events";
+  // @mutate supabase/functions/csp-report/report.ts |   return openbridgeRequest \|\| fromMetaScript(v.sourceFile); |   return openbridgeRequest;
+  it.each([
+    ["the AWS gateway host", "https://new-gateway.ecs.us-east-1.on.aws/events?cee=no", "https://connect.facebook.net/en_US/fbevents.js"],
+    ["the Cloud Run fallback", "https://abc123.cloud.run/events?cee=no", "https://connect.facebook.net/signals/plugins/openbridge3.js?v=2.9.441"],
+    // Measured 2026-11-22 (built dist, Chromium): once Sentry wraps fetch(), the browser blames Sentry's chunk.
+    ["the AWS host, blamed on Sentry's fetch wrapper", "https://7r-3c0d146726ae4cb698a4c85f7b2ff5f9.ecs.us-west-2.on.aws/events?cee=no", "https://www.louisianahelpr.com/assets/sentry-75UMKSCs.js"],
+    ["a gateway host from Meta's script, another path", "https://new-gateway.ecs.us-east-1.on.aws/collect", "https://connect.facebook.net/signals/plugins/openbridge3.js?v=2.9.441"],
+  ])("drops Meta's Conversions API Gateway fetch to %s before any database call", async (_label, blocked, sourceFile) => {
+    let fn = await load();
+    let res = await post(fn, legacy({
+      "blocked-uri": blocked,
+      "violated-directive": "connect-src",
+      "effective-directive": "connect-src",
+      "source-file": sourceFile,
+      "document-uri": "https://www.louisianahelpr.com/gift-guides",
+    }));
+    expect(res.status).toBe(204);
+    expect(inserts()).toHaveLength(0);
+    expect(rateLimitCalls).toHaveLength(0);
+
+    resetSupabaseMock();
+    resetSharedMocks();
+    fn = await load();
+    res = await post(fn, reportingApi({ blockedURL: blocked, effectiveDirective: "connect-src", sourceFile, documentURL: "https://www.louisianahelpr.com/gift-guides" }), "application/reports+json");
+    expect(res.status).toBe(204);
+    expect(inserts()).toHaveLength(0);
+  });
+
+  it.each([
+    ["a gateway host fetched by our own script", "https://x.ecs.us-west-2.on.aws/events", "connect-src", "https://www.louisianahelpr.com/assets/index.js"],
+    ["a gateway host from a look-alike Meta host", "https://x.ecs.us-west-2.on.aws/events", "connect-src", "https://connect.facebook.net.evil.example/fbevents.js"],
+    ["a gateway host from another facebook.net-ending host", "https://x.ecs.us-west-2.on.aws/events", "connect-src", "https://evilfacebook.net/fbevents.js"],
+    ["a gateway host from Meta's script over http", "https://x.ecs.us-west-2.on.aws/events", "connect-src", "http://connect.facebook.net/en_US/fbevents.js"],
+    ["a gateway host with no script to blame", "https://x.ecs.us-west-2.on.aws/events", "connect-src", ""],
+    ["a script (not a fetch) from a gateway host", "https://x.cloud.run/a.js", "script-src-elem", "https://connect.facebook.net/en_US/fbevents.js"],
+    ["any other host fetched by Meta's script", "https://collector.evil.example/events", "connect-src", "https://connect.facebook.net/en_US/fbevents.js"],
+    ["a gateway host over plain http", "http://x.cloud.run/events?cee=no", "connect-src", "https://connect.facebook.net/en_US/fbevents.js"],
+    ["a gateway host on another port", "https://x.cloud.run:8443/events?cee=no", "connect-src", "https://connect.facebook.net/en_US/fbevents.js"],
+    ["/events without openbridge's cee from our own script", "https://x.cloud.run/events?a=1", "connect-src", "https://www.louisianahelpr.com/assets/sentry-75UMKSCs.js"],
+  ])("keeps %s", async (_label, blocked, directive, sourceFile) => {
+    const fn = await load();
+    const res = await post(fn, legacy({
+      "blocked-uri": blocked,
+      "violated-directive": directive,
+      "effective-directive": directive,
+      "source-file": sourceFile,
+      "document-uri": "https://www.louisianahelpr.com/gift-guides",
     }));
     expect(res.status).toBe(204);
     expect(inserts()).toHaveLength(1);

@@ -143,13 +143,21 @@ beforeAll(() => {
 
   // A finished worktree whose HEAD is relanded's tip (detached, clean).
   git(main, "worktree", "add", "-q", "--detach", wtPath(), git(main, "rev-parse", "relanded"));
-});
+}, 60_000);
+
+// Every planner call below spawns dozens of git processes. Locally the whole
+// file runs in ~5 s (the age-gate test 0.9 s), but on CI's `threads` pool next
+// to the shard's jsdom workers one test took 26 s and hit the 20 s default
+// twice on PR #4868 (runs 45009683942 attempts 1 and 2, 2026-11-22; the file
+// took 40 s on main, 77-88 s there). vitest.config.ts: a test that needs more
+// than the global gets its own timeout, never a higher global.
+const GIT_HEAVY = { timeout: 60_000 };
 
 afterAll(() => {
   if (root) rmSync(root, { recursive: true, force: true });
 });
 
-describe("hygiene decides LANDED by content", () => {
+describe("hygiene decides LANDED by content", GIT_HEAVY, () => {
   it("the fixture is the failing shape: patch-ids say relanded is NOT on main", () => {
     const cherry = git(main, "cherry", "origin/main", "relanded").split("\n");
     expect(cherry.length).toBeGreaterThan(1);

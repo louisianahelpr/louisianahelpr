@@ -316,7 +316,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-banner-wrap{padding:0 0 4px}.gg-banner{height:96px;padding-top:8px;border-radius:12px}.gg-arch{width:min(260px,70%);padding:14px 10px 6px;box-shadow:0 0 0 5px rgba(255,253,247,.85)}.gg-banner .gg-lead{font-size:13px}.gg-banner h1{font-size:20px;-webkit-line-clamp:1}.gg-tools{margin-top:6px}
 .gg-banner .gg-lead{margin-bottom:7px}
 }
-/* The phone's head row (owner 11-22: "Remove everything under the holiday gift guides on the phone view ... Only thing
+/* The phone's head row (owner 11-22: everything under the holiday gift guides comes off the phone view; "Only thing
    that will stay is the 3 line with no circle around it and the heart. Both of those will go on the right"; "change
    holiday gift guides to just gift guides"): up to 767px ONE line, back arrow + "Gift guides" on the left, the heart and
    the three-line menu on the right (44x44 targets, no circle, border or fill, even on a tap); the pill, the search and

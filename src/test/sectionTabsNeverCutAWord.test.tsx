@@ -65,7 +65,7 @@ describe("a tab row that doesn't fit (owner 11-12: one sideways strip, no 'N mor
 
   // Deep audit 11-22 #16: the row gave no hint that it scrolls ("Free" off screen, "Wanted" cut to "Wante"). Its right
   // edge fades, with end padding at least as wide as the fade so the last tab scrolls clear of it.
-  // @mutate src/components/sections/SectionTabs.tsx | denser && "section-tabs-denser", dense && !onlySelected && TABS_EDGE_FADE)}> | denser && "section-tabs-denser")}>
+  // @mutate src/components/sections/SectionTabs.tsx | denser && "section-tabs-denser", dense && !onlySelected && (offStart ? TABS_BOTH_FADE : TABS_EDGE_FADE))}> | denser && "section-tabs-denser")}>
   // @mutate src/components/sections/SectionTabs.tsx | export const TABS_EDGE_FADE = "pr-10 [mask-image | export const TABS_EDGE_FADE = "pr-2 [mask-image
   it("#16: a row of five or more fades its right edge, and the last tab can scroll clear of the fade", () => {
     layOut();
@@ -78,6 +78,21 @@ describe("a tab row that doesn't fit (owner 11-12: one sideways strip, no 'N mor
     // An open search keeps only the selected tab, whole: no fade over it.
     const r = row("buying", true);
     expect(r.getAllByRole("tablist").at(-1)!.className).not.toContain("mask-image");
+  });
+
+  // Screenshot check of #16 (11-22, 375): with Free selected the row scrolls to its end and Buying was cut hard to "ng"
+  // at the left. A row scrolled off its start fades its left edge too; back at the start only the right edge fades.
+  // @mutate src/components/sections/SectionTabs.tsx | (offStart ? TABS_BOTH_FADE : TABS_EDGE_FADE) | (TABS_EDGE_FADE)
+  // @mutate src/components/sections/SectionTabs.tsx |     readOffStart();\n  }, [ |   }, [
+  it("#16: a row scrolled off its start fades its left edge as well", () => {
+    layOut();
+    const r = row("free");
+    const list = r.getByRole("tablist");
+    expect(list.scrollLeft).toBeGreaterThan(0);
+    expect(list.className).toMatch(/\[mask-image:linear-gradient\(to_right,transparent,#000_40px,#000_calc\(100%-40px\),transparent\)\]/);
+    list.scrollLeft = 0;
+    fireEvent.scroll(list);
+    expect(list.className).toMatch(/\[mask-image:linear-gradient\(to_right,#000_calc\(100%-40px\),transparent\)\]/);
   });
 
   it("on load the selected tab is scrolled into view, with a little of the next one showing", () => {

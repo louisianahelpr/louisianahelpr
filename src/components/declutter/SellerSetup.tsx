@@ -125,7 +125,7 @@ export function SellerSetupGate({ children }: { children: ReactNode }) {
   if (!userId || underAge) return <>{children}</>;
   if (setup.failed || windows.isError) {
     return (
-      <AppPage title="Sell" backTo="/declutter?tab=selling">
+      <AppPage title="Sell" backTo="/declutter?tab=selling" narrow>
         <ErrorState variant="inline" title="We couldn't load your selling settings." body="Check your connection and try again." onRetry={() => { setup.reload(); void windows.refetch(); }} />
       </AppPage>
     );

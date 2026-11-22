@@ -104,7 +104,7 @@ describe("one-time setup before posting", () => {
     expect(screen.getByText(/Buyers need to know where and when/)).toBeTruthy();
     // Q2582 (audit 1102a): the column starts under the page title. Deep audit 11-22 #47: title and column are one centered
     // column (AppPage narrow), not a column of its own centred away from a left-hand title.
-    // @mutate src/components/declutter/SellerSetup.tsx | backTo="/declutter?tab=selling" narrow> | backTo="/declutter?tab=selling">
+    // @mutate src/components/declutter/SellerSetup.tsx | <AppPage title="Set up selling" backTo="/declutter?tab=selling" narrow> | <AppPage title="Set up selling" backTo="/declutter?tab=selling">
     // @mutate src/components/declutter/SellerSetup.tsx | <div className="space-y-6" data-seller-setup=""> | <div className="mx-auto w-full max-w-xl space-y-6" data-seller-setup="">
     const setupCol = document.querySelector("[data-seller-setup]") as HTMLElement;
     expect(setupCol.className.split(/\s+/)).not.toContain("mx-auto");

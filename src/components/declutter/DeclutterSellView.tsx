@@ -73,7 +73,7 @@ function SellSteps({ itemId }: { itemId: string }) {
   if (!user) return null;
   if (underAge) {
     return (
-      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter">
+      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter" narrow>
         <DeclutterNotice tone="warn" title={tr("sf.underAgeTitle")}>
           {tr("sf.underAgeBody")}
         </DeclutterNotice>
@@ -82,7 +82,7 @@ function SellSteps({ itemId }: { itemId: string }) {
   }
   if (itemId && item.data && item.data.status !== "draft") {
     return (
-      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter?view=selling">
+      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter?view=selling" narrow>
         <DeclutterNotice title={tr("sf.ds.alreadyListed")}>
           <Link to={`/declutter/item/${itemId}`} className="underline">{tr("sf.ds.seeListing")}</Link>
         </DeclutterNotice>

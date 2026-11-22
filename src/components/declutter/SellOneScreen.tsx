@@ -142,7 +142,7 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   if (!user && !s.isGuest) return null;
   if (underAge) {
     return (
-      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter">
+      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter" narrow>
         <DeclutterNotice tone="warn" title={tr("sf.underAgeTitle")}>
           {tr("sf.underAgeBody")}
         </DeclutterNotice>
@@ -152,7 +152,7 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
 
   if (first.failed) {
     return (
-      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter?tab=selling">
+      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter?tab=selling" narrow>
         <ErrorState variant="inline" title={tr("sf.fs.loadFailed")} body={tr("sf.fs.loadFailedBody")} onRetry={first.reload} />
       </AppPage>
     );

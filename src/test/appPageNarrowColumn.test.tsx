@@ -7,6 +7,7 @@
  *
  * @mutate src/components/AppPage.tsx |   const body = narrow ? <div className="mx-auto w-full max-w-xl" data-app-page-narrow="">{tabBody}</div> : tabBody; |   const body = narrow ? <div className="w-full max-w-xl" data-app-page-narrow="">{tabBody}</div> : tabBody;
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | phoneHidesTitle narrow> | phoneHidesTitle>
+ * @mutate src/components/declutter/SellerSetup.tsx | <AppPage title="Sell" backTo="/declutter?tab=selling" narrow> | <AppPage title="Sell" backTo="/declutter?tab=selling">
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -41,7 +42,11 @@ describe("#47: a one-column form is one centered column of the shared shell", ()
     const own = pages.filter((f) => leftHugging(blankComments(readFileSync(resolve(ROOT, f), "utf8"))));
     expect(own).toEqual([]);
     for (const f of ["src/components/declutter/SellOneScreen.tsx", "src/components/declutter/DeclutterSellView.tsx", "src/components/declutter/DeclutterSellChooser.tsx", "src/components/declutter/SellerSetup.tsx"]) {
-      expect(blankComments(readFileSync(resolve(ROOT, f), "utf8")), f).toMatch(/<AppPage [^>]*\bnarrow>/);
+      // Screenshot check of #47 (11-22, 1440): the "couldn't load your selling settings" state still spread full width.
+      // EVERY state of a Sell screen (error, under-age, already listed) sits in the same column, not only the form.
+      const tags = [...blankComments(readFileSync(resolve(ROOT, f), "utf8")).matchAll(/<AppPage\b[^>]*>/g)].map((m) => m[0]);
+      expect(tags.length, f).toBeGreaterThan(0);
+      expect(tags.filter((t) => !/\bnarrow\b/.test(t)), f).toEqual([]);
     }
   });
 });

@@ -9,6 +9,9 @@
  *     so a new guides route without the banner fails here.
  *     Owner 11-22 ("Same row, icons off there"): the printables' head row is the pill alone (no search, heart or Share,
  *     her 11-21 call), and the Holiday Hub's has no gift search (one magnifier: the Hub's own lights search).
+ * #14 ("polish this. separate each book in its own box take them out of the 1 box"): on Coloring books, the one card
+ *     holding both covers is two cards, each with its own bigger cover, title, one line and a plain download link (#15's
+ *     style); side by side from 560px, stacked on a phone.
  * #15 ("remove the circles around the print buttons. put print it as below the buttons next to the print at walgreens
  *     button"): on Banners, "12x18 print" and "Wide banner" are plain text links like "Print at Walgreens ›", all three on
  *     one row, each 44px tall (the shared link Button, no pill outline).
@@ -25,6 +28,8 @@
  * @mutate src/pages/info/holidays/HolidayHub.tsx | banner={G.pageBanners["/holidays"]} tools="no-search" | banner={G.pageBanners["/holidays"]}
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {search && ( |       {true && (
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <Button key={f.href} type="button" variant="link" size="inline" className="pr-link" | <Button key={f.href} type="button" variant="outline" size="sm" className="pr-link"
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx |   const books = booksOf(p);\n |   const books = null as Book[] \| null;\n
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-books{grid-template-columns:repeat(2,minmax(0,1fr))} | .pr-books{grid-template-columns:minmax(0,1fr)}
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card .pr-link{display:inline-flex;align-items:center;justify-content:flex-start;min-height:44px; | .pr-card .pr-link{display:inline-flex;align-items:center;justify-content:flex-start;min-height:32px;
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -205,6 +210,33 @@ describe("#13 every guides page opens on the guides' one top: head row, then the
     // Under My Wish List's banner (its own hairline) the empty list draws no second rule.
     const { GIFT_WISH_CSS } = await import("@/pages/info/giftGuides/giftWishStyles");
     expect(blankComments(GIFT_WISH_CSS)).toContain(".gg [data-gift-my-list-empty]{border-top:0;margin-top:0}");
+  });
+});
+
+describe("#14 each coloring book in its own card", () => {
+  it("two cards, each its own cover, title, one line and a plain download link; two across from 560px, stacked below", async () => {
+    const { container } = renderAt("/gift-guides/printables/coloring-books");
+    await waitFor(() => expect(container.querySelector('[data-printable-card="coloring-book"]')).not.toBeNull());
+    const books = [...container.querySelectorAll("[data-printable-book]")];
+    expect(books.length).toBe(2);
+    for (const b of books) {
+      expect(b.matches("article.pr-card.pr-book")).toBe(true);
+      expect(b.querySelectorAll("img").length).toBe(1);
+      expect(b.querySelectorAll(".pr-card-title").length).toBe(1);
+      expect(b.querySelectorAll(".pr-card-body > p").length).toBe(1);
+      const links = b.querySelectorAll("[data-printable-download]");
+      expect(links.length).toBe(1);
+      expect(links[0].className).toMatch(/\blink-standard\b.*\bpr-link\b|\bpr-link\b.*\blink-standard\b/);
+      expect(links[0].textContent).toBe("Download ›");
+      // Neither card holds the other's cover or link.
+      expect(books.filter((x) => x !== b).some((x) => b.contains(x))).toBe(false);
+    }
+    expect(books.map((b) => b.querySelector("img")?.getAttribute("src"))).toEqual(["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"]);
+    expect(books.map((b) => b.querySelector(".pr-card-title")?.textContent)).toEqual(["Girls coloring book", "Boys coloring book"]);
+    const css = [...container.querySelectorAll("style")].map((x) => x.textContent ?? "").join("\n");
+    expect(css).toContain(".pr-books{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;list-style:none}");
+    expect(css).toMatch(/@media \(min-width:560px\)\{[^}]*\}[^@]*\.pr-books\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\.pr-book \.pr-book-img\{width:200px\}/);
+    expect(css).toContain(".pr-book .pr-book-img{width:160px;max-width:100%}");
   });
 });
 

@@ -118,12 +118,14 @@ export interface DownloadProduct {
   ready: boolean;
   /** A small picture of the first page, under public/. */
   preview: string;
-  /** Holiday audit 1121 area 5 #12: a card holding two books shows both covers (the boys' book sat beside a girl's cover). */
-  previews?: string[];
   /** Which group the card sits in on the page (owner 2026-11-21: "a subsection for tags, banner and color books so it's not all mixed up"). Default "more". */
   section?: "coloring" | "banners" | "more";
-  /** One button per file: the 12-, 24- and 25-day elf plans each get one. */
-  files: { label: string; href: string }[];
+  /**
+   * One download link per file: the 12-, 24- and 25-day elf plans each get one. A file with its own `title`, `blurb`
+   * and `preview` is a book of its own (owner 2026-11-22 #14: "separate each book in its own box"): each gets its own
+   * card with its cover, title, one line and link.
+   */
+  files: { label: string; href: string; title?: string; blurb?: string; preview?: string }[];
   guides: string[];
   /** A link under the button (the planner sheet links the online planner; the checklist links Declutter). */
   cta?: { to: string; label: string };
@@ -249,11 +251,11 @@ export const PRINTABLES: Printable[] = [
     // Owner 2026-11-21: "both color books are ready for launch" (Boys approved first, then Girls).
     ready: true,
     preview: "/printables/coloring-book/preview-girls.webp",
-    previews: ["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"],
-    // Guides polish 1122 #31: plain button names; the blurb says how long each book is (both PDFs: 21 pages, a cover and 20 to color).
+    // Owner 2026-11-22 #14 ("separate each book in its own box take them out of the 1 box"): each book is its own card,
+    // its cover, title, one line and download link. Both PDFs: 21 pages, a cover and 20 to color.
     files: [
-      { label: "Girls book", href: "/printables/coloring-book/christmas-coloring-book-girls.pdf" },
-      { label: "Boys book", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf" },
+      { label: "Download", href: "/printables/coloring-book/christmas-coloring-book-girls.pdf", title: "Girls coloring book", blurb: "A cover and 20 Christmas pages to color.", preview: "/printables/coloring-book/preview-girls.webp" },
+      { label: "Download", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf", title: "Boys coloring book", blurb: "A cover and 20 Christmas pages to color.", preview: "/printables/coloring-book/preview-boys.webp" },
     ],
     // Owner 2026-11-21: not linked from Kids (it reversed holiday audit 1121 #49); the Coloring books page has them.
     guides: [],

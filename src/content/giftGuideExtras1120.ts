@@ -78,7 +78,8 @@ export const FINDER_ANCHOR = "gift-finder";
 
 /** The gift quiz's words (owner 2026-11-21 ~6:15 PM: a real quiz that narrows the list; src/content/giftQuiz.ts). */
 export const EXTRAS_WORDS = {
-  finderTitle: "Find a gift in 3 taps",
+  /** Owner via the lead, 11-21 PM: "Find a gift" (was "Find a gift in 3 taps"; the Kids path is 4 steps). */
+  finderTitle: "Find a gift",
   finderLead: "A few quick questions, then a short list of gifts that fit.",
   finderWho: "Who's it for?",
   quizAge: "How old?",

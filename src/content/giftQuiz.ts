@@ -3,7 +3,7 @@ import { TOP10_SLOTS } from "@/content/giftGuideTop10";
 import { EARN_RANKS } from "@/content/giftGuideEarnOrder";
 
 /**
- * The gift quiz, "Find a gift in 3 taps" (owner 2026-11-21 ~6:15 PM: "Then it's not really a quiz. It should show like a
+ * The gift quiz, "Find a gift" (owner 2026-11-21 ~6:15 PM: "Then it's not really a quiz. It should show like a
  * few things. The whole point of a quiz is to ask questions to narrow down the list"). One question per screen:
  *   1. who: Her, Him or Kids (Mom and Dad are gone: they were Her and Him again);
  *   2. for Kids only, an age band;
@@ -57,6 +57,7 @@ const KIDS_INTO: { id: QuizInto; label: string }[] = [
   { id: "creative", label: "Arts & crafts" },
   { id: "active", label: "Active & outdoors" },
   { id: "pretend", label: "Pretend play & little ones" },
+  { id: "cozy", label: "Cozy room" },
   { id: "stocking", label: "Stocking stuffers" },
 ];
 const ANY: { id: QuizInto; label: string } = { id: "any", label: "Anything" };
@@ -73,10 +74,10 @@ const PER_BRAND = 2;
 
 /** Grown-up gift types and the interests each one is. */
 const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
-  "throw-blanket": ["cozy"], bedding: ["cozy"], pajamas: ["cozy"], "sleep-mask": ["cozy", "beauty"], candle: ["cozy"], socks: ["cozy"],
+  "throw-blanket": ["cozy"], bedding: ["cozy"], pajamas: ["cozy"], "sleep-mask": ["cozy"], candle: ["cozy"], socks: ["cozy"],
   clock: ["cozy", "tech"], coasters: ["cozy", "kitchen"], "valet-tray": ["cozy", "style"],
   skincare: ["beauty"], lip: ["beauty"], makeup: ["beauty"], "gift-set": ["beauty"], fragrance: ["beauty"], hair: ["beauty"],
-  "beauty-device": ["beauty", "tech"], massager: ["fitness", "beauty", "tech"], grooming: ["beauty"], soap: ["beauty"], "body-wash": ["beauty"],
+  "beauty-device": ["beauty", "tech"], massager: ["fitness", "tech"], grooming: ["beauty"], soap: ["beauty"], "body-wash": ["beauty"],
   lotion: ["beauty"], shave: ["beauty"],
   pants: ["style"], jewelry: ["style"], bag: ["style"], sweatshirt: ["style", "cozy"], shoes: ["style"], "matching-set": ["style", "cozy"],
   scarf: ["style", "cozy"], hat: ["style"], shirt: ["style"], pullover: ["style", "cozy"], jacket: ["style", "outdoors"], belt: ["style"],
@@ -85,7 +86,7 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   fishing: ["outdoors"], hunting: ["outdoors"], knife: ["outdoors"], "trail-camera": ["outdoors", "tech"], binoculars: ["outdoors"],
   cooler: ["outdoors", "kitchen"], "gear-case": ["outdoors"], light: ["outdoors", "tools", "tech"], "gun-safe": ["outdoors"], "gun-case": ["outdoors"],
   "can-cooler": ["outdoors", "kitchen"], "bottle-opener": ["kitchen"], golf: ["fitness"],
-  speaker: ["tech"], camera: ["tech"], organizer: ["tech", "tools"],
+  speaker: ["tech"], camera: ["tech"], organizer: ["tech", "cozy"],
   mug: ["kitchen", "tech"], drinkware: ["kitchen"], grilling: ["kitchen"],
   tool: ["tools"], "car-care": ["tools"],
 };
@@ -97,25 +98,42 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   craft: ["creative"], art: ["creative"], book: ["creative", "stocking"], slime: ["creative", "stocking"],
   scooter: ["active"], "ride-on": ["active", "pretend"], hoverboard: ["active"], outdoor: ["active"], sports: ["active", "games"], "balance-bike": ["active"], rocket: ["active", "build"],
   "pretend-play": ["pretend"], doll: ["pretend"], dollhouse: ["pretend"], "pull-toy": ["pretend"], "car-toy": ["pretend"], "bath-toy": ["pretend"],
-  rocker: ["pretend", "active"], "spin-toy": ["pretend", "active"], "play-table": ["pretend", "active"], "baby-clothes": ["pretend"],
-  squishy: ["stocking"], fidget: ["stocking"], toothbrush: ["stocking"], ornament: ["stocking", "build"], chair: ["pretend"], bag: ["stocking"],
+  rocker: ["pretend", "active"], "spin-toy": ["pretend", "active"], "play-table": ["pretend", "active"], "baby-clothes": ["cozy"],
+  squishy: ["stocking"], fidget: ["stocking"], toothbrush: ["stocking"], ornament: ["stocking", "build"], chair: ["cozy"], bag: ["stocking"],
 };
-/** Name words that add an interest the gift type alone misses (each from what the product is, by its name). */
+/**
+ * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
+ * eye over all 269 picks, 11-21 PM (lead: the ZDEER heated gua sha showed under Cozy & home): "heated" and "bottle" are
+ * no longer cues (a heated beauty tool, a bottle opener), and the cozy words never tag beauty, shoes or boots.
+ */
 const NAME_TAGS: [RegExp, QuizInto][] = [
-  [/\b(leggings|sneakers?|cloud 6|joggers)\b/i, "fitness"],
-  [/\b(owala|bottle)\b/i, "fitness"],
+  [/\b(leggings|sneakers?|cloud 6)\b/i, "fitness"],
+  [/\b(owala|water bottle)\b/i, "fitness"],
   [/\b(ember mug)\b/i, "kitchen"],
   [/\b(electric|laser|rechargeable|bluetooth|wireless|biometric|led)\b/i, "tech"],
   [/\b(camera)\b/i, "tech"],
   [/\b(fishing|duck|mallards?|hunting|whitetails?|redfish|trout|upland|decoys?|tackle)\b/i, "outdoors"],
   [/\b(carving knife|meat|bbq|grill)\b/i, "kitchen"],
-  [/\b(fuzzy|sherpa|fleece|flannel|lounge|weighted|plush|heated)\b/i, "cozy"],
+  [/\b(fuzzy|sherpa|fleece|flannel|lounge|weighted|plush)\b/i, "cozy"],
+];
+/** Gift types the cozy name words never tag (a "fleece lined" boot is not Cozy & home). */
+const NOT_COZY_TYPES = new Set(["skincare", "lip", "makeup", "gift-set", "fragrance", "hair", "beauty-device", "grooming", "soap", "body-wash", "lotion", "shave", "shoes", "boots"]);
+/** Per-pick fixes where the type and name rules misfire (by the pick's name; checked by eye, 11-21 PM). */
+const TAG_OVERRIDES: [RegExp, QuizInto[]][] = [
+  // A keychain video camera is a gadget, not a style piece.
+  [/^camp snap\b/i, ["tech"]],
+  // A baby's first-Christmas tote of toys is for the littlest, not a stocking stuffer.
+  [/^baby'?s 1st christmas/i, ["pretend"]],
 ];
 
 export function quizTags(pick: Pick<CatalogPick, "name" | "type">, who: QuizWho): QuizInto[] {
+  const fixed = TAG_OVERRIDES.find(([re]) => re.test(pick.name));
+  if (fixed) return [...fixed[1]];
   const table = who === "kids" ? KIDS_TYPE_TAGS : ADULT_TYPE_TAGS;
   const tags = new Set<QuizInto>(table[pick.type ?? ""] ?? []);
-  if (who !== "kids") for (const [re, tag] of NAME_TAGS) if (re.test(pick.name)) tags.add(tag);
+  if (who !== "kids") {
+    for (const [re, tag] of NAME_TAGS) if (re.test(pick.name) && !(tag === "cozy" && NOT_COZY_TYPES.has(pick.type ?? ""))) tags.add(tag);
+  }
   // A hunting/fishing knife is the outdoors; a kitchen carving set is the kitchen.
   if (who !== "kids" && /\bcarving\b/i.test(pick.name)) tags.delete("outdoors");
   return [...tags];

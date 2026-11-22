@@ -16,7 +16,7 @@ import { GiftGuideTop10 } from "./GiftGuideTop10";
  *
  * OWNER + LEAD 11-21 (supersedes the order below where they differ): the main column is the three tiles, sharing the
  * full width, each with a quiet "Her · 36 gifts" line and no heading over them; then the 25 Days giveaways card; nothing
- * else. The menu's "Find a gift in 3 taps" (or a shared finder link) shows the gift finder ALONE in the main column
+ * else. The menu's "Find a gift" (or a shared finder link) shows the gift finder ALONE in the main column
  * (finderAsked; owner 11-21: "only the section I click in the left panel should be displayed"). The deals days, Free printables, the Holiday
  * Hub, the 25 Days sponsors and the fun tools are all in the left menu (owner: "i have already said free printables,
  * louisiana hub, sponsors go in the left panel ... and black friday deals, small business saturday and cyber monday"),
@@ -26,7 +26,7 @@ import { GiftGuideTop10 } from "./GiftGuideTop10";
  * her and kids?"; after 11-20 PM's "The gift guide page is still a busy mess"): ONE title with its short subline and the
  * search row, a hairline across the page (GiftGuides.tsx), then, top to bottom: the three guides' cover tiles (For Her,
  * For Him, Kids); the 25 Days giveaways card (owner 11-21: "move the 25 days of giveaways up so people will see it
- * better"); the gift finder ("Find a gift in 3 taps") and the fun tools (Swipe, Secret Santa, Gift
+ * better"); the gift finder ("Find a gift") and the fun tools (Swipe, Secret Santa, Gift
  * planner; owner 11-21: "i also dont see the fun features anymore like the quiz"); the free printables and the deals
  * page as two cards ("there will also need to be a free section for our tags"; the codes themselves live only on the
  * deals page). The Holiday Hub and the 25 Days sponsors are entries in the left menu, not the main column (owner 11-21
@@ -90,7 +90,7 @@ function GroupPage({ group }: { group: GuideRow }) {
 }
 
 /**
- * Whether the gift finder is asked for: the left menu's "Find a gift in 3 taps" (/gift-guides#gift-finder) or a shared
+ * Whether the gift finder is asked for: the left menu's "Find a gift" (/gift-guides#gift-finder) or a shared
  * finder link (/gift-guides?who=her&budget=50&vibe=cozy). Otherwise the main column is only the tiles and the 25 Days
  * card (owner 11-21: the main column is ONLY the three tiles and the 25 Days card; the quiz is a fun tool in the menu).
  */

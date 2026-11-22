@@ -13,6 +13,12 @@
  * @mutate src/content/giftQuiz.ts |   const intoIds = who ? [...(who === "kids" ? KIDS_INTO : ADULT_INTO), ANY].map((x) => x.id) : []; |   const intoIds: string[] = [];
  * @mutate src/pages/info/giftGuides/GiftGuideFinder.tsx |     const shown = result.picks.slice(0, more ? result.picks.length : QUIZ_FIRST); |     const shown = result.picks;
  * @mutate src/pages/info/giftGuides/GiftGuideFinder.tsx | } else if (step === "age") { | } else if (step === "age" && false) {
+ * @mutate src/content/giftQuiz.ts |     for (const [re, tag] of NAME_TAGS) if (re.test(pick.name) && !(tag === "cozy" && NOT_COZY_TYPES.has(pick.type ?? ""))) tags.add(tag); |     for (const [re, tag] of NAME_TAGS) if (re.test(pick.name)) tags.add(tag);
+ * @mutate src/content/giftQuiz.ts |   [/\b(owala\|water bottle)\b/i, "fitness"], |   [/\b(owala\|bottle)\b/i, "fitness"],
+ * @mutate src/content/giftGuideExtras1120.ts |   finderTitle: "Find a gift", |   finderTitle: "Find a gift in 3 taps",
+ *
+ * Lead 11-21 PM: a tag pass by eye over all 269 picks (the ZDEER heated gua sha showed under Cozy & home), and the
+ * title is "Find a gift" everywhere (the Kids path is 4 steps).
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -52,6 +58,25 @@ describe("every live pick is tagged from its own data", () => {
     for (const who of WHO) for (const p of POOL[who]) { n += 1; expect(quizTags(p, who).length, `${who}: ${p.type} | ${p.name}`).toBeGreaterThan(0); }
     for (const p of POOL.kids) expect(quizAges(p).length, `${p.type} | ${p.name}`).toBeGreaterThan(0);
     expect(n).toBeGreaterThan(200); // 47 + 141 + 81 measured 2026-11-21
+  });
+});
+
+describe("each result clearly belongs to its chip (tag pass by eye, 11-21 PM)", () => {
+  const BEAUTY_TYPES = /^(skincare|lip|makeup|gift-set|fragrance|hair|beauty-device|grooming|soap|body-wash|lotion|shave)$/;
+  it("no beauty item is Cozy & home, no shoe or boot is cozy, no bottle opener is fitness, a massage gun is not beauty", () => {
+    for (const who of ["her", "him"] as QuizWho[]) for (const p of POOL[who]) {
+      const t = quizTags(p, who);
+      if (BEAUTY_TYPES.test(p.type ?? "") || /^(shoes|boots)$/.test(p.type ?? "")) expect(t, `${who}: ${p.name}`).not.toContain("cozy");
+      if (p.type === "bottle-opener") expect(t, p.name).not.toContain("fitness");
+      if (p.type === "massager") expect(t, p.name).not.toContain("beauty");
+    }
+    const zdeer = POOL.her.find((p) => /ZDEER/.test(p.name))!;
+    expect(quizTags(zdeer, "her")).not.toContain("cozy");
+    const cozy = giftQuiz(POOL.her, { who: "her", budget: "25-50", into: "cozy" }).picks;
+    for (const p of cozy) expect(BEAUTY_TYPES.test(p.type ?? ""), p.name).toBe(false);
+  });
+  it("the title is Find a gift (the Kids path is 4 steps)", () => {
+    expect(W.finderTitle).toBe("Find a gift");
   });
 });
 

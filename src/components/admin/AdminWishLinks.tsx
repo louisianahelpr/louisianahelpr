@@ -175,7 +175,7 @@ function PageLine({ r }: { r: WishLinkRow }) {
   return (
     <div className="mt-1 flex items-center gap-3" data-admin-wish-link-page={r.id}>
       {r.page_image && (
-        <img src={r.page_image} alt="" width={48} height={48} loading="lazy" referrerPolicy="no-referrer" className="h-12 w-12 shrink-0 rounded-md object-contain" data-admin-wish-link-page-img="" />
+        <img loading="lazy" src={r.page_image} alt="" width={48} height={48} referrerPolicy="no-referrer" className="h-12 w-12 shrink-0 rounded-md object-contain" data-admin-wish-link-page-img="" />
       )}
       <span className="min-w-0 text-xs">
         {r.page_title && <span className="block font-medium [overflow-wrap:anywhere]" data-admin-wish-link-page-title="">{r.page_title}</span>}

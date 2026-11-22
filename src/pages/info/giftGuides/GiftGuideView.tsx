@@ -16,6 +16,7 @@ import { usePlan } from "./fun/plannerStore";
 import { HINTS, WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { Hint } from "./GiftHint";
 import { Button } from "@/components/ui/button";
+import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { sortByPrice } from "@/content/giftGuidePriceSort";
 import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGuideEarnOrder";
@@ -285,10 +286,10 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
           {title && (sortable && id ? (
             // A price section's header is its open/close button (aria-expanded; the list is drawn only while open).
             <h2 className="gg-sec-title gg-sec-toggle-h" id={`gg-sec-${id}-title`}>
-              <button type="button" className="gg-sec-toggle" aria-expanded={isOpen(id)} aria-controls={`gg-sec-${id}-list`} onClick={() => toggle(id)} data-gift-section-toggle={id}>
+              <Button type="button" variant="ghost" size="inline" className="gg-sec-toggle" aria-expanded={isOpen(id)} aria-controls={`gg-sec-${id}-list`} onClick={() => toggle(id)} data-gift-section-toggle={id}>
                 <span>{title}<span className="gg-sec-count" data-gift-section-count="">{G.priceSectionCount(sectionCount.get(id) ?? 0)}</span></span>
-                <svg className="gg-sec-chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              </button>
+                <svg className="gg-sec-chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </Button>
             </h2>
           ) : (
             <h2 className="gg-sec-title" id={id ? `gg-sec-${id}-title` : undefined}>

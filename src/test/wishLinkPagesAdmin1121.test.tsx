@@ -78,8 +78,9 @@ describe("Admin wish list links: Get shop details", () => {
     expect(page.querySelector("[data-admin-wish-link-page-price]")!.textContent).toBe("$38.50 on the page · ");
     expect(page.textContent).toContain("read Nov 21");
     expect(v.container.querySelector(`[data-admin-wish-link-page-note="${R2}"]`)!.textContent).toBe("Shop page couldn't be read · Nov 21");
-    // Nothing unread now: the button goes, the line stays.
-    await waitFor(() => expect(v.container.querySelector("[data-admin-wish-links-pages]")).toBeNull());
+    // Nothing unread now: the button goes, the line stays. The refetched rows above (R1's page, R2's note) are the
+    // data the button's count reads, already rendered, so the absence is asserted after the data, not waited for.
+    expect(v.container.querySelector("[data-admin-wish-links-pages]")).toBeNull();
   });
 
   it("a refused or failed call is an error toast with the function's words, never a quiet nothing", async () => {

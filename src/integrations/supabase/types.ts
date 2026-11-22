@@ -5825,6 +5825,32 @@ export type Database = {
         }
         Relationships: []
       }
+      gift_wish_list_owners: {
+        Row: {
+          code: string
+          created_at: string
+          token_hash: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          token_hash: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_wish_list_owners_code_fkey"
+            columns: ["code"]
+            isOneToOne: true
+            referencedRelation: "gift_wish_lists"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       gift_wish_lists: {
         Row: {
           code: string

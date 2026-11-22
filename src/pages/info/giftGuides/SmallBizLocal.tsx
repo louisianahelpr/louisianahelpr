@@ -10,6 +10,9 @@ import { safeDocumentUrl } from "@/lib/storagePath";
 import { SB_CARD_CSS } from "./smallBizCardStyles";
 import { businessKey } from "../../../../supabase/functions/_shared/sbsSubmission";
 
+/** The local list's heading id: one of the two branches below renders it, never both. */
+const SBS_LOCAL_HEAD = "gift-sbs-local";
+
 /**
  * Small Business Saturday "Featured local" (owner 2026-11-20): approved FREE listings, shown BELOW the 25 Days sponsors
  * (owner: "our small business sponsers still get lsited a the to of the list with a badge"). A business that is already
@@ -173,14 +176,14 @@ export function SmallBizLocal({ sponsors, heading }: { sponsors: Array<{ name: s
     <>
       <style>{SB_CARD_CSS}{SBS_CSS}</style>
       {stateLine && heading && (
-        <section className="gg-sbs-local" aria-labelledby="gift-sbs-local" data-gift-sbs-section="">
-          <div className="gg-rowhead"><h2 id="gift-sbs-local">{heading.title}</h2></div>
+        <section className="gg-sbs-local" aria-labelledby={SBS_LOCAL_HEAD} data-gift-sbs-section="">
+          <div className="gg-rowhead"><h2 id={SBS_LOCAL_HEAD}>{heading.title}</h2></div>
           {stateLine}
         </section>
       )}
       {list.length > 0 && (
-        <section className="gg-sbs-local" aria-labelledby="gift-sbs-local" data-gift-sbs-section="">
-          <div className="gg-rowhead"><h2 id="gift-sbs-local">{heading?.title ?? W.sectionTitle}<span className="gg-rowcount">&nbsp;({list.length})</span></h2></div>
+        <section className="gg-sbs-local" aria-labelledby={SBS_LOCAL_HEAD} data-gift-sbs-section="">
+          <div className="gg-rowhead"><h2 id={SBS_LOCAL_HEAD}>{heading?.title ?? W.sectionTitle}<span className="gg-rowcount">&nbsp;({list.length})</span></h2></div>
           <p className="gg-sbs-local-intro">{heading?.intro ?? W.sectionIntro}</p>
           <ul className="gg-sb-grid">{list.map((b) => <LocalCard key={b.id} b={b} />)}</ul>
         </section>

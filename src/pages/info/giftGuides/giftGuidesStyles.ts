@@ -373,7 +373,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-top10>li{content-visibility:visible}
 /* Owner 11-21: each price section's header opens and closes it (first open): a full-width 44px row with a chevron. */
 .gg-sec-toggle-h{margin:14px 0 0}
-.gg-sec-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:6px 4px;border:0;border-bottom:1px solid var(--gg-line);background:transparent;font:inherit;font-weight:700;color:var(--gg-ink);text-align:left;cursor:pointer}
+.gg-sec-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:6px 4px;border:0;border-bottom:1px solid var(--gg-line);border-radius:0;background:transparent;font:inherit;font-weight:700;color:var(--gg-ink);text-align:left;white-space:normal;cursor:pointer}
 .gg-sec-toggle:focus-visible{outline:2px solid var(--gg-olive);outline-offset:2px;border-radius:6px}
 .gg-sec-chev{flex:none;color:var(--gg-muted);transition:transform .15s}
 .gg-sec-toggle[aria-expanded="true"] .gg-sec-chev{transform:rotate(180deg)}

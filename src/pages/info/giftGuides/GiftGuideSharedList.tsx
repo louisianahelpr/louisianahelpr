@@ -13,7 +13,7 @@ import { useWishItems } from "./wishListItems";
 /**
  * /gift-guides/list/<code> (owner 2026-11-20): a wish list someone sent. No sign-in: the list's name as the big title
  * (the sender's own words, under "Someone shared their wish list with you", never under our brand: security review
- * #4, UX audit M4), and its gifts, each with its photo and a Shop button carrying our own link (so every purchase from a
+ * #4, UX audit M4), and its gifts, each with its photo and name as one link carrying our own link (so every purchase from a
  * shared list still earns), then a way to make your own. Gifts the guides no longer carry are counted, never silently
  * dropped (UX audit M7). The tab title is the list's name (UX audit L4). A code with no list says so; a failed read
  * offers a retry.

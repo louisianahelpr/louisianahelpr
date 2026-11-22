@@ -17,7 +17,8 @@
  *   MUTANT=<name> node ...                                              # each must FAIL (see MUTANTS)
  *
  * World: auth.users, auth.uid() from the test.uid setting, is_test_member (a test_accounts list), has_role (a roles
- * list), admin_audit_log, and the two gift wish list migrations before this one.
+ * list), admin_audit_log, the real unconfirmed-email gate functions (20260927234313, auth.role() from test.role), and
+ * the two gift wish list migrations before this one.
  */
 import os from "node:os";
 import { readFileSync, readdirSync } from "node:fs";
@@ -58,6 +59,7 @@ const MUTANTS = {
   shareCollapsesR: ["        SELECT DISTINCT ON (COALESCE(e->>'i', 'r:' || (e->>'r'))) e->>'g' AS g, e->>'i' AS i, e->>'r' AS r, n", "        SELECT DISTINCT ON (e->>'i') e->>'g' AS g, e->>'i' AS i, e->>'r' AS r, n"],
   getPastedLink: ["'h', CASE WHEN q.status = 'filled' THEN q.affiliate_url END,", "'h', COALESCE(q.affiliate_url, q.url),"],
   noPrune: ["  DELETE FROM public.wish_link_requests r WHERE r.created_at < now() - interval '180 days';", "  SELECT 1 INTO v_r;"],
+  noGate: ["    PERFORM public.attach_unconfirmed_email_gate();", "    NULL;"],
   anonTable: ["REVOKE ALL ON TABLE public.wish_link_requests FROM PUBLIC, anon, authenticated;", "GRANT SELECT ON TABLE public.wish_link_requests TO anon;"],
   anonAdmin: ["REVOKE ALL ON FUNCTION public.admin_wish_link_requests() FROM PUBLIC, anon;", "GRANT EXECUTE ON FUNCTION public.admin_wish_link_requests() TO anon;"],
 };
@@ -74,14 +76,16 @@ const check = (ok, name) => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}`); i
 const ADMIN = "33333333-0000-0000-0000-000000000001";
 const ANN = "33333333-0000-0000-0000-000000000002";
 const TEST = "33333333-0000-0000-0000-000000000003";
+const UNCONF = "33333333-0000-0000-0000-000000000004";
 
 const db = await PGlite.create();
 await db.exec(`
   CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
   CREATE SCHEMA auth;
-  CREATE TABLE auth.users (id uuid PRIMARY KEY);
-  INSERT INTO auth.users VALUES ('${ADMIN}'), ('${ANN}'), ('${TEST}');
+  CREATE TABLE auth.users (id uuid PRIMARY KEY, email_confirmed_at timestamptz);
+  INSERT INTO auth.users VALUES ('${ADMIN}', now()), ('${ANN}', now()), ('${TEST}', now()), ('${UNCONF}', NULL);
   CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $f$ SELECT nullif(current_setting('test.uid', true), '')::uuid $f$;
+  CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $f$ SELECT nullif(current_setting('test.role', true), '') $f$;
   CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
   INSERT INTO public.test_accounts VALUES ('${TEST}');
   CREATE FUNCTION public.is_test_member(p uuid) RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p) $f$;
@@ -91,6 +95,12 @@ await db.exec(`
   CREATE FUNCTION public.has_role(p uuid, r public.app_role) RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT EXISTS (SELECT 1 FROM public.user_roles u WHERE u.user_id = p AND u.role = r) $f$;
   CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), admin_id uuid NOT NULL, action text NOT NULL, target_type text, target_id text, details jsonb, created_at timestamptz NOT NULL DEFAULT now());
 `);
+// The unconfirmed-email gate's three functions, verbatim from their migration (its storage policies need no storage schema here).
+const GATE_SRC = readFileSync(MIG_DIR + "20260927234313_refuse_unconfirmed_email_writes.sql", "utf8");
+const gateFrom = GATE_SRC.indexOf("CREATE OR REPLACE FUNCTION public.session_email_unconfirmed()");
+const gateTo = GATE_SRC.indexOf("SELECT public.attach_unconfirmed_email_gate();");
+if (gateFrom < 0 || gateTo < gateFrom) throw new Error("email gate functions not found");
+await db.exec(GATE_SRC.slice(gateFrom, gateTo));
 await db.exec(readFileSync(MIG_DIR + BASE, "utf8"));
 await db.exec(readFileSync(MIG_DIR + SHARE, "utf8"));
 if (process.env.NEW_MIGRATION !== "skip") for (let k = 0; k < 3; k++) await db.exec(mig);
@@ -245,6 +255,20 @@ check(priv.fa === true && priv.fg === true, "anon may add and read requests");
 check(priv.aa === false && priv.af === false && priv.ak === false, "anon may not call the admin or helper functions");
 const acls = (await db.query(`SELECT proname, proacl::text AS acl FROM pg_proc WHERE proname LIKE '%wish_link%'`)).rows;
 check(acls.length === 7 && acls.every((r) => !/(^|[{,])=X/.test(r.acl ?? "=X")), `PUBLIC holds no EXECUTE on any of the 7 functions (${JSON.stringify(acls)})`);
+
+// The unconfirmed-email gate (Q807, db-smoke): attached to the new table; guests and confirmed members still add,
+// a signed-in member with an unconfirmed email cannot.
+const gate = (await db.query(`SELECT count(*)::int AS n FROM pg_trigger WHERE tgrelid = 'public.wish_link_requests'::regclass AND tgname = 'zz_refuse_unconfirmed_email_write'`)).rows[0].n;
+check(gate === 1, `wish_link_requests carries the unconfirmed-email gate trigger (${gate})`);
+await as(null, "7.7.7.1");
+check(!!(await add("idea", "Gate guest mug", null, "g1")).v?.id, "with the gate on, a guest still adds a request");
+await db.query(`SELECT set_config('test.role', 'authenticated', false)`);
+await as(ANN, "7.7.7.2");
+check(!!(await add("idea", "Gate member mug", null, "g2")).v?.id, "with the gate on, a confirmed member still adds a request");
+await as(UNCONF, "7.7.7.3");
+check(/email_unconfirmed/.test((await add("idea", "Gate unconfirmed mug", null, "g3")).err ?? ""), "a member with an unconfirmed email is refused (email_unconfirmed)");
+await db.query(`SELECT set_config('test.role', '', false)`);
+await as(null);
 
 console.log(failures === 0 ? "ALL PASS" : `${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

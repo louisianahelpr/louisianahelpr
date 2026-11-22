@@ -8,8 +8,8 @@
  *
  * @mutate src/components/GiftGuidesPromo.tsx | const GIFT_PROMO_LINE = "Gifts, deals and codes"; | const GIFT_PROMO_LINE = "Gifts, deals and codes, picked by a Louisiana nurse";
  * @mutate src/components/GiftGuidesPromo.tsx |   if (where === "home") { |   if (false) {
- * @mutate src/pages/home/HomeDashboard.tsx |         {promoShows && <Suspense fallback={<div aria-hidden data-gift-promo-hold="" className="h-12" />}><GiftGuidesPromo where="home" /></Suspense>}\n | \n
- * @mutate src/pages/home/HomeDashboard.tsx | <Suspense fallback={<div aria-hidden data-gift-promo-hold="" className="h-12" />}> | <Suspense fallback={null}>
+ * @mutate src/pages/home/HomeDashboard.tsx |         {promoShows && <Suspense fallback={<div aria-hidden data-gift-promo-hold="" className="h-14 sm:h-12" />}><GiftGuidesPromo where="home" /></Suspense>}\n | \n
+ * @mutate src/pages/home/HomeDashboard.tsx | <Suspense fallback={<div aria-hidden data-gift-promo-hold="" className="h-14 sm:h-12" />}> | <Suspense fallback={null}>
  * @mutate src/pages/home/HomeDashboard.tsx | <div data-home-side-card="" className="liquid-glass p-card flex flex-col gap-2 min-w-0 empty:hidden"> | <div data-home-side-card="" className="flex flex-col gap-2 min-w-0">
  */
 import { readFileSync } from "node:fs";
@@ -32,7 +32,8 @@ describe("Home's gift guides strip (owner 11-21)", () => {
     const c = draw("home");
     const strip = c.querySelector<HTMLElement>("[data-gift-promo=home]")!;
     expect(strip.hasAttribute("data-gift-promo-strip")).toBe(true);
-    expect(strip.className).toContain("h-12");
+    // The held slot on Home is the strip's own height (phone two lines, one from sm).
+    expect(strip.className).toContain("h-14 sm:h-12");
     expect(strip.textContent).toBe("Holiday Gift Guides · Gifts, deals and codes");
     expect(strip.querySelector("[data-gift-promo-link]")?.getAttribute("href")).toBe("/gift-guides");
     // gift icon + chevron + the X's icon; no 40px tile.
@@ -61,7 +62,7 @@ describe("Home's gift guides strip (owner 11-21)", () => {
     expect(home.indexOf("<PageTitleBar")).toBeLessThan(strip);
     expect(strip).toBeLessThan(home.indexOf('data-testid="home-top-loading"'));
     expect(strip).toBeLessThan(home.indexOf("data-home-columns"));
-    expect(home).toContain('{promoShows && <Suspense fallback={<div aria-hidden data-gift-promo-hold="" className="h-12" />}><GiftGuidesPromo where="home" /></Suspense>}');
+    expect(home).toContain('{promoShows && <Suspense fallback={<div aria-hidden data-gift-promo-hold="" className="h-14 sm:h-12" />}><GiftGuidesPromo where="home" /></Suspense>}');
     expect(home).toContain("const [promoShows] = useState(() => giftPromoShows());");
     expect(strip).toBeLessThan(home.indexOf("<section data-home-side"));
   });

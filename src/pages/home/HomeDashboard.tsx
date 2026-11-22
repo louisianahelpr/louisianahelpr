@@ -256,9 +256,9 @@ function HomeDashboardScreen() {
         />
         {isWebDesktop && <p className="text-ds-14 text-muted-foreground pt-5 -mb-2" data-home-date="">{today}</p>}
         {/* Owner 11-21 ("move this to under good evening lexi like one long strip"): the gift guides strip, right under the
-            greeting (phone: the top of the page). Its chunk is lazy; its 48px slot is held from the first paint while it
+            greeting (phone: the top of the page). Its chunk is lazy; its slot (56px phone, 48px from sm) is held from the first paint while it
             loads, so nothing under it moves. Guard: src/test/homeGiftStripAndSideBox1121.test.tsx. */}
-        {promoShows && <Suspense fallback={<div aria-hidden data-gift-promo-hold="" className="h-12" />}><GiftGuidesPromo where="home" /></Suspense>}
+        {promoShows && <Suspense fallback={<div aria-hidden data-gift-promo-hold="" className="h-14 sm:h-12" />}><GiftGuidesPromo where="home" /></Suspense>}
 
         {/* Board 11 (desktop): TWO columns under the greeting from 1280px (below that the left column is
             too narrow for the Coming up table). Left (~60%): Next up, To do, Coming up (a table from

@@ -89,6 +89,10 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   speaker: ["tech"], camera: ["tech"], organizer: ["tech", "cozy"],
   mug: ["kitchen", "tech"], drinkware: ["kitchen"], grilling: ["kitchen"],
   tool: ["tools"], "car-care": ["tools"],
+  // A tree ornament hangs at home (train 1121h: the LSU Fairisle ornament joined Him in 1121g with no interest).
+  ornament: ["cozy"],
+  // The LSU and YETI picks 1121g added to Him: cufflinks are style, a backpack and a flask go outdoors.
+  cufflinks: ["style"], backpack: ["outdoors", "style"], flask: ["outdoors"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {

@@ -42,6 +42,8 @@ const state = {
 
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
+// Deep audit 1122 #3: the link-opened chat opens for a signed-in member only.
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u-viewer" }, profile: null, isLoading: false }) }));
 // B112: the open chat marks the viewer's side read (declutter_mark_talk_read).
 const marked = vi.fn(async (_kind: string, _ref: string) => undefined);
 // The chat's next-step line (OrderTalkStep, lazy) reads the cart, bookings and delivery itself; it has its own proof in

@@ -181,7 +181,7 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
 function guestWants(search: string): string | null {
   const q = new URLSearchParams(search);
   if (q.has("offer")) return gw("g.want.offer");
-  if (q.has("order") || q.has("order_talk") || q.get("tab") === "buying") return gw("g.want.order");
+  if (q.has("order") || q.has("order_talk") || q.has("talk") || q.get("tab") === "buying") return gw("g.want.order");
   if (q.get("tab") === "selling") return gw("g.want.sales");
   // F359k: the "post what you want" link (?tab=wanted&post=1) and the Wanted tab itself.
   if (q.has("post")) return gw("g.want.post");
@@ -196,7 +196,9 @@ export function DeclutterGuestBrowseJoin() {
   // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo; the H stays on the phone only.
   const barShown = useIsWebDesktop();
   // Owner 11-10: at desktop width the guest top bar already carries Log in / Sign up, so this card is not repeated there.
-  if (barShown) return null;
+  // Deep audit 1122 #3: except for a link to something of theirs (an order, offer or chat from an email): at 1440 that
+  // was plain Browse with no word about the order, so the "Log in to see your order" card shows at every width.
+  if (barShown && !want) return null;
   return (
     <section data-guest-join="browse" aria-label={gw("g.joinAria")} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-border bg-card p-3">
       {!barShown && <GuestBrand />}

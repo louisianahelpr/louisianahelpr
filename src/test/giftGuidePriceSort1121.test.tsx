@@ -202,12 +202,13 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // (Crocs Dylan at crocs.com $35, was $99).
       // 11-22 (owner edits): Him lost the Dr. Squatch Fresh Falls soap and Men's Fuzzy Cloud Socks (under $25) and the
       // Armor All and Chemical Guys car kits ($25-$50); Her lost the Floral Mama quarter zip (under $25).
-      him: { "Under $25": 42, "$25 to $50": 40, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 34 },
+      him: { "Under $25": 42, "$25 to $50": 40, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 36 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
-      // and Sleep Crown ($159, $199, $289).
-      kids: { "Under $25": 33, "$25 to $50": 21, "$50 to $75": 7, "$75 to $100": 5, "$100 and up": 17 },
-      her: { "Under $25": 18, "$25 to $50": 16, "$50 to $75": 4, "$75 to $100": 4, "$100 and up": 13 },
+      // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
+      // Eleven Eleven ($158); Him + 2 Lake ($108, $138); Kids + EADEM set ($58).
+      kids: { "Under $25": 33, "$25 to $50": 21, "$50 to $75": 8, "$75 to $100": 5, "$100 and up": 17 },
+      her: { "Under $25": 21, "$25 to $50": 20, "$50 to $75": 4, "$75 to $100": 4, "$100 and up": 14 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

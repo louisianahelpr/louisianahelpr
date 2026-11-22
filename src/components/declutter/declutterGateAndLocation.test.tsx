@@ -643,7 +643,7 @@ describe("Declutter location ask", () => {
   });
 
   it("a heart on each Browse card (slice 4): over the photo, beside the card link (never inside it), and a tap watches the item", async () => {
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx |                   toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }), |                   toggle: () => undefined,
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | toggle: () => toggleWatch.mutate({ id: item.id, on: !watching.data?.has(item.id) }), | toggle: () => undefined,
     // @mutate src/components/declutter/DeclutterItemCard.tsx |   if (!save) { |   if (true) {
     live.items = [{
       id: "i1", seller_id: "u2", status: "live", title: "Oak Rocking Chair", category: "furniture", condition_stars: 4,

@@ -74,7 +74,9 @@ const gutterAt = (el: Element, w: number) => {
 
 /** Each visible word's width (px) at 13px Montserrat 700, -0.01em, measured 2026-11-19 in headless Chrome with
  *  public/fonts/montserrat-normal-latin-core.woff2 (the bar's font; text-ds-13 and text-ds-14 are both 13px). */
-const WORD_PX: Record<string, number> = { Jobs: 30.9, Declutter: 63, Guides: 46.2, "Log in": 41.2, "Join free": 57.9 };
+const WORD_PX: Record<string, number> = { Jobs: 30.9, Declutter: 63, Guides: 46.2, "Log in": 41.2, "Join free": 57.9, "Join / Log in": 82.9 };
+// "Join / Log in" (owner 11-22, the phone's one auth button): 82.9 measured 2026-11-22 in headless Chrome at 320 (81.2 at
+// 375; the larger is used).
 const ICON_PX = 18; // the shared Button's [&_svg]:size-[18px]
 const LOGO_PX = 46.6; // the H emblem, h-10 (40px) at its 256x220 aspect
 const BUTTON_GAP = 8; // the shared Button's gap-2, unless the link says otherwise
@@ -103,7 +105,7 @@ function barWidth(nav: Element, w: number): number {
 const PHONE_WIDTHS = [320, 360, 374, 375, 390, 399, 400, 414, 430, 479, 480, 520, 600, 639];
 
 describe("the public top bar has the gift guides on a phone (owner 11-18, 11-19)", () => {
-  it("the landing: a short 'Guides' link, named Holiday gift guides, to /gift-guides, before Log in, at every phone width", () => {
+  it("the landing: a short 'Guides' link, named Holiday gift guides, to /gift-guides, before the auth links, at every phone width", () => {
     const { links, phone } = bar(true);
     expect(links.length).toBeGreaterThan(3);
     expect(phone.getAttribute("href")).toBe("/gift-guides");
@@ -117,6 +119,9 @@ describe("the public top bar has the gift guides on a phone (owner 11-18, 11-19)
     for (const w of PHONE_WIDTHS) expect(shown(phone, w), `landing ${w}`).toBe(true);
     const at = (el: Element) => links.indexOf(el as HTMLElement);
     expect(at(phone)).toBeLessThan(at(screen.getByRole("link", { name: "Log in" })));
+    // Owner 11-22: on a phone the auth link is the one "Join / Log in" button (phoneJoinOrLogIn1122.test.tsx); Guides
+    // stays before it.
+    expect(at(phone)).toBeLessThan(links.findIndex((a) => a.getAttribute("href") === "/signup"));
   });
 
   it("every other public page: 'Guides' shows at every phone width too, and the wide link only from md", () => {
@@ -162,9 +167,11 @@ describe("the public top bar has the gift guides on a phone (owner 11-18, 11-19)
       }
       r.unmount();
     }
-    // The resolver is not vacuous: at 320 the other pages' bar needs nearly all of it (315.8 of 320, measured 2026-11-19).
+    // The resolver is not vacuous: at 320 the other pages' bar needs nearly all of it (315.8 of 320 on 2026-11-19; 291.7
+    // since owner 11-22 took Log in off the phone bar and the button reads "Join / Log in": the room it freed stays as
+    // breathing room).
     const { r } = bar(false);
-    expect(barWidth(r.container.querySelector('nav[aria-label="Primary"]')!, 320)).toBeGreaterThan(300);
+    expect(barWidth(r.container.querySelector('nav[aria-label="Primary"]')!, 320)).toBeGreaterThan(285);
   });
 
   it("marks the page it is on", () => {

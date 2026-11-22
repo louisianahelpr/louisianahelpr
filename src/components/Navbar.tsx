@@ -57,8 +57,9 @@ const NAV_CURRENT_MARK = "aria-[current=page]:text-[hsl(var(--bark))] aria-[curr
 
 const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = false }, ref) => {
   // F017: the landing no longer changes the bar's container (one on every public page, PUBLIC_CONTAINER). D021 (landing
-  // design audit 11-10): on a phone the landing's bar keeps only the logo, Log in and Join free; its hero already has
-  // the Jobs | Declutter switch, so the Jobs and Declutter links (and their divider) were a full bar of repeats there.
+  // design audit 11-10): on a phone the landing's bar keeps only the logo, Guides and the one auth button (owner 11-22,
+  // below); its hero already has the Jobs | Declutter switch, so the Jobs and Declutter links (and their divider) were
+  // a full bar of repeats there.
   const phoneHidden = landing ? " max-[639px]:hidden" : "";
   // Owner 11-19 ("make sure the guides can be easily viewed and accessed when signed in or out"): the short "Guides"
   // link shows at every phone width on EVERY public page, not only the landing. The other pages' phone bar also carries
@@ -166,7 +167,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
             local onClick wrapper. */}
 
         {/* ONE bar on every public page, the landing included (owner, 2026-10-21):
-            signed out it reads "Jobs · Declutter | Log in · Join free" at every width.
+            signed out it reads "Jobs · Declutter | Log in · Join free" (on a phone, since owner 11-22, one
+            "Join / Log in" button in place of the pair).
             "Jobs" is the public board (/browse), "Declutter" its guest Browse (owner
             11-04) and "Join free" is sign-up (/signup) on every page; "Get started"
             and "How it works" are gone. There is no hamburger (owner): the three
@@ -271,11 +273,17 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 tightens the link padding (below 375 also one text size down), so Jobs + Declutter fit beside the logo without squeezing it
                 (owner 11-04; measured at 320, 360 and 375). */}
             <span aria-hidden className={tight ? "hidden sm:block w-px h-5 mx-1" : `hidden min-[400px]:block w-px h-5 mx-1${phoneHidden}`} style={{ background: "hsl(var(--olivewood) / 0.18)" }} />
+            {/* Owner 11-22 (phone header): "When you tap join there is a toggle for log in so should we remove log in ...
+                and change the name of the button. Since the button does both things ... You can leave it how it is on
+                the desktop". Below md (the phone bar, where "Guides" stands in for "Holiday gift guides") there is no
+                separate Log in: the one button reads "Join / Log in" and opens the sign-up screen, whose "Already have
+                an account?" link is the Log in. From md up the bar keeps Log in and Join free. The room it frees stays
+                as breathing room. Guard: src/test/phoneJoinOrLogIn1122.test.tsx. */}
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className={tight ? "rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]" : "rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"}
+              className="hidden md:inline-flex rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
             >
               <Link
                 to="/login"
@@ -302,7 +310,10 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 onMouseEnter={() => prefetchRoute("/signup")}
                 onFocus={() => prefetchRoute("/signup")}
               >
-                {wordInLang("g.joinFree", "Join free")}
+                {/* One word set per width (display: none leaves the other out of the name): "Join / Log in" on a phone,
+                    "Join free" from md up. */}
+                <span className="md:hidden" data-nav-join="phone">{wordInLang("g.joinOrLogIn", "Join / Log in")}</span>
+                <span className="hidden md:inline" data-nav-join="wide">{wordInLang("g.joinFree", "Join free")}</span>
               </Link>
             </Button>
           </div>

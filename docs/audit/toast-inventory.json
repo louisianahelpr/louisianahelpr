@@ -1,14 +1,14 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1271,
-    "files": 369,
-    "rendering": 1193,
+    "calls": 1275,
+    "files": 370,
+    "rendering": 1197,
     "suppressedByPolicy": 78,
     "byKind": {
       "confirmConsequential": 33,
-      "errorToast": 12,
-      "successToast": 6,
+      "errorToast": 14,
+      "successToast": 8,
       "toast": 254,
       "toast.error": 853,
       "toast.loading": 1,
@@ -17,9 +17,9 @@
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 455,
-      "template": 100,
-      "dynamic": 771,
+      "literal": 457,
+      "template": 101,
+      "dynamic": 774,
       "jsx": 0
     }
   },
@@ -2589,11 +2589,39 @@
     },
     {
       "file": "src/components/admin/AdminWishLinks.tsx",
-      "line": 113,
+      "line": 197,
       "kind": "errorToast",
       "title": {
         "form": "literal",
         "text": "That change was not saved"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Try again in a moment.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminWishLinks.tsx",
+      "line": 217,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "Some shop details were not saved"
+      },
+      "description": {
+        "form": "template",
+        "text": "${run.unsaved} ${run.unsaved === 1 ? \"link\" : \"links\"} will be tried again next time."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminWishLinks.tsx",
+      "line": 221,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "Shop details were not read"
       },
       "description": {
         "form": "dynamic",
@@ -15088,7 +15116,7 @@
     },
     {
       "file": "src/pages/info/giftGuides/ManageList.tsx",
-      "line": 144,
+      "line": 175,
       "kind": "successToast",
       "title": {
         "form": "dynamic",
@@ -15098,7 +15126,7 @@
     },
     {
       "file": "src/pages/info/giftGuides/ManageList.tsx",
-      "line": 198,
+      "line": 230,
       "kind": "successToast",
       "title": {
         "form": "dynamic",
@@ -15108,11 +15136,31 @@
     },
     {
       "file": "src/pages/info/giftGuides/SaveForSomeone.tsx",
-      "line": 119,
+      "line": 123,
       "kind": "successToast",
       "title": {
         "form": "dynamic",
         "text": "WISH.savedFor(s.map(([, n]) => n).join(\", \"))"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/info/giftGuides/fun/GiftPlanner.tsx",
+      "line": 81,
+      "kind": "successToast",
+      "title": {
+        "form": "dynamic",
+        "text": "WISH.removedGift(idea.name)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/info/giftGuides/fun/GiftPlanner.tsx",
+      "line": 85,
+      "kind": "successToast",
+      "title": {
+        "form": "dynamic",
+        "text": "WISH.removedGift(p.name)"
       },
       "renders": true
     },

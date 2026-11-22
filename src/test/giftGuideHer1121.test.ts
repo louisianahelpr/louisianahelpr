@@ -14,7 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { HER_1121, her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
+import { HER_ROWS, her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
 import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
 import { PEOPLE_GUIDES, isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { blankComments } from "./helpers/blankNonCode";
@@ -44,13 +44,16 @@ const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", 
 // (Amazon B0H2G28G12, 10%) -> Cos Bar p-109002459, 20%, $45; L'OCCITANE Softening Almond Trio (Amazon B0HFXZ9F46, 10%) ->
 // Ulta p-109002206, 13%, $59.
 const SWITCHED_PINS = ["p-108732256", "p-108732809", "p-107903671", "p-109006074", "p-108985937", "p-109002459", "p-109002206"];
-const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
+// Launch day 11-22 (Desktop note Owner-adds-1122.md): the picks she sent as ShopMy links. Her CS-Pro pin at The Swank
+// Company (p-109140912) is on Camp Snap direct instead (her pin p-107929179; owner 11-22 chose the sale price + her code).
+const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-109143437", "p-109143698", "p-109144140", "p-109144450", "p-109145379", "p-109145823"];
+const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 46 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(46);
-    expect(page.length).toBe(46);
+  it("the page holds exactly her 55 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(55);
+    expect(page.length).toBe(55);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
   });
 
@@ -65,13 +68,13 @@ describe("For Her = the owner's saves (11-21)", () => {
       // No budget band either: the budget chips stay off this list.
       expect(p.band, p.name).toBeUndefined();
     }
-    const seen = new Map(HER_1121.map((r) => [r.href, r.sortPrice]));
+    const seen = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     const prices = page.map((p) => seen.get(p.href) as number);
     expect(prices).toEqual([...prices].sort((a, b) => a - b));
     expect(page[0].name).toMatch(/eye gel/i);
     expect(page[page.length - 1].name).toMatch(/currentbody/i);
     // The module sorts by itself: fed in reverse, it still lists cheapest first.
-    const again = her1121Picks([...HER_1121].reverse()).map((p) => seen.get(p.href) as number);
+    const again = her1121Picks([...HER_ROWS].reverse()).map((p) => seen.get(p.href) as number);
     expect(again).toEqual([...again].sort((a, b) => a - b));
   });
 
@@ -83,8 +86,8 @@ describe("For Her = the owner's saves (11-21)", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(27);
-    expect(shopmy.length).toBe(19);
-    const captured = new Map(HER_1121.map((r) => [r.href, r.sortPrice]));
+    expect(shopmy.length).toBe(28);
+    const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);

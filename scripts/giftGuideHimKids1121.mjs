@@ -25,6 +25,7 @@ import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 import { relsOf } from "./giftGuidePeople1120.mjs";
 import { cutoutPhoto } from "./giftGuideCutouts1120.mjs";
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
+import { ADDS_STORES_1122, HIM_ADDS_1122, KIDS_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 
 export const HIM_GUIDE = "him";
 export const KIDS_GUIDE = "kids";
@@ -406,16 +407,16 @@ const build = (rows, slug, g) =>
     // AMAZON PRICES ON (owner 2026-11-21 ~12:05 PM: "each item also needs a price"; she chose "Show Amazon prices
     // anyway" after the Associates warning): an Amazon pick shows the price captured from her saved list (sortPrice).
     const shown = isAmazon(r) ? r.sortPrice : price;
-    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: HIM_KIDS_PRICE_AT });
+    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: r.priceAt ?? HIM_KIDS_PRICE_AT });
     return { ...p, rels: g ? relsOf(g, p) : [] };
   });
 
 /** For Him, cheapest first, each pick tagged with the men's relationships it suits. */
-export function him1121Picks(rows = HIM_1121) {
+export function him1121Picks(rows = [...HIM_1121, ...HIM_ADDS_1122]) {
   return build(rows, HIM_GUIDE, PEOPLE_GUIDES.find((x) => x.slug === HIM_GUIDE));
 }
 /** For Kids, cheapest first. Kids has no relationship pages, so no tags. */
-export function kids1121Picks(rows = KIDS_1121) {
+export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122]) {
   return build(rows, KIDS_GUIDE, null);
 }
 
@@ -432,7 +433,7 @@ export function applyHimKids1121(pageList, storeList = null) {
     for (const p of picks) {
       if (isAmazon(p)) continue;
       const host = new URL(p.href).hostname;
-      storeList[p.store] ??= { name: HIM_KIDS_STORES[p.store] ?? p.store, hosts: [] };
+      storeList[p.store] ??= { name: HIM_KIDS_STORES[p.store] ?? ADDS_STORES_1122[p.store] ?? p.store, hosts: [] };
       if (!storeList[p.store].hosts.includes(host)) storeList[p.store].hosts = [...storeList[p.store].hosts, host].sort();
     }
   }

@@ -90,6 +90,8 @@ export interface CatalogPick {
   band?: 25 | 50 | 100 | 500;
   /** Ships later than usual (pre-order, 1120: 21 Collective). */
   preorder?: true;
+  /** Sold out until this day (YYYY-MM-DD, Louisiana; owner 11-22, Sleep Crown "back Dec 1"): a "Back Dec 1" chip shows before it. */
+  backOn?: string;
   /** The gift type from the import ("skincare", "can-cooler"): never shown; the gift finder reads it to keep its close
    *  matches right for the person (no skincare for Dad) and to show one of each brand's gift type (gg-live-1120). */
   type?: string;
@@ -264,7 +266,7 @@ const toPick = (p: ResearchedPick): CatalogPick => {
   const store = researchedStore(p);
   const badges = withShopLouisiana(badgesFor(p.brand, p), store);
   return { name: p.name, href: p.href, store, line: p.line, brand: p.brand, ...(p.image ? { image: p.image } : {}), ...(badges.length ? { badges } : {}), ...(p.section ? { section: p.section } : {}),
-    ...(p.sectionId ? { sectionId: p.sectionId } : {}), ...(p.band && store !== "amazon" ? { band: p.band } : {}), ...(p.preorder ? { preorder: p.preorder } : {}), ...(p.type ? { type: p.type } : {}), ...(p.code ? { code: p.code, ...(p.codeEnds ? { codeEnds: p.codeEnds } : {}) } : {}),
+    ...(p.sectionId ? { sectionId: p.sectionId } : {}), ...(p.band && store !== "amazon" ? { band: p.band } : {}), ...(p.preorder ? { preorder: p.preorder } : {}), ...(p.backOn ? { backOn: p.backOn } : {}), ...(p.type ? { type: p.type } : {}), ...(p.code ? { code: p.code, ...(p.codeEnds ? { codeEnds: p.codeEnds } : {}) } : {}),
     // Amazon prices too (owner 2026-11-21 ~12:05 PM, "each item also needs a price"; warned that Amazon allows prices
     // only from its PA-API feed and that showing them risks the Associates account, she chose "Show Amazon prices
     // anyway"). Only her saved-list picks carry one: scripts/giftGuidePrice.mjs still writes no Amazon price elsewhere.

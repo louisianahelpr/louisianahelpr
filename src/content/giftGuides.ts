@@ -414,6 +414,8 @@ export const giftGuides = {
   sectionNavLabel: "Jump to a section",
   /** A brand's discount code on its cards (1120: 21 Collective). */
   codeChip: (code: string) => `Code ${code}`,
+  /** A sold-out pick's restock day (owner 11-22: a short "back Dec 1" note on the row). */
+  backOnChip: (day: string) => `Back ${new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`,
   /** The budget filter inside every guide (owner-approved 11-19 9:05 PM). A pick with no checked price leaves a budget view. */
   budgetLabel: "Budget",
   budgetAll: "Any price",

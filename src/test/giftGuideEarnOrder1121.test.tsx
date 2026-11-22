@@ -115,7 +115,7 @@ const choose = (label: string) => {
 describe("Her's default order puts the clicked picks first in their own section", () => {
   it("Recommended (the default) leads each section with its ranked picks; low to high stays pure price", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
+    vi.setSystemTime(new Date("2026-11-22T18:00:00Z")); // the launch-day adds were priced 11-22
     await act(async () => { await loadGuidePicks("her"); });
     const { container } = renderAt("/gift-guides/her");
     openPriceSections(container);

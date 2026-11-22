@@ -226,7 +226,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-bdg{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:#eef2e6;color:#3f5a1c}
 .gg-last-note{display:inline-block;white-space:normal;max-width:none;margin:0 0 10px}
 .gg-bdg-sponsor{background:#f3dcd8;color:#8c3b3b}
-.gg-bdg-tiktok{background:#e9e4f5;color:#4b3a7a}.gg-bdg-preorder{background:#fbefd9;color:#7a5413}.gg-bdg-code{background:var(--gg-soft,#f4efe6);color:var(--gg-ink);letter-spacing:.04em}.gg-bdg-ship{background:#e6eef3;color:#2d4f63}
+.gg-bdg-tiktok{background:#e9e4f5;color:#4b3a7a}.gg-bdg-preorder{background:#fbefd9;color:#7a5413}.gg-bdg-code{background:var(--gg-soft,#f4efe6);color:var(--gg-ink);letter-spacing:.04em}.gg-bdg-ship{background:#e6eef3;color:#2d4f63}.gg-bdg-back{background:#f6e7e4;color:#7a3b2e}
 .gg-sort{margin:8px 0 12px;max-width:440px}
 .gg-secnav,.gg-budget{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}.gg-secnav{align-items:center}.gg-secnav-label{flex-basis:100%;font-size:13px;color:var(--gg-muted)}.gg-sec{scroll-margin-top:84px}
 /* Holiday audit A #6/#71: the section jump links were 24px bold text; now 44px chips like the budget chips. */

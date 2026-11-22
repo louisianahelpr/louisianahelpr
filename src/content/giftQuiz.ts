@@ -114,6 +114,8 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   squishy: ["stocking"], fidget: ["stocking"], toothbrush: ["stocking"], ornament: ["stocking", "build"], chair: ["cozy"], bag: ["stocking"],
   // The EADEM New Classics Set (owner 11-22: on Kids) is a teen self-care set.
   "skincare-set": ["cozy"],
+  // Backyard play gear she saved (11-22): outdoor sets for little ones.
+  "backyard-play": ["active", "pretend"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -166,6 +168,7 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   scooter: ["6-8", "9-12"], hoverboard: ["6-8", "9-12"], "game-console": ["9-12", "teen"], vr: ["9-12", "teen"], tablet: ["6-8", "9-12", "teen"], bag: ["6-8", "9-12", "teen"],
   // The EADEM New Classics Set (11-22) is skin care for a teen.
   "skincare-set": ["teen"],
+  "backyard-play": ["3-5"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],

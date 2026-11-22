@@ -13,7 +13,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { HIM_1121, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
+import { HIM_1121, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_PLAY_1122, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
 import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
@@ -78,6 +78,8 @@ const SAVES: Record<string, Record<string, string>> = {
     ...sm(["108632004", "108631991", "108631978"], "store-macys"),
     // Rate switch 11-21 night: the Jumbo Cardboard Blocks moved from Wayfair p-108632086 (11%) to Macy's p-109002741 (16%), $32.99.
     ...sm(["109002741"], "store-macys"),
+    // Owner 11-22 play saves (builder-guide-adds-kids).
+    ...sm(["109160969", "109160922", "109160891", "109160773"], "store-wayfair"),
   },
 };
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug] });
@@ -155,14 +157,14 @@ describe.each([
 
 describe("her ShopMy saves for Him and Kids (11-21)", () => {
   it("every kept save is on its page with the price checked 11-21, and its store has a shown name", () => {
-    for (const [slug, rows] of [["him", HIM_SHOPMY_1121], ["kids", KIDS_SHOPMY_1121]] as const) {
+    for (const [slug, rows] of [["him", HIM_SHOPMY_1121], ["kids", [...KIDS_SHOPMY_1121, ...KIDS_PLAY_1122]]] as const) {
       expect(new Set(rows.map((r) => r.href)), slug).toEqual(new Set(Object.keys(SAVES[slug])));
       const page = chunk(slug);
       for (const r of rows) {
         const p = page.find((x) => x.href === r.href);
         expect(p, r.name).toBeDefined();
         expect(p?.price, r.name).toBe(r.price);
-        expect(p?.priceAt, r.name).toBe(HIM_KIDS_PRICE_AT);
+        expect(p?.priceAt, r.name).toBe(slug === "kids" && KIDS_PLAY_1122.some((x) => x.href === r.href) ? "2026-11-22" : HIM_KIDS_PRICE_AT);
         expect(HIM_KIDS_STORES[r.store], r.store).toBeTruthy();
         expect(r.brand.toLowerCase(), r.name).not.toMatch(/vineyard vines|lilly pulitzer/);
       }

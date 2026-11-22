@@ -328,6 +328,10 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/uploads/pretty-prod-1758467247287", "yeti-crossroads-22l-alpine-brown-468ab3.webp"],
   // owner 11-22 kids tech: PlayStation 5 Digital Edition (target.com photo, on white)
   ["https://target.scene7.com/is/image/Target/GUEST_c12714d1-b136-41c9-9b43-5579ff0c08f8", "playstation-5-digital-edition-target-251c36.webp"],
+  ["https://assets.wfcdn.com/im/01322405/compr-r85/2562/256287082/Step2+Up+&+Down+Platinum+Edition+Kids+Outdoor+Roller+Coaster.jpg", "step2-up-down-roller-coaster-wayfair-a1.webp"],
+  ["https://assets.wfcdn.com/im/04010235/compr-r85/1549/154922896/Step2+Play+&+Shade+Pool+with+Umbrella.jpg", "step2-play-shade-pool-wayfair-a2.webp"],
+  ["https://assets.wfcdn.com/im/06003087/compr-r85/2642/26426235/Step2+Naturally+Playful+Kids+Rectangle+Picnic+Table+with+Umbrella.jpg", "step2-picnic-table-umbrella-wayfair-a3.webp"],
+  ["https://assets.wfcdn.com/im/91322669/compr-r85/3379/337962490/Step2+Play+and+Fold+Jr.+Slide+and+Outdoor+Climber+for+Toddlers.jpg", "step2-play-fold-jr-slide-wayfair-a4.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

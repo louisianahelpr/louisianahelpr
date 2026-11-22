@@ -4,7 +4,7 @@
  * switch (GuestSectionSwitch: the shared FilterChips), the current one pressed; Declutter only while it is open.
  *
  * @mutate src/pages/home/DashboardGuest.tsx |     <GuestSectionSwitch at="jobs" className="mb-2" />\n |
- * @mutate src/components/declutter/DeclutterGuestHome.tsx | tabs: <><GuestSectionSwitch at="declutter" className="pb-2" /><ScrollAwayRows> | tabs: <><ScrollAwayRows>
+ * @mutate src/components/declutter/DeclutterGuestHome.tsx | <div className="flex items-center justify-between gap-2 pb-2"><GuestSectionSwitch at="declutter" className="min-w-0" /> | <div className="flex items-center justify-between gap-2 pb-2">
  * @mutate src/components/sections/GuestSectionSwitch.tsx |   if (at !== "declutter" && !open?.has("declutter")) return null; |   if (open) return null;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -58,6 +58,6 @@ describe("a guest's first screen is labelled and reaches Declutter (M13)", () =>
 
   it("both guest screens draw it", () => {
     expect(blankComments(readFileSync("src/pages/home/DashboardGuest.tsx", "utf8"))).toContain('<GuestSectionSwitch at="jobs"');
-    expect(blankComments(readFileSync("src/components/declutter/DeclutterGuestHome.tsx", "utf8"))).toMatch(/<GuestSectionSwitch at="declutter"[^>]*\/><ScrollAwayRows>\{browse\.chips\}/);
+    expect(blankComments(readFileSync("src/components/declutter/DeclutterGuestHome.tsx", "utf8"))).toMatch(/<GuestSectionSwitch at="declutter"[^>]*\/>(?:\{guestSell\(true\)\}<\/div>)?<ScrollAwayRows>\{browse\.chips\}/);
   });
 });

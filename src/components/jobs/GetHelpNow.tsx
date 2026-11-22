@@ -19,6 +19,21 @@ export function OrderGetHelpNow({ order, problemOpen }: { order: { orderId: stri
   return <GetHelpButton subject={helpOrderSubject({ id: order.orderId, title: order.title })} />;
 }
 
+/**
+ * Deep audit 11-22 #39: "I felt unsafe" on a Declutter problem report gave no safety help. Picking it shows the 911
+ * line (a phone link, as the SOS sheet's) and the same Get help now, before the general report box.
+ */
+export function SafetyHelp({ orderId }: { orderId: string }) {
+  return (
+    <div role="note" data-problem-safety="" className="space-y-2 rounded-xl border border-border bg-muted/40 p-3">
+      <p className="text-sm font-semibold text-foreground">
+        If you're in danger right now, <a href="tel:911" className="underline underline-offset-2" data-problem-call-911="">call 911</a>.
+      </p>
+      <GetHelpButton subject={helpOrderSubject({ id: orderId })} />
+    </div>
+  );
+}
+
 function GetHelpButton({ subject }: { subject: string }) {
   const navigate = useNavigate();
   const go = () => navigate(`/support?topic=message&subject=${encodeURIComponent(subject)}`);

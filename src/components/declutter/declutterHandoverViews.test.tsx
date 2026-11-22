@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && !problem && buyerOnWayToday(booking) && ( |           {!problem && buyerOnWayToday(booking) && (
  * @mutate src/lib/declutter/pickupDay.ts |   return !!booking?.buyer_on_way_at && ymd(new Date(booking.buyer_on_way_at)) === ymd(now); |   return !!booking?.buyer_on_way_at;
  * @mutate src/components/declutter/DeclutterNoShowAnswer.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} askGot={askGot ? askFor?.n ?? 0 : 0} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips side={order.side} />} |
@@ -2215,14 +2215,20 @@ describe("audit 11-10: the buyer's Report a problem form", () => {
   });
 });
 
-// Audit 11-10 F407: on a wide screen the order cards ran ~1,590px wide; the list is capped at a reading width.
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |     <section className="max-w-3xl space-y-3" aria-label={label ?? t("dho.paidSales")} data-paid-orders-reserve | <section className="space-y-3" aria-label={label ?? t("dho.paidSales")} data-paid-orders-reserve
-describe("F407: the paid orders list has a reading width", () => {
-  it("caps the list at max-w-3xl (768px)", async () => {
+// Audit 11-10 F407: on a wide screen the order cards ran ~1,590px wide. Deep audit 11-22 #46: the 768px cap that fixed it
+// left a ~376px dead band beside full-width blocks at 1440. The section runs the tab's width, and the cards keep a
+// reading width by sitting two to a row from lg (never one 1,144px card).
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | export const PAID_GRID = "grid gap-3 lg:grid-cols-2 lg:items-start"; | export const PAID_GRID = "grid gap-3";
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |     <section className="space-y-3 min-h-[calc(var(--paid-rows) |     <section className="max-w-3xl space-y-3 min-h-[calc(var(--paid-rows)
+describe("F407 / #46: the paid orders list is the tab's width, its cards a reading width", () => {
+  it("no 768px cap on the section; the cards sit two to a row from lg", async () => {
     state.bookings = [];
     show([line()]);
     const list = await screen.findByRole("region", { name: "Paid sales" });
-    expect(list.className.split(/\s+/)).toContain("max-w-3xl");
+    expect(list.className).not.toMatch(/\bmax-w-/);
+    const grid = list.querySelector("[data-paid-orders-grid]") as HTMLElement;
+    await waitFor(() => expect(grid.querySelector("article")).not.toBeNull());
+    expect(grid.className.split(/\s+/)).toEqual(expect.arrayContaining(["grid", "lg:grid-cols-2"]));
   });
 });
 
@@ -2270,5 +2276,69 @@ describe("Low 6: the paid-order card in Spanish", () => {
       expect(esDeclSell[k], k).not.toBe(enDeclSell[k]);
       expect(holes(esDeclSell[k]), k).toBe(holes(enDeclSell[k]));
     }
+  });
+});
+
+/**
+ * Deep audit 11-22 #49 (owner rule: a listing never shows twice; lead 11-22 Option A): a sold item is no longer also a
+ * Your listings row, so every state that row used to say lives on its SALE CARD, and each is pinned here (moved from
+ * sellingDash.test.tsx's SE-4, SE-5, #60 and D2-2 row checks):
+ *  - SE-5: what it sold for (the paid line), never the list price;
+ *  - SE-4: a free item is "Claimed", never "Sold";
+ *  - #60: where the payout stands (paid on a day, waiting, none on a free claim);
+ *  - D2-2: the money is held while a problem is open.
+ * @mutate src/components/declutter/OrderCardHead.tsx | {trade ? t("dsl.trade") : itemPriceLabel(items)} | {trade ? t("dsl.trade") : ""}
+ * @mutate src/components/declutter/DeclutterPorchHandover.tsx |           ? <>{strongAmount(t("dsl.heldWhile", { amount: formatPrice(sellerCents) }), formatPrice(sellerCents))}</> |           ? null
+ */
+describe("#49: a sold item's states are on its sale card", () => {
+  const PAID_AT = "2026-10-29T15:00:00Z";
+  const card = async () => {
+    await waitFor(() => expect(document.querySelector("article")).not.toBeNull());
+    await new Promise((r) => setTimeout(r, 60));
+    return document.querySelector("article") as HTMLElement;
+  };
+  beforeEach(() => {
+    state.calls = [];
+    state.payouts = [];
+    state.handover = null;
+    state.problems = [];
+    state.bookings = [];
+    state.refundRequest = null;
+  });
+  afterEach(cleanup);
+
+  it("SE-5: the card shows what it sold for, never the list price", async () => {
+    show([line({ my_side: "seller", price_cents: 3200, total_cents: 3470 })]);
+    const head = (await card()).querySelector("[data-order-head]") as HTMLElement;
+    await waitFor(() => expect(head.textContent).toContain("$32"));
+    expect((await card()).textContent).not.toContain("$40");
+  });
+
+  it("SE-4: a free item's card says Claimed, never Sold; a paid one says Paid", async () => {
+    const r = show([line({ my_side: "seller", price_cents: 0, premium_cents: 0, total_cents: 0, handover: "porch" })]);
+    await waitFor(async () => expect((await card()).textContent).toMatch(/Claimed\. Waiting on Dana to pick a pickup time\./));
+    expect((await card()).textContent).not.toMatch(/\bSold\b|You get|paid on/);
+    r.unmount();
+    show([line({ my_side: "seller", price_cents: 3200 })]);
+    await waitFor(async () => expect((await card()).textContent).toMatch(/Paid\. Waiting on Dana to book a pickup time\./));
+  });
+
+  it("#60: the card says where the payout stands: paid on its day, or what it waits for", async () => {
+    state.handover = { confirmed_at: "2026-10-28T15:00:00Z" };
+    state.payouts = [{ order_id: "o1", items_cents: 3200, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, amount_cents: 3200, status: "succeeded", executed_at: PAID_AT }];
+    const r = show([line({ my_side: "seller", price_cents: 3200, order_status: "handed_over" })]);
+    const day = new Date(PAID_AT).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" });
+    await waitFor(async () => expect((await card()).textContent).toContain(`You get $32, paid on ${day}.`));
+    r.unmount();
+    state.payouts = [{ order_id: "o1", items_cents: 7500, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, amount_cents: 7500, status: "pending", executed_at: null }];
+    show([line({ my_side: "seller", price_cents: 7500, order_status: "handed_over" })]);
+    await waitFor(async () => expect((await card()).textContent).toMatch(/You get \$75 once your payout account is ready\./));
+  });
+
+  it("D2-2: with a problem open the card says the money is held", async () => {
+    state.problems = [{ id: "p1", order_id: "o1", reporter_side: "buyer", reason: "damaged" }];
+    show([line({ my_side: "seller", price_cents: 2000 })]);
+    await waitFor(async () => expect((await card()).textContent).toContain("Your $20 is held while Louisiana Helpr looks at the problem."));
+    expect((await card()).textContent).not.toMatch(/You get \$20 after the handover/);
   });
 });

@@ -16,7 +16,7 @@
  * @mutate src/components/ReportDialog.tsx | const REPORT_FOOTER_PINNED = "sticky bottom-0 -mx-4 -mb-4 px-4 pb-4 pt-3 bg-background border-t border-border"; | const REPORT_FOOTER_PINNED = "sticky bottom-0 -mx-4 -mb-4 px-4 pb-4 pt-3 bg-card";
  * @mutate src/components/ui/RadioCardList.tsx |             {o.media}\n |
  * @mutate src/components/declutter/DeclutterOfferTrade.tsx | media: <ListingThumb small path={cover.get(c.id)} category={c.category} /> | media: null
- * @mutate src/components/declutter/DeclutterOfferTrade.tsx | <SheetFooter className="sticky bottom-0 -mx-4 -mb-4 grid grid-cols-2 | <SheetFooter className="mt-4 -mx-4 -mb-4
+ * @mutate src/components/declutter/DeclutterOfferTrade.tsx | <SheetFooter className="sticky bottom-0 -mx-4 -mb-4 border-t | <SheetFooter className="mt-4 -mx-4 -mb-4 border-t
  * @mutate supabase/functions/_shared/email-templates/components.tsx | arcsize="50%" | arcsize="26%"
  * @mutate supabase/functions/_shared/email-templates/components.tsx |         borderRadius: '999px', |         borderRadius: '12px',
  * @mutate supabase/functions/_shared/email-templates/styles.ts | export const linkStyle = {\n  color: brand.bark, | export const linkStyle = {\n  color: brand.burntSienna,
@@ -84,7 +84,9 @@ describe("design audit round 3 fixes", () => {
     expect(code("src/components/ui/RadioCardList.tsx")).toMatch(/\{o\.media\}\s*<span className="flex-1 min-w-0/);
     const trade = code("src/components/declutter/DeclutterOfferTrade.tsx");
     expect(trade).toMatch(/media: <ListingThumb small path=\{cover\.get\(c\.id\)\}/);
-    expect(trade).toMatch(/<SheetFooter className="sticky bottom-0 [^"]*\bgrid grid-cols-2\b[^"]*"/);
+    // Side by side through the shared footer row (deep audit 11-22 #41: no fixed grid halves; a long label wraps).
+    expect(trade).toMatch(/<SheetFooter className="sticky bottom-0 [^"]*"/);
+    expect(trade).not.toMatch(/<SheetFooter className="[^"]*\bgrid\b/);
     expect(code("src/components/declutter/ListingThumb.tsx")).toMatch(/small \? "h-11 w-11 rounded-lg"/);
   });
 

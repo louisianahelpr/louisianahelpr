@@ -13,7 +13,7 @@
  * @mutate src/components/declutter/SellTradesRow.tsx |   if (form.free) return null; |
  * @mutate src/lib/declutter/tradesPrompt.ts |   if (row?.trades_prompt_answered_at) return false; |
  * @mutate src/components/declutter/useSellerDefaultsPrefill.ts |     setTradesWanted?.(row?.acceptsTrades === true); |     setTradesWanted?.(true);
- * @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === null && <DeclutterTradesPrompt userId={userId} />}\n |
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |           <DeclutterTradesPrompt userId={userId} />\n |
  * @mutate src/components/declutter/SellSummaryCard.tsx |         <SellTradesRow s={s} />\n |
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -148,6 +148,6 @@ describe("Declutter trades prompt (owner 11-08)", () => {
     expect(card.indexOf("<SellTradesRow s={s} />")).toBeGreaterThan(card.indexOf('title="Condition"'));
     expect(src("src/components/declutter/useSellerDefaultsPrefill.ts")).toMatch(/setTradesWanted\?\.\(row\?\.acceptsTrades === true\)/);
     expect(src("src/components/declutter/useSellerDefaultsPrefill.ts")).toMatch(/acceptsTrades: tradesWanted/);
-    expect(src("src/components/declutter/DeclutterMineViews.tsx")).toMatch(/only === null && <DeclutterTradesPrompt userId=\{userId\} \/>/);
+    expect(src("src/components/declutter/DeclutterMineViews.tsx")).toMatch(/\{only === null && \(\s*<section [^>]*data-selling-tools=""[^]*?<DeclutterTradesPrompt userId=\{userId\} \/>/); // #49: in the Tools group
   });
 });

@@ -11,9 +11,9 @@
  * @mutate src/components/job-card/MineJobFace.tsx | <div className="order-1 min-w-0 md:order-none md:flex-1" data-mine-face-col=""> | <div className="order-1 min-w-0 md:order-none md:flex-1">
  * @mutate src/components/ui/Notice.tsx | "border-[hsl(var(--burnt-sienna)/0.3)] bg-[hsl(var(--burnt-sienna)/0.06)] text-foreground" | "border-amber-300 bg-amber-50 text-amber-950"
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx | <Notice tone="warn" icon={AlertTriangle} title={t("dpo.promptTitle" | <Notice tone="warn" title={t("dpo.promptTitle"
- * @mutate src/components/declutter/DeclutterHomeView.tsx | <StrikeCount userId={user.id} full={view === "selling"} /> | <StrikeCount userId={user.id} />
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | <StrikeCount userId={user.id} full={view === "selling"} pausedOnly= | <StrikeCount userId={user.id} pausedOnly=
  * @mutate src/pages/jobs/JobsSection.tsx | const fab = desktop \|\| tab === "working" ? null | const fab = desktop ? null
- * @mutate src/components/declutter/SellOneScreen.tsx | <div className="w-full max-w-xl space-y-6" data-sell-one-screen=""> | <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
+ * @mutate src/components/declutter/SellOneScreen.tsx | hidesTitle={!form.free} narrow> | hidesTitle={!form.free}>
  * @mutate src/components/declutter/SellMeetupSpots.tsx | <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setDraft({ name: "" | <Button type="button" variant="outline" className="rounded-full" onClick={() => setDraft({ name: ""
  * @mutate src/components/profile/ProfileEditForm.tsx | <p data-skill-group-head="" className="text-ds-13 font-medium text-muted-foreground"> | <p data-skill-group-head="" className="text-ds-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
  * @mutate src/pages/home/HomeDashboard.tsx | <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">{t("home.yourSections")}</h2> | <h2 className="text-ds-15 font-semibold text-foreground">{t("home.yourSections")}</h2>
@@ -93,8 +93,9 @@ describe("design audit 11-17", () => {
 
   it("#2: the full strikes card is on Selling only (one line elsewhere)", () => {
     const h = src("src/components/declutter/DeclutterHomeView.tsx");
-    expect(h).toContain('<StrikeCount userId={user.id} full={view === "selling"} />');
-    expect(h).toContain("top={<StrikeCount userId={user.id} full={false} />}");
+    // Deep audit 11-22 #40: off Buying and Selling it shows only at 3 strikes (pausedOnly; src/test/declutterStrikeWhy.test.tsx).
+    expect(h).toContain('<StrikeCount userId={user.id} full={view === "selling"} pausedOnly={view !== "selling" && view !== "buying"} />');
+    expect(h).toContain("top={<StrikeCount userId={user.id} full={false} pausedOnly />}");
     expect((h.match(/<StrikeCount /g) ?? []).length).toBe(2);
   });
 
@@ -109,11 +110,13 @@ describe("design audit 11-17", () => {
     expect(src("src/pages/jobs/JobsSection.tsx")).toContain('const fab = desktop || tab === "working" ? null : <SectionCreateFab section="jobs"');
   });
 
-  it("#7: the Sell column lines up with its left-aligned title (no mx-auto)", () => {
+  // Deep audit 11-22 #47: the left-aligned 576px column left a 568px empty band at 1440. The title and the column are
+  // now ONE centered column (AppPage `narrow`), so the column still lines up with its title (#7) and fills no one side.
+  it("#7 / #47: the Sell column lines up with its title, both one centered column (AppPage narrow)", () => {
     for (const f of ["src/components/declutter/SellOneScreen.tsx", "src/components/declutter/DeclutterSellView.tsx", "src/components/declutter/DeclutterSellChooser.tsx"]) {
       const s = src(f);
-      expect(s, f).toMatch(/<div className="w-full max-w-xl space-y-\d/);
-      expect(s, f).not.toContain("mx-auto w-full max-w-xl");
+      expect(s, f).toMatch(/<AppPage [^>]*\bnarrow>/);
+      expect(s, f).not.toMatch(/max-w-xl/);
     }
   });
 

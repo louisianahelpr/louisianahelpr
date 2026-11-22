@@ -18,6 +18,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -262,7 +263,12 @@ export function isItemId(id: string | undefined): id is string {
  * know before loading anything that no item will arrive, so a skeleton of
  * photos would be a promise the page then breaks.
  */
-export function DeclutterItemUnavailable({ detail, more, top, notFound }: { detail?: string; more?: ReactNode; top?: ReactNode; notFound?: boolean }) {
+/**
+ * `onRetry` (deep audit 11-22 #19): the item did not load (a server hiccup, no signal), which is not the same as gone.
+ * A buyer from a Facebook link was told "No longer available" during a short outage. A failed load says "We couldn't
+ * load this item." with Try again (the shared ErrorState); "No longer available" is kept for an item really gone.
+ */
+export function DeclutterItemUnavailable({ detail, more, top, notFound, onRetry }: { detail?: string; more?: ReactNode; top?: ReactNode; notFound?: boolean; onRetry?: () => void }) {
   // Q2565 (Auditor 1, audit 1102a): a sold or taken-down item opened from a share, a notice or a saved link was a
   // dead end (a notice and an empty screen). It now offers the way on, and the page is titled for where it is.
   // Audit 11-10 F316: a link whose id is not an item id at all (/declutter/item/abc) is a broken link, not a sale:
@@ -274,10 +280,14 @@ export function DeclutterItemUnavailable({ detail, more, top, notFound }: { deta
       {/* F061 (lead rule 11-09): a sold item's greyed card (the item page passes SoldItemCard); nothing else of a
           listing that was pulled or removed. */}
       {top}
-      <DeclutterNotice tone="warn" title={notFound ? "We couldn't find that item." : "No longer available."}>
-        {notFound ? "The link may be broken." : detail ?? "It sold or is no longer on Declutter."}
-      </DeclutterNotice>
-      <Button asChild variant="primary" className="mt-4 w-full sm:w-auto" data-item-unavailable-onward="">
+      {onRetry ? (
+        <ErrorState variant="inline" title="We couldn't load this item." body="Something went wrong on our end. It may still be for sale, so try again in a moment." onRetry={onRetry} />
+      ) : (
+        <DeclutterNotice tone="warn" title={notFound ? "We couldn't find that item." : "No longer available."}>
+          {notFound ? "The link may be broken." : detail ?? "It sold or is no longer on Declutter."}
+        </DeclutterNotice>
+      )}
+      <Button asChild variant={onRetry ? "outline" : "primary"} className="mt-4 w-full sm:w-auto" data-item-unavailable-onward="">
         <Link to="/declutter">See more on Declutter</Link>
       </Button>
       {/* F061 (UI audit 11-09): something to look at instead of a blank page (the item page passes the newest row). */}

@@ -33,9 +33,12 @@ const NOT_WHILE_AWAY = new Set(["savers", "drops", "relist"]);
  * The to-do rows, in the order a seller should do them; a row with nothing to do is left out, and while away the
  * listing nudges are too. `handOver` is useSalesToHandOver's count (null while it loads: the cart's own count).
  */
-export function sellingTodoRows(todo: Pick<DeclutterTodo, "sellerOffers" | "salesOpen"> | null, home: Pick<Home, "todo"> | null, away = false, handOver: number | null = null): TodoRow[] {
+export function sellingTodoRows(todo: Pick<DeclutterTodo, "sellerOffers" | "salesOpen"> | null, home: Pick<Home, "todo"> | null, away = false, handOver: number | null = null, reports = 0): TodoRow[] {
   const rows: TodoRow[] = [
     { key: "handover", n: handOver ?? todo?.salesOpen ?? 0, one: "dt5.home.handover1", many: "dt5.home.handoverN", group: "sold" },
+    // Deep audit 11-22 #50: problem reports and refund requests waiting on the seller (useSellerReportsToAnswer, the
+    // same set "To answer" lists) were left out of the to-do.
+    { key: "reports", n: reports, one: "dt5.home.reports1", many: "dt5.home.reportsN", group: "offers" },
     { key: "offers", n: todo?.sellerOffers ?? 0, one: "dt5.home.offers1", many: "dt5.home.offersN", group: "offers" },
     { key: "savers", n: home?.todo.savers_to_offer ?? 0, one: "dt5.home.savers1", many: "dt5.home.saversN", group: "listings" },
     { key: "drops", n: home?.todo.price_drops ?? 0, one: "dt5.home.drops1", many: "dt5.home.dropsN", group: "listings" },
@@ -80,20 +83,20 @@ export function useSellingTopSettled(userId: string, on: boolean): boolean {
 }
 
 /** The to-do card at the top of Selling. Bones of a heading and two rows while its read is on the way. */
-export function SellingTodo({ todo, handOver, onPick, userId }: { todo: DeclutterTodo | null; handOver: number | null; onPick: (g: Group) => void; userId: string }) {
+export function SellingTodo({ todo, handOver, reports = 0, onPick, userId }: { todo: DeclutterTodo | null; handOver: number | null; reports?: number; onPick: (g: Group) => void; userId: string }) {
   const home = useQuery(homeQuery);
   // The same read and key as the away card, so this adds no request.
   const away = useQuery(awayQuery(userId));
   // VERIFY 11-20: never the rows before the away state is known (they would drop while the seller is away).
-  if (home.isPending || away.isPending) return <div className="h-[164px] max-w-3xl animate-pulse rounded-[20px] bg-muted/60" data-selling-home-bones="" aria-hidden />;
+  if (home.isPending || away.isPending) return <div className="h-[164px] animate-pulse rounded-[20px] bg-muted/60" data-selling-home-bones="" aria-hidden />;
   const h = home.data;
   if (!h || !anyActivity(h)) return null;
-  const rows = sellingTodoRows(todo, h, !!away.data, handOver);
+  const rows = sellingTodoRows(todo, h, !!away.data, handOver, reports);
   return (
     // The rows run the card's full width (flush), so their 16px padding lines the text up under "To do" (11-20 #1:
     // they sat 16px in from it, inside the card's own padding).
-    // VERIFY 11-20 (low): max-w-3xl, the paid sales' reading column, so at 1440 the card is as wide as the lists below.
-    <section className="max-w-3xl overflow-hidden rounded-[20px] border border-border bg-card pt-4" aria-label={t("dt5.home.todo")} data-selling-home="">
+    // VERIFY 11-20 (low) / deep audit 11-22 #46: as wide as the lists below it (the tab's one width at 1440).
+    <section className="w-full overflow-hidden rounded-[20px] border border-border bg-card pt-4" aria-label={t("dt5.home.todo")} data-selling-home="">
       <div className="px-4"><SectionHeading title={t("dt5.home.todo")} /></div>
       {rows.length === 0 ? (
         <p className="px-4 pb-4 pt-1 text-ds-13 text-muted-foreground" data-selling-home-done="">{t("dt5.home.allDone")}</p>

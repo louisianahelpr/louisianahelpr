@@ -78,7 +78,7 @@ import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { DeclutterHomeSkeleton, DeclutterTabBones, ListingsSkeleton, TabSkeleton } from "./DeclutterSkeletons";
 import { ListingThumb } from "./ListingThumb";
-import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
+import { isListingsRow, myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
 import { useOpenProblems } from "./useOpenProblems";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { t, useLanguage } from "@/lib/i18n/language";
@@ -218,8 +218,8 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
     return <ErrorState variant="inline" title={t("decl.sl.loadFail")} body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   }
   if (mine.isLoading) return <ListingsSkeleton />;
-  const all = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status));
   const searching = search.trim().length > 0;
+  const all = (mine.data ?? []).filter((i) => isListingsRow(i, searching));
   const list = searching ? all.filter((i) => matchesListingSearch(i, search)) : all;
   if (all.length === 0) {
     // Area 06 M15 (11-18): a seller with past listings (taken down, sold, ended) is not new here; "You haven't listed
@@ -259,6 +259,9 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   return (
     <section className="space-y-3" aria-label={t("decl.sl.yours")}>
       <BulkHeading title={t("decl.sl.yours")} items={list} bulk={bulk} />
+      {/* Deep audit 11-22 #53: what the search found, right under the search box (the rest of the tab steps aside). */}
+      {searching && <p role="status" className="text-ds-13 text-muted-foreground" data-selling-search-count="">
+        {t(list.length === 1 ? "decl.sl.matchOne" : "decl.sl.matchMany", { n: list.length, q: search.trim() })}</p>}
       {!searching && list.filter((i) => i.status === "draft").length > 1 && (
         <p className="text-ds-13"><Link className="underline" to="/declutter/sell?mode=bunch" data-list-all-drafts="">{t("decl.sl.allDrafts")}</Link></p>
       )}
@@ -387,24 +390,30 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
  */
 // Board 80: opens once after a publish (router state from DeclutterSellView).
 function SellingView({ userId, haulOn, movingOutOn, todo, search, onClearSearch }: { userId: string; haulOn: boolean; movingOutOn: boolean; todo: DeclutterTodo | null; search: string; onClearSearch: () => void }) {
+  const searching = search.trim().length > 0;
   return (
     // Q2562: a flex gap, not space-y-6 (space-y gave the child after the display:none Sell row a 24px margin).
     <div className="flex flex-col gap-6">
       {/* Owner 2026-11-04: the seller's page link (every listing shows there), with Copy and Share. Owner request
           11-05 ("mine is kind of hidden"): it leads the tab. F127 (UI audit 11-09, lead 11-09): one slim line
           ("Your page · Copy · Share"), not a third full card; Home and You keep the card. */}
-      <YourPageLink slim />
-      <ListedWhatNext />
-      <ListedForYouCard />
-      <ManagerWaitingForOkGate userId={userId} />
-      <ManagerPanelGate only="status" />
-      <TabletSellRow />
+      {/* Deep audit 11-22 #53: while the seller searches their listings, only the matches show. */}
+      {!searching && <>
+        <YourPageLink slim />
+        <ListedWhatNext />
+        <ListedForYouCard />
+        <ManagerWaitingForOkGate userId={userId} />
+        <ManagerPanelGate only="status" />
+        <TabletSellRow />
+      </>}
       <Suspense fallback={<DeclutterTabBones />}><SellingDash
         todo={todo}
         userId={userId}
+        searching={searching}
         listings={
           <div className="space-y-6">
             <MyListingsView userId={userId} haulOn={haulOn} search={search} onClearSearch={onClearSearch} />
+            {!searching && <>
             {/* Owner 2026-10-30: "More ways to sell" is ONE row that opens "What do you want to sell?" (the chooser holds
                 every way: a bunch, a moving out sale, free, a Helpr lists it, a Wanted), never a second list of them. */}
             <section aria-label={t("decl.hv.moreWays")} data-sell-more="">
@@ -412,6 +421,7 @@ function SellingView({ userId, haulOn, movingOutOn, todo, search, onClearSearch 
                 <SellChooserEntry movingOutOn={movingOutOn} />
               </div>
             </section>
+            </>}
           </div>
         }
         settings={<>
@@ -569,7 +579,7 @@ function DeclutterMemberHome() {
   const ownMainButton = view === "wanted" || view === "deliver" || view === "buying";
   const fab = desktop || ownMainButton ? undefined : <SectionCreateFab section="declutter" text={t("decl.hv.sell")} />;
   // Browse draws its own section screen, so its header can carry its search, filters, chips, map toggle and count.
-  if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} full={false} />} fab={fab} /></Suspense>;
+  if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} full={false} pausedOnly />} fab={fab} /></Suspense>;
   // Owner 11-13: Selling's bar is a field over the seller's own listings (desktop: the same field before the gear).
   const sellingBar = view === "selling"
     ? <SectionSearchBar noun="your listings" home="/declutter" value={sellingQ} onChange={setSellingQ} />
@@ -584,7 +594,7 @@ function DeclutterMemberHome() {
     <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}>
       {/* Q2562 (lead 11-02): pt-3 = Browse's first line, 12px into its 44px Miles-from row; guard declutterTabs.test.tsx. */}
       <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-3">
-      <StrikeCount userId={user.id} full={view === "selling"} />
+      <StrikeCount userId={user.id} full={view === "selling"} pausedOnly={view !== "selling" && view !== "buying"} />
       {(view === "buying" || view === "selling") && <OrdersUpdating />}
       <Suspense fallback={<TabSkeleton />}>
       {view === "buying" ? <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></>

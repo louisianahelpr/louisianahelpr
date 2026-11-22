@@ -28,6 +28,13 @@ export default {
     "./src/lib/browseShellCards.mjs",
     "!./src/test/edge/**",
     "!./src/test/fixtures/vacuitySelfTest-*/**",
+    // Deep audit 11-22 #10: test files are not app markup, and Tailwind reads their regexes and strings as classes.
+    // audit1110FooterTapAndReportOrder.test.tsx's regex `lg:\[@media\(pointer:fine\)\]:min-h-8` became the class
+    // `[@media\(pointer:fine\)\]:min-h-8`, emitted as `@media(pointer :fine\)undefined{...}`: a broken at-rule, after
+    // which a browser drops every later rule. In the inlined first-screen block that took the guest /declutter
+    // skeleton's header room with it, so the page jumped 60px when the app took over (CLS 0.156). Guard:
+    // src/test/tailwindEmitsWellFormedAtRules.test.ts.
+    "!./src/**/*.test.{ts,tsx}",
   ],
   prefix: "",
   // Key `dark:` utilities off the `[data-theme="dark"]` attribute that

@@ -1689,6 +1689,20 @@ export async function fetchMyCard(userId: string): Promise<{ brand: string | nul
   return (row ?? null) as { brand: string | null; last4: string | null } | null;
 }
 
+/** Deep audit 11-22 #40: why each active strike was given and when it goes away (read only when "Why?" is tapped). */
+export async function fetchMyActiveStrikeReasons(userId: string): Promise<{ reason: string; expires_at: string }[]> {
+  const rows = unwrap(
+    await supabase
+      .from("declutter_strikes")
+      .select("reason, expires_at")
+      .eq("user_id", userId)
+      .is("removed_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("given_at", { ascending: true }),
+  );
+  return (rows ?? []) as { reason: string; expires_at: string }[];
+}
+
 /** Active Declutter strikes (rows 7, 16, 17): not removed, not expired. */
 export async function fetchMyActiveStrikes(userId: string): Promise<number> {
   const rows = unwrap(

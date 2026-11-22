@@ -70,12 +70,25 @@ describe("CheckoutPickupTime", () => {
   // A3-54 (audit 11-01): with no time open the picker no longer vanishes; the buyer is told they book after paying,
   // within the 7 days, or the order is cancelled and refunded (Pay stays open: pickupTimeReady above).
   // @mutate src/components/declutter/CheckoutPickupTime.tsx |   if (days.length === 0) { |   if (days.length === 0) { return null;
+  // Deep audit 11-22 #38: porch said "no open pickup times" while the door option right below listed times. Each way's
+  // empty line names its own way, and no two ways share one, so none reads as "the seller has no times at all".
+  // @mutate src/components/declutter/CheckoutPickupTime.tsx | {meetup ? t("dbuy.time.noneMeet") : porch ? t("dbuy.time.nonePorch") : t("dbuy.time.nonePickup")} | {meetup ? t("dbuy.time.noneMeet") : t("dbuy.time.nonePickup")}
   it("says what happens when the seller has no time open (the buyer books after paying, within 7 days)", () => {
-    const { container } = render(<CheckoutPickupTime days={[]} porch value={null} onPick={() => {}} />);
-    expect(container.querySelector("[data-checkout-no-times]")?.textContent).toBe(
-      "The seller has no open pickup times this week. After you pay, you have 7 days to book one with them, or the order is cancelled and refunded.");
-    const meet = render(<CheckoutPickupTime days={[]} porch={false} meetup value={null} onPick={() => {}} />);
-    expect(meet.container.textContent).toMatch(/no open meeting times/);
+    const ways = [
+      { name: "porch", props: { porch: true }, says: /hasn.t set porch pickup times/ },
+      { name: "door", props: { porch: false }, says: /no open pickup times at their door/ },
+      { name: "meetup", props: { porch: false, meetup: true }, says: /no open meeting times/ },
+    ] as const;
+    const lines = ways.map((w) => {
+      const r = render(<CheckoutPickupTime days={[]} value={null} onPick={() => {}} {...w.props} />);
+      const text = r.container.querySelector("[data-checkout-no-times]")?.textContent ?? "";
+      r.unmount();
+      expect(text, w.name).toMatch(w.says);
+      expect(text, w.name).toMatch(/After you pay, you have 7 days to book one with them, or the order is cancelled and refunded\.$/);
+      return text;
+    });
+    expect(new Set(lines).size).toBe(ways.length);
+    expect(lines[0]).toBe("The seller hasn't set porch pickup times this week. After you pay, you have 7 days to book one with them, or the order is cancelled and refunded.");
   });
 });
 

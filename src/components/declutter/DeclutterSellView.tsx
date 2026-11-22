@@ -73,7 +73,7 @@ function SellSteps({ itemId }: { itemId: string }) {
   if (!user) return null;
   if (underAge) {
     return (
-      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter">
+      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter" narrow>
         <DeclutterNotice tone="warn" title={tr("sf.underAgeTitle")}>
           {tr("sf.underAgeBody")}
         </DeclutterNotice>
@@ -82,7 +82,7 @@ function SellSteps({ itemId }: { itemId: string }) {
   }
   if (itemId && item.data && item.data.status !== "draft") {
     return (
-      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter?view=selling">
+      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter?view=selling" narrow>
         <DeclutterNotice title={tr("sf.ds.alreadyListed")}>
           <Link to={`/declutter/item/${itemId}`} className="underline">{tr("sf.ds.seeListing")}</Link>
         </DeclutterNotice>
@@ -111,9 +111,9 @@ function SellSteps({ itemId }: { itemId: string }) {
   const back = () => (step > 1 ? setStep((n) => n - 1) : navigate("/declutter?tab=selling"));
   return (
     // Design audit r2 #12: the phone app bar names the page ("Sell an item"); only "Show it off" read as a title.
-    <AppPage title={tr("sf.sellAnItem")} onBack={back}>
+    <AppPage title={tr("sf.sellAnItem")} onBack={back} narrow>
       {/* Board 31a/48/31b/49/158: one question per step, "n of 5" progress (spec §3 "Step-by-step flows"). */}
-      <div className="w-full max-w-xl space-y-5">
+      <div className="space-y-5">
       <div className="flex items-center gap-3" data-sell-progress={step}>
         <div className="flex flex-1 gap-1.5" aria-hidden>
           {[1, 2, 3, 4, 5].map((n) => (

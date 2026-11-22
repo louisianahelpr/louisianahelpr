@@ -11,11 +11,14 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   const mapVisible = member && mapChoice; |   const mapVisible = mapChoice;
  * @mutate src/components/declutter/DeclutterGuest.tsx |       {!barShown && <GuestBrand />}\n      <p className="min-w-0 flex-1 basis-48 text-sm"> |       <p className="min-w-0 flex-1 basis-48 text-sm">
  * Lead 10-31 (AUD31-67 follow-up): at desktop width the guest top bar carries the logo, Log in and Sign up, so the
- * Browse join line keeps only its message there; and a guest's empty Browse says "Sign up to sell", not "Sell something".
+ * Browse join line keeps only its message there. Deep audit 11-22 #11: a guest's Declutter offers "+ Sell something" (the
+ * sell form, which a guest fills in first and signs up at the end), in the empty state and on the screen itself.
  * @mutate src/components/declutter/DeclutterGuest.tsx |   // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo; the H stays on the phone only.\n  const barShown = useIsWebDesktop(); |   const barShown = false;
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |         primary={guest |         primary={false
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |         primary={{ label: t("decl.sellSomething"), to: SELL_START_PATH }} |         primary={guest ? { label: t("decl.sellSomething"), to: "/signup" } : { label: t("decl.sellSomething"), to: SELL_START_PATH }}
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         secondary={wanted ? { |         secondary={true ? {
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | { label: t("decl.signUpToSell"), to: `/signup?redirect=${encodeURIComponent(SELL_START_PATH)}` } | { label: t("decl.signUpToSell"), to: "/signup" }
+ * @mutate src/components/declutter/DeclutterGuestHome.tsx | const guestSell = (short = false) => <SectionAddLink to={SELL_START_PATH} | const guestSell = (short = false) => <SectionAddLink to="/signup"
+ * @mutate src/components/declutter/DeclutterGuestHome.tsx | <GuestSectionSwitch at="declutter" className="min-w-0" />{guestSell(true)} | <GuestSectionSwitch at="declutter" className="min-w-0" />
+ * @mutate src/components/declutter/DeclutterGuestHome.tsx |         {guestSell()}\n        {browse.end} |         {browse.end}
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | queryFn: () => fetchBundleSellers(sellerIds), enabled: member && sellerIds.length > 0, | queryFn: () => fetchBundleSellers(sellerIds), enabled: sellerIds.length > 0,
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -142,20 +145,33 @@ describe("BUY-16: guests browse Declutter", () => {
     expect(reads).toEqual([]);
   });
 
-  it("a guest's empty Browse offers Sign up to sell (back to one item, ease batch 11-20), never Sell something; a member keeps Sell something", async () => {
+  it("#11: a guest's empty Browse offers Sell something (the sell form, sign-up at the end), as a member's does", async () => {
     state.items = [];
     const g = show(<DeclutterHome />);
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Sign up to sell" })).toHaveAttribute("href", `/signup?redirect=${encodeURIComponent("/declutter/sell")}`);
+    const empty = document.querySelector("[data-nothing-for-sale]") as HTMLElement;
+    expect(within(empty).getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell");
     // No Wanted for a guest, so no "Post what you're looking for" link under the pill.
     expect(screen.getByText("New items show up here as people list them.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Post what you're looking for" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Sell something" })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Sign up to sell/ })).toBeNull();
     g.unmount();
     show(<DeclutterBrowse userId="me" chrome={(h) => ({ tabs: <div>{h.end}{h.search}</div> })} />);
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell");
-    expect(screen.queryByRole("link", { name: "Sign up to sell" })).toBeNull();
+  });
+
+  it("#11: a guest's Declutter has a Sell something button to the sell form at desktop and phone width", async () => {
+    for (const desktop of [true, false]) {
+      state.desktop = desktop;
+      const r = show(<DeclutterHome />);
+      expect(await screen.findByText("Thing 1")).toBeInTheDocument();
+      const sell = document.querySelectorAll("[data-guest-sell]");
+      expect(sell.length, desktop ? "desktop" : "phone").toBe(1);
+      expect(sell[0]).toHaveAttribute("href", "/declutter/sell");
+      expect(sell[0]).toHaveTextContent(desktop ? "Sell something" : /^Sell$/);
+      r.unmount();
+    }
   });
 
   it("a member still gets the hearts, the map and their reads (the same screen, so the guest test can fail)", async () => {

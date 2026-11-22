@@ -113,6 +113,7 @@ const Footer = (_props: { landing?: boolean } = {}) => {
 
   return (
   <footer
+    data-site-footer=""
     className="px-5 sm:px-8 lg:px-12 relative border-t border-[hsl(var(--olivewood))]/15"
     style={{
       backgroundColor: "rgba(255, 255, 255, 0.08)",

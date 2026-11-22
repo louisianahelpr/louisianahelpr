@@ -30,6 +30,16 @@ const PAYOUT_WORDS: Record<MyPayout["status"], MsgKey> = {
   settled_by_hand: "dpo.st.settled_by_hand",
 };
 
+/** Every payout status the app words (the guard in src/test/salePayoutWordsAgree.test.ts walks each one). */
+export const PAYOUT_STATUSES = Object.keys(PAYOUT_WORDS) as MyPayout["status"][];
+
+/**
+ * Deep audit 11-22 #51: the money went to the seller: a Stripe transfer (succeeded) or Louisiana Helpr paid it outside
+ * the automatic run (settled_by_hand, admin_settle_held_payout, with executed_at). The ONE answer both the sale card
+ * (payoutLine) and Money > Declutter sales (salePayoutWords) read, so one says "paid" only when the other does.
+ */
+export const payoutWentOut = (status: MyPayout["status"]) => status === "succeeded" || status === "settled_by_hand";
+
 /** A status this screen doesn't know yet still reads as words, never "undefined". */
 const PAYOUT_UNKNOWN: MsgKey = "dpo.st.unknown";
 

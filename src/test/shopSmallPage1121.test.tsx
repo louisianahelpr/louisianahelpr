@@ -21,7 +21,7 @@
  * @mutate src/pages/info/GiftGuides.tsx |   const deals = slug && isLiveGuide(slug) ? dealDay(slug) : null; |   const deals = slug ? dealDay(slug) : null;
  * @mutate src/pages/info/ShopSmall.tsx |           <SmallBizLocal sponsors={[]} heading={{ title: W.pageSectionTitle, intro: W.pageSectionIntro }} /> |           {null}
  * @mutate src/App.tsx |       <Route path="/shop-small" element= |       <Route path="/shop-small-old" element=
- * @mutate src/pages/info/holidays/HolidayHub.tsx |           <Link to="/shop-small" className="link-standard inline-flex min-h-11 items-center"> |           <Link to="/gift-guides" className="link-standard inline-flex min-h-11 items-center">
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |           <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard inline-flex min-h-11 items-center"> |           <Link to="/gift-guides" className="link-standard inline-flex min-h-11 items-center">
  * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx | <h2 id={SBS_LOCAL_HEAD}>{heading?.title ?? W.sectionTitle} | <h2 id={SBS_LOCAL_HEAD}>{W.sectionTitle}
  * (Moved here from giftWishList1120.test.tsx, whose colour test was removed 11-21 and so no longer killed it:)
  * @mutate src/pages/info/giftGuides/smallBizCardStyles.ts | border-radius:14px;background:hsl(var(--card));color:var(--gg-ink)} | border-radius:14px;background:#fff}
@@ -165,7 +165,12 @@ describe("a form never lives only on a retired gift guide page (class guard)", (
     expect(behind.size).toBeGreaterThan(5);
     const formsBehindRetired = [...behind].filter(hasForm);
     const stranded = formsBehindRetired.filter((f) => !live.has(f)).map((f) => f.slice(ROOT.length + 1));
-    expect(stranded, "a form reachable only through a retired guide page: give it a live page").toEqual([]);
+    // Guides audit 1122 #7 (owner 11-21: "remove Shop Small, it is already listed with Small Business Saturday"): the free
+    // sign-up form now lives only on the Small Business Saturday day page, a live deals day. One named exemption, nothing
+    // else: if that day is ever retired, /shop-small and the form must come back (see the redirect in App.tsx).
+    const OWNER_DECIDED_ON_SBS_DAY = ["src/pages/info/giftGuides/SmallBizSubmitForm.tsx"];
+    expect(isLiveGuide("small-business-saturday")).toBe(true);
+    expect(stranded.filter((f) => !OWNER_DECIDED_ON_SBS_DAY.includes(f)), "a form reachable only through a retired guide page: give it a live page").toEqual([]);
   });
 });
 
@@ -211,13 +216,15 @@ describe("the small business card follows the theme", () => {
 
 describe("/shop-small is registered everywhere a public page must be", () => {
   it("route, head, pre-JS body, both rewrites, sitemap, shell lists and the Holiday Hub link", () => {
-    expect(blankComments(read("src/App.tsx"))).toMatch(/<Route path="\/shop-small" element=\{[^\n]*<ShopSmall \/>/);
+    expect(blankComments(read("src/App.tsx"))).toMatch(/<Route path="\/shop-small" element=\{<Navigate to="\/gift-guides\/small-business-saturday" replace \/>/);
     expect(PUBLIC_PAGE_META["/shop-small"].canonical).toMatch(/\/shop-small$/);
     expect(infoPageBody("/shop-small")).toContain("Shop Small Louisiana");
     const rewrites = (JSON.parse(read("vercel.json")) as { rewrites: { source: string; destination: string }[] }).rewrites.filter((r) => r.source === "/shop-small");
     expect(rewrites.map((r) => r.destination)).toEqual(["/api/share?_og=page&_id=shop-small", "/index.html"]);
-    expect(read("public/sitemap.xml")).toContain("<loc>https://www.louisianahelpr.com/shop-small</loc>");
+    // Guides audit 1122 #7: the route is a redirect to Small Business Saturday, so it is no sitemap entry.
+    expect(read("public/sitemap.xml")).not.toContain("<loc>https://www.louisianahelpr.com/shop-small</loc>");
+    expect(blankComments(read("src/App.tsx"))).toContain('<Navigate to="/gift-guides/small-business-saturday" replace />');
     expect(blankComments(read("src/hooks/useAppShellViewport.ts")).match(/"\/shop-small"/g)?.length).toBe(2);
-    expect(blankComments(read("src/pages/info/holidays/HolidayHub.tsx"))).toMatch(/<Link to="\/shop-small"/);
+    expect(blankComments(read("src/pages/info/holidays/HolidayHub.tsx"))).toMatch(/<Link to="\/gift-guides\/small-business-saturday#get-featured"/);
   });
 });

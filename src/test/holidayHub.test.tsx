@@ -549,7 +549,7 @@ describe("Holiday Hub SEO before JavaScript", () => {
  * @mutate src/pages/info/holidays/holidayParts.tsx |   const price = holidayPriceLabel(item.price); |   const price = item.price;
  * @mutate src/content/holidayHub/holidayHub.mjs |   if (region && region.toLowerCase().startsWith(item.city.toLowerCase())) return region; |
  * @mutate src/pages/info/holidays/HolidayHub.tsx |     }, today).filter((i) => !endedEarlierToday(i, today, minutes) && matchesQuery(i, query)), |     }, today).filter((i) => matchesQuery(i, query)),
- * @mutate src/pages/info/holidays/HolidayHub.tsx | <Link to="/shop-small" className="link-standard inline-flex min-h-11 items-center"> | <Link to="/shop-small" className="link-standard">
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard inline-flex min-h-11 items-center"> | <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard">
  */
 describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices, places, closed today, tap targets", () => {
   const today = "2026-11-20";
@@ -611,7 +611,7 @@ describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices
 
   it("the footer links are 44 px tap targets", () => {
     const c = hub();
-    for (const href of ["/gift-guides", "/shop-small"]) {
+    for (const href of ["/gift-guides", "/gift-guides/small-business-saturday#get-featured"]) {
       const a = [...c.querySelectorAll<HTMLAnchorElement>(`a[href="${href}"]`)].pop()!;
       expect(a.className, href).toMatch(/\bmin-h-11\b/);
     }

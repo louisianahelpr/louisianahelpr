@@ -73,7 +73,7 @@ describe("gift guide search (holiday audit 1121)", () => {
     expect(to("black friday")).toEqual(["/gift-guides/black-friday"]);
     expect(to("cyber monday")).toEqual(["/gift-guides/cyber-monday"]);
     expect(to("codes").length).toBeGreaterThan(0);
-    expect(to("shop small")).toContain("/shop-small");
+    expect(to("shop small")).toEqual(["/gift-guides/small-business-saturday"]);
     expect(to("small business")).toContain("/gift-guides/small-business-saturday");
     expect(to("leggings")).toEqual([]);
     // The search box lists them instead of "No guides match".

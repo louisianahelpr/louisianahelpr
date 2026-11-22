@@ -109,7 +109,7 @@ describe("one head row component, so the pages cannot drift apart again", () => 
 
   it("every /gift-guides route in App.tsx renders GiftGuides or a page in the shared frame (FunBody / GuidesFrame)", () => {
     const app = readFileSync("src/App.tsx", "utf8");
-    const routes = [...app.matchAll(/<Route path="(\/gift-guides[^"]*|\/shop-small)" element=\{.*?<(\w+) \/>/g)].map((m) => [m[1], m[2]] as const);
+    const routes = [...app.matchAll(/<Route path="(\/gift-guides[^"]*)" element=\{.*?<(\w+) \/>/g)].map((m) => [m[1], m[2]] as const);
     expect(routes.length).toBeGreaterThan(6); // inventory floor: 9 routes on 2026-11-22
     const imports = Object.fromEntries([...app.matchAll(/const (\w+) = lazyWithPreload\(\(\) => import\("\.\/([^"]+)"\)\)/g)].map((m) => [m[1], `src/${m[2]}.tsx`]));
     const loose = routes.filter(([, comp]) => {

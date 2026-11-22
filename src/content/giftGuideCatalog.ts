@@ -785,8 +785,7 @@ export const sectionWords = (slug: string): string => {
 const SEARCH_PAGES: { to: string; title: string; tint: "red" | "green"; words: string; live: () => boolean }[] = [
   { to: "/gift-guides/black-friday", title: "Black Friday deals", tint: "red", words: "black friday deals deal sales sale codes code coupons coupon discount", live: () => isLiveGuide("black-friday") },
   { to: "/gift-guides/cyber-monday", title: "Cyber Monday deals", tint: "red", words: "cyber monday week deals deal sales sale codes code coupons coupon discount", live: () => isLiveGuide("cyber-monday") },
-  { to: "/gift-guides/small-business-saturday", title: "Small Business Saturday", tint: "green", words: "small business saturday shop local louisiana sponsors", live: () => isLiveGuide("small-business-saturday") },
-  { to: "/shop-small", title: "Shop Small Louisiana", tint: "green", words: "shop small local business businesses louisiana", live: () => true },
+  { to: "/gift-guides/small-business-saturday", title: "Small Business Saturday", tint: "green", words: "small business saturday shop small local business businesses louisiana sponsors", live: () => isLiveGuide("small-business-saturday") },
 ];
 export const searchPages = (query: string): { to: string; title: string; tint: "red" | "green" }[] => {
   const all = queryWords(query).filter((w) => !SEARCH_FILLER.has(w));

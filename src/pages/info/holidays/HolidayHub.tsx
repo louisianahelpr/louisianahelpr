@@ -265,9 +265,9 @@ export default function HolidayHub() {
         <p className="text-ds-14 text-muted-foreground">
           Shopping too? <Link to="/gift-guides" className="link-standard inline-flex min-h-11 items-center">See the holiday gift guides</Link>
         </p>
-        {/* Owner 2026-11-21: Louisiana small businesses ask to be featured free on /shop-small. */}
+        {/* Owner 2026-11-21: Louisiana small businesses ask to be featured free on the Small Business Saturday page. */}
         <p className="text-ds-14 text-muted-foreground" data-holiday-shop-small="">
-          <Link to="/shop-small" className="link-standard inline-flex min-h-11 items-center">{SBS_WORDS.landingLink}</Link>
+          <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard inline-flex min-h-11 items-center">{SBS_WORDS.landingLink}</Link>
         </p>
       </div>
     </PublicHeaderPage>

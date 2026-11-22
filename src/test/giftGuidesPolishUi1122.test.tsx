@@ -21,7 +21,7 @@
  *      icon on code and sale cards; "+N more" is 44px; no jump-chip row above the sections.
  * #17: a Holiday Hub card's kind is its own one-line tag under the name (not inside the h3), and the place has its own
  *      line above Website / calendar / More details (measured: 0 of 40 places cut, were 18; 0 tags wrapped, were 12).
- * #28: /holidays and /shop-small hide Home in the top nav; the Hub's link to the guides sits under its intro.
+ * #28: /holidays hides Home in the top nav (/shop-small is now a 301); the Hub's link to the guides sits under its intro.
  * #29: a Hub search with no match says 'No lights or events match "..."' with Clear search; the hint fits the field.
  * #22: in the "Save for someone" popup each box's icons sit on the same line as its + (the open icon sat alone below).
  * #19: on a phone the hub shows one line above the greeting, and a guide's banner starts 16px under the chip row.
@@ -88,9 +88,9 @@ describe("polish audit 1122 #2: the desktop guides menu fits", () => {
 });
 
 describe("polish audit 1122 #3/#6: the phone chip row on every frame page, More pinned", () => {
-  const pages = ["/gift-guides/printables/gift-tags", "/gift-guides/printables/coloring-books", "/gift-guides/printables/banners", "/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner", "/shop-small"];
-  it("each of the 7 pages draws the chip row right under the head row", () => {
-    expect(pages.length).toBeGreaterThan(6);
+  const pages = ["/gift-guides/printables/gift-tags", "/gift-guides/printables/coloring-books", "/gift-guides/printables/banners", "/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner"];
+  it("each of the 6 pages draws the chip row right under the head row", () => {
+    expect(pages.length).toBeGreaterThan(5);
     for (const path of pages) {
       const c = frameAt(path);
       const nav = c.querySelector("[data-gift-phone-nav]");
@@ -230,8 +230,8 @@ describe("polish audit 1122 #17/#28/#29: the Holiday Hub", () => {
     expect(maps.closest("[data-holiday-actions]")).toBeNull();
     expect(maps.querySelector(".truncate")).toBeNull();
   });
-  it("#28/#29: Home hidden on /holidays and /shop-small; a no-match search says so and clears the search", () => {
-    expect(src("src/components/Navbar.tsx")).toContain('const NAV_HOME_HIDDEN_ON = ["/browse", "/jobs", "/declutter", "/gift-guides", "/holidays", "/shop-small"] as const;');
+  it("#28/#29: Home hidden on /holidays; a no-match search says so and clears the search", () => {
+    expect(src("src/components/Navbar.tsx")).toContain('const NAV_HOME_HIDDEN_ON = ["/browse", "/jobs", "/declutter", "/gift-guides", "/holidays"] as const;');
     const hub = src("src/pages/info/holidays/HolidayHub.tsx");
     expect(hub).toContain('<HolidayNothing onClear={() => setQuery("")} clearLabel="Clear search">');
     expect(hub).toContain("{`No lights or events match \"${query.trim()}\".`}");

@@ -34,11 +34,11 @@ interface NavbarProps {
 /**
  * Owner 11-21: "no need to show home in the top nav bar when jobs, declutter and holiday gift guides are selected
  * because they have a back button to the left of the title". The sections' own pages and sub-pages: the public job
- * board (/browse, and /jobs/...), Declutter (/declutter/...) and the gift guides (/gift-guides/..., with /holidays and
- * /shop-small, polish audit 1122 #28). The H logo still
- * links home everywhere. Guard: src/test/declutterGuestHomeLinks1120.test.tsx.
+ * board (/browse, and /jobs/...), Declutter (/declutter/...) and the gift guides (/gift-guides/..., with /holidays,
+ * polish audit 1122 #28; /shop-small is a 301 to Small Business Saturday, so it has no page of its own). The H logo
+ * still links home everywhere. Guard: src/test/declutterGuestHomeLinks1120.test.tsx.
  */
-const NAV_HOME_HIDDEN_ON = ["/browse", "/jobs", "/declutter", "/gift-guides", "/holidays", "/shop-small"] as const;
+const NAV_HOME_HIDDEN_ON = ["/browse", "/jobs", "/declutter", "/gift-guides", "/holidays"] as const;
 const navHomeHiddenOn = (path: string) => NAV_HOME_HIDDEN_ON.some((p) => path === p || path.startsWith(`${p}/`));
 
 /**

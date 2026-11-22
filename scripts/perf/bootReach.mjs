@@ -55,19 +55,19 @@ export function stripComments(text) {
 }
 
 /**
- * A module's code with its comment lines dropped, read once per process while the file is unchanged (train 1122c).
- * The icon sets call each other (Profile's re-reads Selling's tree six times), so the bootReach icon-pin test took
- * 21.5 s on main's CI and timed out at 20 s (Vitest run 45029320836, shard 5). Keyed by mtime and size, so an edited
- * file is read again.
+ * Per-process caches (train 1122c): each module's import list (DEPS, in staticReach) and its code with the comment
+ * lines dropped (codeOf) are worked out once. The icon sets call each other (Profile's re-walked Selling's tree six
+ * times), so the bootReach icon-pin test took 21.5 s on main's CI and timed out at 20 s (Vitest run 45029320836, shard
+ * 5). The source tree does not change while one build (vite.config.ts) or one test process runs these.
  */
-const CODE = new Map();
 const DEPS = new Map();
+const CODE = new Map();
 function codeOf(file) {
-  const st = fs.statSync(file);
-  const hit = CODE.get(file);
-  if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.code;
-  const code = stripComments(fs.readFileSync(file, "utf8"));
-  CODE.set(file, { mtimeMs: st.mtimeMs, size: st.size, code });
+  let code = CODE.get(file);
+  if (code === undefined) {
+    code = stripComments(fs.readFileSync(file, "utf8"));
+    CODE.set(file, code);
+  }
   return code;
 }
 
@@ -93,16 +93,13 @@ const SUPABASE_BUILD_SHIMS = ["src/integrations/supabase/lazyRealtime.ts", "src/
 export function staticReach(root, roots) {
   const seen = new Set();
   const stack = roots.map((r) => toPosix(path.resolve(root, r)));
+  const cache = DEPS.get(root) ?? new Map();
+  DEPS.set(root, cache);
   while (stack.length) {
     const file = stack.pop();
     if (seen.has(file) || !fs.existsSync(file)) continue;
     seen.add(file);
-    // One parse per file per process while it is unchanged (DEPS, train 1122c): the icon sets walk the same trees
-    // dozens of times in one call (see codeOf).
-    const st = fs.statSync(file);
-    const key = `${root}\0${file}`;
-    let hit = DEPS.get(key);
-    if (!hit || hit.mtimeMs !== st.mtimeMs || hit.size !== st.size) {
+    if (!cache.has(file)) {
       const text = fs.readFileSync(file, "utf8");
       const deps = [...text.matchAll(STATIC)].map((m) => resolveSpecifier(root, file, m[1])).filter(Boolean);
       // The production build aliases supabase-js's own realtime-js and storage-js imports to these two stand-ins
@@ -110,10 +107,9 @@ export function staticReach(root, roots) {
       if (file.endsWith("/src/integrations/supabase/client.ts")) {
         for (const shim of SUPABASE_BUILD_SHIMS) deps.push(toPosix(path.join(root, shim)));
       }
-      hit = { mtimeMs: st.mtimeMs, size: st.size, deps };
-      DEPS.set(key, hit);
+      cache.set(file, deps);
     }
-    for (const dep of hit.deps) stack.push(dep);
+    for (const dep of cache.get(file)) stack.push(dep);
   }
   return seen;
 }

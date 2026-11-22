@@ -126,6 +126,5 @@ export const HINTS = {
   firstHeartShort: "Saved ♥",
   seeListShort: "View list",
   seeList: "See my list",
-  budget: "Tap a price to see gifts in your budget.",
   share: "Send your list by text, Messenger or a link. They don't need to sign in.",
 } as const;

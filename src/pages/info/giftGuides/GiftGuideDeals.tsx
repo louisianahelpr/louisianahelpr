@@ -50,7 +50,7 @@ const DEALS_CSS = `
 .gg-deal-code code{font-size:12px;font-weight:700;letter-spacing:.04em;padding:3px 8px;border-radius:999px;background:var(--gg-soft);color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal .gg-deal-shop{display:inline-flex;align-items:center;align-self:flex-start;min-height:44px;margin-top:auto;padding:0 4px 0 0;border:0;background:none;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
 .gg-deal .gg-deal-shop:hover,.gg-deal .gg-deal-shop:focus-visible{text-decoration:underline}
-@media (max-width:767px){.gg:has([data-gift-deals-page]) .gg-banner h1{-webkit-line-clamp:2;font-size:17px;line-height:1.1}}
+@media (max-width:767px){.gg:has([data-gift-deals-page]) .gg-banner h1{-webkit-line-clamp:2;font-size:clamp(19px,6vw,24px);line-height:1.1}}
 .gg-deals-day{margin:0 0 6px;font-size:14px;line-height:1.45;color:var(--gg-ink);max-width:46rem}
 .gg-deals-list{margin-top:12px}
 .gg-deals-small{display:inline-block;margin:16px 0 4px}

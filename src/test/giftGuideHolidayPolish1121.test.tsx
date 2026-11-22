@@ -114,7 +114,9 @@ describe("budget chips need prices a shopper can see (holiday audit 1121)", () =
     const chips = (iso: string) => {
       vi.setSystemTime(new Date(iso));
       const { container } = renderAt("/gift-guides/25-days-sponsors");
-      const has = container.querySelector("[data-gift-budget]") !== null;
+      // Owner 11-21: the sponsors page's price limits live in its header Filter (open it to look).
+      fireEvent.click(container.querySelector("[data-gift-filter-button]")!);
+      const has = container.querySelector("[data-gift-filter-panel] [data-gift-budget]") !== null;
       cleanup();
       return has;
     };

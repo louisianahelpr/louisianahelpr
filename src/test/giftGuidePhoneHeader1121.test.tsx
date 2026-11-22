@@ -9,7 +9,7 @@
  *    the heart at the card's bottom-right corner.
  *  - "Remove show more just list everything" (guarded in giftGuidesPage.test.tsx).
  *
- * @mutate src/pages/info/GiftGuides.tsx |   const countRow = phone && Boolean(guide) && !deals; |   const countRow = false;
+ * @mutate src/pages/info/GiftGuides.tsx |   const countRow = (phone && Boolean(guide) && !deals) \|\| sponsorsPage; |   const countRow = sponsorsPage;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |   const open = searchOpen \|\| !!query; |   const open = true;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }} | onKeyDown={() => undefined}
  * @mutate src/pages/info/GiftGuides.tsx |           {!countRow && tools} |           {tools}

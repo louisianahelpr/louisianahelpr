@@ -62,7 +62,13 @@ export default function Printables() {
   const shown = shownPrintables();
   const makers = shown.filter((p): p is OverlayProduct => p.kind === "overlay");
   const downloads = shown.filter((p): p is DownloadProduct => p.kind === "download");
-  const { hash } = useLocation();
+  const { hash, search } = useLocation();
+  // Owner 11-21 ("when I click into each section on the left panel, it should open to the top of the page, not the
+  // middle"; earlier "only the section I click in the left panel should be displayed"): the menu's Gift tags,
+  // Coloring books and Banners open this page at its top showing only that part (?show=tags|coloring|banners), with a
+  // link to every printable. A #pr-... link (pins) still scrolls to its section on the full page.
+  const show = new URLSearchParams(search).get("show");
+  const only = (key: string) => !show || show === key;
   const fromHash = makers.find((m) => `#${m.id}` === hash)?.id;
   const [active, setActive] = useState<string | undefined>(fromHash ?? makers[0]?.id);
   useEffect(() => {
@@ -77,8 +83,9 @@ export default function Printables() {
       <FunBody title={W.title} path={PRINTABLES_PATH}>
         <style>{PAGE_CSS}</style>
         <p className="gg-fun-lead">{W.lead}</p>
-        {makers.length > 0 && <h2 className="pr-section" id="pr-tags">{W.sectionTags}</h2>}
-        {makers.length > 0 && (
+        {show && <p><Link to={PRINTABLES_PATH} className="gg-link" data-printables-all="">{W.seeAll} ›</Link></p>}
+        {only("tags") && makers.length > 0 && <h2 className="pr-section" id="pr-tags">{W.sectionTags}</h2>}
+        {only("tags") && makers.length > 0 && (
           // One maker at a time: a radio group (arrow keys move between them), not a row of toggle buttons.
           <div className="pr-makers" role="radiogroup" aria-label={W.title}>
             {makers.map((m) => (
@@ -93,7 +100,7 @@ export default function Printables() {
             ))}
           </div>
         )}
-        {product && (
+        {only("tags") && product && (
           <section className="gg-fun-card" aria-label={`${W.making}: ${product.title}`}>
             <h2>{product.title}</h2>
             <Suspense fallback={<p className="gg-fun-note" role="status">{W.loading}</p>}>
@@ -104,7 +111,7 @@ export default function Printables() {
         {/* Owner 2026-11-21: tags, banners and coloring books each get their own subsection. */}
         {DOWNLOAD_SECTIONS.map((sec) => {
           const list = downloads.filter((p) => (p.section ?? "more") === sec.key);
-          if (list.length === 0) return null;
+          if (list.length === 0 || !only(sec.key)) return null;
           return (
             <section key={sec.key} aria-labelledby={`pr-${sec.key}`} className="pr-group">
               <h2 className="pr-section" id={`pr-${sec.key}`}>{sec.title}</h2>

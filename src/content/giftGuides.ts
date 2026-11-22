@@ -270,7 +270,6 @@ export const giftGuides = {
   phoneNavPrintables: "Printables",
   phoneNavFun: "Make it fun",
   phoneNavMenu: "Menu",
-  sideShopSmall: "Shop Small",
   /** The left menu's entry for the 25 Days sponsors page (owner 11-21: "move 25 day sponsors to the left panel"). */
   sideSponsorsLabel: "25 Days sponsors",
   shopLabel: "Shop",
@@ -396,6 +395,9 @@ export const giftGuides = {
   priceSectionCount: (n: number) => ` (${n})`,
   /** The price sort on Her, Him and Kids (owner 2026-11-21: "the guides should be able to be sorted by price"). */
   sortLabel: "Sort by price",
+  /** The 25 Days sponsors page's Filter (owner 11-21: its section links and price limits moved into it). */
+  filterLabel: "Filter",
+  filterLabelActive: (n: number) => `Filter, ${n} on`,
   sortTop: "Recommended",
   sortLowHigh: "Price: low to high",
   sortHighLow: "Price: high to low",

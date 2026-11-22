@@ -199,14 +199,15 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-heart-tile\b/);
   });
 
-  it("a guide shows how many gifts it holds; the phone banner is at most 96px tall", () => {
+  it("a guide shows how many gifts it holds; the phone banner stays short (at most 140px)", () => {
     const { container } = renderAt("/gift-guides/mom");
     expect(container.querySelector("[data-gift-item-count]")?.textContent).toBe(`${guideBySlug("mom")!.picks.length} gifts`);
     // The phone banner height is the sheet's last .gg-banner height (inside the phone layout block; the phone nav, 11-21,
     // appends its own later @media (max-width:767px) block, so the last such block no longer holds it).
     const h = Number([...GIFT_GUIDES_CSS.matchAll(/\.gg-banner\{height:(\d+)px/g)].slice(-1)[0]?.[1]);
     expect(h).toBeGreaterThan(0);
-    expect(h).toBeLessThanOrEqual(96);
+    // Owner 11-21 ("the arches and letters are just small and squished together"): 96px -> 136px, still a short band.
+    expect(h).toBeLessThanOrEqual(140);
     expect(GUIDES.length).toBeGreaterThan(10); // owner 11-21: Her, Him, Kids, the sponsors page and 10 relationship views (14, 2026-11-21)
   });
 });

@@ -13,8 +13,7 @@ import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor, saveItemOf } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
-import { HINTS, WISH } from "@/content/giftWishList";
-import { Hint } from "./GiftHint";
+import { WISH } from "@/content/giftWishList";
 import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { sortByPrice } from "@/content/giftGuidePriceSort";
@@ -146,7 +145,7 @@ const sectionsOf = (picks: CatalogPick[]) => {
 };
 
 /** A merged guide's sections (1120), in order: [id, title, the pick count up to and including it]. */
-const sectionNav = (picks: CatalogPick[]) => {
+export const sectionNav = (picks: CatalogPick[]) => {
   const out: { id: string; title: string; end: number }[] = [];
   picks.forEach((p, i) => {
     if (!p.sectionId || !p.section) return;
@@ -193,7 +192,7 @@ export const BUDGETS = [25, 50, 100] as const;
 /** The picks a budget keeps: a known band at most the budget (the owner-list guides carry none: they sort by price instead). */
 export const withinBudget = (picks: CatalogPick[], budget: number | null) => (budget ? picks.filter((p) => p.band !== undefined && p.band <= budget) : picks);
 /** The filter shows on a guide holding at least this many priced picks. */
-const BUDGET_MIN_PICKS = 3;
+export const BUDGET_MIN_PICKS = 3;
 
 
 /**
@@ -215,8 +214,15 @@ export const sectionLabel = (guide: Pick<CatalogGuide, "title">, title: string, 
   return title;
 };
 
-function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: CatalogGuide; order?: GuideOrder; failed?: boolean; onRetry?: () => void }) {
-  const [budget, setBudget] = useState<number | null>(null);
+/** The section and price choices drawn in the page's header Filter (the 25 Days sponsors page, owner 11-21). */
+export interface HeaderFilter { budget: number | null; onBudget: (b: number | null) => void }
+
+function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guide: CatalogGuide; order?: GuideOrder; failed?: boolean; onRetry?: () => void; filter?: HeaderFilter }) {
+  const [ownBudget, setOwnBudget] = useState<number | null>(null);
+  // Owner 2026-11-21 (25 Days sponsors page): "move those things into the filter for that section": with a header
+  // Filter, the budget lives there and the list draws no chips of its own.
+  const budget = filter ? filter.budget : ownBudget;
+  const setBudget = filter ? filter.onBudget : setOwnBudget;
   // Owner 2026-11-21 ("there should be a button to open and expand each section like for under 25 etc.", first open by
   // her pop-up pick): which price sections are open, for this visit only. null = the default, the first section (in the
   // current order) open and the rest closed; a new order goes back to that default.
@@ -304,7 +310,7 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
       ));
   return (
     <>
-      {nav.length > 1 && (
+      {!filter && nav.length > 1 && (
         <nav aria-label={G.sectionNavLabel} className="gg-secnav" data-gift-section-nav="">
           <span className="gg-secnav-label" aria-hidden="true">{G.sectionNavLabel}:</span>
           {nav.map((s) => (
@@ -312,8 +318,8 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
           ))}
         </nav>
       )}
-      {banded >= BUDGET_MIN_PICKS && <Hint id="budget">{HINTS.budget}</Hint>}
-      {banded >= BUDGET_MIN_PICKS && (
+      {/* Owner 2026-11-21: "Remove tap a price to see gifts in your budget" (the tip that sat above the price chips). */}
+      {!filter && banded >= BUDGET_MIN_PICKS && (
         <div role="group" aria-label={G.budgetLabel} className="gg-budget" data-gift-budget="">
           {[null, ...BUDGETS].map((b) => (
             <ToggleChip key={b ?? "all"} pressed={budget === b} data-gift-budget-choice={b ?? "all"} onClick={() => setBudget(b)}>
@@ -418,7 +424,7 @@ function StoreDeals({ guide }: { guide: CatalogGuide }) {
 /** The guide where the Hire-a-Helpr box sits at the TOP (owner 2026-11-18). */
 const GIFT_WRAP_GUIDE = "gift-wrap-and-cards";
 
-export function GiftGuideView({ guide, order = "top", hideCount = false }: { guide: CatalogGuide; order?: GuideOrder; hideCount?: boolean }) {
+export function GiftGuideView({ guide, order = "top", hideCount = false, filter }: { guide: CatalogGuide; order?: GuideOrder; hideCount?: boolean; filter?: HeaderFilter }) {
   // PERF: the guide's picks are its own lazy chunk; re-render when it lands.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
   // Holiday audit 1121: a failed chunk (offline, a stale deploy) shows why and a Try again, never "Loading picks…" for
@@ -467,7 +473,7 @@ export function GiftGuideView({ guide, order = "top", hideCount = false }: { gui
       ))}
       {/* Owner 11-21 ("Codes and deals shouldn't randomly show in sections"): no "Deals & codes" box on any guide page;
           the codes and sales live only on the deals page, which the left menu opens. */}
-      <GiftGuideList key={guide.slug} guide={guide} order={order} failed={failed === guide.slug} onRetry={retry} />
+      <GiftGuideList key={guide.slug} guide={guide} order={order} failed={failed === guide.slug} onRetry={retry} filter={filter} />
       {picksReady(guide.slug) && <StoreDeals key={`deals ${guide.slug}`} guide={guide} />}
       {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
     </article>

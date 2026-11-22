@@ -38,7 +38,73 @@ const HEART = "M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.7 4.5 7.2 4.5c2 0 3.6 1.1 4.8
 const SHARE = "M12 15V3.5M7.5 8 12 3.5 16.5 8M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5";
 const SEARCH = "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4";
 const CLOSE = "M6 6l12 12M18 6 6 18";
+const FUNNEL = "M4 5h16l-6 7.5V19l-4 1.5v-8L4 5z";
 const SLIDERS = "M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4";
+
+/** The 25 Days sponsors page's Filter: its sections to jump to and the price limits (owner 2026-11-21). */
+export interface ToolsFilter {
+  sections: { id: string; title: string }[];
+  onJump: (id: string) => void;
+  budgets: number[];
+  budget: number | null;
+  onBudget: (b: number | null) => void;
+}
+
+/**
+ * Filter (owner 2026-11-21, on the 25 Days sponsors page: "move those things into the filter for that section"): one
+ * 44px icon in the tool row, with the active count on it, that opens a small panel holding the page's section links
+ * ("Jump to a section") and its price limits (Any price, Under $25 ...). Escape or a tap outside closes it.
+ */
+function GiftGuideFilter({ filter }: { filter: ToolsFilter }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: Event) => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  const active = filter.budget ? 1 : 0;
+  return (
+    <span ref={wrap} className="gg-share-wrap">
+      <RoundIconButton className="gg-icon" aria-label={active ? G.filterLabelActive(active) : G.filterLabel} aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen((o) => !o)} data-gift-filter-button="">
+        <Icon d={FUNNEL} />
+        {active > 0 && <span className="gg-icon-count" aria-hidden="true" data-gift-filter-count="">{active}</span>}
+      </RoundIconButton>
+      {open && (
+        <span className="gg-share-menu gg-filter-panel" role="dialog" aria-label={G.filterLabel} data-gift-filter-panel="">
+          {filter.sections.length > 1 && (
+            <span role="group" aria-label={G.sectionNavLabel} className="gg-filter-group">
+              <span className="gg-filter-h" aria-hidden="true">{G.sectionNavLabel}</span>
+              {filter.sections.map((s) => (
+                <button key={s.id} type="button" onClick={() => { filter.onJump(s.id); setOpen(false); }} data-gift-section-link={s.id}>{s.title}</button>
+              ))}
+            </span>
+          )}
+          {filter.budgets.length > 0 && (
+            <span role="group" aria-label={G.budgetLabel} className="gg-filter-group" data-gift-budget="">
+              <span className="gg-filter-h" aria-hidden="true">{G.budgetLabel}</span>
+              {[null, ...filter.budgets].map((b) => (
+                <button key={b ?? "all"} type="button" aria-pressed={filter.budget === b} onClick={() => filter.onBudget(b)} data-gift-budget-choice={b ?? "all"}>
+                  <span className="gg-sort-check" aria-hidden="true">{filter.budget === b ? "✓" : ""}</span>{b ? G.budgetUnder(b) : G.budgetAll}
+                </button>
+              ))}
+            </span>
+          )}
+        </span>
+      )}
+    </span>
+  );
+}
 
 /** A sort order the owner-list guides offer (src/content/giftGuidePriceSort.ts). */
 type SortOrder = "top" | "low" | "high";
@@ -191,7 +257,7 @@ function MyListIcon({ current }: { current: boolean }) {
  * The one slim row under every title (owner redesign 11-18 PM): a search field over every guide, My list (with its
  * count) and Share. Nothing else: no pill buttons, no Codes (a page section now).
  */
-export function GiftGuideTools({ path, title, image, many = false, myList = false, sort }: { path: string; title: string; image?: string; many?: boolean; myList?: boolean; sort?: { order: SortOrder; onChange: (o: SortOrder) => void } }) {
+export function GiftGuideTools({ path, title, image, many = false, myList = false, sort, filter }: { path: string; title: string; image?: string; many?: boolean; myList?: boolean; sort?: { order: SortOrder; onChange: (o: SortOrder) => void }; filter?: ToolsFilter }) {
   const [query, setQuery] = useState("");
   // Owner 2026-11-21 ("make search an icon always"): at every width the search is a magnifier icon like the heart and
   // Share; tapping it opens the field (focused); Escape or its close button shuts it again, and it stays open while a
@@ -293,6 +359,7 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
         )}
       </div>
       {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />}
+      {filter && <GiftGuideFilter filter={filter} />}
       <MyListIcon current={myList} />
       <GiftGuideShare path={path} title={title} image={image} many={many} />
     </div>

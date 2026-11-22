@@ -57,6 +57,16 @@ export function useSectionTab<T extends string>(valid: readonly T[]) {
 /** From this many tabs (Browse included) a phone row sets its words by the screen's width (A3-6). */
 export const DENSE_TAB_COUNT = 5;
 /**
+ * Deep audit 11-22 #16: Declutter's six tabs ran 71px past a 375 screen; "Free" was out of sight and, with the Buying
+ * dot, "Wanted" read "Wante", with nothing to say the row scrolls. A row that can overflow (five tabs or more) fades its
+ * right edge, as the status chips do (AUD31-4): the cut tab reads as "more to scroll". The end padding (>= the fade) lets
+ * the last tab scroll clear of it, so nothing stays faded at the row's end, and a row that fits fades only empty space.
+ * No chevron and no "N more" (owner 11-12). Guard: src/test/sectionTabsNeverCutAWord.test.tsx.
+ */
+export const TABS_EDGE_FADE = "pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)]";
+/** The fade's width in TABS_EDGE_FADE (40px, the pr-10 that lets the last tab scroll clear of it). */
+const TABS_FADE_PX = 40;
+/**
  * From this many a phone row sets its words smaller still and closer (OWN-FREE, 2026-10-30): Declutter's sixth tab,
  * Free, was 357px of row in a 335px track at 375 with the five-tab sizes, so Browse showed "Fre" at the edge.
  */
@@ -100,10 +110,12 @@ export function SectionTabs<T extends string>({
     if (!selected) return;
     const box = list.getBoundingClientRect();
     const t = selected.getBoundingClientRect();
-    // 16px of the next tab stays visible past the selected one, so the strip still reads as one that scrolls.
-    if (t.right > box.right) list.scrollLeft += t.right - box.right + 16;
+    // 16px of the next tab stays visible past the selected one, so the strip still reads as one that scrolls. #16: on a
+    // row with the edge fade the selected tab stops short of the fade, never under it.
+    const right = box.right - (dense && !onlySelected ? TABS_FADE_PX : 0);
+    if (t.right > right) list.scrollLeft += t.right - right + 16;
     else if (t.left < box.left) list.scrollLeft -= box.left - t.left + 16;
-  }, [options.length, value, onlySelected]);
+  }, [options.length, value, onlySelected, dense]);
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
     const at = options.findIndex((o) => o.value === value);
@@ -135,7 +147,7 @@ export function SectionTabs<T extends string>({
       {/* M4 (iOS design audit 11-16): a row of five or six tabs keeps Jobs' 20px spacing (it was 6-12px, crammed);
           the dense words still size by the screen, and a row that does not fit is the one sideways strip (owner 11-12). */}
       <div ref={listRef} role="tablist" aria-label={label} onKeyDown={onKeyDown} data-tabs-strip=""
-        className={cn("flex min-w-0 items-end overflow-x-auto overflow-y-hidden no-scrollbar", onlySelected ? "flex-none" : "flex-1", end ? "gap-2 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser")}>
+        className={cn("flex min-w-0 items-end overflow-x-auto overflow-y-hidden no-scrollbar", onlySelected ? "flex-none" : "flex-1", end ? "gap-2 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser", dense && !onlySelected && TABS_EDGE_FADE)}>
         {options.map((o, i) => {
           const active = o.value === value;
           if (onlySelected && !active) return null;

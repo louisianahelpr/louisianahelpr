@@ -69,6 +69,12 @@ export function continueDayNextStep(
       : { who: "them", text: `You asked to finish ${when}`, by: `waiting on ${other || "the person who posted it"}` };
   }
   if (o.side === "poster") {
+    // Audit 11-21 (G17): a SET day gone by with the Helpr's done still missing read "Your Helpr comes back Wed, Nov 11 ·
+    // nothing for you to do" on Home (a past day), so Home's Jobs to-do left it out while Posted's Needs you counted it
+    // (15 vs 16 for one account). The poster's moves are finishing it or setting another day, as the Helpr's are.
+    if (row.new_date && louisianaToday(o.now ?? new Date()) > row.new_date) {
+      return { who: "you", text: "The new day passed", by: "mark it done or set another day" };
+    }
     return row.helper_confirmed_at
       ? { who: "info", text: `${other || "Your Helpr"} confirmed ${when}` }
       : // F289a (audit 11-10): "Continuing … · waiting on Hallie to confirm" over Change day and Message left a

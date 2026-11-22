@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { RadioCardList } from "@/components/ui/RadioCardList";
 import { hapticLight } from "@/lib/haptics";
 
@@ -34,6 +36,26 @@ export function TaxKindQuestion({
   taxKind: JobTaxKind | null;
   setTaxKind: (next: JobTaxKind | null) => void;
 }) {
+  // Jobs audit 11-21 (G12): the five large cards took about a phone screen on every cleaning or handyman post, where
+  // "None of these" fits most jobs, and pushed the rest of Details down. The question is one row now, saying the answer
+  // (None of these) with Change; Change, or any answer but None, shows the five cards. The answer and the tax it sets
+  // are unchanged (jobs.tax_kind, checkout prices from it).
+  const [open, setOpen] = useState(taxKind !== null);
+  if (!open && taxKind === null) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border px-4 py-2" data-tax-kind-question="" data-tax-kind-collapsed="">
+        <p className="min-w-0 text-ds-14">
+          <span className="font-semibold">Sales tax:</span> none of these jobs
+          <span className="block text-ds-11 font-sans leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            Taxed only if it fixes an item, cleans carpet, furniture or clothes, or alters clothes.
+          </span>
+        </p>
+        <Button type="button" variant="link" size="sm" className="shrink-0 px-0 text-ds-14 font-semibold" onClick={() => setOpen(true)} data-tax-kind-change="">
+          Change
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className="space-y-2.5" data-tax-kind-question="">
       <div className="space-y-0.5">

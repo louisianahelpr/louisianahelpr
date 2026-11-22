@@ -12,6 +12,8 @@ export const enNextStep = {
   "ns.waitAccept": "Waiting on {name} to accept your offer",
   "ns.theHelpr": "the Helpr",
   "ns.choose": "Choose a Helpr",
+  "ns.payToPost": "Not posted yet: pay to post it",
+  "ns.payToPostBody": "Helprs see the job once it's paid.",
   "ns.applied": "{n} applied",
   "ns.noShow": "No-show reported · reposted",
   "ns.noShowOn": "No-show reported · reposted {day}",

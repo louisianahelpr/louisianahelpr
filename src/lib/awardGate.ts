@@ -286,6 +286,9 @@ export function pendingAcceptStatus(missing: readonly AcceptMissing[]): { headli
  * helper_accept_block_reason, 20261020043346). Names the person, never a
  * gendered pronoun.
  */
+/** The applicants list's one ID line (Jobs audit 11-21, G10: once above the list, not on every card). */
+export const APPLICANTS_ID_NOTE = "Helprs verify their ID when they accept your offer.";
+
 export function applicantIdNote(helperName?: string | null): string {
   const who = helperName?.trim() || "This Helpr";
   return `${who} verifies their ID when they accept.`;

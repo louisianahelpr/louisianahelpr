@@ -24,7 +24,9 @@ export const EDIT_JOB_CHIP = /\bedit job$/i;
 export const CANCEL_JOB_CHIP = /\bcancel job$/i;
 /** OpenStep's primary on an open job: "Applicants (1)". */
 export const APPLICANTS_PRIMARY = /^applicants\b/i;
-/** ApplicantsPanel's note icon: "Add a private note on <name>" (or "Edit your private note on <name>"). */
-export const PRIVATE_NOTE_BUTTON = /^(add a|edit your) private note on /i;
+/** The applicant row's "..." menu (ApplicantMoreMenu, Jobs audit 11-21 G10): "More for <name>". */
+export const APPLICANT_MORE_BUTTON = /^more for /i;
+/** Its note row (a menuitem): "Add a private note" (or "Edit your private note"). */
+export const PRIVATE_NOTE_BUTTON = /^(add a|edit your) private note$/i;
 /** ApplicantHireRow's decline (x): "Decline <name>". */
 export const DECLINE_BUTTON = /^decline /i;

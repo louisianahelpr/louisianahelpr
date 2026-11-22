@@ -5,7 +5,7 @@
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | <CompareBar apps={applications} ids={compare.ids} clear={compare.clear} onHire={onAcceptApplication} | <CompareBar apps={applications} ids={[]} clear={compare.clear} onHire={onAcceptApplication}
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
-import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import { CompareBar, CompareCheck, ShowMoreApplicants, useApplicantCompare } from "@/pages/posts/postedJobs/applicantsPanel/ApplicantCompare";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -30,14 +30,19 @@ describe("boards 22/170: compare applicants", () => {
     rerender(<CompareBar apps={apps} ids={["a", "b"]} clear={() => {}} distanceOf={(x) => ((x as { id: string }).id === "a" ? "Under 5 mi" : null)} onHire={onHire} />);
     expect(screen.getByText("2 selected")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Compare side by side" }));
-    expect(screen.getByText("4.8 from 4")).toBeInTheDocument();
-    expect(screen.getByText("No reviews yet")).toBeInTheDocument();
-    expect(screen.getByText("Payout setup not finished")).toBeInTheDocument();
-    expect(screen.getByText("Under 5 mi")).toBeInTheDocument();
+    // Jobs audit 11-21 (G11): the facts are drawn twice, stacked cards below sm and the table from sm (CSS picks one).
+    const cards = document.querySelector("[data-compare-cards]") as HTMLElement;
+    expect(cards.className.split(/\s+/)).toContain("sm:hidden");
+    for (const text of ["4.8 from 4", "No reviews yet", "Under 5 mi"]) expect(within(cards).getByText(text)).toBeInTheDocument();
+    // The payout row says a poster can still hire (the gate is at the Helpr's accept), never "can't be hired now".
+    expect(within(cards).getByText("Not yet. You can still hire")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/Can be hired now|Payout setup not finished/);
+    // The table no longer forces a 420px width in a 375 sheet.
+    expect(document.querySelector("table")!.className).not.toMatch(/min-w-/);
     // A note the scanner hid is never shown.
     expect(screen.queryByText(/note b/)).toBeNull();
     expect(document.body.textContent).not.toMatch(/take.?home|receives/i);
-    fireEvent.click(screen.getByRole("button", { name: "Hire Andre" }));
+    fireEvent.click(within(cards).getByRole("button", { name: "Hire Andre" }));
     expect(onHire).toHaveBeenCalledWith(apps[0]);
   });
 

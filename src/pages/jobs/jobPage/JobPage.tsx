@@ -400,9 +400,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       titleActions={<>{share}{!isPoster && <ReportJobControl jobId={job.id} posterId={job.customer_id ?? null} posterFirst={posterFirst} />}<span ref={setMenuHost} data-job-menu-host="" className="contents" /></>}
     >
       <div data-job-page="" data-layout="v2" className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-6 lg:gap-y-5">
-        {/* F274a (audit 11-10): at 1440 the facts rows ran the full page width ("When" ~1,100px from its value). The head
-            keeps to the left column's width (the grid's 7fr of 7fr+5fr, less the 1.5rem gap); the price stays in its row. */}
-        <section aria-label={t("jobPage.summary")} data-job-head="" className="space-y-2 lg:col-span-2 lg:max-w-[calc((100%_-_1.5rem)*7/12)]">
+        {/* Audit 11-21 (G14): two real columns from 1024 up, head / Details / tracker / main LEFT, the side card RIGHT from
+            the top (sticky); the capped head beside an empty half is gone. Guard: jobPageHeadKeepsLeftColumn.test.ts. */}
+        <section aria-label={t("jobPage.summary")} data-job-head="" className="space-y-2 lg:col-start-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
               {/* Owner 11-01: the category on its own line (semibold primary); the day, time and place are the facts
@@ -429,7 +429,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         </section>
 
         {(posterDetails || hasVideo) && (
-          <div data-job-details="" className="space-y-4 lg:col-span-2">
+          <div data-job-details="" className="space-y-4 lg:col-start-1">
             {/* The poster's scope video (A2-B6), for the poster and the Helpr alike; nothing when there is none. */}
             {hasVideo && <ScopeVideo url={job.scope_video_url} />}
             {posterDetails && (
@@ -450,17 +450,19 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           </div>
         )}
 
-        <section aria-label={t("jobPage.where")} data-job-steps="" className={`${CARD} space-y-4 p-4 empty:hidden lg:col-span-2 lg:p-5`}>
+        <section aria-label={t("jobPage.where")} data-job-steps="" className={`${CARD} space-y-4 p-4 empty:hidden lg:col-start-1 lg:p-5`}>
           {/* Owner 2026-11-01: "Yusef is on the way · since 8:51 AM" and where he is, ABOVE the tracker. */}
           {/* A continue day replaces the first day's "arrived" line: the next visit is what matters now. */}
-          {isPoster && !continueDay.row && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
+          {/* G6: no "on the way since Mon, Nov 9" over a no-show; the next line is the card's sentence (continueStep). */}
+          {isPoster && !continueDay.row && !noShowLead && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
           <JobTracker job={dayJob} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
-            hideNext={refundOpen || (isPoster && !continueDay.row && showsNow(job, trackingStatus)) || (isPoster && open && applicants.isError)}
+            hideNext={refundOpen || (isPoster && !continueDay.row && !noShowLead && showsNow(job, trackingStatus)) || (isPoster && open && applicants.isError)}
             otherFirst={isPoster ? helperFirst ?? noShowHelprFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
             offerOut={offerOut} offerUntil={offerUntil} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft} helprCancelled={helprCancelled}
             crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined}
-            continueStep={continueDay.step ?? (isPoster && job.is_group_job ? crewPosterStep(posterFlows.crewRoster, posterFlows.crewNames ?? {}, job)
+            continueStep={continueDay.step ?? (isPoster && noShowLead ? { who: "you", text: posterStatusLine(job as unknown as Job, pending, undefined, undefined, false, helperFirst).detail }
+              : isPoster && job.is_group_job ? crewPosterStep(posterFlows.crewRoster, posterFlows.crewNames ?? {}, job)
               : !isPoster && onCrew ? crewMemberLine(crewSlot.data, job.status, posterFirst) : null)} />
           {/* JA-34 (audit 11-01): the card's own clock ("28m until the job starts"), so the page knows what its card knows. */}
           {(isPoster || isHired) && job.status === "accepted" && <CountdownRows variant="bare" clocks={collapsedClocks({ ...job, status: job.status }, isPoster)} />}
@@ -510,10 +512,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           )}
         </div>
 
-        {/* Lead 11-01 (B107): a stage with nothing in the main column (no photos, crew or fix: Done, Cancelled) left an
-            EMPTY left column beside the card at 1440. The card (and the Guarantee under it) then sits right under the
-            tracker at full content width, from 1024 up. */}
-        <aside aria-label={t("jobPage.side")} data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1 lg:[[data-job-main]:empty+&]:col-span-2">
+        {/* G14: column 2 from row 1 (row-span-4: head, Details, steps, main). Sticky top-2: the scroll area starts under the
+            top bar, so top-24 set the card 88px below the head (166 vs 78 at 1440). */}
+        <aside aria-label={t("jobPage.side")} data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-2 lg:col-start-2 lg:row-start-1 lg:row-span-4 lg:self-start">
           <section data-job-card="" className={`${CARD} space-y-4 p-4 ${HIDE_WHEN_BLANK} lg:p-5`}>
             {/* CMP-4: the booked Helpr's card, the same one the Working offer card shows (InstantBookingCard). */}
             {!isPoster && instantUntil && <InstantBookingCard jobId={job.id} title={job.title} declineUntil={instantUntil} sticky />}

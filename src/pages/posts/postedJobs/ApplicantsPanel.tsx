@@ -1,4 +1,5 @@
 import { ApplicantIdNote } from "./applicantsPanel/ApplicantIdNote";
+import { ApplicantMoreMenu } from "./applicantsPanel/ApplicantMoreMenu";
 import { jobDayLabel } from "@/lib/jobDateWindow";
 import { ApplicantSuggestedTime } from "./applicantsPanel/ApplicantSuggestedTime";
 import { Fragment, useState, useCallback } from "react";
@@ -8,14 +9,12 @@ import { ApplicantAvatarLink } from "./applicantsPanel/ApplicantAvatarLink";
 import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
 import { useApplicantCategoryCounts } from "./useApplicantCategoryCounts";
 import { CompareBar, CompareChip, ShowMoreApplicants, useApplicantCompare } from "./applicantsPanel/ApplicantCompare";
-import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Sparkles, Star } from "lucide-react";
-import { IconActionButton } from "@/components/dashboard/IconActionButton";
+import { ArrowUp, Eye, MapPin, Sparkles, Star } from "lucide-react";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import AppPage from "@/components/AppPage";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
-import { hapticLight } from "@/lib/haptics";
 import { tierDisplayName } from "@/lib/subscriptionTiers";
 import { usePaidTierBadge } from "@/hooks/usePaidTierBadge";
 import { type EnrichedApplication } from "../../../components/job-card/activityConstants";
@@ -224,6 +223,9 @@ export function ApplicantsPanel({
                   setApplicantSort={setApplicantSort}
                 />
 
+                {/* G10: the ID line once, above the list (cards and the desktop table), not on every card. */}
+                <ApplicantIdNote anyUnverified={applications.some((a) => !!a.profiles && a.profiles.is_id_verified !== true)} />
+
                 {/* Paid-ordering disclosure.
                     The poster is choosing a person, so if money moved the
                     order they are entitled to know before they read the list
@@ -410,13 +412,10 @@ export function ApplicantsPanel({
                           <div className={app.status === "pending" ? "flex items-center gap-0.5 shrink-0 -mt-1 -mr-1 sm:mt-0 sm:mr-0" : "flex gap-0.5"}>
                           {/* Compare sits up here, left of the note icon, not on a row of its own (owner 2026-10-29). */}
                           {app.status === "pending" && applications.length > 1 && <CompareChip id={app.id} name={helperName} ids={compare.ids} toggle={compare.toggle} />}
-                          <IconActionButton bare compact icon={<NotebookPen className="w-4 h-4" />}
-                            ariaLabel={applicantNotes[app.id] ? `Edit your private note on ${helperName}` : `Add a private note on ${helperName}`}
-                            onClick={() => { hapticLight(); setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id] ?? ""); }} />
-                          <IconActionButton bare compact icon={<Flag className="w-4 h-4" />}
-                            ariaLabel={`Report ${helperName}'s application`} onClick={() => { hapticLight(); setReportApp(app); }} />
-                          <IconActionButton bare compact icon={<Ban className="w-4 h-4" style={{ color: "hsl(var(--danger-ink))" }} />}
-                            ariaLabel={`Block ${helperName}`} onClick={() => { hapticLight(); setBlockApp(app); }} />
+                          {/* G10: the private note, Report and Block (Q366: on every card) in one labelled "..." menu. */}
+                          <ApplicantMoreMenu helperName={helperName} hasNote={!!applicantNotes[app.id]}
+                            onNote={() => { setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id] ?? ""); }}
+                            onReport={() => setReportApp(app)} onBlock={() => setBlockApp(app)} />
                           </div>
                           {/* Status / hire + decline buttons */}
                           {app.status === "pending" && (
@@ -477,7 +476,6 @@ export function ApplicantsPanel({
                               {/* Owner 2026-10-27: no ID / payout badges and no proof line on applicant cards ("it doesn't make any sense"). */}
                               {/* Owner 2026-10-23: the day/time they suggested when applying; hiring them agrees to it. */}
                               <ApplicantSuggestedTime app={app} jobStartTime={selectedJob.start_time} />
-                              {app.profiles && <ApplicantIdNote fullName={app.profiles.full_name} idVerified={app.profiles.is_id_verified} />}
                               <ApplicantNeighborHires count={neighborCount} />
                               <ApplicantAvailableNow until={app.profiles?.available_until} />
                               {/* The applicant's message, under the name and chips (owner, 2026-10-08: "Move the comment up").

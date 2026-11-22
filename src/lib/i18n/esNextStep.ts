@@ -7,6 +7,8 @@ export const esNextStep: Record<keyof typeof enNextStep, string> = {
   "ns.waitAccept": "Esperando a que {name} acepte su oferta",
   "ns.theHelpr": "el Helpr",
   "ns.choose": "Elegir un Helpr",
+  "ns.payToPost": "Aún no publicado: pague para publicarlo",
+  "ns.payToPostBody": "Los Helprs ven el trabajo cuando esté pagado.",
   "ns.applied": "{n} se postularon",
   "ns.noShow": "No se presentó · publicado de nuevo",
   "ns.noShowOn": "No se presentó · publicado de nuevo el {day}",

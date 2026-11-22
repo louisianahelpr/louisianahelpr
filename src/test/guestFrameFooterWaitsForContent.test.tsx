@@ -11,7 +11,7 @@
  * /hire/<service>/<town> is PublicHeaderPage (its own Q1312 `footer` prop; 0 CLS at 1280).
  *
  * @mutate src/components/marketing/GuestPublicFrame.tsx | <PublicLayout footer={footerReady}> | <PublicLayout>
- * @mutate src/pages/jobs/JobDetail.tsx | <PublicLayout noNavSpacer footer={footerReady}> | <PublicLayout noNavSpacer>
+ * @mutate src/pages/jobs/JobDetail.tsx |       footer={footerReady}\n      headerWrapperClassName={NARROW_HEADER_COLUMN} |       headerWrapperClassName={NARROW_HEADER_COLUMN}
  * @mutate src/hooks/useFooterAfterContent.ts |       if (fills()) return setReady(true); |       if (fills()) return;
  * @mutate src/hooks/useFooterAfterContent.ts |       if ((client?.isFetching() ?? 0) === 0) idleTimer | if (true) idleTimer
  * @mutate src/hooks/useFooterAfterContent.ts |     const capTimer = setTimeout(() => setReady(true), FOOTER_MAX_WAIT_MS); |     const capTimer = undefined;
@@ -98,7 +98,8 @@ describe("the guest public frame's footer waits for the content (no high footer 
     let n = 0;
     for (const file of ["../components/marketing/GuestPublicFrame.tsx", "../pages/jobs/JobDetail.tsx"]) {
       const src = blankComments(readFileSync(resolve(__dirname, file), "utf8"));
-      const layouts = src.match(/<PublicLayout\b[^>]*>/g) ?? [];
+      // Jobs audit 11-21 (P6): JobDetail draws its PublicLayout through PublicHeaderPage now (its `footer` prop).
+      const layouts = src.match(/<(?:PublicLayout|PublicHeaderPage)\b[^>]*>/g) ?? [];
       expect(layouts.length, file).toBeGreaterThan(0);
       for (const tag of layouts) expect(tag, file).toContain("footer={footerReady}");
       expect(src, file).toContain("useFooterAfterContent(contentRef)");

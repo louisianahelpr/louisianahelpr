@@ -43,6 +43,9 @@ interface PublicHeaderPageProps {
   hideBack?: boolean;
   /** Forwarded to PageHeader: on a phone keep the h1 for screen readers only (the page paints the name itself; /u). */
   phoneHidesTitle?: boolean;
+  /** Forwarded to PageHeader: keep the h1 for screen readers only at every width (the job link's not-found, error
+   *  and loading states, whose card carries its own title; Jobs audit 11-21 P6). */
+  hidesTitle?: boolean;
   /** Forwarded to PageHeader: "p" when the page's body holds its own h1 (the gift guides' banner title). */
   titleTag?: "h1" | "p";
   /** No header row at all: the page's body opens with its own h1 and has no back arrow or title-row actions (the
@@ -79,6 +82,7 @@ export function PublicHeaderPage({
   footer = true,
   hideBack = false,
   phoneHidesTitle = false,
+  hidesTitle = false,
   titleTag = "h1",
   hideHeader = false,
   children,
@@ -91,6 +95,7 @@ export function PublicHeaderPage({
       backLabel={backLabel}
       hideBack={hideBack}
       phoneHidesTitle={phoneHidesTitle}
+      hidesTitle={hidesTitle}
       titleTag={titleTag}
       width={width}
       topInsetHandled

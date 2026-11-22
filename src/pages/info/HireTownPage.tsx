@@ -16,10 +16,11 @@ import { MATCHMAKER_PARAM } from "@/lib/matchmakerLink";
 import { HIRE_STEPS } from "@/components/landing/hireSteps";
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, findTownPage, townPageMeta, townPagePath, type TownPageService, type TownPageTown } from "@/lib/townPages.mjs";
 import { wordInLang } from "@/lib/i18n/inLang";
+import { NARROW_COLUMN, NARROW_HEADER_COLUMN } from "@/lib/publicContainer";
 
 /** F063: the town page's column, and its header's (the column plus the shell's side padding at each breakpoint). */
-const TOWN_COLUMN = "max-w-[760px]";
-const TOWN_HEADER_COLUMN = "mx-auto max-w-[calc(760px+2.5rem)] sm:max-w-[calc(760px+4rem)] lg:max-w-[calc(760px+6rem)]";
+const TOWN_COLUMN = NARROW_COLUMN;
+const TOWN_HEADER_COLUMN = NARROW_HEADER_COLUMN;
 
 
 export default function HireTownPage() {

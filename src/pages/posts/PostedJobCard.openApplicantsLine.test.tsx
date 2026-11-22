@@ -13,6 +13,7 @@
  * proved a mutation of it stays green, so none is registered.)
  *
  * @mutate src/pages/posts/PostedJobCard.tsx | progressCard={job.status === "open" ? { line: cardLine, face: faceAction } : undefined} | progressCard={undefined}
+ * @mutate src/components/tracker/jobProgressState.ts |     const pending = o.pendingApplicants ?? (o.card?.line.id === "no_applicants" ? 0 : undefined); |     const pending = o.pendingApplicants;
  */
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
@@ -102,9 +103,10 @@ describe("an open job that had applicants never says 'No applicants yet' (A2-B15
     const { container, unmount } = renderCard(false, {});
     expect(container.textContent).toContain("No applicants yet");
     unmount();
-    // Same step as the card (Posted, nobody's move): the tracker keeps its own sentence (jobProgress `sameStep`).
+    // Same step as the card (Posted, nobody's move): the tracker keeps its own sentence (jobProgress `sameStep`), and
+    // Jobs audit 11-21 (G6) it is the card's fact: nobody applied, so it waits for applicants, never "Pick your Helpr".
     const { getByTestId } = renderCard(true, {});
-    expect(getByTestId("tracker").textContent).toBe("Pick your Helpr");
+    expect(getByTestId("tracker").textContent).toBe("Waiting for Helprs to apply");
   });
 
   it("collapsed, after the only applicant's application closed: the card names it, nowhere 'No applicants yet'", () => {

@@ -6,11 +6,11 @@ import { STAR_ON } from "@/lib/starColor";
 import { jobCategoryTint } from "@/lib/jobCategoryTint.mjs";
 
 /** Shared with the pre-boot Browse shell (src/lib/browseShellCards.mjs), which must match byte for byte. */
-export const JOB_CARD_MEDIA_ROW = "flex items-stretch";
+// The row and its text column live in cardGeometry.ts so JobCardSkeleton (eager) can use them without this module.
+export { JOB_CARD_MEDIA_ROW, JOB_CARD_TEXT_COL } from "@/components/job/cardGeometry";
 export const JOB_CARD_MEDIA_PAD = "pl-3 pt-3 pb-3";
 // Owner 2026-11-17 (signed-in tweaks, item 5): 48 px (was 56) and a soft per-category tint (src/lib/jobCategoryTint.mjs).
 const JOB_CARD_MEDIA = "relative shrink-0 self-start w-12 h-12 overflow-hidden rounded-xl";
-export const JOB_CARD_TEXT_COL = "job-card-media-col min-w-0 flex-1";
 const JOB_CARD_FACE_ROW = "mt-1 flex h-5 items-center gap-1.5 min-w-0 text-ds-11 text-muted-foreground";
 
 /**

@@ -15,7 +15,7 @@
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx |       ariaPressed={on} |       ariaPressed={false}
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx |       pressed={on} |       pressed={false}
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx |       pressedColor="hsl(var(--bark))" |       pressedColor="hsl(var(--foreground))"
- * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx |       bare compact |       bare
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx |       bare\n      icon={<Columns2 |       bare compact\n      icon={<Columns2
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | <div className="basis-full min-w-0 order-1" data-applicant-details=""> | <div className="min-w-0 order-1" data-applicant-details="">
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | className="font-display font-bold truncate | className="font-display font-bold
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx |         className="w-11 shrink-0 px-0" |         className="w-11 shrink-0 px-0 !rounded-ds-sm"
@@ -69,21 +69,22 @@ function renderPanel(applications: EnrichedApplication[]) {
 }
 
 describe("applicant card: Compare up top, a round decline (owner 2026-10-29)", () => {
-  it("Compare is a plain icon in the top-right icon row, immediately left of the note icon, styled exactly like it", () => {
+  it("Compare is a plain icon in the top-right icon row, immediately left of the row's \"...\" menu", () => {
+    // Jobs audit 11-21 (G10): the note, Report and Block icons beside it are one labelled "..." menu now
+    // (ApplicantMoreMenu); Compare keeps the owner's 10-29 plain icon, left of it.
     const region = renderPanel([app("a1", "helper-1", "Yusef Harris"), app("a2", "helper-2", "Ann Boudreaux")]);
     const chips = within(region).getAllByRole("button", { name: /^Compare / });
     expect(chips.length).toBe(2);
     for (const chip of chips) {
       const name = chip.getAttribute("aria-label")!.replace(/^Compare /, "");
-      const note = within(region).getByRole("button", { name: new RegExp(`private note on ${name}$`) });
-      expect(chip.parentElement, `${name}: Compare shares the icon row`).toBe(note.parentElement);
-      const kids = Array.from(note.parentElement!.children);
-      expect(kids.indexOf(chip), `${name}: Compare immediately left of the note icon`).toBe(kids.indexOf(note) - 1);
+      const more = within(region).getByRole("button", { name: `More for ${name}` });
+      expect(chip.parentElement, `${name}: Compare shares the icon row`).toBe(more.parentElement);
+      const kids = Array.from(more.parentElement!.children);
+      expect(kids.indexOf(chip), `${name}: Compare immediately left of the menu`).toBe(kids.indexOf(more) - 1);
       expect(chip.getAttribute("aria-pressed")).toBe("false");
-      // The same shared icon button as its neighbours: identical classes and tap-area size, no ring or pill.
-      expect(chip.className, `${name}: Compare looks exactly like the note icon`).toBe(note.className);
-      expect(chip.getAttribute("style"), `${name}: same tap-area size as the note icon`).toBe(note.getAttribute("style"));
       expect(chip.querySelector(".rounded-full, .border, .btn-grad-primary"), `${name}: no circle, border or pill`).toBeNull();
+      // A 44px target like the menu beside it (Jobs audit 11-21, G10), never the old 32px compact icon.
+      expect(chip.className, `${name}: Compare is 44px`).toMatch(/\bh-11 w-11\b/);
     }
     // No Compare checkbox (the old bottom row) on the phone card.
     expect(within(region).queryByRole("checkbox", { name: /^Compare / })).toBeNull();

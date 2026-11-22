@@ -60,7 +60,8 @@ export function CompareChip({ id, name, ids, toggle }: { id: string; name: strin
   const full = !on && ids.length >= COMPARE_MAX;
   return (
     <IconActionButton
-      bare compact
+      // Jobs audit 11-21 (G10): 44px, as the "..." menu beside it (it was 32px, matching the icons the menu replaced).
+      bare
       icon={<Columns2 className="w-4 h-4" style={on ? { fill: "hsl(var(--bark) / 0.22)" } : undefined} aria-hidden="true" />}
       ariaLabel={`Compare ${name}`}
       ariaPressed={on}
@@ -73,6 +74,27 @@ export function CompareChip({ id, name, ids, toggle }: { id: string; name: strin
 }
 
 type DistanceOf = (app: EnrichedApplication) => string | null;
+
+/** Payout setup is the Helpr's step at THEIR accept (20261003193541); a poster can always send the offer. */
+const PAYOUT_NOT_YET = "Not yet. You can still hire";
+const NONE = "—";
+
+/**
+ * The compare sheet's rows (Jobs audit 11-21, G11). "Can be hired now: Payout setup not finished" sat over a Hire button
+ * that works (a single job's Hire is an offer; the payout gate is at the Helpr's accept), so the row says what it is:
+ * "Payout set up: Not yet. You can still hire". A row with nothing for anyone picked (Distance all dashes when no
+ * distance is known, no notes) is left out instead of a line of dashes.
+ */
+export function compareRows(picked: EnrichedApplication[], { idOn, distanceOf }: { idOn: boolean; distanceOf: DistanceOf }) {
+  const rows: { label: string; value: (a: EnrichedApplication) => string }[] = [
+    { label: "Rating", value: (a) => ((a.reviewCount ?? 0) > 0 ? `${(a.avgRating ?? 0).toFixed(1)} from ${a.reviewCount}` : "No reviews yet") },
+    { label: "ID checked", value: (a) => (a.profiles?.is_id_verified === true ? "Yes" : idOn ? "Not yet" : "No") },
+    { label: "Payout set up", value: (a) => (a.profiles?.is_payout_ready === true ? "Yes" : PAYOUT_NOT_YET) },
+    { label: "Distance", value: (a) => distanceOf(a) ?? NONE },
+    { label: "Their note", value: (a) => (a.message && !a.flagged_hidden ? `"${a.message}"` : NONE) },
+  ];
+  return rows.filter((r) => picked.some((a) => r.value(a) !== NONE));
+}
 
 /** The sticky bar once 2+ are picked, and the side-by-side sheet it opens. */
 export function CompareBar({
@@ -97,13 +119,12 @@ export function CompareBar({
   const picked = ids.map((id) => apps.find((a) => a.id === id)).filter((a): a is EnrichedApplication => !!a);
   if (picked.length < 2) return null;
   const name = (a: EnrichedApplication) => formatName(a.profiles?.full_name, "Helpr");
-  const rows: { label: string; value: (a: EnrichedApplication) => string }[] = [
-    { label: "Rating", value: (a) => ((a.reviewCount ?? 0) > 0 ? `${(a.avgRating ?? 0).toFixed(1)} from ${a.reviewCount}` : "No reviews yet") },
-    { label: "ID checked", value: (a) => (a.profiles?.is_id_verified === true ? "Yes" : idOn ? "Not yet" : "No") },
-    { label: "Can be hired now", value: (a) => (a.profiles?.is_payout_ready === true ? "Yes" : "Payout setup not finished") },
-    { label: "Distance", value: (a) => distanceOf(a) ?? "—" },
-    { label: "Their note", value: (a) => (a.message && !a.flagged_hidden ? `"${a.message}"` : "—") },
-  ];
+  const rows = compareRows(picked, { idOn, distanceOf });
+  const hire = (a: EnrichedApplication) => {
+    setOpen(false);
+    clear();
+    onHire(a);
+  };
   return (
     <>
       <div className={`sticky bottom-safe-nav z-10 flex items-center justify-between gap-3 rounded-full border border-border bg-card px-4 py-2 shadow-[var(--card-shadow)] ${barClassName ?? ""}`} data-compare-bar="">
@@ -120,13 +141,34 @@ export function CompareBar({
           }}
         >
           <SheetHero title={`Comparing ${picked.length}`} />
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[420px] border-collapse text-left text-ds-13">
+          {/* Jobs audit 11-21 (G11): on a phone the side-by-side table ran off the right edge (min-w-[420px] in a 375 sheet:
+              "No reviews...", "Payout set..." and the second Hire clipped, no scroll cue). Below sm each applicant is a
+              card of its own, stacked; from sm the table fits and stays. */}
+          <div className="space-y-3 sm:hidden" data-compare-cards="">
+            {picked.map((a) => (
+              <section key={a.id} className="rounded-2xl border border-border p-4" aria-label={name(a)}>
+                <h3 className="text-ds-15 font-bold">{name(a)}</h3>
+                <dl className="mt-2 space-y-1.5 text-ds-13">
+                  {rows.map((r) => (
+                    <div key={r.label} className="flex items-baseline justify-between gap-3">
+                      <dt className="shrink-0 font-semibold text-muted-foreground">{r.label}</dt>
+                      <dd className="min-w-0 text-right [overflow-wrap:anywhere]">{r.value(a)}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <Button variant="outline" className="mt-3 w-full rounded-full" onClick={() => hire(a)}>
+                  Hire {name(a).split(" ")[0]}
+                </Button>
+              </section>
+            ))}
+          </div>
+          <div className="hidden sm:block">
+            <table className="w-full table-fixed border-collapse text-left text-ds-13">
               <thead>
                 <tr>
-                  <th className="w-28 py-2" />
+                  <th className="w-32 py-2" />
                   {picked.map((a) => (
-                    <th key={a.id} scope="col" className="py-2 pr-3 text-ds-15 font-bold">{name(a)}</th>
+                    <th key={a.id} scope="col" className="py-2 pr-3 text-ds-15 font-bold [overflow-wrap:anywhere]">{name(a)}</th>
                   ))}
                 </tr>
               </thead>
@@ -135,7 +177,7 @@ export function CompareBar({
                   <tr key={r.label} className="border-t border-border align-top">
                     <th scope="row" className="py-2 pr-3 font-semibold text-muted-foreground">{r.label}</th>
                     {picked.map((a) => (
-                      <td key={a.id} className="py-2 pr-3">{r.value(a)}</td>
+                      <td key={a.id} className="py-2 pr-3 [overflow-wrap:anywhere]">{r.value(a)}</td>
                     ))}
                   </tr>
                 ))}
@@ -143,15 +185,7 @@ export function CompareBar({
                   <th scope="row" className="py-2 pr-3" />
                   {picked.map((a) => (
                     <td key={a.id} className="py-2 pr-3">
-                      <Button
-                        variant="outline"
-                        className="w-full rounded-full"
-                        onClick={() => {
-                          setOpen(false);
-                          clear();
-                          onHire(a);
-                        }}
-                      >
+                      <Button variant="outline" className="w-full rounded-full" onClick={() => hire(a)}>
                         Hire {name(a).split(" ")[0]}
                       </Button>
                     </td>

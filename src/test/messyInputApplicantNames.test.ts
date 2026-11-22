@@ -20,7 +20,8 @@
  *     messyInputForms.ts names an `id` that exists in src/.
  *
  * @mutate src/components/job-card/JobStepCard.tsx | const isMoreOnly = (_c: ReactNode) => true; | const isMoreOnly = (_c: ReactNode) => false;
- * @mutate e2e/prod-audit/applicantCardNames.ts | export const PRIVATE_NOTE_BUTTON = /^(add a\|edit your) private note on /i; | export const PRIVATE_NOTE_BUTTON = /add private note/i;
+ * @mutate e2e/prod-audit/applicantCardNames.ts | export const PRIVATE_NOTE_BUTTON = /^(add a\|edit your) private note$/i; | export const PRIVATE_NOTE_BUTTON = /add private note/i;
+ * @mutate e2e/prod-audit/applicantCardNames.ts | export const APPLICANT_MORE_BUTTON = /^more for /i; | export const APPLICANT_MORE_BUTTON = /^more options$/i;
  * @mutate e2e/prod-audit/applicantCardNames.ts | export const MORE_PANEL = /^more actions for this job$/i; | export const MORE_PANEL = /^more$/i;
  * @mutate e2e/prod-audit/messy-input.spec.ts | (owner, 2026-10-09)").toHaveCount(0);\n    await page.locator("#zipCode").fill("1234"); | (owner, 2026-10-09)").toHaveCount(0);\n    await page.locator("#dob").fill("1234");
  */
@@ -30,6 +31,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 import {
+  APPLICANT_MORE_BUTTON,
   APPLICANTS_PRIMARY,
   CANCEL_JOB_CHIP,
   DECLINE_BUTTON,
@@ -83,10 +85,14 @@ describe("the applicant sweeps' names match what the app renders", () => {
   });
 
   it("the private-note and decline buttons match", () => {
-    const panel = code("src/pages/posts/postedJobs/ApplicantsPanel.tsx");
-    const notes = [...panel.matchAll(/`((?:Add a|Edit your) private note on [^`]*)`/g)].map((m) => fill(m[1], "Hallie"));
-    expect(notes.length, "ApplicantsPanel's note button names moved").toBe(2);
+    // Jobs audit 11-21 (G10): the note is a row of the applicant's "..." menu (ApplicantMoreMenu, "More for <name>").
+    const menu = code("src/pages/posts/postedJobs/applicantsPanel/ApplicantMoreMenu.tsx");
+    const notes = [...menu.matchAll(/"((?:Add a|Edit your) private note)"/g)].map((m) => m[1]);
+    expect(notes.length, "ApplicantMoreMenu's note row names moved").toBe(2);
     for (const n of notes) expect(n).toMatch(PRIVATE_NOTE_BUTTON);
+    const more = menu.match(/aria-label=\{`(More for [^`]*)`\}/);
+    expect(more, "ApplicantMoreMenu's trigger name moved").not.toBeNull();
+    expect(fill(more![1], "Hallie")).toMatch(APPLICANT_MORE_BUTTON);
     const hire = code("src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx");
     const decline = hire.match(/aria-label=\{`(Decline [^`]*)`\}/);
     expect(decline, "ApplicantHireRow's decline name moved").not.toBeNull();

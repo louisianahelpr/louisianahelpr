@@ -55,3 +55,12 @@ export const JOB_CARD_META = "mt-1.5 flex flex-col gap-0.5 text-ds-11 leading-ti
  */
 export const JOB_CATEGORY_TAB_FRAME =
   "job-category-tab inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-ds-10 font-semibold leading-none shadow-sm";
+
+/** Photo-first rows (Q2043): the tile and the text column side by side. Shared with the pre-boot Browse shell
+ *  (src/lib/browseShellCards.mjs), which must match byte for byte, and with JobCardSkeleton (Jobs audit 11-21, P10). */
+export const JOB_CARD_MEDIA_ROW = "flex items-stretch";
+/** The text column beside the tile; `job-card-media-col` is the container index.css's meta-row query reads (P9). */
+export const JOB_CARD_TEXT_COL = "job-card-media-col min-w-0 flex-1";
+/** The feed card's ROW frame (every Browse card that is not a photo hero): a hairline under it, no box. JobCard and
+ *  JobCardSkeleton both wear it, so the bones' frame is the row's by construction (Jobs audit 11-21, P10). */
+export const JOB_CARD_ROW_FRAME = "group relative h-full cursor-pointer border-b border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";

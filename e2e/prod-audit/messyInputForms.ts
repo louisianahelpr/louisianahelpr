@@ -8,7 +8,7 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { TEXTLIKE, runtime, settle, type Account } from "./harness";
-import { APPLICANTS_PRIMARY, CANCEL_JOB_CHIP, DECLINE_BUTTON, EDIT_JOB_CHIP, MORE_BUTTON, MORE_PANEL, PRIVATE_NOTE_BUTTON } from "./applicantCardNames";
+import { APPLICANT_MORE_BUTTON, APPLICANTS_PRIMARY, CANCEL_JOB_CHIP, DECLINE_BUTTON, EDIT_JOB_CHIP, MORE_BUTTON, MORE_PANEL, PRIVATE_NOTE_BUTTON } from "./applicantCardNames";
 
 export interface FormSpec {
   name: string;
@@ -763,7 +763,9 @@ export const FORMS: FormSpec[] = [
     name: "applicants-note", url: "/posts", as: "poster",
     prepare: async (page) => {
       await openApplicantsPanel(page);
-      await page.getByRole("button", { name: PRIVATE_NOTE_BUTTON }).first().click();
+      // Jobs audit 11-21 (G10): the note is a row of the applicant's "..." menu.
+      await page.getByRole("button", { name: APPLICANT_MORE_BUTTON }).first().click();
+      await page.getByRole("menuitem", { name: PRIVATE_NOTE_BUTTON }).click();
       await page.getByRole("textbox", { name: /^private note$/i }).waitFor({ timeout: 15_000 });
     },
     covers: ["src/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote.tsx"],

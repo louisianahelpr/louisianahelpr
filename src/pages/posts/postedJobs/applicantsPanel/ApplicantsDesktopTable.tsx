@@ -1,15 +1,12 @@
 import { TopHelprChip } from "@/components/profile/TopHelprChip";
-import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { ApplicantSuggestedTime } from "./ApplicantSuggestedTime";
 import { useEffect, useState } from "react";
-import { ArrowUp, Ban, Flag, MapPin, NotebookPen, Sparkles, Star } from "lucide-react";
+import { ArrowUp, MapPin, Sparkles, Star } from "lucide-react";
+import { ApplicantMoreMenu } from "./ApplicantMoreMenu";
 import UserAvatar from "@/components/UserAvatar";
 import { AttachmentLink } from "@/components/AttachmentLink";
-import { IconActionButton } from "@/components/dashboard/IconActionButton";
 import { MessageApplicantButton, canMessageApplicant } from "@/components/jobs/MessageApplicantButton";
 import type { EnrichedApplication } from "@/components/job-card/activityConstants";
-import { applicantIdNote } from "@/lib/awardGate";
-import { hapticLight } from "@/lib/haptics";
 import { STAR_ON_CLS } from "@/lib/starColor";
 import { formatName } from "@/lib/utils";
 import { ApplicantStatusBadge } from "../ApplicantStatusBadge";
@@ -102,7 +99,6 @@ export function ApplicantsDesktopTable({
   onBlock: (app: EnrichedApplication) => void;
 }) {
   // The "verifies their ID when they accept" note only while the ID check is on (owner 2026-10-23: off).
-  const idOn = useIdentityCheckOnStore();
   const completed = (a: EnrichedApplication) => completedCountsMap.get(a.helper_id) ?? 0;
   const inCategory = (a: EnrichedApplication) => (categoryCounts ? categoryCounts.get(a.helper_id) ?? 0 : undefined);
   const distanceOf = (a: EnrichedApplication) => rows.find((r) => r.app.id === a.id)?.distanceBand?.label ?? null;
@@ -180,11 +176,6 @@ export function ApplicantsDesktopTable({
                     {/* Q2478: the trust line and reply speed, as on the phone's applicant card. */}
                     <ApplicantTrustLine helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} />
                     <ApplicantSuggestedTime app={app} jobStartTime={jobStartTime} />
-                    {idOn && app.profiles && app.profiles.is_id_verified !== true && (
-                      <span className="mt-0.5 block text-ds-11 text-muted-foreground" data-applicant-id-note="">
-                        {applicantIdNote(formatName(app.profiles.full_name, ""))}
-                      </span>
-                    )}
                   </td>
                   <td className="px-3 py-3 text-ds-13">At your price</td>
                   <td className="px-3 py-3">
@@ -217,11 +208,10 @@ export function ApplicantsDesktopTable({
                   <td className="px-3 py-3">
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex gap-0.5">
-                        <IconActionButton bare compact icon={<NotebookPen className="h-4 w-4" />}
-                          ariaLabel={notes.applicantNotes[app.id] ? `Edit your private note on ${helperName}` : `Add a private note on ${helperName}`}
-                          onClick={() => { hapticLight(); notes.setNoteEditing(app.id); notes.setNoteDraft(notes.applicantNotes[app.id] ?? ""); }} />
-                        <IconActionButton bare compact icon={<Flag className="h-4 w-4" />} ariaLabel={`Report ${helperName}'s application`} onClick={() => { hapticLight(); onReport(app); }} />
-                        <IconActionButton bare compact icon={<Ban className="h-4 w-4" style={{ color: "hsl(var(--danger-ink))" }} />} ariaLabel={`Block ${helperName}`} onClick={() => { hapticLight(); onBlock(app); }} />
+                        {/* Jobs audit 11-21 (G10): note, Report and Block in the one labelled "..." menu, as on the cards. */}
+                        <ApplicantMoreMenu helperName={helperName} hasNote={!!notes.applicantNotes[app.id]}
+                          onNote={() => { notes.setNoteEditing(app.id); notes.setNoteDraft(notes.applicantNotes[app.id] ?? ""); }}
+                          onReport={() => onReport(app)} onBlock={() => onBlock(app)} />
                       </div>
                       {app.status === "pending" ? (
                         <ApplicantHireRow jobId={jobId} helperId={app.helper_id} helperName={helperName}

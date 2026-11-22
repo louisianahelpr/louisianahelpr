@@ -158,7 +158,7 @@ const NAME_TAGS: [RegExp, QuizInto][] = [
   [/\b(fuzzy|sherpa|fleece|flannel|lounge|weighted|plush)\b/i, "cozy"],
 ];
 /** Gift types the cozy name words never tag (a "fleece lined" boot is not Cozy & home). */
-const NOT_COZY_TYPES = new Set(["hair-perfume", "skincare", "lip", "lip-balm", "hair-towel", "skincare-set", "makeup", "gift-set", "fragrance", "hair", "beauty-device", "grooming", "soap", "body-wash", "lotion", "shave", "shoes", "boots"]);
+const NOT_COZY_TYPES = new Set(["skincare", "lip", "lip-balm", "hair-towel", "skincare-set", "makeup", "gift-set", "fragrance", "hair", "beauty-device", "grooming", "soap", "body-wash", "lotion", "shave", "shoes", "boots"]);
 /** Per-pick fixes where the type and name rules misfire (by the pick's name; checked by eye, 11-21 PM). */
 const TAG_OVERRIDES: [RegExp, QuizInto[]][] = [
   // A keychain video camera is a gadget, not a style piece.

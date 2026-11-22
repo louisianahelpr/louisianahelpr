@@ -314,7 +314,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/info/holidays/HolidayHub.tsx` | input×1 | search |  | Search lights and events · Close search · Filters on |
+| `src/pages/info/holidays/HolidayHub.tsx` | input×1 | search |  | Name or town · Close search · Filters on |
 
 ## /home
 

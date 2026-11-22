@@ -4,7 +4,7 @@
  * src/content/holidayHub/holidayHub.mjs. Guard: src/test/holidayHub.test.tsx.
  */
 import { useEffect, useState, type ReactNode } from "react";
-import { MapPin } from "lucide-react";
+import { CalendarPlus, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
 import { mapsSearchUrl } from "@/lib/mapsLink";
@@ -20,6 +20,15 @@ export function useHolidayPageView(page: "holidays" | "holidays_hire") {
   useEffect(() => {
     track("page_view", { page });
   }, [page]);
+}
+
+/** The item's calendar entry, saved or shared (the file helper and the .ics builder load on tap only). */
+async function addToCalendar(item: HolidayItem) {
+  const [{ holidayIcs, holidayIcsName }, { saveOrShareFile }] = await Promise.all([import("@/lib/holidayIcs"), import("@/lib/fileExport")]);
+  const text = holidayIcs(item, new Date());
+  if (!text) return;
+  track("holiday_ics_click", { id: item.id, region: item.region });
+  await saveOrShareFile({ blob: new Blob([text], { type: "text/calendar" }), filename: holidayIcsName(item), label: item.name, source: "holidayHub.ics" });
 }
 
 /**
@@ -76,6 +85,13 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
             className="inline-flex min-h-11 shrink-0 items-center text-ds-13 font-semibold text-[hsl(var(--olivewood))] no-underline hover:underline focus-visible:underline">
             Website<span className="sr-only"> for {item.name} (opens in a new tab)</span>
           </a>
+        )}
+        {/* Holiday audit 1121 area 5 #20: a dated item goes into the visitor's calendar (an all-day .ics entry). */}
+        {item.start && !item.tba && (
+          <button type="button" onClick={() => void addToCalendar(item)} aria-label={`Add ${item.name} to your calendar`} data-holiday-ics={item.id}
+            className="inline-flex h-11 w-9 shrink-0 items-center justify-center text-[hsl(var(--olivewood))] hover:text-[hsl(var(--bark))]">
+            <CalendarPlus className="h-4 w-4" aria-hidden />
+          </button>
         )}
         {item.note && item.note.length > 60 && !more && (
           <button type="button" onClick={() => setMore(true)} data-holiday-more={item.id}

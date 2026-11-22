@@ -640,3 +640,72 @@ describe("Holiday Hub When: Today and Next 7 days", () => {
     expect(document.querySelector('[data-holiday-active-chip="when"]')?.textContent).toContain("Next 7 days");
   });
 });
+
+/**
+ * Holiday audit 1121 area 5 #20 (rest): a dated item goes into the visitor's calendar as an all-day .ics entry from
+ * its own dates; an undated one has no button and no entry.
+ * @mutate src/lib/holidayIcs.ts |   if (item.tba \|\| !item.start \|\| !/^\d{4}-\d{2}-\d{2}$/.test(item.start)) return null; |   if (!item.start) return null;
+ * @mutate src/lib/holidayIcs.ts |     `DTEND;VALUE=DATE:${ymd(dayAfter(last))}`, |     `DTEND;VALUE=DATE:${ymd(last)}`,
+ * @mutate src/lib/holidayIcs.ts | .replace(/;/g, "\\;") |
+ * @mutate src/pages/info/holidays/holidayParts.tsx |         {item.start && !item.tba && ( |         {false && (
+ */
+/**
+ * Holiday audit 1121 area 5 #5 (rest): the days more than two weeks out and "Dates TBA" fold under one closed "Later
+ * dates"; a When filter or a search shows every group open.
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |   const folds = when === "all" && !query.trim(); |   const folds = false;
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |   const isLater = (g: (typeof groups)[number]) => folds && (g.key === "tba" \|\| (!!g.day && g.day > foldAfter)); |   const isLater = (g: (typeof groups)[number]) => folds && g.key === "tba";
+ */
+describe("Holiday Hub: Later dates fold", () => {
+  const today = "2026-11-20";
+  const at = (path: string, el: React.ReactElement) => render(<MemoryRouter initialEntries={[path]}>{el}</MemoryRouter>);
+  const shownIds = (c: HTMLElement) => [...c.querySelectorAll("[data-holiday-item]")].map((el) => el.getAttribute("data-holiday-item")!);
+  it("days past two weeks and Dates TBA sit in a closed Later dates; the next two weeks stay open", () => {
+    const { container, unmount } = at("/holidays", <HolidayHub />);
+    const later = container.querySelector<HTMLDetailsElement>("details[data-holiday-later]")!;
+    expect(later).not.toBeNull();
+    expect(later.open).toBe(false);
+    const inLater = [...later.querySelectorAll("h2")].map((h) => h.textContent ?? "");
+    expect(inLater[inLater.length - 1]).toMatch(/^Dates TBA/);
+    expect(inLater.some((h) => /December 2[0-9]/.test(h))).toBe(true);
+    const open = [...container.querySelectorAll("h2")].filter((h) => !later.contains(h)).map((h) => h.textContent ?? "");
+    expect(open[0]).toMatch(/^Happening now/);
+    expect(open.some((h) => /December 2[0-9]/.test(h))).toBe(false);
+    // Every item is still on the page (folded, not dropped).
+    expect(shownIds(container).length).toBe(filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {}, today).length);
+    unmount();
+    const week = at("/holidays?when=week", <HolidayHub />);
+    expect(week.container.querySelector("details[data-holiday-later]")).toBeNull();
+  });
+});
+
+describe("Holiday Hub: Add to calendar", () => {
+  it("an all-day entry from the item's own first to last day (DTEND the day after), its text escaped", async () => {
+    const { holidayIcs } = await import("@/lib/holidayIcs");
+    const run = HOLIDAY_EVENTS.find((e) => e.start && e.end && e.end > e.start && !e.tba)!;
+    const ics = holidayIcs(run, new Date("2026-11-21T18:00:00Z"))!;
+    expect(ics).toContain(`DTSTART;VALUE=DATE:${run.start!.replace(/-/g, "")}`);
+    const after = new Date(`${run.end}T12:00:00Z`);
+    after.setUTCDate(after.getUTCDate() + 1);
+    expect(ics).toContain(`DTEND;VALUE=DATE:${after.toISOString().slice(0, 10).replace(/-/g, "")}`);
+    expect(ics).toMatch(/^BEGIN:VCALENDAR\r\n/);
+    expect(ics).toContain(`UID:${run.id}@louisianahelpr.com`);
+    for (const line of ics.split("\r\n")) expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75);
+    const odd = holidayIcs({ ...run, name: "Pie, Coffee; and Lights" }, new Date())!;
+    expect(odd).toContain("SUMMARY:Pie\\, Coffee\\; and Lights");
+    expect(holidayIcs({ ...run, tba: true }, new Date())).toBeNull();
+    expect(holidayIcs({ ...run, start: null }, new Date())).toBeNull();
+  });
+  it("dated cards carry the button; undated ones do not", () => {
+    const { container } = render(<MemoryRouter initialEntries={["/holidays"]}><HolidayHub /></MemoryRouter>);
+    const items = [...HOLIDAY_LIGHTS, ...HOLIDAY_EVENTS];
+    const cards = [...container.querySelectorAll("[data-holiday-item]")];
+    let dated = 0;
+    for (const c of cards) {
+      const i = items.find((x) => x.id === c.getAttribute("data-holiday-item"))!;
+      const has = Boolean(i.start && !i.tba);
+      dated += has ? 1 : 0;
+      expect(Boolean(c.querySelector("[data-holiday-ics]")), i.id).toBe(has);
+    }
+    expect(dated).toBeGreaterThan(50);
+  });
+});

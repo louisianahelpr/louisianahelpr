@@ -19,7 +19,7 @@
  */
 import { useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { FilterChip } from "@/components/ui/FilterChip";
@@ -47,6 +47,14 @@ const COST_OPTIONS: Option[] = [{ value: "all", label: "Any" }, { value: "free",
 const pick = <T extends string>(v: string | null, allowed: readonly Option[]): T | "all" =>
   v && allowed.some((o) => o.value === v) ? (v as T) : "all";
 const labelOf = (options: readonly Option[], value: string) => options.find((o) => o.value === value)?.label ?? value;
+
+/** Day groups more than this many days out fold under "Later dates" (holiday audit 1121 area 5 #5). */
+const LATER_AFTER_DAYS = 14;
+const addDaysYmd = (ymd: string, n: number) => {
+  const d = new Date(`${ymd}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
 
 /** The search (owner 2026-11-21): every word typed is in the name, the town, the address or the region. */
 function matchesQuery(item: HolidayItem, query: string): boolean {
@@ -131,6 +139,17 @@ export default function HolidayHub() {
     [what, region, cost, when, today, minutes, query],
   );
   const groups = useMemo(() => holidayItemsByDay(shown, today), [shown, today]);
+  // The fold line: two weeks out (Later dates), unless a When filter or a search narrows the list.
+  const foldAfter = addDaysYmd(today, LATER_AFTER_DAYS);
+  const folds = when === "all" && !query.trim();
+  const isLater = (g: (typeof groups)[number]) => folds && (g.key === "tba" || (!!g.day && g.day > foldAfter));
+  const soon = groups.filter((g) => !isLater(g));
+  const later = groups.filter(isLater);
+  const section = (g: (typeof groups)[number]) => (
+    <HolidaySection key={g.key} id={`holidays-${g.key}`} title={g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : g.key === "lights-tba" ? W.lightsTba : DATES_TBA} count={g.items.length}>
+      {g.items.map((i) => <HolidayCard key={i.id} item={i} kind={isHolidayLight(i) ? "light" : "event"} tag={tagFor(i)} />)}
+    </HolidaySection>
+  );
   // With Free or Paid on, the count line says how many more have no cost listed (#3), so none drop out unsaid.
   const unlisted = useMemo(
     () => (cost === "free" || cost === "paid" ? filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {
@@ -222,11 +241,20 @@ export default function HolidayHub() {
             {when !== "all" ? `Nothing matches these filters ${WHEN_NOTHING[when]}.` : "Nothing matches these filters."}
           </HolidayNothing>
         ) : (
-          groups.map((g) => (
-            <HolidaySection key={g.key} id={`holidays-${g.key}`} title={g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : g.key === "lights-tba" ? W.lightsTba : DATES_TBA} count={g.items.length}>
-              {g.items.map((i) => <HolidayCard key={i.id} item={i} kind={isHolidayLight(i) ? "light" : "event"} tag={tagFor(i)} />)}
-            </HolidaySection>
-          ))
+          <>
+            {soon.map(section)}
+            {/* Holiday audit 1121 area 5 #5: the days more than two weeks out and "Dates TBA" fold under one "Later dates"
+                (closed), so the page opens on what is coming up. A When filter or a search shows every group open. */}
+            {later.length > 0 && (
+              <details className="group space-y-section" data-holiday-later="">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-ds-20 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+                  Later dates<span className="text-ds-15 font-normal text-muted-foreground">({later.reduce((n, g) => n + g.items.length, 0)})</span>
+                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+                </summary>
+                <div className="space-y-section">{later.map(section)}</div>
+              </details>
+            )}
+          </>
         )}
         <p className="text-ds-14 text-muted-foreground">{W.checkFirst}</p>
         <p className="text-ds-14 text-muted-foreground">

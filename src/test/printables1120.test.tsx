@@ -301,7 +301,7 @@ describe("printables audit 1121 area 5: previews, covers, page counts", () => {
     expect(covers).toEqual(["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"]);
     for (const cover of covers) expect(existsSync(join("public", cover!))).toBe(true);
     const buttons = [...card.querySelectorAll("[data-printable-download]")].map((b) => b.textContent);
-    expect(buttons).toEqual(["Girls book", "Boys book"]);
+    expect(buttons).toEqual(["Girls book ›", "Boys book ›"]);
     // The count is the PDFs' own (their page tree's /Count), so a re-exported book with more pages turns this red.
     for (const f of ["girls", "boys"]) {
       const pdf = readFileSync(join("public/printables/coloring-book", `christmas-coloring-book-${f}.pdf`), "latin1");
@@ -312,7 +312,7 @@ describe("printables audit 1121 area 5: previews, covers, page counts", () => {
   it("the banner buttons use plain words and the wide card has room (guides polish 1122 #31)", () => {
     render(<MemoryRouter initialEntries={["/gift-guides/printables/banners"]}><Printables /></MemoryRouter>);
     const card = document.querySelector('[data-printable-card="thanksgiving-banner"]')!;
-    expect([...card.querySelectorAll("[data-printable-download]")].map((b) => b.textContent)).toEqual(["12x18 print", "Wide banner"]);
+    expect([...card.querySelectorAll("[data-printable-download]")].map((b) => b.textContent)).toEqual(["12x18 print ›", "Wide banner ›"]);
     const css = [...document.querySelectorAll("style")].map((s) => s.textContent ?? "").join("\n");
     expect(Number(/\.pr-card-wide\{[^}]*max-width:(\d+)px/.exec(css)?.[1])).toBeGreaterThanOrEqual(640);
   });

@@ -1689,18 +1689,8 @@ export async function fetchMyCard(userId: string): Promise<{ brand: string | nul
   return (row ?? null) as { brand: string | null; last4: string | null } | null;
 }
 
-/** Active Declutter strikes (rows 7, 16, 17): not removed, not expired. */
-export async function fetchMyActiveStrikes(userId: string): Promise<number> {
-  const rows = unwrap(
-    await supabase
-      .from("declutter_strikes")
-      .select("id")
-      .eq("user_id", userId)
-      .is("removed_at", null)
-      .gt("expires_at", new Date().toISOString()),
-  );
-  return (rows ?? []).length;
-}
+/** Active Declutter strikes, and when each goes away: the one strikes read lives in strikes.ts (small, so the Warnings tab can read it). */
+export { fetchMyActiveStrikeEnds, fetchMyActiveStrikes } from "@/lib/declutter/strikes";
 
 /**
  * Declutter top 5 (owner 11-19): Selling's seller-tool reads go through this module, the one every Selling test

@@ -99,6 +99,12 @@ export const HIM_SHOPMY_1121 = [
   // Crossroads Backpack, Alpine Brown) had no Amazon price, so this is the same backpack and color on her existing YETI
   // pin, $160 on yeti.com 2026-11-21 (20% off $200; Alpine Brown in stock).
   ["107838580", 160, "https://static.shopmy.us/uploads/pretty-prod-1758467247287", "YETI Crossroads 22L Backpack, Alpine Brown", "YETI", "store-yeti", "backpack", 8, "A tough everyday backpack with a padded laptop sleeve."],
+  // owner 11-22 him picks (builder-guide-him): Smathers & Branson, same product in different designs side by side.
+  ["108101578", 54, "https://cdn.shopify.com/s/files/1/0767/9233/2592/files/Mallard_ClassicNavy__TumblerwithLid_LowRes.jpg", "Smathers & Branson Mallard Tervis Tumbler", "Smathers & Branson", "store-smathers-and-branson", "drinkware", 15, "A classic mallard on a Tervis tumbler with a lid."],
+  ["108104267", 54, "https://cdn.shopify.com/s/files/1/0767/9233/2592/files/World_sBestDad_Royal__TumblerwithLid_LowRes.jpg", "Smathers & Branson World's Best Dad Tervis Tumbler", "Smathers & Branson", "store-smathers-and-branson", "drinkware", 15, "A World's Best Dad Tervis tumbler for the dad who has everything."],
+  ["108108365", 35, "https://static.shopmy.us/pins/zoom-108108365-1795145239744-Mallard_Classic_Navy__Can_Cooler_Primary_Low_Res.jpg", "Smathers & Branson Mallard Can Cooler", "Smathers & Branson", "store-smathers-and-branson", "drinkware", 15, "A mallard can cooler to keep a cold one cold."],
+  ["108101625", 65, "https://cdn.shopify.com/s/files/1/0767/9233/2592/files/World_sBestDad_Royal__CCW_LowRes.jpg", "Smathers & Branson World's Best Dad Needlepoint Card Wallet", "Smathers & Branson", "store-smathers-and-branson", "wallet", 15, "A slim needlepoint card wallet for Dad."],
+  ["108108555", 155, "https://cdn.shopify.com/s/files/1/0767/9233/2592/files/Fish_and_Tackle_Dark_Navy__Toiletry_Bag_Low_Res.jpg", "Smathers & Branson Fish and Tackle Toiletry Bag", "Smathers & Branson", "store-smathers-and-branson", "bag", 15, "A needlepoint fish and tackle toiletry bag for the trip."],
 ].map(shop);
 
 /**
@@ -109,13 +115,9 @@ export const HIM_SHOPMY_1121 = [
  * price, 2026-11-21; it is in HIM_SHOPMY_1121 on her YETI pin). Prices are her list's capture; the three YETI Crossroads prices were read on Amazon 2026-11-21.
  */
 export const HIM_AMAZON_MORE_1121 = [
-  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0DVM13SRM at
-  // 3% ($300); same item and color, King Crab Orange, yeti.com: 8%, $300.
-  { name: "YETI LoadOut GoBox 60 Gear Case", brand: "YETI", line: "A tough, divided gear box for the truck bed or boat.", href: shopmy("p-109003244"), image: "https://yeti-webmedia.imgix.net/asset/6d2ff9b9-6fa5-48cd-b4d5-09f7576bc754/W/220027_site_studio_Loadout_GoBox_60_King_Crab_Front_Closed_1182_Primary_B_2400x2400.png", store: "store-yeti", sortPrice: 300, price: 300, commission: 8, type: "gear-case" },
   // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0DVM24NF8 at
   // 3% ($250); same item and color, King Crab Orange, yeti.com: 8%, $250.
   { name: "YETI LoadOut GoBox 30 Gear Case", brand: "YETI", line: "A smaller GoBox for tackle, tools or shells.", href: shopmy("p-109003412"), image: "https://yeti-webmedia.imgix.net/asset/97d8ceab-2ea8-4e68-ab47-72162d713c1b/W/220027_site_studio_Loadout_GoBox_30_King_Crab_Front_Closed_1202_Primary_B_2400x2400.png", store: "store-yeti", sortPrice: 250, price: 250, commission: 8, type: "gear-case" },
-  ["B0BSHWGY47", 218, "31jVexbfg2L", "YETI LoadOut GoBox Collection", "YETI", "gear-case", 3, "A waterproof GoBox that keeps gear dry and sorted."],
   // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0D9QX9F67 at
   // 3% ($55); same item and color, Olive/Black, yeti.com: 8%, $55.
   { name: "YETI Sidekick Dry 3L Gear Case, Olive", brand: "YETI", line: "A waterproof pouch for keys, phone and wallet on the water.", href: shopmy("p-109004058"), image: "https://yeti-webmedia.imgix.net/asset/74b4454a-9c99-4b8b-9967-8eff2a9793a1/W/site_studio_Bags_Sidekick_Dry_3L_Olive_Front_3657_Primary_B_2400x2400.png", store: "store-yeti", sortPrice: 55, price: 55, commission: 8, type: "gear-case" },
@@ -145,12 +147,6 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B08Z42695Q", 49.04, "41iS+PAvr4L", "SITKA Mid Pro Trucker Hat", "SITKA", "hat", 4, "A SITKA trucker hat for the field."],
   ["B002OSXDTG", 129.95, "31k8tX0z0KL", "LaCrosse Burly Air Grip 18 in. Boots", "LaCrosse", "boots", 4, "Tall rubber boots built for the marsh."],
   ["B00AQG9MGG", 88.92, "31ZTfBVeDRL", "MUCK Chore Cool Tall Boot", "MUCK", "boots", 4, "Tall, breathable work boots for the yard and barn."],
-  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0GV4BKM4W at 4% ($135); the same Bison/Duck Camo fleece-lined boot
-  // (xtratuf.com xmadbc90, 8/8 sizes) at xtratuf.com through CJ at 15%, $135 list, $101.25 with XT25 (through Nov 29).
-  { name: "XTRATUF Fleece Lined Ankle Deck Boot", brand: "XTRATUF", line: "A fleece-lined deck boot for cold mornings.", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmadbc90", image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/xmadbc90_g.jpg", store: "store-xtratuf", sortPrice: 135, price: 135, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
-  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B082JHQP7N at 4% ($105); the same brown Wheelhouse (xmw900) at
-  // xtratuf.com through CJ at 15%, $140 list, $105 with XT25 (through Nov 29), the Amazon price.
-  { name: "XTRATUF 6 in. Wheelhouse Ankle Deck Boot", brand: "XTRATUF", line: "A leather deck boot that goes from dock to dinner.", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmw900", image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMW900_gray_main_1400x1400_52c3f283-fa90-4227-8a07-ddfdcbc1acc6.jpg", store: "store-xtratuf", sortPrice: 140, price: 140, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
   // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0998FYXLS at 4% ($93.75); the same Mossy Oak Bottomland boot (xmabmob)
   // at xtratuf.com through CJ at 15%, $125 list, $93.75 with XT25 (through Nov 29), the Amazon price.
   { name: "XTRATUF Mossy Oak Bottomland Ankle Deck Boot", brand: "XTRATUF", line: "Deck boots in Mossy Oak Bottomland camo.", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabmob", image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMABMOB_gray_main_720x720_d16b4d27-7fc1-4833-a83f-06939c86fdb4.jpg", store: "store-xtratuf", sortPrice: 125, price: 125, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
@@ -202,7 +198,6 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B0FN3P492D", 49.99, "31rN+NqCvaL", "HOTO EdgeFlow Electric Box Cutter", "HOTO", "tool", 3, "A rechargeable cutter that opens boxes fast."],
   ["B00FXPT15C", 69.99, "416bwTpRNHL", "Carhartt Paxton Quarter Zip Sweatshirt", "Carhartt", "pullover", 4, "A heavyweight Carhartt quarter zip."],
   ["B0FYR14JVY", 32.23, "41WBx16LZfL", "Carhartt Oil Tan Leather Passcase Wallet", "Carhartt", "wallet", 4, "A brown leather wallet that wears in well."],
-  ["B01MR53G6C", 22.59, "51bhNzOWW-L", "RAK Magnetic Pickup Tool", "RAK", "tool", 3, "A magnetic pickup tool with a light."],
   ["B0FWRPFVF6", 135.99, "4180sHSFv2L", "HOTO 25-Piece Tool Kit with Drill", "HOTO", "tool", 3, "A cordless drill and household tool kit in one case."],
   // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0F22HTHMJ at
   // 3% ($408.5); same item and color, Tan, onwardreserve.com/products/turtlebox-gen-3-speaker-tan: 15%, $430.

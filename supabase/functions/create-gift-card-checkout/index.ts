@@ -9,6 +9,7 @@ import { posterCardCostFeeCents } from "../_shared/posterFees.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { isPartyRefusal, stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor, type StripeMode } from "../_shared/stripeMode.ts";
 import { withWalletCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
+import { exactDollars } from "../_shared/exactDollars.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,10 +106,10 @@ serve(async (req) => {
     }
     const amountCents = Math.round(amountDollars * 100);
     if (amountCents < MIN_GIFT_CENTS) {
-      return fail(400, `The smallest gift is $${(MIN_GIFT_CENTS / 100).toFixed(0)}.`);
+      return fail(400, `The smallest gift is ${exactDollars(MIN_GIFT_CENTS)}.`);
     }
     if (amountCents > MAX_GIFT_CENTS) {
-      return fail(400, `The largest single gift is $${(MAX_GIFT_CENTS / 100).toFixed(0)}.`);
+      return fail(400, `The largest single gift is ${exactDollars(MAX_GIFT_CENTS)}.`);
     }
 
     // ── Recipient validation ──
@@ -266,7 +267,8 @@ serve(async (req) => {
             // User-visible: appears on the Stripe checkout page and emailed receipt.
             name: "Louisiana Helpr gift card",
             description:
-              `A $${(amountCents / 100).toFixed(0)} Louisiana Helpr credit for ${recipientEmail} to get help when they need it.`,
+              // Deep audit 1122 #4: the exact amount charged ($20.85, never $21).
+              `A ${exactDollars(amountCents)} Louisiana Helpr credit for ${recipientEmail} to get help when they need it.`,
             // Platform service — not subject to LA sales tax.
             tax_code: NONTAXABLE_TAX_CODE,
           },

@@ -472,6 +472,12 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(cardHoldCopy|listedPaymentStatus|cardHoldPlan)\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/$2.ts";`,
   );
+  // Deep audit 1122 #4: `_shared/exactDollars.ts` has ZERO imports (the exact-cents money words a gift's notice,
+  // email and Stripe line use), so the REAL module serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/exactDollars\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/exactDollars.ts";`,
+  );
   // `_shared/cardHoldPlan.ts` imports only pure siblings (cancellationFee,
   // salesTax, threeDSecure), so the REAL module serves; cardHold.ts both
   // imports from it and re-exports it (`export {...} from`).

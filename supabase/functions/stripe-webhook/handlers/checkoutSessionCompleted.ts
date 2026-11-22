@@ -33,6 +33,7 @@ import { SHOP_BALANCE_KIND } from "../../_shared/shopBalance.ts";
 import { isCardHoldSession, settleCardHoldCheckout } from "./cardHoldCheckout.ts";
 import { memberDisplayName } from "../../_shared/memberDisplayName.ts";
 import { pageGiftLeftSpentOnCardFunding } from "./_giftLeftSpentOnCardFunding.ts";
+import { exactDollars } from "../../_shared/exactDollars.ts";
 
 export async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
@@ -800,7 +801,7 @@ async function settleCheckoutSession(
             await insertNotifications(supabase, {
               user_id: recipientId,
               title: "You received a Helpr credit!",
-              message: `${donorName} sent you a $${(amountCents / 100).toFixed(0)} credit to use toward any job. Tap to redeem it.`,
+              message: `${donorName} sent you a ${exactDollars(amountCents)} credit to use toward any job. Tap to redeem it.`,
               type: "payment",
               // `&user=` names the SUBJECT, the donor (Q139): the Q137 seed
               // boundary reads it, so a seed donor never notifies a real

@@ -27,7 +27,7 @@ export const ADDS_PRICE_AT = "2026-11-22";
 export const ADDS_STORES_1122 = {
   "store-sleep-crown": "Sleep Crown", "store-crown-affair": "Crown Affair", "store-eadem": "EADEM", "store-aera": "Aera",
   "store-lemme": "Lemme", "store-stil": "STIL", "store-eleven-eleven": "Eleven Eleven", "store-calvin-klein": "Calvin Klein", "store-foton": "Foton", "store-sleepy-tie": "Sleepy Tie",
-  "store-the-warming-store": "The Warming Store", "store-cavenders": "Cavender's",
+  "store-the-warming-store": "The Warming Store", "store-cavenders": "Cavender's", "store-marley-lilly": "Marley Lilly",
 };
 
 /** Each row carries the day its price was checked (the page's "Prices as of" note reads the oldest). */
@@ -103,6 +103,11 @@ export const KIDS_ADDS_1122 = [
 
 /** For Him (owner via the lead, 11-22). */
 export const HIM_ADDS_1122 = [
+  // Batch 2 for Him (11-22): two new ShopMy links the lead had made, plus brand-sold Amazon items captured 11-22.
+  { name: "Smathers & Branson Monogrammed Wallet, Hunter Green", brand: "Smathers & Branson", line: "A needlepoint wallet with his monogram stitched in.", href: shopmy("p-109208695"), image: "https://smathersandbranson.com/cdn/shop/files/Wallet_Diamond42_HunterDarkKhaki_LowRes_922ccae9-f925-49c9-a358-e627f6defab2.jpg?v=1698289893", store: "store-smathers-and-branson", sortPrice: 195, price: 195, commission: 15, type: "wallet", priceAt: "2026-11-22" },
+  { name: "Marley Lilly Personalized Waxed Canvas Small Cooler", brand: "Marley Lilly", line: "A waxed canvas soft cooler with his monogram on it.", href: shopmy("p-109208941"), image: "https://marleylilly.com/cdn/shop/files/r9F-personalized-waxed-canvas-small-cooler.jpg?v=1773258733", store: "store-marley-lilly", sortPrice: 34.99, price: 34.99, commission: 8, type: "cooler", priceAt: "2026-11-22" },
+  { name: "GE Profile Opal Mini Nugget Ice Maker", brand: "GE Profile", line: "Chewable pebble ice at home, ready in about 5 minutes.", href: amz("B0H51ZX6SB"), image: amzImg("712XuKiN5zL"), store: "store-amazon", sortPrice: 299, commission: 3, type: "ice-maker", priceAt: "2026-11-22" },
+  { name: "method Men's Body Wash, Sea + Surf, 28 oz", brand: "method", line: "A big bottle of body wash with a fresh sea scent.", href: amz("B0BT1WN3ZD"), image: amzImg("61o5IxhLPdL"), store: "store-amazon", sortPrice: 12, commission: 3, type: "body-wash", priceAt: "2026-11-22" },
   // Her Nov 19 pins, batch 1 for Him (11-22). Prices are the ones on the stores' pages when her pins were checked 11-20.
   { name: "Solo Stove Bonfire Fire Pit with Stand", brand: "Solo Stove", line: "A smokeless fire pit with a stand for the backyard or camp.", href: shopmy("p-107850277"), image: "https://static.shopmy.us/uploads/pretty-prod-1781800303701", store: "store-l-l-bean", sortPrice: 299.99, price: 299.99, commission: 12, type: "fire-pit", priceAt: "2026-11-20" },
   { name: "YETI Roadie 8 Hard Cooler", brand: "YETI", line: "A compact hard cooler that fits behind the truck seat.", href: shopmy("p-107837448"), image: "https://static.shopmy.us/uploads/pretty-prod-1787796593407", store: "store-l-l-bean", sortPrice: 165, price: 165, commission: 12, type: "cooler", priceAt: "2026-11-20" },
@@ -119,6 +124,8 @@ export const HIM_ADDS_1122 = [
 
 /** Transparent cutouts for these photos (Apple Vision, scripts/gift-guide-cutout.swift; each checked by eye, 400 px). */
 export const ADDS_CUTOUTS_1122 = [
+  ["https://smathersandbranson.com/cdn/shop/files/Wallet_Diamond42_HunterDarkKhaki_LowRes_922ccae9-f925-49c9-a358-e627f6defab2.jpg", "sb-monogrammed-wallet-8f5ea4.webp"],
+  ["https://marleylilly.com/cdn/shop/files/r9F-personalized-waxed-canvas-small-cooler.jpg", "marley-lilly-small-cooler-28604e.webp"],
   ["https://static.shopmy.us/uploads/pretty-prod-1781800303701", "solo-stove-bonfire-stand-58adad.webp"],
   ["https://static.shopmy.us/uploads/pretty-prod-1787796593407", "yeti-roadie-8-5cbb52.webp"],
   ["https://static.shopmy.us/uploads/9f946e05-b054-4bf8-90cc-75e7b8864ba8imageye___-_imgi_54_EhmuM54AtE0slIiHX1qGxEeUxC1ppS0L-14.jpg", "muck-arctic-pro-12511e.webp"],

@@ -249,7 +249,9 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
   if (!ready && failed && onRetry) return <GiftGuideLoadError message={G.picksFailed} onRetry={onRetry} />;
   if (!ready) return <p className="gg-soon" role="status" data-gift-picks-loading="">{G.loadingPicks}</p>;
   const related = guide.empty ? relatedGuides(guide) : [];
-  const banded = guide.picks.filter((p) => p.band !== undefined).length;
+  // Holiday audit 1121: the budget chips filter by price, so they need prices a shopper can see (on the sponsors page
+  // the prices aged out while the chips stayed); a pick counts only when it has a band AND shows its price.
+  const banded = guide.picks.filter((p) => p.band !== undefined && showsPrice(p)).length;
   const inBudget = withinBudget(guide.picks, budget);
   // Owner 2026-11-21 ("they all need to be sorted in sections by price"; supersedes "one flat list"): Her, Him, Kids
   // and their views list their picks in price sections (priceSections), low to high or reversed by the sort control.

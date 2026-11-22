@@ -6,7 +6,7 @@ import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { SITE_ORIGIN } from "@/lib/publicPageMeta.mjs";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import { giftGuides as G } from "@/content/giftGuides";
-import { guideBySlug, loadSearchItems, searchGuides, searchItems, type SearchItem } from "@/content/giftGuideCatalog";
+import { guideBySlug, loadSearchItems, searchGuides, searchItems, searchPages, type SearchItem } from "@/content/giftGuideCatalog";
 import { MY_LIST_SLUG, useGiftList } from "./giftList";
 import { WISH } from "@/content/giftWishList";
 
@@ -173,6 +173,8 @@ function MyListIcon({ current }: { current: boolean }) {
 export function GiftGuideTools({ path, title, image, many = false, myList = false, sort }: { path: string; title: string; image?: string; many?: boolean; myList?: boolean; sort?: { order: SortOrder; onChange: (o: SortOrder) => void } }) {
   const [query, setQuery] = useState("");
   const found = query.trim() ? searchGuides(query) : [];
+  // The deals days and Shop Small (holiday audit 1121): pages, not guides, found by their own words.
+  const pages = query.trim() ? searchPages(query) : [];
   // Holistic review 11-18 H5: product names too ("airpods"), from an index fetched on the first keystroke.
   const [items, setItems] = useState<SearchItem[] | null>(null);
   // Holiday audit 1121: offline, the gift results could not load and the box said "No guides match". It now says the
@@ -199,7 +201,15 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
         {query.trim() && (
           <ul className="gg-search-results" data-gift-search-results="" aria-live="polite">
             {itemsFailed && !items && <li className="gg-search-none" data-gift-search-offline="">{G.searchFailed}</li>}
-            {found.length === 0 && foundItems.length === 0 && !(itemsFailed && !items) && <li className="gg-search-none">{G.searchNone}</li>}
+            {found.length === 0 && foundItems.length === 0 && pages.length === 0 && !(itemsFailed && !items) && <li className="gg-search-none">{G.searchNone}</li>}
+            {pages.map((p) => (
+              <li key={p.to}>
+                <Link to={p.to} onClick={() => setQuery("")} data-gift-found-page={p.to}>
+                  <span className={`gg-search-thumb gg-check gg-${p.tint}`} aria-hidden="true" />
+                  <span>{p.title}</span>
+                </Link>
+              </li>
+            ))}
             {found.length > 0 && foundItems.length > 0 && <li className="gg-search-head" aria-hidden="true">{G.searchGuidesTitle}</li>}
             {found.slice(0, 12).map((g) => (
               <li key={g.slug}>

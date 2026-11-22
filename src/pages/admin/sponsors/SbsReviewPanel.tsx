@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
-import { errorToast } from "@/lib/toast";
+import { errorToast, successToast } from "@/lib/toast";
 import { userFacingError } from "@/lib/userFacingError";
 import { report } from "@/lib/errorLogger";
 import { openableDocumentUrl } from "@/lib/storagePath";
@@ -96,9 +96,17 @@ export function SbsReviewPanel() {
   const qc = useQueryClient();
   const [showDone, setShowDone] = useState(false);
   const q = useQuery({ queryKey: KEY, queryFn: listRows, meta: { persist: false } });
+  // Holiday audit 1121: an approve published a stranger's business with no word back (the row just vanished). Each
+  // change now says what it did, with Undo (back to waiting, which the review function allows).
   const act = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: SbsAdminRow["status"] }) => review(id, status),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: KEY }),
+    mutationFn: ({ id, status }: { id: string; status: SbsAdminRow["status"]; name?: string }) => review(id, status),
+    onSuccess: (_data, v) => {
+      void qc.invalidateQueries({ queryKey: KEY });
+      if (v.status === "pending") return;
+      successToast(v.status === "approved" ? `${v.name ?? "The listing"} is on Shop Small` : `${v.name ?? "The listing"} was rejected`, {
+        action: { label: "Undo", onClick: () => act.mutate({ id: v.id, status: "pending" }) },
+      });
+    },
     onError: (e: unknown) => errorToast("That change was not saved", { description: userFacingError(e, "Try again in a moment.") }),
   });
   const rows = q.data ?? [];
@@ -108,13 +116,14 @@ export function SbsReviewPanel() {
   return (
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm" data-admin-sbs-review="">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">Small Business Saturday requests{pending.length ? ` (${pending.length} waiting)` : ""}</h2>
+        <h2 className="text-lg font-semibold">Shop Small requests{pending.length ? ` (${pending.length} waiting)` : ""}</h2>
         {reviewed.length > 0 && (
           <Button size="sm" variant="ghost" onClick={() => setShowDone((v) => !v)}>{showDone ? "Show waiting only" : `Show reviewed (${reviewed.length})`}</Button>
         )}
       </div>
       <p className="mb-3 text-xs text-muted-foreground">
-        Free "Featured local" listings. Approve and it shows on the Small Business Saturday page under the 25 Days sponsors. The email is private.
+        Free "Featured local" listings. Approve and it shows on{" "}
+        <a href="/shop-small" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary underline">Shop Small Louisiana</a>. The email is private.
       </p>
       {q.isPending ? (
         <p className="text-sm text-muted-foreground" role="status">Loading…</p>
@@ -142,10 +151,10 @@ export function SbsReviewPanel() {
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
                 {r.status !== "approved" && (
-                  <Button size="sm" className="btn-grad-primary" disabled={act.isPending} onClick={() => act.mutate({ id: r.id, status: "approved" })}>Approve</Button>
+                  <Button size="sm" className="btn-grad-primary" disabled={act.isPending} onClick={() => act.mutate({ id: r.id, status: "approved", name: r.business_name })}>Approve</Button>
                 )}
                 {r.status !== "rejected" && (
-                  <Button size="sm" variant="outline" disabled={act.isPending} onClick={() => act.mutate({ id: r.id, status: "rejected" })}>Reject</Button>
+                  <Button size="sm" variant="outline" disabled={act.isPending} onClick={() => act.mutate({ id: r.id, status: "rejected", name: r.business_name })}>Reject</Button>
                 )}
               </div>
             </li>

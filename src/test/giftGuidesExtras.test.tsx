@@ -107,7 +107,8 @@ describe("gift guides: the shipping banner follows the date in Louisiana", () =>
     expect(Object.values(SHIP_LINES)).toEqual([
       "Order by Dec 15 for Christmas delivery",
       "Last days for Christmas shipping: choose fast shipping",
-      "Last-minute? Gift cards and digital gifts arrive instantly",
+      // Owner 2026-11-21 (holiday audit 1121, #28): "Just don't mention gift cards." (gift cards left the guides 11-20).
+      "Too late to ship? Print a free gift tag or coloring book today",
     ]);
   });
 });

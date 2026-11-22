@@ -401,6 +401,19 @@ export const KIDS_1121 = [
   ["B07V4GCFP9", 229, "31CHVspmUeL", "Nintendo Switch Lite", "Nintendo", "game-console", 1, "The handheld Switch for games on the go."],
 ].map(row).concat(KIDS_AMAZON_MORE_1121, KIDS_SHOPMY_1121);
 
+// owner 11-22 popular approved (builder-guide-popular): Kids, Amazon listings sold by Amazon.com, prices read 11-22.
+export const KIDS_POPULAR_1122 = [
+  ["B0FX3KW535", 30, "81NKE8LAWEL", "Tickle Me Elmo Giggle Max", "Sesame Street", "plush", 3, "The giggling Elmo everyone is asking for."],
+  ["B0G497FGT6", 21, "81pheFGgbRL", "GUI GUI Mega Slime Haul", "GUI GUI", "slime", 3, "Five scented slimes and 50+ add-ins."],
+  ["B0GH39S2GJ", 83, "815HwqBZIVL", "PAW Patrol Dino Movie Megasaurus Vehicle", "PAW Patrol", "vehicle-toy", 3, "A big dino rescue vehicle with an inflatable dino."],
+  ["B0G4SR68GB", 44, "812ct6B-M+L", "Fisher-Price Little People My Mario Adventure Playset", "Fisher-Price", "playset", 3, "A toddler-size Mario world to play in."],
+  ["B0GHBKG64Q", 35, "81MHgjNu-UL", "Primal Hatch Megalodon Hatching Egg", "Primal Hatch", "hatching-toy", 3, "Crack open the egg and a shark hatches."],
+  ["B0G3RKYTMS", 170, "81jI7-Pm4TL", "Bluey Light and Surprise Heeler House", "Bluey", "dollhouse", 3, "The 28-inch Heeler house with lights and surprises."],
+  ["B000FGECAI", 10, "712W+h7AF6L", "Kanoodle Brain Teaser Puzzle Game", "Educational Insights", "puzzle", 3, "A pocket puzzle game with 200+ challenges."],
+  ["B0G2T1VN17", 175, "81lwvfbDd8L", "LEGO City Lava Land Roller Coaster Park 60501", "LEGO", "building-set", 3, "A build-it roller coaster park."],
+  ["B0GWKJG2XR", 145, "71KXM3QhGbL", "American Girl Disney Frozen Elsa 18-inch Doll", "American Girl", "doll", 3, "Elsa as an 18-inch American Girl doll."],
+].map(row);
+
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 const build = (rows, slug, g) =>
@@ -419,7 +432,7 @@ export function him1121Picks(rows = [...HIM_1121, ...HIM_ADDS_1122]) {
   return build(rows, HIM_GUIDE, PEOPLE_GUIDES.find((x) => x.slug === HIM_GUIDE));
 }
 /** For Kids, cheapest first. Kids has no relationship pages, so no tags. */
-export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122]) {
+export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122]) {
   return build(rows, KIDS_GUIDE, null);
 }
 

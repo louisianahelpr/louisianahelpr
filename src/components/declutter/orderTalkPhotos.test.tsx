@@ -36,6 +36,8 @@ const state = vi.hoisted(() => ({
 
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
+// Deep audit 1122 #3: the link-opened chat opens for a signed-in member only.
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u-viewer" }, profile: null, isLoading: false }) }));
 vi.mock("@/components/declutter/OrderTalkStep", () => ({ default: () => null }));
 vi.mock("@/lib/declutter/talkRead", () => ({ markTalkRead: async () => undefined }));
 vi.mock("@/lib/declutter/managerMode", () => ({ useManagerLabels: () => ({ data: new Map() }) }));

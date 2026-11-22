@@ -28,6 +28,7 @@ import { useMarkTalkRead } from "./useMarkTalkRead";
 import { Textarea } from "@/components/ui/textarea";
 import { getLang, t as tr } from "@/lib/i18n/language";
 import "@/lib/i18n/enChatParts";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // A3-27: the order card's step line, loaded only with the chat (it reads the cards' queries).
 const OrderTalkStep = lazy(() => import("./OrderTalkStep"));
@@ -70,8 +71,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** The chat for ?order_talk=<order id>; closing it takes the parameter off. */
 export function OrderTalkFromLink() {
   const [params, setParams] = useSearchParams();
+  // Deep audit 1122 #3: signed out, the server refuses the chat, and the sheet said "We couldn't load this chat. Check
+  // your connection" with no way to log in (and logged an error). A guest gets the page's "Log in to see your order"
+  // card instead (DeclutterGuestBrowseJoin, at every width); the link comes back here after log in.
+  const { user } = useCurrentUser();
   const orderId = params.get("order_talk");
-  if (!orderId || !UUID.test(orderId)) return null;
+  if (!user || !orderId || !UUID.test(orderId)) return null;
   const close = () => {
     const next = new URLSearchParams(params);
     next.delete("order_talk");

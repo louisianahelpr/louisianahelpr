@@ -104,8 +104,10 @@ export function SellerTalks() {
 /** The chat for ?talk=<id>; closing it takes the parameter off. */
 export function HandoverTalkFromLink() {
   const [params, setParams] = useSearchParams();
+  // Deep audit 1122 #3: signed out, no chat sheet (the server refuses it): the guest card asks them to log in.
+  const { user } = useCurrentUser();
   const talkId = params.get("talk");
-  if (!talkId) return null;
+  if (!user || !talkId) return null;
   const close = () => {
     const next = new URLSearchParams(params);
     next.delete("talk");

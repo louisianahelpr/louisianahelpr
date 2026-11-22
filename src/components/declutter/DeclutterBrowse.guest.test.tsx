@@ -126,7 +126,7 @@ describe("BUY-16: guests browse Declutter", () => {
 
   // Owner 11-10 (replaces F073): at desktop width the guest top bar already has Log in / Sign up, so the sign-up card is
   // not repeated above Browse; the phone keeps it (its bar has no buttons).
-  // @mutate src/components/declutter/DeclutterGuest.tsx |   if (barShown) return null; |   if (false) return null;
+  // @mutate src/components/declutter/DeclutterGuest.tsx |   if (barShown && !want) return null; |   if (false) return null;
   it("at desktop width there is no sign-up card above Browse (the top bar has Log in / Sign up)", async () => {
     show(<DeclutterHome />);
     expect(await screen.findByText("Thing 1")).toBeInTheDocument();

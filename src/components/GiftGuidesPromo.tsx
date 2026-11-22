@@ -60,9 +60,9 @@ export default function GiftGuidesPromo({ where, now = new Date() }: { where: "h
         <Link to="/gift-guides" className="flex min-w-0 flex-1 items-center gap-1.5 after:absolute after:inset-0 after:rounded-[inherit]" data-gift-promo-link="">
           {/* At 375 the words did not fit one line ("Gifts, deals..." cut): two short lines on a phone, one from sm. */}
           <span className="min-w-0 text-ds-14 leading-tight">
-            <span className="block truncate font-bold sm:inline">{GIFT_PROMO_TITLE}</span>
+            <span className="block truncate font-bold sm:inline" title={GIFT_PROMO_TITLE}>{GIFT_PROMO_TITLE}</span>
             <span aria-hidden className="hidden sm:inline" style={{ color: "hsl(var(--cat-tint-rose-fg))" }}> · </span>
-            <span className="block truncate text-ds-13 sm:inline sm:text-ds-14" style={{ color: "hsl(var(--cat-tint-rose-fg))" }}>{GIFT_PROMO_LINE}</span>
+            <span className="block truncate text-ds-13 sm:inline sm:text-ds-14" style={{ color: "hsl(var(--cat-tint-rose-fg))" }} title={GIFT_PROMO_LINE}>{GIFT_PROMO_LINE}</span>
           </span>
           <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--muted-foreground))" }} aria-hidden />
         </Link>

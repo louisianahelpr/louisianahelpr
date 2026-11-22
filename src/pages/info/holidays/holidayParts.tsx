@@ -76,7 +76,7 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
             onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}
             className="inline-flex min-h-11 min-w-0 flex-1 items-center gap-1.5 text-ds-13 text-muted-foreground link-standard">
             <MapPin className="h-4 w-4 shrink-0 text-[hsl(var(--olivewood))]" aria-hidden />
-            <span className="truncate">{item.address || "Open in Maps"}</span>
+            <span className="truncate" title={item.address || "Open in Maps"}>{item.address || "Open in Maps"}</span>
             <span className="sr-only"> (open in Maps, a new tab)</span>
           </a>
         )}

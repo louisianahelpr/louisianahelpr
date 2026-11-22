@@ -41,6 +41,16 @@ export function GiftWishShare<R extends WishRef | ShareRef = WishRef>({ name, re
   const [rotated, setRotated] = useState(false);
   const [code, setCode] = useState("");
   const [canStop, setCanStop] = useState(false);
+  // Holiday audit 1121 (#16): a failed share's error is about the list as it was; once the list changes it goes.
+  const listKey = JSON.stringify([name, refs]);
+  const [seenKey, setSeenKey] = useState(listKey);
+  if (seenKey !== listKey) {
+    setSeenKey(listKey);
+    if (state === "failed") {
+      setState("idle");
+      setError("");
+    }
+  }
   const stop = async () => {
     try {
       if (!(await stopSharing(code))) return fail(new Error("not stopped"));

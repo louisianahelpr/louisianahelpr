@@ -170,8 +170,11 @@ export default function SecretSanta() {
           <div className="gg-fun-card">
             {done.names.map((n, i) => (
               <div key={done.tokens[i]} className="gg-santa-link" data-santa-person={i}>
-                <b>{n}</b>
-                {done.sent.includes(i) && <span className="gg-fun-note m-0" data-santa-sent={i}>{W.santaSent}</span>}
+                {/* Holiday audit 1121 (#15): "Sent" sits right after the name it belongs to, not mid-row. */}
+                <span className="gg-santa-who" data-santa-who={i}>
+                  <b>{n}</b>
+                  {done.sent.includes(i) && <span className="gg-fun-note m-0" data-santa-sent={i}>{W.santaSent}</span>}
+                </span>
                 <span className="gg-fun-row">
                   <Button type="button" size="sm" className="btn-grad-primary h-auto max-w-full whitespace-normal text-center" onClick={() => send(i)} data-santa-send={i}>{W.santaSend(n)}</Button>
                   <Button type="button" size="sm" variant="outline" onClick={() => void copy(i)} data-santa-copy={i}>{copied === i ? W.santaCopied : W.santaCopy}</Button>

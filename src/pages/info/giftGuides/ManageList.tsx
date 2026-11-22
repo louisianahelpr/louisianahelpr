@@ -15,6 +15,7 @@ import { successToast } from "@/lib/toast";
 import { planActions } from "./fun/plannerStore";
 import { PickThumb } from "./GiftGuideView";
 import { PickPrice, showsPrice } from "@/components/giftGuides/PickPrice";
+import { shownDollars } from "@/lib/pickPriceShown.mjs";
 import { GiftWishShare } from "./GiftWishShare";
 import { AmazonCartForList } from "./AmazonCartButton";
 import { AnyStoreAdd } from "./AnyStoreAdd";
@@ -55,6 +56,33 @@ function ItemThumb({ name, href, image }: { name: string; href?: string; image?:
   if (image) return <PickThumb pick={{ name, href: href ?? "", store: href ? storeOf(href) : "", image }} size={40} />;
   if (pick) return <PickThumb pick={pick} size={40} />;
   return <span className="gg-mylists-noimg gg-mylists-gift" aria-hidden="true" data-list-gift-icon=""><Gift /></span>;
+}
+
+/**
+ * My Wish List's count and amount for the My lists pill (holiday audit 1121 #10: the pill left "Me" out while the
+ * guides' heart counted only Me). Each gift's price is the one its guide card shows today (the wish list keeps only names
+ * and links); a gift with none (a deal, a shop, a guide not loaded yet) is counted as having no price.
+ */
+export function useMeTotal(picks: readonly { href: string }[]): { gifts: number; amount: number; unpriced: number } {
+  const version = useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
+  useEffect(() => {
+    if (picks.length === 0) return;
+    Promise.all(OWNER_LIST_GUIDES.map((s) => loadGuidePicks(s))).catch((e: unknown) => {
+      // Without the guides the pill still counts the gifts; their prices then read as unknown.
+      console.warn("gift list: guide picks failed to load", e);
+    });
+  }, [picks.length]);
+  return useMemo(() => {
+    const all = version >= 0 ? livePicks() : [];
+    let amount = 0;
+    let unpriced = 0;
+    for (const s of picks) {
+      const p = all.find((x) => x.href === s.href);
+      if (p && showsPrice(p)) amount += shownDollars(p.price);
+      else unpriced++;
+    }
+    return { gifts: picks.length, amount, unpriced };
+  }, [picks, version]);
 }
 
 /** A My Wish List gift's price, as its guide card shows it (the wish list keeps only names and links). */

@@ -170,10 +170,12 @@ describe("polish audit 1122 #8: the 25 Days sponsors page cards", () => {
     expect(badgesOn("25-days-sponsors")).toEqual(["trending"]);
     expect(badgesOn("her")).toEqual(["sponsor", "shop-louisiana", "trending"]);
   });
-  it("the heart sits on the photo's corner on that page only; Also sponsoring is plain text", () => {
-    expect(GIFT_GUIDES_CSS).toContain('article[data-gift-guide="25-days-sponsors"] .gg-list .gg-heart-pick{top:4px;bottom:auto;right:auto;left:54px;z-index:1}');
-    expect(GIFT_GUIDES_CSS).toContain('@media (min-width:768px){article[data-gift-guide="25-days-sponsors"] .gg-list .gg-heart-pick{top:2px;left:auto;right:2px}}');
-    expect(GIFT_GUIDES_CSS).toMatch(/\.gg-list \.gg-heart-pick\{position:absolute;right:-6px;bottom:0\}/);
+  // Owner 2026-11-22 ("move the heart and shopping cart back to the top right of picture"): every guide's cards now put
+  // the heart on the photo's corner (the sponsors page's own rule became everyone's), so no page-scoped override is left.
+  it("the heart sits on the photo's corner on that page (as on every guide now); Also sponsoring is plain text", () => {
+    expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-heart-pick{position:absolute;top:4px;left:54px;z-index:1}");
+    expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-heart-pick{top:2px;left:auto;right:2px}");
+    expect(GIFT_GUIDES_CSS).not.toContain('article[data-gift-guide="25-days-sponsors"] .gg-list .gg-heart-pick');
     expect(GIFT_GUIDES_CSS).toContain(".gg-also-list li{display:inline;white-space:nowrap}");
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-also-list li\{[^}]*border/);
   });

@@ -149,8 +149,8 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/uploads/346f926f-f41b-444e-b686-921455d30264_74A53B12-D898-44DD-8ADB-BBB0CD895907.jpg", "lola-blankets-original-throw-green-ac1ca0.webp"],
   // COMMISSION SWITCHES 11-21 (same item, better-paying store; scripts/giftGuideHer1121.mjs, scripts/giftGuideHimKids1121.mjs).
   // Each photo is from the new store's own product page (never Amazon's), Apple Vision cutout, checked on red.
-  // XTRATUF Men's Duck Camo Ankle Deck Boot (xtratuf.com grey-backdrop profile photo; Him, switched from Amazon 11-21)
-  ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMABDCAM_gray_profile_1400x1400_2e21fee4-a5a9-474f-b41d-a21315fccc58.jpg", "xtratuf-duck-camo-ankle-deck-boot-01ff8e.webp"],
+  // XTRATUF Men's Ankle Deck Boot, Chocolate/Tan, style 22734 (xtratuf.com grey-backdrop main photo; Him, switched from Amazon 11-21)
+  ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/22734_gray_main_720x720_4234e2d7-b576-4907-bb67-594af369ef72.jpg", "xtratuf-ankle-deck-boot-chocolate-tan-595c49.webp"],
   // TATCHA The Kissu Lip Mask (tatcha.com main photo)
   ["https://cdn.shopify.com/s/files/1/0949/3328/7221/files/TheKissuLipMask-pdp-Aug26-Omi-FullSize-MainImage-1200x1200.jpg", "tatcha-kissu-lip-mask-306203.webp"],
   // L'OCCITANE Shea Butter Classics Gift Set (anthropologie.com boxed-set photo, reflection left out)

@@ -31,14 +31,15 @@ const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B08
   // Owner 11-21 ("women too"): the rest of her cart and saved-for-later, but the duplicate ZDEER listing and Mighty Patch.
   "B0HJ9ZJ8KM", "B091NJQ29P", "B0CMJZVT5P", "B0G6CR9TGW", "B0FSJQ3KJT", "B0F19YY96Z", "B0GT3W5DQL", "B0H2G28G12", "B0HFXZ9F46", "B0CVLJ85KP", "B0DT1CZ58V"];
 // p-108755104 is her iHerb pin for the BIODANCE masks (11-21), replacing her Sephora UK pin p-108613754 that US shoppers cannot use.
-const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", "p-108613192", "p-108612982", "p-108611500", "p-108831058", "p-108609900", "p-108607824", "p-107555566", "p-108605514", "p-108604684", "p-108604054"];
+const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", "p-108613192", "p-108611500", "p-108831058", "p-108609900", "p-108607824", "p-107555566", "p-108605514", "p-108604684", "p-108604054"];
 /**
  * Commission switches 11-21 (owner: "if the items on the guides can we fund at another place for higher commison just
  * change the link"; Desktop note Commission-switches-1121.md): the same item at the same price, moved from Amazon to a
  * better-paying store. TATCHA Kissu (Amazon B08D3FXF64, 10%) -> Tatcha 20%; L'OCCITANE Shea Butter Classics (Amazon
- * B0HFYLTJR7, 10%) -> Anthropologie 15%.
+ * B0HFYLTJR7, 10%) -> Anthropologie 15%. 11-21 night (Commission-audit-1121-night.md): her Theragun Mini pin p-108612982
+ * went to Haven Well Within, which has no Theragun ($0), so it uses her Ulta link p-107903671 (13%) instead.
  */
-const SWITCHED_PINS = ["p-108732256", "p-108732809"];
+const SWITCHED_PINS = ["p-108732256", "p-108732809", "p-107903671"];
 const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 

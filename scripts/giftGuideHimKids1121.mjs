@@ -210,7 +210,8 @@ export const HIM_1121 = [
   ["B0076R6MN4", 34.5, "41gvAlcoEhL", "Columbia Steens Mountain Fleece Jacket", "Columbia", "jacket", 4, "The full-zip fleece that goes with everything."],
   ["B0FDY7G84C", 40, "41t6YK7Y+RL", "YETI Rambler 20 oz Tumbler", "YETI", "drinkware", 4.5, "Keeps his coffee hot through the whole drive."],
   ["B0CPHY1VZL", 41.94, "41VLSmU2SBL", "HUK Pursuit Fishing Shirt", "HUK", "shirt", 4, "A cool, quick-dry shirt for long days on the boat."],
-  ["B0F2K9B696", 44.99, "31V+5B67tTL", "HEYDUDE Wally", "HEYDUDE", "shoes", 4, "Light slip-ons he can wear anywhere."],
+  // 14%, not 4%: her Amazon Creator Connections deal on HEYDUDE runs to Dec 7 (Commission-audit-1121-night.md).
+  ["B0F2K9B696", 44.99, "31V+5B67tTL", "HEYDUDE Wally", "HEYDUDE", "shoes", 14, "Light slip-ons he can wear anywhere."],
   ["B0F8VBPLN7", 47.49, "41mi1NbWyPL", "10x42 Binoculars", "", "binoculars", 3, "Clear binoculars for the stand, the boat or the game."],
   ["B0GXH48XN1", 54.99, "41xkakIyH6L", "Carhartt Marquette Quarter Zip", "Carhartt", "pullover", 4, "A heavyweight Carhartt quarter zip built to last."],
   ["B0D1DWQ54L", 54.99, "41a6Af+o1vL", "Plano Weekend Tackle Bag", "Plano", "fishing", 3, "A tackle bag with trays for a weekend on the water."],
@@ -223,17 +224,21 @@ export const HIM_1121 = [
   ["B0H6SC835C", 87.99, "314g+xOxGmL", "OLIGHT ArkPro Flashlight", "OLIGHT", "light", 3, "A slim, powerful flashlight for his pocket."],
   ["B0DGZ45WB2", 89.6, "71pSnCJKOrL", "Sperry Authentic Original Boat Shoe", "Sperry", "shoes", 4, "The classic leather boat shoe."],
   // SWITCHED 11-21 (owner, via lead: "xtratuf in the guide"; the Him guide and cover use XTRATUF from xtratuf.com, not
-  // Amazon): was Amazon B08Q1RN656 at 4% ($93.75); the same Duck Camo Ankle Deck Boot at xtratuf.com through CJ at 15%,
-  // $125 on xtratuf.com 2026-11-21 (products/xmabdcam.json), $93.75 with code XT25 (25% off, through Nov 29). The code
+  // Amazon): was Amazon B08Q1RN656 at 4% ($93.75, Duck Camo). Owner ~10:15 PM: "do a different color for the boot because
+  // the cup is the same print": the classic Chocolate/Tan Men's Ankle Deck Boot (style 22734) at xtratuf.com through CJ
+  // at 15%, $115 on xtratuf.com 2026-11-21 (products/22734.json), with code XT25 (25% off, through Nov 29). The code
   // rides on this card only (owner: "you can put the code with the item"); the chip hides after codeEnds.
-  { name: "XTRATUF Ankle Deck Boot", brand: "XTRATUF", line: "Waterproof deck boots for the boat and the yard.", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabdcam", image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMABDCAM_gray_profile_1400x1400_2e21fee4-a5a9-474f-b41d-a21315fccc58.jpg", store: "store-xtratuf", sortPrice: 125, price: 125, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
+  { name: "XTRATUF Ankle Deck Boot", brand: "XTRATUF", line: "Waterproof deck boots for the boat and the yard.", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2F22734", image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/22734_gray_main_720x720_4234e2d7-b576-4907-bb67-594af369ef72.jpg", store: "store-xtratuf", sortPrice: 115, price: 115, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
   // COMMISSION SWITCH 11-21: was Amazon B001DPHF4U at 4%; the same OD green Grange 18", same $99.95, at Dillard's at 8%.
   { name: "LaCrosse Grange Rubber Boot", brand: "LaCrosse", line: "Tall rubber boots made for mud and marsh.", href: shopmy("p-108736038"), image: "https://dimg.dillards.com/is/image/DillardsZoom/zoom/lacrosse-mens-grange-18-tall-waterproof-rubber-hunting-work-boots/00000000_zi_ac01ed80-ad36-4d40-8cca-066a3f05fcbd.jpg", store: "store-dillards", sortPrice: 99.95, price: 99.95, commission: 8, type: "boots" },
   // COMMISSION SWITCH 11-21: was Amazon B0FKCJNHWB at 1%; the same Theragun Prime 6th Gen in black, same $189.99, at
   // Exclusive Beauty Club at 16% (Therabody.com lists only the 5th gen).
   { name: "Theragun Prime Massage Gun", brand: "Therabody", line: "A massage gun for sore backs and shoulders.", href: shopmy("p-108734364"), image: "https://cdn.shopify.com/s/files/1/2959/8080/files/therabody-theragun-prime-massage-gun-black.png", store: "store-exclusive-beauty-club", sortPrice: 189.99, price: 189.99, commission: 16, type: "massager" },
   ["B0FDYD1C2N", 200, "41tgypUHtjL", "YETI Roadie 15 Hard Cooler", "YETI", "cooler", 3, "A small hard cooler that rides behind the seat."],
-  ["B0F2JHSGCJ", 237.5, "31f9tFHPW4L", "Turtlebox Ranger Speaker", "Turtlebox", "speaker", 3, "A loud, waterproof speaker built for the outdoors."],
+  // COMMISSION SWITCH 11-21 night (owner-approved, via lead): was Amazon B0F2JHSGCJ at 3% ($237.50); the same Ranger in Tan
+  // at Onward Reserve at 15%, $250 (her link p-108736312 -> onwardreserve.com/products/turtlebox-ranger-tan;
+  // Commission-switches-1121.md). Photo: the Tan Ranger cutout from turtleboxaudio.com the Him cover already drew.
+  { name: "Turtlebox Ranger Speaker", brand: "Turtlebox", line: "A loud, waterproof speaker built for the outdoors.", href: shopmy("p-108736312"), image: "https://www.louisianahelpr.com/gift-guides/cutouts/turtlebox-ranger-tan-06e916.webp", store: "store-onward-reserve", sortPrice: 250, price: 250, commission: 15, type: "speaker" },
 ].map((r) => (Array.isArray(r) ? row(r) : r)).concat(HIM_AMAZON_MORE_1121, HIM_SHOPMY_1121);
 
 /**
@@ -256,8 +261,9 @@ export const KIDS_SHOPMY_1121 = [
   ["108632481", 27, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/HtPxvujQFBYNQ2lbeag2NGhew.jpg", "Baby's 1st Christmas Toy & Gifting Tote", "Bits & Bows", "store-maisonette", "bag", 16, "A plaid tote for baby's first Christmas gifts."],
   ["108632592", 29.9, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/YVDrFHlUiF5bHBL0uzS5MXo_w.jpg", "Nellapima Wooden Toys Baby Gown", "Nellapima", "store-maisonette", "baby-clothes", 16, "A soft pima baby gown with a wooden toy print."],
   ["108632104", 29.99, "https://static.shopmy.us/pins/zoom-108632104-1795250093805-DancingAlligator-5105-Main-sq.jpg", "PlanToys Dancing Alligator Pull Toy", "PlanToys", "store-grove", "pull-toy", 25, "A wiggly wooden alligator to pull along."],
-  ["108632077", 117.99, "https://assets.wfcdn.com/im/45146626/compr-r85/4085/408563114/Wood+Furnished+Mansion.jpg", "Melissa & Doug Wood Furnished Mansion", "Melissa & Doug", "store-wayfair", "dollhouse", null, "A big wooden dollhouse with the furniture inside."],
-  ["108632046", 55.99, "https://assets.wfcdn.com/im/84968246/compr-r85/1747/174755531/Preschool+Pretend+Grocery+Shopping+Accessories+with+Kitchen+Accessories.jpg", "Melissa & Doug Toy Shopping Cart", "Melissa & Doug", "store-wayfair", "pretend-play", null, "A sturdy metal shopping cart for pretend errands."],
+  // Wayfair pays 11% on these (Commission-audit-1121-night.md); they were blank.
+  ["108632077", 117.99, "https://assets.wfcdn.com/im/45146626/compr-r85/4085/408563114/Wood+Furnished+Mansion.jpg", "Melissa & Doug Wood Furnished Mansion", "Melissa & Doug", "store-wayfair", "dollhouse", 11, "A big wooden dollhouse with the furniture inside."],
+  ["108632046", 55.99, "https://assets.wfcdn.com/im/84968246/compr-r85/1747/174755531/Preschool+Pretend+Grocery+Shopping+Accessories+with+Kitchen+Accessories.jpg", "Melissa & Doug Toy Shopping Cart", "Melissa & Doug", "store-wayfair", "pretend-play", 11, "A sturdy metal shopping cart for pretend errands."],
   // Owner 11-21 ("same for the kids, add all items i had on the things"; caps off for her picks): every other kids save
   // still sold, priced on maisonette.com, wayfair.com and macys.com 2026-11-21. Left out, 2026-11-21: sold out or
   // unavailable at the store her pin goes to (Maisonette vanity, dress-up unit, customizable tote, garbage truck, 4-wheel
@@ -266,8 +272,8 @@ export const KIDS_SHOPMY_1121 = [
   // locks and latches, picture boards, jungle table, Mine to Love doll, cutting food box) and the Danny Digger (not listed).
   ["108632430", 329, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/unORD3VQuzDRRzbMq1w_2taVM_6b58675d-6a24-48b1-8321-f3c6a6bc0c79.jpg", "Model U Zebra Ride-On", "PonyCycle", "store-maisonette", "ride-on", 16, "A plush zebra ride-on for little riders."],
   ["108632133", 84.99, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/x2IuT5-1A8vUEdadpwkoOvMBw.jpg", "Freddo Swing Car with Flashing Wheels", "Freddo", "store-maisonette", "ride-on", 16, "A wiggle car with light-up wheels."],
-  ["108632086", 28.76, "https://assets.wfcdn.com/im/03058393/compr-r85/1765/176593778/24+Piece+Melissa+%26+Doug+Jumbo+Cardboard+Blocks+Learning+Tools.jpg", "Melissa & Doug Jumbo Cardboard Blocks, 24 Pieces", "Melissa & Doug", "store-wayfair", "blocks", null, "Big cardboard bricks for towers and forts."],
-  ["108632059", 74.99, "https://assets.wfcdn.com/im/70136508/compr-r85/8084/80848886/7.5+in.+Club+Chair+Kids+Club+Chair-38254990.jpg", "Melissa & Doug Kids Club Chair", "Melissa & Doug", "store-wayfair", "chair", null, "A little upholstered club chair just their size."],
+  ["108632086", 28.76, "https://assets.wfcdn.com/im/03058393/compr-r85/1765/176593778/24+Piece+Melissa+%26+Doug+Jumbo+Cardboard+Blocks+Learning+Tools.jpg", "Melissa & Doug Jumbo Cardboard Blocks, 24 Pieces", "Melissa & Doug", "store-wayfair", "blocks", 11, "Big cardboard bricks for towers and forts."],
+  ["108632059", 74.99, "https://assets.wfcdn.com/im/70136508/compr-r85/8084/80848886/7.5+in.+Club+Chair+Kids+Club+Chair-38254990.jpg", "Melissa & Doug Kids Club Chair", "Melissa & Doug", "store-wayfair", "chair", 11, "A little upholstered club chair just their size."],
   ["108632004", 23.49, "https://slimages.macysassets.com/is/image/MCY/products/2/optimized/1779252_fpx.tif?wid=1000&fmt=jpeg", "Melissa & Doug Wooden Doorbell House", "Melissa & Doug", "store-macys", "pretend-play", 16, "A lock-and-key doorbell house with little dolls."],
   ["108631991", 43.49, "https://slimages.macysassets.com/is/image/MCY/products/5/optimized/8290245_fpx.tif?wid=1000&fmt=jpeg", "Melissa & Doug Double-Sided Magnetic Tabletop Easel", "Melissa & Doug", "store-macys", "art", 16, "A tabletop easel with a chalkboard and a dry-erase side."],
   ["108631978", 17.99, "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1836568_fpx.tif?wid=1000&fmt=jpeg", "Melissa & Doug Pull-Back Vehicle Toys", "Melissa & Doug", "store-macys", "car-toy", 16, "Soft pull-back cars that zoom across the floor."],
@@ -286,8 +292,9 @@ export const KIDS_AMAZON_MORE_1121 = [
   ["B0DDYHBKG9", 16.96, "51XdoEqAXAL", "CreateOn Crayola Holiday Glitter Mini Magnetic Tiles", "CreateOn", "building-toy", 3, "Mini glitter magnetic tiles for holiday builds."],
   ["B0DB9JTTJQ", 18.99, "51T6IcL0NTL", "CreateOn Crayola Holiday Glitter Magnetic Tiles", "CreateOn", "building-toy", 3, "Sparkly magnetic tiles to build a holiday scene."],
   ["B0DCVF7YNW", 18.98, "41305yNiLyL", "Kinglucky Mini Karaoke Machine for Kids", "Kinglucky", "karaoke", 3, "A mini karaoke machine with a microphone."],
-  ["B0BFJWCYTL", 339, "41d-g6xWrfL", "Nintendo Switch with Blue and Red Joy-Con", "Nintendo", "game-console", 3, "The Switch that plays on the TV or on the go."],
-  ["B0F3GWXLTS", 499, "41A6+lQ6KSL", "Nintendo Switch 2", "Nintendo", "game-console", 3, "The new Nintendo Switch 2."],
+  // Amazon pays 1% on video game consoles, not 3% (Commission-audit-1121-night.md).
+  ["B0BFJWCYTL", 339, "41d-g6xWrfL", "Nintendo Switch with Blue and Red Joy-Con", "Nintendo", "game-console", 1, "The Switch that plays on the TV or on the go."],
+  ["B0F3GWXLTS", 499, "41A6+lQ6KSL", "Nintendo Switch 2", "Nintendo", "game-console", 1, "The new Nintendo Switch 2."],
   ["B0FJ2ZHPDY", 99.99, "41cXR296U-L", "Toniebox 2 Starter Set, Cloud Pink", "tonies", "audio", 3, "A screen-free story and music player in pink."],
   ["B0DB5SGHX2", 135.35, "3149VSu-bUL", "Segway Ninebot C2 Lite Kids Electric Scooter", "Segway", "scooter", 3, "An electric scooter made for kids."],
   ["B0CRDG6KMT", 237.49, "31V05DQTV-L", "Segway Ninebot C2 Pro Kids Electric Scooter", "Segway", "scooter", 3, "A faster kids electric scooter for older riders."],
@@ -339,7 +346,7 @@ export const KIDS_1121 = [
   ["B0FJ3S78NR", 99.97, "41PRwqm4mXL", "Toniebox 2, Sky Blue", "tonies", "audio", 3, "A screen-free story and music player."],
   ["B0HDSSPY7Z", 127.49, "21gcm6OqZ0L", "Segway Ninebot C2 Go Kids Scooter", "Segway", "scooter", 3, "An electric scooter made for kids."],
   ["B0D2JGYX3F", 209, "31HNx5am69L", "Nex Playground", "Nex", "game-console", 3, "Active family games that get everyone moving."],
-  ["B07V4GCFP9", 229, "31CHVspmUeL", "Nintendo Switch Lite", "Nintendo", "game-console", 3, "The handheld Switch for games on the go."],
+  ["B07V4GCFP9", 229, "31CHVspmUeL", "Nintendo Switch Lite", "Nintendo", "game-console", 1, "The handheld Switch for games on the go."],
 ].map(row).concat(KIDS_AMAZON_MORE_1121, KIDS_SHOPMY_1121);
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);

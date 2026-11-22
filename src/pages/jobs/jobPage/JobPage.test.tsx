@@ -68,6 +68,8 @@ const state = {
   applicantsError: false,
   owed: 0,
   myApplication: null as { status: string; closed_reason: string | null } | null,
+  /** #33: useJobPage's closedForMe (the Helpr's application on a job they can no longer read). */
+  closedForMe: null as { label: { title: string | null; date_needed: string | null; date_window_end: string | null } | null; status: string } | null,
   cardHold: false,
   /** The job's latest job_tracking.status (useJobPage's tracking read). */
   tracking: null as string | null,
@@ -110,6 +112,7 @@ vi.mock("./useJobPage", () => ({
       : { isLoading: false, isError: false, data: state.applicants, refetch: applicantsRefetch },
     isPoster: !!state.job && state.job.customer_id === userId,
     myApplication: { data: state.myApplication },
+    closedForMe: { isPending: false, data: state.closedForMe },
     tracking: { data: state.tracking },
     onCrew: state.onCrew,
     crewConfirmed: state.crewConfirmed,
@@ -370,6 +373,7 @@ beforeEach(() => {
   state.party = false;
   state.applicants = { total: 0, pending: 0 };
   state.myApplication = null;
+  state.closedForMe = null;
   state.tracking = null;
   faceRequests.length = 0;
   flowCalls.length = 0;
@@ -386,6 +390,28 @@ beforeEach(() => {
   state.owesReview = false;
   state.paidOut = null;
   state.position = null;
+});
+
+/**
+ * #33 (deep audit 11-22): a job the poster cancelled, opened from the Helpr's own Working list, said only "This job
+ * isn't available. It may have been filled, expired or taken down." The row it came from names the job and says
+ * "This job is no longer available" (owner 10-21: an applicant who was not hired is not told about a cancellation).
+ * The class: when the job can't be read but the viewer applied, the page says what the Working row says.
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |     if (closed) { |     if (false) {
+ */
+describe("a job closed to a Helpr who applied (#33)", () => {
+  it("names the job and says what the Working row says, never the generic 'taken down'", () => {
+    state.closedForMe = { label: { title: "Rake the front yard", date_needed: "2026-11-14", date_window_end: null }, status: "This job is no longer available" };
+    renderPage();
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Rake the front yard");
+    expect(screen.getByText("This job is no longer available")).toBeTruthy();
+    expect(document.body.textContent ?? "").not.toMatch(/taken down/i);
+    expect(screen.getByRole("button", { name: "Browse jobs" })).toBeTruthy();
+  });
+  it("a stranger (no application) still gets the plain 'isn't available' page", () => {
+    renderPage();
+    expect(screen.getByText("This job isn't available.")).toBeTruthy();
+  });
 });
 
 describe("job page, Helpr side (boards 42, 169)", () => {

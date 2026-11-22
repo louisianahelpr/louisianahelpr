@@ -644,6 +644,7 @@ export const es: Record<MsgKey, string> = {
   "jobPage.unavailable": "Este trabajo no está disponible.",
   "jobPage.unavailableBody": "Puede que ya lo hayan cubierto, que haya vencido o que lo hayan quitado.",
   "jobPage.browseJobs": "Ver trabajos",
+  "jobPage.closedBody": "Sus detalles ya no están disponibles.",
   "jobPage.summary": "Resumen del trabajo",
   "jobPage.details": "Detalles",
   "jobPage.showMore": "Ver más",

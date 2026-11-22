@@ -9,8 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
-import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
-import { GuidesHeadRow } from "./giftGuides/GuidesHeadRow";
+import { GuidesTop, type GuidesBanner } from "./giftGuides/GuidesTop";
 import { GiftGuideLanding, finderAsked } from "./giftGuides/GiftGuideLanding";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
@@ -21,11 +20,9 @@ import { MY_LIST_SLUG } from "./giftGuides/giftList";
 import { GiftGuideTools } from "./giftGuides/GiftGuideShare";
 import type { GuideOrder } from "@/content/giftGuideEarnOrder";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
-import { shippingLine } from "@/content/giftGuideShipping";
 import { BUDGETS, BUDGET_MIN_PICKS, GiftGuideView, sectionLabel, sectionNav } from "./giftGuides/GiftGuideView";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
-import { GiftGuidesPhoneNav } from "./giftGuides/GiftGuidesPhoneNav";
 import { DEALS_COVER, DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
@@ -203,18 +200,6 @@ export default function GiftGuides() {
     : deals ? giftGuidePageMeta(deals.id) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],
   );
   const groupParam = params.get("group");
-  const ship = shippingLine(new Date());
-  // Visual check 11-18: at 375 the long pill squeezed "Gift guides" into "Gift / guid / es"; phones get the short words.
-  const shipTail = " for Christmas delivery";
-  // Polish audit 1122 #5: in a phone's count row the pill reads "By Dec 15" (its "Order " hidden by the CSS), so the
-  // count, the pill and the four icons fit one row at 375.
-  const shipHead = ship?.endsWith(shipTail) ? ship.slice(0, -shipTail.length) : ship;
-  const shipPill = ship ? (
-    <p className="gg-ship whitespace-nowrap" data-gift-ship="">
-      {shipHead?.startsWith("Order ") ? <><span className="gg-ship-order">Order </span>{shipHead.slice(6)}</> : shipHead}
-      {ship.endsWith(shipTail) && <span className="hidden lg:inline">{shipTail}</span>}
-    </p>
-  ) : undefined;
   // The old My list address (?list=mine) opens My Wish List's own page.
   const oldMyList = !slug && !shared && !myListPage && params.get("list") === "mine";
   const myList = myListPage;
@@ -264,14 +249,20 @@ export default function GiftGuides() {
     // Holiday audit 1121: shared text opens with a capital ("Gifts for Her", not "gifts for Her https://...").
     : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={capitalFirst(`${guide.lead} ${guide.title}`)} image={guide.cover} sort={sort} filter={toolsFilter} />
     : <GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />;
-  // A guide or deals page keeps its banner (its own h1); every other page's h1 is the header title.
-  const banner = Boolean(deals || guide);
   // The open menu entry beyond the guides: the deals page, or the finder view on the landing.
   const sidePage = deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined;
+  // Every page but the landing opens on its gingham banner (its own h1; owner 11-22 #13: the wish lists and Find a gift
+  // too, as the guides and the deals days); the landing's h1 is the head row's title.
+  const banner: GuidesBanner | null = deals ? { lead: deals.lead, title: deals.pageTitle, tint: deals.kind === "small-biz" ? "green" : "red", sub: false }
+    : guide ? { lead: guide.age ? `${guide.lead}, ${guide.age}` : guide.lead, title: guide.title, tint: guide.tint, sub: false }
+    : myList ? G.pageBanners.myList
+    : shared ? G.pageBanners.shared
+    : sidePage === "finder" ? G.pageBanners.finder
+    : null;
   // A phone's guide page: the count, the pill and the icons on one row right under the banner.
   const countRow = (phone && Boolean(guide) && !deals) || sponsorsPage;
-  // The landing's arrow goes home; every other page's to the landing.
-  const backTo = guide || deals || myList || shared ? "/gift-guides" : "/";
+  // The landing's arrow goes home; every other page's (Find a gift too, owner 11-22 #13) to the landing.
+  const backTo = guide || deals || myList || shared || sidePage === "finder" ? "/gift-guides" : "/";
 
   return (
     // Owner 2026-11-21 ~12:30 PM ("holiday gift guides needs the same set up as the other pages. title on left with back
@@ -299,27 +290,18 @@ export default function GiftGuides() {
         {/* Owner redesign 11-18 PM: under the title ONE slim row (search, My list, Share); Text and Copy link sit in
             Share's menu and the codes are a "Deals & codes" section of the page. The banner title is the page's h1
             (live audit r3 #7); the header's "Gift guides" is a plain line (titleTag="p"). */}
-        <GuidesHeadRow backTo={backTo} titleIsH1={!banner} ship={Boolean(shipPill)}>
-          {!countRow && shipPill}
-          {!countRow && tools}
-        </GuidesHeadRow>
-        {/* Owner 11-21 ("We need a way to organize this on the phones"): up to 767px a sticky chip row and a menu sheet
-            replace the sidebar (which a phone no longer draws at the page's foot). */}
-        <GiftGuidesPhoneNav active={guide} myList={myList || shared} page={sidePage} />
-        {deals ? (
-          <GiftGuidesWords lead={deals.lead} title={deals.pageTitle} titleId="gift-guide-title" tint={deals.kind === "small-biz" ? "green" : "red"} tools={null} />
-        ) : guide ? (
-          <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint} tools={null} />
-        ) : null}
-        {countRow && guide && (
-          <div className="gg-countrow" data-gift-countrow="">
-            <div className="gg-countrow-left">
-              {picksReady(guide.slug) && guide.picks.length > 0 && <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>}
-              {shipPill}
+        {/* The one top of every guides page (GuidesTop): the head row, the phone's chip row, the banner. A phone's guide
+            page and the 25 Days sponsors page put the pill and the icons on the count row under the banner. */}
+        <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} pillInRow={!countRow}
+          below={(shipPill) => countRow && guide && (
+            <div className="gg-countrow" data-gift-countrow="">
+              <div className="gg-countrow-left">
+                {picksReady(guide.slug) && guide.picks.length > 0 && <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>}
+                {shipPill}
+              </div>
+              {tools}
             </div>
-            {tools}
-          </div>
-        )}
+          )} />
         {/* Owner 11-21 ("put like a line or something above all guides and under search bar all the way across to be a
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
         {landing && <hr className="gg-divider" data-gift-divider="" />}

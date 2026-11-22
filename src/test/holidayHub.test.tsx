@@ -614,7 +614,8 @@ describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices
   it("the footer links are 44 px tap targets", () => {
     const c = hub();
     for (const href of ["/gift-guides", "/gift-guides/small-business-saturday#get-featured"]) {
-      const a = [...c.querySelectorAll<HTMLAnchorElement>(`a[href="${href}"]`)].pop()!;
+      // The hub's own links (owner 11-22 #13: the guides' menu now sits beside the hub with its own "All guides" link).
+      const a = [...c.querySelector('[data-holiday-page="hub"]')!.querySelectorAll<HTMLAnchorElement>(`a[href="${href}"]`)].pop()!;
       expect(a.className, href).toMatch(/\bmin-h-11\b/);
     }
   });

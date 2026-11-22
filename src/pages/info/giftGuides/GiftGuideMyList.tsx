@@ -14,7 +14,7 @@ import { PickThumb } from "./GiftGuideView";
 import { GiftOut } from "./GiftOut";
 import { GiftWishShare } from "./GiftWishShare";
 import { DeleteMyList } from "./DeleteMyList";
-import { Heart, listName, listRefs, pickId, putBackInWishList, removeFromWishList, setListName, useGiftList, type SavedPick } from "./giftList";
+import { DEFAULT_LIST_NAME, Heart, listName, listRefs, pickId, putBackInWishList, removeFromWishList, setListName, useGiftList, type SavedPick } from "./giftList";
 import { useWishItems, type WishItem } from "./wishListItems";
 import { retryWishListSync, useSyncProblem } from "./wishListSync";
 import { giftNameProblem } from "@/lib/giftNameClean";
@@ -124,8 +124,9 @@ export function GiftGuideMyList() {
   return (
     <section aria-labelledby="gift-my-list" data-gift-my-list="">
       {/* Polish audit 1122 #9: no "← All guides" link here; the head row's back arrow already goes to /gift-guides. */}
-      {/* UX audit M4: the list's name is the page's big title. */}
-      <h2 id="gift-my-list" className="gg-wish-title" tabIndex={-1}>{listName(list)}</h2>
+      {/* UX audit M4: the list's own name is its big title. Owner 11-22 #13: the page's banner already says "My Wish List",
+          so the default name is for screen readers only; a name she typed shows. */}
+      <h2 id="gift-my-list" className={list.name.trim() && list.name.trim() !== DEFAULT_LIST_NAME ? "gg-wish-title" : "gg-wish-title sr-only"} tabIndex={-1}>{listName(list)}</h2>
       <p className="sr-only" role="status" aria-live="polite" data-gift-wish-announce="">{announce}</p>
       {/* UX audit L5: no name field on an empty list. */}
       {!empty && (

@@ -57,4 +57,6 @@ export const GIFT_WISH_CSS = `
 .gg-savefor-box .gg-savefor-form{padding:0 12px 10px}
 .gg-mylists-gift{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex:none;border-radius:10px;background:var(--gg-soft);color:var(--gg-olive)}
 .gg-mylists-gift svg{width:20px;height:20px}
+/* Owner 11-22 #13: My Wish List opens on its banner, whose own hairline sits right above; no second rule over the empty list. */
+.gg [data-gift-my-list-empty]{border-top:0;margin-top:0}
 `;

@@ -5,7 +5,8 @@ import { loadModule, untilReload } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { WISH } from "@/content/giftWishList";
 import { LISTS } from "@/content/giftListsManage";
-import { deleteMyWishList, wishErrorCopy } from "@/lib/giftWishListApi";
+import { wishErrorCopy } from "@/lib/giftWishListApi";
+import { deleteMyWishList } from "@/lib/giftWishListOwnApi";
 import { forgetAccountList } from "./giftList";
 
 /**

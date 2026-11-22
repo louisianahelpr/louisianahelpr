@@ -13,7 +13,7 @@ import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor, saveItemOf } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
-import { HINTS, WISH } from "@/content/giftWishList";
+import { HINTS, WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { Hint } from "./GiftHint";
 import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/ToggleChip";

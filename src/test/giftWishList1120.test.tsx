@@ -47,6 +47,8 @@ import { SMALL_BIZ_SLUG, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { GUIDES, loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { HINTS, WISH } from "@/content/giftWishList";
 
+// A share keeps a token to stop its link (giftWishListOwnApi.ts, wishListDelete1121.test.tsx); here it never reaches a server.
+vi.mock("@/lib/giftWishListOwnApi", async (orig) => ({ ...(await orig<typeof import("@/lib/giftWishListOwnApi")>()), claimShare: vi.fn(async () => undefined) }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -62,7 +64,6 @@ const getSharedList = vi.fn();
 vi.mock("@/lib/giftWishListApi", async (orig) => ({
   ...(await orig<typeof import("@/lib/giftWishListApi")>()),
   // A share now keeps a token to stop its link (wishListDelete1121.test.tsx); here it never reaches a server.
-  claimShare: vi.fn(async () => undefined),
   saveWishList: (name: string, items: unknown[]) => saveWishList(name, items),
   getSharedList: (code: string) => getSharedList(code),
   getMyWishList: () => getMyWishList(),

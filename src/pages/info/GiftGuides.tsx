@@ -16,7 +16,7 @@ import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
-import { WISH } from "@/content/giftWishList";
+import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { MY_LIST_SLUG } from "./giftGuides/giftList";
 import { GiftGuideTools } from "./giftGuides/GiftGuideShare";
 import type { GuideOrder } from "@/content/giftGuideEarnOrder";

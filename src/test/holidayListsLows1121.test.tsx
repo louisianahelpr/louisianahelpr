@@ -14,7 +14,7 @@
  * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |     if (!A.addPerson(name.trim())) return setAddErr(LISTS.peopleFull); |     A.addPerson(name.trim());
  * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |     if (!name.trim()) return setErr(LISTS.nameFirst); |     if (!name.trim()) return;
  * @mutate src/pages/info/giftGuides/giftWishStyles.ts | @media (max-width:340px){ | @media (max-width:400px){
- * @mutate src/content/giftWishList.ts |   seeList: "View list", |   seeList: "See my list",
+ * @mutate src/content/giftWishListCore.ts |   seeList: "View list", |   seeList: "See my list",
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-plan-shop{display:inline-flex;align-items:center;min-height:44px; | .gg-plan-shop{display:inline-flex;align-items:center;min-height:28px;
  * @mutate src/pages/info/giftGuides/fun/SecretSanta.tsx |                   {done.sent.includes(i) && <span className="gg-fun-note m-0" data-santa-sent={i}>{W.santaSent}</span>}\n                </span> |                 </span>\n                  {done.sent.includes(i) && <span className="gg-fun-note m-0" data-santa-sent={i}>{W.santaSent}</span>}
  * @mutate src/pages/info/giftGuides/GiftWishShare.tsx |     if (state === "failed") { |     if (state === "never") {
@@ -26,6 +26,8 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+// A share keeps a token to stop its link (giftWishListOwnApi.ts, wishListDelete1121.test.tsx); here it never reaches a server.
+vi.mock("@/lib/giftWishListOwnApi", async (orig) => ({ ...(await orig<typeof import("@/lib/giftWishListOwnApi")>()), claimShare: vi.fn(async () => undefined) }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -44,7 +46,6 @@ vi.mock("@/lib/giftGuideFunApi", () => ({
 }));
 vi.mock("@/lib/giftWishListApi", async (orig) => ({
   ...(await orig<typeof import("@/lib/giftWishListApi")>()),
-  claimShare: vi.fn(async () => undefined),
   shareGiftLists: vi.fn(async () => "abcdef123456"),
   getSharedList: vi.fn(async () => null),
   getMyWishList: vi.fn(async () => null),

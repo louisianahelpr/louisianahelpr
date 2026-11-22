@@ -33,6 +33,8 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+// A share keeps a token to stop its link (giftWishListOwnApi.ts, wishListDelete1121.test.tsx); here it never reaches a server.
+vi.mock("@/lib/giftWishListOwnApi", async (orig) => ({ ...(await orig<typeof import("@/lib/giftWishListOwnApi")>()), claimShare: vi.fn(async () => undefined) }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -48,7 +50,6 @@ vi.mock("@/lib/giftGuideFunApi", () => ({
 }));
 vi.mock("@/lib/giftWishListApi", async (orig) => ({
   ...(await orig<typeof import("@/lib/giftWishListApi")>()),
-  claimShare: vi.fn(async () => undefined),
   shareGiftLists: vi.fn(async () => "abcdef123456"),
   getSharedList: vi.fn(async () => null),
   getMyWishList: vi.fn(async () => null),

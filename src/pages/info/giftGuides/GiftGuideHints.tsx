@@ -2,7 +2,7 @@ import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { HINTS, WISH } from "@/content/giftWishList";
+import { HINTS, WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { track } from "@/lib/analytics";
 import { dismissHint, useHint } from "./GiftHint";
 import { MY_LIST_SLUG } from "./giftList";

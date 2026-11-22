@@ -2,7 +2,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { getMyWishList, saveWishList, wishErrorCopy } from "@/lib/giftWishListApi";
 import { clearWishList, giftListNow, listName, listRefs, markSynced, pickId, reconcileWithAccount, subscribeGiftList } from "./giftList";
-import { WISH } from "@/content/giftWishList";
+import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 
 /**
  * Signed in, the wish list lives on the account too (owner 2026-11-20). Security review 2026-11-20:

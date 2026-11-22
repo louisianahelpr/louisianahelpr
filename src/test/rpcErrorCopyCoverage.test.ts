@@ -21,6 +21,7 @@ import { PROFILE_LINK_RPC_ERROR_COPY } from "@/lib/profileLink/errorCopy";
 import { HIRE_ME_RPC_ERROR_COPY } from "@/lib/hireMe";
 import { HOME_TALK_RPC_ERROR_COPY } from "@/lib/rentals/talkRpcErrorCopy";
 import { GIFT_WISH_RPC_ERROR_COPY } from "@/lib/giftWishListApi";
+import { GIFT_WISH_OWN_RPC_ERROR_COPY } from "@/lib/giftWishListOwnApi";
 import { SANTA_RPC_ERROR_COPY } from "@/lib/giftGuideFunApi";
 import { PRICE_ALERT_RPC_ERROR_COPY } from "@/lib/giftPriceAlertsApi";
 import {
@@ -478,11 +479,13 @@ const TRADE = TRADE_RPC_ERROR_COPY as CopyTable;
 const HOME_TALK = HOME_TALK_RPC_ERROR_COPY as CopyTable;
 // The gift guides wish list (src/lib/giftWishListApi.ts, 20261120062130): the Share button and Make a new link show these.
 const GIFT_WISH = GIFT_WISH_RPC_ERROR_COPY as CopyTable;
+// The wish list's owner calls (delete, claim, stop sharing; 20261122024017), loaded only by the screens that offer them.
+const GIFT_WISH_OWN = GIFT_WISH_OWN_RPC_ERROR_COPY as CopyTable;
 // The Secret Santa drawer (src/lib/giftGuideFunApi.ts, 20261120062334): the drawer and the reveal page show these.
 const SANTA = SANTA_RPC_ERROR_COPY as CopyTable;
 // Saved-gift price alerts (src/lib/giftPriceAlertsApi.ts, *_gift_price_alerts.sql): the opt-in card shows these.
 const PRICE_ALERT = PRICE_ALERT_RPC_ERROR_COPY as CopyTable;
-const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE, ...PROFILE_LINK, ...HIRE_ME, ...TRADE, ...HOME_TALK, ...GIFT_WISH, ...SANTA, ...PRICE_ALERT };
+const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE, ...PROFILE_LINK, ...HIRE_ME, ...TRADE, ...HOME_TALK, ...GIFT_WISH, ...GIFT_WISH_OWN, ...SANTA, ...PRICE_ALERT };
 /** An RPC that checks the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
 /**
@@ -597,7 +600,7 @@ describe("every code a client-called RPC raises has copy at its call site", () =
 
   it("no copy or allowlist entry names a code the RPC does not raise, or an RPC no client calls", () => {
     const stale: string[] = [];
-    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["SELLER_DELIVERY_RPC_ERROR_COPY", SELLER_DELIVERY], ["MEETUP_RPC_ERROR_COPY", MEETUP], ["DONATE_RPC_ERROR_COPY", DONATE], ["BUNDLE_RPC_ERROR_COPY", BUNDLE], ["PROFILE_RPC_ERROR_COPY", PROFILE], ["PROFILE_LINK_RPC_ERROR_COPY", PROFILE_LINK], ["HIRE_ME_RPC_ERROR_COPY", HIRE_ME], ["TRADE_RPC_ERROR_COPY", TRADE], ["GIFT_WISH_RPC_ERROR_COPY", GIFT_WISH], ["SANTA_RPC_ERROR_COPY", SANTA], ["PRICE_ALERT_RPC_ERROR_COPY", PRICE_ALERT], ["UNREACHABLE", UNREACHABLE]] as const) {
+    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["SELLER_DELIVERY_RPC_ERROR_COPY", SELLER_DELIVERY], ["MEETUP_RPC_ERROR_COPY", MEETUP], ["DONATE_RPC_ERROR_COPY", DONATE], ["BUNDLE_RPC_ERROR_COPY", BUNDLE], ["PROFILE_RPC_ERROR_COPY", PROFILE], ["PROFILE_LINK_RPC_ERROR_COPY", PROFILE_LINK], ["HIRE_ME_RPC_ERROR_COPY", HIRE_ME], ["TRADE_RPC_ERROR_COPY", TRADE], ["GIFT_WISH_RPC_ERROR_COPY", GIFT_WISH], ["GIFT_WISH_OWN_RPC_ERROR_COPY", GIFT_WISH_OWN], ["SANTA_RPC_ERROR_COPY", SANTA], ["PRICE_ALERT_RPC_ERROR_COPY", PRICE_ALERT], ["UNREACHABLE", UNREACHABLE]] as const) {
       for (const [rpc, codes] of Object.entries(entries)) {
         if (!calls.has(rpc)) stale.push(`${table}.${rpc}: no client calls this RPC`);
         for (const code of Object.keys(codes)) {

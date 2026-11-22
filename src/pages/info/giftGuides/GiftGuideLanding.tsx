@@ -1,9 +1,9 @@
 import { useEffect, useState, type ComponentType } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { giftGuides as G } from "@/content/giftGuides";
-import { GUIDES, ROWS, guidesIn, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
+import { GUIDES, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { LIVE_GUIDES_1121 } from "@/content/giftGuideLive.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
 import { DEAL_DAY_SLUGS } from "@/content/giftGuideDeals.mjs";
@@ -47,9 +47,6 @@ const liveGuideTiles = (): CatalogGuide[] =>
     return g && !g.empty ? [g] : [];
   });
 
-/** A landing row's tiles: its guides (a group's page, /gift-guides?group=<row>). */
-export const rowTiles = (row: GuideRow): { g: CatalogGuide; label?: string }[] => guidesIn(row).filter((g) => !NOT_TILES.has(g.slug)).map((g) => ({ g }));
-
 /** The first screen's covers load at once; there are only three. */
 const PRIORITY_COVERS = 3;
 
@@ -65,29 +62,6 @@ function LiveGuides() {
         {tiles.map((g, i) => <GiftGuideTile key={g.slug} g={g} priority={i < PRIORITY_COVERS} count={CHUNK_PICK_COUNTS[g.slug]} />)}
       </ul>
     </section>
-  );
-}
-
-/** A group's page (/gift-guides?group=<row>, an old "See all" link): its live guides as a wrapped grid, with a way back. */
-function GroupPage({ group }: { group: GuideRow }) {
-  const r = ROWS.find((x) => x.row === group)!;
-  const headingId = `gift-row-${r.row}`;
-  // Owner 11-18 PM: the heading carries its guide count, "By person (2)".
-  const list = rowTiles(r.row);
-  return (
-    <>
-      <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>
-      <div className="gg-rows" data-gift-rows="">
-        <section aria-labelledby={headingId} data-gift-row={r.row}>
-          <div className="gg-rowhead">
-            <h2 id={headingId}><i className={`gg-dot gg-${r.tint}`} aria-hidden="true" />{r.label}<span className="gg-rowcount" data-gift-row-count="">&nbsp;({list.length})</span></h2>
-          </div>
-          <ul className="gg-wrap">
-            {list.map(({ g, label }) => <GiftGuideTile key={g.slug} g={g} label={label} />)}
-          </ul>
-        </section>
-      </div>
-    </>
   );
 }
 
@@ -135,9 +109,8 @@ function LazyGiftFinder() {
   return <Finder />;
 }
 
-export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
+export function GiftGuideLanding() {
   const { search, hash } = useLocation();
-  if (group) return <GroupPage group={group} />;
   // Owner 11-21: "if I click find a gift in 3 steps the guides shouldn't be opened up here. only the section I click in
   // the left panel should be displayed, nothing else": the finder view is the finder alone.
   if (finderAsked(search, hash)) return <div className="gg-landing" data-gift-landing="" data-gift-finder-view=""><LazyGiftFinder /></div>;

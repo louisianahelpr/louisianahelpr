@@ -6,11 +6,11 @@ import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
 import BackButton from "@/components/BackButton";
-import { ROWS, guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, subscribeGuidePicks, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
+import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
-import { GiftGuideLanding, finderAsked, rowTiles } from "./giftGuides/GiftGuideLanding";
+import { GiftGuideLanding, finderAsked } from "./giftGuides/GiftGuideLanding";
 import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
@@ -172,15 +172,17 @@ export default function GiftGuides() {
   // The old My list address (?list=mine) opens My Wish List's own page.
   const oldMyList = !slug && !shared && !myListPage && params.get("list") === "mine";
   const myList = myListPage;
-  // Owner 11-21: a group with no live guide left (By store, By budget ...) opens the landing itself.
-  const group = ROWS.find((r) => r.row === groupParam && rowTiles(r.row).length > 0)?.row ?? (null as GuideRow | null);
-  const landing = !slug && !shared && !myListPage && !group;
+  const landing = !slug && !shared && !myListPage;
 
   // Pins link to /gift-guides#for-her, /gift-guides/for-her or a folded guide (/gift-guides/female-nurses): send each
   // old slug, folded guide or #<slug> to the guide's page now (newSlugFor).
   const hashSlug = decodeURIComponent(hash.replace(/^#/, ""));
   const fromHash = hashSlug ? newSlugFor(hashSlug) : null;
   if (oldMyList) return <Navigate to={`/gift-guides/${MY_LIST_SLUG}`} replace />;
+  // Holiday audit 1121 #14: an old group link (/gift-guides?group=by-person, a pre-redesign "See all") opens the
+  // landing itself; the group page (its own "All guides" link beside the header's back arrow, a green dot, small tiles)
+  // is gone. With three live guides the landing's tiles are every group.
+  if (landing && groupParam !== null) return <Navigate to={`/gift-guides${hash}`} replace />;
   // Holiday audit 1121: a slug typed in capitals (/gift-guides/HER) opens its guide, not the landing.
   if (rawSlug && rawSlug !== rawSlug.toLowerCase()) return <Navigate to={`/gift-guides/${rawSlug.toLowerCase()}${hash}`} replace />;
   // The old "Deals & codes" anchor on the landing: the codes live on the deals days now (Black Friday first).
@@ -217,7 +219,7 @@ export default function GiftGuides() {
   // The open menu entry beyond the guides: the deals page, or the finder view on the landing.
   const sidePage = deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined;
   // The landing's arrow goes home; every other page's to the landing.
-  const backTo = guide || deals || myList || shared || group ? "/gift-guides" : "/";
+  const backTo = guide || deals || myList || shared ? "/gift-guides" : "/";
 
   return (
     // Owner 2026-11-21 ~12:30 PM ("holiday gift guides needs the same set up as the other pages. title on left with back
@@ -264,12 +266,16 @@ export default function GiftGuides() {
         {/* Owner 11-21 ("put like a line or something above all guides and under search bar all the way across to be a
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
         {landing && <hr className="gg-divider" data-gift-divider="" />}
+        {/* Holiday audit 1121 #22 / #27: the page comes first in the code (keyboard and screen readers met 16 menu links
+            before the gifts), then the menu, then the disclosures, so a phone reads and shows them in that order, the
+            disclosures at the very bottom. From 768px the CSS grid puts the menu on the left (GIFT_GUIDES_CSS). */}
         <div className="gg-layout">
+          <div className="gg-main">
+            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />}
+          </div>
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
           <GiftGuidesSidebar active={guide} myList={myList || shared} page={sidePage} />
-          <div className="gg-main">
-            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
-          </div>
+          {footer}
         </div>
       </div>
     </PublicHeaderPage>

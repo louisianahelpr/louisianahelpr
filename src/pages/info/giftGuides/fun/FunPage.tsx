@@ -4,11 +4,18 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDES_CSS } from "../giftGuidesStyles";
 import { GIFT_WISH_CSS } from "../giftWishStyles";
 import { giftGuides as G } from "@/content/giftGuides";
+import BackButton from "@/components/BackButton";
+import { GiftGuideTools } from "../GiftGuideShare";
+import { GiftGuidesSidebar } from "../GiftGuidesSidebar";
 
 type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | "/gift-guides/printables";
 
-/** The shared shell's props for a fun page: the gift guides' public header, back to /gift-guides, a wrapping title. */
-export const funHeader = (title: string) => ({ title, backTo: "/gift-guides", bottomPaddingClassName: "pb-12 md:pb-16", wrapTitle: true });
+/**
+ * The shared shell's props for a fun page: the gift guides' public header, back to /gift-guides. Like every other gift
+ * guides page the shell's own header row is off (hideHeader) and FunBody draws the guides' head row (holiday audit 1121
+ * #13: the four fun pages had no search / My list heart / Share row and no left menu).
+ */
+export const funHeader = (title: string) => ({ title, backTo: "/gift-guides", bottomPaddingClassName: "pb-12 md:pb-16", wrapTitle: true, hideHeader: true });
 
 /**
  * The body of the four fun pages (owner 2026-11-20), inside each page's own <PublicHeaderPage {...funHeader(title)}>
@@ -22,23 +29,50 @@ export function FunBody({ title, path, noindex, children }: { title: string; pat
   return (
     <>
       <style>{GIFT_GUIDES_CSS}{GIFT_WISH_CSS}{FUN_CSS}</style>
-      <div className="gg gg-fun w-full" data-gift-fun={path}>
-        {children}
+      <GuidesFrame title={title} path={path}>
+        <div className="gg-fun w-full" data-gift-fun={path}>{children}</div>
+      </GuidesFrame>
+    </>
+  );
+}
+
+/**
+ * The gift guides' frame for a page outside GiftGuides.tsx (the fun pages, /shop-small): the head row (back arrow +
+ * title, then search, My list heart with its count, Share), then the page, the left menu and the disclosures (holiday
+ * audit 1121 #13: the fun pages had no head row or menu; #73: /shop-small's title sat apart from its column). The
+ * caller brings GIFT_GUIDES_CSS. `disclosures` off only on a page with no affiliate link.
+ */
+export function GuidesFrame({ title, path, disclosures = true, children }: { title: string; path: string; disclosures?: boolean; children: ReactNode }) {
+  return (
+    <div className="gg w-full" data-gift-fun-frame="">
+      <div className="gg-headrow gg-headrow-noship" data-gift-headrow="">
+        <div className="gg-head-title" data-gift-head-title="">
+          <BackButton to="/gift-guides" />
+          <h1 className="text-page-title leading-tight" data-gift-head-name="">{title}</h1>
+        </div>
+        <GiftGuideTools path={path} title={title} />
+      </div>
+      {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
+      <div className="gg-layout">
+        <div className="gg-main">{children}</div>
+        <GiftGuidesSidebar active={null} page={path} />
         {/* Holiday audit 1121 (High): Swipe's Shop links and the planner's ideas are affiliate links (Amazon's among
             them), so every fun page ends with the same two plain muted lines as the guides: the FTC disclosure
             (16 CFR Part 255) and the statement the Amazon Associates agreement requires. */}
-        <footer className="gg-disc" data-gift-fun-disclosure="">
-          <p data-gift-disclosure="">{G.disclosure}</p>
-          <p data-gift-amazon-statement="">{G.amazonStatement}</p>
-        </footer>
+        {disclosures && (
+          <footer className="gg-disc" data-gift-fun-disclosure="">
+            <p data-gift-disclosure="">{G.disclosure}</p>
+            <p data-gift-amazon-statement="">{G.amazonStatement}</p>
+          </footer>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 
 /** Scoped under .gg like the guides' own CSS, shipped in the fun pages' lazy chunks only. */
 const FUN_CSS = `
-.gg-fun{max-width:640px;margin:0 auto;padding:4px 0 24px}
+.gg-fun{max-width:640px;margin:0;padding:4px 0 24px}
 .gg-fun h2{font-size:20px;font-weight:700;margin:4px 0 6px;color:var(--gg-ink)}
 .gg-fun-lead{color:var(--gg-muted);font-size:14px;line-height:1.5;margin:0 0 16px}
 .gg-fun-card{border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card));padding:16px;margin:0 0 14px}
@@ -67,6 +101,9 @@ const FUN_CSS = `
 .gg-swipe-tag.skip{right:18px;color:#b26862;border-color:#b26862}
 .gg-swipe-btns{display:flex;justify-content:center;gap:16px;margin:16px 0 4px}
 .gg-swipe-btn{min-width:120px}
+.gg-swipe-acts{align-items:center}
+.gg-swipe-acts .gg-shop-btn{margin:0;padding:0 6px}
+@media (max-width:479px){.gg-swipe-done .gg-fun-actions>a,.gg-swipe-done .gg-fun-actions>button:not(.gg-link){flex:1 1 100%}}
 .gg-plan-person{border:1px solid var(--gg-line);border-radius:16px;padding:12px;margin:0 0 12px;background:hsl(var(--card))}
 .gg-plan-head{display:flex;gap:8px;align-items:center}
 .gg-plan-head input{flex:1;min-width:0;font-weight:700}

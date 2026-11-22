@@ -10,6 +10,8 @@ export const SBS_WORDS = {
   // the site"): the live page for these listings and the form, now the Small Business Saturday guide page is retired.
   pageTitle: "Shop Small Louisiana",
   pageLead: "Louisiana small businesses, listed free. Small Business Saturday is Nov 28: buy a gift, book a visit, or give them a follow.",
+  // Holiday audit 1121 #61: the confirmed Louisiana 25 Days sponsors lead /shop-small, so it is never an empty page.
+  pageSponsorsTitle: "Our Louisiana 25 Days sponsors",
   pageSectionTitle: "Louisiana small businesses",
   pageSectionIntro: "Local shops and makers taking part in Small Business Saturday, Nov 28.",
   landingLink: "Own a Louisiana small business? Get featured free",
@@ -24,6 +26,7 @@ export const SBS_WORDS = {
   ctaButton: "Get featured, free",
   loadingForm: "Loading the form…",
   formFailed: "The form didn't load. Check your connection and try again.",
+  formRetry: "Try again",
   fields: {
     businessName: "Business name",
     town: "Town",
@@ -32,6 +35,8 @@ export const SBS_WORDS = {
     categoryPick: "Pick one",
     link: "Website, Facebook or Instagram link",
     linkHint: "Where shoppers can find you",
+    // Holiday audit 1121 #76: an example, so it never reads as text already typed (it was "https://").
+    linkPlaceholder: "e.g. https://yourshop.com",
     deal: "Your Small Business Saturday deal or note (optional)",
     dealHint: "Like \"20% off all candles Saturday only\"",
     logo: "Logo (optional)",

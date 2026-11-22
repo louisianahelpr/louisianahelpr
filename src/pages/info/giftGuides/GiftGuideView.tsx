@@ -331,7 +331,12 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
       )}
       {NAME_ONLY_SPONSORS[guide.slug] && (
         // A sponsor whose gift is left out (lead 2026-11-18: Hilma's probiotic, a health product) is still named.
-        <p className="gg-also" data-gift-also-sponsoring="">{G.alsoSponsoring(NAME_ONLY_SPONSORS[guide.slug].join(", "))}</p>
+        // Holiday audit 1121 #77: one name per chip (a 57-name comma list ran ~25 lines on a phone, and "Tevin Lewis,
+        // District 2 Alderman" read as two names).
+        <section className="gg-also" aria-labelledby="gift-also-h" data-gift-also-sponsoring="">
+          <h2 id="gift-also-h" className="gg-also-h">{G.alsoSponsoringTitle}</h2>
+          <ul className="gg-also-list">{NAME_ONLY_SPONSORS[guide.slug].map((n) => <li key={n} data-gift-also-name="">{n}</li>)}</ul>
+        </section>
       )}
       {/* Owner 11-18 PM ("my full guides are already here with the links"): no "Shop the full guide" or "More on
           ShopMy" collection lines; each pick carries its own link. */}

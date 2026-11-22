@@ -110,8 +110,6 @@ describe("gift guides: Last-minute gifts, Dec 15-25 in Louisiana", () => {
     expect(renderAt("/gift-guides").container.querySelector("[data-gift-last-minute]")).toBeNull();
   });
 
-  it("not on a group's See all page", () => {
-    at("2026-12-18T18:00:00Z");
-    expect(renderAt("/gift-guides?group=by-person").container.querySelector("[data-gift-last-minute]")).toBeNull();
-  });
+  // Holiday audit 1121 #14: the group "See all" pages are gone (an old ?group= link opens the landing), so there is no
+  // group page to keep the card off; src/test/giftGuideHolidayPolish1121b.test.tsx guards the redirect.
 });

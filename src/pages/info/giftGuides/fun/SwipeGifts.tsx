@@ -10,7 +10,7 @@ import { shareNative } from "@/lib/nativeShare";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { track } from "@/lib/analytics";
 import { saveWishList, sharedListPath } from "@/lib/giftWishListApi";
-import { PickThumb, storeLabel } from "../GiftGuideView";
+import { PickThumb } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
 import { MY_LIST_SLUG, addToWishList, itemId, listName, listRefs, useGiftList } from "../giftList";
 import { Hint } from "../GiftHint";
@@ -245,7 +245,7 @@ export default function SwipeGifts() {
           <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => { setStarted(false); }}>{W.revealRetry}</Button>
         </div>
       ) : finished ? (
-        <section aria-labelledby="swipe-done" data-swipe-done="">
+        <section aria-labelledby="swipe-done" className="gg-swipe-done" data-swipe-done="">
           <h2 id="swipe-done">{!saved.length ? W.swipeDoneNone : santa ? W.santaSavedTitle(saved.length, santa.match) : forName ? W.swipeSavedFor(saved.length, forName) : W.swipeDoneTitle(saved.length)}</h2>
           {saved.length > 0 && (
             <ul className="gg-fun-list mb-3">{saved.map((p) => <li key={p.href} className="text-sm">{forName ? "" : "♥ "}{p.name}</li>)}</ul>
@@ -303,9 +303,10 @@ export default function SwipeGifts() {
               <span className="gg-swipe-tag skip" style={{ opacity: Math.max(0, Math.min(1, -dx / SWIPE_DISTANCE)) }} aria-hidden="true">{W.swipeSkip}</span>
               <PickThumb pick={card} size={220} />
               <p className="gg-swipe-name">{card.name}</p>
-              <p className="gg-swipe-meta m-0">{storeLabel(card) && <span>{storeLabel(card)}</span>}<PickPrice pick={card} /></p>
+              {/* Holiday audit 1121 #24: price only; item cards carry no store line (owner rule). */}
+              <p className="gg-swipe-meta m-0"><PickPrice pick={card} /></p>
               {details && card.line && <p className="gg-fun-note text-center" data-swipe-line="">{card.line}</p>}
-              <div className="gg-fun-actions justify-center">
+              <div className="gg-fun-actions gg-swipe-acts justify-center">
                 {/* Holiday audit C5: most picks have no line; Details shows only when there is one to show. */}
                 {card.line && <Button type="button" variant="link" size="inline" className="gg-link" aria-expanded={details} onClick={() => setDetails((v) => !v)} data-swipe-details="">{W.swipeDetails}</Button>}
                 <Button asChild variant="outline" size="sm" className="gg-shop-btn m-0">

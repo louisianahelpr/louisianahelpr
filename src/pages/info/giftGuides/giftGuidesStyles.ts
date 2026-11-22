@@ -12,7 +12,10 @@ export const GIFT_GUIDES_CSS = `
 .gg{--gg-olive:hsl(var(--bark));--gg-soft:hsl(var(--bark) / .14);--gg-line:hsl(var(--card-hairline));--gg-muted:hsl(var(--muted-foreground));
 --gg-ink:hsl(var(--ink-deep));
 color:var(--gg-ink)}
-.gg-layout{display:grid;grid-template-columns:220px minmax(0,1fr)}
+.gg-layout{display:grid;grid-template-columns:220px minmax(0,1fr);grid-template-rows:auto 1fr}
+.gg-layout>.gg-side{grid-column:1;grid-row:1/span 2}
+.gg-layout>.gg-main{grid-column:2;grid-row:1}
+.gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:end}
 .gg-side{border-right:1px solid var(--gg-line);padding:16px 16px 20px 0;font-size:13px;position:sticky;top:var(--gg-side-top,72px);align-self:start;max-height:calc(100dvh - var(--gg-side-top,72px));overflow-y:auto;overscroll-behavior:contain}
 .gg-search{position:relative;display:block;margin:0}
 .gg-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gg-muted)}
@@ -85,6 +88,7 @@ color:var(--gg-ink)}
 .gg-headrow .gg-tools-search .gg-search input{padding-right:0;cursor:pointer}
 .gg-headrow .gg-tools-search:focus-within{position:absolute;left:0;right:0;z-index:7;background:hsl(var(--background))}
 .gg-headrow .gg-tools-search:focus-within .gg-search input{padding-right:12px;cursor:text}
+.gg-search input::placeholder{color:var(--gg-muted);opacity:1}
 .gg-headrow .gg-tools-search:not(:focus-within) .gg-search input::placeholder{color:transparent}
 .gg-sort-check{display:inline-block;width:16px;flex:none}
 [data-gift-sort-menu]{min-width:200px}[data-gift-sort-menu] button{white-space:nowrap}
@@ -102,7 +106,7 @@ color:var(--gg-ink)}
 .gg-mylist-icon{color:#8c3b3b}
 .gg-icon-count{position:absolute;top:4px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#8c3b3b;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}
 .gg-share-wrap{position:relative;display:inline-flex;align-items:center}
-.gg-share-menu{position:absolute;z-index:6;top:calc(100% + 6px);right:0;display:flex;flex-direction:column;min-width:150px;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:4px}
+.gg-share-menu{position:absolute;z-index:6;top:calc(100% + 6px);right:0;display:flex;flex-direction:column;min-width:200px;white-space:nowrap;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:4px}
 .gg-share-menu a,.gg-share-menu button{display:flex;align-items:center;min-height:44px;padding:0 12px;font-size:13px;font-weight:600;color:var(--gg-ink);text-decoration:none;background:none;border:0;text-align:left;border-radius:8px}
 .gg-share-menu a:hover,.gg-share-menu button:hover{background:hsl(var(--muted) / .6)}
 :root[data-theme="dark"] .gg-words .gg-lead,:root[data-theme="dark"] .gg-words h2,:root[data-theme="dark"] .gg-words > h1{color:var(--gg-ink)}
@@ -163,6 +167,9 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list img.gg-thumb{background:transparent}
 .gg-list .gg-letter{font-size:12px}
 .gg-nm-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:16px;font-weight:500;line-height:1.3}
+/* Holiday audit 1121 #67: a sponsor's name carries the show or the product at its end ("... at The Strand Theatre A
+   Christmas Carol"), so the sponsors page lets a name run to three lines before it clips. */
+[data-gift-guide="25-days-sponsors"] .gg-nm-name{-webkit-line-clamp:3}
 .gg-nm .gg-nm-meta{display:flex;align-items:baseline;gap:8px;margin-top:4px;font-size:12px;font-weight:600;letter-spacing:.04em}
 .gg-nm-meta .gg-price{font-size:15px;letter-spacing:0}
 .gg-list>li{align-items:flex-start}
@@ -245,7 +252,10 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-soon[data-gift-picks-loading]{min-height:100vh}
 .gg-soon h2,.gg-soon h3{font-size:18px;font-weight:700;margin:0 0 6px}
 .gg-soon p{margin:0 auto 8px;max-width:44ch;color:var(--gg-muted);font-size:14px}
-.gg-also{margin:12px 0 0;font-size:13px;color:var(--gg-muted)}
+.gg-also{margin:16px 0 0}
+.gg-also-h{margin:0 0 8px;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gg-muted)}
+.gg-also-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.gg-also-list li{font-size:12.5px;line-height:1.3;padding:5px 10px;border:1px solid var(--gg-line);border-radius:999px;color:var(--gg-ink)}
 .gg-helpr{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:20px 0;padding:14px 16px;border-radius:14px;background:#f3f4ea;border:1px solid #e3e6d2;color:#2f3020}
 .gg-helpr b{display:block;font-size:15px}
 .gg-helpr span{font-size:13px;color:#55554a}
@@ -272,9 +282,14 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 
 .gg-layout{grid-template-columns:minmax(0,1fr)}
 /* Owner 11-21 (the phones need a way to organize this): a phone draws no sidebar (it sat at the page's foot);
-   the chip row under the header and its menu sheet carry the same menu (GiftGuidesPhoneNav). */
+   the chip row under the header and its menu sheet carry the same menu (GiftGuidesPhoneNav). The DOM order is
+   page, menu, disclosures (holiday audit 1121 #22/#27), so a phone needs no order rule; the desktop grid
+   placement resets to one column. */
+.gg-layout{grid-template-rows:none}
+.gg-layout>.gg-side,.gg-layout>.gg-main,.gg-layout>.gg-disc{grid-column:auto;grid-row:auto}
+.gg-layout>.gg-disc{margin-left:0}
 .gg-side{display:none}
-.gg-main{padding:4px 0 24px;order:1}
+.gg-main{padding:4px 0 24px}
 .gg-item{gap:10px;padding:8px 0;font-size:14px}
 .gg-banner-wrap{padding:0 0 4px}.gg-banner{height:96px;padding-top:8px;border-radius:12px}.gg-arch{width:min(260px,70%);padding:14px 10px 6px;box-shadow:0 0 0 5px rgba(255,253,247,.85)}.gg-banner .gg-lead{font-size:13px}.gg-banner h1{font-size:20px;-webkit-line-clamp:1}.gg-tools{margin-top:6px}
 .gg-banner .gg-lead{margin-bottom:7px}

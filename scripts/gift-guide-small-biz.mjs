@@ -43,7 +43,8 @@ const NO_LOGO = new Set(["sprinkle-in-time-too", "david-rabalais-the-fois", "tif
  * Words the page says differently: the AllWays Lounge's street ("St. Claude Ave.") reads as the Marigny, since no
  * member-facing text may say "Claude" (src/test/noClaudeInMemberCopy.test.ts).
  */
-const REWORD = [[/\bon St\. Claude Ave(nue|\.)?/g, "in the Marigny"], [/\bSt\. Claude\b/g, "Marigny"]];
+// Holiday audit 1121 #58: a tracker aside about the owner ("(she emails them digitally)") reads as a note, not a gift.
+const REWORD = [[/\bon St\. Claude Ave(nue|\.)?/g, "in the Marigny"], [/\bSt\. Claude\b/g, "Marigny"], [/ gift certificate \(she emails them digitally\)/g, " e-gift certificate"]];
 /** Signed up after the file was made (owner's inbox 11-19 PM, 9:01 and 9:26 PM). */
 const ADDED = [
   {
@@ -100,6 +101,17 @@ export const cleanText = (s) => {
 const https = (u) => (typeof u === "string" && /^https:\/\//.test(u) ? u : undefined);
 /** Ships, or local only, read from the business's own shipping note. */
 const shipsOf = (s) => (/\b(ship|mail|nationwide|online|digital)/i.test(String(s ?? "")) ? "ships" : "local");
+/**
+ * Holiday audit 1121 #58: a place you go (a theatre, a riverboat, a studio, a dance school) never "Ships", even when
+ * its tickets or classes are sold online; only a maker's goods ship.
+ */
+const VISIT_CATEGORIES = new Set(["Experiences & Tours", "Services", "Beauty & Wellness"]);
+const VENUE_SLUGS = new Set(["phyllis-guy-dance-center", "playtopia-lafayette"]);
+export const shipsFor = (b) => (VISIT_CATEGORIES.has(b.category) || VENUE_SLUGS.has(b.slug) ? "local" : shipsOf(b.shipping));
+/** Holiday audit 1121 #58: the card names the business, not the person behind it ("Bake & Brush (Holli M. Landry)"). */
+export const cardName = (name) => String(name ?? "").replace(/\s*\([^)]*\)\s*$/, "").trim();
+/** Holiday audit 1121 #58: a town or region, never an area code ("Acadiana (337)", "Lafayette (serves 337 and 225)"). */
+export const cardTown = (town) => String(town ?? "").replace(/\s*\((?:serves\s+)?\d{3}(?:\s*(?:and|,|\/)\s*\d{3})*\)/gi, "").trim();
 
 /**
  * CONFIRMED SPONSORS ONLY (owner 2026-11-21, the deals page's Small Business Saturday section): a business shows only
@@ -172,11 +184,11 @@ for (const b of rows) {
     }
   }
   cards.push({
-    slug: b.slug, name: b.name, town: cleanText(b.town), category: b.category,
+    slug: b.slug, name: cardName(b.name), town: cardTown(cleanText(b.town)), category: b.category,
     description: REWORD.reduce((t, [re, to]) => t.replace(re, to), cleanText(b.description)), gift: REWORD.reduce((t, [re, to]) => t.replace(re, to), cleanText(b.best_gift)),
     ...(website || facebook || instagram ? { href: website ?? facebook ?? instagram } : {}),
     ...(website ? { website } : {}), ...(facebook ? { facebook } : {}), ...(instagram ? { instagram } : {}),
-    ...(logo ? { logo } : {}), ships: shipsOf(b.shipping),
+    ...(logo ? { logo } : {}), ships: shipsFor(b),
   });
 }
 cards.sort((a, b) => SMALL_BIZ_CATEGORIES.indexOf(a.category) - SMALL_BIZ_CATEGORIES.indexOf(b.category) || a.name.localeCompare(b.name));

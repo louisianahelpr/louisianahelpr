@@ -224,7 +224,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Braun IPL, the XTRATUF boot, the L.L.Bean sweater and barn coat and the HOKA Bondi 9 ($100 and up).
       // Train e (11-22): Her also gained the 5 popular adds and her3b's PR picks (Beekman, Glow Recipe, Eberjey, Beis,
       // Case-Mate, Naturium, Makeup by Mario, YTTP), and lost the Amazon Essentials flannel pajamas (owner: "Lake + Eberjey").
-      her: { "Under $25": 36, "$25 to $50": 34, "$50 to $75": 9, "$75 to $100": 8, "$100 and up": 35 },
+      // Owner 11-22 PM (builder-guide-emibauble): Her lost Mrs. Meyer's and Downy (under $25), Comrad, JAANUU, Stoggles and
+      // the CS-8 Micro ($25-$50) and the CS-Pro ($79).
+      her: { "Under $25": 34, "$25 to $50": 30, "$50 to $75": 9, "$75 to $100": 7, "$100 and up": 35 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

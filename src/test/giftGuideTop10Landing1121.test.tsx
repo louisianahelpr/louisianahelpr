@@ -102,7 +102,8 @@ const renderAt = (url: string) =>
 describe("the landing shows the Top 10 under the three tiles", () => {
   it("draws ten guide cards in the owner's order, each one link (photo + name) with a price and a heart", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
+    // Launch day: spot 6 is the Camp Snap 2 Chestnut since 11-22 PM (owner: "Choose one"), priced 11-22.
+    vi.setSystemTime(new Date("2026-11-22T18:00:00Z"));
     await act(async () => { await Promise.all(["her", "him", "kids"].map(loadGuidePicks)); });
     const { container } = renderAt("/gift-guides");
     const section = container.querySelector<HTMLElement>("[data-gift-top10]")!;

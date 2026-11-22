@@ -53,7 +53,7 @@ function SharedAnyRow({ item }: { item: SharedAnyItem }) {
   );
 }
 
-function SharedPerson({ list, index }: { list: SharedPersonList; index: number }) {
+export function SharedPerson({ list, index }: { list: SharedPersonList; index: number }) {
   const { items, loading, missing } = useWishItems(list.items);
   const amount = Math.round(items.reduce((t, it) => t + (it.pick && showsPrice(it.pick) ? it.pick.price ?? 0 : 0), 0));
   const id = `gift-shared-person-${index}`;

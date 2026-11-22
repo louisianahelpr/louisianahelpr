@@ -37,9 +37,14 @@ export async function askForLink(person: { id: string; name: string }, idea: Pic
   }
 }
 
+/** A list the sync can update: the gift planner (default) or a Secret Santa wish list. */
+export interface LinkWriter extends IdeaWriter {
+  applyOurLinks: (asked: readonly string[], found: ReadonlyMap<string, string | null>) => void;
+}
+
 const RETRY_PER_OPEN = 5;
 
-export function useOurLinkSync(plan: GiftPlan, on = true) {
+export function useOurLinkSync(plan: GiftPlan, on = true, write: LinkWriter = planActions) {
   const reqs = [...new Set(plan.people.flatMap((p) => p.ideas.flatMap((i) => (i.req ? [i.req] : []))))].sort();
   const waiting = plan.people.flatMap((p) => p.ideas.filter((i) => i.ask && !i.req).map((i) => ({ person: p, idea: i }))).slice(0, RETRY_PER_OPEN);
   const key = reqs.join(",");
@@ -49,7 +54,7 @@ export function useOurLinkSync(plan: GiftPlan, on = true) {
     let live = true;
     const asked = key.split(",");
     readWishLinks(asked).then(
-      (found) => { if (live) planActions.applyOurLinks(asked, found); },
+      (found) => { if (live) write.applyOurLinks(asked, found); },
       (e: unknown) => {
         // Not shown: the gifts keep the links they have, and the next open asks again.
         console.warn("wish links: read failed", e);
@@ -62,7 +67,7 @@ export function useOurLinkSync(plan: GiftPlan, on = true) {
   useEffect(() => {
     if (!on || !waitKey) return;
     for (const w of waiting) {
-      askForLink(w.person, w.idea).catch((e: unknown) => {
+      askForLink(w.person, w.idea, write).catch((e: unknown) => {
         // Not shown here (the list is just opening): it stays waiting and is tried again the next time.
         console.warn("wish links: send again failed", e);
       });

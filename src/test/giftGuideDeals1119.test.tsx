@@ -24,7 +24,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           day={codesDay(day, today)} |           day={today}
  * @mutate src/content/giftGuideDeals.mjs |   return today > event.day ? today : event.day; |   return today;
  * @mutate src/content/giftGuideDeals.mjs |   return dealDay(String(hash ?? "").replace(/^#/, ""))?.id ?? DEAL_EVENTS[0].id; |   return DEAL_EVENTS[0].id;
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const isOpen = (id: string, i: number) => open[id] ?? i === 0; |   const isOpen = (id: string, i: number) => open[id] ?? true;
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const isOpen = (id: string) => open[id] ?? START_OPEN; |   const isOpen = (id: string) => open[id] ?? false;
  * @mutate scripts/gift-guide-deals.mjs |     const key = !amazon && r.image ? cutouts[r.image] : undefined; |     const key = undefined;
  * @mutate scripts/gift-guide-deals.mjs |     if (n > DEALS_PER_BRAND) throw | if (false) throw
  */
@@ -246,7 +246,8 @@ describe("deals days: one page per day (owner 11-21)", () => {
     expect(c.querySelector("[data-gift-deal-day]")).toBeNull();
   });
 
-  it("each deals day is in subsections (Top deals open, Discount codes and Sales closed) holding only what works on that day", async () => {
+  // Owner 2026-11-22 ("make everything open expanded. black friday, small business, cyber monday keep it all open").
+  it("each deals day is in subsections (all open on arrival) holding only what works on that day", async () => {
     // Owner 2026-11-21 ("it just needs to be cleaned up ... more organized"): subsections by type, the first open.
     // Holiday audit 1121 #57: the codes and sales read through cleanCodes / cleanSales.
     const all = [...discountCodes, ...cleanCodes(DEAL_CODES)];
@@ -255,7 +256,7 @@ describe("deals days: one page per day (owner 11-21)", () => {
       const c = await renderDay(day, "2026-11-21");
       const subs = [...c.querySelectorAll<HTMLDetailsElement>("details[data-gift-deal-sub]")];
       expect(subs.map((x) => x.getAttribute("data-gift-deal-sub")), day.id).toEqual(["deals", "codes", "sales"]);
-      expect(subs.map((x) => x.open), day.id).toEqual([true, false, false]);
+      expect(subs.map((x) => x.open), day.id).toEqual([true, true, true]);
       const box = subs[1];
       // Its codes are exactly the ones that work on the day.
       const on = codesDay(day, "2026-11-21");

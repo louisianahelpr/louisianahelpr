@@ -30,6 +30,7 @@ import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
+import { START_OPEN } from "@/pages/info/giftGuides/startOpen";
 import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import {
@@ -263,10 +264,11 @@ export default function HolidayHub() {
         ) : (
           <>
             {soon.map(section)}
-            {/* Holiday audit 1121 area 5 #5: the days more than two weeks out and "Dates TBA" fold under one "Later dates"
-                (closed), so the page opens on what is coming up. A When filter or a search shows every group open. */}
+            {/* Holiday audit 1121 area 5 #5: the days more than two weeks out and "Dates TBA" fold under one "Later dates".
+                Owner 2026-11-22 ("make everything open expanded"): both folds start open (START_OPEN); a shopper can
+                still close one. A When filter or a search shows every group open. */}
             {tbaLights && (
-              <details className="group space-y-section" id="holidays-lights-tba" data-holiday-lights-tba="">
+              <details className="group space-y-section" id="holidays-lights-tba" open={START_OPEN} data-holiday-lights-tba="">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-ds-20 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
                   {W.lightsTba}<span className="text-ds-15 font-normal text-muted-foreground">({tbaLights.items.length})</span>
                   <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
@@ -278,7 +280,7 @@ export default function HolidayHub() {
               </details>
             )}
             {later.length > 0 && (
-              <details className="group space-y-section" data-holiday-later="">
+              <details className="group space-y-section" open={START_OPEN} data-holiday-later="">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-ds-20 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
                   Later dates<span className="text-ds-15 font-normal text-muted-foreground">({later.reduce((n, g) => n + g.items.length, 0)})</span>
                   <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />

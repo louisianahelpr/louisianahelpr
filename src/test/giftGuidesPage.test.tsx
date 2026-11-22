@@ -841,14 +841,14 @@ describe("gift guides: design audit round 2 UI fixes", () => {
   });
 
   // @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href))); |   return sales.filter((x) => x.ends >= today);
-  it("#10 Sales: one line per link; a store's card shows two sales, then +N more opens the rest", () => {
+  // Owner 2026-11-22 ("make everything open expanded"): a store's card lists every sale at once (no "+N more").
+  it("#10 Sales: one line per link; a store's card shows every sale at once", () => {
     const dup = { slug: "store-walmart", store: "Walmart", offer: "x", href: "https://walmrt.us/x", ends: "2099-01-01" };
     expect(liveSales([dup, { ...dup }], "2026-11-18")).toHaveLength(1);
     const many = Array.from({ length: 20 }, (_, i) => ({ ...dup, href: `https://walmrt.us/${i}` }));
     const c = render(<MemoryRouter><SaleCards stores={[{ store: "Walmart", sales: many }]} /></MemoryRouter>).container;
     expect(c.querySelectorAll("[data-gift-sale-store]").length).toBe(1);
-    expect(c.querySelectorAll("[data-gift-sale]").length).toBe(2);
-    fireEvent.click(c.querySelector("[data-gift-sale-more]")!);
+    expect(c.querySelector("[data-gift-sale-more]")).toBeNull();
     expect(c.querySelectorAll("[data-gift-sale]").length).toBe(20);
   });
 

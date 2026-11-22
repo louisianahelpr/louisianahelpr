@@ -16,8 +16,8 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1; | .gg-list .gg-nm .gg-nm-meta{grid-column:1;grid-row:2;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0} | .gg-list .gg-heart-pick{position:absolute;right:-6px;top:0}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-cart{position:absolute;right:36px;bottom:0; | .gg-cart{grid-column:1;
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const isOpen = (id?: string) => !sortable \|\| !id \|\| (openSecs ? openSecs.has(id) : id === firstSection); |   const isOpen = (id?: string) => true;
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       setOpenSecs(new Set([raw])); |       setOpenSecs(null);
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const isOpen = (id?: string) => !sortable \|\| !id \|\| (flipped.has(id) ? !START_OPEN : START_OPEN); |   const isOpen = (id?: string) => !sortable \|\| !id \|\| (flipped.has(id) ? START_OPEN : !START_OPEN);
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       setFlipped(() => new Set()); |       setFlipped(() => new Set(PRICE_SECTIONS.map((s) => s.id).filter((s) => s !== raw)));
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
@@ -137,32 +137,39 @@ describe("the cart sits beside the heart (owner 11-21: \"should we put the cart 
   });
 });
 
-describe("price sections open and close (owner 11-21: \"a button to open and expand each section\"; first open)", () => {
+// Owner 2026-11-22 ("im having to click the drop downs for each section a few times ... just have all sections
+// expanded when they are opened"): every section starts open (replaces 11-21's first-open default); the walk over every
+// guide page is src/test/giftGuidesStartOpen1122.test.tsx.
+describe("price sections open and close (owner 11-21: \"a button to open and expand each section\"; all open 11-22)", () => {
   const toggles = (c: HTMLElement) => [...c.querySelectorAll<HTMLButtonElement>("[data-gift-section-toggle]")];
-  it("on load only the first section is open (all its gifts); a tap opens or closes one; each header is a 44px button", async () => {
+  it("on load every section is open (all its gifts); one tap closes or opens one; each header is a 44px button", async () => {
     const c = await renderAt("/gift-guides/kids", 1440);
     const t = toggles(c);
     expect(t.length).toBeGreaterThan(2);
-    expect(t.map((b) => b.getAttribute("aria-expanded"))).toEqual(["true", ...t.slice(1).map(() => "false")]);
+    expect(t.map((b) => b.getAttribute("aria-expanded"))).toEqual(t.map(() => "true"));
     const first = t[0].getAttribute("data-gift-section-toggle")!;
     const count = Number(/\((\d+)\)/.exec(t[0].textContent ?? "")![1]);
     expect(c.querySelectorAll(`#gg-sec-${first}-list > li[data-gift-pick]`).length).toBe(count);
-    expect(c.querySelectorAll(`#gg-sec-${t[1].getAttribute("data-gift-section-toggle")}-list`).length).toBe(0);
+    expect(c.querySelectorAll(`#gg-sec-${t[1].getAttribute("data-gift-section-toggle")}-list`).length).toBe(1);
     expect(t[0].getAttribute("aria-controls")).toBe(`gg-sec-${first}-list`);
     expect(GIFT_GUIDES_CSS).toMatch(/\.gg-sec-toggle\{[^}]*min-height:48px/);
     await act(async () => { fireEvent.click(t[1]); });
-    expect(t[1].getAttribute("aria-expanded")).toBe("true");
-    expect(c.querySelector(`#gg-sec-${t[1].getAttribute("data-gift-section-toggle")}-list`)).not.toBeNull();
+    expect(t[1].getAttribute("aria-expanded")).toBe("false");
+    expect(c.querySelector(`#gg-sec-${t[1].getAttribute("data-gift-section-toggle")}-list`)).toBeNull();
     await act(async () => { fireEvent.click(t[0]); });
     expect(t[0].getAttribute("aria-expanded")).toBe("false");
     expect(c.querySelector(`#gg-sec-${first}-list`)).toBeNull();
+    await act(async () => { fireEvent.click(t[0]); });
+    expect(t[0].getAttribute("aria-expanded")).toBe("true");
+    expect(c.querySelector(`#gg-sec-${first}-list`)).not.toBeNull();
   });
 
-  it("a section link (#25-to-50) opens that section (and only it)", async () => {
+  it("a section link (#25-to-50) leaves every section open", async () => {
     window.history.replaceState(null, "", "#25-to-50");
     const c = await renderAt("/gift-guides/kids", 1440);
     window.history.replaceState(null, "", window.location.pathname);
     const open = toggles(c).filter((b) => b.getAttribute("aria-expanded") === "true").map((b) => b.getAttribute("data-gift-section-toggle"));
-    expect(open).toEqual(["25-to-50"]);
+    expect(open).toContain("25-to-50");
+    expect(open).toEqual(toggles(c).map((b) => b.getAttribute("data-gift-section-toggle")));
   });
 });

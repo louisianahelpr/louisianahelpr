@@ -652,8 +652,9 @@ describe("Holiday Hub When: Today and Next 7 days", () => {
  * @mutate src/pages/info/holidays/holidayParts.tsx |         {item.start && !item.tba && ( |         {false && (
  */
 /**
- * Holiday audit 1121 area 5 #5 (rest): the days more than two weeks out and "Dates TBA" fold under one closed "Later
- * dates"; a When filter or a search shows every group open.
+ * Holiday audit 1121 area 5 #5 (rest): the days more than two weeks out and "Dates TBA" fold under one "Later dates"
+ * (open on arrival since owner 2026-11-22: "make everything open expanded"); a When filter or a search shows every
+ * group as a plain section.
  * @mutate src/pages/info/holidays/HolidayHub.tsx |   const folds = when === "all" && !query.trim(); |   const folds = false;
  * @mutate src/pages/info/holidays/HolidayHub.tsx |   const isLater = (g: (typeof groups)[number]) => folds && (g.key === "tba" \|\| (!!g.day && g.day > foldAfter)); |   const isLater = (g: (typeof groups)[number]) => folds && g.key === "tba";
  */
@@ -661,11 +662,11 @@ describe("Holiday Hub: Later dates fold", () => {
   const today = "2026-11-20";
   const at = (path: string, el: React.ReactElement) => render(<MemoryRouter initialEntries={[path]}>{el}</MemoryRouter>);
   const shownIds = (c: HTMLElement) => [...c.querySelectorAll("[data-holiday-item]")].map((el) => el.getAttribute("data-holiday-item")!);
-  it("days past two weeks and Dates TBA sit in a closed Later dates; the next two weeks stay open", () => {
+  it("days past two weeks and Dates TBA sit in Later dates (open on arrival); the next two weeks come first", () => {
     const { container, unmount } = at("/holidays", <HolidayHub />);
     const later = container.querySelector<HTMLDetailsElement>("details[data-holiday-later]")!;
     expect(later).not.toBeNull();
-    expect(later.open).toBe(false);
+    expect(later.open).toBe(true);
     const inLater = [...later.querySelectorAll("h2")].map((h) => h.textContent ?? "");
     expect(inLater[inLater.length - 1]).toMatch(/^Dates TBA/);
     expect(inLater.some((h) => /December 2[0-9]/.test(h))).toBe(true);
@@ -681,18 +682,19 @@ describe("Holiday Hub: Later dates fold", () => {
 });
 
 /**
- * Guides polish 1122 #18: the undated light displays sit in their own closed group, after the dated days and before
- * "Later dates", titled with their count and carrying the TBA note; a When filter opens them as a normal section.
+ * Guides polish 1122 #18: the undated light displays sit in their own group (open on arrival since owner 2026-11-22),
+ * after the dated days and before "Later dates", titled with their count and carrying the TBA note; a When filter shows
+ * them as a normal section.
  * @mutate src/pages/info/holidays/HolidayHub.tsx |   const tbaLights = folds ? groups.find((g) => g.key === "lights-tba") : undefined; |   const tbaLights = folds ? undefined : groups.find((g) => g.key === "lights-tba");
  * @mutate src/content/holidayHub/holidayHub.mjs |   lightsTba: "Light displays, dates not announced", |   lightsTba: "Light displays",
  * @mutate src/pages/info/holidays/HolidayHub.tsx | <p className="text-ds-14 text-muted-foreground">{W.lightsTbaNote}</p> | <p></p>
  */
 describe("Holiday Hub: undated lights fold (guides polish 1122 #18)", () => {
-  it("a closed group with a count and the note, after the open days and before Later dates", () => {
+  it("an open group with a count and the note, after the dated days and before Later dates", () => {
     const { container, unmount } = render(<MemoryRouter initialEntries={["/holidays"]}><HolidayHub /></MemoryRouter>);
     const lights = container.querySelector<HTMLDetailsElement>("details[data-holiday-lights-tba]")!;
     expect(lights).not.toBeNull();
-    expect(lights.open).toBe(false);
+    expect(lights.open).toBe(true);
     expect(lights.querySelector("summary")!.textContent).toMatch(/^Light displays, dates not announced\(\d+\)$/);
     expect(lights.textContent).toContain("Dates TBA means the 2026 dates are not announced yet");
     const later = container.querySelector("details[data-holiday-later]")!;

@@ -5,6 +5,7 @@ import { DEALS_COVER, DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealName
 import { DEAL_CODES } from "@/content/giftGuidePicks";
 import { cleanCodes } from "@/lib/giftGuideOfferCopy.mjs";
 import { GiftOut } from "./GiftOut";
+import { START_OPEN } from "./startOpen";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
@@ -168,13 +169,15 @@ function DealSections({ day, deals, dealCount, shownCodes }: { day: string; deal
       </p>
     );
   }
-  const isOpen = (id: string, i: number) => open[id] ?? i === 0;
+  // Owner 2026-11-22 ("make everything open expanded. black friday, small business, cyber monday keep it all open"):
+  // every subsection starts open (START_OPEN); a shopper can still close one.
+  const isOpen = (id: string) => open[id] ?? START_OPEN;
   return (
     <div className="gg-deals-list" data-gift-deal-sections="">
       {/* Polish audit 1122 #30: no jump-chip row (36px chips that wrapped at 375 and repeated the headings right below). */}
-      {sections.map((x, i) => (
-        <details key={x.id} id={`gg-deal-sec-${x.id}`} className="gg-deal-sec" open={isOpen(x.id, i)} data-gift-deal-sub={x.id}
-          onToggle={(e) => { const now = (e.currentTarget as HTMLDetailsElement).open; if (now !== isOpen(x.id, i)) setOpen((o) => ({ ...o, [x.id]: now })); }}>
+      {sections.map((x) => (
+        <details key={x.id} id={`gg-deal-sec-${x.id}`} className="gg-deal-sec" open={isOpen(x.id)} data-gift-deal-sub={x.id}
+          onToggle={(e) => { const now = (e.currentTarget as HTMLDetailsElement).open; if (now !== isOpen(x.id)) setOpen((o) => ({ ...o, [x.id]: now })); }}>
           <summary>
             <h2 className="gg-deal-sec-title" id={`gg-deal-sec-${x.id}-title`}>{x.title}</h2>
             {x.count !== null && <span className="gg-sec-count" data-gift-deal-sub-count="">{x.count}</span>}

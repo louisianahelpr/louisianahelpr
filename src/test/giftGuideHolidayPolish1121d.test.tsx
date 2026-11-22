@@ -106,7 +106,8 @@ describe("owner 11-21: codes and sales are photo cards", () => {
     const top = Math.max(...mine.map((c) => pct(c.offer)));
     expect(mine.length).toBeGreaterThan(1);
     expect(pct(mine.find((c) => c.code === bonheur?.getAttribute("data-gift-code"))!.offer)).toBe(top);
-    fireEvent.click(bonheur!.querySelector("[data-gift-code-more]")!);
+    // Owner 2026-11-22 ("make everything open expanded"): the store's other codes show at once (no "+N more codes").
+    expect(bonheur!.querySelector("[data-gift-code-more]")).toBeNull();
     expect([...bonheur!.querySelectorAll("[data-gift-code-extra]")].length).toBe(mine.length - 1);
     for (const card of cards) {
       const code = card.getAttribute("data-gift-code")!;
@@ -191,12 +192,13 @@ describe("owner 11-21: every card says when it starts and ends; no day line", ()
 
 describe("owner 11-21: a deals day in subsections by type", () => {
   // Polish audit 1122 #30: no jump-chip row (the headings name and count themselves right below).
-  it("Black Friday: no jump row; Top deals open, Discount codes and Sales closed", async () => {
+  // Owner 2026-11-22 ("make everything open expanded. black friday, small business, cyber monday keep it all open").
+  it("Black Friday: no jump row; Top deals, Discount codes and Sales all open", async () => {
     const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("black-friday")!} now={new Date("2026-11-21T18:00:00Z")} /></MemoryRouter>);
     await waitFor(() => expect(container.querySelector("[data-gift-deal]")).not.toBeNull());
     expect(container.querySelector("[data-gift-deal-jump]")).toBeNull();
     const subs = [...container.querySelectorAll<HTMLDetailsElement>("details[data-gift-deal-sub]")];
-    expect(subs.map((d) => [d.getAttribute("data-gift-deal-sub"), d.open])).toEqual([["deals", true], ["codes", false], ["sales", false]]);
+    expect(subs.map((d) => [d.getAttribute("data-gift-deal-sub"), d.open])).toEqual([["deals", true], ["codes", true], ["sales", true]]);
   });
   it("the Discount codes subsection holds exactly the codes that work that day (none: no subsection)", async () => {
     // Dec 30: every dated code is over, but the owner's undated codes still work; so read a day where codesOn is empty

@@ -11,6 +11,7 @@ import { track } from "@/lib/analytics";
 import { mapsSearchUrl } from "@/lib/mapsLink";
 import { openableDocumentUrl } from "@/lib/storagePath";
 import { DATES_TBA, holidayDateLabel, holidayMapsQuery, holidayPriceLabel, holidayWhereLabel, type HolidayItem } from "@/content/holidayHub/holidayHub.mjs";
+import { START_OPEN } from "@/pages/info/giftGuides/startOpen";
 
 /** The hub's column (the lists sit two across from md up), and its header's: the column plus the shell's side padding. */
 export const HUB_COLUMN = "mx-auto max-w-[1040px]";
@@ -47,7 +48,8 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
   const price = holidayPriceLabel(item.price);
   const maps = mapsSearchUrl(holidayMapsQuery(item));
   const site = openableDocumentUrl(item.url);
-  const [more, setMore] = useState(false);
+  // Owner 2026-11-22 ("make everything open expanded"): a card's whole note shows on arrival (START_OPEN).
+  const [more, setMore] = useState(START_OPEN);
   const facts = [item.hours, price].filter(Boolean).join(" · ");
   return (
     <li className="flex min-w-0 flex-col gap-1 rounded-[16px] border border-border bg-card px-4 py-3 font-sans" data-holiday-item={item.id}>

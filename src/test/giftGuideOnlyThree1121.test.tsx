@@ -155,7 +155,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       if (slug === "small-business-saturday") expect(codes, slug).toBeNull();
       else {
         expect(codes, `${slug}: the codes subsection`).not.toBeNull();
-        expect(codes!.open, slug).toBe(false);
+        // Owner 2026-11-22 ("make everything open expanded"): open on arrival.
+        expect(codes!.open, slug).toBe(true);
       }
       // Holiday audit 1121: the menu marks the open day itself (it marked Black Friday on every day).
       expect(container.querySelector(`[data-gift-side-deals='${slug}']`)?.getAttribute("aria-current"), slug).toBe("page");

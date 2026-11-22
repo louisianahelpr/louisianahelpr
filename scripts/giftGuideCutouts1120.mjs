@@ -133,6 +133,10 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/pins/zoom-108612982-1795240352615-253765107_0435.jpg", "therabody-theragun-mini-a30abd.webp"],
   // Camp Snap CS-8 Micro Video Camera Keychain
   ["https://static.shopmy.us/pins/zoom-106643598-1794927315931-micro1.jpg", "camp-snap-cs-8-micro-video-camera-keychain-60114e.webp"],
+  // Camp Snap CS-8 Micro, all seven colors with the blind box (owner 11-22 #9 "for camp snap choose a better picture":
+  // the cameras, not only the box). campsnapphoto.com's own transparent product art from the CS-8 Micro page; its white
+  // "Meet the CS-8 Micro" title and the rainbow stripe behind the cameras erased, no Vision pass.
+  ["https://cdn.shopify.com/s/files/1/0744/7383/2752/files/header_d29d6334-ecd6-41de-ad9f-68ae82d94846.png", "camp-snap-cs-8-micro-all-colors-778dd0.webp"],
   // Stanley All Day Julienne Midi Cooler
   ["https://www.rei.com/media/40f2076a-b808-4b12-b912-240e6fa0e847", "stanley-all-day-julienne-midi-cooler-792e50.webp"],
   // YETI Camino 35 Carryall, Cape Taupe

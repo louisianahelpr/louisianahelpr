@@ -386,14 +386,19 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    some effect so it doesn't look flat": same design, larger airy type centred in a slightly larger arch, and a printed-
    card depth: a soft shadow under the card, a faint inner vignette on the gingham, the arch raised off it, and the
    covers' thin gold inner arch line. */
-.gg-banner{position:relative;height:216px;box-shadow:0 2px 10px rgba(0,0,0,.10)}
+.gg-banner{position:relative;height:252px;box-shadow:0 2px 10px rgba(0,0,0,.10)}
 .gg-banner::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 28px rgba(60,40,20,.14);pointer-events:none}
-.gg-arch{position:relative;width:min(520px,74%);padding:42px 22px 16px;box-shadow:0 -3px 14px rgba(60,40,20,.12),0 0 0 7px rgba(255,253,247,.85)}
+.gg-arch{position:relative;width:min(680px,76%);padding:30px 28px 16px;box-shadow:0 -3px 14px rgba(60,40,20,.12),0 0 0 7px rgba(255,253,247,.85)}
 .gg-arch::before{content:"";position:absolute;inset:9px 9px 0;border:1px solid rgba(176,141,87,.75);border-bottom:0;border-radius:999px 999px 0 0;pointer-events:none}
-.gg-banner .gg-lead{font-size:26px;line-height:1.15;margin:0 0 14px}
-.gg-banner h1{font-size:46px;line-height:1.1}
-@media (min-width:768px) and (max-width:1023px){.gg-banner{height:196px}.gg-banner .gg-lead{font-size:22px}.gg-banner h1{font-size:38px}}
-@media (max-width:767px){.gg-banner{height:136px;padding-top:10px}.gg-arch{width:min(300px,80%);padding:20px 10px 8px;box-shadow:0 -2px 10px rgba(60,40,20,.12),0 0 0 5px rgba(255,253,247,.85)}.gg-arch::before{inset:6px 6px 0}.gg-banner .gg-lead{font-size:17px;margin-bottom:8px}.gg-banner h1{font-size:clamp(22px,7.5vw,30px);-webkit-line-clamp:2}}
+/* Pass 2, owner 11-21 night: "gifts for her is still too small text size and still close together": "gifts for" 26 ->
+   36px, the name 46 -> 78px, a 16px gap between the two lines (line-height 1 so the gap is the gap), band 216 -> 252px.
+   The long two-line titles (deal days, 25 Days Sponsors) take 60px from 768px up so two lines still sit inside the arch
+   (only there: on a phone every guide has the count row after its banner). */
+.gg-banner .gg-lead{font-size:36px;line-height:1.1;margin:0 0 16px}
+.gg-banner h1{font-size:78px;line-height:1.06}
+@media (min-width:768px){.gg:has([data-gift-deals-page]) .gg-banner h1,.gg-banner-wrap:has(+.gg-countrow) .gg-banner h1{font-size:60px;line-height:1.04}}
+@media (min-width:768px) and (max-width:1023px){.gg-banner{height:220px}.gg-arch{width:min(600px,80%)}.gg-banner .gg-lead{font-size:30px;margin-bottom:14px}.gg-banner h1{font-size:64px}.gg:has([data-gift-deals-page]) .gg-banner h1,.gg-banner-wrap:has(+.gg-countrow) .gg-banner h1{font-size:48px}}
+@media (max-width:767px){.gg-banner{height:184px;padding-top:10px}.gg-arch{width:min(340px,94%);padding:22px 10px 8px;box-shadow:0 -2px 10px rgba(60,40,20,.12),0 0 0 5px rgba(255,253,247,.85)}.gg-arch::before{inset:6px 6px 0}.gg-banner .gg-lead{font-size:clamp(20px,6vw,24px);margin-bottom:12px}.gg-banner h1{font-size:clamp(34px,11vw,44px);line-height:1.02;-webkit-line-clamp:2}}
 /* Dark mode: the arch stays cream, so its "gifts for" keeps the cover brown (the later .gg-words dark rule turned it near-white, 11-21). */
 :root[data-theme="dark"] .gg-words .gg-banner .gg-lead{color:#6b5a48}
 `;

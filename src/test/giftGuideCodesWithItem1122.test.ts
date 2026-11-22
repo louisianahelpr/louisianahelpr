@@ -7,7 +7,7 @@
  * (the card hides the chip after it). A code that works only somewhere else (Muck Boot's codes vs our Amazon MUCK link,
  * Therabody's DEAL codes vs our Ulta / Exclusive Beauty Club links) never shows. The pages show no list of codes: the
  * codes list lives only on the deals pages.
- * @mutate scripts/giftGuideHer1121.mjs | commission: 10, type: "accessory", code: "LEXILOMBAS7" } | commission: 10, type: "accessory" }
+ * @mutate scripts/giftGuideOwnerAdds1122.mjs | const CAMP_SNAP_CODE = "LEXILOMBAS7"; | const CAMP_SNAP_CODE = undefined;
  * @mutate src/content/giftGuides.ts | code: "LEXI5", offer: "5% off; stacks with their sales", expires: "2026-12-12" | code: "LEXI15", offer: "5% off; stacks with their sales"
  */
 import { readFileSync } from "node:fs";
@@ -16,7 +16,7 @@ import { activeCodes, discountCodes } from "@/content/giftGuides";
 import { RESEARCHED_STORES } from "@/content/giftGuidePicks";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { blankComments } from "./helpers/blankNonCode";
-import { HER_1121 } from "../../scripts/giftGuideHer1121.mjs";
+import { HER_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 
 type Pick = { name: string; href: string; store: string; code?: string; codeEnds?: string };
 const GUIDES = ["her", "him", "kids"] as const;
@@ -58,8 +58,9 @@ describe("codes ride with their item on Her, Him and Kids (owner 11-21)", () => 
     const camp = her.find((p) => p.store === "store-camp-snap");
     expect(camp?.code).toBe("LEXILOMBAS7");
     expect(camp?.codeEnds).toBeUndefined();
-    // The module too, so a generator change shows before the page is regenerated.
-    expect(HER_1121.find((p) => p.store === "store-camp-snap")?.code).toBe("LEXILOMBAS7");
+    // The module too, so a generator change shows before the page is regenerated. Owner 11-22 PM ("Choose one" Camp
+    // Snap): the CS-8 Micro keychain left the 11-21 Her module, so her Camp Snap rows (and their code) are the 11-22 adds.
+    expect(HER_ADDS_1122.find((p) => p.store === "store-camp-snap")?.code).toBe("LEXILOMBAS7");
     const boots = chunk("him").filter((p) => p.store === "store-xtratuf");
     expect(boots.length).toBe(2);
     for (const b of boots) expect([b.code, b.codeEnds]).toEqual(["XT25", "2026-11-29"]);

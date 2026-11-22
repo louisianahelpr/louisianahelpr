@@ -53,7 +53,9 @@ const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-10914343
   // Batch 2b: The Sleepy Tie, Foton candle, and her Lake Hydrangea set (in place of her Lake pin that is gone from Lake's site).
   "p-109150422", "p-109158379", "p-103889077",
   // Batch 2c: Good Molecules patches, BISSELL Little Green Mini, Drowsy mask, Diptyque Baies, Madewell nightgown, Oura Ring 5.
-  "p-109147619", "p-109151385", "p-109149968", "p-109152299", "p-109155568", "p-109155784"];
+  "p-109147619", "p-109151385", "p-109149968", "p-109152299", "p-109155568", "p-109155784",
+  // builder-guide-links 11-22: Esker Bubble Soak.
+  "p-109207730"];
 // Launch day 11-22, from her screenshots (no ShopMy pin for these): CFUNIQ toiletry bag, Astercook knives and pans,
 // CASABREWS espresso machine, BISSELL FurGuard vacuum, eto decanter, Ozlo Sleepbuds 2.
 const POPULAR_1122_ASINS = ["B0GGTPW6Q9", "B0HJ9ZXCSD", "B0DWHDM15Q", "B0F41DGFXT", "B0BGQT41ZZ"];
@@ -63,19 +65,25 @@ const ADDS_1122_ASINS = ["B0HKS18NW2", "B0C1YBPJ43", "B0F2937DQQ", "B09X3WGJ3R",
 // Owner 2026-11-22 ("Keep only Oura"): B0H1N3TWP1, the Ultrahuman Ring PRO, came off again.
 const SCREENS_1122_ASINS = ["B0030F32L6", "B0DKG9CMH8", "B0GSMJTZJJ", "B0D3V61JC8", "B0CSV71DJV", "B0D2LV7DHF", "B00PCQW4P6", "B0CFPJYX7P",
   "B000S5VEA2", "B0FGDQ5BT9", "B0DN245D58", "B0HN76TWQ2", "B0C6XK77HJ", "B0D858S2H5", "B0BLWTQ7JC", "B0F831FK2R", "B0B22SZ3W8", "B0H69TGK2F", "B07CDF1RVV", "B0G618GK4S", "B09WG9R7MY"];
-const SCREENS_1122_PINS = ["p-103899561", "p-104053242", "p-103903056", "p-103891549", "p-107936463", "p-103882819", "p-107936513", "p-107936484", "p-107887741"];
+const SCREENS_1122_PINS = ["p-103899561", "p-104053242", "p-103903056", "p-103891549", "p-107936463", "p-103882819", "p-107936513", "p-107936484", "p-107887741",
+  // Links made in her ShopMy 11-22 (owner: "You can create the links"; Desktop note ShopMy-links-created-1122.md).
+  "p-109201389", "p-109202100", "p-109201186", "p-109200757", "p-109201629", "p-109200363", "p-109205545", "p-109205223",
+  // Her Anthropologie Capri Blue Volcano Capiz Jar pin (11-19).
+  "p-104056613"];
 // XTRATUF's women's Camp Fleece boot at xtratuf.com through her CJ link (15%, as the Him XTRATUF boots).
 const SCREENS_1122_CJ = ["https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxwadbc10"];
 // Owner 11-22 PR picks (builder-guide-her3b).
 const PR_PINS = ["p-107965795", "p-103880845", "p-104580620", "p-103889854", "p-103784739", "p-103878765", "p-103883109", "p-103877715"];
-const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
+// builder-guide-her4 block 2 (11-22): from her screenshots, Amazon with her tag.
+const HER4_1122_ASINS = ["B0H2FQ5FV1", "B0FXYGCYK6", "B0F5K3B4Q7", "B0CHMS3PVZ", "B0D7GQVNNN", "B0D1X4PNFD", "B0F7M3HPBD", "B0H3YXW87L", "B0H9L8Z1DY", "B0F79VTVFQ", "B0D92375JB", "B0G4M22BQL", "B0BGS3L9XS", "B0DXWP12C8", "B0HKYH5TF2", "B0H2CSG4SZ", "B0FXBBD5GS", "B0G3948RG8", "B0HKQYLRBB"];
+const SAVED = new Set([...[...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
 const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 122 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(122);
-    expect(page.length).toBe(122);
+  it("the page holds exactly her 151 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(151);
+    expect(page.length).toBe(151);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
@@ -111,14 +119,14 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(59);
-    expect(shopmy.length).toBe(63);
+    expect(amazon.length).toBe(78);
+    expect(shopmy.length).toBe(73);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
       // Her saved-list picks were captured 11-21; the Amazon picks from her launch-day screenshots, 11-22.
-      expect(p.priceAt, p.name).toBe([...ADDS_1122_ASINS, ...POPULAR_1122_ASINS].some((a) => p.href.includes(a)) || SCREENS_1122.has(p.href) ? "2026-11-22" : "2026-11-21");
+      expect(p.priceAt, p.name).toBe([...ADDS_1122_ASINS, ...POPULAR_1122_ASINS, ...HER4_1122_ASINS].some((a) => p.href.includes(a)) || SCREENS_1122.has(p.href) ? "2026-11-22" : "2026-11-21");
       expect(p.image, p.name).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
     }
     for (const p of shopmy) {

@@ -206,7 +206,12 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // 11-22 popular approved (builder-guide-popular): Kids + 9, Her + 5, Him + 5 (AirPods Pro 3, AirTags, Bose, Garmin, Gozney).
       // Train e (11-22): Him also gained Smathers & Branson picks, the Banded and Klola adds and the men's MVP 2-pack, and lost
       // its duplicates (XTRATUF boots, GoBox 60 and Collection, the RAK tool).
-      him: { "Under $25": 43, "$25 to $50": 43, "$50 to $75": 24, "$75 to $100": 11, "$100 and up": 37 },
+      // Train f: Him batch 1 (Solo Stove, Roadie 8, Muck, Carhartt jacket, 2 Duck Commander calls; the Roadie 15 is off)
+      // and batch 2 (S&B wallet, Marley Lilly cooler, GE Opal Mini).
+      // builder-guide-links (11-22): Him + Le Labo, Patagonia duffel, Steve Madden loafer (all $100 and up).
+      // Him batch 3 (11-22): the L.L.Bean waterfowl sweater ($130) and Costa Sullivan sunglasses ($262); the Duck Head rope hat
+      // stays off (sold out at the 11-20 audit) and the Duck Camp hat waits for its own cutout source.
+      him: { "Under $25": 43, "$25 to $50": 45, "$50 to $75": 25, "$75 to $100": 11, "$100 and up": 47 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -215,7 +220,10 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Battery Daddy ($20); Kids + both Yoto bundles ($164, $166).
       // Train e (11-22): Kids gained the 9 popular adds, the Quest 3S, iPad and JLab headphones, and lost its duplicate
       // Switch, Segway and tile rows.
-      kids: { "Under $25": 34, "$25 to $50": 25, "$50 to $75": 8, "$75 to $100": 6, "$100 and up": 20 },
+      // builder-guide-links (11-22): Kids + CrunchLabs Crunchinator ($35), Tamagotchi Paradise ($45) and Stickerbox ($130).
+      // Her play saves (builder-guide-adds-kids, owner: "Keep all (my saves)"): the Step2 and Wayfair backyard sets and the
+      // Macy's hoop; kids2: the Step2 water table, Burt's Bees Little Ducks, Angel Dear duck PJs and a Duck Commander call.
+      kids: { "Under $25": 36, "$25 to $50": 28, "$50 to $75": 11, "$75 to $100": 10, "$100 and up": 26 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -224,7 +232,15 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Braun IPL, the XTRATUF boot, the L.L.Bean sweater and barn coat and the HOKA Bondi 9 ($100 and up).
       // Train e (11-22): Her also gained the 5 popular adds and her3b's PR picks (Beekman, Glow Recipe, Eberjey, Beis,
       // Case-Mate, Naturium, Makeup by Mario, YTTP), and lost the Amazon Essentials flannel pajamas (owner: "Lake + Eberjey").
-      her: { "Under $25": 36, "$25 to $50": 34, "$50 to $75": 9, "$75 to $100": 8, "$100 and up": 35 },
+      // Train f: the links made in her ShopMy 11-22: the CALPAK lunch bag ($38), OOFOS slide ($70), Slip and Crown Affair
+      // pillowcases, the OOFOS leopard clog and the Smathers & Branson tray ($84-$95), the Patchology hand mask ($11) and the
+      // BaubleBar spaced-letter necklace ($148).
+      // builder-guide-links (11-22): Her + the Esker bubble soak ($75); builder-guide-adds-2: her Capri Blue Volcano capiz jar
+      // pin (from $22).
+      // builder-guide-her4 block 2 (11-22): 10 Amazon picks from her screenshots (HydroJugs, She's Birdie, CRZ YOGA pants
+      // and bra, Lemon Grace cards, Bose QC Ultra Earbuds, two personalized bags, YETI Daytrip lunch bag).
+      // Batch 2 (11-22): vest, sweatshirt, sherpa, Kitsch, HydroJug tortoise, gift bags and tags, card holder, pouch.
+      her: { "Under $25": 45, "$25 to $50": 45, "$50 to $75": 10, "$75 to $100": 14, "$100 and up": 37 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

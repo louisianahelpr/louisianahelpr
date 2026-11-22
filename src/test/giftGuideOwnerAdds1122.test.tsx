@@ -65,11 +65,37 @@ const SENT: [string, string, string, number][] = [
   ["p-109152299", "her", "store-cos-bar", 90],
   ["p-109155568", "her", "store-madewell", 158],
   ["p-109155784", "her", "store-ulta-beauty", 399],
+  // Him batch 1 (her Nov 19 pins) and batch 2 (links the lead made 11-22), builder-guide-him.
+  ["p-107850277", "him", "store-l-l-bean", 299.99], // Solo Stove Bonfire with stand
+  ["p-107837448", "him", "store-l-l-bean", 165], // YETI Roadie 8 (the Roadie 15 is off: same cooler)
+  ["p-107881822", "him", "store-the-warming-store", 195], // Muck Arctic Pro
+  ["p-107847793", "him", "store-cavenders", 129.99], // Carhartt Duck Insulated Active Jacket
+  ["p-107895312", "him", "store-tractor-supply", 64.99], // Duck Commander Phil Robertson Pro Series
+  ["p-107895486", "him", "store-tractor-supply", 44.99], // Duck Commander Camo Max Mallard Hen
+  ["p-109208695", "him", "store-smathers-and-branson", 195], // S&B Monogrammed Wallet, Hunter Green
+  ["p-109208941", "him", "store-marley-lilly", 34.99], // Marley Lilly waxed canvas small cooler
+  // Him batch 3 (her Nov 19 pins). The L.L.Bean sweater shows $130, the price on her pin data (lead 11-22).
+  ["p-108089555", "him", "store-jomashop", 262], // Costa Sullivan polarized glass sunglasses
+  ["p-108094779", "him", "store-l-l-bean", 130], // L.L.Bean Men's Waterfowl Sweater
+  // owner 11-22 popular via new ShopMy links (builder-guide-links)
+  ["p-109207730", "her", "store-esker-beauty", 75],
+  ["p-109208209", "kids", "store-crunchlabs", 34.99],
+  ["p-103757260", "kids", "store-maisonette", 129.99],
+  ["p-109208104", "kids", "store-target", 44.99],
+  ["p-109199365", "him", "store-saks-fifth-avenue", 154],
+  ["p-109203985", "him", "store-st-bernard", 159],
+  ["p-109204287", "him", "store-dsw", 139.99],
 ];
 /** Amazon picks from her launch-day screenshots and asks (no ShopMy pin for them): ASIN -> guide, price 11-22. */
 const AMAZON_1122: [string, string, number][] = [
   ["B0HKS18NW2", "her", 14.98], ["B0C1YBPJ43", "her", 35.98], ["B0F2937DQQ", "her", 56.98], ["B09X3WGJ3R", "her", 111.99],
   ["B0DQLLPYGM", "her", 184.89], ["B0GP2R8TBS", "her", 199], ["B0GZSMBDYZ", "her", 237], ["B089F9YDFC", "him", 19.99],
+  // Him batch 2: the GE Profile Opal Mini (the method body wash stayed out: Him already has it).
+  ["B0H51ZX6SB", "him", 299],
+  // builder-guide-her4 block 2 (11-22)
+  ["B0H2FQ5FV1", "her", 39.99], ["B0FXYGCYK6", "her", 24.99], ["B0F5K3B4Q7", "her", 29.94], ["B0CHMS3PVZ", "her", 27.99], ["B0D7GQVNNN", "her", 23.8], ["B0D1X4PNFD", "her", 29.95], ["B0F7M3HPBD", "her", 229], ["B0H3YXW87L", "her", 42.99], ["B0H9L8Z1DY", "her", 21.99], ["B0F79VTVFQ", "her", 85],
+  // batch 2
+  ["B0D92375JB", "her", 26.99], ["B0G4M22BQL", "her", 32.99], ["B0BGS3L9XS", "her", 27.99], ["B0DXWP12C8", "her", 13.99], ["B0HKYH5TF2", "her", 39.99], ["B0H2CSG4SZ", "her", 15.99], ["B0FXBBD5GS", "her", 17.5], ["B0G3948RG8", "her", 14.8], ["B0HKQYLRBB", "her", 22.99],
 ];
 
 describe("the owner's launch-day picks (11-22)", () => {

@@ -111,6 +111,17 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   // tracker are gadgets; a smartwatch is a gadget for workouts; a pizza oven is kitchen, out in the yard.
   "personal-fan": ["tech"], "power-bank": ["tech"], "travel-adapter": ["tech"], earbuds: ["tech"], headphones: ["tech"],
   tracker: ["tech"], smartwatch: ["tech", "fitness"], "pizza-oven": ["kitchen", "outdoors"],
+  // Him batch 1 of her Nov 19 pins (11-22): a fire pit and duck calls go outdoors.
+  "fire-pit": ["outdoors"], "duck-call": ["outdoors"],
+  // Him batch 2: a nugget ice maker is kitchen.
+  "ice-maker": ["kitchen"],
+  // Him batch 3: a wool quarter-zip sweater is style and cozy.
+  sweater: ["style", "cozy"],
+  // Her block 2 (builder-guide-her4, 11-22): a lunch bag and a straw tumbler are kitchen, a water bottle and a sports bra
+  // are fitness, a keychain safety alarm is a gadget.
+  "lunch-bag": ["kitchen"], tumbler: ["kitchen"], "water-bottle": ["fitness"], "sports-bra": ["fitness", "style"], "safety-alarm": ["tech"],
+  // Her block 2 batch 2: a hair perfume is beauty; monogram gift tags and gift bags are for home.
+  "hair-perfume": ["beauty"], "gift-wrap": ["cozy"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
@@ -127,6 +138,9 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   // The popular Kids adds of 11-22 (builder-guide-popular): a brain-teaser puzzle is a game; a hatching egg, a playset, a
   // plush Elmo and a dino vehicle are pretend play.
   puzzle: ["games"], "hatching-toy": ["pretend"], playset: ["pretend"], plush: ["pretend"], "vehicle-toy": ["pretend"],
+  // Backyard play gear she saved (11-22): outdoor sets for little ones.
+  "backyard-play": ["active", "pretend"],
+  "kids-pajamas": ["cozy"], "duck-call": ["active", "stocking"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -182,9 +196,12 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   // The popular Kids adds of 11-22, by each box's age: Little People and Tickle Me Elmo are for toddlers, the PAW Patrol
   // vehicle and the hatching egg for preschool and up, Kanoodle (7+) for school-age kids and teens.
   playset: ["0-2", "3-5"], plush: ["0-2", "3-5"], "vehicle-toy": ["3-5", "6-8"], "hatching-toy": ["3-5", "6-8"], puzzle: ["6-8", "9-12", "teen"],
+  "backyard-play": ["3-5"],
+  "kids-pajamas": ["0-2", "3-5", "6-8"], "duck-call": ["6-8", "9-12"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],
+  [/infant bucket swing/i, ["0-2"]],
   [/paint with water|sticker book/i, ["3-5", "6-8"]],
   [/aqua puffs/i, ["3-5", "6-8"]],
   [/easel|club chair/i, ["3-5"]],

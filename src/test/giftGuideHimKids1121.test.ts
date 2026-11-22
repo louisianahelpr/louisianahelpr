@@ -13,7 +13,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { HIM_1121, HIM_POPULAR_1122, KIDS_POPULAR_1122, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
+import { HIM_1121, HIM_POPULAR_1122, KIDS_POPULAR_1122, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_PLAY_1122, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
 import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
@@ -30,14 +30,23 @@ type Pick = { name: string; brand?: string; href: string; image: string; store: 
 const SWITCHED: Record<string, Record<string, string>> = {
   him: { "https://go.shopmy.us/p-108736038": "store-dillards", "https://go.shopmy.us/p-108734364": "store-exclusive-beauty-club", "https://go.shopmy.us/p-108736312": "store-onward-reserve", 
     // Night links 11-21 (Commission-links-1121-night.md; owner: "switch all 3 to the higher commission"):
-    "https://go.shopmy.us/p-108999848": "store-onward-reserve", "https://go.shopmy.us/p-109000336": "store-l-l-bean", "https://go.shopmy.us/p-109001581": "store-yeti", "https://go.shopmy.us/p-109003412": "store-yeti", "https://go.shopmy.us/p-109003630": "store-yeti", "https://go.shopmy.us/p-109003793": "store-yeti", "https://go.shopmy.us/p-109003951": "store-yeti", "https://go.shopmy.us/p-109004058": "store-yeti", "https://go.shopmy.us/p-109004159": "store-yeti", "https://go.shopmy.us/p-109004254": "store-yeti", "https://go.shopmy.us/p-109004991": "store-tractor-supply", "https://go.shopmy.us/p-109005541": "store-tractor-supply", "https://go.shopmy.us/p-109005400": "store-tractor-supply",
+    "https://go.shopmy.us/p-108999848": "store-onward-reserve", "https://go.shopmy.us/p-109000336": "store-l-l-bean", "https://go.shopmy.us/p-109001581": "store-yeti", "https://go.shopmy.us/p-109003412": "store-yeti", "https://go.shopmy.us/p-109003630": "store-yeti", "https://go.shopmy.us/p-109003793": "store-yeti", "https://go.shopmy.us/p-109003951": "store-yeti", "https://go.shopmy.us/p-109004058": "store-yeti", "https://go.shopmy.us/p-109004159": "store-yeti", "https://go.shopmy.us/p-109004254": "store-yeti", "https://go.shopmy.us/p-109004991": "store-tractor-supply", "https://go.shopmy.us/p-109005400": "store-tractor-supply",
     "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2F22734": "store-xtratuf",
     // Rate switches 11-21 night (Commission-rates-search-1121-night.md): 3 XTRATUF at xtratuf.com via CJ 15% (XT25), TNF beanie at
     // JD Sports 15%, Burlebo hoodie and cap at burlebo.com 12%.
     "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabmob": "store-xtratuf",
     "https://go.shopmy.us/p-109003932": "store-jd-sports", "https://go.shopmy.us/p-109005228": "store-burlebo", "https://go.shopmy.us/p-109005373": "store-burlebo",
     // Launch day 11-22 (Owner-adds-1122.md): her older Lake Pajamas pins, sent for Him.
-    "https://go.shopmy.us/p-103892269": "store-lake-pajamas", "https://go.shopmy.us/p-104054474": "store-lake-pajamas" },
+    "https://go.shopmy.us/p-103892269": "store-lake-pajamas", "https://go.shopmy.us/p-104054474": "store-lake-pajamas",
+    // Batch 1 for Him 11-22: her Nov 19 pins (prices as checked 11-20).
+    "https://go.shopmy.us/p-107850277": "store-l-l-bean", "https://go.shopmy.us/p-107837448": "store-l-l-bean", "https://go.shopmy.us/p-107881822": "store-the-warming-store",
+    "https://go.shopmy.us/p-107847793": "store-cavenders", "https://go.shopmy.us/p-107895312": "store-tractor-supply", "https://go.shopmy.us/p-109208695": "store-smathers-and-branson",
+    "https://go.shopmy.us/p-109208941": "store-marley-lilly",
+    "https://go.shopmy.us/p-107895486": "store-tractor-supply",
+    // builder-guide-links 11-22.
+    "https://go.shopmy.us/p-109199365": "store-saks-fifth-avenue", "https://go.shopmy.us/p-109203985": "store-st-bernard", "https://go.shopmy.us/p-109204287": "store-dsw",
+    // Batch 3 11-22.
+    "https://go.shopmy.us/p-108089555": "store-jomashop", "https://go.shopmy.us/p-108094779": "store-l-l-bean" },
   // Rate switch 11-21 night: Segway Ninebot S2 (Amazon B0CT2WN59R, 3%) -> Tractor Supply 8% at $484.99.
   kids: { "https://go.shopmy.us/p-109001528": "store-tractor-supply",
     // Launch day 11-22 (Owner-adds-1122.md): her two Camp Snap 2 colors, pinned at The Swank Company (p-109142125,
@@ -46,7 +55,8 @@ const SWITCHED: Record<string, Record<string, string>> = {
     // Owner via the lead, 11-22: her EADEM New Classics Set pin goes on Kids.
     "https://go.shopmy.us/p-109155269": "store-eadem",
     // Owner via the lead, 11-22: both Yoto 4th Gen bundles (Ms. Rachel, Bluey).
-    "https://go.shopmy.us/p-109156467": "store-yoto", "https://go.shopmy.us/p-109156399": "store-yoto" },
+    "https://go.shopmy.us/p-109156467": "store-yoto", "https://go.shopmy.us/p-109156399": "store-yoto",
+    "https://go.shopmy.us/p-109208209": "store-crunchlabs", "https://go.shopmy.us/p-103757260": "store-maisonette", "https://go.shopmy.us/p-109208104": "store-target" },
 };
 /**
  * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and
@@ -78,6 +88,12 @@ const SAVES: Record<string, Record<string, string>> = {
     ...sm(["108632004", "108631991", "108631978"], "store-macys"),
     // Rate switch 11-21 night: the Jumbo Cardboard Blocks moved from Wayfair p-108632086 (11%) to Macy's p-109002741 (16%), $32.99.
     ...sm(["109002741"], "store-macys"),
+    // Owner 11-22 play saves (builder-guide-adds-kids).
+    ...sm(["109160969", "109160922", "109160891", "109160773", "109160887", "109160813", "109160795", "109160719", "109160708", "109160660"], "store-wayfair"),
+    ...sm(["109160077"], "store-macys"),
+    // Owner 11-22 kids picks 2 (builder-guide-kids2).
+    ...sm(["109218761"], "store-target"), ...sm(["107902887"], "store-burts-bees-baby"),
+    ...sm(["108100673"], "store-maisonette"), ...sm(["107895388"], "store-tractor-supply"),
   },
 };
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug] });
@@ -114,8 +130,8 @@ describe.each([
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
       // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day and the Dad fill-in book (owner
-      // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) were priced 11-22.
-      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || popular.has(p.href) ? "2026-11-22" : "2026-11-21");
+      // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) and the GE Opal Mini (builder-guide-him, 2026-11-22) were priced 11-22.
+      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) ? "2026-11-22" : "2026-11-21");
     }
   });
 
@@ -157,14 +173,14 @@ describe.each([
 
 describe("her ShopMy saves for Him and Kids (11-21)", () => {
   it("every kept save is on its page with the price checked 11-21, and its store has a shown name", () => {
-    for (const [slug, rows] of [["him", HIM_SHOPMY_1121], ["kids", KIDS_SHOPMY_1121]] as const) {
+    for (const [slug, rows] of [["him", HIM_SHOPMY_1121], ["kids", [...KIDS_SHOPMY_1121, ...KIDS_PLAY_1122]]] as const) {
       expect(new Set(rows.map((r) => r.href)), slug).toEqual(new Set(Object.keys(SAVES[slug])));
       const page = chunk(slug);
       for (const r of rows) {
         const p = page.find((x) => x.href === r.href);
         expect(p, r.name).toBeDefined();
         expect(p?.price, r.name).toBe(r.price);
-        expect(p?.priceAt, r.name).toBe(HIM_KIDS_PRICE_AT);
+        expect(p?.priceAt, r.name).toBe(slug === "kids" && KIDS_PLAY_1122.some((x) => x.href === r.href) ? "2026-11-22" : HIM_KIDS_PRICE_AT);
         expect(HIM_KIDS_STORES[r.store], r.store).toBeTruthy();
         expect(r.brand.toLowerCase(), r.name).not.toMatch(/vineyard vines|lilly pulitzer/);
       }
@@ -185,8 +201,8 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // stores, above), B0002A7GMS / B07M9LRQ4J / B0FDXLSNN1 (second listings of the same items), B09ZYT939N YETI
     // Crossroads Backpack (Amazon showed no price), and the 6 rate switches 11-21 night (3 XTRATUF, TNF beanie, Burlebo hoodie + cap).
     // Plus the Battery Daddy (B089F9YDFC), which the owner asked for on 11-22, and B0GWXJ3PYM, the Dad fill-in book (owner
-    // via the lead 11-22, her screenshot list): neither is from her saved list.
-    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM");
+    // via the lead 11-22, her screenshot list), and Him batch 2's GE Opal Mini: none is from her saved list.
+    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM" && a !== "B0H51ZX6SB");
     expect(amazon.length).toBe(97); // 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 3 owner-approved adds (Banded handwarmer, Klola mat, and the MVP PRO men's 2-pack B0D9PX9RBD: the brown listing was women's), plus the 5 popular adds of 11-22 (AirPods, AirTags, Bose, Garmin, Gozney)
     expect(chunk("him").filter((p) => p.href.includes("B089F9YDFC")).length).toBe(1);
     expect(chunk("him").filter((p) => p.href.includes("B0GWXJ3PYM")).length).toBe(1);

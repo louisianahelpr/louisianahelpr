@@ -52,12 +52,23 @@ const SENT: [string, string, string, number][] = [
   ["p-109155269", "kids", "store-eadem", 58], // owner via lead: Kids
   ["p-103892269", "him", "store-lake-pajamas", 138],
   ["p-104054474", "him", "store-lake-pajamas", 108],
+  // Batch 2b.
+  ["p-109150422", "her", "store-sleepy-tie", 29.99],
+  ["p-109158379", "her", "store-foton", 36.99],
+  ["p-103889077", "her", "store-lake-pajamas", 124], // in place of p-103884402 (gone from Lake's site)
+  ["p-109156467", "kids", "store-yoto", 165.72],
+  ["p-109156399", "kids", "store-yoto", 164.02],
+];
+/** Amazon picks from her launch-day screenshots and asks (no ShopMy pin for them): ASIN -> guide, price 11-22. */
+const AMAZON_1122: [string, string, number][] = [
+  ["B0HKS18NW2", "her", 14.98], ["B0C1YBPJ43", "her", 35.98], ["B0F2937DQQ", "her", 56.98], ["B09X3WGJ3R", "her", 111.99],
+  ["B0DQLLPYGM", "her", 184.89], ["B0GP2R8TBS", "her", 199], ["B0GZSMBDYZ", "her", 237], ["B089F9YDFC", "him", 19.99],
 ];
 
 describe("the owner's launch-day picks (11-22)", () => {
   it("each is on the guide she named, once, at the store's own price checked 11-22, with a cutout photo", () => {
     expect(SENT.length).toBeGreaterThan(10);
-    expect(HER_ADDS_1122.length + KIDS_ADDS_1122.length + HIM_ADDS_1122.length).toBe(SENT.length);
+    expect(HER_ADDS_1122.length + KIDS_ADDS_1122.length + HIM_ADDS_1122.length).toBe(SENT.length + AMAZON_1122.length);
     for (const [p, slug, store, price] of SENT) {
       const rows = chunk(slug).filter((x) => x.href === pin(p));
       expect(rows.length, `${slug}: ${p}`).toBe(1);
@@ -71,6 +82,17 @@ describe("the owner's launch-day picks (11-22)", () => {
       expect(RESEARCHED_STORES[store]?.name, store).toBeTruthy();
     }
     expect(ADDS_PRICE_AT).toBe("2026-11-22");
+  });
+
+  it("each Amazon pick is on its guide once, with her tag, Amazon's own photo (never cut out) and the price she'd see 11-22", () => {
+    for (const [asin, slug, price] of AMAZON_1122) {
+      const rows = chunk(slug).filter((x) => x.href === `https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20`);
+      expect(rows.length, `${slug}: ${asin}`).toBe(1);
+      expect(rows[0].store, asin).toBe("store-amazon");
+      expect(rows[0].image, asin).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
+      expect(rows[0].price, asin).toBe(price);
+      expect(rows[0].priceAt, asin).toBe(ADDS_PRICE_AT);
+    }
   });
 
   it("every cutout of these photos is in the shared cutout map, so no add shows its boxed original", () => {

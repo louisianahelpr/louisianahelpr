@@ -96,6 +96,10 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   cufflinks: ["style"], backpack: ["outdoors", "style"], flask: ["outdoors"],
   // The owner's launch-day Her adds (11-22, scripts/giftGuideOwnerAdds1122.mjs) brought five new types.
   "lip-balm": ["beauty"], "hair-towel": ["beauty"], robe: ["cozy"], pillow: ["cozy"], "wine-tool": ["kitchen"],
+  // Batch 2 of her launch-day adds: sleep gummies and a wall diffuser are cozy home, a journal and a planner binder are
+  // style pieces, the kitchen set and espresso machine are kitchen, a stick vacuum is a gadget, sleep earbuds both.
+  "sleep-supplement": ["cozy", "fitness"], "home-fragrance": ["cozy"], journal: ["style"], planner: ["style"],
+  "kitchen-knives": ["kitchen"], cookware: ["kitchen"], "coffee-maker": ["kitchen"], vacuum: ["tech"], "sleep-earbuds": ["tech", "cozy"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
@@ -107,6 +111,8 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   "pretend-play": ["pretend"], doll: ["pretend"], dollhouse: ["pretend"], "pull-toy": ["pretend"], "car-toy": ["pretend"], "bath-toy": ["pretend"],
   rocker: ["pretend", "active"], "spin-toy": ["pretend", "active"], "play-table": ["pretend", "active"], "baby-clothes": ["cozy"],
   squishy: ["stocking"], fidget: ["stocking"], toothbrush: ["stocking"], ornament: ["stocking", "build"], chair: ["cozy"], bag: ["stocking"],
+  // The EADEM New Classics Set (owner 11-22: on Kids) is a teen self-care set.
+  "skincare-set": ["cozy"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -124,7 +130,7 @@ const NAME_TAGS: [RegExp, QuizInto][] = [
   [/\b(fuzzy|sherpa|fleece|flannel|lounge|weighted|plush)\b/i, "cozy"],
 ];
 /** Gift types the cozy name words never tag (a "fleece lined" boot is not Cozy & home). */
-const NOT_COZY_TYPES = new Set(["skincare", "lip", "lip-balm", "hair-towel", "makeup", "gift-set", "fragrance", "hair", "beauty-device", "grooming", "soap", "body-wash", "lotion", "shave", "shoes", "boots"]);
+const NOT_COZY_TYPES = new Set(["skincare", "lip", "lip-balm", "hair-towel", "skincare-set", "makeup", "gift-set", "fragrance", "hair", "beauty-device", "grooming", "soap", "body-wash", "lotion", "shave", "shoes", "boots"]);
 /** Per-pick fixes where the type and name rules misfire (by the pick's name; checked by eye, 11-21 PM). */
 const TAG_OVERRIDES: [RegExp, QuizInto[]][] = [
   // A keychain video camera is a gadget, not a style piece.
@@ -157,6 +163,8 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   toy: ["6-8", "9-12"], outdoor: ["6-8", "9-12"], rocket: ["6-8", "9-12"], watch: ["6-8", "9-12"], "walkie-talkie": ["6-8", "9-12"],
   science: ["6-8", "9-12"], "digital-pet": ["6-8", "9-12"], "building-set": ["9-12", "teen"], ornament: ["6-8", "9-12", "teen"],
   scooter: ["6-8", "9-12"], hoverboard: ["6-8", "9-12"], "game-console": ["9-12", "teen"], bag: ["6-8", "9-12", "teen"],
+  // The EADEM New Classics Set (11-22) is skin care for a teen.
+  "skincare-set": ["teen"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],

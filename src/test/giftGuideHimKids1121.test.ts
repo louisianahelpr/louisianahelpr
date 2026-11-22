@@ -44,7 +44,9 @@ const SWITCHED: Record<string, Record<string, string>> = {
     // p-109142226, $69.99), are on her Camp Snap direct pins instead (owner 11-22: the $59.99 sale and her code LEXILOMBAS7).
     "https://go.shopmy.us/p-107929152": "store-camp-snap", "https://go.shopmy.us/p-104219842": "store-camp-snap",
     // Owner via the lead, 11-22: her EADEM New Classics Set pin goes on Kids.
-    "https://go.shopmy.us/p-109155269": "store-eadem" },
+    "https://go.shopmy.us/p-109155269": "store-eadem",
+    // Owner via the lead, 11-22: both Yoto 4th Gen bundles (Ms. Rachel, Bluey).
+    "https://go.shopmy.us/p-109156467": "store-yoto", "https://go.shopmy.us/p-109156399": "store-yoto" },
 };
 /**
  * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and
@@ -108,7 +110,8 @@ describe.each([
       expect(p.store).toBe("store-amazon");
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
-      expect(p.priceAt, p.name).toBe("2026-11-21");
+      // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day, 11-22.
+      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") ? "2026-11-22" : "2026-11-21");
     }
   });
 
@@ -177,8 +180,10 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // (on the page at their better-paying
     // stores, above), B0002A7GMS / B07M9LRQ4J / B0FDXLSNN1 (second listings of the same items), B09ZYT939N YETI
     // Crossroads Backpack (Amazon showed no price), and the 6 rate switches 11-21 night (3 XTRATUF, TNF beanie, Burlebo hoodie + cap).
-    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]);
+    // Plus the Battery Daddy (B089F9YDFC), which the owner asked for on 11-22 (not from her saved list).
+    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC");
     expect(amazon.length).toBe(91);
+    expect(chunk("him").filter((p) => p.href.includes("B089F9YDFC")).length).toBe(1);
     for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P", "B0CQ4QM7Q2", "B0732FCCL4", "B09R5TGLFR"]) expect(amazon, asin).not.toContain(asin);
     for (const asin of ["B0F2K9B696", "B0F53HMTX5", "B0FR98X1DZ", "B0D31TCLN2", "B0FKN7JH1D"]) expect(amazon, asin).toContain(asin);
   });

@@ -48,14 +48,19 @@ const SWITCHED_PINS = ["p-108732256", "p-108732809", "p-107903671", "p-109006074
 // Company (p-109140912) is on Camp Snap direct instead (her pin p-107929179; owner 11-22 chose the sale price + her code).
 const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-109143437", "p-109143698", "p-109144140", "p-109144450", "p-109145379", "p-109145823",
   // Batch 2.
-  "p-109147879", "p-109152557", "p-109153848", "p-109153960", "p-109153910", "p-109153811", "p-109151082", "p-109154746"];
-const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
+  "p-109147879", "p-109152557", "p-109153848", "p-109153960", "p-109153910", "p-109153811", "p-109151082", "p-109154746",
+  // Batch 2b: The Sleepy Tie, Foton candle, and her Lake Hydrangea set (in place of her Lake pin that is gone from Lake's site).
+  "p-109150422", "p-109158379", "p-103889077"];
+// Launch day 11-22, from her screenshots (no ShopMy pin for these): CFUNIQ toiletry bag, Astercook knives and pans,
+// CASABREWS espresso machine, BISSELL FurGuard vacuum, eto decanter, Ozlo Sleepbuds 2.
+const ADDS_1122_ASINS = ["B0HKS18NW2", "B0C1YBPJ43", "B0F2937DQQ", "B09X3WGJ3R", "B0DQLLPYGM", "B0GP2R8TBS", "B0GZSMBDYZ"];
+const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 63 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(63);
-    expect(page.length).toBe(63);
+  it("the page holds exactly her 73 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(73);
+    expect(page.length).toBe(73);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
   });
 
@@ -87,13 +92,14 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(27);
-    expect(shopmy.length).toBe(36);
+    expect(amazon.length).toBe(34);
+    expect(shopmy.length).toBe(39);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
-      expect(p.priceAt, p.name).toBe("2026-11-21");
+      // Her saved-list picks were captured 11-21; the Amazon picks from her launch-day screenshots, 11-22.
+      expect(p.priceAt, p.name).toBe(ADDS_1122_ASINS.some((a) => p.href.includes(a)) ? "2026-11-22" : "2026-11-21");
       expect(p.image, p.name).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
     }
     for (const p of shopmy) {

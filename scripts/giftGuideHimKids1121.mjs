@@ -41,7 +41,7 @@ export const HIM_KIDS_STORES = {
   "store-smathers-and-branson": "Smathers & Branson", "store-duck-head": "Duck Head", "store-grove": "Grove",
   "store-clinique": "Clinique", "store-maisonette": "Maisonette", "store-wayfair": "Wayfair", "store-macys": "Macy's",
   "store-yeti": "YETI", "store-xtratuf": "XTRATUF", "store-jd-sports": "JD Sports", "store-burlebo": "Burlebo",
-  "store-tractor-supply": "Tractor Supply", "store-onward-reserve": "Onward Reserve",
+  "store-tractor-supply": "Tractor Supply", "store-onward-reserve": "Onward Reserve", "store-target": "Target",
 };
 /** One row per pick: [ASIN, price she saw, Amazon image id, name, brand, type, commission %, line]. */
 const row = ([asin, sortPrice, img, name, brand, type, commission, line]) => ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, commission, type });
@@ -350,6 +350,11 @@ export const KIDS_AMAZON_MORE_1121 = [
   ["B0DDLZV8YM", 23.73, "51VHRxyCCdL", "Magic Gel Water Pets Kit", "", "craft", 3, "Make little gel water pets that come to life."],
 ].map((r) => (Array.isArray(r) ? row(r) : r));
 
+/** Owner 11-22 kids tech, store-page links (builder-guide-adds-kids): price checked on target.com 11-22; no ShopMy pin yet. */
+const KIDS_TECH_DIRECT_1122 = [
+  { name: "PlayStation 5 Console, Digital Edition", brand: "Sony", line: "The console every kid is asking for, ready for games and streaming.", href: "https://www.target.com/p/playstation-5-console-digital-edition/-/A-94961316", image: "https://target.scene7.com/is/image/Target/GUEST_c12714d1-b136-41c9-9b43-5579ff0c08f8", store: "store-target", sortPrice: 599.99, price: 599.99, priceAt: "2026-11-22", commission: 0, type: "game-console" },
+];
+
 export const KIDS_1121 = [
   ["152350675X", 3.44, "51J30U2ygrL", "Paint by Sticker Kids: Christmas", "Workman", "book", 3, "Sticker-by-number Christmas pictures, no mess."],
   ["B0CFFZ389Y", 5.42, "41ulOjt6aQL", "Colgate Minecraft Kids Toothbrush", "Colgate", "toothbrush", 3, "A Minecraft toothbrush for the stocking."],
@@ -393,8 +398,9 @@ export const KIDS_1121 = [
   ["B07V4GCFP9", 229, "31CHVspmUeL", "Nintendo Switch Lite", "Nintendo", "game-console", 1, "The handheld Switch for games on the go."],
   // owner 11-22 kids tech (builder-guide-adds-kids): the owner asked for popular tech; prices captured from Amazon 11-22.
   ["B0G4SCX27Q", 382, "61B-A4JhE9L", "Meta Quest 3S VR Headset, 256GB", "Meta", "vr", 3, "A mixed-reality headset for games and fitness, made for ages 10 and up."],
+  ["B0D3WSFX3L", 26.56, "717IFJm-ZNL", "JLab JBuddies Studio 2 Wireless Kids Headphones", "JLab", "audio", 3, "Volume-limited Bluetooth headphones that fold up and keep little ears safe."],
   ["B0DZ77D5HL", 399, "61Q-vahOT9L", "Apple iPad 11-inch (A16, 128GB, Wi-Fi)", "Apple", "tablet", 3, "The iPad they will actually use for games, drawing and school."],
-].map(row).concat(KIDS_AMAZON_MORE_1121, KIDS_SHOPMY_1121);
+].map(row).concat(KIDS_AMAZON_MORE_1121, KIDS_SHOPMY_1121, KIDS_TECH_DIRECT_1122);
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 

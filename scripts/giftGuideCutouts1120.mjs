@@ -326,6 +326,8 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/pins/zoom-108628018-1795247257926-LSU_Flask_Primary_LowRes.jpg", "sb-lsu-flask-4354f0.webp"],
   // yeti crossroads 22l backpack, alpine brown
   ["https://static.shopmy.us/uploads/pretty-prod-1758467247287", "yeti-crossroads-22l-alpine-brown-468ab3.webp"],
+  // owner 11-22 kids tech: PlayStation 5 Digital Edition (target.com photo, on white)
+  ["https://target.scene7.com/is/image/Target/GUEST_c12714d1-b136-41c9-9b43-5579ff0c08f8", "playstation-5-digital-edition-target-251c36.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

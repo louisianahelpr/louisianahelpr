@@ -29,8 +29,8 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   if (!src \|\| !ok) return null; |   if (!ok) return null;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | body: <CodeCards codes={codes} /> | body: <CodeCards codes={codes.slice(1)} />
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       {/* Polish audit 1122 #30: no jump-chip row | <nav data-gift-deal-jump="" />{/* Polish audit 1122 #30: no jump-chip row
- * @mutate src/pages/info/giftGuides/smallBizCardStyles.ts | min-height:44px;min-width:44px;font-size:14px | min-height:44px;font-size:14px
- * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx |             <Out href={b.href} className="gg-sb-visit"> |             <Out href={b.href} className="gg-sb-visit rounded-full border">
+ * @mutate src/pages/info/giftGuides/smallBizCardStyles.ts | .gg-sb .gg-sb-name-link{display:inline-block;padding:12px 0;margin:-12px 0; | .gg-sb .gg-sb-name-link{display:inline-block;padding:9px 0;margin:-9px 0;
+ * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx |             <Out href={b.href} className="gg-sb-name-link"> |             <Out href={b.href} className="gg-sb-name-link rounded-full border">
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   return Local ? <Local sponsors={[]} /> : <FeatureCta />; |   return null;
  * @mutate src/content/giftGuideDeals.mjs |   runs: (start, end) => (start && end ? | runs: (start, end) => (false ? 
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | [c.offer, DEALS_WORDS.runs(c.starts, c.expires)] | [c.offer, DEALS_WORDS.runs(null, c.expires)]
@@ -222,22 +222,24 @@ describe("owner 11-21: a deals day in subsections by type", () => {
 });
 
 describe("owner 11-21: Small Business Saturday cards and the sign-up card", () => {
-  it("Visit is a plain text link on every card that has a site, never an outlined pill", async () => {
+  // Owner 2026-11-22 ("remove visit, they can click the picture or title to visit"): the name is the card's link (a plain
+  // text link, never an outlined pill); the whole check is src/test/giftGuideNoVisitLink1122.test.tsx.
+  it("the business name is a plain text link on every card that has a site, never an outlined pill", async () => {
     const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("small-business-saturday")!} now={new Date("2026-11-21T18:00:00Z")} /></MemoryRouter>);
     await waitFor(() => expect(container.querySelectorAll("[data-gift-sb]").length).toBeGreaterThan(20));
-    const visits = [...container.querySelectorAll(".gg-sb-visit")];
-    expect(visits.length).toBeGreaterThan(20);
-    for (const v of visits) {
+    const names = [...container.querySelectorAll(".gg-sb-name-link")];
+    expect(names.length).toBeGreaterThan(20);
+    for (const v of names) {
       expect(v.tagName).toBe("A");
       expect(v.className).not.toMatch(/border|rounded|btn|outline/);
-      expect(v.textContent).toMatch(/^Visit/);
     }
   });
-  it("the Visit link is at least 44 by 44 px (audit 11-22 #26: it measured 41 wide)", async () => {
+  it("the name link's tap area is at least 44 px tall (audit 11-22 #26) and the logo link is the 72 px well", async () => {
     const { SB_CARD_CSS } = await import("../pages/info/giftGuides/smallBizCardStyles");
-    const rule = SB_CARD_CSS.match(/\.gg-sb \.gg-sb-visit\{([^}]*)\}/)?.[1] ?? "";
-    expect(rule).toMatch(/min-height:44px/);
-    expect(rule).toMatch(/min-width:44px/);
+    const rule = SB_CARD_CSS.match(/\.gg-sb \.gg-sb-name-link\{([^}]*)\}/)?.[1] ?? "";
+    // 12px above and below a 15px name on a ~20px line: 44px, with the same negative margin so the text does not move.
+    expect(rule).toMatch(/padding:12px 0;margin:-12px 0/);
+    expect(SB_CARD_CSS).toMatch(/\.gg-sb-logo\{[^}]*width:72px;height:72px/);
   });
   it("the day page: a top line that opens the sign-up card's form, the card at the bottom", async () => {
     window.HTMLElement.prototype.scrollIntoView = vi.fn();

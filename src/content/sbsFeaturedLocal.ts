@@ -23,7 +23,6 @@ export const SBS_WORDS = {
   sectionTitle: "Featured local",
   sectionIntro: "More Louisiana small businesses taking part in Small Business Saturday, Nov 28.",
   badge: "Featured local",
-  visitShort: "Visit",
   dealLabel: "Saturday deal:",
   introLink: "Own a Louisiana small business? Get featured free",
   ctaTitle: "Get your business featured",

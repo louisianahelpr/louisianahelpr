@@ -65,11 +65,22 @@ const SENT: [string, string, string, number][] = [
   ["p-109152299", "her", "store-cos-bar", 90],
   ["p-109155568", "her", "store-madewell", 158],
   ["p-109155784", "her", "store-ulta-beauty", 399],
+  // Him batch 1 (her Nov 19 pins) and batch 2 (links the lead made 11-22), builder-guide-him.
+  ["p-107850277", "him", "store-l-l-bean", 299.99], // Solo Stove Bonfire with stand
+  ["p-107837448", "him", "store-l-l-bean", 165], // YETI Roadie 8 (the Roadie 15 is off: same cooler)
+  ["p-107881822", "him", "store-the-warming-store", 195], // Muck Arctic Pro
+  ["p-107847793", "him", "store-cavenders", 129.99], // Carhartt Duck Insulated Active Jacket
+  ["p-107895312", "him", "store-tractor-supply", 64.99], // Duck Commander Phil Robertson Pro Series
+  ["p-107895486", "him", "store-tractor-supply", 44.99], // Duck Commander Camo Max Mallard Hen
+  ["p-109208695", "him", "store-smathers-and-branson", 195], // S&B Monogrammed Wallet, Hunter Green
+  ["p-109208941", "him", "store-marley-lilly", 34.99], // Marley Lilly waxed canvas small cooler
 ];
 /** Amazon picks from her launch-day screenshots and asks (no ShopMy pin for them): ASIN -> guide, price 11-22. */
 const AMAZON_1122: [string, string, number][] = [
   ["B0HKS18NW2", "her", 14.98], ["B0C1YBPJ43", "her", 35.98], ["B0F2937DQQ", "her", 56.98], ["B09X3WGJ3R", "her", 111.99],
   ["B0DQLLPYGM", "her", 184.89], ["B0GP2R8TBS", "her", 199], ["B0GZSMBDYZ", "her", 237], ["B089F9YDFC", "him", 19.99],
+  // Him batch 2: the GE Profile Opal Mini (the method body wash stayed out: Him already has it).
+  ["B0H51ZX6SB", "him", 299],
 ];
 
 describe("the owner's launch-day picks (11-22)", () => {

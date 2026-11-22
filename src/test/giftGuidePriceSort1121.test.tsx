@@ -206,7 +206,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // 11-22 popular approved (builder-guide-popular): Kids + 9, Her + 5, Him + 5 (AirPods Pro 3, AirTags, Bose, Garmin, Gozney).
       // Train e (11-22): Him also gained Smathers & Branson picks, the Banded and Klola adds and the men's MVP 2-pack, and lost
       // its duplicates (XTRATUF boots, GoBox 60 and Collection, the RAK tool).
-      him: { "Under $25": 43, "$25 to $50": 43, "$50 to $75": 24, "$75 to $100": 11, "$100 and up": 37 },
+      // Train f: Him batch 1 (Solo Stove, Roadie 8, Muck, Carhartt jacket, 2 Duck Commander calls; the Roadie 15 is off)
+      // and batch 2 (S&B wallet, Marley Lilly cooler, GE Opal Mini).
+      him: { "Under $25": 43, "$25 to $50": 45, "$50 to $75": 25, "$75 to $100": 11, "$100 and up": 42 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),

@@ -10,6 +10,7 @@
  * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |         onPrimary={() => { setConfirming(false); removePerson(); }} |         onPrimary={() => setConfirming(false)}
  * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx | onClick={() => setConfirming(true)} data-plan-remove={p.id} | onClick={removePerson} data-plan-remove={p.id}
  * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx | <p className="gg-plan-help" data-plan-share-note={p.id}> | <p className="gg-plan-help" hidden data-plan-share-note={p.id}>
+ * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx | <Button type="submit" size="sm" className="btn-grad-primary gg-plan-add-btn" data-plan-add-person=""> | <Button type="submit" className="btn-grad-primary gg-plan-add-btn" data-plan-add-person="">
  * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |   if (lists.length === 0 \|\| (lists.length === 1 && !soloNote)) return null; |   if (lists.length === 0) return null;
  */
 import { readFileSync } from "node:fs";
@@ -92,6 +93,12 @@ describe("the planner's polish (page)", () => {
     const add = c.querySelector<HTMLElement>("form.gg-plan-add")!;
     expect(add.querySelector("[data-plan-new-name]")).not.toBeNull();
     expect(add.querySelector("[data-plan-add-person]")!.classList.contains("gg-plan-add-btn")).toBe(true);
+    // Follow-up 1122: the size class each asks is the 44px the CSS draws (the shared Input's h-12 and Button's h-14
+    // rendered 44px, and the changed-screen sweep's geometry check went red: "Name asks h-12 (48px), renders 44.0px").
+    for (const el of [add.querySelector("[data-plan-new-name]")!, add.querySelector("[data-plan-add-person]")!]) {
+      const sizes = [...el.classList].filter((k) => /^h-/.test(k));
+      expect(sizes, el.outerHTML.slice(0, 60)).toEqual(["h-11"]);
+    }
   });
 
   it("Remove asks first; Keep leaves the person, Remove takes them off", async () => {

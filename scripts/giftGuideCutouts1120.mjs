@@ -356,6 +356,12 @@ export const CUTOUTS_1120 = new Map([
   ["https://cdn.shopify.com/s/files/1/0105/2265/6823/files/NATR-Multi-Peptide_Serum_Front_capoff_primary_bone.webp", "naturium-multi-peptide-advanced-serum-2ba7ff.webp"],
   ["https://cdn.shopify.com/s/files/1/0275/4822/1505/files/MBM_MMLWCE_PACKSHOT_BISQUE.jpg", "makeup-by-mario-master-mattes-cream-eyeshadow-e8b826.webp"],
   ["https://www.youthtothepeople.com/dw/image/v2/AAFM_PRD/on/demandware.static/-/Sites-yttp-master-catalog/default/dwad62d71c/products/YTTP-10100/2026/ALT0-0810834030087--PACKSHOT.jpg", "yttp-superfood-cleanser-b7f8c7.webp"],
+  ["https://cdn.shopify.com/s/files/1/0787/7476/3698/files/01_7290773436_dphh.jpg", "badgebuddy-christmas-plaid-tree-badge-reel-f93cee.webp"],
+  ["https://cdn.shopify.com/s/files/1/0658/5466/8992/files/PRODUCTPICTURES_10.png", "vix-cherry-on-top-compression-socks-6fac5b.webp"],
+  ["https://cdn.shopify.com/s/files/1/0658/5466/8992/files/PRODUCTPICTURES_5.png", "vix-flower-power-compression-socks-b1a660.webp"],
+  ["https://cdn.shopify.com/s/files/1/0573/7250/8344/files/1st_Image_2a7a8c06-67f4-4d0d-8f33-acfa7869b4f1.jpg", "dr-woof-cherries-berries-crew-compression-socks-c89674.webp"],
+  ["https://cdn.shopify.com/s/files/1/0652/8984/6859/files/bluepolkadot.png", "seven2seven-blue-polka-dot-nurse-mockneck-919d9e.webp"],
+  ["https://cdn.shopify.com/s/files/1/0784/2863/5326/files/50B7C612-6B1C-488C-B43B-35CFF8AB5F57.png", "21-collective-respiratory-royal-blue-mockneck-cecdbd.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

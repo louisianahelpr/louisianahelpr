@@ -42,6 +42,7 @@ export const HER_STORES = {
   // owner 11-22 screenshot list (builder-guide-adds-2): her LUSH pin.
   "store-lush": "LUSH",
   "store-yttp": "Youth To The People", "store-naturium": "Naturium",
+  "store-badgebuddy": "Badgebuddy", "store-vix-socks": "Vix Socks", "store-dr-woof": "Dr. Woof Apparel", "store-seven2seven": "Seven2seven", "store-21-collective": "21 Collective",
 };
 
 /**
@@ -183,6 +184,13 @@ export const HER_1121 = [
   { name: "Naturium Multi-Peptide Advanced Serum", brand: "Naturium", line: "A plumping peptide serum that is easy on the budget.", href: shopmy("p-103878765"), image: "https://cdn.shopify.com/s/files/1/0105/2265/6823/files/NATR-Multi-Peptide_Serum_Front_capoff_primary_bone.webp", store: "store-naturium", sortPrice: 25, price: 25, commission: 15, type: "skincare" },
   { name: "Makeup by Mario Master Mattes Cream Eyeshadow", brand: "Makeup by Mario", line: "A creamy matte eyeshadow that blends in seconds.", href: shopmy("p-103883109"), image: "https://cdn.shopify.com/s/files/1/0275/4822/1505/files/MBM_MMLWCE_PACKSHOT_BISQUE.jpg", store: "store-sephora", sortPrice: 25, price: 25, commission: 12, type: "makeup" },
   { name: "Youth To The People Superfood Cleanser", brand: "Youth To The People", line: "The green kale face wash that is a skincare favorite.", href: shopmy("p-103877715"), image: "https://www.youthtothepeople.com/dw/image/v2/AAFM_PRD/on/demandware.static/-/Sites-yttp-master-catalog/default/dwad62d71c/products/YTTP-10100/2026/ALT0-0810834030087--PACKSHOT.jpg", store: "store-yttp", sortPrice: 39, price: 39, commission: 8, type: "skincare" },
+  // Nurse shops, direct (no affiliate link, no commission). Seven2seven and 21 Collective sit together at $65.
+  { name: "Badgebuddy Christmas Plaid Tree Badge Reel", brand: "Badgebuddy", line: "A festive plaid-tree badge reel for her scrub top.", href: "https://monochromaticfinds.com/products/holiday-polka-dot-coquette-bow-badge-reel", image: "https://cdn.shopify.com/s/files/1/0787/7476/3698/files/01_7290773436_dphh.jpg", store: "store-badgebuddy", sortPrice: 26, price: 26, commission: 0, type: "accessory" },
+  { name: "Vix Cherry on Top Compression Socks", brand: "Vix", line: "Cheery cherry compression socks for long shifts.", href: "https://vixsocks.com/products/cherry-on-top-compression-socks", image: "https://cdn.shopify.com/s/files/1/0658/5466/8992/files/PRODUCTPICTURES_10.png", store: "store-vix-socks", sortPrice: 29.99, price: 29.99, commission: 0, type: "compression-socks" },
+  { name: "Vix Flower Power Compression Socks", brand: "Vix", line: "Pretty floral compression socks that make a shift easier.", href: "https://vixsocks.com/products/flower-power-compression-socks", image: "https://cdn.shopify.com/s/files/1/0658/5466/8992/files/PRODUCTPICTURES_5.png", store: "store-vix-socks", sortPrice: 29.99, price: 29.99, commission: 0, type: "compression-socks" },
+  { name: "Dr. Woof Cherries & Berries Compression Socks", brand: "Dr. Woof Apparel", line: "Bamboo crew compression socks made for vet and nurse shifts.", href: "https://www.drwoofapparel.com/products/cherries-berries-bamboo-crew-compression-socks", image: "https://cdn.shopify.com/s/files/1/0573/7250/8344/files/1st_Image_2a7a8c06-67f4-4d0d-8f33-acfa7869b4f1.jpg", store: "store-dr-woof", sortPrice: 29.9, price: 29.9, commission: 0, type: "compression-socks" },
+  { name: "Seven2seven Baby Blue Polka-Dot Nurse Mockneck", brand: "Seven2seven", line: "A cozy limited-edition mockneck made for nurses.", href: "https://seven2seven.co/products/blue-polka-dot-nurse-mockneck-limited-edition", image: "https://cdn.shopify.com/s/files/1/0652/8984/6859/files/bluepolkadot.png", store: "store-seven2seven", sortPrice: 65, price: 65, commission: 0, type: "sweatshirt" },
+  { name: "21 Collective Royal Blue Respiratory Mockneck", brand: "21 Collective", line: "A soft mockneck for the respiratory therapist in your life.", href: "https://21collectiveco.com/products/royal-blue-mockneck", image: "https://cdn.shopify.com/s/files/1/0784/2863/5326/files/50B7C612-6B1C-488C-B43B-35CFF8AB5F57.png", store: "store-21-collective", sortPrice: 65, price: 65, commission: 0, type: "sweatshirt" },
 ];
 
 // owner 11-22 popular approved (builder-guide-popular): Amazon listings sold by Amazon.com or the brand, prices read 11-22.

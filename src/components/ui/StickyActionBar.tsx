@@ -15,6 +15,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useDockYield } from "@/components/mobileNav/useDockYield";
+import { trackStickyActionHeight } from "@/components/ui/stickyActionHeight";
 
 const PHONE_QUERY = "(max-width: 639px)";
 
@@ -57,6 +58,9 @@ export function StickyActionBar({ children, label, note, active = true, spacer =
 } & Record<`data-${string}`, string | undefined>) {
   const phone = usePhoneWidth();
   useDockYield(active && phone);
+  // Deep audit 11-22 #13: the fixed bar's height, for the toaster to clear (stickyActionHeight.ts).
+  const [fixedBar, setFixedBar] = useState<HTMLDivElement | null>(null);
+  useEffect(() => (fixedBar ? trackStickyActionHeight(fixedBar) : undefined), [fixedBar]);
   if (!active) return null;
   const row = (
     <div role="group" aria-label={label} className="mx-auto flex w-full max-w-xl gap-2 [&>*]:min-w-0 [&>*]:flex-1">
@@ -78,6 +82,7 @@ export function StickyActionBar({ children, label, note, active = true, spacer =
       {typeof document !== "undefined" && createPortal(
         <div
           {...rest}
+          ref={setFixedBar}
           data-sticky-action-bar="fixed"
           data-rail-inset=""
           // L024 (landing audit 11-09): portaled to <body>, the bar sat outside every landmark (axe "region"). It is a

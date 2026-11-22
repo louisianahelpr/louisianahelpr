@@ -220,8 +220,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Battery Daddy ($20); Kids + both Yoto bundles ($164, $166).
       // Train e (11-22): Kids gained the 9 popular adds, the Quest 3S, iPad and JLab headphones, and lost its duplicate
       // Switch, Segway and tile rows.
-      // builder-guide-links (11-22): Kids + CrunchLabs Crunchinator ($35) and Stickerbox ($130).
-      kids: { "Under $25": 34, "$25 to $50": 26, "$50 to $75": 8, "$75 to $100": 6, "$100 and up": 21 },
+      // builder-guide-links (11-22): Kids + CrunchLabs Crunchinator ($35), Tamagotchi Paradise ($45) and Stickerbox ($130).
+      kids: { "Under $25": 34, "$25 to $50": 27, "$50 to $75": 8, "$75 to $100": 6, "$100 and up": 21 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

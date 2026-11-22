@@ -222,7 +222,11 @@ export const HIM_1121 = [
   ["B07DXFFZPT", 84.15, "41wkF95hcGL", "RTIC Soft Cooler", "RTIC", "cooler", 3, "A soft cooler that keeps ice for days."],
   ["B0H6SC835C", 87.99, "314g+xOxGmL", "OLIGHT ArkPro Flashlight", "OLIGHT", "light", 3, "A slim, powerful flashlight for his pocket."],
   ["B0DGZ45WB2", 89.6, "71pSnCJKOrL", "Sperry Authentic Original Boat Shoe", "Sperry", "shoes", 4, "The classic leather boat shoe."],
-  ["B08Q1RN656", 93.75, "41awlHUVBzL", "XTRATUF Ankle Deck Boot", "XTRATUF", "boots", 4, "Waterproof deck boots for the boat and the yard."],
+  // SWITCHED 11-21 (owner, via lead: "xtratuf in the guide"; the Him guide and cover use XTRATUF from xtratuf.com, not
+  // Amazon): was Amazon B08Q1RN656 at 4% ($93.75); the same Duck Camo Ankle Deck Boot at xtratuf.com through CJ at 15%,
+  // $125 on xtratuf.com 2026-11-21 (products/xmabdcam.json), $93.75 with code XT25 (25% off, through Nov 29). The code
+  // rides on this card only (owner: "you can put the code with the item"); the chip hides after codeEnds.
+  { name: "XTRATUF Ankle Deck Boot", brand: "XTRATUF", line: "Waterproof deck boots for the boat and the yard.", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabdcam", image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMABDCAM_gray_profile_1400x1400_2e21fee4-a5a9-474f-b41d-a21315fccc58.jpg", store: "store-xtratuf", sortPrice: 125, price: 125, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
   // COMMISSION SWITCH 11-21: was Amazon B001DPHF4U at 4%; the same OD green Grange 18", same $99.95, at Dillard's at 8%.
   { name: "LaCrosse Grange Rubber Boot", brand: "LaCrosse", line: "Tall rubber boots made for mud and marsh.", href: shopmy("p-108736038"), image: "https://dimg.dillards.com/is/image/DillardsZoom/zoom/lacrosse-mens-grange-18-tall-waterproof-rubber-hunting-work-boots/00000000_zi_ac01ed80-ad36-4d40-8cca-066a3f05fcbd.jpg", store: "store-dillards", sortPrice: 99.95, price: 99.95, commission: 8, type: "boots" },
   // COMMISSION SWITCH 11-21: was Amazon B0FKCJNHWB at 1%; the same Theragun Prime 6th Gen in black, same $189.99, at

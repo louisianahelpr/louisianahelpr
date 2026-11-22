@@ -11,7 +11,7 @@ import { PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { PickRow } from "./GiftGuideView";
 
 /**
- * The gift quiz, "Find a gift in 3 taps" (owner 2026-11-21 ~6:15 PM: "The whole point of a quiz is to ask questions to
+ * The gift quiz, "Find a gift" (owner 2026-11-21 ~6:15 PM: "The whole point of a quiz is to ask questions to
  * narrow down the list"; the rules: src/content/giftQuiz.ts). One question per screen with big answers (who; a kid's
  * age; budget; what they are into), then "Our picks for her": six cards (the guides' own card), "Show me more" for up to
  * twelve, a link to the whole guide and "Start over". The answers live in the URL

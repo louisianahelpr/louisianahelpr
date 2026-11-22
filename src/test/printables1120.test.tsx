@@ -22,7 +22,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { MemoryRouter } from "react-router-dom";
 import {
@@ -227,7 +227,12 @@ describe("the maker and the page", () => {
   it("the page shows the shown makers and no hidden card; the guides link only shown printables", () => {
     render(<MemoryRouter><Printables /></MemoryRouter>);
     const cards = [...document.querySelectorAll("[data-printable-card]")].map((c) => c.getAttribute("data-printable-card"));
-    expect(cards).toEqual(["gift-tags", "coloring-book", "thanksgiving-banner"]);
+    // Holiday audit 1121 area 5 #6: one live maker draws no one-option picker card (and no second "Gift tags" heading);
+    // its section still answers /gift-guides/printables#gift-tags.
+    expect(cards).toEqual(["coloring-book", "thanksgiving-banner"]);
+    expect(document.querySelector("[role=radiogroup]")).toBeNull();
+    expect(document.getElementById("gift-tags")?.getAttribute("aria-label")).toMatch(/Gift tags with names/);
+    expect([...document.querySelectorAll("h2")].filter((h) => /gift tags/i.test(h.textContent ?? "")).length).toBe(1);
     // Owner 2026-11-21: tags, coloring books and banners each sit under their own heading, in that order.
     const heads = [...document.querySelectorAll("h2.pr-section")].map((h) => h.textContent);
     expect(heads).toEqual(["Gift tags", "Coloring books", "Banners"]);
@@ -242,7 +247,43 @@ describe("the maker and the page", () => {
 
   it("the head names the search it is for", () => {
     const m = PUBLIC_PAGE_META["/gift-guides/printables"];
-    expect(m.title.toLowerCase()).toContain("free printable christmas gift tags with names");
+    // Holiday audit 1121 area 5 #9: the page holds coloring books and a banner too.
+    expect(m.title.toLowerCase()).toContain("free holiday printables");
+    for (const w of ["gift tags", "coloring books"]) expect(m.title.toLowerCase()).toContain(w);
+    expect(m.description.toLowerCase()).toContain("coloring books");
     expect(m.canonical).toBe("https://www.louisianahelpr.com/gift-guides/printables");
+  });
+});
+
+/**
+ * Holiday audit 1121 area 5 (#6, #9, #11, #12, #21) on /gift-guides/printables.
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx |         {makers.length > 1 && ( |         {makers.length > 0 && (
+ * @mutate src/lib/publicPageMeta.mjs |     title: "Free holiday printables: gift tags, coloring books and more — Helpr", |     title: "Free printable Christmas gift tags with names — Helpr",
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;border:1px solid var(--gg-line)} | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+ * @mutate src/content/printables.ts |     previews: ["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"], |
+ * @mutate src/content/printables.ts |       { label: "Boys book, 21 pages (free)", |       { label: "Boys book (free)",
+ */
+describe("printables audit 1121 area 5: previews, covers, page counts", () => {
+  it("previews sit with no drop shadow (owner rule: no box behind a photo)", () => {
+    render(<MemoryRouter><Printables /></MemoryRouter>);
+    const css = [...document.querySelectorAll("style")].map((s) => s.textContent ?? "").join("\n");
+    const rule = (sel: string) => new RegExp(`${sel.replace(/[.]/g, "\\.")}\\{[^}]*\\}`).exec(css)?.[0] ?? "";
+    expect(rule(".pr-card-img").length).toBeGreaterThan(10);
+    for (const sel of [".pr-card-img", ".pr-maker-card img"]) expect(rule(sel)).not.toMatch(/box-shadow/);
+  });
+
+  it("the coloring book card shows both covers, and each button says its page count", () => {
+    render(<MemoryRouter><Printables /></MemoryRouter>);
+    const card = document.querySelector('[data-printable-card="coloring-book"]')!;
+    const covers = [...card.querySelectorAll("img")].map((i) => new URL(i.src).pathname);
+    expect(covers).toEqual(["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"]);
+    for (const cover of covers) expect(existsSync(join("public", cover!))).toBe(true);
+    const buttons = [...card.querySelectorAll("[data-printable-download]")].map((b) => b.textContent);
+    expect(buttons).toEqual(["Girls book, 21 pages (free)", "Boys book, 21 pages (free)"]);
+    // The count is the PDFs' own (their page tree's /Count), so a re-exported book with more pages turns this red.
+    for (const f of ["girls", "boys"]) {
+      const pdf = readFileSync(join("public/printables/coloring-book", `christmas-coloring-book-${f}.pdf`), "latin1");
+      expect(Math.max(...[...pdf.matchAll(/\/Count (\d+)/g)].map((m) => Number(m[1]))), f).toBe(21);
+    }
   });
 });

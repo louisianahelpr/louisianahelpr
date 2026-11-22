@@ -225,8 +225,21 @@ export function filterLights(items, { region = null, way = null, cost = null } =
 }
 
 /** The events' filters. `weekend`: only events on this weekend's days (never a TBA one). */
-export function filterEvents(items, { region = null, category = null, cost = null, weekend = false } = {}, today) {
-  const range = weekend && today ? weekendRange(today) : null;
+/**
+ * The When filter's days as [from, to] (YYYY-MM-DD), or null for all dates: "weekend" (Friday to Sunday), "today", or
+ * "week" (today and the 6 days after; holiday audit 1121 area 5 #20 added Today and Next 7 days). `weekend: true` is the
+ * old spelling of when "weekend".
+ */
+export function whenRange(when, today) {
+  if (!today || !when) return null;
+  if (when === "weekend") return weekendRange(today);
+  if (when === "today") return [today, today];
+  if (when === "week") return [today, addDays(today, 6)];
+  return null;
+}
+
+export function filterEvents(items, { region = null, category = null, cost = null, weekend = false, when = null } = {}, today) {
+  const range = whenRange(when ?? (weekend ? "weekend" : null), today);
   return items.filter((e) => {
     if (today && isOver(e, today)) return false;
     if (region && e.region !== region) return false;
@@ -257,15 +270,16 @@ export function resolveHolidayWhat(what, kind) {
  * The /holidays list: the light displays and the events still running, narrowed by what (lights, events or one kind of
  * event), region, cost (free or paid) and this weekend (Friday to Sunday; a TBA item never shows on a weekend).
  */
-export function filterHolidayItems(lights, events, { what = null, region = null, cost = null, weekend = false } = {}, today) {
+export function filterHolidayItems(lights, events, { what = null, region = null, cost = null, weekend = false, when = null } = {}, today) {
   const showLights = !what || what === "lights";
   const category = what && what !== "lights" && what !== "events" ? what : null;
   const showEvents = what !== "lights";
-  const range = weekend && today ? weekendRange(today) : null;
+  const days = when ?? (weekend ? "weekend" : null);
+  const range = whenRange(days, today);
   const inWeekend = (i) => !range || runsBetween(i, range[0], range[1]);
   return [
     ...(showLights ? filterLights(lights, { region, cost }, today).filter(inWeekend) : []),
-    ...(showEvents ? filterEvents(events, { region, category, cost, weekend }, today) : []),
+    ...(showEvents ? filterEvents(events, { region, category, cost, when: days }, today) : []),
   ];
 }
 

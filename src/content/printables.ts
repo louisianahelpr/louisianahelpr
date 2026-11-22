@@ -30,6 +30,9 @@ export interface Box {
   align?: "left" | "center";
 }
 
+/** Each design set's name in the picker. */
+export const DESIGN_SETS = { "vintage-scallop": "Vintage scallops (9 tags)" } as const;
+
 export interface OverlayDesign {
   id: string;
   /** What the picker says, e.g. "Red gingham". */
@@ -53,6 +56,11 @@ export interface OverlayDesign {
   siteLine?: { y: number; color: string; x?: number } | false;
   /** The id of the product layout this design prints on (gift tags: "10" wide, "9" the rest). Default: the chosen one. */
   layout?: string;
+  /**
+   * The set it belongs to (holiday audit 1121 area 5 #19: the 9 vintage scallop tags, split from one sheet, took 9 of
+   * the picker's 22 slots). The picker shows a set once, under DESIGN_SETS' name; picking it prints its tags in turn.
+   */
+  set?: keyof typeof DESIGN_SETS;
 }
 
 interface OverlayField {
@@ -110,6 +118,8 @@ export interface DownloadProduct {
   ready: boolean;
   /** A small picture of the first page, under public/. */
   preview: string;
+  /** Holiday audit 1121 area 5 #12: a card holding two books shows both covers (the boys' book sat beside a girl's cover). */
+  previews?: string[];
   /** Which group the card sits in on the page (owner 2026-11-21: "a subsection for tags, banner and color books so it's not all mixed up"). Default "more". */
   section?: "coloring" | "banners" | "more";
   /** One button per file: the 12-, 24- and 25-day elf plans each get one. */
@@ -206,9 +216,11 @@ export const PRINTABLES: Printable[] = [
     // Owner 2026-11-21: "both color books are ready for launch" (Boys approved first, then Girls).
     ready: true,
     preview: "/printables/coloring-book/preview-girls.webp",
+    previews: ["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"],
+    // Holiday audit 1121 area 5 #21: each button says how long its book is (both PDFs: 21 pages, a cover and 20 to color).
     files: [
-      { label: "Girls book (free)", href: "/printables/coloring-book/christmas-coloring-book-girls.pdf" },
-      { label: "Boys book (free)", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf" },
+      { label: "Girls book, 21 pages (free)", href: "/printables/coloring-book/christmas-coloring-book-girls.pdf" },
+      { label: "Boys book, 21 pages (free)", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf" },
     ],
     // Holiday audit 1121 #49: the Kids guide links the coloring books.
     guides: ["kids"],
@@ -371,13 +383,29 @@ export function cleanName(s: string): string {
  * The items of the whole printout, page by page. Same names: one full page of copies. A different name on each: one
  * item per filled row (empty rows skipped), pages filled in order. Designs: the chosen one, or every design in turn.
  */
+/** The designs the picker shows: each set once (its first tag, named for the set), every other design as itself. */
+export function pickerDesigns(p: OverlayProduct): OverlayDesign[] {
+  const seen = new Set<string>();
+  return p.designs.flatMap((d) => {
+    if (!d.set) return [d];
+    if (seen.has(d.set)) return [];
+    seen.add(d.set);
+    return [{ ...d, name: DESIGN_SETS[d.set] }];
+  });
+}
+
 export function sheetPages(p: OverlayProduct, perPage: number, opts: { mode: "same" | "each"; same: Names; rows: Names[]; designId: string; mixDesigns: boolean }): SheetItem[][] {
   const chosen = p.designs.find((d) => d.id === opts.designId) ?? p.designs[0];
   if (!chosen) return [];
   // Mixing cycles only the designs that print on the same sheet at the same size as the chosen one.
   const size = designSize(p, chosen);
   const group = p.designs.filter((d) => d.layout === chosen.layout && designSize(p, d).w === size.w && designSize(p, d).h === size.h);
-  const designAt = (i: number) => (opts.mixDesigns && group.length > 1 ? group[(group.indexOf(chosen) + i) % group.length] : chosen);
+  // A set (#19) prints its own tags in turn, as the sheet they were cut from did.
+  const set = chosen.set ? p.designs.filter((d) => d.set === chosen.set) : [];
+  const designAt = (i: number) =>
+    opts.mixDesigns && group.length > 1 ? group[(group.indexOf(chosen) + i) % group.length]
+    : set.length > 1 ? set[(set.indexOf(chosen) + i) % set.length]
+    : chosen;
   const filled = (n: Names) => p.fields.some((f) => (n[f.key] ?? "").trim() !== "");
   const names: Names[] = opts.mode === "same" ? Array.from({ length: perPage }, () => opts.same) : opts.rows.filter(filled);
   const items = names.map((n, i) => ({ design: designAt(i), names: n }));

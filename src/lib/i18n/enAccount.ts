@@ -37,6 +37,9 @@ export const enAccount = {
   "acct.strikeN": "Strike {n} of 3",
   "acct.good": "Good standing",
   "acct.goodBody": "No warnings or violations on record.",
+  "acct.goodBodyDeclutter": "No account warnings. Your Declutter strikes are below.",
+  "acct.declutterStrikes": "Declutter: {n} of 3 strikes",
+  "acct.declutterStrikeEnds": "The next one goes away {day}. At 3 strikes you can't buy or sell on Declutter until one goes away.",
   "acct.strikesOf3": "{n} of 3 strikes",
   "acct.strikesOf3Label": "{n} of 3 strikes on the 3-strike system",
   // Search engines

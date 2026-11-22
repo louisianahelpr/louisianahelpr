@@ -302,7 +302,7 @@ for (const [i, width] of [320, 375, 1440].entries()) {
       expect(layout.h1Count, `guest h1 count (${layout.h1Texts.join(" | ")})`).toBe(1);
       expect(layout.smallTapTargets, `guest sub-44px controls @ ${width}`).toEqual([]);
 
-      // Both CTAs intact — never collapsed to icons, never behind a menu.
+      // The auth CTAs intact — never collapsed to icons, never behind a menu.
       //
       // Asserted as LINKS, not buttons. Guest /browse renders through
       // `PublicHeaderPage` on web now, so these two CTAs are the marketing
@@ -313,8 +313,18 @@ for (const [i, width] of [320, 375, 1440].entries()) {
       // (Role is what moved; the accessible NAME did not need touching —
       // getByRole matches it case-insensitively, so "Log in" still matches the
       // rendered "Log in".)
-      await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
-      await expect(page.getByRole("link", { name: "Join free" })).toBeVisible();
+      //
+      // Owner 11-22: below md (768) the bar's one auth button reads "Join / Log in" (its sign-up screen opens with the
+      // Log in | Create account switch) and the separate Log in link is gone; from md up both stay
+      // (src/test/phoneJoinOrLogIn1122.test.tsx). Exact names, scoped to the bar: "Log in" is a substring of the phone name.
+      const primary = page.getByRole("navigation", { name: "Primary" });
+      if (width < 768) {
+        await expect(primary.getByRole("link", { name: "Join / Log in", exact: true })).toBeVisible();
+        await expect(primary.getByRole("link", { name: "Log in", exact: true })).toHaveCount(0);
+      } else {
+        await expect(primary.getByRole("link", { name: "Log in", exact: true })).toBeVisible();
+        await expect(primary.getByRole("link", { name: "Join free", exact: true })).toBeVisible();
+      }
 
       // NO Search and NO Filters on the guest surface. This assertion has now
       // been flipped twice, so the history matters more than the assertion:

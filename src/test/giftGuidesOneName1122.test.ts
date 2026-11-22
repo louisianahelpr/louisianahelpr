@@ -2,7 +2,7 @@
 // @mutate src/lib/giftGuidePageMeta.mjs | title: "Holiday gift guides — Helpr" | title: "Gift guides — Helpr"
 // @mutate src/pages/info/giftGuides/GiftGuideSharedList.tsx | — Helpr`; | — Louisiana Helpr`;
 // @mutate src/components/DesktopSidebarNav.tsx | label: "Holiday gift guides" | label: "Holiday Gift Guides"
-// @mutate src/components/Navbar.tsx | <span className="sr-only">Holiday gift guides</span> | <span className="sr-only">Holiday Gift Guides</span>
+// @mutate src/components/Navbar.tsx |                 Holiday gift guides\n              </Link> |                 Holiday Gift Guides\n              </Link>
 // @mutate src/lib/i18n/enPublic.ts | "footer.contact": "Contact support" | "footer.contact": "Contact us"
 /**
  * Guides polish audit 1122 #25: one feature, one name. The side menu's name ("Holiday gift guides") is the menu

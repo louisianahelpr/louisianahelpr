@@ -17,7 +17,8 @@
  *   - the landing's top bar is the one public bar, "Jobs · Declutter | Log in · Join free"
  *     (owner, 2026-10-21; Declutter added by the owner 11-04, to its guest Browse,
  *     on every public page alike): no "How it works", no sections read of its own. On a
- *     phone the landing's bar is logo, Log in and Join free (D021, 11-10).
+ *     phone the landing's bar is logo, Log in and Join free (D021, 11-10; owner 11-22: one "Join / Log in"
+ *     button there, src/test/phoneJoinOrLogIn1122.test.tsx).
  *
  * @mutate src/components/landing/heroSearch.ts |   return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: q ? `/search${qs}` : "/browse" }; |   return { signedIn: "/jobs", signedOut: "/signup" };
  * @mutate src/components/landing/HeroSection.tsx |     const t = heroSearchTargets(query); |     const t = heroSearchTargets("");
@@ -146,18 +147,14 @@ describe("landing redesign: the honesty fixes hold", () => {
 
   it("the landing's top bar is the one public bar: Jobs and Declutter, no How it works, no sections read (owner, 2026-10-21; 11-04)", () => {
     const nav = read("src/components/Navbar.tsx");
-    // The bar's contents never branch on `landing`: the ONE exception is D021 (landing design audit 11-10), which hides
-    // the Jobs and Declutter links on a phone on the landing only (its hero has the Jobs | Declutter switch); they are
-    // still in the bar at every width from sm, and on every other page.
+    // The bar's contents never branch on `landing` (it only picks the see-through top over the hero). D021 (11-10) hid
+    // Jobs and Declutter on the landing's phone bar and 11-19 gave the other pages a tighter bar; owner 11-22 ("On the
+    // landing there is no icon for job or declutter") made the landing's bar the same bar as every other page's.
     const landingUses = nav.match(/\blanding\b(?!\?:)/g) ?? [];
     expect(landingUses.length).toBeGreaterThan(0);
     expect(nav).not.toMatch(/\{landing &&/);
-    // Owner 11-19 ("make sure the guides can be easily viewed and accessed when signed in or out") added the second:
-    // the short "Guides" link shows on every phone bar, so the other pages' bar (`tight`) shows Jobs and Declutter as
-    // icons below 480 to make room; the landing's bar is unchanged (navGiftGuidesOnPhone1118.test.tsx).
-    expect(nav.match(/landing \?/g)).toEqual(["landing ?"]);
-    expect(nav).toMatch(/const phoneHidden = landing \? " max-\[639px\]:hidden" : "";/);
-    expect(nav).toMatch(/const tight = !landing;/);
+    expect(nav.match(/landing \?/g)).toBeNull();
+    expect(nav).not.toMatch(/const phoneHidden|const tight/);
     // ...and nothing on it reads the sections answer or links a section that may not be open.
     expect(nav).not.toMatch(/useSectionsOpen|sectionIsComingSoon|LandingNavLinks|how-it-works|Get started/i);
     expect(nav).toMatch(/to="\/browse"/);

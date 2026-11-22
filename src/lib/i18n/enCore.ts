@@ -19,6 +19,8 @@ export const enCore = {
   "g.logIn": "Log in",
   "g.signUp": "Sign up",
   "g.joinFree": "Join free",
+  // Owner 11-22: the phone header's one auth button (its sign-up screen also carries the Log in link).
+  "g.joinOrLogIn": "Join / Log in",
 
   // Main nav (desktop rail + phone dock)
   "nav.home": "Home",

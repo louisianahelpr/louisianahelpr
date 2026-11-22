@@ -54,20 +54,24 @@ function navSection(path: string): "jobs" | "declutter" | "guides" | null {
   return null;
 }
 const NAV_CURRENT_MARK = "aria-[current=page]:text-[hsl(var(--bark))] aria-[current=page]:underline aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-[6px]";
+/**
+ * Owner 11-22 (phone bar): below 480 Jobs, Declutter and the gift guides are icons only. Each icon link is a 44px-wide
+ * target (NAV_ICON_LINK), and the current one keeps a visible mark: a text underline draws nothing under an icon, so a
+ * 2px bar in the link's own colour sits 6px under the icon (NAV_ICON_CURRENT_BAR; out of the flex row, hidden from 480,
+ * where the words and their underline take over). Guard: src/test/phoneNavIcons1122.test.tsx.
+ */
+const NAV_ICON_LINK = "group relative max-[479px]:min-w-11";
+const NAV_ICON_CURRENT_BAR = "pointer-events-none absolute bottom-1.5 left-1/2 h-0.5 w-[18px] -translate-x-1/2 rounded-full bg-current opacity-0 group-aria-[current=page]:opacity-100 min-[480px]:hidden";
 
 const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = false }, ref) => {
-  // F017: the landing no longer changes the bar's container (one on every public page, PUBLIC_CONTAINER). D021 (landing
-  // design audit 11-10): on a phone the landing's bar keeps only the logo, Log in and Join free; its hero already has
-  // the Jobs | Declutter switch, so the Jobs and Declutter links (and their divider) were a full bar of repeats there.
-  const phoneHidden = landing ? " max-[639px]:hidden" : "";
-  // Owner 11-19 ("make sure the guides can be easily viewed and accessed when signed in or out"): the short "Guides"
-  // link shows at every phone width on EVERY public page, not only the landing. The other pages' phone bar also carries
-  // Jobs and Declutter, so there (never on the landing, whose bar is unchanged and matches index.html's shell) the bar
-  // makes room: below 480 Jobs and Declutter are their section icons (named by sr-only words), the links' padding and
-  // gaps tighten, the divider waits for sm, and below 400 the bar's side gutter is 12px; below 375 "Guides" drops its
-  // gift icon. Measured in headless Chrome with the app's Montserrat at 320-767 (English fits at every width; the
-  // tightest is 320 with 4px to spare). Guard: src/test/navGiftGuidesOnPhone1118.test.tsx.
-  const tight = !landing;
+  // F017: the landing no longer changes the bar's container (one on every public page, PUBLIC_CONTAINER). Owner 11-22
+  // ("On the landing there is no icon for job or declutter"): the landing's phone bar is now the same as every other
+  // public page's (it used to drop Jobs and Declutter below 640, D021 11-10). Owner 11-19 ("make sure the guides can be
+  // easily viewed and accessed when signed in or out"): the gift guides link shows at every phone width on every page.
+  // The phone bar makes room: below 480 Jobs, Declutter and the gift guides are their section icons (named by sr-only
+  // words; owner 11-22: "you don't need to show guide at the top top anymore the icon is fine"), each a 44px-wide target,
+  // the gaps tighten, the divider waits for sm, and below 400 the bar's side gutter is 12px. Measured in headless Chrome
+  // with the app's Montserrat at 320-767 (English fits at every width). Guard: src/test/navGiftGuidesOnPhone1118.test.tsx.
   // Session-only auth (no profile DB round-trip) so the marketing nav can
   // reflect logged-in state: an authenticated visitor landing on a public
   // page (/legal, /) sees none of the signed-out "Jobs | Log in · Join free"
@@ -145,7 +149,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
           // the landing's alone, so the logo and links jumped between / and /browse). PublicHeaderPage holds its
           // title and body to the same container (PUBLIC_CONTAINER).
           PUBLIC_CONTAINER,
-          tight && "max-[399px]:pl-[max(0.75rem,var(--safe-area-left,0px))] max-[399px]:pr-[max(0.75rem,var(--safe-area-right,0px))]",
+          "max-[399px]:pl-[max(0.75rem,var(--safe-area-left,0px))] max-[399px]:pr-[max(0.75rem,var(--safe-area-right,0px))]",
         )}
       >
         {/* Emblem + wordmark on the MARKETING nav. This is the public,
@@ -166,7 +170,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
             local onClick wrapper. */}
 
         {/* ONE bar on every public page, the landing included (owner, 2026-10-21):
-            signed out it reads "Jobs · Declutter | Log in · Join free" at every width.
+            signed out it reads "Jobs · Declutter | Log in · Join free" (on a phone, since owner 11-22, one
+            "Join / Log in" button in place of the pair).
             "Jobs" is the public board (/browse), "Declutter" its guest Browse (owner
             11-04) and "Join free" is sign-up (/signup) on every page; "Get started"
             and "How it works" are gone. There is no hamburger (owner): the three
@@ -175,7 +180,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
             globally"): the app's own navigation (the desktop rail, the bottom
             nav on a phone) already carries them. */}
         {!user && (
-          <div className={tight ? "flex items-center gap-0 min-[480px]:gap-1 sm:gap-3" : "flex items-center gap-0 min-[375px]:gap-0.5 min-[400px]:gap-1 sm:gap-3"}>
+          <div className="flex items-center gap-0 min-[480px]:gap-1 sm:gap-3">
             {/* Owner 11-20 (site polish A1): a "Home" link off the landing, from md up (the phone bar is full at 320;
                 there the logo goes home). Owner 11-21: not on the Jobs, Declutter or Holiday gift guides pages either,
                 whose own back arrow, left of the title, already goes home (NAV_HOME_HIDDEN_ON; route-based). */}
@@ -193,7 +198,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
               asChild
               variant="ghost"
               size="sm"
-              className={tight ? `rounded-full px-1.5 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] ${NAV_CURRENT_MARK}` : `rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] ${NAV_CURRENT_MARK}${phoneHidden}`}
+              className={`rounded-full px-1.5 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] ${NAV_CURRENT_MARK} ${NAV_ICON_LINK}`}
             >
               <Link
                 to="/browse"
@@ -202,12 +207,9 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 onFocus={() => prefetchRoute("/browse")}
               >
                 {/* Design audit areas 11-18 #1: Spanish for a Spanish reader (the footer's own word). */}
-                {tight ? (
-                  <>
-                    <Briefcase aria-hidden className="min-[480px]:hidden" />
-                    <span className="max-[479px]:sr-only">{navWord("footer.jobs", "Jobs")}</span>
-                  </>
-                ) : navWord("footer.jobs", "Jobs")}
+                <Briefcase aria-hidden className="min-[480px]:hidden" />
+                <span aria-hidden className={NAV_ICON_CURRENT_BAR} />
+                <span className="max-[479px]:sr-only">{navWord("footer.jobs", "Jobs")}</span>
               </Link>
             </Button>
             {/* Owner 11-04: Declutter next to Jobs. A guest reads its Browse too (BUY-16). */}
@@ -215,18 +217,15 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
               asChild
               variant="ghost"
               size="sm"
-              className={tight ? `rounded-full px-1.5 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] ${NAV_CURRENT_MARK}` : `rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] ${NAV_CURRENT_MARK}${phoneHidden}`}
+              className={`rounded-full px-1.5 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] ${NAV_CURRENT_MARK} ${NAV_ICON_LINK}`}
             >
               <Link
                 to="/declutter"
                 aria-current={navSection(location.pathname) === "declutter" ? "page" : undefined}
               >
-                {tight ? (
-                  <>
-                    <Sofa aria-hidden className="min-[480px]:hidden" />
-                    <span className="max-[479px]:sr-only">Declutter</span>
-                  </>
-                ) : "Declutter"}
+                <Sofa aria-hidden className="min-[480px]:hidden" />
+                <span aria-hidden className={NAV_ICON_CURRENT_BAR} />
+                <span className="max-[479px]:sr-only">Declutter</span>
               </Link>
             </Button>
             {/* Owner 2026-11-18: "Holiday gift guides" in the public top bar, in full from md up; below md the short
@@ -247,35 +246,43 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
             </Button>
             {/* Owner 2026-11-18, on the phone landing: "Where am I suppose to find the holiday guides here? Shouldn't it be
                 on the top nav?" (this overrides 11-04's phone bar of only Jobs, Declutter, Log in and Join free). Below md
-                the bar has a short "Guides" link with the gift icon, named "Holiday gift guides" in full (sr-only prefix). Owner 11-19: it shows
-                at every phone width on every public page (see `tight` above for how the other pages' bar makes room).
+                the bar has a short gift guides link with the gift icon, named "Gift guides" (sr-only). Owner 11-19: it shows
+                at every phone width on every public page. Owner 11-22: below 480 it is the gift icon alone, like Jobs
+                and Declutter beside it; from 480 to md the icon and the word "Guides".
                 Guard: src/test/navGiftGuidesOnPhone1118.test.tsx. */}
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className={`${tight ? "md:hidden gap-1 rounded-full px-2 max-[374px]:px-1 max-[374px]:text-ds-13 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]" : "md:hidden gap-1 rounded-full px-2 max-[374px]:text-ds-13 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"} ${NAV_CURRENT_MARK}`}
+              className={`md:hidden gap-1 rounded-full px-1.5 min-[375px]:px-2 max-[374px]:text-ds-13 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] ${NAV_CURRENT_MARK} ${NAV_ICON_LINK}`}
             >
               <Link
                 to="/gift-guides"
                 aria-current={navSection(location.pathname) === "guides" ? "page" : undefined}
                 data-testid="nav-gift-guides-phone"
               >
-                <Gift aria-hidden className={tight ? "max-[374px]:hidden" : undefined} />
-                {/* Its name is "Holiday gift guides", which holds the visible word (WCAG 2.5.3, labelInName.test.tsx). */}
-                <span className="sr-only">Holiday gift guides</span>
-                <span aria-hidden>Guides</span>
+                <Gift aria-hidden />
+                <span aria-hidden className={NAV_ICON_CURRENT_BAR} />
+                {/* Its name is "Gift guides", which holds the visible word from 480 (WCAG 2.5.3, labelInName.test.tsx). */}
+                <span className="sr-only">Gift guides</span>
+                <span aria-hidden className="max-[479px]:hidden">Guides</span>
               </Link>
             </Button>
-            {/* The divider between the public links and the auth actions. Below 400px the bar drops it and
-                tightens the link padding (below 375 also one text size down), so Jobs + Declutter fit beside the logo without squeezing it
-                (owner 11-04; measured at 320, 360 and 375). */}
-            <span aria-hidden className={tight ? "hidden sm:block w-px h-5 mx-1" : `hidden min-[400px]:block w-px h-5 mx-1${phoneHidden}`} style={{ background: "hsl(var(--olivewood) / 0.18)" }} />
+            {/* The divider between the public links and the auth actions, from sm up (on a phone the bar drops it and
+                tightens the link padding, below 375 also one text size down, so the icons fit beside the logo without
+                squeezing it; owner 11-04, measured at 320, 360 and 375). */}
+            <span aria-hidden className="hidden sm:block w-px h-5 mx-1" style={{ background: "hsl(var(--olivewood) / 0.18)" }} />
+            {/* Owner 11-22 (phone header): "When you tap join there is a toggle for log in so should we remove log in ...
+                and change the name of the button. Since the button does both things ... You can leave it how it is on
+                the desktop". Below md (the phone bar, where "Guides" stands in for "Holiday gift guides") there is no
+                separate Log in: the one button reads "Join / Log in" and opens the sign-up screen, whose "Already have
+                an account?" link is the Log in. From md up the bar keeps Log in and Join free. The room it frees stays
+                as breathing room. Guard: src/test/phoneJoinOrLogIn1122.test.tsx. */}
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className={tight ? "rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]" : "rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"}
+              className="hidden md:inline-flex rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
             >
               <Link
                 to="/login"
@@ -302,7 +309,10 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 onMouseEnter={() => prefetchRoute("/signup")}
                 onFocus={() => prefetchRoute("/signup")}
               >
-                {wordInLang("g.joinFree", "Join free")}
+                {/* One word set per width (display: none leaves the other out of the name): "Join / Log in" on a phone,
+                    "Join free" from md up. */}
+                <span className="md:hidden" data-nav-join="phone">{wordInLang("g.joinOrLogIn", "Join / Log in")}</span>
+                <span className="hidden md:inline" data-nav-join="wide">{wordInLang("g.joinFree", "Join free")}</span>
               </Link>
             </Button>
           </div>

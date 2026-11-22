@@ -4,12 +4,10 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDES_CSS } from "../giftGuidesStyles";
 import { GIFT_WISH_CSS } from "../giftWishStyles";
-import { giftGuides as G } from "@/content/giftGuides";
+import { giftGuides as G, type PageBanner } from "@/content/giftGuides";
 import { GiftGuideTools } from "../GiftGuideShare";
-import { GuidesHeadRow } from "../GuidesHeadRow";
-import { GiftGuidesWords } from "../GiftGuideCover";
+import { GuidesTop } from "../GuidesTop";
 import { GiftGuidesSidebar } from "../GiftGuidesSidebar";
-import { GiftGuidesPhoneNav } from "../GiftGuidesPhoneNav";
 
 type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | PrintablePagePath;
 
@@ -24,15 +22,16 @@ export const funHeader = (title: string) => ({ title, backTo: "/gift-guides", bo
  * The body of the four fun pages (owner 2026-11-20), inside each page's own <PublicHeaderPage {...funHeader(title)}>
  * (the shared shell, src/test/shellConsistency.test.ts): the guides' own styles plus FUN_CSS and one centered column.
  * The three public pages take their head from PUBLIC_PAGE_META (the same words api/share.ts writes before JS); a
- * private page (a Secret Santa reveal) is noindex.
+ * private page (a Secret Santa reveal) is noindex. `banner`: the page's banner words, by default its path's
+ * (G.pageBanners, owner 11-22 #13).
  */
-export function FunBody({ title, path, noindex, tools = true, children }: { title: string; path: FunPath; noindex?: boolean; tools?: boolean; children: ReactNode }) {
+export function FunBody({ title, path, noindex, banner = G.pageBanners[path], children }: { title: string; path: FunPath; noindex?: boolean; banner?: PageBanner; children: ReactNode }) {
   const meta = PUBLIC_PAGE_META[path];
   usePageMeta(noindex ? { title: `${title} — Helpr`, description: meta.description, robots: "noindex", noCanonical: true } : meta);
   return (
     <>
       <style>{GIFT_GUIDES_CSS}{GIFT_WISH_CSS}{FUN_CSS}</style>
-      <GuidesFrame title={title} path={path} tools={tools}>
+      <GuidesFrame title={title} path={path} banner={banner}>
         <div className="gg-fun w-full" data-gift-fun={path}>{children}</div>
       </GuidesFrame>
     </>
@@ -40,32 +39,22 @@ export function FunBody({ title, path, noindex, tools = true, children }: { titl
 }
 
 /**
- * The gift guides' frame for a page outside GiftGuides.tsx (the fun pages, /shop-small): the head row (back arrow +
- * "Holiday gift guides", then search, My list heart with its count, Share), the page's own title under it, then the page, the left menu and the disclosures (holiday
- * audit 1121 #13: the fun pages had no head row or menu; #73: /shop-small's title sat apart from its column). The
- * caller brings GIFT_GUIDES_CSS. `disclosures` off only on a page with no affiliate link.
+ * The gift guides' frame for a page outside GiftGuides.tsx (the fun pages, the printables, the Holiday Hub): the guides'
+ * one top (GuidesTop: back arrow + "Holiday gift guides", the shipping pill, search, My list heart and Share, the
+ * phone's chip row, then the page's gingham banner holding its h1), then the page, the left menu and the disclosures
+ * (holiday audit 1121 #13: the fun pages had no head row or menu). The caller brings GIFT_GUIDES_CSS. `disclosures`
+ * off only on a page with no affiliate link.
+ * Owner 2026-11-22 #13 ("gifts tags and all the other sections should have the same top section as the guides and the
+ * deals"): the banner replaces this morning's plain left serif title (polish audit 1122 #10), and the printables get
+ * the same icons as every other page (their 11-21 "remove the search, favorite" is overtaken by "the same top").
  */
-/** `tools` off (the printables, owner 2026-11-21: "remove the search, favorite ... just polish this"): no search, heart
- * or share in the head row, where there is nothing to search or save. */
-function GuidesFrame({ title, path, disclosures = true, tools = true, children }: { title: string; path: string; disclosures?: boolean; tools?: boolean; children: ReactNode }) {
+export function GuidesFrame({ title, path, banner, disclosures = true, children }: { title: string; path: string; banner: PageBanner; disclosures?: boolean; children: ReactNode }) {
   return (
     <div className="gg w-full" data-gift-fun-frame="">
-      {/* Owner 11-22: "Holiday gift guides" beside the back arrow, as on the guides and the deals days, and the page's
-          own title as its h1 right under that row (GuidesHeadRow: one head row for every guides page). */}
-      <GuidesHeadRow backTo="/gift-guides">
-        {tools && <GiftGuideTools path={path} title={title} />}
-      </GuidesHeadRow>
-      {/* Polish audit 1122 #3: the phone's chip row and menu sheet on these pages too (they had no way to the other
-          guides on a phone but the back arrow); Printables is filled on the three printables pages. */}
-      <GiftGuidesPhoneNav active={null} page={path} />
+      <GuidesTop backTo="/gift-guides" banner={banner} tools={<GiftGuideTools path={path} title={title} />} nav={{ active: null, page: path }} />
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">
-        {/* Polish audit 1122 #10: the page's title opens the content column, left-aligned in the shared serif page-title
-            style (as My Wish List's), not centered on the full width over the gap by the menu. */}
-        <div className="gg-main">
-          <GiftGuidesWords lead="" title={title} titleId="gift-page-title" tools={null} />
-          {children}
-        </div>
+        <div className="gg-main">{children}</div>
         <GiftGuidesSidebar active={null} page={path} />
         {/* Holiday audit 1121 (High): Swipe's Shop links and the planner's ideas are affiliate links (Amazon's among
             them), so every fun page ends with the same two plain muted lines as the guides: the FTC disclosure

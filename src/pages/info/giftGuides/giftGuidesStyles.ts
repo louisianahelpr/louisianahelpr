@@ -432,4 +432,9 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 @media (max-width:767px){.gg-banner{height:184px;padding-top:10px}.gg-arch{width:min(340px,94%);padding:22px 10px 8px;box-shadow:0 -2px 10px rgba(60,40,20,.12),0 0 0 5px rgba(255,253,247,.85)}.gg-arch::before{inset:6px 6px 0}.gg-banner .gg-lead{font-size:clamp(20px,6vw,24px);margin-bottom:12px}.gg-banner h1{font-size:clamp(34px,11vw,44px);line-height:1.02;-webkit-line-clamp:2}}
 /* Dark mode: the arch stays cream, so its "gifts for" keeps the cover brown (the later .gg-words dark rule turned it near-white, 11-21). */
 :root[data-theme="dark"] .gg-words .gg-banner .gg-lead{color:#6b5a48}
+/* Owner 11-22 #13: every other guides page's banner (GuidesTop: the printables, the fun pages, My Wish List, the Holiday
+   Hub) in Small Business Saturday's sizes: 60px from 768px (48px to 1023px), up to three lines at a phone's 25-34px. */
+@media (min-width:768px){.gg-banner-sub .gg-banner h1{font-size:60px;line-height:1.04}}
+@media (min-width:768px) and (max-width:1023px){.gg-banner-sub .gg-banner h1{font-size:48px}}
+@media (max-width:767px){.gg-banner-sub .gg-banner h1{-webkit-line-clamp:3;font-size:clamp(25px,8vw,34px);line-height:1.05}}
 `;

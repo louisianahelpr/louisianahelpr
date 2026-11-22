@@ -4,9 +4,9 @@
  * and the page's own main title BELOW that." Every guides sub-route draws ONE head row (GuidesHeadRow) with the back
  * arrow and "Holiday gift guides" (a plain line, not the h1), and the page's own title as its only h1, below that row.
  *
- * @mutate src/pages/info/giftGuides/fun/FunPage.tsx |           <GiftGuidesWords lead="" title={title} titleId="gift-page-title" tools={null} />\n | \n
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | <GuidesTop backTo="/gift-guides" banner={banner} | <GuidesTop backTo="/gift-guides" banner={null}
  * @mutate src/pages/info/giftGuides/GuidesHeadRow.tsx | : <p className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</p>} | : <p className="text-page-title leading-tight" data-gift-head-name="">Gift guides</p>}
- * @mutate src/pages/info/GiftGuides.tsx | titleIsH1={!banner} | titleIsH1
+ * @mutate src/pages/info/giftGuides/GuidesTop.tsx | titleIsH1={!banner} | titleIsH1
  * @mutate src/pages/info/giftGuides/printables/NameMaker.tsx | grid-template-columns:repeat(3,minmax(0,1fr));align-items:start; | grid-template-columns:repeat(3,minmax(0,1fr));
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-nm{display:flex;flex:1;flex-direction:column;padding-bottom:0} | .gg-top10 .gg-nm{padding-bottom:0}
  *
@@ -96,12 +96,12 @@ describe("every Holiday gift guides sub-page: 'Holiday gift guides' by the back 
 describe("one head row component, so the pages cannot drift apart again", () => {
   const files = [...readdirSync("src/pages/info/giftGuides", { recursive: true }).map((f) => `src/pages/info/giftGuides/${f}`), "src/pages/info/GiftGuides.tsx"].filter((f) => f.endsWith(".tsx"));
 
-  it("only GuidesHeadRow draws the head row; every page with one uses it", () => {
+  it("only GuidesHeadRow draws the head row; only GuidesTop (the one top, owner 11-22 #13) uses it", () => {
     expect(files.length).toBeGreaterThan(20); // inventory floor: ~40 .tsx files under the guides on 2026-11-22
     const drawers = files.filter((f) => /data-gift-headrow=/.test(blankComments(readFileSync(f, "utf8"))));
     expect(drawers).toEqual(["src/pages/info/giftGuides/GuidesHeadRow.tsx"]);
     const users = files.filter((f) => /<GuidesHeadRow\b/.test(blankComments(readFileSync(f, "utf8"))));
-    expect(users.sort()).toEqual(["src/pages/info/GiftGuides.tsx", "src/pages/info/giftGuides/fun/FunPage.tsx"]);
+    expect(users.sort()).toEqual(["src/pages/info/giftGuides/GuidesTop.tsx"]);
   });
 
   it("every /gift-guides route in App.tsx renders GiftGuides or a page in the shared frame (FunBody / GuidesFrame)", () => {

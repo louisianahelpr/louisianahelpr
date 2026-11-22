@@ -12,7 +12,7 @@
  * @mutate src/pages/info/GiftGuides.tsx |   const countRow = (phone && Boolean(guide) && !deals) \|\| sponsorsPage; |   const countRow = sponsorsPage;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |   const open = searchOpen \|\| !!query; |   const open = true;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }} | onKeyDown={() => undefined}
- * @mutate src/pages/info/GiftGuides.tsx |           {!countRow && tools} |           {tools}
+ * @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {pillInRow && tools} |         {tools}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1; | .gg-list .gg-nm .gg-nm-meta{grid-column:1;grid-row:2;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-heart-pick{position:absolute;top:4px;left:54px;z-index:1} | .gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-cart{position:absolute;top:48px;left:54px;z-index:1} | .gg-list .gg-cart{position:absolute;top:4px;left:10px;z-index:1}

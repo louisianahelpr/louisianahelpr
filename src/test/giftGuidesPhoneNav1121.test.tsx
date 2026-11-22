@@ -5,7 +5,7 @@
  * Printables, then More pinned at the right edge (polish audit 1122 #6); More opens the shared bottom Sheet with the
  * same grouped menu as the desktop sidebar. The chip row scrolls sideways by itself.
  *
- * @mutate src/pages/info/GiftGuides.tsx |         <GiftGuidesPhoneNav active={guide} myList={myList \|\| shared} page={sidePage} /> |         {null}
+ * @mutate src/pages/info/giftGuides/GuidesTop.tsx |       <GiftGuidesPhoneNav active={nav.active} myList={nav.myList} page={nav.page} /> |       {null}
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneSheet.tsx | <GiftGuidesMenu active={active} myList={myList} page={page} idPrefix={idPrefix} /> | {null}
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx | onClick={() => setSheet(true)} | onClick={() => setSheet(false)}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav-row{display:flex;flex:1 1 auto;min-width:0;gap:8px;list-style:none;margin:0;padding:0 8px 0 20px;overflow-x:auto; | .gg-pnav-row{display:flex;flex:1 1 auto;min-width:0;gap:8px;list-style:none;margin:0;padding:0 8px 0 20px;

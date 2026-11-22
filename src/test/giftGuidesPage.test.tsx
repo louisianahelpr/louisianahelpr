@@ -43,7 +43,7 @@
  * @mutate src/pages/info/GiftGuides.tsx |   const slug = myListPage ? undefined : rawSlug; |   const slug = undefined as string \| undefined; void rawSlug;
  * @mutate src/pages/info/GiftGuides.tsx |   if (!slug && !shared && !myListPage && fromHash) return | if (!slug && !shared && !myListPage && fromHash && false) return
  * @mutate src/pages/info/GiftGuides.tsx |   if (moved) return | if (moved && false) return
- * @mutate src/pages/info/GiftGuides.tsx | const backTo = guide \|\| deals \|\| myList \|\| shared ? "/gift-guides" : "/"; | const backTo = guide \|\| deals \|\| myList \|\| shared ? "/gift-guides/" : "/";
+ * @mutate src/pages/info/GiftGuides.tsx | const backTo = guide \|\| deals \|\| myList \|\| shared \|\| sidePage === "finder" ? "/gift-guides" : "/"; | const backTo = guide \|\| deals \|\| myList \|\| shared \|\| sidePage === "finder" ? "/gift-guides/" : "/";
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | className="gg-thumb" loading="lazy" decoding="async" | className="gg-thumb" decoding="async"
  * @mutate src/content/giftGuidesAmazon.ts | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=louisianahelpr-20"], | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=hggguidepage-20"],
  * @mutate src/content/giftGuideCatalog.ts |   return hit; |   return "amazon" as GiftStore;
@@ -61,14 +61,14 @@
  * @mutate src/content/giftGuides.ts | codes.filter((c) => (!c.expires \|\| c.expires >= today) && | codes.filter((c) => (today === today) &&
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {!guide.children && guide.picks.length === 0 && ( | {false && (
  * @mutate src/content/giftGuideCatalog.ts | export const REMOVED_GUIDES = ["last-minute-gifts", | export const REMOVED_GUIDES = ["nothing",
- * @mutate src/pages/info/GiftGuides.tsx | : guide.lead} title={guide.title} titleId="gift-guide-title" | : guide.lead} title={guide.slug} titleId="gift-guide-title"
+ * @mutate src/pages/info/GiftGuides.tsx | : guide.lead, title: guide.title, tint: guide.tint | : guide.lead, title: guide.slug, tint: guide.tint
  * @mutate src/pages/info/Index.tsx |       <SectionsShowcase />\n |       <SectionsShowcase />\n      <GiftGuidesBand />\n
  * @mutate src/components/Footer.tsx |               <Link to="/safety" className={FOOTER_LINK}> |               <Link to="/gift-guides" className={FOOTER_LINK}>
  * @mutate src/components/sponsor/Sections.tsx |         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>\n |         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>\n        <Link to={C.links.giftGuides}>{C.footer.giftGuidesLink}</Link>\n
  * @mutate src/content/giftGuideIndex.ts |   { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" }, |   { group: "By store", tint: "green", slug: "store-shopmy", title: "ShopMy", lead: "shop" },\n  { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" },
  * @mutate src/content/giftGuideIndex.ts | { group: "By career", tint: "oat", slug: "stay-at-home-parents" | { group: "Life moments", tint: "oat", slug: "stay-at-home-parents"
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx |         {g.age && <span className="gg-count">{g.age}</span>} |         <span className="gg-count">{g.age ?? ""}{g.picks.length} picks</span>
- * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |             <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>\n          </div> |             <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>\n            <p className="gg-arch-foot">Louisiana Helpr</p>\n          </div>
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |           <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>\n        </div> |           <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>\n          <p className="gg-arch-foot">Louisiana Helpr</p>\n        </div>
  * @mutate src/content/giftGuides.ts |   { rank: 1, store: "Muck Boot", code: "TAKE25", | { rank: 8, store: "Muck Boot US", code: "TAKE25",
  */
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
@@ -168,8 +168,8 @@ describe("gift guides: one header on every page (owner 11-21)", () => {
   // centered "top-rated finds / Holiday gift guides" block is gone.
   // Owner 11-21 (later): "all of this should be on the same row": the back arrow + title, the pill and the tools are ONE
   // row the page draws (one line from 768px up; a phone wraps it).
-  // @mutate src/pages/info/GiftGuides.tsx | <GuidesHeadRow backTo={backTo} titleIsH1={!banner} | <GuidesHeadRow backTo={backTo} titleIsH1
-  // @mutate src/pages/info/GiftGuides.tsx |           {shipPill}\n |           {null}\n
+  // @mutate src/pages/info/giftGuides/GuidesTop.tsx | <GuidesHeadRow backTo={backTo} titleIsH1={!banner} | <GuidesHeadRow backTo={backTo} titleIsH1
+  // @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {pillInRow && pill}\n |         {null}\n
   // @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (min-width:768px){.gg-head-title{flex:0 0 auto}.gg-headrow{flex-wrap:nowrap} | @media (min-width:768px){.gg-head-title{flex:1 1 100%}.gg-headrow{flex-wrap:wrap}
   it("one header row: back arrow + 'Holiday gift guides', the pill and the tools; no second title", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
@@ -334,7 +334,7 @@ describe("gift guides: the landing opens to the guides", () => {
     const wordsOf = (path: string) => [...(renderAt(path).container.querySelector("[data-gift-words]")?.children ?? [])].map((c) => c.textContent);
     // A guide's header is its cover's look as a short banner (owner 11-18 PM): gingham in the guide's palette, a cream
     // arch holding the lead and the title (real text, no image; owner 11-21: "remove louisiana helpr from the [banner]").
-    // @mutate src/pages/info/GiftGuides.tsx | titleId="gift-guide-title" tint={guide.tint} | titleId="gift-guide-title"
+    // @mutate src/pages/info/GiftGuides.tsx | title: guide.title, tint: guide.tint, sub: false } | title: guide.title, tint: "green" as const, sub: false }
     // The tool row carries no text: an empty My list shows no "0" badge (pre-launch audit 11-18 PM).
     // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {n > 0 && <span className="gg-icon-count" |       {true && <span className="gg-icon-count"
     // Owner 11-21: the tool row moved up beside the shipping pill, so the banner holds only its arch.
@@ -854,7 +854,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
 
   // Owner redesign 11-18 PM ("share text search list codes is too much buttons right here"): ONE slim row under every
   // title, at every width: the search field, My list (an icon with its count) and Share (an icon). No pill buttons.
-  // @mutate src/pages/info/GiftGuides.tsx |           {tools}\n |           {null}\n
+  // @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {pillInRow && tools}\n |         {null}\n
   // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       <MyListIcon current={myList} />\n |       <a href="#codes">Codes</a>\n      <MyListIcon current={myList} />\n
   it("#15 / redesign: the tool row under the title is search, My list and Share, nothing else", () => {
     for (const url of ["/gift-guides", "/gift-guides/her", "/gift-guides/store-walmart"]) {

@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import type { CatalogGuide } from "@/content/giftGuideCatalog";
 
 /**
@@ -22,37 +21,29 @@ export function GiftGuideCover({ guide, priority = false }: { guide: CatalogGuid
 }
 
 /**
- * Every page's header (owner 2026-11-18, compact): the italic lead, the title and the slim tool row (search, My list,
- * Share; owner redesign 11-18 PM), centred on white over a thin rule. The title is the page's h1 (live audit r3 #7:
- * "Gifts for Her", not the header's "Gift guides", which PublicHeaderPage paints as a plain line). No subtitle and no count under the title (owner 2026-11-18: "remove every 25 picks count and every
- * subtitle").
+ * A guides page's banner, drawn by GuidesTop (src/pages/info/giftGuides/GuidesTop.tsx) on every guides page but the
+ * landing (owner 2026-11-22 #13: "gifts tags and all the other sections should have the same top section as the guides
+ * and the deals"). The title is the page's h1 (live audit r3 #7: "Gifts for Her", not the head row's "Holiday gift
+ * guides", a plain line). No subtitle and no count under the title (owner 2026-11-18: "remove every 25 picks count and
+ * every subtitle").
  *
- * A guide's page (with `tint`) draws it as a short, wide banner in its cover's look (owner 2026-11-18 PM: "make the top
- * ... like the gifts for mom that kind of matches the cover photo"): the guide's gingham, a cream arch holding the
- * lead and the title (owner 11-21: "remove louisiana helpr from the [banner]"), Share right under it. Real text and CSS only (no image); a
- * fixed height, so nothing below moves. Guard: src/test/giftGuidesPage.test.tsx.
+ * A short, wide banner in a guide cover's look (owner 2026-11-18 PM: "make the top ... like the gifts for mom that kind
+ * of matches the cover photo"): the gingham in `tint`, a cream arch holding the lead and the title (owner 11-21: "remove
+ * louisiana helpr from the [banner]"). Real text and CSS only (no image); a fixed height, so nothing below moves.
+ * `sub`: a page that is not a guide or a deals day (the printables, the fun pages, the wish lists, the Holiday Hub), its
+ * title in the deals days' sizes. Guard: src/test/giftGuidesPage.test.tsx, src/test/giftGuidePages1122.test.tsx.
  */
-export function GiftGuidesWords({ lead, title, titleId, tools, tint }: { lead: string; title: string; titleId: string; tools: ReactNode; tint?: CatalogGuide["tint"] }) {
-  if (tint) {
-    return (
-      <header className="gg-words gg-banner-wrap" data-gift-words="" data-gift-banner={tint}>
-        <div className={`gg-banner gg-check gg-${tint}`}>
-          <div className="gg-arch" data-gift-arch="">
-            {/* Holiday audit 1121: the h1 itself reads "gifts for Her" (it was just "Her" for screen readers and search);
-                the italic lead above stays as drawn and is hidden from screen readers, so it is not read twice. */}
-            <p className="gg-lead" aria-hidden="true">{lead}</p>
-            <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>
-          </div>
-        </div>
-        {tools}
-      </header>
-    );
-  }
+export function GiftGuidesWords({ lead, title, titleId, tint, sub = false }: { lead: string; title: string; titleId: string; tint: CatalogGuide["tint"]; sub?: boolean }) {
   return (
-    <header className="gg-words gg-pagehead" data-gift-words="">
-      {lead && <p className="gg-lead" aria-hidden="true">{lead}</p>}
-      <h1 id={titleId}>{lead && <><span className="sr-only">{lead}</span>{" "}</>}{title}</h1>
-      {tools}
+    <header className={sub ? "gg-words gg-banner-wrap gg-banner-sub" : "gg-words gg-banner-wrap"} data-gift-words="" data-gift-banner={tint}>
+      <div className={`gg-banner gg-check gg-${tint}`}>
+        <div className="gg-arch" data-gift-arch="">
+          {/* Holiday audit 1121: the h1 itself reads "gifts for Her" (it was just "Her" for screen readers and search);
+              the italic lead above stays as drawn and is hidden from screen readers, so it is not read twice. */}
+          <p className="gg-lead" aria-hidden="true">{lead}</p>
+          <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>
+        </div>
+      </div>
     </header>
   );
 }

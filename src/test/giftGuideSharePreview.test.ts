@@ -99,7 +99,7 @@ describe("gift guide share preview (api/share.ts)", () => {
   // @mutate api/share.ts |   if (id === "gift-guides") return | if (id === "gift-guides-x") return
   it("the landing shares its own 1200x630 collage card, at most 150 KB", async () => {
     const head = await headFor("gift-guides");
-    expect(head).toContain(`<meta property="og:image" content="${ORIGIN}/gift-guides/og/landing.jpg?v=3"`);
+    expect(head).toContain(`<meta property="og:image" content="${ORIGIN}/gift-guides/og/landing.jpg?v=4"`);
     expect(head).toContain('<meta property="og:image:type" content="image/jpeg"');
     expect(head).toContain('<meta property="og:image:width" content="1200"');
     expect(head).toContain('<meta property="og:image:height" content="630"');

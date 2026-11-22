@@ -1114,7 +1114,7 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
  * B68 (review of b04c978c8f, 11-01): "Put back on sale" deletes the unpaid haul-away job, then puts the item back.
  * The haul-away code is loaded BEFORE the delete, so a load that comes back empty never leaves a deleted job with
  * the item still off sale: nothing is deleted, the wait fails (no reload follows here), and the seller is told.
- * @mutate src/components/declutter/DeclutterHomeView.tsx |       const lib = (await haulLib()) ?? (await untilReload());\n      await releaseJob(row, lib);\n      return lib.cancelHaulAway(row.item_id); |       await releaseJob(row, (await haulLib()) ?? (await untilReload()));\n      return ((await haulLib()) ?? (await untilReload())).cancelHaulAway(row.item_id);
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |       const lib = (await haulLib()) ?? (await untilReload());\n      await releaseHaulJob(row, lib);\n      return lib.cancelHaulAway(row.item_id); |       await releaseHaulJob(row, (await haulLib()) ?? (await untilReload()));\n      return ((await haulLib()) ?? (await untilReload())).cancelHaulAway(row.item_id);
  */
 describe("haul-away put back during a prevented preload (B68)", () => {
   const ROW = { item_id: "i1", title: "Oak rocking chair", description: "", delivery_size: "large", item_status: "paused", state: "unpaid", eligible_at: null, job_id: "j1", job_hold: null };

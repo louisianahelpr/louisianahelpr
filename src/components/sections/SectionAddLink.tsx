@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
  */
 // Design audit 11-17 #23: the bare 12% tint read as a grey, disabled pill beside the rail's olive "+ Create"; an olive
 // edge makes it read as the lighter-green button it is (still no fill, no shadow: second to Create).
-export const SECTION_ADD_TINT = "rounded-full shadow-none border border-[hsl(var(--bark)/0.55)] bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint";
+const SECTION_ADD_TINT = "rounded-full shadow-none border border-[hsl(var(--bark)/0.55)] bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint";
 export const SECTION_ADD_CLS = `${SECTION_ADD_TINT} px-4 gap-1.5 font-semibold [&>svg]:w-[18px] [&>svg]:h-[18px]`;
 
 /** A plain link in the section-add look, for a screen with no top bar of its own (a guest's Declutter). */

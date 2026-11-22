@@ -63,13 +63,13 @@ export const DENSE_TAB_COUNT = 5;
  * the last tab scroll clear of it, so nothing stays faded at the row's end, and a row that fits fades only empty space.
  * No chevron and no "N more" (owner 11-12). Guard: src/test/sectionTabsNeverCutAWord.test.tsx.
  */
-export const TABS_EDGE_FADE = "pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)]";
+const TABS_EDGE_FADE = "pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)]";
 /**
  * Both edges, once the row is scrolled off its start (screenshot check of #16, 11-22): with Free selected the row scrolls
  * to its end and Buying was cut hard to "ng" at the left. A row scrolled away from its start fades its left edge too, so
  * the cut tab there reads as "more this way" as well.
  */
-export const TABS_BOTH_FADE = "pr-10 [mask-image:linear-gradient(to_right,transparent,#000_40px,#000_calc(100%-40px),transparent)]";
+const TABS_BOTH_FADE = "pr-10 [mask-image:linear-gradient(to_right,transparent,#000_40px,#000_calc(100%-40px),transparent)]";
 /** The fade's width in TABS_EDGE_FADE (40px, the pr-10 that lets the last tab scroll clear of it). */
 const TABS_FADE_PX = 40;
 /**

@@ -71,7 +71,6 @@ import {
 import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine, HaulAwayTooSoonTip } from "./DeclutterHaulAway";
 import { DonationReceipts } from "./DeclutterDonate";
 import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
-import { report } from "@/lib/errorLogger";
 import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 // Types only: the predicates (oneTripGroup, haulJobToDelete) come with the lazily loaded haul-away code (Q178).
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
@@ -80,6 +79,7 @@ import { DeclutterHomeSkeleton, DeclutterTabBones, ListingsSkeleton, TabSkeleton
 import { ListingThumb } from "./ListingThumb";
 import { isListingsRow, myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
 import { useOpenProblems } from "./useOpenProblems";
+import { releaseHaulJob } from "./releaseHaulJob";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { t, useLanguage } from "@/lib/i18n/language";
 import { DECLUTTER_SETTINGS, ListingPrice, matchesListingSearch, SellingSettingsEntry, SOLD } from "./declutterSellingParts";
@@ -87,7 +87,6 @@ import "@/lib/i18n/enDeclutter";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => loadModule(() => import("@/lib/declutter/haulAway"));
-type HaulLib = typeof import("@/lib/declutter/haulAway");
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically from two Declutter screens, the shared Helpr task module rode in signed-in-shared and put /posts over its budget.
 const DeliverView = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.DeliverView })));
 
@@ -157,31 +156,10 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   });
   const haulById = useMemo(() => new Map<string, HaulAwayRow>((haul.data?.rows ?? []).map((r) => [r.item_id, r])), [haul.data]);
   const freeIds = useMemo(() => new Set((mine.data ?? []).filter((i) => i.current_price_cents === 0).map((i) => i.id)), [mine.data]);
-  // An unpaid haul-away's job is deleted first (its checkout can then never be opened again), then the item is put back
-  // or booked on a new job. Only a 'job_open' job is deleted (never a cancelled one, whose photos and record stay). A
-  // declined card's job ('job_stuck') can't be deleted by its poster, so it is never tried: reported, and the seller is
-  // told it can't be removed from here; a delete the policy refuses anyway is reported inside deleteNeverPaidHaulJob
-  // (unwrapMutation) and told the same way.
-  // `lib` is loaded by the caller BEFORE anything is deleted: work that has written must never wait on a reload.
-  const releaseJob = async (row: HaulAwayRow, lib: HaulLib) => {
-    // Its words ride on userMessage (declutterErrorMessage shows them): the
-    // haul-away copy loads with the haul-away code, never on /posts (Q178).
-    const stuck = () => Object.assign(new Error("haul_away_job_stuck"), { userMessage: lib.HAUL_AWAY_CLIENT_ERROR_COPY.haul_away_job_stuck });
-    if (row.job_hold === "job_stuck") {
-      report(new Error("haul-away job is stuck: a declined card, and the person who posted it can't delete it"), {
-        severity: "warning",
-        tags: { source: "DeclutterHome.releaseHaulJob" },
-        context: { job_id: row.job_id },
-      });
-      throw stuck();
-    }
-    const jobId = lib.haulJobToDelete(row);
-    if (jobId && !(await lib.deleteNeverPaidHaulJob(jobId))) throw stuck();
-  };
   const putBack = useMutation({
     mutationFn: async (row: HaulAwayRow) => {
       const lib = (await haulLib()) ?? (await untilReload());
-      await releaseJob(row, lib);
+      await releaseHaulJob(row, lib);
       return lib.cancelHaulAway(row.item_id);
     },
     onSuccess: (status) => {
@@ -191,7 +169,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const finishBooking = useMutation({
-    mutationFn: async (row: HaulAwayRow) => releaseJob(row, (await haulLib()) ?? (await untilReload())),
+    mutationFn: async (row: HaulAwayRow) => releaseHaulJob(row, (await haulLib()) ?? (await untilReload())),
     onSuccess: (_v, row) => navigate(haulAwayPostJobPath([row.item_id])),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });

@@ -66,7 +66,7 @@ describe("a tab row that doesn't fit (owner 11-12: one sideways strip, no 'N mor
   // Deep audit 11-22 #16: the row gave no hint that it scrolls ("Free" off screen, "Wanted" cut to "Wante"). Its right
   // edge fades, with end padding at least as wide as the fade so the last tab scrolls clear of it.
   // @mutate src/components/sections/SectionTabs.tsx | denser && "section-tabs-denser", dense && !onlySelected && (offStart ? TABS_BOTH_FADE : TABS_EDGE_FADE))}> | denser && "section-tabs-denser")}>
-  // @mutate src/components/sections/SectionTabs.tsx | export const TABS_EDGE_FADE = "pr-10 [mask-image | export const TABS_EDGE_FADE = "pr-2 [mask-image
+  // @mutate src/components/sections/SectionTabs.tsx | const TABS_EDGE_FADE = "pr-10 [mask-image | const TABS_EDGE_FADE = "pr-2 [mask-image
   it("#16: a row of five or more fades its right edge, and the last tab can scroll clear of the fade", () => {
     layOut();
     row("browse");

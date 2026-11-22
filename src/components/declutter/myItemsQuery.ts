@@ -22,7 +22,7 @@ export const PAST_LISTING: ReadonlySet<DeclutterItem["status"]> = new Set(["with
  * price, "Claimed", payout and "held" words are the card's (src/components/declutter/declutterHandoverViews.test.tsx "#49"). A
  * search of the seller's own listings still finds it (the sale cards step aside then, #53).
  */
-export const ON_A_SALE_CARD: ReadonlySet<DeclutterItem["status"]> = new Set(["sold", "completed"]);
+const ON_A_SALE_CARD: ReadonlySet<DeclutterItem["status"]> = new Set(["sold", "completed"]);
 
 /** A row under Your listings: not history, and (unless searching) not shown as a sale card. */
 export const isListingsRow = (i: Pick<DeclutterItem, "status">, searching = false) =>

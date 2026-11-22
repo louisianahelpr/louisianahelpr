@@ -1,14 +1,14 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1265,
-    "files": 366,
-    "rendering": 1187,
-    "suppressedByPolicy": 78,
+    "calls": 1267,
+    "files": 367,
+    "rendering": 1188,
+    "suppressedByPolicy": 79,
     "byKind": {
       "confirmConsequential": 33,
-      "errorToast": 11,
-      "successToast": 2,
+      "errorToast": 12,
+      "successToast": 3,
       "toast": 254,
       "toast.error": 852,
       "toast.loading": 1,
@@ -17,9 +17,9 @@
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 454,
+      "literal": 455,
       "template": 100,
-      "dynamic": 765,
+      "dynamic": 767,
       "jsx": 0
     }
   },
@@ -2586,6 +2586,40 @@
         "text": "Couldn't load users — refresh to retry."
       },
       "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminWishLinks.tsx",
+      "line": 111,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "That change was not saved"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Try again in a moment.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminWishLinks.tsx",
+      "line": 115,
+      "kind": "successToast",
+      "title": {
+        "form": "dynamic",
+        "text": "also > 0 ? `Saved. ${also} more ${also === 1 ? \"list\" : \"lists\"} with the same gift got it too.` : \"Saved. Lists with this gift switch to our link the next time they open.\"",
+        "branches": [
+          {
+            "form": "template",
+            "text": "Saved. ${also} more ${also === 1 ? \"list\" : \"lists\"} with the same gift got it too."
+          },
+          {
+            "form": "literal",
+            "text": "Saved. Lists with this gift switch to our link the next time they open."
+          }
+        ]
+      },
+      "renders": false
     },
     {
       "file": "src/components/admin/AutoRestrictedRail.tsx",

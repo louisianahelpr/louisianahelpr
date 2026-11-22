@@ -5,7 +5,7 @@ import { discountCodes, giftGuides as G } from "@/content/giftGuides";
 import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealEnds, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
 import { DEAL_CODES } from "@/content/giftGuidePicks";
 import { GiftOut } from "./GiftOut";
-import { loadModule } from "@/lib/loadModule";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { WISH } from "@/content/giftWishList";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
@@ -14,6 +14,7 @@ import { usePlan } from "./fun/plannerStore";
 import { dealName } from "./wishListItems";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
+import { GiftGuideLoadError } from "./GiftGuideLoadError";
 
 /**
  * The deals days (owner 2026-11-19; owner 2026-11-21: "we still need to do the black friday section, small business
@@ -135,19 +136,35 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
 export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
   const [deals, setDeals] = useState<Deal[] | null>(null);
   const kind = day.kind;
+  // Holiday audit 1121: a failed deals file (offline, a blocked chunk) says so with a Try again; it used to read as
+  // "These deals have ended", which is only for the real all-ended case. A second failure reloads the page.
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     // The Small Business Saturday page has no deal cards: it never loads the deals file.
     if (kind !== "deals") return;
     let live = true;
+    const fail = (e: unknown) => {
+      console.warn("gift guides: deals file failed", e);
+      if (live) setFailed(true);
+    };
     void loadDeals().then(
-      (m) => live && m && setDeals(m.default as Deal[]),
-      // The chunk failed to load (offline, a stale deploy): the page says the deals are gone rather than spin.
-      () => live && setDeals([]),
+      // null: the app's recovery reload took the failure; if no reload comes (untilReload rejects), say so too.
+      (m) => (m ? live && setDeals(m.default as Deal[]) : untilReload().catch(fail)),
+      fail,
     );
     return () => {
       live = false;
     };
-  }, [kind]);
+  }, [kind, attempt]);
+  const retry = () => {
+    if (attempt > 0) {
+      window.location.reload();
+      return;
+    }
+    setFailed(false);
+    setAttempt(1);
+  };
   const today = louisianaDay(now ?? new Date());
   // Only this day's cards, and only the ones still on (dealShows).
   const list = deals ? dealsIn(liveDeals(deals, today, STORE_CODES), day.id) : [];
@@ -160,7 +177,9 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
         <>
           {/* Owner 11-21: "[Deals & codes box] should open collapsed"; each day only the codes and sales that still work on it. */}
           <DealsAndCodes on={codesDay(day, today)} />
-          {deals === null ? (
+          {deals === null && failed ? (
+            <GiftGuideLoadError message={G.dealsFailed} onRetry={retry} />
+          ) : deals === null ? (
             <p className="gg-deal-meta" role="status">{W.loading}</p>
           ) : list.length === 0 ? (
             <p className="gg-deals-intro" data-gift-deals-none="">

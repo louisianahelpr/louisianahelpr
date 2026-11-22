@@ -243,7 +243,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-code-row button{min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--gg-olive);color:var(--gg-olive);background:transparent;font-weight:700;font-size:12px}
 .gg-soon{text-align:center;padding:36px 16px;border-top:1px solid var(--gg-line);margin-top:16px}
 .gg-soon[data-gift-picks-loading]{min-height:100vh}
-.gg-soon h3{font-size:18px;font-weight:700;margin:0 0 6px}
+.gg-soon h2,.gg-soon h3{font-size:18px;font-weight:700;margin:0 0 6px}
 .gg-soon p{margin:0 auto 8px;max-width:44ch;color:var(--gg-muted);font-size:14px}
 .gg-also{margin:12px 0 0;font-size:13px;color:var(--gg-muted)}
 .gg-helpr{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:20px 0;padding:14px 16px;border-radius:14px;background:#f3f4ea;border:1px solid #e3e6d2;color:#2f3020}

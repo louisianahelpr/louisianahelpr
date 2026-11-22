@@ -64,7 +64,7 @@ import { GUIDES, ROWS, guidesIn, loadAllGuidePicks, newSlugFor, searchGuides } f
 import { RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { CHUNK_SLUGS, PICK_CHUNKS } from "@/content/giftGuidePicks";
-import { DEAL_DAY_SLUGS, DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
+import { DEAL_DAY_SLUGS, DEALS_SLUG, dealDay } from "@/content/giftGuideDeals.mjs";
 import { shownPrintables } from "@/content/printables";
 import { buildSeoData } from "@/prerender/seoData";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
@@ -134,7 +134,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       const { container } = renderAt(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-test-where]")?.textContent, slug).toBe(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-gift-deal-day-page]")?.getAttribute("data-gift-deal-day-page"), slug).toBe(slug);
-      expect(container.querySelector("#gift-guide-title")?.textContent, slug).toBe(titles[slug]);
+      // Holiday audit 1121: the h1 carries its lead ("the best", "shop small") for screen readers and search.
+      expect(container.querySelector("#gift-guide-title")?.textContent, slug).toBe(`${dealDay(slug)!.lead} ${titles[slug]}`);
       // The banner holds the lead and the title only (owner 11-21: "remove louisiana helpr from the [banner]").
       expect(container.querySelector("[data-gift-arch]")?.textContent, slug).not.toMatch(/Louisiana Helpr/i);
       expect(container.querySelector("[data-gift-deals-jump]"), slug).toBeNull();

@@ -794,7 +794,16 @@ export const sectionWords = (slug: string): string => {
 export type SearchItem = [name: string, guide: string];
 let itemIndex: Promise<SearchItem[]> | null = null;
 /** The item index, fetched once on the first keystroke (its own lazy chunk: nothing on the landing's first paint). */
-export const loadSearchItems = () => (itemIndex ??= import("@/content/giftGuideSearchIndex.json").then((m) => m.default as SearchItem[]));
+// Holiday audit 1121: a failed fetch is forgotten, so the next keystroke tries again (it was cached for the whole visit,
+// and product search stayed dead after the connection came back).
+export const loadSearchItems = () =>
+  (itemIndex ??= import("@/content/giftGuideSearchIndex.json").then(
+    (m) => m.default as SearchItem[],
+    (e: unknown) => {
+      itemIndex = null;
+      throw e;
+    },
+  ));
 
 /**
  * The items whose name holds every meaningful word of the query (holistic review 11-18 H5: "airpods" found nothing),

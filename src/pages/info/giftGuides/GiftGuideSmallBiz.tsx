@@ -3,11 +3,12 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS as W, smallBizDay, smallBizFeatured, smallBizTitle, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
-import { loadModule } from "@/lib/loadModule";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { WISH } from "@/content/giftWishList";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { SB_CARD_CSS } from "./smallBizCardStyles";
+import { GiftGuideLoadError } from "./GiftGuideLoadError";
 
 /**
  * The Small Business Saturday sponsors (owner 2026-11-19 ~7:05 PM: "Yes do small business with our small business
@@ -86,21 +87,39 @@ function SmallBizCard({ b, compact = false }: { b: SmallBiz; compact?: boolean }
  */
 export function SmallBizGrid() {
   const [rows, setRows] = useState<SmallBiz[] | null>(null);
+  // Holiday audit 1121: a failed businesses file says so with a Try again (a second failure reloads the page), never
+  // the "no businesses" line, which is only for a real empty list.
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let live = true;
+    const fail = (e: unknown) => {
+      console.warn("gift guides: businesses file failed", e);
+      if (live) setFailed(true);
+    };
     void loadSmallBiz().then(
-      (m) => live && m && setRows(m.default as SmallBiz[]),
-      // The chunk failed to load (offline, a stale deploy): the section says so rather than spin.
-      () => live && setRows([]),
+      // null: the app's recovery reload took the failure; if no reload comes (untilReload rejects), say so too.
+      (m) => (m ? live && setRows(m.default as SmallBiz[]) : untilReload().catch(fail)),
+      fail,
     );
     return () => {
       live = false;
     };
-  }, []);
+  }, [attempt]);
+  const retry = () => {
+    if (attempt > 0) {
+      window.location.reload();
+      return;
+    }
+    setFailed(false);
+    setAttempt(1);
+  };
   return (
     <>
       <style>{SMALL_BIZ_CSS}</style>
-      {rows === null ? (
+      {rows === null && failed ? (
+        <GiftGuideLoadError message={W.failed} onRetry={retry} />
+      ) : rows === null ? (
         <p className="gg-sb-town" role="status">{W.loading}</p>
       ) : rows.length === 0 ? (
         <p className="gg-sb-intro" data-gift-sb-none="">{W.none}</p>

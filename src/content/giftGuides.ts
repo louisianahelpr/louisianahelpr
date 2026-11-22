@@ -331,6 +331,7 @@ export const giftGuides = {
   myListLabel: "My list",
   myListEmpty: "Tap a heart on any guide or gift to save it here.",
   searchNone: "No guides match. Try another word.",
+  searchFailed: "Couldn't load gift results. Check your connection.",
   codesLabel: "Discount codes",
   /** The sidebar's Sales (follow-up 2026-11-18): every live store sale, soonest end first; each hidden after it ends. */
   salesLabel: "Sales",
@@ -365,6 +366,10 @@ export const giftGuides = {
   comingSoonBody: "We're gathering the best gifts for this guide. Check back soon, or browse another guide.",
   relatedTitle: "Try these guides",
   loadingPicks: "Loading picks…",
+  /** A data file that did not load (holiday audit 1121): offline or a failed chunk, never "Loading…" for good. */
+  picksFailed: "We couldn't load these gifts. Check your connection and try again.",
+  dealsFailed: "The deals didn't load. Check your connection and try again.",
+  loadRetry: "Try again",
   /** Under a long list (design audit 11-18 #3: store-amazon drew 827 rows at once): the next 50. */
   showMorePicks: (left: number) => `Show more (${left} more)`,
   /** A merged guide's section links under its banner (1120): one per section, "Jump to" read by screen readers. */

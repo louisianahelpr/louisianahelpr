@@ -39,6 +39,7 @@ export const SMALL_BIZ_WORDS: {
   featuredLine: string;
   featuredCta: string;
   loading: string;
+  failed: string;
   none: string;
 };
 export function smallBizDay(now: Date): string;

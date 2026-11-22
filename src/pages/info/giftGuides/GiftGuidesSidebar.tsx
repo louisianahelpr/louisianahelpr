@@ -139,7 +139,7 @@ function DiscountCodes({ codes, first = Infinity }: { codes: DiscountCode[]; fir
   };
   return (
     <div className="gg-codes" data-gift-codes="">
-      <h3 className="gg-deals-sub">{G.codesLabel}</h3>
+      <h2 className="gg-deals-sub">{G.codesLabel}</h2>
       <ul>
         {(all ? codesByStore(codes) : codesByStore(codes).slice(0, first)).map(({ store, codes: list }) => (
           <li key={store} data-gift-code-store={store}>
@@ -189,7 +189,7 @@ export function SalesList({ sales, first = SALES_FIRST }: { sales: readonly Sale
   if (sales.length === 0) return null;
   return (
     <div className="gg-codes" data-gift-sales="">
-      <h3 className="gg-deals-sub">{G.salesLabel}</h3>
+      <h2 className="gg-deals-sub">{G.salesLabel}</h2>
       <ul>
         {(all ? sales : sales.slice(0, first)).map((x) => (
           <li key={`${x.slug} ${x.href}`} data-gift-sale={x.slug}>

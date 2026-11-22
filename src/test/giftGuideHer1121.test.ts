@@ -66,14 +66,16 @@ const SCREENS_1122_PINS = ["p-103899561", "p-104053242", "p-103903056", "p-10389
 const SCREENS_1122_CJ = ["https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxwadbc10"];
 // Owner 11-22 nurse + PR picks (builder-guide-her3b).
 const PR_PINS = ["p-107965795", "p-103880845", "p-104580620", "p-103889854", "p-103784739", "p-103878765", "p-103883109", "p-103877715"];
-const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
+// Nurse shops, direct links (no ShopMy pin, no commission).
+const NURSE_DIRECT = ["https://monochromaticfinds.com/products/holiday-polka-dot-coquette-bow-badge-reel", "https://vixsocks.com/products/cherry-on-top-compression-socks", "https://vixsocks.com/products/flower-power-compression-socks", "https://www.drwoofapparel.com/products/cherries-berries-bamboo-crew-compression-socks", "https://seven2seven.co/products/blue-polka-dot-nurse-mockneck-limited-edition", "https://21collectiveco.com/products/royal-blue-mockneck"];
+const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ, ...NURSE_DIRECT]);
 const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 118 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(118);
-    expect(page.length).toBe(118);
+  it("the page holds exactly her 124 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(124);
+    expect(page.length).toBe(124);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
@@ -110,7 +112,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(55);
-    expect(shopmy.length).toBe(63);
+    expect(shopmy.length).toBe(69);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

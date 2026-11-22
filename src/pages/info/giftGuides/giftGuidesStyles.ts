@@ -26,7 +26,7 @@ color:var(--gg-ink)}
 /* Owner 11-21 ("remove the circle around the heart"): no circle, fill or shadow behind any card heart (.gg-heart-pick,
    -wish, -deal, -sb), only the heart with a thin white halo so it reads over a photo; the button keeps its 44px tap area. */
 .gg-heart svg{filter:drop-shadow(0 0 1px rgba(255,255,255,.95)) drop-shadow(0 0 2px rgba(255,255,255,.8))}
-.gg-list>li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;column-gap:4px}
+.gg-list>li{position:relative;display:grid;grid-template-columns:minmax(0,1fr);align-items:start}
 .gg-list>li>.gg-item{min-width:0}
 .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;min-height:44px;margin:-4px 0 8px 100px;padding:0 6px 0 0;border:0;border-radius:0;background:none;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
 .gg-shop-btn:hover,.gg-shop-btn:focus-visible{text-decoration:underline}
@@ -155,7 +155,6 @@ article[data-gift-guide]>section:first-child>.gg-list,article[data-gift-guide]>.
 /* Owner 11-21 price sections: the count beside a section heading, quiet. */
 .gg-sec-count{font-weight:500;color:var(--gg-muted)}
 .gg-sec+.gg-sec .gg-sec-title,.gg-sort+section .gg-sec-title{margin-top:20px}
-.gg-more-picks{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin:12px 0 0;border-radius:999px;border:1px solid var(--gg-olive);background:transparent;color:var(--gg-olive);font-weight:700;font-size:13px}
 .gg-list>li{border-top:1px solid var(--gg-line);counter-increment:gg}
 .gg-item{display:flex;align-items:center;gap:14px;padding:11px 0;color:var(--gg-ink);text-decoration:none;font-size:15px;min-height:44px}
 .gg-photo{display:flex;flex:none;border-radius:10px;background:#fff;isolation:isolate;overflow:hidden}
@@ -175,25 +174,34 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list>li{align-items:flex-start}
 @media (min-width:1024px){
 .gg-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 20px;align-items:stretch}
-.gg-list>li{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:start;column-gap:2px;border-top:0}
+.gg-list>li{position:relative;display:grid;grid-template-columns:minmax(0,1fr);align-items:start;border-top:0}
 .gg-list .gg-item{flex-direction:column;align-items:stretch;align-self:stretch;padding:0;gap:10px}
 .gg-list .gg-photo{width:100%;border-radius:16px}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
 .gg-list .gg-letter{font-size:16px}
-.gg-list .gg-heart-pick{position:static}
+.gg-list .gg-nm{min-height:72px}
 .gg-list .gg-item{margin-bottom:6px}
 }
 @media (min-width:768px) and (max-width:1023px){
 .gg-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 20px;align-items:stretch}
-.gg-list>li{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:start;column-gap:2px;border-top:0}
+.gg-list>li{position:relative;display:grid;grid-template-columns:minmax(0,1fr);align-items:start;border-top:0}
 .gg-list .gg-item{flex-direction:column;align-items:stretch;align-self:stretch;padding:0;gap:10px}
 .gg-list .gg-photo{width:100%;border-radius:16px}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
-.gg-list .gg-heart-pick{position:static}
+.gg-list .gg-nm{min-height:72px}
 .gg-list .gg-item{margin-bottom:6px}
 }
 .gg-letter{display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;overflow:hidden;overflow-wrap:anywhere;line-height:1.05;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:10px;font-weight:700;color:var(--gg-olive)}
 .gg-nm{flex:1;min-width:0;overflow-wrap:anywhere}
+/* Owner 2026-11-21 ("Put the price in the top right corner where the heart is and the heart in the bottom right"):
+   every card (the phone's list row, the tablet/desktop grid card, the Top 10 and the finder's results: one PickRow)
+   has the name on the left with the price top-right beside its first line, and the 44px heart at the card's
+   bottom-right corner, outside the link. */
+.gg-list .gg-nm{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;align-items:start}
+.gg-list .gg-nm-name{grid-column:1;grid-row:1}
+.gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1;margin-top:0;justify-content:flex-end;min-width:44px}
+.gg-list .gg-badges{grid-column:1/-1;grid-row:2;padding-right:44px}
+.gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0}
 /* Owner 11-21 (Amazon Buy Now): the small cart icon under an Amazon item's price, a 44px link of its own in the card's first
    column, its icon lined up with the name and price (phone: past the 88px photo; tablet and desktop: the card's left edge). */
 .gg-cart{grid-column:1;justify-self:start;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:-6px 0 6px 88px;border-radius:999px;color:var(--gg-olive)}
@@ -328,7 +336,8 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-top10 .gg-photo{width:100%;border-radius:14px}
 .gg-top10 .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:10px;border-radius:14px}
 .gg-top10 .gg-nm-name{font-size:14px}
-.gg-top10 .gg-heart-pick{position:absolute;top:2px;right:2px}
+.gg-top10 .gg-heart-pick{position:absolute;top:auto;bottom:0;right:-6px}
+.gg-top10 .gg-nm{min-height:64px}
 @media (min-width:768px){.gg-top10{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:20px 16px}}
 /* The gift quiz (owner 11-21 ~6:15 PM): one question per screen, big answers (two across on a phone, up to four wide),
    then the result as the guides' list. */
@@ -343,4 +352,22 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-quiz-list{margin-top:4px}
 .gg-quiz-after{align-items:center;gap:12px 16px;margin-top:14px}
 @media (min-width:768px){.gg-quiz{padding:22px 24px 16px}.gg-quiz-answers{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.gg-quiz-answer{min-height:64px}}
+/* Owner 11-21 (phone guide page): the count, the order-by pill and the icons on ONE row under the banner (wraps at 320);
+   the search is a bare magnifier like the other icons until tapped. */
+.gg-countrow{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 8px;margin:10px 0 2px}
+.gg-countrow-left{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0}
+.gg-countrow .gg-itemcount{margin:0}
+.gg-countrow .gg-ship{flex:none;font-size:11px;padding:4px 10px;max-width:none}
+.gg-countrow .gg-tools{position:relative;margin:0 0 0 auto;flex:0 0 auto;gap:0}
+.gg-countrow .gg-tools-search{flex:0 0 44px;min-width:44px}
+.gg-countrow .gg-tools-search .gg-search input{padding-right:0;cursor:pointer}
+.gg-countrow .gg-tools-search:focus-within{position:absolute;right:0;width:min(300px,calc(100vw - 40px));z-index:7;background:hsl(var(--background))}
+.gg-countrow .gg-tools-search:focus-within .gg-search input{padding-right:12px;cursor:text}
+.gg-countrow .gg-tools-search:not(:focus-within) .gg-search input::placeholder{color:transparent}
+.gg-countrow .gg-tools-search:not(:focus-within) .gg-search input,.gg-headrow .gg-tools-search:not(:focus-within) .gg-search input{border-color:transparent;background:transparent}
+/* Owner 11-21 (no more "Show more", every gift listed): every gift is drawn, so an off-screen card skips its layout
+   and paint until it nears the screen; its reserved height keeps the scrollbar steady (no layout shift). */
+.gg-list>li{content-visibility:auto;contain-intrinsic-size:auto 128px}
+@media (min-width:768px){.gg-list>li{contain-intrinsic-size:auto 420px}}
+.gg-top10>li{content-visibility:visible}
 `;

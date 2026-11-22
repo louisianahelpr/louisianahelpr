@@ -195,16 +195,12 @@ export const withinBudget = (picks: CatalogPick[], budget: number | null) => (bu
 /** The filter shows on a guide holding at least this many priced picks. */
 const BUDGET_MIN_PICKS = 3;
 
-/** Rows a list draws at first, and each "Show more" adds (design audit 11-18 #3: 827 rows, 9,600 DOM nodes at once). */
-export const PICKS_PAGE = 50;
 
 /**
  * The picks that wear "Trending" (owner-approved 2026-11-18): the first TRENDING_TOP of a guide's list, in its
  * featured order (the order the import writes: trending picks first). Not on a store page, whose list is the store's
  * catalogue ranked by photo and gift score rather than a featured order. `position` is 1-based.
  */
-/** "Show more" with this many or fewer left draws them all instead. */
-const SHOW_ALL_UNDER = 6;
 
 /** The person guides (giftGuideIndex "By person"): a merged section of one reads "For your father-in-law". */
 const PERSON_SECTIONS = new Set(GUIDE_INDEX.filter((g) => g.group === "By person").map((g) => g.slug));
@@ -220,11 +216,7 @@ export const sectionLabel = (guide: Pick<CatalogGuide, "title">, title: string, 
 };
 
 function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: CatalogGuide; order?: GuideOrder; failed?: boolean; onRetry?: () => void }) {
-  const [shown, setShown] = useState(PICKS_PAGE);
   const [budget, setBudget] = useState<number | null>(null);
-  // Her, Him, Kids and their relationship views (owner 11-21): low to high is the list as imported. The order is chosen
-  // in the header's Sort by price menu (GiftGuideSort); a new order draws the list from its top again.
-  useEffect(() => { setShown(PICKS_PAGE); }, [order]);
   const sortable = isOwnerList(guide.slug);
   const ready = picksReady(guide.slug);
   // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.
@@ -233,7 +225,6 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
     const s = nav.find((x) => x.id === id);
     if (!s) return;
     setBudget(null);
-    setShown((n) => Math.max(n, s.end));
     requestAnimationFrame(() => document.getElementById(`gg-sec-${id}`)?.scrollIntoView({ block: "start" }));
   };
   const navKey = nav.map((x) => x.id).join(" ");
@@ -261,9 +252,9 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
   const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned;
   const sectionCount = new Map<string, number>();
   if (sortable) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
-  // Six or fewer left: draw them all, no "Show more (1 more)" (design audit r2 #16).
-  const upTo = picks.length - shown <= SHOW_ALL_UNDER ? picks.length : shown;
-  const left = picks.length - upTo;
+  // Owner 2026-11-21: "Remove show more just list everything." Every section lists all its gifts at every width; the
+  // photos below the fold load lazily at a fixed size and each card skips rendering off-screen (content-visibility).
+  const upTo = picks.length;
   const runs = (from: number, to: number) => sectionsOf(picks.slice(0, to)).flatMap((r) => {
     const rows = r.picks.rows.filter((_, k) => r.picks.start + k > from);
     // A section cut by the deals keeps its heading only above its first part.
@@ -298,7 +289,7 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
       {banded >= BUDGET_MIN_PICKS && (
         <div role="group" aria-label={G.budgetLabel} className="gg-budget" data-gift-budget="">
           {[null, ...BUDGETS].map((b) => (
-            <ToggleChip key={b ?? "all"} pressed={budget === b} data-gift-budget-choice={b ?? "all"} onClick={() => { setBudget(b); setShown(PICKS_PAGE); }}>
+            <ToggleChip key={b ?? "all"} pressed={budget === b} data-gift-budget-choice={b ?? "all"} onClick={() => setBudget(b)}>
               {b ? G.budgetUnder(b) : G.budgetAll}
             </ToggleChip>
           ))}
@@ -308,11 +299,6 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
       {draw(0, upTo)}
       <PricesAsOf picks={picks.slice(0, upTo)} />
       <PrimeTrialLink picks={picks.slice(0, upTo)} />
-      {left > 0 && (
-        <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
-          {G.showMorePicks(left)}
-        </Button>
-      )}
       {/* Holiday audit 1121: links are never drawn, so they no longer keep the note away from a view with no items. */}
       {!guide.children && guide.picks.length === 0 && (
         // Owner 2026-11-18: a guide with no picks yet opens a friendly note, never an empty list or a dead link.
@@ -405,7 +391,7 @@ function StoreDeals({ guide }: { guide: CatalogGuide }) {
 /** The guide where the Hire-a-Helpr box sits at the TOP (owner 2026-11-18). */
 const GIFT_WRAP_GUIDE = "gift-wrap-and-cards";
 
-export function GiftGuideView({ guide, order = "top" }: { guide: CatalogGuide; order?: GuideOrder }) {
+export function GiftGuideView({ guide, order = "top", hideCount = false }: { guide: CatalogGuide; order?: GuideOrder; hideCount?: boolean }) {
   // PERF: the guide's picks are its own lazy chunk; re-render when it lands.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
   // Holiday audit 1121: a failed chunk (offline, a stale deploy) shows why and a Try again, never "Loading picks…" for
@@ -440,7 +426,8 @@ export function GiftGuideView({ guide, order = "top" }: { guide: CatalogGuide; o
       {/* Owner 2026-11-20: the free printables this guide links to (gift tags on Gift Wrap & Cards), once each is ready. */}
       <PrintablesLink slug={guide.slug} />
       {/* Holistic review 11-18 L3: how many gifts the guide holds, once its list is in. */}
-      {picksReady(guide.slug) && guide.picks.length > 0 && (
+      {/* A phone draws the count on its own row under the banner, with the pill and the icons (GiftGuides countRow). */}
+      {!hideCount && picksReady(guide.slug) && guide.picks.length > 0 && (
         <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>
       )}
       {guide.children?.map((group) => (

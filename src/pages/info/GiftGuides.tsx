@@ -6,7 +6,8 @@ import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
 import BackButton from "@/components/BackButton";
-import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
@@ -140,6 +141,10 @@ export default function GiftGuides() {
   const { hash } = useLocation();
   const [params] = useSearchParams();
   const guide = guideBySlug(slug) ?? null;
+  // Owner 11-21 (iPhone, Kids): "put the icons below the red banner. On the same line as the 81 gifts ... also move the
+  // order by dec below the red banner". On a phone, a guide page draws the pill and the icons on the count's row under
+  // its banner (countRow below), not on the row above it; the landing and every desktop keep them in the header row.
+  const phone = useIsMobile();
   // Sort by price (owner 11-21: "add the filter button up with the search icons"): the header's menu sets the order of
   // an owner-list guide (Her, Him, Kids and their views); a new guide starts low to high.
   // Lead 11-21 (earn order): a new guide starts on "Recommended" (clicked picks first in each price section).
@@ -218,6 +223,8 @@ export default function GiftGuides() {
   const banner = Boolean(deals || guide);
   // The open menu entry beyond the guides: the deals page, or the finder view on the landing.
   const sidePage = deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined;
+  // A phone's guide page: the count, the pill and the icons on one row right under the banner.
+  const countRow = phone && Boolean(guide) && !deals;
   // The landing's arrow goes home; every other page's to the landing.
   const backTo = guide || deals || myList || shared ? "/gift-guides" : "/";
 
@@ -252,8 +259,8 @@ export default function GiftGuides() {
             <span className="contents" data-gift-back-to={backTo}><BackButton to={backTo} /></span>
             {banner ? <p className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</p> : <h1 className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</h1>}
           </div>
-          {shipPill}
-          {tools}
+          {!countRow && shipPill}
+          {!countRow && tools}
         </div>
         {/* Owner 11-21 ("We need a way to organize this on the phones"): up to 767px a sticky chip row and a menu sheet
             replace the sidebar (which a phone no longer draws at the page's foot). */}
@@ -263,6 +270,15 @@ export default function GiftGuides() {
         ) : guide ? (
           <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint} tools={null} />
         ) : null}
+        {countRow && guide && (
+          <div className="gg-countrow" data-gift-countrow="">
+            <div className="gg-countrow-left">
+              {picksReady(guide.slug) && guide.picks.length > 0 && <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>}
+              {shipPill}
+            </div>
+            {tools}
+          </div>
+        )}
         {/* Owner 11-21 ("put like a line or something above all guides and under search bar all the way across to be a
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
         {landing && <hr className="gg-divider" data-gift-divider="" />}
@@ -271,7 +287,7 @@ export default function GiftGuides() {
             disclosures at the very bottom. From 768px the CSS grid puts the menu on the left (GIFT_GUIDES_CSS). */}
         <div className="gg-layout">
           <div className="gg-main">
-            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />}
+            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />}
           </div>
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
           <GiftGuidesSidebar active={guide} myList={myList || shared} page={sidePage} />

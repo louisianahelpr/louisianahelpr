@@ -144,6 +144,92 @@ const hasPersistedSession = (): boolean => {
   return false;
 };
 
+/** auth-js refreshes a stored session this close to expiry before getSession() answers (EXPIRY_MARGIN_MS, 3 x 30 s). */
+const REFRESH_MARGIN_MS = 90_000;
+
+/** The app's own auth storage key (defaultAuthStorageKey in src/lib/signedInRequestGuard.ts, copied: no import here). */
+const authStorageKey = (): string | null => {
+  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  if (!url) return null;
+  try {
+    return `sb-${new URL(url).hostname.split(".")[0]}-auth-token`;
+  } catch {
+    // Silent by design: a malformed project URL means no client either; the bootstrap below answers as it always did.
+    return null;
+  }
+};
+
+/** The native app keeps its session in the Keychain; its localStorage copy is a mirror, never read here. */
+const isNativeShell = (): boolean => {
+  const cap = (window as unknown as { Capacitor?: { getPlatform?: () => string; isNativePlatform?: () => boolean } }).Capacitor;
+  if (!cap) return window.location.protocol === "capacitor:";
+  try {
+    return cap.isNativePlatform?.() === true || (typeof cap.getPlatform === "function" && cap.getPlatform() !== "web");
+  } catch {
+    // Silent by design: a half-initialised bridge is treated as native, which only keeps the old (waiting) path.
+    return true;
+  }
+};
+
+/**
+ * A RETURNING VISITOR'S FIRST SCREEN NEVER WAITS ON THE TOKEN REFRESH
+ * (Q1158 / Q1170, 2026-11-22; prod-audit 45000593002: mobile /home LCP 4256 ms
+ * with a fresh token, 19504 ms with an expired one; /messages 1936 -> 18824).
+ *
+ * A visitor back after an hour has an expired access token, and getSession()
+ * answers only once auth-js has refreshed it over the network. When that
+ * refresh is slow or fails on the network (auth-js retries with backoff for up
+ * to ~25 s and keeps the session), nothing here was ready: ProtectedRoute held
+ * its skeleton until AUTH_RESTORE_GRACE_MS (15 s), then bounced a member whose
+ * session was still good to Log In. So when the stored session is one auth-js
+ * must refresh before it can answer (web, an expired or expiring access token,
+ * a refresh token and a user id), the bootstrap is ready AT ONCE with that
+ * stored user, and the refresh carries on in the background:
+ *   - refreshed: TOKEN_REFRESHED / getSession() hands over the same user;
+ *   - refused (revoked, already used): auth-js removes the session and emits
+ *     SIGNED_OUT, the snapshot turns signed out, ProtectedRoute sends the
+ *     person to Log In, as before;
+ *   - failed on the network: the session stays stored, and the member stays
+ *     signed in; their data requests wait on the same refresh inside
+ *     supabase-js, and any sent before it lands are held, never sent signed
+ *     out (src/lib/signedInRequestGuard.ts), and refetched on TOKEN_REFRESHED.
+ * Trust is unchanged: getSession() hands out this same stored user, unverified,
+ * whenever its token has life left; every read is still decided by the server
+ * on the refreshed token. Native keeps the old path (its Keychain is the store).
+ *
+ * Guard: src/hooks/useAuthReady.expiredRestore.test.tsx; lab budget: the
+ * expired-token test in e2e/web-vitals/first-screens.spec.ts.
+ */
+const storedUserAwaitingRefresh = (): User | null => {
+  try {
+    if (isNativeShell()) return null;
+    const key = authStorageKey();
+    const raw = key ? window.localStorage.getItem(key) : null;
+    if (!raw) return null;
+    const stored = JSON.parse(raw) as { refresh_token?: unknown; expires_at?: unknown; user?: { id?: unknown } | null } | null;
+    if (typeof stored?.refresh_token !== "string" || !stored.refresh_token) return null;
+    if (typeof stored.expires_at !== "number" || typeof stored.user?.id !== "string" || !stored.user.id) return null;
+    if (stored.expires_at * 1000 - Date.now() >= REFRESH_MARGIN_MS) return null;
+    return stored.user as User;
+  } catch {
+    // Silent by design: storage blocked or a corrupt session is the old path (getSession decides), never a guess.
+    return null;
+  }
+};
+
+/** Does storage still hold a session auth-js could refresh? (A refused refresh removes it.) */
+const storedSessionStillRefreshable = (): boolean => {
+  try {
+    const key = authStorageKey();
+    const raw = key ? window.localStorage.getItem(key) : null;
+    const stored = raw ? (JSON.parse(raw) as { refresh_token?: unknown } | null) : null;
+    return typeof stored?.refresh_token === "string" && stored.refresh_token.length > 0;
+  } catch {
+    // Silent by design: unreadable storage holds no session to keep the member signed in with.
+    return false;
+  }
+};
+
 /**
  * Q2705/Q2706 slice 4 (Builder 3, 11-04): the Supabase client (30 KB gz) loads off the boot path; auth takes it on
  * first use. Null only when a recovery reload prevented the chunk (loadModule); a real load failure rejects.
@@ -215,6 +301,14 @@ export const useAuthReady = () => {
         emitAuthSnapshot({ user: session?.user ?? null, isReady: true });
       };
 
+      // Q1158/Q1170: a stored session auth-js must refresh first is ready NOW with its stored user; the refresh
+      // carries on in the background (storedUserAwaitingRefresh above says what each outcome does).
+      const restoredUser = storedUserAwaitingRefresh();
+      if (restoredUser) {
+        initialized = true;
+        emitAuthSnapshot({ user: restoredUser, isReady: true });
+      }
+
       void loadClient().then((client) => client?.auth.onAuthStateChange((event, session) => {
         if (DEBUG_AUTH) {
           console.log("[auth] onAuthStateChange", {
@@ -253,6 +347,12 @@ export const useAuthReady = () => {
         if (timedOut && !session && !initialized && hasPersistedSession()) {
           restoreInFlight = true;
           if (DEBUG_AUTH) console.log("[auth] restore in flight — deferring ready");
+          return;
+        }
+        // A restored member whose getSession() answered null keeps their stored user only while storage still holds
+        // a refreshable session (the refresh failed on the network); a session gone without SIGNED_OUT is signed out.
+        if (restoredUser && !session) {
+          if (!timedOut && !storedSessionStillRefreshable()) markReady(null);
           return;
         }
         if (session || !initialized || !authSnapshot.user) markReady(session);

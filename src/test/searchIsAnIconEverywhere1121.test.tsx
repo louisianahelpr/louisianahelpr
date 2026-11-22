@@ -22,7 +22,7 @@
  * @mutate src/pages/helprs/FindHelprs.tsx |   const townShown = townOpen \|\| !!town \|\| !!townDraft; |   const townShown = true;
  * @mutate src/components/sections/AppTopBar.tsx | group-has-[[data-search-open]]/top:!sr-only | sr-only
  * @mutate src/components/sections/AppTopBar.tsx | className="flex min-w-0 shrink-0 justify-end has-[[data-search-open]]:flex-1" | className="flex min-w-0 shrink-0 justify-end"
- * @mutate src/components/sections/SearchIconButton.tsx | "h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-ds-md btn-press | "h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full border btn-press
+ * @mutate src/components/ui/SearchIconButton.tsx | "h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-ds-md btn-press | "h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-full border btn-press
  * @mutate src/pages/home/HomeDashboard.tsx | className={`${SEARCH_ICON_BUTTON_CLASS} min-h-11 min-w-11`} | className="w-[260px] rounded-full border"
  */
 import { readFileSync } from "node:fs";
@@ -54,7 +54,7 @@ import { SectionSearchRow } from "@/components/sections/SectionSearchRow";
 import { MessagesSearchRow } from "@/components/messages/MessagesSearchRow";
 import "@/lib/i18n/enScreens"; // the Inbox's words ("Search conversations"), as ConversationList's screen loads them
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
-import { SEARCH_ICON_BUTTON_CLASS } from "@/components/sections/SearchIconButton";
+import { SEARCH_ICON_BUTTON_CLASS } from "@/components/ui/SearchIconButton";
 import HelpCenter from "@/pages/info/HelpCenter";
 import FindHelprs from "@/pages/helprs/FindHelprs";
 

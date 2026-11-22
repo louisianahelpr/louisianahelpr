@@ -222,9 +222,9 @@ function DealSections({ day, deals, dealCount }: { day: string; deals: ReactNode
       {sections.length > 1 && (
         <nav className="gg-deal-jump" aria-label={CARD_WORDS.jumpLabel} data-gift-deal-jump="">
           {sections.map((x) => (
-            <button key={x.id} type="button" onClick={() => jump(x.id)} data-gift-deal-jump-to={x.id}>
+            <InlineTextButton key={x.id} onClick={() => jump(x.id)} data-gift-deal-jump-to={x.id}>
               {x.title}{x.count !== null && <span> {x.count}</span>}
-            </button>
+            </InlineTextButton>
           ))}
         </nav>
       )}

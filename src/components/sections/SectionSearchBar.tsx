@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchIconButton } from "./SearchIconButton";
+import { SearchIconButton } from "@/components/ui/SearchIconButton";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enSections";

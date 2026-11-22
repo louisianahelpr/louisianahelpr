@@ -23,6 +23,10 @@ import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { FilterChip } from "@/components/ui/FilterChip";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
+import { SearchIconButton } from "@/components/ui/SearchIconButton";
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -192,13 +196,14 @@ export default function HolidayHub() {
             {searchOpen ? (
               <label className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-card px-3 focus-within:ring-2 focus-within:ring-ring" data-holiday-search-box="">
                 <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                <input ref={searchInput} type="search" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus
+                <Input look="bare" ref={searchInput} type="search" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus
                   onKeyDown={(e) => { if (e.key === "Escape") closeSearch(); }}
                   placeholder="Search lights and events" aria-label="Search lights and events by name, town or place"
-                  className="min-h-11 min-w-0 flex-1 border-0 bg-transparent text-ds-15 text-foreground shadow-none outline-none focus:outline-none focus-visible:outline-none" data-holiday-search="" />
-                <button type="button" onClick={closeSearch} aria-label="Close search" className="ctl-exit ctl-tint inline-flex h-11 w-9 items-center justify-center text-muted-foreground hover:text-foreground" data-holiday-search-close="">
-                  <X className="h-4 w-4" aria-hidden />
-                </button>
+                  className="min-h-11 flex-1 border-0 text-ds-15 text-foreground shadow-none outline-none focus:outline-none" data-holiday-search="" />
+                <Button type="button" variant="ghost" size="iconCompact" onClick={closeSearch} aria-label="Close search"
+                  className="ctl-exit -mr-2 shrink-0 text-muted-foreground hover:text-foreground [&_svg]:size-4" data-holiday-search-close="">
+                  <X aria-hidden />
+                </Button>
               </label>
             ) : (
               <p className="min-w-0 flex-1 text-ds-14 text-muted-foreground" aria-live="polite" data-holiday-count="">{shown.length ? holidayCountLabel(shown) : ""}{unlisted > 0 && <span data-holiday-unlisted="">{` · plus ${unlisted} with no cost listed`}</span>}</p>
@@ -207,20 +212,17 @@ export default function HolidayHub() {
                 that opened it (src/test/searchDismissAndOverlay.test.tsx). */}
             {searchOpen && <SearchTriggerSlot />}
             {!searchOpen && (
-              <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search lights and events" data-holiday-search-button=""
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-foreground hover:text-[hsl(var(--bark))]">
-                <Search className="h-5 w-5" aria-hidden />
-              </button>
+              <SearchIconButton label="Search lights and events" onClick={() => setSearchOpen(true)} data-holiday-search-button="" />
             )}
-            <button ref={filtersButton} type="button" data-holiday-filters-button=""
+            <RoundIconButton ref={filtersButton} data-holiday-filters-button=""
               onClick={() => setFiltersOpen(true)} aria-haspopup="dialog" aria-expanded={filtersOpen}
               aria-label={active.length ? `Filters, ${active.length} on` : "Filters"}
-              className={`relative inline-flex h-11 w-11 shrink-0 items-center justify-center hover:text-[hsl(var(--bark))] ${active.length ? "text-[hsl(var(--bark))]" : "text-foreground"}`}>
+              className={`relative hover:text-[hsl(var(--bark))] ${active.length ? "text-[hsl(var(--bark))]" : "text-foreground"}`}>
               <SlidersHorizontal className="h-5 w-5" aria-hidden />
               {active.length > 0 && (
                 <span data-holiday-filter-count="" className="absolute right-1 top-1 min-w-4 rounded-full bg-[hsl(var(--bark))] px-1 text-center text-ds-10 font-bold leading-4 text-white">{active.length}</span>
               )}
-            </button>
+            </RoundIconButton>
           </div>
           {active.length > 0 && (
             <ul aria-label="Filters on" className="flex flex-wrap gap-2" data-holiday-active="">

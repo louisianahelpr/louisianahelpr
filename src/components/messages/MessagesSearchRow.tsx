@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import { t } from "@/lib/i18n/language";
-import { SearchIconButton } from "@/components/sections/SearchIconButton";
+import { SearchIconButton } from "@/components/ui/SearchIconButton";
 
 /**
  * The inbox's slim permanent search row (Q2231, owner 2026-10-19): on the phone and in the two-pane desktop list

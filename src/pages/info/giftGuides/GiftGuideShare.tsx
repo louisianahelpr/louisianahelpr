@@ -78,17 +78,19 @@ function GiftGuideFilter({ filter }: { filter: ToolsFilter }) {
   const active = filter.budget ? 1 : 0;
   return (
     <span ref={wrap} className="gg-share-wrap">
-      <RoundIconButton className="gg-icon" aria-label={active ? G.filterLabelActive(active) : G.filterLabel} aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen((o) => !o)} data-gift-filter-button="">
+      <RoundIconButton className="gg-icon" aria-label={active ? G.filterLabelActive(active) : G.filterLabel} aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)} data-gift-filter-button="">
         <Icon d={FUNNEL} />
         {active > 0 && <span className="gg-icon-count" aria-hidden="true" data-gift-filter-count="">{active}</span>}
       </RoundIconButton>
       {open && (
-        <span className="gg-share-menu gg-filter-panel" role="dialog" aria-label={G.filterLabel} data-gift-filter-panel="">
+        // A menu like the sort menu beside it (its items the shared InlineTextButton): sections jump, a price choice is
+        // a radio item (aria-checked), not a hand-rolled dialog of hand-made buttons (popupShellInventory, OWN-SHARED).
+        <span className="gg-share-menu gg-filter-panel" role="menu" aria-label={G.filterLabel} data-gift-filter-panel="">
           {filter.sections.length > 1 && (
             <span role="group" aria-label={G.sectionNavLabel} className="gg-filter-group">
               <span className="gg-filter-h" aria-hidden="true">{G.sectionNavLabel}</span>
               {filter.sections.map((s) => (
-                <button key={s.id} type="button" onClick={() => { filter.onJump(s.id); setOpen(false); }} data-gift-section-link={s.id}>{s.title}</button>
+                <InlineTextButton key={s.id} role="menuitem" onClick={() => { filter.onJump(s.id); setOpen(false); }} data-gift-section-link={s.id}>{s.title}</InlineTextButton>
               ))}
             </span>
           )}
@@ -96,9 +98,9 @@ function GiftGuideFilter({ filter }: { filter: ToolsFilter }) {
             <span role="group" aria-label={G.budgetLabel} className="gg-filter-group" data-gift-budget="">
               <span className="gg-filter-h" aria-hidden="true">{G.budgetLabel}</span>
               {[null, ...filter.budgets].map((b) => (
-                <button key={b ?? "all"} type="button" aria-pressed={filter.budget === b} onClick={() => filter.onBudget(b)} data-gift-budget-choice={b ?? "all"}>
+                <InlineTextButton key={b ?? "all"} role="menuitemradio" aria-checked={filter.budget === b} onClick={() => filter.onBudget(b)} data-gift-budget-choice={b ?? "all"}>
                   <span className="gg-sort-check" aria-hidden="true">{filter.budget === b ? "✓" : ""}</span>{b ? G.budgetUnder(b) : G.budgetAll}
-                </button>
+                </InlineTextButton>
               ))}
             </span>
           )}

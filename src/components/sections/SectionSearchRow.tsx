@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type RefObject } from "rea
 import { createPortal } from "react-dom";
 import { useHeaderSearchSlot } from "./headerSearchSlot";
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { SearchIconButton } from "./SearchIconButton";
+import { SearchIconButton } from "@/components/ui/SearchIconButton";
 
 /**
  * THE ONE BROWSE SEARCH ROW (owner, 2026-10-19: "make layout consistent so the

@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { ArrowUpRight, Check, Copy } from "lucide-react";
 import { activeCodes, codesByStore, discountCodes, giftGuides as G, type DiscountCode } from "@/content/giftGuides";
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
@@ -113,10 +114,10 @@ function CodeChip({ code }: { code: string }) {
   };
   return (
     <>
-      <button type="button" className="gg-code-chip" onClick={(e) => copy(e.currentTarget)} aria-label={CARD_WORDS.copyCode(code)} data-gift-code-copy={code}>
+      <InlineTextButton className="gg-code-chip" onClick={(e) => copy(e.currentTarget)} aria-label={CARD_WORDS.copyCode(code)} data-gift-code-copy={code}>
         <code>{code}</code>
         {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-      </button>
+      </InlineTextButton>
       <span className="gg-code-copied" aria-live="polite" data-gift-code-copied={copied ? "" : undefined}>{copied ? CARD_WORDS.copied : ""}</span>
     </>
   );
@@ -165,7 +166,7 @@ function SaleCard({ store, sales }: { store: string; sales: Sale[] }) {
           </li>
         ))}
         {!all && sales.length > SALE_LINES && (
-          <li><button type="button" className="gg-card-more" onClick={() => setAll(true)} data-gift-sale-more={store}>{CARD_WORDS.moreSales(sales.length - SALE_LINES)}</button></li>
+          <li><InlineTextButton className="gg-card-more" onClick={() => setAll(true)} data-gift-sale-more={store}>{CARD_WORDS.moreSales(sales.length - SALE_LINES)}</InlineTextButton></li>
         )}
       </ul>
     } />

@@ -10,7 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
-import { SEARCH_ICON_BUTTON_CLASS } from "@/components/sections/SearchIconButton";
+import { SEARCH_ICON_BUTTON_CLASS } from "@/components/ui/SearchIconButton";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";

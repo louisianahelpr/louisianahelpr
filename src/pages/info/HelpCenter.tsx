@@ -6,7 +6,7 @@ import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { FieldClearButton } from "@/components/ui/FieldClearButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchIconButton } from "@/components/sections/SearchIconButton";
+import { SearchIconButton } from "@/components/ui/SearchIconButton";
 import FaqRow from "@/components/marketing/FaqRow";
 // The card that closes every legal policy tab. Shared, not copied, so the
 // Help Center and the policy pages cannot drift into two support cards.

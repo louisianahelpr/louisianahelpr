@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Button } from "@/components/ui/button";
 import { SBS_WORDS as W } from "@/content/sbsFeaturedLocal";
 import { loadModule } from "@/lib/loadModule";
@@ -37,9 +38,9 @@ export function FeatureCtaLink() {
     window.dispatchEvent(new Event(OPEN_EVENT));
   };
   return (
-    <button type="button" className="gg-sbs-toplink" onClick={go} data-gift-sbs-toplink="">
+    <InlineTextButton className="gg-sbs-toplink" onClick={go} data-gift-sbs-toplink="">
       {W.ctaTopLink}&nbsp;›
-    </button>
+    </InlineTextButton>
   );
 }
 

@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Search, Send, Star, X } from "lucide-react";
-import { SearchIconButton } from "@/components/sections/SearchIconButton";
+import { SearchIconButton } from "@/components/ui/SearchIconButton";
 import AppPage from "@/components/AppPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import UserAvatar from "@/components/UserAvatar";

@@ -169,6 +169,7 @@ export const NOT_MONITORED = {
   // public display or event id and its region).
   page_view: "usage count of Holiday Hub page opens (props.page names the page), read by hand; a quiet day of zero is normal",
   holiday_maps_click: "usage count of Holiday Hub 'Open in Maps' taps (kind, public item id, region), read by hand",
+  holiday_ics_click: "usage count of Holiday Hub 'Add to calendar' taps on dated cards (holiday fixes 1121d; public item id, region), read by hand",
   secret_santa_drawn: "usage count of Secret Santa groups drawn (size, pairs), read by hand; the outcome is secret_santa_groups rows",
   secret_santa_redraw: "usage count of Secret Santa draws the organizer turned off to start over (holiday audit C2), read by hand",
   secret_santa_reveal_opened: "usage count of Secret Santa reveal links opened, read by hand; a quiet day of zero is normal",

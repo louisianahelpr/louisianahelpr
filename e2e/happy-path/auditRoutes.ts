@@ -191,6 +191,10 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "gift-planner", url: "/gift-guides/planner" },
   // 2026-11-20: free printables (gift tags with names).
   { name: "gift-printables", url: "/gift-guides/printables" },
+  // 2026-11-21 (owner: each kind its own page): the three printables pages (the old address above forwards to Gift tags).
+  { name: "gift-printables-tags", url: "/gift-guides/printables/gift-tags" },
+  { name: "gift-printables-coloring", url: "/gift-guides/printables/coloring-books" },
+  { name: "gift-printables-banners", url: "/gift-guides/printables/banners" },
   { name: "gift-secret-santa-reveal", url: "/gift-guides/secret-santa/aaaaaaaaaa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
   // 2026-11-20: the Louisiana Holiday Hub (public, no sign-in).
   { name: "holidays", url: "/holidays" },

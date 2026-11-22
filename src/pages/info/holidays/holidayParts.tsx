@@ -4,6 +4,7 @@
  * src/content/holidayHub/holidayHub.mjs. Guard: src/test/holidayHub.test.tsx.
  */
 import { useEffect, useState, type ReactNode } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { CalendarPlus, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
@@ -88,16 +89,16 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
         )}
         {/* Holiday audit 1121 area 5 #20: a dated item goes into the visitor's calendar (an all-day .ics entry). */}
         {item.start && !item.tba && (
-          <button type="button" onClick={() => void addToCalendar(item)} aria-label={`Add ${item.name} to your calendar`} data-holiday-ics={item.id}
-            className="inline-flex h-11 w-9 shrink-0 items-center justify-center text-[hsl(var(--olivewood))] hover:text-[hsl(var(--bark))]">
-            <CalendarPlus className="h-4 w-4" aria-hidden />
-          </button>
+          <Button type="button" variant="ghost" size="iconCompact" onClick={() => void addToCalendar(item)} aria-label={`Add ${item.name} to your calendar`} data-holiday-ics={item.id}
+            className="shrink-0 text-[hsl(var(--olivewood))] hover:text-[hsl(var(--bark))] [&_svg]:size-4">
+            <CalendarPlus aria-hidden />
+          </Button>
         )}
         {item.note && item.note.length > 60 && !more && (
-          <button type="button" onClick={() => setMore(true)} data-holiday-more={item.id}
-            className="inline-flex min-h-11 shrink-0 items-center text-ds-13 font-semibold text-[hsl(var(--olivewood))] link-standard">
+          <InlineTextButton onClick={() => setMore(true)} data-holiday-more={item.id}
+            className="inline-flex min-h-11 shrink-0 items-center text-ds-13 font-semibold text-[hsl(var(--olivewood))]">
             More details
-          </button>
+          </InlineTextButton>
         )}
       </div>
     </li>

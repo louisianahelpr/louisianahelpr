@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Search, X } from "lucide-react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { SearchIconButton } from "./SearchIconButton";
+import { SearchIconButton } from "@/components/ui/SearchIconButton";
 import { DESKTOP_SEARCH_PILL_SURFACE, DESKTOP_SEARCH_PILL_WIDTH } from "./searchPill";
 
 /**

@@ -223,7 +223,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // builder-guide-links (11-22): Kids + CrunchLabs Crunchinator ($35), Tamagotchi Paradise ($45) and Stickerbox ($130).
       // Her play saves (builder-guide-adds-kids, owner: "Keep all (my saves)"): the Step2 and Wayfair backyard sets and the
       // Macy's hoop; kids2: the Step2 water table, Burt's Bees Little Ducks, Angel Dear duck PJs and a Duck Commander call.
-      kids: { "Under $25": 36, "$25 to $50": 28, "$50 to $75": 11, "$75 to $100": 10, "$100 and up": 26 },
+      // Owner 11-22 PM (builder-guide-emibauble): Kids lost the EADEM set ($58, to Her) and the Melissa & Doug Club Chair
+      // ($75) and gained the Pottery Barn Kids Anywhere Chair (from $119).
+      kids: { "Under $25": 36, "$25 to $50": 28, "$50 to $75": 9, "$75 to $100": 10, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -241,8 +243,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // and bra, Lemon Grace cards, Bose QC Ultra Earbuds, two personalized bags, YETI Daytrip lunch bag).
       // Batch 2 (11-22): vest, sweatshirt, sherpa, Kitsch, HydroJug tortoise, gift bags and tags, card holder, pouch.
       // Owner 11-22 PM (builder-guide-emibauble): Her lost Mrs. Meyer's and Downy (under $25), Comrad, JAANUU, Stoggles and
-      // the CS-8 Micro ($25-$50), the CS-Pro ($79) and the CS-8 camcorder ($159).
-      her: { "Under $25": 43, "$25 to $50": 41, "$50 to $75": 10, "$75 to $100": 13, "$100 and up": 36 },
+      // the CS-8 Micro ($25-$50), the CS-Pro ($79) and the CS-8 camcorder ($159); then gained the Gaoye glasses ($13), the
+      // BaubleBar brush ($48) and the EADEM set from Kids ($58).
+      her: { "Under $25": 44, "$25 to $50": 42, "$50 to $75": 11, "$75 to $100": 13, "$100 and up": 36 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

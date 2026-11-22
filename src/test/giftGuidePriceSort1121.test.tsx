@@ -225,7 +225,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Macy's hoop; kids2: the Step2 water table, Burt's Bees Little Ducks, Angel Dear duck PJs and a Duck Commander call.
       // Owner 11-22 PM (builder-guide-emibauble): Kids lost the EADEM set ($58, to Her) and the Melissa & Doug Club Chair
       // ($75) and gained the Pottery Barn Kids Anywhere Chair (from $119).
-      kids: { "Under $25": 36, "$25 to $50": 28, "$50 to $75": 9, "$75 to $100": 10, "$100 and up": 27 },
+      kids: { "Under $25": 36, "$25 to $50": 28, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

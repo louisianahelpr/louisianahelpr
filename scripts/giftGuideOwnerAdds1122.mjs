@@ -140,7 +140,7 @@ export const KIDS_ADDS_1122 = [
   // Chair with a name on it instead ("You will need to create a link": her shopmy.us/links, Pottery Barn Kids 6%). Twill,
   // from $119 on sale ($119 to $189 by size, was from $129), personalization $17 more; photo: PBK's own monogrammed
   // maroon chair.
-  { name: "Pottery Barn Kids Anywhere Chair, Personalized", brand: "Pottery Barn Kids", line: "The classic kids' armchair; add a name for $17.", href: shopmy("p-109292071"), image: "https://assets.pkimgs.com/pkimgs/rk/images/dp/wcm/202631/0188/anywhere-chair-maroon-twill-1-l.jpg", store: "store-pottery-barn-kids", sortPrice: 119, price: 119, priceFrom: true, commission: 6, type: "chair" },
+  { name: "Pottery Barn Kids Anywhere Chair, Personalized", brand: "Pottery Barn Kids", line: "The classic kids' armchair; adding a name costs a little more.", href: shopmy("p-109292071"), image: "https://assets.pkimgs.com/pkimgs/rk/images/dp/wcm/202631/0188/anywhere-chair-maroon-twill-1-l.jpg", store: "store-pottery-barn-kids", sortPrice: 119, price: 119, priceFrom: true, commission: 6, type: "chair" },
 ].map(dated);
 
 /** For Him (owner via the lead, 11-22). */

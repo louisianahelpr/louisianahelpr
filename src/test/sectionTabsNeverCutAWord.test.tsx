@@ -77,7 +77,8 @@ describe("a tab row that doesn't fit (owner 11-12: one sideways strip, no 'N mor
     expect(pad).toBeGreaterThanOrEqual(Number(fade![1]));
     // An open search keeps only the selected tab, whole: no fade over it.
     const r = row("buying", true);
-    expect(r.getAllByRole("tablist").at(-1)!.className).not.toContain("mask-image");
+    const lists = r.getAllByRole("tablist");
+    expect(lists[lists.length - 1].className).not.toContain("mask-image");
   });
 
   // Screenshot check of #16 (11-22, 375): with Free selected the row scrolls to its end and Buying was cut hard to "ng"

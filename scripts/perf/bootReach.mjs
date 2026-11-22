@@ -54,6 +54,23 @@ export function stripComments(text) {
     .join("\n");
 }
 
+/**
+ * A module's code with its comment lines dropped, read once per process while the file is unchanged (train 1122c).
+ * The icon sets call each other (Profile's re-reads Selling's tree six times), so the bootReach icon-pin test took
+ * 21.5 s on main's CI and timed out at 20 s (Vitest run 45029320836, shard 5). Keyed by mtime and size, so an edited
+ * file is read again.
+ */
+const CODE = new Map();
+const DEPS = new Map();
+function codeOf(file) {
+  const st = fs.statSync(file);
+  const hit = CODE.get(file);
+  if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.code;
+  const code = stripComments(fs.readFileSync(file, "utf8"));
+  CODE.set(file, { mtimeMs: st.mtimeMs, size: st.size, code });
+  return code;
+}
+
 function resolveSpecifier(root, from, spec) {
   let base;
   if (spec.startsWith("@/")) base = path.join(root, "src", spec.slice(2));
@@ -76,12 +93,16 @@ const SUPABASE_BUILD_SHIMS = ["src/integrations/supabase/lazyRealtime.ts", "src/
 export function staticReach(root, roots) {
   const seen = new Set();
   const stack = roots.map((r) => toPosix(path.resolve(root, r)));
-  const cache = new Map();
   while (stack.length) {
     const file = stack.pop();
     if (seen.has(file) || !fs.existsSync(file)) continue;
     seen.add(file);
-    if (!cache.has(file)) {
+    // One parse per file per process while it is unchanged (DEPS, train 1122c): the icon sets walk the same trees
+    // dozens of times in one call (see codeOf).
+    const st = fs.statSync(file);
+    const key = `${root}\0${file}`;
+    let hit = DEPS.get(key);
+    if (!hit || hit.mtimeMs !== st.mtimeMs || hit.size !== st.size) {
       const text = fs.readFileSync(file, "utf8");
       const deps = [...text.matchAll(STATIC)].map((m) => resolveSpecifier(root, file, m[1])).filter(Boolean);
       // The production build aliases supabase-js's own realtime-js and storage-js imports to these two stand-ins
@@ -89,9 +110,10 @@ export function staticReach(root, roots) {
       if (file.endsWith("/src/integrations/supabase/client.ts")) {
         for (const shim of SUPABASE_BUILD_SHIMS) deps.push(toPosix(path.join(root, shim)));
       }
-      cache.set(file, deps);
+      hit = { mtimeMs: st.mtimeMs, size: st.size, deps };
+      DEPS.set(key, hit);
     }
-    for (const dep of cache.get(file)) stack.push(dep);
+    for (const dep of hit.deps) stack.push(dep);
   }
   return seen;
 }
@@ -519,7 +541,7 @@ export function homeIconFiles(root) {
     const out = new Set();
     for (const f of files) {
       if (!/\.(tsx?|mjs)$/.test(f)) continue;
-      const src = stripComments(fs.readFileSync(f, "utf8"));
+      const src = codeOf(f);
       for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
         for (const n of x[1].split(",")) {
           const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -545,7 +567,7 @@ export function bootIconFiles(root) {
   const out = new Set();
   for (const f of staticReach(root, [path.join(root, "src/main.tsx")])) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
-    const src = stripComments(fs.readFileSync(f, "utf8"));
+    const src = codeOf(f);
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
       for (const n of x[1].split(",")) {
         const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -583,7 +605,7 @@ export function adminIconFiles(root) {
   const out = new Set();
   for (const f of staticReach(root, [path.join(root, ADMIN_ROOT)])) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
-    const src = stripComments(fs.readFileSync(f, "utf8"));
+    const src = codeOf(f);
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
       for (const n of x[1].split(",")) {
         const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -607,7 +629,7 @@ export function itemIconFiles(root) {
     const out = new Set();
     for (const f of files) {
       if (!/\.(tsx?|mjs)$/.test(f)) continue;
-      const src = stripComments(fs.readFileSync(f, "utf8"));
+      const src = codeOf(f);
       for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
         for (const n of x[1].split(",")) {
           const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -642,7 +664,7 @@ export function guestIconFiles(root) {
   const out = new Set();
   for (const f of staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))])) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
-    const src = stripComments(fs.readFileSync(f, "utf8"));
+    const src = codeOf(f);
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
       for (const n of x[1].split(",")) {
         const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -704,7 +726,7 @@ function tabIconFiles(root, roots, alsoTaken) {
   const drawn = new Set();
   for (const f of staticReach(root, roots.map((r) => toPosix(path.join(root, r))))) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
-    const src = stripComments(fs.readFileSync(f, "utf8"));
+    const src = codeOf(f);
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
       for (const n of x[1].split(",")) {
         const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -742,7 +764,7 @@ export function guestIconSplit(root) {
   const reach = new Set([...staticReach(root, DECLUTTER_FIRST_SCREEN_ROOTS.map((r) => toPosix(path.join(root, r)))), ...guestBrowseSplit(root).browseOnly]);
   for (const f of reach) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
-    const src = stripComments(fs.readFileSync(f, "utf8"));
+    const src = codeOf(f);
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
       for (const n of x[1].split(",")) {
         const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -764,7 +786,7 @@ export function guestIconSplit(root) {
   const others = [...publicRoots(root).filter((r) => toPosix(r) !== landingRoot), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))];
   for (const f of staticReach(root, others)) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
-    const src = stripComments(fs.readFileSync(f, "utf8"));
+    const src = codeOf(f);
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
       for (const n of x[1].split(",")) {
         const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];

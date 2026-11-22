@@ -4,6 +4,7 @@
  * `dsl.strike.r.<reason>`. Guard: src/test/declutterStrikeWhy.test.tsx (every reason the constraint allows has words).
  */
 import { t } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclSell";
 
 export const STRIKE_REASONS = [
@@ -11,5 +12,10 @@ export const STRIKE_REASONS = [
   "fake_offer", "false_report",
 ] as const;
 
-export const strikeReasonWords = (reason: string) =>
-  t((STRIKE_REASONS as readonly string[]).includes(reason) ? `dsl.strike.r.${reason}` : "dsl.strike.r.other");
+type StrikeReason = (typeof STRIKE_REASONS)[number];
+const isStrikeReason = (reason: string): reason is StrikeReason => (STRIKE_REASONS as readonly string[]).includes(reason);
+
+export const strikeReasonWords = (reason: string) => {
+  const key: MsgKey = isStrikeReason(reason) ? `dsl.strike.r.${reason}` : "dsl.strike.r.other";
+  return t(key);
+};

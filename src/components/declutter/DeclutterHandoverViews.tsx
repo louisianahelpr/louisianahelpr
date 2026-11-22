@@ -380,9 +380,9 @@ function HandoverPanel({ order, userId, slotStart, askGot = 0, anyProblem, who, 
   const rule = (words: string) => free ? <p className="text-sm text-muted-foreground">{words}</p> : null;
   const [photo, setPhoto] = useState<File | null>(null);
   const [asking, setAsking] = useState(false);
-  // The same checks as the button below: only when "I got it" would show.
-  const mayAskGot = askGot > 0 && order.side === "buyer" && !problemOpen && porchReady
-    && !((["meetup", "pickup_home"] as string[]).includes(order.handover) && !gotItOpen(slotStart));
+  // The same checks as the button below: only when "I got it" would show (a meetup or door pickup waits for its time).
+  const waitsForSlot = order.handover === "meetup" || order.handover === "pickup_home";
+  const mayAskGot = askGot > 0 && order.side === "buyer" && !problemOpen && porchReady && !(waitsForSlot && !gotItOpen(slotStart));
   useEffect(() => { if (mayAskGot) setAsking(true); }, [mayAskGot, askGot]);
   const confirm = useMutation({
     mutationFn: () => confirmHandover(order.orderId),

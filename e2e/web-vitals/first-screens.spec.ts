@@ -186,7 +186,7 @@ const median = (xs: (number | null)[]) => {
   return s.length ? s[Math.floor(s.length / 2)] : null;
 };
 
-async function labContext(browser: Browser, profile: LabProfile, session: Session | null): Promise<BrowserContext> {
+async function labContext(browser: Browser, profile: LabProfile, session: Session | null, reads = LAB_READS): Promise<BrowserContext> {
   const ctx = await browser.newContext({
     viewport: profile.viewport,
     deviceScaleFactor: profile.deviceScaleFactor,
@@ -204,12 +204,24 @@ async function labContext(browser: Browser, profile: LabProfile, session: Sessio
   // so every context gets the lab's write block before any page opens: every non-GET to Supabase or Stripe is aborted
   // except reads (an RPC the migrations declare STABLE or IMMUTABLE, stripe-connect's status read), and every
   // *.sentry.io request is aborted, proven live by the lab's probe. Pages are opened with newBlockedPage only.
-  await installLabWriteBlock(ctx, { reads: LAB_READS, browserName: browser.browserType().name() });
+  await installLabWriteBlock(ctx, { reads, browserName: browser.browserType().name() });
   return ctx;
 }
 
 /** The reads a measured screen may still make through the block: the migrations' STABLE/IMMUTABLE functions. */
 const LAB_READS = { rpcs: declaredReadRpcSet(), refresh: false };
+/**
+ * WHAT THE RETURNING-VISITOR LOADS MEASURE (Q1158, 2026-11-22; lead-approved): an EXPIRED ACCESS TOKEN + a VALID
+ * REFRESH TOKEN, the real returning-visitor case. Their write block lets exactly one more request through: the session
+ * refresh (POST /auth/v1/token?grant_type=refresh_token), cwv-lab's READ ALLOWANCE, as `cwv-lab --expired
+ * --allow-reads` has always measured it. It rotates only the shared TEST poster's refresh token (getSession(request,
+ * "poster")), never a real member's. Every other load still refuses it (LAB_READS).
+ * From 5a6adf6c3d (11-14) to here the refresh was refused, so every expired load measured an always-refused refresh,
+ * which real members do not hit: no read could ever answer (prod-audit 45000593002: /home 19504 ms, bounced to Log In
+ * at 15 s). That path is guarded in src/hooks/useAuthReady.expiredRestore.test.tsx and useAuthReady.realRefresh.test.tsx
+ * (refused: Log In at the answer; offline: the "still signed in" card within ~1 s). Budgets and slack unchanged.
+ */
+const LAB_READS_EXPIRED = { rpcs: LAB_READS.rpcs, refresh: true };
 
 let server: { close: () => void } | null = null;
 
@@ -339,7 +351,7 @@ test("a returning visitor (expired token): signed-in first screens' LCP as fast 
     const lcp: Record<"fresh" | "expired", (number | null)[]> = { fresh: reused ? [...reused] : [], expired: [] };
     for (let i = 0; i < RUNS; i++) {
       for (const kind of (reused ? ["expired"] : ["fresh", "expired"]) as ("fresh" | "expired")[]) {
-        const ctx = await labContext(browser, profile, null);
+        const ctx = await labContext(browser, profile, null, kind === "expired" ? LAB_READS_EXPIRED : LAB_READS);
         await ctx.addInitScript(...sessionInit({ key: AUTH_STORAGE_KEY, value: JSON.stringify(session), expired: kind === "expired" }));
         const page = await newBlockedPage(ctx);
         await applyThrottle(ctx, page, profile, "chromium", rate);

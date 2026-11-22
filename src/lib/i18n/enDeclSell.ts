@@ -11,6 +11,8 @@ export const enDeclSell = {
   "dsl.noOffersBody": "Buyers can offer from half your price. You have 48 hours to answer each one.",
   "dsl.purchases": "Purchases",
   "dsl.soldTitle": "Sold: pickup and payout",
+  "dsl.handOverTitle": "To hand over",
+  "dsl.reportsTitle": "Problem reports to answer",
   "dsl.givenTitle": "Given away: pickup",
   "dsl.tradedTitle": "Traded: handover",
   "dsl.nothingBought": "Nothing bought yet. After you pay, each order shows here with its pickup.",

@@ -372,7 +372,7 @@ function HandoverPanel({ order, userId, slotStart, askGot = 0, anyProblem, who, 
   const [asking, setAsking] = useState(false);
   // The same checks as the button below: only when "I got it" would show.
   const mayAskGot = askGot > 0 && order.side === "buyer" && !problemOpen && porchReady
-    && !((order.handover === "meetup" || order.handover === "pickup_home") && !gotItOpen(slotStart));
+    && !((["meetup", "pickup_home"] as string[]).includes(order.handover) && !gotItOpen(slotStart));
   useEffect(() => { if (mayAskGot) setAsking(true); }, [mayAskGot, askGot]);
   const confirm = useMutation({
     mutationFn: () => confirmHandover(order.orderId),

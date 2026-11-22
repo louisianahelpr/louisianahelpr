@@ -6,6 +6,8 @@ export const esDeclSell: Record<keyof typeof enDeclSell, string> = {
   "dsl.noOffersBody": "Los compradores pueden ofrecer desde la mitad de su precio. Tiene 48 horas para responder a cada oferta.",
   "dsl.purchases": "Compras",
   "dsl.soldTitle": "Vendido: entrega y pago",
+  "dsl.handOverTitle": "Por entregar",
+  "dsl.reportsTitle": "Reportes de problemas por responder",
   "dsl.givenTitle": "Regalado: entrega",
   "dsl.tradedTitle": "Intercambiado: entrega",
   "dsl.nothingBought": "Todavía no ha comprado nada. Después de pagar, cada pedido aparece aquí con su entrega.",

@@ -28,6 +28,8 @@ export const enDeclTop5 = {
   "dt5.home.offersN": "Answer {n} offers",
   "dt5.home.handover1": "Hand over 1 sale",
   "dt5.home.handoverN": "Hand over {n} sales",
+  "dt5.home.reports1": "Answer 1 problem report",
+  "dt5.home.reportsN": "Answer {n} problem reports",
   "dt5.home.relist1": "1 paused listing to put back up",
   "dt5.home.relistN": "{n} paused listings to put back up",
   "dt5.home.drops1": "1 listing hasn't sold in 2 weeks: try a lower price",

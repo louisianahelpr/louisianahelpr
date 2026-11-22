@@ -36,19 +36,19 @@ import { useSalesToHandOver } from "./useSalesToHandOver";
 import { ShopSaleCard } from "./ShopSaleCard";
 import { AwayCard } from "./AwayMode";
 import "@/lib/i18n/enDeclutter";
+import "@/lib/i18n/enDeclSell";
 import { t } from "@/lib/i18n/language";
 
 function StatusChips<K extends string>({ chips, value, onPick }: { chips: readonly StatusBoxDef<K>[]; value: K | null; onPick: (k: K | null) => void }) {
-  // Area 06 L2 (11-18): "All · 15" beside the tab's "Selling 5" counted History (taken down, ended) too; All counts
-  // what is still going.
-  const all = chips.reduce((n, c) => n + (c.key === "taken" ? 0 : c.count), 0);
+  // Deep audit 11-22 #50: "All · 25" added reports, listings and sales into one number nobody could check; All has no
+  // number (each chip keeps its own).
   return (
     // AUD31-4 (lead 10-31): at 375 the last chip runs off the right edge on purpose: the row scrolls sideways. The right
     // edge fades so the cut chip reads as "more to scroll"; the end padding (>= the fade) lets the last chip scroll clear
     // of it, so nothing stays faded once the row is at its end. Never wrapped.
     <div role="group" aria-label={t("decl.mv.filter")} data-status-chips="" className="-mx-3 flex items-center gap-2 overflow-x-auto pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <ToggleChip pressed={value === null} onClick={() => onPick(null)}>
-        {t("decl.mv.all")}{all > 0 ? ` · ${all}` : ""}
+        {t("decl.mv.all")}
       </ToggleChip>
       {chips.map((c) => (
         <ToggleChip key={c.key} pressed={value === c.key} data-status-box={c.key} onClick={() => onPick(value === c.key ? null : c.key)}>
@@ -103,7 +103,8 @@ export function SellingDash({ todo, userId, listings, settings, searching = fals
   const sold = show("sold") && <>
     {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
     <SellerPayoutPrompt />
-    <PaidOrders side="seller" />
+    {/* Deep audit 11-22 #50: the "To hand over" chip lists the sales its count counts, headed after the chip. */}
+    <PaidOrders side="seller" handOverOnly={only === "sold"} />
   </>;
   // Deep audit 11-22 #53: searching "lamp" filtered Your listings to one row about 7,000 px down, under the to-dos, the
   // chips and every sale card, so the search looked like it did nothing. While a search is on, only the listings show
@@ -116,7 +117,7 @@ export function SellingDash({ todo, userId, listings, settings, searching = fals
           listings (a first-time seller sees the empty card below, not empty numbers). Post-merge check 11-20 #5: only the
           to-dos sit up here; the week's numbers, Shop sale and Away mode are below the lists, so a sale to hand over is
           on the first screen. */}
-      {only === null && hasListings && <SellingTodo todo={todo} handOver={handOver} userId={userId} onPick={(g) => toggle(g)} />}
+      {only === null && hasListings && <SellingTodo todo={todo} handOver={handOver} reports={reports.size} userId={userId} onPick={(g) => toggle(g)} />}
       {/* Filters only (owner 2026-10-28): the filled "Sell an item" pill that ended this row looked like a second
           selected filter beside the pressed one; the header's "Sell an item" button is the section's one add action. */}
       <StatusChips
@@ -136,7 +137,7 @@ export function SellingDash({ todo, userId, listings, settings, searching = fals
       />
       {soldFirst && sold}
       {only === "offers" && toAnswer === 0 && todo && <DeclutterNotice title={t("decl.mv.nothingToAnswer")} />}
-      {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}
+      {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} title={t("dsl.reportsTitle")} />}
       {show("offers") && <QuestionsToAnswer userId={userId} />}
       {show("offers") && <FreeAsksToPick rows={freeAsks} />}
       {show("offers") && <BundleRequestsSection side="seller" userId={userId} />}

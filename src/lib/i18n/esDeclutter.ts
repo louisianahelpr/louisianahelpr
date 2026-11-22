@@ -289,7 +289,7 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.mv.ended": "Terminados",
   "decl.mv.toAnswer": "Por responder",
   "decl.mv.listings": "Publicaciones",
-  "decl.mv.pickups": "Recogidas pendientes",
+  "decl.mv.pickups": "Por entregar",
   "decl.mv.history": "Historial",
   "decl.mv.nothingToAnswer": "No hay nada que responder por ahora.",
   "decl.mv.findBrowse": "Buscar algo para comprar",

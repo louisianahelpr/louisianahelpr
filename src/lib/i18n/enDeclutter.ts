@@ -188,7 +188,7 @@ export const enDeclutter = {
   "decl.mv.ended": "Ended",
   "decl.mv.toAnswer": "To answer",
   "decl.mv.listings": "Listings",
-  "decl.mv.pickups": "Pickups to do",
+  "decl.mv.pickups": "To hand over",
   "decl.mv.history": "History",
   "decl.mv.nothingToAnswer": "Nothing to answer right now.",
   "decl.mv.findBrowse": "Find something in Browse",

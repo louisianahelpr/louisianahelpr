@@ -177,8 +177,10 @@ vi.mock("sonner", async (orig) => {
 });
 // The sale cards are their own tests; here each paid order the list would show is one marked row.
 vi.mock("./DeclutterHandoverViews", () => ({
-  PaidOrdersSection: ({ cart, show }: { cart: { order_id: string | null; status: string }[]; show?: (id: string) => boolean }) => (
-    <ul>{cart.filter((l) => l.status === "paid" && l.order_id && (!show || show(l.order_id))).map((l) => <li key={l.order_id} data-paid-order={l.order_id} />)}</ul>
+  // #50: the list's heading is drawn too (data-paid-heading), so a chip's list can be checked against its name.
+  PaidOrdersSection: ({ cart, show, heading }: { cart: { order_id: string | null; status: string }[]; show?: (id: string) => boolean; heading?: React.ReactNode }) => (
+    <><div data-paid-heading="">{heading}</div>
+    <ul>{cart.filter((l) => l.status === "paid" && l.order_id && (!show || show(l.order_id))).map((l) => <li key={l.order_id} data-paid-order={l.order_id} />)}</ul></>
   ),
 }));
 vi.mock("./DeclutterDeliveryViews", () => ({ DeliverView: () => null }));
@@ -929,7 +931,7 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
   // NIGHT-BUYINGopenpr-3 (lead 10-31): "To answer" was empty with a buyer's report waiting on the seller's side. It
   // now counts each sale whose report waits on the seller and lists those sale cards (a chip never counts what it hides).
   // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks + freeAsks.length; |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + bundleAsks + tradeAsks + freeAsks.length;
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}\n |
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} title={t("dsl.reportsTitle")} />}\n |
   // @mutate src/components/declutter/useSellerReportsToAnswer.ts |   return !!p && p.status === "open" && p.reporter_side !== "seller" && !p.other_side_note; |   return !!p && p.status === "open" && !p.other_side_note;
   // @mutate src/components/declutter/useSellerReportsToAnswer.ts |   return !!p && p.status === "open" && p.reporter_side !== "seller" && !p.other_side_note; |   return !!p && p.status === "open" && p.reporter_side !== "seller";
   it("openpr-3: a buyer's report waiting on the seller counts under To answer and lists that sale there, only that one", async () => {
@@ -950,6 +952,43 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
       fireEvent.click(chip());
       await waitFor(() => expect(Array.from(container.querySelectorAll("[data-paid-order]")).map((e) => e.getAttribute("data-paid-order"))).toEqual(["o1"]));
       expect(screen.queryByText("Nothing to answer right now.")).toBeNull();
+    } finally {
+      state.cart = [];
+      state.problems = [];
+      state.problemRows = {};
+    }
+  });
+
+  // Deep audit 11-22 #50: "Pickups to do · 3" opened 5+ cards (a Helpr delivery, finished sales); "To answer · 2" was
+  // headed "Sold: pickup and payout · 3 to hand over"; "All · 25" summed unlike things. Every chip now opens exactly
+  // the cards it counts, headed after the chip, and All has no number.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |     <PaidOrders side="seller" handOverOnly={only === "sold"} /> |     <PaidOrders side="seller" />
+  // @mutate src/components/declutter/DeclutterTabParts.tsx |   const show = handOverOnly ? (id: string) => handOverIds.has(id) : showProp; |   const show = showProp;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | show={(id) => reports.has(id)} title={t("dsl.reportsTitle")} /> | show={(id) => reports.has(id)} />
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |         {t("decl.mv.all")}\n |         {t("decl.mv.all")} · 9\n
+  it("#50: To hand over opens exactly the sales it counts, each chip's list is headed after it, All has no number", async () => {
+    const sale = (id: string, over: Record<string, unknown> = {}) => ({ line_id: `l-${id}`, item_id: `i-${id}`, item_title: `Sale ${id}`, my_side: "seller", seller_id: "u1",
+      price_cents: 3000, status: "paid", checkout_by: "2026-10-27T12:00:00Z", order_id: id, order_status: "paid", handover: "porch", premium_cents: 0, total_cents: 3000, porch_ok: true, ...over });
+    state.mine = [ITEM];
+    state.payouts = [];
+    // h1, h2: to hand over. d1: a Helpr delivery. f1: handed over. p1: on hold for the buyer's report (To answer).
+    state.cart = [sale("h1"), sale("h2"), sale("d1", { handover: "delivery" }), sale("f1", { order_status: "handed_over" }), sale("p1")];
+    state.problems = [{ id: "p-p1", order_id: "p1", reporter_side: "buyer", reason: "damaged" }];
+    state.problemRows = { p1: { id: "p-p1", order_id: "p1", reporter_side: "buyer", reason: "damaged", note: "x", photo_paths: [], status: "open", created_at: "2026-10-30T12:00:00Z", other_side_note: null } };
+    try {
+      const { container } = at("/declutter?tab=selling");
+      const chip = (k: string) => container.querySelector(`[data-status-box="${k}"]`) as HTMLElement;
+      const cards = () => Array.from(container.querySelectorAll("[data-paid-order]")).map((e) => e.getAttribute("data-paid-order")).sort();
+      await waitFor(() => expect(chip("sold").textContent).toBe("To hand over · 2"));
+      const all = screen.getByRole("button", { name: /^All/ });
+      expect(all.textContent).toBe("All");
+      fireEvent.click(chip("sold"));
+      await waitFor(() => expect(cards()).toEqual(["h1", "h2"]));
+      expect(Number(/\d+/.exec(chip("sold").textContent ?? "")?.[0])).toBe(cards().length);
+      expect(container.querySelector("[data-paid-heading]")?.textContent).toBe("To hand over");
+      fireEvent.click(chip("offers"));
+      await waitFor(() => expect(cards()).toEqual(["p1"]));
+      expect(container.querySelector("[data-paid-heading]")?.textContent).toBe("Problem reports to answer");
     } finally {
       state.cart = [];
       state.problems = [];

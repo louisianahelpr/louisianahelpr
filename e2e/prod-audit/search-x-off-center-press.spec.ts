@@ -64,16 +64,15 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search saved Helprs"]',
     close: CLOSE,
   },
-  // Q2231 / board 38: on a phone and in the two-pane desktop list (1140 and up, TWO_PANE_MIN_WIDTH) the inbox search is ONE permanent
-  // row (MessagesSearchRow), so the field is the trigger and its ✕ clears. The magnifier that opened
-  // a field ([data-search-trigger], "Close search") is gone at 375 and 1440; it waited 45 s for it and went red at
-  // baseline (vacuity 2026-11-06, run 127910764580).
+  // Q2231 / board 38: on a phone and in the two-pane desktop list (1140 and up, TWO_PANE_MIN_WIDTH) the inbox search is
+  // ONE row (MessagesSearchRow). Owner 11-21 (just the icon): the row starts as its magnifier beside the more menu; the
+  // tap opens the field and its "Close search" ✕ clears and folds it.
   {
     name: "messages", file: "src/components/messages/MessagesSearchRow.tsx",
     url: "/messages",
-    trigger: '[data-testid="messages-search-row"] input[aria-label="Search conversations"]',
+    trigger: '[data-testid="messages-search-row"] button[aria-label="Search conversations"]',
     field: '[data-testid="messages-search-row"] input[aria-label="Search conversations"]',
-    close: `[data-testid="messages-search-row"] ${CLEAR}`,
+    close: `[data-testid="messages-search-row"] ${CLOSE}`,
   },
   // The ONE width band where the inbox still opens a header search: the one-pane web desktop, 900-1139 (isWebDesktop,
   // not yet two-pane: TWO_PANE_MIN_WIDTH 1140). ConversationList's magnifier opens the field and its "Close search" ✕
@@ -87,34 +86,34 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     minWidth: 900,
     maxWidth: 1139,
   },
-  // The section dashboards (owner, 2026-10-19): every Browse (Jobs, Declutter,
-  // Shops, Homes) opens on the ONE shared permanent search row (SectionSearchRow),
-  // so the field is the trigger and the ✕ clears. Pressed in each section.
-  // Jobs > Browse on a phone (owner 11-08, the Vinted header): the top bar's "Search jobs" field, always open, with
-  // Filters inside it; its ✕ clears the words (it was an icon at the tabs row's end from 2026-10-28).
+  // The section dashboards (owner, 2026-10-19): every Browse (Jobs, Declutter, Shops, Homes) searches with the ONE
+  // shared row (SectionSearchRow). Owner 11-21 (just the icon): it starts as the magnifier beside Filters; the tap opens
+  // the field and its "Close search" ✕ clears and folds it. Pressed in each section.
+  // Jobs > Browse on a phone (owner 11-08, the Vinted header): the top bar's "Search jobs"; since 11-21 the bar's
+  // magnifier opens the field there, Filters inside it, and its "Close search" ✕ clears and folds it.
   {
     name: "jobs-browse-phone", file: "src/components/sections/SectionSearchBar.tsx",
     url: "/jobs",
-    trigger: '[data-section-search-bar] input[aria-label="Search jobs"]',
+    trigger: '[data-section-search-bar] button[aria-label="Search jobs"]',
     field: '[data-section-search-bar] input[aria-label="Search jobs"]',
-    close: `[data-section-search-bar] ${CLEAR}`,
+    close: `[data-section-search-bar] ${CLOSE}`,
     maxWidth: 899,
   },
   {
-    // Owner 11-08 (the Vinted header): the phone's "Search Declutter" field is always open; its ✕ clears the words.
+    // Owner 11-08 (the Vinted header) / 11-21 (just the icon): the phone's "Search Declutter" magnifier opens the field.
     name: "declutter-browse-phone", file: "src/components/sections/SectionSearchBar.tsx",
     url: "/declutter",
-    trigger: '[data-section-search-bar] input[aria-label="Search Declutter"]',
+    trigger: '[data-section-search-bar] button[aria-label="Search Declutter"]',
     field: '[data-section-search-bar] input[aria-label="Search Declutter"]',
     maxWidth: 899,
-    close: `[data-section-search-bar] ${CLEAR}`,
+    close: `[data-section-search-bar] ${CLOSE}`,
   },
   {
     name: "shops-browse-row", file: "src/components/sections/SectionSearchRow.tsx",
     url: "/shops",
-    trigger: 'input[aria-label="Search shops"]',
+    trigger: '[data-section-search] button[aria-label="Search shops"]',
     field: 'input[aria-label="Search shops"]',
-    close: CLEAR,
+    close: `[data-section-search] ${CLOSE}`,
   },
   {
     name: "browse-desktop-strip", file: "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
@@ -137,9 +136,9 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
   {
     name: "jobs-posted-phone", file: "src/components/sections/SectionSearchBar.tsx",
     url: "/jobs?tab=posted",
-    trigger: '[data-section-search-bar] input[aria-label="Search posted jobs"]',
+    trigger: '[data-section-search-bar] button[aria-label="Search posted jobs"]',
     field: '[data-section-search-bar] input[aria-label="Search posted jobs"]',
-    close: `[data-section-search-bar] ${CLEAR}`,
+    close: `[data-section-search-bar] ${CLOSE}`,
     maxWidth: 899,
   },
   {
@@ -180,21 +179,39 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search users by name or email"]',
     close: CLEAR,
   },
-  // Homes Browse (2026-10-19): the slim City or ZIP row is a permanent field; its ✕ clears.
+  // Homes Browse (2026-10-19): the slim City or ZIP row; since owner 11-21 its magnifier opens it and its ✕ closes it.
   {
     name: "homes-rent", file: "src/components/sections/SectionSearchRow.tsx",
     url: "/rentals",
-    trigger: 'input[aria-label="City or ZIP"]',
+    trigger: '[data-section-search] button[aria-label="Search homes for rent"]',
     field: 'input[aria-label="City or ZIP"]',
-    close: CLEAR,
+    close: `[data-section-search] ${CLOSE}`,
   },
-  // F034 (owner UI audit, 11-09): the Help center's "Search help" is a permanent field; its ✕ clears.
+  // F034 (owner UI audit, 11-09): the Help center's "Search help". Owner 11-21 (just the icon): the magnifier by the
+  // title opens the field under it; its "Close search" ✕ clears and folds it.
   {
     name: "help-center", file: "src/pages/info/HelpCenter.tsx",
     url: "/help",
-    trigger: 'input[aria-label="Search help"]',
+    trigger: 'button[aria-label="Search help"]',
     field: 'input[aria-label="Search help"]',
-    close: CLEAR,
+    close: CLOSE,
+  },
+  // Owner 11-21 (just the icon): Find a Helpr's town search is the magnifier on its title row; the tap opens the town
+  // form, and its "Close search" ✕ clears the town and folds it.
+  {
+    name: "find-helprs", file: "src/pages/helprs/FindHelprs.tsx",
+    url: "/helprs",
+    trigger: 'button[aria-label="Find a Helpr by town"]',
+    field: "#helpr-town",
+    close: `form[aria-label="Find a Helpr by town"] ${CLOSE}`,
+  },
+  // Holiday fixes 1121d (owner 11-21 evening): the Holiday Hub's magnifier opens its field; its "Close search" ✕ folds it.
+  {
+    name: "holiday-hub", file: "src/pages/info/holidays/HolidayHub.tsx",
+    url: "/holidays",
+    trigger: "button[data-holiday-search-button]",
+    field: "input[data-holiday-search]",
+    close: `[data-holiday-search-box] ${CLOSE}`,
   },
   {
     name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.tsx", as: "admin",

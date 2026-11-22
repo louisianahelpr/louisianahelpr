@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Search, Send, Star } from "lucide-react";
+import { MapPin, Search, Send, Star, X } from "lucide-react";
+import { SearchIconButton } from "@/components/ui/SearchIconButton";
 import AppPage from "@/components/AppPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import UserAvatar from "@/components/UserAvatar";
@@ -97,28 +98,57 @@ export default function FindHelprs() {
     e.preventDefault();
     setParam("town", townDraft.trim().slice(0, 60));
   };
+  // Owner 11-21 (pop-up, "just the icon"): the town search starts as the shared magnifier on the title row; a tap opens
+  // the form where it sat, its field focused. Escape or its X clears the town and folds it back; a town in the address
+  // (?town=) or words in the field keep it open. Guard: src/test/searchIsAnIconEverywhere1121.test.tsx.
+  const [townOpen, setTownOpen] = useState(false);
+  const townShown = townOpen || !!town || !!townDraft;
+  const townInputRef = useRef<HTMLInputElement>(null);
+  const townIconRef = useRef<HTMLButtonElement>(null);
+  const townFocus = useRef<"field" | "icon" | null>(null);
+  useEffect(() => {
+    const target = townFocus.current;
+    townFocus.current = null;
+    if (target === "field") townInputRef.current?.focus({ preventScroll: true });
+    else if (target === "icon") townIconRef.current?.focus({ preventScroll: true });
+  }, [townShown]);
+  const closeTown = () => {
+    setTownDraft("");
+    if (town) setParam("town", "");
+    townFocus.current = "icon";
+    setTownOpen(false);
+  };
+  const townLabel = w("pub.helprs.town", "Town or parish");
 
   return (
     // L005 (landing audit 11-09): a cold-opened link had no in-app entry behind it, so back went to about:blank.
     // Audit 11-21 (P23): mid-scroll the page collapsed to the title-only compact bar with no back arrow. The title row
     // (back + title) stays pinned instead, as on the Declutter item page (AppPage stickyHeader).
-    <AppPage title={w("pub.helprs.title", "Find a Helpr")} stickyHeader onBack={() => (hasInAppHistory() ? navigate(-1) : navigate("/", { replace: true }))}>
+    <AppPage title={w("pub.helprs.title", "Find a Helpr")} stickyHeader onBack={() => (hasInAppHistory() ? navigate(-1) : navigate("/", { replace: true }))}
+      titleActions={townShown ? undefined : <SearchIconButton ref={townIconRef} label="Find a Helpr by town" data-helprs-search-icon="" onClick={() => { townFocus.current = "field"; setTownOpen(true); }} />}>
       <div className="space-y-4 pb-6" data-testid="find-helprs">
         <p className="text-ds-14 text-muted-foreground">
           Find someone near you, then offer them your job at your price. If they pass, it opens to everyone.
         </p>
 
-        <form onSubmit={submitTown} className="flex max-w-xl items-end gap-2" role="search" aria-label="Find a Helpr by town">
+        {townShown && <form onSubmit={submitTown} className="flex max-w-xl items-end gap-2" role="search" aria-label="Find a Helpr by town" data-search-open=""
+          onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null) && !townDraft && !town) setTownOpen(false); }}>
           <div className="min-w-0 flex-1 space-y-1.5">
-            <Label htmlFor="helpr-town">{w("pub.helprs.town", "Town or parish")}</Label>
-            <Input id="helpr-town" value={townDraft} maxLength={60} onChange={(e) => setTownDraft(e.target.value)} placeholder="e.g. Lafayette" autoComplete="address-level2" />
+            <Label htmlFor="helpr-town">{townLabel}</Label>
+            <Input ref={townInputRef} id="helpr-town" type="search" enterKeyHint="search" value={townDraft} maxLength={60} onChange={(e) => setTownDraft(e.target.value)} placeholder="e.g. Lafayette" autoComplete="address-level2"
+              onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeTown(); } }} />
           </div>
           {/* Design audit 11-17 #31: md (48px), the input's own height; the default 56px stood taller than the field. */}
           <Button type="submit" variant="outline" size="md">
             <Search className="h-4 w-4" aria-hidden />
             Search
           </Button>
-        </form>
+          {/* md (48px) like the field and Search beside it, square (size icon is 56px: it stood 8px taller, its centre 4px off the
+              field's; the press spec measures the centre). */}
+          <Button type="button" variant="ghost" size="md" aria-label="Close search" onClick={closeTown} className="ctl-exit w-12 shrink-0 px-0 text-muted-foreground hover:text-foreground">
+            <X className="h-5 w-5" aria-hidden />
+          </Button>
+        </form>}
 
         <div className="space-y-1.5">
           <p id="helpr-skill-label" className="text-ds-13 font-semibold text-foreground">{w("pub.helprs.skill", "Skill")}</p>

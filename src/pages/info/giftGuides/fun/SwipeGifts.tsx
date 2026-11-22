@@ -2,17 +2,15 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type Pointe
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, subscribeGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
-import { FUN_WORDS as W, SWIPE_BUDGETS, SWIPE_ROUND, SWIPE_WHO, borrowFits, santaRound, swipePool, swipeRound, type SwipeBudget, type SwipeWho } from "@/content/giftGuideFun1120";
+import { FUN_WORDS as W, SWIPE_ROUND, SWIPE_WHO, borrowFits, santaRound, swipePool, type SwipeWho } from "@/content/giftGuideFun1120";
+import { swipeBudgets, swipeDeck } from "@/content/giftGuideSwipe";
+import { QUIZ_AGES, type QuizAge, type QuizBudget } from "@/content/giftQuiz";
 import { BUDGET_GUIDES } from "@/content/giftPickBand";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { PickPrice } from "@/components/giftGuides/PickPrice";
-import { shareNative } from "@/lib/nativeShare";
-import { getPublicOrigin } from "@/lib/authRedirects";
 import { track } from "@/lib/analytics";
-import { saveWishList, sharedListPath } from "@/lib/giftWishListApi";
 import { PickThumb } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
-import { MY_LIST_SLUG, addToWishList, itemId, listName, listRefs, useGiftList } from "../giftList";
 import { Hint } from "../GiftHint";
 import { FunBody, funHeader } from "./FunPage";
 import { useAccountSync } from "./plannerSync";
@@ -20,14 +18,17 @@ import { readSantaFor, saveIdeaToPlanner, saveSantaIdea } from "./santaIdeas";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 
 /**
- * /gift-guides/swipe (owner 2026-11-20): pick who and a budget, then 20 cards from the guides' picks (strongest first,
- * some variety: swipeRound). Drag right or tap Save = on the wish list (addToWishList); drag left or tap Skip = pass;
- * tap the card = its details and Shop. The buttons do everything the gestures do (accessible). "Share my picks" at the
- * end shares the wish list's link. Guard: src/test/giftGuideFun1120.test.tsx.
+ * /gift-guides/swipe (owner 2026-11-20): pick who and a budget, then up to 20 cards from the guides' picks.
+ * Owner 2026-11-21 evening ("I tapped Me and the first thing that came up was stuff for hunting but I'm a girl?"): who is
+ * Her, Him or Kids as in the quiz (no Me, Mom or Dad), Kids then picks an age band, the budgets are the quiz's bands
+ * (only those with enough picks), and the deck is that person's picks in that band, in the quiz's order (swipeDeck).
+ * An old link's ?who=mom|dad opens on Her|Him; ?who=me opens the start screen. Drag right or tap Save = saved; drag left
+ * or tap Skip = pass; tap the card = its details and Shop. The buttons do everything the gestures do (accessible).
+ * Guard: src/test/giftGuideFun1120.test.tsx, src/test/swipeWho1121.test.tsx.
  *
- * Saving is for whoever the cards are for (owner 11-20: saving for someone else never goes on MY wish list): "Me"
- * saves to the wish list; anyone else is "Save for Mom", an idea under that person in the gift planner (the account's
- * when signed in, this device's when not; saveIdeaToPlanner).
+ * Saving is for whoever the cards are for (owner 11-20: saving for someone else never goes on MY wish list): "Save for
+ * Her", an idea under that person in the gift planner (the account's when signed in, this device's when not;
+ * saveIdeaToPlanner). With "Me" gone (owner 11-21 evening) no deck saves to the wish list.
  *
  * Opened from a Secret Santa reveal (router state, readSantaFor; owner 11-20): the round keeps to the group's budget
  * (santaRound: only picks known to cost at most it, closest first) and Save is "Save for <match>", which files the gift
@@ -37,11 +38,17 @@ import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 const PATH = "/gift-guides/swipe" as const;
 /** How far (px) a card is dragged before letting go counts as a swipe. */
 const SWIPE_DISTANCE = 90;
+/** An old link's ?who= (Mom and Dad became Her and Him; "me" and anything else start fresh). */
+const whoFromLink = (search: string): SwipeWho | null => {
+  const w = new URLSearchParams(search).get("who");
+  return w === "her" || w === "mom" ? "her" : w === "him" || w === "dad" ? "him" : w === "kids" ? "kids" : null;
+};
 
 type Card = CatalogPick & { guide: string };
 
 export default function SwipeGifts() {
-  const santa = readSantaFor(useLocation().state);
+  const location = useLocation();
+  const santa = readSantaFor(location.state);
   const { user, isReady } = useAuthReady();
   // Gifts for someone else go to the gift planner (signed in: the account's, loaded first; signed out: this device's).
   const sync = useAccountSync(user?.id ?? null, isReady);
@@ -49,8 +56,10 @@ export default function SwipeGifts() {
   const plannerReady = isReady && (!user || sync !== "device");
   const santaBudget = santa?.budget ?? null;
   const [savedTo, setSavedTo] = useState<"planner" | "device" | null>(null);
-  const [who, setWho] = useState<SwipeWho | null>(null);
-  const [budget, setBudget] = useState<SwipeBudget | null>(santa ? 0 : null);
+  const [who, setWhoState] = useState<SwipeWho | null>(() => whoFromLink(location.search));
+  const [age, setAge] = useState<QuizAge | null>(null);
+  const [budget, setBudget] = useState<QuizBudget | null>(null);
+  const setWho = (w: SwipeWho) => { setWhoState(w); setAge(null); setBudget(null); };
   const [started, setStarted] = useState(false);
   const [round, setRound] = useState<Card[]>([]);
   const [at, setAt] = useState(0);
@@ -58,23 +67,22 @@ export default function SwipeGifts() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [details, setDetails] = useState(false);
   const [dx, setDx] = useState(0);
-  const [shareMsg, setShareMsg] = useState<string | null>(null);
   // Holiday audit C12a: a Save says so (the guide hearts toast; the deck announces it in its live line).
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const seen = useRef(new Set<string>());
   const drag = useRef<{ x: number; moved: boolean } | null>(null);
   const version = useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
-  const list = useGiftList();
   const w = SWIPE_WHO.find((x) => x.id === who);
   // Who a saved card is for: the Secret Santa match, or the chosen person; none = "Me" (the wish list).
   const forName = santa ? santa.match : w?.forName ?? null;
   const saveWaits = !!forName && (santa ? !!user && !plannerReady : !plannerReady);
 
-  // A budget round (a Secret Santa's, or a chosen "Under $N") also borrows the budget guides' picks that suit this
-  // "who", so a strict budget still fills a round (holiday audit C1).
-  const borrowing = !!santaBudget || (!santa && !!budget);
+  // A Secret Santa round also borrows the budget guides' picks that suit this "who" (holiday audit C1). A plain deck
+  // keeps to the person's own picks, as the quiz does (owner 11-21 evening).
+  const borrowing = !!santaBudget;
+  // The person's picks load as soon as they are chosen: the budgets shown depend on them.
   useEffect(() => {
-    if (!w || !started) return;
+    if (!w || (!started && borrowing)) return;
     setLoadFailed(false);
     Promise.all([...w.guides.map((g) => g.slug), ...(borrowing ? BUDGET_GUIDES : [])].map((slug) => loadGuidePicks(slug))).catch((e: unknown) => {
       console.warn("swipe: picks chunk failed", e);
@@ -84,7 +92,7 @@ export default function SwipeGifts() {
 
   const ready = !!w && w.guides.every((g) => picksReady(g.slug)) && (!borrowing || BUDGET_GUIDES.every((g) => picksReady(g)));
   const pool = useMemo((): Card[] => {
-    if (!w || !started) return [];
+    if (!w) return [];
     const from = new Map<string, string>();
     const picks = swipePool(w.id, (slug) => {
       const ps = guideBySlug(slug)?.picks ?? [];
@@ -93,33 +101,35 @@ export default function SwipeGifts() {
     });
     return picks.map((p) => ({ ...p, guide: from.get(p.href) ?? w.guides[0].slug }));
     // version: re-read once each lazy chunk arrives.
-  }, [w, started, version]);
+  }, [w, version]);
   const borrow = useMemo((): Card[] => {
     if (!w || !started || !borrowing) return [];
     return BUDGET_GUIDES.flatMap((slug) => (guideBySlug(slug)?.picks ?? []).filter((p) => borrowFits(w.id, p)).map((p) => ({ ...p, guide: slug })));
     // version: re-read once each lazy chunk arrives.
   }, [w, started, version, borrowing]);
-  const makeRound = (): Card[] => (santa ? santaRound(pool, borrow, santa.budget, seen.current) : swipeRound(pool, budget ?? 0, seen.current, Math.random, borrow));
+  const answers = who ? { who, ...(age ? { age } : {}) } : null;
+  const budgets = answers && ready ? swipeBudgets(pool, answers) : [];
+  const makeRound = (): Card[] =>
+    santa ? santaRound(pool, borrow, santa.budget, seen.current) : answers && budget ? swipeDeck(pool, { ...answers, budget }, seen.current) : [];
 
   useEffect(() => {
-    if (!started || budget === null || round.length || !pool.length || !ready) return;
+    if (!started || (!santa && budget === null) || round.length || !pool.length || !ready) return;
     setRound(makeRound());
     setAt(0);
   }, [pool, borrow, ready, started, budget, round.length]);
 
   const card = round[at];
   // Holiday audit C1: a strict budget can leave a short round; say so and offer the next budget up.
-  const budgetIdx = SWIPE_BUDGETS.findIndex((b) => b.id === budget);
-  const short = !santa && !!budget && round.length > 0 && round.length < SWIPE_ROUND;
-  const nextBudget = short ? SWIPE_BUDGETS.slice(budgetIdx + 1).find((b) => b.id !== 0) ?? null : null;
-  const fewNote = short ? W.swipeFew(round.length, SWIPE_BUDGETS[budgetIdx].label) : null;
+  const budgetIdx = budgets.findIndex((b) => b.id === budget);
+  const short = !santa && budgetIdx >= 0 && round.length > 0 && round.length < SWIPE_ROUND;
+  const nextBudget = short ? budgets[budgetIdx + 1] ?? null : null;
+  const fewNote = short ? W.swipeFew(round.length, budgets[budgetIdx].label) : null;
   const tryNextBudget = () => {
     if (!nextBudget) return;
     seen.current.clear();
     setBudget(nextBudget.id);
     setRound([]);
     setSaved([]);
-    setShareMsg(null);
   };
   const finished = started && round.length > 0 && at >= round.length;
   // UX audit L8: the next card's photo loads while this one is shown, so it appears at once.
@@ -149,7 +159,7 @@ export default function SwipeGifts() {
         setSavedTo("planner");
         setSaved((s) => [...s, card]);
       }
-    } else if (keep && addToWishList({ href: card.href, name: card.name, guide: card.guide, id: itemId(card.href) })) setSaved((s) => [...s, card]);
+    }
     setLastSaved(keep ? card.name : null);
     setDetails(false);
     setDx(0);
@@ -196,17 +206,6 @@ export default function SwipeGifts() {
   const anotherRound = () => {
     setRound([]);
     setSaved([]);
-    setShareMsg(null);
-  };
-  const shareMine = async () => {
-    setShareMsg(null);
-    try {
-      const code = await saveWishList(listName(list), listRefs(list));
-      await shareNative({ title: W.swipeTitle, text: W.swipeShareText, url: `${getPublicOrigin()}${sharedListPath(code)}` });
-    } catch (e) {
-      console.warn("swipe: share failed", e);
-      setShareMsg(W.revealShareFailed);
-    }
   };
 
   return (
@@ -223,21 +222,31 @@ export default function SwipeGifts() {
             <span className="gg-chips">
               {/* Owner 11-21: only people whose guide is live (src/content/giftGuideLive.mjs); a retired guide dealt an empty deck. */}
               {SWIPE_WHO.filter((o) => o.guides.every((g) => guideBySlug(g.slug))).map((o) => (
-                <Button key={o.id} type="button" variant="outline" size="sm" className={who === o.id ? "gg-chip btn-grad-primary" : "gg-chip"} aria-pressed={who === o.id}
+                <Button key={o.id} type="button" variant={who === o.id ? "default" : "outline"} size="sm" className="gg-chip" aria-pressed={who === o.id}
                   onClick={() => setWho(o.id)} data-swipe-who={o.id}>{o.label}</Button>
               ))}
             </span>
           </div>
-          {!santa && <div role="group" aria-label={W.swipeBudget} className="gg-finder-step">
-            <p className="gg-finder-q">{W.swipeBudget}</p>
+          {who === "kids" && <div role="group" aria-label={W.swipeAge} className="gg-finder-step" data-swipe-age-step="">
+            <p className="gg-finder-q">{W.swipeAge}</p>
             <span className="gg-chips">
-              {SWIPE_BUDGETS.map((o) => (
-                <Button key={o.id} type="button" variant="outline" size="sm" className={budget === o.id ? "gg-chip btn-grad-primary" : "gg-chip"} aria-pressed={budget === o.id}
+              {QUIZ_AGES.map((o) => (
+                <Button key={o.id} type="button" variant={age === o.id ? "default" : "outline"} size="sm" className="gg-chip" aria-pressed={age === o.id}
+                  onClick={() => { setAge(o.id); setBudget(null); }} data-swipe-age={o.id}>{o.label}</Button>
+              ))}
+            </span>
+          </div>}
+          {!santa && who && (who !== "kids" || age) && <div role="group" aria-label={W.swipeBudget} className="gg-finder-step">
+            <p className="gg-finder-q">{W.swipeBudget}</p>
+            {!ready && <p className="gg-fun-note m-0" role="status">{W.swipeLoading}</p>}
+            <span className="gg-chips">
+              {budgets.map((o) => (
+                <Button key={o.id} type="button" variant={budget === o.id ? "default" : "outline"} size="sm" className="gg-chip" aria-pressed={budget === o.id}
                   onClick={() => setBudget(o.id)} data-swipe-budget={o.id}>{o.label}</Button>
               ))}
             </span>
           </div>}
-          <Button type="button" className="btn-grad-primary mt-4 w-full" disabled={!who || budget === null} onClick={() => setStarted(true)} data-swipe-start="">{W.swipeStart}</Button>
+          <Button type="button" className="btn-grad-primary mt-4 w-full" disabled={!who || (who === "kids" && !age) || (!santa && budget === null)} onClick={() => setStarted(true)} data-swipe-start="">{W.swipeStart}</Button>
         </section>
       ) : loadFailed ? (
         <div className="gg-fun-card" data-swipe-load-failed="">
@@ -246,9 +255,9 @@ export default function SwipeGifts() {
         </div>
       ) : finished ? (
         <section aria-labelledby="swipe-done" className="gg-swipe-done" data-swipe-done="">
-          <h2 id="swipe-done">{!saved.length ? W.swipeDoneNone : santa ? W.santaSavedTitle(saved.length, santa.match) : forName ? W.swipeSavedFor(saved.length, forName) : W.swipeDoneTitle(saved.length)}</h2>
+          <h2 id="swipe-done">{!saved.length ? W.swipeDoneNone : santa ? W.santaSavedTitle(saved.length, santa.match) : W.swipeSavedFor(saved.length, forName ?? "")}</h2>
           {saved.length > 0 && (
-            <ul className="gg-fun-list mb-3">{saved.map((p) => <li key={p.href} className="text-sm">{forName ? "" : "♥ "}{p.name}</li>)}</ul>
+            <ul className="gg-fun-list mb-3">{saved.map((p) => <li key={p.href} className="text-sm">{p.name}</li>)}</ul>
           )}
           {fewNote && <p className="gg-fun-note" data-swipe-few="">{fewNote}</p>}
           {nextBudget && <Button type="button" variant="outline" className="mb-2" onClick={tryNextBudget} data-swipe-next-budget={nextBudget.id}>{W.swipeNextBudget(nextBudget.label)}</Button>}
@@ -259,25 +268,17 @@ export default function SwipeGifts() {
               {savedTo === "planner" && <Button asChild variant="outline"><Link to="/gift-guides/planner" data-swipe-santa-planner="">{W.revealIdeasPlanner}</Link></Button>}
               <Button asChild variant="outline"><Link to={santa.back} data-swipe-santa-back="">{W.santaBack}</Link></Button>
             </div>
-          ) : forName ? (
+          ) : (
             <div className="gg-fun-actions">
               <Button type="button" className="btn-grad-primary" onClick={anotherRound} data-swipe-more="">{W.swipeMore}</Button>
               {savedTo === "planner" && <Button asChild variant="outline"><Link to="/gift-guides/planner" data-swipe-planner="">{W.revealIdeasPlanner}</Link></Button>}
               <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => { setStarted(false); anotherRound(); }} data-swipe-change="">{W.swipeChange}</Button>
             </div>
-          ) : (
-          <div className="gg-fun-actions">
-            <Button type="button" className="btn-grad-primary" onClick={anotherRound} data-swipe-more="">{W.swipeMore}</Button>
-            {listRefs(list).length > 0 && <Button type="button" variant="outline" onClick={() => void shareMine()} data-swipe-share="">{W.swipeShare}</Button>}
-            <Button asChild variant="outline"><Link to={`/gift-guides/${MY_LIST_SLUG}`} data-swipe-list="">{W.swipeSeeList}</Link></Button>
-            <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => { setStarted(false); anotherRound(); }} data-swipe-change="">{W.swipeChange}</Button>
-          </div>
           )}
-          {shareMsg && <p className="gg-fun-err" role="alert">{shareMsg}</p>}
         </section>
       ) : !card ? (
         <div className="gg-fun-card" data-swipe-waiting="">
-          <p className="m-0" role="status">{ready && budget !== null && (pool.length === 0 || makeRound().length === 0) ? W.swipeEmpty : W.swipeLoading}</p>
+          <p className="m-0" role="status">{ready && (santa || budget !== null) && (pool.length === 0 || makeRound().length === 0) ? W.swipeEmpty : W.swipeLoading}</p>
           <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => setStarted(false)}>{W.swipeChange}</Button>
         </div>
       ) : (

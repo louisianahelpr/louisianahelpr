@@ -127,11 +127,43 @@ export interface DownloadProduct {
   guides: string[];
   /** A link under the button (the planner sheet links the online planner; the checklist links Declutter). */
   cta?: { to: string; label: string };
+  /** A store that prints it (the banner: Walgreens posters), opened in a new tab. A plain link, not an affiliate one. */
+  printAt?: { href: string; label: string };
 }
 
 export type Printable = OverlayProduct | DownloadProduct;
 
 export const PRINTABLES_PATH = "/gift-guides/printables" as const;
+
+/**
+ * Each kind of printable is its own page (owner 2026-11-21: "coloring book and banner should have their own page"):
+ * the name makers (gift tags) on /gift-guides/printables/gift-tags, the coloring books and the banners on theirs. The
+ * old /gift-guides/printables address lands on the page its #anchor names (else Gift tags), so old links keep working.
+ */
+export const PRINTABLE_PAGES = [
+  { key: "tags", path: "/gift-guides/printables/gift-tags", label: "Gift tags", oldAnchors: ["pr-tags", "gift-tags", "santa-letter", "thank-you-cards"] },
+  { key: "coloring", path: "/gift-guides/printables/coloring-books", label: "Coloring books", oldAnchors: ["pr-coloring", "coloring-book"] },
+  { key: "banners", path: "/gift-guides/printables/banners", label: "Banners", oldAnchors: ["pr-banners", "thanksgiving-banner"] },
+] as const;
+export type PrintablePageKey = (typeof PRINTABLE_PAGES)[number]["key"];
+export type PrintablePagePath = (typeof PRINTABLE_PAGES)[number]["path"];
+
+/** The page a printable lives on: a name maker on Gift tags, a download on its section's page ("more" on Gift tags). */
+const pageOfPrintable = (p: Printable): PrintablePageKey => (p.kind === "download" && (p.section === "coloring" || p.section === "banners") ? p.section : "tags");
+
+/** The printables shown on one page. */
+export const printablesOnPage = (key: PrintablePageKey, list: Printable[] = PRINTABLES) => shownPrintables(list).filter((p) => pageOfPrintable(p) === key);
+
+/** The page path for a printable (a link to it lands on its page, at its card). */
+export const printablePath = (p: Printable) => `${PRINTABLE_PAGES.find((x) => x.key === pageOfPrintable(p))!.path}#${p.id}`;
+
+/** Where an old /gift-guides/printables#<anchor> link lands now. */
+export const printablesRedirect = (hash: string) => {
+  const anchor = hash.replace(/^#/, "");
+  const page = PRINTABLE_PAGES.find((x) => (x.oldAnchors as readonly string[]).includes(anchor)) ?? PRINTABLE_PAGES[0];
+  const keep = anchor && !anchor.startsWith("pr-") ? `#${anchor}` : "";
+  return `${page.path}${keep}`;
+};
 
 /** Self-hosted name fonts (public/fonts, never loaded from Google). The tag maker declares the two new faces itself. */
 export const NAME_FONTS = [
@@ -169,8 +201,9 @@ export const PRINTABLES: Printable[] = [
     unit: "tag",
     // The owner's Canva tags (src/content/printableTagDesigns.ts).
     designs: OWNER_TAGS,
-    // Holiday audit 1121 #49: the three live guides link the gift tags too (they were only reachable from the menu).
-    guides: ["gift-wrap-and-cards", "her", "him", "kids"],
+    // Owner 2026-11-21 ("remove from her, they already have their own section"): no printables on Her, Him or Kids
+    // (this reverses holiday audit 1121 #49); they live under Free printables in the menu.
+    guides: ["gift-wrap-and-cards"],
   },
   {
     kind: "overlay",
@@ -222,19 +255,28 @@ export const PRINTABLES: Printable[] = [
       { label: "Girls book, 21 pages (free)", href: "/printables/coloring-book/christmas-coloring-book-girls.pdf" },
       { label: "Boys book, 21 pages (free)", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf" },
     ],
-    // Holiday audit 1121 #49: the Kids guide links the coloring books.
-    guides: ["kids"],
+    // Owner 2026-11-21: not linked from Kids (it reversed holiday audit 1121 #49); the Coloring books page has them.
+    guides: [],
   },
   {
     kind: "download",
     id: "thanksgiving-banner",
     section: "banners",
     title: "Happy Thanksgiving banner",
-    blurb: "A 2-to-1 banner to print at Walgreens or any photo counter (a 12 x 24 in print fits it).",
+    // Owner 2026-11-21 (relayed by the lead): Walgreens posters come 11x14, 12x18, 16x20, 20x30 and 24x36 from $12.99
+    // with same-day pickup, and no 12 x 24, so the old "a 12 x 24 in print fits it" was wrong.
+    blurb: "Print it as a 12x18 poster at Walgreens, from about $13, same-day pickup.",
     // Owner 2026-11-21: "add this to the free printables, it's a banner they can print at walgreens" (her Canva design).
     ready: true,
     preview: "/printables/thanksgiving-banner/preview.webp",
-    files: [{ label: "Download the banner (free)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner.jpg" }],
+    // Owner 2026-11-21: "Download the banner (free)" overflowed its button at the card's width; the card's title says what it is.
+    // The 12 x 18 copy is the design untouched on its own white, padded to 3:2 (scripts/printables-banner-12x18.py), so a
+    // Walgreens poster does not crop it; the original 2:1 file stays.
+    files: [
+      { label: "12x18 poster (free)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },
+      { label: "Original 2:1 (free)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner.jpg" },
+    ],
+    printAt: { href: "https://photo.walgreens.com/store/posters", label: "Print at Walgreens" },
     guides: [],
   },
   {
@@ -473,6 +515,10 @@ export const PRINTABLES_WORDS = {
   moreTitle: "More free printables",
   /** Section headings on the page (owner 2026-11-21). */
   sectionTags: "Gift tags",
+  // Each kind's own page (owner 2026-11-21: "coloring book and banner should have their own page").
+  tagsTitle: "Free gift tags",
+  coloringTitle: "Free coloring books",
+  bannersTitle: "Free banners",
   sectionColoring: "Coloring books",
   sectionBanners: "Banners",
   design: "Design",

@@ -16,7 +16,7 @@
  * THE COMPACT TOP (owner 11-14, Depop / Vinted): row 1 is the search again, the bell and the photo inline on its right,
  * the title a visually hidden h1 (src/test/compactTopRow.test.tsx).
  *
- * @mutate src/components/sections/AppTopBar.tsx |             <div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div> | {null}
+ * @mutate src/components/sections/AppTopBar.tsx |             <div data-testid="app-top-bar-search" className="flex min-w-0 shrink-0 justify-end has-[[data-search-open]]:flex-1">{search}</div> | {null}
  * @mutate src/components/sections/AppTopBar.tsx | <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> | <h1 className="sr-only">{title}</h1>
  * @mutate src/components/sections/AppTopBar.tsx |           onClick={() => { if (mine) { setMineAsked(true); setMineOpen(true); } else navigate("/profile"); }} |           onClick={() => navigate("/profile")}
  * @mutate src/components/sections/AppTopBar.tsx |           {mineToDo > 0 && <span data-top-bar-badge="mine" | {false && <span data-top-bar-badge="mine"
@@ -153,9 +153,13 @@ describe("row 1: the search with the bell and the photo inline on its right (the
 });
 
 describe("the Search Declutter bar", () => {
-  it("on Browse it is the field, with Filters inside its right end", () => {
+  it("on Browse it is the icon with Filters beside it; a tap opens the field, with Filters inside its right end", () => {
     const onChange = vi.fn();
     render(<MemoryRouter><SectionSearchBar noun="Declutter" home="/declutter" value="" onChange={onChange} filter={<button type="button">Filters</button>} /></MemoryRouter>);
+    // Owner 11-21: just the icon until tapped.
+    expect(screen.queryByRole("search", { name: "Search Declutter" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Filters" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Search Declutter" }));
     const bar = screen.getByRole("search", { name: "Search Declutter" });
     fireEvent.change(screen.getByRole("searchbox", { name: "Search Declutter" }), { target: { value: "lamp" } });
     expect(onChange).toHaveBeenCalledWith("lamp");

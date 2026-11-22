@@ -40,7 +40,7 @@
 // @mutate e2e/prod-audit/search-keeps-title.spec.ts | name: "messages", file: "src/components/messages/ConversationList.tsx", | name: "messages", file: "src/components/messages/ConversationList.ts",
 // @mutate src/index.css | input[type="search"]::-webkit-search-cancel-button, | input[type="search"]::-webkit-search-cancelled,
 // @mutate src/components/admin/AdminUsers.tsx | aria-label="Clear search" | aria-label="Clear"
-// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: `[data-section-search-bar] ${CLEAR}`,\n    maxWidth: 899,\n  },\n  {\n    // Owner 11-08 | close: `[data-section-search-bar] ${CLEAR}`,\n  },\n  {\n    // Owner 11-08
+// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: `[data-section-search-bar] ${CLOSE}`,\n    maxWidth: 899,\n  },\n  {\n    // Owner 11-08 | close: `[data-section-search-bar] ${CLOSE}`,\n  },\n  {\n    // Owner 11-08
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | field: '[data-section-search-bar] input[aria-label="Search Declutter"]',\n    maxWidth: 899, | field: '[data-section-search-bar] input[aria-label="Search Declutter"]',
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: CLOSE,\n    minWidth: 900,\n    maxWidth: 1139, | close: CLOSE,\n    minWidth: 900,
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | if ((vw === BAND_VW) !== bandOnly(s)) continue; | if (vw === BAND_VW && !bandOnly(s)) continue;
@@ -252,7 +252,11 @@ describe("every search field is driven in a real browser (inventory minus checke
     // "Clear search" ✕.
     // 2026-11-18 (owner): +1, the gift guides' search (GiftGuideShare's tool row since the 11-18 PM redesign, on NO_X).
     // 2026-11-21 (owner): +1, the Gift planner's "Search gifts" in its From our guides picker (GuidePicksPicker, on NO_X).
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(20);
+    // 2026-11-21 (owner pop-up, search is just the icon): +1, Find a Helpr's town field (FindHelprs), now type="search"
+    // and opened from its magnifier, with a "Close search" ✕. Every icon-first field's ✕ became "Close search".
+    // 2026-11-21 (owner, holiday fixes 1121d): +1, the Holiday Hub's "Search lights and events" (HolidayHub), opened from
+    // its plain magnifier, with a "Close search" ✕.
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(22);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
@@ -268,8 +272,10 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/sections/InlineListSearch.tsx",
       "src/components/sections/SectionSearchBar.tsx",
       "src/components/sections/SectionSearchRow.tsx",
+      "src/pages/helprs/FindHelprs.tsx",
       "src/pages/info/HelpCenter.tsx",
       "src/pages/info/Legal.tsx",
+      "src/pages/info/holidays/HolidayHub.tsx",
       "src/pages/search/SearchPage.tsx",
     ]);
     expect(EXPANDING_CALLERS).toEqual([
@@ -337,14 +343,22 @@ describe("every search field is driven in a real browser (inventory minus checke
   });
 
   // Six before Q913; four since Q2205 (PostsHeader / JobsHeader left with the old My Posts / My Jobs pages);
-  // five since 2026-10-27 (Jobs > Posted / Working's search opens in place: InlineListSearch).
-  it("the opening searches are exactly these five (a permanent field is not one)", () => {
+  // five since 2026-10-27 (Jobs > Posted / Working's search opens in place: InlineListSearch); ten since owner 11-21
+  // (search is just the icon): the section bar and row, the inbox row, Help and Find a Helpr open from a magnifier;
+  // eleven with the Holiday Hub's search icon (holiday fixes 1121d).
+  it("the opening searches are exactly these eleven (a permanent field is not one)", () => {
     expect(OPENING_X_FILES).toEqual([
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
+      "src/components/messages/MessagesSearchRow.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
       "src/components/sections/InlineListSearch.tsx",
+      "src/components/sections/SectionSearchBar.tsx",
+      "src/components/sections/SectionSearchRow.tsx",
+      "src/pages/helprs/FindHelprs.tsx",
+      "src/pages/info/HelpCenter.tsx",
       "src/pages/info/Legal.tsx",
+      "src/pages/info/holidays/HolidayHub.tsx",
     ]);
   });
 

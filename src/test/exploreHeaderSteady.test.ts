@@ -107,9 +107,11 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
   // instead (still the page's one h1); every other bar keeps the visible title, Dashboard's `search={null}` included.
   // F148 (11-09) split them into two rows; the compact top (owner 11-14) made the search the bar's one row again, with the
   // bell and the photo inline on its right (src/test/compactTopRow.test.tsx).
-  it("3. on a phone a bar with a search is ONE row (hidden h1, the search, the bell and the photo); a bar without one shows its visible title; no chips row", () => {
+  it("3. on a phone a bar with a search is ONE row (the visible title until the search opens, the search icon, the bell and the photo; an opened field takes the row); a bar without one shows its visible title; no chips row", () => {
     const bar = code("src/components/sections/AppTopBar.tsx");
-    expect(bar).toMatch(/<header className=\{COMPACT_TOP_ROW\}[^>]*>\s*\{title && <h1 className="sr-only">\{title\}<\/h1>\}\s*\{backEl\}\s*<div data-testid="app-top-bar-search" className="min-w-0 flex-1">\{search\}<\/div>/);
+    // Owner 11-21 (search is just the icon): the title is visible (flex-1) and turns reader-only only while the row
+    // holds an opened field; the search slot grows only then.
+    expect(bar).toMatch(/<header className=\{`\$\{COMPACT_TOP_ROW\} group\/top`\}[^>]*>\s*\{backEl\}\s*(?:\{\s*\}\s*)?\{title \? \(\s*<h1 data-top-bar-title="" className="min-w-0 flex-1 truncate text-page-title text-foreground group-has-\[\[data-search-open\]\]\/top:!sr-only" title=\{title\}>\{title\}<\/h1>\s*\) : \([\s\S]{0,200}?\)\}\s*<div data-testid="app-top-bar-search" className="flex min-w-0 shrink-0 justify-end has-\[\[data-search-open\]\]:flex-1">\{search\}<\/div>/);
     // The visible title is drawn once (titleEl), alone or after the guest's back arrow (owner 11-21).
     expect(bar).toContain('const titleEl = title ? <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> : null;');
     expect(bar).toMatch(/<header className=\{TITLE_TOP_ROW\}[^>]*>\s*\{titleEl && backEl \? \([\s\S]{0,200}?\) : titleEl \?\? \(/);

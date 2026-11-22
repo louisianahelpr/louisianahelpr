@@ -90,9 +90,13 @@ function PhoneHeaderBones() {
         <span className="flex-1 flex items-center justify-center"><Skeleton className="h-3.5 w-20 rounded-full" /></span>
         <span className="flex-1 flex items-center justify-center"><Skeleton className="h-3.5 w-24 rounded-full" /></span>
       </div>
-      {/* The search row, under the tabs (ConversationList: pt-2, then MessagesSearchRow's h-11 pill and pb-1.5). */}
+      {/* The search row, under the tabs (ConversationList: pt-2, then MessagesSearchRow's h-11 row and pb-1.5). Search is
+          just the icon (owner 11-21): the closed row is the magnifier and the "more" menu, right-aligned. */}
       <div className="shrink-0 pt-2 pb-1.5" data-testid="messages-skeleton-search" aria-hidden>
-        <Skeleton className="h-11 w-full rounded-full" />
+        <div className="flex h-11 items-center justify-end gap-1">
+          <ControlBone />
+          <ControlBone />
+        </div>
       </div>
       <ChipBones />
     </>

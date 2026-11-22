@@ -73,6 +73,9 @@ describe("/help search (F034)", () => {
 
   it("the page: typing opens only the matching topics with their matches; no match says so; clear brings all back", () => {
     const { container } = renderHelp();
+    // Owner 11-21: the search starts as the icon by the title; the tap opens the field.
+    expect(screen.queryByRole("searchbox", { name: "Search help" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Search help" }));
     const box = screen.getByRole("searchbox", { name: "Search help" });
     const topicsAll = container.querySelectorAll("#faq [aria-controls^='faq-panel-']").length;
     expect(topicsAll).toBeGreaterThan(3);
@@ -83,8 +86,11 @@ describe("/help search (F034)", () => {
     for (const t of shown) expect(t.getAttribute("aria-expanded")).toBe("true");
     fireEvent.change(box, { target: { value: "zzqxnotaword" } });
     expect(container.querySelector("[data-help-no-match]")?.textContent).toMatch(/No answers match/);
-    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    // The X closes the search: the words go, every topic comes back, and the field folds into the icon.
+    fireEvent.click(screen.getByRole("button", { name: "Close search" }));
     expect(container.querySelectorAll("#faq [aria-controls^='faq-panel-']").length).toBe(topicsAll);
+    expect(screen.queryByRole("searchbox", { name: "Search help" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Search help" })).toBeTruthy();
   });
 });
 
@@ -349,6 +355,7 @@ describe("/help Common problems (F411)", () => {
     fireEvent.click(cards[1]);
     expect(container.querySelectorAll("[id^='help-problem-'] li")).toHaveLength(0);
 
+    fireEvent.click(screen.getByRole("button", { name: "Search help" }));
     fireEvent.change(screen.getByRole("searchbox", { name: "Search help" }), { target: { value: "refund" } });
     expect(container.querySelector("[data-help-common-problems]")).toBeNull();
   });

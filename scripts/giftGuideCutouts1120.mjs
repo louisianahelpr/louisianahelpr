@@ -149,6 +149,48 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/uploads/346f926f-f41b-444e-b686-921455d30264_74A53B12-D898-44DD-8ADB-BBB0CD895907.jpg", "lola-blankets-original-throw-green-ac1ca0.webp"],
   // COMMISSION SWITCHES 11-21 (same item, better-paying store; scripts/giftGuideHer1121.mjs, scripts/giftGuideHimKids1121.mjs).
   // Each photo is from the new store's own product page (never Amazon's), Apple Vision cutout, checked on red.
+  // XTRATUF Men's Ankle Deck Boot, Chocolate/Tan, style 22734 (xtratuf.com grey-backdrop main photo; Him, switched from Amazon 11-21)
+  ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/22734_gray_main_720x720_4234e2d7-b576-4907-bb67-594af369ef72.jpg", "xtratuf-ankle-deck-boot-chocolate-tan-595c49.webp"],
+  // RATE SWITCHES 11-21 night (Commission-rates-search-1121-night.md): the new store's own photo, Apple Vision cutout unless noted.
+  // Keys drop the query (cutoutPhoto matches on the URL before "?"); each was fetched at its size query (wid=1000 / w=1000 / fmt=png).
+  ["https://media.tractorsupply.com/is/image/TractorSupplyCompany/6017105", "segway-ninebot-s2-black-f9ce47.webp"],
+  ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMABMOB_gray_main_720x720_d16b4d27-7fc1-4833-a83f-06939c86fdb4.jpg", "xtratuf-mossy-oak-bottomland-ankle-deck-boot-73b7f0.webp"],
+  ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMW900_gray_main_1400x1400_52c3f283-fa90-4227-8a07-ddfdcbc1acc6.jpg", "xtratuf-wheelhouse-ankle-deck-boot-brown-dee391.webp"],
+  ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/xmadbc90_g.jpg", "xtratuf-fleece-lined-ankle-deck-boot-bison-duck-camo-794d85.webp"],
+  ["https://media.jdsports.com/i/jdsports/NF0A8CHE_001_P3", "the-north-face-box-cuffed-beanie-black-a154ca.webp"],
+  ["https://cdn.shopify.com/s/files/1/0917/5998/files/TH-CDC_Flatlay.jpg", "burlebo-thermal-hoodie-classic-deer-camo-a4b143.webp"],
+  ["https://cdn.shopify.com/s/files/1/0618/7116/1562/files/850073050828_1.png", "salt-stone-saffron-cedar-body-mist-6ca5e7.webp"],
+  // Ulta's photo is already transparent: its own alpha, cropped (a Vision pass cut the printed gift box away).
+  ["https://media.ulta.com/i/ulta/2661577", "loccitane-softening-almond-trio-ec34ec.webp"],
+  // NIGHT LINKS 11-21 (Commission-links-1121-night.md): each the new store's own photo (or yeti.com's), transparent PNG or Apple Vision.
+  // YETI Tundra 45, Olive/King Crab Orange (yeti.com)
+  ["https://yeti-webmedia.imgix.net/asset/5a5ec195-f5d7-414f-b324-0e95c378c9a5/W/Site_Studio_Hard_Coolers_Tundra_45_2026_Hunt_Front_070_B_2400x2400.png", "yeti-tundra-45-olive-king-crab-bf4a1b.webp"],
+  // YETI LoadOut GoBox 60, King Crab Orange (yeti.com)
+  ["https://yeti-webmedia.imgix.net/asset/6d2ff9b9-6fa5-48cd-b4d5-09f7576bc754/W/220027_site_studio_Loadout_GoBox_60_King_Crab_Front_Closed_1182_Primary_B_2400x2400.png", "yeti-loadout-gobox-60-king-crab-91286e.webp"],
+  // YETI LoadOut GoBox 30, King Crab Orange (yeti.com)
+  ["https://yeti-webmedia.imgix.net/asset/97d8ceab-2ea8-4e68-ab47-72162d713c1b/W/220027_site_studio_Loadout_GoBox_30_King_Crab_Front_Closed_1202_Primary_B_2400x2400.png", "yeti-loadout-gobox-30-king-crab-604de5.webp"],
+  // YETI Panga 100L Duffel, Tan (yeti.com)
+  ["https://yeti-webmedia.imgix.net/asset/24be88ce-af77-44b9-adb1-37a72dd2c382/W/site_studio_Panga_100L_Duffel_Tan_Front_0227_Primary_B_2400x2400.png", "yeti-panga-100-tan-c4cffa.webp"],
+  // YETI Crossroads 22in Luggage, Olive (yeti.com)
+  ["https://yeti-webmedia.imgix.net/m/5334b4066c200f9/W-site_studio_Bags_22_Luggage_Olive_Front_00115_Primary_B_2400x2400.png", "yeti-crossroads-22-luggage-olive-d1a73e.webp"],
+  // YETI Crossroads 60L Duffel, Cape Taupe (yeti.com)
+  ["https://yeti-webmedia.imgix.net/asset/9d27db5c-7b05-4219-83e0-e35ee2c57234/W/site_studio_soft_goods_Bags_60L_Duffel_Cape_Taupe_Front_00011_Primary_B_2400x2400.png", "yeti-crossroads-60l-duffel-cape-taupe-17358e.webp"],
+  // YETI Sidekick Dry 3L, Olive (yeti.com)
+  ["https://yeti-webmedia.imgix.net/asset/74b4454a-9c99-4b8b-9967-8eff2a9793a1/W/site_studio_Bags_Sidekick_Dry_3L_Olive_Front_3657_Primary_B_2400x2400.png", "yeti-sidekick-dry-3l-olive-967bea.webp"],
+  // YETI Rambler 20 oz, Upland Bird (yeti.com)
+  ["https://yeti-webmedia.imgix.net/asset/31f78bf9-5319-4ef1-9e33-be99bb82a8c6/W/Site_Studio_Drinkware_Rambler_Tumbler_20oz_Upland_Bird_Front_1256_B_2400x2400.png", "yeti-rambler-20-upland-bird-2737f6.webp"],
+  // YETI Rambler 12 oz Colster, Olive/King Crab Orange (yeti.com)
+  ["https://yeti-webmedia.imgix.net/asset/d8bd6d31-2b1e-42b9-b993-7604c58d92c1/W/Site_Studio_Drinkware_Rambler_Colster_2-0_12oz_2026_Hunt_Front_480_B_2400x2400.png", "yeti-rambler-colster-12-olive-king-crab-d48dfe.webp"],
+  // YETI Hopper Flip 12, Wetlands Camo (Tractor Supply item 2580429)
+  ["https://media.tractorsupply.com/is/image/TractorSupplyCompany/2580429", "yeti-hopper-flip-12-wetlands-camo-66d31d.webp"],
+  // YETI Roadie 15, Wetlands Camo (Tractor Supply item 2581814)
+  ["https://media.tractorsupply.com/is/image/TractorSupplyCompany/2581814", "yeti-roadie-15-wetlands-camo-1a27dd.webp"],
+  // Turtlebox Gen 3, Tan (onwardreserve.com)
+  ["https://cdn.shopify.com/s/files/1/2117/2759/files/tan_59e105ca-50c6-4429-9dcb-6465e0c50aea.jpg", "turtlebox-gen-3-tan-cf0e32.webp"],
+  // YETI Roadie 32 Wheeled Cooler, Navy (yeti.com; the link goes to L.L.Bean)
+  ["https://yeti-webmedia.imgix.net/asset/79f95551-0ac4-4ec6-a3d9-fc879fd507ca/W/site_studio_hard_goods_Roadie_32_Navy_3QTER_Basket_4248_Primary_B_2400x2400.png", "yeti-roadie-32-navy-d2c9d8.webp"],
+  // Crocs Dylan Platform Clog, Sepia (crocs.com transparent product photo)
+  ["https://media.crocs.com/images/t_standard/products/209869_2EY_ALT140-Transparent/crocs", "crocs-dylan-platform-clog-sepia-03b684.webp"],
   // TATCHA The Kissu Lip Mask (tatcha.com main photo)
   ["https://cdn.shopify.com/s/files/1/0949/3328/7221/files/TheKissuLipMask-pdp-Aug26-Omi-FullSize-MainImage-1200x1200.jpg", "tatcha-kissu-lip-mask-306203.webp"],
   // L'OCCITANE Shea Butter Classics Gift Set (anthropologie.com boxed-set photo, reflection left out)

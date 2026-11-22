@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS as W, smallBizDay, smallBizFeatured, smallBizTitle, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { loadModule, untilReload } from "@/lib/loadModule";
@@ -65,11 +64,10 @@ function SmallBizCard({ b, compact = false }: { b: SmallBiz; compact?: boolean }
         {b.gift && <p className="gg-sb-text" data-gift-sb-gift=""><b>{W.giftLabel}</b> {b.gift}</p>}
         {b.href && (
           <span className="gg-sb-links">
-            <Button asChild variant="outline" size="sm" className="gg-sb-visit">
-              <Out href={b.href}>
-                {W.visit}<span className="sr-only"> {b.name} ({G.newTab})</span>
-              </Out>
-            </Button>
+            {/* A plain text link (owner 2026-11-21: "remove the circle around visit"). */}
+            <Out href={b.href} className="gg-sb-visit">
+              {W.visit}<span aria-hidden="true">&nbsp;›</span><span className="sr-only"> {b.name} ({G.newTab})</span>
+            </Out>
             {!compact && b.website && b.href !== b.website && <Out href={b.website} className="gg-link">{W.website}</Out>}
             {!compact && b.facebook && b.href !== b.facebook && <Out href={b.facebook} className="gg-link" label={`${b.name} on ${W.facebook} (${G.newTab})`}>{W.facebook}</Out>}
             {!compact && b.instagram && b.href !== b.instagram && <Out href={b.instagram} className="gg-link" label={`${b.name} on ${W.instagram} (${G.newTab})`}>{W.instagram}</Out>}

@@ -102,6 +102,9 @@ const NOT_PROCESSORS = [
   // sites (src/content/giftGuides.ts); no data is sent to them. The product photos load from ShopMy's and the brands'
   // image hosts the way any linked image does; nothing of the member's is passed.
   "shopmy.us", "walmrt.us", "mavely.app.link", "www.pinterest.com", "www.zchocolat.com", "www.diecastmodelswholesale.com", "cdn11.bigcommerce.com",
+  // A link only: the free Thanksgiving banner's "Print at Walgreens" opens Walgreens' poster page in a new tab
+  // (src/content/printables.ts, owner 2026-11-21); no data is sent.
+  "photo.walgreens.com",
 ];
 
 // The gift guides' catalog (owner 2026-11-16..18, 25 Days sponsors and picks): every store, sponsor and image host in

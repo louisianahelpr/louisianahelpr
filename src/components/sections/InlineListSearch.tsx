@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Search, X } from "lucide-react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { SearchIconButton } from "@/components/ui/SearchIconButton";
 import { DESKTOP_SEARCH_PILL_SURFACE, DESKTOP_SEARCH_PILL_WIDTH } from "./searchPill";
 
 /**
@@ -72,20 +73,8 @@ export function InlineListSearch({ value, onChange, label, onOpenChange, fill = 
   };
 
   if (!open) {
-    return (
-      <button
-        ref={triggerRef}
-        type="button"
-        data-jobs-search=""
-        aria-label={label}
-        title={label}
-        aria-expanded={false}
-        onClick={() => setOpen(true)}
-        className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-ds-md btn-press text-muted-foreground ctl-tint hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-      >
-        <Search className="w-5 h-5" aria-hidden />
-      </button>
-    );
+    // The shared magnifier (owner 11-21: search is just the icon everywhere); same 40px ghost square as before.
+    return <SearchIconButton ref={triggerRef} data-jobs-search="" label={label} onClick={() => setOpen(true)} />;
   }
 
   return (

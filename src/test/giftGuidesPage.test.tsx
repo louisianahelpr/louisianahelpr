@@ -29,7 +29,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
  * @mutate src/pages/info/GiftGuides.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
- * @mutate src/pages/info/GiftGuides.tsx | {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />} | {footer}{deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
+ * @mutate src/pages/info/GiftGuides.tsx | {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />} | {footer}{deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   { slug: "him", dot: "green" }, |   { slug: "him", dot: "red" },
@@ -59,7 +59,6 @@
  * @mutate src/content/giftGuideCatalog.ts |     if (g.empty \|\| g.thin) return false; |     if (false) return false;
  * @mutate src/content/giftGuideCatalog.ts | picks: HAS_CHUNK.has(t) ? d.picks : uniqueByHref([...d.picks, ...src.picks]) | picks: HAS_CHUNK.has(t) ? d.picks : [...d.picks, ...src.picks, ...src.picks]
  * @mutate src/content/giftGuides.ts | codes.filter((c) => (!c.expires \|\| c.expires >= today) && | codes.filter((c) => (today === today) &&
- * @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx |   if (codes.length === 0) return null; |   if (codes.length === 0) return <details data-gift-codes="" />;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {!guide.children && guide.picks.length === 0 && ( | {false && (
  * @mutate src/content/giftGuideCatalog.ts | export const REMOVED_GUIDES = ["last-minute-gifts", | export const REMOVED_GUIDES = ["nothing",
  * @mutate src/pages/info/GiftGuides.tsx | : guide.lead} title={guide.title} titleId="gift-guide-title" | : guide.lead} title={guide.slug} titleId="gift-guide-title"
@@ -90,7 +89,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 import GiftGuides from "@/pages/info/GiftGuides";
 import { GiftGuidesBand, GIFT_GUIDES_PATH } from "@/components/landing/GiftGuidesBand";
 import { giftGuides, AFFILIATE_HOSTS, BRAND_SITES, LOUISIANA_SHOPS, SPONSOR_SITES, NATIONAL_SPONSOR_SITES, SHOPMY_COLLECTIONS, discountCodes } from "@/content/giftGuides";
-import { SalesList, liveSales } from "@/pages/info/giftGuides/GiftGuideDealsAndCodes";
+import { SaleCards, liveSales } from "@/pages/info/giftGuides/GiftGuideDealCards";
 import { GIFT_WRAP_JOB_PATH } from "@/pages/info/giftGuides/GiftGuideHelpr";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
@@ -105,7 +104,8 @@ import { RETIRED_SLUGS, newSlugFor } from "@/content/giftGuideCatalog";
 import { CHUNK_PICK_COUNTS, SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { DEAL_DAY_SLUGS, DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
 // The fun pages (owner 2026-11-20: swipe, planner, the Secret Santa drawer) are own pages too: in the sitemap, no guide.
-const OWN_PAGES = [...DEAL_DAY_SLUGS, "swipe", "planner", "draw-names", "printables"];
+// Owner 2026-11-21: the printables are three pages (the old /gift-guides/printables address forwards to them).
+const OWN_PAGES = [...DEAL_DAY_SLUGS, "swipe", "planner", "draw-names", "printables/gift-tags", "printables/coloring-books", "printables/banners"];
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuidePageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
@@ -168,7 +168,7 @@ describe("gift guides: one header on every page (owner 11-21)", () => {
   // centered "top-rated finds / Holiday Gift Guides" block is gone.
   // Owner 11-21 (later): "all of this should be on the same row": the back arrow + title, the pill and the tools are ONE
   // row the page draws (one line from 768px up; a phone wraps it).
-  // @mutate src/pages/info/GiftGuides.tsx | {banner ? <p className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</p> : <h1 | {banner ? <h1 className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</h1> : <h1
+  // @mutate src/pages/info/GiftGuides.tsx | <GuidesHeadRow backTo={backTo} titleIsH1={!banner} | <GuidesHeadRow backTo={backTo} titleIsH1
   // @mutate src/pages/info/GiftGuides.tsx |           {shipPill}\n |           {null}\n
   // @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (min-width:768px){.gg-head-title{flex:0 0 auto}.gg-headrow{flex-wrap:nowrap} | @media (min-width:768px){.gg-head-title{flex:1 1 100%}.gg-headrow{flex-wrap:wrap}
   it("one header row: back arrow + 'Holiday gift guides', the pill and the tools; no second title", () => {
@@ -618,10 +618,10 @@ describe("gift guides: links and disclosures on every view", () => {
           if (href === GIFT_WRAP_JOB_PATH) continue;
           // The menu's Louisiana Holiday Hub entry (owner 11-21: moved from the landing's card to the left panel), and only that.
           if (href === "/holidays" && a.hasAttribute("data-gift-side-holiday-hub")) continue;
-          // ... and its Shop Small entry (owner 11-21: the LOUISIANA group).
-          if (href === "/shop-small" && a.hasAttribute("data-gift-side-shop-small")) continue;
+          // The menu's printables entries open one part of that page at its top (owner 11-21: "not the middle").
+          if (/^\/gift-guides\/printables\?show=(tags|coloring|banners)$/.test(href) && a.hasAttribute("data-gift-side-printables")) continue;
           // 1120: a merged guide's section link carries its anchor ("/gift-guides/girls#girls-babies").
-          expect(href, url).toMatch(/^\/gift-guides(?:\/[a-z0-9-]+(?:#[a-z0-9-]+)?|\?group=[a-z-]+(?:#[a-z-]+)?|\?list=mine|#[a-z0-9-]+)?$/);
+          expect(href, url).toMatch(/^\/gift-guides(?:\/[a-z0-9-]+(?:#[a-z0-9-]+)?|\/printables\/(?:gift-tags|coloring-books|banners)(?:#[a-z0-9-]+)?|\?group=[a-z-]+(?:#[a-z-]+)?|\?list=mine|#[a-z0-9-]+)?$/);
           continue;
         }
         outbound += 1;
@@ -718,7 +718,13 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     const rewrites = (JSON.parse(readFileSync("vercel.json", "utf8")) as { rewrites: { source: string; destination: string }[] }).rewrites;
     expect(rewrites.filter((x) => x.source.startsWith("/gift-guides"))).toEqual([
       { source: "/gift-guides", destination: "/api/share?_og=page&_id=gift-guides" },
+      // The old one-page printables address only forwards (owner 2026-11-21: each kind its own page): noindex, its own head.
+      { source: "/gift-guides/printables", destination: "/api/share?_og=noindex&_id=gift-guides/printables" },
       { source: "/gift-guides/:slug", destination: "/api/share?_og=page&_id=gift-guides/:slug" },
+      // Each printables page (owner 2026-11-21): its own head and share card, then the SPA entry.
+      { source: "/gift-guides/printables/gift-tags", destination: "/api/share?_og=page&_id=gift-guides/printables/gift-tags" },
+      { source: "/gift-guides/printables/coloring-books", destination: "/api/share?_og=page&_id=gift-guides/printables/coloring-books" },
+      { source: "/gift-guides/printables/banners", destination: "/api/share?_og=page&_id=gift-guides/printables/banners" },
       { source: "/gift-guides", destination: "/index.html" },
       { source: "/gift-guides/:slug", destination: "/index.html" },
       // A shared wish list (owner 2026-11-20): its own noindex link card (api/share metaForWishList), before the not-found catch-all.
@@ -731,6 +737,9 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
       { source: "/gift-guides/swipe", destination: "/index.html" },
       { source: "/gift-guides/planner", destination: "/index.html" },
       { source: "/gift-guides/printables", destination: "/index.html" },
+      { source: "/gift-guides/printables/gift-tags", destination: "/index.html" },
+      { source: "/gift-guides/printables/coloring-books", destination: "/index.html" },
+      { source: "/gift-guides/printables/banners", destination: "/index.html" },
       // Holiday audit C (2026-11-20): a reveal link gets its own noindex preview card (api/share metaForSanta) first.
       { source: "/gift-guides/secret-santa/:code/:token", destination: "/api/share?_og=santa&_code=:code&_tok=:token" },
       { source: "/gift-guides/secret-santa/:code/:token", destination: "/index.html" },
@@ -744,6 +753,10 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     render(<MemoryRouter><GiftGuidesBand /></MemoryRouter>);
     expect(GIFT_GUIDES_PATH).toBe("/gift-guides");
     expect(screen.getByTestId("landing-gift-guides-link").getAttribute("href")).toBe("/gift-guides");
+    // Holiday audit 1121 #31: the band names only the live guides (Her, Him, Kids), never the retired home or
+    // Louisiana-made ones, should it come back.
+    // @mutate src/components/landing/GiftGuidesBand.tsx | "Gift ideas for her, for him and for the kids." | "Gift ideas for her, for him, for the kids and for the home, plus Louisiana-made favorites."
+    expect(screen.getByTestId("landing-gift-guides").textContent).not.toMatch(/home|Louisiana-made/);
     expect(sponsorPage.links.giftGuides).toBe("/gift-guides");
   });
 });
@@ -827,14 +840,15 @@ describe("gift guides: design audit round 2 UI fixes", () => {
     expect(checked).toBeGreaterThan(20);
   });
 
-  // @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx |   return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href))); |   return sales.filter((x) => x.ends >= today);
-  it("#10 Sales: one line per link, the first 12, then See all sales", () => {
+  // @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href))); |   return sales.filter((x) => x.ends >= today);
+  it("#10 Sales: one line per link; a store's card shows two sales, then +N more opens the rest", () => {
     const dup = { slug: "store-walmart", store: "Walmart", offer: "x", href: "https://walmrt.us/x", ends: "2099-01-01" };
     expect(liveSales([dup, { ...dup }], "2026-11-18")).toHaveLength(1);
     const many = Array.from({ length: 20 }, (_, i) => ({ ...dup, href: `https://walmrt.us/${i}` }));
-    const c = render(<MemoryRouter><SalesList sales={many} /></MemoryRouter>).container;
-    expect(c.querySelectorAll("[data-gift-sale]").length).toBe(12);
-    fireEvent.click(c.querySelector("[data-gift-all-sales]")!);
+    const c = render(<MemoryRouter><SaleCards stores={[{ store: "Walmart", sales: many }]} /></MemoryRouter>).container;
+    expect(c.querySelectorAll("[data-gift-sale-store]").length).toBe(1);
+    expect(c.querySelectorAll("[data-gift-sale]").length).toBe(2);
+    fireEvent.click(c.querySelector("[data-gift-sale-more]")!);
     expect(c.querySelectorAll("[data-gift-sale]").length).toBe(20);
   });
 

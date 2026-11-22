@@ -34,13 +34,14 @@ import {
   fitLine,
   isShown,
   printablesForGuide,
+  printablesRedirect,
   sheetPages,
   sheetSlots,
   shownPrintables,
   type DownloadProduct,
   type OverlayProduct,
 } from "@/content/printables";
-import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import NameMaker from "@/pages/info/giftGuides/printables/NameMaker";
 import Printables from "@/pages/info/giftGuides/printables/Printables";
 import { PrintablesLink } from "@/pages/info/giftGuides/printables/PrintablesLink";
@@ -224,32 +225,50 @@ describe("the maker and the page", () => {
     await waitFor(() => expect(root.querySelectorAll("[data-printable-item]").length).toBe(1));
   });
 
-  it("the page shows the shown makers and no hidden card; the guides link only shown printables", () => {
-    render(<MemoryRouter><Printables /></MemoryRouter>);
-    const cards = [...document.querySelectorAll("[data-printable-card]")].map((c) => c.getAttribute("data-printable-card"));
-    // Holiday audit 1121 area 5 #6: one live maker draws no one-option picker card (and no second "Gift tags" heading);
-    // its section still answers /gift-guides/printables#gift-tags.
-    expect(cards).toEqual(["coloring-book", "thanksgiving-banner"]);
+  it("each kind is its own page showing only its own printables; the guides link only shown printables", () => {
+    // Owner 2026-11-21: "coloring book and banner should have their own page".
+    const at = (path: string) => render(<MemoryRouter initialEntries={[path]}><Printables /></MemoryRouter>);
+    const cards = () => [...document.querySelectorAll("[data-printable-card]")].map((c) => c.getAttribute("data-printable-card"));
+    at("/gift-guides/printables/gift-tags");
+    // Holiday audit 1121 area 5 #6: one live maker draws no one-option picker card.
+    expect(cards()).toEqual([]);
     expect(document.querySelector("[role=radiogroup]")).toBeNull();
     expect(document.getElementById("gift-tags")?.getAttribute("aria-label")).toMatch(/Gift tags with names/);
-    expect([...document.querySelectorAll("h2")].filter((h) => /gift tags/i.test(h.textContent ?? "")).length).toBe(1);
-    // Owner 2026-11-21: tags, coloring books and banners each sit under their own heading, in that order.
-    const heads = [...document.querySelectorAll("h2.pr-section")].map((h) => h.textContent);
-    expect(heads).toEqual(["Gift tags", "Coloring books", "Banners"]);
-    expect(document.querySelector("#pr-coloring")!.closest("section")!.querySelector('[data-printable-card="coloring-book"]')).not.toBeNull();
-    expect(document.querySelector("#pr-banners")!.closest("section")!.querySelector('[data-printable-card="thanksgiving-banner"]')).not.toBeNull();
+    act(() => cleanup());
+    at("/gift-guides/printables/coloring-books");
+    expect(cards()).toEqual(["coloring-book"]);
+    expect(document.getElementById("gift-tags")).toBeNull();
+    act(() => cleanup());
+    at("/gift-guides/printables/banners");
+    expect(cards()).toEqual(["thanksgiving-banner"]);
+    expect(document.getElementById("gift-tags")).toBeNull();
     act(() => cleanup());
     expect(printablesForGuide("gift-wrap-and-cards").map((p) => p.id)).toEqual(["gift-tags"]);
     expect(printablesForGuide("educators")).toEqual([]);
     render(<MemoryRouter><PrintablesLink slug="gift-wrap-and-cards" /><PrintablesLink slug="educators" /></MemoryRouter>);
-    expect([...document.querySelectorAll("[data-gift-printable-link]")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/printables#gift-tags"]);
+    expect([...document.querySelectorAll("[data-gift-printable-link]")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/printables/gift-tags#gift-tags"]);
   });
 
-  it("the head names the search it is for", () => {
-    const m = PUBLIC_PAGE_META["/gift-guides/printables"];
-    // Holiday audit 1121 area 5 #9: the page holds coloring books and a banner too.
+  it("the old /gift-guides/printables address lands on the page its #anchor names, else Gift tags", () => {
+    expect(printablesRedirect("")).toBe("/gift-guides/printables/gift-tags");
+    expect(printablesRedirect("#pr-coloring")).toBe("/gift-guides/printables/coloring-books");
+    expect(printablesRedirect("#coloring-book")).toBe("/gift-guides/printables/coloring-books#coloring-book");
+    expect(printablesRedirect("#pr-banners")).toBe("/gift-guides/printables/banners");
+    expect(printablesRedirect("#gift-tags")).toBe("/gift-guides/printables/gift-tags#gift-tags");
+    expect(printablesRedirect("#gift-planner-sheet")).toBe("/gift-guides/printables/gift-tags#gift-planner-sheet");
+    render(<MemoryRouter initialEntries={["/gift-guides/printables#pr-banners"]}><Printables /></MemoryRouter>);
+    expect([...document.querySelectorAll("[data-printable-card]")].map((c) => c.getAttribute("data-printable-card"))).toEqual(["thanksgiving-banner"]);
+  });
+
+  it("each printables page has its own head, and the old address keeps its own", () => {
+    for (const [path, word] of [["/gift-guides/printables/gift-tags", "gift tags"], ["/gift-guides/printables/coloring-books", "coloring books"], ["/gift-guides/printables/banners", "banner"]] as const) {
+      const p = PUBLIC_PAGE_META[path];
+      expect(p.title.toLowerCase(), path).toContain(word);
+      expect(p.canonical, path).toBe(`https://www.louisianahelpr.com${path}`);
+    }
+    // The old address only forwards (owner 11-21: each kind its own page): out of the sitemap, noindex, its own head.
+    const m = NOINDEX_PAGE_META["/gift-guides/printables"];
     expect(m.title.toLowerCase()).toContain("free holiday printables");
-    for (const w of ["gift tags", "coloring books"]) expect(m.title.toLowerCase()).toContain(w);
     expect(m.description.toLowerCase()).toContain("coloring books");
     expect(m.canonical).toBe("https://www.louisianahelpr.com/gift-guides/printables");
   });
@@ -258,14 +277,15 @@ describe("the maker and the page", () => {
 /**
  * Holiday audit 1121 area 5 (#6, #9, #11, #12, #21) on /gift-guides/printables (page counts measured 2026-11-21).
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx |         {makers.length > 1 && ( |         {makers.length > 0 && (
- * @mutate src/lib/publicPageMeta.mjs |     title: "Free holiday printables: gift tags, coloring books and more — Helpr", |     title: "Free printable Christmas gift tags with names — Helpr",
+ * @mutate src/lib/publicPageMeta.mjs |     title: "Free holiday printables — Helpr", |     title: "Free printable gift tags — Helpr",
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;border:1px solid var(--gg-line)} | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
  * @mutate src/content/printables.ts |     previews: ["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"], |
  * @mutate src/content/printables.ts |       { label: "Boys book, 21 pages (free)", |       { label: "Boys book (free)",
  */
+// Page counts measured 2026-11-21 from the PDFs' own page trees (the test below re-reads them).
 describe("printables audit 1121 area 5: previews, covers, page counts", () => {
   it("previews sit with no drop shadow (owner rule: no box behind a photo)", () => {
-    render(<MemoryRouter><Printables /></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/gift-guides/printables/coloring-books"]}><Printables /></MemoryRouter>);
     const css = [...document.querySelectorAll("style")].map((s) => s.textContent ?? "").join("\n");
     const rule = (sel: string) => new RegExp(`${sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\{[^}]*\\}`).exec(css)?.[0] ?? "";
     expect(rule(".pr-card-img").length).toBeGreaterThan(10);
@@ -273,7 +293,7 @@ describe("printables audit 1121 area 5: previews, covers, page counts", () => {
   });
 
   it("the coloring book card shows both covers, and each button says its page count", () => {
-    render(<MemoryRouter><Printables /></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/gift-guides/printables/coloring-books"]}><Printables /></MemoryRouter>);
     const card = document.querySelector('[data-printable-card="coloring-book"]')!;
     const covers = [...card.querySelectorAll("img")].map((i) => new URL(i.src).pathname);
     expect(covers).toEqual(["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"]);

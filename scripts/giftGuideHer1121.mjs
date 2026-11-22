@@ -36,7 +36,7 @@ export const HER_STORES = {
   "store-jd-sports": "JD Sports", "store-sephora": "Sephora", "store-hatch": "Hatch", "store-macys": "Macy's",
   "store-haven-well-within": "Haven Well Within", "store-camp-snap": "Camp Snap", "store-rei": "REI",
   "store-the-swank-company": "The Swank Company", "store-baublebar": "BaubleBar", "store-currentbody": "CurrentBody",
-  "store-anthropologie": "Anthropologie", "store-tatcha": "Tatcha", "store-iherb": "iHerb", "store-stanley": "Stanley",
+  "store-anthropologie": "Anthropologie", "store-tatcha": "Tatcha", "store-iherb": "iHerb", "store-stanley": "Stanley", "store-cos-bar": "Cos Bar", "store-ulta-beauty": "Ulta Beauty",
 };
 
 /**
@@ -69,7 +69,10 @@ export const HER_1121 = [
   { name: "Anoumcy Leopard Barrel Joggers", brand: "Anoumcy", line: "Leopard barrel-leg joggers that feel like sweats.", href: amz("B0FVFV7V1R"), image: amzImg("814X2uIfEUL"), store: "store-amazon", sortPrice: 33.14, commission: 4, type: "pants" },
   { name: "Sol de Janeiro Cheirosa Sol & Go Mini Perfume Mist", brand: "Sol de Janeiro", line: "A mini perfume mist in a best-loved scent.", href: amz("B0H42QZ8BW"), image: amzImg("71uJ6m6sS1L"), store: "store-amazon", sortPrice: 36, commission: 10, type: "fragrance" },
   { name: "ZDEER GS5 Heated Gua Sha Tool", brand: "ZDEER", line: "A heated gua sha with red light for a spa night in.", href: amz("B0FPCH9S11"), image: amzImg("31iCM-w+Z6L"), store: "store-amazon", sortPrice: 39.99, commission: 3, type: "beauty-device" },
-  { name: "Camp Snap CS-8 Micro Video Camera Keychain, Blind Box", brand: "Camp Snap", line: "A tiny video camera on a keychain, color a surprise.", href: shopmy("p-108611500"), image: "https://static.shopmy.us/pins/zoom-106643598-1794927315931-micro1.jpg", store: "store-camp-snap", sortPrice: 39.99, price: 39.99, commission: 10, type: "accessory" },
+  // CODE WITH THE ITEM (owner 2026-11-21 9:58 PM: "you can put the code with the item but no we dont need a long list of
+  // codes on each guide only if we have a code should you put it with the items"): her Camp Snap code LEXILOMBAS7, 7% off
+  // campsnapphoto.com, where this link goes; active with no end date in her ShopMy Discount Codes (ShopMy-codes-1121-night.md).
+  { name: "Camp Snap CS-8 Micro Video Camera Keychain, Blind Box", brand: "Camp Snap", line: "A tiny video camera on a keychain, color a surprise.", href: shopmy("p-108611500"), image: "https://static.shopmy.us/pins/zoom-106643598-1794927315931-micro1.jpg", store: "store-camp-snap", sortPrice: 39.99, price: 39.99, commission: 10, type: "accessory", code: "LEXILOMBAS7" },
   // COMMISSION SWITCH 11-21: was Amazon B0HFYLTJR7 at 10%; same boxed set, same $40 at Anthropologie at 15%.
   { name: "L'OCCITANE Shea Butter Classics Gift Set", brand: "L'OCCITANE", line: "Shea butter hand and body care, ready to give.", href: shopmy("p-108732809"), image: "https://images.urbndata.com/is/image/Anthropologie/114587041_030_b2", store: "store-anthropologie", sortPrice: 40, price: 40, commission: 15, type: "gift-set" },
   { name: "HEYDUDE Austin Lift Platform Mule", brand: "HEYDUDE", line: "Easy slip-on platform mules for everyday errands.", href: amz("B0CPB1MWMP"), image: amzImg("315u2EGcJpL"), store: "store-amazon", sortPrice: 44.99, commission: null, type: "shoes" },
@@ -84,10 +87,15 @@ export const HER_1121 = [
   { name: "Shark Depuffi Hot & Cold Face Sculpting Tool", brand: "Shark", line: "A hot and cold face tool that depuffs in minutes.", href: shopmy("p-107555566"), image: "https://asset.sephora.co.uk/img/prod/pid/P1000211062/114692_media_principal_extendedaten_gb_0_extended_06-05-26-09-52-04.jpg", store: "store-sharkninja", sortPrice: 149.99, price: 149.99, commission: 8, type: "beauty-device" },
   { name: "On Cloud 6 Sneakers, Glacier/White", brand: "On", line: "Light, cushioned sneakers for walks and long days.", href: shopmy("p-108613972"), image: "https://static.shopmy.us/pins/zoom-108613972-1795240704146-3MF10070_050", store: "store-jd-sports", sortPrice: 160, price: 160, commission: 15, type: "shoes" },
   // OWNER SWAP PENDING (11-21): The Swank Company is out of Cape Taupe; replace the href with her YETI pin (and the store with store-yeti).
-  { name: "YETI Camino 35 Carryall Tote, Cape Taupe", brand: "YETI", line: "A tough carryall tote for the beach, boat or groceries.", href: shopmy("p-108609900"), image: "https://static.shopmy.us/uploads/pretty-prod-1787425474692", store: "store-the-swank-company", sortPrice: 160, price: 160, commission: 15, type: "bag" },
+  // NIGHT LINK 11-21 (Commission-links-1121-night.md): Swank (15%) is out of Cape Taupe, so it paid $0 for the pictured color;
+  // REI has Cape Taupe at $160, 8% (p-109006074). Same photo.
+  { name: "YETI Camino 35 Carryall Tote, Cape Taupe", brand: "YETI", line: "A tough carryall tote for the beach, boat or groceries.", href: shopmy("p-109006074"), image: "https://static.shopmy.us/uploads/pretty-prod-1787425474692", store: "store-rei", sortPrice: 160, price: 160, commission: 8, type: "bag" },
   { name: "Hatch Restore 3, Putty", brand: "Hatch", line: "A sunrise alarm and sound machine for calmer mornings.", href: shopmy("p-108613500"), image: "https://static.shopmy.us/pins/zoom-108613500-1795240519319-R3_Putty.jpg", store: "store-hatch", sortPrice: 169.99, price: 169.99, commission: 15, type: "clock" },
   { name: "UGG Goldenstar Evelina Clog, Beige", brand: "UGG", line: "Fuzzy-lined UGG clogs she can slip on and go.", href: shopmy("p-108604684"), image: "https://static.shopmy.us/pins/zoom-108604684-1795237968140-108971391_025_b", store: "store-anthropologie", sortPrice: 175, price: 175, commission: 15, type: "shoes" },
-  { name: "Therabody Theragun Mini", brand: "Therabody", line: "A pocket massage gun for sore shoulders and legs.", href: shopmy("p-108612982"), image: "https://static.shopmy.us/pins/zoom-108612982-1795240352615-253765107_0435.jpg", store: "store-haven-well-within", sortPrice: 219.99, price: 219.99, commission: 16, type: "massager" },
+  // SWITCHED 11-21 night (Commission-audit-1121-night.md, via lead): her pin p-108612982 went to Haven Well Within, which
+  // has no Theragun ("Page Not Found", so $0); her existing Ulta link p-107903671 (13%, $154.99 on 11-21) is the same
+  // Theragun Mini, and Ulta lists the Desert Rose shown here, so the photo and the Her cover stay.
+  { name: "Therabody Theragun Mini", brand: "Therabody", line: "A pocket massage gun for sore shoulders and legs.", href: shopmy("p-107903671"), image: "https://static.shopmy.us/pins/zoom-108612982-1795240352615-253765107_0435.jpg", store: "store-ulta-beauty", sortPrice: 154.99, price: 154.99, commission: 13, type: "massager" },
   { name: "CurrentBody LED Red Light Therapy Face Mask", brand: "CurrentBody", line: "An LED red light mask for skin care at home.", href: shopmy("p-108605514"), image: "https://static.shopmy.us/uploads/pretty-prod-1789545457784", store: "store-currentbody", sortPrice: 469.99, price: 469.99, commission: 10, type: "beauty-device" },
   // Owner 11-21 ("same, kids should be all of my saves. women too. they all need to have prices"): the rest of her Amazon
   // cart and saved-for-later (Her-saved-amazon-cart-1121.md), at her capture's price; the Marshall speaker and Sampeel
@@ -101,9 +109,15 @@ export const HER_1121 = [
   { name: "Anua Salmon DNA PDRN Glow Essential Starter Kit", brand: "Anua", line: "A Korean skincare starter kit for glowy skin.", href: amz("B0FSJQ3KJT"), image: amzImg("71YVdkGE+YL"), store: "store-amazon", sortPrice: 20, commission: 3, type: "skincare" },
   { name: "Summer Fridays Jet Lag Hydrating Eye Patches", brand: "Summer Fridays", line: "Hydrating eye patches for a quick refresh.", href: amz("B0F19YY96Z"), image: amzImg("61zGRUYBPzL"), store: "store-amazon", sortPrice: 24, commission: 10, type: "skincare" },
   { name: "Sampeel Two Piece Lounge Set, Brown Stripe", brand: "Sampeel", line: "A matching mock neck lounge set for travel days.", href: amz("B0GT3W5DQL"), image: amzImg("71KJvzDkkzL"), store: "store-amazon", sortPrice: 27.99, commission: 4, type: "matching-set" },
-  { name: "Salt & Stone Hair & Body Spray", brand: "Salt & Stone", line: "A clean hair and body fragrance mist.", href: amz("B0H2G28G12"), image: amzImg("61AWYM-olSL"), store: "store-amazon", sortPrice: 45, commission: 10, type: "fragrance" },
-  { name: "L'OCCITANE Softening Almond Trio", brand: "L'OCCITANE", line: "Almond shower oil and body care, ready to give.", href: amz("B0HFXZ9F46"), image: amzImg("712txcFaEQL"), store: "store-amazon", sortPrice: 59, commission: 10, type: "gift-set" },
-  { name: "Crocs Dylan Platform Clog", brand: "Crocs", line: "Comfy platform clogs for everyday errands.", href: amz("B0CVLJ85KP"), image: amzImg("61eFgBSya0L"), store: "store-amazon", sortPrice: 99, commission: 4, type: "shoes" },
+  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0H2G28G12 at 10% ($45); the same Saffron &
+  // Cedar 100 ml mist at Cos Bar at 20% (p-109002459), $45, in stock. Photo: cosbar.com's own bottle shot.
+  { name: "Salt & Stone Hair & Body Spray", brand: "Salt & Stone", line: "A clean hair and body fragrance mist.", href: shopmy("p-109002459"), image: "https://cdn.shopify.com/s/files/1/0618/7116/1562/files/850073050828_1.png", store: "store-cos-bar", sortPrice: 45, price: 45, commission: 20, type: "fragrance" },
+  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0HFXZ9F46 at 10% ($59); the same 2026
+  // green-box trio at Ulta at 13% (p-109002206), $59. Photo: Ulta's own transparent photo (alpha kept, no Vision pass).
+  { name: "L'OCCITANE Softening Almond Trio", brand: "L'OCCITANE", line: "Almond shower oil and body care, ready to give.", href: shopmy("p-109002206"), image: "https://media.ulta.com/i/ulta/2661577?w=1000&fmt=png", store: "store-ulta-beauty", sortPrice: 59, price: 59, commission: 13, type: "gift-set" },
+  // NIGHT LINK 11-21 (Commission-links-1121-night.md): was Amazon B0CVLJ85KP at 4% ($99); the same Sepia Dylan at crocs.com,
+  // 10% (p-108985937), $35.00 Doorbuster on 11-21 (was $64.99). Photo: crocs.com's own transparent Sepia shot.
+  { name: "Crocs Dylan Platform Clog", brand: "Crocs", line: "Comfy platform clogs for everyday errands.", href: shopmy("p-108985937"), image: "https://media.crocs.com/images/t_standard/products/209869_2EY_ALT140-Transparent/crocs", store: "store-crocs", sortPrice: 35, price: 35, commission: 10, type: "shoes" },
   { name: "Marshall Emberton III Bluetooth Speaker, Cream", brand: "Marshall", line: "A rugged, waterproof speaker with big sound.", href: amz("B0DT1CZ58V"), image: amzImg("81gRxBMDtdL"), store: "store-amazon", sortPrice: 119.99, commission: 3, type: "speaker" },
 ];
 

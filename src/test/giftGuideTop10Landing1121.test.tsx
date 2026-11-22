@@ -9,12 +9,20 @@
  * @mutate src/content/giftGuideTop10.ts |     const clicked = s.autoReplace ? hot.find((p) => !used.has(p.href)) : undefined; |     const clicked = hot.find((p) => !used.has(p.href));
  * @mutate src/content/giftGuideTop10.ts |     .filter((p) => (clicks[p.href] ?? 0) >= minClicks) |     .filter((p) => (clicks[p.href] ?? 0) > 0)
  * @mutate src/content/giftGuideTop10.ts |     .sort((a, b) => (clicks[b.href] ?? 0) - (clicks[a.href] ?? 0) \|\| | .sort((a, b) => (clicks[a.href] ?? 0) - (clicks[b.href] ?? 0) \|\|
- * @mutate src/pages/info/giftGuides/GiftGuideTop10.tsx |         {top.map((p) => <PickRow key={p.href} pick={p} guide={p.guide} />)} |         {top.slice(0, 9).map((p) => <PickRow key={p.href} pick={p} guide={p.guide} />)}
+ * @mutate src/pages/info/giftGuides/GiftGuideTop10.tsx |         {top.map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i + 1} />)} |         {top.slice(0, 9).map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i + 1} />)}
+ * @mutate src/pages/info/giftGuides/GiftGuideTop10.tsx |         {top.map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i + 1} />)} |         {top.map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i} />)}
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |         {rank !== undefined && <span className="gg-rank" aria-hidden="true" data-gift-rank={rank}>{rank}</span>} |         {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {rank !== undefined && <span className="sr-only">{`${rank}. `}</span>} | {null}
+ *
+ * Owner 11-21 evening: "put the other Theragun here" (spot 1 is the Her Theragun Mini) and "number the top 10 gifts"
+ * (each card wears its rank 1-10 on the photo's corner and says it first, "1. Therabody Theragun Mini").
  * @mutate src/content/giftGuideTop10.json | "https://go.shopmy.us/p-108613356", "guide": "her" | "https://go.shopmy.us/p-0000", "guide": "her"
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-heart-pick{position:absolute;top:2px;right:2px;z-index:1} | .gg-top10 .gg-heart-pick{position:absolute;top:auto;bottom:0;right:-6px}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
@@ -36,7 +44,19 @@ afterEach(() => {
 const CHUNKS: Record<string, { name: string; href: string; image?: string }[]> = { her: her.picks, him: him.picks, kids: kids.picks };
 
 /** The owner's ten, in her order (11-21 ~5:05 PM), by the start of each pick's name. */
-const OWNER_TEN = ["Theragun Prime", "Lola Blankets", "Shark Depuffi", "YETI Camino 35", "Tyler Candle Company Diva", "Camp Snap", "Ember Mug 2", "Hatch Restore 3", "Owala FreeSip", "UGG Goldenstar Evelina"];
+// Owner 11-21 evening: "put the other Theragun here" (spot 1 is the Her Theragun Mini, was the Him Theragun Prime).
+const OWNER_TEN = ["Therabody Theragun Mini", "Lola Blankets", "Shark Depuffi", "YETI Camino 35", "Tyler Candle Company Diva", "Camp Snap", "Ember Mug 2", "Hatch Restore 3", "Owala FreeSip", "UGG Goldenstar Evelina"];
+
+describe("the Top 10 card layout (owner 11-21 evening)", () => {
+  it("the heart sits on the photo's top-right like the other showcase cards; the rank badge is top-left", () => {
+    // "Put the heart in the top right corner of the photo like all the others": the price-top-right / heart-bottom-right
+    // layout is only for the guides' product listings. The Top 10 card's photo is its first block, so the card's top-right
+    // corner is the photo's.
+    expect(GIFT_GUIDES_CSS).toContain(".gg-top10 .gg-heart-pick{position:absolute;top:2px;right:2px;z-index:1}");
+    expect(GIFT_GUIDES_CSS).toMatch(/\.gg-rank\{position:absolute;top:6px;left:6px;/);
+    expect(TOP10_SLOTS[0].href).toBe("https://go.shopmy.us/p-107903671"); // the Theragun Mini's Ulta link, as on the Her guide
+  });
+});
 
 describe("the Top 10 list (src/content/giftGuideTop10.json)", () => {
   it("holds the owner's ten in her order, each a real pick with a photo on the guide it names, none auto-replaced", () => {
@@ -96,7 +116,11 @@ describe("the landing shows the Top 10 under the three tiles", () => {
       const link = li.querySelector<HTMLAnchorElement>("a[data-gift-out]")!;
       expect(link.href).toBe(TOP10_SLOTS[i].href);
       expect(link.querySelector("img.gg-thumb"), TOP10_SLOTS[i].name).not.toBeNull();
-      expect(link.querySelector(".gg-nm-name")?.textContent?.startsWith(OWNER_TEN[i]), TOP10_SLOTS[i].name).toBe(true);
+      const name = link.querySelector(".gg-nm-name")?.textContent ?? "";
+      expect(name.startsWith(`${i + 1}. ${OWNER_TEN[i]}`), `${i + 1}: ${name}`).toBe(true);
+      const badge = link.querySelector<HTMLElement>("[data-gift-rank]");
+      expect(badge?.textContent, TOP10_SLOTS[i].name).toBe(String(i + 1));
+      expect(badge?.getAttribute("aria-hidden"), "the badge is not read twice").toBe("true");
       expect(li.querySelector("[data-gift-price]")?.textContent, TOP10_SLOTS[i].name).toMatch(/^~\$\d+$/);
       expect(li.querySelector("button.gg-heart-pick"), TOP10_SLOTS[i].name).not.toBeNull();
     });

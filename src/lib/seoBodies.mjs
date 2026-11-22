@@ -276,6 +276,24 @@ const INFO_PAGES = {
     intro: "Christmas gift tags with names (pick a design, type the To and From names, print a sheet of 9 or 10 with cut lines), two Christmas coloring books and a Happy Thanksgiving banner. Free, with no sign-up, and nothing is saved.",
     links: [["/gift-guides", "Holiday gift guides"], ["/gift-guides/gift-wrap-and-cards", "Gift wrap and card ideas"]],
   },
+  "/gift-guides/printables/gift-tags": {
+    name: "Free gift tags",
+    h1: "Free printable Christmas gift tags",
+    intro: "Pick a design, type the To and From names, and print a sheet of 9 or 10 tags with cut lines at home. Free, with no sign-up, and nothing is saved.",
+    links: [["/gift-guides/printables/coloring-books", "Free coloring books"], ["/gift-guides/printables/banners", "Free banners"], ["/gift-guides", "Holiday gift guides"]],
+  },
+  "/gift-guides/printables/coloring-books": {
+    name: "Free coloring books",
+    h1: "Free printable Christmas coloring books",
+    intro: "Two Christmas coloring books, a girls' book and a boys' book, each a cover and 20 simple pages to color. Print at home, free, with no sign-up.",
+    links: [["/gift-guides/printables/gift-tags", "Free gift tags"], ["/gift-guides/printables/banners", "Free banners"], ["/gift-guides", "Holiday gift guides"]],
+  },
+  "/gift-guides/printables/banners": {
+    name: "Free banners",
+    h1: "Free printable Happy Thanksgiving banner",
+    intro: "A free Happy Thanksgiving banner, ready to print as a 12x18 poster at Walgreens (from about $13, same-day pickup) or any photo counter. The original 2-to-1 file is there too. No sign-up.",
+    links: [["/gift-guides/printables/gift-tags", "Free gift tags"], ["/gift-guides/printables/coloring-books", "Free coloring books"], ["/gift-guides", "Holiday gift guides"]],
+  },
   "/shop-small": {
     name: "Shop Small Louisiana",
     h1: "Shop Small Louisiana",

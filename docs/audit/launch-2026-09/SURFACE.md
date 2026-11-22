@@ -14,7 +14,7 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 78 |
+| Routes (non-redirect) | route | 81 |
 | Redirect-only routes | route | 5 |
 | `?tab=` variants | variant | 35 |
 | `?view=` variants | variant | 30 |
@@ -28,9 +28,9 @@ reports coverage against THIS file, not against the route list.
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 193 |
 | Email templates | **exported template** | 28 |
 | Notification types (defined in notification_type_pref_map) | type | 32 |
-| **Navigable surfaces** (places a person can stand) | mixed | **918** |
+| **Navigable surfaces** (places a person can stand) | mixed | **921** |
 | **Copy surfaces** (strings a person may read) | mixed | **1335** |
-| **Total auditable surface** | mixed | **2253** |
+| **Total auditable surface** | mixed | **2256** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,7 +67,7 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 78 | 34 | agree |
+| Real routes | 81 | 34 | agree |
 | Redirect-only routes | 5 | 14 | agree |
 | Admin `?view=` | 30 | 24 | agree |
 | Overlay surfaces | 258 | 130 | agree within method (script counts every menu instance) |
@@ -151,6 +151,9 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/gift-guides/swipe`
 - [ ] `/gift-guides/planner`
 - [ ] `/gift-guides/printables`
+- [ ] `/gift-guides/printables/gift-tags`
+- [ ] `/gift-guides/printables/coloring-books`
+- [ ] `/gift-guides/printables/banners`
 - [ ] `/gift-guides/:slug`
 - [ ] `/gift-guides/list/:code`
 - [ ] `/holidays`

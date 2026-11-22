@@ -59,7 +59,7 @@
  * @mutate src/lib/inboxDefault.ts | active: "Active", | active: "Unread",
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
-import { render, screen, cleanup, within } from "@testing-library/react";
+import { render, screen, cleanup, within, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -280,6 +280,8 @@ describe("Messages inbox filter tabs — always visible, never behind a disclosu
     renderInbox();
     expect(tabGroup()).toBeNull();
     expect(disclosure()).toBeNull();
+    // Owner 11-21: the search is just the icon, beside the one more menu; the tap opens the field.
+    fireEvent.click(screen.getByRole("button", { name: "Search conversations" }));
     expect(screen.getByRole("searchbox", { name: "Search conversations" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Inbox views and options" })).toBeTruthy();
   });

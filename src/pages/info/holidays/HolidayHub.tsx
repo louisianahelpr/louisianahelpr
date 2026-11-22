@@ -1,12 +1,14 @@
 /**
  * /holidays, the Louisiana Holiday Hub (owner-approved 2026-11-20; one page 2026-11-21, owner: "put christmas lights and
- * holiday events into 1 and a small strip with hire a helpr for the holidays at the top"). The title, one line, a slim
- * "Hire a Helpr for the holidays" strip, then every light display and event in one list, soonest first: "Happening now"
+ * holiday events into 1"). The title, one line, then every light display and event in one list, soonest first (owner
+ * 2026-11-21: "remove the hire a helpr here", which took out the slim "Hire a Helpr for the holidays" strip she had
+ * asked for that morning; /holidays/hire-a-helpr itself stays): "Happening now"
  * (closing soonest first), then one group per start day from today on, then "Dates TBA". Anything over (ended before
  * today, Louisiana time) is hidden.
  *
  * Filters fold away (owner 11-21: "make a filter tab or something so they don't all show as soon as you open it"): one
- * row with a quick All / Lights / Events choice and a "Filters" button with a count, which opens the app's one filter
+ * row with the count and two plain icons (owner 11-21 evening: search, and the filter with a count; All / Lights /
+ * Events moved into the panel's What), the filter opening the app's one filter
  * presentation (FilterSheet: the slide-up sheet on a phone, the drop-down under the button on the desktop website) with
  * What, When, Region and Cost, "Clear all" and "Show N results". Each filter in effect shows as a removable chip under
  * the row. The filters live in the URL, so a filtered list can be shared, and the old /holidays/lights and
@@ -17,19 +19,22 @@
  */
 import { useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { FilterChip } from "@/components/ui/FilterChip";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { GhostIconButton, SearchIconButton } from "@/components/ui/SearchIconButton";
+import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
 import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import {
-  DATES_TBA, HOLIDAY_EVENT_KIND, HOLIDAY_HIRE_PATH, HOLIDAY_LIGHT_FORMAT, HOLIDAY_REGIONS, HOLIDAY_WHAT, HOLIDAY_WORDS as W,
-  endedEarlierToday, filterHolidayItems, holidayCountLabel, holidayDayHeading, holidayItemsByDay, isHolidayLight, louisianaMinutes, louisianaToday,
+  DATES_TBA, HOLIDAY_EVENT_KIND, HOLIDAY_LIGHT_FORMAT, HOLIDAY_REGIONS, HOLIDAY_WHAT, HOLIDAY_WORDS as W,
+  endedEarlierToday, filterHolidayItems, holidayCountLabel, holidayWhereLabel, holidayDayHeading, holidayItemsByDay, isHolidayLight, louisianaMinutes, louisianaToday,
   resolveHolidayWhat, type HolidayCostFilter, type HolidayItem, type HolidayRegion, type HolidayWhen,
 } from "@/content/holidayHub/holidayHub.mjs";
 import { HUB_COLUMN, HUB_HEADER_COLUMN, HolidayCard, HolidayNothing, HolidaySection, useHolidayPageView } from "./holidayParts";
@@ -42,12 +47,26 @@ const WHEN_NOTHING: Record<string, string> = { weekend: "this weekend", today: "
 const REGION_OPTIONS: Option[] = [{ value: "all", label: "All regions" }, ...HOLIDAY_REGIONS.map((r) => ({ value: r.slug, label: r.label }))];
 // Holiday audit 1121 area 5 #3: items with no cost listed have their own choice (they showed under neither Free nor Paid).
 const COST_OPTIONS: Option[] = [{ value: "all", label: "Any" }, { value: "free", label: "Free" }, { value: "paid", label: "Paid" }, { value: "unlisted", label: "Cost not listed" }];
-/** The quick choice on the row: "Events" covers every kind of event (a single kind shows as its own chip below). */
-const QUICK_OPTIONS = [{ value: "all", label: "All" }, { value: "lights", label: "Lights" }, { value: "events", label: "Events" }] as const;
 
 const pick = <T extends string>(v: string | null, allowed: readonly Option[]): T | "all" =>
   v && allowed.some((o) => o.value === v) ? (v as T) : "all";
 const labelOf = (options: readonly Option[], value: string) => options.find((o) => o.value === value)?.label ?? value;
+
+/** Day groups more than this many days out fold under "Later dates" (holiday audit 1121 area 5 #5). */
+const LATER_AFTER_DAYS = 14;
+const addDaysYmd = (ymd: string, n: number) => {
+  const d = new Date(`${ymd}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
+/** The search (owner 2026-11-21): every word typed is in the name, the town, the address or the region. */
+function matchesQuery(item: HolidayItem, query: string): boolean {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const hay = [item.name, item.city, item.address, holidayWhereLabel(item)].filter(Boolean).join(" ").toLowerCase();
+  return words.every((w) => hay.includes(w));
+}
 
 /** A light card's tag says it is a light display and how you see it; an event's says its kind. */
 function tagFor(item: HolidayItem): string {
@@ -88,6 +107,13 @@ export default function HolidayHub() {
     window.history.replaceState(window.history.state, "", `${window.location.pathname}${q ? `?${q}` : ""}`);
   };
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const searchInput = useRef<HTMLInputElement>(null);
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setQuery("");
+  };
   const filtersButton = useRef<HTMLButtonElement>(null);
   const what = resolveHolidayWhat(params.get("what"), params.get("kind")) ?? "all";
   const when = pick<HolidayWhen>(params.get("when"), WHEN_OPTIONS);
@@ -113,10 +139,21 @@ export default function HolidayHub() {
       region: region === "all" ? null : region,
       cost: cost === "all" ? null : cost,
       when: when === "all" ? null : when,
-    }, today).filter((i) => !endedEarlierToday(i, today, minutes)),
-    [what, region, cost, when, today, minutes],
+    }, today).filter((i) => !endedEarlierToday(i, today, minutes) && matchesQuery(i, query)),
+    [what, region, cost, when, today, minutes, query],
   );
   const groups = useMemo(() => holidayItemsByDay(shown, today), [shown, today]);
+  // The fold line: two weeks out (Later dates), unless a When filter or a search narrows the list.
+  const foldAfter = addDaysYmd(today, LATER_AFTER_DAYS);
+  const folds = when === "all" && !query.trim();
+  const isLater = (g: (typeof groups)[number]) => folds && (g.key === "tba" || (!!g.day && g.day > foldAfter));
+  const soon = groups.filter((g) => !isLater(g));
+  const later = groups.filter(isLater);
+  const section = (g: (typeof groups)[number]) => (
+    <HolidaySection key={g.key} id={`holidays-${g.key}`} title={g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : g.key === "lights-tba" ? W.lightsTba : DATES_TBA} count={g.items.length}>
+      {g.items.map((i) => <HolidayCard key={i.id} item={i} kind={isHolidayLight(i) ? "light" : "event"} tag={tagFor(i)} />)}
+    </HolidaySection>
+  );
   // With Free or Paid on, the count line says how many more have no cost listed (#3), so none drop out unsaid.
   const unlisted = useMemo(
     () => (cost === "free" || cost === "paid" ? filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {
@@ -135,7 +172,6 @@ export default function HolidayHub() {
     ...(region !== "all" ? [{ key: "region", label: labelOf(REGION_OPTIONS, region) }] : []),
     ...(cost !== "all" ? [{ key: "cost", label: labelOf(COST_OPTIONS, cost) }] : []),
   ];
-  const quick = what === "all" || what === "lights" ? what : "events";
   const sections: FilterSheetSection[] = [
     { key: "what", title: "What", content: <ChipChoice label="What" options={WHAT_OPTIONS} value={what} onChange={(v) => set("what", v)} attr="data-holiday-what" /> },
     { key: "when", title: "When", content: <ChipChoice label="When" options={WHEN_OPTIONS} value={when} onChange={(v) => set("when", v)} attr="data-holiday-when-filter" /> },
@@ -148,38 +184,44 @@ export default function HolidayHub() {
       <div className={`${HUB_COLUMN} space-y-section font-sans`} data-holiday-page="hub">
         <div className="space-y-4">
           <p className="max-w-[68ch] text-ds-17 text-foreground">{W.hubIntro}</p>
-          {/* The slim strip (owner 11-21): one line from sm up, two on a phone (title and chevron, then the line). The
-              whole strip is the link; the antique-gold edge is the 25 Days palette's, as the old hub cards had. */}
-          <aside aria-label={W.stripTitle} data-holiday-hire-strip="">
-            <Link to={HOLIDAY_HIRE_PATH} data-holiday-hire-link=""
-              className="group flex min-h-11 flex-wrap items-baseline gap-x-3 rounded-[14px] border border-border border-l-[3px] bg-[hsl(var(--card))] px-3.5 py-2 text-ds-13 text-foreground no-underline transition-colors ctl-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-4 sm:py-2.5 sm:text-ds-14"
-              style={{ borderLeftColor: "#b08d57" }}>
-              <span className="font-semibold">{W.stripTitle}</span>
-              <span className="order-last basis-full text-muted-foreground sm:order-none sm:basis-auto">{W.stripLine}</span>
-              <span className="ml-auto font-semibold text-[hsl(var(--olivewood))]" aria-hidden="true">
-                <span className="hidden sm:inline">{W.stripCta} </span>›
-              </span>
-            </Link>
-          </aside>
         </div>
 
         <div className="space-y-2.5" data-holiday-filters="">
-          {/* One row: the quick choice on the left, Filters on the right (the desktop drop-down opens under it). */}
-          <div className="flex items-center gap-2">
-            <div role="group" aria-label="Show" className="flex min-w-0 gap-2">
-              {QUICK_OPTIONS.map((o) => (
-                <FilterChip key={o.value} size="tight" pressed={quick === o.value} onClick={() => set("what", o.value)} data-holiday-quick={o.value}>
-                  {o.label}
-                </FilterChip>
-              ))}
-            </div>
-            <Button ref={filtersButton} type="button" variant="outline" size="sm" data-holiday-filters-button=""
+          {/* Owner 2026-11-21: "move all lights and events into filter, remove the circle around filter and leave just
+              the icons, add a search icon". One row: the count on the left, then two plain icons (no border, no
+              words): search, which opens a field over the names, towns and places (Escape closes it), and the
+              filter, with how many filters are on. All / Lights / Events is the panel's "What". */}
+          <div className="flex min-h-11 items-center gap-1">
+            {searchOpen ? (
+              <label className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-card px-3 focus-within:ring-2 focus-within:ring-ring" data-holiday-search-box="">
+                <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <Input look="bare" ref={searchInput} type="search" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus
+                  onKeyDown={(e) => { if (e.key === "Escape") closeSearch(); }}
+                  placeholder="Search lights and events" aria-label="Search lights and events by name, town or place"
+                  className="min-h-11 flex-1 border-0 text-ds-15 text-foreground shadow-none outline-none focus:outline-none" data-holiday-search="" />
+                <Button type="button" variant="ghost" size="iconCompact" onClick={closeSearch} aria-label="Close search"
+                  className="ctl-exit -mr-2 shrink-0 text-muted-foreground hover:text-foreground [&_svg]:size-4" data-holiday-search-close="">
+                  <X aria-hidden />
+                </Button>
+              </label>
+            ) : (
+              <p className="min-w-0 flex-1 text-ds-14 text-muted-foreground" aria-live="polite" data-holiday-count="">{shown.length ? holidayCountLabel(shown) : ""}{unlisted > 0 && <span data-holiday-unlisted="">{` · plus ${unlisted} with no cost listed`}</span>}</p>
+            )}
+            {/* Open, the magnifier's place stays held (SearchTriggerSlot) so the field's ✕ never lands under the finger
+                that opened it (src/test/searchDismissAndOverlay.test.tsx). */}
+            {searchOpen && <SearchTriggerSlot />}
+            {!searchOpen && (
+              <SearchIconButton label="Search lights and events" onClick={() => setSearchOpen(true)} data-holiday-search-button="" />
+            )}
+            <GhostIconButton ref={filtersButton} data-holiday-filters-button=""
               onClick={() => setFiltersOpen(true)} aria-haspopup="dialog" aria-expanded={filtersOpen}
               aria-label={active.length ? `Filters, ${active.length} on` : "Filters"}
-              className={`ml-auto shrink-0 gap-1.5 rounded-full ${active.length ? "border-[hsl(var(--bark)/0.45)] text-[hsl(var(--bark))]" : ""}`}>
-              <SlidersHorizontal className="h-4 w-4" aria-hidden />
-              Filters{active.length > 0 && <span data-holiday-filter-count="">{`· ${active.length}`}</span>}
-            </Button>
+              className={`relative hover:text-[hsl(var(--bark))] ${active.length ? "text-[hsl(var(--bark))]" : "text-foreground"}`}>
+              <SlidersHorizontal className="h-5 w-5" aria-hidden />
+              {active.length > 0 && (
+                <span data-holiday-filter-count="" className="absolute right-1 top-1 min-w-4 rounded-full bg-[hsl(var(--bark))] px-1 text-center text-ds-10 font-bold leading-4 text-white">{active.length}</span>
+              )}
+            </GhostIconButton>
           </div>
           {active.length > 0 && (
             <ul aria-label="Filters on" className="flex flex-wrap gap-2" data-holiday-active="">
@@ -192,22 +234,32 @@ export default function HolidayHub() {
               ))}
             </ul>
           )}
+          {searchOpen && (
+            <p className="text-ds-14 text-muted-foreground" aria-live="polite" data-holiday-count="">{shown.length ? holidayCountLabel(shown) : ""}</p>
+          )}
         </div>
         <FilterSheet open={filtersOpen} onOpenChange={setFiltersOpen} sections={sections} activeFilterCount={active.length}
           onClearAll={clearAll} title="Filters" resultCount={shown.length} resultNoun={["result", "results"]} anchorRef={filtersButton} />
 
-        {/* The count line; with nothing to count, the empty card below says so instead. */}
-        <p className="text-ds-14 text-muted-foreground" aria-live="polite" data-holiday-count="">{shown.length ? holidayCountLabel(shown) : ""}{unlisted > 0 && <span data-holiday-unlisted="">{` · plus ${unlisted} with no cost listed`}</span>}</p>
         {groups.length === 0 ? (
           <HolidayNothing onClear={clearAll}>
             {when !== "all" ? `Nothing matches these filters ${WHEN_NOTHING[when]}.` : "Nothing matches these filters."}
           </HolidayNothing>
         ) : (
-          groups.map((g) => (
-            <HolidaySection key={g.key} id={`holidays-${g.key}`} title={g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : g.key === "lights-tba" ? W.lightsTba : DATES_TBA} count={g.items.length}>
-              {g.items.map((i) => <HolidayCard key={i.id} item={i} kind={isHolidayLight(i) ? "light" : "event"} tag={tagFor(i)} />)}
-            </HolidaySection>
-          ))
+          <>
+            {soon.map(section)}
+            {/* Holiday audit 1121 area 5 #5: the days more than two weeks out and "Dates TBA" fold under one "Later dates"
+                (closed), so the page opens on what is coming up. A When filter or a search shows every group open. */}
+            {later.length > 0 && (
+              <details className="group space-y-section" data-holiday-later="">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-ds-20 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+                  Later dates<span className="text-ds-15 font-normal text-muted-foreground">({later.reduce((n, g) => n + g.items.length, 0)})</span>
+                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+                </summary>
+                <div className="space-y-section">{later.map(section)}</div>
+              </details>
+            )}
+          </>
         )}
         <p className="text-ds-14 text-muted-foreground">{W.checkFirst}</p>
         <p className="text-ds-14 text-muted-foreground">

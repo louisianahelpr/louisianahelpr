@@ -199,7 +199,10 @@ export const discountCodes: DiscountCode[] = [
   { rank: 10, store: "Aurate", code: "LEXIL-20", offer: "20% off", href: "https://auratenewyork.com/" },
   { rank: 11, store: "Camp Snap", code: "LEXILOMBAS7", offer: "7% off", href: "https://campsnapphoto.com/" },
   { rank: 12, store: "Bon Wellness", code: "LEXI20", offer: "20% off", href: "https://bonwellness.com/" },
-  { rank: 13, store: "Club Recess", code: "LEXI15", offer: "15% off", href: "https://clubrecess.com/" },
+  // Club Recess (ShopMy Discount Codes + their 11-20 chat, ShopMy-codes-1121-night.md): LEXI5 (5%, stacks with their sales)
+  // through Dec 12; LEXI15 comes back Dec 13.
+  { rank: 13, store: "Club Recess", code: "LEXI5", offer: "5% off; stacks with their sales", expires: "2026-12-12", href: "https://clubrecess.com/" },
+  { rank: 13, store: "Club Recess", code: "LEXI15", offer: "15% off", starts: "2026-12-13", href: "https://clubrecess.com/" },
   { rank: 14, store: "Thrive Creative", code: "LEXIL20", offer: "20% off", href: "https://thrivecreative.us/" },
   { rank: 15, store: "YVO Warrior", code: "LEXI15", offer: "15% off", href: "https://yvowarrior.com/" },
   { rank: 16, store: "Daily Crunch Snacks", code: "LEXI15", offer: "15% off", href: "https://dailycrunchsnacks.com/" },
@@ -232,6 +235,9 @@ export const giftGuides = {
    * smaller groups as a plain line of links. Every guide is one tap from its group's page.
    */
   browseTitle: "Browse the guides",
+  // The landing's greeting (owner 11-21, option B without gifts): a cream card in a candy-cane border.
+  greetTitle: "Happy holidays, y'all",
+  greetLine: "Gifts we love for everyone on your list",
   /** The landing's Top 10 row (owner 2026-11-21 ~5:05 PM, src/content/giftGuideTop10.ts). */
   top10Title: "Top 10 gifts",
   /** The quiet line under a landing tile (lead 11-21): "36 gifts". */
@@ -275,7 +281,6 @@ export const giftGuides = {
   phoneNavPrintables: "Printables",
   phoneNavFun: "Make it fun",
   phoneNavMenu: "Menu",
-  sideShopSmall: "Shop Small",
   /** The left menu's entry for the 25 Days sponsors page (owner 11-21: "move 25 day sponsors to the left panel"). */
   sideSponsorsLabel: "25 Days sponsors",
   shopLabel: "Shop",
@@ -308,6 +313,8 @@ export const giftGuides = {
   alsoSponsoringTitle: "Also sponsoring",
   /** A pick's checked price beside Shop (owner 11-18), rounded to the dollar: "~$24". Amazon too since owner 11-21. */
   priceApprox: (dollars: number) => `~$${dollars}`,
+  /** A ticket, gift card or membership's lowest listed amount (holiday audit 1121 #63). */
+  priceFrom: (dollars: number) => `from $${dollars}`,
   /** One note per page under a list that shows prices: the oldest check date, "Nov 18". */
   pricesAsOf: (day: string) => `Prices as of ${day}, may change`,
   /** The landing's photo-card strip of the picks the most guides list, after the first guide rows (owner 11-18 PM). */
@@ -404,6 +411,9 @@ export const giftGuides = {
   priceSectionCount: (n: number) => ` (${n})`,
   /** The price sort on Her, Him and Kids (owner 2026-11-21: "the guides should be able to be sorted by price"). */
   sortLabel: "Sort by price",
+  /** The 25 Days sponsors page's Filter (owner 11-21: its section links and price limits moved into it). */
+  filterLabel: "Filter",
+  filterLabelActive: (n: number) => `Filter, ${n} on`,
   sortTop: "Recommended",
   sortLowHigh: "Price: low to high",
   sortHighLow: "Price: high to low",

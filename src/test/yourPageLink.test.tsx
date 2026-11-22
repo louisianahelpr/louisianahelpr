@@ -125,10 +125,12 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     expect(side).toBeGreaterThan(0);
     const end = home.indexOf("</section>}", side);
     const body = home.slice(home.indexOf(">", side) + 1, end);
-    // The first JSX child of the right column is the Your page card; the money tiles and the chips come after it.
+    // The first JSX child of the right column is its one card (owner 11-21: "your profile etc needs a box around it"),
+    // and the card's first child is the Your page line; the money tiles and the chips come after it.
     // (Comments are blanked to spaces, so a comment line reads "{   }" and is skipped.)
-    const firstChild = body.split("\n").map((l) => l.trim()).find((l) => l.replace(/[{}\s]/g, "") !== "") ?? "";
-    expect(firstChild).toContain("<YourPageLink");
+    const lines = body.split("\n").map((l) => l.trim()).filter((l) => l.replace(/[{}\s]/g, "") !== "");
+    expect(lines[0]).toContain("data-home-side-card");
+    expect(lines[1]).toContain("<YourPageLink");
     expect(body).toContain('<HomeMoneyTiles money={money} placement="side" />');
     expect(body.indexOf("<YourPageLink")).toBeLessThan(body.indexOf("<HomeMoneyTiles"));
     expect(body.indexOf("<YourPageLink")).toBeLessThan(body.indexOf("data-section-chips"));

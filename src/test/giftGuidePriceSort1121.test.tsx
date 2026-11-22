@@ -188,9 +188,12 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
     expect(high.reduce((n, x) => n + x.dollars.length, 0)).toBe(CHUNKS[slug].length);
     // Counts per band, measured 2026-11-21 from the shown (rounded) prices (all of her saves: Him 150 with her LSU picks, Kids 81, Her 47): exact, so a moved boundary shows.
     const COUNTS: Record<string, Record<string, number>> = {
-      him: { "Under $25": 44, "$25 to $50": 42, "$50 to $75": 20, "$75 to $100": 12, "$100 and up": 32 },
+      // 11-22 (train 1121j): the store switches moved two Him picks from $75-$100 to $100 and up (the XTRATUF Ankle and
+      // Mossy Oak deck boots at xtratuf.com, $115 and $125, were Amazon $93.75) and one Her pick from $75-$100 to $25-$50
+      // (Crocs Dylan at crocs.com $35, was $99).
+      him: { "Under $25": 44, "$25 to $50": 42, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 34 },
       kids: { "Under $25": 33, "$25 to $50": 21, "$50 to $75": 5, "$75 to $100": 5, "$100 and up": 17 },
-      her: { "Under $25": 18, "$25 to $50": 15, "$50 to $75": 2, "$75 to $100": 2, "$100 and up": 10 },
+      her: { "Under $25": 18, "$25 to $50": 16, "$50 to $75": 2, "$75 to $100": 1, "$100 and up": 10 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

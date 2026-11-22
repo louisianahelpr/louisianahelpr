@@ -141,17 +141,9 @@ article[data-gift-guide]>section:first-child>.gg-list,article[data-gift-guide]>.
 .gg-topcard-meta{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .gg-topcard-meta small{font-size:12px;color:var(--gg-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gg-topcard:hover .gg-topcard-name,.gg-topcard:focus-visible .gg-topcard-name{text-decoration:underline}
-.gg-deals{margin:22px 0;border:1px solid #ece6dc;border-radius:16px;padding:0 16px;background:#faf6ee;color:#3a2a20}
-.gg-deals>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:56px;font-size:15px;font-weight:700;color:#3a2a20}
-.gg-deals-count{font-size:13px;font-weight:500;color:#6f6259}
-.gg-deals>summary::-webkit-details-marker{display:none}
-.gg-deals>summary::after{content:"+";margin-left:auto;font-size:17px;line-height:1}
-.gg-deals[open]>summary::after{content:"\\2212"}
-.gg-deals .gg-codes{padding-bottom:10px}
-.gg-deals-sub{margin:6px 0 4px;font-size:14px;font-weight:700;color:var(--gg-ink)}
-.gg-store-deals ul,.gg-deals ul{list-style:none;margin:0;padding:0}
-.gg-store-deals li,.gg-codes li[data-gift-sale]{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;padding:4px 0;border-top:1px solid var(--gg-line)}
-.gg-store-deals li .gg-link,.gg-codes li[data-gift-sale] .gg-link{min-height:40px;font-weight:600}
+.gg-store-deals ul{list-style:none;margin:0;padding:0}
+.gg-store-deals li{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;padding:4px 0;border-top:1px solid var(--gg-line)}
+.gg-store-deals li .gg-link{min-height:40px;font-weight:600}
 .gg-sec-title{margin:24px 0 0;font-size:15px;font-weight:700;color:var(--gg-ink)}
 /* Owner 11-21 price sections: the count beside a section heading, quiet. */
 .gg-sec-count{font-weight:500;color:var(--gg-muted)}
@@ -237,6 +229,13 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-finder-arrow{flex:none;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:999px;background:var(--gg-soft);color:var(--gg-olive);font-family:Montserrat,sans-serif;font-size:17px;font-weight:600}
 .gg-finder-open:hover .gg-finder-arrow{background:hsl(var(--bark) / .22)}
 .gg-browse{margin:20px 0 4px}
+/* The landing's greeting (owner 11-21, option B without gifts): a candy-cane border (red, white, green, white stripes)
+   around a cream card; Bodoni italic in the covers' Christmas red, one plain line under it. */
+.gg-greet{margin:4px 0 0;padding:9px;border-radius:14px;background:repeating-linear-gradient(-45deg,#a8242a 0 12px,#fff 0 18px,#265e3c 0 30px,#fff 0 36px)}
+.gg-greet-in{padding:34px 16px 30px;border-radius:6px;background:linear-gradient(90deg,#f8f0e0,#fffdf7 50%,#f8f0e0);text-align:center}
+.gg-greet-h{margin:0;font:italic 600 clamp(24px,7vw,60px)/1.1 'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;color:#a8242a}
+.gg-greet-p{margin:10px 0 0;font-size:clamp(14px,1.6vw,18px);color:#3b2a20}
+@media (max-width:767px){.gg-greet{padding:7px}.gg-greet-in{padding:22px 12px 18px}}
 .gg-entries{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 14px;list-style:none;margin:0;padding:0}
 @media (min-width:640px){.gg-entries{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 18px}}
 @media (min-width:1180px){.gg-entries{grid-template-columns:repeat(6,minmax(0,1fr))}}
@@ -254,14 +253,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-price{font-size:13px;font-weight:700;color:var(--gg-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
 .gg-price-note{margin:8px 0 0;font-size:12px;color:var(--gg-muted)}
 .gg-prime-trial{display:inline-block;padding:12px 0;color:inherit;text-decoration:underline;text-underline-offset:2px}
-.gg-codes li{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid var(--gg-line)}
-.gg-code-store{font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.gg-code-shop{display:inline-flex;align-items:center;min-height:44px;font-size:12px;font-weight:700;color:var(--gg-olive);text-decoration:none}
-.gg-code-one{display:flex;flex-direction:column;gap:2px;margin-top:4px}
 .gg-code-offer{font-size:12px;color:var(--gg-muted)}
-.gg-code-row{display:flex;align-items:center;gap:8px;margin-top:4px}
-.gg-code-row code{flex:1;border:1px dashed var(--gg-line);border-radius:8px;padding:6px 8px;font-size:13px;letter-spacing:.06em}
-.gg-code-row button{min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--gg-olive);color:var(--gg-olive);background:transparent;font-weight:700;font-size:12px}
 .gg-soon{text-align:center;padding:36px 16px;border-top:1px solid var(--gg-line);margin-top:16px}
 .gg-soon[data-gift-picks-loading]{min-height:100vh}
 .gg-soon h2,.gg-soon h3{font-size:18px;font-weight:700;margin:0 0 6px}
@@ -308,7 +300,6 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-banner-wrap{padding:0 0 4px}.gg-banner{height:96px;padding-top:8px;border-radius:12px}.gg-arch{width:min(260px,70%);padding:14px 10px 6px;box-shadow:0 0 0 5px rgba(255,253,247,.85)}.gg-banner .gg-lead{font-size:13px}.gg-banner h1{font-size:20px;-webkit-line-clamp:1}.gg-tools{margin-top:6px}
 .gg-banner .gg-lead{margin-bottom:7px}
 }
-.gg-code-row code{white-space:nowrap;overflow-wrap:normal;font-size:12px}
 /* The phone's chip row (owner 11-21): sticky under the bar, one line that scrolls sideways by itself (never the page);
    hidden from 768px up, where the sidebar is the menu. */
 .gg-pnav{display:none}
@@ -342,8 +333,20 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-top10 .gg-photo{width:100%;border-radius:14px}
 .gg-top10 .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:10px;border-radius:14px}
 .gg-top10 .gg-nm-name{font-size:14px}
-.gg-top10 .gg-heart-pick{position:absolute;top:auto;bottom:0;right:-6px}
-.gg-top10 .gg-nm{padding-bottom:44px}
+/* Owner 11-21 evening: the Top 10 heart sits on the photo's top-right "like all the others" (the rank badge is top-left). */
+.gg-top10 .gg-heart-pick{position:absolute;top:2px;right:2px;z-index:1}
+/* Owner 11-22 (the price-top-right / heart-bottom-right card "is only for product listings, common sense"): under a Top
+   10 photo the name, then the price on its own line; the price lines of a row line up. An Amazon pick's cart sits at
+   the end of the price line. */
+.gg-top10>li{display:flex;flex-direction:column}.gg-top10>li>.gg-item{flex:1}
+.gg-top10 .gg-nm{display:flex;flex:1;flex-direction:column;padding-bottom:0}
+.gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:auto;padding-top:4px;min-height:28px;padding-right:36px}
+.gg-top10 .gg-badges{padding-right:0}
+.gg-top10 .gg-cart{right:-10px;bottom:-10px}
+/* Top 10 rank (owner 11-21 evening: "number the top 10 gifts"): a small cream disc with an olive serif numeral on the
+   photo's top-left corner, clear of the heart (top right) and inside the photo's padding, so it never covers the product. */
+.gg-top10 .gg-item{position:relative}
+.gg-rank{position:absolute;top:6px;left:6px;z-index:1;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 6px;border-radius:999px;background:#fbf7ee;border:1px solid hsl(var(--bark) / .35);color:hsl(var(--bark));font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:15px;font-weight:700;line-height:1;box-shadow:0 1px 2px rgba(0,0,0,.08);pointer-events:none}
 @media (min-width:768px){.gg-top10{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:20px 16px}}
 /* The gift quiz (owner 11-21 ~6:15 PM): one question per screen, big answers (two across on a phone, up to four wide),
    then the result as the guides' list. */
@@ -378,4 +381,28 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-sec-chev{flex:none;color:var(--gg-muted);transition:transform .15s}
 .gg-sec-toggle[aria-expanded="true"] .gg-sec-chev{transform:rotate(180deg)}
 .gg-sec-toggle-h+.gg-list{margin-top:8px}
+/* The sponsors page's Filter panel (owner 11-21): section links and price limits, 44px rows. */
+.gg-filter-panel{min-width:240px;max-height:70vh;overflow-y:auto}
+.gg-filter-group{display:flex;flex-direction:column}
+.gg-filter-group+.gg-filter-group{border-top:1px solid var(--gg-line);margin-top:4px;padding-top:4px}
+.gg-filter-h{padding:8px 12px 2px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gg-muted)}
+/* Owner 11-21 (guide and deal-day banners): "the arches and letters are just small and squished together" and "add like
+   some effect so it doesn't look flat": same design, larger airy type centred in a slightly larger arch, and a printed-
+   card depth: a soft shadow under the card, a faint inner vignette on the gingham, the arch raised off it, and the
+   covers' thin gold inner arch line. */
+.gg-banner{position:relative;height:252px;box-shadow:0 2px 10px rgba(0,0,0,.10)}
+.gg-banner::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 28px rgba(60,40,20,.14);pointer-events:none}
+.gg-arch{position:relative;width:min(680px,76%);padding:30px 28px 16px;box-shadow:0 -3px 14px rgba(60,40,20,.12),0 0 0 7px rgba(255,253,247,.85)}
+.gg-arch::before{content:"";position:absolute;inset:9px 9px 0;border:1px solid rgba(176,141,87,.75);border-bottom:0;border-radius:999px 999px 0 0;pointer-events:none}
+/* Pass 2, owner 11-21 night: "gifts for her is still too small text size and still close together": "gifts for" 26 ->
+   36px, the name 46 -> 80px, a 16px gap between the two lines (line-height 1 so the gap is the gap), band 216 -> 252px.
+   The long two-line titles (deal days, 25 Days Sponsors) take 60px from 768px up so two lines still sit inside the arch
+   (only there: on a phone every guide has the count row after its banner). */
+.gg-banner .gg-lead{font-size:36px;line-height:1.1;margin:0 0 16px}
+.gg-banner h1{font-size:80px;line-height:1.04}
+@media (min-width:768px){.gg:has([data-gift-deals-page]) .gg-banner h1,.gg-banner-wrap:has(+.gg-countrow) .gg-banner h1{font-size:60px;line-height:1.04}}
+@media (min-width:768px) and (max-width:1023px){.gg-banner{height:220px}.gg-arch{width:min(600px,80%)}.gg-banner .gg-lead{font-size:30px;margin-bottom:14px}.gg-banner h1{font-size:64px}.gg:has([data-gift-deals-page]) .gg-banner h1,.gg-banner-wrap:has(+.gg-countrow) .gg-banner h1{font-size:48px}}
+@media (max-width:767px){.gg-banner{height:184px;padding-top:10px}.gg-arch{width:min(340px,94%);padding:22px 10px 8px;box-shadow:0 -2px 10px rgba(60,40,20,.12),0 0 0 5px rgba(255,253,247,.85)}.gg-arch::before{inset:6px 6px 0}.gg-banner .gg-lead{font-size:clamp(20px,6vw,24px);margin-bottom:12px}.gg-banner h1{font-size:clamp(34px,11vw,44px);line-height:1.02;-webkit-line-clamp:2}}
+/* Dark mode: the arch stays cream, so its "gifts for" keeps the cover brown (the later .gg-words dark rule turned it near-white, 11-21). */
+:root[data-theme="dark"] .gg-words .gg-banner .gg-lead{color:#6b5a48}
 `;

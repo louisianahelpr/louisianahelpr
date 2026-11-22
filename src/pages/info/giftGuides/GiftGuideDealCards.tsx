@@ -1,0 +1,200 @@
+import { useState, type ReactNode } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
+import { ArrowUpRight, Check, Copy } from "lucide-react";
+import { activeCodes, codesByStore, discountCodes, giftGuides as G, type DiscountCode } from "@/content/giftGuides";
+import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
+import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
+import { storePhoto } from "@/content/giftGuideStorePhotos";
+import { DEALS_WORDS } from "@/content/giftGuideDeals.mjs";
+import { GiftOut } from "./GiftOut";
+
+/**
+ * The deals days' discount codes and store sales as photo cards (owner 2026-11-21: "for discount codes we should do the
+ * image for the place, like Muck Boot show a Muck Boot picture like the rest of the guides, and the retailer and code
+ * below where they can copy and open site"; then "same for sales"). They replace the collapsed "Deals & codes" box,
+ * whose four-line code boxes "take up too much space". Each card: the store's own product photo (a local cutout,
+ * src/content/giftGuideStorePhotos.ts; a store with none shows its name in the well, never an invented photo), the
+ * store's name linking to the store, one muted line (the offer and its dates), then a code card's code chip (tap to
+ * copy; "Copied"; a refused clipboard selects the code) and every card's open-site icon (new tab).
+ * A store with several sales is one card listing them (Ulta's eight sales were eight copies of one photo).
+ */
+
+const CLEAN_CODES = cleanCodes(DEAL_CODES);
+const CLEAN_SALES = cleanSales(SALES);
+
+export const CARD_WORDS = {
+  codesTitle: "Discount codes",
+  salesTitle: "Sales",
+  dealsTitle: "Top deals",
+  openSite: (store: string) => `Open ${store} site`,
+  copyCode: (code: string) => `Copy code ${code}`,
+  copied: "Copied",
+  jumpLabel: "On this page",
+  moreSales: (n: number) => `+${n} more`,
+};
+
+/** The sales still on `today` (YYYY-MM-DD): a sale shows through its end day, one line per link. */
+export const liveSales = (sales: readonly Sale[], today: string) => {
+  // One line per link (design audit r2 #10: 9 duplicate hrefs, Gilt and Gilt City repeating the same offers).
+  const seen = new Set<string>();
+  return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href)));
+};
+
+/** The codes that work on `day` (YYYY-MM-DD), by store rank, one entry per code. */
+export const codesOn = (day: string): DiscountCode[] => codesByStore(activeCodes([...discountCodes, ...CLEAN_CODES], day)).flatMap((s) => s.codes);
+
+/** The store sales on `day`, one entry per store (its sales soonest end first), the stores in first-sale order. */
+export const salesOn = (day: string) => {
+  const stores = new Map<string, Sale[]>();
+  for (const x of liveSales(CLEAN_SALES, day)) stores.set(x.store, [...(stores.get(x.store) ?? []), x]);
+  return [...stores.entries()].map(([store, sales]) => ({ store, sales }));
+};
+
+/** The photo well: the store's cutout, or its name when we have no photo for it. */
+function StorePhoto({ store, href }: { store: string; href: string }) {
+  const src = storePhoto(store);
+  const [ok, setOk] = useState(true);
+  return (
+    <GiftOut href={href} className="gg-deal-photo" data-gift-store-photo={src && ok ? "photo" : "name"}>
+      {src && ok ? <img loading="lazy" decoding="async" src={src} alt="" width={200} height={200} onError={() => setOk(false)} /> : <b aria-hidden="true">{store}</b>}
+      <span className="sr-only">{CARD_WORDS.openSite(store)} ({G.newTab})</span>
+    </GiftOut>
+  );
+}
+
+/** The open-site icon button, bottom right of every card. */
+function OpenSite({ store, href }: { store: string; href: string }) {
+  return (
+    <GiftOut href={href} className="gg-card-open" data-gift-open-site={store}>
+      <ArrowUpRight aria-hidden="true" />
+      <span className="sr-only">{CARD_WORDS.openSite(store)} ({G.newTab})</span>
+    </GiftOut>
+  );
+}
+
+function Card({ store, href, line, children, data }: { store: string; href: string; line: ReactNode; children?: ReactNode; data: Record<`data-${string}`, string> }) {
+  return (
+    <li className="gg-deal gg-store-card" {...data}>
+      <StorePhoto store={store} href={href} />
+      <div className="gg-card-head">
+        <GiftOut href={href} className="gg-deal-brand gg-card-store" data-gift-code-shop={store}>{store}</GiftOut>
+        <OpenSite store={store} href={href} />
+      </div>
+      <div className="gg-deal-meta gg-card-line">{line}</div>
+      {children && <div className="gg-card-actions">{children}</div>}
+    </li>
+  );
+}
+
+/** A code chip: the code with a copy icon; tap copies it and says Copied. */
+function CodeChip({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  const select = (el: Element | null) => {
+    const sel = window.getSelection();
+    if (!el || !sel) return;
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+  const copy = (chip: HTMLElement) => {
+    const text = chip.querySelector("code");
+    if (!navigator.clipboard) {
+      select(text);
+      return;
+    }
+    void navigator.clipboard.writeText(code).then(
+      () => setCopied(true),
+      // Clipboard refused (permissions or an old browser): select the code so it can be copied by hand.
+      () => {
+        setCopied(false);
+        select(text);
+      },
+    );
+  };
+  return (
+    <>
+      <InlineTextButton className="gg-code-chip" onClick={(e) => copy(e.currentTarget)} aria-label={CARD_WORDS.copyCode(code)} data-gift-code-copy={code}>
+        <code>{code}</code>
+        {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+      </InlineTextButton>
+      <span className="gg-code-copied" aria-live="polite" data-gift-code-copied={copied ? "" : undefined}>{copied ? CARD_WORDS.copied : ""}</span>
+    </>
+  );
+}
+
+/** The codes that work on `day`, one card each. */
+export function CodeCards({ codes }: { codes: DiscountCode[] }) {
+  return (
+    <ul className="gg-deal-grid" data-gift-codes="">
+      {codes.map((c) => {
+        const when = DEALS_WORDS.runs(c.starts, c.expires);
+        // Holiday audit 1121 #81: every code carries its store link (affiliate, else the brand's plain home page).
+        // A code with no link (none today; src/test/giftGuideHolidayPolish1121c.test.tsx) is not drawn as a dead card.
+        const href = c.href;
+        if (!href) return null;
+        return (
+          <Card key={`${c.store} ${c.code}`} store={c.store} href={href} line={[c.offer, when].filter(Boolean).join(" · ")} data={{ "data-gift-code": c.code, "data-gift-code-store": c.store }}>
+            <CodeChip code={c.code} />
+          </Card>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** The store sales on `day`, one card per store. */
+export function SaleCards({ stores }: { stores: { store: string; sales: Sale[] }[] }) {
+  return (
+    <ul className="gg-deal-grid" data-gift-sales="">
+      {stores.map(({ store, sales }) => <SaleCard key={store} store={store} sales={sales} />)}
+    </ul>
+  );
+}
+
+const SALE_LINES = 2;
+
+function SaleCard({ store, sales }: { store: string; sales: Sale[] }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? sales : sales.slice(0, SALE_LINES);
+  return (
+    <Card store={store} href={sales[0].href} data={{ "data-gift-sale-store": store }} line={
+      <ul className="gg-card-sales">
+        {shown.map((x) => (
+          <li key={x.href} data-gift-sale={x.slug}>
+            <GiftOut href={x.href} className="gg-card-sale">{x.offer}</GiftOut> <span className="gg-card-when">· {DEALS_WORDS.runs(null, x.ends)}</span>
+          </li>
+        ))}
+        {!all && sales.length > SALE_LINES && (
+          <li><InlineTextButton className="gg-card-more" onClick={() => setAll(true)} data-gift-sale-more={store}>{CARD_WORDS.moreSales(sales.length - SALE_LINES)}</InlineTextButton></li>
+        )}
+      </ul>
+    } />
+  );
+}
+
+/** The cards' own styles (the photo, store name and grid come from the deal cards' .gg-deal rules). */
+export const CARD_CSS = `
+.gg-store-card .gg-card-store{color:var(--gg-ink);text-decoration:none}
+/* Owner 2026-11-21: a store with no photo yet keeps a short name tile, so the grid never looks like empty boxes. */
+.gg-store-card .gg-deal-photo[data-gift-store-photo="name"]{aspect-ratio:auto;height:56px;background:var(--gg-soft)}
+.gg-store-card .gg-deal-photo[data-gift-store-photo="name"] b{font-size:13px;color:var(--gg-olive)}
+.gg-store-card .gg-card-store:hover,.gg-store-card .gg-card-store:focus-visible{text-decoration:underline}
+.gg-card-line{font-size:12.5px;line-height:1.4;overflow-wrap:anywhere}
+.gg-card-sales{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.gg-card-sale{color:var(--gg-ink);text-decoration:none}
+.gg-card-sale:hover,.gg-card-sale:focus-visible{text-decoration:underline}
+.gg-card-when{color:var(--gg-muted);white-space:nowrap}
+.gg-card-more{min-height:32px;padding:0;border:0;background:none;color:var(--gg-olive);font-weight:700;font-size:12.5px}
+.gg-card-head{display:flex;align-items:flex-start;gap:4px;margin-top:2px}
+.gg-card-head .gg-card-store{flex:1;min-width:0;margin:0;padding-top:11px}
+.gg-card-actions{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:auto;padding-top:4px}
+.gg-code-chip{display:inline-flex;align-items:center;justify-content:space-between;gap:6px;width:100%;min-height:44px;min-width:0;padding:0 10px;border:0;border-radius:10px;background:var(--gg-soft);color:var(--gg-ink);cursor:pointer}
+.gg-code-chip code{font-size:12.5px;font-weight:700;letter-spacing:.03em;overflow-wrap:anywhere;text-align:left}
+.gg-code-chip svg{width:15px;height:15px;flex:none;color:var(--gg-olive)}
+.gg-code-copied{font-size:12px;font-weight:700;color:var(--gg-olive)}
+.gg-code-copied:empty{display:none}
+.gg-card-open{display:inline-flex;flex:none;align-items:center;justify-content:center;width:44px;height:44px;margin:0 -10px 0 0;border-radius:999px;color:var(--gg-olive)}
+.gg-card-open:hover,.gg-card-open:focus-visible{background:var(--gg-soft)}
+.gg-card-open svg{width:20px;height:20px}
+`;

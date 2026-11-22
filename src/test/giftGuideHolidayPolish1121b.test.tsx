@@ -15,21 +15,22 @@
  *   - /shop-small leads with the Louisiana 25 Days sponsors (never an empty page) inside the guides' frame.
  *
  * @mutate src/content/giftGuideFun1120.ts |   for (const rest of from) { |   for (const rest of [] as T[]) {
+ * @mutate src/content/giftGuideSwipe.ts | const SWIPE_MIN = 3; | const SWIPE_MIN = 3; const SWIPE_BANDS = QUIZ_BUDGETS;
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | <p className="gg-swipe-meta m-0"><PickPrice pick={card} /></p> | <p className="gg-swipe-meta m-0"><span>{card.store}</span><PickPrice pick={card} /></p>
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx |         <GiftGuidesSidebar active={null} page={path} /> |         {null}
- * @mutate src/pages/info/giftGuides/fun/FunPage.tsx |         <GiftGuideTools path={path} title={title} /> |         {null}
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | {tools && <GiftGuideTools path={path} title={title} />} | {null}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <li key={t.to}><Link to={t.to} {...current(t.to)} | <li key={t.to}><Link to={t.to}
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       if (!searchBox.current?.contains(e.target as Node)) setResultsOpen(false); |       if (!searchBox.current?.contains(e.target as Node)) return;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       button.current?.focus(); |       void 0;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |     menuItems(menu.current)[0]?.focus(); |     void 0;
- * @mutate src/content/printables.ts |     guides: ["gift-wrap-and-cards", "her", "him", "kids"], |     guides: ["gift-wrap-and-cards"],
+ * @mutate src/content/printables.ts |     guides: ["gift-wrap-and-cards"], |     guides: ["gift-wrap-and-cards", "her", "him", "kids"],
  * @mutate src/content/giftGuideSmallBiz.json | "name":"Bake & Brush", | "name":"Bake & Brush (Holli M. Landry)",
  * @mutate src/content/giftGuideSmallBiz.json | "name":"Breads and Sweets by Babs","town":"Acadiana" | "name":"Breads and Sweets by Babs","town":"Acadiana (337)"
  * @mutate src/pages/info/ShopSmall.tsx |            <SmallBizGrid /> |            {null}
  * @mutate src/pages/info/ShopSmall.tsx |       <GuidesFrame title={W.pageTitle} path="/shop-small" disclosures={false}> |       <GuidesFrame title={W.pageTitle} path="/gift-guides" disclosures={false}>
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | [data-gift-guide="25-days-sponsors"] .gg-nm-name{-webkit-line-clamp:3} | [data-gift-guide="25-days-sponsors"] .gg-nm-name{}
- * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx |     requestAnimationFrame(() => openButton.current?.focus()); |     void 0;
- * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx |       {Form && <div hidden={!open} data-gift-sbs-form-wrap=""><Form onClose={close} /></div>} |       {Form && open && <div data-gift-sbs-form-wrap=""><Form onClose={close} /></div>}
+ * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |     requestAnimationFrame(() => openButton.current?.focus()); |     void 0;
+ * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |       {Form && <div hidden={!open} data-gift-sbs-form-wrap=""><Form onClose={close} /></div>} |       {Form && open && <div data-gift-sbs-form-wrap=""><Form onClose={close} /></div>}
  * @mutate src/pages/info/giftGuides/SmallBizSubmitForm.tsx | .gg-sbs-cta p.gg-sbs-err{color:hsl(var(--destructive-ink));margin:0} | .gg-sbs-cta p.gg-sbs-x{}
  * @mutate src/content/giftGuideFun1120.ts |   finderWho("her", "Her", ["her"], "Her"), |   { id: "her", label: "Her", guides: finderGuides("her"), forName: "Her" },
  * @mutate scripts/gift-guide-small-biz.mjs | export const shipsFor = (b) => (VISIT_CATEGORIES.has(b.category) \|\| VENUE_SLUGS.has(b.slug) ? "local" : shipsOf(b.shipping)); | export const shipsFor = (b) => shipsOf(b.shipping);
@@ -39,7 +40,7 @@ import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
-import { SWIPE_BUDGETS, SWIPE_ROUND, SWIPE_WHO, borrowFits, seededRandom, swipePool, swipeRound } from "@/content/giftGuideFun1120";
+import { SWIPE_ROUND, SWIPE_WHO, borrowFits, seededRandom, swipePool, swipeRound } from "@/content/giftGuideFun1120";
 import { FINDER_WHO } from "@/content/giftGuideExtras1120";
 import { BUDGET_GUIDES, fitsBudget } from "@/content/giftPickBand";
 import { printablesForGuide } from "@/content/printables";
@@ -86,32 +87,34 @@ describe("a swipe round fills from a capped store once the others run out (holid
     await loadAllGuidePicks();
     const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
     const live = SWIPE_WHO.filter((w) => w.guides.every((g) => guideBySlug(g.slug)));
-    expect(live.length).toBeGreaterThan(3); // inventory floor: me, her, him, mom, dad, kids on 2026-11-21
+    // Owner 11-21 evening: Her, Him and Kids only (no Me, Mom or Dad). swipeRound is the Secret Santa round's deal now
+    // (a plain deck is swipeDeck, src/test/swipeWho1121.test.tsx); its budgets are the group's dollar limits.
+    expect(live.length).toBeGreaterThan(2); // inventory floor: her, him, kids on 2026-11-21
     const short: string[] = [];
-    for (const w of live) for (const b of SWIPE_BUDGETS) {
-      const borrow = b.id ? BUDGET_GUIDES.flatMap((g) => picksOf(g).filter((p) => borrowFits(w.id, p))) : [];
+    for (const w of live) for (const budget of [25, 50, 100, 0] as const) {
+      const borrow = budget ? BUDGET_GUIDES.flatMap((g) => picksOf(g).filter((p) => borrowFits(w.id, p))) : [];
       const pool = swipePool(w.id, picksOf);
-      const fitting = new Set([...pool, ...borrow].filter((p) => p.href && p.name && fitsBudget(p, b.id)).map((p) => p.href)).size;
-      const n = swipeRound(pool, b.id, new Set(), seededRandom(1), borrow).length;
-      if (n !== Math.min(SWIPE_ROUND, fitting)) short.push(`${w.id}/${b.id}: ${n} of ${fitting}`);
+      const fitting = new Set([...pool, ...borrow].filter((p) => p.href && p.name && fitsBudget(p, budget)).map((p) => p.href)).size;
+      const n = swipeRound(pool, budget, new Set(), seededRandom(1), borrow).length;
+      if (n !== Math.min(SWIPE_ROUND, fitting)) short.push(`${w.id}/${budget}: ${n} of ${fitting}`);
     }
     expect(short).toEqual([]);
   });
 });
 
 describe("the swipe card and its people (holiday audit 1121 #24)", () => {
-  it("Swipe lists people in the finder's order (Her, Him, Mom, Dad, Kids ...), after Me", () => {
-    const finder: string[] = FINDER_WHO.map((w) => w.id as string).filter((id) => ["her", "him", "mom", "dad", "kids"].includes(id));
-    const swipe = SWIPE_WHO.map((w) => w.id as string).filter((id) => finder.includes(id));
-    expect(finder.length).toBe(5);
-    expect(swipe).toEqual(finder);
-    expect(SWIPE_WHO[0].id).toBe("me");
+  // Owner 2026-11-21 evening ("I tapped Me and the first thing that came up was stuff for hunting but I'm a girl?"):
+  // Swipe offers the quiz's people, Her, Him and Kids, in that order; no Me, Mom or Dad.
+  it("Swipe lists Her, Him and Kids, in the quiz's order", () => {
+    const quiz: string[] = FINDER_WHO.map((w) => w.id as string).filter((id) => ["her", "him", "kids"].includes(id));
+    expect(SWIPE_WHO.map((w) => w.id)).toEqual(quiz);
   });
 
   it("a dealt card shows its price, never its store", async () => {
     const { container } = render(<MemoryRouter><SwipeGifts /></MemoryRouter>);
     fireEvent.click(container.querySelector('[data-swipe-who="her"]')!);
-    fireEvent.click(container.querySelector('[data-swipe-budget="0"]')!);
+    await waitFor(() => expect(container.querySelector('[data-swipe-budget="under-25"]')).not.toBeNull(), { timeout: 5000 });
+    fireEvent.click(container.querySelector('[data-swipe-budget="under-25"]')!);
     fireEvent.click(container.querySelector("[data-swipe-start]")!);
     await waitFor(() => expect(container.querySelector("[data-swipe-card]")).not.toBeNull(), { timeout: 5000 });
     const meta = container.querySelector(".gg-swipe-meta")!;
@@ -194,10 +197,11 @@ describe("page, then menu, then disclosures in the code (holiday audit 1121 #22 
   });
 });
 
-describe("Her, Him and Kids link the free printables (holiday audit 1121 #49)", () => {
-  it("each live guide has at least one printable link", () => {
-    for (const slug of ["her", "him", "kids"]) expect(printablesForGuide(slug).map((p) => p.id), slug).toContain("gift-tags");
-    expect(printablesForGuide("kids").map((p) => p.id)).toContain("coloring-book");
+describe("Her, Him and Kids carry no printables (owner 2026-11-21, reversing holiday audit 1121 #49)", () => {
+  it("no live guide links a printable; they live under Free printables in the menu", () => {
+    // Owner 2026-11-21: "remove from her, they already have their own section."
+    for (const slug of ["her", "him", "kids"]) expect(printablesForGuide(slug).map((p) => p.id), slug).toEqual([]);
+    expect(printablesForGuide("gift-wrap-and-cards").map((p) => p.id)).toEqual(["gift-tags"]);
   });
 });
 
@@ -227,7 +231,8 @@ describe("/shop-small is never empty and sits in the guides' frame (holiday audi
     const { container } = render(<MemoryRouter><ShopSmall /></MemoryRouter>);
     expect([...container.querySelectorAll("h1")].map((h) => h.textContent)).toEqual([SBS_WORDS.pageTitle]);
     expect(container.querySelector("[data-gift-headrow] [data-gift-search-button]")).not.toBeNull();
-    expect([...container.querySelectorAll('[data-gift-sidebar] a[aria-current="page"]')].map((a) => a.getAttribute("href"))).toEqual(["/shop-small"]);
+    // Owner 11-21: Shop Small left the menu ("it's already listed with small business saturday"), so nothing is current.
+    expect([...container.querySelectorAll('[data-gift-sidebar] a[aria-current="page"]')].map((a) => a.getAttribute("href"))).toEqual([]);
     expect(container.querySelector("[data-shop-small-sponsors] h2")?.textContent).toBe(SBS_WORDS.pageSponsorsTitle);
     await waitFor(() => expect(container.querySelectorAll("[data-shop-small-sponsors] [data-gift-sb-grid] > li").length).toBeGreaterThan(30));
     // No affiliate link on this page, so no affiliate disclosure.
@@ -270,10 +275,14 @@ describe("the Shop Small sign-up form (holiday audit 1121 #76)", () => {
 describe("the swipe people read the finder's lists on first use, not at load (holiday audit 1121 #13)", () => {
   it("no module-level call reads FINDER_WHO (the build puts the two modules in chunks that import each other)", () => {
     const src = blankComments(readFileSync("src/content/giftGuideFun1120.ts", "utf8"));
-    const whoBlock = src.slice(src.indexOf("export const SWIPE_WHO"), src.indexOf("export const SWIPE_BUDGETS"));
+    const whoBlock = src.slice(src.indexOf("export const SWIPE_WHO"), src.indexOf("export const SWIPE_ROUND"));
     expect(whoBlock.length).toBeGreaterThan(200);
     expect(whoBlock).not.toMatch(/finderGuides\(|FINDER_WHO/);
-    expect((whoBlock.match(/finderWho\(/g) ?? []).length).toBeGreaterThan(5);
+    // The same trap with the quiz's chunk (owner 11-21 evening, Swipe matches the quiz): no module-level copy of a
+    // giftQuiz.ts value; a load-time SWIPE_BUDGETS = QUIZ_BUDGETS was undefined in the build and crashed "Kids".
+    const moduleLevel = src.split("\n").filter((l) => /^(export )?const /.test(l) && /\bQUIZ_[A-Z]+\b/.test(l));
+    expect(moduleLevel).toEqual([]);
+    expect((whoBlock.match(/finderWho\(/g) ?? []).length).toBeGreaterThan(2); // Her, Him, Kids (owner 11-21 evening)
     // The lists still resolve on use.
     expect(SWIPE_WHO.find((w) => w.id === "her")!.guides.length).toBeGreaterThan(0);
   });

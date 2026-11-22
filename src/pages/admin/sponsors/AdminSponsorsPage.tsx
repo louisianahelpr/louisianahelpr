@@ -123,7 +123,15 @@ export default function AdminSponsorsPage() {
         {demo ? <p className="rounded-lg bg-black px-3 py-2 text-center text-xs font-bold tracking-wider text-yellow-300">LOCAL PREVIEW · SAMPLE DATA · NOT LIVE</p> : null}
         {/* Small Business Saturday free listings to review (owner 2026-11-20); shown whatever the 25 Days switch says. */}
         {!demo && <SbsReviewPanel />}
-        {!allowed && sw.settled ? (
+        {/* Holiday audit 1121 #82: a failed switch read says so; it used to read as "switched off" and send the admin to
+            turn on a switch that was already on. */}
+        {!allowed && sw.failed ? (
+          <Panel title="Couldn't check the switch">
+            <p className="text-sm text-muted-foreground" data-admin-switch-failed="">We couldn't check whether the 25 Days page is on. Check your connection and try again.</p>
+            <Button onClick={sw.tryAgain}>Try again</Button>
+          </Panel>
+        ) : null}
+        {!allowed && sw.settled && !sw.failed ? (
           <Panel title="The 25 Days page is switched off">
             <p className="text-sm text-muted-foreground">
               Turn on the <strong>sponsor_25days</strong> switch in Admin → Settings → Hidden Feature Switches. Set it to Testers to set things up

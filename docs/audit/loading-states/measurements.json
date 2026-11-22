@@ -28681,6 +28681,45 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (1 wave(s) of data released)",
       "requests": 1
+    },
+    {
+      "url": "/gift-guides/printables/coloring-books",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4917",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/gift-guides/printables/coloring-books",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/gift-guides/printables/gift-tags",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4917",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/gift-guides/printables/gift-tags",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/gift-guides/printables/banners",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4917",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/gift-guides/printables/banners",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -28751,6 +28790,16 @@
       "base": "http://127.0.0.1:4199",
       "surfaces": [
         "anon /shop-small"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-11-22T09:42:57.487Z",
+      "base": "http://127.0.0.1:4917",
+      "surfaces": [
+        "anon /gift-guides/printables/coloring-books",
+        "anon /gift-guides/printables/gift-tags",
+        "anon /gift-guides/printables/banners"
       ],
       "replaced": []
     }

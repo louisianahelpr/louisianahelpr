@@ -1,18 +1,20 @@
 /**
  * The Holiday Gift Guides banner (owner mockup A, 2026-11-18): a pink banner on Home and Declutter that a member can
- * close. It links to /gift-guides, stays closed once closed, draws nothing after Dec 25, and loads lazily and LAST in
- * its column on both screens, so nothing below it moves and neither screen's first chunk grows.
+ * close. It links to /gift-guides, stays closed once closed, draws nothing after Dec 25, and loads lazily, so neither
+ * screen's first chunk grows. Declutter's sits LAST in its list; Home's is the slim strip under the greeting (owner
+ * 11-21), its slot held while it loads (src/test/homeGiftStripAndSideBox1121.test.tsx).
  *
  * @mutate src/components/GiftGuidesPromo.tsx |       window.localStorage.setItem(GIFT_PROMO_KEY, "1"); |       void GIFT_PROMO_KEY;
- * @mutate src/components/GiftGuidesPromo.tsx |   if (closed \|\| todayIso(now) > GIFT_PROMO_LAST_DAY) return null; |   if (closed) return null;
- * @mutate src/pages/home/HomeDashboard.tsx |             <Suspense fallback={null}><GiftGuidesPromo where="home" /></Suspense>\n | \n
+ * @mutate src/components/GiftGuidesPromo.tsx |   if (closed \|\| giftPromoOver(now)) return null; |   if (closed) return null;
+ * @mutate src/components/GiftGuidesPromo.tsx |       <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: "hsl(var(--cat-tint-rose-fg))", | <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: "#b26862",
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | {!preview && <Suspense fallback={null}><GiftGuidesPromo where="declutter" /></Suspense>} | {null}
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import GiftGuidesPromo, { GIFT_PROMO_KEY } from "@/components/GiftGuidesPromo";
+import GiftGuidesPromo from "@/components/GiftGuidesPromo";
+import { GIFT_PROMO_KEY } from "@/components/giftGuidesPromoGate";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 afterEach(() => {
@@ -40,9 +42,11 @@ describe("Holiday Gift Guides banner (owner mockup A)", () => {
     expect(draw(new Date(2026, 11, 26)).querySelector("[data-gift-promo]")).toBeNull();
   });
 
-  it("is lazy and last in its column on Home and Declutter", () => {
+  it("is lazy on Home and Declutter, and last in Declutter's list", () => {
+    const home = blankComments(readFileSync("src/pages/home/HomeDashboard.tsx", "utf8"));
+    expect(home).toContain('const GiftGuidesPromo = lazy(() => import("@/components/GiftGuidesPromo"));');
+    expect(home).not.toMatch(/^import .*from "@\/components\/GiftGuidesPromo"/m);
     const sites = [
-      ["src/pages/home/HomeDashboard.tsx", '<GiftGuidesPromo where="home" />', "</section>"],
       ["src/components/declutter/DeclutterBrowseView.tsx", '<GiftGuidesPromo where="declutter" />', "</div>"],
     ] as const;
     let checked = 0;
@@ -57,6 +61,15 @@ describe("Holiday Gift Guides banner (owner mockup A)", () => {
       expect(after.replace(/\s+/g, ""), file).toMatch(/^<\/Suspense>\}?$/);
       checked += 1;
     }
-    expect(checked).toBeGreaterThan(1);
+    expect(checked).toBeGreaterThan(0);
+  });
+});
+
+describe("the banner's colours are the app's tokens (holiday audit 1121 #30)", () => {
+  it("no hard-coded hex colour in the banner, so it follows the light and dark themes", () => {
+    const code = blankComments(readFileSync("src/components/GiftGuidesPromo.tsx", "utf8"));
+    expect(code.length).toBeGreaterThan(500);
+    expect(code.match(/#[0-9a-fA-F]{3,8}\b/g) ?? []).toEqual([]);
+    expect(code).toMatch(/--cat-tint-rose-bg/);
   });
 });

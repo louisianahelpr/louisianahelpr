@@ -1,42 +1,41 @@
 {
   "_": "The owner's own cover picks per guide (read by scripts/gift-guide-photo-covers.py). items: product names, drawn first in this order. photos: an Amazon-linked pick's photo of the same product from another store, as a transparent cutout (never Amazon's own photo). Guard: src/test/giftGuideCoverPins1121.test.ts.",
   "her": {
-    "_why": "Owner 2026-11-21: \"for the her guide remove the camera and the biodance from the cover. replace those with the hatch alarm clock and the current body red light mask\"",
+    "_why": "Owner 2026-11-21 ~9:45 PM, final (via lead): \"Ember, Lola, Dylan Croc, YETI bag, Depuffi and Theragun\" (the BaubleBar earrings, CurrentBody mask, Stanley cooler and Hatch come off). The Crocs Dylan (crocs.com link and photo, 11-21 night) takes the shoe spot (bottom right). Earlier 11-21: \"for the her guide remove the camera and the biodance from the cover. replace those with the hatch alarm clock and the current body red light mask\"",
     "items": [
       "Ember Mug 2, Brown",
       "Lola Blankets Original Throw Blanket",
-      "Stanley All Day Julienne Midi Cooler, Cream",
-      "On Cloud 6 Sneakers, Glacier/White",
-      "Hatch Restore 3, Putty",
-      "CurrentBody LED Red Light Therapy Face Mask"
+      "YETI Camino 35 Carryall Tote, Cape Taupe",
+      "Therabody Theragun Mini",
+      "Shark Depuffi Hot & Cold Face Sculpting Tool",
+      "Crocs Dylan Platform Clog"
     ],
     "photos": {}
   },
   "him": {
-    "_why": "Owner 2026-11-21: \"on the cover for the mens put the camo yeti cup, green lacrosse boots, rtic ice chest, turtle box\" and \"white burlebo hat on cover and socks\". Stand-in photos from yeti.com (Wetlands Camo), rticoutdoors.com (Tan, 20 can), turtleboxaudio.com (Ranger, Tan), burlebo.com (BURLEBO Outdoors cap), walmart.com (SIMIYA 5-pair merino socks).",
+    "_why": "Owner 2026-11-21 ~10 PM: \"replace the LaCrosse on men's with XTRATUF\" and ~10:15 PM \"do a different color for the boot because the cup is the same print\" (the classic Chocolate/Tan Ankle Deck Boot, style 22734, linked to xtratuf.com, its own photo cut out). Earlier: \"on the cover for the mens put the camo yeti cup, green lacrosse boots, rtic ice chest, turtle box\" and \"white burlebo hat on cover and socks\". Stand-in photos from yeti.com (Wetlands Camo), rticoutdoors.com (Tan, 20 can), turtleboxaudio.com (Ranger, Tan; since 11-21 night the pick itself links Onward Reserve and uses this photo), burlebo.com (BURLEBO Outdoors cap), walmart.com (SIMIYA 5-pair merino socks). Since 11-21 night the BURLEBO Cap pick itself links burlebo.com (12%) with this burlebo.com cutout, so it needs no stand-in photo.",
     "items": [
       "YETI Rambler 20 oz Tumbler",
-      "LaCrosse Grange Rubber Boot",
+      "XTRATUF Ankle Deck Boot",
       "RTIC Soft Cooler",
       "Turtlebox Ranger Speaker",
       "BURLEBO Cap",
       "SIMIYA Merino Wool Socks, 5 Pairs"
     ],
     "photos": {
-      "YETI Rambler 20 oz Tumbler": "https://www.louisianahelpr.com/gift-guides/cutouts/yeti-rambler-20-oz-tumbler-wetlands-camo-7f0109.webp",
       "RTIC Soft Cooler": "https://www.louisianahelpr.com/gift-guides/cutouts/rtic-ultra-tough-soft-cooler-20-tan-e1d3e3.webp",
-      "Turtlebox Ranger Speaker": "https://www.louisianahelpr.com/gift-guides/cutouts/turtlebox-ranger-tan-06e916.webp",
-      "BURLEBO Cap": "https://www.louisianahelpr.com/gift-guides/cutouts/burlebo-outdoors-cap-putty-b33402.webp",
       "SIMIYA Merino Wool Socks, 5 Pairs": "https://www.louisianahelpr.com/gift-guides/cutouts/simiya-merino-wool-socks-5-pairs-43466d.webp"
     }
   },
   "kids": {
-    "_why": "Owner 2026-11-21: \"on the cover put the nex playground, segway scooter, tonie box, walkie talkie, nintendo and swatch\". Stand-in photos from nexplayground.com, store.segway.com, us.tonies.com and nintendo.com. Left off (2026-11-21): the video walkie talkies (ANBURI) and the kids smart watch (Cosjoype) are sold only on Amazon, so no photo of the same product from another store was found.",
+    "_why": "Owner 2026-11-21: \"on the cover put the nex playground, segway scooter, tonie box, walkie talkie, nintendo and swatch\". Stand-in photos from nexplayground.com, store.segway.com, us.tonies.com and nintendo.com. Left off (2026-11-21): the video walkie talkies (ANBURI) and the kids smart watch (Cosjoype) are sold only on Amazon, so no photo of the same product from another store was found. Owner 2026-11-22 3:28 AM (via lead): \"add any 2 more expensive kids items but make sure all 6 are a variety not too much of the same for kids. I'll review tomorrow and make changes.\" Added, from Kids picks at non-Amazon stores, in categories the cover lacked: the Melissa & Doug Wood Furnished Mansion (dollhouse, Wayfair, $117.99) and the Sand and Water Table (outdoor play, Maisonette, $89); each uses the pick's own cutout.",
     "items": [
       "Nex Playground",
       "Segway Ninebot C2 Go Kids Scooter",
       "Toniebox 2, Sky Blue",
-      "Nintendo Switch Lite"
+      "Nintendo Switch Lite",
+      "Melissa & Doug Wood Furnished Mansion",
+      "Sand and Water Table"
     ],
     "photos": {
       "Nex Playground": "https://www.louisianahelpr.com/gift-guides/cutouts/nex-playground-56f785.webp",

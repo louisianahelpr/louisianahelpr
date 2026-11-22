@@ -9,7 +9,7 @@
  * @mutate src/content/giftGuideDeals.mjs |   return codes.find((c) => c.code === deal.code && c.expires && storeKey(c.store) === storeKey(deal.brand))?.expires; |   return undefined;
  * @mutate src/content/giftGuideDeals.mjs |   return expires && expires < today ? undefined : deal.code; |   return deal.code;
  * @mutate src/content/giftGuideDeals.mjs |   return ends ? ends >= today : today <= RETITLE_AFTER; |   return ends ? ends >= today : true;
- * @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx |   const codeRows = Math.min(stores, sales.length > 0 ? DEALS_ROWS - SALES_MIN : DEALS_ROWS); |   const codeRows = Math.min(stores, DEALS_ROWS);
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |     ...(sales.length ? [{ id: "sales" |     ...(false ? [{ id: "sales"
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | <span data-gift-shop="">{W.shopShort}<span className="sr-only"> {deal.brand}</span></span> | <span data-gift-shop="">{W.shop(deal.brand)}</span>
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <Link to={`/gift-guides/${d.id}`} {...current(d.id)} data-gift-side-deals={d.id}> | <Link to={`/gift-guides/black-friday-cyber-monday#${d.id}`} data-gift-side-deals={d.id}>
  */
@@ -86,12 +86,12 @@ describe("deal cards and the codes box read cleanly (holiday audit 1121, Lows)",
     }
     expect(deals.filter((d) => /turkey 12/i.test(d.deal)).map((d) => d.brand)).toEqual([]);
   });
-  it("the codes box keeps rows for the sales whenever there are any (it showed a Sales heading over no rows)", async () => {
+  it("the Sales subsection is there with its store cards whenever there are sales (it once showed a heading over no rows)", async () => {
     const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("black-friday")!} now={new Date("2026-11-25T18:00:00Z")} /></MemoryRouter>);
     await waitFor(() => expect(document.querySelector("[data-gift-deal]")).not.toBeNull());
-    const sales = container.querySelector("[data-gift-deals-codes] [data-gift-sales]");
-    if (sales) expect(sales.querySelectorAll("li[data-gift-sale]").length).toBeGreaterThanOrEqual(3);
-    expect(container.querySelector("[data-gift-deals-count]")?.textContent ?? "").not.toMatch(/\bdeals?\b/);
+    const sales = container.querySelector("details[data-gift-deal-sub='sales'] [data-gift-sales]");
+    expect(sales).not.toBeNull();
+    expect(sales!.querySelectorAll("li[data-gift-sale]").length).toBeGreaterThanOrEqual(3);
   });
 });
 

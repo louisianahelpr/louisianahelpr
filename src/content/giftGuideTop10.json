@@ -1,10 +1,10 @@
 {
-  "_how": "The gift guides landing's Top 10, in order: all ten named by the owner (2026-11-21 ~5:05 PM). To swap an item, change its href to the link of any pick on Her, Him or Kids (src/content/giftGuidePicks/her.json, him.json, kids.json) and its guide to that file's name; name is only a reminder. autoReplace false (the default) = always this item. Set autoReplace to true on a spot ONLY when the owner says so: that spot then goes to the most-clicked pick with at least 20 clicks in 14 days (src/content/giftGuideEarnRank.json, refreshed by scripts/gift-guide-earn-rank.mjs), and keeps this item until one qualifies. Keep exactly 10 entries.",
+  "_how": "The gift guides landing's Top 10, in order: all ten named by the owner (2026-11-21 ~5:05 PM; spot 1 swapped to the Theragun Mini, owner 11-21 evening: 'put the other Theragun here'; its Ulta link, as on the Her guide). To swap an item, change its href to the link of any pick on Her, Him or Kids (src/content/giftGuidePicks/her.json, him.json, kids.json) and its guide to that file's name; name is only a reminder. autoReplace false (the default) = always this item. Set autoReplace to true on a spot ONLY when the owner says so: that spot then goes to the most-clicked pick with at least 20 clicks in 14 days (src/content/giftGuideEarnRank.json, refreshed by scripts/gift-guide-earn-rank.mjs), and keeps this item until one qualifies. Keep exactly 10 entries.",
   "slots": [
-    { "href": "https://go.shopmy.us/p-108734364", "guide": "him", "name": "Theragun Prime Massage Gun", "autoReplace": false },
+    { "href": "https://go.shopmy.us/p-107903671", "guide": "her", "name": "Therabody Theragun Mini", "autoReplace": false },
     { "href": "https://go.shopmy.us/p-108604054", "guide": "her", "name": "Lola Blankets Original Throw Blanket", "autoReplace": false },
     { "href": "https://go.shopmy.us/p-107555566", "guide": "her", "name": "Shark Depuffi Hot & Cold Face Sculpting Tool", "autoReplace": false },
-    { "href": "https://go.shopmy.us/p-108609900", "guide": "her", "name": "YETI Camino 35 Carryall Tote, Cape Taupe", "autoReplace": false },
+    { "href": "https://go.shopmy.us/p-109006074", "guide": "her", "name": "YETI Camino 35 Carryall Tote, Cape Taupe", "autoReplace": false },
     { "href": "https://www.amazon.com/dp/B0D7TR9PBZ?tag=louisianahelpr-20", "guide": "her", "name": "Tyler Candle Company Diva Glamorous Gift Suite", "autoReplace": false },
     { "href": "https://go.shopmy.us/p-108611500", "guide": "her", "name": "Camp Snap CS-8 Micro Video Camera Keychain, Blind Box", "autoReplace": false },
     { "href": "https://go.shopmy.us/p-108613356", "guide": "her", "name": "Ember Mug 2, Brown", "autoReplace": false },

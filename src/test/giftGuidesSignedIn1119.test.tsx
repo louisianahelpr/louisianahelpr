@@ -11,7 +11,8 @@
  *  - /gift-guides and /gift-guides/<slug> are open routes: no MarketingRedirect, SignedInRedirect or ProtectedRoute
  *    wraps them, and a signed-in member who opens a guide stays on it (it is not sent to /home).
  *
- * @mutate src/components/DesktopSidebarNav.tsx |     { path: "/gift-guides", icon: Gift, label: "Holiday Gift Guides" }, |
+ * @mutate src/components/DesktopSidebarNav.tsx |     { path: "/gift-guides", icon: Gift, label: "Holiday Gift Guides", nested: true }, |
+ * @mutate src/components/DesktopSidebarNav.tsx | (sec.key === "jobs" \|\| sec.key === "declutter" ? i + 1 : at) | (at)
  * @mutate src/components/profile/profileLanding/YouMenu.tsx |           to="/gift-guides"\n          data-testid="you-gift-guides" |           to="/profile"\n          data-testid="you-gift-guides"
  * @mutate src/App.tsx | <Route path="/gift-guides/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} /> | <Route path="/gift-guides/:slug" element={<RouteErrorBoundary><MarketingRedirect>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />
  */
@@ -75,10 +76,19 @@ describe("signed in, the Holiday Gift Guides are one tap away (owner 11-19)", ()
     expect(row).toHaveAccessibleName("Holiday Gift Guides");
     expect(row.querySelector("svg.lucide-gift")).toBeTruthy();
     expect(row.getAttribute("aria-current")).toBe("page");
-    // It is one row of several (Home, Explore, the sections, Inbox, You), last.
+    // Owner 2026-11-21 night ("Side menu: move Gift Guides under Explore, right after Jobs and Declutter"): it is one of
+    // the rows under Explore, indented like the sections, right after the last of Jobs and Declutter, before Inbox.
     const rows = [...document.querySelectorAll("[data-sidebar-item]")].map((r) => r.getAttribute("data-sidebar-item"));
     expect(rows.length).toBeGreaterThan(3);
-    expect(rows[rows.length - 1]).toBe("/gift-guides");
+    const at = rows.indexOf("/gift-guides");
+    expect(rows.indexOf("/explore")).toBeGreaterThan(-1);
+    expect(at).toBeGreaterThan(rows.indexOf("/explore"));
+    const before = rows.slice(rows.indexOf("/explore") + 1, at);
+    expect(before.length, rows.join(" ")).toBeGreaterThan(0);
+    expect(before[before.length - 1], rows.join(" ")).toMatch(/^\/(jobs|declutter)$/);
+    for (const p of ["/jobs", "/declutter"]) if (rows.includes(p)) expect(rows.indexOf(p), p).toBeLessThan(at);
+    expect(at).toBeLessThan(rows.indexOf("/messages"));
+    expect(row.className).toContain("pl-9");
   });
 
   it("You (the phone's menu, where the top bar's photo leads) has a Holiday Gift Guides row linking /gift-guides", () => {

@@ -194,6 +194,8 @@ describe("F420: order chats are inbox rows, mixed with the threads", () => {
   it("search matches an order chat by its item; a hit among the order chats is not 'no results'", async () => {
     show(THREADS, talks(TALKS));
     await screen.findAllByText(/wrote last/);
+    // Owner 11-21: the search starts as its icon; the tap opens the field.
+    fireEvent.click(screen.getByRole("button", { name: "Search conversations" }));
     fireEvent.change(document.querySelector("[role=search] input")!, { target: { value: "lamp" } });
     expect(drawn()).toEqual(["order:Brass lamp"]);
     expect(screen.queryByText(/no conversations match|no results/i)).toBeNull();

@@ -1,17 +1,21 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { NativeRadio } from "@/components/ui/NativeRadio";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { saveOrShareFile } from "@/lib/fileExport";
-import { PRINTABLES_PATH, PRINTABLES_WORDS as W, shownPrintables, type DownloadProduct, type OverlayProduct } from "@/content/printables";
+import { PRINTABLES_WORDS as W, PRINTABLE_PAGES, printablesOnPage, printablesRedirect, type DownloadProduct, type OverlayProduct, type PrintablePageKey } from "@/content/printables";
 import { FunBody, funHeader } from "../fun/FunPage";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 
 /**
- * /gift-guides/printables (owner 2026-11-20): free holiday printables the owner designs in Canva. The name makers
- * (gift tags, the Santa letter / Nice List, thank-you cards) load as their own chunk, after the page; the downloads are
- * plain PDFs. Only printables switched on with their files listed show (src/content/printables.ts `ready`).
- * Guard: src/test/printables1120.test.tsx.
+ * The free printables (owner 2026-11-20): free holiday printables the owner designs in Canva. Each kind is its own page
+ * (owner 2026-11-21: "coloring book and banner should have their own page"): /gift-guides/printables/gift-tags (the
+ * name makers: gift tags, later the Santa letter / Nice List and thank-you cards, which load as their own chunk after
+ * the page), /coloring-books and /banners (plain downloads). The old /gift-guides/printables lands on the page its
+ * #anchor names, else Gift tags. Only printables switched on with their files listed show (`ready`).
+ * Guard: src/test/printables1120.test.tsx, src/test/giftGuideHolidayPolish1121d.test.tsx.
  */
 const NameMaker = lazy(() => import("./NameMaker"));
 
@@ -33,7 +37,9 @@ function DownloadCard({ p }: { p: DownloadProduct }) {
     }
   };
   return (
-    <li id={p.id} className={`pr-card${p.previews && p.previews.length > 1 ? " pr-card-two" : ""}`} data-printable-card={p.id}>
+    // A banner's wide preview sits full width above its words (owner 2026-11-21: "just polish this"); a 96px thumbnail of
+    // a 2:1 banner was too small to see.
+    <li id={p.id} className={`pr-card${p.previews && p.previews.length > 1 ? " pr-card-two" : ""}${p.section === "banners" ? " pr-card-wide" : ""}`} data-printable-card={p.id}>
       {p.previews && p.previews.length > 1 ? (
         <span className="pr-card-pair" data-printable-previews="">
           {p.previews.map((src) => <img key={src} loading="lazy" decoding="async" src={src} alt="" className="pr-card-img" width={160} height={207} />)}
@@ -42,7 +48,7 @@ function DownloadCard({ p }: { p: DownloadProduct }) {
         <img loading="lazy" decoding="async" src={p.preview} alt="" className="pr-card-img" width={160} height={207} />
       )}
       <div className="pr-card-body">
-        <h3>{p.title}</h3>
+        <h2 className="pr-card-title">{p.title}</h2>
         <p>{p.blurb}</p>
         <div className="pr-card-btns">
           {p.files.map((f) => (
@@ -53,19 +59,45 @@ function DownloadCard({ p }: { p: DownloadProduct }) {
         </div>
         {err && <p className="pr-err" role="alert">That download didn't work. Please try again.</p>}
         {p.cta && <Link to={p.cta.to} className="gg-link">{p.cta.label} ›</Link>}
+        {/* Owner 2026-11-21: the banner says where to print it cheaply (a plain link for now; no affiliate program yet). */}
+        {p.printAt && (
+          <a href={p.printAt.href} target="_blank" rel="noopener noreferrer" className="pr-print-at" data-printable-print-at={p.id}>
+            {p.printAt.label} ›<span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        )}
       </div>
     </li>
   );
 }
 
-const DOWNLOAD_SECTIONS = [
-  { key: "coloring", title: W.sectionColoring },
-  { key: "banners", title: W.sectionBanners },
-  { key: "more", title: W.moreTitle },
-] as const;
+/** Each page's title (its h1). */
+const PAGE_WORDS: Record<PrintablePageKey, { title: string }> = {
+  tags: { title: W.tagsTitle },
+  coloring: { title: W.coloringTitle },
+  banners: { title: W.bannersTitle },
+};
+
+/**
+ * The old one-page address (/gift-guides/printables) forwards to the page its #anchor names, else Gift tags (old links,
+ * pins, the planner sheet). It serves noindex with its own head before JS (NOINDEX_PAGE_META, api/share.ts) and keeps
+ * the same head here until the forward lands.
+ */
+function OldPrintables({ hash }: { hash: string }) {
+  usePageMeta(NOINDEX_PAGE_META["/gift-guides/printables"]);
+  return <Navigate to={printablesRedirect(hash)} replace />;
+}
 
 export default function Printables() {
-  const shown = shownPrintables();
+  const { pathname, hash } = useLocation();
+  const page = PRINTABLE_PAGES.find((x) => x.path === pathname.replace(/\/+$/, ""));
+  // The old one-page address (and any unknown printables path): its #anchor's page, else Gift tags.
+  if (!page) return <OldPrintables hash={hash} />;
+  return <PrintablesPage page={page.key} path={page.path} />;
+}
+
+function PrintablesPage({ page, path }: { page: PrintablePageKey; path: (typeof PRINTABLE_PAGES)[number]["path"] }) {
+  const shown = printablesOnPage(page);
+  const words = PAGE_WORDS[page];
   const makers = shown.filter((p): p is OverlayProduct => p.kind === "overlay");
   const downloads = shown.filter((p): p is DownloadProduct => p.kind === "download");
   const { hash } = useLocation();
@@ -79,11 +111,11 @@ export default function Printables() {
   const product = makers.find((m) => m.id === active);
 
   return (
-    <PublicHeaderPage {...funHeader(W.title)}>
-      <FunBody title={W.title} path={PRINTABLES_PATH}>
+    <PublicHeaderPage {...funHeader(words.title)}>
+      <FunBody title={words.title} path={path} tools={false}>
         <style>{PAGE_CSS}</style>
-        <p className="gg-fun-lead">{W.lead}</p>
-        {makers.length > 0 && <h2 className="pr-section" id="pr-tags">{W.sectionTags}</h2>}
+        {/* Owner 2026-11-21 ("remove the ... holiday banner words — just polish this"): no lead line; the title says what
+            the page is, and each card carries its own short how-to. */}
         {/* Holiday audit 1121 area 5 #6: the picker shows only when there is a choice (one live maker drew a one-option
             card that did nothing, between two headings of the same words). */}
         {makers.length > 1 && (
@@ -109,17 +141,13 @@ export default function Printables() {
             </Suspense>
           </section>
         )}
-        {/* Owner 2026-11-21: tags, banners and coloring books each get their own subsection. */}
-        {DOWNLOAD_SECTIONS.map((sec) => {
-          const list = downloads.filter((p) => (p.section ?? "more") === sec.key);
-          if (list.length === 0) return null;
-          return (
-            <section key={sec.key} aria-labelledby={`pr-${sec.key}`} className="pr-group">
-              <h2 className="pr-section" id={`pr-${sec.key}`}>{sec.title}</h2>
-              <ul className="pr-cards">{list.map((p) => <DownloadCard key={p.id} p={p} />)}</ul>
-            </section>
-          );
-        })}
+        {/* Owner 2026-11-21: each page shows only its own kind (the downloads of the "more" group sit under Gift tags). */}
+        {downloads.length > 0 && (
+          <section aria-label={words.title} className="pr-group">
+            {makers.length > 0 && <h2 className="pr-section">{W.moreTitle}</h2>}
+            <ul className="pr-cards">{downloads.map((p) => <DownloadCard key={p.id} p={p} />)}</ul>
+          </section>
+        )}
       </FunBody>
     </PublicHeaderPage>
   );
@@ -145,9 +173,14 @@ const PAGE_CSS = `
 /* Two covers: they sit above the words, so the two book buttons get the card's full width (at 375 and in the two-across grid). */
 .pr-card-two{flex-direction:column}.pr-card-two .pr-card-pair .pr-card-img{width:96px}
 .pr-card-body{min-width:0;flex:1}
-.pr-card-body h3{font-size:16px;font-weight:700;margin:0 0 4px;color:var(--gg-ink)}
+.pr-card-wide{flex-direction:column;max-width:420px}.pr-card-wide .pr-card-img{width:100%;max-width:100%}
+.pr-card-body .pr-card-title{font-size:16px;font-weight:700;margin:0 0 4px;color:var(--gg-ink)}
 .pr-card-body p{font-size:13px;color:var(--gg-muted);margin:0 0 8px}
 .pr-card-btns{display:flex;flex-wrap:wrap;gap:8px}
+/* Owner 2026-11-21: "Download the banner (free)" overflowed its pill; a long label wraps inside its button instead. */
+.pr-card-btns button{max-width:100%;height:auto;min-height:44px;white-space:normal;text-align:center}
+.pr-print-at{display:inline-flex;align-items:center;min-height:44px;margin-top:4px;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
+.pr-print-at:hover,.pr-print-at:focus-visible{text-decoration:underline}
 .pr-err{color:hsl(var(--destructive-ink));font-size:13px;font-weight:600;margin:8px 0 0}
 @media (min-width:560px){.pr-makers{grid-template-columns:repeat(auto-fit,minmax(0,1fr))}.pr-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `;

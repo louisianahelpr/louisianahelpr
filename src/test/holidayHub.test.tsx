@@ -4,8 +4,8 @@
  * document-scroll list, the footer and gift guides links, never the phone top nav), the retired /holidays/lights and
  * /holidays/events (a redirect in the app, each to /holidays with its filter preset; served the app shell only, out
  * of the sitemap and the meta table), the data (public fields only, the research's dates_tbc rule shown as "Dates TBA"), the
- * one list on /holidays (lights and events together, the slim hire strip on top, soonest first: happening now, then by
- * date, TBA last, past hidden; the filters folded behind one "Filters" button with a count, in the shared FilterSheet,
+ * one list on /holidays (lights and events together, soonest first, no hire strip (owner 11-21 evening): happening now, then by
+ * date, TBA last, past hidden; the filters folded behind a plain filter icon with a count, a search icon beside it, in the shared FilterSheet,
  * with a quick All / Lights / Events choice and a removable chip per filter in effect), the pre-JS SEO (one H1 each, ItemList of the lights and an Event
  * only for confirmed dates on /holidays) and the analytics (page_view, the Open in Maps click, no personal data).
  *
@@ -23,7 +23,11 @@
  * @mutate src/content/holidayHub/holidayHub.mjs |     else if (!e.start \|\| e.start < today) now.push(e); |     else if (e.start < today) now.push(e);
  * @mutate src/content/holidayHub/holidayHub.mjs |     ...(showLights ? filterLights(lights, { region, cost }, today).filter(inWeekend) : []), |     ...(showLights ? filterLights(lights, { region, cost }, today) : []),
  * @mutate src/content/holidayHub/holidayHub.mjs |   next.set("what", from === "lights" ? "lights" : |   next.set("what", from === "lights" ? "events" :
- * @mutate src/pages/info/holidays/HolidayHub.tsx |           <aside aria-label={W.stripTitle} data-holiday-hire-strip="" |           <aside aria-label={W.stripTitle} hidden data-holiday-hire-strip=""
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |           <div className="flex min-h-11 items-center gap-1"> |           <div className="flex min-h-11 items-center gap-1"><a href="/holidays/hire-a-helpr" data-holiday-hire-strip="">Hire a Helpr for the holidays</a>
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |   return words.every((w) => hay.includes(w)); |   return true;
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |                   onKeyDown={(e) => { if (e.key === "Escape") closeSearch(); }} |                   onKeyDown={() => undefined}
+ * @mutate src/pages/info/holidays/holidayParts.tsx |       <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{children}</ul> |       <ul className="grid gap-3 md:grid-cols-2">{children}</ul>
+ * @mutate src/pages/info/holidays/holidayParts.tsx |         {tag && <span className= |         {false && <span className=
  * @mutate src/pages/info/holidays/HolidayHub.tsx |     window.history.replaceState(window.history.state, "", `${window.location.pathname}${q ? `?${q}` : ""}`); |     void q;
  * @mutate src/pages/info/holidays/HolidayHub.tsx |   const [filtersOpen, setFiltersOpen] = useState(false); |   const [filtersOpen, setFiltersOpen] = useState(true);
  * @mutate src/pages/info/holidays/HolidayHub.tsx |                   <FilterChip size="tight" onClick={() => set(f.key, "all")} |                   <FilterChip size="tight" onClick={() => undefined}
@@ -32,7 +36,7 @@
  * @mutate src/content/holidayHub/holidayHub.mjs |     if (today && isOver(e, today)) return false; |
  * @mutate src/components/Footer.tsx |               <Link to="/holidays" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" data-gift-side-holiday-hub=""> |         <li><Link to="/help" data-gift-side-holiday-hub="">
- * @mutate src/pages/info/holidays/holidayParts.tsx |         onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}> |         >
+ * @mutate src/pages/info/holidays/holidayParts.tsx |             onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })} |
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -263,16 +267,10 @@ describe("/holidays: lights and events in one list", () => {
     expect(tba.length > 0 && tba.every((i) => !isHolidayLight(i))).toBe(true);
   });
 
-  it("renders the slim hire strip at the top, both lights and events, one page_view", () => {
+  it("no hire strip (owner 11-21 evening: \"remove the hire a helpr here\"), both lights and events, one page_view", () => {
     const { container } = at("/holidays", <HolidayHub />);
-    const strip = container.querySelector("[data-holiday-hire-strip]") as HTMLElement;
-    expect(strip).not.toBeNull();
-    expect(strip.hidden).toBe(false);
-    expect(strip.textContent).toContain("Hire a Helpr for the holidays");
-    expect(strip.querySelector("[data-holiday-hire-link]")!.getAttribute("href")).toBe("/holidays/hire-a-helpr");
-    // The strip comes before the filters and the list.
-    const filters = container.querySelector("[data-holiday-filters]")!;
-    expect(strip.compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(container.querySelector("[data-holiday-hire-strip], [data-holiday-hire-link]")).toBeNull();
+    expect(container.textContent).not.toContain("Hire a Helpr for the holidays");
     const ids = shownIds(container);
     expect(ids.length).toBe(filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {}, today).length);
     expect(ids.filter((id) => lightIds.has(id)).length).toBeGreaterThan(50);
@@ -285,21 +283,57 @@ describe("/holidays: lights and events in one list", () => {
     expect(track).toHaveBeenCalledWith("page_view", { page: "holidays" });
   });
 
-  it("filters start folded: one row with the quick choice and a Filters button, no filter chips on the page", () => {
+  it("filters start folded: plain search and filter icons (no words, no border), All / Lights / Events inside the panel", () => {
+    // Owner 2026-11-21: "move all lights and events into filter, remove the circle around filter and leave just the
+    // icons, add a search icon".
     const { container } = at("/holidays", <HolidayHub />);
     const button = container.querySelector("[data-holiday-filters-button]") as HTMLButtonElement;
-    expect(button.textContent).toBe("Filters");
+    expect(button.textContent).toBe("");
+    expect(button.getAttribute("aria-label")).toBe("Filters");
+    expect(button.className).not.toMatch(/\bborder\b|rounded-full/);
     expect(button.getAttribute("aria-expanded")).toBe("false");
+    const search = container.querySelector("[data-holiday-search-button]") as HTMLButtonElement;
+    expect(search.textContent).toBe("");
+    expect(search.className).not.toMatch(/\bborder\b|rounded-full/);
     expect(document.querySelector("[data-holiday-what]")).toBeNull();
-    expect(document.querySelector("[data-holiday-region]")).toBeNull();
+    expect(container.querySelector("[data-holiday-quick]")).toBeNull();
     expect(container.querySelector("[data-holiday-active]")).toBeNull();
-    expect([...container.querySelectorAll("[data-holiday-quick]")].map((b) => [b.textContent, b.getAttribute("aria-pressed")])).toEqual([
-      ["All", "true"], ["Lights", "false"], ["Events", "false"],
-    ]);
-    // The quick choice narrows at once.
-    fireEvent.click(container.querySelector('[data-holiday-quick="lights"]')!);
+    fireEvent.click(button);
+    const panel = screen.getByRole("dialog", { name: "Filters" });
+    expect([...panel.querySelectorAll("[data-holiday-what]")].map((b) => b.getAttribute("data-holiday-what")).slice(0, 3)).toEqual(["all", "lights", "events"]);
+    fireEvent.click(panel.querySelector('[data-holiday-what="lights"]')!);
     expect(shownIds(container).every((id) => lightIds.has(id))).toBe(true);
-    expect(container.querySelector('[data-holiday-active-chip="what"]')!.textContent).toBe("Christmas lights");
+  });
+
+  it("search: the icon opens a field over names, towns and places; Escape closes it and shows everything again", () => {
+    const { container } = at("/holidays", <HolidayHub />);
+    const all = shownIds(container).length;
+    fireEvent.click(container.querySelector("[data-holiday-search-button]")!);
+    const input = container.querySelector("[data-holiday-search]") as HTMLInputElement;
+    expect(input).not.toBeNull();
+    fireEvent.change(input, { target: { value: "natchitoches" } });
+    const hits = shownIds(container);
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits.length).toBeLessThan(all);
+    const items = [...HOLIDAY_LIGHTS, ...HOLIDAY_EVENTS];
+    for (const id of hits) {
+      const i = items.find((x) => x.id === id)!;
+      expect([i.name, i.city, i.address, i.region].join(" ").toLowerCase(), id).toContain("natchitoches");
+    }
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(container.querySelector("[data-holiday-search]")).toBeNull();
+    expect(shownIds(container).length).toBe(all);
+  });
+
+  it("compact cards: the type a small tag, one where-and-when line, the address is the Maps link, no round buttons", () => {
+    const { container } = at("/holidays", <HolidayHub />);
+    const cards = [...container.querySelectorAll("[data-holiday-item]")];
+    expect(cards.length).toBeGreaterThan(100);
+    for (const c of cards.slice(0, 40)) {
+      expect(c.querySelector("[data-holiday-tag]"), c.getAttribute("data-holiday-item")!).not.toBeNull();
+      for (const a of c.querySelectorAll("a")) expect(a.className, c.getAttribute("data-holiday-item")!).not.toMatch(/rounded-full|\bborder\b/);
+    }
+    expect(container.querySelector("ul.grid")!.className).toMatch(/xl:grid-cols-3/);
   });
 
   it("Filters opens a labelled panel with What, When, Region and Cost; chips narrow the list; Show N closes it", () => {
@@ -323,7 +357,7 @@ describe("/holidays: lights and events in one list", () => {
     const show = within(panel).getByRole("button", { name: `Show ${expected.length} results` });
     fireEvent.click(show);
     expect(screen.queryByRole("dialog", { name: "Filters" })).toBeNull();
-    expect(button.textContent).toBe("Filters· 3"); // the gap is the button's gap-1.5, between the word and its count
+    expect(button.textContent).toBe("3"); // the icon and its count badge
     expect(button.getAttribute("aria-label")).toBe("Filters, 3 on");
   });
 
@@ -331,9 +365,7 @@ describe("/holidays: lights and events in one list", () => {
     const { container } = at("/holidays?region=baton-rouge&cost=free&what=parade", <HolidayHub />);
     const chips = () => [...container.querySelectorAll("[data-holiday-active-chip]")].map((c) => c.textContent);
     expect(chips()).toEqual(["Parades", "Baton Rouge", "Free"]);
-    expect(container.querySelector("[data-holiday-filter-count]")!.textContent).toBe("· 3");
-    // A single kind of event lights the quick "Events" choice.
-    expect(container.querySelector('[data-holiday-quick="events"]')!.getAttribute("aria-pressed")).toBe("true");
+    expect(container.querySelector("[data-holiday-filter-count]")!.textContent).toBe("3");
     const parades = shownIds(container).map((id) => HOLIDAY_EVENTS.find((e) => e.id === id));
     expect(parades.length).toBeGreaterThan(3);
     expect(parades.every((e) => e?.category === "parade" && e.region === "baton-rouge" && e.cost === "free")).toBe(true);
@@ -516,7 +548,7 @@ describe("Holiday Hub SEO before JavaScript", () => {
  * @mutate src/content/holidayHub/holidayHub.mjs |     if ((e.tba \|\| (!e.start && !e.end)) && isHolidayLight(e)) lightsTba.push(e); |     if (false) lightsTba.push(e);
  * @mutate src/pages/info/holidays/holidayParts.tsx |   const price = holidayPriceLabel(item.price); |   const price = item.price;
  * @mutate src/content/holidayHub/holidayHub.mjs |   if (region && region.toLowerCase().startsWith(item.city.toLowerCase())) return region; |
- * @mutate src/pages/info/holidays/HolidayHub.tsx |     }, today).filter((i) => !endedEarlierToday(i, today, minutes)), |     }, today),
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |     }, today).filter((i) => !endedEarlierToday(i, today, minutes) && matchesQuery(i, query)), |     }, today).filter((i) => matchesQuery(i, query)),
  * @mutate src/pages/info/holidays/HolidayHub.tsx | <Link to="/shop-small" className="link-standard inline-flex min-h-11 items-center"> | <Link to="/shop-small" className="link-standard">
  */
 describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices, places, closed today, tap targets", () => {
@@ -606,5 +638,74 @@ describe("Holiday Hub When: Today and Next 7 days", () => {
     for (const i of week) expect(runsBetween(i, today, "2026-11-27"), i.id).toBe(true);
     render(<MemoryRouter initialEntries={["/holidays?when=week"]}><HolidayHub /></MemoryRouter>);
     expect(document.querySelector('[data-holiday-active-chip="when"]')?.textContent).toContain("Next 7 days");
+  });
+});
+
+/**
+ * Holiday audit 1121 area 5 #20 (rest): a dated item goes into the visitor's calendar as an all-day .ics entry from
+ * its own dates; an undated one has no button and no entry.
+ * @mutate src/lib/holidayIcs.ts |   if (item.tba \|\| !item.start \|\| !/^\d{4}-\d{2}-\d{2}$/.test(item.start)) return null; |   if (!item.start) return null;
+ * @mutate src/lib/holidayIcs.ts |     `DTEND;VALUE=DATE:${ymd(dayAfter(last))}`, |     `DTEND;VALUE=DATE:${ymd(last)}`,
+ * @mutate src/lib/holidayIcs.ts | .replace(/;/g, "\\;") |
+ * @mutate src/pages/info/holidays/holidayParts.tsx |         {item.start && !item.tba && ( |         {false && (
+ */
+/**
+ * Holiday audit 1121 area 5 #5 (rest): the days more than two weeks out and "Dates TBA" fold under one closed "Later
+ * dates"; a When filter or a search shows every group open.
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |   const folds = when === "all" && !query.trim(); |   const folds = false;
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |   const isLater = (g: (typeof groups)[number]) => folds && (g.key === "tba" \|\| (!!g.day && g.day > foldAfter)); |   const isLater = (g: (typeof groups)[number]) => folds && g.key === "tba";
+ */
+describe("Holiday Hub: Later dates fold", () => {
+  const today = "2026-11-20";
+  const at = (path: string, el: React.ReactElement) => render(<MemoryRouter initialEntries={[path]}>{el}</MemoryRouter>);
+  const shownIds = (c: HTMLElement) => [...c.querySelectorAll("[data-holiday-item]")].map((el) => el.getAttribute("data-holiday-item")!);
+  it("days past two weeks and Dates TBA sit in a closed Later dates; the next two weeks stay open", () => {
+    const { container, unmount } = at("/holidays", <HolidayHub />);
+    const later = container.querySelector<HTMLDetailsElement>("details[data-holiday-later]")!;
+    expect(later).not.toBeNull();
+    expect(later.open).toBe(false);
+    const inLater = [...later.querySelectorAll("h2")].map((h) => h.textContent ?? "");
+    expect(inLater[inLater.length - 1]).toMatch(/^Dates TBA/);
+    expect(inLater.some((h) => /December 2[0-9]/.test(h))).toBe(true);
+    const open = [...container.querySelectorAll("h2")].filter((h) => !later.contains(h)).map((h) => h.textContent ?? "");
+    expect(open[0]).toMatch(/^Happening now/);
+    expect(open.some((h) => /December 2[0-9]/.test(h))).toBe(false);
+    // Every item is still on the page (folded, not dropped).
+    expect(shownIds(container).length).toBe(filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {}, today).length);
+    unmount();
+    const week = at("/holidays?when=week", <HolidayHub />);
+    expect(week.container.querySelector("details[data-holiday-later]")).toBeNull();
+  });
+});
+
+describe("Holiday Hub: Add to calendar", () => {
+  it("an all-day entry from the item's own first to last day (DTEND the day after), its text escaped", async () => {
+    const { holidayIcs } = await import("@/lib/holidayIcs");
+    const run = HOLIDAY_EVENTS.find((e) => e.start && e.end && e.end > e.start && !e.tba)!;
+    const ics = holidayIcs(run, new Date("2026-11-21T18:00:00Z"))!;
+    expect(ics).toContain(`DTSTART;VALUE=DATE:${run.start!.replace(/-/g, "")}`);
+    const after = new Date(`${run.end}T12:00:00Z`);
+    after.setUTCDate(after.getUTCDate() + 1);
+    expect(ics).toContain(`DTEND;VALUE=DATE:${after.toISOString().slice(0, 10).replace(/-/g, "")}`);
+    expect(ics).toMatch(/^BEGIN:VCALENDAR\r\n/);
+    expect(ics).toContain(`UID:${run.id}@louisianahelpr.com`);
+    for (const line of ics.split("\r\n")) expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75);
+    const odd = holidayIcs({ ...run, name: "Pie, Coffee; and Lights" }, new Date())!;
+    expect(odd).toContain("SUMMARY:Pie\\, Coffee\\; and Lights");
+    expect(holidayIcs({ ...run, tba: true }, new Date())).toBeNull();
+    expect(holidayIcs({ ...run, start: null }, new Date())).toBeNull();
+  });
+  it("dated cards carry the button; undated ones do not", () => {
+    const { container } = render(<MemoryRouter initialEntries={["/holidays"]}><HolidayHub /></MemoryRouter>);
+    const items = [...HOLIDAY_LIGHTS, ...HOLIDAY_EVENTS];
+    const cards = [...container.querySelectorAll("[data-holiday-item]")];
+    let dated = 0;
+    for (const c of cards) {
+      const i = items.find((x) => x.id === c.getAttribute("data-holiday-item"))!;
+      const has = Boolean(i.start && !i.tba);
+      dated += has ? 1 : 0;
+      expect(Boolean(c.querySelector("[data-holiday-ics]")), i.id).toBe(has);
+    }
+    expect(dated).toBeGreaterThan(50);
   });
 });

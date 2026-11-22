@@ -204,13 +204,15 @@ export function quizStep(a: QuizAnswers): "who" | "age" | "budget" | "into" | "r
 }
 
 const dollars = (p: CatalogPick) => Math.max(1, Math.round(p.price ?? 0));
+/** Whether a pick's shown price sits in a budget band (the swipe deck reads it too). */
+export const quizInBudget = (p: CatalogPick, b: QuizBudget) => inBudget(p, b);
 const inBudget = (p: CatalogPick, b: QuizBudget) => {
   const band = QUIZ_BUDGETS.find((x) => x.id === b)!;
   return !!p.price && p.price > 0 && dollars(p) >= band.min && dollars(p) <= band.max;
 };
 
 /** The picks for a person (and a kid's age), before budget and interest. */
-function quizPool(pool: readonly CatalogPick[], a: Pick<QuizAnswers, "who" | "age">): CatalogPick[] {
+export function quizPool<T extends CatalogPick>(pool: readonly T[], a: Pick<QuizAnswers, "who" | "age">): T[] {
   if (!a.who) return [];
   return pool.filter((p) => a.who !== "kids" || !a.age || quizAges(p).includes(a.age));
 }
@@ -256,6 +258,11 @@ function brandSpread(picks: CatalogPick[]): CatalogPick[] {
     (n <= PER_BRAND ? first : later).push(p);
   }
   return [...first, ...later];
+}
+
+/** The quiz's order for a list already filtered (Top 10, clicks, price fit; at most two of a brand): the swipe deck's order too. */
+export function quizRanked<T extends CatalogPick>(picks: readonly T[], budget: QuizBudget): T[] {
+  return brandSpread(rank([...picks], budget)) as T[];
 }
 
 export interface QuizResult { picks: CatalogPick[]; widened: boolean }

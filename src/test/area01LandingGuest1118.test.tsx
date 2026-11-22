@@ -141,7 +141,9 @@ describe("#1 guest pages speak Spanish", () => {
   it("the guest pages draw their words through wordInLang", () => {
     expect(src("src/components/Navbar.tsx")).toContain('{navWord("footer.jobs", "Jobs")}');
     expect(src("src/pages/jobs/JobDetail.tsx")).toContain(`w("pub.job.notOpenTitle", "This job isn't open anymore")`);
-    expect(src("src/pages/helprs/FindHelprs.tsx")).toContain('{w("pub.helprs.town", "Town or parish")}');
+    // Owner 11-21: the town label is read once (townLabel) for the field that opens from the search icon.
+    expect(src("src/pages/helprs/FindHelprs.tsx")).toContain('const townLabel = w("pub.helprs.town", "Town or parish");');
+    expect(src("src/pages/helprs/FindHelprs.tsx")).toContain("{townLabel}");
     expect(src("src/pages/info/HireTownPage.tsx")).toContain('wordInLang("pub.town.moreNear", "More near you")');
     expect(src("src/pages/info/support/SupportFormParts.tsx")).toContain('wordInLang("pub.support.chooseTopic", "Choose a topic")');
     expect(src("src/pages/auth/Login.tsx")).toContain("{loginNoticeInLang(notice)}");

@@ -16,7 +16,7 @@
  * @mutate src/content/giftGuideFun1120.ts |   const spent = sum(p.ideas.filter((i) => i.bought)); |   const spent = sum(p.ideas);
  * @mutate src/content/giftGuideFun1120.ts |   if (md > "12-25") return { kind: "after" }; |   if (md > "12-26") return { kind: "after" };
  * @mutate src/content/giftGuideFun1120.ts |   return flagOn && md >= "12-01" && md <= "12-25"; |   return md >= "12-01" && md <= "12-25";
- * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |     if (keep && addToWishList( |     if (false && addToWishList(
+ * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |       if (saveIdeaToPlanner(forName, null, card)) { |       if (false && saveIdeaToPlanner(forName, null, card)) {
  * @mutate src/content/giftGuideFun1120.ts | export const cleanName = (n: string) => cleanGiftName(n, SANTA_NAME_MAX).trim(); | export const cleanName = (n: string) => n.trim();
  * @mutate src/content/giftGuideFun1120.ts |   LINKISH.test(n) ? "link" : | false ? "link" :
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |   if (viewer === undefined \|\| !copyBelongsTo(c.ownerId, viewer)) return EMPTY_PLAN; |   if (viewer === undefined) return EMPTY_PLAN;
@@ -39,8 +39,10 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 import { newestFunction } from "./helpers/parityReaders";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
-import { SWIPE_BUDGETS, SWIPE_PER_STORE, SWIPE_ROUND, SWIPE_WHO, duplicateName, swipePool, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giveawayTieInOn, parseDollars, SANTA_PATH, borrowFits, cleanName, cleanNames, nameProblem, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan } from "@/content/giftGuideFun1120";
+import { SWIPE_PER_STORE, SWIPE_ROUND, duplicateName, swipePool, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giveawayTieInOn, parseDollars, SANTA_PATH, borrowFits, cleanName, cleanNames, nameProblem, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan } from "@/content/giftGuideFun1120";
+import { swipeBudgets, swipeDeck } from "@/content/giftGuideSwipe";
 import { BUDGET_GUIDES, pickCeiling } from "@/content/giftPickBand";
+import { QUIZ_AGES, quizAges, quizInBudget } from "@/content/giftQuiz";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
@@ -243,44 +245,33 @@ describe("swipe rounds", () => {
 
   // Holiday audit C1 (11-20): a budget round deals only gifts KNOWN to fit, so the floor is 8 (Dad and Him under $25
   // had exactly 8, measured 11-20); a short round says so and offers the next budget (W.swipeFew, data-swipe-next-budget).
-  it("every who and budget whose guides are live gives at least 8 cards from the real guides (UX audit H3)", async () => {
+  // Owner 2026-11-21 evening (Swipe matches the quiz: Her, Him or Kids, a kid's age, the quiz's budget bands, and only
+  // the budgets with enough picks): every offered deck is full, or holds every fitting pick, and never fewer than 3.
+  it("every who (and kid's age) and offered budget deals a real deck from that person's own picks (UX audit H3)", async () => {
     await loadAllGuidePicks();
-    const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
     const thin: string[] = [];
-    // Owner 11-21: only Her, Him and Kids (and their relationship views) are live (src/content/giftGuideLive.mjs); a
-    // "who" drawing from retired guides (Teen, Friends, Coworkers, Grandparents, Louisiana) has no deck to check.
-    const live = SWIPE_WHO.filter((w) => w.guides.every((g) => guideBySlug(g.slug)));
-    expect(live.map((w) => w.id)).toEqual(expect.arrayContaining(["her", "him", "kids"]));
-    for (const w of live) for (const b of SWIPE_BUDGETS) {
-      const borrow = BUDGET_GUIDES.flatMap((g) => picksOf(g).filter((p) => borrowFits(w.id, p)));
-      const n = swipeRound(swipePool(w.id, picksOf), b.id, new Set(), seededRandom(1), borrow).length;
-      if (n < 8) thin.push(`${w.id}/${b.id}: ${n}`);
+    let decks = 0;
+    const people = [{ who: "her" as const }, { who: "him" as const }, ...QUIZ_AGES.map((a) => ({ who: "kids" as const, age: a.id }))];
+    for (const person of people) {
+      const pool = guideBySlug(person.who)?.picks ?? [];
+      for (const b of swipeBudgets(pool, person)) {
+        const deck = swipeDeck(pool, { ...person, budget: b.id }, new Set());
+        const fitting = pool.filter((p) => p.href && p.name && quizInBudget(p, b.id) && (!("age" in person) || quizAges(p).includes(person.age))).length;
+        if (deck.length < 3 || deck.length !== Math.min(SWIPE_ROUND, fitting)) thin.push(`${person.who}${"age" in person ? ` ${person.age}` : ""}/${b.id}: ${deck.length} of ${fitting}`);
+        decks += 1;
+      }
     }
-    expect(live.length * SWIPE_BUDGETS.length).toBeGreaterThan(11);
-    // KNOWN_THIN (exact, two-way; measured 2026-11-21): with the budget guides retired (owner 11-21) a budget round can
-    // no longer borrow their picks, and Her is the owner's 25 picks, so these rounds deal under 8. Open for the lead:
-    // retire the swipe tool with the guides, or refill these budgets from Her, Him and Kids. Never add to this list.
-    // Owner 11-21 (later): Him and Kids are now her own Amazon saves, which carry no price on the site, so a budget
-    // round finds nothing in them; only "any budget" deals for Dad and Him.
-    // Commission switches 11-21 (4 Amazon picks moved to the same item at a better-paying ShopMy store, which shows a
-    // price): rounds got fuller and me/100 now deals 8+ (measured 2026-11-21).
-    // Owner 2026-11-21 ~12:05 PM ("each item also needs a price"; she chose "Show Amazon prices anyway" after the
-    // Associates warning): every Her, Him and Kids pick now carries the price captured from her saved list, so budget
-    // rounds can use Him's and Her's Amazon picks too and got fuller: with her ShopMy saves for Him and Kids (train
-    // 1121c) every round deals 8+ but mom/25 and her/25 (measured 2026-11-21). Holiday audit 1121 (High): Kids deals
-    // from its whole flat list now (it read sections the list no longer has): 8+ at every budget but kids/25, 6.
-    // Train 1121g (the owner's LSU saves and the Kids cart/price picks together): kids/25 now deals 8+ (measured 2026-11-21).
-    // @two-way src/test/giftGuideFun1120.test.tsx:expect(thin).toEqual(KNOWN_THIN)
-    // Holiday audit 1121 #11 (2026-11-21): a round now fills from a capped store once the other stores run out
-    // (giftGuideFun1120.ts dealRound), so mom/25, her/25 and kids/25 deal every fitting pick and are 8+ (measured).
-    const KNOWN_THIN: string[] = [];
-    expect(thin).toEqual(KNOWN_THIN);
+    expect(decks).toBeGreaterThan(15); // 25 measured 2026-11-21
+    expect(thin).toEqual([]);
   });
 
-  it("for Me, Save puts the card on the wish list; Skip does not", async () => {
+  // Owner 2026-11-21 evening: no "Me" deck (we cannot know who "me" is); a save is for the chosen person, never the
+  // wish list (the planner side: src/test/secretSantaIdeas1120.test.tsx).
+  it("for Her, Save files the card for Her (counted on the deck), never on the wish list; Skip does not", async () => {
     const { container } = render(<MemoryRouter><SwipeGifts /></MemoryRouter>);
-    fireEvent.click(container.querySelector('[data-swipe-who="me"]')!);
-    fireEvent.click(container.querySelector('[data-swipe-budget="0"]')!);
+    fireEvent.click(container.querySelector('[data-swipe-who="her"]')!);
+    await waitFor(() => expect(container.querySelector('[data-swipe-budget="under-25"]')).not.toBeNull(), { timeout: 5000 });
+    fireEvent.click(container.querySelector('[data-swipe-budget="under-25"]')!);
     fireEvent.click(container.querySelector("[data-swipe-start]")!);
     await waitFor(() => expect(container.querySelector("[data-swipe-card]")).not.toBeNull(), { timeout: 5000 });
     const first = container.querySelector("[data-swipe-card]")!.getAttribute("data-swipe-card");
@@ -288,9 +279,11 @@ describe("swipe rounds", () => {
     expect(giftListNow().picks.length).toBe(0);
     const second = container.querySelector("[data-swipe-card]")!.getAttribute("data-swipe-card");
     expect(second).not.toBe(first);
+    expect(second).toBeTruthy();
+    expect(container.querySelector("[data-swipe-saved-count]")).toBeNull();
     fireEvent.click(container.querySelector("[data-swipe-save]")!);
-    expect(giftListNow().picks.map((p) => p.href)).toEqual([second]);
-    expect(giftListNow().picks[0].guide).toMatch(/^[a-z0-9-]+$/);
+    expect(giftListNow().picks).toEqual([]);
+    expect(container.querySelector("[data-swipe-saved-count]")).not.toBeNull();
   });
 });
 

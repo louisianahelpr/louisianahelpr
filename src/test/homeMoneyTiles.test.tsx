@@ -184,13 +184,16 @@ describe("the tiles (boards 7, 11)", () => {
     expect(container.querySelector("[data-home-money]")).toBeNull();
   });
 
-  it("Home places the strip after Next up on phone and atop the right column from 1280 (boards 7, 11)", () => {
+  // Owner 11-21 ("your profile etc needs a box around it"): from 1280 the tiles follow the right column's one card
+  // (the profile line and Your sections), instead of sitting between the two.
+  it("Home places the strip after Next up on phone and under the right column's card from 1280 (boards 7, 11; owner 11-21)", () => {
     const home = src("pages/home/HomeDashboard.tsx");
     const main = home.indexOf('<HomeMoneyTiles money={money} placement="main" />');
     expect(main).toBeGreaterThan(home.indexOf('data-testid="next-up"'));
     expect(main).toBeLessThan(home.indexOf('<GroupSection title={t("home.comingUp")}>'));
     const side = home.indexOf('<HomeMoneyTiles money={money} placement="side" />');
     expect(side).toBeGreaterThan(home.indexOf("<section data-home-side"));
-    expect(side).toBeLessThan(home.indexOf('>{t("home.yourSections")}</h2>'));
+    expect(side).toBeGreaterThan(home.indexOf('>{t("home.yourSections")}</h2>'));
+    expect(side).toBeGreaterThan(home.indexOf("data-section-chips="));
   });
 });

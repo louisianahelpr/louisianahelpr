@@ -33,11 +33,14 @@ test.beforeAll(async ({ request }) => {
   poster = await getSession(request, "poster");
 });
 
-/** Every OPENING search (a field that appears on a press) whose screen carries a page title. */
-const SURFACES: { name: string; file: string; url: string; trigger: string; field: string; minWidth?: number; maxWidth?: number }[] = [
+/** Every OPENING search (a field that appears on a press) whose screen carries a page title.
+ * `takesTheRow` (owner 11-14 compact top + 11-21 just the icon): on a phone the bar's opened field takes the top row and
+ * the title steps back to a reader-only h1 by design; there the check is only that the closed bar shows the title and
+ * the field never sits on a VISIBLE title. */
+const SURFACES: { name: string; file: string; url: string; trigger: string; field: string; minWidth?: number; maxWidth?: number; takesTheRow?: string }[] = [
   // jobs (/jobs, My Jobs), posts (/posts, My Posts) and browse-phone (/home) left 2026-10-19 (Q2205) with the old
   // screens. Jobs > Browse's and Posted's phone search is the top bar's always-open field since the Vinted header
-  // (owner 11-08; SectionSearchBar, nothing opens), so jobs-browse-phone left and jobs-posted-search runs at 900+.
+  // (owner 11-08; SectionSearchBar, nothing opens), so jobs-browse-phone left and jobs-posted-search runs at 900+ (owner 11-21 brought the phone bars back as opening searches: below).
   // The inbox opens a header search only on the one-pane web desktop, 900-1139 (Q2231 / board 38: the phone and the
   // two-pane list at 1140+ wear the permanent MessagesSearchRow, nothing opens). So it runs at BAND_VW alone.
   { name: "messages", file: "src/components/messages/ConversationList.tsx", url: "/messages", trigger: "[data-search-trigger]", field: 'input[aria-label="Search conversations"]', minWidth: 900, maxWidth: 1139 },
@@ -62,6 +65,47 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     trigger: "[data-feed-strip] [data-search-trigger]",
     field: '[data-feed-strip] input[aria-label="Search jobs"]',
     minWidth: 900,
+  },
+  // Owner 11-21 (just the icon): every search that was an always-open field now opens from its magnifier.
+  {
+    name: "jobs-browse-phone", file: "src/components/sections/SectionSearchBar.tsx",
+    url: "/jobs",
+    trigger: '[data-section-search-bar] button[aria-label="Search jobs"]',
+    field: '[data-section-search-bar] input[aria-label="Search jobs"]',
+    maxWidth: 899,
+    takesTheRow: "the phone top bar's opened field takes the row; 'Jobs' steps back to the reader-only h1 (AppTopBar group-has-[[data-search-open]])",
+  },
+  {
+    name: "shops-browse-row", file: "src/components/sections/SectionSearchRow.tsx",
+    url: "/shops",
+    trigger: '[data-section-search] button[aria-label="Search shops"]',
+    field: 'input[aria-label="Search shops"]',
+    takesTheRow: "on a phone the row draws in the top bar's search slot, so its opened field takes the bar's row like the section bar's",
+  },
+  {
+    name: "messages-row", file: "src/components/messages/MessagesSearchRow.tsx",
+    url: "/messages",
+    trigger: '[data-testid="messages-search-row"] button[aria-label="Search conversations"]',
+    field: '[data-testid="messages-search-row"] input[aria-label="Search conversations"]',
+  },
+  {
+    name: "help-center", file: "src/pages/info/HelpCenter.tsx",
+    url: "/help",
+    trigger: 'button[aria-label="Search help"]',
+    field: 'input[aria-label="Search help"]',
+  },
+  {
+    name: "find-helprs", file: "src/pages/helprs/FindHelprs.tsx",
+    url: "/helprs",
+    trigger: 'button[aria-label="Find a Helpr by town"]',
+    field: "#helpr-town",
+  },
+  // Holiday fixes 1121d (owner 11-21 evening): the Holiday Hub's plain magnifier opens its field in the filters row.
+  {
+    name: "holiday-hub", file: "src/pages/info/holidays/HolidayHub.tsx",
+    url: "/holidays",
+    trigger: "button[data-holiday-search-button]",
+    field: "input[data-holiday-search]",
   },
 ];
 
@@ -152,7 +196,7 @@ for (const engine of ["chromium", "webkit"] as const) {
           } else {
             // Not vacuous on a phone: every titled surface shows its title closed.
             if (vw === 375) expect(closed.titleShown, `${msg} — no visible title even closed; nothing was measured`).toBe(true);
-            expect(m.titleShown, `${msg} — the title is gone while search is open`).toBe(closed.titleShown);
+            if (!s.takesTheRow) expect(m.titleShown, `${msg} — the title is gone while search is open`).toBe(closed.titleShown);
             expect(m.overlapArea, `${msg} — the field covers the title`).toBe(0);
           }
         } finally {

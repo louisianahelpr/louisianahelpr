@@ -133,7 +133,12 @@ export const SANTA_TOKEN = /^[a-f0-9]{64}$/;
 // ---------------------------------------------------------------------------------------------------------------
 // (2) Swipe to find gifts
 
-export type SwipeWho = "me" | "mom" | "dad" | "her" | "him" | "teen" | "kids" | "friends" | "coworkers" | "grandparents" | "louisiana";
+/**
+ * Who a swipe deck is for (owner 2026-11-21 evening: "I tapped Me and the first thing that came up was stuff for
+ * hunting but I'm a girl? How do we know if me is a girl or boy"): Her, Him or Kids, as in the quiz (giftQuiz.ts). "Me"
+ * is gone (we cannot know who "me" is), and Mom and Dad repeated Her and Him.
+ */
+export type SwipeWho = "her" | "him" | "kids";
 export type SwipeBudget = 25 | 50 | 100 | 0;
 
 /**
@@ -154,24 +159,13 @@ const finderWho = (id: SwipeWho, label: string, finderIds: string[], forName?: s
   return { id, label, ...(forName ? { forName } : {}), get guides(): SwipeGuides { return (cached ??= finderIds.flatMap(finderGuides)); } };
 };
 export const SWIPE_WHO: { id: SwipeWho; label: string; guides: SwipeGuides; forName?: string }[] = [
-  finderWho("me", "Me", ["her", "him"]),
-  // Holiday audit 1121 #24: the finder's person order (Her, Him, Mom, Dad, Kids, Teen, ...), after "Me".
   finderWho("her", "Her", ["her"], "Her"),
   finderWho("him", "Him", ["him"], "Him"),
-  finderWho("mom", "Mom", ["mom"], "Mom"),
-  finderWho("dad", "Dad", ["dad"], "Dad"),
   finderWho("kids", "Kids", ["kids"], "Kids"),
-  finderWho("teen", "Teen", ["teen"], "Teen"),
-  finderWho("friends", "Friends", ["friend"], "Friends"),
-  finderWho("coworkers", "Coworkers", ["coworker"], "Coworkers"),
-  // Holiday audit C12c: the quiz has Grandparents, so the swipe deck does too.
-  finderWho("grandparents", "Grandparents", ["grandparent"], "Grandparents"),
-  { id: "louisiana", label: "Louisiana", guides: [{ slug: "louisiana-made" }, { slug: "shop-small-louisiana" }, { slug: "louisiana-food-gifts" }], forName: "Louisiana gifts" },
-];
-export const SWIPE_BUDGETS: { id: SwipeBudget; label: string }[] = [
-  { id: 25, label: "Under $25" }, { id: 50, label: "Under $50" }, { id: 100, label: "Under $100" }, { id: 0, label: "Any budget" },
 ];
 export const SWIPE_ROUND = 20;
+// The plain deck and its budgets (the quiz's bands) live in src/content/giftGuideSwipe.ts: they read giftQuiz.ts, which
+// would put the gift guides' catalog chunk on /sponsor's critical path from here (this module rides in public-page-reads).
 /** At most this many cards from one store in a round (some variety). */
 export const SWIPE_PER_STORE = 5;
 
@@ -245,8 +239,8 @@ export const borrowFits = (who: SwipeWho, p: CatalogPick) => {
   const text = `${p.name} ${p.brand ?? ""}`;
   if (who === "kids") return KID_THING.test(text);
   if (KID_THING.test(text)) return false;
-  if (who === "mom" || who === "her") return !MENS.test(p.name) && !MENS.test(p.brand ?? "");
-  if (who === "dad" || who === "him") return !WOMENS.test(text);
+  if (who === "her") return !MENS.test(p.name) && !MENS.test(p.brand ?? "");
+  if (who === "him") return !WOMENS.test(text);
   return true;
 };
 
@@ -465,6 +459,7 @@ export const FUN_WORDS = {
   swipeTitle: "Swipe to find gifts",
   swipeWho: "Who's it for?",
   swipeBudget: "Your budget",
+  swipeAge: "How old?",
   swipeStart: "Start swiping",
   swipeSave: "Save",
   swipeSkip: "Skip",

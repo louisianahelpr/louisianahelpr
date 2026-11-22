@@ -89,6 +89,7 @@ export function codesDay(event, today) {
 /** At most this many deals from one brand on the whole page (owner 11-20: about 2 of a brand at most). */
 export const DEALS_PER_BRAND = 2;
 
+
 export const DEALS_WORDS = {
   title: "Black Friday & Cyber Monday Deals",
   laterTitle: "Holiday Deals",
@@ -104,6 +105,12 @@ export const DEALS_WORDS = {
   codeLabel: "Code",
   endsOn: (ymd) => `Ends ${shortDay(ymd)}`,
   startsOn: (ymd) => `Starts ${shortDay(ymd)}`,
+  /**
+   * When a deal, code or sale runs, on every card (owner 2026-11-21: "On each card say when the deals start and end"):
+   * both days when both are known ("Nov 20 – Nov 28"), else the one we know ("Starts Nov 27" / "Ends Dec 17"), else
+   * nothing. Never an invented day.
+   */
+  runs: (start, end) => (start && end ? `${shortDay(start)} – ${shortDay(end)}` : start ? `Starts ${shortDay(start)}` : end ? `Ends ${shortDay(end)}` : ""),
   shopSmall: "More Louisiana small businesses on Shop Small",
   none: "These deals have ended. Our gift guides are still full of ideas.",
   noneCta: "Browse the gift guides",
@@ -146,16 +153,11 @@ export function dealCode(deal, today, codes = []) {
  * known end shows only through RETITLE_AFTER (Dec 1, the day after Cyber Monday): holiday audit 1121 (High) found 20
  * of 28 cards had no end and stayed up for good, under "These sales are still on". No end day is ever made up for a
  * card; the card simply goes. An "announced" deal (the brand told us it is coming) shows before its `starts` day too,
- * with "Starts <day>" on its card (dealStartsLater), so a section reads sensibly before its date.
+ * with its start and end days on its card (DEALS_WORDS.runs; owner 2026-11-21: every card says when it starts and ends).
  */
 export function dealShows(deal, today, codes = []) {
   const ends = dealEnds(deal, codes);
   return ends ? ends >= today : today <= RETITLE_AFTER;
-}
-
-/** Whether a deal's card says "Starts <day>": an announced deal whose start day is still ahead. */
-export function dealStartsLater(deal, today) {
-  return deal.status === "announced" && !!deal.starts && deal.starts > today;
 }
 
 /** The deals that show on `today`, in their order. */

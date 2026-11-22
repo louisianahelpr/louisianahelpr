@@ -1,6 +1,8 @@
 /**
  * The owner's own cover picks (scripts/gift-guide-cover-pins.json; owner 2026-11-21: "for the her guide remove the camera
- * and the biodance from the cover. replace those with the hatch alarm clock and the current body red light mask") are
+ * and the biodance from the cover. replace those with the hatch alarm clock and the current body red light mask"; later
+ * that night, final: "Ember, Lola, Dylan Croc, YETI bag, Depuffi and Theragun", the On Cloud holding the shoe spot until
+ * the Crocs Dylan has a non-Amazon link and photo) are
  * exactly what each pinned cover shows: every pinned name is a product in that guide, the cover manifest the cover
  * script writes (scripts/gift-guide-cover-items.json) lists exactly those products in that order, and any stand-in photo
  * for an Amazon-linked pick is a transparent cutout from another store, never Amazon's.

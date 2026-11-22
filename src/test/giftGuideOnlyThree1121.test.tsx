@@ -37,7 +37,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   LIVE_GUIDES_1121.filter((slug) => !NOT_TILES.has(slug)).flatMap((slug) => { |   LIVE_GUIDES_1121.flatMap((slug) => {
  * @mutate src/pages/info/GiftGuides.tsx |         {landing && <hr className="gg-divider" data-gift-divider="" />} |         {null}
  * @mutate src/content/printables.ts |   if (!p.ready) return false; |   if (false) return false;
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           <DealsAndCodes on={codesDay(day, today)} /> |           {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |     ...(codes.length ? [{ id: "codes" |     ...(false ? [{ id: "codes"
  * @mutate src/content/giftGuideCatalog.ts | draftOf.has(slug) && isLiveGuide(slug) && | draftOf.has(slug) &&
  * @mutate src/prerender/seoData.ts | else if (!to && !guides[old]) moved[old] = ""; | else if (!to && !guides[old] && old.startsWith("store-")) moved[old] = "";
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       {null}
@@ -54,6 +54,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
+// The Small Business Saturday page reads the free approved listings (SmallBizLocal); never the network in a unit test.
+vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsLogoUrl: () => "" }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -132,6 +134,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     const titles: Record<string, string> = { "black-friday": "Black Friday Deals", "small-business-saturday": "Small Business Saturday", "cyber-monday": "Cyber Monday Deals" };
     for (const slug of DEAL_DAY_SLUGS) {
       const { container } = renderAt(`/gift-guides/${slug}`);
+      // A deals day loads its own chunk (lazy, off the guide pages' critical path): wait for it.
+      await waitFor(() => expect(container.querySelector("[data-gift-deal-day-page]"), slug).not.toBeNull());
       expect(container.querySelector("[data-test-where]")?.textContent, slug).toBe(`/gift-guides/${slug}`);
       // Train 1121i: the deals day page loads its own chunk (LazyDeals), off the guide pages' critical path.
       await waitFor(() => expect(container.querySelector("[data-gift-deal-day-page]"), slug).not.toBeNull());
@@ -141,10 +145,10 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       // The banner holds the lead and the title only (owner 11-21: "remove louisiana helpr from the [banner]").
       expect(container.querySelector("[data-gift-arch]")?.textContent, slug).not.toMatch(/Louisiana Helpr/i);
       expect(container.querySelector("[data-gift-deals-jump]"), slug).toBeNull();
-      const codes = container.querySelector<HTMLDetailsElement>("[data-gift-deals-page] details[data-gift-deals-codes]");
+      const codes = container.querySelector<HTMLDetailsElement>("[data-gift-deals-page] details[data-gift-deal-sub='codes']");
       if (slug === "small-business-saturday") expect(codes, slug).toBeNull();
       else {
-        expect(codes, `${slug}: the codes and sales box`).not.toBeNull();
+        expect(codes, `${slug}: the codes subsection`).not.toBeNull();
         expect(codes!.open, slug).toBe(false);
       }
       // Holiday audit 1121: the menu marks the open day itself (it marked Black Friday on every day).
@@ -197,8 +201,9 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     // finder (the quiz) shows under them only when the menu's link (#gift-finder) or a shared finder link asks for it.
     // Owner 11-21 ~5:05 PM: the "Top 10 gifts" row is back, between them, once the three guides' picks are in
     // (its order and cards: src/test/giftGuideTop10Landing1121.test.tsx).
-    const kinds = (c: HTMLElement) => [...c.querySelector(".gg-landing")!.children].map((x) => (x.matches("[data-gift-browse]") ? "tiles" : x.matches("[data-gift-giveaways]") ? "giveaways" : x.matches("[data-gift-finder]") ? "finder" : x.matches("[data-gift-top10]") ? "top10" : x.outerHTML.slice(0, 60)));
-    expect(kinds(container).filter((k) => k !== "top10")).toEqual(["tiles", "giveaways"]);
+    const kinds = (c: HTMLElement) => [...c.querySelector(".gg-landing")!.children].map((x) => (x.matches("[data-gift-browse]") ? "tiles" : x.matches("[data-gift-giveaways]") ? "giveaways" : x.matches("[data-gift-finder]") ? "finder" : x.matches("[data-gift-top10]") ? "top10" : x.matches("[data-gift-greeting]") ? "greeting" : x.outerHTML.slice(0, 60)));
+    // Owner 11-22 (option B): the "Happy holidays, y'all" greeting sits first, above the tiles (giftGuideGreeting1122).
+    expect(kinds(container).filter((k) => k !== "top10")).toEqual(["greeting", "tiles", "giveaways"]);
     // Owner 11-21: "only the section I click in the left panel should be displayed, nothing else": the finder view is
     // the finder alone, and the menu marks it (not All guides).
     for (const url of ["/gift-guides#gift-finder", "/gift-guides?who=her&budget=50&vibe=cozy"]) {
@@ -222,9 +227,10 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       ["Cyber Monday", "/gift-guides/cyber-monday"],
     ]);
     expect(group("[data-gift-side-printables-group]")).toEqual([
-      ["Gift tags", `${PRINTABLES}#pr-tags`], ["Coloring books", `${PRINTABLES}#pr-coloring`], ["Banners", `${PRINTABLES}#pr-banners`],
+      ["Gift tags", `${PRINTABLES}/gift-tags`], ["Coloring books", `${PRINTABLES}/coloring-books`], ["Banners", `${PRINTABLES}/banners`],
     ]);
-    expect(group("[data-gift-side-more]")).toEqual([["Holiday Hub", "/holidays"], ["25 Days sponsors", `/gift-guides/${SPONSORS}`], ["Shop Small", "/shop-small"]]);
+    // Owner 11-21: "remove shop small here, it's already listed with small business saturday".
+    expect(group("[data-gift-side-more]")).toEqual([["Holiday Hub", "/holidays"], ["25 Days sponsors", `/gift-guides/${SPONSORS}`]]);
     expect([...container.querySelectorAll("[data-gift-side-tools] a")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides#gift-finder", ...TOOLS]);
     // The free printables show only what is ready (the gift tags and, owner 11-21 "boys coloring pages are ready for
     // site", the coloring book; owner 11-21 "add this to the free printables", the Thanksgiving banner), never the elf kit.
@@ -232,9 +238,10 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     // Codes and sales live only on the deals page; the deleted Gift of the Day and the retired strips stay gone.
     expect(container.querySelector("[data-gift-top], [data-gift-countdown], [data-gift-of-the-day], [data-gift-deals-codes], [data-gift-codes], [data-gift-sales], [data-gift-entries], [data-gift-more-groups]")).toBeNull();
     // No link anywhere on the landing to a retired guide.
-    const hrefs = [...container.querySelectorAll<HTMLAnchorElement>("a[href^='/gift-guides/']")].map((a) => a.getAttribute("href")!.slice("/gift-guides/".length).split("#")[0]);
+    const hrefs = [...container.querySelectorAll<HTMLAnchorElement>("a[href^='/gift-guides/']")].map((a) => a.getAttribute("href")!.slice("/gift-guides/".length).split(/[#?]/)[0]);
     expect(hrefs.length).toBeGreaterThan(2);
-    const pages = ["my-list", ...DEAL_DAY_SLUGS, ...[...TOOLS, PRINTABLES].map((t) => t.slice("/gift-guides/".length))];
+    // Owner 2026-11-21: each printable kind is its own page under /gift-guides/printables/.
+    const pages = ["my-list", ...DEAL_DAY_SLUGS, ...[...TOOLS, PRINTABLES, `${PRINTABLES}/gift-tags`, `${PRINTABLES}/coloring-books`, `${PRINTABLES}/banners`].map((t) => t.slice("/gift-guides/".length))];
     for (const h of hrefs) expect([...LIVE, SPONSORS, ...pages], h).toContain(h);
     cleanup();
     // A guide's page has no divider and no deals box (owner 11-21: "Codes and deals shouldn't randomly show in sections").

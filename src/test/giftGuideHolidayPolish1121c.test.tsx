@@ -16,13 +16,13 @@
  * @mutate src/content/giftGuideCatalog.ts |     if (budget !== null && !(pickPriceShown(price, priceAt, today) && (price as number) <= budget)) return false; |     if (budget !== null && !pickPriceShown(price, priceAt, today)) return false;
  * @mutate src/content/giftGuideCatalog.ts |   { words: ["nurse", "nurses", "rn", "rns", "lpn", "lpns"], slugs: ["her", "him"] }, |
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |               const dollars = searchItemDollars(item); |               const dollars = null as number \| null;
- * @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx | const CLEAN_SALES = cleanSales(SALES); | const CLEAN_SALES = SALES;
- * @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx | const CLEAN_DEAL_CODES = cleanCodes(DEAL_CODES); | const CLEAN_DEAL_CODES = DEAL_CODES;
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | const CLEAN_SALES = cleanSales(SALES); | const CLEAN_SALES = SALES;
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | const CLEAN_CODES = cleanCodes(DEAL_CODES); | const CLEAN_CODES = DEAL_CODES;
  * @mutate src/lib/giftGuideOfferCopy.mjs |   if (DANGLING.test(s)) return null; |
  * @mutate src/lib/giftGuideOfferCopy.mjs |   if (!IS_OFFER.test(s)) return null; |
  * @mutate src/lib/giftGuideOfferCopy.mjs |   s = unshout(s); |
  * @mutate src/content/giftGuideDeals.mjs |   featuredLine: "Sales from brands you already love, all in one place.", |   featuredLine: "Hand-checked sales from brands you already love, all in one place.",
- * @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx |           const shop = list.find((c) => c.href)?.href; |           const shop = undefined as string \| undefined;
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         const href = c.href; |         const href = undefined as string \| undefined;
  */
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -33,7 +33,7 @@ import { cleanCodes, cleanOffer, cleanSales } from "@/lib/giftGuideOfferCopy.mjs
 import { DEAL_CODES, SALES } from "@/content/giftGuidePicks";
 import { discountCodes } from "@/content/giftGuides";
 import { DEALS_WORDS, dealDay } from "@/content/giftGuideDeals.mjs";
-import { DealsAndCodes } from "@/pages/info/giftGuides/GiftGuideDealsAndCodes";
+import { CodeCards, SaleCards, codesOn, salesOn } from "@/pages/info/giftGuides/GiftGuideDealCards";
 import { GiftGuideTools } from "@/pages/info/giftGuides/GiftGuideShare";
 import SEARCH_INDEX from "@/content/giftGuideSearchIndex.json";
 import her from "@/content/giftGuidePicks/her.json";
@@ -156,10 +156,9 @@ describe("holiday audit 1121 #57: sales and codes read as human copy", () => {
     for (const c of codes) expect(c.offer).not.toBe("Holiday code");
   });
 
-  it("the Deals & codes box shows the cleaned words", () => {
-    const { container } = render(<MemoryRouter><DealsAndCodes on="2026-11-22" /></MemoryRouter>);
-    const allCodes = container.querySelector<HTMLButtonElement>("[data-gift-all-codes]");
-    if (allCodes) fireEvent.click(allCodes);
+  it("the code and sale cards show the cleaned words", () => {
+    const { container } = render(<MemoryRouter><CodeCards codes={codesOn("2026-11-22")} /><SaleCards stores={salesOn("2026-11-22")} /></MemoryRouter>);
+    for (const more of container.querySelectorAll<HTMLButtonElement>("[data-gift-sale-more]")) fireEvent.click(more);
     const text = container.textContent ?? "";
     expect(text.length).toBeGreaterThan(100);
     expect(text).not.toContain("Holiday code");
@@ -174,10 +173,8 @@ describe("holiday audit 1121 #80 and #81: deals copy claims and code links", () 
     expect(words).not.toMatch(/hand-checked|checked each/i);
   });
 
-  it("a code whose store has a link opens the store from its box", () => {
-    const { container } = render(<MemoryRouter><DealsAndCodes on="2026-11-22" /></MemoryRouter>);
-    const allCodes = container.querySelector<HTMLButtonElement>("[data-gift-all-codes]");
-    if (allCodes) fireEvent.click(allCodes);
+  it("a code whose store has a link opens the store from its card", () => {
+    const { container } = render(<MemoryRouter><CodeCards codes={codesOn("2026-11-22")} /></MemoryRouter>);
     const shop = container.querySelector<HTMLAnchorElement>(`[data-gift-code-shop="Lands' End"]`);
     expect(shop?.getAttribute("href")).toBe("https://mavely.app.link/1IAq8TqQa8b");
     expect(shop?.getAttribute("rel")).toContain("sponsored");
@@ -185,15 +182,16 @@ describe("holiday audit 1121 #80 and #81: deals copy claims and code links", () 
 
   // Lead 11-21: every code gets its store link (affiliate, else the brand's plain home page), the owner's own included.
   // @mutate src/content/giftGuides.ts | offer: "10% off; stacks with eligible promotions", href: "https://cookmagnifique.com/" | offer: "10% off; stacks with eligible promotions"
-  it("every code we list carries an https store link, and each store box shows Shop", () => {
+  it("every code we list carries an https store link, and each code card links its store and an open-site button", () => {
     const codes = [...discountCodes, ...cleanCodes(DEAL_CODES)];
     expect(codes.length).toBeGreaterThan(15);
     for (const c of codes) expect(c.href, `${c.store} ${c.code}`).toMatch(/^https:\/\/[a-z0-9.-]+\.[a-z]+\//);
-    const { container } = render(<MemoryRouter><DealsAndCodes on="2026-11-22" /></MemoryRouter>);
-    const allCodes = container.querySelector<HTMLButtonElement>("[data-gift-all-codes]");
-    if (allCodes) fireEvent.click(allCodes);
+    const { container } = render(<MemoryRouter><CodeCards codes={codesOn("2026-11-22")} /></MemoryRouter>);
     const boxes = [...container.querySelectorAll("[data-gift-code-store]")];
     expect(boxes.length).toBeGreaterThan(5);
-    for (const b of boxes) expect(b.querySelector("[data-gift-code-shop]"), b.getAttribute("data-gift-code-store") ?? "").not.toBeNull();
+    for (const b of boxes) {
+      expect(b.querySelector("[data-gift-code-shop]"), b.getAttribute("data-gift-code-store") ?? "").not.toBeNull();
+      expect(b.querySelector("[data-gift-open-site]"), b.getAttribute("data-gift-code-store") ?? "").not.toBeNull();
+    }
   });
 });

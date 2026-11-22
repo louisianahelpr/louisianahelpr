@@ -22,6 +22,11 @@ export type RoleCopyException = {
 // @two-way src/test/roleNeutralCopy.test.ts:no longer excuses any copy
 export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
   {
+    file: "src/content/printables.ts",
+    text: "12x18 poster",
+    reason: "A printed poster, not a person (owner 2026-11-21: the Thanksgiving banner prints as a 12x18 poster at Walgreens): \"Print it as a 12x18 poster at Walgreens\" and the \"12x18 poster (free)\" download name no party on a job.",
+  },
+  {
     file: "src/lib/trustLine.ts",
     text: "repeat customer",
     reason: "The owner's exact trust-line copy (Q2478, OWNER DECIDED 2026-10-29 via lead): \"12 jobs done · 92% on time · 3 repeat customers\". It counts people who hired this member again, not a role anyone holds.",

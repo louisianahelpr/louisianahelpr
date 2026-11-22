@@ -5,12 +5,12 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
-import BackButton from "@/components/BackButton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
+import { GuidesHeadRow } from "./giftGuides/GuidesHeadRow";
 import { GiftGuideLanding, finderAsked } from "./giftGuides/GiftGuideLanding";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
@@ -22,7 +22,7 @@ import { GiftGuideTools } from "./giftGuides/GiftGuideShare";
 import type { GuideOrder } from "@/content/giftGuideEarnOrder";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { shippingLine } from "@/content/giftGuideShipping";
-import { GiftGuideView } from "./giftGuides/GiftGuideView";
+import { BUDGETS, BUDGET_MIN_PICKS, GiftGuideView, sectionLabel, sectionNav } from "./giftGuides/GiftGuideView";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { GiftGuidesPhoneNav } from "./giftGuides/GiftGuidesPhoneNav";
@@ -172,6 +172,25 @@ export default function GiftGuides() {
   // Holiday audit 1121: no price sort over a list that shows no price (a list still loading keeps it, so it never jumps).
   const priced = guide ? guide.picks.length === 0 || guide.picks.some((p) => showsPrice(p)) : false;
   const sort = guide && isOwnerList(guide.slug) && priced ? { order: sortOrder, onChange: (o: GuideOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
+  // Owner 2026-11-21, the 25 Days sponsors page: "move search, heart and share under the line for shop our sponsors,
+  // and move those things into the filter for that section": its count, pill and icons sit on one row under the
+  // banner at every width, and its section links and price limits live in a Filter in that row (budget kept here).
+  const sponsorsPage = guide?.slug === "25-days-sponsors";
+  const [sponsorBudget, setSponsorBudget] = useState<number | null>(null);
+  const headerFilter = sponsorsPage ? { budget: sponsorBudget, onBudget: setSponsorBudget } : undefined;
+  const sponsorSections = sponsorsPage && guide && picksReady(guide.slug) ? sectionNav(guide.picks).map((x) => ({ id: x.id, title: sectionLabel(guide, x.title, x.id) })) : [];
+  const sponsorBudgets = sponsorsPage && guide && picksReady(guide.slug) && guide.picks.filter((p) => p.band !== undefined && showsPrice(p)).length >= BUDGET_MIN_PICKS ? [...BUDGETS] : [];
+  const toolsFilter = headerFilter ? {
+    sections: sponsorSections,
+    budgets: sponsorBudgets,
+    budget: sponsorBudget,
+    onBudget: setSponsorBudget,
+    onJump: (id: string) => {
+      setSponsorBudget(null);
+      window.history.replaceState(window.history.state, "", `#${id}`);
+      requestAnimationFrame(() => document.getElementById(`gg-sec-${id}`)?.scrollIntoView({ block: "start" }));
+    },
+  } : undefined;
   // The deals days (owner 2026-11-21: "like each day has its own section, no need to put them all in 1"): Black Friday,
   // Small Business Saturday and Cyber Monday are each their own page (src/content/giftGuideDeals.mjs DEAL_EVENTS), not
   // a catalog list of picks. `deals` is the open day wherever the page only asks "is this a catalog guide?".
@@ -236,14 +255,14 @@ export default function GiftGuides() {
   // The search, My list heart and Share for this page (one set, on the row under the header).
   const tools = deals ? <GiftGuideTools path={`/gift-guides/${deals.id}`} title={deals.pageTitle} image={deals.kind === "deals" ? DEALS_COVER : undefined} />
     // Holiday audit 1121: shared text opens with a capital ("Gifts for Her", not "gifts for Her https://...").
-    : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={capitalFirst(`${guide.lead} ${guide.title}`)} image={guide.cover} sort={sort} />
+    : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={capitalFirst(`${guide.lead} ${guide.title}`)} image={guide.cover} sort={sort} filter={toolsFilter} />
     : <GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />;
   // A guide or deals page keeps its banner (its own h1); every other page's h1 is the header title.
   const banner = Boolean(deals || guide);
   // The open menu entry beyond the guides: the deals page, or the finder view on the landing.
   const sidePage = deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined;
   // A phone's guide page: the count, the pill and the icons on one row right under the banner.
-  const countRow = phone && Boolean(guide) && !deals;
+  const countRow = (phone && Boolean(guide) && !deals) || sponsorsPage;
   // The landing's arrow goes home; every other page's to the landing.
   const backTo = guide || deals || myList || shared ? "/gift-guides" : "/";
 
@@ -273,14 +292,10 @@ export default function GiftGuides() {
         {/* Owner redesign 11-18 PM: under the title ONE slim row (search, My list, Share); Text and Copy link sit in
             Share's menu and the codes are a "Deals & codes" section of the page. The banner title is the page's h1
             (live audit r3 #7); the header's "Gift guides" is a plain line (titleTag="p"). */}
-        <div className={shipPill ? "gg-headrow" : "gg-headrow gg-headrow-noship"} data-gift-headrow="">
-          <div className="gg-head-title" data-gift-head-title="">
-            <span className="contents" data-gift-back-to={backTo}><BackButton to={backTo} /></span>
-            {banner ? <p className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</p> : <h1 className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</h1>}
-          </div>
+        <GuidesHeadRow backTo={backTo} titleIsH1={!banner} ship={Boolean(shipPill)}>
           {!countRow && shipPill}
           {!countRow && tools}
-        </div>
+        </GuidesHeadRow>
         {/* Owner 11-21 ("We need a way to organize this on the phones"): up to 767px a sticky chip row and a menu sheet
             replace the sidebar (which a phone no longer draws at the page's foot). */}
         <GiftGuidesPhoneNav active={guide} myList={myList || shared} page={sidePage} />
@@ -306,7 +321,7 @@ export default function GiftGuides() {
             disclosures at the very bottom. From 768px the CSS grid puts the menu on the left (GIFT_GUIDES_CSS). */}
         <div className="gg-layout">
           <div className="gg-main">
-            {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
+            {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
           </div>
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
           <GiftGuidesSidebar active={guide} myList={myList || shared} page={sidePage} />

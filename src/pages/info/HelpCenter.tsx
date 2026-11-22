@@ -6,6 +6,7 @@ import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { FieldClearButton } from "@/components/ui/FieldClearButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchIconButton } from "@/components/ui/SearchIconButton";
 import FaqRow from "@/components/marketing/FaqRow";
 // The card that closes every legal policy tab. Shared, not copied, so the
 // Help Center and the policy pages cannot drift into two support cards.
@@ -287,6 +288,24 @@ const HelpCenter = () => {
   // "no search on this page" decision: people had to open every topic to find an answer). Matching topics open
   // with only their matching questions; no match says so and points at Contact support below.
   const [query, setQuery] = useState("");
+  // Owner 11-21 (pop-up, "just the icon"): the search starts as the shared magnifier by the title; a tap opens the field
+  // (focused) where it always sat; Escape or its X clears and folds it; words keep it open.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchShown = searchOpen || query.length > 0;
+  const searchIconRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchFocus = useRef<"field" | "icon" | null>(null);
+  useEffect(() => {
+    const target = searchFocus.current;
+    searchFocus.current = null;
+    if (target === "field") searchInputRef.current?.focus({ preventScroll: true });
+    else if (target === "icon") searchIconRef.current?.focus({ preventScroll: true });
+  }, [searchShown]);
+  const closeSearch = () => {
+    setQuery("");
+    searchFocus.current = "icon";
+    setSearchOpen(false);
+  };
 
   // Same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs).
   usePageMeta(PUBLIC_PAGE_META["/help"]);
@@ -316,7 +335,8 @@ const HelpCenter = () => {
     // 2026-08-30: "this should be 1 component not 3" — the masthead heading
     // ("Quick answers.") is gone for the same reason: a second title next to
     // PageHeader's own "Help Center" repeated the page's own name).
-    <PublicHeaderPage title="Help center" width="public" bottomPaddingClassName="pb-12 md:pb-16 lg:pb-24">
+    <PublicHeaderPage title="Help center" width="public" bottomPaddingClassName="pb-12 md:pb-16 lg:pb-24"
+      titleActions={searchShown ? undefined : <SearchIconButton ref={searchIconRef} label="Search help" data-help-search-icon="" onClick={() => { searchFocus.current = "field"; setSearchOpen(true); }} />}>
       <section
         id="faq"
         aria-labelledby="faq-heading"
@@ -325,14 +345,19 @@ const HelpCenter = () => {
         <h2 id="faq-heading" className="sr-only">Frequently asked questions</h2>
         {/* F033 (owner UI audit 11-09): a reading measure on the answers, centred. At 1440 they ran ~1,250px a line. */}
         <div className="mx-auto page-measure max-w-[760px] space-y-section" data-help-measure="">
-          <div className="relative" data-help-search="">
+          {searchShown && <div className="relative" data-help-search="" data-search-open="">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <Input
+              ref={searchInputRef}
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Escape") setQuery("");
+                if (e.key === "Escape") { e.preventDefault(); closeSearch(); }
+              }}
+              onBlur={(e) => {
+                if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node | null)) return;
+                if (!e.currentTarget.value) setSearchOpen(false);
               }}
               placeholder="Search help"
               aria-label="Search help"
@@ -340,12 +365,10 @@ const HelpCenter = () => {
               className="h-12 w-full rounded-full border border-border bg-card pl-11 pr-11 text-ds-15 font-sans text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&::-webkit-search-cancel-button]:hidden"
             />
             {/* The shared field ✕ (FieldClearButton), so a press keeps it under the pointer (pressKeepsTranslate). */}
-            {searching && (
-              <FieldClearButton onClick={() => setQuery("")} aria-label="Clear search" className="right-3 rounded-full">
-                <X className="h-4 w-4" aria-hidden />
-              </FieldClearButton>
-            )}
-          </div>
+            <FieldClearButton onClick={closeSearch} aria-label="Close search" className="right-3 rounded-full">
+              <X className="h-4 w-4" aria-hidden />
+            </FieldClearButton>
+          </div>}
           {/* F411 (audit 11-10): the four problems people arrive with, each opening three steps. */}
           {!searching && <CommonProblems setupFeeLabel={setupFeeLabel} />}
           <div className="space-y-3 sm:space-y-4">

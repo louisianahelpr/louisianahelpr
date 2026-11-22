@@ -6,6 +6,7 @@ import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { SmallBizLocal } from "./giftGuides/SmallBizLocal";
 import { SmallBizGrid } from "./giftGuides/GiftGuideSmallBiz";
 import { GuidesFrame } from "./giftGuides/fun/FunPage";
+import { FeatureCtaLink } from "./giftGuides/SmallBizFeatureCta";
 
 /**
  * /shop-small (owner 2026-11-21: "add the feature that small business can sign their business up to be featured on the
@@ -34,6 +35,8 @@ export default function ShopSmall() {
       <GuidesFrame title={W.pageTitle} path="/shop-small" disclosures={false}>
         <div className="gg-shop-small w-full" data-shop-small="">
           <p className="gg-shop-small-lead" data-shop-small-lead="">{W.pageLead}</p>
+          {/* Owner 2026-11-21: the sign-up card stays at the bottom; this line at the top jumps to it and opens the form. */}
+          <FeatureCtaLink />
           <section aria-labelledby="shop-small-sponsors" data-shop-small-sponsors="">
             <div className="gg-rowhead"><h2 id="shop-small-sponsors">{W.pageSponsorsTitle}</h2></div>
             <SmallBizGrid />

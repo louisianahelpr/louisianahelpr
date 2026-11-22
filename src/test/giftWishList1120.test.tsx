@@ -340,11 +340,14 @@ describe("how-to hints dismiss and stay dismissed", () => {
     expect(view.container.querySelector("[data-gift-hint='how-to'], [data-gift-hint='quiz'], [data-gift-hint='fun-gotd'], .gg-hint")).toBeNull();
   });
 
-  it("the budget and share hints show once and close", async () => {
-    const banded = pickedGuides.find((g) => g.picks.filter((p) => p.band !== undefined).length >= 3)!;
-    const guide = renderAt(`/gift-guides/${banded.slug}`);
-    expect(guide.container.querySelector("[data-gift-hint='budget']")?.textContent).toContain(HINTS.budget);
-    cleanup();
+  // Owner 2026-11-21: "Remove tap a price to see gifts in your budget": no guide draws the budget tip any more.
+  it("no budget tip on any guide; the share hint shows once and closes", async () => {
+    for (const g of pickedGuides) {
+      const guide = renderAt(`/gift-guides/${g.slug}`);
+      expect(guide.container.querySelector("[data-gift-hint='budget']"), g.slug).toBeNull();
+      expect(guide.container.textContent, g.slug).not.toMatch(/Tap a price to see gifts/);
+      cleanup();
+    }
     addToWishList({ href: pickedGuides[0].picks[0].href, name: "n", guide: pickedGuides[0].slug });
     const mine = (await renderMine("/gift-guides/my-list"));
     expect(mine.container.querySelector("[data-gift-hint='share']")?.textContent).toContain(HINTS.share);

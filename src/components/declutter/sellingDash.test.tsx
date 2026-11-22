@@ -1086,22 +1086,28 @@ describe("Selling's search finds the seller's own listings in place (owner 11-13
     state.cart = [];
   });
   const rows = () => [...document.querySelectorAll("[data-listing-row] [data-listing-open] p[title]:not([data-listing-status])")].map((p) => p.getAttribute("title"));
+  // Owner 11-21 (search is just the icon, every width): the magnifier opens the field; a tap on it, then the field.
+  const field = () => {
+    const icon = screen.queryByRole("button", { name: "Search your listings" });
+    if (icon) fireEvent.click(icon);
+    return screen.getByRole("searchbox", { name: "Search your listings" });
+  };
 
   it.each([["phone", false], ["desktop", true]] as const)("%s: typing filters Your listings and never leaves Selling", async (_n, desktop) => {
     screenMode.desktop = desktop;
     try {
       const view = at("/declutter?tab=selling");
       await screen.findByRole("heading", { name: /^Your listings/ });
-      const field = screen.getByRole("searchbox", { name: "Search your listings" });
+      const box = field();
       expect(rows()).toHaveLength(6);
-      fireEvent.change(field, { target: { value: "rug" } });
+      fireEvent.change(box, { target: { value: "rug" } });
       // Still Selling: its heading and rows, never Browse.
       expect(screen.getByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
       expect(rows()).toEqual(["Rug"]);
       // A draft matches too (every status on the list), and the description counts, accents and case ignored.
-      fireEvent.change(field, { target: { value: "DESK" } });
+      fireEvent.change(box, { target: { value: "DESK" } });
       expect(rows()).toEqual(["Desk"]);
-      fireEvent.change(field, { target: { value: "wálnut" } });
+      fireEvent.change(box, { target: { value: "wálnut" } });
       expect(rows()).toEqual(["Bookshelf"]);
       view.unmount();
     } finally {
@@ -1109,35 +1115,36 @@ describe("Selling's search finds the seller's own listings in place (owner 11-13
     }
   });
 
-  it("desktop: the field sits right before the gear, where the other tabs keep the search icon", async () => {
+  it("desktop: the search sits right before the gear, where the other tabs keep the search icon", async () => {
     at("/declutter?tab=selling");
     const gear = await screen.findByTestId("section-settings");
     expect(screen.queryByRole("link", { name: "Search all sections" })).toBeNull();
-    const field = screen.getByRole("searchbox", { name: "Search your listings" });
-    expect(field.closest("[data-selling-search]")?.nextElementSibling).toBe(gear);
+    // Closed it is the magnifier, open the field: either way in the slot right before the gear.
+    expect(screen.getByRole("button", { name: "Search your listings" }).closest("[data-selling-search]")?.nextElementSibling).toBe(gear);
+    expect(field().closest("[data-selling-search]")?.nextElementSibling).toBe(gear);
   });
 
   it("no match says so with Clear (never Browse); Clear brings every listing back", async () => {
     at("/declutter?tab=selling");
     await screen.findByRole("heading", { name: /^Your listings/ });
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search your listings" }), { target: { value: "zzz" } });
+    fireEvent.change(field(), { target: { value: "zzz" } });
     expect(screen.getByText("No listings match \u201czzz\u201d")).toBeInTheDocument();
     expect(rows()).toHaveLength(0);
     fireEvent.click(document.querySelector("[data-selling-search-clear]") as HTMLElement);
     expect(rows()).toHaveLength(6);
-    expect(screen.getByRole("searchbox", { name: "Search your listings" })).toHaveValue("");
+    expect(field()).toHaveValue("");
   });
 
   it("switching tabs clears the search (OWNER-DECISIONS 11-13)", async () => {
     at("/declutter?tab=selling");
     await screen.findByRole("heading", { name: /^Your listings/ });
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search your listings" }), { target: { value: "rug" } });
+    fireEvent.change(field(), { target: { value: "rug" } });
     expect(rows()).toEqual(["Rug"]);
     fireEvent.click(screen.getByRole("tab", { name: /^Buying/ }));
     expect(screen.queryByRole("searchbox", { name: "Search your listings" })).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: /^Selling/ }));
     await screen.findByRole("heading", { name: /^Your listings/ });
-    expect(screen.getByRole("searchbox", { name: "Search your listings" })).toHaveValue("");
+    expect(field()).toHaveValue("");
     expect(rows()).toHaveLength(6);
   });
 });

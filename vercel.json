@@ -276,8 +276,24 @@
       "destination": "/api/share?_og=page&_id=gift-guides"
     },
     {
+      "source": "/gift-guides/printables",
+      "destination": "/api/share?_og=noindex&_id=gift-guides/printables"
+    },
+    {
       "source": "/gift-guides/:slug",
       "destination": "/api/share?_og=page&_id=gift-guides/:slug"
+    },
+    {
+      "source": "/gift-guides/printables/gift-tags",
+      "destination": "/api/share?_og=page&_id=gift-guides/printables/gift-tags"
+    },
+    {
+      "source": "/gift-guides/printables/coloring-books",
+      "destination": "/api/share?_og=page&_id=gift-guides/printables/coloring-books"
+    },
+    {
+      "source": "/gift-guides/printables/banners",
+      "destination": "/api/share?_og=page&_id=gift-guides/printables/banners"
     },
     {
       "source": "/sponsor",
@@ -625,6 +641,18 @@
     },
     {
       "source": "/gift-guides/printables",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/gift-guides/printables/gift-tags",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/gift-guides/printables/coloring-books",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/gift-guides/printables/banners",
       "destination": "/index.html"
     },
     {

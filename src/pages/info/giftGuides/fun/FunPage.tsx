@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
+import type { PrintablePagePath } from "@/content/printables";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDES_CSS } from "../giftGuidesStyles";
 import { GIFT_WISH_CSS } from "../giftWishStyles";
 import { giftGuides as G } from "@/content/giftGuides";
-import BackButton from "@/components/BackButton";
 import { GiftGuideTools } from "../GiftGuideShare";
+import { GuidesHeadRow } from "../GuidesHeadRow";
+import { GiftGuidesWords } from "../GiftGuideCover";
 import { GiftGuidesSidebar } from "../GiftGuidesSidebar";
 
-type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | "/gift-guides/printables";
+type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | PrintablePagePath;
 
 /**
  * The shared shell's props for a fun page: the gift guides' public header, back to /gift-guides. Like every other gift
@@ -23,13 +25,13 @@ export const funHeader = (title: string) => ({ title, backTo: "/gift-guides", bo
  * The three public pages take their head from PUBLIC_PAGE_META (the same words api/share.ts writes before JS); a
  * private page (a Secret Santa reveal) is noindex.
  */
-export function FunBody({ title, path, noindex, children }: { title: string; path: FunPath; noindex?: boolean; children: ReactNode }) {
+export function FunBody({ title, path, noindex, tools = true, children }: { title: string; path: FunPath; noindex?: boolean; tools?: boolean; children: ReactNode }) {
   const meta = PUBLIC_PAGE_META[path];
   usePageMeta(noindex ? { title: `${title} — Helpr`, description: meta.description, robots: "noindex", noCanonical: true } : meta);
   return (
     <>
       <style>{GIFT_GUIDES_CSS}{GIFT_WISH_CSS}{FUN_CSS}</style>
-      <GuidesFrame title={title} path={path}>
+      <GuidesFrame title={title} path={path} tools={tools}>
         <div className="gg-fun w-full" data-gift-fun={path}>{children}</div>
       </GuidesFrame>
     </>
@@ -38,20 +40,21 @@ export function FunBody({ title, path, noindex, children }: { title: string; pat
 
 /**
  * The gift guides' frame for a page outside GiftGuides.tsx (the fun pages, /shop-small): the head row (back arrow +
- * title, then search, My list heart with its count, Share), then the page, the left menu and the disclosures (holiday
+ * "Holiday gift guides", then search, My list heart with its count, Share), the page's own title under it, then the page, the left menu and the disclosures (holiday
  * audit 1121 #13: the fun pages had no head row or menu; #73: /shop-small's title sat apart from its column). The
  * caller brings GIFT_GUIDES_CSS. `disclosures` off only on a page with no affiliate link.
  */
-export function GuidesFrame({ title, path, disclosures = true, children }: { title: string; path: string; disclosures?: boolean; children: ReactNode }) {
+/** `tools` off (the printables, owner 2026-11-21: "remove the search, favorite ... just polish this"): no search, heart
+ * or share in the head row, where there is nothing to search or save. */
+export function GuidesFrame({ title, path, disclosures = true, tools = true, children }: { title: string; path: string; disclosures?: boolean; tools?: boolean; children: ReactNode }) {
   return (
     <div className="gg w-full" data-gift-fun-frame="">
-      <div className="gg-headrow gg-headrow-noship" data-gift-headrow="">
-        <div className="gg-head-title" data-gift-head-title="">
-          <BackButton to="/gift-guides" />
-          <h1 className="text-page-title leading-tight" data-gift-head-name="">{title}</h1>
-        </div>
-        <GiftGuideTools path={path} title={title} />
-      </div>
+      {/* Owner 11-22: "Holiday gift guides" beside the back arrow, as on the guides and the deals days, and the page's
+          own title as its h1 right under that row (GuidesHeadRow: one head row for every guides page). */}
+      <GuidesHeadRow backTo="/gift-guides">
+        {tools && <GiftGuideTools path={path} title={title} />}
+      </GuidesHeadRow>
+      <GiftGuidesWords lead="" title={title} titleId="gift-page-title" tools={null} />
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">
         <div className="gg-main">{children}</div>

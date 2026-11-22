@@ -112,7 +112,7 @@ describe("useFeature asks once per cold load (nightly-red #2601)", () => {
     await waitFor(() => expect(status.result.current.settled).toBe(true));
     await waitFor(() => expect(hooks[0].result.current).toBe(true));
     expect(hooks.map((h) => h.result.current)).toEqual([true, false, true, true]);
-    expect(status.result.current).toEqual({ on: false, settled: true, lastAnswer: false });
+    expect(status.result.current).toMatchObject({ on: false, settled: true, lastAnswer: false });
     expect(rpc).toHaveBeenCalledTimes(1);
     expect(rpc).toHaveBeenCalledWith("feature_switches_for_me", { p_keys: [...FEATURE_SWITCH_KEYS] });
     // Inventory floor: the one request covers the whole registry, not just these 4.
@@ -149,7 +149,7 @@ describe("useFeature asks once per cold load (nightly-red #2601)", () => {
     const a = renderHook(() => useFeature("declutter"), { wrapper });
     const b = renderHook(() => useFeatureStatus("shops"), { wrapper });
     await waitFor(() => expect(a.result.current).toBe(true));
-    await waitFor(() => expect(b.result.current).toEqual({ on: false, settled: true, lastAnswer: false }));
+    await waitFor(() => expect(b.result.current).toMatchObject({ on: false, settled: true, lastAnswer: false }));
     expect(rpc).toHaveBeenCalledWith("feature_enabled_for", { p_key: "declutter" });
     expect(rpc).toHaveBeenCalledWith("feature_enabled_for", { p_key: "shops" });
   });
@@ -167,7 +167,7 @@ describe("useFeature asks once per cold load (nightly-red #2601)", () => {
           } }
         : { data: args.p_key === "declutter", error: null });
     const a = renderHook(() => useFeatureStatus("declutter"), { wrapper });
-    await waitFor(() => expect(a.result.current).toEqual({ on: true, settled: true, lastAnswer: true }));
+    await waitFor(() => expect(a.result.current).toMatchObject({ on: true, settled: true, lastAnswer: true }));
     expect(rpc).toHaveBeenCalledWith("feature_enabled_for", { p_key: "declutter" });
   });
 
@@ -178,7 +178,7 @@ describe("useFeature asks once per cold load (nightly-red #2601)", () => {
       hint: "Perhaps you meant to call the function public.feature_switches_for_me(p_names)",
     } });
     const a = renderHook(() => useFeatureStatus("declutter"), { wrapper });
-    await waitFor(() => expect(a.result.current).toEqual({ on: false, settled: true, lastAnswer: null }));
+    await waitFor(() => expect(a.result.current).toMatchObject({ on: false, settled: true, lastAnswer: null }));
     await new Promise((r) => setTimeout(r, 20));
     expect(rpc).toHaveBeenCalledTimes(1);
     expect(rpc).not.toHaveBeenCalledWith("feature_enabled_for", expect.anything());
@@ -187,7 +187,7 @@ describe("useFeature asks once per cold load (nightly-red #2601)", () => {
   it("a failed batched read is ONE request and ONE error for every switch on the page (no per-switch retry chains)", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "permission denied", code: "42501" } });
     const hooks = ["declutter", "shops", "quotes"].map((k) => renderHook(() => useFeatureStatus(k as "declutter"), { wrapper }));
-    await waitFor(() => hooks.forEach((h) => expect(h.result.current).toEqual({ on: false, settled: true, lastAnswer: null })));
+    await waitFor(() => hooks.forEach((h) => expect(h.result.current).toMatchObject({ on: false, settled: true, lastAnswer: null })));
     expect(rpc).toHaveBeenCalledTimes(1);
   });
 
@@ -225,9 +225,9 @@ describe("useFeatureStatus: settled says the answer is in (Q?profile-declutter-s
     let resolve!: (v: unknown) => void;
     rpc.mockReturnValue(new Promise((r) => { resolve = r; }));
     const { result } = renderHook(() => useFeatureStatus("switch_canary"), { wrapper });
-    expect(result.current).toEqual({ on: false, settled: false, lastAnswer: null });
+    expect(result.current).toMatchObject({ on: false, settled: false, lastAnswer: null });
     resolve(batch({ switch_canary: true }));
-    await waitFor(() => expect(result.current).toEqual({ on: true, settled: true, lastAnswer: true }));
+    await waitFor(() => expect(result.current).toMatchObject({ on: true, settled: true, lastAnswer: true }));
   });
 
   it("an RPC error is an answer: settled, and off", async () => {
@@ -240,12 +240,12 @@ describe("useFeatureStatus: settled says the answer is in (Q?profile-declutter-s
   it("signed out is settled at once and asks nothing; auth not ready is unsettled", async () => {
     auth.user = null;
     const a = renderHook(() => useFeatureStatus("switch_canary"), { wrapper });
-    expect(a.result.current).toEqual({ on: false, settled: true, lastAnswer: null });
+    expect(a.result.current).toMatchObject({ on: false, settled: true, lastAnswer: null });
     auth.user = { id: "u1" };
     auth.isReady = false;
     const b = renderHook(() => useFeatureStatus("switch_canary"), { wrapper });
     await new Promise((r) => setTimeout(r, 20));
-    expect(b.result.current).toEqual({ on: false, settled: false, lastAnswer: null });
+    expect(b.result.current).toMatchObject({ on: false, settled: false, lastAnswer: null });
     expect(rpc).not.toHaveBeenCalled();
   });
 });
@@ -254,11 +254,11 @@ describe("useFeatureStatus: lastAnswer survives a failed refetch (lead re-review
   it("a refetch error turns on off but keeps the last successful answer", async () => {
     rpc.mockResolvedValueOnce(batch({ switch_canary: true }));
     const { result } = renderHook(() => useFeatureStatus("switch_canary"), { wrapper });
-    await waitFor(() => expect(result.current).toEqual({ on: true, settled: true, lastAnswer: true }));
+    await waitFor(() => expect(result.current).toMatchObject({ on: true, settled: true, lastAnswer: true }));
     rpc.mockResolvedValueOnce({ data: null, error: { message: "network", code: "" } });
     await client.refetchQueries({ queryKey: featureSwitchBatchKey("u1") });
     await waitFor(() => expect(result.current.on).toBe(false));
-    expect(result.current).toEqual({ on: false, settled: true, lastAnswer: true });
+    expect(result.current).toMatchObject({ on: false, settled: true, lastAnswer: true });
   });
 
   it("a successful 'off' is the new last answer", async () => {
@@ -267,7 +267,7 @@ describe("useFeatureStatus: lastAnswer survives a failed refetch (lead re-review
     await waitFor(() => expect(result.current.lastAnswer).toBe(true));
     rpc.mockResolvedValueOnce(batch({ switch_canary: false }));
     await client.refetchQueries({ queryKey: featureSwitchBatchKey("u1") });
-    await waitFor(() => expect(result.current).toEqual({ on: false, settled: true, lastAnswer: false }));
+    await waitFor(() => expect(result.current).toMatchObject({ on: false, settled: true, lastAnswer: false }));
   });
 
   it("an error with no earlier answer has no last answer", async () => {

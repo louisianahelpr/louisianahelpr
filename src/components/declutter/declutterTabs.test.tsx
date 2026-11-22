@@ -824,8 +824,9 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     everything();
     at("/declutter?view=selling");
     expect(await screen.findByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
-    // Owner 11-13: Selling's search is a field over the seller's own listings (sellingDash.test.tsx), not the icon.
-    expect(screen.getByRole("searchbox", { name: "Search your listings" })).toBeInTheDocument();
+    // Owner 11-13: Selling's search finds the seller's own listings (sellingDash.test.tsx); owner 11-21 (search is just the
+    // icon): its magnifier opens that field.
+    expect(screen.getByRole("button", { name: "Search your listings" })).toBeInTheDocument();
     for (const a of BEFORE_ACTIONS.selling) expect(screen.getAllByRole(a.role, { name: a.name }).length).toBeGreaterThan(0);
     const onMine = screen.getByRole("region", { name: "Offers on your items" });
     expect(within(onMine).getByRole("button", { name: "Accept" })).toBeInTheDocument();

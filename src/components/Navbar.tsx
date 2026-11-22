@@ -91,13 +91,14 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
   // the bar, so at the very top the bar is see-through (landing-nav-top); from the first scroll it is the opaque white
   // bar again (P5-7, landingHeaderOpaque.test.ts). Starts true, so the HTML-drawn shell (index.html) matches.
   const [atTop, setAtTop] = useState(true);
+  // Holiday audit 1121 #78: on every public page, once scrolled, the bar is opaque (nav-past-top): its 72% glass let
+  // the page's text show through and run into the nav's own words at 375 ("Gift idea..." behind "Guides Log in").
   useEffect(() => {
-    if (!landing) return;
     const read = () => setAtTop(window.scrollY <= 0);
     read();
     window.addEventListener("scroll", read, { passive: true });
     return () => window.removeEventListener("scroll", read);
-  }, [landing]);
+  }, []);
 
   if (railOwnsNav) return null;
 
@@ -109,6 +110,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
         "fixed top-0 left-0 right-0 z-50 glass-nav",
         solid && "is-scrolled",
         landing && atTop && "landing-nav-top",
+        !landing && !atTop && "nav-past-top",
       )}
       style={{
         // Subtle always-on backdrop blur so the nav reads as a floating

@@ -73,6 +73,6 @@ export const esLanding: Record<keyof typeof enLanding, string> = {
   "landing.proof.tip": "$20 de propina",
   "landing.proof.photoAlt": "Un patio recién cortado en New Iberia",
   "landing.giftGuides.title": "Guías de regalos navideños",
-  "landing.giftGuides.body": "Ideas de regalos para ella, para él, para los niños y para el hogar, y favoritos hechos en Luisiana.",
+  "landing.giftGuides.body": "Ideas de regalos para ella, para él y para los niños.",
   "landing.giftGuides.cta": "Ver las guías de regalos",
 };

@@ -354,6 +354,7 @@ export const CUTOUTS_1120 = new Map([
   ["https://cdn.shopify.com/s/files/1/0105/2265/6823/files/NATR-Multi-Peptide_Serum_Front_capoff_primary_bone.webp", "naturium-multi-peptide-advanced-serum-2ba7ff.webp"],
   ["https://cdn.shopify.com/s/files/1/0275/4822/1505/files/MBM_MMLWCE_PACKSHOT_BISQUE.jpg", "makeup-by-mario-master-mattes-cream-eyeshadow-e8b826.webp"],
   ["https://www.youthtothepeople.com/dw/image/v2/AAFM_PRD/on/demandware.static/-/Sites-yttp-master-catalog/default/dwad62d71c/products/YTTP-10100/2026/ALT0-0810834030087--PACKSHOT.jpg", "yttp-superfood-cleanser-b7f8c7.webp"],
+  ["https://images.urbndata.com/is/image/Anthropologie/84139617_011_b14", "capri-blue-volcano-capiz-jar-candle-9622a2.webp"],
   ["https://cdn.shopify.com/s/files/1/0941/4996/files/INSULATED-LUNCH-BAG-POLKA-DOT-FRONT_c2dd954c-ab3e-48d7-bdb7-cc91f99b1cb8.jpg", "calpak-insulated-lunch-bag-polka-dot-a96450.webp"],
   ["https://cdn.shopify.com/s/files/1/0254/5969/files/2200CHALK_shot2.jpg", "oofos-ooahh-plus-slide-chalk-43bce9.webp"],
   ["https://cdn.shopify.com/s/files/1/0328/0021/files/SLIP_S24_PC_QUEEN_SEABREEZE_SHOT-1.jpg", "slip-queen-pillowcase-seabreeze-00b729.webp"],

@@ -231,8 +231,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Train f: the links made in her ShopMy 11-22: the CALPAK lunch bag ($38), OOFOS slide ($70), Slip and Crown Affair
       // pillowcases, the OOFOS leopard clog and the Smathers & Branson tray ($84-$95), the Patchology hand mask ($11) and the
       // BaubleBar spaced-letter necklace ($148).
-      // builder-guide-links (11-22): Her + the Esker bubble soak ($75).
-      her: { "Under $25": 37, "$25 to $50": 35, "$50 to $75": 10, "$75 to $100": 13, "$100 and up": 36 },
+      // builder-guide-links (11-22): Her + the Esker bubble soak ($75); builder-guide-adds-2: her Capri Blue Volcano capiz jar
+      // pin (from $22).
+      her: { "Under $25": 38, "$25 to $50": 35, "$50 to $75": 10, "$75 to $100": 13, "$100 and up": 36 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

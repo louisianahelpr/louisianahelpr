@@ -67,7 +67,9 @@ const SCREENS_1122_ASINS = ["B0030F32L6", "B0DKG9CMH8", "B0GSMJTZJJ", "B0D3V61JC
   "B000S5VEA2", "B0FGDQ5BT9", "B0DN245D58", "B0HN76TWQ2", "B0C6XK77HJ", "B0D858S2H5", "B0BLWTQ7JC", "B0F831FK2R", "B0B22SZ3W8", "B0H69TGK2F", "B07CDF1RVV", "B0G618GK4S", "B09WG9R7MY"];
 const SCREENS_1122_PINS = ["p-103899561", "p-104053242", "p-103903056", "p-103891549", "p-107936463", "p-103882819", "p-107936513", "p-107936484", "p-107887741",
   // Links made in her ShopMy 11-22 (owner: "You can create the links"; Desktop note ShopMy-links-created-1122.md).
-  "p-109201389", "p-109202100", "p-109201186", "p-109200757", "p-109201629", "p-109200363", "p-109205545", "p-109205223"];
+  "p-109201389", "p-109202100", "p-109201186", "p-109200757", "p-109201629", "p-109200363", "p-109205545", "p-109205223",
+  // Her Anthropologie Capri Blue Volcano Capiz Jar pin (11-19).
+  "p-104056613"];
 // XTRATUF's women's Camp Fleece boot at xtratuf.com through her CJ link (15%, as the Him XTRATUF boots).
 const SCREENS_1122_CJ = ["https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxwadbc10"];
 // Owner 11-22 PR picks (builder-guide-her3b).
@@ -77,9 +79,9 @@ const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.c
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 131 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(131);
-    expect(page.length).toBe(131);
+  it("the page holds exactly her 132 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(132);
+    expect(page.length).toBe(132);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
@@ -116,7 +118,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(59);
-    expect(shopmy.length).toBe(72);
+    expect(shopmy.length).toBe(73);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

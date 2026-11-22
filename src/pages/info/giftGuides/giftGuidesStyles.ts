@@ -339,6 +339,10 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-top10 .gg-nm-name{font-size:14px}
 .gg-top10 .gg-heart-pick{position:absolute;top:auto;bottom:0;right:-6px}
 .gg-top10 .gg-nm{min-height:64px}
+/* Top 10 rank (owner 11-21 evening: "number the top 10 gifts"): a small cream disc with an olive serif numeral on the
+   photo's top-left corner, clear of the heart (bottom right) and inside the photo's padding, so it never covers the product. */
+.gg-top10 .gg-item{position:relative}
+.gg-rank{position:absolute;top:6px;left:6px;z-index:1;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 6px;border-radius:999px;background:#fbf7ee;border:1px solid hsl(var(--bark) / .35);color:hsl(var(--bark));font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:15px;font-weight:700;line-height:1;box-shadow:0 1px 2px rgba(0,0,0,.08);pointer-events:none}
 @media (min-width:768px){.gg-top10{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:20px 16px}}
 /* The gift quiz (owner 11-21 ~6:15 PM): one question per screen, big answers (two across on a phone, up to four wide),
    then the result as the guides' list. */

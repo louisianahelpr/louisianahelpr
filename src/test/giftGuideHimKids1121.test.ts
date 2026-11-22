@@ -35,12 +35,16 @@ const SWITCHED: Record<string, Record<string, string>> = {
     // Rate switches 11-21 night (Commission-rates-search-1121-night.md): 3 XTRATUF at xtratuf.com via CJ 15% (XT25), TNF beanie at
     // JD Sports 15%, Burlebo hoodie and cap at burlebo.com 12%.
     "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabmob": "store-xtratuf", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmw900": "store-xtratuf", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmadbc90": "store-xtratuf",
-    "https://go.shopmy.us/p-109003932": "store-jd-sports", "https://go.shopmy.us/p-109005228": "store-burlebo", "https://go.shopmy.us/p-109005373": "store-burlebo" },
+    "https://go.shopmy.us/p-109003932": "store-jd-sports", "https://go.shopmy.us/p-109005228": "store-burlebo", "https://go.shopmy.us/p-109005373": "store-burlebo",
+    // Launch day 11-22 (Owner-adds-1122.md): her older Lake Pajamas pins, sent for Him.
+    "https://go.shopmy.us/p-103892269": "store-lake-pajamas", "https://go.shopmy.us/p-104054474": "store-lake-pajamas" },
   // Rate switch 11-21 night: Segway Ninebot S2 (Amazon B0CT2WN59R, 3%) -> Tractor Supply 8% at $484.99.
   kids: { "https://go.shopmy.us/p-109001528": "store-tractor-supply",
     // Launch day 11-22 (Owner-adds-1122.md): her two Camp Snap 2 colors, pinned at The Swank Company (p-109142125,
     // p-109142226, $69.99), are on her Camp Snap direct pins instead (owner 11-22: the $59.99 sale and her code LEXILOMBAS7).
-    "https://go.shopmy.us/p-107929152": "store-camp-snap", "https://go.shopmy.us/p-104219842": "store-camp-snap" },
+    "https://go.shopmy.us/p-107929152": "store-camp-snap", "https://go.shopmy.us/p-104219842": "store-camp-snap",
+    // Owner via the lead, 11-22: her EADEM New Classics Set pin goes on Kids.
+    "https://go.shopmy.us/p-109155269": "store-eadem" },
 };
 /**
  * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and

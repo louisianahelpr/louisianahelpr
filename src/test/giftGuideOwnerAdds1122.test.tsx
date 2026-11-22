@@ -40,6 +40,18 @@ const SENT: [string, string, string, number][] = [
   ["p-109145823", "her", "store-macys", 199], // Coravin Pivot+
   ["p-107929152", "kids", "store-camp-snap", 59.99], // Camp Snap 2 Blue Rush: her Swank pin p-109142125 moved to Camp Snap direct
   ["p-104219842", "kids", "store-camp-snap", 59.99], // Camp Snap 2 Strawberry Splash: her Swank pin p-109142226 likewise
+  // Batch 2.
+  ["p-109147879", "her", "store-lemme", 30],
+  ["p-109152557", "her", "store-huntandbloom", 42],
+  ["p-109153848", "her", "store-stil", 18],
+  ["p-109153960", "her", "store-stil", 18],
+  ["p-109153910", "her", "store-stil", 24],
+  ["p-109153811", "her", "store-stil", 44],
+  ["p-109151082", "her", "store-emi-jay", 36],
+  ["p-109154746", "her", "store-eleven-eleven", 158],
+  ["p-109155269", "kids", "store-eadem", 58], // owner via lead: Kids
+  ["p-103892269", "him", "store-lake-pajamas", 138],
+  ["p-104054474", "him", "store-lake-pajamas", 108],
 ];
 
 describe("the owner's launch-day picks (11-22)", () => {

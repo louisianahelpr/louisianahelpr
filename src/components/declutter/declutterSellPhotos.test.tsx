@@ -667,19 +667,20 @@ describe("photo-first selling, one screen", () => {
 
   // Audit posting 1030 #12, #13: a giveaway talked about selling and offered a price.
   // @mutate src/components/declutter/SellOneScreen.tsx | title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} | title={tr("sf.sellAnItem")}
-  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free} narrow> | phoneHidesTitle hidesTitle={!form.free} narrow>
+  // @mutate src/components/declutter/SellOneScreen.tsx | : "sf.sellAnItem")} backTo="/declutter?tab=selling" narrow> | : "sf.sellAnItem")} backTo="/declutter?tab=selling" phoneHidesTitle narrow>
   // @mutate src/components/declutter/SellSummaryCard.tsx | : field === "description" ? "text-foreground" : "font-semibold text-foreground"} | : "font-semibold text-foreground"}
   // @mutate src/components/declutter/SellSummaryCard.tsx | instead={form.free ? { label: t("sell.chargeForIt"), onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined} | instead={undefined}
   // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && ai.state.status !== "done" && !s.keptWork.restored && <SellItForMeEntry />} | {<SellItForMeEntry />}
   // Design audit r2 #12: a phone showed only back + help over "Show it off"; the app bar names the page.
-  // Train 11-18: on the one screen area 06b L12 (below) supersedes r2 #12 (the step head is the one painted heading); a
-  // giveaway still paints its title (F341).
-  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free} narrow> | phoneHidesTitle hidesTitle narrow>
+  // Train 11-18: on the one screen area 06b L12 hid the title; deep audit 11-22 #12 (owner rule: the back arrow sits
+  // beside the title, never alone) paints it again at every width, as a giveaway always did (F341).
+  // @mutate src/components/declutter/SellOneScreen.tsx | : "sf.sellAnItem")} backTo="/declutter?tab=selling" narrow> | : "sf.sellAnItem")} backTo="/declutter?tab=selling" phoneHidesTitle hidesTitle narrow>
   // @mutate src/components/declutter/DeclutterSellView.tsx | <AppPage title={tr("sf.sellAnItem")} onBack={back} narrow> | <AppPage title={tr("sf.sellAnItem")} onBack={back} phoneHidesTitle narrow>
-  it("r2 #12: the saved draft's steps keep their \"Sell an item\" title on a phone (the one screen: L12 below)", async () => {
+  it("r2 #12: the saved draft's steps keep their \"Sell an item\" title on a phone (the one screen too: 11-22 #12)", async () => {
     const first = open();
     const title = await screen.findByRole("heading", { name: "Sell an item", level: 1 });
-    expect(title.hasAttribute("data-hides-title")).toBe(true);
+    expect(title.hasAttribute("data-hides-title")).toBe(false);
+    expect(title.hasAttribute("data-phone-hides-title")).toBe(false);
     first.unmount();
     open("/declutter/sell?item=d1");
     const stepTitle = await screen.findByRole("heading", { name: "Sell an item", level: 1 });
@@ -703,14 +704,16 @@ describe("photo-first selling, one screen", () => {
     expect(document.activeElement).toBe(document.querySelector('[data-summary-row="price"] input'));
   });
 
-  // Area 06b L12 (design audit 11-18): selling one item paints one heading at every width, the step's "Show it off";
-  // "Sell an item" stays the page's h1 for screen readers only.
-  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free} narrow> | phoneHidesTitle={!form.free} narrow>
-  it("L12: Sell an item is not painted over Show it off at any width", async () => {
+  // Area 06b L12 (design audit 11-18) hid "Sell an item" so the step's "Show it off" was the one painted heading, which
+  // left the back arrow alone on its own row. Deep audit 11-22 #12: "<- Sell an item" beside the arrow at every width,
+  // like "<- Give it away", with the step head under it.
+  // @mutate src/components/declutter/SellOneScreen.tsx | : "sf.sellAnItem")} backTo="/declutter?tab=selling" narrow> | : "sf.sellAnItem")} backTo="/declutter?tab=selling" hidesTitle={!form.free} narrow>
+  it("11-22 #12: Sell an item is painted beside the back arrow at every width, Show it off under it", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     const h1 = screen.getByRole("heading", { level: 1, name: "Sell an item" });
-    expect(h1.hasAttribute("data-hides-title")).toBe(true);
+    expect(h1.hasAttribute("data-hides-title")).toBe(false);
+    expect(h1.hasAttribute("data-phone-hides-title")).toBe(false);
   });
 
   // Audit posting 1030 #19: Post reported one problem per tap.

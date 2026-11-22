@@ -24,7 +24,6 @@ import { SPACE } from "@/components/ui/designScale";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
 import { SELL_BUNCH_PATH, SELL_FREE_PATH, SELL_MOVE_PATH, SELL_ONE_PATH, WANTED_POST_PATH } from "@/lib/declutter/sellChooser";
-import { StepHead } from "./DeclutterSellSteps";
 import { DeclutterNotice } from "./declutterUi";
 import { HelprListExplainSheet } from "./HelprListExplainSheet";
 import { focusSheetItself } from "./focusSheetItself";
@@ -70,7 +69,9 @@ export default function DeclutterSellChooser() {
   const continueTo = kept.data?.bunch && kept.data.one ? { to: undefined } : kept.data?.bunch ? { to: bunchTo }
     : kept.data?.one ? { to: SELL_ONE_PATH } : null;
   return (
-    <AppPage title="Sell" backTo="/declutter?tab=selling" phoneHidesTitle narrow>
+    // Deep audit 11-22 #12: one title beside the back arrow ("<- Sell something") at every width; a phone showed the
+    // arrow alone on its own row, and 1440 showed "<- Sell" with a second "Sell something" under it.
+    <AppPage title="Sell something" backTo="/declutter?tab=selling" narrow>
       <div className="space-y-5" data-sell-chooser="">
         {underAge ? (
           <DeclutterNotice tone="warn" title="You must be 18 or older to sell on Declutter.">
@@ -80,9 +81,10 @@ export default function DeclutterSellChooser() {
           // Owner pick 5 (11-08; lead decision, NOT camera-first because of bulk upload): + Sell opens a SHORT chooser of
           // three: One item (photos first), Several at once (the bunch flow) and Give away free. Moving sale, a Helpr
           // listing it and a Wanted post sit in one small "More ways" row under them (they were three more cards).
-          <section className={`flex flex-col ${SPACE.cardGap}`} aria-labelledby="sell-step">
-            {/* Audit 11-10 F324: "How many things?" did not fit Give away free; the question now fits all three cards. */}
-            <StepHead title="Sell something" sub={continueTo ? undefined : "What would you like to do?"} />
+          <section className={`flex flex-col ${SPACE.cardGap}`} aria-label="Sell something">
+            {/* Audit 11-10 F324: "How many things?" did not fit Give away free; the question now fits all three cards.
+                Deep audit 11-22 #12: the title is the page's own (beside the arrow); only the question stays here. */}
+            {!continueTo && <p className="text-ds-14 text-muted-foreground">What would you like to do?</p>}
             {/* LEAD-BUNCH-DRAFT-KEEP (owner 10-31): kept work is ONE compact row first; both kinds kept, it opens a small choice. */}
             {continueTo && (
               <ChoiceCard slim data-sell-choice="continue" to={continueTo.to} onClick={continueTo.to ? undefined : () => setChoosingKept(true)}

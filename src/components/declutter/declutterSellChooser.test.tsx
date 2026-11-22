@@ -36,7 +36,7 @@
  * @mutate src/components/declutter/SellChooserEntry.tsx |       to={SELL_CHOOSER_PATH} |       to="/declutter/sell"
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/post-job", "/declutter/sell"]; | "/post-job"];
  * @mutate src/pages/post-job/EntryChoice.tsx |     <ChoiceCard key={key} icon={icon} title={title} line={line} onClick={onClick} extra={extra} /> |     <button key={key} type="button" onClick={onClick}>{title}{line}</button>
- * @mutate src/components/declutter/DeclutterSellChooser.tsx | sub={continueTo ? undefined : "What would you like to do?"} | sub={continueTo ? undefined : "How many things?"}
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | text-muted-foreground">What would you like to do?</p>} | text-muted-foreground">How many things?</p>}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";

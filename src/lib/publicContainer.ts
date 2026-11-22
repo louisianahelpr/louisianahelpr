@@ -11,3 +11,6 @@ export const PUBLIC_CONTAINER = "max-w-[78rem] mx-auto";
  *  lg:px-12), so the title and the body share a left edge. */
 export const NARROW_COLUMN = "max-w-[760px]";
 export const NARROW_HEADER_COLUMN = "mx-auto max-w-[calc(760px+2.5rem)] sm:max-w-[calc(760px+4rem)] lg:max-w-[calc(760px+6rem)]";
+/** Deep audit 11-22 #12: the header over a 440px state card (a closed or missing job, NotFound's card width), so
+ *  "<- Job" starts at the card's left edge at 1440 instead of floating 160px left of it. Same side padding ladder. */
+export const CARD_HEADER_COLUMN = "mx-auto max-w-[calc(440px+2.5rem)] sm:max-w-[calc(440px+4rem)] lg:max-w-[calc(440px+6rem)]";

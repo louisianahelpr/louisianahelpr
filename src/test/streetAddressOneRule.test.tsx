@@ -4,7 +4,8 @@
  * to". The job page shows it to an offered Helpr before they accept, so the offer is the moment. Both lines now say the
  * one rule (STREET_ADDRESS_RULE), and no Post a job source says "after you hire" about the address.
  *
- * @mutate src/lib/i18n/enPostJob.ts |   "postJob.whereH": "Helprs see the area now. Your street address goes only to the Helpr you offer the job to.", |   "postJob.whereH": "Helprs see the area now and your street address after you hire.",
+ * Audit 11-21 (P25): the header and the shield card said the rule twice on one screen; only the card says it now.
+ * @mutate src/lib/i18n/enPostJob.ts |   "postJob.whereH": "Pick the day, then the place.", |   "postJob.whereH": "Helprs see the area now and your street address after you hire.",
  * @mutate src/components/postjob/LogisticsSection.tsx | and the distance. {STREET_ADDRESS_RULE} | and the distance. The street address is shared after you hire.
  */
 import { describe, it, expect } from "vitest";
@@ -25,7 +26,9 @@ function files(dir: string): string[] {
 
 describe("Q2614: one rule for the street address on Post a job", () => {
   it("step 5's header says the rule", () => {
-    expect(enPostJob["postJob.whereH"]).toBe(`Helprs see the area now. ${STREET_ADDRESS_RULE}`);
+    // Audit 11-21 (P25): the header no longer repeats the rule; the shield card under the address is its one place.
+    expect(enPostJob["postJob.whereH"]).toBe("Pick the day, then the place.");
+    expect(enPostJob["postJob.whereH"]).not.toMatch(/address/i);
     expect(STREET_ADDRESS_RULE).toMatch(/offer the job/);
   });
 

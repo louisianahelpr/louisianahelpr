@@ -243,7 +243,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // The question paints with the screen; only the cards wait for their data.
   const startHeader = (
     <div className="mb-3">
-      <PostJobStepHeader screen="groups" question={t("postJob.groupsQ")} helper={t("postJob.groupsH")} />
+      <PostJobStepHeader screen="groups" question={t("postJob.groupsQ")} helper={t("postJob.groupsH")} barAtEveryWidth />
     </div>
   );
   // JA-41: a group tap starts the form at that group's kinds (screen 2); a one-category group or a search
@@ -322,7 +322,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     }[panel];
     return (
       <div className="space-y-section">
-        <PostJobStepHeader screen="groups" question={head.q} helper={head.h} />
+        <PostJobStepHeader screen="groups" question={head.q} helper={head.h} barAtEveryWidth />
         {panel === "templates" && (
           <>
             <div className="grid grid-cols-2 gap-2.5">
@@ -435,7 +435,8 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           t("postJob.draftTitle"),
           draftCheckout === "open"
             ? "You started paying for this one. If you finished, it will show in Posts shortly, so check there before paying again."
-            : draftCardLine(form.draft, t("postJob.draftBody")),
+            // Audit 11-21 (P25): a guest cannot add a video, so their draft line asks only for the photos again.
+            : draftCardLine(form.draft, t(form.isGuest ? "postJob.draftBodyGuest" : "postJob.draftBody")),
           () => {
             // F25: a draft with its category picked opens at Details, as a template does.
             if (form.loadDraftAndContinue()) form.setFormPage(2);

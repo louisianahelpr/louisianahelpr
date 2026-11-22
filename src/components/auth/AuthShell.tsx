@@ -29,6 +29,9 @@ interface AuthShellProps {
   /** Keep the web Navbar but drop the marketing Footer under the page
       (/account-banned: owner, 2026-10-03). */
   hideFooter?: boolean;
+  /** No ambient wash behind the column at desktop widths: a plain white page (audit 11-21 L30, /payment-success;
+      owner 11-17 "white everywhere"). */
+  plainBackground?: boolean;
   children: ReactNode;
   eyebrow?: string;
   hideBack?: boolean;
@@ -133,6 +136,7 @@ const AuthShell = ({
   title,
   backOnClick,
   noWebChrome = false,
+  plainBackground = false,
   hideFooter = false,
 }: AuthShellProps) => {
   const showCompactTopBar = compactHeader && !hideHeader;
@@ -194,7 +198,7 @@ const AuthShell = ({
           killed the page atmosphere and left a white card on a near-white
           field — exactly the "blank whitespace" this was written to prevent.
           Same coupling bug as `centerColumn`. */}
-      {(desktopBrandPanel || centerColumn) && (
+      {(desktopBrandPanel || centerColumn) && !plainBackground && (
         <div
           aria-hidden
           className="hidden lg:block pointer-events-none absolute inset-0 z-0"

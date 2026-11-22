@@ -3,11 +3,12 @@
  * printed job prices in rust (ink on Browse), drew Cleaning's tile brown (light blue on Browse) and named the parish
  * where Browse names the town.
  *   1. a title hit older than the newest 20 still leads Declutter (the title-only read);
- *   2. the section with more title matches leads; a tie keeps Jobs first;
+ *   2. Jobs leads when a job matches by title; Declutter leads only when none does;
  *   3. a job row: Browse's tinted category tile, ink price, the town.
  *
  * @mutate src/pages/search/SearchPage.tsx | const byTitle = ((unwrap(titled) ?? []) as ItemHit[]).filter((it) => matchesSearch(q, { title: it.title })); | const byTitle = [] as ItemHit[];
  * @mutate src/pages/search/SearchPage.tsx |         {jobsFirst ? jobsGroup : declutterGroup}\n        {jobsFirst ? declutterGroup : jobsGroup} |         {declutterGroup}\n        {jobsGroup}
+ * @mutate src/pages/search/SearchPage.tsx |   const jobsFirst = titleHits(jobs.data?.rows) > 0 \|\| |   const jobsFirst = false \|\|
  * @mutate src/pages/search/SearchPage.tsx | style={{ color: priceInk ? "hsl(var(--ink-deep))" : "hsl(var(--burnt-sienna))" }} | style={{ color: "hsl(var(--burnt-sienna))" }}
  * @mutate src/pages/search/SearchPage.tsx |   const town = getCity(j.location ?? ""); |   const town = "";
  * @mutate src/pages/search/SearchPage.tsx | style={{ background: tint.background }} aria-hidden data-search-job-tile=""> | aria-hidden data-search-job-tile="">
@@ -84,7 +85,7 @@ describe("audit 11-21 P15: search ranks title hits and draws jobs like Browse", 
     expect(names[0]).toMatch(/Carpet clean machine/);
   });
 
-  it("the section with more title matches leads (Jobs 2, Declutter 1)", async () => {
+  it("Jobs leads when a job matches by title (Jobs 2, Declutter 1)", async () => {
     open();
     await screen.findByRole("region", { name: "Declutter" });
     const order = screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"));
@@ -92,9 +93,20 @@ describe("audit 11-21 P15: search ranks title hits and draws jobs like Browse", 
     expect(order.indexOf("Jobs")).toBeLessThan(order.indexOf("Declutter"));
   });
 
-  it("Declutter leads when it has more title matches", async () => {
+  it("Jobs leads with one title match against many items; Declutter leads only when no job matches by title", async () => {
     state.jobs = [job("j1", "Clean my kitchen")];
-    state.titled = [item("i9", "Carpet clean machine", null), item("i8", "Clean rug", null)];
+    state.titled = [item("i9", "Carpet clean machine", null), item("i8", "Clean rug", null), item("i7", "Clean towels", null)];
+    const first = render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={["/search?q=clean"]}><SearchPage /></MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await screen.findByRole("region", { name: "Declutter" });
+    const one = screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"));
+    expect(one.indexOf("Jobs")).toBeLessThan(one.indexOf("Declutter"));
+    first.unmount();
+    // A job that matches only elsewhere (no title hit): Declutter's title hits lead.
+    state.jobs = [job("j2", "Kitchen help")];
     open();
     await screen.findByRole("region", { name: "Jobs" });
     const order = screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"));

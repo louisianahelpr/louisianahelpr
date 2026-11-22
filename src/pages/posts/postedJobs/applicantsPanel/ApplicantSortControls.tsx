@@ -34,12 +34,12 @@ export function ApplicantSortControls({
   // what it actually does.
   //
   // One of three is always chosen, so it is a switch, not a filter strip:
-  // the shared SegmentedControl (Q2709, owner 10-31 "Nothing hand-made"),
-  // quiet tone because the hire sheet's solid primary sits below it.
+  // the shared SegmentedControl (Q2709, owner 10-31 "Nothing hand-made").
+  // Audit 11-21 (L25): the solid olive selected state every other switch and
+  // chip row wears (it was the white "quiet" pill, a second look for selected).
   return (
     <SegmentedControl
       ariaLabel="Sort applicants by"
-      tone="quiet"
       className="mb-4"
       options={SORT_OPTIONS}
       value={applicantSort}

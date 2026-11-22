@@ -36,15 +36,17 @@ export const enPostJob = {
   "postJob.more.sub": "Optional: repeats, access and parking notes.",
   // Owner 11-20: the fair price hint (get_fair_price_hint)
   "postJob.hint.label": "Fair price",
-  "postJob.hint.near": "Most {what} jobs near you are",
-  "postJob.hint.state": "Most {what} jobs on Helpr are",
-  "postJob.hint.typical": "A fair start for {what} is",
+  // Audit 11-21 (P24): "A fair start for cleaning is" left "is" alone on its own line at 375; the range sits beside it.
+  "postJob.hint.near": "Most {what} jobs near you",
+  "postJob.hint.state": "Most {what} jobs on Helpr",
+  "postJob.hint.typical": "Fair start for {what}",
   "postJob.hint.typicalSource": "A typical Louisiana range. You set the price.",
   "postJob.hint.realSource": "From {n} recent jobs posted on Helpr.",
   "postJob.hint.below": "That's below the usual range",
   "postJob.hint.belowWhy": "Lower prices usually take longer to fill.",
   "postJob.hint.keep": "Keep ${n}",
   "postJob.hint.use": "Use ${n}",
+  "postJob.hint.startAt": "Start at ${n}",
   "postJob.hint.youre": "You're at ${n}.",
   "postJob.railDone": "{label}, done. Go back to this step",
 
@@ -64,7 +66,9 @@ export const enPostJob = {
   "postJob.detailsH": "A few words and a photo help Helprs say yes.",
   "postJob.priceQ": "What will you pay?",
   "postJob.whereQ": "When and where?",
-  "postJob.whereH": "Helprs see the area now. Your street address goes only to the Helpr you offer the job to.",
+  // Audit 11-21 (P25): this said the street-address rule, and the shield card under the address said it again. The
+  // card keeps the rule (with the town); the header says what the step asks.
+  "postJob.whereH": "Pick the day, then the place.",
 
   // Steps 3-6 field words (design audit r2 #32)
   "postJob.f.jobTitle": "Job title",
@@ -181,6 +185,7 @@ export const enPostJob = {
   "postJob.noRecent": "No recent jobs to repost yet.",
   "postJob.draftTitle": "Pick up your draft",
   "postJob.draftBody": "Continue the request you saved earlier. A draft keeps your words, so add your photos and video again.",
+  "postJob.draftBodyGuest": "Continue the request you saved earlier. A draft keeps your words, so add your photos again.",
 
   // The Continue button
   "postJob.continue": "Continue",

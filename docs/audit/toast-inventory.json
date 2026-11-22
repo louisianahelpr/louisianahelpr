@@ -10956,7 +10956,7 @@
     },
     {
       "file": "src/components/quotes/PostJobQuoteChoice.tsx",
-      "line": 201,
+      "line": 203,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -10970,7 +10970,7 @@
     },
     {
       "file": "src/components/quotes/PostJobQuoteChoice.tsx",
-      "line": 204,
+      "line": 206,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -16933,7 +16933,7 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 225,
+      "line": 228,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

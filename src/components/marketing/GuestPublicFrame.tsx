@@ -11,9 +11,12 @@ import { PUBLIC_CONTAINER } from "@/lib/publicContainer";
  * The footer waits for the content (useFooterAfterContent), so it never paints high under a loading page and jumps.
  * Guards: src/test/guestPagesWearPublicFrame.test.tsx, src/test/guestFrameFooterWaitsForContent.test.tsx.
  */
-export function GuestPublicFrame({ children }: { children: ReactNode }) {
+/** `focused`: a step-by-step flow (Post a job), which keeps the header but drops the site footer (lh-audit §2: a
+ *  focused flow may omit the footer; audit 11-21 P26: the full marketing footer sat under every wizard step). */
+export function GuestPublicFrame({ children, focused = false }: { children: ReactNode; focused?: boolean }) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const footerReady = useFooterAfterContent(contentRef);
+  const contentShown = useFooterAfterContent(contentRef);
+  const footerReady = contentShown && !focused;
   return (
     <PublicLayout footer={footerReady}>
       <div ref={contentRef} data-public-container="" data-guest-public-frame="" className={PUBLIC_CONTAINER}>

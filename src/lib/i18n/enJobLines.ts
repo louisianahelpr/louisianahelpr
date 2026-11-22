@@ -97,7 +97,8 @@ export const enJobLines = {
   "jl.nowSince": "since {when}",
   "jl.nowConfirmNote": "You'll confirm once they say they've arrived.",
   "jl.approveLeft": "{left} left to approve or ask for a change, then Helpr support steps in",
-  "jl.approveLate": "You can still approve. Helpr support will check in; your payment stays held",
+  // Audit 11-21 (L28): a full sentence, with its full stop.
+  "jl.approveLate": "You can still approve. Helpr support will check in, and your payment stays held.",
   "jl.approveLateShort": "you can still approve; Helpr support will check in",
 } as const;
 

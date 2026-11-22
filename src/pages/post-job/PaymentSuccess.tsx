@@ -302,6 +302,11 @@ const PaymentSuccess = () => {
     setConfirmState("checking");
     void (async () => {
       let sawReadError = false;
+      // Audit 11-21 (L29): a well-formed id with no row the poster can read was told "We couldn't reach our records";
+      // the read did answer, with nothing. Only when EVERY attempt answers with no row is that its own reason
+      // (not-found): right after Stripe a just-paid poster's first read can briefly come back empty (the session
+      // settling, a lagging replica), so an empty read keeps polling (lh-money-escrow review).
+      let lastNoRow = false;
       // Who is asking: only the job's poster may be told this payment is held.
       const { data: auth, error: authError } = await supabase.auth.getSession();
       if (cancelled) return;
@@ -325,13 +330,17 @@ const PaymentSuccess = () => {
           sawReadError = true;
           break;
         }
-        if (!data || !viewerId) {
-          // No readable row for this id (or no session to compare it with) —
-          // same epistemic position as an error: we cannot confirm, and must
-          // not guess.
+        if (!viewerId) {
+          // No session to compare the row with: we cannot confirm, and must not guess.
           sawReadError = true;
           break;
         }
+        if (!data) {
+          // An answered read with no row: ask again; not-found only if every attempt says so.
+          lastNoRow = true;
+          continue;
+        }
+        lastNoRow = false;
         if (!isJobPoster(data.customer_id, viewerId)) {
           setConfirmState("not_yours");
           return;
@@ -370,7 +379,7 @@ const PaymentSuccess = () => {
       }
       if (cancelled) return;
       fireReturnEvents(); // unreadable or still pending: we cannot say it is not the poster
-      setUnknownReason(sawReadError ? "unreachable" : "pending");
+      setUnknownReason(sawReadError ? "unreachable" : lastNoRow ? "not-found" : "pending");
       setConfirmState("unknown");
     })();
     return () => { cancelled = true; };
@@ -412,7 +421,8 @@ const PaymentSuccess = () => {
     // canvas across the other ~940px). Same prop, same reason as Signup.
     // hideHeader (owner, 2026-10-05): the Helpr·LA wordmark and its
     // "PAYMENT AUTHORIZED" eyebrow repeated the card's own headline.
-    <AuthShell hideBack hideHeader centerColumn maxWidth="md">
+    // Audit 11-21 (L30): at 1440 the card sat on soft grey blobs while the phone page is white. A plain white page.
+    <AuthShell hideBack hideHeader centerColumn maxWidth="md" plainBackground>
       <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center">
         {/* The badge is a claim too — it only draws its checkmark when the
             payment is confirmed held. Every other state gets an honest mark

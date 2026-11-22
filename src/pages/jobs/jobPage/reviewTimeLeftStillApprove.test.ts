@@ -5,8 +5,8 @@
  * once the job no longer waits on an approval, 20261023143240), so the line says so. The Posted card's countdown
  * says the same words.
  *
- * @mutate src/lib/i18n/enJobLines.ts | "jl.approveLate": "You can still approve. Helpr support will check in; your payment stays held", | "jl.approveLate": "24 hours passed. Helpr support will reach out; your payment stays held",
- * @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx | expiredText="You can still approve. Helpr support will check in; your payment stays held." | expiredText="24 hours passed — Helpr support will reach out. Your payment stays held."
+ * @mutate src/lib/i18n/enJobLines.ts | "jl.approveLate": "You can still approve. Helpr support will check in, and your payment stays held.", | "jl.approveLate": "24 hours passed. Helpr support will reach out; your payment stays held",
+ * @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx | expiredText="You can still approve. Helpr support will check in, and your payment stays held." | expiredText="24 hours passed — Helpr support will reach out. Your payment stays held."
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -17,14 +17,14 @@ describe("the review clock past its window says the poster can still approve (F2
   it("job page: still approvable, support checks in, money held", () => {
     const now = Date.parse("2026-11-10T15:00:00Z");
     const line = reviewTimeLeft(now - 60_000, now);
-    expect(line).toBe("You can still approve. Helpr support will check in; your payment stays held");
+    expect(line).toBe("You can still approve. Helpr support will check in, and your payment stays held.");
     expect(line).not.toMatch(/hours passed/);
     expect(reviewTimeLeft(now + 90 * 60_000, now)).toBe("1h 30m left to approve or ask for a change, then Helpr support steps in");
   });
 
   it("Posted card: the countdown's expired words match", () => {
     const src = readFileSync(resolve(__dirname, "../../posts/postedJobCard/steps/InProgressStep.tsx"), "utf8");
-    expect(src).toContain('expiredText="You can still approve. Helpr support will check in; your payment stays held."');
+    expect(src).toContain('expiredText="You can still approve. Helpr support will check in, and your payment stays held."');
     expect(src).not.toMatch(/hours passed — Helpr support will reach out/);
   });
 });

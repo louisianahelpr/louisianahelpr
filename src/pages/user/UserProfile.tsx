@@ -317,47 +317,52 @@ const UserProfile = () => {
 
   return wrap(
     <>
-      <PageHeader
-        // DEFAULT width, in EVERY state (loading / error / empty / loaded).
-        //
-        // Two things this guards. First, the width used to be "5xl" while
-        // loading and "lg" once data landed, so the title jumped hundreds of
-        // pixels the moment the query resolved — hence the same value on all
-        // four headers on this page.
-        //
-        // Second, that value is now the SHARED one. This page used to carry a
-        // bespoke `container px-5 > max-w-lg lg:max-w-5xl xl:max-w-6xl` ladder,
-        // so "Profile" sat on a different left edge and a different column
-        // width from the title on every other document-scroll page (owner:
-        // "spacing for title should be the same as all other pages"). Header
-        // and body both use the canonical shell now — `page-measure mx-auto
-        // px-5 lg:px-6 xl:px-6 pt-4 pb-8` — which is exactly what the
-        // header's `default` width resolves to, so the two share one edge.
-        eyebrow={headerEyebrow}
-        title={headerTitle}
-        wrapTitle={isOwnProfile}
-        meta={headerMeta}
-        // ONE header, not two. These used to ride in `rightSlot`, which renders
-        // its own sticky `.glass-header` bar ABOVE the title block — so this
-        // screen opened with an app bar of icons, then a second bar with the
-        // back button and "Profile", and only then any content. That is the
-        // stacked-header pattern already removed from Messages, Profile, My
-        // Jobs, My Posts and PostJob; UserProfile was the one left. On the
-        // title row they cost 0 extra vertical space (the row is taller than a
-        // 40px icon button either way) and the 56px `h-14` bar is gone.
-        //
-        // The notch inset follows them: with no top bar, PageHeader's
-        // `absorbSafeArea` branch pads the title block by
-        // `var(--safe-area-top, 0px)` — the :root-resolved var, never a bare
-        // env(), which reads 0 under <PageTransition>'s transform.
-        titleActions={
-          !isOwnProfile && currentUserId ? (
-            <VisitorProfileActions userId={userId} currentUserId={currentUserId} onReport={() => setShowReport(true)} onBlock={() => setShowBlock(true)} />
-          ) : isOwnProfile ? (
-            <OwnProfileActions userId={userId} displayName={displayName} />
-          ) : null
-        }
-      />
+      {/* Audit 11-21 (P23): on a phone the whole header (back, share, menu) scrolled away while /jobs keeps its bar.
+          It stays pinned at the top on a phone, on the page colour so nothing shows through;
+          from sm up the website's top bar holds the way back, as on the other pinned title rows. */}
+      <div className="max-sm:sticky max-sm:top-0 max-sm:z-40 max-sm:bg-[hsl(var(--background))]" data-user-header-pinned="">
+        <PageHeader
+          // DEFAULT width, in EVERY state (loading / error / empty / loaded).
+          //
+          // Two things this guards. First, the width used to be "5xl" while
+          // loading and "lg" once data landed, so the title jumped hundreds of
+          // pixels the moment the query resolved — hence the same value on all
+          // four headers on this page.
+          //
+          // Second, that value is now the SHARED one. This page used to carry a
+          // bespoke `container px-5 > max-w-lg lg:max-w-5xl xl:max-w-6xl` ladder,
+          // so "Profile" sat on a different left edge and a different column
+          // width from the title on every other document-scroll page (owner:
+          // "spacing for title should be the same as all other pages"). Header
+          // and body both use the canonical shell now — `page-measure mx-auto
+          // px-5 lg:px-6 xl:px-6 pt-4 pb-8` — which is exactly what the
+          // header's `default` width resolves to, so the two share one edge.
+          eyebrow={headerEyebrow}
+          title={headerTitle}
+          wrapTitle={isOwnProfile}
+          meta={headerMeta}
+          // ONE header, not two. These used to ride in `rightSlot`, which renders
+          // its own sticky `.glass-header` bar ABOVE the title block — so this
+          // screen opened with an app bar of icons, then a second bar with the
+          // back button and "Profile", and only then any content. That is the
+          // stacked-header pattern already removed from Messages, Profile, My
+          // Jobs, My Posts and PostJob; UserProfile was the one left. On the
+          // title row they cost 0 extra vertical space (the row is taller than a
+          // 40px icon button either way) and the 56px `h-14` bar is gone.
+          //
+          // The notch inset follows them: with no top bar, PageHeader's
+          // `absorbSafeArea` branch pads the title block by
+          // `var(--safe-area-top, 0px)` — the :root-resolved var, never a bare
+          // env(), which reads 0 under <PageTransition>'s transform.
+          titleActions={
+            !isOwnProfile && currentUserId ? (
+              <VisitorProfileActions userId={userId} currentUserId={currentUserId} onReport={() => setShowReport(true)} onBlock={() => setShowBlock(true)} />
+            ) : isOwnProfile ? (
+              <OwnProfileActions userId={userId} displayName={displayName} />
+            ) : null
+          }
+        />
+      </div>
 
       {/* THE BODY IS A PLAIN DOCUMENT COLUMN — it does NOT stretch.
           See the note on `wrap` above: stretching it and pinning the footer

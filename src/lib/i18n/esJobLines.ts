@@ -90,6 +90,6 @@ export const esJobLines: Record<keyof typeof enJobLines, string> = {
   "jl.nowSince": "desde {when}",
   "jl.nowConfirmNote": "Usted confirmará cuando diga que ya llegó.",
   "jl.approveLeft": "Le quedan {left} para aprobar o pedir un cambio; después interviene el soporte de Helpr",
-  "jl.approveLate": "Todavía puede aprobar. El soporte de Helpr se comunicará con usted; su pago sigue retenido",
+  "jl.approveLate": "Todavía puede aprobar. El soporte de Helpr se comunicará con usted, y su pago sigue retenido.",
   "jl.approveLateShort": "aún puede aprobar; el soporte de Helpr se comunicará",
 };

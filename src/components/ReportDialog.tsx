@@ -298,11 +298,14 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                 status (no trigger or job resolves one), and the reported
                 person cannot read the row; the insert triggers only rate-limit,
                 notify ADMINS at 3+ reporters, and write the ops ledger. */}
-            <p className="font-sans text-ds-12 leading-relaxed text-muted-foreground">
+            {/* Audit 11-21 (P22): at 375 this line sat just above the pinned footer, so the footer covered half of it
+                until the sheet was scrolled to the very end. It rides in the pinned block now, over the buttons. */}
+            <div className={REPORT_FOOTER_PINNED} data-report-footer="">
+            <p className="font-sans text-ds-12 leading-relaxed text-muted-foreground mb-3" data-report-privacy="">
               {t("rep.privacy")}
             </p>
 
-            <DialogFooter className={REPORT_FOOTER_PINNED}>
+            <DialogFooter>
               <DialogSecondaryAction type="button" onClick={handleClose} disabled={submitting}>
                 {t("rep.cancel")}
               </DialogSecondaryAction>
@@ -321,6 +324,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                 )}
               </DialogPrimaryAction>
             </DialogFooter>
+            </div>
           </div>
         )}
 

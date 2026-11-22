@@ -56,13 +56,15 @@ export const salesOn = (day: string) => {
   return [...stores.entries()].map(([store, sales]) => ({ store, sales }));
 };
 
-/** The photo well: the store's cutout, or its name when we have no photo for it. */
+/** The photo: the store's cutout. A store with no photo shows none (guides polish 1122 #14: its name is already the card's
+ *  heading; a tinted name tile was a box with no photo in it). */
 function StorePhoto({ store, href }: { store: string; href: string }) {
   const src = storePhoto(store);
   const [ok, setOk] = useState(true);
+  if (!src || !ok) return null;
   return (
-    <GiftOut href={href} className="gg-deal-photo" data-gift-store-photo={src && ok ? "photo" : "name"}>
-      {src && ok ? <img loading="lazy" decoding="async" src={src} alt="" width={200} height={200} onError={() => setOk(false)} /> : <b aria-hidden="true">{store}</b>}
+    <GiftOut href={href} className="gg-deal-photo" data-gift-store-photo="photo">
+      <img loading="lazy" decoding="async" src={src} alt="" width={200} height={200} onError={() => setOk(false)} />
       <span className="sr-only">{CARD_WORDS.openSite(store)} ({G.newTab})</span>
     </GiftOut>
   );
@@ -215,9 +217,6 @@ function SaleCard({ store, sales }: { store: string; sales: Sale[] }) {
 /** The cards' own styles (the photo, store name and grid come from the deal cards' .gg-deal rules). */
 export const CARD_CSS = `
 .gg-store-card .gg-card-store{color:var(--gg-ink);text-decoration:none}
-/* Owner 2026-11-21: a store with no photo yet keeps a short name tile, so the grid never looks like empty boxes. */
-.gg-store-card .gg-deal-photo[data-gift-store-photo="name"]{aspect-ratio:auto;height:56px;background:var(--gg-soft)}
-.gg-store-card .gg-deal-photo[data-gift-store-photo="name"] b{font-size:13px;color:var(--gg-olive)}
 .gg-store-card .gg-card-store:hover,.gg-store-card .gg-card-store:focus-visible{text-decoration:underline}
 .gg-card-line{font-size:12.5px;line-height:1.4;overflow-wrap:anywhere}
 .gg-card-sales{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}

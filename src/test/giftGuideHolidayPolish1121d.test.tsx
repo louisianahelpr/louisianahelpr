@@ -26,6 +26,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         select(text);\n      }, |       },
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         <OpenSite store={store} href={href} /> |         {null}
  * @mutate src/content/giftGuideStorePhotos.ts | (STORE_PHOTO_FILES[store] ? DIR + STORE_PHOTO_FILES[store] : null) | (DIR + "xtratuf.webp")
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   if (!src || !ok) return null; |   if (!ok) return null;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | body: <CodeCards codes={codes} /> | body: <CodeCards codes={codes.slice(1)} />
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       {sections.length > 1 && ( |       {false && (
  * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx |             <Out href={b.href} className="gg-sb-visit"> |             <Out href={b.href} className="gg-sb-visit rounded-full border">
@@ -112,7 +113,8 @@ describe("owner 11-21: codes and sales are photo cards", () => {
       expect(card.querySelector("[data-gift-open-site]")?.getAttribute("target")).toBe("_blank");
       expect(card.querySelector("[data-gift-open-site] .sr-only")?.textContent).toContain(`Open ${card.getAttribute("data-gift-code-store")} site`);
       expect([...card.querySelectorAll("[data-gift-code-copy]")].map((b) => b.getAttribute("aria-label"))).toContain(`Copy code ${code}`);
-      expect(card.querySelector("[data-gift-store-photo]")).not.toBeNull();
+      // A store with a cutout shows it; one without shows no tile (guides polish 1122 #14).
+      expect(card.querySelector("[data-gift-store-photo]") !== null).toBe(storePhoto(card.getAttribute("data-gift-code-store")!) !== null);
     }
     // No dashed box and no round Copy text button: the code itself is the chip.
     expect(container.querySelector(".gg-code-row, .gg-code-one")).toBeNull();
@@ -140,7 +142,7 @@ describe("owner 11-21: codes and sales are photo cards", () => {
     expect(new Set(cards.map((c) => c.getAttribute("data-gift-sale-store"))).size).toBe(cards.length);
     for (const c of cards) expect(c.querySelector("[data-gift-open-site]")).not.toBeNull();
   });
-  it("each photo is that store's own local file; a store with none shows its name, never another store's photo", () => {
+  it("each photo is that store's own local file; a store with none shows no tile, never another store's photo", () => {
     const files = Object.entries(STORE_PHOTO_FILES);
     expect(files.length).toBeGreaterThan(0);
     for (const [store, file] of files) {
@@ -150,8 +152,10 @@ describe("owner 11-21: codes and sales are photo cards", () => {
     }
     expect(storePhoto("A store we have no photo for")).toBeNull();
     const { container } = render(<MemoryRouter><SaleCards stores={[{ store: "A store we have no photo for", sales: [{ store: "A store we have no photo for", slug: "x", offer: "20% off", ends: "2099-01-01", href: "https://example.com/" }] }]} /></MemoryRouter>);
-    expect(container.querySelector("[data-gift-store-photo]")?.getAttribute("data-gift-store-photo")).toBe("name");
-    expect(container.querySelector("[data-gift-store-photo] img")).toBeNull();
+    // Guides polish 1122 #14: no tinted name tile; the store's name is the card's own heading link.
+    expect(container.querySelector("[data-gift-store-photo]")).toBeNull();
+    expect(container.querySelector(".gg-deal-photo")).toBeNull();
+    expect(container.querySelector("[data-gift-code-shop]")?.textContent).toBe("A store we have no photo for");
   });
 });
 

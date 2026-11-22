@@ -40,7 +40,9 @@ const SWITCHED: Record<string, Record<string, string>> = {
     "https://go.shopmy.us/p-103892269": "store-lake-pajamas", "https://go.shopmy.us/p-104054474": "store-lake-pajamas",
     // Batch 1 for Him 11-22: her Nov 19 pins (prices as checked 11-20).
     "https://go.shopmy.us/p-107850277": "store-l-l-bean", "https://go.shopmy.us/p-107837448": "store-l-l-bean", "https://go.shopmy.us/p-107881822": "store-the-warming-store",
-    "https://go.shopmy.us/p-107847793": "store-cavenders", "https://go.shopmy.us/p-107895312": "store-tractor-supply", "https://go.shopmy.us/p-107895486": "store-tractor-supply" },
+    "https://go.shopmy.us/p-107847793": "store-cavenders", "https://go.shopmy.us/p-107895312": "store-tractor-supply", "https://go.shopmy.us/p-109208695": "store-smathers-and-branson",
+    "https://go.shopmy.us/p-109208941": "store-marley-lilly",
+    "https://go.shopmy.us/p-107895486": "store-tractor-supply" },
   // Rate switch 11-21 night: Segway Ninebot S2 (Amazon B0CT2WN59R, 3%) -> Tractor Supply 8% at $484.99.
   kids: { "https://go.shopmy.us/p-109001528": "store-tractor-supply",
     // Launch day 11-22 (Owner-adds-1122.md): her two Camp Snap 2 colors, pinned at The Swank Company (p-109142125,
@@ -114,7 +116,7 @@ describe.each([
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
       // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day, 11-22.
-      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") ? "2026-11-22" : "2026-11-21");
+      expect(p.priceAt, p.name).toBe(/B089F9YDFC|B0H51ZX6SB|B0BT1WN3ZD/.test(p.href) ? "2026-11-22" : "2026-11-21");
     }
   });
 
@@ -184,7 +186,7 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // stores, above), B0002A7GMS / B07M9LRQ4J / B0FDXLSNN1 (second listings of the same items), B09ZYT939N YETI
     // Crossroads Backpack (Amazon showed no price), and the 6 rate switches 11-21 night (3 XTRATUF, TNF beanie, Burlebo hoodie + cap).
     // Plus the owner-approved MVP PRO men's 2-pack (B0D9PX9RBD, 11-22; the brown listing was women's) and the Battery Daddy (B089F9YDFC), which the owner asked for on 11-22 (not from her saved list).
-    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0D9PX9RBD");
+    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0D9PX9RBD" && a !== "B0H51ZX6SB" && a !== "B0BT1WN3ZD");
     expect(amazon.length).toBe(91);
     expect(chunk("him").filter((p) => p.href.includes("B089F9YDFC")).length).toBe(1);
     for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P", "B0CQ4QM7Q2", "B0732FCCL4", "B09R5TGLFR"]) expect(amazon, asin).not.toContain(asin);

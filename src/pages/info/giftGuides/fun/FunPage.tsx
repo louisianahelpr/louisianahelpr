@@ -107,7 +107,13 @@ const FUN_CSS = `
 .gg-swipe-btn{min-width:120px}
 .gg-swipe-acts{align-items:center}
 .gg-swipe-acts .gg-shop-btn{margin:0;padding:0 6px}
-@media (max-width:479px){.gg-swipe-done .gg-fun-actions>a,.gg-swipe-done .gg-fun-actions>button:not(.gg-link){flex:1 1 100%}}
+@media (max-width:479px){.gg-swipe-done .gg-fun-actions>a:not(.gg-link),.gg-swipe-done .gg-fun-actions>button:not(.gg-link){flex:1 1 100%}}
+/* Owner 11-22 #16: Swipe's saved gifts as the guides' cards (the Top 10's card), in a grid: 2 across on a phone, 4 from
+   768px (the Top 10 itself scrolls sideways on a phone and runs 5 across). */
+.gg .gg-top10.gg-swipe-saved{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;gap:20px 12px;margin:12px 0 4px;padding:0}
+@media (min-width:768px){.gg .gg-top10.gg-swipe-saved{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 16px}}
+.gg-fun:has([data-swipe-saved-grid]){max-width:none}
+.gg-swipe-done-acts{align-items:center;column-gap:16px}
 .gg-plan-person{border:1px solid var(--gg-line);border-radius:16px;padding:12px;margin:0 0 12px;background:hsl(var(--card))}
 .gg-plan-head{display:flex;gap:8px;align-items:center}
 .gg-plan-head input{flex:1;min-width:0;font-weight:700}

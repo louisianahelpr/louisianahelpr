@@ -7,7 +7,7 @@
  *
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned; |   const picks = sectioned;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned; |   const picks = sortable ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned;
- * @mutate src/content/giftGuideEarnOrder.ts |     out.push(...hot, ...run.filter((p) => !ranked(ranks[p.href]))); |     out.push(...run);
+ * @mutate src/content/giftGuideEarnOrder.ts |     out.push(...designTogether([...hot, ...run.filter((p) => !ranked(ranks[p.href]))], (p) => p)); |     out.push(...run);
  * @mutate src/content/giftGuideEarnOrder.ts | .sort((a, b) => ranks[a.href] - ranks[b.href]) | .sort((a, b) => ranks[b.href] - ranks[a.href])
  * @mutate src/pages/info/GiftGuides.tsx |   const sortOrder: GuideOrder = guide && order.slug === guide.slug ? order.order : "top"; |   const sortOrder: GuideOrder = guide && order.slug === guide.slug ? order.order : "low";
  * @mutate src/pages/info/giftGuides/GiftOut.tsx |   const opened = () => track("gift_out_click", { href: url }); |   const opened = () => undefined;
@@ -115,7 +115,7 @@ const choose = (label: string) => {
 describe("Her's default order puts the clicked picks first in their own section", () => {
   it("Recommended (the default) leads each section with its ranked picks; low to high stays pure price", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
+    vi.setSystemTime(new Date("2026-11-22T18:00:00Z")); // the launch-day adds were priced 11-22
     await act(async () => { await loadGuidePicks("her"); });
     const { container } = renderAt("/gift-guides/her");
     openPriceSections(container);

@@ -7,7 +7,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const cart = amazonCartUrl([pick.href]); |   const cart = amazonCartUrl([pick.href]) ?? pick.href;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {cart && ( |       {false && (
  * @mutate src/lib/retailerCart.ts |   const q = new URLSearchParams({ AssociateTag: AMAZON_TAG }); |   const q = new URLSearchParams({});
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-cart{position:absolute;right:36px;bottom:0;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px; | .gg-cart{position:absolute;right:36px;bottom:0;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-cart{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px; | .gg-cart{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
@@ -50,9 +50,11 @@ describe("the cart icon on an Amazon card", () => {
     expect(row(other).querySelector("a.gg-cart")).toBeNull();
   });
 
-  // Owner 11-21 ("should we put the cart by the heart?"): beside the heart at the card's bottom-right, not a row of its own.
-  it("the icon is a 44px tap target beside the heart", () => {
+  // Owner 11-22 ("maybe put the shopping cart below the heart instead of on the side"): under the heart on the photo's
+  // top-right, not a row of its own (src/test/giftGuideHeartCartTopRight1122.test.tsx checks the placement).
+  it("the icon is a 44px tap target under the heart", () => {
     const css = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/giftGuidesStyles.ts"), "utf8");
-    expect(css).toContain(".gg-cart{position:absolute;right:36px;bottom:0;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;");
+    expect(css).toContain(".gg-cart{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;");
+    expect(css).toContain(".gg-list .gg-cart{position:absolute;top:48px;left:54px;z-index:1}");
   });
 });

@@ -24,6 +24,7 @@ import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 import { relsOf } from "./giftGuidePeople1120.mjs";
 import { cutoutPhoto } from "./giftGuideCutouts1120.mjs";
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
+import { ADDS_STORES_1122, HER_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 
 export const HER_GUIDE = "her";
 /** The day the ShopMy prices were checked (Louisiana day). */
@@ -53,7 +54,7 @@ export const HER_1121 = [
   { name: "Kitsch Satin Pillowcase With Zipper", brand: "Kitsch", line: "A satin pillowcase that is kind to hair and skin.", href: amz("B0CCWSGSCT"), image: amzImg("81zPpWuuXHL"), store: "store-amazon", sortPrice: 15.19, commission: 3, type: "bedding" },
   // Switched 11-21 from her Sephora UK pin p-108613754 (US shoppers cannot buy there) to the same 4-sheet set at iHerb,
   // same $19, 15% (Desktop note Commission-switches-1121.md); photo is iHerb's own.
-  { name: "BIODANCE Hydro Cera-Nol Real Deep Mask, 4 Pack", brand: "BIODANCE", line: "Overnight hydrogel masks she peels off to glowy skin.", href: shopmy("p-108755104"), image: "https://cloudinary.images-iherb.com/image/upload/f_auto,q_auto:eco/images/bdo/bdo36097/l/19.jpg", store: "store-iherb", sortPrice: 19, price: 19, commission: 15, type: "skincare" },
+  { name: "BIODANCE Hydro Cera-Nol Real Deep Mask, 4 Pack", brand: "BIODANCE", line: "Overnight hydrogel masks she peels off to glowy skin.", href: shopmy("p-108755104"), image: "https://www.sephora.com/productimages/sku/s2865152-main-zoom.jpg", store: "store-iherb", sortPrice: 19, price: 19, commission: 15, type: "skincare" },
   { name: "Summer Fridays Tinted Lip Butter Balm", brand: "Summer Fridays", line: "The tinted lip balm everyone keeps in their bag.", href: amz("B0D82LVR3N"), image: amzImg("51s-g+euH5L"), store: "store-amazon", sortPrice: 19.2, commission: 10, type: "lip" },
   { name: "Kitsch XL Microfiber Hair Towel Wrap", brand: "Kitsch", line: "A quick-dry hair towel wrap for after the shower.", href: amz("B0CDF7GJ4Y"), image: amzImg("81h7Kvf9ttL"), store: "store-amazon", sortPrice: 19.24, commission: 3, type: "hair" },
   { name: "Amazon Essentials Women's Flannel Pajamas", brand: "Amazon Essentials", line: "Soft flannel pajamas for cold mornings.", href: amz("B08X8P91FX"), image: amzImg("71vZPpqtf5L"), store: "store-amazon", sortPrice: 20.69, commission: 4, type: "pajamas" },
@@ -72,7 +73,7 @@ export const HER_1121 = [
   // CODE WITH THE ITEM (owner 2026-11-21 9:58 PM: "you can put the code with the item but no we dont need a long list of
   // codes on each guide only if we have a code should you put it with the items"): her Camp Snap code LEXILOMBAS7, 7% off
   // campsnapphoto.com, where this link goes; active with no end date in her ShopMy Discount Codes (ShopMy-codes-1121-night.md).
-  { name: "Camp Snap CS-8 Micro Video Camera Keychain, Blind Box", brand: "Camp Snap", line: "A tiny video camera on a keychain, color a surprise.", href: shopmy("p-108611500"), image: "https://static.shopmy.us/pins/zoom-106643598-1794927315931-micro1.jpg", store: "store-camp-snap", sortPrice: 39.99, price: 39.99, commission: 10, type: "accessory", code: "LEXILOMBAS7" },
+  { name: "Camp Snap CS-8 Micro Video Camera Keychain, Blind Box", brand: "Camp Snap", line: "A tiny video camera on a keychain, color a surprise.", href: shopmy("p-108611500"), image: "https://cdn.shopify.com/s/files/1/0744/7383/2752/files/header_d29d6334-ecd6-41de-ad9f-68ae82d94846.png", store: "store-camp-snap", sortPrice: 39.99, price: 39.99, commission: 10, type: "accessory", code: "LEXILOMBAS7" },
   // COMMISSION SWITCH 11-21: was Amazon B0HFYLTJR7 at 10%; same boxed set, same $40 at Anthropologie at 15%.
   { name: "L'OCCITANE Shea Butter Classics Gift Set", brand: "L'OCCITANE", line: "Shea butter hand and body care, ready to give.", href: shopmy("p-108732809"), image: "https://images.urbndata.com/is/image/Anthropologie/114587041_030_b2", store: "store-anthropologie", sortPrice: 40, price: 40, commission: 15, type: "gift-set" },
   { name: "HEYDUDE Austin Lift Platform Mule", brand: "HEYDUDE", line: "Easy slip-on platform mules for everyday errands.", href: amz("B0CPB1MWMP"), image: amzImg("315u2EGcJpL"), store: "store-amazon", sortPrice: 44.99, commission: null, type: "shoes" },
@@ -123,8 +124,11 @@ export const HER_1121 = [
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
+/** Her 11-21 saves plus the picks she sent on launch day (scripts/giftGuideOwnerAdds1122.mjs). */
+export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122];
+
 /** The page rows: cheapest first, every pick priced (Amazon too, owner 11-21), cutout photos, relationship tags, no section. */
-export function her1121Picks(rows = HER_1121) {
+export function her1121Picks(rows = HER_ROWS) {
   const g = PEOPLE_GUIDES.find((x) => x.slug === HER_GUIDE);
   return rankByPrice(rows).map(({ row: r, priceRank }) => {
     const { sortPrice: _sp, price, ...rest } = r;
@@ -134,7 +138,7 @@ export function her1121Picks(rows = HER_1121) {
     // prices anyway"). An Amazon pick shows the price captured from her own saved list that morning (sortPrice, the
     // Desktop notes); a ShopMy pick its checked price. A row with no captured price shows none.
     const shown = isAmazon(r) ? r.sortPrice : price;
-    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: HER_PRICE_AT });
+    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: r.priceAt ?? HER_PRICE_AT });
     return { ...p, rels: relsOf(g, p) };
   });
 }
@@ -149,7 +153,7 @@ export function applyHer1121(pageList, storeList) {
   const addedStores = [];
   for (const p of pageList[HER_GUIDE]) {
     if (p.store === "store-amazon" || storeList[p.store]) continue;
-    storeList[p.store] = { name: HER_STORES[p.store] ?? p.store, hosts: [new URL(p.href).hostname] };
+    storeList[p.store] = { name: HER_STORES[p.store] ?? ADDS_STORES_1122[p.store] ?? p.store, hosts: [new URL(p.href).hostname] };
     addedStores.push(p.store);
   }
   for (const p of pageList[HER_GUIDE]) {

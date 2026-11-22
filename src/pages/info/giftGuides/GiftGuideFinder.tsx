@@ -123,7 +123,8 @@ export function GiftFinder() {
   }
   return (
     <section id={FINDER_ID} aria-labelledby={FINDER_TITLE_ID} className="gg-finder gg-quiz" data-gift-finder="" data-gift-quiz={step}>
-      <h2 id={FINDER_TITLE_ID} className="gg-finder-title">{W.finderTitle}</h2>
+      {/* Owner 11-22 #13: the page's banner says "Find a Gift" over this card, so its heading is for screen readers only. */}
+      <h2 id={FINDER_TITLE_ID} className="gg-finder-title sr-only">{W.finderTitle}</h2>
       {step === "who" && <p className="gg-finder-lead">{W.finderLead}</p>}
       {body}
     </section>

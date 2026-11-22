@@ -90,7 +90,7 @@ export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du M
 // Owner's standard plan (11-20 evening) + holiday audit B (a name-only sponsor is never carded): Shop Small Louisiana cards
 // the 10 sponsors with a shop photo, so the 14 hosts no card links any more left this list (hotworx, Mary Kay, Facebook,
 // Instagram and the sponsors' own sites); a sponsor carded again adds its host back.
-export const SPONSOR_SITES = ["thestrandtheatre.com", "basicbee.co", "www.zydecochopchop.com", "www.faulkcalls.com", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.lepetittheatre.com", "www.theallwayslounge.net", "citysightseeingneworleans.com"] as const;
+export const SPONSOR_SITES = ["thestrandtheatre.com", "basicbee.co", "www.zydecochopchop.com", "www.faulkcalls.com", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.lepetittheatre.com", "www.theallwayslounge.net", "citysightseeingneworleans.com", "davidrabalaisfilm.com"] as const;
 /**
  * The national 25 Days sponsors' own shops (train 1120b, owner 11-20 ~8:35 AM: each gets one best-fit guide spot with
  * the sponsor badge, 0% allowed). Kept apart from SPONSOR_SITES, which are Louisiana businesses: a Louisiana host's
@@ -225,10 +225,32 @@ export const codesByStore = (codes: DiscountCode[]) => {
   return [...stores.entries()].map(([store, list]) => ({ store, codes: list }));
 };
 
+/** A guides sub-page's banner words and gingham colour (the guides' own three: CatalogGuide["tint"]). */
+export interface PageBanner { lead: string; title: string; tint: "red" | "green" | "oat" }
+
 export const giftGuides = {
   /** The header title on every gift guides page, by the back arrow (owner 11-21: "add holiday to gift guides where it is by the back arrow"). */
   headerTitle: "Holiday gift guides",
   title: "Holiday gift guides",
+  /**
+   * Each guides sub-page's banner (owner 2026-11-22 #13: "gifts tags and all the other sections should have the same top
+   * section as the guides and the deals"): the small italic lead and the big serif title in the gingham arch, its
+   * colour by the menu group (the guides' red / green / beige): Free printables red, Make it fun beige, Louisiana green,
+   * the wish lists red. Drawn by GuidesTop (src/pages/info/giftGuides/GuidesTop.tsx).
+   */
+  pageBanners: {
+    "/gift-guides/printables/gift-tags": { lead: "free printables", title: "Gift Tags", tint: "red" },
+    "/gift-guides/printables/coloring-books": { lead: "free printables", title: "Coloring Books", tint: "red" },
+    "/gift-guides/printables/banners": { lead: "free printables", title: "Banners", tint: "red" },
+    finder: { lead: "make it fun", title: "Find a Gift", tint: "oat" },
+    "/gift-guides/swipe": { lead: "make it fun", title: "Swipe to Find Gifts", tint: "oat" },
+    "/gift-guides/draw-names": { lead: "make it fun", title: "Secret Santa Name Draw", tint: "oat" },
+    "/gift-guides/planner": { lead: "make it fun", title: "Gift Planner", tint: "oat" },
+    reveal: { lead: "shh, it's a secret", title: "Your Secret Santa", tint: "oat" },
+    "/holidays": { lead: "lights & events", title: "Louisiana Holiday Hub", tint: "green" },
+    myList: { lead: "your saved gifts", title: "My Wish List", tint: "red" },
+    shared: { lead: "shared with you", title: "Wish List", tint: "red" },
+  } satisfies Record<string, PageBanner>,
   /**
    * The landing's ONE set of ways in (owner 11-20 PM: "a tidy grid of nicely spaced cards, each with a good photo and
    * title"): a card per main group, its photo the named guide's own cover, its short line below the title; then the
@@ -392,6 +414,8 @@ export const giftGuides = {
   sectionNavLabel: "Jump to a section",
   /** A brand's discount code on its cards (1120: 21 Collective). */
   codeChip: (code: string) => `Code ${code}`,
+  /** A sold-out pick's restock day (owner 11-22: a short "back Dec 1" note on the row). */
+  backOnChip: (day: string) => `Back ${new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`,
   /** The budget filter inside every guide (owner-approved 11-19 9:05 PM). A pick with no checked price leaves a budget view. */
   budgetLabel: "Budget",
   budgetAll: "Any price",

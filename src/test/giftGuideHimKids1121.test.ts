@@ -15,6 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { HIM_1121, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
+import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image: string; store: string; type?: string; price?: unknown; priceAt?: unknown; sortPrice?: unknown; rels?: string[] };
@@ -36,7 +37,10 @@ const SWITCHED: Record<string, Record<string, string>> = {
     "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabmob": "store-xtratuf", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmw900": "store-xtratuf", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmadbc90": "store-xtratuf",
     "https://go.shopmy.us/p-109003932": "store-jd-sports", "https://go.shopmy.us/p-109005228": "store-burlebo", "https://go.shopmy.us/p-109005373": "store-burlebo" },
   // Rate switch 11-21 night: Segway Ninebot S2 (Amazon B0CT2WN59R, 3%) -> Tractor Supply 8% at $484.99.
-  kids: { "https://go.shopmy.us/p-109001528": "store-tractor-supply" },
+  kids: { "https://go.shopmy.us/p-109001528": "store-tractor-supply",
+    // Launch day 11-22 (Owner-adds-1122.md): her two Camp Snap 2 colors, pinned at The Swank Company (p-109142125,
+    // p-109142226, $69.99), are on her Camp Snap direct pins instead (owner 11-22: the $59.99 sale and her code LEXILOMBAS7).
+    "https://go.shopmy.us/p-107929152": "store-camp-snap", "https://go.shopmy.us/p-104219842": "store-camp-snap" },
 };
 /**
  * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and
@@ -73,8 +77,8 @@ const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuideP
 const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})));
 
 describe.each([
-  ["him", [...HIM_1121], him1121Picks() as Pick[]],
-  ["kids", [...KIDS_1121], kids1121Picks() as Pick[]],
+  ["him", [...HIM_1121, ...HIM_ADDS_1122], him1121Picks() as Pick[]],
+  ["kids", [...KIDS_1121, ...KIDS_ADDS_1122], kids1121Picks() as Pick[]],
 ])("For %s is the owner's Amazon and ShopMy saves (11-21)", (slug, rows, built) => {
   const page = chunk(slug);
 
@@ -122,7 +126,11 @@ describe.each([
 
   it("is cheapest first", () => {
     const sorted = [...rows].sort((a, b) => a.sortPrice - b.sortPrice);
-    expect((sorted as unknown as Pick[]).map((r) => r.href)).toEqual(page.map((p) => p.href));
+    // Owner 2026-11-22 ("put the ducks designs together ..."): only ties may move, a same-brand same-design row next to
+    // its group (src/test/giftGuideSameDesignTogether1122.test.ts); the prices in order and the rows are exactly these.
+    const price = new Map(rows.map((r) => [r.href, r.sortPrice]));
+    expect(page.map((p) => price.get(p.href))).toEqual(sorted.map((r) => r.sortPrice));
+    expect([...page.map((p) => p.href)].sort()).toEqual([...(sorted as unknown as Pick[]).map((r) => r.href)].sort());
   });
 
   // Owner 2026-11-21: "Him = ALL of her men's saves" and "same for the kids": brand and type caps off for her own picks
@@ -156,7 +164,8 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
 });
 
 describe("For Him holds every one of her men's saves (owner 11-21)", () => {
-  it("92 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the 30 left out named", () => {
+  it("91 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the 31 left out named", () => {
+    // Owner 2026-11-22: B09R5TGLFR Chemical Guys Car Cleaning Kit ($31.90) is off too; the Wontolf kit is the only car wash kit.
     // Owner 2026-11-22 ("remove"): B0CQ4QM7Q2 Men's Fuzzy Cloud Socks are off. Owner 2026-11-22 ("only keep the one with
     // the higher commission"): B0732FCCL4 Armor All Ultimate Car Cleaning Kit (3% x $38.91) is off; the Wontolf kit (3% x $40.79) stays.
     // Left out, 2026-11-21: B001DPHF4U LaCrosse Grange, B0FKCJNHWB Theragun Prime and B08Q1RN656 XTRATUF Ankle Deck Boot, B0F2JHSGCJ Turtlebox Ranger and the 14 night links 11-21
@@ -165,8 +174,8 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // stores, above), B0002A7GMS / B07M9LRQ4J / B0FDXLSNN1 (second listings of the same items), B09ZYT939N YETI
     // Crossroads Backpack (Amazon showed no price), and the 6 rate switches 11-21 night (3 XTRATUF, TNF beanie, Burlebo hoodie + cap).
     const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]);
-    expect(amazon.length).toBe(92);
-    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P", "B0CQ4QM7Q2", "B0732FCCL4"]) expect(amazon, asin).not.toContain(asin);
+    expect(amazon.length).toBe(91);
+    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P", "B0CQ4QM7Q2", "B0732FCCL4", "B09R5TGLFR"]) expect(amazon, asin).not.toContain(asin);
     for (const asin of ["B0F2K9B696", "B0F53HMTX5", "B0FR98X1DZ", "B0D31TCLN2", "B0FKN7JH1D"]) expect(amazon, asin).toContain(asin);
   });
 });
@@ -185,8 +194,8 @@ describe("the generator sets Him and Kids last", () => {
     const pages: Record<string, unknown[]> = { him: [{ name: "old" }], kids: [], her: [{ name: "keep" }] };
     const stores: Record<string, { name: string; hosts: string[] }> = { "store-dillards": { name: "Dillard's", hosts: ["www.dillards.com"] } };
     const out = applyHimKids1121(pages, stores);
-    expect(out.him).toEqual({ before: 1, after: HIM_1121.length });
-    expect(pages.kids.length).toBe(KIDS_1121.length);
+    expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length });
+    expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length);
     expect(pages.her).toEqual([{ name: "keep" }]);
     expect(stores["store-dillards"]).toEqual({ name: "Dillard's", hosts: ["go.shopmy.us", "www.dillards.com"] });
     expect(stores["store-exclusive-beauty-club"]).toEqual({ name: "Exclusive Beauty Club", hosts: ["go.shopmy.us"] });
@@ -212,8 +221,8 @@ describe("the generator sets Him and Kids last", () => {
  * A code rides WITH its item (owner 2026-11-21 ~10 PM, via lead: "you can put the code with the item but no we dont need
  * a long list of codes on each guide only if we have a code should you put it with the items"): the XTRATUF Ankle Deck
  * Boots at xtratuf.com (the Chocolate/Tan Ankle Deck Boot, and since the 11-21 night rate switches the Mossy Oak Bottomland,
- * Wheelhouse and Fleece Lined boots) carry XT25 with its last day (the card hides the chip after Nov 29); no other Him or
- * Kids pick carries a code.
+ * Wheelhouse and Fleece Lined boots) carry XT25 with its last day (the card hides the chip after Nov 29); no other Him
+ * pick carries a code, and on Kids only the two Camp Snap 2 rows (11-22) carry her Camp Snap code LEXILOMBAS7.
  * @mutate scripts/giftGuideHimKids1121.mjs | sortPrice: 115, price: 115, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" } | sortPrice: 115, price: 115, commission: 15, type: "boots" }
  */
 describe("the XTRATUF code chip on For Him (owner 11-21)", () => {
@@ -233,6 +242,7 @@ describe("the XTRATUF code chip on For Him (owner 11-21)", () => {
         expect(decodeURIComponent(p.href)).toMatch(/^https:\/\/www\.anrdoezrs\.net\/click-101930553-15735628\?url=https:\/\/xtratuf\.com\/products\/(22734|xmabmob|xmw900|xmadbc90)$/);
       }
     }
-    expect((chunk("kids") as Coded[]).filter((p) => p.code)).toEqual([]);
+    // Kids: only the two Camp Snap 2 colors (11-22, campsnapphoto.com), with her Camp Snap code (no end date).
+    expect((chunk("kids") as Coded[]).filter((p) => p.code).map((p) => [p.store, p.code, p.codeEnds])).toEqual([["store-camp-snap", "LEXILOMBAS7", undefined], ["store-camp-snap", "LEXILOMBAS7", undefined]]);
   });
 });

@@ -28,9 +28,6 @@ export const SMALL_BIZ_WORDS = {
   intro:
     "Small Business Saturday is Nov 28. These Louisiana shops and makers are sponsoring our 25 Days of Giveaways, so show them some love: buy a gift, book a visit, or just give them a follow.",
   badge: "25 Days sponsor",
-  // Train 1120c: the button says only "Visit" (long names like "Suzi Marques Photography" overflowed at 320 px); the
-  // name follows for screen readers.
-  visit: "Visit",
   facebook: "Facebook",
   instagram: "Instagram",
   website: "Website",

@@ -136,10 +136,10 @@ describe("the sort control on the page (owner 11-21)", () => {
   // and the default order (low to high) follows the shown prices.
   it("every row shows its price in either order, Amazon rows too, and the default order is the shown prices low to high", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
+    vi.setSystemTime(new Date("2026-11-22T18:00:00Z")); // the launch-day adds were priced 11-22
     await act(async () => { await loadGuidePicks("her"); });
     const { container } = renderAt("/gift-guides/her");
-    const dollars = () => [...openPriceSections(container).querySelectorAll<HTMLElement>("[data-gift-pick]")].map((li) => Number((li.querySelector("[data-gift-price]")?.textContent ?? "").replace("~$", "")));
+    const dollars = () => [...openPriceSections(container).querySelectorAll<HTMLElement>("[data-gift-pick]")].map((li) => Number((li.querySelector("[data-gift-price]")?.textContent ?? "").replace(/^(~|from )\$/, "")));
     // The default, before any tap, is low to high.
     const first = dollars();
     expect(first).toEqual([...first].sort((a, b) => a - b));
@@ -150,7 +150,8 @@ describe("the sort control on the page (owner 11-21)", () => {
       let amazon = 0;
       for (const li of rows) {
         const href = li.querySelector<HTMLAnchorElement>("a[data-gift-out]")!.href;
-        expect(li.querySelector("[data-gift-price]")?.textContent ?? "", href).toMatch(/^~\$\d+$/);
+        // A pick priced by size shows its lowest as "from $85" (11-22: the Serta pad, priceFrom).
+        expect(li.querySelector("[data-gift-price]")?.textContent ?? "", href).toMatch(/^(~|from )\$\d+$/);
         if (isAmazon(href)) amazon += 1;
       }
       expect(amazon).toBeGreaterThan(15); // 20 Amazon rows on Her, 2026-11-21
@@ -166,11 +167,11 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
     title: sectionTitle(sec),
     count: sec.querySelector("[data-gift-section-count]")?.textContent ?? "",
     labelled: sec.getAttribute("aria-labelledby") === sec.querySelector("h2")?.id,
-    dollars: [...sec.querySelectorAll("[data-gift-price]")].map((p) => Number(p.textContent!.replace("~$", ""))),
+    dollars: [...sec.querySelectorAll("[data-gift-price]")].map((p) => Number(p.textContent!.replace(/^(~|from )\$/, ""))),
   }));
   it.each(["him", "kids", "her"])("/gift-guides/%s: Under $25, $25 to $50, $50 to $75, $75 to $100, $100 and up, each labelled with its count; reversed high to low", async (slug) => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
+    vi.setSystemTime(new Date("2026-11-22T18:00:00Z")); // the launch-day adds were priced 11-22
     await act(async () => { await loadGuidePicks(slug); });
     const { container } = renderAt(`/gift-guides/${slug}`);
     // Every "Show more" (50 at a time; Him holds 141 of her saves since 11-21).
@@ -200,10 +201,13 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Mossy Oak deck boots at xtratuf.com, $115 and $125, were Amazon $93.75) and one Her pick from $75-$100 to $25-$50
       // (Crocs Dylan at crocs.com $35, was $99).
       // 11-22 (owner edits): Him lost the Dr. Squatch Fresh Falls soap and Men's Fuzzy Cloud Socks (under $25) and the
-      // Armor All car kit ($25-$50); Her lost the Floral Mama quarter zip (under $25).
-      him: { "Under $25": 42, "$25 to $50": 41, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 34 },
-      kids: { "Under $25": 33, "$25 to $50": 21, "$50 to $75": 5, "$75 to $100": 5, "$100 and up": 17 },
-      her: { "Under $25": 17, "$25 to $50": 16, "$50 to $75": 2, "$75 to $100": 1, "$100 and up": 10 },
+      // Armor All and Chemical Guys car kits ($25-$50); Her lost the Floral Mama quarter zip (under $25).
+      him: { "Under $25": 42, "$25 to $50": 40, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 34 },
+      // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
+      // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
+      // and Sleep Crown ($159, $199, $289).
+      kids: { "Under $25": 33, "$25 to $50": 21, "$50 to $75": 7, "$75 to $100": 5, "$100 and up": 17 },
+      her: { "Under $25": 18, "$25 to $50": 16, "$50 to $75": 4, "$75 to $100": 4, "$100 and up": 13 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

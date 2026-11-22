@@ -99,7 +99,8 @@ describe("gift-guide prices: the generated chunks", () => {
     // and 97 Amazon picks carry a price (20 Her + 37 Him + 40 Kids, measured 2026-11-21).
     for (const slug of OWNER_LISTS) {
       expect(CHUNKS[slug].length, slug).toBeGreaterThan(30);
-      expect(CHUNKS[slug].filter((p) => !(typeof p.price === "number" && p.price > 0 && p.priceAt === "2026-11-21")).map((p) => p.name), slug).toEqual([]);
+      // Checked 11-21 (her saves) or 11-22 (the picks she sent on launch day, scripts/giftGuideOwnerAdds1122.mjs).
+      expect(CHUNKS[slug].filter((p) => !(typeof p.price === "number" && p.price > 0 && (p.priceAt === "2026-11-21" || p.priceAt === "2026-11-22"))).map((p) => p.name), slug).toEqual([]);
     }
     expect(amazonPriced).toBeGreaterThan(90);
     // Amazon keeps its 15 best (owner's 10-15 per store page; lead 11-19, 1530 train).

@@ -6,6 +6,8 @@
  * Keyed on the photo's URL without its query string. Amazon photos are never listed: Associates rules forbid
  * editing them.
  */
+import { ADDS_CUTOUTS_1122 } from "./giftGuideOwnerAdds1122.mjs";
+
 export const CUTOUT_BASE = "https://www.louisianahelpr.com/gift-guides/cutouts/";
 export const CUTOUTS_1120 = new Map([
   // Melissa & Doug Super Smile Dentist Play Set (melissaanddoug.com box photo, plain white; replaces the kids-at-a-table photo)
@@ -133,6 +135,10 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/pins/zoom-108612982-1795240352615-253765107_0435.jpg", "therabody-theragun-mini-a30abd.webp"],
   // Camp Snap CS-8 Micro Video Camera Keychain
   ["https://static.shopmy.us/pins/zoom-106643598-1794927315931-micro1.jpg", "camp-snap-cs-8-micro-video-camera-keychain-60114e.webp"],
+  // Camp Snap CS-8 Micro, all seven colors with the blind box (owner 11-22 #9 "for camp snap choose a better picture":
+  // the cameras, not only the box). campsnapphoto.com's own transparent product art from the CS-8 Micro page; its white
+  // "Meet the CS-8 Micro" title and the rainbow stripe behind the cameras erased, no Vision pass.
+  ["https://cdn.shopify.com/s/files/1/0744/7383/2752/files/header_d29d6334-ecd6-41de-ad9f-68ae82d94846.png", "camp-snap-cs-8-micro-all-colors-778dd0.webp"],
   // Stanley All Day Julienne Midi Cooler
   ["https://www.rei.com/media/40f2076a-b808-4b12-b912-240e6fa0e847", "stanley-all-day-julienne-midi-cooler-792e50.webp"],
   // YETI Camino 35 Carryall, Cape Taupe
@@ -201,6 +207,10 @@ export const CUTOUTS_1120 = new Map([
   ["https://dimg.dillards.com/is/image/DillardsZoom/zoom/lacrosse-mens-grange-18-tall-waterproof-rubber-hunting-work-boots/00000000_zi_ac01ed80-ad36-4d40-8cca-066a3f05fcbd.jpg", "lacrosse-grange-18-rubber-boot-906f98.webp"],
   // BIODANCE Hydro Cera-Nol Real Deep Mask, 4 sheets (iherb.com photo, white gaps cleared; switched from Sephora UK 11-21)
   ["https://cloudinary.images-iherb.com/image/upload/f_auto,q_auto:eco/images/bdo/bdo36097/l/19.jpg", "biodance-hydro-cera-nol-real-deep-mask-4-sheets-5ff79f.webp"],
+  // BIODANCE Hydro Cera-Nol Real Deep Mask, 4 Pack (owner 11-22 #2 "find a better picture": the iHerb shot was four loose
+  // sachets): Sephora US's own front-of-pack photo (sku 2865152, the 4-sheet box with a sachet in front). Its white box
+  // sits on pure white, so the background is the white flooded in from the border plus the Vision mask, not Vision alone.
+  ["https://www.sephora.com/productimages/sku/s2865152-main-zoom.jpg", "biodance-hydro-cera-nol-real-deep-mask-4-pack-1f3e99.webp"],
   // Stanley All Day Julienne Midi Cooler, Cream (stanley1913.com photo, already transparent; cropped only)
   ["https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-The_All-Day_Julienne_Midi_Cooler_12QT_-_Cream_-_Front.png", "stanley-all-day-julienne-midi-cooler-cream-309bba.webp"],
   // FOR HIM and FOR KIDS 11-21 (the owner's ShopMy saves, scripts/giftGuideHimKids1121.mjs): Apple Vision cutouts unless noted.
@@ -317,6 +327,9 @@ export const CUTOUTS_1120 = new Map([
   // yeti crossroads 22l backpack, alpine brown
   ["https://static.shopmy.us/uploads/pretty-prod-1758467247287", "yeti-crossroads-22l-alpine-brown-468ab3.webp"],
 ]);
+
+// The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).
+for (const [from, file] of ADDS_CUTOUTS_1122) CUTOUTS_1120.set(from, file);
 
 /** The photo to show for `image`: its transparent cutout when one exists, else `image` itself. */
 export const cutoutPhoto = (image) => {

@@ -98,6 +98,8 @@ export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: stri
   const ship = deadlineChip(pick.store, today);
   // A dated brand code (1120c: XTRATUF XT25, Nov 20-29) shows through its last day only.
   const code = pick.code && (!pick.codeEnds || today <= pick.codeEnds) ? pick.code : undefined;
+  // Sold out until its restock day (owner 11-22, Sleep Crown): "Back Dec 1" until that day, then nothing.
+  const back = pick.backOn && today < pick.backOn ? G.backOnChip(pick.backOn) : undefined;
   const cart = amazonCartUrl([pick.href]);
   return (
     <li data-gift-pick="">
@@ -114,20 +116,21 @@ export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: stri
           <span className="gg-nm-name">{rank !== undefined && <span className="sr-only">{`${rank}. `}</span>}{pick.name}</span>
           <span className="sr-only">{isShopMyCollection(pick.href) ? ` (${G.collectionOnShopMy})` : storeLabel(pick) ? ` (${G.onStore(storeLabel(pick))})` : ""}</span>
           <small className="gg-nm-meta"><PickPrice pick={pick} /></small>
-          {(badges || code || ship) && (
+          {(badges || code || ship || back) && (
             <span className="gg-badges">
               {badges?.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
               {code && <i className="gg-bdg gg-bdg-code" data-gift-code-chip="">{G.codeChip(code)}</i>}
               {ship && <i className="gg-bdg gg-bdg-ship" data-gift-ship-chip="">{ship}</i>}
+              {back && <i className="gg-bdg gg-bdg-back" data-gift-back-chip="">{back}</i>}
             </span>
           )}
         </span>
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
       <Heart saved={saved} label={WISH.saveForLabel(pick.name)} onToggle={() => { if (!requestSaveFor(saveItemOf(pick, guide))) heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) })); }} className="gg-heart-pick" />
-      {/* Owner 2026-11-21 (Amazon Buy Now): an Amazon item gets a small cart icon under its price that puts it straight
-          in the shopper's Amazon cart, credited to our tag (src/lib/retailerCart.ts). Its own 44px link, outside the card
-          link, like the heart; nothing for other stores. */}
+      {/* Owner 2026-11-21 (Amazon Buy Now): an Amazon item gets a small cart icon that puts it straight in the shopper's
+          Amazon cart, credited to our tag (src/lib/retailerCart.ts). Its own 44px link, outside the card link, like the
+          heart; nothing for other stores. Owner 2026-11-22: it sits right under the heart on the photo's top-right. */}
       {cart && (
         <GiftOut href={cart} className="gg-cart">
           <ShoppingCart aria-hidden="true" />

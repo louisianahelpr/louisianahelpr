@@ -38,7 +38,10 @@ import {
   endedEarlierToday, filterHolidayItems, holidayCountLabel, holidayWhereLabel, holidayDayHeading, holidayItemsByDay, isHolidayLight, louisianaMinutes, louisianaToday,
   resolveHolidayWhat, type HolidayCostFilter, type HolidayItem, type HolidayRegion, type HolidayWhen,
 } from "@/content/holidayHub/holidayHub.mjs";
-import { HUB_COLUMN, HUB_HEADER_COLUMN, HolidayCard, HolidayNothing, HolidaySection, useHolidayPageView } from "./holidayParts";
+import { HolidayCard, HolidayNothing, HolidaySection, useHolidayPageView } from "./holidayParts";
+import { giftGuides as G } from "@/content/giftGuides";
+import { GIFT_GUIDES_CSS } from "../giftGuides/giftGuidesStyles";
+import { GuidesFrame } from "../giftGuides/fun/FunPage";
 
 type Option = { value: string; label: string };
 const WHAT_OPTIONS: Option[] = [{ value: "all", label: "Everything" }, ...HOLIDAY_WHAT.map((w) => ({ value: w.slug, label: w.label }))];
@@ -184,8 +187,14 @@ export default function HolidayHub() {
   ];
 
   return (
-    <PublicHeaderPage title={W.hubTitle} backTo="/" wrapTitle bottomPaddingClassName="pb-12 md:pb-16" headerWrapperClassName={HUB_HEADER_COLUMN}>
-      <div className={`${HUB_COLUMN} space-y-section font-sans`} data-holiday-page="hub">
+    // Owner 2026-11-22 #13: the Hub is a page of the guides' menu, so it opens on the guides' one top (GuidesFrame ->
+    // GuidesTop: "Holiday gift guides" by the back arrow, the pill and the icons, its green banner) with the guides'
+    // menu beside it. No gift search in that row (owner 11-22: one magnifier, the Hub's own); no affiliate link here, so
+    // no disclosures.
+    <PublicHeaderPage title={W.hubTitle} backTo="/gift-guides" wrapTitle hideHeader bottomPaddingClassName="pb-12 md:pb-16">
+      <style>{GIFT_GUIDES_CSS}</style>
+      <GuidesFrame title={W.hubTitle} path="/holidays" banner={G.pageBanners["/holidays"]} tools="no-search" disclosures={false}>
+      <div className="space-y-section font-sans" data-holiday-page="hub">
         <div className="space-y-4">
           <p className="max-w-[68ch] text-ds-17 text-foreground">{W.hubIntro}</p>
           {/* Polish audit 1122 #28: the way back to the guides near the top (it sat under ~30,000px of cards on a phone),
@@ -296,6 +305,7 @@ export default function HolidayHub() {
           <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard inline-flex min-h-11 items-center">{SBS_WORDS.landingLink}</Link>
         </p>
       </div>
+      </GuidesFrame>
     </PublicHeaderPage>
   );
 }

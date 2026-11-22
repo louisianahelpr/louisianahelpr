@@ -46,14 +46,16 @@ const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", 
 const SWITCHED_PINS = ["p-108732256", "p-108732809", "p-107903671", "p-109006074", "p-108985937", "p-109002459", "p-109002206"];
 // Launch day 11-22 (Desktop note Owner-adds-1122.md): the picks she sent as ShopMy links. Her CS-Pro pin at The Swank
 // Company (p-109140912) is on Camp Snap direct instead (her pin p-107929179; owner 11-22 chose the sale price + her code).
-const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-109143437", "p-109143698", "p-109144140", "p-109144450", "p-109145379", "p-109145823"];
+const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-109143437", "p-109143698", "p-109144140", "p-109144450", "p-109145379", "p-109145823",
+  // Batch 2.
+  "p-109147879", "p-109152557", "p-109153848", "p-109153960", "p-109153910", "p-109153811", "p-109151082", "p-109154746"];
 const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 55 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(55);
-    expect(page.length).toBe(55);
+  it("the page holds exactly her 63 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(63);
+    expect(page.length).toBe(63);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
   });
 
@@ -86,7 +88,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(27);
-    expect(shopmy.length).toBe(28);
+    expect(shopmy.length).toBe(36);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

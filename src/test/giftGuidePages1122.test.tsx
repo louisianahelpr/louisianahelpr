@@ -7,6 +7,8 @@
  *     gingham banner holding the page's h1 (a small italic lead, the serif title) in the guides' red / green / beige,
  *     then the menu and the page. It replaces the morning's plain left serif sub-page title. Routes are read from App.tsx,
  *     so a new guides route without the banner fails here.
+ *     Owner 11-22 ("Same row, icons off there"): the printables' head row is the pill alone (no search, heart or Share,
+ *     her 11-21 call), and the Holiday Hub's has no gift search (one magnifier: the Hub's own lights search).
  * #17 ("remove"): the Gift planner's grey "Tip: tap Bought when you get a gift, and we'll add up what you've spent."
  *     box with its × is gone, with its copy (the planner's lead already says what Bought does).
  *
@@ -14,8 +16,11 @@
  * @mutate src/pages/info/giftGuides/GuidesTop.tsx |       {banner && <GiftGuidesWords | {false && <GiftGuidesWords
  * @mutate src/pages/info/GiftGuides.tsx |     : myList ? G.pageBanners.myList | : myList ? null
  * @mutate src/pages/info/GiftGuides.tsx |     : sidePage === "finder" ? G.pageBanners.finder | : sidePage === "finder" ? null
- * @mutate src/pages/info/holidays/HolidayHub.tsx | <GuidesFrame title={W.hubTitle} path="/holidays" banner={G.pageBanners["/holidays"]} disclosures={false}> | <GuidesFrame title={W.hubTitle} path="/holidays" banner={{ lead: "", title: W.hubTitle, tint: "red" }} disclosures={false}>
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | path="/holidays" banner={G.pageBanners["/holidays"]} | path="/holidays" banner={{ lead: "", title: W.hubTitle, tint: "red" }}
  * @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {pillInRow && pill}\n | \n
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <FunBody title={words.title} path={path} tools="none"> | <FunBody title={words.title} path={path}>
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | banner={G.pageBanners["/holidays"]} tools="no-search" | banner={G.pageBanners["/holidays"]}
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {search && ( |       {true && (
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
@@ -133,7 +138,14 @@ describe("#13 every guides page opens on the guides' one top: head row, then the
     const top = [row, container.querySelector("[data-gift-countrow]")].filter(Boolean) as Element[];
     expect(shippingLine(new Date())).not.toBeNull();
     expect(top.some((el) => el.querySelector("[data-gift-ship]"))).toBe(true);
-    expect(top.some((el) => el.querySelector("[data-gift-my-list-link]"))).toBe(true);
+    // The icons (owner 11-22, "Same row, icons off there"): none on the printables, no gift search on the Hub.
+    const printables = url.startsWith("/gift-guides/printables");
+    const hub = url === "/holidays";
+    expect(top.some((el) => el.querySelector("[data-gift-quick]")), url).toBe(!printables);
+    expect(top.some((el) => el.querySelector("[data-gift-my-list-link]")), url).toBe(!printables);
+    expect(top.some((el) => el.querySelector("[data-gift-share]")), url).toBe(!printables);
+    expect(top.some((el) => el.querySelector("[data-gift-search-button]")), url).toBe(!printables && !hub);
+    if (hub) expect(container.querySelectorAll("[data-gift-search-button], [data-holiday-search-button]").length).toBe(1);
     // One banner, after the head row and outside the menu + page grid, in one of the guides' three ginghams.
     const banners = container.querySelectorAll("[data-gift-banner]");
     expect(banners.length).toBe(1);

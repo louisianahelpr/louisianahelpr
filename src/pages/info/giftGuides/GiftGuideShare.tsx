@@ -265,7 +265,8 @@ function MyListIcon({ current }: { current: boolean }) {
  * The one slim row under every title (owner redesign 11-18 PM): a search field over every guide, My list (with its
  * count) and Share. Nothing else: no pill buttons, no Codes (a page section now).
  */
-export function GiftGuideTools({ path, title, image, many = false, myList = false, sort, filter }: { path: string; title: string; image?: string; many?: boolean; myList?: boolean; sort?: { order: SortOrder; onChange: (o: SortOrder) => void }; filter?: ToolsFilter }) {
+/** `search` off (the Holiday Hub, owner 11-22: "icons off there"): no gift search in the row, where the page has its own. */
+export function GiftGuideTools({ path, title, image, many = false, myList = false, sort, filter, search = true }: { path: string; title: string; image?: string; many?: boolean; myList?: boolean; sort?: { order: SortOrder; onChange: (o: SortOrder) => void }; filter?: ToolsFilter; search?: boolean }) {
   const [query, setQuery] = useState("");
   // Owner 2026-11-21 ("make search an icon always"): at every width the search is a magnifier icon like the heart and
   // Share; tapping it opens the field (focused); Escape or its close button shuts it again, and it stays open while a
@@ -312,6 +313,7 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
   const foundItems = query.trim() && items ? searchItems(items, query) : [];
   return (
     <div className="gg-tools" role="group" aria-label={G.quickLabel} data-gift-quick="">
+      {search && (
       <div ref={searchBox} className={open ? "gg-tools-search is-open" : "gg-tools-search"} data-gift-search-box={open ? "open" : "closed"}>
         {open ? (
           <label id="gift-search" className="gg-search rounded-full focus-within:ring-2 focus-within:ring-ring">
@@ -377,6 +379,7 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
           </ul>
         )}
       </div>
+      )}
       {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />}
       {filter && <GiftGuideFilter filter={filter} />}
       <MyListIcon current={myList} />

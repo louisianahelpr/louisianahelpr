@@ -112,7 +112,8 @@ function PrintablesPage({ page, path }: { page: PrintablePageKey; path: (typeof 
 
   return (
     <PublicHeaderPage {...funHeader(words.title)}>
-      <FunBody title={words.title} path={path}>
+      {/* Owner 11-22 ("Same row, icons off there"): the guides' top with the pill, no search, heart or Share. */}
+      <FunBody title={words.title} path={path} tools="none">
         <style>{PAGE_CSS}</style>
         {/* Owner 2026-11-21 ("remove the ... holiday banner words — just polish this"): no lead line; the title says what
             the page is, and each card carries its own short how-to. */}

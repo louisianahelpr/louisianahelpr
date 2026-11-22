@@ -19,6 +19,10 @@
  * #12/#20/#30: the deals days use one card design: a Top deal's brand name is its link (no Shop line) and its code is the
  *      same one-piece copy chip as the code cards; a code a Top deal shows gets no second code card (XT25); no arrow
  *      icon on code and sale cards; "+N more" is 44px; no jump-chip row above the sections.
+ * #17: a Holiday Hub card's kind is its own one-line tag under the name (not inside the h3), and the place has its own
+ *      line above Website / calendar / More details (measured: 0 of 40 places cut, were 18; 0 tags wrapped, were 12).
+ * #28: /holidays and /shop-small hide Home in the top nav; the Hub's link to the guides sits under its intro.
+ * #29: a Hub search with no match says 'No lights or events match "..."' with Clear search; the hint fits the field.
  * #19: on a phone the hub shows one line above the greeting, and a guide's banner starts 16px under the chip row.
  *
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:36px} | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:44px}
@@ -36,6 +40,8 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           <CodeChip code={code} /> |           <code>{code}</code>
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-card-more{min-height:44px; | .gg-card-more{min-height:32px;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0; | .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:auto;
+ * @mutate src/pages/info/holidays/holidayParts.tsx |       <h3 className="text-ds-16 font-semibold leading-snug text-foreground">{item.name}</h3> |       <h3 className="text-ds-16 font-semibold leading-snug text-foreground">{item.name}{tag}</h3>
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |           query.trim() && active.length === 0 ? ( |           false ? (
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow .gg-ship-order{display:none} | .gg-countrow .gg-ship-order{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav:has(+.gg-divider){border-bottom-color:transparent} | .gg-pnav:has(+.gg-divider){}
  */
@@ -48,6 +54,8 @@ import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { GuidesFrame } from "@/pages/info/giftGuides/fun/FunPage";
 import { FUN_WORDS } from "@/content/giftGuideFun1120";
 import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
+import { HolidayCard } from "@/pages/info/holidays/holidayParts";
+import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import { dealDay } from "@/content/giftGuideDeals.mjs";
 import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
@@ -202,5 +210,28 @@ describe("polish audit 1122 #20: Top 10 prices line up", () => {
   it("the price sits right under a two-line name box, never pushed down past a code chip", () => {
     expect(GIFT_GUIDES_CSS).toContain(".gg-top10 .gg-nm-name{min-height:2lh}");
     expect(GIFT_GUIDES_CSS).toMatch(/\.gg-top10 \.gg-nm \.gg-nm-meta\{justify-content:flex-start;margin-top:0;/);
+  });
+});
+
+describe("polish audit 1122 #17/#28/#29: the Holiday Hub", () => {
+  it("#17: the kind is a one-line tag under the name; the place sits on its own line above the actions", () => {
+    const item = HOLIDAY_EVENTS.find((e) => e.address)!;
+    expect(item).toBeDefined();
+    const c = render(<MemoryRouter><ul><HolidayCard item={item} kind="event" tag="Christmas lights · Walk-through" /></ul></MemoryRouter>).container;
+    const h3 = c.querySelector("h3")!;
+    expect(h3.textContent).toBe(item.name);
+    const tag = c.querySelector("[data-holiday-tag]")!;
+    expect(tag.tagName).toBe("P");
+    expect(tag.className).toContain("whitespace-nowrap");
+    const maps = c.querySelector("[data-holiday-maps]")!;
+    expect(maps.closest("[data-holiday-actions]")).toBeNull();
+    expect(maps.querySelector(".truncate")).toBeNull();
+  });
+  it("#28/#29: Home hidden on /holidays and /shop-small; a no-match search says so and clears the search", () => {
+    expect(src("src/components/Navbar.tsx")).toContain('const NAV_HOME_HIDDEN_ON = ["/browse", "/jobs", "/declutter", "/gift-guides", "/holidays", "/shop-small"] as const;');
+    const hub = src("src/pages/info/holidays/HolidayHub.tsx");
+    expect(hub).toContain('<HolidayNothing onClear={() => setQuery("")} clearLabel="Clear search">');
+    expect(hub).toContain("{`No lights or events match \"${query.trim()}\".`}");
+    expect(hub.indexOf("data-holiday-guides-link")).toBeLessThan(hub.indexOf("data-holiday-filters"));
   });
 });

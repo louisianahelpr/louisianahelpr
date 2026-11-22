@@ -497,7 +497,9 @@ describe("Holiday Hub routing, on every layer", () => {
     expect(read("src/hooks/useAppShellViewport.ts")).toMatch(/^\s*"\/holidays",/m);
     expect(read("src/components/Footer.tsx")).toContain('<Link to="/holidays" className={FOOTER_LINK}>');
     expect(read("src/pages/info/giftGuides/GiftGuidesSidebar.tsx")).toContain('<Link to="/holidays" data-gift-side-holiday-hub="">');
-    expect(read("src/components/Navbar.tsx")).not.toContain("/holidays");
+    // No top-nav link to it (polish audit 1122 #28 lists "/holidays" only in NAV_HOME_HIDDEN_ON, the pages that hide Home).
+    expect(read("src/components/Navbar.tsx")).not.toMatch(/(?:to|href)=\{?["'`]\/holidays/);
+    expect(read("src/components/Navbar.tsx")).toMatch(/NAV_HOME_HIDDEN_ON = \[[^\]]*"\/holidays"/);
   });
 
   it("the lists' data loads only in /holidays's own chunk (the hire page, the redirect and the parts import none)", () => {

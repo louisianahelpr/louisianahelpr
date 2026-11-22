@@ -308,6 +308,8 @@ export const giftGuides = {
   alsoSponsoringTitle: "Also sponsoring",
   /** A pick's checked price beside Shop (owner 11-18), rounded to the dollar: "~$24". Amazon too since owner 11-21. */
   priceApprox: (dollars: number) => `~$${dollars}`,
+  /** A ticket, gift card or membership's lowest listed amount (holiday audit 1121 #63). */
+  priceFrom: (dollars: number) => `from $${dollars}`,
   /** One note per page under a list that shows prices: the oldest check date, "Nov 18". */
   pricesAsOf: (day: string) => `Prices as of ${day}, may change`,
   /** The landing's photo-card strip of the picks the most guides list, after the first guide rows (owner 11-18 PM). */

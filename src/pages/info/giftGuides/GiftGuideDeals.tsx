@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { discountCodes, giftGuides as G } from "@/content/giftGuides";
-import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealEnds, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
+import { DEALS_COVER, DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealEnds, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
 import { DEAL_CODES } from "@/content/giftGuidePicks";
 import { cleanCodes } from "@/lib/giftGuideOfferCopy.mjs";
 import { GiftOut } from "./GiftOut";
@@ -75,8 +75,6 @@ const DEALS_CSS = `
 .gg-deals-feature i{display:inline-flex;align-items:center;min-height:36px;margin-top:6px;padding:0 14px;border-radius:999px;background:hsl(var(--bark));color:#fff;font-style:normal;font-weight:700;font-size:13px}
 `;
 
-/** The guide's cover (public/gift-guides/deals/, drawn by scripts/gift-guide-deals-cover.py). */
-export const DEALS_COVER = "/gift-guides/deals/black-friday-cyber-monday.webp";
 
 /** The deals file, loaded alone (the read runs after it, outside Vite's preload wrapper: dynamicImportThenDoesNoWork). */
 // loadModule: a prevented preload (a recovery reload in flight) gives null, and the page keeps "Loading deals…".

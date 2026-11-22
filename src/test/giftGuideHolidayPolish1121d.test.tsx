@@ -37,6 +37,8 @@
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-btns button{max-width:100%;height:auto;min-height:44px;white-space:normal;text-align:center} | .pr-card-btns button{max-width:100%}
  * @mutate src/content/printables.ts |     guides: ["gift-wrap-and-cards"], |     guides: ["gift-wrap-and-cards", "her"],
  * @mutate src/content/printables.ts |       { label: "12x18 poster (free)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },\n |
+ * @mutate src/components/giftGuides/PickPrice.tsx | {pick.priceFrom ? G.priceFrom(shownDollars(pick.price)) : G.priceApprox(shownDollars(pick.price))} | {G.priceApprox(shownDollars(pick.price))}
+ * @mutate src/content/giftGuideCatalog.ts | ...(p.priceFrom ? { priceFrom: p.priceFrom } : {}) |
  * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |     window.dispatchEvent(new Event(OPEN_EVENT)); |     void OPEN_EVENT;
  */
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -62,6 +64,8 @@ import Printables from "@/pages/info/giftGuides/printables/Printables";
 import { GiftGuidesSidebar } from "@/pages/info/giftGuides/GiftGuidesSidebar";
 import { PRINTABLES, PRINTABLE_PAGES, printablesForGuide } from "@/content/printables";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import SPONSORS from "@/content/giftGuidePicks/25-days-sponsors.json";
+import { PickPrice } from "@/components/giftGuides/PickPrice";
 
 afterEach(cleanup);
 const ROOT = resolve(__dirname, "../..");
@@ -272,5 +276,32 @@ describe("owner 11-21: each printable kind is its own page; none on Her, Him or 
     expect(link.getAttribute("href")).toBe("https://photo.walgreens.com/store/posters");
     expect(link.target).toBe("_blank");
     expect(link.textContent).toMatch(/^Print at Walgreens/);
+  });
+});
+
+describe("holiday audit 1121 #66 / #63: the 25 Days sponsors page's photos and prices", () => {
+  type SP = { name: string; image?: string; price?: number; priceAt?: string; priceFrom?: true };
+  const picks = (SPONSORS as { picks: SP[] }).picks;
+  it("every photo is a local optimized file (no multi-MB hotlink), each under 60 KB", () => {
+    expect(picks.length).toBeGreaterThan(30);
+    for (const p of picks) {
+      expect(p.image, p.name).toMatch(/^https:\/\/www\.louisianahelpr\.com\/gift-guides\/sponsor-picks\/[a-z0-9-]+\.webp$/);
+      const file = resolve(ROOT, "public", new URL(p.image!).pathname.slice(1));
+      expect(existsSync(file), p.name).toBe(true);
+      expect(statSync(file).size, p.name).toBeLessThan(60_000);
+    }
+  });
+  it("every price is a captured one with its day; a ticket, gift card or membership reads 'from $N'", () => {
+    const priced = picks.filter((p) => typeof p.price === "number");
+    // Measured 2026-11-21: 33 of 39 priced (31 read from the brands' pages, K18 and SRI the sum of their two products);
+    // Le Petit, the AllWays tote, Dupuy's, Rock Bottom Golf and Timeless show none (no readable price, never guessed), and
+    // Felco none (its link is Amazon's: an Amazon price shows only on the owner's saved Her, Him and Kids picks).
+    expect(priced.length).toBeGreaterThanOrEqual(33);
+    for (const p of priced) expect(p.priceAt, p.name).toMatch(/^2026-\d{2}-\d{2}$/);
+    const from = picks.find((p) => p.priceFrom)!;
+    expect(from).toBeTruthy();
+    const pick = { name: from.name, href: "https://x.test/", store: "other", price: from.price, priceAt: from.priceAt, priceFrom: true } as never;
+    const { container } = render(<PickPrice pick={pick} />);
+    expect(container.textContent).toMatch(/^from \$\d+$/);
   });
 });

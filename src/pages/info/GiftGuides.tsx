@@ -27,8 +27,7 @@ import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { GiftGuidesPhoneNav } from "./giftGuides/GiftGuidesPhoneNav";
-import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
-import { DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
+import { DEALS_COVER, DEALS_SLUG, DEALS_WORDS, dealDay, oldDealsTarget, type DealEvent } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 
@@ -128,6 +127,39 @@ function LazySharedList({ code }: { code: string }) {
   if (!mod) return <p className="gg-soon" role="status">{WISH.loading}</p>;
   const { GiftGuideSharedList } = mod;
   return <GiftGuideSharedList code={code} />;
+}
+
+/**
+ * A deals day (/gift-guides/black-friday, /small-business-saturday, /cyber-monday) loads its own chunk (holiday
+ * audit 1121, deals subsections and photo cards): the code and sale cards, their store photos list, the sales feed and
+ * the sign-up card are on no guide page, and in this page's chunk they would put /gift-guides/<slug> over its
+ * critical-path budget. It says "Loading deals" until the chunk is in, and says so plainly if it fails.
+ */
+type DealsModule = { GiftGuideDeals: ComponentType<{ day: DealEvent }> };
+const loadDeals = () => loadModule(() => import("./giftGuides/GiftGuideDeals"));
+function LazyDeals({ day }: { day: DealEvent }) {
+  const [mod, setMod] = useState<DealsModule | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void loadDeals()
+      .then((m) => m ?? untilReload())
+      .then(
+        (m) => { if (live) setMod(m); },
+        (e) => {
+          // Not silent: reported, and the page says the deals could not load.
+          report(e as Error, { tags: { source: "GiftGuides.loadDeals" } });
+          if (live) setFailed(true);
+        },
+      );
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (failed) return <p className="gg-soon" role="alert" data-gift-deals-failed="">{G.dealsFailed}</p>;
+  if (!mod) return <p className="gg-soon" role="status">{DEALS_WORDS.loading}</p>;
+  const { GiftGuideDeals } = mod;
+  return <GiftGuideDeals day={day} />;
 }
 
 export default function GiftGuides() {
@@ -287,7 +319,7 @@ export default function GiftGuides() {
             disclosures at the very bottom. From 768px the CSS grid puts the menu on the left (GIFT_GUIDES_CSS). */}
         <div className="gg-layout">
           <div className="gg-main">
-            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />}
+            {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />}
           </div>
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
           <GiftGuidesSidebar active={guide} myList={myList || shared} page={sidePage} />

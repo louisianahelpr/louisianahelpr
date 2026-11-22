@@ -112,10 +112,17 @@ async function gatedPages(): Promise<{ slug: string; file: string; live: boolean
     const comps = [...new Set([...src.matchAll(new RegExp(`\\b${gateVar}\\s*\\?\\s*\\(?\\s*<(\\w+)`, "g"))].map((c) => c[1]))];
     return comps.filter((comp) => (src.match(new RegExp(`<${comp}\\b`, "g")) ?? []).length === (src.match(new RegExp(`\\b${gateVar}\\s*\\?\\s*\\(?\\s*<${comp}\\b`, "g")) ?? []).length);
   };
+  // A gate may render a page's own lazy wrapper (`function LazyDeals` whose effect runs `loadDeals()`, defined as
+  // `const loadDeals = () => loadModule(() => import("./giftGuides/GiftGuideDeals"))`): follow that import's target.
+  const lazyTarget = (comp: string) => {
+    const def = src.match(new RegExp(`function ${comp}\\b[\\s\\S]*?\\n\\}`))?.[0];
+    const loader = def?.match(/\b(load\w+)\(\)/)?.[1];
+    return loader ? src.match(new RegExp(`const ${loader} = \\(\\) => loadModule\\(\\(\\) => import\\(["']([^"']+)["']\\)\\)`))?.[1] : undefined;
+  };
   const fileOf = (comp: string) => {
-    const compImp = importOf(comp);
-    if (!compImp) throw new Error(`GiftGuides.tsx: no import for ${comp}`);
-    return resolveImport(pageFile, compImp[2])!;
+    const target = importOf(comp)?.[2] ?? lazyTarget(comp);
+    if (!target) throw new Error(`GiftGuides.tsx: no import for ${comp}`);
+    return resolveImport(pageFile, target)!;
   };
   const out: { slug: string; file: string; live: boolean }[] = [];
   // One page per slug constant: `const smallBiz = slug === SMALL_BIZ_SLUG && isLiveGuide(SMALL_BIZ_SLUG)`.

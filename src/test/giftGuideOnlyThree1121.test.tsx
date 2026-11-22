@@ -130,10 +130,12 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     for (const slug of RETIRED) expect(d.moved[slug], slug).toBe("");
   });
 
-  it("each deals day opens as its own page with its own banner title, its codes box collapsed, and the menu marks the deals (owner 11-21)", () => {
+  it("each deals day opens as its own page with its own banner title, its codes box collapsed, and the menu marks the deals (owner 11-21)", async () => {
     const titles: Record<string, string> = { "black-friday": "Black Friday Deals", "small-business-saturday": "Small Business Saturday", "cyber-monday": "Cyber Monday Deals" };
     for (const slug of DEAL_DAY_SLUGS) {
       const { container } = renderAt(`/gift-guides/${slug}`);
+      // A deals day loads its own chunk (lazy, off the guide pages' critical path): wait for it.
+      await waitFor(() => expect(container.querySelector("[data-gift-deal-day-page]"), slug).not.toBeNull());
       expect(container.querySelector("[data-test-where]")?.textContent, slug).toBe(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-gift-deal-day-page]")?.getAttribute("data-gift-deal-day-page"), slug).toBe(slug);
       // Holiday audit 1121: the h1 carries its lead ("the best", "shop small") for screen readers and search.

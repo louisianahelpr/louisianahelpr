@@ -82,6 +82,8 @@ export interface CatalogPick {
   /** A checked price (USD) and its check day (YYYY-MM-DD, Louisiana), from the import (owner 11-18). Never on Amazon. */
   price?: number;
   priceAt?: string;
+  /** The price is the lowest listed amount (a ticket, a gift card, a membership: holiday audit 1121 #63), shown "from $41". */
+  priceFrom?: true;
   /** A merged guide's section (1120): the old guide's slug, the section's anchor (/gift-guides/healthcare#rns). */
   sectionId?: string;
   /** The budget filter's band (1120): the price is at most this ($25, $50, $100; 500 = over $100). Never shown; none on Amazon. */
@@ -266,7 +268,7 @@ const toPick = (p: ResearchedPick): CatalogPick => {
     // Amazon prices too (owner 2026-11-21 ~12:05 PM, "each item also needs a price"; warned that Amazon allows prices
     // only from its PA-API feed and that showing them risks the Associates account, she chose "Show Amazon prices
     // anyway"). Only her saved-list picks carry one: scripts/giftGuidePrice.mjs still writes no Amazon price elsewhere.
-    ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}), ...(p.rels ? { rels: p.rels } : {}),
+    ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt, ...(p.priceFrom ? { priceFrom: p.priceFrom } : {}) } : {}), ...(p.rels ? { rels: p.rels } : {}),
     ...(typeof p.priceRank === "number" ? { priceRank: p.priceRank } : {}) };
 };
 /** The landing's "Top 10 most-loved" row (owner 2026-11-18): the picks the most guides list, photos first (generated). */

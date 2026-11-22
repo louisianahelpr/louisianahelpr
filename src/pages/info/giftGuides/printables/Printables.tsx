@@ -35,7 +35,9 @@ function DownloadCard({ p }: { p: DownloadProduct }) {
     }
   };
   return (
-    <li id={p.id} className={`pr-card${p.previews && p.previews.length > 1 ? " pr-card-two" : ""}`} data-printable-card={p.id}>
+    // A banner's wide preview sits full width above its words (owner 2026-11-21: "just polish this"); a 96px thumbnail of
+    // a 2:1 banner was too small to see.
+    <li id={p.id} className={`pr-card${p.previews && p.previews.length > 1 ? " pr-card-two" : ""}${p.section === "banners" ? " pr-card-wide" : ""}`} data-printable-card={p.id}>
       {p.previews && p.previews.length > 1 ? (
         <span className="pr-card-pair" data-printable-previews="">
           {p.previews.map((src) => <img key={src} loading="lazy" decoding="async" src={src} alt="" className="pr-card-img" width={160} height={207} />)}
@@ -66,11 +68,11 @@ function DownloadCard({ p }: { p: DownloadProduct }) {
   );
 }
 
-/** Each page's title (its h1 and its menu entry's page) and lead. */
-const PAGE_WORDS: Record<PrintablePageKey, { title: string; lead: string }> = {
-  tags: { title: W.tagsTitle, lead: W.tagsLead },
-  coloring: { title: W.coloringTitle, lead: W.coloringLead },
-  banners: { title: W.bannersTitle, lead: W.bannersLead },
+/** Each page's title (its h1). */
+const PAGE_WORDS: Record<PrintablePageKey, { title: string }> = {
+  tags: { title: W.tagsTitle },
+  coloring: { title: W.coloringTitle },
+  banners: { title: W.bannersTitle },
 };
 
 export default function Printables() {
@@ -98,9 +100,10 @@ function PrintablesPage({ page, path }: { page: PrintablePageKey; path: (typeof 
 
   return (
     <PublicHeaderPage {...funHeader(words.title)}>
-      <FunBody title={words.title} path={path}>
+      <FunBody title={words.title} path={path} tools={false}>
         <style>{PAGE_CSS}</style>
-        <p className="gg-fun-lead" data-printables-lead="">{words.lead}</p>
+        {/* Owner 2026-11-21 ("remove the ... holiday banner words — just polish this"): no lead line; the title says what
+            the page is, and each card carries its own short how-to. */}
         {/* Holiday audit 1121 area 5 #6: the picker shows only when there is a choice (one live maker drew a one-option
             card that did nothing, between two headings of the same words). */}
         {makers.length > 1 && (
@@ -158,6 +161,7 @@ const PAGE_CSS = `
 /* Two covers: they sit above the words, so the two book buttons get the card's full width (at 375 and in the two-across grid). */
 .pr-card-two{flex-direction:column}.pr-card-two .pr-card-pair .pr-card-img{width:96px}
 .pr-card-body{min-width:0;flex:1}
+.pr-card-wide{flex-direction:column;max-width:420px}.pr-card-wide .pr-card-img{width:100%;max-width:100%}
 .pr-card-body .pr-card-title{font-size:16px;font-weight:700;margin:0 0 4px;color:var(--gg-ink)}
 .pr-card-body p{font-size:13px;color:var(--gg-muted);margin:0 0 8px}
 .pr-card-btns{display:flex;flex-wrap:wrap;gap:8px}

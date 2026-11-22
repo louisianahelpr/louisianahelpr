@@ -24,13 +24,13 @@ export const funHeader = (title: string) => ({ title, backTo: "/gift-guides", bo
  * The three public pages take their head from PUBLIC_PAGE_META (the same words api/share.ts writes before JS); a
  * private page (a Secret Santa reveal) is noindex.
  */
-export function FunBody({ title, path, noindex, children }: { title: string; path: FunPath; noindex?: boolean; children: ReactNode }) {
+export function FunBody({ title, path, noindex, tools = true, children }: { title: string; path: FunPath; noindex?: boolean; tools?: boolean; children: ReactNode }) {
   const meta = PUBLIC_PAGE_META[path];
   usePageMeta(noindex ? { title: `${title} — Helpr`, description: meta.description, robots: "noindex", noCanonical: true } : meta);
   return (
     <>
       <style>{GIFT_GUIDES_CSS}{GIFT_WISH_CSS}{FUN_CSS}</style>
-      <GuidesFrame title={title} path={path}>
+      <GuidesFrame title={title} path={path} tools={tools}>
         <div className="gg-fun w-full" data-gift-fun={path}>{children}</div>
       </GuidesFrame>
     </>
@@ -43,7 +43,9 @@ export function FunBody({ title, path, noindex, children }: { title: string; pat
  * audit 1121 #13: the fun pages had no head row or menu; #73: /shop-small's title sat apart from its column). The
  * caller brings GIFT_GUIDES_CSS. `disclosures` off only on a page with no affiliate link.
  */
-export function GuidesFrame({ title, path, disclosures = true, children }: { title: string; path: string; disclosures?: boolean; children: ReactNode }) {
+/** `tools` off (the printables, owner 2026-11-21: "remove the search, favorite ... just polish this"): no search, heart
+ * or share in the head row, where there is nothing to search or save. */
+export function GuidesFrame({ title, path, disclosures = true, tools = true, children }: { title: string; path: string; disclosures?: boolean; tools?: boolean; children: ReactNode }) {
   return (
     <div className="gg w-full" data-gift-fun-frame="">
       <div className="gg-headrow gg-headrow-noship" data-gift-headrow="">
@@ -51,7 +53,7 @@ export function GuidesFrame({ title, path, disclosures = true, children }: { tit
           <BackButton to="/gift-guides" />
           <h1 className="text-page-title leading-tight" data-gift-head-name="">{title}</h1>
         </div>
-        <GiftGuideTools path={path} title={title} />
+        {tools && <GiftGuideTools path={path} title={title} />}
       </div>
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">

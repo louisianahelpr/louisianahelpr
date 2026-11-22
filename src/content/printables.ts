@@ -517,11 +517,8 @@ export const PRINTABLES_WORDS = {
   sectionTags: "Gift tags",
   // Each kind's own page (owner 2026-11-21: "coloring book and banner should have their own page").
   tagsTitle: "Free gift tags",
-  tagsLead: "Pick a tag, type the To and From names, see them on the design, and print a sheet at home. Free, no sign-up, nothing saved.",
   coloringTitle: "Free coloring books",
-  coloringLead: "Two Christmas coloring books, a cover and 20 simple pages each, ready to print at home. Free, no sign-up.",
   bannersTitle: "Free banners",
-  bannersLead: "Holiday banners to print as a poster at Walgreens or any photo counter. Free, no sign-up.",
   sectionColoring: "Coloring books",
   sectionBanners: "Banners",
   design: "Design",

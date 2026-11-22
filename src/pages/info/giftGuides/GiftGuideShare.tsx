@@ -245,21 +245,21 @@ function GiftGuideShare({ path, title, image, many = false }: { path: string; ti
 const menuItems = (menu: HTMLElement | null): HTMLElement[] => (menu ? [...menu.querySelectorAll<HTMLElement>("[role=menuitem]")] : []);
 
 /**
- * My Wish List as an icon with its count (a link to /gift-guides/my-list). `head`: the phone head row's heart (owner
- * 2026-11-22: the three-line menu and the heart on the right of "Gift guides"), named "Wish list" (GuidesHeadRow).
+ * My Wish List as an icon with its count (a link to /gift-guides/my-list), in the toolbar beside search and sort (owner
+ * 2026-11-22: "I think by the search and icons filter"; the phone head row has no heart).
  */
-export function MyListIcon({ current, head = false }: { current: boolean; head?: boolean }) {
+function MyListIcon({ current }: { current: boolean }) {
   const list = useGiftList();
   const n = list.guides.length + list.picks.length;
   return (
     // Owner 11-21: on a guide page the heart opens My lists (every person's list and My Wish List, each to manage);
     // with no sheet on the page it stays a link to My Wish List.
-    <Link to={`/gift-guides/${MY_LIST_SLUG}`} className="gg-icon gg-mylist-icon" aria-label={head ? G.phoneHeartLabel(n) : WISH.countLabel(n)}
+    <Link to={`/gift-guides/${MY_LIST_SLUG}`} className="gg-icon gg-mylist-icon" aria-label={WISH.countLabel(n)}
       onClick={(e) => { if (!current && openMyLists(null)) e.preventDefault(); }}
-      {...(current ? { "aria-current": "page" as const } : {})} {...(head ? { "data-gift-head-heart": "" } : { "data-gift-my-list-link": "" })}>
+      {...(current ? { "aria-current": "page" as const } : {})} data-gift-my-list-link="">
       <Icon d={HEART} fill={n > 0 ? "currentColor" : "none"} />
       {/* No count badge on an empty list (pre-launch audit 11-18 PM: a red "0"). */}
-      {n > 0 && <span className="gg-icon-count" aria-hidden="true" data-gift-my-list-count={head ? "head" : ""}>{n}</span>}
+      {n > 0 && <span className="gg-icon-count" aria-hidden="true" data-gift-my-list-count="">{n}</span>}
     </Link>
   );
 }

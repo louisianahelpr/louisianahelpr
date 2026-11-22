@@ -38,7 +38,7 @@ const horizon = new Date(`${first}T12:00:00Z`);
 horizon.setUTCDate(horizon.getUTCDate() + 40);
 const days = daysFrom(first, horizon.toISOString().slice(0, 10));
 
-const localFile = (src: string) => join(ROOT, "public", src.replace(/^https:\/\/www\.louisianahelpr\.com/, ""));
+const localFile = (src: string) => join(ROOT, "public", src.replace(/^https:\/\/www\.louisianahelpr\.com\//, "/"));
 
 describe("deals-day cards all have a picture (owner 11-22 #10)", () => {
   it("every Discount codes and Sales card's store has a photo, and the file is there", () => {

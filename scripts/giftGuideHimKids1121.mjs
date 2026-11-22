@@ -221,6 +221,7 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B0DTDJH158", 18.99, "41rbkZT4EKL", "Sidomma Fishing Tool Set", "Sidomma", "fishing", 3, "Pliers and tools for the tackle box."],
   ["B0FHMYC386", 19.6, "41yqlHKjRBL", "HUK Short Sleeve Performance Fishing Tee", "HUK", "shirt", 4, "A light, quick-dry tee for the boat."],
   ["B0FR98X1DZ", 12.99, "41-9VVRQ5ML", "Lucky Fishing Socks, Size 7-13", "", "socks", 4, "Fun fishing socks for his stocking."],
+  ["B0D9PX9RBD", 70, "81p65D0cdNL", "MVP PRO Houndstooth Cabretta Golf Gloves, Black (Men's 2-Pack)", "MVP", "accessory", 3, "A pair of leather golf gloves in a black houndstooth."],
   ["B0G72KN8BL", 9.49, "41AjgHzg2iL", "COOFANDY Men's V-Neck Tee", "COOFANDY", "shirt", 4, "A soft everyday V-neck tee."],
   ["B08BG8RQHG", 44.99, "41wLs6bwGyL", "Carhartt K288 Logo Sweatshirt", "Carhartt", "sweatshirt", 4, "The classic Carhartt logo sweatshirt."],
   ["B0FZN2ZCFL", 27.2, "51TtsH9AWzL", "Burlebo Go To Performance Tee", "Burlebo", "shirt", 4, "A light performance tee from Burlebo."],

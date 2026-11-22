@@ -1,5 +1,7 @@
 /**
- * Holiday audit 1121, gift lists area (Audit-Holiday-wishlist-planner-1121.json), Mediums #6, #7 and #9:
+ * Holiday audit 1121, gift lists area (Audit-Holiday-wishlist-planner-1121.json), Mediums #5 to #9:
+ *   #5: a saved deal (the deals carry no price) counted as a gift while every total quietly left it out. Totals now say
+ *       "+ 1 with no price", and a list row with a store link but no price says "Price at store".
  *   #6: the shared list told the viewer to "Tap Shop", but its gifts have no Shop button (the photo and name are the
  *       link, owner 11-21). The intro names a Shop control only when the page has one.
  *   #7: tapping "Me" in the Save for someone sheet showed the wish list note at the bottom edge, over the sheet's Done
@@ -7,7 +9,17 @@
  *   #9: the planner's x beside the budget box removed the whole person at once, with no Undo; a gift x too. Now the
  *       person's remove is a labelled link under their list, away from the budget, and both removals say
  *       "Removed <name>" with Undo, which puts them back where they were.
+ *   #8: the guides' My lists line counted what was ADDED against the budget ("$27 left") while the planner's bar under it
+ *       said "$40 left", counting only what was BOUGHT. Now "left"/"over" are the list line's on both screens, the line
+ *       adds "· $12 bought" once something is bought, and the planner's bar says "Bought $12" only.
  *
+ * @mutate src/pages/info/giftGuides/ManageList.tsx | t.amount > 0 ? dollars(t.amount) : null, t.unpriced) | t.amount > 0 ? dollars(t.amount) : null)
+ * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx | summary(total.gifts, total.amount, total.unpriced) | summary(total.gifts, total.amount, 0)
+ * @mutate src/pages/info/giftGuides/GiftGuideSharedList.tsx | amount > 0 ? dollars(amount) : null, unpriced) | amount > 0 ? dollars(amount) : null)
+ * @mutate src/pages/info/giftGuides/ManageList.tsx |                 : i.href && <span | : false && <span
+ * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |             : item.out === "affiliate" && <> | : false && <>
+ * @mutate src/pages/info/giftGuides/ManageList.tsx |       {t.bought > 0 && <> | {false && <>
+ * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |         <span>{W.plannerBoughtAmount(dollars(m.spent))}</span> | <span>{dollars(m.spent)} of {dollars(m.budget)} · {dollars(m.left)} left</span>
  * @mutate src/content/giftWishList.ts |   sharedIntro: "Tap a gift to see it at the store. | sharedIntro: "Tap Shop to buy any gift.
  * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |     heartTapped(r, true); |     heartTapped(r);
  * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |     successToast(WISH.removedGift(p.name), { action: { label: WISH.undo, onClick: () => A.restorePerson(p, index) } }); |     void index;
@@ -86,7 +98,76 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+const DEAL = "https://go.shopmy.us/p-107884964";
+/** Mom: a $12 mug and a saved deal (no price), budget $40. */
+function momWithADeal() {
+  setPlanViewer(null);
+  const mom = planActions.addPerson("Mom")!;
+  planActions.setBudget(mom, 40);
+  const mug = planActions.addIdea(mom, { name: "Mug", href: "https://www.etsy.com/listing/1", price: 12 })!;
+  planActions.addIdea(mom, { name: "BaubleBar Pisa Custom Bracelet", href: DEAL, guide: "deals" });
+  return { mom, mug };
+}
+
 describe("holiday audit 1121: gift lists Mediums", () => {
+  it("#5: a gift with no price is named in every total and its row says Price at store", async () => {
+    const { mom } = momWithADeal();
+    const view = render(
+      <MemoryRouter initialEntries={["/gift-guides/her"]}>
+        <Routes><Route path="/gift-guides/:slug" element={<GiftGuides />} /></Routes>
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(document.querySelector("[data-savefor-ready]")).not.toBeNull());
+    const pill = await waitFor(() => {
+      const b = document.querySelector<HTMLButtonElement>("[data-mylists-pill]");
+      expect(b).not.toBeNull();
+      return b!;
+    });
+    expect(pill.querySelector("[data-mylists-pill-total]")!.textContent).toBe("2 gifts · $12 + 1 with no price");
+    fireEvent.click(pill);
+    const panel = document.querySelector<HTMLElement>("[data-mylists-panel]")!;
+    expect(panel.querySelector(`[data-mylists-total="${mom}"]`)!.textContent).toBe("2 gifts · $12 + 1 with no price · $28 left");
+    const deal = stored().people[0].ideas[1];
+    expect(panel.querySelector(`[data-list-no-price="${deal.id}"]`)!.textContent).toBe("Price at store");
+    // A priced gift shows its price, never "Price at store".
+    expect(panel.querySelectorAll("[data-list-no-price]")).toHaveLength(1);
+    view.unmount();
+
+    // A shared list: the guide pick's price, plus the gift from another store, named.
+    const her = guideBySlug("her")!.picks;
+    const priced = her.find((x) => x.price !== undefined)!;
+    const read = vi.fn(async () => ({ name: "Gift lists", items: [], lists: [
+      { name: "Mom", items: [{ g: "her", i: itemId(priced.href) }], any: [{ id: "11111111-2222-4333-8444-555555555555", name: "Scarf", href: "https://ours.example.com/scarf?aff=lh" }] },
+      { name: "Dad", items: [{ g: "her", i: itemId(priced.href) }] },
+    ] }));
+    const shared = render(<MemoryRouter><GiftGuideSharedList code="dddddddddddd" read={read} /></MemoryRouter>);
+    const momList = await waitFor(() => {
+      const m = shared.container.querySelector<HTMLElement>('[data-gift-shared-person="Mom"]');
+      expect(m?.querySelectorAll("[data-gift-wish-item]")).toHaveLength(2);
+      return m!;
+    });
+    await waitFor(() => expect(momList.querySelector("[data-gift-shared-person-total]")!.textContent).toBe(`2 gifts · about $${Math.round(priced.price!)} + 1 with no price`));
+    expect(shared.container.querySelector('[data-gift-shared-person="Dad"] [data-gift-shared-person-total]')!.textContent).toBe(`1 gift · about $${Math.round(priced.price!)}`);
+    // The gift from another store says where its price is; the guide pick shows its own.
+    expect(momList.querySelectorAll("[data-gift-wish-no-price]")).toHaveLength(1);
+    expect(momList.querySelector("[data-gift-wish-no-price]")!.closest("[data-gift-wish-item]")!.textContent).toContain("Scarf");
+  });
+
+  it("#8: the list line and the planner's bar agree: left/over counts what was added, Bought says what was bought", async () => {
+    const { mom, mug } = momWithADeal();
+    const view = render(<MemoryRouter><GiftPlanner /></MemoryRouter>);
+    const c = view.container;
+    const line = () => c.querySelector(`[data-plan-list-line="${mom}"]`)!.textContent;
+    const bar = () => c.querySelector(`[data-plan-money="${mom}"]`)!.textContent;
+    await waitFor(() => expect(line()).toBe("2 gifts · $12 + 1 with no price · $28 left"));
+    // The bar's words never carry a second "left" or "over".
+    expect(bar()).toBe("Bought $0");
+    fireEvent.click(c.querySelector(`[data-plan-bought="${mug}"]`)!);
+    await waitFor(() => expect(line()).toBe("2 gifts · $12 + 1 with no price · $28 left · $12 bought"));
+    expect(bar()).toBe("Bought $12");
+    expect(bar()).not.toMatch(/left|over/);
+  });
+
   it("#6: the shared list's intro names a Shop control only when the page has one", async () => {
     const her = guideBySlug("her")!.picks;
     // Inventory floor: For Her holds 36 picks today.

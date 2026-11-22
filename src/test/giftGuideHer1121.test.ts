@@ -69,15 +69,15 @@ const SCREENS_1122_CJ = ["https://www.anrdoezrs.net/click-101930553-15735628?url
 // Owner 11-22 PR picks (builder-guide-her3b).
 const PR_PINS = ["p-107965795", "p-103880845", "p-104580620", "p-103889854", "p-103784739", "p-103878765", "p-103883109", "p-103877715"];
 // builder-guide-her4 block 2 (11-22): from her screenshots, Amazon with her tag.
-const HER4_1122_ASINS = ["B0H2FQ5FV1", "B0FXYGCYK6", "B0F5K3B4Q7", "B0CHMS3PVZ", "B0D7GQVNNN", "B0D1X4PNFD", "B0F7M3HPBD", "B0H3YXW87L", "B0H9L8Z1DY", "B0F79VTVFQ"];
+const HER4_1122_ASINS = ["B0H2FQ5FV1", "B0FXYGCYK6", "B0F5K3B4Q7", "B0CHMS3PVZ", "B0D7GQVNNN", "B0D1X4PNFD", "B0F7M3HPBD", "B0H3YXW87L", "B0H9L8Z1DY", "B0F79VTVFQ", "B0D92375JB", "B0G4M22BQL", "B0BGS3L9XS", "B0DXWP12C8", "B0HKYH5TF2", "B0H2CSG4SZ", "B0FXBBD5GS", "B0G3948RG8", "B0HKQYLRBB"];
 const SAVED = new Set([...[...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
 const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 132 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(132);
-    expect(page.length).toBe(132);
+  it("the page holds exactly her 141 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(141);
+    expect(page.length).toBe(141);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
@@ -113,7 +113,7 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(69);
+    expect(amazon.length).toBe(78);
     expect(shopmy.length).toBe(63);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {

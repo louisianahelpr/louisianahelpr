@@ -224,7 +224,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Braun IPL, the XTRATUF boot, the L.L.Bean sweater and barn coat and the HOKA Bondi 9 ($100 and up).
       // Train e (11-22): Her also gained the 5 popular adds and her3b's PR picks (Beekman, Glow Recipe, Eberjey, Beis,
       // Case-Mate, Naturium, Makeup by Mario, YTTP), and lost the Amazon Essentials flannel pajamas (owner: "Lake + Eberjey").
-      her: { "Under $25": 38, "$25 to $50": 40, "$50 to $75": 9, "$75 to $100": 9, "$100 and up": 36 },
+      her: { "Under $25": 43, "$25 to $50": 44, "$50 to $75": 9, "$75 to $100": 9, "$100 and up": 36 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

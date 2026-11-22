@@ -43,7 +43,6 @@ export function dealDay(slug: string | undefined): DealEvent | null;
 export function oldDealsTarget(hash: string): string;
 export function codesDay(event: Pick<DealEvent, "day">, today: string): string;
 export const DEALS_PER_BRAND: number;
-export const DEALS_COVER: string;
 export const DEALS_WORDS: {
   title: string;
   laterTitle: string;

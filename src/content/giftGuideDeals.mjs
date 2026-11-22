@@ -89,8 +89,6 @@ export function codesDay(event, today) {
 /** At most this many deals from one brand on the whole page (owner 11-20: about 2 of a brand at most). */
 export const DEALS_PER_BRAND = 2;
 
-/** The deals guide's cover (public/gift-guides/deals/, drawn by scripts/gift-guide-deals-cover.py). */
-export const DEALS_COVER = "/gift-guides/deals/black-friday-cyber-monday.webp";
 
 export const DEALS_WORDS = {
   title: "Black Friday & Cyber Monday Deals",

@@ -12,7 +12,8 @@
  * @mutate src/components/declutter/DeclutterTabHeads.tsx |         {why && <div id={whyId}><StrikeReasons userId={userId} /> |         {false && <div id={whyId}><StrikeReasons userId={userId} />
  * @mutate src/lib/declutter/strikeReasons.ts |   "fake_offer", "false_report", |   "fake_offer",
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

@@ -667,15 +667,15 @@ describe("photo-first selling, one screen", () => {
 
   // Audit posting 1030 #12, #13: a giveaway talked about selling and offered a price.
   // @mutate src/components/declutter/SellOneScreen.tsx | title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} | title={tr("sf.sellAnItem")}
-  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free}> | phoneHidesTitle hidesTitle={!form.free}>
+  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free} narrow> | phoneHidesTitle hidesTitle={!form.free} narrow>
   // @mutate src/components/declutter/SellSummaryCard.tsx | : field === "description" ? "text-foreground" : "font-semibold text-foreground"} | : "font-semibold text-foreground"}
   // @mutate src/components/declutter/SellSummaryCard.tsx | instead={form.free ? { label: t("sell.chargeForIt"), onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined} | instead={undefined}
   // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && ai.state.status !== "done" && !s.keptWork.restored && <SellItForMeEntry />} | {<SellItForMeEntry />}
   // Design audit r2 #12: a phone showed only back + help over "Show it off"; the app bar names the page.
   // Train 11-18: on the one screen area 06b L12 (below) supersedes r2 #12 (the step head is the one painted heading); a
   // giveaway still paints its title (F341).
-  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free}> | phoneHidesTitle hidesTitle>
-  // @mutate src/components/declutter/DeclutterSellView.tsx | <AppPage title={tr("sf.sellAnItem")} onBack={back}> | <AppPage title={tr("sf.sellAnItem")} onBack={back} phoneHidesTitle>
+  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free} narrow> | phoneHidesTitle hidesTitle narrow>
+  // @mutate src/components/declutter/DeclutterSellView.tsx | <AppPage title={tr("sf.sellAnItem")} onBack={back} narrow> | <AppPage title={tr("sf.sellAnItem")} onBack={back} phoneHidesTitle narrow>
   it("r2 #12: the saved draft's steps keep their \"Sell an item\" title on a phone (the one screen: L12 below)", async () => {
     const first = open();
     const title = await screen.findByRole("heading", { name: "Sell an item", level: 1 });
@@ -705,7 +705,7 @@ describe("photo-first selling, one screen", () => {
 
   // Area 06b L12 (design audit 11-18): selling one item paints one heading at every width, the step's "Show it off";
   // "Sell an item" stays the page's h1 for screen readers only.
-  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free}> | phoneHidesTitle={!form.free}>
+  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free} hidesTitle={!form.free} narrow> | phoneHidesTitle={!form.free} narrow>
   it("L12: Sell an item is not painted over Show it off at any width", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });

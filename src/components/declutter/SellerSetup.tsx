@@ -77,10 +77,10 @@ function SetupScreen({ userId, needs, savedWindows }: { userId: string; needs: S
   });
 
   return (
-    <AppPage title="Set up selling" backTo="/declutter?tab=selling">
-      {/* Q2582 (audit 1102a): centred (mx-auto), the 576px column started at x 556 at 1440 under a title at x 320; it
-          starts under the title now. */}
-      <div className="w-full max-w-xl space-y-6" data-seller-setup="">
+    <AppPage title="Set up selling" backTo="/declutter?tab=selling" narrow>
+      {/* Q2582 (audit 1102a): the 576px column starts under the title. Deep audit 11-22 #47: both are one centered
+          column (AppPage `narrow`), so it starts under the title AND leaves no empty band on one side. */}
+      <div className="space-y-6" data-seller-setup="">
         <p className="text-ds-15 text-foreground">
           Buyers need to know where and when they can get your things. Set this once and every listing uses it. You can change it any time in Settings.
         </p>

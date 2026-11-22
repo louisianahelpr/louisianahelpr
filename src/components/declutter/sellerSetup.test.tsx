@@ -40,7 +40,8 @@ vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
-vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title: string; children: React.ReactNode }) => (<main><h1>{title}</h1>{children}</main>) }));
+// #47: the stand-in keeps AppPage's `narrow` column marker (the real one is src/test/appPageNarrowColumn.test.tsx).
+vi.mock("@/components/AppPage", () => ({ default: ({ title, children, narrow }: { title: string; children: React.ReactNode; narrow?: boolean }) => (<main data-app-page-narrow={narrow ? "" : undefined}><h1>{title}</h1>{children}</main>) }));
 vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: async () => state.lookup }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => state.here }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
@@ -101,9 +102,13 @@ describe("one-time setup before posting", () => {
     open();
     await screen.findByRole("heading", { name: "Set up selling" });
     expect(screen.getByText(/Buyers need to know where and when/)).toBeTruthy();
-    // Q2582 (audit 1102a): the column starts under the page title (not centred).
-    // @mutate src/components/declutter/SellerSetup.tsx | <div className="w-full max-w-xl space-y-6" data-seller-setup=""> | <div className="mx-auto w-full max-w-xl space-y-6" data-seller-setup="">
-    expect(document.querySelector("[data-seller-setup]")!.className.split(/\s+/)).not.toContain("mx-auto");
+    // Q2582 (audit 1102a): the column starts under the page title. Deep audit 11-22 #47: title and column are one centered
+    // column (AppPage narrow), not a column of its own centred away from a left-hand title.
+    // @mutate src/components/declutter/SellerSetup.tsx | backTo="/declutter?tab=selling" narrow> | backTo="/declutter?tab=selling">
+    // @mutate src/components/declutter/SellerSetup.tsx | <div className="space-y-6" data-seller-setup=""> | <div className="mx-auto w-full max-w-xl space-y-6" data-seller-setup="">
+    const setupCol = document.querySelector("[data-seller-setup]") as HTMLElement;
+    expect(setupCol.className.split(/\s+/)).not.toContain("mx-auto");
+    expect(setupCol.closest("[data-app-page-narrow]")?.contains(screen.getByRole("heading", { name: "Set up selling" }))).toBe(true);
     // F124 (UI audit 11-09, owner): no ways, price drops, lowest price, keep it up, offers, trades or make it free here;
     // one line says what was set for them and links to Declutter settings.
     expect(document.querySelector("[data-way-tiles]")).toBeNull();

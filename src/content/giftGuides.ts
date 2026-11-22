@@ -90,7 +90,7 @@ export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du M
 // Owner's standard plan (11-20 evening) + holiday audit B (a name-only sponsor is never carded): Shop Small Louisiana cards
 // the 10 sponsors with a shop photo, so the 14 hosts no card links any more left this list (hotworx, Mary Kay, Facebook,
 // Instagram and the sponsors' own sites); a sponsor carded again adds its host back.
-export const SPONSOR_SITES = ["thestrandtheatre.com", "basicbee.co", "www.zydecochopchop.com", "www.faulkcalls.com", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.lepetittheatre.com", "www.theallwayslounge.net", "citysightseeingneworleans.com"] as const;
+export const SPONSOR_SITES = ["thestrandtheatre.com", "basicbee.co", "www.zydecochopchop.com", "www.faulkcalls.com", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.lepetittheatre.com", "www.theallwayslounge.net", "citysightseeingneworleans.com", "davidrabalaisfilm.com"] as const;
 /**
  * The national 25 Days sponsors' own shops (train 1120b, owner 11-20 ~8:35 AM: each gets one best-fit guide spot with
  * the sponsor badge, 0% allowed). Kept apart from SPONSOR_SITES, which are Louisiana businesses: a Louisiana host's

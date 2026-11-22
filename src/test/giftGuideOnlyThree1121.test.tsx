@@ -45,6 +45,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   if (finderAsked(search, hash)) return | if (false) return
  * @mutate src/content/giftGuides.ts |     { id: "cyber-monday", label: "Cyber Monday" }, |
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       <LiveGuides /><aside data-gift-holiday-hub="" />
+ * @mutate src/pages/info/GiftGuides.tsx |   if (otherDay) return <Navigate to={`/gift-guides/${otherDay.id}`} replace />; |
  * @mutate api/share.ts |     if (slug === DEALS_SLUG) return { kind: "moved", |     if (false) return { kind: "moved",
  */
 import { readFileSync } from "node:fs";
@@ -62,7 +63,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 
 import GiftGuides from "@/pages/info/GiftGuides";
 import { LIVE_GUIDES_1121 } from "@/content/giftGuideLive.mjs";
-import { GUIDES, ROWS, guidesIn, loadAllGuidePicks, newSlugFor, searchGuides } from "@/content/giftGuideCatalog";
+import { GUIDES, RETIRED_SLUGS, ROWS, guidesIn, loadAllGuidePicks, newSlugFor, searchGuides } from "@/content/giftGuideCatalog";
 import { RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { CHUNK_SLUGS, PICK_CHUNKS } from "@/content/giftGuidePicks";
@@ -101,12 +102,9 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     expect([...DEAL_DAY_SLUGS]).toEqual(["black-friday", "small-business-saturday", "cyber-monday"]);
     const own = GUIDES.filter((g) => !g.view).map((g) => g.slug).sort();
     expect(own).toEqual([...LIVE, SPONSORS].sort());
-    const views = GUIDES.filter((g) => g.view);
-    expect(views.length).toBeGreaterThan(5); // Mom, Wife, Dad, Husband ... measured 2026-11-21 (10)
-    for (const v of views) {
-      expect(RELATION_PAGES[v.slug], v.slug).toBeTruthy();
-      expect(["her", "him"], v.slug).toContain(v.view!.of);
-    }
+    // Polish audit 11-22 #1: the relationship pages (Mom, Wife, Dad, Husband ... 10) are no pages now, each is a redirect.
+    expect(GUIDES.filter((g) => g.view)).toEqual([]);
+    expect(Object.keys(RELATION_PAGES).length).toBeGreaterThan(5);
   });
 
   it("the menu groups and rows hold only the live guides", () => {
@@ -116,7 +114,13 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
 
   it("a retired guide's old link opens the landing page, in the page and as a 301 from the pre-JS page", async () => {
     for (const slug of RETIRED) expect(newSlugFor(slug), slug).toBeNull();
-    for (const slug of [...LIVE, SPONSORS, "mom", "dad"]) expect(newSlugFor(slug), slug).toBe(slug);
+    for (const slug of [...LIVE, SPONSORS]) expect(newSlugFor(slug), slug).toBe(slug);
+    // Polish audit 11-22 #1: every relationship page opens Her or Him (a permanent redirect), none is in the sitemap.
+    for (const [slug, { guide }] of Object.entries(RELATION_PAGES)) {
+      expect(["her", "him"], slug).toContain(guide);
+      expect(newSlugFor(slug), slug).toBe(guide);
+      expect(RETIRED_SLUGS(), slug).toContain(slug);
+    }
     for (const slug of ["teens", "store-amazon", "gifts-by-color"]) {
       const { container } = renderAt(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-test-where]")?.textContent, slug).toBe("/gift-guides");
@@ -128,6 +132,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     const d = await buildSeoData();
     expect(Object.keys(d.guides).sort()).toEqual(GUIDES.map((g) => g.slug).sort());
     for (const slug of RETIRED) expect(d.moved[slug], slug).toBe("");
+    // Polish audit 11-22 #1: the server answers a 301 from this map (api/share.ts), so each relationship page lands on Her or Him.
+    for (const [slug, { guide }] of Object.entries(RELATION_PAGES)) expect(d.moved[slug], slug).toBe(guide);
   });
 
   it("each deals day opens as its own page with its own banner title, its codes box collapsed, and the menu marks the deals (owner 11-21)", async () => {
@@ -164,6 +170,10 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       [`/gift-guides/${DEALS_SLUG}#black-friday`, "/gift-guides/black-friday"],
       [`/gift-guides/${DEALS_SLUG}#small-business-saturday`, "/gift-guides/small-business-saturday"],
       [`/gift-guides/${DEALS_SLUG}#cyber-monday`, "/gift-guides/cyber-monday"],
+      // Guides audit 1122 #27: the server's 301 lands on Black Friday with the old #day still on the address.
+      ["/gift-guides/black-friday#cyber-monday", "/gift-guides/cyber-monday"],
+      ["/gift-guides/black-friday#small-business-saturday", "/gift-guides/small-business-saturday"],
+      ["/gift-guides/black-friday#codes", "/gift-guides/black-friday"],
     ]) {
       const { container } = renderAt(from);
       expect(container.querySelector("[data-test-where]")?.textContent, from).toBe(to);
@@ -264,7 +274,7 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     await waitFor(() => expect(answers(container)).toEqual(["who:her", "who:him", "who:kids"]));
     cleanup();
     const him = answers(renderAt("/gift-guides?who=him#gift-finder").container);
-    expect(him).toEqual(["budget:under-25", "budget:25-50", "budget:50-100", "budget:100-plus"]);
+    expect(him).toEqual(["budget:under-25", "budget:25-50", "budget:50-75", "budget:75-100", "budget:100-plus"]);
     cleanup();
     const done = renderAt("/gift-guides?who=him&budget=25-50&into=any").container;
     expect(done.querySelectorAll("[data-gift-finder-results] li[data-gift-pick]").length).toBeGreaterThan(2);

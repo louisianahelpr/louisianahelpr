@@ -5,7 +5,7 @@ import { activeCodes, codesByStore, discountCodes, giftGuides as G, type Discoun
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
 import { storePhoto } from "@/content/giftGuideStorePhotos";
-import { DEALS_WORDS } from "@/content/giftGuideDeals.mjs";
+import { DEAL_EVENTS, DEALS_WORDS } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
 
 /**
@@ -30,6 +30,7 @@ export const CARD_WORDS = {
   copyCode: (code: string) => `Copy code ${code}`,
   copied: "Copied",
   moreSales: (n: number) => `+${n} more`,
+  moreCodes: (n: number) => `+${n} more ${n === 1 ? "code" : "codes"}`,
 };
 
 /** The sales still on `today` (YYYY-MM-DD): a sale shows through its end day, one line per link. */
@@ -45,17 +46,24 @@ export const codesOn = (day: string): DiscountCode[] => codesByStore(activeCodes
 /** The store sales on `day`, one entry per store (its sales soonest end first), the stores in first-sale order. */
 export const salesOn = (day: string) => {
   const stores = new Map<string, Sale[]>();
-  for (const x of liveSales(CLEAN_SALES, day)) stores.set(x.store, [...(stores.get(x.store) ?? []), x]);
+  // Guides audit 1122 #15: a line that names the OTHER deal day (Cyber Monday's "Black Friday Deals Are in") is left off;
+  // a line that names both days ("Black Friday/Cyber Monday") stays.
+  const here = DEAL_EVENTS.find((e) => e.kind === "deals" && e.day === day);
+  const other = here && DEAL_EVENTS.filter((e) => e.kind === "deals" && e !== here).map((e) => e.title);
+  const namesOther = (offer: string) => Boolean(here && other!.some((t) => offer.includes(t)) && !offer.includes(here.title));
+  for (const x of liveSales(CLEAN_SALES.filter((s) => !namesOther(s.offer)), day)) stores.set(x.store, [...(stores.get(x.store) ?? []), x]);
   return [...stores.entries()].map(([store, sales]) => ({ store, sales }));
 };
 
-/** The photo well: the store's cutout, or its name when we have no photo for it. */
+/** The photo: the store's cutout. A store with no photo shows none (guides polish 1122 #14: its name is already the card's
+ *  heading; a tinted name tile was a box with no photo in it). */
 function StorePhoto({ store, href }: { store: string; href: string }) {
   const src = storePhoto(store);
   const [ok, setOk] = useState(true);
+  if (!src || !ok) return null;
   return (
-    <GiftOut href={href} className="gg-deal-photo" data-gift-store-photo={src && ok ? "photo" : "name"}>
-      {src && ok ? <img loading="lazy" decoding="async" src={src} alt="" width={200} height={200} onError={() => setOk(false)} /> : <b aria-hidden="true">{store}</b>}
+    <GiftOut href={href} className="gg-deal-photo" data-gift-store-photo="photo">
+      <img loading="lazy" decoding="async" src={src} alt="" width={200} height={200} onError={() => setOk(false)} />
       <span className="sr-only">{CARD_WORDS.openSite(store)} ({G.newTab})</span>
     </GiftOut>
   );
@@ -112,22 +120,55 @@ export function CodeChip({ code }: { code: string }) {
   );
 }
 
-/** The codes that work on `day`, one card each. */
+/** The bigger the percent in a code's offer, the better it is; an offer with none ranks after one with a percent. */
+const codePercent = (c: DiscountCode) => Number(/(\d+)\s*%/.exec(c.offer)?.[1] ?? 0);
+
+/**
+ * One card per store (guides audit 1122 #13: Bonheur Jewelry showed three times with one photo). The store's best code
+ * leads the card; any others sit under a "+N more codes" button, each with its own offer, dates and copy chip.
+ */
+function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
+  const [all, setAll] = useState(false);
+  const best = codes.reduce((a, c) => (codePercent(c) > codePercent(a) ? c : a), codes[0]);
+  const others = codes.filter((c) => c !== best);
+  const href = best.href as string;
+  const line = (c: DiscountCode) => [c.offer, DEALS_WORDS.runs(c.starts, c.expires)].filter(Boolean).join(" · ");
+  return (
+    <Card store={store} href={href} line={
+      <>
+        {line(best)}
+        {all && (
+          <ul className="gg-card-sales" data-gift-code-more-list={store}>
+            {others.map((c) => (
+              <li key={c.code} data-gift-code-extra={c.code}>
+                <span>{line(c)}</span>
+                <CodeChip code={c.code} />
+              </li>
+            ))}
+          </ul>
+        )}
+        {!all && others.length > 0 && (
+          <InlineTextButton className="gg-card-more" onClick={() => setAll(true)} data-gift-code-more={store}>{CARD_WORDS.moreCodes(others.length)}</InlineTextButton>
+        )}
+      </>
+    } data={{ "data-gift-code": best.code, "data-gift-code-store": store }}>
+      <CodeChip code={best.code} />
+    </Card>
+  );
+}
+
+/** How many cards the codes make: one per store with a link. */
+export const codeCardCount = (codes: readonly DiscountCode[]) => new Set(codes.filter((c) => c.href).map((c) => c.store)).size;
+
+/** The codes that work on `day`, one card per store. */
 export function CodeCards({ codes }: { codes: DiscountCode[] }) {
+  // Holiday audit 1121 #81: every code carries its store link (affiliate, else the brand's plain home page).
+  // A code with no link (none today; src/test/giftGuideHolidayPolish1121c.test.tsx) is not drawn as a dead card.
+  const byStore = new Map<string, DiscountCode[]>();
+  for (const c of codes) if (c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]);
   return (
     <ul className="gg-deal-grid" data-gift-codes="">
-      {codes.map((c) => {
-        const when = DEALS_WORDS.runs(c.starts, c.expires);
-        // Holiday audit 1121 #81: every code carries its store link (affiliate, else the brand's plain home page).
-        // A code with no link (none today; src/test/giftGuideHolidayPolish1121c.test.tsx) is not drawn as a dead card.
-        const href = c.href;
-        if (!href) return null;
-        return (
-          <Card key={`${c.store} ${c.code}`} store={c.store} href={href} line={[c.offer, when].filter(Boolean).join(" · ")} data={{ "data-gift-code": c.code, "data-gift-code-store": c.store }}>
-            <CodeChip code={c.code} />
-          </Card>
-        );
-      })}
+      {[...byStore.entries()].map(([store, list]) => <CodeCard key={store} store={store} codes={list} />)}
     </ul>
   );
 }
@@ -151,7 +192,7 @@ function SaleCard({ store, sales }: { store: string; sales: Sale[] }) {
       <ul className="gg-card-sales">
         {shown.map((x) => (
           <li key={x.href} data-gift-sale={x.slug}>
-            <GiftOut href={x.href} className="gg-card-sale">{x.offer}</GiftOut> <span className="gg-card-when">· {DEALS_WORDS.runs(null, x.ends)}</span>
+            <GiftOut href={x.href} className="gg-card-sale">{x.offer}</GiftOut> <span className="gg-card-when">{DEALS_WORDS.runs(null, x.ends)}</span>
           </li>
         ))}
         {!all && sales.length > SALE_LINES && (
@@ -165,15 +206,12 @@ function SaleCard({ store, sales }: { store: string; sales: Sale[] }) {
 /** The cards' own styles (the photo, store name and grid come from the deal cards' .gg-deal rules). */
 export const CARD_CSS = `
 .gg-store-card .gg-card-store{color:var(--gg-ink);text-decoration:none}
-/* Owner 2026-11-21: a store with no photo yet keeps a short name tile, so the grid never looks like empty boxes. */
-.gg-store-card .gg-deal-photo[data-gift-store-photo="name"]{aspect-ratio:auto;height:56px;background:var(--gg-soft)}
-.gg-store-card .gg-deal-photo[data-gift-store-photo="name"] b{font-size:13px;color:var(--gg-olive)}
 .gg-store-card .gg-card-store:hover,.gg-store-card .gg-card-store:focus-visible{text-decoration:underline}
 .gg-card-line{font-size:12.5px;line-height:1.4;overflow-wrap:anywhere}
 .gg-card-sales{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
 .gg-card-sale{color:var(--gg-ink);text-decoration:none}
 .gg-card-sale:hover,.gg-card-sale:focus-visible{text-decoration:underline}
-.gg-card-when{color:var(--gg-muted);white-space:nowrap}
+.gg-card-when{display:block;color:var(--gg-muted);white-space:nowrap}
 .gg-card-more{min-height:44px;padding:0;border:0;background:none;color:var(--gg-olive);font-weight:700;font-size:12.5px}
 .gg-card-head{display:flex;align-items:flex-start;gap:4px;margin-top:2px}
 .gg-card-head .gg-card-store{flex:1;min-width:0;margin:0}

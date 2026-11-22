@@ -48,7 +48,7 @@ const rowBadges = (root: HTMLElement) =>
 describe("gift guides: Trending only where the pick is trending (big batch 1120)", () => {
   // Owner 11-19 ~6:40 PM: every guide sorts by commission, so "the first three" is no featured order any more; a pick
   // wears Trending, or "Trending on TikTok" (owner-approved 9:05 PM), only from its own flag, at most one of the two.
-  it.each(["mom", "dad", "her"])("%s: each row wears Trending only from its own flag, never two", (slug) => {
+  it.each(["him", "kids", "her"])("%s: each row wears Trending only from its own flag, never two", (slug) => {
     const picks = guideBySlug(slug)!.picks;
     expect(picks.length).toBeGreaterThan(5);
     const { container } = renderAt(`/gift-guides/${slug}`);

@@ -5,7 +5,7 @@
  * gift guides and Small Business Saturday copy) for "Sat Dec 20", "Sunday, November 22", "Fri Jan 22" and the like,
  * and checks the weekday against the calendar: Nov and Dec are 2026, Jan is 2027 (the 25 Days season).
  *
- * @mutate src/content/sponsorPage.ts | { brand: "Forgiven Hearts", prize: "$25 gift certificate" },\n          { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park | { brand: "Forgiven Hearts", prize: "$25 gift certificate" },\n          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park
+ * @mutate src/content/sponsorPage.ts | { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },\n          { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park | { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },\n          { brand: "Suzi Marques Photography", prize: "Family mini session on Sat Dec 20 at Moncus Park
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

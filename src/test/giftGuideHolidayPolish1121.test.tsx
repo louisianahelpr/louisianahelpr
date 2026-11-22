@@ -73,7 +73,7 @@ describe("gift guide search (holiday audit 1121)", () => {
     expect(to("black friday")).toEqual(["/gift-guides/black-friday"]);
     expect(to("cyber monday")).toEqual(["/gift-guides/cyber-monday"]);
     expect(to("codes").length).toBeGreaterThan(0);
-    expect(to("shop small")).toContain("/shop-small");
+    expect(to("shop small")).toEqual(["/gift-guides/small-business-saturday"]);
     expect(to("small business")).toContain("/gift-guides/small-business-saturday");
     expect(to("leggings")).toEqual([]);
     // The search box lists them instead of "No guides match".
@@ -129,9 +129,9 @@ describe("budget chips need prices a shopper can see (holiday audit 1121)", () =
 });
 
 describe("an empty view says so (holiday audit 1121)", () => {
-  it("a relationship view whose filter leaves no items shows the coming-soon note, even with an old collection link", async () => {
+  it("a guide whose filter leaves no items shows the coming-soon note, even with an old collection link", async () => {
     await loadAllGuidePicks();
-    const mom = guideBySlug("mom")!;
+    const mom = guideBySlug("her")!;
     expect(mom.links.length).toBeGreaterThan(0); // the old ShopMy collection link that hid the note
     const { container } = render(<MemoryRouter><GiftGuideView guide={{ ...mom, picks: [] }} /></MemoryRouter>);
     expect(container.querySelector("[data-gift-coming-soon]")).not.toBeNull();

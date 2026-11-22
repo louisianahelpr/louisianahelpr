@@ -47,7 +47,7 @@ export function FunBody({ title, path, noindex, tools = true, children }: { titl
  */
 /** `tools` off (the printables, owner 2026-11-21: "remove the search, favorite ... just polish this"): no search, heart
  * or share in the head row, where there is nothing to search or save. */
-export function GuidesFrame({ title, path, disclosures = true, tools = true, children }: { title: string; path: string; disclosures?: boolean; tools?: boolean; children: ReactNode }) {
+function GuidesFrame({ title, path, disclosures = true, tools = true, children }: { title: string; path: string; disclosures?: boolean; tools?: boolean; children: ReactNode }) {
   return (
     <div className="gg w-full" data-gift-fun-frame="">
       {/* Owner 11-22: "Holiday gift guides" beside the back arrow, as on the guides and the deals days, and the page's

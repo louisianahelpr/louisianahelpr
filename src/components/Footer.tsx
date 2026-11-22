@@ -235,7 +235,7 @@ const Footer = (_props: { landing?: boolean } = {}) => {
               {/* /contact redirects here too (vercel.json); this is where a
                   person who wants to reach us lands. */}
               <Link to="/support" className={FOOTER_LINK}>
-                {w("footer.contact", "Contact us")}
+                {w("footer.contact", "Contact support")}
               </Link>
             </li>
           </ul>

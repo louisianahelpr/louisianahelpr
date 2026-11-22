@@ -101,7 +101,7 @@ export function GiftGuideSharedList({ code, read = getSharedList }: { code: stri
   const title = list === null ? WISH.sharedMissingTitle : many ? WISH.sharedListsTitle : named ?? WISH.sharedUnnamed;
   useEffect(() => {
     if (list === undefined) return;
-    document.title = `${many ? WISH.sharedListsTitle : named ?? WISH.sharedLead} — Louisiana Helpr`;
+    document.title = `${many ? WISH.sharedListsTitle : named ?? WISH.sharedLead} — Helpr`;
   }, [list, named, many]);
   const { items, loading, missing } = useWishItems(list?.items ?? []);
   return (

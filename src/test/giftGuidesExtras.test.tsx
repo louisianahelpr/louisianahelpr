@@ -191,10 +191,10 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
 
 describe("gift guides: a pick's photo that fails to load falls back to its initial tile", () => {
   it("swaps a broken photo for the letter tile, never a blank gap", () => {
-    const g = guideBySlug("mom")!;
+    const g = guideBySlug("her")!;
     const withPhoto = g.picks.findIndex((p) => p.image);
     expect(withPhoto).toBeGreaterThanOrEqual(0);
-    const { container } = renderAt("/gift-guides/mom");
+    const { container } = renderAt("/gift-guides/her");
     const row = container.querySelectorAll("li[data-gift-pick]")[withPhoto];
     const img = row.querySelector("img.gg-thumb")!;
     expect(img.getAttribute("width")).toBe("52");
@@ -208,7 +208,7 @@ describe("gift guides: the search in the tool row filters guides by title and gr
   it("matches titles and group names, case- and accent-blind; empty words match nothing", () => {
     expect(searchGuides("")).toEqual([]);
     expect(searchGuides("   ")).toEqual([]);
-    expect(searchGuides("MOM").map((g) => g.slug)).toEqual(expect.arrayContaining(["mom", "new-mom"].filter((s) => guideBySlug(s) && !guideBySlug(s)!.empty)));
+    expect(searchGuides("MOM").map((g) => g.slug)).toEqual(["her"]); // owner 11-21: Mom is no guide; the word opens Her
     // By group: "by person" finds the guides in that row (owner 11-21: only Her and Him are live there).
     expect(searchGuides("by person").map((g) => g.slug)).toEqual(expect.arrayContaining(["her", "him"]));
     // The Experiences row is gone (owner 11-18 PM) and the store pages are retired (owner 11-21): none is found.
@@ -230,7 +230,7 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     // Holiday audit 1121 #20: the search field is a combobox that opens its results.
     const input = screen.getByRole("combobox", { name: "Search gift guides" });
     expect(document.activeElement).toBe(input);
-    expect(input.getAttribute("placeholder")).toBe("Search guides");
+    expect(input.getAttribute("placeholder")).toBe("Search gifts");
     expect(row.contains(input)).toBe(true);
     expect(container.querySelectorAll("input[data-gift-search]").length).toBe(1);
     expect(row.querySelector("label svg")).not.toBeNull();
@@ -239,7 +239,7 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     // Owner 11-21: only Her, Him and Kids are live; "kids" finds Kids.
     expect(found).toContain("kids");
     fireEvent.change(input, { target: { value: "xyzzy" } });
-    expect(row.textContent).toContain("No guides match");
+    expect(row.textContent).toContain("No gifts match that");
     fireEvent.change(input, { target: { value: "" } });
     expect(row.querySelector("[data-gift-search-results]")).toBeNull();
     // The menu is the guides alone.
@@ -283,8 +283,8 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     expect(link.getAttribute("aria-label")).toBe("My Wish List, 0 saved");
   });
   it("a pick heart saves the pick; My list shows saved guides and picks", async () => {
-    const g = guideBySlug("mom")!;
-    const view = renderAt("/gift-guides/mom");
+    const g = guideBySlug("her")!;
+    const view = renderAt("/gift-guides/her");
     expandAll(view.container);
     const hearts = [...view.container.querySelectorAll("[data-gift-pick] [data-gift-heart]")];
     expect(hearts.length).toBe(g.picks.length);
@@ -324,14 +324,14 @@ describe("gift guides: pick badges come from optional fields, never a price", ()
 
 describe("gift guides: the Hire-a-Helpr box", () => {
   it("sits at the bottom of every guide, with the exact words (Gift Wrap & Cards, where it sat on top, is retired: owner 11-21)", () => {
-    const mom = renderAt("/gift-guides/mom").container;
+    const mom = renderAt("/gift-guides/her").container;
     const box = mom.querySelector("[data-gift-helpr]")!;
     expect(box.textContent).toBe("No time to wrap?Hire a local Helpr to wrap your gifts, assemble toys or hang the Christmas lights.Post a job");
     const article = mom.querySelector("article[data-gift-guide]")!;
     expect(article.lastElementChild).toBe(box);
   });
   it("Post a job opens the existing pre-filled post flow: title Gift wrapping, an existing category, no new enum", () => {
-    const { container } = renderAt("/gift-guides/mom");
+    const { container } = renderAt("/gift-guides/her");
     const href = container.querySelector("a[data-gift-helpr-post]")!.getAttribute("href")!;
     expect(href.startsWith("/post-job?")).toBe(true);
     const f = readMatchmakerLink(new URLSearchParams(href.split("?")[1]));

@@ -1,15 +1,15 @@
-// @mutate src/components/Footer.tsx |               <Link to="/support" className={FOOTER_LINK}>\n                {w("footer.contact", "Contact us")} | <Link to="/help" className={FOOTER_LINK}>\n                {w("footer.contact", "Contact us")}
+// @mutate src/components/Footer.tsx |               <Link to="/support" className={FOOTER_LINK}>\n                {w("footer.contact", "Contact support")} | <Link to="/help" className={FOOTER_LINK}>\n                {w("footer.contact", "Contact support")}
 /**
  * The footer has a way to reach us (lead item 14, 2026-10-25: /contact 404'd
  * and the footer had no contact link). /contact now redirects to /support
- * (vercel.json); the footer's Explore column links "Contact us" to /support.
+ * (vercel.json); the footer's Explore column links "Contact support" to /support.
  * Screenshots at 375 and 1440, light and dark, reviewed 2026-10-26.
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 
-describe("the footer links Contact us to /support", () => {
+describe("the footer links Contact support to /support", () => {
   const footer = blankComments(readFileSync("src/components/Footer.tsx", "utf8"));
   // F260q: a label is plain text or the English of {w("footer.x", "English")} (Spanish comes from the dictionary).
   const links = [...footer.matchAll(/<Link\s+to="([^"]+)"[^>]*>\s*(?:\{w\("[\w.]+", "([^"]+)"\)\}|([^<{]+?))\s*<\/Link>/g)].map((m) => ({ to: m[1], text: m[2] ?? m[3] }));
@@ -18,8 +18,8 @@ describe("the footer links Contact us to /support", () => {
     expect(links.length).toBeGreaterThan(3);
   });
 
-  it("has a Contact us link to /support", () => {
-    expect(links).toContainEqual({ to: "/support", text: "Contact us" });
+  it("has a Contact support link to /support", () => {
+    expect(links).toContainEqual({ to: "/support", text: "Contact support" });
   });
 
   it("/contact still redirects to /support", () => {

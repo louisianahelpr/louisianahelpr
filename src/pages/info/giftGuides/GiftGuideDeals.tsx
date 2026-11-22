@@ -11,7 +11,7 @@ import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
-import { CARD_CSS, CARD_WORDS, CodeCards, CodeChip, SaleCards, codesOn, salesOn } from "./GiftGuideDealCards";
+import { CARD_CSS, CARD_WORDS, CodeCards, CodeChip, codeCardCount, SaleCards, codesOn, salesOn } from "./GiftGuideDealCards";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
 import { FeatureCta, FeatureCtaLink } from "./SmallBizFeatureCta";
 import { report } from "@/lib/errorLogger";
@@ -157,7 +157,7 @@ function DealSections({ day, deals, dealCount, shownCodes }: { day: string; deal
   const sales = salesOn(day);
   const sections = [
     ...(dealCount !== 0 ? [{ id: "deals", title: CARD_WORDS.dealsTitle, count: dealCount, body: deals }] : []),
-    ...(codes.length ? [{ id: "codes", title: CARD_WORDS.codesTitle, count: codes.length, body: <CodeCards codes={codes} /> }] : []),
+    ...(codes.length ? [{ id: "codes", title: CARD_WORDS.codesTitle, count: codeCardCount(codes), body: <CodeCards codes={codes} /> }] : []),
     ...(sales.length ? [{ id: "sales", title: CARD_WORDS.salesTitle, count: sales.length, body: <SaleCards stores={sales} /> }] : []),
   ];
   const [open, setOpen] = useState<Record<string, boolean>>({});

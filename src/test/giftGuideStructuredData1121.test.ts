@@ -95,7 +95,7 @@ describe("the guide ItemList (unit)", () => {
 });
 
 describe("api/share's raw HTML for the live guides", () => {
-  const LIVE = ["her", "him", "kids", "mom", "wife", "dad", "husband"];
+  const LIVE = ["her", "him", "kids"];
 
   it("carries an ItemList of Products whose offers match the cards' shown prices", async () => {
     let totalProducts = 0;

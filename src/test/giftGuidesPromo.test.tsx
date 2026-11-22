@@ -1,5 +1,5 @@
 /**
- * The Holiday Gift Guides banner (owner mockup A, 2026-11-18): a pink banner on Home and Declutter that a member can
+ * The Holiday gift guides banner (owner mockup A, 2026-11-18): a pink banner on Home and Declutter that a member can
  * close. It links to /gift-guides, stays closed once closed, draws nothing after Dec 25, and loads lazily, so neither
  * screen's first chunk grows. Declutter's sits LAST in its list; Home's is the slim strip under the greeting (owner
  * 11-21), its slot held while it loads (src/test/homeGiftStripAndSideBox1121.test.tsx).
@@ -24,11 +24,11 @@ afterEach(() => {
 
 const draw = (now = new Date(2026, 10, 18)) => render(<MemoryRouter><GiftGuidesPromo where="home" now={now} /></MemoryRouter>).container;
 
-describe("Holiday Gift Guides banner (owner mockup A)", () => {
+describe("Holiday gift guides banner (owner mockup A)", () => {
   it("links to the gift guides, and once closed stays closed on this device", () => {
     const c = draw();
     expect(c.querySelector("[data-gift-promo-link]")?.getAttribute("href")).toBe("/gift-guides");
-    expect(c.textContent).toContain("Holiday Gift Guides");
+    expect(c.textContent).toContain("Holiday gift guides");
     fireEvent.click(c.querySelector("[data-gift-promo-close]")!);
     expect(c.querySelector("[data-gift-promo]")).toBeNull();
     expect(window.localStorage.getItem(GIFT_PROMO_KEY)).toBe("1");

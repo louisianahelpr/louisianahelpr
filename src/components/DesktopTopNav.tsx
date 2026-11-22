@@ -116,9 +116,9 @@ const DesktopTopNav = () => {
               <DropdownMenuItem onSelect={() => navigate("/profile?tab=settings")}>
                 <Settings className="w-4 h-4 mr-2" aria-hidden /> {wordInLang("settings.title", "Settings")}
               </DropdownMenuItem>
-              {/* Owner 2026-11-18: signed-in members need a way to the Holiday Gift Guides too. */}
+              {/* Owner 2026-11-18: signed-in members need a way to the Holiday gift guides too. */}
               <DropdownMenuItem onSelect={() => navigate("/gift-guides")} data-testid="desktop-top-gift-guides">
-                <Gift className="w-4 h-4 mr-2" aria-hidden /> Holiday Gift Guides
+                <Gift className="w-4 h-4 mr-2" aria-hidden /> Holiday gift guides
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => setLogoutOpen(true)}>

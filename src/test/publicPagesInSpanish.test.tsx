@@ -70,7 +70,7 @@ describe("F260q: the footer speaks the visitor's language", () => {
     renderFooter();
     await new Promise((r) => setTimeout(r, 30));
     expect(screen.getByText("Explore")).toBeTruthy();
-    expect(screen.getByText("Contact us")).toBeTruthy();
+    expect(screen.getByText("Contact support")).toBeTruthy();
   });
 
   it("Spanish saved: every footer word is the Spanish one, and the switch is there", async () => {

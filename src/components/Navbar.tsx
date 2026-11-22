@@ -177,7 +177,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
         {!user && (
           <div className={tight ? "flex items-center gap-0 min-[480px]:gap-1 sm:gap-3" : "flex items-center gap-0 min-[375px]:gap-0.5 min-[400px]:gap-1 sm:gap-3"}>
             {/* Owner 11-20 (site polish A1): a "Home" link off the landing, from md up (the phone bar is full at 320;
-                there the logo goes home). Owner 11-21: not on the Jobs, Declutter or Holiday Gift Guides pages either,
+                there the logo goes home). Owner 11-21: not on the Jobs, Declutter or Holiday gift guides pages either,
                 whose own back arrow, left of the title, already goes home (NAV_HOME_HIDDEN_ON; route-based). */}
             {location.pathname !== "/" && !navHomeHiddenOn(location.pathname) && (
               <Button
@@ -229,7 +229,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 ) : "Declutter"}
               </Link>
             </Button>
-            {/* Owner 2026-11-18: "Holiday Gift Guides" in the public top bar, in full from md up; below md the short
+            {/* Owner 2026-11-18: "Holiday gift guides" in the public top bar, in full from md up; below md the short
                 "Guides" link under it takes its place. */}
             <Button
               asChild
@@ -242,12 +242,12 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 aria-current={navSection(location.pathname) === "guides" ? "page" : undefined}
                 data-testid="nav-gift-guides"
               >
-                Holiday Gift Guides
+                Holiday gift guides
               </Link>
             </Button>
             {/* Owner 2026-11-18, on the phone landing: "Where am I suppose to find the holiday guides here? Shouldn't it be
                 on the top nav?" (this overrides 11-04's phone bar of only Jobs, Declutter, Log in and Join free). Below md
-                the bar has a short "Guides" link with the gift icon, named "Holiday Gift Guides" in full (sr-only prefix). Owner 11-19: it shows
+                the bar has a short "Guides" link with the gift icon, named "Holiday gift guides" in full (sr-only prefix). Owner 11-19: it shows
                 at every phone width on every public page (see `tight` above for how the other pages' bar makes room).
                 Guard: src/test/navGiftGuidesOnPhone1118.test.tsx. */}
             <Button
@@ -262,8 +262,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 data-testid="nav-gift-guides-phone"
               >
                 <Gift aria-hidden className={tight ? "max-[374px]:hidden" : undefined} />
-                {/* Its name is "Holiday Gift Guides", which holds the visible word (WCAG 2.5.3, labelInName.test.tsx). */}
-                <span className="sr-only">Holiday Gift Guides</span>
+                {/* Its name is "Holiday gift guides", which holds the visible word (WCAG 2.5.3, labelInName.test.tsx). */}
+                <span className="sr-only">Holiday gift guides</span>
                 <span aria-hidden>Guides</span>
               </Link>
             </Button>

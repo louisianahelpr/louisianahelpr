@@ -33,36 +33,37 @@ import type { SponsorPublicState } from "@/lib/sponsor/types";
 import { blankComments } from "./helpers/blankNonCode";
 
 /**
- * The owner's lineup, day -> brands, exactly her 25 Days Sponsor Tracker's calendar (const D) as of 2026-11-20
- * 6:45 PM: 176 giveaways (owner rule 2026-11-18: nothing stale anywhere). Drift check against the tracker
+ * The owner's lineup, day -> brands, exactly her 25 Days Sponsor Tracker's calendar (const D) as of 2026-11-22
+ * ~6:30 AM (after the owner's changes the night before): 166 partner slots plus our own card on Dec 25, 167 in all
+ * (owner rule 2026-11-18: nothing stale anywhere). Drift check against the tracker
  * itself: `node scripts/check-25days-lineup.mjs` (manual; the tracker lives on the owner's Desktop, not in CI).
  */
 const FINAL: Record<number, string[]> = {
-  1: ["homerunPET", "RYSE", "CMI Entertainment: A Christmas Carol", "Oil Center (Lafayette Festival of Lights)", "Faith & Fire BBQ", "FELCO North America", "Le Petit Theatre (New Orleans)"],
-  2: ["Boston Mints", "RYSE", "World Ballet Company: The Nutcracker", "David Rabalais", "Cher Bebe Embroidery", "Wicks NOLA Candle Company", "Ace Bungee Fitness"],
-  3: ["Tevin Lewis, District 2 Alderman", "RYSE", "Crabtrap Functional Fitness", "RoseMae Eimear Creations", "Everyday Dose", "Forgiven Hearts", "Suzi Marques Photography"],
-  4: ["K18 Hair", "RYSE", "Megan Benoit's Closet", "Kate McLeod", "Britt Creates", "Tays Sweet Shop", "Jessica Lanham Photography"],
-  5: ["Oyu Botanica", "RYSE", "Breads and Sweets by Babs", "Olivia Grace Photography", "Celebration Station (Baton Rouge)", "Jessica Lanham Photography"],
-  6: ["IOKA Skin+Science", "RYSE", "Mystic Forests Nursery", "Rusty's Seasoning", "Faulk's Game Call Co.", "Paddlewheeler Creole Queen (New Orleans)", "Jessica Lanham Photography", "Hair Fashion and Spa (Opelousas)"],
-  7: ["Whimsies from Within", "RYSE", "Rock Bottom Golf", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Suzi Marques Photography"],
-  8: ["RYSE", "Written on the River", "Timeless Skin Care", "David Rabalais", "Tays Sweet Shop", "Candle Bloom Confections", "Active Beauty"],
-  9: ["RYSE", "Let's Create LLC", "David Rabalais", "Botanical Nail and Skin Studio", "City Sightseeing New Orleans", "Suzi Marques Photography"],
-  10: ["GentleStyle Brush (CLM Creations)", "RYSE", "Handmade By Hayli", "Bake & Brush", "Criquet Shirts", "Everyday Dose", "Suzi Marques Photography"],
-  11: ["Boston Mints", "RYSE", "IDRA Wellness", "aosu", "Beaver's Abundance", "AllWays Lounge & Cabaret (New Orleans)", "Ripley's Crawfish", "Suzi Marques Photography"],
-  12: ["Oyu Botanica", "RYSE", "Summar T. Photography", "RoseMae Eimear Creations", "Rip Van Winkle Gardens", "Tays Sweet Shop", "Wicks NOLA Candle Company", "Suzi Marques Photography"],
-  13: ["SRI Labs", "RYSE", "Hello Darlin'", "Kee's Pretty Little Things", "The Crab Man Plus", "Manta Sleep"],
-  14: ["The Sculpt Society", "Crew Dog", "Aeva Beauty", "The Humble Home Decor & Candles", "Deming Delights", "Everyday Dose", "God's Country RV Resort"],
-  15: ["RYSE", "Britt Creates", "Zydeco Chop Chop", "Proof & Pour Wax Co.", "Sky & Sol", "Cat Lady / CatLadyBox", "BIME Beauty"],
-  16: ["SRI Labs", "RYSE", "3 Redneck Tenors", "Haylie Rudisill · Custom wreath sashes", "Tays Sweet Shop", "Phyllis Guy Dance Center"],
-  17: ["Cajun Belle Studio", "LMNT", "Bayou Grace Outfitters", "Dolly's Boutique", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Jessica Lanham Photography"],
-  18: ["Boston Mints", "RYSE", "HOTWORX Baton Rouge (Millerville)", "Basic Bee", "Saranoni", "Monarch Books (Baton Rouge)", "Restore Hyper Wellness Mandeville"],
-  19: ["Ty's Boutique Shop", "RYSE", "Hannahbelle Photography", "Tushbaby", "aosu", "Everyday Dose", "Bully Made 3D Prints & More"],
-  20: ["RYSE", "Cher Bebe Embroidery", "Dupuy's Abbeville", "Salty Cat", "Rip Van Winkle Gardens", "Tays Sweet Shop", "Ripley's Crawfish", "Sprinkle in Time Too (Sulphur)", "Cat 5 Fishing Charters (Lake Charles)"],
-  21: ["The Soft Life Collective", "RYSE", "Bourque's Cajun Country Seasoning", "Rusty's Seasoning", "HOTWORX Denham Springs", "Texas Beard Company"],
-  22: ["LMNT", "RYSE", "Krazy Bull Kreations", "Bashi", "Handmade By Hayli", "Wicks NOLA Candle Company", "Barclell Photography", "Arey", "Ripley's Crawfish"],
-  23: ["Tiffany Morton Cosmetic Tattooing", "Faith & Fire BBQ", "Bashi", "Mary Kay", "IDRA Wellness", "Perfectly Planned Events"],
-  24: ["LMNT", "Hilma", "Playtopia Lafayette", "Bashi", "K18 Hair", "Tays Sweet Shop", "Ripley's Crawfish", "Tufted Artworks"],
-  25: ["Louisiana Helpr", "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)", "Proof & Pour Wax Co.", "Bashi", "Mind the Skin Labs", "Cajun Fiya"],
+  1: ["Olivia Grace Photography", "RYSE", "CMI Entertainment: A Christmas Carol", "Rip Van Winkle Gardens", "Paddlewheeler Creole Queen (New Orleans)", "Le Petit Theatre (New Orleans)"],
+  2: ["Texas Beard Company", "RYSE", "World Ballet Company: The Nutcracker", "Cher Bebe Embroidery", "Wicks NOLA Candle Company", "Suzi Marques Photography", "Dupuy's Abbeville"],
+  3: ["Tevin Lewis, District 2 Alderman", "RYSE", "Crabtrap Functional Fitness", "Bake & Brush", "Everyday Dose", "Birdwell's", "Suzi Marques Photography"],
+  4: ["K18 Hair", "RYSE", "Monarch Books (Baton Rouge)", "Kate McLeod", "Wicks NOLA Candle Company", "Tays Sweet Shop", "Jessica Lanham Photography"],
+  5: ["Oyu Botanica", "RYSE", "Breads and Sweets by Babs", "FELCO North America", "AllWays Lounge & Cabaret (New Orleans)", "Jessica Lanham Photography"],
+  6: ["IOKA Skin+Science", "RYSE", "Mystic Forests Nursery", "homerunPET", "Perfectly Planned Events", "Jessica Lanham Photography", "Haylie Rudisill · Custom wreath sashes"],
+  7: ["RYSE", "Ace Bungee Fitness", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Suzi Marques Photography", "Helping Hands Gallery", "Cat 5 Fishing Charters (Lake Charles)"],
+  8: ["RYSE", "Timeless Skin Care", "Written on the River", "Tays Sweet Shop", "Active Beauty", "Candle Bloom Confections", "God's Country RV Resort"],
+  9: ["RYSE", "Let's Create LLC", "CHIC by dmo", "Suzi Marques Photography", "City Sightseeing New Orleans", "Ripley's Crawfish"],
+  10: ["Wicks NOLA Candle Company", "RYSE", "GentleStyle Brush (CLM Creations)", "Restore Hyper Wellness Mandeville", "Everyday Dose", "RoseMae Eimear Creations"],
+  11: ["Boston Mints", "RYSE", "aosu", "Beaver's Abundance", "Celebration Station (Baton Rouge)", "Ripley's Crawfish", "Suzi Marques Photography"],
+  12: ["Criquet Shirts", "RYSE", "Oyu Botanica", "Tree Frogs Adventure Park", "Tays Sweet Shop", "IDRA Wellness", "Suzi Marques Photography"],
+  13: ["SRI Labs", "RYSE", "The Crab Man Plus", "Faulk's Game Call Co.", "Cajun Belle Studio", "Hello Darlin'"],
+  14: ["Crew Dog", "Aeva Beauty", "Deming Delights", "The Sculpt Society", "Everyday Dose", "Rock Bottom Golf"],
+  15: ["RYSE", "Zydeco Chop Chop", "Sky & Sol", "Wanderlust by Abby", "Cat Lady / CatLadyBox", "Whimsies from Within", "Britt Creates"],
+  16: ["RYSE", "GoodWolf Power Yoga", "Handmade By Hayli", "Tays Sweet Shop", "3 Redneck Tenors", "Sprinkle in Time Too (Sulphur)", "Forgiven Hearts"],
+  17: ["Dolly's Boutique", "LMNT", "Bayou Grace Outfitters", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Accesorios Para Niñas", "Jessica Lanham Photography"],
+  18: ["Boston Mints", "RYSE", "Basic Bee", "Saranoni", "Megan Benoit's Closet", "Wanderlust by Abby", "BIME Beauty"],
+  19: ["Ty's Boutique Shop", "RYSE", "Hannahbelle Photography", "aosu", "Everyday Dose", "Tushbaby", "Manta Sleep"],
+  20: ["RYSE", "Proof & Pour Wax Co.", "Tiffany Morton Cosmetic Tattooing", "Krazy Bull Kreations", "Salty Cat", "Tays Sweet Shop"],
+  21: ["RYSE", "The Soft Life Collective", "David Rabalais", "Boston Mints", "Cajun Fiya", "Phyllis Guy Dance Center", "Ripley's Crawfish"],
+  22: ["LMNT", "RYSE", "Botanical Nail and Skin Studio", "Bashi", "Barclell Photography", "Wanderlust by Abby", "Ripley's Crawfish"],
+  23: ["Bashi", "Jaboom Baits", "Hilma", "Mary Kay", "Hair Fashion and Spa (Opelousas)", "Arey", "Faith & Fire BBQ"],
+  24: ["LMNT", "Tays Sweet Shop", "Tufted Artworks", "Bashi", "K18 Hair", "Playtopia Lafayette", "Summar T. Photography"],
+  25: ["Louisiana Helpr", "Proof & Pour Wax Co.", "Bashi", "Mind the Skin Labs", "HOTWORX Denham Springs", "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)"],
 };
 
 const NO_DB: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
@@ -75,9 +76,9 @@ describe("the final lineup", () => {
     const got = Object.fromEntries(days.map((d) => [d.day, d.partners.map((p) => p.brand)]));
     expect(got).toEqual(FINAL);
     for (const d of days) for (const p of d.partners) expect(p.prize.trim().length, `Dec ${d.day} ${p.brand} prize`).toBeGreaterThan(2);
-    // 175 giveaways (owner 2026-11-19: show the full sponsor list; the tracker's calendar as of 2026-11-20 6:45 PM, 176,
-    // less the Dec 5 sponsor the owner dropped 2026-11-20), and no brand twice on one day (each partner's row is keyed by its brand).
-    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(175);
+    // 167 cards: 166 partner slots from the tracker export of 2026-11-22 plus our own Dec 25 card (owner 2026-11-19: show the
+    // full sponsor list), and no brand twice on one day (each partner's row is keyed by its brand).
+    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(167);
     for (const d of days) expect(new Set(d.partners.map((p) => p.brand)).size, `Dec ${d.day}`).toBe(d.partners.length);
   });
 
@@ -107,14 +108,14 @@ describe("the final lineup", () => {
   it("a day the lineup lists never reads Open on the sign-up calendar, even with no sign-up row", () => {
     expect(tileCount(NO_DB, 4)).toBe(7);
     expect(tileCount(NO_DB, 25)).toBe(6);
-    expect(tileCount(NO_DB, 24)).toBe(8);
-    expect(tileCount(NO_DB, 14)).toBe(7);
+    expect(tileCount(NO_DB, 24)).toBe(7);
+    expect(tileCount(NO_DB, 14)).toBe(6);
     expect(tileCount(NO_DB, 8)).toBe(7);
-    expect(tileCount(NO_DB, 12)).toBe(8);
-    expect(tileCount(NO_DB, 1)).toBe(7);
+    expect(tileCount(NO_DB, 12)).toBe(7);
+    expect(tileCount(NO_DB, 1)).toBe(6);
     expect(tileCount(NO_DB, 3)).toBe(7);
-    expect(tileCount(NO_DB, 5)).toBe(6); // owner 2026-11-20: one sponsor dropped from Dec 5
-    expect(tileCount(NO_DB, 10)).toBe(7);
+    expect(tileCount(NO_DB, 5)).toBe(6);
+    expect(tileCount(NO_DB, 10)).toBe(6);
     expect(tileCount({ dayCounts: { 2: 7 } }, 2)).toBe(7);
     render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
     const day4 = screen.getByRole("button", { name: /^December 4,/ });
@@ -222,7 +223,7 @@ describe("lineup polish (design audit r2 #18, #19; display only, the owner's dat
     const later = () => cards().filter((c) => c.classList.contains("lh25-lineup-later")).length;
     expect(cards().length).toBeGreaterThan(12);
     expect(later()).toBe(cards().length - 12);
-    fireEvent.click(screen.getByRole("button", { name: `Show all ${cards().length} partners` }));
+    fireEvent.click(screen.getByRole("button", { name: `Show all ${cards().length} sponsors` }));
     expect(later()).toBe(0);
     expect(screen.queryByRole("button", { name: /^Show all/ })).toBeNull();
     // The hiding is phone-only CSS: under 640px a later card is hidden; from 640px the button is.

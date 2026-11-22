@@ -47,7 +47,7 @@ function onLanding(pathname: string): boolean {
  * sticky top bar stays one tap away, as on the landing.
  */
 function onHeartList(pathname: string): boolean {
-  return pathname === "/gift-guides" || pathname.startsWith("/gift-guides/") || pathname === "/shop-small";
+  return pathname === "/gift-guides" || pathname.startsWith("/gift-guides/");
 }
 
 /** How long an in-app #link keeps looking for its section while the page's lazy content mounts. */

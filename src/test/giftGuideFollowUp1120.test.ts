@@ -48,7 +48,7 @@ describe("gift guides follow-up 1120", () => {
         const to = newSlugFor(s);
         // For Her / For Him (owner 11-20 evening): Brother and Sister are filter pages of those guides now.
         // Owner 11-21: a retired parent (src/content/giftGuideLive.mjs) has no page; its old guides land on the landing (null).
-        const live = to === parent || to === `${parent}#${SECTION_ANCHORS[s]}` || (peopleGuideOf(s) !== null && to === s);
+        const live = to === parent || to === `${parent}#${SECTION_ANCHORS[s]}` || (peopleGuideOf(s) !== null && to === peopleGuideOf(s));
         expect(isLiveGuide(parent) || peopleGuideOf(s) !== null ? live : to === null, `${s} -> ${to}`).toBe(true);
       }
     }

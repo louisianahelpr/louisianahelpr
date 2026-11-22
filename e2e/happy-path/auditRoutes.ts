@@ -178,7 +178,7 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // F255 (owner 2026-11-11).
   { name: "fees", url: "/fees" },
   { name: "safety", url: "/safety" },
-  // Owner 2026-11-16: the Holiday Gift Guides.
+  // Owner 2026-11-16: the Holiday gift guides.
   { name: "gift-guides", url: "/gift-guides" },
   // 2026-11-18: one guide opens at /gift-guides/<slug>; "mom" stands in for the shared guide page.
   { name: "gift-guide", url: "/gift-guides/mom" },

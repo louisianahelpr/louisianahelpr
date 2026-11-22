@@ -29,7 +29,7 @@
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import DEALS from "@/content/giftGuideDeals.json";
 import SMALL_BIZ from "@/content/giftGuideSmallBiz.json";
@@ -250,12 +250,17 @@ describe("deals days: one page per day (owner 11-21)", () => {
       expect(on).toBe(day.day);
       // Polish audit 1122 #12: less any code a Top deal card on the page already shows (Black Friday's XT25).
       const onDeals = new Set([...subs[0].querySelectorAll("[data-gift-code-copy]")].map((x) => x.getAttribute("data-gift-code-copy")!.toUpperCase()));
-      const want = activeCodes(all, on).map((x) => x.code).filter((x) => !onDeals.has(x.toUpperCase())).sort();
+      const boxCodes = activeCodes(all, on).filter((x) => !onDeals.has(x.code.toUpperCase()));
+      const want = boxCodes.map((x) => x.code).sort();
       if (day === BF) expect(onDeals.has("XT25")).toBe(true);
-      const shown = [...box.querySelectorAll("[data-gift-code]")].map((x) => x.getAttribute("data-gift-code")).sort();
+      // One card per store (audit 1122 #13); its other codes sit under "+N more codes", so open those before reading.
+      for (const more of box.querySelectorAll("[data-gift-code-more]")) fireEvent.click(more);
+      const shown = [...box.querySelectorAll("[data-gift-code],[data-gift-code-extra]")].map((x) => x.getAttribute("data-gift-code") ?? x.getAttribute("data-gift-code-extra")).sort();
       expect(shown, day.id).toEqual(want);
       counts.push(shown.length);
-      expect(box.querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(want.length));
+      const stores = new Set(boxCodes.filter((x) => x.href).map((x) => x.store)).size;
+      expect(box.querySelectorAll("li[data-gift-code]").length, day.id).toBe(stores);
+      expect(box.querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(stores));
       // Sales: one card per store, the count is the stores (holiday audit 1121: store sales, not "deals").
       expect(subs[2].querySelectorAll("[data-gift-sale-store]").length, day.id).toBe(salesOn(on).length);
       expect(subs[2].querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(salesOn(on).length));

@@ -1,5 +1,5 @@
 /**
- * /gift-guides: EVERY word, pick and link on the Holiday Gift Guides page lives in this one file (owner 2026-11-16:
+ * /gift-guides: EVERY word, pick and link on the Holiday gift guides page lives in this one file (owner 2026-11-16:
  * "i think we should add this to our landing pages on louisiana helpr so people can see our gift guides"; pop-up
  * choice "New gift guide page"). Edit here; nothing else needs to change.
  *
@@ -228,7 +228,7 @@ export const codesByStore = (codes: DiscountCode[]) => {
 export const giftGuides = {
   /** The header title on every gift guides page, by the back arrow (owner 11-21: "add holiday to gift guides where it is by the back arrow"). */
   headerTitle: "Holiday gift guides",
-  title: "Holiday Gift Guides",
+  title: "Holiday gift guides",
   /**
    * The landing's ONE set of ways in (owner 11-20 PM: "a tidy grid of nicely spaced cards, each with a good photo and
    * title"): a card per main group, its photo the named guide's own cover, its short line below the title; then the
@@ -263,7 +263,7 @@ export const giftGuides = {
    */
   primeTrial: { label: "Try Prime free for fast holiday shipping", href: "https://www.amazon.com/prime?tag=louisianahelpr-20" },
   allGuidesLabel: "All guides",
-  sidebarLabel: "Gift guides",
+  sidebarLabel: "Holiday gift guides",
   /**
    * The left menu's links to the deals page's three day sections (owner 11-21). The ids are the section anchors of the
    * one deals page (src/content/giftGuideDeals.mjs DEAL_EVENTS on feat/guide-deals-bfcm-1121).
@@ -341,7 +341,7 @@ export const giftGuides = {
   },
   myListLabel: "My list",
   myListEmpty: "Tap a heart on any guide or gift to save it here.",
-  searchNone: "No guides match. Try another word.",
+  searchNone: "No gifts match that. Try another word.",
   searchFailed: "Couldn't load gift results. Check your connection.",
   codesLabel: "Discount codes",
   /** The sidebar's Sales (follow-up 2026-11-18): every live store sale, soonest end first; each hidden after it ends. */
@@ -356,7 +356,7 @@ export const giftGuides = {
   searchLabel: "Search gift guides",
   /** Closes the opened search field (owner 11-21: "make search an icon always"). */
   searchCloseLabel: "Close search",
-  searchPlaceholder: "Search guides",
+  searchPlaceholder: "Search gifts",
   myListCount: (n: number) => `My list, ${n} saved`,
   shareLabel: "Share",
   shareMenuLabel: "Share options",
@@ -410,6 +410,8 @@ export const giftGuides = {
   priceSectionCount: (n: number) => ` (${n})`,
   /** The price sort on Her, Him and Kids (owner 2026-11-21: "the guides should be able to be sorted by price"). */
   sortLabel: "Sort by price",
+  /** The sort icon's name while a price order is on (audit 1122 #21: nothing showed it was on). */
+  sortLabelActive: (order: string) => `Sort by price, ${order}`,
   /** The 25 Days sponsors page's Filter (owner 11-21: its section links and price limits moved into it). */
   filterLabel: "Filter",
   filterLabelActive: (n: number) => `Filter, ${n} on`,

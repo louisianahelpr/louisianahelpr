@@ -250,10 +250,10 @@ export const PRINTABLES: Printable[] = [
     ready: true,
     preview: "/printables/coloring-book/preview-girls.webp",
     previews: ["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"],
-    // Holiday audit 1121 area 5 #21: each button says how long its book is (both PDFs: 21 pages, a cover and 20 to color).
+    // Guides polish 1122 #31: plain button names; the blurb says how long each book is (both PDFs: 21 pages, a cover and 20 to color).
     files: [
-      { label: "Girls book, 21 pages (free)", href: "/printables/coloring-book/christmas-coloring-book-girls.pdf" },
-      { label: "Boys book, 21 pages (free)", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf" },
+      { label: "Girls book", href: "/printables/coloring-book/christmas-coloring-book-girls.pdf" },
+      { label: "Boys book", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf" },
     ],
     // Owner 2026-11-21: not linked from Kids (it reversed holiday audit 1121 #49); the Coloring books page has them.
     guides: [],
@@ -269,12 +269,12 @@ export const PRINTABLES: Printable[] = [
     // Owner 2026-11-21: "add this to the free printables, it's a banner they can print at walgreens" (her Canva design).
     ready: true,
     preview: "/printables/thanksgiving-banner/preview.webp",
-    // Owner 2026-11-21: "Download the banner (free)" overflowed its button at the card's width; the card's title says what it is.
+    // Owner 2026-11-21: "Download the banner (free)" overflowed (guides polish 1122 #31: "(free)" repeats the page, "2:1" is jargon) its button at the card's width; the card's title says what it is.
     // The 12 x 18 copy is the design untouched on its own white, padded to 3:2 (scripts/printables-banner-12x18.py), so a
     // Walgreens poster does not crop it; the original 2:1 file stays.
     files: [
-      { label: "12x18 poster (free)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },
-      { label: "Original 2:1 (free)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner.jpg" },
+      { label: "Poster size (12x18)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },
+      { label: "Wide banner", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner.jpg" },
     ],
     printAt: { href: "https://photo.walgreens.com/store/posters", label: "Print at Walgreens" },
     guides: [],

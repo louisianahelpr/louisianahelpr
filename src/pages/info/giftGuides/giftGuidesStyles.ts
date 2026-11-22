@@ -100,13 +100,14 @@ color:var(--gg-ink)}
 .gg-search-results{position:absolute;z-index:6;top:calc(100% + 6px);left:0;right:0;list-style:none;margin:0;padding:4px;max-height:60vh;overflow-y:auto;text-align:left;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);font-size:14px}
 .gg-search-results a{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:8px;color:var(--gg-ink);text-decoration:none}
 .gg-search-results a{gap:10px;padding:4px 12px}
-.gg-search-thumb{width:36px;height:36px;flex:none;border-radius:8px;object-fit:cover}
+.gg-search-thumb{width:36px;height:36px;flex:none;border-radius:8px;object-fit:cover}.gg-search-thumb-item{object-fit:contain}
 .gg-search-head{padding:8px 12px 2px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gg-muted)}
 .gg-search-item{display:flex;flex-direction:column;min-width:0}.gg-search-item-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}.gg-search-item small{font-size:12px;color:var(--gg-muted)}
 .gg-search-results a:hover,.gg-search-results a:focus-visible{background:hsl(var(--muted) / .6)}
 .gg-icon{position:relative;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;border-radius:999px;color:var(--gg-ink);background:transparent;border:0;text-decoration:none}
 .gg-icon:hover,.gg-icon:focus-visible,.gg-icon[aria-expanded="true"]{background:hsl(var(--muted) / .7)}
 .gg-mylist-icon{color:#8c3b3b}
+.gg-icon-dot{position:absolute;top:9px;right:9px;width:9px;height:9px;border-radius:50%;background:#8c3b3b;box-shadow:0 0 0 2px hsl(var(--background))}
 .gg-icon-count{position:absolute;top:4px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#8c3b3b;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}
 .gg-share-wrap{position:relative;display:inline-flex;align-items:center}
 .gg-share-menu{position:absolute;z-index:6;top:calc(100% + 6px);right:0;display:flex;flex-direction:column;min-width:200px;white-space:nowrap;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:4px}
@@ -233,8 +234,9 @@ article[data-gift-guide="25-days-sponsors"] .gg-list>li:not(:has(.gg-cart)) .gg-
 /* Holiday audit A #6/#71: the section jump links were 24px bold text; now 44px chips like the budget chips. */
 .gg-secnav .gg-chip{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1px solid var(--gg-line);background:hsl(var(--card));color:var(--gg-ink);font-size:14px;text-decoration:none}
 .gg-secnav .gg-chip:hover,.gg-secnav .gg-chip:focus-visible{border-color:var(--gg-olive)}
-.gg-finder{margin:12px 0 4px;padding:16px 16px 8px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card))}.gg-finder-step{margin:6px 0 10px}.gg-finder-q{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--gg-ink)}
+.gg-finder{scroll-margin-top:96px;margin:12px 0 4px;padding:16px 16px 8px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card))}.gg-finder-step{margin:6px 0 10px}.gg-finder-q{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--gg-ink)}
 .gg-finder-title{margin:0;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:22px;line-height:1.15;font-weight:600;color:var(--gg-ink)}.gg-finder-lead{margin:4px 0 10px;font-size:14px;color:var(--gg-muted)}
+@media (max-width:767px){.gg-finder{scroll-margin-top:136px}}
 @media (min-width:768px){.gg-finder{padding:18px 22px 10px}.gg-finder-title{font-size:24px}}
 .gg-finder-folded{padding:0}
 .gg-finder-open{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;min-height:64px;padding:12px 16px;border:0;border-radius:16px;background:transparent;text-align:left;cursor:pointer;color:var(--gg-ink);font:inherit;white-space:normal;letter-spacing:normal}
@@ -381,6 +383,7 @@ article[data-gift-guide="25-days-sponsors"] .gg-list>li:not(:has(.gg-cart)) .gg-
 .gg-quiz-answer small{font-size:12px;font-weight:500;color:var(--gg-muted)}
 .gg-quiz-back{margin-top:10px;min-height:44px}
 .gg-quiz-list{margin-top:4px}
+@media (min-width:768px){.gg-quiz-list[data-quiz-count="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .gg-quiz-after{align-items:center;gap:12px 16px;margin-top:14px}
 @media (min-width:768px){.gg-quiz{padding:22px 24px 16px}.gg-quiz-answers{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.gg-quiz-answer{min-height:64px}}
 /* Owner 11-21 (phone guide page): the count, the order-by pill and the icons on ONE row under the banner (wraps at 320);

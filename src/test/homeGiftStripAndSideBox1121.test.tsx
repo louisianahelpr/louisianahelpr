@@ -1,7 +1,7 @@
 /**
  * Owner 11-21 (signed-in Home): "remove picked by a Louisiana nurse. and move this to under good evening lexi like one
  * long strip. your profile etc needs a box around it."
- *  - The gift guides promo says "Holiday Gift Guides · Gifts, deals and codes" (no nurse line), on Home and Declutter.
+ *  - The gift guides promo says "Holiday gift guides · Gifts, deals and codes" (no nurse line), on Home and Declutter.
  *  - On Home it is ONE slim strip (48px: gift icon, words, chevron, X), right under the greeting and its date line,
  *    above the first card; its slot is held while its lazy chunk loads, and it is no longer in the side column.
  *  - The profile line and Your sections sit in ONE liquid-glass card, like Needs you; the money tiles follow it.
@@ -34,7 +34,7 @@ describe("Home's gift guides strip (owner 11-21)", () => {
     expect(strip.hasAttribute("data-gift-promo-strip")).toBe(true);
     // The held slot on Home is the strip's own height (phone two lines, one from sm).
     expect(strip.className).toContain("h-14 sm:h-12");
-    expect(strip.textContent).toBe("Holiday Gift Guides · Gifts, deals and codes");
+    expect(strip.textContent).toBe("Holiday gift guides · Gifts, deals and codes");
     expect(strip.querySelector("[data-gift-promo-link]")?.getAttribute("href")).toBe("/gift-guides");
     // gift icon + chevron + the X's icon; no 40px tile.
     expect(strip.querySelectorAll("svg").length).toBe(3);

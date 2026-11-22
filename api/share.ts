@@ -1180,7 +1180,7 @@ type SeoOutcome =
   | null;
 
 const HOME_CRUMB = { name: "Louisiana Helpr", path: "/" };
-const GUIDES_CRUMB = { name: "Holiday Gift Guides", path: "/gift-guides" };
+const GUIDES_CRUMB = { name: "Holiday gift guides", path: "/gift-guides" };
 
 /**
  * What a public page carries beyond its head: its body inside #root and its JSON-LD; or a 404 (an unknown guide, an

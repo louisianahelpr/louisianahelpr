@@ -18,8 +18,8 @@ color:var(--gg-ink)}
 .gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:start}
 .gg-side{border-right:1px solid var(--gg-line);padding:16px 16px 20px 0;font-size:13px;position:sticky;top:var(--gg-side-top,72px);align-self:start;max-height:calc(100dvh - var(--gg-side-top,72px));overflow-y:auto;overscroll-behavior:contain}
 .gg-search{position:relative;display:block;margin:0}
-.gg-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gg-muted)}
-.gg-search input{width:100%;min-height:40px;font:500 13px Montserrat,sans-serif;padding:9px 12px 9px 34px;border:1px solid #ddd8cc;border-radius:999px;background:hsl(var(--background));color:var(--gg-ink)}
+.gg-search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--gg-muted)}
+.gg-search input{width:100%;min-height:44px;font:500 16px Montserrat,sans-serif;padding:0 12px 0 40px;border:1px solid hsl(var(--bark) / .2);border-radius:12px;background:hsl(var(--card));color:var(--gg-ink)}
 .gg-search-none{padding:8px 10px;color:var(--gg-muted)}
 .gg-tile-li{position:relative;display:flex;flex-direction:column}
 .gg-heart{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;border:0;background:transparent;border-radius:999px;cursor:pointer}
@@ -76,10 +76,27 @@ color:var(--gg-ink)}
    is 300px beside them (a phone lays it over the icon row, inside the screen). */
 .gg-tools{position:relative}
 .gg-tools-search{position:relative;flex:0 0 auto;min-width:0}
-.gg-tools-search.is-open{width:min(344px,calc(100vw - 40px));display:flex;align-items:center}.gg-tools-search.is-open .gg-search{flex:1 1 auto;min-width:0}
-.gg-tools-search .gg-search input{padding-right:40px}
-.gg-search-close{position:absolute;right:2px;top:50%;transform:translateY(-50%);background:transparent;color:var(--gg-muted)}
-@media (max-width:767px){.gg-tools-search.is-open{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:7;background:hsl(var(--background))}.gg-tools-search.is-open [data-search-trigger-slot]{display:none}}
+.gg-tools-search.is-open{width:min(360px,calc(100vw - 40px));display:flex;align-items:center}.gg-tools-search.is-open .gg-search{flex:1 1 auto;min-width:0}
+.gg-tools-search .gg-search input{padding-right:44px}
+.gg-search-close{position:absolute;right:0;top:50%;transform:translateY(-50%);background:transparent;color:var(--gg-muted)}
+/* Owner 2026-11-22 ("Polish the search bar somehow"; her iPhone: the open field slid over the row and cut off "83 gift",
+   with a heavy dark-olive ring): a soft field (thin light-olive border, white, 12px corners) whose focus darkens the
+   border and adds a light ring. On a phone the open search takes the whole count row in place: the count, the order-by
+   pill and the other icons step out (display:none, nothing under it, nothing cut), the field fills the row at the same
+   44px height, and the ✕ or Escape puts the row back exactly. The computer keeps its row (below). */
+.gg-search:focus-within input{border-color:hsl(var(--bark) / .55)}
+.gg-search-count{padding:6px 12px 4px;font-size:12px;font-weight:600;color:var(--gg-muted)}
+@media (max-width:767px){
+.gg-tools-search.is-open{position:relative;flex:1 1 auto;width:100%}
+.gg-tools-search.is-open [data-search-trigger-slot]{display:none}
+.gg-countrow:has(.gg-tools-search.is-open)>:not(.gg-tools){display:none}
+.gg-countrow:has(.gg-tools-search.is-open)>.gg-tools{flex:1 1 100%;margin:0}
+.gg-tools:has(>.gg-tools-search.is-open)>:not(.gg-tools-search){display:none}
+}
+/* The computer: the open field takes up to 360px and gives way before it would reach the title (at 768 it ran over
+   "Holiday gift guides"); below 1280px the order-by pill steps out while the search is open. */
+@media (min-width:768px){.gg-tools-search.is-open{flex:0 1 360px;width:auto;min-width:0}.gg-tools:has(>.gg-tools-search.is-open){max-width:none}}
+@media (min-width:768px) and (max-width:1279px){.gg-headrow:has(.gg-tools-search.is-open)>.gg-ship{display:none}}
 /* Owner 11-21: ONE header row from 768px up: back arrow + title, the shipping pill, then search + heart + share
    pushed right, all centred; a phone wraps it (arrow + title, then the pill and the icons). The shell's own header row
    is off, so this row keeps the shell's air above it (--shell-gap on a phone, 24px from sm up). */

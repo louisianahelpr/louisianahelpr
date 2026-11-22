@@ -374,6 +374,8 @@ export const giftGuides = {
   myListLabel: "My list",
   myListEmpty: "Tap a heart on any guide or gift to save it here.",
   searchNone: "No gifts match that. Try another word.",
+  /** The small line at the top of the search results while typing (owner 11-22 search polish). */
+  searchCount: (n: number) => (n === 1 ? "1 result" : `${n} results`),
   searchFailed: "Couldn't load gift results. Check your connection.",
   codesLabel: "Discount codes",
   /** The sidebar's Sales (follow-up 2026-11-18): every live store sale, soonest end first; each hidden after it ends. */

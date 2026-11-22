@@ -5,7 +5,8 @@
  *
  * What the screen must do, each shown red by the @mutate below it:
  *   1. "Message the seller" (buyer) / "Message the buyer" (seller) on a paid order opens the chat (?order_talk=).
- *   2. ?order_talk=<order id> opens it; the history shows oldest first as "You" and "The seller", never a name.
+ *   2. ?order_talk=<order id> opens it; the history shows oldest first as "You" and "The seller", never a name (the
+ *      who-and-when line sits under each bubble since audit 1122 #137).
  *   3. Send posts the trimmed words; a refused message shows the server's own words.
  *   4. An ended chat keeps its history and has no message box and no Send.
  *   5. Manager mode: a message the seller's manager wrote says "Dana (helping Kaci)", to the buyer and to the seller.
@@ -17,8 +18,8 @@
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |   const labels = useManagerLabels("order_talk", (talk.data?.messages ?? []).map((m) => m.id)); |   const labels = useManagerLabels("order_talk", []);
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | return await sendOrderMessage(orderId, draft.trim(), photoPath); | return await sendOrderMessage(orderId, draft, photoPath);
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => setRefusal("Something went wrong."),
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx |             {open && (\n              <form |             {(\n              <form
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx |           {open && (\n            <SheetPrimaryAction |           {(\n            <SheetPrimaryAction
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx |         {t && open && !talk.isError && ( |         {t && !talk.isError && (
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx |   const open = !!t?.open; |   const open = !!t;
  */
 import { OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -142,8 +143,8 @@ describe("D2-1: the paid-order chat", () => {
     renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
     const list = await screen.findByRole("list", { name: "Messages" });
     const items = within(list).getAllByRole("listitem").map((li) => li.textContent ?? "");
-    expect(items[0]).toMatch(/^You · .*Is Saturday ok\?$/);
-    expect(items[1]).toMatch(/^The seller · .*Yes, after 9\.$/);
+    expect(items[0]).toMatch(/^Is Saturday ok\?You · /); // #137: the bubble, then who and when under it
+    expect(items[1]).toMatch(/^Yes, after 9\.The seller · /);
   });
 
   // B112 (B110 leftover 4): seen = read, so the 15-minute / 2-hour unread reminders stop.
@@ -162,8 +163,8 @@ describe("D2-1: the paid-order chat", () => {
     const list = await screen.findByRole("list", { name: "Messages" });
     const items = within(list).getAllByRole("listitem").map((li) => li.textContent ?? "");
     expect(labelState.asked).toEqual(["m1", "m2"]);
-    expect(items[0]).toMatch(/^Dana \(helping Kaci\) · .*Is Saturday ok\?$/);
-    expect(items[1]).toMatch(/^Dana \(helping Kaci\) · .*Yes, after 9\.$/);
+    expect(items[0]).toMatch(/^Is Saturday ok\?Dana \(helping Kaci\) · /);
+    expect(items[1]).toMatch(/^Yes, after 9\.Dana \(helping Kaci\) · /);
   });
 
   it("Send posts the trimmed words; a refusal shows the server's words", async () => {

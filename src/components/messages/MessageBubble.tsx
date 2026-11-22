@@ -11,6 +11,7 @@ import { hapticMedium } from "@/lib/haptics";
 import type { Conversation, Message } from "./types";
 import { REVEAL_WIDTH } from "./chatView/useTimestampReveal";
 import { REFUSAL_BUBBLE_LABEL } from "@/lib/messageSendRefusal";
+import { chatBubbleShape, chatBubbleStyle } from "./chatView/chatBubbleLook";
 
 /**
  * Message `content` is attacker-controlled free text, and both the photo and
@@ -175,29 +176,9 @@ export function MessageBubble({
       <div data-bubble-col="" className={`max-w-[75%] lg:max-w-[65%] flex flex-col ${mine ? "items-end" : "items-start"}`}>
       <div
         {...pressHandlers}
-        data-bubble="" className={`max-w-full rounded-2xl px-4 py-2.5 text-ds-13 lg:text-ds-15 group relative space-y-2 transition-opacity ${
-          mine ? "rounded-br-md" : "rounded-bl-md"
-        } ${isSending ? "opacity-60" : ""}`}
-        style={mine ? {
-          // "Mine" bubble — bark with subtle inner highlight + soft shadow
-          // for a tactile, brand-aligned feel (vs. flat primary fill).
-          background: "linear-gradient(180deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.92) 100%)",
-          color: "hsl(var(--parchment))",
-          boxShadow:
-            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), " +
-            "0 1px 2px hsl(var(--bark) / 0.18), " +
-            "0 6px 14px -6px hsl(var(--bark) / 0.32)",
-        } : {
-          // "Theirs" bubble — translucent parchment with a hairline border
-          // so it reads as an inbound card without looking gray-on-gray.
-          backgroundColor: "hsl(var(--ivory-sand) / 0.78)",
-          color: "hsl(var(--ink-deep))",
-          border: "0.5px solid hsl(var(--olivewood) / 0.14)",
-          boxShadow:
-            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
-            "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-            "0 4px 10px -4px hsl(var(--olivewood) / 0.10)",
-        }}
+        data-bubble="" className={`max-w-full ${chatBubbleShape(mine)} group relative space-y-2 transition-opacity ${isSending ? "opacity-60" : ""}`}
+        // The shared bubble look (chatBubbleLook.ts, audit 1122 #137): bark for mine, parchment card for theirs.
+        style={chatBubbleStyle(mine)}
       >
         {m.attachment_url && m.attachment_mime && (
           <MessageAttachment

@@ -39,7 +39,8 @@ export const HIM_KIDS_STORES = {
   // The owner's ShopMy saves for Him and Kids (11-21).
   "store-smathers-and-branson": "Smathers & Branson", "store-duck-head": "Duck Head", "store-grove": "Grove",
   "store-clinique": "Clinique", "store-maisonette": "Maisonette", "store-wayfair": "Wayfair", "store-macys": "Macy's",
-  "store-yeti": "YETI",
+  "store-yeti": "YETI", "store-xtratuf": "XTRATUF", "store-jd-sports": "JD Sports", "store-burlebo": "Burlebo",
+  "store-tractor-supply": "Tractor Supply", "store-onward-reserve": "Onward Reserve",
 };
 /** One row per pick: [ASIN, price she saw, Amazon image id, name, brand, type, commission %, line]. */
 const row = ([asin, sortPrice, img, name, brand, type, commission, line]) => ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, commission, type });
@@ -140,11 +141,19 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B08Z42695Q", 49.04, "41iS+PAvr4L", "SITKA Mid Pro Trucker Hat", "SITKA", "hat", 4, "A SITKA trucker hat for the field."],
   ["B002OSXDTG", 129.95, "31k8tX0z0KL", "LaCrosse Burly Air Grip 18 in. Boots", "LaCrosse", "boots", 4, "Tall rubber boots built for the marsh."],
   ["B00AQG9MGG", 88.92, "31ZTfBVeDRL", "MUCK Chore Cool Tall Boot", "MUCK", "boots", 4, "Tall, breathable work boots for the yard and barn."],
-  ["B0GV4BKM4W", 135, "31fswdbl3kL", "XTRATUF Fleece Lined Ankle Deck Boot", "XTRATUF", "boots", 4, "A fleece-lined deck boot for cold mornings."],
-  ["B082JHQP7N", 105, "31UH3633-wL", "XTRATUF 6 in. Wheelhouse Ankle Deck Boot", "XTRATUF", "boots", 4, "A leather deck boot that goes from dock to dinner."],
-  ["B0998FYXLS", 93.75, "416icj52+lL", "XTRATUF Mossy Oak Bottomland Ankle Deck Boot", "XTRATUF", "boots", 4, "Deck boots in Mossy Oak Bottomland camo."],
+  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0GV4BKM4W at 4% ($135); the same Bison/Duck Camo fleece-lined boot
+  // (xtratuf.com xmadbc90, 8/8 sizes) at xtratuf.com through CJ at 15%, $135 list, $101.25 with XT25 (through Nov 29).
+  { name: "XTRATUF Fleece Lined Ankle Deck Boot", brand: "XTRATUF", line: "A fleece-lined deck boot for cold mornings.", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmadbc90", image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/xmadbc90_g.jpg", store: "store-xtratuf", sortPrice: 135, price: 135, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
+  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B082JHQP7N at 4% ($105); the same brown Wheelhouse (xmw900) at
+  // xtratuf.com through CJ at 15%, $140 list, $105 with XT25 (through Nov 29), the Amazon price.
+  { name: "XTRATUF 6 in. Wheelhouse Ankle Deck Boot", brand: "XTRATUF", line: "A leather deck boot that goes from dock to dinner.", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmw900", image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMW900_gray_main_1400x1400_52c3f283-fa90-4227-8a07-ddfdcbc1acc6.jpg", store: "store-xtratuf", sortPrice: 140, price: 140, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
+  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0998FYXLS at 4% ($93.75); the same Mossy Oak Bottomland boot (xmabmob)
+  // at xtratuf.com through CJ at 15%, $125 list, $93.75 with XT25 (through Nov 29), the Amazon price.
+  { name: "XTRATUF Mossy Oak Bottomland Ankle Deck Boot", brand: "XTRATUF", line: "Deck boots in Mossy Oak Bottomland camo.", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabmob", image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMABMOB_gray_main_720x720_d16b4d27-7fc1-4833-a83f-06939c86fdb4.jpg", store: "store-xtratuf", sortPrice: 125, price: 125, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
   ["B0FY9LPSCW", 30, "31i+57DEsXL", "Columbia Ratchet Strap Snapback Hat", "Columbia", "hat", 4, "An easy snapback for every day."],
-  ["B0DQF73JH4", 30, "41RJSxadbBL", "The North Face Logo Box Cuffed Beanie", "The North Face", "hat", 4, "A warm cuffed beanie for cold mornings."],
+  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0DQF73JH4 at 4% ($30); the same TNF Black beanie (NF0A8CHE 001) at
+  // JD Sports at 15% (p-109003932), $35. Photo: JD Sports' own product shot.
+  { name: "The North Face Logo Box Cuffed Beanie", brand: "The North Face", line: "A warm cuffed beanie for cold mornings.", href: shopmy("p-109003932"), image: "https://media.jdsports.com/i/jdsports/NF0A8CHE_001_P3?w=1000", store: "store-jd-sports", sortPrice: 35, price: 35, commission: 15, type: "hat" },
   // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0FDYG11V3 at
   // 3% ($270); same item and color, Wetlands Camo, Tractor Supply 2580429 (yeti.com is out of it): 8%, $270.
   { name: "YETI Hopper Flip 12 Soft Cooler", brand: "YETI", line: "A soft cooler that keeps lunch cold all day.", href: shopmy("p-109004991"), image: "https://media.tractorsupply.com/is/image/TractorSupplyCompany/2580429", store: "store-tractor-supply", sortPrice: 270, price: 270, commission: 8, type: "cooler" },
@@ -201,7 +210,9 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B01M0KEKYK", 7.59, "31okBfIiBwL", "Scent-A-Way MAX Body Wash", "Hunters Specialties", "hunting", 3, "Scent-free body wash before the hunt."],
   ["B099ZXRRF8", 85.49, "51O8mxkWCWL", "TIDEWE 270 See Through Ground Blind", "TIDEWE", "hunting", 3, "A pop-up ground blind with see-through walls."],
   ["B0CJJCZ7T9", 116.99, "41iOI85KyYL", "WOZEL Spotting Scope with Tripod", "WOZEL", "binoculars", 3, "A spotting scope to glass the field from far off."],
-  ["B0FT97QYYZ", 47.2, "51ua57ASj0L", "Burlebo Thermal Waffle Knit Hoodie", "Burlebo", "sweatshirt", 4, "A waffle knit hoodie from a Southern outdoor brand."],
+  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0FT97QYYZ at 4% ($47.20); the same Classic Deer Camo hoodie at
+  // burlebo.com at 12% (p-109005228), $47.20 (Burlebo's own 20% off $59). Photo: burlebo.com's flat lay.
+  { name: "Burlebo Thermal Waffle Knit Hoodie", brand: "Burlebo", line: "A waffle knit hoodie from a Southern outdoor brand.", href: shopmy("p-109005228"), image: "https://cdn.shopify.com/s/files/1/0917/5998/files/TH-CDC_Flatlay.jpg", store: "store-burlebo", sortPrice: 47.2, price: 47.2, commission: 12, type: "sweatshirt" },
   ["B015541VKI", 34.01, "41dyQAkJV+L", "Legendary Whitetails Long Sleeve Henley", "Legendary Whitetails", "shirt", 4, "A soft henley for cool days."],
   ["B0DTDJH158", 18.99, "41rbkZT4EKL", "Sidomma Fishing Tool Set", "Sidomma", "fishing", 3, "Pliers and tools for the tackle box."],
   ["B0FHMYC386", 19.6, "41yqlHKjRBL", "HUK Short Sleeve Performance Fishing Tee", "HUK", "shirt", 4, "A light, quick-dry tee for the boat."],
@@ -227,7 +238,9 @@ export const HIM_1121 = [
   ["B0BLMQ8BXB", 27.06, "41VUzkUr2KL", "HOTO Electric Screwdriver Kit", "HOTO", "tool", 3, "A sleek rechargeable screwdriver with every bit."],
   ["B0DLGSQJYN", 27.69, "41m++ercdvL", "FINICO Rechargeable LED Headlamp", "FINICO", "light", 3, "A bright hands-free light for the garage or camp."],
   ["B0FHW66Z48", 27.99, "41WCCORx6BL", "Duck Calls, 5 Pack", "", "hunting", 3, "Five duck calls on a lanyard for the blind."],
-  ["B08P2C446P", 28, "314FhKMZAbL", "BURLEBO Cap", "BURLEBO", "hat", 4, "A broken-in cap from a Southern outdoor brand."],
+  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B08P2C446P at 4% ($28); the same cap (burlebo.com "Cap - BURLEBO
+  // Outdoors - Putty") at burlebo.com at 12% (p-109005373), $28. Photo: the burlebo.com cutout the Him cover already draws.
+  { name: "BURLEBO Cap", brand: "BURLEBO", line: "A broken-in cap from a Southern outdoor brand.", href: shopmy("p-109005373"), image: "https://www.louisianahelpr.com/gift-guides/cutouts/burlebo-outdoors-cap-putty-b33402.webp", store: "store-burlebo", sortPrice: 28, price: 28, commission: 12, type: "hat" },
   ["B01KTULYO6", 28.58, "41jWsAeRoHL", "Legendary Whitetails Buck Camp Flannel", "Legendary Whitetails", "shirt", 4, "A thick flannel shirt he will reach for all season."],
   ["B09R5TGLFR", 31.9, "51eZqCXlw0L", "Chemical Guys Car Cleaning Kit", "Chemical Guys", "car-care", 3, "Everything to wash and shine his truck."],
   ["B0CKMF6GPZ", 32.99, "41uo6lSsK3L", "HOSHANHO Fillet Knife", "HOSHANHO", "knife", 3, "A sharp, flexible fillet knife for the catch."],
@@ -300,7 +313,9 @@ export const KIDS_SHOPMY_1121 = [
   // locks and latches, picture boards, jungle table, Mine to Love doll, cutting food box) and the Danny Digger (not listed).
   ["108632430", 329, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/unORD3VQuzDRRzbMq1w_2taVM_6b58675d-6a24-48b1-8321-f3c6a6bc0c79.jpg", "Model U Zebra Ride-On", "PonyCycle", "store-maisonette", "ride-on", 16, "A plush zebra ride-on for little riders."],
   ["108632133", 84.99, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/x2IuT5-1A8vUEdadpwkoOvMBw.jpg", "Freddo Swing Car with Flashing Wheels", "Freddo", "store-maisonette", "ride-on", 16, "A wiggle car with light-up wheels."],
-  ["108632086", 28.76, "https://assets.wfcdn.com/im/03058393/compr-r85/1765/176593778/24+Piece+Melissa+%26+Doug+Jumbo+Cardboard+Blocks+Learning+Tools.jpg", "Melissa & Doug Jumbo Cardboard Blocks, 24 Pieces", "Melissa & Doug", "store-wayfair", "blocks", 11, "Big cardboard bricks for towers and forts."],
+  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Wayfair p-108632086 at 11% ($28.76; Wayfair's card
+  // now $34.99); the same 24-piece box at Macy's at 16% (p-109002741), $32.99. Same box photo.
+  ["109002741", 32.99, "https://assets.wfcdn.com/im/03058393/compr-r85/1765/176593778/24+Piece+Melissa+%26+Doug+Jumbo+Cardboard+Blocks+Learning+Tools.jpg", "Melissa & Doug Jumbo Cardboard Blocks, 24 Pieces", "Melissa & Doug", "store-macys", "blocks", 16, "Big cardboard bricks for towers and forts."],
   ["108632059", 74.99, "https://assets.wfcdn.com/im/70136508/compr-r85/8084/80848886/7.5+in.+Club+Chair+Kids+Club+Chair-38254990.jpg", "Melissa & Doug Kids Club Chair", "Melissa & Doug", "store-wayfair", "chair", 11, "A little upholstered club chair just their size."],
   ["108632004", 23.49, "https://slimages.macysassets.com/is/image/MCY/products/2/optimized/1779252_fpx.tif?wid=1000&fmt=jpeg", "Melissa & Doug Wooden Doorbell House", "Melissa & Doug", "store-macys", "pretend-play", 16, "A lock-and-key doorbell house with little dolls."],
   ["108631991", 43.49, "https://slimages.macysassets.com/is/image/MCY/products/5/optimized/8290245_fpx.tif?wid=1000&fmt=jpeg", "Melissa & Doug Double-Sided Magnetic Tabletop Easel", "Melissa & Doug", "store-macys", "art", 16, "A tabletop easel with a chalkboard and a dry-erase side."],
@@ -328,11 +343,13 @@ export const KIDS_AMAZON_MORE_1121 = [
   ["B0CRDG6KMT", 237.49, "31V05DQTV-L", "Segway Ninebot C2 Pro Kids Electric Scooter", "Segway", "scooter", 3, "A faster kids electric scooter for older riders."],
   ["B0F62SVY89", 271.68, "31Bsjq4rZGL", "Segway Ninebot E2 Plus II Electric Scooter", "Segway", "scooter", 3, "A full-size electric scooter for teens."],
   ["B0H3ZM1PMS", 299.99, "31q1HbybvGL", "Segway Ninebot S2 Kids Self-Balancing Scooter", "Segway", "hoverboard", 3, "A self-balancing scooter sized for kids."],
-  ["B0CT2WN59R", 484.49, "41l4bfCV9NL", "Segway Ninebot S2 Self-Balancing Scooter", "Segway", "hoverboard", 3, "A self-balancing scooter for big kids and teens."],
+  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0CT2WN59R at 3% ($484.49); the same black Segway S2 at Tractor Supply
+  // (item 6017105) at 8% (p-109001528), $484.99. Photo: Tractor Supply's own product shot.
+  { name: "Segway Ninebot S2 Self-Balancing Scooter", brand: "Segway", line: "A self-balancing scooter for big kids and teens.", href: shopmy("p-109001528"), image: "https://media.tractorsupply.com/is/image/TractorSupplyCompany/6017105?wid=1000&hei=1000", store: "store-tractor-supply", sortPrice: 484.99, price: 484.99, commission: 8, type: "hoverboard" },
   ["B09GXDQ122", 11.6, "41g75nJNagL", "Would You Rather Book for Kids", "", "book", 3, "Silly would-you-rather questions for car rides."],
   ["B0GT16T874", 14.98, "51u+SjYL7DL", "Taba Squishies Fidget Toys, 3 Pack", "", "squishy", 3, "Three squishy fidget toys to squeeze."],
   ["B0DDLZV8YM", 23.73, "51VHRxyCCdL", "Magic Gel Water Pets Kit", "", "craft", 3, "Make little gel water pets that come to life."],
-].map(row);
+].map((r) => (Array.isArray(r) ? row(r) : r));
 
 export const KIDS_1121 = [
   ["152350675X", 3.44, "51J30U2ygrL", "Paint by Sticker Kids: Christmas", "Workman", "book", 3, "Sticker-by-number Christmas pictures, no mess."],

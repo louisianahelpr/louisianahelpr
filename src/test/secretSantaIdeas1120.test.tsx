@@ -97,8 +97,9 @@ describe("a Secret Santa round keeps to the group's budget", () => {
     // Him's Amazon picks carry their captured prices now, so with her ShopMy saves for Him and Kids (train 1121c)
     // me, mom, her, dad and him fill every budget (measured 2026-11-21). The retired whos stay 0. Holiday audit 1121
     // (High): Kids draws from its whole flat list now and fills every budget, so it came off.
-    const none = ["teen", "friends", "coworkers", "grandparents", "louisiana"];
-    const KNOWN_THIN_1121 = [25, 50, 100].flatMap((b) => none.map((w) => `${w} $${b}: 0`));
+    // Owner 2026-11-21 evening: Swipe's people are only Her, Him and Kids now, so the retired whos (Teen, Friends,
+    // Coworkers, Grandparents, Louisiana) left SWIPE_WHO and this list with them; every person fills every budget.
+    const KNOWN_THIN_1121: string[] = [];
     expect(thin).toEqual(KNOWN_THIN_1121);
   });
 });
@@ -155,18 +156,20 @@ describe("saving for your Secret Santa match never goes on your wish list", () =
     expect(santaIdeasOnDevice("abcdef0123")).toEqual([]);
   });
 
-  it("the plain swipe page: for Mom, Save is \"Save for Mom\" into the planner (signed out: this device's), never the wish list", async () => {
+  // Owner 2026-11-21 evening: Swipe's people are Her, Him and Kids (Mom and Dad repeated Her and Him).
+  it("the plain swipe page: for Her, Save is \"Save for Her\" into the planner (signed out: this device's), never the wish list", async () => {
     const { container } = render(<MemoryRouter><SwipeGifts /></MemoryRouter>);
-    fireEvent.click(container.querySelector('[data-swipe-who="mom"]')!);
-    fireEvent.click(container.querySelector('[data-swipe-budget="0"]')!);
+    fireEvent.click(container.querySelector('[data-swipe-who="her"]')!);
+    await waitFor(() => expect(container.querySelector('[data-swipe-budget="under-25"]')).not.toBeNull(), { timeout: 5000 });
+    fireEvent.click(container.querySelector('[data-swipe-budget="under-25"]')!);
     fireEvent.click(container.querySelector("[data-swipe-start]")!);
     await waitFor(() => expect(container.querySelector("[data-swipe-card]")).not.toBeNull(), { timeout: 5000 });
     const save = container.querySelector("[data-swipe-save]")!;
-    expect(save.textContent).toBe("Save for Mom");
+    expect(save.textContent).toBe("Save for Her");
     const href = container.querySelector("[data-swipe-card]")!.getAttribute("data-swipe-card")!;
     fireEvent.click(save);
     expect(giftListNow().picks).toEqual([]);
-    expect(readPlanForSanta().people.find((p) => p.name === "Mom")?.ideas.map((i) => i.href)).toEqual([href]);
+    expect(readPlanForSanta().people.find((p) => p.name === "Her")?.ideas.map((i) => i.href)).toEqual([href]);
   });
 
   it("the plain swipe page, signed in: Save waits for the account's planner, then files under the person", async () => {
@@ -174,8 +177,9 @@ describe("saving for your Secret Santa match never goes on your wish list", () =
     let answer: (v: null) => void = () => {};
     loadAccountPlan.mockReturnValue(new Promise((r) => { answer = r; }));
     const { container } = render(<MemoryRouter><SwipeGifts /></MemoryRouter>);
-    fireEvent.click(container.querySelector('[data-swipe-who="dad"]')!);
-    fireEvent.click(container.querySelector('[data-swipe-budget="0"]')!);
+    fireEvent.click(container.querySelector('[data-swipe-who="him"]')!);
+    await waitFor(() => expect(container.querySelector('[data-swipe-budget="under-25"]')).not.toBeNull(), { timeout: 5000 });
+    fireEvent.click(container.querySelector('[data-swipe-budget="under-25"]')!);
     fireEvent.click(container.querySelector("[data-swipe-start]")!);
     await waitFor(() => expect(container.querySelector("[data-swipe-card]")).not.toBeNull(), { timeout: 5000 });
     expect((container.querySelector("[data-swipe-save]") as HTMLButtonElement).disabled).toBe(true);
@@ -184,7 +188,7 @@ describe("saving for your Secret Santa match never goes on your wish list", () =
     const href = container.querySelector("[data-swipe-card]")!.getAttribute("data-swipe-card")!;
     fireEvent.click(container.querySelector("[data-swipe-save]")!);
     expect(giftListNow().picks).toEqual([]);
-    expect(readPlanForSanta().people.find((p) => p.name === "Dad")?.ideas.map((i) => i.href)).toEqual([href]);
+    expect(readPlanForSanta().people.find((p) => p.name === "Him")?.ideas.map((i) => i.href)).toEqual([href]);
   });
 
   it("the reveal's Find a gift opens the swipe page for the match, with the budget, and no token in the URL", async () => {

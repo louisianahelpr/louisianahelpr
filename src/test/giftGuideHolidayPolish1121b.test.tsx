@@ -15,6 +15,7 @@
  *   - /shop-small leads with the Louisiana 25 Days sponsors (never an empty page) inside the guides' frame.
  *
  * @mutate src/content/giftGuideFun1120.ts |   for (const rest of from) { |   for (const rest of [] as T[]) {
+ * @mutate src/content/giftGuideFun1120.ts | const SWIPE_MIN = 3; | const SWIPE_MIN = 3; const SWIPE_BANDS = QUIZ_BUDGETS;
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | <p className="gg-swipe-meta m-0"><PickPrice pick={card} /></p> | <p className="gg-swipe-meta m-0"><span>{card.store}</span><PickPrice pick={card} /></p>
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx |         <GiftGuidesSidebar active={null} page={path} /> |         {null}
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx |         <GiftGuideTools path={path} title={title} /> |         {null}
@@ -39,7 +40,7 @@ import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
-import { SWIPE_BUDGETS, SWIPE_ROUND, SWIPE_WHO, borrowFits, seededRandom, swipePool, swipeRound } from "@/content/giftGuideFun1120";
+import { SWIPE_ROUND, SWIPE_WHO, borrowFits, seededRandom, swipePool, swipeRound } from "@/content/giftGuideFun1120";
 import { FINDER_WHO } from "@/content/giftGuideExtras1120";
 import { BUDGET_GUIDES, fitsBudget } from "@/content/giftPickBand";
 import { printablesForGuide } from "@/content/printables";
@@ -86,32 +87,34 @@ describe("a swipe round fills from a capped store once the others run out (holid
     await loadAllGuidePicks();
     const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
     const live = SWIPE_WHO.filter((w) => w.guides.every((g) => guideBySlug(g.slug)));
-    expect(live.length).toBeGreaterThan(3); // inventory floor: me, her, him, mom, dad, kids on 2026-11-21
+    // Owner 11-21 evening: Her, Him and Kids only (no Me, Mom or Dad). swipeRound is the Secret Santa round's deal now
+    // (a plain deck is swipeDeck, src/test/swipeWho1121.test.tsx); its budgets are the group's dollar limits.
+    expect(live.length).toBeGreaterThan(2); // inventory floor: her, him, kids on 2026-11-21
     const short: string[] = [];
-    for (const w of live) for (const b of SWIPE_BUDGETS) {
-      const borrow = b.id ? BUDGET_GUIDES.flatMap((g) => picksOf(g).filter((p) => borrowFits(w.id, p))) : [];
+    for (const w of live) for (const budget of [25, 50, 100, 0] as const) {
+      const borrow = budget ? BUDGET_GUIDES.flatMap((g) => picksOf(g).filter((p) => borrowFits(w.id, p))) : [];
       const pool = swipePool(w.id, picksOf);
-      const fitting = new Set([...pool, ...borrow].filter((p) => p.href && p.name && fitsBudget(p, b.id)).map((p) => p.href)).size;
-      const n = swipeRound(pool, b.id, new Set(), seededRandom(1), borrow).length;
-      if (n !== Math.min(SWIPE_ROUND, fitting)) short.push(`${w.id}/${b.id}: ${n} of ${fitting}`);
+      const fitting = new Set([...pool, ...borrow].filter((p) => p.href && p.name && fitsBudget(p, budget)).map((p) => p.href)).size;
+      const n = swipeRound(pool, budget, new Set(), seededRandom(1), borrow).length;
+      if (n !== Math.min(SWIPE_ROUND, fitting)) short.push(`${w.id}/${budget}: ${n} of ${fitting}`);
     }
     expect(short).toEqual([]);
   });
 });
 
 describe("the swipe card and its people (holiday audit 1121 #24)", () => {
-  it("Swipe lists people in the finder's order (Her, Him, Mom, Dad, Kids ...), after Me", () => {
-    const finder: string[] = FINDER_WHO.map((w) => w.id as string).filter((id) => ["her", "him", "mom", "dad", "kids"].includes(id));
-    const swipe = SWIPE_WHO.map((w) => w.id as string).filter((id) => finder.includes(id));
-    expect(finder.length).toBe(5);
-    expect(swipe).toEqual(finder);
-    expect(SWIPE_WHO[0].id).toBe("me");
+  // Owner 2026-11-21 evening ("I tapped Me and the first thing that came up was stuff for hunting but I'm a girl?"):
+  // Swipe offers the quiz's people, Her, Him and Kids, in that order; no Me, Mom or Dad.
+  it("Swipe lists Her, Him and Kids, in the quiz's order", () => {
+    const quiz: string[] = FINDER_WHO.map((w) => w.id as string).filter((id) => ["her", "him", "kids"].includes(id));
+    expect(SWIPE_WHO.map((w) => w.id)).toEqual(quiz);
   });
 
   it("a dealt card shows its price, never its store", async () => {
     const { container } = render(<MemoryRouter><SwipeGifts /></MemoryRouter>);
     fireEvent.click(container.querySelector('[data-swipe-who="her"]')!);
-    fireEvent.click(container.querySelector('[data-swipe-budget="0"]')!);
+    await waitFor(() => expect(container.querySelector('[data-swipe-budget="under-25"]')).not.toBeNull(), { timeout: 5000 });
+    fireEvent.click(container.querySelector('[data-swipe-budget="under-25"]')!);
     fireEvent.click(container.querySelector("[data-swipe-start]")!);
     await waitFor(() => expect(container.querySelector("[data-swipe-card]")).not.toBeNull(), { timeout: 5000 });
     const meta = container.querySelector(".gg-swipe-meta")!;
@@ -272,10 +275,14 @@ describe("the Shop Small sign-up form (holiday audit 1121 #76)", () => {
 describe("the swipe people read the finder's lists on first use, not at load (holiday audit 1121 #13)", () => {
   it("no module-level call reads FINDER_WHO (the build puts the two modules in chunks that import each other)", () => {
     const src = blankComments(readFileSync("src/content/giftGuideFun1120.ts", "utf8"));
-    const whoBlock = src.slice(src.indexOf("export const SWIPE_WHO"), src.indexOf("export const SWIPE_BUDGETS"));
+    const whoBlock = src.slice(src.indexOf("export const SWIPE_WHO"), src.indexOf("export const SWIPE_ROUND"));
     expect(whoBlock.length).toBeGreaterThan(200);
     expect(whoBlock).not.toMatch(/finderGuides\(|FINDER_WHO/);
-    expect((whoBlock.match(/finderWho\(/g) ?? []).length).toBeGreaterThan(5);
+    // The same trap with the quiz's chunk (owner 11-21 evening, Swipe matches the quiz): no module-level copy of a
+    // giftQuiz.ts value; a load-time SWIPE_BUDGETS = QUIZ_BUDGETS was undefined in the build and crashed "Kids".
+    const moduleLevel = src.split("\n").filter((l) => /^(export )?const /.test(l) && /\bQUIZ_[A-Z]+\b/.test(l));
+    expect(moduleLevel).toEqual([]);
+    expect((whoBlock.match(/finderWho\(/g) ?? []).length).toBeGreaterThan(2); // Her, Him, Kids (owner 11-21 evening)
     // The lists still resolve on use.
     expect(SWIPE_WHO.find((w) => w.id === "her")!.guides.length).toBeGreaterThan(0);
   });

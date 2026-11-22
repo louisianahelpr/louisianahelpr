@@ -79,7 +79,8 @@ export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: numbe
   return <span className="gg-thumb gg-letter" aria-hidden="true" data-gift-letter="">{storeLabel(pick)}</span>;
 }
 
-export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) {
+/** `rank` (the landing's Top 10, owner 11-21 evening "number the top 10 gifts"): a numeral badge on the photo's corner and "1." in the link's name. */
+export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: string; rank?: number }) {
   // Owner 11-21: filled when the gift is on My Wish List or on anyone's list (saveForPeople).
   const [wish, plan] = [useGiftList(), usePlan()];
   const saved = isSaved(wish, itemId(pick.href)) || onAnyList(plan, pick.href);
@@ -98,12 +99,13 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
           link". ONE link holds the photo and the name (calm: underlined on hover and focus only); the heart stays its
           own 44px button outside it. A screen reader hears "<name> (On <store>) ~$24 (opens in a new tab)". */}
       <GiftOut href={pick.href} className="gg-item" data-gift-title-link="">
+        {rank !== undefined && <span className="gg-rank" aria-hidden="true" data-gift-rank={rank}>{rank}</span>}
         <PickThumb pick={pick} />
         {/* Owner 2026-11-21 ("how can we polish the listings so they aren't so busy looking? maybe remove the subtitle
             that describes the item. just show the price and not 'on whatever site'"): the name (2 lines at most), then
             the price alone. No why-line and no "On <store>"; the store is still said to screen readers (sr-only). */}
         <span className="gg-nm">
-          <span className="gg-nm-name">{pick.name}</span>
+          <span className="gg-nm-name">{rank !== undefined && <span className="sr-only">{`${rank}. `}</span>}{pick.name}</span>
           <span className="sr-only">{isShopMyCollection(pick.href) ? ` (${G.collectionOnShopMy})` : storeLabel(pick) ? ` (${G.onStore(storeLabel(pick))})` : ""}</span>
           <small className="gg-nm-meta"><PickPrice pick={pick} /></small>
           {(badges || code || ship) && (

@@ -10,7 +10,9 @@ import { PickRow } from "./GiftGuideView";
  * "Top 10 gifts" on the gift guides landing (owner 2026-11-21 ~5:05 PM; the list and its rule: src/content/giftGuideTop10.ts).
  * The same card as the guides (photo and name are one link, the price, the heart), a calm sideways row on a phone and
  * a grid of five on a wider screen, under the three guide tiles. It loads the Her, Him and Kids picks after the page
- * opens and draws once they are in, so nothing above it moves. Guard: src/test/giftGuideTop10Landing1121.test.tsx.
+ * opens and draws once they are in, so nothing above it moves. Owner 11-21 evening ("number the top 10 gifts"): each card
+ * wears its rank, a small serif numeral on the photo's top-left corner, and says it first ("1. Therabody Theragun Mini").
+ * Guard: src/test/giftGuideTop10Landing1121.test.tsx.
  */
 export function GiftGuideTop10() {
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
@@ -28,7 +30,7 @@ export function GiftGuideTop10() {
     <section aria-labelledby="gift-top10" className="gg-top10-wrap" data-gift-top10="">
       <h2 id="gift-top10" className="gg-top10-h">{G.top10Title}</h2>
       <ul className="gg-list gg-top10">
-        {top.map((p) => <PickRow key={p.href} pick={p} guide={p.guide} />)}
+        {top.map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i + 1} />)}
       </ul>
       <PricesAsOf picks={top} />
     </section>

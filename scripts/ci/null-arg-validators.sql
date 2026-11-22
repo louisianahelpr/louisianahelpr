@@ -163,7 +163,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_keeps_up',            'classify', 'service only: does the listing-rounds sweep keep this listing up (its private keep-up switch); a NULL item matches no row and COALESCE makes it FALSE, the normal rounds (20261029154323)'),
   ('declutter_set_listing_drops',   'action',   'VOLATILE: the seller turns price drops on/off on their own listing and gets the stored value back (board 158; 20261020064354)'),
   ('declutter_set_wanted_public',   'action',   'VOLATILE: the poster opens or closes public answers on their own Wanted post and gets the stored value back (a NULL choice is stored as false; 20261021031757)'),
-  ('gift_wish_list_delete',         'noarg',    'reads auth.uid() only (no argument; VOLATILE): the signed-in member deletes their own account wish list and reports success (20261122024017)'),
+  ('gift_wish_list_delete',         'action',   'VOLATILE, no argument (reads auth.uid() only): the signed-in member deletes their own account wish list and reports success (20261122024017)'),
   ('gift_wish_list_claim',          'action',   'VOLATILE: the browser that just made a wish-list snapshot stores its owner token''s hash (once, within 60 seconds) and reports success (20261122024017)'),
   ('gift_wish_list_unshare',        'action',   'VOLATILE: deletes a claimed wish-list snapshot whose token hash matches and reports success (20261122024017)'),
   ('declutter_set_porch_ok',        'action',   'VOLATILE: the seller sets porch pickup on their own draft and gets the stored value back; a NULL choice raises invalid_porch_choice (row 101; 20261017055504)'),
@@ -764,8 +764,10 @@ BEGIN
     SELECT k.fn, k.kind, p.pronargs, p.provolatile
       FROM q140_class k JOIN pg_proc p ON p.proname = k.fn AND p.pronamespace = 'public'::regnamespace AND p.prorettype = 'boolean'::regtype
   LOOP
-    IF (r.kind = 'noarg') <> (r.pronargs = 0) THEN
-      INSERT INTO q140_out VALUES (r.fn, 'WRONG_KIND', 'noarg iff it takes no arguments');
+    -- A no-argument VOLATILE function (gift_wish_list_delete(), 20261122024017) is an action: it has no argument to
+    -- NULL and is never probed, so it is classified 'action', and 'noarg' means a no-argument check (not VOLATILE).
+    IF (r.kind = 'noarg') <> (r.pronargs = 0 AND r.provolatile <> 'v') THEN
+      INSERT INTO q140_out VALUES (r.fn, 'WRONG_KIND', 'noarg iff it takes no arguments and is not VOLATILE (a no-argument VOLATILE function is an action)');
     ELSIF (r.kind = 'action') <> (r.provolatile = 'v') THEN
       INSERT INTO q140_out VALUES (r.fn, 'WRONG_KIND', 'action iff VOLATILE (a volatile check is not probed: say why, or make it STABLE)');
     END IF;

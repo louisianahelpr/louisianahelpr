@@ -339,6 +339,8 @@ export const CUTOUTS_1120 = new Map([
   ["https://cdni.llbean.net/is/image/wim/520696_48183_41", "llbean-rollneck-sweater-cream-dog-9c6e33.webp"],
   ["https://cdni.llbean.net/is/image/wim/267093_129_41", "llbean-adirondack-barn-coat-dark-khaki-6f5271.webp"],
   ["https://dms.deckers.com/hoka/image/upload/t_product-xlarge-wp/v1/1162012-WWH_1.png", "hoka-bondi-9-womens-white-bbc928.webp"],
+  // owner 11-22 kids tech: PlayStation 5 Digital Edition (target.com photo, on white)
+  ["https://target.scene7.com/is/image/Target/GUEST_c12714d1-b136-41c9-9b43-5579ff0c08f8", "playstation-5-digital-edition-target-251c36.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

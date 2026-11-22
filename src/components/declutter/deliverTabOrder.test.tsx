@@ -2,12 +2,14 @@
  * Audit DD D1 (lead 2026-10-30, shots dd-d1-deliver-tab-p1..p3-375wk): the Deliver tab stacked five cards with the
  * deliveries to take last, and offered "Go online" before the Helpr had a vehicle. Now:
  *   - no car saved: the full explainer, then "Your vehicle" as step 1, then the deliveries list; no Go online;
- *   - a car saved: the deliveries to take first, then the Helpr's own, then Go online, and "Your vehicle" last;
+ *   - a car saved: Go online right under the explainer (audit 1122 #145: it sat two screens down, below both
+ *     lists), then the deliveries to take, then the Helpr's own, and "Your vehicle" last;
  *     the explainer folds to its title, which opens it again;
  *   - saving the first car never moves the vehicle card (its place is decided by the first read).
  *
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {setUp && <GoOnlineCard userId={userId} where={where} />} |       <GoOnlineCard userId={userId} where={where} />
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {setUp ? <DeliverExplainer collapsed /> : intro} |       {intro}
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {/* Q2435, narrowed by audit DD D2 |       {setUp && <GoOnlineCard userId={userId} where={where} />}{/* Q2435, narrowed by audit DD D2
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {vehicleFirst === true && <VehicleForm userId={userId} />} |
  * Audit 1c D3-6: a Helpr with no car is told how many deliveries are open (helpr_tasks_open_count, every vehicle),
  * and the busy card counts every open delivery, not only those the Helpr's vehicle fits.
@@ -97,14 +99,14 @@ describe("Deliver puts the next step first (audit DD D1)", () => {
     expect(screen.getByText(PAY)).toBeInTheDocument();
   });
 
-  it("a car saved: deliveries first, then Go online, Your vehicle last; the explainer folds and opens again", async () => {
+  it("a car saved: Go online first (#145), then the deliveries, Your vehicle last; the explainer folds and opens again", async () => {
     state.vehicle = { has_car: true, has_truck: false, second_person: false, photo_path: null };
     state.open = [OPEN];
     const { container } = show();
     await screen.findByText("Blue mug");
     await screen.findByRole("switch", { name: "Online for deliveries" });
     expect(order(container)).toEqual([
-      "Deliver Declutter items and get paid", "Deliveries near you", "Your deliveries", "Go online for deliveries", "Busy right now", "Your vehicle",
+      "Deliver Declutter items and get paid", "Go online for deliveries", "Deliveries near you", "Your deliveries", "Busy right now", "Your vehicle",
     ]);
     expect(screen.queryByText(PAY)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Deliver Declutter items and get paid" }));
@@ -117,7 +119,7 @@ describe("Deliver puts the next step first (audit DD D1)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText("Vehicle saved.")).toBeInTheDocument();
     await screen.findByRole("switch", { name: "Online for deliveries" });
-    await waitFor(() => expect(order(container).slice(0, 2)).toEqual(["Deliver Declutter items and get paid", "Your vehicle"]));
+    await waitFor(() => expect(order(container).slice(0, 3)).toEqual(["Deliver Declutter items and get paid", "Your vehicle", "Go online for deliveries"]));
     expect(screen.getByText("Vehicle saved.")).toBeInTheDocument();
   });
 

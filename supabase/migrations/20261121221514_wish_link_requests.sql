@@ -59,6 +59,15 @@ ALTER TABLE public.wish_link_requests ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.wish_link_requests FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.wish_link_requests TO service_role;
 
+-- Every public table keeps the unconfirmed-email gate (Q807; db-smoke).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
+
 -- A pasted link's page key: amazon:<ASIN> for an Amazon product, else host (no www.) + path, lower case, no query.
 CREATE OR REPLACE FUNCTION public.wish_link_url_key(p_url text)
 RETURNS text

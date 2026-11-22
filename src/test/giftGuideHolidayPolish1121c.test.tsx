@@ -9,7 +9,7 @@
  *   - #57 the sales and codes read through one cleaner: no cut-off line, no row that is not a sale, no ALL CAPS run,
  *     no "Shop Now" or end date inside the words, brands spelled their way, and no bare "Holiday code";
  *   - #80 the deals copy does not claim each sale was checked by hand;
- *   - #81 a code whose store has a link opens the store from its box.
+ *   - #81 every code carries its store link (affiliate, else the plain home page) and its box shows Shop.
  *
  * @mutate src/content/giftGuidePicks/kids.json | 71wfzJhV-aL | 41-YrWLVSgL
  * @mutate src/content/giftGuidePicks/her.json | 814X2uIfEUL | 51F+lcxZoPL
@@ -31,6 +31,7 @@ import { queryBudget, searchGuides, searchItemDollars, searchItems, type SearchI
 import { pickPriceShown } from "@/lib/pickPriceShown.mjs";
 import { cleanCodes, cleanOffer, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
 import { DEAL_CODES, SALES } from "@/content/giftGuidePicks";
+import { discountCodes } from "@/content/giftGuides";
 import { DEALS_WORDS, dealDay } from "@/content/giftGuideDeals.mjs";
 import { DealsAndCodes } from "@/pages/info/giftGuides/GiftGuidesSidebar";
 import { GiftGuideTools } from "@/pages/info/giftGuides/GiftGuideShare";
@@ -178,5 +179,19 @@ describe("holiday audit 1121 #80 and #81: deals copy claims and code links", () 
     const shop = container.querySelector<HTMLAnchorElement>(`[data-gift-code-shop="Lands' End"]`);
     expect(shop?.getAttribute("href")).toBe("https://mavely.app.link/1IAq8TqQa8b");
     expect(shop?.getAttribute("rel")).toContain("sponsored");
+  });
+
+  // Lead 11-21: every code gets its store link (affiliate, else the brand's plain home page), the owner's own included.
+  // @mutate src/content/giftGuides.ts | offer: "10% off; stacks with eligible promotions", href: "https://cookmagnifique.com/" | offer: "10% off; stacks with eligible promotions"
+  it("every code we list carries an https store link, and each store box shows Shop", () => {
+    const codes = [...discountCodes, ...cleanCodes(DEAL_CODES)];
+    expect(codes.length).toBeGreaterThan(15);
+    for (const c of codes) expect(c.href, `${c.store} ${c.code}`).toMatch(/^https:\/\/[a-z0-9.-]+\.[a-z]+\//);
+    const { container } = render(<MemoryRouter><DealsAndCodes on="2026-11-22" /></MemoryRouter>);
+    const allCodes = container.querySelector<HTMLButtonElement>("[data-gift-all-codes]");
+    if (allCodes) fireEvent.click(allCodes);
+    const boxes = [...container.querySelectorAll("[data-gift-code-store]")];
+    expect(boxes.length).toBeGreaterThan(5);
+    for (const b of boxes) expect(b.querySelector("[data-gift-code-shop]"), b.getAttribute("data-gift-code-store") ?? "").not.toBeNull();
   });
 });

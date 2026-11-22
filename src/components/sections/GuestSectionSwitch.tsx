@@ -23,11 +23,13 @@ export function GuestSectionSwitch({ at, className = "" }: { at: GuestSection; c
   // /browse does not drop by a row when it comes back open, as it does today. A settled "not open" draws nothing.
   if (at !== "declutter" && !settled) {
     return (
-      <div className={className} aria-hidden data-guest-section-switch-pending="">
-        <div className="chip-row">
-          <button type="button" tabIndex={-1} disabled className="invisible">{t("nav.jobs")}</button>
-          <button type="button" tabIndex={-1} disabled className="invisible">{t("nav.declutter")}</button>
-        </div>
+      <div className={`${className} invisible`} aria-hidden data-guest-section-switch-pending="">
+        <FilterChips<GuestSection>
+          chips={[{ value: "jobs", label: t("nav.jobs") }, { value: "declutter", label: t("nav.declutter") }]}
+          value={at}
+          onChange={() => {}}
+          label={t("nav.sections")}
+        />
       </div>
     );
   }

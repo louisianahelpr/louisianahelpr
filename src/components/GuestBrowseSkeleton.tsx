@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { FilterChips } from "@/components/ui/FilterChips";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import PageHeader from "@/components/PageHeader";
 import { PUBLIC_CONTAINER } from "@/lib/publicContainer";
@@ -120,11 +121,13 @@ const GuestBrowseSkeleton = () => {
         {/* Jobs audit 11-21 (P10): the page opens with the "Jobs | Declutter" switch (GuestSectionSwitch, mb-2, drawn
             while Declutter is open to everyone, as it is). Its row is held here with the same chip-row and invisible
             chips of the same words, so the list does not drop by a row when it lands. */}
-        <div className="mb-2" aria-hidden data-skeleton-section-switch="">
-          <div className="chip-row">
-            <button type="button" tabIndex={-1} disabled className="invisible">{t("nav.jobs")}</button>
-            <button type="button" tabIndex={-1} disabled className="invisible">{t("nav.declutter")}</button>
-          </div>
+        <div className="mb-2 invisible" aria-hidden data-skeleton-section-switch="">
+          <FilterChips
+            chips={[{ value: "jobs", label: t("nav.jobs") }, { value: "declutter", label: t("nav.declutter") }]}
+            value="jobs"
+            onChange={() => {}}
+            label={t("nav.sections")}
+          />
         </div>
         <div className={`${GUEST_FEED_GRID_CLASS} ${GUEST_FEED_RESERVE_CLASS}`}>
           {Array.from({ length: 6 }).map((_, i) => (

@@ -29,7 +29,7 @@ vi.mock("@/integrations/supabase/client", () => {
 
 import { usePostJobForm } from "@/pages/post-job/usePostJobForm";
 
-const HELPR = "5af6ce6d-68a8-4f98-b9d4-4fab20f1a607";
+const HELPR = "00000000-0000-4000-8000-0000000a1132";
 
 describe("clearing a direct offer drops ?offerTo= (audit 11-21 L32)", () => {
   it("the param goes with the offer; other params stay", () => {

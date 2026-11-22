@@ -79,7 +79,7 @@
  * @mutate src/components/TimePickerWheel.tsx |       {!hasValue && !awaitingPeriod && ( |       {false && (
  *
  * L34 (poster): quote cards drew a blank grey circle for a quoter with no photo; "Past work photos 0 0 0" took a row.
- * @mutate src/pages/quotes/QuoteRequestPage.tsx | <UserAvatar userId={quote.quoter_id} | <span aria-hidden className="h-10 w-10 shrink-0 rounded-full bg-muted" data-x={quote.quoter_id}
+ * @mutate src/pages/quotes/QuoteRequestPage.tsx | <UserAvatar userId={quote.quoter_id} src={quote.quoter_avatar_url} name={formatName(quote.quoter_name, "A member")} pixelSize={40} aria-hidden className="h-10 w-10 shrink-0" /> | <span aria-hidden className="h-10 w-10 shrink-0 rounded-full bg-muted" data-x={quote.quoter_id} />
  * @mutate src/components/quotes/QuotesSideBySide.tsx |             {live.some((q) => (q.photo_paths ?? []).length > 0) && ( |             {true && (
  *
  * L35 (poster): /jobs/settings rows ran ~1600px wide at 1920.

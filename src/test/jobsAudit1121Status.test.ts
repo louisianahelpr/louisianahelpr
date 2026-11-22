@@ -17,6 +17,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
+import { jobLocalDateISO } from "./helpers/jobLocalDate";
 import { jobProgress } from "@/components/tracker/jobProgressState";
 import { jobNextStep } from "@/components/tracker/jobNextStep";
 import { reviewTimeLeft } from "@/pages/jobs/jobPage/reviewTimeLeft";
@@ -26,7 +27,7 @@ import { t } from "@/lib/i18n/language";
 
 const code = (f: string) => blankComments(readFileSync(f, "utf8"));
 const openJob = (payment_status: string) =>
-  ({ id: "j1", status: "open", helper_id: null, date_needed: "2026-12-14", start_time: null, payment_status }) as never;
+  ({ id: "j1", status: "open", helper_id: null, date_needed: jobLocalDateISO(23), start_time: null, payment_status }) as never;
 
 describe("G6 (2): an unpaid job is not posted, and its one step is paying", () => {
   it("the poster's tracker: 'Not posted yet', the step is theirs, and never 'Choose a Helpr' even with an applicant", () => {

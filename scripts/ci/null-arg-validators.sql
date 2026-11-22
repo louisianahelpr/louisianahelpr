@@ -47,6 +47,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('check_dispute_velocity',        'allow',    'TRUE = under the dispute limit (no fraud flag)'),
   ('credential_document_path_ok',   'allow',    'profile credential URL is the member''s own object'),
   ('dispute_evidence_url_ok',       'allow',    'evidence URL is the uploader''s own object for this job'),
+  ('wish_link_url_ok',              'allow',    'Santa wish links (20261121221514): TRUE = the URL is a plain public https link the queue may store; service_role only'),
   ('feature_enabled_for',           'allow',    'hidden feature switch is on for the caller (20261012031120)'),
   ('rentals_caller_is_active_tenant_of','allow', 'is the caller an active tenant of this property (Rentals S1 read policies, 20261017205605)'),
   ('home_talk_listing_ok',          'allow',    'Homes messages (20261106182837): TRUE = the listing''s threads are open (live, paused or leased; owner in good standing)'),
@@ -298,6 +299,7 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('check_dispute_velocity',        NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1]),
   ('credential_document_path_ok',   NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''insurance''', '''00000000-0000-4000-8140-00000000000a/credentials/insurance-1787168146999.png'''], ARRAY[1,2,3]),
   ('dispute_evidence_url_ok',       NULL, ARRAY['''00000000-0000-4000-8140-00000000000a/disputes/00000000-0000-4000-8140-000000000101/a.png''', '''00000000-0000-4000-8140-00000000000a''::uuid', '''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1,2,3]),
+  ('wish_link_url_ok',              NULL, ARRAY['''https://example.com/gift'''], ARRAY[1]),
   -- switch_canary is created as 'testers' (20261012031120) and D is an admin, so the non-NULL call is TRUE.
   ('feature_enabled_for',           '00000000-0000-4000-8140-00000000000d', ARRAY['''switch_canary'''], ARRAY[1]),
   -- A is the active tenant of rental property P (owned by D), so the non-NULL call is TRUE for A.

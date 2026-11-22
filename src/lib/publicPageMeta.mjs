@@ -74,7 +74,9 @@ export const PUBLIC_PAGE_META = {
     // Holiday audit 1121: only Her, Him and Kids are live (src/content/giftGuideLive.mjs), so the head names only them.
     description: "Gift ideas for her, him and the kids from Louisiana Helpr, every pick with its price and sorted by budget.",
     canonical: `${SITE_ORIGIN}/gift-guides`,
-    ogTitle: "Holiday gift guides 2026 from Louisiana Helpr",
+    // Owner 2026-11-22 (her 6 PM Facebook post): the shared link's headline is "Holiday gift guides 2026" with no "from
+    // Louisiana Helpr" (og:site_name still names the site); Facebook will not let her edit the headline herself.
+    ogTitle: "Holiday gift guides 2026",
     ogDescription: "Gift ideas for her, him and the kids, every pick with its price.",
   },
   // Gift guides fun features (owner 2026-11-20): in the sitemap with the guides; giftGuidePageMeta.mjs answers these

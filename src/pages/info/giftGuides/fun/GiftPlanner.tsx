@@ -252,11 +252,12 @@ export default function GiftPlanner() {
       {ready && plan.people.length === 0 && <p className="gg-fun-note" data-plan-empty="">{W.plannerEmpty}</p>}
       <fieldset className="m-0 min-w-0 border-0 p-0" disabled={!ready} data-plan-editable={ready ? "" : undefined}>
       <ul className="gg-fun-list gg-plan-people">{plan.people.map((p, k) => <Person key={p.id} p={p} index={k} />)}</ul>
-      {/* Owner 2026-11-22: "Add a person" is one compact row (the box and the button the same 44px height). */}
+      {/* Owner 2026-11-22: "Add a person" is one compact row (the box and the button the same 44px height). Each asks
+          for 44px by class (the box h-11, the button size="sm"), the height the CSS draws (sweep geometry, 1122). */}
       <form className="gg-fun-row gg-plan-add" onSubmit={add}>
-        <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} aria-invalid={addErr === LISTS.nameFirst || undefined}
+        <Input className="h-11" aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} aria-invalid={addErr === LISTS.nameFirst || undefined}
           aria-describedby={addErr ? "gg-plan-add-err" : undefined} onChange={(e) => { setName(e.target.value); if (addErr === LISTS.nameFirst) setAddErr(null); }} data-plan-new-name="" />
-        <Button type="submit" className="btn-grad-primary gg-plan-add-btn" data-plan-add-person="">{W.plannerAddPerson}</Button>
+        <Button type="submit" size="sm" className="btn-grad-primary gg-plan-add-btn" data-plan-add-person="">{W.plannerAddPerson}</Button>
       </form>
       {addErr && <p id="gg-plan-add-err" className="gg-fun-err" role="alert" data-plan-add-err="">{addErr}</p>}
       {/* Two lists or more: one link for all of them (one list shares from its own card). */}

@@ -38,6 +38,7 @@ import {
 } from "@/content/giftGuideDeals.mjs";
 import { dealDayPageMeta, giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { DEAL_CODES, SALES } from "@/content/giftGuidePicks";
+import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
 import { activeCodes, discountCodes } from "@/content/giftGuides";
 import { buildDeals, type SourceDeal } from "../../scripts/gift-guide-deals.mjs";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
@@ -228,7 +229,8 @@ describe("deals days: one page per day (owner 11-21)", () => {
   });
 
   it("each deals day's codes box starts collapsed and holds only the codes and sales that still work on that day", async () => {
-    const all = [...discountCodes, ...DEAL_CODES];
+    // Holiday audit 1121 #57: the box reads the feed rows through cleanCodes / cleanSales.
+    const all = [...discountCodes, ...cleanCodes(DEAL_CODES)];
     const counts: number[] = [];
     for (const day of [BF, CM]) {
       const c = await renderDay(day, "2026-11-21");
@@ -247,7 +249,7 @@ describe("deals days: one page per day (owner 11-21)", () => {
       expect(shown, day.id).toEqual(want);
       counts.push(shown.length);
       expect(box.querySelector("[data-gift-deals-count]")!.textContent, day.id).toContain(`${want.length} code`);
-      expect(box.querySelector("[data-gift-deals-count]")!.textContent, day.id).toContain(`${liveSales(SALES, on).length} store sale`); // holiday audit 1121: store sales, not "deals"
+      expect(box.querySelector("[data-gift-deals-count]")!.textContent, day.id).toContain(`${liveSales(cleanSales(SALES), on).length} store sale`); // holiday audit 1121: store sales, not "deals"
       cleanup();
     }
     // The dated codes land on their own day only: Black Friday's TAKE25 and XT25, Cyber Monday's CYBER.

@@ -79,7 +79,7 @@ color:var(--gg-ink)}
 .gg-tools-search.is-open{width:min(360px,calc(100vw - 40px));display:flex;align-items:center}.gg-tools-search.is-open .gg-search{flex:1 1 auto;min-width:0}
 .gg-tools-search .gg-search input{padding-right:44px}
 .gg-search-close{position:absolute;right:0;top:50%;transform:translateY(-50%);background:transparent;color:var(--gg-muted)}
-/* Owner 2026-11-22 ("Polish the search bar somehow"; her iPhone: the open field slid over the row and cut off "83 gift",
+/* Owner 2026-11-22 (polish the search bar; her iPhone: the open field slid over the row and cut off "83 gift",
    with a heavy dark-olive ring): a soft field (thin light-olive border, white, 12px corners) whose focus darkens the
    border and adds a light ring. On a phone the open search takes the whole count row in place: the count, the order-by
    pill and the other icons step out (display:none, nothing under it, nothing cut), the field fills the row at the same

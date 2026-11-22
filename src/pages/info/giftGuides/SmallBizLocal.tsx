@@ -65,8 +65,8 @@ function LocalCard({ b }: { b: SbsListing }) {
   // Owner 2026-11-22 ("remove visit, they can click the picture or title to visit"): the logo and the name each open the
   // business's page in a new tab (as Visit did); no link, plain text. The logo link repeats the name's, so it is hidden
   // from screen readers and Tab.
-  const out = (className: string, children: React.ReactNode, hidden = false) => (
-    <a href={href!} target="_blank" rel="noopener noreferrer nofollow ugc" className={className} data-gift-sb-out=""
+  const out = (className: string, children: React.ReactNode, hidden = false) => href && (
+    <a href={href} target="_blank" rel="noopener noreferrer nofollow ugc" className={className} data-gift-sb-out=""
       {...(hidden ? { "aria-hidden": true, tabIndex: -1 } : {})}>{children}</a>
   );
   return (

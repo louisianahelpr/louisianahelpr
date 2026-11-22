@@ -24,7 +24,7 @@ import { NextStep } from "@/components/ui/NextStep";
  *
  * IT ABSORBS THE COLLAPSED DISPUTE BADGE. That badge was the one thing a
  * collapsed disputed card said, and it survives verbatim as `tone: "alarm"` —
- * same words ("Dispute open" / "Admin reviewing" ... "Payment on hold"), same
+ * same words ("Dispute open" / "In review" ... "Payment on hold"), same
  * sienna, same `data-dispute-open-badge` hook, so `helperDisputeCopy` still
  * pins that a Helpr scrolling My Jobs can see a 72-hour clock on their pay.
  * The PANEL stays behind the expand, which was already the ruling: controls

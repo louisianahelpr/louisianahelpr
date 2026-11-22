@@ -11,6 +11,9 @@
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |   const late = can.notDelivered && !noShowWaiting; |   const late = false;
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | !late && <Button type="button" variant="primary" size="sm" disabled={busy} onClick={() => setAsk("gotIt")}>I got it</Button>} | !late && <Button type="button" variant="primary" size="sm" disabled={busy} onClick={() => gotIt.mutate(undefined)}>I got it</Button>}
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} onRetry={() => void booking.refetch()} /> | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} />
+ * Deep audit 11-22 #15: the card's own button opens its sheet at once, only when that button would show here.
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |   useEffect(() => { if (askNow) setAsk(askNow.what); }, [askNow?.what, askNow?.n]); |   useEffect(() => {}, [askNow?.what, askNow?.n]);
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx | (cardAsk.what === "gotIt" ? canNow.gotIt : canNow.notDelivered && !noShowWaiting) | true
  * #7 (deep audit 2026-10-28): before the delivery day the buyer is told when "I got it" comes, and gets no button.
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" |         {false && b.order_status === "paid"
  * AUD31-38: after "It wasn't delivered", and once the delivery's hour has passed, the buyer is not offered Leave it at my door / Hand it to me.
@@ -52,7 +55,7 @@ vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()),
   fetchOrderPickupTimes: async () => [],
 }));
-import { SellerDeliveryOrderPanel } from "./SellerDeliveryOrder";
+import { SellerDeliveryOrderPanel, type CardAsk } from "./SellerDeliveryOrder";
 
 const HOUR = 3_600_000;
 const iso = (ms: number) => new Date(Date.now() + ms).toISOString();
@@ -62,9 +65,9 @@ const BASE: SellerDeliveryBooking = {
   proposals_left: 1, delivered_at: null, delivered_photo_path: null, confirmed_at: null, not_delivered_from: iso(73.25 * HOUR),
 };
 
-function show(problemOpen?: boolean) {
+function show(problemOpen?: boolean, askFor: CardAsk | null = null) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><SellerDeliveryOrderPanel orderId="o" userId="u1" onProblem={() => {}} problemOpen={problemOpen} /></QueryClientProvider>);
+  return render(<QueryClientProvider client={qc}><SellerDeliveryOrderPanel orderId="o" userId="u1" onProblem={() => {}} problemOpen={problemOpen} askFor={askFor} /></QueryClientProvider>);
 }
 
 async function askAndConfirm(button: string, title: RegExp, confirm: string, call: string) {
@@ -134,6 +137,23 @@ describe("seller-delivery order: the money moments ask in the app", () => {
     show();
     await askAndConfirm("I got it", /Do you have it\?.*the seller is paid/, "I got it", "got_it");
     expect(window.confirm).not.toHaveBeenCalled();
+  });
+
+  it("#15: asked from the card, its sheet opens with no second tap; never when that button would not show", async () => {
+    state.booking = { ...BASE, delivered_at: iso(-HOUR) };
+    const r = show(false, { what: "gotIt", n: 1 });
+    expect(await screen.findByRole("dialog")).toHaveTextContent(/Do you have it\?/);
+    r.unmount();
+    state.booking = { ...BASE, slot_start: iso(-2 * HOUR), slot_end: iso(-1 * HOUR), not_delivered_from: iso(-0.75 * HOUR) };
+    const r2 = show(false, { what: "notDelivered", n: 1 });
+    expect(await screen.findByRole("dialog")).toHaveTextContent(/It wasn't delivered\?/);
+    r2.unmount();
+    // Before the delivery day: no I got it, so no sheet either.
+    state.booking = { ...BASE };
+    show(false, { what: "gotIt", n: 1 });
+    expect(await screen.findByText("You can confirm you got it from the delivery day.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(state.calls).toEqual([]);
   });
 
   it("buyer, after the hour: It wasn't delivered asks first", async () => {

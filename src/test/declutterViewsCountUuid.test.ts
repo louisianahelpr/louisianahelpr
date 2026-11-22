@@ -16,7 +16,7 @@
  * Behaviour (real Postgres): FIX_MIGRATION=skip node src/test/pglite/declutterItemDemand.pglite.mjs -> 3 FAIL (42804);
  * without it 9 PASS. Same for declutterSellingHome.pglite.mjs (10 FAIL / 13 PASS) and declutterShopSale.pglite.mjs.
  *
- * @mutate supabase/migrations/20261120121830_declutter_views_coalesce_uuid.sql | (SELECT count(DISTINCT COALESCE(v.viewer_id, v.device_id))::integer | (SELECT count(DISTINCT COALESCE(v.viewer_id::text, v.device_id))::integer
+ * @mutate supabase/migrations/20261122134941_declutter_demand_offers_off.sql | (SELECT count(DISTINCT COALESCE(v.viewer_id, v.device_id))::integer | (SELECT count(DISTINCT COALESCE(v.viewer_id::text, v.device_id))::integer
  * @mutate src/test/pglite/declutterSellingHome.pglite.mjs | await db.exec(viewsTable); | await db.exec(`create table public.declutter_item_views(item_id uuid, viewer_id uuid, device_id text, created_at timestamptz)`);
  */
 import { readFileSync } from "node:fs";

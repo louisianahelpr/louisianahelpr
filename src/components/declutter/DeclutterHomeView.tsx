@@ -71,15 +71,15 @@ import {
 import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine, HaulAwayTooSoonTip } from "./DeclutterHaulAway";
 import { DonationReceipts } from "./DeclutterDonate";
 import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
-import { report } from "@/lib/errorLogger";
 import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 // Types only: the predicates (oneTripGroup, haulJobToDelete) come with the lazily loaded haul-away code (Q178).
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { DeclutterHomeSkeleton, DeclutterTabBones, ListingsSkeleton, TabSkeleton } from "./DeclutterSkeletons";
 import { ListingThumb } from "./ListingThumb";
-import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
+import { isListingsRow, myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
 import { useOpenProblems } from "./useOpenProblems";
+import { releaseHaulJob } from "./releaseHaulJob";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { t, useLanguage } from "@/lib/i18n/language";
 import { DECLUTTER_SETTINGS, ListingPrice, matchesListingSearch, SellingSettingsEntry, SOLD } from "./declutterSellingParts";
@@ -87,7 +87,6 @@ import "@/lib/i18n/enDeclutter";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => loadModule(() => import("@/lib/declutter/haulAway"));
-type HaulLib = typeof import("@/lib/declutter/haulAway");
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically from two Declutter screens, the shared Helpr task module rode in signed-in-shared and put /posts over its budget.
 const DeliverView = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.DeliverView })));
 
@@ -157,31 +156,10 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   });
   const haulById = useMemo(() => new Map<string, HaulAwayRow>((haul.data?.rows ?? []).map((r) => [r.item_id, r])), [haul.data]);
   const freeIds = useMemo(() => new Set((mine.data ?? []).filter((i) => i.current_price_cents === 0).map((i) => i.id)), [mine.data]);
-  // An unpaid haul-away's job is deleted first (its checkout can then never be opened again), then the item is put back
-  // or booked on a new job. Only a 'job_open' job is deleted (never a cancelled one, whose photos and record stay). A
-  // declined card's job ('job_stuck') can't be deleted by its poster, so it is never tried: reported, and the seller is
-  // told it can't be removed from here; a delete the policy refuses anyway is reported inside deleteNeverPaidHaulJob
-  // (unwrapMutation) and told the same way.
-  // `lib` is loaded by the caller BEFORE anything is deleted: work that has written must never wait on a reload.
-  const releaseJob = async (row: HaulAwayRow, lib: HaulLib) => {
-    // Its words ride on userMessage (declutterErrorMessage shows them): the
-    // haul-away copy loads with the haul-away code, never on /posts (Q178).
-    const stuck = () => Object.assign(new Error("haul_away_job_stuck"), { userMessage: lib.HAUL_AWAY_CLIENT_ERROR_COPY.haul_away_job_stuck });
-    if (row.job_hold === "job_stuck") {
-      report(new Error("haul-away job is stuck: a declined card, and the person who posted it can't delete it"), {
-        severity: "warning",
-        tags: { source: "DeclutterHome.releaseHaulJob" },
-        context: { job_id: row.job_id },
-      });
-      throw stuck();
-    }
-    const jobId = lib.haulJobToDelete(row);
-    if (jobId && !(await lib.deleteNeverPaidHaulJob(jobId))) throw stuck();
-  };
   const putBack = useMutation({
     mutationFn: async (row: HaulAwayRow) => {
       const lib = (await haulLib()) ?? (await untilReload());
-      await releaseJob(row, lib);
+      await releaseHaulJob(row, lib);
       return lib.cancelHaulAway(row.item_id);
     },
     onSuccess: (status) => {
@@ -191,7 +169,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const finishBooking = useMutation({
-    mutationFn: async (row: HaulAwayRow) => releaseJob(row, (await haulLib()) ?? (await untilReload())),
+    mutationFn: async (row: HaulAwayRow) => releaseHaulJob(row, (await haulLib()) ?? (await untilReload())),
     onSuccess: (_v, row) => navigate(haulAwayPostJobPath([row.item_id])),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
@@ -218,8 +196,8 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
     return <ErrorState variant="inline" title={t("decl.sl.loadFail")} body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   }
   if (mine.isLoading) return <ListingsSkeleton />;
-  const all = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status));
   const searching = search.trim().length > 0;
+  const all = (mine.data ?? []).filter((i) => isListingsRow(i, searching));
   const list = searching ? all.filter((i) => matchesListingSearch(i, search)) : all;
   if (all.length === 0) {
     // Area 06 M15 (11-18): a seller with past listings (taken down, sold, ended) is not new here; "You haven't listed
@@ -259,6 +237,9 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
   return (
     <section className="space-y-3" aria-label={t("decl.sl.yours")}>
       <BulkHeading title={t("decl.sl.yours")} items={list} bulk={bulk} />
+      {/* Deep audit 11-22 #53: what the search found, right under the search box (the rest of the tab steps aside). */}
+      {searching && <p role="status" className="text-ds-13 text-muted-foreground" data-selling-search-count="">
+        {t(list.length === 1 ? "decl.sl.matchOne" : "decl.sl.matchMany", { n: list.length, q: search.trim() })}</p>}
       {!searching && list.filter((i) => i.status === "draft").length > 1 && (
         <p className="text-ds-13"><Link className="underline" to="/declutter/sell?mode=bunch" data-list-all-drafts="">{t("decl.sl.allDrafts")}</Link></p>
       )}
@@ -387,24 +368,30 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
  */
 // Board 80: opens once after a publish (router state from DeclutterSellView).
 function SellingView({ userId, haulOn, movingOutOn, todo, search, onClearSearch }: { userId: string; haulOn: boolean; movingOutOn: boolean; todo: DeclutterTodo | null; search: string; onClearSearch: () => void }) {
+  const searching = search.trim().length > 0;
   return (
     // Q2562: a flex gap, not space-y-6 (space-y gave the child after the display:none Sell row a 24px margin).
     <div className="flex flex-col gap-6">
       {/* Owner 2026-11-04: the seller's page link (every listing shows there), with Copy and Share. Owner request
           11-05 ("mine is kind of hidden"): it leads the tab. F127 (UI audit 11-09, lead 11-09): one slim line
           ("Your page · Copy · Share"), not a third full card; Home and You keep the card. */}
-      <YourPageLink slim />
-      <ListedWhatNext />
-      <ListedForYouCard />
-      <ManagerWaitingForOkGate userId={userId} />
-      <ManagerPanelGate only="status" />
-      <TabletSellRow />
+      {/* Deep audit 11-22 #53: while the seller searches their listings, only the matches show. */}
+      {!searching && <>
+        <YourPageLink slim />
+        <ListedWhatNext />
+        <ListedForYouCard />
+        <ManagerWaitingForOkGate userId={userId} />
+        <ManagerPanelGate only="status" />
+        <TabletSellRow />
+      </>}
       <Suspense fallback={<DeclutterTabBones />}><SellingDash
         todo={todo}
         userId={userId}
+        searching={searching}
         listings={
           <div className="space-y-6">
             <MyListingsView userId={userId} haulOn={haulOn} search={search} onClearSearch={onClearSearch} />
+            {!searching && <>
             {/* Owner 2026-10-30: "More ways to sell" is ONE row that opens "What do you want to sell?" (the chooser holds
                 every way: a bunch, a moving out sale, free, a Helpr lists it, a Wanted), never a second list of them. */}
             <section aria-label={t("decl.hv.moreWays")} data-sell-more="">
@@ -412,6 +399,7 @@ function SellingView({ userId, haulOn, movingOutOn, todo, search, onClearSearch 
                 <SellChooserEntry movingOutOn={movingOutOn} />
               </div>
             </section>
+            </>}
           </div>
         }
         settings={<>
@@ -569,7 +557,7 @@ function DeclutterMemberHome() {
   const ownMainButton = view === "wanted" || view === "deliver" || view === "buying";
   const fab = desktop || ownMainButton ? undefined : <SectionCreateFab section="declutter" text={t("decl.hv.sell")} />;
   // Browse draws its own section screen, so its header can carry its search, filters, chips, map toggle and count.
-  if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} full={false} />} fab={fab} /></Suspense>;
+  if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} full={false} pausedOnly />} fab={fab} /></Suspense>;
   // Owner 11-13: Selling's bar is a field over the seller's own listings (desktop: the same field before the gear).
   const sellingBar = view === "selling"
     ? <SectionSearchBar noun="your listings" home="/declutter" value={sellingQ} onChange={setSellingQ} />
@@ -584,7 +572,7 @@ function DeclutterMemberHome() {
     <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}>
       {/* Q2562 (lead 11-02): pt-3 = Browse's first line, 12px into its 44px Miles-from row; guard declutterTabs.test.tsx. */}
       <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-3">
-      <StrikeCount userId={user.id} full={view === "selling"} />
+      <StrikeCount userId={user.id} full={view === "selling"} pausedOnly={view !== "selling" && view !== "buying"} />
       {(view === "buying" || view === "selling") && <OrdersUpdating />}
       <Suspense fallback={<TabSkeleton />}>
       {view === "buying" ? <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></>

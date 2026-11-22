@@ -12,7 +12,7 @@
  * row's label fills it so the chevron sits at the right edge; #5 only the to-dos sit at the top of Selling.
  * @mutate src/components/declutter/SellingHome.tsx | const NOT_WHILE_AWAY = new Set(["savers", "drops", "relist"]); | const NOT_WHILE_AWAY = new Set(["relist"]);
  * @mutate src/components/declutter/SellingHome.tsx |     { key: "handover", n: handOver ?? todo?.salesOpen ?? 0, | { key: "handover", n: todo?.salesOpen ?? 0,
- * @mutate src/components/declutter/useSalesToHandOver.ts |   return Math.max(0, declutterTodo(lines, []).salesOpen - held); |   return declutterTodo(lines, []).salesOpen;
+ * @mutate src/components/declutter/useSalesToHandOver.ts |   return salesToHandOverIds(lines, problems).size; |   return salesToHandOverIds(lines, { has: () => false }).size;
  * @mutate src/components/declutter/SellingHome.tsx | <span className="min-w-0 flex-1" data-selling-todo-label=""> | <span className="min-w-0" data-selling-todo-label="">
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === null && hasListings && <SellingTodo | {only === null && hasListings && <SellingWeek />}{only === null && hasListings && <SellingTodo
  */
@@ -83,12 +83,19 @@ describe("Declutter top 5 #2: Selling home", () => {
     expect(salesToHandOver(lines, new Set(["o2"]))).toBe(3);
     // The to-do row says the shared number, not the cart's raw salesOpen.
     expect(sellingTodoRows({ sellerOffers: 0, salesOpen: 4 }, null, false, 3)).toEqual([expect.objectContaining({ key: "handover", n: 3 })]);
+    // Deep audit 11-22 #50: problem reports waiting on the seller are on the to-do too, and open To answer.
+    // @mutate src/components/declutter/SellingHome.tsx |     { key: "reports", n: reports, | { key: "reports", n: 0,
+    // @mutate src/components/declutter/DeclutterMineViews.tsx | handOver={handOver} reports={reports.size} userId | handOver={handOver} userId
+    expect(sellingTodoRows({ sellerOffers: 0, salesOpen: 3 }, null, false, 3, 2)).toEqual([
+      expect.objectContaining({ key: "handover", n: 3 }), expect.objectContaining({ key: "reports", n: 2, group: "offers", many: "dt5.home.reportsN" })]);
     // The chip and the Sold heading read the same count (source pins; the behaviour is in declutterTabs/sellingDash).
     const dash = blankComments(readFileSync("src/components/declutter/DeclutterMineViews.tsx", "utf8"));
     expect(dash).toContain('{ key: "sold", label: t("decl.mv.pickups"), count: handOver ?? todo?.salesOpen ?? 0, hot: true }');
-    expect(dash).toContain("<SellingTodo todo={todo} handOver={handOver}");
+    expect(dash).toContain("<SellingTodo todo={todo} handOver={handOver} reports={reports.size}");
     const parts = blankComments(readFileSync("src/components/declutter/DeclutterTabParts.tsx", "utf8"));
-    expect(parts).toContain("const toHandOver = salesToHandOver(lines, problems);");
+    // Deep audit 11-22 #50: the heading's count is the size of the very set the "To hand over" chip lists.
+    expect(parts).toContain("const handOverIds = salesToHandOverIds(lines, problems);");
+    expect(parts).toContain("const toHandOver = handOverIds.size;");
   });
 
   it("11-20 #5: only the to-dos sit above the chips; the week's numbers, Shop sale and Away come after the lists", () => {

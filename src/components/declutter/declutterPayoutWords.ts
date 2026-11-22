@@ -5,7 +5,7 @@
  */
 import type { MyPayout } from "@/lib/declutter/handover";
 import { formatPrice } from "@/lib/declutter/distance";
-import { PAYOUT_TRIES, payoutBreakdown, payoutStatusWords } from "@/lib/declutter/payoutWords";
+import { PAYOUT_TRIES, payoutBreakdown, payoutStatusWords, payoutWentOut } from "@/lib/declutter/payoutWords";
 import { checkWindowEnds, payoutDay, payoutDayAfterWindow } from "@/lib/declutter/timeLeft";
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclPayout";
@@ -79,7 +79,7 @@ export function payoutLine(payout: MyPayout, problemOpen: boolean, ctx: PayoutLi
     && payout.items_cents + (payout.delivery_cents ?? 0) - (payout.refunded_cents ?? 0) - payout.debt_cents === payout.amount_cents;
   const parts = addsUp ? payoutBreakdown(payout) : "";
   const gets = t("dpo.gets", { amount: formatPrice(amount), parts });
-  const paidOut = payout.status === "succeeded" || payout.status === "settled_by_hand";
+  const paidOut = payoutWentOut(payout.status);
   if (paidOut) return payout.executed_at ? t("dpo.paidOn", { gets, day: payoutDay(payout.executed_at) }) : `${gets}. ${payoutStatusWords(payout)}`;
   if (problemOpen && payout.status === "pending") return `${gets}. ${t("dpo.heldProblem")}`;
   if (payout.status !== "pending" || (payout.attempts ?? 0) >= PAYOUT_TRIES) return `${gets}. ${payoutStatusWords(payout)}`;

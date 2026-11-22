@@ -78,6 +78,25 @@ describe("A. Declutter cards on a phone (Depop/Vinted item 8)", () => {
     expect(shown).toHaveLength(2);
   });
 
+  // Deep audit 11-22 #17: phone cards never showed how far an item is (Free's "Miles from 70501", Near you). Below lg
+  // the short distance ends the price line, so it shows on a phone and the card keeps its two text lines.
+  // @mutate src/components/declutter/DeclutterItemCard.tsx |           {away && <span data-card-away-phone="" | {false && <span data-card-away-phone=""
+  // @mutate src/components/declutter/DeclutterItemCard.tsx | data-card-away-phone="" className="ml-auto shrink-0 whitespace-nowrap text-ds-11 text-muted-foreground lg:hidden" | data-card-away-phone="" className="hidden"
+  it("#17: below lg the distance ends the price line (paid and Free); none when no distance is known", () => {
+    for (const extra of [{}, { price_cents: 0, current_price_cents: 0 }]) {
+      const { container, unmount } = card({}, extra);
+      const price = container.querySelector("[data-card-price]") as HTMLElement;
+      const phone = price.querySelector("[data-card-away-phone]") as HTMLElement;
+      expect(phone?.textContent).toBe("3 mi");
+      const cls = phone.className.split(/\s+/);
+      expect(cls).toContain("lg:hidden");
+      expect(cls).not.toContain("hidden");
+      unmount();
+    }
+    const { container } = card({ miles: null });
+    expect(container.querySelector("[data-card-away-phone]")).toBeNull();
+  });
+
   it("Free still says Free, with no incl.-fee figure", () => {
     const { container } = card({}, { price_cents: 0, current_price_cents: 0 });
     expect(container.querySelector("[data-card-free]")?.textContent).toBe("Free");

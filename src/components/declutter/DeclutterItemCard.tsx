@@ -210,6 +210,10 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
           ) : (
             <span data-card-free="" className={`text-ds-16 ${PRICE_DEAL}`}>{itemPriceLabel(item.current_price_cents)}</span>
           )}
+          {/* Deep audit 11-22 #17: phone cards never showed distance, though Free promises "Miles from 70501" and Near
+              you says "see how far each item is". Below lg the short distance ends the price line (still two lines
+              under the photo, owner 11-14); from lg it is in the condition line above. Only when a distance is known. */}
+          {away && <span data-card-away-phone="" className="ml-auto shrink-0 whitespace-nowrap text-ds-11 text-muted-foreground lg:hidden">{away}</span>}
         </span>
       </span>
       {/* D-NEW12 (lead 2026-10-30): the seller has a bundle discount on. Under the text, never a second photo tag.

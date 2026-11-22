@@ -90,11 +90,17 @@ interface AppPageProps {
   desktopHidesHeader?: boolean;
   /** A step-by-step flow (Post a job): a guest's public frame keeps its header and drops the site footer (P26). */
   focusedFlow?: boolean;
+  /**
+   * A one-column form (Declutter's Sell screens): the title row and the content are one centered reading column
+   * (max-w-xl, 576px), never a narrow column hugging the left with an empty band beside it (deep audit 11-22 #47:
+   * 568px of blank space at 1440). Guard: src/test/appPageNarrowColumn.test.tsx.
+   */
+  narrow?: boolean;
   /** Page content. */
   children: ReactNode;
 }
 
-function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader: stickyAsked, wrapTitle, phoneBleed, desktopHidesHeader, focusedFlow, children }: AppPageProps) {
+function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader: stickyAsked, wrapTitle, phoneBleed, desktopHidesHeader, focusedFlow, narrow, children }: AppPageProps) {
   // D12 (Cowork audit 2026-10-20): the browser tab names the page (an item, Sell an
   // item, ...), not the landing page. A page's own usePageTitle / usePageMeta wins.
   usePageTitle(`${title} — Helpr`);
@@ -103,12 +109,13 @@ function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTi
   // window).
   const guestFrame = useGuestPublicFrame();
   const stickyHeader = stickyAsked && !guestFrame;
-  const body = (
+  const tabBody = (
             <ProfileTabBody>
               <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} hidesTitle={hidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} desktopHidden={desktopHidesHeader} />
               {children}
             </ProfileTabBody>
   );
+  const body = narrow ? <div className="mx-auto w-full max-w-xl" data-app-page-narrow="">{tabBody}</div> : tabBody;
   if (guestFrame) return <GuestPublicFrame focused={focusedFlow}>{body}</GuestPublicFrame>;
   return (
     <AppShell

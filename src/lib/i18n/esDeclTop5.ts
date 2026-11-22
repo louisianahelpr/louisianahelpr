@@ -23,6 +23,8 @@ export const esDeclTop5: Record<keyof typeof enDeclTop5, string> = {
   "dt5.home.offersN": "Responder {n} ofertas",
   "dt5.home.handover1": "Entregar 1 venta",
   "dt5.home.handoverN": "Entregar {n} ventas",
+  "dt5.home.reports1": "Responder 1 reporte de problema",
+  "dt5.home.reportsN": "Responder {n} reportes de problemas",
   "dt5.home.relist1": "1 anuncio en pausa para volver a publicar",
   "dt5.home.relistN": "{n} anuncios en pausa para volver a publicar",
   "dt5.home.drops1": "1 anuncio no se ha vendido en 2 semanas: pruebe un precio más bajo",

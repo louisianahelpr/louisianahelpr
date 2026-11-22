@@ -16,6 +16,18 @@ import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
  */
 export const PAST_LISTING: ReadonlySet<DeclutterItem["status"]> = new Set(["withdrawn", "sold_elsewhere"]);
 
+/**
+ * Deep audit 11-22 #49 (owner rule: a listing never shows twice; lead 11-22 Option A): an item sold on Declutter is its
+ * sale card on Selling (to hand over, or under the finished sales), so it is not a Your listings row as well. Its sold
+ * price, "Claimed", payout and "held" words are the card's (src/components/declutter/declutterHandoverViews.test.tsx "#49"). A
+ * search of the seller's own listings still finds it (the sale cards step aside then, #53).
+ */
+const ON_A_SALE_CARD: ReadonlySet<DeclutterItem["status"]> = new Set(["sold", "completed"]);
+
+/** A row under Your listings: not history, and (unless searching) not shown as a sale card. */
+export const isListingsRow = (i: Pick<DeclutterItem, "status">, searching = false) =>
+  !PAST_LISTING.has(i.status) && (searching || !ON_A_SALE_CARD.has(i.status));
+
 const waiting = (q: Query<DeclutterItem[]>) => (q.state.data ?? []).some((i) => i.status === "pending_review");
 
 export function myItemsQuery(userId: string) {

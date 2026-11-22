@@ -15,7 +15,7 @@ import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
-import { myItemsQuery, PAST_LISTING } from "./myItemsQuery";
+import { isListingsRow, myItemsQuery } from "./myItemsQuery";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import { OffersSection } from "./DeclutterOffersSection";
 import { PaidOrders } from "./DeclutterTabParts";
@@ -31,24 +31,25 @@ import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 import { BundleRequestsSection, useBundleAsksToAnswer } from "./DeclutterBundleRequests";
 import { TradeOffersSection, useTradeOffersToAnswer } from "./DeclutterTradeOffers";
 import { SellingTodo, SellingWeek, useSellingTopSettled } from "./SellingHome";
+import { SectionHeading } from "./DeclutterTabHeads";
 import { DeclutterTabBones } from "./DeclutterSkeletons";
 import { useSalesToHandOver } from "./useSalesToHandOver";
 import { ShopSaleCard } from "./ShopSaleCard";
 import { AwayCard } from "./AwayMode";
 import "@/lib/i18n/enDeclutter";
+import "@/lib/i18n/enDeclSell";
 import { t } from "@/lib/i18n/language";
 
 function StatusChips<K extends string>({ chips, value, onPick }: { chips: readonly StatusBoxDef<K>[]; value: K | null; onPick: (k: K | null) => void }) {
-  // Area 06 L2 (11-18): "All · 15" beside the tab's "Selling 5" counted History (taken down, ended) too; All counts
-  // what is still going.
-  const all = chips.reduce((n, c) => n + (c.key === "taken" ? 0 : c.count), 0);
+  // Deep audit 11-22 #50: "All · 25" added reports, listings and sales into one number nobody could check; All has no
+  // number (each chip keeps its own).
   return (
     // AUD31-4 (lead 10-31): at 375 the last chip runs off the right edge on purpose: the row scrolls sideways. The right
     // edge fades so the cut chip reads as "more to scroll"; the end padding (>= the fade) lets the last chip scroll clear
     // of it, so nothing stays faded once the row is at its end. Never wrapped.
     <div role="group" aria-label={t("decl.mv.filter")} data-status-chips="" className="-mx-3 flex items-center gap-2 overflow-x-auto pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <ToggleChip pressed={value === null} onClick={() => onPick(null)}>
-        {t("decl.mv.all")}{all > 0 ? ` · ${all}` : ""}
+        {t("decl.mv.all")}
       </ToggleChip>
       {chips.map((c) => (
         <ToggleChip key={c.key} pressed={value === c.key} data-status-box={c.key} onClick={() => onPick(value === c.key ? null : c.key)}>
@@ -63,12 +64,14 @@ function StatusChips<K extends string>({ chips, value, onPick }: { chips: readon
 const SELLING = ["listings", "offers", "waiting", "sold", "taken"] as const;
 type SellingGroup = (typeof SELLING)[number];
 
-export function SellingDash({ todo, userId, listings, settings }: { todo: DeclutterTodo | null; userId: string; listings: ReactNode; settings?: ReactNode }) {
+/** `searching` (deep audit 11-22 #53): a search of the seller's own listings is on, so only the listings show. */
+export function SellingDash({ todo, userId, listings, settings, searching = false }: { todo: DeclutterTodo | null; userId: string; listings: ReactNode; settings?: ReactNode; searching?: boolean }) {
   const [only, toggle] = useStatusFilter(SELLING);
   // The same read (and key) My listings uses, so this adds no request.
   const mine = useQuery(myItemsQuery(userId));
   // NIGHT-SELL-Sellinglist-2: the rows Your listings shows (everything but history), so "Listed · n" opens n rows.
-  const listed = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status)).length;
+  // Deep audit 11-22 #49: a sold item is its sale card, so it is not counted here as well (isListingsRow).
+  const listed = (mine.data ?? []).filter((i) => isListingsRow(i)).length;
   // Owner 2026-10-28 (shots 48-49): a taken-down listing keeps its history here, with Relist; A2-5: so does one
   // marked sold elsewhere (no Relist: it was sold).
   const takenDown = (mine.data ?? []).filter((i) => i.status === "withdrawn" || i.status === "sold_elsewhere");
@@ -102,8 +105,13 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const sold = show("sold") && <>
     {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
     <SellerPayoutPrompt />
-    <PaidOrders side="seller" />
+    {/* Deep audit 11-22 #50: the "To hand over" chip lists the sales its count counts, headed after the chip. */}
+    <PaidOrders side="seller" handOverOnly={only === "sold"} />
   </>;
+  // Deep audit 11-22 #53: searching "lamp" filtered Your listings to one row about 7,000 px down, under the to-dos, the
+  // chips and every sale card, so the search looked like it did nothing. While a search is on, only the listings show
+  // (with "1 listing matches" or the no-match card at the top, MyListingsView).
+  if (searching) return <div className="space-y-6" data-selling-searching="">{listings}</div>;
   if (mine.isPending || !topSettled) return <DeclutterTabBones />;
   return (
     <div className="space-y-6">
@@ -111,7 +119,7 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
           listings (a first-time seller sees the empty card below, not empty numbers). Post-merge check 11-20 #5: only the
           to-dos sit up here; the week's numbers, Shop sale and Away mode are below the lists, so a sale to hand over is
           on the first screen. */}
-      {only === null && hasListings && <SellingTodo todo={todo} handOver={handOver} userId={userId} onPick={(g) => toggle(g)} />}
+      {only === null && hasListings && <SellingTodo todo={todo} handOver={handOver} reports={reports.size} userId={userId} onPick={(g) => toggle(g)} />}
       {/* Filters only (owner 2026-10-28): the filled "Sell an item" pill that ended this row looked like a second
           selected filter beside the pressed one; the header's "Sell an item" button is the section's one add action. */}
       <StatusChips
@@ -131,7 +139,7 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
       />
       {soldFirst && sold}
       {only === "offers" && toAnswer === 0 && todo && <DeclutterNotice title={t("decl.mv.nothingToAnswer")} />}
-      {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}
+      {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} title={t("dsl.reportsTitle")} />}
       {show("offers") && <QuestionsToAnswer userId={userId} />}
       {show("offers") && <FreeAsksToPick rows={freeAsks} />}
       {show("offers") && <BundleRequestsSection side="seller" userId={userId} />}
@@ -142,22 +150,25 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
       {show("waiting") && <SalesWaiting emptyNotice={only === "waiting"} />}
       {!soldFirst && sold}
       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />}
-      {/* Declutter top 5 (owner 11-19), after the work that waits on the seller (11-20 #5): the week's numbers (#2), the
-          shop-wide sale while something is for sale or a sale is set (#4), and away mode (#5). */}
-      {only === null && hasListings && (
-        <div className="space-y-3" data-shop-tools="">
-          <SellingWeek />
-          <div className="grid gap-3 sm:grid-cols-2">
-            {pricedLive && <ShopSaleCard userId={userId} />}
-            <AwayCard userId={userId} />
-          </div>
-        </div>
+      {/* Declutter top 5 (owner 11-19), after the work that waits on the seller (11-20 #5): the week's numbers (#2). */}
+      {only === null && hasListings && <SellingWeek />}
+      {/* Deep audit 11-22 #49: Shop sale, Away mode, Trades, Let a friend sell and the settings row sat one after another
+          down the tab; they are one "Tools" group now, after the work and the lists. The shop-wide sale shows while
+          something is for sale (#4); the trades card until answered (owner 11-08, F399); settings belong to the whole
+          tab, not one chip's list (DC-9). */}
+      {only === null && (
+        <section className="space-y-3" aria-label={t("decl.mv.tools")} data-selling-tools="">
+          <SectionHeading title={t("decl.mv.tools")} />
+          {hasListings && (
+            <div className="grid gap-3 sm:grid-cols-2" data-shop-tools="">
+              {pricedLive && <ShopSaleCard userId={userId} />}
+              <AwayCard userId={userId} />
+            </div>
+          )}
+          <DeclutterTradesPrompt userId={userId} />
+          {settings}
+        </section>
       )}
-      {/* Owner 11-08: the one-time "Turn on trades for all your listings?" card, until answered (on the account).
-          Audit 11-10 F399: after the to-dos and the lists, so the work that waits on the seller comes first. */}
-      {only === null && <DeclutterTradesPrompt userId={userId} />}
-      {/* The seller's settings belong to the whole tab, not to one chip's list (DC-9). */}
-      {only === null && settings}
     </div>
   );
 }

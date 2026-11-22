@@ -54,6 +54,23 @@ export function stripComments(text) {
     .join("\n");
 }
 
+/**
+ * Per-process caches (train 1122c): each module's import list (DEPS, in staticReach) and its code with the comment
+ * lines dropped (codeOf) are worked out once. The icon sets call each other (Profile's re-walked Selling's tree six
+ * times), so the bootReach icon-pin test took 21.5 s on main's CI and timed out at 20 s (Vitest run 45029320836, shard
+ * 5). The source tree does not change while one build (vite.config.ts) or one test process runs these.
+ */
+const DEPS = new Map();
+const CODE = new Map();
+function codeOf(file) {
+  let code = CODE.get(file);
+  if (code === undefined) {
+    code = stripComments(fs.readFileSync(file, "utf8"));
+    CODE.set(file, code);
+  }
+  return code;
+}
+
 function resolveSpecifier(root, from, spec) {
   let base;
   if (spec.startsWith("@/")) base = path.join(root, "src", spec.slice(2));
@@ -76,7 +93,8 @@ const SUPABASE_BUILD_SHIMS = ["src/integrations/supabase/lazyRealtime.ts", "src/
 export function staticReach(root, roots) {
   const seen = new Set();
   const stack = roots.map((r) => toPosix(path.resolve(root, r)));
-  const cache = new Map();
+  const cache = DEPS.get(root) ?? new Map();
+  DEPS.set(root, cache);
   while (stack.length) {
     const file = stack.pop();
     if (seen.has(file) || !fs.existsSync(file)) continue;
@@ -519,7 +537,7 @@ export function homeIconFiles(root) {
     const out = new Set();
     for (const f of files) {
       if (!/\.(tsx?|mjs)$/.test(f)) continue;
-      const src = stripComments(fs.readFileSync(f, "utf8"));
+      const src = codeOf(f);
       for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
         for (const n of x[1].split(",")) {
           const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -545,7 +563,7 @@ export function bootIconFiles(root) {
   const out = new Set();
   for (const f of staticReach(root, [path.join(root, "src/main.tsx")])) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
-    const src = stripComments(fs.readFileSync(f, "utf8"));
+    const src = codeOf(f);
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
       for (const n of x[1].split(",")) {
         const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -583,7 +601,7 @@ export function adminIconFiles(root) {
   const out = new Set();
   for (const f of staticReach(root, [path.join(root, ADMIN_ROOT)])) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
-    const src = stripComments(fs.readFileSync(f, "utf8"));
+    const src = codeOf(f);
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
       for (const n of x[1].split(",")) {
         const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -607,7 +625,7 @@ export function itemIconFiles(root) {
     const out = new Set();
     for (const f of files) {
       if (!/\.(tsx?|mjs)$/.test(f)) continue;
-      const src = stripComments(fs.readFileSync(f, "utf8"));
+      const src = codeOf(f);
       for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
         for (const n of x[1].split(",")) {
           const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -642,7 +660,7 @@ export function guestIconFiles(root) {
   const out = new Set();
   for (const f of staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))])) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
-    const src = stripComments(fs.readFileSync(f, "utf8"));
+    const src = codeOf(f);
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
       for (const n of x[1].split(",")) {
         const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -704,7 +722,7 @@ function tabIconFiles(root, roots, alsoTaken) {
   const drawn = new Set();
   for (const f of staticReach(root, roots.map((r) => toPosix(path.join(root, r))))) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
-    const src = stripComments(fs.readFileSync(f, "utf8"));
+    const src = codeOf(f);
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
       for (const n of x[1].split(",")) {
         const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -742,7 +760,7 @@ export function guestIconSplit(root) {
   const reach = new Set([...staticReach(root, DECLUTTER_FIRST_SCREEN_ROOTS.map((r) => toPosix(path.join(root, r)))), ...guestBrowseSplit(root).browseOnly]);
   for (const f of reach) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
-    const src = stripComments(fs.readFileSync(f, "utf8"));
+    const src = codeOf(f);
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
       for (const n of x[1].split(",")) {
         const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
@@ -764,7 +782,7 @@ export function guestIconSplit(root) {
   const others = [...publicRoots(root).filter((r) => toPosix(r) !== landingRoot), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))];
   for (const f of staticReach(root, others)) {
     if (!/\.(tsx?|mjs)$/.test(f)) continue;
-    const src = stripComments(fs.readFileSync(f, "utf8"));
+    const src = codeOf(f);
     for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
       for (const n of x[1].split(",")) {
         const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];

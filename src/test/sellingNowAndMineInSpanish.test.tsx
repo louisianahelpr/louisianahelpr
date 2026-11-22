@@ -7,7 +7,7 @@
  * @mutate src/components/declutter/SellingNowRow.tsx | {all ? t("sn.fewer") : t("sn.all")} | {all ? t("sn.fewer") : "See all"}
  * @mutate src/components/declutter/DeclutterMineViews.tsx | { key: "offers", label: t("decl.mv.toAnswer"), count: toAnswer, hot: true }, | { key: "offers", label: "To answer", count: toAnswer, hot: true },
  * @mutate src/components/declutter/DeclutterBuyingViews.tsx | <DeclutterNotice title={t("decl.mv.noneBought")}> | <DeclutterNotice title="Nothing bought yet.">
- * @mutate src/components/declutter/DeclutterMineViews.tsx |         {t("decl.mv.all")}{all > 0 | All{all > 0
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |         {t("decl.mv.all")}\n      </ToggleChip> |         All\n      </ToggleChip>
  * @mutate src/components/declutter/declutterSellingParts.tsx | font-semibold">{t("decl.hv.settings")}</span> | font-semibold">Declutter settings</span>
  * @mutate src/components/declutter/DeclutterHomeView.tsx | text={t("decl.hv.sell")} /> | text="Sell" />
  * @mutate src/components/declutter/declutterSellingParts.tsx | { get label() { return t("decl.hv.settings"); }, | { label: "Declutter settings",

@@ -16,7 +16,7 @@
  */
 import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ChoicePill } from "@/components/ui/ChoicePill";
@@ -56,6 +56,9 @@ const laDay = (ms: number) => LA_DAY.format(new Date(ms));
 const LA_WHEN = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** Which buttons a side gets right now (pure, so the rules are tested apart from the screen). */
+/** A card button that opens its sheet at once; `n` counts the taps, so a second tap after closing opens it again. */
+export interface CardAsk { what: "gotIt" | "notDelivered"; n: number }
+
 export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Date.now()) {
   const booked = b.status === "booked" && !!b.slot_start;
   const marked = !!b.delivered_at;
@@ -88,7 +91,8 @@ const ASK = {
  * paid. The panel then offers no "I got it" (the server refuses it: problem_open), no "Tap I got it ... 24 hours" line
  * and no second "Report a problem"; the card's own note says a problem is open.
  */
-export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOpen = false, trade = false }: { orderId: string; userId: string; onProblem: () => void; problemOpen?: boolean; trade?: boolean }) {
+/** `askFor` (deep audit 11-22 #15): the card's own button was tapped, so its sheet opens at once (each tap is a new `n`). */
+export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOpen = false, trade = false, askFor = null }: { orderId: string; userId: string; onProblem: () => void; problemOpen?: boolean; trade?: boolean; askFor?: CardAsk | null }) {
   const qc = useQueryClient();
   const key = ["declutter", "seller-delivery-booking", orderId] as const;
   const booking = useQuery({ queryKey: key, queryFn: () => fetchSellerDeliveryBooking(orderId) });
@@ -117,6 +121,11 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
   },
     // LEAD-DOOR-PAYLINE: "paid when the buyer confirms" was a day early (the buyer's 24 hours to ask for a refund follow).
     b?.handoff === "hand" ? "Marked handed over. We asked the buyer to confirm." : "Marked delivered. We asked the buyer to confirm."));
+  // Deep audit 11-22 #15: the card's "I got it" / "It wasn't delivered" opens its sheet here, never a second button to find.
+  const cardAsk = askFor && b && !problemOpen ? askFor : null;
+  const canNow = b ? sellerDeliveryActions(b) : null;
+  const askNow = cardAsk && canNow && (cardAsk.what === "gotIt" ? canNow.gotIt : canNow.notDelivered && !noShowWaiting) ? cardAsk : null;
+  useEffect(() => { if (askNow) setAsk(askNow.what); }, [askNow?.what, askNow?.n]);
   const gotIt = useMutation(act(async () => { const r = await confirmHandover(orderId); markReviewPrompt(orderId); return r; }, "Handover done. Enjoy your item."));
   const notDelivered = useMutation(act(async () => { await reportNotDelivered(orderId); void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] }); }, "We told the seller. They have 24 hours to answer."));
   const handoff = useMutation(act((h: DeliveryHandoff) => setDeliveryHandoff(orderId, h), "Saved. The seller is told."));

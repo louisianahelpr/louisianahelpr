@@ -7,7 +7,7 @@
  */
 import { lazy, Suspense, useState, type ReactNode } from "react";
 import { useOpenProblems } from "./useOpenProblems";
-import { paidOrderIds, salesToHandOver } from "./useSalesToHandOver";
+import { paidOrderIds, salesToHandOverIds } from "./useSalesToHandOver";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 import { useFoldableSales } from "./useFoldableSales";
 import { useQuery } from "@tanstack/react-query";
@@ -36,11 +36,14 @@ const PaidOrdersSection = lazy(() => import("./DeclutterHandoverViews").then((m)
 // PaidOrdersSection's own bones while its pickup and payout reads answer. Guard: paidOrdersWaitForBookings.
 function PaidOrdersLoading({ heading, label, cards = 1 }: { heading: ReactNode; label: string; cards?: number }) {
   return (
-    <section className="max-w-3xl space-y-3" aria-label={label} aria-busy="true" data-paid-orders-loading="">
+    <section className="space-y-3" aria-label={label} aria-busy="true" data-paid-orders-loading="">
       {heading}
+      {/* Deep audit 11-22 #46: the same grid as the cards it stands in for (two to a row from lg). */}
+      <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
       {Array.from({ length: Math.min(4, Math.max(1, cards)) }, (_, i) => (
         <div key={i} className="h-64 rounded-[20px] border border-border bg-card" />
       ))}
+      </div>
     </section>
   );
 }
@@ -67,8 +70,12 @@ export function NoSellerOffers() {
  * Paid orders on one side (slice 4: book the pickup, hand over, porch photos,
  * no-shows, problems, payout, reviews): Purchases on Buying, the paid sales on Selling.
  */
-export function PaidOrders({ side, views, show, scope, ended = false }: {
+export function PaidOrders({ side, views, show: showProp, scope, ended = false, handOverOnly = false, title }: {
   side: "buyer" | "seller"; views?: Map<string, BuyerOrderView>; show?: (orderId: string) => boolean;
+  /** Deep audit 11-22 #50: the "To hand over" chip: only the sales its count counts (salesToHandOverIds), no fold. */
+  handOverOnly?: boolean;
+  /** Deep audit 11-22 #50: a chip's own list is headed after the chip ("Problem reports to answer"), with no count. */
+  title?: string;
   /** Q2630: the only orders this list may draw, before the chip and the linked order (Buying's Your orders vs Ended). */
   scope?: (orderId: string) => boolean;
   /** Q2630: drawn inside Buying's Ended section, under its heading: no heading or empty card of its own. */
@@ -84,7 +91,9 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   // problem is decided."). The same read and key the order cards make (useOpenProblems), so it adds no request.
   // 11-20 #6: the one count (useSalesToHandOver.ts) the Selling to-do and the Pickups chip read too.
   const problems = useOpenProblems(paidOrderIds(lines), side === "seller");
-  const toHandOver = salesToHandOver(lines, problems);
+  const handOverIds = salesToHandOverIds(lines, problems);
+  const toHandOver = handOverIds.size;
+  const show = handOverOnly ? (id: string) => handOverIds.has(id) : showProp;
   // A3-78: a finished sale still waiting on the seller (a refund request to answer, the item back to confirm) is never
   // folded away: the seller's one deadline on the tab stays in the list.
   const awaiting = useSellerReportsToAnswer();
@@ -116,8 +125,10 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   // DA-3: a giver whose orders are all free items sold nothing and is paid nothing.
   const sold = lines.filter((l) => l.status === "paid" && l.order_id);
   // Lead 11-08: sales that are all trades are "Traded", never "Given away" (a trade line is $0 too).
-  const sellerTitle = sold.length > 0 && sold.every((l) => l.source === "swap") ? t("dsl.tradedTitle")
-    : sold.every((l) => l.price_cents === 0) ? t("dsl.givenTitle") : t("dsl.soldTitle");
+  const sellerTitle = title ?? (handOverOnly ? t("dsl.handOverTitle") : null) ?? (sold.length > 0 && sold.every((l) => l.source === "swap") ? t("dsl.tradedTitle")
+    : sold.every((l) => l.price_cents === 0) ? t("dsl.givenTitle") : t("dsl.soldTitle"));
+  // A chip's own heading names the list, so it carries no second count ("To hand over · 3 to hand over").
+  const headingTodo = title || handOverOnly ? 0 : toHandOver;
   // NIGHT-SELL-soldstates-2: Selling's finished sales (handed over, refunded) fold under one button, as Buying folds
   // Done, so the sales still to hand over are the list. A chip's own `show` (To answer's reports) is never folded.
   const done = new Set(side === "seller" && !show ? sold.filter((l) => ((l.order_status === "handed_over" && foldable.has(l.order_id as string)) || l.order_status === "refunded") && !awaiting.has(l.order_id as string)).map((l) => l.order_id as string) : []);
@@ -147,7 +158,7 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   const paidHeading = ended ? <></>
     : side === "buyer"
       ? views ? <SectionHeading title={t("dbuy.order.yours")} /> : <SectionHeading title={t("dsl.purchases")} todo={todo.purchasesOpen} todoWords={t("dsl.toPickUp")} />
-      : <SectionHeading title={sellerTitle} todo={toHandOver} todoWords={t("dsl.toHandOver")} />;
+      : <SectionHeading title={sellerTitle} todo={headingTodo} todoWords={t("dsl.toHandOver")} />;
   return (
     <>
     <Suspense fallback={<PaidOrdersLoading heading={paidHeading} label={paidLabel} cards={new Set(sold.map((l) => l.order_id as string).filter((id) => showDone || !done.has(id) || id === linked)).size} />}>

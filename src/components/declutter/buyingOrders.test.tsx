@@ -119,7 +119,10 @@ vi.mock("./DeclutterDeliveryViews", () => ({
   OrderDeliveryPanel: ({ taskId, tipOnly, askGot }: { taskId: string; tipOnly?: boolean; askGot?: boolean }) =>
     <p>{tipOnly ? "Tip panel" : "Delivery card"} {taskId}{askGot ? " (asking: Do you have it?)" : ""}</p>,
 }));
-vi.mock("./SellerDeliveryOrder", () => ({ SellerDeliveryOrderPanel: ({ orderId }: { orderId: string }) => <p>Seller delivery {orderId}</p> }));
+vi.mock("./SellerDeliveryOrder", () => ({ SellerDeliveryOrderPanel: ({ orderId, askFor }: { orderId: string; askFor?: { what: string } | null }) =>
+  <p>Seller delivery {orderId}{askFor ? ` (asking: ${askFor.what})` : ""}</p> }));
+// #15: a porch card's Details reads its pickup place (OrderPorchPlace).
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchOrderPorchPlace: async () => null }));
 vi.mock("./DeclutterAddHelpr", () => ({ AddHelprPanel: () => null }));
 vi.mock("./DeclutterRefundRequest", () => ({ DeclutterRefundPanel: () => null }));
 
@@ -527,7 +530,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
 
   // Audit 1c D3-7 (1c-b4-gotit-press1-1440): the first tap on a delivered card's "I got it" only opened Details; a
   // second "I got it" inside opened "Do you have it?". One tap now opens Details AND the confirm sheet.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} /> |         onAction={() => { setOpen(true); }} />
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           setAskFor(what ? (a) => ({ what, n: (a?.n ?? 0) + 1 }) : null); |           setAskFor(null);
   // @mutate src/components/declutter/BuyingOrders.tsx | onClick={action === SEE_OFFER ? onOpen : onAction} data-next-action=""> | onClick={onOpen} data-next-action="">
   it("D3-7: one tap on a delivered Helpr order's 'I got it' asks 'Do you have it?' at once; Details alone does not", async () => {
     load(CASES.filter((c) => c.id === "hd3" || c.id === "hd1"));
@@ -537,5 +540,29 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     expect(await within(card("hd3")).findByText("Delivery card t-hd3 (asking: Do you have it?)")).toBeInTheDocument();
     fireEvent.click(within(card("hd1")).getByRole("button", { name: "Details" }));
     expect(await within(card("hd1")).findByText("Delivery card t-hd1")).toBeInTheDocument();
+  });
+
+  // Deep audit 11-22 #15: a paid pickup's "I got it" took three taps (card, Details' own button, the sheet's). Every
+  // case whose card button is "I got it" or "It wasn't delivered" now opens that sheet on the first tap.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   useEffect(() => { if (mayAskGot) setAsking(true); }, [mayAskGot, askGot]); |   useEffect(() => {}, [mayAskGot, askGot]);
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | slotStart={booking.slot_start} askGot={askGot ? askFor?.n ?? 0 : 0} | slotStart={booking.slot_start} askGot={0}
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | trade={trade} askFor={askFor} | trade={trade}
+  it("#15: every card 'I got it' / 'It wasn't delivered' opens its sheet on the first tap", async () => {
+    const asking = CASES.filter((c) => c.action === "I got it" || c.action === "It wasn't delivered");
+    expect(asking.length).toBeGreaterThan(6);
+    const kinds = new Set<string>();
+    for (const c of asking) {
+      load([c]);
+      const r = show();
+      const button = await within(await waitFor(() => card(c.id))).findByRole("button", { name: c.action! });
+      fireEvent.click(button);
+      const handover = String(c.line.handover ?? "pickup_home");
+      kinds.add(handover);
+      if (handover === "delivery") expect(await within(card(c.id)).findByText(/\(asking: Do you have it\?\)/)).toBeInTheDocument();
+      else if (handover === "seller_delivery") expect(await within(card(c.id)).findByText(`Seller delivery ${c.id} (asking: ${c.action === "I got it" ? "gotIt" : "notDelivered"})`)).toBeInTheDocument();
+      else expect(await screen.findByRole("heading", { name: "Do you have it?" }), c.id).toBeInTheDocument();
+      r.unmount();
+    }
+    expect([...kinds].sort()).toEqual(["delivery", "meetup", "pickup_home", "porch", "seller_delivery"]);
   });
 });

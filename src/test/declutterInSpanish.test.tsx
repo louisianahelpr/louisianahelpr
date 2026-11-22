@@ -81,7 +81,8 @@ describe("F260q: Declutter Browse in Spanish", () => {
     // Owner 11-20 (site polish A2): porch pickup is the default and wears no tag; the trades tag is the card's word.
     expect(screen.getByText("Trades OK")).toBeTruthy();
     expect(screen.getByText("Lightly used")).toBeTruthy();
-    expect(screen.getByText("Under 1 mi")).toBeTruthy();
+    // #17: the distance shows twice in the DOM, the lg condition line and the phone price line (one per width).
+    expect(screen.getAllByText("Under 1 mi")).toHaveLength(2);
     expect(screen.getByText("Furniture")).toBeTruthy();
     expect(screen.getByText("Price drops")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Search Declutter" })).toBeTruthy();
@@ -94,7 +95,7 @@ describe("F260q: Declutter Browse in Spanish", () => {
     expect(screen.getAllByText("Gratis").length).toBeGreaterThan(0); // the price (M4 11-16: no Free chip on the row)
     expect(screen.getByText("Acepta cambios")).toBeTruthy();
     expect(screen.getByText("Poco usado")).toBeTruthy();
-    expect(screen.getByText("Menos de 1 mi")).toBeTruthy();
+    expect(screen.getAllByText("Menos de 1 mi")).toHaveLength(2);
     expect(screen.getByText("Muebles")).toBeTruthy();
     expect(screen.getByText("Herramientas")).toBeTruthy();
     expect(screen.getByText("Todo")).toBeTruthy();

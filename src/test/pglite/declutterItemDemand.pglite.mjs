@@ -6,6 +6,7 @@
  *   node src/test/pglite/declutterItemDemand.pglite.mjs                     # ALL PASS (migration applied 3x)
  *   NEW_MIGRATION=skip node src/test/pglite/declutterItemDemand.pglite.mjs  # RED: no such function
  *   FIX_MIGRATION=skip node src/test/pglite/declutterItemDemand.pglite.mjs  # RED: 42804 COALESCE text/uuid (prod 2026-11-20)
+ *   OFFERS_OFF_MIGRATION=skip node src/test/pglite/declutterItemDemand.pglite.mjs  # RED: an offers-off listing reports offers (#56)
  *   MIGRATION_PATH=<planted copy> node src/test/pglite/declutterItemDemand.pglite.mjs
  *
  * Trimmed stand-in tables; declutter_watchlist is the real CREATE. auth.uid() and the visibility helpers are stubs
@@ -25,6 +26,8 @@ const viewsMig = readFileSync(`${MIG_DIR}20261105163501_declutter_item_views.sql
 const viewsTable = viewsMig.match(/CREATE TABLE IF NOT EXISTS public\.declutter_item_views \([\s\S]*?\n\);/)[0]
   .replace(/ REFERENCES public\.declutter_items\(id\) ON DELETE CASCADE/, "").replace(/ REFERENCES auth\.users\(id\) ON DELETE CASCADE/, "");
 const fixMig = readFileSync(`${MIG_DIR}20261120121830_declutter_views_coalesce_uuid.sql`, "utf8");
+// Deep audit 11-22 #56: the newest definition; an offers-off listing reports 0 offers this week.
+const offersOffMig = readFileSync(`${MIG_DIR}20261122134941_declutter_demand_offers_off.sql`, "utf8");
 
 let pass = 0, fail = 0;
 const ok = (cond, what) => { if (cond) { pass++; console.log(`PASS ${what}`); } else { fail++; console.log(`FAIL ${what}`); } };
@@ -47,7 +50,7 @@ create table public.profiles(user_id uuid primary key, is_seed boolean not null 
 insert into public.profiles values ('${A}', false), ('${B}', false), ('${C}', false), ('${T}', true), ('${Q}', false);
 create table public.test_accounts(user_id uuid primary key);
 insert into public.test_accounts values ('${Q}');
-create table public.declutter_items(id uuid primary key, seller_id uuid not null, status text not null, seller_hidden boolean not null default false, is_seed boolean not null default false, current_price_cents integer not null default 1000);
+create table public.declutter_items(id uuid primary key, seller_id uuid not null, status text not null, seller_hidden boolean not null default false, is_seed boolean not null default false, current_price_cents integer not null default 1000, accepts_offers boolean not null default true);
 create table public.declutter_offers(id uuid primary key default gen_random_uuid(), item_id uuid not null, buyer_id uuid not null, created_at timestamptz not null default now());
 `);
 await db.exec(watchTable.replace(/REFERENCES public\.declutter_items\(id\) ON DELETE CASCADE/, ""));
@@ -72,7 +75,7 @@ insert into public.declutter_item_views (item_id, viewer_id, device_id, created_
 
 // And the newest definition: 20261120014036 (shop sale, #4) restates it with the sale columns; the counts must not move.
 const saleMig = readFileSync(`${MIG_DIR}20261120014036_declutter_shop_sale.sql`, "utf8");
-if (process.env.NEW_MIGRATION !== "skip") { for (let i = 0; i < 3; i++) await db.exec(mig); if (!process.env.MIGRATION_PATH) for (let i = 0; i < 3; i++) await db.exec(saleMig); if (!process.env.MIGRATION_PATH && process.env.FIX_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(fixMig); }
+if (process.env.NEW_MIGRATION !== "skip") { for (let i = 0; i < 3; i++) await db.exec(mig); if (!process.env.MIGRATION_PATH) for (let i = 0; i < 3; i++) await db.exec(saleMig); if (!process.env.MIGRATION_PATH && process.env.FIX_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(fixMig); if (!process.env.MIGRATION_PATH && process.env.FIX_MIGRATION !== "skip" && process.env.OFFERS_OFF_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(offersOffMig); }
 
 const ALL = `array['${[1, 2, 3, 4].map(it).join("','")}']::uuid[]`;
 const set = async (k, v) => db.exec(`select set_config('t.${k}', '${v ?? ""}', false)`);
@@ -98,6 +101,12 @@ ok(JSON.stringify((await demand(A)).v) === "{}", "a blocked seller's items: left
 await set("blocked", "");
 ok((await demand(A, `(select array_agg(gen_random_uuid()) from generate_series(1, 201))`)).err?.includes("invalid_request"), "more than 200: refused");
 ok(JSON.stringify((await demand(A, `null::uuid[]`)).v) === "{}", "null: nothing");
+// #56: the seller turns offers off after 2 buyers offered: no offers reported (saves and views unchanged); back on: 2.
+await db.exec(`update public.declutter_items set accepts_offers = false where id = '${it(1)}'`);
+r = await demand(A);
+ok(JSON.stringify(r.v) === JSON.stringify({ 1: [2, 0, 3] }), `#56 offers off: 0 offers this week, saves and views unchanged (${JSON.stringify(r.v ?? r.err)})`);
+await db.exec(`update public.declutter_items set accepts_offers = true where id = '${it(1)}'`);
+ok(JSON.stringify((await demand(A)).v) === JSON.stringify({ 1: [2, 2, 3] }), "#56 offers back on: the real count again");
 const cols = (await db.query(`select pg_get_function_result('public.declutter_item_demand(uuid[])'::regprocedure) r`)).rows[0].r;
 ok(cols === "TABLE(item_id uuid, saves integer, offers_week integer, views_today integer, sale_pct integer, sale_ends_at timestamp with time zone)", `numbers only (and the sale, 20261120014036) (${cols})`);
 const fn = (await db.query(`select proacl::text a, prosecdef d, provolatile v from pg_proc where proname = 'declutter_item_demand'`)).rows[0];

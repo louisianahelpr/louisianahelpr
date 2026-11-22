@@ -25,10 +25,11 @@ export function CheckoutPickupTime({ days, porch, meetup = false, value, onPick,
   if (loading) return <p className="text-ds-13 text-muted-foreground" role="status">{t("dbuy.time.loading")}</p>;
   // A3-54 (audit 11-01): no open time in the next 7 days. Pay stays open (the order's book_by and the 7-day close,
   // declutter_handover_sweep), so the buyer is told what happens after paying instead of the picker vanishing.
+  // Deep audit 11-22 #38: each way names itself; porch's line said "no open pickup times" above door times that existed.
   if (days.length === 0) {
     return (
       <p className="text-ds-13 text-muted-foreground" role="status" data-checkout-no-times="">
-        {meetup ? t("dbuy.time.noneMeet") : t("dbuy.time.nonePickup")}
+        {meetup ? t("dbuy.time.noneMeet") : porch ? t("dbuy.time.nonePorch") : t("dbuy.time.nonePickup")}
       </p>
     );
   }

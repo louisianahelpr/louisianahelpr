@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
 import BackButton from "@/components/BackButton";
 import { sectionByKey, type SectionAdd, type SectionKey } from "./sectionsConfig";
+import { SECTION_ADD_CLS } from "./SectionAddLink";
 import { writeLastSection } from "./lastSection";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
@@ -61,11 +62,6 @@ function TopBarInbox() {
 /** The tabs row's icon controls (search, filters, map, gear): 40px ghost squares with a 20px glyph, centred on the 44px tabs. */
 const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
 
-/** The soft create look (the light olive tint, the olive glyph) of the desktop "+ Post a job". */
-// Design audit 11-17 #23: the bare 12% tint read as a grey, disabled pill beside the rail's olive "+ Create"; an olive
-// edge makes it read as the lighter-green button it is (still no fill, no shadow: second to Create).
-const SECTION_ADD_TINT = "rounded-full shadow-none border border-[hsl(var(--bark)/0.55)] bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint";
-
 /** The section's soft "+ Post a job" (etc.) for the DESKTOP bar; the /jobs loading frame draws the same one so the bar
  *  does not change when the page settles (src/test/sectionLoadingHeaderIsSettled.test.tsx). */
 export function SectionAddButton({ section, add: own }: { section: SectionKey; add?: SectionAdd }) {
@@ -88,7 +84,7 @@ export function SectionAddButton({ section, add: own }: { section: SectionKey; a
       data-testid="section-add"
       onClick={isPost ? gate.gate("post", go) : go}
       {...(isPost ? gate.gatedProps("post") : {})}
-      className={`${SECTION_ADD_TINT} px-4 gap-1.5 font-semibold [&>svg]:w-[18px] [&>svg]:h-[18px]`}
+      className={SECTION_ADD_CLS}
     >
       <Plus aria-hidden />
       {add.cta ?? add.label}

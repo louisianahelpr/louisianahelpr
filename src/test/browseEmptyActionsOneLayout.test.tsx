@@ -12,7 +12,7 @@
  * read from source; each one's nothing-at-all action goes through EmptyStateActions, and its action component holds no
  * hand-made pill or outlined button of its own.
  *
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |       <EmptyStateActions\n        primary={guest |       <BarkPillButtonList\n        primary={guest
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |       <EmptyStateActions\n        primary={{ |       <BarkPillButtonList\n        primary={{
  * @mutate src/components/ui/EmptyStateActions.tsx |   const plus = <Plus className="w-4 h-4 mr-1 shrink-0" aria-hidden />; |   const plus = null;
  * @mutate src/components/ui/EmptyStateActions.tsx |   const quiet = <SecondaryIcon className="w-4 h-4 mr-1 shrink-0" aria-hidden />; |   const quiet = null;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | : others.length === 0 ? t("decl.emptyBody.none") | : others.length === 0 ? "Be the first to sell something."

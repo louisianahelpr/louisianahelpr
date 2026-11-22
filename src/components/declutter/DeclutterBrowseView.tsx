@@ -164,15 +164,14 @@ function NothingForSaleActions({ guest }: { guest: boolean }) {
   const wanted = useFeature("declutter_wanted");
   const { t } = useLanguage();
   // Owner 11-02 (1.0.4): the same layout as Jobs' empty Browse (EmptyStateActions): "+ Sell something", then the quiet
-  // "Post what you're looking for" link. A guest can't sell yet (lead 10-31): Sign up to sell, back to the chooser after.
+  // "Post what you're looking for" link. Deep audit 11-22 #11: a guest gets "Sell something" too (since 11-21 a guest
+  // fills in the listing first and signs up at the end), not "Sign up to sell".
   return (
     <div data-nothing-for-sale="">
       {/* A member's own "+ Sell something" is here: the floating "+ Sell" steps aside (owner via the lead, 11-08). */}
       <HideSectionCreateFab active={!guest} />
       <EmptyStateActions
-        primary={guest
-          ? { label: t("decl.signUpToSell"), to: `/signup?redirect=${encodeURIComponent(SELL_START_PATH)}` }
-          : { label: t("decl.sellSomething"), to: SELL_START_PATH }}
+        primary={{ label: t("decl.sellSomething"), to: SELL_START_PATH }}
         secondary={wanted ? { label: t("decl.postWanted"), to: "/declutter?tab=wanted" } : null}
         secondaryIcon={Search}
       />

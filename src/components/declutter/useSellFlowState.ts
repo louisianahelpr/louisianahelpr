@@ -283,7 +283,8 @@ export function useSellFlowState(urlItemId: string | null) {
   const keptWork = useSellSaved(urlItemId || answer ? undefined : (user?.id ?? (isGuest ? GUEST_SELLER : undefined)), { form, coords, ways, windows, keepUpWanted, autoFreeWanted, createdId, aiMemory: ai.memory.current, sizeKnown }, held, (back) => {
     if (!urlItemId && startsFree(params) && !back.form.free) {
       setFreeOrDraft(back);
-      return;
+      // Deep audit 11-22 #52: nothing saves until the seller answers, so leaving without an answer keeps the draft.
+      return "hold";
     }
     bringBack(back);
   });
@@ -323,10 +324,12 @@ export function useSellFlowState(urlItemId: string | null) {
     startFree: () => {
       setFreeOrDraft(null);
       keptWork.dismissRestored();
+      keptWork.release();
     },
     continueDraft: () => {
       const back = freeOrDraft;
       setFreeOrDraft(null);
+      keptWork.release();
       bringBack(back);
     },
   };

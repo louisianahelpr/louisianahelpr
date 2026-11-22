@@ -186,7 +186,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // One gate for the item and its photos: the gallery paints once, never a placeholder that pops into a photo.
   if (item.isLoading || photos.isLoading) return <DeclutterItemSkeleton />;
   if (item.isError || !item.data) {
-    return <DeclutterItemUnavailable detail={item.isError ? declutterErrorMessage(item.error) : undefined} top={item.isError ? null : <SoldItemCard itemId={itemId} />} more={<NewestItemsRow viewerId={user?.id ?? null} />} />;
+    // Deep audit 11-22 #19: a failed read is "couldn't load" with Try again, never "No longer available".
+    return <DeclutterItemUnavailable detail={item.isError ? declutterErrorMessage(item.error) : undefined} onRetry={item.isError ? () => void item.refetch() : undefined}
+      top={item.isError ? null : <SoldItemCard itemId={itemId} />} more={<NewestItemsRow viewerId={user?.id ?? null} />} />;
   }
   const it = item.data;
   // Owner 11-20 #7: the title as shown (smart title case); the stored title and its share text are the seller's own.
@@ -403,7 +405,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
               </p>
             )}
             {/* Declutter top 5 #3 (owner 11-19): "3 offers this week · 8 people saved this", real counts past a threshold. */}
-            {forSale && <Suspense fallback={null}><DemandLine itemId={it.id} /></Suspense>}
+            {forSale && <Suspense fallback={null}><DemandLine itemId={it.id} offersOn={it.accepts_offers !== false} /></Suspense>}
             {isSeller && <ItemViewsCount sellerId={it.seller_id} itemId={it.id} />}
             {/* Area 06b M9: the seller's own item page has no seller card; a link to the public page buyers see instead. */}
             {isSeller && (

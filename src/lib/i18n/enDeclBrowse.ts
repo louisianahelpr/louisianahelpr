@@ -31,7 +31,6 @@ export const enDeclBrowse = {
   "decl.cantFind": "Can't find it?",
   "decl.askFor": "Ask for “{what}”",
   "decl.postWanted": "Post what you're looking for",
-  "decl.signUpToSell": "Sign up to sell",
   "decl.sellSomething": "Sell something",
   "decl.searchItems": "Search items",
   "decl.loadFailed": "We couldn't load items.",

@@ -142,7 +142,7 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   if (!user && !s.isGuest) return null;
   if (underAge) {
     return (
-      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter">
+      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter" narrow>
         <DeclutterNotice tone="warn" title={tr("sf.underAgeTitle")}>
           {tr("sf.underAgeBody")}
         </DeclutterNotice>
@@ -152,7 +152,7 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
 
   if (first.failed) {
     return (
-      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter?tab=selling">
+      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter?tab=selling" narrow>
         <ErrorState variant="inline" title={tr("sf.fs.loadFailed")} body={tr("sf.fs.loadFailedBody")} onRetry={first.reload} />
       </AppPage>
     );
@@ -208,8 +208,8 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
     // Audit 11-10 F341: a giveaway keeps its title on a phone too, so the first heading there is not just "Show it off".
     // Area 06b L12: at 768 and up "Sell an item" was painted over the step's own "Show it off" (two headings, out of line);
     // the step head is the one painted heading at every width now. A giveaway still says what it is (F341).
-    <AppPage title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling" phoneHidesTitle={!form.free} hidesTitle={!form.free}>
-      <div className="w-full max-w-xl space-y-6" data-sell-one-screen="">
+    <AppPage title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling" phoneHidesTitle={!form.free} hidesTitle={!form.free} narrow>
+      <div className="space-y-6" data-sell-one-screen="">
         {s.freeChoice && (
           // Area 06 H1 (11-18): "Give away free" with a priced draft kept on this device asks, never opens the draft.
           <div role="status" className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-sell-free-or-draft="">

@@ -19,7 +19,8 @@ export function useDeviceSaved<S, M extends SavedPhotos>({ store, userId, snapsh
   /** The snapshot's own fields, never its identity: a view builds a new object each render. */
   watch: readonly unknown[];
   plan: (s: S) => { photos: BunchPhoto[]; meta: Omit<M, keyof SavedPhotos> } | null;
-  restore: (found: { saved: M; photos: BunchPhoto[] }, stale: () => boolean) => void | Promise<void>;
+  /** Resolving `"hold"` keeps every save off until `release()`: the caller is still asking what to bring back. */
+  restore: (found: { saved: M; photos: BunchPhoto[] }, stale: () => boolean) => void | "hold" | Promise<void | "hold">;
   /** Warn before the tab closes. */
   warn: boolean;
   /** Said on the screen when a write fails; the work on screen is untouched. */
@@ -27,6 +28,8 @@ export function useDeviceSaved<S, M extends SavedPhotos>({ store, userId, snapsh
 }) {
   const [note, setNote] = useState<string | null>(null);
   const ready = useRef(false);
+  // Deep audit 11-22 #52: while the caller asks what to bring back, nothing saves (an empty form's save cleared the kept work).
+  const held = useRef(false);
   const latest = useRef(snapshot);
   const onDisk = useRef(new Set<string>());
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -51,7 +54,7 @@ export function useDeviceSaved<S, M extends SavedPhotos>({ store, userId, snapsh
 
   /** Saves now; the promise settles once the write is done (a guest's sign-up waits for it, guestSellDraft.ts). */
   const flush = useCallback((): Promise<void> => {
-    if (!ready.current || !userId) return Promise.resolve();
+    if (!ready.current || held.current || !userId) return Promise.resolve();
     return enqueue(async () => {
       const p = planNow.current(latest.current);
       if (!p) {
@@ -94,7 +97,7 @@ export function useDeviceSaved<S, M extends SavedPhotos>({ store, userId, snapsh
         if (stale || !found) return;
         // All of them: a photo the caller leaves out is on disk, so the next save removes it.
         found.photos.forEach((p) => onDisk.current.add(p.key));
-        await restoreNow.current(found, () => stale);
+        if ((await restoreNow.current(found, () => stale)) === "hold") held.current = true;
       } catch (err) {
         // No storage (private mode, blocked site data): the page still works; the first save says so if it fails too.
         console.warn("[declutter] could not read saved work", err);
@@ -140,5 +143,10 @@ export function useDeviceSaved<S, M extends SavedPhotos>({ store, userId, snapsh
     return () => window.removeEventListener("beforeunload", warnNow);
   }, [warn]);
 
-  return { note, flush, latest, clearSaved };
+  /** The caller answered: saving goes on from what is on screen now. */
+  const release = useCallback(() => {
+    held.current = false;
+  }, []);
+
+  return { note, flush, latest, clearSaved, release };
 }

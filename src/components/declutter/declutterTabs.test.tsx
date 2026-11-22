@@ -971,7 +971,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks + freeAsks.length; |   const toAnswer = (todo?.sellerOffers ?? 0) + reports.size + bundleAsks + tradeAsks + freeAsks.length;
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <QuestionsToAnswer userId={userId} />} |
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |     const waiting = mine.filter((o) => o.status === "open" && o.awaiting === side); |     const waiting = mine.filter((o) => o.status === "open");
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === null && settings} |       {settings}
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === null && (\n        <section className="space-y-3" aria-label={t("decl.mv.tools")} |       {(\n        <section className="space-y-3" aria-label={t("decl.mv.tools")}
   // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx | const ASKABLE = new Set(["live", "paused"]); | const ASKABLE = new Set(["live", "paused", "draft", "sold"]);
   // AUD31-28 (audit 2026-10-31): the Answer row opens the item at its questions, not at the top.
   // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx | <Link to={`/declutter/item/${r.item_id}#declutter-questions`} | <Link to={`/declutter/item/${r.item_id}`}

@@ -9,7 +9,7 @@
  * nothing of the order set itself. Measured 11-01 on the built app: see the commit message.
  *
  * @mutate src/components/declutter/DeclutterHomeView.tsx | import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTabHeads"; | import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
- * @mutate src/components/declutter/DeclutterHomeView.tsx | import { report } from "@/lib/errorLogger"; | import { report } from "@/lib/errorLogger"; import { BuyingDash as _B } from "./DeclutterMineViews";
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | import { liveListingCount } from "@/lib/declutter/liveListingCount"; | import { liveListingCount } from "@/lib/declutter/liveListingCount"; import { BuyingDash as _B } from "./DeclutterMineViews";
  * @mutate src/pages/declutter/DeclutterPage.tsx | import { lazy, Suspense, useEffect } from "react"; | import { lazy, Suspense, useEffect } from "react"; import { HandoverTalkFromLink as _T } from "@/components/declutter/DeclutterHandoverTalk";
  * @mutate src/components/declutter/SellerQuestionsToAnswer.tsx | import { SectionHeading } from "./DeclutterTabHeads"; | import { SectionHeading } from "./DeclutterTabParts";
  * @mutate src/components/declutter/DeclutterTabHeads.tsx | import { DeclutterNotice } from "./declutterUi"; | import { DeclutterNotice } from "./declutterUi"; import "./DeclutterOffersSection";

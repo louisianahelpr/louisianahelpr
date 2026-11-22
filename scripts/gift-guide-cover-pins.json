@@ -1,14 +1,14 @@
 {
   "_": "The owner's own cover picks per guide (read by scripts/gift-guide-photo-covers.py). items: product names, drawn first in this order. photos: an Amazon-linked pick's photo of the same product from another store, as a transparent cutout (never Amazon's own photo). Guard: src/test/giftGuideCoverPins1121.test.ts.",
   "her": {
-    "_why": "Owner 2026-11-21 ~9:45 PM, final (via lead): \"Ember, Lola, Dylan Croc, YETI bag, Depuffi and Theragun\" (the BaubleBar earrings, CurrentBody mask, Stanley cooler and Hatch come off). The On Cloud holds the shoe spot (bottom right) until the Crocs Dylan has its crocs.com link and photo. Earlier 11-21: \"for the her guide remove the camera and the biodance from the cover. replace those with the hatch alarm clock and the current body red light mask\"",
+    "_why": "Owner 2026-11-21 ~9:45 PM, final (via lead): \"Ember, Lola, Dylan Croc, YETI bag, Depuffi and Theragun\" (the BaubleBar earrings, CurrentBody mask, Stanley cooler and Hatch come off). The Crocs Dylan (crocs.com link and photo, 11-21 night) takes the shoe spot (bottom right). Earlier 11-21: \"for the her guide remove the camera and the biodance from the cover. replace those with the hatch alarm clock and the current body red light mask\"",
     "items": [
       "Ember Mug 2, Brown",
       "Lola Blankets Original Throw Blanket",
       "YETI Camino 35 Carryall Tote, Cape Taupe",
       "Therabody Theragun Mini",
       "Shark Depuffi Hot & Cold Face Sculpting Tool",
-      "On Cloud 6 Sneakers, Glacier/White"
+      "Crocs Dylan Platform Clog"
     ],
     "photos": {}
   },
@@ -23,7 +23,6 @@
       "SIMIYA Merino Wool Socks, 5 Pairs"
     ],
     "photos": {
-      "YETI Rambler 20 oz Tumbler": "https://www.louisianahelpr.com/gift-guides/cutouts/yeti-rambler-20-oz-tumbler-wetlands-camo-7f0109.webp",
       "RTIC Soft Cooler": "https://www.louisianahelpr.com/gift-guides/cutouts/rtic-ultra-tough-soft-cooler-20-tan-e1d3e3.webp",
       "BURLEBO Cap": "https://www.louisianahelpr.com/gift-guides/cutouts/burlebo-outdoors-cap-putty-b33402.webp",
       "SIMIYA Merino Wool Socks, 5 Pairs": "https://www.louisianahelpr.com/gift-guides/cutouts/simiya-merino-wool-socks-5-pairs-43466d.webp"

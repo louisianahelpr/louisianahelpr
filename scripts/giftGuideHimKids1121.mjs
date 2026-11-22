@@ -35,7 +35,7 @@ const shopmy = (pin) => `https://go.shopmy.us/${pin}`;
 export const HIM_KIDS_PRICE_AT = "2026-11-21";
 /** Stores a switched pick goes to that the store list may not hold yet (key -> shown name). */
 export const HIM_KIDS_STORES = {
-  "store-dillards": "Dillard's", "store-exclusive-beauty-club": "Exclusive Beauty Club",
+  "store-dillards": "Dillard's", "store-l-l-bean": "L.L.Bean", "store-exclusive-beauty-club": "Exclusive Beauty Club",
   // The owner's ShopMy saves for Him and Kids (11-21).
   "store-smathers-and-branson": "Smathers & Branson", "store-duck-head": "Duck Head", "store-grove": "Grove",
   "store-clinique": "Clinique", "store-maisonette": "Maisonette", "store-wayfair": "Wayfair", "store-macys": "Macy's",
@@ -106,10 +106,16 @@ export const HIM_SHOPMY_1121 = [
  * price, 2026-11-21; it is in HIM_SHOPMY_1121 on her YETI pin). Prices are her list's capture; the three YETI Crossroads prices were read on Amazon 2026-11-21.
  */
 export const HIM_AMAZON_MORE_1121 = [
-  ["B0DVM13SRM", 300, "41VoCFBBOlL", "YETI LoadOut GoBox 60 Gear Case", "YETI", "gear-case", 3, "A tough, divided gear box for the truck bed or boat."],
-  ["B0DVM24NF8", 250, "41Zn9B3t1ML", "YETI LoadOut GoBox 30 Gear Case", "YETI", "gear-case", 3, "A smaller GoBox for tackle, tools or shells."],
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0DVM13SRM at
+  // 3% ($300); same item and color, King Crab Orange, yeti.com: 8%, $300.
+  { name: "YETI LoadOut GoBox 60 Gear Case", brand: "YETI", line: "A tough, divided gear box for the truck bed or boat.", href: shopmy("p-109003244"), image: "https://yeti-webmedia.imgix.net/asset/6d2ff9b9-6fa5-48cd-b4d5-09f7576bc754/W/220027_site_studio_Loadout_GoBox_60_King_Crab_Front_Closed_1182_Primary_B_2400x2400.png", store: "store-yeti", sortPrice: 300, price: 300, commission: 8, type: "gear-case" },
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0DVM24NF8 at
+  // 3% ($250); same item and color, King Crab Orange, yeti.com: 8%, $250.
+  { name: "YETI LoadOut GoBox 30 Gear Case", brand: "YETI", line: "A smaller GoBox for tackle, tools or shells.", href: shopmy("p-109003412"), image: "https://yeti-webmedia.imgix.net/asset/97d8ceab-2ea8-4e68-ab47-72162d713c1b/W/220027_site_studio_Loadout_GoBox_30_King_Crab_Front_Closed_1202_Primary_B_2400x2400.png", store: "store-yeti", sortPrice: 250, price: 250, commission: 8, type: "gear-case" },
   ["B0BSHWGY47", 218, "31jVexbfg2L", "YETI LoadOut GoBox Collection", "YETI", "gear-case", 3, "A waterproof GoBox that keeps gear dry and sorted."],
-  ["B0D9QX9F67", 55, "314M37c1jmL", "YETI Sidekick Dry 3L Gear Case, Olive", "YETI", "gear-case", 3, "A waterproof pouch for keys, phone and wallet on the water."],
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0D9QX9F67 at
+  // 3% ($55); same item and color, Olive/Black, yeti.com: 8%, $55.
+  { name: "YETI Sidekick Dry 3L Gear Case, Olive", brand: "YETI", line: "A waterproof pouch for keys, phone and wallet on the water.", href: shopmy("p-109004058"), image: "https://yeti-webmedia.imgix.net/asset/74b4454a-9c99-4b8b-9967-8eff2a9793a1/W/site_studio_Bags_Sidekick_Dry_3L_Olive_Front_3657_Primary_B_2400x2400.png", store: "store-yeti", sortPrice: 55, price: 55, commission: 8, type: "gear-case" },
   ["B0FL2Y8B9V", 148.49, "41m8A6L3T1L", "Condition 1 16 in. Pistol Case", "Condition 1", "gun-case", 3, "A heavy-duty, watertight hard case for a pistol."],
   ["B0CNKB7KGG", 69.98, "41mY52oBJrL", "ONNAIS Iron PRO Biometric Gun Safe", "ONNAIS", "gun-safe", 3, "A fingerprint gun safe for the nightstand or truck."],
   ["B08L12KVMB", 9.45, "41pribslttL", "Gun Cleaning Patches and Supplies", "", "hunting", 3, "Cleaning patches to keep his guns in shape."],
@@ -139,12 +145,24 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B0998FYXLS", 93.75, "416icj52+lL", "XTRATUF Mossy Oak Bottomland Ankle Deck Boot", "XTRATUF", "boots", 4, "Deck boots in Mossy Oak Bottomland camo."],
   ["B0FY9LPSCW", 30, "31i+57DEsXL", "Columbia Ratchet Strap Snapback Hat", "Columbia", "hat", 4, "An easy snapback for every day."],
   ["B0DQF73JH4", 30, "41RJSxadbBL", "The North Face Logo Box Cuffed Beanie", "The North Face", "hat", 4, "A warm cuffed beanie for cold mornings."],
-  ["B0FDYG11V3", 270, "41TknNuKb9L", "YETI Hopper Flip 12 Soft Cooler", "YETI", "cooler", 3, "A soft cooler that keeps lunch cold all day."],
-  ["B0D9QXT97F", 280, "31Wh2Vl00EL", "YETI Crossroads Luggage", "YETI", "luggage", 3, "Rugged rolling luggage for hunting trips and travel."],
-  ["B0B64CJZQQ", 400, "31bK+E-Mt7L", "YETI Panga Waterproof Duffel", "YETI", "bag", 3, "A fully waterproof duffel for boat days."],
-  ["B0DHHK1YP7", 200, "31uNnQoAavL", "YETI Crossroads Duffel Bag, 60L", "YETI", "bag", 3, "A roomy duffel for weekends away."],
-  ["B0H7CNPH2S", 40, "31uLsssRsQL", "YETI Rambler 20 oz Tumbler, Upland", "YETI", "drinkware", 4.5, "A Rambler with upland birds for coffee on the drive."],
-  ["B0H7DRWL2T", 25, "31tueKjcZWL", "YETI Rambler 12 oz Colster Can Insulator", "YETI", "drinkware", 4.5, "Keeps his can cold to the last sip."],
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0FDYG11V3 at
+  // 3% ($270); same item and color, Wetlands Camo, Tractor Supply 2580429 (yeti.com is out of it): 8%, $270.
+  { name: "YETI Hopper Flip 12 Soft Cooler", brand: "YETI", line: "A soft cooler that keeps lunch cold all day.", href: shopmy("p-109004991"), image: "https://media.tractorsupply.com/is/image/TractorSupplyCompany/2580429", store: "store-tractor-supply", sortPrice: 270, price: 270, commission: 8, type: "cooler" },
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0D9QXT97F at
+  // 3% ($280); same item and color, Olive 22in carry-on, yeti.com (20% off Crossroads; $350 when it ends): 8%, $280.
+  { name: "YETI Crossroads Luggage", brand: "YETI", line: "Rugged rolling luggage for hunting trips and travel.", href: shopmy("p-109003793"), image: "https://yeti-webmedia.imgix.net/m/5334b4066c200f9/W-site_studio_Bags_22_Luggage_Olive_Front_00115_Primary_B_2400x2400.png", store: "store-yeti", sortPrice: 280, price: 280, commission: 8, type: "luggage" },
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0B64CJZQQ at
+  // 3% ($400); same item and color, Tan 100L, yeti.com: 8%, $400.
+  { name: "YETI Panga Waterproof Duffel", brand: "YETI", line: "A fully waterproof duffel for boat days.", href: shopmy("p-109003630"), image: "https://yeti-webmedia.imgix.net/asset/24be88ce-af77-44b9-adb1-37a72dd2c382/W/site_studio_Panga_100L_Duffel_Tan_Front_0227_Primary_B_2400x2400.png", store: "store-yeti", sortPrice: 400, price: 400, commission: 8, type: "bag" },
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0DHHK1YP7 at
+  // 3% ($200); same item and color, Cape Dark Taupe, yeti.com (Crossroads sale; list $250): 8%, $200.
+  { name: "YETI Crossroads Duffel Bag, 60L", brand: "YETI", line: "A roomy duffel for weekends away.", href: shopmy("p-109003951"), image: "https://yeti-webmedia.imgix.net/asset/9d27db5c-7b05-4219-83e0-e35ee2c57234/W/site_studio_soft_goods_Bags_60L_Duffel_Cape_Taupe_Front_00011_Primary_B_2400x2400.png", store: "store-yeti", sortPrice: 200, price: 200, commission: 8, type: "bag" },
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0H7CNPH2S at
+  // 4.5% ($40); same item and color, Upland Bird Olive, yeti.com: 8%, $40.
+  { name: "YETI Rambler 20 oz Tumbler, Upland", brand: "YETI", line: "A Rambler with upland birds for coffee on the drive.", href: shopmy("p-109004159"), image: "https://yeti-webmedia.imgix.net/asset/31f78bf9-5319-4ef1-9e33-be99bb82a8c6/W/Site_Studio_Drinkware_Rambler_Tumbler_20oz_Upland_Bird_Front_1256_B_2400x2400.png", store: "store-yeti", sortPrice: 40, price: 40, commission: 8, type: "drinkware" },
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0H7DRWL2T at
+  // 4.5% ($25); same item and color, Olive/King Crab Orange, yeti.com: 8%, $25.
+  { name: "YETI Rambler 12 oz Colster Can Insulator", brand: "YETI", line: "Keeps his can cold to the last sip.", href: shopmy("p-109004254"), image: "https://yeti-webmedia.imgix.net/asset/d8bd6d31-2b1e-42b9-b993-7604c58d92c1/W/Site_Studio_Drinkware_Rambler_Colster_2-0_12oz_2026_Hunt_Front_480_B_2400x2400.png", store: "store-yeti", sortPrice: 25, price: 25, commission: 8, type: "drinkware" },
   ["B0FJ77VP99", 7.63, "51pRiXCKpSL", "Microfiber Fishing Towels with Clip, 3 Pack", "Puomue", "fishing", 3, "Clip-on towels for the boat or the bank."],
   ["B0CNCYJHG5", 23.99, "41ttbLXHJsL", "KastKing SteelStream Fishing Tool Kit", "KastKing", "fishing", 3, "Pliers, gripper and tools for a day of fishing."],
   ["B074731V84", 49.29, "51YXUAY-bzL", "Rush Creek 12-Rod Rolling Rod Rack", "Rush Creek Creations", "fishing", 3, "A rolling rack that keeps his rods in one place."],
@@ -154,8 +172,12 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B0DFM99JMJ", 67.98, "41kwEwHHimL", "Underwater Fishing Light, 100W", "XXK", "fishing", 3, "A green dock light that pulls in fish at night."],
   ["B09ZK1VTWG", 55.97, "51SvVCt24zL", "Catch Co Mystery Tackle Box, Bass", "Catch Co", "fishing", 3, "A surprise box of bass lures."],
   ["B08HSH1ZCZ", 47.99, "41hGKBlB07L", "Catch Co Mystery Tackle Box, Catch All", "Catch Co", "fishing", 3, "A surprise box of lures for any fish."],
-  ["B0D1RJZCWZ", 371.25, "31e9+DcKM3L", "YETI Roadie 32 Wheeled Cooler", "YETI", "cooler", 3, "A wheeled hard cooler for tailgates and trips."],
-  ["B0H7CRMDKS", 325, "31kDk35v7ML", "YETI Tundra 45 Hard Cooler", "YETI", "cooler", 3, "The classic YETI ice chest for the boat or the camp."],
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0D1RJZCWZ at
+  // 3% ($371.25); same item and color, Navy, llbean.com 5750519 (photo from yeti.com: L.L.Bean blocks reads): 12%, $375.
+  { name: "YETI Roadie 32 Wheeled Cooler", brand: "YETI", line: "A wheeled hard cooler for tailgates and trips.", href: shopmy("p-109000336"), image: "https://yeti-webmedia.imgix.net/asset/79f95551-0ac4-4ec6-a3d9-fc879fd507ca/W/site_studio_hard_goods_Roadie_32_Navy_3QTER_Basket_4248_Primary_B_2400x2400.png", store: "store-l-l-bean", sortPrice: 375, price: 375, commission: 12, type: "cooler" },
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0H7CRMDKS at
+  // 3% ($325); same item and color, Olive/King Crab Orange, yeti.com: 8%, $325.
+  { name: "YETI Tundra 45 Hard Cooler", brand: "YETI", line: "The classic YETI ice chest for the boat or the camp.", href: shopmy("p-109001581"), image: "https://yeti-webmedia.imgix.net/asset/5a5ec195-f5d7-414f-b324-0e95c378c9a5/W/Site_Studio_Hard_Coolers_Tundra_45_2026_Hunt_Front_070_B_2400x2400.png", store: "store-yeti", sortPrice: 325, price: 325, commission: 8, type: "cooler" },
   ["B0BTNT4225", 7.62, "51soPzYygeL", "Damaged Screw Extractor Set", "", "tool", 3, "Pulls out stripped screws in seconds."],
   ["B0C1HKXK3D", 22.78, "51c0A-FH+XL", "UUP Heavy Duty Roll Up Tool Bag", "UUP", "tool", 3, "A roll-up bag that keeps his tools in order."],
   ["B081T7N948", 6.45, "51M3+vvvmQL", "PULIDIKI Car Cleaning Gel", "PULIDIKI", "car-care", 3, "A gel that pulls dust out of vents and cup holders."],
@@ -169,7 +191,9 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B0FYR14JVY", 32.23, "41WBx16LZfL", "Carhartt Oil Tan Leather Passcase Wallet", "Carhartt", "wallet", 4, "A brown leather wallet that wears in well."],
   ["B01MR53G6C", 22.59, "51bhNzOWW-L", "RAK Magnetic Pickup Tool", "RAK", "tool", 3, "A magnetic pickup tool with a light."],
   ["B0FWRPFVF6", 135.99, "4180sHSFv2L", "HOTO 25-Piece Tool Kit with Drill", "HOTO", "tool", 3, "A cordless drill and household tool kit in one case."],
-  ["B0F22HTHMJ", 408.5, "410pP1gEB7L", "Turtlebox Original Gen 3 Speaker", "Turtlebox", "speaker", 3, "The loudest Turtlebox, built for the outdoors."],
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0F22HTHMJ at
+  // 3% ($408.5); same item and color, Tan, onwardreserve.com/products/turtlebox-gen-3-speaker-tan: 15%, $430.
+  { name: "Turtlebox Original Gen 3 Speaker", brand: "Turtlebox", line: "The loudest Turtlebox, built for the outdoors.", href: shopmy("p-108999848"), image: "https://cdn.shopify.com/s/files/1/2117/2759/files/tan_59e105ca-50c6-4429-9dcb-6465e0c50aea.jpg", store: "store-onward-reserve", sortPrice: 430, price: 430, commission: 15, type: "speaker" },
   ["B00IU19FRK", 11.97, "41iKqPmPrRL", "Wildlife Research Scent Killer Gold Spray", "Wildlife Research Center", "hunting", 3, "Scent control spray for the stand."],
   ["B073VBXY7L", 5.37, "41DXHXOJ+KL", "Scent Killer Gold Antiperspirant", "Wildlife Research Center", "hunting", 3, "Scent-free antiperspirant for hunting days."],
   ["B018NKHBZU", 16.14, "41M3Of1q5kL", "Mossy Oak Fixed Blade Hunting Knife Set", "Mossy Oak", "knife", 3, "A two-piece hunting knife set with sheaths."],
@@ -185,7 +209,7 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B0G72KN8BL", 9.49, "41AjgHzg2iL", "COOFANDY Men's V-Neck Tee", "COOFANDY", "shirt", 4, "A soft everyday V-neck tee."],
   ["B08BG8RQHG", 44.99, "41wLs6bwGyL", "Carhartt K288 Logo Sweatshirt", "Carhartt", "sweatshirt", 4, "The classic Carhartt logo sweatshirt."],
   ["B0FZN2ZCFL", 27.2, "51TtsH9AWzL", "Burlebo Go To Performance Tee", "Burlebo", "shirt", 4, "A light performance tee from Burlebo."],
-].map(row);
+].map((r) => (Array.isArray(r) ? row(r) : r));
 
 export const HIM_1121 = [
   ["B087G6TGJL", 6.64, "51mBoAiS5XL", "Super Universal Socket Tool", "", "tool", 3, "One socket that grips almost any nut or bolt."],
@@ -208,7 +232,9 @@ export const HIM_1121 = [
   ["B09R5TGLFR", 31.9, "51eZqCXlw0L", "Chemical Guys Car Cleaning Kit", "Chemical Guys", "car-care", 3, "Everything to wash and shine his truck."],
   ["B0CKMF6GPZ", 32.99, "41uo6lSsK3L", "HOSHANHO Fillet Knife", "HOSHANHO", "knife", 3, "A sharp, flexible fillet knife for the catch."],
   ["B0076R6MN4", 34.5, "41gvAlcoEhL", "Columbia Steens Mountain Fleece Jacket", "Columbia", "jacket", 4, "The full-zip fleece that goes with everything."],
-  ["B0FDY7G84C", 40, "41t6YK7Y+RL", "YETI Rambler 20 oz Tumbler", "YETI", "drinkware", 4.5, "Keeps his coffee hot through the whole drive."],
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0FDY7G84C at
+  // 4.5% ($40); same item and color, Wetlands Camo, Tractor Supply 2581799 (yeti.com: Notify Me); the yeti.com camo cutout the Him cover drew: 8%, $40.
+  { name: "YETI Rambler 20 oz Tumbler", brand: "YETI", line: "Keeps his coffee hot through the whole drive.", href: shopmy("p-109005400"), image: "https://www.louisianahelpr.com/gift-guides/cutouts/yeti-rambler-20-oz-tumbler-wetlands-camo-7f0109.webp", store: "store-tractor-supply", sortPrice: 40, price: 40, commission: 8, type: "drinkware" },
   ["B0CPHY1VZL", 41.94, "41VLSmU2SBL", "HUK Pursuit Fishing Shirt", "HUK", "shirt", 4, "A cool, quick-dry shirt for long days on the boat."],
   // 14%, not 4%: her Amazon Creator Connections deal on HEYDUDE runs to Dec 7 (Commission-audit-1121-night.md).
   ["B0F2K9B696", 44.99, "31V+5B67tTL", "HEYDUDE Wally", "HEYDUDE", "shoes", 14, "Light slip-ons he can wear anywhere."],
@@ -234,7 +260,9 @@ export const HIM_1121 = [
   // COMMISSION SWITCH 11-21: was Amazon B0FKCJNHWB at 1%; the same Theragun Prime 6th Gen in black, same $189.99, at
   // Exclusive Beauty Club at 16% (Therabody.com lists only the 5th gen).
   { name: "Theragun Prime Massage Gun", brand: "Therabody", line: "A massage gun for sore backs and shoulders.", href: shopmy("p-108734364"), image: "https://cdn.shopify.com/s/files/1/2959/8080/files/therabody-theragun-prime-massage-gun-black.png", store: "store-exclusive-beauty-club", sortPrice: 189.99, price: 189.99, commission: 16, type: "massager" },
-  ["B0FDYD1C2N", 200, "41tgypUHtjL", "YETI Roadie 15 Hard Cooler", "YETI", "cooler", 3, "A small hard cooler that rides behind the seat."],
+  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0FDYD1C2N at
+  // 3% ($200); same item and color, Wetlands Camo, Tractor Supply 2581814 (yeti.com: Notify Me): 8%, $200.
+  { name: "YETI Roadie 15 Hard Cooler", brand: "YETI", line: "A small hard cooler that rides behind the seat.", href: shopmy("p-109005541"), image: "https://media.tractorsupply.com/is/image/TractorSupplyCompany/2581814", store: "store-tractor-supply", sortPrice: 200, price: 200, commission: 8, type: "cooler" },
   // COMMISSION SWITCH 11-21 night (owner-approved, via lead): was Amazon B0F2JHSGCJ at 3% ($237.50); the same Ranger in Tan
   // at Onward Reserve at 15%, $250 (her link p-108736312 -> onwardreserve.com/products/turtlebox-ranger-tan;
   // Commission-switches-1121.md). Photo: the Tan Ranger cutout from turtleboxaudio.com the Him cover already drew.

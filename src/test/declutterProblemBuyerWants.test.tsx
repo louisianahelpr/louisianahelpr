@@ -15,6 +15,7 @@
  */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -33,7 +34,8 @@ import { ProblemOpenNote } from "@/components/declutter/DeclutterProblemOpen";
 
 const REPO = resolve(__dirname, "..", "..");
 const code = (p: string) => blankComments(readFileSync(resolve(REPO, p), "utf8"));
-const wrap = (ui: React.ReactNode) => render(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
+// #39: "I felt unsafe" shows Get help now, which navigates.
+const wrap = (ui: React.ReactNode) => render(<MemoryRouter><QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider></MemoryRouter>);
 
 beforeEach(() => { calls.report = []; calls.wants = []; });
 

@@ -16,6 +16,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
+import { SafetyHelp } from "@/components/jobs/GetHelpNow";
 
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
@@ -71,6 +72,7 @@ export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange
       <p className="text-xs font-medium" aria-hidden="true">What went wrong?</p>
       <RadioCardList label="What went wrong?" value={reason ?? ""} onChange={(r) => setReason(r as ProblemReason)}
         options={reasons.map(([r, words]) => ({ value: r, label: words }))} />
+      {reason === "safety" && <SafetyHelp orderId={orderId} />}
       {asksWants && (<>
         <p className="text-xs font-medium" aria-hidden="true">What would make it right?</p>
         <RadioCardList label="What would make it right?" value={wants ?? ""} onChange={(w) => setWants(w as ProblemWants)}

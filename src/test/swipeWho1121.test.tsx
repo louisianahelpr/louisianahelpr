@@ -6,9 +6,9 @@
  * ?who=me on the start screen.
  *
  * @mutate src/content/giftGuideFun1120.ts |   finderWho("kids", "Kids", ["kids"], "Kids"), |   finderWho("kids", "Kids", ["kids"], "Kids"), finderWho("me" as SwipeWho, "Me", ["her", "him"]),
- * @mutate src/content/giftGuideFun1120.ts |   return QUIZ_BUDGETS.filter((b) => people.filter((p) => quizInBudget(p, b.id)).length >= SWIPE_MIN); |   return [...QUIZ_BUDGETS];
- * @mutate src/content/giftGuideFun1120.ts |   const fit = quizPool(pool, a).filter((p) => !!p.href && !!p.name && !seen.has(p.href) && quizInBudget(p, a.budget)); |   const fit = pool.filter((p) => !!p.href && !!p.name && !seen.has(p.href));
- * @mutate src/content/giftGuideFun1120.ts |   return quizRanked(fit, a.budget).slice(0, SWIPE_ROUND); |   return fit.slice(0, SWIPE_ROUND);
+ * @mutate src/content/giftGuideSwipe.ts |   return QUIZ_BUDGETS.filter((b) => people.filter((p) => quizInBudget(p, b.id)).length >= SWIPE_MIN); |   return [...QUIZ_BUDGETS];
+ * @mutate src/content/giftGuideSwipe.ts |   const fit = quizPool(pool, a).filter((p) => !!p.href && !!p.name && !seen.has(p.href) && quizInBudget(p, a.budget)); |   const fit = pool.filter((p) => !!p.href && !!p.name && !seen.has(p.href));
+ * @mutate src/content/giftGuideSwipe.ts |   return quizRanked(fit, a.budget).slice(0, SWIPE_ROUND); |   return fit.slice(0, SWIPE_ROUND);
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |           {who === "kids" && <div role="group" aria-label={W.swipeAge} | {false && <div role="group" aria-label={W.swipeAge}
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx |   return w === "her" \|\| w === "mom" ? "her" : w === "him" \|\| w === "dad" ? "him" : w === "kids" ? "kids" : null; |   return w === "her" ? "her" : w === "him" ? "him" : w === "kids" ? "kids" : null;
  */
@@ -22,7 +22,8 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import { loadGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
-import { SWIPE_WHO, swipeBudgets, swipeDeck } from "@/content/giftGuideFun1120";
+import { SWIPE_WHO } from "@/content/giftGuideFun1120";
+import { swipeBudgets, swipeDeck } from "@/content/giftGuideSwipe";
 import { QUIZ_AGES, QUIZ_BUDGETS, giftQuiz, quizAges, quizBudgets } from "@/content/giftQuiz";
 import { TOP10_SLOTS } from "@/content/giftGuideTop10";
 import her from "@/content/giftGuidePicks/her.json";

@@ -10,7 +10,6 @@ import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { FINDER_WHO } from "@/content/giftGuideExtras1120";
 import { cleanGiftName } from "@/lib/giftNameClean";
 import { fitsBudget, pickCeiling } from "@/content/giftPickBand";
-import { QUIZ_BUDGETS, quizInBudget, quizPool, quizRanked, type QuizAge, type QuizBudget } from "@/content/giftQuiz";
 
 // ---------------------------------------------------------------------------------------------------------------
 // Shared: today in Louisiana
@@ -165,29 +164,8 @@ export const SWIPE_WHO: { id: SwipeWho; label: string; guides: SwipeGuides; forN
   finderWho("kids", "Kids", ["kids"], "Kids"),
 ];
 export const SWIPE_ROUND = 20;
-/** A budget shows on the swipe page only with at least this many picks for the person (and the kid's age). */
-const SWIPE_MIN = 3;
-
-/**
- * The budgets worth offering one person (and a kid's age): the quiz's bands (the guides' price sections) with at least
- * SWIPE_MIN picks. QUIZ_BUDGETS is read here, on use, never in a module-level constant: the production build puts this
- * module and giftQuiz.ts in chunks that import each other, so a load-time copy was undefined and the swipe page crashed
- * on "Kids" (measured in a vite build 2026-11-21, "Cannot read properties of undefined (reading 'filter')").
- */
-export function swipeBudgets<T extends CatalogPick>(pool: readonly T[], a: { who: SwipeWho; age?: QuizAge }): { id: QuizBudget; label: string }[] {
-  const people = quizPool(pool, a);
-  return QUIZ_BUDGETS.filter((b) => people.filter((p) => quizInBudget(p, b.id)).length >= SWIPE_MIN);
-}
-
-/**
- * A plain deck (owner 2026-11-21 evening: Swipe matches the quiz): only this person's picks (and the kid's age band),
- * only inside the chosen budget band, in the quiz's order (the owner's Top 10, then clicks, then the price that fits
- * the band best; at most two of a brand), none already seen this visit, at most SWIPE_ROUND.
- */
-export function swipeDeck<T extends CatalogPick>(pool: readonly T[], a: { who: SwipeWho; age?: QuizAge; budget: QuizBudget }, seen: ReadonlySet<string>): T[] {
-  const fit = quizPool(pool, a).filter((p) => !!p.href && !!p.name && !seen.has(p.href) && quizInBudget(p, a.budget));
-  return quizRanked(fit, a.budget).slice(0, SWIPE_ROUND);
-}
+// The plain deck and its budgets (the quiz's bands) live in src/content/giftGuideSwipe.ts: they read giftQuiz.ts, which
+// would put the gift guides' catalog chunk on /sponsor's critical path from here (this module rides in public-page-reads).
 /** At most this many cards from one store in a round (some variety). */
 export const SWIPE_PER_STORE = 5;
 

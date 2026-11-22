@@ -39,7 +39,8 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 import { newestFunction } from "./helpers/parityReaders";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
-import { SWIPE_PER_STORE, SWIPE_ROUND, duplicateName, swipeBudgets, swipeDeck, swipePool, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giveawayTieInOn, parseDollars, SANTA_PATH, borrowFits, cleanName, cleanNames, nameProblem, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan } from "@/content/giftGuideFun1120";
+import { SWIPE_PER_STORE, SWIPE_ROUND, duplicateName, swipePool, christmasCountdown, cleanPlan, dollars, drawIsValid, drawSecretSanta, giveawayTieInOn, parseDollars, SANTA_PATH, borrowFits, cleanName, cleanNames, nameProblem, personMoney, planMoney, revealPath, seededRandom, swipeRound, type GiftPlan } from "@/content/giftGuideFun1120";
+import { swipeBudgets, swipeDeck } from "@/content/giftGuideSwipe";
 import { BUDGET_GUIDES, pickCeiling } from "@/content/giftPickBand";
 import { QUIZ_AGES, quizAges, quizInBudget } from "@/content/giftQuiz";
 

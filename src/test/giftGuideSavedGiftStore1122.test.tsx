@@ -25,7 +25,8 @@ import { readdirSync } from "./helpers/trackedFiles";
 
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 
-import { STORES, storeForLink, storeOf } from "@/content/giftGuideCatalog";
+import { GUIDES, STORES, loadAllGuidePicks, storeForLink, storeOf } from "@/content/giftGuideCatalog";
+import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { PersonList } from "@/pages/info/giftGuides/ManageList";
 import type { PlanPerson } from "@/content/giftGuideFun1120";
@@ -63,6 +64,20 @@ describe("a saved gift's store never throws (live bug 11-22: the My lists pill c
       render(<MemoryRouter><PersonList p={mom} ready /></MemoryRouter>);
     });
     for (let k = 0; k < SHOPMY_KIDS.length; k++) expect(screen.getByText(`Kids pick ${k}`)).toBeTruthy();
+  });
+
+  it("every live guide's picks load (the catalog never throws), and each one, saved, resolves and labels without throwing", async () => {
+    await expect(loadAllGuidePicks()).resolves.not.toThrow();
+    const live = GUIDES.filter((g) => isLiveGuide(g.slug));
+    expect(live.length).toBeGreaterThan(2); // Her, Him, Kids (+ the sponsors page) on 2026-11-22
+    let picks = 0;
+    for (const g of live) for (const pick of g.picks) {
+      const store = storeForLink(pick.href);
+      expect(() => storeLabel({ name: pick.name, href: pick.href, store, ...(pick.brand ? { brand: pick.brand } : {}) }), pick.href).not.toThrow();
+      picks += 1;
+    }
+    expect(picks).toBeGreaterThan(100); // ~430 live picks on 2026-11-22
+    expect(live.flatMap((g) => g.picks).filter((p) => SHOPMY_KIDS.includes(p.href)).length).toBeGreaterThan(0);
   });
 
   it("no gift guides screen calls storeOf() while rendering (only the catalog's load-time build may)", () => {

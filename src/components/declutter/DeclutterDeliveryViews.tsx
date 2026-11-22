@@ -512,7 +512,7 @@ export function DeliverView() {
     );
   }
   // Audit DD D1 (lead 2026-10-30): a Helpr with no car starts at "Your vehicle" (step 1) under the full explainer; once a
-  // car is saved, the deliveries to take come first, Go online appears, and the explainer folds to its title.
+  // car is saved, Go online comes first (#145), then the deliveries to take, and the explainer folds to its title.
   const setUp = vehicle.isSuccess && !!vehicle.data?.has_car;
   const openList = open.data ?? [];
   const busyRows = counts.data ?? openList;
@@ -521,6 +521,8 @@ export function DeliverView() {
     <div className="space-y-6">
       {setUp ? <DeliverExplainer collapsed /> : intro}
       {vehicleFirst === true && <VehicleForm userId={userId} />}
+      {/* Audit 1122 #145: the switch that brings deliveries to you sits above both lists (under a just-saved first car, which never moves). */}
+      {setUp && <GoOnlineCard userId={userId} where={where} />}
       {myList.some((t) => t.status === "accepted" || t.status === "picked_up") && <DeliveryRoute userId={userId} where={where} />}
       <section className="space-y-3" aria-label="Deliveries near you">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -561,7 +563,6 @@ export function DeliverView() {
           </>
         )}
       </section>
-      {setUp && <GoOnlineCard userId={userId} where={where} />}
       {/* Q2435, narrowed by audit DD D2: where open deliveries wait, by parish (counts only); shown only when one does. */}
       {busyRows.length > 0 && <BusyAreasCard deliveries={busyRows} />}
       {vehicleFirst === false && <VehicleForm userId={userId} />}

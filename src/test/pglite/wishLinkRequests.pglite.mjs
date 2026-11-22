@@ -196,7 +196,9 @@ check(JSON.stringify(items[0]) === JSON.stringify({ g: "her", i: "abc123" }), "g
 check(items[1]?.w === "Hand knit scarf" && items[1]?.h === OURS, "a filled request reads back with its words and our link");
 check(items[2]?.w === "LSU hoodie size M" && items[2]?.h === null && items[2]?.d === true, "a dismissed request reads back with no link, marked dismissed");
 check(items[1]?.d === false, "a filled request is not marked dismissed");
-check(!JSON.stringify(got).includes(ETSY) && !JSON.stringify(got).includes(TARGET) && items[4]?.w === "Silver locket" && items[4]?.h === null, "the pasted link never shows on a shared list, filled or waiting");
+// Every string value in the shared list, compared whole: neither pasted link appears as any field.
+const gotStrings = JSON.stringify(got).split('"');
+check(!gotStrings.some((v) => v === ETSY || v === TARGET) && items[4]?.w === "Silver locket" && items[4]?.h === null, "the pasted link never shows on a shared list, filled or waiting");
 const GONE = "00000000-0000-0000-0000-000000000000";
 check(/empty_list/.test((await share([{ n: "Mom", items: [{ r: GONE }] }])).err ?? ""), "a list of only unknown requests has nothing to share");
 const s2 = await share([{ n: "Mom", items: [{ r: GONE }, { r: l1.v.id }] }]);

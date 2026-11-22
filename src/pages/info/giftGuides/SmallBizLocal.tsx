@@ -57,27 +57,26 @@ export function withoutSponsors(rows: SbsListing[], sponsors: Array<{ name: stri
 function LocalCard({ b }: { b: SbsListing }) {
   const [logoOk, setLogoOk] = useState(true);
   const href = safeDocumentUrl(b.link);
+  const logo = b.has_logo && logoOk ? (
+    <img loading="lazy" decoding="async" src={sbsLogoUrl(b.id)} alt="" width={72} height={72} onError={() => setLogoOk(false)} />
+  ) : (
+    <span className="gg-sbs-initials" aria-hidden="true">{initials(b.name)}</span>
+  );
+  // Owner 2026-11-22 ("remove visit, they can click the picture or title to visit"): the logo and the name each open the
+  // business's page in a new tab (as Visit did); no link, plain text. The logo link repeats the name's, so it is hidden
+  // from screen readers and Tab.
+  const out = (className: string, children: React.ReactNode, hidden = false) => (
+    <a href={href!} target="_blank" rel="noopener noreferrer nofollow ugc" className={className} data-gift-sb-out=""
+      {...(hidden ? { "aria-hidden": true, tabIndex: -1 } : {})}>{children}</a>
+  );
   return (
     <li className="gg-sb" data-gift-sbs-local={b.id}>
-      <span className="gg-sb-logo">
-        {b.has_logo && logoOk ? (
-          <img loading="lazy" decoding="async" src={sbsLogoUrl(b.id)} alt="" width={72} height={72} onError={() => setLogoOk(false)} />
-        ) : (
-          <span className="gg-sbs-initials" aria-hidden="true">{initials(b.name)}</span>
-        )}
-      </span>
+      {href ? out("gg-sb-logo", logo, true) : <span className="gg-sb-logo">{logo}</span>}
       <span className="gg-sb-body">
-        <p className="gg-sb-name">{b.name}</p>
+        <p className="gg-sb-name">{href ? out("gg-sb-name-link", <>{b.name}<span className="sr-only"> ({G.newTab})</span></>) : b.name}</p>
         <p className="gg-sb-town">{[b.town, b.category].filter(Boolean).join(" · ")}</p>
         <span className="gg-badges"><i className="gg-bdg gg-bdg-local" data-gift-badge="local">{W.badge}</i></span>
         {b.deal && <p className="gg-sb-text"><b>{W.dealLabel}</b> {b.deal}</p>}
-        {href && <span className="gg-sb-links">
-          {/* "Visit" alone: a long business name never overflows the card at 320 px; the name is read out. A plain
-              text link (owner 2026-11-21: "remove the circle around visit"). */}
-          <a href={href} target="_blank" rel="noopener noreferrer nofollow ugc" className="gg-sb-visit" data-gift-sb-out="">
-            {W.visitShort}<span aria-hidden="true">&nbsp;›</span><span className="sr-only"> {b.name} ({G.newTab})</span>
-          </a>
-        </span>}
       </span>
     </li>
   );

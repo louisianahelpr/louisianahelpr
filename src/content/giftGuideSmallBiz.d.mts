@@ -28,7 +28,6 @@ export const SMALL_BIZ_WORDS: {
   lead: string;
   intro: string;
   badge: string;
-  visit: string;
   facebook: string;
   instagram: string;
   website: string;

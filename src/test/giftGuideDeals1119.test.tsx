@@ -25,6 +25,7 @@
  * @mutate src/content/giftGuideDeals.mjs |   return today > event.day ? today : event.day; |   return today;
  * @mutate src/content/giftGuideDeals.mjs |   return dealDay(String(hash ?? "").replace(/^#/, ""))?.id ?? DEAL_EVENTS[0].id; |   return DEAL_EVENTS[0].id;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const isOpen = (id: string, i: number) => open[id] ?? i === 0; |   const isOpen = (id: string, i: number) => open[id] ?? true;
+ * @mutate scripts/gift-guide-deals.mjs |     const key = !amazon && r.image ? cutouts[r.image] : undefined; |     const key = undefined;
  * @mutate scripts/gift-guide-deals.mjs |     if (n > DEALS_PER_BRAND) throw | if (false) throw
  */
 import { readFileSync } from "node:fs";
@@ -131,6 +132,17 @@ describe("deals page: the data", () => {
       if (!r.image) continue;
       const verdict = manifest.cutouts[r.image] ? "cut out" : manifest.skipped[r.image];
       expect(["cut out", "already on white", "Amazon photo (never edited)"], `${r.brand}: ${verdict}`).toContain(verdict);
+    }
+  });
+
+  it("a non-Amazon deal photo is our own small copy (400 px or less), never a big store file loaded from the store (#16)", () => {
+    for (const d of deals) {
+      if (!d.image) continue;
+      if (d.store === "Amazon") continue;
+      expect(d.image, d.brand).toMatch(/^\/gift-guides\/deals\/cutouts\/[0-9a-f]{8}\.webp$/);
+      const file = readFileSync(`public${d.image}`);
+      expect(file.length, `${d.brand} ${d.image}`).toBeLessThan(60_000);
+      expect(file.subarray(8, 12).toString("ascii"), d.image).toBe("WEBP");
     }
   });
 

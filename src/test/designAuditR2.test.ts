@@ -230,13 +230,15 @@ describe("design audit r2 #21: the 25 Days trust strip fits below 1024px", () =>
 /**
  * #42, #17: below 1024px (the bottom nav is up) the toaster's bottom offset clears the nav + 16px, also on a tablet
  * where it sits bottom-right; the close X draws at 16px inside its 44px hit area.
- * @mutate src/components/ui/sonner.tsx | bottom: navShown ? "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 16px)" : "24px" | bottom: "24px"
+ * Deep audit 11-22 #13: the tablet value is TOAST_TABLET_BOTTOM, the taller of the nav and a sticky bottom bar + 16px.
+ * @mutate src/components/ui/sonner.tsx | bottom: navShown ? TOAST_TABLET_BOTTOM : `calc(var(${STICKY_ACTION_H_VAR}, 0px) + 24px)` | bottom: "24px"
  */
 describe("design audit r2 #42/#17: toasts clear the bottom nav on a tablet", () => {
   it("the offset follows the nav, and the X is 16px", () => {
     const src = blankComments(readFileSync("src/components/ui/sonner.tsx", "utf8"));
     expect(src).toContain('window.matchMedia("(min-width: 1024px)")');
-    expect(src).toContain('bottom: navShown ? "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 16px)" : "24px"');
+    expect(src).toContain("bottom: navShown ? TOAST_TABLET_BOTTOM : `calc(var(${STICKY_ACTION_H_VAR}, 0px) + 24px)`");
+    expect(src).toContain("const TOAST_TABLET_BOTTOM = `calc(max(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px), var(${STICKY_ACTION_H_VAR}, 0px)) + 16px)`;");
     expect(src).toContain("[&_svg]:!w-4 [&_svg]:!h-4");
   });
 });

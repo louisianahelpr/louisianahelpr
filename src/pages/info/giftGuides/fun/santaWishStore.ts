@@ -15,10 +15,16 @@ const KEY = "lh-santa-wish";
 type Lists = Record<string, PlanPerson>;
 let lists: Lists | null = null;
 const listeners = new Set<() => void>();
-/** A list key: the group code and the person's own first name, lower case (names in a group are never repeated), so two
- *  people of one group on one shared device never see each other's list (lh-authz-rls review). */
-const GROUP = /^[a-f0-9]{10}:[^\n]{1,30}$/;
-export const santaKey = (code: string, me: string) => `${code}:${me.trim().toLowerCase().slice(0, 30)}`;
+/** A list key: the group code and a short hash of the person's own first name, lower case (names in a group are never
+ *  repeated), so two people of one group on one shared device never see each other's list (lh-authz-rls review). The
+ *  name itself is never written to storage (CodeQL js/clear-text-storage-of-sensitive-data: it comes from the reveal). */
+const GROUP = /^[a-f0-9]{10}:[a-f0-9]{8}$/;
+const nameHash = (name: string) => {
+  let h = 0x811c9dc5; // FNV-1a, 32-bit: a device-local key, not a secret
+  for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 0x01000193) >>> 0;
+  return h.toString(16).padStart(8, "0");
+};
+export const santaKey = (code: string, me: string) => `${code}:${nameHash(me.trim().toLowerCase().slice(0, 30))}`;
 
 function readAll(): Lists {
   if (lists) return lists;
@@ -54,17 +60,17 @@ function save(next: Lists) {
 const newId = () => Math.random().toString(36).slice(2, 10);
 const EMPTY: PlanIdea[] = [];
 
-// A group's list before its first gift: one per group and name for the visit, so the id the page shows is the id saved.
+// A group's list before its first gift: one per group for the visit, so the id the page shows is the id saved. The
+// stored person is always named "Me": the share goes under the name from the reveal (SantaMyList), never this one.
 const empties = new Map<string, PlanPerson>();
-const stableEmpty = (code: string, name: string) => {
-  const k = `${code} ${name}`;
-  if (!empties.has(k)) empties.set(k, { id: `s${newId()}${newId()}`.slice(0, 16), name: name.slice(0, 40), ideas: EMPTY });
-  return empties.get(k)!;
+const stableEmpty = (code: string) => {
+  if (!empties.has(code)) empties.set(code, { id: `s${newId()}${newId()}`.slice(0, 16), name: "Me", ideas: EMPTY });
+  return empties.get(code)!;
 };
 
 /** This group's list for the person (empty, named after them, until its first gift). */
-function listFor(code: string, name: string): PlanPerson {
-  return readAll()[code] ?? stableEmpty(code, name);
+function listFor(code: string, _name: string): PlanPerson {
+  return readAll()[code] ?? stableEmpty(code);
 }
 
 // Writes only when something changed (a late answer for a gift that is gone writes nothing).
@@ -110,9 +116,19 @@ const subscribe = (l: () => void) => {
 };
 
 /** The person's list for this group (stable between renders until it changes). */
+// The page's copy carries the person's name from the reveal (the link queue files requests under it); storage keeps "Me".
+// One named copy per stored list and name, so the value stays stable between renders.
+const named = new WeakMap<PlanPerson, Map<string, PlanPerson>>();
+const withName = (p: PlanPerson, name: string): PlanPerson => {
+  const n = name.slice(0, 40);
+  let byName = named.get(p);
+  if (!byName) named.set(p, (byName = new Map()));
+  if (!byName.has(n)) byName.set(n, { ...p, name: n });
+  return byName.get(n)!;
+};
 export function useSantaWish(code: string, name: string): PlanPerson {
   const all = useSyncExternalStore(subscribe, readAll, () => ({}) as Lists);
-  return all[code] ?? stableEmpty(code, name);
+  return withName(all[code] ?? stableEmpty(code), name);
 }
 
 /** The actions AnyStoreAdd, the link sync and the list's own rows use on this group's list. */

@@ -184,7 +184,8 @@ check(l3.v?.link === OURS && (await row(l3.v.id))?.status === "filled", `a page 
 
 // Shares carry {r} refs; the shared list reads back the words and our link, never the pasted link.
 await db.exec(`DELETE FROM public.gift_wish_list_hits`);
-const waiting = await add("link", "Silver locket", "https://www.target.com/p/silver-locket/-/A-555", "p3", "Aunt");
+const TARGET = "https://www.target.com/p/silver-locket/-/A-555";
+const waiting = await add("link", "Silver locket", TARGET, "p3", "Aunt");
 const share = (lists) => call(`SELECT public.gift_wish_lists_share($1::jsonb, false) AS v`, [JSON.stringify(lists)]);
 const s1 = await share([{ n: "Mom", items: [{ g: "her", i: "abc123" }, { r: l1.v.id }, { r: i1.v.id }, { r: l1.v.id }, { r: a1.v.id }, { r: waiting.v.id }] }]);
 check(/^[a-z0-9]{12}$/.test(s1.v ?? ""), `a share with request refs saves (${JSON.stringify(s1)})`);
@@ -195,7 +196,7 @@ check(JSON.stringify(items[0]) === JSON.stringify({ g: "her", i: "abc123" }), "g
 check(items[1]?.w === "Hand knit scarf" && items[1]?.h === OURS, "a filled request reads back with its words and our link");
 check(items[2]?.w === "LSU hoodie size M" && items[2]?.h === null && items[2]?.d === true, "a dismissed request reads back with no link, marked dismissed");
 check(items[1]?.d === false, "a filled request is not marked dismissed");
-check(!JSON.stringify(got).includes("etsy.com") && !JSON.stringify(got).includes("target.com") && items[4]?.w === "Silver locket" && items[4]?.h === null, "the pasted link never shows on a shared list, filled or waiting");
+check(!JSON.stringify(got).includes(ETSY) && !JSON.stringify(got).includes(TARGET) && items[4]?.w === "Silver locket" && items[4]?.h === null, "the pasted link never shows on a shared list, filled or waiting");
 const GONE = "00000000-0000-0000-0000-000000000000";
 check(/empty_list/.test((await share([{ n: "Mom", items: [{ r: GONE }] }])).err ?? ""), "a list of only unknown requests has nothing to share");
 const s2 = await share([{ n: "Mom", items: [{ r: GONE }, { r: l1.v.id }] }]);
@@ -254,7 +255,7 @@ check(priv.a === false && priv.u === false, `anon and authenticated hold no tabl
 check(priv.fa === true && priv.fg === true, "anon may add and read requests");
 check(priv.aa === false && priv.af === false && priv.ak === false, "anon may not call the admin or helper functions");
 const acls = (await db.query(`SELECT proname, proacl::text AS acl FROM pg_proc WHERE proname LIKE '%wish_link%'`)).rows;
-check(acls.length === 7 && acls.every((r) => !/(^|[{,])=X/.test(r.acl ?? "=X")), `PUBLIC holds no EXECUTE on any of the 7 functions (${JSON.stringify(acls)})`);
+check(acls.length === 7 && acls.every((r) => !/(^|[{,])=X/.test(r.acl ?? "=X")), `PUBLIC holds no EXECUTE on any of the 7 functions (${acls.map((r) => `${r.proname} ${r.acl}`).join("; ")})`);
 
 // The unconfirmed-email gate (Q807, db-smoke): attached to the new table; guests and confirmed members still add,
 // a signed-in member with an unconfirmed email cannot.

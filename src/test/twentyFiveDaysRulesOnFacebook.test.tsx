@@ -50,7 +50,7 @@ function allStrings(v: unknown, out: string[] = []): string[] {
 
 /** User-facing source: src/ (no tests), api/, supabase/functions/. Comments blanked. */
 function userFacingSources(): Array<{ f: string; code: string }> {
-  const isCode = (f: string) => /\.(tsx?|mjs|js)$/.test(f) && !/\.test\.|\/test\/|\.d\.mts$/.test(f);
+  const isCode = (f: string) => /\.(tsx?|mjs|js)$/.test(f) && !/\.test\.|\/test\//.test(f) && !f.endsWith(".d.mts");
   const walk = (dir: string): string[] =>
     readdirSync(path.join(ROOT, dir), { withFileTypes: true }).flatMap((d) =>
       d.isDirectory() ? walk(`${dir}/${d.name}`) : [`${dir}/${d.name}`]);

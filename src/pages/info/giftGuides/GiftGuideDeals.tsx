@@ -52,7 +52,7 @@ const DEALS_CSS = `
 .gg-deal-code code{font-size:12px;font-weight:700;letter-spacing:.04em;padding:3px 8px;border-radius:999px;background:var(--gg-soft);color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal .gg-deal-shop{display:inline-flex;align-items:center;align-self:flex-start;min-height:44px;margin-top:auto;padding:0 4px 0 0;border:0;background:none;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
 .gg-deal .gg-deal-shop:hover,.gg-deal .gg-deal-shop:focus-visible{text-decoration:underline}
-@media (max-width:767px){.gg:has([data-gift-deals-page]) .gg-banner h1{-webkit-line-clamp:2;font-size:clamp(19px,6vw,24px);line-height:1.1}}
+@media (max-width:767px){.gg:has([data-gift-deals-page]) .gg-banner h1{-webkit-line-clamp:3;font-size:clamp(25px,8vw,34px);line-height:1.05}}
 .gg-deals-list{margin-top:12px}
 .gg-deal-jump{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}
 .gg-deal-jump button{min-height:36px;padding:0 14px;border:1px solid var(--gg-line);border-radius:999px;background:hsl(var(--card));color:var(--gg-ink);font-size:13px;font-weight:600}

@@ -20,7 +20,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <AgeChips slug={guide.slug} /> |
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <GiftOut href={pick.href} className="gg-item" data-gift-title-link=""> | <GiftOut href={pick.href} className="gg-item">
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |         <GiftOut href={cart} className="gg-cart"> |         <GiftOut href={cart} className="gg-cart-other">
- * @mutate src/pages/info/GiftGuides.tsx | data-gift-back-to={backTo}><BackButton to={backTo} /> | data-gift-back-to={guide ? backTo : "hidden"}><BackButton to={backTo} />
+ * @mutate src/pages/info/GiftGuides.tsx | <GuidesHeadRow backTo={backTo} | <GuidesHeadRow backTo={guide ? backTo : "hidden"}
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | className={label ? "gg-name" : "gg-name sr-only"} | className="gg-name"
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -199,15 +199,16 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-heart-tile\b/);
   });
 
-  it("a guide shows how many gifts it holds; the phone banner stays short (at most 140px)", () => {
+  it("a guide shows how many gifts it holds; the phone banner stays short (at most 190px)", () => {
     const { container } = renderAt("/gift-guides/mom");
     expect(container.querySelector("[data-gift-item-count]")?.textContent).toBe(`${guideBySlug("mom")!.picks.length} gifts`);
     // The phone banner height is the sheet's last .gg-banner height (inside the phone layout block; the phone nav, 11-21,
     // appends its own later @media (max-width:767px) block, so the last such block no longer holds it).
     const h = Number([...GIFT_GUIDES_CSS.matchAll(/\.gg-banner\{height:(\d+)px/g)].slice(-1)[0]?.[1]);
     expect(h).toBeGreaterThan(0);
-    // Owner 11-21 ("the arches and letters are just small and squished together"): 96px -> 136px, still a short band.
-    expect(h).toBeLessThanOrEqual(140);
+    // Owner 11-21 ("the arches and letters are just small and squished together"): 96px -> 136px; pass 2 the same night
+    // ("gifts for her is still too small text size and still close together"): 136px -> 184px, still under 190px.
+    expect(h).toBeLessThanOrEqual(190);
     expect(GUIDES.length).toBeGreaterThan(10); // owner 11-21: Her, Him, Kids, the sponsors page and 10 relationship views (14, 2026-11-21)
   });
 });

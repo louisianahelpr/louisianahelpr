@@ -86,6 +86,18 @@ export const HER_ADDS_1122 = [
   { name: "Madewell x The Six Bells Nightgown", brand: "Madewell", line: "A soft white nightgown from the holiday collab.", href: shopmy("p-109155568"), image: "https://static.shopmy.us/pins/zoom-109155568-1795367501473-OC137_WT0012_m", store: "store-madewell", sortPrice: 158, price: 158, commission: 12, type: "nightgown" },
   // Her pin's photo is the rose-gold ring, Ulta's Deep Rose ($399 Black Friday, was $499).
   { name: "Oura Ring 5, Deep Rose", brand: "Oura", line: "A smart ring that tracks sleep, steps and recovery.", href: shopmy("p-109155784"), image: "https://static.shopmy.us/pins/zoom-109155784-1795367529760-2664695", store: "store-ulta-beauty", sortPrice: 399, price: 399, commission: 13, type: "smart-ring" },
+  // owner 11-22 her picks block 2 (builder-guide-her4)
+  // From her screenshots (owner via lead): Amazon, brand-sold where it is, her tag, Amazon's photo and price 11-22.
+  { name: "HydroJug Traveler 32 oz Water Bottle, French Vanilla", brand: "HydroJug", line: "An insulated bottle with a handle and a flip straw lid.", href: amz("B0H2FQ5FV1"), image: amzImg("619aFkeAamL"), store: "store-amazon", sortPrice: 39.99, commission: 3, type: "water-bottle" },
+  { name: "HydroJug Everyday Tumbler 14 oz, Brown Leopard", brand: "HydroJug", line: "A small straw cup in leopard that fits the cup holder.", href: amz("B0FXYGCYK6"), image: amzImg("51GMAyANcAL"), store: "store-amazon", sortPrice: 24.99, commission: 3, type: "tumbler" },
+  { name: "She's Birdie Personal Safety Alarm", brand: "She's Birdie", line: "A loud keychain alarm with a flashlight, made by women.", href: amz("B0F5K3B4Q7"), image: amzImg("61k3K4tU1ML"), store: "store-amazon", sortPrice: 29.94, commission: 3, type: "safety-alarm" },
+  { name: "CRZ YOGA Butterluxe Wide Leg Pants with Pockets", brand: "CRZ YOGA", line: "Buttery soft wide-leg pants for lounging or the gym.", href: amz("B0CHMS3PVZ"), image: amzImg("61Az5NMvxyL"), store: "store-amazon", sortPrice: 27.99, commission: 3, type: "pants" },
+  { name: "CRZ YOGA Butterluxe Y Back Sports Bra", brand: "CRZ YOGA", line: "A soft sports bra with removable pads, made to match the pants.", href: amz("B0D7GQVNNN"), image: amzImg("816PhjD216L"), store: "store-amazon", sortPrice: 23.8, commission: 3, type: "sports-bra" },
+  { name: "Lemon Grace Personalized Note Cards", brand: "Lemon Grace", line: "Floral note cards printed with her name.", href: amz("B0D1X4PNFD"), image: amzImg("616z8ijssZL"), store: "store-amazon", sortPrice: 29.95, commission: 3, type: "stationery" },
+  { name: "Bose QuietComfort Ultra Earbuds, 2nd Gen", brand: "Bose", line: "Noise-cancelling earbuds with immersive sound.", href: amz("B0F7M3HPBD"), image: amzImg("513LCPDEWKL"), store: "store-amazon", sortPrice: 229, commission: 3, type: "earbuds" },
+  { name: "Striped PVC Personalized Makeup Bag", brand: "MoonDreamGifts", line: "A roomy waterproof makeup bag with her name stitched on.", href: amz("B0H3YXW87L"), image: amzImg("71Fja9sEBML"), store: "store-amazon", sortPrice: 42.99, commission: 3, type: "bag" },
+  { name: "Personalized Embroidered Toiletry Bag, Green and Pink", brand: "HOFUN JETRON", line: "A waterproof toiletry bag with her monogram.", href: amz("B0H9L8Z1DY"), image: amzImg("81Z3eTeJc1L"), store: "store-amazon", sortPrice: 21.99, commission: 3, type: "bag" },
+  { name: "YETI Daytrip Lunch Bag, Olive", brand: "YETI", line: "A leakproof insulated lunch bag with a magnetic close.", href: amz("B0F79VTVFQ"), image: amzImg("51WrN1VDO9L"), store: "store-amazon", sortPrice: 85, commission: 3, type: "lunch-bag" },
 ].map(dated);
 
 /** For Kids (owner via the lead, 11-22): the two Camp Snap 2 colors, at Camp Snap direct (see the header). */

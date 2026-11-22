@@ -312,7 +312,7 @@ describe("printables audit 1121 area 5: previews, covers, page counts", () => {
   it("the banner buttons use plain words and the wide card has room (guides polish 1122 #31)", () => {
     render(<MemoryRouter initialEntries={["/gift-guides/printables/banners"]}><Printables /></MemoryRouter>);
     const card = document.querySelector('[data-printable-card="thanksgiving-banner"]')!;
-    expect([...card.querySelectorAll("[data-printable-download]")].map((b) => b.textContent)).toEqual(["Poster size (12x18)", "Wide banner"]);
+    expect([...card.querySelectorAll("[data-printable-download]")].map((b) => b.textContent)).toEqual(["12x18 print", "Wide banner"]);
     const css = [...document.querySelectorAll("style")].map((s) => s.textContent ?? "").join("\n");
     expect(Number(/\.pr-card-wide\{[^}]*max-width:(\d+)px/.exec(css)?.[1])).toBeGreaterThanOrEqual(640);
   });

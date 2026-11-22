@@ -271,9 +271,10 @@ export const PRINTABLES: Printable[] = [
     preview: "/printables/thanksgiving-banner/preview.webp",
     // Owner 2026-11-21: "Download the banner (free)" overflowed (guides polish 1122 #31: "(free)" repeats the page, "2:1" is jargon) its button at the card's width; the card's title says what it is.
     // The 12 x 18 copy is the design untouched on its own white, padded to 3:2 (scripts/printables-banner-12x18.py), so a
-    // Walgreens poster does not crop it; the original 2:1 file stays.
+    // Walgreens poster does not crop it; the original 2:1 file stays. Its button names the size, not "Poster size":
+    // copy never says "poster" (src/test/roleNeutralCopy.test.ts reads it as the job role).
     files: [
-      { label: "Poster size (12x18)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },
+      { label: "12x18 print", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },
       { label: "Wide banner", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner.jpg" },
     ],
     printAt: { href: "https://photo.walgreens.com/store/posters", label: "Print at Walgreens" },

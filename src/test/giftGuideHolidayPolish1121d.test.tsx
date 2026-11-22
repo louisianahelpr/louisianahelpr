@@ -39,7 +39,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <Link to={p.path} {...current(p.path)} data-gift-side-printables={p.key}> | <Link to={p.path} data-gift-side-printables={p.key}>
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-btns button{max-width:100%;height:auto;min-height:44px;white-space:normal;text-align:center} | .pr-card-btns button{max-width:100%}
  * @mutate src/content/printables.ts |     guides: ["gift-wrap-and-cards"], |     guides: ["gift-wrap-and-cards", "her"],
- * @mutate src/content/printables.ts |       { label: "Poster size (12x18)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },\n |
+ * @mutate src/content/printables.ts |       { label: "12x18 print", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },\n |
  * @mutate src/components/giftGuides/PickPrice.tsx | {pick.priceFrom ? G.priceFrom(shownDollars(pick.price)) : G.priceApprox(shownDollars(pick.price))} | {G.priceApprox(shownDollars(pick.price))}
  * @mutate src/content/giftGuideCatalog.ts | ...(p.priceFrom ? { priceFrom: p.priceFrom } : {}) |
  * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |     window.dispatchEvent(new Event(OPEN_EVENT)); |     void OPEN_EVENT;

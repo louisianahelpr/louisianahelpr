@@ -97,7 +97,7 @@ describe("the data the build writes", () => {
     const slugs = Object.keys(GIFT_GUIDE_SEO);
     // Follow-up 1120: 54 measured 2026-11-20; owner 11-21: only Her, Him, Kids, the sponsors page and the 10
     // relationship pages are live (src/content/giftGuideLive.mjs; 14 measured 2026-11-21), every other guide 301s.
-    expect(slugs.length).toBeGreaterThan(10);
+    expect(slugs.length).toBe(4); // owner 11-21: Her, Him, Kids and the sponsors page; the relationship pages (Mom ...) 301 to their guide
     for (const s of slugs) expect(data.guides[s], s).toBeDefined();
     expect(Object.values(data.guides).filter((g) => g.indexed && g.picks.length > 0).length).toBeGreaterThan(3);
     expect(data.groups.length).toBeGreaterThan(2); // By person, For kids, Louisiana (the sponsors page)
@@ -110,11 +110,11 @@ describe("the data the build writes", () => {
 });
 
 describe("gift guides carry their own body for a reader with no JavaScript", () => {
-  it("/gift-guides/mom: one H1, the intro, its first picks as sponsored links, breadcrumb, ItemList", async () => {
-    const { status, body } = await html("gift-guides/mom");
+  it("/gift-guides/her: one H1, the intro, its first picks as sponsored links, breadcrumb, ItemList", async () => {
+    const { status, body } = await html("gift-guides/her");
     expect(status).toBe(200);
-    expectOwnPage(body, "Gifts for Mom");
-    const mom = data.guides.mom;
+    expectOwnPage(body, "Gifts for Her");
+    const mom = data.guides.her;
     expect(mom.picks.length).toBeGreaterThan(5);
     const [name, store, href] = mom.picks[0];
     const root = rootOf(body);
@@ -131,8 +131,8 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
 
   it("every indexed guide with picks names its first pick in the raw HTML (sampled across the list)", async () => {
     const slugs = Object.keys(GIFT_GUIDE_SEO).filter((s) => data.guides[s]?.picks.length);
-    // Follow-up 1120: every 8th of the 54 indexed guides (measured 2026-11-20); owner 11-21: every 3rd of the 14 live.
-    const sample = slugs.filter((_, i) => i % 3 === 0);
+    // Follow-up 1120: every 8th of the 54 indexed guides (measured 2026-11-20); owner 11-21: every one of the 4 live.
+    const sample = slugs;
     expect(sample.length).toBeGreaterThan(3);
     for (const s of sample) {
       const { status, body } = await html(`gift-guides/${s}`);
@@ -153,10 +153,18 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
   });
 
   it("a guide's description is its own: the count and its first picks", async () => {
-    const { body } = await html("gift-guides/mom");
+    const { body } = await html("gift-guides/her");
     const desc = /<meta name="description" content="([^"]*)">/.exec(body)?.[1] ?? "";
-    expect(desc).toMatch(/^Gifts for Mom 2026: \d+ hand-picked gift ideas, like /);
+    expect(desc).toMatch(/^Gifts for Her 2026: \d+ hand-picked gift ideas, like /);
     expect(desc).not.toContain("hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one");
+  });
+
+  it("a relationship page (Mom, Dad ...) answers 301 to its guide and is no sitemap entry (owner 11-21)", async () => {
+    // @mutate src/content/giftGuideCatalog.ts | return GUIDES.some((g) => g.slug === of) ? of : null; | return null;
+    const r = await fetchPage("gift-guides/mom");
+    expect(r.status).toBe(301);
+    expect(new URL(r.headers.get("location")!, ORIGIN).pathname).toBe("/gift-guides/her");
+    expect(readFileSync(resolve(ROOT, "public/sitemap.xml"), "utf8")).not.toContain("/gift-guides/mom<");
   });
 
   it("no guide title anywhere reads 'Gifts for the: X'", async () => {
@@ -222,7 +230,7 @@ describe("the sitemap lists only real, indexable pages, with lastmod", () => {
     // The fun pages (owner 2026-11-20) are info pages under /gift-guides: 200 with their own body, no guide.
     const own = ["/gift-guides/black-friday", "/gift-guides/small-business-saturday", "/gift-guides/cyber-monday", "/gift-guides/swipe", "/gift-guides/planner", "/gift-guides/draw-names", "/gift-guides/printables/gift-tags", "/gift-guides/printables/coloring-books", "/gift-guides/printables/banners"];
     const guides = locs.filter((p) => p.startsWith("/gift-guides/") && !own.includes(p));
-    expect(guides.length).toBeGreaterThan(10); // owner 11-21: the 14 live pages (54 before, 2026-11-20)
+    expect(guides.length).toBe(4); // owner 11-21: Her, Him, Kids and the sponsors page (the relationship pages 301, out of the sitemap)
     for (const p of guides) expect(data.guides[p.slice("/gift-guides/".length)]?.indexed, p).toBe(true);
     // The old one-page deals address is out of the sitemap and 301s to Black Friday (owner 11-21: each day its own page).
     expect(locs).not.toContain("/gift-guides/black-friday-cyber-monday");

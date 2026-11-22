@@ -136,7 +136,7 @@ const pickedGuides = GUIDES.filter((g) => g.picks.length > 0);
 
 describe("hearts persist and one heart covers the gift everywhere", () => {
   it("has guides with picks to test against", () => {
-    expect(pickedGuides.length).toBeGreaterThan(10); // owner 11-21: Her, Him, Kids, the sponsors page and the relationship pages (14)
+    expect(pickedGuides.length).toBeGreaterThan(2); // owner 11-21: Her, Him, Kids and the sponsors page (4)
   });
 
   it("a pick heart writes a ref (guide + item id) to storage, and a fresh read (reload) still has it", () => {
@@ -155,15 +155,11 @@ describe("hearts persist and one heart covers the gift everywhere", () => {
   });
 
   it("the same link on two guides is one saved gift (hearted on one, pressed on the other)", () => {
-    const seen = new Map<string, string>();
-    let pair: [string, string, string] | null = null;
-    for (const g of pickedGuides) for (const p of g.picks) {
-      const other = seen.get(p.href);
-      if (other && other !== g.slug && !pair) pair = [other, g.slug, p.href];
-      if (!seen.has(p.href)) seen.set(p.href, g.slug);
-    }
-    expect(pair).not.toBeNull();
-    const [a, b, href] = pair!;
+    // Owner 11-21: no two live guides share a link any more (the relationship views are gone), so Her's first link is
+    // saved as if from Him: one saved gift, pressed on Her.
+    const b = "her";
+    const a = "him";
+    const href = pickedGuides.find((g) => g.slug === "her")!.picks[0].href;
     addToWishList({ href, name: "x", guide: a });
     const view = renderAt(`/gift-guides/${b}`);
     openPriceSections(view.container);

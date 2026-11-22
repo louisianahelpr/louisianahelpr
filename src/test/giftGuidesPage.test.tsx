@@ -175,7 +175,7 @@ describe("gift guides: one header on every page (owner 11-21)", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
     let checked = 0;
-    for (const [url, tag, back] of [["/gift-guides", "H1", "/"], ["/gift-guides/her", "P", "/gift-guides"], ["/gift-guides/mom", "P", "/gift-guides"]] as const) {
+    for (const [url, tag, back] of [["/gift-guides", "H1", "/"], ["/gift-guides/her", "P", "/gift-guides"], ["/gift-guides/him", "P", "/gift-guides"]] as const) {
       const { container } = renderAt(url);
       // The shell's own header row is off; the page's row holds everything.
       expect(container.querySelector("[data-test-header-row]"), url).toBeNull();
@@ -251,7 +251,7 @@ describe("gift guides: the content inventory", () => {
     expect(new Set(slugs).size).toBe(slugs.length);
     for (const s of slugs) expect(s).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
     const covers = GUIDES.filter((g) => g.cover);
-    expect(covers.length).toBeGreaterThan(10); // owner 11-21: the live guides and their relationship views (14, 2026-11-21)
+    expect(covers.length).toBeGreaterThan(2); // owner 11-21: Her, Him, Kids and the sponsors page; the relationship views are gone (4)
     // A cover URL carries ?v=<content hash> (owner 11-21; src/test/giftGuideCoverVersions1121.test.ts): the file is the path before it.
     for (const g of covers) expect(existsSync(`public${g.cover!.split("?")[0]}`), g.cover).toBe(true);
     expect(ROWS.map((r) => r.label)).toEqual(ROW_LABELS);
@@ -340,12 +340,12 @@ describe("gift guides: the landing opens to the guides", () => {
     // Owner 11-21: the tool row moved up beside the shipping pill, so the banner holds only its arch.
     // Owner 11-21: "remove louisiana helpr from the [banner]".
     // Holiday audit 1121: the drawn lead (aria-hidden), then the h1, which reads "gifts for Mom" (its lead is sr-only).
-    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forgifts for Mom"]);
+    expect(wordsOf("/gift-guides/her")).toEqual(["gifts forgifts for Her"]);
     cleanup();
-    expect(renderAt("/gift-guides/mom").container.querySelector("[data-gift-headrow] [data-gift-quick]")?.textContent).toBe("");
+    expect(renderAt("/gift-guides/her").container.querySelector("[data-gift-headrow] [data-gift-quick]")?.textContent).toBe("");
     cleanup();
     let banners = 0;
-    for (const slug of ["mom", "kids", "her", "him"]) { // owner 11-21: the live guides (store and budget pages retired)
+    for (const slug of ["kids", "her", "him"]) { // owner 11-21: the live guides (store and budget pages retired)
       const g = guideBySlug(slug)!;
       const c = renderAt(`/gift-guides/${slug}`).container;
       const head = c.querySelector("[data-gift-words]")!;
@@ -362,7 +362,7 @@ describe("gift guides: the landing opens to the guides", () => {
       banners += 1;
       cleanup();
     }
-    expect(banners).toBeGreaterThan(3);
+    expect(banners).toBeGreaterThan(2);
     // The landing keeps its plain header.
     expect(renderAt("/gift-guides").container.querySelector("[data-gift-banner]")).toBeNull();
     cleanup();
@@ -372,9 +372,9 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(smsHref("https://x.test/g", "Mom", "Mozilla/5.0 (Linux; Android 15)")).toBe("sms:?body=Mom%20https%3A%2F%2Fx.test%2Fg");
     cleanup();
     cleanup();
-    const mom = renderAt("/gift-guides/mom").container;
+    const mom = renderAt("/gift-guides/her").container;
     expect(mom.querySelector(".gg-band")).toBeNull();
-    expect(mom.querySelector("[data-gift-words] h1")?.textContent).toBe("gifts for Mom");
+    expect(mom.querySelector("[data-gift-words] h1")?.textContent).toBe("gifts for Her");
   });
 
   it("a guide that holds nothing is in no row, search or menu; its own link opens Picks coming soon and related guides", () => {
@@ -383,7 +383,7 @@ describe("gift guides: the landing opens to the guides", () => {
     const empty = GUIDES.filter((g) => g.empty);
     const holding = GUIDES.filter((g) => !g.empty);
     // Follow-up 1120: 50+ holding picks, measured 2026-11-20; owner 11-21: the live guides and their views (14).
-    expect(holding.length).toBeGreaterThan(10);
+    expect(holding.length).toBeGreaterThan(2);
     // A hidden guide holds fewer than GUIDE_MIN_PICKS picks (lead 11-19, one guide per product).
     for (const g of empty) expect(g.picks.length, g.slug).toBeLessThan(6);
     for (const g of holding) expect(g.picks.length + g.links.length + (g.children?.length ?? 0) + (g.deals?.length ?? 0), g.slug).toBeGreaterThan(0);
@@ -396,7 +396,7 @@ describe("gift guides: the landing opens to the guides", () => {
     }
     cleanup();
     // A fixture empty guide (so the page stays proven once every real guide holds picks).
-    const probe: CatalogGuide = { ...guideBySlug("mom")!, slug: "probe-empty", picks: [], links: [], deals: undefined, empty: true };
+    const probe: CatalogGuide = { ...guideBySlug("her")!, slug: "probe-empty", picks: [], links: [], deals: undefined, empty: true };
     const { container } = render(<MemoryRouter><GiftGuideView guide={probe} /></MemoryRouter>);
     expect(container.querySelector("[data-gift-coming-soon]")?.textContent).toContain("Picks coming soon");
     expect(container.querySelector("[data-gift-list]")).toBeNull();
@@ -404,7 +404,7 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(related.length).toBeGreaterThan(0);
     for (const r of related) expect(guideBySlug(r)?.empty, r).toBeUndefined();
     cleanup();
-    expect(renderAt("/gift-guides/mom").container.querySelector("[data-gift-coming-soon]")).toBeNull();
+    expect(renderAt("/gift-guides/her").container.querySelector("[data-gift-coming-soon]")).toBeNull();
   });
 
   // Holiday audit 1121 #14: an old "See all" group link opens the landing itself (the group page drew an "All guides"
@@ -475,7 +475,7 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(screen.getByRole("heading", { level: 1, name: "gifts for Him" })).toBeTruthy();
     cleanup();
     renderAt("/gift-guides/for-mom");
-    expect(screen.getByTestId("where").textContent).toBe("/gift-guides/mom");
+    expect(screen.getByTestId("where").textContent).toBe("/gift-guides/her"); // owner 11-21: Mom is no page; it forwards to Her
     cleanup();
     // 1120: Louisiana-Made is a section of Shop Small Louisiana; owner 11-21: that guide is retired, so the landing.
     renderAt("/gift-guides#louisiana-made");
@@ -514,8 +514,8 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       cleanup();
     }
     // Follow-up 1120: 49+ list guides measured 2026-11-20; owner 11-21: the live guides and their views (14).
-    expect(checked).toBeGreaterThan(10);
-    for (const slug of ["mom", "her", "him", "kids", "25-days-sponsors"]) {
+    expect(checked).toBeGreaterThan(2);
+    for (const slug of ["her", "him", "kids", "25-days-sponsors"]) {
       const g = guideBySlug(slug)!;
       const { container } = renderAt(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-gift-words] h1")?.textContent, slug).toBe(`${g.age ? `${g.lead}, ${g.age}` : g.lead} ${g.title}`);
@@ -538,7 +538,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
     for (const g of GUIDES) expect(["green", "oat", "red"], g.slug).toContain(g.tint);
     // Owner 11-21: Her beige, Him Christmas green, Kids Christmas red (the covers); Mom is a view of Her, so beige.
     // @mutate src/content/giftGuideIndex.ts |   { group: "By person", tint: "oat", slug: "her", title: "Her", lead: "gifts for" }, |   { group: "By person", tint: "green", slug: "her", title: "Her", lead: "gifts for" },
-    expect(["her", "him", "kids", "mom"].map((s) => guideBySlug(s)!.tint)).toEqual(["oat", "green", "red", "oat"]);
+    expect(["her", "him", "kids"].map((s) => guideBySlug(s)!.tint)).toEqual(["oat", "green", "red"]);
     // The banner's gingham is the covers' own colours (scripts/gift-guide-photo-covers.py FAMILY), not a faded overlay.
     const py = readFileSync("scripts/gift-guide-photo-covers.py", "utf8");
     for (const [fam, css] of [["green", "gg-green"], ["red", "gg-red"]] as const) {
@@ -597,7 +597,7 @@ describe("gift guides: links and disclosures on every view", () => {
     let outbound = 0;
     // Whole pages for the landing and a sample (the sidebar's and header's links), then every guide's body alone (its
     // picks, deals and full-guide links): ~600 whole pages ran the worker out of memory on 2026-11-18.
-    const SAMPLE = ["mom", "store-amazon", "store-walmart", "gift-wrap-and-cards", "kids", "healthcare"];
+    const SAMPLE = ["her", "store-amazon", "store-walmart", "gift-wrap-and-cards", "kids", "healthcare"];
     const views: [string, () => HTMLElement][] = [
       ...["/gift-guides", "/gift-guides?list=mine", ...SAMPLE.map((s) => `/gift-guides/${s}`)].map((url) => [url, () => renderAt(url).container] as [string, () => HTMLElement]),
       ...GUIDES.map((g) => [g.slug, () => render(<MemoryRouter><GiftGuideView guide={g} /></MemoryRouter>).container] as [string, () => HTMLElement]),
@@ -673,7 +673,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     const guides = listed.filter((x) => x !== "/gift-guides").map((x) => x.replace("/gift-guides/", "")).filter((s) => !OWN_PAGES.includes(s));
     expect(listed).toEqual(expect.arrayContaining(OWN_PAGES.map((s) => `/gift-guides/${s}`)));
     expect(listed).not.toContain(`/gift-guides/${DEALS_SLUG}`);
-    expect(guides.length).toBeGreaterThan(10); // owner 11-21: Her, Him, Kids, the sponsors page and 10 relationship pages (14, 2026-11-21)
+    expect(guides.length).toBe(4); // owner 11-21: Her, Him, Kids and the sponsors page; the relationship pages 301 and are out of the sitemap
     // Every listed guide opens, holds picks, and is no thin store page.
     for (const s of guides) {
       const g = guideBySlug(s);
@@ -690,9 +690,9 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     // My Wish List and a shared list (owner 2026-11-20) are noindex (src/test/giftWishList1120.test.tsx).
     expect(src("src/pages/info/GiftGuides.tsx")).toContain(': deals ? giftGuidePageMeta(deals.id) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],');
     expect(src("src/pages/info/GiftGuides.tsx")).toContain("return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length);");
-    const mom = giftGuidePageMeta("mom");
-    expect(mom.title).toBe("Gifts for Mom — Helpr");
-    expect(mom.canonical).toBe("https://www.louisianahelpr.com/gift-guides/mom");
+    const mom = giftGuidePageMeta("her");
+    expect(mom.title).toBe("Gifts for Her — Helpr");
+    expect(mom.canonical).toBe("https://www.louisianahelpr.com/gift-guides/her");
     expect(mom.robots).toBeUndefined();
     expect(giftGuidePageMeta("kids").title).toBe("Gifts for Kids — Helpr");
     // A guide not in the sitemap (empty, a hub, a thin store page) is noindex under its own title.
@@ -705,15 +705,15 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     // A "gifts for the" / "gifts for a" guide reads as one phrase (batch 11-19: og:title was "Gifts for the: Coffee
     // Lover: holiday gift guide 2026"). No name puts a colon after a dangling article. Owner 11-21: no live guide is a
     // "Gifts for the ..." one (Coffee Lover, Family and the rest are retired), so only the rule over every name stays.
-    expect(Object.keys(GIFT_GUIDE_SEO).length).toBeGreaterThan(10);
+    expect(Object.keys(GIFT_GUIDE_SEO).length).toBe(4);
     for (const name of Object.values(GIFT_GUIDE_SEO)) expect(name).not.toMatch(/\b(the|a|an):/i);
     // Q178 (CI 11-18: /declutter/item/:id 418 -> 423 KB gz): the guides' name table stays out of publicPageMeta.mjs,
     // which Login, Signup, Index and the Declutter item page load cold; only GiftGuides.tsx and api/share.ts read it.
     // @mutate src/lib/publicPageMeta.mjs | import { townPageMetaFor } from "./townPages.mjs"; | import { townPageMetaFor } from "./townPages.mjs";\nimport { GIFT_GUIDE_SEO } from "../content/giftGuideSeo.mjs";
     expect(src("src/lib/publicPageMeta.mjs")).not.toMatch(/giftGuideSeo|giftGuidePageMeta/);
     expect(src("api/share.ts")).toContain('import { publicOrGiftGuidePageMetaFor as publicPageMetaFor } from "../src/lib/giftGuidePageMeta.mjs";');
-    expect(publicOrGiftGuidePageMetaFor("/gift-guides/mom", null)?.title).toBe("Gifts for Mom — Helpr");
-    expect(publicOrGiftGuidePageMetaFor("/gift-guides/mom/", null)?.title).toBe("Gifts for Mom — Helpr");
+    expect(publicOrGiftGuidePageMetaFor("/gift-guides/her", null)?.title).toBe("Gifts for Her — Helpr");
+    expect(publicOrGiftGuidePageMetaFor("/gift-guides/her/", null)?.title).toBe("Gifts for Her — Helpr");
     expect(publicOrGiftGuidePageMetaFor("/browse", null)).toBe(PUBLIC_PAGE_META["/browse"]);
     const rewrites = (JSON.parse(readFileSync("vercel.json", "utf8")) as { rewrites: { source: string; destination: string }[] }).rewrites;
     expect(rewrites.filter((x) => x.source.startsWith("/gift-guides"))).toEqual([
@@ -830,7 +830,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
   // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   : pick.store === "shopmy" ? pick.brand ?? "" |   : pick.store === "shopmy" ? "ShopMy"
   it("#9 no pick says \"On ShopMy\"", () => {
     let checked = 0;
-    for (const slug of ["mom", "cousins", "camper"]) {
+    for (const slug of ["her", "him", "kids"]) {
       const { container } = renderAt(`/gift-guides/${slug}`);
       expandAll(container);
       for (const li of container.querySelectorAll("li[data-gift-pick]")) expect(li.textContent, slug).not.toMatch(/On ShopMy/);
@@ -857,7 +857,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
   // @mutate src/pages/info/GiftGuides.tsx |           {tools}\n |           {null}\n
   // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       <MyListIcon current={myList} />\n |       <a href="#codes">Codes</a>\n      <MyListIcon current={myList} />\n
   it("#15 / redesign: the tool row under the title is search, My list and Share, nothing else", () => {
-    for (const url of ["/gift-guides", "/gift-guides/mom", "/gift-guides/store-walmart"]) {
+    for (const url of ["/gift-guides", "/gift-guides/her", "/gift-guides/store-walmart"]) {
       const { container } = renderAt(url);
       // Owner 11-21: the row under the header (pill + tools) holds the one tool row.
       const head = container.querySelector("[data-gift-headrow]")!;
@@ -869,7 +869,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
       expect(quick.querySelector("input"), url).toBeNull();
       const controls = [...quick.querySelectorAll("a, button")].filter((el) => !el.closest("[data-gift-search-results]"));
       // Owner 11-21: an owner-list guide (Mom is Her's view) adds the Sort by price menu to the tool row.
-      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(url === "/gift-guides/mom" ? ["Search gift guides", "Sort by price", "My Wish List, 0 saved", "Share"] : ["Search gift guides", "My Wish List, 0 saved", "Share"]);
+      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(url === "/gift-guides/her" ? ["Search gift guides", "Sort by price", "My Wish List, 0 saved", "Share"] : ["Search gift guides", "My Wish List, 0 saved", "Share"]);
       expect(controls[0].className, url).toMatch(/\bgg-icon\b/);
       const share = controls[controls.length - 1];
       // Icons only: 44px tap targets (RoundIconButton w-11 h-11; .gg-icon 44px), and no visible words.
@@ -890,7 +890,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
   it("Share opens a small menu: Copy link, Text this guide (sms:), and the phone's own share sheet where there is one", async () => {
     const write = vi.fn(() => Promise.resolve());
     Object.assign(navigator, { clipboard: { writeText: write } });
-    const { container } = renderAt("/gift-guides/mom");
+    const { container } = renderAt("/gift-guides/her");
     const share = screen.getByRole("button", { name: "Share" });
     expect(share.getAttribute("aria-expanded")).toBe("false");
     expect(container.querySelector("[data-gift-share-menu]")).toBeNull();
@@ -900,9 +900,9 @@ describe("gift guides: design audit round 2 UI fixes", () => {
     // jsdom has no navigator.share: no third item.
     expect([...menu.querySelectorAll("[role=menuitem]")].map((x) => x.textContent)).toEqual(["Copy link", "Text this guide", "Facebook", "Pinterest"]);
     const text = menu.querySelector("a[data-gift-text]")!;
-    expect(text.getAttribute("href")).toMatch(/^sms:[?&]body=.*https%3A%2F%2Fwww\.louisianahelpr\.com%2Fgift-guides%2Fmom$/);
+    expect(text.getAttribute("href")).toMatch(/^sms:[?&]body=.*https%3A%2F%2Fwww\.louisianahelpr\.com%2Fgift-guides%2Fher$/);
     fireEvent.click(menu.querySelector("[data-gift-copy-link]")!);
-    expect(write).toHaveBeenCalledWith("https://www.louisianahelpr.com/gift-guides/mom");
+    expect(write).toHaveBeenCalledWith("https://www.louisianahelpr.com/gift-guides/her");
     await screen.findByText("Link copied");
     // Escape closes it.
     fireEvent.keyDown(document, { key: "Escape" });

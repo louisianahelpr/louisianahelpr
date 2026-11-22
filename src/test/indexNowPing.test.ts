@@ -24,7 +24,8 @@ describe("IndexNow ping", () => {
     const xml = readFileSync(resolve(ROOT, "public/sitemap.xml"), "utf8");
     const urls = sitemapUrls(xml);
     expect(urls.length).toBeGreaterThan(70); // 111 on 2026-11-20; 77 on 2026-11-21 (owner 11-21: only Her, Him and Kids guides live)
-    expect(urls).toContain("https://www.louisianahelpr.com/gift-guides/mom");
+    expect(urls).toContain("https://www.louisianahelpr.com/gift-guides/her");
+    expect(urls).not.toContain("https://www.louisianahelpr.com/gift-guides/mom"); // owner 11-21: Mom 301s to Her
     expect(sitemapUrls("<loc>https://evil.example/x</loc><loc>http://www.louisianahelpr.com/y</loc>")).toEqual([]);
     const [body] = indexNowBodies(urls);
     expect(body).toMatchObject({ host: INDEXNOW_HOST, key: INDEXNOW_KEY, keyLocation: `https://${INDEXNOW_HOST}/${INDEXNOW_KEY}.txt` });

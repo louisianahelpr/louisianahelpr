@@ -129,9 +129,9 @@ describe("budget chips need prices a shopper can see (holiday audit 1121)", () =
 });
 
 describe("an empty view says so (holiday audit 1121)", () => {
-  it("a relationship view whose filter leaves no items shows the coming-soon note, even with an old collection link", async () => {
+  it("a guide whose filter leaves no items shows the coming-soon note, even with an old collection link", async () => {
     await loadAllGuidePicks();
-    const mom = guideBySlug("mom")!;
+    const mom = guideBySlug("her")!;
     expect(mom.links.length).toBeGreaterThan(0); // the old ShopMy collection link that hid the note
     const { container } = render(<MemoryRouter><GiftGuideView guide={{ ...mom, picks: [] }} /></MemoryRouter>);
     expect(container.querySelector("[data-gift-coming-soon]")).not.toBeNull();

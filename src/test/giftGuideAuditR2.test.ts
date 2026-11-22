@@ -155,11 +155,7 @@ describe("design audit r2: sales and search", () => {
     // Owner 11-21: only Her, Him and Kids are live (src/content/giftGuideLive.mjs); the LSU, boots and nurse words
     // pointed at guides now retired (Louisiana Celebrations, Tractor Supply, Healthcare), so they find no retired guide.
     for (const q of ["lsu", "saints", "boots", "nurse"]) expect(slugs(q).every((s) => isLiveGuide(guideBySlug(s)?.view?.of ?? s)), q).toBe(true);
-    expect(slugs("mom")[0]).toBe("mom");
-    // Every guide titled with the word comes before any guide that only matches through its lead or row.
-    const inTitle = searchGuides("mom").map((g) => /mom/i.test(g.title));
-    expect(inTitle.filter(Boolean).length).toBeGreaterThan(0); // 1120: Mom-to-Be and New Mom are sections now
-    expect(inTitle.lastIndexOf(true)).toBeLessThan(inTitle.indexOf(false) === -1 ? Infinity : inTitle.indexOf(false));
+    expect(slugs("mom")[0]).toBe("her"); // owner 11-21: Mom is no guide; the person word opens the guide it was a view of
     // Holistic review 11-18 H5: "gift for mom" listed Mom plus 18 Life moments guides; a group's name now matches only
     // as a whole word, so no guide is found through "moments".
     expect(searchGuides("gift for mom").filter((g) => g.row === "life-moments" && !/mom/i.test(`${g.title} ${sectionWords(g.slug)}`))).toEqual([]); // 1120: a section title counts

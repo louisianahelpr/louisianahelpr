@@ -64,7 +64,7 @@ describe("gift guides r3 UX Lows", () => {
   it("#12: a guide slug search engines do not list is noindex before JS, and api/share.ts passes it on", () => {
     expect(Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, "store-yankee-candle")).toBe(false);
     expect(publicOrGiftGuidePageMetaFor("/gift-guides/store-yankee-candle", null)?.robots).toMatch(/noindex/);
-    expect(publicOrGiftGuidePageMetaFor("/gift-guides/mom", null)?.robots).toBeUndefined();
+    expect(publicOrGiftGuidePageMetaFor("/gift-guides/her", null)?.robots).toBeUndefined();
     expect(readFileSync("api/share.ts", "utf8")).toContain('...("robots" in page && typeof page.robots === "string" ? { robots: page.robots } : {}),');
   });
 

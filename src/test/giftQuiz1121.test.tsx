@@ -21,7 +21,7 @@
  * title is "Find a gift" everywhere (the Kids path is 4 steps).
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
@@ -162,7 +162,8 @@ describe("the quiz on the page: one question per screen, then a short list", () 
     vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
     await act(async () => { await Promise.all(WHO.map((w) => loadGuidePicks(w))); });
     const { container } = renderAt("/gift-guides#gift-finder");
-    expect(answers(container)).toEqual(["who:her", "who:him", "who:kids"]);
+    // The quiz is its own chunk (GiftGuideLanding's LazyGiftFinder): wait for it to draw.
+    await waitFor(() => expect(answers(container)).toEqual(["who:her", "who:him", "who:kids"]));
     tap(container, "who:her");
     expect(container.querySelector("[data-test-search]")?.textContent).toBe("?who=her");
     expect(answers(container)).toEqual(quizBudgets(POOL.her, { who: "her" }).map((b) => `budget:${b.id}`));
@@ -183,7 +184,7 @@ describe("the quiz on the page: one question per screen, then a short list", () 
   it("Kids asks the age first, and its budgets and chips follow that age", async () => {
     await act(async () => { await loadGuidePicks("kids"); });
     const { container } = renderAt("/gift-guides?who=kids#gift-finder");
-    expect(answers(container)).toEqual(QUIZ_AGES.map((a) => `age:${a.id}`));
+    await waitFor(() => expect(answers(container)).toEqual(QUIZ_AGES.map((a) => `age:${a.id}`)));
     expect(container.querySelector(".gg-quiz-progress")?.textContent).toBe(W.quizStepOf(2, 4));
     tap(container, "age:0-2");
     expect(answers(container)).toEqual(quizBudgets(POOL.kids, { who: "kids", age: "0-2" }).map((b) => `budget:${b.id}`));

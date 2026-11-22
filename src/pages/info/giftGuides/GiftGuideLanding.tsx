@@ -1,13 +1,15 @@
+import { useEffect, useState, type ComponentType } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { loadModule, untilReload } from "@/lib/loadModule";
+import { report } from "@/lib/errorLogger";
 import { giftGuides as G } from "@/content/giftGuides";
 import { GUIDES, ROWS, guidesIn, type CatalogGuide, type GuideRow } from "@/content/giftGuideCatalog";
 import { LIVE_GUIDES_1121 } from "@/content/giftGuideLive.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
 import { DEAL_DAY_SLUGS } from "@/content/giftGuideDeals.mjs";
 import { CHUNK_PICK_COUNTS } from "@/content/giftGuidePicks";
-import { FINDER_ANCHOR } from "@/content/giftGuideExtras1120";
+import { EXTRAS_WORDS, FINDER_ANCHOR } from "@/content/giftGuideExtras1120";
 import { GiftGuideTile } from "./GiftGuideTile";
-import { GiftFinder } from "./GiftGuideFinder";
 import { GiftGuideTop10 } from "./GiftGuideTop10";
 
 /**
@@ -96,12 +98,49 @@ function GroupPage({ group }: { group: GuideRow }) {
  */
 export const finderAsked = (search: string, hash: string) => hash === `#${FINDER_ANCHOR}` || new URLSearchParams(search).has("who");
 
+/**
+ * The gift quiz (#gift-finder or ?who=) loads its own chunk (train 1121h): drawn only on its own view, never on a guide
+ * page, and with the quiz in it /gift-guides/<slug> measured 355 KB gz against its 352.8 KB budget. It says "Loading"
+ * until the chunk is in, and says so plainly if the chunk fails.
+ */
+const loadFinder = () => loadModule(() => import("./GiftGuideFinder"));
+/** Once loaded, a later visit to the quiz view draws it at once (no Loading flash on Start over or Back). */
+let loadedFinder: ComponentType | null = null;
+function LazyGiftFinder() {
+  const [Finder, setFinder] = useState<ComponentType | null>(() => loadedFinder);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    if (loadedFinder) return;
+    let live = true;
+    // An empty module (a stale-chunk reload on its way) waits on untilReload(); the loading line stays meanwhile.
+    void loadFinder()
+      .then((m) => m ?? untilReload())
+      .then(
+        (m) => {
+          loadedFinder = m.GiftFinder;
+          if (live) setFinder(() => m.GiftFinder);
+        },
+        (e) => {
+          // Not silent: reported, and the view says the quiz could not load.
+          report(e as Error, { tags: { source: "GiftGuideLanding.loadFinder" } });
+          if (live) setFailed(true);
+        },
+      );
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (failed) return <p className="gg-soon" role="alert">{EXTRAS_WORDS.finderLoadFailed}</p>;
+  if (!Finder) return <p className="gg-soon" role="status">{EXTRAS_WORDS.finderLoading}</p>;
+  return <Finder />;
+}
+
 export function GiftGuideLanding({ group }: { group: GuideRow | null }) {
   const { search, hash } = useLocation();
   if (group) return <GroupPage group={group} />;
   // Owner 11-21: "if I click find a gift in 3 steps the guides shouldn't be opened up here. only the section I click in
   // the left panel should be displayed, nothing else": the finder view is the finder alone.
-  if (finderAsked(search, hash)) return <div className="gg-landing" data-gift-landing="" data-gift-finder-view=""><GiftFinder /></div>;
+  if (finderAsked(search, hash)) return <div className="gg-landing" data-gift-landing="" data-gift-finder-view=""><LazyGiftFinder /></div>;
   return (
     <div className="gg-landing" data-gift-landing="">
       <LiveGuides />

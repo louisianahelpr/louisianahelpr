@@ -81,6 +81,9 @@ export const EXTRAS_WORDS = {
   /** Owner via the lead, 11-21 PM: "Find a gift" (was "Find a gift in 3 taps"; the Kids path is 4 steps). */
   finderTitle: "Find a gift",
   finderLead: "A few quick questions, then a short list of gifts that fit.",
+  /** While the quiz's own chunk loads (train 1121h), and if it fails. */
+  finderLoading: "Loading the gift quiz…",
+  finderLoadFailed: "Couldn't load the gift quiz. Check your connection and refresh the page.",
   finderWho: "Who's it for?",
   quizAge: "How old?",
   finderBudget: "Your budget",

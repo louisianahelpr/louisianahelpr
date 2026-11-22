@@ -179,6 +179,9 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   scooter: ["6-8", "9-12"], hoverboard: ["6-8", "9-12"], "game-console": ["9-12", "teen"], vr: ["9-12", "teen"], tablet: ["6-8", "9-12", "teen"], bag: ["6-8", "9-12", "teen"],
   // The EADEM New Classics Set (11-22) is skin care for a teen.
   "skincare-set": ["teen"],
+  // The popular Kids adds of 11-22, by each box's age: Little People and Tickle Me Elmo are for toddlers, the PAW Patrol
+  // vehicle and the hatching egg for preschool and up, Kanoodle (7+) for school-age kids and teens.
+  playset: ["0-2", "3-5"], plush: ["0-2", "3-5"], "vehicle-toy": ["3-5", "6-8"], "hatching-toy": ["3-5", "6-8"], puzzle: ["6-8", "9-12", "teen"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],

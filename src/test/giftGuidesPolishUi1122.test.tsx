@@ -16,6 +16,9 @@
  * #11: Swipe: one instruction (no tip box), "18 gifts under $25" on the count's line, a 150px card photo on phones (Skip
  *      and Save measured 677-733px on a 375x812 screen, were 839-895), the deck centered in the content column, and the
  *      disclosures right under a short page instead of at the foot of the menu.
+ * #12/#20/#30: the deals days use one card design: a Top deal's brand name is its link (no Shop line) and its code is the
+ *      same one-piece copy chip as the code cards; a code a Top deal shows gets no second code card (XT25); no arrow
+ *      icon on code and sale cards; "+N more" is 44px; no jump-chip row above the sections.
  * #19: on a phone the hub shows one line above the greeting, and a guide's banner starts 16px under the chip row.
  *
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:36px} | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:44px}
@@ -29,21 +32,27 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-also-list li{display:inline;white-space:nowrap} | .gg-also-list li{padding:5px 10px;border:1px solid var(--gg-line);border-radius:999px}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:start} | .gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:end}
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-fun:has([data-swipe-deck]){max-width:none} | .gg-fun:has([data-swipe-deck]){}
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | const codes = codesOn(day).filter((c) => !shownCodes.has(c.code.toUpperCase())); | const codes = codesOn(day);
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           <CodeChip code={code} /> |           <code>{code}</code>
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-card-more{min-height:44px; | .gg-card-more{min-height:32px;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow .gg-ship-order{display:none} | .gg-countrow .gg-ship-order{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav:has(+.gg-divider){border-bottom-color:transparent} | .gg-pnav:has(+.gg-divider){}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { GuidesFrame } from "@/pages/info/giftGuides/fun/FunPage";
 import { FUN_WORDS } from "@/content/giftGuideFun1120";
+import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
+import { dealDay } from "@/content/giftGuideDeals.mjs";
 import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
 
 vi.mock("@/pages/info/giftGuides/GiftGuideShare", () => ({ GiftGuideTools: () => null }));
+vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsLogoUrl: () => "" }));
 
 afterEach(cleanup);
 await loadAllGuidePicks();
@@ -169,5 +178,21 @@ describe("polish audit 1122 #11: Swipe on a phone and a wide screen", () => {
     expect(fun).toContain(".gg-fun:has([data-swipe-deck]){max-width:none}");
     expect(fun).toMatch(/@media \(max-width:479px\)\{\.gg-swipe-card\{padding:12px\}\.gg-swipe-card \.gg-photo,\.gg-swipe-card \.gg-letter,\.gg-swipe-card \.gg-thumb\{width:150px;height:150px\}/);
     expect(GIFT_GUIDES_CSS).toContain(".gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:start}");
+  });
+});
+
+describe("polish audit 1122 #12/#20/#30: one deal card design", () => {
+  it("Black Friday: Top deals carry the copy chip and a brand link; XT25 has one card; no arrows, no jump row", async () => {
+    const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("black-friday")!} now={new Date("2026-11-21T18:00:00Z")} /></MemoryRouter>);
+    await waitFor(() => expect(container.querySelector("[data-gift-deal]")).not.toBeNull());
+    const top = container.querySelector("[data-gift-deal-list]")!;
+    const chips = [...top.querySelectorAll("[data-gift-deal-code] [data-gift-code-copy]")];
+    expect(chips.length).toBeGreaterThan(0);
+    expect(top.querySelectorAll("p.gg-deal-code, [data-gift-shop]").length).toBe(0);
+    for (const card of top.querySelectorAll("li[data-gift-deal]")) expect(card.querySelector("a[data-gift-deal-brand]"), card.getAttribute("data-gift-deal")!).not.toBeNull();
+    expect(chips.map((c) => c.getAttribute("data-gift-code-copy"))).toContain("XT25");
+    expect(container.querySelectorAll('[data-gift-code-copy="XT25"]').length).toBe(1);
+    expect(container.querySelector("[data-gift-open-site], [data-gift-deal-jump]")).toBeNull();
+    expect(src("src/pages/info/giftGuides/GiftGuideDealCards.tsx")).toContain(".gg-card-more{min-height:44px;");
   });
 });

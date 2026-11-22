@@ -182,7 +182,7 @@ describe("holiday audit 1121 #80 and #81: deals copy claims and code links", () 
 
   // Lead 11-21: every code gets its store link (affiliate, else the brand's plain home page), the owner's own included.
   // @mutate src/content/giftGuides.ts | offer: "10% off; stacks with eligible promotions", href: "https://cookmagnifique.com/" | offer: "10% off; stacks with eligible promotions"
-  it("every code we list carries an https store link, and each code card links its store and an open-site button", () => {
+  it("every code we list carries an https store link, and each code card links its store (by name and photo)", () => {
     const codes = [...discountCodes, ...cleanCodes(DEAL_CODES)];
     expect(codes.length).toBeGreaterThan(15);
     for (const c of codes) expect(c.href, `${c.store} ${c.code}`).toMatch(/^https:\/\/[a-z0-9.-]+\.[a-z]+\//);
@@ -191,7 +191,9 @@ describe("holiday audit 1121 #80 and #81: deals copy claims and code links", () 
     expect(boxes.length).toBeGreaterThan(5);
     for (const b of boxes) {
       expect(b.querySelector("[data-gift-code-shop]"), b.getAttribute("data-gift-code-store") ?? "").not.toBeNull();
-      expect(b.querySelector("[data-gift-open-site]"), b.getAttribute("data-gift-code-store") ?? "").not.toBeNull();
+      // Polish audit 1122 #20: no arrow icon; the store's name and photo both open its site.
+      expect(b.querySelector("[data-gift-open-site]")).toBeNull();
+      expect(b.querySelector("a.gg-deal-photo")?.getAttribute("href"), b.getAttribute("data-gift-code-store") ?? "").toBe(b.querySelector("[data-gift-code-shop]")?.getAttribute("href"));
     }
   });
 });

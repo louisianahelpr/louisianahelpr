@@ -248,7 +248,10 @@ describe("deals days: one page per day (owner 11-21)", () => {
       // Its codes are exactly the ones that work on the day.
       const on = codesDay(day, "2026-11-21");
       expect(on).toBe(day.day);
-      const want = activeCodes(all, on).map((x) => x.code).sort();
+      // Polish audit 1122 #12: less any code a Top deal card on the page already shows (Black Friday's XT25).
+      const onDeals = new Set([...subs[0].querySelectorAll("[data-gift-code-copy]")].map((x) => x.getAttribute("data-gift-code-copy")!.toUpperCase()));
+      const want = activeCodes(all, on).map((x) => x.code).filter((x) => !onDeals.has(x.toUpperCase())).sort();
+      if (day === BF) expect(onDeals.has("XT25")).toBe(true);
       const shown = [...box.querySelectorAll("[data-gift-code]")].map((x) => x.getAttribute("data-gift-code")).sort();
       expect(shown, day.id).toEqual(want);
       counts.push(shown.length);

@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-22T00:01:14.335Z",
-  "guards": 4363,
-  "registered": 4359,
+  "generated": "2026-11-22T03:42:23.816Z",
+  "guards": 4388,
+  "registered": 4384,
   "unregistered": [
     "src/lib/categorySuggestions.test.ts",
     "src/lib/celebrate.test.ts",
@@ -20,7 +20,8 @@
     "src/test/giftGuideBudgetCaps1120.test.ts",
     "src/test/giftGuideCoversMatchGuide.test.ts",
     "src/test/giftGuidesPromo.test.tsx",
-    "src/test/giveawayReminders.test.tsx",
+    "src/test/jobPageHeadKeepsLeftColumn.test.ts",
+    "src/test/jobsAudit1121Visual.test.tsx",
     "src/test/quoteInsertJobMirrorsJobsInsertPolicy.test.ts",
     "src/test/referralCopyOneRule.test.ts"
   ],
@@ -30,6 +31,12 @@
       "why": [
         "blocked (literal declared in this file) is both input and oracle",
         "all (literal declared in this file) is both input and oracle"
+      ]
+    },
+    {
+      "file": "src/test/jobsAudit1121Mediums.test.tsx",
+      "why": [
+        "lines (literal declared in this file) is both input and oracle"
       ]
     },
     {
@@ -47,6 +54,40 @@
       ],
       "parents": [
         "src/components/dashboard/filterSheet/jobFilterSections.tsx"
+      ]
+    },
+    {
+      "module": "src/components/sponsor/ClaimSection.tsx",
+      "tests": [
+        "src/test/sponsor25days.test.tsx",
+        "src/test/sponsorButtonGeometry.test.tsx",
+        "src/test/sponsorLineup.test.tsx",
+        "src/test/sponsorSignupNeverSilentlyDropped.test.tsx"
+      ],
+      "parents": [
+        "src/pages/sponsor/SponsorPage.tsx"
+      ]
+    },
+    {
+      "module": "src/components/sponsor/Sections.tsx",
+      "tests": [
+        "src/test/giveawayReminders.test.tsx",
+        "src/test/sponsor25days.test.tsx",
+        "src/test/sponsor25daysPublicNoDates.test.tsx",
+        "src/test/sponsorLineup.test.tsx",
+        "src/test/twentyFiveDaysRulesOnFacebook.test.tsx"
+      ],
+      "parents": [
+        "src/pages/sponsor/SponsorPage.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/admin/sponsors/SbsReviewPanel.tsx",
+      "tests": [
+        "src/test/sbsReviewFeedback1121.test.tsx"
+      ],
+      "parents": [
+        "src/pages/admin/sponsors/AdminSponsorsPage.tsx"
       ]
     },
     {

@@ -9,6 +9,7 @@ const DIR = "/gift-guides/deals/stores/";
 
 /** Store name (exactly as the codes and sales spell it) -> its photo's file name. */
 export const STORE_PHOTO_FILES: Record<string, string> = {
+  "At Home": "at-home.webp",
   "Aurate": "aurate.webp",
   "Belk": "belk.webp",
   "Bon Wellness": "bon-wellness.webp",
@@ -32,6 +33,7 @@ export const STORE_PHOTO_FILES: Record<string, string> = {
   "Kids Foot Locker": "kids-foot-locker.webp",
   "Magnifique": "magnifique.webp",
   "Muck Boot": "muck-boot.webp",
+  "Nordstrom": "nordstrom.webp",
   "PUMA": "puma.webp",
   "PetSmart": "petsmart.webp",
   "Petite Plume": "petite-plume.webp",
@@ -39,10 +41,13 @@ export const STORE_PHOTO_FILES: Record<string, string> = {
   "Ring": "ring.webp",
   "Ring Concierge": "ring-concierge.webp",
   "Sally Beauty": "sally-beauty.webp",
+  "SharkNinja": "sharkninja.webp",
   "T3 Micro": "t3-micro.webp",
   "Thrive Creative": "thrive-creative.webp",
   "Tushbaby": "tushbaby.webp",
   "Ulta Beauty": "ulta-beauty.webp",
+  "Under Armour": "under-armour.webp",
+  "Victoria's Secret": "victorias-secret.webp",
   "XTRATUF": "xtratuf.webp",
   "YVO Warrior": "yvo-warrior.webp",
 };

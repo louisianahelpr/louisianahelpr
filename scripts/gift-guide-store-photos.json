@@ -1,5 +1,11 @@
 {
  "photos": {
+  "At Home": {
+   "file": "at-home.webp",
+   "product": "Pre-Lit Slim Jackson Pine Tree, 7 ft",
+   "image": "https://static.athome.com/images/w_800,h_800,c_pad,f_auto,fl_lossy,q_auto/v1793664216/p/125042109/b6-pre-lit-slim-jackson-pine-tree-7.jpg",
+   "page": "https://www.athome.com/b6-pre-lit-slim-jackson-pine-tree-7/125042109.html"
+  },
   "Aurate": {
    "file": "aurate.webp",
    "product": "Stainless Steel Everyday Bracelet Stack",
@@ -9,7 +15,7 @@
   "Belk": {
    "file": "belk.webp",
    "product": "Clinique Full Face Forward: Simply Radiant Makeup Gift Set",
-   "image": "https://belk.scene7.com/is/image/Belk?layer=0&src=5900053_VBRAY5_A_000",
+   "image": "https://belk.scene7.com/is/image/Belk?layer=0&src=5900053_VBRAY5_A_000&wid=1200&hei=1200",
    "page": "https://www.belk.com/p/clinique-full-face-forward-simply-radiant-makeup-gift-set---118-value/5900053VBRAY5.html"
   },
   "Bon Wellness": {
@@ -138,6 +144,12 @@
    "image": "https://cdn.shopify.com/s/files/1/0918/9123/7146/files/mas17w20_profile_g.jpg?v=1790686423",
    "page": "https://www.muckbootcompany.com/products/mas17w20"
   },
+  "Nordstrom": {
+   "file": "nordstrom.webp",
+   "product": "UGG Tasman II Slipper (women), chestnut",
+   "image": "https://n.nordstrommedia.com/it/17018532-6eaf-4c06-867c-c2da63714732.jpeg?w=1200&h=1200&crop=pad&trim=color",
+   "page": "https://www.nordstrom.com/s/ugg-tasman-ii-slipper-women/8083472"
+  },
   "PUMA": {
    "file": "puma.webp",
    "product": "PUMA Speedcat OG Sneakers",
@@ -180,6 +192,12 @@
    "image": "https://www.sallybeauty.com/dw/image/v2/BCSM_PRD/on/demandware.static/-/Sites-SBS-SallyBeautySupply/default/dw6a366116/images/large/SBS-021505.jpg?sw=1500&sh=1500&sfrm=png",
    "page": "https://www.sallybeauty.com/tools-and-brushes/hair-dryers/nano-titanium-dryer/SBS-021505.html"
   },
+  "SharkNinja": {
+   "file": "sharkninja.webp",
+   "product": "Shark Pet Cordless Stick Vacuum",
+   "image": "https://assets.sharkninja.com/image/upload/f_auto/q_auto/SharkNinja-NA/IX141_01.jpg",
+   "page": "https://www.sharkninja.com/shark-pet-cordless-stick-vacuum/IX141.html"
+  },
   "T3 Micro": {
    "file": "t3-micro.webp",
    "product": "T3 Afar hair dryer",
@@ -204,6 +222,18 @@
    "image": "https://media.ulta.com/i/ulta/2661664?w=1000&h=1000",
    "page": "https://www.ulta.com/p/airsquare-hair-dryer-pimprod2061276?sku=2661664"
   },
+  "Under Armour": {
+   "file": "under-armour.webp",
+   "product": "UA Rival Fleece Men's Hoodie",
+   "image": "https://underarmour.scene7.com/is/image/Underarmour/PS1379757-025_HF?rp=standard-0pad%7Cpdp&qlt=85&bgc=f0f0f0&wid=800&hei=1000&op_usm=1.75%2C0.3%2C2%2C0",
+   "page": "https://www.underarmour.com/en-us/p/ua_rival_fleece_mens_hoodie/1379757.html"
+  },
+  "Victoria's Secret": {
+   "file": "victorias-secret.webp",
+   "product": "Bombshell Eau de Parfum 1.7 oz",
+   "image": "https://www.victoriassecret.com/p/760x1013/png/zz/25/03/20/02/112542112457_OM_F.jpg",
+   "page": "https://www.victoriassecret.com/us/vs/beauty-catalog/5000010457"
+  },
   "XTRATUF": {
    "file": "xtratuf.webp",
    "product": "XTRATUF Men's Ankle Deck Boot",
@@ -218,6 +248,32 @@
   }
  },
  "none": {
-  "Universal Standard": "every product photo on universalstandard.com shows a model (checked all 250 products in products.json incl. the 38 sweaters/cardigans); no product-only shot"
+  "Adidas": "adidas.com blocks automated fetching: HTTP 403 to curl and WebFetch (Gazelle product page)",
+  "Anthropologie": "anthropologie.com blocks automated fetching: HTTP 403 to curl and WebFetch",
+  "Benefit Cosmetics": "benefitcosmetics.com blocks automated fetching: HTTP 403 to curl and WebFetch (Hoola product page)",
+  "Bergdorf Goodman": "bergdorfgoodman.com blocks automated fetching: HTTP 403 to curl",
+  "Bloomingdale's": "bloomingdales.com blocks automated fetching: HTTP 403 to curl and WebFetch",
+  "CB2": "cb2.com blocks automated fetching: HTTP 403 to curl",
+  "Crate & Barrel Kids": "crateandbarrel.com blocks automated fetching: HTTP 403 to curl and WebFetch (play kitchen product page)",
+  "Diesel": "diesel.com blocks automated fetching: HTTP 403 to curl and WebFetch (1DR bag product page)",
+  "Famous Footwear": "famousfootwear.com blocks automated fetching: HTTP 403 to curl and WebFetch",
+  "Keurig": "keurig.com blocks automated fetching: product pages answer HTTP 403 to curl and 400 to WebFetch (2026-11-21); no product photo reachable",
+  "Kitchen Aid": "kitchenaid.com blocks automated fetching: HTTP 403 to curl; WebFetch timed out twice on the Artisan stand mixer page",
+  "Lancome": "lancome-usa.com blocks automated fetching: HTTP 403 to curl and WebFetch",
+  "Lands' End": "landsend.com blocks automated fetching: HTTP 403 to curl and WebFetch on home and product pages",
+  "Macy's": "macys.com blocks automated fetching: HTTP 403 to curl and WebFetch",
+  "Marshalls": "marshalls.com blocks automated fetching: HTTP 403 to curl; WebFetch gets a generic error page with no products",
+  "Neiman Marcus": "neimanmarcus.com blocks automated fetching: HTTP 403 to curl and WebFetch",
+  "Oriental Trading Company": "orientaltrading.com blocks automated fetching: HTTP 403 to curl and WebFetch",
+  "Saks Fifth Avenue": "saksfifthavenue.com blocks automated fetching: HTTP 403 to curl and WebFetch",
+  "Sam's Club": "samsclub.com product pages return a bot check ('Let us know you're human') to curl and WebFetch",
+  "Samsung": "samsung.com buy page loads its product gallery by script (no product image in the HTML); the Buds4 Pro page only has model and lifestyle shots",
+  "Scheels": "scheels.com blocks automated fetching: HTTP 403 to curl and WebFetch",
+  "TJ Maxx": "tjmaxx.tjx.com blocks automated fetching: curl connection refused/timeout; WebFetch gets a generic error page with no products",
+  "The Home Depot": "homedepot.com blocks automated fetching: HTTP 403 to curl and WebFetch (Milwaukee M18 product page)",
+  "The Men's Wearhouse": "menswearhouse.com blocks automated fetching: curl connection failed; WebFetch timed out",
+  "Theory": "theory.com blocks automated fetching: HTTP 403 to curl and WebFetch",
+  "Universal Standard": "every product photo on universalstandard.com shows a model (checked all 250 products in products.json incl. the 38 sweaters/cardigans); no product-only shot",
+  "Woot!": "woot.com pages are script-rendered with no product images in the HTML, and WebFetch gets HTTP 403; also Woot is an Amazon company, so its listing photos may fall under the Amazon photo rule"
  }
 }

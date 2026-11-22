@@ -58,13 +58,15 @@ const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-10914343
 const ADDS_1122_ASINS = ["B0HKS18NW2", "B0C1YBPJ43", "B0F2937DQQ", "B09X3WGJ3R", "B0DQLLPYGM", "B0GP2R8TBS", "B0GZSMBDYZ"];
 // Owner 11-22 nurse + PR picks (builder-guide-her3b).
 const PR_PINS = ["p-107965795", "p-103880845", "p-104580620", "p-103889854", "p-103784739", "p-103878765", "p-103883109", "p-103877715"];
-const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
+// Nurse shops, direct links (no ShopMy pin, no commission).
+const NURSE_DIRECT = ["https://monochromaticfinds.com/products/holiday-polka-dot-coquette-bow-badge-reel", "https://vixsocks.com/products/cherry-on-top-compression-socks", "https://vixsocks.com/products/flower-power-compression-socks", "https://www.drwoofapparel.com/products/cherries-berries-bamboo-crew-compression-socks", "https://seven2seven.co/products/blue-polka-dot-nurse-mockneck-limited-edition", "https://21collectiveco.com/products/royal-blue-mockneck"];
+const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`), ...NURSE_DIRECT]);
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 87 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(87);
-    expect(page.length).toBe(87);
+  it("the page holds exactly her 93 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(93);
+    expect(page.length).toBe(93);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
   });
 
@@ -97,7 +99,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(34);
-    expect(shopmy.length).toBe(53);
+    expect(shopmy.length).toBe(59);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

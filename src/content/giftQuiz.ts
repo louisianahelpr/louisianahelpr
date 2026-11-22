@@ -75,7 +75,7 @@ const PER_BRAND = 2;
 
 /** Grown-up gift types and the interests each one is. */
 const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
-  "throw-blanket": ["cozy"], bedding: ["cozy"], pajamas: ["cozy"], "sleep-mask": ["cozy"], candle: ["cozy"], socks: ["cozy"],
+  "throw-blanket": ["cozy"], bedding: ["cozy"], pajamas: ["cozy"], "sleep-mask": ["cozy"], candle: ["cozy"], socks: ["cozy"], "compression-socks": ["cozy"],
   clock: ["cozy", "tech"], coasters: ["cozy", "kitchen"], "valet-tray": ["cozy", "style"],
   skincare: ["beauty"], lip: ["beauty"], makeup: ["beauty"], "gift-set": ["beauty"], fragrance: ["beauty"], hair: ["beauty"],
   "beauty-device": ["beauty", "tech"], massager: ["fitness", "tech"], grooming: ["beauty"], soap: ["beauty"], "body-wash": ["beauty"],

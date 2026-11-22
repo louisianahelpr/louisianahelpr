@@ -14,7 +14,7 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { CheckCircle2, CalendarClock } from "lucide-react";
-import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs, jobDayStart, jobStartTimeLabel, posterConfirmClosesMs } from "@/lib/jobDate";
+import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs, helprConfirmClosed, jobDayStart, jobStartTimeLabel, posterConfirmClosesMs } from "@/lib/jobDate";
 import { confirmScheduledFor, confirmUrgencyText } from "./jobConfirmationWords";
 import { slotLabel } from "@/components/tracker/jobProgressState";
 import { JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
@@ -184,7 +184,7 @@ export function JobConfirmation({
      12:00. No start time: the end of the job day. */
   const posterWindowEnd = posterConfirmClosesMs(dateNeeded, startTime);
   const showConfirmation =
-    isLiveJob && confirmOpen && (isOwner ? now.getTime() < posterWindowEnd : hoursUntilJob > -24);
+    isLiveJob && confirmOpen && (isOwner ? now.getTime() < posterWindowEnd : !helprConfirmClosed(dateNeeded, now.getTime()));
 
   /* NOT-YET-OPEN IS A STATE, NOT AN ABSENCE.
      This component used to `return null` for every accepted job more than 24

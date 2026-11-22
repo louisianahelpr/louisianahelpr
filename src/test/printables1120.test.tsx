@@ -256,7 +256,7 @@ describe("the maker and the page", () => {
 });
 
 /**
- * Holiday audit 1121 area 5 (#6, #9, #11, #12, #21) on /gift-guides/printables.
+ * Holiday audit 1121 area 5 (#6, #9, #11, #12, #21) on /gift-guides/printables (page counts measured 2026-11-21).
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx |         {makers.length > 1 && ( |         {makers.length > 0 && (
  * @mutate src/lib/publicPageMeta.mjs |     title: "Free holiday printables: gift tags, coloring books and more — Helpr", |     title: "Free printable Christmas gift tags with names — Helpr",
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;border:1px solid var(--gg-line)} | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12)}

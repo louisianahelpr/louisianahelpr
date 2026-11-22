@@ -42,7 +42,6 @@ export const HER_STORES = {
   // owner 11-22 screenshot list (builder-guide-adds-2): her LUSH pin.
   "store-lush": "LUSH",
   "store-yttp": "Youth To The People", "store-naturium": "Naturium",
-  "store-badgebuddy": "Badgebuddy", "store-vix-socks": "Vix Socks", "store-seven2seven": "Seven2seven", "store-21-collective": "21 Collective",
 };
 
 /**
@@ -61,7 +60,7 @@ export const HER_1121 = [
   { name: "BIODANCE Hydro Cera-Nol Real Deep Mask, 4 Pack", brand: "BIODANCE", line: "Overnight hydrogel masks she peels off to glowy skin.", href: shopmy("p-108755104"), image: "https://www.sephora.com/productimages/sku/s2865152-main-zoom.jpg", store: "store-iherb", sortPrice: 19, price: 19, commission: 15, type: "skincare" },
   { name: "Summer Fridays Tinted Lip Butter Balm", brand: "Summer Fridays", line: "The tinted lip balm everyone keeps in their bag.", href: amz("B0D82LVR3N"), image: amzImg("51s-g+euH5L"), store: "store-amazon", sortPrice: 19.2, commission: 10, type: "lip" },
   { name: "Kitsch XL Microfiber Hair Towel Wrap", brand: "Kitsch", line: "A quick-dry hair towel wrap for after the shower.", href: amz("B0CDF7GJ4Y"), image: amzImg("81h7Kvf9ttL"), store: "store-amazon", sortPrice: 19.24, commission: 3, type: "hair" },
-  { name: "Amazon Essentials Women's Flannel Pajamas", brand: "Amazon Essentials", line: "Soft flannel pajamas for cold mornings.", href: amz("B08X8P91FX"), image: amzImg("71vZPpqtf5L"), store: "store-amazon", sortPrice: 20.69, commission: 4, type: "pajamas" },
+  // Owner 2026-11-22 ("Lake + Eberjey"): the Amazon Essentials flannel pajamas (B08X8P91FX) are off; Her keeps two pajama sets.
   { name: "TULA Spresso Energizing Eye Balm", brand: "TULA", line: "A cooling eye balm that wakes up tired eyes.", href: amz("B0C7LTPXBV"), image: amzImg("71N7JF4XK1L"), store: "store-amazon", sortPrice: 22.8, commission: 10, type: "skincare" },
   { name: "nodpod Weighted Sleep Mask", brand: "nodpod", line: "A gently weighted eye mask that helps her drift off.", href: amz("B0B1RWJ4QJ"), image: amzImg("31+H+LGa0OL"), store: "store-amazon", sortPrice: 28.5, commission: null, type: "sleep-mask" },
   { name: "Tyler Candle Company Diva Glamorous Gift Suite", brand: "Tyler Candle Company", line: "The Diva scent in a candle gift set.", href: amz("B0D7TR9PBZ"), image: amzImg("718bvTOBovL"), store: "store-amazon", sortPrice: 28.68, commission: 3, type: "candle" },
@@ -184,12 +183,6 @@ export const HER_1121 = [
   { name: "Naturium Multi-Peptide Advanced Serum", brand: "Naturium", line: "A plumping peptide serum that is easy on the budget.", href: shopmy("p-103878765"), image: "https://cdn.shopify.com/s/files/1/0105/2265/6823/files/NATR-Multi-Peptide_Serum_Front_capoff_primary_bone.webp", store: "store-naturium", sortPrice: 25, price: 25, commission: 15, type: "skincare" },
   { name: "Makeup by Mario Master Mattes Cream Eyeshadow", brand: "Makeup by Mario", line: "A creamy matte eyeshadow that blends in seconds.", href: shopmy("p-103883109"), image: "https://cdn.shopify.com/s/files/1/0275/4822/1505/files/MBM_MMLWCE_PACKSHOT_BISQUE.jpg", store: "store-sephora", sortPrice: 25, price: 25, commission: 12, type: "makeup" },
   { name: "Youth To The People Superfood Cleanser", brand: "Youth To The People", line: "The green kale face wash that is a skincare favorite.", href: shopmy("p-103877715"), image: "https://www.youthtothepeople.com/dw/image/v2/AAFM_PRD/on/demandware.static/-/Sites-yttp-master-catalog/default/dwad62d71c/products/YTTP-10100/2026/ALT0-0810834030087--PACKSHOT.jpg", store: "store-yttp", sortPrice: 39, price: 39, commission: 8, type: "skincare" },
-  // Nurse shops, direct (no affiliate link, no commission). Seven2seven and 21 Collective sit together at $65.
-  { name: "Badgebuddy Christmas Plaid Tree Badge Reel", brand: "Badgebuddy", line: "A festive plaid-tree badge reel for her scrub top.", href: "https://monochromaticfinds.com/products/holiday-polka-dot-coquette-bow-badge-reel", image: "https://cdn.shopify.com/s/files/1/0787/7476/3698/files/01_7290773436_dphh.jpg", store: "store-badgebuddy", sortPrice: 26, price: 26, commission: 0, type: "accessory" },
-  { name: "Vix Cherry on Top Compression Socks", brand: "Vix", line: "Cheery cherry compression socks for long shifts.", href: "https://vixsocks.com/products/cherry-on-top-compression-socks", image: "https://cdn.shopify.com/s/files/1/0658/5466/8992/files/PRODUCTPICTURES_10.png", store: "store-vix-socks", sortPrice: 29.99, price: 29.99, commission: 0, type: "compression-socks" },
-  { name: "Vix Flower Power Compression Socks", brand: "Vix", line: "Pretty floral compression socks that make a shift easier.", href: "https://vixsocks.com/products/flower-power-compression-socks", image: "https://cdn.shopify.com/s/files/1/0658/5466/8992/files/PRODUCTPICTURES_5.png", store: "store-vix-socks", sortPrice: 29.99, price: 29.99, commission: 0, type: "compression-socks" },
-  { name: "Seven2seven Grey Nurse Mockneck", brand: "Seven2seven", line: "A cozy grey mockneck with NURSE across the front.", href: "https://seven2seven.co/products/nurse-mockneck", image: "https://cdn.shopify.com/s/files/1/0652/8984/6859/files/greymockneck.png", store: "store-seven2seven", sortPrice: 65, price: 65, commission: 0, type: "sweatshirt" },
-  { name: "21 Collective Royal Blue Respiratory Mockneck", brand: "21 Collective", line: "A soft mockneck for the respiratory therapist in your life.", href: "https://21collectiveco.com/products/royal-blue-mockneck", image: "https://cdn.shopify.com/s/files/1/0784/2863/5326/files/50B7C612-6B1C-488C-B43B-35CFF8AB5F57.png", store: "store-21-collective", sortPrice: 65, price: 65, commission: 0, type: "sweatshirt" },
 ];
 
 // owner 11-22 popular approved (builder-guide-popular): Amazon listings sold by Amazon.com or the brand, prices read 11-22.

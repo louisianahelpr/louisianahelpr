@@ -82,7 +82,10 @@ describe("gift guides train 1120c", () => {
   it("the owner adds waiting on links are listed and not placed", () => {
     // Owner 11-21: she saved a gun cleaning oil to her Amazon men list herself, so it is placed on Him now.
     expect(SPEC.waitingOnLinks).toMatch(/Kérastase.*Braun.*HydroJug.*Ugly Stik.*Coach glasses case/s);
-    for (const re of [/K[ée]rastase/i, /Silk-expert/i, /Ugly Stik/i, /Stradic|Sedona reel/i, /\bLew's\b/i, /Abu Garcia/i, /St\. Croix/i]) expect(ALL.some((p) => re.test(p.name)), String(re)).toBe(false);
+    // Owner 11-22 (her screenshot list, builder-guide-adds-2): the Kérastase oil and the Braun Silk-expert IPL now have
+    // their links and sit on Her only; the rest still wait.
+    for (const re of [/K[ée]rastase/i, /Silk-expert/i]) expect(CHUNKS.get("her")!.picks.some((p) => re.test(p.name)), String(re)).toBe(true);
+    for (const re of [/Ugly Stik/i, /Stradic|Sedona reel/i, /\bLew's\b/i, /Abu Garcia/i, /St\. Croix/i]) expect(ALL.some((p) => re.test(p.name)), String(re)).toBe(false);
   });
 
   it("the rules: brand codes carry their end day; the cap keeps the named keeps", () => {

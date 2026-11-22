@@ -92,7 +92,8 @@ describe("holiday audit 1121 #7: a budget search lists the gifts under it", () =
   it("'under $25' lists priced gifts at or under $25, cheapest first", () => {
     expect(queryBudget(["under", "$25"])).toBe(25);
     expect(queryBudget(["4", "year", "old"])).toBeNull();
-    for (const q of ["under $25", "gifts under 50", "$15", "pajamas under 40"]) {
+    // An item word plus a budget (it was "pajamas under 40" until the owner's 11-22 "Lake + Eberjey" took the $21 flannel set off).
+    for (const q of ["under $25", "gifts under 50", "$15", "socks under 40"]) {
       const found = searchItems(items, q, 1000, today);
       expect(found.length, q).toBeGreaterThan(0);
       const cap = queryBudget(q.split(" "))!;

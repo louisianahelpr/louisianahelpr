@@ -12,7 +12,6 @@ import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
 import { GiftGuideLanding, finderAsked, rowTiles } from "./giftGuides/GiftGuideLanding";
 import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
-import { GiftGuideSharedList } from "./giftGuides/GiftGuideSharedList";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
 import { loadModule, untilReload } from "@/lib/loadModule";
@@ -96,6 +95,39 @@ function LazySaveForSomeone() {
 
 /** "gifts for Her" -> "Gifts for Her". */
 const capitalFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * A shared list (/gift-guides/list/<code>) loads its own chunk (train 1121h): once Secret Santa's wish list imported
+ * from it, it split out of this page's chunk and put /gift-guides/<slug> at 353 KB gz over its 352.8 KB budget, while
+ * no guide page ever draws it. It says "Loading" until the chunk is in, the same line the list shows while it reads.
+ */
+type SharedListModule = { GiftGuideSharedList: ComponentType<{ code: string }> };
+const loadSharedList = () => loadModule(() => import("./giftGuides/GiftGuideSharedList"));
+function LazySharedList({ code }: { code: string }) {
+  const [mod, setMod] = useState<SharedListModule | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    // An empty module (a stale-chunk reload on its way) waits on untilReload(); the loading line stays meanwhile.
+    void loadSharedList()
+      .then((m) => m ?? untilReload())
+      .then(
+        (m) => { if (live) setMod(m); },
+        (e) => {
+          // Not silent: reported, and the page says the list could not load.
+          report(e as Error, { tags: { source: "GiftGuides.loadSharedList" } });
+          if (live) setFailed(true);
+        },
+      );
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (failed) return <p className="gg-soon" role="alert" data-gift-shared-failed="">{WISH.sharedFailed}</p>;
+  if (!mod) return <p className="gg-soon" role="status">{WISH.loading}</p>;
+  const { GiftGuideSharedList } = mod;
+  return <GiftGuideSharedList code={code} />;
+}
 
 export default function GiftGuides() {
   const { slug: rawSlug, code } = useParams<{ slug?: string; code?: string }>();
@@ -236,7 +268,7 @@ export default function GiftGuides() {
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
           <GiftGuidesSidebar active={guide} myList={myList || shared} page={sidePage} />
           <div className="gg-main">
-            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
+            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
           </div>
         </div>
       </div>

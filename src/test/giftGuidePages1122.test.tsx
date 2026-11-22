@@ -9,6 +9,9 @@
  *     so a new guides route without the banner fails here.
  *     Owner 11-22 ("Same row, icons off there"): the printables' head row is the pill alone (no search, heart or Share,
  *     her 11-21 call), and the Holiday Hub's has no gift search (one magnifier: the Hub's own lights search).
+ * #15 ("remove the circles around the print buttons. put print it as below the buttons next to the print at walgreens
+ *     button"): on Banners, "12x18 print" and "Wide banner" are plain text links like "Print at Walgreens ›", all three on
+ *     one row, each 44px tall (the shared link Button, no pill outline).
  * #17 ("remove"): the Gift planner's grey "Tip: tap Bought when you get a gift, and we'll add up what you've spent."
  *     box with its × is gone, with its copy (the planner's lead already says what Bought does).
  *
@@ -21,6 +24,8 @@
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <FunBody title={words.title} path={path} tools="none"> | <FunBody title={words.title} path={path}>
  * @mutate src/pages/info/holidays/HolidayHub.tsx | banner={G.pageBanners["/holidays"]} tools="no-search" | banner={G.pageBanners["/holidays"]}
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {search && ( |       {true && (
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <Button key={f.href} type="button" variant="link" size="inline" className="pr-link" | <Button key={f.href} type="button" variant="outline" size="sm" className="pr-link"
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card .pr-link{display:inline-flex;align-items:center;justify-content:flex-start;min-height:44px; | .pr-card .pr-link{display:inline-flex;align-items:center;justify-content:flex-start;min-height:32px;
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
@@ -200,6 +205,25 @@ describe("#13 every guides page opens on the guides' one top: head row, then the
     // Under My Wish List's banner (its own hairline) the empty list draws no second rule.
     const { GIFT_WISH_CSS } = await import("@/pages/info/giftGuides/giftWishStyles");
     expect(blankComments(GIFT_WISH_CSS)).toContain(".gg [data-gift-my-list-empty]{border-top:0;margin-top:0}");
+  });
+});
+
+describe("#15 the banner's downloads are plain links on one row with Print at Walgreens", () => {
+  it("12x18 print ›  Wide banner ›  Print at Walgreens ›: one row, the shared link Button, 44px tall, no pill", async () => {
+    const { container } = renderAt("/gift-guides/printables/banners");
+    await waitFor(() => expect(container.querySelector('[data-printable-card="thanksgiving-banner"]')).not.toBeNull());
+    const row = container.querySelector('[data-printable-links="thanksgiving-banner"]')!;
+    const links = [...row.children];
+    expect(links.map((l) => l.textContent?.replace(" (opens in a new tab)", ""))).toEqual(["12x18 print ›", "Wide banner ›", "Print at Walgreens ›"]);
+    for (const l of links) {
+      expect(l.className).toMatch(/\blink-standard\b/);
+      expect(l.className).toMatch(/\bpr-link\b/);
+      expect(l.className).not.toMatch(/\bborder-\[|ctl-tint|btn-grad-primary|\bh-11\b/);
+    }
+    expect(links.map((l) => l.tagName)).toEqual(["BUTTON", "BUTTON", "A"]);
+    const css = [...container.querySelectorAll("style")].map((x) => x.textContent ?? "").join("\n");
+    expect(css).toMatch(/\.pr-card \.pr-link\{display:inline-flex;[^}]*min-height:44px;[^}]*background:none;border:0;box-shadow:none\}/);
+    expect(css).toContain(".pr-card-btns{display:flex;flex-wrap:wrap;align-items:center;gap:0 20px}");
   });
 });
 

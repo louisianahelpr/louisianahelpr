@@ -50,21 +50,26 @@ function DownloadCard({ p }: { p: DownloadProduct }) {
       <div className="pr-card-body">
         <h2 className="pr-card-title">{p.title}</h2>
         <p>{p.blurb}</p>
-        <div className="pr-card-btns">
+        {/* Owner 2026-11-22 #15 ("remove the circles around the print buttons. put print it as below the buttons next to
+            the print at walgreens button"): the downloads are plain text links like "Print at Walgreens ›", all on one
+            row (12x18 print ›  Wide banner ›  Print at Walgreens ›), each 44px tall: the shared link Button. */}
+        <div className="pr-card-btns" data-printable-links={p.id}>
           {p.files.map((f) => (
-            <Button key={f.href} type="button" variant={p.files.length > 1 ? "outline" : "default"} className={p.files.length > 1 ? "" : "btn-grad-primary"} size="sm" disabled={busy !== null} onClick={() => void get(f.href)} data-printable-download={f.href}>
-              {f.label}
+            <Button key={f.href} type="button" variant="link" size="inline" className="pr-link" disabled={busy !== null} onClick={() => void get(f.href)} data-printable-download={f.href}>
+              {f.label} ›
             </Button>
           ))}
+          {/* Owner 2026-11-21: the banner says where to print it cheaply (a plain link for now; no affiliate program yet). */}
+          {p.printAt && (
+            <Button asChild variant="link" size="inline" className="pr-link">
+              <a href={p.printAt.href} target="_blank" rel="noopener noreferrer" data-printable-print-at={p.id}>
+                {p.printAt.label} ›<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            </Button>
+          )}
         </div>
         {err && <p className="pr-err" role="alert">That download didn't work. Please try again.</p>}
         {p.cta && <Link to={p.cta.to} className="gg-link">{p.cta.label} ›</Link>}
-        {/* Owner 2026-11-21: the banner says where to print it cheaply (a plain link for now; no affiliate program yet). */}
-        {p.printAt && (
-          <a href={p.printAt.href} target="_blank" rel="noopener noreferrer" className="pr-print-at" data-printable-print-at={p.id}>
-            {p.printAt.label} ›<span className="sr-only"> (opens in a new tab)</span>
-          </a>
-        )}
       </div>
     </li>
   );
@@ -177,11 +182,11 @@ const PAGE_CSS = `
 .pr-card-wide{flex-direction:column;max-width:640px}.pr-card-wide .pr-card-img{width:100%;max-width:100%}
 .pr-card-body .pr-card-title{font-size:16px;font-weight:700;margin:0 0 4px;color:var(--gg-ink)}
 .pr-card-body p{font-size:13px;color:var(--gg-muted);margin:0 0 8px}
-.pr-card-btns{display:flex;flex-wrap:wrap;gap:8px}
+.pr-card-btns{display:flex;flex-wrap:wrap;align-items:center;gap:0 20px}
 /* Owner 2026-11-21: "Download the banner (free)" overflowed its pill; a long label wraps inside its button instead. */
 .pr-card-btns button{max-width:100%;height:auto;min-height:44px;white-space:normal;text-align:center}
-.pr-print-at{display:inline-flex;align-items:center;min-height:44px;margin-top:4px;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
-.pr-print-at:hover,.pr-print-at:focus-visible{text-decoration:underline}
+/* Owner 11-22 #15: every download and "Print at Walgreens" is the same plain olive text link, no pill outline. */
+.pr-card .pr-link{display:inline-flex;align-items:center;justify-content:flex-start;min-height:44px;padding:0;font-size:14px;font-weight:700;letter-spacing:0;color:var(--gg-olive);background:none;border:0;box-shadow:none}
 .pr-err{color:hsl(var(--destructive-ink));font-size:13px;font-weight:600;margin:8px 0 0}
 @media (min-width:560px){.pr-makers{grid-template-columns:repeat(auto-fit,minmax(0,1fr))}.pr-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `;

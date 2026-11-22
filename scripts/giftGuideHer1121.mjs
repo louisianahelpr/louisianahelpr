@@ -39,8 +39,8 @@ export const HER_STORES = {
   "store-haven-well-within": "Haven Well Within", "store-camp-snap": "Camp Snap", "store-rei": "REI",
   "store-the-swank-company": "The Swank Company", "store-baublebar": "BaubleBar", "store-currentbody": "CurrentBody",
   "store-anthropologie": "Anthropologie", "store-tatcha": "Tatcha", "store-iherb": "iHerb", "store-stanley": "Stanley", "store-cos-bar": "Cos Bar", "store-ulta-beauty": "Ulta Beauty",
-  // owner 11-22 screenshot list (builder-guide-adds-2): her LUSH pin.
-  "store-lush": "LUSH",
+  // owner 11-22 screenshot list (builder-guide-adds-2): her LUSH pin and the OOFOS links made 11-22.
+  "store-lush": "LUSH", "store-oofos": "OOFOS",
   "store-yttp": "Youth To The People", "store-naturium": "Naturium",
 };
 
@@ -174,6 +174,21 @@ export const HER_1121 = [
   { name: "L.L.Bean Adirondack Barn Coat, Flannel-Lined, Dark Khaki", brand: "L.L.Bean", line: "A classic flannel-lined barn coat with a cord collar.", href: shopmy("p-107936484"), image: "https://cdni.llbean.net/is/image/wim/267093_129_41", store: "store-zappos", sortPrice: 150, price: 150, commission: 12, type: "jacket", priceAt: "2026-11-22" },
   // Anthropologie sells only the women's Bondi 9 (HOKA's own white pair photo).
   { name: "HOKA Bondi 9 Women's Sneakers, White", brand: "HOKA", line: "Cloud-soft sneakers for long days on her feet.", href: shopmy("p-107887741"), image: "https://dms.deckers.com/hoka/image/upload/t_product-xlarge-wp/v1/1162012-WWH_1.png", store: "store-anthropologie", sortPrice: 175, price: 175, commission: 15, type: "shoes", priceAt: "2026-11-22" },
+  // Links made 11-22 in her ShopMy (owner: "You can create the links"; Desktop note ShopMy-links-created-1122.md).
+  { name: "CALPAK Insulated Lunch Bag, Polka Dot", brand: "CALPAK", line: "A cute insulated lunch bag for packed shift meals.", href: shopmy("p-109201389"), image: "https://cdn.shopify.com/s/files/1/0941/4996/files/INSULATED-LUNCH-BAG-POLKA-DOT-FRONT_c2dd954c-ab3e-48d7-bdb7-cc91f99b1cb8.jpg", store: "store-calpak", sortPrice: 38.4, price: 38.4, commission: 8, type: "bag", priceAt: "2026-11-22" },
+  // The healthcare list's "OOahh Luxe" is, by its picture, the OOahh PLUS slide in Chalk (oofos.com only).
+  { name: "OOFOS OOahh PLUS Slide, Chalk", brand: "OOFOS", line: "Cushy recovery slides for after a long shift.", href: shopmy("p-109202100"), image: "https://cdn.shopify.com/s/files/1/0254/5969/files/2200CHALK_shot2.jpg", store: "store-oofos", sortPrice: 69.95, price: 69.95, commission: 12, type: "shoes", priceAt: "2026-11-22" },
+  { name: "Slip Pure Silk Queen Zippered Pillowcase, Seabreeze", brand: "Slip", line: "A pure silk pillowcase for smoother hair and skin.", href: shopmy("p-109201186"), image: "https://cdn.shopify.com/s/files/1/0328/0021/files/SLIP_S24_PC_QUEEN_SEABREEZE_SHOT-1.jpg", store: "store-slip", sortPrice: 84, price: 84, commission: 15, type: "bedding", priceAt: "2026-11-22" },
+  { name: "Crown Affair The Silk Pillowcase", brand: "Crown Affair", line: "A silk pillowcase that is gentle on hair overnight.", href: shopmy("p-109200757"), image: "https://cdn.shopify.com/s/files/1/0088/0368/0319/files/TheSilkPillowcase-ONGREY1_68723556-7c9d-41ed-aeac-bfc8cd57bc24.png", store: "store-crown-affair", sortPrice: 88, price: 88, commission: 15, type: "bedding", priceAt: "2026-11-22" },
+  { name: "OOFOS OOcloog Limited Edition Clog, Nomad Leopard", brand: "OOFOS", line: "Cushioned recovery clogs in a fun leopard print.", href: shopmy("p-109201629"), image: "https://cdn.shopify.com/s/files/1/0254/5969/files/1203NOLEOPD_shot2.jpg", store: "store-oofos", sortPrice: 89.95, price: 89.95, commission: 12, type: "shoes", priceAt: "2026-11-22" },
+  { name: "Smathers & Branson Home Sweet Home Needlepoint Valet Tray", brand: "Smathers & Branson", line: "A hand-stitched needlepoint tray for keys and rings.", href: shopmy("p-109200363"), image: "https://cdn.shopify.com/s/files/1/0767/9233/2592/products/Home_Sweet_Home_Valet_Tray_Low_Res.jpg", store: "store-smathers-and-branson", sortPrice: 95, price: 95, commission: 15, type: "valet-tray", priceAt: "2026-11-22" },
+  // Her Anthropologie pin (15%, 11-19); sold by size, $22 (S) to $228, so it shows "from". Photo: Anthropologie's own
+  // shot of the pearly capiz jar (the picture's jar), cut out.
+  { name: "Capri Blue Volcano Capiz Jar Candle", brand: "Capri Blue", line: "The famous Volcano candle in a pearly capiz jar.", href: shopmy("p-104056613"), image: "https://images.urbndata.com/is/image/Anthropologie/84139617_011_b14", store: "store-anthropologie", sortPrice: 22, price: 22, priceFrom: true, commission: 15, type: "candle", priceAt: "2026-11-22" },
+  // Photo: Bluemercury's own shot of the same single-pair packet (Dermstore's page blocks scripted reads).
+  { name: "Patchology Rosé Fingers Renewing Hand Mask", brand: "Patchology", line: "Moisturizing hand mask gloves for hardworking hands.", href: shopmy("p-109205545"), image: "https://cdn.shopify.com/s/files/1/0283/0185/2747/files/global_images-818262023879-1.jpg", store: "store-dermstore", sortPrice: 11, price: 11, commission: 16, type: "hand-care", priceAt: "2026-11-22" },
+  // The creator tagged BaubleBar; small plain gold letters on a fine chain = the Mini Spaced Letter necklace (best match).
+  { name: "BaubleBar Mini 14K Gold Spaced Letter Custom Name Necklace", brand: "BaubleBar", line: "Her initials or name in little gold letters on a fine chain.", href: shopmy("p-109205223"), image: "https://cdn.shopify.com/s/files/1/0267/5746/4148/files/115932_G_01_Accent_Vis.jpg", store: "store-baublebar", sortPrice: 148, price: 148, commission: 20, type: "jewelry", priceAt: "2026-11-22" },
   // owner 11-22 her nurse + PR picks (builder-guide-her3b)
   { name: "Beekman 1802 Kindness Cafe 6-Piece Set", brand: "Beekman 1802", line: "A cozy goat-milk body set that smells like a coffee shop.", href: shopmy("p-107965795"), image: "https://beekman1802.com/cdn/shop/files/B18CAFE26-WBC6_1_1.jpg", store: "store-beekman-1802", sortPrice: 43.2, price: 43.2, commission: 15, type: "gift-set" },
   { name: "Glow Recipe Glass Balm Lip Treatment", brand: "Glow Recipe", line: "A glossy, juicy lip balm in a little tube.", href: shopmy("p-103880845"), image: "https://cdn.shopify.com/s/files/1/0543/8301/files/GLASS_BALM_INFOGRAPHICS_2000x2000_FIG_V1_FRUIT-_-B-ALM.jpg", store: "store-glow-recipe", sortPrice: 22, price: 22, commission: 12, type: "lip" },

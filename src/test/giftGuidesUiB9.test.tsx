@@ -99,6 +99,8 @@ describe("H5: search finds what shoppers type", () => {
 
   it("the results show each guide's cover and the matching items, each opening its guide", async () => {
     const { container } = renderAt("/gift-guides");
+    // Owner 11-21 ("make search an icon always"): the field opens from the magnifier.
+    fireEvent.click(container.querySelector("[data-gift-search-button]")!);
     const input = container.querySelector<HTMLInputElement>("[data-gift-search]")!;
     fireEvent.change(input, { target: { value: "mom" } });
     const first = container.querySelector("a[data-gift-found]")!;

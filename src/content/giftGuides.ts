@@ -343,6 +343,8 @@ export const giftGuides = {
    */
   quickLabel: "Gift guide tools",
   searchLabel: "Search gift guides",
+  /** Closes the opened search field (owner 11-21: "make search an icon always"). */
+  searchCloseLabel: "Close search",
   searchPlaceholder: "Search guides",
   myListCount: (n: number) => `My list, ${n} saved`,
   shareLabel: "Share",

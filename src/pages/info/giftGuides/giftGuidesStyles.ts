@@ -70,7 +70,14 @@ color:var(--gg-ink)}
 
 .gg-ship{margin:0;font-size:12px;font-weight:600;line-height:1.3;color:#3f5a1c;background:#eef2e6;border-radius:999px;padding:5px 12px;white-space:nowrap}@media (max-width:479px){.gg-ship{white-space:normal;max-width:52vw;font-size:11px;text-align:center;padding:4px 10px;border-radius:14px}}
 .gg-tools{display:flex;align-items:center;justify-content:center;gap:4px;max-width:440px;margin:8px auto 0}
-.gg-tools-search{position:relative;flex:1;min-width:0}
+/* Owner 11-21 ("make search an icon always"): a 44px magnifier like the heart and Share at every width; opened, the field
+   is 300px beside them (a phone lays it over the icon row, inside the screen). */
+.gg-tools{position:relative}
+.gg-tools-search{position:relative;flex:0 0 auto;min-width:0}
+.gg-tools-search.is-open{width:min(300px,calc(100vw - 40px))}
+.gg-tools-search .gg-search input{padding-right:40px}
+.gg-search-close{position:absolute;right:2px;top:50%;transform:translateY(-50%);background:transparent;color:var(--gg-muted)}
+@media (max-width:767px){.gg-tools-search.is-open{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:7;background:hsl(var(--background))}}
 /* Owner 11-21: ONE header row from 768px up: back arrow + title, the shipping pill, then search + heart + share
    pushed right, all centred; a phone wraps it (arrow + title, then the pill and the icons). The shell's own header row
    is off, so this row keeps the shell's air above it (--shell-gap on a phone, 24px from sm up). */
@@ -83,16 +90,10 @@ color:var(--gg-ink)}
 .gg-head-title .text-page-title{margin:0;min-width:0;overflow-wrap:anywhere}
 .gg-headrow .gg-ship{flex:none;max-width:none}
 .gg-headrow .gg-tools{margin:0 0 0 auto;flex:0 1 auto;justify-content:flex-end}
-/* A phone: the search is a 44px magnifier on the pill's row and opens across the row while typing. */
-.gg-headrow .gg-tools-search{flex:0 0 44px;min-width:44px}
-.gg-headrow .gg-tools-search .gg-search input{padding-right:0;cursor:pointer}
-.gg-headrow .gg-tools-search:focus-within{position:absolute;left:0;right:0;z-index:7;background:hsl(var(--background))}
-.gg-headrow .gg-tools-search:focus-within .gg-search input{padding-right:12px;cursor:text}
 .gg-search input::placeholder{color:var(--gg-muted);opacity:1}
-.gg-headrow .gg-tools-search:not(:focus-within) .gg-search input::placeholder{color:transparent}
 .gg-sort-check{display:inline-block;width:16px;flex:none}
 [data-gift-sort-menu]{min-width:200px}[data-gift-sort-menu] button{white-space:nowrap}
-@media (min-width:640px){.gg-headrow .gg-tools-search:not(:focus-within) .gg-search input::placeholder{color:var(--gg-muted)}.gg-headrow{padding-top:24px}.gg-headrow .gg-tools-search{flex:1 1 160px;max-width:300px}.gg-headrow .gg-tools-search:focus-within{position:relative;left:auto;right:auto}.gg-headrow .gg-tools-search .gg-search input{padding-right:12px;cursor:text}.gg-headrow .gg-tools{flex:1 1 300px}}
+@media (min-width:640px){.gg-headrow{padding-top:24px}}
 @media (min-width:768px){.gg-head-title{flex:0 0 auto}.gg-headrow{flex-wrap:nowrap}.gg-headrow .gg-tools{flex:1 1 auto;min-width:0}.gg-head-title .text-page-title{white-space:nowrap}}
 .gg-search-results{position:absolute;z-index:6;top:calc(100% + 6px);left:0;right:0;list-style:none;margin:0;padding:4px;max-height:60vh;overflow-y:auto;text-align:left;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);font-size:14px}
 .gg-search-results a{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:8px;color:var(--gg-ink);text-decoration:none}
@@ -359,12 +360,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-countrow .gg-itemcount{margin:0}
 .gg-countrow .gg-ship{flex:none;font-size:11px;padding:4px 10px;max-width:none}
 .gg-countrow .gg-tools{position:relative;margin:0 0 0 auto;flex:0 0 auto;gap:0}
-.gg-countrow .gg-tools-search{flex:0 0 44px;min-width:44px}
-.gg-countrow .gg-tools-search .gg-search input{padding-right:0;cursor:pointer}
-.gg-countrow .gg-tools-search:focus-within{position:absolute;right:0;width:min(300px,calc(100vw - 40px));z-index:7;background:hsl(var(--background))}
-.gg-countrow .gg-tools-search:focus-within .gg-search input{padding-right:12px;cursor:text}
-.gg-countrow .gg-tools-search:not(:focus-within) .gg-search input::placeholder{color:transparent}
-.gg-countrow .gg-tools-search:not(:focus-within) .gg-search input,.gg-headrow .gg-tools-search:not(:focus-within) .gg-search input{border-color:transparent;background:transparent}
+
 /* Owner 11-21 (no more "Show more", every gift listed): every gift is drawn, so an off-screen card skips its layout
    and paint until it nears the screen; its reserved height keeps the scrollbar steady (no layout shift). */
 .gg-list>li{content-visibility:auto;contain-intrinsic-size:auto 128px}

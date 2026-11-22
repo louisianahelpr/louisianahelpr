@@ -206,9 +206,12 @@ export default function GiftGuides() {
   const ship = shippingLine(new Date());
   // Visual check 11-18: at 375 the long pill squeezed "Gift guides" into "Gift / guid / es"; phones get the short words.
   const shipTail = " for Christmas delivery";
+  // Polish audit 1122 #5: in a phone's count row the pill reads "By Dec 15" (its "Order " hidden by the CSS), so the
+  // count, the pill and the four icons fit one row at 375.
+  const shipHead = ship?.endsWith(shipTail) ? ship.slice(0, -shipTail.length) : ship;
   const shipPill = ship ? (
     <p className="gg-ship whitespace-nowrap" data-gift-ship="">
-      {ship.endsWith(shipTail) ? ship.slice(0, -shipTail.length) : ship}
+      {shipHead?.startsWith("Order ") ? <><span className="gg-ship-order">Order </span>{shipHead.slice(6)}</> : shipHead}
       {ship.endsWith(shipTail) && <span className="hidden lg:inline">{shipTail}</span>}
     </p>
   ) : undefined;

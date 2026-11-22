@@ -51,10 +51,10 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
   const facts = [item.hours, price].filter(Boolean).join(" · ");
   return (
     <li className="flex min-w-0 flex-col gap-1 rounded-[16px] border border-border bg-card px-4 py-3 font-sans" data-holiday-item={item.id}>
-      <h3 className="text-ds-16 font-semibold leading-snug text-foreground">
-        {item.name}
-        {tag && <span className="ml-2 align-[1px] text-ds-12 font-medium text-muted-foreground" data-holiday-tag="">{tag}</span>}
-      </h3>
+      {/* Polish audit 1122 #17: the kind is its own small line under the name, on one line (inside the title it broke
+          mid-word, "Walk- / through", and a screen reader heard "Lafayette Holiday Market Market"). */}
+      <h3 className="text-ds-16 font-semibold leading-snug text-foreground">{item.name}</h3>
+      {tag && <p className="whitespace-nowrap text-ds-12 font-medium text-muted-foreground" data-holiday-tag="">{tag}</p>}
       <p className="text-ds-14 text-muted-foreground">
         {where && <span>{where} · </span>}
         <span data-holiday-when="" className={tba ? "text-muted-foreground" : "font-semibold text-foreground"}>{when}</span>
@@ -71,16 +71,19 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
           {item.note}
         </p>
       )}
-      <div className="mt-auto flex min-w-0 items-center gap-x-4 pt-1">
-        {maps && (
-          <a href={maps} target="_blank" rel="noopener noreferrer" data-holiday-maps={item.id}
-            onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}
-            className="inline-flex min-h-11 min-w-0 flex-1 items-center gap-1.5 text-ds-13 text-muted-foreground link-standard">
-            <MapPin className="h-4 w-4 shrink-0 text-[hsl(var(--olivewood))]" aria-hidden />
-            <span className="truncate" title={item.address || "Open in Maps"}>{item.address || "Open in Maps"}</span>
-            <span className="sr-only"> (open in Maps, a new tab)</span>
-          </a>
-        )}
+      {/* Polish audit 1122 #17: the place on its own line (squeezed beside the links it was cut to "Cane ..."), then
+          Website, Add to calendar and More details on the row below. */}
+      <div className="mt-auto min-w-0 pt-1">
+      {maps && (
+        <a href={maps} target="_blank" rel="noopener noreferrer" data-holiday-maps={item.id}
+          onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}
+          className="flex min-h-11 min-w-0 items-center gap-1.5 text-ds-13 text-muted-foreground link-standard">
+          <MapPin className="h-4 w-4 shrink-0 text-[hsl(var(--olivewood))]" aria-hidden />
+          <span className="min-w-0" title={item.address || "Open in Maps"}>{item.address || "Open in Maps"}</span>
+          <span className="sr-only"> (open in Maps, a new tab)</span>
+        </a>
+      )}
+      <div className="flex min-w-0 flex-wrap items-center gap-x-4" data-holiday-actions="">
         {site && (
           <a href={site} target="_blank" rel="noopener noreferrer" data-holiday-site={item.id}
             className="inline-flex min-h-11 shrink-0 items-center text-ds-13 font-semibold text-[hsl(var(--olivewood))] link-standard">
@@ -101,6 +104,7 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
           </InlineTextButton>
         )}
       </div>
+      </div>
     </li>
   );
 }
@@ -118,11 +122,11 @@ export function HolidaySection({ id, title, count, children }: { id: string; tit
 }
 
 /** Shown when the filters leave nothing. */
-export function HolidayNothing({ onClear, children }: { onClear: () => void; children: ReactNode }) {
+export function HolidayNothing({ onClear, children, clearLabel = "Clear filters" }: { onClear: () => void; children: ReactNode; clearLabel?: string }) {
   return (
     <div className="rounded-[20px] border border-border bg-card p-6 text-center font-sans" data-holiday-empty="">
       <p className="text-ds-15 text-foreground">{children}</p>
-      <Button variant="outline" size="sm" className="mt-3 rounded-full" onClick={onClear}>Clear filters</Button>
+      <Button variant="outline" size="sm" className="mt-3 rounded-full" onClick={onClear}>{clearLabel}</Button>
     </div>
   );
 }

@@ -10,7 +10,7 @@
  * jsdom does no layout, so this guards the two rules (the browser check is in the report: 771 -> 375 measured).
  *
  * @mutate src/components/marketing/PublicHeaderPage.tsx | className={`${PUBLIC_CONTAINER} w-full min-w-0`} | className={PUBLIC_CONTAINER}
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav{display:block;contain:inline-size;max-width:calc(100% + 40px); | .gg-pnav{display:block;
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav{display:flex;align-items:center;contain:inline-size;max-width:calc(100% + 40px); | .gg-pnav{display:flex;align-items:center;
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";

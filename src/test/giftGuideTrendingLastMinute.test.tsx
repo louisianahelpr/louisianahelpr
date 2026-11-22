@@ -9,7 +9,7 @@
  * Owner 11-21: store pages and the landing's Last-minute row are retired with every guide but Her, Him and Kids
  * (src/content/giftGuideLive.mjs); their tests are gone, the date window stays for its return.
  *
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const badges = pick.badges; |   const badges = ["trending" as const, ...(pick.badges ?? [])];
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | ?.filter((b) => !SPONSORS_PAGE_HIDDEN_BADGES.includes(b)) : pick.badges; | ?.filter((b) => !SPONSORS_PAGE_HIDDEN_BADGES.includes(b)) : ["trending" as const, ...(pick.badges ?? [])];
  * @mutate src/content/giftGuideShipping.ts |   return month === 12 && day >= 15 && day <= 25; |   return month === 12 && day >= 14 && day <= 25;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
-import { ArrowUpRight, Check, Copy } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { activeCodes, codesByStore, discountCodes, giftGuides as G, type DiscountCode } from "@/content/giftGuides";
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
@@ -29,7 +29,6 @@ export const CARD_WORDS = {
   openSite: (store: string) => `Open ${store} site`,
   copyCode: (code: string) => `Copy code ${code}`,
   copied: "Copied",
-  jumpLabel: "On this page",
   moreSales: (n: number) => `+${n} more`,
 };
 
@@ -62,23 +61,13 @@ function StorePhoto({ store, href }: { store: string; href: string }) {
   );
 }
 
-/** The open-site icon button, bottom right of every card. */
-function OpenSite({ store, href }: { store: string; href: string }) {
-  return (
-    <GiftOut href={href} className="gg-card-open" data-gift-open-site={store}>
-      <ArrowUpRight aria-hidden="true" />
-      <span className="sr-only">{CARD_WORDS.openSite(store)} ({G.newTab})</span>
-    </GiftOut>
-  );
-}
-
 function Card({ store, href, line, children, data }: { store: string; href: string; line: ReactNode; children?: ReactNode; data: Record<`data-${string}`, string> }) {
   return (
     <li className="gg-deal gg-store-card" {...data}>
       <StorePhoto store={store} href={href} />
       <div className="gg-card-head">
-        <GiftOut href={href} className="gg-deal-brand gg-card-store" data-gift-code-shop={store}>{store}</GiftOut>
-        <OpenSite store={store} href={href} />
+        {/* Polish audit 1122 #20: no arrow icon beside the name (the name, like the photo, is the link to the site). */}
+        <GiftOut href={href} className="gg-deal-brand gg-card-store" data-gift-code-shop={store}>{store}<span className="sr-only"> ({G.newTab})</span></GiftOut>
       </div>
       <div className="gg-deal-meta gg-card-line">{line}</div>
       {children && <div className="gg-card-actions">{children}</div>}
@@ -86,8 +75,8 @@ function Card({ store, href, line, children, data }: { store: string; href: stri
   );
 }
 
-/** A code chip: the code with a copy icon; tap copies it and says Copied. */
-function CodeChip({ code }: { code: string }) {
+/** A code chip: the code with a copy icon, one piece; tap copies it and says Copied. The Top deals cards use it too. */
+export function CodeChip({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   const select = (el: Element | null) => {
     const sel = window.getSelection();
@@ -185,16 +174,14 @@ export const CARD_CSS = `
 .gg-card-sale{color:var(--gg-ink);text-decoration:none}
 .gg-card-sale:hover,.gg-card-sale:focus-visible{text-decoration:underline}
 .gg-card-when{color:var(--gg-muted);white-space:nowrap}
-.gg-card-more{min-height:32px;padding:0;border:0;background:none;color:var(--gg-olive);font-weight:700;font-size:12.5px}
+.gg-card-more{min-height:44px;padding:0;border:0;background:none;color:var(--gg-olive);font-weight:700;font-size:12.5px}
 .gg-card-head{display:flex;align-items:flex-start;gap:4px;margin-top:2px}
-.gg-card-head .gg-card-store{flex:1;min-width:0;margin:0;padding-top:11px}
+.gg-card-head .gg-card-store{flex:1;min-width:0;margin:0}
+.gg-store-card .gg-card-store{display:flex;align-items:center;min-height:44px}
 .gg-card-actions{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:auto;padding-top:4px}
 .gg-code-chip{display:inline-flex;align-items:center;justify-content:space-between;gap:6px;width:100%;min-height:44px;min-width:0;padding:0 10px;border:0;border-radius:10px;background:var(--gg-soft);color:var(--gg-ink);cursor:pointer}
 .gg-code-chip code{font-size:12.5px;font-weight:700;letter-spacing:.03em;overflow-wrap:anywhere;text-align:left}
 .gg-code-chip svg{width:15px;height:15px;flex:none;color:var(--gg-olive)}
 .gg-code-copied{font-size:12px;font-weight:700;color:var(--gg-olive)}
 .gg-code-copied:empty{display:none}
-.gg-card-open{display:inline-flex;flex:none;align-items:center;justify-content:center;width:44px;height:44px;margin:0 -10px 0 0;border-radius:999px;color:var(--gg-olive)}
-.gg-card-open:hover,.gg-card-open:focus-visible{background:var(--gg-soft)}
-.gg-card-open svg{width:20px;height:20px}
 `;

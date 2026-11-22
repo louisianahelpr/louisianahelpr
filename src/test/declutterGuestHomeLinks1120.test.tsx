@@ -106,7 +106,9 @@ describe("site polish A1 + owner 11-21: a way home from Declutter Browse, left o
   // because they have a back button to the left of the title". Their pages and sub-pages; other pages keep it.
   it.each([
     ["/browse", false], ["/jobs/abc", false], ["/declutter", false], ["/declutter/item/1", false], ["/gift-guides", false], ["/gift-guides/her", false],
-    ["/help", true], ["/terms", true], ["/holidays", true], ["/browsers", true], ["/declutter-tips", true],
+    // Polish audit 1122 #28: the Holiday Hub and Shop Small (reached from the guides menu) hide Home like the guides.
+    ["/holidays", false], ["/shop-small", false],
+    ["/help", true], ["/terms", true], ["/browsers", true], ["/declutter-tips", true],
   ])("Home in the top bar on %s: %s", (path, shown) => {
     render(<MemoryRouter initialEntries={[path]}><Navbar /></MemoryRouter>);
     // The links that stay are the same, in the same order, wherever Home is hidden.

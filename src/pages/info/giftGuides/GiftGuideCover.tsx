@@ -49,7 +49,7 @@ export function GiftGuidesWords({ lead, title, titleId, tools, tint }: { lead: s
     );
   }
   return (
-    <header className="gg-words" data-gift-words="">
+    <header className="gg-words gg-pagehead" data-gift-words="">
       {lead && <p className="gg-lead" aria-hidden="true">{lead}</p>}
       <h1 id={titleId}>{lead && <><span className="sr-only">{lead}</span>{" "}</>}{title}</h1>
       {tools}

@@ -279,8 +279,7 @@ export const giftGuides = {
   /** The phone's chip row and menu sheet (owner 11-21: "We need a way to organize this on the phones"). */
   phoneNavLabel: "Gift guides menu",
   phoneNavPrintables: "Printables",
-  phoneNavFun: "Make it fun",
-  phoneNavMenu: "Menu",
+  phoneNavMenu: "More",
   /** The left menu's entry for the 25 Days sponsors page (owner 11-21: "move 25 day sponsors to the left panel"). */
   sideSponsorsLabel: "25 Days sponsors",
   shopLabel: "Shop",

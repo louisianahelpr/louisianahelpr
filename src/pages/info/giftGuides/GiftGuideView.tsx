@@ -79,6 +79,9 @@ export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: numbe
   return <span className="gg-thumb gg-letter" aria-hidden="true" data-gift-letter="">{storeLabel(pick)}</span>;
 }
 
+const SPONSORS_PAGE = "25-days-sponsors";
+const SPONSORS_PAGE_HIDDEN_BADGES: readonly string[] = ["sponsor", "shop-louisiana"];
+
 /** `rank` (the landing's Top 10, owner 11-21 evening "number the top 10 gifts"): a numeral badge on the photo's corner and "1." in the link's name. */
 export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: string; rank?: number }) {
   // Owner 11-21: filled when the gift is on My Wish List or on anyone's list (saveForPeople).
@@ -86,7 +89,9 @@ export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: stri
   const saved = isSaved(wish, itemId(pick.href)) || onAnyList(plan, pick.href);
   // Big batch 1120: a pick wears Trending (or "Trending on TikTok") only from its own flag. The old "first 3 of a guide"
   // badge went with the featured order (owner 11-19 ~6:40 PM: every guide sorts by commission now).
-  const badges = pick.badges;
+  // Polish audit 1122 #8: on the 25 Days sponsors page every card is a sponsor (and the page has its own Louisiana
+  // sections), so neither "25 Days sponsor" nor "Shop Louisiana" is drawn there.
+  const badges = guide === SPONSORS_PAGE ? pick.badges?.filter((b) => !SPONSORS_PAGE_HIDDEN_BADGES.includes(b)) : pick.badges;
   // A store's Christmas order-by day (src/content/giftGuideExtras1120.ts SHIP_DEADLINES), hidden after it passes.
   const today = louisianaToday(new Date());
   const ship = deadlineChip(pick.store, today);
@@ -294,7 +299,7 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
           {title && (sortable && id ? (
             // A price section's header is its open/close button (aria-expanded; the list is drawn only while open).
             <h2 className="gg-sec-title gg-sec-toggle-h" id={`gg-sec-${id}-title`}>
-              <Button type="button" variant="ghost" size="inline" className="gg-sec-toggle" aria-expanded={isOpen(id)} aria-controls={`gg-sec-${id}-list`} onClick={() => toggle(id)} data-gift-section-toggle={id}>
+              <Button type="button" variant="ghost" size="md" className="gg-sec-toggle" aria-expanded={isOpen(id)} aria-controls={`gg-sec-${id}-list`} onClick={() => toggle(id)} data-gift-section-toggle={id}>
                 <span>{title}<span className="gg-sec-count" data-gift-section-count="">{G.priceSectionCount(sectionCount.get(id) ?? 0)}</span></span>
                 <svg className="gg-sec-chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" strokeLinejoin="round" /></svg>
               </Button>

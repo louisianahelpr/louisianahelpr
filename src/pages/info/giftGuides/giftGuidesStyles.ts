@@ -15,7 +15,7 @@ color:var(--gg-ink)}
 .gg-layout{display:grid;grid-template-columns:220px minmax(0,1fr);grid-template-rows:auto 1fr}
 .gg-layout>.gg-side{grid-column:1;grid-row:1/span 2}
 .gg-layout>.gg-main{grid-column:2;grid-row:1}
-.gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:end}
+.gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:start}
 .gg-side{border-right:1px solid var(--gg-line);padding:16px 16px 20px 0;font-size:13px;position:sticky;top:var(--gg-side-top,72px);align-self:start;max-height:calc(100dvh - var(--gg-side-top,72px));overflow-y:auto;overscroll-behavior:contain}
 .gg-search{position:relative;display:block;margin:0}
 .gg-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gg-muted)}
@@ -47,6 +47,8 @@ color:var(--gg-ink)}
 .gg-side a{display:flex;align-items:center;min-height:44px;padding:4px 10px;border-radius:8px;color:var(--gg-ink);text-decoration:none}
 .gg-side a:hover{background:hsl(var(--muted) / .6)}
 .gg-side a[aria-current="page"]{background:var(--gg-soft);color:var(--gg-olive);font-weight:700}
+@media (hover:hover) and (pointer:fine){.gg-side a{min-height:36px}.gg-side .gg-side-h{margin-top:10px}}
+@media (hover:hover) and (pointer:fine) and (max-height:889px),(not ((hover:hover) and (pointer:fine))) and (max-height:1039px){.gg-side{position:static;max-height:none;overflow:visible}}
 .gg-main{padding:8px 0 28px 24px;min-width:0}
 .gg-rowhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:18px 0 10px}
 .gg-rowcount{font-weight:500;letter-spacing:.06em}.gg-rowhead h2,.gg-rowhead h3{display:flex;align-items:center;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gg-muted);margin:0}
@@ -110,6 +112,15 @@ color:var(--gg-ink)}
 .gg-share-menu{position:absolute;z-index:6;top:calc(100% + 6px);right:0;display:flex;flex-direction:column;min-width:200px;white-space:nowrap;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:4px}
 .gg-share-menu a,.gg-share-menu button{display:flex;align-items:center;min-height:44px;padding:0 12px;font-size:13px;font-weight:600;color:var(--gg-ink);text-decoration:none;background:none;border:0;text-align:left;border-radius:8px}
 .gg-share-menu a:hover,.gg-share-menu button:hover{background:hsl(var(--muted) / .6)}
+/* Polish audit 1122 #10: one sub-page title (the frame pages, My Wish List, a shared list): the serif, left-aligned at
+   the top of the content column under the head row. */
+.gg-words.gg-pagehead{text-align:left;padding:0 0 12px;margin:0 0 16px}
+.gg-pagehead h1,.gg .gg-wish-title{font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-weight:500;font-size:32px;line-height:1.15;margin:0;color:#3b2a20;text-wrap:balance}
+@media (max-width:767px){.gg-pagehead h1,.gg .gg-wish-title{font-size:28px}.gg-words.gg-pagehead{padding-top:14px}
+/* Polish audit 1122 #19: on the hub only one line shows above the greeting (the owner's divider, not the chip row's
+   too), and a guide's banner starts 16px under the chip row, not on its line. */
+.gg-pnav:has(+.gg-divider){border-bottom-color:transparent}.gg-pnav+.gg-banner-wrap{padding-top:16px}}
+:root[data-theme="dark"] .gg .gg-wish-title{color:var(--gg-ink)}
 :root[data-theme="dark"] .gg-words .gg-lead,:root[data-theme="dark"] .gg-words h2,:root[data-theme="dark"] .gg-words > h1{color:var(--gg-ink)}
 .gg-check{background-color:rgb(250 247 239);background-image:conic-gradient(at 30px 30px,var(--c-band) 0 90deg,transparent 0 180deg,var(--c-band) 0 270deg,var(--c-cross) 0);background-size:60px 60px}
 .gg-dot{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.1);margin-right:8px;flex:none;background:var(--c-dot)}
@@ -197,6 +208,11 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 /* Room under the name for the heart and cart row (the card's text never runs under them). */
 .gg-list .gg-nm{padding-bottom:40px}
 .gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0}
+/* Polish audit 1122 #8: on the 25 Days sponsors page only, the heart sits on the photo's top-right corner (as on the
+   Top 10), so it no longer takes a row of its own under each card's text. Her/Him/Kids keep the owner's layout. */
+article[data-gift-guide="25-days-sponsors"] .gg-list .gg-heart-pick{top:4px;bottom:auto;right:auto;left:54px;z-index:1}
+article[data-gift-guide="25-days-sponsors"] .gg-list>li:not(:has(.gg-cart)) .gg-nm{padding-bottom:0}
+@media (min-width:768px){article[data-gift-guide="25-days-sponsors"] .gg-list .gg-heart-pick{top:2px;left:auto;right:2px}}
 /* Owner 11-21 (Amazon Buy Now): the small cart icon under an Amazon item's price, a 44px link of its own in the card's first
    column, its icon lined up with the name and price (phone: past the 88px photo; tablet and desktop: the card's left edge). */
 /* Owner 11-21 ("should we put the cart by the heart?"): the cart sits beside the heart at the card's bottom-right (cart,
@@ -260,8 +276,10 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-soon p{margin:0 auto 8px;max-width:44ch;color:var(--gg-muted);font-size:14px}
 .gg-also{margin:16px 0 0}
 .gg-also-h{margin:0 0 8px;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gg-muted)}
-.gg-also-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-.gg-also-list li{font-size:12.5px;line-height:1.3;padding:5px 10px;border:1px solid var(--gg-line);border-radius:999px;color:var(--gg-ink)}
+/* Polish audit 1122 #8: plain names with dots between (outlined pills read as buttons that did nothing). */
+.gg-also-list{list-style:none;margin:0;padding:0;font-size:13px;line-height:1.7;color:var(--gg-ink)}
+.gg-also-list li{display:inline;white-space:nowrap}
+.gg-also-list li+li::before{content:"·";margin:0 8px;color:var(--gg-muted)}
 .gg-helpr{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:20px 0;padding:14px 16px;border-radius:14px;background:#f3f4ea;border:1px solid #e3e6d2;color:#2f3020}
 .gg-helpr b{display:block;font-size:15px}
 .gg-helpr span{font-size:13px;color:#55554a}
@@ -304,12 +322,13 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    hidden from 768px up, where the sidebar is the menu. */
 .gg-pnav{display:none}
 @media (max-width:767px){
-.gg-pnav{display:block;contain:inline-size;max-width:calc(100% + 40px);position:sticky;top:calc(var(--public-nav-h,3.5rem) + var(--safe-area-top,0px));z-index:5;margin:0 -20px;padding:6px 0 8px;background:hsl(var(--background));border-bottom:1px solid var(--gg-line)}
-.gg-pnav-row{display:flex;gap:8px;list-style:none;margin:0;padding:0 20px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.gg-pnav{display:flex;align-items:center;contain:inline-size;max-width:calc(100% + 40px);position:sticky;top:calc(var(--public-nav-h,3.5rem) + var(--safe-area-top,0px));z-index:5;margin:0 -20px;padding:6px 0 8px;background:hsl(var(--background));border-bottom:1px solid var(--gg-line)}
+.gg-pnav-row{display:flex;flex:1 1 auto;min-width:0;gap:8px;list-style:none;margin:0;padding:0 8px 0 20px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .gg-pnav-row::-webkit-scrollbar{display:none}
 .gg-pnav-row>li{flex:none}
+.gg-pnav>.gg-chip-menu{flex:none;margin-right:20px}
 }
-@media (min-width:640px) and (max-width:767px){.gg-pnav{margin:0 -32px}.gg-pnav-row{padding:0 32px}}
+@media (min-width:640px) and (max-width:767px){.gg-pnav{margin:0 -32px}.gg-pnav-row{padding-left:32px}.gg-pnav>.gg-chip-menu{margin-right:32px}}
 /* Signed in, the page scrolls inside AppShell (no marketing bar above it): the chip row sticks to the top. */
 .app-shell-frame .gg-pnav{top:0}
 .gg-chip-nav{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--gg-line);background:hsl(var(--card));font:600 13px Montserrat,sans-serif;color:var(--gg-ink);white-space:nowrap;text-decoration:none;cursor:pointer}
@@ -340,7 +359,10 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    the end of the price line. */
 .gg-top10>li{display:flex;flex-direction:column}.gg-top10>li>.gg-item{flex:1}
 .gg-top10 .gg-nm{display:flex;flex:1;flex-direction:column;padding-bottom:0}
-.gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:auto;padding-top:4px;min-height:28px;padding-right:36px}
+/* Polish audit 1122 #20: the price right under a name held to two lines' height, and any chip under the price, so a
+   card with a code chip (Camp Snap) keeps its price in line with the row's others. */
+.gg-top10 .gg-nm-name{min-height:2lh}
+.gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0;padding-top:4px;min-height:28px;padding-right:36px}
 .gg-top10 .gg-badges{padding-right:0}
 .gg-top10 .gg-cart{right:-10px;bottom:-10px}
 /* Top 10 rank (owner 11-21 evening: "number the top 10 gifts"): a small cream disc with an olive serif numeral on the
@@ -368,6 +390,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-countrow .gg-itemcount{margin:0}
 .gg-countrow .gg-ship{flex:none;font-size:11px;padding:4px 10px;max-width:none}
 .gg-countrow .gg-tools{position:relative;margin:0 0 0 auto;flex:0 0 auto;gap:0}
+@media (max-width:479px){.gg-countrow,.gg-countrow-left{gap:4px}.gg-countrow .gg-ship-order{display:none}.gg-countrow .gg-ship::first-letter{text-transform:uppercase}}
 
 /* Owner 11-21 (no more "Show more", every gift listed): every gift is drawn, so an off-screen card skips its layout
    and paint until it nears the screen; its reserved height keeps the scrollbar steady (no layout shift). */

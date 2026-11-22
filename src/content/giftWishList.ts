@@ -50,6 +50,8 @@ export const WISH = {
   missing: (n: number) => (n === 1 ? "1 gift isn't in our guides anymore." : `${n} gifts aren't in our guides anymore.`),
   shareNote: "Anyone with the link can see this list. No sign-in needed.",
   syncedNote: "Saved to your account, so it's on every device you sign in on.",
+  syncFailed: "Couldn't save to your account just now. It's kept on this device and we'll try again.",
+  syncRetry: "Try again",
   deviceNote: "Saved on this device. Sign in to keep it on all your devices.",
   /** The shared list's page. */
   /** Above the list's name on a shared list: the name is the sender's own words, never ours (security review #4). */

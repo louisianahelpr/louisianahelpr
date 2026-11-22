@@ -281,7 +281,7 @@ describe("the maker and the page", () => {
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;border:1px solid var(--gg-line)} | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
  * @mutate src/content/printables.ts | title: "Boys coloring book", blurb: "A cover and 20 Christmas pages to color.", preview: "/printables/coloring-book/preview-boys.webp" | title: "Boys coloring book", blurb: "A cover and 20 Christmas pages to color.", preview: "/printables/coloring-book/preview-girls.webp"
  * @mutate src/content/printables.ts | christmas-coloring-book-boys.pdf", title: "Boys coloring book" | christmas-coloring-book-boys.pdf", title: "Boys book (free)"
- * @mutate src/content/printables.ts |       { label: "Wide banner", | { label: "Original 2:1 (free)",
+ * @mutate src/content/printables.ts | { label: "Wide banner", href: "/printables/thanksgiving-banner/ | { label: "Original 2:1 (free)", href: "/printables/thanksgiving-banner/
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-wide{flex-direction:column;max-width:640px; | .pr-card-wide{flex-direction:column;max-width:420px;
  */
 // Page counts measured 2026-11-21 from the PDFs' own page trees (the test below re-reads them).

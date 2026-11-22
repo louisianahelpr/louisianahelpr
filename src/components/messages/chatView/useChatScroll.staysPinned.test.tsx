@@ -6,10 +6,11 @@
  * CLASS CHECK: while the reader is parked at the bottom, any size change of the thread (or of its content) re-pins it
  * to the newest message; a reader scrolled up in history, or a thread that opened on its first unread, is left alone.
  *
- * @mutate src/components/messages/chatView/useChatScroll.ts |       if (!nearBottomRef.current \|\| initialFirstUnreadIdRef.current) return; |       if (initialFirstUnreadIdRef.current) return;
- * @mutate src/components/messages/chatView/useChatScroll.ts |     const ro = new ResizeObserver(pin); |     const ro = new ResizeObserver(() => {});
+ * @mutate src/components/messages/chatView/useChatScroll.ts |       if (!landing() && !nearBottomRef.current) return; |       if (!landing()) return;
+ * @mutate src/components/messages/chatView/useChatScroll.ts |     const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(pin); |     const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {});
+ * @mutate src/components/messages/chatView/useChatScroll.ts |       landingUntilRef.current = initialFirstUnreadIdRef.current ? 0 : performance.now() + LANDING_MS; |       landingUntilRef.current = 0;
  */
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { useChatScroll } from "./useChatScroll";
 import type { Conversation, Message } from "../types";
@@ -91,12 +92,48 @@ describe("a chat stays on the newest message while it lays out (#142)", () => {
     expect(thread.scrollTop).toBe(3300);
   });
 
+  it("while it lands (the smooth scroll still under way, far from the bottom), a resize pins it to the bottom", () => {
+    const { rerender, getByTestId } = render(<Harness activeConvo={convo(0)} messages={[]} />);
+    const thread = getByTestId("thread");
+    const box = { client: 634, height: 3817 };
+    geometry(thread, box);
+    rerender(<Harness activeConvo={convo(0)} messages={THREAD} />);
+    thread.scrollTop = 900; // openConvo's smooth scroll, part-way down
+    act(() => { thread.dispatchEvent(new Event("scroll")); });
+    box.client = 420; // the DealCard and banner mount
+    act(() => resize(thread));
+    expect(thread.scrollTop).toBe(3817);
+  });
+
+  it("after the landing hold, a reader parked at the bottom is re-pinned when content grows", () => {
+    const { rerender, getByTestId } = render(<Harness activeConvo={convo(0)} messages={[]} />);
+    const thread = getByTestId("thread");
+    const box = { client: 420, height: 3000 };
+    geometry(thread, box);
+    rerender(<Harness activeConvo={convo(0)} messages={THREAD} />);
+    const later = performance.now() + 60_000;
+    const now = vi.spyOn(performance, "now").mockReturnValue(later);
+    thread.scrollTop = 3000 - 420 - 40; // parked near the bottom
+    act(() => { thread.dispatchEvent(new Event("scroll")); });
+    box.height = 3200;
+    act(() => resize(thread));
+    expect(thread.scrollTop).toBe(3200);
+    // …and a reader 600px up is left alone.
+    thread.scrollTop = 1000;
+    act(() => { thread.dispatchEvent(new Event("scroll")); });
+    box.height = 3400;
+    act(() => resize(thread));
+    expect(thread.scrollTop).toBe(1000);
+    now.mockRestore();
+  });
+
   it("a reader scrolled up in history is never pulled down", () => {
     const { rerender, getByTestId } = render(<Harness activeConvo={convo(0)} messages={[]} />);
     const thread = getByTestId("thread");
     const box = { client: 420, height: 3817 };
     geometry(thread, box);
     rerender(<Harness activeConvo={convo(0)} messages={THREAD} />);
+    thread.dispatchEvent(new Event("wheel")); // the reader's own wheel ends the landing hold
     thread.scrollTop = 1000;
     act(() => { thread.dispatchEvent(new Event("scroll")); });
     box.height = 3900;

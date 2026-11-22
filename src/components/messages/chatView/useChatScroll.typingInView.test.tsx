@@ -49,6 +49,8 @@ describe("the typing row stays in view (Q2044)", () => {
   it("never pulls down a reader scrolled up in history", async () => {
     const { getByTestId, rerender } = render(<Harness typing={false} />);
     const el = getByTestId("thread");
+    // The reader's own wheel ends the open-time landing hold (#142) before they scroll up.
+    el.dispatchEvent(new Event("wheel"));
     geometry(el, 100); // 600px up
     rerender(<Harness typing />);
     await frame();

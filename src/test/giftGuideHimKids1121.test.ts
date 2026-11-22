@@ -193,10 +193,10 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
 });
 
 describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
-  it("57 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (the Segway S2 is at Tractor Supply)", () => {
+  it("54 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (Segway S2 is at Tractor Supply; 11-22 the Switch with Joy-Con, the C2 Lite and C2 Pro, the Amazon S2 and the mini CreateOn tiles went as duplicates; the Quest 3S and iPad were added)", () => {
     const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
-    expect(amazon.length).toBe(57);
-    for (const asin of ["B0F3GWXLTS", "B0BFJWCYTL", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
+    expect(amazon.length).toBe(54);
+    for (const asin of ["B0F3GWXLTS", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
     expect(amazon.some((p) => p.href.includes("B0CT2WN59R"))).toBe(false);
   });
 });

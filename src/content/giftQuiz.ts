@@ -111,7 +111,7 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   game: ["games"], "game-console": ["games"], "digital-pet": ["games"], watch: ["games"], "walkie-talkie": ["games", "active"], camera: ["games", "creative"],
-  karaoke: ["games"], dance: ["games", "active"], toy: ["games"], audio: ["games"], bank: ["stocking"],
+  karaoke: ["games"], vr: ["games", "active"], tablet: ["games", "creative"], dance: ["games", "active"], toy: ["games"], audio: ["games"], bank: ["stocking"],
   "building-toy": ["build"], "building-set": ["build"], blocks: ["build", "pretend"], "construction-toy": ["build", "pretend"], science: ["build"], learning: ["build"],
   craft: ["creative"], art: ["creative"], book: ["creative", "stocking"], slime: ["creative", "stocking"],
   scooter: ["active"], "ride-on": ["active", "pretend"], hoverboard: ["active"], outdoor: ["active"], sports: ["active", "games"], "balance-bike": ["active"], rocket: ["active", "build"],
@@ -169,7 +169,7 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   slime: ["6-8", "9-12"], squishy: ["6-8", "9-12"], fidget: ["6-8", "9-12", "teen"], game: ["6-8", "9-12", "teen"], bank: ["6-8", "9-12"],
   toy: ["6-8", "9-12"], outdoor: ["6-8", "9-12"], rocket: ["6-8", "9-12"], watch: ["6-8", "9-12"], "walkie-talkie": ["6-8", "9-12"],
   science: ["6-8", "9-12"], "digital-pet": ["6-8", "9-12"], "building-set": ["9-12", "teen"], ornament: ["6-8", "9-12", "teen"],
-  scooter: ["6-8", "9-12"], hoverboard: ["6-8", "9-12"], "game-console": ["9-12", "teen"], bag: ["6-8", "9-12", "teen"],
+  scooter: ["6-8", "9-12"], hoverboard: ["6-8", "9-12"], "game-console": ["9-12", "teen"], vr: ["9-12", "teen"], tablet: ["6-8", "9-12", "teen"], bag: ["6-8", "9-12", "teen"],
   // The EADEM New Classics Set (11-22) is skin care for a teen.
   "skincare-set": ["teen"],
 };

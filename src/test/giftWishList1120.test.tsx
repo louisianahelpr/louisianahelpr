@@ -35,7 +35,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideHints.tsx |   if (result === "full") setNote("full"); |   if (result === "full") void 0;
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |     setGone((xs) => [...xs.filter((x) => x.item.id !== it.id), g]); |     void g;
  * @mutate src/pages/info/giftGuides/wishListItems.ts |   const missingIds = loading ? [] : | const missingIds = true ? [] :
- * @mutate src/pages/info/giftGuides/wishListItems.ts |   return d.item.toLowerCase().startsWith(d.brand.toLowerCase()) ? d.item : `${d.brand}: ${d.item}`; |   return `${d.brand}: ${d.item}`;
+ * @mutate src/content/giftGuideDeals.mjs |   return d.item.toLowerCase().startsWith(d.brand.toLowerCase()) ? d.item : `${d.brand}: ${d.item}`; |   return `${d.brand}: ${d.item}`;
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx | {item.out === "plain" ? item.store : G.onStore(item.store)} | {G.onStore(item.store)}
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -74,7 +74,8 @@ import { GIFT_WISH_CSS } from "@/pages/info/giftGuides/giftWishStyles";
 import { giftNameProblem } from "@/lib/giftNameClean";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { resetFirstHeartForTests } from "@/pages/info/giftGuides/GiftGuideHints";
-import { bizItemId, dealName } from "@/pages/info/giftGuides/wishListItems";
+import { bizItemId } from "@/pages/info/giftGuides/wishListItems";
+import { dealName } from "@/content/giftGuideDeals.mjs";
 import { openPriceSections } from "./helpers/openPriceSections";
 
 /**
@@ -103,6 +104,12 @@ const renderAt = (url: string) =>
       </Routes>
     </MemoryRouter>,
   );
+// My Wish List loads its own chunk (train 1121i), so wait for it before reading the page.
+const renderMine = async (url: string) => {
+  const view = renderAt(url);
+  await waitFor(() => expect(view.container.querySelector("[data-gift-my-list]")).not.toBeNull());
+  return view;
+};
 
 const fresh = () => {
   window.localStorage.clear();
@@ -188,7 +195,7 @@ describe("deal and Small Business cards heart too, and come back from their refs
     const b = (smallBiz as SmallBiz[]).find((x) => x.href)!;
     expect(b).toBeDefined();
     addToWishList({ href: b.href!, name: b.name, guide: SMALL_BIZ_SLUG, id: bizItemId(b) });
-    const mine = renderAt("/gift-guides/my-list");
+    const mine = (await renderMine("/gift-guides/my-list"));
     const row = await waitFor(() => {
       const r = mine.container.querySelector(`[data-gift-wish-item="${bizItemId(b)}"]`);
       expect(r).not.toBeNull();
@@ -202,18 +209,18 @@ describe("deal and Small Business cards heart too, and come back from their refs
 });
 
 describe("My Wish List page", () => {
-  it("the old ?list=mine address opens /gift-guides/my-list; empty, it says how to fill it", () => {
-    const view = renderAt("/gift-guides?list=mine");
+  it("the old ?list=mine address opens /gift-guides/my-list; empty, it says how to fill it", async () => {
+    const view = (await renderMine("/gift-guides?list=mine"));
     expect(view.container.querySelector("[data-gift-my-list]")).not.toBeNull();
     expect(view.container.querySelector("[data-gift-my-list-empty]")?.textContent).toContain(WISH.empty);
     expect(view.container.querySelector("[data-gift-wish-share-btn]")).toBeNull();
   });
 
-  it("the name is editable and optional, the heart takes a gift off (Undo puts it back), and Shop is our link", () => {
+  it("the name is editable and optional, the heart takes a gift off (Undo puts it back), and Shop is our link", async () => {
     const g = pickedGuides[0];
     addToWishList({ href: g.picks[0].href, name: g.picks[0].name, guide: g.slug });
     addToWishList({ href: g.picks[1].href, name: g.picks[1].name, guide: g.slug });
-    const view = renderAt("/gift-guides/my-list");
+    const view = (await renderMine("/gift-guides/my-list"));
     expect(view.container.querySelector("#gift-my-list")?.textContent).toBe(WISH.title);
     const input = view.container.querySelector<HTMLInputElement>("[data-gift-wish-name-input]")!;
     expect(input.required).toBe(false);
@@ -255,7 +262,7 @@ describe("My Wish List page", () => {
   it("Share sends only the name and refs, and shows a link with only the code (copy, text)", async () => {
     const g = pickedGuides[0];
     addToWishList({ href: g.picks[0].href, name: g.picks[0].name, guide: g.slug });
-    const view = renderAt("/gift-guides/my-list");
+    const view = (await renderMine("/gift-guides/my-list"));
     fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-wish-share-btn]")!);
     await waitFor(() => expect(view.container.querySelector("[data-gift-wish-share-menu]")).not.toBeNull());
     expect(saveWishList).toHaveBeenCalledWith(WISH.title, [{ g: g.slug, i: itemId(g.picks[0].href) }]);
@@ -269,7 +276,7 @@ describe("My Wish List page", () => {
     saveWishList.mockRejectedValueOnce(Object.assign(new Error("rate_limited"), { kind: "rateLimited", copy: GIFT_WISH_RPC_ERROR_COPY.gift_wish_list_save.rate_limited }));
     const g = pickedGuides[0];
     addToWishList({ href: g.picks[0].href, name: g.picks[0].name, guide: g.slug });
-    const view = renderAt("/gift-guides/my-list");
+    const view = (await renderMine("/gift-guides/my-list"));
     fireEvent.click(view.container.querySelector<HTMLButtonElement>("[data-gift-wish-share-btn]")!);
     await waitFor(() => expect(view.container.querySelector("[data-gift-wish-share-failed]")?.textContent).toBe(GIFT_WISH_RPC_ERROR_COPY.gift_wish_list_save.rate_limited));
     expect(view.container.querySelector<HTMLButtonElement>("[data-gift-wish-share-btn]")!.disabled).toBe(false);
@@ -330,13 +337,13 @@ describe("how-to hints dismiss and stay dismissed", () => {
     expect(view.container.querySelector("[data-gift-hint='how-to'], [data-gift-hint='quiz'], [data-gift-hint='fun-gotd'], .gg-hint")).toBeNull();
   });
 
-  it("the budget and share hints show once and close", () => {
+  it("the budget and share hints show once and close", async () => {
     const banded = pickedGuides.find((g) => g.picks.filter((p) => p.band !== undefined).length >= 3)!;
     const guide = renderAt(`/gift-guides/${banded.slug}`);
     expect(guide.container.querySelector("[data-gift-hint='budget']")?.textContent).toContain(HINTS.budget);
     cleanup();
     addToWishList({ href: pickedGuides[0].picks[0].href, name: "n", guide: pickedGuides[0].slug });
-    const mine = renderAt("/gift-guides/my-list");
+    const mine = (await renderMine("/gift-guides/my-list"));
     expect(mine.container.querySelector("[data-gift-hint='share']")?.textContent).toContain(HINTS.share);
   });
 
@@ -375,14 +382,14 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     expect(giftListNow().picks.map((p) => p.id)).toEqual([id(1)]);
     expect(giftListNow().name).toBe("B list");
     // Signed out on the next visit: the account's list does not stay on the device.
-    renderAt("/gift-guides/my-list");
+    (await renderMine("/gift-guides/my-list"));
     await waitFor(() => expect(giftListNow().picks).toEqual([]));
     expect(giftListNow().owner).toBeNull();
   });
 
-  it("#2: a guest list is folded into the account that signs in (and stays when nobody is signed in)", () => {
+  it("#2: a guest list is folded into the account that signs in (and stays when nobody is signed in)", async () => {
     addToWishList(pick(0));
-    renderAt("/gift-guides/my-list");
+    (await renderMine("/gift-guides/my-list"));
     expect(giftListNow().picks.length).toBe(1);
     reconcileWithAccount("acct-a", { name: "My Wish List", items: [{ g: g().slug, i: id(1) }] });
     expect(giftListNow().picks.map((p) => p.id)).toEqual([id(0), id(1)]);
@@ -423,10 +430,10 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     expect(document.body.querySelector("[data-gift-hint='list-full']")?.textContent).toContain(WISH.listFull);
   });
 
-  it("M3: the heart stays in place (so focus does) and the removal is read out", () => {
+  it("M3: the heart stays in place (so focus does) and the removal is read out", async () => {
     addToWishList(pick(0));
     addToWishList(pick(1));
-    const view = renderAt("/gift-guides/my-list");
+    const view = (await renderMine("/gift-guides/my-list"));
     const first = view.container.querySelectorAll<HTMLButtonElement>("[data-gift-wish-remove]")[0];
     first.focus();
     fireEvent.click(first);
@@ -434,11 +441,11 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     expect(view.container.querySelector("[data-gift-wish-announce]")?.textContent).toBe(WISH.removed(g().picks[0].name));
   });
 
-  it("M4 + L5: the list's name is the big title; an empty list has no name field", () => {
-    expect(renderAt("/gift-guides/my-list").container.querySelector("[data-gift-wish-name-input]")).toBeNull();
+  it("M4 + L5: the list's name is the big title; an empty list has no name field", async () => {
+    expect((await renderMine("/gift-guides/my-list")).container.querySelector("[data-gift-wish-name-input]")).toBeNull();
     cleanup();
     addToWishList(pick(0));
-    const view = renderAt("/gift-guides/my-list");
+    const view = (await renderMine("/gift-guides/my-list"));
     expect(view.container.querySelector("h2#gift-my-list")?.className).toContain("gg-wish-title");
     expect(view.container.querySelector("[data-gift-wish-name-input]")).not.toBeNull();
   });
@@ -459,7 +466,7 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     addToWishList({ href: b.href!, name: b.name, guide: SMALL_BIZ_SLUG, id: bizItemId(b) });
     const noLink = (smallBiz as SmallBiz[]).find((x) => !x.href);
     if (noLink) addToWishList({ href: "", name: noLink.name, guide: SMALL_BIZ_SLUG, id: bizItemId(noLink) });
-    const view = renderAt("/gift-guides/my-list");
+    const view = (await renderMine("/gift-guides/my-list"));
     const row = await waitFor(() => {
       const r = view.container.querySelector(`[data-gift-wish-item="${bizItemId(b)}"]`);
       expect(r).not.toBeNull();
@@ -500,12 +507,12 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     expect((HINTS.firstHeartShort + HINTS.seeListShort).length).toBeLessThan(20);
   });
 
-  it("verify L: a name with a link (even a bare domain) or a phone number is flagged and never kept", () => {
+  it("verify L: a name with a link (even a bare domain) or a phone number is flagged and never kept", async () => {
     for (const bad of ["Win at evil.com", "see www.x.org", "evil.co/x", "Call 337-555-1234"]) expect(giftNameProblem(bad), bad).not.toBeNull();
     for (const ok of ["Mom's Christmas List 2026", "St. Mary's list. Thanks!", "Lexi's list"]) expect(giftNameProblem(ok), ok).toBeNull();
     addToWishList(pick(0));
     setListName("Mom's list");
-    const view = renderAt("/gift-guides/my-list");
+    const view = (await renderMine("/gift-guides/my-list"));
     const input = view.container.querySelector<HTMLInputElement>("[data-gift-wish-name-input]")!;
     fireEvent.change(input, { target: { value: "Win at evil.com" } });
     expect(view.container.querySelector("[data-gift-wish-name-problem]")?.textContent).toBe(WISH.nameProblem);
@@ -525,7 +532,7 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     cleanup();
     saveWishList.mockRejectedValueOnce(Object.assign(new Error("invalid_name"), { copy: GIFT_WISH_RPC_ERROR_COPY.gift_wish_list_save.invalid_name }));
     addToWishList(pick(0));
-    const view = renderAt("/gift-guides/my-list");
+    const view = (await renderMine("/gift-guides/my-list"));
     await waitFor(() => expect(view.container.querySelector("[data-gift-wish-sync-problem]")?.textContent).toBe(GIFT_WISH_RPC_ERROR_COPY.gift_wish_list_save.invalid_name));
     expect(view.container.querySelector("[data-gift-wish-where]")).toBeNull();
   });

@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { GUIDES, guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, subscribeGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
-import { DEALS_SLUG, type Deal } from "@/content/giftGuideDeals.mjs";
+import { DEALS_SLUG, dealName, type Deal } from "@/content/giftGuideDeals.mjs";
 import { SMALL_BIZ_SLUG, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { loadModule } from "@/lib/loadModule";
 import { itemId, type WishRef } from "./giftList";
@@ -65,15 +65,6 @@ const pickItemId = (p: { href: string }) => itemId(p.href);
 const dealItemId = (d: Deal) => itemId(d.href);
 /** A business's item id (its slug: its Visit link can change between website and Facebook). */
 export const bizItemId = (b: SmallBiz) => itemId(`biz:${b.slug}`);
-
-/**
- * A deal card's name on a list: the product, led by the brand unless the product's own name already starts with it
- * (UX audit L2: "ELEMIS: ELEMIS Pro-Collagen..."), else the brand and the sale.
- */
-export const dealName = (d: Deal) => {
-  if (!d.item) return `${d.brand}: ${d.deal}`;
-  return d.item.toLowerCase().startsWith(d.brand.toLowerCase()) ? d.item : `${d.brand}: ${d.item}`;
-};
 
 const fromPick = (p: CatalogPick): WishItem => ({ id: pickItemId(p), name: p.name, store: storeLabel(p), image: p.image, href: p.href, out: "affiliate", pick: p });
 

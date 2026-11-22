@@ -190,3 +190,14 @@ export function dealsFeatured(today) {
 export function dealsTitle(today) {
   return today > RETITLE_AFTER ? DEALS_WORDS.laterTitle : DEALS_WORDS.title;
 }
+
+/**
+ * A deal's name in a list: the item when it already starts with the brand, else "Brand: item"
+ * (UX audit L2: "ELEMIS: ELEMIS Pro-Collagen..."), else the brand and the sale. Here with the deals data (train 1121i),
+ * so the deals page and the wish list share it without pulling the wish list's item reader onto the guide pages.
+ * @param {{ brand: string, item?: string | null, deal: string }} d
+ */
+export const dealName = (d) => {
+  if (!d.item) return `${d.brand}: ${d.deal}`;
+  return d.item.toLowerCase().startsWith(d.brand.toLowerCase()) ? d.item : `${d.brand}: ${d.item}`;
+};

@@ -112,6 +112,8 @@ describe("holiday audit 1121 #7: a budget search lists the gifts under it", () =
   it("each item result shows its price", async () => {
     expect(searchItemDollars(["X", "her", 24.4, today], today)).toBe(24);
     render(<MemoryRouter><GiftGuideTools path="/gift-guides" title="Gift guides" /></MemoryRouter>);
+    // Search is a magnifier icon until tapped (owner 11-21, "make search an icon always").
+    fireEvent.click(screen.getByRole("button", { name: "Search gift guides" }));
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "under $25" } });
     await screen.findAllByText((_, el) => el?.hasAttribute("data-gift-found-item") ?? false);
     const prices = [...document.querySelectorAll("[data-gift-found-price]")].map((e) => e.textContent);

@@ -12,7 +12,6 @@ import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
 import { GiftGuideLanding, finderAsked } from "./giftGuides/GiftGuideLanding";
-import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
 import { loadModule, untilReload } from "@/lib/loadModule";
@@ -27,8 +26,8 @@ import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { GiftGuidesPhoneNav } from "./giftGuides/GiftGuidesPhoneNav";
-import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
 import { DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
+import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 
@@ -98,36 +97,45 @@ function LazySaveForSomeone() {
 const capitalFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
- * A shared list (/gift-guides/list/<code>) loads its own chunk (train 1121h): once Secret Santa's wish list imported
- * from it, it split out of this page's chunk and put /gift-guides/<slug> at 353 KB gz over its 352.8 KB budget, while
- * no guide page ever draws it. It says "Loading" until the chunk is in, the same line the list shows while it reads.
+ * A part no guide page draws loads its own chunk, saying "Loading" until it is in (or that it could not load):
+ * a shared list (/gift-guides/list/<code>; train 1121h: once Secret Santa's wish list imported from it, it put
+ * /gift-guides/<slug> at 353 KB gz over its 352.8 KB budget) and My Wish List (/gift-guides/my-list; train 1121i: its
+ * delete, save status and photo rows put the guide pages at 359 KB gz).
  */
-type SharedListModule = { GiftGuideSharedList: ComponentType<{ code: string }> };
-const loadSharedList = () => loadModule(() => import("./giftGuides/GiftGuideSharedList"));
-function LazySharedList({ code }: { code: string }) {
-  const [mod, setMod] = useState<SharedListModule | null>(null);
-  const [failed, setFailed] = useState(false);
+function useLazyPart<M>(load: () => Promise<M | null>, source: string): M | "failed" | null {
+  const [mod, setMod] = useState<M | "failed" | null>(null);
   useEffect(() => {
     let live = true;
     // An empty module (a stale-chunk reload on its way) waits on untilReload(); the loading line stays meanwhile.
-    void loadSharedList()
+    void load()
       .then((m) => m ?? untilReload())
       .then(
         (m) => { if (live) setMod(m); },
         (e) => {
           // Not silent: reported, and the page says the list could not load.
-          report(e as Error, { tags: { source: "GiftGuides.loadSharedList" } });
-          if (live) setFailed(true);
+          report(e as Error, { tags: { source } });
+          if (live) setMod("failed");
         },
       );
     return () => {
       live = false;
     };
-  }, []);
-  if (failed) return <p className="gg-soon" role="alert" data-gift-shared-failed="">{WISH.sharedFailed}</p>;
+  }, [load, source]);
+  return mod;
+}
+const loadSharedList = () => loadModule(() => import("./giftGuides/GiftGuideSharedList"));
+const loadMyList = () => loadModule(() => import("./giftGuides/GiftGuideMyList"));
+function LazySharedList({ code }: { code: string }) {
+  const mod = useLazyPart(loadSharedList, "GiftGuides.loadSharedList");
+  if (mod === "failed") return <p className="gg-soon" role="alert" data-gift-shared-failed="">{WISH.sharedFailed}</p>;
   if (!mod) return <p className="gg-soon" role="status">{WISH.loading}</p>;
-  const { GiftGuideSharedList } = mod;
-  return <GiftGuideSharedList code={code} />;
+  return <mod.GiftGuideSharedList code={code} />;
+}
+function LazyMyList() {
+  const mod = useLazyPart(loadMyList, "GiftGuides.loadMyList");
+  if (mod === "failed") return <p className="gg-soon" role="alert" data-gift-mylist-failed="">{WISH.sharedFailed}</p>;
+  if (!mod) return <p className="gg-soon" role="status">{WISH.loading}</p>;
+  return <mod.GiftGuideMyList />;
 }
 
 export default function GiftGuides() {
@@ -287,7 +295,7 @@ export default function GiftGuides() {
             disclosures at the very bottom. From 768px the CSS grid puts the menu on the left (GIFT_GUIDES_CSS). */}
         <div className="gg-layout">
           <div className="gg-main">
-            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />}
+            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
           </div>
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
           <GiftGuidesSidebar active={guide} myList={myList || shared} page={sidePage} />

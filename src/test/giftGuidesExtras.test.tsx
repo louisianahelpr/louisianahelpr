@@ -23,7 +23,7 @@
  */
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { SHIP_LINES, shippingLine } from "@/content/giftGuideShipping";
 import type { PickChunk } from "@/content/giftGuidePicks";
@@ -85,6 +85,12 @@ const renderAt = (url: string) =>
       </Routes>
     </MemoryRouter>,
   );
+// My Wish List loads its own chunk (train 1121i), so wait for it before reading the page.
+const renderMine = async (url: string) => {
+  const view = renderAt(url);
+  await waitFor(() => expect(view.container.querySelector("[data-gift-my-list]")).not.toBeNull());
+  return view;
+};
 
 describe("gift guides: the shipping banner follows the date in Louisiana", () => {
   // Noon Chicago time is 18:00Z (CST, UTC-6).
@@ -275,7 +281,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(link.getAttribute("aria-label")).toBe("My Wish List, 0 saved");
   });
-  it("a pick heart saves the pick; My list shows saved guides and picks", () => {
+  it("a pick heart saves the pick; My list shows saved guides and picks", async () => {
     const g = guideBySlug("mom")!;
     const view = renderAt("/gift-guides/mom");
     expandAll(view.container);
@@ -285,7 +291,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     tapHeart(hearts[0]);
     expect(hearts[0].getAttribute("aria-pressed")).toBe("true");
     cleanup();
-    const mine = renderAt("/gift-guides?list=mine").container;
+    const mine = (await renderMine("/gift-guides?list=mine")).container;
     expect(mine.querySelector("[data-gift-my-list]")).not.toBeNull();
     expect(mine.querySelectorAll("[data-gift-my-list] [data-gift-wish-item]").length).toBe(1);
     expect(mine.querySelector("[data-gift-my-list] [data-gift-wish-item]")?.textContent).toContain(g.picks[0].name);

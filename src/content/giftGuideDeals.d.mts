@@ -72,3 +72,4 @@ export function eventOrder(today: string): DealEvent[];
 export function dealsIn<T extends Pick<Deal, "event">>(deals: readonly T[], eventId: string): T[];
 export function dealsFeatured(today: string): boolean;
 export function dealsTitle(today: string): string;
+export function dealName(d: Deal): string;

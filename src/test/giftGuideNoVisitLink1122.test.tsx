@@ -9,7 +9,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx |         <Out href={b.href} className="gg-sb-logo" hidden>{logo}</Out> |         <span className="gg-sb-logo">{logo}</span>
  * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx |             <Out href={b.href} className="gg-sb-name-link">{b.name}<span className="sr-only"> ({G.newTab})</span></Out> |             <>{b.name}<Out href={b.href} className="gg-sb-visit">Visit</Out></>
  * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx |       {href ? out("gg-sb-logo", logo, true) : <span className="gg-sb-logo">{logo}</span>} |       <span className="gg-sb-logo">{logo}</span>
- * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx |   const out = (className: string, children: React.ReactNode, hidden = false) => ( |   const out = (className: string, children: React.ReactNode, hidden = false) => href === "x" ? null : (
+ * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx |   const out = (className: string, children: React.ReactNode, hidden = false) => href && ( |   const out = (className: string, children: React.ReactNode, hidden = false) => href === "x" && (
  */
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";

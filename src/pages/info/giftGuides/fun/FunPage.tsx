@@ -58,10 +58,14 @@ export function GuidesFrame({ title, path, disclosures = true, tools = true, chi
       {/* Polish audit 1122 #3: the phone's chip row and menu sheet on these pages too (they had no way to the other
           guides on a phone but the back arrow); Printables is filled on the three printables pages. */}
       <GiftGuidesPhoneNav active={null} page={path} />
-      <GiftGuidesWords lead="" title={title} titleId="gift-page-title" tools={null} />
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">
-        <div className="gg-main">{children}</div>
+        {/* Polish audit 1122 #10: the page's title opens the content column, left-aligned in the shared serif page-title
+            style (as My Wish List's), not centered on the full width over the gap by the menu. */}
+        <div className="gg-main">
+          <GiftGuidesWords lead="" title={title} titleId="gift-page-title" tools={null} />
+          {children}
+        </div>
         <GiftGuidesSidebar active={null} page={path} />
         {/* Holiday audit 1121 (High): Swipe's Shop links and the planner's ideas are affiliate links (Amazon's among
             them), so every fun page ends with the same two plain muted lines as the guides: the FTC disclosure

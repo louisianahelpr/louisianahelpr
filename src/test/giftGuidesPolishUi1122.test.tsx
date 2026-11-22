@@ -7,16 +7,27 @@
  * #3 (High): Gift tags, Coloring books, Banners, Swipe, Secret Santa, the planner and Shop Small had no phone chip row.
  *    GuidesFrame draws it now, with Printables filled on the printables pages.
  * #6: the chips are Her, Him, Kids, Deals, Printables and a pinned More (Menu was 8th and out of view at 375).
+ * #5: a phone's count row (count, pill, 4 icons) fits one row at 375: the pill reads "By Dec 15" there, gaps 4px.
+ * #9: My Wish List has no second "All guides" back link (the head row's arrow goes to /gift-guides).
+ * #10: one sub-page title: the frame pages' title opens the content column in the shared left-aligned serif style, the
+ *      same as My Wish List's and a shared list's title.
+ * #19: on a phone the hub shows one line above the greeting, and a guide's banner starts 16px under the chip row.
  *
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:36px} | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:44px}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-side{position:static;max-height:none;overflow:visible} | .gg-side{max-height:none}
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx |       <GiftGuidesPhoneNav active={null} page={path} /> |       {null}
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx | const printablesOpen = open !== null && PRINTABLE_PATHS.includes(open); | const printablesOpen = false;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav>.gg-chip-menu{flex:none;margin-right:20px} | .gg-pnav>.gg-chip-menu{margin-right:20px}
+ * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx | {/* UX audit M4 | <a href="/gift-guides" data-gift-back="">All guides</a>{/* UX audit M4
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | <header className="gg-words gg-pagehead" data-gift-words=""> | <header className="gg-words" data-gift-words="">
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow .gg-ship-order{display:none} | .gg-countrow .gg-ship-order{}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav:has(+.gg-divider){border-bottom-color:transparent} | .gg-pnav:has(+.gg-divider){}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { readFileSync } from "node:fs";
+import { blankComments } from "./helpers/blankNonCode";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { GuidesFrame } from "@/pages/info/giftGuides/fun/FunPage";
 
@@ -75,5 +86,36 @@ describe("polish audit 1122 #3/#6: the phone chip row on every frame page, More 
     expect(more.closest(".gg-pnav-row")).toBeNull();
     expect(more.parentElement!.matches("[data-gift-phone-nav]")).toBe(true);
     expect(GIFT_GUIDES_CSS).toContain(".gg-pnav>.gg-chip-menu{flex:none;margin-right:20px}");
+  });
+});
+
+const src = (f: string) => blankComments(readFileSync(f, "utf8"));
+
+describe("polish audit 1122 #5/#9/#10/#19", () => {
+  it("#5: the phone count row's pill drops 'Order ' and the gaps are 4px", () => {
+    expect(src("src/pages/info/GiftGuides.tsx")).toContain('<span className="gg-ship-order">Order </span>');
+    expect(GIFT_GUIDES_CSS).toContain("@media (max-width:479px){.gg-countrow,.gg-countrow-left{gap:4px}.gg-countrow .gg-ship-order{display:none}.gg-countrow .gg-ship::first-letter{text-transform:uppercase}}");
+  });
+
+  it("#9: My Wish List draws no second back link", () => {
+    const my = src("src/pages/info/giftGuides/GiftGuideMyList.tsx");
+    expect(my).toContain('data-gift-my-list=""');
+    expect(my).not.toContain("data-gift-back=");
+    expect(my).not.toContain("allGuidesLabel");
+  });
+
+  it("#10: the frame's title is the first thing in the content column, in the shared page-title style", () => {
+    const c = frameAt("/gift-guides/swipe");
+    const main = c.querySelector(".gg-layout > .gg-main")!;
+    const head = main.firstElementChild!;
+    expect(head.matches("header.gg-words.gg-pagehead")).toBe(true);
+    expect(head.querySelector("h1#gift-page-title")?.textContent).toBe("Page");
+    expect(GIFT_GUIDES_CSS).toContain(".gg-words.gg-pagehead{text-align:left;");
+    expect(GIFT_GUIDES_CSS).toMatch(/\.gg-pagehead h1,\.gg \.gg-wish-title\{font-family:'Bodoni Moda'/);
+  });
+
+  it("#19: one line above the hub's greeting on a phone; a gap above a guide's banner", () => {
+    const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.indexOf("@media (max-width:767px){.gg-pagehead h1"));
+    expect(phone).toContain(".gg-pnav:has(+.gg-divider){border-bottom-color:transparent}.gg-pnav+.gg-banner-wrap{padding-top:16px}}");
   });
 });

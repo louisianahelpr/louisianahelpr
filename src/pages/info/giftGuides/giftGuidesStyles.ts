@@ -112,6 +112,15 @@ color:var(--gg-ink)}
 .gg-share-menu{position:absolute;z-index:6;top:calc(100% + 6px);right:0;display:flex;flex-direction:column;min-width:200px;white-space:nowrap;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:4px}
 .gg-share-menu a,.gg-share-menu button{display:flex;align-items:center;min-height:44px;padding:0 12px;font-size:13px;font-weight:600;color:var(--gg-ink);text-decoration:none;background:none;border:0;text-align:left;border-radius:8px}
 .gg-share-menu a:hover,.gg-share-menu button:hover{background:hsl(var(--muted) / .6)}
+/* Polish audit 1122 #10: one sub-page title (the frame pages, My Wish List, a shared list): the serif, left-aligned at
+   the top of the content column under the head row. */
+.gg-words.gg-pagehead{text-align:left;padding:0 0 12px;margin:0 0 16px}
+.gg-pagehead h1,.gg .gg-wish-title{font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-weight:500;font-size:32px;line-height:1.15;margin:0;color:#3b2a20;text-wrap:balance}
+@media (max-width:767px){.gg-pagehead h1,.gg .gg-wish-title{font-size:28px}.gg-words.gg-pagehead{padding-top:14px}
+/* Polish audit 1122 #19: on the hub only one line shows above the greeting (the owner's divider, not the chip row's
+   too), and a guide's banner starts 16px under the chip row, not on its line. */
+.gg-pnav:has(+.gg-divider){border-bottom-color:transparent}.gg-pnav+.gg-banner-wrap{padding-top:16px}}
+:root[data-theme="dark"] .gg .gg-wish-title{color:var(--gg-ink)}
 :root[data-theme="dark"] .gg-words .gg-lead,:root[data-theme="dark"] .gg-words h2,:root[data-theme="dark"] .gg-words > h1{color:var(--gg-ink)}
 .gg-check{background-color:rgb(250 247 239);background-image:conic-gradient(at 30px 30px,var(--c-band) 0 90deg,transparent 0 180deg,var(--c-band) 0 270deg,var(--c-cross) 0);background-size:60px 60px}
 .gg-dot{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.1);margin-right:8px;flex:none;background:var(--c-dot)}
@@ -371,6 +380,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-countrow .gg-itemcount{margin:0}
 .gg-countrow .gg-ship{flex:none;font-size:11px;padding:4px 10px;max-width:none}
 .gg-countrow .gg-tools{position:relative;margin:0 0 0 auto;flex:0 0 auto;gap:0}
+@media (max-width:479px){.gg-countrow,.gg-countrow-left{gap:4px}.gg-countrow .gg-ship-order{display:none}.gg-countrow .gg-ship::first-letter{text-transform:uppercase}}
 
 /* Owner 11-21 (no more "Show more", every gift listed): every gift is drawn, so an off-screen card skips its layout
    and paint until it nears the screen; its reserved height keeps the scrollbar steady (no layout shift). */

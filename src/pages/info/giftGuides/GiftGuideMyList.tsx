@@ -123,7 +123,7 @@ export function GiftGuideMyList() {
   for (const g of [...gone].sort((a, b) => a.index - b.index)) shown.splice(Math.min(g.index, shown.length), 0, { item: g.item, saved: false });
   return (
     <section aria-labelledby="gift-my-list" data-gift-my-list="">
-      <Link to="/gift-guides" className="gg-link" data-gift-back="">← {G.allGuidesLabel}</Link>
+      {/* Polish audit 1122 #9: no "← All guides" link here; the head row's back arrow already goes to /gift-guides. */}
       {/* UX audit M4: the list's name is the page's big title. */}
       <h2 id="gift-my-list" className="gg-wish-title" tabIndex={-1}>{listName(list)}</h2>
       <p className="sr-only" role="status" aria-live="polite" data-gift-wish-announce="">{announce}</p>

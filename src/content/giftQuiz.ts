@@ -94,6 +94,8 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   ornament: ["cozy"],
   // The LSU and YETI picks 1121g added to Him: cufflinks are style, a backpack and a flask go outdoors.
   cufflinks: ["style"], backpack: ["outdoors", "style"], flask: ["outdoors"],
+  // The owner's launch-day Her adds (11-22, scripts/giftGuideOwnerAdds1122.mjs) brought five new types.
+  "lip-balm": ["beauty"], "hair-towel": ["beauty"], robe: ["cozy"], pillow: ["cozy"], "wine-tool": ["kitchen"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
@@ -122,7 +124,7 @@ const NAME_TAGS: [RegExp, QuizInto][] = [
   [/\b(fuzzy|sherpa|fleece|flannel|lounge|weighted|plush)\b/i, "cozy"],
 ];
 /** Gift types the cozy name words never tag (a "fleece lined" boot is not Cozy & home). */
-const NOT_COZY_TYPES = new Set(["skincare", "lip", "makeup", "gift-set", "fragrance", "hair", "beauty-device", "grooming", "soap", "body-wash", "lotion", "shave", "shoes", "boots"]);
+const NOT_COZY_TYPES = new Set(["skincare", "lip", "lip-balm", "hair-towel", "makeup", "gift-set", "fragrance", "hair", "beauty-device", "grooming", "soap", "body-wash", "lotion", "shave", "shoes", "boots"]);
 /** Per-pick fixes where the type and name rules misfire (by the pick's name; checked by eye, 11-21 PM). */
 const TAG_OVERRIDES: [RegExp, QuizInto[]][] = [
   // A keychain video camera is a gadget, not a style piece.

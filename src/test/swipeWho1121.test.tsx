@@ -41,9 +41,13 @@ describe("Swipe's people and budgets are the quiz's", () => {
   });
 
   it("the budgets are the quiz's bands, and only those with enough picks show (the same list the quiz offers)", () => {
-    // The quiz has the guides' five bands (guides polish 1122 #23). Her holds 2 picks at $50 to $75 and 1 at $75 to $100
-    // (measured 2026-11-22), under the 3-pick minimum, so those two hide; the rest show, in the quiz's order.
-    expect(swipeBudgets(HER, { who: "her" }).map((b) => b.id)).toEqual(["under-25", "25-50", "100-plus"]);
+    // The quiz has the guides' five bands (guides polish 1122 #23). Her held 2 picks at $50 to $75 and 1 at $75 to $100
+    // (measured 2026-11-22 AM), under the 3-pick minimum, so those two hid; the owner's launch-day adds (11-22) bring
+    // both to 4, so all five show now, in the quiz's order.
+    expect(swipeBudgets(HER, { who: "her" }).map((b) => b.id)).toEqual(["under-25", "25-50", "50-75", "75-100", "100-plus"]);
+    // The 3-pick minimum still hides a thin band: Her without three of its $75 to $100 picks drops that band.
+    const thin = HER.filter((p) => !(p.price !== undefined && p.price >= 75 && p.price < 100)).concat(HER.filter((p) => p.price !== undefined && p.price >= 75 && p.price < 100).slice(0, 1));
+    expect(swipeBudgets(thin, { who: "her" }).map((b) => b.id)).not.toContain("75-100");
     expect(QUIZ_BUDGETS.map((b) => b.id)).toEqual(["under-25", "25-50", "50-75", "75-100", "100-plus"]);
     expect(swipeBudgets(HER, { who: "her" }).map((b) => b.id)).toEqual(quizBudgets(HER, { who: "her" }).map((b) => b.id));
     for (const a of QUIZ_AGES) {

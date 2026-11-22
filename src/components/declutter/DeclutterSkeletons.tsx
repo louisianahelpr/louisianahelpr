@@ -47,8 +47,14 @@ export function DeclutterHomeSkeleton({ guestJoin }: { guestJoin?: ReactNode } =
       section="declutter"
       title="Declutter"
       globalSearch={false}
-      // Phone (owner 11-08, the Vinted header): the search bar's bone in the bar, the chips' bones under it.
-      search={desktop ? undefined : <Skeleton className="h-11 w-full rounded-full" aria-hidden />}
+      // Phone (owner 11-08, the Vinted header; just the icon, owner 11-21): the bar shows the real "Declutter" title, then
+      // SectionSearchBar's closed row as bones (the magnifier and Filters, 44px each, gap-1); the chips' bones under it.
+      search={desktop ? undefined : (
+        <div className="flex shrink-0 items-center justify-end gap-1" aria-hidden data-skeleton-part="search-icons">
+          <span className="h-11 w-11 shrink-0 flex items-center justify-center"><Skeleton className="h-5 w-5 rounded-full" /></span>
+          <span className="h-11 w-11 shrink-0 flex items-center justify-center"><Skeleton className="h-5 w-5 rounded-full" /></span>
+        </div>
+      )}
       tabs={desktop ? <Skeleton className="h-11 w-full rounded-ds-md" aria-hidden /> : (
         <>
           {/* F153: a member's phone has the section tabs under the search; a guest's has none. index.html's copy

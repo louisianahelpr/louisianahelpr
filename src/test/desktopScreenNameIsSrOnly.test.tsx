@@ -230,12 +230,14 @@ describe("phone / native (<900px): the same, at phone width", () => {
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 
-  // THE COMPACT TOP (owner 11-14, Depop / Vinted): the phone inbox's search IS the top row, so "Messages" is a
-  // visually hidden h1 (the bottom bar and the row say where you are), still the screen's one h1, empty or full.
-  it("Messages: the compact top row hides the name (sr-only h1), still exactly one h1", async () => {
+  // THE COMPACT TOP (owner 11-14, Depop / Vinted) with the search as just the icon (owner 11-21): the phone row shows
+  // "Messages" beside the magnifier; only an opened field takes the row and makes it reader-only. Still one h1.
+  it("Messages: the compact top row shows the name until the search opens, still exactly one h1", async () => {
     setWebDesktop(false);
     renderInbox();
-    expect((await heading("Messages")).className.split(/\s+/)).toContain("sr-only");
+    const cls = (await heading("Messages")).className.split(/\s+/);
+    expect(cls).not.toContain("sr-only");
+    expect(cls).toContain("group-has-[[data-search-open]]/top:!sr-only");
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 });

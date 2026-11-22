@@ -1,13 +1,15 @@
 /**
  * THE COMPACT TOP (owner 11-14, after Depop's and Vinted's iPhone screens: "I think we need to make our top part more
  * like theirs so we can have more space"). On a phone, a main tab page with a search (Jobs, Declutter, Messages, Home)
- * has NO visible page-title row: ONE row, the search (flex-1) with the bell and the photo inline on its right, 8px under
- * the safe area. The page's name stays a visually hidden h1. A page with no search (You) keeps its visible title.
+ * draws ONE row, 8px under the safe area, with the bell and the photo inline on its right. Since owner 11-21 ("just the
+ * icon" for search) the search is a magnifier, so the row shows the page's name again (the logo on Home, which has no
+ * title); an OPENED search field (`data-search-open`) takes the row and the name steps back to a reader-only h1. A page
+ * with no search (You) keeps its plain visible title.
  * Every loading frame that hand-draws the row (Jobs, Home) reads the same COMPACT_TOP_ROW. Since 11-15 the Inbox
  * (/messages, both tabs) is titled "Inbox" with its search under its tabs, as the owner chose; outside the Inbox the list
  * still hands its search to the bar.
  *
- * @mutate src/components/sections/AppTopBar.tsx |             {title && <h1 className="sr-only">{title}</h1>} |             {title && <h1 className="text-page-title">{title}</h1>}
+ * @mutate src/components/sections/AppTopBar.tsx | <h1 data-top-bar-title="" className="min-w-0 flex-1 truncate text-page-title text-foreground group-has-[[data-search-open]]/top:!sr-only" | <h1 data-top-bar-title="" className="sr-only"
  * @mutate src/components/sections/AppTopBar.tsx |         search ? ( |         false ? (
  * @mutate src/components/sections/browseHeaderSpacing.ts | export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-2 pb-0.5"; | export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-4 pb-0.5";
  * @mutate src/components/messages/ConversationList.tsx | <AppTopBar title={listTitle} desktopGap={false} search={isWebDesktop \|\| inInbox ? undefined : phoneSearchRow} /> | <AppTopBar title={listTitle} desktopGap={false} />
@@ -36,28 +38,40 @@ const code = (rel: string) => blankComments(readFileSync(resolve(__dirname, "../
 afterEach(cleanup);
 
 describe("the compact top (owner 11-14)", () => {
-  it.each(["Jobs", "Declutter", "Messages"])("%s: no visible title row; the search, the Inbox icon and the photo share ONE row; the h1 stays for readers", async (title) => {
-    render(<MemoryRouter><AppTopBar title={title} search={<input aria-label={`Search ${title}`} />} /></MemoryRouter>);
+  it.each(["Jobs", "Declutter", "Messages"])("%s: ONE row: the visible title (until the search opens), the search icon, the Inbox icon and the photo; one h1", async (title) => {
+    render(<MemoryRouter><AppTopBar title={title} search={<button type="button" data-search-icon="" aria-label={`Search ${title}`} />} /></MemoryRouter>);
     const bar = screen.getByTestId("app-top-bar");
     const h1 = screen.getByRole("heading", { level: 1, name: title });
-    expect(h1.className.split(/\s+/)).toContain("sr-only");
+    const h1Classes = h1.className.split(/\s+/);
+    // Visible beside the icon; only an opened field (data-search-open in this row) makes it reader-only.
+    expect(h1Classes).not.toContain("sr-only");
+    expect(h1Classes).toContain("group-has-[[data-search-open]]/top:!sr-only");
     expect(document.querySelectorAll("h1")).toHaveLength(1);
     // The search, the Inbox icon (owner 11-15) and the photo are all inside the one header row.
-    expect(bar.contains(screen.getByRole("textbox", { name: `Search ${title}` }))).toBe(true);
+    expect(bar.contains(screen.getByRole("button", { name: `Search ${title}` }))).toBe(true);
     expect(bar.contains(await screen.findByTestId("top-bar-inbox"))).toBe(true);
     expect(bar.querySelector('[data-testid="top-bar-profile"]')).not.toBeNull();
-    // Search first (flex-1), then the bell, then the photo.
-    const kids = [...bar.children].filter((c) => !c.classList.contains("sr-only"));
-    expect(kids[0].getAttribute("data-testid")).toBe("app-top-bar-search");
-    expect(kids[0].className.split(/\s+/)).toContain("flex-1");
-    expect(bar.className).toBe(COMPACT_TOP_ROW);
+    // The title first (flex-1), then the search (it grows only when opened), then the bell and the photo.
+    const kids = [...bar.children];
+    expect(kids[0]).toBe(h1);
+    expect(h1Classes).toContain("flex-1");
+    expect(kids[1].getAttribute("data-testid")).toBe("app-top-bar-search");
+    expect(kids[1].className.split(/\s+/)).not.toContain("flex-1");
+    expect(kids[1].className.split(/\s+/)).toContain("has-[[data-search-open]]:flex-1");
+    expect(bar.className).toBe(`${COMPACT_TOP_ROW} group/top`);
   });
 
-  it("Home (no title): the search row with the bell and the photo, and no logo row", () => {
-    render(<MemoryRouter><AppTopBar search={<input aria-label="Search jobs and items" />} /></MemoryRouter>);
+  it("Home (no title): the logo (flex-1), then the search icon, the bell and the photo in ONE row; the logo steps aside for an opened field", () => {
+    render(<MemoryRouter><AppTopBar search={<button type="button" data-search-icon="" aria-label="Search jobs and items" />} /></MemoryRouter>);
     const bar = screen.getByTestId("app-top-bar");
-    expect(bar.contains(screen.getByRole("textbox", { name: "Search jobs and items" }))).toBe(true);
-    expect(bar.querySelector('a[href="/home"]')).toBeNull();
+    expect(bar.contains(screen.getByRole("button", { name: "Search jobs and items" }))).toBe(true);
+    const logo = bar.querySelector('a[href="/home"]');
+    expect(logo).not.toBeNull();
+    const logoBox = bar.children[0];
+    expect(logoBox.contains(logo)).toBe(true);
+    expect(logoBox.className.split(/\s+/)).toEqual(expect.arrayContaining(["flex-1", "group-has-[[data-search-open]]/top:hidden"]));
+    expect(bar.children[1].getAttribute("data-testid")).toBe("app-top-bar-search");
+    expect(document.querySelectorAll("h1")).toHaveLength(0);
   });
 
   it("You (no search) keeps its visible title row with the Inbox icon", async () => {

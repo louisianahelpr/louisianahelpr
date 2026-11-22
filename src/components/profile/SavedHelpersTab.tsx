@@ -19,6 +19,7 @@ import {
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
+import { SearchIconButton } from "@/components/sections/SearchIconButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -147,18 +148,13 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                0.032 at 375): with no slot the title had the row to itself, and when the saved Helprs arrived the
                magnifier took 44px, the title wrapped to a second line (34 -> 65px) and the list moved down 29px. */
           helpers.length > 0 && !searchOpen ? (
-            <button
+            // Owner 11-21 (pop-up, "just the icon"): the shared magnifier, the same plain icon as every header's.
+            <SearchIconButton
               ref={searchTriggerRef}
-              type="button"
               data-search-trigger
               onClick={() => setSearchOpen(true)}
-              aria-label="Search saved Helprs"
-              aria-expanded={searchOpen}
-              className="w-11 h-11 inline-flex items-center justify-center rounded-full transition-colors hover:bg-[hsl(var(--bark)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
-              style={{ color: "hsl(var(--olivewood))" }}
-            >
-              <Search className="w-5 h-5" />
-            </button>
+              label="Search saved Helprs"
+            />
           ) : (
             <SearchTriggerSlot />
           )
@@ -196,7 +192,10 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                   the list the user came to read. Same call BrowseSearchBar
                   makes for the same reason. `pr-10` only when there is text
                   to clear, so an empty field carries no dead right lane. */}
+              {/* Owner 11-21 (search is just the icon): the field exists only after a tap on the magnifier, so it takes
+                  the focus then (never on tab-open). */}
               <input
+                autoFocus
                 type="search"
                 aria-label="Search saved Helprs"
                 placeholder="Search saved Helprs…"

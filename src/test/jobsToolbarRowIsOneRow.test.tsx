@@ -130,7 +130,7 @@ describe("the search opens in place, focused, and closes back into its icon", ()
     expect(onSearch).toHaveBeenLastCalledWith("mow");
   });
 
-  it("phone, Posted / Working: the tab's search is the top bar's open field (the Vinted header, owner 11-08), never in the chip row, and searches that tab's list", () => {
+  it("phone, Posted / Working: the tab's search is the top bar's icon that opens its field there (the Vinted header, owner 11-08; just the icon, owner 11-21), never in the chip row, and searches that tab's list", () => {
     desktop.on = false;
     const onSearch = vi.fn();
     const bar = (row?: { end?: ReactNode; search?: ReactNode }) => <div data-testid="top-bar">{row?.search}{row?.end}</div>;
@@ -139,7 +139,11 @@ describe("the search opens in place, focused, and closes back into its icon", ()
       return <EmbeddedActivityHeader header={bar} tab="applied" statusFilter="all" counts={{ all: 2 }} onFilter={() => {}} search={q} onSearch={(v) => { onSearch(v); setQ(v); }} />;
     }
     const { container } = render(<MemoryRouter><Header /></MemoryRouter>);
-    expect(container.querySelector("[data-jobs-search]"), "no icon on a phone").toBeNull();
+    // No InlineListSearch toggle on a phone: the bar's own magnifier (SectionSearchBar) opens the field.
+    expect(container.querySelector("[data-jobs-search]"), "no chip-row icon on a phone").toBeNull();
+    const icon = screen.getByRole("button", { name: "Search jobs you're working" });
+    expect(screen.getByTestId("top-bar").contains(icon), "the icon is the bar's").toBe(true);
+    fireEvent.click(icon);
     const field = screen.getByRole("searchbox", { name: "Search jobs you're working" });
     expect(screen.getByTestId("top-bar").contains(field), "the field is the bar's").toBe(true);
     expect(container.querySelector<HTMLElement>("[data-jobs-toolbar]")!.contains(field), "not in the chip row").toBe(false);

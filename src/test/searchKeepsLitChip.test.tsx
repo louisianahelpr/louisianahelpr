@@ -106,25 +106,31 @@ describe("Posted / Working: the open search never cuts a tab or a chip", () => {
     expect(Number(pr![1]) * 4, "end padding >= the fade, so the last chip scrolls clear of it").toBeGreaterThanOrEqual(fadePx);
   });
 
-  it("phone: typing in the bar's field keeps every chip and count, the lit one lit; the field is the bar's, never in the tabs or chip row", () => {
+  it("phone: the bar's icon opens its field; typing keeps every chip and count, the lit one lit; the field is the bar's, never in the tabs or chip row", () => {
     renderHeader("active");
+    // Owner 11-21: just the icon until tapped; the icon is the bar's, never in the tabs or chip row.
+    const icon = screen.getByRole("button", { name: "Search jobs you're working" });
+    expect(screen.getByTestId("app-top-bar").contains(icon), "the bar's icon").toBe(true);
+    expect(screen.getByTestId("section-tabs").contains(icon)).toBe(false);
+    open();
     const field = screen.getByRole("search", { name: "Search jobs you're working" });
     expect(screen.getByTestId("app-top-bar").contains(field), "the bar's field").toBe(true);
     expect(screen.getByTestId("section-tabs").contains(field)).toBe(false);
     expect(document.querySelector("[data-jobs-toolbar]")!.contains(field)).toBe(false);
-    expect(screen.queryByRole("button", { name: "Search jobs you're working" }), "no icon to open").toBeNull();
     fireEvent.change(within(field).getByRole("searchbox"), { target: { value: "mow" } });
     expect(chips().length).toBeGreaterThan(4);
     expect(chips()).toContain("Active · 3");
     expect(screen.getByRole("button", { name: /Active/ }).getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("phone: Escape in the bar's field clears its words; every chip stays", () => {
+  it("phone: Escape in the bar's field clears its words and folds it back into the icon; every chip stays", () => {
     renderHeader("all", "mow");
     const box = screen.getByRole("searchbox", { name: "Search jobs you're working" }) as HTMLInputElement;
     expect(box.value).toBe("mow");
     fireEvent.keyDown(box, { key: "Escape" });
-    expect(box.value).toBe("");
+    expect(screen.queryByRole("searchbox", { name: "Search jobs you're working" })).toBeNull();
+    open();
+    expect((screen.getByRole("searchbox", { name: "Search jobs you're working" }) as HTMLInputElement).value).toBe("");
     expect(chips().length).toBeGreaterThan(4);
   });
 

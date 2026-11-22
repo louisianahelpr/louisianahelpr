@@ -25,7 +25,7 @@
  * @mutate src/components/mobileNav/dockItems.ts |     { path: shops.path, icon: shops.icon, label: shops.label, badgeKey: "todoShops", comingSoon: true },\n | \n
  * @mutate src/components/mobileNav/dockItems.ts |     { path: declutter.path, icon: declutter.icon, label: declutter.label, badgeKey: "todoDeclutter" },\n | \n
  * @mutate src/components/MobileNav.tsx | <span data-dock-label className={`relative z-10 text-ds-10 leading-none whitespace-nowrap ${isActive ? "font-bold" : "font-medium"}`}>{shown}</span> | <span data-dock-label className="relative z-10 text-ds-10 leading-none whitespace-nowrap font-medium">{shown}</span>
- * @mutate src/components/sections/AppTopBar.tsx |             <div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div> |
+ * @mutate src/components/sections/AppTopBar.tsx |             <div data-testid="app-top-bar-search" className="flex min-w-0 shrink-0 justify-end has-[[data-search-open]]:flex-1">{search}</div> |
  * @mutate src/components/sections/SectionCreateFab.tsx |   const go = () => { hapticMedium(); if (add) navigate(add.path); else setCreateSheetOpen((o) => !o); }; |   const go = () => { hapticMedium(); navigate(add?.path ?? "/post-job"); };
  * @mutate src/components/sections/SectionCreateFab.tsx |       onClick={isPost ? gate.gate("post", go) : go} |       onClick={go}
  * @mutate src/components/sections/SectionCreateFab.tsx |       {...(add ? {} : { "aria-haspopup": "dialog" as const, "aria-expanded": sheetOpen })} |       {...(add ? {} : { "aria-haspopup": "dialog" as const })}
@@ -207,13 +207,22 @@ describe("the phone top bar (F148, owner audit 2026-11-09)", () => {
     expect(where()).toBe("/profile");
   });
 
-  it("a section's search IS the bar's row, the bell and You inline on its right; the title is a hidden h1 (owner 11-14)", () => {
-    renderAt(<AppTopBar title="Jobs" search={<input aria-label="Search jobs" />} />, "/jobs");
+  it("a section's search sits in the bar's row, the bell and You inline on its right; the title is visible until the search opens, then the opened field takes the row (owner 11-21)", () => {
+    renderAt(<AppTopBar title="Jobs" search={<button type="button" data-search-icon="" aria-label="Search jobs" />} />, "/jobs");
     const bar = screen.getByTestId("app-top-bar");
-    expect(bar.querySelector("h1")?.textContent).toBe("Jobs");
-    expect(bar.querySelector("h1")?.className.split(/\s+/)).toContain("sr-only");
-    expect(bar.contains(screen.getByTestId("app-top-bar-search"))).toBe(true);
-    expect(screen.getByTestId("app-top-bar-search").querySelector('input[aria-label="Search jobs"]')).toBeTruthy();
+    const h1 = bar.querySelector("h1");
+    expect(h1?.textContent).toBe("Jobs");
+    const cls = h1?.className.split(/\s+/) ?? [];
+    // Visible while the search is the icon; it steps back to a reader-only h1 only when the row holds an open field.
+    expect(cls).not.toContain("sr-only");
+    expect(cls).toContain("flex-1");
+    expect(cls).toContain("group-has-[[data-search-open]]/top:!sr-only");
+    expect(bar.className.split(/\s+/)).toContain("group/top");
+    const slot = screen.getByTestId("app-top-bar-search");
+    expect(bar.contains(slot)).toBe(true);
+    expect(slot.querySelector('button[aria-label="Search jobs"]')).toBeTruthy();
+    // The opened field grows to fill the row.
+    expect(slot.className.split(/\s+/)).toContain("has-[[data-search-open]]:flex-1");
   });
 
   it("on Dashboard the + opens 'What are we doing?' and does not navigate", () => {

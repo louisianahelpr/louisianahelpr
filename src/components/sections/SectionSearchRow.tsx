@@ -1,7 +1,8 @@
-import type { FormEvent, RefObject } from "react";
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useHeaderSearchSlot } from "./headerSearchSlot";
 import { Search, SlidersHorizontal, X } from "lucide-react";
+import { SearchIconButton } from "./SearchIconButton";
 
 /**
  * THE ONE BROWSE SEARCH ROW (owner, 2026-10-19: "make layout consistent so the
@@ -16,6 +17,10 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
  * for sale: City or ZIP") is whole at 320; what you type stays 15px.
  *
  * Geometry is pinned by e2e/prod-audit/section-shell-alignment.spec.ts.
+ *
+ * JUST THE ICON (owner 11-21, pop-up): the row starts as the shared magnifier (SearchIconButton) with the filter button
+ * beside it; a tap opens the field in its place, focused. Escape or its X clears the words and folds it back; it folds
+ * on leaving only while empty, so a query keeps it open and visible. Guard: src/test/searchIsAnIconEverywhere1121.test.tsx.
  *
  * FOCUS: the pill is the one ring (deep audit #46, 2026-10-28). It is an OUTLINE on the form, because the T2
  * card rule in index.css pins every .bg-card box-shadow with !important, so a `ring-*` (a box-shadow) never
@@ -34,6 +39,7 @@ export function SectionSearchRow({
   filtersLabel,
   filtersButtonRef,
   testId,
+  pinned = false,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -52,55 +58,92 @@ export function SectionSearchRow({
   filtersLabel?: string;
   filtersButtonRef?: RefObject<HTMLButtonElement>;
   testId?: string;
+  /** Always open: a list filter inside a panel, not a page header (Declutter's Manager panel). */
+  pinned?: boolean;
 }) {
   const active = filterCount > 0;
   // Owner 11-08 (the Vinted header): on a phone section screen that opened its bar's search slot, the row draws there.
   const slot = useHeaderSearchSlot();
+  const [opened, setOpened] = useState(false);
+  const open = pinned || opened || value.length > 0;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const iconRef = useRef<HTMLButtonElement>(null);
+  // Focus follows the tap that opened it, and goes back to the icon after a close; never on a load that carries words.
+  const focusOnOpen = useRef(false);
+  const iconOnClose = useRef(false);
+  useEffect(() => {
+    if (open && focusOnOpen.current) {
+      focusOnOpen.current = false;
+      inputRef.current?.focus({ preventScroll: true });
+    } else if (!open && iconOnClose.current) {
+      iconOnClose.current = false;
+      iconRef.current?.focus({ preventScroll: true });
+    }
+  }, [open]);
+  const close = () => {
+    if (value) onChange("");
+    iconOnClose.current = true;
+    setOpened(false);
+  };
   const submit = (e: FormEvent) => {
     e.preventDefault();
     onSubmit?.();
   };
-  const row = (
+  const filterButton = onFilters && (
+    <button
+      ref={filtersButtonRef}
+      type="button"
+      onClick={onFilters}
+      aria-label={filtersLabel ?? (active ? `Filters (${filterCount} active)` : "Filters")}
+      aria-expanded={filtersOpen}
+      data-state={active ? "active" : "inactive"}
+      className={`btn-press relative shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${active || filtersOpen ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" : "text-muted-foreground"}`}
+    >
+      <SlidersHorizontal className="w-[18px] h-[18px]" aria-hidden />
+      {active && (
+        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
+          {filterCount}
+        </span>
+      )}
+    </button>
+  );
+  const row = !open ? (
+    <div data-section-search="" data-testid={testId} data-in-header={slot ? "" : undefined} className="flex items-center justify-end gap-1">
+      <SearchIconButton ref={iconRef} label={searchLabel ?? placeholder} onClick={() => { focusOnOpen.current = true; setOpened(true); }} />
+      {filterButton}
+    </div>
+  ) : (
     <form
       role="search"
       aria-label={searchLabel ?? placeholder}
       onSubmit={submit}
       data-section-search=""
+      data-search-open=""
       data-testid={testId}
       data-in-header={slot ? "" : undefined}
       className="flex items-center gap-2 h-10 data-[in-header]:h-11 pl-3.5 pr-1 rounded-full border border-border bg-card focus-within:outline focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-[hsl(var(--ring))]"
     >
       <Search className="w-[18px] h-[18px] text-muted-foreground shrink-0" aria-hidden />
       <input
+        ref={inputRef}
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); close(); } }}
+        onBlur={(e) => {
+          // Leaving for the X or Filters inside this row is not leaving it; words keep it open.
+          if (e.currentTarget.form?.contains(e.relatedTarget as Node | null)) return;
+          if (!e.currentTarget.value) setOpened(false);
+        }}
         placeholder={placeholder}
         aria-label={placeholder}
         enterKeyHint="search"
         className="flex-1 min-w-0 bg-transparent text-ds-15 text-foreground outline-none focus-visible:outline-none placeholder:text-muted-foreground max-[359px]:placeholder:text-ds-13 [&::-webkit-search-cancel-button]:hidden"
       />
-      {value && (
-        <button type="button" aria-label="Clear search" onClick={() => onChange("")} className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-muted-foreground">
-          <X className="w-4 h-4" aria-hidden />
-        </button>
-      )}
-      {onFilters && <button
-        ref={filtersButtonRef}
-        type="button"
-        onClick={onFilters}
-        aria-label={filtersLabel ?? (active ? `Filters (${filterCount} active)` : "Filters")}
-        aria-expanded={filtersOpen}
-        data-state={active ? "active" : "inactive"}
-        className={`btn-press relative shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${active || filtersOpen ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" : "text-muted-foreground"}`}
-      >
-        <SlidersHorizontal className="w-[18px] h-[18px]" aria-hidden />
-        {active && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
-            {filterCount}
-          </span>
-        )}
+      {(!pinned || value) && <button type="button" aria-label={pinned ? "Clear search" : "Close search"} onClick={close} className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-muted-foreground">
+        <X className="w-4 h-4" aria-hidden />
       </button>}
+      {filterButton}
     </form>
   );
   return slot ? createPortal(row, slot) : row;

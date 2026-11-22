@@ -79,11 +79,17 @@ const DashboardRouteSkeleton = () => {
     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top">
       <div className="container mx-auto px-4 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" aria-hidden>
         <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-hidden px-3 -mx-3 pb-safe-nav">
-          {/* AppTopBar on Dashboard (the compact top, owner 11-14): ONE row, the 44px search with the Inbox icon and the avatar
-              inline on its right, each a 44px control ("+ Create" floats over the page). */}
+          {/* AppTopBar on Dashboard (the compact top, owner 11-14; search is just the icon, owner 11-21): ONE row, the H
+              emblem (32px tall, 256x220 so 37px wide; flex-1, HelprMark sm emblemOnly), the 44px search icon, then the Inbox icon and the avatar,
+              each a 44px control ("+ Create" floats over the page). */}
           <div className={COMPACT_TOP_ROW}>
-            <div className="min-w-0 flex-1">
-              <Skeleton className="h-11 w-full rounded-full" />
+            <div className="flex min-w-0 flex-1 items-center" data-skeleton-part="logo">
+              <Skeleton className="h-8 w-[37px] rounded-ds-md" />
+            </div>
+            <div className="flex min-w-0 shrink-0 justify-end" data-skeleton-part="search-icon">
+              <span className="h-11 w-11 flex items-center justify-center">
+                <Skeleton className="h-5 w-5 rounded-full" />
+              </span>
             </div>
             <div className="flex items-center shrink-0">
               <span className="h-11 w-11 flex items-center justify-center">

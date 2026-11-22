@@ -1,8 +1,9 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchIconButton } from "./SearchIconButton";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enSections";
@@ -48,19 +49,44 @@ type FieldProps = { value: string; onChange: (v: string) => void; filter?: React
 type LinkProps = { value?: undefined; onChange?: undefined; filter?: undefined };
 
 /**
- * THE SECTION SEARCH BAR (owner 11-08, the Vinted header): the phone top bar's rounded field, "Search <noun>", with
- * the Filters button inside its right end where the section has filters. Where the list it searches is on screen it
- * IS the field (Declutter's Browse: the feed, kept in ?q=). Elsewhere it is a button that takes the member to `home`
- * (the section's Browse) with the field focused. Guard: src/test/declutterHeaderVinted.test.tsx.
+ * THE SECTION SEARCH BAR (owner 11-08, the Vinted header): the phone top bar's search for a section, "Search <noun>",
+ * with the Filters button beside it where the section has filters.
+ *
+ * JUST THE ICON (owner 11-21, pop-up: "just the icon" for search, everywhere a wide always-open box sat): it starts as
+ * the shared magnifier (SearchIconButton), Filters beside it. Where the list it searches is on screen a tap opens the
+ * rounded field IN PLACE, focused (the top bar hands it the row: AppTopBar reads `data-search-open`); Escape or its X
+ * clears the words and folds it back into the icon; it folds on leaving only while empty, so a query stays visible.
+ * It opens by itself when it already holds words (?q=) or another tab's icon asked for focus. Elsewhere the icon takes
+ * the member to `home` (the section's Browse) with the field open and focused.
+ * Guards: src/test/searchIsAnIconEverywhere1121.test.tsx, src/test/declutterHeaderVinted.test.tsx.
  */
 export function SectionSearchBar(props: { noun: string; home: string } & (FieldProps | LinkProps)) {
   const { noun, home } = props;
   const navigate = useNavigate();
   const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
+  const iconRef = useRef<HTMLButtonElement>(null);
   const focusAsked = !!(location.state as { focusSectionSearch?: boolean } | null)?.focusSectionSearch;
+  const [opened, setOpened] = useState(focusAsked);
+  const hasWords = !!props.value;
+  const open = props.onChange !== undefined && (opened || hasWords);
+  // Focus follows the tap that opened it (or the other tab's ask); never on a page load that merely carries ?q=.
+  const focusOnOpen = useRef(focusAsked);
+  const iconOnClose = useRef(false);
   useEffect(() => {
-    if (focusAsked) inputRef.current?.focus({ preventScroll: true });
+    if (open && focusOnOpen.current) {
+      focusOnOpen.current = false;
+      inputRef.current?.focus({ preventScroll: true });
+    } else if (!open && iconOnClose.current) {
+      iconOnClose.current = false;
+      iconRef.current?.focus({ preventScroll: true });
+    }
+  }, [open]);
+  useEffect(() => {
+    if (!focusAsked) return;
+    focusOnOpen.current = true;
+    setOpened(true);
+    inputRef.current?.focus({ preventScroll: true });
   }, [focusAsked]);
   const words = useNoun(noun);
   const { t } = useLanguage();
@@ -68,23 +94,26 @@ export function SectionSearchBar(props: { noun: string; home: string } & (FieldP
 
   if (props.onChange === undefined) {
     return (
-      // The shared Button (OWN-SHARED), worn as the bar: left-aligned, regular weight, no focus offset.
-      <Button
-        type="button"
-        variant="ghost"
-        aria-label={label}
-        data-section-search-bar=""
-        onClick={() => navigate(home, { state: FOCUS_SEARCH_STATE })}
-        className={`${BAR} pr-4 justify-start py-0 text-left text-ds-16 font-normal tracking-normal text-muted-foreground`}
-      >
-        <Search className="h-[18px] w-[18px] shrink-0" aria-hidden />
-        <span aria-hidden className="min-w-0 whitespace-nowrap text-ds-16"><Words noun={noun} /></span>
-      </Button>
+      <SearchIconButton label={label} data-section-search-bar="" onClick={() => navigate(home, { state: FOCUS_SEARCH_STATE })} />
     );
   }
   const { value, onChange, filter } = props;
+  const filterSlot = filter && <span data-search-bar-filter="" className="flex shrink-0 items-center">{filter}</span>;
+  if (!open) {
+    return (
+      <div data-section-search-bar="" className="flex shrink-0 items-center justify-end gap-1">
+        <SearchIconButton ref={iconRef} label={label} onClick={() => { focusOnOpen.current = true; setOpened(true); }} />
+        {filterSlot}
+      </div>
+    );
+  }
+  const close = () => {
+    if (value) onChange("");
+    iconOnClose.current = true;
+    setOpened(false);
+  };
   return (
-    <form role="search" aria-label={label} data-section-search-bar="" data-open="" onSubmit={(e) => e.preventDefault()}
+    <form role="search" aria-label={label} data-section-search-bar="" data-open="" data-search-open="" onSubmit={(e) => e.preventDefault()}
       className={`${BAR} focus-within:ring-2 focus-within:ring-ring`}>
       <Search className="h-[18px] w-[18px] shrink-0 text-muted-foreground" aria-hidden />
       <span className="relative flex min-w-0 flex-1 items-center">
@@ -95,18 +124,21 @@ export function SectionSearchBar(props: { noun: string; home: string } & (FieldP
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Escape" && value) { e.preventDefault(); onChange(""); } }}
+        onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); close(); } }}
+        onBlur={(e) => {
+          // Leaving for the X or Filters inside this field is not leaving it; words keep it open.
+          if (e.currentTarget.form?.contains(e.relatedTarget as Node | null)) return;
+          if (!e.currentTarget.value) setOpened(false);
+        }}
         aria-label={label}
         enterKeyHint="search"
         className="text-ds-16 text-foreground [&::-webkit-search-cancel-button]:hidden"
       />
       </span>
-      {value && (
-        <Button type="button" variant="ghost" size="iconCompact" aria-label={t("section.clearSearch")} onClick={() => { onChange(""); inputRef.current?.focus(); }}
-          className="ctl-exit -my-px shrink-0 text-muted-foreground hover:text-foreground [&_svg]:size-4">
-          <X className="h-4 w-4" aria-hidden />
-        </Button>
-      )}
+      <Button type="button" variant="ghost" size="iconCompact" aria-label={t("section.closeSearch")} onClick={close}
+        className="ctl-exit -my-px shrink-0 text-muted-foreground hover:text-foreground [&_svg]:size-4">
+        <X className="h-4 w-4" aria-hidden />
+      </Button>
       {filter && <span data-search-bar-filter="" className="flex shrink-0 items-center border-l border-border/60 pl-1">{filter}</span>}
     </form>
   );

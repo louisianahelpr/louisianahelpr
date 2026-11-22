@@ -90,7 +90,12 @@ describe("/messages and /declutter route skeletons (Q2705 B)", () => {
     // The search row moved to MessagesSearchRow.tsx (Q806); ConversationList mounts it.
     const searchRow = code("src/components/messages/MessagesSearchRow.tsx");
     expect(list).toContain("<MessagesSearchRow ");
-    expect(searchRow).toContain('data-testid="messages-search-row" className={inBar ? "shrink-0 min-w-0" : "shrink-0 pb-1.5"}');
+    // One wrapper box for both states (closed icon row and opened pill), so opening never moves the rows below.
+    expect(searchRow).toContain('const wrap = inBar ? "shrink-0 min-w-0" : "shrink-0 pb-1.5";');
+    expect(searchRow.match(/data-testid="messages-search-row" className=\{wrap\}/g)).toHaveLength(2);
+    // Owner 11-21 (just the icon): closed, the row is the magnifier and the "more" menu, right-aligned in the same h-11
+    // row the opened pill keeps, so the skeleton draws that closed row.
+    expect(searchRow).toContain('<div className="flex h-11 items-center justify-end gap-1">');
     expect(searchRow).toContain('className="flex h-11 items-center gap-1 rounded-full');
     expect(list).toContain('className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs"');
   });
@@ -103,7 +108,11 @@ describe("/messages and /declutter route skeletons (Q2705 B)", () => {
     expect(container.querySelector("header.app-top-bar")?.className).toBe(TITLE_TOP_ROW);
     expect(getByTestId("messages-skeleton-search").className).toBe("shrink-0 pt-2 pb-1.5");
     expect(container.querySelector("header.app-top-bar")?.contains(getByTestId("messages-skeleton-search"))).toBe(false);
-    expect(getByTestId("messages-skeleton-search").firstElementChild?.className).toMatch(/\bh-11\b/);
+    const searchBones = getByTestId("messages-skeleton-search").firstElementChild;
+    expect(searchBones?.className).toBe("flex h-11 items-center justify-end gap-1");
+    // The magnifier and the more menu: two 44px boxes, no full-width pill bone.
+    expect([...(searchBones?.children ?? [])].map((c) => c.className.split(/\s+/).filter((k) => /^[hw]-/.test(k)).join(" "))).toEqual(["h-11 w-11", "h-11 w-11"]);
+    expect(getByTestId("messages-skeleton-search").querySelector(".w-full")).toBeNull();
     expect(getByTestId("messages-skeleton-chips").className).toBe("shrink-0 pt-1 pb-1.5");
     const rows = getByTestId("messages-skeleton-rows");
     expect(rows.className).toContain("flex-1 min-h-0 overflow-hidden px-3 py-3");

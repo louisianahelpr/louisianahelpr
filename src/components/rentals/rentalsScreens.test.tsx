@@ -367,7 +367,8 @@ describe("Rentals screens", () => {
     // Owner, 2026-10-19: Rent | Buy moved INTO the filter sheet; no second pill row under the toggle.
     it("opens on Rent: the Homes title, no Rent | Buy row on the page, Rent picked in the filter sheet", async () => {
       renderAt("/rentals");
-      expect(await screen.findByRole("search", { name: "Search homes for rent" })).toBeTruthy();
+      // Owner 11-21: the search starts as its icon (the filter button beside it).
+      expect(await screen.findByRole("button", { name: "Search homes for rent" })).toBeTruthy();
       expect(screen.getByRole("heading", { name: "Homes" })).toBeTruthy();
       expect(screen.queryByRole("tablist", { name: "Rent or buy" })).toBeNull();
       expect(screen.queryByRole("tab", { name: "Buy" })).toBeNull();
@@ -384,6 +385,7 @@ describe("Rentals screens", () => {
         expect(panel.textContent).toContain("verified owners");
         expect(panel.textContent).toMatch(/title company or attorney/);
         expect(panel.textContent).not.toMatch(/\b(negotia|haggl|offer|realtor|agent)/i);
+        fireEvent.click(screen.getByRole("button", { name: "Search homes for sale" }));
         expect(screen.getByPlaceholderText("Homes for sale: City or ZIP")).toBeTruthy();
         expect(screen.getByRole("button", { name: "Filters (1 active)" })).toBeTruthy();
         expect(screen.queryByText(/No homes for rent match yet/)).toBeNull();
@@ -402,13 +404,16 @@ describe("Rentals screens", () => {
       expect(link.textContent).toContain("3 beds · 2 baths · 1,650 sq ft");
       expect(link.textContent).toContain("Broussard 70518");
       expect(link.textContent).not.toMatch(/Available/);
+      fireEvent.click(screen.getByRole("button", { name: "Search homes for sale" }));
       fireEvent.change(screen.getByLabelText("Homes for sale: City or ZIP"), { target: { value: "70518" } });
       await vi.waitFor(() => expect(state.saleFilters[state.saleFilters.length - 1]).toMatchObject({ city: "70518" }));
       expect(state.browseFilters).toHaveLength(0);
     });
     it("ONE slim search row (owner bar 2026-10-19): City or ZIP with the filter button inside, no Search button, no bedroom/rent fields on the page; typing searches by itself", async () => {
       renderAt("/rentals");
-      const row = await screen.findByRole("search", { name: "Search homes for rent" });
+      // Owner 11-21: the row starts as the magnifier and the filter button; the tap opens the field, both in one row.
+      fireEvent.click(await screen.findByRole("button", { name: "Search homes for rent" }));
+      const row = screen.getByRole("search", { name: "Search homes for rent" });
       expect(row.querySelector('input[aria-label="City or ZIP"]')).toBeTruthy();
       expect(row.querySelector('button[aria-label="Filters"]')).toBeTruthy();
       expect(screen.queryByRole("button", { name: "Search" })).toBeNull();

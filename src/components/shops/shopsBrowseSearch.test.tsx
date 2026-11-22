@@ -66,6 +66,8 @@ describe("S043: Browse search runs on the server", () => {
     mount();
     await waitFor(() => expect(screen.getAllByTestId("shop-card")).toHaveLength(2));
     expect(calls.rpc[0].p_query).toBeUndefined();
+    // Owner 11-21: the search starts as its icon; the tap opens the field.
+    fireEvent.click(screen.getByRole("button", { name: "Search shops" }));
     fireEvent.change(screen.getByPlaceholderText("Search shops"), { target: { value: "  King Cake " } });
     await waitFor(() => expect(calls.rpc.some((a) => a.p_query === "king cake")).toBe(true));
     await waitFor(() => expect(screen.getAllByTestId("shop-card").map((c) => c.textContent)).toEqual(["Sweet Spot"]));

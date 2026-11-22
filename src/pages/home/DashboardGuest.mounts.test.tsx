@@ -77,7 +77,8 @@ describe("DashboardGuest mounts its children", () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    await waitFor(() => expect(container.querySelector('.page-title-card [data-testid="app-top-bar-search"] input')).not.toBeNull());
+    // Owner 11-21: the bar's search is just the icon until tapped.
+    await waitFor(() => expect(container.querySelector('.page-title-card [data-testid="app-top-bar-search"] button[data-search-icon]')).not.toBeNull());
     const guest = container.querySelector('.page-title-card [data-testid="top-bar-guest"]');
     expect(guest?.textContent).toBe("Log inJoin free");
     vi.doUnmock("@/lib/nativeInit");

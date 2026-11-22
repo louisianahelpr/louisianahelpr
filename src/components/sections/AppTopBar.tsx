@@ -232,10 +232,17 @@ export function AppTopBar({
       desktopGap={desktopGap}
       phone={
         search ? (
-          <header className={COMPACT_TOP_ROW} data-testid="app-top-bar" data-compact-top="">
-            {title && <h1 className="sr-only">{title}</h1>}
+          <header className={`${COMPACT_TOP_ROW} group/top`} data-testid="app-top-bar" data-compact-top="">
             {backEl}
-            <div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div>
+            {/* JUST THE ICON (owner 11-21): the search starts as a magnifier, so the row shows the page's name again (the
+                logo on Home); an opened field (`data-search-open`) takes the row and the name steps back to the screen
+                reader's h1. Guard: src/test/searchIsAnIconEverywhere1121.test.tsx. */}
+            {title ? (
+              <h1 data-top-bar-title="" className="min-w-0 flex-1 truncate text-page-title text-foreground group-has-[[data-search-open]]/top:!sr-only" title={title}>{title}</h1>
+            ) : (
+              <div className="flex min-w-0 flex-1 items-center group-has-[[data-search-open]]/top:hidden"><HelprMark size="sm" emblemOnly to="/home" /></div>
+            )}
+            <div data-testid="app-top-bar-search" className="flex min-w-0 shrink-0 justify-end has-[[data-search-open]]:flex-1">{search}</div>
             <div className="flex items-center shrink-0">
               {personal}
             </div>

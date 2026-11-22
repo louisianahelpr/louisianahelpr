@@ -302,13 +302,13 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/info/HelpCenter.tsx` | input×1 | search |  | faq-<slug> · faq · faq-heading · Search help · Clear search |
+| `src/pages/info/HelpCenter.tsx` | input×1 | search |  | faq-<slug> · faq · faq-heading · Search help · Close search |
 
 ## /helprs
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/helprs/FindHelprs.tsx` | input×1 | text | 60 | find-helprs · Find a Helpr by town · helpr-town · e.g. Lafayette · helpr-skill-label · find-helprs-loading · find-helprs-refused · find-helprs-not-ready |
+| `src/pages/helprs/FindHelprs.tsx` | input×1 | search | 60 | find-helprs · Find a Helpr by town · helpr-town · e.g. Lafayette · Close search · helpr-skill-label · find-helprs-loading · find-helprs-refused |
 
 ## /holidays
 
@@ -543,7 +543,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/sections/SectionSearchRow.tsx` | input×1 | search |  | Clear search |
+| `src/components/sections/SectionSearchRow.tsx` | input×1 | search |  |  |
 
 ## /shops/:id
 

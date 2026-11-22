@@ -19,7 +19,7 @@
  *
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |   const shown = parts.filter(([n]) => n > 0) |   const shown = parts.filter(() => true)
  * @mutate src/pages/home/HomeDashboard.tsx |                 const line = summary.tiles[s.key]; |                 const line = summary.tiles[s.key] ?? "0";
- * @mutate src/components/sections/AppTopBar.tsx |         <HelprMark size="sm" emblemOnly to="/home" /> |         <HelprMark size="sm" to="/home" />
+ * @mutate src/components/sections/AppTopBar.tsx | ) : titleEl ?? (\n              <HelprMark size="sm" emblemOnly to="/home" /> | ) : titleEl ?? (\n              <HelprMark size="sm" to="/home" />
  * @mutate src/components/MobileNav.tsx |                 background: "hsl(var(--alert))", |                 background: "hsl(var(--burnt-sienna))",
  * @mutate src/components/notificationPanel/NotificationTrigger.tsx | style={{ background: "hsl(var(--alert))", color: "#fff" }} | style={{ background: "hsl(var(--burnt-sienna))", color: "#fff" }}
  * @mutate src/components/MobileNav.tsx |           <Icon\n            className="w-[22px] h-[22px] transition-all duration-200" |           {path === "/jobs" && <img alt="" src="avatar.png" />}\n          <Icon\n            className="w-[22px] h-[22px] transition-all duration-200"

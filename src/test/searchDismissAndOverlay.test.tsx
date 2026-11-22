@@ -168,6 +168,8 @@ function deriveExpandingSearchFiles(): string[] {
  *   components/profile/SavedHelpersTab.tsx            Profile ▸ Saved Helprs
  *   pages/home/Dashboard.tsx                               desktop Browse strip — OPEN, see below
  *   pages/info/Legal.tsx                                   policy search
+ *   pages/info/HelpCenter.tsx                              /help search (owner 11-21: the magnifier by the title
+ *                                                     opens the field under it, in the page body)
  *   pages/home/DashboardGuest.tsx                          guest /browse?q= field (F070, 11-09): open for the
  *                                                     visit, no magnifier to land on
  *   components/job-card/embeddedActivity.tsx          Jobs > Posted / Working chip row
@@ -192,6 +194,7 @@ const REVIEWED_EXPANDING_SEARCHES = [
   "components/profile/SavedHelpersTab.tsx",
   "pages/home/Dashboard.tsx",
   "pages/home/DashboardGuest.tsx",
+  "pages/info/HelpCenter.tsx",
   "pages/info/Legal.tsx",
   "pages/info/giftGuides/GiftGuideShare.tsx",
 ].sort();
@@ -525,12 +528,15 @@ describe("Posted / Working search — in flow, the slot held, one dismiss", () =
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Search jobs you're working" }));
   });
 
-  it("phone: no magnifier expands; the tab's search is the bar's open field (owner 11-08)", async () => {
+  it("phone: no chip-row magnifier expands; the tab's search is the bar's icon, which opens the bar's field in its place (owner 11-08, 11-21)", async () => {
     setWebDesktop(false);
     await mount();
-    expect(screen.queryByRole("button", { name: "Search jobs you're working" })).toBeNull();
     expect(document.querySelector("[data-jobs-search], [data-search-trigger-slot]")).toBeNull();
+    const icon = screen.getByRole("button", { name: "Search jobs you're working" });
+    expect(icon.closest("[data-section-search-bar]")).not.toBeNull();
+    fireEvent.click(icon);
     expect(screen.getByRole("searchbox", { name: "Search jobs you're working" }).closest("[data-section-search-bar]")).not.toBeNull();
+    expect(document.querySelector("[data-jobs-search], [data-search-trigger-slot]")).toBeNull();
   });
 });
 
@@ -560,6 +566,8 @@ const NOT_EXERCISED: Record<string, string> = {
     "guest /browse?q= (F070, lead 11-09): the field is drawn open for a visit that came with a search and is never swapped in for anything; rendered and typed into by src/pages/home/DashboardGuest.search.test.tsx",
   "pages/info/giftGuides/GiftGuideShare.tsx":
     "the gift guides' tool row magnifier (train 1121i: an icon at every width): open, typing, Escape and the ✕ are rendered and pressed at 375 and 1440 in src/test/giftGuidePhoneHeader1121.test.tsx, and a tap outside in giftGuideHolidayPolish1121b.test.tsx (data-gift-search-*); the held slot is asserted by source below",
+  "pages/info/HelpCenter.tsx":
+    "owner 11-21 (search is just the icon): the magnifier sits in the page's title row and the field opens under it in the page body, replacing nothing in any row; opened, typed into, closed with its X and Escape by src/pages/info/HelpCenter.test.tsx and src/test/searchIsAnIconEverywhere1121.test.tsx",
   "pages/info/Legal.tsx":
     "document-scroll marketing page: the field replaces nothing. The old reason added 'the tab group holds its own width' — it did not, and that was the bug: at 320 the tabs and the field were both flex-1 at 107px, the three tab labels overlapped, and the field sat under the typable floor. Fixed 2026-09-20 by stepping the tab group aside below 500px while the field is open. The 320/375 the browser pass owed is now paid: e2e/prod-audit/expanding-search-geometry.spec.ts runs /legal at 320, 375 and 1440 against the shared MIN_TYPABLE_FIELD_PX, with no per-surface pin",
 };
@@ -714,6 +722,8 @@ describe("desktop Browse strip — opening search unmounts nothing but the field
  * on the day someone remembers to add it here.
  */
 const NO_SLOT_NEEDED: Record<string, string> = {
+  "pages/info/HelpCenter.tsx":
+    "owner 11-21: the magnifier is in the title row (PublicHeaderPage titleActions) and the opened field is a separate full-width row in the page body below it, its X inside the field's right edge; the field never grows into the magnifier's row, so the X cannot sit on the magnifier's return box",
   "pages/info/Legal.tsx":
     "owner, 2026-10-04 (Q912): the open policy field fills the whole pill, so its ✕ DOES sit on the magnifier's return box by design; the re-press that made that dangerous is refused instead (RETAP_GUARD_MS, pointer only), held by src/test/legalSearchRetapGuard.test.ts and measured in Chromium and WebKit at 375/1440 (8 of 8 reopened without the guard, 0 of 8 with it)",
   "components/dashboard/BrowseTasksToolbar.tsx":

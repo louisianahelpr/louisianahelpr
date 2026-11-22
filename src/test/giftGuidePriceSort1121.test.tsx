@@ -203,7 +203,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // 11-22 (owner edits): Him lost the Dr. Squatch Fresh Falls soap and Men's Fuzzy Cloud Socks (under $25) and the
       // Armor All and Chemical Guys car kits ($25-$50); Her lost the Floral Mama quarter zip (under $25).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Him gained the Dad fill-in book ($18).
-      him: { "Under $25": 44, "$25 to $50": 40, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 36 },
+      // 11-22 popular approved (builder-guide-popular): Kids + 9, Her + 5, Him + 5 (AirPods Pro 3, AirTags, Bose, Garmin, Gozney).
+      him: { "Under $25": 44, "$25 to $50": 40, "$50 to $75": 20, "$75 to $100": 11, "$100 and up": 40 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),

@@ -30,7 +30,6 @@ const pin = (p: string) => `https://go.shopmy.us/${p}`;
 /** Copied from the Desktop note (not from the module): pin -> guide, store, price checked 11-22. */
 const SENT: [string, string, string, number][] = [
   ["p-109140863", "her", "store-camp-snap", 59.99], // Camp Snap 2, Chestnut
-  ["p-107929179", "her", "store-camp-snap", 79], // CS-Pro: her Swank pin p-109140912 ($99) moved to Camp Snap direct
   ["p-109141448", "her", "store-camp-snap", 159], // CS-8 camcorder
   ["p-109143437", "her", "store-sleep-crown", 289], // Sleep Crown Classic (sold out until Dec 1)
   ["p-109143698", "her", "store-crown-affair", 59],
@@ -137,13 +136,23 @@ describe("the owner's launch-day picks (11-22)", () => {
     const all = ["her", "him", "kids"].flatMap(chunk);
     for (const swank of ["p-109140912", "p-109142125", "p-109142226"]) expect(all.some((x) => x.href === pin(swank)), swank).toBe(false);
     const camp = all.filter((x) => x.store === "store-camp-snap");
-    expect(camp.length).toBeGreaterThan(5);
+    expect(camp.length).toBeGreaterThan(3); // 4 since the owner kept one Camp Snap camera on Her (11-22 PM)
     for (const x of camp) expect(x.code, x.name).toBe("LEXILOMBAS7");
   });
 
   it("the Serta pad shows its lowest size price as \"from\"; the Kate McLeod bar waits for a restock", () => {
     expect(chunk("her").find((x) => x.href === pin("p-109144140"))?.priceFrom).toBe(true);
     expect(["her", "him", "kids"].flatMap(chunk).some((x) => x.href === pin("p-109144875"))).toBe(false);
+  });
+});
+
+describe("owner 11-22 PM removals on Her (builder-guide-emibauble)", () => {
+  it("the one Camp Snap camera left on Her is the Chestnut, and the removed rows are gone", () => {
+    const her = chunk("her");
+    const cameras = her.filter((x) => x.store === "store-camp-snap" && /camera/i.test(x.name));
+    expect(cameras.map((x) => x.href)).toEqual([pin("p-109140863")]);
+    const gone = ["B000S5VEA2", "B0FGDQ5BT9", "p-103899561", "B0F831FK2R", "B0B22SZ3W8", "p-108611500", "p-107929179"];
+    for (const id of gone) expect(her.some((x) => x.href.includes(id)), id).toBe(false);
   });
 });
 

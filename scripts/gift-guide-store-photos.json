@@ -1,5 +1,11 @@
 {
  "photos": {
+  "Anthropologie": {
+   "file": "anthropologie.webp",
+   "product": "HOKA Bondi 9 Sneakers",
+   "image": "https://images.urbndata.com/is/image/Anthropologie/94284668_055_b",
+   "page": "https://go.shopmy.us/p-107887741"
+  },
   "At Home": {
    "file": "at-home.webp",
    "product": "Pre-Lit Slim Jackson Pine Tree, 7 ft",
@@ -17,6 +23,20 @@
    "product": "Clinique Full Face Forward: Simply Radiant Makeup Gift Set",
    "image": "https://belk.scene7.com/is/image/Belk?layer=0&src=5900053_VBRAY5_A_000&wid=1200&hei=1200",
    "page": "https://www.belk.com/p/clinique-full-face-forward-simply-radiant-makeup-gift-set---118-value/5900053VBRAY5.html"
+  },
+  "Bergdorf Goodman": {
+   "file": "bergdorf-goodman.webp",
+   "product": "Diptyque Baies (Berries) Classic Candle",
+   "image": "https://static.shopmy.us/pins/zoom-104051133-1794418321009-bg_2251332_100000_m",
+   "page": "https://go.shopmy.us/p-104051133",
+   "note": "ShopMy's copy of the bergdorfgoodman.com product photo"
+  },
+  "Bloomingdale's": {
+   "file": "bloomingdales.webp",
+   "product": "Hatch Restore 3 Smart Sleep Clock",
+   "image": "https://static.shopmy.us/pins/zoom-104054817-1794418758648-14679234_fpx.tif",
+   "page": "https://go.shopmy.us/p-104054817",
+   "note": "ShopMy's copy of the bloomingdales.com product photo (pin p-104054817)"
   },
   "Bon Wellness": {
    "file": "bon-wellness.webp",
@@ -132,6 +152,19 @@
    "image": "https://images.footlocker.com/is/image/EBFL2/Z4720001?wid=1000&hei=1000",
    "page": "https://www.kidsfootlocker.com/product/jordan-air-jordan-1-mid-se-boys-grade-school/Z4720001.html"
   },
+  "Lands' End": {
+   "file": "lands-end.webp",
+   "product": "Lands' End Open Top Canvas Tote",
+   "image": "https://static.shopmy.us/uploads/img-product-1795049282785",
+   "page": "https://go.shopmy.us/p-107879518",
+   "note": "ShopMy's copy of the landsend.com product photo"
+  },
+  "Macy's": {
+   "file": "macys.webp",
+   "product": "Melissa & Doug Pull-Back Vehicle Toys",
+   "image": "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1836568_fpx.tif?wid=1000&fmt=jpeg",
+   "page": "https://go.shopmy.us/p-108631978"
+  },
   "Magnifique": {
    "file": "magnifique.webp",
    "product": "Dutch Oven Multi-Cooker",
@@ -143,6 +176,13 @@
    "product": "Arctic Sport II Women's 17\" Insulated Tall Boot",
    "image": "https://cdn.shopify.com/s/files/1/0918/9123/7146/files/mas17w20_profile_g.jpg?v=1790686423",
    "page": "https://www.muckbootcompany.com/products/mas17w20"
+  },
+  "Neiman Marcus": {
+   "file": "neiman-marcus.webp",
+   "product": "Royce New York Monogrammed Executive Journal with Pen",
+   "image": "https://static.shopmy.us/pins/zoom-107904461-1795119396809-nm_3578888_100586_m",
+   "page": "https://go.shopmy.us/p-107904461",
+   "note": "ShopMy's copy of the neimanmarcus.com product photo"
   },
   "Nordstrom": {
    "file": "nordstrom.webp",
@@ -186,11 +226,24 @@
    "image": "https://cdn.shopify.com/s/files/1/1359/2701/files/LAB-CLASSIC-DIAMOND-STUDS_111725.jpg?v=1763401226",
    "page": "https://www.ringconcierge.com/products/lab-grown-diamond-studs"
   },
+  "Saks Fifth Avenue": {
+   "file": "saks-fifth-avenue.webp",
+   "product": "UGG Classic Ultra Mini Boot, Chestnut",
+   "image": "https://static.shopmy.us/pins/zoom-108157980-1795154472307-0400013790056_CHESTNUT",
+   "page": "https://go.shopmy.us/p-108157980",
+   "note": "ShopMy's copy of the saks.com product photo"
+  },
   "Sally Beauty": {
    "file": "sally-beauty.webp",
    "product": "BaBylissPRO Nano Titanium Dryer",
    "image": "https://www.sallybeauty.com/dw/image/v2/BCSM_PRD/on/demandware.static/-/Sites-SBS-SallyBeautySupply/default/dw6a366116/images/large/SBS-021505.jpg?sw=1500&sh=1500&sfrm=png",
    "page": "https://www.sallybeauty.com/tools-and-brushes/hair-dryers/nano-titanium-dryer/SBS-021505.html"
+  },
+  "Sam's Club": {
+   "file": "sams-club.webp",
+   "product": "Ninja Fireside360 Outdoor Heater & Propane Fire Pit",
+   "image": "https://i5.samsclubimages.com/asr/8541721b-0bd9-4671-bc18-38bde4d000ba.1b245066f8b1daa71a9e78c348be3d05.jpeg",
+   "page": "https://mavely.app.link/6HdKqiKQa8b"
   },
   "SharkNinja": {
    "file": "sharkninja.webp",

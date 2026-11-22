@@ -59,7 +59,7 @@ describe("codes ride with their item on Her, Him and Kids (owner 11-21)", () => 
     expect(camp?.code).toBe("LEXILOMBAS7");
     expect(camp?.codeEnds).toBeUndefined();
     // The module too, so a generator change shows before the page is regenerated.
-    expect((HER_1121 as Pick[]).find((p) => p.store === "store-camp-snap")?.code).toBe("LEXILOMBAS7");
+    expect(HER_1121.find((p) => p.store === "store-camp-snap")?.code).toBe("LEXILOMBAS7");
     const boots = chunk("him").filter((p) => p.store === "store-xtratuf");
     expect(boots.length).toBe(4);
     for (const b of boots) expect([b.code, b.codeEnds]).toEqual(["XT25", "2026-11-29"]);

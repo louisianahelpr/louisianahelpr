@@ -10,6 +10,7 @@ import { GiftOut } from "./GiftOut";
 import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS, SECTION_ALIASES, SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
+import { START_OPEN } from "./startOpen";
 import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor, saveItemOf } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
@@ -231,11 +232,12 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   // Filter, the budget lives there and the list draws no chips of its own.
   const budget = filter ? filter.budget : ownBudget;
   const setBudget = filter ? filter.onBudget : setOwnBudget;
-  // Owner 2026-11-21 ("there should be a button to open and expand each section like for under 25 etc.", first open by
-  // her pop-up pick): which price sections are open, for this visit only. null = the default, the first section (in the
-  // current order) open and the rest closed; a new order goes back to that default.
-  const [openSecs, setOpenSecs] = useState<Set<string> | null>(null);
-  useEffect(() => { setOpenSecs(null); }, [order]);
+  // Owner 2026-11-21 ("there should be a button to open and expand each section like for under 25 etc."); owner
+  // 2026-11-22 ("im having to click the drop downs for each section a few times. instead of having them be collapsed
+  // just have all sections expanded when they are opened"): every price section starts open (START_OPEN). `flipped`
+  // holds the sections a tap turned away from that default, for this visit only; a new order opens them all again.
+  const [flipped, setFlipped] = useState<ReadonlySet<string>>(() => new Set());
+  useEffect(() => { setFlipped(new Set()); }, [order]);
   const sortable = isOwnerList(guide.slug);
   const ready = picksReady(guide.slug);
   // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.
@@ -253,9 +255,10 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
     const ids = navKey.split(" ");
     const id = ids.includes(raw) ? raw : SECTION_ALIASES[guide.slug]?.[raw] || SECTION_ANCHORS[raw] || "";
     if (id && ids.includes(id)) jump(id);
-    // A price section's own link (/gift-guides/her#25-to-50, from a pin or the quiz) opens that section and scrolls to it.
+    // A price section's own link (/gift-guides/her#25-to-50, from a pin or the quiz) scrolls to that section (open, as
+    // every section is).
     else if (sortable && (PRICE_SECTIONS.some((s) => s.id === raw) || raw === "price-soon")) {
-      setOpenSecs(new Set([raw]));
+      setFlipped(() => new Set());
       requestAnimationFrame(() => document.getElementById(`gg-sec-${raw}`)?.scrollIntoView({ block: "start" }));
     }
     // Once per guide, when its list is in (the hash is read only on arrival).
@@ -276,10 +279,9 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned;
   const sectionCount = new Map<string, number>();
   if (sortable) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
-  const firstSection = sortable ? picks[0]?.sectionId : undefined;
-  const isOpen = (id?: string) => !sortable || !id || (openSecs ? openSecs.has(id) : id === firstSection);
-  const toggle = (id: string) => setOpenSecs((cur) => {
-    const next = new Set(cur ?? (firstSection ? [firstSection] : []));
+  const isOpen = (id?: string) => !sortable || !id || (flipped.has(id) ? !START_OPEN : START_OPEN);
+  const toggle = (id: string) => setFlipped((cur) => {
+    const next = new Set(cur);
     if (next.has(id)) next.delete(id);
     else next.add(id);
     return next;
@@ -408,7 +410,8 @@ const storeDealRows = (guide: CatalogGuide) => {
 const STORE_DEALS_FIRST = 6;
 
 function StoreDeals({ guide }: { guide: CatalogGuide }) {
-  const [all, setAll] = useState(false);
+  // Owner 2026-11-22 ("make everything open expanded"): every deal row shows on arrival (START_OPEN).
+  const [all, setAll] = useState(START_OPEN);
   const rows = storeDealRows(guide);
   if (rows.length === 0) return null;
   return (

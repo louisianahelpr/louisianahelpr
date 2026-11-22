@@ -9,6 +9,7 @@ import {
 } from "@/content/giftQuiz";
 import { PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { PickRow } from "./GiftGuideView";
+import { START_OPEN } from "./startOpen";
 
 /**
  * The gift quiz, "Find a gift" (owner 2026-11-21 ~6:15 PM: "The whole point of a quiz is to ask questions to
@@ -47,12 +48,13 @@ export function GiftFinder() {
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
   const a = readQuiz(new URLSearchParams(search));
   const who = QUIZ_WHO.find((x) => x.id === a.who);
-  const [more, setMore] = useState(false);
+  // Owner 2026-11-22 ("make everything open expanded"): every matching pick shows on arrival (START_OPEN).
+  const [more, setMore] = useState(START_OPEN);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (who) loadGuidePicks(who.guide).catch((e: unknown) => console.warn("gift quiz: picks chunk failed", who.guide, e));
   }, [who]);
-  useEffect(() => { setMore(false); setCopied(false); }, [search]);
+  useEffect(() => { setMore(START_OPEN); setCopied(false); }, [search]);
   const go = (next: QuizAnswers) => {
     const q = new URLSearchParams();
     for (const k of ["who", "age", "budget", "into"] as const) if (next[k]) q.set(k, next[k]!);

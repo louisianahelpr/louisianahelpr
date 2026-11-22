@@ -7,6 +7,7 @@ import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
 import { storePhoto } from "@/content/giftGuideStorePhotos";
 import { DEAL_EVENTS, DEALS_WORDS } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
+import { START_OPEN } from "./startOpen";
 
 /**
  * The deals days' discount codes and store sales as photo cards (owner 2026-11-21: "for discount codes we should do the
@@ -128,7 +129,8 @@ const codePercent = (c: DiscountCode) => Number(/(\d+)\s*%/.exec(c.offer)?.[1] ?
  * leads the card; any others sit under a "+N more codes" button, each with its own offer, dates and copy chip.
  */
 function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
-  const [all, setAll] = useState(false);
+  // Owner 2026-11-22 ("make everything open expanded"): a store's other codes show on arrival (START_OPEN).
+  const [all, setAll] = useState(START_OPEN);
   const best = codes.reduce((a, c) => (codePercent(c) > codePercent(a) ? c : a), codes[0]);
   const others = codes.filter((c) => c !== best);
   const href = best.href as string;
@@ -185,7 +187,8 @@ export function SaleCards({ stores }: { stores: { store: string; sales: Sale[] }
 const SALE_LINES = 2;
 
 function SaleCard({ store, sales }: { store: string; sales: Sale[] }) {
-  const [all, setAll] = useState(false);
+  // Owner 2026-11-22 ("make everything open expanded"): every sale of the store shows on arrival (START_OPEN).
+  const [all, setAll] = useState(START_OPEN);
   const shown = all ? sales : sales.slice(0, SALE_LINES);
   return (
     <Card store={store} href={sales[0].href} data={{ "data-gift-sale-store": store }} line={

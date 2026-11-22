@@ -17,8 +17,8 @@
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx |                 {wide && (\n                  <ApplicantsDesktopTable |                 {false && (\n                  <ApplicantsDesktopTable
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {[selectedJob.title, selectedJob.date_needed ? jobDayLabel(selectedJob) : null] | {[selectedJob.title]
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | {app.flagged_hidden ? ( | {false ? (
- * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | onClick={() => { hapticLight(); onBlock(app); }} | onClick={() => { hapticLight(); }}
- * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | onClick={() => { hapticLight(); onReport(app); }} | onClick={() => { hapticLight(); }}
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | onBlock={() => onBlock(app)} /> | onBlock={() => {}} />
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | onReport={() => onReport(app)} onBlock | onReport={() => {}} onBlock
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | onAcceptApplication={() => onAcceptApplication(app)} | onAcceptApplication={() => {}}
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | {app.status === "pending" && <CompareCheck | {false && <CompareCheck
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsCompareCard.tsx |       {picked.length < 2 ? ( |       {picked.length < 1 ? (

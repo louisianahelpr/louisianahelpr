@@ -26,7 +26,6 @@ import { trackedFiles } from "./helpers/trackedFiles";
 // @mutate src/index.css | font-size: calc(var(--headline-card) * 1.25); | font-size: var(--headline-card);
 // @mutate src/components/dashboard/JobCard.tsx | className="job-card-title senior-clamp-2 text-headline-card | className="job-card-title text-headline-card
 // @mutate src/index.css | html.senior-mode .job-category-tab {\n  line-height: 1 !important; | html.senior-mode .job-category-tab {\n  line-height: 1.45 !important;
-// @mutate src/components/job/cardGeometry.ts | "job-category-tab inline-flex | "inline-flex
 
 const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
@@ -58,9 +57,6 @@ describe("Q1661: job-card titles follow the senior text scale", () => {
     const m = css.match(/html\.senior-mode\s+\.job-category-tab\s*\{([^}]*)\}/);
     expect(m, "html.senior-mode .job-category-tab rule").not.toBeNull();
     expect(m![1]).toMatch(/line-height\s*:\s*1\s*!important/);
-    const frame = blankComments(read("src/components/job/cardGeometry.ts")).match(/JOB_CATEGORY_TAB_FRAME\s*=\s*"([^"]*)"/);
-    expect(frame, "JOB_CATEGORY_TAB_FRAME").not.toBeNull();
-    expect(frame![1].split(/\s+/)).toContain("job-category-tab");
   });
 
   it("finds the job-card titles (inventory floor)", () => {

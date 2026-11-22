@@ -18,11 +18,6 @@
  * the entry chunk, to paint a placeholder. Same reasoning as
  * `DashboardRouteSkeleton`'s refusal to import `DashboardTitleBar`. Strings in
  * a leaf module cost nothing and both sides can hold them.
- *
- * `JOB_CATEGORY_TAB_FRAME` lives here for the same reason: `JobCategoryTab`
- * itself pulls in `activityConstants` (the whole category colour table) and
- * `CategoryIcon` (a lucide bundle), neither of which a grey placeholder box
- * needs.
  */
 
 /** Outer card: border, background, shadow, radius. */
@@ -43,18 +38,6 @@ export const JOB_CARD_TITLE_ROW = "flex items-center justify-between gap-3";
 
 /** The meta block below the title row. */
 export const JOB_CARD_META = "mt-1.5 flex flex-col gap-0.5 text-ds-11 leading-tight";
-
-/**
- * The category tab's own box, without its category colour
- * (`src/components/job/JobCategoryTab.tsx`).
- *
- * A placeholder RESERVES this tab's height from here rather than guessing at a
- * number beside it — the skeleton that omitted the tab entirely left every
- * bone ~20px shorter than the card it stood in for, and the feed stepped down
- * as the real cards landed.
- */
-export const JOB_CATEGORY_TAB_FRAME =
-  "job-category-tab inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-ds-10 font-semibold leading-none shadow-sm";
 
 /** Photo-first rows (Q2043): the tile and the text column side by side. Shared with the pre-boot Browse shell
  *  (src/lib/browseShellCards.mjs), which must match byte for byte, and with JobCardSkeleton (Jobs audit 11-21, P10). */

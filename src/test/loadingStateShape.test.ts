@@ -281,7 +281,7 @@ describe("loading states: no two placeholders share a name", () => {
     return out;
   };
 
-  // @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | export function JobCardSkeleton() { | export function ProfilePageSkeleton() {} export function JobCardSkeleton() {
+  // @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | export function JobCardSkeleton({ badge = false }: { badge?: boolean } = {}) { | export function ProfilePageSkeleton() {} export function JobCardSkeleton({ badge = false }: { badge?: boolean } = {}) {
   it("every exported placeholder name is defined in exactly one file", () => {
     const files = walk(resolve(REPO, "src"));
     // FLOOR: a scan that matches nothing must fail, never pass quietly.

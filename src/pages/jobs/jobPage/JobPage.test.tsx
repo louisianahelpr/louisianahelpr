@@ -39,7 +39,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)) | go: () => void apply.flow.handleApplyRequest(job.id)
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId) \|\| onCrew); |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId));
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | myApplication: myApplication.data, posterFirst, onCrew, offeredToMe }); | myApplication: myApplication.data, posterFirst, offeredToMe });
- * @mutate src/components/tracker/jobProgressState.ts | poster ? (o.pendingApplicants === 0 ? t("jl.waitApply") : t("jl.pick")) | poster ? (t("jl.pick"))
+ * @mutate src/components/tracker/jobProgressState.ts | poster ? (pending === 0 ? t("jl.waitApply") : t("jl.pick")) | poster ? (t("jl.pick"))
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |  pendingApplicants={isPoster && applicants.data ? pending : undefined} | pendingApplicants={undefined}
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !closedToMe && !instantUntil && viewer.action.kind !== "see_offer" && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && ((job.proof_before_urls | {false && ((job.proof_before_urls
@@ -766,7 +766,7 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
 
 // Owner 2026-11-01: the on-the-way line and where the Helpr is sit ABOVE the tracker; Message and the card's options
 // share one row (none: Message alone; one: that action; two or more: More options); the Helpr's card sits above them.
-// @mutate src/pages/jobs/jobPage/JobPage.tsx |           {isPoster && !continueDay.row && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />} |
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |           {isPoster && !continueDay.row && !noShowLead && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />} |
 // @mutate src/pages/jobs/jobPage/OnTheWayNow.tsx |   const mapped = p != null && (arrived ? p.status === "arrived" : p.status === "on_the_way") && |   const mapped = p != null &&
 // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |     : others === 1 | : others === -1
 // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const extras = [...(lead === msg ? [] : msg ? [msg] : []), ...pageExtras(), ...moreExtras]; |     const extras = [msg as RowAction, ...pageExtras(), ...moreExtras];
@@ -1568,7 +1568,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   // @mutate src/components/GroupJobHelpers.tsx |               {onMessage && h.helper_id && h.status === "accepted" && ( |               {false && (
   // @mutate src/components/tracker/jobProgressState.ts |   if (poster && crewBookedOnRow(job)) return at(2 | if (false) return at(2
   // @mutate src/components/tracker/jobProgressState.ts | if (o.viewer === "poster" && crewBookedOnRow(job) && base.word === "Hired") return base; | if (false) return base;
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx | continueStep={continueDay.step ?? (isPoster && job.is_group_job ? crewPosterStep( | continueStep={continueDay.step ?? (false ? crewPosterStep(
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |               : isPoster && job.is_group_job ? crewPosterStep( |               : false ? crewPosterStep(
   it("a crew job: the roster on the page, with each member's step, Message and Confirm work", () => {
     const m = (id: string, name: string, over: Record<string, unknown>) => ({
       id: `slot-${id}`, helper_id: id, status: "accepted", helperName: name, helper_confirmed_at: "2026-10-27T12:00:00Z",

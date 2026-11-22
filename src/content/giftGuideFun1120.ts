@@ -501,6 +501,10 @@ export const FUN_WORDS = {
   plannerFromList: "Add from my wish list",
   plannerBought: "Bought",
   plannerRemovePerson: (name: string) => `Remove ${name || "this person"}`,
+  plannerRemoveTitle: (name: string) => `Remove ${name || "this person"}?`,
+  plannerRemoveBody: (name: string, gifts: number) =>
+    `${name || "This person"} and ${gifts === 1 ? "their 1 gift" : `their ${gifts} gifts`} come off your planner and your lists. You can undo it right after.`,
+  plannerRemoveKeep: "Keep",
   plannerRemoveIdea: (name: string) => `Remove ${name || "this idea"}`,
   plannerSpentOf: (spent: string, budget: string) => `${spent} of ${budget}`,
   plannerBoughtAmount: (spent: string) => `Bought ${spent}`,

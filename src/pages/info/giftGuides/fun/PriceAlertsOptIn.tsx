@@ -22,6 +22,8 @@ import { usePlan } from "./plannerStore";
  * box (never pre-ticked) and "unsubscribe anytime". Works signed out (email only) and signed in. Reads the same lists
  * the planner and the guides' "save for someone" lists keep (plannerStore); it never changes them. Layers:
  * supabase/functions/_shared/giftPriceAlerts.ts. Guard: src/test/giftPriceAlerts.test.ts.
+ * Owner 2026-11-22 (polish): a title, one line, the email, ONE consent box with its words beside it (the guides' label
+ * rule had made the box sit on its own line), the unsubscribe line in small text, and the button.
  */
 export function PriceAlertsOptIn() {
   const plan = usePlan();
@@ -39,9 +41,9 @@ export function PriceAlertsOptIn() {
 
   if (items.length === 0) {
     return (
-      <div className="gg-fun-card" data-price-alerts="empty">
-        <p className="gg-finder-q m-0 mb-1">{W.title}</p>
-        <p className="gg-fun-note m-0">{W.none}</p>
+      <div className="gg-fun-card gg-alerts" data-price-alerts="empty">
+        <p className="gg-alerts-t">{W.title}</p>
+        <p className="gg-alerts-lead">{W.none}</p>
       </div>
     );
   }
@@ -49,10 +51,10 @@ export function PriceAlertsOptIn() {
   if (onDevice && !editing) {
     const more = items.length > onDevice.count;
     return (
-      <div className="gg-fun-card" data-price-alerts="on">
-        <p className="gg-finder-q m-0 mb-1">{W.title}</p>
-        <p className="gg-fun-note m-0" role="status">{W.on(onDevice.email, onDevice.count)}</p>
-        {more && <p className="gg-fun-note m-0">{W.changed}</p>}
+      <div className="gg-fun-card gg-alerts" data-price-alerts="on">
+        <p className="gg-alerts-t">{W.title}</p>
+        <p className="gg-alerts-lead" role="status">{W.on(onDevice.email, onDevice.count)}</p>
+        {more && <p className="gg-alerts-lead">{W.changed}</p>}
         <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => setEditing(true)} data-price-alerts-update="">{W.update}</Button>
       </div>
     );
@@ -83,17 +85,17 @@ export function PriceAlertsOptIn() {
   };
 
   return (
-    <form className="gg-fun-card" onSubmit={submit} aria-labelledby={`${ids}-t`} data-price-alerts="form" noValidate>
-      <p id={`${ids}-t`} className="gg-finder-q m-0 mb-1">{W.title}</p>
-      <p className="gg-fun-note m-0 mb-2">{W.lead}</p>
+    <form className="gg-fun-card gg-alerts" onSubmit={submit} aria-labelledby={`${ids}-t`} data-price-alerts="form" noValidate>
+      <p id={`${ids}-t`} className="gg-alerts-t">{W.title}</p>
+      <p className="gg-alerts-lead">{W.lead}</p>
       <Input type="email" inputMode="email" autoComplete="email" aria-label={W.email} placeholder={W.email} value={typed} maxLength={254}
         onChange={(e) => setEmail(e.target.value)} data-price-alerts-email="" />
-      <label className="mt-2 flex min-h-11 items-start gap-2 text-sm" htmlFor={`${ids}-c`}>
-        <Checkbox id={`${ids}-c`} checked={consent} onCheckedChange={(v) => setConsent(v === true)} className="mt-0.5" data-price-alerts-consent="" />
+      <label className="gg-alerts-consent" htmlFor={`${ids}-c`}>
+        <Checkbox id={`${ids}-c`} checked={consent} onCheckedChange={(v) => setConsent(v === true)} data-price-alerts-consent="" />
         <span>{W.consent}</span>
       </label>
-      <p className="gg-fun-note m-0 mt-1">{W.unsubscribe}</p>
-      <Button type="submit" className="btn-grad-primary mt-2" disabled={busy} data-price-alerts-submit="">{busy ? W.sending : W.button}</Button>
+      <p className="gg-alerts-small">{W.unsubscribe}</p>
+      <Button type="submit" className="btn-grad-primary gg-alerts-btn" disabled={busy} data-price-alerts-submit="">{busy ? W.sending : W.button}</Button>
       {err && <p className="gg-fun-err" role="alert">{err}</p>}
     </form>
   );

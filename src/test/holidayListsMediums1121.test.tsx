@@ -238,8 +238,22 @@ describe("holiday audit 1121: gift lists Mediums", () => {
     expect(stored().people[1].ideas.map((i) => i.name)).toEqual(["Fishing hat", "Coffee mug"]);
     await waitFor(() => expect(c.querySelectorAll(`[data-plan-person="${dad.id}"] [data-plan-idea]`)).toHaveLength(2));
 
-    // A person: removed with their gifts, "Removed Dad · Undo", Undo puts Dad back in the middle with both gifts.
-    fireEvent.click(c.querySelector(`[data-plan-remove="${dad.id}"]`)!);
+    // A person: asked first (owner 2026-11-22: Remove is quiet and confirms; Keep changes nothing), then removed with
+    // their gifts, "Removed Dad · Undo", Undo puts Dad back in the middle with both gifts.
+    const ask = async () => {
+      fireEvent.click(c.querySelector(`[data-plan-remove="${dad.id}"]`)!);
+      return waitFor(() => {
+        const d = [...document.querySelectorAll<HTMLElement>("[role='alertdialog'], [role='dialog']")].find((x) => x.textContent?.includes("Remove Dad?"));
+        expect(d).toBeTruthy();
+        return d!;
+      });
+    };
+    let dialog = await ask();
+    expect(dialog.textContent).toContain("their 2 gifts");
+    fireEvent.click([...dialog.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === "Keep")!);
+    expect(stored().people.map((p) => p.name)).toEqual(["Mom", "Dad", "Jake"]);
+    dialog = await ask();
+    fireEvent.click([...dialog.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === "Remove Dad")!);
     expect(stored().people.map((p) => p.name)).toEqual(["Mom", "Jake"]);
     expect(toasts[toasts.length - 1].message).toBe("Removed Dad");
     toasts[toasts.length - 1].action!.onClick();

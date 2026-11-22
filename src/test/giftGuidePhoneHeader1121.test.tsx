@@ -92,7 +92,8 @@ describe("every card: price top-right, heart bottom-right (owner 11-21)", () => 
     expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-nm{display:grid;grid-template-columns:minmax(0,1fr) auto;");
     expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1;");
     expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0}");
-    expect(GIFT_GUIDES_CSS).toContain(".gg-top10 .gg-heart-pick{position:absolute;top:auto;bottom:0;right:-6px}");
+    // The Top 10 cards are not the guides' listings: their heart sits on the photo's top-right (owner 11-21 evening).
+    expect(GIFT_GUIDES_CSS).toContain(".gg-top10 .gg-heart-pick{position:absolute;top:2px;right:2px;z-index:1}");
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-list \.gg-heart-pick\{position:static\}/);
     const c = await renderAt("/gift-guides/kids", 390);
     const li = c.querySelector("li[data-gift-pick]")!;

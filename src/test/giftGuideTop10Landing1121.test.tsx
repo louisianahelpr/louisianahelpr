@@ -17,10 +17,12 @@
  * Owner 11-21 evening: "put the other Theragun here" (spot 1 is the Her Theragun Mini) and "number the top 10 gifts"
  * (each card wears its rank 1-10 on the photo's corner and says it first, "1. Therabody Theragun Mini").
  * @mutate src/content/giftGuideTop10.json | "https://go.shopmy.us/p-108613356", "guide": "her" | "https://go.shopmy.us/p-0000", "guide": "her"
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-heart-pick{position:absolute;top:2px;right:2px;z-index:1} | .gg-top10 .gg-heart-pick{position:absolute;top:auto;bottom:0;right:-6px}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
@@ -44,6 +46,17 @@ const CHUNKS: Record<string, { name: string; href: string; image?: string }[]> =
 /** The owner's ten, in her order (11-21 ~5:05 PM), by the start of each pick's name. */
 // Owner 11-21 evening: "put the other Theragun here" (spot 1 is the Her Theragun Mini, was the Him Theragun Prime).
 const OWNER_TEN = ["Therabody Theragun Mini", "Lola Blankets", "Shark Depuffi", "YETI Camino 35", "Tyler Candle Company Diva", "Camp Snap", "Ember Mug 2", "Hatch Restore 3", "Owala FreeSip", "UGG Goldenstar Evelina"];
+
+describe("the Top 10 card layout (owner 11-21 evening)", () => {
+  it("the heart sits on the photo's top-right like the other showcase cards; the rank badge is top-left", () => {
+    // "Put the heart in the top right corner of the photo like all the others": the price-top-right / heart-bottom-right
+    // layout is only for the guides' product listings. The Top 10 card's photo is its first block, so the card's top-right
+    // corner is the photo's.
+    expect(GIFT_GUIDES_CSS).toContain(".gg-top10 .gg-heart-pick{position:absolute;top:2px;right:2px;z-index:1}");
+    expect(GIFT_GUIDES_CSS).toMatch(/\.gg-rank\{position:absolute;top:6px;left:6px;/);
+    expect(TOP10_SLOTS[0].href).toBe("https://go.shopmy.us/p-107903671"); // the Theragun Mini's Ulta link, as on the Her guide
+  });
+});
 
 describe("the Top 10 list (src/content/giftGuideTop10.json)", () => {
   it("holds the owner's ten in her order, each a real pick with a photo on the guide it names, none auto-replaced", () => {

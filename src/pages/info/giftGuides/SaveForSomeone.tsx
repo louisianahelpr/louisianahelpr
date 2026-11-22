@@ -12,7 +12,7 @@ import { planActions, useAccountSync, usePlan } from "./fun/plannerStore";
 import { GiftWishShare } from "./GiftWishShare";
 import { useOurLinkSync } from "./wishLinkSync";
 import { isSaved, itemId, togglePick, useGiftList } from "./giftList";
-import { ListLine, MyWishList, PersonList } from "./ManageList";
+import { ListLine, ListTools, MyWishList, PersonList } from "./ManageList";
 import { successToast } from "@/lib/toast";
 import { heartTapped } from "./GiftGuideHints";
 import { allTotals, closeMyLists, closeSaveFor, onPersonList, openMyLists, privateIdeas, shareListOf, togglePersonItem, useMyListsTarget, useSaveForHost, useSaveForRequest, type SaveItem } from "./saveForPeople";
@@ -40,7 +40,8 @@ const summary = (gifts: number, amount: number) => WISH.listCount(gifts, money(a
 
 // Owner 11-21 ("How do they edit or remove items ... I entered the budget as 100 but it doesn't say how much I have
 // left"): each row shows the list's total against its budget, says when this gift is on it (tap again to take it off),
-// and has its own "View list" to manage that list. `onAdded`: told when the tap put the gift on a list.
+// and (owner 11-21, "Add an open icon in the box ... same for edit and delete") its own Open, Edit and Delete icons
+// in the same box. `onAdded`: told when the tap put the gift on a list.
 function PersonRow({ p, item, ready, onAdded }: { p: PlanPerson; item: SaveItem; ready: boolean; onAdded: (id: string, name: string) => void }) {
   const plan = usePlan();
   const [full, setFull] = useState(false);
@@ -52,7 +53,7 @@ function PersonRow({ p, item, ready, onAdded }: { p: PlanPerson; item: SaveItem;
   };
   return (
     <li>
-      <div className="gg-savefor-li">
+      <div className="gg-savefor-box" data-on={on ? "" : undefined}>
         <Button type="button" variant="ghost" size="inline" className="gg-savefor-row justify-start whitespace-normal text-left font-normal tracking-normal" aria-pressed={on} disabled={!ready} data-savefor-person={p.id}
           aria-label={on ? WISH.saveForUnpick(p.name, item.name) : WISH.saveForPick(p.name, item.name)} onClick={tap}>
           <span className="gg-savefor-nm">
@@ -62,7 +63,7 @@ function PersonRow({ p, item, ready, onAdded }: { p: PlanPerson; item: SaveItem;
           </span>
           <span className="gg-savefor-check" aria-hidden="true">{on ? "✓" : "+"}</span>
         </Button>
-        <Button type="button" variant="outline" size="sm" className="gg-savefor-view" aria-label={WISH.viewListOf(p.name)} onClick={() => { closeSaveFor(); openMyLists(p.id); }} data-savefor-view={p.id}>{WISH.viewList}</Button>
+        <ListTools p={p} ready={ready} onOpen={() => { closeSaveFor(); openMyLists(p.id); }} />
       </div>
       {full && <p className="gg-price-note" role="alert">{WISH.saveForFull}</p>}
     </li>
@@ -134,7 +135,7 @@ function Picker({ item, ready }: { item: SaveItem | null; ready: boolean }) {
             {!ready && <p className="gg-price-note" role="status">{WISH.saveForLoading}</p>}
             <ul className="gg-savefor-list">
               <li>
-                <div className="gg-savefor-li">
+                <div className="gg-savefor-box" data-on={onMine ? "" : undefined}>
                   <Button type="button" variant="ghost" size="inline" className="gg-savefor-row justify-start whitespace-normal text-left font-normal tracking-normal" aria-pressed={onMine} data-savefor-me=""
                     aria-label={onMine ? WISH.removeLabel(item.name) : WISH.saveLabel(item.name)} onClick={() => tapMine(item)}>
                     <span className="gg-savefor-nm">
@@ -143,7 +144,7 @@ function Picker({ item, ready }: { item: SaveItem | null; ready: boolean }) {
                     </span>
                     <span className="gg-savefor-check" aria-hidden="true">{onMine ? "✓" : "+"}</span>
                   </Button>
-                  <Button type="button" variant="outline" size="sm" className="gg-savefor-view" aria-label={WISH.viewListOf(WISH.saveForMe)} onClick={() => { closeSaveFor(); openMyLists("me"); }} data-savefor-view="me">{WISH.viewList}</Button>
+                  <ListTools ready={ready} onOpen={() => { closeSaveFor(); openMyLists("me"); }} />
                 </div>
               </li>
               {plan.people.map((p) => <PersonRow key={p.id} p={p} item={item} ready={ready} onAdded={added} />)}

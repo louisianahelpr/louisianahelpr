@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent } from "react";
-import { Gift } from "lucide-react";
+import { ArrowUpRight, Gift, Pencil, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,8 +68,8 @@ export function ListLine({ p }: { p: PlanPerson }) {
   return (
     <span className="gg-list-line" data-list-line={p.id}>
       {WISH.listCount(t.gifts, t.amount > 0 ? dollars(t.amount) : null)}
-      {s.kind === "over" && <> · <span className="gg-list-over" data-list-over="">{WISH.listOverYour(dollars(s.amount), dollars(s.budget))}</span></>}
-      {s.kind === "left" && <> · <span className="gg-list-left" data-list-left="">{WISH.listLeft(dollars(s.amount), dollars(s.budget))}</span></>}
+      {s.kind === "over" && <> · <span className="gg-list-over" data-list-over="">{WISH.listOverYour(dollars(s.amount))}</span></>}
+      {s.kind === "left" && <> · <span className="gg-list-left" data-list-left="">{WISH.listLeft(dollars(s.amount))}</span></>}
     </span>
   );
 }
@@ -94,6 +94,42 @@ function EditPerson({ p, onDone }: { p: PlanPerson; onDone: () => void }) {
       <Button type="button" size="sm" variant="ghost" onClick={onDone}>{WISH.editCancel}</Button>
       {err && <p className="gg-price-note" role="alert">{err}</p>}
     </form>
+  );
+}
+
+/**
+ * The small icon row inside each box of the Save for someone sheet (owner 11-21: "Remove view list. Add an open icon in
+ * the box for them to open it, same for edit and delete"): Open (that list's sheet), Edit (name and budget, here) and
+ * Delete (asked first in the shared dialog); for "Me" (`p` undefined): Open and Clear. 44px each, apart from the box's
+ * save/remove tap. `onOpen`: opens the list's sheet.
+ */
+export function ListTools({ p, ready, onOpen }: { p?: PlanPerson; ready: boolean; onOpen: () => void }) {
+  const list = useGiftList();
+  const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const name = p ? p.name : WISH.myWishListName;
+  return (
+    <>
+      <div className="gg-savefor-tools" data-savefor-tools={p ? p.id : "me"}>
+        <RoundIconButton className="gg-savefor-tool" aria-label={WISH.openListOf(name)} onClick={onOpen} data-savefor-open={p ? p.id : "me"}><ArrowUpRight aria-hidden="true" /></RoundIconButton>
+        {p && <RoundIconButton className="gg-savefor-tool" aria-label={WISH.editListOf(p.name)} aria-expanded={editing} disabled={!ready} onClick={() => setEditing((v) => !v)} data-savefor-edit={p.id}><Pencil aria-hidden="true" /></RoundIconButton>}
+        {(p || list.picks.length > 0) && (
+          <RoundIconButton className="gg-savefor-tool" aria-label={p ? WISH.deleteListOf(p.name) : WISH.clearList} disabled={!ready} onClick={() => setConfirming(true)} data-savefor-delete={p ? p.id : "me"}><Trash2 aria-hidden="true" /></RoundIconButton>
+        )}
+      </div>
+      {p && editing && <EditPerson p={p} onDone={() => setEditing(false)} />}
+      <BrandConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={p ? WISH.deleteListTitle(p.name) : WISH.clearListTitle}
+        description={p ? WISH.deleteListBody(p.name, p.ideas.length) : WISH.clearListBody(list.picks.length)}
+        primaryLabel={p ? WISH.deleteList : WISH.clearList}
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => { if (p) planActions.removePerson(p.id); else emptyWishList(); setConfirming(false); }}
+        secondaryLabel={WISH.keepList}
+      />
+    </>
   );
 }
 

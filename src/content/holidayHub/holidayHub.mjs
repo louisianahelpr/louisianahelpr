@@ -112,9 +112,20 @@ export function weekendRange(today) {
   return [addDays(today, 5 - dow), addDays(today, 7 - dow)];
 }
 
-/** The last day an item runs (its end, else its start), or null when it has no confirmed date. */
+/**
+ * The last day of the hub's season: an item that "Opens" on a day, or runs for "the season", with no end date published
+ * stays listed through it (holiday audit 1121, High: Lafayette Holiday Market and Timber Ridge counted as over the day
+ * after they opened, because a missing end read as a one-day item).
+ */
+export const HOLIDAY_SEASON_END = "2026-12-31";
+
+/** Whether an item's date words say it keeps running after its start ("Opens Nov 21", "(season run)"). */
+export const isOpenEnded = (item) => !item.tba && Boolean(item.start) && !item.end && /\bopens\b|\bseason\b/i.test(item.dates ?? "");
+
+/** The last day an item runs (its end; an open-ended item, the season's end; else its start), or null with no date. */
 function lastDay(item) {
   if (item.tba) return null;
+  if (isOpenEnded(item)) return HOLIDAY_SEASON_END;
   return item.end ?? item.start ?? null;
 }
 
@@ -128,7 +139,7 @@ export function isOver(item, today) {
 export function runsBetween(item, from, to) {
   if (item.tba) return false;
   const first = item.start ?? item.end;
-  const last = item.end ?? item.start;
+  const last = lastDay(item);
   if (!first || !last) return false;
   return first <= to && last >= from;
 }

@@ -51,13 +51,16 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import {
-  DATES_TBA, HOLIDAY_HUB_PATHS, HOLIDAY_REGIONS, filterEvents, filterHolidayItems, filterLights, holidayCountLabel, holidayDateLabel,
+  DATES_TBA, HOLIDAY_HUB_PATHS, HOLIDAY_REGIONS, HOLIDAY_SEASON_END, isOpenEnded, filterEvents, filterHolidayItems, filterLights, holidayCountLabel, holidayDateLabel,
   holidayItemsByDay, holidayLegacyHref, holidayMapsQuery, isHolidayLight, isOver, louisianaToday, resolveHolidayWhat, runsBetween,
   weekendRange,
 } from "@/content/holidayHub/holidayHub.mjs";
 import { holidayEventsLd, holidayHubBody, holidayHubLd, holidayLightsItemListLd } from "@/lib/holidayHubSeo.mjs";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import HolidayHub from "@/pages/info/holidays/HolidayHub";
+
+/** The day after a YYYY-MM-DD day. */
+const addDay = (ymd: string) => new Date(Date.parse(`${ymd}T12:00:00Z`) + 86400000).toISOString().slice(0, 10);
 import HolidayHire from "@/pages/info/holidays/HolidayHire";
 import HolidayLegacyRedirect from "@/pages/info/holidays/HolidayLegacyRedirect";
 
@@ -127,6 +130,28 @@ describe("Holiday Hub filters", () => {
     expect(runsBetween({ tba: false, start: "2026-11-27", end: "2026-12-27" }, "2026-12-04", "2026-12-06")).toBe(true);
     expect(runsBetween({ tba: false, start: "2026-12-12", end: "2026-12-12" }, "2026-12-04", "2026-12-06")).toBe(false);
     expect(runsBetween({ tba: true, start: null, end: null }, "2026-12-04", "2026-12-06")).toBe(false);
+  });
+
+  // Holiday audit 1121 (High): a missing end read as a one-day item, so Lafayette Holiday Market (opened Nov 20) was
+  // hidden on Nov 21 and Timber Ridge ("Opens Nov 21 (season run)") would vanish on Nov 22.
+  // @mutate src/content/holidayHub/holidayHub.mjs |   if (isOpenEnded(item)) return HOLIDAY_SEASON_END; |
+  // @mutate src/content/holidayHub/events.mjs | "start":"2026-11-20","end":"2026-11-22","hours":"10 am-5 pm (Sun to 4 pm)" | "start":"2026-11-20","end":null,"hours":"10 am-5 pm (Sun to 4 pm)"
+  it("an item that opens or runs for the season stays listed until it ends, never the day after it opens", () => {
+    const all = [...HOLIDAY_LIGHTS, ...HOLIDAY_EVENTS];
+    const byId = (id: string) => all.find((i) => i.id === id)!;
+    expect(isOver(byId("E001"), "2026-11-22")).toBe(false);
+    expect(isOver(byId("E001"), "2026-11-23")).toBe(true);
+    for (const day of ["2026-11-22", "2026-12-15", HOLIDAY_SEASON_END]) expect(isOver(byId("L081"), day), day).toBe(false);
+    expect(runsBetween(byId("L081"), "2026-12-04", "2026-12-06")).toBe(true);
+    // The class: a dated item with no end is either one day (no "Opens", "season", "through" or a range in its words)
+    // or open-ended through the season.
+    const noEnd = all.filter((i) => !i.tba && i.start && !i.end);
+    expect(all.length).toBeGreaterThan(100);
+    for (const i of noEnd) {
+      const oneDay = !/\bopens\b|\bseason\b|\bthrough\b|\buntil\b|-|–/i.test(i.dates ?? "");
+      expect(oneDay || isOpenEnded(i), `${i.id} ${i.dates}`).toBe(true);
+      if (isOpenEnded(i)) expect(isOver(i, addDay(i.start!)), i.id).toBe(false);
+    }
   });
 
   it("lights: region, drive or walk, free or paid each narrow the list", () => {

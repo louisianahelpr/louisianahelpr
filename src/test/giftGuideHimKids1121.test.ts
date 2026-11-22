@@ -21,11 +21,13 @@ type Pick = { name: string; brand?: string; href: string; image: string; store: 
 /**
  * The commission switches, copied from the Desktop note Commission-switches-1121.md (not from the module): LaCrosse
  * Grange (Amazon B001DPHF4U, 4%) -> Dillard's 8%; Theragun Prime 6th Gen (Amazon B0FKCJNHWB, 1%) -> Exclusive Beauty
- * Club 16%; XTRATUF Ankle Deck Boot, Duck Camo (Amazon B08Q1RN656, 4%) -> xtratuf.com through CJ 15% (owner 2026-11-21
- * ~10 PM, via lead: "xtratuf in the guide"; $125 there, code XT25 on the card through Nov 29). Kids has none.
+ * Club 16%; XTRATUF Ankle Deck Boot (Amazon B08Q1RN656, Duck Camo, 4%) -> xtratuf.com through CJ 15% (owner 2026-11-21
+ * ~10 PM, via lead: "xtratuf in the guide"; ~10:15 PM "do a different color for the boot because the cup is the same
+ * print": the classic Chocolate/Tan, style 22734, $115 there, code XT25 on the card through Nov 29); Turtlebox Ranger,
+ * Tan (Amazon B0F2JHSGCJ, 3%) -> Onward Reserve 15% at $250 (11-21 night, owner-approved). Kids has none.
  */
 const SWITCHED: Record<string, Record<string, string>> = {
-  him: { "https://go.shopmy.us/p-108736038": "store-dillards", "https://go.shopmy.us/p-108734364": "store-exclusive-beauty-club", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabdcam": "store-xtratuf" },
+  him: { "https://go.shopmy.us/p-108736038": "store-dillards", "https://go.shopmy.us/p-108734364": "store-exclusive-beauty-club", "https://go.shopmy.us/p-108736312": "store-onward-reserve", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2F22734": "store-xtratuf" },
   kids: {},
 };
 /**
@@ -143,14 +145,14 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
 });
 
 describe("For Him holds every one of her men's saves (owner 11-21)", () => {
-  it("115 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the seven left out named", () => {
-    // Left out, 2026-11-21: B001DPHF4U LaCrosse Grange, B0FKCJNHWB Theragun Prime and B08Q1RN656 XTRATUF Ankle Deck Boot
+  it("114 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the eight left out named", () => {
+    // Left out, 2026-11-21: B001DPHF4U LaCrosse Grange, B0FKCJNHWB Theragun Prime and B08Q1RN656 XTRATUF Ankle Deck Boot, B0F2JHSGCJ Turtlebox Ranger
     // (on the page at their better-paying
     // stores, above), B0002A7GMS / B07M9LRQ4J / B0FDXLSNN1 (second listings of the same items), B09ZYT939N YETI
     // Crossroads Backpack (Amazon showed no price).
     const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]);
-    expect(amazon.length).toBe(115);
-    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N"]) expect(amazon, asin).not.toContain(asin);
+    expect(amazon.length).toBe(114);
+    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N"]) expect(amazon, asin).not.toContain(asin);
     for (const asin of ["B0H7CRMDKS", "B0F22HTHMJ", "B0CQ4QM7Q2", "B0FR98X1DZ", "B0FT97QYYZ", "B0D31TCLN2"]) expect(amazon, asin).toContain(asin);
   });
 });
@@ -199,13 +201,13 @@ describe("the generator sets Him and Kids last", () => {
  * @mutate scripts/giftGuideHimKids1121.mjs | commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" } | commission: 15, type: "boots" }
  */
 describe("the XTRATUF code chip on For Him (owner 11-21)", () => {
-  it("only the xtratuf.com Ankle Deck Boot carries XT25, ending Nov 29, on the page and in the module", () => {
+  it("only the xtratuf.com Chocolate/Tan Ankle Deck Boot carries XT25, ending Nov 29, on the page and in the module", () => {
     type Coded = Pick & { code?: string; codeEnds?: string };
     for (const list of [chunk("him") as Coded[], him1121Picks() as Coded[]]) {
       const coded = list.filter((p) => p.code);
-      expect(coded.map((p) => [p.name, p.store, p.code, p.codeEnds, p.price])).toEqual([["XTRATUF Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 125]]);
+      expect(coded.map((p) => [p.name, p.store, p.code, p.codeEnds, p.price])).toEqual([["XTRATUF Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 115]]);
       expect(new URL(coded[0].href).hostname).toBe("www.anrdoezrs.net");
-      expect(decodeURIComponent(coded[0].href)).toContain("https://xtratuf.com/products/xmabdcam");
+      expect(decodeURIComponent(coded[0].href)).toContain("https://xtratuf.com/products/22734");
     }
     expect((chunk("kids") as Coded[]).filter((p) => p.code)).toEqual([]);
   });

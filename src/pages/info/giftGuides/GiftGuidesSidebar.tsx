@@ -5,6 +5,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { guideBySlug, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
+import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
+
+const CLEAN_DEAL_CODES = cleanCodes(DEAL_CODES);
+const CLEAN_SALES = cleanSales(SALES);
 import { GiftOut } from "./GiftOut";
 import { louisianaDay } from "@/content/giftGuideDeals.mjs";
 import { FUN_TOOLS, FUN_WORDS } from "@/content/giftGuideFun1120";
@@ -141,9 +145,15 @@ function DiscountCodes({ codes, first = Infinity }: { codes: DiscountCode[]; fir
     <div className="gg-codes" data-gift-codes="">
       <h2 className="gg-deals-sub">{G.codesLabel}</h2>
       <ul>
-        {(all ? codesByStore(codes) : codesByStore(codes).slice(0, first)).map(({ store, codes: list }) => (
+        {(all ? codesByStore(codes) : codesByStore(codes).slice(0, first)).map(({ store, codes: list }) => {
+          // Holiday audit 1121 #81: a store with a link opens from its box, so a copied code has somewhere to go.
+          const shop = list.find((c) => c.href)?.href;
+          return (
           <li key={store} data-gift-code-store={store}>
-            <span className="gg-code-store">{store}</span>
+            <span className="gg-code-store">
+              {store}
+              {shop && <GiftOut href={shop} className="gg-code-shop" data-gift-code-shop={store}>{G.codeShop} ›</GiftOut>}
+            </span>
             {list.map((c) => (
               <span key={c.code} className="gg-code-one" data-gift-code={c.code}>
                 <span className="gg-code-offer">{c.offer}</span>
@@ -157,7 +167,8 @@ function DiscountCodes({ codes, first = Infinity }: { codes: DiscountCode[]; fir
               </span>
             ))}
           </li>
-        ))}
+          );
+        })}
       </ul>
       {!all && codesByStore(codes).length > first && (
         <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => setAll(true)} data-gift-all-codes="">{G.allCodesLabel(codesByStore(codes).length)}</Button>
@@ -219,8 +230,9 @@ export function SalesList({ sales, first = SALES_FIRST }: { sales: readonly Sale
  */
 export function DealsAndCodes({ on }: { on?: string } = {}) {
   const day = on ?? localToday();
-  const codes = activeCodes([...discountCodes, ...DEAL_CODES], day);
-  const sales = liveSales(SALES, day);
+  // Holiday audit 1121 #57: the feed rows read through cleanCodes / cleanSales (no cut-off lines, non-sales, ALL CAPS or "Holiday code").
+  const codes = activeCodes([...discountCodes, ...CLEAN_DEAL_CODES], day);
+  const sales = liveSales(CLEAN_SALES, day);
   if (codes.length === 0 && sales.length === 0) return null;
   // Design spec 11-18 H5: a cream card; open, at most 8 rows show (codes first, then sales), each list with its See all.
   const stores = codesByStore(codes).length;

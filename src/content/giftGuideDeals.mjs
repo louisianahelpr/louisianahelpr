@@ -37,7 +37,7 @@ export const DEAL_EVENTS = [
   {
     id: "black-friday", kind: "deals", day: "2026-11-27", title: "Black Friday",
     pageTitle: "Black Friday Deals", lead: "the best",
-    description: "Black Friday Deals 2026: hand-checked Black Friday sales and codes from brands you already love, picked by Louisiana Helpr.",
+    description: "Black Friday Deals 2026: Black Friday sales and codes from brands you already love, picked by Louisiana Helpr.",
     before: "Fri, Nov 27. Plenty of these sales are on already.",
     on: "Today, Fri, Nov 27. These sales are on now.",
     after: "Black Friday was Nov 27. Some of these sales run a little longer.",
@@ -53,7 +53,7 @@ export const DEAL_EVENTS = [
   {
     id: "cyber-monday", kind: "deals", day: "2026-11-30", title: "Cyber Monday",
     pageTitle: "Cyber Monday Deals", lead: "the best",
-    description: "Cyber Monday Deals 2026: hand-checked Cyber Monday and Cyber Week sales and codes from brands you already love, picked by Louisiana Helpr.",
+    description: "Cyber Monday Deals 2026: Cyber Monday and Cyber Week sales and codes from brands you already love, picked by Louisiana Helpr.",
     before: "Mon, Nov 30. Cyber Week sales, and deals that run through Cyber Monday.",
     on: "Today, Mon, Nov 30. Last call on Cyber Week sales.",
     after: "Cyber Monday was Nov 30. Some of these sales run a little longer.",
@@ -94,7 +94,8 @@ export const DEALS_WORDS = {
   // the gift guides' standard affiliate disclosure in its footer (GiftGuides.tsx); the pre-JS body (api/share.ts)
   // carries the same words.
   disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
-  featuredLine: "Hand-checked sales from brands you already love, all in one place.",
+  // Holiday audit 1121 #80: "hand-checked" overclaimed (the rows come from affiliate feeds; dates can change).
+  featuredLine: "Sales from brands you already love, all in one place.",
   featuredCta: "See the deals",
   shop: (brand) => `Shop ${brand}`,
   shopShort: "Shop",

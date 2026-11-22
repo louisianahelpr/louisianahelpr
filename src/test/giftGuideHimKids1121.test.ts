@@ -46,7 +46,9 @@ const SWITCHED: Record<string, Record<string, string>> = {
     // Owner via the lead, 11-22: her EADEM New Classics Set pin goes on Kids.
     "https://go.shopmy.us/p-109155269": "store-eadem",
     // Owner via the lead, 11-22: both Yoto 4th Gen bundles (Ms. Rachel, Bluey).
-    "https://go.shopmy.us/p-109156467": "store-yoto", "https://go.shopmy.us/p-109156399": "store-yoto" },
+    "https://go.shopmy.us/p-109156467": "store-yoto", "https://go.shopmy.us/p-109156399": "store-yoto",
+    // Owner 11-22 kids tech (builder-guide-adds-kids): PlayStation 5 at target.com.
+    "https://www.target.com/p/playstation-5-console-digital-edition/-/A-94961316": "store-target" },
 };
 /**
  * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and
@@ -193,9 +195,9 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
 });
 
 describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
-  it("54 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (Segway S2 is at Tractor Supply; 11-22 the Switch with Joy-Con, the C2 Lite and C2 Pro, the Amazon S2 and the mini CreateOn tiles went as duplicates; the Quest 3S and iPad were added)", () => {
+  it("55 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (Segway S2 is at Tractor Supply; 11-22 the Switch with Joy-Con, the C2 Lite and C2 Pro, the Amazon S2 and the mini CreateOn tiles went as duplicates; the Quest 3S, iPad and JLab kids headphones were added)", () => {
     const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
-    expect(amazon.length).toBe(54);
+    expect(amazon.length).toBe(55);
     for (const asin of ["B0F3GWXLTS", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
     expect(amazon.some((p) => p.href.includes("B0CT2WN59R"))).toBe(false);
   });

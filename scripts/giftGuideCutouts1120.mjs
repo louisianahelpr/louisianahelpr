@@ -339,15 +339,13 @@ export const CUTOUTS_1120 = new Map([
   ["https://cdni.llbean.net/is/image/wim/520696_48183_41", "llbean-rollneck-sweater-cream-dog-9c6e33.webp"],
   ["https://cdni.llbean.net/is/image/wim/267093_129_41", "llbean-adirondack-barn-coat-dark-khaki-6f5271.webp"],
   ["https://dms.deckers.com/hoka/image/upload/t_product-xlarge-wp/v1/1162012-WWH_1.png", "hoka-bondi-9-womens-white-bbc928.webp"],
-  // owner 11-22 kids tech: PlayStation 5 Digital Edition (target.com photo, on white)
-  ["https://target.scene7.com/is/image/Target/GUEST_c12714d1-b136-41c9-9b43-5579ff0c08f8", "playstation-5-digital-edition-target-251c36.webp"],
   // owner 11-22 him picks (builder-guide-him): Smathers & Branson Tervis, can cooler, card wallet, toiletry bag
   ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/Mallard_ClassicNavy__TumblerwithLid_LowRes.jpg", "sb-mallard-tervis-tumbler-34e4e6.webp"],
   ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/World_sBestDad_Royal__TumblerwithLid_LowRes.jpg", "sb-wbd-tervis-tumbler-0e3ef6.webp"],
   ["https://static.shopmy.us/pins/zoom-108108365-1795145239744-Mallard_Classic_Navy__Can_Cooler_Primary_Low_Res.jpg", "sb-mallard-can-cooler-b44a37.webp"],
   ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/World_sBestDad_Royal__CCW_LowRes.jpg", "sb-wbd-card-wallet-85088f.webp"],
   ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/Fish_and_Tackle_Dark_Navy__Toiletry_Bag_Low_Res.jpg", "sb-fish-tackle-toiletry-bag-ec6272.webp"],
-  // owner 11-22 her nurse + PR picks (builder-guide-her3b)
+  // owner 11-22 her PR picks (builder-guide-her3b)
   ["https://beekman1802.com/cdn/shop/files/B18CAFE26-WBC6_1_1.jpg", "beekman-1802-kindness-cafe-6pc-set-ef2030.webp"],
   ["https://cdn.shopify.com/s/files/1/0543/8301/files/GLASS_BALM_INFOGRAPHICS_2000x2000_FIG_V1_FRUIT-_-B-ALM.jpg", "glow-recipe-glass-balm-lip-treatment-8ecb5d.webp"],
   ["https://eberjey.com/cdn/shop/files/TZ1018LC-MOBNY-002.jpg", "eberjey-gisele-slouchy-pj-set-navy-26c4d6.webp"],
@@ -356,11 +354,6 @@ export const CUTOUTS_1120 = new Map([
   ["https://cdn.shopify.com/s/files/1/0105/2265/6823/files/NATR-Multi-Peptide_Serum_Front_capoff_primary_bone.webp", "naturium-multi-peptide-advanced-serum-2ba7ff.webp"],
   ["https://cdn.shopify.com/s/files/1/0275/4822/1505/files/MBM_MMLWCE_PACKSHOT_BISQUE.jpg", "makeup-by-mario-master-mattes-cream-eyeshadow-e8b826.webp"],
   ["https://www.youthtothepeople.com/dw/image/v2/AAFM_PRD/on/demandware.static/-/Sites-yttp-master-catalog/default/dwad62d71c/products/YTTP-10100/2026/ALT0-0810834030087--PACKSHOT.jpg", "yttp-superfood-cleanser-b7f8c7.webp"],
-  ["https://cdn.shopify.com/s/files/1/0787/7476/3698/files/01_7290773436_dphh.jpg", "badgebuddy-christmas-plaid-tree-badge-reel-f93cee.webp"],
-  ["https://cdn.shopify.com/s/files/1/0658/5466/8992/files/PRODUCTPICTURES_10.png", "vix-cherry-on-top-compression-socks-6fac5b.webp"],
-  ["https://cdn.shopify.com/s/files/1/0658/5466/8992/files/PRODUCTPICTURES_5.png", "vix-flower-power-compression-socks-b1a660.webp"],
-  ["https://cdn.shopify.com/s/files/1/0652/8984/6859/files/greymockneck.png", "seven2seven-grey-nurse-mockneck-056634.webp"],
-  ["https://cdn.shopify.com/s/files/1/0784/2863/5326/files/50B7C612-6B1C-488C-B43B-35CFF8AB5F57.png", "21-collective-respiratory-royal-blue-mockneck-cecdbd.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

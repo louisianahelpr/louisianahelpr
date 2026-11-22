@@ -107,6 +107,10 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   stationery: ["tools"], stethoscope: ["tools"], book: ["cozy"], earplugs: ["cozy"], diffuser: ["cozy"], "e-reader": ["tech", "cozy"],
   cleaning: ["cozy"], "food-jar": ["kitchen"], "tech-accessory": ["tech"], eyewear: ["style"],
   scrubs: ["style"], calendar: ["tech", "cozy"], "hand-care": ["beauty"],
+  // The popular adds of 11-22 (builder-guide-popular): a cooling fan, power bank, travel adapter, earbuds, headphones and
+  // tracker are gadgets; a smartwatch is a gadget for workouts; a pizza oven is kitchen, out in the yard.
+  "personal-fan": ["tech"], "power-bank": ["tech"], "travel-adapter": ["tech"], earbuds: ["tech"], headphones: ["tech"],
+  tracker: ["tech"], smartwatch: ["tech", "fitness"], "pizza-oven": ["kitchen", "outdoors"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
@@ -120,6 +124,9 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   squishy: ["stocking"], fidget: ["stocking"], toothbrush: ["stocking"], ornament: ["stocking", "build"], chair: ["cozy"], bag: ["stocking"],
   // The EADEM New Classics Set (owner 11-22: on Kids) is a teen self-care set.
   "skincare-set": ["cozy"],
+  // The popular Kids adds of 11-22 (builder-guide-popular): a brain-teaser puzzle is a game; a hatching egg, a playset, a
+  // plush Elmo and a dino vehicle are pretend play.
+  puzzle: ["games"], "hatching-toy": ["pretend"], playset: ["pretend"], plush: ["pretend"], "vehicle-toy": ["pretend"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by

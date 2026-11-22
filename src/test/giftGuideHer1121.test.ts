@@ -25,8 +25,9 @@ const page = (JSON.parse(readFileSync(join(ROOT, "src", "content", "giftGuidePic
 
 /** The owner's saves, copied from her Desktop notes (Her-saved-amazon-1121.md, Her-saved-shopmy-1121.md), not from the module. */
 const AMAZON_ASINS = ["B0D3L9BYFZ", "B0CPB1MWMP", "B0FVFV7V1R", "B0FFMJMB6K", "B0FDKC619F", "B0C246HFWN", "B0FPCH9S11", "B0FKN7FGPY", "B0B1RWJ4QJ"];
-/** Her Amazon cart saves (Her-saved-amazon-cart-1121.md; owner 2026-11-21: "we can have more than 25 items its fine"). */
-const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B08X8P91FX", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV",
+/** Her Amazon cart saves (Her-saved-amazon-cart-1121.md; owner 2026-11-21: "we can have more than 25 items its fine"). Owner 11-22
+ * ("Lake + Eberjey"): the Amazon Essentials flannel pajamas (B08X8P91FX) came off, so Her keeps two pajama sets. */
+const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV",
   // Owner 11-21 ("women too"): the rest of her cart and saved-for-later, but the duplicate ZDEER listing and Mighty Patch.
   "B0HJ9ZJ8KM", "B091NJQ29P", "B0CMJZVT5P", "B0G6CR9TGW", "B0FSJQ3KJT", "B0F19YY96Z", "B0GT3W5DQL", "B0DT1CZ58V"];
 // p-108755104 is her iHerb pin for the BIODANCE masks (11-21), replacing her Sephora UK pin p-108613754 that US shoppers cannot use.
@@ -65,18 +66,16 @@ const SCREENS_1122_ASINS = ["B0030F32L6", "B0DKG9CMH8", "B0GSMJTZJJ", "B0D3V61JC
 const SCREENS_1122_PINS = ["p-103899561", "p-104053242", "p-103903056", "p-103891549", "p-107936463", "p-103882819", "p-107936513", "p-107936484", "p-107887741"];
 // XTRATUF's women's Camp Fleece boot at xtratuf.com through her CJ link (15%, as the Him XTRATUF boots).
 const SCREENS_1122_CJ = ["https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxwadbc10"];
-// Owner 11-22 nurse + PR picks (builder-guide-her3b).
+// Owner 11-22 PR picks (builder-guide-her3b).
 const PR_PINS = ["p-107965795", "p-103880845", "p-104580620", "p-103889854", "p-103784739", "p-103878765", "p-103883109", "p-103877715"];
-// Nurse shops, direct links (no ShopMy pin, no commission).
-const NURSE_DIRECT = ["https://monochromaticfinds.com/products/holiday-polka-dot-coquette-bow-badge-reel", "https://vixsocks.com/products/cherry-on-top-compression-socks", "https://vixsocks.com/products/flower-power-compression-socks", "https://seven2seven.co/products/nurse-mockneck", "https://21collectiveco.com/products/royal-blue-mockneck"];
-const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ, ...NURSE_DIRECT]);
+const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
 const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 128 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(128);
-    expect(page.length).toBe(128);
+  it("the page holds exactly her 122 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(122);
+    expect(page.length).toBe(122);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
@@ -112,8 +111,8 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(60);
-    expect(shopmy.length).toBe(68);
+    expect(amazon.length).toBe(59);
+    expect(shopmy.length).toBe(63);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

@@ -216,11 +216,12 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B0DTDJH158", 18.99, "41rbkZT4EKL", "Sidomma Fishing Tool Set", "Sidomma", "fishing", 3, "Pliers and tools for the tackle box."],
   ["B0FHMYC386", 19.6, "41yqlHKjRBL", "HUK Short Sleeve Performance Fishing Tee", "HUK", "shirt", 4, "A light, quick-dry tee for the boat."],
   ["B0FR98X1DZ", 12.99, "41-9VVRQ5ML", "Lucky Fishing Socks, Size 7-13", "", "socks", 4, "Fun fishing socks for his stocking."],
+  ["B0D9PX9RBD", 70, "81p65D0cdNL", "MVP PRO Houndstooth Cabretta Golf Gloves, Black (Men's 2-Pack)", "MVP", "accessory", 3, "A pair of leather golf gloves in a black houndstooth."],
   ["B0G72KN8BL", 9.49, "41AjgHzg2iL", "COOFANDY Men's V-Neck Tee", "COOFANDY", "shirt", 4, "A soft everyday V-neck tee."],
   ["B08BG8RQHG", 44.99, "41wLs6bwGyL", "Carhartt K288 Logo Sweatshirt", "Carhartt", "sweatshirt", 4, "The classic Carhartt logo sweatshirt."],
   ["B0FZN2ZCFL", 27.2, "51TtsH9AWzL", "Burlebo Go To Performance Tee", "Burlebo", "shirt", 4, "A light performance tee from Burlebo."],
-  // owner 11-22 him picks (builder-guide-adds hand-off, lead OK): prices read on each Amazon page 2026-11-22. The MVP golf
-  // gloves are off Him (lead 11-22): their only listing was the Womens (M) one; a men's listing can come back later.
+  // owner 11-22 him picks (builder-guide-adds hand-off, lead OK): prices read on each Amazon page 2026-11-22. The brown MVP
+  // golf gloves listing was the Womens (M) one, so Him carries the men's black 2-pack instead (above, B0D9PX9RBD).
   ["B0D8ZXGJ3L", 43.99, "61kzOwV7c+L", "Banded Soft Shell Insulated Handwarmer, Realtree Legacy", "Banded", "hunting", 3, "A fleece-lined hand muff for cold mornings in the blind."],
   ["B0CHVWCSQ8", 39.99, "61tvo-s46ML", "Klola Large Magnetic Gun Cleaning Mat with Parts Tray", "Klola", "hunting", 3, "A magnetic cleaning mat that keeps every small part in place."],
 ].map((r) => (Array.isArray(r) ? row(r) : r));
@@ -352,9 +353,9 @@ export const KIDS_AMAZON_MORE_1121 = [
   ["B0DDLZV8YM", 23.73, "51VHRxyCCdL", "Magic Gel Water Pets Kit", "", "craft", 3, "Make little gel water pets that come to life."],
 ].map((r) => (Array.isArray(r) ? row(r) : r));
 
-/** Owner 11-22 kids tech, store-page links (builder-guide-adds-kids): price checked on target.com 11-22; no ShopMy pin yet. */
+/** Owner 11-22 kids tech, store-page links (builder-guide-adds-kids). The Target PS5 is off for now (lead 11-22: 0% commission and over
+ * the $500 cap); a paying PS5 at $500 or less can come back here. */
 const KIDS_TECH_DIRECT_1122 = [
-  { name: "PlayStation 5 Console, Digital Edition", brand: "Sony", line: "The console every kid is asking for, ready for games and streaming.", href: "https://www.target.com/p/playstation-5-console-digital-edition/-/A-94961316", image: "https://target.scene7.com/is/image/Target/GUEST_c12714d1-b136-41c9-9b43-5579ff0c08f8", store: "store-target", sortPrice: 599.99, price: 599.99, priceAt: "2026-11-22", commission: 0, type: "game-console" },
 ];
 
 export const KIDS_1121 = [

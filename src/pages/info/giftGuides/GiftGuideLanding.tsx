@@ -116,6 +116,15 @@ export function GiftGuideLanding() {
   if (finderAsked(search, hash)) return <div className="gg-landing" data-gift-landing="" data-gift-finder-view=""><LazyGiftFinder /></div>;
   return (
     <div className="gg-landing" data-gift-landing="">
+      {/* Owner 11-21 (greeting mockup option B, "without gifts"): on the landing only, above the three guides, a cream
+          card in a red-white-green candy-cane border: "Happy holidays, y'all" in the guides' Bodoni italic, one line
+          under it. Words only; CSS only (no image). Guard: src/test/giftGuideGreeting1122.test.tsx. */}
+      <div className="gg-greet" data-gift-greeting="">
+        <div className="gg-greet-in">
+          <p className="gg-greet-h">{G.greetTitle}</p>
+          <p className="gg-greet-p">{G.greetLine}</p>
+        </div>
+      </div>
       <LiveGuides />
       <GiftGuideTop10 />
       {/* Owner 2026-11-18: the 25 Days card; owner 11-21 moved it up, right under the guides. App.tsx has no shopper

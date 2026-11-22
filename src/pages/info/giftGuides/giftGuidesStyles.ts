@@ -229,6 +229,13 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-finder-arrow{flex:none;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:999px;background:var(--gg-soft);color:var(--gg-olive);font-family:Montserrat,sans-serif;font-size:17px;font-weight:600}
 .gg-finder-open:hover .gg-finder-arrow{background:hsl(var(--bark) / .22)}
 .gg-browse{margin:20px 0 4px}
+/* The landing's greeting (owner 11-21, option B without gifts): a candy-cane border (red, white, green, white stripes)
+   around a cream card; Bodoni italic in the covers' Christmas red, one plain line under it. */
+.gg-greet{margin:4px 0 0;padding:9px;border-radius:14px;background:repeating-linear-gradient(-45deg,#a8242a 0 12px,#fff 0 18px,#265e3c 0 30px,#fff 0 36px)}
+.gg-greet-in{padding:34px 16px 30px;border-radius:6px;background:linear-gradient(90deg,#f8f0e0,#fffdf7 50%,#f8f0e0);text-align:center}
+.gg-greet-h{margin:0;font:italic 600 clamp(24px,7vw,60px)/1.1 'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;color:#a8242a}
+.gg-greet-p{margin:10px 0 0;font-size:clamp(14px,1.6vw,18px);color:#3b2a20}
+@media (max-width:767px){.gg-greet{padding:7px}.gg-greet-in{padding:22px 12px 18px}}
 .gg-entries{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 14px;list-style:none;margin:0;padding:0}
 @media (min-width:640px){.gg-entries{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 18px}}
 @media (min-width:1180px){.gg-entries{grid-template-columns:repeat(6,minmax(0,1fr))}}

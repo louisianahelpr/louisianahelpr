@@ -34,6 +34,7 @@ import GiftGuides from "@/pages/info/GiftGuides";
 import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
 import { PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { verifiedPrice } from "../../scripts/giftGuidePrice.mjs";
+import { openPriceSections } from "./helpers/openPriceSections";
 
 afterEach(cleanup);
 
@@ -205,6 +206,7 @@ describe("gift-guide prices: a real guide page", () => {
       const more = b;
       act(() => { fireEvent.click(more); });
     }
+    openPriceSections(container);
     const rows = [...container.querySelectorAll("li[data-gift-pick]")];
     expect(rows.length).toBe(CHUNKS.him.length);
     const shown = rows.map((li) => li.querySelector("[data-gift-price]")?.textContent ?? "none");

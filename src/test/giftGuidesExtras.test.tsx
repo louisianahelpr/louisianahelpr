@@ -39,6 +39,7 @@ import { resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 import { MATCHMAKER_PARAM, readMatchmakerLink } from "@/lib/matchmakerLink";
 import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 import { PREFILL_OPENS_DETAILS } from "@/pages/post-job/usePrefillOpensDetails";
+import { openPriceSections } from "./helpers/openPriceSections";
 
 /**
  * A guide card's heart now asks for whom (owner 2026-11-21, saveForPeople): tap it, then "Me" (My Wish List), then
@@ -69,7 +70,8 @@ const OWN_LIST = Object.entries(RESEARCHED_PICKS).filter(([s]) => !APPENDED.incl
 await loadAllGuidePicks();
 /** Opens every "Show more" under a long list (50 rows at first as of 2026-11-18, design audit #3), so a check sees every row. */
 const expandAll = (root: HTMLElement) => {
-  for (let b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]"); b; b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]")) fireEvent.click(b);
+  // Owner 11-21: no Show more any more; the price sections open on a tap (the first is open), so open them all.
+  openPriceSections(root);
   return root;
 };
 const renderAt = (url: string) =>

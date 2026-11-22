@@ -7,7 +7,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const cart = amazonCartUrl([pick.href]); |   const cart = amazonCartUrl([pick.href]) ?? pick.href;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {cart && ( |       {false && (
  * @mutate src/lib/retailerCart.ts |   const q = new URLSearchParams({ AssociateTag: AMAZON_TAG }); |   const q = new URLSearchParams({});
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-cart{grid-column:1;justify-self:start;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px; | .gg-cart{grid-column:1;justify-self:start;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-cart{position:absolute;right:36px;bottom:0;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px; | .gg-cart{position:absolute;right:36px;bottom:0;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
@@ -50,8 +50,9 @@ describe("the cart icon on an Amazon card", () => {
     expect(row(other).querySelector("a.gg-cart")).toBeNull();
   });
 
-  it("the icon is a 44px tap target in the card's first column", () => {
+  // Owner 11-21 ("should we put the cart by the heart?"): beside the heart at the card's bottom-right, not a row of its own.
+  it("the icon is a 44px tap target beside the heart", () => {
     const css = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/giftGuidesStyles.ts"), "utf8");
-    expect(css).toContain(".gg-cart{grid-column:1;justify-self:start;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;");
+    expect(css).toContain(".gg-cart{position:absolute;right:36px;bottom:0;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;");
   });
 });

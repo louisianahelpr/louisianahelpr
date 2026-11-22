@@ -111,6 +111,7 @@ import { giftGuidePageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuide
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
 import { BLOCKED_BRANDS, blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
+import { openPriceSections } from "./helpers/openPriceSections";
 
 afterEach(cleanup);
 
@@ -126,7 +127,8 @@ const src = (p: string) => blankComments(readFileSync(p, "utf8"));
 
 /** Opens every "Show more" under a long list (50 rows at first as of 2026-11-18, design audit #3), so a check sees every row. */
 const expandAll = (root: HTMLElement) => {
-  for (let b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]"); b; b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]")) fireEvent.click(b);
+  // Owner 11-21: no Show more any more; the price sections open on a tap (the first is open), so open them all.
+  openPriceSections(root);
   return root;
 };
 const DISCLOSURE = "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.";
@@ -520,6 +522,8 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       // Owner 2026-11-21: "Remove show more just list everything." Every gift is drawn at once, with no Show more button
       // (was 50 rows, then 50 more per tap); off-screen cards skip their paint (content-visibility) and photos load lazily.
       // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const upTo = picks.length;\n |   const upTo = Math.min(picks.length, 50);\n
+      // Owner 11-21 (first price section open, the rest a tap away): every gift once each section is opened.
+      openPriceSections(container);
       expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(g.picks.length);
       expect(container.querySelector("[data-gift-more-picks]"), slug).toBeNull();
       expect(container.textContent, slug).not.toMatch(/Show more \(/);

@@ -15,6 +15,9 @@
  * @mutate src/pages/info/GiftGuides.tsx |           {!countRow && tools} |           {tools}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1; | .gg-list .gg-nm .gg-nm-meta{grid-column:1;grid-row:2;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0} | .gg-list .gg-heart-pick{position:absolute;right:-6px;top:0}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-cart{position:absolute;right:36px;bottom:0; | .gg-cart{grid-column:1;
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const isOpen = (id?: string) => !sortable \|\| !id \|\| (openSecs ? openSecs.has(id) : id === firstSection); |   const isOpen = (id?: string) => true;
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       setOpenSecs(new Set([raw])); |       setOpenSecs(null);
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
@@ -122,5 +125,43 @@ describe("the search is an icon at every width (owner 11-21: \"make search an ic
     await act(async () => { fireEvent.click(tools.querySelector("button[data-gift-search-button]")!); });
     await act(async () => { fireEvent.click(tools.querySelector("button[data-gift-search-close]")!); });
     expect(tools.querySelector("input")).toBeNull();
+  });
+});
+
+describe("the cart sits beside the heart (owner 11-21: \"should we put the cart by the heart?\")", () => {
+  it("the Amazon cart and the heart share the card's bottom-right corner (cart, then heart); no row of its own", () => {
+    expect(GIFT_GUIDES_CSS).toContain(".gg-cart{position:absolute;right:36px;bottom:0;");
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-cart\{grid-column/);
+    expect(GIFT_GUIDES_CSS).toMatch(/\.gg-cart\{[^}]*width:44px;height:44px/);
+  });
+});
+
+describe("price sections open and close (owner 11-21: \"a button to open and expand each section\"; first open)", () => {
+  const toggles = (c: HTMLElement) => [...c.querySelectorAll<HTMLButtonElement>("[data-gift-section-toggle]")];
+  it("on load only the first section is open (all its gifts); a tap opens or closes one; each header is a 44px button", async () => {
+    const c = await renderAt("/gift-guides/kids", 1440);
+    const t = toggles(c);
+    expect(t.length).toBeGreaterThan(2);
+    expect(t.map((b) => b.getAttribute("aria-expanded"))).toEqual(["true", ...t.slice(1).map(() => "false")]);
+    const first = t[0].getAttribute("data-gift-section-toggle")!;
+    const count = Number(/\((\d+)\)/.exec(t[0].textContent ?? "")![1]);
+    expect(c.querySelectorAll(`#gg-sec-${first}-list > li[data-gift-pick]`).length).toBe(count);
+    expect(c.querySelectorAll(`#gg-sec-${t[1].getAttribute("data-gift-section-toggle")}-list`).length).toBe(0);
+    expect(t[0].getAttribute("aria-controls")).toBe(`gg-sec-${first}-list`);
+    expect(GIFT_GUIDES_CSS).toMatch(/\.gg-sec-toggle\{[^}]*min-height:48px/);
+    await act(async () => { fireEvent.click(t[1]); });
+    expect(t[1].getAttribute("aria-expanded")).toBe("true");
+    expect(c.querySelector(`#gg-sec-${t[1].getAttribute("data-gift-section-toggle")}-list`)).not.toBeNull();
+    await act(async () => { fireEvent.click(t[0]); });
+    expect(t[0].getAttribute("aria-expanded")).toBe("false");
+    expect(c.querySelector(`#gg-sec-${first}-list`)).toBeNull();
+  });
+
+  it("a section link (#25-to-50) opens that section (and only it)", async () => {
+    window.history.replaceState(null, "", "#25-to-50");
+    const c = await renderAt("/gift-guides/kids", 1440);
+    window.history.replaceState(null, "", window.location.pathname);
+    const open = toggles(c).filter((b) => b.getAttribute("aria-expanded") === "true").map((b) => b.getAttribute("data-gift-section-toggle"));
+    expect(open).toEqual(["25-to-50"]);
   });
 });

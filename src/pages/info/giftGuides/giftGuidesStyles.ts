@@ -180,7 +180,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-photo{width:100%;border-radius:16px}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
 .gg-list .gg-letter{font-size:16px}
-.gg-list .gg-nm{min-height:72px}
+.gg-list .gg-nm{padding-bottom:44px}
 .gg-list .gg-item{margin-bottom:6px}
 }
 @media (min-width:768px) and (max-width:1023px){
@@ -189,7 +189,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-item{flex-direction:column;align-items:stretch;align-self:stretch;padding:0;gap:10px}
 .gg-list .gg-photo{width:100%;border-radius:16px}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
-.gg-list .gg-nm{min-height:72px}
+.gg-list .gg-nm{padding-bottom:44px}
 .gg-list .gg-item{margin-bottom:6px}
 }
 .gg-letter{display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;overflow:hidden;overflow-wrap:anywhere;line-height:1.05;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:10px;font-weight:700;color:var(--gg-olive)}
@@ -201,15 +201,19 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-nm{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;align-items:start}
 .gg-list .gg-nm-name{grid-column:1;grid-row:1}
 .gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1;margin-top:0;justify-content:flex-end;min-width:44px}
-.gg-list .gg-badges{grid-column:1/-1;grid-row:2;padding-right:44px}
+.gg-list .gg-badges{grid-column:1/-1;grid-row:2;padding-right:88px}
+/* Room under the name for the heart and cart row (the card's text never runs under them). */
+.gg-list .gg-nm{padding-bottom:40px}
 .gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0}
 /* Owner 11-21 (Amazon Buy Now): the small cart icon under an Amazon item's price, a 44px link of its own in the card's first
    column, its icon lined up with the name and price (phone: past the 88px photo; tablet and desktop: the card's left edge). */
-.gg-cart{grid-column:1;justify-self:start;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:-6px 0 6px 88px;border-radius:999px;color:var(--gg-olive)}
+/* Owner 11-21 ("should we put the cart by the heart?"): the cart sits beside the heart at the card's bottom-right (cart,
+   then heart), a plain 44px icon link like it; no row of its own, so the card is shorter. */
+.gg-cart{position:absolute;right:36px;bottom:0;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0;border-radius:999px;color:var(--gg-olive)}
 .gg-cart svg{width:20px;height:20px}
 .gg-cart:hover{background:var(--gg-soft)}
 .gg-cart:focus-visible{outline:2px solid hsl(var(--bark));outline-offset:1px}
-@media (min-width:768px){.gg-list .gg-cart{margin:-6px 0 0 -12px}}
+
 .gg-nm small{display:block;font-size:12px;color:var(--gg-muted)}
 .gg-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
 .gg-bdg{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:#eef2e6;color:#3f5a1c}
@@ -338,7 +342,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-top10 .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:10px;border-radius:14px}
 .gg-top10 .gg-nm-name{font-size:14px}
 .gg-top10 .gg-heart-pick{position:absolute;top:auto;bottom:0;right:-6px}
-.gg-top10 .gg-nm{min-height:64px}
+.gg-top10 .gg-nm{padding-bottom:44px}
 @media (min-width:768px){.gg-top10{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:20px 16px}}
 /* The gift quiz (owner 11-21 ~6:15 PM): one question per screen, big answers (two across on a phone, up to four wide),
    then the result as the guides' list. */
@@ -366,4 +370,11 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list>li{content-visibility:auto;contain-intrinsic-size:auto 128px}
 @media (min-width:768px){.gg-list>li{contain-intrinsic-size:auto 420px}}
 .gg-top10>li{content-visibility:visible}
+/* Owner 11-21: each price section's header opens and closes it (first open): a full-width 44px row with a chevron. */
+.gg-sec-toggle-h{margin:14px 0 0}
+.gg-sec-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:6px 4px;border:0;border-bottom:1px solid var(--gg-line);background:transparent;font:inherit;font-weight:700;color:var(--gg-ink);text-align:left;cursor:pointer}
+.gg-sec-toggle:focus-visible{outline:2px solid var(--gg-olive);outline-offset:2px;border-radius:6px}
+.gg-sec-chev{flex:none;color:var(--gg-muted);transition:transform .15s}
+.gg-sec-toggle[aria-expanded="true"] .gg-sec-chev{transform:rotate(180deg)}
+.gg-sec-toggle-h+.gg-list{margin-top:8px}
 `;

@@ -164,7 +164,10 @@ export default function GiftPlanner() {
   const { user, isReady } = useAuthReady();
   const sync = useAccountSync(user?.id ?? null, isReady);
   // Owner 11-21: gifts from any store switch to our link once we made it (never before the account's plan is merged).
-  useOurLinkSync(plan, isReady && (!user || sync !== "device"));
+  // Audit 1121 High: nothing on the page can be changed before the account's plan is merged in (an early add used to
+  // replace the account's plan).
+  const ready = isReady && (!user || sync !== "device");
+  useOurLinkSync(plan, ready);
   const [name, setName] = useState("");
   const total = planMoney(plan);
   const add = (e: FormEvent) => {
@@ -194,13 +197,16 @@ export default function GiftPlanner() {
           <p className="gg-fun-note text-center">{W.plannerTotalBought(total.bought, total.ideas)}</p>
         </div>
       )}
-      {plan.people.length === 0 && <p className="gg-fun-note" data-plan-empty="">{W.plannerEmpty}</p>}
+      {!ready && <p className="gg-fun-note" role="status" data-plan-loading="">{W.plannerLoading}</p>}
+      {ready && plan.people.length === 0 && <p className="gg-fun-note" data-plan-empty="">{W.plannerEmpty}</p>}
+      <fieldset className="m-0 min-w-0 border-0 p-0" disabled={!ready} data-plan-editable={ready ? "" : undefined}>
       <ul className="gg-fun-list">{plan.people.map((p) => <Person key={p.id} p={p} />)}</ul>
       <ShareAllLists plan={plan} />
       <form className="gg-fun-row mt-3" onSubmit={add}>
         <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} onChange={(e) => setName(e.target.value)} data-plan-new-name="" />
         <Button type="submit" className="btn-grad-primary" data-plan-add-person="">{W.plannerAddPerson}</Button>
       </form>
+      </fieldset>
       {/* Saved-gift price alerts (owner 2026-11-21): the opt-in under the lists, once there is someone on them. */}
       {plan.people.length > 0 && <PriceAlertsOptIn />}
       <p className="gg-fun-note" data-plan-sync={sync}>

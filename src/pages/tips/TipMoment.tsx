@@ -78,7 +78,7 @@ export default function TipMoment() {
   // and the tipper see, instead of a centred spinner; the Helpr-only pay card is not guessed.
   if (q.isPending) {
     return (
-      <AppPage title="Tip" backTo="/home" phoneHidesTitle>
+      <AppPage title="Tip" backTo="/home">
         <div className="flex flex-col items-center gap-2 pt-6" data-testid="tip-moment-loading" role="status" aria-label="Loading this tip">
           <Skeleton className="h-8 w-48 rounded-ds-sm" />
           <Skeleton className="h-10 w-28 rounded-ds-sm" />
@@ -115,7 +115,7 @@ export default function TipMoment() {
     : null);
 
   return (
-    <AppPage title="Tip" backTo="/home" phoneHidesTitle>
+    <AppPage title="Tip" backTo="/home">
       <div className="flex flex-col items-center text-center gap-2 pt-6" data-testid="tip-moment">
         <h2 className="font-moment text-page-title text-foreground">{isHelpr ? `${tipperFirst} tipped you` : "You left a tip"}</h2>
         <p className="text-ds-40 font-bold leading-none" style={MONEY}>{dollars(tipCents)}</p>

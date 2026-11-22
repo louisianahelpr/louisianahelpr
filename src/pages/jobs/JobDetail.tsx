@@ -16,7 +16,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { signedOutOnPurposeRecently } from "@/lib/unexpectedSignOut";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
-import { NARROW_COLUMN, NARROW_HEADER_COLUMN } from "@/lib/publicContainer";
+import { CARD_HEADER_COLUMN, NARROW_COLUMN, NARROW_HEADER_COLUMN } from "@/lib/publicContainer";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase, useProfileWaitPhase } from "@/hooks/useFeedPhase";
@@ -119,7 +119,7 @@ const JobDetail = () => {
   // early return. See the h1 note further down for why every branch needs a
   // heading; the document title is simply that heading.
   const headingText =
-    !authLoading && !isLoading && !isError && job?.title ? job.title : "Job details";
+    !authLoading && !isLoading && !isError && job?.title ? job.title : "Job";
 
   // This is the share-link landing page — the thing pasted into a text or a
   // Facebook group. A tab reading "Job Details — Helpr" for every shared link
@@ -159,6 +159,8 @@ const JobDetail = () => {
   // F268a: the branch below that draws the guest's job page (every other branch is a state: offline, signed out,
   // loading, error, not available).
   const showsGuestPage = !!job && !authLoading && !isLoading && !isError && !sessionLost && phase !== "offline-empty";
+  // Deep audit 11-22 #12: the two not-found branches draw NotFound's 440px card; the header lines up with it.
+  const showsStateCard = !job && !authLoading && !isLoading && !isError && !sessionLost && phase !== "offline-empty";
 
   // Every branch of this page (loading / error / not-found / job) needs its
   // own <h1>: this is the share-link landing page, and it previously rendered
@@ -176,16 +178,17 @@ const JobDetail = () => {
     // Audit 11-21 (P6): the shared public shell (PublicHeaderPage, as /browse, /hire and /u use), not a hand-built
     // `pt-20 px-5` + `container max-w-lg` that doubled the gutter (content x=52-323 at 375) and set the title 352px
     // right of the logo at 1440, with no back arrow. The arrow goes back, else to Browse. F268a: on the job's own
-    // page the title is the visible heading; every other branch keeps it for readers (hidesTitle).
+    // page the title is the visible heading. Deep audit 11-22 #12: a closed or missing job showed the arrow alone on
+    // its own row, so every branch paints "<- Job" beside it; only the loading bones keep it for readers (no flash).
     <PublicHeaderPage
       title={headingText}
       backTo="/browse"
       width="public"
       wrapTitle
-      hidesTitle={!showsGuestPage}
+      hidesTitle={!showsGuestPage && (authLoading || isLoading)}
       bottomPaddingClassName="pb-safe-nav"
       footer={footerReady}
-      headerWrapperClassName={NARROW_HEADER_COLUMN}
+      headerWrapperClassName={showsStateCard ? CARD_HEADER_COLUMN : NARROW_HEADER_COLUMN}
     >
       {/* The town page's ~760px column (F063), title included, so the facts rows read across a reading width. */}
       <div ref={contentRef} data-job-detail-body="" className={`mx-auto ${NARROW_COLUMN}`}>

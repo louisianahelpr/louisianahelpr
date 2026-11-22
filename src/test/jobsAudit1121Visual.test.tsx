@@ -6,7 +6,7 @@
  * at 375), the title 352px right of the logo at 1440, no back arrow. It is PublicHeaderPage now, with the town page's
  * 760px column, and the arrow goes back (else Browse).
  * @mutate src/pages/jobs/JobDetail.tsx |       backTo="/browse" |       hideBack
- * @mutate src/pages/jobs/JobDetail.tsx |       headerWrapperClassName={NARROW_HEADER_COLUMN} |
+ * @mutate src/pages/jobs/JobDetail.tsx |       headerWrapperClassName={showsStateCard ? CARD_HEADER_COLUMN : NARROW_HEADER_COLUMN} |
  *
  * P10: the Browse skeleton was the retired bordered card (85px, a tab corner) under no switch row; the list is flat rows
  * (~110-130px) under the "Jobs | Declutter" switch, so the page jumped as it landed.
@@ -33,12 +33,13 @@ const code = (f: string) => blankComments(readFileSync(f, "utf8"));
 describe("P6: the guest job page wears the shared public shell", () => {
   const page = code("src/pages/jobs/JobDetail.tsx");
   it("PublicHeaderPage with a back arrow (back, else Browse) and the 760px column, never the hand-built frame", () => {
-    expect(page).toMatch(/<PublicHeaderPage\b[\s\S]*?backTo="\/browse"[\s\S]*?headerWrapperClassName=\{NARROW_HEADER_COLUMN\}/);
+    expect(page).toMatch(/<PublicHeaderPage\b[\s\S]*?backTo="\/browse"[\s\S]*?headerWrapperClassName=\{showsStateCard \? CARD_HEADER_COLUMN : NARROW_HEADER_COLUMN\}/);
     expect(page).toContain('className={`mx-auto ${NARROW_COLUMN}`}');
     expect(page).not.toMatch(/<PublicLayout\b/);
     expect(page).not.toMatch(/pt-20 pb-safe-nav px-5|container mx-auto max-w-lg/);
-    // The title is the job's (visible on its own page; read-only for the not-found, error and loading cards).
-    expect(page).toMatch(/title=\{headingText\}[\s\S]*?hidesTitle=\{!showsGuestPage\}/);
+    // The title is the job's (visible on its own page) or "Job" (visible on the not-found and error cards, deep audit
+    // 11-22 #12); only the loading bones keep it for readers.
+    expect(page).toMatch(/title=\{headingText\}[\s\S]*?hidesTitle=\{!showsGuestPage && \(authLoading \|\| isLoading\)\}/);
   });
   it("the town page and the job page share one column definition", () => {
     expect(code("src/pages/info/HireTownPage.tsx")).toContain("const TOWN_COLUMN = NARROW_COLUMN;");

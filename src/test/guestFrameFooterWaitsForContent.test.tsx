@@ -11,7 +11,7 @@
  * /hire/<service>/<town> is PublicHeaderPage (its own Q1312 `footer` prop; 0 CLS at 1280).
  *
  * @mutate src/components/marketing/GuestPublicFrame.tsx | <PublicLayout footer={footerReady}> | <PublicLayout>
- * @mutate src/pages/jobs/JobDetail.tsx |       footer={footerReady}\n      headerWrapperClassName={NARROW_HEADER_COLUMN} |       headerWrapperClassName={NARROW_HEADER_COLUMN}
+ * @mutate src/pages/jobs/JobDetail.tsx |       footer={footerReady}\n      headerWrapperClassName={showsStateCard ? CARD_HEADER_COLUMN : NARROW_HEADER_COLUMN} |       headerWrapperClassName={showsStateCard ? CARD_HEADER_COLUMN : NARROW_HEADER_COLUMN}
  * @mutate src/hooks/useFooterAfterContent.ts |       if (fills()) return setReady(true); |       if (fills()) return;
  * @mutate src/hooks/useFooterAfterContent.ts |       if ((client?.isFetching() ?? 0) === 0) idleTimer | if (true) idleTimer
  * @mutate src/hooks/useFooterAfterContent.ts |     const capTimer = setTimeout(() => setReady(true), FOOTER_MAX_WAIT_MS); |     const capTimer = undefined;

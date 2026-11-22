@@ -209,8 +209,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Train f: Him batch 1 (Solo Stove, Roadie 8, Muck, Carhartt jacket, 2 Duck Commander calls; the Roadie 15 is off)
       // and batch 2 (S&B wallet, Marley Lilly cooler, GE Opal Mini).
       // builder-guide-links (11-22): Him + Le Labo, Patagonia duffel, Steve Madden loafer (all $100 and up).
-      // Him batch 3 (11-22): the Duck Camp hat ($34), L.L.Bean waterfowl sweater ($130) and Costa Sullivan sunglasses ($262);
-      // the Duck Head rope hat stays off (sold out at the 11-20 audit).
+      // Him batch 3 (11-22): the L.L.Bean waterfowl sweater ($130) and Costa Sullivan sunglasses ($262); the Duck Head rope hat
+      // stays off (sold out at the 11-20 audit) and the Duck Camp hat waits for its own cutout source.
       him: { "Under $25": 43, "$25 to $50": 46, "$50 to $75": 25, "$75 to $100": 11, "$100 and up": 47 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
@@ -221,7 +221,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Train e (11-22): Kids gained the 9 popular adds, the Quest 3S, iPad and JLab headphones, and lost its duplicate
       // Switch, Segway and tile rows.
       // builder-guide-links (11-22): Kids + CrunchLabs Crunchinator ($35), Tamagotchi Paradise ($45) and Stickerbox ($130).
-      kids: { "Under $25": 34, "$25 to $50": 27, "$50 to $75": 8, "$75 to $100": 6, "$100 and up": 21 },
+      // Her play saves (builder-guide-adds-kids, owner: "Keep all (my saves)"): the Step2 and Wayfair backyard sets and the
+      // Macy's hoop; kids2: the Step2 water table, Burt's Bees Little Ducks, Angel Dear duck PJs and a Duck Commander call.
+      kids: { "Under $25": 36, "$25 to $50": 28, "$50 to $75": 11, "$75 to $100": 10, "$100 and up": 26 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

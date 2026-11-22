@@ -117,6 +117,9 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   "ice-maker": ["kitchen"],
   // Him batch 3: a wool quarter-zip sweater is style and cozy.
   sweater: ["style", "cozy"],
+  // Her block 2 (builder-guide-her4, 11-22): a lunch bag and a straw tumbler are kitchen, a water bottle and a sports bra
+  // are fitness, a keychain safety alarm is a gadget.
+  "lunch-bag": ["kitchen"], tumbler: ["kitchen"], "water-bottle": ["fitness"], "sports-bra": ["fitness", "style"], "safety-alarm": ["tech"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {

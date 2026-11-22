@@ -146,8 +146,8 @@ export const HIM_ADDS_1122 = [
   // L.L.Bean's page could not be read headless; the sweater shows $130, the price on her pin data (lead 11-22).
   { name: "Costa Sullivan Polarized Glass Sunglasses", brand: "Costa", line: "Polarized glass lenses in a classic tortoise frame.", href: shopmy("p-108089555"), image: "https://static.shopmy.us/pins/zoom-108089555-1795142703033-wdsjzfbgxclrclcqtut4.jpg", store: "store-jomashop", sortPrice: 262, price: 262, commission: 8, type: "sunglasses", priceAt: "2026-11-19" },
   // The Duck Head 5-Panel Rope Hat (p-108090009) stays off: the 11-20 section audit took it off as sold out.
-  // The Duck Camp hat names its cutout directly: its raw photo is also the Outdoors & Travel cover's, which stays as drawn.
-  { name: "Duck Camp Mallard Hat", brand: "Duck Camp", line: "A cream rope hat with a flying mallard stitched on.", href: shopmy("p-108089972"), image: "https://www.louisianahelpr.com/gift-guides/cutouts/duck-camp-mallard-hat-b3a3.webp", store: "store-st-bernard", sortPrice: 34, price: 34, commission: 10, type: "hat", priceAt: "2026-11-19" },
+  // The Duck Camp Mallard Hat (p-108089972) waits: its photo is the Outdoors & Travel cover's, so its cutout needs its own
+  // source photo (the pin's zoom image) before it can go on Him.
   { name: "L.L.Bean Men's Waterfowl Sweater", brand: "L.L.Bean", line: "A warm wool-blend quarter-zip made for cold mornings.", href: shopmy("p-108094779"), image: "https://static.shopmy.us/pins/zoom-108094779-1795143426618-237814_1225_41", store: "store-l-l-bean", sortPrice: 130, price: 130, commission: 12, type: "sweater", priceAt: "2026-11-22" },
 ].map(dated);
 

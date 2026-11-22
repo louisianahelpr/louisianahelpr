@@ -222,7 +222,7 @@ export default function SwipeGifts() {
             <span className="gg-chips">
               {/* Owner 11-21: only people whose guide is live (src/content/giftGuideLive.mjs); a retired guide dealt an empty deck. */}
               {SWIPE_WHO.filter((o) => o.guides.every((g) => guideBySlug(g.slug))).map((o) => (
-                <Button key={o.id} type="button" variant="outline" size="sm" className={who === o.id ? "gg-chip btn-grad-primary" : "gg-chip"} aria-pressed={who === o.id}
+                <Button key={o.id} type="button" variant={who === o.id ? "default" : "outline"} size="sm" className="gg-chip" aria-pressed={who === o.id}
                   onClick={() => setWho(o.id)} data-swipe-who={o.id}>{o.label}</Button>
               ))}
             </span>
@@ -231,7 +231,7 @@ export default function SwipeGifts() {
             <p className="gg-finder-q">{W.swipeAge}</p>
             <span className="gg-chips">
               {QUIZ_AGES.map((o) => (
-                <Button key={o.id} type="button" variant="outline" size="sm" className={age === o.id ? "gg-chip btn-grad-primary" : "gg-chip"} aria-pressed={age === o.id}
+                <Button key={o.id} type="button" variant={age === o.id ? "default" : "outline"} size="sm" className="gg-chip" aria-pressed={age === o.id}
                   onClick={() => { setAge(o.id); setBudget(null); }} data-swipe-age={o.id}>{o.label}</Button>
               ))}
             </span>
@@ -241,7 +241,7 @@ export default function SwipeGifts() {
             {!ready && <p className="gg-fun-note m-0" role="status">{W.swipeLoading}</p>}
             <span className="gg-chips">
               {budgets.map((o) => (
-                <Button key={o.id} type="button" variant="outline" size="sm" className={budget === o.id ? "gg-chip btn-grad-primary" : "gg-chip"} aria-pressed={budget === o.id}
+                <Button key={o.id} type="button" variant={budget === o.id ? "default" : "outline"} size="sm" className="gg-chip" aria-pressed={budget === o.id}
                   onClick={() => setBudget(o.id)} data-swipe-budget={o.id}>{o.label}</Button>
               ))}
             </span>

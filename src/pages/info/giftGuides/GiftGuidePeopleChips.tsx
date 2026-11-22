@@ -27,7 +27,7 @@ export function PeopleChips({ guide }: { guide: CatalogGuide }) {
       <p className="gg-people-q">{PEOPLE_CHIP_WORDS.label}</p>
       <span className="gg-chips">
         {chips.map((c) => (
-          <Button key={c.slug} asChild variant="outline" size="sm" className={c.on ? "gg-chip btn-grad-primary" : "gg-chip"}>
+          <Button key={c.slug} asChild variant={c.on ? "default" : "outline"} size="sm" className="gg-chip">
             <Link to={`/gift-guides/${c.slug}`} aria-current={c.on ? "page" : undefined} data-gift-people-chip={c.slug}>{c.label}</Link>
           </Button>
         ))}

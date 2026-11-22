@@ -1,5 +1,6 @@
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsightsRouted } from "@/components/SpeedInsightsRouted";
+import { MetaPixelRoutes } from "@/components/MetaPixelRoutes";
 
 /**
  * Vercel Web Analytics and Speed Insights, in their own lazy chunk (Q2705, Builder 4, 2026-11-09).
@@ -9,12 +10,16 @@ import { SpeedInsightsRouted } from "@/components/SpeedInsightsRouted";
  * page's boot download. App.tsx mounts this with React.lazy inside the router (SpeedInsightsRouted reads the route).
  * Speed Insights' web-vitals reads LCP, FCP and CLS from buffered performance entries, so a script injected one chunk
  * later still sees the first paint. Guard: scripts/check-deferred-vendors.mjs (DEFERRED_PACKAGES).
+ *
+ * The Meta Pixel's route listener rides in the same lazy chunk (owner, 2026-11-22): it too only injects a third-party
+ * async script (after load + idle, the website only; src/lib/metaPixel.ts), and here it costs no page's boot anything.
  */
 export default function VercelInsights() {
   return (
     <>
       <SpeedInsightsRouted />
       <Analytics />
+      <MetaPixelRoutes />
     </>
   );
 }

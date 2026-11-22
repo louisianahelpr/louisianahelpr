@@ -182,6 +182,7 @@ export const PrivacyContent = () => (
               <li><strong className="text-foreground">Resend</strong> — email delivery: your email address and the content of the emails we send you.</li>
               <li><strong className="text-foreground">Twilio</strong> — text-message delivery, only if you turn on text alerts: your mobile number and the alert text.</li>
               <li><strong className="text-foreground">PostHog</strong> — privacy-respecting product analytics.</li>
+              <li><strong className="text-foreground">Meta</strong> — the Meta Pixel on our website (not in our app), to measure visits from Facebook and Instagram and show relevant ads. See &ldquo;Meta Pixel&rdquo; under Cookies &amp; tracking.</li>
               <li><strong className="text-foreground">Sentry</strong> — crash and error monitoring.</li>
               <li><strong className="text-foreground">Cloudflare (Turnstile)</strong> — bot protection on sign-up, sign-in and password reset; sees browser and IP signals.</li>
             </ul>
@@ -271,7 +272,7 @@ export const PrivacyContent = () => (
     <PolicySection
       icon={Cookie}
       title="Cookies & tracking"
-      subtitle="Essential and analytics cookies"
+      subtitle="Essential, analytics and advertising cookies"
       anchorId="cookies-tracking"
     >
       <PolicyRowItem
@@ -282,6 +283,24 @@ export const PrivacyContent = () => (
             <p>We use essential cookies for authentication and session management. We use analytics cookies to understand how users interact with the platform.</p>
             <p>You can control cookie preferences through your browser settings, though disabling essential cookies may affect platform functionality.</p>
           </>
+        }
+      />
+      {/* Meta's Business Tools Terms require this notice on any site with the Meta Pixel: that it is used, what Meta
+          may collect, and how to opt out (owner, 2026-11-22; https://www.facebook.com/legal/technology_terms). The
+          pixel itself: src/lib/metaPixel.ts, the website only. */}
+      <PolicyRowItem
+        icon={Eye}
+        title="Meta Pixel"
+        body={
+          <p>
+            We use the Meta Pixel on our website (not in our app) to measure visits from Facebook and Instagram and to
+            show relevant ads. Meta may collect information such as your device, browser and the pages you visit. You
+            can control ad personalization at{" "}
+            <a href="https://www.facebook.com/adpreferences" target="_blank" rel="noopener noreferrer" className="link-standard">
+              facebook.com/adpreferences
+            </a>{" "}
+            and in your browser&rsquo;s cookie settings.
+          </p>
         }
       />
     </PolicySection>

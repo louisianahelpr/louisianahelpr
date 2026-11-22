@@ -226,8 +226,41 @@ function isOurDocument(u: string): boolean {
 }
 
 /** True when the violation is noise or not about one of our pages. */
+// Meta's Conversions API Gateway (fbevents.js "openbridge", owner 2026-11-22). The owner's pixel config names its
+// gateway hosts (today https://7r-3c0d146726ae4cb698a4c85f7b2ff5f9.ecs.us-west-2.on.aws and its fallback
+// https://snofje0za8n8.cloud.run, both allowed exactly in vercel.json's connect-src). If Meta moves the gateway to a
+// new AWS or Cloud Run host, our CSP blocks that fetch on every page view of every visitor and the browser reports it
+// each time; the pixel's own /tr beacon to www.facebook.com still goes out, so nothing a visitor or the owner sees
+// breaks. Only this shape is dropped: a connect-src block of an https *.on.aws / *.cloud.run host (default port) that
+// is openbridge's, told by either its request (POST /events?cee=...) or a script served from
+// https://connect.facebook.net. The script alone is not enough: once Sentry has wrapped fetch(), the browser blames
+// Sentry's chunk on our own origin (measured 2026-11-22: sourceFile .../assets/sentry-*.js for both gateway hosts).
+// Any other block of those hosts is kept. A new host goes into vercel.json and src/test/cspNoServerOnlyHosts.test.ts.
+const META_GATEWAY_HOST_SUFFIXES = [".on.aws", ".cloud.run"];
+function isMetaGatewayFetch(v: Violation): boolean {
+  if (v.effectiveDirective !== "connect-src") return false;
+  let blocked: URL;
+  try {
+    blocked = new URL(v.blockedURL);
+  } catch {
+    return false; // not a URL: keep the report
+  }
+  if (blocked.protocol !== "https:" || blocked.port) return false;
+  if (!META_GATEWAY_HOST_SUFFIXES.some((suffix) => blocked.hostname.endsWith(suffix))) return false;
+  const openbridgeRequest = blocked.pathname === "/events" && blocked.searchParams.has("cee");
+  return openbridgeRequest || fromMetaScript(v.sourceFile);
+}
+function fromMetaScript(sourceFile: string): boolean {
+  try {
+    const src = new URL(sourceFile);
+    return src.hostname === "connect.facebook.net" && src.protocol === "https:" && !src.port;
+  } catch {
+    return false; // no script to attribute it to
+  }
+}
+
 export function isNoise(v: Violation): boolean {
-  if (noisy(v.blockedURL) || noisy(v.sourceFile) || isMapKitHillshadeWasm(v)) return true;
+  if (noisy(v.blockedURL) || noisy(v.sourceFile) || isMapKitHillshadeWasm(v) || isMetaGatewayFetch(v)) return true;
   // A report about a document that is not one of our pages (another site, an
   // extension's own page, about:blank) is not about this site.
   return !isOurDocument(v.documentURL);

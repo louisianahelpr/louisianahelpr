@@ -5,7 +5,9 @@ import { report } from "@/lib/errorLogger";
 import { giftGuides as G } from "@/content/giftGuides";
 import { GUIDES, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { LIVE_GUIDES_1121 } from "@/content/giftGuideLive.mjs";
-import { sponsorPage } from "@/content/sponsorPage";
+// The Facebook link alone, not the 25 Days page's words and reads (vite.config.ts sponsor-page-reads: ~46 KB gz off
+// every guide page's critical path, 11-22).
+import { LOUISIANA_HELPR_FACEBOOK } from "@/content/giftGuideConstants";
 import { DEAL_DAY_SLUGS } from "@/content/giftGuideDeals.mjs";
 import { CHUNK_PICK_COUNTS } from "@/content/giftGuidePicks";
 import { EXTRAS_WORDS, FINDER_ANCHOR } from "@/content/giftGuideExtras1120";
@@ -134,7 +136,7 @@ export function GiftGuideLanding() {
           <b>{G.giveaways.title}</b>
           <span>{G.giveaways.body}</span>
         </div>
-        <a href={sponsorPage.links.facebookPage} target="_blank" rel="noopener noreferrer" className="gg-helpr-btn" data-gift-social="">{G.giveaways.cta}</a>
+        <a href={LOUISIANA_HELPR_FACEBOOK} target="_blank" rel="noopener noreferrer" className="gg-helpr-btn" data-gift-social="">{G.giveaways.cta}</a>
       </aside>
     </div>
   );

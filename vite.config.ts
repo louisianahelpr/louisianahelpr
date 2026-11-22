@@ -1539,10 +1539,25 @@ export default defineConfig(({ mode, command }) => ({
             // 11-21 (holiday batch 6 sales copy; the phone guide header's width check), both reached from the guide pages.
             {
               name: "public-page-reads",
-              test: /[\\/]src[\\/](lib[\\/](sponsor[\\/](api|dates|placeholders)|giftGuideFunApi|giftWishListApi|giftNameClean|retailerCart|wishLinks)|content[\\/](sponsorPage|giftGuideFun1120|giftGuideConstants))\.ts$|[\\/]src[\\/]lib[\\/]giftGuideCoverVersions\.mjs$|[\\/]src[\\/]lib[\\/]pickPriceShown\.mjs$|[\\/]src[\\/]lib[\\/]giftGuideOfferCopy\.mjs$|[\\/]src[\\/]hooks[\\/]use-mobile\.tsx$/,
+              test: /[\\/]src[\\/](lib[\\/](giftGuideFunApi|giftWishListApi|giftNameClean|retailerCart|wishLinks)|content[\\/](giftGuideFun1120|giftGuideConstants))\.ts$|[\\/]src[\\/]lib[\\/]giftGuideCoverVersions\.mjs$|[\\/]src[\\/]lib[\\/]pickPriceShown\.mjs$|[\\/]src[\\/]lib[\\/]giftGuideOfferCopy\.mjs$|[\\/]src[\\/]hooks[\\/]use-mobile\.tsx$/,
               priority: 16.7,
               minSize: 0,
               includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,
+            },
+            // The 25 Days page's own reads (its words, src/content/sponsorPage.ts ~44 KB raw, and src/lib/sponsor/api, dates,
+            // placeholders) used to ride in public-page-reads, so every /gift-guides/<slug> downloaded them for nothing: the guides need none of them (the landing's giveaways button reads the Facebook link from
+            // giftGuideConstants.ts, which sponsorPage.ts imports too). Their own group, ranked like public-page-reads so it
+            // still wins them from the signed-in groups (admin's sponsors page reads them too). It imports only
+            // public-page-reads (giftGuideConstants), never the reverse, so the two chunks form no cycle. Measured 11-22
+            // (critical-path.mjs, local build): /gift-guides/:slug 360,281 -> 313,771 B gz (312,159 on train f), since
+            // lib/sponsor/api's own imports (the supabase chunk, home-shared-db) left the guides' path with it; /sponsor
+            // 262,175 -> 262,629 B.
+            {
+              name: "sponsor-page-reads",
+              test: /[\\/]src[\\/](lib[\\/]sponsor[\\/](api|dates|placeholders)|content[\\/]sponsorPage)\.ts$/,
+              priority: 16.7 /* = public-page-reads (written apart so that group's @mutate find stays unique) */,
+              minSize: 0,
+              includeDependenciesRecursively: false /* the modules alone, as public-page-reads */,
             },
             // The two modules giftGuideFun1120 (public-page-reads) imports, both import-free: the finder's lists and the
             // price bands. Left to the bundler they joined the gift guides' catalog chunk, which itself imports

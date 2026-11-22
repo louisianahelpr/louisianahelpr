@@ -121,11 +121,11 @@ export interface DownloadProduct {
   /** Which group the card sits in on the page (owner 2026-11-21: "a subsection for tags, banner and color books so it's not all mixed up"). Default "more". */
   section?: "coloring" | "banners" | "more";
   /**
-   * One download link per file: the 12-, 24- and 25-day elf plans each get one. A file with its own `title`, `blurb`
-   * and `preview` is a book of its own (owner 2026-11-22 #14: "separate each book in its own box"): each gets its own
-   * card with its cover, title, one line and link.
+   * One download link per file: the 12-, 24- and 25-day elf plans each get one. A file with its own `title` and
+   * `preview` is a book of its own (owner 2026-11-22 #14: "separate each book in its own box"): each gets its own card
+   * with its cover, title and link (owner 11-22 later: no description line, "Not needed").
    */
-  files: { label: string; href: string; title?: string; blurb?: string; preview?: string }[];
+  files: { label: string; href: string; title?: string; preview?: string }[];
   guides: string[];
   /** A link under the button (the planner sheet links the online planner; the checklist links Declutter). */
   cta?: { to: string; label: string };
@@ -252,12 +252,36 @@ export const PRINTABLES: Printable[] = [
     ready: true,
     preview: "/printables/coloring-book/preview-girls.webp",
     // Owner 2026-11-22 #14 ("separate each book in its own box take them out of the 1 box"): each book is its own card,
-    // its cover, title, one line and download link. Both PDFs: 21 pages, a cover and 20 to color.
+    // its cover, title and download link (owner 11-22 later: "You can remove a cover and whatever else it said. Not
+    // needed", so no line under the title). Both PDFs: 21 pages, a cover and 20 to color.
     files: [
-      { label: "Download", href: "/printables/coloring-book/christmas-coloring-book-girls.pdf", title: "Girls coloring book", blurb: "A cover and 20 Christmas pages to color.", preview: "/printables/coloring-book/preview-girls.webp" },
-      { label: "Download", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf", title: "Boys coloring book", blurb: "A cover and 20 Christmas pages to color.", preview: "/printables/coloring-book/preview-boys.webp" },
+      { label: "Download", href: "/printables/coloring-book/christmas-coloring-book-girls.pdf", title: "Girls coloring book", preview: "/printables/coloring-book/preview-girls.webp" },
+      { label: "Download", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf", title: "Boys coloring book", preview: "/printables/coloring-book/preview-boys.webp" },
     ],
     // Owner 2026-11-21: not linked from Kids (it reversed holiday audit 1121 #49); the Coloring books page has them.
+    guides: [],
+  },
+  {
+    kind: "download",
+    id: "thanksgiving-banner",
+    section: "banners",
+    // Owner 2026-11-22 ("Put Thanksgiving first"): the first banner on the Banners page; her Christmas ones follow.
+    title: "Happy Thanksgiving banner",
+    // Owner 2026-11-21 (relayed by the lead): Walgreens posters come 11x14, 12x18, 16x20, 20x30 and 24x36 from $12.99
+    // with same-day pickup, and no 12 x 24, so the old "a 12 x 24 in print fits it" was wrong.
+    blurb: "Print it as a 12x18 poster at Walgreens, from about $13, same-day pickup.",
+    // Owner 2026-11-21: "add this to the free printables, it's a banner they can print at walgreens" (her Canva design).
+    ready: true,
+    preview: "/printables/thanksgiving-banner/preview.webp",
+    // Owner 2026-11-21: "Download the banner (free)" overflowed (guides polish 1122 #31: "(free)" repeats the page, "2:1" is jargon) its button at the card's width; the card's title says what it is.
+    // The 12 x 18 copy is the design untouched on its own white, padded to 3:2 (scripts/printables-banner-12x18.py), so a
+    // Walgreens poster does not crop it; the original 2:1 file stays. Its button names the size, not "Poster size":
+    // copy never says "poster" (src/test/roleNeutralCopy.test.ts reads it as the job role).
+    files: [
+      { label: "12x18 print", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },
+      { label: "Wide banner", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner.jpg" },
+    ],
+    printAt: { href: "https://photo.walgreens.com/store/posters", label: "Print at Walgreens" },
     guides: [],
   },
   {
@@ -281,7 +305,7 @@ export const PRINTABLES: Printable[] = [
     section: "banners",
     title: "Merry Christmas (green stripe)",
     blurb: "Print it as a 12x18 poster at Walgreens, from about $13, same-day pickup.",
-    // Owner 2026-11-22: her Canva banners, newest first (scripts/printables-banner-add.py makes the files).
+    // Owner 2026-11-22: her Canva banners, newest first after Thanksgiving (scripts/printables-banner-add.py makes the files).
     ready: true,
     preview: "/printables/merry-christmas-green-stripe/preview.webp",
     files: [
@@ -297,34 +321,12 @@ export const PRINTABLES: Printable[] = [
     section: "banners",
     title: "Merry Christmas (plaid)",
     blurb: "Print it as a 12x18 poster at Walgreens, from about $13, same-day pickup.",
-    // Owner 2026-11-22: her Canva banners, newest first (scripts/printables-banner-add.py makes the files).
+    // Owner 2026-11-22: her Canva banners, newest first after Thanksgiving (scripts/printables-banner-add.py makes the files).
     ready: true,
     preview: "/printables/merry-christmas-plaid/preview.webp",
     files: [
       { label: "12x18 print", href: "/printables/merry-christmas-plaid/merry-christmas-plaid-banner-12x18.jpg" },
       { label: "Wide banner", href: "/printables/merry-christmas-plaid/merry-christmas-plaid-banner.jpg" },
-    ],
-    printAt: { href: "https://photo.walgreens.com/store/posters", label: "Print at Walgreens" },
-    guides: [],
-  },
-  {
-    kind: "download",
-    id: "thanksgiving-banner",
-    section: "banners",
-    title: "Happy Thanksgiving banner",
-    // Owner 2026-11-21 (relayed by the lead): Walgreens posters come 11x14, 12x18, 16x20, 20x30 and 24x36 from $12.99
-    // with same-day pickup, and no 12 x 24, so the old "a 12 x 24 in print fits it" was wrong.
-    blurb: "Print it as a 12x18 poster at Walgreens, from about $13, same-day pickup.",
-    // Owner 2026-11-21: "add this to the free printables, it's a banner they can print at walgreens" (her Canva design).
-    ready: true,
-    preview: "/printables/thanksgiving-banner/preview.webp",
-    // Owner 2026-11-21: "Download the banner (free)" overflowed (guides polish 1122 #31: "(free)" repeats the page, "2:1" is jargon) its button at the card's width; the card's title says what it is.
-    // The 12 x 18 copy is the design untouched on its own white, padded to 3:2 (scripts/printables-banner-12x18.py), so a
-    // Walgreens poster does not crop it; the original 2:1 file stays. Its button names the size, not "Poster size":
-    // copy never says "poster" (src/test/roleNeutralCopy.test.ts reads it as the job role).
-    files: [
-      { label: "12x18 print", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },
-      { label: "Wide banner", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner.jpg" },
     ],
     printAt: { href: "https://photo.walgreens.com/store/posters", label: "Print at Walgreens" },
     guides: [],

@@ -15,6 +15,9 @@ import { usePlan } from "./fun/plannerStore";
 import { CARD_CSS, CARD_WORDS, CodeCards, CodeChip, codeCardCount, SaleCards, codesOn, salesOn } from "./GiftGuideDealCards";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
 import { FeatureCta, FeatureCtaLink } from "./SmallBizFeatureCta";
+import { GiftGuideSort, MyListIcon, type SortChoice } from "./GiftGuideShare";
+import { SBS_WORDS as SBS } from "@/content/sbsFeaturedLocal";
+import type { SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { report } from "@/lib/errorLogger";
 import { GiftGuideLoadError } from "./GiftGuideLoadError";
 
@@ -64,6 +67,11 @@ const DEALS_CSS = `
 .gg-deals-feature b{display:block;font-size:16px}
 .gg-deals-feature span{display:block;font-size:13px;color:var(--gg-muted);margin-top:2px}
 .gg-deals-feature i{display:inline-flex;align-items:center;min-height:36px;margin-top:6px;padding:0 14px;border-radius:999px;background:hsl(var(--bark));color:#fff;font-style:normal;font-weight:700;font-size:13px}
+.gg-sbs-row{display:flex;align-items:center;gap:4px;min-height:44px;margin:0 0 6px}
+.gg-sbs-row .gg-sbs-toplink{flex:1 1 auto;min-width:0;margin:0}
+.gg-sbs-row-icons{display:flex;align-items:center;flex:none;margin-left:auto}
+@media (max-width:767px){.gg-sbs-row .gg-sbs-toplink{font-size:12px;line-height:1.35}}
+@media (min-width:768px){.gg-sbs-row .gg-mylist-icon{display:none}}
 `;
 
 
@@ -189,9 +197,19 @@ function DealSections({ day, deals, dealCount, shownCodes }: { day: string; deal
   );
 }
 
+/**
+ * The Small Business Saturday sort (owner 2026-11-22, iPhone: "Let them filter z-a and a-z move the heart and filter
+ * on the same line as own a business"): the list's own order (by category) first, then A to Z and Z to A by name.
+ */
+type BizOrder = "category" | "az" | "za";
+const BIZ_ORDERS: SortChoice<BizOrder>[] = [{ value: "category", label: SBS.sortCategory }, { value: "az", label: SBS.sortAz }, { value: "za", label: SBS.sortZa }];
+const byName = (order: BizOrder) => (rows: SmallBiz[]) =>
+  [...rows].sort((a, b) => (order === "za" ? -1 : 1) * a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
+
 /** One deals day's page. `now` is for tests; the page passes nothing and reads the clock. */
 export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
   const [deals, setDeals] = useState<Deal[] | null>(null);
+  const [bizOrder, setBizOrder] = useState<BizOrder>("category");
   const kind = day.kind;
   // Holiday audit 1121: a failed deals file (offline, a blocked chunk) says so with a Try again; it used to read as
   // "These deals have ended", which is only for the real all-ended case. A second failure reloads the page.
@@ -251,9 +269,17 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
       ) : (
         <div className="gg-deals-list">
           {/* Owner 2026-11-21 ("add this to the top or bottom of the shop small business"): a one-line link at the top,
-              the full "Get your business featured" card (the same admin-reviewed sign-up as /shop-small) at the bottom. */}
-          <FeatureCtaLink />
-          <SmallBizGrid />
+              the full "Get your business featured" card (the same admin-reviewed sign-up as /shop-small) at the bottom.
+              Owner 2026-11-22 (iPhone): that link, in smaller words, shares one row with the sort (A to Z, Z to A) and
+              the My Wish List heart; from 768px the head row already holds the heart, so this row shows only the sort. */}
+          <div className="gg-sbs-row" data-gift-sbs-row="">
+            <FeatureCtaLink />
+            <span className="gg-sbs-row-icons">
+              <GiftGuideSort order={bizOrder} onChange={setBizOrder} choices={BIZ_ORDERS} label={SBS.sortLabel} activeLabel={SBS.sortLabelActive} />
+              <MyListIcon />
+            </span>
+          </div>
+          <SmallBizGrid arrange={bizOrder === "category" ? undefined : byName(bizOrder)} />
           {/* No "more on Shop Small" link: /shop-small now opens this page (guides lane 11-21). */}
           <LazyLocalListings />
         </div>

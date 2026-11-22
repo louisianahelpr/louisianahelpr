@@ -13,7 +13,6 @@ import {
 } from "@/content/giftGuideFun1120";
 import { SantaSaveError, cancelSecretSanta, createSecretSanta } from "@/lib/giftGuideFunApi";
 import { clearSantaLast, readSantaLast, saveSantaLast, santaExpiry, type SantaLastDraw } from "./santaLastDraw";
-import { Hint } from "../GiftHint";
 import { FunBody, funHeader } from "./FunPage";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 
@@ -201,8 +200,9 @@ export default function SecretSanta() {
         </section>
       ) : (
         <form onSubmit={(e) => void submit(e)} onChange={() => setError(null)} noValidate data-santa-form="">
+          {/* Owner 2026-11-22 ("The words under the box and the words in the box are repetitive delete the box"): no
+              grey tip box ("we never ask for emails or phone numbers") under the lead; the lead already says it. */}
           <p className="gg-fun-lead">{W.santaLead}</p>
-          <Hint id="fun-santa">{W.hintSanta}</Hint>
           <div className="gg-fun-card">
             <fieldset>
               <legend className="text-sm font-semibold">{W.santaNames}</legend>

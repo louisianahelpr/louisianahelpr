@@ -30,6 +30,12 @@ export const SBS_WORDS = {
   ctaButton: "Get featured, free",
   /** The one-line link at the top of the business list (owner 2026-11-21): jumps to the card and opens the form. */
   ctaTopLink: "Own a Louisiana small business? Get featured free",
+  // Owner 2026-11-22 ("Let them filter z-a and a-z"): the sort beside that link; the first choice keeps the list's own order.
+  sortLabel: "Sort businesses",
+  sortLabelActive: (order: string) => `Sort businesses, ${order}`,
+  sortCategory: "By category",
+  sortAz: "Name: A to Z",
+  sortZa: "Name: Z to A",
   loadingForm: "Loading the form…",
   formFailed: "The form didn't load. Check your connection and try again.",
   formRetry: "Try again",

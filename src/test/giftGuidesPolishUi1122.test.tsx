@@ -228,7 +228,12 @@ describe("polish audit 1122 #17/#28/#29: the Holiday Hub", () => {
     const hub = src("src/pages/info/holidays/HolidayHub.tsx");
     expect(hub).toContain('<HolidayNothing onClear={() => setQuery("")} clearLabel="Clear search">');
     expect(hub).toContain("{`No lights or events match \"${query.trim()}\".`}");
-    expect(hub.indexOf("data-holiday-guides-link")).toBeLessThan(hub.indexOf("data-holiday-filters"));
+    // #28's "Shopping too?" link sat above the filters; owner 2026-11-22 ("Remove the words above 82 light displays then
+    // move that and the and filter and search up") took it and the intro out, so the count, search and filter row is the
+    // first thing in the page body, right under the banner.
+    expect(hub).not.toContain("data-holiday-guides-link");
+    expect(hub).not.toContain("{W.hubIntro}");
+    expect(hub).toMatch(/data-holiday-page="hub">\s*(?:\{\s*\}\s*)?<div className="space-y-2\.5" data-holiday-filters="">/);
   });
 });
 

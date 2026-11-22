@@ -34,6 +34,8 @@ export const DECLUTTER_FIRST_SCREEN_ROOTS: string[];
 export function guestIconSplit(root: string): { shared: Set<string>; own: Set<string>; landing: Set<string>; declutter: Set<string> };
 export function sellingIconFiles(root: string): Set<string>;
 export function buyingIconFiles(root: string): Set<string>;
+export function guidesIconFiles(root: string): Set<string>;
+export function profileIconFiles(root: string): Set<string>;
 export function declutterTabSplit(root: string, split?: { declutterOnly?: Set<string> }): { browseFirst: Set<string>; buyingFirst: Set<string> };
 export const HOME_DERIVE_ROOT: string;
 export const JOB_LISTS_ROOT: string;

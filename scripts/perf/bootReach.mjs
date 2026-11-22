@@ -674,6 +674,26 @@ const DECLUTTER_BUYING_ROOTS = ["src/components/declutter/DeclutterBuyingViews.t
 export function buyingIconFiles(root) {
   return tabIconFiles(root, DECLUTTER_BUYING_ROOTS, sellingIconFiles(root));
 }
+/**
+ * The icons a gift guide page draws (GiftGuides.tsx and its static reach), not already pinned above. vite.config pins
+ * them as `icons-guides` (lander 11-22, train 1122b): the polish lanes deleted the /shop-small page and one ArrowUpRight
+ * import, and the entriesAware merge regrouped the icon chunks so /gift-guides/:slug fetched an 80-icon chunk of other
+ * screens' icons for its one unpinned icon, ShoppingCart (4.8 -> 7.3 KB gz; the route 356 KB gz, budget 336 +5%).
+ */
+const GIFT_GUIDES_ROOTS = ["src/pages/info/GiftGuides.tsx"];
+export function guidesIconFiles(root) {
+  return tabIconFiles(root, GIFT_GUIDES_ROOTS, [...sellingIconFiles(root), ...buyingIconFiles(root)]);
+}
+/**
+ * The icons Profile's first screen draws (PROFILE_FIRST_SCREEN_ROOTS' static reach), not already pinned above or as a
+ * gift guide's or Admin's. vite.config pins them as `icons-profile` (lander 11-22, train 1122b): the same regroup that
+ * gave the guides an 80-icon chunk split the 52-icon chunk /profile shared with them, so /profile fetched two merged
+ * chunks for Pencil and RotateCw (4.7 + 7.2 KB gz; 349 -> 356 KB gz). Admin's icons stay in icons-admin: in this pin
+ * the ten Profile shares with Admin (Mail, Landmark, ...) put a second chunk on /admin (+2.2 KB gz, measured).
+ */
+export function profileIconFiles(root) {
+  return tabIconFiles(root, PROFILE_FIRST_SCREEN_ROOTS, [...sellingIconFiles(root), ...buyingIconFiles(root), ...guidesIconFiles(root), ...adminIconFiles(root)]);
+}
 /** The icons `roots` statically draw, less every set pinned before them (and `alsoTaken`). */
 function tabIconFiles(root, roots, alsoTaken) {
   const index = fs.readFileSync(path.join(root, "node_modules/lucide-react/dist/esm/lucide-react.mjs"), "utf8");

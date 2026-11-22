@@ -9,7 +9,7 @@
  * @mutate src/content/giftGuideDeals.mjs |   return codes.find((c) => c.code === deal.code && c.expires && storeKey(c.store) === storeKey(deal.brand))?.expires; |   return undefined;
  * @mutate src/content/giftGuideDeals.mjs |   return expires && expires < today ? undefined : deal.code; |   return deal.code;
  * @mutate src/content/giftGuideDeals.mjs |   return ends ? ends >= today : today <= RETITLE_AFTER; |   return ends ? ends >= today : true;
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   const codeRows = Math.min(stores, sales.length > 0 ? DEALS_ROWS - SALES_MIN : DEALS_ROWS); |   const codeRows = Math.min(stores, DEALS_ROWS);
+ * @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx |   const codeRows = Math.min(stores, sales.length > 0 ? DEALS_ROWS - SALES_MIN : DEALS_ROWS); |   const codeRows = Math.min(stores, DEALS_ROWS);
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | <span data-gift-shop="">{W.shopShort}<span className="sr-only"> {deal.brand}</span></span> | <span data-gift-shop="">{W.shop(deal.brand)}</span>
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <Link to={`/gift-guides/${d.id}`} {...current(d.id)} data-gift-side-deals={d.id}> | <Link to={`/gift-guides/black-friday-cyber-monday#${d.id}`} data-gift-side-deals={d.id}>
  */

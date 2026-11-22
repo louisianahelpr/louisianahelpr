@@ -14,7 +14,7 @@
  * @mutate src/content/giftGuideShipping.ts |   if (month !== 12) return null; |   if (month !== 12) return SHIP_LINES.early;
  * @mutate src/pages/info/GiftGuides.tsx | <GiftGuidesSidebar active={guide} myList={myList \|\| shared} page= | <GiftGuidesSidebar active={guide} myList={myList} page=
  * @mutate src/pages/info/GiftGuides.tsx |   if (rawSlug && rawSlug !== rawSlug.toLowerCase()) return | if (false) return
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |       <h2 className="gg-deals-sub">{G.codesLabel}</h2> |       <h3 className="gg-deals-sub">{G.codesLabel}</h3>
+ * @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx |       <h2 className="gg-deals-sub">{G.codesLabel}</h2> |       <h3 className="gg-deals-sub">{G.codesLabel}</h3>
  * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |             <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1> |             <h1 id={titleId}>{title}</h1>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

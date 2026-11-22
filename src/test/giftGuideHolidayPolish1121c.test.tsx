@@ -16,13 +16,13 @@
  * @mutate src/content/giftGuideCatalog.ts |     if (budget !== null && !(pickPriceShown(price, priceAt, today) && (price as number) <= budget)) return false; |     if (budget !== null && !pickPriceShown(price, priceAt, today)) return false;
  * @mutate src/content/giftGuideCatalog.ts |   { words: ["nurse", "nurses", "rn", "rns", "lpn", "lpns"], slugs: ["her", "him"] }, |
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |               const dollars = searchItemDollars(item); |               const dollars = null as number \| null;
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | const CLEAN_SALES = cleanSales(SALES); | const CLEAN_SALES = SALES;
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | const CLEAN_DEAL_CODES = cleanCodes(DEAL_CODES); | const CLEAN_DEAL_CODES = DEAL_CODES;
+ * @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx | const CLEAN_SALES = cleanSales(SALES); | const CLEAN_SALES = SALES;
+ * @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx | const CLEAN_DEAL_CODES = cleanCodes(DEAL_CODES); | const CLEAN_DEAL_CODES = DEAL_CODES;
  * @mutate src/lib/giftGuideOfferCopy.mjs |   if (DANGLING.test(s)) return null; |
  * @mutate src/lib/giftGuideOfferCopy.mjs |   if (!IS_OFFER.test(s)) return null; |
  * @mutate src/lib/giftGuideOfferCopy.mjs |   s = unshout(s); |
  * @mutate src/content/giftGuideDeals.mjs |   featuredLine: "Sales from brands you already love, all in one place.", |   featuredLine: "Hand-checked sales from brands you already love, all in one place.",
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |           const shop = list.find((c) => c.href)?.href; |           const shop = undefined as string \| undefined;
+ * @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx |           const shop = list.find((c) => c.href)?.href; |           const shop = undefined as string \| undefined;
  */
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -33,7 +33,7 @@ import { cleanCodes, cleanOffer, cleanSales } from "@/lib/giftGuideOfferCopy.mjs
 import { DEAL_CODES, SALES } from "@/content/giftGuidePicks";
 import { discountCodes } from "@/content/giftGuides";
 import { DEALS_WORDS, dealDay } from "@/content/giftGuideDeals.mjs";
-import { DealsAndCodes } from "@/pages/info/giftGuides/GiftGuidesSidebar";
+import { DealsAndCodes } from "@/pages/info/giftGuides/GiftGuideDealsAndCodes";
 import { GiftGuideTools } from "@/pages/info/giftGuides/GiftGuideShare";
 import SEARCH_INDEX from "@/content/giftGuideSearchIndex.json";
 import her from "@/content/giftGuidePicks/her.json";

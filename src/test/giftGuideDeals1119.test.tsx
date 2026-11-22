@@ -24,7 +24,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           <DealsAndCodes on={codesDay(day, today)} /> |           <DealsAndCodes />
  * @mutate src/content/giftGuideDeals.mjs |   return today > event.day ? today : event.day; |   return today;
  * @mutate src/content/giftGuideDeals.mjs |   return dealDay(String(hash ?? "").replace(/^#/, ""))?.id ?? DEAL_EVENTS[0].id; |   return DEAL_EVENTS[0].id;
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details id="gift-codes" className="gg-deals" data-gift-deals-codes=""> | <details id="gift-codes" className="gg-deals" open data-gift-deals-codes="">
+ * @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx | <details id="gift-codes" className="gg-deals" data-gift-deals-codes=""> | <details id="gift-codes" className="gg-deals" open data-gift-deals-codes="">
  * @mutate scripts/gift-guide-deals.mjs |     if (n > DEALS_PER_BRAND) throw | if (false) throw
  */
 import { readFileSync } from "node:fs";
@@ -45,7 +45,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 import { DealsFeature, GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
-import { liveSales } from "@/pages/info/giftGuides/GiftGuidesSidebar";
+import { liveSales } from "@/pages/info/giftGuides/GiftGuideDealsAndCodes";
 
 const deals = DEALS as Deal[];
 const SOURCE = JSON.parse(readFileSync("scripts/gift-guide-deals-1121.json", "utf8")) as { deals: SourceDeal[] };

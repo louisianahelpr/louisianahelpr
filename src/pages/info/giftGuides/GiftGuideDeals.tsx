@@ -12,7 +12,7 @@ import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
-import { DealsAndCodes } from "./GiftGuidesSidebar";
+import { DealsAndCodes } from "./GiftGuideDealsAndCodes";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
 import { GiftGuideLoadError } from "./GiftGuideLoadError";
 

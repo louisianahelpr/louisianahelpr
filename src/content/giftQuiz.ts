@@ -21,7 +21,7 @@ import { EARN_RANKS } from "@/content/giftGuideEarnOrder";
 
 export type QuizWho = "her" | "him" | "kids";
 export type QuizAge = "0-2" | "3-5" | "6-8" | "9-12" | "teen";
-export type QuizBudget = "under-25" | "25-50" | "50-100" | "100-plus";
+export type QuizBudget = "under-25" | "25-50" | "50-75" | "75-100" | "100-plus";
 export type QuizInto =
   | "cozy" | "beauty" | "style" | "outdoors" | "fitness" | "tech" | "kitchen" | "tools"
   | "games" | "build" | "creative" | "active" | "pretend" | "stocking" | "any";
@@ -38,7 +38,8 @@ export const QUIZ_AGES: { id: QuizAge; label: string }[] = [
 export const QUIZ_BUDGETS: { id: QuizBudget; label: string; min: number; max: number }[] = [
   { id: "under-25", label: "Under $25", min: 0, max: 24 },
   { id: "25-50", label: "$25 to $50", min: 25, max: 49 },
-  { id: "50-100", label: "$50 to $100", min: 50, max: 99 },
+  { id: "50-75", label: "$50 to $75", min: 50, max: 74 },
+  { id: "75-100", label: "$75 to $100", min: 75, max: 99 },
   { id: "100-plus", label: "$100 and up", min: 100, max: Infinity },
 ];
 const ADULT_INTO: { id: QuizInto; label: string }[] = [

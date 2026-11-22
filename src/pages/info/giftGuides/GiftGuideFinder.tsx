@@ -106,7 +106,7 @@ export function GiftFinder() {
       <div data-gift-finder-results="">
         <p className="gg-quiz-q" data-gift-quiz-result-title="">{W.quizResults(quizForWords(a))}</p>
         {result.widened && <p className="gg-price-note" data-gift-quiz-widened="">{W.quizWidened}</p>}
-        <ol className="gg-list gg-quiz-list" data-gift-list="">{shown.map((p) => <PickRow key={p.href} pick={p} guide={who!.guide} />)}</ol>
+        <ol className="gg-list gg-quiz-list" data-gift-list="" data-quiz-count={shown.length}>{shown.map((p) => <PickRow key={p.href} pick={p} guide={who!.guide} />)}</ol>
         <PricesAsOf picks={shown} />
         {!more && result.picks.length > QUIZ_FIRST && (
           <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setMore(true)} data-gift-quiz-more="">{W.quizMore}</Button>

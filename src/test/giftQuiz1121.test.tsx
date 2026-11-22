@@ -121,7 +121,7 @@ describe("the chips narrow, and every chip offered is a real list", () => {
       expect(r.picks.length, `${person.who} ${person.age ?? ""} ${b.id} ${into}`).toBeGreaterThan(0);
     }
     // Her has no outdoors picks: a shared link asking for them still gets a list, marked as widened.
-    const odd = giftQuiz(POOL.her, { who: "her", budget: "50-100", into: "beauty" });
+    const odd = giftQuiz(POOL.her, { who: "her", budget: "50-75", into: "beauty" });
     expect(odd.picks.length).toBeGreaterThan(0);
     expect(odd.widened).toBe(true);
   });

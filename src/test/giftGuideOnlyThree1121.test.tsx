@@ -274,7 +274,7 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     await waitFor(() => expect(answers(container)).toEqual(["who:her", "who:him", "who:kids"]));
     cleanup();
     const him = answers(renderAt("/gift-guides?who=him#gift-finder").container);
-    expect(him).toEqual(["budget:under-25", "budget:25-50", "budget:50-100", "budget:100-plus"]);
+    expect(him).toEqual(["budget:under-25", "budget:25-50", "budget:50-75", "budget:75-100", "budget:100-plus"]);
     cleanup();
     const done = renderAt("/gift-guides?who=him&budget=25-50&into=any").container;
     expect(done.querySelectorAll("[data-gift-finder-results] li[data-gift-pick]").length).toBeGreaterThan(2);

@@ -218,8 +218,9 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 /* Holiday audit A #6/#71: the section jump links were 24px bold text; now 44px chips like the budget chips. */
 .gg-secnav .gg-chip{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1px solid var(--gg-line);background:hsl(var(--card));color:var(--gg-ink);font-size:14px;text-decoration:none}
 .gg-secnav .gg-chip:hover,.gg-secnav .gg-chip:focus-visible{border-color:var(--gg-olive)}
-.gg-finder{margin:12px 0 4px;padding:16px 16px 8px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card))}.gg-finder-step{margin:6px 0 10px}.gg-finder-q{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--gg-ink)}
+.gg-finder{scroll-margin-top:96px;margin:12px 0 4px;padding:16px 16px 8px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card))}.gg-finder-step{margin:6px 0 10px}.gg-finder-q{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--gg-ink)}
 .gg-finder-title{margin:0;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:22px;line-height:1.15;font-weight:600;color:var(--gg-ink)}.gg-finder-lead{margin:4px 0 10px;font-size:14px;color:var(--gg-muted)}
+@media (max-width:767px){.gg-finder{scroll-margin-top:136px}}
 @media (min-width:768px){.gg-finder{padding:18px 22px 10px}.gg-finder-title{font-size:24px}}
 .gg-finder-folded{padding:0}
 .gg-finder-open{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;min-height:64px;padding:12px 16px;border:0;border-radius:16px;background:transparent;text-align:left;cursor:pointer;color:var(--gg-ink);font:inherit;white-space:normal;letter-spacing:normal}
@@ -360,6 +361,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-quiz-answer small{font-size:12px;font-weight:500;color:var(--gg-muted)}
 .gg-quiz-back{margin-top:10px;min-height:44px}
 .gg-quiz-list{margin-top:4px}
+@media (min-width:768px){.gg-quiz-list[data-quiz-count="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .gg-quiz-after{align-items:center;gap:12px 16px;margin-top:14px}
 @media (min-width:768px){.gg-quiz{padding:22px 24px 16px}.gg-quiz-answers{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.gg-quiz-answer{min-height:64px}}
 /* Owner 11-21 (phone guide page): the count, the order-by pill and the icons on ONE row under the banner (wraps at 320);

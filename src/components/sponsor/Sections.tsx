@@ -131,7 +131,8 @@ export function Hero({ greetingBrand }: { greetingBrand: string | null }) {
 
 /**
  * Owner 2026-11-19: /25days is for people entering (most arrive from Facebook, on a phone). Its button opens the entry
- * post (enterUrl: sponsor_settings.entry_url, else the Facebook Page) and never says HOW to enter.
+ * post (enterUrl: sponsor_settings.entry_url, else the Facebook Page) and never says HOW to enter. Owner 2026-11-21:
+ * "All the rules will be on Facebook not our website." One plain line says so, right above that button.
  */
 export function EntrantHero({ enterUrl }: { enterUrl: string }) {
   const E = C.entrant;
@@ -146,6 +147,7 @@ export function EntrantHero({ enterUrl }: { enterUrl: string }) {
         </h1>
         <p className="lh25-eyebrow">{C.hero.eyebrow}</p>
         <p className="lh25-subhead">{E.subhead}</p>
+        <p className="lh25-rules-note" data-testid="rules-on-facebook">{E.rulesOnFacebook}</p>
         <div className="lh25-hero-ctas">
           <a className="lh25-btn lh25-btn-primary" href={enterUrl} target="_blank" rel="noopener noreferrer" data-testid="giveaway-enter">{E.enterCta}</a>
           <Button type="button" variant="ghost" className="lh25-btn lh25-btn-outline" onClick={() => scrollToId("lineup")}>{E.sponsorsCta}</Button>
@@ -153,22 +155,6 @@ export function EntrantHero({ enterUrl }: { enterUrl: string }) {
         <Countdown />
       </div>
     </header>
-  );
-}
-
-/** Who can enter and how winning works, in five short lines, with the rules link. No entry steps. */
-export function EntrantInfo() {
-  const E = C.entrant;
-  return (
-    <section className="lh25-section" aria-labelledby="lh25-entrant">
-      <SectionTitle><span id="lh25-entrant">{E.title}</span></SectionTitle>
-      <ul className="lh25-entrant-points" data-testid="entrant-points">
-        {E.points.map((p) => (
-          <li key={p}><Sparkle size={11} /> {p}</li>
-        ))}
-      </ul>
-      <p className="lh25-center"><Link className="lh25-card-link" to={C.links.rules}>{E.rulesLink}</Link></p>
-    </section>
   );
 }
 
@@ -542,7 +528,6 @@ export function Faq() {
             </summary>
             <p>
               <Txt text={i.a} />
-              {i.a.includes("Official Giveaway Rules") ? <> <Link to={C.links.rules}>Read the rules →</Link></> : null}
             </p>
           </details>
         ))}
@@ -577,7 +562,6 @@ export function Footer() {
       <p className="lh25-footer-links">
         <a href={C.links.facebookPage} target="_blank" rel="noopener noreferrer">{C.footer.pageLink}</a>
         {group ? <a href={group} target="_blank" rel="noopener noreferrer">{C.footer.groupLink}</a> : show ? <mark className="lh25-ph">{C.footer.groupLink} {C.links.facebookGroup}</mark> : null}
-        <Link to={C.links.rules}>{C.footer.rulesLink}</Link>
         <Link to={C.links.privacy}>{C.footer.privacyLink}</Link>
       </p>
     </footer>

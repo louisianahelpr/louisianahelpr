@@ -13,7 +13,7 @@
 // @mutate src/components/sponsor/ClaimSection.tsx |   if (delivery === "helpr" \|\| delivery === "winner") return { ...form, shipTo: delivery }; |   if (delivery === "helpr" \|\| delivery === "winner") return { ...form, shipTo: "helpr" };
 // @mutate src/components/sponsor/ClaimSection.tsx |   return { ...form, shipTo: "winner", notes }; |   return { ...form, shipTo: "winner" };
 // @mutate src/components/sponsor/ClaimSection.tsx |   const [delivery, setDelivery] = useState<PrizeDelivery>("helpr"); |   const [delivery, setDelivery] = useState<PrizeDelivery>("winner");
-// @mutate src/content/sponsorPage.ts | are shared with that business only to deliver the prize, and are not used for anything else. | are shared with that business.
+// @mutate src/content/sponsorPage.ts | we send you their name and shipping address within 24 hours of the drawing | we send you their name and shipping address within 3 days of the drawing
 // @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       <DeliveryRow s={s} adminEmail={adminEmail} /> |       <Detail label="Ship your prize to">Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528</Detail>
 // @mutate supabase/functions/_shared/sponsorSignup.ts |     // Not given: stays null (sponsor_signups.prize_value is nullable since 20261110171648). |     errors.prizeValue = "required";
 // @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       <Detail label="Your prize">{s.prizeDescription}</Detail> |       <Detail label="Your prize">{s.prizeDescription} (about ${s.prizeValue})</Detail>
@@ -42,7 +42,6 @@ import { filledUrl, hasPlaceholder, onlyFilled, statNumber } from "@/lib/sponsor
 import { buildIcs, countdown, dayStartUtc, daysLabel } from "@/lib/sponsor/dates";
 import { About, BrandGets, Faq, Footer, Founder, Hero, Reach, filledStats } from "@/components/sponsor/Sections";
 import { ClaimSection, EMPTY as EMPTY_SIGNUP, dayTileLabel, errorMessage, withDelivery } from "@/components/sponsor/ClaimSection";
-import { rulesAreDraft } from "@/pages/sponsor/SponsorRulesPage";
 import { prizeValueLabel, signupsCsv } from "@/pages/admin/sponsors/AdminSponsorsPage";
 import type { SponsorAdminSignup, SponsorPublicState } from "@/lib/sponsor/types";
 import { blankComments } from "./helpers/blankNonCode";
@@ -172,8 +171,9 @@ describe("hidden until filled", () => {
     expect(text).not.toMatch(/founder/i);
     expect(text).not.toContain("I started Louisiana Helpr because");
     expect(container.querySelector(".lh25-founder-photo")).toBeNull();
-    // Owner 2026-11-19 filled it ("Louisiana residents 18 and older"), so the FAQ shows it with no bracket.
-    expect(text).toContain("Who can enter the giveaways?Louisiana residents 18 and older.");
+    // Owner 2026-11-21 ("All the rules will be on Facebook not our website."): the entry FAQ points at the Facebook post
+    // (was "Who can enter the giveaways? Louisiana residents 18 and older.", owner 2026-11-19).
+    expect(text).toContain("How do people enter the giveaways?How to enter and the official rules are on our Facebook post.");
     expect(text).toContain("Is this really free?");
     // Reach: no stats filled -> no section.
     expect(text).not.toContain(sponsorPage.reach.title);
@@ -228,14 +228,14 @@ describe("four prize delivery options, shipping to us first (owner 11-09, 11-17)
       expect(ok.ok && ok.value.shipTo).toBe(d === "helpr" ? "helpr" : "winner");
     }
   });
-  it("the page copy, badge and rules describe the four options and limit the winner's address to delivery", () => {
+  it("the page copy and badge describe the four options", () => {
     const faq = sponsorPage.faq.items.find((i) => i.q === "How does the prize get to the winner?")!.a;
     for (const bit of ["314 Lynn Street, Delcambre, LA 70528", "within 24 hours of the drawing", "within a week", "photo", "digital gift card", "picks it up"]) expect(faq).toContain(bit);
     expect(sponsorPage.whatWeAsk.body).toMatch(/ship it or drop it off to us.*straight to the winner.*digital gift card.*pick it up/);
     expect(sponsorPage.trustStrip).toContain("Easy prize delivery");
     expect(JSON.stringify(sponsorPage.trustStrip)).not.toMatch(/by us/i);
-    const fulfil = sponsorPage.rules.sections.find((x) => x.heading === "Prizes and fulfillment")!.body;
-    expect(fulfil).toContain("The winner's name and shipping address are shared with that business only to deliver the prize, and are not used for anything else.");
+    // The rules' "Prizes and fulfillment" section (winner's address used only to deliver) left the site with every other
+    // rule (owner 2026-11-21: "All the rules will be on Facebook not our website.").
   });
   it("the confirmation email gives our address for ship-to-us and the 24-hour promise for ship-to-winner", () => {
     const src = fs.readFileSync(path.resolve(__dirname, "../../supabase/functions/_shared/email-templates/sponsor-25days.tsx"), "utf8");
@@ -308,22 +308,6 @@ describe("links and rules", () => {
       } else {
         expect(f.soonLabel).toBe("Coming soon");
       }
-    }
-  });
-  it("the rules page stays a DRAFT until approved with no placeholder left", () => {
-    // Owner 2026-11-19 approved the rules ("Legal name: Louisiana Helpr"; "They can win once"): no placeholder is left.
-    expect(sponsorPage.rules.approved).toBe(true);
-    expect(rulesAreDraft(sponsorPage.rules)).toBe(false);
-    // Owner 11-10: a draft is never shown to visitors; they get the pending note instead (the local ?demo preview still shows it).
-    const page = fs.readFileSync(path.resolve(__dirname, "../pages/sponsor/SponsorRulesPage.tsx"), "utf8");
-    expect(page).toContain("draft && !showDraft ?");
-    expect(page).toMatch(/showDraft = import\.meta\.env\.DEV/);
-    expect(sponsorPage.rules.pendingNote).toMatch(/before the first giveaway on December 1/);
-    expect(rulesAreDraft({ approved: true, sections: [{ heading: "A", body: "Open to [state] residents" }] })).toBe(true);
-    expect(rulesAreDraft({ approved: true, sections: [{ heading: "A", body: "Open to Louisiana residents" }] })).toBe(false);
-    // The content file may only be approved once every placeholder in the rules is filled.
-    if (sponsorPage.rules.approved) {
-      expect(sponsorPage.rules.sections.some((s) => hasPlaceholder(s.body))).toBe(false);
     }
   });
 });
@@ -409,8 +393,9 @@ describe("sign-ups never close (owner 2026-11-18: ask for Sunday, November 22; l
 
 describe("link preview (api/share.ts, before JavaScript runs)", () => {
   // /25days went public and indexed on 11-19 (owner decision by recommendation: the Dec 1–25 dates only; SEO P1), so
-  // it is a `page` rewrite and says index; /sponsor and the draft rules stay noindex. Same card on all three.
-  it.each([["sponsor", "noindex"], ["25days", "page"], ["25days/rules", "noindex"]])("%s: its own 1200x630 card, its own title, indexed only when public", async (id, kind) => {
+  // it is a `page` rewrite and says index; /sponsor stays noindex. (/25days/rules is a redirect to /25days since the
+  // owner moved every rule to Facebook, 2026-11-21: src/test/twentyFiveDaysRulesOnFacebook.test.tsx.)
+  it.each([["sponsor", "noindex"], ["25days", "page"]])("%s: its own 1200x630 card, its own title, indexed only when public", async (id, kind) => {
     const { ensureOgShellSnapshot } = await import("./helpers/ogShellSnapshot");
     ensureOgShellSnapshot(path.resolve("."));
     const sharePath = ["..", "..", "api", "share"].join("/");
@@ -418,7 +403,7 @@ describe("link preview (api/share.ts, before JavaScript runs)", () => {
     const html = await (await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=${kind}&_id=${id}`))).text();
     const first = html.indexOf('<meta property="og:image" ');
     const block = html.slice(first, html.indexOf('<meta property="og:image" ', first + 1));
-    // Owner 2026-11-19: /sponsor keeps the brand card; /25days and its rules get the entrant card.
+    // Owner 2026-11-19: /sponsor keeps the brand card; /25days gets the entrant card.
     const card = id === "sponsor" ? "og-25days.png?v=2" : "og-25days-enter.png?v=1";
     expect(block).toContain(`<meta property="og:image" content="https://www.louisianahelpr.com/${card}"`);
     expect(block).toContain('<meta property="og:image:width" content="1200"');
@@ -427,9 +412,9 @@ describe("link preview (api/share.ts, before JavaScript runs)", () => {
     const png = fs.readFileSync(path.join(ROOT, `public/${card.split("?")[0]}`));
     expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
   });
-  it("vercel.json routes the three paths through the preview function", () => {
+  it("vercel.json routes the two pages through the preview function", () => {
     const v = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8")) as { rewrites: Array<{ source: string; destination: string }> };
-    for (const [src, id, kind] of [["/sponsor", "sponsor", "noindex"], ["/25days", "25days", "page"], ["/25days/rules", "25days/rules", "noindex"]]) {
+    for (const [src, id, kind] of [["/sponsor", "sponsor", "noindex"], ["/25days", "25days", "page"]]) {
       expect(v.rewrites.find((r) => r.source === src)?.destination).toBe(`/api/share?_og=${kind}&_id=${id}`);
     }
   });

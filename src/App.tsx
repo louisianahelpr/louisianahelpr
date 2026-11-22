@@ -104,7 +104,6 @@ const AdminOnboardingPreview = lazy(() => import("./pages/admin/preview/Onboardi
 // 25 Days of Louisiana Giveaways (owner 2026-11-09): dark until the sponsor_25days switch is on (off renders Not found).
 const AdminSponsorsPage = lazyWithPreload(() => import("./pages/admin/sponsors/AdminSponsorsPage"));
 const SponsorPage = lazyWithPreload(() => import("./pages/sponsor/SponsorPage"));
-const SponsorRulesPage = lazyWithPreload(() => import("./pages/sponsor/SponsorRulesPage"));
 const PostsPage = lazyWithPreload(() => import("./pages/posts/PostsPage"));
 // A redirect (to the last or first open section): no screen of its own.
 const ExploreRedirect = lazyWithPreload(() => import("./pages/explore/Explore"));
@@ -277,7 +276,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* 25 Days of Louisiana Giveaways: public (brands open it signed out from a pitch email). */}
       <Route path="/sponsor" element={<RouteErrorBoundary>{routeEl(<SponsorPage />)}</RouteErrorBoundary>} />
       <Route path="/25days" element={<RouteErrorBoundary>{routeEl(<SponsorPage />)}</RouteErrorBoundary>} />
-      <Route path="/25days/rules" element={<RouteErrorBoundary>{routeEl(<SponsorRulesPage />)}</RouteErrorBoundary>} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile fallback={<MessagesRouteSkeleton />}><Messages /></ProtectedRoute>, <MessagesRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></DeclutterGuestOrMember>, <DeclutterRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile allowGuest><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />{/* Owner 11-21: a guest can fill a listing (src/lib/guestSellDraft.ts) */}

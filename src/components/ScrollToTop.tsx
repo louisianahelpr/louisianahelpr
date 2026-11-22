@@ -34,7 +34,7 @@ function footerInView(): boolean {
  */
 const GIVEAWAY_LOOK = { background: "#fbf7ee", border: "1px solid #b08d57", color: "#1f3a2b", boxShadow: "none" } as const;
 function onGiveawayPage(pathname: string): boolean {
-  return pathname === "/25days" || pathname.startsWith("/25days/");
+  return pathname === "/25days"; // its only page since /25days/rules left (owner 2026-11-21: rules on Facebook)
 }
 
 function onLanding(pathname: string): boolean {

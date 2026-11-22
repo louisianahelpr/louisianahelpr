@@ -1,7 +1,13 @@
 /**
- * 25 Days of Louisiana Giveaways: EVERY word on /sponsor (also /25days) and
- * /25days/rules lives in this one file (owner spec 2026-11-09). Edit the text
- * here; nothing else needs to change.
+ * 25 Days of Louisiana Giveaways: EVERY word on /sponsor and /25days lives in
+ * this one file (owner spec 2026-11-09). Edit the text here; nothing else needs
+ * to change.
+ *
+ * NO RULES ON THE WEBSITE (owner 2026-11-21: "All the rules will be on Facebook
+ * not our website."). How to enter and the official rules live only on the
+ * Facebook post; /25days says so in one line and /25days/rules redirects to
+ * /25days (vercel.json + src/App.tsx). Never add an entry method or a rule here
+ * (src/test/twentyFiveDaysRulesOnFacebook.test.tsx).
  *
  * PLACEHOLDERS: any text inside [square brackets] is a placeholder the owner
  * must fill in. The page never shows a placeholder to visitors: the card, line,
@@ -13,13 +19,10 @@
  * founder photo, testimonials, the per-day sponsor cap) are set in
  * /admin/sponsors and override the values here.
  *
- * The rules page shows a "DRAFT" banner until `rules.approved` is true. It may
- * only be set true once no [placeholder] is left in `rules` (checked by
- * src/test/sponsorPageContent.test.ts).
  */
 export const sponsorPage = {
   // The browser-tab title, search description and link-preview text are NOT here: they live in
-  // src/lib/publicPageMeta.mjs (NOINDEX_PAGE_META "/sponsor", "/25days", "/25days/rules"), the one table the
+  // src/lib/publicPageMeta.mjs (PUBLIC_PAGE_META "/25days", NOINDEX_PAGE_META "/sponsor"), the one table the
   // server reads to build a shared link's preview before the page runs. The preview picture is public/og-25days.png.
 
   /** The giveaway runs Dec 1–25, 2026, Louisiana time. */
@@ -38,7 +41,6 @@ export const sponsorPage = {
     facebookGroup: "[FACEBOOK GROUP URL]",
     email: "admin@louisianahelpr.com",
     privacy: "/privacy",
-    rules: "/25days/rules",
     // Owner 2026-11-16: the Holiday Gift Guides page, linked from this page's footer.
     giftGuides: "/gift-guides",
   },
@@ -65,8 +67,9 @@ export const sponsorPage = {
 
   /**
    * /25days, the page for PEOPLE ENTERING (owner 2026-11-19: "most people will see it from Facebook traffic"). The
-   * brand pitch and sign-up form live on /sponsor only. Never say HOW to enter here (owner: "don't say exactly what the
-   * plan is"): the button opens the entry post (sponsor_settings.entry_url, else the Facebook Page).
+   * brand pitch and sign-up form live on /sponsor only. Never say HOW to enter here, and no rules (owner 2026-11-21:
+   * "All the rules will be on Facebook not our website."): the button opens the entry post (sponsor_settings.entry_url,
+   * else the Facebook Page).
    */
   entrant: {
     headlineLead: "Free to enter!",
@@ -78,15 +81,8 @@ export const sponsorPage = {
     subhead: "Every day from December 1 to 25, Louisiana businesses are giving away gifts to Louisiana neighbors.",
     enterCta: "Entry details on our Facebook page",
     sponsorsCta: "See the sponsors",
-    title: "How the giveaways work",
-    points: [
-      "Free to enter. No purchase necessary.",
-      "Open to Louisiana residents 18 and older.",
-      "One entry covers all 25 days of drawings.",
-      "Each person can win once.",
-      "Winners are drawn at random and messaged on Facebook.",
-    ],
-    rulesLink: "Read the official rules",
+    /** The one line about entering (owner 2026-11-21): the entry method and the rules are on the Facebook post only. */
+    rulesOnFacebook: "How to enter and the official rules are on our Facebook post.",
     businessAsk: "Are you a Louisiana business?",
     businessLink: "Become a sponsor →",
   },
@@ -703,7 +699,7 @@ export const sponsorPage = {
     title: "Questions? We've got answers",
     items: [
       { q: "Is this really free?", a: "Yes. There's no fee to join; all we ask is a prize to give away." },
-      { q: "Who can enter the giveaways?", a: "Louisiana residents 18 and older. Full details are in the Official Giveaway Rules." },
+      { q: "How do people enter the giveaways?", a: "How to enter and the official rules are on our Facebook post." },
       { q: "How is the winner picked?", a: "At random from eligible entries, and announced publicly on our Facebook page and group." },
       { q: "How does the prize get to the winner?", a: "Your choice, four easy ways. 1) Easiest: ship it or drop it off to us at 314 Lynn Street, Delcambre, LA 70528, and we deliver it to the winner. 2) Ship it straight to the winner: we send you their name and shipping address within 24 hours of the drawing, you ship within a week, and you send us a photo of the prize for the post. 3) Email a digital gift card, to us or to the winner. 4) Local pickup: the winner picks it up from you." },
       { q: "Can I sponsor more than one day?", a: "Absolutely! Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1." },
@@ -723,62 +719,7 @@ export const sponsorPage = {
     based: "Based in Delcambre, Louisiana",
     pageLink: "Facebook Page",
     groupLink: "Facebook Group",
-    rulesLink: "Official Giveaway Rules",
     privacyLink: "Privacy Policy",
     giftGuidesLink: "Holiday Gift Guides",
-  },
-
-  rules: {
-    /** Set to true ONLY after the owner has reviewed every section and no [placeholder] is left (owner 2026-11-19). */
-    // Shown to visitors instead of the rules while they are still a draft (owner 11-10).
-    pendingNote: "The official rules for 25 Days of Louisiana Giveaways will be posted here before the first giveaway on December 1. Questions? Email admin@louisianahelpr.com.",
-    approved: true,
-    draftBanner: "DRAFT – review before publishing",
-    title: "Official giveaway rules",
-    subtitle: "25 Days of Louisiana Giveaways · December 1–25, 2026",
-    backLink: "Back to 25 Days of Louisiana Giveaways",
-    sections: [
-      {
-        heading: "No purchase necessary",
-        body: "NO PURCHASE NECESSARY TO ENTER OR WIN. A purchase does not increase your chances of winning. Void where prohibited.",
-      },
-      {
-        heading: "Sponsor",
-        // Lead 2026-11-19 (privacy): the organizer is named by town only; never a street address in the rules.
-        body: "The giveaway is run by Louisiana Helpr, Delcambre, Louisiana. Prizes are provided by the participating businesses.",
-      },
-      {
-        heading: "Who can enter",
-        body: "Open to legal residents of Louisiana who are 18 years of age or older at the time of entry. Employees of Louisiana Helpr and of a participating business, and their immediate family members, may not win that business's prize.",
-      },
-      {
-        heading: "Entry period",
-        body: "Entries are accepted from when the official giveaway post is published on the Louisiana Helpr Facebook page through December 25, 2026 at 11:59 PM Central Time. One entry covers all 25 days: each eligible entry is included in every remaining daily drawing from December 1 to December 25, 2026.",
-      },
-      {
-        heading: "How to enter",
-        body: "Enter as described in the official giveaway post on the Louisiana Helpr Facebook page. Automated or bulk entries are void.",
-      },
-      {
-        heading: "Drawings and winners",
-        body: "Each day's winners are drawn at random from all eligible entries. One win per person across the whole giveaway: once you win a prize, you are not eligible to win another. Winners are announced on the Louisiana Helpr Facebook page and group and notified by Facebook message. A winner must claim the prize within 48 hours of notification, or the prize is forfeited and a new winner is drawn at random.",
-      },
-      {
-        heading: "Prizes and fulfillment",
-        body: "Each prize is provided by the participating business that donated it, and its description is stated in the giveaway post. The business delivers the prize in one of these ways: by shipping or dropping it off to Louisiana Helpr, which delivers it to the winner; by shipping it directly to the winner; by emailing a digital gift card; or by local pickup, where the winner picks it up from the business. The winner's name and shipping address are shared with that business only to deliver the prize, and are not used for anything else. Prizes are not transferable and no cash substitute is offered except at the business's discretion. Winners are responsible for any taxes on their prize.",
-      },
-      {
-        heading: "Facebook release",
-        body: "This giveaway is in no way sponsored, endorsed or administered by, or associated with, Facebook or Meta. By entering, you release Facebook and Meta from any and all liability related to this giveaway. You are providing your information to Louisiana Helpr, not to Facebook.",
-      },
-      {
-        heading: "General",
-        body: "Louisiana Helpr may disqualify any entry it finds fraudulent or in violation of these rules, and may cancel or modify a drawing if it cannot run as planned. Void where prohibited.",
-      },
-      {
-        heading: "Questions",
-        body: "Email admin@louisianahelpr.com.",
-      },
-    ],
   },
 } as const;

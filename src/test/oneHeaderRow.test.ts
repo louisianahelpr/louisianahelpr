@@ -50,7 +50,6 @@ const NOT_A_PAGE_HEADER: Record<string, string> = {
   "src/components/firstRun/FirstRun.tsx": "the first-run welcome moment, full screen",
   "src/components/landing/HeroSection.tsx": "the signed-out landing hero (locked)",
   "src/components/sponsor/Sections.tsx": "the public 25 Days sponsor page's hero (owner spec 2026-11-09): a stand-alone page brands open from a link, signed out, with its own design and no app header row",
-  "src/pages/sponsor/SponsorRulesPage.tsx": "the 25 Days official rules, part of the same stand-alone public sponsor page (signed out, its own design, no app header row)",
   "src/components/messages/ChatView.tsx": "sr-only conversation heading (the chat's visible title is ChatHeader's name pill)",
   "src/components/declutter/DeclutterItemView.tsx": "sr-only desktop h1 of the item's title (owner 11-20 item page polish); the visible title is the h2 beside Save and Share",
   "src/components/profile/SupportInline.tsx": "a 'Message sent' confirmation moment, not the page row",

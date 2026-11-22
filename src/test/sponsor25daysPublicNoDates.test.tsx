@@ -9,7 +9,7 @@
  *
  * @mutate src/components/sponsor/Sections.tsx |             {p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)} |             <span className="lh25-lineup-date">Dec {lineupCount(1)}</span>{p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)}
  * @mutate src/content/sponsorPage.ts | a Louisiana favorite. Entry details coming soon on our Facebook page. | a Louisiana favorite. To enter: share this post and tag 2 friends.
- * @mutate src/content/sponsorPage.ts |         body: "Enter as described in the official giveaway post on the Louisiana Helpr Facebook page. Automated or bulk entries are void.", |         body: "Like the post. Limit one entry per person per day.",
+ * @mutate src/content/sponsorPage.ts |     rulesOnFacebook: "How to enter and the official rules are on our Facebook post.", |     rulesOnFacebook: "Like the post. Limit one entry per person per day.",
  * @mutate src/content/sponsorPage.ts |           { brand: "David Rabalais", prize: "Toy Magnalite pot" }, |           { brand: "Mary Kay · Crystal Fakier", prize: "Toy Magnalite pot" },
  */
 import { describe, expect, it } from "vitest";
@@ -18,7 +18,7 @@ import path from "node:path";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { sponsorPage } from "@/content/sponsorPage";
-import { About, BrandGets, BusinessAsk, EntrantHero, EntrantInfo, Faq, FinalCta, Hero, HowItWorks, Lineup, PreviewCard, WhatWeAsk } from "@/components/sponsor/Sections";
+import { About, BrandGets, BusinessAsk, EntrantHero, Faq, FinalCta, Hero, HowItWorks, Lineup, PreviewCard, WhatWeAsk } from "@/components/sponsor/Sections";
 import { blankComments } from "./helpers/blankNonCode";
 
 function allStrings(v: unknown, out: string[] = []): string[] {
@@ -89,30 +89,27 @@ describe("25 Days public pages: no sponsor day, no entry steps, no removed spons
 /**
  * Owner 2026-11-19: "Show the full sponsor list on the website. You can keep the page but most people will see it from
  * Facebook traffic." /25days is for people entering; the brand pitch, sign-up form and sign-up deadline are /sponsor's.
- * Official rules: "Legal name: Louisiana Helpr"; "They can win once".
+ * Owner 2026-11-21: "All the rules will be on Facebook not our website." The official rules (and their old pins here:
+ * Louisiana Helpr, 18+, "One entry covers all 25 days", one win, 48 hours) left the site; /25days says in one line that
+ * they are on our Facebook post (src/test/twentyFiveDaysRulesOnFacebook.test.tsx).
  *
  * @mutate src/pages/sponsor/SponsorPage.tsx |             <BusinessAsk />\n |             <BusinessAsk />\n            <ClaimSection state={state} greetingBrand={null} refCode={refCode} onSubmit={(p, logo) => backend.submit(p, logo)} />\n
- * @mutate src/content/sponsorPage.ts | One win per person across the whole giveaway: once you win a prize, you are not eligible to win another. | Winners may win more than once.
- * @mutate src/content/sponsorPage.ts | A winner must claim the prize within 48 hours of notification | A winner must claim the prize within 7 days of notification
- * @mutate src/content/sponsorPage.ts |     approved: true, |     approved: false,
- * @mutate src/content/sponsorPage.ts | run by Louisiana Helpr, Delcambre, Louisiana. | run by Louisiana Helpr, 314 Lynn Street, Delcambre, Louisiana.
  */
-describe("/25days is the page for people entering; the official rules are final", () => {
+describe("/25days is the page for people entering; the rules are on Facebook", () => {
   const ROOT = path.resolve(__dirname, "../..");
 
-  it("the /25days branch renders only entrant sections: no brand pitch, sign-up form or deadline", () => {
+  it("the /25days branch renders only entrant sections: no brand pitch, sign-up form, deadline or rules", () => {
     const src = blankComments(fs.readFileSync(path.join(ROOT, "src/pages/sponsor/SponsorPage.tsx"), "utf8"));
     const start = src.indexOf('if (pathname === "/25days") {');
     expect(start).toBeGreaterThan(0);
     const block = src.slice(start, src.indexOf("\n  }\n", start));
-    for (const want of ["<EntrantHero enterUrl={enterUrl} />", "<EntrantInfo />", "<Lineup />", "<BusinessAsk />", "<Head25days />"]) expect(block, want).toContain(want);
+    for (const want of ["<EntrantHero enterUrl={enterUrl} />", "<Lineup />", "<BusinessAsk />", "<Head25days />"]) expect(block, want).toContain(want);
     for (const brandOnly of ["<ClaimSection", "<Hero ", "<BrandGets", "<HowItWorks", "<WhatWeAsk", "<PreviewCard", "<Reach", "<Faq", "<FinalCta", "<TrustStrip"]) {
       expect(block, brandOnly).not.toContain(brandOnly);
     }
     const { container } = render(
       <MemoryRouter>
         <EntrantHero enterUrl="https://www.facebook.com/louisianahelpr" />
-        <EntrantInfo />
         <Lineup />
         <BusinessAsk />
       </MemoryRouter>,
@@ -121,37 +118,11 @@ describe("/25days is the page for people entering; the official rules are final"
     expect(text.length).toBeGreaterThan(1000);
     expect(text).not.toMatch(/sign up by|nov(ember)? 22/i);
     expect(text).not.toMatch(ENTRY_STEPS);
-    expect(text).toContain("Each person can win once.");
+    expect(text).toContain("How to enter and the official rules are on our Facebook post.");
+    expect(text).not.toContain("Each person can win once.");
     expect(container.querySelector("[data-testid='business-ask'] a")?.getAttribute("href")).toBe("/sponsor");
     expect(container.querySelector("[data-testid='giveaway-enter']")?.getAttribute("href")).toBe("https://www.facebook.com/louisianahelpr");
     // The full sponsor list (owner 2026-11-19): every brand on the tracker's calendar, once.
     expect(container.querySelectorAll("[data-testid='lineup-partner']").length).toBeGreaterThan(100);
-  });
-
-  it("the official rules: Louisiana Helpr, Louisiana 18+, one entry for all 25 days, one win per person, 48 hours, no placeholder", () => {
-    const R = sponsorPage.rules;
-    expect(R.approved).toBe(true);
-    expect(R.sections.length).toBeGreaterThan(8);
-    const all = R.sections.map((s) => `${s.heading}\n${s.body}`).join("\n");
-    expect(all).not.toMatch(/\[[^\]]*\]/);
-    for (const must of [
-      "NO PURCHASE NECESSARY",
-      "run by Louisiana Helpr, Delcambre, Louisiana.",
-      "legal residents of Louisiana who are 18 years of age or older",
-      "One entry covers all 25 days",
-      "One win per person",
-      "within 48 hours",
-      "a new winner is drawn",
-      "Prizes are provided by the participating businesses",
-      "in no way sponsored, endorsed or administered by, or associated with, Facebook or Meta",
-      "Void where prohibited",
-      "as described in the official giveaway post on the Louisiana Helpr Facebook page",
-    ]) expect(all, must).toContain(must);
-    expect(all).not.toMatch(ENTRY_STEPS);
-    // Privacy (lead 2026-11-19): no street address in the public rules.
-    expect(all).not.toMatch(/Lynn St|\b\d{3,5} [A-Z][a-z]+ (St|Street|Ave|Avenue|Rd|Road)\b|\b70528\b/);
-    // The rules page links back to the entrant page, not the brand page.
-    const page = fs.readFileSync(path.join(ROOT, "src/pages/sponsor/SponsorRulesPage.tsx"), "utf8");
-    expect(page).toContain('<Link className="lh25-back" to="/25days">');
   });
 });

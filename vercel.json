@@ -41,6 +41,11 @@
       "permanent": true
     },
     {
+      "source": "/25days/rules",
+      "destination": "/25days",
+      "permanent": false
+    },
+    {
       "source": "/sponsorship",
       "destination": "/sponsor",
       "permanent": true
@@ -283,10 +288,6 @@
       "destination": "/api/share?_og=page&_id=25days"
     },
     {
-      "source": "/25days/rules",
-      "destination": "/api/share?_og=noindex&_id=25days/rules"
-    },
-    {
       "source": "/holidays",
       "destination": "/api/share?_og=page&_id=holidays"
     },
@@ -396,10 +397,6 @@
     },
     {
       "source": "/25days",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/25days/rules",
       "destination": "/index.html"
     },
     {

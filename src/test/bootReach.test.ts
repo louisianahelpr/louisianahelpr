@@ -424,7 +424,7 @@ describe("icon pins for a gift guide and Profile's first screen (lander 11-22, t
   // Measured 2026-11-22 (local vite build, critical-path.mjs): after the polish lanes deleted /shop-small and one
   // ArrowUpRight import, the entriesAware merge put a gift guide's one unpinned icon (ShoppingCart) in an 80-icon chunk
   // (/gift-guides/:slug 364,338 B gz, over its 361,267 budget) and split the chunk /profile shared with it in two
-  // (/profile 349,062 -> 356,006). Pinned: 357,398 and 346,190, /admin 291,070 (main 291,058).
+  // (/profile 349,062 -> 356,006). Pinned: 357,412 and 346,201, /admin 291,065 (main 291,058).
   it("the guides' pin holds the cart icon GiftGuideView draws; Profile's holds Pencil and RotateCw, none of Admin's or the guides'", () => {
     const guides = guidesIconFiles(ROOT);
     const profile = profileIconFiles(ROOT);

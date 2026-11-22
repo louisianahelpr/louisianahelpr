@@ -196,6 +196,16 @@
     "name": "Nintendo Switch Lite",
     "key": "nintendo:lite",
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nintendo-switch-lite-turquoise-front-888c6e.webp"
+   },
+   {
+    "name": "Melissa & Doug Wood Furnished Mansion",
+    "key": "melissadoug:mansion",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-wood-furnished-mansion-825096.webp"
+   },
+   {
+    "name": "Sand and Water Table",
+    "key": "asweets:table",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/asweets-sand-and-water-table-4fc56a.webp"
    }
   ]
  },

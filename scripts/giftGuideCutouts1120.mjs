@@ -341,6 +341,12 @@ export const CUTOUTS_1120 = new Map([
   ["https://dms.deckers.com/hoka/image/upload/t_product-xlarge-wp/v1/1162012-WWH_1.png", "hoka-bondi-9-womens-white-bbc928.webp"],
   // owner 11-22 kids tech: PlayStation 5 Digital Edition (target.com photo, on white)
   ["https://target.scene7.com/is/image/Target/GUEST_c12714d1-b136-41c9-9b43-5579ff0c08f8", "playstation-5-digital-edition-target-251c36.webp"],
+  // owner 11-22 him picks (builder-guide-him): Smathers & Branson Tervis, can cooler, card wallet, toiletry bag
+  ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/Mallard_ClassicNavy__TumblerwithLid_LowRes.jpg", "sb-mallard-tervis-tumbler-34e4e6.webp"],
+  ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/World_sBestDad_Royal__TumblerwithLid_LowRes.jpg", "sb-wbd-tervis-tumbler-0e3ef6.webp"],
+  ["https://static.shopmy.us/pins/zoom-108108365-1795145239744-Mallard_Classic_Navy__Can_Cooler_Primary_Low_Res.jpg", "sb-mallard-can-cooler-b44a37.webp"],
+  ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/World_sBestDad_Royal__CCW_LowRes.jpg", "sb-wbd-card-wallet-85088f.webp"],
+  ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/Fish_and_Tackle_Dark_Navy__Toiletry_Bag_Low_Res.jpg", "sb-fish-tackle-toiletry-bag-ec6272.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

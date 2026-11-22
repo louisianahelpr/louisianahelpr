@@ -219,6 +219,11 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B0G72KN8BL", 9.49, "41AjgHzg2iL", "COOFANDY Men's V-Neck Tee", "COOFANDY", "shirt", 4, "A soft everyday V-neck tee."],
   ["B08BG8RQHG", 44.99, "41wLs6bwGyL", "Carhartt K288 Logo Sweatshirt", "Carhartt", "sweatshirt", 4, "The classic Carhartt logo sweatshirt."],
   ["B0FZN2ZCFL", 27.2, "51TtsH9AWzL", "Burlebo Go To Performance Tee", "Burlebo", "shirt", 4, "A light performance tee from Burlebo."],
+  // owner 11-22 him picks (builder-guide-adds hand-off, lead OK): prices read on each Amazon page 2026-11-22. The MVP gloves
+  // page is the Womens (M) listing; the 2-pack is the same Brown Houndstooth Cabretta glove.
+  ["B0DR7LMT32", 70, "81oLiIzC5VL", "MVP PRO Houndstooth Cabretta Golf Gloves, Brown (2-Pack)", "MVP", "accessory", 3, "A pair of leather golf gloves in a brown houndstooth."],
+  ["B0D8ZXGJ3L", 43.99, "61kzOwV7c+L", "Banded Soft Shell Insulated Handwarmer, Realtree Legacy", "Banded", "hunting", 3, "A fleece-lined hand muff for cold mornings in the blind."],
+  ["B0CHVWCSQ8", 39.99, "61tvo-s46ML", "Klola Large Magnetic Gun Cleaning Mat with Parts Tray", "Klola", "hunting", 3, "A magnetic cleaning mat that keeps every small part in place."],
 ].map((r) => (Array.isArray(r) ? row(r) : r));
 
 export const HIM_1121 = [

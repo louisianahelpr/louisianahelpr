@@ -271,7 +271,7 @@ describe("owner 11-21: each printable kind is its own page; none on Her, Him or 
       const ids = [...container.querySelectorAll("[data-printable-card], section[id]")].map((x) => x.getAttribute("data-printable-card") ?? x.id).filter(Boolean);
       seen.push(...ids);
       if (page.key === "coloring") expect(ids, page.path).toEqual(["coloring-book"]);
-      if (page.key === "banners") expect(ids, page.path).toEqual(["thanksgiving-banner"]);
+      if (page.key === "banners") expect(ids, page.path).toEqual(["merry-christmas-plaid", "merry-christmas-green-stripe", "thanksgiving-banner"]);
       if (page.key === "tags") expect(ids, page.path).toEqual(["gift-tags"]);
       expect(PUBLIC_PAGE_META[page.path as keyof typeof PUBLIC_PAGE_META]?.canonical, page.path).toBe(`https://www.louisianahelpr.com${page.path}`);
       cleanup();

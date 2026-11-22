@@ -109,9 +109,11 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
               />
             </div>
           )}
-          {/* Design audit r3 #2: Cancel left + Send right side by side (was stacked full-width at 390), pinned to the
-              bottom of the scrolling sheet like the Report dialog's, so it isn't 9 rows down. */}
-          <SheetFooter className="sticky bottom-0 -mx-4 -mb-4 grid grid-cols-2 border-t border-border bg-background px-4 pb-4 pt-3 sm:-mx-5 sm:-mb-5 sm:px-5 sm:pb-5" data-offer-trade-footer="">
+          {/* Design audit r3 #2: Cancel left + Send right side by side, pinned to the bottom of the scrolling sheet like
+              the Report dialog's, so it isn't 9 rows down. Deep audit 11-22 #41: the shared footer row lays them out (no
+              grid of two fixed halves), so a label wider than its half wraps onto its own row instead of running to the
+              screen edge. */}
+          <SheetFooter className="sticky bottom-0 -mx-4 -mb-4 border-t border-border bg-background px-4 pb-4 pt-3 sm:-mx-5 sm:-mb-5 sm:px-5 sm:pb-5" data-offer-trade-footer="">
             <SheetSecondaryAction disabled={send.isPending} onClick={() => setOpen(false)}>{t("dp.cancel")}</SheetSecondaryAction>
             <SheetPrimaryAction disabled={!picked || send.isPending} onClick={() => picked && send.mutate(picked)}>
               {send.isPending ? t("dp.sending") : t("dp.sendTrade")}

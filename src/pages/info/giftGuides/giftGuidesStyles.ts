@@ -298,7 +298,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-more{display:flex;flex-wrap:wrap;gap:0 20px;margin-top:12px}
 
 .gg-disc{border-top:1px solid var(--gg-line);margin-top:26px;padding-top:14px;font-size:12px;color:var(--gg-muted);text-align:center}
-.gg-disc p{margin:2px 0}
+.gg-disc p{margin:2px 0;text-wrap:balance}
 .gg-disc .gg-more{justify-content:center}
 @media (max-width:767px){
 

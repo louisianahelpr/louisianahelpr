@@ -9,7 +9,7 @@
  * @mutate src/content/giftGuideExtras1120.ts |   { id: "kids", label: "Kids", guides: [{ slug: "kids" }] }, |   { id: "kids", label: "Kids", guides: [{ slug: "kids", sections: ["little-kids"] }, { slug: "kids", sections: ["big-kids"] }] },
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-head-title .text-page-title{margin:0;min-width:0;overflow-wrap:anywhere} | .gg-head-title .text-page-title{margin:0;min-width:0;white-space:nowrap}
  * @mutate src/components/ScrollToTop.tsx |       return scrollToHash(hash); |       return;
- * @mutate src/pages/info/giftGuides/fun/FunPage.tsx |           <p data-gift-amazon-statement="">{G.amazonStatement}</p> |           {null}
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p> | </p>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";

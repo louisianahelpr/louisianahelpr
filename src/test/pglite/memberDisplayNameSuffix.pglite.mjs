@@ -19,7 +19,7 @@
  *     EVERY name keeps the previous output's first word and shows at most one more letter (never more of
  *     a name than before: lh-authz-rls review of the first draft, where "(Jane) Landry" became "Landry");
  *  5. grants: no EXECUTE for PUBLIC or anon; authenticated and service_role keep it.
- * Red: LH_PROOF_REVERT=1 skips the migration (the previous definition stays) and the proof fails.
+ * Red: with LH_PROOF_REVERT set, the migration is skipped (the previous definition stays) and the proof fails.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import os from "node:os";

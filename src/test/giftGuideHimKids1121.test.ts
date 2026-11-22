@@ -160,7 +160,8 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
 });
 
 describe("For Him holds every one of her men's saves (owner 11-21)", () => {
-  it("92 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the 30 left out named", () => {
+  it("91 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the 31 left out named", () => {
+    // Owner 2026-11-22: B09R5TGLFR Chemical Guys Car Cleaning Kit ($31.90) is off too; the Wontolf kit is the only car wash kit.
     // Owner 2026-11-22 ("remove"): B0CQ4QM7Q2 Men's Fuzzy Cloud Socks are off. Owner 2026-11-22 ("only keep the one with
     // the higher commission"): B0732FCCL4 Armor All Ultimate Car Cleaning Kit (3% x $38.91) is off; the Wontolf kit (3% x $40.79) stays.
     // Left out, 2026-11-21: B001DPHF4U LaCrosse Grange, B0FKCJNHWB Theragun Prime and B08Q1RN656 XTRATUF Ankle Deck Boot, B0F2JHSGCJ Turtlebox Ranger and the 14 night links 11-21
@@ -169,8 +170,8 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // stores, above), B0002A7GMS / B07M9LRQ4J / B0FDXLSNN1 (second listings of the same items), B09ZYT939N YETI
     // Crossroads Backpack (Amazon showed no price), and the 6 rate switches 11-21 night (3 XTRATUF, TNF beanie, Burlebo hoodie + cap).
     const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]);
-    expect(amazon.length).toBe(92);
-    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P", "B0CQ4QM7Q2", "B0732FCCL4"]) expect(amazon, asin).not.toContain(asin);
+    expect(amazon.length).toBe(91);
+    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P", "B0CQ4QM7Q2", "B0732FCCL4", "B09R5TGLFR"]) expect(amazon, asin).not.toContain(asin);
     for (const asin of ["B0F2K9B696", "B0F53HMTX5", "B0FR98X1DZ", "B0D31TCLN2", "B0FKN7JH1D"]) expect(amazon, asin).toContain(asin);
   });
 });

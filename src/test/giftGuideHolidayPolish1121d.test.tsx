@@ -29,6 +29,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   if (!src || !ok) return null; |   if (!ok) return null;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | body: <CodeCards codes={codes} /> | body: <CodeCards codes={codes.slice(1)} />
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       {sections.length > 1 && ( |       {false && (
+ * @mutate src/pages/info/giftGuides/smallBizCardStyles.ts | min-height:44px;min-width:44px;font-size:14px | min-height:44px;font-size:14px
  * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx |             <Out href={b.href} className="gg-sb-visit"> |             <Out href={b.href} className="gg-sb-visit rounded-full border">
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   return Local ? <Local sponsors={[]} /> : <FeatureCta />; |   return null;
  * @mutate src/content/giftGuideDeals.mjs |   runs: (start, end) => (start && end ? | runs: (start, end) => (false ? 
@@ -222,6 +223,12 @@ describe("owner 11-21: Small Business Saturday cards and the sign-up card", () =
       expect(v.className).not.toMatch(/border|rounded|btn|outline/);
       expect(v.textContent).toMatch(/^Visit/);
     }
+  });
+  it("the Visit link is at least 44 by 44 px (audit 11-22 #26: it measured 41 wide)", async () => {
+    const { SB_CARD_CSS } = await import("../pages/info/giftGuides/smallBizCardStyles");
+    const rule = SB_CARD_CSS.match(/\.gg-sb \.gg-sb-visit\{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toMatch(/min-height:44px/);
+    expect(rule).toMatch(/min-width:44px/);
   });
   it("the day page: a top line that opens the sign-up card's form, the card at the bottom", async () => {
     window.HTMLElement.prototype.scrollIntoView = vi.fn();

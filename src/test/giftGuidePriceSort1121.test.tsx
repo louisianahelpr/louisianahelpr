@@ -224,7 +224,10 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Braun IPL, the XTRATUF boot, the L.L.Bean sweater and barn coat and the HOKA Bondi 9 ($100 and up).
       // Train e (11-22): Her also gained the 5 popular adds and her3b's PR picks (Beekman, Glow Recipe, Eberjey, Beis,
       // Case-Mate, Naturium, Makeup by Mario, YTTP), and lost the Amazon Essentials flannel pajamas (owner: "Lake + Eberjey").
-      her: { "Under $25": 36, "$25 to $50": 34, "$50 to $75": 9, "$75 to $100": 8, "$100 and up": 35 },
+      // Train f: the links made in her ShopMy 11-22: the CALPAK lunch bag ($38), OOFOS slide ($70), Slip and Crown Affair
+      // pillowcases, the OOFOS leopard clog and the Smathers & Branson tray ($84-$95), the Patchology hand mask ($11) and the
+      // BaubleBar spaced-letter necklace ($148).
+      her: { "Under $25": 37, "$25 to $50": 35, "$50 to $75": 10, "$75 to $100": 12, "$100 and up": 36 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

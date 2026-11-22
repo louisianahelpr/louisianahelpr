@@ -354,6 +354,14 @@ export const CUTOUTS_1120 = new Map([
   ["https://cdn.shopify.com/s/files/1/0105/2265/6823/files/NATR-Multi-Peptide_Serum_Front_capoff_primary_bone.webp", "naturium-multi-peptide-advanced-serum-2ba7ff.webp"],
   ["https://cdn.shopify.com/s/files/1/0275/4822/1505/files/MBM_MMLWCE_PACKSHOT_BISQUE.jpg", "makeup-by-mario-master-mattes-cream-eyeshadow-e8b826.webp"],
   ["https://www.youthtothepeople.com/dw/image/v2/AAFM_PRD/on/demandware.static/-/Sites-yttp-master-catalog/default/dwad62d71c/products/YTTP-10100/2026/ALT0-0810834030087--PACKSHOT.jpg", "yttp-superfood-cleanser-b7f8c7.webp"],
+  ["https://cdn.shopify.com/s/files/1/0941/4996/files/INSULATED-LUNCH-BAG-POLKA-DOT-FRONT_c2dd954c-ab3e-48d7-bdb7-cc91f99b1cb8.jpg", "calpak-insulated-lunch-bag-polka-dot-a96450.webp"],
+  ["https://cdn.shopify.com/s/files/1/0254/5969/files/2200CHALK_shot2.jpg", "oofos-ooahh-plus-slide-chalk-43bce9.webp"],
+  ["https://cdn.shopify.com/s/files/1/0328/0021/files/SLIP_S24_PC_QUEEN_SEABREEZE_SHOT-1.jpg", "slip-queen-pillowcase-seabreeze-00b729.webp"],
+  ["https://cdn.shopify.com/s/files/1/0088/0368/0319/files/TheSilkPillowcase-ONGREY1_68723556-7c9d-41ed-aeac-bfc8cd57bc24.png", "crown-affair-silk-pillowcase-83db7e.webp"],
+  ["https://cdn.shopify.com/s/files/1/0254/5969/files/1203NOLEOPD_shot2.jpg", "oofos-oocloog-nomad-leopard-0ce0f4.webp"],
+  ["https://cdn.shopify.com/s/files/1/0767/9233/2592/products/Home_Sweet_Home_Valet_Tray_Low_Res.jpg", "smathers-home-sweet-home-valet-tray-80fc36.webp"],
+  ["https://cdn.shopify.com/s/files/1/0283/0185/2747/files/global_images-818262023879-1.jpg", "patchology-rose-fingers-hand-mask-ff564d.webp"],
+  ["https://cdn.shopify.com/s/files/1/0267/5746/4148/files/115932_G_01_Accent_Vis.jpg", "baublebar-mini-spaced-letter-necklace-85c839.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

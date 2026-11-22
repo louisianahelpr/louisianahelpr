@@ -39,8 +39,8 @@ export const HER_STORES = {
   "store-haven-well-within": "Haven Well Within", "store-camp-snap": "Camp Snap", "store-rei": "REI",
   "store-the-swank-company": "The Swank Company", "store-baublebar": "BaubleBar", "store-currentbody": "CurrentBody",
   "store-anthropologie": "Anthropologie", "store-tatcha": "Tatcha", "store-iherb": "iHerb", "store-stanley": "Stanley", "store-cos-bar": "Cos Bar", "store-ulta-beauty": "Ulta Beauty",
-  // owner 11-22 screenshot list (builder-guide-adds-2): her LUSH pin.
-  "store-lush": "LUSH",
+  // owner 11-22 screenshot list (builder-guide-adds-2): her LUSH pin and the OOFOS links made 11-22.
+  "store-lush": "LUSH", "store-oofos": "OOFOS",
   "store-yttp": "Youth To The People", "store-naturium": "Naturium",
 };
 
@@ -183,6 +183,18 @@ export const HER_1121 = [
   { name: "Naturium Multi-Peptide Advanced Serum", brand: "Naturium", line: "A plumping peptide serum that is easy on the budget.", href: shopmy("p-103878765"), image: "https://cdn.shopify.com/s/files/1/0105/2265/6823/files/NATR-Multi-Peptide_Serum_Front_capoff_primary_bone.webp", store: "store-naturium", sortPrice: 25, price: 25, commission: 15, type: "skincare" },
   { name: "Makeup by Mario Master Mattes Cream Eyeshadow", brand: "Makeup by Mario", line: "A creamy matte eyeshadow that blends in seconds.", href: shopmy("p-103883109"), image: "https://cdn.shopify.com/s/files/1/0275/4822/1505/files/MBM_MMLWCE_PACKSHOT_BISQUE.jpg", store: "store-sephora", sortPrice: 25, price: 25, commission: 12, type: "makeup" },
   { name: "Youth To The People Superfood Cleanser", brand: "Youth To The People", line: "The green kale face wash that is a skincare favorite.", href: shopmy("p-103877715"), image: "https://www.youthtothepeople.com/dw/image/v2/AAFM_PRD/on/demandware.static/-/Sites-yttp-master-catalog/default/dwad62d71c/products/YTTP-10100/2026/ALT0-0810834030087--PACKSHOT.jpg", store: "store-yttp", sortPrice: 39, price: 39, commission: 8, type: "skincare" },
+  // Links made 11-22 in her ShopMy (owner: "You can create the links"; Desktop note ShopMy-links-created-1122.md).
+  { name: "CALPAK Insulated Lunch Bag, Polka Dot", brand: "CALPAK", line: "A cute insulated lunch bag for packed shift meals.", href: shopmy("p-109201389"), image: "https://cdn.shopify.com/s/files/1/0941/4996/files/INSULATED-LUNCH-BAG-POLKA-DOT-FRONT_c2dd954c-ab3e-48d7-bdb7-cc91f99b1cb8.jpg", store: "store-calpak", sortPrice: 38.4, price: 38.4, commission: 8, type: "bag", priceAt: "2026-11-22" },
+  // The healthcare list's "OOahh Luxe" is, by its picture, the OOahh PLUS slide in Chalk (oofos.com only).
+  { name: "OOFOS OOahh PLUS Slide, Chalk", brand: "OOFOS", line: "Cushy recovery slides for after a long shift.", href: shopmy("p-109202100"), image: "https://cdn.shopify.com/s/files/1/0254/5969/files/2200CHALK_shot2.jpg", store: "store-oofos", sortPrice: 69.95, price: 69.95, commission: 12, type: "shoes", priceAt: "2026-11-22" },
+  { name: "Slip Pure Silk Queen Zippered Pillowcase, Seabreeze", brand: "Slip", line: "A pure silk pillowcase for smoother hair and skin.", href: shopmy("p-109201186"), image: "https://cdn.shopify.com/s/files/1/0328/0021/files/SLIP_S24_PC_QUEEN_SEABREEZE_SHOT-1.jpg", store: "store-slip", sortPrice: 84, price: 84, commission: 15, type: "bedding", priceAt: "2026-11-22" },
+  { name: "Crown Affair The Silk Pillowcase", brand: "Crown Affair", line: "A silk pillowcase that is gentle on hair overnight.", href: shopmy("p-109200757"), image: "https://cdn.shopify.com/s/files/1/0088/0368/0319/files/TheSilkPillowcase-ONGREY1_68723556-7c9d-41ed-aeac-bfc8cd57bc24.png", store: "store-crown-affair", sortPrice: 88, price: 88, commission: 15, type: "bedding", priceAt: "2026-11-22" },
+  { name: "OOFOS OOcloog Limited Edition Clog, Nomad Leopard", brand: "OOFOS", line: "Cushioned recovery clogs in a fun leopard print.", href: shopmy("p-109201629"), image: "https://cdn.shopify.com/s/files/1/0254/5969/files/1203NOLEOPD_shot2.jpg", store: "store-oofos", sortPrice: 89.95, price: 89.95, commission: 12, type: "shoes", priceAt: "2026-11-22" },
+  { name: "Smathers & Branson Home Sweet Home Needlepoint Valet Tray", brand: "Smathers & Branson", line: "A hand-stitched needlepoint tray for keys and rings.", href: shopmy("p-109200363"), image: "https://cdn.shopify.com/s/files/1/0767/9233/2592/products/Home_Sweet_Home_Valet_Tray_Low_Res.jpg", store: "store-smathers-and-branson", sortPrice: 95, price: 95, commission: 15, type: "valet-tray", priceAt: "2026-11-22" },
+  // Photo: Bluemercury's own shot of the same single-pair packet (Dermstore's page blocks scripted reads).
+  { name: "Patchology Rosé Fingers Renewing Hand Mask", brand: "Patchology", line: "Moisturizing hand mask gloves for hardworking hands.", href: shopmy("p-109205545"), image: "https://cdn.shopify.com/s/files/1/0283/0185/2747/files/global_images-818262023879-1.jpg", store: "store-dermstore", sortPrice: 11, price: 11, commission: 16, type: "hand-care", priceAt: "2026-11-22" },
+  // The creator tagged BaubleBar; small plain gold letters on a fine chain = the Mini Spaced Letter necklace (best match).
+  { name: "BaubleBar Mini 14K Gold Spaced Letter Custom Name Necklace", brand: "BaubleBar", line: "Her initials or name in little gold letters on a fine chain.", href: shopmy("p-109205223"), image: "https://cdn.shopify.com/s/files/1/0267/5746/4148/files/115932_G_01_Accent_Vis.jpg", store: "store-baublebar", sortPrice: 148, price: 148, commission: 20, type: "jewelry", priceAt: "2026-11-22" },
 ];
 
 // owner 11-22 popular approved (builder-guide-popular): Amazon listings sold by Amazon.com or the brand, prices read 11-22.

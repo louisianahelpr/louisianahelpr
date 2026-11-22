@@ -115,6 +115,8 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   "fire-pit": ["outdoors"], "duck-call": ["outdoors"],
   // Him batch 2: a nugget ice maker is kitchen.
   "ice-maker": ["kitchen"],
+  // Him batch 3: a wool quarter-zip sweater is style and cozy.
+  sweater: ["style", "cozy"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {

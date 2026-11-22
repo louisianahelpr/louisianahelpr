@@ -142,19 +142,30 @@ export type SwipeBudget = 25 | 50 | 100 | 0;
  * list; only "Me" saves to the wish list).
  */
 const finderGuides = (id: string) => FINDER_WHO.find((w) => w.id === id)?.guides ?? [];
-export const SWIPE_WHO: { id: SwipeWho; label: string; guides: { slug: string; sections?: string[] }[]; forName?: string }[] = [
-  { id: "me", label: "Me", guides: [...finderGuides("her"), ...finderGuides("him")] },
+type SwipeGuides = { slug: string; sections?: string[] }[];
+/**
+ * A "who" whose guides are the finder's own lists, read on first use, not while this module loads. The production
+ * build puts this module and the finder's (giftGuideExtras1120.ts) in two chunks that import each other once the fun
+ * pages and Shop Small share the guides' menu (holiday audit 1121 #13 / #73), so a read at load time found FINDER_WHO
+ * still undefined and every gift guides page failed to load ("reading 'find'", measured in a vite build 2026-11-21).
+ */
+const finderWho = (id: SwipeWho, label: string, finderIds: string[], forName?: string) => {
+  let cached: SwipeGuides | null = null;
+  return { id, label, ...(forName ? { forName } : {}), get guides(): SwipeGuides { return (cached ??= finderIds.flatMap(finderGuides)); } };
+};
+export const SWIPE_WHO: { id: SwipeWho; label: string; guides: SwipeGuides; forName?: string }[] = [
+  finderWho("me", "Me", ["her", "him"]),
   // Holiday audit 1121 #24: the finder's person order (Her, Him, Mom, Dad, Kids, Teen, ...), after "Me".
-  { id: "her", label: "Her", guides: finderGuides("her"), forName: "Her" },
-  { id: "him", label: "Him", guides: finderGuides("him"), forName: "Him" },
-  { id: "mom", label: "Mom", guides: finderGuides("mom"), forName: "Mom" },
-  { id: "dad", label: "Dad", guides: finderGuides("dad"), forName: "Dad" },
-  { id: "kids", label: "Kids", guides: finderGuides("kids"), forName: "Kids" },
-  { id: "teen", label: "Teen", guides: finderGuides("teen"), forName: "Teen" },
-  { id: "friends", label: "Friends", guides: finderGuides("friend"), forName: "Friends" },
-  { id: "coworkers", label: "Coworkers", guides: finderGuides("coworker"), forName: "Coworkers" },
+  finderWho("her", "Her", ["her"], "Her"),
+  finderWho("him", "Him", ["him"], "Him"),
+  finderWho("mom", "Mom", ["mom"], "Mom"),
+  finderWho("dad", "Dad", ["dad"], "Dad"),
+  finderWho("kids", "Kids", ["kids"], "Kids"),
+  finderWho("teen", "Teen", ["teen"], "Teen"),
+  finderWho("friends", "Friends", ["friend"], "Friends"),
+  finderWho("coworkers", "Coworkers", ["coworker"], "Coworkers"),
   // Holiday audit C12c: the quiz has Grandparents, so the swipe deck does too.
-  { id: "grandparents", label: "Grandparents", guides: finderGuides("grandparent"), forName: "Grandparents" },
+  finderWho("grandparents", "Grandparents", ["grandparent"], "Grandparents"),
   { id: "louisiana", label: "Louisiana", guides: [{ slug: "louisiana-made" }, { slug: "shop-small-louisiana" }, { slug: "louisiana-food-gifts" }], forName: "Louisiana gifts" },
 ];
 export const SWIPE_BUDGETS: { id: SwipeBudget; label: string }[] = [

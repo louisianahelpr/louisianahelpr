@@ -31,6 +31,7 @@
  * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx |     requestAnimationFrame(() => openButton.current?.focus()); |     void 0;
  * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx |       {Form && <div hidden={!open} data-gift-sbs-form-wrap=""><Form onClose={close} /></div>} |       {Form && open && <div data-gift-sbs-form-wrap=""><Form onClose={close} /></div>}
  * @mutate src/pages/info/giftGuides/SmallBizSubmitForm.tsx | .gg-sbs-cta p.gg-sbs-err{color:hsl(var(--destructive-ink));margin:0} | .gg-sbs-cta p.gg-sbs-x{}
+ * @mutate src/content/giftGuideFun1120.ts |   finderWho("her", "Her", ["her"], "Her"), |   { id: "her", label: "Her", guides: finderGuides("her"), forName: "Her" },
  * @mutate scripts/gift-guide-small-biz.mjs | export const shipsFor = (b) => (VISIT_CATEGORIES.has(b.category) \|\| VENUE_SLUGS.has(b.slug) ? "local" : shipsOf(b.shipping)); | export const shipsFor = (b) => shipsOf(b.shipping);
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -63,6 +64,8 @@ import { GiftGuideTools } from "@/pages/info/giftGuides/GiftGuideShare";
 import ShopSmall from "@/pages/info/ShopSmall";
 import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
+import { readFileSync } from "node:fs";
+import { blankComments } from "./helpers/blankNonCode";
 
 afterEach(cleanup);
 
@@ -259,5 +262,17 @@ describe("the Shop Small sign-up form (holiday audit 1121 #76)", () => {
     expect(css).toMatch(/\.gg-sbs-cta p\.gg-sbs-err\{color:hsl\(var\(--destructive-ink\)\)/);
     expect(css).toMatch(/\[aria-invalid="true"\]\{border-color:hsl\(var\(--destructive-ink\)\)/);
     expect(container.querySelector('[data-gift-sbs-form] input[type="url"]')?.getAttribute("placeholder")).toMatch(/^e\.g\. /);
+  });
+});
+
+describe("the swipe people read the finder's lists on first use, not at load (holiday audit 1121 #13)", () => {
+  it("no module-level call reads FINDER_WHO (the build puts the two modules in chunks that import each other)", () => {
+    const src = blankComments(readFileSync("src/content/giftGuideFun1120.ts", "utf8"));
+    const whoBlock = src.slice(src.indexOf("export const SWIPE_WHO"), src.indexOf("export const SWIPE_BUDGETS"));
+    expect(whoBlock.length).toBeGreaterThan(200);
+    expect(whoBlock).not.toMatch(/finderGuides\(|FINDER_WHO/);
+    expect((whoBlock.match(/finderWho\(/g) ?? []).length).toBeGreaterThan(5);
+    // The lists still resolve on use.
+    expect(SWIPE_WHO.find((w) => w.id === "her")!.guides.length).toBeGreaterThan(0);
   });
 });

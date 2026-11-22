@@ -1523,6 +1523,19 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,
             },
+            // The two modules giftGuideFun1120 (public-page-reads) imports, both import-free: the finder's lists and the
+            // price bands. Left to the bundler they joined the gift guides' catalog chunk, which itself imports
+            // public-page-reads (the covers' hashes, the fun tools' names); once the fun pages and /shop-small shared the
+            // guides' menu (holiday audit 1121 #13 / #73) the two chunks imported each other and whichever loaded second
+            // read the other's exports as undefined: /gift-guides, Swipe, the planner and Secret Santa all stopped at
+            // "Loading…" in a vite build (measured 2026-11-21). A chunk with no imports cannot be part of a cycle.
+            {
+              name: "gift-guide-leaf",
+              test: /[\\/]src[\\/]content[\\/](giftGuideExtras1120|giftPickBand)\.ts$/,
+              priority: 16.8,
+              minSize: 0,
+              includeDependenciesRecursively: false /* both modules are import-free */,
+            },
             {
               name: "signed-in-chrome",
               test: /[\\/]src[\\/](lib[\\/](capturedPayment|consent|helprTasks[\\/]online|helprTasks[\\/]onlineHandoff)\.ts|hooks[\\/](useInstantQuery\.ts|use-mobile\.tsx))$/,

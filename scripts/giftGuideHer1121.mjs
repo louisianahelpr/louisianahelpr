@@ -73,10 +73,8 @@ export const HER_1121 = [
   { name: "Anoumcy Leopard Barrel Joggers", brand: "Anoumcy", line: "Leopard barrel-leg joggers that feel like sweats.", href: amz("B0FVFV7V1R"), image: amzImg("814X2uIfEUL"), store: "store-amazon", sortPrice: 33.14, commission: 4, type: "pants" },
   { name: "Sol de Janeiro Cheirosa Sol & Go Mini Perfume Mist", brand: "Sol de Janeiro", line: "A mini perfume mist in a best-loved scent.", href: amz("B0H42QZ8BW"), image: amzImg("71uJ6m6sS1L"), store: "store-amazon", sortPrice: 36, commission: 10, type: "fragrance" },
   { name: "ZDEER GS5 Heated Gua Sha Tool", brand: "ZDEER", line: "A heated gua sha with red light for a spa night in.", href: amz("B0FPCH9S11"), image: amzImg("31iCM-w+Z6L"), store: "store-amazon", sortPrice: 39.99, commission: 3, type: "beauty-device" },
-  // CODE WITH THE ITEM (owner 2026-11-21 9:58 PM: "you can put the code with the item but no we dont need a long list of
-  // codes on each guide only if we have a code should you put it with the items"): her Camp Snap code LEXILOMBAS7, 7% off
-  // campsnapphoto.com, where this link goes; active with no end date in her ShopMy Discount Codes (ShopMy-codes-1121-night.md).
-  { name: "Camp Snap CS-8 Micro Video Camera Keychain, Blind Box", brand: "Camp Snap", line: "A tiny video camera on a keychain, color a surprise.", href: shopmy("p-108611500"), image: "https://cdn.shopify.com/s/files/1/0744/7383/2752/files/header_d29d6334-ecd6-41de-ad9f-68ae82d94846.png", store: "store-camp-snap", sortPrice: 39.99, price: 39.99, commission: 10, type: "accessory", code: "LEXILOMBAS7" },
+  // Owner 2026-11-22 ("Choose one" Camp Snap; builder-guide-emibauble): the CS-8 Micro keychain (p-108611500, $39.99) is off;
+  // Her keeps the Camp Snap 2 in Chestnut (scripts/giftGuideOwnerAdds1122.mjs).
   // COMMISSION SWITCH 11-21: was Amazon B0HFYLTJR7 at 10%; same boxed set, same $40 at Anthropologie at 15%.
   { name: "L'OCCITANE Shea Butter Classics Gift Set", brand: "L'OCCITANE", line: "Shea butter hand and body care, ready to give.", href: shopmy("p-108732809"), image: "https://images.urbndata.com/is/image/Anthropologie/114587041_030_b2", store: "store-anthropologie", sortPrice: 40, price: 40, commission: 15, type: "gift-set" },
   { name: "HEYDUDE Austin Lift Platform Mule", brand: "HEYDUDE", line: "Easy slip-on platform mules for everyday errands.", href: amz("B0CPB1MWMP"), image: amzImg("315u2EGcJpL"), store: "store-amazon", sortPrice: 44.99, commission: null, type: "shoes" },
@@ -132,8 +130,6 @@ export const HER_1121 = [
   { name: "L'Oréal Paris EverPure Glossing Lamination Hair Mask", brand: "L'Oréal Paris", line: "A five-minute mask for glossy, smooth hair.", href: amz("B0DKG9CMH8"), image: amzImg("61hStalP0LL"), store: "store-amazon", sortPrice: 9.97, commission: 3, type: "hair", priceAt: "2026-11-22" },
   { name: "Just a Few Things I Love About You, Mom", brand: "", line: "A fill-in book of all the reasons you love her.", href: amz("B0GSMJTZJJ"), image: amzImg("61yk6HHLMJL"), store: "store-amazon", sortPrice: 17.99, commission: 4.5, type: "book", priceAt: "2026-11-22" },
   { name: "Loop Quiet 2 Ear Plugs, Black", brand: "Loop", line: "Soft, reusable earplugs for sleeping after a night shift.", href: amz("B0D3V61JC8"), image: amzImg("51vun8qtNlL"), store: "store-amazon", sortPrice: 19.95, commission: 3, type: "earplugs", priceAt: "2026-11-22" },
-  // Her Comrad pin (15%); the picture's sock brand cannot be read, so her nurse-favorite pair.
-  { name: "Comrad Knee-High Compression Socks, Black", brand: "Comrad", line: "Comfy compression socks for 12-hour shifts on her feet.", href: shopmy("p-103899561"), image: "https://cdn.shopify.com/s/files/1/0748/9440/9945/files/KHC-SL001-Solid-Nylon_black_flat-lil_9d810510-219a-4814-b64d-88c4c206413e.jpg", store: "store-comrad-socks", sortPrice: 34, price: 34, commission: 15, type: "socks", priceAt: "2026-11-22" },
   { name: "Pura 4 Smart Fragrance Diffuser Starter Set", brand: "Pura", line: "A smart plug-in diffuser that keeps home smelling fresh.", href: amz("B0CSV71DJV"), image: amzImg("61q2udtvkQL"), store: "store-amazon", sortPrice: 54.58, commission: 3, type: "diffuser", priceAt: "2026-11-22" },
   // Amazon Luxury Beauty (sold by Kérastase): 10%.
   { name: "Kérastase Elixir Ultime L'Huile Originale Hair Oil", brand: "Kérastase", line: "A few drops leave hair shiny and soft.", href: amz("B0D2LV7DHF"), image: amzImg("611pNf2nqML"), store: "store-amazon", sortPrice: 64, commission: 10, type: "hair", priceAt: "2026-11-22" },
@@ -143,8 +139,6 @@ export const HER_1121 = [
   { name: "UGG Scuffette II Slipper, Chestnut", brand: "UGG", line: "Cozy UGG slippers to kick on after a long shift.", href: shopmy("p-104053242"), image: "https://static.shopmy.us/pins/zoom-104053242-1794418576037-71G1Ib2Cp8L._SR960%252C720_.jpg", store: "store-zappos", sortPrice: 99.95, price: 99.95, commission: 12, type: "shoes", priceAt: "2026-11-22" },
   { name: "Kindle Paperwhite 16GB, Black", brand: "Amazon", line: "A glare-free e-reader for books on every break.", href: amz("B0CFPJYX7P"), image: amzImg("61KMlIaN9pL"), store: "store-amazon", sortPrice: 129.99, commission: 4, type: "e-reader", priceAt: "2026-11-22" },
   // Owner 2026-11-22 ("Keep only Oura"): the Ultrahuman Ring PRO (B0H1N3TWP1, $379) is off; the Oura Ring 5 is on Her instead.
-  { name: "Mrs. Meyer's Clean Day Multi-Surface Cleaner, Lemon Verbena", brand: "Mrs. Meyer's", line: "The lemon verbena counter spray that smells so good.", href: amz("B000S5VEA2"), image: amzImg("61JZw9Z1htL"), store: "store-amazon", sortPrice: 4.33, commission: 3, type: "cleaning", priceAt: "2026-11-22" },
-  { name: "Downy Unstopables Scent Beads, No. 26", brand: "Downy", line: "Scent beads that keep laundry smelling fresh.", href: amz("B0FGDQ5BT9"), image: amzImg("71BGHg5CjYL"), store: "store-amazon", sortPrice: 9.97, commission: 3, type: "cleaning", priceAt: "2026-11-22" },
   // Amazon sells 3, 5, 7 and 9 counts (the picture is a store 4-pack); the 5 count.
   { name: "Scrub Mommy Dual-Sided Sponges, 5 Count", brand: "Scrub Daddy", line: "Smiley scrub sponges that make dishes go faster.", href: amz("B0DN245D58"), image: amzImg("71cWmgZ-09L"), store: "store-amazon", sortPrice: 15.19, commission: 3, type: "cleaning", priceAt: "2026-11-22" },
   // The seller in the video is not named: the closest match by eye (burgundy croc, gold script name, gold zipper).
@@ -154,8 +148,10 @@ export const HER_1121 = [
   { name: "Stanley Adventure To-Go Food Jar, 18 oz, Frost", brand: "Stanley", line: "An insulated jar that keeps lunch hot all shift.", href: amz("B0D858S2H5"), image: amzImg("51gRES7A7RL"), store: "store-amazon", sortPrice: 22.5, commission: 4.5, type: "food-jar", priceAt: "2026-11-22" },
   // Her Sephora pin (12%) is about $30, $6 more than Amazon's $24.
   { name: "Dae Cactus Fruit 3-in-1 Styling Cream", brand: "Dae", line: "A styling cream that smooths frizz and adds shine.", href: amz("B0BLWTQ7JC"), image: amzImg("51M3SIxVmbL"), store: "store-amazon", sortPrice: 24, commission: 3, type: "hair", priceAt: "2026-11-22" },
-  { name: "JAANUU Regen Cotton Underscrub, Midnight Navy", brand: "JAANUU", line: "A soft organic cotton layer to wear under scrubs.", href: amz("B0F831FK2R"), image: amzImg("81+A+w04Q2L"), store: "store-amazon", sortPrice: 34, commission: 4, type: "scrubs", priceAt: "2026-11-22" },
-  { name: "Stoggles Rectangle Safety Glasses, Denim", brand: "Stoggles", line: "Anti-fog safety glasses that actually look cute.", href: amz("B0B22SZ3W8"), image: amzImg("51nDh3GXHsL"), store: "store-amazon", sortPrice: 42, commission: 4, type: "eyewear", priceAt: "2026-11-22" },
+  // Owner 2026-11-22 (builder-guide-emibauble): off Her are the Mrs. Meyer's Multi-Surface Cleaner (B000S5VEA2, "That's
+  // the first item they see"), Downy Unstopables No. 26 (B0FGDQ5BT9), Comrad Knee-High Compression Socks (p-103899561),
+  // JAANUU Regen Cotton Underscrub (B0F831FK2R) and Stoggles Rectangle Safety Glasses (B0B22SZ3W8); tortoise blue light
+  // glasses take the Stoggles' place (scripts/giftGuideOwnerAdds1122.mjs).
   { name: "Downoop Hot Towel Dispenser Warmer, White", brand: "Downoop", line: "A hot face towel in seconds, right on the nightstand.", href: amz("B0H69TGK2F"), image: amzImg("61Fxl0VD48L"), store: "store-amazon", sortPrice: 73.94, commission: 3, type: "beauty-device", priceAt: "2026-11-22" },
   { name: "Marc Jacobs Daisy Love Eau de Toilette, 1.7 oz", brand: "Marc Jacobs", line: "A sweet, soft floral perfume in the daisy-cap bottle.", href: amz("B07CDF1RVV"), image: amzImg("51U10-bOlWL"), store: "store-amazon", sortPrice: 112, commission: 3, type: "fragrance", priceAt: "2026-11-22" },
   // Her Best Buy pin (8%) looked $30+ dearer today.

@@ -15,6 +15,7 @@
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Anthropic</strong> | <strong className="text-foreground">An AI model</strong>
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Cloudflare (Turnstile)</strong> | <strong className="text-foreground">A bot check</strong>
  * @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Twilio</strong> | <strong className="text-foreground">Our texting provider</strong>
+ * @mutate src/pages/info/legal/PrivacySection.tsx | <li><strong className="text-foreground">Meta</strong> — the Meta Pixel on our website (not in our app), to measure visits from Facebook and Instagram and show relevant ads. See &ldquo;Meta Pixel&rdquo; under Cookies &amp; tracking.</li> | <li><strong className="text-foreground">An ad network</strong> — an ad pixel on our website.</li>
  *
  * @mutate supabase/functions/_shared/payments/paypalClient.ts | live: "https://api-m.paypal.com", | live: "https://api.paypal-processor.example.net",
  * @mutate src/pages/info/legal/PrivacySection.tsx | <li><strong className="text-foreground">Stripe</strong> — payments, payouts, and identity verification.</li> | <li><strong className="text-foreground">Stripe</strong> — payments, payouts, and identity verification.</li><li><strong className="text-foreground">PayPal</strong> — payments.</li>
@@ -58,6 +59,14 @@ const DISCLOSED: Record<string, string> = {
   "messaging.twilio.com": "Twilio",
   // Q2336 (owner, 2026-10-20): SMS alerts send through Twilio.
   "api.twilio.com": "Twilio",
+  // The Meta Pixel (owner, 2026-11-22; the website only, src/lib/metaPixel.ts): fbevents.js from connect.facebook.net,
+  // events to www.facebook.com/tr, and the owner's Conversions API Gateway hosts her pixel config names (fbevents.js
+  // "openbridge"; allowed exactly in vercel.json, named in supabase/functions/csp-report/report.ts). Disclosed with a
+  // privacy version bump to "Nov 2026" (privacy only: no member is asked to re-accept).
+  "connect.facebook.net": "Meta",
+  "www.facebook.com": "Meta",
+  "7r-3c0d146726ae4cb698a4c85f7b2ff5f9.ecs.us-west-2.on.aws": "Meta",
+  "snofje0za8n8.cloud.run": "Meta",
 };
 // Processors the code can reach ONLY behind a hidden switch that is not yet on for members, so no
 // member's data reaches them yet. Each names its switch; the policy names the processor in the

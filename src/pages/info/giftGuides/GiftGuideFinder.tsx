@@ -17,6 +17,10 @@ import { START_OPEN } from "./startOpen";
  * age; budget; what they are into), then "Our picks for her": six cards (the guides' own card), "Show me more" for up to
  * twelve, a link to the whole guide and "Start over". The answers live in the URL
  * (/gift-guides?who=her&budget=25-50&into=cozy#gift-finder), so the link shares the same list; no sign-in.
+ * Owner 2026-11-22 (her phone: "Move the cart to the bottom right under the notice and the heart on the left of it like
+ * the other"; the results had blank photo areas): each result is the guides' own row (PickRow, so on a phone the cart
+ * and heart sit in one line under the price exactly as on Her/Him/Kids), its photo loads at once (eager) and no result
+ * row skips drawing (.gg-quiz-list>li, giftGuidesStyles.ts). Guard: src/test/giftQuizRowsLikeGuides1122.test.tsx.
  * Guard: src/test/giftQuiz1121.test.tsx.
  */
 const FINDER_ID = FINDER_ANCHOR;
@@ -108,7 +112,7 @@ export function GiftFinder() {
       <div data-gift-finder-results="">
         <p className="gg-quiz-q" data-gift-quiz-result-title="">{W.quizResults(quizForWords(a))}</p>
         {result.widened && <p className="gg-price-note" data-gift-quiz-widened="">{W.quizWidened}</p>}
-        <ol className="gg-list gg-quiz-list" data-gift-list="" data-quiz-count={shown.length}>{shown.map((p) => <PickRow key={p.href} pick={p} guide={who!.guide} />)}</ol>
+        <ol className="gg-list gg-quiz-list" data-gift-list="" data-quiz-count={shown.length}>{shown.map((p) => <PickRow key={p.href} pick={p} guide={who!.guide} eager />)}</ol>
         <PricesAsOf picks={shown} />
         {!more && result.picks.length > QUIZ_FIRST && (
           <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setMore(true)} data-gift-quiz-more="">{W.quizMore}</Button>

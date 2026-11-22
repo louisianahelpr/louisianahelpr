@@ -15,6 +15,7 @@
  * @mutate src/pages/info/GiftGuides.tsx |   const countRow = (phone && Boolean(guide) && !deals) \|\| sponsorsPage; |   const countRow = phone && Boolean(guide) && !deals;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {!filter && nav.length > 1 && ( |       {nav.length > 1 && (
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {filter && <GiftGuideFilter filter={filter} />} |       {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         <Icon d={SLIDERS} />\n        {active > 0 |         <Icon d="M4 5h16l-6 7.5V19l-4 1.5v-8L4 5z" />\n        {active > 0
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <Link to={p.path} {...current(p.path)} data-gift-side-printables={p.key}> | <Link to={`/gift-guides/printables#pr-${p.key}`} {...current(p.path)} data-gift-side-printables={p.key}>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -72,6 +73,22 @@ describe("the 25 Days sponsors page: its tools and Filter under the banner (owne
     expect(c.querySelector(".gg-main [data-gift-budget]")).toBeNull();
     expect(c.querySelector("[data-gift-hint='budget']")).toBeNull();
     expect(c.textContent).not.toMatch(/Tap a price to see gifts/);
+  });
+
+  // Owner 2026-11-22 (iPhone): "Should be the same filter icon as all the others": the sponsors' Filter is the same
+  // sliders icon, in the same plain 44px icon button, as the sort on Her, Him and Kids (it was a funnel).
+  it("the Filter is the same sliders icon and button as the sort on Her, Him and Kids", async () => {
+    const her = await renderAt("/gift-guides/her");
+    const sort = her.querySelector("[data-gift-sort-button]")!;
+    const sliders = sort.querySelector("path")?.getAttribute("d");
+    const sortClass = sort.className;
+    expect(sliders).toBe("M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4");
+    cleanup();
+    const c = await renderAt("/gift-guides/25-days-sponsors");
+    const filter = c.querySelector("[data-gift-filter-button]")!;
+    expect(filter.querySelector("path")?.getAttribute("d")).toBe(sliders);
+    expect(filter.className).toBe(sortClass);
+    expect(filter.querySelectorAll("svg").length).toBe(1);
   });
 
   it("the Filter holds the section links and the price limits; a price limit filters the list and counts on the icon", async () => {

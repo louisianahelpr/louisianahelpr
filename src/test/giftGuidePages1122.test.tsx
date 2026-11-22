@@ -33,6 +33,9 @@
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <Button key={f.href} type="button" variant="link" size="inline" className="pr-link" | <Button key={f.href} type="button" variant="outline" size="sm" className="pr-link"
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx |   const books = booksOf(p);\n |   const books = null as Book[] \| null;\n
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-books{grid-template-columns:repeat(2,minmax(0,1fr))} | .pr-books{grid-template-columns:minmax(0,1fr)}
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-book{align-items:center} | .pr-book{flex-direction:column;padding:16px}
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx |               <h2 className="pr-card-title">{b.title}</h2>\n |               <h2 className="pr-card-title">{b.title}</h2>\n              <p>A cover and 20 Christmas pages to color.</p>\n
+ * @mutate src/pages/info/giftGuides/fun/SecretSanta.tsx |           <p className="gg-fun-lead">{W.santaLead}</p>\n |           <p className="gg-fun-lead">{W.santaLead}</p>\n          <p data-gift-hint="fun-santa">Tip: we never ask for emails or phone numbers. You send each link yourself.</p>\n
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | {saved.map((p) => <PickRow key={p.href} pick={p} guide={p.guide} />)} | {saved.map((p) => <li key={p.href}>{p.name}</li>)}
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | @media (min-width:768px){.gg .gg-top10.gg-swipe-saved{grid-template-columns:repeat(4,minmax(0,1fr)); | @media (min-width:768px){.gg .gg-top10.gg-swipe-saved{grid-template-columns:repeat(5,minmax(0,1fr));
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | {savedTo === "planner" && <Button asChild variant="link" size="inline" className="gg-link"> | {savedTo === "planner" && <Button asChild variant="outline">
@@ -221,7 +224,10 @@ describe("#13 every guides page opens on the guides' one top: head row, then the
 });
 
 describe("#14 each coloring book in its own card", () => {
-  it("two cards, each its own cover, title, one line and a plain download link; two across from 560px, stacked below", async () => {
+  // Owner 11-22 later (iPhone): "Put the title of the right of the image and the rest of the stuff on the right of the
+  // image to save space. You can remove a cover and whatever else it said. Not needed": each card is a row, the cover
+  // left and the title and Download on its right, with no description line.
+  it("two cards, each a row: its own cover on the left, its title and a plain download link on the right, no description line; two across from 560px, stacked below", async () => {
     const { container } = renderAt("/gift-guides/printables/coloring-books");
     await waitFor(() => expect(container.querySelector('[data-printable-card="coloring-book"]')).not.toBeNull());
     const books = [...container.querySelectorAll("[data-printable-book]")];
@@ -230,7 +236,11 @@ describe("#14 each coloring book in its own card", () => {
       expect(b.matches("article.pr-card.pr-book")).toBe(true);
       expect(b.querySelectorAll("img").length).toBe(1);
       expect(b.querySelectorAll(".pr-card-title").length).toBe(1);
-      expect(b.querySelectorAll(".pr-card-body > p").length).toBe(1);
+      expect(b.querySelectorAll(".pr-card-body > p").length).toBe(0);
+      expect(b.textContent).not.toMatch(/A cover and 20/);
+      // The cover first, then the words beside it (one flex row: .pr-card is display:flex, .pr-book no longer a column).
+      expect(b.firstElementChild?.tagName).toBe("IMG");
+      expect(b.children[1]?.classList.contains("pr-card-body")).toBe(true);
       const links = b.querySelectorAll("[data-printable-download]");
       expect(links.length).toBe(1);
       expect(links[0].className).toMatch(/\blink-standard\b.*\bpr-link\b|\bpr-link\b.*\blink-standard\b/);
@@ -242,8 +252,11 @@ describe("#14 each coloring book in its own card", () => {
     expect(books.map((b) => b.querySelector(".pr-card-title")?.textContent)).toEqual(["Girls coloring book", "Boys coloring book"]);
     const css = [...container.querySelectorAll("style")].map((x) => x.textContent ?? "").join("\n");
     expect(css).toContain(".pr-books{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;list-style:none}");
-    expect(css).toMatch(/@media \(min-width:560px\)\{[^}]*\}[^@]*\.pr-books\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\.pr-book \.pr-book-img\{width:200px\}/);
-    expect(css).toContain(".pr-book .pr-book-img{width:160px;max-width:100%}");
+    expect(css).toMatch(/@media \(min-width:560px\)\{[^}]*\}[^@]*\.pr-books\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\.pr-book \.pr-book-img\{width:140px\}/);
+    expect(css).toContain(".pr-book .pr-book-img{width:120px;max-width:40%}");
+    expect(css).toContain(".pr-card{display:flex;gap:12px;");
+    expect(css).toContain(".pr-book{align-items:center}");
+    expect(css).not.toMatch(/\.pr-book\{[^}]*flex-direction:column/);
   });
 });
 
@@ -307,6 +320,22 @@ describe("#16 Swipe's end screen shows the saved gifts as the guides' cards", ()
     const css = [...container.querySelectorAll("style")].map((x) => x.textContent ?? "").join("\n");
     expect(css).toContain(".gg .gg-top10.gg-swipe-saved{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(2,minmax(0,1fr));");
     expect(css).toContain("@media (min-width:768px){.gg .gg-top10.gg-swipe-saved{grid-template-columns:repeat(4,minmax(0,1fr));");
+  });
+});
+
+describe("the Secret Santa draw has no tip box (owner 11-22: 'delete the box that says it')", () => {
+  // Owner 2026-11-22 (iPhone): "The words under the box and the words in the box are repetitive delete the box that says
+  // it": the grey "Tip: we never ask for emails or phone numbers. You send each link yourself." box (with its ✕) is gone;
+  // the sentence under the banner stays.
+  it("draws no hint and no 'never ask for emails' tip; the lead stays; the copy is gone", () => {
+    const { container } = renderAt("/gift-guides/draw-names");
+    const form = container.querySelector("[data-santa-form]");
+    expect(form).not.toBeNull();
+    expect(container.querySelector("[data-gift-hint]")).toBeNull();
+    expect(container.textContent).not.toMatch(/never ask for emails/i);
+    expect(form!.querySelector(".gg-fun-lead")?.textContent).toBe(FUN_WORDS.santaLead);
+    expect(Object.keys(FUN_WORDS)).not.toContain("hintSanta");
+    expect(blankComments(readFileSync("src/pages/info/giftGuides/fun/SecretSanta.tsx", "utf8"))).not.toMatch(/<Hint\b/);
   });
 });
 

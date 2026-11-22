@@ -13,6 +13,9 @@
  *   waitlist). She said add it now at $289 with a short "Back Dec 1" note (`backOn`; the chip hides on that day).
  * - Kate McLeod Daily Stone (p-109144875, The Sleep Code): sold out there, and katemcleod.com pays nothing in her data,
  *   so it waits for The Sleep Code to restock.
+ * - Camp Snap "Choose one of these camp snap cameras" (owner 11-22 PM, builder-guide-emibauble): Her keeps only the Camp
+ *   Snap 2 in Chestnut; the CS-Pro (p-107929179, $79), the CS-8 camcorder (p-109141448, $159) and the CS-8 Micro keychain
+ *   (scripts/giftGuideHer1121.mjs) are off Her.
  * Guard: src/test/giftGuideOwnerAdds1122.test.ts.
  */
 const shopmy = (pin) => `https://go.shopmy.us/${pin}`;
@@ -28,6 +31,7 @@ export const ADDS_STORES_1122 = {
   "store-sleep-crown": "Sleep Crown", "store-crown-affair": "Crown Affair", "store-eadem": "EADEM", "store-aera": "Aera",
   "store-lemme": "Lemme", "store-stil": "STIL", "store-eleven-eleven": "Eleven Eleven", "store-calvin-klein": "Calvin Klein", "store-foton": "Foton", "store-sleepy-tie": "Sleepy Tie", "store-esker-beauty": "Esker",
   "store-the-warming-store": "The Warming Store", "store-cavenders": "Cavender's", "store-marley-lilly": "Marley Lilly", "store-st-bernard": "St. Bernard",
+  "store-pottery-barn-kids": "Pottery Barn Kids",
 };
 
 /** Each row carries the day its price was checked (the page's "Prices as of" note reads the oldest). */
@@ -39,8 +43,6 @@ const CAMP_SNAP_CODE = "LEXILOMBAS7";
 /** For Her (owner via the lead, 11-22: "all ... go on the HER guide"). */
 export const HER_ADDS_1122 = [
   { name: "Camp Snap 2 Screen-Free Camera, Chestnut", brand: "Camp Snap", line: "A screen-free digital camera that shoots like film.", href: shopmy("p-109140863"), image: "https://static.shopmy.us/pins/zoom-109140863-1795365634530-CS2Chestnut.jpg", store: "store-camp-snap", sortPrice: 59.99, price: 59.99, commission: 10, type: "camera", code: CAMP_SNAP_CODE },
-  { name: "Camp Snap CS-Pro Digital Camera", brand: "Camp Snap", line: "A retro-look digital camera with a built-in flash.", href: shopmy("p-107929179"), image: "https://static.shopmy.us/uploads/pretty-prod-1794572274203", store: "store-camp-snap", sortPrice: 79, price: 79, commission: 10, type: "camera", code: CAMP_SNAP_CODE },
-  { name: "Camp Snap CS-8 Digital Video Camcorder, Classic", brand: "Camp Snap", line: "A Super 8-style camcorder for vintage-look home movies.", href: shopmy("p-109141448"), image: "https://static.shopmy.us/pins/zoom-109141448-1795365699492-CS2Black_cs.jpg", store: "store-camp-snap", sortPrice: 159, price: 159, commission: 10, type: "camcorder", code: CAMP_SNAP_CODE },
   { name: "Sleep Crown Classic Pillow, White Silk and Bamboo", brand: "Sleep Crown", line: "An over-the-head pillow that blocks out light and sound.", href: shopmy("p-109143437"), image: "https://static.shopmy.us/pins/zoom-109143437-1795365959725-sophiaduet_classic.jpg", store: "store-sleep-crown", sortPrice: 289, price: 289, commission: 10, type: "pillow", backOn: "2026-12-01" },
   { name: "Crown Affair The Towel, White", brand: "Crown Affair", line: "A soft waffle hair towel that dries hair gently.", href: shopmy("p-109143698"), image: "https://static.shopmy.us/pins/zoom-109143698-1795365996438-TheTowelWhite-Grey01_ALLURE_1.png", store: "store-crown-affair", sortPrice: 59, price: 59, commission: 15, type: "hair-towel" },
   // Macy's lists it by size (Black Friday 11-22: Twin $84.79 up to Cal King $142.39; Queen $116.89), so it shows "from".
@@ -110,15 +112,23 @@ export const HER_ADDS_1122 = [
   { name: "Personalized Monogram Scallop Gift Tags", brand: "Amazon", line: "Scalloped gift tags printed with her name or monogram.", href: amz("B0FXBBD5GS"), image: amzImg("71CBVdlD2ML"), store: "store-amazon", sortPrice: 17.5, commission: 3, type: "gift-wrap" },
   { name: "Personalized Lizard Leather Initial Card Holder", brand: "Personalisa", line: "A slim lizard-print card holder with her initials in gold.", href: amz("B0G3948RG8"), image: amzImg("81mw1dd1e2L"), store: "store-amazon", sortPrice: 14.8, commission: 3, type: "wallet" },
   { name: "Personalized Striped Monogram Makeup Pouch", brand: "Amazon", line: "A waterproof striped pouch with her monogram stitched on.", href: amz("B0HKQYLRBB"), image: amzImg("71iBkWfRwfL"), store: "store-amazon", sortPrice: 22.99, commission: 3, type: "bag" },
+  // builder-guide-emibauble (owner 11-22 PM). From her screenshots: "Add both" for the Emi Jay clip and the BaubleBar
+  // brush; the link made in her shopmy.us/links ("You can create the links"), priced on baublebar.com 11-22.
+  // - Emi Jay: skipped, her Doe clip is already on Her and she wants no duplicate (the red Cherry Kiss pin p-109290718 is
+  //   unused; the Cozy Cloud Gingham Big Effing Clip is sold out on emijay.com).
+  // - BaubleBar Mini Fine Line Custom Hair Brush, Magenta/Light Pink ($48, 20%): her name goes on the back.
+  { name: "BaubleBar Mini Fine Line Custom Hair Brush, Magenta", brand: "BaubleBar", line: "A hot pink hair brush with her name on the back.", href: shopmy("p-109289957"), image: "https://cdn.shopify.com/s/files/1/0267/5746/4148/files/110416_G_01_RS_SQ_2026_80d4c91e-c2d8-4a9a-a92e-491e1abec4ac.jpg", store: "store-baublebar", sortPrice: 48, price: 48, commission: 20, type: "hair" },
+  // Owner 11-22 PM: the Stoggles safety glasses are off; "cute tortoise blue light glasses" instead. Gaoye's round frame in
+  // Tea Leopard (tortoise), 4.4 stars from 11,300+ ratings; Amazon with her tag, Amazon's photo and price 11-22.
+  { name: "Gaoye Round Blue Light Glasses, Tea Leopard", brand: "Gaoye", line: "Tortoise blue light glasses for long days at a screen.", href: amz("B07XL9MFZQ"), image: amzImg("61qZCp6L-rL"), store: "store-amazon", sortPrice: 12.74, commission: 4, type: "eyewear" },
+  // Owner 11-22 PM: the EADEM New Classics Set moves from Kids to Her (photo: the four products from eadem.co's set photo).
+  { name: "EADEM New Classics Set", brand: "EADEM", line: "Four skin and lip favorites in one starter set.", href: shopmy("p-109155269"), image: "https://cdn.shopify.com/s/files/1/0512/1661/3529/files/PDP-CLEARSPACE_WIDER-FRAME_2750x3413-1.jpg", store: "store-eadem", sortPrice: 58, price: 58, commission: 20, type: "skincare-set" },
 ].map(dated);
 
 /** For Kids (owner via the lead, 11-22): the two Camp Snap 2 colors, at Camp Snap direct (see the header). */
 export const KIDS_ADDS_1122 = [
   { name: "Camp Snap 2 Screen-Free Camera, Blue Rush", brand: "Camp Snap", line: "A screen-free kids' camera in see-through blue.", href: shopmy("p-107929152"), image: "https://static.shopmy.us/pins/zoom-109142125-1795365781660-Yellow_Front_9ea4e828-8752-4bcd-bf01-b49ef26f4be5.webp", store: "store-camp-snap", sortPrice: 59.99, price: 59.99, commission: 10, type: "camera", code: CAMP_SNAP_CODE },
   { name: "Camp Snap 2 Screen-Free Camera, Strawberry Splash", brand: "Camp Snap", line: "A screen-free kids' camera in see-through pink.", href: shopmy("p-104219842"), image: "https://static.shopmy.us/pins/zoom-109142226-1795365794451-Yellow_Front-3.webp", store: "store-camp-snap", sortPrice: 59.99, price: 59.99, commission: 10, type: "camera", code: CAMP_SNAP_CODE },
-  // Owner via the lead, 11-22: "p-109155269 goes on KIDS". Photo: the four products from eadem.co's own set photo (its
-  // main photo stacks them on books).
-  { name: "EADEM New Classics Set", brand: "EADEM", line: "Four skin and lip favorites in one starter set.", href: shopmy("p-109155269"), image: "https://cdn.shopify.com/s/files/1/0512/1661/3529/files/PDP-CLEARSPACE_WIDER-FRAME_2750x3413-1.jpg", store: "store-eadem", sortPrice: 58, price: 58, commission: 20, type: "skincare-set" },
   // Owner via lead, 11-22: "add BOTH bundles (Ms. Rachel + Bluey), side by side". Photos: her pins' tiles with the panel taken off.
   { name: "Yoto Player 4th Gen + Ms. Rachel Adventure Bundle", brand: "Yoto", line: "A screen-free audio player with a Ms. Rachel card.", href: shopmy("p-109156467"), image: "https://static.shopmy.us/uploads/img-product-1794924419956", store: "store-yoto", sortPrice: 165.72, price: 165.72, commission: 20, type: "audio" },
   { name: "Yoto Player 4th Gen + Bluey Adventure Bundle", brand: "Yoto", line: "A screen-free audio player with a Bluey story card.", href: shopmy("p-109156399"), image: "https://static.shopmy.us/uploads/img-product-1793495319475", store: "store-yoto", sortPrice: 164.02, price: 164.02, commission: 20, type: "audio" },
@@ -126,6 +136,11 @@ export const KIDS_ADDS_1122 = [
   { name: "CrunchLabs The Crunchinator", brand: "CrunchLabs", line: "A build-it-yourself machine that crushes and launches.", href: shopmy("p-109208209"), image: "https://static.shopmy.us/pins/zoom-109208209-1795374027354-Add_a_heading_4_450x450.png", store: "store-crunchlabs", sortPrice: 34.99, price: 34.99, commission: 16, type: "science" },
   { name: "Stickerbox Sticker Printer", brand: "Stickerbox", line: "A kid-safe printer that turns their ideas into stickers.", href: shopmy("p-103757260"), image: "https://cdn.shopify.com/s/files/1/0683/1053/2275/files/Stickerbox_Image_3.png", store: "store-maisonette", sortPrice: 129.99, price: 129.99, commission: 16, type: "craft" },
   { name: "Tamagotchi Paradise, Jade Forest", brand: "Tamagotchi", line: "The new virtual pet with a shell that opens and a world to explore.", href: shopmy("p-109208104"), image: "https://target.scene7.com/is/image/Target/GUEST_95cd91a5-37fa-4bcd-bd20-17f394906a81", store: "store-target", sortPrice: 44.99, price: 44.99, commission: 4, type: "digital-pet" },
+  // builder-guide-emibauble (owner 11-22 PM): the Melissa & Doug Kids Club Chair is off; the Pottery Barn Kids Anywhere
+  // Chair with a name on it instead ("You will need to create a link": her shopmy.us/links, Pottery Barn Kids 6%). Twill,
+  // from $119 on sale ($119 to $189 by size, was from $129), personalization $17 more; photo: PBK's own monogrammed
+  // maroon chair.
+  { name: "Pottery Barn Kids Anywhere Chair, Personalized", brand: "Pottery Barn Kids", line: "The classic kids' armchair; adding a name costs a little more.", href: shopmy("p-109292071"), image: "https://assets.pkimgs.com/pkimgs/rk/images/dp/wcm/202631/0188/anywhere-chair-maroon-twill-1-l.jpg", store: "store-pottery-barn-kids", sortPrice: 119, price: 119, priceFrom: true, commission: 6, type: "chair" },
 ].map(dated);
 
 /** For Him (owner via the lead, 11-22). */
@@ -223,4 +238,7 @@ export const ADDS_CUTOUTS_1122 = [
   ["https://static.shopmy.us/pins/zoom-108089555-1795142703033-wdsjzfbgxclrclcqtut4.jpg", "costa-sullivan-polarized-sunglasses-b3a1.webp"],
   ["https://static.shopmy.us/pins/zoom-108094779-1795143426618-237814_1225_41", "llbean-mens-waterfowl-sweater-b3a4.webp"],
   ["https://target.scene7.com/is/image/Target/GUEST_95cd91a5-37fa-4bcd-bd20-17f394906a81", "tamagotchi-paradise-jade-forest-a1c708.webp"],
+  // builder-guide-emibauble (owner 11-22 PM).
+  ["https://cdn.shopify.com/s/files/1/0267/5746/4148/files/110416_G_01_RS_SQ_2026_80d4c91e-c2d8-4a9a-a92e-491e1abec4ac.jpg", "baublebar-mini-fine-line-brush-magenta-3f1a2c.webp"],
+  ["https://assets.pkimgs.com/pkimgs/rk/images/dp/wcm/202631/0188/anywhere-chair-maroon-twill-1-l.jpg", "pbk-anywhere-chair-twill-maroon-monogram-b81d5e.webp"],
 ];

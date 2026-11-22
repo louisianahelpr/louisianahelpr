@@ -1,6 +1,6 @@
 /**
  * /holidays, the Louisiana Holiday Hub (owner-approved 2026-11-20; one page 2026-11-21, owner: "put christmas lights and
- * holiday events into 1"). The title, one line, then every light display and event in one list, soonest first (owner
+ * holiday events into 1"). The title (owner 11-22: no intro line under it), then every light display and event in one list, soonest first (owner
  * 2026-11-21: "remove the hire a helpr here", which took out the slim "Hire a Helpr for the holidays" strip she had
  * asked for that morning; /holidays/hire-a-helpr itself stays): "Happening now"
  * (closing soonest first), then one group per start day from today on, then "Dates TBA". Anything over (ended before
@@ -195,15 +195,10 @@ export default function HolidayHub() {
       <style>{GIFT_GUIDES_CSS}</style>
       <GuidesFrame title={W.hubTitle} path="/holidays" banner={G.pageBanners["/holidays"]} tools="no-search" disclosures={false}>
       <div className="space-y-section font-sans" data-holiday-page="hub">
-        <div className="space-y-4">
-          <p className="max-w-[68ch] text-ds-17 text-foreground">{W.hubIntro}</p>
-          {/* Polish audit 1122 #28: the way back to the guides near the top (it sat under ~30,000px of cards on a phone),
-              for the visitor who came from the guides menu. */}
-          <p className="text-ds-14 text-muted-foreground" data-holiday-guides-link="">
-            Shopping too? <Link to="/gift-guides" className="link-standard inline-flex min-h-11 items-center">See the holiday gift guides</Link>
-          </p>
-        </div>
-
+        {/* Owner 2026-11-22 (iPhone: "Remove the words above 82 light displays then move that and the and filter and
+            search up"): no intro line and no "Shopping too?" link above the count; the count, search and filter sit
+            right under the banner (the banner's h1 names the page, and the meta description and the pre-rendered
+            page keep the intro for search engines). The guides menu and the back arrow still lead to the guides. */}
         <div className="space-y-2.5" data-holiday-filters="">
           {/* Owner 2026-11-21: "move all lights and events into filter, remove the circle around filter and leave just
               the icons, add a search icon". One row: the count on the left, then two plain icons (no border, no

@@ -43,6 +43,10 @@
  * @mutate src/components/giftGuides/PickPrice.tsx | {pick.priceFrom ? G.priceFrom(shownDollars(pick.price)) : G.priceApprox(shownDollars(pick.price))} | {G.priceApprox(shownDollars(pick.price))}
  * @mutate src/content/giftGuideCatalog.ts | ...(p.priceFrom ? { priceFrom: p.priceFrom } : {}) |
  * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |     window.dispatchEvent(new Event(OPEN_EVENT)); |     void OPEN_EVENT;
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | <SmallBizGrid arrange={bizOrder === "category" ? undefined : byName(bizOrder)} /> | <SmallBizGrid />
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | @media (max-width:767px){.gg-sbs-row .gg-sbs-toplink{font-size:12px; | @media (max-width:767px){.gg-sbs-row .gg-sbs-toplink{font-size:14px;
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |               <MyListIcon />\n |
+ * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx | <span className="whitespace-nowrap">{CTA_GO}&nbsp;›</span> | {CTA_GO}&nbsp;›
  */
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
@@ -262,6 +266,59 @@ describe("owner 11-21: Small Business Saturday cards and the sign-up card", () =
   });
 });
 
+/**
+ * Owner 2026-11-22 (iPhone, Small Business Saturday): "Let them filter z-a and a-z move the heart and filter on the same
+ * line as own a business. Make that sentence smaller so it will al fit". One row: the "Get featured free" link (12px on
+ * a phone, "Get featured free ›" kept whole on its line), the sort (the list's own order, A to Z, Z to A) and the My
+ * Wish List heart (from 768px the head row holds the heart, so the row's is hidden there).
+ */
+describe("Small Business Saturday: the top link, the sort and the heart on one row (owner 11-22)", () => {
+  const slugs = (c: HTMLElement) => [...c.querySelectorAll("[data-gift-sb]")].map((e) => e.getAttribute("data-gift-sb"));
+  it("one row in order (link, sort, heart); smaller words on a phone; the sort reorders the businesses A to Z and Z to A", async () => {
+    const file = (await import("@/content/giftGuideSmallBiz.json")).default as { slug: string; name: string }[];
+    const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("small-business-saturday")!} now={new Date("2026-11-21T18:00:00Z")} /></MemoryRouter>);
+    await waitFor(() => expect(container.querySelectorAll("[data-gift-sb]").length).toBeGreaterThan(20));
+    const row = container.querySelector("[data-gift-sbs-row]")!;
+    expect(row).not.toBeNull();
+    const top = row.querySelector("[data-gift-sbs-toplink]")!;
+    const sort = row.querySelector<HTMLButtonElement>("[data-gift-sort-button]")!;
+    const heart = row.querySelector("[data-gift-my-list-link]")!;
+    for (const x of [top, sort, heart]) expect(x).not.toBeNull();
+    expect(top.compareDocumentPosition(sort) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sort.compareDocumentPosition(heart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Her words, unchanged; "Get featured free ›" never splits.
+    expect(top.textContent).toBe("Own a Louisiana small business? Get featured free\u00a0›");
+    expect(top.querySelector(".whitespace-nowrap")?.textContent).toBe("Get featured free\u00a0›");
+    // The same sliders icon as the guides' sort and filter.
+    expect(sort.querySelector("path")?.getAttribute("d")).toBe("M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4");
+    const css = [...container.querySelectorAll("style")].map((x) => x.textContent ?? "").join("\n");
+    expect(css).toContain(".gg-sbs-row{display:flex;align-items:center;gap:4px;min-height:44px;margin:0 0 6px}");
+    expect(css).toContain(".gg-sbs-row .gg-sbs-toplink{flex:1 1 auto;min-width:0;margin:0}");
+    expect(css).toContain("@media (max-width:767px){.gg-sbs-row .gg-sbs-toplink{font-size:12px;line-height:1.35}}");
+    expect(css).toContain("@media (min-width:768px){.gg-sbs-row .gg-mylist-icon{display:none}}");
+    // The list's own order first (by category), then A to Z and Z to A by name.
+    expect(slugs(container)).toEqual(file.map((b) => b.slug));
+    expect(sort.getAttribute("aria-label")).toBe("Sort businesses");
+    await act(async () => { fireEvent.click(sort); });
+    const choices = [...container.querySelectorAll("[data-gift-sort-choice]")];
+    expect(choices.map((b) => b.getAttribute("data-gift-sort-choice"))).toEqual(["category", "az", "za"]);
+    expect(choices.map((b) => b.textContent?.replace("✓", ""))).toEqual(["By category", "Name: A to Z", "Name: Z to A"]);
+    expect(choices[0].getAttribute("aria-checked")).toBe("true");
+    await act(async () => { fireEvent.click(container.querySelector('[data-gift-sort-choice="az"]')!); });
+    const az = [...file].sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" })).map((b) => b.slug);
+    expect(az).not.toEqual(file.map((b) => b.slug));
+    expect(slugs(container)).toEqual(az);
+    expect(sort.getAttribute("aria-label")).toBe("Sort businesses, Name: A to Z");
+    expect(sort.querySelector("[data-gift-sort-on]")).not.toBeNull();
+    await act(async () => { fireEvent.click(sort); });
+    await act(async () => { fireEvent.click(container.querySelector('[data-gift-sort-choice="za"]')!); });
+    expect(slugs(container)).toEqual([...az].reverse());
+    await act(async () => { fireEvent.click(sort); });
+    await act(async () => { fireEvent.click(container.querySelector('[data-gift-sort-choice="category"]')!); });
+    expect(slugs(container)).toEqual(file.map((b) => b.slug));
+  });
+});
+
 describe("owner 11-21: each printable kind is its own page; none on Her, Him or Kids", () => {
   it("Gift tags, Coloring books and Banners each show only their own printables, with their own h1 and head", () => {
     expect(PRINTABLE_PAGES.map((x) => x.path)).toEqual(["/gift-guides/printables/gift-tags", "/gift-guides/printables/coloring-books", "/gift-guides/printables/banners"]);
@@ -271,7 +328,7 @@ describe("owner 11-21: each printable kind is its own page; none on Her, Him or 
       const ids = [...container.querySelectorAll("[data-printable-card], section[id]")].map((x) => x.getAttribute("data-printable-card") ?? x.id).filter(Boolean);
       seen.push(...ids);
       if (page.key === "coloring") expect(ids, page.path).toEqual(["coloring-book"]);
-      if (page.key === "banners") expect(ids, page.path).toEqual(["merry-christmas-red-stripe", "merry-christmas-green-stripe", "merry-christmas-plaid", "thanksgiving-banner"]);
+      if (page.key === "banners") expect(ids, page.path).toEqual(["thanksgiving-banner", "merry-christmas-red-stripe", "merry-christmas-green-stripe", "merry-christmas-plaid"]);
       if (page.key === "tags") expect(ids, page.path).toEqual(["gift-tags"]);
       expect(PUBLIC_PAGE_META[page.path as keyof typeof PUBLIC_PAGE_META]?.canonical, page.path).toBe(`https://www.louisianahelpr.com${page.path}`);
       cleanup();
@@ -313,12 +370,16 @@ describe("owner 11-21: each printable kind is its own page; none on Her, Him or 
 });
 
 describe("holiday audit 1121 #66 / #63: the 25 Days sponsors page's photos and prices", () => {
-  type SP = { name: string; image?: string; price?: number; priceAt?: string; priceFrom?: true };
+  type SP = { name: string; image?: string; price?: number; priceAt?: string; priceFrom?: true; gift?: string };
   const picks = (SPONSORS as { picks: SP[] }).picks;
   it("every photo is a local optimized file (no multi-MB hotlink), each under 60 KB", () => {
     expect(picks.length).toBeGreaterThan(30);
-    for (const p of picks) {
-      expect(p.image, p.name).toMatch(/^https:\/\/www\.louisianahelpr\.com\/gift-guides\/sponsor-picks\/[a-z0-9-]+\.webp$/);
+    // Owner 11-22: a logo card (gift) shows its 160 px logo from the logo row, or its name tile when no logo may be
+    // used. EXACT both ways: Summar T. and Bake & Brush have none found; Sprinkle in Time Too declined logo use.
+    expect(picks.filter((p) => !p.image).map((p) => p.name).sort()).toEqual(["Bake & Brush", "Sprinkle in Time Too", "Summar T. Photography"]);
+    for (const p of picks.filter((x) => !x.image)) expect(p.gift, p.name).toBeTruthy();
+    for (const p of picks.filter((x) => x.image)) {
+      expect(p.image, p.name).toMatch(p.gift ? /^https:\/\/www\.louisianahelpr\.com\/gift-guides\/(sponsors|sponsor-picks)\/[a-z0-9-]+\.webp$/ : /^https:\/\/www\.louisianahelpr\.com\/gift-guides\/sponsor-picks\/[a-z0-9-]+\.webp$/);
       const file = resolve(ROOT, "public", new URL(p.image!).pathname.slice(1));
       expect(existsSync(file), p.name).toBe(true);
       expect(statSync(file).size, p.name).toBeLessThan(60_000);

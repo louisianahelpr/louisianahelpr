@@ -6,7 +6,7 @@ the same three files the Thanksgiving banner ships (see scripts/printables-banne
   <name>-12x18.jpg     the same design centered on white, padded to 3:2 (2800 x 1867) so a Walgreens 12x18 poster does not crop it
   preview.webp         640 x 320 card picture
 Each JPEG is saved at the highest quality that stays under the repo's 300 KB public asset cap
-(src/test/publicAssetsUnderCap.test.ts). Then add the card to src/content/printables.ts (newest first).
+(src/test/publicAssetsUnderCap.test.ts). Then add the card to src/content/printables.ts (after Thanksgiving, which stays first; then newest first).
 
 Usage: python3 scripts/printables-banner-add.py <source.png> <id> <file-name>
   e.g. python3 scripts/printables-banner-add.py ~/Downloads/merry-christmas-plaid.png merry-christmas-plaid merry-christmas-plaid-banner

@@ -91,17 +91,20 @@ const FUN_CSS = `
 .gg-fun-big{font-size:28px;font-weight:800;margin:6px 0;color:var(--gg-olive);overflow-wrap:anywhere}
 .gg-fun-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .gg-swipe-stage{position:relative;max-width:360px;margin:0 auto;touch-action:pan-y}
-.gg-swipe-card{position:relative;border:1px solid var(--gg-line);border-radius:20px;background:hsl(var(--card));box-shadow:0 6px 20px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:center;padding:16px;user-select:none;transition:transform .2s ease}
-.gg-swipe-card{touch-action:pan-y;-webkit-user-select:none}
+.gg-swipe-card{position:relative;border:1px solid var(--gg-line);border-radius:20px;background:hsl(var(--card));box-shadow:0 6px 20px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:center;padding:16px;user-select:none;transition:transform .32s cubic-bezier(.2,.9,.3,1.2);cursor:grab;animation:gg-swipe-in .24s ease-out}
+.gg-swipe-card{touch-action:pan-y;-webkit-user-select:none;-webkit-touch-callout:none}
 .gg-swipe-card img{-webkit-user-drag:none;user-drag:none;pointer-events:none}
-.gg-swipe-card.is-dragging{transition:none}
+.gg-swipe-card.is-dragging{transition:none;cursor:grabbing;will-change:transform}
+.gg-swipe-ghost{position:absolute;top:0;left:0;right:0;z-index:2;pointer-events:none;animation:none}
+@keyframes gg-swipe-in{from{scale:.96;opacity:.5}to{scale:1;opacity:1}}
+@media (prefers-reduced-motion:reduce){.gg-swipe-card{transition:none;animation:none}.gg-swipe-ghost{display:none}}
 .gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter{width:220px;height:220px}
 .gg-swipe-card .gg-thumb{width:220px;height:220px;object-fit:contain}
 .gg-swipe-name{font-size:17px;font-weight:700;text-align:center;margin:12px 0 4px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .gg-swipe-meta{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--gg-muted)}
-.gg-swipe-tag{position:absolute;top:18px;font-size:18px;font-weight:800;padding:4px 10px;border-radius:8px;border:3px solid;opacity:0}
-.gg-swipe-tag.save{left:18px;color:#3f7a2c;border-color:#3f7a2c}
-.gg-swipe-tag.skip{right:18px;color:#b26862;border-color:#b26862}
+.gg-swipe-tag{position:absolute;top:18px;font-size:18px;font-weight:800;padding:4px 10px;border-radius:8px;border:3px solid;opacity:0;pointer-events:none}
+.gg-swipe-tag.save{left:18px;color:#3f7a2c;border-color:#3f7a2c;opacity:clamp(0,var(--swipe-p,0),1)}
+.gg-swipe-tag.skip{right:18px;color:#b26862;border-color:#b26862;opacity:clamp(0,calc(var(--swipe-p,0) * -1),1)}
 .gg-swipe-btns{display:flex;justify-content:center;gap:16px;margin:16px 0 4px}
 .gg-swipe-btn{min-width:120px}
 .gg-swipe-acts{align-items:center}
@@ -159,4 +162,58 @@ const FUN_CSS = `
 /* Polish audit 1122 #11: the deck centered in the content column (it sat in the 640px column's middle, off the page's). */
 .gg-fun:has([data-swipe-deck]){max-width:none}
 @media (max-width:479px){.gg-swipe-card{padding:12px}.gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter,.gg-swipe-card .gg-thumb{width:150px;height:150px}.gg-swipe-name{margin-top:8px}.gg-swipe-btns{margin-top:12px}.gg-plan-budget{width:92px}.gg-plan-price{width:78px}}
+/* Planner polish (owner 2026-11-22): one calm card per person, spacing on 8/12/16/24. */
+.gg-plan-people{gap:16px}
+.gg-plan-person{display:flex;flex-direction:column;gap:12px;padding:16px;margin:0;border-radius:16px}
+.gg-plan-person>*{margin:0}
+.gg-plan-sum{display:flex;flex-direction:column;gap:6px}
+.gg-plan-sum .gg-plan-bar{height:6px;margin:0}
+.gg-plan-ideas{gap:0}
+.gg-plan-ideas>li+li{border-top:1px solid var(--gg-line)}
+.gg-plan-idea{gap:8px;padding:6px 0}
+.gg-fun label.gg-plan-check{display:inline-flex;margin:0}
+.gg-plan-idea .gg-photo,.gg-plan-idea .gg-thumb{width:44px;height:44px}
+.gg-plan-iname-t{font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gg-plan-shop{min-height:32px;font-size:13px}
+.gg-plan-idea .gg-plan-price{width:76px}
+.gg-fun .gg-plan-idea .gg-money-box input{height:40px;font-size:14px;padding-left:20px;padding-right:6px}
+@media (max-width:479px){
+.gg-plan-idea{display:grid;grid-template-columns:44px 40px minmax(0,1fr) 44px;grid-template-areas:"chk pic nm x" "chk pic pr x";column-gap:8px;row-gap:2px;align-items:center}
+.gg-plan-idea>.gg-plan-check{grid-area:chk}
+.gg-plan-idea>.gg-photo,.gg-plan-idea>.gg-letter{grid-area:pic;width:40px;height:40px}
+.gg-plan-idea .gg-thumb{width:40px;height:40px}
+.gg-plan-idea>.gg-plan-iname{grid-area:nm}
+.gg-plan-idea>.gg-plan-price{grid-area:pr;justify-self:start;width:84px}
+.gg-plan-idea>.gg-fun-x{grid-area:x}
+}
+.gg-plan-tools{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.gg-plan-tools>*{margin:0}
+.gg-plan-tools .gg-anystore{align-self:stretch;margin:0}
+.gg-plan-tools .gg-anystore-row button,.gg-plan-tools>a{height:44px;min-height:44px}
+.gg-plan-acts{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px 16px;padding-top:12px;border-top:1px solid var(--gg-line)}
+.gg-plan-share{flex:1 1 220px;min-width:0}
+.gg-plan-share .gg-wish-share{margin:0}
+.gg-plan-share .gg-wish-share-btn{height:44px;min-height:44px;padding:0 20px;font-size:14px}
+.gg-plan-help{margin:8px 0 0;font-size:12px;line-height:1.45;color:var(--gg-muted)}
+.gg-fun .gg-plan-remove{flex:none;margin:0 0 0 auto;min-height:44px;padding:0 4px;background:transparent;font-size:13px;font-weight:500;color:var(--gg-muted);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--gg-line)}
+.gg-fun .gg-plan-remove:hover{color:hsl(var(--amber-ink));background:transparent}
+.gg-plan-add{gap:8px;margin:16px 0 0}
+.gg-plan-add input{height:44px;min-height:44px}
+.gg-plan-add .gg-plan-add-btn{flex:none;height:44px;min-height:44px;padding:0 18px;font-size:14px}
+.gg-fun .gg-mylists-shareall{margin:16px 0 0}
+.gg-fun .gg-mylists-shareall .gg-price-note{margin:8px 0 0;font-size:12px}
+.gg-alerts{display:flex;flex-direction:column;gap:8px;margin:24px 0 0}
+.gg-alerts>*{margin:0}
+.gg-alerts-t{font-size:15px;font-weight:700;color:var(--gg-ink)}
+.gg-alerts-lead{font-size:13px;line-height:1.45;color:var(--gg-muted)}
+.gg-alerts input[type=email]{height:44px}
+.gg-fun label.gg-alerts-consent{display:flex;align-items:flex-start;gap:10px;min-height:44px;margin:4px 0 0;padding:2px 0;font-size:13px;font-weight:500;line-height:20px;color:var(--gg-ink);cursor:pointer}
+.gg-alerts-consent>button{flex:none;margin-top:2px}
+.gg-alerts-small{font-size:12px;line-height:1.45;color:var(--gg-muted)}
+.gg-alerts .gg-alerts-btn{align-self:flex-start;height:44px;min-height:44px;padding:0 20px;font-size:14px;margin-top:4px}
+.gg-alerts .gg-link{align-self:flex-start}
+.gg-plan-sync{margin:24px 0 0;font-size:12px;line-height:1.5}
+.gg-plan-sync .gg-link{display:inline;min-height:0;padding:12px 0;font-size:12px;font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.gg-plan-more{display:flex;flex-wrap:wrap;gap:0 20px;margin:4px 0 0}
+.gg-plan-more .gg-link{font-size:14px;font-weight:700}
 `;

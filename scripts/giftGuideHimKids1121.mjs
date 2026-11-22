@@ -322,7 +322,8 @@ export const KIDS_SHOPMY_1121 = [
   // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Wayfair p-108632086 at 11% ($28.76; Wayfair's card
   // now $34.99); the same 24-piece box at Macy's at 16% (p-109002741), $32.99. Same box photo.
   ["109002741", 32.99, "https://assets.wfcdn.com/im/03058393/compr-r85/1765/176593778/24+Piece+Melissa+%26+Doug+Jumbo+Cardboard+Blocks+Learning+Tools.jpg", "Melissa & Doug Jumbo Cardboard Blocks, 24 Pieces", "Melissa & Doug", "store-macys", "blocks", 16, "Big cardboard bricks for towers and forts."],
-  ["108632059", 74.99, "https://assets.wfcdn.com/im/70136508/compr-r85/8084/80848886/7.5+in.+Club+Chair+Kids+Club+Chair-38254990.jpg", "Melissa & Doug Kids Club Chair", "Melissa & Doug", "store-wayfair", "chair", 11, "A little upholstered club chair just their size."],
+  // Owner 2026-11-22 PM (builder-guide-emibauble): the Melissa & Doug Kids Club Chair (Wayfair p-108632059, $74.99) is off;
+  // the personalized Pottery Barn Kids Anywhere Chair takes its place (scripts/giftGuideOwnerAdds1122.mjs).
   ["108632004", 23.49, "https://slimages.macysassets.com/is/image/MCY/products/2/optimized/1779252_fpx.tif", "Melissa & Doug Wooden Doorbell House", "Melissa & Doug", "store-macys", "pretend-play", 16, "A lock-and-key doorbell house with little dolls."],
   ["108631991", 43.49, "https://slimages.macysassets.com/is/image/MCY/products/5/optimized/8290245_fpx.tif", "Melissa & Doug Double-Sided Magnetic Tabletop Easel", "Melissa & Doug", "store-macys", "art", 16, "A tabletop easel with a chalkboard and a dry-erase side."],
   ["108631978", 17.99, "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1836568_fpx.tif", "Melissa & Doug Pull-Back Vehicle Toys", "Melissa & Doug", "store-macys", "car-toy", 16, "Soft pull-back cars that zoom across the floor."],

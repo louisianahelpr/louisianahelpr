@@ -46,7 +46,7 @@
  * @mutate src/pages/info/GiftGuides.tsx |   if (!slug && !shared && !myListPage && fromHash) return | if (!slug && !shared && !myListPage && fromHash && false) return
  * @mutate src/pages/info/GiftGuides.tsx |   if (moved) return | if (moved && false) return
  * @mutate src/pages/info/GiftGuides.tsx | const backTo = guide \|\| deals \|\| myList \|\| shared \|\| sidePage === "finder" ? "/gift-guides" : "/"; | const backTo = guide \|\| deals \|\| myList \|\| shared \|\| sidePage === "finder" ? "/gift-guides/" : "/";
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | className="gg-thumb" loading="lazy" decoding="async" | className="gg-thumb" decoding="async"
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | className="gg-thumb" loading={eager ? "eager" : "lazy"} decoding="async" | className="gg-thumb" decoding="async"
  * @mutate src/content/giftGuidesAmazon.ts | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=louisianahelpr-20"], | ["8Bitdo Retro Mechanical Keyboard", "https://www.amazon.com/dp/B0DKXH5WCD?tag=hggguidepage-20"],
  * @mutate src/content/giftGuideCatalog.ts |   return hit; |   return "amazon" as GiftStore;
  * @mutate src/content/giftGuides.ts | const shopmy = (id: number) => `https://shopmy.us/collections/${id}`; | const shopmy = (id: number) => `http://shopmy.us/collections/${id}`;

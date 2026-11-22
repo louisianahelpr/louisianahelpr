@@ -24,6 +24,9 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-head-phone .gg-icon,.gg-head-phone .gg-icon:hover,.gg-head-phone .gg-icon[aria-expanded="true"]{background:transparent; | .gg-head-phone .gg-icon{background:transparent;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-head-title [data-gift-head-name]::first-letter{text-transform:uppercase} | .gg-head-title [data-gift-head-name]::first-letter{}
  * @mutate src/content/giftGuides.ts | phoneMenuLabel: "Guides menu", | phoneMenuLabel: "More",
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (hover:hover){.gg-icon:hover,.gg-icon[aria-expanded="true"]{background:hsl(var(--muted) / .7)}} | .gg-icon:hover,.gg-icon[aria-expanded="true"]{background:hsl(var(--muted) / .7)}
+ * @mutate src/pages/info/giftGuides/giftWishStyles.ts | @media (hover:hover){.gg-savefor-tool:hover{background:hsl(var(--muted));color:var(--gg-ink)}} | .gg-savefor-tool:hover{background:hsl(var(--muted));color:var(--gg-ink)}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-icon:focus-visible{outline:2px solid hsl(var(--ring)); | .gg-icon:focus-visible{background:hsl(var(--muted) / .7);
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />}\n      {filter && <GiftGuideFilter filter={filter} />}\n      <MyListIcon current={myList} /> |       <MyListIcon current={myList} />\n      {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />}\n      {filter && <GiftGuideFilter filter={filter} />}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -46,6 +49,7 @@ import Printables from "@/pages/info/giftGuides/printables/Printables";
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import { loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
+import { blankComments } from "./helpers/blankNonCode";
 
 await loadAllGuidePicks();
 const WIDTH = window.innerWidth;
@@ -132,6 +136,39 @@ describe("the phone head row on every guides page (owner 11-22)", () => {
     expect(GIFT_GUIDES_CSS).toMatch(/\.gg-icon\{position:relative;display:inline-flex;[^}]*width:44px;height:44px;[^}]*border:0/);
     // Keyboard focus still shows (a ring, not a filled circle).
     expect(css).toMatch(/\.gg-head-phone \.gg-icon:focus-visible\{background:transparent;outline:2px solid/);
+  });
+
+  // Lead 11-22 (owner: no circles on header icons): iOS keeps :hover on a tapped button, so a toolbar icon (search, sort,
+  // filter, heart, Share; the My lists tools) showed a grey circle after a tap until the next tap elsewhere. Its hover
+  // and open-menu fill now apply only under @media (hover:hover); keyboard focus is a ring.
+  it("toolbar icons: the hover and open-menu fill only where a pointer hovers; keyboard focus is a ring", async () => {
+    const { GIFT_WISH_CSS } = await import("@/pages/info/giftGuides/giftWishStyles");
+    // Each stylesheet with every @media (hover:hover){...} block taken out (braces balanced).
+    const outsideHover = (css: string) => {
+      let out = css;
+      for (let at = out.indexOf("@media (hover:hover){"); at >= 0; at = out.indexOf("@media (hover:hover){")) {
+        let depth = 0;
+        let end = at;
+        for (let i = out.indexOf("{", at); i < out.length; i++) {
+          if (out[i] === "{") depth++;
+          else if (out[i] === "}" && --depth === 0) { end = i + 1; break; }
+        }
+        out = out.slice(0, at) + out.slice(end);
+      }
+      return out;
+    };
+    const guides = blankComments(GIFT_GUIDES_CSS);
+    const wish = blankComments(GIFT_WISH_CSS);
+    expect(guides).toContain('@media (hover:hover){.gg-icon:hover,.gg-icon[aria-expanded="true"]{background:hsl(var(--muted) / .7)}}');
+    expect(wish).toContain("@media (hover:hover){.gg-savefor-tool:hover{background:hsl(var(--muted));color:var(--gg-ink)}}");
+    // Outside those blocks no icon rule fills on hover or with its menu open (the phone head row's transparent rule stays).
+    expect(outsideHover(guides)).not.toMatch(/\.gg-icon:hover[^{]*\{background:hsl/);
+    expect(outsideHover(guides)).not.toMatch(/\.gg-icon\[aria-expanded="true"\][^{]*\{background:hsl/);
+    expect(outsideHover(wish)).not.toMatch(/\.gg-savefor-tool:hover[^{]*\{background:hsl/);
+    expect(outsideHover(guides)).toContain('.gg-head-phone .gg-icon,.gg-head-phone .gg-icon:hover,.gg-head-phone .gg-icon[aria-expanded="true"]{background:transparent;border:0;box-shadow:none}');
+    // Keyboard focus: a 2px ring, no fill, at every width.
+    expect(outsideHover(guides)).toContain(".gg-icon:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:-2px;border-radius:8px}");
+    expect(guides).not.toMatch(/\.gg-icon:focus-visible[^{]*\{background:hsl/);
   });
 });
 

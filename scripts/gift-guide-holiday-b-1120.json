@@ -1,5 +1,5 @@
 {
- "about": "Holiday design audit B (2026-11-20, ~/.lh-shots/holiday-audit-1120/B-findings.md): the non-people guides, By Budget's Stocking Stuffers and Advent sections, Deals & codes and the store pages. Applied last by scripts/gift-guide-picks.mjs through scripts/giftGuideHolidayB1120.mjs. Rule shapes as in gift-guide-train-1120b.json, plus droppedSponsors, sponsorPhotos, logoCards, sponsorGroups, lineupAlias, sponsorLines and dealsBlocked.",
+ "about": "Holiday design audit B (2026-11-20, ~/.lh-shots/holiday-audit-1120/B-findings.md): the non-people guides, By Budget's Stocking Stuffers and Advent sections, Deals & codes and the store pages. Applied last by scripts/gift-guide-picks.mjs through scripts/giftGuideHolidayB1120.mjs. Rule shapes as in gift-guide-train-1120b.json, plus droppedSponsors, sponsorPhotos, logoCards, sponsorGroups, lineupAlias, sponsorLines and dealsBlocked. Owner 2026-11-22 (sponsorLogoCards): every sponsor with no gift card gets a logo card on the sponsors guide (its gift as the subtitle, from the lineup's prize, with no dollar amount; its site, else the logo row's Facebook or Instagram link, else the 25 Days page; no price, no day), so no sponsor is named only.",
  "notDone": "Left for the owner or a later pass (listed in the PR): the affiliate disclosure placement (B #4, owner decision); prices on Apple, Bass Pro, Best Buy, Coach, Dick's, Dillard's, Sephora and Target (B #9, needs the Chrome price check); store pages that need new store links to show what the store is known for (B #73: Bass Pro fishing gear, Dillard's, Old Navy family PJs; Mavely/ShopMy links are made in the owner's accounts); Louisiana by Region sections (B #23: sections of 2-4 conflict with the owner's merge-thin-sections rule); image resizing (B #10, #75); advent calendars hiding after Dec 1 (B #68, needs a page change); the owner's own creator codes (B #70).",
  "cuts": [
   {
@@ -1430,7 +1430,12 @@
     "Barclell Photography",
     "Haylie Rudisill",
     "Ripley's Crawfish",
-    "Tevin Lewis"
+    "Tevin Lewis",
+    "Ace Bungee Fitness",
+    "GoodWolf Power Yoga",
+    "Restore Hyper Wellness",
+    "Tree Frogs Adventure Park",
+    "Wanderlust by Abby"
    ]
   },
   "National Brands": {
@@ -1471,7 +1476,12 @@
     "Bashi",
     "Arey",
     "Mary Kay",
-    "Hilma"
+    "Hilma",
+    "BIME Beauty",
+    "Texas Beard Company",
+    "Dolly's Boutique",
+    "Forgiven Hearts",
+    "RoseMae Eimear Creations"
    ]
   }
  },
@@ -1687,7 +1697,7 @@
  "sponsorNameOnly": [
   {
    "brand": "Hilma",
-   "why": "its one gift is a probiotic (a health product): it keeps its one spot in Cozy & Self-Care and is named on the sponsors guide, never shown twice (B #8)"
+   "why": "its one gift is a probiotic (a health product): it is never copied from another guide (B #8); on the sponsors guide it shows as its logo card (owner 11-22: every sponsor included)"
   }
  ],
  "sponsorOneName": [
@@ -1695,5 +1705,218 @@
    "brand": "HOTWORX",
    "why": "Two studios (Baton Rouge, Denham Springs) are one business: one name in every 'Also sponsoring' list."
   }
- ]
+ ],
+ "sponsorLogoCards": {
+  "Hilma": {
+   "gift": "Daily Pre + Probiotic + Herbs",
+   "href": "https://www.hilma.co/"
+  },
+  "Faith & Fire BBQ": {
+   "gift": "Bible, seasoning + T-shirt"
+  },
+  "Cher Bebe Embroidery": {
+   "gift": "Tea towel + custom wreath sash"
+  },
+  "Wicks NOLA Candle Company": {
+   "gift": "8 oz scented candle"
+  },
+  "Ace Bungee Fitness": {
+   "gift": "Private bungee fitness party for 6"
+  },
+  "Helping Hands Gallery": {
+   "gift": "Handmade ceramic cup",
+   "href": "https://www.helpinghandsgallery.com/"
+  },
+  "Tevin Lewis, District 2 Alderman": {
+   "gift": "Shucks gift card"
+  },
+  "Crabtrap Functional Fitness": {
+   "gift": "Free month membership"
+  },
+  "RoseMae Eimear Creations": {
+   "gift": "Soap or bath soak + candle"
+  },
+  "Everyday Dose": {
+   "gift": "Coffee+ and Matcha+ bundle",
+   "image": "https://www.louisianahelpr.com/gift-guides/sponsor-picks/everyday-dose-logo-ink.webp"
+  },
+  "Birdwell's": {
+   "gift": "Gift card",
+   "href": "https://www.shopbirdwells.com/"
+  },
+  "Forgiven Hearts": {
+   "gift": "Gift certificate"
+  },
+  "Suzi Marques Photography": {
+   "gift": "Family mini session in Lafayette"
+  },
+  "Britt Creates": {
+   "gift": "Resume refresh + headshot session"
+  },
+  "GoodWolf Power Yoga": {
+   "gift": "5-class pass",
+   "href": "https://www.goodwolfyoga.com/"
+  },
+  "Tays Sweet Shop": {
+   "gift": "Bakery gift card"
+  },
+  "Jessica Lanham Photography": {
+   "gift": "Photography gift certificate"
+  },
+  "Breads and Sweets by Babs": {
+   "gift": "Gift certificate",
+   "href": "https://www.louisianahelpr.com/25days"
+  },
+  "Olivia Grace Photography": {
+   "gift": "One-hour photo session"
+  },
+  "Celebration Station": {
+   "gift": "Family four fun pack"
+  },
+  "Tree Frogs Adventure Park": {
+   "gift": "2 aerial adventure course tickets",
+   "href": "https://treefrogspark.com/"
+  },
+  "Mystic Forests Nursery": {
+   "gift": "5-gallon Rising Sun redbud"
+  },
+  "Paddlewheeler Creole Queen": {
+   "gift": "Dinner jazz cruise for two"
+  },
+  "Hair Fashion and Spa": {
+   "gift": "Gift card"
+  },
+  "Whimsies from Within": {
+   "gift": "Mixed media wall hanging"
+  },
+  "Candle Bloom Confections": {
+   "gift": "Candle flower bouquet"
+  },
+  "Active Beauty": {
+   "gift": "Marine collagen + electrolyte drink"
+  },
+  "Botanical Nail and Skin Studio": {
+   "gift": "Gift card toward any service"
+  },
+  "Handmade By Hayli": {
+   "gift": "Hair glitter + car diffuser"
+  },
+  "Bake & Brush": {
+   "gift": "Gift card",
+   "href": "https://www.louisianahelpr.com/25days"
+  },
+  "Beaver's Abundance": {
+   "gift": "Plant gift card"
+  },
+  "Ripley's Crawfish": {
+   "gift": "Gift certificate"
+  },
+  "Summar T. Photography": {
+   "gift": "15-minute mini session",
+   "href": "https://www.louisianahelpr.com/25days"
+  },
+  "Hello Darlin'": {
+   "gift": "Vintage audio guest book rental"
+  },
+  "Wanderlust by Abby": {
+   "gift": "Private after-hours shopping party",
+   "href": "https://www.louisianahelpr.com/25days"
+  },
+  "The Crab Man Plus": {
+   "gift": "Seasoning + tumbler"
+  },
+  "God's Country RV Resort": {
+   "gift": "One night in a glamping wagon"
+  },
+  "CHIC by dmo": {
+   "gift": "Scalp scrub + hand and body wash",
+   "href": "https://www.facebook.com/chicbydmo"
+  },
+  "Proof & Pour Wax Co.": {
+   "gift": "8 oz candle + wax melt"
+  },
+  "BIME Beauty": {
+   "gift": "3-brush hair set",
+   "href": "https://www.bimebeauty.com/"
+  },
+  "Phyllis Guy Dance Center": {
+   "gift": "A month of kids' dance classes"
+  },
+  "Bayou Grace Outfitters": {
+   "gift": "T-shirt, your pick of design",
+   "href": "https://www.louisianahelpr.com/25days"
+  },
+  "Accesorios Para Niñas": {
+   "gift": "Girls' hair accessories",
+   "href": "https://www.instagram.com/accesorios_by_chabe/"
+  },
+  "Dolly's Boutique": {
+   "gift": "Faux fur collar cape coat"
+  },
+  "HOTWORX Denham Springs": {
+   "gift": "1-month Sweat Basic membership"
+  },
+  "Basic Bee": {
+   "gift": "Honey cube gift set + bourbon honey"
+  },
+  "Monarch Books": {
+   "gift": "Book bundle + 2 mugs"
+  },
+  "Restore Hyper Wellness Mandeville": {
+   "gift": "10 wellness sessions",
+   "href": "https://www.instagram.com/rhw_mandeville/"
+  },
+  "Ty's Boutique Shop": {
+   "gift": "Women's two-piece set"
+  },
+  "Hannahbelle Photography": {
+   "gift": "20-minute photoshoot"
+  },
+  "Sprinkle in Time Too": {
+   "gift": "2 free sundaes"
+  },
+  "Cat 5 Fishing Charters": {
+   "gift": "Gift card toward a fishing charter"
+  },
+  "The Soft Life Collective": {
+   "gift": "Giving Book bundle (3 books)"
+  },
+  "Texas Beard Company": {
+   "gift": "Beard oil + balm",
+   "href": "https://www.texasbeardcompany.com/"
+  },
+  "Krazy Bull Kreations": {
+   "gift": "Shop credit"
+  },
+  "Bashi": {
+   "gift": "Gift card"
+  },
+  "Jaboom Baits": {
+   "gift": "Hat, shirt + 15 packs of baits",
+   "href": "https://jaboombaits.com/"
+  },
+  "Tiffany Morton Cosmetic Tattooing": {
+   "gift": "Gift certificate for a service"
+  },
+  "Mary Kay": {
+   "gift": "Gift set"
+  },
+  "Perfectly Planned Events": {
+   "gift": "Custom invitation + decor list",
+   "href": "https://www.perfectlyplannedeventsla.com/"
+  },
+  "Playtopia Lafayette": {
+   "gift": "Play package for one child"
+  },
+  "Tufted Artworks": {
+   "gift": "Handmade fleur-de-lis wall rug"
+  },
+  "Grand Kyiv Ballet": {
+   "gift": "Family four-pack of tickets"
+  },
+  "Cajun Fiya": {
+   "gift": "A case of seasoning",
+   "href": "https://cajunfiya.com/"
+  }
+ }
 }

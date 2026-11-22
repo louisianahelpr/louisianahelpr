@@ -61,7 +61,7 @@ export const GIFT_WISH_CSS = `
 .gg-savefor-tools{display:flex;flex:none;justify-content:flex-end;gap:2px;padding:0 6px 0 0}
 .gg-savefor-box>:not(.gg-savefor-row):not(.gg-savefor-tools){flex-basis:100%}
 .gg-savefor-tool{color:var(--gg-muted)}
-.gg-savefor-tool:hover{background:hsl(var(--muted));color:var(--gg-ink)}
+@media (hover:hover){.gg-savefor-tool:hover{background:hsl(var(--muted));color:var(--gg-ink)}}
 .gg-savefor-tool:disabled{opacity:.5}
 .gg-savefor-tool svg{width:18px;height:18px}
 .gg-savefor-tool:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:1px}

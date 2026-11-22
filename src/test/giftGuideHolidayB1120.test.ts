@@ -6,8 +6,10 @@
  *     subtitle is a lowercase note fragment ("men's wallet gift");
  *   - NO AMAZON RATINGS (B #2 High, Amazon Associates): no "4.8 stars", "4,700+ ratings" or review count in shown text;
  *   - SPONSORS (B #3, #13 High): every brand on the public 25 Days lineup (src/content/sponsorPage.ts) has a card on the
- *     25 Days Sponsors guide or is named there; the dropped sponsor (owner 11-20: R&R Wedding Co.) shows nowhere;
- *   - GIFTS, NOT LOGOS (B #14, #16 High): no guide card shows a sponsor logo file;
+ *     25 Days Sponsors guide (owner 11-22: "Find images from their Facebook or use there logo so all are included", so
+ *     none is named only any more); the dropped sponsor (owner 11-20: R&R Wedding Co.) shows nowhere;
+ *   - GIFTS, NOT LOGOS (B #14, #16 High): no guide card shows a sponsor logo file, except a sponsor's logo card on the
+ *     sponsors guide (owner 11-22: a sponsor with no gift photo shows its logo and the gift it gives);
  *   - WRONG FIT / WRONG PHOTO (B #61, #63, #65, #58 High): Bird Lover is pet birds (no wild-bird feeders), Fish has 3+
  *     aquarium items, and the known wrong products and photos never come back;
  *   - DEALS (B #69): no blocked or off-rule retailer in any deals box, sale or code.
@@ -59,7 +61,7 @@ describe("gift guides holiday audit B", () => {
     expect([...ALL, ...TOP_PICKS].flatMap((p) => [p.name, p.line ?? ""]).filter((t) => RATING.test(t))).toEqual([]);
   });
 
-  it("every 25 Days sponsor has a card on the sponsors guide or is named there; the dropped one shows nowhere", () => {
+  it("every 25 Days sponsor has a card on the sponsors guide (none named only); the dropped one shows nowhere", () => {
     const src = readFileSync("src/content/sponsorPage.ts", "utf8");
     const short = (n: string) => n.split(/\s*[:(·]\s*/)[0].replace(/\s*\/.*$/, "").trim();
     const dropped = (n: string) => SPEC.droppedSponsors.some((d: { brand: string }) => fold(n).startsWith(fold(d.brand)));
@@ -68,7 +70,9 @@ describe("gift guides holiday audit B", () => {
     // 103 brands on the lineup on 2026-11-20, one dropped by the owner; 92 confirmed on 2026-11-21 (16 not confirmed yet).
     expect(lineup.length).toBeGreaterThanOrEqual(92);
     const sg = CHUNKS.get("25-days-sponsors")?.picks ?? [];
-    const named = NAME_ONLY["25-days-sponsors"] ?? [];
+    // Owner 11-22: every sponsor once named only is a logo card, so the sponsors guide names nobody.
+    expect(NAME_ONLY["25-days-sponsors"]).toBeUndefined();
+    const named: string[] = [];
     const alias: Record<string, string[]> = SPEC.lineupAlias;
     const missing = lineup.filter((b) => {
       const frags = (alias[b] ?? [b]).map(fold);
@@ -77,7 +81,8 @@ describe("gift guides holiday audit B", () => {
       return !card && !name;
     });
     expect(missing).toEqual([]);
-    expect(sg.length).toBeGreaterThan(30);
+    // 40 gift cards + 64 logo cards (measured 2026-11-22).
+    expect(sg.length).toBeGreaterThan(100);
     expect(new Set(sg.map((p) => p.sectionId)).size).toBe(3);
     // R&R Wedding Co. (owner 11-20): no card, no name, no logo, no Small Business Saturday card, no allowed link host.
     const rr = /R&R Wedding|rrwed(ding)?co\.com/i;
@@ -87,10 +92,14 @@ describe("gift guides holiday audit B", () => {
     expect(readFileSync("src/content/giftGuides.ts", "utf8")).not.toContain("rrweddingco.com");
   });
 
-  it("guide cards show gifts, never a sponsor's logo file", () => {
+  it("guide cards show gifts, never a sponsor's logo file (but a sponsor's logo card on the sponsors guide)", () => {
     const guides = [...CHUNKS].filter(([s]) => !s.startsWith("store-"));
-    const logos = guides.flatMap(([s, c]) => c.picks.filter((p) => /\/gift-guides\/(small-biz|sponsors)\//.test(p.image ?? "")).map((p) => `${s}: ${p.name}`));
+    // Owner 11-22: a logo card (it names the gift it gives) shows its logo, and only on the sponsors guide.
+    const logoCard = (s: string, p: Pick & { gift?: string }) => s === "25-days-sponsors" && Boolean(p.gift);
+    const logos = guides.flatMap(([s, c]) => c.picks.filter((p) => /\/gift-guides\/(small-biz|sponsors)\//.test(p.image ?? "") && !logoCard(s, p)).map((p) => `${s}: ${p.name}`));
     expect(logos).toEqual([]);
+    expect(guides.flatMap(([s, c]) => c.picks.filter((p) => (p as { gift?: string }).gift && s !== "25-days-sponsors").map((p) => `${s}: ${p.name}`))).toEqual([]);
+    expect((CHUNKS.get("25-days-sponsors")?.picks ?? []).filter((p) => /\/gift-guides\/sponsors\//.test(p.image ?? "")).length).toBeGreaterThan(50);
     // Shop Small keeps product cards for the sponsors with a shop photo (10 on 2026-11-20).
     expect((CHUNKS.get("shop-small-louisiana")?.picks ?? []).filter((p) => p.sponsor).length).toBeGreaterThan(5);
   });
@@ -131,12 +140,14 @@ describe("gift guides holiday audit B", () => {
     expect(cleanName("materialkitchen.com MATERIAL - Serve Platter", "materialkitchen.com")).toBe("Material Serve Platter");
     expect(cleanName("Ninja Fireside360 Fire Pit - Samsclub.com", "Ninja")).toBe("Ninja Fireside360 Fire Pit");
   });
-  it("a name-only sponsor is never carded on the sponsors guide, a two-studio business is named once, no section is thin", () => {
+  it("a held-back gift is never copied onto the sponsors guide (its logo card shows once), a two-studio business is named once, no section is thin", () => {
     const sg = CHUNKS.get("25-days-sponsors")?.picks ?? [];
     expect(SPEC.sponsorNameOnly.length).toBeGreaterThan(0);
     for (const d of SPEC.sponsorNameOnly as { brand: string }[]) {
-      expect(sg.filter((p) => fold(p.brand).startsWith(fold(d.brand)) || fold(p.name).startsWith(fold(d.brand))).map((p) => p.name), d.brand).toEqual([]);
-      expect((NAME_ONLY["25-days-sponsors"] ?? []).filter((n) => fold(n).startsWith(fold(d.brand))), d.brand).toHaveLength(1);
+      // Owner 11-22: Hilma's probiotic stays off (never copied from another guide); Hilma shows once, as its logo card.
+      const mine = sg.filter((p) => fold(p.brand).startsWith(fold(d.brand)) || fold(p.name).startsWith(fold(d.brand)));
+      expect(mine.map((p) => [p.name, Boolean((p as { gift?: string }).gift)]), d.brand).toEqual([[d.brand, true]]);
+      expect((NAME_ONLY["25-days-sponsors"] ?? []).filter((n) => fold(n).startsWith(fold(d.brand))), d.brand).toEqual([]);
     }
     for (const d of SPEC.sponsorOneName as { brand: string }[])
       for (const [guide, names] of Object.entries(NAME_ONLY)) expect(names.filter((n) => fold(n).startsWith(fold(d.brand))).length, `${guide}: ${d.brand}`).toBeLessThanOrEqual(1);

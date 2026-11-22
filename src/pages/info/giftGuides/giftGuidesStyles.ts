@@ -122,7 +122,10 @@ color:var(--gg-ink)}
 .gg-search-item{display:flex;flex-direction:column;min-width:0}.gg-search-item-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}.gg-search-item small{font-size:12px;color:var(--gg-muted)}
 .gg-search-results a:hover,.gg-search-results a:focus-visible{background:hsl(var(--muted) / .6)}
 .gg-icon{position:relative;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;border-radius:999px;color:var(--gg-ink);background:transparent;border:0;text-decoration:none}
-.gg-icon:hover,.gg-icon:focus-visible,.gg-icon[aria-expanded="true"]{background:hsl(var(--muted) / .7)}
+/* Owner 11-22, no circles on header icons: a tap on a phone leaves :hover set on iOS, so the hover and open-menu fill
+   apply only where a real pointer hovers; keyboard focus shows a ring, never a filled circle. */
+.gg-icon:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:-2px;border-radius:8px}
+@media (hover:hover){.gg-icon:hover,.gg-icon[aria-expanded="true"]{background:hsl(var(--muted) / .7)}}
 .gg-mylist-icon{color:#8c3b3b}
 .gg-icon-dot{position:absolute;top:9px;right:9px;width:9px;height:9px;border-radius:50%;background:#8c3b3b;box-shadow:0 0 0 2px hsl(var(--background))}
 .gg-icon-count{position:absolute;top:4px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#8c3b3b;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}
@@ -217,6 +220,9 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-nm{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;align-items:start}
 .gg-list .gg-nm-name{grid-column:1;grid-row:1}
 .gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1;margin-top:0;justify-content:flex-end;min-width:44px}
+/* A 25 Days sponsor logo card: its gift sits under the name, never in the narrow price column (owner 11-22). */
+.gg-list .gg-nm .gg-nm-gift{grid-column:1/-1;grid-row:2;justify-content:flex-start;margin-top:4px;font-size:13px;font-weight:500;letter-spacing:0;color:var(--gg-muted)}
+.gg-list .gg-nm-gift+.gg-badges{grid-row:3}
 .gg-list .gg-badges{grid-column:1/-1;grid-row:2}
 /* Owner 2026-11-22 ("move the heart and shopping cart back to the top right of picture. maybe put the shopping cart
    below the heart instead of on the side"): on every card (Her/Him/Kids rows, the 25 Days sponsors page, the finder's
@@ -424,6 +430,9 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list>li{content-visibility:auto;contain-intrinsic-size:auto 128px}
 @media (min-width:768px){.gg-list>li{contain-intrinsic-size:auto 420px}}
 .gg-top10>li{content-visibility:visible}
+/* Owner 2026-11-22 (her phone: the quiz's picks had blank photo areas): the finder's results (12 rows at most) always
+   draw. Safari skipped rows that were on screen when the list arrived after an answer tap, so no row of it skips. */
+.gg-quiz-list>li{content-visibility:visible}
 /* Owner 11-21: each price section's header opens and closes it (first open): a full-width 44px row with a chevron. */
 .gg-sec-toggle-h{margin:24px 0 0}
 .gg-sec-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:6px 4px;border:0;border-bottom:1px solid var(--gg-line);border-radius:0;background:transparent;font:inherit;font-weight:700;color:var(--gg-ink);text-align:left;white-space:normal;cursor:pointer}

@@ -552,6 +552,7 @@ describe("Holiday Hub SEO before JavaScript", () => {
  * @mutate src/content/holidayHub/holidayHub.mjs |   if (region && region.toLowerCase().startsWith(item.city.toLowerCase())) return region; |
  * @mutate src/pages/info/holidays/HolidayHub.tsx |     }, today).filter((i) => !endedEarlierToday(i, today, minutes) && matchesQuery(i, query)), |     }, today).filter((i) => matchesQuery(i, query)),
  * @mutate src/pages/info/holidays/HolidayHub.tsx | <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard inline-flex min-h-11 items-center"> | <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard">
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |         <div className="space-y-2.5" data-holiday-filters=""> |         <p className="text-ds-17">{W.hubIntro}</p>\n        <div className="space-y-2.5" data-holiday-filters="">
  */
 describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices, places, closed today, tap targets", () => {
   const today = "2026-11-20";
@@ -613,11 +614,20 @@ describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices
 
   it("the footer links are 44 px tap targets", () => {
     const c = hub();
-    for (const href of ["/gift-guides", "/gift-guides/small-business-saturday#get-featured"]) {
+    const page = c.querySelector('[data-holiday-page="hub"]')!;
+    for (const href of ["/gift-guides/small-business-saturday#get-featured"]) {
       // The hub's own links (owner 11-22 #13: the guides' menu now sits beside the hub with its own "All guides" link).
-      const a = [...c.querySelector('[data-holiday-page="hub"]')!.querySelectorAll<HTMLAnchorElement>(`a[href="${href}"]`)].pop()!;
+      const a = [...page.querySelectorAll<HTMLAnchorElement>(`a[href="${href}"]`)].pop()!;
       expect(a.className, href).toMatch(/\bmin-h-11\b/);
     }
+    // Owner 2026-11-22: no intro and no "Shopping too? See the holiday gift guides" line above the count; the count,
+    // search and filter row is the page body's first block, right under the banner.
+    expect(page.querySelector('a[href="/gift-guides"]')).toBeNull();
+    expect(page.firstElementChild?.hasAttribute("data-holiday-filters")).toBe(true);
+    expect(page.firstElementChild?.querySelector("[data-holiday-count]")).not.toBeNull();
+    expect(page.firstElementChild?.querySelector("[data-holiday-search-button]")).not.toBeNull();
+    expect(page.firstElementChild?.querySelector("[data-holiday-filters-button]")).not.toBeNull();
+    expect(page.textContent).not.toContain("Christmas lights, parades, markets");
   });
 });
 

@@ -19,7 +19,7 @@ import { storeForLink } from "@/content/giftGuideCatalog";
 import { PickThumb } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
 import { GuidePicksPicker, type GuidePick } from "./GuidePicksPicker";
-import { plannerPrice, shareListOf } from "../saveForPeople";
+import { plannerPrice, privateIdeas, shareListOf } from "../saveForPeople";
 import { ShareAllLists } from "../SaveForSomeone";
 import { AmazonCartForList } from "../AmazonCartButton";
 import { AnyStoreAdd } from "../AnyStoreAdd";
@@ -29,11 +29,17 @@ import { GiftWishShare } from "../GiftWishShare";
 import { WISH } from "@/content/giftWishList";
 import { LISTS } from "@/content/giftListsManage";
 import { shareGiftLists } from "@/lib/giftWishListApi";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 
 /**
  * /gift-guides/planner (owner 2026-11-20): the people you're shopping for (a name only), a budget each, gift ideas
  * (typed, from the wish list, or from our guides: GuidePicksPicker, owner 11-21), Bought marks, and spent vs budget per person and in total. Saved on this device, and
  * on the account when signed in (plannerStore). Private: nothing here is shared. Guard: src/test/giftGuideFun1120.test.tsx.
+ * Owner 2026-11-22 ("This needs a major polish"): one calm card per person (name and budget, the total line and bar,
+ * the gifts with photo, name, price and a Bought box, then the add tools), ending in one action row: Share this list
+ * as the primary button with the 90-day note as small help under it, and Remove as a small quiet button that asks
+ * first. "Add a person" is one compact row; the price alerts card is a title, a line, the email, one consent box and
+ * the button; the saved-where line is one small line. Guard: src/test/plannerPolish1122.test.tsx.
  */
 const PATH = "/gift-guides/planner" as const;
 const PLANNER_SHEET = PRINTABLES.find((p) => p.id === "gift-planner-sheet");
@@ -66,7 +72,10 @@ function Person({ p, index }: { p: PlanPerson; index: number }) {
   const [err, setErr] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [fromGuides, setFromGuides] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const list = useGiftList();
+  const share = shareListOf(p);
+  const hidden = privateIdeas([p]);
   const added = new Set(p.ideas.flatMap((i) => (i.href ? [i.href] : [])));
   // Owner 11-21: a guide pick comes in with its name, the price its guide shows, its shop link and its photo.
   const addPick = (g: GuidePick) => {
@@ -106,10 +115,14 @@ function Person({ p, index }: { p: PlanPerson; index: number }) {
             onChange={(e) => typeBudget(e.target.value)} data-plan-budget={p.id} /></span>
       </div>
       {/* Owner 11-21: the list's gifts and total against the budget, as in the guides' sheet ("$36.75 left of $100"). */}
-      {p.ideas.length > 0 && <p className="gg-plan-money m-0" data-plan-list-line={p.id}><ListLine p={p} /></p>}
-      <MoneyBar p={p} />
+      {(p.ideas.length > 0 || p.budget !== undefined) && (
+        <div className="gg-plan-sum">
+          {p.ideas.length > 0 && <p className="gg-plan-money m-0" data-plan-list-line={p.id}><ListLine p={p} /></p>}
+          <MoneyBar p={p} />
+        </div>
+      )}
       {p.ideas.length > 0 && (
-        <ul className="gg-fun-list mt-2" aria-label={`${W.plannerIdeas} (${p.name})`}>
+        <ul className="gg-fun-list gg-plan-ideas" aria-label={`${W.plannerIdeas} (${p.name})`}>
           {p.ideas.map((i, k) => (
             <li key={i.id} className={i.bought ? "gg-plan-idea bought" : "gg-plan-idea"} data-plan-idea={i.id}>
               <label className="gg-plan-check h-11 w-11">
@@ -141,36 +154,56 @@ function Person({ p, index }: { p: PlanPerson; index: number }) {
           ))}
         </ul>
       )}
-      {/* Owner 11-21 ("someone can just type in ideas ... and we find a link or closest match"): the one Gift idea box
-          takes a typed idea or a pasted link from any store; a price goes on the idea's own row once it is added. */}
-      <AnyStoreAdd person={p} extra={
-        <Button type="button" variant="outline" size="sm" aria-haspopup="dialog" onClick={() => setFromGuides(true)} data-plan-from-guides={p.id}>{W.plannerFromGuides}</Button>
-      } />
-      {/* Owner 11-21 (Amazon Buy Now): every Amazon gift on this list in one add-to-cart link. */}
-      <AmazonCartForList person={p} />
-      {/* Owner 11-21 ("share all lists"): this person's list as a link (names and gifts from our guides only). */}
-      {shareListOf(p).items.length > 0 && (
-        <GiftWishShare name={p.name} refs={shareListOf(p).items} label={WISH.shareThisList} message={WISH.shareListsMessage} hint={false} quiet save={() => shareGiftLists([shareListOf(p)])} />
-      )}
+      <div className="gg-plan-tools">
+        {/* Owner 11-21 ("someone can just type in ideas ... and we find a link or closest match"): the one Gift idea box
+            takes a typed idea or a pasted link from any store; a price goes on the idea's own row once it is added. */}
+        <AnyStoreAdd person={p} extra={
+          <Button type="button" variant="outline" size="sm" aria-haspopup="dialog" onClick={() => setFromGuides(true)} data-plan-from-guides={p.id}>{W.plannerFromGuides}</Button>
+        } />
+        {/* Owner 11-21 (Amazon Buy Now): every Amazon gift on this list in one add-to-cart link. */}
+        <AmazonCartForList person={p} />
+        {list.picks.length > 0 && (
+          <Button type="button" variant="link" size="inline" className="gg-link" aria-expanded={picking} onClick={() => setPicking((v) => !v)} data-plan-from-list={p.id}>{W.plannerFromList}</Button>
+        )}
+        {picking && (
+          <ul className="gg-fun-list">
+            {list.picks.map((s) => (
+              <li key={s.href}>
+                <Button type="button" variant="outline" size="sm" className="h-auto whitespace-normal text-left"
+                  onClick={() => { A.addIdea(p.id, { name: s.name, href: s.href, ...(s.guide ? { guide: s.guide } : {}), ...(s.id ? { item: s.id } : {}) }); setPicking(false); }}>
+                  + {s.name}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <GuidePicksPicker open={fromGuides} onOpenChange={setFromGuides} personName={p.name} added={added} onPick={addPick} />
-      {list.picks.length > 0 && (
-        <Button type="button" variant="link" size="inline" className="gg-link" aria-expanded={picking} onClick={() => setPicking((v) => !v)} data-plan-from-list={p.id}>{W.plannerFromList}</Button>
-      )}
-      {picking && (
-        <ul className="gg-fun-list">
-          {list.picks.map((s) => (
-            <li key={s.href}>
-              <Button type="button" variant="outline" size="sm" className="h-auto whitespace-normal text-left"
-                onClick={() => { A.addIdea(p.id, { name: s.name, href: s.href, ...(s.guide ? { guide: s.guide } : {}), ...(s.id ? { item: s.id } : {}) }); setPicking(false); }}>
-                + {s.name}
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
       {err && <p className="gg-fun-err" role="alert">{err}</p>}
-      {/* Holiday audit 1121: removing a person is a labelled link at the bottom (it sat next to the budget box), with Undo. */}
-      <Button type="button" variant="link" size="inline" className="gg-link gg-list-delete" onClick={removePerson} data-plan-remove={p.id}>{W.plannerRemovePerson(p.name)}</Button>
+      {/* Owner 2026-11-22: one tidy action row. Owner 11-21 ("share all lists"): this person's list as a link (names
+          and gifts from our guides only), the primary button, its 90-day note as small help under it. Holiday audit
+          1121: removing a person is a labelled button at the bottom (never beside the budget box), now quiet and asked
+          first, with Undo after. */}
+      <div className="gg-plan-acts">
+        {share.items.length > 0 && (
+          <div className="gg-plan-share">
+            <GiftWishShare name={p.name} refs={share.items} label={WISH.shareThisList} message={WISH.shareListsMessage} hint={false} save={() => shareGiftLists([share])} />
+            <p className="gg-plan-help" data-plan-share-note={p.id}>{WISH.shareListsNote}{hidden > 0 ? ` ${WISH.sharePrivate(hidden)}` : ""}</p>
+          </div>
+        )}
+        <Button type="button" variant="ghost" size="inline" className="gg-list-delete gg-plan-remove" onClick={() => setConfirming(true)} data-plan-remove={p.id}>{W.plannerRemovePerson(p.name)}</Button>
+      </div>
+      <BrandConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={W.plannerRemoveTitle(p.name)}
+        description={W.plannerRemoveBody(p.name, p.ideas.length)}
+        primaryLabel={W.plannerRemovePerson(p.name)}
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => { setConfirming(false); removePerson(); }}
+        secondaryLabel={W.plannerRemoveKeep}
+      />
     </li>
   );
 }
@@ -218,26 +251,31 @@ export default function GiftPlanner() {
       {!ready && <p className="gg-fun-note" role="status" data-plan-loading="">{W.plannerLoading}</p>}
       {ready && plan.people.length === 0 && <p className="gg-fun-note" data-plan-empty="">{W.plannerEmpty}</p>}
       <fieldset className="m-0 min-w-0 border-0 p-0" disabled={!ready} data-plan-editable={ready ? "" : undefined}>
-      <ul className="gg-fun-list">{plan.people.map((p, k) => <Person key={p.id} p={p} index={k} />)}</ul>
-      <ShareAllLists plan={plan} />
-      <form className="gg-fun-row mt-3" onSubmit={add}>
+      <ul className="gg-fun-list gg-plan-people">{plan.people.map((p, k) => <Person key={p.id} p={p} index={k} />)}</ul>
+      {/* Owner 2026-11-22: "Add a person" is one compact row (the box and the button the same 44px height). */}
+      <form className="gg-fun-row gg-plan-add" onSubmit={add}>
         <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} aria-invalid={addErr === LISTS.nameFirst || undefined}
           aria-describedby={addErr ? "gg-plan-add-err" : undefined} onChange={(e) => { setName(e.target.value); if (addErr === LISTS.nameFirst) setAddErr(null); }} data-plan-new-name="" />
-        <Button type="submit" className="btn-grad-primary" data-plan-add-person="">{W.plannerAddPerson}</Button>
+        <Button type="submit" className="btn-grad-primary gg-plan-add-btn" data-plan-add-person="">{W.plannerAddPerson}</Button>
       </form>
       {addErr && <p id="gg-plan-add-err" className="gg-fun-err" role="alert" data-plan-add-err="">{addErr}</p>}
+      {/* Two lists or more: one link for all of them (one list shares from its own card). */}
+      <ShareAllLists plan={plan} soloNote={false} />
       </fieldset>
       {/* Saved-gift price alerts (owner 2026-11-21): the opt-in under the lists, once there is someone on them. */}
       {plan.people.length > 0 && <PriceAlertsOptIn />}
-      <p className="gg-fun-note" data-plan-sync={sync}>
+      {/* Owner 2026-11-22: where it is saved, one small line (the log-in link inline). */}
+      <p className="gg-fun-note gg-plan-sync" data-plan-sync={sync}>
         {sync === "account" ? W.plannerSavedAccount : W.plannerSaved}{" "}
         {!user && <Link to="/login" className="gg-link">{W.plannerSignIn}</Link>}
       </p>
-      <Link to="/gift-guides/swipe" className="gg-link">{W.plannerFindGifts} ›</Link>
-      {/* Owner 2026-11-20: the printable gift list and budget sheet, once the owner's file is in (src/content/printables.ts). */}
-      {PLANNER_SHEET && isShown(PLANNER_SHEET) && (
-        <Button asChild variant="link" size="inline" className="gg-link"><Link to={`${PRINTABLES_PATH}#${PLANNER_SHEET.id}`} data-plan-printable="">{PLANNER_SHEET.title} ›</Link></Button>
-      )}
+      <p className="gg-plan-more">
+        <Link to="/gift-guides/swipe" className="gg-link" data-plan-find-gifts="">{W.plannerFindGifts} ›</Link>
+        {/* Owner 2026-11-20: the printable gift list and budget sheet, once the owner's file is in (src/content/printables.ts). */}
+        {PLANNER_SHEET && isShown(PLANNER_SHEET) && (
+          <Link to={`${PRINTABLES_PATH}#${PLANNER_SHEET.id}`} className="gg-link" data-plan-printable="">{PLANNER_SHEET.title} ›</Link>
+        )}
+      </p>
       </FunBody>
     </PublicHeaderPage>
   );

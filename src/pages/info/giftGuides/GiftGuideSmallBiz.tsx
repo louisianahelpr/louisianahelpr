@@ -89,9 +89,10 @@ function SmallBizCard({ b, compact = false }: { b: SmallBiz; compact?: boolean }
 /**
  * The deals page's Small Business Saturday section (owner 2026-11-21): the confirmed Louisiana 25 Days sponsors as one
  * flat grid, in the file's order (category, then name), without the category headings, free listings or sign-up card
- * of the standalone page, so the deals page stays calm. The file loads when the section mounts.
+ * of the standalone page, so the deals page stays calm. The file loads when the section mounts. `arrange` (owner
+ * 2026-11-22, the page's A to Z / Z to A sort) reorders the cards; without it they keep the file's order.
  */
-export function SmallBizGrid() {
+export function SmallBizGrid({ arrange }: { arrange?: (rows: SmallBiz[]) => SmallBiz[] }) {
   const [rows, setRows] = useState<SmallBiz[] | null>(null);
   // Holiday audit 1121: a failed businesses file says so with a Try again (a second failure reloads the page), never
   // the "no businesses" line, which is only for a real empty list.
@@ -130,7 +131,7 @@ export function SmallBizGrid() {
       ) : rows.length === 0 ? (
         <p className="gg-sb-intro" data-gift-sb-none="">{W.none}</p>
       ) : (
-        <ul className="gg-sb-grid" data-gift-sb-grid="">{rows.map((b) => <SmallBizCard key={b.slug} b={b} compact />)}</ul>
+        <ul className="gg-sb-grid" data-gift-sb-grid="">{(arrange ? arrange(rows) : rows).map((b) => <SmallBizCard key={b.slug} b={b} compact />)}</ul>
       )}
     </>
   );

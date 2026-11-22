@@ -9,7 +9,6 @@ import { track } from "@/lib/analytics";
 import { FUN_WORDS as W, dollars, parseDollars, personMoney, planMoney, type PlanIdea, type PlanPerson } from "@/content/giftGuideFun1120";
 import { successToast } from "@/lib/toast";
 import { useGiftList } from "../giftList";
-import { Hint } from "../GiftHint";
 import { FunBody, funHeader } from "./FunPage";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { planActions as A, usePlan } from "./plannerStore";
@@ -201,7 +200,6 @@ export default function GiftPlanner() {
     <PublicHeaderPage {...funHeader(W.plannerTitle)}>
       <FunBody title={W.plannerTitle} path={PATH}>
       <p className="gg-fun-lead">{W.plannerLead}</p>
-      <Hint id="fun-planner">{W.hintPlanner}</Hint>
       {plan.people.length > 0 && (
         <div className="gg-fun-card" aria-labelledby="plan-totals" data-plan-totals="">
           <p id="plan-totals" className="gg-finder-q m-0 mb-2">{W.plannerTotals}</p>

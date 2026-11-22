@@ -51,10 +51,12 @@ describe("the cart icon on an Amazon card", () => {
   });
 
   // Owner 11-22 ("maybe put the shopping cart below the heart instead of on the side"): under the heart on the photo's
-  // top-right, not a row of its own (src/test/giftGuideHeartCartTopRight1122.test.tsx checks the placement).
-  it("the icon is a 44px tap target under the heart", () => {
+  // top-right on a computer; owner 11-22 later: on a phone, left of the heart at the row's bottom-right under the price
+  // (src/test/giftGuideHeartCartTopRight1122.test.tsx checks the placement).
+  it("the icon is a 44px tap target beside the heart on a phone, under it on a computer", () => {
     const css = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/giftGuidesStyles.ts"), "utf8");
     expect(css).toContain(".gg-cart{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;");
-    expect(css).toContain(".gg-list .gg-cart{position:absolute;top:48px;left:54px;z-index:1}");
+    expect(css).toContain(".gg-list>:where([data-gift-pick])>.gg-cart{bottom:0;right:44px;justify-content:flex-end}");
+    expect(css).toContain(".gg-list .gg-cart{top:46px;left:auto;right:2px}");
   });
 });

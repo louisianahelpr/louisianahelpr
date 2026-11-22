@@ -19,7 +19,7 @@
  * @mutate src/index.css |   --lp-band: #2E2F22; |   --lp-band: #262420;
  * @mutate src/components/landing/LandingProof.tsx |         <span className="text-ds-13 font-semibold" style={{ color: "var(--lp-action-strong)" }}> |         <span className="text-ds-13 font-semibold uppercase" style={{ color: "var(--lp-action-strong)" }}>
  * @mutate src/components/landing/LandingBrowseShell.tsx |         {children}\n | {children}<p>Serving New Iberia, Lafayette, Abbeville and nearby.</p>\n
- * @mutate src/components/Navbar.tsx |   const phoneHidden = landing ? " max-[639px]:hidden" : ""; |   const phoneHidden = "";
+ * @mutate src/components/Navbar.tsx | ${NAV_CURRENT_MARK} ${NAV_ICON_LINK}`}\n            >\n              <Link\n                to="/browse" | ${NAV_CURRENT_MARK} ${NAV_ICON_LINK}${landing ? " max-[639px]:hidden" : ""}`}\n            >\n              <Link\n                to="/browse"
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -112,8 +112,10 @@ describe("landing design audit 11-10", () => {
     unmount();
   });
 
-  // Owner 11-22: on a phone the auth links are one "Join / Log in" button (src/test/phoneJoinOrLogIn1122.test.tsx).
-  it("D021: on a phone the landing's bar is logo, Guides and the auth button; other pages keep Jobs and Declutter", () => {
+  // Owner 11-22: on a phone the auth links are one "Join / Log in" button (src/test/phoneJoinOrLogIn1122.test.tsx), and
+  // ("On the landing there is no icon for job or declutter") the landing's phone bar shows Jobs and Declutter like
+  // every other page's (D021's landing-only hiding is reversed; src/test/phoneNavIcons1122.test.tsx).
+  it("D021 reversed (owner 11-22): the landing's phone bar keeps Jobs and Declutter, the same as every other page", () => {
     const links = (landing: boolean) => {
       const { container, unmount } = render(<MemoryRouter><Navbar landing={landing} /></MemoryRouter>);
       const out = [...container.querySelectorAll("a")].map((a) => ({ text: (a.querySelector(".sr-only") ?? a).textContent?.trim(), phone: a.getAttribute("data-testid") === "nav-gift-guides-phone", phoneHidden: /max-\[639px\]:hidden/.test(a.className) }));
@@ -122,10 +124,11 @@ describe("landing design audit 11-10", () => {
     };
     const onLanding = links(true);
     expect(onLanding.length).toBeGreaterThan(3);
-    for (const l of onLanding) expect(l.phoneHidden, l.text).toBe(l.text === "Jobs" || l.text === "Declutter");
+    expect(onLanding.map((l) => l.text)).toEqual(expect.arrayContaining(["Jobs", "Declutter"]));
+    for (const l of onLanding) expect(l.phoneHidden, l.text).toBe(false);
     // Owner 11-18 ("Where am I suppose to find the holiday guides here? Shouldn't it be on the top nav?") and 11-19
-    // ("make sure the guides can be easily viewed and accessed when signed in or out"): the short "Guides" link is on
-    // every phone bar, the other pages' included, so nothing there waits for sm (navGiftGuidesOnPhone1118.test.tsx).
+    // ("make sure the guides can be easily viewed and accessed when signed in or out"): the short gift guides link is
+    // on every phone bar, so nothing there waits for sm (navGiftGuidesOnPhone1118.test.tsx).
     for (const l of links(false)) expect(l.phoneHidden, l.text).toBe(false);
   });
 });

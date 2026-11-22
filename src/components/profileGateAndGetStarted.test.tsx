@@ -63,13 +63,13 @@ describe("the public top bar: Jobs | Declutter | Log in · Join free on every pa
     unmount();
     return links;
   };
-  // Owner 2026-11-18: Holiday gift guides joins the bar: in full from md up, and below md the short "Guides" link (its
-  // name "Holiday gift guides" too; owner 11-18: "Shouldn't it be on the top nav?"). Which one shows at which width is
+  // Owner 2026-11-18: Holiday gift guides joins the bar: in full from md up, and below md the short gift guides link
+  // (named "Gift guides"; owner 11-18: "Shouldn't it be on the top nav?"). Which one shows at which width is
   // src/test/navGiftGuidesOnPhone1118.test.tsx's. Owner 11-22: on a phone Log in leaves the bar and the sign-up button
   // reads "Join / Log in" (src/test/phoneJoinOrLogIn1122.test.tsx holds which shows at which width).
   it.each(PAGES)("$path: the logo, then Jobs (/browse), Declutter (/declutter), Holiday gift guides (wide + phone), Log in (/login), Join free / Join / Log in (/signup)", ({ path, landing }) => {
     const links = barLinks(path, landing).filter(([, href]) => href !== "/");
-    expect(links).toEqual([["Jobs", "/browse"], ["Declutter", "/declutter"], ["Holiday gift guides", "/gift-guides"], ["Holiday gift guides", "/gift-guides"], ["Log in", "/login"], ["Join free", "/signup"], ["Join / Log in", "/signup"]]);
+    expect(links).toEqual([["Jobs", "/browse"], ["Declutter", "/declutter"], ["Holiday gift guides", "/gift-guides"], ["Gift guides", "/gift-guides"], ["Log in", "/login"], ["Join free", "/signup"], ["Join / Log in", "/signup"]]);
   });
   it("no page's bar says Get started or How it works, and the landing's bar is the same bar", () => {
     expect(PAGES.length).toBeGreaterThan(3);

@@ -166,10 +166,10 @@ describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
     expect(jobs).toBeGreaterThan(-1);
     expect(declutter).toBeGreaterThan(jobs);
     expect(login).toBeGreaterThan(declutter);
-    // Owner 11-19: off the landing, below 480 the link is the sofa icon with "Declutter" as its sr-only name
-    // (navGiftGuidesOnPhone1118.test.tsx); the landing's bar keeps the plain word.
-    expect(nav.slice(declutter, login)).toMatch(/<span className="max-\[479px\]:sr-only">Declutter<\/span>/);
-    expect(nav.slice(declutter, login)).toMatch(/: "Declutter"\}\s*<\/Link>/);
+    // Owner 11-19: below 480 the link is the sofa icon with "Declutter" as its sr-only name
+    // (navGiftGuidesOnPhone1118.test.tsx); owner 11-22: on the landing too (the plain-word branch is gone).
+    expect(nav.slice(declutter, login)).toMatch(/<span className="max-\[479px\]:sr-only">Declutter<\/span>\s*<\/Link>/);
+    expect(nav.slice(declutter, login)).not.toMatch(/: "Declutter"\}/);
     const footer = read("src/components/Footer.tsx");
     expect(footer).toMatch(/<Link to="\/declutter" className=\{FOOTER_LINK\}>\s*Declutter\s*<\/Link>/);
     expect(footer.indexOf('to="/declutter"')).toBeGreaterThan(footer.indexOf("browseDestinationFor(user)}"));

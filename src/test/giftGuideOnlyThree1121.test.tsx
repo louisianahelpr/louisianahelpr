@@ -201,8 +201,9 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     // finder (the quiz) shows under them only when the menu's link (#gift-finder) or a shared finder link asks for it.
     // Owner 11-21 ~5:05 PM: the "Top 10 gifts" row is back, between them, once the three guides' picks are in
     // (its order and cards: src/test/giftGuideTop10Landing1121.test.tsx).
-    const kinds = (c: HTMLElement) => [...c.querySelector(".gg-landing")!.children].map((x) => (x.matches("[data-gift-browse]") ? "tiles" : x.matches("[data-gift-giveaways]") ? "giveaways" : x.matches("[data-gift-finder]") ? "finder" : x.matches("[data-gift-top10]") ? "top10" : x.outerHTML.slice(0, 60)));
-    expect(kinds(container).filter((k) => k !== "top10")).toEqual(["tiles", "giveaways"]);
+    const kinds = (c: HTMLElement) => [...c.querySelector(".gg-landing")!.children].map((x) => (x.matches("[data-gift-browse]") ? "tiles" : x.matches("[data-gift-giveaways]") ? "giveaways" : x.matches("[data-gift-finder]") ? "finder" : x.matches("[data-gift-top10]") ? "top10" : x.matches("[data-gift-greeting]") ? "greeting" : x.outerHTML.slice(0, 60)));
+    // Owner 11-22 (option B): the "Happy holidays, y'all" greeting sits first, above the tiles (giftGuideGreeting1122).
+    expect(kinds(container).filter((k) => k !== "top10")).toEqual(["greeting", "tiles", "giveaways"]);
     // Owner 11-21: "only the section I click in the left panel should be displayed, nothing else": the finder view is
     // the finder alone, and the menu marks it (not All guides).
     for (const url of ["/gift-guides#gift-finder", "/gift-guides?who=her&budget=50&vibe=cozy"]) {

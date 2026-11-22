@@ -718,9 +718,13 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     const rewrites = (JSON.parse(readFileSync("vercel.json", "utf8")) as { rewrites: { source: string; destination: string }[] }).rewrites;
     expect(rewrites.filter((x) => x.source.startsWith("/gift-guides"))).toEqual([
       { source: "/gift-guides", destination: "/api/share?_og=page&_id=gift-guides" },
+      // The old one-page printables address only forwards (owner 2026-11-21: each kind its own page): noindex, its own head.
+      { source: "/gift-guides/printables", destination: "/api/share?_og=noindex&_id=gift-guides/printables" },
       { source: "/gift-guides/:slug", destination: "/api/share?_og=page&_id=gift-guides/:slug" },
       // Each printables page (owner 2026-11-21): its own head and share card, then the SPA entry.
-      { source: "/gift-guides/printables/:page(gift-tags|coloring-books|banners)", destination: "/api/share?_og=page&_id=gift-guides/printables/:page" },
+      { source: "/gift-guides/printables/gift-tags", destination: "/api/share?_og=page&_id=gift-guides/printables/gift-tags" },
+      { source: "/gift-guides/printables/coloring-books", destination: "/api/share?_og=page&_id=gift-guides/printables/coloring-books" },
+      { source: "/gift-guides/printables/banners", destination: "/api/share?_og=page&_id=gift-guides/printables/banners" },
       { source: "/gift-guides", destination: "/index.html" },
       { source: "/gift-guides/:slug", destination: "/index.html" },
       // A shared wish list (owner 2026-11-20): its own noindex link card (api/share metaForWishList), before the not-found catch-all.
@@ -733,7 +737,9 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
       { source: "/gift-guides/swipe", destination: "/index.html" },
       { source: "/gift-guides/planner", destination: "/index.html" },
       { source: "/gift-guides/printables", destination: "/index.html" },
-      { source: "/gift-guides/printables/:page(gift-tags|coloring-books|banners)", destination: "/index.html" },
+      { source: "/gift-guides/printables/gift-tags", destination: "/index.html" },
+      { source: "/gift-guides/printables/coloring-books", destination: "/index.html" },
+      { source: "/gift-guides/printables/banners", destination: "/index.html" },
       // Holiday audit C (2026-11-20): a reveal link gets its own noindex preview card (api/share metaForSanta) first.
       { source: "/gift-guides/secret-santa/:code/:token", destination: "/api/share?_og=santa&_code=:code&_tok=:token" },
       { source: "/gift-guides/secret-santa/:code/:token", destination: "/index.html" },

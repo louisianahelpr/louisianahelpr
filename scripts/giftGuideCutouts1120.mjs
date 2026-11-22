@@ -157,7 +157,7 @@ export const CUTOUTS_1120 = new Map([
   ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMABMOB_gray_main_720x720_d16b4d27-7fc1-4833-a83f-06939c86fdb4.jpg", "xtratuf-mossy-oak-bottomland-ankle-deck-boot-73b7f0.webp"],
   ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMW900_gray_main_1400x1400_52c3f283-fa90-4227-8a07-ddfdcbc1acc6.jpg", "xtratuf-wheelhouse-ankle-deck-boot-brown-dee391.webp"],
   ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/xmadbc90_g.jpg", "xtratuf-fleece-lined-ankle-deck-boot-bison-duck-camo-794d85.webp"],
-  ["https://media.jdsports.com/i/jdsports/NF0A8CHE_001_P3", "the-north-face-logo-box-cuffed-beanie-black-a154ca.webp"],
+  ["https://media.jdsports.com/i/jdsports/NF0A8CHE_001_P3", "the-north-face-box-cuffed-beanie-black-a154ca.webp"],
   ["https://cdn.shopify.com/s/files/1/0917/5998/files/TH-CDC_Flatlay.jpg", "burlebo-thermal-hoodie-classic-deer-camo-a4b143.webp"],
   ["https://cdn.shopify.com/s/files/1/0618/7116/1562/files/850073050828_1.png", "salt-stone-saffron-cedar-body-mist-6ca5e7.webp"],
   // Ulta's photo is already transparent: its own alpha, cropped (a Vision pass cut the printed gift box away).

@@ -43,6 +43,7 @@ export function dealDay(slug: string | undefined): DealEvent | null;
 export function oldDealsTarget(hash: string): string;
 export function codesDay(event: Pick<DealEvent, "day">, today: string): string;
 export const DEALS_PER_BRAND: number;
+export const DEALS_COVER: string;
 export const DEALS_WORDS: {
   title: string;
   laterTitle: string;
@@ -54,6 +55,7 @@ export const DEALS_WORDS: {
   codeLabel: string;
   endsOn: (ymd: string) => string;
   startsOn: (ymd: string) => string;
+  runs: (start?: string | null, end?: string | null) => string;
   shopSmall: string;
   none: string;
   noneCta: string;
@@ -66,7 +68,6 @@ export interface CodeExpiry { store: string; code: string; expires?: string }
 export function dealEnds(deal: Pick<Deal, "ends" | "code" | "brand">, codes?: readonly CodeExpiry[]): string | undefined;
 export function dealCode(deal: Pick<Deal, "code" | "brand">, today: string, codes?: readonly CodeExpiry[]): string | undefined;
 export function dealShows(deal: Pick<Deal, "ends" | "code" | "brand">, today: string, codes?: readonly CodeExpiry[]): boolean;
-export function dealStartsLater(deal: Pick<Deal, "starts" | "status">, today: string): boolean;
 export function liveDeals<T extends Pick<Deal, "ends" | "code" | "brand">>(deals: readonly T[], today: string, codes?: readonly CodeExpiry[]): T[];
 export function eventPhase(event: Pick<DealEvent, "day">, today: string): "before" | "on" | "after";
 export function eventOrder(today: string): DealEvent[];

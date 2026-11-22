@@ -20,7 +20,7 @@ export const showsPrice = (pick: CatalogPick, today: string = todayInLouisiana()
 /** "~$24" (rounded to the dollar, at least $1), or nothing. */
 export function PickPrice({ pick }: { pick: CatalogPick }) {
   if (!showsPrice(pick)) return null;
-  return <span className="gg-price" data-gift-price="">{G.priceApprox(shownDollars(pick.price))}</span>;
+  return <span className="gg-price" data-gift-price="">{pick.priceFrom ? G.priceFrom(shownDollars(pick.price)) : G.priceApprox(shownDollars(pick.price))}</span>;
 }
 
 /** The list's one price note (the oldest check day among the shown prices), or nothing when no row shows a price. */

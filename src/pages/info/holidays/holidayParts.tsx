@@ -3,7 +3,8 @@
  * per light display or event with its "Open in Maps" link (the filters live on HolidayHub, in the shared FilterSheet). Words and rules live in
  * src/content/holidayHub/holidayHub.mjs. Guard: src/test/holidayHub.test.tsx.
  */
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { CalendarPlus, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
 import { mapsSearchUrl } from "@/lib/mapsLink";
@@ -21,64 +22,96 @@ export function useHolidayPageView(page: "holidays" | "holidays_hire") {
   }, [page]);
 }
 
-/** "Open in Maps": a plain maps search on the place's name and address (no API key), with its outbound-click event. */
-function OpenInMaps({ item, kind }: { item: HolidayItem; kind: "light" | "event" }) {
-  const href = mapsSearchUrl(holidayMapsQuery(item));
-  if (!href) return null;
-  return (
-    <Button asChild variant="outline" size="sm" className="rounded-full">
-      <a href={href} target="_blank" rel="noopener noreferrer" data-holiday-maps={item.id}
-        onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}>
-        Open in Maps<span className="sr-only"> for {item.name} (opens in a new tab)</span>
-      </a>
-    </Button>
-  );
+/** The item's calendar entry, saved or shared (the file helper and the .ics builder load on tap only). */
+async function addToCalendar(item: HolidayItem) {
+  const [{ holidayIcs, holidayIcsName }, { saveOrShareFile }] = await Promise.all([import("@/lib/holidayIcs"), import("@/lib/fileExport")]);
+  const text = holidayIcs(item, new Date());
+  if (!text) return;
+  track("holiday_ics_click", { id: item.id, region: item.region });
+  await saveOrShareFile({ blob: new Blob([text], { type: "text/calendar" }), filename: holidayIcsName(item), label: item.name, source: "holidayHub.ics" });
 }
 
-/** One light display or event: name, where, when (or "Dates TBA"), hours, price, a line about it, and its links. */
+/**
+ * One light display or event, compact (owner 2026-11-21: "needs polishing, they are too big"; then "remove the circles
+ * around open in maps and website"): the name with its kind as a small muted tag, one muted line "Lake Charles · Nov
+ * 20 – 22", one line for the hours and cost when listed, the address as a single line that IS the Maps link (a map
+ * pin, no button), a small Website text link, and the note as one line that opens on "More details". No round
+ * buttons. The links sit at the card's foot so a row's cards line up.
+ */
 export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "light" | "event"; tag?: string | null }) {
   const when = holidayDateLabel(item);
   const tba = when === DATES_TBA;
   // Holiday audit 1121 area 5 #15 / #7: no "Lake Charles · Lake Charles & SWLA", and never a bare "$" for the price.
   const where = holidayWhereLabel(item);
   const price = holidayPriceLabel(item.price);
+  const maps = mapsSearchUrl(holidayMapsQuery(item));
+  const site = openableDocumentUrl(item.url);
+  const [more, setMore] = useState(false);
+  const facts = [item.hours, price].filter(Boolean).join(" · ");
   return (
-    <li className="flex min-w-0 flex-col rounded-[20px] border border-border bg-card p-5 font-sans" data-holiday-item={item.id}>
-      {tag && <p className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{tag}</p>}
-      <h3 className="mt-0.5 text-ds-17 font-semibold leading-snug text-foreground">{item.name}</h3>
-      {where && <p className="text-ds-14 text-muted-foreground">{where}</p>}
-      <dl className="mt-3 space-y-1 text-ds-15 text-foreground">
-        <div className="flex gap-2">
-          <dt className="sr-only">When</dt>
-          <dd data-holiday-when="" className={tba ? "font-semibold text-muted-foreground" : "font-semibold"}>{when}</dd>
-        </div>
-        {item.hours && <div className="flex gap-2"><dt className="sr-only">Hours</dt><dd>{item.hours}</dd></div>}
-        {price && <div className="flex gap-2"><dt className="sr-only">Cost</dt><dd data-holiday-price="">{price}</dd></div>}
-        {item.address && <div className="flex gap-2"><dt className="sr-only">Address</dt><dd className="text-muted-foreground">{item.address}</dd></div>}
-      </dl>
-      {item.note && <p className="mt-2 text-ds-14 text-muted-foreground">{item.note}</p>}
-      <div className="mt-auto flex flex-wrap gap-2 pt-4">
-        <OpenInMaps item={item} kind={kind} />
-        {openableDocumentUrl(item.url) && (
-          <Button asChild variant="outline" size="sm" className="rounded-full">
-            <a href={openableDocumentUrl(item.url) ?? undefined} target="_blank" rel="noopener noreferrer" data-holiday-site={item.id}>
-              Website<span className="sr-only"> for {item.name} (opens in a new tab)</span>
-            </a>
-          </Button>
+    <li className="flex min-w-0 flex-col gap-1 rounded-[16px] border border-border bg-card px-4 py-3 font-sans" data-holiday-item={item.id}>
+      <h3 className="text-ds-16 font-semibold leading-snug text-foreground">
+        {item.name}
+        {tag && <span className="ml-2 align-[1px] text-ds-12 font-medium text-muted-foreground" data-holiday-tag="">{tag}</span>}
+      </h3>
+      <p className="text-ds-14 text-muted-foreground">
+        {where && <span>{where} · </span>}
+        <span data-holiday-when="" className={tba ? "text-muted-foreground" : "font-semibold text-foreground"}>{when}</span>
+      </p>
+      {facts && (
+        <p className="text-ds-14 text-foreground">
+          {item.hours && <span>{item.hours}</span>}
+          {item.hours && price && <span> · </span>}
+          {price && <span data-holiday-price="">{price}</span>}
+        </p>
+      )}
+      {item.note && (
+        <p className={`text-ds-13 text-muted-foreground ${more ? "" : "line-clamp-1"}`} data-holiday-note="">
+          {item.note}
+        </p>
+      )}
+      <div className="mt-auto flex min-w-0 items-center gap-x-4 pt-1">
+        {maps && (
+          <a href={maps} target="_blank" rel="noopener noreferrer" data-holiday-maps={item.id}
+            onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}
+            className="inline-flex min-h-11 min-w-0 flex-1 items-center gap-1.5 text-ds-13 text-muted-foreground link-standard">
+            <MapPin className="h-4 w-4 shrink-0 text-[hsl(var(--olivewood))]" aria-hidden />
+            <span className="truncate">{item.address || "Open in Maps"}</span>
+            <span className="sr-only"> (open in Maps, a new tab)</span>
+          </a>
+        )}
+        {site && (
+          <a href={site} target="_blank" rel="noopener noreferrer" data-holiday-site={item.id}
+            className="inline-flex min-h-11 shrink-0 items-center text-ds-13 font-semibold text-[hsl(var(--olivewood))] link-standard">
+            Website<span className="sr-only"> for {item.name} (opens in a new tab)</span>
+          </a>
+        )}
+        {/* Holiday audit 1121 area 5 #20: a dated item goes into the visitor's calendar (an all-day .ics entry). */}
+        {item.start && !item.tba && (
+          <button type="button" onClick={() => void addToCalendar(item)} aria-label={`Add ${item.name} to your calendar`} data-holiday-ics={item.id}
+            className="inline-flex h-11 w-9 shrink-0 items-center justify-center text-[hsl(var(--olivewood))] hover:text-[hsl(var(--bark))]">
+            <CalendarPlus className="h-4 w-4" aria-hidden />
+          </button>
+        )}
+        {item.note && item.note.length > 60 && !more && (
+          <button type="button" onClick={() => setMore(true)} data-holiday-more={item.id}
+            className="inline-flex min-h-11 shrink-0 items-center text-ds-13 font-semibold text-[hsl(var(--olivewood))] link-standard">
+            More details
+          </button>
         )}
       </div>
     </li>
   );
 }
 
-/** A heading and its cards, two across from md up. */
+/** A heading and its cards: one column on a phone, two on a tablet, three on a wide desktop (owner 2026-11-21). */
 export function HolidaySection({ id, title, count, children }: { id: string; title: string; count: number; children: ReactNode }) {
   return (
     <section aria-labelledby={id} className="space-y-3">
       <h2 id={id} className="text-ds-20 font-semibold text-foreground">
         {title}<span className="ml-1.5 text-ds-15 font-normal text-muted-foreground">({count})</span>
       </h2>
-      <ul className="grid gap-3 md:grid-cols-2">{children}</ul>
+      <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{children}</ul>
     </section>
   );
 }

@@ -280,6 +280,10 @@
       "destination": "/api/share?_og=page&_id=gift-guides/:slug"
     },
     {
+      "source": "/gift-guides/printables/:page(gift-tags|coloring-books|banners)",
+      "destination": "/api/share?_og=page&_id=gift-guides/printables/:page"
+    },
+    {
       "source": "/sponsor",
       "destination": "/api/share?_og=noindex&_id=sponsor"
     },
@@ -625,6 +629,10 @@
     },
     {
       "source": "/gift-guides/printables",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/gift-guides/printables/:page(gift-tags|coloring-books|banners)",
       "destination": "/index.html"
     },
     {

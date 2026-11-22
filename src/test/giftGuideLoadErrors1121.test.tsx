@@ -4,7 +4,7 @@
  * guides read (a guide's picks, the deals, the Small Business Saturday shops, the search's gift index).
  *
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   if (!ready && failed && onRetry) return <GiftGuideLoadError message={G.picksFailed} onRetry={onRetry} />; |   if (false) return null;
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           {deals === null && failed ? ( |           {false ? (
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |             deals === null && failed ? ( |             false ? (
  * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx |       {rows === null && failed ? ( |       {false ? (
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |             {itemsFailed && !items && <li | {false && <li
  */

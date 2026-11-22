@@ -22,14 +22,14 @@
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       if (!searchBox.current?.contains(e.target as Node)) setResultsOpen(false); |       if (!searchBox.current?.contains(e.target as Node)) return;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       button.current?.focus(); |       void 0;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |     menuItems(menu.current)[0]?.focus(); |     void 0;
- * @mutate src/content/printables.ts |     guides: ["gift-wrap-and-cards", "her", "him", "kids"], |     guides: ["gift-wrap-and-cards"],
+ * @mutate src/content/printables.ts |     guides: ["gift-wrap-and-cards"], |     guides: ["gift-wrap-and-cards", "her", "him", "kids"],
  * @mutate src/content/giftGuideSmallBiz.json | "name":"Bake & Brush", | "name":"Bake & Brush (Holli M. Landry)",
  * @mutate src/content/giftGuideSmallBiz.json | "name":"Breads and Sweets by Babs","town":"Acadiana" | "name":"Breads and Sweets by Babs","town":"Acadiana (337)"
  * @mutate src/pages/info/ShopSmall.tsx |            <SmallBizGrid /> |            {null}
  * @mutate src/pages/info/ShopSmall.tsx |       <GuidesFrame title={W.pageTitle} path="/shop-small" disclosures={false}> |       <GuidesFrame title={W.pageTitle} path="/gift-guides" disclosures={false}>
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | [data-gift-guide="25-days-sponsors"] .gg-nm-name{-webkit-line-clamp:3} | [data-gift-guide="25-days-sponsors"] .gg-nm-name{}
- * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx |     requestAnimationFrame(() => openButton.current?.focus()); |     void 0;
- * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx |       {Form && <div hidden={!open} data-gift-sbs-form-wrap=""><Form onClose={close} /></div>} |       {Form && open && <div data-gift-sbs-form-wrap=""><Form onClose={close} /></div>}
+ * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |     requestAnimationFrame(() => openButton.current?.focus()); |     void 0;
+ * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |       {Form && <div hidden={!open} data-gift-sbs-form-wrap=""><Form onClose={close} /></div>} |       {Form && open && <div data-gift-sbs-form-wrap=""><Form onClose={close} /></div>}
  * @mutate src/pages/info/giftGuides/SmallBizSubmitForm.tsx | .gg-sbs-cta p.gg-sbs-err{color:hsl(var(--destructive-ink));margin:0} | .gg-sbs-cta p.gg-sbs-x{}
  * @mutate src/content/giftGuideFun1120.ts |   finderWho("her", "Her", ["her"], "Her"), |   { id: "her", label: "Her", guides: finderGuides("her"), forName: "Her" },
  * @mutate scripts/gift-guide-small-biz.mjs | export const shipsFor = (b) => (VISIT_CATEGORIES.has(b.category) \|\| VENUE_SLUGS.has(b.slug) ? "local" : shipsOf(b.shipping)); | export const shipsFor = (b) => shipsOf(b.shipping);
@@ -194,10 +194,11 @@ describe("page, then menu, then disclosures in the code (holiday audit 1121 #22 
   });
 });
 
-describe("Her, Him and Kids link the free printables (holiday audit 1121 #49)", () => {
-  it("each live guide has at least one printable link", () => {
-    for (const slug of ["her", "him", "kids"]) expect(printablesForGuide(slug).map((p) => p.id), slug).toContain("gift-tags");
-    expect(printablesForGuide("kids").map((p) => p.id)).toContain("coloring-book");
+describe("Her, Him and Kids carry no printables (owner 2026-11-21, reversing holiday audit 1121 #49)", () => {
+  it("no live guide links a printable; they live under Free printables in the menu", () => {
+    // Owner 2026-11-21: "remove from her, they already have their own section."
+    for (const slug of ["her", "him", "kids"]) expect(printablesForGuide(slug).map((p) => p.id), slug).toEqual([]);
+    expect(printablesForGuide("gift-wrap-and-cards").map((p) => p.id)).toEqual(["gift-tags"]);
   });
 });
 

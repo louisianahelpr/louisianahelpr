@@ -82,7 +82,7 @@ export const enLanding = {
   "landing.proof.photoAlt": "A freshly mowed yard in New Iberia",
   // The Holiday Gift Guides card (owner 2026-11-16, GiftGuidesBand.tsx).
   "landing.giftGuides.title": "Holiday Gift Guides",
-  "landing.giftGuides.body": "Gift ideas for her, for him, for the kids and for the home, plus Louisiana-made favorites.",
+  "landing.giftGuides.body": "Gift ideas for her, for him and for the kids.",
   "landing.giftGuides.cta": "See the gift guides",
 } as const;
 

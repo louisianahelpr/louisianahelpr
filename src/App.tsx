@@ -471,6 +471,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/gift-guides/swipe" element={<RouteErrorBoundary>{routeEl(<PageTransition><SwipeGifts /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/planner" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftPlanner /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/printables" element={<RouteErrorBoundary>{routeEl(<PageTransition><Printables /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/gift-guides/printables/gift-tags" element={<RouteErrorBoundary>{routeEl(<PageTransition><Printables /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/gift-guides/printables/coloring-books" element={<RouteErrorBoundary>{routeEl(<PageTransition><Printables /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/gift-guides/printables/banners" element={<RouteErrorBoundary>{routeEl(<PageTransition><Printables /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/gift-guides/list/:code" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} />{/* 11-20: a shared wish list, no sign-in. */}
       {/* Louisiana Holiday Hub (owner-approved 2026-11-20): lights and events in one list (11-21) and holiday help; public

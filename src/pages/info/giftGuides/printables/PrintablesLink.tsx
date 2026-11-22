@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { PRINTABLES_PATH, PRINTABLES_WORDS as W, printablesForGuide } from "@/content/printables";
+import { PRINTABLES_WORDS as W, printablePath, printablesForGuide } from "@/content/printables";
 
 /**
  * On a gift guide (owner 2026-11-20): a link to each free printable that names this guide in its `guides` and is
@@ -12,7 +12,7 @@ export function PrintablesLink({ slug }: { slug: string }) {
   return (
     <p className="m-0 mb-2 flex flex-wrap gap-x-4">
       {list.map((p) => (
-        <Link key={p.id} to={`${PRINTABLES_PATH}#${p.id}`} className="gg-link" data-gift-printable-link={p.id}>
+        <Link key={p.id} to={printablePath(p)} className="gg-link" data-gift-printable-link={p.id}>
           {W.guideLink(p.title)} ›
         </Link>
       ))}

@@ -37,7 +37,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   LIVE_GUIDES_1121.filter((slug) => !NOT_TILES.has(slug)).flatMap((slug) => { |   LIVE_GUIDES_1121.flatMap((slug) => {
  * @mutate src/pages/info/GiftGuides.tsx |         {landing && <hr className="gg-divider" data-gift-divider="" />} |         {null}
  * @mutate src/content/printables.ts |   if (!p.ready) return false; |   if (false) return false;
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           <DealsAndCodes on={codesDay(day, today)} /> |           {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |     ...(codes.length ? [{ id: "codes" |     ...(false ? [{ id: "codes"
  * @mutate src/content/giftGuideCatalog.ts | draftOf.has(slug) && isLiveGuide(slug) && | draftOf.has(slug) &&
  * @mutate src/prerender/seoData.ts | else if (!to && !guides[old]) moved[old] = ""; | else if (!to && !guides[old] && old.startsWith("store-")) moved[old] = "";
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       {null}
@@ -54,6 +54,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
+// The Small Business Saturday page reads the free approved listings (SmallBizLocal); never the network in a unit test.
+vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsLogoUrl: () => "" }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -132,6 +134,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     const titles: Record<string, string> = { "black-friday": "Black Friday Deals", "small-business-saturday": "Small Business Saturday", "cyber-monday": "Cyber Monday Deals" };
     for (const slug of DEAL_DAY_SLUGS) {
       const { container } = renderAt(`/gift-guides/${slug}`);
+      // A deals day loads its own chunk (lazy, off the guide pages' critical path): wait for it.
+      await waitFor(() => expect(container.querySelector("[data-gift-deal-day-page]"), slug).not.toBeNull());
       expect(container.querySelector("[data-test-where]")?.textContent, slug).toBe(`/gift-guides/${slug}`);
       // Train 1121i: the deals day page loads its own chunk (LazyDeals), off the guide pages' critical path.
       await waitFor(() => expect(container.querySelector("[data-gift-deal-day-page]"), slug).not.toBeNull());
@@ -141,10 +145,10 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       // The banner holds the lead and the title only (owner 11-21: "remove louisiana helpr from the [banner]").
       expect(container.querySelector("[data-gift-arch]")?.textContent, slug).not.toMatch(/Louisiana Helpr/i);
       expect(container.querySelector("[data-gift-deals-jump]"), slug).toBeNull();
-      const codes = container.querySelector<HTMLDetailsElement>("[data-gift-deals-page] details[data-gift-deals-codes]");
+      const codes = container.querySelector<HTMLDetailsElement>("[data-gift-deals-page] details[data-gift-deal-sub='codes']");
       if (slug === "small-business-saturday") expect(codes, slug).toBeNull();
       else {
-        expect(codes, `${slug}: the codes and sales box`).not.toBeNull();
+        expect(codes, `${slug}: the codes subsection`).not.toBeNull();
         expect(codes!.open, slug).toBe(false);
       }
       // Holiday audit 1121: the menu marks the open day itself (it marked Black Friday on every day).
@@ -222,7 +226,7 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       ["Cyber Monday", "/gift-guides/cyber-monday"],
     ]);
     expect(group("[data-gift-side-printables-group]")).toEqual([
-      ["Gift tags", `${PRINTABLES}?show=tags`], ["Coloring books", `${PRINTABLES}?show=coloring`], ["Banners", `${PRINTABLES}?show=banners`],
+      ["Gift tags", `${PRINTABLES}/gift-tags`], ["Coloring books", `${PRINTABLES}/coloring-books`], ["Banners", `${PRINTABLES}/banners`],
     ]);
     // Owner 11-21: "remove shop small here, it's already listed with small business saturday".
     expect(group("[data-gift-side-more]")).toEqual([["Holiday Hub", "/holidays"], ["25 Days sponsors", `/gift-guides/${SPONSORS}`]]);
@@ -235,7 +239,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     // No link anywhere on the landing to a retired guide.
     const hrefs = [...container.querySelectorAll<HTMLAnchorElement>("a[href^='/gift-guides/']")].map((a) => a.getAttribute("href")!.slice("/gift-guides/".length).split(/[#?]/)[0]);
     expect(hrefs.length).toBeGreaterThan(2);
-    const pages = ["my-list", ...DEAL_DAY_SLUGS, ...[...TOOLS, PRINTABLES].map((t) => t.slice("/gift-guides/".length))];
+    // Owner 2026-11-21: each printable kind is its own page under /gift-guides/printables/.
+    const pages = ["my-list", ...DEAL_DAY_SLUGS, ...[...TOOLS, PRINTABLES, `${PRINTABLES}/gift-tags`, `${PRINTABLES}/coloring-books`, `${PRINTABLES}/banners`].map((t) => t.slice("/gift-guides/".length))];
     for (const h of hrefs) expect([...LIVE, SPONSORS, ...pages], h).toContain(h);
     cleanup();
     // A guide's page has no divider and no deals box (owner 11-21: "Codes and deals shouldn't randomly show in sections").

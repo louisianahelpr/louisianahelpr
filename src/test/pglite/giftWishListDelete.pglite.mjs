@@ -2,7 +2,7 @@
 /**
  * PGlite proof for 20261122024017_gift_wish_list_delete (holiday audit 1121: "No way to delete a wish list or stop a
  * shared link"): a signed-in member deletes their own list (and only theirs); the browser that made a guest snapshot
- * claims it once, within 10 minutes, with a token whose hash is stored, and can then stop the link; a wrong token, a
+ * claims it once, within 60 seconds, with a token whose hash is stored, and can then stop the link; a wrong token, a
  * second claim, a late claim, an account's row and bad input are all refused; anon and authenticated hold no table
  * privilege.
  *

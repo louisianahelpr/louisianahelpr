@@ -16,8 +16,8 @@
  *     section"): each printable kind is its own page with its own head, the menu links each and marks the open one, the
  *     old address lands on its anchor's page, no printable on Her, Him or Kids, and a long download label wraps;
  *   - owner ("remove the circle around visit"): Visit is a plain text link, never an outlined button;
- *   - owner ("add this to the top or bottom of the shop small business"): the Small Business Saturday page and
- *     /shop-small carry the sign-up card at the bottom and a one-line link at the top that opens its form.
+ *   - owner ("add this to the top or bottom of the shop small business"): the Small Business Saturday page carries
+ *     the sign-up card at the bottom and a one-line link at the top that opens its form.
  *
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping", d: GIFT_WRAP_DESCRIPTION }) | t: "Gift wrapping" })
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | for (const c of codes) if (c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]); | for (const c of codes) if (c.href) byStore.set(c.code, [c]);
@@ -30,7 +30,6 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       {sections.length > 1 && ( |       {false && (
  * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx |             <Out href={b.href} className="gg-sb-visit"> |             <Out href={b.href} className="gg-sb-visit rounded-full border">
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   return Local ? <Local sponsors={[]} /> : <FeatureCta />; |   return null;
- * @mutate src/pages/info/ShopSmall.tsx |           <FeatureCtaLink />\n |           \n
  * @mutate src/content/giftGuideDeals.mjs |   runs: (start, end) => (start && end ? | runs: (start, end) => (false ? 
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         const when = DEALS_WORDS.runs(c.starts, c.expires); |         const when = DEALS_WORDS.runs(null, c.expires);
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <style>{DEALS_CSS + CARD_CSS}</style> |       <style>{DEALS_CSS + CARD_CSS}</style><p data-gift-deal-day="">{day[eventPhase(day, today)]}</p>
@@ -61,7 +60,6 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsLogoUrl: () => "" }));
 vi.mock("@/pages/info/giftGuides/SmallBizSubmitForm", () => ({ SmallBizSubmitForm: () => <form data-test-sbs-form="" /> }));
 import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
-import ShopSmall from "@/pages/info/ShopSmall";
 import Printables from "@/pages/info/giftGuides/printables/Printables";
 import { GiftGuidesSidebar } from "@/pages/info/giftGuides/GiftGuidesSidebar";
 import { PRINTABLES, PRINTABLE_PAGES, printablesForGuide } from "@/content/printables";
@@ -221,10 +219,10 @@ describe("owner 11-21: Small Business Saturday cards and the sign-up card", () =
       expect(v.textContent).toMatch(/^Visit/);
     }
   });
-  it("the day page and /shop-small: a top line that opens the sign-up card's form, the card at the bottom", async () => {
+  it("the day page: a top line that opens the sign-up card's form, the card at the bottom", async () => {
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
-    for (const page of ["day", "shop-small"] as const) {
-      const { container } = render(<MemoryRouter>{page === "day" ? <GiftGuideDeals day={dealDay("small-business-saturday")!} now={new Date("2026-11-21T18:00:00Z")} /> : <ShopSmall />}</MemoryRouter>);
+    for (const page of ["day"] as const) {
+      const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("small-business-saturday")!} now={new Date("2026-11-21T18:00:00Z")} /></MemoryRouter>);
       await waitFor(() => expect(container.querySelectorAll("[data-gift-sb]").length).toBeGreaterThan(20));
       const top = container.querySelector<HTMLButtonElement>("[data-gift-sbs-toplink]");
       const card = container.querySelector("[data-gift-sbs-cta]");

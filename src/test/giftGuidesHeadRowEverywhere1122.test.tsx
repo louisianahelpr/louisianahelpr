@@ -39,7 +39,6 @@ import Printables from "@/pages/info/giftGuides/printables/Printables";
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import SecretSanta from "@/pages/info/giftGuides/fun/SecretSanta";
 import GiftPlanner from "@/pages/info/giftGuides/fun/GiftPlanner";
-import ShopSmall from "@/pages/info/ShopSmall";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 
 afterEach(cleanup);
@@ -58,7 +57,6 @@ const PAGES: [url: string, title: RegExp][] = [
   ["/gift-guides/swipe", /swipe/i],
   ["/gift-guides/draw-names", /secret santa/i],
   ["/gift-guides/planner", /planner/i],
-  ["/shop-small", /shop small/i],
 ];
 
 const renderAt = (url: string) =>
@@ -70,7 +68,6 @@ const renderAt = (url: string) =>
         <Route path="/gift-guides/draw-names" element={<SecretSanta />} />
         <Route path="/gift-guides/planner" element={<GiftPlanner />} />
         <Route path="/gift-guides/:slug" element={<GiftGuides />} />
-        <Route path="/shop-small" element={<ShopSmall />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -97,7 +94,7 @@ describe("every Holiday gift guides sub-page: 'Holiday gift guides' by the back 
 });
 
 describe("one head row component, so the pages cannot drift apart again", () => {
-  const files = [...readdirSync("src/pages/info/giftGuides", { recursive: true }).map((f) => `src/pages/info/giftGuides/${f}`), "src/pages/info/GiftGuides.tsx", "src/pages/info/ShopSmall.tsx"].filter((f) => f.endsWith(".tsx"));
+  const files = [...readdirSync("src/pages/info/giftGuides", { recursive: true }).map((f) => `src/pages/info/giftGuides/${f}`), "src/pages/info/GiftGuides.tsx"].filter((f) => f.endsWith(".tsx"));
 
   it("only GuidesHeadRow draws the head row; every page with one uses it", () => {
     expect(files.length).toBeGreaterThan(20); // inventory floor: ~40 .tsx files under the guides on 2026-11-22

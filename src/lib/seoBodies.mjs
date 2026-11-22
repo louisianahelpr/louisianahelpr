@@ -294,12 +294,6 @@ const INFO_PAGES = {
     intro: "A free Happy Thanksgiving banner, ready to print as a 12x18 poster at Walgreens (from about $13, same-day pickup) or any photo counter. The original 2-to-1 file is there too. No sign-up.",
     links: [["/gift-guides/printables/gift-tags", "Free gift tags"], ["/gift-guides/printables/coloring-books", "Free coloring books"], ["/gift-guides", "Holiday gift guides"]],
   },
-  "/shop-small": {
-    name: "Shop Small Louisiana",
-    h1: "Shop Small Louisiana",
-    intro: "Louisiana small businesses, listed free for Small Business Saturday, Nov 28. Own a Louisiana small business? Ask to be featured free: we review each one and add it within a day.",
-    links: [["/gift-guides", "Holiday gift guides"], ["/holidays", "Louisiana Holiday Hub"]],
-  },
   "/declutter": {
     name: "Declutter",
     h1: "Declutter: used things for sale near you in Louisiana",

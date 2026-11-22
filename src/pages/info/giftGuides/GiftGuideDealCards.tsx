@@ -140,9 +140,10 @@ function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
   const [all, setAll] = useState(false);
   const best = codes.reduce((a, c) => (codePercent(c) > codePercent(a) ? c : a), codes[0]);
   const others = codes.filter((c) => c !== best);
+  const href = best.href as string;
   const line = (c: DiscountCode) => [c.offer, DEALS_WORDS.runs(c.starts, c.expires)].filter(Boolean).join(" · ");
   return (
-    <Card store={store} href={best.href!} line={
+    <Card store={store} href={href} line={
       <>
         {line(best)}
         {all && (

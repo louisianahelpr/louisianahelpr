@@ -59,7 +59,6 @@
  * @mutate src/content/giftGuideCatalog.ts |     if (g.empty \|\| g.thin) return false; |     if (false) return false;
  * @mutate src/content/giftGuideCatalog.ts | picks: HAS_CHUNK.has(t) ? d.picks : uniqueByHref([...d.picks, ...src.picks]) | picks: HAS_CHUNK.has(t) ? d.picks : [...d.picks, ...src.picks, ...src.picks]
  * @mutate src/content/giftGuides.ts | codes.filter((c) => (!c.expires \|\| c.expires >= today) && | codes.filter((c) => (today === today) &&
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   if (codes.length === 0) return null; |   if (codes.length === 0) return <details data-gift-codes="" />;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {!guide.children && guide.picks.length === 0 && ( | {false && (
  * @mutate src/content/giftGuideCatalog.ts | export const REMOVED_GUIDES = ["last-minute-gifts", | export const REMOVED_GUIDES = ["nothing",
  * @mutate src/pages/info/GiftGuides.tsx | : guide.lead} title={guide.title} titleId="gift-guide-title" | : guide.lead} title={guide.slug} titleId="gift-guide-title"
@@ -90,7 +89,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 import GiftGuides from "@/pages/info/GiftGuides";
 import { GiftGuidesBand, GIFT_GUIDES_PATH } from "@/components/landing/GiftGuidesBand";
 import { giftGuides, AFFILIATE_HOSTS, BRAND_SITES, LOUISIANA_SHOPS, SPONSOR_SITES, NATIONAL_SPONSOR_SITES, SHOPMY_COLLECTIONS, discountCodes } from "@/content/giftGuides";
-import { SalesList, liveSales } from "@/pages/info/giftGuides/GiftGuidesSidebar";
+import { SaleCards, liveSales } from "@/pages/info/giftGuides/GiftGuideDealCards";
 import { GIFT_WRAP_JOB_PATH } from "@/pages/info/giftGuides/GiftGuideHelpr";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
@@ -823,14 +822,15 @@ describe("gift guides: design audit round 2 UI fixes", () => {
     expect(checked).toBeGreaterThan(20);
   });
 
-  // @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href))); |   return sales.filter((x) => x.ends >= today);
-  it("#10 Sales: one line per link, the first 12, then See all sales", () => {
+  // @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href))); |   return sales.filter((x) => x.ends >= today);
+  it("#10 Sales: one line per link; a store's card shows two sales, then +N more opens the rest", () => {
     const dup = { slug: "store-walmart", store: "Walmart", offer: "x", href: "https://walmrt.us/x", ends: "2099-01-01" };
     expect(liveSales([dup, { ...dup }], "2026-11-18")).toHaveLength(1);
     const many = Array.from({ length: 20 }, (_, i) => ({ ...dup, href: `https://walmrt.us/${i}` }));
-    const c = render(<MemoryRouter><SalesList sales={many} /></MemoryRouter>).container;
-    expect(c.querySelectorAll("[data-gift-sale]").length).toBe(12);
-    fireEvent.click(c.querySelector("[data-gift-all-sales]")!);
+    const c = render(<MemoryRouter><SaleCards stores={[{ store: "Walmart", sales: many }]} /></MemoryRouter>).container;
+    expect(c.querySelectorAll("[data-gift-sale-store]").length).toBe(1);
+    expect(c.querySelectorAll("[data-gift-sale]").length).toBe(2);
+    fireEvent.click(c.querySelector("[data-gift-sale-more]")!);
     expect(c.querySelectorAll("[data-gift-sale]").length).toBe(20);
   });
 

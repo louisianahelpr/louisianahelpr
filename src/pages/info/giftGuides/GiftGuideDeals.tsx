@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { discountCodes, giftGuides as G } from "@/content/giftGuides";
-import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealEnds, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
+import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealEnds, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
 import { DEAL_CODES } from "@/content/giftGuidePicks";
 import { cleanCodes } from "@/lib/giftGuideOfferCopy.mjs";
 import { GiftOut } from "./GiftOut";
@@ -13,8 +13,10 @@ import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
 import { dealName } from "./wishListItems";
-import { DealsAndCodes } from "./GiftGuidesSidebar";
+import { CARD_CSS, CARD_WORDS, CodeCards, SaleCards, codesOn, salesOn } from "./GiftGuideDealCards";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
+import { FeatureCta, FeatureCtaLink } from "./SmallBizFeatureCta";
+import { report } from "@/lib/errorLogger";
 import { GiftGuideLoadError } from "./GiftGuideLoadError";
 
 /**
@@ -52,8 +54,19 @@ const DEALS_CSS = `
 .gg-deal .gg-deal-shop{display:inline-flex;align-items:center;align-self:flex-start;min-height:44px;margin-top:auto;padding:0 4px 0 0;border:0;background:none;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
 .gg-deal .gg-deal-shop:hover,.gg-deal .gg-deal-shop:focus-visible{text-decoration:underline}
 @media (max-width:767px){.gg:has([data-gift-deals-page]) .gg-banner h1{-webkit-line-clamp:2;font-size:17px;line-height:1.1}}
-.gg-deals-day{margin:0 0 6px;font-size:14px;line-height:1.45;color:var(--gg-ink);max-width:46rem}
 .gg-deals-list{margin-top:12px}
+.gg-deal-jump{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}
+.gg-deal-jump button{min-height:36px;padding:0 14px;border:1px solid var(--gg-line);border-radius:999px;background:hsl(var(--card));color:var(--gg-ink);font-size:13px;font-weight:600}
+.gg-deal-jump button span{color:var(--gg-muted);font-weight:500}
+.gg-deal-sec{border-top:1px solid var(--gg-line);scroll-margin-top:84px}
+@media (max-width:767px){.gg-deal-sec{scroll-margin-top:132px}}
+.gg-deal-sec:last-child{border-bottom:1px solid var(--gg-line)}
+.gg-deal-sec>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:8px;min-height:52px;padding:14px 0 10px}
+.gg-deal-sec>summary::-webkit-details-marker{display:none}
+.gg-deal-sec>summary::after{content:"+";margin-left:auto;font-size:18px;line-height:1;color:var(--gg-ink)}
+.gg-deal-sec[open]>summary::after{content:"\\2212"}
+.gg-deal-sec-title{margin:0;font-size:16px;font-weight:700;color:var(--gg-ink)}
+.gg-deal-sec>.gg-deal-grid{padding-bottom:16px}
 .gg-deals-small{display:inline-block;margin:16px 0 4px}
 .gg-deals-feature{display:flex;align-items:center;gap:14px;margin:4px 0 14px;padding:12px;border-radius:14px;border:1px solid var(--gg-line);background:hsl(var(--card));color:var(--gg-ink);text-decoration:none}
 .gg-deals-feature img{width:88px;height:88px;flex:none;border-radius:10px;object-fit:cover}
@@ -87,7 +100,8 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
   const name = dealName(deal);
   // An announced deal not started yet says when it starts; otherwise its end day, when it has one.
   const ends = dealEnds(deal, STORE_CODES);
-  const when = dealStartsLater(deal, today) ? W.startsOn(deal.starts!) : ends ? W.endsOn(ends) : "";
+  // Owner 2026-11-21: every card says when it starts and ends (both when both are known; never an invented day).
+  const when = W.runs(deal.starts, ends);
   // The code chip goes once that code has expired, even on a card whose sale runs on.
   const code = dealCode(deal, today, STORE_CODES);
   const codeEl = useRef<HTMLElement>(null);
@@ -153,6 +167,84 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
   );
 }
 
+/**
+ * The free approved "Featured local" listings and the sign-up card under the sponsors (guides lane 11-21: /shop-small
+ * now opens this page, so nothing it showed is lost). Their reader (the Supabase client) loads in its own chunk after
+ * the page draws; until it is in, or if it fails (reported), the sign-up card shows on its own, so the top link always
+ * has its card.
+ */
+const loadLocal = () => loadModule(() => import("./SmallBizLocal"));
+type LocalModule = typeof import("./SmallBizLocal");
+function LazyLocalListings() {
+  const [Local, setLocal] = useState<LocalModule["SmallBizLocal"] | null>(null);
+  useEffect(() => {
+    let live = true;
+    void loadLocal().then(
+      (m) => {
+        if (m && live) setLocal(() => (m as LocalModule).SmallBizLocal);
+      },
+      (e) => report(e as Error, { tags: { source: "GiftGuideDeals.loadLocal" } }),
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  return Local ? <Local sponsors={[]} /> : <FeatureCta />;
+}
+
+/**
+ * A deals day's content in subsections by type (owner 2026-11-21: "it just needs to be cleaned up ... more organized"):
+ * Top deals (the deal cards), Discount codes and Sales, each only when it has something on `day` (codesDay), each a
+ * heading with its count that opens and closes, the first one open and the rest closed. A row of chips at the top
+ * jumps to (and opens) each one. `dealCount` null = the deal cards are still loading (or failed): that subsection shows
+ * the loading line or the Try again in its place.
+ */
+function DealSections({ day, deals, dealCount }: { day: string; deals: ReactNode; dealCount: number | null }) {
+  const codes = codesOn(day);
+  const sales = salesOn(day);
+  const sections = [
+    ...(dealCount !== 0 ? [{ id: "deals", title: CARD_WORDS.dealsTitle, count: dealCount, body: deals }] : []),
+    ...(codes.length ? [{ id: "codes", title: CARD_WORDS.codesTitle, count: codes.length, body: <CodeCards codes={codes} /> }] : []),
+    ...(sales.length ? [{ id: "sales", title: CARD_WORDS.salesTitle, count: sales.length, body: <SaleCards stores={sales} /> }] : []),
+  ];
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  if (sections.length === 0) {
+    return (
+      <p className="gg-deals-intro" data-gift-deals-none="">
+        {W.none} <Link to="/gift-guides" className="gg-link">{W.noneCta}</Link>
+      </p>
+    );
+  }
+  const isOpen = (id: string, i: number) => open[id] ?? i === 0;
+  const jump = (id: string) => {
+    setOpen((o) => ({ ...o, [id]: true }));
+    requestAnimationFrame(() => document.getElementById(`gg-deal-sec-${id}`)?.scrollIntoView({ block: "start" }));
+  };
+  return (
+    <div className="gg-deals-list" data-gift-deal-sections="">
+      {sections.length > 1 && (
+        <nav className="gg-deal-jump" aria-label={CARD_WORDS.jumpLabel} data-gift-deal-jump="">
+          {sections.map((x) => (
+            <button key={x.id} type="button" onClick={() => jump(x.id)} data-gift-deal-jump-to={x.id}>
+              {x.title}{x.count !== null && <span> {x.count}</span>}
+            </button>
+          ))}
+        </nav>
+      )}
+      {sections.map((x, i) => (
+        <details key={x.id} id={`gg-deal-sec-${x.id}`} className="gg-deal-sec" open={isOpen(x.id, i)} data-gift-deal-sub={x.id}
+          onToggle={(e) => { const now = (e.currentTarget as HTMLDetailsElement).open; if (now !== isOpen(x.id, i)) setOpen((o) => ({ ...o, [x.id]: now })); }}>
+          <summary>
+            <h2 className="gg-deal-sec-title" id={`gg-deal-sec-${x.id}-title`}>{x.title}</h2>
+            {x.count !== null && <span className="gg-sec-count" data-gift-deal-sub-count="">{x.count}</span>}
+          </summary>
+          {x.body}
+        </details>
+      ))}
+    </div>
+  );
+}
+
 /** One deals day's page. `now` is for tests; the page passes nothing and reads the clock. */
 export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
   const [deals, setDeals] = useState<Deal[] | null>(null);
@@ -191,31 +283,34 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
   const list = deals ? dealsIn(liveDeals(deals, today, STORE_CODES), day.id) : [];
   return (
     <div data-gift-deals-page="" data-gift-deal-day-page={day.id} data-gift-deal-phase={eventPhase(day, today)}>
-      <style>{DEALS_CSS}</style>
-      {/* Owner 2026-11-21 ("remove this"): no intro, "#ad" or helper line here; the footer's affiliate disclosure stays. */}
-      <p className="gg-deals-day" data-gift-deal-day="">{day[eventPhase(day, today)]}</p>
+      <style>{DEALS_CSS + CARD_CSS}</style>
+      {/* Owner 2026-11-21 ("remove this"): no intro, "#ad" or helper line here, and no day line under the banner
+          ("Fri, Nov 27. Plenty of these sales are on already"); each card says when it starts and ends. The footer's
+          affiliate disclosure stays. */}
       {kind === "deals" ? (
-        <>
-          {/* Owner 11-21: "[Deals & codes box] should open collapsed"; each day only the codes and sales that still work on it. */}
-          <DealsAndCodes on={codesDay(day, today)} />
-          {deals === null && failed ? (
-            <GiftGuideLoadError message={G.dealsFailed} onRetry={retry} />
-          ) : deals === null ? (
-            <p className="gg-deal-meta" role="status">{W.loading}</p>
-          ) : list.length === 0 ? (
-            <p className="gg-deals-intro" data-gift-deals-none="">
-              {W.none} <Link to="/gift-guides" className="gg-link">{W.noneCta}</Link>
-            </p>
-          ) : (
-            <ul className="gg-deal-grid gg-deals-list" aria-labelledby="gift-guide-title" data-gift-deal-list={day.id}>
-              {list.map((d) => <DealCard key={`${d.brand} ${d.href}`} deal={d} today={today} />)}
-            </ul>
-          )}
-        </>
+        <DealSections
+          day={codesDay(day, today)}
+          deals={
+            deals === null && failed ? (
+              <GiftGuideLoadError message={G.dealsFailed} onRetry={retry} />
+            ) : deals === null ? (
+              <p className="gg-deal-meta" role="status">{W.loading}</p>
+            ) : list.length === 0 ? null : (
+              <ul className="gg-deal-grid" aria-labelledby="gg-deal-sec-deals-title" data-gift-deal-list={day.id}>
+                {list.map((d) => <DealCard key={`${d.brand} ${d.href}`} deal={d} today={today} />)}
+              </ul>
+            )
+          }
+          dealCount={deals === null ? null : list.length}
+        />
       ) : (
         <div className="gg-deals-list">
+          {/* Owner 2026-11-21 ("add this to the top or bottom of the shop small business"): a one-line link at the top,
+              the full "Get your business featured" card (the same admin-reviewed sign-up as /shop-small) at the bottom. */}
+          <FeatureCtaLink />
           <SmallBizGrid />
-          <Link to="/shop-small" className="gg-link gg-deals-small" data-gift-deals-shop-small="">{W.shopSmall} ›</Link>
+          {/* No "more on Shop Small" link: /shop-small now opens this page (guides lane 11-21). */}
+          <LazyLocalListings />
         </div>
       )}
     </div>

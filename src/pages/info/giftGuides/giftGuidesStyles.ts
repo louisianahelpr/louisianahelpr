@@ -140,17 +140,9 @@ article[data-gift-guide]>section:first-child>.gg-list,article[data-gift-guide]>.
 .gg-topcard-meta{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .gg-topcard-meta small{font-size:12px;color:var(--gg-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gg-topcard:hover .gg-topcard-name,.gg-topcard:focus-visible .gg-topcard-name{text-decoration:underline}
-.gg-deals{margin:22px 0;border:1px solid #ece6dc;border-radius:16px;padding:0 16px;background:#faf6ee;color:#3a2a20}
-.gg-deals>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:56px;font-size:15px;font-weight:700;color:#3a2a20}
-.gg-deals-count{font-size:13px;font-weight:500;color:#6f6259}
-.gg-deals>summary::-webkit-details-marker{display:none}
-.gg-deals>summary::after{content:"+";margin-left:auto;font-size:17px;line-height:1}
-.gg-deals[open]>summary::after{content:"\\2212"}
-.gg-deals .gg-codes{padding-bottom:10px}
-.gg-deals-sub{margin:6px 0 4px;font-size:14px;font-weight:700;color:var(--gg-ink)}
-.gg-store-deals ul,.gg-deals ul{list-style:none;margin:0;padding:0}
-.gg-store-deals li,.gg-codes li[data-gift-sale]{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;padding:4px 0;border-top:1px solid var(--gg-line)}
-.gg-store-deals li .gg-link,.gg-codes li[data-gift-sale] .gg-link{min-height:40px;font-weight:600}
+.gg-store-deals ul{list-style:none;margin:0;padding:0}
+.gg-store-deals li{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;padding:4px 0;border-top:1px solid var(--gg-line)}
+.gg-store-deals li .gg-link{min-height:40px;font-weight:600}
 .gg-sec-title{margin:24px 0 0;font-size:15px;font-weight:700;color:var(--gg-ink)}
 /* Owner 11-21 price sections: the count beside a section heading, quiet. */
 .gg-sec-count{font-weight:500;color:var(--gg-muted)}
@@ -249,14 +241,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-price{font-size:13px;font-weight:700;color:var(--gg-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
 .gg-price-note{margin:8px 0 0;font-size:12px;color:var(--gg-muted)}
 .gg-prime-trial{display:inline-block;padding:12px 0;color:inherit;text-decoration:underline;text-underline-offset:2px}
-.gg-codes li{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid var(--gg-line)}
-.gg-code-store{font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.gg-code-shop{display:inline-flex;align-items:center;min-height:44px;font-size:12px;font-weight:700;color:var(--gg-olive);text-decoration:none}
-.gg-code-one{display:flex;flex-direction:column;gap:2px;margin-top:4px}
 .gg-code-offer{font-size:12px;color:var(--gg-muted)}
-.gg-code-row{display:flex;align-items:center;gap:8px;margin-top:4px}
-.gg-code-row code{flex:1;border:1px dashed var(--gg-line);border-radius:8px;padding:6px 8px;font-size:13px;letter-spacing:.06em}
-.gg-code-row button{min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--gg-olive);color:var(--gg-olive);background:transparent;font-weight:700;font-size:12px}
 .gg-soon{text-align:center;padding:36px 16px;border-top:1px solid var(--gg-line);margin-top:16px}
 .gg-soon[data-gift-picks-loading]{min-height:100vh}
 .gg-soon h2,.gg-soon h3{font-size:18px;font-weight:700;margin:0 0 6px}
@@ -303,7 +288,6 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-banner-wrap{padding:0 0 4px}.gg-banner{height:96px;padding-top:8px;border-radius:12px}.gg-arch{width:min(260px,70%);padding:14px 10px 6px;box-shadow:0 0 0 5px rgba(255,253,247,.85)}.gg-banner .gg-lead{font-size:13px}.gg-banner h1{font-size:20px;-webkit-line-clamp:1}.gg-tools{margin-top:6px}
 .gg-banner .gg-lead{margin-bottom:7px}
 }
-.gg-code-row code{white-space:nowrap;overflow-wrap:normal;font-size:12px}
 /* The phone's chip row (owner 11-21): sticky under the bar, one line that scrolls sideways by itself (never the page);
    hidden from 768px up, where the sidebar is the menu. */
 .gg-pnav{display:none}

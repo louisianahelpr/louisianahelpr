@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState, type ComponentType } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import { giftGuides as G } from "@/content/giftGuides";
 import { SBS_WORDS as W } from "@/content/sbsFeaturedLocal";
 import { listFeaturedLocal, sbsLogoUrl, type SbsListing } from "@/lib/sbsFeaturedApi";
-import { loadModule } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { dealDay, louisianaDay } from "@/content/giftGuideDeals.mjs";
 import { safeDocumentUrl } from "@/lib/storagePath";
 import { SB_CARD_CSS } from "./smallBizCardStyles";
+import { FeatureCta } from "./SmallBizFeatureCta";
 import { businessKey } from "../../../../supabase/functions/_shared/sbsSubmission";
 
 /**
@@ -23,9 +22,6 @@ const SBS_CSS = `
 .gg-sbs-local-intro{margin:4px 0 10px;font-size:13px;color:var(--gg-muted)}
 .gg-bdg-local{background:#e3eedf;color:#2f5a2a}
 .gg-sbs-initials{font-size:22px;font-weight:800;letter-spacing:.02em;color:var(--gg-olive)}
-.gg-sbs-cta{margin:22px 0 8px;padding:16px;border:1px solid var(--gg-line);border-radius:14px;background:hsl(var(--card));color:var(--gg-ink);scroll-margin-top:88px}
-.gg-sbs-cta h2{margin:0;font-size:18px;font-weight:800;line-height:1.25}
-.gg-sbs-cta p{margin:6px 0 12px;font-size:14px;line-height:1.45;color:var(--gg-ink);max-width:40rem}
 .gg-sbs-introlink{display:inline-flex;align-items:center;min-height:44px;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
 .gg-sbs-introlink:hover,.gg-sbs-introlink:focus-visible{text-decoration:underline}
 `;
@@ -73,64 +69,14 @@ function LocalCard({ b }: { b: SbsListing }) {
         <span className="gg-badges"><i className="gg-bdg gg-bdg-local" data-gift-badge="local">{W.badge}</i></span>
         {b.deal && <p className="gg-sb-text"><b>{W.dealLabel}</b> {b.deal}</p>}
         {href && <span className="gg-sb-links">
-          <Button asChild variant="outline" size="sm" className="gg-sb-visit">
-            <a href={href} target="_blank" rel="noopener noreferrer nofollow ugc" data-gift-sb-out="">
-              {/* "Visit" alone: a long business name never overflows the card at 320 px; the name is read out. */}
-              {W.visitShort}<span className="sr-only"> {b.name} ({G.newTab})</span>
-            </a>
-          </Button>
+          {/* "Visit" alone: a long business name never overflows the card at 320 px; the name is read out. A plain
+              text link (owner 2026-11-21: "remove the circle around visit"). */}
+          <a href={href} target="_blank" rel="noopener noreferrer nofollow ugc" className="gg-sb-visit" data-gift-sb-out="">
+            {W.visitShort}<span aria-hidden="true">&nbsp;›</span><span className="sr-only"> {b.name} ({G.newTab})</span>
+          </a>
         </span>}
       </span>
     </li>
-  );
-}
-
-type FormModule = { SmallBizSubmitForm: ComponentType<{ onClose: () => void }> };
-// The form's chunk, alone in its loader (loads on tap only).
-const loadForm = () => loadModule(() => import("./SmallBizSubmitForm"));
-
-const SBS_CTA_ID = "get-featured";
-
-/** The "Get your business featured" card, its form opening in place. */
-function FeatureCta() {
-  const [open, setOpen] = useState(false);
-  const openButton = useRef<HTMLButtonElement>(null);
-  // Holiday audit 1121 #76: Close hands focus back to the open button (it jumped to the top of the page), and the
-  // form stays mounted while closed, so reopening keeps what was typed.
-  const close = () => {
-    setOpen(false);
-    requestAnimationFrame(() => openButton.current?.focus());
-  };
-  const [Form, setForm] = useState<FormModule["SmallBizSubmitForm"] | null>(null);
-  const [failed, setFailed] = useState(false);
-  const openForm = () => {
-    setOpen(true);
-    setFailed(false);
-    if (Form) return;
-    void loadForm().then(
-      (m) => m && setForm(() => (m as FormModule).SmallBizSubmitForm),
-      (e) => {
-        report(e, { tags: { source: "SmallBizLocal.loadForm" } });
-        setFailed(true);
-      },
-    );
-  };
-  return (
-    <section className="gg-sbs-cta" id={SBS_CTA_ID} aria-labelledby="gg-sbs-cta-h" data-gift-sbs-cta="">
-      <h2 id="gg-sbs-cta-h">{W.ctaTitle}</h2>
-      <p>{W.ctaLine}</p>
-      {!open ? (
-        <Button ref={openButton} className="btn-grad-primary" onClick={openForm} data-gift-sbs-open="">{W.ctaButton}</Button>
-      ) : failed ? (
-        <div role="alert" data-gift-sbs-form-failed="">
-          <p>{W.formFailed}</p>
-          <Button variant="outline" size="sm" onClick={openForm} data-gift-sbs-form-retry="">{W.formRetry}</Button>
-        </div>
-      ) : Form ? null : (
-        <p role="status">{W.loadingForm}</p>
-      )}
-      {Form && <div hidden={!open} data-gift-sbs-form-wrap=""><Form onClose={close} /></div>}
-    </section>
   );
 }
 

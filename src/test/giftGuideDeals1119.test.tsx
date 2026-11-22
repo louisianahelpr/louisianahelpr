@@ -15,37 +15,39 @@
  *   - the landing slot Nov 23 through Dec 1, opening the next day still ahead; "Holiday Deals" after Dec 1.
  *
  * @mutate src/content/giftGuideDeals.mjs |   return ends ? ends >= today : today <= RETITLE_AFTER; |   return ends ? ends >= "2000-01-01" : today <= RETITLE_AFTER;
- * @mutate src/content/giftGuideDeals.mjs |   return deal.status === "announced" && !!deal.starts && deal.starts > today; |   return false;
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const when = W.runs(deal.starts, ends); |   const when = W.runs(undefined, ends);
  * @mutate src/content/giftGuideDeals.mjs |   return [...open, ...past]; |   return DEAL_EVENTS.slice();
  * @mutate src/content/giftGuideDeals.mjs |   return today >= FEATURE_FROM && today <= FEATURE_TO; |   return today <= FEATURE_TO;
  * @mutate src/content/giftGuideDeals.mjs |   return today > RETITLE_AFTER ? DEALS_WORDS.laterTitle : DEALS_WORDS.title; |   return DEALS_WORDS.title;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const list = deals ? dealsIn(liveDeals(deals, today, STORE_CODES), day.id) : []; |   const list = deals ? liveDeals(deals, today, STORE_CODES) : [];
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const list = deals ? dealsIn(liveDeals(deals, today, STORE_CODES), day.id) : []; |   const list = deals ? dealsIn(deals, day.id) : [];
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           <DealsAndCodes on={codesDay(day, today)} /> |           <DealsAndCodes />
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           day={codesDay(day, today)} |           day={today}
  * @mutate src/content/giftGuideDeals.mjs |   return today > event.day ? today : event.day; |   return today;
  * @mutate src/content/giftGuideDeals.mjs |   return dealDay(String(hash ?? "").replace(/^#/, ""))?.id ?? DEAL_EVENTS[0].id; |   return DEAL_EVENTS[0].id;
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details id="gift-codes" className="gg-deals" data-gift-deals-codes=""> | <details id="gift-codes" className="gg-deals" open data-gift-deals-codes="">
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const isOpen = (id: string, i: number) => open[id] ?? i === 0; |   const isOpen = (id: string, i: number) => open[id] ?? true;
  * @mutate scripts/gift-guide-deals.mjs |     if (n > DEALS_PER_BRAND) throw | if (false) throw
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import DEALS from "@/content/giftGuideDeals.json";
 import SMALL_BIZ from "@/content/giftGuideSmallBiz.json";
 import {
-  DEAL_DAY_SLUGS, DEAL_EVENTS, DEALS_PER_BRAND, DEALS_SLUG, DEALS_WORDS, codesDay, dealDay, dealShows, dealStartsLater, dealsFeatured, dealsTitle, eventOrder, eventPhase, louisianaDay, oldDealsTarget, type Deal,
+  DEAL_DAY_SLUGS, DEAL_EVENTS, DEALS_PER_BRAND, DEALS_SLUG, DEALS_WORDS, codesDay, dealDay, dealShows, dealsFeatured, dealsTitle, eventOrder, eventPhase, louisianaDay, oldDealsTarget, type Deal,
 } from "@/content/giftGuideDeals.mjs";
 import { dealDayPageMeta, giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
-import { DEAL_CODES, SALES } from "@/content/giftGuidePicks";
-import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
+import { DEAL_CODES } from "@/content/giftGuidePicks";
+import { cleanCodes } from "@/lib/giftGuideOfferCopy.mjs";
 import { activeCodes, discountCodes } from "@/content/giftGuides";
 import { buildDeals, type SourceDeal } from "../../scripts/gift-guide-deals.mjs";
+// The Small Business Saturday page reads the free approved listings (SmallBizLocal); never the network in a unit test.
+vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsLogoUrl: () => "" }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 import { DealsFeature, GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
-import { liveSales } from "@/pages/info/giftGuides/GiftGuidesSidebar";
+import { salesOn } from "@/pages/info/giftGuides/GiftGuideDealCards";
 
 const deals = DEALS as Deal[];
 const SOURCE = JSON.parse(readFileSync("scripts/gift-guide-deals-1121.json", "utf8")) as { deals: SourceDeal[] };
@@ -155,9 +157,6 @@ describe("deals page: dates", () => {
     // Holiday audit 1121 (High): a deal with no known end shows through Dec 1 (RETITLE_AFTER), never for good.
     expect(dealShows({ brand: "Any" }, "2026-12-01")).toBe(true);
     expect(dealShows({ brand: "Any" }, "2026-12-02")).toBe(false);
-    expect(dealStartsLater({ starts: "2026-11-26", status: "announced" }, "2026-11-25")).toBe(true);
-    expect(dealStartsLater({ starts: "2026-11-26", status: "announced" }, "2026-11-26")).toBe(false);
-    expect(dealStartsLater({ starts: "2026-11-26", status: "live" }, "2026-11-25")).toBe(false);
   });
 
   it("sections run in calendar order, and a passed day moves below the days still ahead", () => {
@@ -195,17 +194,23 @@ describe("deals days: one page per day (owner 11-21)", () => {
   it("Black Friday (today, Nov 21): only Black Friday's cards and its day line; no intro, #ad line, other day, jump row or price", async () => {
     const c = await renderDay(BF, "2026-11-21");
     expect(c.querySelector("[data-gift-deal-day-page]")!.getAttribute("data-gift-deal-day-page")).toBe("black-friday");
-    expect(c.querySelector("[data-gift-deal-day]")!.textContent).toBe(BF.before);
+    // Owner 2026-11-21 ("remove this"): no day line under the banner.
+    expect(c.querySelector("[data-gift-deal-day]")).toBeNull();
+    expect(c.textContent).not.toContain(BF.before);
     expect(brandsOn(c)).toEqual(deals.filter((d) => d.event === "black-friday").map((d) => d.brand));
     expect(brandsOn(c).length).toBeGreaterThan(5);
     // No Small Business Saturday or Cyber Monday on it, and no jump links between the days.
     expect(c.querySelectorAll("[data-gift-sb], [data-gift-sb-grid]").length).toBe(0);
     expect(c.querySelector("[data-gift-deals-jump], [data-gift-deal-section], a[href^='#']")).toBeNull();
-    expect(c.textContent).not.toMatch(/Small Business Saturday|Cyber Monday/);
+    // The store sales and codes are in the stores' own words ("Black Friday/Cyber Monday: up to 60% off"): read the page
+    // without them (owner 11-21: the day subsections hold every code and sale still on that day).
+    const page = c.cloneNode(true) as HTMLElement;
+    for (const x of page.querySelectorAll("[data-gift-sales], [data-gift-codes], style")) x.remove();
+    expect(page.textContent).not.toMatch(/Small Business Saturday|Cyber Monday/);
     for (const a of c.querySelectorAll("[data-gift-deal] a")) expect(a.getAttribute("rel")).toBe("sponsored noopener");
     expect(c.querySelector("[data-gift-price], .gg-price")).toBeNull();
     // Owner 2026-11-21 ("remove this"): no intro paragraph, "#ad" line or helper line on the deals page.
-    // @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           <DealsAndCodes on={codesDay(day, today)} /> |           <p data-gift-deals-ad="">#ad</p><DealsAndCodes on={codesDay(day, today)} />
+    // @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <style>{DEALS_CSS + CARD_CSS}</style> |       <style>{DEALS_CSS + CARD_CSS}</style><p data-gift-deals-ad="">#ad</p>
     expect(c.querySelector("[data-gift-deals-ad], [data-gift-deals-help], .gg-deals-intro")).toBeNull();
     expect(c.textContent).not.toMatch(/big sales are here|#ad|Codes copy with a tap/);
   });
@@ -218,38 +223,39 @@ describe("deals days: one page per day (owner 11-21)", () => {
     expect(c.querySelector("[data-gift-deals-jump]")).toBeNull();
   });
 
-  it("Small Business Saturday: the confirmed Louisiana sponsors only, a link to /shop-small, no deal card and no codes box", async () => {
+  it("Small Business Saturday: the confirmed Louisiana sponsors only, no deal card and no codes", async () => {
     const c = await renderDay(SBS, "2026-11-21");
     expect(c.querySelectorAll("[data-gift-sb]").length).toBe((SMALL_BIZ as unknown[]).length);
     expect((SMALL_BIZ as unknown[]).length).toBeGreaterThan(20); // 37 measured 2026-11-21
     expect(c.querySelectorAll("[data-gift-deal]").length).toBe(0);
-    expect(c.querySelector("[data-gift-deals-codes]")).toBeNull();
-    expect(c.querySelector("[data-gift-deals-shop-small]")!.getAttribute("href")).toBe("/shop-small");
-    expect(c.querySelector("[data-gift-deal-day]")!.textContent).toBe(SBS.before);
+    expect(c.querySelector("[data-gift-codes], [data-gift-sales]")).toBeNull();
+    // /shop-small now opens this page (guides lane 11-21), so it no longer links there.
+    expect(c.querySelector("[data-gift-deals-shop-small], a[href='/shop-small']")).toBeNull();
+    expect(c.querySelector("[data-gift-deal-day]")).toBeNull();
   });
 
-  it("each deals day's codes box starts collapsed and holds only the codes and sales that still work on that day", async () => {
-    // Holiday audit 1121 #57: the box reads the feed rows through cleanCodes / cleanSales.
+  it("each deals day is in subsections (Top deals open, Discount codes and Sales closed) holding only what works on that day", async () => {
+    // Owner 2026-11-21 ("it just needs to be cleaned up ... more organized"): subsections by type, the first open.
+    // Holiday audit 1121 #57: the codes and sales read through cleanCodes / cleanSales.
     const all = [...discountCodes, ...cleanCodes(DEAL_CODES)];
     const counts: number[] = [];
     for (const day of [BF, CM]) {
       const c = await renderDay(day, "2026-11-21");
-      const box = c.querySelector<HTMLDetailsElement>("details[data-gift-deals-codes]")!;
-      expect(box, day.id).not.toBeNull();
-      expect(box.open, day.id).toBe(false);
-      expect(box.hasAttribute("open"), day.id).toBe(false);
-      // Its codes are exactly the ones that work on the day (each store's box lists them).
+      const subs = [...c.querySelectorAll<HTMLDetailsElement>("details[data-gift-deal-sub]")];
+      expect(subs.map((x) => x.getAttribute("data-gift-deal-sub")), day.id).toEqual(["deals", "codes", "sales"]);
+      expect(subs.map((x) => x.open), day.id).toEqual([true, false, false]);
+      const box = subs[1];
+      // Its codes are exactly the ones that work on the day.
       const on = codesDay(day, "2026-11-21");
       expect(on).toBe(day.day);
       const want = activeCodes(all, on).map((x) => x.code).sort();
-      box.open = true;
-      const seeAll = box.querySelector<HTMLButtonElement>("[data-gift-all-codes]");
-      if (seeAll) fireEvent.click(seeAll);
       const shown = [...box.querySelectorAll("[data-gift-code]")].map((x) => x.getAttribute("data-gift-code")).sort();
       expect(shown, day.id).toEqual(want);
       counts.push(shown.length);
-      expect(box.querySelector("[data-gift-deals-count]")!.textContent, day.id).toContain(`${want.length} code`);
-      expect(box.querySelector("[data-gift-deals-count]")!.textContent, day.id).toContain(`${liveSales(cleanSales(SALES), on).length} store sale`); // holiday audit 1121: store sales, not "deals"
+      expect(box.querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(want.length));
+      // Sales: one card per store, the count is the stores (holiday audit 1121: store sales, not "deals").
+      expect(subs[2].querySelectorAll("[data-gift-sale-store]").length, day.id).toBe(salesOn(on).length);
+      expect(subs[2].querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(salesOn(on).length));
       cleanup();
     }
     // The dated codes land on their own day only: Black Friday's TAKE25 and XT25, Cyber Monday's CYBER.
@@ -265,7 +271,7 @@ describe("deals days: one page per day (owner 11-21)", () => {
     expect(codesDay(BF, "2026-12-03")).toBe("2026-12-03");
   });
 
-  it("each card: the code chip, Starts before an announced deal begins, Ends otherwise", async () => {
+  it("each card: the code chip, and when it starts and ends (owner 11-21: both days when both are known)", async () => {
     const madewellDay = dealDay(deals.find((d) => d.brand === "Madewell")!.event)!;
     let c = await renderDay(madewellDay, "2026-11-21");
     expect(c.querySelector('[data-gift-deal="Madewell"] [data-gift-deal-code] code')!.textContent).toBe("LETSGO");
@@ -278,18 +284,20 @@ describe("deals days: one page per day (owner 11-21)", () => {
     cleanup();
     const rareDay = dealDay(deals.find((d) => d.brand === "Rare Beauty")!.event)!;
     c = await renderDay(rareDay, "2026-11-21");
-    expect(c.querySelector('[data-gift-deal="Rare Beauty"] [data-gift-deal-dates]')!.textContent).toBe("Starts Nov 26");
+    expect(c.querySelector('[data-gift-deal="Rare Beauty"] [data-gift-deal-dates]')!.textContent).toBe("Nov 26 – Dec 1");
     cleanup();
     const later = await renderDay(rareDay, "2026-11-26");
-    expect(later.querySelector('[data-gift-deal="Rare Beauty"] [data-gift-deal-dates]')!.textContent).toBe("Ends Dec 1");
+    expect(later.querySelector('[data-gift-deal="Rare Beauty"] [data-gift-deal-dates]')!.textContent).toBe("Nov 26 – Dec 1");
   });
 
   it("on and after its day: the line changes, an ended deal leaves", async () => {
+    // Owner 2026-11-21: no day line on any day (it changed on and after the day); the phase stays on the page element.
     let c = await renderDay(SBS, "2026-11-28");
-    expect(c.querySelector("[data-gift-deal-day]")!.textContent).toBe(SBS.on);
+    expect(c.querySelector("[data-gift-deal-day]")).toBeNull();
+    expect(c.querySelector("[data-gift-deal-phase]")!.getAttribute("data-gift-deal-phase")).toBe("on");
     cleanup();
     c = await renderDay(BF, "2026-11-28");
-    expect(c.querySelector("[data-gift-deal-day]")!.textContent).toBe(BF.after);
+    expect(c.querySelector("[data-gift-deal-phase]")!.getAttribute("data-gift-deal-phase")).toBe("after");
     cleanup();
     // Dec 1: Stanley (ends Nov 30) is gone; Rare Beauty (through Dec 1) still shows.
     const stanleyDay = dealDay(deals.find((d) => d.brand === "Stanley")!.event)!;

@@ -175,10 +175,21 @@ export const HER_1121 = [
   { name: "HOKA Bondi 9 Women's Sneakers, White", brand: "HOKA", line: "Cloud-soft sneakers for long days on her feet.", href: shopmy("p-107887741"), image: "https://dms.deckers.com/hoka/image/upload/t_product-xlarge-wp/v1/1162012-WWH_1.png", store: "store-anthropologie", sortPrice: 175, price: 175, commission: 15, type: "shoes", priceAt: "2026-11-22" },
 ];
 
+// owner 11-22 popular approved (builder-guide-popular): Amazon listings sold by Amazon.com or the brand, prices read 11-22.
+const popular = (asin, sortPrice, img, name, brand, type, commission, line) =>
+  ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, commission, type });
+export const HER_POPULAR_1122 = [
+  popular("B0GGTPW6Q9", 119.99, "61gxq-CHHrL", "Shark ChillPill 3-in-1 Personal Cooling Fan", "Shark", "personal-fan", 3, "A pocket cooling fan for hot flashes and hot days."),
+  popular("B0HJ9ZXCSD", 329, "61YX4bH7zaL", "Apple Watch Series 12, GPS 42mm", "Apple", "smartwatch", 1, "The newest Apple Watch for workouts and texts."),
+  popular("B0DWHDM15Q", 69, "81AV7BtkRvL", "The Ridge 20W Magnetic Power Bank", "The Ridge", "power-bank", 4, "A slim magnetic charger that snaps onto her phone."),
+  popular("B0F41DGFXT", 42.49, "61+YocOS65L", "Matador Global Travel Adapter", "Matador", "travel-adapter", 4, "One adapter for plugs in every country."),
+  popular("B0BGQT41ZZ", 42.49, "419M2kqpsCL", "TRUFF Chef Starter Kit, Set of 3", "TRUFF", "gift-set", 4, "Three truffle hot sauces and oils in one set."),
+];
+
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 /** Her 11-21 saves plus the picks she sent on launch day (scripts/giftGuideOwnerAdds1122.mjs). */
-export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122];
+export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122];
 
 /** The page rows: cheapest first, every pick priced (Amazon too, owner 11-21), cutout photos, relationship tags, no section. */
 export function her1121Picks(rows = HER_ROWS) {

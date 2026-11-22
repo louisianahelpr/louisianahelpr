@@ -26,7 +26,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         select(text);\n      }, |       },
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         <OpenSite store={store} href={href} /> |         {null}
  * @mutate src/content/giftGuideStorePhotos.ts | (STORE_PHOTO_FILES[store] ? DIR + STORE_PHOTO_FILES[store] : null) | (DIR + "xtratuf.webp")
- * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   if (!src || !ok) return null; |   if (!ok) return null;
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   if (!src \|\| !ok) return null; |   if (!ok) return null;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | body: <CodeCards codes={codes} /> | body: <CodeCards codes={codes.slice(1)} />
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       {sections.length > 1 && ( |       {false && (
  * @mutate src/pages/info/giftGuides/smallBizCardStyles.ts | min-height:44px;min-width:44px;font-size:14px | min-height:44px;font-size:14px

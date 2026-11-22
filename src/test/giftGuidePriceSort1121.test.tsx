@@ -90,15 +90,23 @@ describe("the price sort key in the three chunks (owner 11-21)", () => {
   });
 });
 
+/**
+ * The header's Sort by price icon. Its name says which order is on (guides audit 1122 #21): "Sort by price" on
+ * Recommended, "Sort by price, Price: high to low" after that choice. getByRole still fails when the button is gone.
+ */
+const sortButton = () => screen.getByRole("button", { name: (n) => n === G.sortLabel || n.startsWith(`${G.sortLabel}, `) });
 /** Choose an order in the header's Sort by price menu; returns the chosen item's aria-checked after reopening. */
 const choose = (label: string) => {
-  fireEvent.click(screen.getByRole("button", { name: G.sortLabel }));
+  fireEvent.click(sortButton());
   fireEvent.click(within(screen.getByRole("menu", { name: G.sortLabel })).getByRole("menuitemradio", { name: new RegExp(label.replace(/[$:]/g, ".")) }));
 };
 const checked = () => {
-  fireEvent.click(screen.getByRole("button", { name: G.sortLabel }));
+  const button = sortButton();
+  fireEvent.click(button);
   const on = within(screen.getByRole("menu", { name: G.sortLabel })).getAllByRole("menuitemradio").filter((m) => m.getAttribute("aria-checked") === "true").map((m) => m.textContent?.replace("✓", ""));
   fireEvent.keyDown(document, { key: "Escape" });
+  // The icon's name names the order that is on (audit 1122 #21), so it always matches the checked item.
+  expect(button.getAttribute("aria-label")).toBe(on[0] === G.sortTop ? G.sortLabel : G.sortLabelActive(on[0] ?? ""));
   return on;
 };
 

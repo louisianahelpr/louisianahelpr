@@ -107,7 +107,8 @@ const sections = (c: HTMLElement) =>
     hrefs: [...sec.querySelectorAll<HTMLAnchorElement>("[data-gift-pick] a[data-gift-out]:not(.gg-cart)")].map((a) => a.href).filter((h, i, all) => all.indexOf(h) === i),
   }));
 const choose = (label: string) => {
-  fireEvent.click(screen.getByRole("button", { name: G.sortLabel }));
+  // The icon's name says which order is on (guides audit 1122 #21): "Sort by price", or "Sort by price, <order>".
+  fireEvent.click(screen.getByRole("button", { name: (n) => n === G.sortLabel || n.startsWith(`${G.sortLabel}, `) }));
   fireEvent.click(within(screen.getByRole("menu", { name: G.sortLabel })).getByRole("menuitemradio", { name: new RegExp(`^.?${label.replace(/[$:]/g, ".")}$`) }));
 };
 

@@ -537,7 +537,8 @@ const Messages = () => {
         />
       )}
 
-      {/* Archive confirmation (renamed from "Hide", 2026-11-20): nothing is removed; the thread moves to Archived and comes back on a new message. */}
+      {/* Archive confirmation (renamed from "Hide", 2026-11-20): nothing is removed; the thread moves to Archived and comes back on a new message.
+          Deep audit 11-22 #147: so its button is the olive one (bark), never the red of Delete for me or Block. */}
       <BrandConfirmDialog
         open={!!deleteConvoConfirm}
         onOpenChange={(o) => { if (!o) setDeleteConvoConfirm(null); }}
@@ -550,8 +551,7 @@ const Messages = () => {
             : t("msg.hideBody", { name: deleteConvoConfirm?.otherUserName ?? t("msg.thisPerson") })
         }
         primaryLabel={t("msg.hide")}
-        primaryTone="sienna"
-        primaryHaptic="warning"
+        primaryTone="bark"
         onPrimary={() => deleteConvoConfirm && archiveConversationLocal(deleteConvoConfirm)}
         secondaryLabel={t("msg.cancel")}
       />
@@ -574,8 +574,7 @@ const Messages = () => {
               : t("msg.batchBody")
         }
         primaryLabel={t("msg.hide")}
-        primaryTone="sienna"
-        primaryHaptic="warning"
+        primaryTone="bark"
         onPrimary={confirmBatchArchive}
         secondaryLabel={t("msg.cancel")}
       />

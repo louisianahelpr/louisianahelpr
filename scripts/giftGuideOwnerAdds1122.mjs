@@ -27,7 +27,7 @@ export const ADDS_PRICE_AT = "2026-11-22";
 export const ADDS_STORES_1122 = {
   "store-sleep-crown": "Sleep Crown", "store-crown-affair": "Crown Affair", "store-eadem": "EADEM", "store-aera": "Aera",
   "store-lemme": "Lemme", "store-stil": "STIL", "store-eleven-eleven": "Eleven Eleven", "store-calvin-klein": "Calvin Klein", "store-foton": "Foton", "store-sleepy-tie": "Sleepy Tie",
-  "store-the-warming-store": "The Warming Store", "store-cavenders": "Cavender's", "store-marley-lilly": "Marley Lilly",
+  "store-the-warming-store": "The Warming Store", "store-cavenders": "Cavender's", "store-marley-lilly": "Marley Lilly", "store-st-bernard": "St. Bernard",
 };
 
 /** Each row carries the day its price was checked (the page's "Prices as of" note reads the oldest). */
@@ -120,6 +120,12 @@ export const HIM_ADDS_1122 = [
   // Owner via lead, 11-22: "the Battery Daddy" for Him (no ShopMy pin; Amazon with her tag, the red case with a tester).
   { name: "Ontel Battery Daddy Organizer with Tester", brand: "Ontel", line: "A clear case that holds 180 batteries and tests them.", href: amz("B089F9YDFC"), image: amzImg("91uDndg0w6L"), store: "store-amazon", sortPrice: 19.99, commission: 3, type: "organizer" },
   { name: "Lake Men's Flannel Pajama Pants, Dark Sea Windowpane", brand: "Lake", line: "Cozy flannel pajama pants in a green windowpane.", href: shopmy("p-104054474"), image: "https://static.shopmy.us/pins/zoom-104054474-1794418722190-LAKE_Webcrop_Holiday1_2026_MensFlannelPants_DarkSeaCozyWindowpane_1200x1800_bec943d7-09d7-441c-9496-61e98eb5e1bc.jpg", store: "store-lake-pajamas", sortPrice: 108, price: 108, commission: 12, type: "pajamas" },
+  // Batch 3 for Him (11-22): her Nov 19 pins, photos from her pins (cutouts), prices as captured on her pins 11-19/20.
+  // L.L.Bean's page is down to headless capture; $119 is the price the owner gave (her pin data read $130).
+  { name: "Costa Sullivan Polarized Glass Sunglasses", brand: "Costa", line: "Polarized glass lenses in a classic tortoise frame.", href: shopmy("p-108089555"), image: "https://static.shopmy.us/pins/zoom-108089555-1795142703033-wdsjzfbgxclrclcqtut4.jpg", store: "store-jomashop", sortPrice: 262, price: 262, commission: 8, type: "sunglasses", priceAt: "2026-11-19" },
+  { name: "Duck Head 5-Panel Unstructured Rope Hat", brand: "Duck Head", line: "A vintage red rope hat with the Duck Head logo.", href: shopmy("p-108090009"), image: "https://static.shopmy.us/pins/zoom-108090009-1795142770234-4-Low-1.jpg", store: "store-duck-head", sortPrice: 50, price: 50, commission: 16, type: "hat", priceAt: "2026-11-20" },
+  { name: "Duck Camp Mallard Hat", brand: "Duck Camp", line: "A cream rope hat with a flying mallard stitched on.", href: shopmy("p-108089972"), image: "https://static.shopmy.us/uploads/pretty-prod-1765442422251", store: "store-st-bernard", sortPrice: 34, price: 34, commission: 10, type: "hat", priceAt: "2026-11-19" },
+  { name: "L.L.Bean Men's Waterfowl Sweater", brand: "L.L.Bean", line: "A warm wool-blend quarter-zip made for cold mornings.", href: shopmy("p-108094779"), image: "https://static.shopmy.us/pins/zoom-108094779-1795143426618-237814_1225_41", store: "store-l-l-bean", sortPrice: 119, price: 119, commission: 12, type: "sweater", priceAt: "2026-11-22" },
 ].map(dated);
 
 /** Transparent cutouts for these photos (Apple Vision, scripts/gift-guide-cutout.swift; each checked by eye, 400 px). */
@@ -174,4 +180,9 @@ export const ADDS_CUTOUTS_1122 = [
   ["https://static.shopmy.us/pins/zoom-109151385-1795366985590-GUEST_a0e171ac-5761-42c7-83ca-b6b75eced062", "bissell-little-green-mini-4064t-956230.webp"],
   // The set's four products, cropped from its labelled photo (no labels kept).
   ["https://cdn.shopify.com/s/files/1/0512/1661/3529/files/PDP-CLEARSPACE_WIDER-FRAME_2750x3413-1.jpg", "eadem-new-classics-set-ae7614.webp"],
+  // Batch 3.
+  ["https://static.shopmy.us/pins/zoom-108089555-1795142703033-wdsjzfbgxclrclcqtut4.jpg", "costa-sullivan-polarized-sunglasses-b3a1.webp"],
+  ["https://static.shopmy.us/pins/zoom-108090009-1795142770234-4-Low-1.jpg", "duck-head-5-panel-rope-hat-b3a2.webp"],
+  ["https://static.shopmy.us/uploads/pretty-prod-1765442422251", "duck-camp-mallard-hat-b3a3.webp"],
+  ["https://static.shopmy.us/pins/zoom-108094779-1795143426618-237814_1225_41", "llbean-mens-waterfowl-sweater-b3a4.webp"],
 ];

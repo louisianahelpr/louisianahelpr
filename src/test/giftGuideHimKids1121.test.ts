@@ -42,7 +42,9 @@ const SWITCHED: Record<string, Record<string, string>> = {
     "https://go.shopmy.us/p-107850277": "store-l-l-bean", "https://go.shopmy.us/p-107837448": "store-l-l-bean", "https://go.shopmy.us/p-107881822": "store-the-warming-store",
     "https://go.shopmy.us/p-107847793": "store-cavenders", "https://go.shopmy.us/p-107895312": "store-tractor-supply", "https://go.shopmy.us/p-109208695": "store-smathers-and-branson",
     "https://go.shopmy.us/p-109208941": "store-marley-lilly",
-    "https://go.shopmy.us/p-107895486": "store-tractor-supply" },
+    "https://go.shopmy.us/p-107895486": "store-tractor-supply",
+    // Batch 3 11-22.
+    "https://go.shopmy.us/p-108089555": "store-jomashop", "https://go.shopmy.us/p-108090009": "store-duck-head", "https://go.shopmy.us/p-108089972": "store-st-bernard", "https://go.shopmy.us/p-108094779": "store-l-l-bean" },
   // Rate switch 11-21 night: Segway Ninebot S2 (Amazon B0CT2WN59R, 3%) -> Tractor Supply 8% at $484.99.
   kids: { "https://go.shopmy.us/p-109001528": "store-tractor-supply",
     // Launch day 11-22 (Owner-adds-1122.md): her two Camp Snap 2 colors, pinned at The Swank Company (p-109142125,

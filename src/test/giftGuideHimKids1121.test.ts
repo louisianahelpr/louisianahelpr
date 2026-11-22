@@ -188,7 +188,7 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // Plus the Battery Daddy (B089F9YDFC), which the owner asked for on 11-22, and B0GWXJ3PYM, the Dad fill-in book (owner
     // via the lead 11-22, her screenshot list): neither is from her saved list.
     const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM");
-    expect(amazon.length).toBe(92); // 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 3 owner-approved adds (MVP gloves, Banded handwarmer, Klola mat)
+    expect(amazon.length).toBe(91); // 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 2 owner-approved adds (Banded handwarmer, Klola mat); the MVP gloves came off (women's listing only)
     expect(chunk("him").filter((p) => p.href.includes("B089F9YDFC")).length).toBe(1);
     expect(chunk("him").filter((p) => p.href.includes("B0GWXJ3PYM")).length).toBe(1);
     for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P", "B0CQ4QM7Q2", "B0732FCCL4", "B09R5TGLFR"]) expect(amazon, asin).not.toContain(asin);

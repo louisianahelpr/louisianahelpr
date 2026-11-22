@@ -5,7 +5,7 @@ import { activeCodes, codesByStore, discountCodes, giftGuides as G, type Discoun
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
 import { storePhoto } from "@/content/giftGuideStorePhotos";
-import { DEALS_WORDS } from "@/content/giftGuideDeals.mjs";
+import { DEAL_EVENTS, DEALS_WORDS } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
 
 /**
@@ -47,7 +47,12 @@ export const codesOn = (day: string): DiscountCode[] => codesByStore(activeCodes
 /** The store sales on `day`, one entry per store (its sales soonest end first), the stores in first-sale order. */
 export const salesOn = (day: string) => {
   const stores = new Map<string, Sale[]>();
-  for (const x of liveSales(CLEAN_SALES, day)) stores.set(x.store, [...(stores.get(x.store) ?? []), x]);
+  // Guides audit 1122 #15: a line that names the OTHER deal day (Cyber Monday's "Black Friday Deals Are in") is left off;
+  // a line that names both days ("Black Friday/Cyber Monday") stays.
+  const here = DEAL_EVENTS.find((e) => e.kind === "deals" && e.day === day);
+  const other = here && DEAL_EVENTS.filter((e) => e.kind === "deals" && e !== here).map((e) => e.title);
+  const namesOther = (offer: string) => Boolean(here && other!.some((t) => offer.includes(t)) && !offer.includes(here.title));
+  for (const x of liveSales(CLEAN_SALES.filter((s) => !namesOther(s.offer)), day)) stores.set(x.store, [...(stores.get(x.store) ?? []), x]);
   return [...stores.entries()].map(([store, sales]) => ({ store, sales }));
 };
 
@@ -195,7 +200,7 @@ function SaleCard({ store, sales }: { store: string; sales: Sale[] }) {
       <ul className="gg-card-sales">
         {shown.map((x) => (
           <li key={x.href} data-gift-sale={x.slug}>
-            <GiftOut href={x.href} className="gg-card-sale">{x.offer}</GiftOut> <span className="gg-card-when">· {DEALS_WORDS.runs(null, x.ends)}</span>
+            <GiftOut href={x.href} className="gg-card-sale">{x.offer}</GiftOut> <span className="gg-card-when">{DEALS_WORDS.runs(null, x.ends)}</span>
           </li>
         ))}
         {!all && sales.length > SALE_LINES && (
@@ -217,7 +222,7 @@ export const CARD_CSS = `
 .gg-card-sales{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
 .gg-card-sale{color:var(--gg-ink);text-decoration:none}
 .gg-card-sale:hover,.gg-card-sale:focus-visible{text-decoration:underline}
-.gg-card-when{color:var(--gg-muted);white-space:nowrap}
+.gg-card-when{display:block;color:var(--gg-muted);white-space:nowrap}
 .gg-card-more{min-height:32px;padding:0;border:0;background:none;color:var(--gg-olive);font-weight:700;font-size:12.5px}
 .gg-card-head{display:flex;align-items:flex-start;gap:4px;margin-top:2px}
 .gg-card-head .gg-card-store{flex:1;min-width:0;margin:0;padding-top:11px}

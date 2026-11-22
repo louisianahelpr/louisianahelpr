@@ -21,6 +21,7 @@
  *
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping", d: GIFT_WRAP_DESCRIPTION }) | t: "Gift wrapping" })
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | for (const c of codes) if (c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]); | for (const c of codes) if (c.href) byStore.set(c.code, [c]);
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | const namesOther = (offer: string) => Boolean(here && other!.some((t) => offer.includes(t)) && !offer.includes(here.title)); | const namesOther = (offer: string) => false;
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |       () => setCopied(true), |       () => setCopied(false),
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         select(text);\n      }, |       },
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         <OpenSite store={store} href={href} /> |         {null}
@@ -315,5 +316,15 @@ describe("holiday audit 1121 #66 / #63: the 25 Days sponsors page's photos and p
     const pick = { name: from.name, href: "https://x.test/", store: "other", price: from.price, priceAt: from.priceAt, priceFrom: true } as never;
     const { container } = render(<PickPrice pick={pick} />);
     expect(container.textContent).toMatch(/^from \$\d+$/);
+  });
+  it("a day's sales never name the other deal day, and the end date sits on its own line (guides audit 1122 #15)", () => {
+    const cm = dealDay("cyber-monday")!.day;
+    const bf = dealDay("black-friday")!.day;
+    const lines = (d: string) => salesOn(d).flatMap((s) => s.sales.map((x) => x.offer));
+    expect(lines(cm).filter((o) => /Black Friday/.test(o) && !/Cyber Monday/.test(o))).toEqual([]);
+    expect(lines(bf).filter((o) => /Cyber Monday/.test(o) && !/Black Friday/.test(o))).toEqual([]);
+    expect(lines(cm).length).toBeGreaterThan(5);
+    const { container } = render(<MemoryRouter><SaleCards stores={salesOn(cm).slice(0, 2)} /></MemoryRouter>);
+    for (const when of container.querySelectorAll(".gg-card-when")) expect(when.textContent).toMatch(/^Ends /);
   });
 });

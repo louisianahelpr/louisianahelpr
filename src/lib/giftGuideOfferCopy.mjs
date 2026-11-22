@@ -12,6 +12,8 @@
 
 /** Feed words rewritten by hand where the generic rules cannot recover the offer (each checked against its feed row). */
 export const OFFER_REWRITES = {
+  // The Home Depot: the feed's "- 4K Select" is the Fire TV Stick model, not the word "select".
+  "Over 60% off Fire TV Stick - 4K Select": "Over 60% off Fire TV Stick 4K Select",
   // _later-deals.json Fabrique: the feed cut "Free Charm with" off before its spend (a price, so the loader drops it).
   "Black Friday Warm-up - Up to 50% off Orders and Free Shipping Plus Free Charm with": "Black Friday warm-up: up to 50% off and free shipping",
   // Ulta: "Purchase of" lost its dollar amount the same way.
@@ -70,6 +72,32 @@ const unshout = (s) => {
   return parts.join("").replace(/\bblack friday\b/gi, "Black Friday").replace(/\bcyber monday\b/gi, "Cyber Monday");
 };
 
+/**
+ * Feed words that come in Title Case ("Up to 30% off 400+ Deals During Cyber Monday") and read as normal words in a
+ * sentence (guides audit 1122 #15). Only these go to lower case, so brands and products ("Fire TV Stick", "Nyx") keep
+ * their capitals; "Black Friday" and "Cyber Monday" are protected.
+ */
+const COMMON_WORDS = new Set((
+  "up to on off of the and in a an with for from your our any all select sale sales deals deal event early access orders order " +
+  "purchase sitewide items item styles style sets set furniture markdowns outerwear sweaters tops sleep jewelry bedding decor " +
+  "tabletop free shipping extra over take save get buy one enjoy exclusive savings countertop appliances accessories " +
+  "collection tools hot cosmetics styling best sellers best-sellers designer clearance fashion favorites home new arrivals " +
+  "everyday season beauty biggest big hair energy week long warm-up holiday supplies crafts dollar during during massage " +
+  "are is chairs chair play candy food fine gift gifts day days mix match pre final last year warm winter fragrance sets"
+).split(/\s+/));
+const PROTECTED = /\b(Black Friday|Cyber Monday|Cyber Week|Small Business Saturday)\b/g;
+
+/** Title Case feed words to sentence case: common words lower, the first word and anything not listed unchanged. */
+export function sentenceCase(s) {
+  const keep = [];
+  const guarded = s.replace(PROTECTED, (m) => { keep.push(m); return `\u0000${keep.length - 1}\u0000`; });
+  const out = guarded.replace(/(^|[^\w'\u0000-])([A-Z][a-z'-]*)(?=$|[^\w'-])/g, (m, pre, w, off) => {
+    const first = (off === 0 && pre === "") || /:\s$/.test(guarded.slice(0, off + pre.length));
+    return !first && COMMON_WORDS.has(w.toLowerCase()) ? pre + w.toLowerCase() : m;
+  }).replace(/\u0000(\d+)\u0000/g, (_, i) => keep[Number(i)]);
+  return out;
+}
+
 /** The cleaned line, or null when it is no sale or was cut off past saving. */
 export function cleanOffer(raw) {
   let s = String(raw ?? "").trim();
@@ -87,6 +115,7 @@ export function cleanOffer(raw) {
   if (!s) return null;
   // A first letter lowered by the capitals rule goes back up ("BLACK FRIDAY SALE: ..." -> "Black Friday sale: ...").
   s = s[0].toUpperCase() + s.slice(1);
+  s = sentenceCase(s);
   if (DANGLING.test(s)) return null;
   if (!IS_OFFER.test(s)) return null;
   return s;

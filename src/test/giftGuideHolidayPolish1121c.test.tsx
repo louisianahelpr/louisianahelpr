@@ -20,6 +20,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | const CLEAN_CODES = cleanCodes(DEAL_CODES); | const CLEAN_CODES = DEAL_CODES;
  * @mutate src/lib/giftGuideOfferCopy.mjs |   if (DANGLING.test(s)) return null; |
  * @mutate src/lib/giftGuideOfferCopy.mjs |   if (!IS_OFFER.test(s)) return null; |
+ * @mutate src/lib/giftGuideOfferCopy.mjs |   s = sentenceCase(s); |
  * @mutate src/lib/giftGuideOfferCopy.mjs |   s = unshout(s); |
  * @mutate src/content/giftGuideDeals.mjs |   featuredLine: "Sales from brands you already love, all in one place.", |   featuredLine: "Hand-checked sales from brands you already love, all in one place.",
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         const href = c.href; |         const href = undefined as string \| undefined;
@@ -132,7 +133,11 @@ describe("holiday audit 1121 #57: sales and codes read as human copy", () => {
     expect(cleanOffer("The Gazelle Rhinestone Revival brings eye-catching sparkle to a classic silhouette")).toBeNull();
     expect(cleanOffer("Shop Home favorites every day at Marshalls.com, no Cyber Week coupons needed!")).toBeNull();
     expect(cleanOffer("BLACK FRIDAY SALE: Save up to 60% off on a great selection of home items!")).toBe("Black Friday sale: Save up to 60% off on a great selection of home items");
-    expect(cleanOffer("Designer Sale Up to 50% OFF*. Shop Now!")).toBe("Designer Sale Up to 50% off");
+    expect(cleanOffer("Designer Sale Up to 50% OFF*. Shop Now!")).toBe("Designer sale up to 50% off");
+    // Guides audit 1122 #15: Title Case feed words read as normal words; brands and products keep their capitals.
+    expect(cleanOffer("Up to 30% off 400+ Deals During Cyber Monday")).toBe("Up to 30% off 400+ deals during Cyber Monday");
+    expect(cleanOffer("Sweater Sale: 40% off All Sweaters")).toBe("Sweater sale: 40% off all sweaters");
+    expect(cleanOffer("Over 60% off Fire TV Stick - 4K Select")).toBe("Over 60% off Fire TV Stick 4K Select");
     expect(cleanOffer("Save 30% on almost all Monica Vinader styles. Ends 11/30.")).toBe("Save 30% on almost all Monica Vinader styles");
     expect(cleanOffer("Up to 25% off HEYDUDE")).toBe("Up to 25% off HEYDUDE");
     expect(cleanOffer("50% off Battery Doorbell 2K Plus")).toBe("50% off Battery Doorbell 2K Plus");

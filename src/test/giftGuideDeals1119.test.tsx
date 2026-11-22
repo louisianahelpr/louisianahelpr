@@ -29,7 +29,7 @@
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import DEALS from "@/content/giftGuideDeals.json";
 import SMALL_BIZ from "@/content/giftGuideSmallBiz.json";
@@ -249,10 +249,14 @@ describe("deals days: one page per day (owner 11-21)", () => {
       const on = codesDay(day, "2026-11-21");
       expect(on).toBe(day.day);
       const want = activeCodes(all, on).map((x) => x.code).sort();
-      const shown = [...box.querySelectorAll("[data-gift-code]")].map((x) => x.getAttribute("data-gift-code")).sort();
+      // One card per store (audit 1122 #13); its other codes sit under "+N more codes", so open those before reading.
+      for (const more of box.querySelectorAll("[data-gift-code-more]")) fireEvent.click(more);
+      const shown = [...box.querySelectorAll("[data-gift-code],[data-gift-code-extra]")].map((x) => x.getAttribute("data-gift-code") ?? x.getAttribute("data-gift-code-extra")).sort();
       expect(shown, day.id).toEqual(want);
       counts.push(shown.length);
-      expect(box.querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(want.length));
+      const stores = new Set(activeCodes(all, on).filter((x) => x.href).map((x) => x.store)).size;
+      expect(box.querySelectorAll("li[data-gift-code]").length, day.id).toBe(stores);
+      expect(box.querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(stores));
       // Sales: one card per store, the count is the stores (holiday audit 1121: store sales, not "deals").
       expect(subs[2].querySelectorAll("[data-gift-sale-store]").length, day.id).toBe(salesOn(on).length);
       expect(subs[2].querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(salesOn(on).length));

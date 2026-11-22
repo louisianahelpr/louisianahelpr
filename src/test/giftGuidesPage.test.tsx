@@ -104,7 +104,8 @@ import { RETIRED_SLUGS, newSlugFor } from "@/content/giftGuideCatalog";
 import { CHUNK_PICK_COUNTS, SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { DEAL_DAY_SLUGS, DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
 // The fun pages (owner 2026-11-20: swipe, planner, the Secret Santa drawer) are own pages too: in the sitemap, no guide.
-const OWN_PAGES = [...DEAL_DAY_SLUGS, "swipe", "planner", "draw-names", "printables"];
+// Owner 2026-11-21: the printables are three pages (the old /gift-guides/printables address forwards to them).
+const OWN_PAGES = [...DEAL_DAY_SLUGS, "swipe", "planner", "draw-names", "printables/gift-tags", "printables/coloring-books", "printables/banners"];
 import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuidePageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
@@ -616,7 +617,7 @@ describe("gift guides: links and disclosures on every view", () => {
           // ... and its Shop Small entry (owner 11-21: the LOUISIANA group).
           if (href === "/shop-small" && a.hasAttribute("data-gift-side-shop-small")) continue;
           // 1120: a merged guide's section link carries its anchor ("/gift-guides/girls#girls-babies").
-          expect(href, url).toMatch(/^\/gift-guides(?:\/[a-z0-9-]+(?:#[a-z0-9-]+)?|\?group=[a-z-]+(?:#[a-z-]+)?|\?list=mine|#[a-z0-9-]+)?$/);
+          expect(href, url).toMatch(/^\/gift-guides(?:\/[a-z0-9-]+(?:#[a-z0-9-]+)?|\/printables\/(?:gift-tags|coloring-books|banners)(?:#[a-z0-9-]+)?|\?group=[a-z-]+(?:#[a-z-]+)?|\?list=mine|#[a-z0-9-]+)?$/);
           continue;
         }
         outbound += 1;
@@ -714,6 +715,8 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(rewrites.filter((x) => x.source.startsWith("/gift-guides"))).toEqual([
       { source: "/gift-guides", destination: "/api/share?_og=page&_id=gift-guides" },
       { source: "/gift-guides/:slug", destination: "/api/share?_og=page&_id=gift-guides/:slug" },
+      // Each printables page (owner 2026-11-21): its own head and share card, then the SPA entry.
+      { source: "/gift-guides/printables/:page(gift-tags|coloring-books|banners)", destination: "/api/share?_og=page&_id=gift-guides/printables/:page" },
       { source: "/gift-guides", destination: "/index.html" },
       { source: "/gift-guides/:slug", destination: "/index.html" },
       // A shared wish list (owner 2026-11-20): its own noindex link card (api/share metaForWishList), before the not-found catch-all.
@@ -726,6 +729,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
       { source: "/gift-guides/swipe", destination: "/index.html" },
       { source: "/gift-guides/planner", destination: "/index.html" },
       { source: "/gift-guides/printables", destination: "/index.html" },
+      { source: "/gift-guides/printables/:page(gift-tags|coloring-books|banners)", destination: "/index.html" },
       // Holiday audit C (2026-11-20): a reveal link gets its own noindex preview card (api/share metaForSanta) first.
       { source: "/gift-guides/secret-santa/:code/:token", destination: "/api/share?_og=santa&_code=:code&_tok=:token" },
       { source: "/gift-guides/secret-santa/:code/:token", destination: "/index.html" },

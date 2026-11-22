@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { PrintablePagePath } from "@/content/printables";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDES_CSS } from "../giftGuidesStyles";
@@ -8,7 +9,7 @@ import BackButton from "@/components/BackButton";
 import { GiftGuideTools } from "../GiftGuideShare";
 import { GiftGuidesSidebar } from "../GiftGuidesSidebar";
 
-type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | "/gift-guides/printables";
+type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | "/gift-guides/printables" | PrintablePagePath;
 
 /**
  * The shared shell's props for a fun page: the gift guides' public header, back to /gift-guides. Like every other gift

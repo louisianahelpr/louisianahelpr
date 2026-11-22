@@ -1311,6 +1311,10 @@ function giftGuideCover(id: string, name: string): Meta["image"] | undefined {
   // The landing's own card (holistic review 11-18 M7: it shared the generic logo card): a 1200x630 card of the three live
   // covers (holiday audit 1121; scripts/gift-guide-landing-og.py), public/gift-guides/og/landing.jpg (<=150 KB). ?v= is the cache bust: bump it when the art changes.
   if (id === "gift-guides") return { url: `${SITE_ORIGIN}${GIFT_GUIDES_LANDING_OG}`, type: "image/jpeg", width: 1200, height: 630, alt: name };
+  // Each printables page's own 1200x630 card (owner 2026-11-21: each its own page; scripts/printables-og-cards.py).
+  if (id === "gift-guides/printables/gift-tags") return { url: `${SITE_ORIGIN}/printables/og-printables.jpg?v=1`, type: "image/jpeg", width: 1200, height: 630, alt: "Free printable Christmas gift tags with names from Louisiana Helpr" };
+  if (id === "gift-guides/printables/coloring-books") return { url: `${SITE_ORIGIN}/printables/og-coloring-books.jpg?v=1`, type: "image/jpeg", width: 1200, height: 630, alt: "Free printable Christmas coloring books from Louisiana Helpr" };
+  if (id === "gift-guides/printables/banners") return { url: `${SITE_ORIGIN}/printables/og-banners.jpg?v=1`, type: "image/jpeg", width: 1200, height: 630, alt: "Free printable Happy Thanksgiving banner from Louisiana Helpr" };
   const slug = /^gift-guides\/([a-z0-9-]+)$/.exec(id)?.[1];
   if (!slug) return undefined;
   // The deals days' own card (owner 2026-11-19), drawn by scripts/gift-guide-deals-cover.py; Small Business Saturday

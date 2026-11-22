@@ -222,7 +222,7 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       ["Cyber Monday", "/gift-guides/cyber-monday"],
     ]);
     expect(group("[data-gift-side-printables-group]")).toEqual([
-      ["Gift tags", `${PRINTABLES}#pr-tags`], ["Coloring books", `${PRINTABLES}#pr-coloring`], ["Banners", `${PRINTABLES}#pr-banners`],
+      ["Gift tags", `${PRINTABLES}/gift-tags`], ["Coloring books", `${PRINTABLES}/coloring-books`], ["Banners", `${PRINTABLES}/banners`],
     ]);
     expect(group("[data-gift-side-more]")).toEqual([["Holiday Hub", "/holidays"], ["25 Days sponsors", `/gift-guides/${SPONSORS}`], ["Shop Small", "/shop-small"]]);
     expect([...container.querySelectorAll("[data-gift-side-tools] a")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides#gift-finder", ...TOOLS]);
@@ -234,7 +234,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     // No link anywhere on the landing to a retired guide.
     const hrefs = [...container.querySelectorAll<HTMLAnchorElement>("a[href^='/gift-guides/']")].map((a) => a.getAttribute("href")!.slice("/gift-guides/".length).split("#")[0]);
     expect(hrefs.length).toBeGreaterThan(2);
-    const pages = ["my-list", ...DEAL_DAY_SLUGS, ...[...TOOLS, PRINTABLES].map((t) => t.slice("/gift-guides/".length))];
+    // Owner 2026-11-21: each printable kind is its own page under /gift-guides/printables/.
+    const pages = ["my-list", ...DEAL_DAY_SLUGS, ...[...TOOLS, PRINTABLES, `${PRINTABLES}/gift-tags`, `${PRINTABLES}/coloring-books`, `${PRINTABLES}/banners`].map((t) => t.slice("/gift-guides/".length))];
     for (const h of hrefs) expect([...LIVE, SPONSORS, ...pages], h).toContain(h);
     cleanup();
     // A guide's page has no divider and no deals box (owner 11-21: "Codes and deals shouldn't randomly show in sections").

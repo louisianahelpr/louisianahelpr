@@ -117,7 +117,17 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.louisianahelpr.com/gift-guides/printables</loc>
+    <loc>https://www.louisianahelpr.com/gift-guides/printables/gift-tags</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/printables/coloring-books</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/gift-guides/printables/banners</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

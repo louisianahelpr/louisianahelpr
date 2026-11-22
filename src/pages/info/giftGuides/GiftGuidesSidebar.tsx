@@ -3,7 +3,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { guideBySlug, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { FUN_TOOLS, FUN_WORDS } from "@/content/giftGuideFun1120";
 import { EXTRAS_WORDS, FINDER_ANCHOR as FINDER_ID } from "@/content/giftGuideExtras1120";
-import { PRINTABLES_PATH, shownPrintables } from "@/content/printables";
+import { PRINTABLE_PAGES, printablesOnPage } from "@/content/printables";
 
 /** The 25 Days sponsors page: an entry of its own in the menu's second block. */
 const SPONSORS_SLUG = "25-days-sponsors";
@@ -18,12 +18,6 @@ const SIDE_GUIDES = [
   { slug: "kids", dot: "red" },
 ] as const;
 
-/** The free printables the menu links into (anchors on the printables page), each only while it is shown. */
-const SIDE_PRINTABLES = [
-  { id: "gift-tags", anchor: "pr-tags", label: "Gift tags" },
-  { id: "coloring-book", anchor: "pr-coloring", label: "Coloring books" },
-  { id: "thanksgiving-banner", anchor: "pr-banners", label: "Banners" },
-] as const;
 
 /**
  * The gift guides menu (owner 2026-11-21: "guides, deals, free, make it fun should all be their own section and
@@ -31,7 +25,7 @@ const SIDE_PRINTABLES = [
  * label (never a link), one divider style, 44px rows, the open page drawn olive-soft (aria-current):
  *   GUIDES: All guides, Her, Him, Kids (each with its cover's colour dot: beige, Christmas green, Christmas red);
  *   DEALS: Black Friday, Small Business Saturday, Cyber Monday (the deals page's day sections);
- *   FREE PRINTABLES: Gift tags, Coloring books, Banners (sections of the printables page, while each is shown);
+ *   FREE PRINTABLES: Gift tags, Coloring books, Banners (each its own page, owner 11-21, while it has something shown);
  *   MAKE IT FUN: the gift finder and the fun tools;
  *   LOUISIANA: Holiday Hub, 25 Days sponsors, Shop Small.
  * A 220px sticky menu beside the page on desktop. On a phone (owner 11-21: "We need a way to organize this on the
@@ -64,8 +58,7 @@ export function GiftGuidesMenu({ active, myList = false, page, idPrefix = "gg-si
   const open = openEntry({ active, page });
   const current = (slug: string | null) => (!myList && open === slug ? ({ "aria-current": "page" } as const) : {});
   const guides = sideGuides();
-  const shown = new Set(shownPrintables().map((p) => p.id));
-  const printables = SIDE_PRINTABLES.filter((p) => shown.has(p.id));
+  const printables = PRINTABLE_PAGES.filter((p) => printablesOnPage(p.key).length > 0);
   return (
     <>
       <p className="gg-side-h" id={`${idPrefix}-guides`}>{G.sideHeads.guides}</p>
@@ -89,7 +82,7 @@ export function GiftGuidesMenu({ active, myList = false, page, idPrefix = "gg-si
         <>
           <p className="gg-side-h" id={`${idPrefix}-free`}>{G.sideHeads.free}</p>
           <ul data-gift-side-printables-group="" aria-labelledby={`${idPrefix}-free`}>
-            {printables.map((p) => <li key={p.id}><Link to={`${PRINTABLES_PATH}#${p.anchor}`} data-gift-side-printables={p.id}>{p.label}</Link></li>)}
+            {printables.map((p) => <li key={p.key}><Link to={p.path} {...current(p.path)} data-gift-side-printables={p.key}>{p.label}</Link></li>)}
           </ul>
         </>
       )}

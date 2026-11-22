@@ -109,6 +109,28 @@ export const PUBLIC_PAGE_META = {
     ogTitle: "Free holiday printables: gift tags, coloring books and more",
     ogDescription: "Gift tags with names, Christmas coloring books and a Thanksgiving banner. Print at home, free from Louisiana Helpr.",
   },
+  // Each kind of printable on its own page (owner 2026-11-21: "coloring book and banner should have their own page").
+  "/gift-guides/printables/gift-tags": {
+    title: "Free printable Christmas gift tags with names — Helpr",
+    description: "Free printable Christmas gift tags: pick a design, type the To and From names, and print a sheet of 9 or 10 with cut lines at home. No sign-up.",
+    canonical: `${SITE_ORIGIN}/gift-guides/printables/gift-tags`,
+    ogTitle: "Free printable Christmas gift tags with names",
+    ogDescription: "Pick a tag, type the names, and print a sheet at home. Free from Louisiana Helpr.",
+  },
+  "/gift-guides/printables/coloring-books": {
+    title: "Free printable Christmas coloring books — Helpr",
+    description: "Two free printable Christmas coloring books, a cover and 20 simple pages each, ready to print at home. No sign-up.",
+    canonical: `${SITE_ORIGIN}/gift-guides/printables/coloring-books`,
+    ogTitle: "Free printable Christmas coloring books",
+    ogDescription: "Two 21-page Christmas coloring books to print at home, free from Louisiana Helpr.",
+  },
+  "/gift-guides/printables/banners": {
+    title: "Free printable Happy Thanksgiving banner — Helpr",
+    description: "A free Happy Thanksgiving banner to print as a 12x18 poster at Walgreens, from about $13 with same-day pickup, or at any photo counter. No sign-up.",
+    canonical: `${SITE_ORIGIN}/gift-guides/printables/banners`,
+    ogTitle: "Free printable Happy Thanksgiving banner",
+    ogDescription: "Print it at Walgreens or any photo counter, free from Louisiana Helpr.",
+  },
   "/browse": {
     title: "Browse local jobs — Helpr",
     description:

@@ -22,7 +22,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       if (!searchBox.current?.contains(e.target as Node)) setResultsOpen(false); |       if (!searchBox.current?.contains(e.target as Node)) return;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       button.current?.focus(); |       void 0;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |     menuItems(menu.current)[0]?.focus(); |     void 0;
- * @mutate src/content/printables.ts |     guides: ["gift-wrap-and-cards", "her", "him", "kids"], |     guides: ["gift-wrap-and-cards"],
+ * @mutate src/content/printables.ts |     guides: ["gift-wrap-and-cards"], |     guides: ["gift-wrap-and-cards", "her", "him", "kids"],
  * @mutate src/content/giftGuideSmallBiz.json | "name":"Bake & Brush", | "name":"Bake & Brush (Holli M. Landry)",
  * @mutate src/content/giftGuideSmallBiz.json | "name":"Breads and Sweets by Babs","town":"Acadiana" | "name":"Breads and Sweets by Babs","town":"Acadiana (337)"
  * @mutate src/pages/info/ShopSmall.tsx |            <SmallBizGrid /> |            {null}
@@ -192,10 +192,11 @@ describe("page, then menu, then disclosures in the code (holiday audit 1121 #22 
   });
 });
 
-describe("Her, Him and Kids link the free printables (holiday audit 1121 #49)", () => {
-  it("each live guide has at least one printable link", () => {
-    for (const slug of ["her", "him", "kids"]) expect(printablesForGuide(slug).map((p) => p.id), slug).toContain("gift-tags");
-    expect(printablesForGuide("kids").map((p) => p.id)).toContain("coloring-book");
+describe("Her, Him and Kids carry no printables (owner 2026-11-21, reversing holiday audit 1121 #49)", () => {
+  it("no live guide links a printable; they live under Free printables in the menu", () => {
+    // Owner 2026-11-21: "remove from her, they already have their own section."
+    for (const slug of ["her", "him", "kids"]) expect(printablesForGuide(slug).map((p) => p.id), slug).toEqual([]);
+    expect(printablesForGuide("gift-wrap-and-cards").map((p) => p.id)).toEqual(["gift-tags"]);
   });
 });
 

@@ -12,6 +12,9 @@
  *     when it has something, the first open, with a jump row;
  *   - owner ("remove this" / "On each card say when the deals start and end"): no day line under a deals day's banner,
  *     and every card says when it starts and ends (both days, else the one we know, never an invented one);
+ *   - owner ("coloring book and banner should have their own page"; "remove from her, they already have their own
+ *     section"): each printable kind is its own page with its own head, the menu links each and marks the open one, the
+ *     old address lands on its anchor's page, no printable on Her, Him or Kids, and a long download label wraps;
  *   - owner ("remove the circle around visit"): Visit is a plain text link, never an outlined button;
  *   - owner ("add this to the top or bottom of the shop small business"): the Small Business Saturday page and
  *     /shop-small carry the sign-up card at the bottom and a one-line link at the top that opens its form.
@@ -29,9 +32,14 @@
  * @mutate src/content/giftGuideDeals.mjs |   runs: (start, end) => (start && end ? | runs: (start, end) => (false ? 
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         const when = DEALS_WORDS.runs(c.starts, c.expires); |         const when = DEALS_WORDS.runs(null, c.expires);
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <style>{DEALS_CSS + CARD_CSS}</style> |       <style>{DEALS_CSS + CARD_CSS}</style><p data-gift-deal-day="">{day[eventPhase(day, today)]}</p>
+ * @mutate src/content/printables.ts | export const printablesOnPage = (key: PrintablePageKey, list: Printable[] = PRINTABLES) => shownPrintables(list).filter((p) => pageOfPrintable(p) === key); | export const printablesOnPage = (key: PrintablePageKey, list: Printable[] = PRINTABLES) => shownPrintables(list).filter(() => Boolean(key));
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <Link to={p.path} {...current(p.path)} data-gift-side-printables={p.key}> | <Link to={p.path} data-gift-side-printables={p.key}>
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-btns button{max-width:100%;height:auto;min-height:44px;white-space:normal;text-align:center} | .pr-card-btns button{max-width:100%}
+ * @mutate src/content/printables.ts |     guides: ["gift-wrap-and-cards"], |     guides: ["gift-wrap-and-cards", "her"],
+ * @mutate src/content/printables.ts |       { label: "12x18 poster (free)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },\n |
  * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |     window.dispatchEvent(new Event(OPEN_EVENT)); |     void OPEN_EVENT;
  */
-import { existsSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
@@ -50,6 +58,10 @@ vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsL
 vi.mock("@/pages/info/giftGuides/SmallBizSubmitForm", () => ({ SmallBizSubmitForm: () => <form data-test-sbs-form="" /> }));
 import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
 import ShopSmall from "@/pages/info/ShopSmall";
+import Printables from "@/pages/info/giftGuides/printables/Printables";
+import { GiftGuidesSidebar } from "@/pages/info/giftGuides/GiftGuidesSidebar";
+import { PRINTABLES, PRINTABLE_PAGES, printablesForGuide } from "@/content/printables";
+import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 
 afterEach(cleanup);
 const ROOT = resolve(__dirname, "../..");
@@ -206,5 +218,55 @@ describe("owner 11-21: Small Business Saturday cards and the sign-up card", () =
       expect(container.querySelectorAll("[data-gift-sbs-cta]").length, page).toBe(1);
       cleanup();
     }
+  });
+});
+
+describe("owner 11-21: each printable kind is its own page; none on Her, Him or Kids", () => {
+  it("Gift tags, Coloring books and Banners each show only their own printables, with their own h1 and head", () => {
+    expect(PRINTABLE_PAGES.map((x) => x.path)).toEqual(["/gift-guides/printables/gift-tags", "/gift-guides/printables/coloring-books", "/gift-guides/printables/banners"]);
+    const seen: string[] = [];
+    for (const page of PRINTABLE_PAGES) {
+      const { container } = render(<MemoryRouter initialEntries={[page.path]}><Printables /></MemoryRouter>);
+      const ids = [...container.querySelectorAll("[data-printable-card], section[id]")].map((x) => x.getAttribute("data-printable-card") ?? x.id).filter(Boolean);
+      seen.push(...ids);
+      if (page.key === "coloring") expect(ids, page.path).toEqual(["coloring-book"]);
+      if (page.key === "banners") expect(ids, page.path).toEqual(["thanksgiving-banner"]);
+      if (page.key === "tags") expect(ids, page.path).toEqual(["gift-tags"]);
+      expect(PUBLIC_PAGE_META[page.path as keyof typeof PUBLIC_PAGE_META]?.canonical, page.path).toBe(`https://www.louisianahelpr.com${page.path}`);
+      cleanup();
+    }
+    // Every shown printable is on exactly one page.
+    expect(new Set(seen).size).toBe(seen.length);
+  });
+  it("the menu links each page and marks the open one", () => {
+    const { container } = render(<MemoryRouter><GiftGuidesSidebar active={null} page="/gift-guides/printables/coloring-books" /></MemoryRouter>);
+    const links = [...container.querySelectorAll("[data-gift-side-printables]")];
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(PRINTABLE_PAGES.map((x) => x.path));
+    expect(links.map((a) => a.getAttribute("aria-current"))).toEqual([null, "page", null]);
+  });
+  it("no printable is linked from Her, Him or Kids; a long download label wraps in its button", () => {
+    for (const slug of ["her", "him", "kids"]) expect(printablesForGuide(slug), slug).toEqual([]);
+    const { container } = render(<MemoryRouter initialEntries={["/gift-guides/printables/banners"]}><Printables /></MemoryRouter>);
+    const css = [...container.querySelectorAll("style")].map((x) => x.textContent).join("");
+    expect(css).toMatch(/\.pr-card-btns button\{[^}]*white-space:normal/);
+  });
+  it("the banner prints as a 12x18 Walgreens poster: a 3:2 copy first, the original kept, a Print at Walgreens link", () => {
+    // Owner 2026-11-21 (relayed): Walgreens posters have no 12 x 24; the 2:1 design is padded to 3:2 so it is not cropped.
+    const banner = PRINTABLES.find((p) => p.id === "thanksgiving-banner") as { blurb: string; files: { href: string }[]; printAt?: { href: string } };
+    expect(banner.blurb).toBe("Print it as a 12x18 poster at Walgreens, from about $13, same-day pickup.");
+    expect(banner.files.map((f) => f.href)).toEqual(["/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg", "/printables/thanksgiving-banner/happy-thanksgiving-banner.jpg"]);
+    const jpg = readFileSync(resolve(ROOT, "public", banner.files[0].href.slice(1)));
+    // JPEG SOF0/SOF2 frame header: height then width, big-endian, after the marker and length.
+    let i = 2;
+    while (i < jpg.length && !(jpg[i] === 0xff && (jpg[i + 1] === 0xc0 || jpg[i + 1] === 0xc2))) i++;
+    const h = jpg.readUInt16BE(i + 5);
+    const w = jpg.readUInt16BE(i + 7);
+    expect(Math.abs(w / h - 1.5)).toBeLessThan(0.01);
+    expect(jpg.length).toBeLessThan(300 * 1024);
+    const { container } = render(<MemoryRouter initialEntries={["/gift-guides/printables/banners"]}><Printables /></MemoryRouter>);
+    const link = container.querySelector<HTMLAnchorElement>("[data-printable-print-at='thanksgiving-banner']")!;
+    expect(link.getAttribute("href")).toBe("https://photo.walgreens.com/store/posters");
+    expect(link.target).toBe("_blank");
+    expect(link.textContent).toMatch(/^Print at Walgreens/);
   });
 });

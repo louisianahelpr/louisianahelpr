@@ -1,6 +1,6 @@
 import { JobConfirmation, helperDayOfConfirmation } from "@/components/JobConfirmation";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
-import { jobDayStart } from "@/lib/jobDate";
+import { helprConfirmClosed } from "@/lib/jobDate";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
 import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";
 import { needsIdentityCheck, useMyIdentityProfile } from "@/lib/identityCheck";
@@ -101,8 +101,8 @@ export function HelperTrackerPanel({
     startTime: job.start_time,
   });
 
-  /* Midnight of the job's day in the JOB's zone (America/Chicago), through the
-     SAME helper JobConfirmation measures its window with. This used
+  /* The end of the job's day in the JOB's zone (America/Chicago), through the
+     SAME helper JobConfirmation measures its window with (helprConfirmClosed). This used
      `parseLocalDate` — the VIEWER's zone — so on any device not set to Central
      the gate below and the "I'm still on" window it mirrors ended at different
      instants. On a UTC device (CI) the gate dropped at 19:00 Central on the job
@@ -112,8 +112,6 @@ export function HelperTrackerPanel({
      04:18Z). West of Central the opposite: the gate outlived the control that
      releases it, leaving no primary at all. Guard:
      src/pages/jobs/helperTrackerPrimarySweep.tz.test.tsx. */
-  const hoursUntilJob =
-    (jobDayStart(job.date_needed).getTime() - Date.now()) / 3_600_000;
 
   /**
    * Is the Confirmed step still the helper's to complete?
@@ -123,12 +121,12 @@ export function HelperTrackerPanel({
    *  - only a job still sitting at `accepted`/`open` (an `open` job is a
    *    part-staffed group booking — see deriveAppliedJobCardState),
    *  - only before any on-the-way / arrival stamp exists,
-   *  - only while JobConfirmation would still offer the tap. `hoursUntilJob`
-   *    is measured from MIDNIGHT of the job date, so -24 is "the job day is
-   *    over": past it the confirmation is moot, the tracker takes over again,
-   *    and a stale job can never dead-end with no controls at all. This bound
-   *    and JobConfirmation's helper window are the same number ON PURPOSE — the
-   *    gate may only hold while the control that releases it exists.
+   *  - only while JobConfirmation would still offer the tap: the end of the
+   *    job day (Central). Past it the confirmation is moot, the tracker takes
+   *    over again, and a stale job can never dead-end with no controls at all.
+   *    This bound and JobConfirmation's helper window are ONE function
+   *    (helprConfirmClosed) ON PURPOSE — the gate may only hold while the
+   *    control that releases it exists.
    */
   const rescheduled = useJobRescheduled(app.job_id, job.status === "accepted");
   const gateActive =
@@ -137,7 +135,7 @@ export function HelperTrackerPanel({
     !job.helper_on_the_way_at &&
     !job.helper_arrived_at &&
     !dayOfConfirmed &&
-    hoursUntilJob > -24;
+    !helprConfirmClosed(job.date_needed, Date.now());
 
   // Stripe Identity before heading out (owner 2026-10-21): a booked Helpr who
   // still needs it reads so on the card; the server refuses On the way without it.

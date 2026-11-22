@@ -236,6 +236,15 @@ export function jobDayHasEnded(dateNeeded: string | null | undefined, nowMs: num
 }
 
 /**
+ * When the HELPR's day-before "I'm still on" closes: the end of the job day (Central). ONE rule for the
+ * confirm card (JobConfirmation hides its button here) and the tracker's line (#31, deep audit 11-22: past
+ * this, "Confirm the job below" pointed at a button that was gone).
+ */
+export function helprConfirmClosed(dateNeeded: string, nowMs: number): boolean {
+  return jobDayHasEnded(dateNeeded, nowMs);
+}
+
+/**
  * Midnight of the job's day in the JOB's zone (America/Chicago) — for everyone.
  * A card that used the viewer's browser zone (`parseLocalDate`) saw "I'm Still
  * On" hours late from Pacific and was an hour off on DST days (time-travel

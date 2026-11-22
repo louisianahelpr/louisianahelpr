@@ -9,7 +9,7 @@ import { render, screen } from "@testing-library/react";
  * The class: the poster may confirm right up to the job's start (no start
  * time: the end of the job day), and not after it.
  *
- * @mutate src/components/JobConfirmation.tsx |     isLiveJob && confirmOpen && (isOwner ? now.getTime() < posterWindowEnd : hoursUntilJob > -24); |     isLiveJob && confirmOpen && hoursUntilJob > (isOwner ? -12 : -24);
+ * @mutate src/components/JobConfirmation.tsx |     isLiveJob && confirmOpen && (isOwner ? now.getTime() < posterWindowEnd : !helprConfirmClosed(dateNeeded, now.getTime())); |     isLiveJob && confirmOpen && (isOwner ? hoursUntilJob > -12 : !helprConfirmClosed(dateNeeded, now.getTime()));
  */
 
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());

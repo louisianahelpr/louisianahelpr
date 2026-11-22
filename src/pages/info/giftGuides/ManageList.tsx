@@ -9,6 +9,7 @@ import { guidePicksVersion, loadGuidePicks, storeOf, subscribeGuidePicks } from 
 import { OWNER_LIST_GUIDES } from "@/content/giftGuidePeople.mjs";
 import { livePicks } from "./fun/GuidePicksPicker";
 import { WISH } from "@/content/giftWishList";
+import { LISTS } from "@/content/giftListsManage";
 import { dollars, parseDollars, type PlanPerson } from "@/content/giftGuideFun1120";
 import { shareGiftLists } from "@/lib/giftWishListApi";
 import { successToast } from "@/lib/toast";
@@ -99,7 +100,7 @@ export function ListLine({ p }: { p: PlanPerson }) {
       {WISH.listCount(t.gifts, t.amount > 0 ? dollars(t.amount) : null, t.unpriced)}
       {s.kind === "over" && <> · <span className="gg-list-over" data-list-over="">{WISH.listOverYour(dollars(s.amount))}</span></>}
       {s.kind === "left" && <> · <span className="gg-list-left" data-list-left="">{WISH.listLeft(dollars(s.amount))}</span></>}
-      {t.bought > 0 && <> · <span data-list-bought="">{WISH.listBought(dollars(t.bought))}</span></>}
+      {t.bought > 0 && <> · <span data-list-bought="">{LISTS.listBought(dollars(t.bought))}</span></>}
     </span>
   );
 }
@@ -190,7 +191,7 @@ export function PersonList({ p, ready }: { p: PlanPerson; ready: boolean }) {
               <ItemThumb name={i.name} href={i.href} image={i.image} />
               <span className="gg-mylists-name">{i.name}</span>
               {i.price !== undefined ? <span className="gg-mylists-price">{dollars(i.price)}</span>
-                : i.href && <span className="gg-mylists-price gg-mylists-noprice" data-list-no-price={i.id}>{WISH.priceAtStore}</span>}
+                : i.href && <span className="gg-mylists-price gg-mylists-noprice" data-list-no-price={i.id}>{LISTS.priceAtStore}</span>}
               <RoundIconButton className="gg-fun-x" aria-label={WISH.listRemove(i.name, p.name)} disabled={!ready} onClick={() => remove(k)} data-mylists-remove={i.id}>
                 <span aria-hidden="true">×</span>
               </RoundIconButton>

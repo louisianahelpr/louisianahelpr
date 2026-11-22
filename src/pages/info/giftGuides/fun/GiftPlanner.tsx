@@ -12,7 +12,8 @@ import { useGiftList } from "../giftList";
 import { Hint } from "../GiftHint";
 import { FunBody, funHeader } from "./FunPage";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
-import { planActions as A, useAccountSync, usePlan } from "./plannerStore";
+import { planActions as A, usePlan } from "./plannerStore";
+import { restorePerson, useAccountSync } from "./plannerSync";
 import { PriceAlertsOptIn } from "./PriceAlertsOptIn";
 import { PRINTABLES, PRINTABLES_PATH, isShown } from "@/content/printables";
 import { storeOf } from "@/content/giftGuideCatalog";
@@ -27,6 +28,7 @@ import { useOurLinkSync } from "../wishLinkSync";
 import { ListLine } from "../ManageList";
 import { GiftWishShare } from "../GiftWishShare";
 import { WISH } from "@/content/giftWishList";
+import { LISTS } from "@/content/giftListsManage";
 import { shareGiftLists } from "@/lib/giftWishListApi";
 
 /**
@@ -80,7 +82,7 @@ function Person({ p, index }: { p: PlanPerson; index: number }) {
   };
   const removePerson = () => {
     A.removePerson(p.id);
-    successToast(WISH.removedGift(p.name), { action: { label: WISH.undo, onClick: () => A.restorePerson(p, index) } });
+    successToast(WISH.removedGift(p.name), { action: { label: WISH.undo, onClick: () => restorePerson(p, index) } });
   };
   // UX audit M2: the budget saves as it is typed (when it is an amount); a typed non-amount says so at once.
   const typeBudget = (text: string) => {
@@ -189,8 +191,8 @@ export default function GiftPlanner() {
   const add = (e: FormEvent) => {
     e.preventDefault();
     // Holiday audit 1121 (#11): an empty name, or the 50-person limit, says why (it did nothing and said nothing).
-    if (!name.trim()) return setAddErr(WISH.nameFirst);
-    if (!A.addPerson(name.trim())) return setAddErr(WISH.peopleFull);
+    if (!name.trim()) return setAddErr(LISTS.nameFirst);
+    if (!A.addPerson(name.trim())) return setAddErr(LISTS.peopleFull);
     track("gift_planner_person_added", { people: plan.people.length + 1 });
     setName("");
     setAddErr(null);
@@ -221,8 +223,8 @@ export default function GiftPlanner() {
       <ul className="gg-fun-list">{plan.people.map((p, k) => <Person key={p.id} p={p} index={k} />)}</ul>
       <ShareAllLists plan={plan} />
       <form className="gg-fun-row mt-3" onSubmit={add}>
-        <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} aria-invalid={addErr === WISH.nameFirst || undefined}
-          aria-describedby={addErr ? "gg-plan-add-err" : undefined} onChange={(e) => { setName(e.target.value); if (addErr === WISH.nameFirst) setAddErr(null); }} data-plan-new-name="" />
+        <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} aria-invalid={addErr === LISTS.nameFirst || undefined}
+          aria-describedby={addErr ? "gg-plan-add-err" : undefined} onChange={(e) => { setName(e.target.value); if (addErr === LISTS.nameFirst) setAddErr(null); }} data-plan-new-name="" />
         <Button type="submit" className="btn-grad-primary" data-plan-add-person="">{W.plannerAddPerson}</Button>
       </form>
       {addErr && <p id="gg-plan-add-err" className="gg-fun-err" role="alert" data-plan-add-err="">{addErr}</p>}

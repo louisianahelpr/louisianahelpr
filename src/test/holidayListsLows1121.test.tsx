@@ -10,9 +10,9 @@
  *   #17 the planner's budget and price boxes showed bare numbers: a $ sits inside each.
  *
  * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |   const total = { gifts: others.gifts + me.gifts, | const total = { gifts: others.gifts,
- * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |     if (!name.trim()) return setAddErr(WISH.nameFirst); |     if (!name.trim()) return;
- * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |     if (!A.addPerson(name.trim())) return setAddErr(WISH.peopleFull); |     A.addPerson(name.trim());
- * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |     if (!name.trim()) return setErr(WISH.nameFirst); |     if (!name.trim()) return;
+ * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |     if (!name.trim()) return setAddErr(LISTS.nameFirst); |     if (!name.trim()) return;
+ * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |     if (!A.addPerson(name.trim())) return setAddErr(LISTS.peopleFull); |     A.addPerson(name.trim());
+ * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |     if (!name.trim()) return setErr(LISTS.nameFirst); |     if (!name.trim()) return;
  * @mutate src/pages/info/giftGuides/giftWishStyles.ts | @media (max-width:340px){ | @media (max-width:400px){
  * @mutate src/content/giftWishList.ts |   seeList: "View list", |   seeList: "See my list",
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-plan-shop{display:inline-flex;align-items:center;min-height:44px; | .gg-plan-shop{display:inline-flex;align-items:center;min-height:28px;
@@ -59,6 +59,7 @@ import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { PLAN_MAX_PEOPLE, cleanPlan } from "@/content/giftGuideFun1120";
 import { PLANNER_KEY } from "@/lib/giftPlannerDevice";
 import { HINTS, WISH } from "@/content/giftWishList";
+import { LISTS } from "@/content/giftListsManage";
 import { GIFT_WISH_CSS } from "@/pages/info/giftGuides/giftWishStyles";
 import { planActions, resetPlanStoreForTests, setPlanViewer } from "@/pages/info/giftGuides/fun/plannerStore";
 import { resetGiftListForTests, togglePick } from "@/pages/info/giftGuides/giftList";
@@ -115,7 +116,7 @@ describe("holiday audit 1121: gift lists Lows", () => {
     const c = view.container;
     const nameBox = c.querySelector<HTMLInputElement>("[data-plan-new-name]")!;
     fireEvent.click(c.querySelector("[data-plan-add-person]")!);
-    expect(c.querySelector("[data-plan-add-err]")!.textContent).toBe(WISH.nameFirst);
+    expect(c.querySelector("[data-plan-add-err]")!.textContent).toBe(LISTS.nameFirst);
     expect(nameBox.getAttribute("aria-invalid")).toBe("true");
     expect(nameBox.getAttribute("aria-describedby")).toBe("gg-plan-add-err");
     fireEvent.change(nameBox, { target: { value: "M" } });
@@ -124,7 +125,7 @@ describe("holiday audit 1121: gift lists Lows", () => {
     for (let k = 0; k < PLAN_MAX_PEOPLE; k++) planActions.addPerson(`P${k}`);
     fireEvent.change(nameBox, { target: { value: "One more" } });
     fireEvent.click(c.querySelector("[data-plan-add-person]")!);
-    expect(c.querySelector("[data-plan-add-err]")!.textContent).toBe(WISH.peopleFull);
+    expect(c.querySelector("[data-plan-add-err]")!.textContent).toBe(LISTS.peopleFull);
     view.unmount();
 
     // Save for someone's Add a person.
@@ -140,7 +141,7 @@ describe("holiday audit 1121: gift lists Lows", () => {
     });
     fireEvent.click(addBtn);
     fireEvent.click(document.querySelector("[data-savefor-add-submit]")!);
-    expect(document.querySelector("[data-savefor-add-err]")!.textContent).toBe(WISH.nameFirst);
+    expect(document.querySelector("[data-savefor-add-err]")!.textContent).toBe(LISTS.nameFirst);
     expect(document.querySelector("[data-savefor-name]")!.getAttribute("aria-invalid")).toBe("true");
   });
 

@@ -4,10 +4,10 @@
  * loaded. Now the two are merged by id (everything either side holds, this device's removals kept, the newer version of
  * a shared person or idea), and nothing on the planner can be changed until the merge is done.
  *
- * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |         const take = remote ? mergePlans(remote, local, mine ? c.removed ?? [] : []) : local; |         const take = remote && remote.updatedAt > local.updatedAt ? remote : local;
- * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |       if (seen.has(x.id) \|\| gone.has(x.id)) continue; |       if (seen.has(x.id)) continue;
+ * @mutate src/pages/info/giftGuides/fun/plannerSync.ts |         const take = remote ? mergePlans(remote, local, mine ? c.removed ?? [] : []) : local; |         const take = remote && remote.updatedAt > local.updatedAt ? remote : local;
+ * @mutate src/pages/info/giftGuides/fun/plannerSync.ts |       if (seen.has(x.id) \|\| gone.has(x.id)) continue; |       if (seen.has(x.id)) continue;
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |   const removed = [...(readCopy().removed ?? []), ...gone].filter((id) => !present.has(id)).slice(-500); |   const removed = [...(readCopy().removed ?? []), ...gone].slice(-500);
- * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |   const people = byId(first.people, second.people, (a, b) => ({ ...a, ideas: byId(a.ideas, b.ideas, (x) => x, PLAN_MAX_IDEAS) }), PLAN_MAX_PEOPLE); |   const people = byId(first.people, second.people, (a) => a, PLAN_MAX_PEOPLE);
+ * @mutate src/pages/info/giftGuides/fun/plannerSync.ts |   const people = byId(first.people, second.people, (a, b) => ({ ...a, ideas: byId(a.ideas, b.ideas, (x) => x, PLAN_MAX_IDEAS) }), PLAN_MAX_PEOPLE); |   const people = byId(first.people, second.people, (a) => a, PLAN_MAX_PEOPLE);
  * @mutate src/pages/info/giftGuides/fun/GiftPlanner.tsx |       <fieldset className="m-0 min-w-0 border-0 p-0" disabled={!ready} | <fieldset className="m-0 min-w-0 border-0 p-0" disabled={false}
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -32,7 +32,8 @@ vi.mock("@/lib/giftWishListApi", async (orig) => ({
 }));
 
 import GiftPlanner from "@/pages/info/giftGuides/fun/GiftPlanner";
-import { mergePlans, planActions, resetPlanStoreForTests, setPlanViewer } from "@/pages/info/giftGuides/fun/plannerStore";
+import { planActions, resetPlanStoreForTests, setPlanViewer } from "@/pages/info/giftGuides/fun/plannerStore";
+import { mergePlans } from "@/pages/info/giftGuides/fun/plannerSync";
 import { PLANNER_KEY } from "@/lib/giftPlannerDevice";
 import { cleanPlan, type GiftPlan, type PlanPerson } from "@/content/giftGuideFun1120";
 

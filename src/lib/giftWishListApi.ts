@@ -24,7 +24,7 @@ import type { WishRef } from "@/pages/info/giftGuides/giftList";
 /** A shared list's page: /gift-guides/list/<code>. */
 export const sharedListPath = (code: string) => `/gift-guides/list/${code}`;
 /** A list code as the server makes them (12 lowercase letters or digits). */
-const LIST_CODE = /^[a-z0-9]{12}$/;
+export const LIST_CODE = /^[a-z0-9]{12}$/;
 
 /**
  * Each code the wish list's server functions raise, in plain words (src/test/rpcErrorCopyCoverage.test.ts, both ways).
@@ -71,7 +71,7 @@ export const GIFT_WISH_RPC_ERROR_COPY = {
 } satisfies Record<string, Record<string, string>>;
 
 /** Words for an error a wish list call returned, or null when it is not one of its codes (whole-token match). */
-function rpcErrorMessage(rpc: keyof typeof GIFT_WISH_RPC_ERROR_COPY, error: unknown): string | null {
+export function rpcErrorMessage(rpc: keyof typeof GIFT_WISH_RPC_ERROR_COPY, error: unknown): string | null {
   const m = typeof error === "string" ? error : (error as { message?: unknown } | null)?.message;
   const raw = typeof m === "string" ? m : "";
   const table: Record<string, string> = GIFT_WISH_RPC_ERROR_COPY[rpc];
@@ -92,7 +92,7 @@ export interface SharedList { name: string; items: WishRef[]; lists?: SharedPers
 
 type Rpc = (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }>;
 
-const client = async (): Promise<{ rpc: Rpc } | null> => {
+export const client = async (): Promise<{ rpc: Rpc } | null> => {
   const m = await loadModule(() => import("@/integrations/supabase/client"));
   return m ? (m.supabase as unknown as { rpc: Rpc }) : null;
 };
@@ -128,7 +128,7 @@ export function asSharedList(data: unknown): SharedList | null {
 }
 
 /** Why a save did not happen: too many shares from here just now, or anything else (offline, a server error). */
-class WishListSaveError extends Error {
+export class WishListSaveError extends Error {
   /** `copy`: the plain words for the code the server raised (GIFT_WISH_RPC_ERROR_COPY), or null for any other failure. */
   constructor(public readonly kind: "rateLimited" | "failed", message: string, public readonly copy: string | null = null) {
     super(message);
@@ -242,8 +242,8 @@ export async function readWishLinks(ids: string[]): Promise<Map<string, string |
 // migration 20261122024017). The browser that makes a shared snapshot keeps a random token for it (localStorage
 // "lh-gift-share-tokens", by code; only its hash is on the server), so it can stop that link later.
 
-const TOKENS_KEY = "lh-gift-share-tokens";
-const readTokens = (): Record<string, string> => {
+export const TOKENS_KEY = "lh-gift-share-tokens";
+export const readTokens = (): Record<string, string> => {
   try {
     const v = JSON.parse(window.localStorage.getItem(TOKENS_KEY) ?? "{}") as unknown;
     if (!v || typeof v !== "object") return {};
@@ -253,47 +253,14 @@ const readTokens = (): Record<string, string> => {
     return {};
   }
 };
-const writeTokens = (t: Record<string, string>) => {
-  try {
-    window.localStorage.setItem(TOKENS_KEY, JSON.stringify(Object.fromEntries(Object.entries(t).slice(-50))));
-  } catch {
-    // Storage blocked: this link can't be stopped later from this browser (it still ends after 90 days).
-  }
-};
 /** True when this browser can stop the shared link with this code. */
 export const canStopSharing = (code: string) => code in readTokens();
 
+// The three calls below load their code (src/lib/giftWishListOwnApi.ts) only when used (lander3, train 1121i: the
+// /gift-guides/:slug critical path was over its budget, and every guide page loads this module).
 /** Right after a share: keep a token so this browser can stop the link. Throws when the server could not be asked. */
-export async function claimShare(code: string): Promise<void> {
-  if (!LIST_CODE.test(code) || typeof crypto === "undefined" || !crypto.getRandomValues) return;
-  const token = [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
-  const sb = await client();
-  if (!sb) return;
-  const { data, error } = await sb.rpc("gift_wish_list_claim", { p_code: code, p_token: token });
-  if (error) throw new Error(rpcErrorMessage("gift_wish_list_claim", error) ?? `gift wish list: ${error.message ?? "claim failed"}`);
-  // false: an account's own list (it has Delete instead) or a snapshot already claimed.
-  if (data === true) writeTokens({ ...readTokens(), [code]: token });
-}
-
+export const claimShare = async (code: string): Promise<void> => (await import("./giftWishListOwnApi")).claimShare(code);
 /** Stop a shared link this browser made: the list is deleted and the link stops opening. False when it could not be. */
-export async function stopSharing(code: string): Promise<boolean> {
-  const token = readTokens()[code];
-  if (!token) return false;
-  const sb = await client();
-  if (!sb) throw new Error("gift wish list: client not loaded");
-  const { data, error } = await sb.rpc("gift_wish_list_unshare", { p_code: code, p_token: token });
-  if (error) throw new WishListSaveError("failed", error.message ?? "unshare failed", rpcErrorMessage("gift_wish_list_unshare", error));
-  const t = readTokens();
-  delete t[code];
-  writeTokens(t);
-  return data === true;
-}
-
+export const stopSharing = async (code: string): Promise<boolean> => (await import("./giftWishListOwnApi")).stopSharing(code);
 /** Signed in: delete the account's own list (its link stops at once). True when there was one. */
-export async function deleteMyWishList(): Promise<boolean> {
-  const sb = await client();
-  if (!sb) throw new Error("gift wish list: client not loaded");
-  const { data, error } = await sb.rpc("gift_wish_list_delete");
-  if (error) throw new WishListSaveError("failed", error.message ?? "delete failed", rpcErrorMessage("gift_wish_list_delete", error));
-  return data === true;
-}
+export const deleteMyWishList = async (): Promise<boolean> => (await import("./giftWishListOwnApi")).deleteMyWishList();

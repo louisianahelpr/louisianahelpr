@@ -8,10 +8,10 @@
  * Upland Shoot pairs between them); Her and Kids had no split pair.
  *
  * @mutate scripts/giftGuidePriceRank1121.mjs |     ordered.push(...(indexed[i].known ? designTogether(indexed.slice(i, j), (x) => ({ name: x.row.name, brand: x.row.brand, price: x.row.sortPrice })) : indexed.slice(i, j))); |     ordered.push(...indexed.slice(i, j));
- * @mutate src/lib/giftGuideDesign.mjs |   return new Set(name.slice(brand.length, -2).map((w) => (w.length > 3 ? w.replace(/s$/, "") : w))); |   return new Set(name.slice(brand.length, -2));
+ * @mutate src/content/giftGuideDesign.mjs |   return new Set(name.slice(brand.length, -2).map((w) => (w.length > 3 ? w.replace(/s$/, "") : w))); |   return new Set(name.slice(brand.length, -2));
  * @mutate src/content/giftGuidePicks/him.json | "Smathers & Branson Wood Duck Decoy Bottle Opener" | "Smathers & Branson Wood Duck Decoy Bottle Opener "
  * @mutate src/content/giftGuideEarnOrder.ts |     out.push(...designTogether([...hot, ...run.filter((p) => !ranked(ranks[p.href]))], (p) => p)); |     out.push(...hot, ...run.filter((p) => !ranked(ranks[p.href])));
- * @mutate src/lib/giftGuideDesign.mjs |         if (placed.has(b) \|\| !brands[b] \|\| brands[b] !== brands[m] \|\| rows[b].price !== rows[m].price) continue; |         if (placed.has(b) \|\| !brands[b] \|\| brands[b] !== brands[m]) continue;
+ * @mutate src/content/giftGuideDesign.mjs |         if (placed.has(b) \|\| !brands[b] \|\| brands[b] !== brands[m] \|\| rows[b].price !== rows[m].price) continue; |         if (placed.has(b) \|\| !brands[b] \|\| brands[b] !== brands[m]) continue;
  *
  * Every order of the page keeps the pairs: the import's cheapest first (ties), "Price: high to low" (the reverse) and
  * the default Recommended order, where the most clicked picks lead their price section (giftGuideEarnOrder.ts): a click
@@ -21,7 +21,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { rankByPrice } from "../../scripts/giftGuidePriceRank1121.mjs";
-import { designWords } from "@/lib/giftGuideDesign.mjs";
+import { designWords } from "@/content/giftGuideDesign.mjs";
 import { earnFirstInGroups } from "@/content/giftGuideEarnOrder";
 import { sortByPrice } from "@/content/giftGuidePriceSort";
 import { him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";

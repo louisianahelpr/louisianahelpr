@@ -9,10 +9,10 @@
  * SAME DESIGN TOGETHER (owner 2026-11-22 on For Him's $35 Smathers & Branson picks: "put the ducks designs together, the
  * upland design together, just move them around so they're next to each other"): within one price, rows of the same
  * brand that share a design word sit next to each other, the group where its first row was (the rule and its design
- * words: src/lib/giftGuideDesign.mjs). Only ties move: cheapest first still holds across the page.
+ * words: src/content/giftGuideDesign.mjs). Only ties move: cheapest first still holds across the page.
  * Guard: src/test/giftGuidePriceSort1121.test.tsx, src/test/giftGuideSameDesignTogether1122.test.ts.
  */
-import { designTogether } from "../src/lib/giftGuideDesign.mjs";
+import { designTogether } from "../src/content/giftGuideDesign.mjs";
 
 /** Whether a row's sortPrice is a usable price. */
 export const hasSortPrice = (r) => typeof r.sortPrice === "number" && Number.isFinite(r.sortPrice) && r.sortPrice > 0;

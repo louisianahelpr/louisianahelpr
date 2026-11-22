@@ -1,6 +1,6 @@
 import earnRank from "@/content/giftGuideEarnRank.json";
 import type { PriceOrder } from "@/content/giftGuidePriceSort";
-import { designTogether } from "@/lib/giftGuideDesign.mjs";
+import { designTogether } from "@/content/giftGuideDesign.mjs";
 
 /**
  * "Reorder by what earns" (lead 11-21, owner pop-up: all of the growth items): on Her, Him, Kids and their views, the
@@ -11,7 +11,7 @@ import { designTogether } from "@/lib/giftGuideDesign.mjs";
  * click log (analytics_events_real, event gift_out_click, last 14 days; GiftOut.tsx sends it). Keyed by the pick's
  * shop link (href), so a relationship view shares Her's or Him's ranks. An empty map changes nothing.
  * Owner 2026-11-22 ("put the ducks designs together ..."): a clicked item never splits a same-brand, same-design pair at
- * one price; its partners come up right after it (src/lib/giftGuideDesign.mjs).
+ * one price; its partners come up right after it (src/content/giftGuideDesign.mjs).
  * Guard: src/test/giftGuideEarnOrder1121.test.tsx, src/test/giftGuideSameDesignTogether1122.test.ts.
  */
 export type EarnRanks = Readonly<Record<string, number>>;

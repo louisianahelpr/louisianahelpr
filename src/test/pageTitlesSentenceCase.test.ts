@@ -39,7 +39,9 @@ const ROOT = resolve(__dirname, "..", "..");
 // "Louisiana Holiday Hub" is the owner-approved name of the holiday pages, and Santa is a name (2026-11-20).
 // "Shop Small Louisiana" is the owner's name for the small business page ("then it stays as Shop Small Louisiana",
 // src/content/giftGuideSmallBiz.mjs; /shop-small 2026-11-21).
-const NAMES = [/Terms of Service/g, /Licensed & Insured/g, /25 Days of Louisiana Giveaways/g, /25 Days\b/g, /Secret Santa/g, /\bChristmas\b/g, /\bHoliday Hub\b/g, /\bSanta\b/g, /Shop Small Louisiana/g];
+// "Happy Thanksgiving" is the words printed on the banner itself, the design's own name (the owner's Canva banner,
+// "Free printable Happy Thanksgiving banner", /gift-guides/printables/banners 2026-11-21).
+const NAMES = [/Terms of Service/g, /Licensed & Insured/g, /25 Days of Louisiana Giveaways/g, /25 Days\b/g, /Secret Santa/g, /\bChristmas\b/g, /\bHoliday Hub\b/g, /\bSanta\b/g, /Shop Small Louisiana/g, /Happy Thanksgiving\b/g];
 
 function problems(title: string): string[] {
   let t = title;

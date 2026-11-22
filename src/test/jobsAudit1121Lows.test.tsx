@@ -72,7 +72,7 @@
  * @mutate src/components/auth/AuthShell.tsx |       {(desktopBrandPanel \|\| centerColumn) && !plainBackground && ( |       {(desktopBrandPanel \|\| centerColumn) && (
  *
  * L32 (poster): the AI builder's failure toast said "or start from a blank form" with no way to.
- * @mutate src/components/postjob/AiJobBuilder.tsx |         onBlankForm && !busy ? { action: { label: "Start from a blank form", onClick: onBlankForm } } : undefined, |         undefined,
+ * @mutate src/components/postjob/AiJobBuilder.tsx |       if (onBlankForm && !busy) toast.error(message, { action: { label: "Start from a blank form", onClick: onBlankForm } }); |       if (false) toast.error(message);
  * @mutate src/pages/post-job/EntryChoice.tsx |             onBlankForm={() => form.setEntryPanel(null)}\n |
  *
  * L33 (poster): an empty start time rested on "12 : 00" with neither AM nor PM picked, reading as a time.

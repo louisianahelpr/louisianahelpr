@@ -244,8 +244,12 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     expect(group("[data-gift-side-more]")).toEqual([["Holiday Hub", "/holidays"], ["25 Days sponsors", `/gift-guides/${SPONSORS}`]]);
     expect([...container.querySelectorAll("[data-gift-side-tools] a")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides#gift-finder", ...TOOLS]);
     // The free printables show only what is ready (the gift tags and, owner 11-21 "boys coloring pages are ready for
-    // site", the coloring book; owner 11-21 "add this to the free printables", the Thanksgiving banner), never the elf kit.
-    expect(shownPrintables().map((p) => p.title)).toEqual(["Gift tags with names", "Christmas coloring book", "Happy Thanksgiving banner"]);
+    // site", the coloring book; owner 11-21 "add this to the free printables", the Thanksgiving banner; 11-22 the three
+    // Merry Christmas banners), never the elf kit. The landing lists them by page (the three links above), never banner
+    // by banner (lead 11-22: the new banners show only on the Banners page).
+    expect(shownPrintables().map((p) => p.title)).toEqual(["Gift tags with names", "Christmas coloring book", "Merry Christmas (red stripe)", "Merry Christmas (green stripe)", "Merry Christmas (plaid)", "Happy Thanksgiving banner"]);
+    expect(side.querySelectorAll("[data-gift-side-printables-group] a")).toHaveLength(3);
+    expect(container.textContent).not.toContain("Merry Christmas (");
     // Codes and sales live only on the deals page; the deleted Gift of the Day and the retired strips stay gone.
     expect(container.querySelector("[data-gift-top], [data-gift-countdown], [data-gift-of-the-day], [data-gift-deals-codes], [data-gift-codes], [data-gift-sales], [data-gift-entries], [data-gift-more-groups]")).toBeNull();
     // No link anywhere on the landing to a retired guide.

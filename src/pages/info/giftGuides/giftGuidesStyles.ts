@@ -284,12 +284,14 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    hidden from 768px up, where the sidebar is the menu. */
 .gg-pnav{display:none}
 @media (max-width:767px){
-.gg-pnav{display:block;position:sticky;top:calc(var(--public-nav-h,3.5rem) + var(--safe-area-top,0px));z-index:5;margin:0 -20px;padding:6px 0 8px;background:hsl(var(--background));border-bottom:1px solid var(--gg-line)}
+.gg-pnav{display:block;contain:inline-size;max-width:calc(100% + 40px);position:sticky;top:calc(var(--public-nav-h,3.5rem) + var(--safe-area-top,0px));z-index:5;margin:0 -20px;padding:6px 0 8px;background:hsl(var(--background));border-bottom:1px solid var(--gg-line)}
 .gg-pnav-row{display:flex;gap:8px;list-style:none;margin:0;padding:0 20px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .gg-pnav-row::-webkit-scrollbar{display:none}
 .gg-pnav-row>li{flex:none}
 }
 @media (min-width:640px) and (max-width:767px){.gg-pnav{margin:0 -32px}.gg-pnav-row{padding:0 32px}}
+/* Signed in, the page scrolls inside AppShell (no marketing bar above it): the chip row sticks to the top. */
+.app-shell-frame .gg-pnav{top:0}
 .gg-chip-nav{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--gg-line);background:hsl(var(--card));font:600 13px Montserrat,sans-serif;color:var(--gg-ink);white-space:nowrap;text-decoration:none;cursor:pointer}
 .gg-chip-nav .gg-dot{margin-right:0}
 .gg-chip-nav.is-on{background:var(--gg-olive);border-color:var(--gg-olive);color:hsl(var(--primary-foreground))}

@@ -79,7 +79,7 @@ describe("the phone's gift guides navigation (owner 11-21)", () => {
     expect(GIFT_GUIDES_CSS).toMatch(/@media \(max-width:767px\)\{[^@]*\.gg-side\{display:none\}/);
     expect(GIFT_GUIDES_CSS).toContain(".gg-pnav{display:none}");
     const phone = /@media \(max-width:767px\)\{\n\.gg-pnav\{[^]*?\n\}/.exec(GIFT_GUIDES_CSS)?.[0] ?? "";
-    expect(phone).toMatch(/\.gg-pnav\{display:block;position:sticky;/);
+    expect(phone).toMatch(/\.gg-pnav\{display:block;[^}]*position:sticky;/);
     expect(phone).toMatch(/\.gg-pnav-row\{[^}]*overflow-x:auto;overscroll-behavior-x:contain/);
     expect(GIFT_GUIDES_CSS).toMatch(/\.gg-chip-nav\{[^}]*min-height:44px/);
   });

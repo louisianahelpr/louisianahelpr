@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { PLAN_MAX_IDEAS, type GiftPlan, type PlanPerson } from "@/content/giftGuideFun1120";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
+import { shownDollars } from "@/lib/pickPriceShown.mjs";
 import { planActions } from "./fun/plannerStore";
 import type { ShareRef } from "@/lib/giftWishListApi";
 import { itemId } from "./giftList";
@@ -18,8 +19,9 @@ import { itemId } from "./giftList";
 /** A gift as it goes on a person's list: the same shape as the planner's "From our guides" ideas. */
 export interface SaveItem { href: string; name: string; guide?: string; image?: string; price?: number }
 
-/** The price a guide pick adds to a list: the one its guide shows today, or none. */
-export const plannerPrice = (p: CatalogPick) => (showsPrice(p) ? p.price : undefined);
+/** The price a guide pick adds to a list: the one its card shows today, rounded the same way ("~$5" adds $5; holiday
+ *  audit 1121: the card said ~$5 while the lists said $4.77), or none. */
+export const plannerPrice = (p: CatalogPick) => (showsPrice(p) ? shownDollars(p.price) : undefined);
 
 /** A guide pick as a list item (name, photo, the shown price, its shop link, the guide it came from). */
 export const saveItemOf = (p: CatalogPick, guide?: string): SaveItem => {

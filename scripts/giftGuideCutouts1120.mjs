@@ -326,6 +326,19 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/pins/zoom-108628018-1795247257926-LSU_Flask_Primary_LowRes.jpg", "sb-lsu-flask-4354f0.webp"],
   // yeti crossroads 22l backpack, alpine brown
   ["https://static.shopmy.us/uploads/pretty-prod-1758467247287", "yeti-crossroads-22l-alpine-brown-468ab3.webp"],
+  // owner 11-22 screenshot list (builder-guide-adds-2): Her's new rows in scripts/giftGuideHer1121.mjs, Apple Vision cutouts
+  // (scripts/gift-guide-cutout.swift), 400 px transparent WebP, each checked by eye on red and on white.
+  ["https://static.shopmy.us/pins/zoom-104053242-1794418576037-71G1Ib2Cp8L._SR960%252C720_.jpg", "ugg-scuffette-ii-chestnut-9f41e6.webp"],
+  ["https://cdn.shopify.com/s/files/1/0748/9440/9945/files/KHC-SL001-Solid-Nylon_black_flat-lil_9d810510-219a-4814-b64d-88c4c206413e.jpg", "comrad-knee-high-compression-socks-black-4fe0d0.webp"],
+  // Touchland: a border flood-fill cutout (Vision kept only the yellow liquid and dropped the white cap).
+  ["https://cdn.shopify.com/s/files/1/0027/5395/3862/files/Desktop_VanillaBlossom_ProductCard.jpg", "touchland-power-mist-vanilla-blossom-986606.webp"],
+  ["https://cdn.shopify.com/s/files/1/0751/1575/7852/files/turmeric_latte_massage.jpg", "lush-turmeric-latte-massage-bar-fd98f0.webp"],
+  ["https://cdni.llbean.net/is/image/wim/112636_30509_41", "llbean-boat-and-tote-medium-regatta-blue-a81ced.webp"],
+  ["https://static.shopmy.us/uploads/pretty-prod-1764601745022", "lululemon-everywhere-belt-bag-black-8182ef.webp"],
+  ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XWADBC10.jpg", "xtratuf-womens-camp-fleece-ankle-deck-boot-c528b2.webp"],
+  ["https://cdni.llbean.net/is/image/wim/520696_48183_41", "llbean-rollneck-sweater-cream-dog-9c6e33.webp"],
+  ["https://cdni.llbean.net/is/image/wim/267093_129_41", "llbean-adirondack-barn-coat-dark-khaki-6f5271.webp"],
+  ["https://dms.deckers.com/hoka/image/upload/t_product-xlarge-wp/v1/1162012-WWH_1.png", "hoka-bondi-9-womens-white-bbc928.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

@@ -120,8 +120,9 @@ describe("the chips narrow, and every chip offered is a real list", () => {
       const r = giftQuiz(POOL[person.who], { ...person, budget: b.id, into });
       expect(r.picks.length, `${person.who} ${person.age ?? ""} ${b.id} ${into}`).toBeGreaterThan(0);
     }
-    // Her has no outdoors picks: a shared link asking for them still gets a list, marked as widened.
-    const odd = giftQuiz(POOL.her, { who: "her", budget: "50-75", into: "beauty" });
+    // Her has no outdoors pick at $50 to $75 (and since the 11-22 screenshot adds, the Kérastase oil is beauty there): a
+    // shared link asking for one still gets a list, marked as widened.
+    const odd = giftQuiz(POOL.her, { who: "her", budget: "50-75", into: "outdoors" });
     expect(odd.picks.length).toBeGreaterThan(0);
     expect(odd.widened).toBe(true);
   });

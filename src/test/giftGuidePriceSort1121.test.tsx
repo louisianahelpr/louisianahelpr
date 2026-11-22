@@ -202,16 +202,17 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // (Crocs Dylan at crocs.com $35, was $99).
       // 11-22 (owner edits): Him lost the Dr. Squatch Fresh Falls soap and Men's Fuzzy Cloud Socks (under $25) and the
       // Armor All and Chemical Guys car kits ($25-$50); Her lost the Floral Mama quarter zip (under $25).
-      him: { "Under $25": 43, "$25 to $50": 40, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 36 },
+      // 11-22 (builder-guide-links): Him + Le Labo, Patagonia duffel, Steve Madden loafer (all $100 and up); Kids + CrunchLabs ($35), Stickerbox ($130); Her + Esker ($75).
+      him: { "Under $25": 43, "$25 to $50": 40, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 39 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
       // Eleven Eleven ($158); Him + 2 Lake ($108, $138); Kids + EADEM set ($58). Batch 2b: Her + CFUNIQ ($15), Sleepy Tie,
       // Foton and Astercook knives ($30-$37), Astercook pans ($57), CASABREWS, Lake, BISSELL, eto, Ozlo ($112-$237); Him +
       // Battery Daddy ($20); Kids + both Yoto bundles ($164, $166).
-      kids: { "Under $25": 33, "$25 to $50": 21, "$50 to $75": 8, "$75 to $100": 5, "$100 and up": 19 },
+      kids: { "Under $25": 33, "$25 to $50": 22, "$50 to $75": 8, "$75 to $100": 5, "$100 and up": 20 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
-      her: { "Under $25": 23, "$25 to $50": 23, "$50 to $75": 5, "$75 to $100": 7, "$100 and up": 21 },
+      her: { "Under $25": 23, "$25 to $50": 23, "$50 to $75": 5, "$75 to $100": 8, "$100 and up": 21 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

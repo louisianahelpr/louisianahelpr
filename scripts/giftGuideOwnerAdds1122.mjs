@@ -26,7 +26,7 @@ export const ADDS_PRICE_AT = "2026-11-22";
 /** Stores these picks go to that the store list may not hold yet (key -> shown name). */
 export const ADDS_STORES_1122 = {
   "store-sleep-crown": "Sleep Crown", "store-crown-affair": "Crown Affair", "store-eadem": "EADEM", "store-aera": "Aera",
-  "store-lemme": "Lemme", "store-stil": "STIL", "store-eleven-eleven": "Eleven Eleven", "store-calvin-klein": "Calvin Klein", "store-foton": "Foton", "store-sleepy-tie": "Sleepy Tie",
+  "store-lemme": "Lemme", "store-stil": "STIL", "store-eleven-eleven": "Eleven Eleven", "store-calvin-klein": "Calvin Klein", "store-foton": "Foton", "store-sleepy-tie": "Sleepy Tie", "store-esker-beauty": "Esker",
 };
 
 /** Each row carries the day its price was checked (the page's "Prices as of" note reads the oldest). */
@@ -86,6 +86,8 @@ export const HER_ADDS_1122 = [
   { name: "Madewell x The Six Bells Nightgown", brand: "Madewell", line: "A soft white nightgown from the holiday collab.", href: shopmy("p-109155568"), image: "https://static.shopmy.us/pins/zoom-109155568-1795367501473-OC137_WT0012_m", store: "store-madewell", sortPrice: 158, price: 158, commission: 12, type: "nightgown" },
   // Her pin's photo is the rose-gold ring, Ulta's Deep Rose ($399 Black Friday, was $499).
   { name: "Oura Ring 5, Deep Rose", brand: "Oura", line: "A smart ring that tracks sleep, steps and recovery.", href: shopmy("p-109155784"), image: "https://static.shopmy.us/pins/zoom-109155784-1795367529760-2664695", store: "store-ulta-beauty", sortPrice: 399, price: 399, commission: 13, type: "smart-ring" },
+// owner 11-22 popular via new ShopMy links (builder-guide-links)
+  { name: "Esker The Bubble Soak", brand: "Esker", line: "A mineral bubble bath that comes in a pretty ceramic jar.", href: shopmy("p-109207730"), image: "https://static.shopmy.us/uploads/pretty-prod-1765010272351", store: "store-esker-beauty", sortPrice: 75, price: 75, commission: 22, type: "skincare" },
 ].map(dated);
 
 /** For Kids (owner via the lead, 11-22): the two Camp Snap 2 colors, at Camp Snap direct (see the header). */
@@ -98,6 +100,9 @@ export const KIDS_ADDS_1122 = [
   // Owner via lead, 11-22: "add BOTH bundles (Ms. Rachel + Bluey), side by side". Photos: her pins' tiles with the panel taken off.
   { name: "Yoto Player 4th Gen + Ms. Rachel Adventure Bundle", brand: "Yoto", line: "A screen-free audio player with a Ms. Rachel card.", href: shopmy("p-109156467"), image: "https://static.shopmy.us/uploads/img-product-1794924419956", store: "store-yoto", sortPrice: 165.72, price: 165.72, commission: 20, type: "audio" },
   { name: "Yoto Player 4th Gen + Bluey Adventure Bundle", brand: "Yoto", line: "A screen-free audio player with a Bluey story card.", href: shopmy("p-109156399"), image: "https://static.shopmy.us/uploads/img-product-1793495319475", store: "store-yoto", sortPrice: 164.02, price: 164.02, commission: 20, type: "audio" },
+// owner 11-22 popular via new ShopMy links (builder-guide-links)
+  { name: "CrunchLabs The Crunchinator", brand: "CrunchLabs", line: "A build-it-yourself machine that crushes and launches.", href: shopmy("p-109208209"), image: "https://static.shopmy.us/pins/zoom-109208209-1795374027354-Add_a_heading_4_450x450.png", store: "store-crunchlabs", sortPrice: 34.99, price: 34.99, commission: 16, type: "science" },
+  { name: "Stickerbox Sticker Printer", brand: "Stickerbox", line: "A kid-safe printer that turns their ideas into stickers.", href: shopmy("p-103757260"), image: "https://cdn.shopify.com/s/files/1/0683/1053/2275/files/Stickerbox_Image_3.png", store: "store-maisonette", sortPrice: 129.99, price: 129.99, commission: 16, type: "craft" },
 ].map(dated);
 
 /** For Him (owner via the lead, 11-22). */
@@ -107,6 +112,10 @@ export const HIM_ADDS_1122 = [
   // Owner via lead, 11-22: "the Battery Daddy" for Him (no ShopMy pin; Amazon with her tag, the red case with a tester).
   { name: "Ontel Battery Daddy Organizer with Tester", brand: "Ontel", line: "A clear case that holds 180 batteries and tests them.", href: amz("B089F9YDFC"), image: amzImg("91uDndg0w6L"), store: "store-amazon", sortPrice: 19.99, commission: 3, type: "organizer" },
   { name: "Lake Men's Flannel Pajama Pants, Dark Sea Windowpane", brand: "Lake", line: "Cozy flannel pajama pants in a green windowpane.", href: shopmy("p-104054474"), image: "https://static.shopmy.us/pins/zoom-104054474-1794418722190-LAKE_Webcrop_Holiday1_2026_MensFlannelPants_DarkSeaCozyWindowpane_1200x1800_bec943d7-09d7-441c-9496-61e98eb5e1bc.jpg", store: "store-lake-pajamas", sortPrice: 108, price: 108, commission: 12, type: "pajamas" },
+// owner 11-22 popular via new ShopMy links (builder-guide-links)
+  { name: "Le Labo Santal 33 Body Care Set", brand: "Le Labo", line: "Santal 33 shower gel and body lotion, his signature scent.", href: shopmy("p-109199365"), image: "https://static.shopmy.us/uploads/pretty-prod-1764081973367", store: "store-saks-fifth-avenue", sortPrice: 154, price: 154, commission: 12, type: "gift-set" },
+  { name: "Patagonia Black Hole Duffel 40L", brand: "Patagonia", line: "The tough 40-liter duffel for trips and tailgates.", href: shopmy("p-109203985"), image: "https://static.shopmy.us/uploads/pretty-prod-1765371321083", store: "store-st-bernard", sortPrice: 159, price: 159, commission: 10, type: "luggage" },
+  { name: "Steve Madden Natan Penny Loafer", brand: "Steve Madden", line: "A polished penny loafer for dressy days.", href: shopmy("p-109204287"), image: "https://static.shopmy.us/uploads/pretty-prod-1764650851691", store: "store-dsw", sortPrice: 139.99, price: 139.99, commission: 12, type: "shoes" },
 ].map(dated);
 
 /** Transparent cutouts for these photos (Apple Vision, scripts/gift-guide-cutout.swift; each checked by eye, 400 px). */
@@ -153,4 +162,11 @@ export const ADDS_CUTOUTS_1122 = [
   ["https://static.shopmy.us/pins/zoom-109151385-1795366985590-GUEST_a0e171ac-5761-42c7-83ca-b6b75eced062", "bissell-little-green-mini-4064t-956230.webp"],
   // The set's four products, cropped from its labelled photo (no labels kept).
   ["https://cdn.shopify.com/s/files/1/0512/1661/3529/files/PDP-CLEARSPACE_WIDER-FRAME_2750x3413-1.jpg", "eadem-new-classics-set-ae7614.webp"],
+// owner 11-22 popular via new ShopMy links (builder-guide-links)
+  ["https://static.shopmy.us/uploads/pretty-prod-1764081973367", "le-labo-santal-33-body-care-set-a1c701.webp"],
+  ["https://static.shopmy.us/uploads/pretty-prod-1765371321083", "patagonia-black-hole-duffel-40l-a1c703.webp"],
+  ["https://static.shopmy.us/uploads/pretty-prod-1764650851691", "steve-madden-natan-penny-loafer-a1c704.webp"],
+  ["https://static.shopmy.us/uploads/pretty-prod-1765010272351", "esker-bubble-soak-a1c706.webp"],
+  ["https://static.shopmy.us/pins/zoom-109208209-1795374027354-Add_a_heading_4_450x450.png", "crunchlabs-crunchinator-a1c709.webp"],
+  ["https://cdn.shopify.com/s/files/1/0683/1053/2275/files/Stickerbox_Image_3.png", "stickerbox-printer-a1c70a.webp"],
 ];

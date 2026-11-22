@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, subscribeGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
@@ -15,6 +15,7 @@ import { FunBody, funHeader } from "./FunPage";
 import { useAccountSync } from "./plannerSync";
 import { readSantaFor, saveIdeaToPlanner, saveSantaIdea } from "./santaIdeas";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
+import { TAP_SLOP, cardWidth, dragSpeed, dragStyle, prefersReducedMotion, recentSamples, swipeDecision, type DragSample } from "./swipeGesture";
 
 /**
  * /gift-guides/swipe (owner 2026-11-20): pick who and a budget, then up to 20 cards from the guides' picks.
@@ -23,6 +24,10 @@ import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
  * (only those with enough picks), and the deck is that person's picks in that band, in the quiz's order (swipeDeck).
  * An old link's ?who=mom|dad opens on Her|Him; ?who=me opens the start screen. Drag right or tap Save = saved; drag left
  * or tap Skip = pass; tap the card = its details and Shop. The buttons do everything the gestures do (accessible).
+ * Owner 2026-11-22 on her iPhone ("These don't swipe well"): the card follows the finger straight from pointer events
+ * (no re-render per move), tilts with it, goes past 30% of its width or on a flick, springs back otherwise, and the
+ * card that goes flies off the side it was sent (a short ghost) while the next one settles in. Up/down still scrolls
+ * the page (touch-action:pan-y). Reduced motion: no tilt, no fly-off, no spring. Rules: ./swipeGesture.ts.
  * Guard: src/test/giftGuideFun1120.test.tsx, src/test/swipeWho1121.test.tsx.
  *
  * Saving is for whoever the cards are for (owner 11-20: saving for someone else never goes on MY wish list): "Save for
@@ -35,8 +40,6 @@ import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
  * the wish list. Guard: src/test/secretSantaIdeas1120.test.tsx.
  */
 const PATH = "/gift-guides/swipe" as const;
-/** How far (px) a card is dragged before letting go counts as a swipe. */
-const SWIPE_DISTANCE = 90;
 /** An old link's ?who= (Mom and Dad became Her and Him; "me" and anything else start fresh). */
 const whoFromLink = (search: string): SwipeWho | null => {
   const w = new URLSearchParams(search).get("who");
@@ -44,6 +47,38 @@ const whoFromLink = (search: string): SwipeWho | null => {
 };
 
 type Card = CatalogPick & { guide: string };
+/** The card just sent: drawn once more over the next card, flying off the side it went (aria-hidden, no input). */
+interface Leaving { card: Card; dir: 1 | -1; from: number; speed: number; n: number }
+
+/** The sent card's fly-off: from where the finger let go, off the screen on its side, then gone. */
+function SwipeGhost({ leaving, onDone }: { leaving: Leaving; onDone: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof el.animate !== "function") return onDone();
+    const w = cardWidth(el.offsetWidth);
+    const end = leaving.dir * (window.innerWidth + w);
+    const dist = Math.abs(end - leaving.from);
+    // A flick keeps its speed (at least 1.2 px/ms), so a fast throw leaves fast; 180 to 360 ms.
+    const duration = Math.max(180, Math.min(360, dist / Math.max(Math.abs(leaving.speed), 1.2)));
+    const anim = el.animate(
+      [{ transform: dragStyle(leaving.from, w, false).transform || "none", opacity: 1 }, { transform: `translate3d(${Math.round(end)}px,0,0) rotate(${leaving.dir * 24}deg)`, opacity: 0.4 }],
+      { duration, easing: "cubic-bezier(.2,.7,.3,1)", fill: "forwards" },
+    );
+    anim.onfinish = onDone;
+    const stop = window.setTimeout(onDone, duration + 120);
+    return () => { window.clearTimeout(stop); anim.cancel(); };
+    // One ghost per send (its key); onDone only clears it.
+  }, []);
+  const c = leaving.card;
+  return (
+    <div ref={ref} className="gg-swipe-card gg-swipe-ghost" aria-hidden="true" data-swipe-ghost={leaving.dir > 0 ? "save" : "skip"}>
+      <PickThumb pick={c} size={220} eager />
+      <p className="gg-swipe-name">{c.name}</p>
+      <p className="gg-swipe-meta m-0"><PickPrice pick={c} /></p>
+    </div>
+  );
+}
 
 export default function SwipeGifts() {
   const location = useLocation();
@@ -65,11 +100,15 @@ export default function SwipeGifts() {
   const [saved, setSaved] = useState<Card[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
   const [details, setDetails] = useState(false);
-  const [dx, setDx] = useState(0);
+  const [leaving, setLeaving] = useState<Leaving | null>(null);
   // Holiday audit C12a: a Save says so (the guide hearts toast; the deck announces it in its live line).
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const seen = useRef(new Set<string>());
-  const drag = useRef<{ x: number; moved: boolean } | null>(null);
+  // The finger on the card: where it went down, how far it is now, whether it moved past a tap, recent positions.
+  const drag = useRef<{ id: number; x: number; dx: number; moved: boolean; samples: DragSample[] } | null>(null);
+  const cardEl = useRef<HTMLDivElement | null>(null);
+  const frame = useRef(0);
+  const sends = useRef(0);
   const version = useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
   const w = SWIPE_WHO.find((x) => x.id === who);
   // Who a saved card is for: the Secret Santa match, or the chosen person; none = "Me" (the wish list).
@@ -144,8 +183,9 @@ export default function SwipeGifts() {
     // Once per finished round.
   }, [finished]);
 
-  const next = (keep: boolean) => {
-    if (!card || (keep && saveWaits)) return;
+  /** Sends the card (keep = Save). `from`/`speed`: where and how fast a drag let go, for the fly-off. False when Save waits. */
+  const next = (keep: boolean, from = 0, speed = 0): boolean => {
+    if (!card || (keep && saveWaits)) return false;
     seen.current.add(card.href);
     if (keep && santa) {
       const where = saveSantaIdea(santa, card, !!user && plannerReady);
@@ -161,8 +201,9 @@ export default function SwipeGifts() {
     }
     setLastSaved(keep ? card.name : null);
     setDetails(false);
-    setDx(0);
+    if (!prefersReducedMotion()) setLeaving({ card, dir: keep ? 1 : -1, from, speed, n: ++sends.current });
     setAt((i) => i + 1);
+    return true;
   };
 
   useEffect(() => {
@@ -177,29 +218,51 @@ export default function SwipeGifts() {
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  // The card moves straight from the pointer (style written in an animation frame), never through React state.
+  const paint = (dx: number) => {
+    const el = cardEl.current;
+    if (!el) return;
+    const { transform, progress } = dragStyle(dx, el.offsetWidth, prefersReducedMotion());
+    el.style.transform = transform;
+    el.style.setProperty("--swipe-p", String(progress));
+  };
+  const endDrag = () => {
+    const d = drag.current;
+    drag.current = null;
+    if (frame.current) cancelAnimationFrame(frame.current);
+    frame.current = 0;
+    cardEl.current?.classList.remove("is-dragging");
+    return d;
+  };
   const onDown = (e: PointerEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest("a,button")) return;
-    drag.current = { x: e.clientX, moved: false };
+    if (e.button > 0 || (e.target as HTMLElement).closest("a,button")) return;
+    drag.current = { id: e.pointerId, x: e.clientX, dx: 0, moved: false, samples: [{ x: e.clientX, t: e.timeStamp }] };
+    e.currentTarget.classList.add("is-dragging");
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
   const onMove = (e: PointerEvent<HTMLDivElement>) => {
-    if (!drag.current) return;
-    const d = e.clientX - drag.current.x;
-    if (Math.abs(d) > 6) drag.current.moved = true;
-    setDx(d);
-  };
-  const onUp = () => {
     const d = drag.current;
-    drag.current = null;
+    if (!d || e.pointerId !== d.id) return;
+    d.dx = e.clientX - d.x;
+    if (Math.abs(d.dx) > TAP_SLOP) d.moved = true;
+    d.samples = recentSamples([...d.samples, { x: e.clientX, t: e.timeStamp }], e.timeStamp);
+    if (!frame.current) frame.current = requestAnimationFrame(() => { frame.current = 0; if (drag.current) paint(drag.current.dx); });
+  };
+  const onUp = (e: PointerEvent<HTMLDivElement>) => {
+    const d = endDrag();
     if (!d) return;
     if (!d.moved) {
-      setDx(0);
+      paint(0);
       if (card?.line) setDetails((v) => !v);
       return;
     }
-    if (dx > SWIPE_DISTANCE) next(true);
-    else if (dx < -SWIPE_DISTANCE) next(false);
-    else setDx(0);
+    const speed = dragSpeed(recentSamples(d.samples, e.timeStamp));
+    const go = swipeDecision(d.dx, e.currentTarget.offsetWidth, speed);
+    // Springs back (the card's CSS transition) when short, or when Save waits for the account's planner.
+    if (go === "back" || !next(go === "save", d.dx, speed)) paint(0);
+  };
+  const onCancel = () => {
+    if (endDrag()) paint(0);
   };
 
   const anotherRound = () => {
@@ -292,17 +355,19 @@ export default function SwipeGifts() {
           </p>
           <div className="gg-swipe-stage">
             <div
-              className={drag.current ? "gg-swipe-card is-dragging" : "gg-swipe-card"}
-              style={{ transform: `translateX(${dx}px) rotate(${dx / 18}deg)` }}
-              onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { drag.current = null; setDx(0); }}
+              key={card.href}
+              ref={cardEl}
+              className="gg-swipe-card"
+              onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel} onLostPointerCapture={onCancel}
               // Owner 2026-11-21: dragging the photo dragged the picture instead of the card. The browser's native image
               // drag is off (here and in CSS: the photo takes no pointer events), so the whole card moves.
               onDragStart={(e) => e.preventDefault()}
               data-swipe-card={card.href}
             >
-              <span className="gg-swipe-tag save" style={{ opacity: Math.max(0, Math.min(1, dx / SWIPE_DISTANCE)) }} aria-hidden="true">{W.swipeSave}</span>
-              <span className="gg-swipe-tag skip" style={{ opacity: Math.max(0, Math.min(1, -dx / SWIPE_DISTANCE)) }} aria-hidden="true">{W.swipeSkip}</span>
-              <PickThumb pick={card} size={220} />
+              {/* Each tag shows as the drag nears a swipe (--swipe-p, -1..1, written by paint). */}
+              <span className="gg-swipe-tag save" aria-hidden="true">{W.swipeSave}</span>
+              <span className="gg-swipe-tag skip" aria-hidden="true">{W.swipeSkip}</span>
+              <PickThumb pick={card} size={220} eager />
               <p className="gg-swipe-name">{card.name}</p>
               {/* Holiday audit 1121 #24: price only; item cards carry no store line (owner rule). */}
               <p className="gg-swipe-meta m-0"><PickPrice pick={card} /></p>
@@ -315,6 +380,7 @@ export default function SwipeGifts() {
                 </Button>
               </div>
             </div>
+            {leaving && <SwipeGhost key={leaving.n} leaving={leaving} onDone={() => setLeaving((l) => (l?.n === leaving.n ? null : l))} />}
           </div>
           <div className="gg-swipe-btns">
             <Button type="button" variant="outline" className="gg-swipe-btn" onClick={() => next(false)} aria-label={W.swipeSkipLabel(card.name)} data-swipe-skip="">✕ {W.swipeSkip}</Button>

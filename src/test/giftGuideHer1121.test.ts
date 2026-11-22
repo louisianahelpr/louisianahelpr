@@ -1,5 +1,5 @@
 /**
- * For Her is EXACTLY the owner's 46 saves (owner 2026-11-21: from her Amazon list, her Amazon cart and her ShopMy links;
+ * For Her is EXACTLY the owner's 54 saves (owner 2026-11-21: from her Amazon list, her Amazon cart and her ShopMy links;
  * owner 2026-11-22 removed the Floral Mama quarter zip, B0HJVYHH35; scripts/giftGuideHer1121.mjs). The generated page (src/content/giftGuidePicks/her.json) holds those links and no
  * other, in one flat list (no section), cheapest first; an Amazon pick never carries a price and keeps Amazon's own
  * photo; every ShopMy pick shows its checked price and a transparent cutout. The page shows no relationship chips and
@@ -56,13 +56,15 @@ const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-10914343
 // Launch day 11-22, from her screenshots (no ShopMy pin for these): CFUNIQ toiletry bag, Astercook knives and pans,
 // CASABREWS espresso machine, BISSELL FurGuard vacuum, eto decanter, Ozlo Sleepbuds 2.
 const ADDS_1122_ASINS = ["B0HKS18NW2", "B0C1YBPJ43", "B0F2937DQQ", "B09X3WGJ3R", "B0DQLLPYGM", "B0GP2R8TBS", "B0GZSMBDYZ"];
-const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
+// Owner 11-22 nurse + PR picks (builder-guide-her3b).
+const PR_PINS = ["p-107965795", "p-103880845", "p-104580620", "p-103889854", "p-103784739", "p-103878765", "p-103883109", "p-103877715"];
+const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 79 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(79);
-    expect(page.length).toBe(79);
+  it("the page holds exactly her 87 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(87);
+    expect(page.length).toBe(87);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
   });
 
@@ -95,7 +97,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(34);
-    expect(shopmy.length).toBe(45);
+    expect(shopmy.length).toBe(53);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

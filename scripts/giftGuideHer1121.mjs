@@ -39,6 +39,7 @@ export const HER_STORES = {
   "store-haven-well-within": "Haven Well Within", "store-camp-snap": "Camp Snap", "store-rei": "REI",
   "store-the-swank-company": "The Swank Company", "store-baublebar": "BaubleBar", "store-currentbody": "CurrentBody",
   "store-anthropologie": "Anthropologie", "store-tatcha": "Tatcha", "store-iherb": "iHerb", "store-stanley": "Stanley", "store-cos-bar": "Cos Bar", "store-ulta-beauty": "Ulta Beauty",
+  "store-yttp": "Youth To The People", "store-naturium": "Naturium",
 };
 
 /**
@@ -120,6 +121,15 @@ export const HER_1121 = [
   // 10% (p-108985937), $35.00 Doorbuster on 11-21 (was $64.99). Photo: crocs.com's own transparent Sepia shot.
   { name: "Crocs Dylan Platform Clog", brand: "Crocs", line: "Comfy platform clogs for everyday errands.", href: shopmy("p-108985937"), image: "https://media.crocs.com/images/t_standard/products/209869_2EY_ALT140-Transparent/crocs", store: "store-crocs", sortPrice: 35, price: 35, commission: 10, type: "shoes" },
   { name: "Marshall Emberton III Bluetooth Speaker, Cream", brand: "Marshall", line: "A rugged, waterproof speaker with big sound.", href: amz("B0DT1CZ58V"), image: amzImg("81gRxBMDtdL"), store: "store-amazon", sortPrice: 119.99, commission: 3, type: "speaker" },
+  // owner 11-22 her nurse + PR picks (builder-guide-her3b)
+  { name: "Beekman 1802 Kindness Cafe 6-Piece Set", brand: "Beekman 1802", line: "A cozy goat-milk body set that smells like a coffee shop.", href: shopmy("p-107965795"), image: "https://beekman1802.com/cdn/shop/files/B18CAFE26-WBC6_1_1.jpg", store: "store-beekman-1802", sortPrice: 43.2, price: 43.2, commission: 15, type: "gift-set" },
+  { name: "Glow Recipe Glass Balm Lip Treatment", brand: "Glow Recipe", line: "A glossy, juicy lip balm in a little tube.", href: shopmy("p-103880845"), image: "https://cdn.shopify.com/s/files/1/0543/8301/files/GLASS_BALM_INFOGRAPHICS_2000x2000_FIG_V1_FRUIT-_-B-ALM.jpg", store: "store-glow-recipe", sortPrice: 22, price: 22, commission: 12, type: "lip" },
+  { name: "Eberjey Gisele Slouchy PJ Set, Navy", brand: "Eberjey", line: "The soft slouchy pajama set everyone wants to unwrap.", href: shopmy("p-104580620"), image: "https://eberjey.com/cdn/shop/files/TZ1018LC-MOBNY-002.jpg", store: "store-eberjey", sortPrice: 148, price: 148, commission: 16, type: "pajamas" },
+  { name: "Beis East To West Tote, Olive", brand: "Beis", line: "A roomy everyday tote that holds all of her stuff.", href: shopmy("p-103889854"), image: "https://cdn.shopify.com/s/files/1/0032/3423/4479/files/BEIS124686-Eastwesttote-Olive-product-front-0310_V1.jpg", store: "store-beistravel", sortPrice: 118, price: 118, commission: 12, type: "bag" },
+  { name: "Case-Mate Jelly Tote Bag, Navy", brand: "Case-Mate", line: "A water-friendly tote with a pretty twilly scarf.", href: shopmy("p-103784739"), image: "https://cdn.shopify.com/s/files/1/0347/8496/8840/files/cmi_Jelly_Tote_Main_Image_1_0005_cmi_Jelly_Tote_Twilly_Scarf_Something_Navy_CM059446_1_3f96afae-6486-4862-8af0-e5591d907c28.jpg", store: "store-case-mate", sortPrice: 100, price: 100, commission: 20, type: "bag" },
+  { name: "Naturium Multi-Peptide Advanced Serum", brand: "Naturium", line: "A plumping peptide serum that is easy on the budget.", href: shopmy("p-103878765"), image: "https://cdn.shopify.com/s/files/1/0105/2265/6823/files/NATR-Multi-Peptide_Serum_Front_capoff_primary_bone.webp", store: "store-naturium", sortPrice: 25, price: 25, commission: 15, type: "skincare" },
+  { name: "Makeup by Mario Master Mattes Cream Eyeshadow", brand: "Makeup by Mario", line: "A creamy matte eyeshadow that blends in seconds.", href: shopmy("p-103883109"), image: "https://cdn.shopify.com/s/files/1/0275/4822/1505/files/MBM_MMLWCE_PACKSHOT_BISQUE.jpg", store: "store-sephora", sortPrice: 25, price: 25, commission: 12, type: "makeup" },
+  { name: "Youth To The People Superfood Cleanser", brand: "Youth To The People", line: "The green kale face wash that is a skincare favorite.", href: shopmy("p-103877715"), image: "https://www.youthtothepeople.com/dw/image/v2/AAFM_PRD/on/demandware.static/-/Sites-yttp-master-catalog/default/dwad62d71c/products/YTTP-10100/2026/ALT0-0810834030087--PACKSHOT.jpg", store: "store-yttp", sortPrice: 39, price: 39, commission: 8, type: "skincare" },
 ];
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);

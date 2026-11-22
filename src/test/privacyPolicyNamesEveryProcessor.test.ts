@@ -79,6 +79,7 @@ const PENDING_BEHIND_SWITCH: Record<string, { name: string; switchKey: string; o
 // @two-way src/test/privacyPolicyNamesEveryProcessor.test.ts:expect(undisclosed).toEqual([]);
 const NOT_PROCESSORS = [
   "louisianahelpr.com", "example.com", "evil.com", "dashboard.stripe.com", "amazon.com",
+  "yourshop.com", // a form placeholder ("e.g. https://yourshop.com", sbsFeaturedLocal.ts), never called
   "apple.com", "facebook.com", "google.com", "gravatar.com", "httpbin.org", "dicebear.com",
   "ui-avatars.com", "pwnedpasswords.com", "schema.org", "vercel.com", "vercel.app", "supabase.com",
   "supabase.co", "instagram.com", "slack.com", "googleusercontent.com", "airbnb.com", "booking.com",

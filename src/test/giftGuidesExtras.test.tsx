@@ -30,6 +30,8 @@ import type { PickChunk } from "@/content/giftGuidePicks";
 import { LOUISIANA_MADE_BRANDS, SPONSOR_BRANDS, giftGuides } from "@/content/giftGuides";
 import { badgesFor, guideBySlug, loadAllGuidePicks, searchGuides } from "@/content/giftGuideCatalog";
 
+// The guides record views and taps (src/lib/analytics.ts); here they go nowhere, never to Supabase (prodNetworkGuard).
+vi.mock("@/lib/analytics", async (orig) => ({ ...(await orig<object>()), track: vi.fn() }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));

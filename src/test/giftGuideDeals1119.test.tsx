@@ -148,11 +148,11 @@ describe("deals page: the data", () => {
 
 describe("deals page: dates", () => {
   it("dealShows: through its end day, never after; an announced deal says Starts until its start day", () => {
-    expect(dealShows({ ends: "2026-11-28" }, "2026-11-28")).toBe(true);
-    expect(dealShows({ ends: "2026-11-28" }, "2026-11-29")).toBe(false);
+    expect(dealShows({ brand: "Any", ends: "2026-11-28" }, "2026-11-28")).toBe(true);
+    expect(dealShows({ brand: "Any", ends: "2026-11-28" }, "2026-11-29")).toBe(false);
     // Holiday audit 1121 (High): a deal with no known end shows through Dec 1 (RETITLE_AFTER), never for good.
-    expect(dealShows({}, "2026-12-01")).toBe(true);
-    expect(dealShows({}, "2026-12-02")).toBe(false);
+    expect(dealShows({ brand: "Any" }, "2026-12-01")).toBe(true);
+    expect(dealShows({ brand: "Any" }, "2026-12-02")).toBe(false);
     expect(dealStartsLater({ starts: "2026-11-26", status: "announced" }, "2026-11-25")).toBe(true);
     expect(dealStartsLater({ starts: "2026-11-26", status: "announced" }, "2026-11-26")).toBe(false);
     expect(dealStartsLater({ starts: "2026-11-26", status: "live" }, "2026-11-25")).toBe(false);

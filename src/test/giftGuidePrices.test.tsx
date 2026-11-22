@@ -142,7 +142,7 @@ describe("gift-guide prices: Black Friday week (holiday audit 1121, High)", () =
     for (const slug of LIVE) {
       const picks = CHUNKS[slug] ?? [];
       expect(picks.length, slug).toBeGreaterThan(30); // inventory floor: 36 / 47 / 56 picks on 2026-11-21
-      const newest = picks.map((p) => p.priceAt ?? "").sort().at(-1)!;
+      const newest = picks.map((p) => p.priceAt ?? "").sort().slice(-1)[0]!;
       const plus = (n: number) => new Date(Date.parse(`${newest}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
       for (const day of [plus(4), plus(10), plus(14)]) {
         expect(picks.filter((p) => p.priceAt === newest && !showsPrice(p as CatalogPick, day)).map((p) => p.name), `${slug} on ${day}`).toEqual([]);

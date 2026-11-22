@@ -245,7 +245,7 @@ export const HIM_1121 = [
   // Outdoors - Putty") at burlebo.com at 12% (p-109005373), $28. Photo: the burlebo.com cutout the Him cover already draws.
   { name: "BURLEBO Cap", brand: "BURLEBO", line: "A broken-in cap from a Southern outdoor brand.", href: shopmy("p-109005373"), image: "https://www.louisianahelpr.com/gift-guides/cutouts/burlebo-outdoors-cap-putty-b33402.webp", store: "store-burlebo", sortPrice: 28, price: 28, commission: 12, type: "hat" },
   ["B01KTULYO6", 28.58, "41jWsAeRoHL", "Legendary Whitetails Buck Camp Flannel", "Legendary Whitetails", "shirt", 4, "A thick flannel shirt he will reach for all season."],
-  ["B09R5TGLFR", 31.9, "51eZqCXlw0L", "Chemical Guys Car Cleaning Kit", "Chemical Guys", "car-care", 3, "Everything to wash and shine his truck."],
+  // Owner 2026-11-22 ("remove" the Chemical Guys Car Cleaning Kit, B09R5TGLFR, $31.90; keep only the Wontolf kit) is off For Him.
   ["B0CKMF6GPZ", 32.99, "41uo6lSsK3L", "HOSHANHO Fillet Knife", "HOSHANHO", "knife", 3, "A sharp, flexible fillet knife for the catch."],
   ["B0076R6MN4", 34.5, "41gvAlcoEhL", "Columbia Steens Mountain Fleece Jacket", "Columbia", "jacket", 4, "The full-zip fleece that goes with everything."],
   // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0FDY7G84C at

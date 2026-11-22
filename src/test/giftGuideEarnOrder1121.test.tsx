@@ -7,7 +7,7 @@
  *
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned; |   const picks = sectioned;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned; |   const picks = sortable ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned;
- * @mutate src/content/giftGuideEarnOrder.ts |     out.push(...hot, ...run.filter((p) => !ranked(ranks[p.href]))); |     out.push(...run);
+ * @mutate src/content/giftGuideEarnOrder.ts |     out.push(...designTogether([...hot, ...run.filter((p) => !ranked(ranks[p.href]))], (p) => p)); |     out.push(...run);
  * @mutate src/content/giftGuideEarnOrder.ts | .sort((a, b) => ranks[a.href] - ranks[b.href]) | .sort((a, b) => ranks[b.href] - ranks[a.href])
  * @mutate src/pages/info/GiftGuides.tsx |   const sortOrder: GuideOrder = guide && order.slug === guide.slug ? order.order : "top"; |   const sortOrder: GuideOrder = guide && order.slug === guide.slug ? order.order : "low";
  * @mutate src/pages/info/giftGuides/GiftOut.tsx |   const opened = () => track("gift_out_click", { href: url }); |   const opened = () => undefined;

@@ -18,8 +18,8 @@ color:var(--gg-ink)}
 .gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:start}
 .gg-side{border-right:1px solid var(--gg-line);padding:16px 16px 20px 0;font-size:13px;position:sticky;top:var(--gg-side-top,72px);align-self:start;max-height:calc(100dvh - var(--gg-side-top,72px));overflow-y:auto;overscroll-behavior:contain}
 .gg-search{position:relative;display:block;margin:0}
-.gg-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gg-muted)}
-.gg-search input{width:100%;min-height:40px;font:500 13px Montserrat,sans-serif;padding:9px 12px 9px 34px;border:1px solid #ddd8cc;border-radius:999px;background:hsl(var(--background));color:var(--gg-ink)}
+.gg-search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--gg-muted)}
+.gg-search input{width:100%;min-height:44px;font:500 16px Montserrat,sans-serif;padding:0 12px 0 40px;border:1px solid hsl(var(--bark) / .2);border-radius:12px;background:hsl(var(--card));color:var(--gg-ink)}
 .gg-search-none{padding:8px 10px;color:var(--gg-muted)}
 .gg-tile-li{position:relative;display:flex;flex-direction:column}
 .gg-heart{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;border:0;background:transparent;border-radius:999px;cursor:pointer}
@@ -76,10 +76,27 @@ color:var(--gg-ink)}
    is 300px beside them (a phone lays it over the icon row, inside the screen). */
 .gg-tools{position:relative}
 .gg-tools-search{position:relative;flex:0 0 auto;min-width:0}
-.gg-tools-search.is-open{width:min(344px,calc(100vw - 40px));display:flex;align-items:center}.gg-tools-search.is-open .gg-search{flex:1 1 auto;min-width:0}
-.gg-tools-search .gg-search input{padding-right:40px}
-.gg-search-close{position:absolute;right:2px;top:50%;transform:translateY(-50%);background:transparent;color:var(--gg-muted)}
-@media (max-width:767px){.gg-tools-search.is-open{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:7;background:hsl(var(--background))}.gg-tools-search.is-open [data-search-trigger-slot]{display:none}}
+.gg-tools-search.is-open{width:min(360px,calc(100vw - 40px));display:flex;align-items:center}.gg-tools-search.is-open .gg-search{flex:1 1 auto;min-width:0}
+.gg-tools-search .gg-search input{padding-right:44px}
+.gg-search-close{position:absolute;right:0;top:50%;transform:translateY(-50%);background:transparent;color:var(--gg-muted)}
+/* Owner 2026-11-22 (polish the search bar; her iPhone: the open field slid over the row and cut off "83 gift",
+   with a heavy dark-olive ring): a soft field (thin light-olive border, white, 12px corners) whose focus darkens the
+   border and adds a light ring. On a phone the open search takes the whole count row in place: the count, the order-by
+   pill and the other icons step out (display:none, nothing under it, nothing cut), the field fills the row at the same
+   44px height, and the ✕ or Escape puts the row back exactly. The computer keeps its row (below). */
+.gg-search:focus-within input{border-color:hsl(var(--bark) / .55)}
+.gg-search-count{padding:6px 12px 4px;font-size:12px;font-weight:600;color:var(--gg-muted)}
+@media (max-width:767px){
+.gg-tools-search.is-open{position:relative;flex:1 1 auto;width:100%}
+.gg-tools-search.is-open [data-search-trigger-slot]{display:none}
+.gg-countrow:has(.gg-tools-search.is-open)>:not(.gg-tools){display:none}
+.gg-countrow:has(.gg-tools-search.is-open)>.gg-tools{flex:1 1 100%;margin:0}
+.gg-tools:has(>.gg-tools-search.is-open)>:not(.gg-tools-search){display:none}
+}
+/* The computer: the open field takes up to 360px and gives way before it would reach the title (at 768 it ran over
+   "Holiday gift guides"); below 1280px the order-by pill steps out while the search is open. */
+@media (min-width:768px){.gg-tools-search.is-open{flex:0 1 360px;width:auto;min-width:0}.gg-tools:has(>.gg-tools-search.is-open){max-width:none}}
+@media (min-width:768px) and (max-width:1279px){.gg-headrow:has(.gg-tools-search.is-open)>.gg-ship{display:none}}
 /* Owner 11-21: ONE header row from 768px up: back arrow + title, the shipping pill, then search + heart + share
    pushed right, all centred; a phone wraps it (arrow + title, then the pill and the icons). The shell's own header row
    is off, so this row keeps the shell's air above it (--shell-gap on a phone, 24px from sm up). */
@@ -205,12 +222,21 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    below the heart instead of on the side"): on every card (Her/Him/Kids rows, the 25 Days sponsors page, the finder's
    results and the Top 10) the 44px heart sits on the photo's top-right corner and an Amazon pick's 44px cart right
    under it, one column, both on the photo and outside the card's link. No circle behind either (owner 11-21); the thin
-   white halo keeps them readable over a photo. Phone row: the 88px photo starts 14px down, so the heart's box is at
-   4px / 54px (its icon 12px in from the photo's corner) and the cart's 44px below; tablet and desktop: the photo is the
-   card's top, so the column sits 2px in from the card's top-right. */
+   white halo keeps them readable over a photo. Tablet and desktop: the photo is the card's top, so the column sits 2px
+   in from the card's top-right.
+   Owner 2026-11-22 later, on her phone ("On the phone the heart goes in the bottom right below the price and the cart
+   goes on the left of that. The computer stays the same"): below 768px a guide row (Her/Him/Kids, the sponsors page,
+   the finder's results) draws both OFF its 88px photo, in one line at the row's bottom-right under the price: the cart
+   left, the heart right, each still a 44px box, its icon pushed to the box's right edge so the heart lines up under the
+   price. The name column keeps a 44px strip at its foot, so a two-line name or the chips never run under them (a short
+   row stays the photo's height). The Top 10 card (photo on top at every width) and My Wish List keep their own spots. */
 .gg-cart{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0;border-radius:999px;color:var(--gg-olive)}
-.gg-list .gg-heart-pick{position:absolute;top:4px;left:54px;z-index:1}
-.gg-list .gg-cart{position:absolute;top:48px;left:54px;z-index:1}
+.gg-list .gg-heart-pick,.gg-list .gg-cart{position:absolute;z-index:1}
+@media (max-width:767px){
+.gg-list>:where([data-gift-pick])>.gg-heart-pick{bottom:0;right:0;justify-content:flex-end}
+.gg-list>:where([data-gift-pick])>.gg-cart{bottom:0;right:44px;justify-content:flex-end}
+.gg-list>:where([data-gift-pick]) .gg-nm{padding-bottom:44px}
+}
 @media (min-width:768px){
 .gg-list .gg-heart-pick{top:2px;left:auto;right:2px}
 .gg-list .gg-cart{top:46px;left:auto;right:2px}
@@ -362,9 +388,9 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0;padding-top:4px;min-height:28px}
 .gg-top10 .gg-badges{padding-right:0}
 /* Owner 2026-11-22: the cart right under the heart on the photo's top-right (see .gg-list .gg-cart); the Top 10's photo
-   is the card's top at every width, so neither takes the phone row's left offset. */
+   is the card's top at every width, so neither takes the phone row's bottom-right line (owner 2026-11-22 later). */
 .gg-top10 .gg-cart{position:absolute;top:46px;right:2px;z-index:1}
-.gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{left:auto}
+.gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{left:auto;bottom:auto;justify-content:center}
 /* Top 10 rank (owner 11-21 evening: "number the top 10 gifts"): a small cream disc with an olive serif numeral on the
    photo's top-left corner, clear of the heart (top right) and inside the photo's padding, so it never covers the product. */
 .gg-top10 .gg-item{position:relative}
@@ -399,12 +425,28 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 @media (min-width:768px){.gg-list>li{contain-intrinsic-size:auto 420px}}
 .gg-top10>li{content-visibility:visible}
 /* Owner 11-21: each price section's header opens and closes it (first open): a full-width 44px row with a chevron. */
-.gg-sec-toggle-h{margin:14px 0 0}
+.gg-sec-toggle-h{margin:24px 0 0}
 .gg-sec-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:6px 4px;border:0;border-bottom:1px solid var(--gg-line);border-radius:0;background:transparent;font:inherit;font-weight:700;color:var(--gg-ink);text-align:left;white-space:normal;cursor:pointer}
 .gg-sec-toggle:focus-visible{outline:2px solid var(--gg-olive);outline-offset:2px;border-radius:6px}
 .gg-sec-chev{flex:none;color:var(--gg-muted);transition:transform .15s}
 .gg-sec-toggle[aria-expanded="true"] .gg-sec-chev{transform:rotate(180deg)}
 .gg-sec-toggle-h+.gg-list{margin-top:8px}
+/* Owner 2026-11-22 ("Add some kind of shading or something so you can tell where each section is better"): each price
+   section's header is a band in a light tint of its guide's own colour (the cover family on the h2: Her oat, Him green,
+   Kids red), full width, padded, with a 4px bar of the guide's colour on its left, more room above it (24px, was 14px)
+   and its words a little bolder; the same on a phone and a computer. Words and count stay at least 4.5:1 on the tint in
+   both themes (src/test/giftGuideSectionBands1122.test.tsx computes it). Every section still starts open; the chevron
+   stays. The band keeps the button's own 48px height (Button size md, h-12; the sweep's size-class check). */
+.gg-sec-toggle-h .gg-sec-toggle{padding:10px 12px 10px 14px;border:0;border-left:4px solid var(--gg-sec-bar);border-radius:10px;background:var(--gg-sec-bg);color:var(--gg-sec-ink);font-weight:800}
+.gg-sec-toggle-h .gg-sec-count{color:var(--gg-sec-muted);font-weight:600}
+.gg-sec-toggle-h .gg-sec-chev{color:var(--gg-sec-ink)}
+.gg-sec-toggle-h .gg-sec-toggle:focus-visible{border-radius:10px}
+.gg-sec-oat{--gg-sec-bg:#f2e9da;--gg-sec-ink:#3b2a20;--gg-sec-muted:#5c4a3a;--gg-sec-bar:#ceba98}
+.gg-sec-green{--gg-sec-bg:#e3eee5;--gg-sec-ink:#1d4a2f;--gg-sec-muted:#3c5d47;--gg-sec-bar:#265e3c}
+.gg-sec-red{--gg-sec-bg:#f7e4e3;--gg-sec-ink:#7a1c22;--gg-sec-muted:#8a3439;--gg-sec-bar:#a8242a}
+:root[data-theme="dark"] .gg-sec-oat{--gg-sec-bg:#3a3127;--gg-sec-ink:#f3e8d6;--gg-sec-muted:#d9c9b0}
+:root[data-theme="dark"] .gg-sec-green{--gg-sec-bg:#1f3328;--gg-sec-ink:#dcebdf;--gg-sec-muted:#b7cdbb;--gg-sec-bar:#4f8a63}
+:root[data-theme="dark"] .gg-sec-red{--gg-sec-bg:#3e2325;--gg-sec-ink:#f5dad8;--gg-sec-muted:#e0b6b4;--gg-sec-bar:#c4474d}
 /* The sponsors page's Filter panel (owner 11-21): section links and price limits, 44px rows. */
 .gg-filter-panel{min-width:240px;max-height:70vh;overflow-y:auto}
 .gg-filter-group{display:flex;flex-direction:column}

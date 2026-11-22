@@ -139,7 +139,7 @@ const CLASSIFIED: Record<string, string> = {
   "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.facebook": "Out's prop (a sponsor's Facebook Page from our generated content file); Out forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.instagram": "Out's prop (a sponsor's Instagram from our generated content file); Out forces the https:// scheme",
   "pages/info/giftGuides/SmallBizLocal.tsx::href": "safeDocumentUrl(b.link) (src/lib/storagePath.ts): an approved Featured local listing's link, https:// only (also the sbs_featured_submissions CHECK link ~ '^https://' and the shared validator cleanLink); the anchor renders only when it is non-null; rel noopener nofollow ugc",
-  "pages/info/giftGuides/GiftGuideLanding.tsx::sponsorPage.links.facebookPage": "a fixed https://www.facebook.com/... constant in src/content/sponsorPage.ts (the 25 Days card's follow link)",
+  "pages/info/giftGuides/GiftGuideLanding.tsx::LOUISIANA_HELPR_FACEBOOK": "a fixed https://www.facebook.com/... constant in src/content/giftGuideConstants.ts (the 25 Days card's follow link; sponsorPage.ts reads the same one)",
   // 25 Days sponsor page (owner 2026-11-09).
   "pages/admin/sponsors/AdminSponsorsPage.tsx::url": `${OBJECT_URL}: the CSV export, and the logo file the admin-only sponsor-25days function sent back (logoDownloadUrl)`,
   "pages/auth/completeProfile/ConsentStep.tsx::href": "link()'s prop: its only callers pass the fixed in-app paths \"/terms\", \"/rules\" and \"/privacy\"",

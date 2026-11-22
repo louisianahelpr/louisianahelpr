@@ -307,11 +307,10 @@ export const giftGuides = {
   sideHolidayHub: "Holiday Hub",
   /**
    * The phone's head row (owner 2026-11-22: "Remove everything under the holiday gift guides on the phone view ... Only
-   * thing that will stay is the 3 line with no circle around it and the heart. Both of those will go on the right"):
-   * the three-line icon that opens the menu sheet, and the heart's name (its count when something is saved).
+   * thing that will stay is the 3 line with no circle around it"; later: the heart goes "by the search and icons filter.
+   * The 3 line dash stays up"): the three-line icon that opens the menu sheet.
    */
   phoneMenuLabel: "Guides menu",
-  phoneHeartLabel: (n: number) => (n > 0 ? `Wish list, ${n} saved` : "Wish list"),
   /** The left menu's entry for the 25 Days sponsors page (owner 11-21: "move 25 day sponsors to the left panel"). */
   sideSponsorsLabel: "25 Days sponsors",
   shopLabel: "Shop",
@@ -374,6 +373,8 @@ export const giftGuides = {
   myListLabel: "My list",
   myListEmpty: "Tap a heart on any guide or gift to save it here.",
   searchNone: "No gifts match that. Try another word.",
+  /** The small line at the top of the search results while typing (owner 11-22 search polish). */
+  searchCount: (n: number) => (n === 1 ? "1 result" : `${n} results`),
   searchFailed: "Couldn't load gift results. Check your connection.",
   codesLabel: "Discount codes",
   /** The sidebar's Sales (follow-up 2026-11-18): every live store sale, soonest end first; each hidden after it ends. */

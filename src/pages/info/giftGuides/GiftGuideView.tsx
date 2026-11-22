@@ -131,7 +131,8 @@ export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: stri
       <Heart saved={saved} label={WISH.saveForLabel(pick.name)} onToggle={() => { if (!requestSaveFor(saveItemOf(pick, guide))) heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) })); }} className="gg-heart-pick" />
       {/* Owner 2026-11-21 (Amazon Buy Now): an Amazon item gets a small cart icon that puts it straight in the shopper's
           Amazon cart, credited to our tag (src/lib/retailerCart.ts). Its own 44px link, outside the card link, like the
-          heart; nothing for other stores. Owner 2026-11-22: it sits right under the heart on the photo's top-right. */}
+          heart; nothing for other stores. Owner 2026-11-22: it sits right under the heart on the photo's top-right; on a
+          phone (owner 11-22 later) the two sit in one line at the row's bottom-right under the price, cart left of the heart. */}
       {cart && (
         <GiftOut href={cart} className="gg-cart">
           <ShoppingCart aria-hidden="true" />
@@ -304,7 +305,8 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
           aria-labelledby={title && id ? `gg-sec-${id}-title` : undefined}>
           {title && (sortable && id ? (
             // A price section's header is its open/close button (aria-expanded; the list is drawn only while open).
-            <h2 className="gg-sec-title gg-sec-toggle-h" id={`gg-sec-${id}-title`}>
+            // Owner 2026-11-22 ("Add some kind of shading ..."): the header is a band in its guide's tint (gg-sec-<tint>).
+            <h2 className={`gg-sec-title gg-sec-toggle-h gg-sec-${guide.tint}`} id={`gg-sec-${id}-title`}>
               <Button type="button" variant="ghost" size="md" className="gg-sec-toggle" aria-expanded={isOpen(id)} aria-controls={`gg-sec-${id}-list`} onClick={() => toggle(id)} data-gift-section-toggle={id}>
                 <span>{title}<span className="gg-sec-count" data-gift-section-count="">{G.priceSectionCount(sectionCount.get(id) ?? 0)}</span></span>
                 <svg className="gg-sec-chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" strokeLinejoin="round" /></svg>

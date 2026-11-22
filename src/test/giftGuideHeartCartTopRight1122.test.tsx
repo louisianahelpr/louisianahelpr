@@ -1,18 +1,32 @@
 /**
- * HEART AND CART ON THE PHOTO'S TOP-RIGHT, CART UNDER THE HEART (owner 2026-11-22, reviewing the live guides: "move the
- * heart and shopping cart back to the top right of picture. maybe put the shopping cart below the heart instead of on
- * the side"). On every guide card (one PickRow: Her/Him/Kids rows, the 25 Days sponsors page, the finder's results and
- * the landing's Top 10) the 44px heart sits on the photo's top-right corner and an Amazon pick's 44px cart directly
- * under it, both outside the card's link, with no circle behind either (owner 11-21) and nothing left under the price.
+ * HEART AND CART: ON THE PHOTO'S TOP-RIGHT ON A COMPUTER, AT THE ROW'S BOTTOM-RIGHT ON A PHONE.
  *
- * The geometry is read from the stylesheet itself: the phone row's photo size and top padding, and each icon's box,
- * so a moved photo or icon fails here (measured in Chromium on 2026-11-22, Her at 375: heart box 10px past the photo's
- * right edge and 10px above its top, i.e. its 18px icon 12px in from the corner; cart 44px below; at 1440 both 2px in).
+ * Owner 2026-11-22, reviewing the live guides: "move the heart and shopping cart back to the top right of picture. maybe
+ * put the shopping cart below the heart instead of on the side". Then, later the same day, from her phone (a screenshot of
+ * the Her guide): "On the phone the heart goes in the bottom right below the price and the cart goes on the left of that.
+ * The computer stays the same like those 2 icons can stay in the picture."
  *
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-cart{position:absolute;top:48px;left:54px;z-index:1} | .gg-list .gg-cart{position:absolute;top:4px;left:10px;z-index:1}
+ * So, on every guide row (one PickRow: Her/Him/Kids, the 25 Days sponsors page, the finder's results): from 768px the
+ * 44px heart sits on the photo's top-right and an Amazon pick's 44px cart directly under it (unchanged); below 768px
+ * both leave the 88px photo for ONE line at the row's bottom-right, under the price, the cart left of the heart, and the
+ * name column keeps a 44px strip at its foot so a name or the chips never run under them. Both stay outside the card's
+ * link, with no circle behind either (owner 11-21). The landing's Top 10 card (photo on top at every width) keeps the
+ * heart and cart on its photo.
+ *
+ * The geometry is read from the stylesheet itself. Measured in Chromium on 2026-11-22 (local build of this branch, every
+ * drawn row of Her at 320/375/414 and Kids at 375): phone heart box at the row's right edge and bottom (Her 375: row
+ * 335x104, heart at x 291, y 60; cart at x 247, y 60; price at x 291, y 14), 0 icon boxes over a photo, name, price or
+ * chip row; a row with a code chip grows to 125px with the heart under the chip. Her at 1440: heart 2px in from the
+ * card's top-right, cart 44px under it, exactly as before the change.
+ *
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list>:where([data-gift-pick])>.gg-heart-pick{bottom:0;right:0;justify-content:flex-end} | .gg-list>:where([data-gift-pick])>.gg-heart-pick{top:4px;left:54px;justify-content:flex-end}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list>:where([data-gift-pick])>.gg-cart{bottom:0;right:44px;justify-content:flex-end} | .gg-list>:where([data-gift-pick])>.gg-cart{bottom:44px;right:0;justify-content:flex-end}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list>:where([data-gift-pick]) .gg-nm{padding-bottom:44px} | .gg-list>:where([data-gift-pick]) .gg-nm{padding-bottom:0}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (max-width:767px){\n.gg-list>:where([data-gift-pick])>.gg-heart-pick | @media (min-width:0px){\n.gg-list>:where([data-gift-pick])>.gg-heart-pick
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-heart-pick,.gg-list .gg-cart{position:absolute;z-index:1} | .gg-list .gg-heart-pick,.gg-list .gg-cart{position:absolute;top:4px;left:54px;z-index:1}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-cart{top:46px;left:auto;right:2px} | .gg-list .gg-cart{top:2px;left:auto;right:46px}
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-heart-pick{position:absolute;top:4px;left:54px;z-index:1} | .gg-list .gg-heart-pick{position:absolute;top:60px;left:54px;z-index:1}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-cart{position:absolute;top:46px;right:2px;z-index:1} | .gg-top10 .gg-cart{position:absolute;bottom:-10px;right:-10px;z-index:1}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{left:auto;bottom:auto;justify-content:center} | .gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{left:auto}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-cart:hover{color:hsl(var(--bark))} | .gg-cart:hover{background:var(--gg-soft)}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -40,31 +54,36 @@ const px = (v: string | undefined) => Number(/^(-?\d+)px$/.exec(v ?? "")?.[1] ??
 const TAP = 44;
 const DESKTOP = GIFT_GUIDES_CSS.indexOf("@media (min-width:768px){\n.gg-list .gg-heart-pick");
 
-describe("heart and cart sit on the photo's top-right, the cart under the heart (owner 2026-11-22)", () => {
-  it("phone row: both 44px boxes are stacked in one column whose icons land inside the 88px photo's top-right", () => {
-    const thumb = rule(".gg-list .gg-thumb");
-    const photo = px(thumb.width);
-    expect(photo).toBe(px(thumb.height));
-    const padTop = px(rule(".gg-list .gg-item").padding?.split(" ")[0]);
-    const heart = rule(".gg-list .gg-heart-pick");
-    const cart = rule(".gg-list .gg-cart");
-    expect(heart.position).toBe("absolute");
-    expect(cart.position).toBe("absolute");
-    expect(heart.bottom).toBeUndefined();
-    expect(cart.bottom).toBeUndefined();
-    // One column: the same left edge; the cart's box starts where the heart's ends.
-    expect(px(cart.left)).toBe(px(heart.left));
-    expect(px(cart.top)).toBe(px(heart.top) + TAP);
-    // Each icon's centre is inside the photo, in its right half and its top-right quarter for the heart.
-    const centre = (box: Record<string, string>) => ({ x: px(box.left) + TAP / 2, y: px(box.top) + TAP / 2 - padTop });
-    for (const [name, box] of [["heart", heart], ["cart", cart]] as const) {
-      const c = centre(box);
-      expect(c.x, name).toBeGreaterThan(photo / 2);
-      expect(c.x, name).toBeLessThan(photo);
-      expect(c.y, name).toBeGreaterThan(0);
-      expect(c.y, name).toBeLessThan(photo);
+const PHONE = GIFT_GUIDES_CSS.indexOf("@media (max-width:767px){\n.gg-list>:where([data-gift-pick])>.gg-heart-pick");
+const ROW = ".gg-list>:where([data-gift-pick])";
+
+describe("heart and cart: on the photo on a computer, at the row's bottom-right on a phone (owner 2026-11-22)", () => {
+  it("phone row: one line at the row's bottom-right under the price, the cart directly left of the heart, off the photo", () => {
+    expect(PHONE, "the phone placement lives in the phone breakpoint").toBeGreaterThan(0);
+    const phoneEnd = GIFT_GUIDES_CSS.indexOf("\n}\n", PHONE);
+    const heartAt = GIFT_GUIDES_CSS.indexOf(`${ROW}>.gg-heart-pick{`, PHONE);
+    const cartAt = GIFT_GUIDES_CSS.indexOf(`${ROW}>.gg-cart{`, PHONE);
+    const stripAt = GIFT_GUIDES_CSS.indexOf(`${ROW} .gg-nm{`, PHONE);
+    for (const at of [heartAt, cartAt, stripAt]) expect(at > PHONE && at < phoneEnd).toBe(true);
+    const heart = rule(`${ROW}>.gg-heart-pick`, PHONE);
+    const cart = rule(`${ROW}>.gg-cart`, PHONE);
+    // The base rule gives both their layer and nothing else: no top/left that would park them on the 88px photo.
+    expect(rule(".gg-list .gg-heart-pick,.gg-list .gg-cart")).toEqual({ position: "absolute", "z-index": "1" });
+    for (const box of [heart, cart]) {
+      expect(box.top).toBeUndefined();
+      expect(box.left).toBeUndefined();
+      expect(box.bottom).toBe("0");
+      // Each icon sits at its box's right edge, so the heart's icon lines up under the price's right edge.
+      expect(box["justify-content"]).toBe("flex-end");
     }
-    expect(centre(heart).y).toBeLessThan(photo / 2);
+    // One line: same bottom; the heart at the row's right edge (where the price column ends); the cart's box ends
+    // exactly where the heart's begins.
+    expect(heart.right).toBe("0");
+    expect(px(cart.right)).toBe(TAP);
+    // The name column keeps a strip as tall as the icons at its foot, so a name or the chips never sit under them.
+    expect(px(rule(`${ROW} .gg-nm`, PHONE)["padding-bottom"])).toBe(TAP);
+    // The price stays top-right beside the name's first line (owner 11-21), so the icons are below it.
+    expect(rule(".gg-list .gg-nm .gg-nm-meta")).toMatchObject({ "grid-column": "2", "grid-row": "1" });
   });
 
   it("tablet and desktop cards (photo on top): the column is 2px in from the photo's top-right, cart under heart", () => {
@@ -78,7 +97,11 @@ describe("heart and cart sit on the photo's top-right, the cart under the heart 
   it("the Top 10 card: the heart on the photo's top-right and the cart under it (not at the end of the price line)", () => {
     expect(rule(".gg-top10 .gg-heart-pick")).toMatchObject({ position: "absolute", top: "2px", right: "2px" });
     expect(rule(".gg-top10 .gg-cart")).toMatchObject({ position: "absolute", top: `${2 + TAP}px`, right: "2px" });
-    expect(GIFT_GUIDES_CSS).toContain(".gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{left:auto}");
+    // Neither takes the phone row's bottom-right line: the Top 10's own rules come later at the same weight and reset it.
+    expect(rule(".gg-top10 .gg-heart-pick,.gg-top10 .gg-cart")).toEqual({ left: "auto", bottom: "auto", "justify-content": "center" });
+    expect(rule(".gg-top10 .gg-nm")["padding-bottom"]).toBe("0");
+    expect(GIFT_GUIDES_CSS.indexOf(".gg-top10 .gg-nm{")).toBeGreaterThan(GIFT_GUIDES_CSS.indexOf(`${ROW} .gg-nm{`));
+    expect(GIFT_GUIDES_CSS.indexOf(".gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{")).toBeGreaterThan(PHONE);
     expect(rule(".gg-top10 .gg-nm .gg-nm-meta")["padding-right"]).toBeUndefined();
   });
 
@@ -88,7 +111,7 @@ describe("heart and cart sit on the photo's top-right, the cart under the heart 
     expect(rule(".gg-cart:hover").background).toBeUndefined();
     expect(rule(".gg-cart svg").filter).toMatch(/drop-shadow/);
     expect(GIFT_GUIDES_CSS).not.toMatch(/\[data-gift-guide="[^"]+"\] \.gg-list \.gg-heart-pick/);
-    // Nothing waits under the price for them any more.
+    // The phone's strip under the name is the only room kept for them (no unscoped strip, no space beside the chips).
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-list \.gg-nm\{padding-bottom:/);
     expect(rule(".gg-list .gg-badges")["padding-right"]).toBeUndefined();
   });

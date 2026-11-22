@@ -14,8 +14,8 @@
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }} | onKeyDown={() => undefined}
  * @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {pillInRow && tools} |         {tools}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1; | .gg-list .gg-nm .gg-nm-meta{grid-column:1;grid-row:2;
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-heart-pick{position:absolute;top:4px;left:54px;z-index:1} | .gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0}
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-cart{position:absolute;top:48px;left:54px;z-index:1} | .gg-list .gg-cart{position:absolute;top:4px;left:10px;z-index:1}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list>:where([data-gift-pick])>.gg-heart-pick{bottom:0;right:0;justify-content:flex-end} | .gg-list>:where([data-gift-pick])>.gg-heart-pick{top:4px;left:54px;justify-content:flex-end}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list>:where([data-gift-pick])>.gg-cart{bottom:0;right:44px;justify-content:flex-end} | .gg-list>:where([data-gift-pick])>.gg-cart{top:48px;left:54px;justify-content:flex-end}
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const isOpen = (id?: string) => !sortable \|\| !id \|\| (flipped.has(id) ? !START_OPEN : START_OPEN); |   const isOpen = (id?: string) => !sortable \|\| !id \|\| (flipped.has(id) ? START_OPEN : !START_OPEN);
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       setFlipped(() => new Set()); |       setFlipped(() => new Set(PRICE_SECTIONS.map((s) => s.id).filter((s) => s !== raw)));
  */
@@ -94,13 +94,15 @@ describe("phone guide page: the count, the pill and the icons on one row under t
 });
 
 // Owner 2026-11-22 ("move the heart and shopping cart back to the top right of picture. maybe put the shopping cart below
-// the heart instead of on the side"): the heart left the card's bottom-right for the photo's top-right (the whole check
-// is src/test/giftGuideHeartCartTopRight1122.test.tsx).
-describe("every card: price top-right, heart on the photo's top-right (owner 11-21, 11-22)", () => {
-  it("the name and the price share the first line (price right); the heart sits on the photo's top-right, outside the link", async () => {
+// the heart instead of on the side"): the heart left the card's bottom-right for the photo's top-right; later the same day,
+// from her phone: "On the phone the heart goes in the bottom right below the price and the cart goes on the left of that.
+// The computer stays the same" (the whole check is src/test/giftGuideHeartCartTopRight1122.test.tsx).
+describe("every card: price top-right; heart at a phone row's bottom-right, on a computer card's photo (owner 11-21, 11-22)", () => {
+  it("the name and the price share the first line (price right); the phone heart sits at the row's bottom-right, outside the link", async () => {
     expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-nm{display:grid;grid-template-columns:minmax(0,1fr) auto;");
     expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1;");
-    expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-heart-pick{position:absolute;top:4px;left:54px;z-index:1}");
+    expect(GIFT_GUIDES_CSS).toContain(".gg-list>:where([data-gift-pick])>.gg-heart-pick{bottom:0;right:0;justify-content:flex-end}");
+    expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-heart-pick{top:2px;left:auto;right:2px}");
     // The Top 10 cards are not the guides' listings: their heart sits on the photo's top-right (owner 11-21 evening).
     expect(GIFT_GUIDES_CSS).toContain(".gg-top10 .gg-heart-pick{position:absolute;top:2px;right:2px;z-index:1}");
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-list \.gg-heart-pick\{position:static\}/);
@@ -138,9 +140,10 @@ describe("the search is an icon at every width (owner 11-21: \"make search an ic
   });
 });
 
-describe("the cart sits under the heart (owner 11-22: \"maybe put the shopping cart below the heart instead of on the side\")", () => {
-  it("the Amazon cart is right under the heart on the photo's top-right (one column); no row of its own", () => {
-    expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-cart{position:absolute;top:48px;left:54px;z-index:1}");
+describe("the cart sits beside the heart on a phone, under it on a computer (owner 11-22)", () => {
+  it("the Amazon cart is left of the heart at a phone row's bottom-right, under the heart on a computer card's photo; no row of its own", () => {
+    expect(GIFT_GUIDES_CSS).toContain(".gg-list>:where([data-gift-pick])>.gg-cart{bottom:0;right:44px;justify-content:flex-end}");
+    expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-cart{top:46px;left:auto;right:2px}");
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-cart\{grid-column/);
     expect(GIFT_GUIDES_CSS).toMatch(/\.gg-cart\{[^}]*width:44px;height:44px/);
   });

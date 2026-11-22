@@ -294,7 +294,7 @@ export default function GiftGuides() {
             page and the 25 Days sponsors page put the pill and the icons on the count row under the banner. */}
         {/* Owner 11-22 (phone): the head row's heart and three-line menu replace the chip row on every page; a guide's
             own count row under its banner is kept as it is ("she didn't ask to change it"). */}
-        <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} pillInRow={!countRow} onMyList={myList}
+        <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} pillInRow={!countRow}
           below={(shipPill) => countRow && guide && (
             <div className="gg-countrow" data-gift-countrow="">
               <div className="gg-countrow-left">

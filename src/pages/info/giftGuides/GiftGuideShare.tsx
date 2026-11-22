@@ -245,21 +245,21 @@ function GiftGuideShare({ path, title, image, many = false }: { path: string; ti
 const menuItems = (menu: HTMLElement | null): HTMLElement[] => (menu ? [...menu.querySelectorAll<HTMLElement>("[role=menuitem]")] : []);
 
 /**
- * My Wish List as an icon with its count (a link to /gift-guides/my-list). `head`: the phone head row's heart (owner
- * 2026-11-22: the three-line menu and the heart on the right of "Gift guides"), named "Wish list" (GuidesHeadRow).
+ * My Wish List as an icon with its count (a link to /gift-guides/my-list), in the toolbar beside search and sort (owner
+ * 2026-11-22: "I think by the search and icons filter"; the phone head row has no heart).
  */
-export function MyListIcon({ current, head = false }: { current: boolean; head?: boolean }) {
+function MyListIcon({ current }: { current: boolean }) {
   const list = useGiftList();
   const n = list.guides.length + list.picks.length;
   return (
     // Owner 11-21: on a guide page the heart opens My lists (every person's list and My Wish List, each to manage);
     // with no sheet on the page it stays a link to My Wish List.
-    <Link to={`/gift-guides/${MY_LIST_SLUG}`} className="gg-icon gg-mylist-icon" aria-label={head ? G.phoneHeartLabel(n) : WISH.countLabel(n)}
+    <Link to={`/gift-guides/${MY_LIST_SLUG}`} className="gg-icon gg-mylist-icon" aria-label={WISH.countLabel(n)}
       onClick={(e) => { if (!current && openMyLists(null)) e.preventDefault(); }}
-      {...(current ? { "aria-current": "page" as const } : {})} {...(head ? { "data-gift-head-heart": "" } : { "data-gift-my-list-link": "" })}>
+      {...(current ? { "aria-current": "page" as const } : {})} data-gift-my-list-link="">
       <Icon d={HEART} fill={n > 0 ? "currentColor" : "none"} />
       {/* No count badge on an empty list (pre-launch audit 11-18 PM: a red "0"). */}
-      {n > 0 && <span className="gg-icon-count" aria-hidden="true" data-gift-my-list-count={head ? "head" : ""}>{n}</span>}
+      {n > 0 && <span className="gg-icon-count" aria-hidden="true" data-gift-my-list-count="">{n}</span>}
     </Link>
   );
 }
@@ -314,19 +314,23 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
     return () => { live = false; };
   }, [query, items]);
   const foundItems = query.trim() && items ? searchItems(items, query) : [];
+  // The "N results" line at the top of the list while typing (owner 11-22 search polish): every row the list shows.
+  const shown = pages.length + Math.min(found.length, 12) + foundItems.length;
   return (
     <div className="gg-tools" role="group" aria-label={G.quickLabel} data-gift-quick="">
       {search && (
       <div ref={searchBox} className={open ? "gg-tools-search is-open" : "gg-tools-search"} data-gift-search-box={open ? "open" : "closed"}>
         {open ? (
-          <label id="gift-search" className="gg-search rounded-full focus-within:ring-2 focus-within:ring-ring">
+          // Owner 2026-11-22 ("Polish the search bar somehow"): a soft field, a thin light-olive ring on focus (was the
+          // dark 2px ring), 44px tall with 16px words (no iOS zoom), magnifier left and a 44px ✕ right.
+          <label id="gift-search" className="gg-search rounded-xl focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.22)]">
             <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} /><path d="M20 20l-4-4" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" /></svg>
             {/* Opened by a tap on the magnifier, so the field takes the focus at once (never on page load). */}
             <Input look="bare" type="search" autoFocus value={query} onChange={(e) => { setQuery(e.target.value); setResultsOpen(true); }} onFocus={() => setResultsOpen(true)}
               onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
               onBlur={(e) => { if (!query && !searchBox.current?.contains(e.relatedTarget as Node | null)) setSearchOpen(false); }}
               placeholder={G.searchPlaceholder} aria-label={G.searchLabel} role="combobox" aria-autocomplete="list" aria-expanded={showResults} aria-controls="gift-search-results" data-gift-search="" />
-            <RoundIconButton size="sm" className="gg-search-close" aria-label={G.searchCloseLabel} onClick={closeSearch} data-gift-search-close="">
+            <RoundIconButton className="gg-search-close" aria-label={G.searchCloseLabel} onClick={closeSearch} data-gift-search-close="">
               <Icon d={CLOSE} />
             </RoundIconButton>
           </label>
@@ -342,6 +346,7 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
         )}
         {showResults && (
           <ul id="gift-search-results" className="gg-search-results" data-gift-search-results="" aria-live="polite">
+            {shown > 0 && <li className="gg-search-count" data-gift-search-count={shown}>{G.searchCount(shown)}</li>}
             {itemsFailed && !items && <li className="gg-search-none" data-gift-search-offline="">{G.searchFailed}</li>}
             {found.length === 0 && foundItems.length === 0 && pages.length === 0 && !(itemsFailed && !items) && <li className="gg-search-none">{G.searchNone}</li>}
             {pages.map((p) => (

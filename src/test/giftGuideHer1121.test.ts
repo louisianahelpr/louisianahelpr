@@ -31,7 +31,7 @@ const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B0C
   // Owner 11-21 ("women too"): the rest of her cart and saved-for-later, but the duplicate ZDEER listing and Mighty Patch.
   "B0HJ9ZJ8KM", "B091NJQ29P", "B0CMJZVT5P", "B0G6CR9TGW", "B0FSJQ3KJT", "B0F19YY96Z", "B0GT3W5DQL", "B0DT1CZ58V"];
 // p-108755104 is her iHerb pin for the BIODANCE masks (11-21), replacing her Sephora UK pin p-108613754 that US shoppers cannot use.
-const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", "p-108613192", "p-108611500", "p-108831058", "p-108607824", "p-107555566", "p-108605514", "p-108604684", "p-108604054"];
+const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", "p-108613192", "p-108831058", "p-108607824", "p-107555566", "p-108605514", "p-108604684", "p-108604054"];
 /**
  * Commission switches 11-21 (owner: "if the items on the guides can we fund at another place for higher commison just
  * change the link"; Desktop note Commission-switches-1121.md): the same item at the same price, moved from Amazon to a
@@ -45,9 +45,9 @@ const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", 
 // (Amazon B0H2G28G12, 10%) -> Cos Bar p-109002459, 20%, $45; L'OCCITANE Softening Almond Trio (Amazon B0HFXZ9F46, 10%) ->
 // Ulta p-109002206, 13%, $59.
 const SWITCHED_PINS = ["p-108732256", "p-108732809", "p-107903671", "p-109006074", "p-108985937", "p-109002459", "p-109002206"];
-// Launch day 11-22 (Desktop note Owner-adds-1122.md): the picks she sent as ShopMy links. Her CS-Pro pin at The Swank
-// Company (p-109140912) is on Camp Snap direct instead (her pin p-107929179; owner 11-22 chose the sale price + her code).
-const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-109143437", "p-109143698", "p-109144140", "p-109144450", "p-109145379", "p-109145823",
+// Launch day 11-22 (Desktop note Owner-adds-1122.md): the picks she sent as ShopMy links. Owner 11-22 PM ("Choose one"
+// Camp Snap): the Camp Snap 2 Chestnut stays; the CS-Pro (p-107929179) and the CS-8 Micro keychain (p-108611500) are off.
+const ADDS_1122_PINS = ["p-109140863", "p-109141448", "p-109143437", "p-109143698", "p-109144140", "p-109144450", "p-109145379", "p-109145823",
   // Batch 2.
   "p-109147879", "p-109152557", "p-109153848", "p-109153960", "p-109153910", "p-109153811", "p-109151082", "p-109154746",
   // Batch 2b: The Sleepy Tie, Foton candle, and her Lake Hydrangea set (in place of her Lake pin that is gone from Lake's site).
@@ -62,10 +62,12 @@ const POPULAR_1122_ASINS = ["B0GGTPW6Q9", "B0HJ9ZXCSD", "B0DWHDM15Q", "B0F41DGFX
 const ADDS_1122_ASINS = ["B0HKS18NW2", "B0C1YBPJ43", "B0F2937DQQ", "B09X3WGJ3R", "B0DQLLPYGM", "B0GP2R8TBS", "B0GZSMBDYZ"];
 // owner 11-22 screenshot list (builder-guide-adds-2): the creators' gift lists she sent ("Add these for her if we don't
 // have them yet"), each the same product as her picture (Desktop note Owner-adds-1122-screens.md), priced 2026-11-22.
-// Owner 2026-11-22 ("Keep only Oura"): B0H1N3TWP1, the Ultrahuman Ring PRO, came off again.
+// Owner 2026-11-22 ("Keep only Oura"): B0H1N3TWP1, the Ultrahuman Ring PRO, came off again. Owner 11-22 PM: the Mrs.
+// Meyer's spray (B000S5VEA2), Downy beads (B0FGDQ5BT9), JAANUU underscrub (B0F831FK2R), Stoggles (B0B22SZ3W8) and the
+// Comrad socks (p-103899561) came off.
 const SCREENS_1122_ASINS = ["B0030F32L6", "B0DKG9CMH8", "B0GSMJTZJJ", "B0D3V61JC8", "B0CSV71DJV", "B0D2LV7DHF", "B00PCQW4P6", "B0CFPJYX7P",
-  "B000S5VEA2", "B0FGDQ5BT9", "B0DN245D58", "B0HN76TWQ2", "B0C6XK77HJ", "B0D858S2H5", "B0BLWTQ7JC", "B0F831FK2R", "B0B22SZ3W8", "B0H69TGK2F", "B07CDF1RVV", "B0G618GK4S", "B09WG9R7MY"];
-const SCREENS_1122_PINS = ["p-103899561", "p-104053242", "p-103903056", "p-103891549", "p-107936463", "p-103882819", "p-107936513", "p-107936484", "p-107887741",
+  "B0DN245D58", "B0HN76TWQ2", "B0C6XK77HJ", "B0D858S2H5", "B0BLWTQ7JC", "B0H69TGK2F", "B07CDF1RVV", "B0G618GK4S", "B09WG9R7MY"];
+const SCREENS_1122_PINS = ["p-104053242", "p-103903056", "p-103891549", "p-107936463", "p-103882819", "p-107936513", "p-107936484", "p-107887741",
   // Links made in her ShopMy 11-22 (owner: "You can create the links"; Desktop note ShopMy-links-created-1122.md).
   "p-109201389", "p-109202100", "p-109201186", "p-109200757", "p-109201629", "p-109200363", "p-109205545", "p-109205223",
   // Her Anthropologie Capri Blue Volcano Capiz Jar pin (11-19).
@@ -81,9 +83,9 @@ const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.c
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 151 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(151);
-    expect(page.length).toBe(151);
+  it("the page holds exactly her 144 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(144);
+    expect(page.length).toBe(144);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
@@ -103,9 +105,9 @@ describe("For Her = the owner's saves (11-21)", () => {
     const seen = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     const prices = page.map((p) => seen.get(p.href) as number);
     expect(prices).toEqual([...prices].sort((a, b) => a - b));
-    // The cheapest is the Mrs. Meyer's spray ($4.33, the 11-22 screenshot list), then the eye gel ($4.77).
-    expect(page[0].name).toMatch(/^Mrs\. Meyer's/);
-    expect(page[1].name).toMatch(/eye gel/i);
+    // The cheapest is the eye gel ($4.77; the Mrs. Meyer's spray came off, owner 11-22 PM), then the YUDSUD leggings ($6.64).
+    expect(page[0].name).toMatch(/eye gel/i);
+    expect(page[1].name).toMatch(/^YUDSUD/);
     expect(page[page.length - 1].name).toMatch(/currentbody/i);
     // The module sorts by itself: fed in reverse, it still lists cheapest first.
     const again = her1121Picks([...HER_ROWS].reverse()).map((p) => seen.get(p.href) as number);
@@ -119,8 +121,8 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(78);
-    expect(shopmy.length).toBe(73);
+    expect(amazon.length).toBe(74);
+    expect(shopmy.length).toBe(70);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

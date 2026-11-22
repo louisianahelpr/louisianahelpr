@@ -240,7 +240,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // builder-guide-her4 block 2 (11-22): 10 Amazon picks from her screenshots (HydroJugs, She's Birdie, CRZ YOGA pants
       // and bra, Lemon Grace cards, Bose QC Ultra Earbuds, two personalized bags, YETI Daytrip lunch bag).
       // Batch 2 (11-22): vest, sweatshirt, sherpa, Kitsch, HydroJug tortoise, gift bags and tags, card holder, pouch.
-      her: { "Under $25": 45, "$25 to $50": 45, "$50 to $75": 10, "$75 to $100": 14, "$100 and up": 37 },
+      // Owner 11-22 PM (builder-guide-emibauble): Her lost Mrs. Meyer's and Downy (under $25), Comrad, JAANUU, Stoggles and
+      // the CS-8 Micro ($25-$50) and the CS-Pro ($79).
+      her: { "Under $25": 43, "$25 to $50": 41, "$50 to $75": 10, "$75 to $100": 13, "$100 and up": 37 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

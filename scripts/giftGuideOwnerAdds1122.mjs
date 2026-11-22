@@ -13,6 +13,8 @@
  *   waitlist). She said add it now at $289 with a short "Back Dec 1" note (`backOn`; the chip hides on that day).
  * - Kate McLeod Daily Stone (p-109144875, The Sleep Code): sold out there, and katemcleod.com pays nothing in her data,
  *   so it waits for The Sleep Code to restock.
+ * - Camp Snap "Choose one" (owner 11-22 PM, builder-guide-emibauble): Her keeps the Camp Snap 2 in Chestnut; the CS-Pro
+ *   (p-107929179, $79) and the CS-8 Micro keychain (scripts/giftGuideHer1121.mjs) are off Her.
  * Guard: src/test/giftGuideOwnerAdds1122.test.ts.
  */
 const shopmy = (pin) => `https://go.shopmy.us/${pin}`;
@@ -39,7 +41,6 @@ const CAMP_SNAP_CODE = "LEXILOMBAS7";
 /** For Her (owner via the lead, 11-22: "all ... go on the HER guide"). */
 export const HER_ADDS_1122 = [
   { name: "Camp Snap 2 Screen-Free Camera, Chestnut", brand: "Camp Snap", line: "A screen-free digital camera that shoots like film.", href: shopmy("p-109140863"), image: "https://static.shopmy.us/pins/zoom-109140863-1795365634530-CS2Chestnut.jpg", store: "store-camp-snap", sortPrice: 59.99, price: 59.99, commission: 10, type: "camera", code: CAMP_SNAP_CODE },
-  { name: "Camp Snap CS-Pro Digital Camera", brand: "Camp Snap", line: "A retro-look digital camera with a built-in flash.", href: shopmy("p-107929179"), image: "https://static.shopmy.us/uploads/pretty-prod-1794572274203", store: "store-camp-snap", sortPrice: 79, price: 79, commission: 10, type: "camera", code: CAMP_SNAP_CODE },
   { name: "Camp Snap CS-8 Digital Video Camcorder, Classic", brand: "Camp Snap", line: "A Super 8-style camcorder for vintage-look home movies.", href: shopmy("p-109141448"), image: "https://static.shopmy.us/pins/zoom-109141448-1795365699492-CS2Black_cs.jpg", store: "store-camp-snap", sortPrice: 159, price: 159, commission: 10, type: "camcorder", code: CAMP_SNAP_CODE },
   { name: "Sleep Crown Classic Pillow, White Silk and Bamboo", brand: "Sleep Crown", line: "An over-the-head pillow that blocks out light and sound.", href: shopmy("p-109143437"), image: "https://static.shopmy.us/pins/zoom-109143437-1795365959725-sophiaduet_classic.jpg", store: "store-sleep-crown", sortPrice: 289, price: 289, commission: 10, type: "pillow", backOn: "2026-12-01" },
   { name: "Crown Affair The Towel, White", brand: "Crown Affair", line: "A soft waffle hair towel that dries hair gently.", href: shopmy("p-109143698"), image: "https://static.shopmy.us/pins/zoom-109143698-1795365996438-TheTowelWhite-Grey01_ALLURE_1.png", store: "store-crown-affair", sortPrice: 59, price: 59, commission: 15, type: "hair-towel" },

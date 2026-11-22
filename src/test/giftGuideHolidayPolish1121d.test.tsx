@@ -161,7 +161,10 @@ describe("owner 11-21: codes and sales are photo cards", () => {
     // Guides polish 1122 #14: no tinted name tile; the store's name is the card's own heading link.
     expect(container.querySelector("[data-gift-store-photo]")).toBeNull();
     expect(container.querySelector(".gg-deal-photo")).toBeNull();
-    expect(container.querySelector("[data-gift-code-shop]")?.textContent).toBe("A store we have no photo for");
+    // Its visible words are the store's name; the polish audit 1122 #20 sr-only note says the link opens a new tab.
+    const name = container.querySelector("[data-gift-code-shop]");
+    expect(name?.firstChild?.textContent).toBe("A store we have no photo for");
+    expect(name?.querySelector(".sr-only")?.textContent).toContain("new tab");
   });
 });
 

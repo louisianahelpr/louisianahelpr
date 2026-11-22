@@ -33,6 +33,7 @@ import { pickPriceShown } from "@/lib/pickPriceShown.mjs";
 import { cleanCodes, cleanOffer, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
 import { DEAL_CODES, SALES } from "@/content/giftGuidePicks";
 import { discountCodes } from "@/content/giftGuides";
+import { storePhoto } from "@/content/giftGuideStorePhotos";
 import { DEALS_WORDS, dealDay } from "@/content/giftGuideDeals.mjs";
 import { CodeCards, SaleCards, codesOn, salesOn } from "@/pages/info/giftGuides/GiftGuideDealCards";
 import { GiftGuideTools } from "@/pages/info/giftGuides/GiftGuideShare";
@@ -194,11 +195,20 @@ describe("holiday audit 1121 #80 and #81: deals copy claims and code links", () 
     const { container } = render(<MemoryRouter><CodeCards codes={codesOn("2026-11-22")} /></MemoryRouter>);
     const boxes = [...container.querySelectorAll("[data-gift-code-store]")];
     expect(boxes.length).toBeGreaterThan(5);
+    let photos = 0;
     for (const b of boxes) {
-      expect(b.querySelector("[data-gift-code-shop]"), b.getAttribute("data-gift-code-store") ?? "").not.toBeNull();
-      // Polish audit 1122 #20: no arrow icon; the store's name and photo both open its site.
+      const store = b.getAttribute("data-gift-code-store") ?? "";
+      expect(b.querySelector("[data-gift-code-shop]"), store).not.toBeNull();
+      // Polish audit 1122 #20: no arrow icon; the store's name and photo both open its site. Guides polish 1122 #14: a
+      // store we have no photo for (Keurig) has no photo tile at all, so only its name links.
       expect(b.querySelector("[data-gift-open-site]")).toBeNull();
-      expect(b.querySelector("a.gg-deal-photo")?.getAttribute("href"), b.getAttribute("data-gift-code-store") ?? "").toBe(b.querySelector("[data-gift-code-shop]")?.getAttribute("href"));
+      const photo = b.querySelector("a.gg-deal-photo");
+      expect(photo !== null, store).toBe(storePhoto(store) !== null);
+      if (photo) {
+        photos++;
+        expect(photo.getAttribute("href"), store).toBe(b.querySelector("[data-gift-code-shop]")?.getAttribute("href"));
+      }
     }
+    expect(photos).toBeGreaterThan(3);
   });
 });

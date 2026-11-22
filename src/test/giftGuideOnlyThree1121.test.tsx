@@ -222,9 +222,10 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       ["Cyber Monday", "/gift-guides/cyber-monday"],
     ]);
     expect(group("[data-gift-side-printables-group]")).toEqual([
-      ["Gift tags", `${PRINTABLES}#pr-tags`], ["Coloring books", `${PRINTABLES}#pr-coloring`], ["Banners", `${PRINTABLES}#pr-banners`],
+      ["Gift tags", `${PRINTABLES}?show=tags`], ["Coloring books", `${PRINTABLES}?show=coloring`], ["Banners", `${PRINTABLES}?show=banners`],
     ]);
-    expect(group("[data-gift-side-more]")).toEqual([["Holiday Hub", "/holidays"], ["25 Days sponsors", `/gift-guides/${SPONSORS}`], ["Shop Small", "/shop-small"]]);
+    // Owner 11-21: "remove shop small here, it's already listed with small business saturday".
+    expect(group("[data-gift-side-more]")).toEqual([["Holiday Hub", "/holidays"], ["25 Days sponsors", `/gift-guides/${SPONSORS}`]]);
     expect([...container.querySelectorAll("[data-gift-side-tools] a")].map((a) => a.getAttribute("href"))).toEqual(["/gift-guides#gift-finder", ...TOOLS]);
     // The free printables show only what is ready (the gift tags and, owner 11-21 "boys coloring pages are ready for
     // site", the coloring book; owner 11-21 "add this to the free printables", the Thanksgiving banner), never the elf kit.
@@ -232,7 +233,7 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     // Codes and sales live only on the deals page; the deleted Gift of the Day and the retired strips stay gone.
     expect(container.querySelector("[data-gift-top], [data-gift-countdown], [data-gift-of-the-day], [data-gift-deals-codes], [data-gift-codes], [data-gift-sales], [data-gift-entries], [data-gift-more-groups]")).toBeNull();
     // No link anywhere on the landing to a retired guide.
-    const hrefs = [...container.querySelectorAll<HTMLAnchorElement>("a[href^='/gift-guides/']")].map((a) => a.getAttribute("href")!.slice("/gift-guides/".length).split("#")[0]);
+    const hrefs = [...container.querySelectorAll<HTMLAnchorElement>("a[href^='/gift-guides/']")].map((a) => a.getAttribute("href")!.slice("/gift-guides/".length).split(/[#?]/)[0]);
     expect(hrefs.length).toBeGreaterThan(2);
     const pages = ["my-list", ...DEAL_DAY_SLUGS, ...[...TOOLS, PRINTABLES].map((t) => t.slice("/gift-guides/".length))];
     for (const h of hrefs) expect([...LIVE, SPONSORS, ...pages], h).toContain(h);

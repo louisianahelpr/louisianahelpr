@@ -227,7 +227,8 @@ describe("/shop-small is never empty and sits in the guides' frame (holiday audi
     const { container } = render(<MemoryRouter><ShopSmall /></MemoryRouter>);
     expect([...container.querySelectorAll("h1")].map((h) => h.textContent)).toEqual([SBS_WORDS.pageTitle]);
     expect(container.querySelector("[data-gift-headrow] [data-gift-search-button]")).not.toBeNull();
-    expect([...container.querySelectorAll('[data-gift-sidebar] a[aria-current="page"]')].map((a) => a.getAttribute("href"))).toEqual(["/shop-small"]);
+    // Owner 11-21: Shop Small left the menu ("it's already listed with small business saturday"), so nothing is current.
+    expect([...container.querySelectorAll('[data-gift-sidebar] a[aria-current="page"]')].map((a) => a.getAttribute("href"))).toEqual([]);
     expect(container.querySelector("[data-shop-small-sponsors] h2")?.textContent).toBe(SBS_WORDS.pageSponsorsTitle);
     await waitFor(() => expect(container.querySelectorAll("[data-shop-small-sponsors] [data-gift-sb-grid] > li").length).toBeGreaterThan(30));
     // No affiliate link on this page, so no affiliate disclosure.

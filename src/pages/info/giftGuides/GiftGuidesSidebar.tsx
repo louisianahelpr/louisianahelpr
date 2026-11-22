@@ -18,11 +18,11 @@ const SIDE_GUIDES = [
   { slug: "kids", dot: "red" },
 ] as const;
 
-/** The free printables the menu links into (anchors on the printables page), each only while it is shown. */
+/** The free printables the menu links to (the printables page showing only that part, at its top), each only while it is shown. */
 const SIDE_PRINTABLES = [
-  { id: "gift-tags", anchor: "pr-tags", label: "Gift tags" },
-  { id: "coloring-book", anchor: "pr-coloring", label: "Coloring books" },
-  { id: "thanksgiving-banner", anchor: "pr-banners", label: "Banners" },
+  { id: "gift-tags", show: "tags", label: "Gift tags" },
+  { id: "coloring-book", show: "coloring", label: "Coloring books" },
+  { id: "thanksgiving-banner", show: "banners", label: "Banners" },
 ] as const;
 
 /**
@@ -33,7 +33,8 @@ const SIDE_PRINTABLES = [
  *   DEALS: Black Friday, Small Business Saturday, Cyber Monday (the deals page's day sections);
  *   FREE PRINTABLES: Gift tags, Coloring books, Banners (sections of the printables page, while each is shown);
  *   MAKE IT FUN: the gift finder and the fun tools;
- *   LOUISIANA: Holiday Hub, 25 Days sponsors, Shop Small.
+ *   LOUISIANA: Holiday Hub, 25 Days sponsors (owner 11-21: Shop Small left: "it's already listed with small business
+ *   saturday"; /shop-small opens that page).
  * A 220px sticky menu beside the page on desktop. On a phone (owner 11-21: "We need a way to organize this on the
  * phones") the sidebar is hidden and the same groups open in a bottom sheet from the chip row (GiftGuidesPhoneNav).
  */
@@ -89,7 +90,7 @@ export function GiftGuidesMenu({ active, myList = false, page, idPrefix = "gg-si
         <>
           <p className="gg-side-h" id={`${idPrefix}-free`}>{G.sideHeads.free}</p>
           <ul data-gift-side-printables-group="" aria-labelledby={`${idPrefix}-free`}>
-            {printables.map((p) => <li key={p.id}><Link to={`${PRINTABLES_PATH}#${p.anchor}`} data-gift-side-printables={p.id}>{p.label}</Link></li>)}
+            {printables.map((p) => <li key={p.id}><Link to={`${PRINTABLES_PATH}?show=${p.show}`} data-gift-side-printables={p.id}>{p.label}</Link></li>)}
           </ul>
         </>
       )}
@@ -104,7 +105,6 @@ export function GiftGuidesMenu({ active, myList = false, page, idPrefix = "gg-si
       <ul data-gift-side-more="" aria-labelledby={`${idPrefix}-la`}>
         <li><Link to="/holidays" data-gift-side-holiday-hub="">{G.sideHolidayHub}</Link></li>
         <li><Link to={`/gift-guides/${SPONSORS_SLUG}`} {...current(SPONSORS_SLUG)} data-gift-side-sponsors="">{G.sideSponsorsLabel}</Link></li>
-        <li><Link to="/shop-small" {...current("/shop-small")} data-gift-side-shop-small="">{G.sideShopSmall}</Link></li>
       </ul>
     </>
   );

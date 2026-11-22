@@ -378,4 +378,23 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-sec-chev{flex:none;color:var(--gg-muted);transition:transform .15s}
 .gg-sec-toggle[aria-expanded="true"] .gg-sec-chev{transform:rotate(180deg)}
 .gg-sec-toggle-h+.gg-list{margin-top:8px}
+/* The sponsors page's Filter panel (owner 11-21): section links and price limits, 44px rows. */
+.gg-filter-panel{min-width:240px;max-height:70vh;overflow-y:auto}
+.gg-filter-group{display:flex;flex-direction:column}
+.gg-filter-group+.gg-filter-group{border-top:1px solid var(--gg-line);margin-top:4px;padding-top:4px}
+.gg-filter-h{padding:8px 12px 2px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gg-muted)}
+/* Owner 11-21 (guide and deal-day banners): "the arches and letters are just small and squished together" and "add like
+   some effect so it doesn't look flat": same design, larger airy type centred in a slightly larger arch, and a printed-
+   card depth: a soft shadow under the card, a faint inner vignette on the gingham, the arch raised off it, and the
+   covers' thin gold inner arch line. */
+.gg-banner{position:relative;height:216px;box-shadow:0 2px 10px rgba(0,0,0,.10)}
+.gg-banner::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 28px rgba(60,40,20,.14);pointer-events:none}
+.gg-arch{position:relative;width:min(520px,74%);padding:42px 22px 16px;box-shadow:0 -3px 14px rgba(60,40,20,.12),0 0 0 7px rgba(255,253,247,.85)}
+.gg-arch::before{content:"";position:absolute;inset:9px 9px 0;border:1px solid rgba(176,141,87,.75);border-bottom:0;border-radius:999px 999px 0 0;pointer-events:none}
+.gg-banner .gg-lead{font-size:26px;line-height:1.15;margin:0 0 14px}
+.gg-banner h1{font-size:46px;line-height:1.1}
+@media (min-width:768px) and (max-width:1023px){.gg-banner{height:196px}.gg-banner .gg-lead{font-size:22px}.gg-banner h1{font-size:38px}}
+@media (max-width:767px){.gg-banner{height:136px;padding-top:10px}.gg-arch{width:min(300px,80%);padding:20px 10px 8px;box-shadow:0 -2px 10px rgba(60,40,20,.12),0 0 0 5px rgba(255,253,247,.85)}.gg-arch::before{inset:6px 6px 0}.gg-banner .gg-lead{font-size:17px;margin-bottom:8px}.gg-banner h1{font-size:clamp(22px,7.5vw,30px);-webkit-line-clamp:2}}
+/* Dark mode: the arch stays cream, so its "gifts for" keeps the cover brown (the later .gg-words dark rule turned it near-white, 11-21). */
+:root[data-theme="dark"] .gg-words .gg-banner .gg-lead{color:#6b5a48}
 `;

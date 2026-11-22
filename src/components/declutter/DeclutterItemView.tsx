@@ -186,7 +186,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // One gate for the item and its photos: the gallery paints once, never a placeholder that pops into a photo.
   if (item.isLoading || photos.isLoading) return <DeclutterItemSkeleton />;
   if (item.isError || !item.data) {
-    return <DeclutterItemUnavailable detail={item.isError ? declutterErrorMessage(item.error) : undefined} top={item.isError ? null : <SoldItemCard itemId={itemId} />} more={<NewestItemsRow viewerId={user?.id ?? null} />} />;
+    // Deep audit 11-22 #19: a failed read is "couldn't load" with Try again, never "No longer available".
+    return <DeclutterItemUnavailable detail={item.isError ? declutterErrorMessage(item.error) : undefined} onRetry={item.isError ? () => void item.refetch() : undefined}
+      top={item.isError ? null : <SoldItemCard itemId={itemId} />} more={<NewestItemsRow viewerId={user?.id ?? null} />} />;
   }
   const it = item.data;
   // Owner 11-20 #7: the title as shown (smart title case); the stored title and its share text are the seller's own.

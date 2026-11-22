@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchMyActiveStrikeReasons, fetchMyActiveStrikes, fetchMyCart, fetchMyOffers } from "@/lib/declutter/api";
 import { strikeReasonWords } from "@/lib/declutter/strikeReasons";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { declutterTodo, type DeclutterTodo } from "@/lib/declutter/tabs";
 import { DeclutterNotice } from "./declutterUi";
 import { t } from "@/lib/i18n/language";
@@ -80,7 +81,7 @@ export function StrikeCount({ userId, full = true, pausedOnly = false }: { userI
 /** Each active strike's reason and the day it goes away (deep audit 11-22 #40). */
 function StrikeReasons({ userId }: { userId: string }) {
   const rows = useQuery({ queryKey: ["declutter", "strikes", userId, "reasons"], queryFn: () => fetchMyActiveStrikeReasons(userId) });
-  if (rows.isError) return <p className="text-muted-foreground" data-strike-reasons-failed="">{t("dsl.strike.whyFailed")}</p>;
+  if (rows.isError) return <ErrorState variant="inline" title={t("dsl.strike.whyFailed")} onRetry={() => void rows.refetch()} />;
   if (!rows.data?.length) return null;
   return (
     <ul className="my-1 list-disc space-y-0.5 pl-5" data-strike-reasons="">

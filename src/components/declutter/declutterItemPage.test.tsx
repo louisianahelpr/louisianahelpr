@@ -64,6 +64,8 @@ const state = {
   soldReads: 0,
   buys: 0,
   item: null as unknown,
+  /** Deep audit 11-22 #19: the item read fails (a server hiccup), as opposed to an item that is gone. */
+  itemFails: false,
   photos: [] as unknown[],
   rating: { avg: 4.8, count: 12 } as { avg: number; count: number } | null,
   /** F359d: the seller's completed pickups (declutter_seller_pickup_count). */
@@ -165,7 +167,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchSellerLiveCount: async () => state.liveCount,
     fetchNewestItems: async () => state.newest,
     fetchSoldItemCard: async () => { state.soldReads++; return state.sold; },
-    fetchItem: async () => state.item,
+    fetchItem: async () => { if (state.itemFails) throw new Error("upstream 503"); return state.item; },
     fetchItemHandovers: async () => state.handovers,
     fetchItemDropState: async () => { state.reads++; return state.drop; },
     fetchManageState: async () => { state.reads++; state.manageReads++; return state.manage; },
@@ -979,6 +981,27 @@ describe("the photo-first Declutter item page", () => {
     guest.open = [];
     open();
     expect(await screen.findByText("LOGIN WALL")).toBeInTheDocument();
+  });
+
+  // Deep audit 11-22 #19: a failed load said "No longer available" with no Try again; a buyer from a Facebook link
+  // during a short hiccup was told the item was gone. A failed read says it couldn't load, with Try again that reads
+  // again; an item that is really gone keeps "No longer available".
+  // @mutate src/components/declutter/DeclutterItemView.tsx | onRetry={item.isError ? () => void item.refetch() : undefined} | onRetry={undefined}
+  it("#19: a failed load says we couldn't load it, with Try again; never No longer available", async () => {
+    state.item = { ...ITEM };
+    state.itemFails = true;
+    try {
+      open();
+      expect(await screen.findByText("We couldn't load this item.")).toBeInTheDocument();
+      expect(screen.queryByText("No longer available.")).toBeNull();
+      expect(screen.getByText(/Something went wrong on our end/)).toBeInTheDocument();
+      state.itemFails = false;
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+      await waitFor(() => expect(screen.queryByText("We couldn't load this item.")).toBeNull());
+      expect((await screen.findAllByText(/Oak Rocking Chair|Oak rocking chair/)).length).toBeGreaterThan(0);
+    } finally {
+      state.itemFails = false;
+    }
   });
 
   // F061 (UI audit 11-09): a sold or taken-down item was a notice, one button and a blank page.

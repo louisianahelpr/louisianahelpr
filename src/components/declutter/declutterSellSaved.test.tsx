@@ -11,7 +11,9 @@
  * @mutate src/components/declutter/useSellSaved.ts |     warn: hasWork && !finished.current, |     warn: false,
  * @mutate src/components/declutter/useSellSaved.ts |           if (!row) draftId = null; |           void row;
  * @mutate src/components/declutter/useSellFlowState.ts |     if (!urlItemId && startsFree(params) && !back.form.free) { |     if (false) {
- * @mutate src/components/declutter/useSellFlowState.ts |       setFreeOrDraft(null);\n      bringBack(back); |       setFreeOrDraft(null);
+ * @mutate src/components/declutter/useSellFlowState.ts |       setFreeOrDraft(null);\n      keptWork.release();\n      bringBack(back); |       setFreeOrDraft(null);\n      keptWork.release();
+ * @mutate src/components/declutter/useSellFlowState.ts |       return "hold"; |       return;
+ * @mutate src/components/declutter/useDeviceSaved.ts |     if (!ready.current \|\| held.current \|\| !userId) return Promise.resolve(); |     if (!ready.current \|\| !userId) return Promise.resolve();
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -297,6 +299,22 @@ describe("a new listing is kept on this device", () => {
     fireEvent.click(screen.getByRole("button", { name: "Start a free listing" }));
     expect(screen.queryByText("Start a free listing or continue your draft?")).toBeNull();
     expect(rowValue("title")).not.toBe("Grandma's dresser");
+  });
+
+  // Deep audit 11-22 #52: opening "Give it away" and leaving without choosing deleted the priced kept draft (the empty
+  // free form's save ran while the question was still open and cleared what was kept).
+  it("Give away free, then leaving without choosing, keeps the priced draft", async () => {
+    await startAndEdit();
+    cleanup();
+    open("/declutter/sell?free=1");
+    await screen.findByText("Start a free listing or continue your draft?");
+    // Past the save delay, and the screen going away saves too: neither may touch the kept draft.
+    await new Promise((r) => setTimeout(r, 700));
+    cleanup();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(savedMeta()?.form.title).toBe("Grandma's dresser");
+    open();
+    await waitFor(() => expect(rowValue("title")).toBe("Grandma's dresser"));
   });
 
   it("Start over clears it and gives a fresh form", async () => {

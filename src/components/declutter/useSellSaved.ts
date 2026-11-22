@@ -37,7 +37,8 @@ export function useSellSaved(
   userId: string | undefined,
   work: SellOneWork,
   held: File[],
-  onRestore: (back: SellOneWork & { held: File[] }) => void,
+  /** Returns `"hold"` to keep saving off until `release()` (the seller is still choosing what to open). */
+  onRestore: (back: SellOneWork & { held: File[] }) => void | "hold",
 ) {
   const keys = useRef(new WeakMap<File, string>());
   const nextKey = useRef(0);
@@ -54,7 +55,7 @@ export function useSellSaved(
   const finished = useRef(false);
   const { form, coords, ways, windows, keepUpWanted, autoFreeWanted, createdId } = work;
   const hasWork = photos.length > 0 || !!createdId || !!form.title.trim() || !!form.description.trim() || !!form.price.trim();
-  const { note, flush, clearSaved } = useDeviceSaved<SellOneWork & { photos: BunchPhoto[] }, SavedSellOne>({
+  const { note, flush, clearSaved, release } = useDeviceSaved<SellOneWork & { photos: BunchPhoto[] }, SavedSellOne>({
     store,
     userId,
     snapshot: { ...work, photos },
@@ -82,7 +83,7 @@ export function useSellSaved(
       if (stale()) return;
       back.forEach((p) => keys.current.set(p.file, p.key));
       setRestored(true);
-      onRestore({
+      return onRestore({
         form: saved.form,
         coords: saved.coords,
         ways: saved.ways,
@@ -106,5 +107,5 @@ export function useSellSaved(
   }, [clearSaved]);
 
   // `saveNow`: a guest's "Create your free account" waits for the listing to be on the device before leaving (guestSellDraft.ts).
-  return { note, restored, dismissRestored: () => setRestored(false), finish, saveNow: flush };
+  return { note, restored, dismissRestored: () => setRestored(false), finish, saveNow: flush, release };
 }

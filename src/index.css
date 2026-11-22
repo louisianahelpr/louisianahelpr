@@ -2137,6 +2137,13 @@ html.dock-yield .mobile-nav-frame,
 html.dock-yield .mobile-nav-frame * {
   transition: none !important;
 }
+/* Deep audit 11-22 #18: a guest's public page has no dock but the site footer, and a flush fixed bar (an item page's
+   Make offer / Buy now) covered the footer's English / Español buttons at the end of the page, so neither could be
+   tapped. While such a bar shows (the same dock-yield class), the footer keeps the bar's height (StickyActionBar's
+   64px + the safe area) clear under its last line. Guard: src/test/stickyBarClearsFooter.test.ts. */
+html.dock-yield footer[data-site-footer] {
+  padding-bottom: calc(64px + var(--safe-area-bottom, 0px));
+}
 
 /* Q303: StrikeBanner is z-[59] so it stays above the fixed page chrome, which
    also put it above every modal backdrop (dialog/sheet overlays are z-50): on

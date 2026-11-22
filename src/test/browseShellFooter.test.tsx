@@ -65,7 +65,7 @@ describe("/browse's raw HTML draws the app's own Footer", () => {
     expect(html).toContain(`src="${EMBLEM.src}" srcset="${EMBLEM.srcset}" sizes="40px"`);
     expect(html).toContain("© <!-- -->2026<!-- --> Louisiana Helpr");
     expect(html).not.toContain("__");
-    expect(html.startsWith('<footer aria-hidden="true" inert="" class="px-5')).toBe(true);
+    expect(html.startsWith('<footer aria-hidden="true" inert="" data-site-footer="" class="px-5')).toBe(true); // #18: the site footer's marker
     expect(shellFooterHtml(EMBLEM, Date.parse("2027-01-01T03:00:00Z"))).toContain("© <!-- -->2026<!-- --> "); // still Dec 31 in Louisiana
     // No emblem file known (no preload tag): neither the nav mark nor the footer is drawn.
     expect(browseShellHtml([ROW], NOW, null)).not.toContain("<footer");

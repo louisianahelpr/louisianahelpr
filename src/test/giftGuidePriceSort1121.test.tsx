@@ -210,7 +210,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Foton and Astercook knives ($30-$37), Astercook pans ($57), CASABREWS, Lake, BISSELL, eto, Ozlo ($112-$237); Him +
       // Battery Daddy ($20); Kids + both Yoto bundles ($164, $166).
       kids: { "Under $25": 33, "$25 to $50": 21, "$50 to $75": 8, "$75 to $100": 5, "$100 and up": 19 },
-      her: { "Under $25": 22, "$25 to $50": 23, "$50 to $75": 5, "$75 to $100": 4, "$100 and up": 19 },
+      // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
+      her: { "Under $25": 23, "$25 to $50": 23, "$50 to $75": 5, "$75 to $100": 7, "$100 and up": 21 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

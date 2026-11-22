@@ -108,9 +108,12 @@ describe("the planner's polish (page)", () => {
     expect(d.textContent).toContain(W.plannerRemoveBody("Mom", 2));
     fireEvent.click([...d.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === W.plannerRemoveKeep)!);
     expect(c.querySelector(`[data-plan-person="${mom}"]`)).not.toBeNull();
+    const cards = c.querySelectorAll("[data-plan-person]").length;
     d = await ask();
     fireEvent.click([...d.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === W.plannerRemovePerson("Mom"))!);
-    await waitFor(() => expect(c.querySelector(`[data-plan-person="${mom}"]`)).toBeNull());
+    // Wait for the removal itself (one card fewer), never for an absence the first paint already has (waitForEmptyIsVacuous).
+    await waitFor(() => expect(c.querySelectorAll("[data-plan-person]")).toHaveLength(cards - 1));
+    expect(c.querySelector(`[data-plan-person="${mom}"]`)).toBeNull();
   });
 
   it("the alerts card: title, line, email, ONE consent box inside its own label (unticked), the unsubscribe line, the button", async () => {

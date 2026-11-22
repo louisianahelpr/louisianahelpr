@@ -90,7 +90,7 @@ export function PriceAlertsOptIn() {
       <p className="gg-alerts-lead">{W.lead}</p>
       <Input type="email" inputMode="email" autoComplete="email" aria-label={W.email} placeholder={W.email} value={typed} maxLength={254}
         onChange={(e) => setEmail(e.target.value)} data-price-alerts-email="" />
-      <label className="gg-alerts-consent" htmlFor={`${ids}-c`}>
+      <label className="gg-alerts-consent min-h-11" htmlFor={`${ids}-c`}>
         <Checkbox id={`${ids}-c`} checked={consent} onCheckedChange={(v) => setConsent(v === true)} data-price-alerts-consent="" />
         <span>{W.consent}</span>
       </label>

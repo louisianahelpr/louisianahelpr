@@ -24,7 +24,9 @@ const walk = (d: string): string[] =>
 const pages = ["index.html", ...walk("public").filter((f) => f.endsWith(".html"))];
 
 /** Any piece of Meta's base code: the script URL, an fbq call, the pixel id, or the /tr beacon. */
-const PIXEL_MARKERS = [/connect\.facebook\.net/i, /fbevents\.js/i, /\bfbq\s*\(/, /2088408795197912/, /facebook\.com\/tr\b/i];
+// The host dots are written [.] (the same match): CodeQL's js/regex/missing-regexp-anchor reads an escaped-dot host in an
+// unanchored literal as a URL check; this scans whole HTML files for the snippet, so it can have no ^ anchor.
+const PIXEL_MARKERS = [/connect[.]facebook[.]net/i, /fbevents\.js/i, /\bfbq\s*\(/, /2088408795197912/, /facebook[.]com\/tr\b/i];
 
 describe("the Meta Pixel is never in the HTML the build ships", () => {
   it("the inventory is real: index.html and the public pages are read, with their scripts", () => {

@@ -17,7 +17,7 @@ export const FLING_MIN = 24;
 /** How much recent movement the flick speed reads (ms). */
 export const FLING_WINDOW = 100;
 /** Degrees of tilt at a drag of one card width. */
-export const TILT_PER_WIDTH = 14;
+const TILT_PER_WIDTH = 14;
 /** A press that moves less than this (px) is a tap (it opens the card's details). */
 export const TAP_SLOP = 6;
 /** A card narrower than this (or not laid out yet) is measured as this wide. */

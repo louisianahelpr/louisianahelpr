@@ -8,7 +8,9 @@
  * Photos (audit DC-8 / Q2476, migration 20261030061927): added and removed here with the sell form's own photo grid
  * (SellPhotos), held on the device until Save; a photo change follows the big-change rule above. New photos go up
  * before removed ones come off, so swapping the only photo never trips the one-photo minimum. Title, description,
- * category, condition and size use the sell form's own editors (the input style, ChipGroup), not native selects.
+ * condition and size use the sell form's own editors (the input style, ChipGroup), not native selects; the category uses
+ * the sell form's CategoryDrillDown and the description is called "Details", as on the sell form (audit 1122 #54).
+ * Every field saves with the one Save button.
  * The tax checkbox is ticked again on every edit (owner 2026-10-29; the server refuses without it). Price stays under
  * "Change price".
  */
@@ -25,9 +27,10 @@ import {
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { report } from "@/lib/errorLogger";
 import { FULL_LISTING_COPY, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
-import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL, TaxStatementsCheck } from "./declutterUi";
+import { CATEGORY_GROUPS, CONDITION_LABEL, SIZE_LABEL, TaxStatementsCheck } from "./declutterUi";
 import { SuggestCategory } from "@/components/SuggestCategory";
 import { ChipGroup } from "./DeclutterSellSteps";
+import { CategoryDrillDown } from "./CategoryDrillDown";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { FieldLabel, SELL_INPUT } from "./SellFormParts";
 import { SellHandoverChoices } from "./SellHandoverChoices";
@@ -49,7 +52,7 @@ export const EDIT_SAVED = {
 /** What the screen says before saving: which rule the change follows (the server decides). */
 export const EDIT_RULE = {
   checked: "A new photo, title, description or category gets a quick automatic check, so it's hidden for a few seconds. Buyers with open offers are told it changed.",
-  instant: "Condition, size and how buyers get it save at once. It stays up and offers stay open.",
+  instant: "Condition, size and how buyers get it need no check. It stays up and offers stay open.",
 } as const;
 
 /** The words saved but a photo step failed (audit 11-20 night #1). */
@@ -148,7 +151,8 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
         <FieldLabel htmlFor="edit-description" text={t("lp.ed.description")} />
         <Textarea id="edit-description" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
-      <ChipGroup label={t("lp.ed.category")} options={Object.keys(CATEGORY_LABEL).map((k) => ({ value: k, label: t(`decl.cat.${k}` as MsgKey) }))} groups={CATEGORY_GROUPS} value={category} onChange={setCategory} />
+      {/* Audit 1122 #54: the sell form's own category picker (search, headings, then the category), not a wall of chips. */}
+      <CategoryDrillDown label={t("lp.ed.category")} groups={CATEGORY_GROUPS} value={category} onChange={setCategory} />
       {/* I1 (Q1836 a): same link as the sell forms. */}
       <SuggestCategory area="declutter" />
       <ChipGroup label={t("lp.ed.condition")} options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] ? t(`decl.cond.${n}` as MsgKey) : String(n) }))} value={String(condition)} onChange={(v) => setCondition(Number(v))} />

@@ -36,6 +36,8 @@ cut.WHITE_MIN = 250
 cut.WHITE_RING = 0.97
 # Photos cut out and served from our own folder even when on white: the store's CDN answers a browser's request with a
 # 404 (MAC's Shopify file 404s for an Accept header listing avif/webp, 200 for a plain request; measured 2026-11-21).
+# Longest side of the resized copy of an on-white photo; the card shows it at 200 px, so 400 covers a 2x screen.
+SMALL_PX = 400
 FORCE = {"https://cdn.shopify.com/s/files/1/0774/8481/8690/files/mac_sku_M0N916_1x1_0_44fa46a9-7e37-4923-a4f8-de22757a00bb.png"}
 
 
@@ -47,6 +49,8 @@ def main():
     tmp = os.path.join(cut.CACHE, "tmp-deals")
     os.makedirs(tmp, exist_ok=True)
     cutouts, skipped, review, args, batch = {}, {}, [], [], []
+    if "--keep-existing" in sys.argv:  # only add the resized on-white copies; leave the Vision cutouts as they are
+        cutouts = json.load(open(MANIFEST, encoding="utf8"))["cutouts"]
     for d in deals:
         u = d.get("image") or ""
         if not u.startswith("https://") or u in cutouts or u in skipped:
@@ -65,7 +69,17 @@ def main():
             skipped[u] = "unreadable"
             continue
         if cut.on_white(img) and u not in FORCE:
-            skipped[u] = "already on white"
+            # Already on white: no cutout, but still served from our own folder at card size (a 1024 px store photo
+            # was the biggest download on the deals page, Guides polish audit 11-22 #16). Never an Amazon photo.
+            small = img.convert("RGBA") if "A" in img.getbands() else img.convert("RGB")
+            if "A" in img.getbands():
+                flat = Image.new("RGB", small.size, (255, 255, 255))
+                flat.paste(small, mask=small.getchannel("A"))
+                small = flat
+            small.thumbnail((SMALL_PX, SMALL_PX), Image.LANCZOS)
+            key = cut.fnv1a32(u)
+            small.save(os.path.join(OUT, f"{key}.webp"), "WEBP", quality=82, method=6)
+            cutouts[u] = key
             continue
         key = cut.fnv1a32(u)
         src = os.path.join(tmp, f"{key}-in.png")
@@ -100,7 +114,7 @@ def main():
     if sheet_dir and review:
         os.makedirs(sheet_dir, exist_ok=True)
         cut.sheet(review, os.path.join(sheet_dir, "deals-cutouts.png"))
-    print(f"deals photos: cut out {len(cutouts)}; kept as they are {len(skipped)}")
+    print(f"deals photos: cut out {len(cutouts)}; not edited {len(skipped)}")
 
 
 if __name__ == "__main__":

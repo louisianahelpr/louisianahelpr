@@ -17,6 +17,6 @@ export const SB_CARD_CSS = `
 .gg-sb-town{margin:0;font-size:12px;color:var(--gg-muted)}
 .gg-sb-text{margin:0;font-size:13px;line-height:1.4;color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-sb-links{display:flex;flex-wrap:wrap;align-items:center;gap:0 14px;margin-top:auto;padding-top:2px}
-.gg-sb .gg-sb-visit{display:inline-flex;align-items:center;min-height:44px;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
+.gg-sb .gg-sb-visit{display:inline-flex;align-items:center;min-height:44px;min-width:44px;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
 .gg-sb .gg-sb-visit:hover,.gg-sb .gg-sb-visit:focus-visible{text-decoration:underline}
 `;

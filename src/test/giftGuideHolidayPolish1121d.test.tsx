@@ -26,9 +26,10 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         select(text);\n      }, |       },
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | <GiftOut href={href} className="gg-deal-brand gg-card-store" data-gift-code-shop={store}> | <GiftOut href="" className="gg-deal-brand gg-card-store" data-gift-code-shop={store}>
  * @mutate src/content/giftGuideStorePhotos.ts | (STORE_PHOTO_FILES[store] ? DIR + STORE_PHOTO_FILES[store] : null) | (DIR + "xtratuf.webp")
- * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   if (!src || !ok) return null; |   if (!ok) return null;
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   if (!src \|\| !ok) return null; |   if (!ok) return null;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | body: <CodeCards codes={codes} /> | body: <CodeCards codes={codes.slice(1)} />
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       {/* Polish audit 1122 #30: no jump-chip row | <nav data-gift-deal-jump="" />{/* Polish audit 1122 #30: no jump-chip row
+ * @mutate src/pages/info/giftGuides/smallBizCardStyles.ts | min-height:44px;min-width:44px;font-size:14px | min-height:44px;font-size:14px
  * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx |             <Out href={b.href} className="gg-sb-visit"> |             <Out href={b.href} className="gg-sb-visit rounded-full border">
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   return Local ? <Local sponsors={[]} /> : <FeatureCta />; |   return null;
  * @mutate src/content/giftGuideDeals.mjs |   runs: (start, end) => (start && end ? | runs: (start, end) => (false ? 
@@ -227,6 +228,12 @@ describe("owner 11-21: Small Business Saturday cards and the sign-up card", () =
       expect(v.textContent).toMatch(/^Visit/);
     }
   });
+  it("the Visit link is at least 44 by 44 px (audit 11-22 #26: it measured 41 wide)", async () => {
+    const { SB_CARD_CSS } = await import("../pages/info/giftGuides/smallBizCardStyles");
+    const rule = SB_CARD_CSS.match(/\.gg-sb \.gg-sb-visit\{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toMatch(/min-height:44px/);
+    expect(rule).toMatch(/min-width:44px/);
+  });
   it("the day page: a top line that opens the sign-up card's form, the card at the bottom", async () => {
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
     for (const page of ["day"] as const) {
@@ -332,5 +339,24 @@ describe("holiday audit 1121 #66 / #63: the 25 Days sponsors page's photos and p
     expect(lines(cm).length).toBeGreaterThan(5);
     const { container } = render(<MemoryRouter><SaleCards stores={salesOn(cm).slice(0, 2)} /></MemoryRouter>);
     for (const when of container.querySelectorAll(".gg-card-when")) expect(when.textContent).toMatch(/^Ends /);
+  });
+});
+
+describe("audit 11-22 #4: our own sponsor photos carry no cream or pink square", () => {
+  it("every sponsor photo's four corners are see-through or a real picture, never the cream padding", async () => {
+    const { readdirSync } = await import("node:fs");
+    const sharp = (await import("sharp")).default;
+    const dir = resolve(ROOT, "public/gift-guides/sponsor-picks");
+    const files = readdirSync(dir).filter((f) => f.endsWith(".webp"));
+    expect(files.length).toBeGreaterThan(30);
+    for (const f of files) {
+      const { data, info } = await sharp(resolve(dir, f)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      for (const [x, y] of [[0, 0], [info.width - 1, 0], [0, info.height - 1], [info.width - 1, info.height - 1]]) {
+        const i = (y * info.width + x) * 4;
+        const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+        const cream = a > 200 && r > 240 && g > 238 && b > 228 && r - b < 20;
+        expect(cream, `${f} corner ${x},${y} is cream (${r},${g},${b})`).toBe(false);
+      }
+    }
   });
 });

@@ -1,4 +1,4 @@
-import { formatPrice } from "@/lib/format";
+import { formatPriceExact } from "@/lib/format";
 import type { GiftCardDesign } from "./giftCardDesigns";
 
 /**
@@ -125,7 +125,8 @@ export function GiftCardPreview({
             }}
           >
             {/* F467 (audit 11-10): "$—" read as a broken amount; the slot says what to do instead. */}
-            {hasAmount ? `$${formatPrice(amount!)}` : "Pick an amount"}
+            {/* Deep audit 1122 #4: a custom amount keeps its cents ($10.56, never $11), the amount Stripe charges. */}
+            {hasAmount ? `$${formatPriceExact(amount!)}` : "Pick an amount"}
           </span>
 
           {/* ── What they wrote, and who signed it ──────────────────────── */}

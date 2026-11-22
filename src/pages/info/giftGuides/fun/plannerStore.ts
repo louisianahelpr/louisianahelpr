@@ -183,6 +183,12 @@ export const planActions = {
     };
   }),
   removeIdea: (personId: string, ideaId: string) => mapPerson(personId, (p) => ({ ...p, ideas: p.ideas.filter((i) => i.id !== ideaId) })),
+  /** Undo a removal (owner 11-21, "Removed · Undo"): the idea goes back where it was, unless the list filled up meanwhile. */
+  restoreIdea: (personId: string, idea: PlanIdea, index: number) => mapPerson(personId, (p) => {
+    if (p.ideas.some((i) => i.id === idea.id) || p.ideas.length >= PLAN_MAX_IDEAS) return p;
+    const at = Math.max(0, Math.min(index, p.ideas.length));
+    return { ...p, ideas: [...p.ideas.slice(0, at), idea, ...p.ideas.slice(at)] };
+  }),
 };
 
 export type SyncState = "device" | "account" | "error";

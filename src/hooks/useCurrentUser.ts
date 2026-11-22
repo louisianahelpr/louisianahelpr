@@ -8,6 +8,7 @@ import { authUserChangedFrom } from "@/lib/authUserChanged";
 import { queryKeys } from "@/lib/queryKeys";
 import { takeJobsMePrefetch } from "@/hooks/jobsPrefetchTake";
 import { raceVisibleDeadline } from "@/lib/visibleDeadline";
+import { onRefreshNetworkFailure, refreshFailedRecently, REFRESH_OFFLINE_MESSAGE } from "@/lib/refreshNetworkFailure";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -120,6 +121,33 @@ const client = async () => {
   return m.supabase;
 };
 
+/**
+ * Q1158: wait for the session the profile read needs: "ready" once getSession() answers (from storage at once for a
+ * live token, after the refresh for an expired one), "offline" the moment a refresh attempt fails on the network
+ * (src/lib/refreshNetworkFailure.ts). A failure recorded just before gives a live session 50 ms to answer first.
+ */
+const sessionSettled = (): Promise<"ready" | "offline"> =>
+  new Promise((resolve) => {
+    let done = false;
+    const finish = (v: "ready" | "offline") => {
+      if (done) return;
+      done = true;
+      off();
+      resolve(v);
+    };
+    const off = onRefreshNetworkFailure(() => finish("offline"));
+    client()
+      .then((c) => c.auth.getSession())
+      .then(
+        () => finish("ready"),
+        () => {
+          // Not silent: the profile read below meets the same failure and throws it to the query (the retry card).
+          finish("ready");
+        },
+      );
+    if (refreshFailedRecently()) setTimeout(() => finish("offline"), 50);
+  });
+
 const readProfile = (userId: string): Promise<Profile | null> => {
   const fresh = client().then((c) => c.from("profiles").select("*").eq("user_id", userId).maybeSingle()).then(
     (result) => unwrap(result) ?? null,
@@ -203,13 +231,10 @@ const fetchCurrentUser = async (
   // Q1158 (2026-11-22): a member restored from an expired session (useAuthReady storedUserAwaitingRefresh) asks for
   // this row while auth-js is still refreshing the token. Wait for that refresh FIRST, outside the 6 s deadline, so a
   // slow refresh never times the profile out into the "couldn't load" card; supabase-js waits on the same refresh
-  // anyway. A live session answers from storage at once; a refresh that failed answers too (the read is then held).
-  await client()
-    .then((c) => c.auth.getSession())
-    .catch(() => {
-      // Not silent: the profile read below meets the same failure and throws it to the query (the retry card).
-      return undefined;
-    });
+  // anyway. A live session answers from storage at once. But a refresh attempt that fails ON THE NETWORK ends the
+  // wait at once as connection trouble (ProtectedRoute's "you're still signed in" card, in about a second), instead of
+  // waiting out auth-js's ~25 s backoff; a refused refresh signs out (auth-js), and the person goes to Log In.
+  if ((await sessionSettled()) === "offline") throw new TypeError(REFRESH_OFFLINE_MESSAGE);
   const profilePromise = readProfile(userId);
 
   // The admin-role lookup must NEVER block the profile. It was previously in

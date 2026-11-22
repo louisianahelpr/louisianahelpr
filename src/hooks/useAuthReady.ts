@@ -125,8 +125,15 @@ export const forceSignedOutSnapshot = () => {
  * hydration runs as it always did), false when the restore ended signed out (skip the hydration).
  */
 let restorePending = false;
+let lastRestoreOutcome: boolean | null = null;
+/** The restored member and the expired token they came back with (a "confirmed" session must be theirs, refreshed). */
+let restoredFrom: { userId: string; accessToken: unknown } | null = null;
 const restoreWaiters = new Set<(confirmed: boolean) => void>();
+/** A session confirms the restore only when the server refreshed it (a new access token) for the SAME member. */
+const confirmsRestore = (session: Session): boolean =>
+  !restoredFrom || (session.user?.id === restoredFrom.userId && session.access_token !== restoredFrom.accessToken);
 const settleRestore = (confirmed: boolean) => {
+  if (restorePending || restoreWaiters.size) lastRestoreOutcome = confirmed;
   restorePending = false;
   const waiters = [...restoreWaiters];
   restoreWaiters.clear();
@@ -135,7 +142,7 @@ const settleRestore = (confirmed: boolean) => {
 export const whenSessionConfirmed = (): Promise<boolean> => {
   // Asked before the bootstrap ran (the hydrator's effect can run first): wait for it when it is going to restore.
   const willRestore = !authBootstrapStarted && storedUserAwaitingRefresh() !== null;
-  if (!restorePending && !willRestore) return Promise.resolve(true);
+  if (!restorePending && !willRestore) return Promise.resolve(lastRestoreOutcome ?? true);
   return new Promise((resolve) => restoreWaiters.add(resolve));
 };
 
@@ -241,6 +248,18 @@ const storedUserAwaitingRefresh = (): User | null => {
   }
 };
 
+/** The stored session's access token, read once at the restore (a refreshed session carries a different one). */
+const storedAccessToken = (): unknown => {
+  try {
+    const key = authStorageKey();
+    const raw = key ? window.localStorage.getItem(key) : null;
+    return raw ? (JSON.parse(raw) as { access_token?: unknown } | null)?.access_token ?? null : null;
+  } catch {
+    // Silent by design: unreadable storage means no token to compare; any session then confirms by user id alone.
+    return null;
+  }
+};
+
 /** Does storage still hold a session auth-js could refresh? (A refused refresh removes it.) */
 const storedSessionStillRefreshable = (): boolean => {
   try {
@@ -284,7 +303,7 @@ const loadClient = (): Promise<SupabaseClientType | null> => {
  * snapshot {isReady:true,hasUser:false} -> ProtectedRoute redirect ->
  * onAuthStateChange {event:TOKEN_REFRESHED, hasSession:true}.
  */
-const getSessionWithTimeout = async (): Promise<{ session: Session | null; timedOut: boolean }> => {
+const getSessionWithTimeout = async (): Promise<{ session: Session | null; timedOut: boolean; failed: boolean }> => {
   const TIMED_OUT = Symbol("auth-bootstrap-timeout");
   try {
     const result = await Promise.race([
@@ -295,9 +314,10 @@ const getSessionWithTimeout = async (): Promise<{ session: Session | null; timed
       ),
     ]);
 
-    if (result === TIMED_OUT) return { session: null, timedOut: true };
-    if (!result) return { session: null, timedOut: false };
-    return { session: result.data.session ?? null, timedOut: false };
+    if (result === TIMED_OUT) return { session: null, timedOut: true, failed: false };
+    if (!result) return { session: null, timedOut: false, failed: false };
+    // `failed`: auth-js answered with an error (a refresh that failed on the network keeps the stored session).
+    return { session: result.data.session ?? null, timedOut: false, failed: Boolean((result as { error?: unknown }).error) };
   } catch (err) {
     // Not silent: `getSession()` throwing is abnormal (a corrupt or
     // unreadable stored session), and it is indistinguishable from a clean
@@ -305,7 +325,7 @@ const getSessionWithTimeout = async (): Promise<{ session: Session | null; timed
     // /login with nothing recorded. Report it, then fall through to the
     // signed-out answer, which is the only safe one available here.
     report(err, { severity: "warning", tags: { area: "auth", op: "bootstrapGetSession" } });
-    return { session: null, timedOut: false };
+    return { session: null, timedOut: false, failed: false };
   }
 };
 
@@ -330,6 +350,7 @@ export const useAuthReady = () => {
       const restoredUser = storedUserAwaitingRefresh();
       if (restoredUser) {
         restorePending = true;
+        restoredFrom = { userId: restoredUser.id, accessToken: storedAccessToken() };
         initialized = true;
         emitAuthSnapshot({ user: restoredUser, isReady: true });
       } else {
@@ -344,8 +365,15 @@ export const useAuthReady = () => {
             userId: session?.user?.id ?? null,
           });
         }
+        // A restored member whose stored session vanished with no SIGNED_OUT (another tab's hand-cleared sign-out)
+        // while the refresh ran: auth-js's INITIAL_SESSION says null and storage agrees, so they are signed out.
+        if (restoredUser && event === "INITIAL_SESSION" && !session && !storedSessionStillRefreshable()) {
+          settleRestore(false);
+          emitAuthSnapshot({ user: null, isReady: true });
+          return;
+        }
         if (session || event === "SIGNED_OUT" || event !== "INITIAL_SESSION") {
-          if (session) settleRestore(true);
+          if (session) settleRestore(confirmsRestore(session));
           else if (event === "SIGNED_OUT") settleRestore(false);
           initialized = true;
           emitAuthSnapshot({ user: session?.user ?? null, isReady: true });
@@ -361,7 +389,7 @@ export const useAuthReady = () => {
       // will tell us (SIGNED_IN / INITIAL_SESSION / TOKEN_REFRESHED).
       let restoreInFlight = false;
 
-      void getSessionWithTimeout().then(({ session, timedOut }) => {
+      void getSessionWithTimeout().then(({ session, timedOut, failed }) => {
         if (DEBUG_AUTH) {
           console.log("[auth] getSession", {
             hasSession: !!session,
@@ -381,13 +409,13 @@ export const useAuthReady = () => {
         // A restored member whose getSession() answered null keeps their stored user only while storage still holds
         // a refreshable session (the refresh failed on the network); a session gone without SIGNED_OUT is signed out.
         if (restoredUser && !session) {
-          if (!timedOut && !storedSessionStillRefreshable()) {
+          if (!timedOut && (!failed || !storedSessionStillRefreshable())) {
             settleRestore(false);
             markReady(null);
           }
           return;
         }
-        if (session) settleRestore(true);
+        if (session) settleRestore(confirmsRestore(session));
         if (session || !initialized || !authSnapshot.user) markReady(session);
       });
 

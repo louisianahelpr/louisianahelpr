@@ -21,6 +21,9 @@
 // @mutate src/hooks/useAuthReady.ts | settleRestore(false);\n            markReady(null); | settleRestore(false);
 // @mutate src/hooks/useAuthReady.ts | if (stored.expires_at * 1000 - Date.now() >= REFRESH_MARGIN_MS) return null; | void REFRESH_MARGIN_MS;
 // @mutate src/hooks/useAuthReady.ts | if (isNativeShell()) return null; | void isNativeShell;
+// @mutate src/hooks/useAuthReady.ts | if (restoredUser && event === "INITIAL_SESSION" && !session && !storedSessionStillRefreshable()) { | if (false) {
+// @mutate src/hooks/useAuthReady.ts | if (!timedOut && (!failed \|\| !storedSessionStillRefreshable())) { | if (!timedOut && !storedSessionStillRefreshable()) {
+// @mutate src/hooks/useAuthReady.ts | session.user?.id === restoredFrom.userId && session.access_token | session.access_token
 // @mutate src/hooks/useAuthReady.ts | if (typeof stored?.refresh_token !== "string" \|\| !stored.refresh_token) return null; | void 0;
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -76,6 +79,15 @@ async function mountAtZero() {
     await vi.advanceTimersByTimeAsync(0);
   });
   return hook;
+}
+
+async function mountAtZeroWithModule() {
+  const mod = await import("./useAuthReady");
+  const hook = renderHook(() => mod.useAuthReady());
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  return { ...hook, mod };
 }
 
 describe("useAuthReady: an expired stored session (the refresh in flight)", () => {
@@ -149,6 +161,56 @@ describe("useAuthReady: an expired stored session (the refresh in flight)", () =
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(result.current).toEqual({ isReady: true, user: null });
+  });
+});
+
+describe("useAuthReady: review notes (lh-silent-failure, lh-authz-rls, 2026-11-22)", () => {
+  it("the stored session vanished with no SIGNED_OUT while the refresh ran past 2.5 s: INITIAL_SESSION null signs out", async () => {
+    localStorage.setItem(KEY, stored());
+    getSessionMock.mockReturnValue(new Promise(() => {}));
+    const { result } = await mountAtZero();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+    expect(result.current.user?.id).toBe("member-1");
+    act(() => {
+      localStorage.removeItem(KEY);
+      authCallback?.("INITIAL_SESSION", null);
+    });
+    expect(result.current).toEqual({ isReady: true, user: null });
+  });
+
+  it("getSession answers null with NO error (auth-js holds no session, e.g. its in-memory fallback): signed out", async () => {
+    localStorage.setItem(KEY, stored());
+    getSessionMock.mockResolvedValue({ data: { session: null }, error: null });
+    const { result } = await mountAtZero();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current).toEqual({ isReady: true, user: null });
+  });
+
+  it("a different member's session never confirms the restore (the cache stays out); a refreshed one does", async () => {
+    localStorage.setItem(KEY, stored());
+    let answer: (v: unknown) => void = () => {};
+    getSessionMock.mockReturnValue(new Promise((r) => { answer = r; }));
+    const { mod } = await mountAtZeroWithModule();
+    const confirmed = mod.whenSessionConfirmed();
+    await act(async () => {
+      answer({ data: { session: { ...refreshed(), user: { id: "someone-else" } } } });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await expect(confirmed).resolves.toBe(false);
+    await expect(mod.whenSessionConfirmed()).resolves.toBe(false); // remembered for a later ask
+  });
+
+  it("the same member's stored (unrefreshed) token never confirms; a refreshed token does", async () => {
+    localStorage.setItem(KEY, stored());
+    getSessionMock.mockReturnValue(new Promise(() => {}));
+    const { mod } = await mountAtZeroWithModule();
+    const confirmed = mod.whenSessionConfirmed();
+    act(() => authCallback?.("TOKEN_REFRESHED", refreshed()));
+    await expect(confirmed).resolves.toBe(true);
   });
 });
 

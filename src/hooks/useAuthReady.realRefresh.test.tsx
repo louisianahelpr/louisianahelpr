@@ -14,11 +14,20 @@
 //      for a refusal and pending while the refresh has not been accepted.
 //   3. A first-screen query fired while the refresh is in flight waits for it
 //      and goes out with the NEW token: nothing is sent with the expired token
-//      (PostgREST's 401 "JWT expired") or as anon.
-// @mutate src/hooks/useAuthReady.ts | else if (event === "SIGNED_OUT") settleRestore(false); | else if (event === "SIGNED_OUT") void 0;
-// @mutate src/hooks/useAuthReady.ts | if (session) settleRestore(true);\n          else | if (false) settleRestore(true);\n          else
-// @mutate src/hooks/useCurrentUser.ts | await client()\n    .then((c) => c.auth.getSession()) | void client()\n    .then((c) => c.auth.getSession())
-// @mutate src/components/QueryCacheHydrator.tsx | if (!(await whenSessionConfirmed()) \|\| cancelled) return; | if (cancelled) return;
+//      (PostgREST's 401 "JWT expired") or as anon; and when the refresh fails on
+//      the network the profile gate fails FAST as connection trouble (the
+//      "you're still signed in" card) instead of waiting out auth-js's backoff.
+// BLIND TO: the request guard (signedInRequestGuard.test.ts drives it), the entry
+// refresh handoff (entryAuthRefresh.test.ts), the clock-skew storage wrapper and
+// auth-js's autoRefreshToken ticks (the test client turns them off).
+// @mutate src/hooks/useAuthReady.ts | waiters.forEach((w) => w(confirmed)); | waiters.forEach((w) => w(true));
+// @mutate src/hooks/useAuthReady.ts | if (session) settleRestore(confirmsRestore(session));\n          else | if (false) settleRestore(confirmsRestore(session));\n          else
+// @mutate src/hooks/useCurrentUser.ts | if ((await sessionSettled()) === "offline") throw new TypeError(REFRESH_OFFLINE_MESSAGE); | void sessionSettled;
+// @mutate src/hooks/useCurrentUser.ts | const off = onRefreshNetworkFailure(() => finish("offline")); | const off = () => {};
+// @mutate src/hooks/useAuthReady.ts | !restoredFrom \|\| (session.user?.id === restoredFrom.userId | !restoredFrom && (session.user?.id === restoredFrom.userId
+// @mutate src/components/QueryCacheHydrator.tsx | void removePersistedClient(); | void 0;
+// @mutate src/integrations/supabase/client.ts | fetchImpl: noteRefreshOutcome(noteReachableFetch(signOutAwareFetch)), | fetchImpl: noteReachableFetch(signOutAwareFetch),
+// @mutate src/components/QueryCacheHydrator.tsx | if (!(await whenSessionConfirmed())) { | if (false) {
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, render } from "@testing-library/react";
@@ -26,11 +35,18 @@ import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const h = vi.hoisted(() => ({ client: null as unknown, persistCalls: 0, profileRow: {} as Record<string, unknown> }));
+const h = vi.hoisted(() => ({ client: null as unknown, persistCalls: 0, removed: 0, profileRow: {} as Record<string, unknown> }));
 
 vi.mock("@/integrations/supabase/client", () => ({
   get supabase() {
     return h.client;
+  },
+}));
+vi.mock("@/lib/queryPersister", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/queryPersister")>()),
+  removePersistedClient: () => {
+    h.removed += 1;
+    return Promise.resolve();
   },
 }));
 vi.mock("@tanstack/react-query-persist-client", () => ({
@@ -72,10 +88,14 @@ function stubNetwork(answer: TokenAnswer, delayMs: number): Sent[] {
   return sent;
 }
 
-function buildClient(): SupabaseClient {
+async function buildClient(): Promise<SupabaseClient> {
+  // The auth client's fetch goes through noteRefreshOutcome, as client.ts wires it (pinned below). Imported after
+  // vi.resetModules so it is the same instance useCurrentUser reads.
+  const { noteRefreshOutcome } = await import("@/lib/refreshNetworkFailure");
   return createClient(BASE, "sb_publishable_testkey", {
     auth: { storage: window.localStorage, persistSession: true, autoRefreshToken: false, detectSessionInUrl: false },
     db: { retry: false } as never,
+    global: { fetch: noteRefreshOutcome((input, init) => fetch(input, init)) },
   });
 }
 
@@ -92,6 +112,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"] });
   localStorage.clear();
   h.persistCalls = 0;
+  h.removed = 0;
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -104,7 +125,7 @@ afterEach(() => {
 });
 
 async function mount() {
-  h.client = buildClient();
+  h.client = await buildClient();
   const mod = await import("./useAuthReady");
   const hook = renderHook(() => mod.useAuthReady());
   await act(async () => {
@@ -165,7 +186,7 @@ describe("2. nothing from the device cache shows before the server accepts the s
   it("a refused refresh never hydrates the persisted cache, even with the hydrator mounted before the hook", async () => {
     stubNetwork({ status: 400, body: { code: 400, error_code: "refresh_token_not_found", msg: "Invalid Refresh Token" } }, 300);
     localStorage.setItem(KEY, storedExpired());
-    h.client = buildClient();
+    h.client = await buildClient();
     await mountHydrator(); // its effect runs before any useAuthReady bootstrap
     const { result } = await mount();
     expect(result.current.user?.id).toBe("member-1");
@@ -175,6 +196,7 @@ describe("2. nothing from the device cache shows before the server accepts the s
     });
     expect(result.current.user).toBeNull();
     expect(h.persistCalls).toBe(0);
+    expect(h.removed).toBe(1); // and the last visit's cache is dropped from the device
   });
 
   it.each([300, 4000])("an accepted refresh (answered after %i ms) hydrates it, once, after the answer", async (ms) => {
@@ -198,7 +220,7 @@ describe("2. nothing from the device cache shows before the server accepts the s
 
   it("a guest (nothing stored) hydrates at once, as before", async () => {
     stubNetwork("network", 0);
-    h.client = buildClient();
+    h.client = await buildClient();
     await mountHydrator();
     expect(h.persistCalls).toBe(1);
   });
@@ -228,7 +250,7 @@ describe("3. a first-screen query fired during the refresh waits for it", () => 
 
 describe("3b. the profile gate (ProtectedRoute's own read) waits for the refresh before its deadline", () => {
   async function mountCurrentUser() {
-    h.client = buildClient();
+    h.client = await buildClient();
     const { useCurrentUser } = await import("./useCurrentUser");
     // The app's query policy (src/lib/queryClient.ts): one retry 500 ms later, networkMode always.
     const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, retryDelay: 500, networkMode: "always" } } });
@@ -269,5 +291,60 @@ describe("3b. the profile gate (ProtectedRoute's own read) waits for the refresh
       await vi.advanceTimersByTimeAsync(1_000);
     });
     expect(result.current.profile).toEqual(expect.objectContaining({ ban_status: "banned" }));
+  });
+});
+
+describe("4. a refresh that fails on the network shows the connection card FAST; a refusal goes to Log In", () => {
+  async function mountCurrentUser() {
+    h.client = await buildClient();
+    const { useCurrentUser } = await import("./useCurrentUser");
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, retryDelay: 500, networkMode: "always" } } });
+    const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client: qc }, children);
+    const hook = renderHook(() => useCurrentUser(), { wrapper });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    return hook;
+  }
+
+  it.each([
+    ["the network fails", "network" as TokenAnswer],
+    ["the auth server answers 503", { status: 503, body: { msg: "upstream unavailable" } } as TokenAnswer],
+  ])("%s: the profile gate errors as connection trouble within 1.5 s (not after the ~25 s backoff), still signed in", async (_name, answer) => {
+    h.profileRow = { user_id: "member-1", ban_status: null };
+    const sent = stubNetwork(answer, 50);
+    localStorage.setItem(KEY, storedExpired());
+    const { result } = await mountCurrentUser();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_500);
+    });
+    expect(result.current.user?.id).toBe("member-1"); // no Log In bounce
+    expect(result.current.isError).toBe(true); // ProtectedRoute's recoverable "still signed in" card
+    expect(result.current.isLoading).toBe(false);
+    expect(sent.filter((s) => s.url.includes("/rest/v1/profiles"))).toEqual([]); // nothing sent with the old token
+  });
+
+  it("a refusal: the member is signed out at the answer, so ProtectedRoute's no-user branch sends them to Log In", async () => {
+    stubNetwork({ status: 400, body: { code: 400, error_code: "refresh_token_not_found", msg: "Invalid Refresh Token" } }, 300);
+    localStorage.setItem(KEY, storedExpired());
+    const { result } = await mountCurrentUser();
+    expect(result.current.user?.id).toBe("member-1");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+    // ProtectedRoute: `isLoading && !user` no longer holds, `!user` -> <Navigate to="/login?redirect=...">
+    // (ProtectedRoute.test.ts / ProtectedRouteGates.test.tsx hold that branch).
+    expect(result.current.user).toBeNull();
+    expect(result.current.isLoading).toBe(false);
+  });
+});
+
+describe("client.ts wires the refresh outcome into the auth client's fetch", () => {
+  it("noteRefreshOutcome wraps the fetch every request (auth-js's refresh included) goes through", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const { blankComments } = await import("@/test/helpers/blankNonCode");
+    const src = blankComments(readFileSync(resolve(process.cwd(), "src/integrations/supabase/client.ts"), "utf8"));
+    expect(src).toMatch(/fetchImpl: noteRefreshOutcome\(noteReachableFetch\(signOutAwareFetch\)\)/);
   });
 });

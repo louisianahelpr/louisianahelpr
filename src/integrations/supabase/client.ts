@@ -5,6 +5,7 @@ import type { Database } from './types';
 import { keychainStorageAdapter } from './keychainStorageAdapter';
 import { withDeviceClockExpiry } from '@/lib/sessionClockSkew';
 import { withEntryAuthHandoff } from '@/lib/entryAuthHandoff';
+import { noteRefreshOutcome } from '@/lib/refreshNetworkFailure';
 import { signOutAwareFetch } from '@/lib/signOutAbort';
 import { noteReachableFetch } from '@/lib/connectivity';
 import { termsGateFetch } from '@/lib/termsGate';
@@ -131,7 +132,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       storage: authStorage,
       storageKey: defaultAuthStorageKey(SUPABASE_URL),
       // noteReachableFetch: any answered request flips a wrong "offline" back at once (src/lib/connectivity.ts).
-      fetchImpl: noteReachableFetch(signOutAwareFetch),
+      // noteRefreshOutcome: a token refresh that fails on the wire is told at once, so the profile gate shows
+      // connection trouble without waiting out auth-js's backoff (Q1158, src/lib/refreshNetworkFailure.ts).
+      fetchImpl: noteRefreshOutcome(noteReachableFetch(signOutAwareFetch)),
       onHeld: reportHeld,
       onVanished: () => finishVanishedSignOut(),
     })),

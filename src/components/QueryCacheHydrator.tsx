@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { persistOptions } from "@/lib/queryPersister";
+import { persistOptions, removePersistedClient } from "@/lib/queryPersister";
 import { queryClient } from "@/lib/queryClient";
 import { whenSessionConfirmed } from "@/hooks/useAuthReady";
 
@@ -26,7 +26,13 @@ const QueryCacheHydrator = () => {
     void (async () => {
       // Q1158: a member restored from an expired session sees nothing from the last visit until the server has
       // accepted the refresh; a refused refresh (signed out) skips the hydration (useAuthReady whenSessionConfirmed).
-      if (!(await whenSessionConfirmed()) || cancelled) return;
+      // A refused restore also drops the last visit's cache from the device: main.tsx's SIGNED_OUT cleanup is
+      // registered only later in the load, so the next cold load would otherwise hydrate it.
+      if (!(await whenSessionConfirmed())) {
+        void removePersistedClient();
+        return;
+      }
+      if (cancelled) return;
       try {
         const { persistQueryClient } = await import(
           "@tanstack/react-query-persist-client"

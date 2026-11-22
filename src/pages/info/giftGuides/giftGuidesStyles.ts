@@ -408,12 +408,28 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 @media (min-width:768px){.gg-list>li{contain-intrinsic-size:auto 420px}}
 .gg-top10>li{content-visibility:visible}
 /* Owner 11-21: each price section's header opens and closes it (first open): a full-width 44px row with a chevron. */
-.gg-sec-toggle-h{margin:14px 0 0}
+.gg-sec-toggle-h{margin:24px 0 0}
 .gg-sec-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:6px 4px;border:0;border-bottom:1px solid var(--gg-line);border-radius:0;background:transparent;font:inherit;font-weight:700;color:var(--gg-ink);text-align:left;white-space:normal;cursor:pointer}
 .gg-sec-toggle:focus-visible{outline:2px solid var(--gg-olive);outline-offset:2px;border-radius:6px}
 .gg-sec-chev{flex:none;color:var(--gg-muted);transition:transform .15s}
 .gg-sec-toggle[aria-expanded="true"] .gg-sec-chev{transform:rotate(180deg)}
 .gg-sec-toggle-h+.gg-list{margin-top:8px}
+/* Owner 2026-11-22 ("Add some kind of shading or something so you can tell where each section is better"): each price
+   section's header is a band in a light tint of its guide's own colour (the cover family on the h2: Her oat, Him green,
+   Kids red), full width, padded, with a 4px bar of the guide's colour on its left, more room above it (24px, was 14px)
+   and its words a little bolder; the same on a phone and a computer. Words and count stay at least 4.5:1 on the tint in
+   both themes (src/test/giftGuideSectionBands1122.test.tsx computes it). Every section still starts open; the chevron
+   stays. The band keeps the button's own 48px height (Button size md, h-12; the sweep's size-class check). */
+.gg-sec-toggle-h .gg-sec-toggle{padding:10px 12px 10px 14px;border:0;border-left:4px solid var(--gg-sec-bar);border-radius:10px;background:var(--gg-sec-bg);color:var(--gg-sec-ink);font-weight:800}
+.gg-sec-toggle-h .gg-sec-count{color:var(--gg-sec-muted);font-weight:600}
+.gg-sec-toggle-h .gg-sec-chev{color:var(--gg-sec-ink)}
+.gg-sec-toggle-h .gg-sec-toggle:focus-visible{border-radius:10px}
+.gg-sec-oat{--gg-sec-bg:#f2e9da;--gg-sec-ink:#3b2a20;--gg-sec-muted:#5c4a3a;--gg-sec-bar:#ceba98}
+.gg-sec-green{--gg-sec-bg:#e3eee5;--gg-sec-ink:#1d4a2f;--gg-sec-muted:#3c5d47;--gg-sec-bar:#265e3c}
+.gg-sec-red{--gg-sec-bg:#f7e4e3;--gg-sec-ink:#7a1c22;--gg-sec-muted:#8a3439;--gg-sec-bar:#a8242a}
+:root[data-theme="dark"] .gg-sec-oat{--gg-sec-bg:#3a3127;--gg-sec-ink:#f3e8d6;--gg-sec-muted:#d9c9b0}
+:root[data-theme="dark"] .gg-sec-green{--gg-sec-bg:#1f3328;--gg-sec-ink:#dcebdf;--gg-sec-muted:#b7cdbb;--gg-sec-bar:#4f8a63}
+:root[data-theme="dark"] .gg-sec-red{--gg-sec-bg:#3e2325;--gg-sec-ink:#f5dad8;--gg-sec-muted:#e0b6b4;--gg-sec-bar:#c4474d}
 /* The sponsors page's Filter panel (owner 11-21): section links and price limits, 44px rows. */
 .gg-filter-panel{min-width:240px;max-height:70vh;overflow-y:auto}
 .gg-filter-group{display:flex;flex-direction:column}

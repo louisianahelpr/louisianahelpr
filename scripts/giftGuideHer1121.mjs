@@ -1,9 +1,10 @@
 /**
  * FOR HER = THE OWNER'S SAVES (owner 2026-11-21 ~1:10 AM: "i saved alot of things for women in my amazon and in shop
- * my"; ~2:15 AM: "we can have more than 25 items its fine"). For Her holds EXACTLY these 36 picks and nothing else: 11
- * from her Amazon shopping list, 11 more from her Amazon cart and 14 from her ShopMy links (Desktop notes
- * Her-saved-amazon-1121.md, Her-saved-amazon-cart-1121.md and Her-saved-shopmy-1121.md). She picked every one herself,
- * so none is added, dropped or swapped by any rule.
+ * my"; ~2:15 AM: "we can have more than 25 items its fine"). For Her holds EXACTLY these 46 picks and nothing else: 27
+ * on Amazon (from her Amazon shopping list and cart) and 19 on ShopMy links (Desktop notes Her-saved-amazon-1121.md,
+ * Her-saved-amazon-cart-1121.md and Her-saved-shopmy-1121.md). She picked every one herself, so none is added, dropped
+ * or swapped by any rule. Owner 2026-11-22 ("remove this"): the Personalized Floral Mama Quarter Zip (Amazon B0HJVYHH35)
+ * is off.
  *
  * scripts/gift-guide-picks.mjs runs applyHer1121 LAST, after the final sweep, so no earlier pass (blocklist, price cap,
  * brand cap, type cap, beauty cap, sponsor rule, men's style, standard plan) can drop or reorder these. That is the
@@ -50,7 +51,6 @@ export const HER_1121 = [
   { name: "Personalized Embroidered Canvas Tote Bag", brand: "", line: "A canvas tote embroidered just for her.", href: amz("B0FKN7FGPY"), image: amzImg("41-9rV6lp9L"), store: "store-amazon", sortPrice: 11.99, commission: 4, type: "bag" },
   { name: "Loritta Long Plaid Winter Scarf", brand: "Loritta", line: "A long plaid scarf that doubles as a cozy wrap.", href: amz("B0C246HFWN"), image: amzImg("51J4ztPBNYL"), store: "store-amazon", sortPrice: 13.99, commission: 4, type: "scarf" },
   { name: "Kitsch Satin Pillowcase With Zipper", brand: "Kitsch", line: "A satin pillowcase that is kind to hair and skin.", href: amz("B0CCWSGSCT"), image: amzImg("81zPpWuuXHL"), store: "store-amazon", sortPrice: 15.19, commission: 3, type: "bedding" },
-  { name: "Personalized Floral Mama Quarter Zip Sweatshirt", brand: "", line: "A cozy quarter zip with Mama stitched in florals.", href: amz("B0HJVYHH35"), image: amzImg("61ToqsYkTeL"), store: "store-amazon", sortPrice: 18.15, commission: 4, type: "sweatshirt" },
   // Switched 11-21 from her Sephora UK pin p-108613754 (US shoppers cannot buy there) to the same 4-sheet set at iHerb,
   // same $19, 15% (Desktop note Commission-switches-1121.md); photo is iHerb's own.
   { name: "BIODANCE Hydro Cera-Nol Real Deep Mask, 4 Pack", brand: "BIODANCE", line: "Overnight hydrogel masks she peels off to glowy skin.", href: shopmy("p-108755104"), image: "https://cloudinary.images-iherb.com/image/upload/f_auto,q_auto:eco/images/bdo/bdo36097/l/19.jpg", store: "store-iherb", sortPrice: 19, price: 19, commission: 15, type: "skincare" },

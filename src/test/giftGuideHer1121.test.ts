@@ -1,7 +1,6 @@
 /**
- * For Her is EXACTLY the owner's 36 saves (owner 2026-11-21: 11 from her Amazon list, 11 from her Amazon cart, 14 from her
- * ShopMy links;
- * scripts/giftGuideHer1121.mjs). The generated page (src/content/giftGuidePicks/her.json) holds those links and no
+ * For Her is EXACTLY the owner's 46 saves (owner 2026-11-21: from her Amazon list, her Amazon cart and her ShopMy links;
+ * owner 2026-11-22 removed the Floral Mama quarter zip, B0HJVYHH35; scripts/giftGuideHer1121.mjs). The generated page (src/content/giftGuidePicks/her.json) holds those links and no
  * other, in one flat list (no section), cheapest first; an Amazon pick never carries a price and keeps Amazon's own
  * photo; every ShopMy pick shows its checked price and a transparent cutout. The page shows no relationship chips and
  * no deals-and-codes box on For Her, and /mom, /wife ... still build from the same list.
@@ -25,7 +24,7 @@ type Pick = { name: string; href: string; image?: string; store?: string; price?
 const page = (JSON.parse(readFileSync(join(ROOT, "src", "content", "giftGuidePicks", "her.json"), "utf8")).picks ?? []) as Pick[];
 
 /** The owner's saves, copied from her Desktop notes (Her-saved-amazon-1121.md, Her-saved-shopmy-1121.md), not from the module. */
-const AMAZON_ASINS = ["B0D3L9BYFZ", "B0CPB1MWMP", "B0FVFV7V1R", "B0FFMJMB6K", "B0FDKC619F", "B0C246HFWN", "B0FPCH9S11", "B0HJVYHH35", "B0FKN7FGPY", "B0B1RWJ4QJ"];
+const AMAZON_ASINS = ["B0D3L9BYFZ", "B0CPB1MWMP", "B0FVFV7V1R", "B0FFMJMB6K", "B0FDKC619F", "B0C246HFWN", "B0FPCH9S11", "B0FKN7FGPY", "B0B1RWJ4QJ"];
 /** Her Amazon cart saves (Her-saved-amazon-cart-1121.md; owner 2026-11-21: "we can have more than 25 items its fine"). */
 const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B08X8P91FX", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV",
   // Owner 11-21 ("women too"): the rest of her cart and saved-for-later, but the duplicate ZDEER listing and Mighty Patch.
@@ -49,9 +48,9 @@ const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS].map((a) => `https://w
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 47 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(47);
-    expect(page.length).toBe(47);
+  it("the page holds exactly her 46 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(46);
+    expect(page.length).toBe(46);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
   });
 
@@ -83,7 +82,7 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(28);
+    expect(amazon.length).toBe(27);
     expect(shopmy.length).toBe(19);
     const captured = new Map(HER_1121.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {

@@ -50,7 +50,7 @@ describe("holiday audit 1121 #36: no product photo with a scene behind it", () =
   // Each swapped photo: the same Amazon listing's own white-background image (checked by eye on its gallery contact
   // sheet, ~/.lh-shots/holiday-fixes-1121c/amz/<asin>-sheet.png), never an edited Amazon image.
   const SWAPPED: [guide: string, name: string, was: string, now: string][] = [
-    ["her", "Personalized Floral Mama Quarter Zip Sweatshirt", "41LM2AYUzKL", "61ToqsYkTeL"], // collage of five garments
+    // (The Floral Mama quarter zip, 41LM2AYUzKL -> 61ToqsYkTeL, left For Her on 2026-11-22: owner "remove this".)
     ["her", "Anoumcy Leopard Barrel Joggers", "51F+lcxZoPL", "814X2uIfEUL"], // read as a camo print
     ["him", "Sperry Authentic Original Boat Shoe", "31w-q2iXR+L", "71pSnCJKOrL"], // filled half its frame
     ["kids", "Handmade Hamster Squishy Toy", "41-YrWLVSgL", "71wfzJhV-aL"], // blue backdrop shape
@@ -66,7 +66,7 @@ describe("holiday audit 1121 #36: no product photo with a scene behind it", () =
   ];
 
   it("shows each swapped pick's white-background photo, and the old scene photo nowhere", () => {
-    expect(SWAPPED.length).toBeGreaterThan(3);
+    expect(SWAPPED).toHaveLength(3);
     const all = JSON.stringify(live);
     for (const [guide, name, was, now] of SWAPPED) {
       expect(photoOf(guide, name), name).toContain(`/images/I/${now}.`);

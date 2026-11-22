@@ -281,4 +281,17 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-top10 .gg-nm-name{font-size:14px}
 .gg-top10 .gg-heart-pick{position:absolute;top:2px;right:2px}
 @media (min-width:768px){.gg-top10{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:20px 16px}}
+/* The gift quiz (owner 11-21 ~6:15 PM): one question per screen, big answers (two across on a phone, up to four wide),
+   then the result as the guides' list. */
+.gg-quiz{padding:18px 16px 14px}
+.gg-quiz-step{margin:10px 0 0}
+.gg-quiz-progress{margin:0 0 4px;font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--gg-muted)}
+.gg-quiz-q{margin:0 0 12px;font-size:18px;font-weight:600;color:var(--gg-ink)}
+.gg-quiz-answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.gg-quiz-answer{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:60px;height:auto;padding:12px 10px;border-radius:14px;font-size:15px;font-weight:600;white-space:normal;text-align:center;line-height:1.25}
+.gg-quiz-answer small{font-size:12px;font-weight:500;color:var(--gg-muted)}
+.gg-quiz-back{margin-top:10px;min-height:44px}
+.gg-quiz-list{margin-top:4px}
+.gg-quiz-after{align-items:center;gap:12px 16px;margin-top:14px}
+@media (min-width:768px){.gg-quiz{padding:22px 24px 16px}.gg-quiz-answers{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.gg-quiz-answer{min-height:64px}}
 `;

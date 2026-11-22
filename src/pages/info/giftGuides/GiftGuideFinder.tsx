@@ -1,133 +1,129 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { guideBySlug, guidePicksVersion, loadGuidePicks, subscribeGuidePicks } from "@/content/giftGuideCatalog";
+import { guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, subscribeGuidePicks } from "@/content/giftGuideCatalog";
+import { EXTRAS_WORDS as W, FINDER_ANCHOR } from "@/content/giftGuideExtras1120";
 import {
-  EXTRAS_WORDS as W, FINDER_ANCHOR, FINDER_BUDGET_GUIDES, FINDER_BUDGETS, FINDER_FEW, FINDER_VIBES, FINDER_WHO, finderBudgets, finderPool, giftFinder, readFinder,
-  type FinderBudget, type FinderVibe, type FinderWho,
-} from "@/content/giftGuideExtras1120";
+  QUIZ_AGES, QUIZ_FIRST, QUIZ_WHO, giftQuiz, quizBudgets, quizForWords, quizIntoChips, quizStep, readQuiz,
+  type QuizAnswers,
+} from "@/content/giftQuiz";
+import { PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { PickRow } from "./GiftGuideView";
 
 /**
- * The gift finder on the landing (owner approved 11-19 ~9:10 PM): three taps (who, budget, vibe) and always a list
- * (owner 11-20): the picks that fit all three, then "Close matches" (giftFinder), in the guides' own order. The answers
- * live in the URL (/gift-guides?who=her&budget=50&vibe=cozy#gift-finder), so the link shares the same list; no sign-in.
- * Owner 11-21 ("i also dont see the fun features anymore like the quiz"): back on the landing after the launch took it
- * off, asking only about people with a live guide (Her, Him, Mom, Dad, Kids: src/content/giftGuideLive.mjs) and offering
- * only the budgets that person's picks can fill (every Her, Him and Kids pick is priced since owner 2026-11-21).
- * Guard: src/test/giftGuideExtras1120.test.tsx.
+ * The gift quiz, "Find a gift in 3 taps" (owner 2026-11-21 ~6:15 PM: "The whole point of a quiz is to ask questions to
+ * narrow down the list"; the rules: src/content/giftQuiz.ts). One question per screen with big answers (who; a kid's
+ * age; budget; what they are into), then "Our picks for her": six cards (the guides' own card), "Show me more" for up to
+ * twelve, a link to the whole guide and "Start over". The answers live in the URL
+ * (/gift-guides?who=her&budget=25-50&into=cozy#gift-finder), so the link shares the same list; no sign-in.
+ * Guard: src/test/giftQuiz1121.test.tsx.
  */
 const FINDER_ID = FINDER_ANCHOR;
+const FINDER_TITLE_ID = "gift-finder-title";
 
-function Choices<T extends string | number>({ label, options, value, onPick, attr }: { label: string; options: { id: T; label: string }[]; value: T | undefined; onPick: (v: T) => void; attr: string }) {
+function Step({ n, of, question, children, onBack }: { n: number; of: number; question: string; children: React.ReactNode; onBack?: () => void }) {
   return (
-    <div role="group" aria-label={label} className="gg-finder-step" data-gift-finder-step={attr}>
-      <p className="gg-finder-q">{label}</p>
-      <span className="gg-chips">
-        {options.map((o) => (
-          <Button key={String(o.id)} type="button" variant="outline" size="sm" className={value === o.id ? "gg-chip btn-grad-primary" : "gg-chip"} aria-pressed={value === o.id}
-            data-gift-finder-choice={`${attr}:${o.id}`} onClick={() => onPick(o.id)}>
-            {o.label}
-          </Button>
-        ))}
-      </span>
+    <div className="gg-quiz-step" data-gift-quiz-step={n}>
+      <p className="gg-quiz-progress">{W.quizStepOf(n, of)}</p>
+      <p className="gg-quiz-q" id="gift-quiz-q">{question}</p>
+      <div role="group" aria-labelledby="gift-quiz-q" className="gg-quiz-answers">{children}</div>
+      {onBack && <Button type="button" variant="link" size="inline" className="gg-link gg-quiz-back" onClick={onBack} data-gift-quiz-back="">← {W.quizBack}</Button>}
     </div>
   );
 }
 
-/** The finder's heading id; the folded card and the open finder each render it, never both at once. */
-const FINDER_TITLE_ID = "gift-finder-title";
-
-export function GiftFinder() {
-  const { search, hash } = useLocation();
-  const navigate = useNavigate();
-  useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
-  const read = readFinder(new URLSearchParams(search));
-  // Only people whose guide is live; an old link naming a retired one (?who=teen) starts the finder over.
-  const people = FINDER_WHO.filter((w) => w.guides.every((g) => guideBySlug(g.slug)));
-  const a: ReturnType<typeof readFinder> = people.some((w) => w.id === read.who) ? read : {};
-  const [copied, setCopied] = useState(false);
-  // Owner 11-20 PM ("still a busy mess"): folded into ONE card until tapped; a shared answer link
-  // (?who=...#gift-finder) or "Start over" (#gift-finder) opens it straight away.
-  const [open, setOpen] = useState(() => a.who !== undefined || hash === `#${FINDER_ID}`);
-  useEffect(() => {
-    if (a.who !== undefined || hash === `#${FINDER_ID}`) setOpen(true);
-  }, [a.who, hash]);
-  const set = (next: { who?: FinderWho; budget?: FinderBudget; vibe?: FinderVibe }) => {
-    const q = new URLSearchParams(search);
-    for (const [k, v] of Object.entries({ ...a, ...next })) if (v !== undefined) q.set(k, String(v));
-    setCopied(false);
-    navigate({ search: `?${q.toString()}`, hash: FINDER_ID }, { replace: true });
-  };
-  const who = people.find((x) => x.id === a.who);
-  // The chosen guides' picks are lazy chunks: load them once "who" is picked (and the budget guides once a budget is).
-  const withBudget = a.budget !== undefined && a.budget !== 0;
-  useEffect(() => {
-    const slugs = [...(who?.guides ?? []).map((g) => g.slug), ...(who && withBudget ? FINDER_BUDGET_GUIDES : [])];
-    for (const slug of slugs) loadGuidePicks(slug).catch((e: unknown) => console.warn("gift finder: picks chunk failed", slug, e));
-  }, [who, withBudget]);
-  const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
-  const pool = a.who ? finderPool(a.who, picksOf) : [];
-  const budgets = a.who ? finderBudgets(pool, a.who, FINDER_BUDGET_GUIDES.flatMap(picksOf)) : FINDER_BUDGETS;
-  // A budget from a link that this person's picks cannot fill shows as unpicked.
-  const budget = budgets.some((b) => b.id === a.budget) ? a.budget : undefined;
-  const done = a.who !== undefined && budget !== undefined && a.vibe !== undefined;
-  const result = done ? giftFinder(pool, budget, a.vibe!, FINDER_BUDGET_GUIDES.flatMap(picksOf), a.who) : { exact: [], close: [] };
-  const shown = result.exact.length + result.close.length;
-  const ownGuide = who ? guideBySlug(who.guides[0].slug) : undefined;
-  const copy = () => {
-    void navigator.clipboard?.writeText(window.location.href).then(
-      () => setCopied(true),
-      // Clipboard refused: the address bar still holds the link.
-      () => setCopied(false),
-    );
-  };
-  if (!open) {
-    return (
-      <section id={FINDER_ID} aria-labelledby={FINDER_TITLE_ID} className="gg-finder gg-finder-folded" data-gift-finder="" data-gift-finder-folded="">
-        <h2 id={FINDER_TITLE_ID} className="gg-finder-title">
-          {/* The shared Button (OWN-SHARED, noNewHandMadeControls); .gg-finder-open restyles it as the card's row. */}
-          <Button type="button" variant="ghost" size="inline" className="gg-finder-open" aria-expanded={false} aria-controls={`${FINDER_ID}-steps`} onClick={() => setOpen(true)} data-gift-finder-open="">
-            <span className="gg-finder-open-words">
-              <span>{W.finderTitle}</span>
-              <small>{W.finderFolded}</small>
-            </span>
-            <span className="gg-finder-arrow" aria-hidden="true">→</span>
-          </Button>
-        </h2>
-      </section>
-    );
-  }
+function Answer({ label, onPick, attr, sub }: { label: string; onPick: () => void; attr: string; sub?: string }) {
   return (
-    <section id={FINDER_ID} aria-labelledby={FINDER_TITLE_ID} className="gg-finder" data-gift-finder="">
-      <h2 id={FINDER_TITLE_ID} className="gg-finder-title">{W.finderTitle}</h2>
-      <div id={`${FINDER_ID}-steps`} className="gg-finder-steps">
-      {!a.who && <p className="gg-finder-lead">{W.finderLead}</p>}
-      <Choices label={W.finderWho} options={people.map((x) => ({ id: x.id, label: x.label }))} value={a.who} onPick={(v) => set({ who: v })} attr="who" />
-      {a.who && <Choices label={W.finderBudget} options={budgets} value={budget} onPick={(v) => set({ budget: v })} attr="budget" />}
-      {a.who && budget !== undefined && <Choices label={W.finderVibe} options={FINDER_VIBES.map((x) => ({ id: x.id, label: x.label }))} value={a.vibe} onPick={(v) => set({ vibe: v })} attr="vibe" />}
-      {done && (
-        <div data-gift-finder-results="">
-          <p className="gg-finder-q">{W.finderResults}</p>
-          {result.exact.length > 0 && <ol className="gg-list" data-gift-list="">{result.exact.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} />)}</ol>}
-          {result.close.length > 0 && (
-            <>
-              <p className="gg-price-note" data-gift-finder-close="">{W.finderClose}</p>
-              <ol className="gg-list" data-gift-list="" data-gift-finder-close-list="">{result.close.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} />)}</ol>
-            </>
-          )}
-          {!shown && <p className="gg-price-note" data-gift-finder-none="">{W.finderNone}</p>}
-          {shown > 0 && shown < FINDER_FEW && ownGuide && (
-            <p className="gg-price-note" data-gift-finder-few=""><Link to={`/gift-guides/${ownGuide.slug}`} className="gg-link">{W.finderFew(ownGuide.title)} ›</Link></p>
-          )}
-          <span className="gg-chips">
-            <Button type="button" variant="outline" size="sm" className="gg-chip" onClick={copy} data-gift-finder-share="">{copied ? W.finderCopied : W.finderShare}</Button>
-            <Button asChild variant="link" size="inline" className="gg-link"><Link to={`/gift-guides#${FINDER_ID}`} data-gift-finder-again="">{W.finderAgain}</Link></Button>
-          </span>
-        </div>
-      )}
-      </div>
-    </section>
+    <Button type="button" variant="outline" className="gg-quiz-answer" onClick={onPick} data-gift-quiz-answer={attr}>
+      <span>{label}</span>
+      {sub && <small>{sub}</small>}
+    </Button>
   );
 }
 
+export function GiftFinder() {
+  const { search } = useLocation();
+  const navigate = useNavigate();
+  useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
+  const a = readQuiz(new URLSearchParams(search));
+  const who = QUIZ_WHO.find((x) => x.id === a.who);
+  const [more, setMore] = useState(false);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (who) loadGuidePicks(who.guide).catch((e: unknown) => console.warn("gift quiz: picks chunk failed", who.guide, e));
+  }, [who]);
+  useEffect(() => { setMore(false); setCopied(false); }, [search]);
+  const go = (next: QuizAnswers) => {
+    const q = new URLSearchParams();
+    for (const k of ["who", "age", "budget", "into"] as const) if (next[k]) q.set(k, next[k]!);
+    navigate({ search: q.toString() ? `?${q.toString()}` : "", hash: FINDER_ID });
+  };
+  const pool = who && picksReady(who.guide) ? guideBySlug(who.guide)?.picks ?? [] : [];
+  const step = quizStep(a);
+  const kids = a.who === "kids";
+  const total = kids ? 4 : 3;
+  const loading = !!who && !picksReady(who.guide);
+  const back = (drop: keyof QuizAnswers) => () => { const n = { ...a }; delete n[drop]; go(n); };
+
+  let body: React.ReactNode;
+  if (loading) body = <p className="gg-soon" role="status" data-gift-picks-loading="">{W.quizLoading}</p>;
+  else if (step === "who") {
+    body = (
+      <Step n={1} of={3} question={W.finderWho}>
+        {QUIZ_WHO.map((x) => <Answer key={x.id} label={x.label} attr={`who:${x.id}`} onPick={() => go({ who: x.id })} />)}
+      </Step>
+    );
+  } else if (step === "age") {
+    body = (
+      <Step n={2} of={total} question={W.quizAge} onBack={back("who")}>
+        {QUIZ_AGES.map((x) => <Answer key={x.id} label={x.label} attr={`age:${x.id}`} onPick={() => go({ ...a, age: x.id })} />)}
+      </Step>
+    );
+  } else if (step === "budget") {
+    body = (
+      <Step n={kids ? 3 : 2} of={total} question={W.finderBudget} onBack={back(kids ? "age" : "who")}>
+        {quizBudgets(pool, a).map((b) => <Answer key={b.id} label={b.label} attr={`budget:${b.id}`} onPick={() => go({ ...a, budget: b.id })} />)}
+      </Step>
+    );
+  } else if (step === "into") {
+    body = (
+      <Step n={total} of={total} question={W.quizInto} onBack={back("budget")}>
+        {quizIntoChips(pool, a).map((c) => <Answer key={c.id} label={c.label} attr={`into:${c.id}`} onPick={() => go({ ...a, into: c.id })} />)}
+      </Step>
+    );
+  } else {
+    const result = giftQuiz(pool, { who: a.who!, age: a.age, budget: a.budget!, into: a.into! });
+    const shown = result.picks.slice(0, more ? result.picks.length : QUIZ_FIRST);
+    const guide = guideBySlug(who!.guide);
+    const copy = () => {
+      void navigator.clipboard?.writeText(window.location.href).then(
+        () => setCopied(true),
+        // Clipboard refused: the address bar still holds the link.
+        () => setCopied(false),
+      );
+    };
+    body = (
+      <div data-gift-finder-results="">
+        <p className="gg-quiz-q" data-gift-quiz-result-title="">{W.quizResults(quizForWords(a))}</p>
+        {result.widened && <p className="gg-price-note" data-gift-quiz-widened="">{W.quizWidened}</p>}
+        <ol className="gg-list gg-quiz-list" data-gift-list="">{shown.map((p) => <PickRow key={p.href} pick={p} guide={who!.guide} />)}</ol>
+        <PricesAsOf picks={shown} />
+        {!more && result.picks.length > QUIZ_FIRST && (
+          <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setMore(true)} data-gift-quiz-more="">{W.quizMore}</Button>
+        )}
+        <span className="gg-chips gg-quiz-after">
+          {guide && <Link to={`/gift-guides/${guide.slug}`} className="gg-link" data-gift-quiz-guide="">{W.quizWholeGuide(guide.title)} ›</Link>}
+          <Button type="button" variant="outline" size="sm" className="gg-chip" onClick={copy} data-gift-finder-share="">{copied ? W.finderCopied : W.finderShare}</Button>
+          <Button asChild variant="link" size="inline" className="gg-link"><Link to={`/gift-guides#${FINDER_ID}`} data-gift-finder-again="">{W.finderAgain}</Link></Button>
+        </span>
+      </div>
+    );
+  }
+  return (
+    <section id={FINDER_ID} aria-labelledby={FINDER_TITLE_ID} className="gg-finder gg-quiz" data-gift-finder="" data-gift-quiz={step}>
+      <h2 id={FINDER_TITLE_ID} className="gg-finder-title">{W.finderTitle}</h2>
+      {step === "who" && <p className="gg-finder-lead">{W.finderLead}</p>}
+      {body}
+    </section>
+  );
+}

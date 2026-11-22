@@ -342,7 +342,7 @@ export const giftGuides = {
   },
   myListLabel: "My list",
   myListEmpty: "Tap a heart on any guide or gift to save it here.",
-  searchNone: "No guides match. Try another word.",
+  searchNone: "No gifts match that. Try another word.",
   searchFailed: "Couldn't load gift results. Check your connection.",
   codesLabel: "Discount codes",
   /** The sidebar's Sales (follow-up 2026-11-18): every live store sale, soonest end first; each hidden after it ends. */
@@ -357,7 +357,7 @@ export const giftGuides = {
   searchLabel: "Search gift guides",
   /** Closes the opened search field (owner 11-21: "make search an icon always"). */
   searchCloseLabel: "Close search",
-  searchPlaceholder: "Search guides",
+  searchPlaceholder: "Search gifts",
   myListCount: (n: number) => `My list, ${n} saved`,
   shareLabel: "Share",
   shareMenuLabel: "Share options",
@@ -411,6 +411,8 @@ export const giftGuides = {
   priceSectionCount: (n: number) => ` (${n})`,
   /** The price sort on Her, Him and Kids (owner 2026-11-21: "the guides should be able to be sorted by price"). */
   sortLabel: "Sort by price",
+  /** The sort icon's name while a price order is on (audit 1122 #21: nothing showed it was on). */
+  sortLabelActive: (order: string) => `Sort by price, ${order}`,
   /** The 25 Days sponsors page's Filter (owner 11-21: its section links and price limits moved into it). */
   filterLabel: "Filter",
   filterLabelActive: (n: number) => `Filter, ${n} on`,

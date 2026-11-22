@@ -149,8 +149,9 @@ function GiftGuideSort({ order, onChange }: { order: SortOrder; onChange: (o: So
   };
   return (
     <span ref={wrap} className="gg-share-wrap">
-      <RoundIconButton className="gg-icon" aria-label={G.sortLabel} aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)} data-gift-sort-button="">
+      <RoundIconButton className="gg-icon" aria-label={order === "top" ? G.sortLabel : G.sortLabelActive(choices.find((c) => c.value === order)?.label ?? "")} aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)} data-gift-sort-button="">
         <Icon d={SLIDERS} />
+        {order !== "top" && <span className="gg-icon-dot" aria-hidden="true" data-gift-sort-on="" />}
       </RoundIconButton>
       {open && (
         <span className="gg-share-menu" role="menu" aria-label={G.sortLabel} data-gift-sort-menu="">
@@ -358,12 +359,13 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
             ))}
             {foundItems.length > 0 && <li className="gg-search-head" aria-hidden="true">{G.searchItemsTitle}</li>}
             {foundItems.map((item) => {
-              const [name, slug] = item;
+              const [name, slug, , , image] = item;
               // Holiday audit 1121 #7: the price beside the guide, by the card's own rule (fresh, rounded).
               const dollars = searchItemDollars(item);
               return (
               <li key={`${slug} ${name}`}>
                 <Link to={`/gift-guides/${slug}`} onClick={() => setQuery("")} data-gift-found-item={slug}>
+                  {image && <img className="gg-search-thumb gg-search-thumb-item" loading="lazy" decoding="async" src={image} alt="" width={36} height={36} />}
                   <span className="gg-search-item">
                     <span className="gg-search-item-name">{name}</span>
                     <small>{G.searchItemIn(guideBySlug(slug)?.title ?? "")}{dollars !== null && <span data-gift-found-price="">{` · ${G.priceApprox(dollars)}`}</span>}</small>

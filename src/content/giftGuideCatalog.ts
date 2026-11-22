@@ -795,7 +795,7 @@ export const searchPages = (query: string): { to: string; title: string; tint: "
 
 /** One item row of the search index (scripts/gift-guide-search-index.mjs): its name and the guide it sits in. */
 /** One item search row: its name and guide, plus its checked price and the day it was checked when it has one (#7). */
-export type SearchItem = [name: string, guide: string, price?: number, priceAt?: string];
+export type SearchItem = [name: string, guide: string, price?: number | null, priceAt?: string | null, image?: string];
 let itemIndex: Promise<SearchItem[]> | null = null;
 /** The item index, fetched once on the first keystroke (its own lazy chunk: nothing on the landing's first paint). */
 // Holiday audit 1121: a failed fetch is forgotten, so the next keystroke tries again (it was cached for the whole visit,
@@ -827,7 +827,7 @@ const searchToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/
 
 /** The whole dollars an item search row shows ("~$24", the card's own rule: fresh, rounded), or null (#7). */
 export const searchItemDollars = ([, , price, priceAt]: SearchItem, today: string = searchToday()): number | null =>
-  pickPriceShown(price, priceAt, today) ? shownDollars(price) : null;
+  price && priceAt && pickPriceShown(price, priceAt, today) ? shownDollars(price) : null;
 
 /**
  * The items whose name holds every meaningful word of the query (holistic review 11-18 H5: "airpods" found nothing),

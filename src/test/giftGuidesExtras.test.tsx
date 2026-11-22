@@ -229,7 +229,7 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     // Holiday audit 1121 #20: the search field is a combobox that opens its results.
     const input = screen.getByRole("combobox", { name: "Search gift guides" });
     expect(document.activeElement).toBe(input);
-    expect(input.getAttribute("placeholder")).toBe("Search guides");
+    expect(input.getAttribute("placeholder")).toBe("Search gifts");
     expect(row.contains(input)).toBe(true);
     expect(container.querySelectorAll("input[data-gift-search]").length).toBe(1);
     expect(row.querySelector("label svg")).not.toBeNull();
@@ -238,7 +238,7 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     // Owner 11-21: only Her, Him and Kids are live; "kids" finds Kids.
     expect(found).toContain("kids");
     fireEvent.change(input, { target: { value: "xyzzy" } });
-    expect(row.textContent).toContain("No guides match");
+    expect(row.textContent).toContain("No gifts match that");
     fireEvent.change(input, { target: { value: "" } });
     expect(row.querySelector("[data-gift-search-results]")).toBeNull();
     // The menu is the guides alone.

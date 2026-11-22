@@ -34,10 +34,11 @@ const setNote = (n: Note) => {
 };
 
 /** A heart was tapped; `result` is what the tap did (togglePick's answer). */
-export function heartTapped(result: "added" | "removed" | "full") {
+/** `quiet`: from the Save for someone sheet, whose row check already says it (holiday audit 1121: the note covered Done). */
+export function heartTapped(result: "added" | "removed" | "full", quiet = false) {
   track("gift_wish_heart", { result });
   if (result === "full") setNote("full");
-  else if (result === "added" && !savedOnce) {
+  else if (result === "added" && !savedOnce && !quiet) {
     savedOnce = true;
     setNote("first");
   }

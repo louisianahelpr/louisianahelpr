@@ -6,7 +6,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { track } from "@/lib/analytics";
-import { FUN_WORDS as W, dollars, parseDollars, personMoney, planMoney, type PlanPerson } from "@/content/giftGuideFun1120";
+import { FUN_WORDS as W, dollars, parseDollars, personMoney, planMoney, type PlanIdea, type PlanPerson } from "@/content/giftGuideFun1120";
+import { successToast } from "@/lib/toast";
 import { useGiftList } from "../giftList";
 import { Hint } from "../GiftHint";
 import { FunBody, funHeader } from "./FunPage";
@@ -55,7 +56,7 @@ function MoneyBar({ p }: { p: PlanPerson }) {
   );
 }
 
-function Person({ p }: { p: PlanPerson }) {
+function Person({ p, index }: { p: PlanPerson; index: number }) {
   const [budgetText, setBudgetText] = useState(p.budget !== undefined ? String(p.budget) : "");
   const [err, setErr] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
@@ -67,6 +68,15 @@ function Person({ p }: { p: PlanPerson }) {
     if (added.has(g.href)) return;
     const price = plannerPrice(g);
     A.addIdea(p.id, { name: g.name, href: g.href, guide: g.guide, ...(price !== undefined ? { price } : {}), ...(g.image ? { image: g.image } : {}) });
+  };
+  // Holiday audit 1121: removing a gift or a person says so with Undo (as My Wish List does).
+  const removeIdea = (idea: PlanIdea, at: number) => {
+    A.removeIdea(p.id, idea.id);
+    successToast(WISH.removedGift(idea.name), { action: { label: WISH.undo, onClick: () => A.restoreIdea(p.id, idea, at) } });
+  };
+  const removePerson = () => {
+    A.removePerson(p.id);
+    successToast(WISH.removedGift(p.name), { action: { label: WISH.undo, onClick: () => A.restorePerson(p, index) } });
   };
   // UX audit M2: the budget saves as it is typed (when it is an amount); a typed non-amount says so at once.
   const typeBudget = (text: string) => {
@@ -87,16 +97,13 @@ function Person({ p }: { p: PlanPerson }) {
           onBlur={() => { if (!p.name.trim()) A.renamePerson(p.id, W.plannerUnnamed); }} data-plan-name={p.id} />
         <Input className="gg-plan-budget" aria-label={`${W.plannerBudget} (${p.name})`} placeholder={W.plannerBudget} inputMode="decimal" value={budgetText}
           onChange={(e) => typeBudget(e.target.value)} data-plan-budget={p.id} />
-        <RoundIconButton className="gg-fun-x" aria-label={W.plannerRemovePerson(p.name)} onClick={() => A.removePerson(p.id)} data-plan-remove={p.id}>
-          <span aria-hidden="true">×</span>
-        </RoundIconButton>
       </div>
       {/* Owner 11-21: the list's gifts and total against the budget, as in the guides' sheet ("$36.75 left of $100"). */}
       {p.ideas.length > 0 && <p className="gg-plan-money m-0" data-plan-list-line={p.id}><ListLine p={p} /></p>}
       <MoneyBar p={p} />
       {p.ideas.length > 0 && (
         <ul className="gg-fun-list mt-2" aria-label={`${W.plannerIdeas} (${p.name})`}>
-          {p.ideas.map((i) => (
+          {p.ideas.map((i, k) => (
             <li key={i.id} className={i.bought ? "gg-plan-idea bought" : "gg-plan-idea"} data-plan-idea={i.id}>
               <label className="gg-plan-check h-11 w-11">
                 <Checkbox checked={i.bought} aria-label={`${W.plannerBought}: ${i.name}`} onCheckedChange={(v) => A.setIdea(p.id, i.id, { bought: v === true })} data-plan-bought={i.id} />
@@ -120,7 +127,7 @@ function Person({ p }: { p: PlanPerson }) {
                   setErr(null);
                   A.setIdea(p.id, i.id, { price: v });
                 }} data-plan-price={i.id} />
-              <RoundIconButton className="gg-fun-x" aria-label={W.plannerRemoveIdea(i.name)} onClick={() => A.removeIdea(p.id, i.id)}>
+              <RoundIconButton className="gg-fun-x" aria-label={W.plannerRemoveIdea(i.name)} onClick={() => removeIdea(i, k)} data-plan-remove-idea={i.id}>
                 <span aria-hidden="true">×</span>
               </RoundIconButton>
             </li>
@@ -155,6 +162,8 @@ function Person({ p }: { p: PlanPerson }) {
         </ul>
       )}
       {err && <p className="gg-fun-err" role="alert">{err}</p>}
+      {/* Holiday audit 1121: removing a person is a labelled link at the bottom (it sat next to the budget box), with Undo. */}
+      <Button type="button" variant="link" size="inline" className="gg-link gg-list-delete" onClick={removePerson} data-plan-remove={p.id}>{W.plannerRemovePerson(p.name)}</Button>
     </li>
   );
 }
@@ -200,7 +209,7 @@ export default function GiftPlanner() {
       {!ready && <p className="gg-fun-note" role="status" data-plan-loading="">{W.plannerLoading}</p>}
       {ready && plan.people.length === 0 && <p className="gg-fun-note" data-plan-empty="">{W.plannerEmpty}</p>}
       <fieldset className="m-0 min-w-0 border-0 p-0" disabled={!ready} data-plan-editable={ready ? "" : undefined}>
-      <ul className="gg-fun-list">{plan.people.map((p) => <Person key={p.id} p={p} />)}</ul>
+      <ul className="gg-fun-list">{plan.people.map((p, k) => <Person key={p.id} p={p} index={k} />)}</ul>
       <ShareAllLists plan={plan} />
       <form className="gg-fun-row mt-3" onSubmit={add}>
         <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} onChange={(e) => setName(e.target.value)} data-plan-new-name="" />

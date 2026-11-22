@@ -206,7 +206,7 @@ export const TermsContent = () => {
             <p><strong className="text-foreground">If Stripe can't confirm your ID automatically</strong>, our team reviews it by hand, usually within 24 hours. There is no self-service retry, so make sure your photos are clear, well lit, and show all four corners of the ID.</p>
             <p>Once verified (by Stripe or by our team), you're set for the life of your account.</p>
           </> : <>
-            <p><strong className="text-foreground">Helpr does not check members&apos; IDs right now.</strong> No photo ID is asked for to post, accept or start a job, and no member is shown as ID-verified unless their ID was checked earlier. We will update these Terms before an ID check starts again. Payout setup is separate: when you set up payouts, our payments partner verifies your payment details.</p>
+            <p><strong className="text-foreground">Helpr does not check members&apos; IDs right now.</strong> No photo ID is asked for to post, accept or start a job, and no member is shown as ID checked unless their ID was checked earlier. We will update these Terms before an ID check starts again. Payout setup is separate: when you set up payouts, our payments partner verifies your payment details.</p>
           </>
         }
       />

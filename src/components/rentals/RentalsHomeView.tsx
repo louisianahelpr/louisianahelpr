@@ -108,7 +108,7 @@ function AddPropertyForm({ onDone }: { onDone: () => void }) {
         <Input aria-label="City" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} required />
         <Input className="max-w-[7rem]" aria-label="ZIP code" placeholder="ZIP" inputMode="numeric" value={zip} onChange={(e) => setZip(e.target.value)} required />
       </div>
-      <p className="text-xs text-muted-foreground">Only the owner of a property can add it. Next you send ownership proof and, if you aren't ID-verified yet, a photo of your ID.</p>
+      <p className="text-xs text-muted-foreground">Only the owner of a property can add it. Next you send ownership proof and, if you aren't ID checked yet, a photo of your ID.</p>
       <Button type="submit" size="sm" disabled={m.isPending}>
         {m.isPending ? "Adding…" : "Add property"}
       </Button>

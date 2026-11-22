@@ -28,7 +28,7 @@ describe("board 29: hire sheet", () => {
     render(<ResponseDeadlineDialog open helperName="Andre Landry" job={job} helper={helper} onConfirm={() => {}} onClose={() => {}} />);
     expect(screen.getByRole("heading", { name: "Hire Andre" })).toBeInTheDocument();
     expect(screen.getByText("Pressure wash driveway")).toBeInTheDocument();
-    expect(screen.getByText("ID verified")).toBeInTheDocument();
+    expect(screen.getByText("ID checked")).toBeInTheDocument();
     expect(screen.getByText(/4\.9 · 18 reviews/)).toBeInTheDocument();
     const note = document.querySelector("[data-hire-no-new-charge]")!;
     expect(note.textContent).toMatch(/The job price, \$90, was paid when you posted it, so nothing new is charged now\. Louisiana Helpr holds the money and releases it to Andre after the job is done\. If Andre says no or doesn't answer, the job reopens and your payment stays on it\./);

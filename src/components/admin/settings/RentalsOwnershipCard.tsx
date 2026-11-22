@@ -194,7 +194,7 @@ export function RentalsOwnershipCard() {
   return (
     <AdminCard
       title="Homes: ownership proof"
-      subtitle="Check the photo ID and the owner's name on the deed, tax bill or assessor page before the property can invite tenants. An approved ID counts as ID-verified everywhere in the app."
+      subtitle="Check the photo ID and the owner's name on the deed, tax bill or assessor page before the property can invite tenants. An approved ID counts as ID checked everywhere in the app."
     >
       {q.isError ? (
         <>

@@ -577,7 +577,7 @@ describe("Rentals screens", () => {
       renderAt("/rentals?tab=own");
       expect(await screen.findByLabelText(/Ownership proof/)).toBeTruthy();
       expect(screen.queryByLabelText(/Photo of your ID/)).toBeNull();
-      expect(screen.queryByText(/Every landlord on Louisiana Helpr is ID-verified/)).toBeNull();
+      expect(screen.queryByText(/Every landlord on Louisiana Helpr is ID checked/)).toBeNull();
     });
 
     it("pending: the ID is with our team, no second ID upload", async () => {
@@ -638,7 +638,7 @@ describe("Rentals screens", () => {
       state.identity = { verified: false, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
       renderAt("/rentals?tab=own");
       fireEvent.click(await screen.findByRole("button", { name: "Add a property" }));
-      expect(screen.getByText(/Next you send ownership proof and, if you aren't ID-verified yet, a photo of your ID/)).toBeTruthy();
+      expect(screen.getByText(/Next you send ownership proof and, if you aren't ID checked yet, a photo of your ID/)).toBeTruthy();
     });
   });
 

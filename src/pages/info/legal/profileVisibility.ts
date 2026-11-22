@@ -34,7 +34,7 @@ export const PROFILE_SHOWS = [
   "The town or area you list",
   "What you write about yourself, your skills and any work photos you add",
   "When you joined and roughly when you were last active",
-  "Your badges: ID verified, payouts set up, a verified license or insurance (with your business name), a background check, your membership and the job milestones you reach",
+  "Your badges: ID checked, payouts set up, a verified license or insurance (with your business name), a background check, your membership and the job milestones you reach",
   "Your rating, the reviews people leave you and your replies to them",
   "How many jobs you have posted, and the jobs you have completed with each one's title, date, type of work and price",
   "How many jobs you and they have worked on together",

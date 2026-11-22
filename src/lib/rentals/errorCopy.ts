@@ -16,7 +16,7 @@ export const RENTALS_ERROR_COPY: Record<string, string> = {
   under_18: "You must be 18 or older to use Homes.",
   // Owner 2026-10-19: Stripe's ID check (payout setup) or a photo of your ID
   // that an admin approves; no charge either way.
-  identity_not_verified: "Verify your ID first: send a photo of your ID for review (free), or set up payouts. Every landlord on Louisiana Helpr is ID-verified.",
+  identity_not_verified: "Verify your ID first: send a photo of your ID for review (free), or set up payouts. Every landlord on Louisiana Helpr is ID checked.",
   already_verified: "Your ID is already verified.",
   bad_id_path: "Your ID photo didn't upload. Try adding it again.",
   id_photo_missing: "Your ID photo didn't upload. Try adding it again.",

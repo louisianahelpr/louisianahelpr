@@ -55,7 +55,7 @@ export function TrustRow({
   if (idVerified) {
     chips.push(
       <span key="id">
-        ✓ ID Verified
+        ✓ ID checked
       </span>,
     );
   }

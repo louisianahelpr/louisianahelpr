@@ -34,7 +34,7 @@ const SHOWN: Record<string, RegExp> = {
   skills: /skills/,
   portfolio_urls: /work photos/,
   created_at: /when you joined/i,
-  is_id_verified: /ID verified/,
+  is_id_verified: /ID checked/,
   is_payout_ready: /payouts set up/,
   license_status: /license or insurance/,
   business_name: /business name/,

@@ -216,7 +216,7 @@ describe("the public profile mounts its sections", () => {
   it("the masthead carries the badges and the record strip; Recent work shows; the rating opens the reviews", () => {
     renderProfile();
     expect(screen.getByText("Sam S.")).toBeInTheDocument();
-    expect(screen.getByText("ID verified")).toBeInTheDocument(); // RecognitionRow
+    expect(screen.getByText("ID checked")).toBeInTheDocument(); // RecognitionRow
     expect(screen.getByRole("region", { name: "At a glance" })).toBeInTheDocument(); // AtAGlanceCard
     expect(screen.getByRole("heading", { name: /Recent work/ })).toBeInTheDocument(); // HelperWorkPhotos
     expect(screen.queryByTestId("profile-review-card")).toBeNull();

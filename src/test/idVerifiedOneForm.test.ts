@@ -9,7 +9,7 @@
  * ID-verification wording outside IdVerifiedPill.tsx must be one of the
  * EXEMPT places below (not a badge), and the list is exact both ways.
  *
- * @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx | label: ID_VERIFIED_LABEL, | label: "ID verified by Stripe",
+ * @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx | label: ID_VERIFIED_LABEL, | label: "ID checked by Stripe",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -18,7 +18,8 @@ import { execFileSync } from "node:child_process";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = join(__dirname, "..", "..");
-const WORDING = /["'`>]\s*(?:✓\s*)?(?:(?:Stripe )?ID verified(?: by Stripe)?|ID VERIFIED|Stripe verified|Identity verified)\b/i;
+// Owner 2026-11-22 (#28): the badge reads "ID checked"; both wordings count as the ID badge here.
+const WORDING = /["'`>]\s*(?:✓\s*)?(?:(?:Stripe )?ID (?:verified|checked)(?: by (?:Stripe|admin))?|ID VERIFIED|ID CHECKED|Stripe verified|Identity verified)\b/i;
 
 /** Places that state the fact but are not a badge; each says why. */
 // @two-way src/test/idVerifiedOneForm.test.ts:EXEMPT is exact: every entry still matches

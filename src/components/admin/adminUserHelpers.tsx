@@ -71,8 +71,8 @@ export const stripeBadge = (profile: Profile) => {
   // (Q2201): an admin approval is named as such, never as Stripe's answer.
   if (s === "verified") {
     return profile.legacy_manual_review
-      ? <Badge className="bg-primary/10 text-primary border-primary/20 text-ds-10 gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />ID verified by admin</Badge>
-      : <Badge className="bg-primary/10 text-primary border-primary/20 text-ds-10 gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />ID verified by Stripe</Badge>;
+      ? <Badge className="bg-primary/10 text-primary border-primary/20 text-ds-10 gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />ID checked by admin</Badge>
+      : <Badge className="bg-primary/10 text-primary border-primary/20 text-ds-10 gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />ID checked by Stripe</Badge>;
   }
   // Only the values profiles_idv_status_check actually permits. "approved",
   // "requires_input" and "action_needed" were listed here and are all

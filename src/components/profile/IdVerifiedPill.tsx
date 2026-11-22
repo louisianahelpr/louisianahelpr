@@ -38,7 +38,8 @@ export const ID_VERIFIED_PILL_STYLE: CSSProperties = {
  * Stripe Identity or an admin's hand approval. Only admins see the route
  * (adminUserHelpers: "ID verified by Stripe" / "ID verified by admin").
  */
-export const ID_VERIFIED_LABEL = "ID verified";
+/** Owner 2026-11-22 (#28): the badge says "ID checked" everywhere (profiles, listings, Jobs, Declutter, Shops). */
+export const ID_VERIFIED_LABEL = "ID checked";
 
 export const ID_VERIFIED_DESCRIPTION =
   "A government ID was checked and matched this member. Earned by completing ID verification in Profile.";

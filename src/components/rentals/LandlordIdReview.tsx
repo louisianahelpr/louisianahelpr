@@ -60,7 +60,7 @@ export function IdStatusNotice({ id }: { id: MyIdentity }) {
           {id.reviewNote && <p className="text-muted-foreground">Reason: {id.reviewNote}</p>}
         </>
       ) : (
-        <p>Every landlord on Louisiana Helpr is ID-verified. Send a photo of your ID with your ownership proof. It's free.</p>
+        <p>Every landlord on Louisiana Helpr is ID checked. Send a photo of your ID with your ownership proof. It's free.</p>
       )}
       {!setupPaused && <p className="text-muted-foreground">
         Or{" "}

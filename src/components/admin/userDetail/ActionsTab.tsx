@@ -89,7 +89,7 @@ export function ActionsTab({
     const hasStripe = !!viewProfile.stripe_account_id;
     const isActive = hasLoggedIn || idvVerified || hasStripe;
     const activeLabel = idvVerified
-      ? "ID verified"
+      ? "ID checked"
       : hasLoggedIn
       ? "Active — has logged in"
       : "Stripe payout connected";

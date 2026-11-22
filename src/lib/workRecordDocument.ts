@@ -309,7 +309,7 @@ export function buildWorkRecordSummaryLines(input: WorkRecordDocumentInput): str
     input.avgRating !== null
       ? `${input.avgRating.toFixed(1)}★ average across ${input.reviewCount} review${input.reviewCount === 1 ? "" : "s"}`
       : null,
-    input.identityVerified ? "ID verified" : null,
+    input.identityVerified ? "ID checked" : null,
     `Verify this record: ${VERIFICATION_EMAIL}`,
   ].filter((l): l is string => !!l);
 }
@@ -404,7 +404,7 @@ export async function buildWorkRecordPdf(input: WorkRecordDocumentInput): Promis
   const memberSince = formatMonthYear(input.memberSince);
   const cols: [string, string][] = [
     ["Issued to", displayName(input)],
-    ["ID verified", input.identityVerified ? "Verified" : "Not verified"],
+    ["ID checked", input.identityVerified ? "Checked" : "Not checked"],
     ...(memberSince ? ([["Member since", memberSince]] as [string, string][]) : []),
   ];
   cols.forEach(([l, v], i) => {

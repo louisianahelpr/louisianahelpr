@@ -25,7 +25,7 @@ function renderRow() {
 describe("RecognitionRow badge sizing", () => {
   it("sizes milestone icons the same as the ID verified icon", () => {
     renderRow();
-    const idChip = screen.getByRole("button", { name: /ID verified/ });
+    const idChip = screen.getByRole("button", { name: /ID checked/ });
     const milestoneChip = screen.getByRole("button", { name: /Trusted Helpr/ });
     const idIcon = idChip.querySelector("svg");
     const milestoneIcon = milestoneChip.querySelector("svg");
@@ -69,7 +69,7 @@ describe("RecognitionRow verification ladder (Q985)", () => {
 
   it("draws no rung at tier 1, so Verified is said once (by the ID verified pill)", () => {
     renderLadder({ completedJobs: 1, avgRating: 5, reviewCount: 1 });
-    expect(screen.getByRole("button", { name: /ID verified/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /ID checked/ })).toBeTruthy();
     expect(ladderChips()).toEqual([]);
   });
 

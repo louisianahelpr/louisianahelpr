@@ -12,7 +12,7 @@ import { HOLIDAY_LIGHTS } from "../content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "../content/holidayHub/events.mjs";
 import {
   HOLIDAY_EVENT_KIND, HOLIDAY_HELP, HOLIDAY_HIRE_PATH, HOLIDAY_HUB_PATH, HOLIDAY_LIGHT_FORMAT, HOLIDAY_WORDS as W, DATES_TBA,
-  filterEvents, filterHolidayItems, filterLights, holidayDateLabel, holidayDayHeading, holidayItemsByDay, isHolidayLight,
+  filterEvents, filterHolidayItems, filterLights, holidayDateLabel, holidayDayHeading, holidayItemsByDay, holidayPriceLabel, isHolidayLight,
 } from "../content/holidayHub/holidayHub.mjs";
 
 const HOME = { name: "Louisiana Helpr", path: "/" };
@@ -24,7 +24,7 @@ const PAGES = {
 
 /** One light or event as a line: its name, the town, when (or "Dates TBA"), hours, cost and a line about it. */
 function itemLine(item, tag) {
-  const bits = [item.city, holidayDateLabel(item), item.hours, item.price, item.note].filter(Boolean).map(escapeHtml);
+  const bits = [item.city, holidayDateLabel(item), item.hours, holidayPriceLabel(item.price), item.note].filter(Boolean).map(escapeHtml);
   return `<li><strong>${escapeHtml(item.name)}</strong>${tag ? ` (${escapeHtml(tag)})` : ""}${bits.length ? `: ${bits.join(". ")}` : ""}</li>`;
 }
 
@@ -39,7 +39,7 @@ export function holidayHubBody(path, today) {
   if (path === HOLIDAY_HUB_PATH) {
     const groups = holidayItemsByDay(filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {}, today), today);
     const sections = groups
-      .map((g) => `<h2>${escapeHtml(g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : DATES_TBA)}</h2><ul>${g.items.map((i) => itemLine(i, tagFor(i))).join("")}</ul>`)
+      .map((g) => `<h2>${escapeHtml(g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : g.key === "lights-tba" ? W.lightsTba : DATES_TBA)}</h2><ul>${g.items.map((i) => itemLine(i, tagFor(i))).join("")}</ul>`)
       .join("");
     return seoPageBody(crumbs, `<h1>${escapeHtml(W.hubTitle)}</h1><p>${escapeHtml(W.hubIntro)}</p>` +
       `<p><a href="${HOLIDAY_HIRE_PATH}">${escapeHtml(W.stripTitle)}</a>: ${escapeHtml(W.stripLine)}</p>` +

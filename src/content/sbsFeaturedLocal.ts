@@ -14,6 +14,11 @@ export const SBS_WORDS = {
   pageSponsorsTitle: "Our Louisiana 25 Days sponsors",
   pageSectionTitle: "Louisiana small businesses",
   pageSectionIntro: "Local shops and makers taking part in Small Business Saturday, Nov 28.",
+  // Holiday audit 1121 area 5 #4: the free listings say when they are loading, empty or did not load (they showed nothing).
+  localLoading: "Loading Louisiana small businesses…",
+  localEmptyBefore: "Local shops show here once we approve them. Check back before Small Business Saturday, Nov 28.",
+  localEmptyAfter: "Local shops show here once we approve them.",
+  localFailed: "The local shops didn't load. Check your connection and refresh the page.",
   landingLink: "Own a Louisiana small business? Get featured free",
   sectionTitle: "Featured local",
   sectionIntro: "More Louisiana small businesses taking part in Small Business Saturday, Nov 28.",
@@ -74,7 +79,8 @@ export function sbsFieldError(field: string, code: SbsFieldError | "dead" | "log
     case "category":
       return "Pick a category.";
     case "participating":
-      return "This list is for businesses taking part in Small Business Saturday.";
+      // Holiday audit 1121 area 5 #17: say what to do (tick the box), not only why.
+      return "Tick this box to confirm you're taking part in Small Business Saturday.";
     case "profanity":
       return "Please keep it family friendly.";
     case "spam":

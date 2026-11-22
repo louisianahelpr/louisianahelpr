@@ -42,7 +42,7 @@ import { fetchRefundRequestView, type RefundRequestView } from "@/lib/declutter/
 import { bookByWords } from "@/lib/declutter/orderPickupTimes";
 import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { preHandoverSellerCents } from "./declutterPayoutWords";
+import { agreedRefundCents, handedOverSellerCents, preHandoverSellerCents } from "./declutterPayoutWords";
 import { t } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclPanels";
@@ -199,7 +199,7 @@ export function PickupStatus({
   // Audit 11-10 F394: the seller's handed-over card said only "Picked up."; now it says when, and the money line
   // names the payout day (24 hours after the handover row's confirmed_at, the buyer's window: checkWindowEnds).
   const handedOverAt = done ? h.data?.confirmed_at ?? null : null;
-  const money = <MoneyNote side={side} kind={handover} free={free} done={done} problemOpen={problemOpen} refunded={refunded} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" handedOverAt={payoutShown ? null : handedOverAt} />;
+  const money = <MoneyNote orderId={orderId} side={side} kind={handover} free={free} done={done} problemOpen={problemOpen} refunded={refunded} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" handedOverAt={payoutShown ? null : handedOverAt} />;
   if (part === "money") return money;
   const stands = standing(handover, side, at, day, free, { ...orderTimeWords(times.data?.[0], handover, slot), buyer: side === "seller" ? other.first : null, photoDay: handover === "porch" ? porchPhotoDay({ pickup_day: day, slot_start: slot }) : null });
   const doneWhen = handedOverAt && stands.who === "info" && stands.text.endsWith(".") ? { ...stands, text: `${stands.text.slice(0, -1)} ${orderWhen(handedOverAt)}.` } : stands;
@@ -227,21 +227,23 @@ function strongAmount(line: string, amount: string) {
 }
 
 /** F394: the seller's handed-over line: the payout day while the buyer's 24 hours run, or that they are over. */
-function sellerPaidWhen(cents: number, handedOverAt: string | null, held: boolean, payoutReady: boolean, setupPaused: boolean) {
+function sellerPaidWhen(cents: number, handedOverAt: string | null, held: boolean, payoutReady: boolean, setupPaused: boolean, parts = "") {
   if (held || !handedOverAt) return null;
   // F360b (lh-money-escrow review): with no ready payout account the run puts the payout off, so no day is promised.
   // While payout setup is not offered (usePayoutSetupPaused), the line never sends the seller to set it up.
   if (!payoutReady) return setupPaused
-    ? <>{strongAmount(t("dsl.getOnceReady", { amount: formatPrice(cents) }), formatPrice(cents))}</>
-    : <>{strongAmount(t("dsl.getOnceSetup", { amount: formatPrice(cents) }), formatPrice(cents))}{" "}<Link to="/profile?tab=payment" className="underline font-semibold" data-payout-setup-link="">{t("dsl.setUpPayouts")}</Link></>;
+    ? <>{strongAmount(t("dsl.getOnceReady", { amount: formatPrice(cents), parts }), formatPrice(cents))}</>
+    : <>{strongAmount(t("dsl.getOnceSetup", { amount: formatPrice(cents), parts }), formatPrice(cents))}{" "}<Link to="/profile?tab=payment" className="underline font-semibold" data-payout-setup-link="">{t("dsl.setUpPayouts")}</Link></>;
   const ends = checkWindowEnds(handedOverAt);
   return ends
-    ? <>{strongAmount(t("dsl.getPaidOn", { amount: formatPrice(cents), day: payoutDayAfterWindow(ends) }), formatPrice(cents))}</>
-    : <>{strongAmount(t("dsl.getWindowOver", { amount: formatPrice(cents) }), formatPrice(cents))}</>;
+    ? <>{strongAmount(t("dsl.getPaidOn", { amount: formatPrice(cents), parts, day: payoutDayAfterWindow(ends) }), formatPrice(cents))}</>
+    : <>{strongAmount(t("dsl.getWindowOver", { amount: formatPrice(cents), parts }), formatPrice(cents))}</>;
 }
 
 /** The one money note on a sale card: what the buyer paid, or what the seller gets and when (DC-16: every kind). */
-function MoneyNote({ side, kind, free, done, problemOpen, refunded = false, itemsCents, totalCents, after, deliveryCents = 0, handedOverAt = null }: {
+function MoneyNote({ orderId, side, kind, free, done, problemOpen, refunded = false, itemsCents, totalCents, after, deliveryCents = 0, handedOverAt = null }: {
+  /** Deep audit 1122 #5: the order, so a handed-over seller line can take this order's part refund off. */
+  orderId: string;
   side: "buyer" | "seller"; kind: SellerPayoutKind; free: boolean; done: boolean; problemOpen: boolean; refunded?: boolean; itemsCents: number; totalCents: number | null; after: string;
   /** F394: the handover row's confirmed_at once handed over; the seller is paid 24 hours after it unless the buyer reports a problem. */
   handedOverAt?: string | null;
@@ -254,6 +256,16 @@ function MoneyNote({ side, kind, free, done, problemOpen, refunded = false, item
   const setupPaused = usePayoutSetupPaused();
   // Owner 2026-11-20: no setup fee comes out of a Declutter payout, so "You get" is items + delivery.
   const sellerCents = preHandoverSellerCents(itemsCents, deliveryCents);
+  // Deep audit 1122 #5: after a part refund the payout is items + delivery minus the refund (declutter_rebook_payout),
+  // so "You get $40 ($60 minus $20 refunded)", never "$60" over "The buyer got $20 back". The refund panel's own read
+  // and key; a full refund (refunded) shows no amount at all.
+  const refundsOn = useFeature("declutter_refund_requests");
+  const refund = useQuery({ queryKey: ["declutter", "refund-request", orderId], queryFn: () => fetchRefundRequestView(orderId),
+    enabled: refundsOn && side === "seller" && !free && done && !refunded });
+  const refundedCents = refundsOn && !refunded ? agreedRefundCents(refund.data?.request) : 0;
+  const paidCents = handedOverSellerCents(itemsCents, deliveryCents, refundedCents);
+  const refundParts = refundedCents > 0
+    ? t("dsl.refundParts", { gross: formatPrice(sellerCents), refunded: formatPrice(refundedCents) }) : "";
   // F398 (owner 11-11 ~2:10 PM): "You get $50 ($45 + $5 delivery)", the payout's own parts (items + v_rate).
   const parts = deliveryCents > 0 ? t("dsl.deliveryParts", { items: formatPrice(itemsCents), delivery: formatPrice(deliveryCents) }) : "";
   const money = free ? null
@@ -262,7 +274,7 @@ function MoneyNote({ side, kind, free, done, problemOpen, refunded = false, item
       // decide.", so the money line no longer says the seller is paid after the pickup right above it.
       ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done || problemOpen ? "." : `. The seller is paid after you ${after}.`}</> : null
       : done
-        ? sellerPaidWhen(sellerCents, handedOverAt, refunded || problemOpen, payoutReady, setupPaused)
+        ? sellerPaidWhen(paidCents, handedOverAt, refunded || problemOpen, payoutReady, setupPaused, refundParts)
         : problemOpen
           ? <>{strongAmount(t("dsl.heldWhile", { amount: formatPrice(sellerCents) }), formatPrice(sellerCents))}</>
         // Deep audit #31: one payout rule, the live one. LEAD-DOOR-PAYLINE: said per handover kind from the owner's
@@ -331,7 +343,7 @@ export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = 
     <div className="space-y-2" data-pickup-status={at} data-delivery-status="">
       <OrderSteps facts={facts} />
       <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : moveAskedOfMe ? { who: "you", text: moveAskedOfMe } : deliveryStanding(side, at, free, late, reportedBy, bookBy)} />
-      <MoneyNote side={side} kind="seller_delivery" free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it"
+      <MoneyNote orderId={orderId} side={side} kind="seller_delivery" free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it"
         deliveryCents={b.data.delivery_cents ?? 0} />
     </div>
   );

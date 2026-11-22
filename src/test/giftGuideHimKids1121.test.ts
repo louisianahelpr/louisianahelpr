@@ -27,7 +27,10 @@ type Pick = { name: string; brand?: string; href: string; image: string; store: 
  * Tan (Amazon B0F2JHSGCJ, 3%) -> Onward Reserve 15% at $250 (11-21 night, owner-approved). Kids has none.
  */
 const SWITCHED: Record<string, Record<string, string>> = {
-  him: { "https://go.shopmy.us/p-108736038": "store-dillards", "https://go.shopmy.us/p-108734364": "store-exclusive-beauty-club", "https://go.shopmy.us/p-108736312": "store-onward-reserve", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2F22734": "store-xtratuf" },
+  him: { "https://go.shopmy.us/p-108736038": "store-dillards", "https://go.shopmy.us/p-108734364": "store-exclusive-beauty-club", "https://go.shopmy.us/p-108736312": "store-onward-reserve", 
+    // Night links 11-21 (Commission-links-1121-night.md; owner: "switch all 3 to the higher commission"):
+    "https://go.shopmy.us/p-108999848": "store-onward-reserve", "https://go.shopmy.us/p-109000336": "store-l-l-bean", "https://go.shopmy.us/p-109001581": "store-yeti", "https://go.shopmy.us/p-109003244": "store-yeti", "https://go.shopmy.us/p-109003412": "store-yeti", "https://go.shopmy.us/p-109003630": "store-yeti", "https://go.shopmy.us/p-109003793": "store-yeti", "https://go.shopmy.us/p-109003951": "store-yeti", "https://go.shopmy.us/p-109004058": "store-yeti", "https://go.shopmy.us/p-109004159": "store-yeti", "https://go.shopmy.us/p-109004254": "store-yeti", "https://go.shopmy.us/p-109004991": "store-tractor-supply", "https://go.shopmy.us/p-109005541": "store-tractor-supply", "https://go.shopmy.us/p-109005400": "store-tractor-supply",
+    "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2F22734": "store-xtratuf" },
   kids: {},
 };
 /**
@@ -145,15 +148,16 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
 });
 
 describe("For Him holds every one of her men's saves (owner 11-21)", () => {
-  it("114 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the eight left out named", () => {
-    // Left out, 2026-11-21: B001DPHF4U LaCrosse Grange, B0FKCJNHWB Theragun Prime and B08Q1RN656 XTRATUF Ankle Deck Boot, B0F2JHSGCJ Turtlebox Ranger
+  it("100 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the 22 left out named", () => {
+    // Left out, 2026-11-21: B001DPHF4U LaCrosse Grange, B0FKCJNHWB Theragun Prime and B08Q1RN656 XTRATUF Ankle Deck Boot, B0F2JHSGCJ Turtlebox Ranger and the 14 night links 11-21
+    // (Turtlebox Gen 3, Roadie 32, 9 YETI at YETI US, 3 Wetlands Camo YETI at Tractor Supply)
     // (on the page at their better-paying
     // stores, above), B0002A7GMS / B07M9LRQ4J / B0FDXLSNN1 (second listings of the same items), B09ZYT939N YETI
     // Crossroads Backpack (Amazon showed no price).
     const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]);
-    expect(amazon.length).toBe(114);
-    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N"]) expect(amazon, asin).not.toContain(asin);
-    for (const asin of ["B0H7CRMDKS", "B0F22HTHMJ", "B0CQ4QM7Q2", "B0FR98X1DZ", "B0FT97QYYZ", "B0D31TCLN2"]) expect(amazon, asin).toContain(asin);
+    expect(amazon.length).toBe(100);
+    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N"]) expect(amazon, asin).not.toContain(asin);
+    for (const asin of ["B0F2K9B696", "B0F53HMTX5", "B0CQ4QM7Q2", "B0FR98X1DZ", "B0FT97QYYZ", "B0D31TCLN2"]) expect(amazon, asin).toContain(asin);
   });
 });
 

@@ -210,6 +210,9 @@ describe("New this week", () => {
     expect(newThisWeek([row("a", 9), row("b", 30)], null, NOW)).toEqual([]);
     expect(newThisWeek([], null, NOW)).toEqual([]);
     expect(newThisWeek([row("a", 1), row("b", 2)], null, NOW)).toEqual([]);
+    // Owner 11-21: fewer than NEW_THIS_WEEK_MIN new is no row (a one-card row repeated the grid's first card).
+    expect(newThisWeek([row("a", 1), row("b", 2), row("c", 9), row("d", 9)], null, NOW)).toEqual([]);
+    expect(newThisWeek([row("a", 1), row("b", 2), row("e", 3), row("c", 9)], null, NOW).map((i) => i.id)).toEqual(["a", "b", "e"]);
     expect(newThisWeek([row("seed", 1, { is_seed: true }), row("old", 9)], null, NOW)).toEqual([]);
   });
 
@@ -240,13 +243,15 @@ describe("New this week", () => {
   };
 
   it("Browse shows the row above the grid with this week's listings, never the test one", async () => {
-    state.live = [card(1, 1), card(2, 3), card(3, 20), card(4, 0.5, { is_seed: true })];
+    // Owner 11-21: the row needs NEW_THIS_WEEK_MIN (3) new listings (declutterNewThisWeekNoDupe.test.tsx).
+    state.live = [card(1, 1), card(2, 3), card(5, 4), card(3, 20), card(4, 0.5, { is_seed: true })];
     browse();
     const section = await screen.findByRole("region", { name: "New this week" });
     const titles = [...section.querySelectorAll("[data-item-card]")].map((a) => a.textContent ?? "");
-    expect(titles.length).toBe(2);
+    expect(titles.length).toBe(3);
     expect(titles.some((t) => t.includes("Thing 1"))).toBe(true);
     expect(titles.some((t) => t.includes("Thing 2"))).toBe(true);
+    expect(titles.some((t) => t.includes("Thing 5"))).toBe(true);
     expect(titles.some((t) => t.includes("Thing 3") || t.includes("Thing 4"))).toBe(false);
   });
 
@@ -260,9 +265,10 @@ describe("New this week", () => {
   });
 
   it("a search shows its own matches only: no row", async () => {
-    state.live = [card(1, 1), card(2, 3), card(3, 20)];
+    // Enough new matches for a row (NEW_THIS_WEEK_MIN), so only the search rule keeps it off.
+    state.live = [card(1, 1), card(2, 3), card(5, 4), card(6, 5), card(3, 20)];
     browse("/declutter?q=Thing");
-    await waitFor(() => expect(screen.queryAllByText(/^Thing \d$/).length).toBeGreaterThan(2));
+    await waitFor(() => expect(screen.queryAllByText(/^Thing \d$/).length).toBeGreaterThan(4));
     await settleRow();
     expect(document.querySelector("[data-new-this-week]")).toBeNull();
   });

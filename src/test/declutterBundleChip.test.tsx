@@ -11,7 +11,7 @@
  * @mutate supabase/migrations/20261030135334_declutter_bundle_sellers.sql | REVOKE ALL ON FUNCTION public.declutter_bundle_sellers(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_bundle_sellers(uuid[]) FROM PUBLIC;
  * @mutate supabase/migrations/20261030135334_declutter_bundle_sellers.sql |   PERFORM public.require_feature('declutter'); |
  * @mutate src/components/declutter/DeclutterItemCard.tsx |       {bundle && <Badge | {false && <Badge
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |                   bundle={item.seller_id !== userId && (bundles.data?.has(item.seller_id) ?? false)} |                   bundle={false}
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |       bundle={item.seller_id !== userId && (bundles.data?.has(item.seller_id) ?? false)} mine= |       bundle={false} mine=
  * @mutate src/lib/declutter/bundle.ts |   if (res.error && isMissingRpcNamed(res.error, "declutter_bundle_sellers")) return new Set(); |
  */
 import { readFileSync } from "node:fs";

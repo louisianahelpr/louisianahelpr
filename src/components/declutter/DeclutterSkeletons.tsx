@@ -128,6 +128,13 @@ export function DeclutterTabBones() {
 export const DECLUTTER_GRID = "grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 sm:gap-x-3 sm:gap-y-5 2xl:grid-cols-4";
 /** The same grid across the whole panel (desktop, map hidden): 4 across, 5 on wide screens, so a card stays card-sized. */
 export const DECLUTTER_GRID_FULL = `${DECLUTTER_GRID} lg:grid-cols-4 xl:grid-cols-5`;
+/**
+ * Owner 11-21 ("its listed twice": the row's card was smaller than the grid's): Browse's "New this week" row, a sideways
+ * row whose cards are exactly the grid's column width at every width (columns and gaps as DECLUTTER_GRID[_FULL]).
+ */
+const ROW_BASE = "grid grid-flow-col snap-x overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden gap-x-2 sm:gap-x-3";
+export const DECLUTTER_ROW = `${ROW_BASE} auto-cols-[calc((100%_-_0.5rem)/2)] sm:auto-cols-[calc((100%_-_1.5rem)/3)] 2xl:auto-cols-[calc((100%_-_2.25rem)/4)]`;
+export const DECLUTTER_ROW_FULL = `${DECLUTTER_ROW} lg:auto-cols-[calc((100%_-_2.25rem)/4)] xl:auto-cols-[calc((100%_-_3rem)/5)]`;
 /** How many cards the grids above put in their first row at this width (sm 640, lg 900, xl 1280, 2xl 1536). */
 export function declutterFirstRowCount(full: boolean, width: number): number {
   if (width < 640) return 2;

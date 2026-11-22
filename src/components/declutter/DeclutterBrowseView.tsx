@@ -25,7 +25,7 @@ import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useFeature } from "@/hooks/useFeature";
 import { safeStorage } from "@/lib/safeStorage";
-import { fetchDropStates, fetchDroppedIntoBudget, fetchItemWays, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching } from "@/lib/declutter/api";
+import { fetchDropStates, fetchDroppedIntoBudget, fetchItemWays, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching, type DeclutterItem } from "@/lib/declutter/api";
 import { useWatchToggle } from "./useWatchToggle";
 import { DeclutterCategoryChips } from "./DeclutterCategoryChips";
 import { fetchSaveCounts, shownSaves } from "@/lib/declutter/saveCounts";
@@ -347,9 +347,12 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   // A search or a filter that found nothing is never "Opens soon" (lead walkthrough 2026-10-28, shot 04): it says
   // nothing matched, with a way to clear it and the Wanted link.
   const searched = q !== "" || filterCount > 0;
-  // Selling boost (owner 11-20): "New this week" from the full list only (a preview is nearest-first), plain list only.
-  const freshRows = useMemo(() => (items.data ? newThisWeek(items.data, userId, Date.now()) : []), [items.data, userId]);
+  // Selling boost (owner 11-20): "New this week", plain full list only. Owner 11-21 ("its listed twice"): cut from the
+  // page's own rows, and its cards leave the grid, so no listing shows twice and the count stays rows.length.
+  const freshRows = newThisWeek(rows.map((r) => r.item), userId, Date.now());
   const showFresh = !searched && !preview && freshRows.length > 0;
+  const freshIds = new Set(showFresh ? freshRows.map((i) => i.id) : []);
+  const gridRows = rows.filter((r) => !freshIds.has(r.item.id));
   // F310: a one-letter typo ("lamb") that finds nothing is offered the search that would ("lamp"), within the filters.
   const nearSearch = rows.length === 0 && q !== "" && !zipSearch ? closeSearch(query, others) : null;
   const nearFinds = nearSearch !== null && applyBrowseFilters(nearest, filters, nearSearch, drops.data, now, itemWays.data).length > 0;
@@ -386,6 +389,17 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
     if (!read?.counts) return null;
     return shownSaves(read.counts.get(id) ?? 0, read.mine.has(id), watching.data?.has(id) ?? false);
   };
+  // ONE card for the grid and the "New this week" row (owner 11-21): `slot` is the card's place among the page's cards.
+  const fullGrid = desktop && !mapVisible;
+  const firstRowN = declutterFirstRowCount(fullGrid, window.innerWidth);
+  const cardOf = (item: DeclutterItem, miles: number | null, slot: number) => (
+    <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate}
+      firstRow={slot < firstRowN} aboveFold={slot < declutterAboveFoldCount(fullGrid, window.innerWidth, window.innerHeight)}
+      tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook.get(item.id)?.tonight ? "drop" : saveCounts.data?.inDemand?.has(item.id) ? "demand" : item.delivery_size !== "small" ? "delivery" : null}
+      bundle={item.seller_id !== userId && (bundles.data?.has(item.seller_id) ?? false)} mine={!!userId && item.seller_id === userId} saves={savesOf(item.id)}
+      save={member ? { on: !!watching.data?.has(item.id), toggle: () => toggleWatch.mutate({ id: item.id, on: !watching.data?.has(item.id) }), pending: toggleWatch.isPending && toggleWatch.variables?.id === item.id } : undefined}
+      guestSaveTo={guestSaveTo} />
+  );
   const { sorts: resultsSorts, sortNow } = sortChoices(origin.status === "ready", filters.sort);
   const resultsSort = { sorts: resultsSorts, sort: sortNow };
   // Offline with nothing loaded is never "Nothing for sale yet" (Q571).
@@ -543,25 +557,10 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
           </div>
         ) : (
           <>
-          {showFresh && <Suspense fallback={null}><DeclutterNewThisWeek items={freshRows} cover={cover} from={origin.status === "ready" ? { lat: origin.lat, lng: origin.lng, approximate: origin.approximate } : null} /></Suspense>}
-          <ul className={desktop && !mapVisible ? DECLUTTER_GRID_FULL : DECLUTTER_GRID}>
-            {rows.map(({ item, miles }, index) => (
-              <li key={item.id} className="min-w-0">
-                <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate}
-                  firstRow={index < declutterFirstRowCount(desktop && !mapVisible, window.innerWidth)}
-                  aboveFold={index < declutterAboveFoldCount(desktop && !mapVisible, window.innerWidth, window.innerHeight)}
-                  tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook.get(item.id)?.tonight ? "drop" : saveCounts.data?.inDemand?.has(item.id) ? "demand" : item.delivery_size !== "small" ? "delivery" : null}
-                  bundle={item.seller_id !== userId && (bundles.data?.has(item.seller_id) ?? false)}
-                  mine={!!userId && item.seller_id === userId}
-                  saves={savesOf(item.id)}
-                  save={member ? {
-                    on: watching.data?.has(item.id) ?? false,
-                    toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }),
-                    pending: toggleWatch.isPending && toggleWatch.variables?.id === item.id,
-                  } : undefined}
-                  guestSaveTo={guestSaveTo}
-                />
-              </li>
+          {showFresh && <Suspense fallback={null}><DeclutterNewThisWeek items={freshRows} full={fullGrid} card={(it, n) => cardOf(it, rows.find((r) => r.item.id === it.id)?.miles ?? null, n)} /></Suspense>}
+          <ul className={fullGrid ? DECLUTTER_GRID_FULL : DECLUTTER_GRID}>
+            {gridRows.map(({ item, miles }, index) => (
+              <li key={item.id} className="min-w-0">{cardOf(item, miles, index + (showFresh ? firstRowN : 0))}</li>
             ))}
           </ul>
           </>

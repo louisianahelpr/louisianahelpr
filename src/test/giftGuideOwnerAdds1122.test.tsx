@@ -69,6 +69,7 @@ const SENT: [string, string, string, number][] = [
   ["p-109207730", "her", "store-esker-beauty", 75],
   ["p-109208209", "kids", "store-crunchlabs", 34.99],
   ["p-103757260", "kids", "store-maisonette", 129.99],
+  ["p-109208104", "kids", "store-target", 44.99],
   ["p-109199365", "him", "store-saks-fifth-avenue", 154],
   ["p-109203985", "him", "store-st-bernard", 159],
   ["p-109204287", "him", "store-dsw", 139.99],

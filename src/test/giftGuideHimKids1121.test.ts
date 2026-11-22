@@ -49,7 +49,7 @@ const SWITCHED: Record<string, Record<string, string>> = {
     "https://go.shopmy.us/p-109155269": "store-eadem",
     // Owner via the lead, 11-22: both Yoto 4th Gen bundles (Ms. Rachel, Bluey).
     "https://go.shopmy.us/p-109156467": "store-yoto", "https://go.shopmy.us/p-109156399": "store-yoto",
-    "https://go.shopmy.us/p-109208209": "store-crunchlabs", "https://go.shopmy.us/p-103757260": "store-maisonette" },
+    "https://go.shopmy.us/p-109208209": "store-crunchlabs", "https://go.shopmy.us/p-103757260": "store-maisonette", "https://go.shopmy.us/p-109208104": "store-target" },
 };
 /**
  * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and

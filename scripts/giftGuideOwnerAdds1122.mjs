@@ -103,6 +103,7 @@ export const KIDS_ADDS_1122 = [
 // owner 11-22 popular via new ShopMy links (builder-guide-links)
   { name: "CrunchLabs The Crunchinator", brand: "CrunchLabs", line: "A build-it-yourself machine that crushes and launches.", href: shopmy("p-109208209"), image: "https://static.shopmy.us/pins/zoom-109208209-1795374027354-Add_a_heading_4_450x450.png", store: "store-crunchlabs", sortPrice: 34.99, price: 34.99, commission: 16, type: "science" },
   { name: "Stickerbox Sticker Printer", brand: "Stickerbox", line: "A kid-safe printer that turns their ideas into stickers.", href: shopmy("p-103757260"), image: "https://cdn.shopify.com/s/files/1/0683/1053/2275/files/Stickerbox_Image_3.png", store: "store-maisonette", sortPrice: 129.99, price: 129.99, commission: 16, type: "craft" },
+  { name: "Tamagotchi Paradise, Jade Forest", brand: "Tamagotchi", line: "The new virtual pet with a shell that opens and a world to explore.", href: shopmy("p-109208104"), image: "https://target.scene7.com/is/image/Target/GUEST_95cd91a5-37fa-4bcd-bd20-17f394906a81", store: "store-target", sortPrice: 44.99, price: 44.99, commission: 4, type: "digital-pet" },
 ].map(dated);
 
 /** For Him (owner via the lead, 11-22). */
@@ -169,4 +170,5 @@ export const ADDS_CUTOUTS_1122 = [
   ["https://static.shopmy.us/uploads/pretty-prod-1765010272351", "esker-bubble-soak-a1c706.webp"],
   ["https://static.shopmy.us/pins/zoom-109208209-1795374027354-Add_a_heading_4_450x450.png", "crunchlabs-crunchinator-a1c709.webp"],
   ["https://cdn.shopify.com/s/files/1/0683/1053/2275/files/Stickerbox_Image_3.png", "stickerbox-printer-a1c70a.webp"],
+  ["https://target.scene7.com/is/image/Target/GUEST_95cd91a5-37fa-4bcd-bd20-17f394906a81", "tamagotchi-paradise-jade-forest-a1c708.webp"],
 ];

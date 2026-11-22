@@ -147,7 +147,10 @@ export default function HolidayHub() {
   const foldAfter = addDaysYmd(today, LATER_AFTER_DAYS);
   const folds = when === "all" && !query.trim();
   const isLater = (g: (typeof groups)[number]) => folds && (g.key === "tba" || (!!g.day && g.day > foldAfter));
-  const soon = groups.filter((g) => !isLater(g));
+  // Guides polish 1122 #18: the undated light displays (57) sit closed between the next two weeks and "Later dates", so the
+  // dated events come first on a phone; a When filter or a search shows them open as before.
+  const tbaLights = folds ? groups.find((g) => g.key === "lights-tba") : undefined;
+  const soon = groups.filter((g) => !isLater(g) && g !== tbaLights);
   const later = groups.filter(isLater);
   const section = (g: (typeof groups)[number]) => (
     <HolidaySection key={g.key} id={`holidays-${g.key}`} title={g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : g.key === "lights-tba" ? W.lightsTba : DATES_TBA} count={g.items.length}>
@@ -250,6 +253,18 @@ export default function HolidayHub() {
             {soon.map(section)}
             {/* Holiday audit 1121 area 5 #5: the days more than two weeks out and "Dates TBA" fold under one "Later dates"
                 (closed), so the page opens on what is coming up. A When filter or a search shows every group open. */}
+            {tbaLights && (
+              <details className="group space-y-section" id="holidays-lights-tba" data-holiday-lights-tba="">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-ds-20 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+                  {W.lightsTba}<span className="text-ds-15 font-normal text-muted-foreground">({tbaLights.items.length})</span>
+                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+                </summary>
+                <p className="text-ds-14 text-muted-foreground">{W.lightsTbaNote}</p>
+                <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {tbaLights.items.map((i) => <HolidayCard key={i.id} item={i} kind="light" tag={tagFor(i)} />)}
+                </ul>
+              </details>
+            )}
             {later.length > 0 && (
               <details className="group space-y-section" data-holiday-later="">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-ds-20 font-semibold text-foreground [&::-webkit-details-marker]:hidden">

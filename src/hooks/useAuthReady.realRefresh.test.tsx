@@ -24,6 +24,7 @@
 // @mutate src/hooks/useAuthReady.ts | if (session) settleRestore(confirmsRestore(session));\n          else | if (false) settleRestore(confirmsRestore(session));\n          else
 // @mutate src/hooks/useCurrentUser.ts | if ((await sessionSettled()) === "offline") throw new TypeError(REFRESH_OFFLINE_MESSAGE); | void sessionSettled;
 // @mutate src/hooks/useCurrentUser.ts | const off = onRefreshNetworkFailure(() => finish("offline")); | const off = () => {};
+// @mutate src/hooks/useCurrentUser.ts | setTimeout(() => finish("offline"), Math.max(0, SESSION_WAIT_CAP_MS - (Date.now() - since))); | void since;
 // @mutate src/hooks/useAuthReady.ts | !restoredFrom \|\| (session.user?.id === restoredFrom.userId | !restoredFrom && (session.user?.id === restoredFrom.userId
 // @mutate src/components/QueryCacheHydrator.tsx | void removePersistedClient(); | void 0;
 // @mutate src/integrations/supabase/client.ts | fetchImpl: noteRefreshOutcome(noteReachableFetch(signOutAwareFetch)), | fetchImpl: noteReachableFetch(signOutAwareFetch),
@@ -322,6 +323,22 @@ describe("4. a refresh that fails on the network shows the connection card FAST;
     expect(result.current.isError).toBe(true); // ProtectedRoute's recoverable "still signed in" card
     expect(result.current.isLoading).toBe(false);
     expect(sent.filter((s) => s.url.includes("/rest/v1/profiles"))).toEqual([]); // nothing sent with the old token
+  });
+
+  it("a refresh that neither answers nor fails (hung) ends as connection trouble at the 20 s cap, never an endless spinner", async () => {
+    h.profileRow = { user_id: "member-1", ban_status: null };
+    stubNetwork({ status: 200, body: {} }, 10 * 60_000);
+    localStorage.setItem(KEY, storedExpired());
+    const { result } = await mountCurrentUser();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(19_000);
+    });
+    expect(result.current.isError).toBe(false);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_500); // the cap, then the one retry shares it (no second 20 s)
+    });
+    expect(result.current.isError).toBe(true);
+    expect(result.current.user?.id).toBe("member-1");
   });
 
   it("a refusal: the member is signed out at the answer, so ProtectedRoute's no-user branch sends them to Log In", async () => {

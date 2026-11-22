@@ -21,6 +21,7 @@
 // @mutate src/hooks/useAuthReady.ts | settleRestore(false);\n            markReady(null); | settleRestore(false);
 // @mutate src/hooks/useAuthReady.ts | if (stored.expires_at * 1000 - Date.now() >= REFRESH_MARGIN_MS) return null; | void REFRESH_MARGIN_MS;
 // @mutate src/hooks/useAuthReady.ts | if (isNativeShell()) return null; | void isNativeShell;
+// @mutate src/hooks/useAuthReady.ts | return { session: null, timedOut: false, failed: true }; | return { session: null, timedOut: false, failed: false };
 // @mutate src/hooks/useAuthReady.ts | if (restoredUser && event === "INITIAL_SESSION" && !session && !storedSessionStillRefreshable()) { | if (false) {
 // @mutate src/hooks/useAuthReady.ts | if (!timedOut && (!failed \|\| !storedSessionStillRefreshable())) { | if (!timedOut && !storedSessionStillRefreshable()) {
 // @mutate src/hooks/useAuthReady.ts | session.user?.id === restoredFrom.userId && session.access_token | session.access_token
@@ -178,6 +179,16 @@ describe("useAuthReady: review notes (lh-silent-failure, lh-authz-rls, 2026-11-2
       authCallback?.("INITIAL_SESSION", null);
     });
     expect(result.current).toEqual({ isReady: true, user: null });
+  });
+
+  it("getSession THROWS for a restored member whose session is still stored: kept (a throw is not a refusal)", async () => {
+    localStorage.setItem(KEY, stored());
+    getSessionMock.mockRejectedValue(new Error("corrupt read"));
+    const { result } = await mountAtZero();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current).toEqual({ isReady: true, user: expect.objectContaining({ id: "member-1" }) });
   });
 
   it("getSession answers null with NO error (auth-js holds no session, e.g. its in-memory fallback): signed out", async () => {

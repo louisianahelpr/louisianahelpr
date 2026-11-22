@@ -325,7 +325,8 @@ const getSessionWithTimeout = async (): Promise<{ session: Session | null; timed
     // /login with nothing recorded. Report it, then fall through to the
     // signed-out answer, which is the only safe one available here.
     report(err, { severity: "warning", tags: { area: "auth", op: "bootstrapGetSession" } });
-    return { session: null, timedOut: false, failed: false };
+    // failed: a restored member whose storage still holds a refreshable session is kept (the throw is not a refusal).
+    return { session: null, timedOut: false, failed: true };
   }
 };
 

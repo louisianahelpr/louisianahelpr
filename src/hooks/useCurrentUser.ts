@@ -124,8 +124,13 @@ const client = async () => {
 /**
  * Q1158: wait for the session the profile read needs: "ready" once getSession() answers (from storage at once for a
  * live token, after the refresh for an expired one), "offline" the moment a refresh attempt fails on the network
- * (src/lib/refreshNetworkFailure.ts). A failure recorded just before gives a live session 50 ms to answer first.
+ * (src/lib/refreshNetworkFailure.ts), or after SESSION_WAIT_CAP_MS with neither. A failure recorded just before
+ * gives a live session 50 ms to answer first.
  */
+/** The longest the profile gate waits for a session refresh that neither answers nor fails. */
+const SESSION_WAIT_CAP_MS = 20_000;
+/** When the current unanswered wait began: the query's retry shares the cap instead of starting a second one. */
+let sessionWaitSince: number | null = null;
 const sessionSettled = (): Promise<"ready" | "offline"> =>
   new Promise((resolve) => {
     let done = false;
@@ -136,16 +141,24 @@ const sessionSettled = (): Promise<"ready" | "offline"> =>
       resolve(v);
     };
     const off = onRefreshNetworkFailure(() => finish("offline"));
+    const since = (sessionWaitSince ??= Date.now());
     client()
       .then((c) => c.auth.getSession())
       .then(
-        () => finish("ready"),
+        () => {
+          sessionWaitSince = null;
+          finish("ready");
+        },
         () => {
           // Not silent: the profile read below meets the same failure and throws it to the query (the retry card).
           finish("ready");
         },
       );
-    if (refreshFailedRecently()) setTimeout(() => finish("offline"), 50);
+    // Re-checked when it fires: a token answer meanwhile (a refresh or a sign-in) clears the failure.
+    if (refreshFailedRecently()) setTimeout(() => { if (refreshFailedRecently()) finish("offline"); }, 50);
+    // A refresh that neither answers nor fails (a hung request) ends as connection trouble too, never an endless
+    // spinner (lh-silent-failure / lh-authz-rls re-review 2026-11-22).
+    setTimeout(() => finish("offline"), Math.max(0, SESSION_WAIT_CAP_MS - (Date.now() - since)));
   });
 
 const readProfile = (userId: string): Promise<Profile | null> => {

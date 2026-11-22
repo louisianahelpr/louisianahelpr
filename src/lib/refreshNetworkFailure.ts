@@ -38,16 +38,19 @@ const markFailed = () => {
 /** Wraps the auth client's fetch: records each refresh attempt's network outcome; every request passes unchanged. */
 export function noteRefreshOutcome(fetchImpl: typeof fetch): typeof fetch {
   return async (input, init) => {
-    if (!isRefreshRequest(urlOf(input))) return fetchImpl(input, init);
+    const url = urlOf(input);
+    if (!url.includes("/auth/v1/token")) return fetchImpl(input, init);
+    const refresh = isRefreshRequest(url);
     let res: Response;
     try {
       res = await fetchImpl(input, init);
     } catch (err) {
-      markFailed();
+      if (refresh) markFailed();
       throw err;
     }
-    if (res.status >= 500) markFailed();
-    else failedAt = null;
+    // Any token answer under 500 (a refresh, a password or OAuth sign-in) means the auth server is reachable again.
+    if (refresh && res.status >= 500) markFailed();
+    else if (res.status < 500) failedAt = null;
     return res;
   };
 }

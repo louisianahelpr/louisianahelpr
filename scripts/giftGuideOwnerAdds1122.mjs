@@ -27,6 +27,7 @@ export const ADDS_PRICE_AT = "2026-11-22";
 export const ADDS_STORES_1122 = {
   "store-sleep-crown": "Sleep Crown", "store-crown-affair": "Crown Affair", "store-eadem": "EADEM", "store-aera": "Aera",
   "store-lemme": "Lemme", "store-stil": "STIL", "store-eleven-eleven": "Eleven Eleven", "store-calvin-klein": "Calvin Klein", "store-foton": "Foton", "store-sleepy-tie": "Sleepy Tie",
+  "store-the-warming-store": "The Warming Store", "store-cavenders": "Cavender's",
 };
 
 /** Each row carries the day its price was checked (the page's "Prices as of" note reads the oldest). */
@@ -102,6 +103,13 @@ export const KIDS_ADDS_1122 = [
 
 /** For Him (owner via the lead, 11-22). */
 export const HIM_ADDS_1122 = [
+  // Her Nov 19 pins, batch 1 for Him (11-22). Prices are the ones on the stores' pages when her pins were checked 11-20.
+  { name: "Solo Stove Bonfire Fire Pit with Stand", brand: "Solo Stove", line: "A smokeless fire pit with a stand for the backyard or camp.", href: shopmy("p-107850277"), image: "https://static.shopmy.us/uploads/pretty-prod-1781800303701", store: "store-l-l-bean", sortPrice: 299.99, price: 299.99, commission: 12, type: "fire-pit", priceAt: "2026-11-20" },
+  { name: "YETI Roadie 8 Hard Cooler", brand: "YETI", line: "A compact hard cooler that fits behind the truck seat.", href: shopmy("p-107837448"), image: "https://static.shopmy.us/uploads/pretty-prod-1787796593407", store: "store-l-l-bean", sortPrice: 165, price: 165, commission: 12, type: "cooler", priceAt: "2026-11-20" },
+  { name: "Muck Arctic Pro Boot", brand: "Muck Boot", line: "Warm, waterproof camo boots for cold blinds.", href: shopmy("p-107881822"), image: "https://static.shopmy.us/uploads/9f946e05-b054-4bf8-90cc-75e7b8864ba8imageye___-_imgi_54_EhmuM54AtE0slIiHX1qGxEeUxC1ppS0L-14.jpg", store: "store-the-warming-store", sortPrice: 195, price: 195, commission: 8, type: "boots", priceAt: "2026-11-20" },
+  { name: "Carhartt Duck Insulated Active Jacket", brand: "Carhartt", line: "A tough, quilt-lined duck jacket that works as hard as he does.", href: shopmy("p-107847793"), image: "https://static.shopmy.us/uploads/pretty-prod-1792843758637", store: "store-cavenders", sortPrice: 129.99, price: 129.99, commission: 16, type: "jacket", priceAt: "2026-11-20" },
+  { name: "Duck Commander Phil Robertson Pro Series Duck Call", brand: "Duck Commander", line: "A call from the Louisiana duck hunting family.", href: shopmy("p-107895312"), image: "https://static.shopmy.us/pins/zoom-107895312-1795118452958-2522562", store: "store-tractor-supply", sortPrice: 64.99, price: 64.99, commission: 8, type: "duck-call", priceAt: "2026-11-20" },
+  { name: "Duck Commander Camo Max Mallard Hen Duck Call", brand: "Duck Commander", line: "An easy-to-blow mallard hen call in camo.", href: shopmy("p-107895486"), image: "https://static.shopmy.us/pins/zoom-107895486-1795118471935-1443301", store: "store-tractor-supply", sortPrice: 44.99, price: 44.99, commission: 8, type: "duck-call", priceAt: "2026-11-20" },
   // Her older Lake Pajamas pins (Nov 11), sent for Him on 11-22; priced on lakepajamas.com 11-22.
   { name: "Lake Men's Pima Sleep Shorts Set, True Navy", brand: "Lake", line: "A soft pima tee and shorts set for lounging.", href: shopmy("p-103892269"), image: "https://cdn.shopify.com/s/files/1/0505/6125/files/LAKE_Webcrop_Winter2025_Mens_SS_TrueNavy.jpg", store: "store-lake-pajamas", sortPrice: 138, price: 138, commission: 12, type: "pajamas" },
   // Owner via lead, 11-22: "the Battery Daddy" for Him (no ShopMy pin; Amazon with her tag, the red case with a tester).
@@ -111,6 +119,12 @@ export const HIM_ADDS_1122 = [
 
 /** Transparent cutouts for these photos (Apple Vision, scripts/gift-guide-cutout.swift; each checked by eye, 400 px). */
 export const ADDS_CUTOUTS_1122 = [
+  ["https://static.shopmy.us/uploads/pretty-prod-1781800303701", "solo-stove-bonfire-stand-58adad.webp"],
+  ["https://static.shopmy.us/uploads/pretty-prod-1787796593407", "yeti-roadie-8-5cbb52.webp"],
+  ["https://static.shopmy.us/uploads/9f946e05-b054-4bf8-90cc-75e7b8864ba8imageye___-_imgi_54_EhmuM54AtE0slIiHX1qGxEeUxC1ppS0L-14.jpg", "muck-arctic-pro-12511e.webp"],
+  ["https://static.shopmy.us/uploads/pretty-prod-1792843758637", "carhartt-duck-active-jac-86b274.webp"],
+  ["https://static.shopmy.us/pins/zoom-107895312-1795118452958-2522562", "duck-commander-phil-robertson-1c3c15.webp"],
+  ["https://static.shopmy.us/pins/zoom-107895486-1795118471935-1443301", "duck-commander-camo-max-mallard-ce83be.webp"],
   ["https://static.shopmy.us/pins/zoom-109140863-1795365634530-CS2Chestnut.jpg", "camp-snap-2-chestnut-75ff92.webp"],
   ["https://static.shopmy.us/uploads/pretty-prod-1794572274203", "camp-snap-cs-pro-886860.webp"],
   ["https://static.shopmy.us/pins/zoom-109141448-1795365699492-CS2Black_cs.jpg", "camp-snap-cs-8-camcorder-classic-8e9844.webp"],

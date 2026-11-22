@@ -197,6 +197,7 @@ const REVIEWED_EXPANDING_SEARCHES = [
   "pages/info/HelpCenter.tsx",
   "pages/info/Legal.tsx",
   "pages/info/giftGuides/GiftGuideShare.tsx",
+  "pages/info/holidays/HolidayHub.tsx",
 ].sort();
 
 // The exact gate useIsWebDesktop reads (min-width: 900px, non-native).
@@ -554,6 +555,8 @@ const EXERCISED = [
   "components/profile/SavedHelpersTab.tsx",
 ];
 const NOT_EXERCISED: Record<string, string> = {
+  "pages/info/holidays/HolidayHub.tsx":
+    "the Holiday Hub's search icon (holiday fixes 1121d, owner 11-21 evening): opened, typed into and closed with Escape and its ✕ in src/test/holidayHub.test.tsx (data-holiday-search-*); the held slot is asserted by source above",
   "components/dashboard/BrowseTasksToolbar.tsx":
     "holds no field and no trigger — it only passes the shared flag through to the sheet",
   "components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx":

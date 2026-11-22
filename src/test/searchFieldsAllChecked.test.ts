@@ -254,7 +254,9 @@ describe("every search field is driven in a real browser (inventory minus checke
     // 2026-11-21 (owner): +1, the Gift planner's "Search gifts" in its From our guides picker (GuidePicksPicker, on NO_X).
     // 2026-11-21 (owner pop-up, search is just the icon): +1, Find a Helpr's town field (FindHelprs), now type="search"
     // and opened from its magnifier, with a "Close search" ✕. Every icon-first field's ✕ became "Close search".
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(21);
+    // 2026-11-21 (owner, holiday fixes 1121d): +1, the Holiday Hub's "Search lights and events" (HolidayHub), opened from
+    // its plain magnifier, with a "Close search" ✕.
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(22);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
@@ -273,6 +275,7 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/pages/helprs/FindHelprs.tsx",
       "src/pages/info/HelpCenter.tsx",
       "src/pages/info/Legal.tsx",
+      "src/pages/info/holidays/HolidayHub.tsx",
       "src/pages/search/SearchPage.tsx",
     ]);
     expect(EXPANDING_CALLERS).toEqual([
@@ -341,8 +344,9 @@ describe("every search field is driven in a real browser (inventory minus checke
 
   // Six before Q913; four since Q2205 (PostsHeader / JobsHeader left with the old My Posts / My Jobs pages);
   // five since 2026-10-27 (Jobs > Posted / Working's search opens in place: InlineListSearch); ten since owner 11-21
-  // (search is just the icon): the section bar and row, the inbox row, Help and Find a Helpr open from a magnifier.
-  it("the opening searches are exactly these ten (a permanent field is not one)", () => {
+  // (search is just the icon): the section bar and row, the inbox row, Help and Find a Helpr open from a magnifier;
+  // eleven with the Holiday Hub's search icon (holiday fixes 1121d).
+  it("the opening searches are exactly these eleven (a permanent field is not one)", () => {
     expect(OPENING_X_FILES).toEqual([
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
@@ -354,6 +358,7 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/pages/helprs/FindHelprs.tsx",
       "src/pages/info/HelpCenter.tsx",
       "src/pages/info/Legal.tsx",
+      "src/pages/info/holidays/HolidayHub.tsx",
     ]);
   });
 

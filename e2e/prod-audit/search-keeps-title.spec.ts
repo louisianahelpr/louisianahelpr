@@ -100,6 +100,13 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     trigger: 'button[aria-label="Find a Helpr by town"]',
     field: "#helpr-town",
   },
+  // Holiday fixes 1121d (owner 11-21 evening): the Holiday Hub's plain magnifier opens its field in the filters row.
+  {
+    name: "holiday-hub", file: "src/pages/info/holidays/HolidayHub.tsx",
+    url: "/holidays",
+    trigger: "button[data-holiday-search-button]",
+    field: "input[data-holiday-search]",
+  },
 ];
 
 /** Runs in the page. The title (h1, or its visible leaf twin) and the field

@@ -205,6 +205,14 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: "#helpr-town",
     close: `form[aria-label="Find a Helpr by town"] ${CLOSE}`,
   },
+  // Holiday fixes 1121d (owner 11-21 evening): the Holiday Hub's magnifier opens its field; its "Close search" ✕ folds it.
+  {
+    name: "holiday-hub", file: "src/pages/info/holidays/HolidayHub.tsx",
+    url: "/holidays",
+    trigger: "button[data-holiday-search-button]",
+    field: "input[data-holiday-search]",
+    close: `[data-holiday-search-box] ${CLOSE}`,
+  },
   {
     name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.tsx", as: "admin",
     url: "/admin",

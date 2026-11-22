@@ -8,13 +8,14 @@
  *    (/shop-small keeps working; its redirect to the Small Business Saturday page follows once that page carries the
  *    business sign-up form, so the form is never unreachable.)
  *  - "when I click into each section on the left panel, it should open to the top of the page, not the middle": every
- *    menu link that changes the view carries no #anchor (the printables entries open that part at the page's top with
- *    ?show=...), and a menu navigation scrolls the window to the top (ScrollToTop); a true #anchor still scrolls to it.
+ *    menu link that changes the view carries no #anchor (each printables entry opens that kind's own page, owner 11-21
+ *    "coloring book and banner should have their own page"), and a menu navigation scrolls the window to the top
+ *    (ScrollToTop); a true #anchor still scrolls to it.
  *
  * @mutate src/pages/info/GiftGuides.tsx |   const countRow = (phone && Boolean(guide) && !deals) \|\| sponsorsPage; |   const countRow = phone && Boolean(guide) && !deals;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {!filter && nav.length > 1 && ( |       {nav.length > 1 && (
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {filter && <GiftGuideFilter filter={filter} />} |       {null}
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | to={`${PRINTABLES_PATH}?show=${p.show}`} | to={`${PRINTABLES_PATH}#pr-${p.show}`}
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <Link to={p.path} {...current(p.path)} data-gift-side-printables={p.key}> | <Link to={`/gift-guides/printables#pr-${p.key}`} {...current(p.path)} data-gift-side-printables={p.key}>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
@@ -100,13 +101,13 @@ describe("Shop Small left the menu (owner 11-21)", () => {
 });
 
 describe("a menu link opens the page at its top (owner 11-21: \"not the middle\")", () => {
-  it("no menu link that changes the view carries an #anchor; the printables entries open that part at the top", async () => {
+  it("no menu link that changes the view carries an #anchor; each printables entry opens its own page", async () => {
     const c = await renderAt("/gift-guides/her");
     const hrefs = [...c.querySelectorAll<HTMLAnchorElement>("[data-gift-sidebar] a")].map((a) => a.getAttribute("href")!);
     expect(hrefs.length).toBeGreaterThan(10);
     // The finder is a view of the landing (/gift-guides#gift-finder shows the finder alone, at the top).
     expect(hrefs.filter((h) => h.includes("#") && h !== "/gift-guides#gift-finder")).toEqual([]);
-    expect(hrefs.filter((h) => h.startsWith("/gift-guides/printables"))).toEqual(["/gift-guides/printables?show=tags", "/gift-guides/printables?show=coloring", "/gift-guides/printables?show=banners"]);
+    expect(hrefs.filter((h) => h.startsWith("/gift-guides/printables"))).toEqual(["/gift-guides/printables/gift-tags", "/gift-guides/printables/coloring-books", "/gift-guides/printables/banners"]);
   });
 
   it("clicking a menu link scrolls the window to the top", async () => {

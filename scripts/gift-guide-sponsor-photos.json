@@ -212,7 +212,7 @@
  "BostonMints Dot Rose Lip Gloss": {
   "file": "bostonmints-dot-rose-lip-gloss.webp",
   "kind": "cutout",
-  "image": "email:bostonmints-back-bay-berry-1500.png",
+  "image": "https://cdn.shopify.com/s/files/1/0572/9307/8681/files/DOTROSE_2000x2000px_2.png?v=1784303267",
   "page": "https://bostonmints.com/products/dot-rose-lip-gloss-by-bostonmints%E2%84%A2",
   "price": 23.95,
   "priceLabel": null,
@@ -221,7 +221,7 @@
   "priceNone": null,
   "priceParts": null,
   "combined": null,
-  "note": "FLAG: photo is the brand-emailed file bostonmints-back-bay-berry-1500.png (Back Bay Berry shade), but the pick is Dot Rose. The site's only Dot Rose product shot is 250x375 (DOTROSE_2000x2000px_2.png is 250x375 at the original URL too). Vision kept the tube only, not the swatch"
+  "note": "Train 1121j: the live Dot Rose shot (the one the 25 Days sponsors cover draws), cut out with the cover script's cutout(); the brand-emailed Back Bay Berry file (a different shade) waits on the owner's sponsor photos v2 answer"
  },
  "K18 FutureIQ and Molecular Repair Hair Mask": {
   "file": "k18-futureiq-and-molecular-repair-hair-mask.webp",
@@ -456,7 +456,7 @@
  "Sky & Sol Tallow Magnesium Night Balm": {
   "file": "sky-sol-tallow-magnesium-night-balm.webp",
   "kind": "cutout",
-  "image": "https://cdn.shopify.com/s/files/1/0764/9466/8076/files/sky-and-sol-tallow-magnesium-night-balm-1780831.webp?v=1780652930&width=1200",
+  "image": "https://www.louisianahelpr.com/gift-guides/cutouts/sky-sol-tallow-magnesium-night-balm-b16ed7.webp",
   "page": "https://skyandsol.co/products/sky-and-sol-tallow-magnesium-night-balm-copy",
   "price": 55.99,
   "priceLabel": null,
@@ -465,7 +465,7 @@
   "priceNone": null,
   "priceParts": null,
   "combined": null,
-  "note": null
+  "note": "Train 1121j: the live cutout (the one the 25 Days sponsors cover draws), at 400 px"
  },
  "CatLady Box Chasing Sunbeams Box": {
   "file": "catlady-box-chasing-sunbeams-box.webp",

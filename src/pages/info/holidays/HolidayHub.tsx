@@ -23,6 +23,7 @@ import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { FilterChip } from "@/components/ui/FilterChip";
+import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
@@ -202,6 +203,9 @@ export default function HolidayHub() {
             ) : (
               <p className="min-w-0 flex-1 text-ds-14 text-muted-foreground" aria-live="polite" data-holiday-count="">{shown.length ? holidayCountLabel(shown) : ""}{unlisted > 0 && <span data-holiday-unlisted="">{` · plus ${unlisted} with no cost listed`}</span>}</p>
             )}
+            {/* Open, the magnifier's place stays held (SearchTriggerSlot) so the field's ✕ never lands under the finger
+                that opened it (src/test/searchDismissAndOverlay.test.tsx). */}
+            {searchOpen && <SearchTriggerSlot />}
             {!searchOpen && (
               <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search lights and events" data-holiday-search-button=""
                 className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-foreground hover:text-[hsl(var(--bark))]">

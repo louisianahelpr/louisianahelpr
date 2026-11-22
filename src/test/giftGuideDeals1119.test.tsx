@@ -313,14 +313,18 @@ describe("deals days: one page per day (owner 11-21)", () => {
 });
 
 describe("deals never show inside Her, Him or Kids (owner 11-21)", () => {
-  it("no guide chunk holds a deal, a deal card or a code", () => {
+  // Owner 11-21 9:58 PM: a code goes WITH its own item (the item's code chip, e.g. XTRATUF's XT25 on the Him boot); never
+  // a deal card or a list of codes. So a code may sit only in an item's own `code` field.
+  it("no guide chunk holds a deal, a deal card or a code outside an item's own code chip", () => {
     const brandsWithCodes = deals.filter((d) => d.code).map((d) => d.code!);
     expect(brandsWithCodes.length).toBeGreaterThan(3);
     for (const slug of ["her", "him", "kids"]) {
-      const text = readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8");
-      expect(text.length, slug).toBeGreaterThan(1000);
+      const raw = readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8");
+      expect(raw.length, slug).toBeGreaterThan(1000);
+      const parsed = JSON.parse(raw) as { picks: Record<string, unknown>[] };
+      const text = JSON.stringify({ ...parsed, picks: parsed.picks.map(({ code: _code, codeEnds: _ends, ...rest }) => rest) });
       for (const code of brandsWithCodes) expect(text, `${slug}: ${code}`).not.toContain(`"${code}"`);
-      expect(text, slug).not.toMatch(/"(deal|event)":/);
+      expect(raw, slug).not.toMatch(/"(deal|event)":/);
     }
     // The guide page never imports the deals file or card.
     const view = readFileSync("src/pages/info/giftGuides/GiftGuideView.tsx", "utf8");

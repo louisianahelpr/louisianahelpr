@@ -136,7 +136,10 @@ const FUN_CSS = `
 .gg-plan-shop{display:inline-flex;align-items:center;min-height:44px;font-size:13px;font-weight:600}
 .gg-money-box{position:relative;display:inline-flex;flex:none;align-items:center}
 .gg-money-box .gg-money-sign{position:absolute;left:11px;top:50%;transform:translateY(-50%);font:500 15px Montserrat,sans-serif;color:var(--gg-muted);pointer-events:none}
-.gg-fun .gg-money-box input{width:100%;padding-left:22px}
+/* The $ shows (follow-up 1122): the shared field's backdrop blur made the box its own layer, painted after the $ and
+   over it (its fill is opaque here), so the $ never showed. No blur on a money box, as index.css does for any field
+   with an icon over it; the box then paints first and the $ on top. */
+.gg-fun .gg-money-box input{width:100%;padding-left:22px;-webkit-backdrop-filter:none;backdrop-filter:none}
 .gg-plan-picker{padding:0;max-width:none}
 .gg-plan-picker-chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
 .gg-plan-picks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;max-height:min(52vh,440px);overflow-y:auto;overscroll-behavior:contain}

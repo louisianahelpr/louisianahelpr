@@ -101,7 +101,7 @@ describe("a swipe round fills from a capped store once the others run out (holid
 
 describe("the swipe card and its people (holiday audit 1121 #24)", () => {
   it("Swipe lists people in the finder's order (Her, Him, Mom, Dad, Kids ...), after Me", () => {
-    const finder = FINDER_WHO.map((w) => w.id).filter((id) => ["her", "him", "mom", "dad", "kids"].includes(id));
+    const finder: string[] = FINDER_WHO.map((w) => w.id as string).filter((id) => ["her", "him", "mom", "dad", "kids"].includes(id));
     const swipe = SWIPE_WHO.map((w) => w.id as string).filter((id) => finder.includes(id));
     expect(finder.length).toBe(5);
     expect(swipe).toEqual(finder);

@@ -127,6 +127,7 @@ const GuestBrowseSkeleton = () => {
             value="jobs"
             onChange={() => {}}
             label={t("nav.sections")}
+            chipAttr="data-skeleton-section"
           />
         </div>
         <div className={`${GUEST_FEED_GRID_CLASS} ${GUEST_FEED_RESERVE_CLASS}`}>

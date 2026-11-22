@@ -64,7 +64,9 @@ describe("F019 + owner 11-21: guest /browse, a way Home left of 'Jobs', and a wa
     const html = renderToStaticMarkup(<QueryClientProvider client={new QueryClient()}><MemoryRouter><GuestBrowseSkeleton /></MemoryRouter></QueryClientProvider>);
     expect(html).toContain(">Jobs</h1>");
     expect(html).toMatch(/<div class="shrink-0" aria-hidden="true"><span class="w-11 h-11 -ml-2 block"><\/span><\/div>/);
-    expect(html).not.toContain("aria-label=");
+    // The only label is the held "Jobs | Declutter" row (Jobs audit 11-21 P10), drawn invisible and aria-hidden.
+    expect(html.match(/aria-label=/g) ?? []).toHaveLength(1);
+    expect(html).toMatch(/class="mb-2 invisible" aria-hidden="true" data-skeleton-section-switch=""><div[^>]*role="group" aria-label=/);
     expect(html.length).toBeGreaterThan(500);
   });
 });

@@ -29,6 +29,7 @@ export function GuestSectionSwitch({ at, className = "" }: { at: GuestSection; c
           value={at}
           onChange={() => {}}
           label={t("nav.sections")}
+          chipAttr="data-guest-section-pending"
         />
       </div>
     );

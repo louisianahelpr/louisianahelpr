@@ -444,7 +444,8 @@ export const newSlugFor = (slug: string): string | null => {
   const s0 = OLD_SLUGS[slug] ?? slug;
   // For Her + For Him: an old people slug opens its relationship page, and a relationship page is itself (11-20).
   const s = OLD_PEOPLE_SLUGS[s0] ?? s0;
-  if (RELATION_PAGES[s]) return GUIDES.some((g) => g.slug === s) ? s : null;
+  // Owner 11-21 (polish audit 11-22 #1): a relationship page (mom, wife, dad ...) copied Her or Him; it opens that guide.
+  if (RELATION_PAGES[s]) { const of = RELATION_PAGES[s].guide; return GUIDES.some((g) => g.slug === of) ? of : null; }
   const to = MERGED_GUIDES[s]?.[0] ?? s;
   // 1120: a guide merged into another opens the parent at its section ("healthcare#nurses"; the section groups name
   // the section, SECTION_ANCHORS), or at the top when its picks folded into a guide with one list.
@@ -455,7 +456,7 @@ export const newSlugFor = (slug: string): string | null => {
 /** Every old slug the merges (1120) and the folded store pages retire: each answers a 301 (api/share.ts). */
 // Owner 11-21: so does every guide retired by the live list (src/content/giftGuideLive.mjs), the removed guides and every
 // store page: each opens the landing page.
-export const RETIRED_SLUGS = (): string[] => [...new Set([...Object.keys(MERGED_INTO).filter((s) => !RELATION_PAGES[s]), ...Object.keys(OLD_PEOPLE_SLUGS), ...GUIDE_INDEX.filter((g) => isFoldedStore(g.slug)).map((g) => g.slug),
+export const RETIRED_SLUGS = (): string[] => [...new Set([...Object.keys(RELATION_PAGES), ...Object.keys(MERGED_INTO).filter((s) => !RELATION_PAGES[s]), ...Object.keys(OLD_PEOPLE_SLUGS), ...GUIDE_INDEX.filter((g) => isFoldedStore(g.slug)).map((g) => g.slug),
   ...[...GUIDE_INDEX.map((g) => g.slug), ...REMOVED_GUIDES, ...Object.keys(RESEARCHED_STORES)].filter((s) => !isLiveGuide(s) && !RELATION_PAGES[s])])];
 const parentOf = new Map(Object.entries(HUBS).flatMap(([hub, groups]) => groups.flatMap((x) => x.slugs.map((c) => [c, hub] as const))));
 
@@ -552,22 +553,9 @@ export const GUIDES: CatalogGuide[] = ROWS.flatMap((r) => [
 ]);
 
 /**
- * The relationship pages (owner pop-up 11-20 ~6:50 PM, For Her + For Him): /gift-guides/mom, /dad, /wife, /husband ...,
- * each its guide's list filtered to the picks tagged for it (`rels`, from the import), under its own title ("Gifts for
- * Mom", the owner's index title where it has one). Searchable and indexed; no row tile (the guide's chips link to each).
+ * No relationship page is built (owner 11-21, polish audit 11-22 #1): /gift-guides/mom, /wife, /dad ... copied Her and Him,
+ * so each answers a permanent redirect to its guide (newSlugFor, api/share.ts).
  */
-const relationView = (slug: string): CatalogGuide | null => {
-  const { guide, label } = RELATION_PAGES[slug];
-  const of = GUIDES.find((g) => g.slug === guide);
-  if (!of) return null;
-  const listed = GUIDE_INDEX.find((g) => g.slug === slug);
-  // Its own cover and share card when it has one (Mom, Dad), else its guide's; its old ShopMy collection link stays.
-  const v: CatalogGuide = { slug, row: of.row, lead: "gifts for", title: listed?.title ?? label, line: "", tint: of.tint, cover: hasCover.has(slug) ? coverUrl(slug) : of.cover,
-    picks: [], links: draftOf.get(slug)?.links ?? [], view: { of: guide, rel: slug } };
-  Object.defineProperty(v, "picks", { enumerable: true, get: () => of.picks.filter((p) => p.rels?.includes(slug)) });
-  return v;
-};
-GUIDES.push(...Object.keys(RELATION_PAGES).map(relationView).filter((g): g is CatalogGuide => g !== null));
 
 /**
  * The guides a group's row and menu list, in order (owner 2026-11-18, "covers in two taps"): top-level guides only.
@@ -635,19 +623,13 @@ export const KID_AGE_HUBS = ["girls", "boys", "gender-neutral"] as const;
 // them; the retired guides' slugs (fishermen, hunters, under-25, stocking-stuffers, grandma ...) found nothing and the
 // search said "No guides match" for "hunting", "cheap" or "grandma". Guard: src/test/giftGuideHolidayPolish1121.test.tsx.
 export const SEARCH_SYNONYMS: { words: string[]; slugs: string[] }[] = [
-  { words: ["fishing", "fish", "fishes", "fisherman", "fishermen", "angler", "anglers", "boat", "boating", "boats"], slugs: ["him", "dad"] },
-  { words: ["hunting", "hunt", "hunter", "deer", "duck"], slugs: ["him", "dad"] },
+  { words: ["fishing", "fish", "fishes", "fisherman", "fishermen", "angler", "anglers", "boat", "boating", "boats"], slugs: ["him"] },
+  { words: ["hunting", "hunt", "hunter", "deer", "duck"], slugs: ["him"] },
   { words: ["cheap", "cheaper", "budget", "inexpensive", "affordable"], slugs: ["her", "him", "kids"] },
   { words: ["christmas", "xmas", "stocking", "stockings", "stuffer", "stuffers"], slugs: ["her", "him", "kids"] },
-  // For Her + For Him (owner 11-20): each relationship has its own page, a filtered view of the guide.
-  { words: ["husband", "hubby"], slugs: ["husband", "him"] },
-  { words: ["boyfriend"], slugs: ["boyfriend", "him"] },
-  { words: ["wife"], slugs: ["wife", "her"] },
-  { words: ["girlfriend"], slugs: ["girlfriend", "her"] },
-  { words: ["grandma", "grandmother", "granny", "nana", "mimi", "mawmaw"], slugs: ["her", "mom"] },
-  { words: ["grandpa", "grandfather", "papa", "pawpaw"], slugs: ["him", "dad"] },
-  { words: ["mother", "mama", "mommy"], slugs: ["mom"] },
-  { words: ["father", "daddy"], slugs: ["dad"] },
+  // Owner 11-21: the relationship pages (Mom, Wife ...) are retired into Her and Him, so a person word opens its guide.
+  { words: ["husband", "hubby", "boyfriend", "dad", "daddy", "father", "papa", "grandpa", "grandfather", "pawpaw", "brother", "uncle"], slugs: ["him"] },
+  { words: ["wife", "girlfriend", "mom", "mother", "mama", "mommy", "grandma", "grandmother", "granny", "nana", "mimi", "mawmaw", "sister", "aunt"], slugs: ["her"] },
   { words: ["niece", "nephew", "daughter", "son", "child", "children", "toddler", "baby", "girl", "boy"], slugs: ["kids"] },
   // Holiday audit 1121 #7: "nurse" still said "No guides match" (its keywords sat on the retired Healthcare guides).
   { words: ["nurse", "nurses", "rn", "rns", "lpn", "lpns"], slugs: ["her", "him"] },
@@ -676,9 +658,9 @@ export const searchIntent = (words: string[]): { slugs: string[]; used: Set<stri
   const slugs: string[] = [];
   const add = (s0: string) => {
     // 1120: a guide merged into another as a section is found as its parent guide.
-    // A relationship page (Mom, Wife ...) is found as itself; an old people slug as its relationship page (11-20).
+    // A relationship page (Mom, Wife ...) is retired (owner 11-21): it is found as the guide it was a view of.
     const s1 = OLD_PEOPLE_SLUGS[s0] ?? s0;
-    const s = RELATION_PAGES[s1] ? s1 : MERGED_INTO[s1]?.parent ?? s1;
+    const s = RELATION_PAGES[s1] ? RELATION_PAGES[s1].guide : MERGED_INTO[s1]?.parent ?? s1;
     const g = guideBySlug(s);
     if (g && !g.empty && !slugs.includes(s)) slugs.push(s);
   };
@@ -803,8 +785,7 @@ export const sectionWords = (slug: string): string => {
 const SEARCH_PAGES: { to: string; title: string; tint: "red" | "green"; words: string; live: () => boolean }[] = [
   { to: "/gift-guides/black-friday", title: "Black Friday deals", tint: "red", words: "black friday deals deal sales sale codes code coupons coupon discount", live: () => isLiveGuide("black-friday") },
   { to: "/gift-guides/cyber-monday", title: "Cyber Monday deals", tint: "red", words: "cyber monday week deals deal sales sale codes code coupons coupon discount", live: () => isLiveGuide("cyber-monday") },
-  { to: "/gift-guides/small-business-saturday", title: "Small Business Saturday", tint: "green", words: "small business saturday shop local louisiana sponsors", live: () => isLiveGuide("small-business-saturday") },
-  { to: "/shop-small", title: "Shop Small Louisiana", tint: "green", words: "shop small local business businesses louisiana", live: () => true },
+  { to: "/gift-guides/small-business-saturday", title: "Small Business Saturday", tint: "green", words: "small business saturday shop small local business businesses louisiana sponsors", live: () => isLiveGuide("small-business-saturday") },
 ];
 export const searchPages = (query: string): { to: string; title: string; tint: "red" | "green" }[] => {
   const all = queryWords(query).filter((w) => !SEARCH_FILLER.has(w));
@@ -814,7 +795,7 @@ export const searchPages = (query: string): { to: string; title: string; tint: "
 
 /** One item row of the search index (scripts/gift-guide-search-index.mjs): its name and the guide it sits in. */
 /** One item search row: its name and guide, plus its checked price and the day it was checked when it has one (#7). */
-export type SearchItem = [name: string, guide: string, price?: number, priceAt?: string];
+export type SearchItem = [name: string, guide: string, price?: number | null, priceAt?: string | null, image?: string];
 let itemIndex: Promise<SearchItem[]> | null = null;
 /** The item index, fetched once on the first keystroke (its own lazy chunk: nothing on the landing's first paint). */
 // Holiday audit 1121: a failed fetch is forgotten, so the next keystroke tries again (it was cached for the whole visit,
@@ -846,7 +827,7 @@ const searchToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/
 
 /** The whole dollars an item search row shows ("~$24", the card's own rule: fresh, rounded), or null (#7). */
 export const searchItemDollars = ([, , price, priceAt]: SearchItem, today: string = searchToday()): number | null =>
-  pickPriceShown(price, priceAt, today) ? shownDollars(price) : null;
+  price && priceAt && pickPriceShown(price, priceAt, today) ? shownDollars(price) : null;
 
 /**
  * The items whose name holds every meaningful word of the query (holistic review 11-18 H5: "airpods" found nothing),

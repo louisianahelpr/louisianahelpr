@@ -11,7 +11,6 @@ import { PickPrice } from "@/components/giftGuides/PickPrice";
 import { track } from "@/lib/analytics";
 import { PickThumb } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
-import { Hint } from "../GiftHint";
 import { FunBody, funHeader } from "./FunPage";
 import { useAccountSync } from "./plannerSync";
 import { readSantaFor, saveIdeaToPlanner, saveSantaIdea } from "./santaIdeas";
@@ -283,13 +282,14 @@ export default function SwipeGifts() {
         </div>
       ) : (
         <section aria-label={W.swipeTitle} data-swipe-deck="">
-          <Hint id="fun-swipe">{W.hintSwipe}</Hint>
+          {/* Polish audit 1122 #11: one instruction (the setup line), no "Tip: drag a card..." box, and the short-round
+              note on the count's own line, so Skip and Save show with the first card on a 375x812 phone. */}
           <p className="gg-fun-note text-center" aria-live="polite" data-swipe-count="">
             {W.swipeCount(at + 1, round.length)}
+            {fewNote && at === 0 && <span data-swipe-few=""> · {fewNote}</span>}
             {saved.length > 0 && <span data-swipe-saved-count=""> · {W.swipeSavedSoFar(saved.length)}</span>}
             {lastSaved && <span className="sr-only">{W.swipeSavedOne(lastSaved)}</span>}
           </p>
-          {fewNote && at === 0 && <p className="gg-fun-note text-center m-0" data-swipe-few="">{fewNote}</p>}
           <div className="gg-swipe-stage">
             <div
               className={drag.current ? "gg-swipe-card is-dragging" : "gg-swipe-card"}

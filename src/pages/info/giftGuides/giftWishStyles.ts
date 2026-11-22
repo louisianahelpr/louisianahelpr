@@ -43,7 +43,12 @@ export const GIFT_WISH_CSS = `
 .gg-savefor-box{border:1px solid var(--gg-line);border-radius:14px;background:hsl(var(--card))}
 .gg-savefor-box[data-on]{border-color:hsl(var(--bark));box-shadow:inset 0 0 0 1px hsl(var(--bark))}
 .gg .gg-savefor-box .gg-savefor-row{border:0;box-shadow:none;background:transparent;border-radius:14px}
-.gg-savefor-tools{display:flex;justify-content:flex-end;gap:2px;padding:0 6px 4px}
+/* Polish audit 1122 #22: the box's icons sit on the same line as its + / check (the open icon sat alone on a second
+   line under the text); an edit form opened from them takes the full width under the row. */
+.gg-savefor-box{display:flex;flex-wrap:wrap;align-items:center}
+.gg-savefor-box>.gg-savefor-row{flex:1 1 0;min-width:0}
+.gg-savefor-tools{display:flex;flex:none;justify-content:flex-end;gap:2px;padding:0 6px 0 0}
+.gg-savefor-box>:not(.gg-savefor-row):not(.gg-savefor-tools){flex-basis:100%}
 .gg-savefor-tool{color:var(--gg-muted)}
 .gg-savefor-tool:hover{background:hsl(var(--muted));color:var(--gg-ink)}
 .gg-savefor-tool:disabled{opacity:.5}

@@ -44,7 +44,7 @@
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { GUEST_CHROME_ROOTS, ITEM_PAGES_PINNED_RE, buyingIconFiles, declutterItemSplit, declutterTabSplit, firstScreenRoots, guestBrowseOnlyModules, guestBrowseSplit, homeFirstScreenRoots, publicRoots, sellingIconFiles, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
+import { GUEST_CHROME_ROOTS, ITEM_PAGES_PINNED_RE, adminIconFiles, buyingIconFiles, guidesIconFiles, profileIconFiles, declutterItemSplit, declutterTabSplit, firstScreenRoots, guestBrowseOnlyModules, guestBrowseSplit, homeFirstScreenRoots, publicRoots, sellingIconFiles, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
@@ -413,5 +413,41 @@ describe("declutterTabSplit: Browse, Selling and Buying each fetch their own par
     const sellingIcons = sellingIconFiles(ROOT);
     expect(buyingIcons.size).toBeGreaterThan(0);
     for (const i of buyingIcons) expect(sellingIcons.has(i), i).toBe(false);
+  });
+});
+
+// @mutate scripts/perf/bootReach.mjs | const GIFT_GUIDES_ROOTS = ["src/pages/info/GiftGuides.tsx"]; | const GIFT_GUIDES_ROOTS = [];
+// @mutate scripts/perf/bootReach.mjs | ...guidesIconFiles(root), ...adminIconFiles(root)]); | ...guidesIconFiles(root)]);
+// @mutate vite.config.ts |               name: "icons-guides", |               name: "icons-guides-off", test: () => false, _was:
+// @mutate vite.config.ts |               name: "icons-profile", |               name: "icons-profile-off", test: () => false, _was:
+describe("icon pins for a gift guide and Profile's first screen (lander 11-22, train 1122b)", () => {
+  // Measured 2026-11-22 (local vite build, critical-path.mjs): after the polish lanes deleted /shop-small and one
+  // ArrowUpRight import, the entriesAware merge put a gift guide's one unpinned icon (ShoppingCart) in an 80-icon chunk
+  // (/gift-guides/:slug 364,338 B gz, over its 361,267 budget) and split the chunk /profile shared with it in two
+  // (/profile 349,062 -> 356,006). Pinned: 357,412 and 346,201, /admin 291,065 (main 291,058).
+  it("the guides' pin holds the cart icon GiftGuideView draws; Profile's holds Pencil and RotateCw, none of Admin's or the guides'", () => {
+    const guides = guidesIconFiles(ROOT);
+    const profile = profileIconFiles(ROOT);
+    const admin = adminIconFiles(ROOT);
+    expect(guides.size).toBeGreaterThan(0);
+    expect(guides.has("shopping-cart")).toBe(true);
+    expect(profile.size).toBeGreaterThan(10);
+    for (const i of ["pencil", "rotate-cw"]) expect(profile.has(i), i).toBe(true);
+    for (const i of profile) {
+      expect(admin.has(i), `${i} is Admin's`).toBe(false);
+      expect(guides.has(i), `${i} is the guides'`).toBe(false);
+    }
+  });
+
+  it("vite.config.ts pins both between icons-item and icons-admin, the guides first, under the short icons-<hash> name", () => {
+    const cfg = blankComments(readFileSync(join(ROOT, "vite.config.ts"), "utf8"));
+    const group = (name: string) => cfg.match(new RegExp(`name:\\s*"${name}"[\\s\\S]*?\\n\\s*\\},`))?.[0] ?? "";
+    const prioOf = (name: string) => Number(cfg.match(new RegExp(`name:\\s*"${name}"[\\s\\S]*?priority:\\s*([\\d.]+)`))?.[1]);
+    expect(group("icons-guides")).toMatch(/guidesIcons\.has\(/);
+    expect(group("icons-profile")).toMatch(/profileIcons\.has\(/);
+    expect(prioOf("icons-guides")).toBeLessThan(prioOf("icons-item"));
+    expect(prioOf("icons-profile")).toBeLessThan(prioOf("icons-guides"));
+    expect(prioOf("icons-profile")).toBeGreaterThan(prioOf("icons-admin"));
+    expect(cfg).toContain('chunk.name === "icons-guides" || chunk.name === "icons-profile" ?"assets/icons-[hash].js"');
   });
 });

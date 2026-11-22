@@ -4,7 +4,7 @@
  * names). Reads every guide's picks chunk (src/content/giftGuidePicks/<slug>.json, written by
  * scripts/gift-guide-picks.mjs) and writes src/content/giftGuideSearchIndex.json: one row per product name,
  * [name, the guide it sits in], the guide being the first non-store guide that lists it (else its store page), plus
- * [..., price, priceAt] when the pick has a checked price (holiday audit 1121 #7: "under $25" lists the gifts under
+ * [..., price, priceAt] when the pick has a checked price (null, null when it has none), then its photo (holiday audit 1121 #7: "under $25" lists the gifts under
  * $25; the page shows a price only while pickPriceShown says it is fresh).
  * The page imports it lazily, only once a shopper types in search, so it costs nothing on the landing's first paint.
  * Registered in scripts/check-generated-current.mjs (gift-guide-search-index): `npm run inventories:refresh` rewrites
@@ -32,7 +32,12 @@ export function buildIndex() {
       const key = name.toLowerCase();
       if (!key || seen.has(key)) continue;
       seen.add(key);
-      rows.push(typeof p.price === "number" && typeof p.priceAt === "string" ? [name, slug, p.price, p.priceAt] : [name, slug]);
+      const priced = typeof p.price === "number" && typeof p.priceAt === "string";
+      // Guides audit 1122 #21: a small photo beside each result. Our own images are stored as paths (shorter), others whole.
+      const image = typeof p.image === "string" && p.image ? p.image.replace(/^https:\/\/www\.louisianahelpr\.com\//, "/") : null;
+      const row = priced ? [name, slug, p.price, p.priceAt] : [name, slug];
+      if (image) row.push(...(priced ? [] : [null, null]), image);
+      rows.push(row);
     }
   }
   return rows;

@@ -173,7 +173,7 @@ const PAGE_CSS = `
 /* Two covers: they sit above the words, so the two book buttons get the card's full width (at 375 and in the two-across grid). */
 .pr-card-two{flex-direction:column}.pr-card-two .pr-card-pair .pr-card-img{width:96px}
 .pr-card-body{min-width:0;flex:1}
-.pr-card-wide{flex-direction:column;max-width:420px}.pr-card-wide .pr-card-img{width:100%;max-width:100%}
+.pr-card-wide{flex-direction:column;max-width:640px}.pr-card-wide .pr-card-img{width:100%;max-width:100%}
 .pr-card-body .pr-card-title{font-size:16px;font-weight:700;margin:0 0 4px;color:var(--gg-ink)}
 .pr-card-body p{font-size:13px;color:var(--gg-muted);margin:0 0 8px}
 .pr-card-btns{display:flex;flex-wrap:wrap;gap:8px}

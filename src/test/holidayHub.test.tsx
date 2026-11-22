@@ -27,7 +27,7 @@
  * @mutate src/pages/info/holidays/HolidayHub.tsx |   return words.every((w) => hay.includes(w)); |   return true;
  * @mutate src/pages/info/holidays/HolidayHub.tsx |                   onKeyDown={(e) => { if (e.key === "Escape") closeSearch(); }} |                   onKeyDown={() => undefined}
  * @mutate src/pages/info/holidays/holidayParts.tsx |       <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{children}</ul> |       <ul className="grid gap-3 md:grid-cols-2">{children}</ul>
- * @mutate src/pages/info/holidays/holidayParts.tsx |         {tag && <span className= |         {false && <span className=
+ * @mutate src/pages/info/holidays/holidayParts.tsx |       {tag && <p className= |       {false && <p className=
  * @mutate src/pages/info/holidays/HolidayHub.tsx |     window.history.replaceState(window.history.state, "", `${window.location.pathname}${q ? `?${q}` : ""}`); |     void q;
  * @mutate src/pages/info/holidays/HolidayHub.tsx |   const [filtersOpen, setFiltersOpen] = useState(false); |   const [filtersOpen, setFiltersOpen] = useState(true);
  * @mutate src/pages/info/holidays/HolidayHub.tsx |                   <FilterChip size="tight" onClick={() => set(f.key, "all")} |                   <FilterChip size="tight" onClick={() => undefined}
@@ -497,7 +497,9 @@ describe("Holiday Hub routing, on every layer", () => {
     expect(read("src/hooks/useAppShellViewport.ts")).toMatch(/^\s*"\/holidays",/m);
     expect(read("src/components/Footer.tsx")).toContain('<Link to="/holidays" className={FOOTER_LINK}>');
     expect(read("src/pages/info/giftGuides/GiftGuidesSidebar.tsx")).toContain('<Link to="/holidays" data-gift-side-holiday-hub="">');
-    expect(read("src/components/Navbar.tsx")).not.toContain("/holidays");
+    // No top-nav link to it (polish audit 1122 #28 lists "/holidays" only in NAV_HOME_HIDDEN_ON, the pages that hide Home).
+    expect(read("src/components/Navbar.tsx")).not.toMatch(/(?:to|href)=\{?["'`]\/holidays/);
+    expect(read("src/components/Navbar.tsx")).toMatch(/NAV_HOME_HIDDEN_ON = \[[^\]]*"\/holidays"/);
   });
 
   it("the lists' data loads only in /holidays's own chunk (the hire page, the redirect and the parts import none)", () => {
@@ -549,7 +551,7 @@ describe("Holiday Hub SEO before JavaScript", () => {
  * @mutate src/pages/info/holidays/holidayParts.tsx |   const price = holidayPriceLabel(item.price); |   const price = item.price;
  * @mutate src/content/holidayHub/holidayHub.mjs |   if (region && region.toLowerCase().startsWith(item.city.toLowerCase())) return region; |
  * @mutate src/pages/info/holidays/HolidayHub.tsx |     }, today).filter((i) => !endedEarlierToday(i, today, minutes) && matchesQuery(i, query)), |     }, today).filter((i) => matchesQuery(i, query)),
- * @mutate src/pages/info/holidays/HolidayHub.tsx | <Link to="/shop-small" className="link-standard inline-flex min-h-11 items-center"> | <Link to="/shop-small" className="link-standard">
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard inline-flex min-h-11 items-center"> | <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard">
  */
 describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices, places, closed today, tap targets", () => {
   const today = "2026-11-20";
@@ -574,7 +576,7 @@ describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices
     expect(tbaLights.length).toBeGreaterThan(40);
     expect(tbaLights.every((i) => isHolidayLight(i))).toBe(true);
     expect((groups.find((g) => g.key === "tba")?.items ?? []).some((i) => isHolidayLight(i))).toBe(false);
-    expect(hub().querySelector("#holidays-lights-tba")?.textContent).toContain("Light displays, 2026 dates not announced");
+    expect(hub().querySelector("#holidays-lights-tba")?.textContent).toContain("Light displays, dates not announced");
   });
 
   it("never shows a bare '$' as a price, and never repeats the city in the place line", () => {
@@ -611,7 +613,7 @@ describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices
 
   it("the footer links are 44 px tap targets", () => {
     const c = hub();
-    for (const href of ["/gift-guides", "/shop-small"]) {
+    for (const href of ["/gift-guides", "/gift-guides/small-business-saturday#get-featured"]) {
       const a = [...c.querySelectorAll<HTMLAnchorElement>(`a[href="${href}"]`)].pop()!;
       expect(a.className, href).toMatch(/\bmin-h-11\b/);
     }
@@ -675,6 +677,31 @@ describe("Holiday Hub: Later dates fold", () => {
     unmount();
     const week = at("/holidays?when=week", <HolidayHub />);
     expect(week.container.querySelector("details[data-holiday-later]")).toBeNull();
+  });
+});
+
+/**
+ * Guides polish 1122 #18: the undated light displays sit in their own closed group, after the dated days and before
+ * "Later dates", titled with their count and carrying the TBA note; a When filter opens them as a normal section.
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |   const tbaLights = folds ? groups.find((g) => g.key === "lights-tba") : undefined; |   const tbaLights = folds ? undefined : groups.find((g) => g.key === "lights-tba");
+ * @mutate src/content/holidayHub/holidayHub.mjs |   lightsTba: "Light displays, dates not announced", |   lightsTba: "Light displays",
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | <p className="text-ds-14 text-muted-foreground">{W.lightsTbaNote}</p> | <p></p>
+ */
+describe("Holiday Hub: undated lights fold (guides polish 1122 #18)", () => {
+  it("a closed group with a count and the note, after the open days and before Later dates", () => {
+    const { container, unmount } = render(<MemoryRouter initialEntries={["/holidays"]}><HolidayHub /></MemoryRouter>);
+    const lights = container.querySelector<HTMLDetailsElement>("details[data-holiday-lights-tba]")!;
+    expect(lights).not.toBeNull();
+    expect(lights.open).toBe(false);
+    expect(lights.querySelector("summary")!.textContent).toMatch(/^Light displays, dates not announced\(\d+\)$/);
+    expect(lights.textContent).toContain("Dates TBA means the 2026 dates are not announced yet");
+    const later = container.querySelector("details[data-holiday-later]")!;
+    expect(lights.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const lastOpenDay = [...container.querySelectorAll("section h2")].filter((h) => !later.contains(h)).pop()!;
+    expect(lastOpenDay.compareDocumentPosition(lights) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    unmount();
+    const week = render(<MemoryRouter initialEntries={["/holidays?when=week"]}><HolidayHub /></MemoryRouter>);
+    expect(week.container.querySelector("details[data-holiday-lights-tba]")).toBeNull();
   });
 });
 

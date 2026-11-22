@@ -6,7 +6,7 @@
  * @mutate src/components/ScrollToTop.tsx | if (!rendered) return null; | if (false) return null;
  * @mutate src/components/ScrollToTop.tsx | setVisible(pos > REVEAL_AFTER_PX && !footerInView() && !onLanding(pathname) && !onHeartList(pathname)); | setVisible(pos > REVEAL_AFTER_PX && !onLanding(pathname) && !onHeartList(pathname));
  * @mutate src/components/ScrollToTop.tsx |   return pathname === "/"; |   return false;
- * @mutate src/components/ScrollToTop.tsx |   return pathname === "/gift-guides" \|\| pathname.startsWith("/gift-guides/") \|\| pathname === "/shop-small"; |   return false;
+ * @mutate src/components/ScrollToTop.tsx |   return pathname === "/gift-guides" \|\| pathname.startsWith("/gift-guides/"); |   return false;
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
@@ -107,7 +107,6 @@ describe("ScrollToTop's button is in the page only while wanted (Q1356)", () => 
       // Holiday audit 1121 #40 / #78: every gift guides row ends in a heart at the right edge, where the button sat.
       ["/gift-guides/her", true, false],
       ["/gift-guides", false, false],
-      ["/shop-small", true, false],
     ])("%s, phone=%s: button shown = %s", (path, isPhone, shown) => {
       vi.useFakeTimers();
       phone(isPhone);

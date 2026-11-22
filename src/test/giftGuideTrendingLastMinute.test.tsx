@@ -9,7 +9,7 @@
  * Owner 11-21: store pages and the landing's Last-minute row are retired with every guide but Her, Him and Kids
  * (src/content/giftGuideLive.mjs); their tests are gone, the date window stays for its return.
  *
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const badges = pick.badges; |   const badges = ["trending" as const, ...(pick.badges ?? [])];
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | ?.filter((b) => !SPONSORS_PAGE_HIDDEN_BADGES.includes(b)) : pick.badges; | ?.filter((b) => !SPONSORS_PAGE_HIDDEN_BADGES.includes(b)) : ["trending" as const, ...(pick.badges ?? [])];
  * @mutate src/content/giftGuideShipping.ts |   return month === 12 && day >= 15 && day <= 25; |   return month === 12 && day >= 14 && day <= 25;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -48,7 +48,7 @@ const rowBadges = (root: HTMLElement) =>
 describe("gift guides: Trending only where the pick is trending (big batch 1120)", () => {
   // Owner 11-19 ~6:40 PM: every guide sorts by commission, so "the first three" is no featured order any more; a pick
   // wears Trending, or "Trending on TikTok" (owner-approved 9:05 PM), only from its own flag, at most one of the two.
-  it.each(["mom", "dad", "her"])("%s: each row wears Trending only from its own flag, never two", (slug) => {
+  it.each(["him", "kids", "her"])("%s: each row wears Trending only from its own flag, never two", (slug) => {
     const picks = guideBySlug(slug)!.picks;
     expect(picks.length).toBeGreaterThan(5);
     const { container } = renderAt(`/gift-guides/${slug}`);

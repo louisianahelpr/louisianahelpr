@@ -280,7 +280,9 @@ describe("the maker and the page", () => {
  * @mutate src/lib/publicPageMeta.mjs |     title: "Free holiday printables — Helpr", |     title: "Free printable gift tags — Helpr",
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;border:1px solid var(--gg-line)} | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
  * @mutate src/content/printables.ts |     previews: ["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"], |
- * @mutate src/content/printables.ts |       { label: "Boys book, 21 pages (free)", |       { label: "Boys book (free)",
+ * @mutate src/content/printables.ts |       { label: "Boys book", |       { label: "Boys book (free)",
+ * @mutate src/content/printables.ts |       { label: "Wide banner", | { label: "Original 2:1 (free)",
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-wide{flex-direction:column;max-width:640px} | .pr-card-wide{flex-direction:column;max-width:420px}
  */
 // Page counts measured 2026-11-21 from the PDFs' own page trees (the test below re-reads them).
 describe("printables audit 1121 area 5: previews, covers, page counts", () => {
@@ -292,18 +294,26 @@ describe("printables audit 1121 area 5: previews, covers, page counts", () => {
     for (const sel of [".pr-card-img", ".pr-maker-card img"]) expect(rule(sel)).not.toMatch(/box-shadow/);
   });
 
-  it("the coloring book card shows both covers, and each button says its page count", () => {
+  it("the coloring book card shows both covers, and the buttons name the book, and the PDFs really are 21 pages", () => {
     render(<MemoryRouter initialEntries={["/gift-guides/printables/coloring-books"]}><Printables /></MemoryRouter>);
     const card = document.querySelector('[data-printable-card="coloring-book"]')!;
     const covers = [...card.querySelectorAll("img")].map((i) => new URL(i.src).pathname);
     expect(covers).toEqual(["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"]);
     for (const cover of covers) expect(existsSync(join("public", cover!))).toBe(true);
     const buttons = [...card.querySelectorAll("[data-printable-download]")].map((b) => b.textContent);
-    expect(buttons).toEqual(["Girls book, 21 pages (free)", "Boys book, 21 pages (free)"]);
+    expect(buttons).toEqual(["Girls book", "Boys book"]);
     // The count is the PDFs' own (their page tree's /Count), so a re-exported book with more pages turns this red.
     for (const f of ["girls", "boys"]) {
       const pdf = readFileSync(join("public/printables/coloring-book", `christmas-coloring-book-${f}.pdf`), "latin1");
       expect(Math.max(...[...pdf.matchAll(/\/Count (\d+)/g)].map((m) => Number(m[1]))), f).toBe(21);
     }
+  });
+
+  it("the banner buttons use plain words and the wide card has room (guides polish 1122 #31)", () => {
+    render(<MemoryRouter initialEntries={["/gift-guides/printables/banners"]}><Printables /></MemoryRouter>);
+    const card = document.querySelector('[data-printable-card="thanksgiving-banner"]')!;
+    expect([...card.querySelectorAll("[data-printable-download]")].map((b) => b.textContent)).toEqual(["12x18 print", "Wide banner"]);
+    const css = [...document.querySelectorAll("style")].map((s) => s.textContent ?? "").join("\n");
+    expect(Number(/\.pr-card-wide\{[^}]*max-width:(\d+)px/.exec(css)?.[1])).toBeGreaterThanOrEqual(640);
   });
 });

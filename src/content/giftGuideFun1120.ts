@@ -473,7 +473,7 @@ export const FUN_WORDS = {
   swipeShop: "Shop",
   swipeCount: (i: number, n: number) => `${i} of ${n}`,
   swipeSavedSoFar: (n: number) => `${n} saved`,
-  swipeFew: (n: number, budget: string) => (n === 1 ? `Only 1 gift we know is ${budget.toLowerCase()}.` : `Only ${n} gifts we know are ${budget.toLowerCase()}.`),
+  swipeFew: (n: number, budget: string) => `${n} ${n === 1 ? "gift" : "gifts"} ${budget.toLowerCase()}`,
   swipeNextBudget: (budget: string) => `See ${budget}`,
   swipeSavedOne: (name: string) => `Saved ${name}.`,
   swipeHelp: "Swipe right or tap Save to keep it. Swipe left or tap Skip to pass.",
@@ -528,7 +528,6 @@ export const FUN_WORDS = {
   plannerGuidesDone: "Done",
   plannerShop: "Shop",
   // One-time tips (the wish-list hints)
-  hintSwipe: "Tip: drag a card right to save it, left to skip. Or use the buttons.",
   hintSanta: "Tip: we never ask for emails or phone numbers. You send each link yourself.",
   hintPlanner: "Tip: tap Bought when you get a gift, and we'll add up what you've spent.",
 };

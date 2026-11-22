@@ -178,7 +178,7 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // F255 (owner 2026-11-11).
   { name: "fees", url: "/fees" },
   { name: "safety", url: "/safety" },
-  // Owner 2026-11-16: the Holiday Gift Guides.
+  // Owner 2026-11-16: the Holiday gift guides.
   { name: "gift-guides", url: "/gift-guides" },
   // 2026-11-18: one guide opens at /gift-guides/<slug>; "mom" stands in for the shared guide page.
   { name: "gift-guide", url: "/gift-guides/mom" },
@@ -199,8 +199,9 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // 2026-11-20: the Louisiana Holiday Hub (public, no sign-in).
   { name: "holidays", url: "/holidays" },
   { name: "holiday-hire", url: "/holidays/hire-a-helpr" },
-  // 2026-11-21: Shop Small Louisiana (free small business listings + sign-up form, no sign-in).
-  { name: "shop-small", url: "/shop-small" },
+  // 2026-11-21: the free small business listings + sign-up form. Guides audit 1122 #7: /shop-small is a 301 to the
+  // Small Business Saturday page, which shows them now, so that page stands in.
+  { name: "gift-small-business-saturday", url: "/gift-guides/small-business-saturday" },
   // OPS-4 town + service pages (src/lib/townPages.mjs): one of the 40 stands in for the shared page.
   { name: "hire-town", url: "/hire/handyman/lafayette" },
   { name: "terms-full", url: "/terms/full" },

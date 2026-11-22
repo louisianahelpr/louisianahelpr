@@ -80,5 +80,6 @@ export const HOLIDAY_WORDS: {
   stripTitle: string; stripLine: string; stripCta: string;
   hireTitle: string; hireIntro: string;
   lightsTba: string;
+  lightsTbaNote: string;
   checkFirst: string;
 };

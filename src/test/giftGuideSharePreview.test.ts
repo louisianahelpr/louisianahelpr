@@ -43,7 +43,7 @@ describe("gift guide share preview (api/share.ts)", () => {
   });
 
   // Owner 11-21: store-amazon is retired (src/content/giftGuideLive.mjs); Him took its place.
-  it.each(["mom", "dad", "him", "her"])("/gift-guides/%s previews with its own share JPG", async (slug) => {
+  it.each(["him", "her", "kids"])("/gift-guides/%s previews with its own share JPG", async (slug) => {
     expect(existsSync(`public/gift-guides/og/${slug}.jpg`)).toBe(true);
     const head = await headFor(`gift-guides/${slug}`);
     // ?v= is the share JPG's content hash (owner 11-21: a redrawn card is a new URL; src/lib/giftGuideCoverVersions.mjs).
@@ -63,20 +63,20 @@ describe("gift guide share preview (api/share.ts)", () => {
 
   it("a guide with a WebP cover but no share JPG falls back to the cover", async () => {
     // @mutate api/share.ts |   if (COVER_WEBP_SLUGS.has(slug)) return |   if (false) return
-    OG_JPG_SLUGS.delete("mom");
+    OG_JPG_SLUGS.delete("her");
     try {
-      const head = await headFor("gift-guides/mom");
-      expect(head).toContain(`<meta property="og:image" content="${ORIGIN}/gift-guides/covers/mom.webp?v=${COVER_VERSIONS.mom}"`);
+      const head = await headFor("gift-guides/her");
+      expect(head).toContain(`<meta property="og:image" content="${ORIGIN}/gift-guides/covers/her.webp?v=${COVER_VERSIONS.her}"`);
       expect(head).toContain('<meta property="og:image:type" content="image/webp"');
     } finally {
-      OG_JPG_SLUGS.add("mom");
+      OG_JPG_SLUGS.add("her");
     }
   });
 
-  it("the Mom guide's title is its name", async () => {
-    const head = await headFor("gift-guides/mom");
-    expect(head).toContain('<meta property="og:title" content="Gifts for Mom: holiday gift guide 2026"');
-    expect(head).toContain('<meta property="og:image:alt" content="Gifts for Mom: holiday gift guide 2026"');
+  it("the Her guide's title is its name", async () => {
+    const head = await headFor("gift-guides/her");
+    expect(head).toContain('<meta property="og:title" content="Gifts for Her: holiday gift guide 2026"');
+    expect(head).toContain('<meta property="og:image:alt" content="Gifts for Her: holiday gift guide 2026"');
   });
 
   it("a page with no cover file keeps the brand card", async () => {

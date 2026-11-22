@@ -147,7 +147,10 @@ export default function HolidayHub() {
   const foldAfter = addDaysYmd(today, LATER_AFTER_DAYS);
   const folds = when === "all" && !query.trim();
   const isLater = (g: (typeof groups)[number]) => folds && (g.key === "tba" || (!!g.day && g.day > foldAfter));
-  const soon = groups.filter((g) => !isLater(g));
+  // Guides polish 1122 #18: the undated light displays (57) sit closed between the next two weeks and "Later dates", so the
+  // dated events come first on a phone; a When filter or a search shows them open as before.
+  const tbaLights = folds ? groups.find((g) => g.key === "lights-tba") : undefined;
+  const soon = groups.filter((g) => !isLater(g) && g !== tbaLights);
   const later = groups.filter(isLater);
   const section = (g: (typeof groups)[number]) => (
     <HolidaySection key={g.key} id={`holidays-${g.key}`} title={g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : g.key === "lights-tba" ? W.lightsTba : DATES_TBA} count={g.items.length}>
@@ -184,6 +187,11 @@ export default function HolidayHub() {
       <div className={`${HUB_COLUMN} space-y-section font-sans`} data-holiday-page="hub">
         <div className="space-y-4">
           <p className="max-w-[68ch] text-ds-17 text-foreground">{W.hubIntro}</p>
+          {/* Polish audit 1122 #28: the way back to the guides near the top (it sat under ~30,000px of cards on a phone),
+              for the visitor who came from the guides menu. */}
+          <p className="text-ds-14 text-muted-foreground" data-holiday-guides-link="">
+            Shopping too? <Link to="/gift-guides" className="link-standard inline-flex min-h-11 items-center">See the holiday gift guides</Link>
+          </p>
         </div>
 
         <div className="space-y-2.5" data-holiday-filters="">
@@ -197,7 +205,7 @@ export default function HolidayHub() {
                 <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 <Input look="bare" ref={searchInput} type="search" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus
                   onKeyDown={(e) => { if (e.key === "Escape") closeSearch(); }}
-                  placeholder="Search lights and events" aria-label="Search lights and events by name, town or place"
+                  placeholder="Name or town" aria-label="Search lights and events by name, town or place"
                   className="min-h-11 flex-1 border-0 text-ds-15 text-foreground shadow-none outline-none focus:outline-none" data-holiday-search="" />
                 <Button type="button" variant="ghost" size="iconCompact" onClick={closeSearch} aria-label="Close search"
                   className="ctl-exit -mr-2 shrink-0 text-muted-foreground hover:text-foreground [&_svg]:size-4" data-holiday-search-close="">
@@ -242,14 +250,33 @@ export default function HolidayHub() {
           onClearAll={clearAll} title="Filters" resultCount={shown.length} resultNoun={["result", "results"]} anchorRef={filtersButton} />
 
         {groups.length === 0 ? (
-          <HolidayNothing onClear={clearAll}>
-            {when !== "all" ? `Nothing matches these filters ${WHEN_NOTHING[when]}.` : "Nothing matches these filters."}
-          </HolidayNothing>
+          // Polish audit 1122 #29: a search with no match says so and clears the search, not "these filters".
+          query.trim() && active.length === 0 ? (
+            <HolidayNothing onClear={() => setQuery("")} clearLabel="Clear search">
+              {`No lights or events match "${query.trim()}".`}
+            </HolidayNothing>
+          ) : (
+            <HolidayNothing onClear={clearAll}>
+              {when !== "all" ? `Nothing matches these filters ${WHEN_NOTHING[when]}.` : "Nothing matches these filters."}
+            </HolidayNothing>
+          )
         ) : (
           <>
             {soon.map(section)}
             {/* Holiday audit 1121 area 5 #5: the days more than two weeks out and "Dates TBA" fold under one "Later dates"
                 (closed), so the page opens on what is coming up. A When filter or a search shows every group open. */}
+            {tbaLights && (
+              <details className="group space-y-section" id="holidays-lights-tba" data-holiday-lights-tba="">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-ds-20 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+                  {W.lightsTba}<span className="text-ds-15 font-normal text-muted-foreground">({tbaLights.items.length})</span>
+                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+                </summary>
+                <p className="text-ds-14 text-muted-foreground">{W.lightsTbaNote}</p>
+                <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {tbaLights.items.map((i) => <HolidayCard key={i.id} item={i} kind="light" tag={tagFor(i)} />)}
+                </ul>
+              </details>
+            )}
             {later.length > 0 && (
               <details className="group space-y-section" data-holiday-later="">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-ds-20 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
@@ -262,12 +289,9 @@ export default function HolidayHub() {
           </>
         )}
         <p className="text-ds-14 text-muted-foreground">{W.checkFirst}</p>
-        <p className="text-ds-14 text-muted-foreground">
-          Shopping too? <Link to="/gift-guides" className="link-standard inline-flex min-h-11 items-center">See the holiday gift guides</Link>
-        </p>
-        {/* Owner 2026-11-21: Louisiana small businesses ask to be featured free on /shop-small. */}
+        {/* Owner 2026-11-21: Louisiana small businesses ask to be featured free on the Small Business Saturday page. */}
         <p className="text-ds-14 text-muted-foreground" data-holiday-shop-small="">
-          <Link to="/shop-small" className="link-standard inline-flex min-h-11 items-center">{SBS_WORDS.landingLink}</Link>
+          <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard inline-flex min-h-11 items-center">{SBS_WORDS.landingLink}</Link>
         </p>
       </div>
     </PublicHeaderPage>

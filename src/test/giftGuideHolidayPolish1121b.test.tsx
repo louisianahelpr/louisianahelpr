@@ -12,7 +12,6 @@
  *   - an old ?group= link opens the landing (src/test/giftGuidesPage.test.tsx "every old group link opens the landing");
  *   - a Small Business Saturday card names the business (no person in brackets), a town (no area code), and never says
  *     a place you visit "Ships";
- *   - /shop-small leads with the Louisiana 25 Days sponsors (never an empty page) inside the guides' frame.
  *
  * @mutate src/content/giftGuideFun1120.ts |   for (const rest of from) { |   for (const rest of [] as T[]) {
  * @mutate src/content/giftGuideSwipe.ts | const SWIPE_MIN = 3; | const SWIPE_MIN = 3; const SWIPE_BANDS = QUIZ_BUDGETS;
@@ -26,8 +25,6 @@
  * @mutate src/content/printables.ts |     guides: ["gift-wrap-and-cards"], |     guides: ["gift-wrap-and-cards", "her", "him", "kids"],
  * @mutate src/content/giftGuideSmallBiz.json | "name":"Bake & Brush", | "name":"Bake & Brush (Holli M. Landry)",
  * @mutate src/content/giftGuideSmallBiz.json | "name":"Breads and Sweets by Babs","town":"Acadiana" | "name":"Breads and Sweets by Babs","town":"Acadiana (337)"
- * @mutate src/pages/info/ShopSmall.tsx |            <SmallBizGrid /> |            {null}
- * @mutate src/pages/info/ShopSmall.tsx |       <GuidesFrame title={W.pageTitle} path="/shop-small" disclosures={false}> |       <GuidesFrame title={W.pageTitle} path="/gift-guides" disclosures={false}>
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | [data-gift-guide="25-days-sponsors"] .gg-nm-name{-webkit-line-clamp:3} | [data-gift-guide="25-days-sponsors"] .gg-nm-name{}
  * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |     requestAnimationFrame(() => openButton.current?.focus()); |     void 0;
  * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |       {Form && <div hidden={!open} data-gift-sbs-form-wrap=""><Form onClose={close} /></div>} |       {Form && open && <div data-gift-sbs-form-wrap=""><Form onClose={close} /></div>}
@@ -62,7 +59,8 @@ import GiftGuides from "@/pages/info/GiftGuides";
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import { FunBody } from "@/pages/info/giftGuides/fun/FunPage";
 import { GiftGuideTools } from "@/pages/info/giftGuides/GiftGuideShare";
-import ShopSmall from "@/pages/info/ShopSmall";
+import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
+import { dealDay } from "@/content/giftGuideDeals.mjs";
 import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { readFileSync } from "node:fs";
@@ -226,20 +224,6 @@ describe("Small Business Saturday cards (holiday audit 1121 #58)", () => {
   });
 });
 
-describe("/shop-small is never empty and sits in the guides' frame (holiday audit 1121 #61 / #73)", () => {
-  it("one h1, the guides' head row and menu (Shop Small current), then the 25 Days sponsors' cards before the free listings", async () => {
-    const { container } = render(<MemoryRouter><ShopSmall /></MemoryRouter>);
-    expect([...container.querySelectorAll("h1")].map((h) => h.textContent)).toEqual([SBS_WORDS.pageTitle]);
-    expect(container.querySelector("[data-gift-headrow] [data-gift-search-button]")).not.toBeNull();
-    // Owner 11-21: Shop Small left the menu ("it's already listed with small business saturday"), so nothing is current.
-    expect([...container.querySelectorAll('[data-gift-sidebar] a[aria-current="page"]')].map((a) => a.getAttribute("href"))).toEqual([]);
-    expect(container.querySelector("[data-shop-small-sponsors] h2")?.textContent).toBe(SBS_WORDS.pageSponsorsTitle);
-    await waitFor(() => expect(container.querySelectorAll("[data-shop-small-sponsors] [data-gift-sb-grid] > li").length).toBeGreaterThan(30));
-    // No affiliate link on this page, so no affiliate disclosure.
-    expect(container.querySelector("[data-gift-disclosure]")).toBeNull();
-  });
-});
-
 describe("sponsor names keep their meaningful end (holiday audit 1121 #67)", () => {
   it("the sponsors page lets a row name run to three lines (the show or product comes last)", () => {
     const rule = GIFT_GUIDES_CSS.match(/\[data-gift-guide="25-days-sponsors"\] \.gg-nm-name\{([^}]*)\}/);
@@ -247,9 +231,12 @@ describe("sponsor names keep their meaningful end (holiday audit 1121 #67)", () 
   });
 });
 
-describe("the Shop Small sign-up form (holiday audit 1121 #76)", () => {
+describe("the Small Business Saturday sign-up form (holiday audit 1121 #76)", () => {
   it("Close hands focus back to the open button, and reopening keeps what was typed", async () => {
-    const { container } = render(<MemoryRouter><ShopSmall /></MemoryRouter>);
+    const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("small-business-saturday")!} now={new Date("2026-11-21T18:00:00Z")} /></MemoryRouter>);
+    // The sign-up card is swapped for the listings module once it loads; wait for that so the click lands on the final card.
+    await waitFor(() => expect([...container.querySelectorAll("style")].some((st) => st.textContent?.includes(".gg-sbs-local"))).toBe(true), { timeout: 5000 });
+    await waitFor(() => expect(container.querySelector("[data-gift-sbs-open]")).not.toBeNull(), { timeout: 5000 });
     fireEvent.click(container.querySelector("[data-gift-sbs-open]")!);
     await waitFor(() => expect(container.querySelector("[data-gift-sbs-form] input")).not.toBeNull(), { timeout: 5000 });
     const name = container.querySelector<HTMLInputElement>("[data-gift-sbs-form] input")!;
@@ -262,7 +249,10 @@ describe("the Shop Small sign-up form (holiday audit 1121 #76)", () => {
     expect(container.querySelector<HTMLInputElement>("[data-gift-sbs-form] input")!.value).toBe("Bayou Candle Co");
   });
   it("the form's problem line is red like the field errors (the card's own p colour won), and the link example reads as an example", async () => {
-    const { container } = render(<MemoryRouter><ShopSmall /></MemoryRouter>);
+    const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("small-business-saturday")!} now={new Date("2026-11-21T18:00:00Z")} /></MemoryRouter>);
+    // The sign-up card is swapped for the listings module once it loads; wait for that so the click lands on the final card.
+    await waitFor(() => expect([...container.querySelectorAll("style")].some((st) => st.textContent?.includes(".gg-sbs-local"))).toBe(true), { timeout: 5000 });
+    await waitFor(() => expect(container.querySelector("[data-gift-sbs-open]")).not.toBeNull(), { timeout: 5000 });
     fireEvent.click(container.querySelector("[data-gift-sbs-open]")!);
     await waitFor(() => expect(container.querySelector("[data-gift-sbs-form] style")).not.toBeNull(), { timeout: 5000 });
     const css = container.querySelector("[data-gift-sbs-form] style")!.textContent!;

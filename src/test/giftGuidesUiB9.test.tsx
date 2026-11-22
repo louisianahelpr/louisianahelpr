@@ -27,7 +27,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { GUIDES, guideBySlug, loadAllGuidePicks, searchGuides, searchItems, sectionWords, type SearchItem } from "@/content/giftGuideCatalog";
+import { GUIDES, guideBySlug, loadAllGuidePicks, searchGuides, searchItems, type SearchItem } from "@/content/giftGuideCatalog";
 import ITEMS from "@/content/giftGuideSearchIndex.json";
 import { buildIndex, indexText } from "../../scripts/gift-guide-search-index.mjs";
 
@@ -55,9 +55,9 @@ const slugs = (q: string) => searchGuides(q).map((g) => g.slug);
 const live = (s: string) => !!guideBySlug(s) && !guideBySlug(s)!.empty;
 
 describe("H5: search finds what shoppers type", () => {
-  it("a sentence finds its person: 'something for my husband who fishes' finds Husband and Him", () => {
+  it("a sentence finds its person: 'something for my husband who fishes' finds Him", () => {
     // Owner 11-21: the fishing guides (Outdoors & Travel) are retired (src/content/giftGuideLive.mjs); the person stays.
-    expect(slugs("something for my husband who fishes")).toEqual(expect.arrayContaining(["husband", "him"]));
+    expect(slugs("something for my husband who fishes")).toEqual(expect.arrayContaining(["him"]));
     expect(slugs("fishing").filter((s) => s === "outdoors-and-travel" || s.startsWith("store-"))).toEqual([]);
   });
 
@@ -73,11 +73,9 @@ describe("H5: search finds what shoppers type", () => {
     if (live("under-25")) expect(slugs("$22")[0]).toBe("under-25");
   });
 
-  it("filler words are dropped: 'gift for mom' is Mom, and no guide matches through 'Life moments'", () => {
+  it("filler words are dropped: 'gift for mom' is Her, and no guide matches through 'Life moments'", () => {
     const mom = searchGuides("gift for mom");
-    expect(mom[0].slug).toBe("mom");
-    // 1120: a merged guide is found through its sections' titles too (New Baby & Parents holds Mom-to-Be and New Mom).
-    expect(mom.filter((g) => !/mom/i.test(`${g.title} ${sectionWords(g.slug)}`))).toEqual([]);
+    expect(mom.map((g) => g.slug)).toEqual(["her"]); // owner 11-21: Mom is no guide; it opens Her
     expect(slugs("gifts")).not.toEqual([]);
   });
 
@@ -104,8 +102,8 @@ describe("H5: search finds what shoppers type", () => {
     const input = container.querySelector<HTMLInputElement>("[data-gift-search]")!;
     fireEvent.change(input, { target: { value: "mom" } });
     const first = container.querySelector("a[data-gift-found]")!;
-    expect(first.getAttribute("href")).toBe("/gift-guides/mom");
-    expect(first.querySelector("img.gg-search-thumb")?.getAttribute("src")).toBe(guideBySlug("mom")!.cover);
+    expect(first.getAttribute("href")).toBe("/gift-guides/her");
+    expect(first.querySelector("img.gg-search-thumb")?.getAttribute("src")).toBe(guideBySlug("her")!.cover);
     const items = ITEMS as unknown as SearchItem[];
     const word = items[0][0].split(/\s+/).find((w) => w.length > 4)!;
     fireEvent.change(input, { target: { value: word } });
@@ -200,8 +198,8 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
   });
 
   it("a guide shows how many gifts it holds; the phone banner stays short (at most 190px)", () => {
-    const { container } = renderAt("/gift-guides/mom");
-    expect(container.querySelector("[data-gift-item-count]")?.textContent).toBe(`${guideBySlug("mom")!.picks.length} gifts`);
+    const { container } = renderAt("/gift-guides/her");
+    expect(container.querySelector("[data-gift-item-count]")?.textContent).toBe(`${guideBySlug("her")!.picks.length} gifts`);
     // The phone banner height is the sheet's last .gg-banner height (inside the phone layout block; the phone nav, 11-21,
     // appends its own later @media (max-width:767px) block, so the last such block no longer holds it).
     const h = Number([...GIFT_GUIDES_CSS.matchAll(/\.gg-banner\{height:(\d+)px/g)].slice(-1)[0]?.[1]);
@@ -209,6 +207,6 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     // Owner 11-21 ("the arches and letters are just small and squished together"): 96px -> 136px; pass 2 the same night
     // ("gifts for her is still too small text size and still close together"): 136px -> 184px, still under 190px.
     expect(h).toBeLessThanOrEqual(190);
-    expect(GUIDES.length).toBeGreaterThan(10); // owner 11-21: Her, Him, Kids, the sponsors page and 10 relationship views (14, 2026-11-21)
+    expect(GUIDES.length).toBe(4); // owner 11-21: Her, Him, Kids and the sponsors page (the relationship views are gone)
   });
 });

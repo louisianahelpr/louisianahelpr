@@ -7,36 +7,39 @@
  *     place ... and the retailer and code below where they can copy and open site"; "same for sales"): every code and
  *     every store sale is a photo card (the store's own product photo, or its name, never another store's photo), the
  *     store's name links the store, a code card's chip copies the code and says Copied (a refused clipboard selects
- *     it), every card has an open-site button, no dashed code box and no round Copy button;
+ *     it), no dashed code box and no round Copy button (polish audit 1122 #20: no open-site arrow; the name and photo link);
  *   - owner ("it just needs to be cleaned up ... more organized"): a deals day is in subsections by type, each only
- *     when it has something, the first open, with a jump row;
+ *     when it has something, the first open (polish audit 1122 #30: no jump row);
  *   - owner ("remove this" / "On each card say when the deals start and end"): no day line under a deals day's banner,
  *     and every card says when it starts and ends (both days, else the one we know, never an invented one);
  *   - owner ("coloring book and banner should have their own page"; "remove from her, they already have their own
  *     section"): each printable kind is its own page with its own head, the menu links each and marks the open one, the
  *     old address lands on its anchor's page, no printable on Her, Him or Kids, and a long download label wraps;
  *   - owner ("remove the circle around visit"): Visit is a plain text link, never an outlined button;
- *   - owner ("add this to the top or bottom of the shop small business"): the Small Business Saturday page and
- *     /shop-small carry the sign-up card at the bottom and a one-line link at the top that opens its form.
+ *   - owner ("add this to the top or bottom of the shop small business"): the Small Business Saturday page carries
+ *     the sign-up card at the bottom and a one-line link at the top that opens its form.
  *
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping", d: GIFT_WRAP_DESCRIPTION }) | t: "Gift wrapping" })
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | for (const c of codes) if (c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]); | for (const c of codes) if (c.href) byStore.set(c.code, [c]);
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | const namesOther = (offer: string) => Boolean(here && other!.some((t) => offer.includes(t)) && !offer.includes(here.title)); | const namesOther = (offer: string) => false;
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |       () => setCopied(true), |       () => setCopied(false),
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         select(text);\n      }, |       },
- * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         <OpenSite store={store} href={href} /> |         {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | <GiftOut href={href} className="gg-deal-brand gg-card-store" data-gift-code-shop={store}> | <GiftOut href="" className="gg-deal-brand gg-card-store" data-gift-code-shop={store}>
  * @mutate src/content/giftGuideStorePhotos.ts | (STORE_PHOTO_FILES[store] ? DIR + STORE_PHOTO_FILES[store] : null) | (DIR + "xtratuf.webp")
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   if (!src \|\| !ok) return null; |   if (!ok) return null;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | body: <CodeCards codes={codes} /> | body: <CodeCards codes={codes.slice(1)} />
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       {sections.length > 1 && ( |       {false && (
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       {/* Polish audit 1122 #30: no jump-chip row | <nav data-gift-deal-jump="" />{/* Polish audit 1122 #30: no jump-chip row
+ * @mutate src/pages/info/giftGuides/smallBizCardStyles.ts | min-height:44px;min-width:44px;font-size:14px | min-height:44px;font-size:14px
  * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx |             <Out href={b.href} className="gg-sb-visit"> |             <Out href={b.href} className="gg-sb-visit rounded-full border">
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   return Local ? <Local sponsors={[]} /> : <FeatureCta />; |   return null;
- * @mutate src/pages/info/ShopSmall.tsx |           <FeatureCtaLink />\n |           \n
  * @mutate src/content/giftGuideDeals.mjs |   runs: (start, end) => (start && end ? | runs: (start, end) => (false ? 
- * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         const when = DEALS_WORDS.runs(c.starts, c.expires); |         const when = DEALS_WORDS.runs(null, c.expires);
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | [c.offer, DEALS_WORDS.runs(c.starts, c.expires)] | [c.offer, DEALS_WORDS.runs(null, c.expires)]
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <style>{DEALS_CSS + CARD_CSS}</style> |       <style>{DEALS_CSS + CARD_CSS}</style><p data-gift-deal-day="">{day[eventPhase(day, today)]}</p>
  * @mutate src/content/printables.ts | export const printablesOnPage = (key: PrintablePageKey, list: Printable[] = PRINTABLES) => shownPrintables(list).filter((p) => pageOfPrintable(p) === key); | export const printablesOnPage = (key: PrintablePageKey, list: Printable[] = PRINTABLES) => shownPrintables(list).filter(() => Boolean(key));
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <Link to={p.path} {...current(p.path)} data-gift-side-printables={p.key}> | <Link to={p.path} data-gift-side-printables={p.key}>
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-btns button{max-width:100%;height:auto;min-height:44px;white-space:normal;text-align:center} | .pr-card-btns button{max-width:100%}
  * @mutate src/content/printables.ts |     guides: ["gift-wrap-and-cards"], |     guides: ["gift-wrap-and-cards", "her"],
- * @mutate src/content/printables.ts |       { label: "12x18 poster (free)", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },\n |
+ * @mutate src/content/printables.ts |       { label: "12x18 print", href: "/printables/thanksgiving-banner/happy-thanksgiving-banner-12x18.jpg" },\n |
  * @mutate src/components/giftGuides/PickPrice.tsx | {pick.priceFrom ? G.priceFrom(shownDollars(pick.price)) : G.priceApprox(shownDollars(pick.price))} | {G.priceApprox(shownDollars(pick.price))}
  * @mutate src/content/giftGuideCatalog.ts | ...(p.priceFrom ? { priceFrom: p.priceFrom } : {}) |
  * @mutate src/pages/info/giftGuides/SmallBizFeatureCta.tsx |     window.dispatchEvent(new Event(OPEN_EVENT)); |     void OPEN_EVENT;
@@ -59,7 +62,6 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsLogoUrl: () => "" }));
 vi.mock("@/pages/info/giftGuides/SmallBizSubmitForm", () => ({ SmallBizSubmitForm: () => <form data-test-sbs-form="" /> }));
 import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
-import ShopSmall from "@/pages/info/ShopSmall";
 import Printables from "@/pages/info/giftGuides/printables/Printables";
 import { GiftGuidesSidebar } from "@/pages/info/giftGuides/GiftGuidesSidebar";
 import { PRINTABLES, PRINTABLE_PAGES, printablesForGuide } from "@/content/printables";
@@ -87,21 +89,35 @@ describe("holiday audit 1121 #42: the gift-wrap job opens with a description tha
 
 describe("owner 11-21: codes and sales are photo cards", () => {
   const BF = dealDay("black-friday")!.day;
-  it("one card per code: store link, offer line, a code chip that copies and says Copied, an open-site button", async () => {
+  it("one card per code: store link (name and photo), offer line, a code chip that copies and says Copied", async () => {
     const codes = codesOn(BF);
     expect(codes.length).toBeGreaterThan(5);
     const writeText = vi.fn(() => Promise.resolve());
     Object.assign(navigator, { clipboard: { writeText } });
     const { container } = render(<MemoryRouter><CodeCards codes={codes} /></MemoryRouter>);
     const cards = [...container.querySelectorAll("li[data-gift-code]")];
-    expect(cards.map((c) => c.getAttribute("data-gift-code"))).toEqual(codes.map((c) => c.code));
+    // One card per store: Bonheur Jewelry had three codes and three identical cards (audit 1122 #13); its best code leads.
+    const stores = [...new Set(codes.map((c) => c.store))];
+    expect(cards.map((c) => c.getAttribute("data-gift-code-store"))).toEqual(stores);
+    expect(cards.length).toBeLessThan(codes.length);
+    const bonheur = container.querySelector("li[data-gift-code-store='Bonheur Jewelry']");
+    const mine = codes.filter((c) => c.store === "Bonheur Jewelry");
+    const pct = (o: string) => Number(/(\d+)\s*%/.exec(o)?.[1] ?? 0);
+    const top = Math.max(...mine.map((c) => pct(c.offer)));
+    expect(mine.length).toBeGreaterThan(1);
+    expect(pct(mine.find((c) => c.code === bonheur?.getAttribute("data-gift-code"))!.offer)).toBe(top);
+    fireEvent.click(bonheur!.querySelector("[data-gift-code-more]")!);
+    expect([...bonheur!.querySelectorAll("[data-gift-code-extra]")].length).toBe(mine.length - 1);
     for (const card of cards) {
       const code = card.getAttribute("data-gift-code")!;
       expect(card.querySelector("[data-gift-code-shop]")?.getAttribute("href")).toMatch(/^https:\/\//);
-      expect(card.querySelector("[data-gift-open-site]")?.getAttribute("target")).toBe("_blank");
-      expect(card.querySelector("[data-gift-open-site] .sr-only")?.textContent).toContain(`Open ${card.getAttribute("data-gift-code-store")} site`);
-      expect(card.querySelector("[data-gift-code-copy]")?.getAttribute("aria-label")).toBe(`Copy code ${code}`);
-      expect(card.querySelector("[data-gift-store-photo]")).not.toBeNull();
+      // Polish audit 1122 #20: no arrow icon; the store's name opens its site in a new tab and says so.
+      expect(card.querySelector("[data-gift-open-site]")).toBeNull();
+      expect(card.querySelector("[data-gift-code-shop]")?.getAttribute("target")).toBe("_blank");
+      expect(card.querySelector("[data-gift-code-shop] .sr-only")?.textContent).toContain("new tab");
+      expect([...card.querySelectorAll("[data-gift-code-copy]")].map((b) => b.getAttribute("aria-label"))).toContain(`Copy code ${code}`);
+      // A store with a cutout shows it; one without shows no tile (guides polish 1122 #14).
+      expect(card.querySelector("[data-gift-store-photo]") !== null).toBe(storePhoto(card.getAttribute("data-gift-code-store")!) !== null);
     }
     // No dashed box and no round Copy text button: the code itself is the chip.
     expect(container.querySelector(".gg-code-row, .gg-code-one")).toBeNull();
@@ -120,16 +136,19 @@ describe("owner 11-21: codes and sales are photo cards", () => {
     await waitFor(() => expect(window.getSelection()?.toString()).toBe(codes[0].code));
     expect(container.querySelector("[data-gift-code-copied]")).toBeNull();
   });
-  it("one card per store for the sales, each with its store link and open-site button", () => {
+  it("one card per store for the sales, each with its store link (name and photo)", () => {
     const stores = salesOn(BF);
     expect(stores.length).toBeGreaterThan(10);
     const { container } = render(<MemoryRouter><SaleCards stores={stores} /></MemoryRouter>);
     const cards = [...container.querySelectorAll("li[data-gift-sale-store]")];
     expect(cards.length).toBe(stores.length);
     expect(new Set(cards.map((c) => c.getAttribute("data-gift-sale-store"))).size).toBe(cards.length);
-    for (const c of cards) expect(c.querySelector("[data-gift-open-site]")).not.toBeNull();
+    for (const c of cards) {
+      expect(c.querySelector("[data-gift-open-site]")).toBeNull();
+      expect(c.querySelector("[data-gift-code-shop]")?.getAttribute("href")).toMatch(/^https:\/\//);
+    }
   });
-  it("each photo is that store's own local file; a store with none shows its name, never another store's photo", () => {
+  it("each photo is that store's own local file; a store with none shows no tile, never another store's photo", () => {
     const files = Object.entries(STORE_PHOTO_FILES);
     expect(files.length).toBeGreaterThan(0);
     for (const [store, file] of files) {
@@ -139,8 +158,13 @@ describe("owner 11-21: codes and sales are photo cards", () => {
     }
     expect(storePhoto("A store we have no photo for")).toBeNull();
     const { container } = render(<MemoryRouter><SaleCards stores={[{ store: "A store we have no photo for", sales: [{ store: "A store we have no photo for", slug: "x", offer: "20% off", ends: "2099-01-01", href: "https://example.com/" }] }]} /></MemoryRouter>);
-    expect(container.querySelector("[data-gift-store-photo]")?.getAttribute("data-gift-store-photo")).toBe("name");
-    expect(container.querySelector("[data-gift-store-photo] img")).toBeNull();
+    // Guides polish 1122 #14: no tinted name tile; the store's name is the card's own heading link.
+    expect(container.querySelector("[data-gift-store-photo]")).toBeNull();
+    expect(container.querySelector(".gg-deal-photo")).toBeNull();
+    // Its visible words are the store's name; the polish audit 1122 #20 sr-only note says the link opens a new tab.
+    const name = container.querySelector("[data-gift-code-shop]");
+    expect(name?.firstChild?.textContent).toBe("A store we have no photo for");
+    expect(name?.querySelector(".sr-only")?.textContent).toContain("new tab");
   });
 });
 
@@ -166,16 +190,13 @@ describe("owner 11-21: every card says when it starts and ends; no day line", ()
 });
 
 describe("owner 11-21: a deals day in subsections by type", () => {
-  it("Black Friday: a jump row, then Top deals open, Discount codes and Sales closed; a jump opens its subsection", async () => {
+  // Polish audit 1122 #30: no jump-chip row (the headings name and count themselves right below).
+  it("Black Friday: no jump row; Top deals open, Discount codes and Sales closed", async () => {
     const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("black-friday")!} now={new Date("2026-11-21T18:00:00Z")} /></MemoryRouter>);
     await waitFor(() => expect(container.querySelector("[data-gift-deal]")).not.toBeNull());
-    const jump = container.querySelector("[data-gift-deal-jump]")!;
-    expect([...jump.querySelectorAll("button")].map((b) => b.getAttribute("data-gift-deal-jump-to"))).toEqual(["deals", "codes", "sales"]);
-    const sales = container.querySelector<HTMLDetailsElement>("details[data-gift-deal-sub='sales']")!;
-    expect(sales.open).toBe(false);
-    window.HTMLElement.prototype.scrollIntoView = vi.fn();
-    await act(async () => { fireEvent.click(jump.querySelector("[data-gift-deal-jump-to='sales']")!); });
-    expect(sales.open).toBe(true);
+    expect(container.querySelector("[data-gift-deal-jump]")).toBeNull();
+    const subs = [...container.querySelectorAll<HTMLDetailsElement>("details[data-gift-deal-sub]")];
+    expect(subs.map((d) => [d.getAttribute("data-gift-deal-sub"), d.open])).toEqual([["deals", true], ["codes", false], ["sales", false]]);
   });
   it("the Discount codes subsection holds exactly the codes that work that day (none: no subsection)", async () => {
     // Dec 30: every dated code is over, but the owner's undated codes still work; so read a day where codesOn is empty
@@ -183,13 +204,15 @@ describe("owner 11-21: a deals day in subsections by type", () => {
     const day = dealDay("cyber-monday")!;
     const { container } = render(<MemoryRouter><GiftGuideDeals day={day} now={new Date("2026-11-21T18:00:00Z")} /></MemoryRouter>);
     await waitFor(() => expect(container.querySelector("[data-gift-deal]")).not.toBeNull());
-    const codes = codesOn(day.day);
+    // Polish audit 1122 #12: a code a Top deal card already shows gets no second card here.
+    const onDeals = new Set([...container.querySelectorAll("[data-gift-deal-list] [data-gift-code-copy]")].map((c) => c.getAttribute("data-gift-code-copy")!.toUpperCase()));
+    const codes = codesOn(day.day).filter((c) => !onDeals.has(c.code.toUpperCase()));
     const sub = container.querySelector("details[data-gift-deal-sub='codes']");
     if (codes.length === 0) expect(sub).toBeNull();
     else {
-      expect(sub?.querySelector("[data-gift-deal-sub-count]")?.textContent).toBe(String(codes.length));
-      // The count is the cards: one card per code that works that day.
-      expect(sub!.querySelectorAll("li[data-gift-code]").length).toBe(codes.length);
+      expect(sub?.querySelector("[data-gift-deal-sub-count]")?.textContent).toBe(String(new Set(codes.map((c) => c.store)).size));
+      // The count is the cards: one card per store with a code that works that day.
+      expect(sub!.querySelectorAll("li[data-gift-code]").length).toBe(new Set(codes.map((c) => c.store)).size);
     }
     // And the subsection list never holds an empty one.
     for (const d of container.querySelectorAll("details[data-gift-deal-sub]")) expect(d.querySelector("li"), d.getAttribute("data-gift-deal-sub") ?? "").not.toBeNull();
@@ -208,10 +231,16 @@ describe("owner 11-21: Small Business Saturday cards and the sign-up card", () =
       expect(v.textContent).toMatch(/^Visit/);
     }
   });
-  it("the day page and /shop-small: a top line that opens the sign-up card's form, the card at the bottom", async () => {
+  it("the Visit link is at least 44 by 44 px (audit 11-22 #26: it measured 41 wide)", async () => {
+    const { SB_CARD_CSS } = await import("../pages/info/giftGuides/smallBizCardStyles");
+    const rule = SB_CARD_CSS.match(/\.gg-sb \.gg-sb-visit\{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toMatch(/min-height:44px/);
+    expect(rule).toMatch(/min-width:44px/);
+  });
+  it("the day page: a top line that opens the sign-up card's form, the card at the bottom", async () => {
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
-    for (const page of ["day", "shop-small"] as const) {
-      const { container } = render(<MemoryRouter>{page === "day" ? <GiftGuideDeals day={dealDay("small-business-saturday")!} now={new Date("2026-11-21T18:00:00Z")} /> : <ShopSmall />}</MemoryRouter>);
+    for (const page of ["day"] as const) {
+      const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("small-business-saturday")!} now={new Date("2026-11-21T18:00:00Z")} /></MemoryRouter>);
       await waitFor(() => expect(container.querySelectorAll("[data-gift-sb]").length).toBeGreaterThan(20));
       const top = container.querySelector<HTMLButtonElement>("[data-gift-sbs-toplink]");
       const card = container.querySelector("[data-gift-sbs-cta]");
@@ -303,5 +332,34 @@ describe("holiday audit 1121 #66 / #63: the 25 Days sponsors page's photos and p
     const pick = { name: from.name, href: "https://x.test/", store: "other", price: from.price, priceAt: from.priceAt, priceFrom: true } as never;
     const { container } = render(<PickPrice pick={pick} />);
     expect(container.textContent).toMatch(/^from \$\d+$/);
+  });
+  it("a day's sales never name the other deal day, and the end date sits on its own line (guides audit 1122 #15)", () => {
+    const cm = dealDay("cyber-monday")!.day;
+    const bf = dealDay("black-friday")!.day;
+    const lines = (d: string) => salesOn(d).flatMap((s) => s.sales.map((x) => x.offer));
+    expect(lines(cm).filter((o) => /Black Friday/.test(o) && !/Cyber Monday/.test(o))).toEqual([]);
+    expect(lines(bf).filter((o) => /Cyber Monday/.test(o) && !/Black Friday/.test(o))).toEqual([]);
+    expect(lines(cm).length).toBeGreaterThan(5);
+    const { container } = render(<MemoryRouter><SaleCards stores={salesOn(cm).slice(0, 2)} /></MemoryRouter>);
+    for (const when of container.querySelectorAll(".gg-card-when")) expect(when.textContent).toMatch(/^Ends /);
+  });
+});
+
+describe("audit 11-22 #4: our own sponsor photos carry no cream or pink square", () => {
+  it("every sponsor photo's four corners are see-through or a real picture, never the cream padding", async () => {
+    const { readdirSync } = await import("node:fs");
+    const sharp = (await import("sharp")).default;
+    const dir = resolve(ROOT, "public/gift-guides/sponsor-picks");
+    const files = readdirSync(dir).filter((f) => f.endsWith(".webp"));
+    expect(files.length).toBeGreaterThan(30);
+    for (const f of files) {
+      const { data, info } = await sharp(resolve(dir, f)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      for (const [x, y] of [[0, 0], [info.width - 1, 0], [0, info.height - 1], [info.width - 1, info.height - 1]]) {
+        const i = (y * info.width + x) * 4;
+        const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+        const cream = a > 200 && r > 240 && g > 238 && b > 228 && r - b < 20;
+        expect(cream, `${f} corner ${x},${y} is cream (${r},${g},${b})`).toBe(false);
+      }
+    }
   });
 });

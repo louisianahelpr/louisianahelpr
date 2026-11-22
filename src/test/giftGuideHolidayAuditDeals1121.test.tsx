@@ -10,7 +10,7 @@
  * @mutate src/content/giftGuideDeals.mjs |   return expires && expires < today ? undefined : deal.code; |   return deal.code;
  * @mutate src/content/giftGuideDeals.mjs |   return ends ? ends >= today : today <= RETITLE_AFTER; |   return ends ? ends >= today : true;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |     ...(sales.length ? [{ id: "sales" |     ...(false ? [{ id: "sales"
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | <span data-gift-shop="">{W.shopShort}<span className="sr-only"> {deal.brand}</span></span> | <span data-gift-shop="">{W.shop(deal.brand)}</span>
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | data-gift-deal-brand="">{deal.brand}<span className="sr-only"> | data-gift-deal-brand="">{W.shop(deal.brand)}<span className="sr-only">
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <Link to={`/gift-guides/${d.id}`} {...current(d.id)} data-gift-side-deals={d.id}> | <Link to={`/gift-guides/black-friday-cyber-monday#${d.id}`} data-gift-side-deals={d.id}>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -51,7 +51,8 @@ describe("deal cards never outlive their sale (holiday audit 1121, High)", () =>
       const day = dealDay(d.event)!;
       for (const [ymd, has] of [[expires, true], [plus(expires, 1), false]] as const) {
         const { container } = render(<MemoryRouter><GiftGuideDeals day={day} now={new Date(`${ymd}T18:00:00Z`)} /></MemoryRouter>);
-        await screen.findAllByText(/^Shop$|These deals have ended/);
+        // Polish audit 1122 #12: a card has no "Shop" line now; wait for a card (or the all-ended line).
+        await waitFor(() => expect(container.querySelector("[data-gift-deal]") ?? screen.queryByText(/These deals have ended/)).toBeTruthy());
         expect(!!container.querySelector(`[data-gift-deal-code="${d.code}"]`), `${d.brand} ${d.code} on ${ymd}`).toBe(has);
         cleanup();
       }
@@ -73,16 +74,17 @@ describe("deal cards never outlive their sale (holiday audit 1121, High)", () =>
 });
 
 describe("deal cards and the codes box read cleanly (holiday audit 1121, Lows)", () => {
-  it("no 'On <store>' line, 'Shop ›' on one line with the brand for screen readers, no campaign names in the text", async () => {
+  it("no 'On <store>' line, the brand's name is the card's link (polish audit 1122 #12: no Shop line), no campaign names in the text", async () => {
     const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("black-friday")!} now={new Date("2026-11-25T18:00:00Z")} /></MemoryRouter>);
     await waitFor(() => expect(document.querySelector("[data-gift-deal]")).not.toBeNull());
     const cards = [...container.querySelectorAll("[data-gift-deal]")];
     expect(cards.length).toBeGreaterThan(5);
     for (const c of cards) {
       expect(c.querySelector("[data-gift-deal-dates]")?.textContent ?? "", c.getAttribute("data-gift-deal")!).not.toMatch(/\bOn /);
-      const shop = c.querySelector("[data-gift-shop]")!;
-      expect(shop.firstChild?.textContent).toBe("Shop");
-      expect(shop.querySelector(".sr-only")?.textContent?.trim()).toBe(c.getAttribute("data-gift-deal"));
+      expect(c.querySelector("[data-gift-shop]")).toBeNull();
+      const brand = c.querySelector("a[data-gift-deal-brand]")!;
+      expect(brand.firstChild?.textContent).toBe(c.getAttribute("data-gift-deal"));
+      expect(brand.getAttribute("href")).toBe(c.querySelector("a.gg-deal-photo")?.getAttribute("href"));
     }
     expect(deals.filter((d) => /turkey 12/i.test(d.deal)).map((d) => d.brand)).toEqual([]);
   });

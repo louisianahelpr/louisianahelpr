@@ -6,13 +6,13 @@ import { GIFT_PROMO_KEY, giftPromoClosedBefore, giftPromoOver } from "./giftGuid
 
 
 /** The promo's words (owner 11-21: "remove picked by a Louisiana nurse"). */
-const GIFT_PROMO_TITLE = "Holiday Gift Guides";
+const GIFT_PROMO_TITLE = "Holiday gift guides";
 const GIFT_PROMO_LINE = "Gifts, deals and codes";
 /** Home's strip height: two short lines on a phone, one line from sm (Home holds the same slot while it loads). */
 const GIFT_STRIP_HEIGHT = "h-14 sm:h-12";
 
 /**
- * The in-app way to the Holiday Gift Guides, owner mockup option A (claude.ai/artifact/SACKyXWeZ5CnCv4RHAKf1U), a
+ * The in-app way to the Holiday gift guides, owner mockup option A (claude.ai/artifact/SACKyXWeZ5CnCv4RHAKf1U), a
  * banner a member can close. Closed once, it stays closed on this device; after Dec 25 it draws nothing
  * (giftGuidesPromoGate.ts). The desktop avatar menu carries the menu link (DesktopTopNav).
  *

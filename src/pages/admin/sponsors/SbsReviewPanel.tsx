@@ -123,7 +123,7 @@ export function SbsReviewPanel() {
       </div>
       <p className="mb-3 text-xs text-muted-foreground">
         Free "Featured local" listings. Approve and it shows on{" "}
-        <a href="/shop-small" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary underline">Shop Small Louisiana</a>. The email is private.
+        <a href="/gift-guides/small-business-saturday" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary underline">Shop Small Louisiana</a>. The email is private.
       </p>
       {q.isPending ? (
         <p className="text-sm text-muted-foreground" role="status">Loading…</p>

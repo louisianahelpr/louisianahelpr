@@ -137,13 +137,11 @@ describe("sponsors stay first", () => {
     expect(initials("Bayou Candle Co")).toBe("BC");
     expect(initials("The Oak & Iron")).toBe("OI");
   });
-  // Owner 2026-11-21 (deals by day): the sponsors are the Small Business Saturday deals day; the free listings moved to
-  // their own page, /shop-small, so the sponsors never share a page with (or sit below) them.
-  it("keeps the free listings off the sponsors' day page, on /shop-small", () => {
-    const day = readFileSync(resolve(__dirname, "../pages/info/giftGuides/GiftGuideSmallBiz.tsx"), "utf8");
-    expect(day).not.toContain("SmallBizLocal");
-    const page = readFileSync(resolve(__dirname, "../pages/info/ShopSmall.tsx"), "utf8");
-    expect(page).toContain("<SmallBizLocal ");
+  // Owner 11-22: /shop-small is gone (it redirects to the Small Business Saturday page); the free listings live on the
+  // day's own page, in SmallBizLocal.
+  it("the Small Business Saturday day page shows the free listings", () => {
+    const day = readFileSync(resolve(__dirname, "../pages/info/giftGuides/GiftGuideDeals.tsx"), "utf8");
+    expect(day).toContain("SmallBizLocal");
   });
 });
 

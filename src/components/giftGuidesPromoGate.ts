@@ -1,5 +1,5 @@
 /**
- * Whether the Holiday Gift Guides promo (GiftGuidesPromo.tsx) shows at all: not once closed on this device, and not
+ * Whether the Holiday gift guides promo (GiftGuidesPromo.tsx) shows at all: not once closed on this device, and not
  * after Dec 25. Its own tiny module so Home can ask it at first paint and hold the strip's slot while the promo's
  * own chunk loads (owner 11-21: the strip sits at the top of Home, so its late arrival must move nothing).
  * Guard: src/test/giftGuidesPromo.test.tsx.

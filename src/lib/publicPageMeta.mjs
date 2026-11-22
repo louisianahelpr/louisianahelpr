@@ -67,7 +67,7 @@ export const LEGAL_PAGE_META = {
 
 /** Single-path public pages, keyed by pathname. */
 export const PUBLIC_PAGE_META = {
-  // Holiday Gift Guides (owner 2026-11-16; indexed from the follow-up batch 2026-11-18, SEO): in the sitemap with every
+  // Holiday gift guides (owner 2026-11-16; indexed from the follow-up batch 2026-11-18, SEO): in the sitemap with every
   // guide that holds picks (scripts/generate-sitemap.mjs allGiftGuidePaths); each guide's own head is giftGuidePageMeta (giftGuidePageMeta.mjs).
   "/gift-guides": {
     title: "Holiday gift guides 2026 — Helpr",
@@ -201,14 +201,6 @@ export const PUBLIC_PAGE_META = {
     canonical: `${SITE_ORIGIN}/holidays`,
     ogTitle: "Louisiana Holiday Hub 2026 from Louisiana Helpr",
     ogDescription: "Christmas lights, parades and holiday events across Louisiana, and local help for the holidays.",
-  },
-  // Shop Small Louisiana (owner 2026-11-21): free listings for Louisiana small businesses, and the sign-up form.
-  "/shop-small": {
-    title: "Shop Small Louisiana: local small businesses — Helpr",
-    description: "Louisiana small businesses, listed free for Small Business Saturday, Nov 28. Own one? Ask to be featured free, no sign-up.",
-    canonical: `${SITE_ORIGIN}/shop-small`,
-    ogTitle: "Shop Small Louisiana from Louisiana Helpr",
-    ogDescription: "Louisiana shops and makers, listed free. Own a small business? Get featured free.",
   },
   "/holidays/hire-a-helpr": {
     title: "Holiday help in Louisiana: lights, decorating and cleaning — Helpr",

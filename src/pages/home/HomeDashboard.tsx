@@ -48,7 +48,7 @@ import { navKey } from "@/lib/i18n/navLabels";
 import "@/lib/i18n/enHome";
 import "@/lib/i18n/enSections";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
-// The Holiday Gift Guides banner (owner mockup A, 11-18): its own chunk, last in the side column, so nothing moves.
+// The Holiday gift guides banner (owner mockup A, 11-18): its own chunk, last in the side column, so nothing moves.
 const GiftGuidesPromo = lazy(() => import("@/components/GiftGuidesPromo"));
 import { giftPromoShows } from "@/components/giftGuidesPromoGate";
 // Owner polish 11-20: Recent messages and Your active listings and jobs, under Your sections. Their own chunk, asked

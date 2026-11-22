@@ -10,7 +10,7 @@
  * @mutate src/components/sponsor/Sections.tsx |             {p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)} |             <span className="lh25-lineup-date">Dec {lineupCount(1)}</span>{p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)}
  * @mutate src/content/sponsorPage.ts | a Louisiana favorite. Entry details coming soon on our Facebook page. | a Louisiana favorite. To enter: share this post and tag 2 friends.
  * @mutate src/content/sponsorPage.ts |     rulesOnFacebook: "How to enter and the official rules are on our Facebook post.", |     rulesOnFacebook: "Like the post. Limit one entry per person per day.",
- * @mutate src/content/sponsorPage.ts |           { brand: "David Rabalais", prize: "Toy Magnalite pot" }, |           { brand: "Mary Kay · Crystal Fakier", prize: "Toy Magnalite pot" },
+ * @mutate src/content/sponsorPage.ts |           { brand: "David Rabalais", prize: "The Fois t-shirt (winner size) + koozie + toy Magnalite pot + roux spoon + Roundhouse Ya Maw Maw seasoning" }, |           { brand: "Mary Kay · Crystal Fakier", prize: "The Fois t-shirt (winner size) + koozie + toy Magnalite pot + roux spoon + Roundhouse Ya Maw Maw seasoning" },
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
@@ -29,7 +29,9 @@ function allStrings(v: unknown, out: string[] = []): string[] {
 }
 
 const ENTRY_STEPS = /share this post|tag (2|two) friends|tag 2\b|one entry per (day|person per day)|like and follow|to enter:/i;
-const REMOVED = ["Peigneur", "Victoria Nicole", "GlassWorks", "Minky", "Alice Lane", "Floral Cottage", "Blackstone"];
+const REMOVED = ["Peigneur", "Victoria Nicole", "GlassWorks", "Minky", "Alice Lane", "Floral Cottage", "Blackstone",
+  // Owner removed these from the lineup 2026-11-21 night (tracker export 2026-11-22).
+  "Bourque", "Kee's Pretty", "Humble Home", "Rusty's", "HOTWORX Baton Rouge", "Bully Made", "Oil Center"];
 /** People behind sponsor businesses (the tracker's contact names that once reached the page, or could). */
 const PEOPLE = ["Holli", "Crystal Fakier", "Brandi", "Lexi"];
 /** Owner 2026-11-19: the only sponsors shown by a person's name (exact card names; scripts/check-25days-lineup.mjs PUBLIC_NAMES). */

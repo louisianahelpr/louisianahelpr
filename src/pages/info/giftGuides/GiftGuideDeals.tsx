@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { discountCodes, giftGuides as G } from "@/content/giftGuides";
 import { DEALS_COVER, DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealName, dealEnds, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
 import { DEAL_CODES } from "@/content/giftGuidePicks";
@@ -12,7 +11,7 @@ import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
-import { CARD_CSS, CARD_WORDS, CodeCards, SaleCards, codesOn, salesOn } from "./GiftGuideDealCards";
+import { CARD_CSS, CARD_WORDS, CodeCards, CodeChip, codeCardCount, SaleCards, codesOn, salesOn } from "./GiftGuideDealCards";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
 import { FeatureCta, FeatureCtaLink } from "./SmallBizFeatureCta";
 import { report } from "@/lib/errorLogger";
@@ -47,16 +46,8 @@ const DEALS_CSS = `
 .gg-deal-brand{margin:2px 0 0;font-size:15px;font-weight:700;color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal-text{margin:0;font-size:13px;line-height:1.4;color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal-meta{margin:0;font-size:12px;color:var(--gg-muted)}
-.gg-deal-code{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
-.gg-deal-code button{min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--gg-olive);color:var(--gg-olive);background:transparent;font-weight:700;font-size:12px}
-.gg-deal-code code{font-size:12px;font-weight:700;letter-spacing:.04em;padding:3px 8px;border-radius:999px;background:var(--gg-soft);color:var(--gg-ink);overflow-wrap:anywhere}
-.gg-deal .gg-deal-shop{display:inline-flex;align-items:center;align-self:flex-start;min-height:44px;margin-top:auto;padding:0 4px 0 0;border:0;background:none;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
-.gg-deal .gg-deal-shop:hover,.gg-deal .gg-deal-shop:focus-visible{text-decoration:underline}
 @media (max-width:767px){.gg:has([data-gift-deals-page]) .gg-banner h1{-webkit-line-clamp:3;font-size:clamp(25px,8vw,34px);line-height:1.05}}
 .gg-deals-list{margin-top:12px}
-.gg-deal-jump{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}
-.gg-deal-jump button{min-height:36px;padding:0 14px;border:1px solid var(--gg-line);border-radius:999px;background:hsl(var(--card));color:var(--gg-ink);font-size:13px;font-weight:600}
-.gg-deal-jump button span{color:var(--gg-muted);font-weight:500}
 .gg-deal-sec{border-top:1px solid var(--gg-line);scroll-margin-top:84px}
 @media (max-width:767px){.gg-deal-sec{scroll-margin-top:132px}}
 .gg-deal-sec:last-child{border-bottom:1px solid var(--gg-line)}
@@ -87,7 +78,6 @@ const STORE_CODES = [...discountCodes, ...cleanCodes(DEAL_CODES)];
 
 /** One deal's card. */
 function DealCard({ deal, today }: { deal: Deal; today: string }) {
-  const [copied, setCopied] = useState(false);
   const [photoOk, setPhotoOk] = useState(true);
   // My Wish List (owner 2026-11-20): a deal card hearts like any gift; its ref is the deals page and its link's id.
   const id = itemId(deal.href);
@@ -101,33 +91,8 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
   const when = W.runs(deal.starts, ends);
   // The code chip goes once that code has expired, even on a card whose sale runs on.
   const code = dealCode(deal, today, STORE_CODES);
-  const codeEl = useRef<HTMLElement>(null);
-  // Holiday audit 1121: when the clipboard is refused (permissions, an old browser, no clipboard at all), the code's text
-  // is selected so a long press or Cmd+C copies it; nothing happened before.
-  const selectCode = () => {
-    const el = codeEl.current;
-    const sel = window.getSelection();
-    if (!el || !sel) return;
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  };
-  const copy = (code: string) => {
-    if (!navigator.clipboard) {
-      selectCode();
-      return;
-    }
-    void navigator.clipboard.writeText(code).then(
-      () => setCopied(true),
-      () => {
-        setCopied(false);
-        selectCode();
-      },
-    );
-  };
   return (
-    <li className="gg-deal" data-gift-deal={deal.brand}>
+    <li className="gg-deal gg-store-card" data-gift-deal={deal.brand}>
       <GiftOut href={deal.href} className="gg-deal-photo">
         {deal.image && photoOk ? (
           <img loading="lazy" decoding="async" src={deal.image} alt={deal.item ?? ""} width={200} height={200} referrerPolicy="no-referrer-when-downgrade" onError={() => setPhotoOk(false)} />
@@ -137,29 +102,19 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
         <span className="sr-only">{W.shop(deal.brand)} ({G.newTab})</span>
       </GiftOut>
       <Heart saved={saved} label={WISH.saveForLabel(name)} onToggle={() => { if (!requestSaveFor({ href: deal.href, name, guide: DEALS_SLUG, ...(deal.image ? { image: deal.image } : {}) })) heartTapped(togglePick({ href: deal.href, name, guide: DEALS_SLUG, id })); }} className="gg-heart-deal" />
-      <p className="gg-deal-brand">{deal.brand}</p>
+      {/* Polish audit 1122 #12: one card design on the deals days. A Top deal reads like a code or sale card: the brand's
+          name is its link (no separate "Shop" line), and its code is the same one-piece chip (tap to copy). */}
+      <GiftOut href={deal.href} className="gg-deal-brand gg-card-store" data-gift-deal-brand="">{deal.brand}<span className="sr-only"> ({G.newTab})</span></GiftOut>
       <p className="gg-deal-text" data-gift-deal-text="">{deal.deal}</p>
-      {code && (
-        <p className="gg-deal-meta gg-deal-code" data-gift-deal-code={code}>
-          <span>{W.codeLabel}</span>
-          <code ref={codeEl}>{code}</code>
-          <InlineTextButton className="no-underline" onClick={() => copy(code)} aria-label={`${G.copyCode} ${code}`}>
-            {copied ? G.copiedCode : G.copyCode}
-          </InlineTextButton>
-        </p>
-      )}
       {/* Holiday audit 1121: no "On <store>" line (owner 11-21 took it off the item cards); only when it starts or ends. */}
       {when && (
         <p className="gg-deal-meta" data-gift-deal-dates="">{when}</p>
       )}
-      {/* Owner 11-20 ("too busy looking"): a plain text link like every pick's, no pill. */}
-      {/* Holiday audit 1121: "Shop ›" on one line like every card (a long "Shop <Brand>" wrapped and stranded the ›);
-          the brand stays in the link's name for screen readers. */}
-      <GiftOut href={deal.href} className="gg-deal-shop">
-        <span data-gift-shop="">{W.shopShort}<span className="sr-only"> {deal.brand}</span></span>
-        <span aria-hidden="true">&nbsp;›</span>
-        <span className="sr-only"> ({G.newTab})</span>
-      </GiftOut>
+      {code && (
+        <div className="gg-card-actions" data-gift-deal-code={code}>
+          <CodeChip code={code} />
+        </div>
+      )}
     </li>
   );
 }
@@ -196,12 +151,13 @@ function LazyLocalListings() {
  * jumps to (and opens) each one. `dealCount` null = the deal cards are still loading (or failed): that subsection shows
  * the loading line or the Try again in its place.
  */
-function DealSections({ day, deals, dealCount }: { day: string; deals: ReactNode; dealCount: number | null }) {
-  const codes = codesOn(day);
+function DealSections({ day, deals, dealCount, shownCodes }: { day: string; deals: ReactNode; dealCount: number | null; shownCodes: ReadonlySet<string> }) {
+  // Polish audit 1122 #12: a code a Top deal card already shows (XTRATUF's XT25) gets no second card under Discount codes.
+  const codes = codesOn(day).filter((c) => !shownCodes.has(c.code.toUpperCase()));
   const sales = salesOn(day);
   const sections = [
     ...(dealCount !== 0 ? [{ id: "deals", title: CARD_WORDS.dealsTitle, count: dealCount, body: deals }] : []),
-    ...(codes.length ? [{ id: "codes", title: CARD_WORDS.codesTitle, count: codes.length, body: <CodeCards codes={codes} /> }] : []),
+    ...(codes.length ? [{ id: "codes", title: CARD_WORDS.codesTitle, count: codeCardCount(codes), body: <CodeCards codes={codes} /> }] : []),
     ...(sales.length ? [{ id: "sales", title: CARD_WORDS.salesTitle, count: sales.length, body: <SaleCards stores={sales} /> }] : []),
   ];
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -213,21 +169,9 @@ function DealSections({ day, deals, dealCount }: { day: string; deals: ReactNode
     );
   }
   const isOpen = (id: string, i: number) => open[id] ?? i === 0;
-  const jump = (id: string) => {
-    setOpen((o) => ({ ...o, [id]: true }));
-    requestAnimationFrame(() => document.getElementById(`gg-deal-sec-${id}`)?.scrollIntoView({ block: "start" }));
-  };
   return (
     <div className="gg-deals-list" data-gift-deal-sections="">
-      {sections.length > 1 && (
-        <nav className="gg-deal-jump" aria-label={CARD_WORDS.jumpLabel} data-gift-deal-jump="">
-          {sections.map((x) => (
-            <InlineTextButton key={x.id} onClick={() => jump(x.id)} data-gift-deal-jump-to={x.id}>
-              {x.title}{x.count !== null && <span> {x.count}</span>}
-            </InlineTextButton>
-          ))}
-        </nav>
-      )}
+      {/* Polish audit 1122 #30: no jump-chip row (36px chips that wrapped at 375 and repeated the headings right below). */}
       {sections.map((x, i) => (
         <details key={x.id} id={`gg-deal-sec-${x.id}`} className="gg-deal-sec" open={isOpen(x.id, i)} data-gift-deal-sub={x.id}
           onToggle={(e) => { const now = (e.currentTarget as HTMLDetailsElement).open; if (now !== isOpen(x.id, i)) setOpen((o) => ({ ...o, [x.id]: now })); }}>
@@ -299,6 +243,7 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
             )
           }
           dealCount={deals === null ? null : list.length}
+          shownCodes={new Set(list.flatMap((d) => dealCode(d, today, STORE_CODES) ?? []).map((c) => c.toUpperCase()))}
         />
       ) : (
         <div className="gg-deals-list">

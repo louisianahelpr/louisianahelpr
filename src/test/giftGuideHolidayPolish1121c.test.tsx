@@ -20,9 +20,10 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | const CLEAN_CODES = cleanCodes(DEAL_CODES); | const CLEAN_CODES = DEAL_CODES;
  * @mutate src/lib/giftGuideOfferCopy.mjs |   if (DANGLING.test(s)) return null; |
  * @mutate src/lib/giftGuideOfferCopy.mjs |   if (!IS_OFFER.test(s)) return null; |
+ * @mutate src/lib/giftGuideOfferCopy.mjs |   s = sentenceCase(s); |
  * @mutate src/lib/giftGuideOfferCopy.mjs |   s = unshout(s); |
  * @mutate src/content/giftGuideDeals.mjs |   featuredLine: "Sales from brands you already love, all in one place.", |   featuredLine: "Hand-checked sales from brands you already love, all in one place.",
- * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         const href = c.href; |         const href = undefined as string \| undefined;
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   for (const c of codes) if (c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]); |   for (const c of codes) if (!c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]);
  */
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -32,6 +33,7 @@ import { pickPriceShown } from "@/lib/pickPriceShown.mjs";
 import { cleanCodes, cleanOffer, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
 import { DEAL_CODES, SALES } from "@/content/giftGuidePicks";
 import { discountCodes } from "@/content/giftGuides";
+import { storePhoto } from "@/content/giftGuideStorePhotos";
 import { DEALS_WORDS, dealDay } from "@/content/giftGuideDeals.mjs";
 import { CodeCards, SaleCards, codesOn, salesOn } from "@/pages/info/giftGuides/GiftGuideDealCards";
 import { GiftGuideTools } from "@/pages/info/giftGuides/GiftGuideShare";
@@ -132,7 +134,11 @@ describe("holiday audit 1121 #57: sales and codes read as human copy", () => {
     expect(cleanOffer("The Gazelle Rhinestone Revival brings eye-catching sparkle to a classic silhouette")).toBeNull();
     expect(cleanOffer("Shop Home favorites every day at Marshalls.com, no Cyber Week coupons needed!")).toBeNull();
     expect(cleanOffer("BLACK FRIDAY SALE: Save up to 60% off on a great selection of home items!")).toBe("Black Friday sale: Save up to 60% off on a great selection of home items");
-    expect(cleanOffer("Designer Sale Up to 50% OFF*. Shop Now!")).toBe("Designer Sale Up to 50% off");
+    expect(cleanOffer("Designer Sale Up to 50% OFF*. Shop Now!")).toBe("Designer sale up to 50% off");
+    // Guides audit 1122 #15: Title Case feed words read as normal words; brands and products keep their capitals.
+    expect(cleanOffer("Up to 30% off 400+ Deals During Cyber Monday")).toBe("Up to 30% off 400+ deals during Cyber Monday");
+    expect(cleanOffer("Sweater Sale: 40% off All Sweaters")).toBe("Sweater sale: 40% off all sweaters");
+    expect(cleanOffer("Over 60% off Fire TV Stick - 4K Select")).toBe("Over 60% off Fire TV Stick 4K Select");
     expect(cleanOffer("Save 30% on almost all Monica Vinader styles. Ends 11/30.")).toBe("Save 30% on almost all Monica Vinader styles");
     expect(cleanOffer("Up to 25% off HEYDUDE")).toBe("Up to 25% off HEYDUDE");
     expect(cleanOffer("50% off Battery Doorbell 2K Plus")).toBe("50% off Battery Doorbell 2K Plus");
@@ -182,16 +188,27 @@ describe("holiday audit 1121 #80 and #81: deals copy claims and code links", () 
 
   // Lead 11-21: every code gets its store link (affiliate, else the brand's plain home page), the owner's own included.
   // @mutate src/content/giftGuides.ts | offer: "10% off; stacks with eligible promotions", href: "https://cookmagnifique.com/" | offer: "10% off; stacks with eligible promotions"
-  it("every code we list carries an https store link, and each code card links its store and an open-site button", () => {
+  it("every code we list carries an https store link, and each code card links its store (by name and photo)", () => {
     const codes = [...discountCodes, ...cleanCodes(DEAL_CODES)];
     expect(codes.length).toBeGreaterThan(15);
     for (const c of codes) expect(c.href, `${c.store} ${c.code}`).toMatch(/^https:\/\/[a-z0-9.-]+\.[a-z]+\//);
     const { container } = render(<MemoryRouter><CodeCards codes={codesOn("2026-11-22")} /></MemoryRouter>);
     const boxes = [...container.querySelectorAll("[data-gift-code-store]")];
     expect(boxes.length).toBeGreaterThan(5);
+    let photos = 0;
     for (const b of boxes) {
-      expect(b.querySelector("[data-gift-code-shop]"), b.getAttribute("data-gift-code-store") ?? "").not.toBeNull();
-      expect(b.querySelector("[data-gift-open-site]"), b.getAttribute("data-gift-code-store") ?? "").not.toBeNull();
+      const store = b.getAttribute("data-gift-code-store") ?? "";
+      expect(b.querySelector("[data-gift-code-shop]"), store).not.toBeNull();
+      // Polish audit 1122 #20: no arrow icon; the store's name and photo both open its site. Guides polish 1122 #14: a
+      // store we have no photo for (Keurig) has no photo tile at all, so only its name links.
+      expect(b.querySelector("[data-gift-open-site]")).toBeNull();
+      const photo = b.querySelector("a.gg-deal-photo");
+      expect(photo !== null, store).toBe(storePhoto(store) !== null);
+      if (photo) {
+        photos++;
+        expect(photo.getAttribute("href"), store).toBe(b.querySelector("[data-gift-code-shop]")?.getAttribute("href"));
+      }
     }
+    expect(photos).toBeGreaterThan(3);
   });
 });

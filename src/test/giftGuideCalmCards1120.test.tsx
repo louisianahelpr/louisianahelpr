@@ -16,7 +16,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |       {heart && ( |       <Out href={item.href} className="gg-shop-btn">Shop</Out>{heart && (
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-item:hover .gg-nm-name,.gg-item:focus-visible .gg-nm-name{text-decoration:underline; | .gg-item:hover .gg-nm-name,.gg-item:focus-visible .gg-nm-name{text-decoration:none;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | padding:0 6px 0 0;border:0;border-radius:0;background:none; | padding:0 6px 0 0;border:1px solid;border-radius:999px;background:none;
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | min-height:44px;margin-top:auto;padding:0 4px 0 0;border:0;background:none; | margin-top:auto;padding:0 4px 0 0;border:1px solid;background:none;
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-store-card .gg-card-store{display:flex;align-items:center;min-height:44px} | .gg-store-card .gg-card-store{display:flex;align-items:center;border:1px solid}
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -71,14 +71,17 @@ describe("owner 11-20: every Shop link is plain text, not a pill", () => {
   const shopRules = CSS_FILES.flatMap((f) => rules(css(f)).filter((r) => /(^|[\s,])\.gg-(deal-)?shop(-btn)?$/.test(r.sel) || /\.gg-deal \.gg-deal-shop$/.test(r.sel)).map((r) => ({ f, ...r })));
 
   it("each Shop link's base rule has no border, no fill, no pill radius and a 44px tap area", () => {
-    const base = shopRules.filter((r) => r.sel === ".gg-shop-btn" || r.sel === ".gg-deal .gg-deal-shop");
-    expect(base.map((r) => r.sel).sort()).toEqual([".gg-deal .gg-deal-shop", ".gg-shop-btn"]);
+    const base = shopRules.filter((r) => r.sel === ".gg-shop-btn");
+    expect(base.map((r) => r.sel)).toEqual([".gg-shop-btn"]);
     for (const r of base) {
       expect(r.body, r.sel).toContain("border:0");
       expect(r.body, r.sel).toContain("background:none");
       expect(r.body, r.sel).toContain("min-height:44px");
       expect(r.body, r.sel).not.toContain("999px");
     }
+    // Polish audit 1122 #12: a deal card's link is its brand's name (no Shop line), plain text with a 44px tap area.
+    const brand = rules(css("src/pages/info/giftGuides/GiftGuideDealCards.tsx")).find((r) => r.sel === ".gg-store-card .gg-card-store" && r.body.includes("min-height"));
+    expect(brand?.body).toBe("display:flex;align-items:center;min-height:44px");
     // No later rule (the tablet and desktop grids, the wish list) puts a border or pill back.
     for (const r of shopRules) expect(r.body, `${r.f}: ${r.sel}`).not.toMatch(/border(-color)?:(?!0)|border-radius:999px|width:100%/);
   });

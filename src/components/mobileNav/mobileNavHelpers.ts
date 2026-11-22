@@ -131,9 +131,8 @@ export const authPages = ["/home", "/explore", "/posts", "/jobs", "/post-job", "
   "/help",
   "/sms-opt-in", // same PublicLayout page as /help (Twilio A2P review, 2026-10-23)
   "/fees", "/safety", // F255 (owner 2026-11-11): same PublicHeaderPage as /sms-opt-in
-  "/gift-guides", // the Holiday Gift Guides (owner 2026-11-16), same PublicHeaderPage
+  "/gift-guides", // the Holiday gift guides (owner 2026-11-16), same PublicHeaderPage
   "/holidays", // the Louisiana Holiday Hub (owner-approved 2026-11-20) and its three pages, same PublicHeaderPage
-  "/shop-small", // Shop Small Louisiana (owner 11-21), same PublicHeaderPage
   // /auto-tip ("After a Job") was the ONE settings sub-page on that list of
   // siblings that never reached this one — measured 2026-08-31 at 320/375/768:
   // no bottom dock rendered at all, on a screen whose only other way out is the

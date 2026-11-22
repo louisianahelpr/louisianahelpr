@@ -97,7 +97,11 @@ describe("/help search (F034)", () => {
 describe("/help offers one unambiguous way to reach a person", () => {
   it("renders the escape hatch as the shared GLOSSY primary control, not an inline link", () => {
     renderHelp();
-    const cta = screen.getByRole("link", { name: /Contact support/i });
+    // The footer's link reads "Contact support" too (guides audit 1122 #25); the page's own escape hatch is the one
+    // outside the footer, and there is exactly one.
+    const ctas = screen.getAllByRole("link", { name: /Contact support/i }).filter((a) => !a.closest("footer"));
+    expect(ctas).toHaveLength(1);
+    const cta = ctas[0];
     // The gloss lives in `btn-grad-primary` (index.css). Asserting the CLASS is
     // the only thing jsdom can see; the two documented ways to lose the gloss
     // are a Tailwind variant over a hand-written class and an inline

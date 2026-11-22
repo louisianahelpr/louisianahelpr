@@ -25,11 +25,12 @@
  * @mutate src/content/giftGuideDeals.mjs |   return today > event.day ? today : event.day; |   return today;
  * @mutate src/content/giftGuideDeals.mjs |   return dealDay(String(hash ?? "").replace(/^#/, ""))?.id ?? DEAL_EVENTS[0].id; |   return DEAL_EVENTS[0].id;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const isOpen = (id: string, i: number) => open[id] ?? i === 0; |   const isOpen = (id: string, i: number) => open[id] ?? true;
+ * @mutate scripts/gift-guide-deals.mjs |     const key = !amazon && r.image ? cutouts[r.image] : undefined; |     const key = undefined;
  * @mutate scripts/gift-guide-deals.mjs |     if (n > DEALS_PER_BRAND) throw | if (false) throw
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import DEALS from "@/content/giftGuideDeals.json";
 import SMALL_BIZ from "@/content/giftGuideSmallBiz.json";
@@ -131,6 +132,17 @@ describe("deals page: the data", () => {
       if (!r.image) continue;
       const verdict = manifest.cutouts[r.image] ? "cut out" : manifest.skipped[r.image];
       expect(["cut out", "already on white", "Amazon photo (never edited)"], `${r.brand}: ${verdict}`).toContain(verdict);
+    }
+  });
+
+  it("a non-Amazon deal photo is our own small copy (400 px or less), never a big store file loaded from the store (#16)", () => {
+    for (const d of deals) {
+      if (!d.image) continue;
+      if (d.store === "Amazon") continue;
+      expect(d.image, d.brand).toMatch(/^\/gift-guides\/deals\/cutouts\/[0-9a-f]{8}\.webp$/);
+      const file = readFileSync(`public${d.image}`);
+      expect(file.length, `${d.brand} ${d.image}`).toBeLessThan(60_000);
+      expect(file.subarray(8, 12).toString("ascii"), d.image).toBe("WEBP");
     }
   });
 
@@ -248,11 +260,19 @@ describe("deals days: one page per day (owner 11-21)", () => {
       // Its codes are exactly the ones that work on the day.
       const on = codesDay(day, "2026-11-21");
       expect(on).toBe(day.day);
-      const want = activeCodes(all, on).map((x) => x.code).sort();
-      const shown = [...box.querySelectorAll("[data-gift-code]")].map((x) => x.getAttribute("data-gift-code")).sort();
+      // Polish audit 1122 #12: less any code a Top deal card on the page already shows (Black Friday's XT25).
+      const onDeals = new Set([...subs[0].querySelectorAll("[data-gift-code-copy]")].map((x) => x.getAttribute("data-gift-code-copy")!.toUpperCase()));
+      const boxCodes = activeCodes(all, on).filter((x) => !onDeals.has(x.code.toUpperCase()));
+      const want = boxCodes.map((x) => x.code).sort();
+      if (day === BF) expect(onDeals.has("XT25")).toBe(true);
+      // One card per store (audit 1122 #13); its other codes sit under "+N more codes", so open those before reading.
+      for (const more of box.querySelectorAll("[data-gift-code-more]")) fireEvent.click(more);
+      const shown = [...box.querySelectorAll("[data-gift-code],[data-gift-code-extra]")].map((x) => x.getAttribute("data-gift-code") ?? x.getAttribute("data-gift-code-extra")).sort();
       expect(shown, day.id).toEqual(want);
       counts.push(shown.length);
-      expect(box.querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(want.length));
+      const stores = new Set(boxCodes.filter((x) => x.href).map((x) => x.store)).size;
+      expect(box.querySelectorAll("li[data-gift-code]").length, day.id).toBe(stores);
+      expect(box.querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(stores));
       // Sales: one card per store, the count is the stores (holiday audit 1121: store sales, not "deals").
       expect(subs[2].querySelectorAll("[data-gift-sale-store]").length, day.id).toBe(salesOn(on).length);
       expect(subs[2].querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(salesOn(on).length));

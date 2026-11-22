@@ -6,7 +6,7 @@
  *  - Below md the signed-out public bar has a short "Guides" link with the gift icon to /gift-guides, named "Holiday
  *    Gift Guides" (sr-only prefix, so the visible word is in the name: labelInName.test.tsx), before Log in;
  *  - it shows at every phone width on EVERY public page (11-18 it was hidden below 640 everywhere but the landing);
- *  - from md up the full "Holiday Gift Guides" link shows instead (never both at once);
+ *  - from md up the full "Holiday gift guides" link shows instead (never both at once);
  *  - the other pages' bar makes room: below 480 Jobs and Declutter are their section icons, named by their sr-only
  *    words; the landing's bar is unchanged (it never shows Jobs and Declutter on a phone, D021);
  *  - the bar FITS at 320, 360, 375, 390 and every phone width up to 639: the widths each link's classes give at that
@@ -16,7 +16,7 @@
  *
  * @mutate src/components/Navbar.tsx |   const tight = !landing; |   const tight = false;
  * @mutate src/components/Navbar.tsx |                 data-testid="nav-gift-guides-phone" |                 data-testid="nav-gift-guides-phone" hidden
- * @mutate src/components/Navbar.tsx |                 <span className="sr-only">Holiday Gift Guides</span> |
+ * @mutate src/components/Navbar.tsx |                 <span className="sr-only">Holiday gift guides</span> |
  * @mutate src/components/Navbar.tsx |                     <Sofa aria-hidden className="min-[480px]:hidden" />\n                    <span className="max-[479px]:sr-only">Declutter</span> |                     <Sofa aria-hidden className="hidden" />\n                    <span>Declutter</span>
  * @mutate src/components/Navbar.tsx | <Gift aria-hidden className={tight ? "max-[374px]:hidden" : undefined} /> | <Gift aria-hidden />
  * @mutate src/components/Navbar.tsx | "flex items-center gap-0 min-[480px]:gap-1 sm:gap-3" | "flex items-center gap-1 sm:gap-3"
@@ -103,11 +103,11 @@ function barWidth(nav: Element, w: number): number {
 const PHONE_WIDTHS = [320, 360, 374, 375, 390, 399, 400, 414, 430, 479, 480, 520, 600, 639];
 
 describe("the public top bar has the gift guides on a phone (owner 11-18, 11-19)", () => {
-  it("the landing: a short 'Guides' link, named Holiday Gift Guides, to /gift-guides, before Log in, at every phone width", () => {
+  it("the landing: a short 'Guides' link, named Holiday gift guides, to /gift-guides, before Log in, at every phone width", () => {
     const { links, phone } = bar(true);
     expect(links.length).toBeGreaterThan(3);
     expect(phone.getAttribute("href")).toBe("/gift-guides");
-    expect(phone).toHaveAccessibleName("Holiday Gift Guides");
+    expect(phone).toHaveAccessibleName("Holiday gift guides");
     // The visible word is "Guides" (the full name is sr-only) beside the gift icon.
     const visible = [...phone.children].filter((n) => !n.classList.contains("sr-only") && n.tagName !== "svg").map((n) => n.textContent).join("").trim();
     expect(visible).toBe("Guides");
@@ -123,7 +123,7 @@ describe("the public top bar has the gift guides on a phone (owner 11-18, 11-19)
     for (const path of ["/browse", "/declutter", "/help", "/gift-guides"]) {
       const { r, phone, wide } = bar(false, path);
       expect(phone.getAttribute("href")).toBe("/gift-guides");
-      expect(phone).toHaveAccessibleName("Holiday Gift Guides");
+      expect(phone).toHaveAccessibleName("Holiday gift guides");
       for (const w of PHONE_WIDTHS) {
         expect(shown(phone, w), `${path} ${w}: Guides`).toBe(true);
         expect(shown(wide, w), `${path} ${w}: no wide link`).toBe(false);
@@ -133,7 +133,7 @@ describe("the public top bar has the gift guides on a phone (owner 11-18, 11-19)
       }
       expect(shown(phone, 768)).toBe(false);
       expect(shown(wide, 768)).toBe(true);
-      expect(wide.textContent).toBe("Holiday Gift Guides");
+      expect(wide.textContent).toBe("Holiday gift guides");
       r.unmount();
     }
   });
@@ -175,6 +175,6 @@ describe("the public top bar has the gift guides on a phone (owner 11-18, 11-19)
   it("index.html's prerendered landing bar has it", () => {
     const html = readFileSync(join(process.cwd(), "index.html"), "utf8");
     expect(html).toContain('data-testid="nav-gift-guides-phone"');
-    expect(html).toContain('<span class="sr-only">Holiday Gift Guides</span><span aria-hidden="true">Guides</span></a>');
+    expect(html).toContain('<span class="sr-only">Holiday gift guides</span><span aria-hidden="true">Guides</span></a>');
   });
 });

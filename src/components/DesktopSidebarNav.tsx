@@ -155,7 +155,7 @@ const DesktopSidebarRail = () => {
     // Owner 2026-11-21 night ("Side menu: move Gift Guides under Explore, right after Jobs and Declutter"): the Holiday
     // Gift Guides row sits under Explore, indented like a section, right after Jobs and Declutter (any later section
     // follows it). Guard: src/test/giftGuidesSignedIn1119.test.tsx.
-    { path: "/gift-guides", icon: Gift, label: "Holiday Gift Guides", nested: true },
+    { path: "/gift-guides", icon: Gift, label: "Holiday gift guides", nested: true },
     ...sectionRows.slice(giftAt),
     { path: messages.path, to: inboxPath(lastInboxTab()), icon: Inbox, label: "Inbox", badgeKey: "messages" },
     youItem,

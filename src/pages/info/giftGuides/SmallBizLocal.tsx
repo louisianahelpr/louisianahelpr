@@ -85,7 +85,7 @@ function LocalCard({ b }: { b: SbsListing }) {
 
 /**
  * Under the sponsor sections: approved free listings (if any), then the sign-up card. `heading` replaces the section's
- * title and intro where no sponsor list sits above it (/shop-small, src/pages/info/ShopSmall.tsx).
+ * title and intro where no sponsor list sits above it (no page uses it now; the Small Business Saturday page shows the listings without a heading).
  */
 /** Small Business Saturday's day (YYYY-MM-DD), from the deals days. */
 const SBS_DAY = dealDay("small-business-saturday")?.day ?? "2026-11-28";

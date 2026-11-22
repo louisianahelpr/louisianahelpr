@@ -9,7 +9,7 @@ import { execSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, adminIconFiles, bootModules, clientReachers, bootIconFiles, declutterItemSplit, declutterTabSplit,guestIconSplit, guestBrowseSplit, sellingIconFiles, buyingIconFiles, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, jobsBrowseReach, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, adminIconFiles, bootModules, clientReachers, bootIconFiles, declutterItemSplit, declutterTabSplit,guestIconSplit, guestBrowseSplit, sellingIconFiles, buyingIconFiles, guidesIconFiles, profileIconFiles, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, jobsBrowseReach, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 /** The register-on-import English screen dictionaries (src/lib/i18n/en*.ts minus enCore/enRegistry and the en.ts type). */
@@ -218,6 +218,8 @@ const { own: guestIcons, shared: guestSharedIcons, declutter: declutterIcons } =
 const { landing: landingIcons } = guestIconSplit(process.cwd());
 const sellingIcons = sellingIconFiles(process.cwd());
 const buyingIcons = buyingIconFiles(process.cwd());
+const guidesIcons = guidesIconFiles(process.cwd());
+const profileIcons = profileIconFiles(process.cwd());
 const bootSet = bootModules(process.cwd());
 // B88: Home's PAGE reach. The every-page roots load after Home's first paint; with them here, their shared code
 // (Legal's public page table, ...) rode app-shared onto every page's boot. Build: boot 204 -> 202 KB gz,
@@ -813,7 +815,7 @@ export default defineConfig(({ mode, command }) => ({
         // worker with a non-JavaScript MIME type is refused, so a PDF would never draw in the app. Every other asset
         // keeps its own name.
         assetFileNames: (asset) => (/\.mjs$/.test(asset.names?.[0] ?? "") ? "assets/[name]-[hash].js" : "assets/[name]-[hash][extname]"),
-        chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") || chunk.name === "icons-rest" || chunk.name === "icons-item" || chunk.name === "icons-selling" || chunk.name === "icons-buying" ?"assets/icons-[hash].js" : "assets/[name]-[hash].js"),
+        chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") || chunk.name === "icons-rest" || chunk.name === "icons-item" || chunk.name === "icons-selling" || chunk.name === "icons-buying" || chunk.name === "icons-guides" || chunk.name === "icons-profile" ?"assets/icons-[hash].js" : "assets/[name]-[hash].js"),
         // ── Chunk graph shape ────────────────────────────────────────────
         // Expressed as rolldown's `codeSplitting` rather than `manualChunks`
         // because the two are MUTUALLY EXCLUSIVE — rolldown logs
@@ -1005,6 +1007,24 @@ export default defineConfig(({ mode, command }) => ({
               name: "icons-item",
               test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && itemIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
               priority: 90.5,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // Lander 11-22 (train 1122b): the icons a gift guide page draws (bootReach.mjs guidesIconFiles), pinned so the
+            // entriesAware merge cannot hand /gift-guides/:slug a chunk of other screens' icons (4.8 -> 7.3 KB gz unpinned).
+            {
+              name: "icons-guides",
+              test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && guidesIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
+              priority: 90.45,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // The same regroup split the icon chunk /profile shared with the guides: Profile's first-screen icons
+            // (bootReach.mjs profileIconFiles), pinned, instead of two merged chunks for Pencil and RotateCw (+7 KB gz).
+            {
+              name: "icons-profile",
+              test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && profileIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
+              priority: 90.44,
               minSize: 0,
               includeDependenciesRecursively: false
             },

@@ -199,16 +199,19 @@ export default function GiftGuides() {
   // SEO P1 (owner 11-19): its own description from its picks once they are in, as api/share.ts writes it before JS.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion);
   usePageMeta(
-    shared || myListPage ? { title: `${shared ? WISH.sharedLead : WISH.title} — Louisiana Helpr`, description: PUBLIC_PAGE_META["/gift-guides"].description, robots: "noindex" }
+    shared || myListPage ? { title: `${shared ? WISH.sharedLead : WISH.title} — Helpr`, description: PUBLIC_PAGE_META["/gift-guides"].description, robots: "noindex" }
     : deals ? giftGuidePageMeta(deals.id) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],
   );
   const groupParam = params.get("group");
   const ship = shippingLine(new Date());
   // Visual check 11-18: at 375 the long pill squeezed "Gift guides" into "Gift / guid / es"; phones get the short words.
   const shipTail = " for Christmas delivery";
+  // Polish audit 1122 #5: in a phone's count row the pill reads "By Dec 15" (its "Order " hidden by the CSS), so the
+  // count, the pill and the four icons fit one row at 375.
+  const shipHead = ship?.endsWith(shipTail) ? ship.slice(0, -shipTail.length) : ship;
   const shipPill = ship ? (
     <p className="gg-ship whitespace-nowrap" data-gift-ship="">
-      {ship.endsWith(shipTail) ? ship.slice(0, -shipTail.length) : ship}
+      {shipHead?.startsWith("Order ") ? <><span className="gg-ship-order">Order </span>{shipHead.slice(6)}</> : shipHead}
       {ship.endsWith(shipTail) && <span className="hidden lg:inline">{shipTail}</span>}
     </p>
   ) : undefined;
@@ -237,6 +240,10 @@ export default function GiftGuides() {
   if (peopleTo) return <Navigate to={`/gift-guides/${peopleTo}`} replace />;
   // The old one-page deals address (owner 11-21: each day its own page) opens Black Friday, or the day its #anchor names.
   if (slug === DEALS_SLUG) return <Navigate to={`/gift-guides/${oldDealsTarget(hash)}`} replace />;
+  // Guides audit 1122 #27: the server sends the old address to Black Friday and the browser keeps its #cyber-monday, so a
+  // deals-day page whose # names ANOTHER deals day sends the visitor to that day (the in-page anchors are not day names).
+  const otherDay = deals && hashSlug && hashSlug !== deals.id ? dealDay(hashSlug) : null;
+  if (otherDay) return <Navigate to={`/gift-guides/${otherDay.id}`} replace />;
   const moved = slug && !guide && !deals ? newSlugFor(slug) : null;
   if (moved) return <Navigate to={`/gift-guides/${moved}`} replace />;
   if (slug && !guide && !deals) return <Navigate to="/gift-guides" replace />;
@@ -272,7 +279,7 @@ export default function GiftGuides() {
     // repeated title below. then move the 3 icons to the right of order by dec 15 etc"): EVERY gift guides page, the
     // landing too, opens with the shared header row (back arrow + "Holiday gift guides", left), and under it ONE row:
     // the shipping pill on the left, search + My list heart + Share on the right (wrapping on a phone). The centered
-    // "top-rated finds / Holiday Gift Guides" title block is gone. The landing's arrow goes home; every other page's to
+    // "top-rated finds / Holiday gift guides" title block is gone. The landing's arrow goes home; every other page's to
     // the landing.
     // Owner 11-21 (later): "all of this should be on the same row": from 768px up the back arrow + title, the pill and
     // search + heart + share are ONE row (the page draws it, so the shell's own header row is off); a phone wraps it to

@@ -1,17 +1,17 @@
 /**
  * GUARD (owner 11-19): "make sure the guides can be easily viewed and accessed when signed in or out". The signed-out
  * half (the public bar's "Guides" on every page at every phone width) is src/test/navGiftGuidesOnPhone1118.test.tsx.
- * Signed in, a member reaches the Holiday Gift Guides from where members look:
- *  - the desktop rail has its own "Holiday Gift Guides" row with the gift icon, a real link to /gift-guides, marked
+ * Signed in, a member reaches the Holiday gift guides from where members look:
+ *  - the desktop rail has its own "Holiday gift guides" row with the gift icon, a real link to /gift-guides, marked
  *    current on any guide;
  *  - on a phone (no rail, and the public bar is for guests), You (where the top bar's photo leads) has a "Holiday Gift
  *    Guides" row, a real link to /gift-guides;
- *  - the desktop photo menu keeps its "Holiday Gift Guides" item and Home keeps the closable promo card
+ *  - the desktop photo menu keeps its "Holiday gift guides" item and Home keeps the closable promo card
  *    (GiftGuidesPromo, src/test/giftGuidesPromo.test.tsx);
  *  - /gift-guides and /gift-guides/<slug> are open routes: no MarketingRedirect, SignedInRedirect or ProtectedRoute
  *    wraps them, and a signed-in member who opens a guide stays on it (it is not sent to /home).
  *
- * @mutate src/components/DesktopSidebarNav.tsx |     { path: "/gift-guides", icon: Gift, label: "Holiday Gift Guides", nested: true }, |
+ * @mutate src/components/DesktopSidebarNav.tsx |     { path: "/gift-guides", icon: Gift, label: "Holiday gift guides", nested: true }, |
  * @mutate src/components/DesktopSidebarNav.tsx | (sec.key === "jobs" \|\| sec.key === "declutter" ? i + 1 : at) | (at)
  * @mutate src/components/profile/profileLanding/YouMenu.tsx |           to="/gift-guides"\n          data-testid="you-gift-guides" |           to="/profile"\n          data-testid="you-gift-guides"
  * @mutate src/App.tsx | <Route path="/gift-guides/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} /> | <Route path="/gift-guides/:slug" element={<RouteErrorBoundary><MarketingRedirect>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />
@@ -65,15 +65,15 @@ const wrap = (ui: ReactNode, path: string) => {
 };
 const src = (p: string) => blankComments(readFileSync(resolve(__dirname, "..", p), "utf8"));
 
-describe("signed in, the Holiday Gift Guides are one tap away (owner 11-19)", () => {
-  it("the desktop rail has a Holiday Gift Guides row: the gift icon, a real link, current on a guide", () => {
+describe("signed in, the Holiday gift guides are one tap away (owner 11-19)", () => {
+  it("the desktop rail has a Holiday gift guides row: the gift icon, a real link, current on a guide", () => {
     const slug = GUIDES[0].slug;
     wrap(<DesktopSidebarNav />, `/gift-guides/${slug}`);
     const row = document.querySelector('[data-sidebar-item="/gift-guides"]') as HTMLAnchorElement;
     expect(row).toBeTruthy();
     expect(row.tagName).toBe("A");
     expect(row.getAttribute("href")).toBe("/gift-guides");
-    expect(row).toHaveAccessibleName("Holiday Gift Guides");
+    expect(row).toHaveAccessibleName("Holiday gift guides");
     expect(row.querySelector("svg.lucide-gift")).toBeTruthy();
     expect(row.getAttribute("aria-current")).toBe("page");
     // Owner 2026-11-21 night ("Side menu: move Gift Guides under Explore, right after Jobs and Declutter"): it is one of
@@ -91,12 +91,12 @@ describe("signed in, the Holiday Gift Guides are one tap away (owner 11-19)", ()
     expect(row.className).toContain("pl-9");
   });
 
-  it("You (the phone's menu, where the top bar's photo leads) has a Holiday Gift Guides row linking /gift-guides", () => {
+  it("You (the phone's menu, where the top bar's photo leads) has a Holiday gift guides row linking /gift-guides", () => {
     wrap(<YouMenu onSelectTab={() => {}} onRequestLogout={() => {}} onRequestDelete={() => {}} />, "/profile");
     const row = screen.getByTestId("you-gift-guides");
     expect(row.tagName).toBe("A");
     expect(row.getAttribute("href")).toBe("/gift-guides");
-    expect(row).toHaveAccessibleName("Holiday Gift Guides");
+    expect(row).toHaveAccessibleName("Holiday gift guides");
     expect(row.querySelector("svg.lucide-gift")).toBeTruthy();
   });
 

@@ -9,6 +9,7 @@ import { GiftGuideTools } from "../GiftGuideShare";
 import { GuidesHeadRow } from "../GuidesHeadRow";
 import { GiftGuidesWords } from "../GiftGuideCover";
 import { GiftGuidesSidebar } from "../GiftGuidesSidebar";
+import { GiftGuidesPhoneNav } from "../GiftGuidesPhoneNav";
 
 type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | PrintablePagePath;
 
@@ -46,7 +47,7 @@ export function FunBody({ title, path, noindex, tools = true, children }: { titl
  */
 /** `tools` off (the printables, owner 2026-11-21: "remove the search, favorite ... just polish this"): no search, heart
  * or share in the head row, where there is nothing to search or save. */
-export function GuidesFrame({ title, path, disclosures = true, tools = true, children }: { title: string; path: string; disclosures?: boolean; tools?: boolean; children: ReactNode }) {
+function GuidesFrame({ title, path, disclosures = true, tools = true, children }: { title: string; path: string; disclosures?: boolean; tools?: boolean; children: ReactNode }) {
   return (
     <div className="gg w-full" data-gift-fun-frame="">
       {/* Owner 11-22: "Holiday gift guides" beside the back arrow, as on the guides and the deals days, and the page's
@@ -54,10 +55,17 @@ export function GuidesFrame({ title, path, disclosures = true, tools = true, chi
       <GuidesHeadRow backTo="/gift-guides">
         {tools && <GiftGuideTools path={path} title={title} />}
       </GuidesHeadRow>
-      <GiftGuidesWords lead="" title={title} titleId="gift-page-title" tools={null} />
+      {/* Polish audit 1122 #3: the phone's chip row and menu sheet on these pages too (they had no way to the other
+          guides on a phone but the back arrow); Printables is filled on the three printables pages. */}
+      <GiftGuidesPhoneNav active={null} page={path} />
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">
-        <div className="gg-main">{children}</div>
+        {/* Polish audit 1122 #10: the page's title opens the content column, left-aligned in the shared serif page-title
+            style (as My Wish List's), not centered on the full width over the gap by the menu. */}
+        <div className="gg-main">
+          <GiftGuidesWords lead="" title={title} titleId="gift-page-title" tools={null} />
+          {children}
+        </div>
         <GiftGuidesSidebar active={null} page={path} />
         {/* Holiday audit 1121 (High): Swipe's Shop links and the planner's ideas are affiliate links (Amazon's among
             them), so every fun page ends with the same two plain muted lines as the guides: the FTC disclosure
@@ -150,5 +158,7 @@ const FUN_CSS = `
 .gg-santa-link:first-child{border-top:0}
 .gg-santa-link b{font-size:15px;overflow-wrap:anywhere}
 .gg-santa-who{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:8px;min-width:0}
-@media (max-width:479px){.gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter,.gg-swipe-card .gg-thumb{width:200px;height:200px}.gg-plan-budget{width:92px}.gg-plan-price{width:78px}}
+/* Polish audit 1122 #11: the deck centered in the content column (it sat in the 640px column's middle, off the page's). */
+.gg-fun:has([data-swipe-deck]){max-width:none}
+@media (max-width:479px){.gg-swipe-card{padding:12px}.gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter,.gg-swipe-card .gg-thumb{width:150px;height:150px}.gg-swipe-name{margin-top:8px}.gg-swipe-btns{margin-top:12px}.gg-plan-budget{width:92px}.gg-plan-price{width:78px}}
 `;

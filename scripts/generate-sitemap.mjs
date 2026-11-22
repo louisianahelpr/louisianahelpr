@@ -122,8 +122,6 @@ const WEIGHTS = {
   // Louisiana Holiday Hub (owner-approved 2026-11-20): the lists change through the season.
   "/holidays": { changefreq: "daily", priority: "0.7" },
   "/holidays/hire-a-helpr": { changefreq: "monthly", priority: "0.6" },
-  // Shop Small Louisiana (owner 2026-11-21): free listings added as the owner approves them.
-  "/shop-small": { changefreq: "daily", priority: "0.6" },
 };
 const DEFAULT_WEIGHT = { changefreq: "monthly", priority: "0.5" };
 /** Every /gift-guides/<slug> page (picks change through the season). */

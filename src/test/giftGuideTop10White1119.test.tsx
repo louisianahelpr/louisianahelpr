@@ -85,17 +85,17 @@ describe("gift guides 11-19: every Shop button sits on the same line in a row", 
     // grid card is one column (the link: photo, then name with the price top-right); the heart sits at its bottom-right
     // (src/test/giftGuidePhoneHeader1121.test.tsx), never on the photo; the text area keeps room for it.
     expect(GIFT_GUIDES_CSS.match(/\.gg-list>li\{position:relative;display:grid;grid-template-columns:minmax\(0,1fr\);/g)?.length).toBe(3);
-    // Owner 11-21 ("should we put the cart by the heart?"): the text area keeps a row free for the cart and heart.
-    expect(GIFT_GUIDES_CSS.match(/\.gg-list \.gg-nm\{padding-bottom:44px\}/g)?.length).toBe(2);
+    // Owner 11-22: the heart and cart moved onto the photo, so the text area keeps no row free for them any more.
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-list \.gg-nm\{padding-bottom:4\dpx\}/);
     // (Polish audit 1122 #20: only the landing's Top 10 holds its names to two lines' height, so its prices line up.)
     expect(GIFT_GUIDES_CSS).not.toMatch(/(?<!\.gg-top10 )\.gg-nm-name\{min-height/);
     // Owner 11-21: no Shop button on a card any more (the photo and name are the link), so no grid rule for one.
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-list \.gg-shop-btn\{/);
-    // Every photo is the same square; the heart is pinned to the card's bottom-right, below the photo (never top:0 on it).
+    // Every photo is the same square; the heart is pinned to the photo's top-right (owner 11-22: "move the heart and
+    // shopping cart back to the top right of picture"), on every guide, not only the sponsors page.
     expect(GIFT_GUIDES_CSS.match(/\.gg-list \.gg-thumb\{width:100%;height:auto;aspect-ratio:1\/1/g)?.length).toBe(2);
-    expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0}");
-    // Polish audit 2026-11-22 #8: only the 25 Days sponsors page (its own scoped rule) moves the heart to the photo's top.
-    expect(GIFT_GUIDES_CSS).not.toMatch(/(?:^|[\n}])\.gg-list \.gg-heart-pick\{[^}]*top:/);
+    expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-heart-pick{position:absolute;top:4px;left:54px;z-index:1}");
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-list \.gg-heart-pick\{[^}]*bottom:0/);
   });
 });
 

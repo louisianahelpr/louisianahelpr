@@ -91,13 +91,15 @@ export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du M
 // Owner's standard plan (11-20 evening) + holiday audit B (a name-only sponsor is never carded): Shop Small Louisiana cards
 // the 10 sponsors with a shop photo, so the 14 hosts no card links any more left this list (hotworx, Mary Kay, Facebook,
 // Instagram and the sponsors' own sites); a sponsor carded again adds its host back.
-export const SPONSOR_SITES = ["thestrandtheatre.com", "basicbee.co", "www.zydecochopchop.com", "www.faulkcalls.com", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.lepetittheatre.com", "www.theallwayslounge.net", "citysightseeingneworleans.com", "davidrabalaisfilm.com"] as const;
+// Owner 11-22 ("Find images from their Facebook or use there logo so all are included"): every sponsor once named only
+// is a logo card linking its site, else its Facebook or Instagram page, else the 25 Days page, so those hosts are back.
+export const SPONSOR_SITES = ["thestrandtheatre.com", "basicbee.co", "www.zydecochopchop.com", "www.faulkcalls.com", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.lepetittheatre.com", "www.theallwayslounge.net", "citysightseeingneworleans.com", "davidrabalaisfilm.com", "www.facebook.com", "www.instagram.com", "calendly.com", "www.helpinghandsgallery.com", "www.shopbirdwells.com", "www.goodwolfyoga.com", "www.tayssweets.org", "treefrogspark.com", "www.handmadebyhayli.com", "thecrabmanplus.com", "tysboutiqueshop.bigcartel.com", "jaboombaits.com", "www.perfectlyplannedeventsla.com", "cajunfiya.com", "www.louisianahelpr.com"] as const;
 /**
  * The national 25 Days sponsors' own shops (train 1120b, owner 11-20 ~8:35 AM: each gets one best-fit guide spot with
  * the sponsor badge, 0% allowed). Kept apart from SPONSOR_SITES, which are Louisiana businesses: a Louisiana host's
  * pick stays in the Louisiana section, a national sponsor's does not.
  */
-export const NATIONAL_SPONSOR_SITES = ["homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "mindtheskinlabs.com", "idrawellness.com", "arey.com", "bostonmints.com", "www.hilma.co", "saranoni.com", "skyandsol.co", "criquetshirts.com", "www.aosulife.com", "catlady.com", "www.demingdelights.com", "21collectiveco.com"] as const;
+export const NATIONAL_SPONSOR_SITES = ["homerunpet.com", "www.drinkryse.com", "www.rockbottomgolf.com", "www.timelessha.com", "gentlestylebrush.com", "srilabs.com", "thesculptsociety.com", "aevabeauty.com", "www.k18hair.com", "www.katemcleod.com", "mantasleep.com", "drinklmnt.com", "www.oyubotanica.com", "iokaskinscience.com", "saltycat.com", "mindtheskinlabs.com", "idrawellness.com", "arey.com", "bostonmints.com", "www.hilma.co", "saranoni.com", "skyandsol.co", "criquetshirts.com", "www.aosulife.com", "catlady.com", "www.demingdelights.com", "21collectiveco.com", "www.bimebeauty.com", "www.texasbeardcompany.com", "www.drinkbashi.com"] as const;
 
 /** The 25 Days of Giveaways sponsors among the picks' brands: their picks get the "25 Days sponsor" badge. */
 export const SPONSOR_BRANDS = ["Crew Dog", "Zydeco Chop Chop", "21 Collective"];

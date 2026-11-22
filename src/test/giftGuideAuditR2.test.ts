@@ -234,7 +234,8 @@ describe("gift guides: design-lead data fixes (11-18 PM night batch)", () => {
     expect(brokenImage("https://cdn.shopify.com/s/files/1/1033/0751/files/LinkSharing-SEO-Thumbnail_1.jpg?v=1")).toBe(true);
     expect(brokenImage("https://cdn.shopify.com/s/files/1/0001/files/carhartt-iconic-beanie.jpg")).toBe(false);
     expect(pages.length).toBeGreaterThan(150); // owner 11-21: only Her, Him and Kids are live, each her own saved list (200, measured 2026-11-21); // follow-up 1120: ~30 guides + 26 store pages, measured 2026-11-20
-    for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, ""))) if (p.image) expect(brokenImage(p.image), `${f}: ${p.name}`).toBe(false);
+    // Owner 11-22: a 25 Days sponsor's logo card (it names its gift) shows the sponsor's logo on purpose (giftGuideSponsorLogoCards1122.test.ts).
+    for (const f of pages) for (const p of pageOf(f.replace(/\.json$/, ""))) if (p.image && !(f === "25-days-sponsors.json" && (p as { gift?: string }).gift)) expect(brokenImage(p.image), `${f}: ${p.name}`).toBe(false);
   });
   it("drops picks named after a web page, and the wrong-guide picks (curling iron in Him, dumbbell stand in Home Cook)", () => {
     // @mutate scripts/giftGuideRules.mjs |   if (PAGE_TITLE_NAME.test(first.trim())) return null; |   if (false) return null;

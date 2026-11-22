@@ -124,6 +124,8 @@ export interface CatalogPick {
   /** Her, Him, Kids (owner 11-21): the pick's place in the cheapest-first order, from the import. Never shown, never a
    *  price; the price sort reads it (src/content/giftGuidePriceSort.ts). */
   priceRank?: number;
+  /** A 25 Days sponsor's logo card (owner 11-22): the gift it gives ("$25 gift card"), shown where a price would be. */
+  gift?: string;
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
@@ -291,7 +293,7 @@ const toPick = (p: ResearchedPick): CatalogPick => {
     // only from its PA-API feed and that showing them risks the Associates account, she chose "Show Amazon prices
     // anyway"). Only her saved-list picks carry one: scripts/giftGuidePrice.mjs still writes no Amazon price elsewhere.
     ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt, ...(p.priceFrom ? { priceFrom: p.priceFrom } : {}) } : {}), ...(p.rels ? { rels: p.rels } : {}),
-    ...(typeof p.priceRank === "number" ? { priceRank: p.priceRank } : {}) };
+    ...(typeof p.priceRank === "number" ? { priceRank: p.priceRank } : {}), ...(p.gift ? { gift: p.gift } : {}) };
 };
 /** The landing's "Top 10 most-loved" row (owner 2026-11-18): the picks the most guides list, photos first (generated). */
 export const topPicks = (): CatalogPick[] => TOP_PICKS.map(toPick);

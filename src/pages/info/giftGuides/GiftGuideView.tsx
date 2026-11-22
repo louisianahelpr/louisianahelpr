@@ -117,7 +117,8 @@ export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide
         <span className="gg-nm">
           <span className="gg-nm-name">{rank !== undefined && <span className="sr-only">{`${rank}. `}</span>}{pick.name}</span>
           <span className="sr-only">{isShopMyCollection(pick.href) ? ` (${G.collectionOnShopMy})` : storeLabel(pick) ? ` (${G.onStore(storeLabel(pick))})` : ""}</span>
-          <small className="gg-nm-meta"><PickPrice pick={pick} /></small>
+          {/* Owner 11-22: a sponsor's logo card says the gift it gives where a price would be (no price is invented). */}
+          {pick.gift && !showsPrice(pick) ? <small className="gg-nm-meta gg-nm-gift" data-gift-sponsor-gift="">{pick.gift}</small> : <small className="gg-nm-meta"><PickPrice pick={pick} /></small>}
           {(badges || code || ship || back) && (
             <span className="gg-badges">
               {badges?.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}

@@ -16,10 +16,15 @@ export function applyHolidayB1120(
     nameOnly?: { guide: string; brand: string }[];
     dealCodes?: { store: string; offer?: string }[];
     lineup?: string[];
+    /** The sponsor logo row (src/content/giftGuideSponsorLogos.json, logos as https URLs): a sponsor with no gift card gets its logo card (owner 11-22). */
+    sponsorLogos?: { name: string; logo?: string; href: string; external?: boolean; group?: string }[];
     blockedBrand?: (row: { brand?: string; name?: string }) => unknown;
     /** Guide merges (src/content/giftGuideMerges.mjs), the old-anchor map and the fixed-order guides: for the thin-section fold. */
     merges?: { parent: string; sections: string[] }[];
     anchors?: Record<string, string>;
     sortFixed?: Set<string>;
+    aliases?: Record<string, Record<string, string>>;
+    thinFold?: boolean;
+    sectionMin?: number;
   },
 ): { counts: Record<string, unknown>; missing: string[] };

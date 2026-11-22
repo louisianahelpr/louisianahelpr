@@ -5759,12 +5759,6 @@ export type Database = {
         }
         Relationships: []
       }
-      gift_wish_list_owners: {
-        Row: { code: string; created_at: string; token_hash: string }
-        Insert: { code: string; created_at?: string; token_hash: string }
-        Update: { code?: string; created_at?: string; token_hash?: string }
-        Relationships: []
-      }
       wish_link_requests: {
         Row: {
           affiliate_url: string | null

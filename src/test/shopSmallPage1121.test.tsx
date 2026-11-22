@@ -22,7 +22,7 @@
  * @mutate src/pages/info/ShopSmall.tsx |           <SmallBizLocal sponsors={[]} heading={{ title: W.pageSectionTitle, intro: W.pageSectionIntro }} /> |           {null}
  * @mutate src/App.tsx |       <Route path="/shop-small" element= |       <Route path="/shop-small-old" element=
  * @mutate src/pages/info/holidays/HolidayHub.tsx |           <Link to="/shop-small" className="link-standard inline-flex min-h-11 items-center"> |           <Link to="/gift-guides" className="link-standard inline-flex min-h-11 items-center">
- * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx | <h2 id="gift-sbs-local">{heading?.title ?? W.sectionTitle} | <h2 id="gift-sbs-local">{W.sectionTitle}
+ * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx | <h2 id={SBS_LOCAL_HEAD}>{heading?.title ?? W.sectionTitle} | <h2 id={SBS_LOCAL_HEAD}>{W.sectionTitle}
  * (Moved here from giftWishList1120.test.tsx, whose colour test was removed 11-21 and so no longer killed it:)
  * @mutate src/pages/info/giftGuides/smallBizCardStyles.ts | border-radius:14px;background:hsl(var(--card));color:var(--gg-ink)} | border-radius:14px;background:#fff}
  */

@@ -23,11 +23,15 @@ export function isInDemand(d: Pick<ItemDemand, "offers_week">): boolean {
   return d.offers_week >= DEMAND_MIN.offersWeek;
 }
 
-/** The item page's lines, strongest first, each only past its threshold. */
-export function demandLines(d: ItemDemand | null): { key: "offers" | "saves" | "views"; n: number }[] {
+/**
+ * The item page's lines, strongest first, each only past its threshold. Deep audit 11-22 #56 (owner rule: an offers-off
+ * listing never mentions offers): `offersOn` false drops the offers line whatever the count (the server answers 0 there
+ * too, 20261122134941).
+ */
+export function demandLines(d: ItemDemand | null, offersOn = true): { key: "offers" | "saves" | "views"; n: number }[] {
   if (!d) return [];
   const out: { key: "offers" | "saves" | "views"; n: number }[] = [];
-  if (d.offers_week >= DEMAND_MIN.offersWeek) out.push({ key: "offers", n: d.offers_week });
+  if (offersOn && d.offers_week >= DEMAND_MIN.offersWeek) out.push({ key: "offers", n: d.offers_week });
   if (d.saves >= DEMAND_MIN.saves) out.push({ key: "saves", n: d.saves });
   if (d.views_today >= DEMAND_MIN.viewsToday) out.push({ key: "views", n: d.views_today });
   return out;

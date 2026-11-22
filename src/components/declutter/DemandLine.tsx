@@ -14,10 +14,11 @@ function saleDay(iso: string): string {
   return new Date(iso).toLocaleDateString(getLang() === "es" ? "es-US" : "en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-export function DemandLine({ itemId }: { itemId: string }) {
+/** `offersOn` (deep audit 11-22 #56): the listing's accepts_offers; off, the line never mentions offers. */
+export function DemandLine({ itemId, offersOn = true }: { itemId: string; offersOn?: boolean }) {
   const demand = useQuery({ queryKey: ["declutter", "item-demand", itemId], queryFn: () => fetchItemDemand(itemId), staleTime: 60_000 });
   const d = demand.data ?? null;
-  const lines = demandLines(d);
+  const lines = demandLines(d, offersOn);
   const sale = d?.sale_pct && d.sale_ends_at ? { pct: d.sale_pct, when: saleDay(d.sale_ends_at) } : null;
   if (lines.length === 0 && !sale) return null;
   const words = lines.map((l) => (l.key === "offers" ? t("ip.demand.offers", { n: l.n }) : l.key === "saves" ? t("ip.demand.saves", { n: l.n }) : t("ip.demand.views", { n: l.n })));

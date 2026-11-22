@@ -403,7 +403,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
               </p>
             )}
             {/* Declutter top 5 #3 (owner 11-19): "3 offers this week · 8 people saved this", real counts past a threshold. */}
-            {forSale && <Suspense fallback={null}><DemandLine itemId={it.id} /></Suspense>}
+            {forSale && <Suspense fallback={null}><DemandLine itemId={it.id} offersOn={it.accepts_offers !== false} /></Suspense>}
             {isSeller && <ItemViewsCount sellerId={it.seller_id} itemId={it.id} />}
             {/* Area 06b M9: the seller's own item page has no seller card; a link to the public page buyers see instead. */}
             {isSeller && (

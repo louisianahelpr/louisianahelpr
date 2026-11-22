@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "./StatusPill";
-import { formatShortDate, formatPrice } from "@/lib/format";
+import { formatShortDate, formatPriceExact } from "@/lib/format";
 import type { GiftCardRow } from "./types";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { formatName } from "@/lib/utils";
@@ -92,7 +92,8 @@ export function CreditCard({
             className="font-sans font-bold leading-tight text-ds-22 tabular-nums"
             style={{ color: "hsl(var(--accent-ink))", letterSpacing: "-0.02em" }}
           >
-            ${formatPrice(Number(credit.amount))}
+            {/* Deep audit 1122 #4: a balance is real money, so it shows its cents ($20.85, never $21). */}
+            ${formatPriceExact(Number(credit.amount))}
           </p>
           <p
             className="font-sans mt-0.5 text-ds-12 text-muted-foreground"

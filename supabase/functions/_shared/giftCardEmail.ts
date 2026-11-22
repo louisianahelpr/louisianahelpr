@@ -18,6 +18,7 @@ import { postSlackOpsAlert } from "./slack-alerts.ts";
 import { GiftCardEmail } from "./email-templates/gift-card.tsx";
 import { centralDateLabel } from "./centralDateTime.ts";
 import { renderEmail } from "./email-templates/render.ts";
+import { exactDollars } from "./exactDollars.ts";
 
 export interface GiftCardEmailOpts {
   recipientEmail: string;
@@ -41,7 +42,8 @@ export interface GiftCardEmailOpts {
 async function renderGiftCardEmail(
   opts: GiftCardEmailOpts,
 ): Promise<{ html: string; text: string; subject: string }> {
-  const amount = `$${(opts.amountCents / 100).toFixed(0)}`;
+  // Deep audit 1122 #4: the gift's exact amount ($20.85, never $21).
+  const amount = exactDollars(opts.amountCents);
   // The donor name is attacker-influenced free text that lands in the Resend
   // `subject` HEADER. It used to go in raw: a newline in it is the classic
   // header-injection shape. Sanitize ONCE here and use the sanitized value for

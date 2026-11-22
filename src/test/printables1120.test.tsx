@@ -137,12 +137,12 @@ describe("the config", () => {
   });
 
   it("only switched-on printables with their files show; the rest wait hidden", () => {
-    expect(shownPrintables().map((p) => p.id)).toEqual(["gift-tags", "coloring-book", "merry-christmas-plaid", "merry-christmas-green-stripe", "thanksgiving-banner"]);
+    expect(shownPrintables().map((p) => p.id)).toEqual(["gift-tags", "coloring-book", "merry-christmas-red-stripe", "merry-christmas-green-stripe", "merry-christmas-plaid", "thanksgiving-banner"]);
     expect(isShown(overlays.find((p) => p.id === "santa-letter")!)).toBe(false);
     // Only the final tags' pictures ship: no leftover design in public/printables/tags.
     expect(readdirSync(join(ROOT, "public/printables/tags")).sort()).toEqual(FINAL_TAGS.flatMap((id) => [`${id}.jpg`, `${id}.webp`]).sort());
     // Owner 2026-11-21: the coloring book is live (Boys book); every other download still waits hidden.
-    for (const p of downloads) expect(isShown(p), p.id).toBe(["coloring-book", "merry-christmas-plaid", "merry-christmas-green-stripe", "thanksgiving-banner"].includes(p.id));
+    for (const p of downloads) expect(isShown(p), p.id).toBe(["coloring-book", "merry-christmas-red-stripe", "merry-christmas-green-stripe", "merry-christmas-plaid", "thanksgiving-banner"].includes(p.id));
     for (const p of downloads.filter(isShown)) for (const f of p.files) expect(existsSync(join(ROOT, "public", f.href)), f.href).toBe(true);
     const hidden = downloads.find((d) => !isShown(d))!;
     expect(isShown({ ...hidden, ready: true })).toBe(true);
@@ -240,7 +240,7 @@ describe("the maker and the page", () => {
     expect(document.getElementById("gift-tags")).toBeNull();
     act(() => cleanup());
     at("/gift-guides/printables/banners");
-    expect(cards()).toEqual(["merry-christmas-plaid", "merry-christmas-green-stripe", "thanksgiving-banner"]);
+    expect(cards()).toEqual(["merry-christmas-red-stripe", "merry-christmas-green-stripe", "merry-christmas-plaid", "thanksgiving-banner"]);
     expect(document.getElementById("gift-tags")).toBeNull();
     act(() => cleanup());
     expect(printablesForGuide("gift-wrap-and-cards").map((p) => p.id)).toEqual(["gift-tags"]);
@@ -257,7 +257,7 @@ describe("the maker and the page", () => {
     expect(printablesRedirect("#gift-tags")).toBe("/gift-guides/printables/gift-tags#gift-tags");
     expect(printablesRedirect("#gift-planner-sheet")).toBe("/gift-guides/printables/gift-tags#gift-planner-sheet");
     render(<MemoryRouter initialEntries={["/gift-guides/printables#pr-banners"]}><Printables /></MemoryRouter>);
-    expect([...document.querySelectorAll("[data-printable-card]")].map((c) => c.getAttribute("data-printable-card"))).toEqual(["merry-christmas-plaid", "merry-christmas-green-stripe", "thanksgiving-banner"]);
+    expect([...document.querySelectorAll("[data-printable-card]")].map((c) => c.getAttribute("data-printable-card"))).toEqual(["merry-christmas-red-stripe", "merry-christmas-green-stripe", "merry-christmas-plaid", "thanksgiving-banner"]);
   });
 
   it("each printables page has its own head, and the old address keeps its own", () => {

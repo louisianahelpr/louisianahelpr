@@ -184,7 +184,6 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-photo{width:100%;border-radius:16px}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
 .gg-list .gg-letter{font-size:16px}
-.gg-list .gg-nm{padding-bottom:44px}
 .gg-list .gg-item{margin-bottom:6px}
 }
 @media (min-width:768px) and (max-width:1023px){
@@ -193,34 +192,33 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-item{flex-direction:column;align-items:stretch;align-self:stretch;padding:0;gap:10px}
 .gg-list .gg-photo{width:100%;border-radius:16px}
 .gg-list .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:12px;border-radius:16px}
-.gg-list .gg-nm{padding-bottom:44px}
 .gg-list .gg-item{margin-bottom:6px}
 }
 .gg-letter{display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;overflow:hidden;overflow-wrap:anywhere;line-height:1.05;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:10px;font-weight:700;color:var(--gg-olive)}
 .gg-nm{flex:1;min-width:0;overflow-wrap:anywhere}
-/* Owner 2026-11-21 ("Put the price in the top right corner where the heart is and the heart in the bottom right"):
-   every card (the phone's list row, the tablet/desktop grid card, the Top 10 and the finder's results: one PickRow)
-   has the name on the left with the price top-right beside its first line, and the 44px heart at the card's
-   bottom-right corner, outside the link. */
+/* Owner 2026-11-21 ("Put the price in the top right corner where the heart is ..."): every card (the phone's list row,
+   the tablet/desktop grid card, the Top 10 and the finder's results: one PickRow) has the name on the left with the
+   price top-right beside its first line. */
 .gg-list .gg-nm{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;align-items:start}
 .gg-list .gg-nm-name{grid-column:1;grid-row:1}
 .gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1;margin-top:0;justify-content:flex-end;min-width:44px}
-.gg-list .gg-badges{grid-column:1/-1;grid-row:2;padding-right:88px}
-/* Room under the name for the heart and cart row (the card's text never runs under them). */
-.gg-list .gg-nm{padding-bottom:40px}
-.gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0}
-/* Polish audit 1122 #8: on the 25 Days sponsors page only, the heart sits on the photo's top-right corner (as on the
-   Top 10), so it no longer takes a row of its own under each card's text. Her/Him/Kids keep the owner's layout. */
-article[data-gift-guide="25-days-sponsors"] .gg-list .gg-heart-pick{top:4px;bottom:auto;right:auto;left:54px;z-index:1}
-article[data-gift-guide="25-days-sponsors"] .gg-list>li:not(:has(.gg-cart)) .gg-nm{padding-bottom:0}
-@media (min-width:768px){article[data-gift-guide="25-days-sponsors"] .gg-list .gg-heart-pick{top:2px;left:auto;right:2px}}
-/* Owner 11-21 (Amazon Buy Now): the small cart icon under an Amazon item's price, a 44px link of its own in the card's first
-   column, its icon lined up with the name and price (phone: past the 88px photo; tablet and desktop: the card's left edge). */
-/* Owner 11-21 ("should we put the cart by the heart?"): the cart sits beside the heart at the card's bottom-right (cart,
-   then heart), a plain 44px icon link like it; no row of its own, so the card is shorter. */
-.gg-cart{position:absolute;right:36px;bottom:0;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0;border-radius:999px;color:var(--gg-olive)}
-.gg-cart svg{width:20px;height:20px}
-.gg-cart:hover{background:var(--gg-soft)}
+.gg-list .gg-badges{grid-column:1/-1;grid-row:2}
+/* Owner 2026-11-22 ("move the heart and shopping cart back to the top right of picture. maybe put the shopping cart
+   below the heart instead of on the side"): on every card (Her/Him/Kids rows, the 25 Days sponsors page, the finder's
+   results and the Top 10) the 44px heart sits on the photo's top-right corner and an Amazon pick's 44px cart right
+   under it, one column, both on the photo and outside the card's link. No circle behind either (owner 11-21); the thin
+   white halo keeps them readable over a photo. Phone row: the 88px photo starts 14px down, so the heart's box is at
+   4px / 54px (its icon 12px in from the photo's corner) and the cart's 44px below; tablet and desktop: the photo is the
+   card's top, so the column sits 2px in from the card's top-right. */
+.gg-cart{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0;border-radius:999px;color:var(--gg-olive)}
+.gg-list .gg-heart-pick{position:absolute;top:4px;left:54px;z-index:1}
+.gg-list .gg-cart{position:absolute;top:48px;left:54px;z-index:1}
+@media (min-width:768px){
+.gg-list .gg-heart-pick{top:2px;left:auto;right:2px}
+.gg-list .gg-cart{top:46px;left:auto;right:2px}
+}
+.gg-cart svg{width:20px;height:20px;filter:drop-shadow(0 0 1px rgba(255,255,255,.95)) drop-shadow(0 0 2px rgba(255,255,255,.8))}
+.gg-cart:hover{color:hsl(var(--bark))}
 .gg-cart:focus-visible{outline:2px solid hsl(var(--bark));outline-offset:1px}
 
 .gg-nm small{display:block;font-size:12px;color:var(--gg-muted)}
@@ -357,16 +355,19 @@ article[data-gift-guide="25-days-sponsors"] .gg-list>li:not(:has(.gg-cart)) .gg-
 /* Owner 11-21 evening: the Top 10 heart sits on the photo's top-right "like all the others" (the rank badge is top-left). */
 .gg-top10 .gg-heart-pick{position:absolute;top:2px;right:2px;z-index:1}
 /* Owner 11-22 (the price-top-right / heart-bottom-right card "is only for product listings, common sense"): under a Top
-   10 photo the name, then the price on its own line; the price lines of a row line up. An Amazon pick's cart sits at
-   the end of the price line. */
+   10 photo the name, then the price on its own line; the price lines of a row line up. An Amazon pick's cart sits
+   under the heart on the photo (owner 2026-11-22). */
 .gg-top10>li{display:flex;flex-direction:column}.gg-top10>li>.gg-item{flex:1}
 .gg-top10 .gg-nm{display:flex;flex:1;flex-direction:column;padding-bottom:0}
 /* Polish audit 1122 #20: the price right under a name held to two lines' height, and any chip under the price, so a
    card with a code chip (Camp Snap) keeps its price in line with the row's others. */
 .gg-top10 .gg-nm-name{min-height:2lh}
-.gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0;padding-top:4px;min-height:28px;padding-right:36px}
+.gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0;padding-top:4px;min-height:28px}
 .gg-top10 .gg-badges{padding-right:0}
-.gg-top10 .gg-cart{right:-10px;bottom:-10px}
+/* Owner 2026-11-22: the cart right under the heart on the photo's top-right (see .gg-list .gg-cart); the Top 10's photo
+   is the card's top at every width, so neither takes the phone row's left offset. */
+.gg-top10 .gg-cart{position:absolute;top:46px;right:2px;z-index:1}
+.gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{left:auto}
 /* Top 10 rank (owner 11-21 evening: "number the top 10 gifts"): a small cream disc with an olive serif numeral on the
    photo's top-left corner, clear of the heart (top right) and inside the photo's padding, so it never covers the product. */
 .gg-top10 .gg-item{position:relative}

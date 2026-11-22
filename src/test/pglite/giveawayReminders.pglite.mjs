@@ -9,6 +9,11 @@
  *   node src/test/pglite/giveawayReminders.pglite.mjs                    # ALL PASS (migration 3x)
  *   NEW_MIGRATION=skip node src/test/pglite/giveawayReminders.pglite.mjs # RED
  *   MUTANT=<name> node ...                                                # each must FAIL (see MUTANTS)
+ *   COPY_MIGRATION=skip node src/test/pglite/giveawayReminders.pglite.mjs # RED: the old "enter once" words stay
+ *
+ * 20261122012526 (owner 2026-11-21: "All the rules will be on Facebook not our website."; each day is its own entry):
+ * rewords the reminders that said "enter once" / "one entry covers every day left", only where the message is still the
+ * seeded text (an owner-edited row keeps her words). Applied 3x after the seed.
  *
  * World: cut-down tables carrying the columns the sweep reads. Stubbed, and said so: is_test_subject = a test_accounts
  * list (its own proof: adminAlertsSkipTestAccounts.pglite.mjs); sponsor_25days_on_for = audience 'everyone', or
@@ -23,6 +28,8 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const MIG_DIR = fileURLToPath(new URL("../../../supabase/migrations/", import.meta.url));
 const THIS = readdirSync(MIG_DIR).find((f) => f.endsWith("_giveaway_reminders.sql"));
 if (!THIS) throw new Error("migration not found");
+const COPY = readdirSync(MIG_DIR).find((f) => f.endsWith("_giveaway_reminders_daily_entry_copy.sql"));
+if (!COPY) throw new Error("copy migration not found");
 
 const MUTANTS = {
   noDedupe: ["      ON CONFLICT (reminder_key, user_id) DO NOTHING\n", "      ON CONFLICT (reminder_key, user_id) DO UPDATE SET sent_at = now()\n"],
@@ -81,6 +88,11 @@ await db.exec(`
 if (process.env.NEW_MIGRATION !== "skip") {
   for (let i = 0; i < 3; i++) await db.exec(mig);
 }
+// The owner edits one reminder herself before the 11-21 rewording lands: hers must survive it.
+await db.exec(`UPDATE public.giveaway_reminders SET message = 'Owner''s own words for Dec 19.' WHERE key = 'not_too_late_dec19'`).catch(() => {});
+if (process.env.COPY_MIGRATION !== "skip") {
+  for (let i = 0; i < 3; i++) await db.exec(readFileSync(MIG_DIR + COPY, "utf8"));
+}
 
 const q = async (sql) => (await db.query(sql)).rows;
 const safe = async (sql) => { try { return await q(sql); } catch (e) { return { error: String(e.message ?? e) }; } };
@@ -101,14 +113,14 @@ const rows = await safe(`SELECT key, to_char(send_at AT TIME ZONE 'America/Chica
   FROM public.giveaway_reminders ORDER BY send_at`);
 const seeded = Array.isArray(rows) ? rows.map((r) => `${r.at} ${r.message} ${r.link}`) : [];
 check(JSON.stringify(seeded) === JSON.stringify([
-  "2026-11-30 18:00 🎄 25 Days of Louisiana Giveaways starts tomorrow! Enter once for a chance at all 25 days. Tap to see how. /25days",
-  "2026-12-01 09:00 It's here! Enter once and you're in for all 25 days of Louisiana giveaways 🎁 /25days",
-  "2026-12-05 18:00 It's not too late! Enter our 25 Days of Louisiana Giveaways. One entry covers every day left. /25days",
-  "2026-12-10 18:00 It's not too late! Enter our 25 Days of Louisiana Giveaways. One entry covers every day left. /25days",
-  "2026-12-15 18:00 It's not too late! Enter our 25 Days of Louisiana Giveaways. One entry covers every day left. /25days",
-  "2026-12-19 18:00 It's not too late! Enter our 25 Days of Louisiana Giveaways. One entry covers every day left. /25days",
+ "2026-11-30 18:00 🎄 25 Days of Louisiana Giveaways starts tomorrow! A new giveaway every day. Tap for details. /25days",
+  "2026-12-01 09:00 It's here! Enter today's Louisiana giveaway. There's a new one every day through December 25 🎁 /25days",
+  "2026-12-05 18:00 It's not too late! Enter today's 25 Days of Louisiana Giveaways for a chance to win. /25days",
+  "2026-12-10 18:00 It's not too late! Enter today's 25 Days of Louisiana Giveaways for a chance to win. /25days",
+  "2026-12-15 18:00 It's not too late! Enter today's 25 Days of Louisiana Giveaways for a chance to win. /25days",
+  "2026-12-19 18:00 Owner's own words for Dec 19. /25days",
   "2026-12-23 18:00 Last chance! Only a few days of giveaways left 🎄 /25days",
-]), "seeded schedule and copy are the owner's, in Louisiana time");
+]), "schedule in Louisiana time; the 11-21 daily-entry words replace the old 'enter once' ones; an owner-edited row keeps her words");
 
 // Make one reminder due now, one 7 hours past (too late), one in an hour (too early); the rest stay in December.
 await safe(`UPDATE public.giveaway_reminders SET send_at = now() - interval '1 minute' WHERE key = 'starts_tomorrow'`);

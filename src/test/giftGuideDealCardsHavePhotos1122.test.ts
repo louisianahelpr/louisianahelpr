@@ -7,12 +7,13 @@
  * from the first day page's own day (codesDay: the day itself, or today once it has passed) through 40 days on, so a
  * code or sale that starts later is covered too and a passing day only ever shrinks the set; every local file exists.
  *
- * @mutate src/content/giftGuideStorePhotos.ts |   "Camp Snap": "camp-snap.webp", |
+ * @mutate src/content/giftGuideStorePhotos.ts |   "camp-snap": "camp-snap.webp", |
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEAL_EVENTS, codesDay, dealsIn, liveDeals, louisianaDay } from "@/content/giftGuideDeals.mjs";
+import { slugify } from "@/lib/goLinks.mjs";
 import { STORE_PHOTO_FILES, storePhoto } from "@/content/giftGuideStorePhotos";
 import { discountCodes } from "@/content/giftGuides";
 import { DEAL_CODES } from "@/content/giftGuidePicks";
@@ -49,7 +50,7 @@ describe("deals-day cards all have a picture (owner 11-22 #10)", () => {
     }
     expect(stores.size).toBeGreaterThan(20);
     expect([...stores].filter((s) => !storePhoto(s)).sort()).toEqual([]);
-    for (const s of stores) expect(existsSync(localFile(storePhoto(s)!)), `${s}: ${STORE_PHOTO_FILES[s]}`).toBe(true);
+    for (const s of stores) expect(existsSync(localFile(storePhoto(s)!)), `${s}: ${STORE_PHOTO_FILES[slugify(s)]}`).toBe(true);
   });
 
   it("every Top deals card has its deal's photo, and a local photo file is there", () => {

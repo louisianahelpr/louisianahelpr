@@ -12,6 +12,7 @@ import { MapPin } from "lucide-react";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
+import { CrewRowButton } from "@/components/job-card/CrewRowButton";
 import { CrewActionError, crewRosterPill, crewNobodyLeft, posterApproveMember, posterConfirmMemberArrival, posterReportMemberNoShow } from "@/lib/crewLifecycle";
 import { payoutDayLabel, STANDARD_PAYOUT_DAYS_AFTER_APPROVAL } from "../../supabase/functions/_shared/escrowTiming";
 import { Button } from "@/components/ui/button";
@@ -161,6 +162,9 @@ export function GroupJobHelpers({
    * zero rows, forever.
    */
   const canRemove = isOwner && jobStatus === "open";
+  // Jobs audit 11-21 (L26): the job page's roster (it passes onMessage) wears the page's button look, icon beside the
+  // words; the Posted card's roster keeps its grid chips. Guard: src/test/crewRosterButtonsRow1121.test.tsx.
+  const CrewChip = onMessage ? CrewRowButton : JobActionChip;
 
   /**
    * THE POSTER'S PER-MEMBER "Confirm they've arrived" (Q1382). A crew has no lead
@@ -421,7 +425,7 @@ export function GroupJobHelpers({
                   Didn't show, a column of narrow pills hugging the right edge). Guard: src/test/area03JobsPosterPass2.test.tsx. */}
               <div className="flex w-full min-w-0 basis-full items-center gap-2 [&>[data-job-action-chip]]:min-w-0 [&>[data-job-action-chip]]:flex-1" data-crew-actions="">
                 {onMessage && h.helper_id && h.status === "accepted" && (
-                  <JobActionChip
+                  <CrewChip
                     icon={MessageCircle}
                     label="Message"
                     ariaLabel={`Message ${h.helperName || "this Helpr"}`}
@@ -430,7 +434,7 @@ export function GroupJobHelpers({
                   />
                 )}
                 {noShowReportable(h) && (
-                  <JobActionChip
+                  <CrewChip
                     icon={XCircle}
                     label={reportingId === h.id ? "Reporting…" : "Didn't show"}
                     ariaLabel={`Report that ${h.helperName || "this Helpr"} didn't show up`}
@@ -440,7 +444,7 @@ export function GroupJobHelpers({
                   />
                 )}
                 {arrivalConfirmable(h) && (
-                  <JobActionChip
+                  <CrewChip
                     icon={MapPin}
                     label={confirmingId === h.id ? "Confirming…" : "Confirm they've arrived"}
                     ariaLabel={`Confirm ${h.helperName || "this Helpr"} arrived`}
@@ -450,7 +454,7 @@ export function GroupJobHelpers({
                   />
                 )}
                 {workConfirmable(h) && (
-                  <JobActionChip
+                  <CrewChip
                     icon={CheckCircle2}
                     label={approvingId === h.id ? "Confirming…" : "Confirm work"}
                     ariaLabel={`Confirm ${h.helperName || "this Helpr"}'s work`}

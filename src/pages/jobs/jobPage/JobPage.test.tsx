@@ -32,14 +32,13 @@
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until you hire a Helpr.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | {isPoster && open && !offerOut && (job.payment_status === "escrow" \|\| job.payment_status === "held") && | {isPoster && open && !offerOut &&
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | const noApplicantsCard = isPoster && open && !offerOut && (job.payment_status === "escrow" \|\| job.payment_status === "held") && | const noApplicantsCard = isPoster && open && !offerOut &&
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |         {reach && reach > 0 |         {reach !== null
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |     !(job.photos ?? []).length && { key: "photo" |     false && { key: "photo"
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const town = job.location ? getCity(job.location) : ""; |   const town = job.location ?? "";
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)) | go: () => void apply.flow.handleApplyRequest(job.id)
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId) \|\| onCrew); |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId));
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | myApplication: myApplication.data, posterFirst, onCrew, offeredToMe }); | myApplication: myApplication.data, posterFirst, offeredToMe });
- * @mutate src/components/tracker/jobProgressState.ts | poster ? (pending === 0 ? t("jl.waitApply") : t("jl.pick")) | poster ? (t("jl.pick"))
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |  pendingApplicants={isPoster && applicants.data ? pending : undefined} | pendingApplicants={undefined}
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !closedToMe && !instantUntil && viewer.action.kind !== "see_offer" && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && ((job.proof_before_urls | {false && ((job.proof_before_urls
@@ -598,13 +597,21 @@ describe("job page, poster side (boards 15, 168)", () => {
   });
 
   // Audit 2026-10-28 A2-C30: the poster's own open job with nobody applied said "Pick your Helpr".
-  it("with no applicants yet, the tracker says it is waiting for Helprs to apply, never 'Pick your Helpr'", () => {
+  // Jobs audit 11-21 (S38): a "Waiting for Helprs to apply · Posted" card sat right above "No applicants yet", saying the
+  // same thing; the paid job's "No applicants yet" card is the page's one status card now (no steps card, no share
+  // icon beside its Copy link, L23).
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const cardIsStatus = noApplicantsCard && !noShowAt && !helprCancelled; |   const cardIsStatus = false;
+  it("with no applicants yet: one 'No applicants yet' card, no 'Waiting for Helprs to apply' card above it, never 'Pick your Helpr'", () => {
     state.job = row({ customer_id: ME });
     state.party = true;
     state.applicants = { total: 0, pending: 0 };
     renderPage();
-    expect(screen.getByText("Waiting for Helprs to apply")).toBeTruthy();
+    expect(document.querySelectorAll("[data-no-applicants]")).toHaveLength(1);
+    expect(document.querySelector("[data-job-steps]")).toBeNull();
+    expect(screen.queryByText("Waiting for Helprs to apply")).toBeNull();
     expect(screen.queryByText("Pick your Helpr")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Share this job|Copy link to this job/ })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /Share this job|Copy link to this job/ })).toHaveLength(1);
   });
 
   // Audit 2026-10-28 F4: with card_hold_at_post on, the card is charged at the hire, so a paid job's line
@@ -1620,9 +1627,10 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   });
 
   // F300 (audit 11-10): the unpaid draft still offered "Copy a link to this job", a link to a job nobody can see.
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const share = open && !jobIsUnfundedDraft(job) ? ( |   const share = open ? (
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const canShare = open && !jobIsUnfundedDraft(job); |   const canShare = open;
   it("an unpaid draft offers no share link; a paid open job does", () => {
-    const shareName = /^(Share this job|Copy a link to this job)$/;
+    // L23 (audit 11-21): with nobody applied, the "No applicants yet" card's own button is the share.
+    const shareName = /^(Share this job|Copy a link to this job|Copy link to this job|Copy job link|Share job)$/;
     state.job = row({ customer_id: ME, payment_status: "unpaid" });
     const first = renderPage();
     expect(screen.queryByRole("button", { name: shareName })).toBeNull();

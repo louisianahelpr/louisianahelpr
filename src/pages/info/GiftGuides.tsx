@@ -5,12 +5,12 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
-import BackButton from "@/components/BackButton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
+import { GuidesHeadRow } from "./giftGuides/GuidesHeadRow";
 import { GiftGuideLanding, finderAsked } from "./giftGuides/GiftGuideLanding";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
@@ -292,14 +292,10 @@ export default function GiftGuides() {
         {/* Owner redesign 11-18 PM: under the title ONE slim row (search, My list, Share); Text and Copy link sit in
             Share's menu and the codes are a "Deals & codes" section of the page. The banner title is the page's h1
             (live audit r3 #7); the header's "Gift guides" is a plain line (titleTag="p"). */}
-        <div className={shipPill ? "gg-headrow" : "gg-headrow gg-headrow-noship"} data-gift-headrow="">
-          <div className="gg-head-title" data-gift-head-title="">
-            <span className="contents" data-gift-back-to={backTo}><BackButton to={backTo} /></span>
-            {banner ? <p className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</p> : <h1 className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</h1>}
-          </div>
+        <GuidesHeadRow backTo={backTo} titleIsH1={!banner} ship={Boolean(shipPill)}>
           {!countRow && shipPill}
           {!countRow && tools}
-        </div>
+        </GuidesHeadRow>
         {/* Owner 11-21 ("We need a way to organize this on the phones"): up to 767px a sticky chip row and a menu sheet
             replace the sidebar (which a phone no longer draws at the page's foot). */}
         <GiftGuidesPhoneNav active={guide} myList={myList || shared} page={sidePage} />

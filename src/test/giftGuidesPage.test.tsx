@@ -168,7 +168,7 @@ describe("gift guides: one header on every page (owner 11-21)", () => {
   // centered "top-rated finds / Holiday Gift Guides" block is gone.
   // Owner 11-21 (later): "all of this should be on the same row": the back arrow + title, the pill and the tools are ONE
   // row the page draws (one line from 768px up; a phone wraps it).
-  // @mutate src/pages/info/GiftGuides.tsx | {banner ? <p className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</p> : <h1 | {banner ? <h1 className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</h1> : <h1
+  // @mutate src/pages/info/GiftGuides.tsx | <GuidesHeadRow backTo={backTo} titleIsH1={!banner} | <GuidesHeadRow backTo={backTo} titleIsH1
   // @mutate src/pages/info/GiftGuides.tsx |           {shipPill}\n |           {null}\n
   // @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (min-width:768px){.gg-head-title{flex:0 0 auto}.gg-headrow{flex-wrap:nowrap} | @media (min-width:768px){.gg-head-title{flex:1 1 100%}.gg-headrow{flex-wrap:wrap}
   it("one header row: back arrow + 'Holiday gift guides', the pill and the tools; no second title", () => {

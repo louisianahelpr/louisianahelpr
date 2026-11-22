@@ -18,7 +18,7 @@
  * @mutate src/content/giftGuideSwipe.ts | const SWIPE_MIN = 3; | const SWIPE_MIN = 3; const SWIPE_BANDS = QUIZ_BUDGETS;
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | <p className="gg-swipe-meta m-0"><PickPrice pick={card} /></p> | <p className="gg-swipe-meta m-0"><span>{card.store}</span><PickPrice pick={card} /></p>
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx |         <GiftGuidesSidebar active={null} page={path} /> |         {null}
- * @mutate src/pages/info/giftGuides/fun/FunPage.tsx |         <GiftGuideTools path={path} title={title} /> |         {null}
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | {tools && <GiftGuideTools path={path} title={title} />} | {null}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <li key={t.to}><Link to={t.to} {...current(t.to)} | <li key={t.to}><Link to={t.to}
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       if (!searchBox.current?.contains(e.target as Node)) setResultsOpen(false); |       if (!searchBox.current?.contains(e.target as Node)) return;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       button.current?.focus(); |       void 0;

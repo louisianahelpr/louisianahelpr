@@ -5,8 +5,9 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { GIFT_GUIDES_CSS } from "../giftGuidesStyles";
 import { GIFT_WISH_CSS } from "../giftWishStyles";
 import { giftGuides as G } from "@/content/giftGuides";
-import BackButton from "@/components/BackButton";
 import { GiftGuideTools } from "../GiftGuideShare";
+import { GuidesHeadRow } from "../GuidesHeadRow";
+import { GiftGuidesWords } from "../GiftGuideCover";
 import { GiftGuidesSidebar } from "../GiftGuidesSidebar";
 
 type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | "/gift-guides/printables" | PrintablePagePath;
@@ -39,7 +40,7 @@ export function FunBody({ title, path, noindex, tools = true, children }: { titl
 
 /**
  * The gift guides' frame for a page outside GiftGuides.tsx (the fun pages, /shop-small): the head row (back arrow +
- * title, then search, My list heart with its count, Share), then the page, the left menu and the disclosures (holiday
+ * "Holiday gift guides", then search, My list heart with its count, Share), the page's own title under it, then the page, the left menu and the disclosures (holiday
  * audit 1121 #13: the fun pages had no head row or menu; #73: /shop-small's title sat apart from its column). The
  * caller brings GIFT_GUIDES_CSS. `disclosures` off only on a page with no affiliate link.
  */
@@ -48,13 +49,12 @@ export function FunBody({ title, path, noindex, tools = true, children }: { titl
 export function GuidesFrame({ title, path, disclosures = true, tools = true, children }: { title: string; path: string; disclosures?: boolean; tools?: boolean; children: ReactNode }) {
   return (
     <div className="gg w-full" data-gift-fun-frame="">
-      <div className="gg-headrow gg-headrow-noship" data-gift-headrow="">
-        <div className="gg-head-title" data-gift-head-title="">
-          <BackButton to="/gift-guides" />
-          <h1 className="text-page-title leading-tight" data-gift-head-name="">{title}</h1>
-        </div>
+      {/* Owner 11-22: "Holiday gift guides" beside the back arrow, as on the guides and the deals days, and the page's
+          own title as its h1 right under that row (GuidesHeadRow: one head row for every guides page). */}
+      <GuidesHeadRow backTo="/gift-guides">
         {tools && <GiftGuideTools path={path} title={title} />}
-      </div>
+      </GuidesHeadRow>
+      <GiftGuidesWords lead="" title={title} titleId="gift-page-title" tools={null} />
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">
         <div className="gg-main">{children}</div>

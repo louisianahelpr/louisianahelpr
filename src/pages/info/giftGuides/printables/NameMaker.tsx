@@ -528,13 +528,17 @@ const MAKER_CSS = `${fontFaces}
 .pr-set>legend{font-size:13px;font-weight:700;color:var(--gg-ink);margin:0 0 8px;padding:0}
 /* Every design in a wrapping grid (owner 2026-11-21: the sideways row hid the rest): 3 a row on a phone, 6-8 on a desktop. */
 .pr-hint{font-size:12.5px;color:var(--gg-muted);margin:-4px 0 8px}
-.pr-designs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:2px}
+/* Owner 11-22 ("why does it click like this?"): each cell hugs its own tag (align-items:start), so a chosen tag's olive
+   edge and soft fill never stretch to the row's tallest name with an empty gray box under it. */
+.pr-designs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:8px;padding:2px}
 @media (min-width:480px){.pr-designs{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}}
 .pr-design-cell{position:relative;min-width:0;border:2px solid transparent;border-radius:12px}
 .pr-design-cell.is-on{border-color:var(--gg-olive);background:var(--gg-soft)}
 .pr-maker .pr-design{display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px;cursor:pointer;font-size:12px;line-height:1.25;text-align:center;margin:0;font-weight:600;color:var(--gg-ink);-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .pr-design img{display:block;width:auto;height:72px;max-width:100%;object-fit:contain;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12);-webkit-touch-callout:none;pointer-events:none}
-.pr-maker .pr-design:focus-within{outline:2px solid var(--gg-olive);outline-offset:0;border-radius:10px}
+/* The keyboard ring sits on the cell itself, just outside its edge (as on the app's other chosen cards); a mouse or a
+   tap shows only the chosen edge and fill (the hidden radio is :focus-visible from the keyboard only). */
+.pr-design-cell:has(.pr-design input:focus-visible){outline:2px solid var(--gg-olive);outline-offset:2px}
 .pr-chip:focus-within{outline:2px solid var(--gg-olive);outline-offset:2px}
 /* The magnifier: a 44 px hit box (the app's tap floor) drawn as a small 28 px dot in the cell's corner, so it never hides the tag. */
 .pr-maker .pr-zoom{position:absolute;top:-6px;right:-4px;background:transparent;color:var(--gg-ink)}

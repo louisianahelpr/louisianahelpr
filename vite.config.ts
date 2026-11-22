@@ -1515,10 +1515,12 @@ export default defineConfig(({ mode, command }) => ({
             // signed-in-deep they put /gift-guides/<slug> at 593 KB gz on the critical path (budget 336; #4857 bundle-size run).
             // So do the gift lists' retailerCart.ts and wishLinks.ts (11-21; 610 KB gz in signed-in-deep, train 1121f build); they
             // import only src/content/giftGuideConstants.ts (here too: no imports, two constants), never the catalog, so this
-            // chunk stays light for /sponsor.
+            // chunk stays light for /sponsor. The sales and codes cleaner (src/lib/giftGuideOfferCopy.mjs) and the phone-width
+            // hook (src/hooks/use-mobile.tsx) ride here too (train 1121i): both import nothing but React, and the guides
+            // started reaching them, so left loose they joined a signed-in group.
             {
               name: "public-page-reads",
-              test: /[\\/]src[\\/](lib[\\/](sponsor[\\/](api|dates|placeholders)|giftGuideFunApi|giftWishListApi|giftNameClean|retailerCart|wishLinks)|content[\\/](sponsorPage|giftGuideFun1120|giftGuideConstants))\.ts$|[\\/]src[\\/]lib[\\/]giftGuideCoverVersions\.mjs$|[\\/]src[\\/]lib[\\/]pickPriceShown\.mjs$/,
+              test: /[\\/]src[\\/](lib[\\/](sponsor[\\/](api|dates|placeholders)|giftGuideFunApi|giftWishListApi|giftNameClean|retailerCart|wishLinks)|content[\\/](sponsorPage|giftGuideFun1120|giftGuideConstants))\.ts$|[\\/]src[\\/]lib[\\/](giftGuideCoverVersions|pickPriceShown|giftGuideOfferCopy)\.mjs$|[\\/]src[\\/]hooks[\\/]use-mobile\.tsx$/,
               priority: 16.7,
               minSize: 0,
               includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,

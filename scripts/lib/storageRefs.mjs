@@ -88,6 +88,7 @@ export const STORAGE_REFERENCE_COLUMNS = [
 export const NOT_STORAGE_COLUMNS = {
   "wish_link_requests.url": "Santa wish links (20261121221514): the public https product link a member pasted (wish_link_url_ok checks it), not an object in our storage",
   "wish_link_requests.affiliate_url": "Santa wish links (20261121221514): the https store link an admin fills in for a queued request, not an object in our storage",
+  "wish_link_requests.page_image": "Wish list link page details (20261122034304): the https photo link a shop's product page names (og:image), read by the admin-only wish-link-pages function and shown to admins only, not an object in our storage",
   "wish_link_requests.url_key": "Santa wish links (20261121221514): a normalised text key of the pasted link (wish_link_url_key) used to dedupe requests, not a file reference",
   "shop_photo_byte_checks.storage_path": "Q1956 (20261112095000): a one-use stamp that the shop-photo-check edge function read this object's bytes; the photo itself is in shop_photos / shop_item_photos (checked above), the row is deleted at attach and a day-old one by the next stamp, so it never serves or keeps a file",
   "shop_item_files.file_name": "the name a buyer's download is saved as (Content-Disposition), not a storage path: the object is at shop_item_files.storage_path",

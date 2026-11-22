@@ -4,6 +4,7 @@ import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { discountCodes, giftGuides as G } from "@/content/giftGuides";
 import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealEnds, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
 import { DEAL_CODES } from "@/content/giftGuidePicks";
+import { cleanCodes } from "@/lib/giftGuideOfferCopy.mjs";
 import { GiftOut } from "./GiftOut";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { WISH } from "@/content/giftWishList";
@@ -72,7 +73,7 @@ const loadDeals = () => loadModule(() => import("@/content/giftGuideDeals.json")
  * Every store code we list, with its expiry (the codes box's own list): a deal card's code and its end day follow it
  * (holiday audit 1121, High: XTRATUF's card kept the code XT25 after the box had dropped it on Nov 30).
  */
-const STORE_CODES = [...discountCodes, ...DEAL_CODES];
+const STORE_CODES = [...discountCodes, ...cleanCodes(DEAL_CODES)];
 
 /** One deal's card. */
 function DealCard({ deal, today }: { deal: Deal; today: string }) {

@@ -180,6 +180,8 @@ export interface DiscountCode {
   expires?: string;
   /** YYYY-MM-DD, the first day it works; until then it is hidden (affiliate sweep 11-18: Muck Boot CYBER showed early). */
   starts?: string;
+  /** The store's affiliate link, so a shopper who copies the code can open the store (holiday audit 1121 #81). */
+  href?: string;
 }
 export const discountCodes: DiscountCode[] = [
   { rank: 1, store: "Muck Boot", code: "CYBER", offer: "20% off sitewide", dates: "Nov 29 – Dec 6", starts: "2026-11-29", expires: "2026-12-06" },
@@ -360,6 +362,7 @@ export const giftGuides = {
   /** A store page's compact deals list (live audit r3 #1): its first few rows, then this opens the rest. */
   allDealsLabel: (n: number) => `See all deals (${n})`,
   copyCode: "Copy",
+  codeShop: "Shop",
   copiedCode: "Copied",
   codeEnds: (date: string) => `Ends ${date}`,
   codeValid: (dates: string) => `Valid ${dates}`,

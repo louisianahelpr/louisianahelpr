@@ -91,17 +91,20 @@ const FUN_CSS = `
 .gg-fun-big{font-size:28px;font-weight:800;margin:6px 0;color:var(--gg-olive);overflow-wrap:anywhere}
 .gg-fun-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .gg-swipe-stage{position:relative;max-width:360px;margin:0 auto;touch-action:pan-y}
-.gg-swipe-card{position:relative;border:1px solid var(--gg-line);border-radius:20px;background:hsl(var(--card));box-shadow:0 6px 20px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:center;padding:16px;user-select:none;transition:transform .2s ease}
-.gg-swipe-card{touch-action:pan-y;-webkit-user-select:none}
+.gg-swipe-card{position:relative;border:1px solid var(--gg-line);border-radius:20px;background:hsl(var(--card));box-shadow:0 6px 20px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:center;padding:16px;user-select:none;transition:transform .32s cubic-bezier(.2,.9,.3,1.2);cursor:grab;animation:gg-swipe-in .24s ease-out}
+.gg-swipe-card{touch-action:pan-y;-webkit-user-select:none;-webkit-touch-callout:none}
 .gg-swipe-card img{-webkit-user-drag:none;user-drag:none;pointer-events:none}
-.gg-swipe-card.is-dragging{transition:none}
+.gg-swipe-card.is-dragging{transition:none;cursor:grabbing;will-change:transform}
+.gg-swipe-ghost{position:absolute;top:0;left:0;right:0;z-index:2;pointer-events:none;animation:none}
+@keyframes gg-swipe-in{from{scale:.96;opacity:.5}to{scale:1;opacity:1}}
+@media (prefers-reduced-motion:reduce){.gg-swipe-card{transition:none;animation:none}.gg-swipe-ghost{display:none}}
 .gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter{width:220px;height:220px}
 .gg-swipe-card .gg-thumb{width:220px;height:220px;object-fit:contain}
 .gg-swipe-name{font-size:17px;font-weight:700;text-align:center;margin:12px 0 4px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .gg-swipe-meta{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--gg-muted)}
-.gg-swipe-tag{position:absolute;top:18px;font-size:18px;font-weight:800;padding:4px 10px;border-radius:8px;border:3px solid;opacity:0}
-.gg-swipe-tag.save{left:18px;color:#3f7a2c;border-color:#3f7a2c}
-.gg-swipe-tag.skip{right:18px;color:#b26862;border-color:#b26862}
+.gg-swipe-tag{position:absolute;top:18px;font-size:18px;font-weight:800;padding:4px 10px;border-radius:8px;border:3px solid;opacity:0;pointer-events:none}
+.gg-swipe-tag.save{left:18px;color:#3f7a2c;border-color:#3f7a2c;opacity:clamp(0,var(--swipe-p,0),1)}
+.gg-swipe-tag.skip{right:18px;color:#b26862;border-color:#b26862;opacity:clamp(0,calc(var(--swipe-p,0) * -1),1)}
 .gg-swipe-btns{display:flex;justify-content:center;gap:16px;margin:16px 0 4px}
 .gg-swipe-btn{min-width:120px}
 .gg-swipe-acts{align-items:center}

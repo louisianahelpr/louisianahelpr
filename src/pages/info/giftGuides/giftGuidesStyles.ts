@@ -318,7 +318,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 }
 /* The phone's head row (owner 11-22: everything under the holiday gift guides comes off the phone view; "Only thing
    that will stay is the 3 line with no circle around it and the heart. Both of those will go on the right"; "change
-   holiday gift guides to just gift guides"): up to 767px ONE line, back arrow + "Gift guides" on the left, the heart and
+   holiday gift guides to just gift guides"): up to 767px ONE line, back arrow + the Gift guides title on the left, the heart and
    the three-line menu on the right (44x44 targets, no circle, border or fill, even on a tap); the pill, the search and
    Share are hidden. It replaces 11-21's sticky chip row. Hidden from 768px up, where the sidebar is the menu. */
 .gg-head-phone{display:none}

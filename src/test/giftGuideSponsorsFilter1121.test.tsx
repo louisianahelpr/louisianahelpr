@@ -79,12 +79,14 @@ describe("the 25 Days sponsors page: its tools and Filter under the banner (owne
     const before = c.querySelectorAll("li[data-gift-pick]").length;
     await act(async () => { fireEvent.click(c.querySelector("[data-gift-filter-button]")!); });
     const panel = c.querySelector("[data-gift-filter-panel]")!;
-    expect(panel.getAttribute("role")).toBe("dialog");
+    // A menu like the sort menu beside it (popupShellInventory: no hand-rolled dialog); a price choice is a radio item.
+    expect(panel.getAttribute("role")).toBe("menu");
     const sections = [...panel.querySelectorAll("[data-gift-section-link]")].map((b) => b.textContent);
     expect(sections.length).toBeGreaterThan(1);
     const choices = [...panel.querySelectorAll("[data-gift-budget-choice]")].map((b) => b.getAttribute("data-gift-budget-choice"));
     expect(choices).toEqual(["all", "25", "50", "100"]);
     await act(async () => { fireEvent.click(panel.querySelector('[data-gift-budget-choice="50"]')!); });
+    expect(c.querySelector('[data-gift-budget-choice="50"]')?.getAttribute("aria-checked")).toBe("true");
     expect(c.querySelector("[data-gift-filter-count]")?.textContent).toBe("1");
     expect(c.querySelector("[data-gift-filter-button]")?.getAttribute("aria-label")).toBe("Filter, 1 on");
     expect(c.querySelectorAll("li[data-gift-pick]").length).toBeLessThan(before);

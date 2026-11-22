@@ -25,8 +25,7 @@ import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/Fil
 import { FilterChip } from "@/components/ui/FilterChip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { RoundIconButton } from "@/components/ui/RoundIconButton";
-import { SearchIconButton } from "@/components/ui/SearchIconButton";
+import { GhostIconButton, SearchIconButton } from "@/components/ui/SearchIconButton";
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -214,7 +213,7 @@ export default function HolidayHub() {
             {!searchOpen && (
               <SearchIconButton label="Search lights and events" onClick={() => setSearchOpen(true)} data-holiday-search-button="" />
             )}
-            <RoundIconButton ref={filtersButton} data-holiday-filters-button=""
+            <GhostIconButton ref={filtersButton} data-holiday-filters-button=""
               onClick={() => setFiltersOpen(true)} aria-haspopup="dialog" aria-expanded={filtersOpen}
               aria-label={active.length ? `Filters, ${active.length} on` : "Filters"}
               className={`relative hover:text-[hsl(var(--bark))] ${active.length ? "text-[hsl(var(--bark))]" : "text-foreground"}`}>
@@ -222,7 +221,7 @@ export default function HolidayHub() {
               {active.length > 0 && (
                 <span data-holiday-filter-count="" className="absolute right-1 top-1 min-w-4 rounded-full bg-[hsl(var(--bark))] px-1 text-center text-ds-10 font-bold leading-4 text-white">{active.length}</span>
               )}
-            </RoundIconButton>
+            </GhostIconButton>
           </div>
           {active.length > 0 && (
             <ul aria-label="Filters on" className="flex flex-wrap gap-2" data-holiday-active="">

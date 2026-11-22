@@ -16,6 +16,7 @@ import { collapsedClocks } from "@/components/job-card/collapsedClocks";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { jobDayLabel } from "@/lib/jobDateWindow";
+import { youStep } from "@/lib/nextStepWords";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import { JobHeaderShare, MenuShareProvider, useJobMenuShare } from "./menuShare";
@@ -488,7 +489,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
             offerOut={offerOut} offerUntil={offerUntil} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft} helprCancelled={helprCancelled}
             crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined}
-            continueStep={continueDay.step ?? (isPoster && noShowLead ? { who: "you", text: posterStatusLine(job as unknown as Job, pending, undefined, undefined, false, helperFirst).detail }
+            continueStep={continueDay.step ?? (isPoster && noShowLead ? youStep(posterStatusLine(job as unknown as Job, pending, undefined, undefined, false, helperFirst).detail, helperFirst)
               : isPoster && job.is_group_job ? crewPosterStep(posterFlows.crewRoster, posterFlows.crewNames ?? {}, job)
               : !isPoster && onCrew ? crewMemberLine(crewSlot.data, job.status, posterFirst) : null)} />
           {/* JA-34 (audit 11-01): the card's own clock ("28m until the job starts"), so the page knows what its card knows. */}

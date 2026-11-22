@@ -6,6 +6,7 @@
  * Guard: src/components/ui/NextStep.test.tsx.
  */
 import type { NextStepValue } from "@/components/ui/NextStep";
+import { startsWithName } from "@/lib/nextStepWords";
 import type { JobProgressState } from "./jobProgressState";
 import { nextLineBy, nextLineCode } from "./nextLineCode";
 import "@/lib/i18n/enNextStep";
@@ -75,7 +76,9 @@ export function jobNextStep(
   const who = progress.waitingOnYou ? "you" : "them";
   // Q2590 (Jobs audit 1102b row 4): "Next: lexi offered you this job" lost the name's capital; a line that starts
   // with the other person's name keeps it.
-  const keepCase = !!other && (line === other || line.startsWith(`${other} `) || line.startsWith(`${other}'`));
+  // #42 (deep audit 11-22): a caller that passes the full display name ("Hallie H.") never matched a line that starts
+  // with the first name ("Hallie didn't show up"), so it read "Next: hallie didn't show up". Compared by FIRST word.
+  const keepCase = startsWithName(line, other);
   const v: NextStepValue = split ? { who, text: split.text, by: split.by } : { who, text: line };
   // Q2600: the line's explanation (a dispute's "who decides and when") is body text under it, never in the bold line.
   if (progress.body) v.body = progress.body;

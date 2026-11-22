@@ -24,6 +24,22 @@ export function lowerFirst(s: string): string {
   return [first.charAt(0).toLowerCase() + first.slice(1), ...rest].join(" ");
 }
 
+/**
+ * Does `line` start with the other person's name? Compared by FIRST word, so a caller holding the full display name
+ * ("Hallie H.") still matches "Hallie didn't show up" and "Hallie's work is ready" (#42, deep audit 11-22).
+ */
+export function startsWithName(line: string, otherFirst: string | null | undefined): boolean {
+  const otherWord = (otherFirst ?? "").trim().split(/\s+/)[0] ?? "";
+  const lineWord = (line.trim().split(/\s+/)[0] ?? "").replace(/['’]s?$/, "");
+  return !!otherWord && lineWord === otherWord;
+}
+
+/** A "you" step, keeping the other person's name capitalised when the line starts with it. Every producer that builds
+ *  a "you" step from a sentence that may name someone goes through this (jobNextStep, the job page's no-show line). */
+export function youStep(text: string, otherFirst: string | null | undefined): NextStepValue {
+  return startsWithName(text, otherFirst) ? { who: "you", text, keepCase: true } : { who: "you", text };
+}
+
 /** The words the line prints, for a test or a screen reader label. */
 export function nextStepWords(v: NextStepValue): string {
   const lead = v.who === "you" ? t("next.lead", { step: v.keepCase ? v.text : lowerFirst(v.text) }) : v.text;

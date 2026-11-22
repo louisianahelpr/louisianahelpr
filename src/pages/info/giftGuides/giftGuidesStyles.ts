@@ -205,12 +205,21 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    below the heart instead of on the side"): on every card (Her/Him/Kids rows, the 25 Days sponsors page, the finder's
    results and the Top 10) the 44px heart sits on the photo's top-right corner and an Amazon pick's 44px cart right
    under it, one column, both on the photo and outside the card's link. No circle behind either (owner 11-21); the thin
-   white halo keeps them readable over a photo. Phone row: the 88px photo starts 14px down, so the heart's box is at
-   4px / 54px (its icon 12px in from the photo's corner) and the cart's 44px below; tablet and desktop: the photo is the
-   card's top, so the column sits 2px in from the card's top-right. */
+   white halo keeps them readable over a photo. Tablet and desktop: the photo is the card's top, so the column sits 2px
+   in from the card's top-right.
+   Owner 2026-11-22 later, on her phone ("On the phone the heart goes in the bottom right below the price and the cart
+   goes on the left of that. The computer stays the same"): below 768px a guide row (Her/Him/Kids, the sponsors page,
+   the finder's results) draws both OFF its 88px photo, in one line at the row's bottom-right under the price: the cart
+   left, the heart right, each still a 44px box, its icon pushed to the box's right edge so the heart lines up under the
+   price. The name column keeps a 44px strip at its foot, so a two-line name or the chips never run under them (a short
+   row stays the photo's height). The Top 10 card (photo on top at every width) and My Wish List keep their own spots. */
 .gg-cart{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0;border-radius:999px;color:var(--gg-olive)}
-.gg-list .gg-heart-pick{position:absolute;top:4px;left:54px;z-index:1}
-.gg-list .gg-cart{position:absolute;top:48px;left:54px;z-index:1}
+.gg-list .gg-heart-pick,.gg-list .gg-cart{position:absolute;z-index:1}
+@media (max-width:767px){
+.gg-list>:where([data-gift-pick])>.gg-heart-pick{bottom:0;right:0;justify-content:flex-end}
+.gg-list>:where([data-gift-pick])>.gg-cart{bottom:0;right:44px;justify-content:flex-end}
+.gg-list>:where([data-gift-pick]) .gg-nm{padding-bottom:44px}
+}
 @media (min-width:768px){
 .gg-list .gg-heart-pick{top:2px;left:auto;right:2px}
 .gg-list .gg-cart{top:46px;left:auto;right:2px}
@@ -362,9 +371,9 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0;padding-top:4px;min-height:28px}
 .gg-top10 .gg-badges{padding-right:0}
 /* Owner 2026-11-22: the cart right under the heart on the photo's top-right (see .gg-list .gg-cart); the Top 10's photo
-   is the card's top at every width, so neither takes the phone row's left offset. */
+   is the card's top at every width, so neither takes the phone row's bottom-right line (owner 2026-11-22 later). */
 .gg-top10 .gg-cart{position:absolute;top:46px;right:2px;z-index:1}
-.gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{left:auto}
+.gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{left:auto;bottom:auto;justify-content:center}
 /* Top 10 rank (owner 11-21 evening: "number the top 10 gifts"): a small cream disc with an olive serif numeral on the
    photo's top-left corner, clear of the heart (top right) and inside the photo's padding, so it never covers the product. */
 .gg-top10 .gg-item{position:relative}

@@ -131,7 +131,8 @@ export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: stri
       <Heart saved={saved} label={WISH.saveForLabel(pick.name)} onToggle={() => { if (!requestSaveFor(saveItemOf(pick, guide))) heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) })); }} className="gg-heart-pick" />
       {/* Owner 2026-11-21 (Amazon Buy Now): an Amazon item gets a small cart icon that puts it straight in the shopper's
           Amazon cart, credited to our tag (src/lib/retailerCart.ts). Its own 44px link, outside the card link, like the
-          heart; nothing for other stores. Owner 2026-11-22: it sits right under the heart on the photo's top-right. */}
+          heart; nothing for other stores. Owner 2026-11-22: it sits right under the heart on the photo's top-right; on a
+          phone (owner 11-22 later) the two sit in one line at the row's bottom-right under the price, cart left of the heart. */}
       {cart && (
         <GiftOut href={cart} className="gg-cart">
           <ShoppingCart aria-hidden="true" />

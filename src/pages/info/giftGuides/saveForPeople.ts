@@ -102,7 +102,40 @@ export function useSaveForHost() {
     hosts++;
     return () => {
       hosts--;
-      if (hosts === 0) request = null;
+      if (hosts === 0) {
+        request = null;
+        listsTarget = null;
+      }
     };
   }, []);
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Budget and managing a list (owner 2026-11-21: "How do they edit or remove items in the list or delete the list? I
+// entered the budget as 100 but it doesn't say how much I have left to spend or how much I'm over").
+
+/** Where a list stands against its budget, in whole cents (no float drift): left (0 or more) or over, or no budget. */
+export type BudgetStatus = { kind: "none" } | { kind: "left" | "over"; amount: number; budget: number };
+export function budgetStatus(p: PlanPerson): BudgetStatus {
+  if (p.budget === undefined) return { kind: "none" };
+  const cents = Math.round(p.budget * 100) - Math.round(listTotal(p).amount * 100);
+  return cents < 0 ? { kind: "over", amount: -cents / 100, budget: p.budget } : { kind: "left", amount: cents / 100, budget: p.budget };
+}
+
+/**
+ * Which lists the My lists sheet shows: every list (only null), or one ("me" = My Wish List, else a person's id).
+ * Opened by the picker's "View list", the "Saved for ... · View list" toast and the guides' heart; false when no sheet
+ * is on the page (the heart then keeps its link to My Wish List).
+ */
+let listsTarget: { only: string | null } | null = null;
+export function openMyLists(only: string | null = null): boolean {
+  if (hosts === 0) return false;
+  listsTarget = { only };
+  notify();
+  return true;
+}
+export const closeMyLists = () => {
+  listsTarget = null;
+  notify();
+};
+export const useMyListsTarget = () => useSyncExternalStore(subscribe, () => listsTarget, () => null);

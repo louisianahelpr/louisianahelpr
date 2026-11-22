@@ -17,7 +17,7 @@
  * @mutate src/components/messages/chatView/DealCard.tsx |               {t("cp.showProgress")} |               Show progress
  * @mutate src/components/messages/ChatView.tsx |                 {t("cp.safety")} |                 Keep chats &amp; payments on Helpr so your job stays covered.
  * @mutate src/pages/messages/useMessageSections.tsx | label: SECTION_CHIP_KEY[k] ? t(SECTION_CHIP_KEY[k]) : sectionByKey(k).label | label: sectionByKey(k).label
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx | <SheetSecondaryAction onClick={onClose}>{tr("cp.ot.close")}</SheetSecondaryAction> | <SheetSecondaryAction onClick={onClose}>Close</SheetSecondaryAction>
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx | aria-label={send.isPending ? tr("cp.ot.sending") : tr("cp.ot.send")} | aria-label={send.isPending ? tr("cp.ot.sending") : "Send"}
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | <span data-order-talk-rule="">{tr("cp.ot.rule")}</span> | <span data-order-talk-rule="">Only you two can read this. Keep payment in the app.</span>
  */
 import { afterEach, describe, expect, it } from "vitest";

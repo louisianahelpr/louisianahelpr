@@ -5,7 +5,7 @@
  * so this file pins the classes and the row's side.
  *
  * @mutate src/components/messages/MessageBubble.tsx | max-w-[75%] lg:max-w-[65%] flex | max-w-[75%] flex
- * @mutate src/components/messages/MessageBubble.tsx | text-ds-13 lg:text-ds-15 group | text-ds-13 group
+ * @mutate src/components/messages/chatView/chatBubbleLook.ts | px-4 py-2.5 text-ds-13 lg:text-ds-15 | px-4 py-2.5 text-ds-13
  */
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";

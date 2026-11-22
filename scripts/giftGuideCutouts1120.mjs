@@ -6,6 +6,8 @@
  * Keyed on the photo's URL without its query string. Amazon photos are never listed: Associates rules forbid
  * editing them.
  */
+import { ADDS_CUTOUTS_1122 } from "./giftGuideOwnerAdds1122.mjs";
+
 export const CUTOUT_BASE = "https://www.louisianahelpr.com/gift-guides/cutouts/";
 export const CUTOUTS_1120 = new Map([
   // Melissa & Doug Super Smile Dentist Play Set (melissaanddoug.com box photo, plain white; replaces the kids-at-a-table photo)
@@ -325,6 +327,9 @@ export const CUTOUTS_1120 = new Map([
   // yeti crossroads 22l backpack, alpine brown
   ["https://static.shopmy.us/uploads/pretty-prod-1758467247287", "yeti-crossroads-22l-alpine-brown-468ab3.webp"],
 ]);
+
+// The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).
+for (const [from, file] of ADDS_CUTOUTS_1122) CUTOUTS_1120.set(from, file);
 
 /** The photo to show for `image`: its transparent cutout when one exists, else `image` itself. */
 export const cutoutPhoto = (image) => {

@@ -24,6 +24,7 @@ import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 import { relsOf } from "./giftGuidePeople1120.mjs";
 import { cutoutPhoto } from "./giftGuideCutouts1120.mjs";
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
+import { ADDS_STORES_1122, HER_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 
 export const HER_GUIDE = "her";
 /** The day the ShopMy prices were checked (Louisiana day). */
@@ -123,8 +124,11 @@ export const HER_1121 = [
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
+/** Her 11-21 saves plus the picks she sent on launch day (scripts/giftGuideOwnerAdds1122.mjs). */
+export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122];
+
 /** The page rows: cheapest first, every pick priced (Amazon too, owner 11-21), cutout photos, relationship tags, no section. */
-export function her1121Picks(rows = HER_1121) {
+export function her1121Picks(rows = HER_ROWS) {
   const g = PEOPLE_GUIDES.find((x) => x.slug === HER_GUIDE);
   return rankByPrice(rows).map(({ row: r, priceRank }) => {
     const { sortPrice: _sp, price, ...rest } = r;
@@ -134,7 +138,7 @@ export function her1121Picks(rows = HER_1121) {
     // prices anyway"). An Amazon pick shows the price captured from her own saved list that morning (sortPrice, the
     // Desktop notes); a ShopMy pick its checked price. A row with no captured price shows none.
     const shown = isAmazon(r) ? r.sortPrice : price;
-    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: HER_PRICE_AT });
+    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: r.priceAt ?? HER_PRICE_AT });
     return { ...p, rels: relsOf(g, p) };
   });
 }
@@ -149,7 +153,7 @@ export function applyHer1121(pageList, storeList) {
   const addedStores = [];
   for (const p of pageList[HER_GUIDE]) {
     if (p.store === "store-amazon" || storeList[p.store]) continue;
-    storeList[p.store] = { name: HER_STORES[p.store] ?? p.store, hosts: [new URL(p.href).hostname] };
+    storeList[p.store] = { name: HER_STORES[p.store] ?? ADDS_STORES_1122[p.store] ?? p.store, hosts: [new URL(p.href).hostname] };
     addedStores.push(p.store);
   }
   for (const p of pageList[HER_GUIDE]) {

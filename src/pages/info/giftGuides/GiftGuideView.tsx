@@ -98,6 +98,8 @@ export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: stri
   const ship = deadlineChip(pick.store, today);
   // A dated brand code (1120c: XTRATUF XT25, Nov 20-29) shows through its last day only.
   const code = pick.code && (!pick.codeEnds || today <= pick.codeEnds) ? pick.code : undefined;
+  // Sold out until its restock day (owner 11-22, Sleep Crown): "Back Dec 1" until that day, then nothing.
+  const back = pick.backOn && today < pick.backOn ? G.backOnChip(pick.backOn) : undefined;
   const cart = amazonCartUrl([pick.href]);
   return (
     <li data-gift-pick="">
@@ -114,11 +116,12 @@ export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: stri
           <span className="gg-nm-name">{rank !== undefined && <span className="sr-only">{`${rank}. `}</span>}{pick.name}</span>
           <span className="sr-only">{isShopMyCollection(pick.href) ? ` (${G.collectionOnShopMy})` : storeLabel(pick) ? ` (${G.onStore(storeLabel(pick))})` : ""}</span>
           <small className="gg-nm-meta"><PickPrice pick={pick} /></small>
-          {(badges || code || ship) && (
+          {(badges || code || ship || back) && (
             <span className="gg-badges">
               {badges?.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
               {code && <i className="gg-bdg gg-bdg-code" data-gift-code-chip="">{G.codeChip(code)}</i>}
               {ship && <i className="gg-bdg gg-bdg-ship" data-gift-ship-chip="">{ship}</i>}
+              {back && <i className="gg-bdg gg-bdg-back" data-gift-back-chip="">{back}</i>}
             </span>
           )}
         </span>

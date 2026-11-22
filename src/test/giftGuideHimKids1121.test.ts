@@ -15,6 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { HIM_1121, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
+import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image: string; store: string; type?: string; price?: unknown; priceAt?: unknown; sortPrice?: unknown; rels?: string[] };
@@ -36,7 +37,10 @@ const SWITCHED: Record<string, Record<string, string>> = {
     "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabmob": "store-xtratuf", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmw900": "store-xtratuf", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmadbc90": "store-xtratuf",
     "https://go.shopmy.us/p-109003932": "store-jd-sports", "https://go.shopmy.us/p-109005228": "store-burlebo", "https://go.shopmy.us/p-109005373": "store-burlebo" },
   // Rate switch 11-21 night: Segway Ninebot S2 (Amazon B0CT2WN59R, 3%) -> Tractor Supply 8% at $484.99.
-  kids: { "https://go.shopmy.us/p-109001528": "store-tractor-supply" },
+  kids: { "https://go.shopmy.us/p-109001528": "store-tractor-supply",
+    // Launch day 11-22 (Owner-adds-1122.md): her two Camp Snap 2 colors, pinned at The Swank Company (p-109142125,
+    // p-109142226, $69.99), are on her Camp Snap direct pins instead (owner 11-22: the $59.99 sale and her code LEXILOMBAS7).
+    "https://go.shopmy.us/p-107929152": "store-camp-snap", "https://go.shopmy.us/p-104219842": "store-camp-snap" },
 };
 /**
  * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and
@@ -73,8 +77,8 @@ const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuideP
 const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})));
 
 describe.each([
-  ["him", [...HIM_1121], him1121Picks() as Pick[]],
-  ["kids", [...KIDS_1121], kids1121Picks() as Pick[]],
+  ["him", [...HIM_1121, ...HIM_ADDS_1122], him1121Picks() as Pick[]],
+  ["kids", [...KIDS_1121, ...KIDS_ADDS_1122], kids1121Picks() as Pick[]],
 ])("For %s is the owner's Amazon and ShopMy saves (11-21)", (slug, rows, built) => {
   const page = chunk(slug);
 
@@ -190,8 +194,8 @@ describe("the generator sets Him and Kids last", () => {
     const pages: Record<string, unknown[]> = { him: [{ name: "old" }], kids: [], her: [{ name: "keep" }] };
     const stores: Record<string, { name: string; hosts: string[] }> = { "store-dillards": { name: "Dillard's", hosts: ["www.dillards.com"] } };
     const out = applyHimKids1121(pages, stores);
-    expect(out.him).toEqual({ before: 1, after: HIM_1121.length });
-    expect(pages.kids.length).toBe(KIDS_1121.length);
+    expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length });
+    expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length);
     expect(pages.her).toEqual([{ name: "keep" }]);
     expect(stores["store-dillards"]).toEqual({ name: "Dillard's", hosts: ["go.shopmy.us", "www.dillards.com"] });
     expect(stores["store-exclusive-beauty-club"]).toEqual({ name: "Exclusive Beauty Club", hosts: ["go.shopmy.us"] });
@@ -217,8 +221,8 @@ describe("the generator sets Him and Kids last", () => {
  * A code rides WITH its item (owner 2026-11-21 ~10 PM, via lead: "you can put the code with the item but no we dont need
  * a long list of codes on each guide only if we have a code should you put it with the items"): the XTRATUF Ankle Deck
  * Boots at xtratuf.com (the Chocolate/Tan Ankle Deck Boot, and since the 11-21 night rate switches the Mossy Oak Bottomland,
- * Wheelhouse and Fleece Lined boots) carry XT25 with its last day (the card hides the chip after Nov 29); no other Him or
- * Kids pick carries a code.
+ * Wheelhouse and Fleece Lined boots) carry XT25 with its last day (the card hides the chip after Nov 29); no other Him
+ * pick carries a code, and on Kids only the two Camp Snap 2 rows (11-22) carry her Camp Snap code LEXILOMBAS7.
  * @mutate scripts/giftGuideHimKids1121.mjs | sortPrice: 115, price: 115, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" } | sortPrice: 115, price: 115, commission: 15, type: "boots" }
  */
 describe("the XTRATUF code chip on For Him (owner 11-21)", () => {
@@ -238,6 +242,7 @@ describe("the XTRATUF code chip on For Him (owner 11-21)", () => {
         expect(decodeURIComponent(p.href)).toMatch(/^https:\/\/www\.anrdoezrs\.net\/click-101930553-15735628\?url=https:\/\/xtratuf\.com\/products\/(22734|xmabmob|xmw900|xmadbc90)$/);
       }
     }
-    expect((chunk("kids") as Coded[]).filter((p) => p.code)).toEqual([]);
+    // Kids: only the two Camp Snap 2 colors (11-22, campsnapphoto.com), with her Camp Snap code (no end date).
+    expect((chunk("kids") as Coded[]).filter((p) => p.code).map((p) => [p.store, p.code, p.codeEnds])).toEqual([["store-camp-snap", "LEXILOMBAS7", undefined], ["store-camp-snap", "LEXILOMBAS7", undefined]]);
   });
 });

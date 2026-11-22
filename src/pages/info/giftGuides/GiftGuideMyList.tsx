@@ -60,7 +60,8 @@ export function WishRow({ item, heart }: { item: WishItem; heart?: { saved: bool
         <span className="gg-nm">
           <span className="gg-nm-name">{item.name}</span>
           {/* UX audit M6: a business shows its town ("Baton Rouge area"), never "On Baton Rouge area". */}
-          {item.store && <small className="gg-nm-meta"><span>{item.out === "plain" ? item.store : G.onStore(item.store)}</span>{item.pick && showsPrice(item.pick) && <> · <PickPrice pick={item.pick} /></>}</small>}
+          {item.store && <small className="gg-nm-meta"><span>{item.out === "plain" ? item.store : G.onStore(item.store)}</span>{item.pick && showsPrice(item.pick) ? <> · <PickPrice pick={item.pick} /></>
+            : item.out === "affiliate" && <> · <span data-gift-wish-no-price="">{WISH.priceAtStore}</span></>}</small>}
         </span>
         <span className="sr-only"> ({G.newTab})</span>
       </Out>

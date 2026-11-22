@@ -24,8 +24,9 @@ import { budgetStatus, listTotal, shareListOf } from "./saveForPeople";
 /**
  * Managing a list in the guides' My lists sheet (owner 2026-11-21: "How do they edit or remove items in the list or
  * delete the list? I entered the budget as 100 but it doesn't say how much I have left to spend or how much I'm over").
- *   - ListLine: "5 gifts · $163.25 · $63.25 over your $100" (the over part in the app's warning ink) or
- *     "... · $36.75 left of $100"; no budget: the count and total only. Worked out in whole cents (budgetStatus).
+ *   - ListLine: "5 gifts · $163.25 · $63.25 over" (the over part in the app's warning ink) or "... · $36.75 left";
+ *     no budget: the count and total only; "+ 1 with no price" and "· $12 bought" when they apply (holiday audit 1121
+ *     #5, #8). Worked out in whole cents (budgetStatus).
  *   - PersonList: a person's list: the line, Edit (name and budget), every gift (photo, name, price) with Remove and a
  *     "Removed · Undo" toast, add from any store, Amazon cart, Share, and Delete list (the shared confirm dialog).
  *   - MyWishList: "Me": its gifts with Remove and Undo, Open My Wish List (rename and share there) and Clear list
@@ -67,9 +68,10 @@ export function ListLine({ p }: { p: PlanPerson }) {
   const s = budgetStatus(p);
   return (
     <span className="gg-list-line" data-list-line={p.id}>
-      {WISH.listCount(t.gifts, t.amount > 0 ? dollars(t.amount) : null)}
+      {WISH.listCount(t.gifts, t.amount > 0 ? dollars(t.amount) : null, t.unpriced)}
       {s.kind === "over" && <> · <span className="gg-list-over" data-list-over="">{WISH.listOverYour(dollars(s.amount))}</span></>}
       {s.kind === "left" && <> · <span className="gg-list-left" data-list-left="">{WISH.listLeft(dollars(s.amount))}</span></>}
+      {t.bought > 0 && <> · <span data-list-bought="">{WISH.listBought(dollars(t.bought))}</span></>}
     </span>
   );
 }
@@ -159,7 +161,8 @@ export function PersonList({ p, ready }: { p: PlanPerson; ready: boolean }) {
             <li key={i.id} data-mylists-item={i.id}>
               <ItemThumb name={i.name} href={i.href} image={i.image} />
               <span className="gg-mylists-name">{i.name}</span>
-              {i.price !== undefined && <span className="gg-mylists-price">{dollars(i.price)}</span>}
+              {i.price !== undefined ? <span className="gg-mylists-price">{dollars(i.price)}</span>
+                : i.href && <span className="gg-mylists-price gg-mylists-noprice" data-list-no-price={i.id}>{WISH.priceAtStore}</span>}
               <RoundIconButton className="gg-fun-x" aria-label={WISH.listRemove(i.name, p.name)} disabled={!ready} onClick={() => remove(k)} data-mylists-remove={i.id}>
                 <span aria-hidden="true">×</span>
               </RoundIconButton>

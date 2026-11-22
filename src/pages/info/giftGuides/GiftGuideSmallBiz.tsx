@@ -15,7 +15,7 @@ import { GiftGuideLoadError } from "./GiftGuideLoadError";
  * is the Small Business Saturday deals day, /gift-guides/small-business-saturday (GiftGuideDeals.tsx renders
  * SmallBizGrid); the old standalone page with its category sections was removed, its free listings and sign-up form
  * live on /shop-small. Each card the business's logo (or its name), name and town, a one-line description, its best gift idea, a "25 Days
- * sponsor" badge (never a giveaway day), whether it ships, and "Visit" (website, else Facebook, else Instagram) with
+ * sponsor" badge (never a giveaway day), whether it ships, and its logo and name as links (website, else Facebook, else Instagram) with
  * its Facebook and Instagram beside it. These are the businesses' own pages, not affiliate links: plain links that open
  * in a new tab (rel noopener). Featured on the landing Nov 24-29; after Nov 29 the page is "Shop Small Louisiana".
  * The file loads only when this page opens. Guard: src/test/giftGuideSmallBiz1120.test.tsx.
@@ -34,11 +34,12 @@ ${SB_CARD_CSS}
 const loadSmallBiz = () => loadModule(() => import("@/content/giftGuideSmallBiz.json"));
 
 /** A business's own page, in a new tab (not an affiliate link: no "sponsored"). */
-function Out({ href, className, children, label }: { href: string; className?: string; children: React.ReactNode; label?: string }) {
+function Out({ href, className, children, label, hidden = false }: { href: string; className?: string; children: React.ReactNode; label?: string; hidden?: boolean }) {
   // Only an https page opens (the generator keeps https links only; this holds whatever the file says).
   if (!/^https:\/\//.test(href)) return <span className={className}>{children}</span>;
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={className} aria-label={label} data-gift-sb-out="">
+    <a href={href} target="_blank" rel="noopener noreferrer" className={className} aria-label={label} data-gift-sb-out=""
+      {...(hidden ? { "aria-hidden": true, tabIndex: -1 } : {})}>
       {children}
     </a>
   );
@@ -47,30 +48,37 @@ function Out({ href, className, children, label }: { href: string; className?: s
 /** One business. `compact` (the deals page): no badge, no description and no extra links, so 37 cards stay calm. */
 function SmallBizCard({ b, compact = false }: { b: SmallBiz; compact?: boolean }) {
   const [logoOk, setLogoOk] = useState(true);
-  // My Wish List (owner 2026-11-20): a business hearts by its slug (its Visit link can move between site and Facebook).
+  // My Wish List (owner 2026-11-20): a business hearts by its slug (its link can move between site and Facebook).
   const id = itemId(`biz:${b.slug}`);
   const saved = isSaved(useGiftList(), id);
+  const logo = b.logo && logoOk ? <img loading="lazy" decoding="async" src={b.logo} alt="" width={72} height={72} onError={() => setLogoOk(false)} /> : <b aria-hidden="true">{b.name}</b>;
   return (
     <li className="gg-sb" data-gift-sb={b.slug}>
       <Heart saved={saved} label={WISH.saveLabel(b.name)} onToggle={() => heartTapped(togglePick({ href: b.href ?? "", name: b.name, guide: SMALL_BIZ_SLUG, id }))} className="gg-heart-sb" />
-      <span className="gg-sb-logo">
-        {b.logo && logoOk ? <img loading="lazy" decoding="async" src={b.logo} alt="" width={72} height={72} onError={() => setLogoOk(false)} /> : <b aria-hidden="true">{b.name}</b>}
-      </span>
+      {/* Owner 2026-11-22 ("remove visit, they can click the picture or title to visit"): the logo and the name are each
+          a link to the business's page (new tab, like Visit was); a card with no link keeps both as plain text. The
+          logo link is a second way to the same page, so screen readers and Tab hear only the name's. */}
+      {b.href ? (
+        <Out href={b.href} className="gg-sb-logo" hidden>{logo}</Out>
+      ) : (
+        <span className="gg-sb-logo">{logo}</span>
+      )}
       <span className="gg-sb-body">
-        <p className="gg-sb-name">{b.name}</p>
+        <p className="gg-sb-name">
+          {b.href ? (
+            <Out href={b.href} className="gg-sb-name-link">{b.name}<span className="sr-only"> ({G.newTab})</span></Out>
+          ) : b.name}
+        </p>
         <p className="gg-sb-town">{[b.town || "Louisiana", b.ships === "ships" ? W.ships : W.local].join(" · ")}</p>
         {!compact && <span className="gg-badges"><i className="gg-bdg gg-bdg-sponsor" data-gift-badge="sponsor">{W.badge}</i></span>}
         {!compact && b.description && <p className="gg-sb-text">{b.description}</p>}
         {b.gift && <p className="gg-sb-text" data-gift-sb-gift=""><b>{W.giftLabel}</b> {b.gift}</p>}
-        {b.href && (
+        {/* The business's other pages (not compact), never the one the name already opens. */}
+        {b.href && !compact && [b.website, b.facebook, b.instagram].some((x) => x && x !== b.href) && (
           <span className="gg-sb-links">
-            {/* A plain text link (owner 2026-11-21: "remove the circle around visit"). */}
-            <Out href={b.href} className="gg-sb-visit">
-              {W.visit}<span aria-hidden="true">&nbsp;›</span><span className="sr-only"> {b.name} ({G.newTab})</span>
-            </Out>
-            {!compact && b.website && b.href !== b.website && <Out href={b.website} className="gg-link">{W.website}</Out>}
-            {!compact && b.facebook && b.href !== b.facebook && <Out href={b.facebook} className="gg-link" label={`${b.name} on ${W.facebook} (${G.newTab})`}>{W.facebook}</Out>}
-            {!compact && b.instagram && b.href !== b.instagram && <Out href={b.instagram} className="gg-link" label={`${b.name} on ${W.instagram} (${G.newTab})`}>{W.instagram}</Out>}
+            {b.website && b.href !== b.website && <Out href={b.website} className="gg-link">{W.website}</Out>}
+            {b.facebook && b.href !== b.facebook && <Out href={b.facebook} className="gg-link" label={`${b.name} on ${W.facebook} (${G.newTab})`}>{W.facebook}</Out>}
+            {b.instagram && b.href !== b.instagram && <Out href={b.instagram} className="gg-link" label={`${b.name} on ${W.instagram} (${G.newTab})`}>{W.instagram}</Out>}
           </span>
         )}
       </span>

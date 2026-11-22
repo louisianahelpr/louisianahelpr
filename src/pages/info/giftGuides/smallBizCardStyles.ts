@@ -1,6 +1,6 @@
 /**
- * The small business card's look (logo well, name, town, one line, Visit as a plain text link pinned to the card's
- * bottom so a row's links line up; owner 2026-11-21 "remove the circle around visit"), shared by the Small Business Saturday page's
+ * The small business card's look (logo well, name, town, one line; the logo and the name are the links since owner
+ * 2026-11-22 "remove visit, they can click the picture or title to visit"), shared by the Small Business Saturday page's
  * sponsor cards (GiftGuideSmallBiz.tsx) and the free "Featured local" cards (SmallBizLocal.tsx), which also show on
  * /shop-small without the sponsor page around them. Scoped under the guides' .gg tokens.
  */
@@ -17,6 +17,9 @@ export const SB_CARD_CSS = `
 .gg-sb-town{margin:0;font-size:12px;color:var(--gg-muted)}
 .gg-sb-text{margin:0;font-size:13px;line-height:1.4;color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-sb-links{display:flex;flex-wrap:wrap;align-items:center;gap:0 14px;margin-top:auto;padding-top:2px}
-.gg-sb .gg-sb-visit{display:inline-flex;align-items:center;min-height:44px;min-width:44px;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
-.gg-sb .gg-sb-visit:hover,.gg-sb .gg-sb-visit:focus-visible{text-decoration:underline}
+/* Owner 2026-11-22 ("remove visit, they can click the picture or title to visit"): the 72px logo and the name are the
+   links. The name's tap area is 44px tall (12px above and below the 20px line) without moving the card's text. */
+.gg-sb a.gg-sb-logo{text-decoration:none}
+.gg-sb .gg-sb-name-link{display:inline-block;padding:12px 0;margin:-12px 0;color:inherit;text-decoration:none}
+.gg-sb .gg-sb-name-link:hover,.gg-sb .gg-sb-name-link:focus-visible{text-decoration:underline}
 `;

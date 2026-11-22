@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { persistOptions } from "@/lib/queryPersister";
 import { queryClient } from "@/lib/queryClient";
+import { whenSessionConfirmed } from "@/hooks/useAuthReady";
 
 /**
  * Kicks off React Query cache hydration from IndexedDB AFTER first paint.
@@ -23,6 +24,9 @@ const QueryCacheHydrator = () => {
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
     void (async () => {
+      // Q1158: a member restored from an expired session sees nothing from the last visit until the server has
+      // accepted the refresh; a refused refresh (signed out) skips the hydration (useAuthReady whenSessionConfirmed).
+      if (!(await whenSessionConfirmed()) || cancelled) return;
       try {
         const { persistQueryClient } = await import(
           "@tanstack/react-query-persist-client"

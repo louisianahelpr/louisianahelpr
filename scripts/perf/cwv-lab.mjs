@@ -49,6 +49,9 @@
  *   --ihe    (ignoreHTTPSErrors instead of the SPKI allow-list, as the spec loads)
  *   --allow-reads <file>   (let STABLE RPC reads, the expired refresh and the
  *            payout-status read through the write block: READ ALLOWANCE below)
+ *   --block-refresh   (with --expired --allow-reads: the reads go through but the refresh is still refused, as
+ *            e2e/web-vitals/first-screens.spec.ts measures it (LAB_READS refresh: false): a refresh that fails
+ *            on the network)
  *   --ready "<css>[!<text>]|..."   (first-real-content marks: READY_INIT)
  *
  * WebKit cannot be network- or CPU-throttled from Playwright (no CDP) and has
@@ -731,7 +734,7 @@ async function main() {
   // --allow-reads <file>: the READ ALLOWANCE (installWriteBlock).
   const readsFile = arg("allow-reads", "");
   const reads = readsFile
-    ? { rpcs: new Set(readFileSync(readsFile, "utf8").split(/[\s,]+/).filter(Boolean)), refresh: flag("expired") }
+    ? { rpcs: new Set(readFileSync(readsFile, "utf8").split(/[\s,]+/).filter(Boolean)), refresh: flag("expired") && !flag("block-refresh") }
     : null;
   if (reads && reads.rpcs.size < 20) throw new Error(`--allow-reads ${readsFile}: ${reads.rpcs.size} names, expected the STABLE/IMMUTABLE function list`);
   if (reads) console.log(`read allowance: ${reads.rpcs.size} STABLE/IMMUTABLE RPCs from ${readsFile}${reads.refresh ? ", the expired session's refresh" : ""}, stripe-connect status, stripe-payouts list MOCKED (test data, never sent)`);

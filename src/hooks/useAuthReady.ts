@@ -111,8 +111,32 @@ const emitAuthSnapshot = (rawSnapshot: AuthSnapshot) => {
  * src/lib/authSignOut.expiredRefresh.test.ts drives that case.
  */
 export const forceSignedOutSnapshot = () => {
+  settleRestore(false);
   if (authSnapshot.isReady && !authSnapshot.user) return;
   emitAuthSnapshot({ user: null, isReady: true });
+};
+
+/**
+ * NOTHING PRIVATE RENDERS FROM THE DEVICE CACHE BEFORE THE SERVER HAS ACCEPTED THE SESSION (Q1158, lead 2026-11-22).
+ * A restored member (storedUserAwaitingRefresh below) draws their screens at once, but the persisted query cache
+ * (IndexedDB, src/components/QueryCacheHydrator.tsx) folds in only once auth-js has CONFIRMED the session (a refreshed
+ * session from getSession() or an auth event): a refresh the server refuses signs out with nothing from the last visit
+ * on screen. `whenSessionConfirmed()` resolves true when the session is confirmed or no restore is under way (the
+ * hydration runs as it always did), false when the restore ended signed out (skip the hydration).
+ */
+let restorePending = false;
+const restoreWaiters = new Set<(confirmed: boolean) => void>();
+const settleRestore = (confirmed: boolean) => {
+  restorePending = false;
+  const waiters = [...restoreWaiters];
+  restoreWaiters.clear();
+  waiters.forEach((w) => w(confirmed));
+};
+export const whenSessionConfirmed = (): Promise<boolean> => {
+  // Asked before the bootstrap ran (the hydrator's effect can run first): wait for it when it is going to restore.
+  const willRestore = !authBootstrapStarted && storedUserAwaitingRefresh() !== null;
+  if (!restorePending && !willRestore) return Promise.resolve(true);
+  return new Promise((resolve) => restoreWaiters.add(resolve));
 };
 
 /**
@@ -305,8 +329,11 @@ export const useAuthReady = () => {
       // carries on in the background (storedUserAwaitingRefresh above says what each outcome does).
       const restoredUser = storedUserAwaitingRefresh();
       if (restoredUser) {
+        restorePending = true;
         initialized = true;
         emitAuthSnapshot({ user: restoredUser, isReady: true });
+      } else {
+        settleRestore(true);
       }
 
       void loadClient().then((client) => client?.auth.onAuthStateChange((event, session) => {
@@ -318,6 +345,8 @@ export const useAuthReady = () => {
           });
         }
         if (session || event === "SIGNED_OUT" || event !== "INITIAL_SESSION") {
+          if (session) settleRestore(true);
+          else if (event === "SIGNED_OUT") settleRestore(false);
           initialized = true;
           emitAuthSnapshot({ user: session?.user ?? null, isReady: true });
         }
@@ -352,9 +381,13 @@ export const useAuthReady = () => {
         // A restored member whose getSession() answered null keeps their stored user only while storage still holds
         // a refreshable session (the refresh failed on the network); a session gone without SIGNED_OUT is signed out.
         if (restoredUser && !session) {
-          if (!timedOut && !storedSessionStillRefreshable()) markReady(null);
+          if (!timedOut && !storedSessionStillRefreshable()) {
+            settleRestore(false);
+            markReady(null);
+          }
           return;
         }
+        if (session) settleRestore(true);
         if (session || !initialized || !authSnapshot.user) markReady(session);
       });
 

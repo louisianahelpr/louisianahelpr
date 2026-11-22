@@ -28,20 +28,22 @@
     }
   },
   "kids": {
-    "_why": "Owner 2026-11-21: \"on the cover put the nex playground, segway scooter, tonie box, walkie talkie, nintendo and swatch\". Stand-in photos from nexplayground.com, store.segway.com, us.tonies.com and nintendo.com. Left off (2026-11-21): the video walkie talkies (ANBURI) and the kids smart watch (Cosjoype) are sold only on Amazon, so no photo of the same product from another store was found. Owner 2026-11-22 3:28 AM (via lead): \"add any 2 more expensive kids items but make sure all 6 are a variety not too much of the same for kids. I'll review tomorrow and make changes.\" Added, from Kids picks at non-Amazon stores, in categories the cover lacked: the Melissa & Doug Wood Furnished Mansion (dollhouse, Wayfair, $117.99) and the Sand and Water Table (outdoor play, Maisonette, $89); each uses the pick's own cutout.",
+    "_why": "Owner 2026-11-22: swap four for this season's top sellers (Switch Lite -> Nintendo Switch 2, Sand and Water Table -> Tickle Me Elmo Giggle Max, Melissa & Doug Wood Furnished Mansion -> Bluey Light and Surprise Heeler House, Nex Playground -> Meta Quest 3S); keep the Segway scooter and the Toniebox. Each new one is Amazon-linked, so its cover photo is the same product from its brand, cut out: meta.com (Quest 3S 256GB, right quarter view, Meta's own transparent photo), nintendo.com (Switch 2 with dock and Joy-Con grip), justplayproducts.com (Giggle Max; the box and the photo's motion streaks left out) and moosetoys.com (Moose calls the same 5-story, 28 in. house the Bluey Surprise Home Playset, item 19310). Each new item keeps the slot of the one it replaces. Earlier: owner 2026-11-21 \"on the cover put the nex playground, segway scooter, tonie box, walkie talkie, nintendo and swatch\" (stand-ins from store.segway.com and us.tonies.com).",
     "items": [
-      "Nex Playground",
+      "Meta Quest 3S VR Headset, 256GB",
       "Segway Ninebot C2 Go Kids Scooter",
       "Toniebox 2, Sky Blue",
-      "Nintendo Switch Lite",
-      "Melissa & Doug Wood Furnished Mansion",
-      "Sand and Water Table"
+      "Nintendo Switch 2",
+      "Bluey Light and Surprise Heeler House",
+      "Tickle Me Elmo Giggle Max"
     ],
     "photos": {
-      "Nex Playground": "https://www.louisianahelpr.com/gift-guides/cutouts/nex-playground-56f785.webp",
+      "Meta Quest 3S VR Headset, 256GB": "https://www.louisianahelpr.com/gift-guides/cutouts/meta-quest-3s-right-quarter-46c53c.webp",
       "Segway Ninebot C2 Go Kids Scooter": "https://www.louisianahelpr.com/gift-guides/cutouts/segway-ninebot-c2-go-5a4f31.webp",
       "Toniebox 2, Sky Blue": "https://www.louisianahelpr.com/gift-guides/cutouts/toniebox-2-sky-blue-playtime-puppy-8e3a2e.webp",
-      "Nintendo Switch Lite": "https://www.louisianahelpr.com/gift-guides/cutouts/nintendo-switch-lite-turquoise-front-888c6e.webp"
+      "Nintendo Switch 2": "https://www.louisianahelpr.com/gift-guides/cutouts/nintendo-switch-2-dock-joy-con-grip-3a30a2.webp",
+      "Bluey Light and Surprise Heeler House": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-surprise-home-playset-9f9eb0.webp",
+      "Tickle Me Elmo Giggle Max": "https://www.louisianahelpr.com/gift-guides/cutouts/tickle-me-elmo-giggle-max-0b45fb.webp"
     }
   }
 }

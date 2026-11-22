@@ -178,9 +178,9 @@
   "section": "For kids",
   "items": [
    {
-    "name": "Nex Playground",
-    "key": "nex:playground",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nex-playground-56f785.webp"
+    "name": "Meta Quest 3S VR Headset, 256GB",
+    "key": "meta:headset",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/meta-quest-3s-right-quarter-46c53c.webp"
    },
    {
     "name": "Segway Ninebot C2 Go Kids Scooter",
@@ -193,19 +193,19 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/toniebox-2-sky-blue-playtime-puppy-8e3a2e.webp"
    },
    {
-    "name": "Nintendo Switch Lite",
-    "key": "nintendo:lite",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nintendo-switch-lite-turquoise-front-888c6e.webp"
+    "name": "Nintendo Switch 2",
+    "key": "nintendo:switch",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nintendo-switch-2-dock-joy-con-grip-3a30a2.webp"
    },
    {
-    "name": "Melissa & Doug Wood Furnished Mansion",
-    "key": "melissadoug:mansion",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-wood-furnished-mansion-825096.webp"
+    "name": "Bluey Light and Surprise Heeler House",
+    "key": "bluey:house",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-surprise-home-playset-9f9eb0.webp"
    },
    {
-    "name": "Sand and Water Table",
-    "key": "asweets:table",
-    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/asweets-sand-and-water-table-4fc56a.webp"
+    "name": "Tickle Me Elmo Giggle Max",
+    "key": "sesamestreet:max",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tickle-me-elmo-giggle-max-0b45fb.webp"
    }
   ]
  },

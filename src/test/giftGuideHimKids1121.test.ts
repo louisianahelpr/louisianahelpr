@@ -30,8 +30,13 @@ const SWITCHED: Record<string, Record<string, string>> = {
   him: { "https://go.shopmy.us/p-108736038": "store-dillards", "https://go.shopmy.us/p-108734364": "store-exclusive-beauty-club", "https://go.shopmy.us/p-108736312": "store-onward-reserve", 
     // Night links 11-21 (Commission-links-1121-night.md; owner: "switch all 3 to the higher commission"):
     "https://go.shopmy.us/p-108999848": "store-onward-reserve", "https://go.shopmy.us/p-109000336": "store-l-l-bean", "https://go.shopmy.us/p-109001581": "store-yeti", "https://go.shopmy.us/p-109003244": "store-yeti", "https://go.shopmy.us/p-109003412": "store-yeti", "https://go.shopmy.us/p-109003630": "store-yeti", "https://go.shopmy.us/p-109003793": "store-yeti", "https://go.shopmy.us/p-109003951": "store-yeti", "https://go.shopmy.us/p-109004058": "store-yeti", "https://go.shopmy.us/p-109004159": "store-yeti", "https://go.shopmy.us/p-109004254": "store-yeti", "https://go.shopmy.us/p-109004991": "store-tractor-supply", "https://go.shopmy.us/p-109005541": "store-tractor-supply", "https://go.shopmy.us/p-109005400": "store-tractor-supply",
-    "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2F22734": "store-xtratuf" },
-  kids: {},
+    "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2F22734": "store-xtratuf",
+    // Rate switches 11-21 night (Commission-rates-search-1121-night.md): 3 XTRATUF at xtratuf.com via CJ 15% (XT25), TNF beanie at
+    // JD Sports 15%, Burlebo hoodie and cap at burlebo.com 12%.
+    "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabmob": "store-xtratuf", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmw900": "store-xtratuf", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmadbc90": "store-xtratuf",
+    "https://go.shopmy.us/p-109003932": "store-jd-sports", "https://go.shopmy.us/p-109005228": "store-burlebo", "https://go.shopmy.us/p-109005373": "store-burlebo" },
+  // Rate switch 11-21 night: Segway Ninebot S2 (Amazon B0CT2WN59R, 3%) -> Tractor Supply 8% at $484.99.
+  kids: { "https://go.shopmy.us/p-109001528": "store-tractor-supply" },
 };
 /**
  * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and
@@ -56,8 +61,10 @@ const SAVES: Record<string, Record<string, string>> = {
     ...sm(["108632461", "108632432", "108632392", "108632273", "108632257", "108632317", "108632251", "108632230", "108632184", "108632365", "108632379", "108632481", "108632592"], "store-maisonette"),
     ...sm(["108632104"], "store-grove"), ...sm(["108632077", "108632046"], "store-wayfair"),
     // Owner 11-21 ("same for the kids, add all items i had on the things"): every other kids save still sold.
-    ...sm(["108632430", "108632133"], "store-maisonette"), ...sm(["108632086", "108632059"], "store-wayfair"),
+    ...sm(["108632430", "108632133"], "store-maisonette"), ...sm(["108632059"], "store-wayfair"),
     ...sm(["108632004", "108631991", "108631978"], "store-macys"),
+    // Rate switch 11-21 night: the Jumbo Cardboard Blocks moved from Wayfair p-108632086 (11%) to Macy's p-109002741 (16%), $32.99.
+    ...sm(["109002741"], "store-macys"),
   },
 };
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug] });
@@ -148,24 +155,25 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
 });
 
 describe("For Him holds every one of her men's saves (owner 11-21)", () => {
-  it("100 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the 22 left out named", () => {
+  it("94 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the 28 left out named", () => {
     // Left out, 2026-11-21: B001DPHF4U LaCrosse Grange, B0FKCJNHWB Theragun Prime and B08Q1RN656 XTRATUF Ankle Deck Boot, B0F2JHSGCJ Turtlebox Ranger and the 14 night links 11-21
     // (Turtlebox Gen 3, Roadie 32, 9 YETI at YETI US, 3 Wetlands Camo YETI at Tractor Supply)
     // (on the page at their better-paying
     // stores, above), B0002A7GMS / B07M9LRQ4J / B0FDXLSNN1 (second listings of the same items), B09ZYT939N YETI
-    // Crossroads Backpack (Amazon showed no price).
+    // Crossroads Backpack (Amazon showed no price), and the 6 rate switches 11-21 night (3 XTRATUF, TNF beanie, Burlebo hoodie + cap).
     const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]);
-    expect(amazon.length).toBe(100);
-    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N"]) expect(amazon, asin).not.toContain(asin);
-    for (const asin of ["B0F2K9B696", "B0F53HMTX5", "B0CQ4QM7Q2", "B0FR98X1DZ", "B0FT97QYYZ", "B0D31TCLN2"]) expect(amazon, asin).toContain(asin);
+    expect(amazon.length).toBe(94);
+    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P"]) expect(amazon, asin).not.toContain(asin);
+    for (const asin of ["B0F2K9B696", "B0F53HMTX5", "B0CQ4QM7Q2", "B0FR98X1DZ", "B0D31TCLN2"]) expect(amazon, asin).toContain(asin);
   });
 });
 
 describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
-  it("all 58 Amazon rows in Kids-saved-amazon-1121.md are on the page", () => {
+  it("57 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (the Segway S2 is at Tractor Supply)", () => {
     const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
-    expect(amazon.length).toBe(58);
-    for (const asin of ["B0F3GWXLTS", "B0BFJWCYTL", "B0FJ2ZHPDY", "B0CT2WN59R", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
+    expect(amazon.length).toBe(57);
+    for (const asin of ["B0F3GWXLTS", "B0BFJWCYTL", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
+    expect(amazon.some((p) => p.href.includes("B0CT2WN59R"))).toBe(false);
   });
 });
 
@@ -200,18 +208,27 @@ describe("the generator sets Him and Kids last", () => {
 /**
  * A code rides WITH its item (owner 2026-11-21 ~10 PM, via lead: "you can put the code with the item but no we dont need
  * a long list of codes on each guide only if we have a code should you put it with the items"): the XTRATUF Ankle Deck
- * Boot, switched to xtratuf.com, carries XT25 with its last day (the card hides the chip after Nov 29); no other Him or
+ * Boots at xtratuf.com (the Chocolate/Tan Ankle Deck Boot, and since the 11-21 night rate switches the Mossy Oak Bottomland,
+ * Wheelhouse and Fleece Lined boots) carry XT25 with its last day (the card hides the chip after Nov 29); no other Him or
  * Kids pick carries a code.
- * @mutate scripts/giftGuideHimKids1121.mjs | commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" } | commission: 15, type: "boots" }
+ * @mutate scripts/giftGuideHimKids1121.mjs | sortPrice: 115, price: 115, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" } | sortPrice: 115, price: 115, commission: 15, type: "boots" }
  */
 describe("the XTRATUF code chip on For Him (owner 11-21)", () => {
-  it("only the xtratuf.com Chocolate/Tan Ankle Deck Boot carries XT25, ending Nov 29, on the page and in the module", () => {
+  it("every xtratuf.com boot carries XT25, ending Nov 29, on the page and in the module, and nothing else does", () => {
     type Coded = Pick & { code?: string; codeEnds?: string };
     for (const list of [chunk("him") as Coded[], him1121Picks() as Coded[]]) {
       const coded = list.filter((p) => p.code);
-      expect(coded.map((p) => [p.name, p.store, p.code, p.codeEnds, p.price])).toEqual([["XTRATUF Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 115]]);
-      expect(new URL(coded[0].href).hostname).toBe("www.anrdoezrs.net");
-      expect(decodeURIComponent(coded[0].href)).toContain("https://xtratuf.com/products/22734");
+      expect(coded.map((p) => [p.name, p.store, p.code, p.codeEnds, p.price]).sort()).toEqual([
+        ["XTRATUF 6 in. Wheelhouse Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 140],
+        ["XTRATUF Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 115],
+        ["XTRATUF Fleece Lined Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 135],
+        ["XTRATUF Mossy Oak Bottomland Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 125],
+      ]);
+      expect(list.filter((p) => p.store === "store-xtratuf").length).toBe(coded.length);
+      for (const p of coded) {
+        expect(new URL(p.href).hostname).toBe("www.anrdoezrs.net");
+        expect(decodeURIComponent(p.href)).toMatch(/^https:\/\/www\.anrdoezrs\.net\/click-101930553-15735628\?url=https:\/\/xtratuf\.com\/products\/(22734|xmabmob|xmw900|xmadbc90)$/);
+      }
     }
     expect((chunk("kids") as Coded[]).filter((p) => p.code)).toEqual([]);
   });

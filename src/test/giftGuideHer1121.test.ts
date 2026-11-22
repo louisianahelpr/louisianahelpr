@@ -29,7 +29,7 @@ const AMAZON_ASINS = ["B0D3L9BYFZ", "B0CPB1MWMP", "B0FVFV7V1R", "B0FFMJMB6K", "B
 /** Her Amazon cart saves (Her-saved-amazon-cart-1121.md; owner 2026-11-21: "we can have more than 25 items its fine"). */
 const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B08X8P91FX", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV",
   // Owner 11-21 ("women too"): the rest of her cart and saved-for-later, but the duplicate ZDEER listing and Mighty Patch.
-  "B0HJ9ZJ8KM", "B091NJQ29P", "B0CMJZVT5P", "B0G6CR9TGW", "B0FSJQ3KJT", "B0F19YY96Z", "B0GT3W5DQL", "B0H2G28G12", "B0HFXZ9F46", "B0DT1CZ58V"];
+  "B0HJ9ZJ8KM", "B091NJQ29P", "B0CMJZVT5P", "B0G6CR9TGW", "B0FSJQ3KJT", "B0F19YY96Z", "B0GT3W5DQL", "B0DT1CZ58V"];
 // p-108755104 is her iHerb pin for the BIODANCE masks (11-21), replacing her Sephora UK pin p-108613754 that US shoppers cannot use.
 const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", "p-108613192", "p-108611500", "p-108831058", "p-108607824", "p-107555566", "p-108605514", "p-108604684", "p-108604054"];
 /**
@@ -41,7 +41,10 @@ const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", 
  */
 // Night links 11-21 (Commission-links-1121-night.md): YETI Camino Cape Taupe -> REI p-109006074 (Swank was out of the
 // color); Crocs Dylan Sepia (Amazon B0CVLJ85KP, 4%) -> crocs.com p-108985937, 10%, $35.
-const SWITCHED_PINS = ["p-108732256", "p-108732809", "p-107903671", "p-109006074", "p-108985937"];
+// Rate switches 11-21 night (Commission-rates-search-1121-night.md), same item and price: Salt & Stone Saffron & Cedar
+// (Amazon B0H2G28G12, 10%) -> Cos Bar p-109002459, 20%, $45; L'OCCITANE Softening Almond Trio (Amazon B0HFXZ9F46, 10%) ->
+// Ulta p-109002206, 13%, $59.
+const SWITCHED_PINS = ["p-108732256", "p-108732809", "p-107903671", "p-109006074", "p-108985937", "p-109002459", "p-109002206"];
 const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
@@ -80,8 +83,8 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(30);
-    expect(shopmy.length).toBe(17);
+    expect(amazon.length).toBe(28);
+    expect(shopmy.length).toBe(19);
     const captured = new Map(HER_1121.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

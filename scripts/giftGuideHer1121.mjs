@@ -36,7 +36,7 @@ export const HER_STORES = {
   "store-jd-sports": "JD Sports", "store-sephora": "Sephora", "store-hatch": "Hatch", "store-macys": "Macy's",
   "store-haven-well-within": "Haven Well Within", "store-camp-snap": "Camp Snap", "store-rei": "REI",
   "store-the-swank-company": "The Swank Company", "store-baublebar": "BaubleBar", "store-currentbody": "CurrentBody",
-  "store-anthropologie": "Anthropologie", "store-tatcha": "Tatcha", "store-iherb": "iHerb", "store-stanley": "Stanley",
+  "store-anthropologie": "Anthropologie", "store-tatcha": "Tatcha", "store-iherb": "iHerb", "store-stanley": "Stanley", "store-cos-bar": "Cos Bar", "store-ulta-beauty": "Ulta Beauty",
 };
 
 /**
@@ -106,8 +106,12 @@ export const HER_1121 = [
   { name: "Anua Salmon DNA PDRN Glow Essential Starter Kit", brand: "Anua", line: "A Korean skincare starter kit for glowy skin.", href: amz("B0FSJQ3KJT"), image: amzImg("71YVdkGE+YL"), store: "store-amazon", sortPrice: 20, commission: 3, type: "skincare" },
   { name: "Summer Fridays Jet Lag Hydrating Eye Patches", brand: "Summer Fridays", line: "Hydrating eye patches for a quick refresh.", href: amz("B0F19YY96Z"), image: amzImg("61zGRUYBPzL"), store: "store-amazon", sortPrice: 24, commission: 10, type: "skincare" },
   { name: "Sampeel Two Piece Lounge Set, Brown Stripe", brand: "Sampeel", line: "A matching mock neck lounge set for travel days.", href: amz("B0GT3W5DQL"), image: amzImg("71KJvzDkkzL"), store: "store-amazon", sortPrice: 27.99, commission: 4, type: "matching-set" },
-  { name: "Salt & Stone Hair & Body Spray", brand: "Salt & Stone", line: "A clean hair and body fragrance mist.", href: amz("B0H2G28G12"), image: amzImg("61AWYM-olSL"), store: "store-amazon", sortPrice: 45, commission: 10, type: "fragrance" },
-  { name: "L'OCCITANE Softening Almond Trio", brand: "L'OCCITANE", line: "Almond shower oil and body care, ready to give.", href: amz("B0HFXZ9F46"), image: amzImg("712txcFaEQL"), store: "store-amazon", sortPrice: 59, commission: 10, type: "gift-set" },
+  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0H2G28G12 at 10% ($45); the same Saffron &
+  // Cedar 100 ml mist at Cos Bar at 20% (p-109002459), $45, in stock. Photo: cosbar.com's own bottle shot.
+  { name: "Salt & Stone Hair & Body Spray", brand: "Salt & Stone", line: "A clean hair and body fragrance mist.", href: shopmy("p-109002459"), image: "https://cdn.shopify.com/s/files/1/0618/7116/1562/files/850073050828_1.png", store: "store-cos-bar", sortPrice: 45, price: 45, commission: 20, type: "fragrance" },
+  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0HFXZ9F46 at 10% ($59); the same 2026
+  // green-box trio at Ulta at 13% (p-109002206), $59. Photo: Ulta's own transparent photo (alpha kept, no Vision pass).
+  { name: "L'OCCITANE Softening Almond Trio", brand: "L'OCCITANE", line: "Almond shower oil and body care, ready to give.", href: shopmy("p-109002206"), image: "https://media.ulta.com/i/ulta/2661577?w=1000&fmt=png", store: "store-ulta-beauty", sortPrice: 59, price: 59, commission: 13, type: "gift-set" },
   // NIGHT LINK 11-21 (Commission-links-1121-night.md): was Amazon B0CVLJ85KP at 4% ($99); the same Sepia Dylan at crocs.com,
   // 10% (p-108985937), $35.00 Doorbuster on 11-21 (was $64.99). Photo: crocs.com's own transparent Sepia shot.
   { name: "Crocs Dylan Platform Clog", brand: "Crocs", line: "Comfy platform clogs for everyday errands.", href: shopmy("p-108985937"), image: "https://media.crocs.com/images/t_standard/products/209869_2EY_ALT140-Transparent/crocs", store: "store-crocs", sortPrice: 35, price: 35, commission: 10, type: "shoes" },

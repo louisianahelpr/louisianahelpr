@@ -151,6 +151,17 @@ export const CUTOUTS_1120 = new Map([
   // Each photo is from the new store's own product page (never Amazon's), Apple Vision cutout, checked on red.
   // XTRATUF Men's Ankle Deck Boot, Chocolate/Tan, style 22734 (xtratuf.com grey-backdrop main photo; Him, switched from Amazon 11-21)
   ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/22734_gray_main_720x720_4234e2d7-b576-4907-bb67-594af369ef72.jpg", "xtratuf-ankle-deck-boot-chocolate-tan-595c49.webp"],
+  // RATE SWITCHES 11-21 night (Commission-rates-search-1121-night.md): the new store's own photo, Apple Vision cutout unless noted.
+  // Keys drop the query (cutoutPhoto matches on the URL before "?"); each was fetched at its size query (wid=1000 / w=1000 / fmt=png).
+  ["https://media.tractorsupply.com/is/image/TractorSupplyCompany/6017105", "segway-ninebot-s2-black-f9ce47.webp"],
+  ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMABMOB_gray_main_720x720_d16b4d27-7fc1-4833-a83f-06939c86fdb4.jpg", "xtratuf-mossy-oak-bottomland-ankle-deck-boot-73b7f0.webp"],
+  ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMW900_gray_main_1400x1400_52c3f283-fa90-4227-8a07-ddfdcbc1acc6.jpg", "xtratuf-wheelhouse-ankle-deck-boot-brown-dee391.webp"],
+  ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/xmadbc90_g.jpg", "xtratuf-fleece-lined-ankle-deck-boot-bison-duck-camo-794d85.webp"],
+  ["https://media.jdsports.com/i/jdsports/NF0A8CHE_001_P3", "the-north-face-logo-box-cuffed-beanie-black-a154ca.webp"],
+  ["https://cdn.shopify.com/s/files/1/0917/5998/files/TH-CDC_Flatlay.jpg", "burlebo-thermal-hoodie-classic-deer-camo-a4b143.webp"],
+  ["https://cdn.shopify.com/s/files/1/0618/7116/1562/files/850073050828_1.png", "salt-stone-saffron-cedar-body-mist-6ca5e7.webp"],
+  // Ulta's photo is already transparent: its own alpha, cropped (a Vision pass cut the printed gift box away).
+  ["https://media.ulta.com/i/ulta/2661577", "loccitane-softening-almond-trio-ec34ec.webp"],
   // NIGHT LINKS 11-21 (Commission-links-1121-night.md): each the new store's own photo (or yeti.com's), transparent PNG or Apple Vision.
   // YETI Tundra 45, Olive/King Crab Orange (yeti.com)
   ["https://yeti-webmedia.imgix.net/asset/5a5ec195-f5d7-414f-b324-0e95c378c9a5/W/Site_Studio_Hard_Coolers_Tundra_45_2026_Hunt_Front_070_B_2400x2400.png", "yeti-tundra-45-olive-king-crab-bf4a1b.webp"],

@@ -76,7 +76,6 @@ const SENT: [string, string, string, number][] = [
   ["p-109208941", "him", "store-marley-lilly", 34.99], // Marley Lilly waxed canvas small cooler
   // Him batch 3 (her Nov 19 pins). The L.L.Bean sweater shows $130, the price on her pin data (lead 11-22).
   ["p-108089555", "him", "store-jomashop", 262], // Costa Sullivan polarized glass sunglasses
-  ["p-108090009", "him", "store-duck-head", 50], // Duck Head 5-panel rope hat
   ["p-108089972", "him", "store-st-bernard", 34], // Duck Camp Mallard Hat
   ["p-108094779", "him", "store-l-l-bean", 130], // L.L.Bean Men's Waterfowl Sweater
   // owner 11-22 popular via new ShopMy links (builder-guide-links)

@@ -997,8 +997,9 @@ describe("the photo-first Declutter item page", () => {
       expect(screen.getByText(/Something went wrong on our end/)).toBeInTheDocument();
       state.itemFails = false;
       fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-      await waitFor(() => expect(screen.queryByText("We couldn't load this item.")).toBeNull());
+      // Wait for the item itself (the data), then assert the error is gone (waitForEmptyIsVacuous).
       expect((await screen.findAllByText(/Oak Rocking Chair|Oak rocking chair/)).length).toBeGreaterThan(0);
+      expect(screen.queryByText("We couldn't load this item.")).toBeNull();
     } finally {
       state.itemFails = false;
     }

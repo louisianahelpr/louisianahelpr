@@ -16,6 +16,8 @@ vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "acc
 const api = vi.hoisted(() => ({ mine: vi.fn(), save: vi.fn() }));
 vi.mock("@/lib/giftWishListApi", async (orig) => ({
   ...(await orig<typeof import("@/lib/giftWishListApi")>()),
+  // A share now keeps a token to stop its link (wishListDelete1121.test.tsx); here it never reaches a server.
+  claimShare: vi.fn(async () => undefined),
   getMyWishList: api.mine,
   saveWishList: api.save,
 }));

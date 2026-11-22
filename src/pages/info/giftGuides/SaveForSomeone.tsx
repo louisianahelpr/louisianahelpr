@@ -122,7 +122,7 @@ function Picker({ item, ready }: { item: SaveItem | null; ready: boolean }) {
   };
   const tapMine = (gift: SaveItem) => {
     const r = togglePick({ href: gift.href, name: gift.name, ...(gift.guide ? { guide: gift.guide } : {}) });
-    heartTapped(r);
+    heartTapped(r, true);
     if (r === "added") added("me", WISH.myWishListName);
   };
   return (

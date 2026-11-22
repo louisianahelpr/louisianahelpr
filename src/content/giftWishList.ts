@@ -66,7 +66,7 @@ export const WISH = {
   /** Holiday audit C9: an unnamed (or default-named) shared list never shows the recipient "My Wish List". */
   sharedUnnamed: "A wish list for you",
   sharedMissingTitle: "List not found",
-  sharedIntro: "Tap Shop to buy any gift. Prices and stock are on the store's site.",
+  sharedIntro: "Tap a gift to see it at the store. Prices and stock are on the store's site.",
   sharedMissing: "This list isn't here anymore, or the link is incomplete.",
   sharedFailed: "Couldn't load this list. Check your connection and try again.",
   retry: "Try again",

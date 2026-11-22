@@ -224,6 +224,13 @@ export const planActions = {
     if (!p || !p.ideas.some((i) => i.id === ideaId)) return;
     write({ ...cur, people: cur.people.map((x) => (x === p ? { ...x, ideas: x.ideas.filter((i) => i.id !== ideaId) } : x)) }, [ideaId]);
   },
+  /** Undo removing a person (holiday audit 1121): they come back where they were, with their gifts and budget. */
+  restorePerson(person: PlanPerson, index: number) {
+    const cur = read();
+    if (cur.people.some((p) => p.id === person.id) || cur.people.length >= PLAN_MAX_PEOPLE) return;
+    const at = Math.max(0, Math.min(index, cur.people.length));
+    write({ ...cur, people: [...cur.people.slice(0, at), person, ...cur.people.slice(at)] });
+  },
   /** Undo a removal (owner 11-21, "Removed · Undo"): the idea goes back where it was, unless the list filled up meanwhile. */
   restoreIdea: (personId: string, idea: PlanIdea, index: number) => mapPerson(personId, (p) => {
     if (p.ideas.some((i) => i.id === idea.id) || p.ideas.length >= PLAN_MAX_IDEAS) return p;

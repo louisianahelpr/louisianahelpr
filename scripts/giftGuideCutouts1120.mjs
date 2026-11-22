@@ -367,6 +367,13 @@ export const CUTOUTS_1120 = new Map([
   ["https://assets.wfcdn.com/im/04010235/compr-r85/1549/154922896/Step2+Play+&+Shade+Pool+with+Umbrella.jpg", "step2-play-shade-pool-wayfair-a2.webp"],
   ["https://assets.wfcdn.com/im/06003087/compr-r85/2642/26426235/Step2+Naturally+Playful+Kids+Rectangle+Picnic+Table+with+Umbrella.jpg", "step2-picnic-table-umbrella-wayfair-a3.webp"],
   ["https://assets.wfcdn.com/im/91322669/compr-r85/3379/337962490/Step2+Play+and+Fold+Jr.+Slide+and+Outdoor+Climber+for+Toddlers.jpg", "step2-play-fold-jr-slide-wayfair-a4.webp"],
+  ["https://assets.wfcdn.com/im/24091129/compr-r85/2504/250478864/Step2+Crabbie+Sandbox+Plastic+Toddler+Outdoor+Sand+Box+with+Cover.jpg", "step2-crabbie-sandbox-wayfair-b1.webp"],
+  ["https://assets.wfcdn.com/im/07610885/compr-r85/2501/250137763/Step2+Infant+Plastic+Bucket+Swing.jpg", "step2-infant-bucket-swing-wayfair-b2.webp"],
+  ["https://assets.wfcdn.com/im/81918077/compr-r85/2501/250137563/Step2+Wagon+for+Two+Blue+2+Seat+Toddler+Outdoor+Riding+Toy.jpg", "step2-wagon-for-two-wayfair-b3.webp"],
+  ["https://assets.wfcdn.com/im/11517987/compr-r85/2502/250235023/Step2+All+Around+Red+Easel+for+Two+Folding+Board+Easel.jpg", "step2-all-around-easel-wayfair-b4.webp"],
+  ["https://assets.wfcdn.com/im/45408439/compr-r85/2500/250031609/Step2+Panda+Climber+Outdoor+Climbing+Toy+for+Toddlers.jpg", "step2-panda-climber-wayfair-b5.webp"],
+  ["https://assets.wfcdn.com/im/96916567/compr-r85/2500/250033102/Step2+Gray+2-in-1+Toy+Box.jpg", "step2-2in1-toy-box-wayfair-b6.webp"],
+  ["https://slimages.macysassets.com/is/image/MCY/products/7/optimized/26752727_fpx.tif", "play22usa-10ft-hoop-macys-b7.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

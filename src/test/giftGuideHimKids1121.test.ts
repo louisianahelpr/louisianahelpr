@@ -89,7 +89,8 @@ const SAVES: Record<string, Record<string, string>> = {
     // Rate switch 11-21 night: the Jumbo Cardboard Blocks moved from Wayfair p-108632086 (11%) to Macy's p-109002741 (16%), $32.99.
     ...sm(["109002741"], "store-macys"),
     // Owner 11-22 play saves (builder-guide-adds-kids).
-    ...sm(["109160969", "109160922", "109160891", "109160773"], "store-wayfair"),
+    ...sm(["109160969", "109160922", "109160891", "109160773", "109160887", "109160813", "109160795", "109160719", "109160708", "109160660"], "store-wayfair"),
+    ...sm(["109160077"], "store-macys"),
   },
 };
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug] });

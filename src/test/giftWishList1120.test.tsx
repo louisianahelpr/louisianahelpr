@@ -491,7 +491,9 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
 
   it("verify H1: on a narrow screen (320) the note uses its short words, one line", () => {
     // jsdom has no layout: the rule that applies at 320 is asserted, and both word sets are in the note.
-    expect(GIFT_WISH_CSS).toMatch(/@media \(max-width:400px\)\{[^}]*\}?.*\.gg-toast \.gg-toast-long\{display:none\}\.gg-toast \.gg-toast-short\{display:inline\}/);
+    // Holiday audit 1121 (#12): the short words only at 340 and under (375 and desktop read the same).
+    expect(GIFT_WISH_CSS).toMatch(/@media \(max-width:340px\)\{\.gg-toast \.gg-toast-long\{display:none\}\.gg-toast \.gg-toast-short\{display:inline\}\}/);
+    expect(HINTS.seeList).toBe(HINTS.seeListShort);
     expect(GIFT_WISH_CSS).toMatch(/\.gg-toast-text,\.gg-toast-link\{white-space:nowrap\}/);
     const view = renderAt(`/gift-guides/${g().slug}`);
     tapHeart(view.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);

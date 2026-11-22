@@ -85,6 +85,9 @@ export const WISH = {
   saveForName: "Name",
   saveForBudget: "Budget (optional)",
   saveForAddButton: "Add",
+  /** Holiday audit 1121 (#11): Add with no name, or at the 50-person limit, says why instead of doing nothing. */
+  nameFirst: "Type a name first.",
+  peopleFull: "You can plan for up to 50 people. Remove someone to add another.",
   saveForDone: "Done",
   saveForPick: (name: string, gift: string) => `Save ${gift} for ${name}`,
   saveForUnpick: (name: string, gift: string) => `Remove ${gift} from ${name}'s list`,
@@ -167,10 +170,12 @@ export const WISH = {
 
 /** The how-to hints (dismissible, shown once). */
 export const HINTS = {
-  firstHeart: "Saved to your wish list.",
+  // Holiday audit 1121 (#12): the same words on a phone and a desktop ("Saved ♥ View list" vs "Saved to your wish
+  // list. See my list"); only a very narrow screen (340 and under) takes the short form; the link says "View list" as the Done toast does.
+  firstHeart: "Saved to your wish list",
   firstHeartShort: "Saved ♥",
   seeListShort: "View list",
-  seeList: "See my list",
+  seeList: "View list",
   budget: "Tap a price to see gifts in your budget.",
   share: "Send your list by text, Messenger or a link. They don't need to sign in.",
 } as const;

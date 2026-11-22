@@ -64,6 +64,7 @@ const NOT_A_PAGE_HEADER: Record<string, string> = {
   "src/pages/auth/signup/SignupStep1.tsx": "signed out",
   "src/pages/info/NotFound.tsx": "404 moment",
   "src/pages/info/GiftGuides.tsx": "the public gift guides' one-row header (owner 2026-11-21: back arrow, \"Gift guides\", search, list and share on one row): a signed-out public page, not a signed-in page header; its h1 is \"Gift guides\" only where no guide banner draws (with a banner it is a <p> and GiftGuideCover's banner title is the h1)",
+  "src/pages/info/giftGuides/fun/FunPage.tsx": "the gift guides' frame for the fun pages and /shop-small (holiday audit 1121 #13/#73): the same public one-row header as GiftGuides.tsx (back arrow, the page's name as its h1, search, list and share); a public page, not a signed-in page header",
   "src/pages/info/giftGuides/GiftGuideCover.tsx": "the public gift guides' banner title (live audit 11-18 r3 #7): the guide's name is the page's h1 while the shared header row paints \"Gift guides\" as a plain line (titleTag=\"p\")",
   "src/prerender/staticPages.tsx": "build-time static markup of /terms/full, /privacy/full, /sms-opt-in for readers with no JavaScript (api/share puts it in #root; React replaces it on boot); the live page uses PageHeader",
   "src/pages/post-job/PaymentSuccess.tsx": "the payment-confirmed celebration moment",

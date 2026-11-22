@@ -75,7 +75,13 @@ describe("phone guide page: the count, the pill and the icons on one row under t
     expect(c.querySelectorAll("[data-gift-quick]").length).toBe(1);
   });
 
-  it("the landing on a phone and every page on a desktop keep the pill and the icons in the header row", async () => {
+  // Owner 2026-11-22 (phone): the head row's pill and icons are hidden up to 767px (only the heart and the three-line
+  // menu show there, src/test/giftGuidePhoneHead1122.test.tsx); a guide's count row above is unchanged.
+  it("every page on a desktop keeps the pill and the icons in the header row; on a phone the CSS hides them there", async () => {
+    const from = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.indexOf(".gg-head-phone{display:none}"));
+    const phone = from.slice(0, from.indexOf("\n}\n") + 2);
+    expect(phone).toContain(".gg-headrow>.gg-ship,.gg-headrow>.gg-tools{display:none}");
+    expect(phone).not.toContain(".gg-countrow");
     for (const [url, width] of [["/gift-guides", 390], ["/gift-guides/kids", 1440], ["/gift-guides", 1440]] as const) {
       const c = await renderAt(url, width);
       const head = c.querySelector("[data-gift-headrow]")!;

@@ -4,6 +4,8 @@ import { guideBySlug, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { FUN_TOOLS, FUN_WORDS } from "@/content/giftGuideFun1120";
 import { EXTRAS_WORDS, FINDER_ANCHOR as FINDER_ID } from "@/content/giftGuideExtras1120";
 import { PRINTABLE_PAGES, printablesOnPage } from "@/content/printables";
+import { WISH_CORE as WISH } from "@/content/giftWishListCore";
+import { MY_LIST_SLUG } from "./giftList";
 
 /** The 25 Days sponsors page: an entry of its own in the menu's second block. */
 const SPONSORS_SLUG = "25-days-sponsors";
@@ -30,7 +32,8 @@ const SIDE_GUIDES = [
  *   LOUISIANA: Holiday Hub, 25 Days sponsors (owner 11-21: Shop Small left: "it's already listed with small business
  *   saturday"; /shop-small opens that page).
  * A 220px sticky menu beside the page on desktop. On a phone (owner 11-21: "We need a way to organize this on the
- * phones") the sidebar is hidden and the same groups open in a bottom sheet from the chip row (GiftGuidesPhoneNav).
+ * phones") the sidebar is hidden and the same groups open in a bottom sheet from the head row's three-line icon (owner
+ * 11-22, GuidesMenuButton in GiftGuidesPhoneNav.tsx).
  */
 export function GiftGuidesSidebar({ active, myList = false, page }: MenuProps) {
   return (
@@ -42,20 +45,22 @@ export function GiftGuidesSidebar({ active, myList = false, page }: MenuProps) {
 
 interface MenuProps { active: CatalogGuide | null; myList?: boolean; page?: string }
 
-/** The live guides with their cover dots, for the menu and the phone's chip row (GiftGuidesPhoneNav). */
-export const sideGuides = () => SIDE_GUIDES.flatMap((x) => {
+/** The live guides with their cover dots, for the menu (desktop sidebar and the phone's menu sheet). */
+const sideGuides = () => SIDE_GUIDES.flatMap((x) => {
   const g = guideBySlug(x.slug);
   return g && !g.empty ? [{ ...x, title: g.title }] : [];
 });
 
 /** Which menu entry is open: a page key, a relationship view's guide (Mom -> Her), or the guide itself. */
-export const openEntry = ({ active, page }: MenuProps) => page ?? active?.view?.of ?? active?.slug ?? null;
+const openEntry = ({ active, page }: MenuProps) => page ?? active?.view?.of ?? active?.slug ?? null;
 
 /**
  * The grouped menu's body, shared by the desktop sidebar and the phone's menu sheet (owner 11-21: "We need a way to
- * organize this on the phones"). `idPrefix` keeps the group heading ids unique when both are in the page.
+ * organize this on the phones"). `idPrefix` keeps the group heading ids unique when both are in the page. `wishList`:
+ * the phone sheet adds My Wish List under the guides (owner 11-22: the phone's three-line menu replaced its chip row, so
+ * it holds every guides page; the desktop sidebar is unchanged, its heart sits in the head row).
  */
-export function GiftGuidesMenu({ active, myList = false, page, idPrefix = "gg-side" }: MenuProps & { idPrefix?: string }) {
+export function GiftGuidesMenu({ active, myList = false, page, idPrefix = "gg-side", wishList = false }: MenuProps & { idPrefix?: string; wishList?: boolean }) {
   const open = openEntry({ active, page });
   const current = (slug: string | null) => (!myList && open === slug ? ({ "aria-current": "page" } as const) : {});
   const guides = sideGuides();
@@ -70,6 +75,7 @@ export function GiftGuidesMenu({ active, myList = false, page, idPrefix = "gg-si
             <Link to={`/gift-guides/${g.slug}`} {...current(g.slug)} data-gift-side={g.slug}><i className={`gg-dot gg-${g.dot}`} aria-hidden="true" data-gift-side-dot={g.dot} />{g.title}</Link>
           </li>
         ))}
+        {wishList && <li><Link to={`/gift-guides/${MY_LIST_SLUG}`} {...(myList ? ({ "aria-current": "page" } as const) : {})} data-gift-side-wish-list="">{WISH.title}</Link></li>}
       </ul>
       <p className="gg-side-h" id={`${idPrefix}-deals`}>{G.sideHeads.deals}</p>
       <ul data-gift-side-deals-group="" aria-labelledby={`${idPrefix}-deals`}>

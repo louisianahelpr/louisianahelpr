@@ -244,19 +244,22 @@ function GiftGuideShare({ path, title, image, many = false }: { path: string; ti
 /** The focusable items of an open menu, in order. */
 const menuItems = (menu: HTMLElement | null): HTMLElement[] => (menu ? [...menu.querySelectorAll<HTMLElement>("[role=menuitem]")] : []);
 
-/** My Wish List as an icon with its count (a link to /gift-guides/my-list). */
-function MyListIcon({ current }: { current: boolean }) {
+/**
+ * My Wish List as an icon with its count (a link to /gift-guides/my-list). `head`: the phone head row's heart (owner
+ * 2026-11-22: the three-line menu and the heart on the right of "Gift guides"), named "Wish list" (GuidesHeadRow).
+ */
+export function MyListIcon({ current, head = false }: { current: boolean; head?: boolean }) {
   const list = useGiftList();
   const n = list.guides.length + list.picks.length;
   return (
     // Owner 11-21: on a guide page the heart opens My lists (every person's list and My Wish List, each to manage);
     // with no sheet on the page it stays a link to My Wish List.
-    <Link to={`/gift-guides/${MY_LIST_SLUG}`} className="gg-icon gg-mylist-icon" aria-label={WISH.countLabel(n)}
+    <Link to={`/gift-guides/${MY_LIST_SLUG}`} className="gg-icon gg-mylist-icon" aria-label={head ? G.phoneHeartLabel(n) : WISH.countLabel(n)}
       onClick={(e) => { if (!current && openMyLists(null)) e.preventDefault(); }}
-      {...(current ? { "aria-current": "page" as const } : {})} data-gift-my-list-link="">
+      {...(current ? { "aria-current": "page" as const } : {})} {...(head ? { "data-gift-head-heart": "" } : { "data-gift-my-list-link": "" })}>
       <Icon d={HEART} fill={n > 0 ? "currentColor" : "none"} />
       {/* No count badge on an empty list (pre-launch audit 11-18 PM: a red "0"). */}
-      {n > 0 && <span className="gg-icon-count" aria-hidden="true" data-gift-my-list-count="">{n}</span>}
+      {n > 0 && <span className="gg-icon-count" aria-hidden="true" data-gift-my-list-count={head ? "head" : ""}>{n}</span>}
     </Link>
   );
 }

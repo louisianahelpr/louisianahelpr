@@ -185,9 +185,10 @@ describe("gift guides: one header on every page (owner 11-21)", () => {
       expect(head!.querySelector("[data-gift-back-to] button[aria-label]"), url).not.toBeNull();
       expect(head!.querySelector("[data-gift-head-name]")?.textContent, url).toBe("Holiday gift guides");
       expect(head!.querySelector("[data-gift-head-name]")?.tagName, url).toBe(tag);
-      // Arrow + title, then the pill, then the tools (search, heart, Share), as siblings of the one row.
+      // Arrow + title, then the pill, then the tools (search, heart, Share), as siblings of the one row; last the phone's
+      // heart + three-line menu (owner 11-22), which the CSS shows only up to 767px.
       const kids = [...head!.children];
-      expect(kids.map((k) => (k.matches("[data-gift-head-title]") ? "title" : k.matches("[data-gift-ship]") ? "ship" : k.matches("[data-gift-quick]") ? "tools" : k.tagName)), url).toEqual(["title", "ship", "tools"]);
+      expect(kids.map((k) => (k.matches("[data-gift-head-title]") ? "title" : k.matches("[data-gift-ship]") ? "ship" : k.matches("[data-gift-quick]") ? "tools" : k.matches("[data-gift-head-phone]") ? "phone" : k.tagName)), url).toEqual(["title", "ship", "tools", "phone"]);
       // No centered title block: the landing has none, a guide keeps only its cover banner (its own h1).
       expect(container.querySelector("[data-gift-words]:not([data-gift-banner])"), url).toBeNull();
       expect(container.textContent, url).not.toMatch(/top-rated finds/i);

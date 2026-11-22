@@ -31,6 +31,8 @@ vi.mock("@/lib/giftGuideFunApi", () => ({
 const api = vi.hoisted(() => ({ request: vi.fn(), read: vi.fn(), share: vi.fn(), get: vi.fn() }));
 vi.mock("@/lib/giftWishListApi", async (orig) => ({
   ...(await orig<typeof import("@/lib/giftWishListApi")>()),
+  // A share now keeps a token to stop its link (wishListDelete1121.test.tsx); here it never reaches a server.
+  claimShare: vi.fn(async () => undefined),
   requestWishLink: api.request, readWishLinks: api.read, shareGiftLists: api.share, getSharedList: api.get,
 }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({

@@ -52,6 +52,13 @@ export const WISH = {
   syncedNote: "Saved to your account, so it's on every device you sign in on.",
   syncFailed: "Couldn't save to your account just now. It's kept on this device and we'll try again.",
   syncRetry: "Try again",
+  stopSharing: "Stop sharing this link",
+  sharingStopped: "Link stopped. It doesn't open anymore.",
+  deleteMyList: "Delete my list",
+  deleteMyListTitle: "Delete your wish list?",
+  deleteMyListBody: "This deletes your list and its link from your account and this device. Anyone you sent the link to won't be able to open it. It can't be undone.",
+  deleteMyListDone: "Your list and its link are deleted.",
+  deleteMyListFailed: "We couldn't delete your list just now. Try again.",
   deviceNote: "Saved on this device. Sign in to keep it on all your devices.",
   /** The shared list's page. */
   /** Above the list's name on a shared list: the name is the sender's own words, never ours (security review #4). */

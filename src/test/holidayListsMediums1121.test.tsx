@@ -231,21 +231,21 @@ describe("holiday audit 1121: gift lists Mediums", () => {
     const hat = stored().people[1].ideas[0];
     fireEvent.click(c.querySelector(`[data-plan-remove-idea="${hat.id}"]`)!);
     expect(stored().people[1].ideas.map((i) => i.name)).toEqual(["Coffee mug"]);
-    expect(toasts.at(-1)!.message).toBe("Removed Fishing hat");
-    expect(toasts.at(-1)!.action!.label).toBe(WISH.undo);
-    toasts.at(-1)!.action!.onClick();
+    expect(toasts[toasts.length - 1].message).toBe("Removed Fishing hat");
+    expect(toasts[toasts.length - 1].action!.label).toBe(WISH.undo);
+    toasts[toasts.length - 1].action!.onClick();
     expect(stored().people[1].ideas.map((i) => i.name)).toEqual(["Fishing hat", "Coffee mug"]);
     await waitFor(() => expect(c.querySelectorAll(`[data-plan-person="${dad.id}"] [data-plan-idea]`)).toHaveLength(2));
 
     // A person: removed with their gifts, "Removed Dad · Undo", Undo puts Dad back in the middle with both gifts.
     fireEvent.click(c.querySelector(`[data-plan-remove="${dad.id}"]`)!);
     expect(stored().people.map((p) => p.name)).toEqual(["Mom", "Jake"]);
-    expect(toasts.at(-1)!.message).toBe("Removed Dad");
-    toasts.at(-1)!.action!.onClick();
+    expect(toasts[toasts.length - 1].message).toBe("Removed Dad");
+    toasts[toasts.length - 1].action!.onClick();
     expect(stored().people.map((p) => p.name)).toEqual(["Mom", "Dad", "Jake"]);
     expect(stored().people[1].ideas.map((i) => i.name)).toEqual(["Fishing hat", "Coffee mug"]);
     // A second Undo adds nobody twice.
-    toasts.at(-1)!.action!.onClick();
+    toasts[toasts.length - 1].action!.onClick();
     expect(stored().people).toHaveLength(3);
   });
 });

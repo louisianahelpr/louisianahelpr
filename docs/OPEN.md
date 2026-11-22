@@ -107,7 +107,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 2303 items — 2242 done, 38 partly done (fixed, protection pending), 23 open.**
+**Queue: 2304 items — 2242 done, 39 partly done (fixed, protection pending), 23 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -122,6 +122,7 @@ sure someone hears it and closes it.
 
 ## QUEUE (cont.) — added 2026-09-23 late
 
+- [~] **Q2835 MEDIUM Saved-gift price alerts: verify on prod after deploy with an is_seed row.** Built 2026-11-21 on feat/saved-gift-alerts-1121 (owner pop-up: "Saved-list price alerts — opt-in email when a saved gift drops in price, plus a reminder before Dec 15"); guard src/test/giftPriceAlerts.test.ts, proof src/test/pglite/giftPriceAlerts.pglite.mjs. Left after landing: (1) insert an is_seed gift_price_alerts row for a fixture inbox with a saved price above the feed's, POST gift-price-alerts with {only_email, include_seed: true} and the cron secret, and read its email_send_log row (template gift_price_drop, status suppressed: test recipients are never mailed); delete the row; (2) confirm https://www.louisianahelpr.com/gift-guides/price-feed.json is served as JSON; (3) the opt-in also goes into the guides' My lists panel once save-per-person (planner-ideas) lands. (4) review notes left open (lh-authz-rls@62e9e91f31): signed-out sign-ups have no confirm-your-email step (emails carry only guide gifts by the guide's own names, so a stranger can only cause our own product email to reach an address, which one click stops); account deletion does not remove a gift_price_alerts row for the member's address (it expires after Jan 31, and the unsubscribe link stops it). finding: lh-authz-rls@62e9e91f31#1 done-when: sql `SELECT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'gift_price_alert_subscribe')` => true
 
 
 

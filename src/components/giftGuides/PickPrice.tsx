@@ -8,7 +8,8 @@ import { pickPriceShown, shownDollars } from "@/lib/pickPriceShown.mjs";
  * warned in a pop-up that Amazon allows prices only from its PA-API feed and that showing them risks the Associates
  * account, she chose "Show Amazon prices anyway". An Amazon pick's price is the one captured from her own saved list.
  * A price older than PRICE_MAX_AGE_DAYS on the day the page opens is hidden, so a file nobody re-imported never shows
- * an old price. The rule (and the rounding) lives in src/lib/pickPriceShown.mjs, shared with the guide's JSON-LD.
+ * an old price. The rule (and the rounding) lives in src/lib/pickPriceShown.mjs, shared with the guide's JSON-LD; holiday
+ * audit 1121 (High) moved its limit from 3 to 30 days so the Nov 21 prices do not go blank the week of Black Friday.
  * Guard: src/test/giftGuidePrices.test.tsx.
  */
 const todayInLouisiana = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());

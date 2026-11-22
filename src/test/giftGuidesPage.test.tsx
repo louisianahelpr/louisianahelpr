@@ -52,7 +52,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | "gg w-full" | "gg page-column"
  * @mutate src/content/giftGuides.ts |   for (const c of [...codes].sort((a, b) => a.rank - b.rank)) stores.set(c.store, [...(stores.get(c.store) ?? []), c]); |   for (const c of codes) stores.set(`${c.store} ${c.code}`, [c]);
  * @mutate src/content/giftGuideCatalog.ts |   const to = MERGED_GUIDES[s]?.[0] ?? s; |   const to = s;
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-side{order:2;position:static; | .gg-side{display:none;order:2;position:static;
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-side{display:none} | .gg-side{order:2;position:static}
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | /iPhone\|iPad\|iPod/.test(userAgent) ? "&" : "?" | "?"
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.empty && g.row === row
  * @mutate src/content/giftGuideCatalog.ts | GUIDES.filter((g) => !g.empty && !g.thin && g.row === row | GUIDES.filter((g) => !g.thin && g.row === row
@@ -60,7 +60,7 @@
  * @mutate src/content/giftGuideCatalog.ts | picks: HAS_CHUNK.has(t) ? d.picks : uniqueByHref([...d.picks, ...src.picks]) | picks: HAS_CHUNK.has(t) ? d.picks : [...d.picks, ...src.picks, ...src.picks]
  * @mutate src/content/giftGuides.ts | codes.filter((c) => (!c.expires \|\| c.expires >= today) && | codes.filter((c) => (today === today) &&
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   if (codes.length === 0) return null; |   if (codes.length === 0) return <details data-gift-codes="" />;
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && ( | {false && (
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {!guide.children && guide.picks.length === 0 && ( | {false && (
  * @mutate src/content/giftGuideCatalog.ts | export const REMOVED_GUIDES = ["last-minute-gifts", | export const REMOVED_GUIDES = ["nothing",
  * @mutate src/pages/info/GiftGuides.tsx | : guide.lead} title={guide.title} titleId="gift-guide-title" | : guide.lead} title={guide.slug} titleId="gift-guide-title"
  * @mutate src/pages/info/Index.tsx |       <SectionsShowcase />\n |       <SectionsShowcase />\n      <GiftGuidesBand />\n
@@ -69,7 +69,7 @@
  * @mutate src/content/giftGuideIndex.ts |   { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" }, |   { group: "By store", tint: "green", slug: "store-shopmy", title: "ShopMy", lead: "shop" },\n  { group: "By store", tint: "green", slug: "store-amazon", title: "Amazon", lead: "shop" },
  * @mutate src/content/giftGuideIndex.ts | { group: "By career", tint: "oat", slug: "stay-at-home-parents" | { group: "Life moments", tint: "oat", slug: "stay-at-home-parents"
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx |         {g.age && <span className="gg-count">{g.age}</span>} |         <span className="gg-count">{g.age ?? ""}{g.picks.length} picks</span>
- * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |             <h1 id={titleId}>{title}</h1>\n          </div> |             <h1 id={titleId}>{title}</h1>\n            <p className="gg-arch-foot">Louisiana Helpr</p>\n          </div>
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |             <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>\n          </div> |             <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>\n            <p className="gg-arch-foot">Louisiana Helpr</p>\n          </div>
  * @mutate src/content/giftGuides.ts |   { rank: 1, store: "Muck Boot", code: "TAKE25", | { rank: 8, store: "Muck Boot US", code: "TAKE25",
  */
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
@@ -354,7 +354,8 @@ describe("gift guides: the landing opens to the guides", () => {
     // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {n > 0 && <span className="gg-icon-count" |       {true && <span className="gg-icon-count"
     // Owner 11-21: the tool row moved up beside the shipping pill, so the banner holds only its arch.
     // Owner 11-21: "remove louisiana helpr from the [banner]".
-    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forMom"]);
+    // Holiday audit 1121: the drawn lead (aria-hidden), then the h1, which reads "gifts for Mom" (its lead is sr-only).
+    expect(wordsOf("/gift-guides/mom")).toEqual(["gifts forgifts for Mom"]);
     cleanup();
     expect(renderAt("/gift-guides/mom").container.querySelector("[data-gift-headrow] [data-gift-quick]")?.textContent).toBe("");
     cleanup();
@@ -366,7 +367,9 @@ describe("gift guides: the landing opens to the guides", () => {
       expect(head.getAttribute("data-gift-banner"), slug).toBe(g.tint);
       expect(head.querySelector(".gg-banner")?.className, slug).toBe(`gg-banner gg-check gg-${g.tint}`);
       const arch = head.querySelector("[data-gift-arch]")!;
-      expect([...arch.children].map((x) => x.textContent), slug).toEqual([g.age ? `${g.lead}, ${g.age}` : g.lead, g.title]);
+      // Holiday audit 1121: the h1 also carries the lead (sr-only), so it reads "gifts for Mom".
+      const lead = g.age ? `${g.lead}, ${g.age}` : g.lead;
+      expect([...arch.children].map((x) => x.textContent), slug).toEqual([lead, `${lead} ${g.title}`]);
       // Live audit r3 #7: the guide's name is the page's ONE h1; the header's "Gift guides" is a plain line.
       expect(arch.querySelector("h1")?.id, slug).toBe("gift-guide-title");
       expect(c.querySelectorAll("h1").length, slug).toBe(1);
@@ -386,7 +389,7 @@ describe("gift guides: the landing opens to the guides", () => {
     cleanup();
     const mom = renderAt("/gift-guides/mom").container;
     expect(mom.querySelector(".gg-band")).toBeNull();
-    expect(mom.querySelector("[data-gift-words] h1")?.textContent).toBe("Mom");
+    expect(mom.querySelector("[data-gift-words] h1")?.textContent).toBe("gifts for Mom");
   });
 
   it("a guide that holds nothing is in no row, search or menu; its own link opens Picks coming soon and related guides", () => {
@@ -442,10 +445,10 @@ describe("gift guides: the landing opens to the guides", () => {
       expect([...view.querySelectorAll('[data-gift-sidebar] a[aria-current="page"]')].map((a) => a.getAttribute("href")), url).toEqual([cur]);
       cleanup();
     }
-    // On a phone the menu sits after the page instead of being hidden (the sponsors and the Holiday Hub live only there).
-    const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.indexOf("@media (max-width:767px){\n"));
-    expect(phone).toMatch(/\.gg-side\{order:2;position:static;/);
-    expect(phone).not.toMatch(/\.gg-side\{display:none/);
+    // Owner 11-21 ("We need a way to organize this on the phones"): a phone draws no sidebar at the page's foot; the
+    // chip row and its menu sheet carry the menu (src/test/giftGuidesPhoneNav1121.test.tsx).
+    expect(GIFT_GUIDES_CSS).toMatch(/@media \(max-width:767px\)\{[^@]*\.gg-side\{display:none\}/);
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-side\{order:2/);
   });
 
   it("a store page with fewer than 6 picks is no By store tile, menu entry or search result, but its link still opens it", () => {
@@ -462,7 +465,7 @@ describe("gift guides: the landing opens to the guides", () => {
     if (thin[0]) {
       expect(searchGuides(thin[0].title).map((x) => x.slug)).not.toContain(thin[0].slug);
       const { container } = renderAt(`/gift-guides/${thin[0].slug}`);
-      expect(container.querySelector("[data-gift-words] h1")?.textContent).toBe(thin[0].title);
+      expect(container.querySelector("[data-gift-words] h1")?.textContent).toBe(`${thin[0].lead} ${thin[0].title}`);
       expect(container.querySelector('[data-gift-row="by-store"]')).toBeNull();
       cleanup();
     }
@@ -482,7 +485,7 @@ describe("gift guides: the landing opens to the guides", () => {
   it("an old /gift-guides#<slug> pin opens that guide's page; an unknown slug falls back to the landing", () => {
     renderAt("/gift-guides#for-him");
     expect(screen.getByTestId("where").textContent).toBe("/gift-guides/him");
-    expect(screen.getByRole("heading", { level: 1, name: "Him" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "gifts for Him" })).toBeTruthy();
     cleanup();
     renderAt("/gift-guides/for-mom");
     expect(screen.getByTestId("where").textContent).toBe("/gift-guides/mom");
@@ -528,7 +531,7 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
     for (const slug of ["mom", "her", "him", "kids", "25-days-sponsors"]) {
       const g = guideBySlug(slug)!;
       const { container } = renderAt(`/gift-guides/${slug}`);
-      expect(container.querySelector("[data-gift-words] h1")?.textContent, slug).toBe(g.title);
+      expect(container.querySelector("[data-gift-words] h1")?.textContent, slug).toBe(`${g.age ? `${g.lead}, ${g.age}` : g.lead} ${g.title}`);
       // Design audit 2026-11-18 #3: a long list draws 50 rows, then "Show more" adds 50 at a time (store-amazon drew 827).
       // ... and with six or fewer left it draws them all (design audit r2 #16: "Show more (1 more)").
       // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const upTo = picks.length - shown <= SHOW_ALL_UNDER ? picks.length : shown; |   const upTo = picks.length;

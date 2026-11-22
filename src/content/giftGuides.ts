@@ -227,6 +227,8 @@ export const giftGuides = {
    * smaller groups as a plain line of links. Every guide is one tap from its group's page.
    */
   browseTitle: "Browse the guides",
+  /** The landing's Top 10 row (owner 2026-11-21 ~5:05 PM, src/content/giftGuideTop10.ts). */
+  top10Title: "Top 10 gifts",
   /** The quiet line under a landing tile (lead 11-21): "36 gifts". */
   tileCount: (n: number) => `${n} ${n === 1 ? "gift" : "gifts"}`,
   moreTitle: "More guides",
@@ -263,6 +265,11 @@ export const giftGuides = {
   /** The left menu's group headings (owner 11-21: "guides, deals, free, make it fun should all be their own section"). */
   sideHeads: { guides: "Guides", deals: "Deals", free: "Free printables", louisiana: "Louisiana" },
   sideHolidayHub: "Holiday Hub",
+  /** The phone's chip row and menu sheet (owner 11-21: "We need a way to organize this on the phones"). */
+  phoneNavLabel: "Gift guides menu",
+  phoneNavPrintables: "Printables",
+  phoneNavFun: "Make it fun",
+  phoneNavMenu: "Menu",
   sideShopSmall: "Shop Small",
   /** The left menu's entry for the 25 Days sponsors page (owner 11-21: "move 25 day sponsors to the left panel"). */
   sideSponsorsLabel: "25 Days sponsors",
@@ -286,6 +293,8 @@ export const giftGuides = {
   /** A deal's end date, "2026-11-22" -> "Ends Nov 22". */
   dealEnds: (ymd: string) => `Ends ${new Date(`${ymd}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`,
   newTab: "opens in a new tab",
+  // Amazon Buy Now on a card (owner 11-21): the cart icon's spoken label.
+  addToAmazonCart: (name: string) => `Add ${name} to your Amazon cart (opens in a new tab)`,
   onStore: (store: string) => `On ${store}`,
   /** A ShopMy collection link opens a page of many products, not this one (design audit r2 #3/#9): the row says so. */
   collectionOnShopMy: "Collection on ShopMy",
@@ -322,6 +331,7 @@ export const giftGuides = {
   myListLabel: "My list",
   myListEmpty: "Tap a heart on any guide or gift to save it here.",
   searchNone: "No guides match. Try another word.",
+  searchFailed: "Couldn't load gift results. Check your connection.",
   codesLabel: "Discount codes",
   /** The sidebar's Sales (follow-up 2026-11-18): every live store sale, soonest end first; each hidden after it ends. */
   salesLabel: "Sales",
@@ -356,6 +366,10 @@ export const giftGuides = {
   comingSoonBody: "We're gathering the best gifts for this guide. Check back soon, or browse another guide.",
   relatedTitle: "Try these guides",
   loadingPicks: "Loading picks…",
+  /** A data file that did not load (holiday audit 1121): offline or a failed chunk, never "Loading…" for good. */
+  picksFailed: "We couldn't load these gifts. Check your connection and try again.",
+  dealsFailed: "The deals didn't load. Check your connection and try again.",
+  loadRetry: "Try again",
   /** Under a long list (design audit 11-18 #3: store-amazon drew 827 rows at once): the next 50. */
   showMorePicks: (left: number) => `Show more (${left} more)`,
   /** A merged guide's section links under its banner (1120): one per section, "Jump to" read by screen readers. */

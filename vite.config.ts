@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { entryBootPreloads, trimEntryRouteDeps, type EntryRouteBundle } from "./scripts/perf/entryRouteDeps.mjs";
 import { stripHtmlComments } from "./scripts/perf/stripHtmlComments.mjs";
+import { PRICE_FEED_FILE, buildPriceFeed } from "./scripts/lib/giftGuidePriceFeed.mjs";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";
@@ -310,6 +311,17 @@ export default defineConfig(({ mode, command }) => ({
     requireBuildEnv(mode),
     authJsNoPasskeys(),
     react(),
+    // Saved-gift price alerts (owner 2026-11-21): every checked guide price, by shop link, as
+    // /gift-guides/price-feed.json, so the gift-price-alerts edge function compares the prices the deployed guides show.
+    // Not imported by any page (no bytes on any critical path). Guard: src/test/giftPriceAlerts.test.ts.
+    {
+      name: "lh-gift-price-feed",
+      apply: "build",
+      generateBundle() {
+        const feed = buildPriceFeed(path.join(process.cwd(), "src/content/giftGuidePicks"));
+        this.emitFile({ type: "asset", fileName: PRICE_FEED_FILE, source: JSON.stringify(feed) });
+      },
+    } satisfies Plugin,
     // Stamp the built index.html with the commit it was built from.
     //
     // WHY: `__APP_COMMIT__` has existed in `define` above for months, but no

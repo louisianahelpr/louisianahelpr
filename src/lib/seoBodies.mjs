@@ -177,7 +177,7 @@ export function giftGuidesLandingBody(groups) {
     .join("");
   return page(
     [HOME, GUIDES],
-    `<h1>Holiday Gift Guides 2026</h1><p>Gift ideas for everyone on your list from Louisiana Helpr: by person, budget, career and store, plus Louisiana favorites. Each guide links to the store that sells every pick.</p>${sections}`,
+    `<h1>Holiday Gift Guides 2026</h1><p>Gift ideas for her, him and the kids from Louisiana Helpr, every pick with its price and sorted by budget. Each guide links to the store that sells every pick.</p>${sections}`,
   );
 }
 
@@ -256,7 +256,7 @@ const INFO_PAGES = {
     name: "Swipe to find gifts",
     h1: "Swipe to find gifts",
     intro: "Pick who it's for and your budget, then swipe through gift ideas from our holiday gift guides. Swipe right to save a gift to your wish list.",
-    links: [["/gift-guides", "Holiday gift guides"], ["/gift-guides/planner", "Gift planner"], ["/gift-guides/draw-names", "Secret Santa drawer"]],
+    links: [["/gift-guides", "Holiday gift guides"], ["/gift-guides/planner", "Gift planner"], ["/gift-guides/draw-names", "Secret Santa name draw"]],
   },
   "/gift-guides/planner": {
     name: "Gift planner",
@@ -265,8 +265,8 @@ const INFO_PAGES = {
     links: [["/gift-guides", "Holiday gift guides"], ["/gift-guides/swipe", "Swipe to find gifts"]],
   },
   "/gift-guides/draw-names": {
-    name: "Secret Santa drawer",
-    h1: "Free Secret Santa name drawer",
+    name: "Secret Santa name draw",
+    h1: "Free Secret Santa name draw",
     intro: "Type everyone's first name, add a budget and who can't draw each other, and send each person a private link to their match. No emails or phone numbers.",
     links: [["/gift-guides/secret-santa", "Secret Santa and White Elephant gift ideas"], ["/gift-guides", "Holiday gift guides"]],
   },

@@ -40,7 +40,7 @@ import GiftGuides from "@/pages/info/GiftGuides";
 import { loadGuidePicks } from "@/content/giftGuideCatalog";
 import { giftGuides as G } from "@/content/giftGuides";
 import { earnFirstInGroups } from "@/content/giftGuideEarnOrder";
-import { rankFromClicks, fileBody, CLICKS_SQL } from "../../scripts/gift-guide-earn-rank.mjs";
+import { rankFromClicks, clicksByHref, fileBody, CLICKS_SQL } from "../../scripts/gift-guide-earn-rank.mjs";
 import her from "@/content/giftGuidePicks/her.json";
 import him from "@/content/giftGuidePicks/him.json";
 import kids from "@/content/giftGuidePicks/kids.json";
@@ -74,6 +74,9 @@ describe("the rank generator (scripts/gift-guide-earn-rank.mjs)", () => {
       { href: "javascript:alert(1)", clicks: 99 }, { href: "https://z.example/1", clicks: 0 }, { href: "https://a.example/1", clicks: 1 },
     ])).toEqual({ "https://c.example/1": 1, "https://a.example/1": 2, "https://b.example/1": 3 });
     expect(rankFromClicks(null)).toEqual({});
+    // The raw counts the landing Top 10's 20-click rule reads (giftGuideTop10.ts), with the same drops and sums.
+    expect(clicksByHref([{ href: "https://a.example/1", clicks: 4 }, { href: "https://a.example/1", clicks: 1 }, { href: "http://b.example/1", clicks: 9 }, { href: "https://c.example/1", clicks: 0 }])).toEqual({ "https://a.example/1": 5 });
+    expect(JSON.parse(fileBody({}, "2026-11-21", { "https://a.example/1": 5 })).clicks).toEqual({ "https://a.example/1": 5 });
   });
   it("reads only our own click event, the last 14 days, without robots (analytics_events_real), read-only", () => {
     expect(CLICKS_SQL).toContain("FROM public.analytics_events_real");
@@ -99,8 +102,8 @@ const renderAt = (url: string) =>
   );
 const sections = (c: HTMLElement) =>
   [...c.querySelectorAll<HTMLElement>("section[data-gift-section]")].map((sec) => ({
-    title: sec.querySelector("h3")?.firstChild?.textContent ?? "",
-    hrefs: [...sec.querySelectorAll<HTMLAnchorElement>("[data-gift-pick] a[data-gift-out]")].map((a) => a.href).filter((h, i, all) => all.indexOf(h) === i),
+    title: sec.querySelector("h2")?.firstChild?.textContent ?? "", // h2 under the banner h1 (holiday polish 2)
+    hrefs: [...sec.querySelectorAll<HTMLAnchorElement>("[data-gift-pick] a[data-gift-out]:not(.gg-cart)")].map((a) => a.href).filter((h, i, all) => all.indexOf(h) === i),
   }));
 const choose = (label: string) => {
   fireEvent.click(screen.getByRole("button", { name: G.sortLabel }));
@@ -139,7 +142,7 @@ describe("Her's default order puts the clicked picks first in their own section"
   it("opening a pick logs one gift_out_click with its link (click or middle-click)", async () => {
     await act(async () => { await loadGuidePicks("her"); });
     const { container } = renderAt("/gift-guides/her");
-    const link = container.querySelector<HTMLAnchorElement>("[data-gift-pick] a[data-gift-out]")!;
+    const link = container.querySelector<HTMLAnchorElement>("[data-gift-pick] a[data-gift-out]:not(.gg-cart)")!;
     link.addEventListener("click", (e) => e.preventDefault());
     fireEvent.click(link);
     fireEvent(link, new MouseEvent("auxclick", { bubbles: true, button: 1 }));

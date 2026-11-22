@@ -118,7 +118,8 @@ describe("signed in, the Holiday Gift Guides are one tap away (owner 11-19)", ()
       </Routes>
     );
     const r = wrap(routes, `/gift-guides/${guide.slug}`);
-    await waitFor(() => expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toContain(guide.title));
+    // The banner h1 reads its lead too ("gifts for Her", holiday polish 2), so match the title at its end.
+    await waitFor(() => expect(screen.getAllByRole("heading", { level: 1 }).some((h) => (h.textContent ?? "").trim().endsWith(guide.title))).toBe(true));
     expect(where).toBe(`/gift-guides/${guide.slug}`);
     expect(screen.queryByText("dashboard")).toBeNull();
     r.unmount();

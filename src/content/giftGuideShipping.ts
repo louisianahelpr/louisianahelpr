@@ -1,10 +1,12 @@
 /**
  * The gift guides' shipping banner (owner 2026-11-18), by the date in Louisiana (America/Chicago), whatever the
  * visitor's own zone:
- *   - before Dec 15: "Order by Dec 15 for Christmas delivery";
+ *   - Nov 1 through Dec 14: "Order by Dec 15 for Christmas delivery";
  *   - Dec 15 through Dec 20: "Last days for Christmas shipping: choose fast shipping";
- *   - Dec 21 through Dec 25: "Last-minute? Gift cards and digital gifts arrive instantly";
- *   - after Dec 25: no banner.
+ *   - Dec 21 through Dec 25: "Last-minute? Gift cards and digital gifts arrive instantly" (owner wording);
+ *   - Dec 26 through Oct 31: no banner.
+ * Holiday audit 1121: the early line came back every January (any month but December showed it). The last line still
+ * names gift cards, which left the guides on 11-20: it is the owner's wording, so it is on her decision list.
  * Guard: src/test/giftGuidesExtras.test.tsx.
  */
 export const SHIP_LINES = {
@@ -20,10 +22,11 @@ const chicagoMonthDay = (now: Date): { month: number; day: number } => {
   return { month: num("month"), day: num("day") };
 };
 
-/** The banner's words at `now`, or null when it is hidden (Dec 26 to Dec 31). */
+/** The banner's words at `now`, or null when it is hidden (Dec 26 through Oct 31). */
 export function shippingLine(now: Date): string | null {
   const { month, day } = chicagoMonthDay(now);
-  if (month !== 12 || day < 15) return SHIP_LINES.early;
+  if (month === 11 || (month === 12 && day < 15)) return SHIP_LINES.early;
+  if (month !== 12) return null;
   if (day <= 20) return SHIP_LINES.late;
   if (day <= 25) return SHIP_LINES.instant;
   return null;

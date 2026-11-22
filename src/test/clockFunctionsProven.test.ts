@@ -114,6 +114,7 @@ const PROVEN: Record<string, string> = {
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
 // @two-way src/test/clockFunctionsProven.test.ts:NOT_PROVEN names a function that is gone, not cron-run, reads no clock, or is proven
 const NOT_PROVEN: Record<string, string> = {
+  gift_price_alerts_expire: "saved-gift price alerts cleanup (*_gift_price_alerts.sql), measured 11-21: giftPriceAlerts.pglite.mjs proves it by moving a subscription's created_at 400 days back (only that row goes); no fixedClock.mjs probe yet, the season line is relative to now()",
   secret_santa_expire: "gift guides Secret Santa cleanup (20261120062334), measured 11-20: giftGuideSecretSanta.pglite.mjs proves it by moving expires_at into the past (not the clock) and asserts the group and its people are deleted; no fixedClock.mjs probe yet",
   declutter_away_sweep: "Declutter top 5 #5 away mode (20261120015456), measured 11-19: declutterBulkAndAway.pglite.mjs proves the sweep by moving back_on to today (not the clock) and asserts which listings come back; no fixedClock.mjs probe yet",
   declutter_shop_sale_sweep: "Declutter top 5 #4 shop-wide sale (20261120014036), measured 11-19: declutterShopSale.pglite.mjs proves the sweep by moving starts_at / ends_at into the past (not the clock) and asserts started, ended, discounted and put-back prices; no fixedClock.mjs probe yet",

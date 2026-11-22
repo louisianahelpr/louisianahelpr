@@ -19,6 +19,7 @@
  * @mutate src/content/giftGuideCatalog.ts | (label.get(g.row) ?? []).includes(w)); | (label.get(g.row) ?? []).some((x) => x.includes(w)));
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <AgeChips slug={guide.slug} /> |
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <GiftOut href={pick.href} className="gg-item" data-gift-title-link=""> | <GiftOut href={pick.href} className="gg-item">
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |         <GiftOut href={cart} className="gg-cart"> |         <GiftOut href={cart} className="gg-cart-other">
  * @mutate src/pages/info/GiftGuides.tsx | data-gift-back-to={backTo}><BackButton to={backTo} /> | data-gift-back-to={guide ? backTo : "hidden"}><BackButton to={backTo} />
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | className={label ? "gg-name" : "gg-name sr-only"} | className="gg-name"
  */
@@ -144,7 +145,9 @@ describe("H4: every item says tap to buy: its photo and name are the link", () =
     const rows = [...container.querySelectorAll("[data-gift-list] > li")];
     expect(rows.length).toBeGreaterThan(10);
     for (const li of rows) {
-      const links = [...li.querySelectorAll("a")];
+      // Owner 11-21 (Amazon Buy Now): an Amazon item also has its small cart link (src/test/cardCart1121.test.tsx); that
+      // is the only other link a card may hold.
+      const links = [...li.querySelectorAll("a")].filter((x) => !(x.classList.contains("gg-cart") && x.querySelector("[data-gift-cart]")));
       expect(links.length).toBe(1);
       const a = li.querySelector("a[data-gift-title-link]")!;
       expect(a).toBe(links[0]);
@@ -193,8 +196,9 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
   it("a guide shows how many gifts it holds; the phone banner is at most 96px tall", () => {
     const { container } = renderAt("/gift-guides/mom");
     expect(container.querySelector("[data-gift-item-count]")?.textContent).toBe(`${guideBySlug("mom")!.picks.length} gifts`);
-    const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.lastIndexOf("@media (max-width:767px){"));
-    const h = Number(/\.gg-banner\{height:(\d+)px/.exec(phone)?.[1]);
+    // The phone banner height is the sheet's last .gg-banner height (inside the phone layout block; the phone nav, 11-21,
+    // appends its own later @media (max-width:767px) block, so the last such block no longer holds it).
+    const h = Number([...GIFT_GUIDES_CSS.matchAll(/\.gg-banner\{height:(\d+)px/g)].slice(-1)[0]?.[1]);
     expect(h).toBeGreaterThan(0);
     expect(h).toBeLessThanOrEqual(96);
     expect(GUIDES.length).toBeGreaterThan(10); // owner 11-21: Her, Him, Kids, the sponsors page and 10 relationship views (14, 2026-11-21)

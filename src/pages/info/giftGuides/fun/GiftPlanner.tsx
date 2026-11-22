@@ -12,6 +12,7 @@ import { Hint } from "../GiftHint";
 import { FunBody, funHeader } from "./FunPage";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { planActions as A, useAccountSync, usePlan } from "./plannerStore";
+import { PriceAlertsOptIn } from "./PriceAlertsOptIn";
 import { PRINTABLES, PRINTABLES_PATH, isShown } from "@/content/printables";
 import { storeOf } from "@/content/giftGuideCatalog";
 import { PickThumb } from "../GiftGuideView";
@@ -194,6 +195,8 @@ export default function GiftPlanner() {
         <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} onChange={(e) => setName(e.target.value)} data-plan-new-name="" />
         <Button type="submit" className="btn-grad-primary" data-plan-add-person="">{W.plannerAddPerson}</Button>
       </form>
+      {/* Saved-gift price alerts (owner 2026-11-21): the opt-in under the lists, once there is someone on them. */}
+      {plan.people.length > 0 && <PriceAlertsOptIn />}
       <p className="gg-fun-note" data-plan-sync={sync}>
         {sync === "account" ? W.plannerSavedAccount : W.plannerSaved}{" "}
         {!user && <Link to="/login" className="gg-link">{W.plannerSignIn}</Link>}

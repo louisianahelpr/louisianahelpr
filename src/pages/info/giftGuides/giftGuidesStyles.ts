@@ -73,7 +73,11 @@ color:var(--gg-ink)}
    is off, so this row keeps the shell's air above it (--shell-gap on a phone, 24px from sm up). */
 .gg-headrow{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:var(--shell-gap,12px) 0 12px}
 .gg-head-title{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 100%}
-.gg-head-title .text-page-title{margin:0;min-width:0;white-space:nowrap}
+/* Holiday audit 1121 (High): on a phone the title may wrap. Kept on one line it set the whole page's minimum width
+   (arrow 36 + gap + ~266px of title), so signed in, where the shell's column shrinks to fit its content, the page grew
+   wider than the screen and clipped share, the hearts and sort (at 375 on the old header, at 320 on today's). One line
+   from 768px up (the owner's one header row). */
+.gg-head-title .text-page-title{margin:0;min-width:0;overflow-wrap:anywhere}
 .gg-headrow .gg-ship{flex:none;max-width:none}
 .gg-headrow .gg-tools{margin:0 0 0 auto;flex:0 1 auto;justify-content:flex-end}
 /* A phone: the search is a 44px magnifier on the pill's row and opens across the row while typing. */
@@ -85,7 +89,7 @@ color:var(--gg-ink)}
 .gg-sort-check{display:inline-block;width:16px;flex:none}
 [data-gift-sort-menu]{min-width:200px}[data-gift-sort-menu] button{white-space:nowrap}
 @media (min-width:640px){.gg-headrow .gg-tools-search:not(:focus-within) .gg-search input::placeholder{color:var(--gg-muted)}.gg-headrow{padding-top:24px}.gg-headrow .gg-tools-search{flex:1 1 160px;max-width:300px}.gg-headrow .gg-tools-search:focus-within{position:relative;left:auto;right:auto}.gg-headrow .gg-tools-search .gg-search input{padding-right:12px;cursor:text}.gg-headrow .gg-tools{flex:1 1 300px}}
-@media (min-width:768px){.gg-head-title{flex:0 0 auto}.gg-headrow{flex-wrap:nowrap}.gg-headrow .gg-tools{flex:1 1 auto;min-width:0}}
+@media (min-width:768px){.gg-head-title{flex:0 0 auto}.gg-headrow{flex-wrap:nowrap}.gg-headrow .gg-tools{flex:1 1 auto;min-width:0}.gg-head-title .text-page-title{white-space:nowrap}}
 .gg-search-results{position:absolute;z-index:6;top:calc(100% + 6px);left:0;right:0;list-style:none;margin:0;padding:4px;max-height:60vh;overflow-y:auto;text-align:left;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);font-size:14px}
 .gg-search-results a{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:8px;color:var(--gg-ink);text-decoration:none}
 .gg-search-results a{gap:10px;padding:4px 12px}
@@ -183,6 +187,13 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 }
 .gg-letter{display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;overflow:hidden;overflow-wrap:anywhere;line-height:1.05;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:10px;font-weight:700;color:var(--gg-olive)}
 .gg-nm{flex:1;min-width:0;overflow-wrap:anywhere}
+/* Owner 11-21 (Amazon Buy Now): the small cart icon under an Amazon item's price, a 44px link of its own in the card's first
+   column, its icon lined up with the name and price (phone: past the 88px photo; tablet and desktop: the card's left edge). */
+.gg-cart{grid-column:1;justify-self:start;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:-6px 0 6px 88px;border-radius:999px;color:var(--gg-olive)}
+.gg-cart svg{width:20px;height:20px}
+.gg-cart:hover{background:var(--gg-soft)}
+.gg-cart:focus-visible{outline:2px solid hsl(var(--bark));outline-offset:1px}
+@media (min-width:768px){.gg-list .gg-cart{margin:-6px 0 0 -12px}}
 .gg-nm small{display:block;font-size:12px;color:var(--gg-muted)}
 .gg-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
 .gg-bdg{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:#eef2e6;color:#3f5a1c}
@@ -232,7 +243,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-code-row button{min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--gg-olive);color:var(--gg-olive);background:transparent;font-weight:700;font-size:12px}
 .gg-soon{text-align:center;padding:36px 16px;border-top:1px solid var(--gg-line);margin-top:16px}
 .gg-soon[data-gift-picks-loading]{min-height:100vh}
-.gg-soon h3{font-size:18px;font-weight:700;margin:0 0 6px}
+.gg-soon h2,.gg-soon h3{font-size:18px;font-weight:700;margin:0 0 6px}
 .gg-soon p{margin:0 auto 8px;max-width:44ch;color:var(--gg-muted);font-size:14px}
 .gg-also{margin:12px 0 0;font-size:13px;color:var(--gg-muted)}
 .gg-helpr{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:20px 0;padding:14px 16px;border-radius:14px;background:#f3f4ea;border:1px solid #e3e6d2;color:#2f3020}
@@ -260,13 +271,46 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 @media (max-width:767px){
 
 .gg-layout{grid-template-columns:minmax(0,1fr)}
-/* Owner 11-21: on a phone the menu sits AFTER the page (not hidden), so the 25 Days sponsors and the Holiday Hub,
-   which left the main column, stay one tap away. */
-.gg-side{order:2;position:static;max-height:none;overflow:visible;border-right:0;border-top:1px solid var(--gg-line);padding:12px 0 8px}
+/* Owner 11-21 (the phones need a way to organize this): a phone draws no sidebar (it sat at the page's foot);
+   the chip row under the header and its menu sheet carry the same menu (GiftGuidesPhoneNav). */
+.gg-side{display:none}
 .gg-main{padding:4px 0 24px;order:1}
 .gg-item{gap:10px;padding:8px 0;font-size:14px}
 .gg-banner-wrap{padding:0 0 4px}.gg-banner{height:96px;padding-top:8px;border-radius:12px}.gg-arch{width:min(260px,70%);padding:14px 10px 6px;box-shadow:0 0 0 5px rgba(255,253,247,.85)}.gg-banner .gg-lead{font-size:13px}.gg-banner h1{font-size:20px;-webkit-line-clamp:1}.gg-tools{margin-top:6px}
 .gg-banner .gg-lead{margin-bottom:7px}
 }
 .gg-code-row code{white-space:nowrap;overflow-wrap:normal;font-size:12px}
+/* The phone's chip row (owner 11-21): sticky under the bar, one line that scrolls sideways by itself (never the page);
+   hidden from 768px up, where the sidebar is the menu. */
+.gg-pnav{display:none}
+@media (max-width:767px){
+.gg-pnav{display:block;position:sticky;top:calc(var(--public-nav-h,3.5rem) + var(--safe-area-top,0px));z-index:5;margin:0 -20px;padding:6px 0 8px;background:hsl(var(--background));border-bottom:1px solid var(--gg-line)}
+.gg-pnav-row{display:flex;gap:8px;list-style:none;margin:0;padding:0 20px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.gg-pnav-row::-webkit-scrollbar{display:none}
+.gg-pnav-row>li{flex:none}
+}
+@media (min-width:640px) and (max-width:767px){.gg-pnav{margin:0 -32px}.gg-pnav-row{padding:0 32px}}
+.gg-chip-nav{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--gg-line);background:hsl(var(--card));font:600 13px Montserrat,sans-serif;color:var(--gg-ink);white-space:nowrap;text-decoration:none;cursor:pointer}
+.gg-chip-nav .gg-dot{margin-right:0}
+.gg-chip-nav.is-on{background:var(--gg-olive);border-color:var(--gg-olive);color:hsl(var(--primary-foreground))}
+.gg-chip-nav:focus-visible{outline:2px solid var(--gg-olive);outline-offset:2px}
+/* The menu sheet: the sidebar's groups, rows and current-page look. */
+.gg-sheet-menu .gg-sheet-menu-body{max-height:70dvh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+.gg-sheet-menu-body ul{list-style:none;margin:0 0 8px;padding:0}
+.gg-sheet-menu-body a{display:flex;align-items:center;min-height:44px;padding:4px 10px;border-radius:8px;color:var(--gg-ink);text-decoration:none;font-size:15px}
+.gg-sheet-menu-body a[aria-current="page"]{background:var(--gg-soft);color:var(--gg-olive);font-weight:700}
+.gg-sheet-menu-body .gg-side-h{scroll-margin-top:8px}
+.gg-sheet-menu-body>.gg-side-h:first-child{margin-top:0;padding-top:0;border-top:0}
+/* The landing's Top 10 (owner 11-21 ~5:05 PM): the guides' card standing up (photo on top, name, price, heart over the
+   photo's corner), a sideways row on a phone and a grid of five from 768px. After the .gg-list rules so it wins. */
+.gg-top10-wrap{margin:24px 0 8px}
+.gg-top10-h{margin:0;font-size:20px;font-weight:600;color:var(--gg-ink)}
+.gg-top10{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(148px,44%);grid-template-columns:none;gap:16px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;margin:12px 0 0;padding:0 0 8px;scrollbar-width:thin}
+.gg-top10>li{position:relative;display:block;border-top:0;scroll-snap-align:start;min-width:0}
+.gg-top10 .gg-item{flex-direction:column;align-items:stretch;padding:0;gap:8px;margin:0}
+.gg-top10 .gg-photo{width:100%;border-radius:14px}
+.gg-top10 .gg-thumb{width:100%;height:auto;aspect-ratio:1/1;padding:10px;border-radius:14px}
+.gg-top10 .gg-nm-name{font-size:14px}
+.gg-top10 .gg-heart-pick{position:absolute;top:2px;right:2px}
+@media (min-width:768px){.gg-top10{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:20px 16px}}
 `;

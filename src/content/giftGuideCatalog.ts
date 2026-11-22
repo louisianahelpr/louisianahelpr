@@ -628,26 +628,24 @@ export const KID_AGE_HUBS = ["girls", "boys", "gender-neutral"] as const;
  * store; "cheap" and "christmas" found nothing). Each entry: whole words (folded) and the guides they open, in order.
  * Search-only: never shown.
  */
+// Holiday audit 1121: only Her, Him and Kids (and their relationship pages) are live, so every target here is one of
+// them; the retired guides' slugs (fishermen, hunters, under-25, stocking-stuffers, grandma ...) found nothing and the
+// search said "No guides match" for "hunting", "cheap" or "grandma". Guard: src/test/giftGuideHolidayPolish1121.test.tsx.
 export const SEARCH_SYNONYMS: { words: string[]; slugs: string[] }[] = [
-  { words: ["fishing", "fish", "fishes", "fisherman", "fishermen", "angler", "anglers"], slugs: ["fishermen", "fish-lover", "boater", "kayaker"] },
-  { words: ["boat", "boating", "boats"], slugs: ["boater", "fishermen", "kayaker"] },
-  { words: ["hunting", "hunt", "hunter", "deer", "duck"], slugs: ["hunters"] },
-  { words: ["cheap", "cheaper", "budget", "inexpensive", "affordable"], slugs: ["under-10", "under-15", "under-20", "under-25", "stocking-stuffers"] },
-  { words: ["christmas", "xmas", "stocking", "stockings", "stuffer", "stuffers"], slugs: ["stocking-stuffers"] },
+  { words: ["fishing", "fish", "fishes", "fisherman", "fishermen", "angler", "anglers", "boat", "boating", "boats"], slugs: ["him", "dad"] },
+  { words: ["hunting", "hunt", "hunter", "deer", "duck"], slugs: ["him", "dad"] },
+  { words: ["cheap", "cheaper", "budget", "inexpensive", "affordable"], slugs: ["her", "him", "kids"] },
+  { words: ["christmas", "xmas", "stocking", "stockings", "stuffer", "stuffers"], slugs: ["her", "him", "kids"] },
   // For Her + For Him (owner 11-20): each relationship has its own page, a filtered view of the guide.
   { words: ["husband", "hubby"], slugs: ["husband", "him"] },
   { words: ["boyfriend"], slugs: ["boyfriend", "him"] },
   { words: ["wife"], slugs: ["wife", "her"] },
   { words: ["girlfriend"], slugs: ["girlfriend", "her"] },
-  { words: ["grandmother", "granny", "nana", "mimi", "mawmaw"], slugs: ["grandma"] },
-  { words: ["grandfather", "papa", "pawpaw"], slugs: ["grandpa"] },
+  { words: ["grandma", "grandmother", "granny", "nana", "mimi", "mawmaw"], slugs: ["her", "mom"] },
+  { words: ["grandpa", "grandfather", "papa", "pawpaw"], slugs: ["him", "dad"] },
   { words: ["mother", "mama", "mommy"], slugs: ["mom"] },
   { words: ["father", "daddy"], slugs: ["dad"] },
-  { words: ["cooking", "cook", "chef", "kitchen"], slugs: ["home-cook", "louisiana-kitchen"] },
-  { words: ["workout", "fitness", "gym"], slugs: ["gym-lover"] },
-  { words: ["dog", "dogs", "puppy"], slugs: ["dog-lover", "new-puppy"] },
-  { words: ["cat", "cats", "kitten"], slugs: ["cat-person", "new-kitten"] },
-  { words: ["cajun", "creole"], slugs: ["acadiana", "louisiana-made", "louisiana-kitchen"] },
+  { words: ["niece", "nephew", "daughter", "son", "child", "children", "toddler", "baby", "girl", "boy"], slugs: ["kids"] },
 ];
 
 /** Words naming a kid's sex, and the hub they point to. */
@@ -690,6 +688,9 @@ export const searchIntent = (words: string[]): { slugs: string[]; used: Set<stri
     if (!isMoney) return;
     const at = budgets.find((b) => b >= Number(n)) ?? budgets[budgets.length - 1];
     if (at !== undefined) budgetSlugs.push(`under-${at}`);
+    // Holiday audit 1121: the Under $X guides are retired; every live list is priced and sorted low to high, so a
+    // budget opens Her, Him and Kids (add() keeps only live guides, so a retired Under $X adds nothing).
+    budgetSlugs.push("her", "him", "kids");
     used.add(w);
     for (const x of words) if (BUDGET_WORDS.has(x)) used.add(x);
   });
@@ -712,6 +713,8 @@ export const searchIntent = (words: string[]): { slugs: string[]; used: Set<stri
   if (tails.length) {
     for (const w of words) if (AGE_WORDS.has(w) || GIRL_WORDS.has(w) || BOY_WORDS.has(w)) used.add(w);
     for (const t of tails) for (const h of hubs) add(`${h}-${t}`);
+    // Holiday audit 1121: the age guides are retired; a kid's age opens the Kids list.
+    add("kids");
     // A niece or nephew asked by age keeps their own guide after the age guides.
     if (words.some((w) => w.startsWith("niece"))) add("niece");
     if (words.some((w) => w.startsWith("nephew"))) add("nephew");
@@ -756,12 +759,22 @@ export const searchGuides = (query: string): CatalogGuide[] => {
     // A store page under STORE_ROW_MIN_PICKS (thin) is no search result either (lead 11-19); its link still opens.
     if (g.empty || g.thin) return false;
     const hay = fold(`${g.title} ${g.lead} ${SEARCH_KEYWORDS[g.slug] ?? ""} ${sectionWords(g.slug)}`);
-    return rest.every((w) => hay.includes(w) || (label.get(g.row) ?? []).includes(w));
+    return rest.every((w) => hasWordStart(hay, w) || (label.get(g.row) ?? []).includes(w));
   }).map((g, i) => [g, i] as const).sort(([a, i], [b, j]) => rank(a) - rank(b) || i - j).map(([g]) => g);
   // A title that is the query itself ("mom", "tractor supply") leads; otherwise the meaning's guides lead.
   const meant = intent.slugs.map((s) => guideBySlug(s)!);
   const merged = byWords.length > 0 && rank(byWords[0]) <= 1 ? [...byWords, ...meant] : [...meant, ...byWords];
   return [...new Map(merged.map((g) => [g.slug, g] as const)).values()];
+};
+
+/**
+ * Whether folded text holds `w` at the start of a word (holiday audit 1121: "her" matched Brot-her, Mot-her-in-Law
+ * and "In Him" gifts; "teen" matched "Steens Mountain"). A query word of 5+ letters may still sit inside a word
+ * ("pods" in "airpods" is 4, so no; "airpod" in "airpods" starts it anyway).
+ */
+export const hasWordStart = (hay: string, w: string): boolean => {
+  if (w.length >= 5) return hay.includes(w);
+  return hay.split(/[^a-z0-9]+/).some((x) => x.startsWith(w));
 };
 
 /**
@@ -781,7 +794,16 @@ export const sectionWords = (slug: string): string => {
 export type SearchItem = [name: string, guide: string];
 let itemIndex: Promise<SearchItem[]> | null = null;
 /** The item index, fetched once on the first keystroke (its own lazy chunk: nothing on the landing's first paint). */
-export const loadSearchItems = () => (itemIndex ??= import("@/content/giftGuideSearchIndex.json").then((m) => m.default as SearchItem[]));
+// Holiday audit 1121: a failed fetch is forgotten, so the next keystroke tries again (it was cached for the whole visit,
+// and product search stayed dead after the connection came back).
+export const loadSearchItems = () =>
+  (itemIndex ??= import("@/content/giftGuideSearchIndex.json").then(
+    (m) => m.default as SearchItem[],
+    (e: unknown) => {
+      itemIndex = null;
+      throw e;
+    },
+  ));
 
 /**
  * The items whose name holds every meaningful word of the query (holistic review 11-18 H5: "airpods" found nothing),
@@ -792,7 +814,7 @@ export const searchItems = (items: SearchItem[], query: string, max = 6): Search
   if (words.length === 0) return [];
   const hits = items.filter(([name]) => {
     const n = fold(name);
-    return words.every((w) => n.includes(w));
+    return words.every((w) => hasWordStart(n, w));
   });
   const starts = (n: string) => (fold(n).startsWith(words[0]) ? 0 : 1);
   return hits.map((h, i) => [h, i] as const).sort(([a, i], [b, j]) => starts(a[0]) - starts(b[0]) || i - j).slice(0, max).map(([h]) => h);

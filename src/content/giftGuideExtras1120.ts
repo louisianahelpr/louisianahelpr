@@ -23,8 +23,10 @@ export const FINDER_WHO: { id: FinderWho; label: string; guides: { slug: string;
   { id: "him", label: "Him", guides: [{ slug: "him" }] },
   { id: "mom", label: "Mom", guides: [{ slug: "mom" }] },
   { id: "dad", label: "Dad", guides: [{ slug: "dad" }] },
-  // Follow-up 1120: Kids is one guide by age; Friends and Coworkers are sections of Friends & Coworkers.
-  { id: "kids", label: "Kids", guides: [{ slug: "kids", sections: ["little-kids"] }, { slug: "kids", sections: ["big-kids"] }] },
+  // Holiday audit 1121 (High): Kids is the owner's one flat list (no sections since 11-21), so the finder takes the
+  // whole guide; the old "little-kids" / "big-kids" sections matched none of its 56 picks and Kids came up empty.
+  // Friends and Coworkers are sections of Friends & Coworkers.
+  { id: "kids", label: "Kids", guides: [{ slug: "kids" }] },
   // Owner 11-20 evening: Teens is its own guide.
   { id: "teen", label: "Teen", guides: [{ slug: "teens" }] },
   // Owner's standard plan 11-20 evening: "For your best friend" holds 11 picks, 8 once the finder keeps one per brand and
@@ -206,6 +208,17 @@ export const finderBudgets = (pool: CatalogPick[], who: FinderWho, borrow: Catal
     const r = giftFinder(pool, b.id, "cozy", borrow, who);
     return r.exact.length + r.close.length > 0;
   });
+
+/**
+ * The vibes worth offering one person at one budget (holiday audit 1121: "Louisiana" gave 0 exact picks for everyone,
+ * so its 9 results were all unrelated "close matches"; "Trendy" gave 0 for Him): each vibe only when at least one of
+ * their picks is exactly that vibe, the same rule the budgets follow. When none has one, every vibe stays, so the
+ * finder never dead-ends.
+ */
+export const finderVibes = (pool: CatalogPick[], who: FinderWho, budget: FinderBudget, borrow: CatalogPick[] = []) => {
+  const live = FINDER_VIBES.filter((v) => giftFinder(pool, budget, v.id, borrow, who).exact.length > 0);
+  return live.length > 0 ? live : FINDER_VIBES;
+};
 
 /** The answers in a share link's query ("?who=her&budget=50&vibe=cozy"), each checked against its options. */
 export const readFinder = (params: URLSearchParams): { who?: FinderWho; budget?: FinderBudget; vibe?: FinderVibe } => {

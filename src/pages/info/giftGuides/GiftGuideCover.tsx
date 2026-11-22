@@ -38,8 +38,10 @@ export function GiftGuidesWords({ lead, title, titleId, tools, tint }: { lead: s
       <header className="gg-words gg-banner-wrap" data-gift-words="" data-gift-banner={tint}>
         <div className={`gg-banner gg-check gg-${tint}`}>
           <div className="gg-arch" data-gift-arch="">
-            <p className="gg-lead">{lead}</p>
-            <h1 id={titleId}>{title}</h1>
+            {/* Holiday audit 1121: the h1 itself reads "gifts for Her" (it was just "Her" for screen readers and search);
+                the italic lead above stays as drawn and is hidden from screen readers, so it is not read twice. */}
+            <p className="gg-lead" aria-hidden="true">{lead}</p>
+            <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>
           </div>
         </div>
         {tools}
@@ -48,8 +50,8 @@ export function GiftGuidesWords({ lead, title, titleId, tools, tint }: { lead: s
   }
   return (
     <header className="gg-words" data-gift-words="">
-      {lead && <p className="gg-lead">{lead}</p>}
-      <h1 id={titleId}>{title}</h1>
+      {lead && <p className="gg-lead" aria-hidden="true">{lead}</p>}
+      <h1 id={titleId}>{lead && <><span className="sr-only">{lead}</span>{" "}</>}{title}</h1>
       {tools}
     </header>
   );

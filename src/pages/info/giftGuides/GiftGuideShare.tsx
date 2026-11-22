@@ -175,12 +175,16 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
   const found = query.trim() ? searchGuides(query) : [];
   // Holistic review 11-18 H5: product names too ("airpods"), from an index fetched on the first keystroke.
   const [items, setItems] = useState<SearchItem[] | null>(null);
+  // Holiday audit 1121: offline, the gift results could not load and the box said "No guides match". It now says the
+  // gifts did not load, and the next keystroke asks again (loadSearchItems forgets a failed fetch).
+  const [itemsFailed, setItemsFailed] = useState(false);
   useEffect(() => {
     if (!query.trim() || items) return;
     let live = true;
-    loadSearchItems().then((x) => { if (live) setItems(x); }, (e: unknown) => {
-      // Offline or a stale deploy: the guide results still show; item results stay empty.
+    loadSearchItems().then((x) => { if (live) { setItems(x); setItemsFailed(false); } }, (e: unknown) => {
+      // Offline or a stale deploy: the guide results still show; the box says the gift results did not load.
       console.warn("gift guides: search index failed", e);
+      if (live) setItemsFailed(true);
     });
     return () => { live = false; };
   }, [query, items]);
@@ -194,7 +198,8 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
         </label>
         {query.trim() && (
           <ul className="gg-search-results" data-gift-search-results="" aria-live="polite">
-            {found.length === 0 && foundItems.length === 0 && <li className="gg-search-none">{G.searchNone}</li>}
+            {itemsFailed && !items && <li className="gg-search-none" data-gift-search-offline="">{G.searchFailed}</li>}
+            {found.length === 0 && foundItems.length === 0 && !(itemsFailed && !items) && <li className="gg-search-none">{G.searchNone}</li>}
             {found.length > 0 && foundItems.length > 0 && <li className="gg-search-head" aria-hidden="true">{G.searchGuidesTitle}</li>}
             {found.slice(0, 12).map((g) => (
               <li key={g.slug}>

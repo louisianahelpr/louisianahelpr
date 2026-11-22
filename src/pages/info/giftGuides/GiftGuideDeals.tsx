@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
-import { giftGuides as G } from "@/content/giftGuides";
-import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
+import { discountCodes, giftGuides as G } from "@/content/giftGuides";
+import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealEnds, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
+import { DEAL_CODES } from "@/content/giftGuidePicks";
 import { GiftOut } from "./GiftOut";
-import { loadModule } from "@/lib/loadModule";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { WISH } from "@/content/giftWishList";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
@@ -13,6 +14,7 @@ import { usePlan } from "./fun/plannerStore";
 import { dealName } from "./wishListItems";
 import { DealsAndCodes } from "./GiftGuidesSidebar";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
+import { GiftGuideLoadError } from "./GiftGuideLoadError";
 
 /**
  * The deals days (owner 2026-11-19; owner 2026-11-21: "we still need to do the black friday section, small business
@@ -65,6 +67,12 @@ export const DEALS_COVER = "/gift-guides/deals/black-friday-cyber-monday.webp";
 // loadModule: a prevented preload (a recovery reload in flight) gives null, and the page keeps "Loading deals…".
 const loadDeals = () => loadModule(() => import("@/content/giftGuideDeals.json"));
 
+/**
+ * Every store code we list, with its expiry (the codes box's own list): a deal card's code and its end day follow it
+ * (holiday audit 1121, High: XTRATUF's card kept the code XT25 after the box had dropped it on Nov 30).
+ */
+const STORE_CODES = [...discountCodes, ...DEAL_CODES];
+
 /** One deal's card. */
 function DealCard({ deal, today }: { deal: Deal; today: string }) {
   const [copied, setCopied] = useState(false);
@@ -76,7 +84,10 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
   const saved = isSaved(wish, id) || onAnyList(plan, deal.href);
   const name = dealName(deal);
   // An announced deal not started yet says when it starts; otherwise its end day, when it has one.
-  const when = dealStartsLater(deal, today) ? W.startsOn(deal.starts!) : deal.ends ? W.endsOn(deal.ends) : "";
+  const ends = dealEnds(deal, STORE_CODES);
+  const when = dealStartsLater(deal, today) ? W.startsOn(deal.starts!) : ends ? W.endsOn(ends) : "";
+  // The code chip goes once that code has expired, even on a card whose sale runs on.
+  const code = dealCode(deal, today, STORE_CODES);
   const copy = (code: string) => {
     void navigator.clipboard?.writeText(code).then(
       () => setCopied(true),
@@ -97,11 +108,11 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
       <Heart saved={saved} label={WISH.saveForLabel(name)} onToggle={() => { if (!requestSaveFor({ href: deal.href, name, guide: DEALS_SLUG, ...(deal.image ? { image: deal.image } : {}) })) heartTapped(togglePick({ href: deal.href, name, guide: DEALS_SLUG, id })); }} className="gg-heart-deal" />
       <p className="gg-deal-brand">{deal.brand}</p>
       <p className="gg-deal-text" data-gift-deal-text="">{deal.deal}</p>
-      {deal.code && (
-        <p className="gg-deal-meta gg-deal-code" data-gift-deal-code={deal.code}>
+      {code && (
+        <p className="gg-deal-meta gg-deal-code" data-gift-deal-code={code}>
           <span>{W.codeLabel}</span>
-          <code>{deal.code}</code>
-          <InlineTextButton className="no-underline" onClick={() => copy(deal.code!)} aria-label={`${G.copyCode} ${deal.code}`}>
+          <code>{code}</code>
+          <InlineTextButton className="no-underline" onClick={() => copy(code)} aria-label={`${G.copyCode} ${code}`}>
             {copied ? G.copiedCode : G.copyCode}
           </InlineTextButton>
         </p>
@@ -125,22 +136,38 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
 export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
   const [deals, setDeals] = useState<Deal[] | null>(null);
   const kind = day.kind;
+  // Holiday audit 1121: a failed deals file (offline, a blocked chunk) says so with a Try again; it used to read as
+  // "These deals have ended", which is only for the real all-ended case. A second failure reloads the page.
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     // The Small Business Saturday page has no deal cards: it never loads the deals file.
     if (kind !== "deals") return;
     let live = true;
+    const fail = (e: unknown) => {
+      console.warn("gift guides: deals file failed", e);
+      if (live) setFailed(true);
+    };
     void loadDeals().then(
-      (m) => live && m && setDeals(m.default as Deal[]),
-      // The chunk failed to load (offline, a stale deploy): the page says the deals are gone rather than spin.
-      () => live && setDeals([]),
+      // null: the app's recovery reload took the failure; if no reload comes (untilReload rejects), say so too.
+      (m) => (m ? live && setDeals(m.default as Deal[]) : untilReload().catch(fail)),
+      fail,
     );
     return () => {
       live = false;
     };
-  }, [kind]);
+  }, [kind, attempt]);
+  const retry = () => {
+    if (attempt > 0) {
+      window.location.reload();
+      return;
+    }
+    setFailed(false);
+    setAttempt(1);
+  };
   const today = louisianaDay(now ?? new Date());
   // Only this day's cards, and only the ones still on (dealShows).
-  const list = deals ? dealsIn(liveDeals(deals, today), day.id) : [];
+  const list = deals ? dealsIn(liveDeals(deals, today, STORE_CODES), day.id) : [];
   return (
     <div data-gift-deals-page="" data-gift-deal-day-page={day.id} data-gift-deal-phase={eventPhase(day, today)}>
       <style>{DEALS_CSS}</style>
@@ -150,7 +177,9 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
         <>
           {/* Owner 11-21: "[Deals & codes box] should open collapsed"; each day only the codes and sales that still work on it. */}
           <DealsAndCodes on={codesDay(day, today)} />
-          {deals === null ? (
+          {deals === null && failed ? (
+            <GiftGuideLoadError message={G.dealsFailed} onRetry={retry} />
+          ) : deals === null ? (
             <p className="gg-deal-meta" role="status">{W.loading}</p>
           ) : list.length === 0 ? (
             <p className="gg-deals-intro" data-gift-deals-none="">

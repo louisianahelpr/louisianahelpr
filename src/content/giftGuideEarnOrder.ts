@@ -17,6 +17,8 @@ export type EarnRanks = Readonly<Record<string, number>>;
 export type GuideOrder = "top" | PriceOrder;
 
 export const EARN_RANKS: EarnRanks = (earnRank as { ranks: Record<string, number> }).ranks;
+/** Each link's raw clicks over the same 14 days (the landing Top 10's rule, src/content/giftGuideTop10.ts). */
+export const EARN_CLICKS: EarnRanks = (earnRank as { clicks?: Record<string, number> }).clicks ?? {};
 
 const ranked = (r: number | undefined): r is number => typeof r === "number" && Number.isFinite(r) && r > 0;
 

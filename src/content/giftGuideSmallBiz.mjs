@@ -41,6 +41,7 @@ export const SMALL_BIZ_WORDS = {
   featuredLine: "Our 25 Days sponsors: Louisiana shops, makers and local favorites.",
   featuredCta: "Shop small",
   loading: "Loading shops…",
+  failed: "The shops didn't load. Check your connection and try again.",
   none: "Our small business list is on its way. Browse the gift guides in the meantime.",
 };
 

@@ -1,5 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
+import { ShoppingCart } from "lucide-react";
+import { amazonCartUrl } from "@/lib/retailerCart";
 import { giftGuides as G } from "@/content/giftGuides";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { STORES, guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, relatedGuides, subscribeGuidePicks, type CatalogGuide, type CatalogPick } from "@/content/giftGuideCatalog";
@@ -20,6 +22,7 @@ import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGu
 import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { PrimeTrialLink } from "@/components/giftGuides/PrimeTrialLink";
 import { AgeChips } from "./GiftGuideAges";
+import { GiftGuideLoadError } from "./GiftGuideLoadError";
 import { PeopleChips } from "./GiftGuidePeopleChips";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { SmallBizLink } from "./GiftGuideSmallBiz";
@@ -88,6 +91,7 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
   const ship = deadlineChip(pick.store, today);
   // A dated brand code (1120c: XTRATUF XT25, Nov 20-29) shows through its last day only.
   const code = pick.code && (!pick.codeEnds || today <= pick.codeEnds) ? pick.code : undefined;
+  const cart = amazonCartUrl([pick.href]);
   return (
     <li data-gift-pick="">
       {/* Owner 2026-11-21: "remove the shop at button, when they click the title of the image it will go there to the
@@ -113,6 +117,15 @@ export function PickRow({ pick, guide }: { pick: CatalogPick; guide?: string }) 
         <span className="sr-only"> ({G.newTab})</span>
       </GiftOut>
       <Heart saved={saved} label={WISH.saveForLabel(pick.name)} onToggle={() => { if (!requestSaveFor(saveItemOf(pick, guide))) heartTapped(togglePick({ href: pick.href, name: pick.name, ...(guide ? { guide } : {}) })); }} className="gg-heart-pick" />
+      {/* Owner 2026-11-21 (Amazon Buy Now): an Amazon item gets a small cart icon under its price that puts it straight
+          in the shopper's Amazon cart, credited to our tag (src/lib/retailerCart.ts). Its own 44px link, outside the card
+          link, like the heart; nothing for other stores. */}
+      {cart && (
+        <GiftOut href={cart} className="gg-cart">
+          <ShoppingCart aria-hidden="true" />
+          <span className="sr-only" data-gift-cart="">{G.addToAmazonCart(pick.name)}</span>
+        </GiftOut>
+      )}
     </li>
   );
 }
@@ -206,7 +219,7 @@ export const sectionLabel = (guide: Pick<CatalogGuide, "title">, title: string, 
   return title;
 };
 
-function GiftGuideList({ guide, order = "top" }: { guide: CatalogGuide; order?: GuideOrder }) {
+function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: CatalogGuide; order?: GuideOrder; failed?: boolean; onRetry?: () => void }) {
   const [shown, setShown] = useState(PICKS_PAGE);
   const [budget, setBudget] = useState<number | null>(null);
   // Her, Him, Kids and their relationship views (owner 11-21): low to high is the list as imported. The order is chosen
@@ -233,6 +246,7 @@ function GiftGuideList({ guide, order = "top" }: { guide: CatalogGuide; order?: 
     // Once per guide, when its list is in (the hash is read only on arrival).
      
   }, [navKey]);
+  if (!ready && failed && onRetry) return <GiftGuideLoadError message={G.picksFailed} onRetry={onRetry} />;
   if (!ready) return <p className="gg-soon" role="status" data-gift-picks-loading="">{G.loadingPicks}</p>;
   const related = guide.empty ? relatedGuides(guide) : [];
   const banded = guide.picks.filter((p) => p.band !== undefined).length;
@@ -258,10 +272,10 @@ function GiftGuideList({ guide, order = "top" }: { guide: CatalogGuide; order?: 
         <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""} id={id ? `gg-sec-${id}` : undefined} className={id ? "gg-sec" : undefined}
           aria-labelledby={title && id ? `gg-sec-${id}-title` : undefined}>
           {title && (
-            <h3 className="gg-sec-title" id={id ? `gg-sec-${id}-title` : undefined}>
+            <h2 className="gg-sec-title" id={id ? `gg-sec-${id}-title` : undefined}>
               {nav.length > 1 ? sectionLabel(guide, title, id) : title}
               {sortable && id && <span className="gg-sec-count" data-gift-section-count="">{G.priceSectionCount(sectionCount.get(id) ?? 0)}</span>}
-            </h3>
+            </h2>
           )}
           <ol className="gg-list" data-gift-list="" style={run.start > 1 ? { counterReset: `gg ${run.start - 1}` } : undefined}>
             {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
@@ -297,10 +311,11 @@ function GiftGuideList({ guide, order = "top" }: { guide: CatalogGuide; order?: 
           {G.showMorePicks(left)}
         </Button>
       )}
-      {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && (
+      {/* Holiday audit 1121: links are never drawn, so they no longer keep the note away from a view with no items. */}
+      {!guide.children && guide.picks.length === 0 && (
         // Owner 2026-11-18: a guide with no picks yet opens a friendly note, never an empty list or a dead link.
         <div className="gg-soon" data-gift-coming-soon="">
-          <h3>{G.comingSoonTitle}</h3>
+          <h2>{G.comingSoonTitle}</h2>
           <p>{G.comingSoonBody}</p>
           <Link to="/gift-guides" className="gg-link">{G.allGuidesLabel}</Link>
         </div>
@@ -308,7 +323,7 @@ function GiftGuideList({ guide, order = "top" }: { guide: CatalogGuide; order?: 
       {related.length > 0 && (
         // Lead 2026-11-18: an empty guide's own link points to related guides that hold picks.
         <section aria-label={G.relatedTitle} data-gift-related="">
-          <div className="gg-rowhead"><h3>{G.relatedTitle}</h3></div>
+          <div className="gg-rowhead"><h2>{G.relatedTitle}</h2></div>
           <ul className="gg-wrap">{related.map((r) => <GiftGuideTile key={r.slug} g={r} />)}</ul>
         </section>
       )}
@@ -364,7 +379,7 @@ function StoreDeals({ guide }: { guide: CatalogGuide }) {
   if (rows.length === 0) return null;
   return (
     <section aria-label={G.dealsTitle} className="gg-store-deals" data-gift-deals="">
-      <div className="gg-rowhead"><h3>{G.dealsTitle}</h3></div>
+      <div className="gg-rowhead"><h2>{G.dealsTitle}</h2></div>
       <ul>
         {(all ? rows : rows.slice(0, STORE_DEALS_FIRST)).map((d) => (
           <li key={d.href} data-gift-deal="">
@@ -386,12 +401,25 @@ const GIFT_WRAP_GUIDE = "gift-wrap-and-cards";
 export function GiftGuideView({ guide, order = "top" }: { guide: CatalogGuide; order?: GuideOrder }) {
   // PERF: the guide's picks are its own lazy chunk; re-render when it lands.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
+  // Holiday audit 1121: a failed chunk (offline, a stale deploy) shows why and a Try again, never "Loading picks…" for
+  // good; Try again (or the connection coming back) asks once more, and a second failure reloads the page, since a
+  // browser may keep a failed import failed for the rest of the visit.
+  const [failed, setFailed] = useState<string | null>(null);
   useEffect(() => {
     loadGuidePicks(guide.slug).catch((e: unknown) => {
-      // A failed chunk (offline, a stale deploy) leaves the loading line; the route error boundary is for render errors.
       console.warn("gift guides: picks chunk failed", guide.slug, e);
+      setFailed(guide.slug);
     });
   }, [guide.slug]);
+  const retry = () => {
+    loadGuidePicks(guide.slug).then(
+      () => setFailed(null),
+      (e: unknown) => {
+        console.warn("gift guides: picks chunk failed again, reloading", guide.slug, e);
+        window.location.reload();
+      },
+    );
+  };
   return (
     <article aria-labelledby="gift-guide-title" data-gift-guide={guide.slug}>
       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
@@ -410,7 +438,7 @@ export function GiftGuideView({ guide, order = "top" }: { guide: CatalogGuide; o
       )}
       {guide.children?.map((group) => (
         <section key={group.label} aria-label={group.label} data-gift-hub-group={group.label}>
-          <div className="gg-rowhead"><h3>{group.label}</h3></div>
+          <div className="gg-rowhead"><h2>{group.label}</h2></div>
           <ul className="gg-wrap">
             {group.slugs.map((c) => <GiftGuideTile key={c} g={guideBySlug(c)!} />)}
           </ul>
@@ -418,7 +446,7 @@ export function GiftGuideView({ guide, order = "top" }: { guide: CatalogGuide; o
       ))}
       {/* Owner 11-21 ("Codes and deals shouldn't randomly show in sections"): no "Deals & codes" box on any guide page;
           the codes and sales live only on the deals page, which the left menu opens. */}
-      <GiftGuideList key={guide.slug} guide={guide} order={order} />
+      <GiftGuideList key={guide.slug} guide={guide} order={order} failed={failed === guide.slug} onRetry={retry} />
       {picksReady(guide.slug) && <StoreDeals key={`deals ${guide.slug}`} guide={guide} />}
       {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
     </article>

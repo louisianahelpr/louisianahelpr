@@ -24,7 +24,9 @@ import type { GuideOrder } from "@/content/giftGuideEarnOrder";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { shippingLine } from "@/content/giftGuideShipping";
 import { GiftGuideView } from "./giftGuides/GiftGuideView";
+import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
+import { GiftGuidesPhoneNav } from "./giftGuides/GiftGuidesPhoneNav";
 import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
 import { DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
@@ -108,7 +110,9 @@ export default function GiftGuides() {
   // Lead 11-21 (earn order): a new guide starts on "Recommended" (clicked picks first in each price section).
   const [order, setOrder] = useState<{ slug: string; order: GuideOrder }>({ slug: "", order: "top" });
   const sortOrder: GuideOrder = guide && order.slug === guide.slug ? order.order : "top";
-  const sort = guide && isOwnerList(guide.slug) ? { order: sortOrder, onChange: (o: GuideOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
+  // Holiday audit 1121: no price sort over a list that shows no price (a list still loading keeps it, so it never jumps).
+  const priced = guide ? guide.picks.length === 0 || guide.picks.some((p) => showsPrice(p)) : false;
+  const sort = guide && isOwnerList(guide.slug) && priced ? { order: sortOrder, onChange: (o: GuideOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
   // The deals days (owner 2026-11-21: "like each day has its own section, no need to put them all in 1"): Black Friday,
   // Small Business Saturday and Cyber Monday are each their own page (src/content/giftGuideDeals.mjs DEAL_EVENTS), not
   // a catalog list of picks. `deals` is the open day wherever the page only asks "is this a catalog guide?".
@@ -142,6 +146,10 @@ export default function GiftGuides() {
   const hashSlug = decodeURIComponent(hash.replace(/^#/, ""));
   const fromHash = hashSlug ? newSlugFor(hashSlug) : null;
   if (oldMyList) return <Navigate to={`/gift-guides/${MY_LIST_SLUG}`} replace />;
+  // Holiday audit 1121: a slug typed in capitals (/gift-guides/HER) opens its guide, not the landing.
+  if (rawSlug && rawSlug !== rawSlug.toLowerCase()) return <Navigate to={`/gift-guides/${rawSlug.toLowerCase()}${hash}`} replace />;
+  // The old "Deals & codes" anchor on the landing: the codes live on the deals days now (Black Friday first).
+  if (!slug && !shared && !myListPage && hash === "#gift-codes") return <Navigate to="/gift-guides/black-friday#gift-codes" replace />;
   if (!slug && !shared && !myListPage && fromHash) return <Navigate to={`/gift-guides/${fromHash}`} replace />;
   // For Her + For Him (owner 11-20): an old people section link (/gift-guides/her#wife, /gift-guides/mom#mother-in-law)
   // opens that relationship's page; a hash never reaches the server, so the page forwards it.
@@ -170,6 +178,8 @@ export default function GiftGuides() {
     : <GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />;
   // A guide or deals page keeps its banner (its own h1); every other page's h1 is the header title.
   const banner = Boolean(deals || guide);
+  // The open menu entry beyond the guides: the deals page, or the finder view on the landing.
+  const sidePage = deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined;
   // The landing's arrow goes home; every other page's to the landing.
   const backTo = guide || deals || myList || shared || group ? "/gift-guides" : "/";
 
@@ -207,6 +217,9 @@ export default function GiftGuides() {
           {shipPill}
           {tools}
         </div>
+        {/* Owner 11-21 ("We need a way to organize this on the phones"): up to 767px a sticky chip row and a menu sheet
+            replace the sidebar (which a phone no longer draws at the page's foot). */}
+        <GiftGuidesPhoneNav active={guide} myList={myList || shared} page={sidePage} />
         {deals ? (
           <GiftGuidesWords lead={deals.lead} title={deals.pageTitle} titleId="gift-guide-title" tint={deals.kind === "small-biz" ? "green" : "red"} tools={null} />
         ) : guide ? (
@@ -216,7 +229,8 @@ export default function GiftGuides() {
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
         {landing && <hr className="gg-divider" data-gift-divider="" />}
         <div className="gg-layout">
-          <GiftGuidesSidebar active={guide} myList={myList} page={deals ? DEALS_SLUG : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined} />
+          {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
+          <GiftGuidesSidebar active={guide} myList={myList || shared} page={sidePage} />
           <div className="gg-main">
             {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <GiftGuideSharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding group={group} />}{footer}
           </div>

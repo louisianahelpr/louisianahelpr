@@ -50,21 +50,25 @@ export function DeclutterMilesFrom({ ask }: { ask: OriginAsk }) {
 }
 
 /**
- * Owner 11-20 (site polish A4): on desktop Browse, "Use my location" is a compact button beside the search box instead
- * of a full row above the cards. Same rule as the line (offerAsk): gone while asking and once the device gave a fix.
- * Where the miles come from rides in its title, and a device note (denied, timed out) shows above the cards
- * (DeclutterDeviceNote). Guard: src/components/declutter/declutterMilesFrom.test.tsx.
+ * Owner 11-21 ("i clicked use my location and when i click the button just goes away"): "Use my location" lives in the
+ * Filters panel's Distance block, and once the device gives a fix the button there steps aside (offerAsk). So the
+ * page itself says what changed: "Near you · nearest first" (or "within N mi" with a distance on) over the cards, with
+ * Change (opens Filters, where the distance is). Nothing without a device fix; a failed read says why
+ * (DeclutterDeviceNote). Guard: src/test/declutterHeaderIcons1121.test.tsx.
  */
-export function DeclutterLocationButton({ ask }: { ask: OriginAsk }) {
+export function DeclutterNearYou({ ask, maxMiles, closest, onChange }: { ask: OriginAsk; maxMiles: number | null; closest: boolean; onChange: () => void }) {
   const { t } = useLanguage();
-  if (ask.origin.status === "pending") return null;
-  if (ask.asking) return <p data-location-finding="" className="shrink-0 px-2 text-ds-13 text-muted-foreground" role="status">{t("decl.loc.finding")}</p>;
-  if (!offerAsk(ask)) return null;
+  const { origin } = ask;
+  if (origin.status !== "ready" || origin.source !== "device") return null;
+  const words = maxMiles !== null ? t("decl.loc.nearWithin", { miles: maxMiles }) : closest ? t("decl.loc.near") : t("decl.loc.nearPlain");
   return (
-    <Button type="button" variant="outline" size="sm" data-location-button="" className="shrink-0 gap-1.5 rounded-full px-3 text-ds-13" title={milesFromWords(ask)} onClick={ask.askDevice}>
-      <MapPin className="h-4 w-4 shrink-0" aria-hidden />
-      {ask.asked ? t("decl.loc.tryAgain") : t("decl.loc.use")}
-    </Button>
+    <div data-near-you="" role="status" className="flex min-h-11 items-center gap-1.5 text-ds-13 text-muted-foreground">
+      <MapPin className="h-4 w-4 shrink-0 text-[hsl(var(--bark))]" aria-hidden />
+      <span className="font-semibold text-foreground">{words}</span>
+      <Button type="button" variant="link" size="sm" data-near-you-change="" className="shrink-0 px-1 text-ds-13 font-semibold" onClick={onChange}>
+        {t("decl.loc.change")}
+      </Button>
+    </div>
   );
 }
 

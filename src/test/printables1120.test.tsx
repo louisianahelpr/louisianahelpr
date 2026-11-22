@@ -279,8 +279,8 @@ describe("the maker and the page", () => {
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx |         {makers.length > 1 && ( |         {makers.length > 0 && (
  * @mutate src/lib/publicPageMeta.mjs |     title: "Free holiday printables — Helpr", |     title: "Free printable gift tags — Helpr",
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;border:1px solid var(--gg-line)} | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
- * @mutate src/content/printables.ts |     previews: ["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"], |
- * @mutate src/content/printables.ts |       { label: "Boys book", |       { label: "Boys book (free)",
+ * @mutate src/content/printables.ts | title: "Boys coloring book", blurb: "A cover and 20 Christmas pages to color.", preview: "/printables/coloring-book/preview-boys.webp" | title: "Boys coloring book", blurb: "A cover and 20 Christmas pages to color.", preview: "/printables/coloring-book/preview-girls.webp"
+ * @mutate src/content/printables.ts | christmas-coloring-book-boys.pdf", title: "Boys coloring book" | christmas-coloring-book-boys.pdf", title: "Boys book (free)"
  * @mutate src/content/printables.ts |       { label: "Wide banner", | { label: "Original 2:1 (free)",
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-wide{flex-direction:column;max-width:640px} | .pr-card-wide{flex-direction:column;max-width:420px}
  */
@@ -294,14 +294,15 @@ describe("printables audit 1121 area 5: previews, covers, page counts", () => {
     for (const sel of [".pr-card-img", ".pr-maker-card img"]) expect(rule(sel)).not.toMatch(/box-shadow/);
   });
 
-  it("the coloring book card shows both covers, and the buttons name the book, and the PDFs really are 21 pages", () => {
+  it("each coloring book shows its own cover and title (owner 11-22 #14), and the PDFs really are 21 pages", () => {
     render(<MemoryRouter initialEntries={["/gift-guides/printables/coloring-books"]}><Printables /></MemoryRouter>);
     const card = document.querySelector('[data-printable-card="coloring-book"]')!;
     const covers = [...card.querySelectorAll("img")].map((i) => new URL(i.src).pathname);
     expect(covers).toEqual(["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"]);
     for (const cover of covers) expect(existsSync(join("public", cover!))).toBe(true);
-    const buttons = [...card.querySelectorAll("[data-printable-download]")].map((b) => b.textContent);
-    expect(buttons).toEqual(["Girls book ›", "Boys book ›"]);
+    expect([...card.querySelectorAll(".pr-card-title")].map((t) => t.textContent)).toEqual(["Girls coloring book", "Boys coloring book"]);
+    const buttons = [...card.querySelectorAll("[data-printable-download]")].map((b) => b.getAttribute("aria-label"));
+    expect(buttons).toEqual(["Download the girls coloring book (PDF)", "Download the boys coloring book (PDF)"]);
     // The count is the PDFs' own (their page tree's /Count), so a re-exported book with more pages turns this red.
     for (const f of ["girls", "boys"]) {
       const pdf = readFileSync(join("public/printables/coloring-book", `christmas-coloring-book-${f}.pdf`), "latin1");

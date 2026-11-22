@@ -45,6 +45,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   if (finderAsked(search, hash)) return | if (false) return
  * @mutate src/content/giftGuides.ts |     { id: "cyber-monday", label: "Cyber Monday" }, |
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       <LiveGuides /><aside data-gift-holiday-hub="" />
+ * @mutate src/pages/info/GiftGuides.tsx |   if (otherDay) return <Navigate to={`/gift-guides/${otherDay.id}`} replace />; |
  * @mutate api/share.ts |     if (slug === DEALS_SLUG) return { kind: "moved", |     if (false) return { kind: "moved",
  */
 import { readFileSync } from "node:fs";
@@ -169,6 +170,10 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       [`/gift-guides/${DEALS_SLUG}#black-friday`, "/gift-guides/black-friday"],
       [`/gift-guides/${DEALS_SLUG}#small-business-saturday`, "/gift-guides/small-business-saturday"],
       [`/gift-guides/${DEALS_SLUG}#cyber-monday`, "/gift-guides/cyber-monday"],
+      // Guides audit 1122 #27: the server's 301 lands on Black Friday with the old #day still on the address.
+      ["/gift-guides/black-friday#cyber-monday", "/gift-guides/cyber-monday"],
+      ["/gift-guides/black-friday#small-business-saturday", "/gift-guides/small-business-saturday"],
+      ["/gift-guides/black-friday#codes", "/gift-guides/black-friday"],
     ]) {
       const { container } = renderAt(from);
       expect(container.querySelector("[data-test-where]")?.textContent, from).toBe(to);

@@ -237,6 +237,10 @@ export default function GiftGuides() {
   if (peopleTo) return <Navigate to={`/gift-guides/${peopleTo}`} replace />;
   // The old one-page deals address (owner 11-21: each day its own page) opens Black Friday, or the day its #anchor names.
   if (slug === DEALS_SLUG) return <Navigate to={`/gift-guides/${oldDealsTarget(hash)}`} replace />;
+  // Guides audit 1122 #27: the server sends the old address to Black Friday and the browser keeps its #cyber-monday, so a
+  // deals-day page whose # names ANOTHER deals day sends the visitor to that day (the in-page anchors are not day names).
+  const otherDay = deals && hashSlug && hashSlug !== deals.id ? dealDay(hashSlug) : null;
+  if (otherDay) return <Navigate to={`/gift-guides/${otherDay.id}`} replace />;
   const moved = slug && !guide && !deals ? newSlugFor(slug) : null;
   if (moved) return <Navigate to={`/gift-guides/${moved}`} replace />;
   if (slug && !guide && !deals) return <Navigate to="/gift-guides" replace />;

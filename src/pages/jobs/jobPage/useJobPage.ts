@@ -19,6 +19,8 @@ import { unwrap } from "@/lib/supabaseResult";
 import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { queryKeys } from "@/lib/queryKeys";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
+import { fetchClosedJobLabels, type ClosedJobLabel } from "@/lib/closedJobLabels";
+import { closedCardLabel } from "@/pages/jobs/appliedJobCard/appliedJobCardHelpers";
 
 export interface JobPageRow {
   id: string;
@@ -183,6 +185,20 @@ async function fetchMyApplication(jobId: string, userId: string): Promise<MyAppl
 }
 
 /**
+ * #33 (deep audit 11-22): a job the Helpr applied to but can no longer read (the poster cancelled it, it was filled).
+ * jobs RLS and get_jobs_for_my_applications both hide it, so fetchJobPage answers null, while the Working card still
+ * names it (get_closed_application_job_labels) and says why (closedCardLabel). The page reads the SAME two sources, so
+ * the row and the page it opens say the same thing, never the generic "may have been filled, expired or taken down".
+ */
+export interface ClosedForMe { label: ClosedJobLabel | null; status: string }
+async function fetchClosedForMe(jobId: string, userId: string): Promise<ClosedForMe | null> {
+  const app = await fetchMyApplication(jobId, userId);
+  if (!app) return null;
+  const labels = await fetchClosedJobLabels(true);
+  return { label: labels.get(jobId) ?? null, status: closedCardLabel(app) };
+}
+
+/**
  * Whether the viewer is on this crew job's roster (group_job_helpers). A crew job has no one `helper_id` (null), so
  * "hired" cannot be read from it: a member's own job page said "This job is no longer available" and printed the
  * city only (audit 2026-10-28 A2-B8). The member's own roster row is readable to them (RLS "Admins and job
@@ -327,5 +343,11 @@ export function useJobPage(id: string | undefined, userId: string | undefined) {
     enabled: !!job.data && !isPoster && !!userId && job.data.job.is_group_job === true,
     staleTime: 30 * 1000,
   });
-  return { job, applicants, isPoster, myApplication, tracking, onCrew: onCrew.data?.on === true, crewConfirmed: onCrew.data?.confirmed === true };
+  const closedForMe = useQuery({
+    queryKey: [...queryKeys.jobs.all, "page-closed-for-me", id ?? "", userId ?? ""],
+    queryFn: () => fetchClosedForMe(id!, userId!),
+    enabled: job.data === null && !!id && !!userId,
+    staleTime: 30 * 1000,
+  });
+  return { job, applicants, isPoster, myApplication, tracking, onCrew: onCrew.data?.on === true, crewConfirmed: onCrew.data?.confirmed === true, closedForMe };
 }

@@ -2215,14 +2215,20 @@ describe("audit 11-10: the buyer's Report a problem form", () => {
   });
 });
 
-// Audit 11-10 F407: on a wide screen the order cards ran ~1,590px wide; the list is capped at a reading width.
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |     <section className="max-w-3xl space-y-3" aria-label={label ?? t("dho.paidSales")} data-paid-orders-reserve | <section className="space-y-3" aria-label={label ?? t("dho.paidSales")} data-paid-orders-reserve
-describe("F407: the paid orders list has a reading width", () => {
-  it("caps the list at max-w-3xl (768px)", async () => {
+// Audit 11-10 F407: on a wide screen the order cards ran ~1,590px wide. Deep audit 11-22 #46: the 768px cap that fixed it
+// left a ~376px dead band beside full-width blocks at 1440. The section runs the tab's width, and the cards keep a
+// reading width by sitting two to a row from lg (never one 1,144px card).
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | export const PAID_GRID = "grid gap-3 lg:grid-cols-2 lg:items-start"; | export const PAID_GRID = "grid gap-3";
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |     <section className="space-y-3 min-h-[calc(var(--paid-rows) |     <section className="max-w-3xl space-y-3 min-h-[calc(var(--paid-rows)
+describe("F407 / #46: the paid orders list is the tab's width, its cards a reading width", () => {
+  it("no 768px cap on the section; the cards sit two to a row from lg", async () => {
     state.bookings = [];
     show([line()]);
     const list = await screen.findByRole("region", { name: "Paid sales" });
-    expect(list.className.split(/\s+/)).toContain("max-w-3xl");
+    expect(list.className).not.toMatch(/\bmax-w-/);
+    const grid = list.querySelector("[data-paid-orders-grid]") as HTMLElement;
+    await waitFor(() => expect(grid.querySelector("article")).not.toBeNull());
+    expect(grid.className.split(/\s+/)).toEqual(expect.arrayContaining(["grid", "lg:grid-cols-2"]));
   });
 });
 

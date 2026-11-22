@@ -36,11 +36,14 @@ const PaidOrdersSection = lazy(() => import("./DeclutterHandoverViews").then((m)
 // PaidOrdersSection's own bones while its pickup and payout reads answer. Guard: paidOrdersWaitForBookings.
 function PaidOrdersLoading({ heading, label, cards = 1 }: { heading: ReactNode; label: string; cards?: number }) {
   return (
-    <section className="max-w-3xl space-y-3" aria-label={label} aria-busy="true" data-paid-orders-loading="">
+    <section className="space-y-3" aria-label={label} aria-busy="true" data-paid-orders-loading="">
       {heading}
+      {/* Deep audit 11-22 #46: the same grid as the cards it stands in for (two to a row from lg). */}
+      <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
       {Array.from({ length: Math.min(4, Math.max(1, cards)) }, (_, i) => (
         <div key={i} className="h-64 rounded-[20px] border border-border bg-card" />
       ))}
+      </div>
     </section>
   );
 }

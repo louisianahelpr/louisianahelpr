@@ -19,7 +19,10 @@ describe("F409: Selling and Buying hold card-sized bones until their reads answe
   it("PaidOrdersSection keeps a card's height per card (first 4) until bookings and payouts answer", () => {
     const s = read("components/declutter/DeclutterHandoverViews.tsx");
     expect(s).toContain("const waitingOnReads = bookings.isLoading || payouts.isLoading;");
-    expect(s).toContain("style={waitingOnReads ? { minHeight: `${Math.min(4, shown.length) * 16.75 + 2}rem` } : undefined}");
+    // Deep audit 11-22 #46: the same reserve, as rows: all of them in one column, half where the cards sit two to a row (lg).
+    expect(s).toContain("style={waitingOnReads ? paidRowsReserve(Math.min(4, shown.length)) : undefined}");
+    expect(s).toContain("min-h-[calc(var(--paid-rows)*16.75rem+2rem)] lg:min-h-[calc(var(--paid-rows-lg)*16.75rem+2rem)]");
+    expect(s).toContain('({ "--paid-rows": cards, "--paid-rows-lg": Math.ceil(cards / 2) })');
   });
   it("the lazy fallback holds one h-64 box per card it waits for (up to 4)", () => {
     const s = read("components/declutter/DeclutterTabParts.tsx");

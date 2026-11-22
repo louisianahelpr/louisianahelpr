@@ -21,7 +21,7 @@
  */
 import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import { Button } from "@/components/ui/button";
-import { lazy, Suspense, useState, type ReactNode, useEffect, useRef } from "react";
+import { lazy, Suspense, useState, type CSSProperties, type ReactNode, useEffect, useRef } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -90,6 +90,11 @@ import { t, useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclSell";
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel }))); // Add a Helpr: the buyer's card only (Q178).
 
+/** Deep audit 11-22 #46: the sale cards, one column on a phone and two from lg (each card a reading width, F407). */
+export const PAID_GRID = "grid gap-3 lg:grid-cols-2 lg:items-start";
+/** The F409 reserve: card-height rows for the first cards, half as many rows where they sit two to a row (lg). */
+export const paidRowsReserve = (cards: number) => ({ "--paid-rows": cards, "--paid-rows-lg": Math.ceil(cards / 2) }) as CSSProperties;
+
 /** Every paid order in `cart` (the cart's paid lines). The Buying and Selling tabs pass one side's lines and their own heading (PaidOrders in DeclutterTradeViews). */
 export function PaidOrdersSection({ cart, heading, label, views, show }: {
   cart: CartLine[]; heading?: ReactNode; label?: string;
@@ -143,9 +148,13 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
     // pushed Offers off screen: Selling CLS 0.42-0.78 at 375). Until both reads answer, the section holds a card's
     // height (16rem, as PaidOrdersLoading's boxes) for each of its first 4 cards, so the cards grow into kept space.
     // Guard: paidOrdersWaitForBookings.
-    <section className="max-w-3xl space-y-3" aria-label={label ?? t("dho.paidSales")} data-paid-orders-reserve={waitingOnReads ? "" : undefined} aria-busy={cardsWait || undefined}
-      style={waitingOnReads ? { minHeight: `${Math.min(4, shown.length) * 16.75 + 2}rem` } : undefined}>
+    // Deep audit 11-22 #46: at 1440 this 768px column sat beside full-width blocks (the cart, the chips, the lists) with a
+    // ~376px dead band on the right. The section now runs the tab's width like every other block, and the cards (still a
+    // reading width each, F407) sit two to a row from lg; the reserve holds half the rows there, so nothing jumps.
+    <section className="space-y-3 min-h-[calc(var(--paid-rows)*16.75rem+2rem)] lg:min-h-[calc(var(--paid-rows-lg)*16.75rem+2rem)]" aria-label={label ?? t("dho.paidSales")} data-paid-orders-reserve={waitingOnReads ? "" : undefined} aria-busy={cardsWait || undefined}
+      style={waitingOnReads ? paidRowsReserve(Math.min(4, shown.length)) : undefined}>
       {heading ?? <h2 className="text-base font-semibold">{t("dho.paidTitle")}</h2>}
+      <div className={PAID_GRID} data-paid-orders-grid="">
       {cardsWait && shown.slice(0, 4).map((o) => <div key={o.orderId} className="h-64 rounded-[20px] border border-border bg-card" data-paid-order-bones="" aria-hidden />)}
       {!cardsWait && shown.map((o) => (
         <OrderCard
@@ -162,6 +171,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
           linked={o.orderId === linked}
         />
       ))}
+      </div>
     </section>
   );
 }

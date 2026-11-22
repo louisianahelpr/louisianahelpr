@@ -169,10 +169,12 @@ describe("VERIFY 11-20: Selling's new sheets and first paint", () => {
     expect(s.match(/<OrderCard\b/g)?.length).toBe(1);
   });
 
-  it("low: the to-do card is the lists' reading column (max-w-3xl), and the bulk bar is the elevated surface", () => {
+  // Deep audit 11-22 #46: one width per tab at 1440: the to-do card and the paid-sales placeholder run the lists' width.
+  it("low: the to-do card is as wide as the lists, and the bulk bar is the elevated surface", () => {
     const home = code("src/components/declutter/SellingHome.tsx");
-    expect(home).toMatch(/<section className="max-w-3xl [^"]*" aria-label=\{t\("dt5\.home\.todo"\)\}/);
-    expect(code("src/components/declutter/DeclutterTabParts.tsx")).toContain('<section className="max-w-3xl space-y-3"');
+    expect(home).toMatch(/<section className="w-full [^"]*" aria-label=\{t\("dt5\.home\.todo"\)\}/);
+    expect(home).not.toMatch(/max-w-3xl/);
+    expect(code("src/components/declutter/DeclutterTabParts.tsx")).toContain('<section className="space-y-3" aria-label={label} aria-busy="true" data-paid-orders-loading="">');
     const bar = code("src/components/declutter/BulkActions.tsx").match(/className="([^"]*)"[^>]*data-bulk-bar=""/);
     expect(bar?.[1].split(/\s+/)).toEqual(expect.arrayContaining(["bg-popover", "shadow-[var(--shadow-elevated)]", "border", "border-border"]));
     expect(bar?.[1]).not.toMatch(/\bbg-card\b/);

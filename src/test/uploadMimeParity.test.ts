@@ -133,7 +133,6 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/pages/auth/signup/SignupStep2.tsx": { bucket: "avatars" },
   "src/pages/auth/completeProfile/CompleteProfileAvatar.tsx": { bucket: "avatars" }, // CompleteProfile's photo picker (Q806)
   "src/components/postjob/detailsSection/PhotoUpload.tsx": { bucket: "job-photos" },
-  "src/pages/jobs/jobPage/NoApplicantsYet.tsx": { bucket: "job-photos" }, // audit 11-21 High: the open job's Add a photo
   "src/components/postjob/detailsSection/PhotoReorderGrid.tsx": { bucket: "job-photos" }, // Q1299: split out of PhotoUpload
   "src/components/postjob/detailsSection/VideoScope.tsx": { bucket: "job-photos" },
   // The listing photo picker moved to the photo-first step 1 (DeclutterSellPhotos, 2026-10-19).

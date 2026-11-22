@@ -122,6 +122,9 @@ const CLASSIFIED: Record<string, string> = {
   "pages/info/giftGuides/GiftGuideShare.tsx::links.facebook": "shareLinks(): a fixed https://www.facebook.com/sharer/... prefix + URLSearchParams",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.pinterest": "shareLinks(): a fixed https://www.pinterest.com/pin/create/... prefix + URLSearchParams",
   "pages/info/giftGuides/GiftGuideShare.tsx::smsHref(links.url, title, typeof navigator === \"undefined\" ? \"\" : navigator.userAgent)": "smsHref(): a fixed sms: scheme + encodeURIComponent(the guide's own URL and title) (\"Text this guide\", owner 2026-11-18)",
+  "pages/info/giftGuides/GiftGuideDealCards.tsx::href": "GiftOut's prop (a code or sale card's store link: the code's own href from src/content/giftGuides.ts / the generated deal codes, or the store's first sale link from the generated sales; https:// affiliate or brand home links only); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuideDealCards.tsx::sales[0].href": "GiftOut's prop (a store's first sale link, generated from our content files' deal links; https:// affiliate links only); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuideDealCards.tsx::x.href": "GiftOut's prop (one store sale's link, generated from our content files' deal links; https:// affiliate links only); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideDeals.tsx::deal.href": "GiftOut's prop (the Black Friday & Cyber Monday deals, generated from our content file; the generator keeps https:// affiliate links only); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideView.tsx::d.href": "GiftOut's prop (a store page's deal sections, generated from our content files; the import keeps https:// affiliate links only); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideMyList.tsx::href": "PlainOut's own anchor (a wish list's small-business row, 20261120): renders a link only for an https:// URL, else plain text",
@@ -161,7 +164,8 @@ const CLASSIFIED: Record<string, string> = {
   "pages/jobs/appliedJobCard/DirectionsButton.tsx::href": MAPS,
   "pages/jobs/jobPage/JobPage.tsx::mapsSearchUrl(job.location)": MAPS,
   // Louisiana Holiday Hub (owner-approved 2026-11-20): "Open in Maps" on a public light display or event.
-  "pages/info/holidays/holidayParts.tsx::href": MAPS + " (holidayMapsQuery(item): the place's name and address from src/content/holidayHub)",
+  "pages/info/holidays/holidayParts.tsx::maps": MAPS + " (holidayMapsQuery(item): the place's name and address from src/content/holidayHub)",
+  "pages/info/holidays/holidayParts.tsx::site": "openableDocumentUrl(item.url) (src/lib/storagePath.ts): the organizer's own https:// page from src/content/holidayHub, or null (the link renders only when non-null)",
   // Declutter share-fb (Train D): window.open / openExternalUrl of the Facebook sharer for a listing.
   "components/declutter/DeclutterShareCard.tsx::facebookShareUrl(url)": "facebookShareUrl() (src/lib/declutter/listingShare.ts, Declutter boost 2026-11-20): a fixed https://www.facebook.com/sharer/sharer.php?u= prefix + encodeURIComponent(listingLink(id)), our own /declutter/item/<id> page",
   "components/declutter/DeclutterPickupDayCard.tsx::s.map": "meetupMapUrl() (fixed https://maps.apple.com prefix, Number() coordinates, encodeURIComponent(name)) or mapsSearchUrl() (src/lib/mapsLink.ts, encodeURIComponent(address))",

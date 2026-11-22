@@ -10,7 +10,7 @@ const GIFT_WRAP_CATEGORY: JobCategory = "errands";
  * continue" and the errands tips ("Which stores or locations?"), which do not fit wrapping. It is over 100 characters,
  * so the errands tips stay hidden, and it has no [bracketed] fill-ins, so it never blocks Continue. Editable as usual.
  */
-export const GIFT_WRAP_DESCRIPTION =
+const GIFT_WRAP_DESCRIPTION =
   "Looking for help wrapping holiday gifts at my home. I have the paper, tape and ribbon ready, and I'll share how many gifts there are and a good time.";
 
 /**

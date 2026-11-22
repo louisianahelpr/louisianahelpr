@@ -1,5 +1,5 @@
 /**
- * Holiday audit 1121 #75: the 25 Days sponsors page's head called it "25 Days Sponsors gift guide", its share title
+ * Holiday audit 1121 #75 (2026-11-21): the 25 Days sponsors page's head called it "25 Days Sponsors gift guide", its share title
  * said "gift guide" twice and its description "hand-picked gift ideas". These are the brands giving away prizes in
  * our 25 Days of Giveaways: the head says so, once, and the page stays indexed.
  *

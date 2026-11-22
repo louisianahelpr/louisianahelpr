@@ -14468,7 +14468,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 246,
+      "line": 254,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -14482,7 +14482,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 316,
+      "line": 324,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -14492,7 +14492,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 472,
+      "line": 480,
       "kind": "errorToast",
       "title": {
         "form": "literal",

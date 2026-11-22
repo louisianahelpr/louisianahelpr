@@ -1,5 +1,5 @@
 /**
- * Holiday audit 1121 #82: /admin/sponsors told the admin "The 25 Days page is switched off" (turn the switch on) when
+ * Holiday audit 1121 #82 (2026-11-21): /admin/sponsors told the admin "The 25 Days page is switched off" (turn it on) when
  * the switch read itself had failed, because a failed read and an off switch both gave on = false. A failed read now
  * says it could not check, with Try again; only a settled, answered "off" says switched off.
  *

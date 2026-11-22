@@ -283,6 +283,7 @@ describe("the maker and the page", () => {
  * @mutate src/content/printables.ts |     previews: ["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"], |
  * @mutate src/content/printables.ts |       { label: "Boys book, 21 pages (free)", |       { label: "Boys book (free)",
  */
+// Page counts measured 2026-11-21 from the PDFs' own page trees (the test below re-reads them).
 describe("printables audit 1121 area 5: previews, covers, page counts", () => {
   it("previews sit with no drop shadow (owner rule: no box behind a photo)", () => {
     render(<MemoryRouter initialEntries={["/gift-guides/printables/coloring-books"]}><Printables /></MemoryRouter>);

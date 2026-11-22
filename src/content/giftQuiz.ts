@@ -124,6 +124,11 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   "lunch-bag": ["kitchen"], tumbler: ["kitchen"], "water-bottle": ["fitness"], "sports-bra": ["fitness", "style"], "safety-alarm": ["tech"],
   // Her block 2 batch 2: a hair perfume is beauty; monogram gift tags and gift bags are for home.
   "hair-perfume": ["beauty"], "gift-wrap": ["cozy"],
+  // The owner's Louisiana adds (11-22 PM, builder-guide-louisiana): a toile serving tray is home and kitchen; cookbooks,
+  // a cutting board, a king cake or beignet box, coffee pods and seasoning blends are kitchen; a crawfish-boil paddle is
+  // kitchen, out in the yard.
+  tray: ["cozy", "kitchen"], cookbook: ["kitchen"], "cutting-board": ["kitchen"], "food-gift": ["kitchen"], coffee: ["kitchen"],
+  seasoning: ["kitchen"], "boil-paddle": ["kitchen", "outdoors"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
@@ -143,6 +148,9 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   // Backyard play gear she saved (11-22): outdoor sets for little ones.
   "backyard-play": ["active", "pretend"],
   "kids-pajamas": ["cozy"], "duck-call": ["active", "stocking"],
+  // The owner's Louisiana adds (11-22 PM): deck boots and a team jersey are for active kids, an LSU cheer dress is
+  // dress-up, and chinos, a tee and a baby wash set are cozy everyday wear and care.
+  boots: ["active"], jersey: ["active"], dress: ["pretend"], pants: ["cozy"], tee: ["cozy"], "baby-care": ["cozy"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -200,6 +208,9 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   playset: ["0-2", "3-5"], plush: ["0-2", "3-5"], "vehicle-toy": ["3-5", "6-8"], "hatching-toy": ["3-5", "6-8"], puzzle: ["6-8", "9-12", "teen"],
   "backyard-play": ["3-5"],
   "kids-pajamas": ["0-2", "3-5", "6-8"], "duck-call": ["6-8", "9-12"],
+  // The owner's Louisiana adds (11-22 PM), by their sizes: Big Kids deck boots, youth chinos, the toddler-to-youth cheer
+  // dress and Happy tee, the youth 4-20 Saints jersey, and a baby wash set.
+  boots: ["6-8", "9-12"], pants: ["6-8", "9-12"], dress: ["3-5", "6-8"], tee: ["3-5", "6-8", "9-12"], jersey: ["6-8", "9-12", "teen"], "baby-care": ["0-2"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],

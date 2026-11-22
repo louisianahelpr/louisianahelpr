@@ -27,6 +27,21 @@ type Pick = { name: string; brand?: string; href: string; image: string; store: 
  * print": the classic Chocolate/Tan, style 22734, $115 there, code XT25 on the card through Nov 29); Turtlebox Ranger,
  * Tan (Amazon B0F2JHSGCJ, 3%) -> Onward Reserve 15% at $250 (11-21 night, owner-approved). Kids has none.
  */
+/**
+ * Owner 11-22 PM, "add all items" (Desktop note Louisiana-popular-candidates-1122.md; builder-guide-louisiana): the
+ * Louisiana picks for Him and Kids. Non-Amazon rows (link -> store) are the ShopMy links made in her ShopMy that evening
+ * (ShopMy-links-created-1122.md), the Toups and Southern Marsh pins reused from the hidden Louisiana guides, and the
+ * kids' XTRATUF boot at xtratuf.com through CJ (15%); the Amazon rows were priced 11-22.
+ */
+const LOUISIANA_1122: Record<string, Record<string, string>> = {
+  him: { "https://go.shopmy.us/p-109340963": "store-lodge", "https://go.shopmy.us/p-108155418": "store-toups-and-co", "https://go.shopmy.us/p-109342284": "store-mignon-faget", "https://go.shopmy.us/p-109340844": "store-krewe" },
+  kids: { "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxkab100y": "store-xtratuf", "https://go.shopmy.us/p-107857942": "store-southern-marsh", "https://go.shopmy.us/p-109341055": "store-duck-commander", "https://go.shopmy.us/p-109341153": "store-toups-and-co" },
+};
+const LOUISIANA_1122_ASINS: Record<string, string[]> = {
+  him: ["B0000BXHL5", "B000FTUTL6", "B00144CM2U", "B0HG3RLK77", "0935032509", "B09GCYJ8RM", "B07GG7K5SD"],
+  kids: ["1455627143", "B08GVN1J37", "B074YZWKMB", "B0792C316R", "B0CCBMLJM5", "1455625639", "0142500704"],
+};
+const louisianaAmazon = new Set(Object.values(LOUISIANA_1122_ASINS).flat().map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const SWITCHED: Record<string, Record<string, string>> = {
   him: { "https://go.shopmy.us/p-108736038": "store-dillards", "https://go.shopmy.us/p-108734364": "store-exclusive-beauty-club", "https://go.shopmy.us/p-108736312": "store-onward-reserve", 
     // Night links 11-21 (Commission-links-1121-night.md; owner: "switch all 3 to the higher commission"):
@@ -98,7 +113,7 @@ const SAVES: Record<string, Record<string, string>> = {
     ...sm(["108100673"], "store-maisonette"), ...sm(["107895388"], "store-tractor-supply"),
   },
 };
-const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug] });
+const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug], ...LOUISIANA_1122[slug] });
 const popular = new Set([...HIM_POPULAR_1122, ...KIDS_POPULAR_1122].map((r) => r.href));
 const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Pick[] }).picks;
 const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})));
@@ -133,7 +148,7 @@ describe.each([
       expect(p.price, p.name).toBeGreaterThan(0);
       // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day and the Dad fill-in book (owner
       // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) and the GE Opal Mini (builder-guide-him, 2026-11-22) were priced 11-22.
-      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) ? "2026-11-22" : "2026-11-21");
+      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) || louisianaAmazon.has(p.href) ? "2026-11-22" : "2026-11-21");
     }
   });
 
@@ -204,7 +219,7 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // Crossroads Backpack (Amazon showed no price), and the 6 rate switches 11-21 night (3 XTRATUF, TNF beanie, Burlebo hoodie + cap).
     // Plus the Battery Daddy (B089F9YDFC), which the owner asked for on 11-22, and B0GWXJ3PYM, the Dad fill-in book (owner
     // via the lead 11-22, her screenshot list), and Him batch 2's GE Opal Mini: none is from her saved list.
-    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM" && a !== "B0H51ZX6SB");
+    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM" && a !== "B0H51ZX6SB" && !LOUISIANA_1122_ASINS.him.includes(a));
     expect(amazon.length).toBe(97); // 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 3 owner-approved adds (Banded handwarmer, Klola mat, and the MVP PRO men's 2-pack B0D9PX9RBD: the brown listing was women's), plus the 5 popular adds of 11-22 (AirPods, AirTags, Bose, Garmin, Gozney)
     expect(chunk("him").filter((p) => p.href.includes("B089F9YDFC")).length).toBe(1);
     expect(chunk("him").filter((p) => p.href.includes("B0GWXJ3PYM")).length).toBe(1);
@@ -216,7 +231,7 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
 describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
   it("55 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (Segway S2 is at Tractor Supply; 11-22 the Switch with Joy-Con, the C2 Lite and C2 Pro, the Amazon S2 and the mini CreateOn tiles went as duplicates; the Quest 3S, iPad and JLab kids headphones were added)", () => {
     const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
-    expect(amazon.length).toBe(64); // 55 after the duplicate removals + the 9 popular adds of 11-22
+    expect(amazon.length).toBe(71); // 55 after the duplicate removals + the 9 popular adds of 11-22 + the 7 Louisiana books, plush and team gear (owner 11-22 PM)
     for (const asin of ["B0F3GWXLTS", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
     expect(amazon.some((p) => p.href.includes("B0CT2WN59R"))).toBe(false);
   });
@@ -273,7 +288,8 @@ describe("the XTRATUF code chip on For Him (owner 11-21)", () => {
         expect(decodeURIComponent(p.href)).toMatch(/^https:\/\/www\.anrdoezrs\.net\/click-101930553-15735628\?url=https:\/\/xtratuf\.com\/products\/(22734|xmabmob)$/);
       }
     }
-    // Kids: only the two Camp Snap 2 colors (11-22, campsnapphoto.com), with her Camp Snap code (no end date).
-    expect((chunk("kids") as Coded[]).filter((p) => p.code).map((p) => [p.store, p.code, p.codeEnds])).toEqual([["store-camp-snap", "LEXILOMBAS7", undefined], ["store-camp-snap", "LEXILOMBAS7", undefined]]);
+    // Kids: the two Camp Snap 2 colors (11-22, campsnapphoto.com), with her Camp Snap code (no end date), and since the
+    // owner's Louisiana adds (11-22 PM) the Big Kids Ankle Deck Boot at xtratuf.com ($44.99, cheaper so first) with XT25.
+    expect((chunk("kids") as Coded[]).filter((p) => p.code).map((p) => [p.store, p.code, p.codeEnds])).toEqual([["store-xtratuf", "XT25", "2026-11-29"], ["store-camp-snap", "LEXILOMBAS7", undefined], ["store-camp-snap", "LEXILOMBAS7", undefined]]);
   });
 });

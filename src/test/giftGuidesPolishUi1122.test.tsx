@@ -13,6 +13,9 @@
  *      same as My Wish List's and a shared list's title.
  * #8: the 25 Days sponsors page draws no "25 Days sponsor" or "Shop Louisiana" chip (every card is a sponsor), its heart
  *     sits on the photo's top-right corner there only, and "Also sponsoring" is plain names with dots, not pills.
+ * #11: Swipe: one instruction (no tip box), "18 gifts under $25" on the count's line, a 150px card photo on phones (Skip
+ *      and Save measured 677-733px on a 375x812 screen, were 839-895), the deck centered in the content column, and the
+ *      disclosures right under a short page instead of at the foot of the menu.
  * #19: on a phone the hub shows one line above the greeting, and a guide's banner starts 16px under the chip row.
  *
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:36px} | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:44px}
@@ -24,6 +27,8 @@
  * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | <header className="gg-words gg-pagehead" data-gift-words=""> | <header className="gg-words" data-gift-words="">
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const badges = guide === SPONSORS_PAGE ? | const badges = false ?
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-also-list li{display:inline;white-space:nowrap} | .gg-also-list li{padding:5px 10px;border:1px solid var(--gg-line);border-radius:999px}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:start} | .gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:end}
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-fun:has([data-swipe-deck]){max-width:none} | .gg-fun:has([data-swipe-deck]){}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow .gg-ship-order{display:none} | .gg-countrow .gg-ship-order{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav:has(+.gg-divider){border-bottom-color:transparent} | .gg-pnav:has(+.gg-divider){}
  */
@@ -34,6 +39,7 @@ import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { GuidesFrame } from "@/pages/info/giftGuides/fun/FunPage";
+import { FUN_WORDS } from "@/content/giftGuideFun1120";
 import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
 
@@ -147,5 +153,21 @@ describe("polish audit 1122 #8: the 25 Days sponsors page cards", () => {
     expect(GIFT_GUIDES_CSS).toMatch(/\.gg-list \.gg-heart-pick\{position:absolute;right:-6px;bottom:0\}/);
     expect(GIFT_GUIDES_CSS).toContain(".gg-also-list li{display:inline;white-space:nowrap}");
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-also-list li\{[^}]*border/);
+  });
+});
+
+describe("polish audit 1122 #11: Swipe on a phone and a wide screen", () => {
+  it("no tip box in the deck; the short-round note is plain and sits on the count line", () => {
+    const swipe = src("src/pages/info/giftGuides/fun/SwipeGifts.tsx");
+    expect(swipe).not.toMatch(/<Hint\b/);
+    expect(swipe).toContain('{fewNote && at === 0 && <span data-swipe-few=""> · {fewNote}</span>}');
+    expect(FUN_WORDS.swipeFew(18, "Under $25")).toBe("18 gifts under $25");
+    expect(FUN_WORDS.swipeFew(1, "Under $25")).toBe("1 gift under $25");
+  });
+  it("a 150px photo on phones, the deck centered in the column, disclosures under the content", () => {
+    const fun = src("src/pages/info/giftGuides/fun/FunPage.tsx");
+    expect(fun).toContain(".gg-fun:has([data-swipe-deck]){max-width:none}");
+    expect(fun).toMatch(/@media \(max-width:479px\)\{\.gg-swipe-card\{padding:12px\}\.gg-swipe-card \.gg-photo,\.gg-swipe-card \.gg-letter,\.gg-swipe-card \.gg-thumb\{width:150px;height:150px\}/);
+    expect(GIFT_GUIDES_CSS).toContain(".gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:start}");
   });
 });

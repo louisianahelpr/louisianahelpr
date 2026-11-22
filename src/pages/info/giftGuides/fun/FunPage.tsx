@@ -158,5 +158,7 @@ const FUN_CSS = `
 .gg-santa-link:first-child{border-top:0}
 .gg-santa-link b{font-size:15px;overflow-wrap:anywhere}
 .gg-santa-who{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:8px;min-width:0}
-@media (max-width:479px){.gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter,.gg-swipe-card .gg-thumb{width:200px;height:200px}.gg-plan-budget{width:92px}.gg-plan-price{width:78px}}
+/* Polish audit 1122 #11: the deck centered in the content column (it sat in the 640px column's middle, off the page's). */
+.gg-fun:has([data-swipe-deck]){max-width:none}
+@media (max-width:479px){.gg-swipe-card{padding:12px}.gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter,.gg-swipe-card .gg-thumb{width:150px;height:150px}.gg-swipe-name{margin-top:8px}.gg-swipe-btns{margin-top:12px}.gg-plan-budget{width:92px}.gg-plan-price{width:78px}}
 `;

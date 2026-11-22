@@ -60,7 +60,8 @@ const MIN_PHOTO_WIDTH = 50;
 /** True when a finished image is broken or too small to be a product photo. */
 const photoFailed = (img: HTMLImageElement) => img.complete && img.naturalWidth < MIN_PHOTO_WIDTH;
 
-export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: number }) {
+/** `eager`: load the photo at once (the quiz's short result list, owner 11-22: every pick shows its photo). */
+export function PickThumb({ pick, size = 52, eager }: { pick: CatalogPick; size?: number; eager?: boolean }) {
   const [failed, setFailed] = useState(false);
   if (pick.image && !failed) {
     // Owner 11-19 ("remove the white around these images"): the cream sits on the gg-photo box and the photo multiplies
@@ -69,7 +70,7 @@ export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: numbe
     return (
       <span className="gg-photo">
         <img
-          className="gg-thumb" loading="lazy" decoding="async" src={pick.image} alt="" width={size} height={size} referrerPolicy="no-referrer-when-downgrade"
+          className="gg-thumb" loading={eager ? "eager" : "lazy"} decoding="async" src={pick.image} alt="" width={size} height={size} referrerPolicy="no-referrer-when-downgrade"
           ref={(img) => { if (img?.currentSrc && photoFailed(img)) setFailed(true); }}
           onLoad={(e) => { if (photoFailed(e.currentTarget)) setFailed(true); }}
           onError={() => setFailed(true)}
@@ -85,7 +86,7 @@ const SPONSORS_PAGE = "25-days-sponsors";
 const SPONSORS_PAGE_HIDDEN_BADGES: readonly string[] = ["sponsor", "shop-louisiana"];
 
 /** `rank` (the landing's Top 10, owner 11-21 evening "number the top 10 gifts"): a numeral badge on the photo's corner and "1." in the link's name. */
-export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: string; rank?: number }) {
+export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide?: string; rank?: number; eager?: boolean }) {
   // Owner 11-21: filled when the gift is on My Wish List or on anyone's list (saveForPeople).
   const [wish, plan] = [useGiftList(), usePlan()];
   const saved = isSaved(wish, itemId(pick.href)) || onAnyList(plan, pick.href);
@@ -109,7 +110,7 @@ export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: stri
           own 44px button outside it. A screen reader hears "<name> (On <store>) ~$24 (opens in a new tab)". */}
       <GiftOut href={pick.href} className="gg-item" data-gift-title-link="">
         {rank !== undefined && <span className="gg-rank" aria-hidden="true" data-gift-rank={rank}>{rank}</span>}
-        <PickThumb pick={pick} />
+        <PickThumb pick={pick} eager={eager} />
         {/* Owner 2026-11-21 ("how can we polish the listings so they aren't so busy looking? maybe remove the subtitle
             that describes the item. just show the price and not 'on whatever site'"): the name (2 lines at most), then
             the price alone. No why-line and no "On <store>"; the store is still said to screen readers (sr-only). */}

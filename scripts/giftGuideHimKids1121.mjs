@@ -284,6 +284,9 @@ export const HIM_1121 = [
   // at Onward Reserve at 15%, $250 (her link p-108736312 -> onwardreserve.com/products/turtlebox-ranger-tan;
   // Commission-switches-1121.md). Photo: the Tan Ranger cutout from turtleboxaudio.com the Him cover already drew.
   { name: "Turtlebox Ranger Speaker", brand: "Turtlebox", line: "A loud, waterproof speaker built for the outdoors.", href: shopmy("p-108736312"), image: "https://www.louisianahelpr.com/gift-guides/cutouts/turtlebox-ranger-tan-06e916.webp", store: "store-onward-reserve", sortPrice: 250, price: 250, commission: 15, type: "speaker" },
+  // owner 11-22 screenshot list (builder-guide-adds-2): the owner, via the lead, 2026-11-22: the Dad version of the Mom
+  // fill-in book on For Her goes on Him. Amazon, price read 2026-11-22.
+  { name: "Just a Few Things I Love About You, Dad", brand: "", line: "A fill-in book of all the reasons you love him.", href: amz("B0GWXJ3PYM"), image: amzImg("61kkHlm55KL"), store: "store-amazon", sortPrice: 17.99, commission: 4.5, type: "book", priceAt: "2026-11-22" },
 ].map((r) => (Array.isArray(r) ? row(r) : r)).concat(HIM_AMAZON_MORE_1121, HIM_SHOPMY_1121);
 
 /**

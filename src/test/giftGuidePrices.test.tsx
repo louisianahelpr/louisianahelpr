@@ -195,7 +195,7 @@ describe("gift-guide prices: a real guide page", () => {
   it("For Him (owner 11-21, all Amazon but two): every row shows its price, in the order low to high", async () => {
     await loadAllGuidePicks();
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-22T18:00:00Z")); // the launch-day adds (Him's two Lake pins) were priced 11-22
+    vi.setSystemTime(new Date("2026-11-22T18:00:00Z")); // launch-day picks (Him's two Lake pins, the Dad book) were priced 11-22
     const { container } = render(
       <MemoryRouter initialEntries={["/gift-guides/him"]}>
         <Routes><Route path="/gift-guides/:slug" element={<GiftGuides />} /></Routes>

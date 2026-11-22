@@ -101,6 +101,12 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   "sleep-supplement": ["cozy", "fitness"], "home-fragrance": ["cozy"], journal: ["style"], planner: ["style"],
   "kitchen-knives": ["kitchen"], cookware: ["kitchen"], "coffee-maker": ["kitchen"], vacuum: ["tech"], "sleep-earbuds": ["tech", "cozy"],
   "smart-ring": ["tech", "fitness"], nightgown: ["cozy", "style"],
+  // The owner's 11-22 screenshot adds (builder-guide-adds-2, scripts/giftGuideHer1121.mjs): a nurse's pens and stethoscope
+  // are work tools; the fill-in book, earplugs, diffuser and cleaning picks are home; the e-reader, power bank
+  // and family calendar are gadgets; the food jar is kitchen; safety glasses and an underscrub are what she wears.
+  stationery: ["tools"], stethoscope: ["tools"], book: ["cozy"], earplugs: ["cozy"], diffuser: ["cozy"], "e-reader": ["tech", "cozy"],
+  cleaning: ["cozy"], "food-jar": ["kitchen"], "tech-accessory": ["tech"], eyewear: ["style"],
+  scrubs: ["style"], calendar: ["tech", "cozy"], "hand-care": ["beauty"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {

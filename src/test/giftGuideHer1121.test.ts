@@ -56,14 +56,25 @@ const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-10914343
 // Launch day 11-22, from her screenshots (no ShopMy pin for these): CFUNIQ toiletry bag, Astercook knives and pans,
 // CASABREWS espresso machine, BISSELL FurGuard vacuum, eto decanter, Ozlo Sleepbuds 2.
 const ADDS_1122_ASINS = ["B0HKS18NW2", "B0C1YBPJ43", "B0F2937DQQ", "B09X3WGJ3R", "B0DQLLPYGM", "B0GP2R8TBS", "B0GZSMBDYZ"];
-const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
+// owner 11-22 screenshot list (builder-guide-adds-2): the creators' gift lists she sent ("Add these for her if we don't
+// have them yet"), each the same product as her picture (Desktop note Owner-adds-1122-screens.md), priced 2026-11-22.
+// Owner 2026-11-22 ("Keep only Oura"): B0H1N3TWP1, the Ultrahuman Ring PRO, came off again.
+const SCREENS_1122_ASINS = ["B0030F32L6", "B0DKG9CMH8", "B0GSMJTZJJ", "B0D3V61JC8", "B0CSV71DJV", "B0D2LV7DHF", "B00PCQW4P6", "B0CFPJYX7P",
+  "B000S5VEA2", "B0FGDQ5BT9", "B0DN245D58", "B0HN76TWQ2", "B0C6XK77HJ", "B0D858S2H5", "B0BLWTQ7JC", "B0F831FK2R", "B0B22SZ3W8", "B0H69TGK2F", "B07CDF1RVV", "B0G618GK4S", "B09WG9R7MY"];
+const SCREENS_1122_PINS = ["p-103899561", "p-104053242", "p-103903056", "p-103891549", "p-107936463", "p-103882819", "p-107936513", "p-107936484", "p-107887741"];
+// XTRATUF's women's Camp Fleece boot at xtratuf.com through her CJ link (15%, as the Him XTRATUF boots).
+const SCREENS_1122_CJ = ["https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxwadbc10"];
+const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
+const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 79 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(79);
-    expect(page.length).toBe(79);
+  it("the page holds exactly her 110 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(110);
+    expect(page.length).toBe(110);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
+    // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
+    expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
   });
 
   it("the generated page is exactly what the module builds (re-run scripts/gift-guide-picks.mjs after a change)", () => {
@@ -80,7 +91,9 @@ describe("For Her = the owner's saves (11-21)", () => {
     const seen = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     const prices = page.map((p) => seen.get(p.href) as number);
     expect(prices).toEqual([...prices].sort((a, b) => a - b));
-    expect(page[0].name).toMatch(/eye gel/i);
+    // The cheapest is the Mrs. Meyer's spray ($4.33, the 11-22 screenshot list), then the eye gel ($4.77).
+    expect(page[0].name).toMatch(/^Mrs\. Meyer's/);
+    expect(page[1].name).toMatch(/eye gel/i);
     expect(page[page.length - 1].name).toMatch(/currentbody/i);
     // The module sorts by itself: fed in reverse, it still lists cheapest first.
     const again = her1121Picks([...HER_ROWS].reverse()).map((p) => seen.get(p.href) as number);
@@ -94,14 +107,14 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(34);
-    expect(shopmy.length).toBe(45);
+    expect(amazon.length).toBe(55);
+    expect(shopmy.length).toBe(55);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
       // Her saved-list picks were captured 11-21; the Amazon picks from her launch-day screenshots, 11-22.
-      expect(p.priceAt, p.name).toBe(ADDS_1122_ASINS.some((a) => p.href.includes(a)) ? "2026-11-22" : "2026-11-21");
+      expect(p.priceAt, p.name).toBe(ADDS_1122_ASINS.some((a) => p.href.includes(a)) || SCREENS_1122.has(p.href) ? "2026-11-22" : "2026-11-21");
       expect(p.image, p.name).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
     }
     for (const p of shopmy) {

@@ -202,7 +202,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // (Crocs Dylan at crocs.com $35, was $99).
       // 11-22 (owner edits): Him lost the Dr. Squatch Fresh Falls soap and Men's Fuzzy Cloud Socks (under $25) and the
       // Armor All and Chemical Guys car kits ($25-$50); Her lost the Floral Mama quarter zip (under $25).
-      him: { "Under $25": 43, "$25 to $50": 40, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 36 },
+      // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Him gained the Dad fill-in book ($18).
+      him: { "Under $25": 44, "$25 to $50": 40, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 36 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -211,7 +212,12 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Battery Daddy ($20); Kids + both Yoto bundles ($164, $166).
       kids: { "Under $25": 33, "$25 to $50": 21, "$50 to $75": 8, "$75 to $100": 5, "$100 and up": 19 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
-      her: { "Under $25": 23, "$25 to $50": 23, "$50 to $75": 5, "$75 to $100": 7, "$100 and up": 21 },
+      // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
+      // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
+      // (under $25); Comrad, JAANUU, Stoggles, the Boat and Tote and the lululemon belt bag ($25-$50); Pura 4, Kerastase and
+      // the towel warmer ($50-$75); the Littmann ($92); the UGG Scuffette ($100 shown), Kindle, Daisy Love, Skylight, the
+      // Braun IPL, the XTRATUF boot, the L.L.Bean sweater and barn coat and the HOKA Bondi 9 ($100 and up).
+      her: { "Under $25": 36, "$25 to $50": 28, "$50 to $75": 8, "$75 to $100": 8, "$100 and up": 30 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

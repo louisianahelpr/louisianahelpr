@@ -61,11 +61,14 @@ export function GroupJobCard({
           <Plus className="h-5 w-5" aria-hidden />
         </Button>
       </div>
-      <p className="text-ds-11 text-muted-foreground">
-        {/* The server's split (crew_slot_share_cents, largest remainder in
-            cents): the smallest share, so no Helpr gets less than shown. */}
-        Budget of ${formatPriceExact(budgetNum)} will be split: at least ${formatPriceExact(crewSmallestShare(budgetNum, parseInt(helpersNeeded) || 2))} per Helpr.
-      </p>
+      {/* Audit 11-21 (P25): it read "Budget of $0 will be split: at least $0 per Helpr." before any price was set. */}
+      {budgetNum > 0 && (
+        <p className="text-ds-11 text-muted-foreground" data-crew-split="">
+          {/* The server's split (crew_slot_share_cents, largest remainder in
+              cents): the smallest share, so no Helpr gets less than shown. */}
+          Budget of ${formatPriceExact(budgetNum)} will be split: at least ${formatPriceExact(crewSmallestShare(budgetNum, parseInt(helpersNeeded) || 2))} per Helpr.
+        </p>
+      )}
       {/* A3-60: what a short crew means, from the server's rule (process-scheduled-payouts: every roster
           member is paid their share; refundUnfilledCrewShares returns the unfilled shares to the poster). */}
       <p data-crew-short="" className="text-ds-11 text-muted-foreground">

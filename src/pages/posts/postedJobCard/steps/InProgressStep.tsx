@@ -234,7 +234,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
           {awaitingApproval && !instantReleaseOn && job.helper_completed_at && (
             <DeadlineCountdown
               deadline={new Date(new Date(job.helper_completed_at).getTime() + hoursToMs(APPROVAL_WINDOW_HOURS)).toISOString()}
-              expiredText="You can still approve. Helpr support will check in; your payment stays held."
+              expiredText="You can still approve. Helpr support will check in, and your payment stays held."
               // One line (owner). The Approve sheet itself walks through
               // release vs revision, so the banner only owes the deadline and
               // its consequence.
@@ -293,8 +293,9 @@ export function InProgressStep(ctx: PosterStepCtx) {
           <JobActionChip
             key="why"
             icon={HelpCircle}
-            label="Why?"
-            ariaLabel="Why? — what happens next while this job waits, and what your payment is doing"
+            // Audit 11-21 (L28): "Why?" alone did not say what it opens.
+            label="What happens next?"
+            ariaLabel="What happens next? While this job waits, and what your payment is doing"
             tone="neutral"
             onClick={() => setWhyOpen(true)}
           />

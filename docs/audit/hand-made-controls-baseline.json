@@ -444,9 +444,6 @@
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx": {
       "input": 1
     },
-    "src/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote.tsx": {
-      "button": 1
-    },
     "src/pages/profile/GiftCard.tsx": {
       "button": 1,
       "input": 1
@@ -468,7 +465,7 @@
       "button": 1
     },
     "src/pages/search/SearchPage.tsx": {
-      "button": 2,
+      "button": 1,
       "input": 1
     },
     "src/pages/tips/TipMoment.tsx": {

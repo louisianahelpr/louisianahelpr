@@ -4,7 +4,7 @@
 // @mutate src/pages/jobs/jobPage/OnTheWayNow.tsx | {t("jl.nowOnWay", { name })} | {name} is on the way
 // @mutate src/pages/jobs/jobPage/OnTheWayNow.tsx | {t("jl.nowConfirmNote")} | You'll confirm once they say they've arrived.
 // @mutate src/pages/jobs/jobPage/reviewTimeLeft.ts | return t("jl.approveLeft", { left: h > 0 ? `${h}h ${m}m` : `${m}m` }); | return `${h > 0 ? `${h}h ${m}m` : `${m}m`} left to approve or ask for a change, then Helpr support steps in`;
-// @mutate src/pages/jobs/jobPage/reviewTimeLeft.ts | if (ms <= 0) return t("jl.approveLate"); | if (ms <= 0) return "You can still approve. Helpr support will check in; your payment stays held";
+// @mutate src/pages/jobs/jobPage/reviewTimeLeft.ts | if (ms <= 0) return t("jl.approveLate"); | if (ms <= 0) return "You can still approve. Helpr support will check in, and your payment stays held.";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

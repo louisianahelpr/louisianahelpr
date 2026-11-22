@@ -8,7 +8,7 @@
  * dictionary imports anything but the registry, and no value is a template with ${...} interpolation. Every value
  * in both languages is also checked for the word "undefined" / "null" / "NaN".
  *
- * @mutate src/lib/i18n/enPostJob.ts | "postJob.whereH": "Helprs see the area now. Your street address goes only to the Helpr you offer the job to.", | "postJob.whereH": `Helprs see the area now. ${undefined}`,
+ * @mutate src/lib/i18n/enPostJob.ts | "postJob.whereH": "Pick the day, then the place.", | "postJob.whereH": `Pick the day, then ${undefined}.`,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -274,7 +274,9 @@ describe("design audit r2 #11: plain copy on Post a job", () => {
     expect(note).toContain("work in {activity.parish} Parish.");
     expect(note).not.toMatch(/active community/);
     const desc = blankComments(readFileSync("src/components/postjob/detailsSection/DescriptionField.tsx", "utf8"));
-    expect(desc).toContain('{tr("postJob.f.tip", { tips: unmet.join("; ") })}');
+    // Audit 11-21 (L28): each tip is its own sentence ("repair?; How many" read as broken).
+    expect(desc).toContain("{tr(\"postJob.f.tip\", { tips: unmet.map((tip) => (/[.?!]$/.test(tip.trim()) ? tip.trim() : `${tip.trim()}.`)).join(\" \") })}");
+    expect(desc).not.toContain('unmet.join("; ")');
     expect(desc).not.toMatch(/text-ds-11 font-sans leading-snug/);
   });
 });

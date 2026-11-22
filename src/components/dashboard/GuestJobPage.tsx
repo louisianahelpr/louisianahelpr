@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { guestFactLabel, guestJobFacts, type GuestJob } from "@/components/dashboard/GuestJobPreview";
 import { wordInLang } from "@/lib/i18n/inLang";
+import { ShareJobButton } from "@/components/jobs/ShareJobButton";
+import { getCity } from "@/lib/locationUtils";
 
 export function GuestJobPage({ job, onSignUp, onLogIn, onBrowse }: {
   job: GuestJob;
@@ -62,6 +64,13 @@ export function GuestJobPage({ job, onSignUp, onLogIn, onBrowse }: {
             See other open jobs
           </Button>
         </p>
+        {/* Audit 11-21 (S34): a guest who opened a shared job could not pass it on from the page. The shared Share
+            button (the same link, ?ref=share, and native sheet / copy fallback members get). */}
+        <div className="flex justify-center" data-guest-share="">
+          <ShareJobButton
+            job={{ id: job.id, title: job.title?.trim() || "A job", budget: job.budget ?? undefined, category: job.category ?? undefined, city: getCity(job.location ?? "") || undefined, helper_fee_flat_cents: job.helper_fee_flat_cents }}
+          />
+        </div>
       </div>
     </article>
   );

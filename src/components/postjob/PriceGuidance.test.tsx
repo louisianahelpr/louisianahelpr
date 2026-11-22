@@ -2,6 +2,9 @@
  * Owner 2026-11-20 (ease batch, item 1): the fair price hint on Budget. A real range says where it came from ("near
  * you" / "on Helpr", with its count); the server's typical fallback says it is typical and never claims Helpr jobs; the
  * member's saved point goes to the server; a failed read shows nothing (never a guess).
+ * Audit 11-21 (P24, S37): "Start at $low" at $0, and the nudge's Use outlined.
+ * @mutate src/components/postjob/PriceGuidance.tsx |       {budget <= 0 && ( |       {false && (
+ * @mutate src/components/postjob/PriceGuidance.tsx |           <Button type="button" size="sm" variant="outline" onClick={() => onUse(g.low)}> |           <Button type="button" size="sm" className="btn-grad-primary" onClick={() => onUse(g.low)}>
  * @mutate src/components/postjob/PriceGuidance.tsx |   const headline = t(g.scope === "near" ? "postJob.hint.near" : g.scope === "state" ? "postJob.hint.state" : "postJob.hint.typical", { what }); |   const headline = t("postJob.hint.near", { what });
  * @mutate src/components/postjob/PriceGuidance.tsx |   const below = budget > 0 && budget < g.low && kept !== budget; |   const below = false;
  */
@@ -43,7 +46,9 @@ describe("fair price hint (owner 11-20)", () => {
     state.rows = [{ scope: "near", sample_band: "5+", low_dollars: 40, high_dollars: 80 }];
     wrap(<PriceGuidanceCard category="yard_work" budget={60} onUse={() => {}} />);
     expect(await screen.findByText("$40–$80")).toBeInTheDocument();
-    expect(screen.getByText(/Most yard work jobs near you are/i)).toBeInTheDocument();
+    expect(screen.getByText(/Most yard work jobs near you$/i)).toBeInTheDocument();
+    // A price is set, so no "Start at" button (audit 11-21 P24).
+    expect(screen.queryByRole("button", { name: /^Start at/ })).toBeNull();
     expect(screen.getByText("From 5+ recent jobs posted on Helpr. You're at $60.")).toBeInTheDocument();
     expect(state.calls).toEqual([{ fn: "get_fair_price_hint", args: { p_category: "yard_work", p_lat: 30.22, p_lng: -92.02 } }]);
   });
@@ -53,7 +58,7 @@ describe("fair price hint (owner 11-20)", () => {
     state.rows = [{ scope: "typical", sample_band: null, low_dollars: 40, high_dollars: 80 }];
     wrap(<PriceGuidanceCard category="yard_work" budget={0} onUse={() => {}} />);
     expect(await screen.findByText("$40–$80")).toBeInTheDocument();
-    expect(screen.getByText(/A fair start for yard work is/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Fair start for yard work$/i)).toBeInTheDocument();
     expect(screen.getByText("A typical Louisiana range. You set the price.")).toBeInTheDocument();
     expect(screen.queryByText(/near you|on Helpr/i)).toBeNull();
     expect(state.calls).toEqual([{ fn: "get_fair_price_hint", args: { p_category: "yard_work" } }]);
@@ -69,6 +74,22 @@ describe("fair price hint (owner 11-20)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Keep $25" }));
     expect(await screen.findByTestId("price-guidance")).toBeInTheDocument();
     expect(screen.queryByText("That's below the usual range")).toBeNull();
+  });
+
+  // Audit 11-21 (P24, S37): at $0 one tap starts the price at the range's low end; never filled in by itself. The
+  // below-range nudge's "Use $40" is outlined (the page's one olive button is Review).
+  it("no price yet: Start at $40 sets the low end on a tap; the nudge's Use is outlined", async () => {
+    state.rows = [{ scope: "typical", sample_band: null, low_dollars: 40, high_dollars: 80 }];
+    const onUse = vi.fn();
+    const first = wrap(<PriceGuidanceCard category="yard_work" budget={0} onUse={onUse} />);
+    const start = await screen.findByRole("button", { name: "Start at $40" });
+    expect(onUse).not.toHaveBeenCalled();
+    fireEvent.click(start);
+    expect(onUse).toHaveBeenCalledWith(40);
+    first.unmount();
+    wrap(<PriceGuidanceCard category="yard_work" budget={25} onUse={onUse} />);
+    const use = await screen.findByRole("button", { name: "Use $40" });
+    expect(use.className).not.toContain("btn-grad-primary");
   });
 
   it("a failed read or no row shows nothing (never a guess)", async () => {

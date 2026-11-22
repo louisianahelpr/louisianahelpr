@@ -87,7 +87,8 @@ const PostJob = () => {
 
        `onBack` rather than `backTo`: back here steps the multi-step form
        backwards and only leaves the route from the first step. */
-    <AppPage title={header.title} onBack={form.handlePostJobBack}>
+    // Audit 11-21 (P26): a focused flow; a guest gets the public header without the marketing footer under each step.
+    <AppPage title={header.title} onBack={form.handlePostJobBack} focusedFlow>
       {form.redirecting && <RedirectingOverlay />}
       {form.step === "entry" ? (
         <div className="space-y-section">

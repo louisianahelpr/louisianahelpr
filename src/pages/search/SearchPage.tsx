@@ -367,9 +367,11 @@ export default function SearchPage() {
     ...(shopCount > 0 ? [{ key: "shops" as const, label: t("nav.shops"), count: shopCount }] : []),
   ];
   const show = (s: SearchSection) => section === "all" || section === s;
-  // Audit 11-21 (P15): the section whose rows match by title more often leads (ties: Jobs). Order only, never a filter.
+  // Audit 11-21 (P15): Declutter always sat above Jobs ("clean": 70 items over the cleaning job). Jobs leads whenever a
+  // job matches by title; Declutter leads only when no job does and an item does. Order only, never a filter.
+  // (Counting title hits per section was tried first: Declutter's 20 rows outnumber a few jobs, screenshot 11-21.)
   const titleHits = (rows: readonly { title: string }[] | undefined) => (rows ?? []).filter((r) => matchesSearch(q, { title: r.title })).length;
-  const jobsFirst = titleHits(jobs.data?.rows) >= (declutterOn ? titleHits(items.data?.rows) : 0);
+  const jobsFirst = titleHits(jobs.data?.rows) > 0 || !declutterOn || titleHits(items.data?.rows) === 0;
   // AUD31-39: the box named Shops and Homes, both Coming soon, and was cut at 375; it names what it searches.
   const fieldLabel = t(declutterOn ? (shopsOn ? "srch.field" : "srch.fieldJI") : shopsOn ? "srch.fieldJS" : "srch.fieldJ");
 

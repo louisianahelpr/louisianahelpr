@@ -142,7 +142,7 @@ describe("low-alpha foreground contrast", () => {
     ).toEqual([]);
   });
 
-  // @mutate src/components/profile/savedHelpersTab/SavedHelperCard.tsx | <span aria-hidden="true">·</span> | <span aria-hidden="true" style={{ color: "hsl(var(--bark) / 0.4)" }}>·</span>
+  // @mutate src/components/profile/savedHelpersTab/SavedHelperCard.tsx | <span aria-hidden="true">·{"\u00a0"}</span> | <span aria-hidden="true" style={{ color: "hsl(var(--bark) / 0.4)" }}>·{"\u00a0"}</span>
   it("no low-contrast foreground colour that a human has not dispositioned", () => {
     const seen = new Map<string, number>();
     for (const r of failing) seen.set(keyOf(r), (seen.get(keyOf(r)) ?? 0) + 1);

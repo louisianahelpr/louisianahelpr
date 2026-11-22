@@ -177,7 +177,7 @@ describe("the stalled note is one sentence, and the rest is one tap away", () =>
   it("the tap that reveals the rest is a SEPARATE control, not the disabled box", async () => {
     draw(stalledJob());
     await openMore();
-    const why = screen.getByRole("button", { name: /^Why\?/ }) as HTMLButtonElement;
+    const why = screen.getByRole("button", { name: /^What happens next\?/ }) as HTMLButtonElement;
     expect(why.disabled).toBe(false);
     // …under the row's More, like every control but the primary (owner, 2026-10-08).
     expect(why.closest("[data-job-step-overflow-panel]"), "the Why? chip is not under More").not.toBeNull();
@@ -196,13 +196,13 @@ describe("the stalled note is one sentence, and the rest is one tap away", () =>
   it("no notice, no Why? chip — the explanation never outlives what it explains", () => {
     // Same job, still legitimately running (its scheduled day is not over).
     draw(stalledJob({ date_needed: TODAY }));
-    expect(screen.queryByRole("button", { name: /^Why\?/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^What happens next\?/ })).toBeNull();
     expect(screen.getByRole("button", { name: /Working confirmed/i })).toBeTruthy();
   });
 
   it("and it never appears once either side has marked the job done", () => {
     draw(stalledJob({ helper_completed_at: ago(1) }));
-    expect(screen.queryByRole("button", { name: /^Why\?/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^What happens next\?/ })).toBeNull();
   });
 
   it("…because the shared PREDICATE stands down, not only the row's precedence", () => {

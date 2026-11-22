@@ -25,6 +25,52 @@
  * @mutate src/pages/user/UserProfile.tsx |   const initials = avatarInitials(profile.full_name); |   const initials = (profile.full_name \|\| "").split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2) \|\| "?";
  * @mutate src/pages/user/UserProfile.tsx | it wraps instead.\n          wrapTitle={isOwnProfile} | it wraps instead.
  *
+ * P23: mid-scroll the back arrow went away (/helprs: title-only compact bar; /user: the whole header scrolled off).
+ * @mutate src/pages/helprs/FindHelprs.tsx | title={w("pub.helprs.title", "Find a Helpr")} stickyHeader onBack= | title={w("pub.helprs.title", "Find a Helpr")} onBack=
+ * @mutate src/pages/user/UserProfile.tsx | <div className="max-sm:sticky max-sm:top-0 max-sm:z-40 max-sm:bg-[hsl(var(--background))]" data-user-header-pinned=""> | <div data-user-header-pinned="">
+ *
+ * P25: a Group job read "Budget of $0 will be split: at least $0 per Helpr." before a price; a guest's draft card asked
+ * them to add a video again (guests cannot add one).
+ * @mutate src/components/postjob/GroupJobCard.tsx |       {budgetNum > 0 && (\n        <p className="text-ds-11 text-muted-foreground" data-crew-split=""> |       {true && (\n        <p className="text-ds-11 text-muted-foreground" data-crew-split="">
+ * @mutate src/pages/post-job/EntryChoice.tsx | t(form.isGuest ? "postJob.draftBodyGuest" : "postJob.draftBody") | t("postJob.draftBody")
+ *
+ * L28 (poster): "Why?" alone on the stalled job's chip.
+ * @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx |             label="What happens next?" |             label="Why?"
+ *
+ * P26: guest Post a job showed the full marketing footer under every step, and no step indicator at 1440 on its first
+ * screen (the desktop rail is not on that screen; the phone bar was lg:hidden).
+ * @mutate src/components/marketing/GuestPublicFrame.tsx |   const footerReady = contentShown && !focused; |   const footerReady = contentShown;
+ * @mutate src/pages/post-job/PostJob.tsx | onBack={form.handlePostJobBack} focusedFlow> | onBack={form.handlePostJobBack}>
+ * @mutate src/components/postjob/PostJobStepHeader.tsx | className={`flex items-center gap-3${barAtEveryWidth ? "" : " lg:hidden"}`} | className="flex items-center gap-3 lg:hidden"
+ * @mutate src/pages/post-job/EntryChoice.tsx | helper={head.h} barAtEveryWidth /> | helper={head.h} />
+ *
+ * S33: /helprs at 1440: 25 chips in three rows, 30 cards with two buttons each (60) and no "more".
+ * @mutate src/pages/helprs/FindHelprs.tsx | {q.data.helprs.slice(0, shownHelprs).map((h) => { | {q.data.helprs.map((h) => {
+ * @mutate src/pages/helprs/FindHelprs.tsx | const folded = !allSkills && i > SKILL_CHIPS_FIRST && !on; | const folded = false;
+ *
+ * G20 (poster): on a screen with no dock the toast sat flush on the bottom edge, over the pay button.
+ * @mutate src/components/ui/sonner.tsx | bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 12px)", | bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))",
+ *
+ * S34: a guest on a shared job's page had no way to share it on.
+ * @mutate src/components/dashboard/GuestJobPage.tsx |         <div className="flex justify-center" data-guest-share="">\n          <ShareJobButton | <div className="flex justify-center" data-guest-share="">\n          <span
+ *
+ * S35: /book's "This Helpr isn't available" offered only "Go home".
+ * @mutate src/components/profile/PublicProfileForward.tsx | <Link to="/helprs" data-book-find-helpr="">Find a Helpr</Link> | <Link to="/" data-book-find-helpr="">Go home</Link>
+ *
+ * L25 (poster): the urgent bonus and the applicant sort showed "selected" as a white pill; every other switch is olive.
+ * @mutate src/components/postjob/BudgetSection.tsx |               ariaLabel={tr("postJob.f.urgentBonus")}\n |               ariaLabel={tr("postJob.f.urgentBonus")}\n              tone="quiet"\n
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantSortControls.tsx |       ariaLabel="Sort applicants by"\n |       ariaLabel="Sort applicants by"\n      tone="quiet"\n
+ *
+ * L27 (poster): the private note had no label or placeholder and said nothing about being private.
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote.tsx | <label htmlFor={noteId} className="block text-ds-12 font-semibold text-foreground">Private note: only you see this</label> | <span />
+ *
+ * L36 (poster): Saved Helprs used a star for "jobs together" and said "Last 3 hours ago".
+ * @mutate src/components/profile/savedHelpersTab/SavedHelperCard.tsx |                   Last job {formatDistanceToNow( |                   Last {formatDistanceToNow(
+ *
+ * L30 (poster): /payment-success at 1440 sat on grey blobs (AuthShell's ambient wash); the app is white.
+ * @mutate src/pages/post-job/PaymentSuccess.tsx | centerColumn maxWidth="md" plainBackground> | centerColumn maxWidth="md">
+ * @mutate src/components/auth/AuthShell.tsx |       {(desktopBrandPanel \|\| centerColumn) && !plainBackground && ( |       {(desktopBrandPanel \|\| centerColumn) && (
+ *
  * P30: /hire's two calls wrapped unevenly at 375 (the primary alone on row 2).
  * @mutate src/pages/info/HireTownPage.tsx | <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap" data-town-ctas=""> | <div className="flex flex-wrap gap-3" data-town-ctas="">
  */
@@ -35,6 +81,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "./helpers/blankNonCode";
 import { avatarInitials } from "@/lib/avatarImage";
+import { enPostJob } from "@/lib/i18n/enPostJob";
+import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
+import { GuestJobPage } from "@/components/dashboard/GuestJobPage";
+import { ApplicantPrivateNote } from "@/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote";
+import type { GuestJob } from "@/components/dashboard/GuestJobPreview";
 import { gatedPageNotice, loginNotice } from "@/pages/auth/loginNotice";
 import { useGuestJobSheet } from "@/pages/home/useGuestJobSheet";
 import { GuestJobPreview } from "@/components/dashboard/GuestJobPreview";
@@ -137,6 +188,119 @@ describe("P20: one rule for a member's initials", () => {
     const s = src("src/pages/user/UserProfile.tsx");
     expect((s.match(/wrapTitle=\{isOwnProfile\}/g) ?? []).length).toBe(3);
     expect(src("src/pages/user/UserProfileLoadingBody.tsx")).toContain("wrapTitle={own}");
+  });
+});
+
+describe("P23: the way back stays on screen while the page scrolls", () => {
+  it("/helprs pins its title row (back + title), not the title-only bar", () => {
+    expect(src("src/pages/helprs/FindHelprs.tsx")).toMatch(/<AppPage title=\{w\("pub\.helprs\.title", "Find a Helpr"\)\} stickyHeader /);
+  });
+  it("/user's header (back, save, menu) is pinned on a phone", () => {
+    const s = src("src/pages/user/UserProfile.tsx");
+    const at = s.indexOf('data-user-header-pinned=""');
+    expect(at).toBeGreaterThan(0);
+    const open = s.lastIndexOf("<div", at);
+    expect(s.slice(open, at)).toContain("max-sm:sticky max-sm:top-0 max-sm:z-40 max-sm:bg-[hsl(var(--background))]");
+    // The pinned box holds the loaded page's header (the one with the back, save and menu actions).
+    expect(s.slice(at, at + 3000)).toMatch(/<PageHeader[\s\S]*?titleActions=\{/);
+  });
+});
+
+describe("P25 / L28: Post a job and job-page copy", () => {
+  it("the crew split line waits for a price; a guest's draft card never mentions video", () => {
+    const g = src("src/components/postjob/GroupJobCard.tsx");
+    expect(g).toMatch(/\{budgetNum > 0 && \(\s*<p[^>]*data-crew-split=""/);
+    expect(src("src/pages/post-job/EntryChoice.tsx")).toContain('t(form.isGuest ? "postJob.draftBodyGuest" : "postJob.draftBody")');
+    expect(enPostJob["postJob.draftBodyGuest"]).not.toMatch(/video/i);
+  });
+  it("the stalled job's chip says what it opens", () => {
+    const s = src("src/pages/posts/postedJobCard/steps/InProgressStep.tsx");
+    expect(s).toContain('label="What happens next?"');
+    expect(s).not.toMatch(/label="Why\?"/);
+  });
+});
+
+describe("P26: guest Post a job is a focused flow with a step indicator at every width", () => {
+  it("the guest frame drops the footer for a focused flow, and Post a job is one", () => {
+    expect(src("src/components/marketing/GuestPublicFrame.tsx")).toContain("const footerReady = contentShown && !focused;");
+    expect(src("src/components/AppPage.tsx")).toContain("<GuestPublicFrame focused={focusedFlow}>");
+    expect(src("src/pages/post-job/PostJob.tsx")).toMatch(/<AppPage title=\{header\.title\} onBack=\{form\.handlePostJobBack\} focusedFlow>/);
+  });
+  it("the first screen (no desktop rail) keeps the step bar at every width; form screens keep it phone-only", () => {
+    const groups = render(<MemoryRouter><PostJobStepHeader screen="groups" question="Q" helper="H" barAtEveryWidth /></MemoryRouter>);
+    expect(groups.container.querySelector("[data-step-bar]")!.className).not.toContain("lg:hidden");
+    groups.unmount();
+    const form = render(<MemoryRouter><PostJobStepHeader screen="details" question="Q" helper="H" /></MemoryRouter>);
+    expect(form.container.querySelector("[data-step-bar]")!.className).toContain("lg:hidden");
+    form.unmount();
+    expect((src("src/pages/post-job/EntryChoice.tsx").match(/<PostJobStepHeader screen="groups"[^>]*barAtEveryWidth \/>/g) ?? []).length).toBe(2);
+  });
+});
+
+describe("S33: a calmer /helprs on desktop", () => {
+  it("the list pages at 12, desktop folds the skills behind More skills, and a card has one button", () => {
+    const s = src("src/pages/helprs/FindHelprs.tsx");
+    expect(s).toContain("const HELPRS_PAGE = 12;");
+    expect(s).toContain("{q.data.helprs.slice(0, shownHelprs).map((h) => {");
+    expect(s).toContain('data-more-helprs=""');
+    expect(s).toMatch(/const folded = !allSkills && i > SKILL_CHIPS_FIRST && !on;/);
+    expect(s).toContain('data-more-skills=""');
+    // The photo and name link to the profile; the card's only button is Offer a job.
+    expect(s).not.toContain('"pub.helprs.viewProfile"');
+  });
+});
+
+describe("G20: a phone toast never sits on the bottom edge", () => {
+  it("the phone bottom offset adds 12px over the dock height (0 where there is no dock)", () => {
+    const s = src("src/components/ui/sonner.tsx");
+    const m = s.match(/mobileOffset=\{\{[\s\S]*?bottom: "([^"]+)"/);
+    expect(m).toBeTruthy();
+    expect(m![1]).toBe("calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 12px)");
+  });
+});
+
+describe("S34: a guest can share the job from its page", () => {
+  it("the guest job page carries the shared Share button with the job's own link", () => {
+    const job = { id: "3f0c9a4e-0000-4000-8000-000000000000", title: "Mow the lawn", category: "yard_work", location: "Lafayette, LA", budget: 60 } as unknown as GuestJob;
+    render(<MemoryRouter><GuestJobPage job={job} onSignUp={() => {}} onLogIn={() => {}} onBrowse={() => {}} /></MemoryRouter>);
+    const slot = document.querySelector("[data-guest-share]")!;
+    expect(slot).toBeTruthy();
+    // "Share" where the device has a share sheet, "Copy link" elsewhere (jsdom); the same component either way.
+    expect(slot.querySelector("button")?.textContent ?? "").toMatch(/^(Share|Copy link)$/);
+  });
+});
+
+describe("S35: an unavailable /book link offers another Helpr", () => {
+  it("Find a Helpr leads, Go home stays", () => {
+    const s = src("src/components/profile/PublicProfileForward.tsx");
+    expect(s).toContain('<Link to="/helprs" data-book-find-helpr="">Find a Helpr</Link>');
+    expect(s).toContain('<Link to={user ? "/home" : "/"}>Go home</Link>');
+  });
+});
+
+describe("L25 / L27 / L36: poster-side controls", () => {
+  it("the urgent bonus and the applicant sort wear the solid selected tone", () => {
+    expect(src("src/components/postjob/BudgetSection.tsx")).not.toMatch(/ariaLabel=\{tr\("postJob\.f\.urgentBonus"\)\}\s*tone="quiet"/);
+    expect(src("src/pages/posts/postedJobs/applicantsPanel/ApplicantSortControls.tsx")).not.toContain('tone="quiet"');
+  });
+  it("the private note is labelled as private, with a placeholder, and saves with the shared Button", () => {
+    render(<ApplicantPrivateNote editing note="" draft="" setDraft={() => {}} onSave={() => {}} onCancel={() => {}} onEdit={() => {}} />);
+    const box = screen.getByLabelText("Private note: only you see this");
+    expect(box.getAttribute("placeholder")).toMatch(/^e\.g\./);
+    expect(screen.getByRole("button", { name: "Save" }).className).toMatch(/rounded/);
+  });
+  it("Saved Helprs: a briefcase for jobs together, and 'Last job'", () => {
+    const s = src("src/components/profile/savedHelpersTab/SavedHelperCard.tsx");
+    expect(s).toContain('<Briefcase className="w-3 h-3" aria-hidden />');
+    expect(s).toContain("Last job {formatDistanceToNow(");
+    expect(s).not.toMatch(/<Star className="w-3 h-3 fill-primary" \/>/);
+  });
+});
+
+describe("L30: /payment-success is a plain white page at every width", () => {
+  it("AuthShell's wash is off for it", () => {
+    expect(src("src/pages/post-job/PaymentSuccess.tsx")).toContain('<AuthShell hideBack hideHeader centerColumn maxWidth="md" plainBackground>');
+    expect(src("src/components/auth/AuthShell.tsx")).toContain("{(desktopBrandPanel || centerColumn) && !plainBackground && (");
   });
 });
 

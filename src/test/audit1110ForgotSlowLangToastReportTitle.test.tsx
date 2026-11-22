@@ -14,7 +14,9 @@
  * @mutate src/components/LanguageToggle.tsx | toast(t("lang.saved")) | void t("lang.saved")
  * @mutate src/components/LanguageToggle.tsx | {lang === l && <Check | {false && <Check
  * @mutate src/components/ReportDialog.tsx | ? t("rep.titleNamed", { name: alsoBlock.name }) | ? t(`rep.title.${reportedType}` as MsgKey)
- * @mutate src/components/ReportDialog.tsx | <DialogFooter className={REPORT_FOOTER_PINNED} | <DialogFooter
+ * @mutate src/components/ReportDialog.tsx | <div className={REPORT_FOOTER_PINNED} data-report-footer=""> | <div data-report-footer="">
+ * Audit 11-21 (P22): the "we never tell" line rides in the pinned block, so the footer never covers it.
+ * @mutate src/components/ReportDialog.tsx |             <div className={REPORT_FOOTER_PINNED} data-report-footer="">\n            <p | <p
  * @mutate src/components/PayoutSetupForm.tsx | Add your bank (with Stripe) | Set up payouts with Stripe
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -106,9 +108,12 @@ describe("F260h: the report-user sheet names the person and keeps its buttons in
     );
     expect(screen.getByRole("heading", { name: "Report Hallie H." })).toBeInTheDocument();
     const send = screen.getByRole("button", { name: /send report/i });
-    const row = send.parentElement as HTMLElement;
+    const row = send.closest("[data-report-footer]") as HTMLElement;
+    expect(row, "the buttons sit in the pinned block").toBeTruthy();
     expect(row.className, "footer row sticks to the sheet bottom").toMatch(/\bsticky\b/);
     expect(row.className).toMatch(/\bbottom-0\b/);
+    // Audit 11-21 (P22): the reassurance line is inside the pinned block, above the buttons.
+    expect(row.querySelector("[data-report-privacy]")?.textContent).toMatch(/never tell the other person/);
   });
 
   it("a job report keeps the generic title", () => {

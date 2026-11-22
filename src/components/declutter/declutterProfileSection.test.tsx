@@ -10,7 +10,9 @@
  * @mutate src/components/declutter/DeclutterProfileSection.tsx |   const words = reviews.filter((r) => r.comment && r.comment.trim()).slice(0, 3); |   const words = reviews.filter((r) => r.comment && r.comment.trim());
  * @mutate src/lib/declutter/profile.ts |   return { avg: Math.round((sum / reviews.length) * 10) / 10, count: reviews.length }; |   return { avg: Math.round(sum / reviews.length), count: reviews.length };
  * "N sold" (lead 2026-10-28, builder 1's 20261028202132):
- * @mutate src/components/declutter/DeclutterProfileSection.tsx |         {soldCount > 0 && <p | {soldCount >= 0 && <p
+ * @mutate src/components/declutter/DeclutterProfileSection.tsx |         {soldCount > 0 && all.length > 0 && <p | {soldCount >= 0 && all.length >= 0 && <p
+ * Audit 11-21 (P21): with no reviews, "DECLUTTER · 6 sold" was a heading row with nothing under it.
+ * @mutate src/components/declutter/DeclutterProfileSection.tsx |       {all.length === 0 && (\n        <p className="rounded-2xl liquid-glass p-card | {false && (\n        <p className="rounded-2xl liquid-glass p-card
  * @mutate src/components/declutter/DeclutterProfileSection.tsx | queryFn: () => fetchSellerSoldCount(userId), enabled: on }); | queryFn: () => fetchSellerSoldCount(userId), enabled: true });
  * @mutate src/lib/declutter/profile.ts |   if (res.error && isMissingRpcNamed(res.error, "declutter_seller_sold_count")) return null; |   void isMissingRpcNamed;
  * @mutate src/lib/declutter/profile.ts |   const res = await supabase.rpc("declutter_seller_sold_count", { p_seller_id: sellerId }); |   const res = await supabase.rpc("declutter_seller_sold_count", { p_seller_id: "me" });
@@ -117,7 +119,11 @@ describe("Declutter sales and reviews on a profile (#61)", () => {
     state.sold = 1;
     show();
     const section = await screen.findByRole("region", { name: "Declutter" });
-    expect(section.querySelector("[data-profile-sold]")).toHaveTextContent("1 sold");
+    // Audit 11-21 (P21): the count is the section's content (a card under the heading), not a lone heading row.
+    const sold = section.querySelectorAll("[data-profile-sold]");
+    expect(sold).toHaveLength(1);
+    expect(sold[0]).toHaveTextContent("1 sold · No Declutter reviews yet");
+    expect(sold[0].className).toContain("liquid-glass");
     expect(section.querySelector("[data-profile-reviews]")).toBeNull();
   });
 

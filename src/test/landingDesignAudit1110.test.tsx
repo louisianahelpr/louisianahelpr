@@ -11,7 +11,8 @@
  *   D015: no tracked-out ALL-CAPS template labels (LIVE NOW, POPULAR NOW, JUST FINISHED, YOUR MONEY PROTECTED).
  *   D016: no service-area line under the first section (owner 2026-11-11: removed "Serving New Iberia, Lafayette,
  *         Abbeville and nearby." from under "Browse jobs").
- *   D021: on a phone the landing's bar is the logo, Log in and Join free (owner 11-18: plus the short "Guides" link).
+ *   D021: on a phone the landing's bar is the logo, Log in and Join free (owner 11-18: plus the short "Guides" link;
+ *         owner 11-22: Log in and Join free are one "Join / Log in" button there).
  *
  * @mutate src/index.css |   font-size: clamp(32px, 3.2vw, 48px); |   font-size: 28px;
  * @mutate src/components/landing/HowItWorksSection.tsx |             className="font-display landing-serif text-balance landing-h2" |             className="font-display landing-serif text-balance text-ds-28"
@@ -111,7 +112,8 @@ describe("landing design audit 11-10", () => {
     unmount();
   });
 
-  it("D021: on a phone the landing's bar is logo, Log in and Join free; other pages keep Jobs and Declutter", () => {
+  // Owner 11-22: on a phone the auth links are one "Join / Log in" button (src/test/phoneJoinOrLogIn1122.test.tsx).
+  it("D021: on a phone the landing's bar is logo, Guides and the auth button; other pages keep Jobs and Declutter", () => {
     const links = (landing: boolean) => {
       const { container, unmount } = render(<MemoryRouter><Navbar landing={landing} /></MemoryRouter>);
       const out = [...container.querySelectorAll("a")].map((a) => ({ text: (a.querySelector(".sr-only") ?? a).textContent?.trim(), phone: a.getAttribute("data-testid") === "nav-gift-guides-phone", phoneHidden: /max-\[639px\]:hidden/.test(a.className) }));

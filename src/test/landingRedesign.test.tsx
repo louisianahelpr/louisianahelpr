@@ -17,7 +17,8 @@
  *   - the landing's top bar is the one public bar, "Jobs · Declutter | Log in · Join free"
  *     (owner, 2026-10-21; Declutter added by the owner 11-04, to its guest Browse,
  *     on every public page alike): no "How it works", no sections read of its own. On a
- *     phone the landing's bar is logo, Log in and Join free (D021, 11-10).
+ *     phone the landing's bar is logo, Log in and Join free (D021, 11-10; owner 11-22: one "Join / Log in"
+ *     button there, src/test/phoneJoinOrLogIn1122.test.tsx).
  *
  * @mutate src/components/landing/heroSearch.ts |   return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: q ? `/search${qs}` : "/browse" }; |   return { signedIn: "/jobs", signedOut: "/signup" };
  * @mutate src/components/landing/HeroSection.tsx |     const t = heroSearchTargets(query); |     const t = heroSearchTargets("");

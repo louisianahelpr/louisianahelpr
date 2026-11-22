@@ -695,6 +695,7 @@ export const es: Record<MsgKey, string> = {
   "g.logIn": "Iniciar sesión",
   "g.signUp": "Registrarse",
   "g.joinFree": "Únase gratis",
+  "g.joinOrLogIn": "Únase / Iniciar sesión",
   "settings.password": "Contraseña",
   "settings.profileLink": "Su enlace de perfil",
   "settings.profileLinkSub": "Un enlace a lo que publica y hace",

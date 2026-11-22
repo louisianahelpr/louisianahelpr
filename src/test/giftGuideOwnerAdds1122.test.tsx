@@ -58,6 +58,13 @@ const SENT: [string, string, string, number][] = [
   ["p-103889077", "her", "store-lake-pajamas", 124], // in place of p-103884402 (gone from Lake's site)
   ["p-109156467", "kids", "store-yoto", 165.72],
   ["p-109156399", "kids", "store-yoto", 164.02],
+  // Batch 2c.
+  ["p-109147619", "her", "store-ulta-beauty", 18],
+  ["p-109151385", "her", "store-target", 79.99],
+  ["p-109149968", "her", "store-anthropologie", 89],
+  ["p-109152299", "her", "store-cos-bar", 90],
+  ["p-109155568", "her", "store-madewell", 158],
+  ["p-109155784", "her", "store-ulta-beauty", 399],
 ];
 /** Amazon picks from her launch-day screenshots and asks (no ShopMy pin for them): ASIN -> guide, price 11-22. */
 const AMAZON_1122: [string, string, number][] = [

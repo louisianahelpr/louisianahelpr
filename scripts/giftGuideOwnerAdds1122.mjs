@@ -77,6 +77,15 @@ export const HER_ADDS_1122 = [
   { name: "eto Wine Decanter and Preserver, Stainless", brand: "eto", line: "A decanter that keeps an open bottle fresh for days.", href: amz("B0GP2R8TBS"), image: amzImg("41YNmeHEpGL"), store: "store-amazon", sortPrice: 199, commission: 3, type: "wine-tool" },
   // Owner's screenshot: a round dark case with white tips, which is the Sleepbuds 2 (the first Sleepbuds is B0DJB1ZL8V).
   { name: "Ozlo Sleepbuds 2", brand: "Ozlo", line: "Comfy sleep earbuds that mask snoring and noise.", href: amz("B0GZSMBDYZ"), image: amzImg("61yf9iq55IL"), store: "store-amazon", sortPrice: 237, commission: 3, type: "sleep-earbuds" },
+  // Batch 2c (11-22): her pins at department stores and beauty shops, priced on each store's page 11-22.
+  { name: "Good Molecules Caffeine Energizing Hydrogel Eye Patches", brand: "Good Molecules", line: "Cooling caffeine eye patches for puffy mornings.", href: shopmy("p-109147619"), image: "https://static.shopmy.us/uploads/pretty-prod-1786107449401", store: "store-ulta-beauty", sortPrice: 18, price: 18, commission: 13, type: "skincare" },
+  { name: "BISSELL Little Green Mini Carpet Cleaner", brand: "BISSELL", line: "A small spot cleaner for rugs, couches and car seats.", href: shopmy("p-109151385"), image: "https://static.shopmy.us/pins/zoom-109151385-1795366985590-GUEST_a0e171ac-5761-42c7-83ca-b6b75eced062", store: "store-target", sortPrice: 79.99, price: 79.99, commission: 4, type: "vacuum" },
+  // Anthropologie lists it at $89 (30% off in cart on 11-22).
+  { name: "Drowsy Sleep in the City Silk Sleep Mask", brand: "Drowsy", line: "A padded silk sleep mask with ruffled edges.", href: shopmy("p-109149968"), image: "https://static.shopmy.us/pins/zoom-109149968-1795366797104-102988060_639_b", store: "store-anthropologie", sortPrice: 89, price: 89, commission: 15, type: "sleep-mask" },
+  { name: "Diptyque Baies Candle", brand: "Diptyque", line: "The classic blackcurrant and rose candle, 190 g.", href: shopmy("p-109152299"), image: "https://cdn.shopify.com/s/files/1/0618/7116/1562/files/3701699309746_9835a6a3-0819-43b7-b79b-b30648cbe0e0.jpg", store: "store-cos-bar", sortPrice: 90, price: 90, commission: 20, type: "candle" },
+  { name: "Madewell x The Six Bells Nightgown", brand: "Madewell", line: "A soft white nightgown from the holiday collab.", href: shopmy("p-109155568"), image: "https://static.shopmy.us/pins/zoom-109155568-1795367501473-OC137_WT0012_m", store: "store-madewell", sortPrice: 158, price: 158, commission: 12, type: "nightgown" },
+  // Her pin's photo is the rose-gold ring, Ulta's Deep Rose ($399 Black Friday, was $499).
+  { name: "Oura Ring 5, Deep Rose", brand: "Oura", line: "A smart ring that tracks sleep, steps and recovery.", href: shopmy("p-109155784"), image: "https://static.shopmy.us/pins/zoom-109155784-1795367529760-2664695", store: "store-ulta-beauty", sortPrice: 399, price: 399, commission: 13, type: "smart-ring" },
 ].map(dated);
 
 /** For Kids (owner via the lead, 11-22): the two Camp Snap 2 colors, at Camp Snap direct (see the header). */
@@ -135,6 +144,13 @@ export const ADDS_CUTOUTS_1122 = [
   ["https://cdn.shopify.com/s/files/1/0505/6125/files/hydrangea_SL_0125.jpg", "lake-pima-short-long-set-hydrangea-6a7e77.webp"],
   ["https://static.shopmy.us/uploads/img-product-1794924419956", "yoto-player-ms-rachel-bundle-045251.webp"],
   ["https://static.shopmy.us/uploads/img-product-1793495319475", "yoto-player-bluey-bundle-8ea1dd.webp"],
+  // Batch 2c.
+  ["https://cdn.shopify.com/s/files/1/0618/7116/1562/files/3701699309746_9835a6a3-0819-43b7-b79b-b30648cbe0e0.jpg", "diptyque-baies-candle-190g-90586c.webp"],
+  ["https://static.shopmy.us/uploads/pretty-prod-1786107449401", "good-molecules-caffeine-eye-patches-b6d844.webp"],
+  ["https://static.shopmy.us/pins/zoom-109155784-1795367529760-2664695", "oura-ring-5-deep-rose-5e2bdc.webp"],
+  ["https://static.shopmy.us/pins/zoom-109149968-1795366797104-102988060_639_b", "drowsy-sleep-in-the-city-mask-a581ee.webp"],
+  ["https://static.shopmy.us/pins/zoom-109155568-1795367501473-OC137_WT0012_m", "madewell-six-bells-nightgown-e56429.webp"],
+  ["https://static.shopmy.us/pins/zoom-109151385-1795366985590-GUEST_a0e171ac-5761-42c7-83ca-b6b75eced062", "bissell-little-green-mini-4064t-956230.webp"],
   // The set's four products, cropped from its labelled photo (no labels kept).
   ["https://cdn.shopify.com/s/files/1/0512/1661/3529/files/PDP-CLEARSPACE_WIDER-FRAME_2750x3413-1.jpg", "eadem-new-classics-set-ae7614.webp"],
 ];

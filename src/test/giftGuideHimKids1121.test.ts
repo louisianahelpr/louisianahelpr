@@ -21,10 +21,11 @@ type Pick = { name: string; brand?: string; href: string; image: string; store: 
 /**
  * The commission switches, copied from the Desktop note Commission-switches-1121.md (not from the module): LaCrosse
  * Grange (Amazon B001DPHF4U, 4%) -> Dillard's 8%; Theragun Prime 6th Gen (Amazon B0FKCJNHWB, 1%) -> Exclusive Beauty
- * Club 16%. Kids has none.
+ * Club 16%; XTRATUF Ankle Deck Boot, Duck Camo (Amazon B08Q1RN656, 4%) -> xtratuf.com through CJ 15% (owner 2026-11-21
+ * ~10 PM, via lead: "xtratuf in the guide"; $125 there, code XT25 on the card through Nov 29). Kids has none.
  */
 const SWITCHED: Record<string, Record<string, string>> = {
-  him: { "https://go.shopmy.us/p-108736038": "store-dillards", "https://go.shopmy.us/p-108734364": "store-exclusive-beauty-club" },
+  him: { "https://go.shopmy.us/p-108736038": "store-dillards", "https://go.shopmy.us/p-108734364": "store-exclusive-beauty-club", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabdcam": "store-xtratuf" },
   kids: {},
 };
 /**
@@ -142,13 +143,14 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
 });
 
 describe("For Him holds every one of her men's saves (owner 11-21)", () => {
-  it("116 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the six left out named", () => {
-    // Left out, 2026-11-21: B001DPHF4U LaCrosse Grange and B0FKCJNHWB Theragun Prime (on the page at their better-paying
+  it("115 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the seven left out named", () => {
+    // Left out, 2026-11-21: B001DPHF4U LaCrosse Grange, B0FKCJNHWB Theragun Prime and B08Q1RN656 XTRATUF Ankle Deck Boot
+    // (on the page at their better-paying
     // stores, above), B0002A7GMS / B07M9LRQ4J / B0FDXLSNN1 (second listings of the same items), B09ZYT939N YETI
     // Crossroads Backpack (Amazon showed no price).
     const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]);
-    expect(amazon.length).toBe(116);
-    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N"]) expect(amazon, asin).not.toContain(asin);
+    expect(amazon.length).toBe(115);
+    for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N"]) expect(amazon, asin).not.toContain(asin);
     for (const asin of ["B0H7CRMDKS", "B0F22HTHMJ", "B0CQ4QM7Q2", "B0FR98X1DZ", "B0FT97QYYZ", "B0D31TCLN2"]) expect(amazon, asin).toContain(asin);
   });
 });
@@ -186,5 +188,25 @@ describe("the generator sets Him and Kids last", () => {
   it("men's picks keep relationship tags so /dad and /husband still build", () => {
     const him = chunk("him");
     for (const rel of ["dad", "husband", "boyfriend", "brother"]) expect(him.filter((p) => p.rels?.includes(rel)).length).toBeGreaterThan(10);
+  });
+});
+
+/**
+ * A code rides WITH its item (owner 2026-11-21 ~10 PM, via lead: "you can put the code with the item but no we dont need
+ * a long list of codes on each guide only if we have a code should you put it with the items"): the XTRATUF Ankle Deck
+ * Boot, switched to xtratuf.com, carries XT25 with its last day (the card hides the chip after Nov 29); no other Him or
+ * Kids pick carries a code.
+ * @mutate scripts/giftGuideHimKids1121.mjs | commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" } | commission: 15, type: "boots" }
+ */
+describe("the XTRATUF code chip on For Him (owner 11-21)", () => {
+  it("only the xtratuf.com Ankle Deck Boot carries XT25, ending Nov 29, on the page and in the module", () => {
+    type Coded = Pick & { code?: string; codeEnds?: string };
+    for (const list of [chunk("him") as Coded[], him1121Picks() as Coded[]]) {
+      const coded = list.filter((p) => p.code);
+      expect(coded.map((p) => [p.name, p.store, p.code, p.codeEnds, p.price])).toEqual([["XTRATUF Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 125]]);
+      expect(new URL(coded[0].href).hostname).toBe("www.anrdoezrs.net");
+      expect(decodeURIComponent(coded[0].href)).toContain("https://xtratuf.com/products/xmabdcam");
+    }
+    expect((chunk("kids") as Coded[]).filter((p) => p.code)).toEqual([]);
   });
 });

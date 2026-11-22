@@ -30,6 +30,7 @@
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <Button key={f.href} type="button" variant="link" size="inline" className="pr-link" | <Button key={f.href} type="button" variant="outline" size="sm" className="pr-link"
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx |   const books = booksOf(p);\n |   const books = null as Book[] \| null;\n
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-books{grid-template-columns:repeat(2,minmax(0,1fr))} | .pr-books{grid-template-columns:minmax(0,1fr)}
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-btns>.pr-link{flex:none;white-space:nowrap} | .pr-card-btns>.pr-link{flex:none}
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card .pr-link{display:inline-flex;align-items:center;justify-content:flex-start;min-height:44px; | .pr-card .pr-link{display:inline-flex;align-items:center;justify-content:flex-start;min-height:32px;
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -255,8 +256,9 @@ describe("#15 the banner's downloads are plain links on one row with Print at Wa
     expect(links.map((l) => l.tagName)).toEqual(["BUTTON", "BUTTON", "A"]);
     const css = [...container.querySelectorAll("style")].map((x) => x.textContent ?? "").join("\n");
     expect(css).toMatch(/\.pr-card \.pr-link\{display:inline-flex;[^}]*min-height:44px;[^}]*background:none;border:0;box-shadow:none\}/);
-    expect(css).toContain(".pr-card-btns{display:flex;flex-wrap:nowrap;align-items:center;gap:0 16px}");
-    expect(css).toContain(".pr-card-btns>a.pr-link{flex:0 1 auto;min-width:0;white-space:normal;text-align:left}");
+    // Each link on one line; one that does not fit drops whole to the next row (lead 11-22: no split "Print at / Walgreens").
+    expect(css).toContain(".pr-card-btns{display:flex;flex-wrap:wrap;align-items:center;gap:0 16px}");
+    expect(css).toContain(".pr-card-btns>.pr-link{flex:none;white-space:nowrap}");
   });
 });
 

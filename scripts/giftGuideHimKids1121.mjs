@@ -339,17 +339,12 @@ export const KIDS_AMAZON_MORE_1121 = [
   ["B0FG2Z88P7", 9.99, "51HHk4qty0L", "JoyCat Christmas Paint with Water Books", "JoyCat", "book", 3, "Mess-free paint with water pages for toddlers."],
   ["B0D6RMZ3D1", 17.79, "51KltfpitTL", "YEEHAO Kids Digital Camera", "YEEHAO", "camera", 3, "A dual-lens kids camera for photos, videos and selfies."],
   ["B0D5ZN2YL8", 12.73, "51OP9VO0RuL", "Cupkin Christmas Sticker Book with Coloring Pages", "Cupkin", "book", 3, "A Christmas sticker book with coloring pages."],
-  ["B0DDYHBKG9", 16.96, "51XdoEqAXAL", "CreateOn Crayola Holiday Glitter Mini Magnetic Tiles", "CreateOn", "building-toy", 3, "Mini glitter magnetic tiles for holiday builds."],
   ["B0DB9JTTJQ", 18.99, "51T6IcL0NTL", "CreateOn Crayola Holiday Glitter Magnetic Tiles", "CreateOn", "building-toy", 3, "Sparkly magnetic tiles to build a holiday scene."],
   ["B0DCVF7YNW", 18.98, "41305yNiLyL", "Kinglucky Mini Karaoke Machine for Kids", "Kinglucky", "karaoke", 3, "A mini karaoke machine with a microphone."],
   // Amazon pays 1% on video game consoles, not 3% (Commission-audit-1121-night.md).
-  ["B0BFJWCYTL", 339, "41d-g6xWrfL", "Nintendo Switch with Blue and Red Joy-Con", "Nintendo", "game-console", 1, "The Switch that plays on the TV or on the go."],
   ["B0F3GWXLTS", 499, "41A6+lQ6KSL", "Nintendo Switch 2", "Nintendo", "game-console", 1, "The new Nintendo Switch 2."],
   ["B0FJ2ZHPDY", 99.99, "41cXR296U-L", "Toniebox 2 Starter Set, Cloud Pink", "tonies", "audio", 3, "A screen-free story and music player in pink."],
-  ["B0DB5SGHX2", 135.35, "3149VSu-bUL", "Segway Ninebot C2 Lite Kids Electric Scooter", "Segway", "scooter", 3, "An electric scooter made for kids."],
-  ["B0CRDG6KMT", 237.49, "31V05DQTV-L", "Segway Ninebot C2 Pro Kids Electric Scooter", "Segway", "scooter", 3, "A faster kids electric scooter for older riders."],
   ["B0F62SVY89", 271.68, "31Bsjq4rZGL", "Segway Ninebot E2 Plus II Electric Scooter", "Segway", "scooter", 3, "A full-size electric scooter for teens."],
-  ["B0H3ZM1PMS", 299.99, "31q1HbybvGL", "Segway Ninebot S2 Kids Self-Balancing Scooter", "Segway", "hoverboard", 3, "A self-balancing scooter sized for kids."],
   // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0CT2WN59R at 3% ($484.49); the same black Segway S2 at Tractor Supply
   // (item 6017105) at 8% (p-109001528), $484.99. Photo: Tractor Supply's own product shot.
   { name: "Segway Ninebot S2 Self-Balancing Scooter", brand: "Segway", line: "A self-balancing scooter for big kids and teens.", href: shopmy("p-109001528"), image: "https://media.tractorsupply.com/is/image/TractorSupplyCompany/6017105?wid=1000&hei=1000", store: "store-tractor-supply", sortPrice: 484.99, price: 484.99, commission: 8, type: "hoverboard" },
@@ -399,6 +394,9 @@ export const KIDS_1121 = [
   ["B0HDSSPY7Z", 127.49, "21gcm6OqZ0L", "Segway Ninebot C2 Go Kids Scooter", "Segway", "scooter", 3, "An electric scooter made for kids."],
   ["B0D2JGYX3F", 209, "31HNx5am69L", "Nex Playground", "Nex", "game-console", 3, "Active family games that get everyone moving."],
   ["B07V4GCFP9", 229, "31CHVspmUeL", "Nintendo Switch Lite", "Nintendo", "game-console", 1, "The handheld Switch for games on the go."],
+  // owner 11-22 kids tech (builder-guide-adds-kids): the owner asked for popular tech; prices captured from Amazon 11-22.
+  ["B0G4SCX27Q", 382, "61B-A4JhE9L", "Meta Quest 3S VR Headset, 256GB", "Meta", "vr", 3, "A mixed-reality headset for games and fitness, made for ages 10 and up."],
+  ["B0DZ77D5HL", 399, "61Q-vahOT9L", "Apple iPad 11-inch (A16, 128GB, Wi-Fi)", "Apple", "tablet", 3, "The iPad they will actually use for games, drawing and school."],
 ].map(row).concat(KIDS_AMAZON_MORE_1121, KIDS_SHOPMY_1121);
 
 // owner 11-22 popular approved (builder-guide-popular): Kids, Amazon listings sold by Amazon.com, prices read 11-22.

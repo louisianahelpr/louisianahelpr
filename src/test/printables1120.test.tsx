@@ -267,7 +267,7 @@ describe("printables audit 1121 area 5: previews, covers, page counts", () => {
   it("previews sit with no drop shadow (owner rule: no box behind a photo)", () => {
     render(<MemoryRouter><Printables /></MemoryRouter>);
     const css = [...document.querySelectorAll("style")].map((s) => s.textContent ?? "").join("\n");
-    const rule = (sel: string) => new RegExp(`${sel.replace(/[.]/g, "\\.")}\\{[^}]*\\}`).exec(css)?.[0] ?? "";
+    const rule = (sel: string) => new RegExp(`${sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\{[^}]*\\}`).exec(css)?.[0] ?? "";
     expect(rule(".pr-card-img").length).toBeGreaterThan(10);
     for (const sel of [".pr-card-img", ".pr-maker-card img"]) expect(rule(sel)).not.toMatch(/box-shadow/);
   });

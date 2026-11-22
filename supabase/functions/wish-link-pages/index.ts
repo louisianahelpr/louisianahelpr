@@ -15,6 +15,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { serve } from "../_shared/buildStamp.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { fetchPageDetails } from "./pageDetails.ts";
+import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 const BATCH = 8;
 const json = (body: unknown, status = 200) =>
@@ -75,6 +77,17 @@ serve(async (req) => {
     }
     counts.checked++;
     counts[outcome.status]++;
+  }
+  // Q76: which admin read the waiting links' pages, and what came back (every admin action writes admin_audit_log).
+  if (rows.length > 0) {
+    await writeAdminAudit(service, {
+      adminId: userRes.user.id,
+      action: "wish_link_pages_read",
+      targetType: "wish_link_requests",
+      targetId: "batch",
+      details: { ...counts, ids: rows.map((r) => (typeof r.id === "string" ? r.id : null)).filter(Boolean) },
+      source: "wish-link-pages",
+    }, postSlackOpsAlert);
   }
   return json({ ...counts, more: all.length > BATCH });
 });

@@ -193,6 +193,7 @@ const REVIEWED_EXPANDING_SEARCHES = [
   "pages/home/Dashboard.tsx",
   "pages/home/DashboardGuest.tsx",
   "pages/info/Legal.tsx",
+  "pages/info/giftGuides/GiftGuideShare.tsx",
 ].sort();
 
 // The exact gate useIsWebDesktop reads (min-width: 900px, non-native).
@@ -557,6 +558,8 @@ const NOT_EXERCISED: Record<string, string> = {
     "the desktop feed strip — pinned by its own describe block below, from source, because the page is 900 lines behind a dozen data hooks and the fact under test is structural",
   "pages/home/DashboardGuest.tsx":
     "guest /browse?q= (F070, lead 11-09): the field is drawn open for a visit that came with a search and is never swapped in for anything; rendered and typed into by src/pages/home/DashboardGuest.search.test.tsx",
+  "pages/info/giftGuides/GiftGuideShare.tsx":
+    "the gift guides' tool row magnifier (train 1121i: an icon at every width): open, typing, Escape and the ✕ are rendered and pressed at 375 and 1440 in src/test/giftGuidePhoneHeader1121.test.tsx, and a tap outside in giftGuideHolidayPolish1121b.test.tsx (data-gift-search-*); the held slot is asserted by source below",
   "pages/info/Legal.tsx":
     "document-scroll marketing page: the field replaces nothing. The old reason added 'the tab group holds its own width' — it did not, and that was the bug: at 320 the tabs and the field were both flex-1 at 107px, the three tab labels overlapped, and the field sat under the typable floor. Fixed 2026-09-20 by stepping the tab group aside below 500px while the field is open. The 320/375 the browser pass owed is now paid: e2e/prod-audit/expanding-search-geometry.spec.ts runs /legal at 320, 375 and 1440 against the shared MIN_TYPABLE_FIELD_PX, with no per-surface pin",
 };

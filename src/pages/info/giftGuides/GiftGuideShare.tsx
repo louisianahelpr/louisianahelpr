@@ -1,3 +1,4 @@
+import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
@@ -255,6 +256,11 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
               <Icon d={CLOSE} />
             </RoundIconButton>
           </label>
+        ) : null}
+        {/* The magnifier's own box stays held while the field is open (desktop: the field grows to its left), so the
+            ✕ never lands where the magnifier was and a quick second tap cannot close what it just opened. */}
+        {open ? (
+          <SearchTriggerSlot />
         ) : (
           <RoundIconButton ref={searchButton} className="gg-icon" aria-label={G.searchLabel} aria-expanded={false} onClick={() => setSearchOpen(true)} data-gift-search-button="">
             <Icon d={SEARCH} />

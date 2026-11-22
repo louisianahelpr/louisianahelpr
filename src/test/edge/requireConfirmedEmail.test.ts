@@ -108,6 +108,7 @@ const EXEMPT: Record<string, string> = {
   "admin-support-reply": "admin only: requires the admin role",
   "admin-user-actions": "admin only: requires the admin role",
   "admin-test-push": "admin only: requires the admin role",
+  "wish-link-pages": "admin only: requires the admin role (has_role admin; Admin -> Wish list links, Get shop details, 20261122034304)",
   "admin-update-email": "admin only: requires the admin role (getClaims)",
   "execute-dispute-split": "admin only: requires the admin role",
   "release-payout": "admin only on the user path: requires the admin role",

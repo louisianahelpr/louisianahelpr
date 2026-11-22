@@ -16,7 +16,7 @@
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx |       more: !categoryUp, |       more: true,
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         {itemsPhase !== "offline-empty" && <DeclutterNearYou ask={ask} maxMiles={maxMiles} closest={sortNow === "closest"} onChange={() => setFiltersOpen(true)} />} |
  * @mutate src/components/declutter/DeclutterMilesFrom.tsx |   const words = maxMiles !== null ? t("decl.loc.nearWithin", { miles: maxMiles }) : closest ? t("decl.loc.near") : t("decl.loc.nearPlain"); |   const words = closest ? t("decl.loc.near") : t("decl.loc.nearPlain");
- * @mutate src/components/dashboard/browseTasksToolbar/FiltersIconButton.tsx |     ? `!rounded-ds-md ctl-tint ${on ? "text-[hsl(var(--bark))]" : "text-muted-foreground hover:text-foreground"}` |     ? `ring-1 ring-inset ${on ? "bg-[hsl(var(--bark)/0.12)]" : ""}`
+ * @mutate src/components/dashboard/browseTasksToolbar/FiltersIconButton.tsx |     ? `ctl-tint ${on ? "text-[hsl(var(--bark))]" : "text-muted-foreground hover:text-foreground"}` |     ? `ring-1 ring-inset ${on ? "bg-[hsl(var(--bark)/0.12)]" : ""}`
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -116,7 +116,8 @@ describe("Declutter desktop header (owner 11-21)", () => {
       const filters = within(strip as HTMLElement).getByRole("button", { name: "Filters" });
       expect(filters.hasAttribute("data-filters-plain")).toBe(true);
       expect(filters.className).not.toMatch(/\bring-1\b|border-\[1\.5px\]|bg-\[hsl\(var\(--bark\)\/0\.12\)\]/);
-      expect(filters.className).toContain("!rounded-ds-md");
+      // Every button is a pill (owner 2026-10-29; src/test/buttonsArePills.test.ts): the plain look sets no radius of its own.
+      expect(filters.className).not.toMatch(/rounded-ds-/);
       expect(strip.textContent).not.toMatch(/Use my location/);
       expect(strip.querySelectorAll("button").length).toBe(userId ? 3 : 2);
       expect(document.querySelector("main [data-chip-row-wrap]")).toBeNull();

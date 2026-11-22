@@ -28,7 +28,7 @@ export function FiltersIconButton({
 }) {
   const on = open || count > 0;
   const look = plain
-    ? `!rounded-ds-md ctl-tint ${on ? "text-[hsl(var(--bark))]" : "text-muted-foreground hover:text-foreground"}`
+    ? `ctl-tint ${on ? "text-[hsl(var(--bark))]" : "text-muted-foreground hover:text-foreground"}`
     : on
       ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]"
       : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]";

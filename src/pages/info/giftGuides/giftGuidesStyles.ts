@@ -74,10 +74,10 @@ color:var(--gg-ink)}
    is 300px beside them (a phone lays it over the icon row, inside the screen). */
 .gg-tools{position:relative}
 .gg-tools-search{position:relative;flex:0 0 auto;min-width:0}
-.gg-tools-search.is-open{width:min(300px,calc(100vw - 40px))}
+.gg-tools-search.is-open{width:min(344px,calc(100vw - 40px));display:flex;align-items:center}.gg-tools-search.is-open .gg-search{flex:1 1 auto;min-width:0}
 .gg-tools-search .gg-search input{padding-right:40px}
 .gg-search-close{position:absolute;right:2px;top:50%;transform:translateY(-50%);background:transparent;color:var(--gg-muted)}
-@media (max-width:767px){.gg-tools-search.is-open{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:7;background:hsl(var(--background))}}
+@media (max-width:767px){.gg-tools-search.is-open{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:7;background:hsl(var(--background))}.gg-tools-search.is-open [data-search-trigger-slot]{display:none}}
 /* Owner 11-21: ONE header row from 768px up: back arrow + title, the shipping pill, then search + heart + share
    pushed right, all centred; a phone wraps it (arrow + title, then the pill and the icons). The shell's own header row
    is off, so this row keeps the shell's air above it (--shell-gap on a phone, 24px from sm up). */

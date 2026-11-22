@@ -40,7 +40,7 @@ describe("wish-link-pages: which pages are read", () => {
   it("only listed shops (and their subdomains); never Amazon, short or affiliate links", () => {
     // Inventory floor: the list holds 41 shops today (Zappos, owned by Amazon, is not on it).
     expect(M.SHOP_HOSTS.length).toBeGreaterThan(30);
-    expect(M.SHOP_HOSTS.some((h) => /amazon|amzn|a\.co$/.test(h))).toBe(false);
+    expect(M.SHOP_HOSTS.some((h) => h.includes("amazon") || h.includes("amzn") || /(^|\.)a\.co$/.test(h))).toBe(false);
     for (const ok of ["www.etsy.com", "etsy.com", "www.target.com", "shop.lululemon.com"]) expect(M.isShopHost(ok), ok).toBe(true);
     // Even if Amazon were added to the list by mistake, it is never a shop we read.
     (M.SHOP_HOSTS as string[]).push("amazon.com", "amzn.to");

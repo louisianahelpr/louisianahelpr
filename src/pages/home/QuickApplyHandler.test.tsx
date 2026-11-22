@@ -156,16 +156,16 @@ describe("QuickApplyHandler — the deep link opens the job sheet", () => {
     expect(handledMock).toHaveBeenCalled();
   });
 
-  it("shows ONE plain error toast — and no sheet — for an id nobody can see", async () => {
+  it("hands an id Browse and the party read both miss to the job page — no toast, no sheet", async () => {
     responses.set("open_jobs_browse", { data: null, error: null });
     responses.set("jobs", { data: null, error: null });
 
     renderHandler();
 
-    await waitFor(() => expect(toastErrorMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith(`/jobs/${JOB_ID}`, { replace: true }));
     expect(openJobMock).not.toHaveBeenCalled();
     expect(toastMock).not.toHaveBeenCalled();
-    expect(handledMock).toHaveBeenCalled();
+    expect(toastErrorMock).not.toHaveBeenCalled();
   });
 });
 
@@ -209,22 +209,21 @@ describe("QuickApplyHandler — a job the browse view cannot show", () => {
     expect(toastErrorMock).not.toHaveBeenCalled();
   });
 
-  it("still explains itself to a stranger — and does not promise that waiting will work", async () => {
-    // Neither lookup returns a row: the viewer is party to nothing. This is
-    // the only case the message is for, and it must not assert a single cause.
+  /* #32 (deep audit 11-22): a Helpr with a PENDING APPLICATION on an open job is neither in Browse (for them) nor a
+   * party row, and this handler told them "it may have been filled or taken down" while /jobs/<id> opened the job
+   * fine. The class: the handler never decides a job is gone on its own; every miss goes to the job page, whose one
+   * resolver (fetchJobPage: application, pending offer, then "isn't available") answers.
+   * @mutate src/pages/home/QuickApplyHandler.tsx | navigate(`/jobs/${encodeURIComponent(quickApplyId)}`, { replace: true }); | failWith("We can't open this job right now — it may have been filled or taken down.");
+   */
+  it("an applicant (or anyone Browse and the party read miss) is sent to the job page, never told it is gone", async () => {
     responses.set("open_jobs_browse", { data: null, error: null });
     responses.set("jobs", { data: null, error: null });
 
     renderHandler();
 
-    await waitFor(() => expect(toastErrorMock).toHaveBeenCalledTimes(1));
-    const message = String(toastErrorMock.mock.calls[0][0]);
-    expect(message).toMatch(/filled or taken down/i);
-    expect(message).toMatch(/few minutes/i);
-    // "isn't available to open YET" was the exact wording that read as a
-    // promise; a job that was filled will never become available.
-    expect(message).not.toMatch(/available to open yet/i);
-    expect(navigateMock).not.toHaveBeenCalled();
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith(`/jobs/${JOB_ID}`, { replace: true }));
+    expect(toastErrorMock).not.toHaveBeenCalled();
+    expect(openJobMock).not.toHaveBeenCalled();
   });
 
   it("reports a failed participant lookup as a load failure, not as 'no such job'", async () => {

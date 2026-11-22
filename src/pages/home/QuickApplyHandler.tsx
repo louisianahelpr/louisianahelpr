@@ -262,20 +262,14 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onOpenJob, onHa
           return;
         }
 
-        // Genuinely not visible to this viewer. That still covers three
-        // situations the client cannot tell apart: the job was filled, taken
-        // down or expired; its escrow hasn't funded; or Early Access still has
-        // it held back — the browse view gates on
-        // `created_at <= early_access_cutoff()`, a delay of 20/15/10/0 minutes
-        // for free/basic/pro/elite (20260901022522), while every job-match
-        // producer fires the moment escrow funds and filters by no tier at all.
-        // A free-tier helper can therefore be alerted up to ~20 minutes before
-        // this view will hand them the row.
-        //
-        // So the copy names the likely causes without asserting any one of
-        // them. It used to say only "isn't available to open YET", which reads
-        // as a promise that waiting will work — false for a job that was filled.
-        failWith("We can't open this job right now — it may have been filled or taken down. If you just got the alert, try again in a few minutes.");
+        // Not in Browse and not a party row: hand the link to the job's own page, which resolves EVERY other way
+        // a member can reach a job (their application, a pending direct offer, an early-access hold) and says
+        // which, or that the job is gone. #32 (deep audit 11-22): this handler used to guess "it may have
+        // been filled or taken down" itself, so a Helpr with a pending application on an OPEN job was told it
+        // was gone while /jobs/<id> opened it fine. One resolver (fetchJobPage), never a second one here.
+        // No onHandled: like the two party branches above, leaving the feed IS the handling (a second replace
+        // racing this one could land the member back on /home).
+        navigate(`/jobs/${encodeURIComponent(quickApplyId)}`, { replace: true });
         return;
       }
       if (data.customer_id === userId) {

@@ -100,7 +100,7 @@ describe("UserProfile's loading branch", () => {
   it("reserves one header bone per loaded header control (Save, overflow menu)", () => {
     const block = src.slice(src.indexOf("const headerActionPlaceholder"), src.indexOf(") : null;", src.indexOf("const headerActionPlaceholder")));
     expect(block.match(/h-10 w-10 rounded-ds-md bg-muted/g)).toHaveLength(2);
-    expect(src).toMatch(/titleActions=\{\n {10}!isOwnProfile && currentUserId \? \(\n {12}<VisitorProfileActions /);
+    expect(src).toMatch(/titleActions=\{\n +!isOwnProfile && currentUserId \? \(\n +<VisitorProfileActions /);
     const actions = visitor.slice(visitor.indexOf("return ("), visitor.indexOf("</DropdownMenuTrigger>"));
     expect(actions).toMatch(/<SaveHelperButton /);
     expect(actions.match(/<Button /g)).toHaveLength(1);

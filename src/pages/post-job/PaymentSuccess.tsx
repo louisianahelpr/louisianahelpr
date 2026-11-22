@@ -29,6 +29,7 @@ import { dropDraftPaidAs } from "@/hooks/useDraftJob";
 // The paid-amount sentence (formatPriceExact: a sum ACTUALLY SITTING IN ESCROW) lives in PaidAmountLine.
 import { PaidAmountLine } from "./PaidAmountLine";
 import { GoToDashboardButton } from "./GoToDashboardButton";
+import { ContactSupportButton } from "./ContactSupportButton";
 import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { shareNative } from "@/lib/nativeShare";
@@ -401,20 +402,6 @@ const PaymentSuccess = () => {
   const heading = paymentHeading(confirmState, live);
   const unknownBody = unknownPaymentBody(unknownReason);
 
-  const supportAction = (
-    <Button
-      variant="ghost"
-      onClick={() => {
-        void hapticLight();
-        navigate("/support");
-      }}
-      className="w-full rounded-full"
-      style={{ color: "hsl(var(--bark))" }}
-    >
-      Contact support
-    </Button>
-  );
-
   return (
     // `centerColumn`: without it AuthShell snaps to `items-start` and the
     // card pins to the left edge (measured at 1440: card x 48–496, dead
@@ -588,7 +575,7 @@ const PaymentSuccess = () => {
                   {confirmState === "checking" ? "Checking…" : "Try again"}
                 </Button>
               )}
-              {confirmState !== "checking" && supportAction}
+              {confirmState !== "checking" && <ContactSupportButton />}
             </>
           )}
           {/* "You might need" (affiliate list): after the job is posted and paid,

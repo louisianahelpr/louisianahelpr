@@ -115,14 +115,14 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
       }
       const raw = (err as Error).message || "";
       const busy = /503|high demand|overloaded|429|rate limit/i.test(raw);
-      toast.error(
-        busy
-          ? "The AI builder is busy right now — give it a few seconds and try again."
-          : /AI service error|non-2xx|Unknown error|Failed to generate/i.test(raw) || !raw
-            ? "Couldn't generate a posting just now. Try again, or start from a blank form."
-            : userFacingError(err, "Couldn't generate a posting just now. Try again, or start from a blank form."),
-        onBlankForm && !busy ? { action: { label: "Start from a blank form", onClick: onBlankForm } } : undefined,
-      );
+      const message = busy
+        ? "The AI builder is busy right now — give it a few seconds and try again."
+        : /AI service error|non-2xx|Unknown error|Failed to generate/i.test(raw) || !raw
+          ? "Couldn't generate a posting just now. Try again, or start from a blank form."
+          : userFacingError(err, "Couldn't generate a posting just now. Try again, or start from a blank form.");
+      // The action only when there is a blank form to go to (no trailing undefined argument otherwise).
+      if (onBlankForm && !busy) toast.error(message, { action: { label: "Start from a blank form", onClick: onBlankForm } });
+      else toast.error(message);
     } finally {
       setLoading(false);
     }

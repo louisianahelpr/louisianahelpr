@@ -295,14 +295,9 @@ const UserProfile = () => {
     );
   }
 
-  // `.filter(Boolean)` before `.map`: " ".split(" ") is ["", ""], whose first
-  // characters are `undefined`, and Array#join turns those into "" — so a
-  // whitespace-only name produced EMPTY initials, and the avatar fallback
-  // painted a coloured square with nothing in it. (ProfileHeaderCard carries
-  // its own last-resort guard too; this one keeps the bad value from being
-  // manufactured in the first place.)
   // Audit 11-21 (P20): one rule for initials (avatarInitials: first and last word), so a member is "EH" on every screen
-  // (this page read the first two words, "ET", while Home's avatar read "EH").
+  // (this page read the first two words, "ET", while Home's avatar read "EH"). Its filter(Boolean) keeps a
+  // whitespace-only name from empty initials (a coloured square with nothing in it).
   const initials = avatarInitials(profile.full_name);
   // NO `computeBadges` CALL HERE ANY MORE. Owner, 2026-09-11: the
   // performance-badge group (Highly Rated / Trusted / On Fire / Fast

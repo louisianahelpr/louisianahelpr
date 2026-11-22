@@ -276,7 +276,8 @@ jobs:
     needs: scope
     if: ${{ !cancelled() && github.event_name != 'merge_group' && needs.scope.outputs.guide_only != 'true' }}
     runs-on: ubuntu-latest
-    # 30: a quarter of a ~58-minute run plus install, with headroom.
+    # 30: a sixth of the suite under coverage (2026-11-22; a quarter outgrew it)
+    # plus install, with headroom.
     timeout-minutes: 30
     strategy:
       fail-fast: false

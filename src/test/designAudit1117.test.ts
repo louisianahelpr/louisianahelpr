@@ -11,7 +11,7 @@
  * @mutate src/components/job-card/MineJobFace.tsx | <div className="order-1 min-w-0 md:order-none md:flex-1" data-mine-face-col=""> | <div className="order-1 min-w-0 md:order-none md:flex-1">
  * @mutate src/components/ui/Notice.tsx | "border-[hsl(var(--burnt-sienna)/0.3)] bg-[hsl(var(--burnt-sienna)/0.06)] text-foreground" | "border-amber-300 bg-amber-50 text-amber-950"
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx | <Notice tone="warn" icon={AlertTriangle} title={t("dpo.promptTitle" | <Notice tone="warn" title={t("dpo.promptTitle"
- * @mutate src/components/declutter/DeclutterHomeView.tsx | <StrikeCount userId={user.id} full={view === "selling"} /> | <StrikeCount userId={user.id} />
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | <StrikeCount userId={user.id} full={view === "selling"} pausedOnly= | <StrikeCount userId={user.id} pausedOnly=
  * @mutate src/pages/jobs/JobsSection.tsx | const fab = desktop \|\| tab === "working" ? null | const fab = desktop ? null
  * @mutate src/components/declutter/SellOneScreen.tsx | <div className="w-full max-w-xl space-y-6" data-sell-one-screen=""> | <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
  * @mutate src/components/declutter/SellMeetupSpots.tsx | <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setDraft({ name: "" | <Button type="button" variant="outline" className="rounded-full" onClick={() => setDraft({ name: ""
@@ -93,8 +93,9 @@ describe("design audit 11-17", () => {
 
   it("#2: the full strikes card is on Selling only (one line elsewhere)", () => {
     const h = src("src/components/declutter/DeclutterHomeView.tsx");
-    expect(h).toContain('<StrikeCount userId={user.id} full={view === "selling"} />');
-    expect(h).toContain("top={<StrikeCount userId={user.id} full={false} />}");
+    // Deep audit 11-22 #40: off Buying and Selling it shows only at 3 strikes (pausedOnly; src/test/declutterStrikeWhy.test.tsx).
+    expect(h).toContain('<StrikeCount userId={user.id} full={view === "selling"} pausedOnly={view !== "selling" && view !== "buying"} />');
+    expect(h).toContain("top={<StrikeCount userId={user.id} full={false} pausedOnly />}");
     expect((h.match(/<StrikeCount /g) ?? []).length).toBe(2);
   });
 

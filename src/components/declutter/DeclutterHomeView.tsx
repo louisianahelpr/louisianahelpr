@@ -569,7 +569,7 @@ function DeclutterMemberHome() {
   const ownMainButton = view === "wanted" || view === "deliver" || view === "buying";
   const fab = desktop || ownMainButton ? undefined : <SectionCreateFab section="declutter" text={t("decl.hv.sell")} />;
   // Browse draws its own section screen, so its header can carry its search, filters, chips, map toggle and count.
-  if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} full={false} />} fab={fab} /></Suspense>;
+  if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} full={false} pausedOnly />} fab={fab} /></Suspense>;
   // Owner 11-13: Selling's bar is a field over the seller's own listings (desktop: the same field before the gear).
   const sellingBar = view === "selling"
     ? <SectionSearchBar noun="your listings" home="/declutter" value={sellingQ} onChange={setSellingQ} />
@@ -584,7 +584,7 @@ function DeclutterMemberHome() {
     <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}>
       {/* Q2562 (lead 11-02): pt-3 = Browse's first line, 12px into its 44px Miles-from row; guard declutterTabs.test.tsx. */}
       <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-3">
-      <StrikeCount userId={user.id} full={view === "selling"} />
+      <StrikeCount userId={user.id} full={view === "selling"} pausedOnly={view !== "selling" && view !== "buying"} />
       {(view === "buying" || view === "selling") && <OrdersUpdating />}
       <Suspense fallback={<TabSkeleton />}>
       {view === "buying" ? <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></>

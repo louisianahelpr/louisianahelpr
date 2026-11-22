@@ -178,6 +178,7 @@ vi.mock("@/lib/declutter/api", () => ({
     return state.card;
   },
   fetchMyActiveStrikes: async () => state.strikes,
+  fetchMyActiveStrikeReasons: async () => [],
   fetchMyOffers: async () => state.offers,
   fetchMyCart: async () => state.cart,
   // BUY-15: the cart's small photos (first photo per item).

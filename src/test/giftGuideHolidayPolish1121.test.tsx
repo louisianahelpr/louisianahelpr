@@ -8,7 +8,6 @@
  * @mutate src/content/giftGuideCatalog.ts |   if (w.length >= 5) return hay.includes(w); |   return hay.includes(w);
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |   const pages = query.trim() ? searchPages(query) : []; |   const pages: { to: string; title: string; tint: string }[] = [];
  * @mutate src/content/giftGuideCatalog.ts |     budgetSlugs.push("her", "him", "kids"); |     budgetSlugs.push();
- * @mutate src/content/giftGuideExtras1120.ts |   const live = FINDER_VIBES.filter((v) => giftFinder(pool, budget, v.id, borrow, who).exact.length > 0); |   const live = FINDER_VIBES;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {!guide.children && guide.picks.length === 0 && ( |       {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && (
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const banded = guide.picks.filter((p) => p.band !== undefined && showsPrice(p)).length; |   const banded = guide.picks.filter((p) => p.band !== undefined).length;
  * @mutate src/content/giftGuideShipping.ts |   instant: "Too late to ship? Print a free gift tag or coloring book today", |   instant: "Last-minute? Gift cards and digital gifts arrive instantly",
@@ -22,7 +21,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { FUN_WORDS } from "@/content/giftGuideFun1120";
-import { FINDER_BUDGET_GUIDES, FINDER_VIBES, FINDER_WHO, finderBudgets, finderPool, finderVibes, giftFinder } from "@/content/giftGuideExtras1120";
 import { SHIP_LINES, shippingLine } from "@/content/giftGuideShipping";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
@@ -86,33 +84,6 @@ describe("gift guide search (holiday audit 1121)", () => {
     expect(SEARCH_SYNONYMS.length).toBeGreaterThan(5);
     const dead = SEARCH_SYNONYMS.flatMap((s) => s.slugs.filter((slug) => { const g = guideBySlug(slug); return !g || g.empty; }));
     expect(dead).toEqual([]);
-  });
-});
-
-describe("the gift finder offers only vibes that really match (holiday audit 1121)", () => {
-  it("every vibe offered to a live person at a budget has at least one exact pick; Louisiana is not offered empty", async () => {
-    await loadAllGuidePicks();
-    const picksOf = (s: string) => guideBySlug(s)?.picks ?? [];
-    const borrow = FINDER_BUDGET_GUIDES.flatMap(picksOf);
-    const people = FINDER_WHO.filter((w) => w.guides.every((g) => guideBySlug(g.slug)));
-    expect(people.length).toBeGreaterThan(2);
-    const empty: string[] = [];
-    let louisianaOffered = 0;
-    for (const w of people) {
-      const pool = finderPool(w.id, picksOf);
-      for (const b of finderBudgets(pool, w.id, borrow)) {
-        const vibes = finderVibes(pool, w.id, b.id, borrow);
-        if (vibes.length === FINDER_VIBES.length && vibes.every((v) => giftFinder(pool, b.id, v.id, borrow, w.id).exact.length === 0)) continue; // the no-dead-end fallback
-        for (const v of vibes) {
-          if (v.id === "louisiana") louisianaOffered++;
-          if (giftFinder(pool, b.id, v.id, borrow, w.id).exact.length === 0) empty.push(`${w.id}/${b.id}/${v.id}`);
-        }
-      }
-    }
-    expect(empty).toEqual([]);
-    // Exact, measured 2026-11-21 (train 1121g): the owner's LSU saves on For Him are Louisiana-made, so the vibe is offered
-    // 6 times, each with real matches (empty above); before them no live pick was Louisiana-made (0).
-    expect(louisianaOffered).toBe(6);
   });
 });
 

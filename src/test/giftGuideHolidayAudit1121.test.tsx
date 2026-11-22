@@ -1,7 +1,8 @@
 /**
  * Holiday gift guides audit 1121, the High findings (Audit-Holiday-Guides-1121.json). One guard per class:
- *   - every person the gift finder and the swipe deck offer gets picks at every budget offered (Kids was empty: its
- *     finder entry read sections the flat Kids list no longer has);
+ *   - every person the swipe deck offers gets cards (Kids was empty: its FINDER_WHO entry, which the deck reads, named
+ *     sections the flat Kids list no longer has; the gift quiz, train 1121h, replaced the old finder and has its own
+ *     guard, src/test/giftQuiz1121.test.tsx);
  *   - every page that carries an Amazon affiliate link carries the affiliate disclosure and Amazon's statement (Swipe and
  *     the Gift planner had neither).
  *
@@ -26,7 +27,6 @@ import { blankComments } from "./helpers/blankNonCode";
 import { giftGuides as G } from "@/content/giftGuides";
 import { FunBody } from "@/pages/info/giftGuides/fun/FunPage";
 import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
-import { FINDER_BUDGET_GUIDES, FINDER_VIBES, FINDER_WHO, finderBudgets, finderPool, giftFinder } from "@/content/giftGuideExtras1120";
 import { SWIPE_WHO, swipePool } from "@/content/giftGuideFun1120";
 
 const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
@@ -34,29 +34,7 @@ const picksOf = (slug: string) => guideBySlug(slug)?.picks ?? [];
 const OLD_LANDING_SHA = "d7bc4ff99f8473e57c4dac39f4c5fdb48d5903390479c375acb3050db1e90c93";
 afterEach(cleanup);
 
-describe("the gift finder and the swipe deck: every person offered has picks (holiday audit 1121, High)", () => {
-  it("each live finder person gets picks for every budget it offers and every vibe; Kids offers real budgets", async () => {
-    await loadAllGuidePicks();
-    const borrow = FINDER_BUDGET_GUIDES.flatMap(picksOf);
-    // The people the finder shows: only those whose guides are live (GiftGuideFinder.tsx `people`).
-    const people = FINDER_WHO.filter((w) => w.guides.every((g) => guideBySlug(g.slug)));
-    expect(people.map((w) => w.id)).toEqual(expect.arrayContaining(["her", "him", "kids"]));
-    const empty: string[] = [];
-    for (const w of people) {
-      const pool = finderPool(w.id, picksOf);
-      expect(pool.length, w.id).toBeGreaterThan(30); // inventory floor: Her 36, Him 47, Kids 56 on 2026-11-21
-      const budgets = finderBudgets(pool, w.id, borrow);
-      expect(budgets.length, `${w.id} budgets`).toBeGreaterThan(1);
-      for (const b of budgets) {
-        for (const v of FINDER_VIBES) {
-          const r = giftFinder(pool, b.id, v.id, borrow, w.id);
-          if (r.exact.length + r.close.length === 0) empty.push(`${w.id}/${b.id}/${v.id}`);
-        }
-      }
-    }
-    expect(empty).toEqual([]);
-  });
-
+describe("the swipe deck: every person offered has picks (holiday audit 1121, High)", () => {
   it("each live swipe person deals cards", async () => {
     await loadAllGuidePicks();
     const people = SWIPE_WHO.filter((o) => o.guides.every((g) => guideBySlug(g.slug)));

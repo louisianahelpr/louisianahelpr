@@ -244,23 +244,23 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     expect(sponsors.querySelector("[data-gift-deals-codes]")).toBeNull();
   });
 
-  it("the gift finder asks only about people with a live guide, and offers only budgets their picks can fill", async () => {
+  // Owner 2026-11-21 ~6:15 PM: the finder is a real quiz (src/content/giftQuiz.ts; its own guard src/test/giftQuiz1121.test.tsx):
+  // Her, Him and Kids only (Mom and Dad repeated Her and Him), and only the budgets that person's picks can fill.
+  it("the gift quiz asks only about Her, Him and Kids, and offers only budgets their picks can fill", async () => {
     await loadAllGuidePicks();
-    const { container } = renderAt("/gift-guides?who=him#gift-finder");
-    const who = [...container.querySelectorAll('[data-gift-finder-step="who"] [data-gift-finder-choice]')].map((b) => b.getAttribute("data-gift-finder-choice"));
-    expect(who).toEqual(["who:her", "who:him", "who:mom", "who:dad", "who:kids"]);
-    const budgets = [...container.querySelectorAll('[data-gift-finder-step="budget"] [data-gift-finder-choice]')].map((b) => b.getAttribute("data-gift-finder-choice"));
-    // Owner 11-21 ~12:05 PM ("each item also needs a price"; "Show Amazon prices anyway"): Him's Amazon picks carry
-    // their captured prices now, so every budget his picks can fill is offered (was only "$100" and "Any budget").
-    expect(budgets).toEqual(["budget:25", "budget:50", "budget:100", "budget:0"]);
+    const { container } = renderAt("/gift-guides#gift-finder");
+    const answers = (c: HTMLElement) => [...c.querySelectorAll("[data-gift-quiz-answer]")].map((b) => b.getAttribute("data-gift-quiz-answer"));
+    expect(answers(container)).toEqual(["who:her", "who:him", "who:kids"]);
     cleanup();
-    const herBudgets = [...renderAt("/gift-guides?who=her#gift-finder").container.querySelectorAll('[data-gift-finder-step="budget"] [data-gift-finder-choice]')].length;
-    expect(herBudgets).toBeGreaterThan(1);
+    const him = answers(renderAt("/gift-guides?who=him#gift-finder").container);
+    expect(him).toEqual(["budget:under-25", "budget:25-50", "budget:50-100", "budget:100-plus"]);
     cleanup();
-    const done = renderAt("/gift-guides?who=him&budget=0&vibe=cozy").container;
+    const done = renderAt("/gift-guides?who=him&budget=25-50&into=any").container;
     expect(done.querySelectorAll("[data-gift-finder-results] li[data-gift-pick]").length).toBeGreaterThan(2);
     cleanup();
-    // An old link naming a retired guide's person starts the finder over (no results, no dead step).
+    // An old finder link (budget=0, vibe=cozy) asks the budget again; a retired person (teen) starts the quiz over.
+    expect(answers(renderAt("/gift-guides?who=him&budget=0&vibe=cozy").container)[0]).toBe("budget:under-25");
+    cleanup();
     expect(renderAt("/gift-guides?who=teen&budget=0&vibe=cozy").container.querySelector("[data-gift-finder-results]")).toBeNull();
   });
 

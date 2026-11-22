@@ -5,13 +5,18 @@
  * guides to just gift guides bc it's too long the other way."
  *
  * Up to 767px every guides page's head row (GuidesTop -> GuidesHeadRow, the landing too) is ONE line: back arrow +
- * "Gift guides", then the heart ("Wish list") and the three-line menu ("Guides menu") on the right, 44x44 targets with
- * no circle, border or fill. The head row's "Order by Dec 15" pill, search and Share and the Her / Him / Kids / Deals chip
- * row are gone there; a guide's own count row under its banner is unchanged (lead 11-22: "she didn't ask to change it").
+ * "Gift guides", then the three-line menu ("Guides menu") on the right, a 44x44 target with no circle, border or fill.
+ * The head row's "Order by Dec 15" pill, search and Share and the Her / Him / Kids / Deals chip row are gone there; a
+ * guide's own count row under its banner is unchanged (lead 11-22: "she didn't ask to change it").
+ * Owner 11-22 later, asked about the heart showing twice on a phone: "Where should we have it on all the pages it
+ * belongs on? I think by the search and icons filter. The 3 line dash stays up." So the head row's heart is gone: the
+ * heart lives only in a page's own toolbar (Her/Him/Kids: search, sort, heart, Share under the banner); a page with no
+ * toolbar on a phone (the deals days, the printables, the fun pages, My Wish List, the Holiday Hub) shows none, and My
+ * Wish List stays one tap away in the menu sheet (giftGuidesPhoneNav1121.test.tsx).
  * From 768px up nothing changes ("Holiday gift guides", the pill, search, heart, Share, the sidebar).
  * jsdom reads no @media, so the phone-only rules are read from the shipped CSS and the DOM is checked for the parts.
  *
- * @mutate src/pages/info/giftGuides/GuidesTop.tsx | <MyListIcon current={onMyList} head /> | {null}
+ * @mutate src/pages/info/giftGuides/GuidesTop.tsx | phone={<GuidesMenuButton active={nav.active} myList={nav.myList} page={nav.page} />}> | phone={<><a className="gg-icon" href="/gift-guides/my-list" data-gift-head-heart="">x</a><GuidesMenuButton active={nav.active} myList={nav.myList} page={nav.page} /></>}>
  * @mutate src/pages/info/giftGuides/GuidesHeadRow.tsx | <><span className="gg-head-holiday">{HOLIDAY}</span>{G.headerTitle.slice(HOLIDAY.length)}</> | G.headerTitle
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-headrow>.gg-ship,.gg-headrow>.gg-tools{display:none} | .gg-headrow>.gg-ship{display:none}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-head-holiday{display:none} | .gg-head-holiday{}
@@ -19,8 +24,7 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-head-phone .gg-icon,.gg-head-phone .gg-icon:hover,.gg-head-phone .gg-icon[aria-expanded="true"]{background:transparent; | .gg-head-phone .gg-icon{background:transparent;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-head-title [data-gift-head-name]::first-letter{text-transform:uppercase} | .gg-head-title [data-gift-head-name]::first-letter{}
  * @mutate src/content/giftGuides.ts | phoneMenuLabel: "Guides menu", | phoneMenuLabel: "More",
- * @mutate src/content/giftGuides.ts | (n > 0 ? `Wish list, ${n} saved` : "Wish list") | `My Wish List, ${n} saved`
- * @mutate src/pages/info/GiftGuides.tsx | pillInRow={!countRow} onMyList={myList} | pillInRow={!countRow}
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />}\n      {filter && <GiftGuideFilter filter={filter} />}\n      <MyListIcon current={myList} /> |       <MyListIcon current={myList} />\n      {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />}\n      {filter && <GiftGuideFilter filter={filter} />}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
@@ -81,7 +85,7 @@ const phoneCss = () => {
 const PAGES = ["/gift-guides", "/gift-guides/her", "/gift-guides/black-friday", "/gift-guides/printables/gift-tags", "/gift-guides/swipe", "/gift-guides/my-list"] as const;
 
 describe("the phone head row on every guides page (owner 11-22)", () => {
-  it.each(PAGES)("%s at 375: arrow + title, then the heart and the three-line menu on the right; no chip row", async (url) => {
+  it.each(PAGES)("%s at 375: arrow + title, then only the three-line menu on the right (no heart); no chip row", async (url) => {
     const c = await renderAt(url, 375);
     const row = c.querySelector("[data-gift-headrow]")!;
     // Title: the page's h1 on the landing / My Wish List as before, a plain line elsewhere; "Holiday " is its own span,
@@ -90,26 +94,27 @@ describe("the phone head row on every guides page (owner 11-22)", () => {
     expect(name.textContent).toBe("Holiday gift guides");
     expect(name.querySelector(":scope > .gg-head-holiday")?.textContent).toBe("Holiday ");
     expect(name.textContent!.slice("Holiday ".length)).toBe("gift guides");
-    // Right side: the heart, then the three-line menu, the row's last child.
+    // Right side: only the three-line menu, the row's last child (owner 11-22: "The 3 line dash stays up"; the heart
+    // went to the toolbar).
     const right = row.lastElementChild!;
     expect(right.matches("[data-gift-head-phone]")).toBe(true);
     const kids = [...right.children];
-    expect(kids.map((k) => (k.matches("a[data-gift-head-heart]") ? "heart" : k.matches("button[data-gift-head-menu]") ? "menu" : k.tagName))).toEqual(["heart", "menu"]);
-    expect(kids[0].getAttribute("aria-label")).toMatch(/^Wish list(, \d+ saved)?$/);
-    expect(kids[0].getAttribute("href")).toBe("/gift-guides/my-list");
-    expect(kids[1].getAttribute("aria-label")).toBe("Guides menu");
+    expect(kids.map((k) => (k.matches("button[data-gift-head-menu]") ? "menu" : k.matches("a[href$='/my-list']") ? "heart" : k.tagName))).toEqual(["menu"]);
+    expect(kids[0].getAttribute("aria-label")).toBe("Guides menu");
+    expect(c.querySelector("[data-gift-head-heart]"), url).toBeNull();
     // 44x44 targets, drawn as plain icons (the shared .gg-icon box: 44px, no border).
     for (const k of kids) expect(k.className).toMatch(/\bgg-icon\b/);
     // The chip row is gone from every page.
     expect(c.querySelector("[data-gift-phone-nav], [data-gift-chip]"), url).toBeNull();
   });
 
-  it("My Wish List: the phone heart is the current page there", async () => {
-    const c = await renderAt("/gift-guides/my-list", 375);
-    expect(c.querySelector("[data-gift-head-heart]")?.getAttribute("aria-current")).toBe("page");
-    cleanup();
-    const her = await renderAt("/gift-guides/her", 375);
-    expect(her.querySelector("[data-gift-head-heart]")?.hasAttribute("aria-current")).toBe(false);
+  // Owner 11-22 later ("I think by the search and icons filter"): a phone shows the heart only in a page's own toolbar.
+  // Pages without one on a phone (the deals days, the printables, Swipe, My Wish List) show it nowhere outside the head
+  // row's tools, which the phone CSS hides (asserted below), and no count row.
+  it.each(["/gift-guides/black-friday", "/gift-guides/printables/gift-tags", "/gift-guides/swipe", "/gift-guides/my-list"])("%s at 375: no toolbar on a phone, so no heart outside the hidden head-row tools", async (url) => {
+    const c = await renderAt(url, 375);
+    expect(c.querySelector("[data-gift-countrow]"), url).toBeNull();
+    for (const heart of c.querySelectorAll("[data-gift-my-list-link]")) expect(heart.closest("[data-gift-headrow] > [data-gift-quick]"), url).not.toBeNull();
   });
 
   it("the phone CSS: one line, the pill and the icons hidden, 'Holiday ' hidden and the g capitalised, the heart + menu shown with no circle", () => {
@@ -117,6 +122,7 @@ describe("the phone head row on every guides page (owner 11-22)", () => {
     expect(css).toMatch(/^\.gg-head-phone\{display:none\}\n@media \(max-width:767px\)\{/);
     expect(css).toContain(".gg-headrow{flex-wrap:nowrap;gap:4px}");
     expect(css).toContain(".gg-headrow>.gg-ship,.gg-headrow>.gg-tools{display:none}");
+    // (the head row's tools, and with them their heart, are hidden on a phone: the count row's toolbar holds the heart)
     expect(css).toContain(".gg-head-holiday{display:none}");
     expect(css).toContain(".gg-head-title [data-gift-head-name]::first-letter{text-transform:uppercase}");
     expect(css).toMatch(/\.gg-head-phone\{display:flex;[^}]*margin:0 -10px 0 auto\}/);
@@ -132,17 +138,23 @@ describe("the phone head row on every guides page (owner 11-22)", () => {
 // Lead 11-22, owner on the Her page: "Remove him kids her buttons under holiday gift guides. deals from here they can
 // click the 3 line ... or they can go back"; a guide's own toolbar row under its banner stays as it is.
 describe("a phone's guide page: the count row under the banner is unchanged (owner 11-22)", () => {
-  it.each(["/gift-guides/her", "/gift-guides/kids"])("%s at 375: the count, the pill, search, sort, heart and Share under the banner; the head row's heart too", async (url) => {
+  it.each(["/gift-guides/her", "/gift-guides/kids"])("%s at 375: the count, the pill, then search, sort, heart and Share under the banner (the heart right after search and sort); the head row has only the menu", async (url) => {
     const c = await renderAt(url, 375);
     const row = c.querySelector("[data-gift-countrow]")!;
     expect(row).not.toBeNull();
     expect(row.querySelector("[data-gift-item-count]")?.textContent).toMatch(/^\d+ gifts$/);
     expect(row.querySelector("[data-gift-ship]")).not.toBeNull();
     for (const sel of ["[data-gift-search-button]", "[data-gift-sort-button]", "[data-gift-my-list-link]", "[data-gift-share]"]) expect(row.querySelector(`[data-gift-quick] ${sel}`), sel).not.toBeNull();
-    // The head row holds none of those, only the phone's heart and menu.
+    // Owner 11-22: the heart sits "by the search and icons filter": the toolbar reads search, sort, heart, Share.
+    const order = [...row.querySelector("[data-gift-quick]")!.children].map((k) =>
+      k.matches("[data-gift-search-box]") ? "search" : k.querySelector("[data-gift-sort-button]") || k.matches("[data-gift-sort-button]") ? "sort"
+        : k.matches("[data-gift-my-list-link]") ? "heart" : k.querySelector("[data-gift-share]") || k.matches("[data-gift-share]") ? "share" : k.tagName);
+    expect(order).toEqual(["search", "sort", "heart", "share"]);
+    // The head row holds none of those, only the phone's menu (no second heart).
     const head = c.querySelector("[data-gift-headrow]")!;
     expect(head.querySelector("[data-gift-ship], [data-gift-quick]")).toBeNull();
-    expect(head.querySelectorAll("[data-gift-head-heart], [data-gift-head-menu]").length).toBe(2);
+    expect([...head.querySelectorAll("[data-gift-head-phone] > *")].map((k) => k.getAttribute("data-gift-head-menu") !== null ? "menu" : k.tagName)).toEqual(["menu"]);
+    expect(c.querySelectorAll("[data-gift-my-list-link]").length).toBe(1);
   });
 });
 

@@ -15,7 +15,7 @@ import { planActions as A, usePlan } from "./plannerStore";
 import { restorePerson, useAccountSync } from "./plannerSync";
 import { PriceAlertsOptIn } from "./PriceAlertsOptIn";
 import { PRINTABLES, PRINTABLES_PATH, isShown } from "@/content/printables";
-import { storeOf } from "@/content/giftGuideCatalog";
+import { storeForLink } from "@/content/giftGuideCatalog";
 import { PickThumb } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
 import { GuidePicksPicker, type GuidePick } from "./GuidePicksPicker";
@@ -115,7 +115,7 @@ function Person({ p, index }: { p: PlanPerson; index: number }) {
               <label className="gg-plan-check h-11 w-11">
                 <Checkbox checked={i.bought} aria-label={`${W.plannerBought}: ${i.name}`} onCheckedChange={(v) => A.setIdea(p.id, i.id, { bought: v === true })} data-plan-bought={i.id} />
               </label>
-              {i.image && <PickThumb pick={{ name: i.name, href: i.href ?? "", store: i.href ? storeOf(i.href) : "", image: i.image }} size={40} />}
+              {i.image && <PickThumb pick={{ name: i.name, href: i.href ?? "", store: storeForLink(i.href), image: i.image }} size={40} />}
               <span className="gg-plan-iname">
                 <span className="gg-plan-iname-t">{i.name}</span>
                 {/* Owner 11-21: an idea with a shop link says "Shop", so Bought and Shop both work from the planner. */}

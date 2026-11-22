@@ -80,6 +80,7 @@ import { FoldedTimePicker } from "./DeclutterFoldedTime";
 import { ProblemForm } from "./DeclutterProblemForm";
 import { BookingPanel } from "./DeclutterBookingPanel";
 import { DeclutterProblemDecided, DeclutterProblemSides, DeclutterRefundPanel, OrderDeliveryPanel, ReturnLabelPanel, SellerDeliveryOrderPanel, ShipOrderPanel } from "./handoverLazyPanels";
+import type { CardAsk } from "./SellerDeliveryOrder";
 // Seller delivery (20261027153244) loads with its own orders only (Q178).
 import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
 import { NoHelprChoice } from "./DeclutterNoHelpr";
@@ -205,7 +206,10 @@ function OrderCard({ order, userId, booking, payout, holdUnknown = false, payout
   // Buying's tracker: the card shows its steps and ONE next action; the rest opens under Details, at that action.
   const [open, setOpen] = useState(false);
   // Audit 1c D3-7: a Helpr delivery's "I got it" opened Details only; it now opens the "Do you have it?" sheet too.
-  const [askGot, setAskGot] = useState(false);
+  // Deep audit 11-22 #15: every handover's "I got it" (and a late delivery's "It wasn't delivered") does, so the buyer's
+  // most common move is two taps (the card's button, then the sheet's), not three. `n` counts taps: a re-tap re-opens it.
+  const [askFor, setAskFor] = useState<CardAsk | null>(null);
+  const askGot = askFor?.what === "gotIt";
   const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open || !view) return;
@@ -223,8 +227,12 @@ function OrderCard({ order, userId, booking, payout, holdUnknown = false, payout
       <OrderCardHead order={order} userId={userId} />
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
-      {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} refundOpen={refundIsOpen(refundStatus)} refundOffered={refundStatus === "offered"} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
-        onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} />}
+      {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} refundOpen={refundIsOpen(refundStatus)} refundOffered={refundStatus === "offered"} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskFor(null); }}
+        onAction={() => {
+          setOpen(true);
+          const what = view.action === "I got it" ? "gotIt" : view.action === "It wasn't delivered" ? "notDelivered" : null;
+          setAskFor(what ? (a) => ({ what, n: (a?.n ?? 0) + 1 }) : null);
+        }} />}
       {problem && view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
       {done && !problem && <Suspense fallback={null}><DeclutterProblemDecided orderId={order.orderId} side={order.side} /></Suspense>}
       {/* Outside the folded body: the buyer's notice says "Print it from your order". */}
@@ -276,7 +284,7 @@ function OrderCard({ order, userId, booking, payout, holdUnknown = false, payout
         <>
           {/* 20261027153244: the seller brings it at the time the buyer picked. */}
           <Suspense fallback={<HelprSpinner />}>
-            <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} trade={trade} onProblem={() => setProblemOpen(true)} problemOpen={!!problem && problem.reporter_side !== "system"} />
+            <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} trade={trade} askFor={askFor} onProblem={() => setProblemOpen(true)} problemOpen={!!problem && problem.reporter_side !== "system"} />
           </Suspense>
           {!problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery free={order.lines.every((l) => l.price_cents === 0)} />}
           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />}
@@ -322,7 +330,7 @@ function OrderCard({ order, userId, booking, payout, holdUnknown = false, payout
           {/* F378: the buyer's "Report it before you take your pickup photo" has its button; it opens the card's form below. */}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} onProblem={problem ? undefined : () => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} held={!!problem} />}
-          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
+          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} askGot={askGot ? askFor?.n ?? 0 : 0} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking, porchSeller) ?? booking.slot_start} who={who} />}
           {booking?.slot_start && !problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery={false} free={order.lines.every((l) => l.price_cents === 0)} />}
           {sellerNextFirst && <SellerAfterActions order={order} booking={booking} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} />}
@@ -344,7 +352,8 @@ function OrderCard({ order, userId, booking, payout, holdUnknown = false, payout
   );
 }
 
-function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen, onProblem }: { order: PaidOrder; userId: string; slotStart: string; anyProblem: boolean; who: string; problemOpen: boolean; onProblem: () => void }) {
+/** `askGot` (deep audit 11-22 #15): the card's "I got it" tap count; a new one opens "Do you have it?" at once. */
+function HandoverPanel({ order, userId, slotStart, askGot = 0, anyProblem, who, problemOpen, onProblem }: { order: PaidOrder; userId: string; slotStart: string; askGot?: number; anyProblem: boolean; who: string; problemOpen: boolean; onProblem: () => void }) {
   useLanguage();
   const qc = useQueryClient();
   // BUY-17 (owner 11-03): a porch buyer's "I got it" waits for the porch photo (set_out_at) whatever the day; see
@@ -361,6 +370,10 @@ function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen,
   const rule = (words: string) => free ? <p className="text-sm text-muted-foreground">{words}</p> : null;
   const [photo, setPhoto] = useState<File | null>(null);
   const [asking, setAsking] = useState(false);
+  // The same checks as the button below: only when "I got it" would show.
+  const mayAskGot = askGot > 0 && order.side === "buyer" && !problemOpen && porchReady
+    && !((order.handover === "meetup" || order.handover === "pickup_home") && !gotItOpen(slotStart));
+  useEffect(() => { if (mayAskGot) setAsking(true); }, [mayAskGot, askGot]);
   const confirm = useMutation({
     mutationFn: () => confirmHandover(order.orderId),
     onSuccess: () => {

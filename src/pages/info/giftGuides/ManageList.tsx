@@ -1,16 +1,20 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent } from "react";
+import { Gift } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { storeOf } from "@/content/giftGuideCatalog";
+import { guidePicksVersion, loadGuidePicks, storeOf, subscribeGuidePicks } from "@/content/giftGuideCatalog";
+import { OWNER_LIST_GUIDES } from "@/content/giftGuidePeople.mjs";
+import { livePicks } from "./fun/GuidePicksPicker";
 import { WISH } from "@/content/giftWishList";
 import { dollars, parseDollars, type PlanPerson } from "@/content/giftGuideFun1120";
 import { shareGiftLists } from "@/lib/giftWishListApi";
 import { successToast } from "@/lib/toast";
 import { planActions } from "./fun/plannerStore";
 import { PickThumb } from "./GiftGuideView";
+import { PickPrice, showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftWishShare } from "./GiftWishShare";
 import { AmazonCartForList } from "./AmazonCartButton";
 import { AnyStoreAdd } from "./AnyStoreAdd";
@@ -28,6 +32,36 @@ import { budgetStatus, listTotal, shareListOf } from "./saveForPeople";
  *     (confirmed; the list stays, empty).
  * Guard: src/test/saveForManage1121.test.tsx.
  */
+/**
+ * A list gift's picture (coordinator 11-21: a saved guide pick shows the pick's photo, as on its card): its own saved
+ * photo; else the guide pick with the same link (picks saved before photos were kept); else, for a typed idea or a
+ * link from another store, a small gift icon in the same 40px tile, never an empty gap.
+ */
+/** The guide pick with this link (loads the owner's guides' picks once), or undefined. */
+function useCatalogPick(href: string | undefined) {
+  const version = useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
+  useEffect(() => {
+    Promise.all(OWNER_LIST_GUIDES.map((s) => loadGuidePicks(s))).catch((e: unknown) => {
+      // The photo and price are a help: without the guides the tile shows the gift icon.
+      console.warn("gift list: guide picks failed to load", e);
+    });
+  }, []);
+  return useMemo(() => (href && version >= 0 ? livePicks().find((p) => p.href === href) : undefined), [href, version]);
+}
+
+function ItemThumb({ name, href, image }: { name: string; href?: string; image?: string }) {
+  const pick = useCatalogPick(image ? undefined : href);
+  if (image) return <PickThumb pick={{ name, href: href ?? "", store: href ? storeOf(href) : "", image }} size={40} />;
+  if (pick) return <PickThumb pick={pick} size={40} />;
+  return <span className="gg-mylists-noimg gg-mylists-gift" aria-hidden="true" data-list-gift-icon=""><Gift /></span>;
+}
+
+/** A My Wish List gift's price, as its guide card shows it (the wish list keeps only names and links). */
+function MePrice({ href }: { href: string }) {
+  const pick = useCatalogPick(href);
+  return pick && showsPrice(pick) ? <span className="gg-mylists-price"><PickPrice pick={pick} /></span> : null;
+}
+
 export function ListLine({ p }: { p: PlanPerson }) {
   const t = listTotal(p);
   const s = budgetStatus(p);
@@ -87,7 +121,7 @@ export function PersonList({ p, ready }: { p: PlanPerson; ready: boolean }) {
         <ul className="gg-mylists-items">
           {p.ideas.map((i, k) => (
             <li key={i.id} data-mylists-item={i.id}>
-              {i.image ? <PickThumb pick={{ name: i.name, href: i.href ?? "", store: i.href ? storeOf(i.href) : "", image: i.image }} size={40} /> : <span className="gg-mylists-noimg" aria-hidden="true" />}
+              <ItemThumb name={i.name} href={i.href} image={i.image} />
               <span className="gg-mylists-name">{i.name}</span>
               {i.price !== undefined && <span className="gg-mylists-price">{dollars(i.price)}</span>}
               <RoundIconButton className="gg-fun-x" aria-label={WISH.listRemove(i.name, p.name)} disabled={!ready} onClick={() => remove(k)} data-mylists-remove={i.id}>
@@ -135,8 +169,9 @@ export function MyWishList({ onLeave }: { onLeave: () => void }) {
         <ul className="gg-mylists-items">
           {list.picks.map((s, k) => (
             <li key={pickId(s)} data-mylists-me-item={pickId(s)}>
-              <span className="gg-mylists-noimg" aria-hidden="true" />
+              <ItemThumb name={s.name} href={s.href} />
               <span className="gg-mylists-name">{s.name}</span>
+              <MePrice href={s.href} />
               <RoundIconButton className="gg-fun-x" aria-label={WISH.removeLabel(s.name)} onClick={() => remove(k)} data-mylists-me-remove={pickId(s)}>
                 <span aria-hidden="true">×</span>
               </RoundIconButton>

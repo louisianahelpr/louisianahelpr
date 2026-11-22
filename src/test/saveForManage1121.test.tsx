@@ -10,13 +10,14 @@
  *     window.confirm); "Me": Clear list (confirmed), the list kept.
  *
  * @mutate src/pages/info/giftGuides/saveForPeople.ts |   const cents = Math.round(p.budget * 100) - Math.round(listTotal(p).amount * 100); |   const cents = p.budget - listTotal(p).amount;
- * @mutate src/pages/info/giftGuides/saveForPeople.ts |   return cents < 0 ? { kind: "over" | |   return cents > 0 ? { kind: "over"
+ * @mutate src/pages/info/giftGuides/saveForPeople.ts |   return cents < 0 ? { kind: "over" |   return cents > 0 ? { kind: "over"
  * @mutate src/pages/info/giftGuides/ManageList.tsx |     successToast(WISH.removedGift(idea.name), { action: { label: WISH.undo, onClick: () => planActions.restoreIdea(p.id, idea, index) } }); |     successToast(WISH.removedGift(idea.name));
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |     return { ...p, ideas: [...p.ideas.slice(0, at), idea, ...p.ideas.slice(at)] }; |     return { ...p, ideas: [...p.ideas, idea] };
  * @mutate src/pages/info/giftGuides/ManageList.tsx |         onPrimary={() => { planActions.removePerson(p.id); setConfirming(false); }} |         onPrimary={() => { setConfirming(false); }}
  * @mutate src/pages/info/giftGuides/ManageList.tsx |     planActions.setBudget(p.id, b); |     void b;
  * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |     if (r === "added") onAdded(p.id, p.name); |     void r;
  * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |             {on && <small className="gg-savefor-on" data-savefor-on={p.id}>{WISH.onListHint}</small>} |             {null}
+ * @mutate src/pages/info/giftGuides/ManageList.tsx |   if (pick) return <PickThumb pick={pick} size={40} />; |   if (false) return <PickThumb pick={pick} size={40} />;
  * @mutate src/pages/info/giftGuides/giftList.tsx | export const emptyWishList = () => write({ ...read(), picks: [] }); | export const emptyWishList = () => write(EMPTY);
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -47,6 +48,7 @@ import { planActions, resetPlanStoreForTests, setPlanViewer, usePlan } from "@/p
 import { addToWishList, giftListNow, resetGiftListForTests, setListName } from "@/pages/info/giftGuides/giftList";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import type { PlanPerson } from "@/content/giftGuideFun1120";
+import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
 
 const person = (budget: number | undefined, prices: number[]): PlanPerson => ({
   id: "z", name: "Zander", ...(budget !== undefined ? { budget } : {}),
@@ -190,6 +192,18 @@ describe("a list's own sheet", () => {
     fireEvent.click([...dialog.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === "Clear list")!);
     await waitFor(() => expect(giftListNow().picks).toEqual([]));
     expect(giftListNow().name).toBe("Lexi's list");
+  });
+
+  it("a guide pick saved without its photo shows the pick's photo; a typed idea shows the gift icon, never a gap", async () => {
+    await loadAllGuidePicks();
+    const pick = guideBySlug("her")!.picks.find((p) => p.image)!;
+    const id = planActions.addPerson("Ann")!;
+    planActions.addIdea(id, { name: pick.name, href: pick.href });
+    planActions.addIdea(id, { name: "zzqx typed idea" });
+    mount();
+    act(() => { openMyLists(id); });
+    await waitFor(() => expect(sheet()?.querySelector(`img[src="${pick.image}"]`)).not.toBeNull());
+    expect(sheet()!.querySelectorAll("[data-list-gift-icon]")).toHaveLength(1);
   });
 
   it("no window.confirm anywhere in the sheet's source", () => {

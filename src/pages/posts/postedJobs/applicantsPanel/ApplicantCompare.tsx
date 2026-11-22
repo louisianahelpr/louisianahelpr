@@ -85,7 +85,7 @@ const NONE = "—";
  * "Payout set up: Not yet. You can still hire". A row with nothing for anyone picked (Distance all dashes when no
  * distance is known, no notes) is left out instead of a line of dashes.
  */
-export function compareRows(picked: EnrichedApplication[], { idOn, distanceOf }: { idOn: boolean; distanceOf: DistanceOf }) {
+function compareRows(picked: EnrichedApplication[], { idOn, distanceOf }: { idOn: boolean; distanceOf: DistanceOf }) {
   const rows: { label: string; value: (a: EnrichedApplication) => string }[] = [
     { label: "Rating", value: (a) => ((a.reviewCount ?? 0) > 0 ? `${(a.avgRating ?? 0).toFixed(1)} from ${a.reviewCount}` : "No reviews yet") },
     { label: "ID checked", value: (a) => (a.profiles?.is_id_verified === true ? "Yes" : idOn ? "Not yet" : "No") },

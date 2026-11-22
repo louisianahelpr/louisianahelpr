@@ -247,7 +247,6 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
           <label id="gift-search" className="gg-search rounded-full focus-within:ring-2 focus-within:ring-ring">
             <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} /><path d="M20 20l-4-4" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" /></svg>
             {/* Opened by a tap on the magnifier, so the field takes the focus at once (never on page load). */}
-            {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
             <Input look="bare" type="search" autoFocus value={query} onChange={(e) => { setQuery(e.target.value); setResultsOpen(true); }} onFocus={() => setResultsOpen(true)}
               onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
               onBlur={(e) => { if (!query && !searchBox.current?.contains(e.relatedTarget as Node | null)) setSearchOpen(false); }}

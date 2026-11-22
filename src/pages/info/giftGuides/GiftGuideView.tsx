@@ -217,6 +217,11 @@ export const sectionLabel = (guide: Pick<CatalogGuide, "title">, title: string, 
 
 function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: CatalogGuide; order?: GuideOrder; failed?: boolean; onRetry?: () => void }) {
   const [budget, setBudget] = useState<number | null>(null);
+  // Owner 2026-11-21 ("there should be a button to open and expand each section like for under 25 etc.", first open by
+  // her pop-up pick): which price sections are open, for this visit only. null = the default, the first section (in the
+  // current order) open and the rest closed; a new order goes back to that default.
+  const [openSecs, setOpenSecs] = useState<Set<string> | null>(null);
+  useEffect(() => { setOpenSecs(null); }, [order]);
   const sortable = isOwnerList(guide.slug);
   const ready = picksReady(guide.slug);
   // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.
@@ -234,6 +239,11 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
     const ids = navKey.split(" ");
     const id = ids.includes(raw) ? raw : SECTION_ALIASES[guide.slug]?.[raw] || SECTION_ANCHORS[raw] || "";
     if (id && ids.includes(id)) jump(id);
+    // A price section's own link (/gift-guides/her#25-to-50, from a pin or the quiz) opens that section and scrolls to it.
+    else if (sortable && (PRICE_SECTIONS.some((s) => s.id === raw) || raw === "price-soon")) {
+      setOpenSecs(new Set([raw]));
+      requestAnimationFrame(() => document.getElementById(`gg-sec-${raw}`)?.scrollIntoView({ block: "start" }));
+    }
     // Once per guide, when its list is in (the hash is read only on arrival).
      
   }, [navKey]);
@@ -252,6 +262,14 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
   const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned;
   const sectionCount = new Map<string, number>();
   if (sortable) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
+  const firstSection = sortable ? picks[0]?.sectionId : undefined;
+  const isOpen = (id?: string) => !sortable || !id || (openSecs ? openSecs.has(id) : id === firstSection);
+  const toggle = (id: string) => setOpenSecs((cur) => {
+    const next = new Set(cur ?? (firstSection ? [firstSection] : []));
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
   // Owner 2026-11-21: "Remove show more just list everything." Every section lists all its gifts at every width; the
   // photos below the fold load lazily at a fixed size and each card skips rendering off-screen (content-visibility).
   const upTo = picks.length;
@@ -264,15 +282,24 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
   const draw = (from: number, to: number) => runs(from, to).map(({ title, id, picks: run }, i) => (
         <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""} id={id ? `gg-sec-${id}` : undefined} className={id ? "gg-sec" : undefined}
           aria-labelledby={title && id ? `gg-sec-${id}-title` : undefined}>
-          {title && (
+          {title && (sortable && id ? (
+            // A price section's header is its open/close button (aria-expanded; the list is drawn only while open).
+            <h2 className="gg-sec-title gg-sec-toggle-h" id={`gg-sec-${id}-title`}>
+              <button type="button" className="gg-sec-toggle" aria-expanded={isOpen(id)} aria-controls={`gg-sec-${id}-list`} onClick={() => toggle(id)} data-gift-section-toggle={id}>
+                <span>{title}<span className="gg-sec-count" data-gift-section-count="">{G.priceSectionCount(sectionCount.get(id) ?? 0)}</span></span>
+                <svg className="gg-sec-chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+            </h2>
+          ) : (
             <h2 className="gg-sec-title" id={id ? `gg-sec-${id}-title` : undefined}>
               {nav.length > 1 ? sectionLabel(guide, title, id) : title}
-              {sortable && id && <span className="gg-sec-count" data-gift-section-count="">{G.priceSectionCount(sectionCount.get(id) ?? 0)}</span>}
             </h2>
+          ))}
+          {isOpen(id) && (
+            <ol className="gg-list" id={id ? `gg-sec-${id}-list` : undefined} data-gift-list="" style={run.start > 1 ? { counterReset: `gg ${run.start - 1}` } : undefined}>
+              {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
+            </ol>
           )}
-          <ol className="gg-list" data-gift-list="" style={run.start > 1 ? { counterReset: `gg ${run.start - 1}` } : undefined}>
-            {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
-          </ol>
         </section>
       ));
   return (

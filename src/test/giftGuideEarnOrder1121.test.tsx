@@ -44,6 +44,7 @@ import { rankFromClicks, clicksByHref, fileBody, CLICKS_SQL } from "../../script
 import her from "@/content/giftGuidePicks/her.json";
 import him from "@/content/giftGuidePicks/him.json";
 import kids from "@/content/giftGuidePicks/kids.json";
+import { openPriceSections, sectionTitle } from "./helpers/openPriceSections";
 
 afterEach(() => {
   cleanup();
@@ -102,7 +103,7 @@ const renderAt = (url: string) =>
   );
 const sections = (c: HTMLElement) =>
   [...c.querySelectorAll<HTMLElement>("section[data-gift-section]")].map((sec) => ({
-    title: sec.querySelector("h2")?.firstChild?.textContent ?? "", // h2 under the banner h1 (holiday polish 2)
+    title: sectionTitle(sec),
     hrefs: [...sec.querySelectorAll<HTMLAnchorElement>("[data-gift-pick] a[data-gift-out]:not(.gg-cart)")].map((a) => a.href).filter((h, i, all) => all.indexOf(h) === i),
   }));
 const choose = (label: string) => {
@@ -116,7 +117,7 @@ describe("Her's default order puts the clicked picks first in their own section"
     vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
     await act(async () => { await loadGuidePicks("her"); });
     const { container } = renderAt("/gift-guides/her");
-    fireEvent.click(container.querySelector("[data-gift-more-picks]") ?? document.body);
+    openPriceSections(container);
     const top = sections(container);
     const s25 = top.find((s) => s.title === "$25 to $50")!;
     const s0 = top.find((s) => s.title === "Under $25")!;
@@ -125,7 +126,7 @@ describe("Her's default order puts the clicked picks first in their own section"
     expect(s0.hrefs[0]).toBe(planted.top0);
 
     choose(G.sortLowHigh);
-    fireEvent.click(container.querySelector("[data-gift-more-picks]") ?? document.body);
+    openPriceSections(container);
     const low = sections(container);
     // Same sections, same order, same members: only the order inside a section moved.
     expect(low.map((s) => s.title)).toEqual(top.map((s) => s.title));
@@ -135,7 +136,7 @@ describe("Her's default order puts the clicked picks first in their own section"
     expect(l25.hrefs.slice(0, -1)).toEqual(s25.hrefs.slice(1));
 
     choose(G.sortTop);
-    fireEvent.click(container.querySelector("[data-gift-more-picks]") ?? document.body);
+    openPriceSections(container);
     expect(sections(container)).toEqual(top);
   });
 

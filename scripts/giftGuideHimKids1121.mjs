@@ -277,9 +277,8 @@ export const HIM_1121 = [
   // COMMISSION SWITCH 11-21: was Amazon B0FKCJNHWB at 1%; the same Theragun Prime 6th Gen in black, same $189.99, at
   // Exclusive Beauty Club at 16% (Therabody.com lists only the 5th gen).
   { name: "Theragun Prime Massage Gun", brand: "Therabody", line: "A massage gun for sore backs and shoulders.", href: shopmy("p-108734364"), image: "https://cdn.shopify.com/s/files/1/2959/8080/files/therabody-theragun-prime-massage-gun-black.png", store: "store-exclusive-beauty-club", sortPrice: 189.99, price: 189.99, commission: 16, type: "massager" },
-  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0FDYD1C2N at
-  // 3% ($200); same item and color, Wetlands Camo, Tractor Supply 2581814 (yeti.com: Notify Me): 8%, $200.
-  { name: "YETI Roadie 15 Hard Cooler", brand: "YETI", line: "A small hard cooler that rides behind the seat.", href: shopmy("p-109005541"), image: "https://media.tractorsupply.com/is/image/TractorSupplyCompany/2581814", store: "store-tractor-supply", sortPrice: 200, price: 200, commission: 8, type: "cooler" },
+  // The YETI Roadie 15 (Tractor Supply p-109005541) is off Him (lead 11-22): the same cooler in two sizes counts as a
+  // duplicate, and Him keeps the Roadie 8 she pinned (scripts/giftGuideOwnerAdds1122.mjs).
   // COMMISSION SWITCH 11-21 night (owner-approved, via lead): was Amazon B0F2JHSGCJ at 3% ($237.50); the same Ranger in Tan
   // at Onward Reserve at 15%, $250 (her link p-108736312 -> onwardreserve.com/products/turtlebox-ranger-tan;
   // Commission-switches-1121.md). Photo: the Tan Ranger cutout from turtleboxaudio.com the Him cover already drew.

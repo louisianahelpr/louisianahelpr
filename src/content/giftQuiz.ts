@@ -111,6 +111,8 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   // tracker are gadgets; a smartwatch is a gadget for workouts; a pizza oven is kitchen, out in the yard.
   "personal-fan": ["tech"], "power-bank": ["tech"], "travel-adapter": ["tech"], earbuds: ["tech"], headphones: ["tech"],
   tracker: ["tech"], smartwatch: ["tech", "fitness"], "pizza-oven": ["kitchen", "outdoors"],
+  // Him batch 1 of her Nov 19 pins (11-22): a fire pit and duck calls go outdoors.
+  "fire-pit": ["outdoors"], "duck-call": ["outdoors"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {

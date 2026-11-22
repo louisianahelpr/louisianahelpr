@@ -94,6 +94,8 @@ const AMAZON_1122: [string, string, number][] = [
   ["B0H51ZX6SB", "him", 299],
   // builder-guide-her4 block 2 (11-22)
   ["B0H2FQ5FV1", "her", 39.99], ["B0FXYGCYK6", "her", 24.99], ["B0F5K3B4Q7", "her", 29.94], ["B0CHMS3PVZ", "her", 27.99], ["B0D7GQVNNN", "her", 23.8], ["B0D1X4PNFD", "her", 29.95], ["B0F7M3HPBD", "her", 229], ["B0H3YXW87L", "her", 42.99], ["B0H9L8Z1DY", "her", 21.99], ["B0F79VTVFQ", "her", 85],
+  // batch 2
+  ["B0D92375JB", "her", 26.99], ["B0G4M22BQL", "her", 32.99], ["B0BGS3L9XS", "her", 27.99], ["B0DXWP12C8", "her", 13.99], ["B0HKYH5TF2", "her", 39.99], ["B0H2CSG4SZ", "her", 15.99], ["B0FXBBD5GS", "her", 17.5], ["B0G3948RG8", "her", 14.8], ["B0HKQYLRBB", "her", 22.99],
 ];
 
 describe("the owner's launch-day picks (11-22)", () => {

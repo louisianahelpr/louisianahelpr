@@ -239,7 +239,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // pin (from $22).
       // builder-guide-her4 block 2 (11-22): 10 Amazon picks from her screenshots (HydroJugs, She's Birdie, CRZ YOGA pants
       // and bra, Lemon Grace cards, Bose QC Ultra Earbuds, two personalized bags, YETI Daytrip lunch bag).
-      her: { "Under $25": 40, "$25 to $50": 41, "$50 to $75": 10, "$75 to $100": 14, "$100 and up": 37 },
+      // Batch 2 (11-22): vest, sweatshirt, sherpa, Kitsch, HydroJug tortoise, gift bags and tags, card holder, pouch.
+      her: { "Under $25": 45, "$25 to $50": 45, "$50 to $75": 10, "$75 to $100": 14, "$100 and up": 37 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

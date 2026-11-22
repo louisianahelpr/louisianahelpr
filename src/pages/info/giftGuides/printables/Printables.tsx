@@ -217,11 +217,10 @@ const PAGE_CSS = `
 .pr-card-wide{flex-direction:column;max-width:640px;grid-column:1/-1}.pr-card-wide .pr-card-img{width:100%;max-width:100%}
 .pr-card-body .pr-card-title{font-size:16px;font-weight:700;margin:0 0 4px;color:var(--gg-ink)}
 .pr-card-body p{font-size:13px;color:var(--gg-muted);margin:0 0 8px}
-/* Owner 11-22 #15: the links stay on ONE row; on a narrow card the last ("Print at Walgreens") wraps inside itself. */
-.pr-card-btns{display:flex;flex-wrap:nowrap;align-items:center;gap:0 16px}
-.pr-card-btns>.pr-link{flex:none}
-.pr-card-btns>a.pr-link{flex:0 1 auto;min-width:0;white-space:normal;text-align:left}
-@media (max-width:479px){.pr-card-btns{gap:0 12px}.pr-card .pr-link{font-size:13px}}
+/* Owner 11-22 #15: the links share one row; each link stays on one line, and one that does not fit drops whole to the
+   next row (a phone's "Print at Walgreens ›"), never splitting inside itself. */
+.pr-card-btns{display:flex;flex-wrap:wrap;align-items:center;gap:0 16px}
+.pr-card-btns>.pr-link{flex:none;white-space:nowrap}
 /* Owner 2026-11-21: "Download the banner (free)" overflowed its pill; a long label wraps inside its button instead. */
 .pr-card-btns button{max-width:100%;height:auto;min-height:44px;white-space:normal;text-align:center}
 /* Owner 11-22 #15: every download and "Print at Walgreens" is the same plain olive text link, no pill outline. */

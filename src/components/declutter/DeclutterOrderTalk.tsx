@@ -13,7 +13,9 @@ import { lazy, Suspense, useState } from "react";
 import { Link, useInRouterContext, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
+import { SendHorizontal } from "lucide-react";
+import { chatBubbleShape, chatBubbleStyle } from "@/components/messages/chatView/chatBubbleLook";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -132,7 +134,11 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   return (
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
-        className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-order-talk="">
+        className={`bg-premium-page flex max-h-[90dvh] flex-col overflow-hidden ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-order-talk="">
+        {/* Audit 1122 #137: the sheet is a column. The head and the messages scroll; the message box with its Send
+            button stays pinned at the bottom, so Send is on screen at 375 without scrolling (it measured 800-856px
+            in an 812px viewport). One way to close: the sheet's own X (the second Close button is gone). */}
+        <div className="min-h-0 flex-1 overflow-y-auto" data-order-talk-scroll="">
         <SheetHero title={!t ? tr("cp.ot.title") : open
           ? tr(other === "buyer" ? "cp.ot.msgBuyer" : "cp.ot.msgSeller")
           : tr(other === "buyer" ? "cp.ot.chatBuyer" : "cp.ot.chatSeller")} />
@@ -174,42 +180,42 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
                     {dateDividerLabel(new Date(m.created_at))}
                   </li>
                 ),
-                <li key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${m.mine ? "bg-[hsl(var(--bark)/0.1)]" : "border border-border bg-card"}`}>
-                    <p className="text-ds-12 font-semibold text-muted-foreground">{labels.data?.get(m.id) ?? (m.mine ? tr("cp.ot.you") : theOther)} · {clock(m.created_at)}</p>
+                <li key={m.id} className={`flex flex-col ${m.mine ? "items-end" : "items-start"}`}>
+                  {/* Audit 1122 #137: the job chat's bubble (chatBubbleLook), with who and when on a small line under it,
+                      as the job chat puts its time under the bubble; never a label inside the bubble. */}
+                  <div className={`max-w-[85%] space-y-1 ${chatBubbleShape(m.mine)}`} style={chatBubbleStyle(m.mine)} data-order-talk-bubble={m.mine ? "mine" : "theirs"}>
                     {m.photo_path && <Suspense fallback={<div className="mt-1 h-40 w-40 rounded-xl bg-photo-empty" aria-hidden />}><OrderTalkMessagePhoto path={m.photo_path} /></Suspense>}
                     {/* F389: the other side's photo is hidden once either blocked the other or either is banned. */}
-                    {m.photo_hidden && <p className="text-ds-13 italic text-muted-foreground" data-order-talk-photo-hidden="">{tr("cp.ot.photoHidden")}</p>}
-                    {m.body && <p className="whitespace-pre-wrap break-words text-ds-14 text-foreground">{m.body}</p>}
+                    {m.photo_hidden && <p className="italic opacity-80" data-order-talk-photo-hidden="">{tr("cp.ot.photoHidden")}</p>}
+                    {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
                   </div>
+                  <p className="mt-1 px-1 text-ds-11 text-muted-foreground" data-order-talk-meta="">{labels.data?.get(m.id) ?? (m.mine ? tr("cp.ot.you") : theOther)} · {clock(m.created_at)}</p>
                 </li>,
               ])}
             </ol>
-            {open && (
-              <form id={formId} className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim() || photo) send.mutate(); }}>
-                <label htmlFor={`order-talk-${orderId}`} className="block text-ds-13 font-medium">{tr("cp.ot.message")}</label>
-                <Textarea id={`order-talk-${orderId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
-                  maxLength={1000} value={draft} onChange={(e) => { setDraft(e.target.value); setRefusal(null); }}
-                  placeholder={tr(other === "buyer" ? "cp.ot.writeBuyer" : "cp.ot.writeSeller")}
-                  aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `order-talk-refusal-${orderId}` : leak ? `order-talk-leak-${orderId}` : undefined} />
-                <Suspense fallback={null}><OrderTalkPhotoPicker file={photo} onChange={(f) => { setPhoto(f); setRefusal(null); }} disabled={send.isPending} /></Suspense>
-                {refusal && <p id={`order-talk-refusal-${orderId}`} role="alert" className="text-ds-13 text-destructive-ink" data-order-talk-refusal="">{refusal}</p>}
-                {/* Audit 11-10 F390: said while typing, before Send, in the words the server refuses it with
-                    (reject_contact_leak_in_declutter_order_talk); the server stays the authority. */}
-                {!refusal && leak && <p id={`order-talk-leak-${orderId}`} className="text-ds-13 text-foreground" data-order-talk-leak="">{leak.label} (&ldquo;{leak.match}&rdquo;). Keep contact details and payment out of the chat: this message won&apos;t send with it.</p>}
-              </form>
-            )}
           </div>
         )}
-        {/* The shared popup footer: Close, and Send while the chat is open (it submits the form above). */}
-        <SheetFooter className="mt-4">
-          <SheetSecondaryAction onClick={onClose}>{tr("cp.ot.close")}</SheetSecondaryAction>
-          {open && (
-            <SheetPrimaryAction type="submit" form={formId} disabled={send.isPending || (draft.trim().length === 0 && !photo)}>
-              {send.isPending ? tr("cp.ot.sending") : tr("cp.ot.send")}
-            </SheetPrimaryAction>
-          )}
-        </SheetFooter>
+        </div>
+        {t && open && !talk.isError && (
+          <form id={formId} className="shrink-0 space-y-2 border-t border-border pt-3" data-order-talk-composer="" onSubmit={(e) => { e.preventDefault(); if (draft.trim() || photo) send.mutate(); }}>
+            <label htmlFor={`order-talk-${orderId}`} className="sr-only">{tr("cp.ot.message")}</label>
+            <Suspense fallback={null}><OrderTalkPhotoPicker file={photo} onChange={(f) => { setPhoto(f); setRefusal(null); }} disabled={send.isPending} /></Suspense>
+            <div className="flex items-end gap-2">
+              <Textarea id={`order-talk-${orderId}`} rows={1} className="min-h-11 max-h-32 flex-1 resize-none rounded-[22px] border border-input bg-background px-4 py-2.5 text-ds-14"
+                maxLength={1000} value={draft} onChange={(e) => { setDraft(e.target.value); setRefusal(null); }}
+                placeholder={tr(other === "buyer" ? "cp.ot.writeBuyer" : "cp.ot.writeSeller")}
+                aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `order-talk-refusal-${orderId}` : leak ? `order-talk-leak-${orderId}` : undefined} />
+              <Button type="submit" variant="primary" size="icon" className="shrink-0 rounded-full" aria-label={send.isPending ? tr("cp.ot.sending") : tr("cp.ot.send")}
+                disabled={send.isPending || (draft.trim().length === 0 && !photo)}>
+                <SendHorizontal className="h-5 w-5" aria-hidden />
+              </Button>
+            </div>
+            {refusal && <p id={`order-talk-refusal-${orderId}`} role="alert" className="text-ds-13 text-destructive-ink" data-order-talk-refusal="">{refusal}</p>}
+            {/* Audit 11-10 F390: said while typing, before Send, in the words the server refuses it with
+                (reject_contact_leak_in_declutter_order_talk); the server stays the authority. */}
+            {!refusal && leak && <p id={`order-talk-leak-${orderId}`} className="text-ds-13 text-foreground" data-order-talk-leak="">{leak.label} (&ldquo;{leak.match}&rdquo;). Keep contact details and payment out of the chat: this message won&apos;t send with it.</p>}
+          </form>
+        )}
       </SheetContent>
     </Sheet>
   );

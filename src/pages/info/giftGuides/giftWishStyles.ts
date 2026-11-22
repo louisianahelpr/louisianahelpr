@@ -38,9 +38,17 @@ export const GIFT_WISH_CSS = `
 .gg-list-left{color:var(--gg-muted)}
 .gg-mylists-actions{display:inline-flex;gap:14px;align-items:center}
 .gg-list-delete{align-self:flex-start;margin-top:8px;color:hsl(var(--amber-ink))}
-.gg-savefor-view{flex:none;min-height:44px;padding:0 10px;font-size:13px;font-weight:600}
-.gg-savefor-li{display:flex;align-items:stretch;gap:6px}
-.gg-savefor-li>.gg-savefor-row{flex:1;min-width:0}
+/* The Save for someone sheet's box (owner 11-21): the save/remove tap, then one quiet icon row: Open, Edit, Delete. */
+.gg-savefor-box{border:1px solid var(--gg-line);border-radius:14px;background:hsl(var(--card))}
+.gg-savefor-box[data-on]{border-color:hsl(var(--bark));box-shadow:inset 0 0 0 1px hsl(var(--bark))}
+.gg .gg-savefor-box .gg-savefor-row{border:0;box-shadow:none;background:transparent;border-radius:14px}
+.gg-savefor-tools{display:flex;justify-content:flex-end;gap:2px;padding:0 6px 4px}
+.gg-savefor-tool{color:var(--gg-muted)}
+.gg-savefor-tool:hover{background:hsl(var(--muted));color:var(--gg-ink)}
+.gg-savefor-tool:disabled{opacity:.5}
+.gg-savefor-tool svg{width:18px;height:18px}
+.gg-savefor-tool:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:1px}
+.gg-savefor-box .gg-savefor-form{padding:0 12px 10px}
 .gg-mylists-gift{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex:none;border-radius:10px;background:var(--gg-soft);color:var(--gg-olive)}
 .gg-mylists-gift svg{width:20px;height:20px}
 `;

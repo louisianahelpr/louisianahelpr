@@ -2,9 +2,10 @@
  * Managing a "Save for someone" list (owner 2026-11-21, on the live sheet: "How do they edit or remove items in the
  * list or delete the list? I entered the budget as 100 but it doesn't say how much I have left to spend or how much
  * I'm over").
- *   - Every list total says where it stands: "5 gifts · $163.25 · $63.25 over your $100" (warning ink) or
- *     "... · $36.75 left of $100", worked out in whole cents; no budget: the count and total only.
- *   - The picker's rows say when the gift is on the list (tap again to take it off) and each has "View list"; Done says
+ *   - Every list total says where it stands: "5 gifts · $163.25 · $63.25 over" (warning ink) or
+ *     "... · $36.75 left" (owner 11-21: no "your $100"), worked out in whole cents; no budget: the count and total only.
+ *   - The picker's boxes say when the gift is on the list (tap again to take it off) and hold Open, Edit and Delete
+ *     icons (owner 11-21: "Remove view list. Add an open icon in the box ... same for edit and delete"); Done says
  *     "Saved for Zander · View list".
  *   - A list's sheet: Remove with Undo, Edit name and budget, Delete list through the shared confirm dialog (never
  *     window.confirm); "Me": Clear list (confirmed), the list kept.
@@ -18,6 +19,8 @@
  * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |     if (r === "added") onAdded(p.id, p.name); |     void r;
  * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |             {on && <small className="gg-savefor-on" data-savefor-on={p.id}>{WISH.onListHint}</small>} |             {null}
  * @mutate src/pages/info/giftGuides/ManageList.tsx |   if (pick) return <PickThumb pick={pick} size={40} />; |   if (false) return <PickThumb pick={pick} size={40} />;
+ * @mutate src/pages/info/giftGuides/ManageList.tsx |         onPrimary={() => { if (p) planActions.removePerson(p.id); else emptyWishList(); setConfirming(false); }} |         onPrimary={() => { setConfirming(false); }}
+ * @mutate src/pages/info/giftGuides/SaveForSomeone.tsx |         <ListTools p={p} ready={ready} onOpen={() => { closeSaveFor(); openMyLists(p.id); }} /> |         {null}
  * @mutate src/pages/info/giftGuides/giftList.tsx | export const emptyWishList = () => write({ ...read(), picks: [] }); | export const emptyWishList = () => write(EMPTY);
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -81,17 +84,17 @@ describe("where a list stands against its budget", () => {
   it("over or left, in whole cents; no budget, nothing", () => {
     expect(budgetStatus(person(100, [99.99, 20, 20, 13.26, 10]))).toEqual({ kind: "over", amount: 63.25, budget: 100 });
     expect(budgetStatus(person(200, [99.99, 20, 20, 13.26, 10]))).toEqual({ kind: "left", amount: 36.75, budget: 200 });
-    // 0.1 + 0.2 is 0.30000000000000004 in floating point: whole cents say exactly $0 left of $0.30.
+    // 0.1 + 0.2 is 0.30000000000000004 in floating point: whole cents say exactly $0 left.
     expect(budgetStatus(person(0.3, [0.1, 0.2]))).toEqual({ kind: "left", amount: 0, budget: 0.3 });
     expect(budgetStatus(person(undefined, [5]))).toEqual({ kind: "none" });
   });
 
   it("the line: count, total and the budget part, the over part in warning ink", () => {
     const over = render(<ListLine p={person(100, [99.99, 20, 20, 13.26, 10])} />).container;
-    expect(over.textContent).toBe("5 gifts · $163.25 · $63.25 over your $100");
+    expect(over.textContent).toBe("5 gifts · $163.25 · $63.25 over");
     expect(over.querySelector("[data-list-over]")?.className).toBe("gg-list-over");
     cleanup();
-    expect(render(<ListLine p={person(200, [99.99, 20, 20, 13.26, 10])} />).container.textContent).toBe("5 gifts · $163.25 · $36.75 left of $200");
+    expect(render(<ListLine p={person(200, [99.99, 20, 20, 13.26, 10])} />).container.textContent).toBe("5 gifts · $163.25 · $36.75 left");
     cleanup();
     expect(render(<ListLine p={person(undefined, [12])} />).container.textContent).toBe("1 gift · $12");
     const css = readFileSync(join(process.cwd(), "src/pages/info/giftGuides/giftWishStyles.ts"), "utf8");
@@ -104,15 +107,15 @@ describe("the Save for someone sheet", () => {
     mount();
     act(() => { requestSaveFor(GIFT); });
     const row = await waitFor(() => document.querySelector<HTMLButtonElement>(`[data-savefor-person="${zander}"]`)!);
-    expect(document.querySelector(`[data-savefor-total="${zander}"]`)?.textContent).toBe("5 gifts · $163.25 · $63.25 over your $100");
+    expect(document.querySelector(`[data-savefor-total="${zander}"]`)?.textContent).toBe("5 gifts · $163.25 · $63.25 over");
     expect(row.getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(row);
-    await waitFor(() => expect(document.querySelector(`[data-savefor-total="${zander}"]`)?.textContent).toBe("6 gifts · $187.75 · $87.75 over your $100"));
+    await waitFor(() => expect(document.querySelector(`[data-savefor-total="${zander}"]`)?.textContent).toBe("6 gifts · $187.75 · $87.75 over"));
     expect(row.getAttribute("aria-pressed")).toBe("true");
     expect(row.getAttribute("aria-label")).toBe("Remove Cozy Throw from Zander's list");
     expect(document.querySelector(`[data-savefor-on="${zander}"]`)?.textContent).toBe("On the list · tap to remove");
     fireEvent.click(row);
-    await waitFor(() => expect(document.querySelector(`[data-savefor-total="${zander}"]`)?.textContent).toBe("5 gifts · $163.25 · $63.25 over your $100"));
+    await waitFor(() => expect(document.querySelector(`[data-savefor-total="${zander}"]`)?.textContent).toBe("5 gifts · $163.25 · $63.25 over"));
     expect(document.querySelector(`[data-savefor-on="${zander}"]`)).toBeNull();
   });
 
@@ -129,12 +132,32 @@ describe("the Save for someone sheet", () => {
     await waitFor(() => expect(sheet()?.getAttribute("data-mylists-panel")).toBe(zander));
   });
 
-  it("View list on a row opens that person's list", async () => {
+  it("the Open icon in a box opens that person's list; Edit and Delete are there too, apart from the save tap", async () => {
     mount();
     act(() => { requestSaveFor(GIFT); });
-    fireEvent.click(await waitFor(() => document.querySelector<HTMLButtonElement>(`[data-savefor-view="${zander}"]`)!));
+    const open = await waitFor(() => document.querySelector<HTMLButtonElement>(`[data-savefor-open="${zander}"]`)!);
+    expect(open.getAttribute("aria-label")).toBe("Open Zander's list");
+    expect(document.querySelector(`[data-savefor-edit="${zander}"]`)?.getAttribute("aria-label")).toBe("Edit Zander's name and budget");
+    expect(document.querySelector(`[data-savefor-delete="${zander}"]`)?.getAttribute("aria-label")).toBe("Delete Zander's list");
+    // The icons are their own buttons, never inside the save/remove tap.
+    expect(document.querySelector(`[data-savefor-person="${zander}"]`)!.contains(open)).toBe(false);
+    expect(document.querySelector("[data-savefor-view]")).toBeNull();
+    fireEvent.click(open);
     await waitFor(() => expect(sheet()?.getAttribute("data-mylists-panel")).toBe(zander));
     expect(document.querySelector("[data-savefor-picker]")).toBeNull();
+  });
+
+  it("Edit in the box changes the budget there; Delete in the box asks first, then removes the list", async () => {
+    mount();
+    act(() => { requestSaveFor(GIFT); });
+    fireEvent.click(await waitFor(() => document.querySelector<HTMLButtonElement>(`[data-savefor-edit="${zander}"]`)!));
+    fireEvent.change(document.querySelector<HTMLInputElement>("[data-list-edit-budget]")!, { target: { value: "200" } });
+    fireEvent.click(document.querySelector<HTMLButtonElement>("[data-list-edit-save]")!);
+    await waitFor(() => expect(document.querySelector(`[data-savefor-total="${zander}"]`)?.textContent).toBe("5 gifts · $163.25 · $36.75 left"));
+    fireEvent.click(document.querySelector<HTMLButtonElement>(`[data-savefor-delete="${zander}"]`)!);
+    const dialog = await waitFor(() => [...document.querySelectorAll<HTMLElement>("[role='alertdialog'], [role='dialog']")].find((d) => d.textContent?.includes("Delete Zander's list?"))!);
+    fireEvent.click([...dialog.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === "Delete list")!);
+    await waitFor(() => expect(planPeople()).toEqual([]));
   });
 });
 
@@ -150,7 +173,7 @@ describe("a list's own sheet", () => {
     const second = planActionsIdeaIds()[1];
     fireEvent.click(document.querySelector<HTMLButtonElement>(`[data-mylists-remove="${second}"]`)!);
     expect(planActionsIdeaIds()).not.toContain(second);
-    const [msg, opts] = toasts.success.mock.calls.at(-1) as [string, { action: { label: string; onClick: () => void } }];
+    const [msg, opts] = toasts.success.mock.calls[toasts.success.mock.calls.length - 1] as [string, { action: { label: string; onClick: () => void } }];
     expect(msg).toBe("Removed Gift 1");
     expect(opts.action.label).toBe("Undo");
     act(() => { opts.action.onClick(); });
@@ -162,7 +185,7 @@ describe("a list's own sheet", () => {
     fireEvent.click(document.querySelector<HTMLButtonElement>(`[data-list-edit-open="${zander}"]`)!);
     fireEvent.change(document.querySelector<HTMLInputElement>("[data-list-edit-budget]")!, { target: { value: "200" } });
     fireEvent.click(document.querySelector<HTMLButtonElement>("[data-list-edit-save]")!);
-    await waitFor(() => expect(document.querySelector(`[data-mylists-total="${zander}"]`)?.textContent).toBe("5 gifts · $163.25 · $36.75 left of $200"));
+    await waitFor(() => expect(document.querySelector(`[data-mylists-total="${zander}"]`)?.textContent).toBe("5 gifts · $163.25 · $36.75 left"));
   });
 
   it("Delete list asks first in the app's own dialog, never window.confirm, then removes the person", async () => {

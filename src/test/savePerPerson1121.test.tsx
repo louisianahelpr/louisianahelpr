@@ -124,14 +124,14 @@ describe("save for someone from a guide", () => {
       return r;
     });
     expect(row.getAttribute("aria-pressed")).toBe("false");
-    expect(sheet.querySelector(`[data-savefor-total="${mom}"]`)!.textContent).toBe("0 gifts · $75 left of $75");
+    expect(sheet.querySelector(`[data-savefor-total="${mom}"]`)!.textContent).toBe("0 gifts · $75 left");
 
     fireEvent.click(row);
     const idea = stored().people[0].ideas[0];
     expect(idea).toMatchObject({ name: her[0].name, href: her[0].href, price: her[0].price, image: her[0].image, guide: "her", bought: false });
     expect(row.getAttribute("aria-pressed")).toBe("true");
     // Owner 11-21: the row also says where Mom's $75 budget stands (saveForManage1121.test.tsx has the exact words).
-    expect(sheet.querySelector(`[data-savefor-total="${mom}"]`)!.textContent).toMatch(new RegExp(`^1 gift · \\$${her[0].price} · \\$[0-9.,]+ (left of|over your) \\$75$`));
+    expect(sheet.querySelector(`[data-savefor-total="${mom}"]`)!.textContent).toMatch(new RegExp(`^1 gift · \\$${her[0].price} · \\$[0-9.,]+ (left|over)$`));
     // Not on My Wish List: saving for Mom never touches the wish list.
     expect(giftListNow().picks).toHaveLength(0);
     // The heart is filled while the gift is on anyone's list.
@@ -175,7 +175,7 @@ describe("save for someone from a guide", () => {
 
     fireEvent.click(document.querySelector("[data-mylists-pill]")!);
     const panel = document.querySelector<HTMLElement>("[data-mylists-panel]")!;
-    expect(panel.querySelector(`[data-mylists-total="${p.id}"]`)!.textContent).toMatch(new RegExp(`^2 gifts · \\$${money.replace("$", "")} · \\$[0-9.,]+ (left of \\$50|over your \\$50)$`));
+    expect(panel.querySelector(`[data-mylists-total="${p.id}"]`)!.textContent).toMatch(new RegExp(`^2 gifts · \\$${money.replace("$", "")} · \\$[0-9.,]+ (left|over)$`));
     expect(panel.querySelectorAll(`[data-mylists-person="${p.id}"] [data-mylists-item]`)).toHaveLength(2);
     expect(within(panel).getByText("Open planner ›").getAttribute("href")).toBe("/gift-guides/planner");
     // Remove one from the panel.

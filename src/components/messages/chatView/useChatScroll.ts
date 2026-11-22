@@ -10,6 +10,9 @@ import { resolveFirstUnreadTargetId } from "./chatViewHelpers";
  * conversation change, the keyboard-open re-anchor, the pull-to-refresh
  * wiring, and the merged thread ref. Extracted verbatim from ChatView.
  */
+/** How long a caught-up thread is held on its newest message while it lays out (#142). */
+const LANDING_MS = 1200;
+
 export function useChatScroll({
   activeConvo,
   messages,
@@ -198,23 +201,54 @@ export function useChatScroll({
   }, [activeConvo.jobId, activeConvo.otherUserId, messages.length]);
 
   /* STAY ON THE NEWEST MESSAGE WHILE THE CHAT LAYS OUT (audit 1122 #142, measured: a 131-message thread with no
-     unread opened 214px short of the bottom, behind "Jump to latest", at 375 and 1440). `openConvo`'s double-rAF
-     `scrollToBottom()` runs before the DealCard and the safety banner above the thread (and images inside it) have
-     their height, so the thread shrinks or grows afterwards and the bottom slides out of view. No scroll event fires
-     for that, so nearBottomRef still says "parked at the bottom": while it does, every size change of the thread or
-     of its content re-pins to the bottom. A reader scrolled up (more than 120px) is never pulled down, and a thread
-     that opened on its first unread message keeps that landing. */
+     unread opened 214px short of the bottom, behind "Jump to latest", at 375 and 1440; a local build still stopped
+     ~100px short with only the resize re-pin below). `openConvo`'s double-rAF `scrollToBottom()` is a SMOOTH scroll
+     whose target is fixed when it starts, before the DealCard and the safety banner above the thread (and images inside
+     it) have their height; the thread then shrinks or grows and the animation ends short of the bottom.
+     - Landing: for LANDING_MS after a caught-up thread's first page arrives, every frame pins it to the bottom (an
+       instant scroll also ends the stale smooth one), until the reader touches, wheels, clicks (a scrollbar drag) or presses a key.
+     - After that, while nearBottomRef says "parked at the bottom", every size change of the thread or of its content
+       re-pins it (no scroll event fires for those). A reader scrolled up (more than 120px) is never pulled down, and a
+       thread that opened on its first unread message keeps that landing. */
+  const landingKeyRef = useRef<string | null>(null);
+  const landingUntilRef = useRef(0);
   useEffect(() => {
     const el = scrollContainerRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
+    if (!el) return;
+    const convoKey = `${activeConvo.jobId}|${activeConvo.otherUserId}`;
+    if (messages.length > 0 && landingKeyRef.current !== convoKey) {
+      landingKeyRef.current = convoKey;
+      landingUntilRef.current = initialFirstUnreadIdRef.current ? 0 : performance.now() + LANDING_MS;
+    }
+    const landing = () => performance.now() < landingUntilRef.current;
     const pin = () => {
-      if (!nearBottomRef.current || initialFirstUnreadIdRef.current) return;
+      if (initialFirstUnreadIdRef.current) return;
+      if (!landing() && !nearBottomRef.current) return;
       el.scrollTop = el.scrollHeight;
     };
-    const ro = new ResizeObserver(pin);
-    ro.observe(el);
-    for (const child of Array.from(el.children)) ro.observe(child);
-    return () => ro.disconnect();
+    const stopLanding = () => { landingUntilRef.current = 0; };
+    el.addEventListener("wheel", stopLanding, { passive: true });
+    el.addEventListener("touchstart", stopLanding, { passive: true });
+    el.addEventListener("keydown", stopLanding);
+    el.addEventListener("pointerdown", stopLanding);
+    let raf = 0;
+    const frame = () => {
+      if (!landing()) return;
+      pin();
+      raf = requestAnimationFrame(frame);
+    };
+    if (landing()) raf = requestAnimationFrame(frame);
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(pin);
+    ro?.observe(el);
+    for (const child of Array.from(el.children)) ro?.observe(child);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+      el.removeEventListener("wheel", stopLanding);
+      el.removeEventListener("touchstart", stopLanding);
+      el.removeEventListener("keydown", stopLanding);
+      el.removeEventListener("pointerdown", stopLanding);
+    };
   }, [activeConvo.jobId, activeConvo.otherUserId, messages.length]);
 
   // Reset the jump button whenever the conversation changes so a stale

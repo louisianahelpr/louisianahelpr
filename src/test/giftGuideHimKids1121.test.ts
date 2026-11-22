@@ -37,7 +37,10 @@ const SWITCHED: Record<string, Record<string, string>> = {
     "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabmob": "store-xtratuf",
     "https://go.shopmy.us/p-109003932": "store-jd-sports", "https://go.shopmy.us/p-109005228": "store-burlebo", "https://go.shopmy.us/p-109005373": "store-burlebo",
     // Launch day 11-22 (Owner-adds-1122.md): her older Lake Pajamas pins, sent for Him.
-    "https://go.shopmy.us/p-103892269": "store-lake-pajamas", "https://go.shopmy.us/p-104054474": "store-lake-pajamas" },
+    "https://go.shopmy.us/p-103892269": "store-lake-pajamas", "https://go.shopmy.us/p-104054474": "store-lake-pajamas",
+    // Batch 1 for Him 11-22: her Nov 19 pins (prices as checked 11-20).
+    "https://go.shopmy.us/p-107850277": "store-l-l-bean", "https://go.shopmy.us/p-107837448": "store-l-l-bean", "https://go.shopmy.us/p-107881822": "store-the-warming-store",
+    "https://go.shopmy.us/p-107847793": "store-cavenders", "https://go.shopmy.us/p-107895312": "store-tractor-supply", "https://go.shopmy.us/p-107895486": "store-tractor-supply" },
   // Rate switch 11-21 night: Segway Ninebot S2 (Amazon B0CT2WN59R, 3%) -> Tractor Supply 8% at $484.99.
   kids: { "https://go.shopmy.us/p-109001528": "store-tractor-supply",
     // Launch day 11-22 (Owner-adds-1122.md): her two Camp Snap 2 colors, pinned at The Swank Company (p-109142125,

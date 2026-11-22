@@ -347,6 +347,15 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/pins/zoom-108108365-1795145239744-Mallard_Classic_Navy__Can_Cooler_Primary_Low_Res.jpg", "sb-mallard-can-cooler-b44a37.webp"],
   ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/World_sBestDad_Royal__CCW_LowRes.jpg", "sb-wbd-card-wallet-85088f.webp"],
   ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/Fish_and_Tackle_Dark_Navy__Toiletry_Bag_Low_Res.jpg", "sb-fish-tackle-toiletry-bag-ec6272.webp"],
+  // owner 11-22 her nurse + PR picks (builder-guide-her3b)
+  ["https://beekman1802.com/cdn/shop/files/B18CAFE26-WBC6_1_1.jpg", "beekman-1802-kindness-cafe-6pc-set-ef2030.webp"],
+  ["https://cdn.shopify.com/s/files/1/0543/8301/files/GLASS_BALM_INFOGRAPHICS_2000x2000_FIG_V1_FRUIT-_-B-ALM.jpg", "glow-recipe-glass-balm-lip-treatment-8ecb5d.webp"],
+  ["https://eberjey.com/cdn/shop/files/TZ1018LC-MOBNY-002.jpg", "eberjey-gisele-slouchy-pj-set-navy-26c4d6.webp"],
+  ["https://cdn.shopify.com/s/files/1/0032/3423/4479/files/BEIS124686-Eastwesttote-Olive-product-front-0310_V1.jpg", "beis-east-to-west-tote-olive-b9796e.webp"],
+  ["https://cdn.shopify.com/s/files/1/0347/8496/8840/files/cmi_Jelly_Tote_Main_Image_1_0005_cmi_Jelly_Tote_Twilly_Scarf_Something_Navy_CM059446_1_3f96afae-6486-4862-8af0-e5591d907c28.jpg", "case-mate-jelly-tote-navy-0568c9.webp"],
+  ["https://cdn.shopify.com/s/files/1/0105/2265/6823/files/NATR-Multi-Peptide_Serum_Front_capoff_primary_bone.webp", "naturium-multi-peptide-advanced-serum-2ba7ff.webp"],
+  ["https://cdn.shopify.com/s/files/1/0275/4822/1505/files/MBM_MMLWCE_PACKSHOT_BISQUE.jpg", "makeup-by-mario-master-mattes-cream-eyeshadow-e8b826.webp"],
+  ["https://www.youthtothepeople.com/dw/image/v2/AAFM_PRD/on/demandware.static/-/Sites-yttp-master-catalog/default/dwad62d71c/products/YTTP-10100/2026/ALT0-0810834030087--PACKSHOT.jpg", "yttp-superfood-cleanser-b7f8c7.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

@@ -1,7 +1,10 @@
 import { AlertTriangle, Shield, CheckCircle2 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatTimestamp } from "@/lib/format";
+import { formatShortDate, formatTimestamp } from "@/lib/format";
+import { useQuery } from "@tanstack/react-query";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { fetchMyActiveStrikeEnds } from "@/lib/declutter/strikes";
 
 type Violation = {
   id: string;
@@ -36,8 +39,18 @@ function actionLabel(action: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
+export function WarningsTab({ violations, loading: violationsLoading, onBack }: WarningsTabProps) {
   useLanguage();
+  // Deep audit 1122 #136: the account's standing page reads Declutter's strikes too (the same rows Declutter's
+  // "You have N of 3 strikes" counts), so it never says "No warnings or violations on record" to a member at 1 of 3.
+  const { user } = useCurrentUser();
+  const declutterEnds = useQuery({
+    queryKey: ["declutter", "strikes", user?.id ?? "", "ends"],
+    queryFn: () => fetchMyActiveStrikeEnds(user!.id),
+    enabled: !!user?.id,
+  });
+  const declutterStrikeEnds = declutterEnds.data ?? [];
+  const loading = violationsLoading || (!!user?.id && declutterEnds.isPending);
   const strikeCount = violations.filter((v) => v.action_taken === "warning" || v.action_taken === "final_warning").length;
   const hasBan = violations.some((v) => v.action_taken === "permanent_ban");
   // `temp_ban` is the value that is ACTUALLY written — BanDialog.tsx:175 —
@@ -181,8 +194,20 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
               true,
             );
             // Design audit area 09 L13: no trailing "Keep it up." (it sat alone on its own line).
-            return renderHero(CheckCircle2, "primary", t("acct.good"), t("acct.goodBody"), true);
+            return renderHero(CheckCircle2, "primary", t("acct.good"), declutterStrikeEnds.length > 0 ? t("acct.goodBodyDeclutter") : t("acct.goodBody"), true);
           })()}
+
+          {/* Deep audit 1122 #136: Declutter's own 3 strikes, on their own row (a separate ladder from the account's). */}
+          {declutterStrikeEnds.length > 0 && (
+            <div className="rounded-ds-md liquid-glass p-card space-y-1" data-declutter-strikes={declutterStrikeEnds.length}>
+              <p className="font-sans font-semibold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
+                {t("acct.declutterStrikes", { n: Math.min(declutterStrikeEnds.length, 3) })}
+              </p>
+              <p className="font-sans leading-relaxed text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                {t("acct.declutterStrikeEnds", { day: formatShortDate(declutterStrikeEnds[0]) })}
+              </p>
+            </div>
+          )}
 
           {/* Violation history — only when there's actual history. With
               zero violations the "Good standing" status hero above already

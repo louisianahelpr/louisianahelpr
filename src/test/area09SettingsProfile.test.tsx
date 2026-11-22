@@ -29,7 +29,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { render, cleanup, act } from "@testing-library/react";
+import { render, cleanup, act, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { blankComments } from "./helpers/blankNonCode";
@@ -37,6 +37,8 @@ import { blankComments } from "./helpers/blankNonCode";
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 vi.mock("@/hooks/useDarkMode", () => ({ useDarkMode: () => ({ theme: "system", setTheme: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null }) }));
+// Deep audit 1122 #136: the Warnings tab reads Declutter's strikes too; none here, so its all-clear stands.
+vi.mock("@/lib/declutter/strikes", () => ({ fetchMyActiveStrikeEnds: async () => [], fetchMyActiveStrikes: async () => 0 }));
 
 import { enAccount } from "@/lib/i18n/enAccount";
 import { esAccount } from "@/lib/i18n/esAccount";
@@ -92,8 +94,10 @@ describe("design audit area 09: the account screens follow the member's language
     expect(text).toContain("Mostrar mi perfil en buscadores");
   });
 
-  it("in English: the strikes line is a 13px sentence and Good standing has no trailing Keep it up (L13)", () => {
+  it("in English: the strikes line is a 13px sentence and Good standing has no trailing Keep it up (L13)", async () => {
     const { container } = renderAll();
+    // Deep audit 1122 #136: the tab waits for Declutter's strikes read before it says where the account stands.
+    await screen.findByText("0 of 3 strikes");
     const line = container.querySelector("[data-strikes-line]")!;
     expect(line.textContent).toBe("0 of 3 strikes");
     expect(line.className).toContain("text-ds-13");

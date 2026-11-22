@@ -363,6 +363,10 @@ export const CUTOUTS_1120 = new Map([
   ["https://cdn.shopify.com/s/files/1/0767/9233/2592/products/Home_Sweet_Home_Valet_Tray_Low_Res.jpg", "smathers-home-sweet-home-valet-tray-80fc36.webp"],
   ["https://cdn.shopify.com/s/files/1/0283/0185/2747/files/global_images-818262023879-1.jpg", "patchology-rose-fingers-hand-mask-ff564d.webp"],
   ["https://cdn.shopify.com/s/files/1/0267/5746/4148/files/115932_G_01_Accent_Vis.jpg", "baublebar-mini-spaced-letter-necklace-85c839.webp"],
+  ["https://assets.wfcdn.com/im/01322405/compr-r85/2562/256287082/Step2+Up+&+Down+Platinum+Edition+Kids+Outdoor+Roller+Coaster.jpg", "step2-up-down-roller-coaster-wayfair-a1.webp"],
+  ["https://assets.wfcdn.com/im/04010235/compr-r85/1549/154922896/Step2+Play+&+Shade+Pool+with+Umbrella.jpg", "step2-play-shade-pool-wayfair-a2.webp"],
+  ["https://assets.wfcdn.com/im/06003087/compr-r85/2642/26426235/Step2+Naturally+Playful+Kids+Rectangle+Picnic+Table+with+Umbrella.jpg", "step2-picnic-table-umbrella-wayfair-a3.webp"],
+  ["https://assets.wfcdn.com/im/91322669/compr-r85/3379/337962490/Step2+Play+and+Fold+Jr.+Slide+and+Outdoor+Climber+for+Toddlers.jpg", "step2-play-fold-jr-slide-wayfair-a4.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

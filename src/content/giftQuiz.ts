@@ -133,6 +133,8 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   // The popular Kids adds of 11-22 (builder-guide-popular): a brain-teaser puzzle is a game; a hatching egg, a playset, a
   // plush Elmo and a dino vehicle are pretend play.
   puzzle: ["games"], "hatching-toy": ["pretend"], playset: ["pretend"], plush: ["pretend"], "vehicle-toy": ["pretend"],
+  // Backyard play gear she saved (11-22): outdoor sets for little ones.
+  "backyard-play": ["active", "pretend"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -188,6 +190,7 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   // The popular Kids adds of 11-22, by each box's age: Little People and Tickle Me Elmo are for toddlers, the PAW Patrol
   // vehicle and the hatching egg for preschool and up, Kanoodle (7+) for school-age kids and teens.
   playset: ["0-2", "3-5"], plush: ["0-2", "3-5"], "vehicle-toy": ["3-5", "6-8"], "hatching-toy": ["3-5", "6-8"], puzzle: ["6-8", "9-12", "teen"],
+  "backyard-play": ["3-5"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],

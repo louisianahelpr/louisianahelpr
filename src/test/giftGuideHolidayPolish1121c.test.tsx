@@ -23,7 +23,7 @@
  * @mutate src/lib/giftGuideOfferCopy.mjs |   s = sentenceCase(s); |
  * @mutate src/lib/giftGuideOfferCopy.mjs |   s = unshout(s); |
  * @mutate src/content/giftGuideDeals.mjs |   featuredLine: "Sales from brands you already love, all in one place.", |   featuredLine: "Hand-checked sales from brands you already love, all in one place.",
- * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         const href = c.href; |         const href = undefined as string \| undefined;
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   for (const c of codes) if (c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]); |   for (const c of codes) if (!c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]);
  */
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";

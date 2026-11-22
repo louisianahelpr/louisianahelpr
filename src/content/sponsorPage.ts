@@ -409,7 +409,7 @@ export const sponsorPage = {
           { brand: "David Rabalais", prize: "Toy Magnalite pot" },
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
           { brand: "Candle Bloom Confections", prize: "Candle flower bouquet" },
-          { brand: "Active Beauty", prize: "Active Beauty product" },
+          { brand: "Active Beauty", prize: "B.Skin Tight marine collagen + electrolyte drink" },
         ],
       },
       {

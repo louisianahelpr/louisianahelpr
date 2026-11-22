@@ -26,7 +26,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />\n        <ScrollAwayRows off={!browse}>{browse?.chips}</ScrollAwayRows> |         <ScrollAwayRows off={!browse}><SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />{browse?.chips}</ScrollAwayRows>
  * @mutate src/components/sections/ScrollAwayScope.tsx |   if (!scope?.rows) return null; |   if (!scope) return null;
  * @mutate src/components/sections/SectionScreen.tsx |           <ScrollAwaySpacer />\n |\n
- * @mutate src/components/dashboard/BrowseTasksFeed.tsx |         top={view === "map" ? undefined : <ScrollAwaySpacer />} |
+ * @mutate src/components/dashboard/BrowseTasksFeed.tsx |         top={view === "map" ? undefined : <><ScrollAwaySpacer /><JobsSaveSearchRow filters={filters} user={user} place="list" /></>} |
  * @mutate src/pages/jobs/JobsSection.tsx |           <ScrollAwayRows>{tab === "browse" && browse?.chips}</ScrollAwayRows> |           <ScrollAwayRows><SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} />{tab === "browse" && browse?.chips}</ScrollAwayRows>
  * @mutate src/pages/jobs/JobsSection.tsx |   return <><ScrollAwayScope><Dashboard embeddedHeader={makeHeader} /></ScrollAwayScope>{fab}</>; |   return <><Dashboard embeddedHeader={makeHeader} />{fab}</>;
  * @mutate src/pages/home/Dashboard.tsx |       titleCardClassName={isWebDesktop ? "" : "!overflow-visible z-10"} |       titleCardClassName=""
@@ -184,7 +184,8 @@ describe("3. wired into Jobs Browse and Declutter Browse", () => {
     expect(jobs).not.toMatch(/<ScrollAwayRows>\s*<SectionTabs/);
     expect(jobs).toContain("<ScrollAwayScope><Dashboard embeddedHeader={makeHeader} /></ScrollAwayScope>");
     const feed = code("src/components/dashboard/BrowseTasksFeed.tsx");
-    expect(feed).toContain('top={view === "map" ? undefined : <ScrollAwaySpacer />}');
+    // Deep audit 11-22 #29: the spacer first, then (on a phone) Save this search under the overlaying chips.
+    expect(feed).toContain('top={view === "map" ? undefined : <><ScrollAwaySpacer /><JobsSaveSearchRow filters={filters} user={user} place="list" /></>}');
     const ptr = code("src/components/PullToRefreshWrapper.tsx");
     expect(ptr).toMatch(/data-thread-area=\{threadArea\}\s*>\s*\{top\}/);
     const dash = code("src/pages/home/Dashboard.tsx");

@@ -4,9 +4,11 @@
  * pill count 0). Jobs Browse now shows Declutter's pill whenever a filter a saved search keeps is on, and its draft
  * carries those filters.
  *
- * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |       {user && (filters.searchQuery.trim() \|\| filters.selectedCategory | {false && (filters.searchQuery.trim() \|\| filters.selectedCategory
- * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |             maxDollars: filters.maxBudget ? Number(filters.maxBudget) : null, |             maxDollars: null,
- * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |             radiusMiles: filters.nearbyUnavailable ? null : filters.nearbyMiles, |             radiusMiles: filters.nearbyMiles,
+ * The row moved to JobsSaveSearchRow.tsx (deep audit 11-22 #29: the toolbar draws it off a phone, the list under the
+ * chips on one), so the mutations target it there.
+ * @mutate src/components/dashboard/JobsSaveSearchRow.tsx |   const on = !!user && (filters.searchQuery.trim() \|\| filters.selectedCategory |   const on = false && (filters.searchQuery.trim() \|\| filters.selectedCategory
+ * @mutate src/components/dashboard/JobsSaveSearchRow.tsx |             maxDollars: filters.maxBudget ? Number(filters.maxBudget) : null, |             maxDollars: null,
+ * @mutate src/components/dashboard/JobsSaveSearchRow.tsx |             radiusMiles: filters.nearbyUnavailable ? null : filters.nearbyMiles, |             radiusMiles: filters.nearbyMiles,
  *
  * The pill loads on demand (lander, 10-31): a static import put SaveSearchButton and SaveSearchSheet into the entry
  * chunk's preload list (entry 5923 B gz, over the 5.5 KB critical-path budget; land.sh refused the train). The last
@@ -90,8 +92,10 @@ describe("Jobs Browse: Save this search (SS-4)", () => {
   });
 
   it("the pill stays out of the entry chunk: BrowseTasksToolbar imports it lazily, never statically", () => {
-    const src = readFileSync("src/components/dashboard/BrowseTasksToolbar.tsx", "utf8");
-    expect(src).not.toMatch(/^import\s[^;]*\bfrom\s+["']@\/components\/savedSearches\/SaveSearchButton["']/m);
+    for (const f of ["src/components/dashboard/BrowseTasksToolbar.tsx", "src/components/dashboard/JobsSaveSearchRow.tsx", "src/components/dashboard/BrowseTasksFeed.tsx"]) {
+      expect(readFileSync(f, "utf8")).not.toMatch(/^import\s[^;]*\bfrom\s+["']@\/components\/savedSearches\/SaveSearchButton["']/m);
+    }
+    const src = readFileSync("src/components/dashboard/JobsSaveSearchRow.tsx", "utf8");
     expect(src).toMatch(/lazy\(\(\) => import\("@\/components\/savedSearches\/SaveSearchButton"\)/);
   });
 });

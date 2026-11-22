@@ -35,6 +35,7 @@ import { EmptyFeedActions } from "@/components/dashboard/EmptyFeedActions";
 import { OwnOpenJobsNote } from "@/components/dashboard/OwnOpenJobsNote";
 import { BROWSE_EMPTY_SLOT } from "@/components/sections/browseHeaderSpacing";
 import { ScrollAwaySpacer } from "@/components/sections/ScrollAwayScope";
+import { JobsSaveSearchRow } from "@/components/dashboard/JobsSaveSearchRow";
 
 type PullToRefresh = ReturnType<typeof usePullToRefresh>;
 
@@ -393,7 +394,8 @@ export function BrowseTasksFeed({
         style={view === "map" ? { display: "none" } : undefined}
         // Owner 11-14 (Depop/Vinted audit item 5): room for Jobs' tabs and chips, which overlay the list's top on a phone
         // and slide away while it scrolls down (ScrollAway.tsx). None in the map view, so the rows stay steady there.
-        top={view === "map" ? undefined : <ScrollAwaySpacer />}
+        // Deep audit 11-22 #29: Save this search sits right under the spacer while the chips overlay the list (a phone).
+        top={view === "map" ? undefined : <><ScrollAwaySpacer /><JobsSaveSearchRow filters={filters} user={user} place="list" /></>}
       >
       {/* Job list — rendered directly in the PageScaffold panel (which is
           already a frosted liquid-glass surface), mirroring the Messages /

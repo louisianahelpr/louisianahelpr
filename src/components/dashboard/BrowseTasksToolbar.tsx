@@ -10,9 +10,9 @@ import { signupUrlFor } from "@/lib/jobIntent";
 import { hapticLight } from "@/lib/haptics";
 import type { BrowseTasksToolbarProps } from "./browseTasksToolbar/types";
 import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
+import { JobsSaveSearchRow } from "./JobsSaveSearchRow";
 
-// SS-4's pill loads on demand: a static import here split SaveSearchButton and its sheet into chunks of their own
-// and put both names in the entry chunk's preload list (entry 5.8 KB gz, over the 5.5 KB budget; Q178).
+// SS-4's pill loads on demand (JobsSaveSearchRow.tsx; a static import put it in the entry chunk's preload list, Q178).
 // The filter sheet loads on demand too. It is closed on every first paint, yet its static import put FilterSheet,
 // FilterDropdown, the Radix popover and floating-ui on guest /browse's critical path (B47 10-31). It mounts the first
 // time it opens and stays mounted (so it can animate closed), and its chunk is fetched once the page has settled, so
@@ -37,7 +37,6 @@ const FilterSheet = lazy(() =>
 const loadSavedSearches = () => loadModule(() => import("@/components/SavedSearches"));
 const SavedSearches = lazy(() => loadSavedSearches().then((m) => (m ? { default: m.SavedSearches } : untilReload())));
 
-const SaveSearchButton = lazy(() => import("@/components/savedSearches/SaveSearchButton").then((m) => ({ default: m.SaveSearchButton })));
 
 /**
  * BrowseTasksToolbar — the Browse feed's control strip: the
@@ -206,21 +205,8 @@ export function BrowseTasksToolbar({
       {/* NIGHT-SAVEDS1-SS-4: the Saved searches empty state says "Search in Jobs or Declutter, then tap Save this
           search", and Jobs Browse had no such pill (only the named dialog in Filters). The same pill as Declutter's,
           shown when a filter a saved search keeps is on: words, category, price, distance. The dialog stays. */}
-      {user && (filters.searchQuery.trim() || filters.selectedCategory || filters.minBudget || filters.maxBudget || (filters.nearbyMiles !== null && !filters.nearbyUnavailable)) && (
-        <Suspense fallback={null}>
-        <SaveSearchButton
-          userId={user.id}
-          draft={{
-            section: "jobs",
-            query: filters.searchQuery.trim(),
-            category: filters.selectedCategory,
-            minDollars: filters.minBudget ? Number(filters.minBudget) : null,
-            maxDollars: filters.maxBudget ? Number(filters.maxBudget) : null,
-            radiusMiles: filters.nearbyUnavailable ? null : filters.nearbyMiles,
-          }}
-        />
-        </Suspense>
-      )}
+      {/* Deep audit 11-22 #29: on a phone the row draws inside the list instead, under the overlaying chips. */}
+      <JobsSaveSearchRow filters={filters} user={user} place="toolbar" />
 
       {/* NO category chip row under "Search jobs" (owner 2026-10-21: "remove
           the category chip row ... categories live only in the filter

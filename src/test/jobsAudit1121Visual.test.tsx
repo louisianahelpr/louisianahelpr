@@ -12,7 +12,7 @@
  * (~110-130px) under the "Jobs | Declutter" switch, so the page jumped as it landed.
  * @mutate src/components/ui/skeletons/JobCardSkeleton.tsx |         <div className={JOB_CARD_TEXT_COL}> |         <div className="min-w-0 flex-1">
  * @mutate src/components/sections/GuestSectionSwitch.tsx |   if (at !== "declutter" && !settled) { |   if (false) {
- * @mutate src/components/GuestBrowseSkeleton.tsx |           <div className="chip-row"> |           <div className="hidden">
+ * @mutate src/components/GuestBrowseSkeleton.tsx | <div className="mb-2 invisible" aria-hidden data-skeleton-section-switch=""> | <div className="hidden" aria-hidden data-skeleton-section-switch="">
  *
  * G10: Private note, Report and Block were three 32px icon-only buttons on every applicant row, Block in red at the same
  * weight; one labelled 44px "..." menu now (ApplicantMoreMenu), Block last and red.
@@ -56,8 +56,8 @@ describe("P10: the Browse bones are the loaded rows", () => {
     expect(src).not.toMatch(/JOB_CARD_(FRAME|CLIP)|JOB_CATEGORY_TAB_FRAME/);
   });
   it("the switch row is held while the sections answer is out, and in the chunk skeleton", () => {
-    expect(code("src/components/sections/GuestSectionSwitch.tsx")).toMatch(/if \(at !== "declutter" && !settled\) \{[\s\S]*?data-guest-section-switch-pending=""[\s\S]*?className="chip-row"/);
-    expect(code("src/components/GuestBrowseSkeleton.tsx")).toMatch(/data-skeleton-section-switch=""[\s\S]*?className="chip-row"/);
+    expect(code("src/components/sections/GuestSectionSwitch.tsx")).toMatch(/if \(at !== "declutter" && !settled\) \{[\s\S]*?data-guest-section-switch-pending=""[\s\S]*?<FilterChips/);
+    expect(code("src/components/GuestBrowseSkeleton.tsx")).toMatch(/className="mb-2 invisible" aria-hidden data-skeleton-section-switch=""[\s\S]*?<FilterChips/);
   });
 });
 

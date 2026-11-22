@@ -25,7 +25,7 @@ export function GiftGuidesBand() {
                 {w("landing.giftGuides.title", "Holiday Gift Guides")}
               </h2>
               <p className="text-ds-15 leading-relaxed" style={{ color: "var(--lp-body)" }}>
-                {w("landing.giftGuides.body", "Gift ideas for her, for him, for the kids and for the home, plus Louisiana-made favorites.")}
+                {w("landing.giftGuides.body", "Gift ideas for her, for him and for the kids.")}
               </p>
             </div>
           </div>

@@ -6,6 +6,7 @@
  * @mutate src/components/GiftGuidesPromo.tsx |       window.localStorage.setItem(GIFT_PROMO_KEY, "1"); |       void GIFT_PROMO_KEY;
  * @mutate src/components/GiftGuidesPromo.tsx |   if (closed \|\| todayIso(now) > GIFT_PROMO_LAST_DAY) return null; |   if (closed) return null;
  * @mutate src/pages/home/HomeDashboard.tsx |             <Suspense fallback={null}><GiftGuidesPromo where="home" /></Suspense>\n | \n
+ * @mutate src/components/GiftGuidesPromo.tsx |       <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: "hsl(var(--cat-tint-rose-fg))", | <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: "#b26862",
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | {!preview && <Suspense fallback={null}><GiftGuidesPromo where="declutter" /></Suspense>} | {null}
  */
 import { readFileSync } from "node:fs";
@@ -58,5 +59,14 @@ describe("Holiday Gift Guides banner (owner mockup A)", () => {
       checked += 1;
     }
     expect(checked).toBeGreaterThan(1);
+  });
+});
+
+describe("the banner's colours are the app's tokens (holiday audit 1121 #30)", () => {
+  it("no hard-coded hex colour in the banner, so it follows the light and dark themes", () => {
+    const code = blankComments(readFileSync("src/components/GiftGuidesPromo.tsx", "utf8"));
+    expect(code.length).toBeGreaterThan(500);
+    expect(code.match(/#[0-9a-fA-F]{3,8}\b/g) ?? []).toEqual([]);
+    expect(code).toMatch(/--cat-tint-rose-bg/);
   });
 });

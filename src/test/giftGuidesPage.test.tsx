@@ -743,6 +743,10 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     render(<MemoryRouter><GiftGuidesBand /></MemoryRouter>);
     expect(GIFT_GUIDES_PATH).toBe("/gift-guides");
     expect(screen.getByTestId("landing-gift-guides-link").getAttribute("href")).toBe("/gift-guides");
+    // Holiday audit 1121 #31: the band names only the live guides (Her, Him, Kids), never the retired home or
+    // Louisiana-made ones, should it come back.
+    // @mutate src/components/landing/GiftGuidesBand.tsx | "Gift ideas for her, for him and for the kids." | "Gift ideas for her, for him, for the kids and for the home, plus Louisiana-made favorites."
+    expect(screen.getByTestId("landing-gift-guides").textContent).not.toMatch(/home|Louisiana-made/);
     expect(sponsorPage.links.giftGuides).toBe("/gift-guides");
   });
 });

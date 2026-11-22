@@ -24,7 +24,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         select(text);\n      }, |       },
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         <OpenSite store={store} href={href} /> |         {null}
  * @mutate src/content/giftGuideStorePhotos.ts | (STORE_PHOTO_FILES[store] ? DIR + STORE_PHOTO_FILES[store] : null) | (DIR + "xtratuf.webp")
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |     ...(codes.length ? [{ id: "codes" |     ...(true ? [{ id: "codes"
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | body: <CodeCards codes={codes} /> | body: <CodeCards codes={codes.slice(1)} />
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       {sections.length > 1 && ( |       {false && (
  * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx |             <Out href={b.href} className="gg-sb-visit"> |             <Out href={b.href} className="gg-sb-visit rounded-full border">
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   return Local ? <Local sponsors={[]} /> : <FeatureCta />; |   return null;
@@ -173,7 +173,7 @@ describe("owner 11-21: a deals day in subsections by type", () => {
     await act(async () => { fireEvent.click(jump.querySelector("[data-gift-deal-jump-to='sales']")!); });
     expect(sales.open).toBe(true);
   });
-  it("a day with no codes on it has no Discount codes subsection", async () => {
+  it("the Discount codes subsection holds exactly the codes that work that day (none: no subsection)", async () => {
     // Dec 30: every dated code is over, but the owner's undated codes still work; so read a day where codesOn is empty
     // only if one exists, else check the subsection count follows codesOn exactly.
     const day = dealDay("cyber-monday")!;
@@ -182,7 +182,11 @@ describe("owner 11-21: a deals day in subsections by type", () => {
     const codes = codesOn(day.day);
     const sub = container.querySelector("details[data-gift-deal-sub='codes']");
     if (codes.length === 0) expect(sub).toBeNull();
-    else expect(sub?.querySelector("[data-gift-deal-sub-count]")?.textContent).toBe(String(codes.length));
+    else {
+      expect(sub?.querySelector("[data-gift-deal-sub-count]")?.textContent).toBe(String(codes.length));
+      // The count is the cards: one card per code that works that day.
+      expect(sub!.querySelectorAll("li[data-gift-code]").length).toBe(codes.length);
+    }
     // And the subsection list never holds an empty one.
     for (const d of container.querySelectorAll("details[data-gift-deal-sub]")) expect(d.querySelector("li"), d.getAttribute("data-gift-deal-sub") ?? "").not.toBeNull();
   });

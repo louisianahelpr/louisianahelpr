@@ -40,6 +40,7 @@ export function giftGuideDescription(name, topNames, count) {
 export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count = 0) {
   const day = dealDay(slug);
   if (day) return dealDayPageMeta(day);
+  if (slug === SPONSORS_SLUG) return SPONSORS_META;
   const named = Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, slug) ? GIFT_GUIDE_SEO[slug] : null;
   const name = named ?? `${fallbackTitle} gift guide`;
   const description =
@@ -53,6 +54,22 @@ export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count
     ...(named ? {} : { robots: NOINDEX_ROBOTS }),
   };
 }
+
+/**
+ * The 25 Days sponsors page's own head (holiday audit 1121 #75): it read "25 Days Sponsors gift guide", its card said
+ * "gift guide" twice ("...gift guide: holiday gift guide 2026") and "hand-picked gift ideas", but these are the brands
+ * giving away prizes in our 25 Days of Giveaways, not picks of ours. Still indexed (GIFT_GUIDE_SEO keeps the slug).
+ */
+const SPONSORS_SLUG = "25-days-sponsors";
+const SPONSORS_NAME = "Shop our 25 Days of Giveaways sponsors";
+const SPONSORS_DESCRIPTION = "The Louisiana and national brands giving away prizes in our 25 Days of Giveaways, with a gift from each one to shop.";
+const SPONSORS_META = {
+  title: `${SPONSORS_NAME} — Helpr`,
+  description: SPONSORS_DESCRIPTION,
+  canonical: `${SITE_ORIGIN}/gift-guides/${SPONSORS_SLUG}`,
+  ogTitle: SPONSORS_NAME,
+  ogDescription: SPONSORS_DESCRIPTION,
+};
 
 /**
  * A deals day's head (owner 2026-11-21: "each day has its own section"): /gift-guides/black-friday,

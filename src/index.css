@@ -2665,6 +2665,11 @@ button,
   backdrop-filter: blur(10px);
 }
 
+/* Holiday audit 1121 #78: scrolled past the top, the glass bar is the page's own colour, fully opaque, so the content
+   scrolling under it never shows through (it ran into the nav's words at 375). No gold rule: that stays .is-scrolled's. */
+.glass-nav.nav-past-top { background-color: hsl(var(--background)); }
+[data-theme="dark"] .glass-nav.nav-past-top { background-color: hsl(var(--parchment)); }
+
 /* Subtle scroll-state — only kicks in once the user scrolls past the hero,
    when the nav is over the page-warmth surface instead of the photo. Toggle
    `.is-scrolled` on the nav element to enable. (Intentionally not wired by

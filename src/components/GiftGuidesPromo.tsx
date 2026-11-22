@@ -40,14 +40,15 @@ export default function GiftGuidesPromo({ where, now = new Date() }: { where: "h
       aria-label="Holiday Gift Guides"
       data-gift-promo={where}
       className="relative flex items-center gap-3 rounded-2xl border p-3"
-      style={{ background: "#f6e6e3", borderColor: "#edd3cd", color: "#3a2a26" }}
+      // Holiday audit 1121 #30: the app's rose tint tokens (light and dark themes), not hard-coded hex.
+      style={{ background: "hsl(var(--cat-tint-rose-bg))", borderColor: "hsl(var(--cat-tint-rose-fg) / 0.18)", color: "hsl(var(--foreground))" }}
     >
-      <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: "#b26862", color: "#fff" }}>
+      <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: "hsl(var(--cat-tint-rose-fg))", color: "hsl(var(--cat-tint-rose-bg))" }}>
         <Gift className="h-5 w-5" />
       </span>
       <Link to="/gift-guides" className="min-w-0 flex-1 after:absolute after:inset-0 after:rounded-[inherit]" data-gift-promo-link="">
         <span className="block text-ds-15 font-bold">Holiday Gift Guides</span>
-        <span className="block text-ds-13" style={{ color: "#6b5048" }}>Gifts, deals and codes, picked by a Louisiana nurse</span>
+        <span className="block text-ds-13" style={{ color: "hsl(var(--cat-tint-rose-fg))" }}>Gifts, deals and codes, picked by a Louisiana nurse</span>
       </Link>
       <Button
         type="button"
@@ -57,7 +58,7 @@ export default function GiftGuidesPromo({ where, now = new Date() }: { where: "h
         aria-label="Close the gift guides banner"
         data-gift-promo-close=""
         className="relative z-10 shrink-0 ctl-exit"
-        style={{ color: "#9a7b74" }}
+        style={{ color: "hsl(var(--muted-foreground))" }}
       >
         <X className="h-4 w-4" aria-hidden />
       </Button>

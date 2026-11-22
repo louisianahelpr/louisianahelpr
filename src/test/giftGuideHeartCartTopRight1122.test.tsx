@@ -110,7 +110,7 @@ describe("heart and cart sit on the photo's top-right, the cart under the heart 
         const link = li.querySelector(":scope > a[data-gift-title-link]")!;
         expect(heart, slug).not.toBeNull();
         expect(link.contains(heart), slug).toBe(false);
-        const amazon = /amazon\.com\//.test(link.getAttribute("href") ?? "");
+        const amazon = /^https:\/\/(www\.)?amazon\.com\//.test(link.getAttribute("href") ?? "");
         if (!amazon) { expect(cart, slug).toBeNull(); continue; }
         expect(cart, `${slug}: an Amazon card's cart`).not.toBeNull();
         expect(heart!.compareDocumentPosition(cart!) & Node.DOCUMENT_POSITION_FOLLOWING, slug).toBeTruthy();

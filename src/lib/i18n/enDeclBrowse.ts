@@ -92,10 +92,11 @@ export const enDeclBrowse = {
   "decl.sort.price_high": "Highest price",
   "decl.results.one": "1 item",
   "decl.results.many": "{n} items",
-  // Owner 11-20 (site polish A4): the compact location button beside desktop Browse's search.
-  "decl.loc.use": "Use my location",
-  "decl.loc.tryAgain": "Try my location again",
-  "decl.loc.finding": "Finding you…",
+  // Owner 11-21 ("the button just goes away"): after "Use my location" works, the line over the cards says so.
+  "decl.loc.near": "Near you · nearest first",
+  "decl.loc.nearWithin": "Near you · within {miles} mi",
+  "decl.loc.nearPlain": "Miles from where you are",
+  "decl.loc.change": "Change",
   "decl.group.Home": "Home",
   "decl.group.Outdoors": "Outdoors",
   "decl.group.Family": "Family",

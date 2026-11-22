@@ -847,10 +847,12 @@ describe("gift guides: design audit round 2 UI fixes", () => {
       expect(container.querySelectorAll("[data-gift-quick]").length, url).toBe(1);
       expect(quick, url).not.toBeNull();
       expect(quick.getAttribute("aria-label"), url).toBe("Gift guide tools");
-      expect(quick.querySelector("input[type=search][aria-label='Search gift guides']"), url).not.toBeNull();
+      // Owner 11-21 ("make search an icon always"): the search is a magnifier icon (no field until tapped).
+      expect(quick.querySelector("input"), url).toBeNull();
       const controls = [...quick.querySelectorAll("a, button")].filter((el) => !el.closest("[data-gift-search-results]"));
       // Owner 11-21: an owner-list guide (Mom is Her's view) adds the Sort by price menu to the tool row.
-      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(url === "/gift-guides/mom" ? ["Sort by price", "My Wish List, 0 saved", "Share"] : ["My Wish List, 0 saved", "Share"]);
+      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(url === "/gift-guides/mom" ? ["Search gift guides", "Sort by price", "My Wish List, 0 saved", "Share"] : ["Search gift guides", "My Wish List, 0 saved", "Share"]);
+      expect(controls[0].className, url).toMatch(/\bgg-icon\b/);
       const share = controls[controls.length - 1];
       // Icons only: 44px tap targets (RoundIconButton w-11 h-11; .gg-icon 44px), and no visible words.
       expect(share.className, url).toMatch(/\bw-11\b.*\bh-11\b/);

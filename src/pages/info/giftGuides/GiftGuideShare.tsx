@@ -37,6 +37,8 @@ const Icon = ({ d, fill = "none" }: { d: string; fill?: string }) => (
 );
 const HEART = "M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.7 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.5 0 5.8 3.4 4.5 6.8-1.8 4.6-9.3 9.2-9.3 9.2z";
 const SHARE = "M12 15V3.5M7.5 8 12 3.5 16.5 8M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5";
+const SEARCH = "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4";
+const CLOSE = "M6 6l12 12M18 6 6 18";
 const SLIDERS = "M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4";
 
 /** A sort order the owner-list guides offer (src/content/giftGuidePriceSort.ts). */
@@ -195,6 +197,17 @@ function MyListIcon({ current }: { current: boolean }) {
  */
 export function GiftGuideTools({ path, title, image, many = false, myList = false, sort }: { path: string; title: string; image?: string; many?: boolean; myList?: boolean; sort?: { order: SortOrder; onChange: (o: SortOrder) => void } }) {
   const [query, setQuery] = useState("");
+  // Owner 2026-11-21 ("make search an icon always"): at every width the search is a magnifier icon like the heart and
+  // Share; tapping it opens the field (focused); Escape or its close button shuts it again, and it stays open while a
+  // query is typed. The results list is unchanged.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const open = searchOpen || !!query;
+  const searchButton = useRef<HTMLButtonElement>(null);
+  const closeSearch = () => {
+    setQuery("");
+    setSearchOpen(false);
+    requestAnimationFrame(() => searchButton.current?.focus());
+  };
   // Holiday audit 1121 #20: the results close on a tap outside the search (they stayed over the tiles until Escape),
   // and open again when the field is focused or typed in.
   const [resultsOpen, setResultsOpen] = useState(true);
@@ -229,12 +242,25 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
   const foundItems = query.trim() && items ? searchItems(items, query) : [];
   return (
     <div className="gg-tools" role="group" aria-label={G.quickLabel} data-gift-quick="">
-      <div ref={searchBox} className="gg-tools-search">
-        <label id="gift-search" className="gg-search rounded-full focus-within:ring-2 focus-within:ring-ring">
-          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} /><path d="M20 20l-4-4" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" /></svg>
-          <Input look="bare" type="search" value={query} onChange={(e) => { setQuery(e.target.value); setResultsOpen(true); }} onFocus={() => setResultsOpen(true)}
-            placeholder={G.searchPlaceholder} aria-label={G.searchLabel} role="combobox" aria-autocomplete="list" aria-expanded={showResults} aria-controls="gift-search-results" data-gift-search="" />
-        </label>
+      <div ref={searchBox} className={open ? "gg-tools-search is-open" : "gg-tools-search"} data-gift-search-box={open ? "open" : "closed"}>
+        {open ? (
+          <label id="gift-search" className="gg-search rounded-full focus-within:ring-2 focus-within:ring-ring">
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} /><path d="M20 20l-4-4" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" /></svg>
+            {/* Opened by a tap on the magnifier, so the field takes the focus at once (never on page load). */}
+            {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
+            <Input look="bare" type="search" autoFocus value={query} onChange={(e) => { setQuery(e.target.value); setResultsOpen(true); }} onFocus={() => setResultsOpen(true)}
+              onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }}
+              onBlur={(e) => { if (!query && !searchBox.current?.contains(e.relatedTarget as Node | null)) setSearchOpen(false); }}
+              placeholder={G.searchPlaceholder} aria-label={G.searchLabel} role="combobox" aria-autocomplete="list" aria-expanded={showResults} aria-controls="gift-search-results" data-gift-search="" />
+            <RoundIconButton size="sm" className="gg-search-close" aria-label={G.searchCloseLabel} onClick={closeSearch} data-gift-search-close="">
+              <Icon d={CLOSE} />
+            </RoundIconButton>
+          </label>
+        ) : (
+          <RoundIconButton ref={searchButton} className="gg-icon" aria-label={G.searchLabel} aria-expanded={false} onClick={() => setSearchOpen(true)} data-gift-search-button="">
+            <Icon d={SEARCH} />
+          </RoundIconButton>
+        )}
         {showResults && (
           <ul id="gift-search-results" className="gg-search-results" data-gift-search-results="" aria-live="polite">
             {itemsFailed && !items && <li className="gg-search-none" data-gift-search-offline="">{G.searchFailed}</li>}

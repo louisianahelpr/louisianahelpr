@@ -215,8 +215,12 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     const { container } = renderAt("/gift-guides");
     // Owner 11-21: the tools sit on the row under the header, right of the shipping pill.
     const row = container.querySelector("[data-gift-headrow] [data-gift-quick]")!;
+    // Owner 11-21 ("make search an icon always"): a magnifier icon until tapped; then the field is focused.
+    expect(row.querySelector("input")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Search gift guides" }));
     // Holiday audit 1121 #20: the search field is a combobox that opens its results.
     const input = screen.getByRole("combobox", { name: "Search gift guides" });
+    expect(document.activeElement).toBe(input);
     expect(input.getAttribute("placeholder")).toBe("Search guides");
     expect(row.contains(input)).toBe(true);
     expect(container.querySelectorAll("input[data-gift-search]").length).toBe(1);

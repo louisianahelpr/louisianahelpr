@@ -76,6 +76,8 @@ describe("gift guide search (holiday audit 1121)", () => {
     expect(to("leggings")).toEqual([]);
     // The search box lists them instead of "No guides match".
     const { container } = render(<MemoryRouter><GiftGuideTools path="/gift-guides" title="t" many /></MemoryRouter>);
+    // Owner 11-21 ("make search an icon always"): the field opens from the magnifier.
+    fireEvent.click(container.querySelector("[data-gift-search-button]")!);
     fireEvent.change(container.querySelector("[data-gift-search]")!, { target: { value: "black friday" } });
     expect(container.querySelector('[data-gift-found-page="/gift-guides/black-friday"]')).not.toBeNull();
   });

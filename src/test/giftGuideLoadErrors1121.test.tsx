@@ -60,6 +60,8 @@ describe("a data file that fails shows why and a Try again (holiday audit 1121)"
 
   it("search: gift results that did not load say so, not 'No guides match'", async () => {
     const { container } = inRouter(<GiftGuideTools path="/gift-guides" title="t" many />);
+    // Owner 11-21 ("make search an icon always"): the field opens from the magnifier.
+    fireEvent.click(container.querySelector("[data-gift-search-button]")!);
     fireEvent.change(container.querySelector("[data-gift-search]")!, { target: { value: "leggings" } });
     expect(await screen.findByText(G.searchFailed)).toBeTruthy();
     expect(screen.queryByText(G.searchNone)).toBeNull();

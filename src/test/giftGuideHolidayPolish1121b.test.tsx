@@ -127,7 +127,7 @@ describe("the fun pages carry the guides' frame (holiday audit 1121 #13)", () =>
   it("head row with search, the My list heart and Share, and the left menu marking the open tool", () => {
     const { container } = render(<MemoryRouter><FunBody title="Swipe to find gifts" path="/gift-guides/swipe"><p data-deck="">deck</p></FunBody></MemoryRouter>);
     expect(container.querySelector("h1")?.textContent).toBe("Swipe to find gifts");
-    expect(container.querySelector("[data-gift-headrow] [data-gift-search]")).not.toBeNull();
+    expect(container.querySelector("[data-gift-headrow] [data-gift-search-button]")).not.toBeNull();
     expect(container.querySelector("[data-gift-headrow] [data-gift-my-list-link]")).not.toBeNull();
     expect(container.querySelector("[data-gift-headrow] [data-gift-share]")).not.toBeNull();
     expect(container.querySelector("[data-gift-sidebar]")).not.toBeNull();
@@ -139,6 +139,8 @@ describe("the fun pages carry the guides' frame (holiday audit 1121 #13)", () =>
 describe("search results close on a tap outside (holiday audit 1121 #20)", () => {
   it("typing opens them, a tap outside closes them, focusing the field opens them again", async () => {
     const { container } = render(<MemoryRouter><p data-outside="">x</p><GiftGuideTools path="/gift-guides" title="Gift guides" many /></MemoryRouter>);
+    // Owner 11-21 ("make search an icon always"): the field opens from the magnifier.
+    fireEvent.click(container.querySelector("[data-gift-search-button]")!);
     const input = container.querySelector<HTMLInputElement>("[data-gift-search]")!;
     expect(input.getAttribute("role")).toBe("combobox");
     fireEvent.change(input, { target: { value: "her" } });
@@ -224,7 +226,7 @@ describe("/shop-small is never empty and sits in the guides' frame (holiday audi
   it("one h1, the guides' head row and menu (Shop Small current), then the 25 Days sponsors' cards before the free listings", async () => {
     const { container } = render(<MemoryRouter><ShopSmall /></MemoryRouter>);
     expect([...container.querySelectorAll("h1")].map((h) => h.textContent)).toEqual([SBS_WORDS.pageTitle]);
-    expect(container.querySelector("[data-gift-headrow] [data-gift-search]")).not.toBeNull();
+    expect(container.querySelector("[data-gift-headrow] [data-gift-search-button]")).not.toBeNull();
     expect([...container.querySelectorAll('[data-gift-sidebar] a[aria-current="page"]')].map((a) => a.getAttribute("href"))).toEqual(["/shop-small"]);
     expect(container.querySelector("[data-shop-small-sponsors] h2")?.textContent).toBe(SBS_WORDS.pageSponsorsTitle);
     await waitFor(() => expect(container.querySelectorAll("[data-shop-small-sponsors] [data-gift-sb-grid] > li").length).toBeGreaterThan(30));

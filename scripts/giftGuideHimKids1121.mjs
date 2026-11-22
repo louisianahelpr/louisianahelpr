@@ -41,7 +41,7 @@ export const HIM_KIDS_STORES = {
   "store-smathers-and-branson": "Smathers & Branson", "store-duck-head": "Duck Head", "store-grove": "Grove",
   "store-clinique": "Clinique", "store-maisonette": "Maisonette", "store-wayfair": "Wayfair", "store-macys": "Macy's",
   "store-yeti": "YETI", "store-xtratuf": "XTRATUF", "store-jd-sports": "JD Sports", "store-burlebo": "Burlebo",
-  "store-tractor-supply": "Tractor Supply", "store-onward-reserve": "Onward Reserve",
+  "store-tractor-supply": "Tractor Supply", "store-onward-reserve": "Onward Reserve", "store-target": "Target",
 };
 /** One row per pick: [ASIN, price she saw, Amazon image id, name, brand, type, commission %, line]. */
 const row = ([asin, sortPrice, img, name, brand, type, commission, line]) => ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, commission, type });
@@ -99,6 +99,12 @@ export const HIM_SHOPMY_1121 = [
   // Crossroads Backpack, Alpine Brown) had no Amazon price, so this is the same backpack and color on her existing YETI
   // pin, $160 on yeti.com 2026-11-21 (20% off $200; Alpine Brown in stock).
   ["107838580", 160, "https://static.shopmy.us/uploads/pretty-prod-1758467247287", "YETI Crossroads 22L Backpack, Alpine Brown", "YETI", "store-yeti", "backpack", 8, "A tough everyday backpack with a padded laptop sleeve."],
+  // owner 11-22 him picks (builder-guide-him): Smathers & Branson, same product in different designs side by side.
+  ["108101578", 54, "https://cdn.shopify.com/s/files/1/0767/9233/2592/files/Mallard_ClassicNavy__TumblerwithLid_LowRes.jpg", "Smathers & Branson Mallard Tervis Tumbler", "Smathers & Branson", "store-smathers-and-branson", "drinkware", 15, "A classic mallard on a Tervis tumbler with a lid."],
+  ["108104267", 54, "https://cdn.shopify.com/s/files/1/0767/9233/2592/files/World_sBestDad_Royal__TumblerwithLid_LowRes.jpg", "Smathers & Branson World's Best Dad Tervis Tumbler", "Smathers & Branson", "store-smathers-and-branson", "drinkware", 15, "A World's Best Dad Tervis tumbler for the dad who has everything."],
+  ["108108365", 35, "https://static.shopmy.us/pins/zoom-108108365-1795145239744-Mallard_Classic_Navy__Can_Cooler_Primary_Low_Res.jpg", "Smathers & Branson Mallard Can Cooler", "Smathers & Branson", "store-smathers-and-branson", "drinkware", 15, "A mallard can cooler to keep a cold one cold."],
+  ["108101625", 65, "https://cdn.shopify.com/s/files/1/0767/9233/2592/files/World_sBestDad_Royal__CCW_LowRes.jpg", "Smathers & Branson World's Best Dad Needlepoint Card Wallet", "Smathers & Branson", "store-smathers-and-branson", "wallet", 15, "A slim needlepoint card wallet for Dad."],
+  ["108108555", 155, "https://cdn.shopify.com/s/files/1/0767/9233/2592/files/Fish_and_Tackle_Dark_Navy__Toiletry_Bag_Low_Res.jpg", "Smathers & Branson Fish and Tackle Toiletry Bag", "Smathers & Branson", "store-smathers-and-branson", "bag", 15, "A needlepoint fish and tackle toiletry bag for the trip."],
 ].map(shop);
 
 /**
@@ -109,13 +115,9 @@ export const HIM_SHOPMY_1121 = [
  * price, 2026-11-21; it is in HIM_SHOPMY_1121 on her YETI pin). Prices are her list's capture; the three YETI Crossroads prices were read on Amazon 2026-11-21.
  */
 export const HIM_AMAZON_MORE_1121 = [
-  // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0DVM13SRM at
-  // 3% ($300); same item and color, King Crab Orange, yeti.com: 8%, $300.
-  { name: "YETI LoadOut GoBox 60 Gear Case", brand: "YETI", line: "A tough, divided gear box for the truck bed or boat.", href: shopmy("p-109003244"), image: "https://yeti-webmedia.imgix.net/asset/6d2ff9b9-6fa5-48cd-b4d5-09f7576bc754/W/220027_site_studio_Loadout_GoBox_60_King_Crab_Front_Closed_1182_Primary_B_2400x2400.png", store: "store-yeti", sortPrice: 300, price: 300, commission: 8, type: "gear-case" },
   // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0DVM24NF8 at
   // 3% ($250); same item and color, King Crab Orange, yeti.com: 8%, $250.
   { name: "YETI LoadOut GoBox 30 Gear Case", brand: "YETI", line: "A smaller GoBox for tackle, tools or shells.", href: shopmy("p-109003412"), image: "https://yeti-webmedia.imgix.net/asset/97d8ceab-2ea8-4e68-ab47-72162d713c1b/W/220027_site_studio_Loadout_GoBox_30_King_Crab_Front_Closed_1202_Primary_B_2400x2400.png", store: "store-yeti", sortPrice: 250, price: 250, commission: 8, type: "gear-case" },
-  ["B0BSHWGY47", 218, "31jVexbfg2L", "YETI LoadOut GoBox Collection", "YETI", "gear-case", 3, "A waterproof GoBox that keeps gear dry and sorted."],
   // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0D9QX9F67 at
   // 3% ($55); same item and color, Olive/Black, yeti.com: 8%, $55.
   { name: "YETI Sidekick Dry 3L Gear Case, Olive", brand: "YETI", line: "A waterproof pouch for keys, phone and wallet on the water.", href: shopmy("p-109004058"), image: "https://yeti-webmedia.imgix.net/asset/74b4454a-9c99-4b8b-9967-8eff2a9793a1/W/site_studio_Bags_Sidekick_Dry_3L_Olive_Front_3657_Primary_B_2400x2400.png", store: "store-yeti", sortPrice: 55, price: 55, commission: 8, type: "gear-case" },
@@ -145,12 +147,6 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B08Z42695Q", 49.04, "41iS+PAvr4L", "SITKA Mid Pro Trucker Hat", "SITKA", "hat", 4, "A SITKA trucker hat for the field."],
   ["B002OSXDTG", 129.95, "31k8tX0z0KL", "LaCrosse Burly Air Grip 18 in. Boots", "LaCrosse", "boots", 4, "Tall rubber boots built for the marsh."],
   ["B00AQG9MGG", 88.92, "31ZTfBVeDRL", "MUCK Chore Cool Tall Boot", "MUCK", "boots", 4, "Tall, breathable work boots for the yard and barn."],
-  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0GV4BKM4W at 4% ($135); the same Bison/Duck Camo fleece-lined boot
-  // (xtratuf.com xmadbc90, 8/8 sizes) at xtratuf.com through CJ at 15%, $135 list, $101.25 with XT25 (through Nov 29).
-  { name: "XTRATUF Fleece Lined Ankle Deck Boot", brand: "XTRATUF", line: "A fleece-lined deck boot for cold mornings.", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmadbc90", image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/xmadbc90_g.jpg", store: "store-xtratuf", sortPrice: 135, price: 135, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
-  // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B082JHQP7N at 4% ($105); the same brown Wheelhouse (xmw900) at
-  // xtratuf.com through CJ at 15%, $140 list, $105 with XT25 (through Nov 29), the Amazon price.
-  { name: "XTRATUF 6 in. Wheelhouse Ankle Deck Boot", brand: "XTRATUF", line: "A leather deck boot that goes from dock to dinner.", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmw900", image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMW900_gray_main_1400x1400_52c3f283-fa90-4227-8a07-ddfdcbc1acc6.jpg", store: "store-xtratuf", sortPrice: 140, price: 140, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
   // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0998FYXLS at 4% ($93.75); the same Mossy Oak Bottomland boot (xmabmob)
   // at xtratuf.com through CJ at 15%, $125 list, $93.75 with XT25 (through Nov 29), the Amazon price.
   { name: "XTRATUF Mossy Oak Bottomland Ankle Deck Boot", brand: "XTRATUF", line: "Deck boots in Mossy Oak Bottomland camo.", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabmob", image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XMABMOB_gray_main_720x720_d16b4d27-7fc1-4833-a83f-06939c86fdb4.jpg", store: "store-xtratuf", sortPrice: 125, price: 125, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
@@ -202,7 +198,6 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B0FN3P492D", 49.99, "31rN+NqCvaL", "HOTO EdgeFlow Electric Box Cutter", "HOTO", "tool", 3, "A rechargeable cutter that opens boxes fast."],
   ["B00FXPT15C", 69.99, "416bwTpRNHL", "Carhartt Paxton Quarter Zip Sweatshirt", "Carhartt", "pullover", 4, "A heavyweight Carhartt quarter zip."],
   ["B0FYR14JVY", 32.23, "41WBx16LZfL", "Carhartt Oil Tan Leather Passcase Wallet", "Carhartt", "wallet", 4, "A brown leather wallet that wears in well."],
-  ["B01MR53G6C", 22.59, "51bhNzOWW-L", "RAK Magnetic Pickup Tool", "RAK", "tool", 3, "A magnetic pickup tool with a light."],
   ["B0FWRPFVF6", 135.99, "4180sHSFv2L", "HOTO 25-Piece Tool Kit with Drill", "HOTO", "tool", 3, "A cordless drill and household tool kit in one case."],
   // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0F22HTHMJ at
   // 3% ($408.5); same item and color, Tan, onwardreserve.com/products/turtlebox-gen-3-speaker-tan: 15%, $430.
@@ -221,9 +216,14 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B0DTDJH158", 18.99, "41rbkZT4EKL", "Sidomma Fishing Tool Set", "Sidomma", "fishing", 3, "Pliers and tools for the tackle box."],
   ["B0FHMYC386", 19.6, "41yqlHKjRBL", "HUK Short Sleeve Performance Fishing Tee", "HUK", "shirt", 4, "A light, quick-dry tee for the boat."],
   ["B0FR98X1DZ", 12.99, "41-9VVRQ5ML", "Lucky Fishing Socks, Size 7-13", "", "socks", 4, "Fun fishing socks for his stocking."],
+  ["B0D9PX9RBD", 70, "81p65D0cdNL", "MVP PRO Houndstooth Cabretta Golf Gloves, Black (Men's 2-Pack)", "MVP", "accessory", 3, "A pair of leather golf gloves in a black houndstooth."],
   ["B0G72KN8BL", 9.49, "41AjgHzg2iL", "COOFANDY Men's V-Neck Tee", "COOFANDY", "shirt", 4, "A soft everyday V-neck tee."],
   ["B08BG8RQHG", 44.99, "41wLs6bwGyL", "Carhartt K288 Logo Sweatshirt", "Carhartt", "sweatshirt", 4, "The classic Carhartt logo sweatshirt."],
   ["B0FZN2ZCFL", 27.2, "51TtsH9AWzL", "Burlebo Go To Performance Tee", "Burlebo", "shirt", 4, "A light performance tee from Burlebo."],
+  // owner 11-22 him picks (builder-guide-adds hand-off, lead OK): prices read on each Amazon page 2026-11-22. The brown MVP
+  // golf gloves listing was the Womens (M) one, so Him carries the men's black 2-pack instead (above, B0D9PX9RBD).
+  ["B0D8ZXGJ3L", 43.99, "61kzOwV7c+L", "Banded Soft Shell Insulated Handwarmer, Realtree Legacy", "Banded", "hunting", 3, "A fleece-lined hand muff for cold mornings in the blind."],
+  ["B0CHVWCSQ8", 39.99, "61tvo-s46ML", "Klola Large Magnetic Gun Cleaning Mat with Parts Tray", "Klola", "hunting", 3, "A magnetic cleaning mat that keeps every small part in place."],
 ].map((r) => (Array.isArray(r) ? row(r) : r));
 
 export const HIM_1121 = [
@@ -284,6 +284,9 @@ export const HIM_1121 = [
   // at Onward Reserve at 15%, $250 (her link p-108736312 -> onwardreserve.com/products/turtlebox-ranger-tan;
   // Commission-switches-1121.md). Photo: the Tan Ranger cutout from turtleboxaudio.com the Him cover already drew.
   { name: "Turtlebox Ranger Speaker", brand: "Turtlebox", line: "A loud, waterproof speaker built for the outdoors.", href: shopmy("p-108736312"), image: "https://www.louisianahelpr.com/gift-guides/cutouts/turtlebox-ranger-tan-06e916.webp", store: "store-onward-reserve", sortPrice: 250, price: 250, commission: 15, type: "speaker" },
+  // owner 11-22 screenshot list (builder-guide-adds-2): the owner, via the lead, 2026-11-22: the Dad version of the Mom
+  // fill-in book on For Her goes on Him. Amazon, price read 2026-11-22.
+  { name: "Just a Few Things I Love About You, Dad", brand: "", line: "A fill-in book of all the reasons you love him.", href: amz("B0GWXJ3PYM"), image: amzImg("61kkHlm55KL"), store: "store-amazon", sortPrice: 17.99, commission: 4.5, type: "book", priceAt: "2026-11-22" },
 ].map((r) => (Array.isArray(r) ? row(r) : r)).concat(HIM_AMAZON_MORE_1121, HIM_SHOPMY_1121);
 
 /**
@@ -336,17 +339,12 @@ export const KIDS_AMAZON_MORE_1121 = [
   ["B0FG2Z88P7", 9.99, "51HHk4qty0L", "JoyCat Christmas Paint with Water Books", "JoyCat", "book", 3, "Mess-free paint with water pages for toddlers."],
   ["B0D6RMZ3D1", 17.79, "51KltfpitTL", "YEEHAO Kids Digital Camera", "YEEHAO", "camera", 3, "A dual-lens kids camera for photos, videos and selfies."],
   ["B0D5ZN2YL8", 12.73, "51OP9VO0RuL", "Cupkin Christmas Sticker Book with Coloring Pages", "Cupkin", "book", 3, "A Christmas sticker book with coloring pages."],
-  ["B0DDYHBKG9", 16.96, "51XdoEqAXAL", "CreateOn Crayola Holiday Glitter Mini Magnetic Tiles", "CreateOn", "building-toy", 3, "Mini glitter magnetic tiles for holiday builds."],
   ["B0DB9JTTJQ", 18.99, "51T6IcL0NTL", "CreateOn Crayola Holiday Glitter Magnetic Tiles", "CreateOn", "building-toy", 3, "Sparkly magnetic tiles to build a holiday scene."],
   ["B0DCVF7YNW", 18.98, "41305yNiLyL", "Kinglucky Mini Karaoke Machine for Kids", "Kinglucky", "karaoke", 3, "A mini karaoke machine with a microphone."],
   // Amazon pays 1% on video game consoles, not 3% (Commission-audit-1121-night.md).
-  ["B0BFJWCYTL", 339, "41d-g6xWrfL", "Nintendo Switch with Blue and Red Joy-Con", "Nintendo", "game-console", 1, "The Switch that plays on the TV or on the go."],
   ["B0F3GWXLTS", 499, "41A6+lQ6KSL", "Nintendo Switch 2", "Nintendo", "game-console", 1, "The new Nintendo Switch 2."],
   ["B0FJ2ZHPDY", 99.99, "41cXR296U-L", "Toniebox 2 Starter Set, Cloud Pink", "tonies", "audio", 3, "A screen-free story and music player in pink."],
-  ["B0DB5SGHX2", 135.35, "3149VSu-bUL", "Segway Ninebot C2 Lite Kids Electric Scooter", "Segway", "scooter", 3, "An electric scooter made for kids."],
-  ["B0CRDG6KMT", 237.49, "31V05DQTV-L", "Segway Ninebot C2 Pro Kids Electric Scooter", "Segway", "scooter", 3, "A faster kids electric scooter for older riders."],
   ["B0F62SVY89", 271.68, "31Bsjq4rZGL", "Segway Ninebot E2 Plus II Electric Scooter", "Segway", "scooter", 3, "A full-size electric scooter for teens."],
-  ["B0H3ZM1PMS", 299.99, "31q1HbybvGL", "Segway Ninebot S2 Kids Self-Balancing Scooter", "Segway", "hoverboard", 3, "A self-balancing scooter sized for kids."],
   // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0CT2WN59R at 3% ($484.49); the same black Segway S2 at Tractor Supply
   // (item 6017105) at 8% (p-109001528), $484.99. Photo: Tractor Supply's own product shot.
   { name: "Segway Ninebot S2 Self-Balancing Scooter", brand: "Segway", line: "A self-balancing scooter for big kids and teens.", href: shopmy("p-109001528"), image: "https://media.tractorsupply.com/is/image/TractorSupplyCompany/6017105?wid=1000&hei=1000", store: "store-tractor-supply", sortPrice: 484.99, price: 484.99, commission: 8, type: "hoverboard" },
@@ -354,6 +352,11 @@ export const KIDS_AMAZON_MORE_1121 = [
   ["B0GT16T874", 14.98, "51u+SjYL7DL", "Taba Squishies Fidget Toys, 3 Pack", "", "squishy", 3, "Three squishy fidget toys to squeeze."],
   ["B0DDLZV8YM", 23.73, "51VHRxyCCdL", "Magic Gel Water Pets Kit", "", "craft", 3, "Make little gel water pets that come to life."],
 ].map((r) => (Array.isArray(r) ? row(r) : r));
+
+/** Owner 11-22 kids tech, store-page links (builder-guide-adds-kids). The Target PS5 is off for now (lead 11-22: 0% commission and over
+ * the $500 cap); a paying PS5 at $500 or less can come back here. */
+const KIDS_TECH_DIRECT_1122 = [
+];
 
 export const KIDS_1121 = [
   ["152350675X", 3.44, "51J30U2ygrL", "Paint by Sticker Kids: Christmas", "Workman", "book", 3, "Sticker-by-number Christmas pictures, no mess."],
@@ -396,7 +399,33 @@ export const KIDS_1121 = [
   ["B0HDSSPY7Z", 127.49, "21gcm6OqZ0L", "Segway Ninebot C2 Go Kids Scooter", "Segway", "scooter", 3, "An electric scooter made for kids."],
   ["B0D2JGYX3F", 209, "31HNx5am69L", "Nex Playground", "Nex", "game-console", 3, "Active family games that get everyone moving."],
   ["B07V4GCFP9", 229, "31CHVspmUeL", "Nintendo Switch Lite", "Nintendo", "game-console", 1, "The handheld Switch for games on the go."],
-].map(row).concat(KIDS_AMAZON_MORE_1121, KIDS_SHOPMY_1121);
+  // owner 11-22 kids tech (builder-guide-adds-kids): the owner asked for popular tech; prices captured from Amazon 11-22.
+  ["B0G4SCX27Q", 382, "61B-A4JhE9L", "Meta Quest 3S VR Headset, 256GB", "Meta", "vr", 3, "A mixed-reality headset for games and fitness, made for ages 10 and up."],
+  ["B0D3WSFX3L", 26.56, "717IFJm-ZNL", "JLab JBuddies Studio 2 Wireless Kids Headphones", "JLab", "audio", 3, "Volume-limited Bluetooth headphones that fold up and keep little ears safe."],
+  ["B0DZ77D5HL", 399, "61Q-vahOT9L", "Apple iPad 11-inch (A16, 128GB, Wi-Fi)", "Apple", "tablet", 3, "The iPad they will actually use for games, drawing and school."],
+].map(row).concat(KIDS_AMAZON_MORE_1121, KIDS_SHOPMY_1121, KIDS_TECH_DIRECT_1122);
+
+// owner 11-22 popular approved (builder-guide-popular): Kids, Amazon listings sold by Amazon.com, prices read 11-22.
+export const KIDS_POPULAR_1122 = [
+  ["B0FX3KW535", 30, "81NKE8LAWEL", "Tickle Me Elmo Giggle Max", "Sesame Street", "plush", 3, "The giggling Elmo everyone is asking for."],
+  ["B0G497FGT6", 21, "81pheFGgbRL", "GUI GUI Mega Slime Haul", "GUI GUI", "slime", 3, "Five scented slimes and 50+ add-ins."],
+  ["B0GH39S2GJ", 83, "815HwqBZIVL", "PAW Patrol Dino Movie Megasaurus Vehicle", "PAW Patrol", "vehicle-toy", 3, "A big dino rescue vehicle with an inflatable dino."],
+  ["B0G4SR68GB", 44, "812ct6B-M+L", "Fisher-Price Little People My Mario Adventure Playset", "Fisher-Price", "playset", 3, "A toddler-size Mario world to play in."],
+  ["B0GHBKG64Q", 35, "81MHgjNu-UL", "Primal Hatch Megalodon Hatching Egg", "Primal Hatch", "hatching-toy", 3, "Crack open the egg and a shark hatches."],
+  ["B0G3RKYTMS", 170, "81jI7-Pm4TL", "Bluey Light and Surprise Heeler House", "Bluey", "dollhouse", 3, "The 28-inch Heeler house with lights and surprises."],
+  ["B000FGECAI", 10, "712W+h7AF6L", "Kanoodle Brain Teaser Puzzle Game", "Educational Insights", "puzzle", 3, "A pocket puzzle game with 200+ challenges."],
+  ["B0G2T1VN17", 175, "81lwvfbDd8L", "LEGO City Lava Land Roller Coaster Park 60501", "LEGO", "building-set", 3, "A build-it roller coaster park."],
+  ["B0GWKJG2XR", 145, "71KXM3QhGbL", "American Girl Disney Frozen Elsa 18-inch Doll", "American Girl", "doll", 3, "Elsa as an 18-inch American Girl doll."],
+].map(row).map((r) => ({ ...r, priceAt: "2026-11-22" }));
+
+// owner 11-22 popular approved (builder-guide-popular): Him, Amazon listings sold by Amazon.com or the brand, prices read 11-22.
+export const HIM_POPULAR_1122 = [
+  ["B0FQFB8FMG", 169.99, "61solmQSSlL", "Apple AirPods Pro 3", "Apple", "earbuds", 1, "Noise-cancelling earbuds he will use daily."],
+  ["B0GJTXVN9Z", 79, "611DjYhflAL", "Apple AirTag 4 Pack", "Apple", "tracker", 1, "Keys, wallet, bag: never lost again."],
+  ["B0GXW9C8QC", 219, "615XBVqPGaL", "Bose QuietComfort Headphones, 2nd Gen", "Bose", "headphones", 3, "Noise-cancelling over-ear headphones with big sound."],
+  ["B0CT3SGHXL", 191.99, "61m+fKy7wzL", "Garmin Forerunner 165 Running Smartwatch", "Garmin", "smartwatch", 3, "A bright running watch that tracks every mile."],
+  ["B0GCGGWC1M", 349, "61YEzBsddpL", "Gozney Arc Lite Propane Pizza Oven", "Gozney", "pizza-oven", 4, "Real wood-fired-style pizza in his backyard."],
+].map(row).map((r) => ({ ...r, priceAt: "2026-11-22" }));
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
@@ -412,11 +441,11 @@ const build = (rows, slug, g) =>
   });
 
 /** For Him, cheapest first, each pick tagged with the men's relationships it suits. */
-export function him1121Picks(rows = [...HIM_1121, ...HIM_ADDS_1122]) {
+export function him1121Picks(rows = [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122]) {
   return build(rows, HIM_GUIDE, PEOPLE_GUIDES.find((x) => x.slug === HIM_GUIDE));
 }
 /** For Kids, cheapest first. Kids has no relationship pages, so no tags. */
-export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122]) {
+export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122]) {
   return build(rows, KIDS_GUIDE, null);
 }
 

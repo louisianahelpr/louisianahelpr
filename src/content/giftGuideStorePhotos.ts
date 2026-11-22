@@ -2,63 +2,80 @@
  * One product photo per store for the deals days' code and sale cards (owner 2026-11-21: "like Muck Boot show a Muck
  * Boot picture like the rest of the guides"). Each is a real product from that store's own site, cut out (no
  * background: owner 11-20) and saved as a local ~400px WebP under public/gift-guides/deals/stores/. The source of every
- * photo is in scripts/gift-guide-store-photos.json. A store missing here shows its name in the photo well: we never
- * invent a photo. Amazon photos are never used (Amazon Associates rules).
+ * photo is in scripts/gift-guide-store-photos.json. A store whose sales are store-wide shows the brand's clean logo
+ * instead (owner 11-22 #10: "for sales some things are missing pictures"; every deals-day card has a picture, guarded by
+ * src/test/giftGuideDealCardsHavePhotos1122.test.ts). We never invent a photo. Amazon photos are never used (Amazon
+ * Associates rules).
  */
+import { slugify } from "@/lib/goLinks.mjs";
+
 const DIR = "/gift-guides/deals/stores/";
 
-/** Store name (exactly as the codes and sales spell it) -> its photo's file name. */
+/** Store slug (slugify of the name the codes and sales spell, as the store-<slug> page ids do) -> its photo's file name. */
 export const STORE_PHOTO_FILES: Record<string, string> = {
-  "Anthropologie": "anthropologie.webp",
-  "At Home": "at-home.webp",
-  "Aurate": "aurate.webp",
-  "Belk": "belk.webp",
-  "Bergdorf Goodman": "bergdorf-goodman.webp",
-  "Bloomingdale's": "bloomingdales.webp",
-  "Bon Wellness": "bon-wellness.webp",
-  "Bonheur Jewelry": "bonheur-jewelry.webp",
-  "Bonobos": "bonobos.webp",
-  "Bruno Marc": "bruno-marc.webp",
-  "Camp Snap": "camp-snap.webp",
-  "Champs Sports": "champs-sports.webp",
-  "Club Recess": "club-recess.webp",
-  "Daily Crunch Snacks": "daily-crunch-snacks.webp",
-  "Dolce Vita": "dolce-vita.webp",
-  "Durango Boots": "durango-boots.webp",
-  "Everyday Dose": "everyday-dose.webp",
-  "Fabrique": "fabrique.webp",
-  "Foot Locker": "foot-locker.webp",
-  "Georgia Boot": "georgia-boot.webp",
-  "Hanna Andersson": "hanna-andersson.webp",
-  "Homage": "homage.webp",
-  "Journeys": "journeys.webp",
-  "Kevin Murphy": "kevin-murphy.webp",
-  "Kids Foot Locker": "kids-foot-locker.webp",
-  "Lands' End": "lands-end.webp",
-  "Macy's": "macys.webp",
-  "Magnifique": "magnifique.webp",
-  "Muck Boot": "muck-boot.webp",
-  "Neiman Marcus": "neiman-marcus.webp",
-  "Nordstrom": "nordstrom.webp",
-  "PUMA": "puma.webp",
-  "PetSmart": "petsmart.webp",
-  "Petite Plume": "petite-plume.webp",
-  "RMS Beauty": "rms-beauty.webp",
-  "Ring": "ring.webp",
-  "Ring Concierge": "ring-concierge.webp",
-  "Saks Fifth Avenue": "saks-fifth-avenue.webp",
-  "Sally Beauty": "sally-beauty.webp",
-  "Sam's Club": "sams-club.webp",
-  "SharkNinja": "sharkninja.webp",
-  "T3 Micro": "t3-micro.webp",
-  "Thrive Creative": "thrive-creative.webp",
-  "Tushbaby": "tushbaby.webp",
-  "Ulta Beauty": "ulta-beauty.webp",
-  "Under Armour": "under-armour.webp",
-  "Victoria's Secret": "victorias-secret.webp",
-  "XTRATUF": "xtratuf.webp",
-  "YVO Warrior": "yvo-warrior.webp",
+  "anthropologie": "anthropologie.webp",
+  "at-home": "at-home.webp",
+  "aurate": "aurate.webp",
+  "belk": "belk.webp",
+  "benefit-cosmetics": "benefit-cosmetics.webp",
+  "bergdorf-goodman": "bergdorf-goodman.webp",
+  "bloomingdales": "bloomingdales.webp",
+  "bon-wellness": "bon-wellness.webp",
+  "bonheur-jewelry": "bonheur-jewelry.webp",
+  "bonobos": "bonobos.webp",
+  "bruno-marc": "bruno-marc.webp",
+  "cb2": "cb2.webp",
+  "camp-snap": "camp-snap.webp",
+  "champs-sports": "champs-sports.webp",
+  "club-recess": "club-recess.webp",
+  "daily-crunch-snacks": "daily-crunch-snacks.webp",
+  "dolce-vita": "dolce-vita.webp",
+  "durango-boots": "durango-boots.webp",
+  "everyday-dose": "everyday-dose.webp",
+  "fabrique": "fabrique.webp",
+  "famous-footwear": "famous-footwear.webp",
+  "foot-locker": "foot-locker.webp",
+  "georgia-boot": "georgia-boot.webp",
+  "hanna-andersson": "hanna-andersson.webp",
+  "homage": "homage.webp",
+  "journeys": "journeys.webp",
+  "keurig": "keurig.webp",
+  "kevin-murphy": "kevin-murphy.webp",
+  "kids-foot-locker": "kids-foot-locker.webp",
+  "kitchenaid": "kitchenaid.webp",
+  "lands-end": "lands-end.webp",
+  "macys": "macys.webp",
+  "magnifique": "magnifique.webp",
+  "muck-boot": "muck-boot.webp",
+  "neiman-marcus": "neiman-marcus.webp",
+  "nordstrom": "nordstrom.webp",
+  "oriental-trading-company": "oriental-trading-company.webp",
+  "puma": "puma.webp",
+  "petsmart": "petsmart.webp",
+  "petite-plume": "petite-plume.webp",
+  "rms-beauty": "rms-beauty.webp",
+  "ring": "ring.webp",
+  "ring-concierge": "ring-concierge.webp",
+  "saks-fifth-avenue": "saks-fifth-avenue.webp",
+  "sally-beauty": "sally-beauty.webp",
+  "sams-club": "sams-club.webp",
+  "scheels": "scheels.webp",
+  "sharkninja": "sharkninja.webp",
+  "t3-micro": "t3-micro.webp",
+  "the-home-depot": "the-home-depot.webp",
+  "the-mens-wearhouse": "the-mens-wearhouse.webp",
+  "thrive-creative": "thrive-creative.webp",
+  "tushbaby": "tushbaby.webp",
+  "ulta-beauty": "ulta-beauty.webp",
+  "under-armour": "under-armour.webp",
+  "universal-standard": "universal-standard.webp",
+  "victorias-secret": "victorias-secret.webp",
+  "xtratuf": "xtratuf.webp",
+  "yvo-warrior": "yvo-warrior.webp",
 };
 
 /** The store's photo path, or null when we have none. */
-export const storePhoto = (store: string): string | null => (STORE_PHOTO_FILES[store] ? DIR + STORE_PHOTO_FILES[store] : null);
+export const storePhoto = (store: string): string | null => {
+  const file = STORE_PHOTO_FILES[slugify(store)];
+  return file ? DIR + file : null;
+};

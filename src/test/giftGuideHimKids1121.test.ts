@@ -13,7 +13,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { HIM_1121, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
+import { HIM_1121, HIM_POPULAR_1122, KIDS_POPULAR_1122, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
 import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
@@ -30,17 +30,23 @@ type Pick = { name: string; brand?: string; href: string; image: string; store: 
 const SWITCHED: Record<string, Record<string, string>> = {
   him: { "https://go.shopmy.us/p-108736038": "store-dillards", "https://go.shopmy.us/p-108734364": "store-exclusive-beauty-club", "https://go.shopmy.us/p-108736312": "store-onward-reserve", 
     // Night links 11-21 (Commission-links-1121-night.md; owner: "switch all 3 to the higher commission"):
-    "https://go.shopmy.us/p-108999848": "store-onward-reserve", "https://go.shopmy.us/p-109000336": "store-l-l-bean", "https://go.shopmy.us/p-109001581": "store-yeti", "https://go.shopmy.us/p-109003244": "store-yeti", "https://go.shopmy.us/p-109003412": "store-yeti", "https://go.shopmy.us/p-109003630": "store-yeti", "https://go.shopmy.us/p-109003793": "store-yeti", "https://go.shopmy.us/p-109003951": "store-yeti", "https://go.shopmy.us/p-109004058": "store-yeti", "https://go.shopmy.us/p-109004159": "store-yeti", "https://go.shopmy.us/p-109004254": "store-yeti", "https://go.shopmy.us/p-109004991": "store-tractor-supply", "https://go.shopmy.us/p-109005541": "store-tractor-supply", "https://go.shopmy.us/p-109005400": "store-tractor-supply",
+    "https://go.shopmy.us/p-108999848": "store-onward-reserve", "https://go.shopmy.us/p-109000336": "store-l-l-bean", "https://go.shopmy.us/p-109001581": "store-yeti", "https://go.shopmy.us/p-109003412": "store-yeti", "https://go.shopmy.us/p-109003630": "store-yeti", "https://go.shopmy.us/p-109003793": "store-yeti", "https://go.shopmy.us/p-109003951": "store-yeti", "https://go.shopmy.us/p-109004058": "store-yeti", "https://go.shopmy.us/p-109004159": "store-yeti", "https://go.shopmy.us/p-109004254": "store-yeti", "https://go.shopmy.us/p-109004991": "store-tractor-supply", "https://go.shopmy.us/p-109005541": "store-tractor-supply", "https://go.shopmy.us/p-109005400": "store-tractor-supply",
     "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2F22734": "store-xtratuf",
     // Rate switches 11-21 night (Commission-rates-search-1121-night.md): 3 XTRATUF at xtratuf.com via CJ 15% (XT25), TNF beanie at
     // JD Sports 15%, Burlebo hoodie and cap at burlebo.com 12%.
-    "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabmob": "store-xtratuf", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmw900": "store-xtratuf", "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmadbc90": "store-xtratuf",
-    "https://go.shopmy.us/p-109003932": "store-jd-sports", "https://go.shopmy.us/p-109005228": "store-burlebo", "https://go.shopmy.us/p-109005373": "store-burlebo" },
+    "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxmabmob": "store-xtratuf",
+    "https://go.shopmy.us/p-109003932": "store-jd-sports", "https://go.shopmy.us/p-109005228": "store-burlebo", "https://go.shopmy.us/p-109005373": "store-burlebo",
+    // Launch day 11-22 (Owner-adds-1122.md): her older Lake Pajamas pins, sent for Him.
+    "https://go.shopmy.us/p-103892269": "store-lake-pajamas", "https://go.shopmy.us/p-104054474": "store-lake-pajamas" },
   // Rate switch 11-21 night: Segway Ninebot S2 (Amazon B0CT2WN59R, 3%) -> Tractor Supply 8% at $484.99.
   kids: { "https://go.shopmy.us/p-109001528": "store-tractor-supply",
     // Launch day 11-22 (Owner-adds-1122.md): her two Camp Snap 2 colors, pinned at The Swank Company (p-109142125,
     // p-109142226, $69.99), are on her Camp Snap direct pins instead (owner 11-22: the $59.99 sale and her code LEXILOMBAS7).
-    "https://go.shopmy.us/p-107929152": "store-camp-snap", "https://go.shopmy.us/p-104219842": "store-camp-snap" },
+    "https://go.shopmy.us/p-107929152": "store-camp-snap", "https://go.shopmy.us/p-104219842": "store-camp-snap",
+    // Owner via the lead, 11-22: her EADEM New Classics Set pin goes on Kids.
+    "https://go.shopmy.us/p-109155269": "store-eadem",
+    // Owner via the lead, 11-22: both Yoto 4th Gen bundles (Ms. Rachel, Bluey).
+    "https://go.shopmy.us/p-109156467": "store-yoto", "https://go.shopmy.us/p-109156399": "store-yoto" },
 };
 /**
  * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and
@@ -61,6 +67,8 @@ const SAVES: Record<string, Record<string, string>> = {
     ...sm(["108628318", "108628311", "108628309", "108628296", "108628280", "108628276", "108628274", "108628018"], "store-smathers-and-branson"),
     // Owner 2026-11-21 PM ("Find a replacement for the yeti backpack one with a price"): the same Crossroads backpack on her YETI pin.
     ...sm(["107838580"], "store-yeti"),
+    // Owner 11-22 him picks (builder-guide-him): Smathers & Branson Tervis, can cooler, card wallet, toiletry bag.
+    ...sm(["108101578", "108104267", "108108365", "108101625", "108108555"], "store-smathers-and-branson"),
   },
   kids: {
     ...sm(["108632461", "108632432", "108632392", "108632273", "108632257", "108632317", "108632251", "108632230", "108632184", "108632365", "108632379", "108632481", "108632592"], "store-maisonette"),
@@ -73,12 +81,13 @@ const SAVES: Record<string, Record<string, string>> = {
   },
 };
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug] });
+const popular = new Set([...HIM_POPULAR_1122, ...KIDS_POPULAR_1122].map((r) => r.href));
 const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Pick[] }).picks;
 const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})));
 
 describe.each([
-  ["him", [...HIM_1121, ...HIM_ADDS_1122], him1121Picks() as Pick[]],
-  ["kids", [...KIDS_1121, ...KIDS_ADDS_1122], kids1121Picks() as Pick[]],
+  ["him", [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122], him1121Picks() as Pick[]],
+  ["kids", [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122], kids1121Picks() as Pick[]],
 ])("For %s is the owner's Amazon and ShopMy saves (11-21)", (slug, rows, built) => {
   const page = chunk(slug);
 
@@ -104,7 +113,9 @@ describe.each([
       expect(p.store).toBe("store-amazon");
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
-      expect(p.priceAt, p.name).toBe("2026-11-21");
+      // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day and the Dad fill-in book (owner
+      // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) were priced 11-22.
+      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || popular.has(p.href) ? "2026-11-22" : "2026-11-21");
     }
   });
 
@@ -158,7 +169,7 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
         expect(r.brand.toLowerCase(), r.name).not.toMatch(/vineyard vines|lilly pulitzer/);
       }
     }
-    expect(HIM_SHOPMY_1121.length).toBe(31);
+    expect(HIM_SHOPMY_1121.length).toBe(36);
     expect(KIDS_SHOPMY_1121.length).toBe(23);
   });
 });
@@ -173,18 +184,22 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // (on the page at their better-paying
     // stores, above), B0002A7GMS / B07M9LRQ4J / B0FDXLSNN1 (second listings of the same items), B09ZYT939N YETI
     // Crossroads Backpack (Amazon showed no price), and the 6 rate switches 11-21 night (3 XTRATUF, TNF beanie, Burlebo hoodie + cap).
-    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]);
-    expect(amazon.length).toBe(91);
+    // Plus the Battery Daddy (B089F9YDFC), which the owner asked for on 11-22, and B0GWXJ3PYM, the Dad fill-in book (owner
+    // via the lead 11-22, her screenshot list): neither is from her saved list.
+    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM");
+    expect(amazon.length).toBe(97); // 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 3 owner-approved adds (Banded handwarmer, Klola mat, and the MVP PRO men's 2-pack B0D9PX9RBD: the brown listing was women's), plus the 5 popular adds of 11-22 (AirPods, AirTags, Bose, Garmin, Gozney)
+    expect(chunk("him").filter((p) => p.href.includes("B089F9YDFC")).length).toBe(1);
+    expect(chunk("him").filter((p) => p.href.includes("B0GWXJ3PYM")).length).toBe(1);
     for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P", "B0CQ4QM7Q2", "B0732FCCL4", "B09R5TGLFR"]) expect(amazon, asin).not.toContain(asin);
     for (const asin of ["B0F2K9B696", "B0F53HMTX5", "B0FR98X1DZ", "B0D31TCLN2", "B0FKN7JH1D"]) expect(amazon, asin).toContain(asin);
   });
 });
 
 describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
-  it("57 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (the Segway S2 is at Tractor Supply)", () => {
+  it("55 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (Segway S2 is at Tractor Supply; 11-22 the Switch with Joy-Con, the C2 Lite and C2 Pro, the Amazon S2 and the mini CreateOn tiles went as duplicates; the Quest 3S, iPad and JLab kids headphones were added)", () => {
     const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
-    expect(amazon.length).toBe(57);
-    for (const asin of ["B0F3GWXLTS", "B0BFJWCYTL", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
+    expect(amazon.length).toBe(64); // 55 after the duplicate removals + the 9 popular adds of 11-22
+    for (const asin of ["B0F3GWXLTS", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
     expect(amazon.some((p) => p.href.includes("B0CT2WN59R"))).toBe(false);
   });
 });
@@ -194,8 +209,8 @@ describe("the generator sets Him and Kids last", () => {
     const pages: Record<string, unknown[]> = { him: [{ name: "old" }], kids: [], her: [{ name: "keep" }] };
     const stores: Record<string, { name: string; hosts: string[] }> = { "store-dillards": { name: "Dillard's", hosts: ["www.dillards.com"] } };
     const out = applyHimKids1121(pages, stores);
-    expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length });
-    expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length);
+    expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length + HIM_POPULAR_1122.length });
+    expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length + KIDS_POPULAR_1122.length);
     expect(pages.her).toEqual([{ name: "keep" }]);
     expect(stores["store-dillards"]).toEqual({ name: "Dillard's", hosts: ["go.shopmy.us", "www.dillards.com"] });
     expect(stores["store-exclusive-beauty-club"]).toEqual({ name: "Exclusive Beauty Club", hosts: ["go.shopmy.us"] });
@@ -231,15 +246,13 @@ describe("the XTRATUF code chip on For Him (owner 11-21)", () => {
     for (const list of [chunk("him") as Coded[], him1121Picks() as Coded[]]) {
       const coded = list.filter((p) => p.code);
       expect(coded.map((p) => [p.name, p.store, p.code, p.codeEnds, p.price]).sort()).toEqual([
-        ["XTRATUF 6 in. Wheelhouse Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 140],
         ["XTRATUF Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 115],
-        ["XTRATUF Fleece Lined Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 135],
         ["XTRATUF Mossy Oak Bottomland Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 125],
       ]);
       expect(list.filter((p) => p.store === "store-xtratuf").length).toBe(coded.length);
       for (const p of coded) {
         expect(new URL(p.href).hostname).toBe("www.anrdoezrs.net");
-        expect(decodeURIComponent(p.href)).toMatch(/^https:\/\/www\.anrdoezrs\.net\/click-101930553-15735628\?url=https:\/\/xtratuf\.com\/products\/(22734|xmabmob|xmw900|xmadbc90)$/);
+        expect(decodeURIComponent(p.href)).toMatch(/^https:\/\/www\.anrdoezrs\.net\/click-101930553-15735628\?url=https:\/\/xtratuf\.com\/products\/(22734|xmabmob)$/);
       }
     }
     // Kids: only the two Camp Snap 2 colors (11-22, campsnapphoto.com), with her Camp Snap code (no end date).

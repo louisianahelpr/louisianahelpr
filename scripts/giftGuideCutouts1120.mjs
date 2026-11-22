@@ -326,6 +326,34 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/pins/zoom-108628018-1795247257926-LSU_Flask_Primary_LowRes.jpg", "sb-lsu-flask-4354f0.webp"],
   // yeti crossroads 22l backpack, alpine brown
   ["https://static.shopmy.us/uploads/pretty-prod-1758467247287", "yeti-crossroads-22l-alpine-brown-468ab3.webp"],
+  // owner 11-22 screenshot list (builder-guide-adds-2): Her's new rows in scripts/giftGuideHer1121.mjs, Apple Vision cutouts
+  // (scripts/gift-guide-cutout.swift), 400 px transparent WebP, each checked by eye on red and on white.
+  ["https://static.shopmy.us/pins/zoom-104053242-1794418576037-71G1Ib2Cp8L._SR960%252C720_.jpg", "ugg-scuffette-ii-chestnut-9f41e6.webp"],
+  ["https://cdn.shopify.com/s/files/1/0748/9440/9945/files/KHC-SL001-Solid-Nylon_black_flat-lil_9d810510-219a-4814-b64d-88c4c206413e.jpg", "comrad-knee-high-compression-socks-black-4fe0d0.webp"],
+  // Touchland: a border flood-fill cutout (Vision kept only the yellow liquid and dropped the white cap).
+  ["https://cdn.shopify.com/s/files/1/0027/5395/3862/files/Desktop_VanillaBlossom_ProductCard.jpg", "touchland-power-mist-vanilla-blossom-986606.webp"],
+  ["https://cdn.shopify.com/s/files/1/0751/1575/7852/files/turmeric_latte_massage.jpg", "lush-turmeric-latte-massage-bar-fd98f0.webp"],
+  ["https://cdni.llbean.net/is/image/wim/112636_30509_41", "llbean-boat-and-tote-medium-regatta-blue-a81ced.webp"],
+  ["https://static.shopmy.us/uploads/pretty-prod-1764601745022", "lululemon-everywhere-belt-bag-black-8182ef.webp"],
+  ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XWADBC10.jpg", "xtratuf-womens-camp-fleece-ankle-deck-boot-c528b2.webp"],
+  ["https://cdni.llbean.net/is/image/wim/520696_48183_41", "llbean-rollneck-sweater-cream-dog-9c6e33.webp"],
+  ["https://cdni.llbean.net/is/image/wim/267093_129_41", "llbean-adirondack-barn-coat-dark-khaki-6f5271.webp"],
+  ["https://dms.deckers.com/hoka/image/upload/t_product-xlarge-wp/v1/1162012-WWH_1.png", "hoka-bondi-9-womens-white-bbc928.webp"],
+  // owner 11-22 him picks (builder-guide-him): Smathers & Branson Tervis, can cooler, card wallet, toiletry bag
+  ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/Mallard_ClassicNavy__TumblerwithLid_LowRes.jpg", "sb-mallard-tervis-tumbler-34e4e6.webp"],
+  ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/World_sBestDad_Royal__TumblerwithLid_LowRes.jpg", "sb-wbd-tervis-tumbler-0e3ef6.webp"],
+  ["https://static.shopmy.us/pins/zoom-108108365-1795145239744-Mallard_Classic_Navy__Can_Cooler_Primary_Low_Res.jpg", "sb-mallard-can-cooler-b44a37.webp"],
+  ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/World_sBestDad_Royal__CCW_LowRes.jpg", "sb-wbd-card-wallet-85088f.webp"],
+  ["https://cdn.shopify.com/s/files/1/0767/9233/2592/files/Fish_and_Tackle_Dark_Navy__Toiletry_Bag_Low_Res.jpg", "sb-fish-tackle-toiletry-bag-ec6272.webp"],
+  // owner 11-22 her PR picks (builder-guide-her3b)
+  ["https://beekman1802.com/cdn/shop/files/B18CAFE26-WBC6_1_1.jpg", "beekman-1802-kindness-cafe-6pc-set-ef2030.webp"],
+  ["https://cdn.shopify.com/s/files/1/0543/8301/files/GLASS_BALM_INFOGRAPHICS_2000x2000_FIG_V1_FRUIT-_-B-ALM.jpg", "glow-recipe-glass-balm-lip-treatment-8ecb5d.webp"],
+  ["https://eberjey.com/cdn/shop/files/TZ1018LC-MOBNY-002.jpg", "eberjey-gisele-slouchy-pj-set-navy-26c4d6.webp"],
+  ["https://cdn.shopify.com/s/files/1/0032/3423/4479/files/BEIS124686-Eastwesttote-Olive-product-front-0310_V1.jpg", "beis-east-to-west-tote-olive-b9796e.webp"],
+  ["https://cdn.shopify.com/s/files/1/0347/8496/8840/files/cmi_Jelly_Tote_Main_Image_1_0005_cmi_Jelly_Tote_Twilly_Scarf_Something_Navy_CM059446_1_3f96afae-6486-4862-8af0-e5591d907c28.jpg", "case-mate-jelly-tote-navy-0568c9.webp"],
+  ["https://cdn.shopify.com/s/files/1/0105/2265/6823/files/NATR-Multi-Peptide_Serum_Front_capoff_primary_bone.webp", "naturium-multi-peptide-advanced-serum-2ba7ff.webp"],
+  ["https://cdn.shopify.com/s/files/1/0275/4822/1505/files/MBM_MMLWCE_PACKSHOT_BISQUE.jpg", "makeup-by-mario-master-mattes-cream-eyeshadow-e8b826.webp"],
+  ["https://www.youthtothepeople.com/dw/image/v2/AAFM_PRD/on/demandware.static/-/Sites-yttp-master-catalog/default/dwad62d71c/products/YTTP-10100/2026/ALT0-0810834030087--PACKSHOT.jpg", "yttp-superfood-cleanser-b7f8c7.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

@@ -1310,7 +1310,9 @@ const GIFT_GUIDES_LANDING_OG = "/gift-guides/og/landing.jpg?v=4";
 function giftGuideCover(id: string, name: string): Meta["image"] | undefined {
   // The landing's own card (holistic review 11-18 M7: it shared the generic logo card): a 1200x630 card of the three live
   // covers (holiday audit 1121; scripts/gift-guide-landing-og.py), public/gift-guides/og/landing.jpg (<=150 KB). ?v= is the cache bust: bump it when the art changes.
-  if (id === "gift-guides") return { url: `${SITE_ORIGIN}${GIFT_GUIDES_LANDING_OG}`, type: "image/jpeg", width: 1200, height: 630, alt: name };
+  // Owner 2026-11-22: the landing's link preview is her plaid holiday gift guides card (public/gift-guides/landing-plaid-v5.jpg,
+  // 1200x630); a new filename so Facebook's cache takes it. The wish-list and Secret Santa pages keep the collage above.
+  if (id === "gift-guides") return { url: `${SITE_ORIGIN}/gift-guides/landing-plaid-v5.jpg`, type: "image/jpeg", width: 1200, height: 630, alt: "Holiday gift guides from Louisiana Helpr" };
   // Each printables page's own 1200x630 card (owner 2026-11-21: each its own page; scripts/printables-og-cards.py).
   if (id === "gift-guides/printables/gift-tags") return { url: `${SITE_ORIGIN}/printables/og-printables.jpg?v=1`, type: "image/jpeg", width: 1200, height: 630, alt: "Free printable Christmas gift tags with names from Louisiana Helpr" };
   if (id === "gift-guides/printables/coloring-books") return { url: `${SITE_ORIGIN}/printables/og-coloring-books.jpg?v=1`, type: "image/jpeg", width: 1200, height: 630, alt: "Free printable Christmas coloring books from Louisiana Helpr" };

@@ -11,6 +11,9 @@ export const KIDS_SHOPMY_1121: readonly HimKids1121Row[];
 export const KIDS_AMAZON_MORE_1121: readonly HimKids1121Row[];
 export const HIM_1121: readonly HimKids1121Row[];
 export const KIDS_1121: readonly HimKids1121Row[];
+/** The popular adds of 11-22 (builder-guide-popular): Amazon listings sold by Amazon.com or the brand, priced 11-22. */
+export const HIM_POPULAR_1122: readonly HimKids1121Row[];
+export const KIDS_POPULAR_1122: readonly HimKids1121Row[];
 export function him1121Picks(rows?: readonly HimKids1121Row[]): HimKids1121Pick[];
 export function kids1121Picks(rows?: readonly HimKids1121Row[]): HimKids1121Pick[];
 export function applyHimKids1121(pageList: Record<string, unknown[]>, storeList?: Record<string, { name: string; hosts: string[] }> | null): Record<string, { before: number; after: number }>;

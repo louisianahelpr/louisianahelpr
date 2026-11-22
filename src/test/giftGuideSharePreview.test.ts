@@ -97,14 +97,16 @@ describe("gift guide share preview (api/share.ts)", () => {
 
   // Holistic review 11-18 M7: the landing shared the generic logo card; it now shares its own 1200x630 collage.
   // @mutate api/share.ts |   if (id === "gift-guides") return | if (id === "gift-guides-x") return
-  it("the landing shares its own 1200x630 collage card, at most 150 KB", async () => {
+  it("the landing shares its own 1200x630 plaid holiday gift guides card, at most 150 KB", async () => {
     const head = await headFor("gift-guides");
-    expect(head).toContain(`<meta property="og:image" content="${ORIGIN}/gift-guides/og/landing.jpg?v=4"`);
+    expect(head).toContain(`<meta property="og:image" content="${ORIGIN}/gift-guides/landing-plaid-v5.jpg"`);
+    expect(head).toContain("Holiday gift guides from Louisiana Helpr");
+    expect(head).toContain(`<meta name="twitter:image" content="${ORIGIN}/gift-guides/landing-plaid-v5.jpg"`);
     expect(head).toContain('<meta property="og:image:type" content="image/jpeg"');
     expect(head).toContain('<meta property="og:image:width" content="1200"');
     expect(head).toContain('<meta property="og:image:height" content="630"');
     expect(head.match(/<meta property="og:image" /g)).toHaveLength(1);
-    const jpg = readFileSync("public/gift-guides/og/landing.jpg");
+    const jpg = readFileSync("public/gift-guides/landing-plaid-v5.jpg");
     expect(jpg.length).toBeLessThanOrEqual(150_000);
     // The JPEG's own size, from its SOF0/SOF2 frame header.
     let at = 2;

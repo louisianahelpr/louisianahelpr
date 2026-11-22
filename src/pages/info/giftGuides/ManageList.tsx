@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { guidePicksVersion, loadGuidePicks, storeOf, subscribeGuidePicks } from "@/content/giftGuideCatalog";
+import { guidePicksVersion, loadGuidePicks, storeForLink, subscribeGuidePicks } from "@/content/giftGuideCatalog";
 import { OWNER_LIST_GUIDES } from "@/content/giftGuidePeople.mjs";
 import { livePicks } from "./fun/GuidePicksPicker";
 import { WISH } from "@/content/giftWishList";
@@ -54,7 +54,8 @@ function useCatalogPick(href: string | undefined) {
 
 function ItemThumb({ name, href, image }: { name: string; href?: string; image?: string }) {
   const pick = useCatalogPick(image ? undefined : href);
-  if (image) return <PickThumb pick={{ name, href: href ?? "", store: href ? storeOf(href) : "", image }} size={40} />;
+  // A saved gift's link can be on any store (or pasted): storeForLink never throws (live bug 11-22, the My lists pill).
+  if (image) return <PickThumb pick={{ name, href: href ?? "", store: storeForLink(href), image }} size={40} />;
   if (pick) return <PickThumb pick={pick} size={40} />;
   return <span className="gg-mylists-noimg gg-mylists-gift" aria-hidden="true" data-list-gift-icon=""><Gift /></span>;
 }

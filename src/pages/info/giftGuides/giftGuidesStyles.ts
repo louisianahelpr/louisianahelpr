@@ -118,9 +118,7 @@ color:var(--gg-ink)}
 .gg-words.gg-pagehead{text-align:left;padding:0 0 12px;margin:0 0 16px}
 .gg-pagehead h1,.gg .gg-wish-title{font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-weight:500;font-size:32px;line-height:1.15;margin:0;color:#3b2a20;text-wrap:balance}
 @media (max-width:767px){.gg-pagehead h1,.gg .gg-wish-title{font-size:28px}.gg-words.gg-pagehead{padding-top:14px}
-/* Polish audit 1122 #19: on the hub only one line shows above the greeting (the owner's divider, not the chip row's
-   too), and a guide's banner starts 16px under the chip row, not on its line. */
-.gg-pnav:has(+.gg-divider){border-bottom-color:transparent}.gg-pnav+.gg-banner-wrap{padding-top:16px}}
+}
 :root[data-theme="dark"] .gg .gg-wish-title{color:var(--gg-ink)}
 :root[data-theme="dark"] .gg-words .gg-lead,:root[data-theme="dark"] .gg-words h2,:root[data-theme="dark"] .gg-words > h1{color:var(--gg-ink)}
 .gg-check{background-color:rgb(250 247 239);background-image:conic-gradient(at 30px 30px,var(--c-band) 0 90deg,transparent 0 180deg,var(--c-band) 0 270deg,var(--c-cross) 0);background-size:60px 60px}
@@ -300,13 +298,13 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-more{display:flex;flex-wrap:wrap;gap:0 20px;margin-top:12px}
 
 .gg-disc{border-top:1px solid var(--gg-line);margin-top:26px;padding-top:14px;font-size:12px;color:var(--gg-muted);text-align:center}
-.gg-disc p{margin:2px 0}
+.gg-disc p{margin:2px 0;text-wrap:balance}
 .gg-disc .gg-more{justify-content:center}
 @media (max-width:767px){
 
 .gg-layout{grid-template-columns:minmax(0,1fr)}
 /* Owner 11-21 (the phones need a way to organize this): a phone draws no sidebar (it sat at the page's foot);
-   the chip row under the header and its menu sheet carry the same menu (GiftGuidesPhoneNav). The DOM order is
+   the head row's three-line icon opens the same menu in a sheet (GuidesMenuButton, owner 11-22). The DOM order is
    page, menu, disclosures (holiday audit 1121 #22/#27), so a phone needs no order rule; the desktop grid
    placement resets to one column. */
 .gg-layout{grid-template-rows:none}
@@ -318,23 +316,22 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-banner-wrap{padding:0 0 4px}.gg-banner{height:96px;padding-top:8px;border-radius:12px}.gg-arch{width:min(260px,70%);padding:14px 10px 6px;box-shadow:0 0 0 5px rgba(255,253,247,.85)}.gg-banner .gg-lead{font-size:13px}.gg-banner h1{font-size:20px;-webkit-line-clamp:1}.gg-tools{margin-top:6px}
 .gg-banner .gg-lead{margin-bottom:7px}
 }
-/* The phone's chip row (owner 11-21): sticky under the bar, one line that scrolls sideways by itself (never the page);
-   hidden from 768px up, where the sidebar is the menu. */
-.gg-pnav{display:none}
+/* The phone's head row (owner 11-22: everything under the holiday gift guides comes off the phone view; "Only thing
+   that will stay is the 3 line with no circle around it and the heart. Both of those will go on the right"; "change
+   holiday gift guides to just gift guides"): up to 767px ONE line, back arrow + the Gift guides title on the left, the heart and
+   the three-line menu on the right (44x44 targets, no circle, border or fill, even on a tap); the pill, the search and
+   Share are hidden. It replaces 11-21's sticky chip row. Hidden from 768px up, where the sidebar is the menu. */
+.gg-head-phone{display:none}
 @media (max-width:767px){
-.gg-pnav{display:flex;align-items:center;contain:inline-size;max-width:calc(100% + 40px);position:sticky;top:calc(var(--public-nav-h,3.5rem) + var(--safe-area-top,0px));z-index:5;margin:0 -20px;padding:6px 0 8px;background:hsl(var(--background));border-bottom:1px solid var(--gg-line)}
-.gg-pnav-row{display:flex;flex:1 1 auto;min-width:0;gap:8px;list-style:none;margin:0;padding:0 8px 0 20px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.gg-pnav-row::-webkit-scrollbar{display:none}
-.gg-pnav-row>li{flex:none}
-.gg-pnav>.gg-chip-menu{flex:none;margin-right:20px}
+.gg-headrow{flex-wrap:nowrap;gap:4px}
+.gg-head-title{flex:1 1 auto}
+.gg-headrow>.gg-ship,.gg-headrow>.gg-tools{display:none}
+.gg-head-holiday{display:none}
+.gg-head-title [data-gift-head-name]::first-letter{text-transform:uppercase}
+.gg-head-phone{display:flex;align-items:center;flex:none;margin:0 -10px 0 auto}
+.gg-head-phone .gg-icon,.gg-head-phone .gg-icon:hover,.gg-head-phone .gg-icon[aria-expanded="true"]{background:transparent;border:0;box-shadow:none}
+.gg-head-phone .gg-icon:focus-visible{background:transparent;outline:2px solid hsl(var(--ring));outline-offset:-2px;border-radius:8px}
 }
-@media (min-width:640px) and (max-width:767px){.gg-pnav{margin:0 -32px}.gg-pnav-row{padding-left:32px}.gg-pnav>.gg-chip-menu{margin-right:32px}}
-/* Signed in, the page scrolls inside AppShell (no marketing bar above it): the chip row sticks to the top. */
-.app-shell-frame .gg-pnav{top:0}
-.gg-chip-nav{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--gg-line);background:hsl(var(--card));font:600 13px Montserrat,sans-serif;color:var(--gg-ink);white-space:nowrap;text-decoration:none;cursor:pointer}
-.gg-chip-nav .gg-dot{margin-right:0}
-.gg-chip-nav.is-on{background:var(--gg-olive);border-color:var(--gg-olive);color:hsl(var(--primary-foreground))}
-.gg-chip-nav:focus-visible{outline:2px solid var(--gg-olive);outline-offset:2px}
 /* The menu sheet: the sidebar's groups, rows and current-page look. */
 .gg-sheet-menu .gg-sheet-menu-body{max-height:70dvh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
 .gg-sheet-menu-body ul{list-style:none;margin:0 0 8px;padding:0}

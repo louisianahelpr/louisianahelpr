@@ -16,8 +16,9 @@
  *     tag=louisianahelpr-20 (the Amazon guides live in src/content/giftGuidesAmazon.ts).
  *   - Never invent a product, a price or a claim. No prices here at all: they change, and a stale one misleads.
  *   - A section with no confirmed ShopMy collection links to the Pinterest board instead.
- *   - `disclosure` is the FTC affiliate disclosure (16 CFR Part 255) and `amazonStatement` the exact line the Amazon
- *     Associates Operating Agreement requires. Both sit at the BOTTOM of the page as plain lines (owner 2026-11-18).
+ *   - `disclosure` is the FTC affiliate disclosure (16 CFR Part 255) holding `amazonStatement`, the exact line the Amazon
+ *     Associates Operating Agreement requires. It sits at the BOTTOM of the page as one small plain line (owner
+ *     2026-11-18; one line 2026-11-22).
  */
 
 export interface GiftLink {
@@ -273,7 +274,13 @@ export const giftGuides = {
     { row: "by-store", title: "By store", sub: "Target, Walmart & more", cover: "store-target" },
   ] as { row: string; title: string; sub: string; cover: string }[],
   dealsEntry: { title: "Deals", sub: "Sales & codes" },
-  disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
+  /**
+   * The footer's ONE disclosure line (owner 2026-11-22: "Make this small on 1 line"): the affiliate disclosure (FTC, 16
+   * CFR Part 255) and Amazon's statement in one short sentence, `disclosureLead` + " " + `amazonStatement` (the footer
+   * draws the statement as its own span, word for word).
+   */
+  disclosure: "Affiliate links: As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.",
+  disclosureLead: "Affiliate links:",
   /** Amazon Associates Operating Agreement: the exact statement every site with Amazon links must show. */
   amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.",
   /**
@@ -298,10 +305,13 @@ export const giftGuides = {
   /** The left menu's group headings (owner 11-21: "guides, deals, free, make it fun should all be their own section"). */
   sideHeads: { guides: "Guides", deals: "Deals", free: "Free printables", louisiana: "Louisiana" },
   sideHolidayHub: "Holiday Hub",
-  /** The phone's chip row and menu sheet (owner 11-21: "We need a way to organize this on the phones"). */
-  phoneNavLabel: "Gift guides menu",
-  phoneNavPrintables: "Printables",
-  phoneNavMenu: "More",
+  /**
+   * The phone's head row (owner 2026-11-22: "Remove everything under the holiday gift guides on the phone view ... Only
+   * thing that will stay is the 3 line with no circle around it and the heart. Both of those will go on the right"):
+   * the three-line icon that opens the menu sheet, and the heart's name (its count when something is saved).
+   */
+  phoneMenuLabel: "Guides menu",
+  phoneHeartLabel: (n: number) => (n > 0 ? `Wish list, ${n} saved` : "Wish list"),
   /** The left menu's entry for the 25 Days sponsors page (owner 11-21: "move 25 day sponsors to the left panel"). */
   sideSponsorsLabel: "25 Days sponsors",
   shopLabel: "Shop",

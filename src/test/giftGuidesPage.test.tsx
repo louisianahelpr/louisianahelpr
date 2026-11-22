@@ -26,8 +26,10 @@
  *
  * @mutate src/pages/info/giftGuides/GiftOut.tsx | rel="sponsored noopener" | rel="noopener"
  * @mutate src/pages/info/giftGuides/GiftOut.tsx | target="_blank" rel= | rel=
- * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
- * @mutate src/pages/info/GiftGuides.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
+ * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosureLead} <span | <p data-gift-disclosure="">{null} <span
+ * @mutate src/pages/info/GiftGuides.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n | </p>\n
+ * @mutate src/content/giftGuides.ts |   disclosureLead: "Affiliate links:", |   disclosureLead: "Links:",
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | padding-top:14px;font-size:12px;color:var(--gg-muted); | padding-top:14px;font-size:10px;color:var(--gg-muted);
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
  * @mutate src/pages/info/GiftGuides.tsx | {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />} | {footer}{deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
@@ -131,7 +133,8 @@ const expandAll = (root: HTMLElement) => {
   openPriceSections(root);
   return root;
 };
-const DISCLOSURE = "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.";
+// Owner 2026-11-22 ("Make this small on 1 line"): one line holding both the affiliate words and Amazon's statement.
+const DISCLOSURE = "Affiliate links: As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.";
 const AMAZON_STATEMENT = "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.";
 const ROW_LABELS = ["By person", "For kids", "By budget", "Louisiana", "Hobbies", "By career", "Life moments", "Pets", "Colors", "By store"];
 // @two-way src/test/giftGuidesPage.test.tsx:stale allowed host
@@ -185,9 +188,10 @@ describe("gift guides: one header on every page (owner 11-21)", () => {
       expect(head!.querySelector("[data-gift-back-to] button[aria-label]"), url).not.toBeNull();
       expect(head!.querySelector("[data-gift-head-name]")?.textContent, url).toBe("Holiday gift guides");
       expect(head!.querySelector("[data-gift-head-name]")?.tagName, url).toBe(tag);
-      // Arrow + title, then the pill, then the tools (search, heart, Share), as siblings of the one row.
+      // Arrow + title, then the pill, then the tools (search, heart, Share), as siblings of the one row; last the phone's
+      // heart + three-line menu (owner 11-22), which the CSS shows only up to 767px.
       const kids = [...head!.children];
-      expect(kids.map((k) => (k.matches("[data-gift-head-title]") ? "title" : k.matches("[data-gift-ship]") ? "ship" : k.matches("[data-gift-quick]") ? "tools" : k.tagName)), url).toEqual(["title", "ship", "tools"]);
+      expect(kids.map((k) => (k.matches("[data-gift-head-title]") ? "title" : k.matches("[data-gift-ship]") ? "ship" : k.matches("[data-gift-quick]") ? "tools" : k.matches("[data-gift-head-phone]") ? "phone" : k.tagName)), url).toEqual(["title", "ship", "tools", "phone"]);
       // No centered title block: the landing has none, a guide keeps only its cover banner (its own h1).
       expect(container.querySelector("[data-gift-words]:not([data-gift-banner])"), url).toBeNull();
       expect(container.textContent, url).not.toMatch(/top-rated finds/i);
@@ -308,9 +312,18 @@ describe("gift guides: the content inventory", () => {
     for (const x of GUIDE_INDEX.filter((i) => shown.includes(i.slug))) expect(guideBySlug(x.slug)!.tint).toBe(x.tint);
   });
 
-  it("the disclosures say plainly what the links are, Amazon's in its required words", () => {
+  it("the disclosure says plainly what the links are, Amazon's in its required words, on one line", () => {
     expect(giftGuides.disclosure).toBe(DISCLOSURE);
     expect(giftGuides.amazonStatement).toBe(AMAZON_STATEMENT);
+    // Both parts, never only one: the affiliate words (FTC) and Amazon's statement word for word.
+    expect(giftGuides.disclosure).toMatch(/\baffiliate\b/i);
+    expect(giftGuides.disclosure).toContain(AMAZON_STATEMENT);
+    expect(giftGuides.disclosure).toBe(`${giftGuides.disclosureLead} ${giftGuides.amazonStatement}`);
+    // Small but still clear (FTC: a disclosure must be readable): 12px, muted, never smaller.
+    const disc = /(?:^|\n)\.gg-disc\{([^}]*)\}/.exec(GIFT_GUIDES_CSS)?.[1] ?? "";
+    expect(disc).toContain("font-size:12px");
+    expect(disc).toContain("color:var(--gg-muted)");
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-disc[^{]*\{[^}]*font-size:(?:[0-9]|1[01])(?:\.\d+)?px/);
   });
 });
 
@@ -578,13 +591,15 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
 
 describe("gift guides: links and disclosures on every view", () => {
   it("the disclosure and Amazon's statement show once each, at the bottom after the guides, as plain lines", () => {
+    // Owner 11-22: one line, Amazon's statement a span inside the disclosure (so the disclosure's text is split by it).
+    const disclosureLine = (_: string, el: Element | null) => el?.matches("[data-gift-disclosure]") === true && el.textContent === DISCLOSURE;
     for (const url of ["/gift-guides", "/gift-guides/under-25", "/gift-guides/for-her"]) {
       const { container } = renderAt(url);
-      expect(screen.getAllByText(DISCLOSURE).length, url).toBe(1);
+      expect(screen.getAllByText(disclosureLine).length, url).toBe(1);
       expect(screen.getAllByText(AMAZON_STATEMENT).length, url).toBe(1);
       const last = container.querySelector("[data-gift-browse], [data-gift-row]:last-of-type, [data-gift-guide]")!;
       expect(last, url).toBeTruthy();
-      for (const line of [screen.getByText(DISCLOSURE), screen.getByText(AMAZON_STATEMENT)]) {
+      for (const line of [screen.getByText(disclosureLine), screen.getByText(AMAZON_STATEMENT)]) {
         expect(last.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING, url).toBeTruthy();
         const classes = (line.getAttribute("class") ?? "").split(/\s+/).filter(Boolean);
         expect(classes.filter((c) => /^(?:[a-z0-9]+:)*(?:border|rounded|bg-|shadow|ring|p[xytblr]?-|outline)/.test(c))).toEqual([]);
@@ -927,8 +942,8 @@ describe("gift guides: design audit round 2 UI fixes", () => {
 describe("gift guides: no ShopMy collection lines on a guide page, no ShopMy/Pinterest links in the footer (owner 11-18 PM)", () => {
   // Owner: "you can remove this because my full guides are already here with the links" (Shop the full guide / More
   // on ShopMy), and "same for this" (Every collection on ShopMy / Every gift guide on Pinterest). The disclosures stay.
-  // @mutate src/pages/info/GiftGuides.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n      <p className="gg-more"><a href="https://shopmy.us/shop/lexilombas">Every collection on ShopMy</a></p>\n
-  it("Her, Him, Dad and a store page show neither line; the footer keeps both disclosures and no other link", () => {
+  // @mutate src/pages/info/GiftGuides.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n      <p className="gg-more"><a href="https://shopmy.us/shop/lexilombas">Every collection on ShopMy</a></p>\n
+  it("Her, Him, Dad and a store page show neither line; the footer keeps the one disclosure line and no other link", () => {
     let pages = 0;
     for (const slug of ["her", "him", "dad", "store-walmart"]) {
       const { container } = renderAt(`/gift-guides/${slug}`);
@@ -936,6 +951,9 @@ describe("gift guides: no ShopMy collection lines on a guide page, no ShopMy/Pin
       const foot = container.querySelector("footer.gg-disc")!;
       expect(foot.querySelector("[data-gift-disclosure]")?.textContent, slug).toBe(giftGuides.disclosure);
       expect(foot.querySelector("[data-gift-amazon-statement]")?.textContent, slug).toBe(AMAZON_STATEMENT);
+      // Owner 11-22: one line (one paragraph) holding both; Amazon's statement inside it.
+      expect(foot.querySelectorAll("p").length, slug).toBe(1);
+      expect(foot.querySelector("[data-gift-disclosure] > [data-gift-amazon-statement]"), slug).not.toBeNull();
       expect(foot.querySelectorAll("a").length, slug).toBe(0);
       pages += 1;
       cleanup();

@@ -61,12 +61,11 @@ export function GuidesFrame({ title, path, banner, tools = "all", disclosures = 
         <div className="gg-main">{children}</div>
         <GiftGuidesSidebar active={null} page={path} />
         {/* Holiday audit 1121 (High): Swipe's Shop links and the planner's ideas are affiliate links (Amazon's among
-            them), so every fun page ends with the same two plain muted lines as the guides: the FTC disclosure
-            (16 CFR Part 255) and the statement the Amazon Associates agreement requires. */}
+            them), so every fun page ends with the same small muted line as the guides: the FTC disclosure
+            (16 CFR Part 255) holding the statement the Amazon Associates agreement requires (one line, owner 11-22). */}
         {disclosures && (
           <footer className="gg-disc" data-gift-fun-disclosure="">
-            <p data-gift-disclosure="">{G.disclosure}</p>
-            <p data-gift-amazon-statement="">{G.amazonStatement}</p>
+            <p data-gift-disclosure="">{G.disclosureLead} <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>
           </footer>
         )}
       </div>

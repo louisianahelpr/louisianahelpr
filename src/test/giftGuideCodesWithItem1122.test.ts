@@ -40,13 +40,13 @@ describe("codes ride with their item on Her, Him and Kids (owner 11-21)", () => 
       expect(p.code, `${p.guide}: ${p.name}`).toBe(live[0].code);
       expect(p.codeEnds, `${p.guide}: ${p.name}`).toBe(live[0].expires);
     }
-    // Camp Snap (Her) and the four xtratuf.com boots (Him) at least.
-    expect(matched).toBeGreaterThan(4);
+    // Camp Snap (Her) and the two xtratuf.com boots (Him) at least.
+    expect(matched).toBeGreaterThan(2);
   });
 
   it("no pick carries a code that does not work at its own store", () => {
     const coded = picks.filter((p) => p.code);
-    expect(coded.length).toBeGreaterThan(4);
+    expect(coded.length).toBeGreaterThan(2);
     for (const p of coded) {
       const c = discountCodes.find((d) => d.code === p.code && norm(d.store) === norm(storeName(p)));
       expect(c, `${p.guide}: ${p.name} (${p.code} at ${storeName(p)})`).toBeDefined();
@@ -61,7 +61,7 @@ describe("codes ride with their item on Her, Him and Kids (owner 11-21)", () => 
     // The module too, so a generator change shows before the page is regenerated.
     expect(HER_1121.find((p) => p.store === "store-camp-snap")?.code).toBe("LEXILOMBAS7");
     const boots = chunk("him").filter((p) => p.store === "store-xtratuf");
-    expect(boots.length).toBe(4);
+    expect(boots.length).toBe(2);
     for (const b of boots) expect([b.code, b.codeEnds]).toEqual(["XT25", "2026-11-29"]);
     // A MUCK pick links Amazon, where Muck Boot's codes do not work.
     for (const p of chunk("him").filter((x) => /muck/i.test(x.name))) expect(p.code).toBeUndefined();

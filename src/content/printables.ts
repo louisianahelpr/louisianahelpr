@@ -262,6 +262,53 @@ export const PRINTABLES: Printable[] = [
   },
   {
     kind: "download",
+    id: "merry-christmas-red-stripe",
+    section: "banners",
+    title: "Merry Christmas (red stripe)",
+    blurb: "Print it as a 12x18 poster at Walgreens, from about $13, same-day pickup.",
+    ready: true,
+    preview: "/printables/merry-christmas-red-stripe/preview.webp",
+    files: [
+      { label: "12x18 print", href: "/printables/merry-christmas-red-stripe/merry-christmas-red-stripe-banner-12x18.jpg" },
+      { label: "Wide banner", href: "/printables/merry-christmas-red-stripe/merry-christmas-red-stripe-banner.jpg" },
+    ],
+    printAt: { href: "https://photo.walgreens.com/store/posters", label: "Print at Walgreens" },
+    guides: [],
+  },
+  {
+    kind: "download",
+    id: "merry-christmas-green-stripe",
+    section: "banners",
+    title: "Merry Christmas (green stripe)",
+    blurb: "Print it as a 12x18 poster at Walgreens, from about $13, same-day pickup.",
+    // Owner 2026-11-22: her Canva banners, newest first (scripts/printables-banner-add.py makes the files).
+    ready: true,
+    preview: "/printables/merry-christmas-green-stripe/preview.webp",
+    files: [
+      { label: "12x18 print", href: "/printables/merry-christmas-green-stripe/merry-christmas-green-stripe-banner-12x18.jpg" },
+      { label: "Wide banner", href: "/printables/merry-christmas-green-stripe/merry-christmas-green-stripe-banner.jpg" },
+    ],
+    printAt: { href: "https://photo.walgreens.com/store/posters", label: "Print at Walgreens" },
+    guides: [],
+  },
+  {
+    kind: "download",
+    id: "merry-christmas-plaid",
+    section: "banners",
+    title: "Merry Christmas (plaid)",
+    blurb: "Print it as a 12x18 poster at Walgreens, from about $13, same-day pickup.",
+    // Owner 2026-11-22: her Canva banners, newest first (scripts/printables-banner-add.py makes the files).
+    ready: true,
+    preview: "/printables/merry-christmas-plaid/preview.webp",
+    files: [
+      { label: "12x18 print", href: "/printables/merry-christmas-plaid/merry-christmas-plaid-banner-12x18.jpg" },
+      { label: "Wide banner", href: "/printables/merry-christmas-plaid/merry-christmas-plaid-banner.jpg" },
+    ],
+    printAt: { href: "https://photo.walgreens.com/store/posters", label: "Print at Walgreens" },
+    guides: [],
+  },
+  {
+    kind: "download",
     id: "thanksgiving-banner",
     section: "banners",
     title: "Happy Thanksgiving banner",

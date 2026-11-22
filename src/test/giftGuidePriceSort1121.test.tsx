@@ -202,12 +202,29 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // (Crocs Dylan at crocs.com $35, was $99).
       // 11-22 (owner edits): Him lost the Dr. Squatch Fresh Falls soap and Men's Fuzzy Cloud Socks (under $25) and the
       // Armor All and Chemical Guys car kits ($25-$50); Her lost the Floral Mama quarter zip (under $25).
-      him: { "Under $25": 42, "$25 to $50": 40, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 34 },
+      // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Him gained the Dad fill-in book ($18).
+      // 11-22 popular approved (builder-guide-popular): Kids + 9, Her + 5, Him + 5 (AirPods Pro 3, AirTags, Bose, Garmin, Gozney).
+      // Train e (11-22): Him also gained Smathers & Branson picks, the Banded and Klola adds and the men's MVP 2-pack, and lost
+      // its duplicates (XTRATUF boots, GoBox 60 and Collection, the RAK tool).
+      him: { "Under $25": 43, "$25 to $50": 43, "$50 to $75": 24, "$75 to $100": 11, "$100 and up": 37 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
-      // and Sleep Crown ($159, $199, $289).
-      kids: { "Under $25": 33, "$25 to $50": 21, "$50 to $75": 7, "$75 to $100": 5, "$100 and up": 17 },
-      her: { "Under $25": 18, "$25 to $50": 16, "$50 to $75": 4, "$75 to $100": 4, "$100 and up": 13 },
+      // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
+      // Eleven Eleven ($158); Him + 2 Lake ($108, $138); Kids + EADEM set ($58). Batch 2b: Her + CFUNIQ ($15), Sleepy Tie,
+      // Foton and Astercook knives ($30-$37), Astercook pans ($57), CASABREWS, Lake, BISSELL, eto, Ozlo ($112-$237); Him +
+      // Battery Daddy ($20); Kids + both Yoto bundles ($164, $166).
+      // Train e (11-22): Kids gained the 9 popular adds, the Quest 3S, iPad and JLab headphones, and lost its duplicate
+      // Switch, Segway and tile rows.
+      kids: { "Under $25": 34, "$25 to $50": 25, "$50 to $75": 8, "$75 to $100": 6, "$100 and up": 20 },
+      // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
+      // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
+      // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
+      // (under $25); Comrad, JAANUU, Stoggles, the Boat and Tote and the lululemon belt bag ($25-$50); Pura 4, Kerastase and
+      // the towel warmer ($50-$75); the Littmann ($92); the UGG Scuffette ($100 shown), Kindle, Daisy Love, Skylight, the
+      // Braun IPL, the XTRATUF boot, the L.L.Bean sweater and barn coat and the HOKA Bondi 9 ($100 and up).
+      // Train e (11-22): Her also gained the 5 popular adds and her3b's PR picks (Beekman, Glow Recipe, Eberjey, Beis,
+      // Case-Mate, Naturium, Makeup by Mario, YTTP), and lost the Amazon Essentials flannel pajamas (owner: "Lake + Eberjey").
+      her: { "Under $25": 36, "$25 to $50": 34, "$50 to $75": 9, "$75 to $100": 8, "$100 and up": 35 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

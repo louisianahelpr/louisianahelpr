@@ -94,8 +94,8 @@ export const DEALS_WORDS = {
   title: "Black Friday & Cyber Monday Deals",
   laterTitle: "Holiday Deals",
   // Owner 2026-11-21 ("remove this"): no intro paragraph, "#ad" line or helper line on the deals page. The page keeps
-  // the gift guides' standard affiliate disclosure in its footer (GiftGuides.tsx); the pre-JS body (api/share.ts)
-  // carries the same words.
+  // the gift guides' standard affiliate disclosure in its footer (GiftGuides.tsx, one short line since 11-22); the
+  // pre-JS body (api/share.ts) carries these words.
   disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
   // Holiday audit 1121 #80: "hand-checked" overclaimed (the rows come from affiliate feeds; dates can change).
   featuredLine: "Sales from brands you already love, all in one place.",

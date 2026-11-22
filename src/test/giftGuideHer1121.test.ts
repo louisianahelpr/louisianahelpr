@@ -1,5 +1,5 @@
 /**
- * For Her is EXACTLY the owner's 46 saves (owner 2026-11-21: from her Amazon list, her Amazon cart and her ShopMy links;
+ * For Her is EXACTLY the owner's 54 saves (owner 2026-11-21: from her Amazon list, her Amazon cart and her ShopMy links;
  * owner 2026-11-22 removed the Floral Mama quarter zip, B0HJVYHH35; scripts/giftGuideHer1121.mjs). The generated page (src/content/giftGuidePicks/her.json) holds those links and no
  * other, in one flat list (no section), cheapest first; an Amazon pick never carries a price and keeps Amazon's own
  * photo; every ShopMy pick shows its checked price and a transparent cutout. The page shows no relationship chips and
@@ -25,8 +25,9 @@ const page = (JSON.parse(readFileSync(join(ROOT, "src", "content", "giftGuidePic
 
 /** The owner's saves, copied from her Desktop notes (Her-saved-amazon-1121.md, Her-saved-shopmy-1121.md), not from the module. */
 const AMAZON_ASINS = ["B0D3L9BYFZ", "B0CPB1MWMP", "B0FVFV7V1R", "B0FFMJMB6K", "B0FDKC619F", "B0C246HFWN", "B0FPCH9S11", "B0FKN7FGPY", "B0B1RWJ4QJ"];
-/** Her Amazon cart saves (Her-saved-amazon-cart-1121.md; owner 2026-11-21: "we can have more than 25 items its fine"). */
-const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B08X8P91FX", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV",
+/** Her Amazon cart saves (Her-saved-amazon-cart-1121.md; owner 2026-11-21: "we can have more than 25 items its fine"). Owner 11-22
+ * ("Lake + Eberjey"): the Amazon Essentials flannel pajamas (B08X8P91FX) came off, so Her keeps two pajama sets. */
+const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV",
   // Owner 11-21 ("women too"): the rest of her cart and saved-for-later, but the duplicate ZDEER listing and Mighty Patch.
   "B0HJ9ZJ8KM", "B091NJQ29P", "B0CMJZVT5P", "B0G6CR9TGW", "B0FSJQ3KJT", "B0F19YY96Z", "B0GT3W5DQL", "B0DT1CZ58V"];
 // p-108755104 is her iHerb pin for the BIODANCE masks (11-21), replacing her Sephora UK pin p-108613754 that US shoppers cannot use.
@@ -46,15 +47,38 @@ const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", 
 const SWITCHED_PINS = ["p-108732256", "p-108732809", "p-107903671", "p-109006074", "p-108985937", "p-109002459", "p-109002206"];
 // Launch day 11-22 (Desktop note Owner-adds-1122.md): the picks she sent as ShopMy links. Her CS-Pro pin at The Swank
 // Company (p-109140912) is on Camp Snap direct instead (her pin p-107929179; owner 11-22 chose the sale price + her code).
-const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-109143437", "p-109143698", "p-109144140", "p-109144450", "p-109145379", "p-109145823"];
-const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS].map((p) => `https://go.shopmy.us/${p}`)]);
+const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-109143437", "p-109143698", "p-109144140", "p-109144450", "p-109145379", "p-109145823",
+  // Batch 2.
+  "p-109147879", "p-109152557", "p-109153848", "p-109153960", "p-109153910", "p-109153811", "p-109151082", "p-109154746",
+  // Batch 2b: The Sleepy Tie, Foton candle, and her Lake Hydrangea set (in place of her Lake pin that is gone from Lake's site).
+  "p-109150422", "p-109158379", "p-103889077",
+  // Batch 2c: Good Molecules patches, BISSELL Little Green Mini, Drowsy mask, Diptyque Baies, Madewell nightgown, Oura Ring 5.
+  "p-109147619", "p-109151385", "p-109149968", "p-109152299", "p-109155568", "p-109155784"];
+// Launch day 11-22, from her screenshots (no ShopMy pin for these): CFUNIQ toiletry bag, Astercook knives and pans,
+// CASABREWS espresso machine, BISSELL FurGuard vacuum, eto decanter, Ozlo Sleepbuds 2.
+const POPULAR_1122_ASINS = ["B0GGTPW6Q9", "B0HJ9ZXCSD", "B0DWHDM15Q", "B0F41DGFXT", "B0BGQT41ZZ"];
+const ADDS_1122_ASINS = ["B0HKS18NW2", "B0C1YBPJ43", "B0F2937DQQ", "B09X3WGJ3R", "B0DQLLPYGM", "B0GP2R8TBS", "B0GZSMBDYZ"];
+// owner 11-22 screenshot list (builder-guide-adds-2): the creators' gift lists she sent ("Add these for her if we don't
+// have them yet"), each the same product as her picture (Desktop note Owner-adds-1122-screens.md), priced 2026-11-22.
+// Owner 2026-11-22 ("Keep only Oura"): B0H1N3TWP1, the Ultrahuman Ring PRO, came off again.
+const SCREENS_1122_ASINS = ["B0030F32L6", "B0DKG9CMH8", "B0GSMJTZJJ", "B0D3V61JC8", "B0CSV71DJV", "B0D2LV7DHF", "B00PCQW4P6", "B0CFPJYX7P",
+  "B000S5VEA2", "B0FGDQ5BT9", "B0DN245D58", "B0HN76TWQ2", "B0C6XK77HJ", "B0D858S2H5", "B0BLWTQ7JC", "B0F831FK2R", "B0B22SZ3W8", "B0H69TGK2F", "B07CDF1RVV", "B0G618GK4S", "B09WG9R7MY"];
+const SCREENS_1122_PINS = ["p-103899561", "p-104053242", "p-103903056", "p-103891549", "p-107936463", "p-103882819", "p-107936513", "p-107936484", "p-107887741"];
+// XTRATUF's women's Camp Fleece boot at xtratuf.com through her CJ link (15%, as the Him XTRATUF boots).
+const SCREENS_1122_CJ = ["https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxwadbc10"];
+// Owner 11-22 PR picks (builder-guide-her3b).
+const PR_PINS = ["p-107965795", "p-103880845", "p-104580620", "p-103889854", "p-103784739", "p-103878765", "p-103883109", "p-103877715"];
+const SAVED = new Set([...[...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
+const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 55 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(55);
-    expect(page.length).toBe(55);
+  it("the page holds exactly her 122 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(122);
+    expect(page.length).toBe(122);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
+    // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
+    expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
   });
 
   it("the generated page is exactly what the module builds (re-run scripts/gift-guide-picks.mjs after a change)", () => {
@@ -71,7 +95,9 @@ describe("For Her = the owner's saves (11-21)", () => {
     const seen = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     const prices = page.map((p) => seen.get(p.href) as number);
     expect(prices).toEqual([...prices].sort((a, b) => a - b));
-    expect(page[0].name).toMatch(/eye gel/i);
+    // The cheapest is the Mrs. Meyer's spray ($4.33, the 11-22 screenshot list), then the eye gel ($4.77).
+    expect(page[0].name).toMatch(/^Mrs\. Meyer's/);
+    expect(page[1].name).toMatch(/eye gel/i);
     expect(page[page.length - 1].name).toMatch(/currentbody/i);
     // The module sorts by itself: fed in reverse, it still lists cheapest first.
     const again = her1121Picks([...HER_ROWS].reverse()).map((p) => seen.get(p.href) as number);
@@ -85,13 +111,14 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(27);
-    expect(shopmy.length).toBe(28);
+    expect(amazon.length).toBe(59);
+    expect(shopmy.length).toBe(63);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
-      expect(p.priceAt, p.name).toBe("2026-11-21");
+      // Her saved-list picks were captured 11-21; the Amazon picks from her launch-day screenshots, 11-22.
+      expect(p.priceAt, p.name).toBe([...ADDS_1122_ASINS, ...POPULAR_1122_ASINS].some((a) => p.href.includes(a)) || SCREENS_1122.has(p.href) ? "2026-11-22" : "2026-11-21");
       expect(p.image, p.name).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
     }
     for (const p of shopmy) {

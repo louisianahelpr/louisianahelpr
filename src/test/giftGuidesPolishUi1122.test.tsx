@@ -4,9 +4,9 @@
  * #2 (High): the desktop menu was held to 828px at 1440x900 but needed 959px, so the LOUISIANA group was cut off with
  *    no scrollbar on a Mac. On a mouse screen its rows are 36px and the group headings 10px apart (815px), and on a
  *    screen too short for it the menu scrolls with the page instead of sticking, so nothing is ever hidden.
- * #3 (High): Gift tags, Coloring books, Banners, Swipe, Secret Santa, the planner and Shop Small had no phone chip row.
- *    GuidesFrame draws it now, with Printables filled on the printables pages.
- * #6: the chips are Her, Him, Kids, Deals, Printables and a pinned More (Menu was 8th and out of view at 375).
+ * #3 (High): Gift tags, Coloring books, Banners, Swipe, Secret Santa, the planner and Shop Small had no phone menu.
+ *    GuidesFrame draws it now (owner 11-22: the head row's three-line menu, which replaced the chip row).
+ * #6: the menu always shows (owner 11-22: on the head row's right, beside the heart; was a pinned More chip).
  * #5: a phone's count row (count, pill, 4 icons) fits one row at 375: the pill reads "By Dec 15" there, gaps 4px.
  * #9: My Wish List has no second "All guides" back link (the head row's arrow goes to /gift-guides).
  * #10: one sub-page title (overtaken by the owner's 11-22 #13 "the same top section as the guides and the deals"): the
@@ -24,13 +24,13 @@
  * #28: /holidays hides Home in the top nav (/shop-small is now a 301); the Hub's link to the guides sits under its intro.
  * #29: a Hub search with no match says 'No lights or events match "..."' with Clear search; the hint fits the field.
  * #22: in the "Save for someone" popup each box's icons sit on the same line as its + (the open icon sat alone below).
- * #19: on a phone the hub shows one line above the greeting, and a guide's banner starts 16px under the chip row.
+ * #19: on a phone the hub shows one line above the greeting (owner 11-22: the chip row and its line are gone).
  *
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:36px} | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:44px}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-side{position:static;max-height:none;overflow:visible} | .gg-side{max-height:none}
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | nav={{ active: null, page: path }} | nav={{ active: null, page: "/gift-guides/swipe" }}
- * @mutate src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx | const printablesOpen = open !== null && PRINTABLE_PATHS.includes(open); | const printablesOpen = false;
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav>.gg-chip-menu{flex:none;margin-right:20px} | .gg-pnav>.gg-chip-menu{margin-right:20px}
+ * @mutate src/pages/info/giftGuides/GuidesTop.tsx | <GuidesMenuButton active={nav.active} myList={nav.myList} page={nav.page} /> | {null}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-head-phone{display:flex;align-items:center;flex:none;margin:0 -10px 0 auto} | .gg-head-phone{display:flex;align-items:center;flex:none}
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx | {/* UX audit M4 | <a href="/gift-guides" data-gift-back="">All guides</a>{/* UX audit M4
  * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | sub ? "gg-words gg-banner-wrap gg-banner-sub" | sub ? "gg-words gg-banner-wrap"
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const badges = guide === SPONSORS_PAGE ? | const badges = false ?
@@ -45,7 +45,6 @@
  * @mutate src/pages/info/holidays/HolidayHub.tsx |           query.trim() && active.length === 0 ? ( |           false ? (
  * @mutate src/pages/info/giftGuides/giftWishStyles.ts | .gg-savefor-box{display:flex;flex-wrap:wrap;align-items:center} | .gg-savefor-box{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow .gg-ship-order{display:none} | .gg-countrow .gg-ship-order{}
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav:has(+.gg-divider){border-bottom-color:transparent} | .gg-pnav:has(+.gg-divider){}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
@@ -64,7 +63,7 @@ import { dealDay } from "@/content/giftGuideDeals.mjs";
 import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
 
-vi.mock("@/pages/info/giftGuides/GiftGuideShare", () => ({ GiftGuideTools: () => null }));
+vi.mock("@/pages/info/giftGuides/GiftGuideShare", () => ({ GiftGuideTools: () => null, MyListIcon: () => null }));
 vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsLogoUrl: () => "" }));
 
 afterEach(cleanup);
@@ -89,39 +88,28 @@ describe("polish audit 1122 #2: the desktop guides menu fits", () => {
   });
 });
 
-describe("polish audit 1122 #3/#6: the phone chip row on every frame page, More pinned", () => {
+// Owner 2026-11-22 (phone): the chip row of #3/#6 is gone; every frame page's head row carries the phone's heart and
+// three-line menu instead (the whole check is src/test/giftGuidePhoneHead1122.test.tsx).
+describe("polish audit 1122 #3/#6, owner 11-22: the phone's menu on every frame page, in the head row", () => {
   const pages = ["/gift-guides/printables/gift-tags", "/gift-guides/printables/coloring-books", "/gift-guides/printables/banners", "/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner"] as const;
-  it("each of the 6 pages draws the chip row right under the head row", () => {
+  it("each of the 6 pages draws the three-line menu on the right of its head row, and no chip row", () => {
     expect(pages.length).toBeGreaterThan(5);
     for (const path of pages) {
       const c = frameAt(path);
-      const nav = c.querySelector("[data-gift-phone-nav]");
-      expect(nav, path).not.toBeNull();
-      expect(c.querySelector("[data-gift-headrow]")!.nextElementSibling, path).toBe(nav);
+      const row = c.querySelector("[data-gift-headrow]")!;
+      const menu = row.querySelector("[data-gift-head-phone] > button[data-gift-head-menu]");
+      expect(menu, path).not.toBeNull();
+      expect(menu!.getAttribute("aria-label"), path).toBe("Guides menu");
+      expect(row.lastElementChild!.matches("[data-gift-head-phone]"), path).toBe(true);
+      expect(c.querySelector("[data-gift-phone-nav], [data-gift-chip]"), path).toBeNull();
       cleanup();
     }
   });
 
-  it("Printables is filled on the printables pages and links straight to Gift tags; More on the fun tools", () => {
-    for (const path of pages.slice(0, 3)) {
-      const chip = frameAt(path).querySelector('[data-gift-chip="printables"]')!;
-      expect(chip.className, path).toContain("is-on");
-      expect(chip.getAttribute("aria-current")).toBe("page");
-      expect(chip.getAttribute("href")).toBe("/gift-guides/printables/gift-tags");
-      cleanup();
-    }
-    const swipe = frameAt("/gift-guides/swipe");
-    expect(swipe.querySelector('[data-gift-chip="menu"]')!.className).toContain("is-on");
-    expect(swipe.querySelector('[data-gift-chip="printables"]')!.className).not.toContain("is-on");
-  });
-
-  it("More sits outside the scrolling row, so it always shows", () => {
-    const c = frameAt("/gift-guides/swipe");
-    const more = c.querySelector('[data-gift-chip="menu"]')!;
-    expect(more.textContent).toBe("More");
-    expect(more.closest(".gg-pnav-row")).toBeNull();
-    expect(more.parentElement!.matches("[data-gift-phone-nav]")).toBe(true);
-    expect(GIFT_GUIDES_CSS).toContain(".gg-pnav>.gg-chip-menu{flex:none;margin-right:20px}");
+  it("the heart and the menu sit at the row's right edge (margin-left auto), never on a line of their own", () => {
+    const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.indexOf(".gg-head-phone{display:none}"));
+    expect(phone).toContain(".gg-head-phone{display:flex;align-items:center;flex:none;margin:0 -10px 0 auto}");
+    expect(phone).toContain(".gg-headrow{flex-wrap:nowrap;gap:4px}");
   });
 });
 
@@ -150,9 +138,9 @@ describe("polish audit 1122 #5/#9/#10/#19", () => {
     expect(GIFT_GUIDES_CSS).toMatch(/\.gg-pagehead h1,\.gg \.gg-wish-title\{font-family:'Bodoni Moda'/);
   });
 
-  it("#19: one line above the hub's greeting on a phone; a gap above a guide's banner", () => {
-    const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.indexOf("@media (max-width:767px){.gg-pagehead h1"));
-    expect(phone).toContain(".gg-pnav:has(+.gg-divider){border-bottom-color:transparent}.gg-pnav+.gg-banner-wrap{padding-top:16px}}");
+  it("#19 (owner 11-22: no chip row on a phone): no chip-row line or rule is left, so the hub's divider is its one line", () => {
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-pnav|\.gg-chip-nav/);
+    expect(GIFT_GUIDES_CSS).toMatch(/\.gg-divider\{/);
   });
 });
 

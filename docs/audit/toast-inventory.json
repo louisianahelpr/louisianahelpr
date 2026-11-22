@@ -15116,7 +15116,7 @@
     },
     {
       "file": "src/pages/info/giftGuides/ManageList.tsx",
-      "line": 175,
+      "line": 176,
       "kind": "successToast",
       "title": {
         "form": "dynamic",
@@ -15126,7 +15126,7 @@
     },
     {
       "file": "src/pages/info/giftGuides/ManageList.tsx",
-      "line": 230,
+      "line": 231,
       "kind": "successToast",
       "title": {
         "form": "dynamic",

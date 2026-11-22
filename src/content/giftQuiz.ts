@@ -75,7 +75,7 @@ const PER_BRAND = 2;
 
 /** Grown-up gift types and the interests each one is. */
 const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
-  "throw-blanket": ["cozy"], bedding: ["cozy"], pajamas: ["cozy"], "sleep-mask": ["cozy"], candle: ["cozy"], socks: ["cozy"],
+  "throw-blanket": ["cozy"], bedding: ["cozy"], pajamas: ["cozy"], "sleep-mask": ["cozy"], candle: ["cozy"], socks: ["cozy"], "compression-socks": ["cozy"],
   clock: ["cozy", "tech"], coasters: ["cozy", "kitchen"], "valet-tray": ["cozy", "style"],
   skincare: ["beauty"], lip: ["beauty"], makeup: ["beauty"], "gift-set": ["beauty"], fragrance: ["beauty"], hair: ["beauty"],
   "beauty-device": ["beauty", "tech"], massager: ["fitness", "tech"], grooming: ["beauty"], soap: ["beauty"], "body-wash": ["beauty"],
@@ -96,17 +96,37 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   cufflinks: ["style"], backpack: ["outdoors", "style"], flask: ["outdoors"],
   // The owner's launch-day Her adds (11-22, scripts/giftGuideOwnerAdds1122.mjs) brought five new types.
   "lip-balm": ["beauty"], "hair-towel": ["beauty"], robe: ["cozy"], pillow: ["cozy"], "wine-tool": ["kitchen"],
+  // Batch 2 of her launch-day adds: sleep gummies and a wall diffuser are cozy home, a journal and a planner binder are
+  // style pieces, the kitchen set and espresso machine are kitchen, a stick vacuum is a gadget, sleep earbuds both.
+  "sleep-supplement": ["cozy", "fitness"], "home-fragrance": ["cozy"], journal: ["style"], planner: ["style"],
+  "kitchen-knives": ["kitchen"], cookware: ["kitchen"], "coffee-maker": ["kitchen"], vacuum: ["tech"], "sleep-earbuds": ["tech", "cozy"],
+  "smart-ring": ["tech", "fitness"], nightgown: ["cozy", "style"],
+  // The owner's 11-22 screenshot adds (builder-guide-adds-2, scripts/giftGuideHer1121.mjs): a nurse's pens and stethoscope
+  // are work tools; the fill-in book, earplugs, diffuser and cleaning picks are home; the e-reader, power bank
+  // and family calendar are gadgets; the food jar is kitchen; safety glasses and an underscrub are what she wears.
+  stationery: ["tools"], stethoscope: ["tools"], book: ["cozy"], earplugs: ["cozy"], diffuser: ["cozy"], "e-reader": ["tech", "cozy"],
+  cleaning: ["cozy"], "food-jar": ["kitchen"], "tech-accessory": ["tech"], eyewear: ["style"],
+  scrubs: ["style"], calendar: ["tech", "cozy"], "hand-care": ["beauty"],
+  // The popular adds of 11-22 (builder-guide-popular): a cooling fan, power bank, travel adapter, earbuds, headphones and
+  // tracker are gadgets; a smartwatch is a gadget for workouts; a pizza oven is kitchen, out in the yard.
+  "personal-fan": ["tech"], "power-bank": ["tech"], "travel-adapter": ["tech"], earbuds: ["tech"], headphones: ["tech"],
+  tracker: ["tech"], smartwatch: ["tech", "fitness"], "pizza-oven": ["kitchen", "outdoors"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   game: ["games"], "game-console": ["games"], "digital-pet": ["games"], watch: ["games"], "walkie-talkie": ["games", "active"], camera: ["games", "creative"],
-  karaoke: ["games"], dance: ["games", "active"], toy: ["games"], audio: ["games"], bank: ["stocking"],
+  karaoke: ["games"], vr: ["games", "active"], tablet: ["games", "creative"], dance: ["games", "active"], toy: ["games"], audio: ["games"], bank: ["stocking"],
   "building-toy": ["build"], "building-set": ["build"], blocks: ["build", "pretend"], "construction-toy": ["build", "pretend"], science: ["build"], learning: ["build"],
   craft: ["creative"], art: ["creative"], book: ["creative", "stocking"], slime: ["creative", "stocking"],
   scooter: ["active"], "ride-on": ["active", "pretend"], hoverboard: ["active"], outdoor: ["active"], sports: ["active", "games"], "balance-bike": ["active"], rocket: ["active", "build"],
   "pretend-play": ["pretend"], doll: ["pretend"], dollhouse: ["pretend"], "pull-toy": ["pretend"], "car-toy": ["pretend"], "bath-toy": ["pretend"],
   rocker: ["pretend", "active"], "spin-toy": ["pretend", "active"], "play-table": ["pretend", "active"], "baby-clothes": ["cozy"],
   squishy: ["stocking"], fidget: ["stocking"], toothbrush: ["stocking"], ornament: ["stocking", "build"], chair: ["cozy"], bag: ["stocking"],
+  // The EADEM New Classics Set (owner 11-22: on Kids) is a teen self-care set.
+  "skincare-set": ["cozy"],
+  // The popular Kids adds of 11-22 (builder-guide-popular): a brain-teaser puzzle is a game; a hatching egg, a playset, a
+  // plush Elmo and a dino vehicle are pretend play.
+  puzzle: ["games"], "hatching-toy": ["pretend"], playset: ["pretend"], plush: ["pretend"], "vehicle-toy": ["pretend"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -124,7 +144,7 @@ const NAME_TAGS: [RegExp, QuizInto][] = [
   [/\b(fuzzy|sherpa|fleece|flannel|lounge|weighted|plush)\b/i, "cozy"],
 ];
 /** Gift types the cozy name words never tag (a "fleece lined" boot is not Cozy & home). */
-const NOT_COZY_TYPES = new Set(["skincare", "lip", "lip-balm", "hair-towel", "makeup", "gift-set", "fragrance", "hair", "beauty-device", "grooming", "soap", "body-wash", "lotion", "shave", "shoes", "boots"]);
+const NOT_COZY_TYPES = new Set(["skincare", "lip", "lip-balm", "hair-towel", "skincare-set", "makeup", "gift-set", "fragrance", "hair", "beauty-device", "grooming", "soap", "body-wash", "lotion", "shave", "shoes", "boots"]);
 /** Per-pick fixes where the type and name rules misfire (by the pick's name; checked by eye, 11-21 PM). */
 const TAG_OVERRIDES: [RegExp, QuizInto[]][] = [
   // A keychain video camera is a gadget, not a style piece.
@@ -156,7 +176,12 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   slime: ["6-8", "9-12"], squishy: ["6-8", "9-12"], fidget: ["6-8", "9-12", "teen"], game: ["6-8", "9-12", "teen"], bank: ["6-8", "9-12"],
   toy: ["6-8", "9-12"], outdoor: ["6-8", "9-12"], rocket: ["6-8", "9-12"], watch: ["6-8", "9-12"], "walkie-talkie": ["6-8", "9-12"],
   science: ["6-8", "9-12"], "digital-pet": ["6-8", "9-12"], "building-set": ["9-12", "teen"], ornament: ["6-8", "9-12", "teen"],
-  scooter: ["6-8", "9-12"], hoverboard: ["6-8", "9-12"], "game-console": ["9-12", "teen"], bag: ["6-8", "9-12", "teen"],
+  scooter: ["6-8", "9-12"], hoverboard: ["6-8", "9-12"], "game-console": ["9-12", "teen"], vr: ["9-12", "teen"], tablet: ["6-8", "9-12", "teen"], bag: ["6-8", "9-12", "teen"],
+  // The EADEM New Classics Set (11-22) is skin care for a teen.
+  "skincare-set": ["teen"],
+  // The popular Kids adds of 11-22, by each box's age: Little People and Tickle Me Elmo are for toddlers, the PAW Patrol
+  // vehicle and the hatching egg for preschool and up, Kanoodle (7+) for school-age kids and teens.
+  playset: ["0-2", "3-5"], plush: ["0-2", "3-5"], "vehicle-toy": ["3-5", "6-8"], "hatching-toy": ["3-5", "6-8"], puzzle: ["6-8", "9-12", "teen"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],

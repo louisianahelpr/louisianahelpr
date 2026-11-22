@@ -238,8 +238,8 @@ export default function GiftGuides() {
       {/* Owner decision 2026-11-18 (~8:50 AM): the disclosures are plain muted lines at the BOTTOM, no box. The
           Amazon line is the exact statement the Amazon Associates Operating Agreement requires on a site with
           Amazon links. */}
-      <p data-gift-disclosure="">{G.disclosure}</p>
-      <p data-gift-amazon-statement="">{G.amazonStatement}</p>
+      {/* Owner 2026-11-22 ("Make this small on 1 line"): ONE small line, the affiliate words and Amazon's statement. */}
+      <p data-gift-disclosure="">{G.disclosureLead} <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>
       {/* Owner 11-18 PM: no "Every collection on ShopMy" / "Every gift guide on Pinterest" links; the disclosures stay. */}
     </footer>
   );
@@ -290,9 +290,11 @@ export default function GiftGuides() {
         {/* Owner redesign 11-18 PM: under the title ONE slim row (search, My list, Share); Text and Copy link sit in
             Share's menu and the codes are a "Deals & codes" section of the page. The banner title is the page's h1
             (live audit r3 #7); the header's "Gift guides" is a plain line (titleTag="p"). */}
-        {/* The one top of every guides page (GuidesTop): the head row, the phone's chip row, the banner. A phone's guide
+        {/* The one top of every guides page (GuidesTop): the head row, the banner. A phone's guide
             page and the 25 Days sponsors page put the pill and the icons on the count row under the banner. */}
-        <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} pillInRow={!countRow}
+        {/* Owner 11-22 (phone): the head row's heart and three-line menu replace the chip row on every page; a guide's
+            own count row under its banner is kept as it is ("she didn't ask to change it"). */}
+        <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} pillInRow={!countRow} onMyList={myList}
           below={(shipPill) => countRow && guide && (
             <div className="gg-countrow" data-gift-countrow="">
               <div className="gg-countrow-left">

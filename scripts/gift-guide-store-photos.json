@@ -24,6 +24,13 @@
    "image": "https://belk.scene7.com/is/image/Belk?layer=0&src=5900053_VBRAY5_A_000&wid=1200&hei=1200",
    "page": "https://www.belk.com/p/clinique-full-face-forward-simply-radiant-makeup-gift-set---118-value/5900053VBRAY5.html"
   },
+  "Benefit Cosmetics": {
+   "file": "benefit-cosmetics.webp",
+   "product": "Benefit Hoola Matte Bronzer, Toasted",
+   "image": "https://images.qvc.com/is/image/a/14/a566314.001",
+   "page": "https://go.shopmy.us/p-107932573",
+   "note": "Owner 11-22 #10: benefitcosmetics.com still blocks fetching, so QVC's copy of Benefit's own Hoola packshot (in our ShopMy links); the sale is 30% off sitewide. White ground flooded out (the open compact's mirror kept)."
+  },
   "Bergdorf Goodman": {
    "file": "bergdorf-goodman.webp",
    "product": "Diptyque Baies (Berries) Classic Candle",
@@ -61,6 +68,13 @@
    "product": "Men's Classic Cap-Toe Formal Oxford Shoes",
    "image": "https://cdnimg.brunomarc.com/brunomarcshoes/product/product/2024-07-23/279/02:21--20240723-102129.png",
    "page": "https://www.brunomarc.com/products/prince-6?color=1888"
+  },
+  "CB2": {
+   "file": "cb2.webp",
+   "product": "CB2 Fireleigh Faux Fur Throw Blanket",
+   "image": "https://cb2.scene7.com/is/image/CB2/FrlghDkBnFxFrBlkt50X70SHF26",
+   "page": "https://www.cb2.com/sale/black-friday-cyber-monday-sale/",
+   "note": "Owner 11-22 #10: the photo CB2's own Black Friday sale page shows (cb2.scene7.com is reachable though cb2.com is not); Apple Vision cutout."
   },
   "Camp Snap": {
    "file": "camp-snap.webp",
@@ -111,6 +125,13 @@
    "image": "https://cdn.shopify.com/s/files/1/0809/0288/1599/files/mimi-striped-cardigan-mini-bag-charm-floral-detail-1-1794465567.webp?v=1794470532",
    "page": "https://www.fbrq.com/products/mimi-striped-cardigan-mini-bag-charm-floral"
   },
+  "Famous Footwear": {
+   "file": "famous-footwear.webp",
+   "product": "Famous Footwear logo",
+   "image": "https://upload.wikimedia.org/wikipedia/commons/4/46/Famous_Footwear_logo.svg",
+   "page": "https://www.famousfootwear.com/",
+   "note": "Owner 11-22 #10: its sales are store-wide brand sales (Vans, HEYDUDE, Crocs, Jordan), so the brand's clean logo (transparent, from Wikimedia Commons' SVG)."
+  },
   "Foot Locker": {
    "file": "foot-locker.webp",
    "product": "Nike Air Force 1 '07 (men's)",
@@ -141,6 +162,13 @@
    "image": "https://images.journeys.com/images/products/1_457518_FS.JPG",
    "page": "https://www.journeys.com/product/vans-old-skool-checkerboard-skate-shoe-black-white-497097"
   },
+  "Keurig": {
+   "file": "keurig.webp",
+   "product": "Keurig logo",
+   "image": "https://upload.wikimedia.org/wikipedia/commons/0/05/Keurig_logo.svg",
+   "page": "https://www.keurig.com/",
+   "note": "Owner 11-22 #10: the code covers K-Cup pods across the store and keurig.com blocks fetching, so the brand's clean logo (transparent, Wikimedia Commons SVG)."
+  },
   "Kevin Murphy": {
    "file": "kevin-murphy.webp",
    "product": "KEVIN.MURPHY ANGEL.WASH shampoo",
@@ -152,6 +180,13 @@
    "product": "Jordan Air Jordan 1 Mid SE (boys' grade school)",
    "image": "https://images.footlocker.com/is/image/EBFL2/Z4720001?wid=1000&hei=1000",
    "page": "https://www.kidsfootlocker.com/product/jordan-air-jordan-1-mid-se-boys-grade-school/Z4720001.html"
+  },
+  "KitchenAid": {
+   "file": "kitchenaid.webp",
+   "product": "KitchenAid Artisan Plus 5-Qt Stand Mixer",
+   "image": "https://static.shopmy.us/uploads/pretty-prod-1778153611967",
+   "page": "https://go.shopmy.us/p-107926979",
+   "note": "Owner 11-22 #10: kitchenaid.com and its image server answer 403, so ShopMy's copy of the Artisan Plus stand mixer photo (the sale: up to 30% off countertop appliances). White ground flooded out."
   },
   "Lands' End": {
    "file": "lands-end.webp",
@@ -190,6 +225,13 @@
    "product": "UGG Tasman II Slipper (women), chestnut",
    "image": "https://n.nordstrommedia.com/it/17018532-6eaf-4c06-867c-c2da63714732.jpeg?w=1200&h=1200&crop=pad&trim=color",
    "page": "https://www.nordstrom.com/s/ugg-tasman-ii-slipper-women/8083472"
+  },
+  "Oriental Trading Company": {
+   "file": "oriental-trading-company.webp",
+   "product": "Oriental Trading logo",
+   "image": "https://res.cloudinary.com/mavely/image/upload/v1726075275/Oriental_Trading_Logo_4694ac0a22.jpg",
+   "page": "https://www.orientaltrading.com/",
+   "note": "Owner 11-22 #10: its sales are store-wide (Black Friday early access, holiday dollar deals), so the brand's logo, the purple square Mavely shows with the sale link."
   },
   "PUMA": {
    "file": "puma.webp",
@@ -246,6 +288,13 @@
    "image": "https://i5.samsclubimages.com/asr/8541721b-0bd9-4671-bc18-38bde4d000ba.1b245066f8b1daa71a9e78c348be3d05.jpeg",
    "page": "https://mavely.app.link/6HdKqiKQa8b"
   },
+  "Scheels": {
+   "file": "scheels.webp",
+   "product": "Scheels logo",
+   "image": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Scheels_logo.svg",
+   "page": "https://www.scheels.com/",
+   "note": "Owner 11-22 #10: its sales are store-wide brand sales (Smartwool, adidas, Crocs, Jordan, Nike), so the brand's clean logo (transparent, Wikimedia Commons SVG)."
+  },
   "SharkNinja": {
    "file": "sharkninja.webp",
    "product": "Shark Pet Cordless Stick Vacuum",
@@ -257,6 +306,20 @@
    "product": "T3 Afar hair dryer",
    "image": "https://cdn.shopify.com/s/files/1/0677/8182/0672/files/Tool_on_White_B_AFAR_Hair_Dryer_2ab0fdc5-c2ae-42a4-a724-a154ba718bb4.jpg?v=1763599951",
    "page": "https://www.t3micro.com/products/afar"
+  },
+  "The Home Depot": {
+   "file": "the-home-depot.webp",
+   "product": "The Home Depot logo",
+   "image": "https://upload.wikimedia.org/wikipedia/commons/f/f6/The_Home_Depot_logo.svg",
+   "page": "https://www.homedepot.com/",
+   "note": "Owner 11-22 #10: its card lists five unrelated sales (Milwaukee M18, drills, Fire TV, massage chairs), so the brand's logo (Wikimedia Commons SVG)."
+  },
+  "The Men's Wearhouse": {
+   "file": "the-mens-wearhouse.webp",
+   "product": "Joseph Abboud Wool Coat, Black",
+   "image": "https://image.menswearhouse.com/is/image/TMW/TMW_72G8_02_JOSEPH_ABBOUD_WOOL_COATS_BLACK_MAIN",
+   "page": "https://www.menswearhouse.com/c/mens-clothing/outerwear",
+   "note": "Owner 11-22 #10: the photo its outerwear sale page shows (image.menswearhouse.com); Apple Vision cutout."
   },
   "Thrive Creative": {
    "file": "thrive-creative.webp",
@@ -282,6 +345,13 @@
    "image": "https://underarmour.scene7.com/is/image/Underarmour/PS1379757-025_HF?rp=standard-0pad%7Cpdp&qlt=85&bgc=f0f0f0&wid=800&hei=1000&op_usm=1.75%2C0.3%2C2%2C0",
    "page": "https://www.underarmour.com/en-us/p/ua_rival_fleece_mens_hoodie/1379757.html"
   },
+  "Universal Standard": {
+   "file": "universal-standard.webp",
+   "product": "Universal Standard Savvy Fine Knit Crew Sweater, Classic Camel/Poppy Stripes",
+   "image": "https://cdn.shopify.com/s/files/1/0838/4441/files/USSW1767-1014-Savvy-Fine-Knit-Crew-Sweater-Poppy-Ecru-Wide-Stripe_002_103.jpg",
+   "page": "https://www.universalstandard.com/products/savvy-fine-knit-crew-sweater-classic-camel-poppy-stripes",
+   "note": "Owner 11-22 #10: a sweater from its own sweater shop (the sale: 40% off all sweaters), universalstandard.com's own photo; Apple Vision cutout."
+  },
   "Victoria's Secret": {
    "file": "victorias-secret.webp",
    "product": "Bombshell Eau de Parfum 1.7 oz",
@@ -304,30 +374,20 @@
  "none": {
   "Adidas": "adidas.com blocks automated fetching: HTTP 403 to curl and WebFetch (Gazelle product page)",
   "Anthropologie": "anthropologie.com blocks automated fetching: HTTP 403 to curl and WebFetch",
-  "Benefit Cosmetics": "benefitcosmetics.com blocks automated fetching: HTTP 403 to curl and WebFetch (Hoola product page)",
   "Bergdorf Goodman": "bergdorfgoodman.com blocks automated fetching: HTTP 403 to curl",
   "Bloomingdale's": "bloomingdales.com blocks automated fetching: HTTP 403 to curl and WebFetch",
-  "CB2": "cb2.com blocks automated fetching: HTTP 403 to curl",
   "Crate & Barrel Kids": "crateandbarrel.com blocks automated fetching: HTTP 403 to curl and WebFetch (play kitchen product page)",
   "Diesel": "diesel.com blocks automated fetching: HTTP 403 to curl and WebFetch (1DR bag product page)",
-  "Famous Footwear": "famousfootwear.com blocks automated fetching: HTTP 403 to curl and WebFetch",
-  "Keurig": "keurig.com blocks automated fetching: product pages answer HTTP 403 to curl and 400 to WebFetch (2026-11-21); no product photo reachable",
-  "Kitchen Aid": "kitchenaid.com blocks automated fetching: HTTP 403 to curl; WebFetch timed out twice on the Artisan stand mixer page",
   "Lancome": "lancome-usa.com blocks automated fetching: HTTP 403 to curl and WebFetch",
   "Lands' End": "landsend.com blocks automated fetching: HTTP 403 to curl and WebFetch on home and product pages",
   "Macy's": "macys.com blocks automated fetching: HTTP 403 to curl and WebFetch",
   "Marshalls": "marshalls.com blocks automated fetching: HTTP 403 to curl; WebFetch gets a generic error page with no products",
   "Neiman Marcus": "neimanmarcus.com blocks automated fetching: HTTP 403 to curl and WebFetch",
-  "Oriental Trading Company": "orientaltrading.com blocks automated fetching: HTTP 403 to curl and WebFetch",
   "Saks Fifth Avenue": "saksfifthavenue.com blocks automated fetching: HTTP 403 to curl and WebFetch",
   "Sam's Club": "samsclub.com product pages return a bot check ('Let us know you're human') to curl and WebFetch",
   "Samsung": "samsung.com buy page loads its product gallery by script (no product image in the HTML); the Buds4 Pro page only has model and lifestyle shots",
-  "Scheels": "scheels.com blocks automated fetching: HTTP 403 to curl and WebFetch",
   "TJ Maxx": "tjmaxx.tjx.com blocks automated fetching: curl connection refused/timeout; WebFetch gets a generic error page with no products",
-  "The Home Depot": "homedepot.com blocks automated fetching: HTTP 403 to curl and WebFetch (Milwaukee M18 product page)",
-  "The Men's Wearhouse": "menswearhouse.com blocks automated fetching: curl connection failed; WebFetch timed out",
   "Theory": "theory.com blocks automated fetching: HTTP 403 to curl and WebFetch",
-  "Universal Standard": "every product photo on universalstandard.com shows a model (checked all 250 products in products.json incl. the 38 sweaters/cardigans); no product-only shot",
   "Woot!": "woot.com pages are script-rendered with no product images in the HTML, and WebFetch gets HTTP 403; also Woot is an Amazon company, so its listing photos may fall under the Amazon photo rule"
  }
 }

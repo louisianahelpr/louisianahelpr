@@ -135,6 +135,7 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   puzzle: ["games"], "hatching-toy": ["pretend"], playset: ["pretend"], plush: ["pretend"], "vehicle-toy": ["pretend"],
   // Backyard play gear she saved (11-22): outdoor sets for little ones.
   "backyard-play": ["active", "pretend"],
+  "kids-pajamas": ["cozy"], "duck-call": ["active", "stocking"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -191,6 +192,7 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   // vehicle and the hatching egg for preschool and up, Kanoodle (7+) for school-age kids and teens.
   playset: ["0-2", "3-5"], plush: ["0-2", "3-5"], "vehicle-toy": ["3-5", "6-8"], "hatching-toy": ["3-5", "6-8"], puzzle: ["6-8", "9-12", "teen"],
   "backyard-play": ["3-5"],
+  "kids-pajamas": ["0-2", "3-5", "6-8"], "duck-call": ["6-8", "9-12"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],

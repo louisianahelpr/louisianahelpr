@@ -368,6 +368,8 @@ export const KIDS_PLAY_1122 = [
   // owner 11-22 kids picks 2 (builder-guide-kids2): prices read from the store pages 11-22. Step2 water table is a ShopMy-created Target link (4%), logged in ShopMy-links-created-1122.md.
   ["109218761", 84.99, "https://target.scene7.com/is/image/Target/GUEST_e24e9f30-ae18-4fd5-b2c0-e0bee49629b0", "Step2 Rain Showers Splash Pond Water Table", "Step2", "store-target", "backyard-play", 4, "A splash-pond water table with a rain shower to play under."],
   ["107902887", 54.95, "https://static.shopmy.us/uploads/pretty-prod-1764597442673", "Burt's Bees Baby Little Ducks Bath Time Gift Set", "Burt's Bees Baby", "store-burts-bees-baby", "baby-clothes", 12, "A duck-print bath time set for baby, packed in its own tote."],
+  ["108100673", 21.6, "https://static.shopmy.us/pins/zoom-108100673-1795144222288-WXZdEMYzF3p1mC184cAVhLxQo.jpg", "Angel Dear American Ducks Short Sleeve Loungewear Set", "Angel Dear", "store-maisonette", "kids-pajamas", 16, "Snug-fit duck-print pajamas with teal cuffs, on sale at Maisonette."],
+  ["107895388", 19.99, "https://static.shopmy.us/pins/zoom-107895388-1795118461682-6165186", "Duck Commander Build Your Own Starter Call", "Duck Commander", "store-tractor-supply", "duck-call", 8, "A build-your-own duck call kit for a little hunter."],
 ].map((r) => ({ ...shop(r), priceAt: "2026-11-22" }));
 
 

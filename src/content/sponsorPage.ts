@@ -203,8 +203,8 @@ export const sponsorPage = {
     intro: "The Louisiana businesses and brands giving away prizes this December. Tap a name to visit their page.",
     // Owner 2026-11-17: shown under the intro and by the sign-up day picker (claim.daysNote), and in the FAQ.
     daysNote: "Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1.",
-    /** Phone only: the list opens with its first few partners and this button. */
-    showAll: "Show all {n} partners",
+    /** Phone only: the list opens with its first few sponsors and this button. */
+    showAll: "Show all {n} sponsors",
     /**
      * Owner 2026-11-19: "We can link their facebooks or website for people to reach out." Each business name links to
      * its Facebook Page, from the tracker's `h.fb` (const S). A business page only: never a contact's email or phone.

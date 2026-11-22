@@ -227,6 +227,8 @@ a.lh25-lineup-brand { text-decoration: underline; text-decoration-color: var(--g
 .lh25-lineup-partners { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .lh25-lineup-partners li { display: flex; flex-direction: column; min-width: 0; }
 .lh25-lineup-brand { font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+/* Guides audit 1122 #24: a sponsor name that links is a 44px tap target. */
+a.lh25-lineup-brand { display: inline-flex; align-items: center; min-height: 44px; }
 .lh25-lineup-prize { font-size: 14.5px; color: var(--muted); overflow-wrap: anywhere; }
 
 /* Design audit r2 #18: the recurring brand's one line above the cards, and the phone-only week buttons
@@ -240,8 +242,8 @@ a.lh25-lineup-brand { text-decoration: underline; text-decoration-color: var(--g
 /* /25days: the one line that the entry method and rules are on Facebook (owner 2026-11-21; Sections.tsx EntrantHero),
    and the one line for businesses (BusinessAsk). */
 .lh25-rules-note { font-size: 16px; font-weight: 600; color: var(--on-green); margin: -12px auto 22px; max-width: 520px; line-height: 1.45; }
-.lh25-business-ask { margin: 40px auto 8px; font-size: 16px; color: var(--muted); }
-.lh25-business-ask a { color: var(--ox); font-weight: 700; }
+.lh25-business-ask { margin: 40px auto 8px; padding: 0 16px; font-size: 16px; color: var(--muted); }
+.lh25-business-ask a { color: var(--ox); font-weight: 700; white-space: nowrap; }
 
 /* Testimonials */
 .lh25-quote blockquote { margin: 0 0 12px; font-size: 17px; font-style: italic; color: var(--ink); }

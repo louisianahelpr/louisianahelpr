@@ -222,7 +222,7 @@ describe("lineup polish (design audit r2 #18, #19; display only, the owner's dat
     const later = () => cards().filter((c) => c.classList.contains("lh25-lineup-later")).length;
     expect(cards().length).toBeGreaterThan(12);
     expect(later()).toBe(cards().length - 12);
-    fireEvent.click(screen.getByRole("button", { name: `Show all ${cards().length} partners` }));
+    fireEvent.click(screen.getByRole("button", { name: `Show all ${cards().length} sponsors` }));
     expect(later()).toBe(0);
     expect(screen.queryByRole("button", { name: /^Show all/ })).toBeNull();
     // The hiding is phone-only CSS: under 640px a later card is hidden; from 640px the button is.

@@ -7,9 +7,9 @@ import { swipeBudgets, swipeDeck } from "@/content/giftGuideSwipe";
 import { QUIZ_AGES, type QuizAge, type QuizBudget } from "@/content/giftQuiz";
 import { BUDGET_GUIDES } from "@/content/giftPickBand";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { PickPrice } from "@/components/giftGuides/PickPrice";
+import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { track } from "@/lib/analytics";
-import { PickThumb } from "../GiftGuideView";
+import { PickRow, PickThumb } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
 import { FunBody, funHeader } from "./FunPage";
 import { useAccountSync } from "./plannerSync";
@@ -255,25 +255,25 @@ export default function SwipeGifts() {
       ) : finished ? (
         <section aria-labelledby="swipe-done" className="gg-swipe-done" data-swipe-done="">
           <h2 id="swipe-done">{!saved.length ? W.swipeDoneNone : santa ? W.santaSavedTitle(saved.length, santa.match) : W.swipeSavedFor(saved.length, forName ?? "")}</h2>
+          {/* Owner 2026-11-22 #16 ("should show the pictures here"): each saved gift as the guides' own card (PickRow, as
+              in the Top 10: its cutout photo, name, price and link, the heart), 2 across on a phone, 4 from 768px. */}
           {saved.length > 0 && (
-            <ul className="gg-fun-list mb-3">{saved.map((p) => <li key={p.href} className="text-sm">{p.name}</li>)}</ul>
+            <>
+              <ul className="gg-list gg-top10 gg-swipe-saved" data-swipe-saved-grid="">{saved.map((p) => <PickRow key={p.href} pick={p} guide={p.guide} />)}</ul>
+              <PricesAsOf picks={saved} />
+            </>
           )}
           {fewNote && <p className="gg-fun-note" data-swipe-few="">{fewNote}</p>}
-          {nextBudget && <Button type="button" variant="outline" className="mb-2" onClick={tryNextBudget} data-swipe-next-budget={nextBudget.id}>{W.swipeNextBudget(nextBudget.label)}</Button>}
           {forName && savedTo && <p className="gg-fun-note" data-swipe-saved-to={savedTo}>{savedTo === "planner" ? W.swipeSavedPlanner : W.santaSavedDevice}</p>}
-          {santa ? (
-            <div className="gg-fun-actions">
-              <Button type="button" className="btn-grad-primary" onClick={anotherRound} data-swipe-more="">{W.swipeMore}</Button>
-              {savedTo === "planner" && <Button asChild variant="outline"><Link to="/gift-guides/planner" data-swipe-santa-planner="">{W.revealIdeasPlanner}</Link></Button>}
-              <Button asChild variant="outline"><Link to={santa.back} data-swipe-santa-back="">{W.santaBack}</Link></Button>
-            </div>
-          ) : (
-            <div className="gg-fun-actions">
-              <Button type="button" className="btn-grad-primary" onClick={anotherRound} data-swipe-more="">{W.swipeMore}</Button>
-              {savedTo === "planner" && <Button asChild variant="outline"><Link to="/gift-guides/planner" data-swipe-planner="">{W.revealIdeasPlanner}</Link></Button>}
-              <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => { setStarted(false); anotherRound(); }} data-swipe-change="">{W.swipeChange}</Button>
-            </div>
-          )}
+          {/* #16: one primary button (Another round); every other way on is a plain link. */}
+          <div className="gg-fun-actions gg-swipe-done-acts">
+            <Button type="button" className="btn-grad-primary" onClick={anotherRound} data-swipe-more="">{W.swipeMore}</Button>
+            {nextBudget && <Button type="button" variant="link" size="inline" className="gg-link" onClick={tryNextBudget} data-swipe-next-budget={nextBudget.id}>{W.swipeNextBudget(nextBudget.label)} ›</Button>}
+            {savedTo === "planner" && <Button asChild variant="link" size="inline" className="gg-link"><Link to="/gift-guides/planner" {...(santa ? { "data-swipe-santa-planner": "" } : { "data-swipe-planner": "" })}>{W.revealIdeasPlanner} ›</Link></Button>}
+            {santa
+              ? <Button asChild variant="link" size="inline" className="gg-link"><Link to={santa.back} data-swipe-santa-back="">{W.santaBack} ›</Link></Button>
+              : <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => { setStarted(false); anotherRound(); }} data-swipe-change="">{W.swipeChange}</Button>}
+          </div>
         </section>
       ) : !card ? (
         <div className="gg-fun-card" data-swipe-waiting="">

@@ -227,9 +227,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Train e (11-22): Her also gained the 5 popular adds and her3b's PR picks (Beekman, Glow Recipe, Eberjey, Beis,
       // Case-Mate, Naturium, Makeup by Mario, YTTP), and lost the Amazon Essentials flannel pajamas (owner: "Lake + Eberjey").
       // Owner 11-22 PM (builder-guide-emibauble): Her lost Mrs. Meyer's and Downy (under $25), Comrad, JAANUU, Stoggles and
-      // the CS-8 Micro ($25-$50) and the CS-Pro ($79); then gained the Gaoye glasses ($13), the red Emi Jay clip and the
-      // BaubleBar brush ($36, $48) and the EADEM set from Kids ($58).
-      her: { "Under $25": 35, "$25 to $50": 32, "$50 to $75": 10, "$75 to $100": 7, "$100 and up": 35 },
+      // the CS-8 Micro ($25-$50), the CS-Pro ($79) and the CS-8 camcorder ($159); then gained the Gaoye glasses ($13), the
+      // BaubleBar brush ($48) and the EADEM set from Kids ($58).
+      her: { "Under $25": 35, "$25 to $50": 31, "$50 to $75": 10, "$75 to $100": 7, "$100 and up": 34 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

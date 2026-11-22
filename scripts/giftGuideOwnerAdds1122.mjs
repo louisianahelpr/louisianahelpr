@@ -13,8 +13,9 @@
  *   waitlist). She said add it now at $289 with a short "Back Dec 1" note (`backOn`; the chip hides on that day).
  * - Kate McLeod Daily Stone (p-109144875, The Sleep Code): sold out there, and katemcleod.com pays nothing in her data,
  *   so it waits for The Sleep Code to restock.
- * - Camp Snap "Choose one" (owner 11-22 PM, builder-guide-emibauble): Her keeps the Camp Snap 2 in Chestnut; the CS-Pro
- *   (p-107929179, $79) and the CS-8 Micro keychain (scripts/giftGuideHer1121.mjs) are off Her.
+ * - Camp Snap "Choose one of these camp snap cameras" (owner 11-22 PM, builder-guide-emibauble): Her keeps only the Camp
+ *   Snap 2 in Chestnut; the CS-Pro (p-107929179, $79), the CS-8 camcorder (p-109141448, $159) and the CS-8 Micro keychain
+ *   (scripts/giftGuideHer1121.mjs) are off Her.
  * Guard: src/test/giftGuideOwnerAdds1122.test.ts.
  */
 const shopmy = (pin) => `https://go.shopmy.us/${pin}`;
@@ -41,7 +42,6 @@ const CAMP_SNAP_CODE = "LEXILOMBAS7";
 /** For Her (owner via the lead, 11-22: "all ... go on the HER guide"). */
 export const HER_ADDS_1122 = [
   { name: "Camp Snap 2 Screen-Free Camera, Chestnut", brand: "Camp Snap", line: "A screen-free digital camera that shoots like film.", href: shopmy("p-109140863"), image: "https://static.shopmy.us/pins/zoom-109140863-1795365634530-CS2Chestnut.jpg", store: "store-camp-snap", sortPrice: 59.99, price: 59.99, commission: 10, type: "camera", code: CAMP_SNAP_CODE },
-  { name: "Camp Snap CS-8 Digital Video Camcorder, Classic", brand: "Camp Snap", line: "A Super 8-style camcorder for vintage-look home movies.", href: shopmy("p-109141448"), image: "https://static.shopmy.us/pins/zoom-109141448-1795365699492-CS2Black_cs.jpg", store: "store-camp-snap", sortPrice: 159, price: 159, commission: 10, type: "camcorder", code: CAMP_SNAP_CODE },
   { name: "Sleep Crown Classic Pillow, White Silk and Bamboo", brand: "Sleep Crown", line: "An over-the-head pillow that blocks out light and sound.", href: shopmy("p-109143437"), image: "https://static.shopmy.us/pins/zoom-109143437-1795365959725-sophiaduet_classic.jpg", store: "store-sleep-crown", sortPrice: 289, price: 289, commission: 10, type: "pillow", backOn: "2026-12-01" },
   { name: "Crown Affair The Towel, White", brand: "Crown Affair", line: "A soft waffle hair towel that dries hair gently.", href: shopmy("p-109143698"), image: "https://static.shopmy.us/pins/zoom-109143698-1795365996438-TheTowelWhite-Grey01_ALLURE_1.png", store: "store-crown-affair", sortPrice: 59, price: 59, commission: 15, type: "hair-towel" },
   // Macy's lists it by size (Black Friday 11-22: Twin $84.79 up to Cal King $142.39; Queen $116.89), so it shows "from".
@@ -89,12 +89,10 @@ export const HER_ADDS_1122 = [
   // Her pin's photo is the rose-gold ring, Ulta's Deep Rose ($399 Black Friday, was $499).
   { name: "Oura Ring 5, Deep Rose", brand: "Oura", line: "A smart ring that tracks sleep, steps and recovery.", href: shopmy("p-109155784"), image: "https://static.shopmy.us/pins/zoom-109155784-1795367529760-2664695", store: "store-ulta-beauty", sortPrice: 399, price: 399, commission: 13, type: "smart-ring" },
   // builder-guide-emibauble (owner 11-22 PM). From her screenshots: "Add both" for the Emi Jay clip and the BaubleBar
-  // brush; links made in her shopmy.us/links ("You can create the links"), priced on each brand's page 11-22.
-  // - Emi Jay: the red Big Effing Clip in the video is Cherry Kiss ($36, 15%), so it sits next to her Doe clip (same
-  //   brand, price and design words: src/content/giftGuideDesign.mjs). The Cozy Cloud Gingham Big Effing Clip is sold out
-  //   on emijay.com (no store on ShopMy has it in stock), so it is not added.
+  // brush; the link made in her shopmy.us/links ("You can create the links"), priced on baublebar.com 11-22.
+  // - Emi Jay: skipped, her Doe clip is already on Her and she wants no duplicate (the red Cherry Kiss pin p-109290718 is
+  //   unused; the Cozy Cloud Gingham Big Effing Clip is sold out on emijay.com).
   // - BaubleBar Mini Fine Line Custom Hair Brush, Magenta/Light Pink ($48, 20%): her name goes on the back.
-  { name: "Emi Jay Big Effing Clip, Cherry Kiss", brand: "Emi Jay", line: "The same big claw clip in a glossy cherry red.", href: shopmy("p-109290718"), image: "https://cdn.shopify.com/s/files/1/0581/7571/7551/products/bigeffingclipincherrykiss.jpg", store: "store-emi-jay", sortPrice: 36, price: 36, commission: 15, type: "hair" },
   { name: "BaubleBar Mini Fine Line Custom Hair Brush, Magenta", brand: "BaubleBar", line: "A hot pink hair brush with her name on the back.", href: shopmy("p-109289957"), image: "https://cdn.shopify.com/s/files/1/0267/5746/4148/files/110416_G_01_RS_SQ_2026_80d4c91e-c2d8-4a9a-a92e-491e1abec4ac.jpg", store: "store-baublebar", sortPrice: 48, price: 48, commission: 20, type: "hair" },
   // Owner 11-22 PM: the Stoggles safety glasses are off; "cute tortoise blue light glasses" instead. Gaoye's round frame in
   // Tea Leopard (tortoise), 4.4 stars from 11,300+ ratings; Amazon with her tag, Amazon's photo and price 11-22.
@@ -171,7 +169,6 @@ export const ADDS_CUTOUTS_1122 = [
   // The set's four products, cropped from its labelled photo (no labels kept).
   ["https://cdn.shopify.com/s/files/1/0512/1661/3529/files/PDP-CLEARSPACE_WIDER-FRAME_2750x3413-1.jpg", "eadem-new-classics-set-ae7614.webp"],
   // builder-guide-emibauble (owner 11-22 PM).
-  ["https://cdn.shopify.com/s/files/1/0581/7571/7551/products/bigeffingclipincherrykiss.jpg", "emi-jay-big-effing-clip-cherry-kiss-7d24e0.webp"],
   ["https://cdn.shopify.com/s/files/1/0267/5746/4148/files/110416_G_01_RS_SQ_2026_80d4c91e-c2d8-4a9a-a92e-491e1abec4ac.jpg", "baublebar-mini-fine-line-brush-magenta-3f1a2c.webp"],
   ["https://assets.pkimgs.com/pkimgs/rk/images/dp/wcm/202631/0188/anywhere-chair-maroon-twill-1-l.jpg", "pbk-anywhere-chair-twill-maroon-monogram-b81d5e.webp"],
 ];

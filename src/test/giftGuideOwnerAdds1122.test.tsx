@@ -30,7 +30,6 @@ const pin = (p: string) => `https://go.shopmy.us/${p}`;
 /** Copied from the Desktop note (not from the module): pin -> guide, store, price checked 11-22. */
 const SENT: [string, string, string, number][] = [
   ["p-109140863", "her", "store-camp-snap", 59.99], // Camp Snap 2, Chestnut
-  ["p-109141448", "her", "store-camp-snap", 159], // CS-8 camcorder
   ["p-109143437", "her", "store-sleep-crown", 289], // Sleep Crown Classic (sold out until Dec 1)
   ["p-109143698", "her", "store-crown-affair", 59],
   ["p-109144140", "her", "store-macys", 84.79], // Serta pad, from (Twin)
@@ -64,9 +63,9 @@ const SENT: [string, string, string, number][] = [
   ["p-109152299", "her", "store-cos-bar", 90],
   ["p-109155568", "her", "store-madewell", 158],
   ["p-109155784", "her", "store-ulta-beauty", 399],
-  // Owner 11-22 PM (builder-guide-emibauble; ShopMy-links-created-1122.md): the red Emi Jay clip and the BaubleBar brush
-  // from her screenshots; the Pottery Barn Kids Anywhere Chair in place of the Melissa & Doug Club Chair.
-  ["p-109290718", "her", "store-emi-jay", 36], // Big Effing Clip, Cherry Kiss
+  // Owner 11-22 PM (builder-guide-emibauble; ShopMy-links-created-1122.md): the BaubleBar brush from her screenshots (the
+  // red Emi Jay clip was skipped, her Doe is already on Her); the Pottery Barn Kids Anywhere Chair in place of the Melissa
+  // & Doug Club Chair. The CS-8 camcorder (p-109141448) is off Her ("Choose one of these camp snap cameras").
   ["p-109289957", "her", "store-baublebar", 48], // Mini Fine Line Custom Hair Brush, Magenta
   ["p-109292071", "kids", "store-pottery-barn-kids", 119], // Anywhere Chair, Twill, from (personalization $17 more)
 ];
@@ -116,7 +115,7 @@ describe("the owner's launch-day picks (11-22)", () => {
     const all = ["her", "him", "kids"].flatMap(chunk);
     for (const swank of ["p-109140912", "p-109142125", "p-109142226"]) expect(all.some((x) => x.href === pin(swank)), swank).toBe(false);
     const camp = all.filter((x) => x.store === "store-camp-snap");
-    expect(camp.length).toBeGreaterThan(3); // 4 since the owner kept one Camp Snap camera on Her (11-22 PM)
+    expect(camp.length).toBeGreaterThan(2); // 3 since the owner kept one Camp Snap camera on Her (11-22 PM)
     for (const x of camp) expect(x.code, x.name).toBe("LEXILOMBAS7");
   });
 
@@ -129,14 +128,11 @@ describe("the owner's launch-day picks (11-22)", () => {
 });
 
 describe("owner 11-22 PM edits (builder-guide-emibauble)", () => {
-  it("the red Emi Jay clip sits right after her Doe clip, the one Camp Snap camera left on Her is the Chestnut, and the swapped-out rows are gone", () => {
+  it("Her keeps one Emi Jay clip (the Doe) and one Camp Snap (the Chestnut), and the swapped-out rows are gone", () => {
     const her = chunk("her");
-    const doe = her.findIndex((x) => x.href === pin("p-109151082"));
-    expect(doe).toBeGreaterThan(-1);
-    expect(her[doe + 1]?.href).toBe(pin("p-109290718"));
-    const cameras = her.filter((x) => x.store === "store-camp-snap" && /camera/i.test(x.name));
-    expect(cameras.map((x) => x.href)).toEqual([pin("p-109140863")]);
-    const gone = ["B000S5VEA2", "B0FGDQ5BT9", "p-103899561", "B0F831FK2R", "B0B22SZ3W8", "p-108611500", "p-107929179"];
+    expect(her.filter((x) => x.store === "store-emi-jay").map((x) => x.href)).toEqual([pin("p-109151082")]);
+    expect(her.filter((x) => x.store === "store-camp-snap").map((x) => x.href)).toEqual([pin("p-109140863")]);
+    const gone = ["B000S5VEA2", "B0FGDQ5BT9", "p-103899561", "B0F831FK2R", "B0B22SZ3W8", "p-108611500", "p-107929179", "p-109141448", "p-109290718"];
     for (const id of gone) expect(her.some((x) => x.href.includes(id)), id).toBe(false);
     expect(chunk("kids").some((x) => x.href.includes("p-108632059") || x.href.includes("p-109155269"))).toBe(false);
   });

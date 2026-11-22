@@ -67,6 +67,7 @@ import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { resetFirstHeartForTests } from "@/pages/info/giftGuides/GiftGuideHints";
 import { shareListOf } from "@/pages/info/giftGuides/saveForPeople";
 import { asSharedList } from "@/lib/giftWishListApi";
+import { shownDollars } from "@/lib/pickPriceShown.mjs";
 
 const HER = JSON.parse(readFileSync(join(process.cwd(), "src/content/giftGuidePicks/her.json"), "utf8")) as { picks: { priceAt?: string }[] };
 const CHECK_DAY = HER.picks.find((p) => p.priceAt)?.priceAt ?? "2026-11-21";
@@ -130,17 +131,18 @@ describe("save for someone from a guide", () => {
 
     fireEvent.click(row);
     const idea = stored().people[0].ideas[0];
-    expect(idea).toMatchObject({ name: her[0].name, href: her[0].href, price: her[0].price, image: her[0].image, guide: "her", bought: false });
+    // Holiday audit 1121: the list adds the price the card shows, rounded the same way (~$5 adds $5).
+    expect(idea).toMatchObject({ name: her[0].name, href: her[0].href, price: shownDollars(her[0].price), image: her[0].image, guide: "her", bought: false });
     expect(row.getAttribute("aria-pressed")).toBe("true");
     // Owner 11-21: the row also says where Mom's $75 budget stands (saveForManage1121.test.tsx has the exact words).
-    expect(sheet.querySelector(`[data-savefor-total="${mom}"]`)!.textContent).toMatch(new RegExp(`^1 gift · \\$${her[0].price} · \\$[0-9.,]+ (left|over)$`));
+    expect(sheet.querySelector(`[data-savefor-total="${mom}"]`)!.textContent).toMatch(new RegExp(`^1 gift · \\$${shownDollars(her[0].price)} · \\$[0-9.,]+ (left|over)$`));
     // Not on My Wish List: saving for Mom never touches the wish list.
     expect(giftListNow().picks).toHaveLength(0);
     // The heart is filled while the gift is on anyone's list.
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     // The My lists pill shows the total.
     const pill = document.querySelector<HTMLButtonElement>("[data-mylists-pill]")!;
-    expect(pill.querySelector("[data-mylists-pill-total]")!.textContent).toBe(`1 gift · $${her[0].price}`);
+    expect(pill.querySelector("[data-mylists-pill-total]")!.textContent).toBe(`1 gift · $${shownDollars(her[0].price)}`);
 
     // A second tap takes it off.
     fireEvent.click(row);
@@ -172,7 +174,7 @@ describe("save for someone from a guide", () => {
     fireEvent.click(hearts[1]);
     fireEvent.click(picker()!.querySelector(`[data-savefor-person="${p.id}"]`)!);
     fireEvent.click(picker()!.querySelector("[data-savefor-done]")!);
-    const total = Math.round((her[0].price! + her[1].price!) * 100) / 100;
+    const total = shownDollars(her[0].price) + shownDollars(her[1].price);
     const money = `$${Number.isInteger(total) ? total : total.toFixed(2)}`;
 
     fireEvent.click(document.querySelector("[data-mylists-pill]")!);

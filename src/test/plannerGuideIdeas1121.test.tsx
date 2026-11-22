@@ -41,6 +41,7 @@ import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { cleanPlan } from "@/content/giftGuideFun1120";
 import { PLANNER_KEY } from "@/lib/giftPlannerDevice";
+import { shownDollars } from "@/lib/pickPriceShown.mjs";
 
 // The guides' prices show for 3 days after their check day: pin "today" to the chunk's check day.
 const HER = JSON.parse(readFileSync(join(process.cwd(), "src/content/giftGuidePicks/her.json"), "utf8")) as { picks: { priceAt?: string }[] };
@@ -108,7 +109,8 @@ describe("gift planner: add ideas from our guides", () => {
     // Tap: stored with its name, the shown price, its link and its photo; the row now reads Added.
     fireEvent.click(sheet.querySelector(`[data-plan-pick="${first.href}"]`)!);
     const idea = stored().people[0].ideas[0];
-    expect(idea).toMatchObject({ name: first.name, href: first.href, price: first.price, image: first.image, guide: first.guide, bought: false });
+    // Holiday audit 1121: the price the card shows, rounded the same way (~$5 adds $5).
+    expect(idea).toMatchObject({ name: first.name, href: first.href, price: shownDollars(first.price), image: first.image, guide: first.guide, bought: false });
     await waitFor(() => expect(sheet.querySelector<HTMLButtonElement>(`[data-plan-pick="${first.href}"]`)!.disabled).toBe(true));
     expect(within(sheet).getAllByText("Added").length).toBe(1);
     // A second tap adds nothing.

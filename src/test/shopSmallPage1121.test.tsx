@@ -114,8 +114,14 @@ async function gatedPages(): Promise<{ slug: string; file: string; live: boolean
   };
   const fileOf = (comp: string) => {
     const compImp = importOf(comp);
-    if (!compImp) throw new Error(`GiftGuides.tsx: no import for ${comp}`);
-    return resolveImport(pageFile, compImp[2])!;
+    if (compImp) return resolveImport(pageFile, compImp[2])!;
+    // A lazy part (train 1121i: LazyDeals): the page's own wrapper loads the component's module through
+    // useLazyPart(<loader>), and the loader is `const <loader> = () => loadModule(() => import("<module>"))`.
+    const body = src.match(new RegExp(`function\\s+${comp}\\b[\\s\\S]*?\\n}`))?.[0] ?? "";
+    const loader = body.match(/useLazyPart\(\s*(\w+)/)?.[1];
+    const spec = loader ? src.match(new RegExp(`const\\s+${loader}\\s*=\\s*\\(\\)\\s*=>\\s*loadModule\\(\\s*\\(\\)\\s*=>\\s*import\\(\\s*["']([^"']+)["']`))?.[1] : undefined;
+    if (!spec) throw new Error(`GiftGuides.tsx: no import for ${comp}`);
+    return resolveImport(pageFile, spec)!;
   };
   const out: { slug: string; file: string; live: boolean }[] = [];
   // One page per slug constant: `const smallBiz = slug === SMALL_BIZ_SLUG && isLiveGuide(SMALL_BIZ_SLUG)`.

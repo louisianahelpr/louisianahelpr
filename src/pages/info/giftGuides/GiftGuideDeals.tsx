@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { DEALS_COVER } from "@/content/giftGuideDeals.mjs";
 import { Link } from "react-router-dom";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { discountCodes, giftGuides as G } from "@/content/giftGuides";
@@ -62,7 +63,7 @@ const DEALS_CSS = `
 `;
 
 /** The guide's cover (public/gift-guides/deals/, drawn by scripts/gift-guide-deals-cover.py). */
-export const DEALS_COVER = "/gift-guides/deals/black-friday-cyber-monday.webp";
+export { DEALS_COVER };
 
 /** The deals file, loaded alone (the read runs after it, outside Vite's preload wrapper: dynamicImportThenDoesNoWork). */
 // loadModule: a prevented preload (a recovery reload in flight) gives null, and the page keeps "Loading deals…".

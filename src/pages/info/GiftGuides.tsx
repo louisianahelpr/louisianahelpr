@@ -26,8 +26,7 @@ import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { GiftGuidesPhoneNav } from "./giftGuides/GiftGuidesPhoneNav";
-import { DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
-import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
+import { DEALS_COVER, DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 
@@ -130,6 +129,18 @@ function LazySharedList({ code }: { code: string }) {
   if (mod === "failed") return <p className="gg-soon" role="alert" data-gift-shared-failed="">{WISH.sharedFailed}</p>;
   if (!mod) return <p className="gg-soon" role="status">{WISH.loading}</p>;
   return <mod.GiftGuideSharedList code={code} />;
+}
+/**
+ * The deals day pages (Black Friday, Small Business Saturday, Cyber Monday) load their own chunk too (train 1121i: the
+ * codes and sales lists, the offer-copy cleaning and the Small Business grid put every guide page at 353 KB gz over its
+ * 352.8 KB budget). A failed load says so, like the lists above.
+ */
+const loadDeals = () => loadModule(() => import("./giftGuides/GiftGuideDeals"));
+function LazyDeals({ day }: { day: NonNullable<ReturnType<typeof dealDay>> }) {
+  const mod = useLazyPart(loadDeals, "GiftGuides.loadDeals");
+  if (mod === "failed") return <p className="gg-soon" role="alert" data-gift-deals-failed="">{G.dealsLoadFailed}</p>;
+  if (!mod) return <p className="gg-soon" role="status">{WISH.loading}</p>;
+  return <mod.GiftGuideDeals day={day} />;
 }
 function LazyMyList() {
   const mod = useLazyPart(loadMyList, "GiftGuides.loadMyList");
@@ -295,7 +306,7 @@ export default function GiftGuides() {
             disclosures at the very bottom. From 768px the CSS grid puts the menu on the left (GIFT_GUIDES_CSS). */}
         <div className="gg-layout">
           <div className="gg-main">
-            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
+            {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
           </div>
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
           <GiftGuidesSidebar active={guide} myList={myList || shared} page={sidePage} />

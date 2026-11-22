@@ -33,6 +33,7 @@ export interface DealEvent {
   after: string;
 }
 export const DEALS_SLUG: string;
+export const DEALS_COVER: string;
 export const FEATURE_FROM: string;
 export const FEATURE_TO: string;
 export const RETITLE_AFTER: string;

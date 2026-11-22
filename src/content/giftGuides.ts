@@ -361,6 +361,8 @@ export const giftGuides = {
   moreShare: "More ways to share",
   /** One collapsed section for every discount (owner 11-18 PM: "Codes should be a section with the other discount stuff"). */
   dealsAndCodesLabel: "Deals & codes",
+  /** The deals day page could not load its chunk (train 1121i: it loads on its own, off the guide pages). */
+  dealsLoadFailed: "Couldn't load the deals. Check your connection and try again.",
   // Holiday audit 1121: the box's sales are store sales (the page's deal cards are something else).
   dealsCount: (deals: number, codes: number) => [deals ? `${deals} store sale${deals === 1 ? "" : "s"}` : "", codes ? `${codes} code${codes === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · "),
   allCodesLabel: (n: number) => `See all codes (${n})`,

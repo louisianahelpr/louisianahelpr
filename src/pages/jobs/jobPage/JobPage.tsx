@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
-import { ShareJobButton } from "@/components/jobs/ShareJobButton";
+import { JobHeaderShare, MenuShareProvider, useJobMenuShare } from "./menuShare";
 import { ScopeVideo } from "@/components/jobs/ScopeVideo";
 import { safeScopeVideoUrl } from "@/lib/scopeVideo";
 import { DeclutterGallery } from "@/components/declutter/DeclutterGallery";
@@ -148,6 +148,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const [caseOpen, setCaseOpen] = useState(false);
   // The top bar's "..." slot (owner pick 11-08, JP2): the action bar's menu button is drawn into it.
   const [menuHost, setMenuHost] = useState<HTMLElement | null>(null);
+  const menuShare = useJobMenuShare(q.data?.job); // L23: share is a line in that menu when there is one (menuShare.tsx)
   const seriesState = useJobSeriesState(isPoster ? null : q.data?.job);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
@@ -349,14 +350,6 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               ? { label: "Browse jobs", go: () => navigate("/browse") }
               : null;
 
-  const share = open && !jobIsUnfundedDraft(job) ? (
-    <ShareJobButton
-      variant="icon"
-      bare
-      job={{ id: job.id, title: job.title, budget: job.budget, helper_fee_flat_cents: job.helper_fee_flat_cents, helper_fee_percent: job.helper_fee_percent, category: job.category, city: job.location ? getCity(job.location) : undefined }}
-    />
-  ) : null;
-
   // JA-48 / JA-49: an offer or a booking out to one Helpr; the page waits on them, never on "more applicants".
   // Q2604: a Hire's offer (accepted, not confirmed) is out too, and says until when (response_deadline).
   const offerOut = isPoster && offerIsOut(job);
@@ -367,6 +360,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // Q2693 (audit 1102e row 2): the hired Helpr cancelled and the job went back up: the poster's line says who and when.
   const cancelledRow = isPoster && open && !job.helper_id ? applicants.data?.helprCancelled ?? null : null;
   const helprCancelled = cancelledRow ? { name: cancelledHelprFirst, at: cancelledRow.at } : null;
+  // Board 57: the poster's open, paid job nobody has applied to yet (never while an offer or booking is out, JA-48/49).
+  // S38 (audit 11-21): its card is the page's one status card (no "Waiting for Helprs to apply" card above it; a no-show
+  // or a Helpr's cancel keeps the steps card, which says so), and its Copy link is the page's one share (L23).
+  const noApplicantsCard = isPoster && open && !offerOut && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0;
+  const cardIsStatus = noApplicantsCard && !noShowAt && !helprCancelled;
+  const canShare = open && !jobIsUnfundedDraft(job);
+  const share = canShare && !menuShare.inMenu && !noApplicantsCard ? <JobHeaderShare job={job} /> : null;
   // The review window, IN the next-step line (owner 11-01: "Next: approve Yusef's work · 23h 52m left, then Helpr
   // support steps in"); nothing releases on a timer (owner 2026-10-23), so the words say who steps in.
   // F274: a sent fix is timed by revision_acceptance_deadline, a fix not sent yet has no clock (approveDeadlineMs).
@@ -394,6 +394,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
    * Guard: src/test/jobPageLayoutV2.test.tsx.
    */
   return (
+    <MenuShareProvider value={canShare ? menuShare.ctx : null}>
     <AppPage
       title={job.title}
       backTo={isPoster ? "/posts" : "/jobs"}
@@ -450,6 +451,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           </div>
         )}
 
+        {!cardIsStatus && (
         <section aria-label={t("jobPage.where")} data-job-steps="" className={`${CARD} space-y-4 p-4 empty:hidden lg:col-start-1 lg:p-5`}>
           {/* Owner 2026-11-01: "Yusef is on the way · since 8:51 AM" and where he is, ABOVE the tracker. */}
           {/* A continue day replaces the first day's "arrived" line: the next visit is what matters now. */}
@@ -468,6 +470,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {(isPoster || isHired) && job.status === "accepted" && <CountdownRows variant="bare" clocks={collapsedClocks({ ...job, status: job.status }, isPoster)} />}
           {repost.inline}
         </section>
+        )}
+        {noApplicantsCard && <NoApplicantsYet job={job} />}
 
         <div data-job-main="" className="flex min-w-0 flex-col gap-4 empty:hidden lg:col-start-1">
           {(isPoster || isHired) && <RevisionAsk job={job} side={isPoster ? "poster" : "helpr"} posterFirst={posterFirst} />}
@@ -497,11 +501,6 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             leaveInMenu={leaveInMenu} leaveOpen={leaveOpen} onLeaveOpenChange={setLeaveOpen} />}
           {/* CMP-4: the poster's top 3 with Book now, or who is booked and until when. Nothing when nobody qualifies. */}
           {instantBookOn && isPoster && !job.is_group_job && job.status === "open" && <InstantBookPanel jobId={job.id} />}
-          {/* Board 57: the poster's open, paid job that nobody has applied to yet; never while an offer or booking is
-              out (JA-48 / JA-49: "Copy link" and "Edit job" beside a booked Helpr). */}
-          {isPoster && open && !offerOut && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0 && (
-            <NoApplicantsYet job={job} />
-          )}
           {/* Audit 11-21 (G5): the applicants read failed and the page showed "Pick your Helpr" with no list, no error
               and no retry, so the poster could not tell whether anyone applied. Say so, with Try again; the tracker's
               next step waits for the count (hideNext above). */}
@@ -592,5 +591,6 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       )}
       {posterActions.dialogs}
     </AppPage>
+    </MenuShareProvider>
   );
 }

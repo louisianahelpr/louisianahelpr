@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { buttonLabel, pairLabel, PAIR_TEXT } from "@/components/ui/pairLabel";
+import { MenuShareMark, useMenuShareAction } from "./menuShare";
 
 export type RowAction = {
   key: string;
@@ -63,6 +64,12 @@ function ActionButton({ a, lead, pair = false }: { a: RowAction; lead?: boolean;
       {shown}
     </Button>
   );
+}
+
+/** Jobs audit 11-21 (L23): the page's share, the last line of the "..." menu (menuShare.tsx). */
+function MenuShareLine() {
+  const a = useMenuShareAction();
+  return a ? <ActionButton a={a} /> : null;
 }
 
 export function JobPageActionRow({
@@ -153,6 +160,7 @@ export function JobPageActionRow({
         </StickyActionBar>
       ) : null}
       {menuHost && more && createPortal(more, menuHost)}
+      <MenuShareMark on={menuCount > 0} />
       {menuCount > 0 && (
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent side="bottom" data-row-options={tag}>
@@ -161,6 +169,7 @@ export function JobPageActionRow({
             <div className="flex flex-col gap-2 pb-2" onClick={() => setOpen(false)}>
               {menuExtras.map((a) => <ActionButton key={a.key} a={a} />)}
               {cardCount > 0 && !loneCard && <div ref={setCardListHost} className="flex flex-col gap-2" />}
+              <MenuShareLine />
             </div>
           </SheetContent>
         </Sheet>

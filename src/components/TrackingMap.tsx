@@ -417,26 +417,16 @@ export function TrackingMap({
     (timedOut && !mapReady);
 
   if (unusable) {
+    // Jobs audit 11-21 (S38): one line, not an empty map-sized box. The arrival fact stays on it (the status line
+    // above handed that fact to the job pin, which is not there). Same one-line fallback as DeliveryRouteMap.
+    const arrival = safeDestinationLabel(destinationLabel);
     return (
-      <div
-        role="status"
-        data-testid="tracking-map-unavailable"
-        className="w-full rounded-ds-md overflow-hidden flex flex-col items-center justify-center gap-1.5 px-4 text-center"
-        style={frameStyle}
-      >
-        <MapPinOff
-          className="w-5 h-5"
-          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-          aria-hidden="true"
-        />
-        <p className="text-ds-11" style={{ color: "hsl(var(--olivewood))" }}>
+      <div role="status" data-testid="tracking-map-unavailable" className="flex w-full items-center gap-2 text-ds-13 text-muted-foreground">
+        <MapPinOff className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true" />
+        <p className="min-w-0">
           The live map isn't available right now.
+          {arrival && <span data-testid="tracking-map-arrival-fallback"> · {arrival}</span>}
         </p>
-        {safeDestinationLabel(destinationLabel) && (
-          <p className="text-ds-10 text-muted-foreground" data-testid="tracking-map-arrival-fallback">
-            {safeDestinationLabel(destinationLabel)}
-          </p>
-        )}
       </div>
     );
   }

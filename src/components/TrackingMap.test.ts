@@ -342,6 +342,17 @@ describe("TrackingMap when MapKit can't be used", () => {
     );
   });
 
+  // Jobs audit 11-21 (S38): the fallback was an empty 360px box where the map would be; it is one line now.
+  // @mutate src/components/TrackingMap.tsx | className="flex w-full items-center gap-2 text-ds-13 text-muted-foreground"> | className="flex w-full items-center gap-2 text-ds-13 text-muted-foreground" style={frameStyle}>
+  it("is one line, not a map-sized empty box, and keeps the arrival fact on it", async () => {
+    mapKitStatus.value = "error";
+    await renderMap({ destinationLabel: "Location confirmed" });
+    const el = await screen.findByTestId("tracking-map-unavailable");
+    expect(el.style.height).toBe("");
+    expect(el.querySelectorAll("p")).toHaveLength(1);
+    expect(el.textContent).toBe("The live map isn't available right now. · Location confirmed");
+  });
+
   it("degrades rather than throwing when the map constructor fails", async () => {
     constructorThrows.value = true;
     await renderMap();

@@ -8,6 +8,11 @@
  * @mutate src/components/header/PageTitleBar.tsx |   if (isWebDesktop && target && !first) { |   if (false) {
  * @mutate src/components/header/PageTitleBar.tsx | text-foreground${titleHidden ? " sr-only" : ""}` | text-foreground`
  * @mutate src/components/PageHeader.tsx |       titleHidden={hidesTitle}\n |
+ * @mutate src/components/header/PageTitleBar.tsx | titleTag={covered ? "p" : titleTag} />, target)} | titleTag={titleTag} />, target)}
+ *
+ * Jobs audit 11-21 (L24): the page under the screen kept its bar title as an h1, so Applicants over Jobs read two h1s.
+ * The page's title keeps its place and look in the bar as a plain line while the screen is open; the screen holds the
+ * one h1, and the page's h1 comes back when the screen closes.
  *
  * B106 (Declutter item page at 1440, 11-01): the title showed twice, in the bar and in the item column. A page that
  * paints its own title (PageHeader `hidesTitle`) keeps the bar's h1 for screen readers only.
@@ -26,19 +31,27 @@ describe("a screen on top of a page keeps its title under the bar", () => {
     const bar = document.createElement("div");
     document.body.appendChild(bar);
     registerDesktopTitleSlot(bar);
-    render(
+    const page = (open: boolean) => (
       <MemoryRouter>
         <PageTitleBar title="Jobs" phone={<span />} />
-        <div data-testid="overlay">
-          <PageTitleBar title="Applicants" back={{ onBack: () => {} }} phone={<span />} />
-        </div>
-      </MemoryRouter>,
+        {open && (
+          <div data-testid="overlay">
+            <PageTitleBar title="Applicants" back={{ onBack: () => {} }} phone={<span />} />
+          </div>
+        )}
+      </MemoryRouter>
     );
-    const titles = Array.from(bar.querySelectorAll("h1")).map((h) => h.textContent);
-    expect(titles).toEqual(["Jobs"]);
+    const { rerender } = render(page(true));
+    // The page's title stays in the bar, the same words in the same place (owner 10-28), as a plain line (L24).
+    expect(bar.querySelector("[data-page-title-row]")?.textContent).toBe("Jobs");
+    expect(bar.querySelectorAll("h1")).toHaveLength(0);
     const overlay = screen.getByTestId("overlay");
     expect(overlay.querySelector("h1")?.textContent).toBe("Applicants");
     expect(overlay.querySelector("[data-page-title-nested]")).not.toBeNull();
+    // ONE h1 on the screen while the overlay is open.
+    expect(Array.from(document.querySelectorAll("h1")).map((h) => h.textContent)).toEqual(["Applicants"]);
+    rerender(page(false));
+    expect(Array.from(bar.querySelectorAll("h1")).map((h) => h.textContent)).toEqual(["Jobs"]);
     registerDesktopTitleSlot(null);
   });
 });

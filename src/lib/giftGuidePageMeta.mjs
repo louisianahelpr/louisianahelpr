@@ -92,7 +92,7 @@ export function publicOrGiftGuidePageMetaFor(pathname, tabParam) {
   // (gg-r3 UX audit #12: the emptied store pages answered "index, follow" with the generic card).
   if (gift) {
     const description = "Hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.";
-    return { title: "Gift guides — Helpr", description, canonical: `${SITE_ORIGIN}/gift-guides`, ogTitle: "Holiday gift guides 2026", ogDescription: description, robots: NOINDEX_ROBOTS };
+    return { title: "Holiday gift guides — Helpr", description, canonical: `${SITE_ORIGIN}/gift-guides`, ogTitle: "Holiday gift guides 2026", ogDescription: description, robots: NOINDEX_ROBOTS };
   }
   return publicPageMetaFor(pathname, tabParam);
 }

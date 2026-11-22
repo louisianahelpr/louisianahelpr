@@ -16,7 +16,7 @@ export const enPublic = {
   "footer.fees": "Fees",
   "footer.safety": "Safety",
   "footer.holidays": "Holiday Hub",
-  "footer.contact": "Contact us",
+  "footer.contact": "Contact support",
   "footer.legal": "Legal",
   "footer.terms": "Terms",
   "footer.rules": "Rules",

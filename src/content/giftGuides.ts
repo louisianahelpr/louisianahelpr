@@ -263,7 +263,7 @@ export const giftGuides = {
    */
   primeTrial: { label: "Try Prime free for fast holiday shipping", href: "https://www.amazon.com/prime?tag=louisianahelpr-20" },
   allGuidesLabel: "All guides",
-  sidebarLabel: "Gift guides",
+  sidebarLabel: "Holiday Gift Guides",
   /**
    * The left menu's links to the deals page's three day sections (owner 11-21). The ids are the section anchors of the
    * one deals page (src/content/giftGuideDeals.mjs DEAL_EVENTS on feat/guide-deals-bfcm-1121).

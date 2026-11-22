@@ -323,7 +323,7 @@ describe("a shared list renders for a guest", () => {
       const view = render(<MemoryRouter><GiftGuideSharedList code="abc123defghi" read={async () => ({ name, items: [] })} /></MemoryRouter>);
       await waitFor(() => expect(view.container.querySelector("[data-gift-shared-empty]")).not.toBeNull());
       expect(view.container.querySelector("[data-gift-shared-title]")?.textContent).toBe("A wish list for you");
-      expect(document.title).toBe(`${WISH.sharedLead} — Louisiana Helpr`);
+      expect(document.title).toBe(`${WISH.sharedLead} — Helpr`);
       cleanup();
     }
   });
@@ -458,7 +458,7 @@ describe("security review 2026-11-20 (findings 2, 3, 6) and the UX audit fixes",
     await waitFor(() => expect(view.container.querySelector("[data-gift-wish-missing]")?.textContent).toBe(WISH.missing(2)));
     // The sender's name is the title, under a line that says it is someone's own list (security review #4).
     expect(view.container.querySelector("[data-gift-shared-lead]")?.textContent).toBe(WISH.sharedLead);
-    expect(document.title).toBe("L — Louisiana Helpr");
+    expect(document.title).toBe("L — Helpr");
   });
 
   it("M6 + L2 + L6: a business shows its town, a deal's name never repeats its brand, a business with no link can be saved", async () => {

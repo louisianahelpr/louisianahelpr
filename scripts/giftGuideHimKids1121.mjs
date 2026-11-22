@@ -48,7 +48,8 @@ const row = ([asin, sortPrice, img, name, brand, type, commission, line]) => ({ 
 const shop = ([pin, price, image, name, brand, store, type, commission, line]) => ({ name, brand, line, href: shopmy(`p-${pin}`), image, store, sortPrice: price, price, commission, type });
 
 /**
- * Her men's ShopMy saves (Desktop note Him-saved-shopmy-1121.md, 43 pins), 8 kept by her rules: at most 2 of a brand
+ * Her men's ShopMy saves (Desktop note Him-saved-shopmy-1121.md, 43 pins), 7 of the first 8 kept by her rules (the owner
+ * took the Fresh Falls soap off on 2026-11-22): at most 2 of a brand
  * (Smathers & Branson made ~30 of them; the camo belt she saved at Duck Head is theirs too), 2 of an item type, no LSU (until the owner's 11-21 PM "You can list LSU stuff", below),
  * nothing out of stock. Counts and prices measured 2026-11-21 on each store's own page (Grove, Clinique, S&B, Duck Head).
  */
@@ -56,7 +57,7 @@ export const HIM_SHOPMY_1121 = [
   ["108628349", 35, "https://static.shopmy.us/pins/zoom-108628349-1795247477620-DuckDecoys_AntiqueBlue__KeyFob_Primary_LowRes_c251e80f-b48c-4193-88c2-0b366856e967.jpg", "Smathers & Branson Duck Decoys Needlepoint Key Fob", "Smathers & Branson", "store-smathers-and-branson", "accessory", 15, "A hand-stitched needlepoint key fob with a wood duck."],
   ["108628518", 195, "https://static.shopmy.us/uploads/img-product-1792092560933", "Smathers & Branson Camo Needlepoint Belt", "Smathers & Branson", "store-duck-head", "belt", 16, "A hand-stitched needlepoint belt in classic camo."],
   ["108626053", 15.99, "https://static.shopmy.us/pins/zoom-108626053-1795245908121-FaceBeardSerum.jpg", "Phil's Face + Beard Serum", "Phil's", "store-grove", "skincare", 25, "A light serum for his face and beard."],
-  ["108626008", 7.49, "https://static.shopmy.us/pins/zoom-108626008-1795245889562-iewmi44ymwp5whivvent.jpg", "Dr. Squatch Fresh Falls Bar Soap", "Dr. Squatch", "store-grove", "soap", 25, "The natural men's soap with a fresh, woodsy scent."],
+  // Owner 2026-11-22 ("remove"): the Dr. Squatch Fresh Falls Bar Soap (Grove pin 108626008, $7.49) is off For Him.
   ["108626036", 18, "https://static.shopmy.us/pins/zoom-108626036-1795245900235-scay0j7x7kubjvla5qrv.jpg", "Dr. Squatch Hand and Body Lotion, Wood Barrel Bourbon", "Dr. Squatch", "store-grove", "lotion", 25, "A rich lotion in the Wood Barrel Bourbon scent."],
   ["108625988", 8.49, "https://static.shopmy.us/pins/zoom-108625988-1795245880004-qtvoydnznvaowxmbx9or.jpg", "Method Men Body Wash, Sea + Surf", "Method", "store-grove", "body-wash", 15, "A fresh sea and surf body wash for his shower."],
   ["108625882", 29.4, "https://www.clinique.com/cdn/shop/files/cl_sku_V2Y701_3000x3000_0.png", "Clinique For Men Oil-Free Moisturizer", "Clinique", "store-clinique", "skincare", 21, "A light gel moisturizer that never feels greasy."],
@@ -124,7 +125,9 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B0GZ4Y3GNX", 179.99, "21seEJ47Q+L", "Blink Frontier XR+ Camera", "Blink", "camera", 3, "A long-range outdoor camera for the camp or the barn."],
   ["B0CVNMW9MX", 34.99, "417i4FipHRL", "Rest EZ BBQ Meat Resting Blanket", "Rest EZ", "grilling", 3, "An insulated blanket that rests brisket and ribs right."],
   ["B0FKN7JH1D", 40.79, "51m5BLriPIL", "Wontolf Car Wash Kit with Foam Gun", "Wontolf", "car-care", 3, "A foam gun and wash kit for Saturday truck washes."],
-  ["B0732FCCL4", 38.91, "51ZLz7hvp8L", "Armor All Ultimate Car Cleaning Kit", "Armor All", "car-care", 3, "Eight car care products in one gift-ready kit."],
+  // Owner 2026-11-22 ("only keep the one with the higher commission"): of the two car wash kits, the Wontolf above
+  // earns more per sale (3% x $40.79 = $1.22) than the Armor All Ultimate Car Cleaning Kit (B0732FCCL4, 3% x $38.91 = $1.17),
+  // so the Armor All kit is off For Him.
   ["B0FP3KY1N1", 34.64, "41PD4obdH2L", "Rural Cloth We Hunt Mallards Cap", "Rural Cloth", "hat", 4, "A mallard cap for the duck hunter."],
   ["B0HCVK9JTC", 37.6, "31GcdYbSv4L", "HOOEY Outfitters Mallard Cap", "HOOEY", "hat", 4, "A five-panel mallard cap from HOOEY."],
   ["B0DC22HBR3", 21.99, "41zbxyDpM0L", "Wrangler Sherpa Throw Blanket", "Wrangler", "throw-blanket", 3, "A sherpa throw for the couch or the deer camp."],
@@ -192,7 +195,7 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B081T7N948", 6.45, "51M3+vvvmQL", "PULIDIKI Car Cleaning Gel", "PULIDIKI", "car-care", 3, "A gel that pulls dust out of vents and cup holders."],
   ["B0CB6MR12S", 50.29, "41BKierNiIL", "Cutluxe Carving Knife Set", "Cutluxe", "knife", 3, "Brisket slicing and boning knives for the pitmaster."],
   ["B0CVSG8L9Q", 22.99, "41NOaQEC07L", "Carhartt Zippered Travel Kit", "Carhartt", "travel-kit", 3, "A tough toiletry bag for trips."],
-  ["B0CQ4QM7Q2", 11.75, "41e0AfsQ4sL", "Men's Fuzzy Cloud Socks", "", "socks", 4, "Soft, fuzzy socks for cold floors."],
+  // Owner 2026-11-22 ("remove"): Men's Fuzzy Cloud Socks (B0CQ4QM7Q2, $11.75) are off For Him.
   ["B0C9LKH31T", 55.99, "41ZlVWglSbL", "MANSCAPED The Handyman Face Shaver", "MANSCAPED", "grooming", 1, "A compact face shaver for travel."],
   ["B09N1B6LL3", 8.48, "51l-VL5PZBL", "MINKINH Nail Clipper Set", "MINKINH", "grooming", 1, "A sharp nail clipper set in a case."],
   ["B0FN3P492D", 49.99, "31rN+NqCvaL", "HOTO EdgeFlow Electric Box Cutter", "HOTO", "tool", 3, "A rechargeable cutter that opens boxes fast."],

@@ -199,9 +199,11 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // 11-22 (train 1121j): the store switches moved two Him picks from $75-$100 to $100 and up (the XTRATUF Ankle and
       // Mossy Oak deck boots at xtratuf.com, $115 and $125, were Amazon $93.75) and one Her pick from $75-$100 to $25-$50
       // (Crocs Dylan at crocs.com $35, was $99).
-      him: { "Under $25": 44, "$25 to $50": 42, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 34 },
+      // 11-22 (owner edits): Him lost the Dr. Squatch Fresh Falls soap and Men's Fuzzy Cloud Socks (under $25) and the
+      // Armor All car kit ($25-$50); Her lost the Floral Mama quarter zip (under $25).
+      him: { "Under $25": 42, "$25 to $50": 41, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 34 },
       kids: { "Under $25": 33, "$25 to $50": 21, "$50 to $75": 5, "$75 to $100": 5, "$100 and up": 17 },
-      her: { "Under $25": 18, "$25 to $50": 16, "$50 to $75": 2, "$75 to $100": 1, "$100 and up": 10 },
+      her: { "Under $25": 17, "$25 to $50": 16, "$50 to $75": 2, "$75 to $100": 1, "$100 and up": 10 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

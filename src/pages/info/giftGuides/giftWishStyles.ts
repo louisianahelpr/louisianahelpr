@@ -41,4 +41,6 @@ export const GIFT_WISH_CSS = `
 .gg-savefor-view{flex:none;min-height:44px;padding:0 10px;font-size:13px;font-weight:600}
 .gg-savefor-li{display:flex;align-items:stretch;gap:6px}
 .gg-savefor-li>.gg-savefor-row{flex:1;min-width:0}
+.gg-mylists-gift{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex:none;border-radius:10px;background:var(--gg-soft);color:var(--gg-olive)}
+.gg-mylists-gift svg{width:20px;height:20px}
 `;

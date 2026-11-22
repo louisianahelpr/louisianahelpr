@@ -34,13 +34,19 @@ export const onPersonList = (p: PlanPerson, href: string) => p.ideas.some((i) =>
 /** True when anyone's list holds the gift (the heart shows filled). */
 export const onAnyList = (plan: GiftPlan, href: string) => plan.people.some((p) => onPersonList(p, href));
 
-/** One list's count and the sum of its prices (what has been added, bought or not). */
+/** One list's count, the sum of its prices (what has been added, bought or not), how many have no price (holiday audit
+ *  1121 #5: a saved deal counted as a gift while the total quietly left it out) and what is marked Bought (#8). */
 export const listTotal = (p: PlanPerson) => ({
   gifts: p.ideas.length,
   amount: Math.round(p.ideas.reduce((t, i) => t + (i.price ?? 0), 0) * 100) / 100,
+  unpriced: p.ideas.filter((i) => i.price === undefined).length,
+  bought: Math.round(p.ideas.reduce((t, i) => t + (i.bought ? i.price ?? 0 : 0), 0) * 100) / 100,
 });
-/** Every list's count and amount added up. */
-export const allTotals = (plan: GiftPlan) => plan.people.map(listTotal).reduce((a, b) => ({ gifts: a.gifts + b.gifts, amount: Math.round((a.amount + b.amount) * 100) / 100 }), { gifts: 0, amount: 0 });
+/** Every list's count, amount and unpriced count added up. */
+export const allTotals = (plan: GiftPlan) => plan.people.map(listTotal).reduce(
+  (a, b) => ({ gifts: a.gifts + b.gifts, amount: Math.round((a.amount + b.amount) * 100) / 100, unpriced: a.unpriced + b.unpriced }),
+  { gifts: 0, amount: 0, unpriced: 0 },
+);
 
 /** A tap on a person: the gift goes on their list, or comes off when it is already there. "full": 30 already. */
 export function togglePersonItem(plan: GiftPlan, personId: string, item: SaveItem): "added" | "removed" | "full" | "gone" {

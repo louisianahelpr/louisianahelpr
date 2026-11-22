@@ -88,8 +88,14 @@ export const WISH = {
   saveForDone: "Done",
   saveForPick: (name: string, gift: string) => `Save ${gift} for ${name}`,
   saveForUnpick: (name: string, gift: string) => `Remove ${gift} from ${name}'s list`,
-  /** "3 gifts · $54" (no amount while nothing on it has a price). */
-  listCount: (gifts: number, amount: string | null) => `${gifts === 1 ? "1 gift" : `${gifts} gifts`}${amount ? ` · ${amount}` : ""}`,
+  /** "3 gifts · $54" (no amount while nothing on it has a price). Holiday audit 1121 (#5): a gift with no price (a deal,
+   *  a typed idea, a link from another store) is never quietly left out of the amount: "3 gifts · $54 + 1 with no price". */
+  listCount: (gifts: number, amount: string | null, unpriced = 0) =>
+    `${gifts === 1 ? "1 gift" : `${gifts} gifts`}${amount ? ` · ${amount}${unpriced > 0 ? ` + ${unpriced} with no price` : ""}` : ""}`,
+  /** A list gift with a store link but no price we can show (a deal): where its price is (holiday audit 1121 #5). */
+  priceAtStore: "Price at store",
+  /** Holiday audit 1121 (#8): what has been marked Bought, after the list's count, total and budget ("· $12 bought"). */
+  listBought: (amount: string) => `${amount} bought`,
   myLists: "My lists",
   myListsOpen: (summary: string) => `My lists: ${summary}`,
   listBudget: (amount: string, budget: string) => `${amount} of ${budget} budget`,
@@ -155,7 +161,8 @@ export const WISH = {
   anyWords: "Add my words instead",
   anyAdded: (gift: string) => `Added ${gift}.`,
   sharedSupports: "Buying through these links supports Louisiana Helpr.",
-  sharedListTotal: (gifts: number, amount: string | null) => `${gifts === 1 ? "1 gift" : `${gifts} gifts`}${amount ? ` · about ${amount}` : ""}`,
+  sharedListTotal: (gifts: number, amount: string | null, unpriced = 0) =>
+    `${gifts === 1 ? "1 gift" : `${gifts} gifts`}${amount ? ` · about ${amount}${unpriced > 0 ? ` + ${unpriced} with no price` : ""}` : ""}`,
 } as const;
 
 /** The how-to hints (dismissible, shown once). */

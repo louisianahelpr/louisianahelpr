@@ -36,7 +36,7 @@ import { allTotals, closeMyLists, closeSaveFor, onPersonList, openMyLists, priva
  * a bottom sheet on a phone and a card on a desktop. Guard: src/test/savePerPerson1121.test.tsx.
  */
 const money = (n: number) => (n > 0 ? dollars(n) : null);
-const summary = (gifts: number, amount: number) => WISH.listCount(gifts, money(amount));
+const summary = (gifts: number, amount: number, unpriced: number) => WISH.listCount(gifts, money(amount), unpriced);
 
 // Owner 11-21 ("How do they edit or remove items ... I entered the budget as 100 but it doesn't say how much I have
 // left"): each row shows the list's total against its budget, says when this gift is on it (tap again to take it off),
@@ -216,7 +216,7 @@ export function SaveForSomeone() {
   const plan = usePlan();
   const target = useMyListsTarget();
   const total = allTotals(plan);
-  const text = summary(total.gifts, total.amount);
+  const text = summary(total.gifts, total.amount, total.unpriced);
   return (
     <>
       <Picker item={item} ready={ready} />

@@ -37,6 +37,11 @@ import { shareGiftLists } from "@/lib/giftWishListApi";
 const PATH = "/gift-guides/planner" as const;
 const PLANNER_SHEET = PRINTABLES.find((p) => p.id === "gift-planner-sheet");
 
+/**
+ * A person's Bought bar (holiday audit 1121 #8: the list line above it counts what was ADDED against the budget, as the
+ * guides' My lists does, and this bar had its own "$40 left" counting only what was BOUGHT; the same word for two
+ * numbers). The bar and its words now say Bought only; "left" and "over" are the list line's, the same on both screens.
+ */
 function MoneyBar({ p }: { p: PlanPerson }) {
   const m = personMoney(p);
   if (p.budget === undefined && m.spent === 0) return null;
@@ -49,8 +54,7 @@ function MoneyBar({ p }: { p: PlanPerson }) {
         </div>
       )}
       <p className="gg-plan-money m-0" data-plan-money={p.id}>
-        <span>{p.budget !== undefined ? W.plannerSpentOf(dollars(m.spent), dollars(m.budget)) : W.plannerSpent(dollars(m.spent))}</span>
-        {p.budget !== undefined && (m.over ? <span className="over">{W.plannerOver(dollars(-m.left))}</span> : <span>{W.plannerLeft(dollars(m.left))}</span>)}
+        <span>{W.plannerBoughtAmount(dollars(m.spent))}</span>
       </p>
     </>
   );

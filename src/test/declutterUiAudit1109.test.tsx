@@ -181,9 +181,11 @@ describe("F073: Declutter's desktop Browse shows a visible search field (Jobs ke
     expect(empty.queryByRole("button", { name: "Close search" })).toBeNull();
     empty.unmount();
   });
-  it("Browse pins it; Jobs does not", () => {
+  // Owner 11-21 ("make search an icon to open when clicked") reverses F073 for Browse: it is the square again.
+  it("Browse no longer pins it (owner 11-21); Jobs does not either", () => {
     const browse = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterBrowseView.tsx"), "utf8"));
-    expect(browse).toContain('<InlineListSearch value={query} onChange={setQuery} label={t("decl.searchItems")} pinned />');
+    expect(browse).toContain('<InlineListSearch value={query} onChange={setQuery} label={t("decl.searchItems")} />');
+    expect(browse).not.toMatch(/<InlineListSearch\b[^>]*\bpinned\b/);
     const others = walk(join(SRC, "components")).concat(walk(join(SRC, "pages")))
       .filter((f) => !f.endsWith("DeclutterBrowseView.tsx"))
       .map((f) => blankComments(readFileSync(f, "utf8")))

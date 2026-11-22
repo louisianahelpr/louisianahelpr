@@ -43,7 +43,7 @@ import { hasExtras } from "@/lib/savedSearches";
 import { FiltersIconButton } from "@/components/dashboard/browseTasksToolbar/FiltersIconButton";
 import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapToggleButton";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
-import { DeclutterDeviceNote, DeclutterLocationButton } from "./DeclutterMilesFrom";
+import { DeclutterDeviceNote, DeclutterNearYou } from "./DeclutterMilesFrom";
 import { DeclutterActiveFilters } from "./DeclutterActiveFilters";
 import { declutterFilterSections, sortChoices } from "./DeclutterFilterPanel";
 import { DeclutterResultsBar, DeclutterResultsHead } from "./DeclutterResultsBar";
@@ -408,8 +408,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   const phoneResults = !desktop && q !== "" && itemsPhase !== "offline-empty";
   const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice, zip, guest: !member };
 
-  // Owner 11-07 (Vinted review; replaces 10-21's "no chip row"): the category chips; on a phone (owner 11-08) they
-  // are the steady row under the search bar, on desktop the top of the list.
+  // Owner 11-07 (Vinted review): the category chips; on a phone (owner 11-08) the steady row under the search bar. On
+  // desktop (owner 11-21, "move them all into the filter button") they are in the Filters panel (categoryUp).
   // Owner 11-12: also with nothing for sale (DeclutterCategoryChips draws All and the first categories), as Jobs does.
   const chipRow = itemsPhase !== "offline-empty" && (others.length > 0 || (!listLoading && !items.isError))
     ? <DeclutterCategoryChips items={others} value={filters.category} onChange={(category) => setFilters((f) => ({ ...f, category }))} free={filters.freeOnly} onFree={(freeOnly) => setFilters((f) => ({ ...f, freeOnly }))} />
@@ -422,11 +422,10 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
           // padding there (it lifted the controls 2px off the count's centre line, measured on www at 1440); a member's
           // strip still sits on SectionTabs' underline (items-end), 2px up as before.
           <div data-feed-strip="" className={`ml-auto flex shrink-0 items-center gap-2 ${member ? "pb-0.5" : ""}`}>
-            {/* F073 (UI audit 11-09, lead 11-09): a visible field on desktop, as on the phone. */}
-            <InlineListSearch value={query} onChange={setQuery} label={t("decl.searchItems")} pinned />
-            {/* Owner 11-20 (site polish A4): "Use my location" is a compact button beside the search, not a row. */}
-            {itemsPhase !== "offline-empty" && <DeclutterLocationButton ask={ask} />}
-            <FiltersIconButton outlined open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} />
+            {/* Owner 11-21 (desktop header): the row keeps the count, then two plain icons: search (opens into the field,
+                and stays open while it holds words) and Filters, which now holds the categories and "Use my location". */}
+            <InlineListSearch value={query} onChange={setQuery} label={t("decl.searchItems")} />
+            <FiltersIconButton plain open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} />
             {member && <MapToggleButton visible={mapVisible} onToggle={toggleMap} disabled={items.isError} />}
           </div>
         ),
@@ -449,7 +448,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
       open={filtersOpen}
       onOpenChange={setFiltersOpen}
       anchorRef={filtersButtonRef}
-      sections={declutterFilterSections({ filters, onChange: setFilters, maxMiles, onMaxMiles: setMaxMiles, ask, showDrops, sellerDelivery: sellerDeliveryOn })}
+      sections={declutterFilterSections({ filters, onChange: setFilters, maxMiles, onMaxMiles: setMaxMiles, ask, showDrops, sellerDelivery: sellerDeliveryOn, categoryUp: desktop })}
       filterCount={filterCount}
       shown={rows.length}
       onClearAll={clearAll}
@@ -493,9 +492,6 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   } else {
     const list = (
       <div className={rows.length === 0 ? "flex min-h-0 min-w-0 flex-1 flex-col gap-4" : "min-w-0 space-y-4"}>
-        {/* Owner 11-07 (Vinted review; replaces 10-21's "no chip row"): the category chips at the top of the list. Porch
-            pickup, price drops and the rest stay in the filter sheet. Guard: src/test/declutterBrowseChipsAndSaves.test.tsx. */}
-        {desktop && chipRow}
         {/* Owner 11-14 (Depop/Vinted audit item 7): a phone search shows the query and a Filter | Sort bar over the grid. */}
         {phoneResults && <DeclutterResultsHead query={query} count={preview ? null : rows.length} />}
         {/* F055 (UI audit 11-09): what is filtered, each removable. */}
@@ -508,8 +504,9 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
             draft={{ section: "declutter", query, category: filters.category, minDollars: filters.minDollars, maxDollars: filters.maxDollars, radiusMiles: from ? maxMiles : null, origin: from ?? null, extras: saveExtras }}
           />
         )}
-        {/* DA-10 / owner 11-08 / site polish A4 (11-20): "Use my location" sits beside the search (phone: the filter
-            sheet); only the device's note (denied, timed out) shows here, on a computer. */}
+        {/* Owner 11-21: "Use my location" is in Filters at every width; here, what it did ("Near you") or, on a computer,
+            why it could not (the device's note: denied, timed out). */}
+        {itemsPhase !== "offline-empty" && <DeclutterNearYou ask={ask} maxMiles={maxMiles} closest={sortNow === "closest"} onChange={() => setFiltersOpen(true)} />}
         {desktop && itemsPhase !== "offline-empty" && <DeclutterDeviceNote ask={ask} />}
         {/* Audit 1110 F311: an emoji alone is no search, so every item shows; say why instead of looking like a match. */}
         {wordlessSearch && rows.length > 0 && (

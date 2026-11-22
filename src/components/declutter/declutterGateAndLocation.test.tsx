@@ -476,8 +476,9 @@ describe("Declutter location ask", () => {
       const strip = container.querySelector("[data-feed-strip]") as HTMLElement;
       expect(strip).not.toBeNull();
       expect(tabs.contains(strip)).toBe(true);
-      // F073 (UI audit 11-09): a visible search field (pinned open), no longer the square.
-      expect(within(strip).getByRole("searchbox", { name: "Search items" })).toBeInTheDocument();
+      // Owner 11-21 (replaces F073's pinned field): the search is an icon that opens into the field.
+      expect(within(strip).getByRole("button", { name: "Search items" })).toBeInTheDocument();
+      expect(within(strip).queryByRole("searchbox")).toBeNull();
       expect(within(strip).getByRole("button", { name: "Filters" })).toBeInTheDocument();
       const mapToggle = within(strip).getByRole("button", { name: "Hide the map" });
       expect(screen.queryByTestId("declutter-browse-bar")).toBeNull();

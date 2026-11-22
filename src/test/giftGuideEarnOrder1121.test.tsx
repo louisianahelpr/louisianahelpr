@@ -103,7 +103,7 @@ const renderAt = (url: string) =>
 const sections = (c: HTMLElement) =>
   [...c.querySelectorAll<HTMLElement>("section[data-gift-section]")].map((sec) => ({
     title: sec.querySelector("h3")?.firstChild?.textContent ?? "",
-    hrefs: [...sec.querySelectorAll<HTMLAnchorElement>("[data-gift-pick] a[data-gift-out]")].map((a) => a.href).filter((h, i, all) => all.indexOf(h) === i),
+    hrefs: [...sec.querySelectorAll<HTMLAnchorElement>("[data-gift-pick] a[data-gift-out]:not(.gg-cart)")].map((a) => a.href).filter((h, i, all) => all.indexOf(h) === i),
   }));
 const choose = (label: string) => {
   fireEvent.click(screen.getByRole("button", { name: G.sortLabel }));
@@ -142,7 +142,7 @@ describe("Her's default order puts the clicked picks first in their own section"
   it("opening a pick logs one gift_out_click with its link (click or middle-click)", async () => {
     await act(async () => { await loadGuidePicks("her"); });
     const { container } = renderAt("/gift-guides/her");
-    const link = container.querySelector<HTMLAnchorElement>("[data-gift-pick] a[data-gift-out]")!;
+    const link = container.querySelector<HTMLAnchorElement>("[data-gift-pick] a[data-gift-out]:not(.gg-cart)")!;
     link.addEventListener("click", (e) => e.preventDefault());
     fireEvent.click(link);
     fireEvent(link, new MouseEvent("auxclick", { bubbles: true, button: 1 }));

@@ -88,11 +88,11 @@ export async function subscribePriceAlerts(email: string, items: AlertItemIn[], 
 }
 
 /** This device remembers that alerts are on (for the card's "on" state only; the server is the record). */
-export const ALERTS_DEVICE_KEY = "lh-gift-price-alerts";
+const ALERTS_DEVICE_KEY = "lh-gift-price-alerts";
 export interface AlertsOnDevice { email: string; count: number; at: number }
 
 /** The first moment after a sign-up's season: Feb 1 after it (the server deletes the subscription then). */
-export function seasonEnd(at: number): number {
+function seasonEnd(at: number): number {
   const d = new Date(at);
   const y = d.getMonth() === 0 ? d.getFullYear() : d.getFullYear() + 1;
   return new Date(y, 1, 1).getTime();

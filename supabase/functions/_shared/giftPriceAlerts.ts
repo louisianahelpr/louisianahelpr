@@ -8,7 +8,7 @@
  *   server     public.gift_price_alert_subscribe (SECURITY DEFINER, anon + authenticated; validates and rate limits)
  *   table      public.gift_price_alerts (RLS on, no client privilege at all) - migration *_gift_price_alerts.sql
  *   prices     /gift-guides/price-feed.json, written by the build from src/content/giftGuidePicks/*.json (the daily
- *              price train's output) - scripts/giftGuidePriceFeed.mjs
+ *              price train's output) - scripts/lib/giftGuidePriceFeed.mjs
  *   sender     supabase/functions/gift-price-alerts (cron daily): price-drop digests, and the Dec 10 reminder
  *   email      _shared/email-templates/giftPriceAlert.tsx (commercial: one-click unsubscribe + postal address)
  *   opt-out    email-unsubscribe, list 'gift_price_alerts' (stamps gift_price_alerts.unsubscribed_at only)
@@ -21,14 +21,14 @@ export const PRICE_DROP_TEMPLATE = "gift_price_drop";
 export const REMINDER_TEMPLATE = "gift_price_reminder";
 
 /** A drop counts when the price fell by at least this many dollars ... */
-export const DROP_MIN_DOLLARS = 5;
+const DROP_MIN_DOLLARS = 5;
 /** ... or by at least this percent of the price it is measured from. */
-export const DROP_MIN_PERCENT = 10;
+const DROP_MIN_PERCENT = 10;
 
 /** The reminder goes out on this December day (Louisiana time), and is caught up through the 14th if a run fails. */
-export const REMINDER_MONTH = 12;
-export const REMINDER_DAY = 10;
-export const REMINDER_LAST_DAY = 14;
+const REMINDER_MONTH = 12;
+const REMINDER_DAY = 10;
+const REMINDER_LAST_DAY = 14;
 
 /** One saved gift in a subscription (public.gift_price_alerts.items). */
 export interface AlertItem {
@@ -49,7 +49,7 @@ export interface AlertItem {
 }
 
 /** One product in the price feed. */
-export interface FeedItem {
+interface FeedItem {
   price: number;
   name?: string;
   image?: string;
@@ -71,9 +71,9 @@ export interface Drop {
 }
 
 /** A drop deeper than this share of the price is treated as a broken price, never mailed (reported instead). */
-export const SUSPECT_DROP_PERCENT = 70;
+const SUSPECT_DROP_PERCENT = 70;
 /** How long a new price must hold before a drop email names it. */
-export const HOLD_HOURS = 20;
+const HOLD_HOURS = 20;
 
 const cents = (n: number) => Math.round(n * 100) / 100;
 const isPrice = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n > 0 && n < 100000;
@@ -91,7 +91,7 @@ export function isDrop(from: number, now: number): boolean {
 }
 
 /** The price a drop is measured from: the last price we emailed about, else the price when saved. */
-export const baselineOf = (item: AlertItem): number | null =>
+const baselineOf = (item: AlertItem): number | null =>
   isPrice(item.alerted) ? item.alerted : isPrice(item.price) ? item.price : null;
 
 /**
@@ -138,7 +138,7 @@ export function findDrops(items: AlertItem[], feed: PriceFeed, nowAt: Date): { d
   return { drops, suspect, items: next, changed };
 }
 /** Today's date in Louisiana as [year, month, day]. */
-export function louisianaDate(now: Date): [number, number, number] {
+function louisianaDate(now: Date): [number, number, number] {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(now);
   const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
   return [get("year"), get("month"), get("day")];
@@ -198,7 +198,7 @@ export function parseItems(raw: unknown): AlertItem[] {
 }
 
 /** Amazon allows its links and product photos only on our pages, never in an email (Associates policy). */
-export const isAmazonUrl = (u: string) => {
+const isAmazonUrl = (u: string) => {
   try {
     const h = new URL(u).hostname;
     return /(^|\.)amazon\.[a-z.]+$/.test(h) || h === "amzn.to" || /(^|\.)media-amazon\.com$/.test(h) || /(^|\.)ssl-images-amazon\.com$/.test(h);

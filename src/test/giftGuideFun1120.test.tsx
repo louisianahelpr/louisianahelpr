@@ -263,8 +263,9 @@ describe("swipe rounds", () => {
     // rounds can use Him's and Her's Amazon picks too and got fuller: with her ShopMy saves for Him and Kids (train
     // 1121c) every round deals 8+ but mom/25 and her/25 (measured 2026-11-21). Holiday audit 1121 (High): Kids deals
     // from its whole flat list now (it read sections the list no longer has): 8+ at every budget but kids/25, 6.
+    // Train 1121g (the owner's LSU saves and the Kids cart/price picks together): kids/25 now deals 8+ (measured 2026-11-21).
     // @two-way src/test/giftGuideFun1120.test.tsx:expect(thin).toEqual(KNOWN_THIN)
-    const KNOWN_THIN = ["mom/25: 6", "her/25: 6", "kids/25: 6"];
+    const KNOWN_THIN = ["mom/25: 6", "her/25: 6"];
     expect(thin).toEqual(KNOWN_THIN);
   });
 

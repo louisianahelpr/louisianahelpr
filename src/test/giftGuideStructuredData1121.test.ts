@@ -59,7 +59,7 @@ describe("the guide ItemList (unit)", () => {
     count: 4,
     picks: [
       ["Fresh price", "Amazon", "https://www.amazon.com/dp/X?tag=louisianahelpr-20", { image: "https://m.media-amazon.com/x.jpg", price: 23.6, priceAt: "2026-11-20" }],
-      ["Stale price", "ShopMy", "https://go.shopmy.us/p-1", { image: "/gift-guides/c/a.webp", price: 40, priceAt: "2026-11-10" }],
+      ["Stale price", "ShopMy", "https://go.shopmy.us/p-1", { image: "/gift-guides/c/a.webp", price: 40, priceAt: "2026-10-10" }],
       ["No price", "ShopMy", "https://go.shopmy.us/p-2"],
       ["Local photo", "ShopMy", "https://go.shopmy.us/p-3", { image: "/gift-guides/c/b.webp", price: 0.4, priceAt: "2026-11-21" }],
     ],

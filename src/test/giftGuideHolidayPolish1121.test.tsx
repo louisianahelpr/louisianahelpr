@@ -88,7 +88,9 @@ describe("the gift finder offers only vibes that really match (holiday audit 112
       }
     }
     expect(empty).toEqual([]);
-    expect(louisianaOffered).toBe(0); // measured 2026-11-21: no live pick is Louisiana-made
+    // Exact, measured 2026-11-21 (train 1121g): the owner's LSU saves on For Him are Louisiana-made, so the vibe is offered
+    // 6 times, each with real matches (empty above); before them no live pick was Louisiana-made (0).
+    expect(louisianaOffered).toBe(6);
   });
 });
 

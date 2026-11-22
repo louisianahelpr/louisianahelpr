@@ -196,8 +196,9 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
   it("a guide shows how many gifts it holds; the phone banner is at most 96px tall", () => {
     const { container } = renderAt("/gift-guides/mom");
     expect(container.querySelector("[data-gift-item-count]")?.textContent).toBe(`${guideBySlug("mom")!.picks.length} gifts`);
-    const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.lastIndexOf("@media (max-width:767px){"));
-    const h = Number(/\.gg-banner\{height:(\d+)px/.exec(phone)?.[1]);
+    // The phone banner height is the sheet's last .gg-banner height (inside the phone layout block; the phone nav, 11-21,
+    // appends its own later @media (max-width:767px) block, so the last such block no longer holds it).
+    const h = Number([...GIFT_GUIDES_CSS.matchAll(/\.gg-banner\{height:(\d+)px/g)].slice(-1)[0]?.[1]);
     expect(h).toBeGreaterThan(0);
     expect(h).toBeLessThanOrEqual(96);
     expect(GUIDES.length).toBeGreaterThan(10); // owner 11-21: Her, Him, Kids, the sponsors page and 10 relationship views (14, 2026-11-21)

@@ -157,8 +157,8 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     const list = container.querySelector("[data-gift-list]")!.cloneNode(true) as HTMLElement;
     list.querySelectorAll("[data-gift-price]").forEach((el) => el.remove());
     expect(list.textContent).not.toMatch(/\$\s?\d/);
-    const out = [...container.querySelectorAll("[data-gift-list] a")];
-    // One link per pick (owner 11-21: "remove the shop at button, when they click the title of the image it will go
+    const out = [...container.querySelectorAll("[data-gift-list] a:not(.gg-cart)")];
+    // The Amazon cart icon (11-21) is its own link beside an Amazon card, counted apart. One link per pick (owner 11-21: "remove the shop at button, when they click the title of the image it will go
     // there"): the photo and name together; the count follows the data.
     expect(out.length).toBe(guideBySlug("25-days-sponsors")!.picks.length);
     expect(out.length).toBeGreaterThan(10); // one guide per product (owner 11-19)

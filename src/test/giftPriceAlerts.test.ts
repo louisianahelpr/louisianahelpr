@@ -6,22 +6,22 @@
  * Behaviour of the SQL is proven in src/test/pglite/giftPriceAlerts.pglite.mjs (migration applied 3x): 22 PASS,
  * NEW_MIGRATION=skip RED, 13 planted defects each caught (2026-11-21). This file pins the rest.
  *
- * @mutate supabase/functions/_shared/giftPriceAlerts.ts | export const DROP_MIN_DOLLARS = 5; | export const DROP_MIN_DOLLARS = 50;
- * @mutate supabase/functions/_shared/giftPriceAlerts.ts | export const DROP_MIN_PERCENT = 10; | export const DROP_MIN_PERCENT = 1;
+ * @mutate supabase/functions/_shared/giftPriceAlerts.ts | const DROP_MIN_DOLLARS = 5; | const DROP_MIN_DOLLARS = 50;
+ * @mutate supabase/functions/_shared/giftPriceAlerts.ts | const DROP_MIN_PERCENT = 10; | const DROP_MIN_PERCENT = 1;
  * @mutate supabase/functions/_shared/giftPriceAlerts.ts |     return { ...item, alerted: now }; |     return item;
  * @mutate supabase/functions/_shared/giftPriceAlerts.ts |   isPrice(item.alerted) ? item.alerted : isPrice(item.price) ? item.price : null; |   isPrice(item.price) ? item.price : null;
- * @mutate supabase/functions/_shared/giftPriceAlerts.ts | export const REMINDER_DAY = 10; | export const REMINDER_DAY = 1;
+ * @mutate supabase/functions/_shared/giftPriceAlerts.ts | const REMINDER_DAY = 10; | const REMINDER_DAY = 1;
  * @mutate supabase/functions/_shared/giftPriceAlerts.ts |   return !(sy === y && sm === REMINDER_MONTH); |   return true;
  * @mutate supabase/functions/_shared/giftPriceAlerts.ts |   if (!isAmazonUrl(href)) return href; |   return href;
- * @mutate scripts/giftGuidePriceFeed.mjs |       if (prev && prev.at >= p.priceAt) continue; |       if (prev) continue;
+ * @mutate scripts/lib/giftGuidePriceFeed.mjs |       if (prev && prev.at >= p.priceAt) continue; |       if (prev) continue;
  * @mutate src/lib/giftPriceAlertsApi.ts |       if (!i.href \|\| !/^https:\/\//.test(i.href) \|\| seen.has(i.href) \|\| !i.name.trim()) continue; |       if (!i.href) continue;
  * @mutate src/pages/info/giftGuides/fun/PriceAlertsOptIn.tsx |   const [consent, setConsent] = useState(false); |   const [consent, setConsent] = useState(true);
  * @mutate supabase/functions/gift-price-alerts/index.ts |     q = onlyEmail ? q.eq("email", onlyEmail).eq("is_seed", true) : q.eq("is_seed", false); |     q = onlyEmail ? q.eq("email", onlyEmail) : q;
  * @mutate supabase/functions/gift-price-alerts/index.ts |       if ((!onlyEmail && isTestAddress(row.email)) \|\| suppressed.has(row.email)) { |       if (suppressed.has(row.email)) {
  * @mutate supabase/functions/gift-price-alerts/index.ts |           if (!cur?.name) return []; |           if (!cur) return [];
  * @mutate supabase/functions/_shared/giftPriceAlerts.ts |     if (item.seen !== now) { |     if (false) {
- * @mutate supabase/functions/_shared/giftPriceAlerts.ts | export const HOLD_HOURS = 20; | export const HOLD_HOURS = 1;
- * @mutate supabase/functions/_shared/giftPriceAlerts.ts | export const SUSPECT_DROP_PERCENT = 70; | export const SUSPECT_DROP_PERCENT = 100;
+ * @mutate supabase/functions/_shared/giftPriceAlerts.ts | const HOLD_HOURS = 20; | const HOLD_HOURS = 1;
+ * @mutate supabase/functions/_shared/giftPriceAlerts.ts | const SUSPECT_DROP_PERCENT = 70; | const SUSPECT_DROP_PERCENT = 100;
  * @mutate supabase/functions/_shared/giftPriceAlerts.ts |     const d: Drop = { href: item.href, name: cur.name, | const d: Drop = { href: item.href, name: item.name,
  * @mutate supabase/functions/_shared/unsubscribe.ts |   return value === 'job_matches' \|\| value === 'gift_price_alerts' ? value : 'promotions' |   return value === 'job_matches' ? value : 'promotions'
  * @mutate supabase/functions/email-unsubscribe/index.ts |       .from('gift_price_alerts') |       .from('profiles')
@@ -44,7 +44,7 @@ import {
   reminderDue,
   type AlertItem,
 } from "../../supabase/functions/_shared/giftPriceAlerts";
-import { buildPriceFeed } from "../../scripts/giftGuidePriceFeed.mjs";
+import { buildPriceFeed } from "../../scripts/lib/giftGuidePriceFeed.mjs";
 import { alertItemsFromPlan, looksLikeEmail, ALERT_MAX_ITEMS } from "@/lib/giftPriceAlertsApi";
 import { parseUnsubscribeLink } from "@/lib/emailUnsubscribe";
 import type { GiftPlan } from "@/content/giftGuideFun1120";

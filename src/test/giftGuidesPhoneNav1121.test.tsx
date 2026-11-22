@@ -5,7 +5,7 @@
  * Printables, Make it fun, Louisiana and Menu; Menu (and Make it fun / Louisiana, at their group) opens the shared bottom
  * Sheet with the same grouped menu as the desktop sidebar. The chip row scrolls sideways by itself.
  *
- * @mutate src/pages/info/GiftGuides.tsx |         <GiftGuidesPhoneNav active={guide} myList={myList} page={sidePage} /> |         {null}
+ * @mutate src/pages/info/GiftGuides.tsx |         <GiftGuidesPhoneNav active={guide} myList={myList \|\| shared} page={sidePage} /> |         {null}
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx | <GiftGuidesMenu active={active} myList={myList} page={page} idPrefix={SHEET_PREFIX} /> | {null}
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx | onClick={() => setSheet("la")} | onClick={() => setSheet(null)}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav-row{display:flex;gap:8px;list-style:none;margin:0;padding:0 20px;overflow-x:auto; | .gg-pnav-row{display:flex;gap:8px;list-style:none;margin:0;padding:0 20px;

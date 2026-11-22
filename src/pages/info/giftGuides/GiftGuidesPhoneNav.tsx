@@ -1,5 +1,6 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { giftGuides as G } from "@/content/giftGuides";
 import type { CatalogGuide } from "@/content/giftGuideCatalog";
@@ -51,14 +52,14 @@ export function GiftGuidesPhoneNav({ active, myList = false, page }: { active: C
         </li>
         <li><Link to={PRINTABLES_PATH} className={chip(false)} data-gift-chip="printables">{G.phoneNavPrintables}</Link></li>
         <li>
-          <button type="button" className={chip(open === "finder")} aria-haspopup="dialog" onClick={() => setSheet("fun")} data-gift-chip="fun">{G.phoneNavFun}</button>
+          <Button type="button" variant="outline" size="sm" className={chip(open === "finder")} aria-haspopup="dialog" onClick={() => setSheet("fun")} data-gift-chip="fun">{G.phoneNavFun}</Button>
         </li>
-        <li><button type="button" className={chip(false)} aria-haspopup="dialog" onClick={() => setSheet("la")} data-gift-chip="louisiana">{G.sideHeads.louisiana}</button></li>
+        <li><Button type="button" variant="outline" size="sm" className={chip(false)} aria-haspopup="dialog" onClick={() => setSheet("la")} data-gift-chip="louisiana">{G.sideHeads.louisiana}</Button></li>
         <li>
-          <button type="button" className="gg-chip-nav gg-chip-menu" aria-haspopup="dialog" onClick={() => setSheet("guides")} data-gift-chip="menu">
+          <Button type="button" variant="outline" size="sm" className="gg-chip-nav gg-chip-menu" aria-haspopup="dialog" onClick={() => setSheet("guides")} data-gift-chip="menu">
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
             {G.phoneNavMenu}
-          </button>
+          </Button>
         </li>
       </ul>
       <Sheet open={sheet !== null} onOpenChange={(o) => { if (!o) setSheet(null); }}>

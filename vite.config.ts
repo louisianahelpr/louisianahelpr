@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { entryBootPreloads, trimEntryRouteDeps, type EntryRouteBundle } from "./scripts/perf/entryRouteDeps.mjs";
 import { stripHtmlComments } from "./scripts/perf/stripHtmlComments.mjs";
-import { PRICE_FEED_FILE, buildPriceFeed } from "./scripts/giftGuidePriceFeed.mjs";
+import { PRICE_FEED_FILE, buildPriceFeed } from "./scripts/lib/giftGuidePriceFeed.mjs";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";

@@ -17,13 +17,16 @@
 //      (PostgREST's 401 "JWT expired") or as anon.
 // @mutate src/hooks/useAuthReady.ts | else if (event === "SIGNED_OUT") settleRestore(false); | else if (event === "SIGNED_OUT") void 0;
 // @mutate src/hooks/useAuthReady.ts | if (session) settleRestore(true);\n          else | if (false) settleRestore(true);\n          else
+// @mutate src/hooks/useCurrentUser.ts | await client()\n    .then((c) => c.auth.getSession()) | void client()\n    .then((c) => c.auth.getSession())
 // @mutate src/components/QueryCacheHydrator.tsx | if (!(await whenSessionConfirmed()) \|\| cancelled) return; | if (cancelled) return;
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, render } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const h = vi.hoisted(() => ({ client: null as unknown, persistCalls: 0 }));
+const h = vi.hoisted(() => ({ client: null as unknown, persistCalls: 0, profileRow: {} as Record<string, unknown> }));
 
 vi.mock("@/integrations/supabase/client", () => ({
   get supabase() {
@@ -56,12 +59,15 @@ function stubNetwork(answer: TokenAnswer, delayMs: number): Sent[] {
       if (answer === "network") throw new TypeError("Failed to fetch");
       return new Response(JSON.stringify(answer.body), { status: answer.status, headers: { "Content-Type": "application/json" } });
     }
-    const authorization = new Headers(init?.headers).get("Authorization");
+    const headers = new Headers(init?.headers);
+    const authorization = headers.get("Authorization");
     sent.push({ url, authorization });
     if (authorization !== "Bearer new-jwt") {
       return new Response(JSON.stringify({ code: "PGRST301", message: "JWT expired", details: null, hint: null }), { status: 401, headers: { "Content-Type": "application/json" } });
     }
-    return new Response(JSON.stringify([{ id: "member-1" }]), { status: 200, headers: { "Content-Type": "application/json" } });
+    const rows = url.includes("/rest/v1/profiles") ? [h.profileRow] : url.includes("/rest/v1/user_roles") ? [] : [{ id: "member-1" }];
+    const single = (headers.get("Accept") ?? "").includes("vnd.pgrst.object");
+    return new Response(JSON.stringify(single ? rows[0] ?? null : rows), { status: 200, headers: { "Content-Type": "application/json" } });
   }));
   return sent;
 }
@@ -205,7 +211,7 @@ describe("3. a first-screen query fired during the refresh waits for it", () => 
     const { result } = await mount();
     expect(result.current.user?.id).toBe("member-1");
     // The screen drew at once and asks for its data now, mid-refresh.
-    const query = (h.client as SupabaseClient).from("profiles").select("id");
+    const query = (h.client as SupabaseClient).from("jobs").select("id");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(400);
     });
@@ -217,5 +223,51 @@ describe("3. a first-screen query fired during the refresh waits for it", () => 
     expect(error).toBeNull();
     expect(data).toEqual([{ id: "member-1" }]);
     expect(sent.map((s) => s.authorization)).toEqual(["Bearer new-jwt"]);
+  });
+});
+
+describe("3b. the profile gate (ProtectedRoute's own read) waits for the refresh before its deadline", () => {
+  async function mountCurrentUser() {
+    h.client = buildClient();
+    const { useCurrentUser } = await import("./useCurrentUser");
+    // The app's query policy (src/lib/queryClient.ts): one retry 500 ms later, networkMode always.
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, retryDelay: 500, networkMode: "always" } } });
+    const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client: qc }, children);
+    const hook = renderHook(() => useCurrentUser(), { wrapper });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    return hook;
+  }
+  const accepted = () => ({ status: 200, body: { access_token: "new-jwt", refresh_token: "rt-2", token_type: "bearer", expires_in: 3600, expires_at: nowS() + 3600, user } });
+
+  it("a 13 s refresh (past two 6 s profile deadlines) still ends on the profile, never the couldn't-load card", async () => {
+    h.profileRow = { user_id: "member-1", full_name: "Member One", ban_status: null };
+    const sent = stubNetwork(accepted(), 13_000);
+    localStorage.setItem(KEY, storedExpired());
+    const { result } = await mountCurrentUser();
+    expect(result.current.user?.id).toBe("member-1"); // the screen drew at once
+    let sawError = false;
+    for (let t = 0; t < 14_000; t += 500) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+      if (result.current.isError) sawError = true;
+    }
+    expect(sawError).toBe(false);
+    expect(result.current.profile).toEqual(expect.objectContaining({ user_id: "member-1" }));
+    expect(sent.filter((s) => s.authorization !== "Bearer new-jwt")).toEqual([]);
+  });
+
+  it("a banned member's row comes from the server after the refresh (ban_status intact for the /account-banned gate)", async () => {
+    h.profileRow = { user_id: "member-1", full_name: "Member One", ban_status: "banned" };
+    stubNetwork(accepted(), 300);
+    localStorage.setItem(KEY, storedExpired());
+    const { result } = await mountCurrentUser();
+    expect(result.current.profile).toBeNull(); // nothing from the device first
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(result.current.profile).toEqual(expect.objectContaining({ ban_status: "banned" }));
   });
 });

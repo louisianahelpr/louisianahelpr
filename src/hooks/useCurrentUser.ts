@@ -200,6 +200,16 @@ const fetchCurrentUser = async (
   // app's download; take that answer once. Same reads, same token; anything unusable reads below as always.
   const pre = await takeJobsMePrefetch(userId);
   if (pre) return { profile: pre.profile as Profile | null, isAdmin: pre.isAdmin, adminCheckFailed: false };
+  // Q1158 (2026-11-22): a member restored from an expired session (useAuthReady storedUserAwaitingRefresh) asks for
+  // this row while auth-js is still refreshing the token. Wait for that refresh FIRST, outside the 6 s deadline, so a
+  // slow refresh never times the profile out into the "couldn't load" card; supabase-js waits on the same refresh
+  // anyway. A live session answers from storage at once; a refresh that failed answers too (the read is then held).
+  await client()
+    .then((c) => c.auth.getSession())
+    .catch(() => {
+      // Not silent: the profile read below meets the same failure and throws it to the query (the retry card).
+      return undefined;
+    });
   const profilePromise = readProfile(userId);
 
   // The admin-role lookup must NEVER block the profile. It was previously in

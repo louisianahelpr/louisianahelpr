@@ -238,8 +238,8 @@ export default function GiftGuides() {
       {/* Owner decision 2026-11-18 (~8:50 AM): the disclosures are plain muted lines at the BOTTOM, no box. The
           Amazon line is the exact statement the Amazon Associates Operating Agreement requires on a site with
           Amazon links. */}
-      <p data-gift-disclosure="">{G.disclosure}</p>
-      <p data-gift-amazon-statement="">{G.amazonStatement}</p>
+      {/* Owner 2026-11-22 ("Make this small on 1 line"): ONE small line, the affiliate words and Amazon's statement. */}
+      <p data-gift-disclosure="">{G.disclosureLead} <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>
       {/* Owner 11-18 PM: no "Every collection on ShopMy" / "Every gift guide on Pinterest" links; the disclosures stay. */}
     </footer>
   );

@@ -23,6 +23,7 @@ import { ShareAllLists } from "../SaveForSomeone";
 import { AmazonCartForList } from "../AmazonCartButton";
 import { AnyStoreAdd } from "../AnyStoreAdd";
 import { useOurLinkSync } from "../wishLinkSync";
+import { ListLine } from "../ManageList";
 import { GiftWishShare } from "../GiftWishShare";
 import { WISH } from "@/content/giftWishList";
 import { shareGiftLists } from "@/lib/giftWishListApi";
@@ -90,6 +91,8 @@ function Person({ p }: { p: PlanPerson }) {
           <span aria-hidden="true">×</span>
         </RoundIconButton>
       </div>
+      {/* Owner 11-21: the list's gifts and total against the budget, as in the guides' sheet ("$36.75 left of $100"). */}
+      {p.ideas.length > 0 && <p className="gg-plan-money m-0" data-plan-list-line={p.id}><ListLine p={p} /></p>}
       <MoneyBar p={p} />
       {p.ideas.length > 0 && (
         <ul className="gg-fun-list mt-2" aria-label={`${W.plannerIdeas} (${p.name})`}>

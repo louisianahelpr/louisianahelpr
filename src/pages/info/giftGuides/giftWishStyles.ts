@@ -32,4 +32,13 @@ export const GIFT_WISH_CSS = `
 .gg-wish-missing{margin:6px 0 0;font-size:13px;color:var(--gg-muted)}
 .gg-shared-person{margin:18px 0 0}
 .gg-shared-person-name{margin:0;font-size:20px;line-height:1.25;font-weight:700;overflow-wrap:anywhere}
+/* Managing a list (owner 11-21, ManageList.tsx): the budget line and the list's own actions, here so the planner (fun pages)
+   and the guides' sheet both have them. */
+.gg-list-over{color:hsl(var(--amber-ink));font-weight:700}
+.gg-list-left{color:var(--gg-muted)}
+.gg-mylists-actions{display:inline-flex;gap:14px;align-items:center}
+.gg-list-delete{align-self:flex-start;margin-top:8px;color:hsl(var(--amber-ink))}
+.gg-savefor-view{flex:none;min-height:44px;padding:0 10px;font-size:13px;font-weight:600}
+.gg-savefor-li{display:flex;align-items:stretch;gap:6px}
+.gg-savefor-li>.gg-savefor-row{flex:1;min-width:0}
 `;

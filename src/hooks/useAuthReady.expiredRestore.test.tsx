@@ -18,7 +18,7 @@
 // fails (isReady false until 15 s), and so does every @mutate below.
 // BLIND TO: real auth-js timing (getSession is a mock); the lab budget measures that.
 // @mutate src/hooks/useAuthReady.ts | if (restoredUser) { | if (false) {
-// @mutate src/hooks/useAuthReady.ts | if (!timedOut && !storedSessionStillRefreshable()) markReady(null); | if (!timedOut && !storedSessionStillRefreshable()) void 0;
+// @mutate src/hooks/useAuthReady.ts | settleRestore(false);\n            markReady(null); | settleRestore(false);
 // @mutate src/hooks/useAuthReady.ts | if (stored.expires_at * 1000 - Date.now() >= REFRESH_MARGIN_MS) return null; | void REFRESH_MARGIN_MS;
 // @mutate src/hooks/useAuthReady.ts | if (isNativeShell()) return null; | void isNativeShell;
 // @mutate src/hooks/useAuthReady.ts | if (typeof stored?.refresh_token !== "string" \|\| !stored.refresh_token) return null; | void 0;

@@ -287,7 +287,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/pages/info/giftGuides/AnyStoreAdd.tsx` | input×2 | text | 2000, 120 |  |
-| `src/pages/info/giftGuides/fun/GiftPlanner.tsx` | input×4, checkbox/switch/radio×1 | text | 40 | fun-planner · plan-totals · gg-plan-add-err |
+| `src/pages/info/giftGuides/fun/GiftPlanner.tsx` | input×4, checkbox/switch/radio×1 | text | 40 | plan-totals · gg-plan-add-err |
 | `src/pages/info/giftGuides/fun/GuidePicksPicker.tsx` | input×1 | search | 60 |  |
 | `src/pages/info/giftGuides/fun/PriceAlertsOptIn.tsx` | input×1, checkbox/switch/radio×1 | email | 254 |  |
 | `src/pages/info/giftGuides/GiftWishShare.tsx` | input×1 | text |  | share |

@@ -529,7 +529,6 @@ export const FUN_WORDS = {
   plannerShop: "Shop",
   // One-time tips (the wish-list hints)
   hintSanta: "Tip: we never ask for emails or phone numbers. You send each link yourself.",
-  hintPlanner: "Tip: tap Bought when you get a gift, and we'll add up what you've spent.",
 };
 
 /**

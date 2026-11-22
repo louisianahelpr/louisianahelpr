@@ -9,6 +9,7 @@
  *   - one way to close (the sheet's X): no second Close button.
  *
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | style={chatBubbleStyle(m.mine)} | style={undefined}
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx |  pt-3 pb-[max(var(--safe-area-bottom,0px),12px)]" data-order-talk-composer | pt-3" data-order-talk-composer
  * @mutate src/components/messages/MessageBubble.tsx |         style={chatBubbleStyle(mine)} |         style={{ background: "hsl(var(--muted))" }}
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |         </div>\n        {t && open && !talk.isError && ( |         {t && open && !talk.isError && (
  */
@@ -49,6 +50,9 @@ describe("the order chat uses the shared chat design (#137)", () => {
     const closes = (between.match(/<\/div>/g) ?? []).length;
     expect(closes - opens).toBe(1);
     expect(src).toMatch(/className="min-h-0 flex-1 overflow-y-auto" data-order-talk-scroll/);
+    // Send measured flush on the 812px edge (756-812) before the composer kept the home-indicator inset clear.
+    expect(src).toMatch(/data-order-talk-composer=""/);
+    expect(src.slice(src.lastIndexOf("<form", composerAt), composerAt)).toMatch(/pb-\[max\(var\(--safe-area-bottom/);
     expect(src).not.toMatch(/SheetSecondaryAction|cp\.ot\.close/);
     expect(src).toMatch(/type="submit"[^>]*aria-label=\{[^}]*cp\.ot\.send/);
   });

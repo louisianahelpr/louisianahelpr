@@ -5,7 +5,7 @@
  * its React skeleton spell the same container, so the first paint and the app agree (no shift at the handoff).
  *
  * @mutate src/components/Navbar.tsx |           PUBLIC_CONTAINER, |           landing && PUBLIC_CONTAINER,
- * @mutate src/components/marketing/PublicHeaderPage.tsx |       <div data-public-container="" className={PUBLIC_CONTAINER}> |       <div data-public-container="">
+ * @mutate src/components/marketing/PublicHeaderPage.tsx |       <div data-public-container="" className={`${PUBLIC_CONTAINER} w-full min-w-0`}> |       <div data-public-container="">
  * @mutate src/lib/browseShellCards.mjs | export const SHELL_PUBLIC_CONTAINER = "max-w-[78rem] mx-auto"; | export const SHELL_PUBLIC_CONTAINER = "w-full";
  * @mutate src/components/GuestBrowseSkeleton.tsx |     <div className={PUBLIC_CONTAINER}>\n    <PageHeader | <div>\n    <PageHeader
  */
@@ -32,7 +32,8 @@ describe("F017: one public-page container", () => {
   });
 
   it("PublicHeaderPage holds the title and the body to it; the /browse skeleton too", () => {
-    expect(code("src/components/marketing/PublicHeaderPage.tsx")).toContain('<div data-public-container="" className={PUBLIC_CONTAINER}>');
+    // Holiday audit 1121 #1: plus `w-full min-w-0`, so inside AppShell's flex column it is never shrink-to-fit.
+    expect(code("src/components/marketing/PublicHeaderPage.tsx")).toContain('<div data-public-container="" className={`${PUBLIC_CONTAINER} w-full min-w-0`}>');
     const skel = code("src/components/GuestBrowseSkeleton.tsx");
     expect(skel).toContain("<div className={PUBLIC_CONTAINER}>");
     expect(skel).toContain("h-[var(--public-nav-h)] px-5 sm:px-8 lg:px-12 ${PUBLIC_CONTAINER}");

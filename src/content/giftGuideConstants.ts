@@ -13,3 +13,10 @@ export const AMAZON_TAG = "louisianahelpr-20";
  * moments guides). Dropped before matching, unless the query is nothing else.
  */
 export const SEARCH_FILLER = new Set(["gift", "gifts", "for", "my", "a", "an", "the", "ideas", "idea", "to", "who", "that", "someone", "present", "presents", "of", "and", "is", "likes", "loves"]);
+
+/**
+ * Louisiana Helpr's Facebook page: the 25 Days page's links (src/content/sponsorPage.ts reads it from here) and the gift
+ * guides landing's giveaways button, which reads it here so a guide page never downloads the 25 Days page's words
+ * (vite.config.ts sponsor-page-reads).
+ */
+export const LOUISIANA_HELPR_FACEBOOK = "https://www.facebook.com/louisianahelpr";

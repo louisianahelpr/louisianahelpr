@@ -20,6 +20,8 @@
  * /admin/sponsors and override the values here.
  *
  */
+import { LOUISIANA_HELPR_FACEBOOK } from "./giftGuideConstants";
+
 export const sponsorPage = {
   // The browser-tab title, search description and link-preview text are NOT here: they live in
   // src/lib/publicPageMeta.mjs (PUBLIC_PAGE_META "/25days", NOINDEX_PAGE_META "/sponsor"), the one table the
@@ -36,7 +38,7 @@ export const sponsorPage = {
   links: {
     website: "https://www.louisianahelpr.com",
     websiteLabel: "louisianahelpr.com",
-    facebookPage: "https://www.facebook.com/louisianahelpr",
+    facebookPage: LOUISIANA_HELPR_FACEBOOK,
     // UNKNOWN: the "Visit our Facebook Group" buttons stay hidden until this is a real URL.
     facebookGroup: "[FACEBOOK GROUP URL]",
     email: "admin@louisianahelpr.com",

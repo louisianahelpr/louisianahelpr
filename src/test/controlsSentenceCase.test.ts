@@ -87,8 +87,7 @@ const TITLE_PROPS = /<(PageHeader|PublicHeaderPage|EmptyState|ProfileTabHeader|A
 // "Find something in Browse" (B169 Q2569): Browse is the Declutter tab's name, written as on the tab row.
 // "Post a Wanted" (Sell chooser More ways, owner pick 5, 11-08): Wanted is the Declutter tab's name, as in "Your Wanted posts".
 // "Share your Book me link" (B99 UX-4): Book me is the profile button's name, written as on that button.
-// "Holiday Gift Guides" (owner 2026-11-18, the top-bar link): the /gift-guides page's own title (src/content/giftGuides.ts), quoted by the owner.
-const NAMES = new Set(["Holiday Gift Guides", "Licensed & Insured", "Licensed & Insured Only", "Top Rated", "Terms of Service", "Answer in Buying", "Your Wanted posts", "Share your Book me link", "Find something in Browse", "Post a Wanted", "See it in Buying"]);
+const NAMES = new Set(["Licensed & Insured", "Licensed & Insured Only", "Top Rated", "Terms of Service", "Answer in Buying", "Your Wanted posts", "Share your Book me link", "Find something in Browse", "Post a Wanted", "See it in Buying"]);
 
 function findings(): string[] {
   const bad: string[] = [];

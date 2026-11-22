@@ -1,5 +1,5 @@
 /**
- * /gift-guides: EVERY word, pick and link on the Holiday Gift Guides page lives in this one file (owner 2026-11-16:
+ * /gift-guides: EVERY word, pick and link on the Holiday gift guides page lives in this one file (owner 2026-11-16:
  * "i think we should add this to our landing pages on louisiana helpr so people can see our gift guides"; pop-up
  * choice "New gift guide page"). Edit here; nothing else needs to change.
  *
@@ -228,7 +228,7 @@ export const codesByStore = (codes: DiscountCode[]) => {
 export const giftGuides = {
   /** The header title on every gift guides page, by the back arrow (owner 11-21: "add holiday to gift guides where it is by the back arrow"). */
   headerTitle: "Holiday gift guides",
-  title: "Holiday Gift Guides",
+  title: "Holiday gift guides",
   /**
    * The landing's ONE set of ways in (owner 11-20 PM: "a tidy grid of nicely spaced cards, each with a good photo and
    * title"): a card per main group, its photo the named guide's own cover, its short line below the title; then the
@@ -263,7 +263,7 @@ export const giftGuides = {
    */
   primeTrial: { label: "Try Prime free for fast holiday shipping", href: "https://www.amazon.com/prime?tag=louisianahelpr-20" },
   allGuidesLabel: "All guides",
-  sidebarLabel: "Holiday Gift Guides",
+  sidebarLabel: "Holiday gift guides",
   /**
    * The left menu's links to the deals page's three day sections (owner 11-21). The ids are the section anchors of the
    * one deals page (src/content/giftGuideDeals.mjs DEAL_EVENTS on feat/guide-deals-bfcm-1121).

@@ -276,7 +276,7 @@ export default function GiftGuides() {
     // repeated title below. then move the 3 icons to the right of order by dec 15 etc"): EVERY gift guides page, the
     // landing too, opens with the shared header row (back arrow + "Holiday gift guides", left), and under it ONE row:
     // the shipping pill on the left, search + My list heart + Share on the right (wrapping on a phone). The centered
-    // "top-rated finds / Holiday Gift Guides" title block is gone. The landing's arrow goes home; every other page's to
+    // "top-rated finds / Holiday gift guides" title block is gone. The landing's arrow goes home; every other page's to
     // the landing.
     // Owner 11-21 (later): "all of this should be on the same row": from 768px up the back arrow + title, the pill and
     // search + heart + share are ONE row (the page draws it, so the shell's own header row is off); a phone wraps it to

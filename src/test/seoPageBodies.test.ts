@@ -121,7 +121,7 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
     expect(root).toContain(`>${name.replace(/&/g, "&amp;").replace(/'/g, "&#39;")}</a>`);
     expect(root).toContain(`on ${store.replace(/&/g, "&amp;").replace(/'/g, "&#39;")}`);
     expect(root).toContain(`href="${href.replace(/&/g, "&amp;")}" rel="sponsored nofollow noopener"`);
-    expect(root).toContain('<a href="/gift-guides">Holiday Gift Guides</a>');
+    expect(root).toContain('<a href="/gift-guides">Holiday gift guides</a>');
     const list = jsonLd(body).find((b) => b["@type"] === "ItemList") as { itemListElement: { name?: string; url?: string; item?: { name: string; url: string } }[] };
     // A pick showing a price is a Product (giftGuideStructuredData1121.test.ts); either way its name and shop link.
     const first = list.itemListElement[0];
@@ -145,7 +145,7 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
   it("/gift-guides links every guide the page groups, and carries an ItemList of guide URLs", async () => {
     const { status, body } = await html("gift-guides");
     expect(status).toBe(200);
-    expectOwnPage(body, "Holiday Gift Guides");
+    expectOwnPage(body, "Holiday gift guides");
     const links = [...rootOf(body).matchAll(/<a href="\/gift-guides\/([a-z0-9-]+)">/g)].map((m) => m[1]);
     expect(links.length).toBeGreaterThan(2); // owner 11-21: Her, Him, Kids and the sponsors page (54 before, 2026-11-20)
     expect(links).toContain("her"); // Mom is a view of For Her since the owner's standard plan (2026-11-20)

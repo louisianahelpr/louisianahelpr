@@ -41,7 +41,7 @@ export const sponsorPage = {
     facebookGroup: "[FACEBOOK GROUP URL]",
     email: "admin@louisianahelpr.com",
     privacy: "/privacy",
-    // Owner 2026-11-16: the Holiday Gift Guides page, linked from this page's footer.
+    // Owner 2026-11-16: the Holiday gift guides page, linked from this page's footer.
     giftGuides: "/gift-guides",
   },
 
@@ -720,6 +720,6 @@ export const sponsorPage = {
     pageLink: "Facebook Page",
     groupLink: "Facebook Group",
     privacyLink: "Privacy Policy",
-    giftGuidesLink: "Holiday Gift Guides",
+    giftGuidesLink: "Holiday gift guides",
   },
 } as const;

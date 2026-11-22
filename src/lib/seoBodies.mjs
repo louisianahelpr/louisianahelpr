@@ -65,7 +65,7 @@ export function seoPageBody(crumbs, inner) {
 }
 
 const HOME = { name: "Louisiana Helpr", path: "/" };
-const GUIDES = { name: "Holiday Gift Guides", path: "/gift-guides" };
+const GUIDES = { name: "Holiday gift guides", path: "/gift-guides" };
 
 /* ------------------------------------------------------------------ *
  * Gift guides
@@ -177,7 +177,7 @@ export function giftGuidesLandingBody(groups) {
     .join("");
   return page(
     [HOME, GUIDES],
-    `<h1>Holiday Gift Guides 2026</h1><p>Gift ideas for her, him and the kids from Louisiana Helpr, every pick with its price and sorted by budget. Each guide links to the store that sells every pick.</p>${sections}`,
+    `<h1>Holiday gift guides 2026</h1><p>Gift ideas for her, him and the kids from Louisiana Helpr, every pick with its price and sorted by budget. Each guide links to the store that sells every pick.</p>${sections}`,
   );
 }
 
@@ -187,7 +187,7 @@ export function giftGuidesLandingLd(groups) {
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Holiday Gift Guides 2026",
+    name: "Holiday gift guides 2026",
     url: `${SEO_SITE_ORIGIN}/gift-guides`,
     numberOfItems: all.length,
     itemListElement: all.map(([s, n], i) => ({ "@type": "ListItem", position: i + 1, name: n, url: `${SEO_SITE_ORIGIN}/gift-guides/${s}` })),

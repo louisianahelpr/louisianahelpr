@@ -42,7 +42,7 @@ describe("F086: the desktop top bar's photo opens Profile / Settings / Log out",
     mount();
     expect(screen.getByTestId("where").textContent).toBe("/home");
     await openMenu();
-    expect(screen.getAllByRole("menuitem").map((m) => m.textContent?.trim())).toEqual(["Profile", "Settings", "Holiday Gift Guides", "Log out"]); // owner 2026-11-18: the gift guides for signed-in members
+    expect(screen.getAllByRole("menuitem").map((m) => m.textContent?.trim())).toEqual(["Profile", "Settings", "Holiday gift guides", "Log out"]); // owner 2026-11-18: the gift guides for signed-in members
     expect(screen.getByTestId("where").textContent).toBe("/home");
   });
 

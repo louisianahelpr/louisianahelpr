@@ -165,7 +165,7 @@ describe("gift guides: one header on every page (owner 11-21)", () => {
   // left of the title"; then "add holiday to gift guides where it is by the back arrow. remove the repeated title below.
   // then move the 3 icons to the right of order by dec 15 etc"): every gift guides page, the landing too, has the shared
   // header row (back arrow + "Holiday gift guides"), then ONE row: the shipping pill, then search + heart + Share. The
-  // centered "top-rated finds / Holiday Gift Guides" block is gone.
+  // centered "top-rated finds / Holiday gift guides" block is gone.
   // Owner 11-21 (later): "all of this should be on the same row": the back arrow + title, the pill and the tools are ONE
   // row the page draws (one line from 768px up; a phone wraps it).
   // @mutate src/pages/info/GiftGuides.tsx | <GuidesHeadRow backTo={backTo} titleIsH1={!banner} | <GuidesHeadRow backTo={backTo} titleIsH1
@@ -917,7 +917,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
       const items = [...land.querySelectorAll("[data-gift-share-menu] [role=menuitem]")];
       expect(items.map((x) => x.textContent)).toEqual(["Copy link", "Text these guides", "More ways to share", "Facebook", "Pinterest"]);
       fireEvent.click(items[2]);
-      expect(native).toHaveBeenCalledWith({ title: "Holiday Gift Guides", url: "https://www.louisianahelpr.com/gift-guides" });
+      expect(native).toHaveBeenCalledWith({ title: "Holiday gift guides", url: "https://www.louisianahelpr.com/gift-guides" });
     } finally {
       delete (navigator as { share?: unknown }).share;
     }

@@ -49,7 +49,7 @@ interface PublicHeaderPageProps {
   /** Forwarded to PageHeader: "p" when the page's body holds its own h1 (the gift guides' banner title). */
   titleTag?: "h1" | "p";
   /** No header row at all: the page's body opens with its own h1 and has no back arrow or title-row actions (the
-   *  /gift-guides landing, owner 11-20: one title, not "Gift guides" over "Holiday Gift Guides"). */
+   *  /gift-guides landing, owner 11-20: one title, not "Gift guides" over "Holiday gift guides"). */
   hideHeader?: boolean;
   children: ReactNode;
 }

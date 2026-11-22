@@ -67,7 +67,7 @@ export const LEGAL_PAGE_META = {
 
 /** Single-path public pages, keyed by pathname. */
 export const PUBLIC_PAGE_META = {
-  // Holiday Gift Guides (owner 2026-11-16; indexed from the follow-up batch 2026-11-18, SEO): in the sitemap with every
+  // Holiday gift guides (owner 2026-11-16; indexed from the follow-up batch 2026-11-18, SEO): in the sitemap with every
   // guide that holds picks (scripts/generate-sitemap.mjs allGiftGuidePaths); each guide's own head is giftGuidePageMeta (giftGuidePageMeta.mjs).
   "/gift-guides": {
     title: "Holiday gift guides 2026 — Helpr",

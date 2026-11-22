@@ -3,7 +3,7 @@ import { ArrowRight, Gift } from "lucide-react";
 import { useGuestSpanish } from "./useGuestSpanish";
 
 /**
- * The landing's way to the Holiday Gift Guides (owner 2026-11-16: "add this to our landing pages on louisiana helpr so
+ * The landing's way to the Holiday gift guides (owner 2026-11-16: "add this to our landing pages on louisiana helpr so
  * people can see our gift guides"). One light card under the section cards, well below the first screen: text and an
  * icon only (no image, no data read), so the first screen is untouched. English drawn here, Spanish through
  * useGuestSpanish like the rest of the landing; enLanding.ts mirrors the English (landingInSpanish.test.tsx).
@@ -22,7 +22,7 @@ export function GiftGuidesBand() {
             <Gift className="w-6 h-6 shrink-0 mt-1" aria-hidden style={{ color: "var(--lp-action-strong)" }} />
             <div className="min-w-0 space-y-1">
               <h2 id="gift-guides-heading" className="font-display landing-serif text-ds-24 sm:text-ds-28">
-                {w("landing.giftGuides.title", "Holiday Gift Guides")}
+                {w("landing.giftGuides.title", "Holiday gift guides")}
               </h2>
               <p className="text-ds-15 leading-relaxed" style={{ color: "var(--lp-body)" }}>
                 {w("landing.giftGuides.body", "Gift ideas for her, for him and for the kids.")}

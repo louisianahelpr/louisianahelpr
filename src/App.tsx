@@ -460,7 +460,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/hire/:service/:town" element={<RouteErrorBoundary>{routeEl(<PageTransition><HireTownPage /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Twilio A2P review (owner 2026-10-23): a public link to how members opt in to texts. */}
       <Route path="/sms-opt-in" element={<RouteErrorBoundary>{routeEl(<PageTransition><SmsOptIn /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* F255 (owner 2026-11-11): costs, safety; 11-16 Holiday Gift Guides (src/content/giftGuides.ts). */}
+      {/* F255 (owner 2026-11-11): costs, safety; 11-16 Holiday gift guides (src/content/giftGuides.ts). */}
       <Route path="/fees" element={<RouteErrorBoundary>{routeEl(<PageTransition><Fees /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/safety" element={<RouteErrorBoundary>{routeEl(<PageTransition><Safety /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Owner 2026-11-18: public gift guides (pins link to /gift-guides#<section id>); /gift-guides/<slug> opens one; 11-20 fun pages + printables. */}
@@ -482,7 +482,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/holidays/events" element={<RouteErrorBoundary>{routeEl(<HolidayLegacyRedirect />)}</RouteErrorBoundary>} />
       <Route path="/holidays/hire-a-helpr" element={<RouteErrorBoundary>{routeEl(<PageTransition><HolidayHire /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Owner 2026-11-21: Louisiana small businesses ask to be featured free (admin approves first); public, signed out. */}
-      <Route path="/shop-small" element={<Navigate to="/gift-guides/small-business-saturday" replace />} />{/* Guides audit 1122 #7: Shop Small is part of Small Business Saturday (owner 11-21) */}
       {/* Retired with no redirect, so they fall to NotFound below (no outside citation; add a real <Route> if one
           appears): /parishes, /parish/:slug, /impact, /local-guide, /community, /browse-jobs and /evacuation
           (2352466e); /benefits (BenefitsPage, owner 2026-08-31: no partner agreements behind it). */}

@@ -83,7 +83,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/sms-opt-in",   // How to opt in to text alerts (Twilio A2P review, 2026-10-23)
   "/fees",         // F255 (owner 2026-11-11): what it costs, words only
   "/safety",       // F255 (owner 2026-11-11): how members are kept safe
-  "/gift-guides",  // Owner 2026-11-16: the Holiday Gift Guides
+  "/gift-guides",  // Owner 2026-11-16: the Holiday gift guides
   "/holidays",     // Owner-approved 2026-11-20: the Louisiana Holiday Hub (and its three pages, prefix match)
   // 25 Days of Louisiana Giveaways (owner 2026-11-09): the public sponsor page and /25days, document scroll.
   "/sponsor",

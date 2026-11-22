@@ -571,7 +571,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
             footnote={<WantedLink query={query} category={filters.category} />}
           />
         )}
-        {/* The Holiday Gift Guides banner (owner mockup A, 11-18): its own chunk, after the end card, so nothing moves. */}
+        {/* The Holiday gift guides banner (owner mockup A, 11-18): its own chunk, after the end card, so nothing moves. */}
         {!preview && <Suspense fallback={null}><GiftGuidesPromo where="declutter" /></Suspense>}
       </div>
     );

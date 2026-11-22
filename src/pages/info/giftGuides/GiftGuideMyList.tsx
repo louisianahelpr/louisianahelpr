@@ -22,7 +22,7 @@ import { PickPrice, showsPrice } from "@/components/giftGuides/PickPrice";
 /**
  * /gift-guides/my-list (owner 2026-11-18 "My list"; 2026-11-20 "My Wish List": "add something that they can add to
  * their list and send their list to someone"): the list's name (editable, never required), the saved guides as tiles,
- * then every saved gift as a row (photo, name, where it is sold, Shop with our link) and "Share my list". Each saved gift
+ * then every saved gift as a row (photo and name as one link to the store with our link, where it is sold) and "Share my list". Each saved gift
  * wears a filled heart in its top-right corner (owner 11-20, replacing the Remove buttons): a tap takes it off the list,
  * the heart goes to an outline and the row stays for this visit (a second tap saves it again), with "Removed · Undo".
  * Empty: one line saying how to fill it. A saved gift the guides no longer carry is left out (never a dead row).

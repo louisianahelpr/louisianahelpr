@@ -164,11 +164,14 @@ function Picker({ item, ready }: { item: SaveItem | null; ready: boolean }) {
   );
 }
 
-/** "Share all my lists" (one link with every person's list), for the panel and the gift planner. */
-export function ShareAllLists({ plan }: { plan: GiftPlan }) {
+/**
+ * "Share all my lists" (one link with every person's list), for the panel and the gift planner. `soloNote` false (the
+ * planner, owner 2026-11-22): with one list nothing shows here, since that list's own card carries Share and its note.
+ */
+export function ShareAllLists({ plan, soloNote = true }: { plan: GiftPlan; soloNote?: boolean }) {
   const lists = plan.people.map(shareListOf).filter((l) => l.items.length > 0);
   const hidden = privateIdeas(plan.people);
-  if (lists.length === 0) return null;
+  if (lists.length === 0 || (lists.length === 1 && !soloNote)) return null;
   return (
     <div className="gg-mylists-shareall" data-share-all-lists="">
       {lists.length > 1 && (

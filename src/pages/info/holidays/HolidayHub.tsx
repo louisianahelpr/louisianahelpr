@@ -29,8 +29,8 @@ import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import {
   DATES_TBA, HOLIDAY_EVENT_KIND, HOLIDAY_HIRE_PATH, HOLIDAY_LIGHT_FORMAT, HOLIDAY_REGIONS, HOLIDAY_WHAT, HOLIDAY_WORDS as W,
-  filterHolidayItems, holidayCountLabel, holidayDayHeading, holidayItemsByDay, isHolidayLight, louisianaToday,
-  resolveHolidayWhat, type HolidayCost, type HolidayItem, type HolidayRegion,
+  endedEarlierToday, filterHolidayItems, holidayCountLabel, holidayDayHeading, holidayItemsByDay, isHolidayLight, louisianaMinutes, louisianaToday,
+  resolveHolidayWhat, type HolidayCostFilter, type HolidayItem, type HolidayRegion,
 } from "@/content/holidayHub/holidayHub.mjs";
 import { HUB_COLUMN, HUB_HEADER_COLUMN, HolidayCard, HolidayNothing, HolidaySection, useHolidayPageView } from "./holidayParts";
 
@@ -38,7 +38,8 @@ type Option = { value: string; label: string };
 const WHAT_OPTIONS: Option[] = [{ value: "all", label: "Everything" }, ...HOLIDAY_WHAT.map((w) => ({ value: w.slug, label: w.label }))];
 const WHEN_OPTIONS: Option[] = [{ value: "all", label: "All dates" }, { value: "weekend", label: "This weekend" }];
 const REGION_OPTIONS: Option[] = [{ value: "all", label: "All regions" }, ...HOLIDAY_REGIONS.map((r) => ({ value: r.slug, label: r.label }))];
-const COST_OPTIONS: Option[] = [{ value: "all", label: "Any" }, { value: "free", label: "Free" }, { value: "paid", label: "Paid" }];
+// Holiday audit 1121 area 5 #3: items with no cost listed have their own choice (they showed under neither Free nor Paid).
+const COST_OPTIONS: Option[] = [{ value: "all", label: "Any" }, { value: "free", label: "Free" }, { value: "paid", label: "Paid" }, { value: "unlisted", label: "Cost not listed" }];
 /** The quick choice on the row: "Events" covers every kind of event (a single kind shows as its own chip below). */
 const QUICK_OPTIONS = [{ value: "all", label: "All" }, { value: "lights", label: "Lights" }, { value: "events", label: "Events" }] as const;
 
@@ -89,7 +90,7 @@ export default function HolidayHub() {
   const what = resolveHolidayWhat(params.get("what"), params.get("kind")) ?? "all";
   const when = pick<"weekend">(params.get("when"), WHEN_OPTIONS);
   const region = pick<HolidayRegion>(params.get("region"), REGION_OPTIONS);
-  const cost = pick<HolidayCost>(params.get("cost"), COST_OPTIONS);
+  const cost = pick<HolidayCostFilter>(params.get("cost"), COST_OPTIONS);
   const set = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     // A redirected URL may still carry the old pages' `kind` or `way`: fold `kind` into `what`, drop both.
@@ -102,16 +103,28 @@ export default function HolidayHub() {
   };
   const clearAll = () => setParams(new URLSearchParams());
   const today = louisianaToday();
+  // Holiday audit 1121 area 5 #10: a one-day item whose simple hours range has closed drops out of "Today".
+  const minutes = louisianaMinutes();
   const shown = useMemo(
     () => filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {
       what: what === "all" ? null : what,
       region: region === "all" ? null : region,
       cost: cost === "all" ? null : cost,
       weekend: when === "weekend",
-    }, today),
-    [what, region, cost, when, today],
+    }, today).filter((i) => !endedEarlierToday(i, today, minutes)),
+    [what, region, cost, when, today, minutes],
   );
   const groups = useMemo(() => holidayItemsByDay(shown, today), [shown, today]);
+  // With Free or Paid on, the count line says how many more have no cost listed (#3), so none drop out unsaid.
+  const unlisted = useMemo(
+    () => (cost === "free" || cost === "paid" ? filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {
+      what: what === "all" ? null : what,
+      region: region === "all" ? null : region,
+      cost: "unlisted",
+      weekend: when === "weekend",
+    }, today).length : 0),
+    [what, region, cost, when, today],
+  );
 
   // Every filter in effect, in the panel's order: a removable chip each, and the Filters button's count.
   const active = [
@@ -182,25 +195,25 @@ export default function HolidayHub() {
           onClearAll={clearAll} title="Filters" resultCount={shown.length} resultNoun={["result", "results"]} anchorRef={filtersButton} />
 
         {/* The count line; with nothing to count, the empty card below says so instead. */}
-        <p className="text-ds-14 text-muted-foreground" aria-live="polite" data-holiday-count="">{shown.length ? holidayCountLabel(shown) : ""}</p>
+        <p className="text-ds-14 text-muted-foreground" aria-live="polite" data-holiday-count="">{shown.length ? holidayCountLabel(shown) : ""}{unlisted > 0 && <span data-holiday-unlisted="">{` · plus ${unlisted} with no cost listed`}</span>}</p>
         {groups.length === 0 ? (
           <HolidayNothing onClear={clearAll}>
             {when === "weekend" ? "Nothing matches these filters this weekend." : "Nothing matches these filters."}
           </HolidayNothing>
         ) : (
           groups.map((g) => (
-            <HolidaySection key={g.key} id={`holidays-${g.key}`} title={g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : DATES_TBA} count={g.items.length}>
+            <HolidaySection key={g.key} id={`holidays-${g.key}`} title={g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : g.key === "lights-tba" ? W.lightsTba : DATES_TBA} count={g.items.length}>
               {g.items.map((i) => <HolidayCard key={i.id} item={i} kind={isHolidayLight(i) ? "light" : "event"} tag={tagFor(i)} />)}
             </HolidaySection>
           ))
         )}
         <p className="text-ds-14 text-muted-foreground">{W.checkFirst}</p>
         <p className="text-ds-14 text-muted-foreground">
-          Shopping too? <Link to="/gift-guides" className="link-standard">See the holiday gift guides</Link>.
+          Shopping too? <Link to="/gift-guides" className="link-standard inline-flex min-h-11 items-center">See the holiday gift guides</Link>
         </p>
         {/* Owner 2026-11-21: Louisiana small businesses ask to be featured free on /shop-small. */}
         <p className="text-ds-14 text-muted-foreground" data-holiday-shop-small="">
-          <Link to="/shop-small" className="link-standard">{SBS_WORDS.landingLink}</Link>
+          <Link to="/shop-small" className="link-standard inline-flex min-h-11 items-center">{SBS_WORDS.landingLink}</Link>
         </p>
       </div>
     </PublicHeaderPage>

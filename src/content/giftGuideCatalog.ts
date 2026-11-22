@@ -50,6 +50,26 @@ const FIXED_STORES: Record<FixedStore, { name: string; hosts: readonly string[] 
 /** Every store: the fixed ones, then each researched store page (its name and the hosts its picks' links use). */
 export const STORES: Record<GiftStore, { name: string; hosts: readonly string[] }> = { ...FIXED_STORES, ...RESEARCHED_STORES };
 
+/**
+ * A SAVED gift's store, for its thumbnail on a person's list (the My lists sheet) and in the planner: any store whose
+ * hosts hold the link's host, else "" (the thumbnail then shows the photo, or a plain tile). It never throws: those
+ * links come from the visitor's own saves (any guide, any store, a link they pasted), not from our content. Live bug
+ * 2026-11-22: storeOf threw on a saved Kids pick's go.shopmy.us link (store-grove / store-maisonette), so the owner's
+ * "My lists" pill crashed the Her page as a guest ("page not found" to her; Sentry JAVASCRIPT-5W).
+ */
+export function storeForLink(href: string | undefined): GiftStore {
+  if (!href) return "";
+  let host: string;
+  try {
+    host = new URL(href).hostname;
+  } catch {
+    // A saved link that is no URL (an old or pasted save): no store, a plain tile. Silence is right: it is the
+    // visitor's data, not a failure to report, and the gift still shows by name.
+    return "";
+  }
+  return (Object.keys(STORES) as GiftStore[]).find((s) => STORES[s].hosts.includes(host)) ?? "";
+}
+
 /** The fixed store a pick's link goes to, read from its host. A host on no fixed store is a content error, so it throws. */
 export function storeOf(href: string): GiftStore {
   const host = new URL(href).hostname;

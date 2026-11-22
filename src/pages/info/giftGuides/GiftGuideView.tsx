@@ -49,7 +49,8 @@ export const storeLabel = (pick: CatalogPick) =>
   (pick.store === "louisiana" || pick.store === "sponsor") && pick.brand ? pick.brand
   // ShopMy is no store a shopper knows (design audit r2 #9): the brand, or nothing.
   : pick.store === "shopmy" ? pick.brand ?? ""
-  : STORES[pick.store].name;
+  // A saved gift on no known store (storeForLink gave "", live bug 11-22) shows its brand or a blank tile, never throws.
+  : STORES[pick.store]?.name ?? pick.brand ?? "";
 
 /** A shopmy.us/collections/<id> link: a whole ShopMy collection, not the product (design audit r2 #3). */
 const isShopMyCollection = (href: string) => /^https:\/\/shopmy\.us\/collections\//.test(href);

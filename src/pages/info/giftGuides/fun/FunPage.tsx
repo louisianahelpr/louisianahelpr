@@ -121,7 +121,10 @@ const FUN_CSS = `
 .gg-plan-idea .gg-photo,.gg-plan-idea .gg-thumb{width:40px;height:40px;flex:none}
 .gg-plan-idea .gg-letter{font-size:9px;overflow:hidden}
 .gg-plan-iname-t{display:block}
-.gg-plan-shop{display:inline-flex;align-items:center;min-height:28px;font-size:13px;font-weight:600}
+.gg-plan-shop{display:inline-flex;align-items:center;min-height:44px;font-size:13px;font-weight:600}
+.gg-money-box{position:relative;display:inline-flex;flex:none;align-items:center}
+.gg-money-box .gg-money-sign{position:absolute;left:11px;top:50%;transform:translateY(-50%);font:500 15px Montserrat,sans-serif;color:var(--gg-muted);pointer-events:none}
+.gg-fun .gg-money-box input{width:100%;padding-left:22px}
 .gg-plan-picker{padding:0;max-width:none}
 .gg-plan-picker-chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
 .gg-plan-picks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;max-height:min(52vh,440px);overflow-y:auto;overscroll-behavior:contain}
@@ -143,5 +146,6 @@ const FUN_CSS = `
 .gg-santa-link{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border-top:1px solid var(--gg-line);padding:10px 0}
 .gg-santa-link:first-child{border-top:0}
 .gg-santa-link b{font-size:15px;overflow-wrap:anywhere}
+.gg-santa-who{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:8px;min-width:0}
 @media (max-width:479px){.gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter,.gg-swipe-card .gg-thumb{width:200px;height:200px}.gg-plan-budget{width:92px}.gg-plan-price{width:78px}}
 `;

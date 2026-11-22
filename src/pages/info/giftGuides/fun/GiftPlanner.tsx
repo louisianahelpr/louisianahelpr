@@ -99,8 +99,10 @@ function Person({ p, index }: { p: PlanPerson; index: number }) {
       <div className="gg-plan-head">
         <Input aria-label={W.plannerPersonName} value={p.name} maxLength={40} onChange={(e) => A.renamePerson(p.id, e.target.value)}
           onBlur={() => { if (!p.name.trim()) A.renamePerson(p.id, W.plannerUnnamed); }} data-plan-name={p.id} />
-        <Input className="gg-plan-budget" aria-label={`${W.plannerBudget} (${p.name})`} placeholder={W.plannerBudget} inputMode="decimal" value={budgetText}
-          onChange={(e) => typeBudget(e.target.value)} data-plan-budget={p.id} />
+        {/* Holiday audit 1121 (#17): a $ inside the box, so "50" reads as $50. */}
+        <span className="gg-money-box gg-plan-budget"><span className="gg-money-sign" aria-hidden="true">$</span>
+          <Input aria-label={`${W.plannerBudget} (${p.name})`} placeholder={W.plannerBudget} inputMode="decimal" value={budgetText}
+            onChange={(e) => typeBudget(e.target.value)} data-plan-budget={p.id} /></span>
       </div>
       {/* Owner 11-21: the list's gifts and total against the budget, as in the guides' sheet ("$36.75 left of $100"). */}
       {p.ideas.length > 0 && <p className="gg-plan-money m-0" data-plan-list-line={p.id}><ListLine p={p} /></p>}
@@ -123,14 +125,14 @@ function Person({ p, index }: { p: PlanPerson; index: number }) {
                   </GiftOut>
                 )}
               </span>
-              <Input className="gg-plan-price" aria-label={`${W.plannerIdeaPrice}: ${i.name}`} inputMode="decimal" placeholder="$" defaultValue={i.price !== undefined ? String(i.price) : ""}
+              <span className="gg-money-box gg-plan-price"><span className="gg-money-sign" aria-hidden="true">$</span><Input aria-label={`${W.plannerIdeaPrice}: ${i.name}`} inputMode="decimal" defaultValue={i.price !== undefined ? String(i.price) : ""}
                 onBlur={(e) => {
                   const t = e.target.value.trim();
                   const v = t ? parseDollars(t) : undefined;
                   if (t && v === undefined) return setErr(W.plannerBadAmount);
                   setErr(null);
                   A.setIdea(p.id, i.id, { price: v });
-                }} data-plan-price={i.id} />
+                }} data-plan-price={i.id} /></span>
               <RoundIconButton className="gg-fun-x" aria-label={W.plannerRemoveIdea(i.name)} onClick={() => removeIdea(i, k)} data-plan-remove-idea={i.id}>
                 <span aria-hidden="true">×</span>
               </RoundIconButton>
@@ -182,13 +184,16 @@ export default function GiftPlanner() {
   const ready = isReady && (!user || sync !== "device");
   useOurLinkSync(plan, ready);
   const [name, setName] = useState("");
+  const [addErr, setAddErr] = useState<string | null>(null);
   const total = planMoney(plan);
   const add = (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    A.addPerson(name.trim());
+    // Holiday audit 1121 (#11): an empty name, or the 50-person limit, says why (it did nothing and said nothing).
+    if (!name.trim()) return setAddErr(WISH.nameFirst);
+    if (!A.addPerson(name.trim())) return setAddErr(WISH.peopleFull);
     track("gift_planner_person_added", { people: plan.people.length + 1 });
     setName("");
+    setAddErr(null);
   };
   return (
     <PublicHeaderPage {...funHeader(W.plannerTitle)}>
@@ -216,9 +221,11 @@ export default function GiftPlanner() {
       <ul className="gg-fun-list">{plan.people.map((p, k) => <Person key={p.id} p={p} index={k} />)}</ul>
       <ShareAllLists plan={plan} />
       <form className="gg-fun-row mt-3" onSubmit={add}>
-        <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} onChange={(e) => setName(e.target.value)} data-plan-new-name="" />
+        <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} aria-invalid={addErr === WISH.nameFirst || undefined}
+          aria-describedby={addErr ? "gg-plan-add-err" : undefined} onChange={(e) => { setName(e.target.value); if (addErr === WISH.nameFirst) setAddErr(null); }} data-plan-new-name="" />
         <Button type="submit" className="btn-grad-primary" data-plan-add-person="">{W.plannerAddPerson}</Button>
       </form>
+      {addErr && <p id="gg-plan-add-err" className="gg-fun-err" role="alert" data-plan-add-err="">{addErr}</p>}
       </fieldset>
       {/* Saved-gift price alerts (owner 2026-11-21): the opt-in under the lists, once there is someone on them. */}
       {plan.people.length > 0 && <PriceAlertsOptIn />}

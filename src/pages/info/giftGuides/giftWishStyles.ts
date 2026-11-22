@@ -25,7 +25,8 @@ export const GIFT_WISH_CSS = `
 .gg-toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;width:max-content;max-width:min(calc(100vw - 32px),30rem);box-sizing:border-box;padding:6px 6px 6px 16px;border-radius:999px;background:hsl(var(--ink-deep));color:hsl(var(--background));font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.2);pointer-events:auto}
 .gg-toast-text{flex:1 1 auto;min-width:0;line-height:1.3}
 .gg-toast-short{display:none}
-@media (max-width:400px){.gg-toast{gap:6px;padding:4px 4px 4px 14px}.gg-toast-text,.gg-toast-link{white-space:nowrap}.gg-toast .gg-toast-long{display:none}.gg-toast .gg-toast-short{display:inline}}
+@media (max-width:400px){.gg-toast{gap:6px;padding:4px 4px 4px 14px}.gg-toast-text,.gg-toast-link{white-space:nowrap}}
+@media (max-width:340px){.gg-toast .gg-toast-long{display:none}.gg-toast .gg-toast-short{display:inline}}
 .gg-toast .gg-toast-link{color:inherit;font-weight:700;text-decoration:underline;white-space:nowrap}
 .gg-wish-title{margin:2px 0 4px;font-size:26px;line-height:1.2;font-weight:700;overflow-wrap:anywhere}
 .gg-wish-lead{margin:8px 0 0;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--gg-muted)}

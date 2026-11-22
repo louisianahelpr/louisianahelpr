@@ -19,8 +19,14 @@ import type { CSSProperties } from "react";
  * an opacity.
  */
 
+/**
+ * Deep audit 11-22 #14: `overflow: hidden` makes the card a scroll container, so tapping (or tabbing to) a chip at the
+ * end of a status row that bleeds 4px past the card (`-mx-1`, so the first chip lines up with the title) let the
+ * browser's scroll-into-view slide the whole header 4px left, cutting the "J" of Jobs and the "B" of Browse. `clip`
+ * paints the same edge but can never be scrolled; the `hidden` stays as the fallback where `clip` is unknown.
+ */
 export const TITLE_CARD_CLASS =
-  "page-title-card liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden";
+  "page-title-card liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden supports-[overflow:clip]:overflow-clip";
 
 export const TITLE_CARD_STYLE: CSSProperties = {
   // Intentional two-step material hierarchy: the title card sits a touch

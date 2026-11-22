@@ -66,7 +66,7 @@ function DownloadCard({ p }: { p: DownloadProduct }) {
               <p>{b.blurb}</p>
               <div className="pr-card-btns" data-printable-links={b.href}>
                 <Button type="button" variant="link" size="inline" className="pr-link" disabled={busy !== null} onClick={() => void get(b.href)} aria-label={`${b.label} the ${b.title.toLowerCase()} (PDF)`} data-printable-download={b.href}>
-                  {b.label} ›
+                  {b.label}{"\u00a0›"}
                 </Button>
               </div>
             </div>
@@ -90,14 +90,14 @@ function DownloadCard({ p }: { p: DownloadProduct }) {
         <div className="pr-card-btns" data-printable-links={p.id}>
           {p.files.map((f) => (
             <Button key={f.href} type="button" variant="link" size="inline" className="pr-link" disabled={busy !== null} onClick={() => void get(f.href)} data-printable-download={f.href}>
-              {f.label} ›
+              {f.label}{"\u00a0›"}
             </Button>
           ))}
           {/* Owner 2026-11-21: the banner says where to print it cheaply (a plain link for now; no affiliate program yet). */}
           {p.printAt && (
             <Button asChild variant="link" size="inline" className="pr-link">
               <a href={p.printAt.href} target="_blank" rel="noopener noreferrer" data-printable-print-at={p.id}>
-                {p.printAt.label} ›<span className="sr-only"> (opens in a new tab)</span>
+                {p.printAt.label}{"\u00a0›"}<span className="sr-only"> (opens in a new tab)</span>
               </a>
             </Button>
           )}
@@ -214,10 +214,14 @@ const PAGE_CSS = `
 .pr-book{flex-direction:column;padding:16px}
 .pr-book .pr-book-img{width:160px;max-width:100%}
 .pr-card-body{min-width:0;flex:1}
-.pr-card-wide{flex-direction:column;max-width:640px}.pr-card-wide .pr-card-img{width:100%;max-width:100%}
+.pr-card-wide{flex-direction:column;max-width:640px;grid-column:1/-1}.pr-card-wide .pr-card-img{width:100%;max-width:100%}
 .pr-card-body .pr-card-title{font-size:16px;font-weight:700;margin:0 0 4px;color:var(--gg-ink)}
 .pr-card-body p{font-size:13px;color:var(--gg-muted);margin:0 0 8px}
-.pr-card-btns{display:flex;flex-wrap:wrap;align-items:center;gap:0 20px}
+/* Owner 11-22 #15: the links stay on ONE row; on a narrow card the last ("Print at Walgreens") wraps inside itself. */
+.pr-card-btns{display:flex;flex-wrap:nowrap;align-items:center;gap:0 16px}
+.pr-card-btns>.pr-link{flex:none}
+.pr-card-btns>a.pr-link{flex:0 1 auto;min-width:0;white-space:normal;text-align:left}
+@media (max-width:479px){.pr-card-btns{gap:0 12px}.pr-card .pr-link{font-size:13px}}
 /* Owner 2026-11-21: "Download the banner (free)" overflowed its pill; a long label wraps inside its button instead. */
 .pr-card-btns button{max-width:100%;height:auto;min-height:44px;white-space:normal;text-align:center}
 /* Owner 11-22 #15: every download and "Print at Walgreens" is the same plain olive text link, no pill outline. */

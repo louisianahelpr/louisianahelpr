@@ -46,8 +46,9 @@ const SHOPMY_PINS = ["p-108613972", "p-108755104","p-108613500", "p-108613356", 
 // Ulta p-109002206, 13%, $59.
 const SWITCHED_PINS = ["p-108732256", "p-108732809", "p-107903671", "p-109006074", "p-108985937", "p-109002459", "p-109002206"];
 // Launch day 11-22 (Desktop note Owner-adds-1122.md): the picks she sent as ShopMy links. Owner 11-22 PM ("Choose one"
-// Camp Snap): the Camp Snap 2 Chestnut stays; the CS-Pro (p-107929179) and the CS-8 Micro keychain (p-108611500) are off.
-const ADDS_1122_PINS = ["p-109140863", "p-109141448", "p-109143437", "p-109143698", "p-109144140", "p-109144450", "p-109145379", "p-109145823",
+// Camp Snap): the Camp Snap 2 Chestnut stays; the CS-Pro (p-107929179), the CS-8 camcorder (p-109141448) and the CS-8
+// Micro keychain (p-108611500) are off.
+const ADDS_1122_PINS = ["p-109140863", "p-109143437", "p-109143698", "p-109144140", "p-109144450", "p-109145379", "p-109145823",
   // Batch 2.
   "p-109147879", "p-109152557", "p-109153848", "p-109153960", "p-109153910", "p-109153811", "p-109151082", "p-109154746",
   // Batch 2b: The Sleepy Tie, Foton candle, and her Lake Hydrangea set (in place of her Lake pin that is gone from Lake's site).
@@ -83,9 +84,9 @@ const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.c
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 144 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(144);
-    expect(page.length).toBe(144);
+  it("the page holds exactly her 143 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(143);
+    expect(page.length).toBe(143);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
@@ -122,7 +123,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(74);
-    expect(shopmy.length).toBe(70);
+    expect(shopmy.length).toBe(69);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

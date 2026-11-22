@@ -52,7 +52,7 @@ import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import {
   DATES_TBA, HOLIDAY_HUB_PATHS, HOLIDAY_REGIONS, HOLIDAY_SEASON_END, isOpenEnded, filterEvents, filterHolidayItems, filterLights, holidayCountLabel, holidayDateLabel,
-  endedEarlierToday, holidayItemsByDay, holidayLegacyHref, holidayMapsQuery, holidayPriceLabel, isHolidayLight, isOver, louisianaToday, resolveHolidayWhat, runsBetween,
+  endedEarlierToday, whenRange, holidayItemsByDay, holidayLegacyHref, holidayMapsQuery, holidayPriceLabel, isHolidayLight, isOver, louisianaToday, resolveHolidayWhat, runsBetween,
   weekendRange,
 } from "@/content/holidayHub/holidayHub.mjs";
 import { holidayEventsLd, holidayHubBody, holidayHubLd, holidayLightsItemListLd } from "@/lib/holidayHubSeo.mjs";
@@ -583,5 +583,28 @@ describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices
       const a = [...c.querySelectorAll<HTMLAnchorElement>(`a[href="${href}"]`)].pop()!;
       expect(a.className, href).toMatch(/\bmin-h-11\b/);
     }
+  });
+});
+
+/**
+ * Holiday audit 1121 area 5 #20: When offers Today and Next 7 days beside This weekend.
+ * @mutate src/content/holidayHub/holidayHub.mjs |   if (when === "week") return [today, addDays(today, 6)]; |
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | , { value: "week", label: "Next 7 days" }] | ]
+ */
+describe("Holiday Hub When: Today and Next 7 days", () => {
+  it("Today keeps only what runs today; Next 7 days what runs from today through 6 days on", () => {
+    const today = "2026-11-21";
+    expect(whenRange("today", today)).toEqual([today, today]);
+    expect(whenRange("week", today)).toEqual([today, "2026-11-27"]);
+    const all = filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {}, today);
+    const day = filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, { when: "today" }, today);
+    const week = filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, { when: "week" }, today);
+    expect(day.length).toBeGreaterThan(5);
+    expect(week.length).toBeGreaterThan(day.length);
+    expect(all.length).toBeGreaterThan(week.length);
+    for (const i of day) expect(runsBetween(i, today, today), i.id).toBe(true);
+    for (const i of week) expect(runsBetween(i, today, "2026-11-27"), i.id).toBe(true);
+    render(<MemoryRouter initialEntries={["/holidays?when=week"]}><HolidayHub /></MemoryRouter>);
+    expect(document.querySelector('[data-holiday-active-chip="when"]')?.textContent).toContain("Next 7 days");
   });
 });

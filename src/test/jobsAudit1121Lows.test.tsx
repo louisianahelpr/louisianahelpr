@@ -71,6 +71,23 @@
  * @mutate src/pages/post-job/PaymentSuccess.tsx | centerColumn maxWidth="md" plainBackground> | centerColumn maxWidth="md">
  * @mutate src/components/auth/AuthShell.tsx |       {(desktopBrandPanel \|\| centerColumn) && !plainBackground && ( |       {(desktopBrandPanel \|\| centerColumn) && (
  *
+ * L32 (poster): the AI builder's failure toast said "or start from a blank form" with no way to.
+ * @mutate src/components/postjob/AiJobBuilder.tsx |         onBlankForm && !busy ? { action: { label: "Start from a blank form", onClick: onBlankForm } } : undefined, |         undefined,
+ * @mutate src/pages/post-job/EntryChoice.tsx |             onBlankForm={() => form.setEntryPanel(null)}\n |
+ *
+ * L33 (poster): an empty start time rested on "12 : 00" with neither AM nor PM picked, reading as a time.
+ * @mutate src/components/TimePickerWheel.tsx |       {!hasValue && !awaitingPeriod && ( |       {false && (
+ *
+ * L34 (poster): quote cards drew a blank grey circle for a quoter with no photo; "Past work photos 0 0 0" took a row.
+ * @mutate src/pages/quotes/QuoteRequestPage.tsx | <UserAvatar userId={quote.quoter_id} | <span aria-hidden className="h-10 w-10 shrink-0 rounded-full bg-muted" data-x={quote.quoter_id}
+ * @mutate src/components/quotes/QuotesSideBySide.tsx |             {live.some((q) => (q.photo_paths ?? []).length > 0) && ( |             {true && (
+ *
+ * L35 (poster): /jobs/settings rows ran ~1600px wide at 1920.
+ * @mutate src/pages/jobs/JobsSettings.tsx | <div className="space-y-4 pb-6 max-w-3xl" data-testid="jobs-settings"> | <div className="space-y-4 pb-6" data-testid="jobs-settings">
+ *
+ * S39: Post a job's first screen stretched 1152px at 1440.
+ * @mutate src/pages/post-job/EntryChoice.tsx | const ENTRY_COLUMN = "flex flex-col gap-3 lg:max-w-3xl"; | const ENTRY_COLUMN = "flex flex-col gap-3";
+ *
  * P30: /hire's two calls wrapped unevenly at 375 (the primary alone on row 2).
  * @mutate src/pages/info/HireTownPage.tsx | <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap" data-town-ctas=""> | <div className="flex flex-wrap gap-3" data-town-ctas="">
  */
@@ -84,6 +101,8 @@ import { avatarInitials } from "@/lib/avatarImage";
 import { enPostJob } from "@/lib/i18n/enPostJob";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { GuestJobPage } from "@/components/dashboard/GuestJobPage";
+import { TimePickerWheel } from "@/components/TimePickerWheel";
+import { QuotesSideBySide } from "@/components/quotes/QuotesSideBySide";
 import { ApplicantPrivateNote } from "@/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote";
 import type { GuestJob } from "@/components/dashboard/GuestJobPreview";
 import { gatedPageNotice, loginNotice } from "@/pages/auth/loginNotice";
@@ -93,6 +112,9 @@ import { jobCardInteractiveProps } from "@/components/dashboard/jobCardInteracti
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 }));
+
+// jsdom has no Element.scrollTo (the time wheels centre their row on mount).
+if (!Element.prototype.scrollTo) Element.prototype.scrollTo = () => {};
 
 const src = (p: string) => blankComments(readFileSync(p, "utf8"));
 
@@ -301,6 +323,49 @@ describe("L30: /payment-success is a plain white page at every width", () => {
   it("AuthShell's wash is off for it", () => {
     expect(src("src/pages/post-job/PaymentSuccess.tsx")).toContain('<AuthShell hideBack hideHeader centerColumn maxWidth="md" plainBackground>');
     expect(src("src/components/auth/AuthShell.tsx")).toContain("{(desktopBrandPanel || centerColumn) && !plainBackground && (");
+  });
+});
+
+describe("L32: the AI builder's failure toast offers the blank form it names", () => {
+  it("the toast carries a Start from a blank form action, wired to Post a job's first screen", () => {
+    expect(src("src/components/postjob/AiJobBuilder.tsx")).toContain('{ action: { label: "Start from a blank form", onClick: onBlankForm } }');
+    expect(src("src/pages/post-job/EntryChoice.tsx")).toContain("onBlankForm={() => form.setEntryPanel(null)}");
+  });
+});
+
+describe("L33: an empty time picker says nothing is picked", () => {
+  it("empty: 'No time picked yet'; with a time: no such line", () => {
+    const empty = render(<TimePickerWheel value="" onChange={() => {}} variant="wheels" />);
+    expect(screen.getByTestId("time-pick-empty").textContent).toBe("No time picked yet");
+    empty.unmount();
+    render(<TimePickerWheel value="09:00" onChange={() => {}} variant="wheels" />);
+    expect(screen.queryByTestId("time-pick-empty")).toBeNull();
+  });
+});
+
+describe("L34: quote cards and the side-by-side table", () => {
+  it("a quoter with no photo gets the shared initials avatar; a photos row with only zeros is left out", () => {
+    expect(src("src/pages/quotes/QuoteRequestPage.tsx")).toMatch(/<UserAvatar userId=\{quote\.quoter_id\} src=\{quote\.quoter_avatar_url\}/);
+    const q = (id: string, photos: string[]) => ({ id, quoter_id: `u-${id}`, quoter_name: "Dana Lee", quoter_avatar_url: null, price_cents: 25000, note: "n", available_note: "Sat", photo_paths: photos, status: "pending", respond_until: null }) as never;
+    const none = render(<QuotesSideBySide quotes={[q("a", []), q("b", [])]} />);
+    expect(none.container.querySelector("[data-quotes-photos-row]")).toBeNull();
+    none.unmount();
+    const some = render(<QuotesSideBySide quotes={[q("a", ["u/quotes/x.jpg"]), q("b", [])]} />);
+    expect(some.container.querySelector("[data-quotes-photos-row]")).not.toBeNull();
+  });
+});
+
+describe("L35: Jobs settings keeps a reading column on very wide screens", () => {
+  it("the settings list is capped at max-w-3xl", () => {
+    expect(src("src/pages/jobs/JobsSettings.tsx")).toContain('<div className="space-y-4 pb-6 max-w-3xl" data-testid="jobs-settings">');
+  });
+});
+
+describe("S39: Post a job's first screen keeps a reading column on desktop", () => {
+  it("the entry and its loading bones share a 768px column", () => {
+    const s = src("src/pages/post-job/EntryChoice.tsx");
+    expect(s).toContain('const ENTRY_COLUMN = "flex flex-col gap-3 lg:max-w-3xl";');
+    expect((s.match(/<div className=\{ENTRY_COLUMN\}>/g) ?? []).length).toBe(2);
   });
 });
 

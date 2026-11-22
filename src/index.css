@@ -3844,6 +3844,22 @@ html.senior-mode .job-steps-grid .text-ds-11 { font-size: 11px !important; line-
     animation: none;
   }
 }
+/* Audit 11-21 (S40): the card a notification opened wears a soft olive ring for 2 s (useHighlightPulse); static, so
+   Reduce Motion still marks it. An overlay drawn on top of the card: an outer ring is clipped by the Jobs list's scroll
+   panel, and an outline on the wrapper is painted under the card inside it (both measured 11-21, computed style set,
+   pixels unchanged). */
+html [data-deep-linked] {
+  position: relative;
+}
+html [data-deep-linked]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid hsl(var(--bark) / 0.55);
+  border-radius: 1rem;
+  pointer-events: none;
+  z-index: 1;
+}
 
 /* Status-tier gold treatments — used by Pro / Elite subscription
    badges and by earned prestige (Top Rated, Elite Helpr). Matches the

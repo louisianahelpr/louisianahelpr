@@ -48,9 +48,11 @@ interface AiJobBuilderProps {
   onOpenChange?: (next: boolean) => void;
   /** Body only (prompt + button), no collapsible header row: Post a Job step 0's AI panel. */
   headless?: boolean;
+  /** Audit 11-21 (L32): the failure toast says "or start from a blank form"; this is that way (Post a job's groups). */
+  onBlankForm?: () => void;
 }
 
-export function AiJobBuilder({ locationContext = "", onGenerated, open: controlledOpen, onOpenChange, headless = false }: AiJobBuilderProps) {
+export function AiJobBuilder({ locationContext = "", onGenerated, open: controlledOpen, onOpenChange, headless = false, onBlankForm }: AiJobBuilderProps) {
   const [prompt, setPrompt] = useState("");
   // Q2471 (1): one optional photo of the job; Claude writes the whole post from it (with or without words).
   const [photo, setPhoto] = useState<File | null>(null);
@@ -119,6 +121,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
           : /AI service error|non-2xx|Unknown error|Failed to generate/i.test(raw) || !raw
             ? "Couldn't generate a posting just now. Try again, or start from a blank form."
             : userFacingError(err, "Couldn't generate a posting just now. Try again, or start from a blank form."),
+        onBlankForm && !busy ? { action: { label: "Start from a blank form", onClick: onBlankForm } } : undefined,
       );
     } finally {
       setLoading(false);

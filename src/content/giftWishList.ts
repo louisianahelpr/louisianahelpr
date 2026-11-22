@@ -89,14 +89,15 @@ export const WISH = {
   listRemove: (gift: string, name: string) => `Remove ${gift} from ${name}'s list`,
   // Managing a list (owner 2026-11-21: "How do they edit or remove items in the list or delete the list? I entered the
   // budget as 100 but it doesn't say how much I have left to spend or how much I'm over").
-  /** "$63.25 over your $100" / "$36.75 left of $100", after the list's count and total. */
-  listOverYour: (over: string, budget: string) => `${over} over your ${budget}`,
-  listLeft: (left: string, budget: string) => `${left} left of ${budget}`,
+  /** "$63.25 over" / "$36.75 left", after the list's count and total (owner 11-21: "Remove 'your $100'. Just save the number and overs"). */
+  listOverYour: (over: string) => `${over} over`,
+  listLeft: (left: string) => `${left} left`,
   viewList: "View list",
-  viewListOf: (name: string) => `View ${name}'s list`,
   listOf: (name: string) => `${name}'s list`,
   editList: "Edit",
   editListOf: (name: string) => `Edit ${name}'s name and budget`,
+  openListOf: (name: string) => `Open ${name}'s list`,
+  deleteListOf: (name: string) => `Delete ${name}'s list`,
   editName: "Name",
   editBudget: "Budget (optional)",
   editSave: "Save",
@@ -110,7 +111,6 @@ export const WISH = {
   clearListBody: (gifts: number) => `This takes ${gifts === 1 ? "the 1 gift" : `all ${gifts} gifts`} off your wish list. It can't be undone.`,
   keepList: "Keep it",
   removedGift: (gift: string) => `Removed ${gift}`,
-  undo: "Undo",
   savedFor: (names: string) => `Saved for ${names}`,
   openWishList: "Open My Wish List",
   myWishListName: "My Wish List",

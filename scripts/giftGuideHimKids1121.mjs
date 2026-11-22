@@ -411,6 +411,13 @@ export const KIDS_POPULAR_1122 = [
   ["B0GWKJG2XR", 145, "71KXM3QhGbL", "American Girl Disney Frozen Elsa 18-inch Doll", "American Girl", "doll", 3, "Elsa as an 18-inch American Girl doll."],
 ].map(row);
 
+// owner 11-22 popular approved (builder-guide-popular): Him, Amazon listings sold by Amazon.com or the brand, prices read 11-22.
+export const HIM_POPULAR_1122 = [
+  ["B0FQFB8FMG", 169.99, "61solmQSSlL", "Apple AirPods Pro 3", "Apple", "earbuds", 1, "Noise-cancelling earbuds he will use daily."],
+  ["B0GJTXVN9Z", 79, "611DjYhflAL", "Apple AirTag 4 Pack", "Apple", "tracker", 1, "Keys, wallet, bag: never lost again."],
+  ["B0GCGGWC1M", 349, "61YEzBsddpL", "Gozney Arc Lite Propane Pizza Oven", "Gozney", "pizza-oven", 4, "Real wood-fired-style pizza in his backyard."],
+].map(row);
+
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 const build = (rows, slug, g) =>
@@ -425,7 +432,7 @@ const build = (rows, slug, g) =>
   });
 
 /** For Him, cheapest first, each pick tagged with the men's relationships it suits. */
-export function him1121Picks(rows = [...HIM_1121, ...HIM_ADDS_1122]) {
+export function him1121Picks(rows = [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122]) {
   return build(rows, HIM_GUIDE, PEOPLE_GUIDES.find((x) => x.slug === HIM_GUIDE));
 }
 /** For Kids, cheapest first. Kids has no relationship pages, so no tags. */

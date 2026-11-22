@@ -14,7 +14,9 @@ import { PLANNER_KEY, onPlannerCleared } from "@/lib/giftPlannerDevice";
  * newer of it and the account's wins). Sign-out removes the device copy altogether (clearPlannerDevice, called by
  * src/lib/authSignOut.ts).
  */
-interface DeviceCopy { ownerId: string | null; plan: GiftPlan }
+/** `removed`: ids of people and ideas removed on this device since the last account sync (audit 1121 High: the merge
+ *  keeps this device's removals instead of bringing them back from the account). */
+interface DeviceCopy { ownerId: string | null; plan: GiftPlan; removed?: string[] }
 const NOBODY: DeviceCopy = { ownerId: null, plan: EMPTY_PLAN };
 let stored: DeviceCopy = NOBODY;
 let loaded = false;
@@ -32,7 +34,10 @@ function readCopy(): DeviceCopy {
     if (!v || typeof v !== "object") stored = NOBODY;
     // A copy saved before owner tags: no owner known, so it counts as a signed-out draft.
     else if ("people" in v) stored = { ownerId: null, plan: cleanPlan(v) };
-    else stored = { ownerId: typeof v.ownerId === "string" ? v.ownerId : null, plan: cleanPlan(v.plan) };
+    else {
+      const gone = (v as { removed?: unknown }).removed;
+      stored = { ownerId: typeof v.ownerId === "string" ? v.ownerId : null, plan: cleanPlan(v.plan), ...(Array.isArray(gone) ? { removed: gone.filter((x): x is string => typeof x === "string").slice(-500) } : {}) };
+    }
   } catch {
     // Storage blocked or the saved value is not ours: an empty planner for this visit.
     stored = NOBODY;
@@ -60,9 +65,38 @@ function save(next: DeviceCopy) {
   notify();
 }
 
-/** A change made by the viewer: stamped, and tagged as theirs. */
-function write(next: GiftPlan) {
-  save({ ownerId: viewer ?? null, plan: { ...next, updatedAt: Date.now() } });
+/** A change made by the viewer: stamped, and tagged as theirs. `gone`: ids it removes (kept for the next account merge). */
+function write(next: GiftPlan, gone: string[] = []) {
+  // Anything back in the plan (an Undo) is no longer removed.
+  const present = new Set(next.people.flatMap((p) => [p.id, ...p.ideas.map((i) => i.id)]));
+  const removed = [...(readCopy().removed ?? []), ...gone].filter((id) => !present.has(id)).slice(-500);
+  save({ ownerId: viewer ?? null, plan: { ...next, updatedAt: Date.now() }, ...(removed.length ? { removed } : {}) });
+}
+
+/**
+ * The account's plan and this device's, brought together by id (audit 1121 High: "newest wins" replaced a 5-person
+ * account plan with a newer 1-person phone draft). Every person and idea either side holds is kept, except what this
+ * device removed since the last sync (`removed`); where both hold the same person or idea, the newer plan's version
+ * wins (people keep the newer plan's order, then the others). Ideas are merged the same way inside each person. At
+ * most PLAN_MAX_PEOPLE people and PLAN_MAX_IDEAS ideas each.
+ */
+export function mergePlans(remote: GiftPlan, local: GiftPlan, removed: readonly string[] = []): GiftPlan {
+  const gone = new Set(removed);
+  const localNewer = local.updatedAt >= remote.updatedAt;
+  const [first, second] = localNewer ? [local, remote] : [remote, local];
+  const byId = <T extends { id: string }>(a: T[], b: T[], merge: (x: T, y: T) => T, cap: number): T[] => {
+    const out: T[] = [];
+    const seen = new Set<string>();
+    for (const x of [...a, ...b]) {
+      if (seen.has(x.id) || gone.has(x.id)) continue;
+      seen.add(x.id);
+      const y = b.find((z) => z.id === x.id);
+      out.push(y && y !== x ? merge(x, y) : x);
+    }
+    return out.slice(0, cap);
+  };
+  const people = byId(first.people, second.people, (a, b) => ({ ...a, ideas: byId(a.ideas, b.ideas, (x) => x, PLAN_MAX_IDEAS) }), PLAN_MAX_PEOPLE);
+  return { people, updatedAt: Math.max(remote.updatedAt, local.updatedAt) };
 }
 
 onPlannerCleared(() => {
@@ -129,7 +163,9 @@ export const planActions = {
   }),
   removePerson(id: string) {
     const cur = read();
-    write({ ...cur, people: cur.people.filter((p) => p.id !== id) });
+    const gone = cur.people.find((p) => p.id === id);
+    if (!gone) return;
+    write({ ...cur, people: cur.people.filter((p) => p.id !== id) }, [id, ...gone.ideas.map((i) => i.id)]);
   },
   // The new idea goes through cleanPlan's own rules too (an href only when it is https://). Its id, or null when the
   // person is gone or their list is full.
@@ -182,7 +218,12 @@ export const planActions = {
       }),
     };
   }),
-  removeIdea: (personId: string, ideaId: string) => mapPerson(personId, (p) => ({ ...p, ideas: p.ideas.filter((i) => i.id !== ideaId) })),
+  removeIdea(personId: string, ideaId: string) {
+    const cur = read();
+    const p = cur.people.find((x) => x.id === personId);
+    if (!p || !p.ideas.some((i) => i.id === ideaId)) return;
+    write({ ...cur, people: cur.people.map((x) => (x === p ? { ...x, ideas: x.ideas.filter((i) => i.id !== ideaId) } : x)) }, [ideaId]);
+  },
   /** Undo a removal (owner 11-21, "Removed · Undo"): the idea goes back where it was, unless the list filled up meanwhile. */
   restoreIdea: (personId: string, idea: PlanIdea, index: number) => mapPerson(personId, (p) => {
     if (p.ideas.some((i) => i.id === idea.id) || p.ideas.length >= PLAN_MAX_IDEAS) return p;
@@ -218,13 +259,16 @@ export function useAccountSync(userId: string | null, authReady: boolean): SyncS
         if (!live) return;
         const c = readCopy();
         // Another account's copy left on this device: never merged, never uploaded.
-        const local = copyBelongsTo(c.ownerId, userId) ? c.plan : EMPTY_PLAN;
-        const take = remote && remote.updatedAt > local.updatedAt ? remote : local;
+        const mine = copyBelongsTo(c.ownerId, userId);
+        const local = mine ? c.plan : EMPTY_PLAN;
+        // Audit 1121 High: merged by id (both sides' people and ideas kept, this device's removals kept), never one
+        // copy replacing the other.
+        const take = remote ? mergePlans(remote, local, mine ? c.removed ?? [] : []) : local;
         save({ ownerId: userId, plan: take });
         ready.current = userId;
         setState("account");
-        // This account's device copy (or its signed-out draft) is newer, or the account has none yet: push it up.
-        if (take === local && local.people.length > 0 && (!remote || remote.updatedAt < local.updatedAt)) saveAccountPlan(userId, local).catch((e: unknown) => {
+        // Anything this device adds or removes goes up to the account (it already holds the rest).
+        if (take.people.length > 0 && JSON.stringify(take.people) !== JSON.stringify(remote?.people ?? [])) saveAccountPlan(userId, take).catch((e: unknown) => {
           console.warn("gift planner: first save failed", e);
           if (live) setState("error");
         });

@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
 import { Toaster as Sonner, toast } from "sonner-real";
+import { STICKY_ACTION_H_VAR } from "@/components/ui/stickyActionHeight";
+
+/** Deep audit 11-22 #13: above the dock or a sticky bottom bar, whichever is taller, plus 12px of air (G20). */
+const TOAST_PHONE_BOTTOM = `calc(max(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px), var(${STICKY_ACTION_H_VAR}, 0px)) + 12px)`;
+/** The phone action: its own full-width row under the words, 44px tall (deep audit 11-22 #13). */
+const TOAST_PHONE_ACTION = "max-md:!order-5 max-md:!basis-full max-md:!w-full max-md:!ml-0 max-md:!mt-1 max-md:!h-11 max-md:!min-h-[44px] max-md:!justify-center max-md:!text-ds-14";
+const TOAST_TABLET_BOTTOM = `calc(max(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px), var(${STICKY_ACTION_H_VAR}, 0px)) + 16px)`;
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
@@ -123,14 +130,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
         top: "calc(var(--safe-area-top, 0px) + 8px)",
         // Audit 11-21 (G20): on a screen with no dock (--bottom-nav-h is 0 there: Post a job's Review), the toast
         // sat flush on the bottom edge over the pay button (measured top 740 / bottom 812 at 812). 12px of air always.
-        bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 12px)",
+        // Deep audit 11-22 #13: and never on a sticky bottom bar. A guest has no dock, so "Link copied" sat on the item
+        // page's Make offer / Buy now bar; StickyActionBar publishes its height (--sticky-action-h) and the toast
+        // clears whichever is taller, the dock or the bar.
+        bottom: TOAST_PHONE_BOTTOM,
       }}
-      offset={{ top: "24px", bottom: navShown ? "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 16px)" : "24px" }}
+      offset={{ top: "24px", bottom: navShown ? TOAST_TABLET_BOTTOM : `calc(var(${STICKY_ACTION_H_VAR}, 0px) + 24px)` }}
       toastOptions={{
         unstyled: false,
         classNames: {
+          // Deep audit 11-22 #13: on a phone a toast with an action squeezed its words into an ~80px column, 10 lines
+          // tall, beside a 32px button. Under 768px the row wraps: icon, words and the X on the first line, the action
+          // under them, full width and 44px tall (the orders below place them; sonner's DOM puts the X first).
           toast:
-            "group toast !rounded-2xl !border-0 !shadow-[0_1px_2px_hsl(var(--olivewood)/0.06),0_14px_30px_-8px_hsl(var(--olivewood)/0.20)] !text-[hsl(var(--ink-deep))] !font-sans !text-ds-14 !leading-snug !backdrop-blur-[18px] !backdrop-saturate-[160%] before:absolute before:inset-0 before:rounded-2xl before:border before:border-[hsl(var(--olivewood)/0.12)] before:pointer-events-none",
+            "max-md:!flex-wrap group toast !rounded-2xl !border-0 !shadow-[0_1px_2px_hsl(var(--olivewood)/0.06),0_14px_30px_-8px_hsl(var(--olivewood)/0.20)] !text-[hsl(var(--ink-deep))] !font-sans !text-ds-14 !leading-snug !backdrop-blur-[18px] !backdrop-saturate-[160%] before:absolute before:inset-0 before:rounded-2xl before:border before:border-[hsl(var(--olivewood)/0.12)] before:pointer-events-none",
           // Titles wrap like any other text now. The old `!whitespace-nowrap`
           // (owner, 2026-08-30: "one line", aimed at short titles like "Turn
           // on notifications?") also caught every plain `toast.error("...")`
@@ -144,6 +157,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
           // so it wraps at the actual available width instead of the text's
           // un-shrunk intrinsic width; short titles still render on one line
           // because they're short, not because wrapping is disabled.
+          icon: "max-md:!order-1",
+          content: "max-md:!order-2 max-md:!flex-1 max-md:!min-w-0",
           title: "!font-sans !not-italic !font-semibold !text-ds-15 !leading-tight !whitespace-normal !break-words !min-w-0 !text-[hsl(var(--ink-deep))]",
           description: "!font-sans !text-ds-12 !text-[hsl(var(--olivewood)/0.8)] !whitespace-normal !break-words !min-w-0",
           // Action ("View", "Retry", …) — the toast's one real control, so it
@@ -157,7 +172,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "!text-[hsl(var(--parchment))] !font-sans !font-semibold !not-italic !text-ds-12 !tracking-[0.01em] " +
             "!rounded-full !px-3.5 !h-8 !min-h-0 !shrink-0 !border !border-[hsl(var(--bark))] " +
             "!shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_2px_hsl(var(--olivewood)/0.18),0_6px_14px_-6px_hsl(var(--bark)/0.5)] " +
-            "hover:!brightness-110 active:!scale-[0.97] !transition-[transform,filter,box-shadow] !duration-150",
+            "hover:!brightness-110 active:!scale-[0.97] !transition-[transform,filter,box-shadow] !duration-150 " +
+            TOAST_PHONE_ACTION,
           // Sonner's default puts this half-outside the top-LEFT corner
           // (translate(-35%,-35%)) — floating off the card rather than
           // reading as part of the message.
@@ -190,14 +206,14 @@ const Toaster = ({ ...props }: ToasterProps) => {
           // of equal weight. Dismiss is chrome, so it's now just the mark, and
           // only reaches full ink on hover/focus.
           closeButton:
-            "!relative !order-last !left-auto !right-auto !top-auto !ml-1 !shrink-0 ![transform:none] " +
+            "max-md:!order-3 !relative !order-last !left-auto !right-auto !top-auto !ml-1 !shrink-0 ![transform:none] " +
             "!w-7 !h-7 !min-h-0 !min-w-0 !p-0 !rounded-full " +
             "!flex !items-center !justify-center after:absolute after:content-[''] after:-inset-2 [&_svg]:!w-4 [&_svg]:!h-4 " +
             "!bg-transparent !border-0 !shadow-none !text-[hsl(var(--olivewood)/0.65)] " +
             "hover:!bg-[hsl(var(--olivewood)/0.08)] hover:!text-[hsl(var(--ink-deep))] " +
             "!transition-colors !duration-150 focus-visible:!ring-2 focus-visible:!ring-[hsl(var(--bark)/0.45)]",
           cancelButton:
-            "!bg-transparent !text-[hsl(var(--olivewood)/0.8)] !font-sans !font-semibold !rounded-full !px-3 !h-8",
+            "max-md:!order-4 !bg-transparent !text-[hsl(var(--olivewood)/0.8)] !font-sans !font-semibold !rounded-full !px-3 !h-8",
           success: "!bg-[hsl(var(--parchment)/0.96)] [&_[data-icon]]:!text-[hsl(var(--bark))]",
           error: "!bg-[hsl(var(--parchment)/0.96)] [&_[data-icon]]:!text-[hsl(var(--burnt-sienna))]",
           warning: "!bg-[hsl(var(--parchment)/0.96)] [&_[data-icon]]:!text-[hsl(var(--amber-ink))]",

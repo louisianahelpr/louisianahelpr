@@ -49,7 +49,7 @@
  * @mutate src/pages/helprs/FindHelprs.tsx | const folded = !allSkills && i > SKILL_CHIPS_FIRST && !on; | const folded = false;
  *
  * G20 (poster): on a screen with no dock the toast sat flush on the bottom edge, over the pay button.
- * @mutate src/components/ui/sonner.tsx | bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 12px)", | bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))",
+ * @mutate src/components/ui/sonner.tsx | var(--bottom-nav-h, 96px), var(${STICKY_ACTION_H_VAR}, 0px)) + 12px)`; | var(--bottom-nav-h, 96px), var(${STICKY_ACTION_H_VAR}, 0px)))`;
  *
  * S34: a guest on a shared job's page had no way to share it on.
  * @mutate src/components/dashboard/GuestJobPage.tsx |         <div className="flex justify-center" data-guest-share="">\n          <ShareJobButton | <div className="flex justify-center" data-guest-share="">\n          <span
@@ -277,9 +277,11 @@ describe("S33: a calmer /helprs on desktop", () => {
 describe("G20: a phone toast never sits on the bottom edge", () => {
   it("the phone bottom offset adds 12px over the dock height (0 where there is no dock)", () => {
     const s = src("src/components/ui/sonner.tsx");
-    const m = s.match(/mobileOffset=\{\{[\s\S]*?bottom: "([^"]+)"/);
+    expect(s).toMatch(/mobileOffset=\{\{[\s\S]*?bottom: TOAST_PHONE_BOTTOM,/);
+    const m = s.match(/const TOAST_PHONE_BOTTOM = `([^`]+)`/);
     expect(m).toBeTruthy();
-    expect(m![1]).toBe("calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 12px)");
+    // Deep audit 11-22 #13: the dock or a sticky bottom bar, whichever is taller, then the 12px.
+    expect(m![1]).toBe("calc(max(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px), var(${STICKY_ACTION_H_VAR}, 0px)) + 12px)");
   });
 });
 

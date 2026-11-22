@@ -189,10 +189,11 @@ export default function HolidayHub() {
   return (
     // Owner 2026-11-22 #13: the Hub is a page of the guides' menu, so it opens on the guides' one top (GuidesFrame ->
     // GuidesTop: "Holiday gift guides" by the back arrow, the pill and the icons, its green banner) with the guides'
-    // menu beside it. No affiliate link here, so no disclosures.
+    // menu beside it. No gift search in that row (owner 11-22: one magnifier, the Hub's own); no affiliate link here, so
+    // no disclosures.
     <PublicHeaderPage title={W.hubTitle} backTo="/gift-guides" wrapTitle hideHeader bottomPaddingClassName="pb-12 md:pb-16">
       <style>{GIFT_GUIDES_CSS}</style>
-      <GuidesFrame title={W.hubTitle} path="/holidays" banner={G.pageBanners["/holidays"]} disclosures={false}>
+      <GuidesFrame title={W.hubTitle} path="/holidays" banner={G.pageBanners["/holidays"]} tools="no-search" disclosures={false}>
       <div className="space-y-section font-sans" data-holiday-page="hub">
         <div className="space-y-4">
           <p className="max-w-[68ch] text-ds-17 text-foreground">{W.hubIntro}</p>

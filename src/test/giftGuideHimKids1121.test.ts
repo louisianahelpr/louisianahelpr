@@ -13,7 +13,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { HIM_1121, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
+import { HIM_1121, HIM_POPULAR_1122, KIDS_POPULAR_1122, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
 import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
@@ -79,12 +79,13 @@ const SAVES: Record<string, Record<string, string>> = {
   },
 };
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug] });
+const popular = new Set([...HIM_POPULAR_1122, ...KIDS_POPULAR_1122].map((r) => r.href));
 const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Pick[] }).picks;
 const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})));
 
 describe.each([
-  ["him", [...HIM_1121, ...HIM_ADDS_1122], him1121Picks() as Pick[]],
-  ["kids", [...KIDS_1121, ...KIDS_ADDS_1122], kids1121Picks() as Pick[]],
+  ["him", [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122], him1121Picks() as Pick[]],
+  ["kids", [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122], kids1121Picks() as Pick[]],
 ])("For %s is the owner's Amazon and ShopMy saves (11-21)", (slug, rows, built) => {
   const page = chunk(slug);
 
@@ -111,7 +112,7 @@ describe.each([
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
       // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day, 11-22.
-      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") ? "2026-11-22" : "2026-11-21");
+      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || popular.has(p.href) ? "2026-11-22" : "2026-11-21");
     }
   });
 
@@ -182,7 +183,7 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // Crossroads Backpack (Amazon showed no price), and the 6 rate switches 11-21 night (3 XTRATUF, TNF beanie, Burlebo hoodie + cap).
     // Plus the Battery Daddy (B089F9YDFC), which the owner asked for on 11-22 (not from her saved list).
     const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC");
-    expect(amazon.length).toBe(91);
+    expect(amazon.length).toBe(96); // 91 saved + the 5 popular adds of 11-22 (AirPods, AirTags, Bose, Garmin, Gozney)
     expect(chunk("him").filter((p) => p.href.includes("B089F9YDFC")).length).toBe(1);
     for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P", "B0CQ4QM7Q2", "B0732FCCL4", "B09R5TGLFR"]) expect(amazon, asin).not.toContain(asin);
     for (const asin of ["B0F2K9B696", "B0F53HMTX5", "B0FR98X1DZ", "B0D31TCLN2", "B0FKN7JH1D"]) expect(amazon, asin).toContain(asin);
@@ -192,7 +193,7 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
 describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
   it("57 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (the Segway S2 is at Tractor Supply)", () => {
     const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
-    expect(amazon.length).toBe(57);
+    expect(amazon.length).toBe(66); // 57 saved + the 9 popular adds of 11-22
     for (const asin of ["B0F3GWXLTS", "B0BFJWCYTL", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
     expect(amazon.some((p) => p.href.includes("B0CT2WN59R"))).toBe(false);
   });
@@ -203,8 +204,8 @@ describe("the generator sets Him and Kids last", () => {
     const pages: Record<string, unknown[]> = { him: [{ name: "old" }], kids: [], her: [{ name: "keep" }] };
     const stores: Record<string, { name: string; hosts: string[] }> = { "store-dillards": { name: "Dillard's", hosts: ["www.dillards.com"] } };
     const out = applyHimKids1121(pages, stores);
-    expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length });
-    expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length);
+    expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length + HIM_POPULAR_1122.length });
+    expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length + KIDS_POPULAR_1122.length);
     expect(pages.her).toEqual([{ name: "keep" }]);
     expect(stores["store-dillards"]).toEqual({ name: "Dillard's", hosts: ["go.shopmy.us", "www.dillards.com"] });
     expect(stores["store-exclusive-beauty-club"]).toEqual({ name: "Exclusive Beauty Club", hosts: ["go.shopmy.us"] });

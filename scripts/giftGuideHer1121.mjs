@@ -124,13 +124,13 @@ export const HER_1121 = [
 
 // owner 11-22 popular approved (builder-guide-popular): Amazon listings sold by Amazon.com or the brand, prices read 11-22.
 const popular = (asin, sortPrice, img, name, brand, type, commission, line) =>
-  ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, commission, type });
+  ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, priceAt: "2026-11-22", commission, type });
 export const HER_POPULAR_1122 = [
   popular("B0GGTPW6Q9", 119.99, "61gxq-CHHrL", "Shark ChillPill 3-in-1 Personal Cooling Fan", "Shark", "personal-fan", 3, "A pocket cooling fan for hot flashes and hot days."),
   popular("B0HJ9ZXCSD", 329, "61YX4bH7zaL", "Apple Watch Series 12, GPS 42mm", "Apple", "smartwatch", 1, "The newest Apple Watch for workouts and texts."),
   popular("B0DWHDM15Q", 69, "81AV7BtkRvL", "The Ridge 20W Magnetic Power Bank", "The Ridge", "power-bank", 4, "A slim magnetic charger that snaps onto her phone."),
   popular("B0F41DGFXT", 42.49, "61+YocOS65L", "Matador Global Travel Adapter", "Matador", "travel-adapter", 4, "One adapter for plugs in every country."),
-  popular("B0BGQT41ZZ", 42.49, "419M2kqpsCL", "TRUFF Chef Starter Kit, Set of 3", "TRUFF", "gift-set", 4, "Three truffle hot sauces and oils in one set."),
+  popular("B0BGQT41ZZ", 42.49, "419M2kqpsCL", "TRUFF Chef Starter Kit, Set of 3", "TRUFF", "gift-set", 4, "Three truffle hot sauces in one gift box."),
 ];
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);

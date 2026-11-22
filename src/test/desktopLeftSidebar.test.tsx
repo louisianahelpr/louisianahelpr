@@ -105,7 +105,8 @@ describe("the LEFT sidebar (board 11)", () => {
     // Homes (rentals) is closed to this viewer: hidden until it launches (owner 11-16); Shops is on for them.
     // Owner 11-19 ("make sure the guides can be easily viewed and accessed when signed in or out"): the Holiday Gift
     // Guides row comes last (giftGuidesSignedIn1119.test.tsx).
-    expect(rows).toEqual(["/home", "/explore", "/jobs", "/declutter", "/shops", "/messages", "/profile", "/gift-guides"]);
+    // Owner 2026-11-21 night: Gift Guides under Explore, right after Jobs and Declutter.
+    expect(rows).toEqual(["/home", "/explore", "/jobs", "/declutter", "/gift-guides", "/shops", "/messages", "/profile"]);
   });
 
   it("owner 2026-11-17: Shops on for a tester but not yet open to everyone is not in the rail (no Coming soon row)", () => {

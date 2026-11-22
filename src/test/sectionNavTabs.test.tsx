@@ -39,7 +39,7 @@
  * chip's accessible name stays "Declutter, coming soon" and the desktop rail keeps "Coming soon".)
  * @mutate src/components/sections/ExploreSwitcher.tsx | <SoonPill variant="caption" data-coming-soon="" /> | <span data-coming-soon="" />
  * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: soon ? tr("nav.comingSoon", { label: name }) : name, |       ariaLabel: name,
- * @mutate src/components/DesktopSidebarNav.tsx |     { path: "/gift-guides", icon: Gift, label: "Holiday Gift Guides" },\n  ]; |     { path: "/gift-guides", icon: Gift, label: "Holiday Gift Guides" },\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
+ * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
  * @mutate src/components/DesktopSidebarNav.tsx | {...rowProps} onClick={() => sayComingSoon(label)} aria-disabled | {...rowProps} onClick={() => undefined} aria-disabled
  * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <TopBarInbox />} |       {user && !isWebDesktop && <span />}
  * @mutate src/components/profile/ProfileLanding.tsx |       <YourActivity /> |       <Link to="/declutter">Declutter</Link>\n      <YourActivity />
@@ -228,7 +228,8 @@ describe("the section tabs (owner 2026-10-18)", () => {
     const rail = code("src/components/DesktopSidebarNav.tsx");
     expect(rail).toContain("const sectionTabs = useSectionTabs();");
     // The phone bar's own items (Home, Explore, Messages, You) with the Customize-ordered sections under Explore.
-    expect(rail).toMatch(/leftItems\[0\],\s*exploreItem,\s*\.\.\.visibleSections\.map\(/);
+    expect(rail).toMatch(/leftItems\[0\],\s*exploreItem,\s*\.\.\.sectionRows\.slice\(0, giftAt\),/);
+    expect(rail).toMatch(/const sectionRows: NavRow\[\] = visibleSections\.map\(/);
     expect(rail).toMatch(/badgeKey: "messages" \},\s*youItem,/);
     expect(rail).not.toMatch(/path: "\/posts"/);
     expect(rail).not.toMatch(/Post a job/);

@@ -139,21 +139,26 @@ const DesktopSidebarRail = () => {
   // unread notifications, read from the same two shared stores). Guard: src/test/inboxOneIconTwoTabs.test.tsx.
   const inbox = useInboxCounts(user?.id);
   const messages = rightItems.find((i) => i.path === "/messages")!;
+  const sectionRows: NavRow[] = visibleSections.map((sec) => {
+    const t = sectionTabs.find((x) => x.path === sec.path);
+    // Jobs, Shops and Declutter (A3-81) carry their share of the To-do count (Explore's badge is the total); Homes has no to-dos yet.
+    const badgeKey = sec.key === "jobs" ? ("todoJobs" as const) : sec.key === "shops" ? ("todoShops" as const) : sec.key === "declutter" ? ("todoDeclutter" as const) : undefined;
+    return { path: sec.path, icon: sec.icon, label: sec.label, nested: true, comingSoon: t ? !t.on : false, preview: t ? t.preview : false, badgeKey };
+  });
+  // Owner 11-19 ("make sure the guides can be easily viewed and accessed when signed in or out") gave the guides a row;
+  // it goes right after the last of Jobs and Declutter shown (first under Explore when neither is).
+  const giftAt = visibleSections.reduce((at, sec, i) => (sec.key === "jobs" || sec.key === "declutter" ? i + 1 : at), 0);
   const navItems: NavRow[] = [
     leftItems[0],
     exploreItem,
-    ...visibleSections.map((sec) => {
-      const t = sectionTabs.find((x) => x.path === sec.path);
-      // Jobs, Shops and Declutter (A3-81) carry their share of the To-do count (Explore's badge is the total); Homes has no to-dos yet.
-      const badgeKey = sec.key === "jobs" ? ("todoJobs" as const) : sec.key === "shops" ? ("todoShops" as const) : sec.key === "declutter" ? ("todoDeclutter" as const) : undefined;
-      return { path: sec.path, icon: sec.icon, label: sec.label, nested: true, comingSoon: t ? !t.on : false, preview: t ? t.preview : false, badgeKey };
-    }),
+    ...sectionRows.slice(0, giftAt),
+    // Owner 2026-11-21 night ("Side menu: move Gift Guides under Explore, right after Jobs and Declutter"): the Holiday
+    // Gift Guides row sits under Explore, indented like a section, right after Jobs and Declutter (any later section
+    // follows it). Guard: src/test/giftGuidesSignedIn1119.test.tsx.
+    { path: "/gift-guides", icon: Gift, label: "Holiday Gift Guides", nested: true },
+    ...sectionRows.slice(giftAt),
     { path: messages.path, to: inboxPath(lastInboxTab()), icon: Inbox, label: "Inbox", badgeKey: "messages" },
     youItem,
-    // Owner 11-19 ("make sure the guides can be easily viewed and accessed when signed in or out"): the Holiday Gift
-    // Guides get their own row, last, so a member on the desktop finds them without opening the photo menu.
-    // Guard: src/test/giftGuidesSignedIn1119.test.tsx.
-    { path: "/gift-guides", icon: Gift, label: "Holiday Gift Guides" },
   ];
 
   if (!isDesktopRailRoute(location.pathname)) return null;

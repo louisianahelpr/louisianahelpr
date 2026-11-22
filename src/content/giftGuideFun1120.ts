@@ -527,8 +527,6 @@ export const FUN_WORDS = {
   plannerGuidesFailed: "The gifts didn't load. Close this and try again.",
   plannerGuidesDone: "Done",
   plannerShop: "Shop",
-  // One-time tips (the wish-list hints)
-  hintSanta: "Tip: we never ask for emails or phone numbers. You send each link yourself.",
 };
 
 /**

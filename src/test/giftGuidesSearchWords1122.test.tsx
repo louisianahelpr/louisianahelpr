@@ -7,7 +7,7 @@
  *
  * @mutate src/content/giftGuides.ts | No gifts match that. Try another word. | Nothing found.
  * @mutate src/content/giftGuides.ts | searchPlaceholder: "Search gifts" | searchPlaceholder: "Search"
- * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | {order !== "top" && <span className="gg-icon-dot" | {false && <span className="gg-icon-dot"
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | {at > 0 && <span className="gg-icon-dot" | {false && <span className="gg-icon-dot"
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | {image && <img className="gg-search-thumb gg-search-thumb-item" | {false && <img className="gg-search-thumb gg-search-thumb-item"
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-search-thumb-item{object-fit:contain} | .gg-search-thumb-item{object-fit:cover}
  */

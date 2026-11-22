@@ -40,7 +40,6 @@ const HEART = "M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.7 4.5 7.2 4.5c2 0 3.6 1.1 4.8
 const SHARE = "M12 15V3.5M7.5 8 12 3.5 16.5 8M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5";
 const SEARCH = "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4";
 const CLOSE = "M6 6l12 12M18 6 6 18";
-const FUNNEL = "M4 5h16l-6 7.5V19l-4 1.5v-8L4 5z";
 const SLIDERS = "M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4";
 
 /** The 25 Days sponsors page's Filter: its sections to jump to and the price limits (owner 2026-11-21). */
@@ -55,7 +54,9 @@ export interface ToolsFilter {
 /**
  * Filter (owner 2026-11-21, on the 25 Days sponsors page: "move those things into the filter for that section"): one
  * 44px icon in the tool row, with the active count on it, that opens a small panel holding the page's section links
- * ("Jump to a section") and its price limits (Any price, Under $25 ...). Escape or a tap outside closes it.
+ * ("Jump to a section") and its price limits (Any price, Under $25 ...). Escape or a tap outside closes it. Owner
+ * 2026-11-22 ("Should be the same filter icon as all the others"): the same sliders icon as the sort on Her, Him and
+ * Kids (it was a funnel).
  */
 function GiftGuideFilter({ filter }: { filter: ToolsFilter }) {
   const [open, setOpen] = useState(false);
@@ -79,7 +80,7 @@ function GiftGuideFilter({ filter }: { filter: ToolsFilter }) {
   return (
     <span ref={wrap} className="gg-share-wrap">
       <RoundIconButton className="gg-icon" aria-label={active ? G.filterLabelActive(active) : G.filterLabel} aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)} data-gift-filter-button="">
-        <Icon d={FUNNEL} />
+        <Icon d={SLIDERS} />
         {active > 0 && <span className="gg-icon-count" aria-hidden="true" data-gift-filter-count="">{active}</span>}
       </RoundIconButton>
       {open && (
@@ -113,21 +114,31 @@ function GiftGuideFilter({ filter }: { filter: ToolsFilter }) {
 /** A sort order the owner-list guides offer (src/content/giftGuidePriceSort.ts). */
 type SortOrder = "top" | "low" | "high";
 
+/** One choice in a sort menu. */
+export type SortChoice<T extends string> = { value: T; label: string };
+
 /**
  * Sort by price (owner 2026-11-21: "add the filter button up with the search icons"): one 44px icon in the tool row
  * that opens a small menu with "Price: low to high" (the default) and "Price: high to low", each a menuitemradio.
- * Escape or a tap outside closes it; arrow keys move between the two choices.
+ * Escape or a tap outside closes it; arrow keys move between the two choices. The menu's choices are in order (lead
+ * 11-21: "Recommended", clicked picks first in each price section, is the default). `choices` (owner 2026-11-22, the
+ * Small Business Saturday page: "Let them filter z-a and a-z") gives another list its own; the first is the default.
  */
-/** The menu's choices in order (lead 11-21: "Recommended", clicked picks first in each price section, is the default). */
-const SORT_VALUES: SortOrder[] = ["top", "low", "high"];
-
-function GiftGuideSort({ order, onChange }: { order: SortOrder; onChange: (o: SortOrder) => void }) {
+export function GiftGuideSort<T extends string = SortOrder>({ order, onChange, choices: own, label = G.sortLabel, activeLabel = G.sortLabelActive }: {
+  order: T;
+  onChange: (o: T) => void;
+  choices?: SortChoice<T>[];
+  label?: string;
+  activeLabel?: (order: string) => string;
+}) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
   const items = useRef<(HTMLButtonElement | null)[]>([]);
+  const choices = own ?? ([{ value: "top", label: G.sortTop }, { value: "low", label: G.sortLowHigh }, { value: "high", label: G.sortHighLow }] as SortChoice<T>[]);
+  const at = choices.findIndex((c) => c.value === order);
   useEffect(() => {
     if (!open) return;
-    items.current[Math.max(0, SORT_VALUES.indexOf(order))]?.focus();
+    items.current[Math.max(0, at)]?.focus();
     const away = (e: Event) => {
       if (!wrap.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -140,21 +151,20 @@ function GiftGuideSort({ order, onChange }: { order: SortOrder; onChange: (o: So
       document.removeEventListener("pointerdown", away);
       document.removeEventListener("keydown", esc);
     };
-  }, [open, order]);
-  const choices: { value: SortOrder; label: string }[] = [{ value: "top", label: G.sortTop }, { value: "low", label: G.sortLowHigh }, { value: "high", label: G.sortHighLow }];
+  }, [open, at]);
   const move = (e: React.KeyboardEvent, i: number) => {
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
     e.preventDefault();
-    items.current[(i + (e.key === "ArrowDown" ? 1 : SORT_VALUES.length - 1)) % SORT_VALUES.length]?.focus();
+    items.current[(i + (e.key === "ArrowDown" ? 1 : choices.length - 1)) % choices.length]?.focus();
   };
   return (
     <span ref={wrap} className="gg-share-wrap">
-      <RoundIconButton className="gg-icon" aria-label={order === "top" ? G.sortLabel : G.sortLabelActive(choices.find((c) => c.value === order)?.label ?? "")} aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)} data-gift-sort-button="">
+      <RoundIconButton className="gg-icon" aria-label={at > 0 ? activeLabel(choices[at].label) : label} aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)} data-gift-sort-button="">
         <Icon d={SLIDERS} />
-        {order !== "top" && <span className="gg-icon-dot" aria-hidden="true" data-gift-sort-on="" />}
+        {at > 0 && <span className="gg-icon-dot" aria-hidden="true" data-gift-sort-on="" />}
       </RoundIconButton>
       {open && (
-        <span className="gg-share-menu" role="menu" aria-label={G.sortLabel} data-gift-sort-menu="">
+        <span className="gg-share-menu" role="menu" aria-label={label} data-gift-sort-menu="">
           {choices.map((c, i) => (
             <InlineTextButton key={c.value} role="menuitemradio" aria-checked={order === c.value} ref={(el) => { items.current[i] = el; }}
               onKeyDown={(e) => move(e, i)} onClick={() => { onChange(c.value); setOpen(false); }} data-gift-sort-choice={c.value}>
@@ -248,7 +258,7 @@ const menuItems = (menu: HTMLElement | null): HTMLElement[] => (menu ? [...menu.
  * My Wish List as an icon with its count (a link to /gift-guides/my-list), in the toolbar beside search and sort (owner
  * 2026-11-22: "I think by the search and icons filter"; the phone head row has no heart).
  */
-function MyListIcon({ current }: { current: boolean }) {
+export function MyListIcon({ current = false }: { current?: boolean }) {
   const list = useGiftList();
   const n = list.guides.length + list.picks.length;
   return (

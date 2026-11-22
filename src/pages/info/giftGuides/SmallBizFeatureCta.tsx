@@ -30,7 +30,12 @@ const SBS_CTA_CSS = `
 /** Opens the card's form from anywhere on the page (the top link). */
 const OPEN_EVENT = "gg-sbs-open-form";
 
-/** The one-line link at the top of a business list: scrolls to the card and opens its form. */
+/**
+ * The one-line link at the top of a business list: scrolls to the card and opens its form. Owner 2026-11-22 (iPhone):
+ * it shares its row with the sort and the heart in smaller words; where the row is too narrow for one line, "Get
+ * featured free ›" moves whole to a second line.
+ */
+const [CTA_ASK, CTA_GO] = W.ctaTopLink.split("? ");
 export function FeatureCtaLink() {
   const go = () => {
     const card = document.getElementById(SBS_CTA_ID);
@@ -39,7 +44,7 @@ export function FeatureCtaLink() {
   };
   return (
     <InlineTextButton className="gg-sbs-toplink" onClick={go} data-gift-sbs-toplink="">
-      {W.ctaTopLink}&nbsp;›
+      <span>{CTA_GO ? <>{CTA_ASK}? <span className="whitespace-nowrap">{CTA_GO}&nbsp;›</span></> : <>{W.ctaTopLink}&nbsp;›</>}</span>
     </InlineTextButton>
   );
 }

@@ -163,7 +163,8 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     // Owner 11-21: Shop Small Louisiana is retired (src/content/giftGuideLive.mjs); the sponsors page carries badges too.
     const { container } = renderAt("/gift-guides/25-days-sponsors");
     const badges = [...container.querySelectorAll("[data-gift-badge]")].map((b) => b.textContent);
-    expect(badges).toContain("25 Days sponsor");
+    // Polish audit 1122 #8: every card on this page is a sponsor, so the "25 Days sponsor" chip is not drawn here.
+    expect(badges).not.toContain("25 Days sponsor");
     // The only "$" on the list is a checked price beside Shop (src/test/giftGuidePrices.test.tsx), never in a name, line or badge.
     const list = container.querySelector("[data-gift-list]")!.cloneNode(true) as HTMLElement;
     list.querySelectorAll("[data-gift-price]").forEach((el) => el.remove());

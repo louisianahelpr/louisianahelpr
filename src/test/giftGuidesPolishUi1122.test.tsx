@@ -11,6 +11,8 @@
  * #9: My Wish List has no second "All guides" back link (the head row's arrow goes to /gift-guides).
  * #10: one sub-page title: the frame pages' title opens the content column in the shared left-aligned serif style, the
  *      same as My Wish List's and a shared list's title.
+ * #8: the 25 Days sponsors page draws no "25 Days sponsor" or "Shop Louisiana" chip (every card is a sponsor), its heart
+ *     sits on the photo's top-right corner there only, and "Also sponsoring" is plain names with dots, not pills.
  * #19: on a phone the hub shows one line above the greeting, and a guide's banner starts 16px under the chip row.
  *
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:36px} | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:44px}
@@ -20,6 +22,8 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav>.gg-chip-menu{flex:none;margin-right:20px} | .gg-pnav>.gg-chip-menu{margin-right:20px}
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx | {/* UX audit M4 | <a href="/gift-guides" data-gift-back="">All guides</a>{/* UX audit M4
  * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | <header className="gg-words gg-pagehead" data-gift-words=""> | <header className="gg-words" data-gift-words="">
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const badges = guide === SPONSORS_PAGE ? | const badges = false ?
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-also-list li{display:inline;white-space:nowrap} | .gg-also-list li{padding:5px 10px;border:1px solid var(--gg-line);border-radius:999px}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow .gg-ship-order{display:none} | .gg-countrow .gg-ship-order{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav:has(+.gg-divider){border-bottom-color:transparent} | .gg-pnav:has(+.gg-divider){}
  */
@@ -30,10 +34,13 @@ import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { GuidesFrame } from "@/pages/info/giftGuides/fun/FunPage";
+import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
+import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
 
 vi.mock("@/pages/info/giftGuides/GiftGuideShare", () => ({ GiftGuideTools: () => null }));
 
 afterEach(cleanup);
+await loadAllGuidePicks();
 
 const frameAt = (path: string) =>
   render(
@@ -117,5 +124,28 @@ describe("polish audit 1122 #5/#9/#10/#19", () => {
   it("#19: one line above the hub's greeting on a phone; a gap above a guide's banner", () => {
     const phone = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.indexOf("@media (max-width:767px){.gg-pagehead h1"));
     expect(phone).toContain(".gg-pnav:has(+.gg-divider){border-bottom-color:transparent}.gg-pnav+.gg-banner-wrap{padding-top:16px}}");
+  });
+});
+
+describe("polish audit 1122 #8: the 25 Days sponsors page cards", () => {
+  const real = guideBySlug("25-days-sponsors")!.picks[0];
+  expect(real).toBeDefined();
+  const pick = { ...real, badges: ["sponsor", "shop-louisiana", "trending"] } as CatalogPick;
+  const badgesOn = (guide: string) => {
+    const c = render(<MemoryRouter><ul><PickRow pick={pick} guide={guide} /></ul></MemoryRouter>).container;
+    const out = [...c.querySelectorAll("[data-gift-badge]")].map((b) => b.getAttribute("data-gift-badge"));
+    cleanup();
+    return out;
+  };
+  it("no sponsor or Shop Louisiana chip on the sponsors page; other badges and other guides untouched", () => {
+    expect(badgesOn("25-days-sponsors")).toEqual(["trending"]);
+    expect(badgesOn("her")).toEqual(["sponsor", "shop-louisiana", "trending"]);
+  });
+  it("the heart sits on the photo's corner on that page only; Also sponsoring is plain text", () => {
+    expect(GIFT_GUIDES_CSS).toContain('article[data-gift-guide="25-days-sponsors"] .gg-list .gg-heart-pick{top:4px;bottom:auto;right:auto;left:54px;z-index:1}');
+    expect(GIFT_GUIDES_CSS).toContain('@media (min-width:768px){article[data-gift-guide="25-days-sponsors"] .gg-list .gg-heart-pick{top:2px;left:auto;right:2px}}');
+    expect(GIFT_GUIDES_CSS).toMatch(/\.gg-list \.gg-heart-pick\{position:absolute;right:-6px;bottom:0\}/);
+    expect(GIFT_GUIDES_CSS).toContain(".gg-also-list li{display:inline;white-space:nowrap}");
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-also-list li\{[^}]*border/);
   });
 });

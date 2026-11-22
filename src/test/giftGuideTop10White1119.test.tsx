@@ -93,7 +93,8 @@ describe("gift guides 11-19: every Shop button sits on the same line in a row", 
     // Every photo is the same square; the heart is pinned to the card's bottom-right, below the photo (never top:0 on it).
     expect(GIFT_GUIDES_CSS.match(/\.gg-list \.gg-thumb\{width:100%;height:auto;aspect-ratio:1\/1/g)?.length).toBe(2);
     expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0}");
-    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-list \.gg-heart-pick\{[^}]*top:/);
+    // Polish audit 1122 #8: only the 25 Days sponsors page (its own scoped rule) moves the heart to the photo's top.
+    expect(GIFT_GUIDES_CSS).not.toMatch(/(?:^|[\n}])\.gg-list \.gg-heart-pick\{[^}]*top:/);
   });
 });
 

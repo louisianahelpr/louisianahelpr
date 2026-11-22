@@ -79,6 +79,9 @@ export function PickThumb({ pick, size = 52 }: { pick: CatalogPick; size?: numbe
   return <span className="gg-thumb gg-letter" aria-hidden="true" data-gift-letter="">{storeLabel(pick)}</span>;
 }
 
+const SPONSORS_PAGE = "25-days-sponsors";
+const SPONSORS_PAGE_HIDDEN_BADGES: readonly string[] = ["sponsor", "shop-louisiana"];
+
 /** `rank` (the landing's Top 10, owner 11-21 evening "number the top 10 gifts"): a numeral badge on the photo's corner and "1." in the link's name. */
 export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: string; rank?: number }) {
   // Owner 11-21: filled when the gift is on My Wish List or on anyone's list (saveForPeople).
@@ -86,7 +89,9 @@ export function PickRow({ pick, guide, rank }: { pick: CatalogPick; guide?: stri
   const saved = isSaved(wish, itemId(pick.href)) || onAnyList(plan, pick.href);
   // Big batch 1120: a pick wears Trending (or "Trending on TikTok") only from its own flag. The old "first 3 of a guide"
   // badge went with the featured order (owner 11-19 ~6:40 PM: every guide sorts by commission now).
-  const badges = pick.badges;
+  // Polish audit 1122 #8: on the 25 Days sponsors page every card is a sponsor (and the page has its own Louisiana
+  // sections), so neither "25 Days sponsor" nor "Shop Louisiana" is drawn there.
+  const badges = guide === SPONSORS_PAGE ? pick.badges?.filter((b) => !SPONSORS_PAGE_HIDDEN_BADGES.includes(b)) : pick.badges;
   // A store's Christmas order-by day (src/content/giftGuideExtras1120.ts SHIP_DEADLINES), hidden after it passes.
   const today = louisianaToday(new Date());
   const ship = deadlineChip(pick.store, today);

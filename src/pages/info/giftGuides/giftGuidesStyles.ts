@@ -208,6 +208,11 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 /* Room under the name for the heart and cart row (the card's text never runs under them). */
 .gg-list .gg-nm{padding-bottom:40px}
 .gg-list .gg-heart-pick{position:absolute;right:-6px;bottom:0}
+/* Polish audit 1122 #8: on the 25 Days sponsors page only, the heart sits on the photo's top-right corner (as on the
+   Top 10), so it no longer takes a row of its own under each card's text. Her/Him/Kids keep the owner's layout. */
+article[data-gift-guide="25-days-sponsors"] .gg-list .gg-heart-pick{top:4px;bottom:auto;right:auto;left:54px;z-index:1}
+article[data-gift-guide="25-days-sponsors"] .gg-list>li:not(:has(.gg-cart)) .gg-nm{padding-bottom:0}
+@media (min-width:768px){article[data-gift-guide="25-days-sponsors"] .gg-list .gg-heart-pick{top:2px;left:auto;right:2px}}
 /* Owner 11-21 (Amazon Buy Now): the small cart icon under an Amazon item's price, a 44px link of its own in the card's first
    column, its icon lined up with the name and price (phone: past the 88px photo; tablet and desktop: the card's left edge). */
 /* Owner 11-21 ("should we put the cart by the heart?"): the cart sits beside the heart at the card's bottom-right (cart,
@@ -271,8 +276,10 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-soon p{margin:0 auto 8px;max-width:44ch;color:var(--gg-muted);font-size:14px}
 .gg-also{margin:16px 0 0}
 .gg-also-h{margin:0 0 8px;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gg-muted)}
-.gg-also-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-.gg-also-list li{font-size:12.5px;line-height:1.3;padding:5px 10px;border:1px solid var(--gg-line);border-radius:999px;color:var(--gg-ink)}
+/* Polish audit 1122 #8: plain names with dots between (outlined pills read as buttons that did nothing). */
+.gg-also-list{list-style:none;margin:0;padding:0;font-size:13px;line-height:1.7;color:var(--gg-ink)}
+.gg-also-list li{display:inline;white-space:nowrap}
+.gg-also-list li+li::before{content:"·";margin:0 8px;color:var(--gg-muted)}
 .gg-helpr{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:20px 0;padding:14px 16px;border-radius:14px;background:#f3f4ea;border:1px solid #e3e6d2;color:#2f3020}
 .gg-helpr b{display:block;font-size:15px}
 .gg-helpr span{font-size:13px;color:#55554a}

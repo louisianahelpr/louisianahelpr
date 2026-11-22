@@ -1,4 +1,4 @@
-// @mutate src/pages/jobs/appliedJobCard/HelperTrackerPanel.tsx | (jobDayStart(job.date_needed).getTime() - Date.now()) | (new Date(job.date_needed + "T00:00:00").getTime() - Date.now())
+// @mutate src/pages/jobs/appliedJobCard/HelperTrackerPanel.tsx | !helprConfirmClosed(job.date_needed, Date.now()); | Date.now() < new Date(job.date_needed + "T00:00:00").getTime() + 86_400_000;
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import { act, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";

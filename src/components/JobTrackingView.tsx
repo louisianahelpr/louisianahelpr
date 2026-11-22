@@ -3,7 +3,7 @@ import { takeHelperStepRequest } from "@/components/job-card/helperStepRequest";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { APPROVAL_WINDOW_HOURS } from "../../supabase/functions/_shared/escrowTiming";
 import { jobStartDateTime } from "@/lib/dateUtils";
-import { confirmOpensMs, jobDateMs, todayMs, JOB_TIMEZONE } from "@/lib/jobDate";
+import { confirmOpensMs, helprConfirmClosed, jobDateMs, todayMs, JOB_TIMEZONE } from "@/lib/jobDate";
 import { formatShortDate } from "@/lib/format";
 import { arrivalEstablished, arrivalGateMessage, arrivalRefusalMessage } from "@/lib/arrivalGate";
 import { BEFORE_PHOTO_GATE_REASON } from "@/lib/lifecycleErrors";
@@ -226,6 +226,18 @@ export function JobTrackingView(m: JobTrackingModel) {
              "you'll confirm later", stacked, is the duplication this card
              keeps being audited for. */
           if (!confirmOpen) return null;
+          /* #31 (deep audit 11-22): once the job day is over JobConfirmation hides its button (the SAME
+             helprConfirmClosed rule), so "Confirm the job below" pointed at nothing. Say what the Helpr CAN do. */
+          if (jobDateNeeded && helprConfirmClosed(jobDateNeeded, Date.now())) {
+            const posterFirst = (posterName ?? "").trim().split(/\s+/)[0] || "the poster";
+            return (
+              <div className="pt-2 border-t border-border">
+                <p className="text-ds-11 text-muted-foreground text-center" data-confirm-day-passed="">
+                  The day passed without a confirm. Message {posterFirst} or cancel the job.
+                </p>
+              </div>
+            );
+          }
           return (
             <div className="pt-2 border-t border-border">
               <p className="text-ds-11 text-muted-foreground text-center">

@@ -196,7 +196,7 @@ export default function HolidayHub() {
                   onKeyDown={(e) => { if (e.key === "Escape") closeSearch(); }}
                   placeholder="Search lights and events" aria-label="Search lights and events by name, town or place"
                   className="min-h-11 min-w-0 flex-1 border-0 bg-transparent text-ds-15 text-foreground shadow-none outline-none focus:outline-none focus-visible:outline-none" data-holiday-search="" />
-                <button type="button" onClick={closeSearch} aria-label="Close search" className="inline-flex h-11 w-9 items-center justify-center text-muted-foreground" data-holiday-search-close="">
+                <button type="button" onClick={closeSearch} aria-label="Close search" className="ctl-exit ctl-tint inline-flex h-11 w-9 items-center justify-center text-muted-foreground hover:text-foreground" data-holiday-search-close="">
                   <X className="h-4 w-4" aria-hidden />
                 </button>
               </label>

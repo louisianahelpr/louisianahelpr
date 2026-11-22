@@ -41,7 +41,7 @@ import {
   type DownloadProduct,
   type OverlayProduct,
 } from "@/content/printables";
-import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { PUBLIC_PAGE_META, NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import NameMaker from "@/pages/info/giftGuides/printables/NameMaker";
 import Printables from "@/pages/info/giftGuides/printables/Printables";
 import { PrintablesLink } from "@/pages/info/giftGuides/printables/PrintablesLink";
@@ -266,10 +266,9 @@ describe("the maker and the page", () => {
       expect(p.title.toLowerCase(), path).toContain(word);
       expect(p.canonical, path).toBe(`https://www.louisianahelpr.com${path}`);
     }
-    const m = PUBLIC_PAGE_META["/gift-guides/printables"];
-    // Holiday audit 1121 area 5 #9: the page holds coloring books and a banner too.
+    // The old address only forwards (owner 11-21: each kind its own page): out of the sitemap, noindex, its own head.
+    const m = NOINDEX_PAGE_META["/gift-guides/printables"];
     expect(m.title.toLowerCase()).toContain("free holiday printables");
-    for (const w of ["gift tags", "coloring books"]) expect(m.title.toLowerCase()).toContain(w);
     expect(m.description.toLowerCase()).toContain("coloring books");
     expect(m.canonical).toBe("https://www.louisianahelpr.com/gift-guides/printables");
   });
@@ -278,7 +277,7 @@ describe("the maker and the page", () => {
 /**
  * Holiday audit 1121 area 5 (#6, #9, #11, #12, #21) on /gift-guides/printables (page counts measured 2026-11-21).
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx |         {makers.length > 1 && ( |         {makers.length > 0 && (
- * @mutate src/lib/publicPageMeta.mjs |     title: "Free holiday printables: gift tags, coloring books and more — Helpr", |     title: "Free printable Christmas gift tags with names — Helpr",
+ * @mutate src/lib/publicPageMeta.mjs |     title: "Free holiday printables — Helpr", |     title: "Free printable gift tags — Helpr",
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;border:1px solid var(--gg-line)} | .pr-card-img{flex:none;width:96px;height:auto;align-self:flex-start;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
  * @mutate src/content/printables.ts |     previews: ["/printables/coloring-book/preview-girls.webp", "/printables/coloring-book/preview-boys.webp"], |
  * @mutate src/content/printables.ts |       { label: "Boys book, 21 pages (free)", |       { label: "Boys book (free)",

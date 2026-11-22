@@ -128,7 +128,7 @@ export default function AdminSponsorsPage() {
         {!allowed && sw.failed ? (
           <Panel title="Couldn't check the switch">
             <p className="text-sm text-muted-foreground" data-admin-switch-failed="">We couldn't check whether the 25 Days page is on. Check your connection and try again.</p>
-            <Button onClick={sw.retry}>Try again</Button>
+            <Button onClick={sw.tryAgain}>Try again</Button>
           </Panel>
         ) : null}
         {!allowed && sw.settled && !sw.failed ? (

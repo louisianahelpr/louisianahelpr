@@ -100,15 +100,6 @@ export const PUBLIC_PAGE_META = {
     ogTitle: "Free Secret Santa name draw from Louisiana Helpr",
     ogDescription: "Draw names, then text each person their match.",
   },
-  // Free holiday printables (owner 2026-11-20): gift tags with names, made in the browser.
-  // Holiday audit 1121 area 5 #9: the page holds coloring books and a banner too, not only tags.
-  "/gift-guides/printables": {
-    title: "Free holiday printables: gift tags, coloring books and more — Helpr",
-    description: "Free holiday printables: Christmas gift tags with names, two Christmas coloring books and a Happy Thanksgiving banner. Print at home, no sign-up.",
-    canonical: `${SITE_ORIGIN}/gift-guides/printables`,
-    ogTitle: "Free holiday printables: gift tags, coloring books and more",
-    ogDescription: "Gift tags with names, Christmas coloring books and a Thanksgiving banner. Print at home, free from Louisiana Helpr.",
-  },
   // Each kind of printable on its own page (owner 2026-11-21: "coloring book and banner should have their own page").
   "/gift-guides/printables/gift-tags": {
     title: "Free printable Christmas gift tags with names — Helpr",
@@ -322,6 +313,16 @@ export const NOINDEX_PAGE_META = {
   // 25 Days of Louisiana Giveaways (owner 2026-11-09): the sponsor page a pitch email links to, and its rules.
   // NOT indexed: it is dark behind the sponsor_25days switch and is reached from emails, not search. The link
   // card (og-25days.png) is what a brand sees when the link unfurls. Same entries the pages pass to usePageMeta.
+  // The old one-page printables address (owner 2026-11-21: each kind its own page): it forwards to the page its #anchor
+  // names, else Gift tags, so it stays out of the sitemap and serves noindex with its own head.
+  "/gift-guides/printables": {
+    title: "Free holiday printables — Helpr",
+    description: "Free holiday printables from Louisiana Helpr: Christmas gift tags with names, Christmas coloring books and a Happy Thanksgiving banner, each on its own page.",
+    canonical: `${SITE_ORIGIN}/gift-guides/printables`,
+    ogTitle: "Free holiday printables",
+    ogDescription: "Gift tags with names, Christmas coloring books and a Thanksgiving banner. Print at home, free from Louisiana Helpr.",
+    robots: NOINDEX_ROBOTS,
+  },
   "/sponsor": {
     title: "Become a partner in the 25 Days of Louisiana Giveaways — Helpr",
     description:

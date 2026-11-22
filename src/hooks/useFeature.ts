@@ -89,7 +89,7 @@ export function useFeature(key: FeatureKey): boolean {
  * The string-literal rule is the same as useFeature's
  * (featureSwitchRegistry.test.ts reads both).
  */
-export function useFeatureStatus(key: FeatureKey): { on: boolean; settled: boolean; lastAnswer: boolean | null; failed: boolean; retry: () => void } {
+export function useFeatureStatus(key: FeatureKey): { on: boolean; settled: boolean; lastAnswer: boolean | null; failed: boolean; tryAgain: () => void } {
   const { user, isReady } = useAuthReady();
   const uid = user?.id ?? null;
   const signedIn = isReady && !!uid;
@@ -123,6 +123,7 @@ export function useFeatureStatus(key: FeatureKey): { on: boolean; settled: boole
   // Holiday audit 1121 #82: "couldn't check" is not "off". An admin screen tells the two apart (on stays false either
   // way: a failed read never shows a hidden feature).
   const failed = signedIn && answer.isError;
-  const retry = () => void answer.refetch();
-  return { on, settled, lastAnswer, failed, retry };
+  // Named tryAgain, not retry: a query retry rule is `retry:` (src/test/queryRetryPolicy.test.ts); this is a button.
+  const tryAgain = () => void answer.refetch();
+  return { on, settled, lastAnswer, failed, tryAgain };
 }

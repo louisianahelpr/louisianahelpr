@@ -10,7 +10,7 @@ import { GuidesHeadRow } from "../GuidesHeadRow";
 import { GiftGuidesWords } from "../GiftGuideCover";
 import { GiftGuidesSidebar } from "../GiftGuidesSidebar";
 
-type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | "/gift-guides/printables" | PrintablePagePath;
+type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | PrintablePagePath;
 
 /**
  * The shared shell's props for a fun page: the gift guides' public header, back to /gift-guides. Like every other gift

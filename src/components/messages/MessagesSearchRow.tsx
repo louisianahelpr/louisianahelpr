@@ -81,7 +81,7 @@ export function MessagesSearchRow({ value, onChange, moreMenu, inBar = false }: 
           type="button"
           aria-label={t("chat.closeSearch")}
           onClick={close}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground"
+          className="ctl-exit ctl-tint flex h-9 w-9 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
         >
           <X className="h-4 w-4" aria-hidden />
         </button>

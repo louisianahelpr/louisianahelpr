@@ -6,6 +6,8 @@ import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { saveOrShareFile } from "@/lib/fileExport";
 import { PRINTABLES_WORDS as W, PRINTABLE_PAGES, printablesOnPage, printablesRedirect, type DownloadProduct, type OverlayProduct, type PrintablePageKey } from "@/content/printables";
 import { FunBody, funHeader } from "../fun/FunPage";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 
 /**
  * The free printables (owner 2026-11-20): free holiday printables the owner designs in Canva. Each kind is its own page
@@ -75,11 +77,21 @@ const PAGE_WORDS: Record<PrintablePageKey, { title: string }> = {
   banners: { title: W.bannersTitle },
 };
 
+/**
+ * The old one-page address (/gift-guides/printables) forwards to the page its #anchor names, else Gift tags (old links,
+ * pins, the planner sheet). It serves noindex with its own head before JS (NOINDEX_PAGE_META, api/share.ts) and keeps
+ * the same head here until the forward lands.
+ */
+function OldPrintables({ hash }: { hash: string }) {
+  usePageMeta(NOINDEX_PAGE_META["/gift-guides/printables"]);
+  return <Navigate to={printablesRedirect(hash)} replace />;
+}
+
 export default function Printables() {
   const { pathname, hash } = useLocation();
   const page = PRINTABLE_PAGES.find((x) => x.path === pathname.replace(/\/+$/, ""));
   // The old one-page address (and any unknown printables path): its #anchor's page, else Gift tags.
-  if (!page) return <Navigate to={printablesRedirect(hash)} replace />;
+  if (!page) return <OldPrintables hash={hash} />;
   return <PrintablesPage page={page.key} path={page.path} />;
 }
 

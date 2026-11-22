@@ -199,7 +199,10 @@ export const discountCodes: DiscountCode[] = [
   { rank: 10, store: "Aurate", code: "LEXIL-20", offer: "20% off", href: "https://auratenewyork.com/" },
   { rank: 11, store: "Camp Snap", code: "LEXILOMBAS7", offer: "7% off", href: "https://campsnapphoto.com/" },
   { rank: 12, store: "Bon Wellness", code: "LEXI20", offer: "20% off", href: "https://bonwellness.com/" },
-  { rank: 13, store: "Club Recess", code: "LEXI15", offer: "15% off", href: "https://clubrecess.com/" },
+  // Club Recess (ShopMy Discount Codes + their 11-20 chat, ShopMy-codes-1121-night.md): LEXI5 (5%, stacks with their sales)
+  // through Dec 12; LEXI15 comes back Dec 13.
+  { rank: 13, store: "Club Recess", code: "LEXI5", offer: "5% off; stacks with their sales", expires: "2026-12-12", href: "https://clubrecess.com/" },
+  { rank: 13, store: "Club Recess", code: "LEXI15", offer: "15% off", starts: "2026-12-13", href: "https://clubrecess.com/" },
   { rank: 14, store: "Thrive Creative", code: "LEXIL20", offer: "20% off", href: "https://thrivecreative.us/" },
   { rank: 15, store: "YVO Warrior", code: "LEXI15", offer: "15% off", href: "https://yvowarrior.com/" },
   { rank: 16, store: "Daily Crunch Snacks", code: "LEXI15", offer: "15% off", href: "https://dailycrunchsnacks.com/" },

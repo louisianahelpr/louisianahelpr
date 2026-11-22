@@ -15,6 +15,9 @@
  * #15 ("remove the circles around the print buttons. put print it as below the buttons next to the print at walgreens
  *     button"): on Banners, "12x18 print" and "Wide banner" are plain text links like "Print at Walgreens ›", all three on
  *     one row, each 44px tall (the shared link Button, no pill outline).
+ * #16 ("should show the pictures here"): Swipe's end screen ("You saved 8 ideas for Her") shows each saved gift as the
+ *     guides' own card (PickRow, the Top 10's card: cutout photo, name, price, link) in a grid, 2 across on a phone and 4
+ *     from 768px; one primary button (Another round) and plain links for the rest.
  * #17 ("remove"): the Gift planner's grey "Tip: tap Bought when you get a gift, and we'll add up what you've spent."
  *     box with its × is gone, with its copy (the planner's lead already says what Bought does).
  *
@@ -30,6 +33,9 @@
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <Button key={f.href} type="button" variant="link" size="inline" className="pr-link" | <Button key={f.href} type="button" variant="outline" size="sm" className="pr-link"
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx |   const books = booksOf(p);\n |   const books = null as Book[] \| null;\n
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-books{grid-template-columns:repeat(2,minmax(0,1fr))} | .pr-books{grid-template-columns:minmax(0,1fr)}
+ * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | {saved.map((p) => <PickRow key={p.href} pick={p} guide={p.guide} />)} | {saved.map((p) => <li key={p.href}>{p.name}</li>)}
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | @media (min-width:768px){.gg .gg-top10.gg-swipe-saved{grid-template-columns:repeat(4,minmax(0,1fr)); | @media (min-width:768px){.gg .gg-top10.gg-swipe-saved{grid-template-columns:repeat(5,minmax(0,1fr));
+ * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | {savedTo === "planner" && <Button asChild variant="link" size="inline" className="gg-link"> | {savedTo === "planner" && <Button asChild variant="outline">
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-btns>.pr-link{flex:none;white-space:nowrap} | .pr-card-btns>.pr-link{flex:none}
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card .pr-link{display:inline-flex;align-items:center;justify-content:flex-start;min-height:44px; | .pr-card .pr-link{display:inline-flex;align-items:center;justify-content:flex-start;min-height:32px;
  */
@@ -259,6 +265,48 @@ describe("#15 the banner's downloads are plain links on one row with Print at Wa
     // Each link on one line; one that does not fit drops whole to the next row (lead 11-22: no split "Print at / Walgreens").
     expect(css).toContain(".pr-card-btns{display:flex;flex-wrap:wrap;align-items:center;gap:0 16px}");
     expect(css).toContain(".pr-card-btns>.pr-link{flex:none;white-space:nowrap}");
+  });
+});
+
+describe("#16 Swipe's end screen shows the saved gifts as the guides' cards", () => {
+  it("a grid of PickRow cards (photo, name, price, link), 2 across / 4 from 768px; one primary button, the rest plain links", async () => {
+    const { fireEvent } = await import("@testing-library/react");
+    const { container } = renderAt("/gift-guides/swipe");
+    fireEvent.click(container.querySelector('[data-swipe-who="her"]')!);
+    await waitFor(() => expect(container.querySelector("[data-swipe-budget]")).not.toBeNull(), { timeout: 5000 });
+    fireEvent.click([...container.querySelectorAll("[data-swipe-budget]")].pop()!);
+    fireEvent.click(container.querySelector("[data-swipe-start]")!);
+    await waitFor(() => expect(container.querySelector("[data-swipe-card]")).not.toBeNull(), { timeout: 5000 });
+    const hrefs: string[] = [];
+    for (let i = 0; i < 40 && !container.querySelector("[data-swipe-done]"); i++) {
+      await waitFor(() => expect(container.querySelector("[data-swipe-save]")?.hasAttribute("disabled")).toBe(false));
+      hrefs.push(container.querySelector("[data-swipe-card]")!.getAttribute("data-swipe-card")!);
+      fireEvent.click(container.querySelector("[data-swipe-save]")!);
+    }
+    const done = container.querySelector("[data-swipe-done]")!;
+    expect(done).not.toBeNull();
+    expect(hrefs.length).toBeGreaterThan(2);
+    const grid = done.querySelector("[data-swipe-saved-grid]")!;
+    expect(grid.matches("ul.gg-list.gg-top10.gg-swipe-saved")).toBe(true);
+    const cards = [...grid.querySelectorAll(":scope > li[data-gift-pick]")];
+    expect(cards.length).toBe(hrefs.length);
+    cards.forEach((li, i) => {
+      const link = li.querySelector<HTMLAnchorElement>("a[data-gift-title-link]")!;
+      expect(link.getAttribute("href")).toBe(hrefs[i]);
+      expect(link.querySelector(".gg-photo, .gg-thumb, [data-gift-letter]")).not.toBeNull();
+      expect(link.querySelector(".gg-nm-name")?.textContent?.trim()).not.toBe("");
+      expect(link.querySelector(".gg-nm-meta")).not.toBeNull();
+    });
+    // One primary; every other way on is a plain link (the shared link Button), none an outlined pill.
+    const acts = [...done.querySelectorAll("button, a")].filter((el) => !grid.contains(el) && !el.closest("[data-gift-prices-as-of]"));
+    expect(acts.filter((el) => el.className.includes("btn-grad-primary")).map((el) => el.textContent)).toEqual(["Another round"]);
+    for (const el of acts.filter((x) => !x.className.includes("btn-grad-primary"))) {
+      expect(el.className, el.textContent ?? "").toMatch(/\blink-standard\b/);
+      expect(el.className, el.textContent ?? "").not.toMatch(/ctl-tint/);
+    }
+    const css = [...container.querySelectorAll("style")].map((x) => x.textContent ?? "").join("\n");
+    expect(css).toContain(".gg .gg-top10.gg-swipe-saved{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(2,minmax(0,1fr));");
+    expect(css).toContain("@media (min-width:768px){.gg .gg-top10.gg-swipe-saved{grid-template-columns:repeat(4,minmax(0,1fr));");
   });
 });
 

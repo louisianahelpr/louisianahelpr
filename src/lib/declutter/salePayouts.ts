@@ -9,6 +9,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/payoutReads";
+import { payoutWentOut } from "@/lib/declutter/payoutWords";
 
 export type SalePayout = MyPayout & { title: string };
 
@@ -43,11 +44,16 @@ export function salesEarnedIn(rows: SalePayout[], sinceMs: number | null): { cen
   return { cents: sent.reduce((s, r) => s + r.amount_cents, 0), count: sent.length };
 }
 
-/** "Paid Oct 29" / "Not sent yet" / "Didn't go through". */
+/**
+ * "Paid Oct 29" / "Not sent yet" / "On hold" / "Didn't go through".
+ * Deep audit 11-22 #51: a payout Louisiana Helpr settled by hand said "Not sent yet" here while the sale card said
+ * "paid on Nov 7". Both read payoutWentOut now.
+ */
 export function salePayoutWords(r: SalePayout): string {
-  if (r.status === "succeeded") {
+  if (payoutWentOut(r.status)) {
     return r.executed_at ? `Paid ${new Date(r.executed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "Paid";
   }
   if (r.status === "failed") return "Didn't go through";
+  if (r.status === "held_for_review") return "On hold";
   return "Not sent yet";
 }

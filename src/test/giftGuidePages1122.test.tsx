@@ -227,7 +227,7 @@ describe("#14 each coloring book in its own card", () => {
       const links = b.querySelectorAll("[data-printable-download]");
       expect(links.length).toBe(1);
       expect(links[0].className).toMatch(/\blink-standard\b.*\bpr-link\b|\bpr-link\b.*\blink-standard\b/);
-      expect(links[0].textContent).toBe("Download ›");
+      expect(links[0].textContent).toBe("Download\u00a0›");
       // Neither card holds the other's cover or link.
       expect(books.filter((x) => x !== b).some((x) => b.contains(x))).toBe(false);
     }
@@ -246,7 +246,7 @@ describe("#15 the banner's downloads are plain links on one row with Print at Wa
     await waitFor(() => expect(container.querySelector('[data-printable-card="thanksgiving-banner"]')).not.toBeNull());
     const row = container.querySelector('[data-printable-links="thanksgiving-banner"]')!;
     const links = [...row.children];
-    expect(links.map((l) => l.textContent?.replace(" (opens in a new tab)", ""))).toEqual(["12x18 print ›", "Wide banner ›", "Print at Walgreens ›"]);
+    expect(links.map((l) => l.textContent?.replace(" (opens in a new tab)", ""))).toEqual(["12x18 print\u00a0›", "Wide banner\u00a0›", "Print at Walgreens\u00a0›"]);
     for (const l of links) {
       expect(l.className).toMatch(/\blink-standard\b/);
       expect(l.className).toMatch(/\bpr-link\b/);
@@ -255,7 +255,8 @@ describe("#15 the banner's downloads are plain links on one row with Print at Wa
     expect(links.map((l) => l.tagName)).toEqual(["BUTTON", "BUTTON", "A"]);
     const css = [...container.querySelectorAll("style")].map((x) => x.textContent ?? "").join("\n");
     expect(css).toMatch(/\.pr-card \.pr-link\{display:inline-flex;[^}]*min-height:44px;[^}]*background:none;border:0;box-shadow:none\}/);
-    expect(css).toContain(".pr-card-btns{display:flex;flex-wrap:wrap;align-items:center;gap:0 20px}");
+    expect(css).toContain(".pr-card-btns{display:flex;flex-wrap:nowrap;align-items:center;gap:0 16px}");
+    expect(css).toContain(".pr-card-btns>a.pr-link{flex:0 1 auto;min-width:0;white-space:normal;text-align:left}");
   });
 });
 

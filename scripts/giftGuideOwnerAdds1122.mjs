@@ -29,6 +29,7 @@ export const ADDS_PRICE_AT = "2026-11-22";
 export const ADDS_STORES_1122 = {
   "store-sleep-crown": "Sleep Crown", "store-crown-affair": "Crown Affair", "store-eadem": "EADEM", "store-aera": "Aera",
   "store-lemme": "Lemme", "store-stil": "STIL", "store-eleven-eleven": "Eleven Eleven", "store-calvin-klein": "Calvin Klein", "store-foton": "Foton", "store-sleepy-tie": "Sleepy Tie",
+  "store-pottery-barn-kids": "Pottery Barn Kids",
 };
 
 /** Each row carries the day its price was checked (the page's "Prices as of" note reads the oldest). */
@@ -87,18 +88,33 @@ export const HER_ADDS_1122 = [
   { name: "Madewell x The Six Bells Nightgown", brand: "Madewell", line: "A soft white nightgown from the holiday collab.", href: shopmy("p-109155568"), image: "https://static.shopmy.us/pins/zoom-109155568-1795367501473-OC137_WT0012_m", store: "store-madewell", sortPrice: 158, price: 158, commission: 12, type: "nightgown" },
   // Her pin's photo is the rose-gold ring, Ulta's Deep Rose ($399 Black Friday, was $499).
   { name: "Oura Ring 5, Deep Rose", brand: "Oura", line: "A smart ring that tracks sleep, steps and recovery.", href: shopmy("p-109155784"), image: "https://static.shopmy.us/pins/zoom-109155784-1795367529760-2664695", store: "store-ulta-beauty", sortPrice: 399, price: 399, commission: 13, type: "smart-ring" },
+  // builder-guide-emibauble (owner 11-22 PM). From her screenshots: "Add both" for the Emi Jay clip and the BaubleBar
+  // brush; links made in her shopmy.us/links ("You can create the links"), priced on each brand's page 11-22.
+  // - Emi Jay: the red Big Effing Clip in the video is Cherry Kiss ($36, 15%), so it sits next to her Doe clip (same
+  //   brand, price and design words: src/content/giftGuideDesign.mjs). The Cozy Cloud Gingham Big Effing Clip is sold out
+  //   on emijay.com (no store on ShopMy has it in stock), so it is not added.
+  // - BaubleBar Mini Fine Line Custom Hair Brush, Magenta/Light Pink ($48, 20%): her name goes on the back.
+  { name: "Emi Jay Big Effing Clip, Cherry Kiss", brand: "Emi Jay", line: "The same big claw clip in a glossy cherry red.", href: shopmy("p-109290718"), image: "https://cdn.shopify.com/s/files/1/0581/7571/7551/products/bigeffingclipincherrykiss.jpg", store: "store-emi-jay", sortPrice: 36, price: 36, commission: 15, type: "hair" },
+  { name: "BaubleBar Mini Fine Line Custom Hair Brush, Magenta", brand: "BaubleBar", line: "A hot pink hair brush with her name on the back.", href: shopmy("p-109289957"), image: "https://cdn.shopify.com/s/files/1/0267/5746/4148/files/110416_G_01_RS_SQ_2026_80d4c91e-c2d8-4a9a-a92e-491e1abec4ac.jpg", store: "store-baublebar", sortPrice: 48, price: 48, commission: 20, type: "hair" },
+  // Owner 11-22 PM: the Stoggles safety glasses are off; "cute tortoise blue light glasses" instead. Gaoye's round frame in
+  // Tea Leopard (tortoise), 4.4 stars from 11,300+ ratings; Amazon with her tag, Amazon's photo and price 11-22.
+  { name: "Gaoye Round Blue Light Glasses, Tea Leopard", brand: "Gaoye", line: "Tortoise blue light glasses for long days at a screen.", href: amz("B07XL9MFZQ"), image: amzImg("61qZCp6L-rL"), store: "store-amazon", sortPrice: 12.74, commission: 4, type: "eyewear" },
+  // Owner 11-22 PM: the EADEM New Classics Set moves from Kids to Her (photo: the four products from eadem.co's set photo).
+  { name: "EADEM New Classics Set", brand: "EADEM", line: "Four skin and lip favorites in one starter set.", href: shopmy("p-109155269"), image: "https://cdn.shopify.com/s/files/1/0512/1661/3529/files/PDP-CLEARSPACE_WIDER-FRAME_2750x3413-1.jpg", store: "store-eadem", sortPrice: 58, price: 58, commission: 20, type: "skincare-set" },
 ].map(dated);
 
 /** For Kids (owner via the lead, 11-22): the two Camp Snap 2 colors, at Camp Snap direct (see the header). */
 export const KIDS_ADDS_1122 = [
   { name: "Camp Snap 2 Screen-Free Camera, Blue Rush", brand: "Camp Snap", line: "A screen-free kids' camera in see-through blue.", href: shopmy("p-107929152"), image: "https://static.shopmy.us/pins/zoom-109142125-1795365781660-Yellow_Front_9ea4e828-8752-4bcd-bf01-b49ef26f4be5.webp", store: "store-camp-snap", sortPrice: 59.99, price: 59.99, commission: 10, type: "camera", code: CAMP_SNAP_CODE },
   { name: "Camp Snap 2 Screen-Free Camera, Strawberry Splash", brand: "Camp Snap", line: "A screen-free kids' camera in see-through pink.", href: shopmy("p-104219842"), image: "https://static.shopmy.us/pins/zoom-109142226-1795365794451-Yellow_Front-3.webp", store: "store-camp-snap", sortPrice: 59.99, price: 59.99, commission: 10, type: "camera", code: CAMP_SNAP_CODE },
-  // Owner via the lead, 11-22: "p-109155269 goes on KIDS". Photo: the four products from eadem.co's own set photo (its
-  // main photo stacks them on books).
-  { name: "EADEM New Classics Set", brand: "EADEM", line: "Four skin and lip favorites in one starter set.", href: shopmy("p-109155269"), image: "https://cdn.shopify.com/s/files/1/0512/1661/3529/files/PDP-CLEARSPACE_WIDER-FRAME_2750x3413-1.jpg", store: "store-eadem", sortPrice: 58, price: 58, commission: 20, type: "skincare-set" },
   // Owner via lead, 11-22: "add BOTH bundles (Ms. Rachel + Bluey), side by side". Photos: her pins' tiles with the panel taken off.
   { name: "Yoto Player 4th Gen + Ms. Rachel Adventure Bundle", brand: "Yoto", line: "A screen-free audio player with a Ms. Rachel card.", href: shopmy("p-109156467"), image: "https://static.shopmy.us/uploads/img-product-1794924419956", store: "store-yoto", sortPrice: 165.72, price: 165.72, commission: 20, type: "audio" },
   { name: "Yoto Player 4th Gen + Bluey Adventure Bundle", brand: "Yoto", line: "A screen-free audio player with a Bluey story card.", href: shopmy("p-109156399"), image: "https://static.shopmy.us/uploads/img-product-1793495319475", store: "store-yoto", sortPrice: 164.02, price: 164.02, commission: 20, type: "audio" },
+  // builder-guide-emibauble (owner 11-22 PM): the Melissa & Doug Kids Club Chair is off; the Pottery Barn Kids Anywhere
+  // Chair with a name on it instead ("You will need to create a link": her shopmy.us/links, Pottery Barn Kids 6%). Twill,
+  // from $119 on sale ($119 to $189 by size, was from $129), personalization $17 more; photo: PBK's own monogrammed
+  // maroon chair.
+  { name: "Pottery Barn Kids Anywhere Chair, Personalized", brand: "Pottery Barn Kids", line: "The classic kids' armchair; add a name for $17.", href: shopmy("p-109292071"), image: "https://assets.pkimgs.com/pkimgs/rk/images/dp/wcm/202631/0188/anywhere-chair-maroon-twill-1-l.jpg", store: "store-pottery-barn-kids", sortPrice: 119, price: 119, priceFrom: true, commission: 6, type: "chair" },
 ].map(dated);
 
 /** For Him (owner via the lead, 11-22). */
@@ -154,4 +170,8 @@ export const ADDS_CUTOUTS_1122 = [
   ["https://static.shopmy.us/pins/zoom-109151385-1795366985590-GUEST_a0e171ac-5761-42c7-83ca-b6b75eced062", "bissell-little-green-mini-4064t-956230.webp"],
   // The set's four products, cropped from its labelled photo (no labels kept).
   ["https://cdn.shopify.com/s/files/1/0512/1661/3529/files/PDP-CLEARSPACE_WIDER-FRAME_2750x3413-1.jpg", "eadem-new-classics-set-ae7614.webp"],
+  // builder-guide-emibauble (owner 11-22 PM).
+  ["https://cdn.shopify.com/s/files/1/0581/7571/7551/products/bigeffingclipincherrykiss.jpg", "emi-jay-big-effing-clip-cherry-kiss-7d24e0.webp"],
+  ["https://cdn.shopify.com/s/files/1/0267/5746/4148/files/110416_G_01_RS_SQ_2026_80d4c91e-c2d8-4a9a-a92e-491e1abec4ac.jpg", "baublebar-mini-fine-line-brush-magenta-3f1a2c.webp"],
+  ["https://assets.pkimgs.com/pkimgs/rk/images/dp/wcm/202631/0188/anywhere-chair-maroon-twill-1-l.jpg", "pbk-anywhere-chair-twill-maroon-monogram-b81d5e.webp"],
 ];

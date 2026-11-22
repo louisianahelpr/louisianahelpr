@@ -215,7 +215,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Battery Daddy ($20); Kids + both Yoto bundles ($164, $166).
       // Train e (11-22): Kids gained the 9 popular adds, the Quest 3S, iPad and JLab headphones, and lost its duplicate
       // Switch, Segway and tile rows.
-      kids: { "Under $25": 34, "$25 to $50": 25, "$50 to $75": 8, "$75 to $100": 6, "$100 and up": 20 },
+      // Owner 11-22 PM (builder-guide-emibauble): Kids lost the EADEM set ($58, to Her) and the Melissa & Doug Club Chair
+      // ($75) and gained the Pottery Barn Kids Anywhere Chair (from $119).
+      kids: { "Under $25": 34, "$25 to $50": 25, "$50 to $75": 7, "$75 to $100": 5, "$100 and up": 21 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -225,8 +227,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Train e (11-22): Her also gained the 5 popular adds and her3b's PR picks (Beekman, Glow Recipe, Eberjey, Beis,
       // Case-Mate, Naturium, Makeup by Mario, YTTP), and lost the Amazon Essentials flannel pajamas (owner: "Lake + Eberjey").
       // Owner 11-22 PM (builder-guide-emibauble): Her lost Mrs. Meyer's and Downy (under $25), Comrad, JAANUU, Stoggles and
-      // the CS-8 Micro ($25-$50) and the CS-Pro ($79).
-      her: { "Under $25": 34, "$25 to $50": 30, "$50 to $75": 9, "$75 to $100": 7, "$100 and up": 35 },
+      // the CS-8 Micro ($25-$50) and the CS-Pro ($79); then gained the Gaoye glasses ($13), the red Emi Jay clip and the
+      // BaubleBar brush ($36, $48) and the EADEM set from Kids ($58).
+      her: { "Under $25": 35, "$25 to $50": 32, "$50 to $75": 10, "$75 to $100": 7, "$100 and up": 35 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

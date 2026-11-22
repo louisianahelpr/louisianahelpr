@@ -43,8 +43,9 @@ const SWITCHED: Record<string, Record<string, string>> = {
     // Launch day 11-22 (Owner-adds-1122.md): her two Camp Snap 2 colors, pinned at The Swank Company (p-109142125,
     // p-109142226, $69.99), are on her Camp Snap direct pins instead (owner 11-22: the $59.99 sale and her code LEXILOMBAS7).
     "https://go.shopmy.us/p-107929152": "store-camp-snap", "https://go.shopmy.us/p-104219842": "store-camp-snap",
-    // Owner via the lead, 11-22: her EADEM New Classics Set pin goes on Kids.
-    "https://go.shopmy.us/p-109155269": "store-eadem",
+    // Owner 11-22 PM (builder-guide-emibauble): the Pottery Barn Kids Anywhere Chair (her new pin, 6%) in place of the
+    // Melissa & Doug Club Chair; the EADEM New Classics Set moved to Her.
+    "https://go.shopmy.us/p-109292071": "store-pottery-barn-kids",
     // Owner via the lead, 11-22: both Yoto 4th Gen bundles (Ms. Rachel, Bluey).
     "https://go.shopmy.us/p-109156467": "store-yoto", "https://go.shopmy.us/p-109156399": "store-yoto" },
 };
@@ -74,7 +75,8 @@ const SAVES: Record<string, Record<string, string>> = {
     ...sm(["108632461", "108632432", "108632392", "108632273", "108632257", "108632317", "108632251", "108632230", "108632184", "108632365", "108632379", "108632481", "108632592"], "store-maisonette"),
     ...sm(["108632104"], "store-grove"), ...sm(["108632077", "108632046"], "store-wayfair"),
     // Owner 11-21 ("same for the kids, add all items i had on the things"): every other kids save still sold.
-    ...sm(["108632430", "108632133"], "store-maisonette"), ...sm(["108632059"], "store-wayfair"),
+    ...sm(["108632430", "108632133"], "store-maisonette"),
+    // Owner 11-22 PM: the Melissa & Doug Club Chair (108632059, Wayfair) is off for the Pottery Barn Kids chair.
     ...sm(["108632004", "108631991", "108631978"], "store-macys"),
     // Rate switch 11-21 night: the Jumbo Cardboard Blocks moved from Wayfair p-108632086 (11%) to Macy's p-109002741 (16%), $32.99.
     ...sm(["109002741"], "store-macys"),
@@ -170,7 +172,7 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
       }
     }
     expect(HIM_SHOPMY_1121.length).toBe(36);
-    expect(KIDS_SHOPMY_1121.length).toBe(23);
+    expect(KIDS_SHOPMY_1121.length).toBe(22); // 23 until the owner swapped the Melissa & Doug Club Chair for the Pottery Barn Kids chair (11-22 PM)
   });
 });
 

@@ -106,6 +106,8 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   // and family calendar are gadgets; the food jar is kitchen; safety glasses and an underscrub are what she wears.
   stationery: ["tools"], stethoscope: ["tools"], book: ["cozy"], earplugs: ["cozy"], diffuser: ["cozy"], "e-reader": ["tech", "cozy"],
   cleaning: ["cozy"], "food-jar": ["kitchen"], "tech-accessory": ["tech"], eyewear: ["style"],
+  // The EADEM New Classics Set moved from Kids to Her (owner 11-22 PM): on a grown-up list a skincare set is beauty.
+  "skincare-set": ["beauty"],
   scrubs: ["style"], calendar: ["tech", "cozy"], "hand-care": ["beauty"],
   // The popular adds of 11-22 (builder-guide-popular): a cooling fan, power bank, travel adapter, earbuds, headphones and
   // tracker are gadgets; a smartwatch is a gadget for workouts; a pizza oven is kitchen, out in the yard.
@@ -122,7 +124,7 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   "pretend-play": ["pretend"], doll: ["pretend"], dollhouse: ["pretend"], "pull-toy": ["pretend"], "car-toy": ["pretend"], "bath-toy": ["pretend"],
   rocker: ["pretend", "active"], "spin-toy": ["pretend", "active"], "play-table": ["pretend", "active"], "baby-clothes": ["cozy"],
   squishy: ["stocking"], fidget: ["stocking"], toothbrush: ["stocking"], ornament: ["stocking", "build"], chair: ["cozy"], bag: ["stocking"],
-  // The EADEM New Classics Set (owner 11-22: on Kids) is a teen self-care set.
+  // A skincare set on Kids is a teen self-care set (the EADEM New Classics Set was here until the owner moved it to Her, 11-22).
   "skincare-set": ["cozy"],
   // The popular Kids adds of 11-22 (builder-guide-popular): a brain-teaser puzzle is a game; a hatching egg, a playset, a
   // plush Elmo and a dino vehicle are pretend play.
@@ -177,7 +179,7 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   toy: ["6-8", "9-12"], outdoor: ["6-8", "9-12"], rocket: ["6-8", "9-12"], watch: ["6-8", "9-12"], "walkie-talkie": ["6-8", "9-12"],
   science: ["6-8", "9-12"], "digital-pet": ["6-8", "9-12"], "building-set": ["9-12", "teen"], ornament: ["6-8", "9-12", "teen"],
   scooter: ["6-8", "9-12"], hoverboard: ["6-8", "9-12"], "game-console": ["9-12", "teen"], vr: ["9-12", "teen"], tablet: ["6-8", "9-12", "teen"], bag: ["6-8", "9-12", "teen"],
-  // The EADEM New Classics Set (11-22) is skin care for a teen.
+  // A skincare set on Kids is skin care for a teen.
   "skincare-set": ["teen"],
   // The popular Kids adds of 11-22, by each box's age: Little People and Tickle Me Elmo are for toddlers, the PAW Patrol
   // vehicle and the hatching egg for preschool and up, Kanoodle (7+) for school-age kids and teens.

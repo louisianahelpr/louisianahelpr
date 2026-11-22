@@ -48,7 +48,7 @@ const SENT: [string, string, string, number][] = [
   ["p-109153811", "her", "store-stil", 44],
   ["p-109151082", "her", "store-emi-jay", 36],
   ["p-109154746", "her", "store-eleven-eleven", 158],
-  ["p-109155269", "kids", "store-eadem", 58], // owner via lead: Kids
+  ["p-109155269", "her", "store-eadem", 58], // owner via lead: Kids; owner 11-22 PM: moved to Her
   ["p-103892269", "him", "store-lake-pajamas", 138],
   ["p-104054474", "him", "store-lake-pajamas", 108],
   // Batch 2b.
@@ -64,11 +64,17 @@ const SENT: [string, string, string, number][] = [
   ["p-109152299", "her", "store-cos-bar", 90],
   ["p-109155568", "her", "store-madewell", 158],
   ["p-109155784", "her", "store-ulta-beauty", 399],
+  // Owner 11-22 PM (builder-guide-emibauble; ShopMy-links-created-1122.md): the red Emi Jay clip and the BaubleBar brush
+  // from her screenshots; the Pottery Barn Kids Anywhere Chair in place of the Melissa & Doug Club Chair.
+  ["p-109290718", "her", "store-emi-jay", 36], // Big Effing Clip, Cherry Kiss
+  ["p-109289957", "her", "store-baublebar", 48], // Mini Fine Line Custom Hair Brush, Magenta
+  ["p-109292071", "kids", "store-pottery-barn-kids", 119], // Anywhere Chair, Twill, from (personalization $17 more)
 ];
 /** Amazon picks from her launch-day screenshots and asks (no ShopMy pin for them): ASIN -> guide, price 11-22. */
 const AMAZON_1122: [string, string, number][] = [
   ["B0HKS18NW2", "her", 14.98], ["B0C1YBPJ43", "her", 35.98], ["B0F2937DQQ", "her", 56.98], ["B09X3WGJ3R", "her", 111.99],
   ["B0DQLLPYGM", "her", 184.89], ["B0GP2R8TBS", "her", 199], ["B0GZSMBDYZ", "her", 237], ["B089F9YDFC", "him", 19.99],
+  ["B07XL9MFZQ", "her", 12.74], // owner 11-22 PM: tortoise blue light glasses in place of the Stoggles
 ];
 
 describe("the owner's launch-day picks (11-22)", () => {
@@ -116,17 +122,23 @@ describe("the owner's launch-day picks (11-22)", () => {
 
   it("the Serta pad shows its lowest size price as \"from\"; the Kate McLeod bar waits for a restock", () => {
     expect(chunk("her").find((x) => x.href === pin("p-109144140"))?.priceFrom).toBe(true);
+    // The Pottery Barn Kids chair is priced by size (from $119), so it shows "from" too.
+    expect(chunk("kids").find((x) => x.href === pin("p-109292071"))?.priceFrom).toBe(true);
     expect(["her", "him", "kids"].flatMap(chunk).some((x) => x.href === pin("p-109144875"))).toBe(false);
   });
 });
 
-describe("owner 11-22 PM removals on Her (builder-guide-emibauble)", () => {
-  it("the one Camp Snap camera left on Her is the Chestnut, and the removed rows are gone", () => {
+describe("owner 11-22 PM edits (builder-guide-emibauble)", () => {
+  it("the red Emi Jay clip sits right after her Doe clip, the one Camp Snap camera left on Her is the Chestnut, and the swapped-out rows are gone", () => {
     const her = chunk("her");
+    const doe = her.findIndex((x) => x.href === pin("p-109151082"));
+    expect(doe).toBeGreaterThan(-1);
+    expect(her[doe + 1]?.href).toBe(pin("p-109290718"));
     const cameras = her.filter((x) => x.store === "store-camp-snap" && /camera/i.test(x.name));
     expect(cameras.map((x) => x.href)).toEqual([pin("p-109140863")]);
     const gone = ["B000S5VEA2", "B0FGDQ5BT9", "p-103899561", "B0F831FK2R", "B0B22SZ3W8", "p-108611500", "p-107929179"];
     for (const id of gone) expect(her.some((x) => x.href.includes(id)), id).toBe(false);
+    expect(chunk("kids").some((x) => x.href.includes("p-108632059") || x.href.includes("p-109155269"))).toBe(false);
   });
 });
 

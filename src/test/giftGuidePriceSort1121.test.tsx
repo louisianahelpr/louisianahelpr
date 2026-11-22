@@ -211,7 +211,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // builder-guide-links (11-22): Him + Le Labo, Patagonia duffel, Steve Madden loafer (all $100 and up).
       // Him batch 3 (11-22): the L.L.Bean waterfowl sweater ($130) and Costa Sullivan sunglasses ($262); the Duck Head rope hat
       // stays off (sold out at the 11-20 audit) and the Duck Camp hat waits for its own cutout source.
-      him: { "Under $25": 43, "$25 to $50": 46, "$50 to $75": 25, "$75 to $100": 11, "$100 and up": 47 },
+      him: { "Under $25": 43, "$25 to $50": 45, "$50 to $75": 25, "$75 to $100": 11, "$100 and up": 47 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),

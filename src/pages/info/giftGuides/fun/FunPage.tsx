@@ -9,6 +9,8 @@ import { GiftGuideTools } from "../GiftGuideShare";
 import { GuidesTop } from "../GuidesTop";
 import { GiftGuidesSidebar } from "../GiftGuidesSidebar";
 
+/** Which head-row icons a frame page shows (GuidesFrame). */
+type FrameTools = "all" | "no-search" | "none";
 type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | PrintablePagePath;
 
 /**
@@ -25,13 +27,13 @@ export const funHeader = (title: string) => ({ title, backTo: "/gift-guides", bo
  * private page (a Secret Santa reveal) is noindex. `banner`: the page's banner words, by default its path's
  * (G.pageBanners, owner 11-22 #13).
  */
-export function FunBody({ title, path, noindex, banner = G.pageBanners[path], children }: { title: string; path: FunPath; noindex?: boolean; banner?: PageBanner; children: ReactNode }) {
+export function FunBody({ title, path, noindex, banner = G.pageBanners[path], tools = "all", children }: { title: string; path: FunPath; noindex?: boolean; banner?: PageBanner; tools?: FrameTools; children: ReactNode }) {
   const meta = PUBLIC_PAGE_META[path];
   usePageMeta(noindex ? { title: `${title} — Helpr`, description: meta.description, robots: "noindex", noCanonical: true } : meta);
   return (
     <>
       <style>{GIFT_GUIDES_CSS}{GIFT_WISH_CSS}{FUN_CSS}</style>
-      <GuidesFrame title={title} path={path} banner={banner}>
+      <GuidesFrame title={title} path={path} banner={banner} tools={tools}>
         <div className="gg-fun w-full" data-gift-fun={path}>{children}</div>
       </GuidesFrame>
     </>
@@ -45,13 +47,15 @@ export function FunBody({ title, path, noindex, banner = G.pageBanners[path], ch
  * (holiday audit 1121 #13: the fun pages had no head row or menu). The caller brings GIFT_GUIDES_CSS. `disclosures`
  * off only on a page with no affiliate link.
  * Owner 2026-11-22 #13 ("gifts tags and all the other sections should have the same top section as the guides and the
- * deals"): the banner replaces this morning's plain left serif title (polish audit 1122 #10), and the printables get
- * the same icons as every other page (their 11-21 "remove the search, favorite" is overtaken by "the same top").
+ * deals"): the banner replaces this morning's plain left serif title (polish audit 1122 #10).
+ * `tools`: the head row's icons. "none" on the printables (owner 11-21: "remove the search, favorite ... just polish
+ * this"; 11-22: "Same row, icons off there"): the pill only. "no-search" on the Holiday Hub (owner 11-22): the heart
+ * and Share, no gift search beside the Hub's own lights search.
  */
-export function GuidesFrame({ title, path, banner, disclosures = true, children }: { title: string; path: string; banner: PageBanner; disclosures?: boolean; children: ReactNode }) {
+export function GuidesFrame({ title, path, banner, tools = "all", disclosures = true, children }: { title: string; path: string; banner: PageBanner; tools?: FrameTools; disclosures?: boolean; children: ReactNode }) {
   return (
     <div className="gg w-full" data-gift-fun-frame="">
-      <GuidesTop backTo="/gift-guides" banner={banner} tools={<GiftGuideTools path={path} title={title} />} nav={{ active: null, page: path }} />
+      <GuidesTop backTo="/gift-guides" banner={banner} tools={tools === "none" ? null : <GiftGuideTools path={path} title={title} search={tools === "all"} />} nav={{ active: null, page: path }} />
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">
         <div className="gg-main">{children}</div>

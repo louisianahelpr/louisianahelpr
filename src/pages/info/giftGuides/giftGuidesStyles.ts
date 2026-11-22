@@ -424,6 +424,9 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list>li{content-visibility:auto;contain-intrinsic-size:auto 128px}
 @media (min-width:768px){.gg-list>li{contain-intrinsic-size:auto 420px}}
 .gg-top10>li{content-visibility:visible}
+/* Owner 2026-11-22 (her phone: the quiz's picks had blank photo areas): the finder's results (12 rows at most) always
+   draw. Safari skipped rows that were on screen when the list arrived after an answer tap, so no row of it skips. */
+.gg-quiz-list>li{content-visibility:visible}
 /* Owner 11-21: each price section's header opens and closes it (first open): a full-width 44px row with a chevron. */
 .gg-sec-toggle-h{margin:24px 0 0}
 .gg-sec-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:6px 4px;border:0;border-bottom:1px solid var(--gg-line);border-radius:0;background:transparent;font:inherit;font-weight:700;color:var(--gg-ink);text-align:left;white-space:normal;cursor:pointer}

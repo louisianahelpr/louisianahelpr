@@ -23,7 +23,7 @@
  */
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { SHIP_LINES, shippingLine } from "@/content/giftGuideShipping";
 import type { PickChunk } from "@/content/giftGuidePicks";
@@ -41,6 +41,7 @@ import { resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 import { MATCHMAKER_PARAM, readMatchmakerLink } from "@/lib/matchmakerLink";
 import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 import { PREFILL_OPENS_DETAILS } from "@/pages/post-job/usePrefillOpensDetails";
+import { openPriceSections } from "./helpers/openPriceSections";
 
 /**
  * A guide card's heart now asks for whom (owner 2026-11-21, saveForPeople): tap it, then "Me" (My Wish List), then
@@ -71,7 +72,8 @@ const OWN_LIST = Object.entries(RESEARCHED_PICKS).filter(([s]) => !APPENDED.incl
 await loadAllGuidePicks();
 /** Opens every "Show more" under a long list (50 rows at first as of 2026-11-18, design audit #3), so a check sees every row. */
 const expandAll = (root: HTMLElement) => {
-  for (let b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]"); b; b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]")) fireEvent.click(b);
+  // Owner 11-21: no Show more any more; the price sections open on a tap (the first is open), so open them all.
+  openPriceSections(root);
   return root;
 };
 const renderAt = (url: string) =>
@@ -83,6 +85,12 @@ const renderAt = (url: string) =>
       </Routes>
     </MemoryRouter>,
   );
+// My Wish List loads its own chunk (train 1121i), so wait for it before reading the page.
+const renderMine = async (url: string) => {
+  const view = renderAt(url);
+  await waitFor(() => expect(view.container.querySelector("[data-gift-my-list]")).not.toBeNull());
+  return view;
+};
 
 describe("gift guides: the shipping banner follows the date in Louisiana", () => {
   // Noon Chicago time is 18:00Z (CST, UTC-6).
@@ -215,8 +223,12 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     const { container } = renderAt("/gift-guides");
     // Owner 11-21: the tools sit on the row under the header, right of the shipping pill.
     const row = container.querySelector("[data-gift-headrow] [data-gift-quick]")!;
+    // Owner 11-21 ("make search an icon always"): a magnifier icon until tapped; then the field is focused.
+    expect(row.querySelector("input")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Search gift guides" }));
     // Holiday audit 1121 #20: the search field is a combobox that opens its results.
     const input = screen.getByRole("combobox", { name: "Search gift guides" });
+    expect(document.activeElement).toBe(input);
     expect(input.getAttribute("placeholder")).toBe("Search guides");
     expect(row.contains(input)).toBe(true);
     expect(container.querySelectorAll("input[data-gift-search]").length).toBe(1);
@@ -269,7 +281,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     expect(heart.getAttribute("aria-pressed")).toBe("false");
     expect(link.getAttribute("aria-label")).toBe("My Wish List, 0 saved");
   });
-  it("a pick heart saves the pick; My list shows saved guides and picks", () => {
+  it("a pick heart saves the pick; My list shows saved guides and picks", async () => {
     const g = guideBySlug("mom")!;
     const view = renderAt("/gift-guides/mom");
     expandAll(view.container);
@@ -279,7 +291,7 @@ describe("gift guides: hearts save to My list (aria-pressed, never opening the g
     tapHeart(hearts[0]);
     expect(hearts[0].getAttribute("aria-pressed")).toBe("true");
     cleanup();
-    const mine = renderAt("/gift-guides?list=mine").container;
+    const mine = (await renderMine("/gift-guides?list=mine")).container;
     expect(mine.querySelector("[data-gift-my-list]")).not.toBeNull();
     expect(mine.querySelectorAll("[data-gift-my-list] [data-gift-wish-item]").length).toBe(1);
     expect(mine.querySelector("[data-gift-my-list] [data-gift-wish-item]")?.textContent).toContain(g.picks[0].name);

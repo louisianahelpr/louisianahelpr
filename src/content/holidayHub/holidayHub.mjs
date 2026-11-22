@@ -91,6 +91,36 @@ export function louisianaToday(now = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
 }
 
+/** Minutes since midnight in Louisiana at `now`. */
+export function louisianaMinutes(now = new Date()) {
+  const [h, m] = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now).split(":").map(Number);
+  return h * 60 + m;
+}
+
+/** "4", "4:30", "noon", "midnight" with an am/pm (or the range's own) -> minutes since midnight; null when unclear. */
+function clockMinutes(t, fallbackHalf) {
+  const s = t.trim().toLowerCase();
+  if (s === "noon") return 12 * 60;
+  if (s === "midnight") return 24 * 60;
+  const m = /^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/.exec(s);
+  const half = m?.[3] ?? fallbackHalf;
+  if (!m || !half || Number(m[1]) > 12) return null;
+  return ((Number(m[1]) % 12) + (half === "pm" ? 12 : 0)) * 60 + Number(m[2] ?? 0);
+}
+
+/**
+ * Whether a one-day item on `today` has already closed at `minutes` (Louisiana): only when its hours are one simple
+ * range ("11 am-2 pm", "5:30-7:30 pm", "Noon-3 pm"); a start time alone, or hours with more after a ";", never ends it
+ * early (holiday audit 1121 area 5 #10: at 8 PM "Today" still listed an 11 am-2 pm market).
+ */
+export function endedEarlierToday(item, today, minutes) {
+  if (item.tba || item.start !== today || (item.end ?? item.start) !== today || !item.hours) return false;
+  const m = /^\s*(noon|\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*[-–]\s*(noon|midnight|\d{1,2}(?::\d{2})?\s*(am|pm))\s*$/i.exec(item.hours);
+  if (!m) return false;
+  const end = clockMinutes(m[2], m[3]?.toLowerCase());
+  return end !== null && end <= minutes;
+}
+
 function addDays(iso, n) {
   const d = new Date(`${iso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
@@ -152,6 +182,36 @@ export function holidayMapsQuery(item) {
   return `${item.name}, ${where}`;
 }
 
+/**
+ * Whether an item's cost passes the Cost filter: "free" / "paid" match their own; "unlisted" matches an item with no
+ * cost listed (holiday audit 1121 area 5 #3: 47 items with no cost showed under neither Free nor Paid, and nothing said
+ * so; they now have their own choice, and the count line names them).
+ */
+export const costMatches = (itemCost, cost) => !cost || (cost === "unlisted" ? itemCost == null : itemCost === cost);
+
+/**
+ * The price as a card shows it (holiday audit 1121 area 5 #7: a bare "$" read like a glitch): "$" alone -> "Paid",
+ * "$ (Saturdays)" -> "Paid (Saturdays)"; anything else as written.
+ */
+export function holidayPriceLabel(price) {
+  const s = (price ?? "").trim();
+  if (!s) return null;
+  if (/^\$+$/.test(s)) return "Paid";
+  const m = /^\$+\s*(\(.*\))$/.exec(s);
+  if (m) return `Paid ${m[1]}`;
+  // "$ museum admission" -> "Museum admission".
+  const words = /^\$+\s+([a-z].*)$/i.exec(s);
+  return words ? words[1][0].toUpperCase() + words[1].slice(1) : s;
+}
+
+/** The card's place line: the city, then the region unless the region's name already starts with the city (#15). */
+export function holidayWhereLabel(item) {
+  const region = regionLabel(item.region);
+  if (!item.city) return region ?? "";
+  if (region && region.toLowerCase().startsWith(item.city.toLowerCase())) return region;
+  return [item.city, region].filter(Boolean).join(" · ");
+}
+
 /** The lights' filters. `way`: "drive" (drive-through, drive by, or both) or "walk" (walk-through or both). */
 export function filterLights(items, { region = null, way = null, cost = null } = {}, today) {
   return items.filter((l) => {
@@ -159,19 +219,32 @@ export function filterLights(items, { region = null, way = null, cost = null } =
     if (region && l.region !== region) return false;
     if (way === "drive" && !["drive-through", "drive-by", "both"].includes(l.format)) return false;
     if (way === "walk" && !["walk", "both"].includes(l.format)) return false;
-    if (cost && l.cost !== cost) return false;
+    if (!costMatches(l.cost, cost)) return false;
     return true;
   });
 }
 
 /** The events' filters. `weekend`: only events on this weekend's days (never a TBA one). */
-export function filterEvents(items, { region = null, category = null, cost = null, weekend = false } = {}, today) {
-  const range = weekend && today ? weekendRange(today) : null;
+/**
+ * The When filter's days as [from, to] (YYYY-MM-DD), or null for all dates: "weekend" (Friday to Sunday), "today", or
+ * "week" (today and the 6 days after; holiday audit 1121 area 5 #20 added Today and Next 7 days). `weekend: true` is the
+ * old spelling of when "weekend".
+ */
+export function whenRange(when, today) {
+  if (!today || !when) return null;
+  if (when === "weekend") return weekendRange(today);
+  if (when === "today") return [today, today];
+  if (when === "week") return [today, addDays(today, 6)];
+  return null;
+}
+
+export function filterEvents(items, { region = null, category = null, cost = null, weekend = false, when = null } = {}, today) {
+  const range = whenRange(when ?? (weekend ? "weekend" : null), today);
   return items.filter((e) => {
     if (today && isOver(e, today)) return false;
     if (region && e.region !== region) return false;
     if (category && e.category !== category) return false;
-    if (cost && e.cost !== cost) return false;
+    if (!costMatches(e.cost, cost)) return false;
     if (range && !runsBetween(e, range[0], range[1])) return false;
     return true;
   });
@@ -197,15 +270,16 @@ export function resolveHolidayWhat(what, kind) {
  * The /holidays list: the light displays and the events still running, narrowed by what (lights, events or one kind of
  * event), region, cost (free or paid) and this weekend (Friday to Sunday; a TBA item never shows on a weekend).
  */
-export function filterHolidayItems(lights, events, { what = null, region = null, cost = null, weekend = false } = {}, today) {
+export function filterHolidayItems(lights, events, { what = null, region = null, cost = null, weekend = false, when = null } = {}, today) {
   const showLights = !what || what === "lights";
   const category = what && what !== "lights" && what !== "events" ? what : null;
   const showEvents = what !== "lights";
-  const range = weekend && today ? weekendRange(today) : null;
+  const days = when ?? (weekend ? "weekend" : null);
+  const range = whenRange(days, today);
   const inWeekend = (i) => !range || runsBetween(i, range[0], range[1]);
   return [
     ...(showLights ? filterLights(lights, { region, cost }, today).filter(inWeekend) : []),
-    ...(showEvents ? filterEvents(events, { region, category, cost, weekend }, today) : []),
+    ...(showEvents ? filterEvents(events, { region, category, cost, when: days }, today) : []),
   ];
 }
 
@@ -241,7 +315,8 @@ export function holidayCountLabel(items) {
 /**
  * The list as the page shows it, soonest first (owner 11-21: "sorted by happened soonest"): "Happening now" (started
  * before today, or with no start, and still running; the one closing soonest first, an open-ended one last), then one
- * group per start day from today on, then "Dates TBA". Items over before today never reach here (isOver). Within a day
+ * group per start day from today on, then "Dates TBA" (light displays with no date come right after "Happening now", in
+ * their own group, holiday audit 1121 area 5 #5). Items over before today never reach here (isOver). Within a day
  * and within TBA, by name. `day` is YYYY-MM-DD or null for the two others.
  */
 export function holidayItemsByDay(items, today) {
@@ -250,8 +325,12 @@ export function holidayItemsByDay(items, today) {
   const now = [];
   const days = new Map();
   const tba = [];
+  // Holiday audit 1121 area 5 #5: 57 of 82 light displays have no 2026 date, and under "Dates TBA" they sat after every
+  // dated event (47,000 px down on a phone); they get their own group right after "Happening now".
+  const lightsTba = [];
   for (const e of items) {
-    if (e.tba || (!e.start && !e.end)) tba.push(e);
+    if ((e.tba || (!e.start && !e.end)) && isHolidayLight(e)) lightsTba.push(e);
+    else if (e.tba || (!e.start && !e.end)) tba.push(e);
     else if (!e.start || e.start < today) now.push(e);
     else {
       const day = e.start;
@@ -260,6 +339,7 @@ export function holidayItemsByDay(items, today) {
   }
   return [
     ...(now.length ? [{ key: "now", day: null, items: now.sort(closingSoonest) }] : []),
+    ...(lightsTba.length ? [{ key: "lights-tba", day: null, items: lightsTba.sort(byName) }] : []),
     ...[...days.keys()].sort().map((day) => ({ key: day, day, items: days.get(day).sort(byName) })),
     ...(tba.length ? [{ key: "tba", day: null, items: tba.sort(byName) }] : []),
   ];
@@ -293,5 +373,6 @@ export const HOLIDAY_WORDS = {
   stripCta: "Get holiday help",
   hireTitle: "Holiday help from a local Helpr",
   hireIntro: "Hire a local Helpr for the holidays: hang the lights, decorate, clean before family comes, set up and clean up the party, wrap gifts, haul things away and get the yard ready for guests. Post the job and name your price.",
+  lightsTba: "Light displays, 2026 dates not announced",
   checkFirst: "Dates and times can change, so check with the organizer before you go. Dates TBA means the 2026 dates are not announced yet; most house displays are lit most evenings in December.",
 };

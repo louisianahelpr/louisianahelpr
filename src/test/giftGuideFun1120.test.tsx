@@ -20,7 +20,7 @@
  * @mutate src/content/giftGuideFun1120.ts | export const cleanName = (n: string) => cleanGiftName(n, SANTA_NAME_MAX).trim(); | export const cleanName = (n: string) => n.trim();
  * @mutate src/content/giftGuideFun1120.ts |   LINKISH.test(n) ? "link" : | false ? "link" :
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |   if (viewer === undefined \|\| !copyBelongsTo(c.ownerId, viewer)) return EMPTY_PLAN; |   if (viewer === undefined) return EMPTY_PLAN;
- * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |         const local = copyBelongsTo(c.ownerId, userId) ? c.plan : EMPTY_PLAN; |         const local = c.plan;
+ * @mutate src/pages/info/giftGuides/fun/plannerSync.ts |         const mine = copyBelongsTo(c.ownerId, userId); |         const mine = true;
  * @mutate src/lib/giftPlannerDevice.ts |   resets.forEach((fn) => fn()); |   void resets;
  * @mutate src/content/giftGuideFun1120.ts |   const fits = (p: CatalogPick) => fitsBudget(p, budget); |   const fits = (p: CatalogPick) => budget === 0 \|\| (p.band !== undefined && p.band <= budget);
  * @mutate src/content/giftGuideFun1120.ts |   const fits = (p: CatalogPick) => fitsBudget(p, budget); |   const fits = (p: CatalogPick) => budget === 0 \|\| pickCeiling(p) === undefined \|\| fitsBudget(p, budget);
@@ -67,7 +67,8 @@ import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import SecretSantaReveal from "@/pages/info/giftGuides/fun/SecretSantaReveal";
 import { giftListNow, resetGiftListForTests } from "@/pages/info/giftGuides/giftList";
 import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
-import { planActions, resetPlanStoreForTests, setPlanViewer, useAccountSync, usePlan } from "@/pages/info/giftGuides/fun/plannerStore";
+import { planActions, resetPlanStoreForTests, setPlanViewer, usePlan } from "@/pages/info/giftGuides/fun/plannerStore";
+import { useAccountSync } from "@/pages/info/giftGuides/fun/plannerSync";
 import { PLANNER_KEY, clearPlannerDevice } from "@/lib/giftPlannerDevice";
 import { renderHook } from "@testing-library/react";
 

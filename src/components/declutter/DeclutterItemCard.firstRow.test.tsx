@@ -10,9 +10,9 @@ import { resetFirstRowPhotoGate } from "./firstRowPhotoGate";
 // @mutate src/components/declutter/DeclutterItemCard.tsx | {...(firstRow ? FIRST_ROW_PHOTO : aboveFold ? ABOVE_FOLD_PHOTO : LATER_PHOTO)} | {...FIRST_ROW_PHOTO}
 // @mutate src/components/declutter/DeclutterItemCard.tsx | {...(firstRow ? FIRST_ROW_PHOTO : aboveFold ? ABOVE_FOLD_PHOTO : LATER_PHOTO)} | {...(firstRow ? FIRST_ROW_PHOTO : LATER_PHOTO)}
 // @mutate src/components/declutter/DeclutterItemCard.tsx |   const early = !!firstRow \|\| !!aboveFold; |   const early = !!firstRow;
-// @mutate src/components/declutter/DeclutterBrowseView.tsx | aboveFold={index < declutterAboveFoldCount(desktop && !mapVisible, window.innerWidth, window.innerHeight)} | aboveFold={false}
+// @mutate src/components/declutter/DeclutterBrowseView.tsx | aboveFold={slot < declutterAboveFoldCount(fullGrid, window.innerWidth, window.innerHeight)} | aboveFold={false}
 // @mutate src/components/declutter/DeclutterSkeletons.tsx |   while (rows < MAX_FOLD_ROWS && GRID_TOP_PX | while (rows < 1 && GRID_TOP_PX
-// @mutate src/components/declutter/DeclutterBrowseView.tsx | firstRow={index < declutterFirstRowCount(desktop && !mapVisible, window.innerWidth)} | firstRow={false}
+// @mutate src/components/declutter/DeclutterBrowseView.tsx | firstRow={slot < firstRowN} | firstRow={false}
 
 const item = {
   id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
@@ -70,7 +70,10 @@ describe("Declutter's card photos", () => {
 
   it("Browse hands the first row to its cards", () => {
     const src = readFileSync("src/components/declutter/DeclutterBrowseView.tsx", "utf8");
-    expect(src).toContain("firstRow={index < declutterFirstRowCount(desktop && !mapVisible, window.innerWidth)}");
-    expect(src).toContain("aboveFold={index < declutterAboveFoldCount(desktop && !mapVisible, window.innerWidth, window.innerHeight)}");
+    // Owner 11-21: one card renderer (cardOf) for the grid and the "New this week" row; `slot` is the card's place.
+    expect(src).toContain("const firstRowN = declutterFirstRowCount(fullGrid, window.innerWidth);");
+    expect(src).toContain("firstRow={slot < firstRowN}");
+    expect(src).toContain("aboveFold={slot < declutterAboveFoldCount(fullGrid, window.innerWidth, window.innerHeight)}");
+    expect(src).toContain("{cardOf(item, miles, index + (showFresh ? firstRowN : 0))}");
   });
 });

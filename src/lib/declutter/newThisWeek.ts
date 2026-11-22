@@ -8,11 +8,14 @@
  * as well, so the row only ever features real listings. The viewer's own listings are left out (it is for finding
  * things to buy), and so is a reserved item (someone is already buying it).
  *
- * Empty when nothing qualifies, and also when the row would only repeat the whole list (two listings, both new: the
- * grid right under it already shows them). Browse hides the row whenever this is empty.
+ * Empty when nothing qualifies, when fewer than NEW_THIS_WEEK_MIN qualify (owner 11-21, "its listed twice": a one-card
+ * row of the live lamp sat over the grid's own first card), and when the row would take the whole list. Browse hides
+ * the row whenever this is empty, and when it shows, its listings leave the grid below (DeclutterBrowseView gridRows),
+ * so no listing is on the page twice. Guard: src/test/declutterNewThisWeekNoDupe.test.tsx.
  */
 const NEW_THIS_WEEK_DAYS = 7;
 export const NEW_THIS_WEEK_MAX = 10;
+export const NEW_THIS_WEEK_MIN = 3;
 
 export interface NewThisWeekCandidate {
   id: string;
@@ -35,5 +38,5 @@ export function newThisWeek<T extends NewThisWeekCandidate>(items: readonly T[],
     .sort((a, b) => when(b) - when(a))
     .slice(0, NEW_THIS_WEEK_MAX);
   const others = items.filter((i) => i.seller_id !== viewerId).length;
-  return fresh.length >= others ? [] : fresh;
+  return fresh.length < NEW_THIS_WEEK_MIN || fresh.length >= others ? [] : fresh;
 }

@@ -110,6 +110,8 @@ const CLASSIFIED: Record<string, string> = {
   "pages/info/giftGuides/fun/SwipeGifts.tsx::card.href": "GiftOut's prop (a swipe card is a guide pick, our content file); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/fun/SecretSantaReveal.tsx::i.href": "GiftOut's prop (a gift idea saved on this device for a Secret Santa match, from a swipe card = a guide pick); santaIdeasOnDevice keeps only https:// links on every read, and GiftOut forces the https:// scheme",
   "pages/info/giftGuides/fun/GiftPlanner.tsx::i.href": "a planner idea's link, copied from a wish-list gift; cleanPlan (src/content/giftGuideFun1120.ts) keeps an idea's href only when it starts with https://, on every read from storage or the account",
+  "pages/info/giftGuides/ManageList.tsx::i.href": "a list gift's link, only looked up against the guides' own picks to find its photo (never navigated to here); cleanPlan keeps an idea's href only when it starts with https://",
+  "pages/info/giftGuides/ManageList.tsx::s.href": "a My Wish List gift's link, only looked up against the guides' own picks to find its photo and price (never navigated to here); the wish list keeps only https guide links",
   "components/admin/AdminWishLinks.tsx::pasted": "the link a shopper pasted, shown to an admin only; openableDocumentUrl (src/lib/storagePath.ts) returns it only when it is a safe http(s) or data: url, and the server stored it only when https to a public host (wish_link_url_ok)",
   "pages/info/giftGuides/GiftOut.tsx::url": "GiftOut itself: url is built as `https://` + href with any leading https:// removed, so the scheme is always https",
   "pages/info/giftGuides/GiftGuideView.tsx::cart": "GiftOut's prop: amazonCartUrl([pick.href]) (src/lib/retailerCart.ts) returns the fixed Amazon cart https:// origin plus URLSearchParams of the ASIN read from our content file's Amazon link, or null (no link drawn); GiftOut forces the https:// scheme",
@@ -133,7 +135,8 @@ const CLASSIFIED: Record<string, string> = {
   "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.facebook": "Out's prop (a sponsor's Facebook Page from our generated content file); Out forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideSmallBiz.tsx::b.instagram": "Out's prop (a sponsor's Instagram from our generated content file); Out forces the https:// scheme",
   "pages/info/giftGuides/SmallBizLocal.tsx::href": "safeDocumentUrl(b.link) (src/lib/storagePath.ts): an approved Featured local listing's link, https:// only (also the sbs_featured_submissions CHECK link ~ '^https://' and the shared validator cleanLink); the anchor renders only when it is non-null; rel noopener nofollow ugc",
-  "pages/info/giftGuides/GiftGuidesSidebar.tsx::x.href": "GiftOut's prop (the Sales list, generated from our content files' deal links; https:// affiliate links only); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuideDealsAndCodes.tsx::shop": "GiftOut's prop (the codes list's shop link, the first href among our content files' deal links for that store; https:// affiliate links only); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/GiftGuideDealsAndCodes.tsx::x.href": "GiftOut's prop (the Sales list, generated from our content files' deal links; https:// affiliate links only); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideLanding.tsx::sponsorPage.links.facebookPage": "a fixed https://www.facebook.com/... constant in src/content/sponsorPage.ts (the 25 Days card's follow link)",
   // 25 Days sponsor page (owner 2026-11-09).
   "pages/admin/sponsors/AdminSponsorsPage.tsx::url": `${OBJECT_URL}: the CSV export, and the logo file the admin-only sponsor-25days function sent back (logoDownloadUrl)`,

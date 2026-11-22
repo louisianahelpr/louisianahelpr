@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from "react";
+import { DEALS_COVER } from "@/content/giftGuideDeals.mjs";
 import { Link } from "react-router-dom";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { discountCodes, giftGuides as G } from "@/content/giftGuides";
-import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealEnds, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
+import { DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealName, dealEnds, dealStartsLater, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
 import { DEAL_CODES } from "@/content/giftGuidePicks";
+import { cleanCodes } from "@/lib/giftGuideOfferCopy.mjs";
 import { GiftOut } from "./GiftOut";
 import { loadModule, untilReload } from "@/lib/loadModule";
-import { WISH } from "@/content/giftWishList";
+import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
-import { dealName } from "./wishListItems";
-import { DealsAndCodes } from "./GiftGuidesSidebar";
+import { DealsAndCodes } from "./GiftGuideDealsAndCodes";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
 import { GiftGuideLoadError } from "./GiftGuideLoadError";
 
@@ -62,7 +63,7 @@ const DEALS_CSS = `
 `;
 
 /** The guide's cover (public/gift-guides/deals/, drawn by scripts/gift-guide-deals-cover.py). */
-export const DEALS_COVER = "/gift-guides/deals/black-friday-cyber-monday.webp";
+export { DEALS_COVER };
 
 /** The deals file, loaded alone (the read runs after it, outside Vite's preload wrapper: dynamicImportThenDoesNoWork). */
 // loadModule: a prevented preload (a recovery reload in flight) gives null, and the page keeps "Loading deals…".
@@ -72,7 +73,7 @@ const loadDeals = () => loadModule(() => import("@/content/giftGuideDeals.json")
  * Every store code we list, with its expiry (the codes box's own list): a deal card's code and its end day follow it
  * (holiday audit 1121, High: XTRATUF's card kept the code XT25 after the box had dropped it on Nov 30).
  */
-const STORE_CODES = [...discountCodes, ...DEAL_CODES];
+const STORE_CODES = [...discountCodes, ...cleanCodes(DEAL_CODES)];
 
 /** One deal's card. */
 function DealCard({ deal, today }: { deal: Deal; today: string }) {

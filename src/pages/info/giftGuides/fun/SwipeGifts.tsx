@@ -15,7 +15,7 @@ import { GiftOut } from "../GiftOut";
 import { MY_LIST_SLUG, addToWishList, itemId, listName, listRefs, useGiftList } from "../giftList";
 import { Hint } from "../GiftHint";
 import { FunBody, funHeader } from "./FunPage";
-import { useAccountSync } from "./plannerStore";
+import { useAccountSync } from "./plannerSync";
 import { readSantaFor, saveIdeaToPlanner, saveSantaIdea } from "./santaIdeas";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 

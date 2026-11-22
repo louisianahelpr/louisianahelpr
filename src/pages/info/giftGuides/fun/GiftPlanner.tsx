@@ -6,12 +6,14 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { track } from "@/lib/analytics";
-import { FUN_WORDS as W, dollars, parseDollars, personMoney, planMoney, type PlanPerson } from "@/content/giftGuideFun1120";
+import { FUN_WORDS as W, dollars, parseDollars, personMoney, planMoney, type PlanIdea, type PlanPerson } from "@/content/giftGuideFun1120";
+import { successToast } from "@/lib/toast";
 import { useGiftList } from "../giftList";
 import { Hint } from "../GiftHint";
 import { FunBody, funHeader } from "./FunPage";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
-import { planActions as A, useAccountSync, usePlan } from "./plannerStore";
+import { planActions as A, usePlan } from "./plannerStore";
+import { restorePerson, useAccountSync } from "./plannerSync";
 import { PriceAlertsOptIn } from "./PriceAlertsOptIn";
 import { PRINTABLES, PRINTABLES_PATH, isShown } from "@/content/printables";
 import { storeOf } from "@/content/giftGuideCatalog";
@@ -23,8 +25,10 @@ import { ShareAllLists } from "../SaveForSomeone";
 import { AmazonCartForList } from "../AmazonCartButton";
 import { AnyStoreAdd } from "../AnyStoreAdd";
 import { useOurLinkSync } from "../wishLinkSync";
+import { ListLine } from "../ManageList";
 import { GiftWishShare } from "../GiftWishShare";
 import { WISH } from "@/content/giftWishList";
+import { LISTS } from "@/content/giftListsManage";
 import { shareGiftLists } from "@/lib/giftWishListApi";
 
 /**
@@ -35,6 +39,11 @@ import { shareGiftLists } from "@/lib/giftWishListApi";
 const PATH = "/gift-guides/planner" as const;
 const PLANNER_SHEET = PRINTABLES.find((p) => p.id === "gift-planner-sheet");
 
+/**
+ * A person's Bought bar (holiday audit 1121 #8: the list line above it counts what was ADDED against the budget, as the
+ * guides' My lists does, and this bar had its own "$40 left" counting only what was BOUGHT; the same word for two
+ * numbers). The bar and its words now say Bought only; "left" and "over" are the list line's, the same on both screens.
+ */
 function MoneyBar({ p }: { p: PlanPerson }) {
   const m = personMoney(p);
   if (p.budget === undefined && m.spent === 0) return null;
@@ -47,14 +56,13 @@ function MoneyBar({ p }: { p: PlanPerson }) {
         </div>
       )}
       <p className="gg-plan-money m-0" data-plan-money={p.id}>
-        <span>{p.budget !== undefined ? W.plannerSpentOf(dollars(m.spent), dollars(m.budget)) : W.plannerSpent(dollars(m.spent))}</span>
-        {p.budget !== undefined && (m.over ? <span className="over">{W.plannerOver(dollars(-m.left))}</span> : <span>{W.plannerLeft(dollars(m.left))}</span>)}
+        <span>{W.plannerBoughtAmount(dollars(m.spent))}</span>
       </p>
     </>
   );
 }
 
-function Person({ p }: { p: PlanPerson }) {
+function Person({ p, index }: { p: PlanPerson; index: number }) {
   const [budgetText, setBudgetText] = useState(p.budget !== undefined ? String(p.budget) : "");
   const [err, setErr] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
@@ -66,6 +74,15 @@ function Person({ p }: { p: PlanPerson }) {
     if (added.has(g.href)) return;
     const price = plannerPrice(g);
     A.addIdea(p.id, { name: g.name, href: g.href, guide: g.guide, ...(price !== undefined ? { price } : {}), ...(g.image ? { image: g.image } : {}) });
+  };
+  // Holiday audit 1121: removing a gift or a person says so with Undo (as My Wish List does).
+  const removeIdea = (idea: PlanIdea, at: number) => {
+    A.removeIdea(p.id, idea.id);
+    successToast(WISH.removedGift(idea.name), { action: { label: WISH.undo, onClick: () => A.restoreIdea(p.id, idea, at) } });
+  };
+  const removePerson = () => {
+    A.removePerson(p.id);
+    successToast(WISH.removedGift(p.name), { action: { label: WISH.undo, onClick: () => restorePerson(p, index) } });
   };
   // UX audit M2: the budget saves as it is typed (when it is an amount); a typed non-amount says so at once.
   const typeBudget = (text: string) => {
@@ -84,16 +101,17 @@ function Person({ p }: { p: PlanPerson }) {
       <div className="gg-plan-head">
         <Input aria-label={W.plannerPersonName} value={p.name} maxLength={40} onChange={(e) => A.renamePerson(p.id, e.target.value)}
           onBlur={() => { if (!p.name.trim()) A.renamePerson(p.id, W.plannerUnnamed); }} data-plan-name={p.id} />
-        <Input className="gg-plan-budget" aria-label={`${W.plannerBudget} (${p.name})`} placeholder={W.plannerBudget} inputMode="decimal" value={budgetText}
-          onChange={(e) => typeBudget(e.target.value)} data-plan-budget={p.id} />
-        <RoundIconButton className="gg-fun-x" aria-label={W.plannerRemovePerson(p.name)} onClick={() => A.removePerson(p.id)} data-plan-remove={p.id}>
-          <span aria-hidden="true">×</span>
-        </RoundIconButton>
+        {/* Holiday audit 1121 (#17): a $ inside the box, so "50" reads as $50. */}
+        <span className="gg-money-box gg-plan-budget"><span className="gg-money-sign" aria-hidden="true">$</span>
+          <Input aria-label={`${W.plannerBudget} (${p.name})`} placeholder={W.plannerBudget} inputMode="decimal" value={budgetText}
+            onChange={(e) => typeBudget(e.target.value)} data-plan-budget={p.id} /></span>
       </div>
+      {/* Owner 11-21: the list's gifts and total against the budget, as in the guides' sheet ("$36.75 left of $100"). */}
+      {p.ideas.length > 0 && <p className="gg-plan-money m-0" data-plan-list-line={p.id}><ListLine p={p} /></p>}
       <MoneyBar p={p} />
       {p.ideas.length > 0 && (
         <ul className="gg-fun-list mt-2" aria-label={`${W.plannerIdeas} (${p.name})`}>
-          {p.ideas.map((i) => (
+          {p.ideas.map((i, k) => (
             <li key={i.id} className={i.bought ? "gg-plan-idea bought" : "gg-plan-idea"} data-plan-idea={i.id}>
               <label className="gg-plan-check h-11 w-11">
                 <Checkbox checked={i.bought} aria-label={`${W.plannerBought}: ${i.name}`} onCheckedChange={(v) => A.setIdea(p.id, i.id, { bought: v === true })} data-plan-bought={i.id} />
@@ -109,15 +127,15 @@ function Person({ p }: { p: PlanPerson }) {
                   </GiftOut>
                 )}
               </span>
-              <Input className="gg-plan-price" aria-label={`${W.plannerIdeaPrice}: ${i.name}`} inputMode="decimal" placeholder="$" defaultValue={i.price !== undefined ? String(i.price) : ""}
+              <span className="gg-money-box gg-plan-price"><span className="gg-money-sign" aria-hidden="true">$</span><Input aria-label={`${W.plannerIdeaPrice}: ${i.name}`} inputMode="decimal" defaultValue={i.price !== undefined ? String(i.price) : ""}
                 onBlur={(e) => {
                   const t = e.target.value.trim();
                   const v = t ? parseDollars(t) : undefined;
                   if (t && v === undefined) return setErr(W.plannerBadAmount);
                   setErr(null);
                   A.setIdea(p.id, i.id, { price: v });
-                }} data-plan-price={i.id} />
-              <RoundIconButton className="gg-fun-x" aria-label={W.plannerRemoveIdea(i.name)} onClick={() => A.removeIdea(p.id, i.id)}>
+                }} data-plan-price={i.id} /></span>
+              <RoundIconButton className="gg-fun-x" aria-label={W.plannerRemoveIdea(i.name)} onClick={() => removeIdea(i, k)} data-plan-remove-idea={i.id}>
                 <span aria-hidden="true">×</span>
               </RoundIconButton>
             </li>
@@ -152,6 +170,8 @@ function Person({ p }: { p: PlanPerson }) {
         </ul>
       )}
       {err && <p className="gg-fun-err" role="alert">{err}</p>}
+      {/* Holiday audit 1121: removing a person is a labelled link at the bottom (it sat next to the budget box), with Undo. */}
+      <Button type="button" variant="link" size="inline" className="gg-link gg-list-delete" onClick={removePerson} data-plan-remove={p.id}>{W.plannerRemovePerson(p.name)}</Button>
     </li>
   );
 }
@@ -161,15 +181,21 @@ export default function GiftPlanner() {
   const { user, isReady } = useAuthReady();
   const sync = useAccountSync(user?.id ?? null, isReady);
   // Owner 11-21: gifts from any store switch to our link once we made it (never before the account's plan is merged).
-  useOurLinkSync(plan, isReady && (!user || sync !== "device"));
+  // Audit 1121 High: nothing on the page can be changed before the account's plan is merged in (an early add used to
+  // replace the account's plan).
+  const ready = isReady && (!user || sync !== "device");
+  useOurLinkSync(plan, ready);
   const [name, setName] = useState("");
+  const [addErr, setAddErr] = useState<string | null>(null);
   const total = planMoney(plan);
   const add = (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    A.addPerson(name.trim());
+    // Holiday audit 1121 (#11): an empty name, or the 50-person limit, says why (it did nothing and said nothing).
+    if (!name.trim()) return setAddErr(LISTS.nameFirst);
+    if (!A.addPerson(name.trim())) return setAddErr(LISTS.peopleFull);
     track("gift_planner_person_added", { people: plan.people.length + 1 });
     setName("");
+    setAddErr(null);
   };
   return (
     <PublicHeaderPage {...funHeader(W.plannerTitle)}>
@@ -191,13 +217,18 @@ export default function GiftPlanner() {
           <p className="gg-fun-note text-center">{W.plannerTotalBought(total.bought, total.ideas)}</p>
         </div>
       )}
-      {plan.people.length === 0 && <p className="gg-fun-note" data-plan-empty="">{W.plannerEmpty}</p>}
-      <ul className="gg-fun-list">{plan.people.map((p) => <Person key={p.id} p={p} />)}</ul>
+      {!ready && <p className="gg-fun-note" role="status" data-plan-loading="">{W.plannerLoading}</p>}
+      {ready && plan.people.length === 0 && <p className="gg-fun-note" data-plan-empty="">{W.plannerEmpty}</p>}
+      <fieldset className="m-0 min-w-0 border-0 p-0" disabled={!ready} data-plan-editable={ready ? "" : undefined}>
+      <ul className="gg-fun-list">{plan.people.map((p, k) => <Person key={p.id} p={p} index={k} />)}</ul>
       <ShareAllLists plan={plan} />
       <form className="gg-fun-row mt-3" onSubmit={add}>
-        <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} onChange={(e) => setName(e.target.value)} data-plan-new-name="" />
+        <Input aria-label={W.plannerPersonName} placeholder={W.plannerPersonName} value={name} maxLength={40} aria-invalid={addErr === LISTS.nameFirst || undefined}
+          aria-describedby={addErr ? "gg-plan-add-err" : undefined} onChange={(e) => { setName(e.target.value); if (addErr === LISTS.nameFirst) setAddErr(null); }} data-plan-new-name="" />
         <Button type="submit" className="btn-grad-primary" data-plan-add-person="">{W.plannerAddPerson}</Button>
       </form>
+      {addErr && <p id="gg-plan-add-err" className="gg-fun-err" role="alert" data-plan-add-err="">{addErr}</p>}
+      </fieldset>
       {/* Saved-gift price alerts (owner 2026-11-21): the opt-in under the lists, once there is someone on them. */}
       {plan.people.length > 0 && <PriceAlertsOptIn />}
       <p className="gg-fun-note" data-plan-sync={sync}>

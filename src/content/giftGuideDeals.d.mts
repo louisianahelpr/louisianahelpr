@@ -33,6 +33,7 @@ export interface DealEvent {
   after: string;
 }
 export const DEALS_SLUG: string;
+export const DEALS_COVER: string;
 export const FEATURE_FROM: string;
 export const FEATURE_TO: string;
 export const RETITLE_AFTER: string;
@@ -72,3 +73,4 @@ export function eventOrder(today: string): DealEvent[];
 export function dealsIn<T extends Pick<Deal, "event">>(deals: readonly T[], eventId: string): T[];
 export function dealsFeatured(today: string): boolean;
 export function dealsTitle(today: string): string;
+export function dealName(d: Deal): string;

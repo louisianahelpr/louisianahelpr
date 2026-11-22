@@ -8,6 +8,11 @@
  * Server: admin_wish_link_requests / admin_wish_link_request_fill / admin_wish_link_request_dismiss (each checks the
  * admin role; fill and dismiss write admin_audit_log; test rows are left out). Migration 20261121221514.
  * Guard: src/test/wishLinkQueue1121.test.tsx.
+ *
+ * "Get shop details" (gift lists lane, 2026-11-21): the edge function wish-link-pages (admin only) reads up to 8 waiting
+ * pasted links' pages on a fixed list of shops (never Amazon, never a short or affiliate link) and each row then shows
+ * the page's photo, title and price, with the day it was read; a page we could not read says so. Migration
+ * 20261122034304. Guard: src/test/wishLinkPagesAdmin1121.test.tsx.
  */
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -31,7 +36,62 @@ export interface WishLinkRow {
   status: "open" | "filled" | "dismissed";
   affiliate_url: string | null;
   created_at: string;
+  /** What the pasted link's page said (wish-link-pages), once read. */
+  page_title?: string | null;
+  page_image?: string | null;
+  page_price?: number | string | null;
+  page_status?: "ok" | "none" | "skipped" | "blocked" | "failed" | null;
+  page_checked_at?: string | null;
 }
+
+/** What one "Get shop details" run did (counts only: nothing about a page that failed). */
+interface PagesRun { checked: number; ok: number; none: number; skipped: number; blocked: number; failed: number; unsaved: number; more: boolean }
+
+/** Read up to 8 waiting pages (admin only, server side). Throws with words an admin can act on. */
+async function readPages(): Promise<PagesRun> {
+  const { data, error } = await supabase.functions.invoke("wish-link-pages", { body: {} });
+  if (error) {
+    // The function's own words when it sent some (403, 503); a missing function or an expired sign-in says so
+    // (lh-silent-failure review: every failure read "try again"); no answer at all is a connection problem.
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.status === "number") {
+      if (ctx.status === 404) throw new Error("Shop details aren't set up yet (the wish-link-pages function isn't deployed).");
+      if (ctx.status === 401) throw new Error("Your sign-in expired. Sign in again and retry.");
+      if (ctx.status === 403) throw new Error("Only admins can read shop pages.");
+      const body = typeof ctx.json === "function" ? await ctx.json().catch(() => null) : null;
+      throw new Error(typeof body?.error === "string" ? body.error : `Couldn't read the shop pages (error ${ctx.status}). Try again in a moment.`);
+    }
+    throw new Error("Couldn't reach the server to read the shop pages. Check your connection and try again.");
+  }
+  const d = data as Partial<PagesRun> | null;
+  if (!d || typeof d.checked !== "number") throw new Error("Couldn't read the shop pages. Try again in a moment.");
+  return { checked: d.checked, ok: d.ok ?? 0, none: d.none ?? 0, skipped: d.skipped ?? 0, blocked: d.blocked ?? 0, failed: d.failed ?? 0, unsaved: d.unsaved ?? 0, more: d.more === true };
+}
+
+/** "Checked 5 links: 3 with details, 2 couldn't be read." (counts only; nothing saved is never a "Checked"). */
+export function pagesRunLine(r: PagesRun): string {
+  if (r.checked === 0 && r.unsaved === 0) return "No new shop pages to read.";
+  if (r.checked === 0) return `None of the ${r.unsaved} ${r.unsaved === 1 ? "link" : "links"} could be saved. Try again in a moment.`;
+  const parts = [`${r.ok} with details`];
+  if (r.none) parts.push(`${r.none} with nothing to show`);
+  if (r.skipped) parts.push(`${r.skipped} not on our shop list`);
+  if (r.blocked + r.failed) parts.push(`${r.blocked + r.failed} couldn't be read`);
+  if (r.unsaved) parts.push(`${r.unsaved} not saved`);
+  return `Checked ${r.checked} ${r.checked === 1 ? "link" : "links"}: ${parts.join(", ")}.${r.more && !r.unsaved ? " More are waiting: tap again." : ""}`;
+}
+
+/** An Amazon link is never read (the Associates agreement): it never counts as waiting for shop details. */
+const isAmazonLink = (url: string | null) => {
+  try {
+    return url ? /(^|\.)(amazon\.[a-z.]+|amzn\.[a-z]+|a\.co)$/i.test(new URL(url).hostname) : false;
+  } catch {
+    // An unreadable link is never read either.
+    return true;
+  }
+};
+
+const PAGE_NOTE = { skipped: "Not a shop we read", blocked: "Shop page couldn't be read", failed: "Shop page couldn't be read", none: "The shop page showed no details" } as const;
+const day = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 type LooseRpc = { rpc: (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> };
 const sb = supabase as unknown as LooseRpc;
@@ -90,6 +150,7 @@ function Row({ r, busy, onFill, onDismiss }: { r: WishLinkRow; busy: boolean; on
       {pasted && (
         <a href={pasted} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 items-center text-xs font-semibold text-primary underline [overflow-wrap:anywhere]">{r.url}</a>
       )}
+      <PageLine r={r} />
       <form className="mt-2 flex flex-wrap items-center gap-2" onSubmit={submit}>
         <Input className="min-w-0 flex-[1_1_220px]" aria-label={`Our link for ${r.words}`} placeholder="Paste our affiliate link (https://…)" value={url} maxLength={500}
           onChange={(e) => setUrl(e.target.value)} data-admin-wish-link-url={r.id} />
@@ -101,6 +162,29 @@ function Row({ r, busy, onFill, onDismiss }: { r: WishLinkRow; busy: boolean; on
         )}
       </form>
     </li>
+  );
+}
+
+/** What the pasted link's page said: its photo, title and price, read on <day>; or why there is nothing. */
+function PageLine({ r }: { r: WishLinkRow }) {
+  if (!r.page_status || !r.page_checked_at) return null;
+  const price = r.page_price === null || r.page_price === undefined ? null : Number(r.page_price);
+  if (r.page_status !== "ok") {
+    return <p className="m-0 text-xs text-muted-foreground" data-admin-wish-link-page-note={r.id}>{PAGE_NOTE[r.page_status]} · {day(r.page_checked_at)}</p>;
+  }
+  return (
+    <div className="mt-1 flex items-center gap-3" data-admin-wish-link-page={r.id}>
+      {r.page_image && (
+        <img loading="lazy" src={r.page_image} alt="" width={48} height={48} referrerPolicy="no-referrer" className="h-12 w-12 shrink-0 rounded-md object-contain" data-admin-wish-link-page-img="" />
+      )}
+      <span className="min-w-0 text-xs">
+        {r.page_title && <span className="block font-medium [overflow-wrap:anywhere]" data-admin-wish-link-page-title="">{r.page_title}</span>}
+        <span className="text-muted-foreground">
+          {price !== null && Number.isFinite(price) ? <span data-admin-wish-link-page-price="">${price.toFixed(2)} on the page · </span> : null}
+          read {day(r.page_checked_at)}
+        </span>
+      </span>
+    </div>
   );
 }
 
@@ -124,10 +208,26 @@ export default function AdminWishLinks() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: KEY }),
     onError,
   });
+  const [pagesLine, setPagesLine] = useState<string | null>(null);
+  const doPages = useMutation({
+    mutationFn: readPages,
+    onSuccess: (run) => {
+      setPagesLine(pagesRunLine(run));
+      // Some pages read but not saved: an error, not just a line (lh-silent-failure review).
+      if (run.unsaved > 0) errorToast("Some shop details were not saved", { description: `${run.unsaved} ${run.unsaved === 1 ? "link" : "links"} will be tried again next time.` });
+      void qc.invalidateQueries({ queryKey: KEY });
+    },
+    onError: (e: unknown) => {
+      errorToast("Shop details were not read", { description: userFacingError(e, "Try again in a moment.") });
+      // A run cut short may still have saved some rows: reload so the list is true.
+      void qc.invalidateQueries({ queryKey: KEY });
+    },
+  });
   const rows = q.data ?? [];
   const waiting = rows.filter((r) => r.status === "open");
   const groups = groupByList(showDone ? rows : waiting);
   const busy = doFill.isPending || doDismiss.isPending;
+  const unread = waiting.filter((r) => r.kind === "link" && !r.page_checked_at && !isAmazonLink(r.url)).length;
   return (
     <AdminViewShell>
       <AdminCard
@@ -141,6 +241,16 @@ export default function AdminWishLinks() {
       >
         <div data-admin-wish-links="">
           {saved && <p className="mb-3 text-sm" role="status" data-admin-wish-links-saved="">{saved}</p>}
+          {(unread > 0 || pagesLine) && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+              {unread > 0 && (
+                <Button size="sm" variant="outline" disabled={doPages.isPending} onClick={() => doPages.mutate()} data-admin-wish-links-pages="">
+                  {doPages.isPending ? "Reading shop pages…" : `Get shop details (${unread})`}
+                </Button>
+              )}
+              {pagesLine && <span role="status" data-admin-wish-links-pages-line="">{pagesLine}</span>}
+            </div>
+          )}
           {q.isPending ? (
             <p className="text-sm text-muted-foreground" role="status">Loading…</p>
           ) : q.isError ? (

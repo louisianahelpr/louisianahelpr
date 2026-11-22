@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 import { PLAN_MAX_IDEAS, type GiftPlan, type PlanPerson } from "@/content/giftGuideFun1120";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
+import { shownDollars } from "@/lib/pickPriceShown.mjs";
 import { planActions } from "./fun/plannerStore";
 import type { ShareRef } from "@/lib/giftWishListApi";
 import { itemId } from "./giftList";
@@ -18,8 +19,9 @@ import { itemId } from "./giftList";
 /** A gift as it goes on a person's list: the same shape as the planner's "From our guides" ideas. */
 export interface SaveItem { href: string; name: string; guide?: string; image?: string; price?: number }
 
-/** The price a guide pick adds to a list: the one its guide shows today, or none. */
-export const plannerPrice = (p: CatalogPick) => (showsPrice(p) ? p.price : undefined);
+/** The price a guide pick adds to a list: the one its card shows today, rounded the same way ("~$5" adds $5; holiday
+ *  audit 1121: the card said ~$5 while the lists said $4.77), or none. */
+export const plannerPrice = (p: CatalogPick) => (showsPrice(p) ? shownDollars(p.price) : undefined);
 
 /** A guide pick as a list item (name, photo, the shown price, its shop link, the guide it came from). */
 export const saveItemOf = (p: CatalogPick, guide?: string): SaveItem => {
@@ -32,13 +34,19 @@ export const onPersonList = (p: PlanPerson, href: string) => p.ideas.some((i) =>
 /** True when anyone's list holds the gift (the heart shows filled). */
 export const onAnyList = (plan: GiftPlan, href: string) => plan.people.some((p) => onPersonList(p, href));
 
-/** One list's count and the sum of its prices (what has been added, bought or not). */
+/** One list's count, the sum of its prices (what has been added, bought or not), how many have no price (holiday audit
+ *  1121 #5: a saved deal counted as a gift while the total quietly left it out) and what is marked Bought (#8). */
 export const listTotal = (p: PlanPerson) => ({
   gifts: p.ideas.length,
   amount: Math.round(p.ideas.reduce((t, i) => t + (i.price ?? 0), 0) * 100) / 100,
+  unpriced: p.ideas.filter((i) => i.price === undefined).length,
+  bought: Math.round(p.ideas.reduce((t, i) => t + (i.bought ? i.price ?? 0 : 0), 0) * 100) / 100,
 });
-/** Every list's count and amount added up. */
-export const allTotals = (plan: GiftPlan) => plan.people.map(listTotal).reduce((a, b) => ({ gifts: a.gifts + b.gifts, amount: Math.round((a.amount + b.amount) * 100) / 100 }), { gifts: 0, amount: 0 });
+/** Every list's count, amount and unpriced count added up. */
+export const allTotals = (plan: GiftPlan) => plan.people.map(listTotal).reduce(
+  (a, b) => ({ gifts: a.gifts + b.gifts, amount: Math.round((a.amount + b.amount) * 100) / 100, unpriced: a.unpriced + b.unpriced }),
+  { gifts: 0, amount: 0, unpriced: 0 },
+);
 
 /** A tap on a person: the gift goes on their list, or comes off when it is already there. "full": 30 already. */
 export function togglePersonItem(plan: GiftPlan, personId: string, item: SaveItem): "added" | "removed" | "full" | "gone" {
@@ -102,7 +110,40 @@ export function useSaveForHost() {
     hosts++;
     return () => {
       hosts--;
-      if (hosts === 0) request = null;
+      if (hosts === 0) {
+        request = null;
+        listsTarget = null;
+      }
     };
   }, []);
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Budget and managing a list (owner 2026-11-21: "How do they edit or remove items in the list or delete the list? I
+// entered the budget as 100 but it doesn't say how much I have left to spend or how much I'm over").
+
+/** Where a list stands against its budget, in whole cents (no float drift): left (0 or more) or over, or no budget. */
+export type BudgetStatus = { kind: "none" } | { kind: "left" | "over"; amount: number; budget: number };
+export function budgetStatus(p: PlanPerson): BudgetStatus {
+  if (p.budget === undefined) return { kind: "none" };
+  const cents = Math.round(p.budget * 100) - Math.round(listTotal(p).amount * 100);
+  return cents < 0 ? { kind: "over", amount: -cents / 100, budget: p.budget } : { kind: "left", amount: cents / 100, budget: p.budget };
+}
+
+/**
+ * Which lists the My lists sheet shows: every list (only null), or one ("me" = My Wish List, else a person's id).
+ * Opened by the picker's "View list", the "Saved for ... · View list" toast and the guides' heart; false when no sheet
+ * is on the page (the heart then keeps its link to My Wish List).
+ */
+let listsTarget: { only: string | null } | null = null;
+export function openMyLists(only: string | null = null): boolean {
+  if (hosts === 0) return false;
+  listsTarget = { only };
+  notify();
+  return true;
+}
+export const closeMyLists = () => {
+  listsTarget = null;
+  notify();
+};
+export const useMyListsTarget = () => useSyncExternalStore(subscribe, () => listsTarget, () => null);

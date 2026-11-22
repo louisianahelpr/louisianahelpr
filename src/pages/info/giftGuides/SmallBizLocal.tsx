@@ -5,9 +5,13 @@ import { SBS_WORDS as W } from "@/content/sbsFeaturedLocal";
 import { listFeaturedLocal, sbsLogoUrl, type SbsListing } from "@/lib/sbsFeaturedApi";
 import { loadModule } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
+import { dealDay, louisianaDay } from "@/content/giftGuideDeals.mjs";
 import { safeDocumentUrl } from "@/lib/storagePath";
 import { SB_CARD_CSS } from "./smallBizCardStyles";
 import { businessKey } from "../../../../supabase/functions/_shared/sbsSubmission";
+
+/** The local list's heading id: one of the two branches below renders it, never both. */
+const SBS_LOCAL_HEAD = "gift-sbs-local";
 
 /**
  * Small Business Saturday "Featured local" (owner 2026-11-20): approved FREE listings, shown BELOW the 25 Days sponsors
@@ -137,26 +141,49 @@ function FeatureCta() {
  * Under the sponsor sections: approved free listings (if any), then the sign-up card. `heading` replaces the section's
  * title and intro where no sponsor list sits above it (/shop-small, src/pages/info/ShopSmall.tsx).
  */
+/** Small Business Saturday's day (YYYY-MM-DD), from the deals days. */
+const SBS_DAY = dealDay("small-business-saturday")?.day ?? "2026-11-28";
+
 export function SmallBizLocal({ sponsors, heading }: { sponsors: Array<{ name: string; links: Array<string | null | undefined> }>; heading?: { title: string; intro: string } }) {
   const [rows, setRows] = useState<SbsListing[]>([]);
+  const [phase, setPhase] = useState<"loading" | "ready" | "failed">("loading");
   useEffect(() => {
     let live = true;
     listFeaturedLocal().then(
-      (r) => live && setRows(r),
-      // A failed read shows no extra section; the sponsors and the sign-up card still show.
-      (e) => report(e, { tags: { source: "SmallBizLocal.listFeaturedLocal" } }),
+      (r) => {
+        if (!live) return;
+        setRows(r);
+        setPhase("ready");
+      },
+      // Reported; on /shop-small the section says the shops did not load (the sponsors and the sign-up card still show).
+      (e) => {
+        report(e, { tags: { source: "SmallBizLocal.listFeaturedLocal" } });
+        if (live) setPhase("failed");
+      },
     );
     return () => {
       live = false;
     };
   }, []);
   const list = withoutSponsors(rows, sponsors);
+  // Holiday audit 1121 area 5 #4: on /shop-small (its own section heading) the free listings say when they are loading,
+  // empty or failed; under a guide's sponsor sections an empty list stays silent.
+  const stateLine = !heading || list.length > 0 ? null
+    : phase === "loading" ? <p className="gg-sbs-local-intro" role="status" data-gift-sbs-local-state="loading">{W.localLoading}</p>
+    : phase === "failed" ? <p className="gg-sbs-local-intro" role="alert" data-gift-sbs-local-state="failed">{W.localFailed}</p>
+    : <p className="gg-sbs-local-intro" data-gift-sbs-local-state="empty">{louisianaDay(new Date()) <= SBS_DAY ? W.localEmptyBefore : W.localEmptyAfter}</p>;
   return (
     <>
       <style>{SB_CARD_CSS}{SBS_CSS}</style>
+      {stateLine && heading && (
+        <section className="gg-sbs-local" aria-labelledby={SBS_LOCAL_HEAD} data-gift-sbs-section="">
+          <div className="gg-rowhead"><h2 id={SBS_LOCAL_HEAD}>{heading.title}</h2></div>
+          {stateLine}
+        </section>
+      )}
       {list.length > 0 && (
-        <section className="gg-sbs-local" aria-labelledby="gift-sbs-local" data-gift-sbs-section="">
-          <div className="gg-rowhead"><h2 id="gift-sbs-local">{heading?.title ?? W.sectionTitle}<span className="gg-rowcount">&nbsp;({list.length})</span></h2></div>
+        <section className="gg-sbs-local" aria-labelledby={SBS_LOCAL_HEAD} data-gift-sbs-section="">
+          <div className="gg-rowhead"><h2 id={SBS_LOCAL_HEAD}>{heading?.title ?? W.sectionTitle}<span className="gg-rowcount">&nbsp;({list.length})</span></h2></div>
           <p className="gg-sbs-local-intro">{heading?.intro ?? W.sectionIntro}</p>
           <ul className="gg-sb-grid">{list.map((b) => <LocalCard key={b.id} b={b} />)}</ul>
         </section>

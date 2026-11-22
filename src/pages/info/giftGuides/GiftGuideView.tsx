@@ -13,9 +13,10 @@ import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor, saveItemOf } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
-import { HINTS, WISH } from "@/content/giftWishList";
+import { HINTS, WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { Hint } from "./GiftHint";
 import { Button } from "@/components/ui/button";
+import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { sortByPrice } from "@/content/giftGuidePriceSort";
 import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGuideEarnOrder";
@@ -195,16 +196,12 @@ export const withinBudget = (picks: CatalogPick[], budget: number | null) => (bu
 /** The filter shows on a guide holding at least this many priced picks. */
 const BUDGET_MIN_PICKS = 3;
 
-/** Rows a list draws at first, and each "Show more" adds (design audit 11-18 #3: 827 rows, 9,600 DOM nodes at once). */
-export const PICKS_PAGE = 50;
 
 /**
  * The picks that wear "Trending" (owner-approved 2026-11-18): the first TRENDING_TOP of a guide's list, in its
  * featured order (the order the import writes: trending picks first). Not on a store page, whose list is the store's
  * catalogue ranked by photo and gift score rather than a featured order. `position` is 1-based.
  */
-/** "Show more" with this many or fewer left draws them all instead. */
-const SHOW_ALL_UNDER = 6;
 
 /** The person guides (giftGuideIndex "By person"): a merged section of one reads "For your father-in-law". */
 const PERSON_SECTIONS = new Set(GUIDE_INDEX.filter((g) => g.group === "By person").map((g) => g.slug));
@@ -220,11 +217,12 @@ export const sectionLabel = (guide: Pick<CatalogGuide, "title">, title: string, 
 };
 
 function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: CatalogGuide; order?: GuideOrder; failed?: boolean; onRetry?: () => void }) {
-  const [shown, setShown] = useState(PICKS_PAGE);
   const [budget, setBudget] = useState<number | null>(null);
-  // Her, Him, Kids and their relationship views (owner 11-21): low to high is the list as imported. The order is chosen
-  // in the header's Sort by price menu (GiftGuideSort); a new order draws the list from its top again.
-  useEffect(() => { setShown(PICKS_PAGE); }, [order]);
+  // Owner 2026-11-21 ("there should be a button to open and expand each section like for under 25 etc.", first open by
+  // her pop-up pick): which price sections are open, for this visit only. null = the default, the first section (in the
+  // current order) open and the rest closed; a new order goes back to that default.
+  const [openSecs, setOpenSecs] = useState<Set<string> | null>(null);
+  useEffect(() => { setOpenSecs(null); }, [order]);
   const sortable = isOwnerList(guide.slug);
   const ready = picksReady(guide.slug);
   // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.
@@ -233,7 +231,6 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
     const s = nav.find((x) => x.id === id);
     if (!s) return;
     setBudget(null);
-    setShown((n) => Math.max(n, s.end));
     requestAnimationFrame(() => document.getElementById(`gg-sec-${id}`)?.scrollIntoView({ block: "start" }));
   };
   const navKey = nav.map((x) => x.id).join(" ");
@@ -243,6 +240,11 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
     const ids = navKey.split(" ");
     const id = ids.includes(raw) ? raw : SECTION_ALIASES[guide.slug]?.[raw] || SECTION_ANCHORS[raw] || "";
     if (id && ids.includes(id)) jump(id);
+    // A price section's own link (/gift-guides/her#25-to-50, from a pin or the quiz) opens that section and scrolls to it.
+    else if (sortable && (PRICE_SECTIONS.some((s) => s.id === raw) || raw === "price-soon")) {
+      setOpenSecs(new Set([raw]));
+      requestAnimationFrame(() => document.getElementById(`gg-sec-${raw}`)?.scrollIntoView({ block: "start" }));
+    }
     // Once per guide, when its list is in (the hash is read only on arrival).
      
   }, [navKey]);
@@ -261,9 +263,17 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
   const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned;
   const sectionCount = new Map<string, number>();
   if (sortable) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
-  // Six or fewer left: draw them all, no "Show more (1 more)" (design audit r2 #16).
-  const upTo = picks.length - shown <= SHOW_ALL_UNDER ? picks.length : shown;
-  const left = picks.length - upTo;
+  const firstSection = sortable ? picks[0]?.sectionId : undefined;
+  const isOpen = (id?: string) => !sortable || !id || (openSecs ? openSecs.has(id) : id === firstSection);
+  const toggle = (id: string) => setOpenSecs((cur) => {
+    const next = new Set(cur ?? (firstSection ? [firstSection] : []));
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+  // Owner 2026-11-21: "Remove show more just list everything." Every section lists all its gifts at every width; the
+  // photos below the fold load lazily at a fixed size and each card skips rendering off-screen (content-visibility).
+  const upTo = picks.length;
   const runs = (from: number, to: number) => sectionsOf(picks.slice(0, to)).flatMap((r) => {
     const rows = r.picks.rows.filter((_, k) => r.picks.start + k > from);
     // A section cut by the deals keeps its heading only above its first part.
@@ -273,15 +283,24 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
   const draw = (from: number, to: number) => runs(from, to).map(({ title, id, picks: run }, i) => (
         <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""} id={id ? `gg-sec-${id}` : undefined} className={id ? "gg-sec" : undefined}
           aria-labelledby={title && id ? `gg-sec-${id}-title` : undefined}>
-          {title && (
+          {title && (sortable && id ? (
+            // A price section's header is its open/close button (aria-expanded; the list is drawn only while open).
+            <h2 className="gg-sec-title gg-sec-toggle-h" id={`gg-sec-${id}-title`}>
+              <Button type="button" variant="ghost" size="inline" className="gg-sec-toggle" aria-expanded={isOpen(id)} aria-controls={`gg-sec-${id}-list`} onClick={() => toggle(id)} data-gift-section-toggle={id}>
+                <span>{title}<span className="gg-sec-count" data-gift-section-count="">{G.priceSectionCount(sectionCount.get(id) ?? 0)}</span></span>
+                <svg className="gg-sec-chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </Button>
+            </h2>
+          ) : (
             <h2 className="gg-sec-title" id={id ? `gg-sec-${id}-title` : undefined}>
               {nav.length > 1 ? sectionLabel(guide, title, id) : title}
-              {sortable && id && <span className="gg-sec-count" data-gift-section-count="">{G.priceSectionCount(sectionCount.get(id) ?? 0)}</span>}
             </h2>
+          ))}
+          {isOpen(id) && (
+            <ol className="gg-list" id={id ? `gg-sec-${id}-list` : undefined} data-gift-list="" style={run.start > 1 ? { counterReset: `gg ${run.start - 1}` } : undefined}>
+              {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
+            </ol>
           )}
-          <ol className="gg-list" data-gift-list="" style={run.start > 1 ? { counterReset: `gg ${run.start - 1}` } : undefined}>
-            {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
-          </ol>
         </section>
       ));
   return (
@@ -298,7 +317,7 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
       {banded >= BUDGET_MIN_PICKS && (
         <div role="group" aria-label={G.budgetLabel} className="gg-budget" data-gift-budget="">
           {[null, ...BUDGETS].map((b) => (
-            <ToggleChip key={b ?? "all"} pressed={budget === b} data-gift-budget-choice={b ?? "all"} onClick={() => { setBudget(b); setShown(PICKS_PAGE); }}>
+            <ToggleChip key={b ?? "all"} pressed={budget === b} data-gift-budget-choice={b ?? "all"} onClick={() => setBudget(b)}>
               {b ? G.budgetUnder(b) : G.budgetAll}
             </ToggleChip>
           ))}
@@ -308,11 +327,6 @@ function GiftGuideList({ guide, order = "top", failed, onRetry }: { guide: Catal
       {draw(0, upTo)}
       <PricesAsOf picks={picks.slice(0, upTo)} />
       <PrimeTrialLink picks={picks.slice(0, upTo)} />
-      {left > 0 && (
-        <Button type="button" variant="outline" size="inline" className="gg-more-picks" onClick={() => setShown((n) => n + PICKS_PAGE)} data-gift-more-picks="">
-          {G.showMorePicks(left)}
-        </Button>
-      )}
       {/* Holiday audit 1121: links are never drawn, so they no longer keep the note away from a view with no items. */}
       {!guide.children && guide.picks.length === 0 && (
         // Owner 2026-11-18: a guide with no picks yet opens a friendly note, never an empty list or a dead link.
@@ -405,7 +419,7 @@ function StoreDeals({ guide }: { guide: CatalogGuide }) {
 /** The guide where the Hire-a-Helpr box sits at the TOP (owner 2026-11-18). */
 const GIFT_WRAP_GUIDE = "gift-wrap-and-cards";
 
-export function GiftGuideView({ guide, order = "top" }: { guide: CatalogGuide; order?: GuideOrder }) {
+export function GiftGuideView({ guide, order = "top", hideCount = false }: { guide: CatalogGuide; order?: GuideOrder; hideCount?: boolean }) {
   // PERF: the guide's picks are its own lazy chunk; re-render when it lands.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion, guidePicksVersion);
   // Holiday audit 1121: a failed chunk (offline, a stale deploy) shows why and a Try again, never "Loading picks…" for
@@ -440,7 +454,8 @@ export function GiftGuideView({ guide, order = "top" }: { guide: CatalogGuide; o
       {/* Owner 2026-11-20: the free printables this guide links to (gift tags on Gift Wrap & Cards), once each is ready. */}
       <PrintablesLink slug={guide.slug} />
       {/* Holistic review 11-18 L3: how many gifts the guide holds, once its list is in. */}
-      {picksReady(guide.slug) && guide.picks.length > 0 && (
+      {/* A phone draws the count on its own row under the banner, with the pill and the icons (GiftGuides countRow). */}
+      {!hideCount && picksReady(guide.slug) && guide.picks.length > 0 && (
         <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>
       )}
       {guide.children?.map((group) => (

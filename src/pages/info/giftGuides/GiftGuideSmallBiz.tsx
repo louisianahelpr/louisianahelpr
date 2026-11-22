@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS as W, smallBizDay, smallBizFeatured, smallBizTitle, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { loadModule, untilReload } from "@/lib/loadModule";
-import { WISH } from "@/content/giftWishList";
+import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { SB_CARD_CSS } from "./smallBizCardStyles";

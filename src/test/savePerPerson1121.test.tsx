@@ -28,6 +28,8 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+// A share keeps a token to stop its link (giftWishListOwnApi.ts, wishListDelete1121.test.tsx); here it never reaches a server.
+vi.mock("@/lib/giftWishListOwnApi", async (orig) => ({ ...(await orig<typeof import("@/lib/giftWishListOwnApi")>()), claimShare: vi.fn(async () => undefined) }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -47,6 +49,7 @@ const shareGiftLists = vi.hoisted(() => vi.fn(async (_l: unknown) => "abcdef1234
 const getSharedList = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/giftWishListApi", async (orig) => ({
   ...(await orig<typeof import("@/lib/giftWishListApi")>()),
+  // A share now keeps a token to stop its link (wishListDelete1121.test.tsx); here it never reaches a server.
   shareGiftLists: (l: unknown) => shareGiftLists(l),
   getSharedList: (c: string) => getSharedList(c),
   getMyWishList: vi.fn(async () => null),
@@ -65,6 +68,7 @@ import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { resetFirstHeartForTests } from "@/pages/info/giftGuides/GiftGuideHints";
 import { shareListOf } from "@/pages/info/giftGuides/saveForPeople";
 import { asSharedList } from "@/lib/giftWishListApi";
+import { shownDollars } from "@/lib/pickPriceShown.mjs";
 
 const HER = JSON.parse(readFileSync(join(process.cwd(), "src/content/giftGuidePicks/her.json"), "utf8")) as { picks: { priceAt?: string }[] };
 const CHECK_DAY = HER.picks.find((p) => p.priceAt)?.priceAt ?? "2026-11-21";
@@ -124,20 +128,22 @@ describe("save for someone from a guide", () => {
       return r;
     });
     expect(row.getAttribute("aria-pressed")).toBe("false");
-    expect(sheet.querySelector(`[data-savefor-total="${mom}"]`)!.textContent).toBe("0 gifts");
+    expect(sheet.querySelector(`[data-savefor-total="${mom}"]`)!.textContent).toBe("0 gifts · $75 left");
 
     fireEvent.click(row);
     const idea = stored().people[0].ideas[0];
-    expect(idea).toMatchObject({ name: her[0].name, href: her[0].href, price: her[0].price, image: her[0].image, guide: "her", bought: false });
+    // Holiday audit 1121: the list adds the price the card shows, rounded the same way (~$5 adds $5).
+    expect(idea).toMatchObject({ name: her[0].name, href: her[0].href, price: shownDollars(her[0].price), image: her[0].image, guide: "her", bought: false });
     expect(row.getAttribute("aria-pressed")).toBe("true");
-    expect(sheet.querySelector(`[data-savefor-total="${mom}"]`)!.textContent).toBe(`1 gift · $${her[0].price}`);
+    // Owner 11-21: the row also says where Mom's $75 budget stands (saveForManage1121.test.tsx has the exact words).
+    expect(sheet.querySelector(`[data-savefor-total="${mom}"]`)!.textContent).toMatch(new RegExp(`^1 gift · \\$${shownDollars(her[0].price)} · \\$[0-9.,]+ (left|over)$`));
     // Not on My Wish List: saving for Mom never touches the wish list.
     expect(giftListNow().picks).toHaveLength(0);
     // The heart is filled while the gift is on anyone's list.
     expect(heart.getAttribute("aria-pressed")).toBe("true");
     // The My lists pill shows the total.
     const pill = document.querySelector<HTMLButtonElement>("[data-mylists-pill]")!;
-    expect(pill.querySelector("[data-mylists-pill-total]")!.textContent).toBe(`1 gift · $${her[0].price}`);
+    expect(pill.querySelector("[data-mylists-pill-total]")!.textContent).toBe(`1 gift · $${shownDollars(her[0].price)}`);
 
     // A second tap takes it off.
     fireEvent.click(row);
@@ -169,13 +175,12 @@ describe("save for someone from a guide", () => {
     fireEvent.click(hearts[1]);
     fireEvent.click(picker()!.querySelector(`[data-savefor-person="${p.id}"]`)!);
     fireEvent.click(picker()!.querySelector("[data-savefor-done]")!);
-    const total = Math.round((her[0].price! + her[1].price!) * 100) / 100;
+    const total = shownDollars(her[0].price) + shownDollars(her[1].price);
     const money = `$${Number.isInteger(total) ? total : total.toFixed(2)}`;
 
     fireEvent.click(document.querySelector("[data-mylists-pill]")!);
     const panel = document.querySelector<HTMLElement>("[data-mylists-panel]")!;
-    expect(panel.querySelector(`[data-mylists-total="${p.id}"]`)!.textContent).toBe(`2 gifts · ${money}`);
-    expect(panel.querySelector(`[data-mylists-budget="${p.id}"]`)!.textContent).toMatch(new RegExp(`(of \\$50 budget|over budget)$`));
+    expect(panel.querySelector(`[data-mylists-total="${p.id}"]`)!.textContent).toMatch(new RegExp(`^2 gifts · \\$${money.replace("$", "")} · \\$[0-9.,]+ (left|over)$`));
     expect(panel.querySelectorAll(`[data-mylists-person="${p.id}"] [data-mylists-item]`)).toHaveLength(2);
     expect(within(panel).getByText("Open planner ›").getAttribute("href")).toBe("/gift-guides/planner");
     // Remove one from the panel.

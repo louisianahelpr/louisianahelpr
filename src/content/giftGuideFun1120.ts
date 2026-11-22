@@ -508,9 +508,7 @@ export const FUN_WORDS = {
   plannerRemovePerson: (name: string) => `Remove ${name || "this person"}`,
   plannerRemoveIdea: (name: string) => `Remove ${name || "this idea"}`,
   plannerSpentOf: (spent: string, budget: string) => `${spent} of ${budget}`,
-  plannerSpent: (spent: string) => `${spent} spent`,
-  plannerLeft: (left: string) => `${left} left`,
-  plannerOver: (over: string) => `${over} over`,
+  plannerBoughtAmount: (spent: string) => `Bought ${spent}`,
   plannerTotals: "Totals",
   plannerTotalBudget: "Budget",
   plannerTotalSpent: "Spent",
@@ -519,6 +517,7 @@ export const FUN_WORDS = {
   plannerUnnamed: "Someone",
   plannerTotalBought: (b: number, n: number) => `${b} of ${n} ${n === 1 ? "gift" : "gifts"} bought`,
   plannerEmpty: "Add the first person you're shopping for.",
+  plannerLoading: "Loading your planner…",
   plannerFindGifts: "Find gift ideas",
   plannerBadAmount: "Type an amount like 25 or 25.50.",
   // Owner 2026-11-21 ("let them add ideas from our guides"): the planner's picker of the live guides' picks.

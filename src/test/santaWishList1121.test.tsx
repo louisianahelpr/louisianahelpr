@@ -24,6 +24,8 @@ import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 const fun = vi.hoisted(() => ({ reveal: vi.fn(), attach: vi.fn() }));
+// A share keeps a token to stop its link (giftWishListOwnApi.ts, wishListDelete1121.test.tsx); here it never reaches a server.
+vi.mock("@/lib/giftWishListOwnApi", async (orig) => ({ ...(await orig<typeof import("@/lib/giftWishListOwnApi")>()), claimShare: vi.fn(async () => undefined) }));
 vi.mock("@/lib/giftGuideFunApi", () => ({
   revealSecretSanta: fun.reveal, setSecretSantaWishList: fun.attach, createSecretSanta: vi.fn(), SantaSaveError: class extends Error {},
   loadAccountPlan: vi.fn(async () => null), saveAccountPlan: vi.fn(async () => undefined),
@@ -31,6 +33,7 @@ vi.mock("@/lib/giftGuideFunApi", () => ({
 const api = vi.hoisted(() => ({ request: vi.fn(), read: vi.fn(), share: vi.fn(), get: vi.fn() }));
 vi.mock("@/lib/giftWishListApi", async (orig) => ({
   ...(await orig<typeof import("@/lib/giftWishListApi")>()),
+  // A share now keeps a token to stop its link (wishListDelete1121.test.tsx); here it never reaches a server.
   requestWishLink: api.request, readWishLinks: api.read, shareGiftLists: api.share, getSharedList: api.get,
 }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({

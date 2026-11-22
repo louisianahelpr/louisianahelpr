@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { SITE_ORIGIN } from "@/lib/publicPageMeta.mjs";
 import { track } from "@/lib/analytics";
 import { WISH, HINTS } from "@/content/giftWishList";
+import { LISTS } from "@/content/giftListsManage";
 import { newWishLink, sharedListPath, wishErrorCopy } from "@/lib/giftWishListApi";
+import { canStopSharing, claimShare, stopSharing } from "@/lib/giftWishListOwnApi";
 import { smsHref } from "./GiftGuideShare";
 import { Hint, dismissHint } from "./GiftHint";
 import type { WishRef } from "./giftList";
@@ -34,11 +36,35 @@ export function GiftWishShare<R extends WishRef | ShareRef = WishRef>({ name, re
   /** An outline button (a list's Share inside a panel with its own primary action). */
   quiet?: boolean;
 }) {
-  const [state, setState] = useState<"idle" | "saving" | "menu" | "failed">("idle");
+  const [state, setState] = useState<"idle" | "saving" | "menu" | "failed" | "stopped">("idle");
   const [error, setError] = useState("");
   const [url, setUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [rotated, setRotated] = useState(false);
+  const [code, setCode] = useState("");
+  const [canStop, setCanStop] = useState(false);
+  // Holiday audit 1121 (#16): a failed share's error is about the list as it was; once the list changes it goes.
+  const listKey = JSON.stringify([name, refs]);
+  const [seenKey, setSeenKey] = useState(listKey);
+  if (seenKey !== listKey) {
+    setSeenKey(listKey);
+    if (state === "failed") {
+      setState("idle");
+      setError("");
+    }
+  }
+  const stop = async () => {
+    try {
+      if (!(await stopSharing(code))) return fail(new Error("not stopped"));
+      setUrl("");
+      setCanStop(false);
+      setState("stopped");
+      track("gift_wish_list_stop_sharing", {});
+    } catch (e) {
+      // Shown in plain words (fail sets the alert line); the link still works until it is stopped.
+      fail(e);
+    }
+  };
   const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
   const native = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
@@ -54,8 +80,18 @@ export function GiftWishShare<R extends WishRef | ShareRef = WishRef>({ name, re
     setRotated(false);
     setState("saving");
     try {
-      setUrl(`${SITE_ORIGIN}${sharedListPath(await save(name, refs))}`);
+      const made = await save(name, refs);
+      setCode(made);
+      setUrl(`${SITE_ORIGIN}${sharedListPath(made)}`);
       setState("menu");
+      // Holiday audit 1121: keep a token so this browser can stop the link later (an account's own list says no).
+      claimShare(made).then(
+        () => setCanStop(canStopSharing(made)),
+        (e: unknown) => {
+          // The link works either way; only "Stop sharing" is missing for it.
+          console.warn("gift wish list: claim failed", e);
+        },
+      );
       track("gift_wish_list_link", { items: refs.length, signed_in: signedIn });
     } catch (e) {
       // Shown to the visitor in plain words (fail sets the alert line); they can tap again.
@@ -102,6 +138,7 @@ export function GiftWishShare<R extends WishRef | ShareRef = WishRef>({ name, re
         {state === "saving" ? WISH.sharing : label}
       </Button>
       {state === "failed" && <p role="alert" className="gg-price-note" data-gift-wish-share-failed="">{error}</p>}
+      {state === "stopped" && <p role="status" className="gg-price-note" data-gift-wish-stopped="">{LISTS.sharingStopped}</p>}
       {state === "menu" && url && (
         <div className="gg-wish-share-menu" role="group" aria-label={WISH.shareMenuLabel} data-gift-wish-share-menu="">
           {native && (
@@ -120,6 +157,7 @@ export function GiftWishShare<R extends WishRef | ShareRef = WishRef>({ name, re
             )}
           </span>
           <p className="gg-price-note">{WISH.shareNote}</p>
+          {canStop && <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => void stop()} data-gift-wish-stop="">{LISTS.stopSharing}</Button>}
           {signedIn && (
             <p className="gg-price-note" data-gift-wish-rotate-row="">
               {rotated ? <span role="status" data-gift-wish-rotated="">{WISH.newLinkDone}</span> : (

@@ -20,6 +20,8 @@
  * lists already hold it, so it never changes).
  */
 export const DEALS_SLUG = "black-friday-cyber-monday";
+/** The deals pages' share image (moved here from GiftGuideDeals.tsx 2026-11-21 so the guide route need not load that page). */
+export const DEALS_COVER = "/gift-guides/deals/black-friday-cyber-monday.webp";
 
 /** The landing features the guide at its top from this day through FEATURE_TO (owner brief 2026-11-19). */
 export const FEATURE_FROM = "2026-11-23";
@@ -37,7 +39,7 @@ export const DEAL_EVENTS = [
   {
     id: "black-friday", kind: "deals", day: "2026-11-27", title: "Black Friday",
     pageTitle: "Black Friday Deals", lead: "the best",
-    description: "Black Friday Deals 2026: hand-checked Black Friday sales and codes from brands you already love, picked by Louisiana Helpr.",
+    description: "Black Friday Deals 2026: Black Friday sales and codes from brands you already love, picked by Louisiana Helpr.",
     before: "Fri, Nov 27. Plenty of these sales are on already.",
     on: "Today, Fri, Nov 27. These sales are on now.",
     after: "Black Friday was Nov 27. Some of these sales run a little longer.",
@@ -53,7 +55,7 @@ export const DEAL_EVENTS = [
   {
     id: "cyber-monday", kind: "deals", day: "2026-11-30", title: "Cyber Monday",
     pageTitle: "Cyber Monday Deals", lead: "the best",
-    description: "Cyber Monday Deals 2026: hand-checked Cyber Monday and Cyber Week sales and codes from brands you already love, picked by Louisiana Helpr.",
+    description: "Cyber Monday Deals 2026: Cyber Monday and Cyber Week sales and codes from brands you already love, picked by Louisiana Helpr.",
     before: "Mon, Nov 30. Cyber Week sales, and deals that run through Cyber Monday.",
     on: "Today, Mon, Nov 30. Last call on Cyber Week sales.",
     after: "Cyber Monday was Nov 30. Some of these sales run a little longer.",
@@ -94,7 +96,8 @@ export const DEALS_WORDS = {
   // the gift guides' standard affiliate disclosure in its footer (GiftGuides.tsx); the pre-JS body (api/share.ts)
   // carries the same words.
   disclosure: "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.",
-  featuredLine: "Hand-checked sales from brands you already love, all in one place.",
+  // Holiday audit 1121 #80: "hand-checked" overclaimed (the rows come from affiliate feeds; dates can change).
+  featuredLine: "Sales from brands you already love, all in one place.",
   featuredCta: "See the deals",
   shop: (brand) => `Shop ${brand}`,
   shopShort: "Shop",
@@ -189,3 +192,14 @@ export function dealsFeatured(today) {
 export function dealsTitle(today) {
   return today > RETITLE_AFTER ? DEALS_WORDS.laterTitle : DEALS_WORDS.title;
 }
+
+/**
+ * A deal's name in a list: the item when it already starts with the brand, else "Brand: item"
+ * (UX audit L2: "ELEMIS: ELEMIS Pro-Collagen..."), else the brand and the sale. Here with the deals data (train 1121i),
+ * so the deals page and the wish list share it without pulling the wish list's item reader onto the guide pages.
+ * @param {{ brand: string, item?: string | null, deal: string }} d
+ */
+export const dealName = (d) => {
+  if (!d.item) return `${d.brand}: ${d.deal}`;
+  return d.item.toLowerCase().startsWith(d.brand.toLowerCase()) ? d.item : `${d.brand}: ${d.item}`;
+};

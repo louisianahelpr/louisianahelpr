@@ -24,7 +24,7 @@ import type { WishRef } from "@/pages/info/giftGuides/giftList";
 /** A shared list's page: /gift-guides/list/<code>. */
 export const sharedListPath = (code: string) => `/gift-guides/list/${code}`;
 /** A list code as the server makes them (12 lowercase letters or digits). */
-const LIST_CODE = /^[a-z0-9]{12}$/;
+export const LIST_CODE = /^[a-z0-9]{12}$/;
 
 /**
  * Each code the wish list's server functions raise, in plain words (src/test/rpcErrorCopyCoverage.test.ts, both ways).
@@ -46,6 +46,7 @@ export const GIFT_WISH_RPC_ERROR_COPY = {
   gift_wish_list_new_link: {
     not_authenticated: "Sign in again to make a new link.",
   },
+  // Delete a list or stop a shared link: GIFT_WISH_OWN_RPC_ERROR_COPY in giftWishListOwnApi.ts (loaded on use).
   // Add from any store (owner 11-21): the gift is always kept on the device; these say why we could not also ask for
   // our link (shown under the box).
   wish_link_request_add: {
@@ -62,9 +63,12 @@ export const GIFT_WISH_RPC_ERROR_COPY = {
 
 /** Words for an error a wish list call returned, or null when it is not one of its codes (whole-token match). */
 function rpcErrorMessage(rpc: keyof typeof GIFT_WISH_RPC_ERROR_COPY, error: unknown): string | null {
+  return copyFor(GIFT_WISH_RPC_ERROR_COPY[rpc], error);
+}
+/** The words in `table` for the code an error names (whole-token match), or null. */
+export function copyFor(table: Record<string, string>, error: unknown): string | null {
   const m = typeof error === "string" ? error : (error as { message?: unknown } | null)?.message;
   const raw = typeof m === "string" ? m : "";
-  const table: Record<string, string> = GIFT_WISH_RPC_ERROR_COPY[rpc];
   for (const code of Object.keys(table)) {
     if (new RegExp(`(^|[^a-z0-9_])${code}($|[^a-z0-9_])`).test(raw)) return table[code];
   }
@@ -82,7 +86,7 @@ export interface SharedList { name: string; items: WishRef[]; lists?: SharedPers
 
 type Rpc = (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }>;
 
-const client = async (): Promise<{ rpc: Rpc } | null> => {
+export const client = async (): Promise<{ rpc: Rpc } | null> => {
   const m = await loadModule(() => import("@/integrations/supabase/client"));
   return m ? (m.supabase as unknown as { rpc: Rpc }) : null;
 };
@@ -118,7 +122,7 @@ export function asSharedList(data: unknown): SharedList | null {
 }
 
 /** Why a save did not happen: too many shares from here just now, or anything else (offline, a server error). */
-class WishListSaveError extends Error {
+export class WishListSaveError extends Error {
   /** `copy`: the plain words for the code the server raised (GIFT_WISH_RPC_ERROR_COPY), or null for any other failure. */
   constructor(public readonly kind: "rateLimited" | "failed", message: string, public readonly copy: string | null = null) {
     super(message);
@@ -226,3 +230,7 @@ export async function readWishLinks(ids: string[]): Promise<Map<string, string |
   }
   return out;
 }
+
+// Delete a list, or stop a shared link (holiday audit 1121, migration 20261122024017): src/lib/giftWishListOwnApi.ts,
+// imported only by the screens that offer them (My Wish List's Share and Delete), never by a guide page (lander3,
+// train 1121i: /gift-guides/:slug critical-path budget).

@@ -12,6 +12,8 @@
  * @mutate src/pages/info/giftGuides/fun/GuidePicksPicker.tsx |   const rows = all.filter((p) => (!only \|\| p.guide === only) && matchesSearch(p, query)); |   const rows = all.filter((p) => matchesSearch(p, query));
  * @mutate src/pages/info/giftGuides/fun/GuidePicksPicker.tsx |   return query.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w)); |   return true;
  * @mutate src/pages/info/giftGuides/fun/GuidePicksPicker.tsx |     setOnly(guideForName(personName)); |     setOnly(null);
+ * Holiday audit 1121 (#4): the list adds the price the card shows, rounded the same way ("~$5" adds $5, never $4.77).
+ * @mutate src/pages/info/giftGuides/saveForPeople.ts | (showsPrice(p) ? shownDollars(p.price) : undefined) | (showsPrice(p) ? p.price : undefined)
  * @mutate src/content/giftGuideFun1120.ts | typeof d.image === "string" && /^https:\/\//.test(d.image) | typeof d.image === "string"
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -41,6 +43,7 @@ import { resetHintsForTests } from "@/pages/info/giftGuides/GiftHint";
 import { loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { cleanPlan } from "@/content/giftGuideFun1120";
 import { PLANNER_KEY } from "@/lib/giftPlannerDevice";
+import { shownDollars } from "@/lib/pickPriceShown.mjs";
 
 // The guides' prices show for 3 days after their check day: pin "today" to the chunk's check day.
 const HER = JSON.parse(readFileSync(join(process.cwd(), "src/content/giftGuidePicks/her.json"), "utf8")) as { picks: { priceAt?: string }[] };
@@ -86,7 +89,9 @@ describe("gift planner: add ideas from our guides", () => {
     await waitFor(() => expect(sheet.querySelectorAll("[data-plan-pick]").length).toBe(live.length));
     // "Aunt Claire" names no guide plainly: All is on.
     expect(sheet.querySelector('[data-plan-picker-chip="all"]')!.getAttribute("aria-pressed")).toBe("true");
-    const first = live[0];
+    // A pick priced in cents, so the rounding (#4: the card says ~$5, the list adds $5) is visible.
+    const first = live.find((p) => p.price !== undefined && !Number.isInteger(p.price))!;
+    expect(first).toBeDefined();
     const row = sheet.querySelector<HTMLElement>(`[data-plan-pick="${first.href}"]`)!;
     expect(row.textContent).toContain(first.name);
     expect(row.querySelector("img")?.getAttribute("src")).toBe(first.image);
@@ -108,7 +113,8 @@ describe("gift planner: add ideas from our guides", () => {
     // Tap: stored with its name, the shown price, its link and its photo; the row now reads Added.
     fireEvent.click(sheet.querySelector(`[data-plan-pick="${first.href}"]`)!);
     const idea = stored().people[0].ideas[0];
-    expect(idea).toMatchObject({ name: first.name, href: first.href, price: first.price, image: first.image, guide: first.guide, bought: false });
+    // Holiday audit 1121: the price the card shows, rounded the same way (~$5 adds $5).
+    expect(idea).toMatchObject({ name: first.name, href: first.href, price: shownDollars(first.price), image: first.image, guide: first.guide, bought: false });
     await waitFor(() => expect(sheet.querySelector<HTMLButtonElement>(`[data-plan-pick="${first.href}"]`)!.disabled).toBe(true));
     expect(within(sheet).getAllByText("Added").length).toBe(1);
     // A second tap adds nothing.
@@ -122,7 +128,7 @@ describe("gift planner: add ideas from our guides", () => {
     expect(shop.textContent).toContain("Shop");
     expect(shop.getAttribute("href")).toBe(first.href);
     expect(shop.getAttribute("rel")).toBe("sponsored noopener");
-    expect((li.querySelector("[data-plan-price]") as HTMLInputElement).value).toBe(String(first.price));
+    expect((li.querySelector("[data-plan-price]") as HTMLInputElement).value).toBe(String(shownDollars(first.price)));
     // Bought still works on it, and moves the money.
     fireEvent.click(li.querySelector("[data-plan-bought]")!);
     expect(stored().people[0].ideas[0].bought).toBe(true);

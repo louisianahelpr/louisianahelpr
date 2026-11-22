@@ -5769,6 +5769,11 @@ export type Database = {
           kind: string
           list_key: string
           list_name: string
+          page_checked_at: string | null
+          page_image: string | null
+          page_price: number | null
+          page_status: string | null
+          page_title: string | null
           status: string
           url: string | null
           url_key: string | null
@@ -5783,6 +5788,11 @@ export type Database = {
           kind: string
           list_key: string
           list_name: string
+          page_checked_at?: string | null
+          page_image?: string | null
+          page_price?: number | null
+          page_status?: string | null
+          page_title?: string | null
           status?: string
           url?: string | null
           url_key?: string | null
@@ -5797,12 +5807,43 @@ export type Database = {
           kind?: string
           list_key?: string
           list_name?: string
+          page_checked_at?: string | null
+          page_image?: string | null
+          page_price?: number | null
+          page_status?: string | null
+          page_title?: string | null
           status?: string
           url?: string | null
           url_key?: string | null
           words?: string
         }
         Relationships: []
+      }
+      gift_wish_list_owners: {
+        Row: {
+          code: string
+          created_at: string
+          token_hash: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          token_hash: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_wish_list_owners_code_fkey"
+            columns: ["code"]
+            isOneToOne: true
+            referencedRelation: "gift_wish_lists"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       gift_wish_lists: {
         Row: {
@@ -18748,8 +18789,16 @@ export type Database = {
         Returns: Json
       }
       wish_link_requests_get: { Args: { p_ids: string[] }; Returns: Json }
+      gift_wish_list_delete: { Args: never; Returns: boolean }
+      gift_wish_list_claim: { Args: { p_code: string; p_token: string }; Returns: boolean }
+      gift_wish_list_unshare: { Args: { p_code: string; p_token: string }; Returns: boolean }
       wish_link_url_key: { Args: { p_url: string }; Returns: string }
       wish_link_url_ok: { Args: { p_url: string }; Returns: boolean }
+      wish_link_pages_due: { Args: { p_limit?: number }; Returns: Json }
+      wish_link_page_save: {
+        Args: { p_id: string; p_image: string; p_price: number; p_status: string; p_title: string }
+        Returns: number
+      }
       admin_wish_link_requests: { Args: never; Returns: Json }
       admin_wish_link_request_fill: { Args: { p_id: string; p_url: string }; Returns: Json }
       admin_wish_link_request_dismiss: { Args: { p_id: string }; Returns: undefined }

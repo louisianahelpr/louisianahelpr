@@ -194,10 +194,11 @@ describe("Sell: the floating + Sell pill", () => {
     expect(calls.length).toBeGreaterThan(2);
     for (const [f, call] of calls) expect(call, f).toMatch(/\bsearch=\{/);
     for (const f of screens.slice(0, 2)) expect(code(f), f).toMatch(/<SectionScreen\b[^>]*\bmine=\{head\.mine\}/);
-    // On a phone the grid starts right under the chips: the location button (owner 11-20, beside desktop's search)
-    // and its device note are desktop only; the phone's live in the filter sheet.
+    // On a phone the grid starts right under the chips: the device note is desktop only; "Use my location" is in the
+    // filter sheet at every width (owner 11-21), and what it did ("Near you") shows over the cards once.
     const browse = code("src/components/declutter/DeclutterBrowseView.tsx");
     expect(browse).toContain('{desktop && itemsPhase !== "offline-empty" && <DeclutterDeviceNote ask={ask} />}');
-    expect(browse.match(/<DeclutterLocationButton\b/g)).toHaveLength(1);
+    expect(browse).not.toMatch(/<DeclutterLocationButton\b/);
+    expect(browse.match(/<DeclutterNearYou\b/g)).toHaveLength(1);
   });
 });

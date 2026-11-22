@@ -13,7 +13,7 @@ import { useWishItems } from "./wishListItems";
 /**
  * /gift-guides/list/<code> (owner 2026-11-20): a wish list someone sent. No sign-in: the list's name as the big title
  * (the sender's own words, under "Someone shared their wish list with you", never under our brand: security review
- * #4, UX audit M4), and its gifts, each with its photo and a Shop button carrying our own link (so every purchase from a
+ * #4, UX audit M4), and its gifts, each with its photo and name as one link carrying our own link (so every purchase from a
  * shared list still earns), then a way to make your own. Gifts the guides no longer carry are counted, never silently
  * dropped (UX audit M7). The tab title is the list's name (UX audit L4). A code with no list says so; a failed read
  * offers a retry.
@@ -56,11 +56,13 @@ function SharedAnyRow({ item }: { item: SharedAnyItem }) {
 export function SharedPerson({ list, index }: { list: SharedPersonList; index: number }) {
   const { items, loading, missing } = useWishItems(list.items);
   const amount = Math.round(items.reduce((t, it) => t + (it.pick && showsPrice(it.pick) ? it.pick.price ?? 0 : 0), 0));
+  // Holiday audit 1121 (#5): gifts with no price shown (a deal, a gift from any store) are named, never quietly left out.
+  const unpriced = items.filter((it) => it.out === "affiliate" && !(it.pick && showsPrice(it.pick))).length + (list.any ?? []).length;
   const id = `gift-shared-person-${index}`;
   return (
     <section aria-labelledby={id} className="gg-shared-person" data-gift-shared-person={list.name}>
       <h3 id={id} className="gg-shared-person-name">{list.name}</h3>
-      {!loading && <p className="gg-price-note" data-gift-shared-person-total="">{WISH.sharedListTotal(items.length + (list.any ?? []).length, amount > 0 ? dollars(amount) : null)}</p>}
+      {!loading && <p className="gg-price-note" data-gift-shared-person-total="">{WISH.sharedListTotal(items.length + (list.any ?? []).length, amount > 0 ? dollars(amount) : null, unpriced)}</p>}
       {loading && items.length === 0 && (list.any ?? []).length === 0 ? <p className="gg-soon" role="status">{WISH.loading}</p> : (
         <ol className="gg-list gg-wish-list" data-gift-list="">
           {items.map((row) => <WishRow key={row.id} item={row} />)}

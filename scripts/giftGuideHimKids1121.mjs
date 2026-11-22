@@ -221,7 +221,7 @@ export const HIM_1121 = [
   ["B0D1TMFTPN", 79.99, "419U-JEJQOL", "ThermoMaven Wireless Meat Thermometer", "ThermoMaven", "grilling", 3, "A wireless probe that tells him when the meat is done."],
   ["B07DXFFZPT", 84.15, "41wkF95hcGL", "RTIC Soft Cooler", "RTIC", "cooler", 3, "A soft cooler that keeps ice for days."],
   ["B0H6SC835C", 87.99, "314g+xOxGmL", "OLIGHT ArkPro Flashlight", "OLIGHT", "light", 3, "A slim, powerful flashlight for his pocket."],
-  ["B0DGZ45WB2", 89.6, "31w-q2iXR+L", "Sperry Authentic Original Boat Shoe", "Sperry", "shoes", 4, "The classic leather boat shoe."],
+  ["B0DGZ45WB2", 89.6, "71pSnCJKOrL", "Sperry Authentic Original Boat Shoe", "Sperry", "shoes", 4, "The classic leather boat shoe."],
   ["B08Q1RN656", 93.75, "41awlHUVBzL", "XTRATUF Ankle Deck Boot", "XTRATUF", "boots", 4, "Waterproof deck boots for the boat and the yard."],
   // COMMISSION SWITCH 11-21: was Amazon B001DPHF4U at 4%; the same OD green Grange 18", same $99.95, at Dillard's at 8%.
   { name: "LaCrosse Grange Rubber Boot", brand: "LaCrosse", line: "Tall rubber boots made for mud and marsh.", href: shopmy("p-108736038"), image: "https://dimg.dillards.com/is/image/DillardsZoom/zoom/lacrosse-mens-grange-18-tall-waterproof-rubber-hunting-work-boots/00000000_zi_ac01ed80-ad36-4d40-8cca-066a3f05fcbd.jpg", store: "store-dillards", sortPrice: 99.95, price: 99.95, commission: 8, type: "boots" },
@@ -302,7 +302,7 @@ export const KIDS_1121 = [
   ["B0G36VXNGX", 8.99, "51JNHGNSDML", "Slimygloop Squishmallows Slime", "Slimygloop", "slime", 3, "Squishmallows slime in a jar, ready to squish."],
   ["B0H9ZZGK8W", 9.98, "41YnNH+Nc1L", "Crunchy Butter Squishy Toy", "", "squishy", 3, "A slow-rise butter squishy kids love to squeeze."],
   ["B0G2KJ8V5R", 10.29, "41orTVxng-L", "LEGO Snowman Ornaments", "LEGO", "ornament", 3, "Little LEGO snowmen to build and hang on the tree."],
-  ["B0DTJWSVWG", 11.89, "41-YrWLVSgL", "Handmade Hamster Squishy Toy", "", "squishy", 3, "A soft little hamster to squish."],
+  ["B0DTJWSVWG", 11.89, "71wfzJhV-aL", "Handmade Hamster Squishy Toy", "", "squishy", 3, "A soft little hamster to squish."],
   ["B0H4V6PMJH", 13.76, "31N9f2HrjpL", "YOOLIFE Sling Bag", "YOOLIFE", "bag", 4, "A small sling bag for their things on the go."],
   ["B079D7XHSY", 14.98, "51QvTU7g3QL", "Flipslide Game", "Flipslide", "game", 3, "Flip, slide and match the colors to beat the clock."],
   ["B0CDN1M1FY", 14.99, "51McprPS33L", "Glitter Tattoo Kit for Kids", "", "craft", 3, "Sparkly temporary tattoos they can do themselves."],

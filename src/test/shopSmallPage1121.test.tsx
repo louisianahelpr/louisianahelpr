@@ -21,8 +21,8 @@
  * @mutate src/pages/info/GiftGuides.tsx |   const deals = slug && isLiveGuide(slug) ? dealDay(slug) : null; |   const deals = slug ? dealDay(slug) : null;
  * @mutate src/pages/info/ShopSmall.tsx |           <SmallBizLocal sponsors={[]} heading={{ title: W.pageSectionTitle, intro: W.pageSectionIntro }} /> |           {null}
  * @mutate src/App.tsx |       <Route path="/shop-small" element= |       <Route path="/shop-small-old" element=
- * @mutate src/pages/info/holidays/HolidayHub.tsx |           <Link to="/shop-small" className="link-standard"> |           <Link to="/gift-guides" className="link-standard">
- * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx | <h2 id="gift-sbs-local">{heading?.title ?? W.sectionTitle} | <h2 id="gift-sbs-local">{W.sectionTitle}
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |           <Link to="/shop-small" className="link-standard inline-flex min-h-11 items-center"> |           <Link to="/gift-guides" className="link-standard inline-flex min-h-11 items-center">
+ * @mutate src/pages/info/giftGuides/SmallBizLocal.tsx | <h2 id={SBS_LOCAL_HEAD}>{heading?.title ?? W.sectionTitle} | <h2 id={SBS_LOCAL_HEAD}>{W.sectionTitle}
  * (Moved here from giftWishList1120.test.tsx, whose colour test was removed 11-21 and so no longer killed it:)
  * @mutate src/pages/info/giftGuides/smallBizCardStyles.ts | border-radius:14px;background:hsl(var(--card));color:var(--gg-ink)} | border-radius:14px;background:#fff}
  */
@@ -114,8 +114,14 @@ async function gatedPages(): Promise<{ slug: string; file: string; live: boolean
   };
   const fileOf = (comp: string) => {
     const compImp = importOf(comp);
-    if (!compImp) throw new Error(`GiftGuides.tsx: no import for ${comp}`);
-    return resolveImport(pageFile, compImp[2])!;
+    if (compImp) return resolveImport(pageFile, compImp[2])!;
+    // A lazy part (train 1121i: LazyDeals): the page's own wrapper loads the component's module through
+    // useLazyPart(<loader>), and the loader is `const <loader> = () => loadModule(() => import("<module>"))`.
+    const body = src.match(new RegExp(`function\\s+${comp}\\b[\\s\\S]*?\\n}`))?.[0] ?? "";
+    const loader = body.match(/useLazyPart\(\s*(\w+)/)?.[1];
+    const spec = loader ? src.match(new RegExp(`const\\s+${loader}\\s*=\\s*\\(\\)\\s*=>\\s*loadModule\\(\\s*\\(\\)\\s*=>\\s*import\\(\\s*["']([^"']+)["']`))?.[1] : undefined;
+    if (!spec) throw new Error(`GiftGuides.tsx: no import for ${comp}`);
+    return resolveImport(pageFile, spec)!;
   };
   const out: { slug: string; file: string; live: boolean }[] = [];
   // One page per slug constant: `const smallBiz = slug === SMALL_BIZ_SLUG && isLiveGuide(SMALL_BIZ_SLUG)`.
@@ -175,6 +181,22 @@ describe("/shop-small, the page", () => {
     // The form chunk opens in place: its business name field and the private-email hint.
     expect(await screen.findByLabelText(new RegExp(SBS_WORDS.fields.businessName), {}, { timeout: 4000 })).toBeTruthy();
     expect(screen.getByText(SBS_WORDS.fields.emailHint)).toBeTruthy();
+  });
+
+  // Holiday audit 1121 area 5 #4: with 0 approved listings (sbs_public_featured held 0 rows on 2026-11-21) or a failed
+  // read, the free listings said nothing at all; they now say so (the sponsors still lead the page, batch 5 #61).
+  // @mutate src/pages/info/giftGuides/SmallBizLocal.tsx |   const stateLine = !heading \|\| list.length > 0 ? null | const stateLine = true ? null
+  it("says when there are no free listings yet, or when they did not load, and the sponsors still lead", async () => {
+    const api = await import("@/lib/sbsFeaturedApi");
+    vi.mocked(api.listFeaturedLocal).mockResolvedValueOnce([]);
+    const empty = render(<MemoryRouter initialEntries={["/shop-small"]}><ShopSmall /></MemoryRouter>);
+    expect(empty.container.querySelector("[data-shop-small-sponsors]")).not.toBeNull();
+    const line = await screen.findByText((_, el) => el?.getAttribute("data-gift-sbs-local-state") === "empty");
+    expect([SBS_WORDS.localEmptyBefore, SBS_WORDS.localEmptyAfter]).toContain(line.textContent);
+    cleanup();
+    vi.mocked(api.listFeaturedLocal).mockRejectedValueOnce(new Error("offline"));
+    render(<MemoryRouter initialEntries={["/shop-small"]}><ShopSmall /></MemoryRouter>);
+    expect((await screen.findByRole("alert")).textContent).toBe(SBS_WORDS.localFailed);
   });
 });
 

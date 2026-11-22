@@ -101,6 +101,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   claim_payout_setup_reminders: "hides",
   gift_wish_list_save: "tags", // gift guides wish list (20261120062130): a test account's synced list is is_seed (is_test_member); gates no money
   gift_wish_lists_share: "tags", // gift guides lists share (20261121204723): a test member's or test browser's share snapshot is is_seed; gates no money
+  wish_link_pages_due: "hides", // Admin "Get shop details" (20261122034304): picks waiting link requests to read, NOT is_seed, so test rows are never fetched; gates no money
   wish_link_request_add: "tags", // gift lists links to create (20261121221514): a test member's or test browser's request is is_seed; gates no money
   admin_wish_link_requests: "hides", // Admin -> Wish list links (20261121221514): is_seed requests never show in the queue
   secret_santa_create: "tags", // gift guides Secret Santa (20261120062334): a group a test member draws is is_seed; gates no money

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
 import { mapsSearchUrl } from "@/lib/mapsLink";
 import { openableDocumentUrl } from "@/lib/storagePath";
-import { DATES_TBA, holidayDateLabel, holidayMapsQuery, regionLabel, type HolidayItem } from "@/content/holidayHub/holidayHub.mjs";
+import { DATES_TBA, holidayDateLabel, holidayMapsQuery, holidayPriceLabel, holidayWhereLabel, type HolidayItem } from "@/content/holidayHub/holidayHub.mjs";
 
 /** The hub's column (the lists sit two across from md up), and its header's: the column plus the shell's side padding. */
 export const HUB_COLUMN = "mx-auto max-w-[1040px]";
@@ -39,7 +39,9 @@ function OpenInMaps({ item, kind }: { item: HolidayItem; kind: "light" | "event"
 export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "light" | "event"; tag?: string | null }) {
   const when = holidayDateLabel(item);
   const tba = when === DATES_TBA;
-  const where = [item.city, regionLabel(item.region)].filter(Boolean).join(" · ");
+  // Holiday audit 1121 area 5 #15 / #7: no "Lake Charles · Lake Charles & SWLA", and never a bare "$" for the price.
+  const where = holidayWhereLabel(item);
+  const price = holidayPriceLabel(item.price);
   return (
     <li className="flex min-w-0 flex-col rounded-[20px] border border-border bg-card p-5 font-sans" data-holiday-item={item.id}>
       {tag && <p className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{tag}</p>}
@@ -51,7 +53,7 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
           <dd data-holiday-when="" className={tba ? "font-semibold text-muted-foreground" : "font-semibold"}>{when}</dd>
         </div>
         {item.hours && <div className="flex gap-2"><dt className="sr-only">Hours</dt><dd>{item.hours}</dd></div>}
-        {item.price && <div className="flex gap-2"><dt className="sr-only">Cost</dt><dd>{item.price}</dd></div>}
+        {price && <div className="flex gap-2"><dt className="sr-only">Cost</dt><dd data-holiday-price="">{price}</dd></div>}
         {item.address && <div className="flex gap-2"><dt className="sr-only">Address</dt><dd className="text-muted-foreground">{item.address}</dd></div>}
       </dl>
       {item.note && <p className="mt-2 text-ds-14 text-muted-foreground">{item.note}</p>}

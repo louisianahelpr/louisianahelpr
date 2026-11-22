@@ -6,17 +6,17 @@ import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
 import BackButton from "@/components/BackButton";
-import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GiftGuidesWords } from "./giftGuides/GiftGuideCover";
 import { GiftGuideLanding, finderAsked } from "./giftGuides/GiftGuideLanding";
-import { GiftGuideMyList } from "./giftGuides/GiftGuideMyList";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
-import { WISH } from "@/content/giftWishList";
+import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { MY_LIST_SLUG } from "./giftGuides/giftList";
 import { GiftGuideTools } from "./giftGuides/GiftGuideShare";
 import type { GuideOrder } from "@/content/giftGuideEarnOrder";
@@ -26,8 +26,7 @@ import { GiftGuideView } from "./giftGuides/GiftGuideView";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { GiftGuidesPhoneNav } from "./giftGuides/GiftGuidesPhoneNav";
-import { DEALS_COVER, GiftGuideDeals } from "./giftGuides/GiftGuideDeals";
-import { DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
+import { DEALS_COVER, DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 
@@ -97,36 +96,57 @@ function LazySaveForSomeone() {
 const capitalFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
- * A shared list (/gift-guides/list/<code>) loads its own chunk (train 1121h): once Secret Santa's wish list imported
- * from it, it split out of this page's chunk and put /gift-guides/<slug> at 353 KB gz over its 352.8 KB budget, while
- * no guide page ever draws it. It says "Loading" until the chunk is in, the same line the list shows while it reads.
+ * A part no guide page draws loads its own chunk, saying "Loading" until it is in (or that it could not load):
+ * a shared list (/gift-guides/list/<code>; train 1121h: once Secret Santa's wish list imported from it, it put
+ * /gift-guides/<slug> at 353 KB gz over its 352.8 KB budget) and My Wish List (/gift-guides/my-list; train 1121i: its
+ * delete, save status and photo rows put the guide pages at 359 KB gz).
  */
-type SharedListModule = { GiftGuideSharedList: ComponentType<{ code: string }> };
-const loadSharedList = () => loadModule(() => import("./giftGuides/GiftGuideSharedList"));
-function LazySharedList({ code }: { code: string }) {
-  const [mod, setMod] = useState<SharedListModule | null>(null);
-  const [failed, setFailed] = useState(false);
+function useLazyPart<M>(load: () => Promise<M | null>, source: string): M | "failed" | null {
+  const [mod, setMod] = useState<M | "failed" | null>(null);
   useEffect(() => {
     let live = true;
     // An empty module (a stale-chunk reload on its way) waits on untilReload(); the loading line stays meanwhile.
-    void loadSharedList()
+    void load()
       .then((m) => m ?? untilReload())
       .then(
         (m) => { if (live) setMod(m); },
         (e) => {
           // Not silent: reported, and the page says the list could not load.
-          report(e as Error, { tags: { source: "GiftGuides.loadSharedList" } });
-          if (live) setFailed(true);
+          report(e as Error, { tags: { source } });
+          if (live) setMod("failed");
         },
       );
     return () => {
       live = false;
     };
-  }, []);
-  if (failed) return <p className="gg-soon" role="alert" data-gift-shared-failed="">{WISH.sharedFailed}</p>;
+  }, [load, source]);
+  return mod;
+}
+const loadSharedList = () => loadModule(() => import("./giftGuides/GiftGuideSharedList"));
+const loadMyList = () => loadModule(() => import("./giftGuides/GiftGuideMyList"));
+function LazySharedList({ code }: { code: string }) {
+  const mod = useLazyPart(loadSharedList, "GiftGuides.loadSharedList");
+  if (mod === "failed") return <p className="gg-soon" role="alert" data-gift-shared-failed="">{WISH.sharedFailed}</p>;
   if (!mod) return <p className="gg-soon" role="status">{WISH.loading}</p>;
-  const { GiftGuideSharedList } = mod;
-  return <GiftGuideSharedList code={code} />;
+  return <mod.GiftGuideSharedList code={code} />;
+}
+/**
+ * The deals day pages (Black Friday, Small Business Saturday, Cyber Monday) load their own chunk too (train 1121i: the
+ * codes and sales lists, the offer-copy cleaning and the Small Business grid put every guide page at 353 KB gz over its
+ * 352.8 KB budget). A failed load says so, like the lists above.
+ */
+const loadDeals = () => loadModule(() => import("./giftGuides/GiftGuideDeals"));
+function LazyDeals({ day }: { day: NonNullable<ReturnType<typeof dealDay>> }) {
+  const mod = useLazyPart(loadDeals, "GiftGuides.loadDeals");
+  if (mod === "failed") return <p className="gg-soon" role="alert" data-gift-deals-failed="">{G.dealsLoadFailed}</p>;
+  if (!mod) return <p className="gg-soon" role="status">{WISH.loading}</p>;
+  return <mod.GiftGuideDeals day={day} />;
+}
+function LazyMyList() {
+  const mod = useLazyPart(loadMyList, "GiftGuides.loadMyList");
+  if (mod === "failed") return <p className="gg-soon" role="alert" data-gift-mylist-failed="">{WISH.sharedFailed}</p>;
+  if (!mod) return <p className="gg-soon" role="status">{WISH.loading}</p>;
+  return <mod.GiftGuideMyList />;
 }
 
 export default function GiftGuides() {
@@ -140,6 +160,10 @@ export default function GiftGuides() {
   const { hash } = useLocation();
   const [params] = useSearchParams();
   const guide = guideBySlug(slug) ?? null;
+  // Owner 11-21 (iPhone, Kids): "put the icons below the red banner. On the same line as the 81 gifts ... also move the
+  // order by dec below the red banner". On a phone, a guide page draws the pill and the icons on the count's row under
+  // its banner (countRow below), not on the row above it; the landing and every desktop keep them in the header row.
+  const phone = useIsMobile();
   // Sort by price (owner 11-21: "add the filter button up with the search icons"): the header's menu sets the order of
   // an owner-list guide (Her, Him, Kids and their views); a new guide starts low to high.
   // Lead 11-21 (earn order): a new guide starts on "Recommended" (clicked picks first in each price section).
@@ -218,6 +242,8 @@ export default function GiftGuides() {
   const banner = Boolean(deals || guide);
   // The open menu entry beyond the guides: the deals page, or the finder view on the landing.
   const sidePage = deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined;
+  // A phone's guide page: the count, the pill and the icons on one row right under the banner.
+  const countRow = phone && Boolean(guide) && !deals;
   // The landing's arrow goes home; every other page's to the landing.
   const backTo = guide || deals || myList || shared ? "/gift-guides" : "/";
 
@@ -252,8 +278,8 @@ export default function GiftGuides() {
             <span className="contents" data-gift-back-to={backTo}><BackButton to={backTo} /></span>
             {banner ? <p className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</p> : <h1 className="text-page-title leading-tight" data-gift-head-name="">{G.headerTitle}</h1>}
           </div>
-          {shipPill}
-          {tools}
+          {!countRow && shipPill}
+          {!countRow && tools}
         </div>
         {/* Owner 11-21 ("We need a way to organize this on the phones"): up to 767px a sticky chip row and a menu sheet
             replace the sidebar (which a phone no longer draws at the page's foot). */}
@@ -263,6 +289,15 @@ export default function GiftGuides() {
         ) : guide ? (
           <GiftGuidesWords lead={guide.age ? `${guide.lead}, ${guide.age}` : guide.lead} title={guide.title} titleId="gift-guide-title" tint={guide.tint} tools={null} />
         ) : null}
+        {countRow && guide && (
+          <div className="gg-countrow" data-gift-countrow="">
+            <div className="gg-countrow-left">
+              {picksReady(guide.slug) && guide.picks.length > 0 && <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>}
+              {shipPill}
+            </div>
+            {tools}
+          </div>
+        )}
         {/* Owner 11-21 ("put like a line or something above all guides and under search bar all the way across to be a
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
         {landing && <hr className="gg-divider" data-gift-divider="" />}
@@ -271,7 +306,7 @@ export default function GiftGuides() {
             disclosures at the very bottom. From 768px the CSS grid puts the menu on the left (GIFT_GUIDES_CSS). */}
         <div className="gg-layout">
           <div className="gg-main">
-            {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />}
+            {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
           </div>
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
           <GiftGuidesSidebar active={guide} myList={myList || shared} page={sidePage} />

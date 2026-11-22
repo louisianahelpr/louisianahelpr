@@ -6,22 +6,24 @@ import { Input } from "@/components/ui/input";
 import { giftGuides as G } from "@/content/giftGuides";
 import { guideBySlug } from "@/content/giftGuideCatalog";
 import { WISH } from "@/content/giftWishList";
+import { LISTS } from "@/content/giftListsManage";
 import { saveWishList } from "@/lib/giftWishListApi";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { PickThumb } from "./GiftGuideView";
 import { GiftOut } from "./GiftOut";
 import { GiftWishShare } from "./GiftWishShare";
+import { DeleteMyList } from "./DeleteMyList";
 import { Heart, listName, listRefs, pickId, putBackInWishList, removeFromWishList, setListName, useGiftList, type SavedPick } from "./giftList";
 import { useWishItems, type WishItem } from "./wishListItems";
-import { useSyncProblem } from "./wishListSync";
+import { retryWishListSync, useSyncProblem } from "./wishListSync";
 import { giftNameProblem } from "@/lib/giftNameClean";
 import { PickPrice, showsPrice } from "@/components/giftGuides/PickPrice";
 
 /**
  * /gift-guides/my-list (owner 2026-11-18 "My list"; 2026-11-20 "My Wish List": "add something that they can add to
  * their list and send their list to someone"): the list's name (editable, never required), the saved guides as tiles,
- * then every saved gift as a row (photo, name, where it is sold, Shop with our link) and "Share my list". Each saved gift
+ * then every saved gift as a row (photo and name as one link to the store with our link, where it is sold) and "Share my list". Each saved gift
  * wears a filled heart in its top-right corner (owner 11-20, replacing the Remove buttons): a tap takes it off the list,
  * the heart goes to an outline and the row stays for this visit (a second tap saves it again), with "Removed · Undo".
  * Empty: one line saying how to fill it. A saved gift the guides no longer carry is left out (never a dead row).
@@ -59,7 +61,8 @@ export function WishRow({ item, heart }: { item: WishItem; heart?: { saved: bool
         <span className="gg-nm">
           <span className="gg-nm-name">{item.name}</span>
           {/* UX audit M6: a business shows its town ("Baton Rouge area"), never "On Baton Rouge area". */}
-          {item.store && <small className="gg-nm-meta"><span>{item.out === "plain" ? item.store : G.onStore(item.store)}</span>{item.pick && showsPrice(item.pick) && <> · <PickPrice pick={item.pick} /></>}</small>}
+          {item.store && <small className="gg-nm-meta"><span>{item.out === "plain" ? item.store : G.onStore(item.store)}</span>{item.pick && showsPrice(item.pick) ? <> · <PickPrice pick={item.pick} /></>
+            : item.out === "affiliate" && <> · <span data-gift-wish-no-price="">{LISTS.priceAtStore}</span></>}</small>}
         </span>
         <span className="sr-only"> ({G.newTab})</span>
       </Out>
@@ -145,8 +148,9 @@ export function GiftGuideMyList() {
         <>
           <GiftWishShare name={listName(list)} refs={listRefs(list)} save={saveWishList} signedIn={!!user} />
           {user && syncProblem
-            ? <p className="gg-price-note" role="alert" data-gift-wish-sync-problem="">{syncProblem}</p>
+            ? <p className="gg-price-note" role="alert"><span data-gift-wish-sync-problem="">{syncProblem}</span> <Button type="button" variant="link" size="inline" className="gg-link" onClick={retryWishListSync} data-gift-wish-sync-retry="">{WISH.syncRetry}</Button></p>
             : <p className="gg-price-note" data-gift-wish-where="">{user ? WISH.syncedNote : WISH.deviceNote}</p>}
+          {user && <DeleteMyList />}
           <div className="gg-rowhead"><h3>{WISH.giftsTitle(items.length)}</h3></div>
           {loading && items.length === 0 ? (
             <p className="gg-soon" role="status">{WISH.loading}</p>

@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { EMPTY_PLAN, PLAN_MAX_IDEAS, PLAN_MAX_PEOPLE, cleanPlan, type GiftPlan, type PlanIdea, type PlanPerson } from "@/content/giftGuideFun1120";
-import { loadAccountPlan, saveAccountPlan } from "@/lib/giftGuideFunApi";
 import { PLANNER_KEY, onPlannerCleared } from "@/lib/giftPlannerDevice";
 
 /**
@@ -14,7 +13,9 @@ import { PLANNER_KEY, onPlannerCleared } from "@/lib/giftPlannerDevice";
  * newer of it and the account's wins). Sign-out removes the device copy altogether (clearPlannerDevice, called by
  * src/lib/authSignOut.ts).
  */
-interface DeviceCopy { ownerId: string | null; plan: GiftPlan }
+/** `removed`: ids of people and ideas removed on this device since the last account sync (audit 1121 High: the merge
+ *  keeps this device's removals instead of bringing them back from the account). */
+interface DeviceCopy { ownerId: string | null; plan: GiftPlan; removed?: string[] }
 const NOBODY: DeviceCopy = { ownerId: null, plan: EMPTY_PLAN };
 let stored: DeviceCopy = NOBODY;
 let loaded = false;
@@ -23,7 +24,7 @@ let viewer: string | null | undefined;
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
-function readCopy(): DeviceCopy {
+export function readCopy(): DeviceCopy {
   if (loaded) return stored;
   loaded = true;
   try {
@@ -32,7 +33,10 @@ function readCopy(): DeviceCopy {
     if (!v || typeof v !== "object") stored = NOBODY;
     // A copy saved before owner tags: no owner known, so it counts as a signed-out draft.
     else if ("people" in v) stored = { ownerId: null, plan: cleanPlan(v) };
-    else stored = { ownerId: typeof v.ownerId === "string" ? v.ownerId : null, plan: cleanPlan(v.plan) };
+    else {
+      const gone = (v as { removed?: unknown }).removed;
+      stored = { ownerId: typeof v.ownerId === "string" ? v.ownerId : null, plan: cleanPlan(v.plan), ...(Array.isArray(gone) ? { removed: gone.filter((x): x is string => typeof x === "string").slice(-500) } : {}) };
+    }
   } catch {
     // Storage blocked or the saved value is not ours: an empty planner for this visit.
     stored = NOBODY;
@@ -41,16 +45,16 @@ function readCopy(): DeviceCopy {
 }
 
 /** Whether this copy may be shown to (and merged into) this viewer: a signed-out draft, or the viewer's own. */
-const copyBelongsTo = (ownerId: string | null, who: string | null) => ownerId === null || ownerId === who;
+export const copyBelongsTo = (ownerId: string | null, who: string | null) => ownerId === null || ownerId === who;
 
 /** The plan the viewer may see: nothing until sign-in state is known, nothing that belongs to someone else. */
-function read(): GiftPlan {
+export function read(): GiftPlan {
   const c = readCopy();
   if (viewer === undefined || !copyBelongsTo(c.ownerId, viewer)) return EMPTY_PLAN;
   return c.plan;
 }
 
-function save(next: DeviceCopy) {
+export function save(next: DeviceCopy) {
   stored = next;
   try {
     window.localStorage.setItem(PLANNER_KEY, JSON.stringify(next));
@@ -60,10 +64,14 @@ function save(next: DeviceCopy) {
   notify();
 }
 
-/** A change made by the viewer: stamped, and tagged as theirs. */
-function write(next: GiftPlan) {
-  save({ ownerId: viewer ?? null, plan: { ...next, updatedAt: Date.now() } });
+/** A change made by the viewer: stamped, and tagged as theirs. `gone`: ids it removes (kept for the next account merge). */
+export function write(next: GiftPlan, gone: string[] = []) {
+  // Anything back in the plan (an Undo) is no longer removed.
+  const present = new Set(next.people.flatMap((p) => [p.id, ...p.ideas.map((i) => i.id)]));
+  const removed = [...(readCopy().removed ?? []), ...gone].filter((id) => !present.has(id)).slice(-500);
+  save({ ownerId: viewer ?? null, plan: { ...next, updatedAt: Date.now() }, ...(removed.length ? { removed } : {}) });
 }
+
 
 onPlannerCleared(() => {
   stored = NOBODY;
@@ -129,7 +137,9 @@ export const planActions = {
   }),
   removePerson(id: string) {
     const cur = read();
-    write({ ...cur, people: cur.people.filter((p) => p.id !== id) });
+    const gone = cur.people.find((p) => p.id === id);
+    if (!gone) return;
+    write({ ...cur, people: cur.people.filter((p) => p.id !== id) }, [id, ...gone.ideas.map((i) => i.id)]);
   },
   // The new idea goes through cleanPlan's own rules too (an href only when it is https://). Its id, or null when the
   // person is gone or their list is full.
@@ -182,69 +192,19 @@ export const planActions = {
       }),
     };
   }),
-  removeIdea: (personId: string, ideaId: string) => mapPerson(personId, (p) => ({ ...p, ideas: p.ideas.filter((i) => i.id !== ideaId) })),
+  removeIdea(personId: string, ideaId: string) {
+    const cur = read();
+    const p = cur.people.find((x) => x.id === personId);
+    if (!p || !p.ideas.some((i) => i.id === ideaId)) return;
+    write({ ...cur, people: cur.people.map((x) => (x === p ? { ...x, ideas: x.ideas.filter((i) => i.id !== ideaId) } : x)) }, [ideaId]);
+  },
+  /** Undo a removal (owner 11-21, "Removed · Undo"): the idea goes back where it was, unless the list filled up meanwhile. */
+  restoreIdea: (personId: string, idea: PlanIdea, index: number) => mapPerson(personId, (p) => {
+    if (p.ideas.some((i) => i.id === idea.id) || p.ideas.length >= PLAN_MAX_IDEAS) return p;
+    const at = Math.max(0, Math.min(index, p.ideas.length));
+    return { ...p, ideas: [...p.ideas.slice(0, at), idea, ...p.ideas.slice(at)] };
+  }),
 };
 
-export type SyncState = "device" | "account" | "error";
-
-/**
- * Signed in: load the account copy once and merge it with the device copy (only a signed-out draft or this account's
- * own: another account's copy is dropped, never uploaded), then save each change after 800 ms. Returns where the
- * planner is saved, for the page's one-line note. `authReady` false keeps the planner hidden until the sign-in state
- * is known.
- */
-export function useAccountSync(userId: string | null, authReady: boolean): SyncState {
-  const plan = usePlan();
-  const [state, setState] = useState<SyncState>("device");
-  const ready = useRef<string | null>(null);
-  useEffect(() => {
-    setPlanViewer(authReady ? userId : undefined);
-  }, [userId, authReady]);
-  useEffect(() => {
-    ready.current = null;
-    if (!authReady || !userId) {
-      setState("device");
-      return;
-    }
-    let live = true;
-    loadAccountPlan(userId).then(
-      (remote) => {
-        if (!live) return;
-        const c = readCopy();
-        // Another account's copy left on this device: never merged, never uploaded.
-        const local = copyBelongsTo(c.ownerId, userId) ? c.plan : EMPTY_PLAN;
-        const take = remote && remote.updatedAt > local.updatedAt ? remote : local;
-        save({ ownerId: userId, plan: take });
-        ready.current = userId;
-        setState("account");
-        // This account's device copy (or its signed-out draft) is newer, or the account has none yet: push it up.
-        if (take === local && local.people.length > 0 && (!remote || remote.updatedAt < local.updatedAt)) saveAccountPlan(userId, local).catch((e: unknown) => {
-          console.warn("gift planner: first save failed", e);
-          if (live) setState("error");
-        });
-      },
-      (e: unknown) => {
-        // Could not read the account copy: keep the device copy (shown only if it is this account's) on the device.
-        console.warn("gift planner: load failed", e);
-        if (live) setState("error");
-      },
-    );
-    return () => {
-      live = false;
-    };
-  }, [userId, authReady]);
-  useEffect(() => {
-    if (!userId || ready.current !== userId) return;
-    const t = window.setTimeout(() => {
-      saveAccountPlan(userId, plan).then(
-        () => setState("account"),
-        (e: unknown) => {
-          console.warn("gift planner: save failed", e);
-          setState("error");
-        },
-      );
-    }, 800);
-    return () => window.clearTimeout(t);
-  }, [plan, userId]);
-  return state;
-}
+// The account sync (mergePlans, useAccountSync) and Undo for a removed person live in ./plannerSync.ts: only the lazy
+// Save for someone sheet and the fun pages import it, so no guide page downloads them (critical-path budget, 1121i).

@@ -476,8 +476,9 @@ describe("Declutter location ask", () => {
       const strip = container.querySelector("[data-feed-strip]") as HTMLElement;
       expect(strip).not.toBeNull();
       expect(tabs.contains(strip)).toBe(true);
-      // F073 (UI audit 11-09): a visible search field (pinned open), no longer the square.
-      expect(within(strip).getByRole("searchbox", { name: "Search items" })).toBeInTheDocument();
+      // Owner 11-21 (replaces F073's pinned field): the search is an icon that opens into the field.
+      expect(within(strip).getByRole("button", { name: "Search items" })).toBeInTheDocument();
+      expect(within(strip).queryByRole("searchbox")).toBeNull();
       expect(within(strip).getByRole("button", { name: "Filters" })).toBeInTheDocument();
       const mapToggle = within(strip).getByRole("button", { name: "Hide the map" });
       expect(screen.queryByTestId("declutter-browse-bar")).toBeNull();
@@ -643,7 +644,7 @@ describe("Declutter location ask", () => {
   });
 
   it("a heart on each Browse card (slice 4): over the photo, beside the card link (never inside it), and a tap watches the item", async () => {
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx |                   toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }), |                   toggle: () => undefined,
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | toggle: () => toggleWatch.mutate({ id: item.id, on: !watching.data?.has(item.id) }), | toggle: () => undefined,
     // @mutate src/components/declutter/DeclutterItemCard.tsx |   if (!save) { |   if (true) {
     live.items = [{
       id: "i1", seller_id: "u2", status: "live", title: "Oak Rocking Chair", category: "furniture", condition_stars: 4,

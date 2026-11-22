@@ -29,7 +29,7 @@
  * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosure}</p> | <p data-gift-disclosure="">{null}</p>
  * @mutate src/pages/info/GiftGuides.tsx |       <p data-gift-amazon-statement="">{G.amazonStatement}</p>\n | \n
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
- * @mutate src/pages/info/GiftGuides.tsx | {deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />} | {footer}{deals ? <GiftGuideDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} /> : shared ? <LazySharedList code={code} /> : myList ? <GiftGuideMyList /> : <GiftGuideLanding />}
+ * @mutate src/pages/info/GiftGuides.tsx | {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />} | {footer}{deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   { slug: "him", dot: "green" }, |   { slug: "him", dot: "red" },
@@ -59,7 +59,7 @@
  * @mutate src/content/giftGuideCatalog.ts |     if (g.empty \|\| g.thin) return false; |     if (false) return false;
  * @mutate src/content/giftGuideCatalog.ts | picks: HAS_CHUNK.has(t) ? d.picks : uniqueByHref([...d.picks, ...src.picks]) | picks: HAS_CHUNK.has(t) ? d.picks : [...d.picks, ...src.picks, ...src.picks]
  * @mutate src/content/giftGuides.ts | codes.filter((c) => (!c.expires \|\| c.expires >= today) && | codes.filter((c) => (today === today) &&
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   if (codes.length === 0) return null; |   if (codes.length === 0) return <details data-gift-codes="" />;
+ * @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx |   if (codes.length === 0) return null; |   if (codes.length === 0) return <details data-gift-codes="" />;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {!guide.children && guide.picks.length === 0 && ( | {false && (
  * @mutate src/content/giftGuideCatalog.ts | export const REMOVED_GUIDES = ["last-minute-gifts", | export const REMOVED_GUIDES = ["nothing",
  * @mutate src/pages/info/GiftGuides.tsx | : guide.lead} title={guide.title} titleId="gift-guide-title" | : guide.lead} title={guide.slug} titleId="gift-guide-title"
@@ -90,13 +90,13 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 import GiftGuides from "@/pages/info/GiftGuides";
 import { GiftGuidesBand, GIFT_GUIDES_PATH } from "@/components/landing/GiftGuidesBand";
 import { giftGuides, AFFILIATE_HOSTS, BRAND_SITES, LOUISIANA_SHOPS, SPONSOR_SITES, NATIONAL_SPONSOR_SITES, SHOPMY_COLLECTIONS, discountCodes } from "@/content/giftGuides";
-import { SalesList, liveSales } from "@/pages/info/giftGuides/GiftGuidesSidebar";
+import { SalesList, liveSales } from "@/pages/info/giftGuides/GiftGuideDealsAndCodes";
 import { GIFT_WRAP_JOB_PATH } from "@/pages/info/giftGuides/GiftGuideHelpr";
 import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { DEAL_CODES, type PickChunk } from "@/content/giftGuidePicks";
 import { GUIDES, ROWS, STORES, AMAZON_TAG, KIDS_HUB, MERGED_GUIDES, REMOVED_GUIDES, guidesIn, guideBySlug, loadAllGuidePicks, searchGuides, storeOf, unplacedGuides, STORE_ROW_MIN_PICKS, type CatalogGuide } from "@/content/giftGuideCatalog";
-import { GiftGuideView, PICKS_PAGE, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
+import { GiftGuideView, storeLabel } from "@/pages/info/giftGuides/GiftGuideView";
 import { smsHref } from "@/pages/info/giftGuides/GiftGuideShare";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
@@ -111,6 +111,7 @@ import { giftGuidePageMeta, publicOrGiftGuidePageMetaFor } from "@/lib/giftGuide
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { sponsorPage } from "@/content/sponsorPage";
 import { BLOCKED_BRANDS, blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
+import { openPriceSections } from "./helpers/openPriceSections";
 
 afterEach(cleanup);
 
@@ -126,7 +127,8 @@ const src = (p: string) => blankComments(readFileSync(p, "utf8"));
 
 /** Opens every "Show more" under a long list (50 rows at first as of 2026-11-18, design audit #3), so a check sees every row. */
 const expandAll = (root: HTMLElement) => {
-  for (let b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]"); b; b = root.querySelector<HTMLButtonElement>("[data-gift-more-picks]")) fireEvent.click(b);
+  // Owner 11-21: no Show more any more; the price sections open on a tap (the first is open), so open them all.
+  openPriceSections(root);
   return root;
 };
 const DISCLOSURE = "Some links are affiliate links. We may earn a small share of the sale at no extra cost to you.";
@@ -517,12 +519,14 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       const g = guideBySlug(slug)!;
       const { container } = renderAt(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-gift-words] h1")?.textContent, slug).toBe(`${g.age ? `${g.lead}, ${g.age}` : g.lead} ${g.title}`);
-      // Design audit 2026-11-18 #3: a long list draws 50 rows, then "Show more" adds 50 at a time (store-amazon drew 827).
-      // ... and with six or fewer left it draws them all (design audit r2 #16: "Show more (1 more)").
-      // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const upTo = picks.length - shown <= SHOW_ALL_UNDER ? picks.length : shown; |   const upTo = picks.length;
-      expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(g.picks.length - PICKS_PAGE <= 6 ? g.picks.length : PICKS_PAGE);
-      expandAll(container);
+      // Owner 2026-11-21: "Remove show more just list everything." Every gift is drawn at once, with no Show more button
+      // (was 50 rows, then 50 more per tap); off-screen cards skip their paint (content-visibility) and photos load lazily.
+      // @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const upTo = picks.length;\n |   const upTo = Math.min(picks.length, 50);\n
+      // Owner 11-21 (first price section open, the rest a tap away): every gift once each section is opened.
+      openPriceSections(container);
       expect(container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]").length, slug).toBe(g.picks.length);
+      expect(container.querySelector("[data-gift-more-picks]"), slug).toBeNull();
+      expect(container.textContent, slug).not.toMatch(/Show more \(/);
       // Owner 11-18 PM ("double back button?? does the same thing"): one way back, the header's arrow, to All guides.
       expect(container.querySelector("a[data-gift-back]"), slug).toBeNull();
       expect(container.querySelector("[data-gift-back-to]")?.getAttribute("data-gift-back-to"), slug).toBe("/gift-guides");
@@ -823,7 +827,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
     expect(checked).toBeGreaterThan(20);
   });
 
-  // @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href))); |   return sales.filter((x) => x.ends >= today);
+  // @mutate src/pages/info/giftGuides/GiftGuideDealsAndCodes.tsx |   return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href))); |   return sales.filter((x) => x.ends >= today);
   it("#10 Sales: one line per link, the first 12, then See all sales", () => {
     const dup = { slug: "store-walmart", store: "Walmart", offer: "x", href: "https://walmrt.us/x", ends: "2099-01-01" };
     expect(liveSales([dup, { ...dup }], "2026-11-18")).toHaveLength(1);
@@ -847,10 +851,12 @@ describe("gift guides: design audit round 2 UI fixes", () => {
       expect(container.querySelectorAll("[data-gift-quick]").length, url).toBe(1);
       expect(quick, url).not.toBeNull();
       expect(quick.getAttribute("aria-label"), url).toBe("Gift guide tools");
-      expect(quick.querySelector("input[type=search][aria-label='Search gift guides']"), url).not.toBeNull();
+      // Owner 11-21 ("make search an icon always"): the search is a magnifier icon (no field until tapped).
+      expect(quick.querySelector("input"), url).toBeNull();
       const controls = [...quick.querySelectorAll("a, button")].filter((el) => !el.closest("[data-gift-search-results]"));
       // Owner 11-21: an owner-list guide (Mom is Her's view) adds the Sort by price menu to the tool row.
-      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(url === "/gift-guides/mom" ? ["Sort by price", "My Wish List, 0 saved", "Share"] : ["My Wish List, 0 saved", "Share"]);
+      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(url === "/gift-guides/mom" ? ["Search gift guides", "Sort by price", "My Wish List, 0 saved", "Share"] : ["Search gift guides", "My Wish List, 0 saved", "Share"]);
+      expect(controls[0].className, url).toMatch(/\bgg-icon\b/);
       const share = controls[controls.length - 1];
       // Icons only: 44px tap targets (RoundIconButton w-11 h-11; .gg-icon 44px), and no visible words.
       expect(share.className, url).toMatch(/\bw-11\b.*\bh-11\b/);

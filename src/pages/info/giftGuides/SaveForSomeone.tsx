@@ -1,24 +1,23 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { Dialog, DialogAcknowledgeAction, DialogContent, DialogFooter, DialogHero } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RoundIconButton } from "@/components/ui/RoundIconButton";
-import { storeOf } from "@/content/giftGuideCatalog";
 import { WISH } from "@/content/giftWishList";
+import { LISTS } from "@/content/giftListsManage";
 import { dollars, parseDollars, type GiftPlan, type PlanPerson } from "@/content/giftGuideFun1120";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareGiftLists } from "@/lib/giftWishListApi";
-import { planActions, useAccountSync, usePlan } from "./fun/plannerStore";
-import { PickThumb } from "./GiftGuideView";
+import { planActions, usePlan } from "./fun/plannerStore";
+import { useAccountSync } from "./fun/plannerSync";
 import { GiftWishShare } from "./GiftWishShare";
-import { AmazonCartForList } from "./AmazonCartButton";
-import { AnyStoreAdd } from "./AnyStoreAdd";
 import { useOurLinkSync } from "./wishLinkSync";
-import { MY_LIST_SLUG, isSaved, itemId, togglePick, useGiftList } from "./giftList";
+import { isSaved, itemId, togglePick, useGiftList } from "./giftList";
+import { ListLine, ListTools, MyWishList, PersonList, useMeTotal } from "./ManageList";
+import { successToast } from "@/lib/toast";
 import { heartTapped } from "./GiftGuideHints";
-import { allTotals, closeSaveFor, listTotal, onPersonList, privateIdeas, shareListOf, togglePersonItem, useSaveForHost, useSaveForRequest, type SaveItem } from "./saveForPeople";
+import { allTotals, closeMyLists, closeSaveFor, onPersonList, openMyLists, privateIdeas, shareListOf, togglePersonItem, useMyListsTarget, useSaveForHost, useSaveForRequest, type SaveItem } from "./saveForPeople";
 
 /**
  * Save for someone + My lists (owner 2026-11-21: "save items per person, like add a list or something, and it shows the
@@ -29,45 +28,66 @@ import { allTotals, closeSaveFor, listTotal, onPersonList, privateIdeas, shareLi
  *     (a name, an optional budget) adds someone and saves the gift for them;
  *   - the "My lists" pill (fixed: bottom centre on a phone, bottom right on a desktop, clear of the guide tool row) with the total across the lists, opening a
  *     panel of each list (gifts, total, budget, remove), Share for a list, "Share all my lists" and "Open planner".
+ *   - managing a list (owner 2026-11-21, "How do they edit or remove items in the list or delete the list?"): each
+ *     picker row shows its total against the budget ("$36.75 left of $100" / "$63.25 over your $100"), says when the
+ *     gift is on it (tap again to take it off) and has "View list"; Done says "Saved for <name> · View list"; the
+ *     guides' heart opens My lists too. A list's sheet (ManageList.tsx): Remove + Undo, Edit name and budget, Share,
+ *     Delete list (confirmed); "Me": Remove + Undo and Clear list. Guard: src/test/saveForManage1121.test.tsx.
  * The lists are the gift planner's people (plannerStore.ts), so the planner shows the same gifts. Signed in, the
  * planner's account copy is loaded first and nothing is written before it is (as the swipe page). The shared Dialog is
  * a bottom sheet on a phone and a card on a desktop. Guard: src/test/savePerPerson1121.test.tsx.
  */
 const money = (n: number) => (n > 0 ? dollars(n) : null);
-const summary = (gifts: number, amount: number) => WISH.listCount(gifts, money(amount));
+const summary = (gifts: number, amount: number, unpriced: number) => WISH.listCount(gifts, money(amount), unpriced);
 
-function PersonRow({ p, item, ready }: { p: PlanPerson; item: SaveItem; ready: boolean }) {
+// Owner 11-21 ("How do they edit or remove items ... I entered the budget as 100 but it doesn't say how much I have
+// left"): each row shows the list's total against its budget, says when this gift is on it (tap again to take it off),
+// and (owner 11-21, "Add an open icon in the box ... same for edit and delete") its own Open, Edit and Delete icons
+// in the same box. `onAdded`: told when the tap put the gift on a list.
+function PersonRow({ p, item, ready, onAdded }: { p: PlanPerson; item: SaveItem; ready: boolean; onAdded: (id: string, name: string) => void }) {
   const plan = usePlan();
   const [full, setFull] = useState(false);
   const on = onPersonList(p, item.href);
-  const t = listTotal(p);
+  const tap = () => {
+    const r = togglePersonItem(plan, p.id, item);
+    setFull(r === "full");
+    if (r === "added") onAdded(p.id, p.name);
+  };
   return (
     <li>
-      <Button type="button" variant="ghost" size="inline" className="gg-savefor-row justify-start whitespace-normal text-left font-normal tracking-normal" aria-pressed={on} disabled={!ready} data-savefor-person={p.id}
-        aria-label={on ? WISH.saveForUnpick(p.name, item.name) : WISH.saveForPick(p.name, item.name)}
-        onClick={() => setFull(togglePersonItem(plan, p.id, item) === "full")}>
-        <span className="gg-savefor-nm"><b>{p.name}</b><small data-savefor-total={p.id}>{summary(t.gifts, t.amount)}</small></span>
-        <span className="gg-savefor-check" aria-hidden="true">{on ? "✓" : "+"}</span>
-      </Button>
+      <div className="gg-savefor-box" data-on={on ? "" : undefined}>
+        <Button type="button" variant="ghost" size="inline" className="gg-savefor-row justify-start whitespace-normal text-left font-normal tracking-normal" aria-pressed={on} disabled={!ready} data-savefor-person={p.id}
+          aria-label={on ? WISH.saveForUnpick(p.name, item.name) : WISH.saveForPick(p.name, item.name)} onClick={tap}>
+          <span className="gg-savefor-nm">
+            <b>{p.name}</b>
+            <small data-savefor-total={p.id}><ListLine p={p} /></small>
+            {on && <small className="gg-savefor-on" data-savefor-on={p.id}>{WISH.onListHint}</small>}
+          </span>
+          <span className="gg-savefor-check" aria-hidden="true">{on ? "✓" : "+"}</span>
+        </Button>
+        <ListTools p={p} ready={ready} onOpen={() => { closeSaveFor(); openMyLists(p.id); }} />
+      </div>
       {full && <p className="gg-price-note" role="alert">{WISH.saveForFull}</p>}
     </li>
   );
 }
 
-function AddPerson({ item, ready }: { item: SaveItem; ready: boolean }) {
+function AddPerson({ item, ready, onAdded }: { item: SaveItem; ready: boolean; onAdded: (id: string, name: string) => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [budget, setBudget] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !ready) return;
+    if (!ready) return;
+    if (!name.trim()) return setErr(LISTS.nameFirst);
     const b = budget.trim() ? parseDollars(budget) : undefined;
     if (budget.trim() && b === undefined) return setErr("Type an amount like 25 or 25.50.");
     const id = planActions.addPerson(name.trim());
-    if (!id) return;
+    if (!id) return setErr(LISTS.peopleFull);
     if (b !== undefined) planActions.setBudget(id, b);
     planActions.addIdea(id, { name: item.name, href: item.href, ...(item.guide ? { guide: item.guide } : {}), ...(item.image ? { image: item.image } : {}), ...(item.price !== undefined ? { price: item.price } : {}) });
+    onAdded(id, name.trim());
     setName("");
     setBudget("");
     setErr(null);
@@ -78,10 +98,11 @@ function AddPerson({ item, ready }: { item: SaveItem; ready: boolean }) {
   }
   return (
     <form className="gg-savefor-form" onSubmit={submit} data-savefor-form="">
-      <Input aria-label={WISH.saveForName} placeholder={WISH.saveForName} value={name} maxLength={40} autoFocus onChange={(e) => setName(e.target.value)} data-savefor-name="" />
+      <Input aria-label={WISH.saveForName} placeholder={WISH.saveForName} value={name} maxLength={40} autoFocus aria-invalid={err === LISTS.nameFirst || undefined}
+        aria-describedby={err ? "gg-savefor-add-err" : undefined} onChange={(e) => { setName(e.target.value); if (err === LISTS.nameFirst) setErr(null); }} data-savefor-name="" />
       <Input aria-label={WISH.saveForBudget} placeholder={WISH.saveForBudget} inputMode="decimal" value={budget} onChange={(e) => setBudget(e.target.value)} data-savefor-budget="" />
       <Button type="submit" className="btn-grad-primary" data-savefor-add-submit="">{WISH.saveForAddButton}</Button>
-      {err && <p className="gg-price-note" role="alert">{err}</p>}
+      {err && <p id="gg-savefor-add-err" className="gg-price-note" role="alert" data-savefor-add-err="">{err}</p>}
     </form>
   );
 }
@@ -90,8 +111,26 @@ function Picker({ item, ready }: { item: SaveItem | null; ready: boolean }) {
   const plan = usePlan();
   const list = useGiftList();
   const onMine = item ? isSaved(list, itemId(item.href)) : false;
+  // Owner 11-21: after Done, "Saved for Zander · View list" (the lists this gift went on while the sheet was open).
+  const saved = useRef(new Map<string, string>());
+  useEffect(() => {
+    saved.current = new Map();
+  }, [item?.href]);
+  const added = (id: string, name: string) => saved.current.set(id, name);
+  const close = () => {
+    const s = [...saved.current];
+    if (s.length > 0) {
+      successToast(WISH.savedFor(s.map(([, n]) => n).join(", ")), { action: { label: WISH.viewList, onClick: () => { openMyLists(s.length === 1 ? s[0][0] : null); } } });
+    }
+    closeSaveFor();
+  };
+  const tapMine = (gift: SaveItem) => {
+    const r = togglePick({ href: gift.href, name: gift.name, ...(gift.guide ? { guide: gift.guide } : {}) });
+    heartTapped(r, true);
+    if (r === "added") added("me", WISH.myWishListName);
+  };
   return (
-    <Dialog open={item !== null} onOpenChange={(o) => { if (!o) closeSaveFor(); }}>
+    <Dialog open={item !== null} onOpenChange={(o) => { if (!o) close(); }}>
       <DialogContent data-savefor-picker="">
         <DialogHero title={WISH.saveForTitle} />
         {item && (
@@ -100,16 +139,21 @@ function Picker({ item, ready }: { item: SaveItem | null; ready: boolean }) {
             {!ready && <p className="gg-price-note" role="status">{WISH.saveForLoading}</p>}
             <ul className="gg-savefor-list">
               <li>
-                <Button type="button" variant="ghost" size="inline" className="gg-savefor-row justify-start whitespace-normal text-left font-normal tracking-normal" aria-pressed={onMine} data-savefor-me=""
-                  aria-label={onMine ? WISH.removeLabel(item.name) : WISH.saveLabel(item.name)}
-                  onClick={() => heartTapped(togglePick({ href: item.href, name: item.name, ...(item.guide ? { guide: item.guide } : {}) }))}>
-                  <span className="gg-savefor-nm"><b>{WISH.saveForMe}</b><small>{WISH.saveForMeSub(list.picks.length)}</small></span>
-                  <span className="gg-savefor-check" aria-hidden="true">{onMine ? "✓" : "+"}</span>
-                </Button>
+                <div className="gg-savefor-box" data-on={onMine ? "" : undefined}>
+                  <Button type="button" variant="ghost" size="inline" className="gg-savefor-row justify-start whitespace-normal text-left font-normal tracking-normal" aria-pressed={onMine} data-savefor-me=""
+                    aria-label={onMine ? WISH.removeLabel(item.name) : WISH.saveLabel(item.name)} onClick={() => tapMine(item)}>
+                    <span className="gg-savefor-nm">
+                      <b>{WISH.saveForMe}</b><small>{WISH.saveForMeSub(list.picks.length)}</small>
+                      {onMine && <small className="gg-savefor-on">{WISH.onListHint}</small>}
+                    </span>
+                    <span className="gg-savefor-check" aria-hidden="true">{onMine ? "✓" : "+"}</span>
+                  </Button>
+                  <ListTools ready={ready} onOpen={() => { closeSaveFor(); openMyLists("me"); }} />
+                </div>
               </li>
-              {plan.people.map((p) => <PersonRow key={p.id} p={p} item={item} ready={ready} />)}
+              {plan.people.map((p) => <PersonRow key={p.id} p={p} item={item} ready={ready} onAdded={added} />)}
             </ul>
-            <AddPerson item={item} ready={ready} />
+            <AddPerson item={item} ready={ready} onAdded={added} />
           </div>
         )}
         <DialogFooter>
@@ -117,44 +161,6 @@ function Picker({ item, ready }: { item: SaveItem | null; ready: boolean }) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-/** One person's list in the My lists panel: its gifts, total, budget, remove buttons and Share. */
-function PanelList({ p, ready }: { p: PlanPerson; ready: boolean }) {
-  const t = listTotal(p);
-  const share = shareListOf(p);
-  return (
-    <section className="gg-mylists-person" aria-label={p.name} data-mylists-person={p.id}>
-      <div className="gg-mylists-head">
-        <b>{p.name}</b>
-        <span data-mylists-total={p.id}>{summary(t.gifts, t.amount)}</span>
-      </div>
-      {p.budget !== undefined && (
-        <p className="gg-mylists-budget" data-mylists-budget={p.id}>
-          {t.amount > p.budget ? WISH.listOver(dollars(Math.round((t.amount - p.budget) * 100) / 100)) : WISH.listBudget(dollars(t.amount), dollars(p.budget))}
-        </p>
-      )}
-      {p.ideas.length === 0 ? <p className="gg-price-note">{WISH.listEmpty}</p> : (
-        <ul className="gg-mylists-items">
-          {p.ideas.map((i) => (
-            <li key={i.id} data-mylists-item={i.id}>
-              {i.image ? <PickThumb pick={{ name: i.name, href: i.href ?? "", store: i.href ? storeOf(i.href) : "", image: i.image }} size={40} /> : <span className="gg-mylists-noimg" aria-hidden="true" />}
-              <span className="gg-mylists-name">{i.name}</span>
-              {i.price !== undefined && <span className="gg-mylists-price">{dollars(i.price)}</span>}
-              <RoundIconButton className="gg-fun-x" aria-label={WISH.listRemove(i.name, p.name)} disabled={!ready} onClick={() => planActions.removeIdea(p.id, i.id)} data-mylists-remove={i.id}>
-                <span aria-hidden="true">×</span>
-              </RoundIconButton>
-            </li>
-          ))}
-        </ul>
-      )}
-      <AnyStoreAdd person={p} disabled={!ready} />
-      <AmazonCartForList person={p} />
-      {share.items.length > 0 && (
-        <GiftWishShare name={p.name} refs={share.items} label={WISH.shareThisList} message={WISH.shareListsMessage} hint={false} quiet save={() => shareGiftLists([share])} />
-      )}
-    </section>
   );
 }
 
@@ -173,21 +179,27 @@ export function ShareAllLists({ plan }: { plan: GiftPlan }) {
   );
 }
 
-function Panel({ open, onOpenChange, ready }: { open: boolean; onOpenChange: (o: boolean) => void; ready: boolean }) {
+// Owner 11-21: My lists, every list (the pill, the guides' heart) or one ("View list", the "Saved for" toast), each with
+// everything to manage it (ManageList.tsx). A person deleted while their own sheet is open shows every list instead.
+function Panel({ only, ready }: { only: string | null | undefined; ready: boolean }) {
   const plan = usePlan();
-  const list = useGiftList();
+  const open = only !== undefined;
   // Owner 11-21: gifts from any store switch to our link once we made it (asked when the panel opens).
   useOurLinkSync(plan, open && ready);
+  const one = only && only !== "me" ? plan.people.find((p) => p.id === only) : undefined;
+  const all = !only || (only !== "me" && !one);
+  const leave = () => closeMyLists();
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-mylists-panel="">
-        <DialogHero title={WISH.myLists} />
+    <Dialog open={open} onOpenChange={(o) => { if (!o) closeMyLists(); }}>
+      <DialogContent data-mylists-panel={all ? "" : only}>
+        <DialogHero title={one ? WISH.listOf(one.name) : only === "me" ? WISH.myWishListName : WISH.myLists} />
         <div className="gg gg-savefor">
-          {plan.people.map((p) => <PanelList key={p.id} p={p} ready={ready} />)}
-          <ShareAllLists plan={plan} />
+          {(all || only === "me") && <MyWishList onLeave={leave} />}
+          {(all ? plan.people : one ? [one] : []).map((p) => <PersonList key={p.id} p={p} ready={ready} />)}
+          {all && <ShareAllLists plan={plan} />}
           <p className="gg-mylists-links">
-            <Link to={`/gift-guides/${MY_LIST_SLUG}`} className="gg-link" onClick={() => onOpenChange(false)} data-mylists-wish="">{WISH.saveForMe}: {WISH.saveForMeSub(list.picks.length)} ›</Link>
-            <Link to="/gift-guides/planner" className="gg-link" onClick={() => onOpenChange(false)} data-mylists-planner="">{WISH.openPlanner} ›</Link>
+            {!all && <Button type="button" variant="link" size="inline" className="gg-link" onClick={() => openMyLists(null)} data-mylists-all="">{WISH.myLists} ›</Button>}
+            <Link to="/gift-guides/planner" className="gg-link" onClick={leave} data-mylists-planner="">{WISH.openPlanner} ›</Link>
           </p>
         </div>
         <DialogFooter>
@@ -206,15 +218,18 @@ export function SaveForSomeone() {
   const ready = isReady && (!user || sync !== "device");
   const item = useSaveForRequest();
   const plan = usePlan();
-  const [panel, setPanel] = useState(false);
-  const total = allTotals(plan);
-  const text = summary(total.gifts, total.amount);
+  const target = useMyListsTarget();
+  const others = allTotals(plan);
+  // Holiday audit 1121 (#10): the pill counts every list, My Wish List ("Me") included.
+  const me = useMeTotal(useGiftList().picks);
+  const total = { gifts: others.gifts + me.gifts, amount: Math.round((others.amount + me.amount) * 100) / 100, unpriced: others.unpriced + me.unpriced };
+  const text = summary(total.gifts, total.amount, total.unpriced);
   return (
     <>
       <Picker item={item} ready={ready} />
-      <Panel open={panel} onOpenChange={setPanel} ready={ready} />
+      <Panel only={target ? target.only : undefined} ready={ready} />
       {total.gifts > 0 && typeof document !== "undefined" && createPortal(
-        <Button type="button" size="sm" className="gg-mylists-pill" aria-haspopup="dialog" aria-label={WISH.myListsOpen(text)} onClick={() => setPanel(true)} data-mylists-pill="">
+        <Button type="button" size="sm" className="gg-mylists-pill" aria-haspopup="dialog" aria-label={WISH.myListsOpen(text)} onClick={() => openMyLists(null)} data-mylists-pill="">
           <b>{WISH.myLists}</b><span data-mylists-pill-total="">{text}</span>
         </Button>,
         document.body,
@@ -255,4 +270,5 @@ export const SAVE_FOR_CSS = `
 .gg-mylists-pill{position:fixed;z-index:40;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom) + var(--bottom-nav-h, 0px));display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border:0;border-radius:999px;font:600 14px Montserrat,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer;white-space:nowrap}
 .gg-mylists-pill:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:2px}
 @media (min-width:1024px){.gg-mylists-pill{left:auto;right:24px;transform:none}}
+.gg-savefor-nm .gg-savefor-on{color:hsl(var(--bark));font-weight:600}
 `;

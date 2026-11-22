@@ -272,8 +272,8 @@ const INFO_PAGES = {
   },
   "/gift-guides/printables": {
     name: "Free printables",
-    h1: "Free printable Christmas gift tags with names",
-    intro: "Pick a gift tag design, type the To and From names, and print a sheet of 9 or 10 tags with cut lines at home. Free, with no sign-up, and nothing is saved.",
+    h1: "Free holiday printables",
+    intro: "Christmas gift tags with names (pick a design, type the To and From names, print a sheet of 9 or 10 with cut lines), two Christmas coloring books and a Happy Thanksgiving banner. Free, with no sign-up, and nothing is saved.",
     links: [["/gift-guides", "Holiday gift guides"], ["/gift-guides/gift-wrap-and-cards", "Gift wrap and card ideas"]],
   },
   "/shop-small": {
@@ -318,7 +318,7 @@ const INFO_PAGES = {
     name: TWENTY_FIVE_DAYS.name,
     h1: "25 Days of Louisiana Giveaways: December 1–25, 2026",
     intro:
-      "Every day from December 1 to December 25, 2026, Louisiana businesses give away gifts to Louisiana neighbors on Louisiana Helpr. It is free to enter. How to enter and the official rules are on the Louisiana Helpr Facebook post (owner 2026-11-21: all the rules are on Facebook, not the website).",
+      "Every day from December 1 to December 25, 2026, Louisiana businesses give away gifts to Louisiana neighbors on Louisiana Helpr. It is free to enter. How to enter and the official rules are on the Louisiana Helpr Facebook post.",
     links: [["/sponsor", "Become a sponsor"], ["/gift-guides", "Holiday gift guides"], ["/declutter", "Declutter"]],
   },
 };

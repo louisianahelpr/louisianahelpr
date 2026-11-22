@@ -326,12 +326,17 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/pins/zoom-108628018-1795247257926-LSU_Flask_Primary_LowRes.jpg", "sb-lsu-flask-4354f0.webp"],
   // yeti crossroads 22l backpack, alpine brown
   ["https://static.shopmy.us/uploads/pretty-prod-1758467247287", "yeti-crossroads-22l-alpine-brown-468ab3.webp"],
-  // owner 11-22 kids tech: PlayStation 5 Digital Edition (target.com photo, on white)
-  ["https://target.scene7.com/is/image/Target/GUEST_c12714d1-b136-41c9-9b43-5579ff0c08f8", "playstation-5-digital-edition-target-251c36.webp"],
   ["https://assets.wfcdn.com/im/01322405/compr-r85/2562/256287082/Step2+Up+&+Down+Platinum+Edition+Kids+Outdoor+Roller+Coaster.jpg", "step2-up-down-roller-coaster-wayfair-a1.webp"],
   ["https://assets.wfcdn.com/im/04010235/compr-r85/1549/154922896/Step2+Play+&+Shade+Pool+with+Umbrella.jpg", "step2-play-shade-pool-wayfair-a2.webp"],
   ["https://assets.wfcdn.com/im/06003087/compr-r85/2642/26426235/Step2+Naturally+Playful+Kids+Rectangle+Picnic+Table+with+Umbrella.jpg", "step2-picnic-table-umbrella-wayfair-a3.webp"],
   ["https://assets.wfcdn.com/im/91322669/compr-r85/3379/337962490/Step2+Play+and+Fold+Jr.+Slide+and+Outdoor+Climber+for+Toddlers.jpg", "step2-play-fold-jr-slide-wayfair-a4.webp"],
+  ["https://assets.wfcdn.com/im/24091129/compr-r85/2504/250478864/Step2+Crabbie+Sandbox+Plastic+Toddler+Outdoor+Sand+Box+with+Cover.jpg", "step2-crabbie-sandbox-wayfair-b1.webp"],
+  ["https://assets.wfcdn.com/im/07610885/compr-r85/2501/250137763/Step2+Infant+Plastic+Bucket+Swing.jpg", "step2-infant-bucket-swing-wayfair-b2.webp"],
+  ["https://assets.wfcdn.com/im/81918077/compr-r85/2501/250137563/Step2+Wagon+for+Two+Blue+2+Seat+Toddler+Outdoor+Riding+Toy.jpg", "step2-wagon-for-two-wayfair-b3.webp"],
+  ["https://assets.wfcdn.com/im/11517987/compr-r85/2502/250235023/Step2+All+Around+Red+Easel+for+Two+Folding+Board+Easel.jpg", "step2-all-around-easel-wayfair-b4.webp"],
+  ["https://assets.wfcdn.com/im/45408439/compr-r85/2500/250031609/Step2+Panda+Climber+Outdoor+Climbing+Toy+for+Toddlers.jpg", "step2-panda-climber-wayfair-b5.webp"],
+  ["https://assets.wfcdn.com/im/96916567/compr-r85/2500/250033102/Step2+Gray+2-in-1+Toy+Box.jpg", "step2-2in1-toy-box-wayfair-b6.webp"],
+  ["https://slimages.macysassets.com/is/image/MCY/products/7/optimized/26752727_fpx.tif", "play22usa-10ft-hoop-macys-b7.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).

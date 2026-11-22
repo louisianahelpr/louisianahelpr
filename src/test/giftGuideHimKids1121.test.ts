@@ -47,8 +47,7 @@ const SWITCHED: Record<string, Record<string, string>> = {
     "https://go.shopmy.us/p-109155269": "store-eadem",
     // Owner via the lead, 11-22: both Yoto 4th Gen bundles (Ms. Rachel, Bluey).
     "https://go.shopmy.us/p-109156467": "store-yoto", "https://go.shopmy.us/p-109156399": "store-yoto",
-    // Owner 11-22 kids tech (builder-guide-adds-kids): PlayStation 5 at target.com.
-    "https://www.target.com/p/playstation-5-console-digital-edition/-/A-94961316": "store-target" },
+  },
 };
 /**
  * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and
@@ -79,7 +78,8 @@ const SAVES: Record<string, Record<string, string>> = {
     // Rate switch 11-21 night: the Jumbo Cardboard Blocks moved from Wayfair p-108632086 (11%) to Macy's p-109002741 (16%), $32.99.
     ...sm(["109002741"], "store-macys"),
     // Owner 11-22 play saves (builder-guide-adds-kids).
-    ...sm(["109160969", "109160922", "109160891", "109160773"], "store-wayfair"),
+    ...sm(["109160969", "109160922", "109160891", "109160773", "109160887", "109160813", "109160795", "109160719", "109160708", "109160660"], "store-wayfair"),
+    ...sm(["109160077"], "store-macys"),
   },
 };
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug] });

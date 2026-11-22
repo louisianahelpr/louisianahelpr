@@ -321,9 +321,9 @@ export const KIDS_SHOPMY_1121 = [
   // now $34.99); the same 24-piece box at Macy's at 16% (p-109002741), $32.99. Same box photo.
   ["109002741", 32.99, "https://assets.wfcdn.com/im/03058393/compr-r85/1765/176593778/24+Piece+Melissa+%26+Doug+Jumbo+Cardboard+Blocks+Learning+Tools.jpg", "Melissa & Doug Jumbo Cardboard Blocks, 24 Pieces", "Melissa & Doug", "store-macys", "blocks", 16, "Big cardboard bricks for towers and forts."],
   ["108632059", 74.99, "https://assets.wfcdn.com/im/70136508/compr-r85/8084/80848886/7.5+in.+Club+Chair+Kids+Club+Chair-38254990.jpg", "Melissa & Doug Kids Club Chair", "Melissa & Doug", "store-wayfair", "chair", 11, "A little upholstered club chair just their size."],
-  ["108632004", 23.49, "https://slimages.macysassets.com/is/image/MCY/products/2/optimized/1779252_fpx.tif?wid=1000&fmt=jpeg", "Melissa & Doug Wooden Doorbell House", "Melissa & Doug", "store-macys", "pretend-play", 16, "A lock-and-key doorbell house with little dolls."],
-  ["108631991", 43.49, "https://slimages.macysassets.com/is/image/MCY/products/5/optimized/8290245_fpx.tif?wid=1000&fmt=jpeg", "Melissa & Doug Double-Sided Magnetic Tabletop Easel", "Melissa & Doug", "store-macys", "art", 16, "A tabletop easel with a chalkboard and a dry-erase side."],
-  ["108631978", 17.99, "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1836568_fpx.tif?wid=1000&fmt=jpeg", "Melissa & Doug Pull-Back Vehicle Toys", "Melissa & Doug", "store-macys", "car-toy", 16, "Soft pull-back cars that zoom across the floor."],
+  ["108632004", 23.49, "https://slimages.macysassets.com/is/image/MCY/products/2/optimized/1779252_fpx.tif", "Melissa & Doug Wooden Doorbell House", "Melissa & Doug", "store-macys", "pretend-play", 16, "A lock-and-key doorbell house with little dolls."],
+  ["108631991", 43.49, "https://slimages.macysassets.com/is/image/MCY/products/5/optimized/8290245_fpx.tif", "Melissa & Doug Double-Sided Magnetic Tabletop Easel", "Melissa & Doug", "store-macys", "art", 16, "A tabletop easel with a chalkboard and a dry-erase side."],
+  ["108631978", 17.99, "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/1836568_fpx.tif", "Melissa & Doug Pull-Back Vehicle Toys", "Melissa & Doug", "store-macys", "car-toy", 16, "Soft pull-back cars that zoom across the floor."],
 ].map(shop);
 
 /**
@@ -350,17 +350,19 @@ export const KIDS_AMAZON_MORE_1121 = [
   ["B0DDLZV8YM", 23.73, "51VHRxyCCdL", "Magic Gel Water Pets Kit", "", "craft", 3, "Make little gel water pets that come to life."],
 ].map((r) => (Array.isArray(r) ? row(r) : r));
 
-/** Owner 11-22 kids tech, store-page links (builder-guide-adds-kids): price checked on target.com 11-22; no ShopMy pin yet. */
-const KIDS_TECH_DIRECT_1122 = [
-  { name: "PlayStation 5 Console, Digital Edition", brand: "Sony", line: "The console every kid is asking for, ready for games and streaming.", href: "https://www.target.com/p/playstation-5-console-digital-edition/-/A-94961316", image: "https://target.scene7.com/is/image/Target/GUEST_c12714d1-b136-41c9-9b43-5579ff0c08f8", store: "store-target", sortPrice: 599.99, price: 599.99, priceAt: "2026-11-22", commission: 0, type: "game-console" },
-];
-
 // owner 11-22 kids play saves (builder-guide-adds-kids): her ShopMy play pins, prices read from the store pages 11-22.
 export const KIDS_PLAY_1122 = [
   ["109160969", 134.99, "https://assets.wfcdn.com/im/01322405/compr-r85/2562/256287082/Step2+Up+&+Down+Platinum+Edition+Kids+Outdoor+Roller+Coaster.jpg", "Step2 Up & Down Roller Coaster", "Step2", "store-wayfair", "backyard-play", 11, "A backyard roller coaster that rolls up and down on its own track."],
   ["109160922", 96.99, "https://assets.wfcdn.com/im/04010235/compr-r85/1549/154922896/Step2+Play+&+Shade+Pool+with+Umbrella.jpg", "Step2 Play & Shade Pool", "Step2", "store-wayfair", "backyard-play", 11, "A kiddie pool with its own shade umbrella."],
   ["109160891", 130.99, "https://assets.wfcdn.com/im/06003087/compr-r85/2642/26426235/Step2+Naturally+Playful+Kids+Rectangle+Picnic+Table+with+Umbrella.jpg", "Step2 Picnic Table with Umbrella", "Step2", "store-wayfair", "backyard-play", 11, "A kid-size picnic table with shade for snacks and crafts outside."],
   ["109160773", 74.99, "https://assets.wfcdn.com/im/91322669/compr-r85/3379/337962490/Step2+Play+and+Fold+Jr.+Slide+and+Outdoor+Climber+for+Toddlers.jpg", "Step2 Play & Fold Jr. Slide and Climber", "Step2", "store-wayfair", "backyard-play", 11, "A toddler slide and climber that folds flat to store."],
+  ["109160887", 194.99, "https://assets.wfcdn.com/im/24091129/compr-r85/2504/250478864/Step2+Crabbie+Sandbox+Plastic+Toddler+Outdoor+Sand+Box+with+Cover.jpg", "Step2 Crabbie Sandbox with Cover", "Step2", "store-wayfair", "backyard-play", 11, "A crab-shaped sandbox with a cover to keep the sand clean."],
+  ["109160813", 47.99, "https://assets.wfcdn.com/im/07610885/compr-r85/2501/250137763/Step2+Infant+Plastic+Bucket+Swing.jpg", "Step2 Infant Bucket Swing", "Step2", "store-wayfair", "backyard-play", 11, "A snug bucket swing for the littlest ones."],
+  ["109160795", 98.99, "https://assets.wfcdn.com/im/81918077/compr-r85/2501/250137563/Step2+Wagon+for+Two+Blue+2+Seat+Toddler+Outdoor+Riding+Toy.jpg", "Step2 Wagon for Two", "Step2", "store-wayfair", "backyard-play", 11, "A two-seat wagon for pulling a friend around the yard."],
+  ["109160719", 49.99, "https://assets.wfcdn.com/im/11517987/compr-r85/2502/250235023/Step2+All+Around+Red+Easel+for+Two+Folding+Board+Easel.jpg", "Step2 All Around Easel for Two", "Step2", "store-wayfair", "backyard-play", 11, "A folding easel with room for two artists."],
+  ["109160708", 153.99, "https://assets.wfcdn.com/im/45408439/compr-r85/2500/250031609/Step2+Panda+Climber+Outdoor+Climbing+Toy+for+Toddlers.jpg", "Step2 Panda Climber", "Step2", "store-wayfair", "backyard-play", 11, "A panda-shaped climber and slide for toddlers."],
+  ["109160660", 72.99, "https://assets.wfcdn.com/im/96916567/compr-r85/2500/250033102/Step2+Gray+2-in-1+Toy+Box.jpg", "Step2 2-in-1 Toy Box and Art Lid", "Step2", "store-wayfair", "backyard-play", 11, "A toy box whose lid flips into a drawing table."],
+  ["109160077", 229.99, "https://slimages.macysassets.com/is/image/MCY/products/7/optimized/26752727_fpx.tif", "PLAY22USA 10 ft Adjustable Basketball Hoop", "PLAY22USA", "store-macys", "sports", 16, "An adjustable driveway hoop that grows with them up to 10 ft."],
 ].map((r) => ({ ...shop(r), priceAt: "2026-11-22" }));
 
 
@@ -409,7 +411,7 @@ export const KIDS_1121 = [
   ["B0G4SCX27Q", 382, "61B-A4JhE9L", "Meta Quest 3S VR Headset, 256GB", "Meta", "vr", 3, "A mixed-reality headset for games and fitness, made for ages 10 and up."],
   ["B0D3WSFX3L", 26.56, "717IFJm-ZNL", "JLab JBuddies Studio 2 Wireless Kids Headphones", "JLab", "audio", 3, "Volume-limited Bluetooth headphones that fold up and keep little ears safe."],
   ["B0DZ77D5HL", 399, "61Q-vahOT9L", "Apple iPad 11-inch (A16, 128GB, Wi-Fi)", "Apple", "tablet", 3, "The iPad they will actually use for games, drawing and school."],
-].map(row).concat(KIDS_AMAZON_MORE_1121, KIDS_SHOPMY_1121, KIDS_TECH_DIRECT_1122, KIDS_PLAY_1122);
+].map(row).concat(KIDS_AMAZON_MORE_1121, KIDS_SHOPMY_1121, KIDS_PLAY_1122);
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 

@@ -172,6 +172,7 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],
+  [/infant bucket swing/i, ["0-2"]],
   [/paint with water|sticker book/i, ["3-5", "6-8"]],
   [/aqua puffs/i, ["3-5", "6-8"]],
   [/easel|club chair/i, ["3-5"]],

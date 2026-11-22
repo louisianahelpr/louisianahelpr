@@ -13,7 +13,7 @@
  * @mutate src/pages/info/giftGuides/AnyStoreAdd.tsx |     queue({ name: words }); |     actions.addIdea(person.id, { name: words });
  * @mutate src/pages/info/giftGuides/AnyStoreAdd.tsx |     const id = actions.addIdea(person.id, { ...idea, ask: true }); |     const id = actions.addIdea(person.id, { ...idea });
  * @mutate src/pages/info/giftGuides/wishLinkSync.ts |     if (NEVER_PASSES.test(e instanceof Error ? e.message : "")) write.setIdea | if (false) write.setIdea
- * @mutate src/pages/info/giftGuides/wishLinkSync.ts |       askForLink(w.person, w.idea).catch( |       Promise.resolve().catch(
+ * @mutate src/pages/info/giftGuides/wishLinkSync.ts |       askForLink(w.person, w.idea, write).catch( |       Promise.resolve().catch(
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |         if (!link \|\| link === i.href) return i; |         if (link \|\| link === i.href) return i;
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |         if (!found.has(i.req)) { |         if (false) {
  * @mutate src/pages/info/giftGuides/fun/plannerStore.ts |     if (next !== p) changed = true; |     changed = true;
@@ -78,7 +78,8 @@ beforeEach(() => {
   resetPlanStoreForTests();
   api.request.mockReset();
   api.read.mockReset();
-  api.read.mockResolvedValue(new Map());
+  // Every request asked about still exists, with no link of ours yet.
+  api.read.mockImplementation(async (ids: string[]) => new Map(ids.map((id) => [id, null])));
   rpc.mockReset();
 });
 afterEach(() => {

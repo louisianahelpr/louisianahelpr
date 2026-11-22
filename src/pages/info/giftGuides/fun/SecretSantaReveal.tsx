@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FUN_WORDS as W, SANTA_PATH } from "@/content/giftGuideFun1120";
-import { revealSecretSanta, setSecretSantaWishList, type SantaReveal } from "@/lib/giftGuideFunApi";
-import { saveWishList, sharedListPath } from "@/lib/giftWishListApi";
-import { listName, listRefs, useGiftList } from "../giftList";
+import { revealSecretSanta, type SantaReveal } from "@/lib/giftGuideFunApi";
+import { sharedListPath } from "@/lib/giftWishListApi";
 import { FunBody, funHeader } from "./FunPage";
+import { SantaMyList, SantaTheirList } from "./SantaWishList";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { track } from "@/lib/analytics";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -25,10 +25,6 @@ const niceDay = (ymd: string) => new Date(`${ymd}T12:00:00Z`).toLocaleDateString
 export default function SecretSantaReveal() {
   const { code = "", token = "" } = useParams<{ code: string; token: string }>();
   const [state, setState] = useState<State>({ kind: "loading" });
-  const [shareMsg, setShareMsg] = useState<string | null>(null);
-  const [sharing, setSharing] = useState(false);
-  const list = useGiftList();
-  const refs = listRefs(list);
   const { pathname } = useLocation();
   const { user } = useAuthReady();
   const ideas = useSantaIdeas(code);
@@ -47,23 +43,6 @@ export default function SecretSantaReveal() {
     );
   }, [code, token]);
   useEffect(load, [load]);
-
-  const shareMine = async () => {
-    if (!refs.length) return setShareMsg(W.revealEmptyList);
-    setSharing(true);
-    setShareMsg(null);
-    try {
-      const listCode = await saveWishList(listName(list), refs);
-      const ok = await setSecretSantaWishList(code, token, listCode);
-      setShareMsg(ok ? W.revealShared : W.revealShareFailed);
-      if (ok && state.kind === "ok") setState({ kind: "ok", r: { ...state.r, myWishList: listCode } });
-    } catch (e) {
-      console.warn("secret santa: share list failed", e);
-      setShareMsg(W.revealShareFailed);
-    } finally {
-      setSharing(false);
-    }
-  };
 
   return (
     <PublicHeaderPage {...funHeader(W.revealTitle)}>
@@ -101,6 +80,8 @@ export default function SecretSantaReveal() {
               </Button>
             </div>
           </div>
+          {/* Owner 11-21: their list in place, with our links as we make them. */}
+          {state.r.matchWishList && <SantaTheirList listCode={state.r.matchWishList} />}
           {(ideas.length > 0 || user) && (
             <div className="gg-fun-card" data-reveal-ideas="">
               <p className="m-0 font-semibold">{W.revealIdeasTitle(state.r.match)}</p>
@@ -112,19 +93,13 @@ export default function SecretSantaReveal() {
               {user && <Link to="/gift-guides/planner" className="gg-link mt-2 inline-block text-sm" data-reveal-ideas-planner="">{W.revealIdeasPlanner} ›</Link>}
             </div>
           )}
-          <div className="gg-fun-card">
-            <p className="m-0 font-semibold">{W.revealMyList}</p>
-            <p className="gg-fun-note mt-1">{W.revealMyListHelp}</p>
-            <div className="gg-fun-actions">
-              {refs.length > 0 && (
-                <Button type="button" variant="outline" className="h-auto max-w-full whitespace-normal text-center" disabled={sharing} onClick={() => void shareMine()} data-reveal-share-mine="">{W.revealShareMine}</Button>
-              )}
-              <Button asChild variant="link" size="inline" className="gg-link">
-                <Link to="/gift-guides" data-reveal-make-list="">{W.revealBrowse} ›</Link>
-              </Button>
-            </div>
-            {shareMsg && <p className="gg-fun-note" role="status" data-reveal-share-msg="">{shareMsg}</p>}
-          </div>
+          {/* Owner 11-21 ("the person should list what they want from their Secret Santa; once they have their list we
+              create the links"): their own list, typed or pasted from any store, sent to their Santa. */}
+          <SantaMyList code={code} token={token} me={state.r.name} sentCode={state.r.myWishList}
+            onSent={(listCode) => setState((s) => (s.kind === "ok" ? { kind: "ok", r: { ...s.r, myWishList: listCode } } : s))} />
+          <p className="gg-fun-note">
+            <Link to="/gift-guides" className="gg-link" data-reveal-make-list="">{W.revealBrowse} ›</Link>
+          </p>
         </section>
       )}
       </FunBody>

@@ -58,6 +58,11 @@ vi.mock("@/lib/giftGuideFunApi", () => ({
   loadAccountPlan: (...a: unknown[]) => loadAccountPlan(...a),
   saveAccountPlan: (...a: unknown[]) => saveAccountPlan(...a),
 }));
+// The match's list in place on the reveal (santaWishList1121.test.tsx covers it); here it reads nothing.
+vi.mock("@/lib/giftWishListApi", async (orig) => ({
+  ...(await orig<typeof import("@/lib/giftWishListApi")>()),
+  getSharedList: vi.fn(async () => null),
+}));
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import SecretSantaReveal from "@/pages/info/giftGuides/fun/SecretSantaReveal";
 import { giftListNow, resetGiftListForTests } from "@/pages/info/giftGuides/giftList";

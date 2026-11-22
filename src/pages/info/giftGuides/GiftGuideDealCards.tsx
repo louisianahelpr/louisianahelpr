@@ -31,6 +31,7 @@ export const CARD_WORDS = {
   copied: "Copied",
   jumpLabel: "On this page",
   moreSales: (n: number) => `+${n} more`,
+  moreCodes: (n: number) => `+${n} more ${n === 1 ? "code" : "codes"}`,
 };
 
 /** The sales still on `today` (YYYY-MM-DD): a sale shows through its end day, one line per link. */
@@ -123,22 +124,54 @@ function CodeChip({ code }: { code: string }) {
   );
 }
 
-/** The codes that work on `day`, one card each. */
+/** The bigger the percent in a code's offer, the better it is; an offer with none ranks after one with a percent. */
+const codePercent = (c: DiscountCode) => Number(/(\d+)\s*%/.exec(c.offer)?.[1] ?? 0);
+
+/**
+ * One card per store (guides audit 1122 #13: Bonheur Jewelry showed three times with one photo). The store's best code
+ * leads the card; any others sit under a "+N more codes" button, each with its own offer, dates and copy chip.
+ */
+function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
+  const [all, setAll] = useState(false);
+  const best = codes.reduce((a, c) => (codePercent(c) > codePercent(a) ? c : a), codes[0]);
+  const others = codes.filter((c) => c !== best);
+  const line = (c: DiscountCode) => [c.offer, DEALS_WORDS.runs(c.starts, c.expires)].filter(Boolean).join(" · ");
+  return (
+    <Card store={store} href={best.href!} line={
+      <>
+        {line(best)}
+        {all && (
+          <ul className="gg-card-sales" data-gift-code-more-list={store}>
+            {others.map((c) => (
+              <li key={c.code} data-gift-code-extra={c.code}>
+                <span>{line(c)}</span>
+                <CodeChip code={c.code} />
+              </li>
+            ))}
+          </ul>
+        )}
+        {!all && others.length > 0 && (
+          <InlineTextButton className="gg-card-more" onClick={() => setAll(true)} data-gift-code-more={store}>{CARD_WORDS.moreCodes(others.length)}</InlineTextButton>
+        )}
+      </>
+    } data={{ "data-gift-code": best.code, "data-gift-code-store": store }}>
+      <CodeChip code={best.code} />
+    </Card>
+  );
+}
+
+/** How many cards the codes make: one per store with a link. */
+export const codeCardCount = (codes: readonly DiscountCode[]) => new Set(codes.filter((c) => c.href).map((c) => c.store)).size;
+
+/** The codes that work on `day`, one card per store. */
 export function CodeCards({ codes }: { codes: DiscountCode[] }) {
+  // Holiday audit 1121 #81: every code carries its store link (affiliate, else the brand's plain home page).
+  // A code with no link (none today; src/test/giftGuideHolidayPolish1121c.test.tsx) is not drawn as a dead card.
+  const byStore = new Map<string, DiscountCode[]>();
+  for (const c of codes) if (c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]);
   return (
     <ul className="gg-deal-grid" data-gift-codes="">
-      {codes.map((c) => {
-        const when = DEALS_WORDS.runs(c.starts, c.expires);
-        // Holiday audit 1121 #81: every code carries its store link (affiliate, else the brand's plain home page).
-        // A code with no link (none today; src/test/giftGuideHolidayPolish1121c.test.tsx) is not drawn as a dead card.
-        const href = c.href;
-        if (!href) return null;
-        return (
-          <Card key={`${c.store} ${c.code}`} store={c.store} href={href} line={[c.offer, when].filter(Boolean).join(" · ")} data={{ "data-gift-code": c.code, "data-gift-code-store": c.store }}>
-            <CodeChip code={c.code} />
-          </Card>
-        );
-      })}
+      {[...byStore.entries()].map(([store, list]) => <CodeCard key={store} store={store} codes={list} />)}
     </ul>
   );
 }

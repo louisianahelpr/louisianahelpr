@@ -20,6 +20,7 @@
  *     /shop-small carry the sign-up card at the bottom and a one-line link at the top that opens its form.
  *
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping", d: GIFT_WRAP_DESCRIPTION }) | t: "Gift wrapping" })
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | for (const c of codes) if (c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]); | for (const c of codes) if (c.href) byStore.set(c.code, [c]);
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |       () => setCopied(true), |       () => setCopied(false),
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         select(text);\n      }, |       },
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         <OpenSite store={store} href={href} /> |         {null}
@@ -94,13 +95,24 @@ describe("owner 11-21: codes and sales are photo cards", () => {
     Object.assign(navigator, { clipboard: { writeText } });
     const { container } = render(<MemoryRouter><CodeCards codes={codes} /></MemoryRouter>);
     const cards = [...container.querySelectorAll("li[data-gift-code]")];
-    expect(cards.map((c) => c.getAttribute("data-gift-code"))).toEqual(codes.map((c) => c.code));
+    // One card per store: Bonheur Jewelry had three codes and three identical cards (audit 1122 #13); its best code leads.
+    const stores = [...new Set(codes.map((c) => c.store))];
+    expect(cards.map((c) => c.getAttribute("data-gift-code-store"))).toEqual(stores);
+    expect(cards.length).toBeLessThan(codes.length);
+    const bonheur = container.querySelector("li[data-gift-code-store='Bonheur Jewelry']");
+    const mine = codes.filter((c) => c.store === "Bonheur Jewelry");
+    const pct = (o: string) => Number(/(\d+)\s*%/.exec(o)?.[1] ?? 0);
+    const top = Math.max(...mine.map((c) => pct(c.offer)));
+    expect(mine.length).toBeGreaterThan(1);
+    expect(pct(mine.find((c) => c.code === bonheur?.getAttribute("data-gift-code"))!.offer)).toBe(top);
+    fireEvent.click(bonheur!.querySelector("[data-gift-code-more]")!);
+    expect([...bonheur!.querySelectorAll("[data-gift-code-extra]")].length).toBe(mine.length - 1);
     for (const card of cards) {
       const code = card.getAttribute("data-gift-code")!;
       expect(card.querySelector("[data-gift-code-shop]")?.getAttribute("href")).toMatch(/^https:\/\//);
       expect(card.querySelector("[data-gift-open-site]")?.getAttribute("target")).toBe("_blank");
       expect(card.querySelector("[data-gift-open-site] .sr-only")?.textContent).toContain(`Open ${card.getAttribute("data-gift-code-store")} site`);
-      expect(card.querySelector("[data-gift-code-copy]")?.getAttribute("aria-label")).toBe(`Copy code ${code}`);
+      expect([...card.querySelectorAll("[data-gift-code-copy]")].map((b) => b.getAttribute("aria-label"))).toContain(`Copy code ${code}`);
       expect(card.querySelector("[data-gift-store-photo]")).not.toBeNull();
     }
     // No dashed box and no round Copy text button: the code itself is the chip.
@@ -187,9 +199,9 @@ describe("owner 11-21: a deals day in subsections by type", () => {
     const sub = container.querySelector("details[data-gift-deal-sub='codes']");
     if (codes.length === 0) expect(sub).toBeNull();
     else {
-      expect(sub?.querySelector("[data-gift-deal-sub-count]")?.textContent).toBe(String(codes.length));
-      // The count is the cards: one card per code that works that day.
-      expect(sub!.querySelectorAll("li[data-gift-code]").length).toBe(codes.length);
+      expect(sub?.querySelector("[data-gift-deal-sub-count]")?.textContent).toBe(String(new Set(codes.map((c) => c.store)).size));
+      // The count is the cards: one card per store with a code that works that day.
+      expect(sub!.querySelectorAll("li[data-gift-code]").length).toBe(new Set(codes.map((c) => c.store)).size);
     }
     // And the subsection list never holds an empty one.
     for (const d of container.querySelectorAll("details[data-gift-deal-sub]")) expect(d.querySelector("li"), d.getAttribute("data-gift-deal-sub") ?? "").not.toBeNull();

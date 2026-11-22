@@ -6,7 +6,7 @@
  * Sheet with the same grouped menu as the desktop sidebar. The chip row scrolls sideways by itself.
  *
  * @mutate src/pages/info/GiftGuides.tsx |         <GiftGuidesPhoneNav active={guide} myList={myList \|\| shared} page={sidePage} /> |         {null}
- * @mutate src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx | <GiftGuidesMenu active={active} myList={myList} page={page} idPrefix={SHEET_PREFIX} /> | {null}
+ * @mutate src/pages/info/giftGuides/GiftGuidesPhoneSheet.tsx | <GiftGuidesMenu active={active} myList={myList} page={page} idPrefix={idPrefix} /> | {null}
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx | onClick={() => setSheet("la")} | onClick={() => setSheet(null)}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav-row{display:flex;gap:8px;list-style:none;margin:0;padding:0 20px;overflow-x:auto; | .gg-pnav-row{display:flex;gap:8px;list-style:none;margin:0;padding:0 20px;
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx | className={chip(open === g.slug)} | className={chip(false)}
@@ -62,7 +62,8 @@ describe("the phone's gift guides navigation (owner 11-21)", () => {
     const { container } = renderAt("/gift-guides/kids");
     expect(screen.queryByRole("dialog")).toBeNull();
     await act(async () => { fireEvent.click(container.querySelector('[data-gift-chip="menu"]')!); });
-    const sheet = screen.getByRole("dialog");
+    // The sheet is its own chunk, loaded on the first tap (off the page's critical path).
+    const sheet = await screen.findByRole("dialog");
     expect(sheet.hasAttribute("data-gift-menu-sheet")).toBe(true);
     expect([...sheet.querySelectorAll(".gg-side-h")].map((h) => h.textContent)).toEqual(["Guides", "Deals", "Free printables", "Make it fun", "Louisiana"]);
     // Its own heading ids (no clash with the desktop sidebar's), each list labelled by its heading.

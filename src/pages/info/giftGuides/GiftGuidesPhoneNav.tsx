@@ -1,16 +1,19 @@
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
+import { loadModule, untilReload } from "@/lib/loadModule";
+import { report } from "@/lib/errorLogger";
 import { giftGuides as G } from "@/content/giftGuides";
 import type { CatalogGuide } from "@/content/giftGuideCatalog";
 import { DEAL_DAY_SLUGS, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { PRINTABLES_PATH } from "@/content/printables";
-import { GiftGuidesMenu, openEntry, sideGuides } from "./GiftGuidesSidebar";
+import { openEntry, sideGuides } from "./GiftGuidesSidebar";
 
 /** A menu group the sheet can open at (the ids GiftGuidesMenu gives its headings, with the sheet's own prefix). */
 type Group = "guides" | "deals" | "free" | "fun" | "la";
 const SHEET_PREFIX = "gg-sheet";
+type SheetModule = { GiftGuidesPhoneSheet: ComponentType<{ open: boolean; onClose: () => void; active: CatalogGuide | null; myList: boolean; page?: string; idPrefix: string }> };
+const loadSheet = () => loadModule(() => import("./GiftGuidesPhoneSheet"));
 
 /**
  * The phone's gift guides navigation (owner 2026-11-21, two iPhone screenshots: the whole grouped menu sat at the very
@@ -30,10 +33,21 @@ export function GiftGuidesPhoneNav({ active, myList = false, page }: { active: C
     const t = window.setTimeout(() => document.getElementById(`${SHEET_PREFIX}-${sheet}`)?.scrollIntoView({ block: "start" }), 60);
     return () => window.clearTimeout(t);
   }, [sheet]);
-  // A link tapped in the sheet closes it (the page underneath changes).
-  const closeOnLink = (e: MouseEvent) => {
-    if ((e.target as HTMLElement).closest("a")) setSheet(null);
-  };
+  // The sheet's chunk (the dialog stack) loads on the first chip tap, never on the page's critical path.
+  const [SheetPart, setSheetPart] = useState<SheetModule["GiftGuidesPhoneSheet"] | null>(null);
+  useEffect(() => {
+    if (!sheet || SheetPart) return;
+    let live = true;
+    void loadSheet()
+      .then((m) => m ?? untilReload())
+      .then(
+        (m) => { if (live) setSheetPart(() => m.GiftGuidesPhoneSheet); },
+        (e) => report(e as Error, { tags: { source: "GiftGuidesPhoneNav.loadSheet" } }),
+      );
+    return () => {
+      live = false;
+    };
+  }, [sheet, SheetPart]);
   const chip = (on: boolean) => (on ? "gg-chip-nav is-on" : "gg-chip-nav");
   const dealDayOpen = open !== undefined && open !== null && (DEAL_DAY_SLUGS as readonly string[]).includes(open);
   return (
@@ -62,15 +76,7 @@ export function GiftGuidesPhoneNav({ active, myList = false, page }: { active: C
           </Button>
         </li>
       </ul>
-      <Sheet open={sheet !== null} onOpenChange={(o) => { if (!o) setSheet(null); }}>
-        <SheetContent side="bottom" className="gg gg-sheet-menu" data-gift-menu-sheet="">
-          <SheetHero title={G.sidebarLabel} />
-          {/* Not a second <nav>: the sheet IS the menu, opened from the row's own nav landmark. */}
-          <div className="gg-sheet-menu-body" onClick={closeOnLink} role="presentation">
-            <GiftGuidesMenu active={active} myList={myList} page={page} idPrefix={SHEET_PREFIX} />
-          </div>
-        </SheetContent>
-      </Sheet>
+      {SheetPart && <SheetPart open={sheet !== null} onClose={() => setSheet(null)} active={active} myList={myList} page={page} idPrefix={SHEET_PREFIX} />}
     </nav>
   );
 }

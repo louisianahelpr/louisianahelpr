@@ -159,7 +159,8 @@ export const PRINTABLES: Printable[] = [
     unit: "tag",
     // The owner's Canva tags (src/content/printableTagDesigns.ts).
     designs: OWNER_TAGS,
-    guides: ["gift-wrap-and-cards"],
+    // Holiday audit 1121 #49: the three live guides link the gift tags too (they were only reachable from the menu).
+    guides: ["gift-wrap-and-cards", "her", "him", "kids"],
   },
   {
     kind: "overlay",
@@ -209,7 +210,8 @@ export const PRINTABLES: Printable[] = [
       { label: "Girls book (free)", href: "/printables/coloring-book/christmas-coloring-book-girls.pdf" },
       { label: "Boys book (free)", href: "/printables/coloring-book/christmas-coloring-book-boys.pdf" },
     ],
-    guides: [],
+    // Holiday audit 1121 #49: the Kids guide links the coloring books.
+    guides: ["kids"],
   },
   {
     kind: "download",

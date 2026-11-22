@@ -144,12 +144,13 @@ export type SwipeBudget = 25 | 50 | 100 | 0;
 const finderGuides = (id: string) => FINDER_WHO.find((w) => w.id === id)?.guides ?? [];
 export const SWIPE_WHO: { id: SwipeWho; label: string; guides: { slug: string; sections?: string[] }[]; forName?: string }[] = [
   { id: "me", label: "Me", guides: [...finderGuides("her"), ...finderGuides("him")] },
-  { id: "mom", label: "Mom", guides: finderGuides("mom"), forName: "Mom" },
-  { id: "dad", label: "Dad", guides: finderGuides("dad"), forName: "Dad" },
+  // Holiday audit 1121 #24: the finder's person order (Her, Him, Mom, Dad, Kids, Teen, ...), after "Me".
   { id: "her", label: "Her", guides: finderGuides("her"), forName: "Her" },
   { id: "him", label: "Him", guides: finderGuides("him"), forName: "Him" },
-  { id: "teen", label: "Teen", guides: finderGuides("teen"), forName: "Teen" },
+  { id: "mom", label: "Mom", guides: finderGuides("mom"), forName: "Mom" },
+  { id: "dad", label: "Dad", guides: finderGuides("dad"), forName: "Dad" },
   { id: "kids", label: "Kids", guides: finderGuides("kids"), forName: "Kids" },
+  { id: "teen", label: "Teen", guides: finderGuides("teen"), forName: "Teen" },
   { id: "friends", label: "Friends", guides: finderGuides("friend"), forName: "Friends" },
   { id: "coworkers", label: "Coworkers", guides: finderGuides("coworker"), forName: "Coworkers" },
   // Holiday audit C12c: the quiz has Grandparents, so the swipe deck does too.
@@ -174,7 +175,40 @@ export const swipePool = (who: SwipeWho, picksOf: (slug: string) => CatalogPick[
 };
 
 /**
- * One round: up to 20 cards, strongest first, each link once, at most 5 per store, none already seen this visit. With
+ * Deal up to SWIPE_ROUND cards from `from` in order: each link once, none already seen, at most SWIPE_PER_STORE per
+ * store on the first pass. When the other stores run out, a second pass fills the rest of the round from the capped
+ * stores (holiday audit 1121 #11: the guides are Amazon-heavy, so the cap alone dealt Him 15 cards and Her under $25
+ * 6 of 12, and the "Only 6 gifts" note was then untrue). So a short round now means only that many picks fit. The
+ * round keeps the list's order.
+ */
+function dealRound<T extends CatalogPick>(from: readonly T[], seen: ReadonlySet<string>): T[] {
+  const perStore = new Map<string, number>();
+  const used = new Set<string>();
+  const out: T[] = [];
+  const ok = (p: T) => !!p.href && !!p.name && !seen.has(p.href) && !used.has(p.href);
+  for (const p of from) {
+    if (out.length >= SWIPE_ROUND) break;
+    if (!ok(p)) continue;
+    const n = perStore.get(p.store) ?? 0;
+    if (n >= SWIPE_PER_STORE) continue;
+    perStore.set(p.store, n + 1);
+    used.add(p.href);
+    out.push(p);
+  }
+  for (const rest of from) {
+    if (out.length >= SWIPE_ROUND) break;
+    if (!ok(rest)) continue;
+    used.add(rest.href);
+    out.push(rest);
+  }
+  // Back in the list's own order (strongest first; a Secret Santa round's closest-to-budget first), so a card the
+  // second pass added sits where it ranks, not at the end.
+  const rank = new Map(from.map((p, i) => [p, i] as const));
+  return out.sort((a, b) => (rank.get(a) ?? 0) - (rank.get(b) ?? 0));
+}
+
+/**
+ * One round: up to 20 cards, strongest first, each link once, at most 5 per store while other stores last (dealRound), none already seen this visit. With
  * a budget, ONLY picks known to fit it are dealt (fitsBudget: the checked price when there is one, else the price band,
  * else a budget section; holiday audit C1, 11-20: "Him under $25" dealt a $128 quarter zip because 249 priced picks had
  * no band, and unknown-price picks padded the deck). A pick with no known price is never in a budget round. `borrow`
@@ -184,18 +218,7 @@ export const swipePool = (who: SwipeWho, picksOf: (slug: string) => CatalogPick[
 export function swipeRound<T extends CatalogPick>(pool: T[], budget: SwipeBudget, seen: ReadonlySet<string>, rand: () => number = Math.random, borrow: readonly T[] = []): T[] {
   const fits = (p: CatalogPick) => fitsBudget(p, budget);
   const from = budget === 0 ? pool : [...pool, ...borrow];
-  const perStore = new Map<string, number>();
-  const used = new Set<string>();
-  const out: T[] = [];
-  for (const p of from.filter(fits)) {
-    if (out.length >= SWIPE_ROUND) break;
-    if (!p.href || !p.name || seen.has(p.href) || used.has(p.href)) continue;
-    const n = perStore.get(p.store) ?? 0;
-    if (n >= SWIPE_PER_STORE) continue;
-    perStore.set(p.store, n + 1);
-    used.add(p.href);
-    out.push(p);
-  }
+  const out = dealRound(from.filter(fits), seen);
   const mixed: T[] = [];
   for (let i = 0; i < out.length; i += 4) mixed.push(...shuffled(out.slice(i, i + 4), rand));
   return mixed;
@@ -228,19 +251,7 @@ export function santaRound<T extends CatalogPick>(pool: T[], borrow: T[], budget
   const ranked = [...pool.map((p, i) => ({ p, i })), ...borrow.map((p, i) => ({ p, i: pool.length + i }))]
     .filter(({ p }) => fitsBudget(p, budget))
     .sort((a, b) => (pickCeiling(b.p) ?? 0) - (pickCeiling(a.p) ?? 0) || a.i - b.i);
-  const perStore = new Map<string, number>();
-  const used = new Set<string>();
-  const out: T[] = [];
-  for (const { p } of ranked) {
-    if (out.length >= SWIPE_ROUND) break;
-    if (!p.href || !p.name || seen.has(p.href) || used.has(p.href)) continue;
-    const n = perStore.get(p.store) ?? 0;
-    if (n >= SWIPE_PER_STORE) continue;
-    perStore.set(p.store, n + 1);
-    used.add(p.href);
-    out.push(p);
-  }
-  return out;
+  return dealRound(ranked.map(({ p }) => p), seen);
 }
 
 // ---------------------------------------------------------------------------------------------------------------

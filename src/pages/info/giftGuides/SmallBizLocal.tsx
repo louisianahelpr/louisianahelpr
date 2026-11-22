@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { SBS_WORDS as W } from "@/content/sbsFeaturedLocal";
@@ -93,6 +93,13 @@ const SBS_CTA_ID = "get-featured";
 /** The "Get your business featured" card, its form opening in place. */
 function FeatureCta() {
   const [open, setOpen] = useState(false);
+  const openButton = useRef<HTMLButtonElement>(null);
+  // Holiday audit 1121 #76: Close hands focus back to the open button (it jumped to the top of the page), and the
+  // form stays mounted while closed, so reopening keeps what was typed.
+  const close = () => {
+    setOpen(false);
+    requestAnimationFrame(() => openButton.current?.focus());
+  };
   const [Form, setForm] = useState<FormModule["SmallBizSubmitForm"] | null>(null);
   const [failed, setFailed] = useState(false);
   const openForm = () => {
@@ -112,14 +119,16 @@ function FeatureCta() {
       <h2 id="gg-sbs-cta-h">{W.ctaTitle}</h2>
       <p>{W.ctaLine}</p>
       {!open ? (
-        <Button className="btn-grad-primary" onClick={openForm} data-gift-sbs-open="">{W.ctaButton}</Button>
+        <Button ref={openButton} className="btn-grad-primary" onClick={openForm} data-gift-sbs-open="">{W.ctaButton}</Button>
       ) : failed ? (
-        <p role="alert">{W.formFailed}</p>
-      ) : Form ? (
-        <Form onClose={() => setOpen(false)} />
-      ) : (
+        <div role="alert" data-gift-sbs-form-failed="">
+          <p>{W.formFailed}</p>
+          <Button variant="outline" size="sm" onClick={openForm} data-gift-sbs-form-retry="">{W.formRetry}</Button>
+        </div>
+      ) : Form ? null : (
         <p role="status">{W.loadingForm}</p>
       )}
+      {Form && <div hidden={!open} data-gift-sbs-form-wrap=""><Form onClose={close} /></div>}
     </section>
   );
 }

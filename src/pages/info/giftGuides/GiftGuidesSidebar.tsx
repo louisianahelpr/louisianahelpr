@@ -103,14 +103,14 @@ export function GiftGuidesMenu({ active, myList = false, page, idPrefix = "gg-si
       <ul data-gift-side-tools="" aria-labelledby={`${idPrefix}-fun`}>
         <li><Link to={`/gift-guides#${FINDER_ID}`} {...current("finder")} data-gift-side-tool="finder">{EXTRAS_WORDS.finderTitle}</Link></li>
         {FUN_TOOLS.map((t) => (
-          <li key={t.to}><Link to={t.to} data-gift-side-tool={t.to}>{t.title}</Link></li>
+          <li key={t.to}><Link to={t.to} {...current(t.to)} data-gift-side-tool={t.to}>{t.title}</Link></li>
         ))}
       </ul>
       <p className="gg-side-h" id={`${idPrefix}-la`}>{G.sideHeads.louisiana}</p>
       <ul data-gift-side-more="" aria-labelledby={`${idPrefix}-la`}>
         <li><Link to="/holidays" data-gift-side-holiday-hub="">{G.sideHolidayHub}</Link></li>
         <li><Link to={`/gift-guides/${SPONSORS_SLUG}`} {...current(SPONSORS_SLUG)} data-gift-side-sponsors="">{G.sideSponsorsLabel}</Link></li>
-        <li><Link to="/shop-small" data-gift-side-shop-small="">{G.sideShopSmall}</Link></li>
+        <li><Link to="/shop-small" {...current("/shop-small")} data-gift-side-shop-small="">{G.sideShopSmall}</Link></li>
       </ul>
     </>
   );

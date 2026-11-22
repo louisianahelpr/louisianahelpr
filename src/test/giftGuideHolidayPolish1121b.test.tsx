@@ -17,7 +17,7 @@
  * @mutate src/content/giftGuideSwipe.ts | const SWIPE_MIN = 3; | const SWIPE_MIN = 3; const SWIPE_BANDS = QUIZ_BUDGETS;
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | <p className="gg-swipe-meta m-0"><PickPrice pick={card} /></p> | <p className="gg-swipe-meta m-0"><span>{card.store}</span><PickPrice pick={card} /></p>
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx |         <GiftGuidesSidebar active={null} page={path} /> |         {null}
- * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | {tools && <GiftGuideTools path={path} title={title} />} | {null}
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | tools={<GiftGuideTools path={path} title={title} />} | tools={null}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <li key={t.to}><Link to={t.to} {...current(t.to)} | <li key={t.to}><Link to={t.to}
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       if (!searchBox.current?.contains(e.target as Node)) setResultsOpen(false); |       if (!searchBox.current?.contains(e.target as Node)) return;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       button.current?.focus(); |       void 0;
@@ -127,7 +127,8 @@ describe("the swipe card and its people (holiday audit 1121 #24)", () => {
 describe("the fun pages carry the guides' frame (holiday audit 1121 #13)", () => {
   it("head row with search, the My list heart and Share, and the left menu marking the open tool", () => {
     const { container } = render(<MemoryRouter><FunBody title="Swipe to find gifts" path="/gift-guides/swipe"><p data-deck="">deck</p></FunBody></MemoryRouter>);
-    expect(container.querySelector("h1")?.textContent).toBe("Swipe to find gifts");
+    // Owner 11-22 #13: the h1 is the page's banner (its lead, read once, then the title).
+    expect(container.querySelector("[data-gift-banner] h1")?.textContent).toBe("make it fun Swipe to Find Gifts");
     expect(container.querySelector("[data-gift-headrow] [data-gift-search-button]")).not.toBeNull();
     expect(container.querySelector("[data-gift-headrow] [data-gift-my-list-link]")).not.toBeNull();
     expect(container.querySelector("[data-gift-headrow] [data-gift-share]")).not.toBeNull();

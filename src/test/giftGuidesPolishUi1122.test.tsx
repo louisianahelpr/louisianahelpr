@@ -9,8 +9,8 @@
  * #6: the chips are Her, Him, Kids, Deals, Printables and a pinned More (Menu was 8th and out of view at 375).
  * #5: a phone's count row (count, pill, 4 icons) fits one row at 375: the pill reads "By Dec 15" there, gaps 4px.
  * #9: My Wish List has no second "All guides" back link (the head row's arrow goes to /gift-guides).
- * #10: one sub-page title: the frame pages' title opens the content column in the shared left-aligned serif style, the
- *      same as My Wish List's and a shared list's title.
+ * #10: one sub-page title (overtaken by the owner's 11-22 #13 "the same top section as the guides and the deals"): the
+ *      frame pages' title is their gingham banner above the menu and the content column, in the deals days' sizes.
  * #8: the 25 Days sponsors page draws no "25 Days sponsor" or "Shop Louisiana" chip (every card is a sponsor), its heart
  *     sits on the photo's top-right corner there only, and "Also sponsoring" is plain names with dots, not pills.
  * #11: Swipe: one instruction (no tip box), "18 gifts under $25" on the count's line, a 150px card photo on phones (Skip
@@ -28,11 +28,11 @@
  *
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:36px} | @media (hover:hover) and (pointer:fine){.gg-side a{min-height:44px}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-side{position:static;max-height:none;overflow:visible} | .gg-side{max-height:none}
- * @mutate src/pages/info/giftGuides/fun/FunPage.tsx |       <GiftGuidesPhoneNav active={null} page={path} /> |       {null}
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | nav={{ active: null, page: path }} | nav={{ active: null, page: "/gift-guides/swipe" }}
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx | const printablesOpen = open !== null && PRINTABLE_PATHS.includes(open); | const printablesOpen = false;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-pnav>.gg-chip-menu{flex:none;margin-right:20px} | .gg-pnav>.gg-chip-menu{margin-right:20px}
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx | {/* UX audit M4 | <a href="/gift-guides" data-gift-back="">All guides</a>{/* UX audit M4
- * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | <header className="gg-words gg-pagehead" data-gift-words=""> | <header className="gg-words" data-gift-words="">
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | sub ? "gg-words gg-banner-wrap gg-banner-sub" | sub ? "gg-words gg-banner-wrap"
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const badges = guide === SPONSORS_PAGE ? | const badges = false ?
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-also-list li{display:inline;white-space:nowrap} | .gg-also-list li{padding:5px 10px;border:1px solid var(--gg-line);border-radius:999px}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:start} | .gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:end}
@@ -129,7 +129,7 @@ const src = (f: string) => blankComments(readFileSync(f, "utf8"));
 
 describe("polish audit 1122 #5/#9/#10/#19", () => {
   it("#5: the phone count row's pill drops 'Order ' and the gaps are 4px", () => {
-    expect(src("src/pages/info/GiftGuides.tsx")).toContain('<span className="gg-ship-order">Order </span>');
+    expect(src("src/pages/info/giftGuides/GuidesTop.tsx")).toContain('<span className="gg-ship-order">Order </span>');
     expect(GIFT_GUIDES_CSS).toContain("@media (max-width:479px){.gg-countrow,.gg-countrow-left{gap:4px}.gg-countrow .gg-ship-order{display:none}.gg-countrow .gg-ship::first-letter{text-transform:uppercase}}");
   });
 
@@ -140,13 +140,13 @@ describe("polish audit 1122 #5/#9/#10/#19", () => {
     expect(my).not.toContain("allGuidesLabel");
   });
 
-  it("#10: the frame's title is the first thing in the content column, in the shared page-title style", () => {
+  it("#10 (owner 11-22 #13): the frame's title is its gingham banner over the menu and the content, in the deals' sizes", () => {
     const c = frameAt("/gift-guides/swipe");
-    const main = c.querySelector(".gg-layout > .gg-main")!;
-    const head = main.firstElementChild!;
-    expect(head.matches("header.gg-words.gg-pagehead")).toBe(true);
-    expect(head.querySelector("h1#gift-page-title")?.textContent).toBe("Page");
-    expect(GIFT_GUIDES_CSS).toContain(".gg-words.gg-pagehead{text-align:left;");
+    const banner = c.querySelector("header.gg-words.gg-banner-wrap.gg-banner-sub")!;
+    expect(banner).not.toBeNull();
+    expect(banner.querySelector("h1#gift-guide-title")?.textContent).toMatch(/Swipe to Find Gifts$/);
+    expect(c.querySelector(".gg-layout")!.contains(banner)).toBe(false);
+    expect(c.querySelector(".gg-layout > .gg-main > header")).toBeNull();
     expect(GIFT_GUIDES_CSS).toMatch(/\.gg-pagehead h1,\.gg \.gg-wish-title\{font-family:'Bodoni Moda'/);
   });
 

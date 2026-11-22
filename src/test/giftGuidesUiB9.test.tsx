@@ -20,7 +20,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <AgeChips slug={guide.slug} /> |
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <GiftOut href={pick.href} className="gg-item" data-gift-title-link=""> | <GiftOut href={pick.href} className="gg-item">
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |         <GiftOut href={cart} className="gg-cart"> |         <GiftOut href={cart} className="gg-cart-other">
- * @mutate src/pages/info/GiftGuides.tsx | <GuidesHeadRow backTo={backTo} | <GuidesHeadRow backTo={guide ? backTo : "hidden"}
+ * @mutate src/pages/info/GiftGuides.tsx | <GuidesTop backTo={backTo} | <GuidesTop backTo={guide ? backTo : "hidden"}
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | className={label ? "gg-name" : "gg-name sr-only"} | className="gg-name"
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

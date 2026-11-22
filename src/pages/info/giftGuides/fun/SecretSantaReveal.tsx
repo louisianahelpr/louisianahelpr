@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FUN_WORDS as W, SANTA_PATH } from "@/content/giftGuideFun1120";
+import { giftGuides as G } from "@/content/giftGuides";
 import { revealSecretSanta, type SantaReveal } from "@/lib/giftGuideFunApi";
 import { sharedListPath } from "@/lib/giftWishListApi";
 import { FunBody, funHeader } from "./FunPage";
@@ -46,7 +47,7 @@ export default function SecretSantaReveal() {
 
   return (
     <PublicHeaderPage {...funHeader(W.revealTitle)}>
-      <FunBody title={W.revealTitle} path={SANTA_PATH} noindex>
+      <FunBody title={W.revealTitle} path={SANTA_PATH} noindex banner={G.pageBanners.reveal}>
       {state.kind === "loading" && <p className="gg-fun-lead" role="status" data-reveal-loading="">{W.revealLoading}</p>}
       {state.kind === "missing" && (
         <div className="gg-fun-card" data-reveal-missing="">

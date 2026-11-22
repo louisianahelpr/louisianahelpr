@@ -225,10 +225,32 @@ export const codesByStore = (codes: DiscountCode[]) => {
   return [...stores.entries()].map(([store, list]) => ({ store, codes: list }));
 };
 
+/** A guides sub-page's banner words and gingham colour (the guides' own three: CatalogGuide["tint"]). */
+export interface PageBanner { lead: string; title: string; tint: "red" | "green" | "oat" }
+
 export const giftGuides = {
   /** The header title on every gift guides page, by the back arrow (owner 11-21: "add holiday to gift guides where it is by the back arrow"). */
   headerTitle: "Holiday gift guides",
   title: "Holiday gift guides",
+  /**
+   * Each guides sub-page's banner (owner 2026-11-22 #13: "gifts tags and all the other sections should have the same top
+   * section as the guides and the deals"): the small italic lead and the big serif title in the gingham arch, its
+   * colour by the menu group (the guides' red / green / beige): Free printables red, Make it fun beige, Louisiana green,
+   * the wish lists red. Drawn by GuidesTop (src/pages/info/giftGuides/GuidesTop.tsx).
+   */
+  pageBanners: {
+    "/gift-guides/printables/gift-tags": { lead: "free printables", title: "Gift Tags", tint: "red" },
+    "/gift-guides/printables/coloring-books": { lead: "free printables", title: "Coloring Books", tint: "red" },
+    "/gift-guides/printables/banners": { lead: "free printables", title: "Banners", tint: "red" },
+    finder: { lead: "make it fun", title: "Find a Gift", tint: "oat" },
+    "/gift-guides/swipe": { lead: "make it fun", title: "Swipe to Find Gifts", tint: "oat" },
+    "/gift-guides/draw-names": { lead: "make it fun", title: "Secret Santa Name Draw", tint: "oat" },
+    "/gift-guides/planner": { lead: "make it fun", title: "Gift Planner", tint: "oat" },
+    reveal: { lead: "shh, it's a secret", title: "Your Secret Santa", tint: "oat" },
+    "/holidays": { lead: "lights & events", title: "Louisiana Holiday Hub", tint: "green" },
+    myList: { lead: "your saved gifts", title: "My Wish List", tint: "red" },
+    shared: { lead: "shared with you", title: "Wish List", tint: "red" },
+  } satisfies Record<string, PageBanner>,
   /**
    * The landing's ONE set of ways in (owner 11-20 PM: "a tidy grid of nicely spaced cards, each with a good photo and
    * title"): a card per main group, its photo the named guide's own cover, its short line below the title; then the

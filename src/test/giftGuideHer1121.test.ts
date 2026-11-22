@@ -53,7 +53,9 @@ const ADDS_1122_PINS = ["p-109140863", "p-107929179", "p-109141448", "p-10914343
   // Batch 2b: The Sleepy Tie, Foton candle, and her Lake Hydrangea set (in place of her Lake pin that is gone from Lake's site).
   "p-109150422", "p-109158379", "p-103889077",
   // Batch 2c: Good Molecules patches, BISSELL Little Green Mini, Drowsy mask, Diptyque Baies, Madewell nightgown, Oura Ring 5.
-  "p-109147619", "p-109151385", "p-109149968", "p-109152299", "p-109155568", "p-109155784"];
+  "p-109147619", "p-109151385", "p-109149968", "p-109152299", "p-109155568", "p-109155784",
+  // builder-guide-links 11-22: Esker Bubble Soak.
+  "p-109207730"];
 // Launch day 11-22, from her screenshots (no ShopMy pin for these): CFUNIQ toiletry bag, Astercook knives and pans,
 // CASABREWS espresso machine, BISSELL FurGuard vacuum, eto decanter, Ozlo Sleepbuds 2.
 const POPULAR_1122_ASINS = ["B0GGTPW6Q9", "B0HJ9ZXCSD", "B0DWHDM15Q", "B0F41DGFXT", "B0BGQT41ZZ"];
@@ -75,9 +77,9 @@ const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.c
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 130 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(130);
-    expect(page.length).toBe(130);
+  it("the page holds exactly her 131 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(131);
+    expect(page.length).toBe(131);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
@@ -114,7 +116,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(59);
-    expect(shopmy.length).toBe(71);
+    expect(shopmy.length).toBe(72);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

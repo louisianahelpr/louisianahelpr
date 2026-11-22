@@ -42,7 +42,9 @@ const SWITCHED: Record<string, Record<string, string>> = {
     "https://go.shopmy.us/p-107850277": "store-l-l-bean", "https://go.shopmy.us/p-107837448": "store-l-l-bean", "https://go.shopmy.us/p-107881822": "store-the-warming-store",
     "https://go.shopmy.us/p-107847793": "store-cavenders", "https://go.shopmy.us/p-107895312": "store-tractor-supply", "https://go.shopmy.us/p-109208695": "store-smathers-and-branson",
     "https://go.shopmy.us/p-109208941": "store-marley-lilly",
-    "https://go.shopmy.us/p-107895486": "store-tractor-supply" },
+    "https://go.shopmy.us/p-107895486": "store-tractor-supply",
+    // builder-guide-links 11-22.
+    "https://go.shopmy.us/p-109199365": "store-saks-fifth-avenue", "https://go.shopmy.us/p-109203985": "store-st-bernard", "https://go.shopmy.us/p-109204287": "store-dsw" },
   // Rate switch 11-21 night: Segway Ninebot S2 (Amazon B0CT2WN59R, 3%) -> Tractor Supply 8% at $484.99.
   kids: { "https://go.shopmy.us/p-109001528": "store-tractor-supply",
     // Launch day 11-22 (Owner-adds-1122.md): her two Camp Snap 2 colors, pinned at The Swank Company (p-109142125,
@@ -51,7 +53,8 @@ const SWITCHED: Record<string, Record<string, string>> = {
     // Owner via the lead, 11-22: her EADEM New Classics Set pin goes on Kids.
     "https://go.shopmy.us/p-109155269": "store-eadem",
     // Owner via the lead, 11-22: both Yoto 4th Gen bundles (Ms. Rachel, Bluey).
-    "https://go.shopmy.us/p-109156467": "store-yoto", "https://go.shopmy.us/p-109156399": "store-yoto" },
+    "https://go.shopmy.us/p-109156467": "store-yoto", "https://go.shopmy.us/p-109156399": "store-yoto",
+    "https://go.shopmy.us/p-109208209": "store-crunchlabs", "https://go.shopmy.us/p-103757260": "store-maisonette" },
 };
 /**
  * Her ShopMy saves kept on each page (11-21), copied from the Desktop notes Him-saved-shopmy-1121.md and

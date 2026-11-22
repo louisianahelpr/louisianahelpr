@@ -74,6 +74,13 @@ const SENT: [string, string, string, number][] = [
   ["p-107895486", "him", "store-tractor-supply", 44.99], // Duck Commander Camo Max Mallard Hen
   ["p-109208695", "him", "store-smathers-and-branson", 195], // S&B Monogrammed Wallet, Hunter Green
   ["p-109208941", "him", "store-marley-lilly", 34.99], // Marley Lilly waxed canvas small cooler
+  // owner 11-22 popular via new ShopMy links (builder-guide-links)
+  ["p-109207730", "her", "store-esker-beauty", 75],
+  ["p-109208209", "kids", "store-crunchlabs", 34.99],
+  ["p-103757260", "kids", "store-maisonette", 129.99],
+  ["p-109199365", "him", "store-saks-fifth-avenue", 154],
+  ["p-109203985", "him", "store-st-bernard", 159],
+  ["p-109204287", "him", "store-dsw", 139.99],
 ];
 /** Amazon picks from her launch-day screenshots and asks (no ShopMy pin for them): ASIN -> guide, price 11-22. */
 const AMAZON_1122: [string, string, number][] = [

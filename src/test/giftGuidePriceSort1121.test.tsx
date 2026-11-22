@@ -208,7 +208,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // its duplicates (XTRATUF boots, GoBox 60 and Collection, the RAK tool).
       // Train f: Him batch 1 (Solo Stove, Roadie 8, Muck, Carhartt jacket, 2 Duck Commander calls; the Roadie 15 is off)
       // and batch 2 (S&B wallet, Marley Lilly cooler, GE Opal Mini).
-      him: { "Under $25": 43, "$25 to $50": 45, "$50 to $75": 25, "$75 to $100": 11, "$100 and up": 42 },
+      // builder-guide-links (11-22): Him + Le Labo, Patagonia duffel, Steve Madden loafer (all $100 and up).
+      him: { "Under $25": 43, "$25 to $50": 45, "$50 to $75": 25, "$75 to $100": 11, "$100 and up": 45 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -217,7 +218,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Battery Daddy ($20); Kids + both Yoto bundles ($164, $166).
       // Train e (11-22): Kids gained the 9 popular adds, the Quest 3S, iPad and JLab headphones, and lost its duplicate
       // Switch, Segway and tile rows.
-      kids: { "Under $25": 34, "$25 to $50": 25, "$50 to $75": 8, "$75 to $100": 6, "$100 and up": 20 },
+      // builder-guide-links (11-22): Kids + CrunchLabs Crunchinator ($35) and Stickerbox ($130).
+      kids: { "Under $25": 34, "$25 to $50": 26, "$50 to $75": 8, "$75 to $100": 6, "$100 and up": 21 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -229,7 +231,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Train f: the links made in her ShopMy 11-22: the CALPAK lunch bag ($38), OOFOS slide ($70), Slip and Crown Affair
       // pillowcases, the OOFOS leopard clog and the Smathers & Branson tray ($84-$95), the Patchology hand mask ($11) and the
       // BaubleBar spaced-letter necklace ($148).
-      her: { "Under $25": 37, "$25 to $50": 35, "$50 to $75": 10, "$75 to $100": 12, "$100 and up": 36 },
+      // builder-guide-links (11-22): Her + the Esker bubble soak ($75).
+      her: { "Under $25": 37, "$25 to $50": 35, "$50 to $75": 10, "$75 to $100": 13, "$100 and up": 36 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

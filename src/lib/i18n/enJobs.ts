@@ -17,6 +17,7 @@ export const enJobs = {
   "jobPage.unavailable": "This job isn't available.",
   "jobPage.unavailableBody": "It may have been filled, expired or taken down.",
   "jobPage.browseJobs": "Browse jobs",
+  "jobPage.closedBody": "Its details aren't available any more.",
   "jobPage.summary": "Job summary",
   "jobPage.details": "Details",
   "jobPage.showMore": "Show more",

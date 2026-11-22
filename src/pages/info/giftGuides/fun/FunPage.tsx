@@ -9,6 +9,7 @@ import { GiftGuideTools } from "../GiftGuideShare";
 import { GuidesHeadRow } from "../GuidesHeadRow";
 import { GiftGuidesWords } from "../GiftGuideCover";
 import { GiftGuidesSidebar } from "../GiftGuidesSidebar";
+import { GiftGuidesPhoneNav } from "../GiftGuidesPhoneNav";
 
 type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | PrintablePagePath;
 
@@ -54,6 +55,9 @@ export function GuidesFrame({ title, path, disclosures = true, tools = true, chi
       <GuidesHeadRow backTo="/gift-guides">
         {tools && <GiftGuideTools path={path} title={title} />}
       </GuidesHeadRow>
+      {/* Polish audit 1122 #3: the phone's chip row and menu sheet on these pages too (they had no way to the other
+          guides on a phone but the back arrow); Printables is filled on the three printables pages. */}
+      <GiftGuidesPhoneNav active={null} page={path} />
       <GiftGuidesWords lead="" title={title} titleId="gift-page-title" tools={null} />
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">

@@ -47,6 +47,8 @@ color:var(--gg-ink)}
 .gg-side a{display:flex;align-items:center;min-height:44px;padding:4px 10px;border-radius:8px;color:var(--gg-ink);text-decoration:none}
 .gg-side a:hover{background:hsl(var(--muted) / .6)}
 .gg-side a[aria-current="page"]{background:var(--gg-soft);color:var(--gg-olive);font-weight:700}
+@media (hover:hover) and (pointer:fine){.gg-side a{min-height:36px}.gg-side .gg-side-h{margin-top:10px}}
+@media (hover:hover) and (pointer:fine) and (max-height:889px),(not ((hover:hover) and (pointer:fine))) and (max-height:1039px){.gg-side{position:static;max-height:none;overflow:visible}}
 .gg-main{padding:8px 0 28px 24px;min-width:0}
 .gg-rowhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:18px 0 10px}
 .gg-rowcount{font-weight:500;letter-spacing:.06em}.gg-rowhead h2,.gg-rowhead h3{display:flex;align-items:center;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gg-muted);margin:0}
@@ -304,12 +306,13 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    hidden from 768px up, where the sidebar is the menu. */
 .gg-pnav{display:none}
 @media (max-width:767px){
-.gg-pnav{display:block;contain:inline-size;max-width:calc(100% + 40px);position:sticky;top:calc(var(--public-nav-h,3.5rem) + var(--safe-area-top,0px));z-index:5;margin:0 -20px;padding:6px 0 8px;background:hsl(var(--background));border-bottom:1px solid var(--gg-line)}
-.gg-pnav-row{display:flex;gap:8px;list-style:none;margin:0;padding:0 20px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.gg-pnav{display:flex;align-items:center;contain:inline-size;max-width:calc(100% + 40px);position:sticky;top:calc(var(--public-nav-h,3.5rem) + var(--safe-area-top,0px));z-index:5;margin:0 -20px;padding:6px 0 8px;background:hsl(var(--background));border-bottom:1px solid var(--gg-line)}
+.gg-pnav-row{display:flex;flex:1 1 auto;min-width:0;gap:8px;list-style:none;margin:0;padding:0 8px 0 20px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .gg-pnav-row::-webkit-scrollbar{display:none}
 .gg-pnav-row>li{flex:none}
+.gg-pnav>.gg-chip-menu{flex:none;margin-right:20px}
 }
-@media (min-width:640px) and (max-width:767px){.gg-pnav{margin:0 -32px}.gg-pnav-row{padding:0 32px}}
+@media (min-width:640px) and (max-width:767px){.gg-pnav{margin:0 -32px}.gg-pnav-row{padding-left:32px}.gg-pnav>.gg-chip-menu{margin-right:32px}}
 /* Signed in, the page scrolls inside AppShell (no marketing bar above it): the chip row sticks to the top. */
 .app-shell-frame .gg-pnav{top:0}
 .gg-chip-nav{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--gg-line);background:hsl(var(--card));font:600 13px Montserrat,sans-serif;color:var(--gg-ink);white-space:nowrap;text-decoration:none;cursor:pointer}

@@ -7,7 +7,7 @@
  *
  * @mutate src/lib/seoBodies.mjs |       if (!pickPriceShown(x.price, x.priceAt, today)) return { "@type": "ListItem", position: i + 1, name, url: href }; |       if (!x.price) return { "@type": "ListItem", position: i + 1, name, url: href };
  * @mutate src/lib/seoBodies.mjs |           offers: { "@type": "Offer", price: shownDollars(x.price), priceCurrency: "USD", url: href }, |           offers: { "@type": "Offer", price: x.price, priceCurrency: "USD", url: href },
- * @mutate api/share.ts | const list = day.kind === "deals" ? dealsItemListLd(day.pageTitle, seoData()?.deals ?? [], today, day.id) : null; | const list = null;
+ * @mutate api/share.ts | const list = lists ? dealsItemListLd(day.pageTitle, seoData()?.deals ?? [], today, day.id, lists) : null; | const list = null;
  * @mutate src/prerender/seoData.ts |       const extra = { ...(p.image ? { image: p.image } : {}), ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}) }; |       const extra = {};
  * @mutate src/components/giftGuides/PickPrice.tsx | G.priceApprox(shownDollars(pick.price)) | G.priceApprox(Math.ceil(pick.price ?? 0))
  */

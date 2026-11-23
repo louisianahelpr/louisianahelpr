@@ -72,6 +72,7 @@ import { SEO_DATA } from "../scripts/generated/seo-data.js";
 import { findTownPage } from "../src/lib/townPages.mjs";
 import {
   breadcrumbLd,
+  dealsDayOn,
   dealsGuideBody,
   giftGuideBody,
   giftGuideItemListLd,
@@ -1237,10 +1238,14 @@ function seoFor(url: URL): SeoOutcome {
     if (day) {
       const today = louisianaDay(new Date());
       const line = day.kind === "deals" ? DEALS_WORDS.disclosure : day[eventPhase(day, today)];
-      // Structured data 1121: a deals day carries an ItemList of its own cards still showing today.
-      const list = day.kind === "deals" ? dealsItemListLd(day.pageTitle, seoData()?.deals ?? [], today, day.id) : null;
+      // Structured data 1121: a deals day carries an ItemList of its own cards still showing today. Seo bodies 1123: the
+      // body lists the day's sections (Top deals, Discount codes, Sales; or Small Business Saturday's businesses) and the
+      // ItemList names the same cards.
+      const lists = day.kind === "deals" ? dealsDayOn(seoData(), day.id, today) : null;
+      const list = lists ? dealsItemListLd(day.pageTitle, seoData()?.deals ?? [], today, day.id, lists) : null;
+      const shops = day.kind === "small-biz" ? seoData()?.smallBiz : undefined;
       const qa = withQa(day.id, dealDayQa(day.id, day.kind, today), QA_BYLINE.other);
-      return { kind: "page", body: withQaSection(dealsGuideBody(day.id, day.pageTitle, day.description, line), qa.section), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: day.pageTitle, path: `/gift-guides/${day.id}` }]), ...(list ? [list] : []), ...qa.ld] };
+      return { kind: "page", body: withQaSection(dealsGuideBody(day.id, day.pageTitle, day.description, line, lists, shops), qa.section), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: day.pageTitle, path: `/gift-guides/${day.id}` }]), ...(list ? [list] : []), ...qa.ld] };
     }
     const d = seoData();
     if (!d) return null;
@@ -1272,7 +1277,7 @@ function seoFor(url: URL): SeoOutcome {
     if (hubBody) return { kind: "page", body: withQaSection(hubBody, qa.section), jsonLd: [...(holidayHubLd(`/${id}`, today) ?? []), ...qa.ld] };
   }
   const path = `/${id}`;
-  const body = infoPageBody(path);
+  const body = infoPageBody(path, id === "25days" ? seoData()?.lineup : undefined);
   if (!body) return null;
   const crumbs = infoPageBreadcrumbLd(path);
   return { kind: "page", body, jsonLd: [...(crumbs ? [crumbs] : []), ...(id === "25days" ? [twentyFiveDaysEventLd()] : [])] };
@@ -1681,7 +1686,8 @@ function notFoundPage(body: string): string {
     url: `${SITE_ORIGIN}/`,
     robots: "noindex, follow",
   });
-  return withRootBody(head, body);
+  // Technical SEO audit TS16 (1123): a 404 names no canonical (a noindex page pointing at the homepage is a mixed signal).
+  return withRootBody(head.replace(/<link rel="canonical" href="[^"]*">\s*/, ""), body);
 }
 
 /** An old guide link: 301 to the guide it is now (absolute, on SITE_ORIGIN; never built from the request's Host). */

@@ -35,10 +35,12 @@ describe("gift guide banner: bigger airy type and a printed-card effect (owner 1
   });
 
   it("the long two-line titles (deal days, 25 Days Sponsors) keep a large but smaller desktop size so two lines fit", () => {
-    // @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-banner-wrap:has(+.gg-countrow) .gg-banner h1{font-size:60px;line-height:1.04}} | .gg-banner-wrap:has(+.gg-countrow) .gg-banner h1{font-size:78px;line-height:1.04}}
+    // @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg:has([data-gift-countrow]) .gg-banner h1{font-size:60px;line-height:1.04}} | .gg:has([data-gift-countrow]) .gg-banner h1{font-size:78px;line-height:1.04}}
     // @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (min-width:768px){.gg:has([data-gift-deals-page]) | @media (min-width:0px){.gg:has([data-gift-deals-page])
     // Only from 768px up: on a phone every guide has the count row after its banner, so an unscoped rule shrank Her to 60px.
-    const n = Number(BLOCK.match(/^@media \(min-width:768px\)\{\.gg:has\(\[data-gift-deals-page\]\) \.gg-banner h1,\.gg-banner-wrap:has\(\+\.gg-countrow\) \.gg-banner h1\{font-size:(\d+)px/m)?.[1] ?? 0);
+    // The rule keys on the page holding the count row anywhere (owner 11-22: on a desktop the sponsors' row heads the
+    // content column, no longer the banner's next sibling).
+    const n = Number(BLOCK.match(/^@media \(min-width:768px\)\{\.gg:has\(\[data-gift-deals-page\]\) \.gg-banner h1,\.gg:has\(\[data-gift-countrow\]\) \.gg-banner h1\{font-size:(\d+)px/m)?.[1] ?? 0);
     expect(n).toBeGreaterThanOrEqual(54);
     expect(n).toBeLessThanOrEqual(64);
   });

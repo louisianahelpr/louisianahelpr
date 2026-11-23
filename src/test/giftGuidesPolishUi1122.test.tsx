@@ -36,7 +36,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const badges = guide === SPONSORS_PAGE ? | const badges = false ?
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-also-list li{display:inline;white-space:nowrap} | .gg-also-list li{padding:5px 10px;border:1px solid var(--gg-line);border-radius:999px}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:start} | .gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:end}
- * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-fun:has([data-swipe-deck]){max-width:none} | .gg-fun:has([data-swipe-deck]){}
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-fun{margin:0;padding:4px 0 24px} | .gg-fun{max-width:640px;margin:0;padding:4px 0 24px}
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | const codes = codesOn(day).filter((c) => !shownCodes.has(c.code.toUpperCase())); | const codes = codesOn(day);
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |           <CodeChip code={code} /> |           <code>{code}</code>
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-card-more{min-height:44px; | .gg-card-more{min-height:32px;
@@ -180,7 +180,10 @@ describe("polish audit 1122 #11: Swipe on a phone and a wide screen", () => {
   });
   it("a 150px photo on phones, the deck centered in the column, disclosures under the content", () => {
     const fun = src("src/pages/info/giftGuides/fun/FunPage.tsx");
-    expect(fun).toContain(".gg-fun:has([data-swipe-deck]){max-width:none}");
+    // Owner 11-22: the fun column spans the content column (no 640px cap), so the deck centres in the page's column.
+    expect(fun).toContain(".gg-fun{margin:0;padding:4px 0 24px}");
+    expect(fun).not.toMatch(/\.gg-fun\{[^}]*max-width/);
+    expect(fun).toMatch(/\.gg-swipe-stage\{[^}]*margin:0 auto/);
     expect(fun).toMatch(/@media \(max-width:479px\)\{\.gg-swipe-card\{padding:12px\}\.gg-swipe-card \.gg-photo,\.gg-swipe-card \.gg-letter,\.gg-swipe-card \.gg-thumb\{width:150px;height:150px\}/);
     expect(GIFT_GUIDES_CSS).toContain(".gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:start}");
   });

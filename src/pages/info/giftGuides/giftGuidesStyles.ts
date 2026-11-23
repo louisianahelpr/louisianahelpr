@@ -419,6 +419,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 /* Owner 11-21 (phone guide page): the count, the order-by pill and the icons on ONE row under the banner (wraps at 320);
    the search is a bare magnifier like the other icons until tapped. */
 .gg-countrow{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 8px;margin:10px 0 2px}
+.gg-main>.gg-countrow{margin-top:0}
 .gg-countrow-left{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0}
 .gg-countrow .gg-itemcount{margin:0}
 .gg-countrow .gg-ship{flex:none;font-size:11px;padding:4px 10px;max-width:none}
@@ -475,8 +476,8 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    (only there: on a phone every guide has the count row after its banner). */
 .gg-banner .gg-lead{font-size:36px;line-height:1.1;margin:0 0 16px}
 .gg-banner h1{font-size:80px;line-height:1.04}
-@media (min-width:768px){.gg:has([data-gift-deals-page]) .gg-banner h1,.gg-banner-wrap:has(+.gg-countrow) .gg-banner h1{font-size:60px;line-height:1.04}}
-@media (min-width:768px) and (max-width:1023px){.gg-banner{height:220px}.gg-arch{width:min(600px,80%)}.gg-banner .gg-lead{font-size:30px;margin-bottom:14px}.gg-banner h1{font-size:64px}.gg:has([data-gift-deals-page]) .gg-banner h1,.gg-banner-wrap:has(+.gg-countrow) .gg-banner h1{font-size:48px}}
+@media (min-width:768px){.gg:has([data-gift-deals-page]) .gg-banner h1,.gg:has([data-gift-countrow]) .gg-banner h1{font-size:60px;line-height:1.04}}
+@media (min-width:768px) and (max-width:1023px){.gg-banner{height:220px}.gg-arch{width:min(600px,80%)}.gg-banner .gg-lead{font-size:30px;margin-bottom:14px}.gg-banner h1{font-size:64px}.gg:has([data-gift-deals-page]) .gg-banner h1,.gg:has([data-gift-countrow]) .gg-banner h1{font-size:48px}}
 @media (max-width:767px){.gg-banner{height:184px;padding-top:10px}.gg-arch{width:min(340px,94%);padding:22px 10px 8px;box-shadow:0 -2px 10px rgba(60,40,20,.12),0 0 0 5px rgba(255,253,247,.85)}.gg-arch::before{inset:6px 6px 0}.gg-banner .gg-lead{font-size:clamp(20px,6vw,24px);margin-bottom:12px}.gg-banner h1{font-size:clamp(34px,11vw,44px);line-height:1.02;-webkit-line-clamp:2}}
 /* Dark mode: the arch stays cream, so its "gifts for" keeps the cover brown (the later .gg-words dark rule turned it near-white, 11-21). */
 :root[data-theme="dark"] .gg-words .gg-banner .gg-lead{color:#6b5a48}

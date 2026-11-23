@@ -231,7 +231,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Owner 11-22 PM, "add all items" (builder-guide-louisiana): three books, the pelican and the Duck Commander tee (under
       // $25), Mike the Tiger (~$25), the Saints jersey, Toups baby set, XTRATUF and LSU cheer dress ($25-$50). The Southern
       // Marsh chino came off again (owner "Drop both": no ShopMy rate).
-      kids: { "Under $25": 41, "$25 to $50": 33, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
+      // Owner 11-22 8:58 PM: Paint by Sticker Kids: Christmas ($3.44) came off (no Buy Box on Amazon); the Crayola pad moved
+      // to its Blue listing at $30.19 (still $25 to $50).
+      kids: { "Under $25": 40, "$25 to $50": 33, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

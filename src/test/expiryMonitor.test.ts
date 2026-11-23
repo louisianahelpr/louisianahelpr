@@ -233,7 +233,7 @@ describe("Sign in with Apple: the API masks the secret, so its date is recorded"
     });
     it("the live inventory tracks REFRESH_PR_TOKEN as a CI-read PAT, not as undated, and the monitor passes it in", () => {
       const live = loadInventory(ROOT);
-      const it0 = live.items.find((i: InventoryItem) => i.env.includes("REFRESH_PR_TOKEN"));
+      const it0 = live.items.find((i: InventoryItem) => i.env?.includes("REFRESH_PR_TOKEN"));
       expect(it0?.read.method).toBe("github-pat");
       expect(it0?.ciReadable).toBe(true);
       expect(Object.keys(live.undated)).not.toContain("REFRESH_PR_TOKEN");

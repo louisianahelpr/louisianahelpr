@@ -16,7 +16,7 @@
  * by src/test/giftGuideEarnOrder1121.test.tsx.
  *
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const sectioned = sortable ? priceSections(sortByPrice(inBudget, order === "high" ? "high" : "low")) : inBudget; | const sectioned = sortable ? sortByPrice(inBudget, order === "high" ? "high" : "low") : inBudget;
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   return PRICE_SECTIONS.find((s) => dollars < s.max)!.id; |   return PRICE_SECTIONS.find((s) => dollars <= s.max)!.id;
+ * @mutate src/lib/pickPriceShown.mjs |   return PRICE_SECTIONS.find((s) => dollars < s.max).id; |   return PRICE_SECTIONS.find((s) => dollars <= s.max).id;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />} |       {null}
  * @mutate src/content/giftGuidePriceSort.ts | return [...known, ...unknown]; | return [...unknown, ...known];
  * @mutate scripts/giftGuidePriceRank1121.mjs | priceRank: known ? ++rank : null | priceRank: ++rank

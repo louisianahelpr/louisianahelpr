@@ -40,8 +40,9 @@ const ROOT = resolve(__dirname, "..", "..");
 // "Shop Small Louisiana" is the owner's name for the small business page ("then it stays as Shop Small Louisiana",
 // src/content/giftGuideSmallBiz.mjs; /shop-small 2026-11-21).
 // "Happy Thanksgiving" is the words printed on the banner itself, the design's own name (the owner's Canva banner,
-// "Free printable Happy Thanksgiving banner", /gift-guides/printables/banners 2026-11-21).
-const NAMES = [/Terms of Service/g, /Licensed & Insured/g, /25 Days of Louisiana Giveaways/g, /25 Days\b/g, /Secret Santa/g, /\bChristmas\b/g, /\bHoliday Hub\b/g, /\bSanta\b/g, /Shop Small Louisiana/g, /Happy Thanksgiving\b/g];
+// "Free printable Happy Thanksgiving banner", /gift-guides/printables/banners 2026-11-21). "Merry Christmas" likewise: the
+// words on her three Christmas banners (guide audit 1123 #6: the Banners page head names all four).
+const NAMES = [/Terms of Service/g, /Licensed & Insured/g, /25 Days of Louisiana Giveaways/g, /25 Days\b/g, /Secret Santa/g, /Merry Christmas\b/g, /\bChristmas\b/g, /\bHoliday Hub\b/g, /\bSanta\b/g, /Shop Small Louisiana/g, /Happy Thanksgiving\b/g];
 
 function problems(title: string): string[] {
   let t = title;

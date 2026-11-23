@@ -21,7 +21,7 @@
  *
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | t: "Gift wrapping", d: GIFT_WRAP_DESCRIPTION }) | t: "Gift wrapping" })
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | for (const c of codes) if (c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]); | for (const c of codes) if (c.href) byStore.set(c.code, [c]);
- * @mutate src/content/giftGuideDealCounts.ts | const namesOther = (offer: string) => Boolean(here && other!.some((t) => offer.includes(t)) && !offer.includes(here.title)); | const namesOther = (offer: string) => false;
+ * @mutate src/content/giftGuideDealCounts.ts |   return (offer: string) => Boolean(here && other.some((t) => offer.includes(t)) && !offer.includes(here.title)); |   return (offer: string) => false;
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |       () => setCopied(true), |       () => setCopied(false),
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |         select(text);\n      }, |       },
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | <GiftOut href={href} className="gg-deal-brand gg-card-store" data-gift-code-shop={store}> | <GiftOut href="" className="gg-deal-brand gg-card-store" data-gift-code-shop={store}>

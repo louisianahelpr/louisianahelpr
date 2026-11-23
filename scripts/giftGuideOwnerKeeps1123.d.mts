@@ -3,3 +3,4 @@ export type KeepRow1123 = readonly [asin: string, price: number, image: string, 
 export const KEEPS_PRICE_AT: string;
 export const HIM_KEEPS_1123_ROWS: readonly KeepRow1123[];
 export const KIDS_KEEPS_1123_ROWS: readonly KeepRow1123[];
+export const HER_KEEPS_1123_ROWS: readonly KeepRow1123[];

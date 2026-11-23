@@ -243,7 +243,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Mignon Faget cufflinks and KREWE ($100 and up).
       // Owner 11-23 (builder guides-under10): "Stocking stuffers under $10" leads each guide, and Him gained 14 and Kids 16
       // of her Amazon keeps (scripts/giftGuideOwnerKeeps1123.mjs; the Callaway balls, $24.99, read ~$25: $25 to $50).
-      him: { "Stocking stuffers under $10": 14, "Under $25": 44, "$25 to $50": 49, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 50 },
+      // Her second keeps (11-23 ~11:55 AM, builder guides-keeps2): Him gained 9 stocking stuffers, every one under $5.
+      him: { "Stocking stuffers under $10": 23, "Under $25": 44, "$25 to $50": 49, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 50 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -286,7 +287,10 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // (under $25); the cookbook (~$25), Toups and Match South ($25-$50); the Cafe Du Monde box, the SCL Saints hat, the
       // Katie Kime tray and Haydel's ($50-$75); the Mignon Faget pendant (from $75); the oyster earrings and KREWE. The
       // Desden coin pouch came off again (owner "Drop both": no ShopMy rate).
-      her: { "Stocking stuffers under $10": 6, "Under $25": 41, "$25 to $50": 45, "$50 to $75": 15, "$75 to $100": 14, "$100 and up": 38 },
+      // Her second keeps (11-23 ~11:55 AM, builder guides-keeps2, 19 Amazon): 7 under $10; Kiehl's ($9.80) and the Mont Bleu
+      // files ($9.95) read ~$10, so they join the 7 others from $10 to $24 in Under $25; the Magnolia Table ($24.98), the
+      // OCOOPA warmers ($24.99) and We're Not Really Strangers ($25) read ~$25: $25 to $50.
+      her: { "Stocking stuffers under $10": 13, "Under $25": 50, "$25 to $50": 48, "$50 to $75": 15, "$75 to $100": 14, "$100 and up": 38 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

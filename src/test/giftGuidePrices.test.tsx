@@ -36,12 +36,13 @@ import { PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { verifiedPrice } from "../../scripts/giftGuidePrice.mjs";
 import { PRICE_RECHECKS } from "../../scripts/giftGuidePriceRecheck.mjs";
 import { HIM_KEEPS_1123, KIDS_KEEPS_1123 } from "../../scripts/giftGuideHimKids1121.mjs";
+import { HER_KEEPS_1123 } from "../../scripts/giftGuideHer1121.mjs";
 import { KEEPS_PRICE_AT } from "../../scripts/giftGuideOwnerKeeps1123.mjs";
 import { openPriceSections } from "./helpers/openPriceSections";
 
 afterEach(cleanup);
 
-const KEEP_HREFS = new Set([...HIM_KEEPS_1123, ...KIDS_KEEPS_1123].map((r) => r.href));
+const KEEP_HREFS = new Set([...HER_KEEPS_1123, ...HIM_KEEPS_1123, ...KIDS_KEEPS_1123].map((r) => r.href));
 
 const CHUNKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
   Object.entries(import.meta.glob<PickChunk>("../content/giftGuidePicks/*.json", { eager: true, import: "default" }))

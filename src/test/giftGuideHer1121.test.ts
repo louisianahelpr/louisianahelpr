@@ -117,7 +117,11 @@ const HER4_1122_ASINS = ["B0H2FQ5FV1", "B0FXYGCYK6", "B0F5K3B4Q7", "B0CHMS3PVZ",
 // coin pouch (p-109343748, no ShopMy rate) is off.
 const LOUISIANA_1122_ASINS = ["0935032029", "B07QDPPH7Z", "B0886YWV65", "B0915PDW38", "B002CMXGRI"];
 const LOUISIANA_1122_PINS = ["p-109341967", "p-109342469", "p-109342173", "p-108006579", "p-108155517", "p-108155377", "p-107207657", "p-109340844"];
-const SAVED = new Set([...[...LOUISIANA_1122_ASINS, ...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS, ...LOUISIANA_1122_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
+// Her second keeps of 11-23 (~11:55 AM, Desktop owner-keeps-1123b.json; scripts/giftGuideOwnerKeeps1123.mjs), Amazon,
+// priced on amazon.com 11-23. Her 7 non-Amazon keeps (6 at Ulta, the Capri Blue car diffuser) wait on links.
+const KEEPS_1123_ASINS = ["B079FV8PLK", "B00A8S6HM4", "B0CB23NZGT", "B00EUBPHR6", "B0B2WL4CSB", "B0BX2TZZWG", "B07L5QGF38", "B00GSH0KR2", "B01N9B27XA",
+  "B010TCP3SC", "B01M10G9WJ", "B0DWMNVVQV", "1401971369", "B01EXQ582Q", "B0GXGV6FRN", "B00023IT5S", "006282015X", "B0FHHG23TP", "B092GM9NWH"];
+const SAVED = new Set([...[...KEEPS_1123_ASINS, ...LOUISIANA_1122_ASINS, ...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS, ...LOUISIANA_1122_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
 const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
@@ -132,9 +136,10 @@ describe("For Her = the owner's saves (11-21)", () => {
     }
   });
 
-  it("the page holds exactly her 159 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(159);
-    expect(page.length).toBe(159);
+  it("the page holds exactly her 178 links, once each, and nothing else", () => {
+    // 178 = 159 + her 19 Amazon second keeps of 11-23 (KEEPS_1123_ASINS).
+    expect(SAVED.size).toBe(178);
+    expect(page.length).toBe(178);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
@@ -156,9 +161,11 @@ describe("For Her = the owner's saves (11-21)", () => {
     const seen = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     const prices = page.map((p) => seen.get(p.href) as number);
     expect(prices).toEqual([...prices].sort((a, b) => a - b));
-    // The cheapest is the eye gel ($4.77; the Mrs. Meyer's spray came off, owner 11-22 PM), then the YUDSUD leggings ($6.64).
-    expect(page[0].name).toMatch(/eye gel/i);
-    expect(page[1].name).toMatch(/^YUDSUD/);
+    // The cheapest are two of her 11-23 second keeps, the Sally Hansen polish ($3.17) and the Gold Bond hand cream ($3.98),
+    // then the eye gel ($4.77; the Mrs. Meyer's spray came off, owner 11-22 PM).
+    expect(page[0].name).toMatch(/^Sally Hansen/);
+    expect(page[1].name).toMatch(/^Gold Bond/);
+    expect(page[2].name).toMatch(/eye gel/i);
     expect(page[page.length - 1].name).toMatch(/currentbody/i);
     // The module sorts by itself: fed in reverse, it still lists cheapest first.
     const again = her1121Picks([...HER_ROWS].reverse()).map((p) => seen.get(p.href) as number);
@@ -172,13 +179,19 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(80);
+    expect(amazon.length).toBe(99); // 80 + her 19 Amazon second keeps of 11-23
     expect(shopmy.length).toBe(79);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
       // Her saved-list picks were captured 11-21; the Amazon picks from her launch-day screenshots, 11-22.
+      // Her second keeps, 11-23 (re-read on amazon.com that day).
+      if (KEEPS_1123_ASINS.some((a) => p.href.includes(`/dp/${a}?`))) {
+        expect(p.priceAt, p.name).toBe("2026-11-23");
+        expectAmazonPickPhoto(p);
+        continue;
+      }
       expect(p.priceAt, p.name).toBe([...ADDS_1122_ASINS, ...POPULAR_1122_ASINS, ...HER4_1122_ASINS, ...LOUISIANA_1122_ASINS, ...Object.values(LINK_FIXES_1122)].some((a) => p.href.includes(a)) || SCREENS_1122.has(p.href) ? "2026-11-22" : "2026-11-21");
       expectAmazonPickPhoto(p);
     }

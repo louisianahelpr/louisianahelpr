@@ -10,6 +10,7 @@ import {
   webhookRejectResponse,
 } from "../_shared/stripeWebhookReject.ts";
 import { logStep, type WebhookContext } from "./context.ts";
+import { isMissingCompletedAtColumn, resolveSeenEvent, STALE_RUN_MS } from "./dedupe.ts";
 import {
   StripeModeRefused,
   stripeSecretKeyFor,
@@ -421,20 +422,72 @@ serve(async (req) => {
   // handler later fails we can roll it back (below) and let Stripe's retry
   // re-process — without the rollback, the retry would hit this same dedupe
   // wall and 200-skip, permanently stranding a paid event.
+  //
+  // MON-1123-02: the row is inserted with completed_at NULL and marked complete
+  // only after the handler returns. A worker killed mid-handler (CPU, memory or
+  // wall-clock limit, a redeploy) never reaches the catch below, so its row
+  // used to survive as "already processed" and Stripe's retry was answered 200
+  // duplicate: the paid event was lost. Now a redelivery that finds the row
+  // still unfinished past STALE_RUN_MS takes it over and re-runs the
+  // (idempotent) handler; one that finds it unfinished and fresh is a run
+  // still in flight and gets a 409 so Stripe asks again later.
+  // stuck-payment-check pages on any row left unfinished for an hour.
   let idempotencyRecorded = false;
+  // false only when prod's table has no completed_at yet (function deployed
+  // ahead of migration 20261123161157): it then behaves exactly as before.
+  let completionTracked = true;
   try {
-    const { error: idemErr } = await supabase
+    let { error: idemErr } = await supabase
       .from("stripe_webhook_events")
-      .insert({ event_id: event.id, event_type: event.type });
-    if (idemErr) {
-      // 23505 = unique_violation → we've seen this event before. Ack and exit.
-      if ((idemErr as any).code === "23505") {
+      .insert({ event_id: event.id, event_type: event.type, completed_at: null });
+    if (idemErr && isMissingCompletedAtColumn(idemErr)) {
+      console.error("[STRIPE-WEBHOOK] stripe_webhook_events.completed_at missing — deduping without completion tracking:", idemErr);
+      completionTracked = false;
+      ({ error: idemErr } = await supabase
+        .from("stripe_webhook_events")
+        .insert({ event_id: event.id, event_type: event.type }));
+    }
+    if (idemErr && (idemErr as any).code === "23505") {
+      // 23505 = unique_violation → another run recorded this event. Done,
+      // still in flight, or dead mid-handler?
+      const seen = completionTracked
+        ? await resolveSeenEvent(supabase, event.id, Date.now())
+        : ({ kind: "done" } as const);
+      if (seen.kind === "done") {
         logStep("Duplicate event — already processed, skipping", { id: event.id });
         return new Response(JSON.stringify({ received: true, duplicate: true }), {
           headers: { "Content-Type": "application/json" },
           status: 200,
         });
       }
+      if (seen.kind === "in_flight") {
+        // Not a 200: if that run dies, this delivery is the only thing left to
+        // replay it. Stripe retries a 409 later; by then it is done or stale.
+        logStep("Event still in flight in another run — asking Stripe to retry later", { id: event.id });
+        return new Response(JSON.stringify({ received: false, error: "event_in_flight" }), {
+          headers: { "Content-Type": "application/json" },
+          status: 409,
+        });
+      }
+      if (seen.kind === "unreadable") {
+        console.error("[STRIPE-WEBHOOK] Could not read the earlier run's state — asking Stripe to retry:", seen.error);
+        return new Response(JSON.stringify({ received: false, error: "idempotency_state_unreadable" }), {
+          headers: { "Content-Type": "application/json" },
+          status: 500,
+        });
+      }
+      // takeover: an earlier run inserted the row and never finished. Our claim
+      // UPDATE matched it, so we own it now: a failure below rolls it back.
+      idempotencyRecorded = true;
+      logStep("Earlier run never finished — re-running event", { id: event.id, type: event.type });
+      await runForStripeMode(event.livemode === false, () => postSlackOpsAlert({
+        kind: "stripe_webhook_error",
+        severity: "warning",
+        title: "Stripe webhook re-ran an event whose first run never finished",
+        message: `\`${event.type}\` (${event.id}) had a dedupe row with no completion, older than ${STALE_RUN_MS / 60000} min: the first run was killed mid-handler. Stripe redelivered it and it is being processed again (the handlers are idempotent).`,
+        fields: { "Event ID": event.id },
+      }));
+    } else if (idemErr) {
       // Any other DB error (not a duplicate): the dedupe table is unhealthy.
       // Processing now WITHOUT a dedupe record means a later Stripe retry can't
       // be recognized as a duplicate and would re-apply the event. Fail closed
@@ -509,9 +562,10 @@ serve(async (req) => {
     }
 
     // Zero rows deleted — not a benign race. `idempotencyRecorded` is only true
-    // because THIS request inserted the row seconds ago; a concurrent delivery
-    // of the same event.id would have hit 23505 and 200-skipped without ever
-    // reaching this rollback; the only call site returns immediately after
+    // because THIS request inserted (or, MON-1123-02, took over) the row; a
+    // concurrent delivery of the same event.id hits 23505 and gets a 409 (row
+    // fresh) without ever reaching this rollback, and cannot take the row over
+    // while it is younger than STALE_RUN_MS; the only call site returns immediately after
     // awaiting; and `cleanup_stripe_webhook_events()` prunes at 30 days. So no
     // rows matched means the row is still there, Stripe's retry will
     // dedupe-skip, and a PAID event — subscription grant, escrow funding,
@@ -558,6 +612,21 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json" },
       status: 500,
     });
+  }
+
+  // MON-1123-02: the handler finished; only now is the event "processed". If
+  // this write fails the event WAS applied, so it is still a 200 (a retry
+  // would only re-run an idempotent handler); the row stays unfinished and
+  // stuck-payment-check pages on it within the hour.
+  if (idempotencyRecorded && completionTracked) {
+    const { data: done, error: doneErr } = await supabase
+      .from("stripe_webhook_events")
+      .update({ completed_at: new Date().toISOString() })
+      .eq("event_id", event.id)
+      .select("event_id");
+    if (doneErr || !done || (done as unknown[]).length === 0) {
+      console.error("[STRIPE-WEBHOOK] Event applied but its completion was not recorded (stuck-payment-check will page):", event.id, doneErr ?? "0 rows");
+    }
   }
 
   return new Response(JSON.stringify({ received: true }), {

@@ -108,8 +108,32 @@ jobs:
       - name: Download the newest successful backup
         env:
           GH_TOKEN: ${{ github.token }}
+          # OPS-6: when this secret exists db-backup.yml stores the archive in
+          # the PRIVATE helpr-workspace repo and uploads no public artifact, so
+          # the drill reads the same place on the same rule.
+          PRIVATE_TOKEN: ${{ secrets.BACKUP_PRIVATE_REPO_TOKEN }}
+          PRIVATE_REPO: louisianahelpr/helpr-workspace
         run: |
           set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bk"
+          if [ -n "${PRIVATE_TOKEN:-}" ]; then
+            ASSET=$(GH_TOKEN="$PRIVATE_TOKEN" gh api "repos/$PRIVATE_REPO/releases/tags/db-backups" \
+                      --jq '[.assets[] | select(.name | test("^backup-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.tar\\.gz\\.gpg$"))] | sort_by(.created_at) | last')
+            { [ -n "$ASSET" ] && [ "$ASSET" != "null" ]; } || { echo "::error::no backup asset in $PRIVATE_REPO release db-backups"; exit 1; }
+            NAME=$(echo "$ASSET" | jq -r .name)
+            AT=$(echo "$ASSET" | jq -r .created_at)
+            AGE_H=$(( ( $(date +%s) - $(date -d "$AT" +%s) ) / 3600 ))
+            echo "backup $NAME stored $AT (${AGE_H}h ago) in $PRIVATE_REPO"
+            echo "BACKUP_AGE_H=$AGE_H" >> "$GITHUB_ENV"
+            echo "BACKUP_RUN=$PRIVATE_REPO:$NAME" >> "$GITHUB_ENV"
+            if [ "$AGE_H" -gt 168 ]; then
+              echo "::error::newest backup is ${AGE_H}h old — a restore today would lose over a week"
+              exit 1
+            fi
+            GH_TOKEN="$PRIVATE_TOKEN" gh release download db-backups -R "$PRIVATE_REPO" -p "$NAME" -D "$RUNNER_TEMP/bk"
+            find "$RUNNER_TEMP/bk" -name '*.gpg' -exec ls -l {} +
+            exit 0
+          fi
           # NOT `--status success -L 1`: on 2026-10-05 07:00Z (run 37275273036)
           # that filtered query answered with run 34876980245 from 2026-09-14
           # while the daily backups of 10-02..10-04 had all succeeded (the same

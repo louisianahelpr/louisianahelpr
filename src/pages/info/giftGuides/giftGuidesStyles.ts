@@ -395,7 +395,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 }
 /* The menu sheet: the sidebar's groups, rows and current-page look. */
 .gg-sheet-menu .gg-sheet-menu-body{max-height:70dvh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
-/* Visual audit 1122-night #3: rows scrolled up under the "Gift guides" title and showed half-cut ("Banners" sliced at
+/* Visual audit 1122-night #3: rows scrolled up under the sheet's Gift guides title and showed half-cut ("Banners" sliced at
    320). The scrolling list now starts under a hairline below the title and a row fades out in the 16px under it (at
    rest that strip is the list's own top padding, so nothing is faded; the 1px line itself stays unmasked), and the first group sits 16px under the line
    like the gap between groups (was ~5px). */

@@ -18,6 +18,10 @@ export const OFFER_REWRITES = {
   "Black Friday Warm-up - Up to 50% off Orders and Free Shipping Plus Free Charm with": "Black Friday warm-up: up to 50% off and free shipping",
   // Ulta: "Purchase of" lost its dollar amount the same way.
   "Get a Free Magic Pick Nail Art Stickers, Under The Tree with a Dashing Diva Purchase of": "Free Magic Pick nail art stickers with a Dashing Diva purchase",
+  // At Home: the feed's Mavely link (mavely.app.link/jDJMNKoQa8b) opens the 12ft Pre-Lit Jackson Pine Tree, $649.99 on
+  // athome.com 2026-11-22 with no 50% off shown, under the site's "Up to 50% off Black Friday deals" banner; the 7ft Slim
+  // tree the feed names is not what the link opens (links audit 1122 night #13).
+  "Save 50% on the 7ft Slim Jackson Pine Tree": "Up to 50% off Black Friday deals; this link opens the 12ft Pre-Lit Jackson Pine Tree",
 };
 
 /**

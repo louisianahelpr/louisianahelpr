@@ -143,7 +143,8 @@ export function catalogGuideQa(slug, picks, today) {
       q: `Which businesses sponsor ${TWENTY_FIVE_DAYS.name}?`,
       a: `Sponsors include ${list(brands.slice(0, NAMED))}${more > 0 ? `, plus ${more} more on this page` : ""}.`,
     });
-    const under = priced.filter((p) => !p.priceFrom && priceSectionId(p.price) === "under-25");
+    // Under $25 = the stocking-stuffer band (under $10, owner 11-23) plus the Under $25 band.
+    const under = priced.filter((p) => !p.priceFrom && ["stocking-stuffers", "under-25"].includes(priceSectionId(p.price)));
     if (under.length) qa.push({ q: "Are there sponsor gifts under $25?", a: `Yes. A few: ${list(under.slice(0, NAMED).map((p) => named(p, today)))}.` });
     // Counted from the cards' own links (toQaPick link), so the answer is never wider than the page.
     const own = rows.filter((p) => !p.link).length;
@@ -160,11 +161,21 @@ export function catalogGuideQa(slug, picks, today) {
   if (!who) return [];
   // The page's own price sections (priceSectionId, shared with GiftGuideView.tsx), so each count equals its section head.
   const band = (id) => priced.filter((p) => priceSectionId(p.price) === id);
+  // Owner 2026-11-23 (pop-up "Under 10"): the guide opens with "Stocking stuffers under $10"; its count is that head's.
+  const stocking = band("stocking-stuffers");
+  if (stocking.length) {
+    qa.push({
+      q: `What are good stocking stuffers for ${who} under $10?`,
+      a: `This guide opens with ${plural(stocking.length, "stocking stuffer", "stocking stuffers")} under $10. ${stocking.length > NAMED ? "A few: " : ""}${list(stocking.slice(0, NAMED).map((p) => named(p, today)))}.`,
+    });
+  }
   const under25 = band("under-25");
   if (under25.length) {
     qa.push({
       q: `What are good gifts for ${who} under $25?`,
-      a: `This guide has ${plural(under25.length, "gift", "gifts")} under $25. ${under25.length > NAMED ? "A few: " : ""}${list(under25.slice(0, NAMED).map((p) => named(p, today)))}.`,
+      a: stocking.length
+        ? `Besides the stocking stuffers under $10, this guide has ${plural(under25.length, "gift", "gifts")} from $10 to $25. ${under25.length > NAMED ? "A few: " : ""}${list(under25.slice(0, NAMED).map((p) => named(p, today)))}.`
+        : `This guide has ${plural(under25.length, "gift", "gifts")} under $25. ${under25.length > NAMED ? "A few: " : ""}${list(under25.slice(0, NAMED).map((p) => named(p, today)))}.`,
     });
   }
   const to50 = band("25-to-50");

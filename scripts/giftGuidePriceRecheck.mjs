@@ -14,7 +14,12 @@
 export const PRICE_RECHECKS = {
   // 2026-11-23 (price-refresh-1123): 73 links re-read, every price unchanged. The product page read is beside each.
   // BaubleBar Mini 14K Gold Spaced Letter Custom Name Necklace: https://www.baublebar.com/products/mini-18k-gold-custom-spaced-letter-name-necklace
+  // (re-read 11-23 PM, guides-under10: the page's own title is "Mini 14K Gold Spaced Letter Custom Name Necklace", metal
+  // "14K Gold Plated Sterling Silver", $148; only its address says 18k, so the card's 14K name stays.)
   "https://go.shopmy.us/p-109205223": { price: 148, priceAt: "2026-11-23" },
+  // Eberjey Gisele Slouchy PJ Set, Black/Ivory: https://eberjey.com/products/gisele-tencel-modal-slouchy-pj-set-black-ivory
+  // (11-23 PM, guides-under10: store product data, $148 in every size)
+  "https://go.shopmy.us/p-104580620": { price: 148, priceAt: "2026-11-23" },
   // BaubleBar Mini Fine Line Custom Hair Brush, Magenta: https://www.baublebar.com/products/fine-line-mini-custom-hair-brush-magenta
   "https://go.shopmy.us/p-109289957": { price: 48, priceAt: "2026-11-23" },
   // BURLEBO Cap: https://burlebo.com/products/burlebo-outdoors-cap

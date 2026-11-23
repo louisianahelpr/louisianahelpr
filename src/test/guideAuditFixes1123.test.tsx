@@ -91,11 +91,16 @@ describe("1. Q&A price counts = the page's price sections (content #1)", () => {
       const picks = guideBySlug(slug)!.picks.filter((p) => p.name);
       // The page's arithmetic (GiftGuideView.tsx priceSections), written out: rounded dollars, at least $1.
       const shown = picks.filter((p) => pickPriceShown(p.price, p.priceAt, TODAY)).map((p) => Math.max(1, Math.round(p.price!)));
-      const under25 = shown.filter((d) => d < 25).length;
+      // Owner 11-23 ("Under 10"): the guide opens with "Stocking stuffers under $10" (dollars below 10), so the Under $25
+      // section, and its Q&A count, hold $10 to $24.
+      const stocking = shown.filter((d) => d < 10).length;
+      const under25 = shown.filter((d) => d >= 10 && d < 25).length;
       const to50 = shown.filter((d) => d >= 25 && d < 50).length;
       expect(under25, slug).toBeGreaterThan(10);
+      expect(stocking, slug).toBeGreaterThan(0);
       const qa = catalogGuideQa(slug, picks.map(toQaPick), TODAY);
-      expect(qa.find((x) => /under \$25\?$/.test(x.q))!.a, slug).toContain(`This guide has ${under25} gifts under $25.`);
+      expect(qa.find((x) => /under \$10\?$/.test(x.q))!.a, slug).toContain(`This guide opens with ${stocking} stocking stuffers under $10.`);
+      expect(qa.find((x) => /under \$25\?$/.test(x.q))!.a, slug).toContain(`Besides the stocking stuffers under $10, this guide has ${under25} gifts from $10 to $25.`);
       expect(qa.find((x) => /under \$50\?$/.test(x.q))!.a, slug).toContain(`${to50} gifts from $25 to $50.`);
       checked++;
     }

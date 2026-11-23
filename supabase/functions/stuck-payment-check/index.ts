@@ -59,6 +59,8 @@ const MIN_AGE_MS = 5 * 60 * 1000;
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_JOBS = 200;
 const CONCURRENCY = 5;
+/** MON-1123-02: a webhook event unfinished this long is paged (see the check at the end). */
+const UNFINISHED_EVENT_PAGE_MS = 60 * 60 * 1000;
 
 type Candidate = { id: string; stripe_session_id: string };
 type Check = {
@@ -186,7 +188,34 @@ serve(async (req) => {
       await Promise.all(toCheck.slice(i, i + CONCURRENCY).map(checkOne));
     }
 
-    return cronResult(FN, { candidates: candidates.length, skipped_final: candidates.length - toCheck.length, checked, paid }, defects.defects, corsHeaders);
+    // MON-1123-02: a Stripe event whose webhook run started and never finished.
+    // stripe-webhook marks stripe_webhook_events.completed_at only after its
+    // handler returns, and a redelivery re-runs a row left unfinished past 10
+    // min. One still unfinished after an hour means Stripe has not redelivered
+    // (or the re-run died too): a paid gift card, Declutter order, tip, Shops
+    // order or job escrow may be un-applied. Every checkout kind goes through
+    // that one webhook, so this one check covers them all. A defect makes this
+    // run answer 500, which pages.
+    const unfinishedBefore = new Date(now - UNFINISHED_EVENT_PAGE_MS).toISOString();
+    const { data: unfinished, error: unfinishedErr } = await supabase
+      .from("stripe_webhook_events")
+      .select("event_id, event_type, processed_at")
+      .is("completed_at", null)
+      .lt("processed_at", unfinishedBefore)
+      .order("processed_at", { ascending: true })
+      .limit(20);
+    if (unfinishedErr) {
+      defects.record(`unfinished webhook events unreadable: ${unfinishedErr.message}`);
+    } else {
+      for (const r of (unfinished ?? []) as Array<{ event_id: string; event_type: string; processed_at: string }>) {
+        // Short: pg_net keeps only 500 chars of the reply. Recovery: resend the
+        // event from the Stripe dashboard; the webhook re-runs an unfinished
+        // row by itself, no row delete needed.
+        defects.record(`webhook event ${r.event_id} (${r.event_type}) unfinished since ${r.processed_at}: resend from Stripe`);
+      }
+    }
+
+    return cronResult(FN, { candidates: candidates.length, skipped_final: candidates.length - toCheck.length, checked, paid, unfinished_webhook_events: unfinished?.length ?? null }, defects.defects, corsHeaders);
   } catch (e) {
     return cronError(FN, caughtMessage(e), corsHeaders);
   }

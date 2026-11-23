@@ -213,4 +213,55 @@ describe("stuck-payment-check: only a checkout that took the money counts as stu
     expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
+
+  /*
+   * MON-1123-02 (backend-ops audit 2026-11-23): a stripe-webhook run killed
+   * mid-handler leaves its stripe_webhook_events row with completed_at NULL.
+   * The webhook re-runs it on Stripe's next redelivery; a row still unfinished
+   * after an hour pages here, for every checkout kind (gift cards, Declutter,
+   * tips, Shops, jobs), since they all go through that one webhook.
+   *
+   * @mutate supabase/functions/stuck-payment-check/index.ts |         defects.record(`webhook event ${r.event_id} (${r.event_type}) unfinished since ${r.processed_at}: resend from Stripe`); |         void r;
+   * @mutate supabase/functions/stuck-payment-check/index.ts |       defects.record(`unfinished webhook events unreadable: ${unfinishedErr.message}`); |       void unfinishedErr;
+   * @mutate supabase/functions/stuck-payment-check/index.ts |       .is("completed_at", null)\n      .lt("processed_at", unfinishedBefore) |       .lt("processed_at", unfinishedBefore)
+   * @mutate supabase/functions/stuck-payment-check/index.ts | const UNFINISHED_EVENT_PAGE_MS = 60 * 60 * 1000; | const UNFINISHED_EVENT_PAGE_MS = 24 * 60 * 60 * 1000;
+   */
+  describe("pages on a webhook event that started and never finished (MON-1123-02)", () => {
+    const unfinishedRead = () => scenario.readQueries.find((q) => q.table === "stripe_webhook_events");
+
+    it("an event unfinished for over an hour makes the run fail, naming the event", async () => {
+      scenario.reads.stripe_webhook_events = {
+        rows: [{ event_id: "evt_gift_lost", event_type: "checkout.session.completed", processed_at: "2026-11-23T08:00:00Z" }],
+      };
+      const res = await cron();
+      const body = await res.json();
+      expect(res.status, JSON.stringify(body)).toBe(500);
+      expect(body.unfinished_webhook_events).toBe(1);
+      expect(String(body.defectReasons)).toContain("evt_gift_lost");
+      expect(String(body.defectReasons)).toContain("checkout.session.completed");
+      // The job checks still ran and recorded their answers.
+      expect(recorded()).toHaveLength(2);
+    });
+
+    it("reads only unfinished rows older than the one-hour window", async () => {
+      scenario.reads.stripe_webhook_events = { rows: [] };
+      const res = await cron();
+      expect(res.status).toBe(200);
+      const q = unfinishedRead();
+      expect(q, "the unfinished-event read ran").toBeDefined();
+      expect(q!.filters).toContainEqual({ op: "is", column: "completed_at", value: null });
+      const cut = q!.filters.find((f) => f.op === "lt" && f.column === "processed_at");
+      const ageMin = (Date.now() - Date.parse(String(cut?.value))) / 60000;
+      expect(ageMin).toBeGreaterThan(59);
+      expect(ageMin).toBeLessThan(61);
+    });
+
+    it("an unreadable dedupe table is a failed run, never 'nothing unfinished'", async () => {
+      scenario.reads.stripe_webhook_events = { error: { message: "permission denied", code: "42501" } };
+      const res = await cron();
+      const body = await res.json();
+      expect(res.status).toBe(500);
+      expect(String(body.defectReasons)).toContain("unfinished webhook events unreadable");
+    });
+  });
 });

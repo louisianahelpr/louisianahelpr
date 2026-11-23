@@ -27,7 +27,10 @@
 #
 #   2. IT MUST NOT LEAK PII. The data dump contains real names, emails, phone
 #      numbers, street addresses and Stripe customer/account ids. GitHub
-#      artifacts are readable by anyone with repo read access and are NOT an
+#      artifacts are readable by anyone with repo read access (THIS REPO IS
+#      PUBLIC: that is every signed-in GitHub user, OPS-6 2026-11-23, so the
+#      archive goes to the private helpr-workspace repo once
+#      BACKUP_PRIVATE_REPO_TOKEN exists; see the store step) and are NOT an
 #      appropriate resting place for that in the clear. So the archive is
 #      encrypted with GPG symmetric AES-256 before it ever leaves the runner,
 #      and the job HARD-FAILS if BACKUP_PASSPHRASE is unset rather than
@@ -42,6 +45,11 @@
 #                             that is NOT this repo and NOT only GitHub — if
 #                             you lose it the backups are unreadable, and if
 #                             you lose GitHub you need it elsewhere anyway.
+#   BACKUP_PRIVATE_REPO_TOKEN OPTIONAL (OPS-6). Fine-grained token, Contents
+#                             read/write on louisianahelpr/helpr-workspace
+#                             only. Set: backups go to that private repo's
+#                             `db-backups` release, no public artifact. Unset:
+#                             public-repo artifact kept 14 days, with a warning.
 #
 # TO RESTORE: follow docs/runbooks/restore-from-backup.md. Do NOT just psql the
 # three files in: the drill measured (2026-09-23) that a plain load comes back
@@ -369,18 +377,81 @@ jobs:
           grep -qx "storage/manifest.json" listing.txt
           rm -f roundtrip.tar.gz listing.txt
 
+      # OPS-6 (backend-ops audit 2026-11-23): THIS REPO IS PUBLIC, so its
+      # Actions artifacts can be downloaded by any signed-in GitHub user, not
+      # only by "people with repo read access" as header point 2 assumed. The
+      # archive is encrypted, but a public copy is open to offline passphrase
+      # guessing for as long as it exists. So the archive goes to a release of
+      # the PRIVATE repo louisianahelpr/helpr-workspace whenever the
+      # BACKUP_PRIVATE_REPO_TOKEN secret exists (a fine-grained token with
+      # Contents read/write on that one repo; creating it is the owner's step),
+      # and NO public artifact is uploaded then. db-restore-drill.yml reads the
+      # same place on the same rule.
+      - name: Store the archive in the private repo (OPS-6)
+        id: private
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_PRIVATE_REPO_TOKEN }}
+          PRIVATE_REPO: louisianahelpr/helpr-workspace
+          RELEASE_TAG: db-backups
+          # Kept as long as the repo artifacts were (30 days, measured
+          # 2026-11-23): moving them private shortens nothing.
+          KEEP_DAYS: "30"
+        run: |
+          set -euo pipefail
+          F="backup-$STAMP.tar.gz.gpg"
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::BACKUP_PRIVATE_REPO_TOKEN is not set, so tonight's encrypted backup is a PUBLIC-repo artifact (kept 14 days). OPS-6: add the secret to move backups to louisianahelpr/helpr-workspace."
+            echo "stored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # The token is set, so from here every failure is a FAILED backup:
+          # never fall back to the public artifact once the private store is meant.
+          gh api "repos/$PRIVATE_REPO" --jq .visibility | grep -qx private \
+            || { echo "::error::$PRIVATE_REPO is not private; refusing to store the backup there"; exit 1; }
+          if ! gh release view "$RELEASE_TAG" -R "$PRIVATE_REPO" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" -R "$PRIVATE_REPO" --latest=false \
+              --title "Encrypted DB backups" \
+              --notes "Nightly encrypted prod DB backups from louisianahelpr/louisianahelpr db-backup.yml (OPS-6). Decrypt with BACKUP_PASSPHRASE; restore with docs/runbooks/restore-from-backup.md."
+          fi
+          gh release upload "$RELEASE_TAG" "$F" -R "$PRIVATE_REPO" --clobber
+          WANT=$(wc -c < "$F" | tr -d ' ')
+          GOT=$(gh api "repos/$PRIVATE_REPO/releases/tags/$RELEASE_TAG" --jq ".assets[] | select(.name == \"$F\") | .size")
+          if [ "$GOT" != "$WANT" ]; then
+            echo "::error::private copy of $F is ${GOT:-missing} bytes, expected $WANT"
+            exit 1
+          fi
+          echo "stored $F in $PRIVATE_REPO release $RELEASE_TAG ($GOT bytes)"
+          # Retention: drop this workflow's own backup assets older than KEEP_DAYS.
+          # Only names this step writes (backup-YYYY-MM-DD.tar.gz.gpg) are touched.
+          CUTOFF=$(date -u -d "-${KEEP_DAYS} days" +%Y-%m-%dT%H:%M:%SZ)
+          gh api "repos/$PRIVATE_REPO/releases/tags/$RELEASE_TAG" \
+            --jq ".assets[] | select(.name | test(\"^backup-[0-9]{4}-[0-9]{2}-[0-9]{2}\\\\.tar\\\\.gz\\\\.gpg$\")) | select(.created_at < \"$CUTOFF\") | .id" \
+            | while read -r ID; do
+                [ -n "$ID" ] || continue
+                # A failed prune keeps an old encrypted copy in the private repo
+                # one more day: a warning, never a failed backup.
+                if gh api -X DELETE "repos/$PRIVATE_REPO/releases/assets/$ID" >/dev/null; then
+                  echo "pruned asset $ID (older than $KEEP_DAYS days)"
+                else
+                  echo "::warning::could not prune old backup asset $ID in $PRIVATE_REPO"
+                fi
+              done
+          echo "stored=true" >> "$GITHUB_OUTPUT"
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        # Only while the private store is not set up (see the step above).
+        if: ${{ steps.private.outputs.stored != 'true' }}
         with:
           name: db-backup-${{ env.STAMP }}
           path: backup-${{ env.STAMP }}.tar.gz.gpg
-          # Asks for 90 days, but the REPO setting caps it: measured 2026-09-23,
-          # `gh api repos/:o/:r/actions/permissions/artifact-and-log-retention`
-          # -> {"days":14,"maximum_allowed_days":90}, and the upload logs
-          # "Using 14 instead". Backups are therefore kept 14 DAYS. Raising the
-          # repo setting to 90 lengthens every workflow's artifacts and logs,
-          # which may exceed the free artifact-storage quota: an owner decision
-          # (docs/OPEN.md MORNING QUESTIONS).
-          retention-days: 90
+          # OPS-6: 14 days, not the 30 the repo setting allows (measured
+          # 2026-11-23: {"days":30,"maximum_allowed_days":90}). Every day kept
+          # is one more public copy open to passphrase guessing. 14 is the
+          # retention this backup had until the repo setting was raised, and the
+          # restore drill needs only the newest (it fails past 168 h). Artifacts
+          # uploaded BEFORE this change keep the expiry they were given (up to
+          # 30 days); changing that means deleting them, which is the owner's call.
+          retention-days: 14
           if-no-files-found: error
 
   # A RED RUN HAS TO LAND SOMEWHERE. Added 2026-09-23 after db-backup — along

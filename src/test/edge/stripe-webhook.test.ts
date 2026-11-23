@@ -184,14 +184,128 @@ describe("stripe-webhook edge function", () => {
         type: "tax.settings.updated",
         data: { object: {} },
       });
-      // The idempotency insert into stripe_webhook_events returns 23505.
-      scenario.writeErrors.stripe_webhook_events = {
-        message: "duplicate key value violates unique constraint",
-        code: "23505",
-      };
+      // The idempotency insert into stripe_webhook_events returns 23505, and the
+      // earlier run FINISHED (MON-1123-02: completed_at set), so the stale claim
+      // matches nothing.
+      scenario.writeOverrides = [
+        { table: "stripe_webhook_events", op: "insert", when: () => true, error: { message: "duplicate key value violates unique constraint", code: "23505" } },
+        { table: "stripe_webhook_events", op: "update", when: (p) => "processed_at" in p, rows: [] },
+      ];
+      scenario.reads.stripe_webhook_events = { rows: [{ event_id: "evt_dup", completed_at: "2026-11-23T10:00:00Z" }] };
       const res = await fn.fetch(webhookRequest(fn, "{}"));
       expect(res.status).toBe(200);
       expect((await json(res)).duplicate).toBe(true);
+    });
+
+    /*
+     * MON-1123-02 (backend-ops audit 2026-11-23): a run killed mid-handler
+     * (CPU/memory/wall-clock limit, a redeploy) never reaches the catch that
+     * rolls the dedupe row back. Its row used to answer Stripe's retry with 200
+     * "duplicate", so a paid gift card / Declutter order / tip / escrow was
+     * never applied. The row now carries completed_at, NULL until the handler
+     * returns, and a redelivery past the stale window takes it over.
+     *
+     * @mutate supabase/functions/stripe-webhook/index.ts |       if (seen.kind === "done") { |       if (seen.kind !== "in_flight" && seen.kind !== "unreadable") {
+     * @mutate supabase/functions/stripe-webhook/dedupe.ts |   if (Array.isArray(claimed) && claimed.length > 0) return { kind: "takeover" }; |   if (Array.isArray(claimed) && claimed.length > 0) return { kind: "done" };
+     * @mutate supabase/functions/stripe-webhook/dedupe.ts |     .is("completed_at", null)\n    .lt("processed_at", staleBefore) |     .lt("processed_at", staleBefore)
+     * @mutate supabase/functions/stripe-webhook/index.ts |       .insert({ event_id: event.id, event_type: event.type, completed_at: null }); |       .insert({ event_id: event.id, event_type: event.type });
+     * @mutate supabase/functions/stripe-webhook/index.ts |   if (idempotencyRecorded && completionTracked) { |   if (false) {
+     * @mutate supabase/functions/stripe-webhook/dedupe.ts |   return row.completed_at ? { kind: "done" } : { kind: "in_flight" }; |   return { kind: "done" };
+     */
+    describe("a run that died mid-handler is re-run, not lost (MON-1123-02)", () => {
+      const DUP = { message: "duplicate key value violates unique constraint", code: "23505" };
+      const evt = { id: "evt_killed", type: "tax.settings.updated", data: { object: {} } };
+      const completionWrites = () => scenario.writes.filter((w) =>
+        w.table === "stripe_webhook_events" && w.op === "update" && "completed_at" in ((w.payload ?? {}) as Record<string, unknown>));
+
+      it("inserts the dedupe row unfinished and marks it complete only after the handler returns", async () => {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue(evt);
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        const insert = scenario.writes.find((w) => w.table === "stripe_webhook_events" && w.op === "insert");
+        expect(insert?.payload).toMatchObject({ event_id: "evt_killed", completed_at: null });
+        const done = completionWrites();
+        expect(done).toHaveLength(1);
+        expect(done[0].filters).toContainEqual({ op: "eq", column: "event_id", value: "evt_killed" });
+        expect(scenario.writes.indexOf(done[0])).toBeGreaterThan(scenario.writes.indexOf(insert!));
+      });
+
+      it("a redelivery that finds the row unfinished past the stale window claims it and RE-RUNS the event (200, not duplicate)", async () => {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue(evt);
+        scenario.writeOverrides = [{ table: "stripe_webhook_events", op: "insert", when: () => true, error: DUP }];
+        // The claim UPDATE matches the dead run's row (mock default: one row).
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        const out = await json(res);
+        expect(out.duplicate).toBeUndefined();
+        expect(out.received).toBe(true);
+        const claim = scenario.writes.find((w) => w.table === "stripe_webhook_events" && w.op === "update" && "processed_at" in ((w.payload ?? {}) as Record<string, unknown>));
+        expect(claim?.filters).toContainEqual({ op: "is", column: "completed_at", value: null });
+        const stale = claim?.filters.find((f) => f.op === "lt" && f.column === "processed_at");
+        const ageMin = (Date.now() - Date.parse(String(stale?.value))) / 60000;
+        expect(ageMin).toBeGreaterThan(9);
+        expect(ageMin).toBeLessThan(11);
+        // The re-run finishes like any run: completion recorded, ops told once.
+        expect(completionWrites()).toHaveLength(1);
+        expect(slackAlerts.some((a) => /never finished/.test(String((a as { title?: string }).title)))).toBe(true);
+      });
+
+      it("a redelivery while the first run is still in flight gets a non-2xx (409) so Stripe asks again, never a 200", async () => {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue(evt);
+        scenario.writeOverrides = [
+          { table: "stripe_webhook_events", op: "insert", when: () => true, error: DUP },
+          { table: "stripe_webhook_events", op: "update", when: (p) => "processed_at" in p, rows: [] },
+        ];
+        scenario.reads.stripe_webhook_events = { rows: [{ event_id: "evt_killed", completed_at: null }] };
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(409);
+        expect((await json(res)).error).toBe("event_in_flight");
+        expect(completionWrites()).toHaveLength(0);
+      });
+
+      it("an unreadable earlier-run state is a 500 (Stripe retries), never a duplicate 200", async () => {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue(evt);
+        scenario.writeOverrides = [
+          { table: "stripe_webhook_events", op: "insert", when: () => true, error: DUP },
+          { table: "stripe_webhook_events", op: "update", when: (p) => "processed_at" in p, error: { message: "timeout", code: "57014" } },
+        ];
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(500);
+        expect((await json(res)).error).toBe("idempotency_state_unreadable");
+      });
+
+      it("a handler failure leaves no completion and rolls the row back (unchanged retry path)", async () => {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_fail",
+          type: "customer.subscription.updated",
+          data: { object: { customer: "cus_1", items: { data: [{ price: { product: "prod_U8rS2fR6KvQoRk" } }] }, status: "active" } },
+        });
+        stripeMock.customers.retrieve.mockRejectedValue(new Error("stripe down"));
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(500);
+        expect(completionWrites()).toHaveLength(0);
+        expect(scenario.writes.some((w) => w.table === "stripe_webhook_events" && w.op === "delete")).toBe(true);
+      });
+
+      it("before the column exists on prod (function deployed first) it dedupes exactly as before", async () => {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue(evt);
+        scenario.writeOverrides = [{
+          table: "stripe_webhook_events", op: "insert", when: (p) => "completed_at" in p,
+          error: { message: "Could not find the 'completed_at' column of 'stripe_webhook_events' in the schema cache", code: "PGRST204" },
+        }];
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        const inserts = scenario.writes.filter((w) => w.table === "stripe_webhook_events" && w.op === "insert");
+        expect(inserts).toHaveLength(2);
+        expect(inserts[1].payload).toEqual({ event_id: "evt_killed", event_type: "tax.settings.updated" });
+        expect(completionWrites()).toHaveLength(0);
+      });
     });
 
     it("continues processing when the idempotency insert is a fresh (no-error) write", async () => {

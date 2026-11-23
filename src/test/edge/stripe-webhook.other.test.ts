@@ -653,11 +653,14 @@ describe("stripe-webhook edge function", () => {
 
       // Stripe retries. In production the unique index on
       // stripe_webhook_events.event_id is what turns the second delivery into a
-      // 23505, which the dispatcher reads as "already handled".
-      scenario.writeErrors.stripe_webhook_events = {
-        message: "duplicate key value violates unique constraint",
-        code: "23505",
-      };
+      // 23505, which the dispatcher reads as "already handled" once the first
+      // run's row says it FINISHED (MON-1123-02: completed_at set, so the
+      // stale-run claim matches nothing).
+      scenario.writeOverrides = [
+        { table: "stripe_webhook_events", op: "insert", when: () => true, error: { message: "duplicate key value violates unique constraint", code: "23505" } },
+        { table: "stripe_webhook_events", op: "update", when: (p) => "processed_at" in p, rows: [] },
+      ];
+      scenario.reads.stripe_webhook_events = { rows: [{ event_id: "evt_replay_me", completed_at: "2026-11-23T10:00:00Z" }] };
       const second = await fn.fetch(webhookRequest(fn, "{}"));
 
       expect(second.status).toBe(200);
@@ -668,7 +671,7 @@ describe("stripe-webhook edge function", () => {
       // And belt-and-braces on the values themselves: even if the dedupe row
       // were lost, every field written here is a pure projection of the event's
       // own subscription object, so a replay recomputes the identical patch.
-      delete scenario.writeErrors.stripe_webhook_events;
+      scenario.writeOverrides = [];
       const third = await fn.fetch(webhookRequest(fn, "{}"));
       expect(third.status).toBe(200);
       expect(linkageWrites().length).toBe(afterFirst + 1);

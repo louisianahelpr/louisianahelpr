@@ -12,6 +12,7 @@
  * Offline or any failure keeps the bundled or saved copy; a failure that is not "offline" is reported (errorLogger).
  * Data only: no code is ever downloaded (App Store guideline 2.5.2). Guard: src/test/liveGuideData1123.test.ts.
  */
+import { isServerRuntime } from "@/lib/automatedBrowser";
 import { report } from "@/lib/errorLogger";
 import { LIVE_DATA_MANIFEST, LIVE_DATA_ORIGIN, LIVE_DATA_VERSION, liveDataHash } from "@/lib/giftGuideLiveDataShared.mjs";
 
@@ -161,7 +162,8 @@ const refreshOne = async (name: string, m: Manifest) => {
 
 /** Read the manifest (once per session) and refresh every registered name. Tests await it; pages never need to. */
 export async function refreshLiveGuideData(): Promise<void> {
-  if (typeof fetch !== "function") return;
+  // The build's prerender runs this module under Node (no window): it never reads the live site (2026-11-23).
+  if (typeof fetch !== "function" || isServerRuntime()) return;
   const m = await loadManifest();
   if (!m) return;
   await Promise.all([...entries.keys()].map((n) => refreshOne(n, m)));
@@ -170,7 +172,7 @@ export async function refreshLiveGuideData(): Promise<void> {
 let scheduled = false;
 /** The refresh runs after the page has drawn its bundled copy (a timer, so never on the first paint's path). */
 function scheduleRefresh() {
-  if (scheduled || import.meta.env.MODE === "test") return;
+  if (scheduled || import.meta.env.MODE === "test" || isServerRuntime()) return;
   scheduled = true;
   setTimeout(() => {
     scheduled = false;

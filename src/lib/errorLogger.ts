@@ -15,7 +15,7 @@ import { Capacitor } from "@capacitor/core";
 import type { Json } from "@/integrations/supabase/types";
 import { backgroundImport, getBackgroundImportFailures, onBackgroundImportFailure } from "@/lib/chunkReload";
 import { onModuleUnavailable } from "@/lib/loadModule";
-import { isAutomatedBrowser } from "@/lib/automatedBrowser";
+import { isAutomatedBrowser, isServerRuntime } from "@/lib/automatedBrowser";
 import { announcePermissionDenied, holdDenial, isPermissionDenied, isSessionLossNoise, isSignedInNoise, isSignedOutNoise, releaseHeldDenials } from "@/lib/permissionDenied";
 import { redactInviteToken } from "@/lib/redactInviteToken";
 import { isEnvironmentNoiseMessage } from "@/lib/clientNoise";
@@ -183,6 +183,8 @@ let pendingTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function flush() {
   pendingTimer = null;
+  // Backstop for any row queued outside report(): nothing leaves a build or script for prod (isServerRuntime).
+  if (isServerRuntime()) return;
   if (flushing || (queue.length === 0 && bgFailureRetry.length === 0)) return;
   flushing = true;
   // A "background import failed" row whose earlier post failed rides along
@@ -256,6 +258,7 @@ function settleBackgroundFailureRows(batch: ErrorLogRow[], ok: boolean) {
 }
 
 function noteBackgroundImportFailure(name: string, err: unknown) {
+  if (isServerRuntime()) return;
   const rawStack = err instanceof Error ? (err.stack ?? null) : null;
   if (isDevEnvironment(rawStack)) return;
   if (!claimBackgroundFailureReport(name)) return;
@@ -368,6 +371,8 @@ function describeUnknownError(err: unknown): string {
 }
 
 export function report(err: unknown, opts: ReportOptions = {}) {
+  // 2026-11-23: a build or script running app code under Node is not a person (automatedBrowser.ts isServerRuntime).
+  if (isServerRuntime()) return;
   // prod error_logs 2026-11-14: a crawler's, host app's or browser's own error
   // (src/lib/clientNoise.ts) ran no line of ours; it is not logged anywhere.
   if (isEnvironmentNoiseMessage(describeUnknownError(err))) return;

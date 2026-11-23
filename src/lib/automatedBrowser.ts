@@ -76,3 +76,21 @@ export function isLocalDevOrigin(): boolean {
     return false; // no location: not a browser page
   }
 }
+
+/**
+ * prod error_logs 2026-11-23 (~30 rows from 11 AM, user_agent "Node.js/22", bursts of 3): the build's prerender
+ * (scripts/prerender-static-pages.mjs loads src/prerender/seoData.ts through Vite's SSR loader under Node, mode
+ * "production") ran the guide catalog's liveCopy, whose refresh fetched the live manifest (404 before that deploy) and
+ * reported it; the reporter's Sentry/PostHog fan-out then failed to import under Node and reported those too.
+ * App code running outside a real browser (no window or document; Node 22 has a global navigator that says
+ * "Node.js/22") is a build or a script, never a person: it reports nothing and fetches nothing.
+ * Guard: src/test/noNodeErrorLogs1123.test.ts.
+ */
+export function isServerRuntime(): boolean {
+  if (typeof window === "undefined" || typeof document === "undefined") return true;
+  try {
+    return typeof navigator !== "undefined" && /^(Node\.js|Deno|Bun)\//.test(String(navigator.userAgent));
+  } catch {
+    return false; // an unreadable navigator is treated as a person's browser
+  }
+}

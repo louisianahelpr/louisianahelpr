@@ -46,7 +46,7 @@ import { resetMinSupportedBuildCache } from "@/lib/minSupportedBuild";
 import { __resetDeniedSeenForTests } from "@/hooks/useVersionCheck";
 import { CLIENT_COMPAT_EPOCH, resetClientCompatFloorCache } from "@/lib/clientCompat";
 import { PERMISSION_DENIED_EVENT } from "@/lib/permissionDenied";
-import { APP_STORE_LISTING_LIVE } from "@/lib/appStore";
+import { APP_STORE_LISTING_LIVE, APP_STORE_URL } from "@/lib/appStore";
 
 const APP_MARKER = "the app rendered";
 const renderGate = () =>
@@ -256,18 +256,19 @@ describe("ForceUpdateGate — the schema lever (client_compat_floor, 2026-10-05 
     ).toBeInTheDocument();
   });
 
-  it("while the App Store listing is not live (Q1124) the copy points to TestFlight, not the store", async () => {
+  // Audit NL-05 (2026-11-23): 1.0.4 (build 8502) shipped to the App Store with
+  // "Open TestFlight, install the latest Helpr build" baked into this screen.
+  // App Store users have no TestFlight, and the app cannot tell the two installs
+  // apart, so the screen only ever names the App Store.
+  it("the block screen sends people to the App Store, never to TestFlight (NL-05)", async () => {
     serve(CLIENT_COMPAT_EPOCH + 1);
     renderGate();
     await expectAppRendered();
     deny();
     await screen.findByText(/Update Helpr to continue/i);
-    if (APP_STORE_LISTING_LIVE) {
-      expect(screen.getByText(/from the App Store/i)).toBeInTheDocument();
-    } else {
-      expect(screen.getByText(/Open TestFlight, install the latest Helpr build/i)).toBeInTheDocument();
-      expect(screen.queryByText(/from the App Store/i)).not.toBeInTheDocument();
-    }
+    expect(screen.getByText(/Install the latest update from the App Store/i)).toBeInTheDocument();
+    expect(screen.queryByText(/TestFlight/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Update on the App Store/i })).toHaveAttribute("href", APP_STORE_URL);
   });
 
   it("at the floor, or with the floor unknown or unreadable, the app loads (fail open)", async () => {
@@ -296,3 +297,5 @@ describe("ForceUpdateGate — the schema lever (client_compat_floor, 2026-10-05 
 });
 // The compat block waits for a refused read: blocking on the number alone locks every native user out.
 // @mutate src/hooks/useVersionCheck.ts | const evidence = deniedSeen \|\| | const evidence = true \|\|
+// NL-05: the block screen's copy names the App Store only, never TestFlight.
+// @mutate src/components/ForceUpdateGate.tsx | Install the latest update from the App Store and you’ll pick up right where you left off. | Open TestFlight, install the latest Helpr build, then reopen the app. You’ll pick up right where you left off.

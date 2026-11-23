@@ -263,10 +263,14 @@ export const CommunityContent = () => (
         icon={AlertTriangle}
         title="Dispute abuse policy"
         body={
+          /* Audit LT-2 (11-23): this said "False or frivolous disputes = immediate ban" and "Ignore the 72h deadline →
+             payment releases, no exceptions". No code bans anyone automatically (the header comment above), and
+             auto-resolve-disputes hands an expired dispute to Helpr support with the payment still held (Q2362, owner
+             2026-10-23: nothing is released on a timer). */
           <ul className="list-disc pl-4 space-y-0.5">
-            <li>False or frivolous disputes = immediate ban</li>
+            <li>False or frivolous disputes go straight to an admin, who can ban the account</li>
             <li>3+ disputes in 30 days flags your account</li>
-            <li>Ignore the 72h deadline → payment releases, no exceptions</li>
+            <li>Miss the 72h deadline → Helpr support decides; the payment stays held until then</li>
           </ul>
         }
         warning
@@ -315,10 +319,13 @@ export const CommunityContent = () => (
       />
       <PolicyRowItem
         icon={Ban}
-        title="Immediate ban offenses (skip the ladder)"
+        title="Straight to an admin (skip the ladder)"
         body={
+          /* Audit LT-2 (11-23): titled "Immediate ban offenses" and listed No-show first, against the short version
+             above ("a permanent ban is never automatic ... go straight to an admin") and the no-show row's own ladder
+             (NO_SHOW_LADDER_SENTENCE). No code bans automatically; an admin decides. */
           <ul className="list-disc pl-4 space-y-0.5">
-            <li><strong className="text-foreground">No-show.</strong> Accepting a job and not showing up.</li>
+            <li className="!list-none pl-0 pb-1 text-muted-foreground">These skip the strikes and go straight to an admin, who can ban the account for good. A ban is never automatic. A no-show follows its own ladder above.</li>
             <li><strong className="text-foreground">Fraud.</strong> Fake profiles, falsified completion photos, payment manipulation.</li>
             <li><strong className="text-foreground">Harassment or threats.</strong> Abusive language or intimidation.</li>
             <li><strong className="text-foreground">Off-platform payments.</strong> Arranging payment outside Helpr.</li>

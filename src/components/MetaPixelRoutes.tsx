@@ -9,9 +9,9 @@ import { metaPixelRoute } from "@/lib/metaPixel";
  * inside the router, so it adds nothing to any page's boot download.
  */
 export function MetaPixelRoutes() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   useEffect(() => {
-    metaPixelRoute(pathname);
-  }, [pathname]);
+    metaPixelRoute(pathname, search);
+  }, [pathname, search]);
   return null;
 }

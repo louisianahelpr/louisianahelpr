@@ -3,14 +3,16 @@ import type { ApplyConfirmDialogProps } from "@/components/dashboard/applyConfir
 import { ApplyBody } from "@/components/dashboard/applyConfirmDialog/ApplyBody";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { getCity } from "@/lib/locationUtils";
-import { applySheetPrice } from "@/components/dashboard/applyConfirmDialog/applyTakeHome";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { jobDayLabel } from "@/lib/jobDateWindow";
 
 /**
  * Board 58: what you are applying to, in one card above the sheet's body:
- * the title, who posted it, the town and the day and time, and the job's
- * price. Each part only when the job row has it; never the street address.
+ * the title, who posted it, the town and the day and time. Each part only when
+ * the job row has it; never the street address. No price (owner 2026-11-22, "One
+ * number, small label"): a Helpr sees one figure, their take-home with "after
+ * fees", in the box right under this card; the posted price is the poster's.
+ * Guard: src/test/helprPayAfterFeesNote.test.ts.
  */
 function ApplyJobSummary({ job }: { job: EnrichedJob }) {
   const when = [job.date_needed ? jobDayLabel(job) : null, jobStartTimeLabel(job.start_time, job.is_flexible_schedule)]
@@ -23,9 +25,6 @@ function ApplyJobSummary({ job }: { job: EnrichedJob }) {
         <p className="font-sans text-ds-16 font-bold leading-snug line-clamp-2">{job.title}</p>
         {meta && <p className="font-sans text-ds-13 text-muted-foreground">{meta}</p>}
       </div>
-      {job.budget > 0 && (
-        <span className="shrink-0 font-sans text-ds-17 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">${applySheetPrice(job)}</span>
-      )}
     </div>
   );
 }

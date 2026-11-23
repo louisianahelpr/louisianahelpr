@@ -23,6 +23,8 @@ export interface GuideDupe {
   image?: string;
   rating?: number;
   reviewCount?: number;
+  /** "dupe" (a true lookalike) or "similar" (same use, different look): see DupeKind below. */
+  kind: DupeKind;
 }
 
 export interface DupeEntry {
@@ -35,14 +37,29 @@ export interface DupeEntry {
   dupes: GuideDupe[];
 }
 
-/** The plain-word copy for the "dupe" link and its panel. */
+/**
+ * Owner 2026-11-23 ~2:40 PM: "some of them aren't dupes, they are just similar". A "dupe" is a true lookalike (same
+ * item type with the same look, silhouette, color or details: the UGG Evelina clogs, Oura to RingConn); a "similar" is
+ * the same use for less in a different look or brand style (Carhartt cooler for the YETI Hopper). Each record says
+ * which (owner's list: ~/Desktop/Louisiana Helpr Work/Gift guides and affiliate/Dupes-1123/dupe-vs-similar-1123.md).
+ */
+export type DupeKind = "dupe" | "similar";
+type Kinded = { name: string; kind?: DupeKind };
+/** True when at least one is a true lookalike (a record with no kind, e.g. an older saved live copy, counts as one). */
+export const hasTrueDupe = (dupes: readonly Kinded[]) => dupes.some((d) => d.kind !== "similar");
+
+/** The plain-word copy for the "dupe" / "similar" link and its panel. */
 export const DUPE = {
-  word: "dupe",
-  /** The word's screen-reader name after "dupe": one dupe named with its price, several counted. */
-  label: (dupes: readonly { name: string }[], price?: string) =>
-    dupes.length === 1 ? `Cheaper lookalike: ${dupes[0].name}${price ? `, ${price}` : ""}` : `${dupes.length} cheaper lookalikes`,
-  title: (n: number) => (n === 1 ? "Cheaper lookalike" : "Cheaper lookalikes"),
-  panelLabel: (n: number, of: string) => `${n === 1 ? "Cheaper lookalike" : "Cheaper lookalikes"} for ${of}`,
+  /** The card's word: "dupe" when any is a true lookalike, else "similar". */
+  word: (dupes: readonly Kinded[]) => (hasTrueDupe(dupes) ? "dupe" : "similar"),
+  /** The word's screen-reader name after the word: one named with its price, several counted. */
+  label: (dupes: readonly Kinded[], price?: string) => {
+    const at = price ? `, ${price}` : "";
+    if (hasTrueDupe(dupes)) return dupes.length === 1 ? `Cheaper lookalike: ${dupes[0].name}${at}` : `${dupes.length} cheaper lookalikes`;
+    return dupes.length === 1 ? `Similar for less: ${dupes[0].name}${at}` : `${dupes.length} similar for less`;
+  },
+  title: (dupes: readonly Kinded[]) => (hasTrueDupe(dupes) ? (dupes.length === 1 ? "Cheaper lookalike" : "Cheaper lookalikes") : "Similar for less"),
+  panelLabel: (dupes: readonly Kinded[], of: string) => `${DUPE.title(dupes)} for ${of}`,
   close: "Close",
 };
 

@@ -99,7 +99,7 @@ describe("dupes data: plain Amazon tag links with a checked price, each on one o
 
 const amazonPick: CatalogPick = { name: "Original Amazon Thing", href: "https://www.amazon.com/dp/B000000001?tag=louisianahelpr-20", store: "amazon", price: 300, priceAt: "2026-11-23" };
 const shopmyPick: CatalogPick = { name: "Original ShopMy Thing", href: "https://go.shopmy.us/p-1", store: "shopmy", brand: "Brand", price: 300, priceAt: "2026-11-23" };
-const dupe: GuideDupe = { name: "Lookalike Thing", price: 49.99, priceAt: "2026-11-23", href: "https://www.amazon.com/dp/B000000002?tag=louisianahelpr-20", image: "https://m.media-amazon.com/images/I/x.jpg", rating: 4.4, reviewCount: 1234 };
+const dupe: GuideDupe = { name: "Lookalike Thing", price: 49.99, priceAt: "2026-11-23", href: "https://www.amazon.com/dp/B000000002?tag=louisianahelpr-20", image: "https://m.media-amazon.com/images/I/x.jpg", rating: 4.4, reviewCount: 1234, kind: "dupe" };
 const dupes = [dupe];
 const three: GuideDupe[] = [dupe, { ...dupe, name: "Second Thing", href: "https://www.amazon.com/dp/B000000003?tag=louisianahelpr-20", price: 39.5 }, { ...dupe, name: "Third Thing", href: "https://www.amazon.com/dp/B000000004?tag=louisianahelpr-20", price: 20 }];
 const row = (pick: CatalogPick) => render(<MemoryRouter><style>{GIFT_GUIDES_CSS}</style><ol className="gg gg-list"><PickRow pick={pick} guide="her" /></ol></MemoryRouter>).container;
@@ -265,5 +265,68 @@ describe("a real guide page: dupes ride their picks, never the list", () => {
     const text = seen.textContent ?? "";
     expect(withDupe.flatMap((p) => p.dupes!).filter((d) => text.includes(d.name)).map((d) => d.name)).toEqual([]);
     expect(her.picks.find((p) => p.name === "UGG Goldenstar Evelina Clog, Beige")?.dupes).toHaveLength(3);
+  });
+});
+
+/**
+ * Dupe vs similar (owner 2026-11-23 ~2:40 PM: "some of them aren't dupes, they are just similar"). Every record says
+ * which it is: "dupe" (a true lookalike) or "similar" (same use for less, a different look). A pick whose dupes are all
+ * similar shows the plain word "similar" (same style, no circle) and its panel reads "Similar for less"; a pick with at
+ * least one true dupe keeps "dupe" and "Cheaper lookalike(s)". Screen-reader names match the visible word.
+ *
+ * @mutate src/content/giftGuideDupes.ts | export const hasTrueDupe = (dupes: readonly Kinded[]) => dupes.some((d) => d.kind !== "similar"); | export const hasTrueDupe = (dupes: readonly Kinded[]) => dupes.length > 0;
+ * @mutate src/content/giftGuideDupes.ts | word: (dupes: readonly Kinded[]) => (hasTrueDupe(dupes) ? "dupe" : "similar"), | word: (dupes: readonly Kinded[]) => (hasTrueDupe(dupes) ? "dupe" : "dupe"),
+ * @mutate src/content/giftGuideDupes.ts | (hasTrueDupe(dupes) ? (dupes.length === 1 ? "Cheaper lookalike" : "Cheaper lookalikes") : "Similar for less") | (dupes.length === 1 ? "Cheaper lookalike" : "Cheaper lookalikes")
+ * @mutate src/content/giftGuideDupes.ts | return dupes.length === 1 ? `Similar for less: ${dupes[0].name}${at}` : `${dupes.length} similar for less`; | return dupes.length === 1 ? `Cheaper lookalike: ${dupes[0].name}${at}` : `${dupes.length} cheaper lookalikes`;
+ */
+describe("dupe vs similar (owner 11-23 ~2:40 PM)", () => {
+  const similar: GuideDupe = { ...dupe, kind: "similar" };
+  it("every dupe says dupe or similar; both kinds are used; the owner's own examples are labelled as she said", () => {
+    const kinds = DUPES.map((d) => d.kind);
+    expect(kinds.filter((k) => k !== "dupe" && k !== "similar")).toEqual([]);
+    expect(kinds.filter((k) => k === "dupe").length).toBeGreaterThan(20);
+    expect(kinds.filter((k) => k === "similar").length).toBeGreaterThan(40);
+    const of = (original: RegExp) => RECORDS.filter((r) => original.test(r.original)).flatMap((r) => r.dupes.map((d) => d.kind));
+    expect(of(/Evelina/)).toEqual(["dupe", "dupe", "dupe"]);
+    expect(of(/^Oura Ring/)).toEqual(["dupe"]);
+    expect(of(/YETI Hopper Flip 12/)).toEqual(["similar"]);
+  });
+
+  it("a pick whose dupes are all similar shows the plain word 'similar', its name starting with it", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-23T18:00:00Z"));
+    const word = row({ ...amazonPick, dupes: [similar] }).querySelector<HTMLButtonElement>("[data-gift-dupe]")!;
+    expect(word.firstChild?.textContent).toBe("similar");
+    expect(word.getAttribute("data-gift-dupe")).toBe("similar");
+    expect(screen.getByRole("button", { name: "similar, Similar for less: Lookalike Thing, ~$50" })).toBe(word);
+    expect(word.classList.contains("gg-dupe")).toBe(true);
+    cleanup();
+    const two = row({ ...shopmyPick, dupes: [similar, { ...similar, name: "Other", href: "https://www.amazon.com/dp/B000000009?tag=louisianahelpr-20" }] }).querySelector("[data-gift-dupe]")!;
+    expect(two.textContent).toBe("similar, 2 similar for less");
+  });
+
+  it("its panel says 'Similar for less'; one true dupe among them keeps 'dupe' and 'Cheaper lookalikes'", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-23T18:00:00Z"));
+    let c = row({ ...amazonPick, dupes: [similar] });
+    act(() => { fireEvent.click(c.querySelector("[data-gift-dupe]")!); });
+    const panel = await screen.findByRole("dialog", { name: "Similar for less for Original Amazon Thing" });
+    expect(panel.textContent).toContain("Similar for less");
+    expect(panel.textContent).not.toContain("Cheaper lookalike");
+    cleanup();
+    c = row({ ...amazonPick, dupes: [similar, { ...dupe, name: "True Twin", href: "https://www.amazon.com/dp/B000000008?tag=louisianahelpr-20" }] });
+    const word = c.querySelector("[data-gift-dupe]")!;
+    expect(word.firstChild?.textContent).toBe("dupe");
+    act(() => { fireEvent.click(word); });
+    await screen.findByRole("dialog", { name: "Cheaper lookalikes for Original Amazon Thing" });
+  });
+
+  it("on the real pages the YETI Hopper's card (For Him) says 'similar' and the Evelina's (For Her) says 'dupe'", async () => {
+    await loadAllGuidePicks();
+    const hopper = guideBySlug("him")!.picks.find((p) => /YETI Hopper Flip 12/.test(p.name))!;
+    const evelina = guideBySlug("her")!.picks.find((p) => /Evelina/.test(p.name))!;
+    expect(row(hopper).querySelector("[data-gift-dupe]")?.firstChild?.textContent).toBe("similar");
+    cleanup();
+    expect(row(evelina).querySelector("[data-gift-dupe]")?.firstChild?.textContent).toBe("dupe");
   });
 });

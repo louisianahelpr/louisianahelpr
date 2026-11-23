@@ -215,7 +215,7 @@ const okCount = (v: unknown) => v === undefined || (typeof v === "number" && Num
 const isDupe = (d: unknown): boolean => {
   if (!d || typeof d !== "object") return false;
   const o = d as Record<string, unknown>;
-  return str(o.name) && typeof o.price === "number" && Number.isFinite(o.price) && o.price > 0 && str(o.priceAt) && okLink(o.href) && okPhoto(o.image) && okCount(o.rating) && okCount(o.reviewCount);
+  return str(o.name) && typeof o.price === "number" && Number.isFinite(o.price) && o.price > 0 && str(o.priceAt) && okLink(o.href) && okPhoto(o.image) && okCount(o.rating) && okCount(o.reviewCount) && (o.kind === "dupe" || o.kind === "similar");
 };
 const isDupeFor = (f: unknown): boolean => {
   if (!f || typeof f !== "object") return false;

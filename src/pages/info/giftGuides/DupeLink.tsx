@@ -39,10 +39,10 @@ export function DupeLink({ dupes, of, solo = false }: { dupes: GuideDupe[]; of: 
     <>
       <button
         ref={word} type="button" className={solo ? "gg-dupe gg-dupe-solo" : "gg-dupe"} aria-haspopup="dialog" aria-expanded={open}
-        onClick={() => setOpen((o) => !o)} data-gift-dupe=""
+        onClick={() => setOpen((o) => !o)} data-gift-dupe={DUPE.word(dupes)}
       >
-        {/* The visible word starts the name (WCAG 2.5.3, axe label-content-name-mismatch): "dupe, Cheaper lookalike: <name>, ~$50" (several: "dupe, 3 cheaper lookalikes"). */}
-        {DUPE.word}
+        {/* The visible word starts the name (WCAG 2.5.3, axe label-content-name-mismatch): "dupe, Cheaper lookalike: <name>, ~$50" (several: "dupe, 3 cheaper lookalikes"); all similar: "similar, Similar for less: <name>, ~$50". */}
+        {DUPE.word(dupes)}
         <span className="sr-only" data-gift-dupe-sr="">{`, ${DUPE.label(dupes, price)}`}</span>
       </button>
       {Panel && <Panel dupes={dupes} of={of} open={open} onClose={() => setOpen(false)} anchor={word} />}

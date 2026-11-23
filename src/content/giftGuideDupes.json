@@ -14,7 +14,8 @@
      "href": "https://www.amazon.com/dp/B0FLDP8Y5W?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71V7d+3bTBL._SL500_.jpg",
      "rating": 4.2,
-     "reviewCount": 1644
+     "reviewCount": 1644,
+     "kind": "similar"
     }
    ]
   },
@@ -33,7 +34,8 @@
      "href": "https://www.amazon.com/dp/B0CWL9S4L1?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/618w8a+bHML._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 3807
+     "reviewCount": 3807,
+     "kind": "similar"
     }
    ]
   },
@@ -46,12 +48,13 @@
    "dupes": [
     {
      "name": "RingConn Gen 2 Air Smart Ring",
-     "price": 199.0,
+     "price": 199,
      "priceAt": "2026-11-23",
      "href": "https://www.amazon.com/dp/B0DWK4QQ7H?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/612nqR5gXPL._SL500_.jpg",
      "rating": 4.2,
-     "reviewCount": 5053
+     "reviewCount": 5053,
+     "kind": "dupe"
     }
    ]
   },
@@ -69,7 +72,8 @@
      "href": "https://www.amazon.com/dp/B0GY26RL13?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61F7dH5MN4L._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 972
+     "reviewCount": 972,
+     "kind": "similar"
     }
    ]
   },
@@ -87,7 +91,8 @@
      "href": "https://www.amazon.com/dp/B00EINBSEW?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61hiruVCYbL._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 64215
+     "reviewCount": 64215,
+     "kind": "similar"
     }
    ]
   },
@@ -105,7 +110,8 @@
      "href": "https://www.amazon.com/dp/B0FPFRW9VV?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/718gd2yHSTL._SL500_.jpg",
      "rating": 4.6,
-     "reviewCount": 884
+     "reviewCount": 884,
+     "kind": "dupe"
     }
    ]
   },
@@ -123,7 +129,8 @@
      "href": "https://www.amazon.com/dp/B07MHXQ7X5?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61ycf51KLUL._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 37238
+     "reviewCount": 37238,
+     "kind": "dupe"
     }
    ]
   },
@@ -141,7 +148,8 @@
      "href": "https://www.amazon.com/dp/B0BZV4QFP8?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/5130BCxweAL._SL500_.jpg",
      "rating": 4.2,
-     "reviewCount": 28459
+     "reviewCount": 28459,
+     "kind": "similar"
     }
    ]
   },
@@ -159,7 +167,8 @@
      "href": "https://www.amazon.com/dp/B004O0TJFY?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/51gyZvh2U4L._SL500_.jpg",
      "rating": 4.7,
-     "reviewCount": 31507
+     "reviewCount": 31507,
+     "kind": "similar"
     }
    ]
   },
@@ -177,7 +186,8 @@
      "href": "https://www.amazon.com/dp/B01AVTQ1D4?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81sxxRA3i4L._SL500_.jpg",
      "rating": 4.8,
-     "reviewCount": 5695
+     "reviewCount": 5695,
+     "kind": "similar"
     }
    ]
   },
@@ -195,7 +205,8 @@
      "href": "https://www.amazon.com/dp/B0DJ11NG2T?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81rFp6LsH7L._SL500_.jpg",
      "rating": 4.3,
-     "reviewCount": 5691
+     "reviewCount": 5691,
+     "kind": "similar"
     }
    ]
   },
@@ -213,7 +224,8 @@
      "href": "https://www.amazon.com/dp/B0D7CLCJKW?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61nsJglW5OL._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 7716
+     "reviewCount": 7716,
+     "kind": "similar"
     }
    ]
   },
@@ -226,12 +238,13 @@
    "dupes": [
     {
      "name": "Legendary Whitetails Flannel-Lined Shirt Jacket",
-     "price": 72.0,
+     "price": 72,
      "priceAt": "2026-11-23",
      "href": "https://www.amazon.com/dp/B07G4LX6WK?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81SExIPj7jL._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 2744
+     "reviewCount": 2744,
+     "kind": "similar"
     }
    ]
   },
@@ -249,7 +262,8 @@
      "href": "https://www.amazon.com/dp/B08XQYHP5X?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/613ut4kJ1BL._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 11230
+     "reviewCount": 11230,
+     "kind": "dupe"
     }
    ]
   },
@@ -267,7 +281,8 @@
      "href": "https://www.amazon.com/dp/B07X3BX7WM?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/A1Ajfh3EvtL._SL500_.jpg",
      "rating": 4.6,
-     "reviewCount": 37009
+     "reviewCount": 37009,
+     "kind": "similar"
     }
    ]
   },
@@ -285,7 +300,8 @@
      "href": "https://www.amazon.com/dp/B0GFW5GHM8?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71pl0SEWFUL._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 727
+     "reviewCount": 727,
+     "kind": "similar"
     }
    ]
   },
@@ -303,7 +319,8 @@
      "href": "https://www.amazon.com/dp/B0H3W92CDV?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61wJP8qq9NL._SL500_.jpg",
      "rating": 4.7,
-     "reviewCount": 33
+     "reviewCount": 33,
+     "kind": "dupe"
     }
    ]
   },
@@ -321,7 +338,8 @@
      "href": "https://www.amazon.com/dp/B0GYH7CHY1?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71liDHOCJZL._SL500_.jpg",
      "rating": 4.7,
-     "reviewCount": 129
+     "reviewCount": 129,
+     "kind": "dupe"
     }
    ]
   },
@@ -339,7 +357,8 @@
      "href": "https://www.amazon.com/dp/B07GRBZM2V?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/710BQNIrSlL._SL500_.jpg",
      "rating": 4.7,
-     "reviewCount": 3100
+     "reviewCount": 3100,
+     "kind": "similar"
     }
    ]
   },
@@ -357,7 +376,8 @@
      "href": "https://www.amazon.com/dp/B0CQ2DK39N?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61lIHPypSiL._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 2691
+     "reviewCount": 2691,
+     "kind": "similar"
     }
    ]
   },
@@ -375,7 +395,8 @@
      "href": "https://www.amazon.com/dp/B09MZGNTJM?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/51+x15mSzHL._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 20734
+     "reviewCount": 20734,
+     "kind": "dupe"
     }
    ]
   },
@@ -393,7 +414,8 @@
      "href": "https://www.amazon.com/dp/B0HBWJ6FS1?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71i2WtR2RoL._SL500_.jpg",
      "rating": 4.3,
-     "reviewCount": 32644
+     "reviewCount": 32644,
+     "kind": "similar"
     }
    ]
   },
@@ -411,7 +433,8 @@
      "href": "https://www.amazon.com/dp/B09NVWQJTR?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/514Ny1-WT1L._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 3958
+     "reviewCount": 3958,
+     "kind": "similar"
     }
    ]
   },
@@ -429,7 +452,8 @@
      "href": "https://www.amazon.com/dp/B00HVCPT4W?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/716DV1ZlBtL._SL500_.jpg",
      "rating": 4.6,
-     "reviewCount": 21372
+     "reviewCount": 21372,
+     "kind": "similar"
     }
    ]
   },
@@ -447,7 +471,8 @@
      "href": "https://www.amazon.com/dp/B0C6KFZC9Z?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71hpOPfOGoL._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 16941
+     "reviewCount": 16941,
+     "kind": "similar"
     }
    ]
   },
@@ -465,7 +490,8 @@
      "href": "https://www.amazon.com/dp/B0CRM9DDGZ?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/815rG3FY1jL._SL500_.jpg",
      "rating": 4.7,
-     "reviewCount": 764
+     "reviewCount": 764,
+     "kind": "similar"
     }
    ]
   },
@@ -483,7 +509,8 @@
      "href": "https://www.amazon.com/dp/B0FWN4WZF7?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/8140F3LGk9L._SL500_.jpg",
      "rating": 4.7,
-     "reviewCount": 24200
+     "reviewCount": 24200,
+     "kind": "similar"
     }
    ]
   },
@@ -501,7 +528,8 @@
      "href": "https://www.amazon.com/dp/B0873657PF?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81WSEL90CvL._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 2245
+     "reviewCount": 2245,
+     "kind": "similar"
     }
    ]
   },
@@ -519,7 +547,8 @@
      "href": "https://www.amazon.com/dp/B0DYJKTHYF?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61UvVTN0IEL._SL500_.jpg",
      "rating": 4.2,
-     "reviewCount": 7600
+     "reviewCount": 7600,
+     "kind": "similar"
     }
    ]
   },
@@ -537,7 +566,8 @@
      "href": "https://www.amazon.com/dp/B089KJTW4V?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71Teq5qbfZL._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 62533
+     "reviewCount": 62533,
+     "kind": "similar"
     }
    ]
   },
@@ -555,7 +585,8 @@
      "href": "https://www.amazon.com/dp/B00NMN5O0I?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61H4bqt4UvL._SL500_.jpg",
      "rating": 4.8,
-     "reviewCount": 80
+     "reviewCount": 80,
+     "kind": "dupe"
     }
    ]
   },
@@ -573,7 +604,8 @@
      "href": "https://www.amazon.com/dp/B0D7FQNM38?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81cW05VwoYL._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 1000
+     "reviewCount": 1000,
+     "kind": "similar"
     }
    ]
   },
@@ -591,7 +623,8 @@
      "href": "https://www.amazon.com/dp/B00XOXFOWO?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81r-6UygjKL._SL500_.jpg",
      "rating": 4.7,
-     "reviewCount": 8709
+     "reviewCount": 8709,
+     "kind": "similar"
     }
    ]
   },
@@ -609,7 +642,8 @@
      "href": "https://www.amazon.com/dp/B0CQXHC5FQ?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/51OM0f8R61L._SL500_.jpg",
      "rating": 4.3,
-     "reviewCount": 18059
+     "reviewCount": 18059,
+     "kind": "similar"
     }
    ]
   },
@@ -627,7 +661,8 @@
      "href": "https://www.amazon.com/dp/B0GVVSW8V8?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/613oEdo3Q5L._SL500_.jpg",
      "rating": 4.6,
-     "reviewCount": 177
+     "reviewCount": 177,
+     "kind": "similar"
     }
    ]
   },
@@ -645,7 +680,8 @@
      "href": "https://www.amazon.com/dp/B0B6HYSFBF?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/711y3Td8IlL._SL500_.jpg",
      "rating": 4.7,
-     "reviewCount": 6400
+     "reviewCount": 6400,
+     "kind": "dupe"
     }
    ]
   },
@@ -663,7 +699,8 @@
      "href": "https://www.amazon.com/dp/B0C9VYPTKR?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81P064IMt4L._SL500_.jpg",
      "rating": 4.7,
-     "reviewCount": 1358
+     "reviewCount": 1358,
+     "kind": "similar"
     }
    ]
   },
@@ -681,7 +718,8 @@
      "href": "https://www.amazon.com/dp/B0B946VWWG?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81FMDlrWD0L._SL500_.jpg",
      "rating": 4.8,
-     "reviewCount": 1600
+     "reviewCount": 1600,
+     "kind": "similar"
     }
    ]
   },
@@ -699,7 +737,8 @@
      "href": "https://www.amazon.com/dp/B0CLXTQ2SN?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71xIwe9BthL._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 655
+     "reviewCount": 655,
+     "kind": "dupe"
     }
    ]
   },
@@ -717,7 +756,8 @@
      "href": "https://www.amazon.com/dp/B07N4R1WM2?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/91F0913ZGYL._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 5800
+     "reviewCount": 5800,
+     "kind": "similar"
     }
    ]
   },
@@ -735,7 +775,8 @@
      "href": "https://www.amazon.com/dp/B0DGB7H1MB?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/714laMWqh7L._SL500_.jpg",
      "rating": 4.6,
-     "reviewCount": 290
+     "reviewCount": 290,
+     "kind": "dupe"
     }
    ]
   },
@@ -753,7 +794,8 @@
      "href": "https://www.amazon.com/dp/B0GL113H51?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61At-TH+kfL._SL500_.jpg",
      "rating": 4.6,
-     "reviewCount": 818
+     "reviewCount": 818,
+     "kind": "dupe"
     }
    ]
   },
@@ -771,7 +813,8 @@
      "href": "https://www.amazon.com/dp/B07HMGXKH3?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71Zc14-cmxL._SL500_.jpg",
      "rating": 4.3,
-     "reviewCount": 2221
+     "reviewCount": 2221,
+     "kind": "similar"
     }
    ]
   },
@@ -789,7 +832,8 @@
      "href": "https://www.amazon.com/dp/B07BJKZTBN?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71plWyheXrL._SL500_.jpg",
      "rating": 4.6,
-     "reviewCount": 8271
+     "reviewCount": 8271,
+     "kind": "dupe"
     }
    ]
   },
@@ -807,7 +851,8 @@
      "href": "https://www.amazon.com/dp/B0CCNPV7NZ?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61RS79Go0qL._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 2100
+     "reviewCount": 2100,
+     "kind": "similar"
     }
    ]
   },
@@ -825,7 +870,8 @@
      "href": "https://www.amazon.com/dp/B0CHHZBW4L?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71SsoolugjL._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 317
+     "reviewCount": 317,
+     "kind": "similar"
     }
    ]
   },
@@ -843,7 +889,8 @@
      "href": "https://www.amazon.com/dp/B0C36CVLG1?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61p2yM9mU+L._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 1800
+     "reviewCount": 1800,
+     "kind": "similar"
     }
    ]
   },
@@ -861,7 +908,8 @@
      "href": "https://www.amazon.com/dp/B0FDSH979K?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81eFI2rFkmL._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 91
+     "reviewCount": 91,
+     "kind": "similar"
     }
    ]
   },
@@ -879,7 +927,8 @@
      "href": "https://www.amazon.com/dp/B088MXQW9L?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81tWDoedwwL._SL500_.jpg",
      "rating": 4.8,
-     "reviewCount": 10300
+     "reviewCount": 10300,
+     "kind": "similar"
     }
    ]
   },
@@ -897,7 +946,8 @@
      "href": "https://www.amazon.com/dp/B0D541M5C6?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61NzfPs8soL._SL500_.jpg",
      "rating": 4.6,
-     "reviewCount": 2400
+     "reviewCount": 2400,
+     "kind": "similar"
     }
    ]
   },
@@ -915,7 +965,8 @@
      "href": "https://www.amazon.com/dp/B0D541M5C6?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61NzfPs8soL._SL500_.jpg",
      "rating": 4.6,
-     "reviewCount": 2400
+     "reviewCount": 2400,
+     "kind": "similar"
     }
    ]
   },
@@ -933,7 +984,8 @@
      "href": "https://www.amazon.com/dp/B0F1FNL3YX?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/710Ehi8THXL._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 156
+     "reviewCount": 156,
+     "kind": "similar"
     }
    ]
   },
@@ -951,7 +1003,8 @@
      "href": "https://www.amazon.com/dp/B0BXP66TTC?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61OzJfaUipL._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 2000
+     "reviewCount": 2000,
+     "kind": "similar"
     }
    ]
   },
@@ -969,7 +1022,8 @@
      "href": "https://www.amazon.com/dp/B0FKJH6HQF?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/51yyG9Wo02L._SL500_.jpg",
      "rating": 4.7,
-     "reviewCount": 636
+     "reviewCount": 636,
+     "kind": "similar"
     }
    ]
   },
@@ -987,7 +1041,8 @@
      "href": "https://www.amazon.com/dp/B0BVGF9993?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71XNHMQW4gL._SL500_.jpg",
      "rating": 4.7,
-     "reviewCount": 1400
+     "reviewCount": 1400,
+     "kind": "similar"
     }
    ]
   },
@@ -1005,7 +1060,8 @@
      "href": "https://www.amazon.com/dp/B0DFHQBFGD?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81quHdUs2+L._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 1472
+     "reviewCount": 1472,
+     "kind": "similar"
     }
    ]
   },
@@ -1023,7 +1079,8 @@
      "href": "https://www.amazon.com/dp/B003ADVR3S?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/91+2o967tvL._SL500_.jpg",
      "rating": 4.6,
-     "reviewCount": 12002
+     "reviewCount": 12002,
+     "kind": "similar"
     }
    ]
   },
@@ -1041,7 +1098,8 @@
      "href": "https://www.amazon.com/dp/B0GQRXWPXR?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/7159BjZmiDL._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 1520
+     "reviewCount": 1520,
+     "kind": "dupe"
     }
    ]
   },
@@ -1059,7 +1117,8 @@
      "href": "https://www.amazon.com/dp/B0DGXD6WVW?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81mP2pftHML._SL500_.jpg",
      "rating": 4.5,
-     "reviewCount": 2400
+     "reviewCount": 2400,
+     "kind": "dupe"
     }
    ]
   },
@@ -1077,7 +1136,8 @@
      "href": "https://www.amazon.com/dp/B0GL89XNPF?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61u4-H2LVXL._SL500_.jpg",
      "rating": 4.3,
-     "reviewCount": 253
+     "reviewCount": 253,
+     "kind": "dupe"
     }
    ]
   },
@@ -1095,7 +1155,8 @@
      "href": "https://www.amazon.com/dp/B0GPQ4CNTQ?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61Vy25CFelL._SL500_.jpg",
      "rating": 4.3,
-     "reviewCount": 239
+     "reviewCount": 239,
+     "kind": "dupe"
     }
    ]
   },
@@ -1113,7 +1174,8 @@
      "href": "https://www.amazon.com/dp/B0GYNJYH25?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61VHNAwbmAL._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 131
+     "reviewCount": 131,
+     "kind": "dupe"
     }
    ]
   },
@@ -1131,7 +1193,8 @@
      "href": "https://www.amazon.com/dp/B0GV7W9Y9S?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61fGLXhAvrL._SL500_.jpg",
      "rating": 4.6,
-     "reviewCount": 565
+     "reviewCount": 565,
+     "kind": "dupe"
     }
    ]
   },
@@ -1149,7 +1212,8 @@
      "href": "https://www.amazon.com/dp/B0FVRJ6RBX?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/51usgTPWNDL._SL500_.jpg",
      "rating": 4.2,
-     "reviewCount": 231
+     "reviewCount": 231,
+     "kind": "dupe"
     }
    ]
   },
@@ -1167,7 +1231,8 @@
      "href": "https://www.amazon.com/dp/B0CJBJBZ7Y?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61ESFJ2mMGL._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 169
+     "reviewCount": 169,
+     "kind": "dupe"
     }
    ]
   },
@@ -1185,7 +1250,8 @@
      "href": "https://www.amazon.com/dp/B0CR3JJJTS?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61tokvHZGnL._SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 3531
+     "reviewCount": 3531,
+     "kind": "dupe"
     }
    ]
   },
@@ -1203,7 +1269,8 @@
      "href": "https://www.amazon.com/dp/B07RDPNM8W?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/61c8pEpEN0L._AC_SL1500_.jpg",
      "rating": 4.3,
-     "reviewCount": 2689
+     "reviewCount": 2689,
+     "kind": "dupe"
     }
    ]
   },
@@ -1221,7 +1288,8 @@
      "href": "https://www.amazon.com/dp/B0GX7F49D2?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81NhxfruTYL._AC_SL1500_.jpg",
      "rating": 4.6,
-     "reviewCount": 2420
+     "reviewCount": 2420,
+     "kind": "similar"
     }
    ]
   },
@@ -1239,7 +1307,8 @@
      "href": "https://www.amazon.com/dp/B0H5K3Z6PS?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71fswhnzbqL._AC_SL1500_.jpg",
      "rating": 4.4,
-     "reviewCount": 154
+     "reviewCount": 154,
+     "kind": "dupe"
     }
    ]
   },
@@ -1257,7 +1326,8 @@
      "href": "https://www.amazon.com/dp/B0H7TCQNZ9?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/81ZFwxlmIDL._AC_SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 100
+     "reviewCount": 100,
+     "kind": "dupe"
     },
     {
      "name": "CUSHIONAIRE Luz Suede Clog with Fuzzy Lining, Biscuit",
@@ -1266,7 +1336,8 @@
      "href": "https://www.amazon.com/dp/B0H7TBK3H7?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/817lL5sQ+9L._AC_SL500_.jpg",
      "rating": 4.4,
-     "reviewCount": 100
+     "reviewCount": 100,
+     "kind": "dupe"
     },
     {
      "name": "Sunday Walks Suede Clog, Sherpa Lined Loafer Mule, Chestnut",
@@ -1275,7 +1346,8 @@
      "href": "https://www.amazon.com/dp/B0HJQQLYH5?tag=louisianahelpr-20",
      "image": "https://m.media-amazon.com/images/I/71dkvHgTQKL._AC_SL500_.jpg",
      "rating": 4.7,
-     "reviewCount": 27
+     "reviewCount": 27,
+     "kind": "dupe"
     }
    ]
   }

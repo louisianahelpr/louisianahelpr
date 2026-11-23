@@ -15,6 +15,7 @@
  * @mutate src/content/giftGuideCatalog.ts |       restampAll(); |       void 0;
  * @mutate src/content/giftGuideDealCounts.ts |   discountCodes.splice(0, discountCodes.length, ...codes); |   void codes;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       setCodesCopy((n) => n + 1); |       void 0;
+ * @mutate src/lib/liveGuideData.ts | okCount(o.reviewCount) && (o.kind === "dupe" \|\| o.kind === "similar"); | okCount(o.reviewCount);
  * @mutate src/lib/liveGuideData.ts | && Array.isArray(o.dupes) && o.dupes.length > 0 && o.dupes.every(isDupe); | ;
  * @mutate src/lib/liveGuideData.ts | && str(o.store) && typeof o.code === "string" && str(o.offer) && (o.href === undefined \|\| okLink(o.href)) | && (o.href === undefined \|\| okLink(o.href))
  */
@@ -90,6 +91,8 @@ describe("the build's live data carries the dupes and the codes", () => {
     expect(isLiveDupes({ dupes: [{ ...DUPES.dupes[0], dupes: [] }] })).toBe(false);
     expect(isLiveDupes({ dupes: [{ ...DUPES.dupes[0], dupes: [{ ...DUPES.dupes[0].dupes[0], href: "javascript:alert(1)" }] }] })).toBe(false);
     expect(isLiveDupes({ dupes: [{ ...DUPES.dupes[0], for: {} }] })).toBe(false);
+    // Each dupe says "dupe" or "similar" (owner 11-23 ~2:40 PM); anything else is refused.
+    expect(isLiveDupes({ dupes: [{ ...DUPES.dupes[0], dupes: [{ ...DUPES.dupes[0].dupes[0], kind: "maybe" }] }] })).toBe(false);
     expect(isLiveCodes({ codes: [] })).toBe(false);
     expect(isLiveCodes({ codes: [{ ...CODES.codes[0], store: "" }] })).toBe(false);
     expect(isLiveCodes({ codes: [{ ...CODES.codes[0], href: "http://x.example/" }] })).toBe(false);

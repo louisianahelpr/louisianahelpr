@@ -2,10 +2,10 @@
  * F070 (owner UI audit 11-09; lead decision 11-09, "the audit wins", superseding the owner's 09-11 removal for this
  * case): a guest who arrives on /browse WITH a search (/browse?q=yard, from the landing page's search) gets a search
  * field holding that word above the list, so a search with no results can try another word instead of only
- * "Clear search". Plain /browse keeps no search (owner 09-11). The field does not take focus on arrival.
+ * "Clear search". Plain /browse opens with no field; G1 (audit 1123) gives it the search icon that opens one (guestBrowseWebHeaderRow.test.tsx). The field does not take focus on arrival.
  *
- * @mutate src/pages/home/DashboardGuest.tsx |   const [arrivedWithSearch] = useState(() => !!filters.searchQuery); |   const [arrivedWithSearch] = useState(() => false);
- * @mutate src/pages/home/DashboardGuest.tsx |     {!isNativePlatform && shownSearch && <BrowseSearchBar | {false && <BrowseSearchBar
+ * @mutate src/pages/home/DashboardGuest.tsx |   const [arrivedWithSearch, setArrivedWithSearch] = useState(() => !!filters.searchQuery); |   const [arrivedWithSearch, setArrivedWithSearch] = useState(() => false);
+ * @mutate src/pages/home/GuestBrowseHeaderRow.tsx |       {filters.searchOpen ? ( |       {false ? (
  * @mutate src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx |     if (!el \|\| !autoFocus) return; |     if (!el) return;
  */
 import { describe, it, expect, vi } from "vitest";

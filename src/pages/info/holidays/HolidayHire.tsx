@@ -72,7 +72,7 @@ export default function HolidayHire() {
           </ol>
         </section>
         <nav aria-label="More from the Holiday Hub" className="flex flex-wrap gap-x-6 gap-y-2 text-ds-15">
-          <Link to={HOLIDAY_HUB_PATH} className="link-standard inline-flex min-h-11 items-center">Christmas lights and holiday events</Link>
+          <Link to={HOLIDAY_HUB_PATH} className="link-standard inline-flex min-h-11 items-center font-semibold text-[hsl(var(--bark))]" data-holiday-hire-hub-link="">Christmas lights and holiday events&nbsp;›</Link>
         </nav>
       </div>
     </PublicHeaderPage>

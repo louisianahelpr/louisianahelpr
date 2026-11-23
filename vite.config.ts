@@ -1544,6 +1544,19 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,
             },
+            // Small Business Saturday's "Featured local" read (src/lib/sbsFeaturedApi.ts) and the gift guides menu's count
+            // of it (sbsFeaturedCount.ts, owner 11-22 "add the count to small business saturday too"; loaded by the menu's
+            // lazy railCounts chunk on every guide page). In signed-in-deep they made that chunk fetch it and its static
+            // closure (~310 KB gz, measured 11-22 on train l + the count) after the menu drew. Their own deps are the
+            // client loader only. Ranked like public-page-reads, so it wins them over every signed-in group.
+            // Guard: src/test/giftGuideRailCounts1122.test.tsx.
+            {
+              name: "sbs-featured-reads",
+              test: /[\\/]src[\\/]lib[\\/](sbsFeaturedApi|sbsFeaturedCount)\.ts$/,
+              priority: 16.7 /* = public-page-reads; sbs-featured-reads */,
+              minSize: 0,
+              includeDependenciesRecursively: false /* the modules alone (sbs-featured-reads) */,
+            },
             // The 25 Days page's own reads (its words, src/content/sponsorPage.ts ~44 KB raw, and src/lib/sponsor/api, dates,
             // placeholders) used to ride in public-page-reads, so every /gift-guides/<slug> downloaded them for nothing: the guides need none of them (the landing's giveaways button reads the Facebook link from
             // giftGuideConstants.ts, which sponsorPage.ts imports too). Their own group, ranked like public-page-reads so it

@@ -5,6 +5,8 @@
  * photo; every ShopMy pick shows its checked price and a transparent cutout. The page shows no relationship chips and
  * no deals-and-codes box on For Her, and /mom, /wife ... still build from the same list.
  *
+ * @mutate scripts/giftGuideCutouts1120.mjs |   B0D9PX9RBD: "https | B0D9PX9RBX: "https
+ * @mutate scripts/giftGuideHer1121.mjs | image: cutoutPhoto(AMAZON_BRAND_PHOTOS_1122.B0F5N7S36V), | image: amzImg("91HJeXmiufL"),
  * @mutate scripts/giftGuideHer1121.mjs |   return rankByPrice(rows).map(({ row: r, priceRank }) => { |   return rows.map((r) => ({ row: r, priceRank: null })).map(({ row: r, priceRank }) => {
  * @mutate scripts/giftGuideHer1121.mjs |     const shown = isAmazon(r) ? r.sortPrice : price; |     const shown = isAmazon(r) ? r.sortPrice + 1 : price;
  * @mutate scripts/giftGuideHer1121.mjs |     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: HER_GUIDE, priceRank }; |     const p = { ...rest, image: r.image, ownerPick: true, from: HER_GUIDE, priceRank };
@@ -15,9 +17,31 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { HER_ROWS, her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
-import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
+import { AMAZON_BRAND_PHOTOS_1122, CUTOUT_BASE, cutoutPhoto } from "../../scripts/giftGuideCutouts1120.mjs";
 import { PEOPLE_GUIDES, isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { blankComments } from "./helpers/blankNonCode";
+
+
+/**
+ * Brand photo cutouts that stand in for Amazon's photo on named Amazon picks (owner 2026-11-22 8:58 PM, "Brand photo
+ * cutout"; links audit 1122 night #5: every photo in those Amazon listings has a background). Named here by ASIN, so the
+ * exception stays narrow and two-way: the module's list must equal this one, and each id must be on its page.
+ */
+const BRAND_PHOTO_IDS_1122 = { B0F5N7S36V: "her", B0D9PX9RBD: "him" } as const;
+const asinOf = (href: string) => /\/dp\/([A-Z0-9]{10})/.exec(href)?.[1] ?? "";
+/** An Amazon pick shows Amazon's own photo, or (named above) its brand's photo as a transparent cutout from a non-Amazon host. */
+function expectAmazonPickPhoto(p: { name: string; href: string; image?: string }) {
+  const brand = (AMAZON_BRAND_PHOTOS_1122 as Record<string, string>)[asinOf(p.href)];
+  if (!brand) {
+    expect(p.image, p.name).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
+    return;
+  }
+  expect(new URL(brand).hostname, p.name).not.toMatch(/amazon/);
+  expect(p.image, p.name).toBe(cutoutPhoto(brand));
+  expect(String(p.image).startsWith(CUTOUT_BASE), p.name).toBe(true);
+  const head = readFileSync(`public/gift-guides/cutouts/${String(p.image).slice(CUTOUT_BASE.length)}`).subarray(0, 32);
+  expect(head.subarray(12, 16).toString("latin1") === "VP8X" && (head[20] & 0x10) !== 0, `${p.name} cutout has no alpha`).toBe(true);
+}
 
 const ROOT = join(__dirname, "..", "..");
 type Pick = { name: string; href: string; image?: string; store?: string; price?: number; priceAt?: string; section?: string; sectionId?: string; rels?: string[]; band?: number };
@@ -26,8 +50,11 @@ const page = (JSON.parse(readFileSync(join(ROOT, "src", "content", "giftGuidePic
 /** The owner's saves, copied from her Desktop notes (Her-saved-amazon-1121.md, Her-saved-shopmy-1121.md), not from the module. */
 const AMAZON_ASINS = ["B0D3L9BYFZ", "B0CPB1MWMP", "B0FVFV7V1R", "B0FFMJMB6K", "B0FDKC619F", "B0C246HFWN", "B0FPCH9S11", "B0FKN7FGPY", "B0B1RWJ4QJ"];
 /** Her Amazon cart saves (Her-saved-amazon-cart-1121.md; owner 2026-11-21: "we can have more than 25 items its fine"). Owner 11-22
- * ("Lake + Eberjey"): the Amazon Essentials flannel pajamas (B08X8P91FX) came off, so Her keeps two pajama sets. */
-const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV",
+ * ("Lake + Eberjey"): the Amazon Essentials flannel pajamas (B08X8P91FX) came off, so Her keeps two pajama sets.
+ * Links audit 1122 night #4: her Summer Fridays balm shade (B0D82LVR3N) lost its Buy Box, so the same balm in Brown Sugar
+ * (B0BYP81HN8, sold by Amazon, priced 2026-11-22) stands in; LINK_FIXES_1122 holds the swaps. */
+const LINK_FIXES_1122: Record<string, string> = { B0D82LVR3N: "B0BYP81HN8" };
+const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", LINK_FIXES_1122.B0D82LVR3N, "B0CDF7GJ4Y", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV",
   // Owner 11-21 ("women too"): the rest of her cart and saved-for-later, but the duplicate ZDEER listing and Mighty Patch.
   "B0HJ9ZJ8KM", "B091NJQ29P", "B0CMJZVT5P", "B0G6CR9TGW", "B0FSJQ3KJT", "B0F19YY96Z", "B0GT3W5DQL", "B0DT1CZ58V"];
 // p-108755104 is her iHerb pin for the BIODANCE masks (11-21), replacing her Sephora UK pin p-108613754 that US shoppers cannot use.
@@ -95,12 +122,24 @@ const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.c
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
+  it("the brand-photo exception is exactly the named Amazon picks, and each is on its page once (two-way)", () => {
+    expect(Object.keys(AMAZON_BRAND_PHOTOS_1122).sort()).toEqual(Object.keys(BRAND_PHOTO_IDS_1122).sort());
+    for (const [asin, slug] of Object.entries(BRAND_PHOTO_IDS_1122)) {
+      const rows = (JSON.parse(readFileSync(join(ROOT, "src", "content", "giftGuidePicks", `${slug}.json`), "utf8")).picks as Pick[]).filter((p) => asinOf(p.href) === asin);
+      expect(rows.length, `${slug}: ${asin}`).toBe(1);
+      expectAmazonPickPhoto(rows[0]);
+      expect(rows[0].image, asin).not.toMatch(/media-amazon/);
+    }
+  });
+
   it("the page holds exactly her 159 links, once each, and nothing else", () => {
     expect(SAVED.size).toBe(159);
     expect(page.length).toBe(159);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
+    // No link the audit found unbuyable comes back (links audit 1122 night #4).
+    for (const gone of Object.keys(LINK_FIXES_1122)) expect(page.some((p) => p.href.includes(gone)), gone).toBe(false);
   });
 
   it("the generated page is exactly what the module builds (re-run scripts/gift-guide-picks.mjs after a change)", () => {
@@ -140,8 +179,8 @@ describe("For Her = the owner's saves (11-21)", () => {
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
       // Her saved-list picks were captured 11-21; the Amazon picks from her launch-day screenshots, 11-22.
-      expect(p.priceAt, p.name).toBe([...ADDS_1122_ASINS, ...POPULAR_1122_ASINS, ...HER4_1122_ASINS, ...LOUISIANA_1122_ASINS].some((a) => p.href.includes(a)) || SCREENS_1122.has(p.href) ? "2026-11-22" : "2026-11-21");
-      expect(p.image, p.name).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
+      expect(p.priceAt, p.name).toBe([...ADDS_1122_ASINS, ...POPULAR_1122_ASINS, ...HER4_1122_ASINS, ...LOUISIANA_1122_ASINS, ...Object.values(LINK_FIXES_1122)].some((a) => p.href.includes(a)) || SCREENS_1122.has(p.href) ? "2026-11-22" : "2026-11-21");
+      expectAmazonPickPhoto(p);
     }
     for (const p of shopmy) {
       expect(p.price, p.name).toBeGreaterThan(0);

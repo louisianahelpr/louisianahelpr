@@ -4,17 +4,35 @@ import { cleanCodes } from "@/lib/giftGuideOfferCopy.mjs";
 import { DEAL_EVENTS, codesDay, dealCode, dealsIn, liveDeals, louisianaDay, type Deal } from "@/content/giftGuideDeals.mjs";
 import { louisianaMinutes, louisianaToday } from "@/content/holidayHub/holidayHub.mjs";
 import RAIL from "@/content/giftGuideRailCounts.json";
-import { codeCardCount, codesOn, salesOn } from "./GiftGuideDealCards";
+import { featuredLocalCount } from "@/lib/sbsFeaturedCount";
+import { codeCardCount, codesOn, salesOn } from "@/content/giftGuideDealCounts";
 import { loadModule, untilReload } from "@/lib/loadModule";
+
+/**
+ * Small Business Saturday's whole list (owner 2026-11-22, 8:36 PM: "add the count to small business saturday too"): the
+ * 25 Days sponsor businesses (RAIL.smallBiz, giftGuideSmallBiz.json's rows) plus the approved "Featured local" businesses
+ * the page lists under them. The page reads those with listFeaturedLocal (counted by featuredLocalCount) and passes no sponsors to filter them by
+ * (GiftGuideDeals.tsx `<Local sponsors={[]} />`), so it shows every one: the same read here (the public,
+ * approved-only list from sbs_public_featured, a STABLE read-only function; nothing is written), once per page load. A failed read gives the sponsors alone, never a guess.
+ */
+export async function smallBizCount(): Promise<number> {
+  try {
+    return RAIL.smallBiz + (await featuredLocalCount());
+  } catch (e) {
+    // The menu keeps the sponsors' count; the page reports its own failed read.
+    console.warn("gift guides: menu featured-local count failed", e);
+    return RAIL.smallBiz;
+  }
+}
 
 /**
  * The gift guides menu's numbers that change with the date (owner 2026-11-22: "Number on the right"), loaded in this
  * chunk after the menu draws (GiftGuidesSidebar.tsx), so a guide page's first paint carries none of it:
  *   each deals day: what its page lists right now, Top deals + Discount codes + Sales, by the page's own rules
  *     (GiftGuideDeals.tsx DealSections: only the cards still on, a code a card already shows is not a second card);
- *   the Holiday Hub: what /holidays lists with no filter at this minute (hubCountAt).
- * Small Business Saturday gets none: it also lists the live "Featured local" businesses from the database (see
- * scripts/gift-guide-rail-counts.mjs). A day with nothing listed gets no number. Guard: src/test/giftGuideRailCounts1122.test.tsx.
+ *   the Holiday Hub: what /holidays lists with no filter at this minute (hubCountAt);
+ *   Small Business Saturday (smallBizCount): its sponsor businesses plus the approved "Featured local" ones it lists.
+ * A day with nothing listed gets no number. Guard: src/test/giftGuideRailCounts1122.test.tsx.
  */
 
 /** The codes a deal card's code follows (GiftGuideDeals.tsx STORE_CODES, the same list). */

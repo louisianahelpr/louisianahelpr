@@ -19,7 +19,7 @@
  * @mutate src/content/giftGuideCatalog.ts | return rest.every((w) => hasWordStart(hay, w) \|\| | return rest.some((w) => hasWordStart(hay, w) \|\|
  * @mutate src/content/giftGuideCatalog.ts | hasWordStart(hay, w) \|\| (label.get(g.row) ?? []).includes(w)); | hasWordStart(hay, w));
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         {showResults && ( |         {false && (
- * @mutate src/content/giftGuideCatalog.ts |   loaded.set(slug, { picks: chunk.picks.map(toPick), | loaded.set(slug, { picks: [],
+ * @mutate src/content/giftGuideCatalog.ts |   loaded.set(slug, { picks: chunk.picks.map(toPick).map(typed), | loaded.set(slug, { picks: [],
  */
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { afterEach, describe, expect, it, vi } from "vitest";

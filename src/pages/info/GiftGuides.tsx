@@ -295,6 +295,7 @@ export default function GiftGuides() {
         {/* Owner 11-22 (phone): the head row's heart and three-line menu replace the chip row on every page; a guide's
             own count row under its banner is kept as it is ("she didn't ask to change it"). */}
         <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} pillInRow={!countRow}
+          noPill={sidePage === "finder"}
           below={(shipPill) => countRow && guide && (
             <div className="gg-countrow" data-gift-countrow="">
               <div className="gg-countrow-left">

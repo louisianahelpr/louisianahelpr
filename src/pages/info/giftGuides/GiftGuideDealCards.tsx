@@ -1,11 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Check, Copy } from "lucide-react";
-import { activeCodes, codesByStore, discountCodes, giftGuides as G, type DiscountCode } from "@/content/giftGuides";
-import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
-import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
+import { giftGuides as G, type DiscountCode } from "@/content/giftGuides";
+import type { Sale } from "@/content/giftGuidePicks";
 import { storePhoto } from "@/content/giftGuideStorePhotos";
-import { DEAL_EVENTS, DEALS_SLUG, DEALS_WORDS } from "@/content/giftGuideDeals.mjs";
+import { DEALS_SLUG, DEALS_WORDS } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
 import { START_OPEN } from "./startOpen";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
@@ -25,8 +24,8 @@ import { usePlan } from "./fun/plannerStore";
  * A store with several sales is one card listing them (Ulta's eight sales were eight copies of one photo).
  */
 
-const CLEAN_CODES = cleanCodes(DEAL_CODES);
-const CLEAN_SALES = cleanSales(SALES);
+// The codes and sales rules (no React) live in giftGuideDealCounts.ts, so the menu's counts can use them without the cards.
+export { codeCardCount, codesOn, liveSales, salesOn } from "@/content/giftGuideDealCounts";
 
 export const CARD_WORDS = {
   codesTitle: "Discount codes",
@@ -39,27 +38,6 @@ export const CARD_WORDS = {
   moreCodes: (n: number) => `+${n} more ${n === 1 ? "code" : "codes"}`,
 };
 
-/** The sales still on `today` (YYYY-MM-DD): a sale shows through its end day, one line per link. */
-export const liveSales = (sales: readonly Sale[], today: string) => {
-  // One line per link (design audit r2 #10: 9 duplicate hrefs, Gilt and Gilt City repeating the same offers).
-  const seen = new Set<string>();
-  return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href)));
-};
-
-/** The codes that work on `day` (YYYY-MM-DD), by store rank, one entry per code. */
-export const codesOn = (day: string): DiscountCode[] => codesByStore(activeCodes([...discountCodes, ...CLEAN_CODES], day)).flatMap((s) => s.codes);
-
-/** The store sales on `day`, one entry per store (its sales soonest end first), the stores in first-sale order. */
-export const salesOn = (day: string) => {
-  const stores = new Map<string, Sale[]>();
-  // Guides audit 1122 #15: a line that names the OTHER deal day (Cyber Monday's "Black Friday Deals Are in") is left off;
-  // a line that names both days ("Black Friday/Cyber Monday") stays.
-  const here = DEAL_EVENTS.find((e) => e.kind === "deals" && e.day === day);
-  const other = here && DEAL_EVENTS.filter((e) => e.kind === "deals" && e !== here).map((e) => e.title);
-  const namesOther = (offer: string) => Boolean(here && other!.some((t) => offer.includes(t)) && !offer.includes(here.title));
-  for (const x of liveSales(CLEAN_SALES.filter((s) => !namesOther(s.offer)), day)) stores.set(x.store, [...(stores.get(x.store) ?? []), x]);
-  return [...stores.entries()].map(([store, sales]) => ({ store, sales }));
-};
 
 /** The photo: the store's cutout. A store with no photo shows none (guides polish 1122 #14: its name is already the card's
  *  heading; a tinted name tile was a box with no photo in it). */
@@ -181,8 +159,6 @@ function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
   );
 }
 
-/** How many cards the codes make: one per store with a link. */
-export const codeCardCount = (codes: readonly DiscountCode[]) => new Set(codes.filter((c) => c.href).map((c) => c.store)).size;
 
 /** The codes that work on `day`, one card per store. */
 export function CodeCards({ codes }: { codes: DiscountCode[] }) {
@@ -248,4 +224,14 @@ export const CARD_CSS = `
 .gg-code-chip svg{width:15px;height:15px;flex:none;color:var(--gg-olive)}
 .gg-code-copied{font-size:12px;font-weight:700;color:var(--gg-olive)}
 .gg-code-copied:empty{display:none}
+/* Visual audit 1122-night #4: on a phone (under 480px) two Sales cards side by side squeezed the busiest stores'
+   4-5 deals into a ~130px column, a wall of text. There each Sales card takes the full row, its photo a 96px square on
+   the left and the store name and every deal beside it (the heart stays top-right). 480px and up: unchanged. */
+@media (max-width:479px){
+.gg-deal-grid[data-gift-sales]{grid-template-columns:minmax(0,1fr)}
+[data-gift-sales]>.gg-store-card:has(>.gg-deal-photo){display:grid;grid-template-columns:96px minmax(0,1fr);column-gap:12px;row-gap:4px;align-content:start}
+[data-gift-sales]>.gg-store-card>.gg-deal-photo{grid-column:1;grid-row:1/span 3;align-self:start}
+[data-gift-sales]>.gg-store-card:has(>.gg-deal-photo)>:is(.gg-card-head,.gg-card-line,.gg-card-actions){grid-column:2}
+[data-gift-sales]>.gg-store-card>.gg-card-head{padding-right:38px}
+}
 `;

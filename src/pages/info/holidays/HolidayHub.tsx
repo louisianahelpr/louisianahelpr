@@ -48,6 +48,8 @@ const WHAT_OPTIONS: Option[] = [{ value: "all", label: "Everything" }, ...HOLIDA
 // Holiday audit 1121 area 5 #20: Today and Next 7 days beside This weekend.
 const WHEN_OPTIONS: Option[] = [{ value: "all", label: "All dates" }, { value: "today", label: "Today" }, { value: "weekend", label: "This weekend" }, { value: "week", label: "Next 7 days" }];
 const WHEN_NOTHING: Record<string, string> = { weekend: "this weekend", today: "today", week: "in the next 7 days" };
+// The closing "Get featured free" link: the question, then "Get featured free ›" that never splits.
+const [SHOP_SMALL_ASK, SHOP_SMALL_GO] = SBS_WORDS.landingLink.split("? ");
 const REGION_OPTIONS: Option[] = [{ value: "all", label: "All regions" }, ...HOLIDAY_REGIONS.map((r) => ({ value: r.slug, label: r.label }))];
 // Holiday audit 1121 area 5 #3: items with no cost listed have their own choice (they showed under neither Free nor Paid).
 const COST_OPTIONS: Option[] = [{ value: "all", label: "Any" }, { value: "free", label: "Free" }, { value: "paid", label: "Paid" }, { value: "unlisted", label: "Cost not listed" }];
@@ -325,9 +327,13 @@ export default function HolidayHub() {
           </>
         )}
         <p className="text-ds-14 text-muted-foreground">{W.checkFirst}</p>
-        {/* Owner 2026-11-21: Louisiana small businesses ask to be featured free on the Small Business Saturday page. */}
+        {/* Owner 2026-11-21: Louisiana small businesses ask to be featured free on the Small Business Saturday page.
+            Visual audit 1122-night #7: it read as plain grey text; it wears the guides' text-link look (olive, semibold,
+            "›", as on Small Business Saturday), "Get featured free ›" kept whole on its line. */}
         <p className="text-ds-14 text-muted-foreground" data-holiday-shop-small="">
-          <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard inline-flex min-h-11 items-center">{SBS_WORDS.landingLink}</Link>
+          <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard inline-flex min-h-11 flex-wrap items-center gap-x-1 font-semibold text-[hsl(var(--bark))]">
+            {SHOP_SMALL_GO ? <><span>{SHOP_SMALL_ASK}?</span><span className="whitespace-nowrap">{SHOP_SMALL_GO}&nbsp;›</span></> : <>{SBS_WORDS.landingLink}&nbsp;›</>}
+          </Link>
         </p>
       </div>
       </GuidesFrame>

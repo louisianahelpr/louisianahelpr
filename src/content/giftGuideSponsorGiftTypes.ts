@@ -26,7 +26,6 @@ export const SPONSOR_GIFT_TYPES: Readonly<Record<string, SponsorGiftType>> = {
   "Breads and Sweets by Babs": "Gift card",
   "Mystic Forests Nursery": "Product",
   "Perfectly Planned Events": "Product",
-  "Helping Hands Gallery": "Product",
   "Candle Bloom Confections": "Product",
   "CHIC by dmo": "Gift set",
   "Beaver's Abundance": "Gift card",

@@ -13,6 +13,9 @@
  *   5. The Holiday Hub: the generated schedule (src/content/giftGuideRailCounts.json) is current, and at every day of the
  *      window (4 times a day) and either side of every leaving minute it equals what /holidays lists with no filter
  *      (filterHolidayItems minus endedEarlierToday, the page's own count).
+ *   6. Small Business Saturday (owner 8:36 PM: "add the count to small business saturday too"): with the same approved
+ *      "Featured local" read on both sides, the menu's number equals the businesses the page draws (sponsor cards +
+ *      featured local cards); a failed read gives the sponsors alone; the sponsors' count in the generated file is current.
  * The menu loads none of the pick data (CHUNK_PICK_COUNTS, printables.ts and a lazy chunk only): the critical-path budget
  * (scripts/perf/critical-path.mjs) holds that.
  *
@@ -22,6 +25,12 @@
  * @mutate src/pages/info/giftGuides/railCounts.ts | return list.length + codeCardCount(codesOn(on).filter((c) => !shown.has(c.code.toUpperCase()))) + salesOn(on).length; | return list.length + codeCardCount(codesOn(on)) + salesOn(on).length;
  * @mutate src/pages/info/giftGuides/railCounts.ts | return hub.stay + hub.gone.filter((g) => g > at).length; | return hub.stay + hub.gone.filter((g) => g >= at).length;
  * @mutate scripts/gift-guide-rail-counts.mjs | else if (item.start === days[d]) | else if (false)
+ * @mutate src/pages/info/giftGuides/railCounts.ts | return RAIL.smallBiz + (await featuredLocalCount()); | return RAIL.smallBiz;
+ * @mutate src/pages/info/giftGuides/railCounts.ts | return RAIL.smallBiz; | return RAIL.smallBiz + 1;
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | put({ "small-business-saturday": n }) | put({})
+ * @mutate src/pages/info/giftGuides/railCounts.ts | import { codeCardCount, codesOn, salesOn } from "@/content/giftGuideDealCounts"; | import { codeCardCount, codesOn, salesOn } from "./GiftGuideDealCards";
+ * @mutate vite.config.ts |               name: "sbs-featured-reads", |               name: "sbs-featured-reads-off",
+ * @mutate src/content/giftGuideCatalog.ts | import { loadModule, untilReload } from "@/lib/loadModule"; | import { loadModule, untilReload } from "@/lib/loadModule"; import "@/content/giftGuideSponsorGiftTypes";
  */
 import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
@@ -38,23 +47,37 @@ import { PRINTABLE_PAGES } from "@/content/printables";
 import { FUN_TOOLS } from "@/content/giftGuideFun1120";
 import { FINDER_ANCHOR } from "@/content/giftGuideExtras1120";
 import { MY_LIST_SLUG } from "@/pages/info/giftGuides/giftList";
-import { buildHub } from "../../scripts/gift-guide-rail-counts.mjs";
+import { buildHub, buildRailCounts } from "../../scripts/gift-guide-rail-counts.mjs";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
-vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsLogoUrl: () => "" }));
+/** The approved "Featured local" read, the same one for the page and the menu: two listings, or a failed read. */
+const featured = vi.hoisted(() => ({ fail: false, rows: [1, 2].map((i) => ({ id: `t${i}`, name: `Test Local ${i}`, town: "Lafayette", category: "Food & Sweets", link: `https://example.com/${i}`, deal: null, has_logo: false })) }));
+// The real count (src/test/setup.ts gives every other test 0), over the mocked read below.
+vi.unmock("@/lib/sbsFeaturedCount");
+vi.mock("@/lib/sbsFeaturedApi", () => ({
+  listFeaturedLocal: async () => {
+    if (featured.fail) throw new Error("read failed");
+    return featured.rows;
+  },
+  sbsLogoUrl: () => "",
+}));
 import { GiftGuidesMenu } from "@/pages/info/giftGuides/GiftGuidesSidebar";
 import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
 import Printables from "@/pages/info/giftGuides/printables/Printables";
-import { dealDayCount, hubCountAt } from "@/pages/info/giftGuides/railCounts";
+import { dealDayCount, hubCountAt, smallBizCount } from "@/pages/info/giftGuides/railCounts";
+import SMALL_BIZ from "@/content/giftGuideSmallBiz.json";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { signedInOnlyModules, staticReach } from "../../scripts/perf/bootReach.mjs";
+import { blankComments } from "./helpers/blankNonCode";
 
 afterEach(cleanup);
 
 /** Each menu row by its link target: the rows with a list (a number), and the tools (none). */
-const COUNTED = ["/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", "/gift-guides/black-friday", "/gift-guides/cyber-monday",
-  ...PRINTABLE_PAGES.map((p) => p.path), "/holidays", "/gift-guides/25-days-sponsors"];
-/** Small Business Saturday: no number (it also lists live "Featured local" businesses from the database; railCounts.ts). */
-const NO_NUMBER = ["/gift-guides", `/gift-guides#${FINDER_ANCHOR}`, `/gift-guides/${MY_LIST_SLUG}`, ...FUN_TOOLS.map((t) => t.to), "/gift-guides/small-business-saturday"];
+const COUNTED = ["/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", "/gift-guides/black-friday", "/gift-guides/small-business-saturday",
+  "/gift-guides/cyber-monday", ...PRINTABLE_PAGES.map((p) => p.path), "/holidays", "/gift-guides/25-days-sponsors"];
+const NO_NUMBER = ["/gift-guides", `/gift-guides#${FINDER_ANCHOR}`, `/gift-guides/${MY_LIST_SLUG}`, ...FUN_TOOLS.map((t) => t.to)];
 
 const rowNumber = (a: Element) => {
   const n = a.querySelector(".gg-side-n");
@@ -71,6 +94,8 @@ describe("gift guides menu numbers (owner 11-22: Number on the right)", () => {
     const box = renderMenu();
     // The date-bound numbers arrive from their chunk.
     await waitFor(() => expect(rowNumber(box.querySelector("a[href='/holidays']")!)).not.toBeNull());
+    // Small Business Saturday's number shows once its featured-local read is back: the sponsors plus the two listings.
+    await waitFor(() => expect(rowNumber(box.querySelector("a[href='/gift-guides/small-business-saturday']")!)).toBe(SMALL_BIZ.length + 2));
     const rows = [...box.querySelectorAll("a")];
     expect(rows.length).toBeGreaterThan(12);
     const tools = new Set(NO_NUMBER);
@@ -138,6 +163,29 @@ describe("gift guides menu numbers (owner 11-22: Number on the right)", () => {
     expect(checked).toBeGreaterThan(12);
   }, 60_000);
 
+  it("Small Business Saturday: the number is the businesses the page draws, sponsors + featured local; a failed read gives the sponsors", async () => {
+    expect(RAIL).toEqual(buildRailCounts());
+    expect(RAIL.smallBiz).toBe(SMALL_BIZ.length);
+    expect(RAIL.smallBiz).toBeGreaterThan(10);
+    const day = DEAL_EVENTS.find((e) => e.kind === "small-biz")!;
+    const drawn = async () => {
+      const { container } = render(<MemoryRouter><GiftGuideDeals day={day} now={new Date("2026-11-22T18:00:00Z")} /></MemoryRouter>);
+      await waitFor(() => expect(container.querySelectorAll("li[data-gift-sb]").length).toBeGreaterThan(0));
+      // The featured-local cards arrive with their own chunk and read.
+      await waitFor(() => expect(container.querySelectorAll("li[data-gift-sbs-local]").length).toBe(featured.rows.length));
+      const n = container.querySelectorAll("li[data-gift-sb]").length + container.querySelectorAll("li[data-gift-sbs-local]").length;
+      cleanup();
+      return n;
+    };
+    featured.fail = false;
+    const both = await drawn();
+    expect(both).toBe(SMALL_BIZ.length + featured.rows.length);
+    expect(await smallBizCount()).toBe(both);
+    featured.fail = true;
+    onTestFinished(() => void (featured.fail = false));
+    expect(await smallBizCount()).toBe(RAIL.smallBiz);
+  });
+
   it("the Holiday Hub's schedule is current and equals what /holidays lists, at every day and every leaving minute", () => {
     expect(RAIL.hub).toEqual(buildHub());
     const page = (today: string, minutes: number) =>
@@ -155,5 +203,38 @@ describe("gift guides menu numbers (owner 11-22: Number on the right)", () => {
     // Outside the window: no number.
     expect(hubCountAt(RAIL.hub, dayOf(RAIL.hub.days), 0)).toBeNull();
     expect(hubCountAt(RAIL.hub, dayOf(-1), 0)).toBeNull();
+  });
+});
+
+/**
+ * What the menu's numbers cost (lead 11-22): the lazy railCounts chunk reaches only counting rules (no React, no cards,
+ * heart or wish list: those were ~14 KB gz after the menu drew), and every signed-in-only module it reaches is won by a
+ * public group (sbs-featured-reads: in signed-in-deep the Featured local read pulled ~310 KB gz after the menu drew).
+ * The 25 Days sponsors' gift-type table (~1.9 KB gz) loads with that guide's picks, never on a guide page's first paint.
+ */
+describe("the menu's numbers stay off the guide pages' load (lead 11-22)", () => {
+  const ROOT = resolve(__dirname, "../..");
+  const rel = (abs: string) => abs.slice(ROOT.length + 1).split("\\").join("/");
+  const config = blankComments(readFileSync(resolve(ROOT, "vite.config.ts"), "utf8"));
+  const groupTest = (name: string) => new RegExp(config.match(new RegExp(`name:\\s*"${name}",[\\s\\S]*?\\}`))?.[0].match(/test:\s*\/(.*)\/,\s*\n/)?.[1] ?? "^$");
+
+  it("railCounts reaches no React file and no signed-in-only module a public group does not win", () => {
+    const reach = [...staticReach(ROOT, [resolve(ROOT, "src/pages/info/giftGuides/railCounts.ts")])].map(rel);
+    expect(reach).toContain("src/content/giftGuideDealCounts.ts");
+    expect(reach).toContain("src/lib/sbsFeaturedApi.ts");
+    expect(reach.length).toBeGreaterThan(8);
+    expect(reach.filter((f) => f.endsWith(".tsx"))).toEqual([]);
+    const { signedInOnly } = signedInOnlyModules(ROOT);
+    const won = [groupTest("public-page-reads"), groupTest("sbs-featured-reads")];
+    const loose = reach.filter((f) => signedInOnly.has(resolve(ROOT, f).split("\\").join("/")) && !won.some((t) => t.test(`/x/${f}`)));
+    expect(loose).toEqual([]);
+    expect(won[1].test("/x/src/lib/sbsFeaturedCount.ts")).toBe(true);
+  });
+
+  it("the sponsors' gift-type table is not on any guide page's first paint", () => {
+    const reach = [...staticReach(ROOT, [resolve(ROOT, "src/pages/info/GiftGuides.tsx")])].map(rel);
+    expect(reach.length).toBeGreaterThan(100);
+    expect(reach).toContain("src/content/giftGuideCatalog.ts");
+    expect(reach).not.toContain("src/content/giftGuideSponsorGiftTypes.ts");
   });
 });

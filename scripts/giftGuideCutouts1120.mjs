@@ -378,10 +378,29 @@ export const CUTOUTS_1120 = new Map([
   ["https://static.shopmy.us/uploads/pretty-prod-1764597442673", "burts-bees-little-ducks-c1.webp"],
   ["https://static.shopmy.us/pins/zoom-108100673-1795144222288-WXZdEMYzF3p1mC184cAVhLxQo.jpg", "maisonette-american-ducks-c1.webp"],
   ["https://static.shopmy.us/pins/zoom-107895388-1795118461682-6165186", "duck-commander-starter-call-c1.webp"],
+  // Brand photos for two Amazon picks (AMAZON_BRAND_PHOTOS_1122 below; links audit 1122 night #5).
+  ["https://cdn.shopify.com/s/files/1/0022/5345/5462/files/8_5352e343-c7d3-4ae9-ab57-5bd135bb384a.webp", "bedsure-bubble-faux-fur-throw-tie-dye-taupe-1c71ad.webp"],
+  ["https://cdn.shopify.com/s/files/1/0788/5979/files/pro-houndstooth-cabretta-leather-golf-gloves-black-2-pack-804577.jpg", "mvp-pro-houndstooth-cabretta-golf-gloves-black-287969.webp"],
 ]);
 
 // The owner's launch-day adds (11-22) keep their cutouts beside their rows (scripts/giftGuideOwnerAdds1122.mjs).
 for (const [from, file] of ADDS_CUTOUTS_1122) CUTOUTS_1120.set(from, file);
+
+/**
+ * BRAND PHOTOS ON AMAZON PICKS (links audit 1122 night #5; owner 2026-11-22 8:58 PM pop-up, "Brand photo cutout"). These
+ * owner picks link to Amazon, but every photo in their Amazon listing has a background (a room, a grey square) and Amazon
+ * photos are never edited. So each shows the BRAND'S OWN photo of the same product, cut out like any other (the brand
+ * URL -> file pair is in CUTOUTS_1120 above). Keyed by ASIN; narrow on purpose: the Her/Him guards list these ids and
+ * fail both ways (an id here whose pick is gone, or an Amazon pick off Amazon's photo that is not here).
+ *   B0F5N7S36V Bedsure Bubble Faux Fur Christmas Throw, Tie-dye Taupe (Her): bedsurehome.com, its Tie-dye Taupe / Throw photo
+ *   B0D9PX9RBD MVP PRO Houndstooth Cabretta Golf Gloves, Black 2-Pack (Him): modestvintageplayer.com, its Black (2 Pack) photo
+ * No brand photo was found for Yoosteel, Talk About Good!, PULIDIKI (its site reuses the Amazon photos) or the Rolling Grill
+ * Basket (no brand), so those keep Amazon's photo.
+ */
+export const AMAZON_BRAND_PHOTOS_1122 = {
+  B0F5N7S36V: "https://cdn.shopify.com/s/files/1/0022/5345/5462/files/8_5352e343-c7d3-4ae9-ab57-5bd135bb384a.webp",
+  B0D9PX9RBD: "https://cdn.shopify.com/s/files/1/0788/5979/files/pro-houndstooth-cabretta-leather-golf-gloves-black-2-pack-804577.jpg",
+};
 
 /** The photo to show for `image`: its transparent cutout when one exists, else `image` itself. */
 export const cutoutPhoto = (image) => {

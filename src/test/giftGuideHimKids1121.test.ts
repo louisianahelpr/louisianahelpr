@@ -14,7 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { HIM_1121, HIM_POPULAR_1122, KIDS_POPULAR_1122, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_PLAY_1122, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
-import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
+import { AMAZON_BRAND_PHOTOS_1122, CUTOUT_BASE, cutoutPhoto } from "../../scripts/giftGuideCutouts1120.mjs";
 import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 
@@ -34,6 +34,28 @@ type Pick = { name: string; brand?: string; href: string; image: string; store: 
  * xtratuf.com through CJ (15%); the Amazon rows were priced 11-22. Owner 11-22 PM ("Drop both"): the Southern Marsh
  * youth chino (p-107857942, no ShopMy rate) is off.
  */
+
+/**
+ * Brand photo cutouts that stand in for Amazon's photo on named Amazon picks (owner 2026-11-22 8:58 PM, "Brand photo
+ * cutout"; links audit 1122 night #5: every photo in those Amazon listings has a background). Named here by ASIN, so the
+ * exception stays narrow and two-way: the module's list must equal this one, and each id must be on its page.
+ */
+const BRAND_PHOTO_IDS_1122 = { B0F5N7S36V: "her", B0D9PX9RBD: "him" } as const;
+const asinOf = (href: string) => /\/dp\/([A-Z0-9]{10})/.exec(href)?.[1] ?? "";
+/** An Amazon pick shows Amazon's own photo, or (named above) its brand's photo as a transparent cutout from a non-Amazon host. */
+function expectAmazonPickPhoto(p: { name: string; href: string; image?: string }) {
+  const brand = (AMAZON_BRAND_PHOTOS_1122 as Record<string, string>)[asinOf(p.href)];
+  if (!brand) {
+    expect(p.image, p.name).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
+    return;
+  }
+  expect(new URL(brand).hostname, p.name).not.toMatch(/amazon/);
+  expect(p.image, p.name).toBe(cutoutPhoto(brand));
+  expect(String(p.image).startsWith(CUTOUT_BASE), p.name).toBe(true);
+  const head = readFileSync(`public/gift-guides/cutouts/${String(p.image).slice(CUTOUT_BASE.length)}`).subarray(0, 32);
+  expect(head.subarray(12, 16).toString("latin1") === "VP8X" && (head[20] & 0x10) !== 0, `${p.name} cutout has no alpha`).toBe(true);
+}
+
 const LOUISIANA_1122: Record<string, Record<string, string>> = {
   him: { "https://go.shopmy.us/p-109340963": "store-lodge", "https://go.shopmy.us/p-108155418": "store-toups-and-co", "https://go.shopmy.us/p-109342284": "store-mignon-faget", "https://go.shopmy.us/p-109340844": "store-krewe" },
   kids: { "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxkab100y": "store-xtratuf", "https://go.shopmy.us/p-109341055": "store-duck-commander", "https://go.shopmy.us/p-109341153": "store-toups-and-co" },
@@ -146,7 +168,7 @@ describe.each([
       expect(p.sortPrice).toBeUndefined();
       if (switched[p.href]) continue;
       expect(p.href).toMatch(/^https:\/\/www\.amazon\.com\/dp\/[A-Z0-9]{10}\?tag=louisianahelpr-20$/);
-      expect(p.image).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
+      expectAmazonPickPhoto(p);
       expect(p.store).toBe("store-amazon");
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
@@ -214,6 +236,17 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
 });
 
 describe("For Him holds every one of her men's saves (owner 11-21)", () => {
+  it("its brand-photo picks (named by ASIN) show the brand's cutout, never Amazon's photo", () => {
+    const named = Object.entries(BRAND_PHOTO_IDS_1122).filter(([, slug]) => slug === "him").map(([asin]) => asin);
+    expect(named.length).toBeGreaterThan(0);
+    for (const asin of named) {
+      const rows = chunk("him").filter((p) => asinOf(p.href) === asin);
+      expect(rows.length, asin).toBe(1);
+      expectAmazonPickPhoto(rows[0]);
+      expect(rows[0].image, asin).not.toMatch(/media-amazon/);
+    }
+  });
+
   it("91 of the 122 Amazon rows in Him-saved-amazon-1121.md are on the page, with the 31 left out named", () => {
     // Owner 2026-11-22: B09R5TGLFR Chemical Guys Car Cleaning Kit ($31.90) is off too; the Wontolf kit is the only car wash kit.
     // Owner 2026-11-22 ("remove"): B0CQ4QM7Q2 Men's Fuzzy Cloud Socks are off. Owner 2026-11-22 ("only keep the one with
@@ -235,9 +268,11 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
 });
 
 describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
-  it("55 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (Segway S2 is at Tractor Supply; 11-22 the Switch with Joy-Con, the C2 Lite and C2 Pro, the Amazon S2 and the mini CreateOn tiles went as duplicates; the Quest 3S, iPad and JLab kids headphones were added)", () => {
+  it("54 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (Segway S2 is at Tractor Supply; 11-22 the Switch with Joy-Con, the C2 Lite and C2 Pro, the Amazon S2 and the mini CreateOn tiles went as duplicates, and Paint by Sticker came off; the Quest 3S, iPad and JLab kids headphones were added)", () => {
     const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
-    expect(amazon.length).toBe(71); // 55 after the duplicate removals + the 9 popular adds of 11-22 + the 7 Louisiana books, plush and team gear (owner 11-22 PM)
+    expect(amazon.length).toBe(70); // 54 after the duplicate removals and Paint by Sticker + the 9 popular adds of 11-22 + the 7 Louisiana books, plush and team gear (owner 11-22 PM)
+    // Owner 2026-11-22 8:58 PM ("take it off"): Paint by Sticker Kids: Christmas had no Buy Box and no other listing.
+    expect(amazon.some((p) => p.href.includes("152350675X"))).toBe(false);
     for (const asin of ["B0F3GWXLTS", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
     expect(amazon.some((p) => p.href.includes("B0CT2WN59R"))).toBe(false);
   });

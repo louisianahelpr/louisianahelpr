@@ -23,7 +23,7 @@
  */
 import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 import { relsOf } from "./giftGuidePeople1120.mjs";
-import { cutoutPhoto } from "./giftGuideCutouts1120.mjs";
+import { AMAZON_BRAND_PHOTOS_1122, cutoutPhoto } from "./giftGuideCutouts1120.mjs";
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 import { ADDS_STORES_1122, HIM_ADDS_1122, KIDS_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 
@@ -218,7 +218,8 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B0DTDJH158", 18.99, "41rbkZT4EKL", "Sidomma Fishing Tool Set", "Sidomma", "fishing", 3, "Pliers and tools for the tackle box."],
   ["B0FHMYC386", 19.6, "41yqlHKjRBL", "HUK Short Sleeve Performance Fishing Tee", "HUK", "shirt", 4, "A light, quick-dry tee for the boat."],
   ["B0FR98X1DZ", 12.99, "41-9VVRQ5ML", "Lucky Fishing Socks, Size 7-13", "", "socks", 4, "Fun fishing socks for his stocking."],
-  ["B0D9PX9RBD", 70, "81p65D0cdNL", "MVP PRO Houndstooth Cabretta Golf Gloves, Black (Men's 2-Pack)", "MVP", "accessory", 3, "A pair of leather golf gloves in a black houndstooth."],
+  // Brand photo cutout (owner 11-22 "Brand photo cutout"; Amazon's photos are a grey square): AMAZON_BRAND_PHOTOS_1122.
+  { ...row(["B0D9PX9RBD", 70, "81p65D0cdNL", "MVP PRO Houndstooth Cabretta Golf Gloves, Black (Men's 2-Pack)", "MVP", "accessory", 3, "A pair of leather golf gloves in a black houndstooth."]), image: cutoutPhoto(AMAZON_BRAND_PHOTOS_1122.B0D9PX9RBD) },
   ["B0G72KN8BL", 9.49, "41AjgHzg2iL", "COOFANDY Men's V-Neck Tee", "COOFANDY", "shirt", 4, "A soft everyday V-neck tee."],
   ["B08BG8RQHG", 44.99, "41wLs6bwGyL", "Carhartt K288 Logo Sweatshirt", "Carhartt", "sweatshirt", 4, "The classic Carhartt logo sweatshirt."],
   ["B0FZN2ZCFL", 27.2, "51TtsH9AWzL", "Burlebo Go To Performance Tee", "Burlebo", "shirt", 4, "A light performance tee from Burlebo."],
@@ -377,7 +378,8 @@ export const KIDS_PLAY_1122 = [
 
 
 export const KIDS_1121 = [
-  ["152350675X", 3.44, "51J30U2ygrL", "Paint by Sticker Kids: Christmas", "Workman", "book", 3, "Sticker-by-number Christmas pictures, no mess."],
+  // Paint by Sticker Kids: Christmas (152350675X) came off (owner 2026-11-22 8:58 PM pop-up, "take it off"): Amazon has no
+  // Buy Box for it and no other listing of the same book (links audit 1122 night #4).
   ["B0CFFZ389Y", 5.42, "41ulOjt6aQL", "Colgate Minecraft Kids Toothbrush", "Colgate", "toothbrush", 3, "A Minecraft toothbrush for the stocking."],
   ["B0FVX689L4", 7.99, "517ur30uekL", "Christmas Joke Book for Kids", "", "book", 3, "Silly Christmas jokes to read out loud."],
   ["B0G36VXNGX", 8.99, "51JNHGNSDML", "Slimygloop Squishmallows Slime", "Slimygloop", "slime", 3, "Squishmallows slime in a jar, ready to squish."],

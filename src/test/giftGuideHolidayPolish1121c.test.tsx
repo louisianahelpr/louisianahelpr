@@ -55,13 +55,14 @@ describe("holiday audit 1121 #36: no product photo with a scene behind it", () =
     ["him", "Sperry Authentic Original Boat Shoe", "31w-q2iXR+L", "71pSnCJKOrL"], // filled half its frame
     ["kids", "Handmade Hamster Squishy Toy", "41-YrWLVSgL", "71wfzJhV-aL"], // blue backdrop shape
   ];
-  // OWNER EXCEPTION (owner 2026-11-21, pop-up "Keep them as they are", relayed by the lead): these 3 listings have no
+  // OWNER EXCEPTION (owner 2026-11-21, pop-up "Keep them as they are", relayed by the lead): these listings have no
   // white-background photo in their gallery (every image is a scene, a model or a boxed tile) and an Amazon photo may
   // not be cut out, so they keep their photo as is. Exact both ways: each is still on its guide with that photo, and no
   // other pick joins the list without the owner.
   const OWNER_KEPT_SCENE_PHOTOS: [guide: string, name: string, photo: string][] = [
     ["her", "Yoosteel Birthstone Bracelet", "51PDHgtzHAL"],
-    ["her", "Bedsure Bubble Faux Fur Christmas Throw Blanket", "91HJeXmiufL"],
+    // (The Bedsure throw left this list 2026-11-22: owner pop-up 8:58 PM "Brand photo cutout"; it now shows Bedsure's own
+    // photo as a cutout, scripts/giftGuideCutouts1120.mjs AMAZON_BRAND_PHOTOS_1122.)
     ["him", "Rolling Grill Basket Grilling Accessory", "51PJjbtCbVL"],
   ];
 
@@ -74,9 +75,9 @@ describe("holiday audit 1121 #36: no product photo with a scene behind it", () =
     }
   });
 
-  it("keeps exactly the 3 scene photos the owner chose to keep (2026-11-21)", () => {
+  it("keeps exactly the 2 scene photos the owner chose to keep (2026-11-21; the Bedsure throw got its brand cutout 11-22)", () => {
     for (const [guide, name, photo] of OWNER_KEPT_SCENE_PHOTOS) expect(photoOf(guide, name), name).toContain(`/images/I/${photo}.`);
-    expect(OWNER_KEPT_SCENE_PHOTOS).toHaveLength(3);
+    expect(OWNER_KEPT_SCENE_PHOTOS).toHaveLength(2);
   });
 });
 

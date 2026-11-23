@@ -10,6 +10,7 @@ import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady,
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GuidesTop, type GuidesBanner } from "./giftGuides/GuidesTop";
+import { GuidesDisclosure } from "./giftGuides/GuidesDisclosure";
 import { GiftGuideLanding, finderAsked } from "./giftGuides/GiftGuideLanding";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
@@ -23,7 +24,6 @@ import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { BUDGETS, BUDGET_MIN_PICKS, GiftGuideView, sectionLabel, sectionNav } from "./giftGuides/GiftGuideView";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
-import { GuidesDisclosure } from "./giftGuides/GuidesDisclosure";
 import { DEALS_COVER, DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";

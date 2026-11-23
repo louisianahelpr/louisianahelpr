@@ -62,19 +62,20 @@ export function MinSupportedBuildCard({
             <em>above</em> the build you are turning away, not equal to it.
           </span>
           <br />
-          {/* Not a hypothetical caveat. Probed 2026-09-01: the store URL the
-              block screen links to (lib/appStore.ts) returns 404 and the
-              iTunes lookup API reports resultCount 0 for its id in four
-              storefronts — the listing is not public. Arming the gate today
-              would send every blocked user to a dead page, which is why the
-              screen also carries the support address. Stated here, next to
-              the control, because this is the moment an operator can still
-              decide not to. */}
+          {/* Not a hypothetical caveat (audit NL-05, 2026-11-23). Build 8502
+              (1.0.4, on the App Store since 2026-11-19) was built while the
+              listing still 404'd, so ITS copy of the block screen says "Open
+              TestFlight" and shows no App Store button. Store users have no
+              TestFlight, so blocking 8502 strands them with wrong steps. Later
+              builds send people to the App Store. Stated here, next to the
+              control, because this is the moment an operator can still decide
+              not to. The same screen also opens when a database change raises
+              the data version past what 8502 reads (lib/clientCompat.ts). */}
           <span className="text-ds-11 text-[hsl(var(--destructive-ink))]">
-            Before setting this above 0, confirm the App Store listing actually
-            loads — as of 2026-09-01 the link the block screen sends people to
-            returns a 404, which would make the block a dead end. The screen also
-            shows the support address, but the store link is the way out.
+            Do not set this above 8502 while people still use 1.0.4 (build 8502).
+            That build’s update screen tells App Store users to open TestFlight
+            and has no App Store button, so they would be stuck. Builds after
+            8502 send people to the App Store.
           </span>
         </>
       }

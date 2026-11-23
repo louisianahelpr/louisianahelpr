@@ -111,12 +111,13 @@ export function ForceUpdateGate({ children }: { children: React.ReactNode }) {
             className="mt-2 max-w-[32ch] font-sans text-ds-13"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
-            {/* Q1124: while the App Store listing is not live, testers update
-                through TestFlight, so the copy must not send them to a store
-                page that 404s. */}
-            {APP_STORE_LISTING_LIVE
-              ? "This version of Louisiana Helpr is no longer supported. Install the latest update from the App Store and you’ll pick up right where you left off."
-              : "This version of Louisiana Helpr is no longer supported. Open TestFlight, install the latest Helpr build, then reopen the app. You’ll pick up right where you left off."}
+            {/* App Store only. This said "Open TestFlight..." while the
+                listing 404'd (Q1124), and 1.0.4 (build 8502) shipped to the
+                App Store with that copy baked in, so a blocked store user would
+                be told to use an app they never installed (audit NL-05,
+                2026-11-23). Nothing in the app can tell a TestFlight install
+                from a store install, so there is one message, for the store. */}
+            This version of Louisiana Helpr is no longer supported. Install the latest update from the App Store and you’ll pick up right where you left off.
           </p>
         </div>
 
@@ -125,8 +126,8 @@ export function ForceUpdateGate({ children }: { children: React.ReactNode }) {
               because this is a real external navigation, not a click handler —
               a blocked app must not depend on its own JS to get the user out.
               Default size is h-14, comfortably over the 44px target. */}
-          {/* Hidden while the listing 404s (owner, 2026-10-04, Q1124); the
-              support address below is the way out until then. */}
+          {/* Was hidden while the listing 404'd (owner, 2026-10-04, Q1124);
+              live since 2026-11-19 (Q1289). */}
           {APP_STORE_LISTING_LIVE && (
             <Button variant="primary" className="w-full" asChild>
               <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">

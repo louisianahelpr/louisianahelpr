@@ -4,7 +4,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
-import { useEffect, useState, useSyncExternalStore, type ComponentType, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ComponentType, type ReactNode } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
@@ -23,6 +23,7 @@ import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { BUDGETS, BUDGET_MIN_PICKS, GiftGuideView, sectionLabel, sectionNav } from "./giftGuides/GiftGuideView";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
+import { GuidesDisclosure } from "./giftGuides/GuidesDisclosure";
 import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
@@ -195,6 +196,7 @@ export default function GiftGuides() {
   // SEO (follow-up 2026-11-18): the landing's head, or the open guide's own (one not in the sitemap is noindex).
   // SEO P1 (owner 11-19): its own description from its picks once they are in, as api/share.ts writes it before JS.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion);
+  const page = useRef<HTMLDivElement>(null);
   usePageMeta(
     shared || myListPage ? { title: `${shared ? WISH.sharedLead : WISH.title} — Helpr`, description: PUBLIC_PAGE_META["/gift-guides"].description, robots: "noindex" }
     : deals ? giftGuidePageMeta(deals.id) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],
@@ -233,16 +235,11 @@ export default function GiftGuides() {
   if (moved) return <Navigate to={`/gift-guides/${moved}`} replace />;
   if (slug && !guide && !deals) return <Navigate to="/gift-guides" replace />;
 
-  const footer = (
-    <footer className="gg-disc">
-      {/* Owner decision 2026-11-18 (~8:50 AM): the disclosures are plain muted lines at the BOTTOM, no box. The
-          Amazon line is the exact statement the Amazon Associates Operating Agreement requires on a site with
-          Amazon links. */}
-      {/* Owner 2026-11-22 ("Make this small on 1 line"): ONE small line, the affiliate words and Amazon's statement. */}
-      <p data-gift-disclosure="">{G.disclosureLead} <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>
-      {/* Owner 11-18 PM: no "Every collection on ShopMy" / "Every gift guide on Pinterest" links; the disclosures stay. */}
-    </footer>
-  );
+  // Owner decision 2026-11-18 (~8:50 AM): the disclosures are plain muted lines at the BOTTOM, no box; the Amazon line is
+  // the exact statement the Amazon Associates Operating Agreement requires on a site with Amazon links. Owner 2026-11-22
+  // ("Make this small on 1 line"): ONE small line. Owner 11-22 later: only on a page that shows an affiliate link
+  // (GuidesDisclosure watches the page). Owner 11-18 PM: no "Every collection on ShopMy" / Pinterest links.
+  const footer = <GuidesDisclosure scope={page} />;
 
   // The search, My list heart and Share for this page (one set, on the row under the header).
   const tools = deals ? <GiftGuideTools path={`/gift-guides/${deals.id}`} title={deals.pageTitle} image={deals.kind === "deals" ? DEALS_COVER : undefined} />
@@ -295,7 +292,7 @@ export default function GiftGuides() {
       {/* Owner 2026-11-21: a guide's hearts save for someone (the picker) and the My lists pill, on guide and deals pages. */}
       {(guide || deals?.kind === "deals") && <LazySaveForSomeone />}
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
-      <div className="gg w-full" data-gift-guides="">
+      <div className="gg w-full" data-gift-guides="" ref={page}>
         {/* Owner's mockup (2026-11-18): the way back and the header words run across the top, above the menu and the guides. */}
         {/* Owner 2026-11-18 PM: the shipping pill sits on the page header's own row ("← Gift guides"), right-aligned
             (titleActions above), so no row of its own sits above the hero. A guide page has no second "← All guides"

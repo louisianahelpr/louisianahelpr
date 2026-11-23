@@ -58,6 +58,7 @@ vi.mock("@/lib/sbsFeaturedApi", () => ({
 import GiftGuides from "@/pages/info/GiftGuides";
 import SwipeGifts from "@/pages/info/giftGuides/fun/SwipeGifts";
 import { FunBody } from "@/pages/info/giftGuides/fun/FunPage";
+import { GiftOut } from "@/pages/info/giftGuides/GiftOut";
 import { GiftGuideTools } from "@/pages/info/giftGuides/GiftGuideShare";
 import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
 import { dealDay } from "@/content/giftGuideDeals.mjs";
@@ -191,7 +192,8 @@ describe("page, then menu, then disclosures in the code (holiday audit 1121 #22 
       expect(order(container), url).toEqual(["main", "menu", "disclosures"]);
       cleanup();
     }
-    const { container } = render(<MemoryRouter><FunBody title="Swipe" path="/gift-guides/swipe"><p>deck</p></FunBody></MemoryRouter>);
+    // Owner 11-22: the disclosures show only while the page carries an affiliate link, so the fun page here shows one.
+    const { container } = render(<MemoryRouter><FunBody title="Swipe" path="/gift-guides/swipe"><GiftOut href="www.amazon.com/dp/B0X?tag=louisianahelpr-20">Shop</GiftOut></FunBody></MemoryRouter>);
     expect(order(container)).toEqual(["main", "menu", "disclosures"]);
   });
 });

@@ -81,7 +81,10 @@ const FUN_CSS = `
 .gg-fun-card{border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card));padding:16px;margin:0 0 14px}
 .gg-fun-row{display:flex;gap:8px;align-items:center}
 .gg-fun-row>input,.gg-fun-row>select{flex:1;min-width:0}
-.gg-fun input,.gg-fun select{min-height:44px;font:500 15px Montserrat,sans-serif;padding:8px 12px;border:1px solid hsl(var(--input));border-radius:10px;background:hsl(var(--background));color:var(--gg-ink);min-width:0}
+/* Typing boxes only (follow-up 1122): a radio or a checkbox keeps its own small size (NativeRadio: h-4 w-4 min-h-0), its
+   44px tap target is the label around it; this rule had stretched every printables radio to a 44px box. :where() keeps
+   the old weight, so the rules that tune one box below still win. */
+.gg-fun input:where(:not([type=radio],[type=checkbox])),.gg-fun select{min-height:44px;font:500 15px Montserrat,sans-serif;padding:8px 12px;border:1px solid hsl(var(--input));border-radius:10px;background:hsl(var(--background));color:var(--gg-ink);min-width:0}
 .gg-fun label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px;color:var(--gg-ink)}
 .gg-fun-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
 .gg-fun-list>li{min-width:0}
@@ -136,7 +139,10 @@ const FUN_CSS = `
 .gg-plan-shop{display:inline-flex;align-items:center;min-height:44px;font-size:13px;font-weight:600}
 .gg-money-box{position:relative;display:inline-flex;flex:none;align-items:center}
 .gg-money-box .gg-money-sign{position:absolute;left:11px;top:50%;transform:translateY(-50%);font:500 15px Montserrat,sans-serif;color:var(--gg-muted);pointer-events:none}
-.gg-fun .gg-money-box input{width:100%;padding-left:22px}
+/* The $ shows (follow-up 1122): the shared field's backdrop blur made the box its own layer, painted after the $ and
+   over it (its fill is opaque here), so the $ never showed. No blur on a money box, as index.css does for any field
+   with an icon over it; the box then paints first and the $ on top. */
+.gg-fun .gg-money-box input{width:100%;padding-left:22px;-webkit-backdrop-filter:none;backdrop-filter:none}
 .gg-plan-picker{padding:0;max-width:none}
 .gg-plan-picker-chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
 .gg-plan-picks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;max-height:min(52vh,440px);overflow-y:auto;overscroll-behavior:contain}

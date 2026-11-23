@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-23T04:37:06.814Z",
-  "guards": 4459,
-  "registered": 4455,
+  "generated": "2026-11-23T09:51:20.079Z",
+  "guards": 4470,
+  "registered": 4466,
   "unregistered": [
     "src/lib/categorySuggestions.test.ts",
     "src/lib/celebrate.test.ts",
@@ -20,6 +20,7 @@
     "src/test/declutterOgItemCard.test.ts",
     "src/test/giftGuideBudgetCaps1120.test.ts",
     "src/test/giftGuideCoversMatchGuide.test.ts",
+    "src/test/giftGuideTapSizes1120.test.ts",
     "src/test/jobPageHeadKeepsLeftColumn.test.ts",
     "src/test/jobsAudit1121Visual.test.tsx",
     "src/test/quoteInsertJobMirrorsJobsInsertPolicy.test.ts",
@@ -31,6 +32,12 @@
       "why": [
         "blocked (literal declared in this file) is both input and oracle",
         "all (literal declared in this file) is both input and oracle"
+      ]
+    },
+    {
+      "file": "src/test/guideSeoBodies1123.test.ts",
+      "why": [
+        "out (literal declared in this file) is both input and oracle"
       ]
     },
     {
@@ -84,6 +91,7 @@
         "src/test/sponsor25days.test.tsx",
         "src/test/sponsor25daysPublicNoDates.test.tsx",
         "src/test/sponsorLineup.test.tsx",
+        "src/test/sponsorNoOwnGiftCard.test.tsx",
         "src/test/sponsorPublicOff.test.tsx",
         "src/test/twentyFiveDaysRulesOnFacebook.test.tsx"
       ],

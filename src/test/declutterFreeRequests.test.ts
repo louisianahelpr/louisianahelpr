@@ -10,7 +10,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx | data-free-request-count="">{t("decl.sl.requests", { n: freeAsks.data.get(item.id) ?? 0 })} | data-free-request-count="">View
  * @mutate src/components/declutter/DeclutterBuyingViews.tsx |       <MyFreeAsks />\n | \n
  * @mutate src/components/declutter/DeclutterBuyingViews.tsx |       <FreePauseLine />\n | \n
- * @mutate src/pages/info/legal/TermsSection.tsx | if you don&apos;t choose in time, the item goes back up and you get no strike. | the usual strike rules apply if you don&apos;t confirm.
+ * @mutate src/pages/info/legal/TermsSection.tsx | if you don&apos;t set it up in time, the item goes back up and you get no strike. | the usual strike rules apply if you don&apos;t confirm.
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

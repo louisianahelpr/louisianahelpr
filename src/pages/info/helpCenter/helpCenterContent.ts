@@ -231,7 +231,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       // Audit S-T3 (11-23): trades are live (the trade migrations 20261106163703 on); the Terms' Trades row says the same.
       {
         q: "Can I trade on Declutter?",
-        a: 'Yes, when the seller marks a listing "Open to trades". Offer one of your own live listings for it, item for item: no money changes hands and no fee is charged. The seller has 48 hours to accept or say no. Once accepted, each of you sets up the pickup of the other\'s item within 48 hours, like a free item. If either side runs out of time or backs out before a pickup is booked, the trade ends and nobody gets a strike. Free items can\'t be traded.',
+        a: 'Yes, when the seller marks a listing "Open to trades". Offer one of your own live listings for it, item for item: no money changes hands and no fee is charged. The seller has 48 hours to accept or say no. Once accepted, each of you sets up the pickup of the other\'s item within 48 hours, from the porch or at the door, whichever that listing offers. If either side runs out of time or backs out before a pickup is booked, the trade ends and nobody gets a strike. Free items can\'t be traded.',
       },
     ],
   },

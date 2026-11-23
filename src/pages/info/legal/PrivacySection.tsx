@@ -71,7 +71,7 @@ export const PrivacyContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Account information:</strong> Name, email, phone, date of birth, and profile photo.</p>
-            <p><strong className="text-foreground">Identity verification:</strong> Stripe Identity checks your government-issued ID and keeps the ID images under its own privacy policy. We never receive or store the images: we keep the result of the check and a one-way code made from your ID details, which stops a removed account from signing up again.</p>
+            <p><strong className="text-foreground">Identity verification:</strong> Stripe Identity checks your government-issued ID and keeps the ID images under its own privacy policy. We never receive or store the images: we keep the result of the check and a one-way code made from your ID details, which lets us tell if a removed account tries to pass the ID check again.</p>
           </>
         }
       />

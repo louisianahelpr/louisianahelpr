@@ -8,8 +8,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 
-export const JOB_REVIEW_REPORT = "review";
-export const MESSAGE_REPORT = "message";
+const JOB_REVIEW_REPORT = "review";
+const MESSAGE_REPORT = "message";
 export const isJobWordsReport = (t: string) => t === JOB_REVIEW_REPORT || t === MESSAGE_REPORT;
 
 export type JobWords = { author: string | null; jobId: string | null; rating: number | null };

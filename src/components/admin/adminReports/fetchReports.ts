@@ -191,7 +191,10 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
         || (r.reported_type === HOME_LISTING_REPORT && seedIds.has(homes.get(r.reported_id)?.owner_id ?? ""))
         || (r.reporter_id !== null && seedIds.has(r.reporter_id))
         || (r.reported_type === "application"
-          && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? ""))),
+          && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? "")))
+        // HA-08: a reported review or message is test data when its writer/sender or its job is (reportedJobWords.ts).
+        || (isJobWordsReport(r.reported_type)
+          && (seedIds.has(jobWords.get(r.reported_id)?.author ?? "") || seedIds.has(jobWords.get(r.reported_id)?.jobId ?? ""))),
     })).filter(r => !r.is_test).map(markTestText);
   }
   return reportRows.map(markTestText);

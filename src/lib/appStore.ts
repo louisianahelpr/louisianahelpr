@@ -7,44 +7,23 @@
  * out of a blocked app. A user turned away by the gate has no navigation, no
  * tabs, and no route anywhere else.
  *
- * ─────────────────────────────────────────────────────────────────────────
- * ⚠️  THIS URL DOES NOT RESOLVE TODAY. VERIFY IT BEFORE ARMING THE GATE.
+ * LIVE since 2026-11-19 (1.0.4 on sale). Re-probed 2026-11-23:
  *
- * Probed 2026-09-01, from four storefronts and by name, all negative:
+ *   curl -sIL https://apps.apple.com/us/app/helpr/id6754470134
+ *     → HTTP 200 (redirects to /us/app/louisiana-helpr/id6754470134)
+ *   itunes.apple.com/lookup?id=6754470134&country=us → resultCount 1, com.Helpr 1.0.4
  *
- *   curl -sIL https://apps.apple.com/us/app/helpr/id6754470134   → HTTP 404
- *   curl -sIL https://apps.apple.com/app/id6754470134            → HTTP 404
- *   itunes.apple.com/lookup?id=6754470134&country=us|gb|ca|au    → resultCount 0
- *   itunes.apple.com/search?term=louisiana+helpr&entity=software → no Helpr result
- *
- * The lookup API keys on the numeric id, not the slug, so this is not a
- * renamed-slug problem: id 6754470134 is not a publicly listed app in any of
- * those storefronts. Either the listing has never gone live (consistent with
- * the app sitting in review — the very situation force-update exists for), or
- * the id is wrong.
- *
- * Two consequences, and the second is the one that bites:
- *   · On the Footer this has always been a dead "Download on the App Store"
- *     badge. Bad, but cosmetic, and it has been shipping that way.
- *   · On the force-update screen a dead link turns a hard block into a DEAD
- *     END — the exact outcome that screen is designed to avoid. Which is why
- *     ForceUpdateGate also carries the support address: that escape does not
- *     depend on this string being right.
- *
- * So: confirm this resolves (the two curls above, expecting 200) before
- * setting `platform_settings.min_supported_build` to anything above 0. The
- * Admin → Settings card says the same thing where an operator will see it.
- * ─────────────────────────────────────────────────────────────────────────
+ * `npm run launch:appstore` re-runs both probes and compares them with this
+ * file and index.html's Smart App Banner.
  */
 export const APP_STORE_URL = "https://apps.apple.com/us/app/helpr/id6754470134";
 
 /**
- * Is the listing live? NO, and every App Store link and badge is hidden until
- * it is (owner, 2026-10-04, Q1124: the listing 404s). Footer's Apple chip and
- * ForceUpdateGate's "Update on the App Store" button render only when this is
- * true; index.html's Smart App Banner meta was removed (static HTML cannot read
- * this flag). Restoring all three with the real App Store ID is a launch
- * checklist item in docs/OPEN.md (Q1289); src/test/appStoreLinksHiddenUntilLive.test.ts
- * holds every reader of APP_STORE_URL to this flag.
+ * Is the listing live? YES, since Apple released 1.0.4 on 2026-11-19 (Q1289).
+ * Every App Store link and badge was hidden while it 404'd (owner, 2026-10-04,
+ * Q1124). Footer's Apple chip and ForceUpdateGate's "Update on the App Store"
+ * button still render only when this is true, and index.html's Smart App
+ * Banner carries the same id; src/test/appStoreLinksHiddenUntilLive.test.ts
+ * holds all three to this flag (and to fastlane's apple_id).
  */
-export const APP_STORE_LISTING_LIVE: boolean = false;
+export const APP_STORE_LISTING_LIVE: boolean = true;

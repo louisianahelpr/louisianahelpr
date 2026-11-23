@@ -7,9 +7,11 @@
  * Zappos's TAKE20 is embargoed (Zappos asked creators not to share it before Nov 27), so no page names it until Nov 27,
  * and then only Cyber Monday's.
  *
- * @mutate src/content/giftGuides.ts | expires: "2026-11-30", embargo: true, href: "https://go.shopmy.us/p-107283587" | expires: "2026-11-30", href: "https://go.shopmy.us/p-107283587"
- * @mutate src/content/giftGuides.ts | dates: "Nov 24 – 30", starts: "2026-11-24", expires: "2026-11-30", href: "https://clubrecess.com/collections/black-friday" | dates: "Nov 24 – 30", starts: "2026-11-24", href: "https://clubrecess.com/collections/black-friday"
- * @mutate src/content/giftGuides.ts | code: "TAKE20", offer: "Cyber Monday: up to 50% off eligible styles" | code: "TAKE 20", offer: "Cyber Monday: up to 50% off eligible styles"
+ * @mutate src/content/giftGuideCodes.json | "expires":"2026-11-30","embargo":true,"href":"https://go.shopmy.us/p-107283587" | "expires":"2026-11-30","href":"https://go.shopmy.us/p-107283587"
+ * @mutate src/content/giftGuideCodes.json | "dates":"Nov 24 – 30","starts":"2026-11-24","expires":"2026-11-30","href":"https://clubrecess.com/collections/black-friday" | "dates":"Nov 24 – 30","starts":"2026-11-24","href":"https://clubrecess.com/collections/black-friday"
+ * @mutate src/content/giftGuideCodes.json | "code":"TAKE20","offer":"Cyber Monday: up to 50% off eligible styles" | "code":"TAKE 20","offer":"Cyber Monday: up to 50% off eligible styles"
+ * @mutate src/content/giftGuideCodes.json | "offer":"Free gifts with purchase at $67, $107 and $147","expires":"2026-11-27" | "offer":"Free gifts with purchase at $67, $107 and $147"
+ * @mutate src/content/giftGuideCodes.json | "expires":"2026-12-04","href":"https://go.shopmy.us/p-109784016" | "expires":"2026-12-04","href":"https://go.shopmy.us/p-109784375"
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
@@ -18,12 +20,20 @@ import { discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { DEAL_EVENTS, DEALS_WORDS, codesDay } from "@/content/giftGuideDeals.mjs";
 import { CodeCards, codesOn } from "@/pages/info/giftGuides/GiftGuideDealCards";
 
-/** The deals this queue added: store, exact code, end day. */
-const ADDED: { store: string; code: string; offer: RegExp; expires: string }[] = [
+/** The deals this queue added: store, exact code, end day (and the link, when one was made for it; `on`: a day it shows). */
+const ADDED: { store: string; code: string; offer: RegExp; expires: string; on?: string; href?: string }[] = [
   { store: "Zappos", code: "", offer: /^Early Black Friday sale: up to 50% off/, expires: "2026-11-30" },
   { store: "Zappos", code: "", offer: /^30% off On Cloudtilt and Cloudsurfer 2$/, expires: "2026-12-01" },
   { store: "Zappos", code: "TAKE20", offer: /^Cyber Monday: up to 50% off/, expires: "2026-11-30" },
   { store: "Club Recess", code: "", offer: /^Black Friday through Cyber Monday: .*LEXI5 stacks$/, expires: "2026-11-30" },
+  // Second pass (lead 11-23: our ShopMy earning links made 1:46-2:12 PM, deals-queue-1123.md "LINKS MADE"); each
+  // link is exactly the one made for that brand.
+  { store: "Dream Pairs", code: "BLC521", offer: /^50% off plus free shipping$/, expires: "2026-12-10", href: "https://go.shopmy.us/p-109798166" },
+  { store: "PatchMD", code: "BF50", offer: /^50% off sitewide$/, expires: "2026-12-04", href: "https://go.shopmy.us/p-109784016" },
+  { store: "Perelel", code: "BF2026", offer: /^25% off sitewide/, expires: "2026-11-29", href: "https://go.shopmy.us/p-109782873" },
+  { store: "Perk Energy", code: "", offer: /^Free gifts with purchase at \$67, \$107 and \$147$/, expires: "2026-11-27", on: "2026-11-24", href: "https://go.shopmy.us/p-109783345" },
+  { store: "Adagio Teas", code: "", offer: /^Free shipping on \$25\+$/, expires: "2026-11-29", href: "https://go.shopmy.us/p-109797913" },
+  { store: "Adagio Teas", code: "", offer: /gift card on \$150\+/, expires: "2026-12-25", href: "https://go.shopmy.us/p-109797913" },
 ];
 
 const DEAL_DAYS = DEAL_EVENTS.filter((e) => e.kind === "deals");
@@ -44,6 +54,7 @@ describe("deals queue 1123: the incoming Black Friday / Cyber Monday deals are o
       expect(c, `${a.store} ${a.code || a.offer}`).toBeDefined();
       expect(c!.href, a.store).toMatch(/^https:\/\/[a-z0-9.-]+\.[a-z]+\//);
       expect(c!.expires, `${a.store} ${c!.offer}`).toBe(a.expires);
+      if (a.href) expect(c!.href, a.store).toBe(a.href);
     }
     // TAKE20 exactly as Zappos sent it.
     expect(discountCodes.filter((c) => c.store === "Zappos" && c.code).map((c) => c.code)).toEqual(["TAKE20"]);
@@ -51,14 +62,18 @@ describe("deals queue 1123: the incoming Black Friday / Cyber Monday deals are o
 
   it("the cards show each added deal with its end day in words", () => {
     // Nov 28: every added deal is on (TAKE20 from Nov 27, On's 30% from Nov 26, Club Recess's sale from Nov 24).
-    const today = "2026-11-28";
-    const text = pageCodes(today).map(({ codes }) => render(<MemoryRouter><CodeCards codes={codes} /></MemoryRouter>).container.textContent ?? "").join("\n");
+    // Perk Energy's gifts (to Nov 27) end first: checked on Nov 24 (Black Friday's page lists the codes working Nov 27).
+    const textOn = (today: string) => pageCodes(today).map(({ codes }) => render(<MemoryRouter><CodeCards codes={codes} /></MemoryRouter>).container.textContent ?? "").join("\n");
+    const days = new Map<string, string>();
     for (const a of ADDED) {
+      const on = a.on ?? "2026-11-28";
+      if (!days.has(on)) days.set(on, textOn(on));
+      const text = days.get(on)!;
       const c = find(a)!;
       expect(text, `${a.store}: ${c.offer}`).toContain(c.offer);
       expect(text, `${a.store}: ${c.offer}`).toContain(DEALS_WORDS.runs(c.starts, c.expires));
     }
-    expect(text).toContain("TAKE20");
+    expect(days.get("2026-11-28")).toContain("TAKE20");
     expect(DEALS_WORDS.runs("2026-11-27", "2026-11-30")).toBe("Nov 27 – Nov 30");
   });
 

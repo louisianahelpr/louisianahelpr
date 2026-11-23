@@ -8,7 +8,7 @@
  * Therabody's DEAL codes vs our Ulta / Exclusive Beauty Club links) never shows. The pages show no list of codes: the
  * codes list lives only on the deals pages.
  * @mutate scripts/giftGuideOwnerAdds1122.mjs | const CAMP_SNAP_CODE = "LEXILOMBAS7"; | const CAMP_SNAP_CODE = undefined;
- * @mutate src/content/giftGuides.ts | code: "LEXI5", offer: "5% off; stacks with their sales", expires: "2026-12-12" | code: "LEXI15", offer: "5% off; stacks with their sales"
+ * @mutate src/content/giftGuideCodes.json | "code":"LEXI5","offer":"5% off; stacks with their sales","expires":"2026-12-12" | "code":"LEXI15","offer":"5% off; stacks with their sales"
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

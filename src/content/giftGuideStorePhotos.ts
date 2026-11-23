@@ -13,6 +13,7 @@ const DIR = "/gift-guides/deals/stores/";
 
 /** Store slug (slugify of the name the codes and sales spell, as the store-<slug> page ids do) -> its photo's file name. */
 export const STORE_PHOTO_FILES: Record<string, string> = {
+  "adagio-teas": "adagio-teas.webp",
   "anthropologie": "anthropologie.webp",
   "at-home": "at-home.webp",
   "aurate": "aurate.webp",
@@ -30,6 +31,7 @@ export const STORE_PHOTO_FILES: Record<string, string> = {
   "club-recess": "club-recess.webp",
   "daily-crunch-snacks": "daily-crunch-snacks.webp",
   "dolce-vita": "dolce-vita.webp",
+  "dream-pairs": "dream-pairs.webp",
   "durango-boots": "durango-boots.webp",
   "everyday-dose": "everyday-dose.webp",
   "fabrique": "fabrique.webp",
@@ -50,6 +52,9 @@ export const STORE_PHOTO_FILES: Record<string, string> = {
   "neiman-marcus": "neiman-marcus.webp",
   "nordstrom": "nordstrom.webp",
   "oriental-trading-company": "oriental-trading-company.webp",
+  "patchmd": "patchmd.webp",
+  "perelel": "perelel.webp",
+  "perk-energy": "perk-energy.webp",
   "puma": "puma.webp",
   "petsmart": "petsmart.webp",
   "petite-plume": "petite-plume.webp",

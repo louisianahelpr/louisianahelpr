@@ -189,7 +189,7 @@ describe("holiday audit 1121 #80 and #81: deals copy claims and code links", () 
   });
 
   // Lead 11-21: every code gets its store link (affiliate, else the brand's plain home page), the owner's own included.
-  // @mutate src/content/giftGuides.ts | offer: "10% off; stacks with eligible promotions", href: "https://cookmagnifique.com/" | offer: "10% off; stacks with eligible promotions"
+  // @mutate src/content/giftGuideCodes.json | "offer":"10% off; stacks with eligible promotions","href":"https://cookmagnifique.com/" | "offer":"10% off; stacks with eligible promotions"
   it("every code we list carries an https store link, and each code card links its store (by name and photo)", () => {
     const codes = [...discountCodes, ...cleanCodes(DEAL_CODES)];
     expect(codes.length).toBeGreaterThan(15);

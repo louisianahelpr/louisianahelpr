@@ -1,6 +1,6 @@
-// @mutate src/content/giftGuides.ts | code: "", offer: "25% off sitewide, no code needed | code: "GREEN20", offer: "25% off sitewide, no code needed
-// @mutate src/content/giftGuides.ts | dates: "From Dec 2", starts: "2026-12-02", | dates: "From Dec 2",
-// @mutate src/content/giftGuides.ts | dates: "Nov 20 – Dec 6", starts: "2026-11-20", expires: "2026-12-06", | dates: "Nov 20 – Dec 6",
+// @mutate src/content/giftGuideCodes.json | "code":"","offer":"25% off sitewide, no code needed | "code":"GREEN20","offer":"25% off sitewide, no code needed
+// @mutate src/content/giftGuideCodes.json | "dates":"From Dec 2","starts":"2026-12-02", | "dates":"From Dec 2",
+// @mutate src/content/giftGuideCodes.json | "dates":"Nov 20 – Dec 6","starts":"2026-11-20","expires":"2026-12-06", | "dates":"Nov 20 – Dec 6",
 // @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | {best.code && <CodeChip code={best.code} />} | <CodeChip code={best.code} />
 // @mutate src/content/giftGuideDeals.json | "deal":"Black Friday: 30% off sitewide, plus 20% off custom gifts" | "deal":"Beat Black Friday: 20% off custom gifts"
 // @mutate src/content/giftGuideDeals.json | "code":"LETSGO","ends":"2026-12-02" | "code":"LETSGO"

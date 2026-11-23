@@ -1,9 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { discountCodes, giftGuides as G } from "@/content/giftGuides";
+import { BUNDLED_CODES_FILE, giftGuides as G, type DiscountCodesFile } from "@/content/giftGuides";
 import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, DEALS_WORDS as W, codesDay, dealCode, dealName, dealEnds, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
-import { DEAL_CODES } from "@/content/giftGuidePicks";
-import { cleanCodes } from "@/lib/giftGuideOfferCopy.mjs";
 import { GiftOut } from "./GiftOut";
 import { START_OPEN } from "./startOpen";
 import { GuideSectionHead } from "./GuideSectionHead";
@@ -14,14 +12,14 @@ import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
 import { CARD_CSS, CARD_WORDS, CodeCards, CodeChip, codeCardCount, SaleCards, codesOn, salesOn } from "./GiftGuideDealCards";
-import { dealDayParts } from "@/content/giftGuideDealCounts";
+import { STORE_CODES, dealDayParts, setStoreCodes } from "@/content/giftGuideDealCounts";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
 import { FeatureCta, FeatureCtaLink } from "./SmallBizFeatureCta";
 import { GiftGuideSort, MyListIcon, type SortChoice } from "./GiftGuideShare";
 import { SBS_WORDS as SBS } from "@/content/sbsFeaturedLocal";
 import type { SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { report } from "@/lib/errorLogger";
-import { isLiveDeals, liveCopy, onLiveUpdate } from "@/lib/liveGuideData";
+import { isLiveCodes, isLiveDeals, liveCopy, onLiveUpdate } from "@/lib/liveGuideData";
 import { GiftGuideLoadError } from "./GiftGuideLoadError";
 import { LazyGuideQa } from "./LazyGuideQa";
 
@@ -79,11 +77,11 @@ const DEALS_CSS = `
 // loadModule: a prevented preload (a recovery reload in flight) gives null, and the page keeps "Loading deals…".
 const loadDeals = () => loadModule(() => import("@/content/giftGuideDeals.json"));
 
-/**
- * Every store code we list, with its expiry (the codes box's own list): a deal card's code and its end day follow it
- * (holiday audit 1121, High: XTRATUF's card kept the code XT25 after the box had dropped it on Nov 30).
+/*
+ * STORE_CODES (giftGuideDealCounts.ts): every store code we list, with its expiry (the codes box's own list): a deal
+ * card's code and its end day follow it (holiday audit 1121, High: XTRATUF's card kept the code XT25 after the box had
+ * dropped it on Nov 30). One list with the menu's counts, so a live copy of the codes reaches both.
  */
-const STORE_CODES = [...discountCodes, ...cleanCodes(DEAL_CODES)];
 
 /** One deal's card. */
 function DealCard({ deal, today }: { deal: Deal; today: string }) {
@@ -210,6 +208,19 @@ const byName = (order: BizOrder) => (rows: SmallBiz[]) =>
 /** One deals day's page. `now` is for tests; the page passes nothing and reads the clock. */
 export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
   const [deals, setDeals] = useState<Deal[] | null>(null);
+  // Live data (owner 2026-11-23): the codes too. The bundled codes (or a newer saved copy) draw now; a newer valid copy
+  // from the live site replaces them when it arrives, and the page draws again with it (src/lib/liveGuideData.ts).
+  const [, setCodesCopy] = useState(0);
+  useEffect(() => {
+    const swap = (f: DiscountCodesFile) => {
+      setStoreCodes(f.codes);
+      setCodesCopy((n) => n + 1);
+    };
+    const off = onLiveUpdate<DiscountCodesFile>("codes", swap);
+    const now = liveCopy<DiscountCodesFile>("codes", BUNDLED_CODES_FILE, isLiveCodes);
+    if (now !== BUNDLED_CODES_FILE) swap(now);
+    return off;
+  }, []);
   const [bizOrder, setBizOrder] = useState<BizOrder>("category");
   const kind = day.kind;
   // Holiday audit 1121: a failed deals file (offline, a blocked chunk) says so with a Try again; it used to read as

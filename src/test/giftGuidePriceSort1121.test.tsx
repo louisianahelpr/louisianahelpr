@@ -211,7 +211,10 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // builder-guide-links (11-22): Him + Le Labo, Patagonia duffel, Steve Madden loafer (all $100 and up).
       // Him batch 3 (11-22): the L.L.Bean waterfowl sweater ($130) and Costa Sullivan sunglasses ($262); the Duck Head rope hat
       // stays off (sold out at the 11-20 audit) and the Duck Camp hat waits for its own cutout source.
-      him: { "Under $25": 43, "$25 to $50": 45, "$50 to $75": 25, "$75 to $100": 11, "$100 and up": 47 },
+      // Owner 11-22 PM, "add all items" (builder-guide-louisiana): Zatarain's and Talk About Good II (under $25), Tony's,
+      // the '47 Saints cap and the boil paddle ($25-$50), the cast net ($69), Toups and Lodge ($80-$90), the jambalaya pot,
+      // Mignon Faget cufflinks and KREWE ($100 and up).
+      him: { "Under $25": 45, "$25 to $50": 48, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 50 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -225,7 +228,10 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Macy's hoop; kids2: the Step2 water table, Burt's Bees Little Ducks, Angel Dear duck PJs and a Duck Commander call.
       // Owner 11-22 PM (builder-guide-emibauble): Kids lost the EADEM set ($58, to Her) and the Melissa & Doug Club Chair
       // ($75) and gained the Pottery Barn Kids Anywhere Chair (from $119).
-      kids: { "Under $25": 36, "$25 to $50": 28, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
+      // Owner 11-22 PM, "add all items" (builder-guide-louisiana): three books, the pelican and the Duck Commander tee (under
+      // $25), Mike the Tiger (~$25), the Saints jersey, Toups baby set, XTRATUF and LSU cheer dress ($25-$50). The Southern
+      // Marsh chino came off again (owner "Drop both": no ShopMy rate).
+      kids: { "Under $25": 41, "$25 to $50": 33, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -245,7 +251,11 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Owner 11-22 PM (builder-guide-emibauble): Her lost Mrs. Meyer's and Downy (under $25), Comrad, JAANUU, Stoggles and
       // the CS-8 Micro ($25-$50), the CS-Pro ($79) and the CS-8 camcorder ($159); then gained the Gaoye glasses ($13), the
       // BaubleBar brush ($48) and the EADEM set from Kids ($58).
-      her: { "Under $25": 44, "$25 to $50": 42, "$50 to $75": 11, "$75 to $100": 13, "$100 and up": 36 },
+      // Owner 11-22 PM, "add all items" (builder-guide-louisiana): Community Coffee, the map board and the pelican ornament
+      // (under $25); the cookbook (~$25), Toups and Match South ($25-$50); the Cafe Du Monde box, the SCL Saints hat, the
+      // Katie Kime tray and Haydel's ($50-$75); the Mignon Faget pendant (from $75); the oyster earrings and KREWE. The
+      // Desden coin pouch came off again (owner "Drop both": no ShopMy rate).
+      her: { "Under $25": 47, "$25 to $50": 45, "$50 to $75": 15, "$75 to $100": 14, "$100 and up": 38 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

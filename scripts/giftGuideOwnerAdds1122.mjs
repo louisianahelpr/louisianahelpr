@@ -22,6 +22,8 @@ const shopmy = (pin) => `https://go.shopmy.us/${pin}`;
 const amz = (asin) => `https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20`;
 /** Amazon's own photo, never edited (Associates rules); the page shows it as is. */
 const amzImg = (id) => `https://m.media-amazon.com/images/I/${id}._SL500_.jpg`;
+/** xtratuf.com through CJ (15%), the same deep-link form as the Her and Him XTRATUF rows. */
+const xtratufCj = (style) => `https://www.anrdoezrs.net/click-101930553-15735628?url=${encodeURIComponent(`https://xtratuf.com/products/${style}`)}`;
 
 /** The day these prices were checked (Louisiana day). */
 export const ADDS_PRICE_AT = "2026-11-22";
@@ -123,6 +125,31 @@ export const HER_ADDS_1122 = [
   { name: "Gaoye Round Blue Light Glasses, Tea Leopard", brand: "Gaoye", line: "Tortoise blue light glasses for long days at a screen.", href: amz("B07XL9MFZQ"), image: amzImg("61qZCp6L-rL"), store: "store-amazon", sortPrice: 12.74, commission: 4, type: "eyewear" },
   // Owner 11-22 PM: the EADEM New Classics Set moves from Kids to Her (photo: the four products from eadem.co's set photo).
   { name: "EADEM New Classics Set", brand: "EADEM", line: "Four skin and lip favorites in one starter set.", href: shopmy("p-109155269"), image: "https://cdn.shopify.com/s/files/1/0512/1661/3529/files/PDP-CLEARSPACE_WIDER-FRAME_2750x3413-1.jpg", store: "store-eadem", sortPrice: 58, price: 58, commission: 20, type: "skincare-set" },
+  // LOUISIANA_ADDS_1122 (builder-guide-louisiana, owner 11-22 PM: "add all items" from the Desktop note
+  // "Gift guides and affiliate/Louisiana-popular-candidates-1122.md", her picks, so the type and brand caps do not apply).
+  // ShopMy links made in her shopmy.us/links that evening (ShopMy-links-created-1122.md); Amazon rows use her tag and
+  // Amazon's own photo; prices read on each store's own page 11-22. Mignon Faget lists each piece by metal, so it shows
+  // the page's own "from" price; Katie Kime lists the tray by size. Owner 11-22 PM ("Drop both"): the Desden LSU coin
+  // pouch and the Southern Marsh youth chino are off, since ShopMy shows no rate for either (0% items stay off).
+  { name: "Mignon Faget Heirloom Fleur de Lis Pendant", brand: "Mignon Faget", line: "A fleur de lis pendant from a New Orleans jeweler.", href: shopmy("p-109341967"), image: "https://www.mignonfaget.com/mm5/graphics/00000001/9/7661S.png", store: "store-mignon-faget", sortPrice: 75, price: 75, priceFrom: true, commission: 9, type: "jewelry" },
+  { name: "Stoney Clover Lane x '47 Saints Clean Up Hat", brand: "Stoney Clover Lane", line: "A cream Saints cap in cursive script with a suede brim.", href: shopmy("p-109342469"), image: "https://cdn.shopify.com/s/files/1/0096/2392/files/FCO-SCLCC116WIS-SS-HR-F.jpg", store: "store-stoney-clover-lane", sortPrice: 55, price: 55, commission: 15, type: "hat" },
+  { name: "Mignon Faget Oyster Large Earrings", brand: "Mignon Faget", line: "Oyster shell earrings from a New Orleans jeweler.", href: shopmy("p-109342173"), image: "https://www.mignonfaget.com/mm5/graphics/00000001/1795B.png", store: "store-mignon-faget", sortPrice: 120, price: 120, priceFrom: true, commission: 9, type: "jewelry" },
+  // Ready row from the hidden Louisiana Celebrations guide (same pin and photo).
+  { name: "Katie Kime New Orleans Toile Lucite Tray, Green", brand: "Katie Kime", line: "A lucite tray in green New Orleans toile for the bar cart.", href: shopmy("p-108006579"), image: "https://static.shopmy.us/uploads/img-product-1765082316407", store: "store-katie-kime", sortPrice: 58, price: 58, priceFrom: true, commission: 15, type: "tray" },
+  { name: "Talk About Good! Cookbook", brand: "Junior League of Lafayette", line: "The Junior League of Lafayette's classic Cajun cookbook.", href: amz("0935032029"), image: amzImg("81O33zX7ijL"), store: "store-amazon", sortPrice: 24.95, commission: 4.5, type: "cookbook" },
+  { name: "Totally Bamboo Louisiana Map Cutting Board", brand: "Totally Bamboo", line: "A bamboo cutting board engraved with a map of Louisiana.", href: amz("B07QDPPH7Z"), image: amzImg("81v7lFj17KL"), store: "store-amazon", sortPrice: 15.99, commission: 4.5, type: "cutting-board" },
+  // Ready row from the hidden guide; price read on goldbelly.com/haydels-bakery 11-22 (shipping included).
+  { name: "Haydel's Bakery Christmas King Cake", brand: "Haydel's Bakery", line: "A Christmas king cake shipped from a New Orleans bakery.", href: shopmy("p-108155517"), image: "https://goldbelly.imgix.net/uploads/showcase_media_asset/image/259423/ChristmasKringle.jpg", store: "store-goldbelly", sortPrice: 69.95, price: 69.95, commission: 12, type: "food-gift" },
+  { name: "Toups and Co Travel Tallow Set", brand: "Toups and Co", line: "Mini tallow balms made in Walker, Louisiana.", href: shopmy("p-108155377"), image: "https://cdn.shopify.com/s/files/1/2365/4175/files/MINI_BALM__0238_b3164e36-a61f-4912-8990-2a891331066f.jpg", store: "store-toups-and-co", sortPrice: 45, price: 45, commission: 10, type: "skincare" },
+  // Ready row from the hidden Shop Small Louisiana guide (same pin and photo).
+  { name: "Match South x Café Du Monde Warm Beignets Candle", brand: "Match South", line: "A candle that smells like warm beignets at Café Du Monde.", href: shopmy("p-107207657"), image: "https://static.shopmy.us/uploads/pretty-prod-1758994986674", store: "store-match-south", sortPrice: 49, price: 49, commission: 12, type: "candle" },
+  { name: "KREWE Olivier Sunglasses, Reed", brand: "KREWE", line: "Handmade sunglasses from a New Orleans eyewear brand.", href: shopmy("p-109340844"), image: "https://cdn.shopify.com/s/files/1/2422/6603/files/Olivier-Reed-Front-Web.jpg", store: "store-krewe", sortPrice: 255, price: 255, commission: 16, type: "sunglasses" },
+  // Her Macy's pin (p-108153702, 72 count) now opens a Macy's "page not found" (11-22), so the 24-count box sold by
+  // Amazon.com takes its place (grocery, 1%).
+  { name: "Community Coffee Southern Pecan Praline K-Cup Pods, 24 Count", brand: "Community Coffee", line: "Baton Rouge's own coffee in a pecan praline flavor.", href: amz("B0886YWV65"), image: amzImg("81QxXKzsG6L"), store: "store-amazon", sortPrice: 14.69, commission: 1, type: "coffee" },
+  { name: "Café Du Monde Beignet and Coffee Gift Box", brand: "Café Du Monde", line: "Beignet mix and the orange can of coffee and chicory.", href: amz("B0915PDW38"), image: amzImg("71eU3lXhlzL"), store: "store-amazon", sortPrice: 54.99, commission: 1, type: "food-gift" },
+  { name: "Old World Christmas Pelican Glass Ornament", brand: "Old World Christmas", line: "A blown-glass pelican, the Louisiana state bird.", href: amz("B002CMXGRI"), image: amzImg("71hYKki6wcL"), store: "store-amazon", sortPrice: 20.99, commission: 3, type: "ornament" },
+  // end LOUISIANA_ADDS_1122
 ].map(dated);
 
 /** For Kids (owner via the lead, 11-22): the two Camp Snap 2 colors, at Camp Snap direct (see the header). */
@@ -141,6 +168,21 @@ export const KIDS_ADDS_1122 = [
   // from $119 on sale ($119 to $189 by size, was from $129), personalization $17 more; photo: PBK's own monogrammed
   // maroon chair.
   { name: "Pottery Barn Kids Anywhere Chair, Personalized", brand: "Pottery Barn Kids", line: "The classic kids' armchair; adding a name costs a little more.", href: shopmy("p-109292071"), image: "https://assets.pkimgs.com/pkimgs/rk/images/dp/wcm/202631/0188/anywhere-chair-maroon-twill-1-l.jpg", store: "store-pottery-barn-kids", sortPrice: 119, price: 119, priceFrom: true, commission: 6, type: "chair" },
+  // LOUISIANA_ADDS_1122 (builder-guide-louisiana, owner 11-22 PM "add all items"; see the For Her block).
+  { name: "The Cajun Night Before Christmas, 50th Anniversary Edition", brand: "Pelican Publishing", line: "The Cajun Christmas classic, with gators pulling the sleigh.", href: amz("1455627143"), image: amzImg("91OenSgnSoL"), store: "store-amazon", sortPrice: 19.8, commission: 4.5, type: "book" },
+  // xtratuf.com through CJ at 15% (offer accepted 11-18), like the Her and Him XTRATUF rows; White Multi Blue, 11-22.
+  // Its store code rides with it like every XTRATUF row (src/test/giftGuideCodesWithItem1122.test.ts).
+  { name: "XTRATUF Big Kids Ankle Deck Boot, White and Blue", brand: "XTRATUF", line: "Kid-size shrimp boots for the dock, the boat and the yard.", href: xtratufCj("xkab100y"), image: "https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XKAB100Y_gray_main_1400x1400_5c89e1ff-aa62-4b7d-9923-2e7b09278383.jpg", store: "store-xtratuf", sortPrice: 44.99, price: 44.99, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" },
+  { name: "Bleacher Creatures LSU Mike the Tiger 10\" Plush", brand: "Bleacher Creatures", line: "A soft Mike the Tiger for the littlest LSU fan.", href: amz("B08GVN1J37"), image: amzImg("71ZyAlY6CLL"), store: "store-amazon", sortPrice: 24.99, commission: 3, type: "plush" },
+  { name: "Little King LSU Tigers 2-Piece Cheer Dress", brand: "Little King", line: "A purple and gold LSU cheer outfit for game day.", href: amz("B074YZWKMB"), image: amzImg("71zwV98xbtL"), store: "store-amazon", sortPrice: 48.99, commission: 4, type: "dress" },
+  { name: "Wild Republic Cuddlekins Brown Pelican, 12\"", brand: "Wild Republic", line: "A cuddly brown pelican, the Louisiana state bird.", href: amz("B0792C316R"), image: amzImg("61LgH-SH+kL"), store: "store-amazon", sortPrice: 19.99, commission: 3, type: "plush" },
+  { name: "Outerstuff New Orleans Saints Youth Game Day Jersey", brand: "Outerstuff", line: "A black Saints game day jersey in kids' sizes.", href: amz("B0CCBMLJM5"), image: amzImg("71R1plQu5CL"), store: "store-amazon", sortPrice: 37.99, commission: 4, type: "jersey" },
+  { name: "Clovis Crawfish and His Friends, 60th Anniversary Edition", brand: "Pelican Publishing", line: "The bayou picture book classic from a Lafayette author.", href: amz("1455625639"), image: amzImg("91FSm-EacSL"), store: "store-amazon", sortPrice: 19.95, commission: 4.5, type: "book" },
+  // duckcommander.com has only photos of kids wearing it; the cutout is the boy in the cream tee.
+  { name: "Duck Commander Youth Happy Tee, Cream", brand: "Duck Commander", line: "A Happy Happy Happy tee from the West Monroe duck call family.", href: shopmy("p-109341055"), image: "https://cdn.shopify.com/s/files/1/0642/6565/0397/files/happy_youth_3_copy.png", store: "store-duck-commander", sortPrice: 19.99, price: 19.99, commission: 16, type: "tee" },
+  { name: "Toups and Co Baby Essentials Set", brand: "Toups and Co", line: "A gentle baby wash and balm made in Walker, Louisiana.", href: shopmy("p-109341153"), image: "https://cdn.shopify.com/s/files/1/2365/4175/files/babyset_05606b9f-26df-4014-9391-07883f074367.jpg", store: "store-toups-and-co", sortPrice: 43, price: 43, commission: 10, type: "baby-care" },
+  { name: "Petite Rouge: A Cajun Red Riding Hood", brand: "Mike Artell", line: "Little Red Riding Hood retold on the bayou, with a gator.", href: amz("0142500704"), image: amzImg("81V2O7O-GfL"), store: "store-amazon", sortPrice: 8.38, commission: 4.5, type: "book" },
+  // end LOUISIANA_ADDS_1122
 ].map(dated);
 
 /** For Him (owner via the lead, 11-22). */
@@ -173,6 +215,20 @@ export const HIM_ADDS_1122 = [
   // The Duck Camp Mallard Hat (p-108089972) waits: its photo is the Outdoors & Travel cover's, so its cutout needs its own
   // source photo (the pin's zoom image) before it can go on Him.
   { name: "L.L.Bean Men's Waterfowl Sweater", brand: "L.L.Bean", line: "A warm wool-blend quarter-zip made for cold mornings.", href: shopmy("p-108094779"), image: "https://static.shopmy.us/pins/zoom-108094779-1795143426618-237814_1225_41", store: "store-l-l-bean", sortPrice: 130, price: 130, commission: 12, type: "sweater", priceAt: "2026-11-22" },
+  // LOUISIANA_ADDS_1122 (builder-guide-louisiana, owner 11-22 PM "add all items"; see the For Her block). The KREWE
+  // Olivier is on For Her too, as the note lists it.
+  { name: "Bayou Classic 7419 3-Gallon Cast Iron Jambalaya Pot", brand: "Bayou Classic", line: "A cast iron jambalaya pot with a lid for cook-offs.", href: amz("B0000BXHL5"), image: amzImg("71AU2JshjLL"), store: "store-amazon", sortPrice: 115.08, commission: 4.5, type: "cookware" },
+  { name: "Bayou Classic 42-Inch Stainless Stir Paddle", brand: "Bayou Classic", line: "The long stainless paddle for stirring a crawfish boil.", href: amz("B000FTUTL6"), image: amzImg("51qwgICSbVL"), store: "store-amazon", sortPrice: 39.2, commission: 3, type: "boil-paddle" },
+  { name: "Betts Old Salt Premium Cast Net, 4 ft", brand: "Betts", line: "A cast net for catching bait and shrimp off the dock.", href: amz("B00144CM2U"), image: amzImg("51VNqRC4hQL"), store: "store-amazon", sortPrice: 69.44, commission: 3, type: "fishing" },
+  { name: "Lodge 6 Quart Essential Enamel Dutch Oven", brand: "Lodge", line: "An enameled cast iron pot made for gumbo night.", href: shopmy("p-109340963"), image: "https://cdn.shopify.com/s/files/1/0889/2707/6724/files/EC6D503G.jpg", store: "store-lodge", sortPrice: 89.9, price: 89.9, commission: 12, type: "cookware" },
+  { name: "'47 New Orleans Saints Clean Up Hat", brand: "'47", line: "The classic black Saints cap with the gold fleur de lis.", href: amz("B0HG3RLK77"), image: amzImg("615-RgW5dOL"), store: "store-amazon", sortPrice: 37.99, commission: 4, type: "hat" },
+  { name: "Toups and Co Men's Grooming Set", brand: "Toups and Co", line: "A shave and beard set made in Walker, Louisiana.", href: shopmy("p-108155418"), image: "https://cdn.shopify.com/s/files/1/2365/4175/files/Toupspdp1-104.jpg", store: "store-toups-and-co", sortPrice: 80, price: 80, commission: 10, type: "grooming" },
+  { name: "Talk About Good II: A Toast to Cajun Food", brand: "Junior League of Lafayette", line: "More Cajun recipes from the Junior League of Lafayette.", href: amz("0935032509"), image: amzImg("71rMR09plHL"), store: "store-amazon", sortPrice: 19.95, commission: 4.5, type: "cookbook" },
+  { name: "Tony Chachere's Seasoning Blends Variety, 6 Count", brand: "Tony Chachere's", line: "Six Tony's blends from Opelousas for his spice cabinet.", href: amz("B09GCYJ8RM"), image: amzImg("710W4jdiMkL"), store: "store-amazon", sortPrice: 30.79, commission: 1, type: "seasoning" },
+  { name: "Zatarain's Crawfish, Shrimp & Crab Boil, 4.5 lb", brand: "Zatarain's", line: "The big bag of New Orleans boil seasoning for a crawfish boil.", href: amz("B07GG7K5SD"), image: amzImg("91RN0dk8mZL"), store: "store-amazon", sortPrice: 6.68, commission: 1, type: "seasoning" },
+  { name: "Mignon Faget Fleur de Lis Cufflinks", brand: "Mignon Faget", line: "Fleur de lis cufflinks from a New Orleans jeweler.", href: shopmy("p-109342284"), image: "https://www.mignonfaget.com/mm5/graphics/00000001/0824S.png", store: "store-mignon-faget", sortPrice: 184, price: 184, priceFrom: true, commission: 9, type: "cufflinks" },
+  { name: "KREWE Olivier Sunglasses, Reed", brand: "KREWE", line: "Handmade sunglasses from a New Orleans eyewear brand.", href: shopmy("p-109340844"), image: "https://cdn.shopify.com/s/files/1/2422/6603/files/Olivier-Reed-Front-Web.jpg", store: "store-krewe", sortPrice: 255, price: 255, commission: 16, type: "sunglasses" },
+  // end LOUISIANA_ADDS_1122
 ].map(dated);
 
 /** Transparent cutouts for these photos (Apple Vision, scripts/gift-guide-cutout.swift; each checked by eye, 400 px). */
@@ -241,4 +297,22 @@ export const ADDS_CUTOUTS_1122 = [
   // builder-guide-emibauble (owner 11-22 PM).
   ["https://cdn.shopify.com/s/files/1/0267/5746/4148/files/110416_G_01_RS_SQ_2026_80d4c91e-c2d8-4a9a-a92e-491e1abec4ac.jpg", "baublebar-mini-fine-line-brush-magenta-3f1a2c.webp"],
   ["https://assets.pkimgs.com/pkimgs/rk/images/dp/wcm/202631/0188/anywhere-chair-maroon-twill-1-l.jpg", "pbk-anywhere-chair-twill-maroon-monogram-b81d5e.webp"],
+  // LOUISIANA_ADDS_1122 (builder-guide-louisiana). The three Mignon Faget photos are the brand's own transparent PNGs
+  // (faint reflection dropped, cropped); the rest are Apple Vision cutouts, each checked by eye.
+  ["https://www.mignonfaget.com/mm5/graphics/00000001/9/7661S.png", "mignon-faget-heirloom-fleur-de-lis-pendant-la1122.webp"],
+  ["https://cdn.shopify.com/s/files/1/0096/2392/files/FCO-SCLCC116WIS-SS-HR-F.jpg", "scl-47-saints-cross-cursive-clean-up-la1122.webp"],
+  ["https://www.mignonfaget.com/mm5/graphics/00000001/1795B.png", "mignon-faget-oyster-large-earrings-la1122.webp"],
+  ["https://static.shopmy.us/uploads/img-product-1765082316407", "katie-kime-nola-toile-lucite-tray-la1122.webp"],
+  ["https://goldbelly.imgix.net/uploads/showcase_media_asset/image/259423/ChristmasKringle.jpg", "haydels-christmas-king-cake-la1122.webp"],
+  ["https://cdn.shopify.com/s/files/1/2365/4175/files/MINI_BALM__0238_b3164e36-a61f-4912-8990-2a891331066f.jpg", "toups-travel-tallow-set-la1122.webp"],
+  ["https://static.shopmy.us/uploads/pretty-prod-1758994986674", "match-south-warm-beignets-candle-la1122.webp"],
+  ["https://cdn.shopify.com/s/files/1/2422/6603/files/Olivier-Reed-Front-Web.jpg", "krewe-olivier-reed-la1122.webp"],
+  // The "New item" badge in the corner was left out by the cutout.
+  ["https://cdn.shopify.com/s/files/1/0889/2707/6724/files/EC6D503G.jpg", "lodge-6qt-essential-enamel-dutch-oven-la1122.webp"],
+  ["https://cdn.shopify.com/s/files/1/2365/4175/files/Toupspdp1-104.jpg", "toups-mens-grooming-set-la1122.webp"],
+  ["https://www.mignonfaget.com/mm5/graphics/00000001/0824S.png", "mignon-faget-fleur-de-lis-cufflinks-la1122.webp"],
+  ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XKAB100Y_gray_main_1400x1400_5c89e1ff-aa62-4b7d-9923-2e7b09278383.jpg", "xtratuf-big-kids-ankle-deck-white-blue-la1122.webp"],
+  ["https://cdn.shopify.com/s/files/1/0642/6565/0397/files/happy_youth_3_copy.png", "duck-commander-youth-happy-tee-cream-la1122.webp"],
+  ["https://cdn.shopify.com/s/files/1/2365/4175/files/babyset_05606b9f-26df-4014-9391-07883f074367.jpg", "toups-baby-essentials-set-la1122.webp"],
+  // end LOUISIANA_ADDS_1122
 ];

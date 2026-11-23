@@ -88,6 +88,29 @@ const SENT: [string, string, string, number][] = [
   // & Doug Club Chair. The CS-8 camcorder (p-109141448) is off Her ("Choose one of these camp snap cameras").
   ["p-109289957", "her", "store-baublebar", 48], // Mini Fine Line Custom Hair Brush, Magenta
   ["p-109292071", "kids", "store-pottery-barn-kids", 119], // Anywhere Chair, Twill, from (personalization $17 more)
+  // Owner 11-22 PM, "add all items" (Desktop note Louisiana-popular-candidates-1122.md, builder-guide-louisiana). Links
+  // made in her ShopMy that evening (ShopMy-links-created-1122.md) or reused from the hidden Louisiana guides. Mignon
+  // Faget shows its page's "from" price (by metal); the Katie Kime tray is "from" (by size). The KREWE Olivier is on both
+  // Her and Him, as the note lists it. Owner 11-22 PM ("Drop both"): the Desden coin pouch and the Southern Marsh youth
+  // chino are off (no ShopMy rate for either).
+  ["p-109341967", "her", "store-mignon-faget", 75], // Heirloom Fleur de Lis Pendant, from
+  ["p-109342469", "her", "store-stoney-clover-lane", 55], // SCL x '47 Saints Clean Up hat (catalog link, 15%)
+  ["p-109342173", "her", "store-mignon-faget", 120], // Oyster Large Earrings, from
+  ["p-108006579", "her", "store-katie-kime", 58], // New Orleans Toile Lucite Tray, from
+  ["p-108155517", "her", "store-goldbelly", 69.95], // Haydel's Christmas King Cake (goldbelly.com 11-22)
+  ["p-108155377", "her", "store-toups-and-co", 45], // Travel Tallow Set
+  ["p-107207657", "her", "store-match-south", 49], // Warm Beignets Candle
+  ["p-109340844", "her", "store-krewe", 255], // Olivier, Reed
+  ["p-109340963", "him", "store-lodge", 89.9], // 6 qt Essential Enamel Dutch Oven
+  ["p-108155418", "him", "store-toups-and-co", 80], // Men's Grooming Set
+  ["p-109342284", "him", "store-mignon-faget", 184], // Fleur de Lis Cufflinks, from
+  ["p-109340844", "him", "store-krewe", 255], // Olivier, Reed
+  ["p-109341055", "kids", "store-duck-commander", 19.99], // Youth Happy Tee, Cream
+  ["p-109341153", "kids", "store-toups-and-co", 43], // Baby Essentials Set
+];
+/** The kids' XTRATUF boot at xtratuf.com through her CJ link (15%), like the Her and Him XTRATUF rows: link -> price. */
+const CJ_1122: [string, string, number][] = [
+  ["https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxkab100y", "kids", 44.99],
 ];
 /** Amazon picks from her launch-day screenshots and asks (no ShopMy pin for them): ASIN -> guide, price 11-22. */
 const AMAZON_1122: [string, string, number][] = [
@@ -100,12 +123,17 @@ const AMAZON_1122: [string, string, number][] = [
   // batch 2
   ["B0D92375JB", "her", 26.99], ["B0G4M22BQL", "her", 32.99], ["B0BGS3L9XS", "her", 27.99], ["B0DXWP12C8", "her", 13.99], ["B0HKYH5TF2", "her", 39.99], ["B0H2CSG4SZ", "her", 15.99], ["B0FXBBD5GS", "her", 17.5], ["B0G3948RG8", "her", 14.8], ["B0HKQYLRBB", "her", 22.99],
   ["B07XL9MFZQ", "her", 12.74], // owner 11-22 PM: tortoise blue light glasses in place of the Stoggles
+  // Owner 11-22 PM, "add all items" (Louisiana-popular-candidates-1122.md). Her Macy's Community Coffee pin opens a
+  // "page not found" now, so the 24-count box sold by Amazon.com (B0886YWV65) stands in.
+  ["0935032029", "her", 24.95], ["B07QDPPH7Z", "her", 15.99], ["B0886YWV65", "her", 14.69], ["B0915PDW38", "her", 54.99], ["B002CMXGRI", "her", 20.99],
+  ["B0000BXHL5", "him", 115.08], ["B000FTUTL6", "him", 39.2], ["B00144CM2U", "him", 69.44], ["B0HG3RLK77", "him", 37.99], ["0935032509", "him", 19.95], ["B09GCYJ8RM", "him", 30.79], ["B07GG7K5SD", "him", 6.68],
+  ["1455627143", "kids", 19.8], ["B08GVN1J37", "kids", 24.99], ["B074YZWKMB", "kids", 48.99], ["B0792C316R", "kids", 19.99], ["B0CCBMLJM5", "kids", 37.99], ["1455625639", "kids", 19.95], ["0142500704", "kids", 8.38],
 ];
 
 describe("the owner's launch-day picks (11-22)", () => {
   it("each is on the guide she named, once, at the store's own price checked 11-22, with a cutout photo", () => {
     expect(SENT.length).toBeGreaterThan(10);
-    expect(HER_ADDS_1122.length + KIDS_ADDS_1122.length + HIM_ADDS_1122.length).toBe(SENT.length + AMAZON_1122.length);
+    expect(HER_ADDS_1122.length + KIDS_ADDS_1122.length + HIM_ADDS_1122.length).toBe(SENT.length + AMAZON_1122.length + CJ_1122.length);
     for (const [p, slug, store, price] of SENT) {
       const rows = chunk(slug).filter((x) => x.href === pin(p));
       expect(rows.length, `${slug}: ${p}`).toBe(1);
@@ -117,6 +145,14 @@ describe("the owner's launch-day picks (11-22)", () => {
       expect(row.image?.startsWith(CUTOUT_BASE), `${p}: ${row.image}`).toBe(true);
       expect(existsSync(`public/gift-guides/cutouts/${String(row.image).slice(CUTOUT_BASE.length)}`), p).toBe(true);
       expect(RESEARCHED_STORES[store]?.name, store).toBeTruthy();
+    }
+    for (const [href, slug, price] of CJ_1122) {
+      const rows = chunk(slug).filter((x) => x.href === href);
+      expect(rows.length, `${slug}: ${href}`).toBe(1);
+      expect(rows[0].store, href).toBe("store-xtratuf");
+      expect(rows[0].price, href).toBe(price);
+      expect(rows[0].priceAt, href).toBe(ADDS_PRICE_AT);
+      expect(rows[0].image?.startsWith(CUTOUT_BASE), href).toBe(true);
     }
     expect(ADDS_PRICE_AT).toBe("2026-11-22");
   });

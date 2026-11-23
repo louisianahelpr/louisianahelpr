@@ -17,7 +17,7 @@ import { E_GIFT, FILLER_OK, INSULATED, LA_LINE, NOWHERE, TUMBLER_MAX, belongsWhy
 import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
 import { MERGED_INTO } from "@/content/giftGuideMerges.mjs";
 
-type Pick = { name: string; brand?: string; line?: string; href: string; price?: number; image?: string };
+type Pick = { name: string; brand?: string; line?: string; href: string; price?: number; image?: string; ownerPick?: true };
 // Big batch 1120: a merged guide's section is read under its old slug (helpers/giftGuideSections.ts).
 const pageOf = (slug: string): Pick[] => sectionPageOf<Pick>(slug);
 const indexSrc = readFileSync("src/content/giftGuideIndex.ts", "utf8");
@@ -83,7 +83,16 @@ describe("gift guides: items that belong (owner 11-19)", () => {
     // An old slug that is now a section of a Louisiana guide (tailgater, in Louisiana Celebrations) is Louisiana.
     const national = guides.filter((s) => groupOf.get(s) !== "Louisiana" && groupOf.get(MERGED_INTO[s]?.parent ?? s) !== "Louisiana");
     expect(national.length).toBeGreaterThan(100);
-    for (const slug of national) for (const p of pageOf(slug)) expect(Boolean(p.line && LA_LINE.test(p.line)), `${slug}: ${p.name}: ${p.line}`).toBe(false);
+    // Owner 2026-11-22 ~5:25 PM ("add all items", train j): her approved Louisiana picks go INTO For Her / For Him /
+    // For Kids, lines and all ("Baton Rouge's own coffee"), superseding the 11-18 Louisiana-section-only rule for her own
+    // picks. Those three are her own lists (every row an ownerPick); every other national guide stays checked.
+    const OWNER_LISTS = new Set(["her", "him", "kids"]);
+    let ownerLa = 0;
+    for (const slug of national) for (const p of pageOf(slug)) {
+      if (OWNER_LISTS.has(slug) && p.ownerPick && p.line && LA_LINE.test(p.line)) { ownerLa += 1; continue; }
+      expect(Boolean(p.line && LA_LINE.test(p.line)), `${slug}: ${p.name}: ${p.line}`).toBe(false);
+    }
+    expect(ownerLa).toBeGreaterThan(10); // her Louisiana picks whose line names a Louisiana place, measured 2026-11-22 (train j)
   });
 
   it("Sam's Club memberships sit beside Walmart+, and no sold-out Walmart link is left", () => {

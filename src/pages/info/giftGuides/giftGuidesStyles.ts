@@ -16,7 +16,7 @@ color:var(--gg-ink)}
 .gg-layout>.gg-side{grid-column:1;grid-row:1/span 2}
 .gg-layout>.gg-main{grid-column:2;grid-row:1}
 .gg-layout>.gg-disc{grid-column:2;grid-row:2;margin-left:24px;align-self:start}
-.gg-side{border-right:1px solid var(--gg-line);padding:16px 16px 20px 0;font-size:13px;position:sticky;top:var(--gg-side-top,72px);align-self:start;max-height:calc(100dvh - var(--gg-side-top,72px));overflow-y:auto;overscroll-behavior:contain}
+.gg-side{border-right:1px solid var(--gg-line);padding:16px 16px 20px 0;font-size:13px;position:sticky;top:var(--gg-side-top,72px);align-self:start;max-height:calc(100dvh - var(--gg-side-top,72px));overflow-y:auto}
 .gg-search{position:relative;display:block;margin:0}
 .gg-search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--gg-muted)}
 .gg-search input{width:100%;min-height:44px;font:500 16px Montserrat,sans-serif;padding:0 12px 0 40px;border:1px solid hsl(var(--bark) / .2);border-radius:12px;background:hsl(var(--card));color:var(--gg-ink)}
@@ -33,7 +33,7 @@ color:var(--gg-ink)}
 .gg-side details{border-top:0}
 .gg-side summary{list-style:none;cursor:pointer;display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:8px;font-size:13px;font-weight:600;color:var(--gg-ink)}
 .gg-side summary:hover{background:hsl(var(--muted) / .6)}
-.gg-side-n::before{content:attr(data-n);margin-left:6px;font-size:11.5px;font-weight:500;color:var(--gg-muted)}
+.gg-side-n{margin-left:auto;padding-left:8px;font-size:12px;font-weight:400;color:var(--gg-muted);font-variant-numeric:tabular-nums}
 .gg-side-h{margin:14px 10px 4px;padding-top:12px;border-top:1px solid var(--gg-line);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gg-muted)}
 .gg-side summary::-webkit-details-marker{display:none}
 .gg-side summary::after{content:"+";margin-left:auto;font-size:15px;line-height:1}
@@ -215,6 +215,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 [data-gift-guide="25-days-sponsors"] .gg-nm-name{-webkit-line-clamp:3}
 .gg-nm .gg-nm-meta{display:flex;align-items:baseline;gap:8px;margin-top:4px;font-size:12px;font-weight:600;letter-spacing:.04em}
 .gg-nm-meta .gg-price{font-size:15px;letter-spacing:0}
+.gg-nm-meta .gg-price[data-gift-type]{white-space:nowrap}
 .gg-list>li{align-items:flex-start}
 @media (min-width:1024px){
 .gg-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 20px;align-items:stretch}
@@ -242,8 +243,6 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-nm-name{grid-column:1;grid-row:1}
 .gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1;margin-top:0;justify-content:flex-end;min-width:44px}
 /* A 25 Days sponsor logo card: its gift sits under the name, never in the narrow price column (owner 11-22). */
-.gg-list .gg-nm .gg-nm-gift{grid-column:1/-1;grid-row:2;justify-content:flex-start;margin-top:4px;font-size:13px;font-weight:500;letter-spacing:0;color:var(--gg-muted)}
-.gg-list .gg-nm-gift+.gg-badges{grid-row:3}
 .gg-list .gg-badges{grid-column:1/-1;grid-row:2}
 /* Owner 2026-11-22 ("move the heart and shopping cart back to the top right of picture. maybe put the shopping cart
    below the heart instead of on the side"): on every card (Her/Him/Kids rows, the 25 Days sponsors page, the finder's

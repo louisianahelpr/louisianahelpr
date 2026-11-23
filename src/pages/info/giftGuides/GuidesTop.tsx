@@ -34,19 +34,22 @@ export type GuidesBanner = PageBanner & { titleId?: string; sub?: boolean };
  * h1). The landing, the guides, the deals days and the wish lists (GiftGuides.tsx), every page in the guides frame
  * (FunPage.tsx: the printables, Swipe, the Secret Santa draw and reveal, the planner) and the Holiday Hub draw it from
  * here, so no page's top can drift again. Only the landing has no banner (its h1 is the head row's title).
+ * `noPill` (the Holiday Hub, owner 11-22 7:49 PM: "remove order by ... i thought we didnt do that for this section?"): no
+ * shipping pill anywhere on the page.
  * `pillInRow` off: the pill and the icons go in `below` (a guide's count row under its banner on a phone, kept as it
  * is on 11-22; the 25 Days sponsors' at every width).
  * Guard: src/test/giftGuidePages1122.test.tsx.
  */
-export function GuidesTop({ backTo, banner, tools, nav, pillInRow = true, below }: {
+export function GuidesTop({ backTo, banner, tools, nav, pillInRow = true, noPill = false, below }: {
   backTo: string;
   banner: GuidesBanner | null;
   tools?: ReactNode;
   nav: { active: CatalogGuide | null; myList?: boolean; page?: string };
   pillInRow?: boolean;
+  noPill?: boolean;
   below?: (pill: ReactNode) => ReactNode;
 }) {
-  const ship = shippingLine(new Date());
+  const ship = noPill ? null : shippingLine(new Date());
   const pill = ship ? <GuideShipPill ship={ship} /> : null;
   return (
     <>

@@ -11,7 +11,7 @@ import { GiftGuidesSidebar } from "../GiftGuidesSidebar";
 import { GuidesDisclosure } from "../GuidesDisclosure";
 
 /** Which head-row icons a frame page shows (GuidesFrame). */
-type FrameTools = "all" | "no-search" | "none";
+type FrameTools = "all" | "share" | "none";
 type FunPath = "/gift-guides/swipe" | "/gift-guides/planner" | "/gift-guides/draw-names" | PrintablePagePath;
 
 /**
@@ -50,14 +50,16 @@ export function FunBody({ title, path, noindex, banner = G.pageBanners[path], to
  * Owner 2026-11-22 #13 ("gifts tags and all the other sections should have the same top section as the guides and the
  * deals"): the banner replaces this morning's plain left serif title (polish audit 1122 #10).
  * `tools`: the head row's icons. "none" on the printables (owner 11-21: "remove the search, favorite ... just polish
- * this"; 11-22: "Same row, icons off there"): the pill only. "no-search" on the Holiday Hub (owner 11-22): the heart
- * and Share, no gift search beside the Hub's own lights search.
+ * this"; 11-22: "Same row, icons off there"): the pill only. "share" on the Holiday Hub: Share only (owner 11-22: no
+ * gift search beside the Hub's own lights search; 7:49 PM: "remove order by and the heart at the top ... i thought we
+ * didnt do that for this section?"), so no pill and no My list heart there either.
  */
 export function GuidesFrame({ title, path, banner, tools = "all", children }: { title: string; path: string; banner: PageBanner; tools?: FrameTools; children: ReactNode }) {
   const frame = useRef<HTMLDivElement>(null);
   return (
     <div className="gg w-full" data-gift-fun-frame="" ref={frame}>
-      <GuidesTop backTo="/gift-guides" banner={banner} tools={tools === "none" ? null : <GiftGuideTools path={path} title={title} search={tools === "all"} />} nav={{ active: null, page: path }} />
+      <GuidesTop backTo="/gift-guides" banner={banner} noPill={tools === "share"}
+        tools={tools === "none" ? null : <GiftGuideTools path={path} title={title} search={tools === "all"} heart={tools !== "share"} />} nav={{ active: null, page: path }} />
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">
         <div className="gg-main">{children}</div>

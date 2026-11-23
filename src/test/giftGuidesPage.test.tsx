@@ -872,7 +872,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
   // Owner redesign 11-18 PM ("share text search list codes is too much buttons right here"): ONE slim row under every
   // title, at every width: the search field, My list (an icon with its count) and Share (an icon). No pill buttons.
   // @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {pillInRow && tools}\n |         {null}\n
-  // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       <MyListIcon current={myList} />\n |       <a href="#codes">Codes</a>\n      <MyListIcon current={myList} />\n
+  // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {heart && <MyListIcon current={myList} />}\n |       <a href="#codes">Codes</a>\n      {heart && <MyListIcon current={myList} />}\n
   it("#15 / redesign: the tool row under the title is search, My list and Share, nothing else", () => {
     for (const url of ["/gift-guides", "/gift-guides/her", "/gift-guides/store-walmart"]) {
       const { container } = renderAt(url);

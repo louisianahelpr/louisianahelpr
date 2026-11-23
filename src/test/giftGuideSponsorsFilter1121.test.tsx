@@ -117,7 +117,8 @@ describe("Shop Small left the menu (owner 11-21)", () => {
     const c = await renderAt("/gift-guides/her");
     expect(c.querySelector("[data-gift-side-shop-small], [data-gift-sidebar] a[href='/shop-small']")).toBeNull();
     expect(c.querySelector("[data-gift-sidebar]")?.textContent).not.toMatch(/Shop Small/);
-    expect([...c.querySelectorAll("[data-gift-side-more] a")].map((a) => a.textContent)).toEqual(["Holiday Hub", "25 Days sponsors"]);
+    // A row's name, without its item count on the right (owner 11-22: "Number on the right"; giftGuideRailCounts1122).
+    expect([...c.querySelectorAll("[data-gift-side-more] a")].map((a) => a.textContent!.replace(a.querySelector(".gg-side-n")?.textContent ?? "", ""))).toEqual(["Holiday Hub", "25 Days sponsors"]);
   });
 });
 

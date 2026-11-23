@@ -2,9 +2,10 @@
  * /holidays, the Louisiana Holiday Hub (owner-approved 2026-11-20; one page 2026-11-21, owner: "put christmas lights and
  * holiday events into 1"). The title (owner 11-22: no intro line under it), then every light display and event in one list, soonest first (owner
  * 2026-11-21: "remove the hire a helpr here", which took out the slim "Hire a Helpr for the holidays" strip she had
- * asked for that morning; /holidays/hire-a-helpr itself stays): "Happening now"
- * (closing soonest first), then one group per start day from today on, then "Dates TBA". Anything over (ended before
- * today, Louisiana time) is hidden.
+ * asked for that morning; /holidays/hire-a-helpr itself stays). Owner 2026-11-22 "Pick a day": a row of day chips
+ * (Today first) and, below it, everything happening on the chosen day, then the undated light displays and "Dates TBA";
+ * a search lists every match across the season ("Happening now", then one group per start day, then the undated ones).
+ * Anything over (ended before today, Louisiana time) is hidden.
  *
  * Filters fold away (owner 11-21: "make a filter tab or something so they don't all show as soon as you open it"): one
  * row with the count and two plain icons (owner 11-21 evening: search, and the filter with a count; All / Lights /
@@ -17,24 +18,24 @@
  * The data (lights.mjs, events.mjs) is imported here only, so it ships in this page's own lazy chunk.
  * Guard: src/test/holidayHub.test.tsx.
  */
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { FilterChip } from "@/components/ui/FilterChip";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
-import { START_OPEN } from "@/pages/info/giftGuides/startOpen";
 import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import {
   DATES_TBA, HOLIDAY_EVENT_KIND, HOLIDAY_LIGHT_FORMAT, HOLIDAY_REGIONS, HOLIDAY_WHAT, HOLIDAY_WORDS as W,
-  endedEarlierToday, filterHolidayItems, holidayCountLabel, holidayWhereLabel, holidayDayHeading, holidayItemsByDay, isHolidayLight, louisianaMinutes, louisianaToday,
+  endedEarlierToday, filterHolidayItems, holidayCountLabel, holidayDayChipLabel, holidayDayChoices, holidayWhereLabel, holidayDayHeading, holidayItemsByDay, holidayItemsOn, isHolidayLight, louisianaMinutes, louisianaToday,
   resolveHolidayWhat, type HolidayCostFilter, type HolidayItem, type HolidayRegion, type HolidayWhen,
 } from "@/content/holidayHub/holidayHub.mjs";
 import { HolidayCard, HolidayNothing, HolidaySection, useHolidayPageView } from "./holidayParts";
@@ -54,14 +55,6 @@ const COST_OPTIONS: Option[] = [{ value: "all", label: "Any" }, { value: "free",
 const pick = <T extends string>(v: string | null, allowed: readonly Option[]): T | "all" =>
   v && allowed.some((o) => o.value === v) ? (v as T) : "all";
 const labelOf = (options: readonly Option[], value: string) => options.find((o) => o.value === value)?.label ?? value;
-
-/** Day groups more than this many days out fold under "Later dates" (holiday audit 1121 area 5 #5). */
-const LATER_AFTER_DAYS = 14;
-const addDaysYmd = (ymd: string, n: number) => {
-  const d = new Date(`${ymd}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-};
 
 /** The search (owner 2026-11-21): every word typed is in the name, the town, the address or the region. */
 function matchesQuery(item: HolidayItem, query: string): boolean {
@@ -139,30 +132,52 @@ export default function HolidayHub() {
   const today = louisianaToday();
   // Holiday audit 1121 area 5 #10: a one-day item whose simple hours range has closed drops out of "Today".
   const minutes = louisianaMinutes();
-  const shown = useMemo(
+  const filtered = useMemo(
     () => filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {
       what: what === "all" ? null : what,
       region: region === "all" ? null : region,
       cost: cost === "all" ? null : cost,
       when: when === "all" ? null : when,
-    }, today).filter((i) => !endedEarlierToday(i, today, minutes) && matchesQuery(i, query)),
-    [what, region, cost, when, today, minutes, query],
+    }, today).filter((i) => !endedEarlierToday(i, today, minutes)),
+    [what, region, cost, when, today, minutes],
   );
+  const shown = useMemo(() => filtered.filter((i) => matchesQuery(i, query)), [filtered, query]);
+  // Owner 2026-11-22 7:46 PM ("organize these better so you can see the ones that are happening each day below"; her
+  // pop-up choice "Pick a day"): a row of day chips, Today first, then every day through the last dated day; the list
+  // below shows everything happening on the chosen day (one-day events that date, multi-day events and light displays
+  // whose dates cover it), then the undated light displays and "Dates TBA" in their own open sections. Today (Louisiana
+  // time) is chosen on arrival; the chosen day is in the URL (?day=YYYY-MM-DD, none for today). A When filter narrows the
+  // chips to its days (Today: one chip; This weekend: Friday to Sunday; Next 7 days: seven) and the chosen day moves
+  // into them. A search looks across every date: while one is typed the list is every match, soonest first, grouped by
+  // day (no chip pressed); tapping a day ends the search and shows that day.
+  const searching = query.trim().length > 0;
+  const days = useMemo(() => holidayDayChoices(filtered, today, when === "all" ? null : when), [filtered, today, when]);
+  const asked = params.get("day");
+  const day = asked && days.includes(asked) ? asked : days[0] ?? null;
+  const onDay = useMemo(() => (day ? holidayItemsOn(filtered, day) : []), [filtered, day]);
   const groups = useMemo(() => holidayItemsByDay(shown, today), [shown, today]);
-  // The fold line: two weeks out (Later dates), unless a When filter or a search narrows the list.
-  const foldAfter = addDaysYmd(today, LATER_AFTER_DAYS);
-  const folds = when === "all" && !query.trim();
-  const isLater = (g: (typeof groups)[number]) => folds && (g.key === "tba" || (!!g.day && g.day > foldAfter));
-  // Guides polish 1122 #18: the undated light displays (57) sit closed between the next two weeks and "Later dates", so the
-  // dated events come first on a phone; a When filter or a search shows them open as before.
-  const tbaLights = folds ? groups.find((g) => g.key === "lights-tba") : undefined;
-  const soon = groups.filter((g) => !isLater(g) && g !== tbaLights);
-  const later = groups.filter(isLater);
+  const undated = groups.filter((g) => g.key === "lights-tba" || g.key === "tba");
   const section = (g: (typeof groups)[number]) => (
-    <HolidaySection key={g.key} id={`holidays-${g.key}`} title={g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : g.key === "lights-tba" ? W.lightsTba : DATES_TBA} count={g.items.length}>
+    <HolidaySection key={g.key} id={`holidays-${g.key}`} title={g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : g.key === "lights-tba" ? W.lightsTba : DATES_TBA}
+      count={g.items.length} note={g.key === "lights-tba" ? W.lightsTbaNote : undefined} data={g.key === "lights-tba" ? { "data-holiday-lights-tba": "" } : undefined}>
       {g.items.map((i) => <HolidayCard key={i.id} item={i} kind={isHolidayLight(i) ? "light" : "event"} tag={tagFor(i)} />)}
     </HolidaySection>
   );
+  const pickDay = (d: string) => {
+    if (searching || searchOpen) {
+      setQuery("");
+      setSearchOpen(false);
+    }
+    set("day", d === today ? "all" : d);
+  };
+  // The chosen chip scrolls into the row's view (a shared ?day= link far down the season), the page itself never moves.
+  const dayRow = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = dayRow.current;
+    const chip = row?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!row || !chip) return;
+    if (chip.offsetLeft < row.scrollLeft || chip.offsetLeft + chip.offsetWidth > row.scrollLeft + row.clientWidth) row.scrollLeft = chip.offsetLeft - 16;
+  }, [day, searching]);
   // With Free or Paid on, the count line says how many more have no cost listed (#3), so none drop out unsaid.
   const unlisted = useMemo(
     () => (cost === "free" || cost === "paid" ? filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {
@@ -192,12 +207,13 @@ export default function HolidayHub() {
 
   return (
     // Owner 2026-11-22 #13: the Hub is a page of the guides' menu, so it opens on the guides' one top (GuidesFrame ->
-    // GuidesTop: "Holiday gift guides" by the back arrow, the pill and the icons, its green banner) with the guides'
-    // menu beside it. No gift search in that row (owner 11-22: one magnifier, the Hub's own); no affiliate link here, so
-    // the frame shows no disclosures (GuidesDisclosure).
+    // GuidesTop: "Holiday gift guides" by the back arrow, its green banner) with the guides' menu beside it. The row's
+    // right side is Share alone (tools="share"): no gift search (owner 11-22: one magnifier, the Hub's own), and no
+    // shipping pill or My list heart (owner 11-22 7:49 PM: "remove order by and the heart at the top ... i thought we
+    // didnt do that for this section?"). No affiliate link here, so the frame shows no disclosures (GuidesDisclosure).
     <PublicHeaderPage title={W.hubTitle} backTo="/gift-guides" wrapTitle hideHeader bottomPaddingClassName="pb-12 md:pb-16">
       <style>{GIFT_GUIDES_CSS}</style>
-      <GuidesFrame title={W.hubTitle} path="/holidays" banner={G.pageBanners["/holidays"]} tools="no-search">
+      <GuidesFrame title={W.hubTitle} path="/holidays" banner={G.pageBanners["/holidays"]} tools="share">
       <div className="space-y-section font-sans" data-holiday-page="hub">
         {/* Owner 2026-11-22 (iPhone: "Remove the words above 82 light displays then move that and the and filter and
             search up"): no intro line and no "Shopping too?" link above the count; the count, search and filter sit
@@ -214,7 +230,8 @@ export default function HolidayHub() {
               the far right. Where the row is too narrow for the words and a usable field (under 440px: every phone),
               the count shows as its number only (the words stay for screen readers). The ✕ or Escape puts the row back. */}
           <div className="flex min-h-11 items-center gap-1" data-holiday-searchrow={searchOpen ? "open" : "closed"}>
-            <p className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} text-ds-14 text-muted-foreground`} aria-live="polite" data-holiday-count="">
+            {/* Consistency audit 1122 #3: the guides' count style ("146 gifts": gg-itemcount, 12px/600, muted). */}
+            <p className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} gg-itemcount !m-0`} aria-live="polite" data-holiday-count="">
               {searchOpen ? (
                 <><span className="hh-count-full">{countWords}</span><span className="hh-count-short" aria-hidden="true">{shown.length || ""}</span></>
               ) : countWords}
@@ -265,44 +282,46 @@ export default function HolidayHub() {
         <FilterSheet open={filtersOpen} onOpenChange={setFiltersOpen} sections={sections} activeFilterCount={active.length}
           onClearAll={clearAll} title="Filters" resultCount={shown.length} resultNoun={["result", "results"]} anchorRef={filtersButton} />
 
-        {groups.length === 0 ? (
-          // Polish audit 1122 #29: a search with no match says so and clears the search, not "these filters".
-          query.trim() && active.length === 0 ? (
-            <HolidayNothing onClear={() => setQuery("")} clearLabel="Clear search">
-              {`No lights or events match "${query.trim()}".`}
-            </HolidayNothing>
-          ) : (
-            <HolidayNothing onClear={clearAll}>
-              {when !== "all" ? `Nothing matches these filters ${WHEN_NOTHING[when]}.` : "Nothing matches these filters."}
-            </HolidayNothing>
-          )
+        {days.length > 0 && (
+          // One row, sideways scroll on a phone (and a thin bar to drag on a mouse screen); 44px chips in the guides'
+          // chip look (gg-chip: filled when chosen, outlined otherwise, as the For Her people chips).
+          <div ref={dayRow} role="group" aria-label="Pick a day" className="-mx-1 flex min-w-0 gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]" data-holiday-days="">
+            {days.map((d) => {
+              const on = !searching && d === day;
+              return (
+                <Button key={d} type="button" variant={on ? "default" : "outline"} size="sm" className="gg-chip shrink-0" aria-pressed={on}
+                  onClick={() => pickDay(d)} data-holiday-day={d}>
+                  {holidayDayChipLabel(d, today)}
+                </Button>
+              );
+            })}
+          </div>
+        )}
+        {searching ? (
+          groups.length === 0 ? (
+            // Polish audit 1122 #29: a search with no match says so and clears the search, not "these filters".
+            active.length === 0 ? (
+              <HolidayNothing onClear={() => setQuery("")} clearLabel="Clear search">
+                {`No lights or events match "${query.trim()}".`}
+              </HolidayNothing>
+            ) : (
+              <HolidayNothing onClear={clearAll}>Nothing matches these filters.</HolidayNothing>
+            )
+          ) : groups.map(section)
+        ) : filtered.length === 0 ? (
+          <HolidayNothing onClear={clearAll}>
+            {when !== "all" ? `Nothing matches these filters ${WHEN_NOTHING[when]}.` : "Nothing matches these filters."}
+          </HolidayNothing>
         ) : (
           <>
-            {soon.map(section)}
-            {/* Holiday audit 1121 area 5 #5: the days more than two weeks out and "Dates TBA" fold under one "Later dates".
-                Owner 2026-11-22 ("make everything open expanded"): both folds start open (START_OPEN); a shopper can
-                still close one. A When filter or a search shows every group open. */}
-            {tbaLights && (
-              <details className="group space-y-section" id="holidays-lights-tba" open={START_OPEN} data-holiday-lights-tba="">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-ds-20 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
-                  {W.lightsTba}<span className="text-ds-15 font-normal text-muted-foreground">({tbaLights.items.length})</span>
-                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
-                </summary>
-                <p className="text-ds-14 text-muted-foreground">{W.lightsTbaNote}</p>
-                <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {tbaLights.items.map((i) => <HolidayCard key={i.id} item={i} kind="light" tag={tagFor(i)} />)}
-                </ul>
-              </details>
+            {day && (
+              <HolidaySection key={day} id="holidays-day" title={holidayDayHeading(day, today)} count={onDay.length} data={{ "data-holiday-day-list": day }}>
+                {onDay.length ? onDay.map((i) => <HolidayCard key={i.id} item={i} kind={isHolidayLight(i) ? "light" : "event"} tag={tagFor(i)} />)
+                  : <li className="text-ds-14 text-muted-foreground" data-holiday-day-empty="">Nothing listed for this day. Try another day.</li>}
+              </HolidaySection>
             )}
-            {later.length > 0 && (
-              <details className="group space-y-section" open={START_OPEN} data-holiday-later="">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-ds-20 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
-                  Later dates<span className="text-ds-15 font-normal text-muted-foreground">({later.reduce((n, g) => n + g.items.length, 0)})</span>
-                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
-                </summary>
-                <div className="space-y-section">{later.map(section)}</div>
-              </details>
-            )}
+            {/* The undated light displays and "Dates TBA" stay reachable under the day, each its own open band. */}
+            {undated.map(section)}
           </>
         )}
         <p className="text-ds-14 text-muted-foreground">{W.checkFirst}</p>

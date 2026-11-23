@@ -74,6 +74,9 @@ export function filterHolidayItems(lights: readonly HolidayLight[], events: read
 export function holidayCountLabel(items: readonly HolidayItem[]): string;
 export function holidayItemsByDay<T extends Pick<HolidayItemBase, "tba" | "start" | "end" | "name">>(items: readonly T[], today: string): { key: string; day: string | null; items: T[] }[];
 export function holidayDayHeading(day: string, today?: string): string;
+export function holidayDayChoices(items: readonly HubDated[], today: string, when?: HolidayWhen | null): string[];
+export function holidayItemsOn<T extends HubDated & Pick<HolidayItemBase, "name">>(items: readonly T[], day: string): T[];
+export function holidayDayChipLabel(day: string, today: string): string;
 export const HOLIDAY_HELP: { title: string; body: string; category: string }[];
 export const HOLIDAY_WORDS: {
   hubTitle: string; hubIntro: string;

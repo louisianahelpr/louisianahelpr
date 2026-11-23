@@ -1,9 +1,12 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
 import { guideBySlug, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { FUN_TOOLS, FUN_WORDS } from "@/content/giftGuideFun1120";
 import { EXTRAS_WORDS, FINDER_ANCHOR as FINDER_ID } from "@/content/giftGuideExtras1120";
-import { PRINTABLE_PAGES, printablesOnPage } from "@/content/printables";
+import { PRINTABLE_PAGES, printablesCount } from "@/content/printables";
+import { CHUNK_PICK_COUNTS } from "@/content/giftGuidePicks";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { MY_LIST_SLUG } from "./giftList";
 
@@ -51,6 +54,28 @@ const sideGuides = () => SIDE_GUIDES.flatMap((x) => {
   return g && !g.empty ? [{ ...x, title: g.title }] : [];
 });
 
+/**
+ * The number on the right of a menu row (owner 2026-11-22, 7:52 PM: "should we put the number of items in each section on
+ * the right of the section name? like her (# of items) same for the free printable ones below?"; pop-up 7:55 PM: "Number
+ * on the right"): the same number the page itself shows, muted, tabular, read by a screen reader with its noun ("Her 159
+ * gifts"). Tools with no list (All guides, the finder, the fun tools, My Wish List) get none.
+ * Guard: src/test/giftGuideRailCounts1122.test.tsx.
+ */
+const N = ({ n, noun = "items" }: { n?: number; noun?: string }) => (n ? <span className="gg-side-n">{" "}{n}<span className="sr-only"> {noun}</span></span> : null);
+
+/**
+ * The numbers that change with the date (Black Friday, Cyber Monday, the Holiday Hub: railCounts.ts), from their own
+ * chunk once the menu has drawn, so a guide page's first paint carries none of them; read once per page load.
+ */
+let live: Record<string, number> | undefined;
+const useLiveCounts = () => {
+  const [c, setC] = useState(live);
+  useEffect(() => {
+    if (!c) void loadModule(() => import("./railCounts")).then((m) => m ?? untilReload()).then((m) => m.railCounts()).then((r) => setC((live = r)), (e) => console.warn("gift guides: menu counts failed", e));
+  }, [c]);
+  return c ?? {};
+};
+
 /** Which menu entry is open: a page key, a relationship view's guide (Mom -> Her), or the guide itself. */
 const openEntry = ({ active, page }: MenuProps) => page ?? active?.view?.of ?? active?.slug ?? null;
 
@@ -65,7 +90,8 @@ export function GiftGuidesMenu({ active, myList = false, mine = myList, page, id
   const open = openEntry({ active, page });
   const current = (slug: string | null) => (!myList && open === slug ? ({ "aria-current": "page" } as const) : {});
   const guides = sideGuides();
-  const printables = PRINTABLE_PAGES.filter((p) => printablesOnPage(p.key).length > 0);
+  const printables = PRINTABLE_PAGES.map((p) => ({ ...p, n: printablesCount(p.key) })).filter((p) => p.n > 0);
+  const n = useLiveCounts();
   return (
     <>
       <p className="gg-side-h" id={`${idPrefix}-guides`}>{G.sideHeads.guides}</p>
@@ -73,7 +99,7 @@ export function GiftGuidesMenu({ active, myList = false, mine = myList, page, id
         <li><Link to="/gift-guides" {...current(null)} data-gift-side="">{G.allGuidesLabel}</Link></li>
         {guides.map((g) => (
           <li key={g.slug}>
-            <Link to={`/gift-guides/${g.slug}`} {...current(g.slug)} data-gift-side={g.slug}><i className={`gg-dot gg-${g.dot}`} aria-hidden="true" data-gift-side-dot={g.dot} />{g.title}</Link>
+            <Link to={`/gift-guides/${g.slug}`} {...current(g.slug)} data-gift-side={g.slug}><i className={`gg-dot gg-${g.dot}`} aria-hidden="true" data-gift-side-dot={g.dot} />{g.title}<N n={CHUNK_PICK_COUNTS[g.slug]} noun="gifts" /></Link>
           </li>
         ))}
         {wishList && <li><Link to={`/gift-guides/${MY_LIST_SLUG}`} {...(mine ? ({ "aria-current": "page" } as const) : {})} data-gift-side-wish-list="">{WISH.title}</Link></li>}
@@ -83,14 +109,14 @@ export function GiftGuidesMenu({ active, myList = false, mine = myList, page, id
         {/* Holiday audit 1121 (High): each day is its own page, so each entry opens that page and is marked current on
             it (it was a #anchor on the one-page address that never scrolled, with Black Friday always marked). */}
         {G.sideDeals.map((d) => (
-          <li key={d.id}><Link to={`/gift-guides/${d.id}`} {...current(d.id)} data-gift-side-deals={d.id}>{d.label}</Link></li>
+          <li key={d.id}><Link to={`/gift-guides/${d.id}`} {...current(d.id)} data-gift-side-deals={d.id}>{d.label}<N n={n[d.id]} /></Link></li>
         ))}
       </ul>
       {printables.length > 0 && (
         <>
           <p className="gg-side-h" id={`${idPrefix}-free`}>{G.sideHeads.free}</p>
           <ul data-gift-side-printables-group="" aria-labelledby={`${idPrefix}-free`}>
-            {printables.map((p) => <li key={p.key}><Link to={p.path} {...current(p.path)} data-gift-side-printables={p.key}>{p.label}</Link></li>)}
+            {printables.map((p) => <li key={p.key}><Link to={p.path} {...current(p.path)} data-gift-side-printables={p.key}>{p.label}<N n={p.n} /></Link></li>)}
           </ul>
         </>
       )}
@@ -104,8 +130,8 @@ export function GiftGuidesMenu({ active, myList = false, mine = myList, page, id
       <p className="gg-side-h" id={`${idPrefix}-la`}>{G.sideHeads.louisiana}</p>
       <ul data-gift-side-more="" aria-labelledby={`${idPrefix}-la`}>
         {/* Guide consistency audit 1122 #2: the Hub is marked open on its own page, as every other entry is. */}
-        <li><Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub="">{G.sideHolidayHub}</Link></li>
-        <li><Link to={`/gift-guides/${SPONSORS_SLUG}`} {...current(SPONSORS_SLUG)} data-gift-side-sponsors="">{G.sideSponsorsLabel}</Link></li>
+        <li><Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub="">{G.sideHolidayHub}<N n={n["/holidays"]} /></Link></li>
+        <li><Link to={`/gift-guides/${SPONSORS_SLUG}`} {...current(SPONSORS_SLUG)} data-gift-side-sponsors="">{G.sideSponsorsLabel}<N n={CHUNK_PICK_COUNTS[SPONSORS_SLUG]} noun="gifts" /></Link></li>
       </ul>
     </>
   );

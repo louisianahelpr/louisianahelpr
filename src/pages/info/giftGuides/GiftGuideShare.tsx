@@ -278,8 +278,12 @@ export function MyListIcon({ current = false }: { current?: boolean }) {
  * The one slim row under every title (owner redesign 11-18 PM): a search field over every guide, My list (with its
  * count) and Share. Nothing else: no pill buttons, no Codes (a page section now).
  */
-/** `search` off (the Holiday Hub, owner 11-22: "icons off there"): no gift search in the row, where the page has its own. */
-export function GiftGuideTools({ path, title, image, many = false, myList = false, sort, filter, search = true }: { path: string; title: string; image?: string; many?: boolean; myList?: boolean; sort?: { order: SortOrder; onChange: (o: SortOrder) => void }; filter?: ToolsFilter; search?: boolean }) {
+/**
+ * `search` off (the Holiday Hub, owner 11-22: "icons off there"): no gift search in the row, where the page has its own.
+ * `heart` off (the Holiday Hub, owner 11-22 7:49 PM: "remove order by and the heart at the top ... i thought we didnt do
+ * that for this section?"): no My list heart in the row.
+ */
+export function GiftGuideTools({ path, title, image, many = false, myList = false, sort, filter, search = true, heart = true }: { path: string; title: string; image?: string; many?: boolean; myList?: boolean; sort?: { order: SortOrder; onChange: (o: SortOrder) => void }; filter?: ToolsFilter; search?: boolean; heart?: boolean }) {
   const [query, setQuery] = useState("");
   // Owner 2026-11-21 ("make search an icon always"): at every width the search is a magnifier icon like the heart and
   // Share; tapping it opens the field (focused); Escape or its close button shuts it again, and it stays open while a
@@ -400,7 +404,7 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
       )}
       {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />}
       {filter && <GiftGuideFilter filter={filter} />}
-      <MyListIcon current={myList} />
+      {heart && <MyListIcon current={myList} />}
       <GiftGuideShare path={path} title={title} image={image} many={many} />
     </div>
   );

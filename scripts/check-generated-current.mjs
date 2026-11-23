@@ -97,6 +97,14 @@ export const GENERATED = [
     what: "every gift-guide product name with its link and the guide it sits in, for item search",
   },
   {
+    // Owner 2026-11-22 ("Number on the right"): the gift guides menu's Holiday Hub number, as the minute each item leaves the list.
+    id: "gift-guide-rail-counts",
+    script: "scripts/gift-guide-rail-counts.mjs",
+    cmd: ["node", "scripts/gift-guide-rail-counts.mjs"],
+    outputs: ["src/content/giftGuideRailCounts.json"],
+    what: "the Holiday Hub's listed count schedule (items listed all season, and the minute each other item leaves), for the gift guides menu's number",
+  },
+  {
     // Owner 2026-11-21 ("the colors on the cover need to match the color when you click into the guide"): each cover's
     // and share image's content hash, the ?v= on its URL, so a redrawn cover is never served from an old cache.
     id: "gift-guide-cover-versions",

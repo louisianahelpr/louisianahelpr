@@ -21,6 +21,7 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import { sortByPrice } from "@/content/giftGuidePriceSort";
 import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGuideEarnOrder";
 import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
+import { sponsorGiftType } from "@/content/giftGuideSponsorGiftTypes";
 import { PrimeTrialLink } from "@/components/giftGuides/PrimeTrialLink";
 import { AgeChips } from "./GiftGuideAges";
 import { GiftGuideLoadError } from "./GiftGuideLoadError";
@@ -84,6 +85,8 @@ export function PickThumb({ pick, size = 52, eager }: { pick: CatalogPick; size?
 
 const SPONSORS_PAGE = "25-days-sponsors";
 const SPONSORS_PAGE_HIDDEN_BADGES: readonly string[] = ["sponsor", "shop-louisiana"];
+/** Our own 25 Days page, where a sponsor with no site or page of its own links. */
+const OUR_25_DAYS_PAGE = /^https:\/\/www\.louisianahelpr\.com\/25days(?:[/?#]|$)/;
 
 /** `rank` (the landing's Top 10, owner 11-21 evening "number the top 10 gifts"): a numeral badge on the photo's corner and "1." in the link's name. */
 export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide?: string; rank?: number; eager?: boolean }) {
@@ -103,6 +106,11 @@ export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide
   // Sold out until its restock day (owner 11-22, Sleep Crown): "Back Dec 1" until that day, then nothing.
   const back = pick.backOn && today < pick.backOn ? G.backOnChip(pick.backOn) : undefined;
   const cart = amazonCartUrl([pick.href]);
+  // Owner 11-22 (consistency audit #9, "Show the gift type"): a sponsors-page row with no price shows its gift type
+  // ("Gift card", "Experience"...) in the price slot, in the price's own style. No dollar amount is made up.
+  const giftType = guide === SPONSORS_PAGE && !showsPrice(pick) ? sponsorGiftType(pick.name) : undefined;
+  // Consistency audit 1122 #10: a sponsor with no page of its own links our 25 Days page, and the row says so.
+  const toOurPage = OUR_25_DAYS_PAGE.test(pick.href);
   return (
     <li data-gift-pick="">
       {/* Owner 2026-11-21: "remove the shop at button, when they click the title of the image it will go there to the
@@ -116,9 +124,8 @@ export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide
             the price alone. No why-line and no "On <store>"; the store is still said to screen readers (sr-only). */}
         <span className="gg-nm">
           <span className="gg-nm-name">{rank !== undefined && <span className="sr-only">{`${rank}. `}</span>}{pick.name}</span>
-          <span className="sr-only">{isShopMyCollection(pick.href) ? ` (${G.collectionOnShopMy})` : storeLabel(pick) ? ` (${G.onStore(storeLabel(pick))})` : ""}</span>
-          {/* Owner 11-22: a sponsor's logo card says the gift it gives where a price would be (no price is invented). */}
-          {pick.gift && !showsPrice(pick) ? <small className="gg-nm-meta gg-nm-gift" data-gift-sponsor-gift="">{pick.gift}</small> : <small className="gg-nm-meta"><PickPrice pick={pick} /></small>}
+          {toOurPage ? <span className="sr-only">{` (${G.onOur25DaysPage})`}</span> : <span className="sr-only">{isShopMyCollection(pick.href) ? ` (${G.collectionOnShopMy})` : storeLabel(pick) ? ` (${G.onStore(storeLabel(pick))})` : ""}</span>}
+          {giftType ? <small className="gg-nm-meta"><span className="gg-price" data-gift-type="">{giftType}</span></small> : <small className="gg-nm-meta"><PickPrice pick={pick} /></small>}
           {(badges || code || ship || back) && (
             <span className="gg-badges">
               {badges?.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}
@@ -246,6 +253,10 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   const [flipped, setFlipped] = useState<ReadonlySet<string>>(() => new Set());
   useEffect(() => { setFlipped(new Set()); }, [order]);
   const sortable = isOwnerList(guide.slug);
+  // Consistency audit 1122 #1: the 25 Days sponsors page's own sections (Louisiana Shops & Makers, Louisiana Experiences
+  // & Events, National Brands) wear the same band header as Her/Him/Kids (GuideSectionHead: tint, "(n)", chevron, open
+  // on arrival, a tap closes and reopens).
+  const bandHeads = sortable || guide.slug === SPONSORS_PAGE;
   const ready = picksReady(guide.slug);
   // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.
   const nav = ready ? sectionNav(guide.picks) : [];
@@ -253,6 +264,7 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
     const s = nav.find((x) => x.id === id);
     if (!s) return;
     setBudget(null);
+    setFlipped((cur) => { if (!cur.has(id)) return cur; const next = new Set(cur); next.delete(id); return next; });
     requestAnimationFrame(() => document.getElementById(`gg-sec-${id}`)?.scrollIntoView({ block: "start" }));
   };
   const navKey = nav.map((x) => x.id).join(" ");
@@ -285,8 +297,8 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   const sectioned = sortable ? priceSections(sortByPrice(inBudget, order === "high" ? "high" : "low")) : inBudget;
   const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned;
   const sectionCount = new Map<string, number>();
-  if (sortable) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
-  const isOpen = (id?: string) => !sortable || !id || (flipped.has(id) ? !START_OPEN : START_OPEN);
+  if (bandHeads) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
+  const isOpen = (id?: string) => !bandHeads || !id || (flipped.has(id) ? !START_OPEN : START_OPEN);
   const toggle = (id: string) => setFlipped((cur) => {
     const next = new Set(cur);
     if (next.has(id)) next.delete(id);
@@ -305,11 +317,11 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   const draw = (from: number, to: number) => runs(from, to).map(({ title, id, picks: run }, i) => (
         <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""} id={id ? `gg-sec-${id}` : undefined} className={id ? "gg-sec" : undefined}
           aria-labelledby={title && id ? `gg-sec-${id}-title` : undefined}>
-          {title && (sortable && id ? (
+          {title && (bandHeads && id ? (
             // A price section's header is its open/close button (aria-expanded; the list is drawn only while open).
             // Owner 2026-11-22 ("Add some kind of shading ..."): the header is a band in its guide's tint (gg-sec-<tint>),
             // the one section header the deals days share (GuideSectionHead).
-            <GuideSectionHead titleId={`gg-sec-${id}-title`} bodyId={`gg-sec-${id}-list`} title={title} count={sectionCount.get(id) ?? 0} tint={guide.tint}
+            <GuideSectionHead titleId={`gg-sec-${id}-title`} bodyId={`gg-sec-${id}-list`} title={!sortable && nav.length > 1 ? sectionLabel(guide, title, id) : title} count={sectionCount.get(id) ?? 0} tint={guide.tint}
               open={isOpen(id)} onToggle={() => toggle(id)} data={{ "data-gift-section-toggle": id }} />
           ) : (
             <h2 className="gg-sec-title" id={id ? `gg-sec-${id}-title` : undefined}>

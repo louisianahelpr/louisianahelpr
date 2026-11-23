@@ -35,7 +35,9 @@ import { blankComments } from "./helpers/blankNonCode";
 /**
  * The owner's lineup, day -> brands, exactly her 25 Days Sponsor Tracker's calendar (const D) as of 2026-11-22
  * ~6:30 AM (after the owner's changes the night before): 166 partner slots plus our own card on Dec 25, 167 in all;
- * minus Helping Hands Gallery on Dec 7 (owner 2026-11-21, "respect their No": src/content/sponsorPublicOff.mjs), 166
+ * minus Helping Hands Gallery on Dec 7 (owner 2026-11-21, "respect their No": src/content/sponsorPublicOff.mjs), 166;
+ * minus our own $100 Louisiana Helpr gift card on Dec 25 (owner pop-up 2026-11-22 10:02 PM: take it off the giveaway), 165;
+ * minus Boston Mints on Dec 11 and Dec 21 (owner 2026-11-22: their 3 lip glosses are one prize on Dec 18), 163.
  * (owner rule 2026-11-18: nothing stale anywhere). Drift check against the tracker
  * itself: `node scripts/check-25days-lineup.mjs` (manual; the tracker lives on the owner's Desktop, not in CI).
  */
@@ -50,7 +52,7 @@ const FINAL: Record<number, string[]> = {
   8: ["RYSE", "Timeless Skin Care", "Written on the River", "Tays Sweet Shop", "Active Beauty", "Candle Bloom Confections", "God's Country RV Resort"],
   9: ["RYSE", "Let's Create LLC", "CHIC by dmo", "Suzi Marques Photography", "City Sightseeing New Orleans", "Ripley's Crawfish"],
   10: ["Wicks NOLA Candle Company", "RYSE", "GentleStyle Brush (CLM Creations)", "Restore Hyper Wellness Mandeville", "Everyday Dose", "RoseMae Eimear Creations"],
-  11: ["Boston Mints", "RYSE", "aosu", "Beaver's Abundance", "Celebration Station (Baton Rouge)", "Ripley's Crawfish", "Suzi Marques Photography"],
+  11: ["RYSE", "aosu", "Beaver's Abundance", "Celebration Station (Baton Rouge)", "Ripley's Crawfish", "Suzi Marques Photography"],
   12: ["Criquet Shirts", "RYSE", "Oyu Botanica", "Tree Frogs Adventure Park", "Tays Sweet Shop", "IDRA Wellness", "Suzi Marques Photography"],
   13: ["SRI Labs", "RYSE", "The Crab Man Plus", "Faulk's Game Call Co.", "Cajun Belle Studio", "Hello Darlin'"],
   14: ["Crew Dog", "Aeva Beauty", "Deming Delights", "The Sculpt Society", "Everyday Dose", "Rock Bottom Golf"],
@@ -60,11 +62,11 @@ const FINAL: Record<number, string[]> = {
   18: ["Boston Mints", "RYSE", "Basic Bee", "Saranoni", "Megan Benoit's Closet", "Wanderlust by Abby", "BIME Beauty"],
   19: ["Ty's Boutique Shop", "RYSE", "Hannahbelle Photography", "aosu", "Everyday Dose", "Tushbaby", "Manta Sleep"],
   20: ["RYSE", "Proof & Pour Wax Co.", "Tiffany Morton Cosmetic Tattooing", "Krazy Bull Kreations", "Salty Cat", "Tays Sweet Shop"],
-  21: ["RYSE", "The Soft Life Collective", "David Rabalais", "Boston Mints", "Cajun Fiya", "Phyllis Guy Dance Center", "Ripley's Crawfish"],
+  21: ["RYSE", "The Soft Life Collective", "David Rabalais", "Cajun Fiya", "Phyllis Guy Dance Center", "Ripley's Crawfish"],
   22: ["LMNT", "RYSE", "Botanical Nail and Skin Studio", "Bashi", "Barclell Photography", "Wanderlust by Abby", "Ripley's Crawfish"],
   23: ["Bashi", "Jaboom Baits", "Hilma", "Mary Kay", "Hair Fashion and Spa (Opelousas)", "Arey", "Faith & Fire BBQ"],
   24: ["LMNT", "Tays Sweet Shop", "Tufted Artworks", "Bashi", "K18 Hair", "Playtopia Lafayette", "Summar T. Photography"],
-  25: ["Louisiana Helpr", "Proof & Pour Wax Co.", "Bashi", "Mind the Skin Labs", "HOTWORX Denham Springs", "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)"],
+  25: ["Proof & Pour Wax Co.", "Bashi", "Mind the Skin Labs", "HOTWORX Denham Springs", "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)"],
 };
 
 const NO_DB: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
@@ -77,9 +79,9 @@ describe("the final lineup", () => {
     const got = Object.fromEntries(days.map((d) => [d.day, d.partners.map((p) => p.brand)]));
     expect(got).toEqual(FINAL);
     for (const d of days) for (const p of d.partners) expect(p.prize.trim().length, `Dec ${d.day} ${p.brand} prize`).toBeGreaterThan(2);
-    // 166 cards: 166 partner slots from the tracker export of 2026-11-22 plus our own Dec 25 card, minus the one public-off sponsor (owner 2026-11-19: show the
+    // 163 cards: the tracker export of 2026-11-22 minus the one public-off sponsor, our own Dec 25 gift card and Boston Mints' Dec 11 + 21 glosses (owner 2026-11-22; 2026-11-19: show the
     // full sponsor list), and no brand twice on one day (each partner's row is keyed by its brand).
-    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(166);
+    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(163);
     for (const d of days) expect(new Set(d.partners.map((p) => p.brand)).size, `Dec ${d.day}`).toBe(d.partners.length);
   });
 
@@ -108,7 +110,7 @@ describe("the final lineup", () => {
 
   it("a day the lineup lists never reads Open on the sign-up calendar, even with no sign-up row", () => {
     expect(tileCount(NO_DB, 4)).toBe(7);
-    expect(tileCount(NO_DB, 25)).toBe(6);
+    expect(tileCount(NO_DB, 25)).toBe(5); // our own gift card off (owner 2026-11-22)
     expect(tileCount(NO_DB, 24)).toBe(7);
     expect(tileCount(NO_DB, 14)).toBe(6);
     expect(tileCount(NO_DB, 8)).toBe(7);

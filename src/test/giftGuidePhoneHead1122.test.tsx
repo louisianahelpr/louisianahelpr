@@ -181,10 +181,12 @@ describe("a phone's guide page: the count row under the banner is unchanged (own
     expect(row).not.toBeNull();
     expect(row.querySelector("[data-gift-item-count]")?.textContent).toMatch(/^\d+ gifts$/);
     expect(row.querySelector("[data-gift-ship]")).not.toBeNull();
-    for (const sel of ["[data-gift-search-button]", "[data-gift-sort-button]", "[data-gift-my-list-link]", "[data-gift-share]"]) expect(row.querySelector(`[data-gift-quick] ${sel}`), sel).not.toBeNull();
+    // For Kids (owner 2026-11-23, "Age + price + girls/boys") the sliders icon is its Filter, which holds the sort too.
+    const sortSel = url.endsWith("/kids") ? "[data-gift-filter-button]" : "[data-gift-sort-button]";
+    for (const sel of ["[data-gift-search-button]", sortSel, "[data-gift-my-list-link]", "[data-gift-share]"]) expect(row.querySelector(`[data-gift-quick] ${sel}`), sel).not.toBeNull();
     // Owner 11-22: the heart sits "by the search and icons filter": the toolbar reads search, sort, heart, Share.
     const order = [...row.querySelector("[data-gift-quick]")!.children].map((k) =>
-      k.matches("[data-gift-search-box]") ? "search" : k.querySelector("[data-gift-sort-button]") || k.matches("[data-gift-sort-button]") ? "sort"
+      k.matches("[data-gift-search-box]") ? "search" : k.querySelector(sortSel) || k.matches(sortSel) ? "sort"
         : k.matches("[data-gift-my-list-link]") ? "heart" : k.querySelector("[data-gift-share]") || k.matches("[data-gift-share]") ? "share" : k.tagName);
     expect(order).toEqual(["search", "sort", "heart", "share"]);
     // The head row holds none of those, only the phone's menu (no second heart).

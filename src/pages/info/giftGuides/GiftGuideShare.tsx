@@ -1,9 +1,10 @@
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Input } from "@/components/ui/input";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import { SITE_ORIGIN } from "@/lib/publicPageMeta.mjs";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import { giftGuides as G } from "@/content/giftGuides";
@@ -50,6 +51,22 @@ export interface ToolsFilter {
   budgets: number[];
   budget: number | null;
   onBudget: (b: number | null) => void;
+  /** The For Kids guide (owner 2026-11-23, "Age + price + girls/boys"): its price order, as the Sort menu's choices. */
+  sort?: { order: SortOrder; onChange: (o: SortOrder) => void };
+  /** Multi-select chip groups (For Kids: Age, Price, For), each chip a menuitemcheckbox; chips in a group add up. */
+  groups?: FilterChipGroup[];
+  /** The live count under the chips ("23 of 119 gifts"), and Clear, while any chip is on. */
+  shown?: { count: number; total: number };
+  onClear?: () => void;
+}
+
+/** One group of multi-select chips in the Filter panel. */
+interface FilterChipGroup {
+  id: string;
+  label: string;
+  choices: { value: string; label: string }[];
+  selected: string[];
+  onToggle: (value: string) => void;
 }
 
 /**
@@ -62,6 +79,16 @@ export interface ToolsFilter {
 function GiftGuideFilter({ filter }: { filter: ToolsFilter }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
+  const panel = useRef<HTMLSpanElement>(null);
+  // The panel hangs from the icon's right edge; on a phone the icon sits mid-row (search, Filter, heart, Share), so a
+  // 300px panel ran 76px off the left of a 320px screen (measured 11-23). Slide it right to keep a 16px gutter.
+  useLayoutEffect(() => {
+    const el = panel.current;
+    if (!open || !el) return;
+    el.style.right = "";
+    const left = el.getBoundingClientRect().left;
+    if (left < 16) el.style.right = `${left - 16}px`;
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     const away = (e: Event) => {
@@ -80,17 +107,64 @@ function GiftGuideFilter({ filter }: { filter: ToolsFilter }) {
       document.removeEventListener("keydown", esc);
     };
   }, [open]);
-  const active = filter.budget ? 1 : 0;
+  const chipsOn = (filter.groups ?? []).reduce((n, g) => n + g.selected.length, 0);
+  const active = (filter.budget ? 1 : 0) + chipsOn;
+  // For Kids: one sliders icon holds the sort AND the filters (two identical icons side by side read as one control),
+  // so a price order that is not the default shows the sort's own dot when no chip is on.
+  const sortOn = !!filter.sort && filter.sort.order !== "top";
+  const sortChoices: SortChoice<SortOrder>[] = [{ value: "top", label: G.sortTop }, { value: "low", label: G.sortLowHigh }, { value: "high", label: G.sortHighLow }];
   return (
     <span ref={wrap} className="gg-share-wrap">
       <RoundIconButton className="gg-icon" aria-label={active ? G.filterLabelActive(active) : G.filterLabel} aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)} data-gift-filter-button="">
         <Icon d={SLIDERS} />
         {active > 0 && <span className="gg-icon-count" aria-hidden="true" data-gift-filter-count="">{active}</span>}
+        {active === 0 && sortOn && <span className="gg-icon-dot" aria-hidden="true" data-gift-sort-on="" />}
       </RoundIconButton>
+      {/* The live count, outside the menu (a status is not a menu child), read out as chips change. */}
+      {filter.shown && (
+        <span className="sr-only" role="status" aria-live="polite" data-gift-filter-live="">{chipsOn > 0 ? G.filterShown(filter.shown.count, filter.shown.total) : ""}</span>
+      )}
       {open && (
         // A menu like the sort menu beside it (its items the shared InlineTextButton): sections jump, a price choice is
         // a radio item (aria-checked), not a hand-rolled dialog of hand-made buttons (popupShellInventory, OWN-SHARED).
-        <span className="gg-share-menu gg-filter-panel" role="menu" aria-label={G.filterLabel} data-gift-filter-panel="">
+        <span ref={panel} className={filter.groups ? "gg-share-menu gg-filter-panel gg-filter-chips-panel" : "gg-share-menu gg-filter-panel"} role="menu" aria-label={G.filterLabel} data-gift-filter-panel="">
+          {filter.sort && (
+            <span role="group" aria-label={G.sortLabel} className="gg-filter-group" data-gift-filter-sort="">
+              <span className="gg-filter-h" aria-hidden="true">{G.sortLabel}</span>
+              {sortChoices.map((c) => (
+                <InlineTextButton key={c.value} role="menuitemradio" aria-checked={filter.sort?.order === c.value} onClick={() => { filter.sort?.onChange(c.value); setOpen(false); }} data-gift-sort-choice={c.value}>
+                  <span className="gg-sort-check" aria-hidden="true">{filter.sort?.order === c.value ? "✓" : ""}</span>{c.label}
+                </InlineTextButton>
+              ))}
+            </span>
+          )}
+          {(filter.groups ?? []).map((g) => (
+            // Multi-select chips (For Kids, owner 11-23): each a menuitemcheckbox (aria-checked), 44px tall, wrapping.
+            <span key={g.id} role="group" aria-label={g.label} className="gg-filter-group" data-gift-filter-group={g.id}>
+              <span className="gg-filter-h" aria-hidden="true">{g.label}</span>
+              <span className="gg-fchips">
+                {g.choices.map((c) => {
+                  const on = g.selected.includes(c.value);
+                  return (
+                    // The app's ToggleChip look (selected = the shared olive primary), as a menu's checkbox item:
+                    // aria-checked, not aria-pressed (a menuitemcheckbox takes no aria-pressed).
+                    <ToggleChip key={c.value} pressed={on} role="menuitemcheckbox" aria-checked={on} aria-pressed={undefined} className="gg-fchip"
+                      onClick={() => g.onToggle(c.value)} data-gift-filter-chip={`${g.id}:${c.value}`}>
+                      {c.label}
+                    </ToggleChip>
+                  );
+                })}
+              </span>
+            </span>
+          ))}
+          {filter.groups && filter.shown && (
+            <span role="none" className="gg-filter-foot" data-gift-filter-foot="">
+              <span className="gg-filter-count" aria-hidden="true" data-gift-filter-shown={filter.shown.count}>{G.filterShown(filter.shown.count, filter.shown.total)}</span>
+              {chipsOn > 0 && filter.onClear && (
+                <InlineTextButton role="menuitem" className="gg-filter-clear" onClick={filter.onClear} data-gift-filter-clear="">{G.filterClear}</InlineTextButton>
+              )}
+            </span>
+          )}
           {filter.sections.length > 1 && (
             <span role="group" aria-label={G.sectionNavLabel} className="gg-filter-group">
               <span className="gg-filter-h" aria-hidden="true">{G.sectionNavLabel}</span>

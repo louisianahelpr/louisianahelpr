@@ -13,6 +13,7 @@ import { CHUNK_PICK_COUNTS } from "@/content/giftGuidePicks";
 import { EXTRAS_WORDS, FINDER_ANCHOR } from "@/content/giftGuideExtras1120";
 import { GiftGuideTile } from "./GiftGuideTile";
 import { GiftGuideTop10 } from "./GiftGuideTop10";
+import { GuidesMenuHint } from "./GiftGuideMenuHint";
 
 /**
  * OWNER 11-21 ~5:05 PM ("put the top 10 items back when you open the guide"): the "Top 10 gifts" row sits right under
@@ -127,6 +128,8 @@ export function GiftGuideLanding() {
           <p className="gg-greet-p">{G.greetLine}</p>
         </div>
       </div>
+      {/* Owner 2026-11-22, 11:40 PM: the phone's one-line menu tip, under the greeting and above the three guides. */}
+      <GuidesMenuHint />
       <LiveGuides />
       <GiftGuideTop10 />
       {/* Owner 2026-11-18: the 25 Days card; owner 11-21 moved it up, right under the guides. App.tsx has no shopper

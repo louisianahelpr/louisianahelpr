@@ -33,7 +33,9 @@
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <FunBody title={words.title} path={path} tools="none"> | <FunBody title={words.title} path={path}>
  * @mutate src/pages/info/holidays/HolidayHub.tsx | banner={G.pageBanners["/holidays"]} tools="share" | banner={G.pageBanners["/holidays"]}
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | heart={tools !== "share"} | heart
- * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | noPill={tools === "share"} | noPill={false}
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | <GuidesTop backTo="/gift-guides" banner={banner} noPill | <GuidesTop backTo="/gift-guides" banner={banner} noPill={tools === "share"}
+ * @mutate src/pages/info/GiftGuides.tsx |           noPill={sidePage === "finder"}\n | \n
+ * @mutate src/pages/info/GiftGuides.tsx |           noPill={sidePage === "finder"}\n |           noPill\n
  * @mutate src/pages/info/giftGuides/GuidesTop.tsx |   const ship = noPill ? null : shippingLine(new Date()); |   const ship = shippingLine(new Date());
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {heart && <MyListIcon current={myList} />} |       <MyListIcon current={myList} />
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {search && ( |       {true && (
@@ -114,6 +116,8 @@ const ROUTES: Record<string, [url: string, title: RegExp][]> = {
   "/gift-guides/list/:code": [["/gift-guides/list/abc123def456", /^shared with you Wish List$/]],
   "/holidays": [["/holidays", /^lights & events Louisiana Holiday Hub$/]],
 };
+/** The shopping pages, the only ones with the shipping pill (owner 11-22 8:58 PM); every other case is a free page. */
+const SHOPPING = new Set(["/gift-guides/her", "/gift-guides/black-friday", "/gift-guides/small-business-saturday", "/gift-guides/cyber-monday", "/gift-guides/25-days-sponsors", "/gift-guides/my-list", "/gift-guides/list/abc123def456"]);
 /** Find a gift is the landing's finder view (/gift-guides#gift-finder), not a route of its own. */
 const FINDER: [url: string, title: RegExp] = ["/gift-guides#gift-finder", /^make it fun Find a Gift$/];
 
@@ -150,6 +154,9 @@ describe("#13 every guides page opens on the guides' one top: head row, then the
     expect(routes.length).toBeGreaterThan(9); // inventory floor: 11 on 2026-11-22
     expect(routes.filter((r) => !(r in ROUTES))).toEqual([]);
     expect(cases.length).toBeGreaterThan(14);
+    // Both kinds are checked: the shopping pages and the free ones (8 free on 2026-11-22).
+    expect(cases.filter(([u]) => SHOPPING.has(u)).length).toBe(SHOPPING.size);
+    expect(cases.filter(([u]) => !SHOPPING.has(u)).length).toBeGreaterThan(6);
   });
 
   it.each(cases)("%s", async (url, title) => {
@@ -168,8 +175,13 @@ describe("#13 every guides page opens on the guides' one top: head row, then the
     // has no pill and no heart either (owner 11-22 7:49 PM), anywhere on the page.
     const printables = url.startsWith("/gift-guides/printables");
     const hub = url === "/holidays";
-    expect(top.some((el) => el.querySelector("[data-gift-ship]")), url).toBe(!hub);
-    if (hub) expect(container.querySelectorAll("[data-gift-ship], [data-gift-my-list-link]").length).toBe(0);
+    // Owner 11-22 8:58 PM pop-up ("Remove on free pages"): the "Order by Dec 15" pill shows on the shopping pages only
+    // (the guides, the deals days, Small Business Saturday, the 25 Days sponsors and the wish lists), at every width;
+    // the free pages (printables, Swipe, Secret Santa, the planner, Find a gift, the Holiday Hub) show none anywhere.
+    const shopping = SHOPPING.has(url);
+    expect(top.some((el) => el.querySelector("[data-gift-ship]")), url).toBe(shopping);
+    if (!shopping) expect(container.querySelectorAll("[data-gift-ship]").length, url).toBe(0);
+    if (hub) expect(container.querySelectorAll("[data-gift-my-list-link]").length).toBe(0);
     expect(top.some((el) => el.querySelector("[data-gift-quick]")), url).toBe(!printables);
     expect(top.some((el) => el.querySelector("[data-gift-my-list-link]")), url).toBe(!printables && !hub);
     expect(top.some((el) => el.querySelector("[data-gift-share]")), url).toBe(!printables);

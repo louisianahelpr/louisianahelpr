@@ -264,7 +264,13 @@ describe("deals days: one page per day (owner 11-21)", () => {
       expect(on).toBe(day.day);
       // Polish audit 1122 #12: less any code a Top deal card on the page already shows (Black Friday's XT25).
       const onDeals = new Set([...subs[0].querySelectorAll("[data-gift-code-copy]")].map((x) => x.getAttribute("data-gift-code-copy")!.toUpperCase()));
-      const boxCodes = activeCodes(all, on).filter((x) => !onDeals.has(x.code.toUpperCase()));
+      // Guide audit 1123 #5/#11: an embargoed code stays off until its `starts` day comes (Bonheur BLKFRIDAY35, Nov 26),
+      // and a code whose offer names the other deal day stays off this day's page (codesOn, giftGuideDealCounts.ts).
+      const otherDays = DEAL_EVENTS.filter((e) => e.kind === "deals" && e.day !== day.day).map((e) => e.title);
+      const boxCodes = activeCodes(all, on)
+        .filter((x) => !onDeals.has(x.code.toUpperCase()))
+        .filter((x) => !(x.embargo && x.starts && "2026-11-21" < x.starts))
+        .filter((x) => !(otherDays.some((t) => x.offer.includes(t)) && !x.offer.includes(day.title)));
       const want = boxCodes.map((x) => x.code).sort();
       if (day === BF) expect(onDeals.has("XT25")).toBe(true);
       // One card per store (audit 1122 #13); its other codes sit under "+N more codes", so open those before reading.

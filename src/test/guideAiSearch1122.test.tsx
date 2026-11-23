@@ -20,7 +20,7 @@
  * @mutate api/share.ts | section: qaSectionHtml(qa, hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : undefined, byline), ld: ld ? [ld] : [] }; | section: qaSectionHtml(qa, hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : undefined, byline), ld: [] };
  * @mutate src/lib/guideQa.mjs |   if (!section) return body; |   return body;
  * @mutate src/lib/guideQa.mjs |   return p.priceFrom ? `from $${d}` : `~$${d}`; |   return p.priceFrom ? `from $${p.price}` : `~$${p.price}`;
- * @mutate src/lib/guideQa.mjs |   const to50 = band(25, 50); |   const to50 = band(0, 50);
+ * @mutate src/lib/guideQa.mjs |   const to50 = band("25-to-50"); |   const to50 = priced;
  * @mutate src/lib/guideQa.mjs |   other: "We put this list together.", |   other: "Put together by our founder, a Louisiana nurse.",
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | QA_CATALOG_GUIDES.includes(guide.slug) && ( | false && (
  * @mutate scripts/generate-llms-txt.mjs |     ...guides.map(line), |     ...guides.slice(1).map(line),
@@ -121,6 +121,7 @@ describe("guide Q&A in the HTML a crawler reads", () => {
       const qa = pairs(section(await page(PAGE_IDS[slug])));
       expect(qa).toEqual(catalogGuideQa(slug, picks, today()));
       for (const { q, a } of qa) {
+        // The page's own price sections (guide audit 1123 #1): "Under $25" = shown dollars below 25, "$25 to $50" = 25 to 49.
         const band = /under \$25/.test(q) ? [0, 25] : /under \$50/.test(q) ? [25, 50] : null;
         // Each named pick: "Name (~$N)". The name is the text before " (~$" back to the list separator.
         for (const m of a.matchAll(/(?:: |, | and )([^,:]+?) \((~|from )\$(\d+(?:\.\d+)?)\)/g)) {
@@ -131,8 +132,8 @@ describe("guide Q&A in the HTML a crawler reads", () => {
           expect(pickPriceShown(pick!.price, pick!.priceAt, today())).toBe(true);
           expect(shownDollars(pick!.price)).toBe(Number(dollars));
           if (band) {
-            expect(Number(dollars)).toBeGreaterThan(band[0]);
-            expect(Number(dollars)).toBeLessThanOrEqual(band[1]);
+            expect(Number(dollars)).toBeGreaterThanOrEqual(Math.max(1, band[0]));
+            expect(Number(dollars)).toBeLessThan(band[1]);
           }
           checked++;
         }

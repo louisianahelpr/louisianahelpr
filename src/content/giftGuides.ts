@@ -95,7 +95,9 @@ export const LOUISIANA_MADE_BRANDS = ["Dirty Coast", "Fleurty Girl", "Café Du M
 // is a logo card linking its site, else its Facebook or Instagram page, else the 25 Days page, so those hosts are back.
 // Links audit 1122 night #3: God's Country RV Resort links its operator's page (streamsideparks.com/gods-country-resort-shreveport-la/,
 // where godscountryresort.com redirects); its old ?p=902 page was a 404 and its Facebook Page no longer loads.
-export const SPONSOR_SITES = ["www.ethansclosetccb.com", "charmedpagebooks.com", "wildcatbrothers.com", "pixiedust.eco", "thestrandtheatre.com", "basicbee.co", "www.zydecochopchop.com", "www.faulkcalls.com", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.lepetittheatre.com", "www.theallwayslounge.net", "citysightseeingneworleans.com", "davidrabalaisfilm.com", "www.facebook.com", "www.instagram.com", "calendly.com", "www.shopbirdwells.com", "www.goodwolfyoga.com", "www.tayssweets.org", "treefrogspark.com", "www.handmadebyhayli.com", "thecrabmanplus.com", "tysboutiqueshop.bigcartel.com", "jaboombaits.com", "www.perfectlyplannedeventsla.com", "cajunfiya.com", "www.louisianahelpr.com"] as const;
+// Guide audit 1123 #4: 10 sponsor cards link the website Small Business Saturday already links (basicbee.co was here), so
+// their 9 other hosts join the list.
+export const SPONSOR_SITES = ["www.ethansclosetccb.com", "charmedpagebooks.com", "wildcatbrothers.com", "pixiedust.eco", "thestrandtheatre.com", "basicbee.co", "www.zydecochopchop.com", "www.faulkcalls.com", "www.writtenontheriver.com", "www.rozlecompte.com", "meganbenoitscloset.com", "www.lepetittheatre.com", "www.theallwayslounge.net", "citysightseeingneworleans.com", "davidrabalaisfilm.com", "www.facebook.com", "www.instagram.com", "calendly.com", "www.shopbirdwells.com", "www.goodwolfyoga.com", "www.tayssweets.org", "treefrogspark.com", "www.handmadebyhayli.com", "thecrabmanplus.com", "tysboutiqueshop.bigcartel.com", "jaboombaits.com", "www.perfectlyplannedeventsla.com", "cajunfiya.com", "www.louisianahelpr.com", "www.beaversabundance.com", "www.softlifecollective.org", "www.creolequeen.com", "suzimarquesphotography.com", "www.crabtrapfunctionalfitness.com", "jessicalanhamphoto.com", "brittcreatesstudio.com", "www.phyllisguydancecenter.com", "www.botanicalnailandskinstudio.com"] as const;
 /**
  * The national 25 Days sponsors' own shops (train 1120b, owner 11-20 ~8:35 AM: each gets one best-fit guide spot with
  * the sponsor badge, 0% allowed). Kept apart from SPONSOR_SITES, which are Louisiana businesses: a Louisiana host's
@@ -186,6 +188,11 @@ export interface DiscountCode {
   expires?: string;
   /** YYYY-MM-DD, the first day it works; until then it is hidden (affiliate sweep 11-18: Muck Boot CYBER showed early). */
   starts?: string;
+  /**
+   * The brand embargoed the code until `starts`: no page names it before that day, even a deal day's page that previews
+   * the codes working on its later day (guide audit 1123 #5, giftGuideDealCounts.ts codesOn).
+   */
+  embargo?: true;
   /** The store's affiliate link, so a shopper who copies the code can open the store (holiday audit 1121 #81). */
   href?: string;
 }
@@ -222,7 +229,7 @@ export const discountCodes: DiscountCode[] = [
   // Days). EF Collection, Quip and The Foggy Dog have no pick, so their codes stay off. BLKFRIDAY35 is embargoed to Nov 26.
   { rank: 17, store: "Bonheur Jewelry", code: "SHOPMY25", offer: "25% off", href: "https://bonheurjewelry.com/" },
   { rank: 17, store: "Bonheur Jewelry", code: "BONHEUR15", offer: "15% off", href: "https://bonheurjewelry.com/" },
-  { rank: 17, store: "Bonheur Jewelry", code: "BLKFRIDAY35", offer: "35% off (Black Friday)", dates: "From Nov 26", starts: "2026-11-26", href: "https://bonheurjewelry.com/" },
+  { rank: 17, store: "Bonheur Jewelry", code: "BLKFRIDAY35", offer: "35% off (Black Friday)", dates: "From Nov 26", starts: "2026-11-26", embargo: true, href: "https://bonheurjewelry.com/" },
   // Tushbaby confirmed LAHELPR25 for us (11-18 PM; we told the brand we'd list it): shows Dec 1, hides after Dec 25.
   { rank: 18, store: "Tushbaby", code: "LAHELPR25", offer: "25% off sitewide", dates: "Dec 1 – 25", starts: "2026-12-01", expires: "2026-12-25", href: "https://click.linksynergy.com/deeplink?id=pqYaS88pNmA&mid=53904&murl=https%3A%2F%2Ftushbaby.com%2F" },
 ];

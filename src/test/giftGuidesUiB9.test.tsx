@@ -117,7 +117,8 @@ describe("H5: search finds what shoppers type", () => {
       poll();
     });
     expect(item, word).not.toBeNull();
-    expect(item!.getAttribute("href")).toBe(`/gift-guides/${item!.getAttribute("data-gift-found-item")}`);
+    // Guide audit 1123 I2: the result opens its guide AT the gift (the row's #gift-... link).
+    expect(item!.getAttribute("href")).toMatch(new RegExp(`^/gift-guides/${item!.getAttribute("data-gift-found-item")}#gift-[a-z0-9-]+$`));
   });
 });
 

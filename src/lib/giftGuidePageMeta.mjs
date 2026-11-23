@@ -37,14 +37,27 @@ export function giftGuideDescription(name, topNames, count) {
  * a thin store page) is noindex under its own title. `topNames` and `count` (its picks' first names and how many it
  * holds) give it its own description; without them, the template.
  */
+/**
+ * The picks a guide's description names when it has its own (guide audit 1123 #7): Her, Him and Kids list low to high,
+ * so their first three were the cheapest filler ("Colgate Minecraft Kids Toothbrush ...") under every shared link.
+ * These are gifts from the owner's own covers (scripts/gift-guide-cover-pins.json) and Top 10; the guard checks each
+ * name is still a pick on its guide (src/test/guideAuditFixes1123.test.tsx).
+ */
+export const GUIDE_LEAD_PICKS = {
+  her: ["Therabody Theragun Mini", "Lola Blankets Original Throw Blanket", "Ember Mug 2, Brown"],
+  him: ["YETI Rambler 20 oz Tumbler", "XTRATUF Ankle Deck Boot", "BURLEBO Cap"],
+  kids: ["Nintendo Switch 2", "Tickle Me Elmo Giggle Max", "Toniebox 2, Sky Blue"],
+};
+
 export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count = 0) {
   const day = dealDay(slug);
   if (day) return dealDayPageMeta(day);
   if (slug === SPONSORS_SLUG) return SPONSORS_META;
   const named = Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, slug) ? GIFT_GUIDE_SEO[slug] : null;
   const name = named ?? `${fallbackTitle} gift guide`;
+  const lead = Object.prototype.hasOwnProperty.call(GUIDE_LEAD_PICKS, slug) ? GUIDE_LEAD_PICKS[slug] : null;
   const description =
-    giftGuideDescription(name, topNames, count) ?? `${name}: hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.`;
+    giftGuideDescription(name, lead ?? topNames, count) ??`${name}: hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.`;
   return {
     title: `${name} — Helpr`,
     description,

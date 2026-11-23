@@ -723,7 +723,7 @@ describe("Holiday Hub When: Today and Next 7 days", () => {
  * Holiday audit 1121 area 5 #20 (rest): a dated item goes into the visitor's calendar as an all-day .ics entry from
  * its own dates; an undated one has no button and no entry.
  * @mutate src/lib/holidayIcs.ts |   if (item.tba \|\| !item.start \|\| !/^\d{4}-\d{2}-\d{2}$/.test(item.start)) return null; |   if (!item.start) return null;
- * @mutate src/lib/holidayIcs.ts |     `DTEND;VALUE=DATE:${ymd(dayAfter(last))}`, |     `DTEND;VALUE=DATE:${ymd(last)}`,
+ * @mutate src/lib/holidayIcs.ts |     `DTEND;VALUE=DATE:${ymd(dayAfter(to))}`, |     `DTEND;VALUE=DATE:${ymd(to)}`,
  * @mutate src/lib/holidayIcs.ts | .replace(/;/g, "\\;") |
  * @mutate src/pages/info/holidays/holidayParts.tsx |         {item.start && !item.tba && ( |         {false && (
  */
@@ -867,8 +867,10 @@ describe("Holiday Hub: Pick a day (owner 2026-11-22 7:46 PM)", () => {
     expect(dec5.some((i) => i.start! < "2026-12-05" && !isHolidayLight(i))).toBe(true);
     expect(dec5.some((i) => isHolidayLight(i) && i.start! < "2026-12-05")).toBe(true);
     expect(dec5.every((i) => !i.tba)).toBe(true);
-    const firstRunning = dec5.findIndex((i) => (i.start ?? i.end) !== "2026-12-05");
-    expect(dec5.slice(firstRunning).every((i) => (i.start ?? i.end) !== "2026-12-05")).toBe(true);
+    // A day an event with gaps stops on (its `days`, guide audit 1123) counts as a start that day, like a one-day item.
+    const startsDec5 = (i: (typeof dec5)[number]) => (i.start ?? i.end) === "2026-12-05" || Boolean(i.days?.includes("2026-12-05"));
+    const firstRunning = dec5.findIndex((i) => !startsDec5(i));
+    expect(dec5.slice(firstRunning).every((i) => !startsDec5(i))).toBe(true);
     expect(holidayDayChipLabel(today, today)).toBe("Today");
     expect(holidayDayChipLabel("2026-11-23", today)).toBe("Mon 23");
     expect(holidayDayChipLabel("2026-12-01", today)).toBe("Tue Dec 1");

@@ -171,6 +171,9 @@ export function runsBetween(item, from, to) {
   const first = item.start ?? item.end;
   const last = lastDay(item);
   if (!first || !last) return false;
+  // An event with gaps in its dates (`days`) runs only on those days (guide audit 1123 #20 / I1: Cookies With Santa,
+  // Sat Nov 21 and Sat Dec 12, was listed on every day between). Guard: src/test/guideAuditFixes1123.test.tsx.
+  if (Array.isArray(item.days) && item.days.length) return item.days.some((d) => d >= from && d <= to);
   return first <= to && last >= from;
 }
 
@@ -386,8 +389,10 @@ export function holidayDayChoices(items, today, when = null) {
 export function holidayItemsOn(items, day) {
   const byName = (a, b) => a.name.localeCompare(b.name);
   const on = items.filter((i) => runsBetween(i, day, day));
-  const starts = on.filter((i) => (i.start ?? i.end) === day).sort(byName);
-  const running = on.filter((i) => (i.start ?? i.end) !== day)
+  // A one-day stop of an event with gaps (`days`) is a fresh start that day, not a long run.
+  const startsOn = (i) => (i.start ?? i.end) === day || (Array.isArray(i.days) && i.days.includes(day));
+  const starts = on.filter(startsOn).sort(byName);
+  const running = on.filter((i) => !startsOn(i))
     .sort((a, b) => (lastDay(a) ?? "9999-12-31").localeCompare(lastDay(b) ?? "9999-12-31") || byName(a, b));
   return [...starts, ...running];
 }

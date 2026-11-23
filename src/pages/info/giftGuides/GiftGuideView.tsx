@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { amazonCartUrl } from "@/lib/retailerCart";
 import { giftGuides as G } from "@/content/giftGuides";
@@ -21,6 +21,8 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import { sortByPrice } from "@/content/giftGuidePriceSort";
 import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGuideEarnOrder";
 import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
+import { PRICE_SECTIONS, priceSectionId } from "@/lib/pickPriceShown.mjs";
+import { PICK_ANCHOR_PREFIX, pickAnchor } from "@/content/giftGuidePickAnchor";
 import { PrimeTrialLink } from "@/components/giftGuides/PrimeTrialLink";
 import { AgeChips } from "./GiftGuideAges";
 import { GiftGuideLoadError } from "./GiftGuideLoadError";
@@ -113,7 +115,8 @@ export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide
   // Consistency audit 1122 #10: a sponsor with no page of its own links our 25 Days page, and the row says so.
   const toOurPage = OUR_25_DAYS_PAGE.test(pick.href);
   return (
-    <li data-gift-pick="">
+    // A guide row carries its own #link (pickAnchor), the one a search result opens (guide audit 1123 I2).
+    <li data-gift-pick="" id={guide && rank === undefined ? pickAnchor(pick.name) : undefined}>
       {/* Owner 2026-11-21: "remove the shop at button, when they click the title of the image it will go there to the
           link". ONE link holds the photo and the name (calm: underlined on hover and focus only); the heart stays its
           own 44px button outside it. A screen reader hears "<name> (On <store>) ~$24 (opens in a new tab)". */}
@@ -186,18 +189,8 @@ export const sectionNav = (picks: CatalogPick[]) => {
  * a last "Price coming soon" for a pick with no shown price. The picks arrive already in price order (low to high or
  * reversed), so each section keeps that order and the sections follow it; an empty section never draws.
  */
-const PRICE_SECTIONS = [
-  { id: "under-25", max: 25 },
-  { id: "25-to-50", max: 50 },
-  { id: "50-to-75", max: 75 },
-  { id: "75-to-100", max: 100 },
-  { id: "100-and-up", max: Infinity },
-] as const;
-const priceSectionOf = (p: CatalogPick): string => {
-  if (!showsPrice(p)) return "price-soon";
-  const dollars = Math.max(1, Math.round(p.price ?? 0));
-  return PRICE_SECTIONS.find((s) => dollars < s.max)!.id;
-};
+// The section rule lives in src/lib/pickPriceShown.mjs (priceSectionId), shared with the page's Q&A counts (guide audit 1123 #1).
+const priceSectionOf = (p: CatalogPick): string => (showsPrice(p) ? priceSectionId(p.price) : "price-soon");
 const priceSections = (picks: CatalogPick[]): CatalogPick[] => {
   const priced = picks.filter((p) => priceSectionOf(p) !== "price-soon");
   const soon = picks.filter((p) => priceSectionOf(p) === "price-soon");
@@ -210,6 +203,35 @@ const priceSections = (picks: CatalogPick[]): CatalogPick[] => {
     return { ...p, sectionId: id, section: G.priceSection[id as keyof typeof G.priceSection] };
   });
 };
+
+/**
+ * Scroll an element into view and keep it there while the rows above it draw (guide audit 1123 I8: each row skips
+ * layout off screen, content-visibility, so one scroll on a full page load landed 46px past the $25 to $50 header as
+ * the rows above took their real heights). Re-aligns each frame for SETTLE_MS, and stops the moment the reader scrolls.
+ */
+const SETTLE_MS = 1500;
+function settleScroll(id: string, block: ScrollLogicalPosition, onFirst?: (el: HTMLElement) => void) {
+  const until = Date.now() + SETTLE_MS;
+  let first = true;
+  let stopped = false;
+  // A reader who touches, scrolls or types is left where they are. (Not a scrollY check: the browser's own scroll
+  // anchoring moves scrollY as the rows above draw, which is exactly the drift this corrects.)
+  const INPUT = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+  const stop = () => { stopped = true; INPUT.forEach((t) => window.removeEventListener(t, stop)); };
+  INPUT.forEach((t) => window.addEventListener(t, stop, { passive: true }));
+  const step = () => {
+    if (stopped) return;
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ block });
+      if (first) onFirst?.(el);
+      first = false;
+    }
+    if (Date.now() < until) requestAnimationFrame(step);
+    else stop();
+  };
+  requestAnimationFrame(step);
+}
 
 /** The budget filter's choices (owner-approved 11-19 9:05 PM): picks whose band is at most this. */
 export const BUDGETS = [25, 50, 100] as const;
@@ -259,6 +281,7 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   // on arrival, a tap closes and reopens).
   const bandHeads = sortable || guide.slug === SPONSORS_PAGE;
   const ready = picksReady(guide.slug);
+  const { hash } = useLocation();
   // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.
   const nav = ready ? sectionNav(guide.picks) : [];
   const jump = (id: string) => {
@@ -270,7 +293,13 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   };
   const navKey = nav.map((x) => x.id).join(" ");
   useEffect(() => {
-    const raw = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+    let raw = "";
+    try {
+      raw = decodeURIComponent(hash.replace(/^#/, ""));
+    } catch {
+      // A malformed %-escape in a pasted link: look the raw text up instead (nothing to report, nothing broke).
+      raw = hash.replace(/^#/, "");
+    }
     // An old #section link (a section folded into a sibling, or an old guide's slug) opens its section now (1120d).
     const ids = navKey.split(" ");
     const id = ids.includes(raw) ? raw : SECTION_ALIASES[guide.slug]?.[raw] || SECTION_ANCHORS[raw] || "";
@@ -279,11 +308,23 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
     // every section is).
     else if (sortable && (PRICE_SECTIONS.some((s) => s.id === raw) || raw === "price-soon")) {
       setFlipped(() => new Set());
-      requestAnimationFrame(() => document.getElementById(`gg-sec-${raw}`)?.scrollIntoView({ block: "start" }));
+      settleScroll(`gg-sec-${raw}`, "start");
     }
-    // Once per guide, when its list is in (the hash is read only on arrival).
-     
-  }, [navKey]);
+    // A search result's link (/gift-guides/kids#gift-lego-snowman-ornaments, guide audit 1123 I2): the row, centred
+    // under the sticky bar, with a short outline so the eye finds it.
+    else if (raw.startsWith(PICK_ANCHOR_PREFIX)) {
+      setBudget(null);
+      setFlipped(new Set<string>());
+      settleScroll(raw, "center", (row) => {
+        row.setAttribute("data-gift-pick-found", "");
+        window.setTimeout(() => row.removeAttribute("data-gift-pick-found"), 2400);
+      });
+    }
+    // Guide audit 1123 I8: re-read when the list is in (`ready`; a price-sorted guide's navKey is "" before AND after
+    // the picks load, so on a full page load the section did not exist yet and nothing scrolled) and on each new
+    // #link on the same guide (a search pick on the guide you are on).
+
+  }, [navKey, ready, hash]);
   if (!ready && failed && onRetry) return <GiftGuideLoadError message={G.picksFailed} onRetry={onRetry} />;
   if (!ready) return <p className="gg-soon" role="status" data-gift-picks-loading="">{G.loadingPicks}</p>;
   const related = guide.empty ? relatedGuides(guide) : [];

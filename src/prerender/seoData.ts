@@ -32,8 +32,11 @@ export async function buildSeoData(): Promise<SeoData> {
     // Seo bodies 1123 (technical SEO audit TS4): every pick, not the first 40. A 40 cap left readers with no JavaScript (AI
     // assistants) only the cheapest picks of Her, Him and Kids while the intro said 159 (size measured in the commit).
     for (const p of indexed ? g.picks : []) {
-      if (!p.name || !p.href || seen.has(p.href)) continue;
-      seen.add(p.href);
+      // One row per gift as the page draws it (its key: link + name, GiftGuideView.tsx PickRow): the 25 Days sponsors with no
+      // shop of their own all link our /25days page, and a link-only key dropped 3 of those 4 (crawler 105 vs the page 108).
+      const key = `${p.href} ${p.name}`;
+      if (!p.name || !p.href || seen.has(key)) continue;
+      seen.add(key);
       const store = STORES[p.store]?.name ?? "";
       // "a 25 Days sponsor" reads oddly in a list: the brand is the store there.
       // Structured data (lead 11-21): the photo URL and checked price feed the guide's ItemList of Products
@@ -48,7 +51,7 @@ export async function buildSeoData(): Promise<SeoData> {
       .map((r) => [r.slug, GIFT_GUIDE_SEO[r.slug]] as [string, string]);
     // Guide Q&A (owner pop-up 11-22 9:40 PM): every pick, in the page's order, as the Q&A reads it (guideQa.mjs toQaPick).
     const qa = indexed && QA_PAGES.includes(g.slug) ? g.picks.filter((p) => p.name).map(toQaPick) : [];
-    guides[g.slug] = { name, indexed, picks, count: indexed ? new Set(g.picks.filter((p) => p.name && p.href).map((p) => p.href)).size : 0, ...(related.length ? { related } : {}), ...(qa.length ? { qa } : {}) };
+    guides[g.slug] = { name, indexed, picks, count: indexed ? new Set(g.picks.filter((p) => p.name && p.href).map((p) => `${p.href} ${p.name}`)).size : 0, ...(related.length ? { related } : {}), ...(qa.length ? { qa } : {}) };
   }
   const moved: Record<string, string> = {};
   for (const old of [...Object.keys(OLD_SLUGS), ...Object.keys(MERGED_GUIDES), ...RETIRED_SLUGS()]) {

@@ -86,17 +86,18 @@ const HER4_1122_ASINS = ["B0H2FQ5FV1", "B0FXYGCYK6", "B0F5K3B4Q7", "B0CHMS3PVZ",
 // Owner 11-22 PM, "add all items" (Desktop note Louisiana-popular-candidates-1122.md, builder-guide-louisiana): the For Her
 // Louisiana picks. Links made in her ShopMy that evening (ShopMy-links-created-1122.md) or reused from the hidden
 // Louisiana guides (Katie Kime tray, Haydel's, Toups tallow, Match South); her Macy's Community Coffee pin opens a
-// "page not found" now, so the 24-count box sold by Amazon.com stands in.
+// "page not found" now, so the 24-count box sold by Amazon.com stands in. Owner 11-22 PM ("Drop both"): the Desden LSU
+// coin pouch (p-109343748, no ShopMy rate) is off.
 const LOUISIANA_1122_ASINS = ["0935032029", "B07QDPPH7Z", "B0886YWV65", "B0915PDW38", "B002CMXGRI"];
-const LOUISIANA_1122_PINS = ["p-109341967", "p-109342469", "p-109342173", "p-108006579", "p-108155517", "p-108155377", "p-109343748", "p-107207657", "p-109340844"];
+const LOUISIANA_1122_PINS = ["p-109341967", "p-109342469", "p-109342173", "p-108006579", "p-108155517", "p-108155377", "p-107207657", "p-109340844"];
 const SAVED = new Set([...[...LOUISIANA_1122_ASINS, ...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS, ...LOUISIANA_1122_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
 const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 describe("For Her = the owner's saves (11-21)", () => {
-  it("the page holds exactly her 160 links, once each, and nothing else", () => {
-    expect(SAVED.size).toBe(160);
-    expect(page.length).toBe(160);
+  it("the page holds exactly her 159 links, once each, and nothing else", () => {
+    expect(SAVED.size).toBe(159);
+    expect(page.length).toBe(159);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
@@ -133,7 +134,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(80);
-    expect(shopmy.length).toBe(80);
+    expect(shopmy.length).toBe(79);
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

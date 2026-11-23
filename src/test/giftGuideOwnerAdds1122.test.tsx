@@ -91,21 +91,20 @@ const SENT: [string, string, string, number][] = [
   // Owner 11-22 PM, "add all items" (Desktop note Louisiana-popular-candidates-1122.md, builder-guide-louisiana). Links
   // made in her ShopMy that evening (ShopMy-links-created-1122.md) or reused from the hidden Louisiana guides. Mignon
   // Faget shows its page's "from" price (by metal); the Katie Kime tray is "from" (by size). The KREWE Olivier is on both
-  // Her and Him, as the note lists it.
+  // Her and Him, as the note lists it. Owner 11-22 PM ("Drop both"): the Desden coin pouch and the Southern Marsh youth
+  // chino are off (no ShopMy rate for either).
   ["p-109341967", "her", "store-mignon-faget", 75], // Heirloom Fleur de Lis Pendant, from
   ["p-109342469", "her", "store-stoney-clover-lane", 55], // SCL x '47 Saints Clean Up hat (catalog link, 15%)
   ["p-109342173", "her", "store-mignon-faget", 120], // Oyster Large Earrings, from
   ["p-108006579", "her", "store-katie-kime", 58], // New Orleans Toile Lucite Tray, from
   ["p-108155517", "her", "store-goldbelly", 69.95], // Haydel's Christmas King Cake (goldbelly.com 11-22)
   ["p-108155377", "her", "store-toups-and-co", 45], // Travel Tallow Set
-  ["p-109343748", "her", "store-desden", 43.95], // LSU Hand Beaded Coin Pouch
   ["p-107207657", "her", "store-match-south", 49], // Warm Beignets Candle
   ["p-109340844", "her", "store-krewe", 255], // Olivier, Reed
   ["p-109340963", "him", "store-lodge", 89.9], // 6 qt Essential Enamel Dutch Oven
   ["p-108155418", "him", "store-toups-and-co", 80], // Men's Grooming Set
   ["p-109342284", "him", "store-mignon-faget", 184], // Fleur de Lis Cufflinks, from
   ["p-109340844", "him", "store-krewe", 255], // Olivier, Reed
-  ["p-107857942", "kids", "store-southern-marsh", 59], // Youth Regatta Stretch Chino
   ["p-109341055", "kids", "store-duck-commander", 19.99], // Youth Happy Tee, Cream
   ["p-109341153", "kids", "store-toups-and-co", 43], // Baby Essentials Set
 ];

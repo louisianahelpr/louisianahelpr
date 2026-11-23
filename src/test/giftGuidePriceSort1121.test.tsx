@@ -229,9 +229,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Owner 11-22 PM (builder-guide-emibauble): Kids lost the EADEM set ($58, to Her) and the Melissa & Doug Club Chair
       // ($75) and gained the Pottery Barn Kids Anywhere Chair (from $119).
       // Owner 11-22 PM, "add all items" (builder-guide-louisiana): three books, the pelican and the Duck Commander tee (under
-      // $25), Mike the Tiger (~$25), the Saints jersey, Toups baby set, XTRATUF and LSU cheer dress ($25-$50), the Southern
-      // Marsh chino ($59).
-      kids: { "Under $25": 41, "$25 to $50": 33, "$50 to $75": 11, "$75 to $100": 9, "$100 and up": 27 },
+      // $25), Mike the Tiger (~$25), the Saints jersey, Toups baby set, XTRATUF and LSU cheer dress ($25-$50). The Southern
+      // Marsh chino came off again (owner "Drop both": no ShopMy rate).
+      kids: { "Under $25": 41, "$25 to $50": 33, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -252,9 +252,10 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // the CS-8 Micro ($25-$50), the CS-Pro ($79) and the CS-8 camcorder ($159); then gained the Gaoye glasses ($13), the
       // BaubleBar brush ($48) and the EADEM set from Kids ($58).
       // Owner 11-22 PM, "add all items" (builder-guide-louisiana): Community Coffee, the map board and the pelican ornament
-      // (under $25); the cookbook (~$25), Desden, Toups and Match South ($25-$50); the Cafe Du Monde box, the SCL Saints hat,
-      // the Katie Kime tray and Haydel's ($50-$75); the Mignon Faget pendant (from $75); the oyster earrings and KREWE.
-      her: { "Under $25": 47, "$25 to $50": 46, "$50 to $75": 15, "$75 to $100": 14, "$100 and up": 38 },
+      // (under $25); the cookbook (~$25), Toups and Match South ($25-$50); the Cafe Du Monde box, the SCL Saints hat, the
+      // Katie Kime tray and Haydel's ($50-$75); the Mignon Faget pendant (from $75); the oyster earrings and KREWE. The
+      // Desden coin pouch came off again (owner "Drop both": no ShopMy rate).
+      her: { "Under $25": 47, "$25 to $50": 45, "$50 to $75": 15, "$75 to $100": 14, "$100 and up": 38 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

@@ -129,7 +129,8 @@ export const HER_ADDS_1122 = [
   // "Gift guides and affiliate/Louisiana-popular-candidates-1122.md", her picks, so the type and brand caps do not apply).
   // ShopMy links made in her shopmy.us/links that evening (ShopMy-links-created-1122.md); Amazon rows use her tag and
   // Amazon's own photo; prices read on each store's own page 11-22. Mignon Faget lists each piece by metal, so it shows
-  // the page's own "from" price; Katie Kime lists the tray by size.
+  // the page's own "from" price; Katie Kime lists the tray by size. Owner 11-22 PM ("Drop both"): the Desden LSU coin
+  // pouch and the Southern Marsh youth chino are off, since ShopMy shows no rate for either (0% items stay off).
   { name: "Mignon Faget Heirloom Fleur de Lis Pendant", brand: "Mignon Faget", line: "A fleur de lis pendant from a New Orleans jeweler.", href: shopmy("p-109341967"), image: "https://www.mignonfaget.com/mm5/graphics/00000001/9/7661S.png", store: "store-mignon-faget", sortPrice: 75, price: 75, priceFrom: true, commission: 9, type: "jewelry" },
   { name: "Stoney Clover Lane x '47 Saints Clean Up Hat", brand: "Stoney Clover Lane", line: "A cream Saints cap in cursive script with a suede brim.", href: shopmy("p-109342469"), image: "https://cdn.shopify.com/s/files/1/0096/2392/files/FCO-SCLCC116WIS-SS-HR-F.jpg", store: "store-stoney-clover-lane", sortPrice: 55, price: 55, commission: 15, type: "hat" },
   { name: "Mignon Faget Oyster Large Earrings", brand: "Mignon Faget", line: "Oyster shell earrings from a New Orleans jeweler.", href: shopmy("p-109342173"), image: "https://www.mignonfaget.com/mm5/graphics/00000001/1795B.png", store: "store-mignon-faget", sortPrice: 120, price: 120, priceFrom: true, commission: 9, type: "jewelry" },
@@ -140,9 +141,6 @@ export const HER_ADDS_1122 = [
   // Ready row from the hidden guide; price read on goldbelly.com/haydels-bakery 11-22 (shipping included).
   { name: "Haydel's Bakery Christmas King Cake", brand: "Haydel's Bakery", line: "A Christmas king cake shipped from a New Orleans bakery.", href: shopmy("p-108155517"), image: "https://goldbelly.imgix.net/uploads/showcase_media_asset/image/259423/ChristmasKringle.jpg", store: "store-goldbelly", sortPrice: 69.95, price: 69.95, commission: 12, type: "food-gift" },
   { name: "Toups and Co Travel Tallow Set", brand: "Toups and Co", line: "Mini tallow balms made in Walker, Louisiana.", href: shopmy("p-108155377"), image: "https://cdn.shopify.com/s/files/1/2365/4175/files/MINI_BALM__0238_b3164e36-a61f-4912-8990-2a891331066f.jpg", store: "store-toups-and-co", sortPrice: 45, price: 45, commission: 10, type: "skincare" },
-  // ShopMy shows no rate for desden.com links (her other Desden pins too) and has no catalog entry for Desden, so the
-  // rate is unknown here (Commission-inventory.md lists 8% for her Desden button pin, 11-19).
-  { name: "Desden LSU Hand Beaded Coin Pouch", brand: "Desden", line: "A hand-beaded purple and gold Geaux Tigers pouch.", href: shopmy("p-109343748"), image: "https://cdn.shopify.com/s/files/1/2150/7589/files/865LSU_JPG.jpg", store: "store-desden", sortPrice: 43.95, price: 43.95, commission: null, type: "bag" },
   // Ready row from the hidden Shop Small Louisiana guide (same pin and photo).
   { name: "Match South x Café Du Monde Warm Beignets Candle", brand: "Match South", line: "A candle that smells like warm beignets at Café Du Monde.", href: shopmy("p-107207657"), image: "https://static.shopmy.us/uploads/pretty-prod-1758994986674", store: "store-match-south", sortPrice: 49, price: 49, commission: 12, type: "candle" },
   { name: "KREWE Olivier Sunglasses, Reed", brand: "KREWE", line: "Handmade sunglasses from a New Orleans eyewear brand.", href: shopmy("p-109340844"), image: "https://cdn.shopify.com/s/files/1/2422/6603/files/Olivier-Reed-Front-Web.jpg", store: "store-krewe", sortPrice: 255, price: 255, commission: 16, type: "sunglasses" },
@@ -179,9 +177,6 @@ export const KIDS_ADDS_1122 = [
   { name: "Little King LSU Tigers 2-Piece Cheer Dress", brand: "Little King", line: "A purple and gold LSU cheer outfit for game day.", href: amz("B074YZWKMB"), image: amzImg("71zwV98xbtL"), store: "store-amazon", sortPrice: 48.99, commission: 4, type: "dress" },
   { name: "Wild Republic Cuddlekins Brown Pelican, 12\"", brand: "Wild Republic", line: "A cuddly brown pelican, the Louisiana state bird.", href: amz("B0792C316R"), image: amzImg("61LgH-SH+kL"), store: "store-amazon", sortPrice: 19.99, commission: 3, type: "plush" },
   { name: "Outerstuff New Orleans Saints Youth Game Day Jersey", brand: "Outerstuff", line: "A black Saints game day jersey in kids' sizes.", href: amz("B0CCBMLJM5"), image: amzImg("71R1plQu5CL"), store: "store-amazon", sortPrice: 37.99, commission: 4, type: "jersey" },
-  // Ready row from the hidden Shop Small Louisiana guide (same pin, photo and line; $59 on southernmarsh.com 11-22).
-  // ShopMy shows no rate for this southernmarsh.com pin, and St. Bernard (10%) does not carry this chino.
-  { name: "Southern Marsh Youth Regatta Stretch Chino", brand: "Southern Marsh", line: "Stretch chinos a boy can wear to church and still play in.", href: shopmy("p-107857942"), image: "https://static.shopmy.us/uploads/img-1759936062863", store: "store-southern-marsh", sortPrice: 59, price: 59, commission: null, type: "pants" },
   { name: "Clovis Crawfish and His Friends, 60th Anniversary Edition", brand: "Pelican Publishing", line: "The bayou picture book classic from a Lafayette author.", href: amz("1455625639"), image: amzImg("91FSm-EacSL"), store: "store-amazon", sortPrice: 19.95, commission: 4.5, type: "book" },
   // duckcommander.com has only photos of kids wearing it; the cutout is the boy in the cream tee.
   { name: "Duck Commander Youth Happy Tee, Cream", brand: "Duck Commander", line: "A Happy Happy Happy tee from the West Monroe duck call family.", href: shopmy("p-109341055"), image: "https://cdn.shopify.com/s/files/1/0642/6565/0397/files/happy_youth_3_copy.png", store: "store-duck-commander", sortPrice: 19.99, price: 19.99, commission: 16, type: "tee" },
@@ -310,7 +305,6 @@ export const ADDS_CUTOUTS_1122 = [
   ["https://static.shopmy.us/uploads/img-product-1765082316407", "katie-kime-nola-toile-lucite-tray-la1122.webp"],
   ["https://goldbelly.imgix.net/uploads/showcase_media_asset/image/259423/ChristmasKringle.jpg", "haydels-christmas-king-cake-la1122.webp"],
   ["https://cdn.shopify.com/s/files/1/2365/4175/files/MINI_BALM__0238_b3164e36-a61f-4912-8990-2a891331066f.jpg", "toups-travel-tallow-set-la1122.webp"],
-  ["https://cdn.shopify.com/s/files/1/2150/7589/files/865LSU_JPG.jpg", "desden-lsu-beaded-coin-pouch-la1122.webp"],
   ["https://static.shopmy.us/uploads/pretty-prod-1758994986674", "match-south-warm-beignets-candle-la1122.webp"],
   ["https://cdn.shopify.com/s/files/1/2422/6603/files/Olivier-Reed-Front-Web.jpg", "krewe-olivier-reed-la1122.webp"],
   // The "New item" badge in the corner was left out by the cutout.
@@ -318,7 +312,6 @@ export const ADDS_CUTOUTS_1122 = [
   ["https://cdn.shopify.com/s/files/1/2365/4175/files/Toupspdp1-104.jpg", "toups-mens-grooming-set-la1122.webp"],
   ["https://www.mignonfaget.com/mm5/graphics/00000001/0824S.png", "mignon-faget-fleur-de-lis-cufflinks-la1122.webp"],
   ["https://cdn.shopify.com/s/files/1/0676/1385/1803/files/XKAB100Y_gray_main_1400x1400_5c89e1ff-aa62-4b7d-9923-2e7b09278383.jpg", "xtratuf-big-kids-ankle-deck-white-blue-la1122.webp"],
-  ["https://static.shopmy.us/uploads/img-1759936062863", "southern-marsh-youth-regatta-chino-la1122.webp"],
   ["https://cdn.shopify.com/s/files/1/0642/6565/0397/files/happy_youth_3_copy.png", "duck-commander-youth-happy-tee-cream-la1122.webp"],
   ["https://cdn.shopify.com/s/files/1/2365/4175/files/babyset_05606b9f-26df-4014-9391-07883f074367.jpg", "toups-baby-essentials-set-la1122.webp"],
   // end LOUISIANA_ADDS_1122

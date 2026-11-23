@@ -5,6 +5,7 @@ import { DEAL_EVENTS, codesDay, dealCode, dealsIn, liveDeals, louisianaDay, type
 import { louisianaMinutes, louisianaToday } from "@/content/holidayHub/holidayHub.mjs";
 import RAIL from "@/content/giftGuideRailCounts.json";
 import { codeCardCount, codesOn, salesOn } from "./GiftGuideDealCards";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
 /**
  * The gift guides menu's numbers that change with the date (owner 2026-11-22: "Number on the right"), loaded in this
@@ -38,7 +39,10 @@ export function hubCountAt(hub: typeof RAIL.hub, today: string, minutes: number)
 
 /** Every date-bound menu number at `now`, by menu key (a deals day's id, "/holidays"); a row with none is left out. */
 export async function railCounts(now: Date = new Date()): Promise<Record<string, number>> {
-  const deals = (await import("@/content/giftGuideDeals.json")).default as Deal[];
+  // Through loadModule (noPropertyOffARawImport): null only while a recovery reload is on its way, so wait for it.
+  const mod = await loadModule(() => import("@/content/giftGuideDeals.json"));
+  if (!mod) return untilReload();
+  const deals = mod.default as Deal[];
   const today = louisianaDay(now);
   const out: Record<string, number> = {};
   for (const e of DEAL_EVENTS) if (e.kind === "deals") out[e.id] = dealDayCount(e.id, deals, today);

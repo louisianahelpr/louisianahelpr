@@ -36,12 +36,11 @@ export function CreditCard({
       ? `to ${credit.recipient_email ?? "your recipient"}`
       : `from ${donorFirst}`;
 
-  // Gift cards expire (gift_cards.expires_at defaults to +90 days) and
-  // `redeem_gift_card` hard-rejects a lapsed one. The row's `status` is NOT
-  // flipped by a background job, so a card can sit at "sent" with a date in
-  // the past — surfacing that as "Ready to use" with a live button walks the
-  // recipient into a server-side refusal. Derive expiry from the date and let
-  // the pill, the date line, and the button all agree.
+  // Gift cards never expire (MON-1123-01, migration 20261123090716: no
+  // default, trg_gift_cards_never_expire keeps expires_at NULL; La. R.S.
+  // 51:1423). The date checks stay so a row that somehow carried a past date
+  // reads the way `redeem_gift_card` would treat it: the pill, the date line
+  // and the button all agree.
   const parsedExpiry = credit.expires_at ? new Date(credit.expires_at) : null;
   const expiresAt = parsedExpiry && !isNaN(parsedExpiry.getTime()) ? parsedExpiry : null;
   const isExpired = expiresAt !== null && expiresAt.getTime() < Date.now();
@@ -80,8 +79,9 @@ export function CreditCard({
   // All four conditions the server checks, in the same order. Anything less
   // offers a button that is going to be refused.
   const redeemable = !isExpired && isFunded && isMine && spendableStatus;
-  // Moot once the money is spent — only unredeemed cards can still lapse.
-  const showExpiry = expiresAt !== null && credit.status !== "redeemed";
+  // Moot once the money is spent, and never said of a card whose purchase was
+  // refunded or never paid. No date = "Never expires", said on the card.
+  const showExpiry = isFunded && credit.status !== "redeemed";
   return (
     // Spec v2 rebuild (audit 2026-10-21): the one card (white, 20px, 1px
     // line border). The amount is money, so it is rust; no green box.
@@ -108,7 +108,7 @@ export function CreditCard({
           className="font-sans text-ds-12 mb-2"
           style={{ color: isExpired ? "hsl(var(--alert-ink))" : "hsl(var(--muted-foreground))" }}
         >
-          {isExpired ? "Expired" : "Expires"} {formatShortDate(expiresAt)}
+          {expiresAt === null ? "Never expires" : `${isExpired ? "Expired" : "Expires"} ${formatShortDate(expiresAt)}`}
         </p>
       )}
 

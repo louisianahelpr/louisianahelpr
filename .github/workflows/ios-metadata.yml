@@ -42,6 +42,8 @@ jobs:
       # temporary upload copy only. Unset until scripts/rotate-review-demo-password.mjs
       # runs (after Apple decides on build 7119); until then the tracked file is used.
       ASC_REVIEW_DEMO_PASSWORD: ${{ secrets.ASC_REVIEW_DEMO_PASSWORD }}
+      # NL-01: the App Review contact phone, staged by the Fastfile into the upload copy only (never in the repo).
+      APP_REVIEW_PHONE: ${{ secrets.APP_REVIEW_PHONE }}
 
       FASTLANE_HIDE_CHANGELOG: "1"
       FASTLANE_SKIP_UPDATE_CHECK: "1"

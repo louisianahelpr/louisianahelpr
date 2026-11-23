@@ -443,7 +443,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                   className="font-sans text-ds-11 mt-1.5"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
-                  ${MIN_GIFT}–${MAX_GIFT} per gift card.{" "}
+                  ${MIN_GIFT}–${MAX_GIFT} per gift card. Never expires.{" "}
                   {giftChargeSentence(giftTotalCents)}
                 </p>
               </div>

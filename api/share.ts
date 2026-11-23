@@ -1315,10 +1315,11 @@ const GIFT_GUIDES_LANDING_OG = "/gift-guides/og/landing.jpg?v=5";
  * Owner 2026-11-22 ("Fix the preview on these links": her Facebook post of /gift-guides/her came out as a SMALL square
  * thumbnail beside the title, because the guide's og:image was its 600x600 cover; the landing's 1200x630 card gets the
  * big card). Every gift guides page with its own head shares a 1200x630 card in its banner's style: the gingham, the
- * cream arch with its lead and title, LOUISIANA HELPR, and for the guides their cover's products
+ * cream arch with its lead and title, LOUISIANA HELPR; only Her, Him and Kids add their cover's six gifts (owner
+ * 2026-11-22, 10:15 PM: every other page "shows just its gingham and arch with the words, no items")
  * (scripts/gift-guide-wide-og.py, public/gift-guides/og-wide/<key>.jpg). ?v= is the file's content hash
  * (src/lib/giftGuideWideOg.mjs, written by the script), so a redrawn card is a new URL to Facebook's cache.
- * Guard: src/test/giftGuideWideOg1122.test.ts.
+ * Guards: src/test/giftGuideWideOg1122.test.ts, src/test/giftGuideWideOgCoversOnly1122.test.ts.
  */
 const WIDE_CARD_FOR_ID: Record<string, string> = {
   "gift-guides/her": "her",

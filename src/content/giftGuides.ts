@@ -270,7 +270,9 @@ export const giftGuides = {
    * printables, deals and Holiday Hub, "they don't even know what to do or look for"): a small box on a phone, "Tap [menu
    * icon] for deals, free printables & more", with a Close; GiftGuideMenuHint.tsx.
    */
-  menuHint: { before: "Tap", icon: "the menu", after: "for deals, free printables & more", close: "Close" },
+  // afterShort: under 375px wide only (guide train p 11-23: at 320px and 360px the full line ran out of room and ended in
+  // "..."; the owner wants it on one line), the same tip without "free"; 375px and wider keep her exact words.
+  menuHint: { before: "Tap", icon: "the menu", after: "for deals, free printables & more", afterShort: "for deals, printables & more", close: "Close" },
   /** The landing's Top 10 row (owner 2026-11-21 ~5:05 PM, src/content/giftGuideTop10.ts). */
   top10Title: "Top 10 gifts",
   /** The quiet line under a landing tile (lead 11-21): "36 gifts". */

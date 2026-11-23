@@ -10,7 +10,10 @@ export function shortDate(day: string | undefined): string;
 export function updatedLine(day: string | undefined): string;
 export function toQaPick(p: { name: string; price?: number; priceAt?: string; priceFrom?: boolean; badges?: readonly string[]; brand?: string }): QaPick;
 export function catalogGuideQa(slug: string, picks: QaPick[], today: string): QaItem[];
-export function dealsDayQa(slug: string, deals: QaDeal[], today: string): QaItem[];
+/** A deals day page's other two sections on `today` (giftGuideDealCounts.ts dealDayParts) and the codes a card's end follows. */
+export interface QaDealListed { codes: number; sales: number; storeCodes?: readonly { store: string; code: string; expires?: string }[] }
+export function dealsDayQa(slug: string, deals: QaDeal[], today: string, listed: QaDealListed): QaItem[];
+export function dealPartsOn(rows: readonly (readonly [string, number, number])[] | undefined, today: string): { codes: number; sales: number };
 export function smallBizQa(shops: QaShop[], categories: readonly string[]): QaItem[];
 export function holidayHubQa(lights: readonly unknown[], events: readonly unknown[], today: string): QaItem[];
 export function faqPageLd(qa: QaItem[]): Record<string, unknown> | null;

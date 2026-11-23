@@ -88,7 +88,7 @@ import {
   type SeoData,
 } from "../src/lib/seoBodies.mjs";
 import { holidayHubBody, holidayHubLd } from "../src/lib/holidayHubSeo.mjs";
-import { QA_BYLINE, catalogGuideQa, dealsDayQa, faqPageLd, holidayHubQa, qaSectionHtml, smallBizQa, withQaSection, type QaItem } from "../src/lib/guideQa.mjs";
+import { QA_BYLINE, catalogGuideQa, dealPartsOn, dealsDayQa, faqPageLd, holidayHubQa, qaSectionHtml, smallBizQa, withQaSection, type QaItem } from "../src/lib/guideQa.mjs";
 import { GUIDE_UPDATED } from "../src/content/guideUpdated.mjs";
 import { SMALL_BIZ_CATEGORIES } from "../src/content/giftGuideSmallBiz.mjs";
 import { HOLIDAY_LIGHTS } from "../src/content/holidayHub/lights.mjs";
@@ -1202,7 +1202,9 @@ function dealDayQa(slug: string, kind: string, today: string): QaItem[] {
   const d = seoData();
   if (!d) return [];
   if (kind === "small-biz") return smallBizQa((d.smallBiz ?? []).map(([name, town, category, ships]) => ({ name, town, category, ships })), SMALL_BIZ_CATEGORIES);
-  return dealsDayQa(slug, (d.deals ?? []).map(([item, , ends, event, brand, deal]) => ({ item, event, brand: brand ?? "", deal: deal ?? "", ...(ends ? { ends } : {}) })), today);
+  // The seo rows carry each card's real last day (its store code's end counted at build), and dealParts the day's code and
+  // sale counts: the same three sections the page and the guides menu count (guide train p 11-23).
+  return dealsDayQa(slug, (d.deals ?? []).map(([item, , ends, event, brand, deal]) => ({ item, event, brand: brand ?? "", deal: deal ?? "", ...(ends ? { ends } : {}) })), today, dealPartsOn(d.dealParts?.[slug], today));
 }
 
 const HOME_CRUMB = { name: "Louisiana Helpr", path: "/" };

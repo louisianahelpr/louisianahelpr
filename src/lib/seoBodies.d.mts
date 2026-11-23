@@ -21,6 +21,8 @@ export interface SeoData {
   groups: [label: string, guides: [slug: string, name: string][]][];
   /** The deals days' cards: item name, shop link, last day ("" = no end), the day page's slug. */
   deals?: [item: string, href: string, ends: string, event: string, brand?: string, deal?: string][];
+  /** Each deals day's Discount codes and Sales counts by date: [first day, codes, sales], one row per change (guideQa.mjs dealPartsOn). */
+  dealParts?: Record<string, [from: string, codes: number, sales: number][]>;
   /** Small Business Saturday's businesses (its Q&A): name, town, category, "ships" or "local". */
   smallBiz?: [name: string, town: string, category: string, ships: string][];
 }

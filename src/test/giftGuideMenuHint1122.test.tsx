@@ -79,7 +79,10 @@ describe("gift guides: the phone's one-line menu tip (owner 11-22)", () => {
     const { container } = renderAt("/gift-guides");
     const hint = hintIn(container)!;
     expect(hint).not.toBeNull();
-    expect(hint.querySelector("[data-gift-menu-hint-open]")!.textContent!.replace(/\s+/g, " ").trim()).toBe(TIP);
+    // The under-360px words (.gg-menuhint-s, hidden by CSS at every other width; giftGuideMenuHintFits1123.test.tsx) are left out.
+    const open = hint.querySelector("[data-gift-menu-hint-open]")!.cloneNode(true) as HTMLElement;
+    open.querySelectorAll(".gg-menuhint-s").forEach((x) => x.remove());
+    expect(open.textContent!.replace(/\s+/g, " ").trim()).toBe(TIP);
     const greet = container.querySelector("[data-gift-greeting]")!;
     const covers = container.querySelector("[data-gift-live-guides]")!;
     expect(covers.querySelectorAll("li").length).toBeGreaterThan(2);

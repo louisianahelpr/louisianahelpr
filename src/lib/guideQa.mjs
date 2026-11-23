@@ -16,7 +16,7 @@
 
 import { pickPriceShown, shownDollars } from "./pickPriceShown.mjs";
 import { TWENTY_FIVE_DAYS } from "./seoBodies.mjs";
-import { DEAL_EVENTS, RETITLE_AFTER, dealsIn, liveDeals } from "../content/giftGuideDeals.mjs";
+import { DEAL_EVENTS, RETITLE_AFTER, dealEnds, dealsIn, liveDeals } from "../content/giftGuideDeals.mjs";
 import { filterEvents, filterLights } from "../content/holidayHub/holidayHub.mjs";
 
 /** The pages that carry a Q&A (each one's key in guideUpdated.json). */
@@ -169,31 +169,59 @@ export function catalogGuideQa(slug, picks, today) {
 const dealWords = (deal) => String(deal ?? "").replace(/^[^:]{0,40}\b(?:Friday|Monday|Cyber|Week)\b[^:]{0,20}:\s+/i, "").trim();
 
 /**
- * A deals day (Black Friday, Cyber Monday). `deals`: the deals file's rows ({ event, brand, deal, ends? }); only the
- * day's rows that still show on `today` are named (liveDeals: through their end day, or Dec 1 with none).
+ * A deals day (Black Friday, Cyber Monday). `deals`: the deals file's rows ({ event, brand, deal, ends?, code? }); only
+ * the day's Top deals cards that still show on `today` are named (liveDeals with `listed.storeCodes`, the page's own
+ * rule: through their end day, a code's end counting, or Dec 1 with none). `listed`: the day page's other two sections
+ * on `today`, its Discount codes cards and store Sales (giftGuideDealCounts.ts dealDayParts; the pre-JS body reads them
+ * from seo-data's dealParts), so "on this page" counts exactly what the page's three sections and the guides menu
+ * count (guide train p 11-23: the Q&A said "19 deals right now" beside the menu's 61, which also counts the codes and
+ * sales).
  */
-export function dealsDayQa(slug, deals, today) {
+export function dealsDayQa(slug, deals, today, listed) {
   const day = DEAL_EVENTS.find((e) => e.id === slug && e.kind === "deals");
   if (!day) return [];
-  const live = dealsIn(liveDeals(Array.isArray(deals) ? deals : [], today), slug);
+  const live = dealsIn(liveDeals(Array.isArray(deals) ? deals : [], today, listed?.storeCodes ?? []), slug);
+  const codes = Math.max(0, Number(listed?.codes) || 0);
+  const sales = Math.max(0, Number(listed?.sales) || 0);
+  const total = live.length + codes + sales;
   const qa = [{ q: `When is ${day.title} 2026?`, a: `${day.title} is ${longDate(day.day)}.` }];
-  if (live.length === 0) {
+  if (total === 0) {
     qa.push({ q: `What ${day.title} deals are on this page?`, a: `The ${day.title} deals on this page have ended.` });
     return qa;
   }
+  const parts = [
+    live.length ? plural(live.length, "top deal", "top deals") : "",
+    codes ? plural(codes, "discount code", "discount codes") : "",
+    sales ? plural(sales, "sale", "sales") : "",
+  ].filter(Boolean);
   const lines = live.slice(0, NAMED).map((d) => (dealWords(d.deal) ? `${d.brand} (${dealWords(d.deal)})` : d.brand));
+  const top = live.length === 0 ? "" : live.length === 1 ? ` The top deal is ${lines[0]}.` : ` The top deals ${live.length > NAMED ? "include" : "are"} ${list(lines)}.`;
   qa.push({
     q: `What ${day.title} deals are on this page?`,
-    a: `${plural(live.length, "deal", "deals")} right now${live.length > NAMED ? ", including" : ":"} ${list(lines)}.`,
+    a: `${parts.length > 1 ? `${total} right now: ${list(parts)}.` : `${parts[0]} right now.`}${top}`,
   });
-  const ending = live.filter((d) => d.ends).sort((a, b) => (a.ends < b.ends ? -1 : a.ends > b.ends ? 1 : 0));
+  if (live.length === 0) return qa;
+  const ending = live
+    .map((d) => ({ brand: d.brand, ends: dealEnds(d, listed?.storeCodes ?? []) }))
+    .filter((d) => d.ends)
+    .sort((a, b) => (a.ends < b.ends ? -1 : a.ends > b.ends ? 1 : 0));
   qa.push({
-    q: `When do the ${day.title} deals end?`,
+    q: `When do the ${day.title} top deals end?`,
     a: ending.length
       ? `It depends on the store. ${list(ending.slice(0, 3).map((d) => `${d.brand}'s ends ${monthDay(d.ends)}`))}. A deal with no end date stays listed through ${monthDay(RETITLE_AFTER)}.`
       : `None of these stores gave an end date, so each deal stays listed through ${monthDay(RETITLE_AFTER)}.`,
   });
   return qa;
+}
+
+/**
+ * A deals day's Discount codes and Sales counts on `today` from seo-data's dealParts rows ([first day, codes, sales], one
+ * per change; src/prerender/seoData.ts): the last row starting on or before `today`, or zeros before the first.
+ */
+export function dealPartsOn(rows, today) {
+  let at = null;
+  for (const r of Array.isArray(rows) ? rows : []) if (Array.isArray(r) && r[0] <= today) at = r;
+  return at ? { codes: Number(at[1]) || 0, sales: Number(at[2]) || 0 } : { codes: 0, sales: 0 };
 }
 
 /** Small Business Saturday. `shops`: { name, town, category, ships } (giftGuideSmallBiz.json); `categories`: their order. */
@@ -205,16 +233,18 @@ export function smallBizQa(shops, categories) {
   const more = rows.length - NAMED;
   qa.push({
     q: "Which Louisiana small businesses are on this page?",
-    a: `${plural(rows.length, "Louisiana business", "Louisiana businesses")}, all sponsors of ${TWENTY_FIVE_DAYS.name}, including ${list(rows.slice(0, NAMED).map((s) => (s.town ? `${s.name} (${s.town})` : s.name)))}${more > 0 ? `, plus ${more} more` : ""}.`,
+    // Guide train p 11-23: the guides menu's number also counts the approved Featured local businesses listed after the
+    // sponsors (a live read the pre-JS body cannot make), so this names what its number counts: the sponsors.
+    a: `The ${plural(rows.length, "Louisiana business", "Louisiana businesses")} that sponsor ${TWENTY_FIVE_DAYS.name}, including ${list(rows.slice(0, NAMED).map((s) => (s.town ? `${s.name} (${s.town})` : s.name)))}${more > 0 ? `, plus ${more} more` : ""}. Any Featured local businesses are listed after them.`,
   });
   const ships = rows.filter((s) => s.ships === "ships").length;
   qa.push({
     q: "Can I order from these shops online?",
-    a: ships === rows.length ? "Yes, every one of them ships." : ships === 0 ? "They sell locally, in their own towns." : `${ships} of them ship. The other ${rows.length - ships} sell locally, in their own towns.`,
+    a: ships === rows.length ? "Yes, every sponsor ships." : ships === 0 ? "The sponsors sell locally, in their own towns." : `${ships} of the sponsors ship. The other ${rows.length - ships} sell locally, in their own towns.`,
   });
   const order = Array.isArray(categories) ? categories : [];
   const counts = order.map((c) => [c, rows.filter((s) => s.category === c).length]).filter(([, n]) => n > 0);
-  if (counts.length) qa.push({ q: "What kinds of businesses are listed?", a: `${list(counts.map(([c, n]) => `${c} (${n})`))}.` });
+  if (counts.length) qa.push({ q: "What kinds of businesses are listed?", a: `By kind, the sponsors are ${list(counts.map(([c, n]) => `${c} (${n})`))}.` });
   return qa;
 }
 

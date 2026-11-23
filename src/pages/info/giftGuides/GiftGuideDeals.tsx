@@ -14,6 +14,7 @@ import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
 import { CARD_CSS, CARD_WORDS, CodeCards, CodeChip, codeCardCount, SaleCards, codesOn, salesOn } from "./GiftGuideDealCards";
+import { dealDayParts } from "@/content/giftGuideDealCounts";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
 import { FeatureCta, FeatureCtaLink } from "./SmallBizFeatureCta";
 import { GiftGuideSort, MyListIcon, type SortChoice } from "./GiftGuideShare";
@@ -283,7 +284,7 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
         </div>
       )}
       {/* Owner pop-up 11-22 9:40 PM: common questions answered from this day's cards, its Updated day and who picks. */}
-      {kind === "deals" && deals !== null && <LazyGuideQa kind="deals" page={day.id} deals={deals} />}
+      {kind === "deals" && deals !== null && <LazyGuideQa kind="deals" page={day.id} deals={deals} listed={{ ...dealDayParts(day.id, deals, today), storeCodes: STORE_CODES }} />}
     </div>
   );
 }

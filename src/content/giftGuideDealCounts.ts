@@ -1,7 +1,7 @@
 import { activeCodes, codesByStore, discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
-import { DEAL_EVENTS } from "@/content/giftGuideDeals.mjs";
+import { DEAL_EVENTS, codesDay, dealCode, dealsIn, liveDeals, type Deal } from "@/content/giftGuideDeals.mjs";
 
 /**
  * The deals days' codes and sales rules, with no React and no card code: the deals pages draw their cards from them
@@ -37,3 +37,21 @@ export const salesOn = (day: string) => {
 
 /** How many cards the codes make: one per store with a link. */
 export const codeCardCount = (codes: readonly DiscountCode[]) => new Set(codes.filter((c) => c.href).map((c) => c.store)).size;
+
+/** The codes a deal card's code follows (GiftGuideDeals.tsx STORE_CODES, the same list). */
+export const STORE_CODES = [...discountCodes, ...CLEAN_CODES];
+
+/**
+ * What a deals day's page lists on `today`, by its three sections (GiftGuideDeals.tsx DealSections): the Top deals cards
+ * still on, the Discount codes cards (one per store, minus a code a Top deal card already shows) and the store Sales.
+ * The gift guides menu's number is their sum (railCounts.ts dealDayCount) and the page's "Common questions" names the
+ * same three (guideQa.mjs dealsDayQa, also in the pre-JS body through seo-data's dealParts), so the menu, the section
+ * heads and the Q&A cannot disagree (guide train p 11-23: the Q&A said "19 deals" beside the menu's 61).
+ */
+export function dealDayParts(id: string, deals: readonly Deal[], today: string): { deals: number; codes: number; sales: number } {
+  const day = DEAL_EVENTS.find((e) => e.id === id)!;
+  const list = dealsIn(liveDeals(deals, today, STORE_CODES), id);
+  const shown = new Set(list.flatMap((d) => dealCode(d, today, STORE_CODES) ?? []).map((c) => c.toUpperCase()));
+  const on = codesDay(day, today);
+  return { deals: list.length, codes: codeCardCount(codesOn(on).filter((c) => !shown.has(c.code.toUpperCase()))), sales: salesOn(on).length };
+}

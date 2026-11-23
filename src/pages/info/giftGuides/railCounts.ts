@@ -1,11 +1,8 @@
-import { discountCodes } from "@/content/giftGuides";
-import { DEAL_CODES } from "@/content/giftGuidePicks";
-import { cleanCodes } from "@/lib/giftGuideOfferCopy.mjs";
-import { DEAL_EVENTS, codesDay, dealCode, dealsIn, liveDeals, louisianaDay, type Deal } from "@/content/giftGuideDeals.mjs";
+import { DEAL_EVENTS, louisianaDay, type Deal } from "@/content/giftGuideDeals.mjs";
 import { louisianaMinutes, louisianaToday } from "@/content/holidayHub/holidayHub.mjs";
 import RAIL from "@/content/giftGuideRailCounts.json";
 import { featuredLocalCount } from "@/lib/sbsFeaturedCount";
-import { codeCardCount, codesOn, salesOn } from "@/content/giftGuideDealCounts";
+import { dealDayParts } from "@/content/giftGuideDealCounts";
 import { loadModule, untilReload } from "@/lib/loadModule";
 
 /**
@@ -35,16 +32,10 @@ export async function smallBizCount(): Promise<number> {
  * A day with nothing listed gets no number. Guard: src/test/giftGuideRailCounts1122.test.tsx.
  */
 
-/** The codes a deal card's code follows (GiftGuideDeals.tsx STORE_CODES, the same list). */
-const STORE_CODES = [...discountCodes, ...cleanCodes(DEAL_CODES)];
-
 /** A deals day's whole list on `today`: its live deal cards, its codes (minus those a card shows) and its store sales. */
 export function dealDayCount(id: string, deals: Deal[], today: string): number {
-  const day = DEAL_EVENTS.find((e) => e.id === id)!;
-  const list = dealsIn(liveDeals(deals, today, STORE_CODES), id);
-  const shown = new Set(list.flatMap((d) => dealCode(d, today, STORE_CODES) ?? []).map((c) => c.toUpperCase()));
-  const on = codesDay(day, today);
-  return list.length + codeCardCount(codesOn(on).filter((c) => !shown.has(c.code.toUpperCase()))) + salesOn(on).length;
+  const p = dealDayParts(id, deals, today);
+  return p.deals + p.codes + p.sales;
 }
 
 /** What /holidays lists with no filter on `today` at `minutes` (Louisiana), from the schedule; null outside its window. */

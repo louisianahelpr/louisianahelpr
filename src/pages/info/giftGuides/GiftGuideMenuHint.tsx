@@ -16,6 +16,8 @@ const W = G.menuHint;
  * The one-line menu tip (owner 2026-11-22, 11:40 PM: visitors don't find the free printables, deals and the Holiday Hub,
  * "they don't even know what to do or look for"; the longer lists were "way too busy"): a slim cream box (38px; "not as big as the mockup"), "Tap [the
  * three-line icon] for deals, free printables & more", and a Close on the right. Tapping the words opens the guides menu,
+ * Below 375px wide the words drop "free" ("for deals, printables & more", two spans swapped by CSS, no script), and
+ * below 346px they are a half size smaller, so the line fits at 320px and 360px with no "..." (guide train p 11-23).
  * exactly as the head row's three-line icon does (openGuidesMenu). Close hides it and remembers that in localStorage
  * (GiftHint's try/catch store), so it stays closed on every guides page after.
  * On /gift-guides under the greeting and above the covers, and at the top of Her, Him and Kids (Facebook visitors land on
@@ -34,7 +36,10 @@ export function GuidesMenuHint() {
           <span className="gg-menuhint-ico" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="12" height="12"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" /></svg>
           </span>
-          <span className="sr-only">{W.icon}</span>{" "}{W.after}
+          <span className="sr-only">{W.icon}</span>{" "}
+          {/* One line at every phone width: below 375px the CSS swaps in the shorter words (giftGuidesStyles.ts). */}
+          <span className="gg-menuhint-l">{W.after}</span>
+          <span className="gg-menuhint-s">{W.afterShort}</span>
         </span>
       </Button>
       <Button type="button" variant="ghost" size="sm" className="gg-menuhint-x" onClick={close} aria-label={W.close} data-gift-menu-hint-close="">

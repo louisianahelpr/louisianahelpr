@@ -16,7 +16,7 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1; | .gg-list .gg-nm .gg-nm-meta{grid-column:1;grid-row:2;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list>:where([data-gift-pick])>.gg-heart-pick{bottom:0;right:0;justify-content:flex-end} | .gg-list>:where([data-gift-pick])>.gg-heart-pick{top:4px;left:54px;justify-content:flex-end}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list>:where([data-gift-pick])>.gg-cart{bottom:0;right:44px;justify-content:flex-end} | .gg-list>:where([data-gift-pick])>.gg-cart{top:48px;left:54px;justify-content:flex-end}
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const isOpen = (id?: string) => !sortable \|\| !id \|\| (flipped.has(id) ? !START_OPEN : START_OPEN); |   const isOpen = (id?: string) => !sortable \|\| !id \|\| (flipped.has(id) ? START_OPEN : !START_OPEN);
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const isOpen = (id?: string) => !bandHeads \|\| !id \|\| (flipped.has(id) ? !START_OPEN : START_OPEN); |   const isOpen = (id?: string) => !bandHeads \|\| !id \|\| (flipped.has(id) ? START_OPEN : !START_OPEN);
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       setFlipped(() => new Set()); |       setFlipped(() => new Set(PRICE_SECTIONS.map((s) => s.id).filter((s) => s !== raw)));
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

@@ -97,6 +97,13 @@ export const OWNER_WAIVERS = {
       "(1.0.4 App Store submit only; the app code is b9efb07, which passed test, write-contract and Authenticated journeys; " +
       "Journeys failed only on a wrong test line, fixed in the same commit; OWNER-DECISIONS.md 11-03)",
   },
+  "1.0.5": {
+    checks: ["press-every-control", "a11y-prod", "test", "e2e-real-backend", "journeys", "write-contract"],
+    decision:
+      'owner pop-up 11-23 ~11:33 AM: "Waive for 1.0.5 (Recommended)" (1.0.5 App Store submit only, gift guides; same day as "Submit today" 11-23 ~11:15 AM; ' +
+      "e2e-real-backend red all day on the Q104 anon request budget, press-every-control and the prod a11y sweep take 5-17 h and are red since 11-15; " +
+      "OWNER-DECISIONS.md 11-23)",
+  },
 };
 
 /** Throws unless every requested id is waivable for this version; returns the waived id set. */

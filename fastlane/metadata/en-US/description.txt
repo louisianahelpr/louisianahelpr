@@ -20,6 +20,9 @@ Pickup or delivery. Pick a pickup time with the seller, or have it delivered by 
 
 Pay in the app. The money is held until the handover is confirmed.
 
+HOLIDAY GIFT GUIDES
+Gift ideas for her, him and kids, holiday deals, stocking stuffers and free printables like gift tags and coloring books. Save the gifts you like to your list. Each gift links to the store that sells it.
+
 BUILT FOR LOUISIANA
 Louisiana Helpr is made for Louisiana and nowhere else. Chat in the app, and pay through Stripe.
 

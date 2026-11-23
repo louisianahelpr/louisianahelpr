@@ -13,7 +13,7 @@
  *    the walk does not reach cannot start closed either.
  *
  * @mutate src/pages/info/giftGuides/startOpen.ts | export const START_OPEN: boolean = true; | export const START_OPEN: boolean = false;
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const isOpen = (id?: string) => !sortable \|\| !id \|\| (flipped.has(id) ? !START_OPEN : START_OPEN); |   const isOpen = (id?: string) => !sortable \|\| !id \|\| flipped.has(id);
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const isOpen = (id?: string) => !bandHeads \|\| !id \|\| (flipped.has(id) ? !START_OPEN : START_OPEN); |   const isOpen = (id?: string) => !bandHeads \|\| !id \|\| flipped.has(id);
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const isOpen = (id: string) => open[id] ?? START_OPEN; |   const isOpen = (id: string) => open[id] ?? id === "deals";
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   const [all, setAll] = useState(START_OPEN);\n  const shown = all ? sales : sales.slice(0, SALE_LINES); |   const [all, setAll] = useState(false);\n  const shown = all ? sales : sales.slice(0, SALE_LINES);
  * @mutate src/pages/info/holidays/HolidayHub.tsx | <details className="group space-y-section" open={START_OPEN} data-holiday-later=""> | <details className="group space-y-section" data-holiday-later="">

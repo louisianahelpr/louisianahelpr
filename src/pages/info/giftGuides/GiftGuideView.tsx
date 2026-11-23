@@ -253,6 +253,10 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   const [flipped, setFlipped] = useState<ReadonlySet<string>>(() => new Set());
   useEffect(() => { setFlipped(new Set()); }, [order]);
   const sortable = isOwnerList(guide.slug);
+  // Consistency audit 1122 #1: the 25 Days sponsors page's own sections (Louisiana Shops & Makers, Louisiana Experiences
+  // & Events, National Brands) wear the same band header as Her/Him/Kids (GuideSectionHead: tint, "(n)", chevron, open
+  // on arrival, a tap closes and reopens).
+  const bandHeads = sortable || guide.slug === SPONSORS_PAGE;
   const ready = picksReady(guide.slug);
   // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.
   const nav = ready ? sectionNav(guide.picks) : [];
@@ -260,6 +264,7 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
     const s = nav.find((x) => x.id === id);
     if (!s) return;
     setBudget(null);
+    setFlipped((cur) => { if (!cur.has(id)) return cur; const next = new Set(cur); next.delete(id); return next; });
     requestAnimationFrame(() => document.getElementById(`gg-sec-${id}`)?.scrollIntoView({ block: "start" }));
   };
   const navKey = nav.map((x) => x.id).join(" ");
@@ -292,8 +297,8 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   const sectioned = sortable ? priceSections(sortByPrice(inBudget, order === "high" ? "high" : "low")) : inBudget;
   const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned;
   const sectionCount = new Map<string, number>();
-  if (sortable) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
-  const isOpen = (id?: string) => !sortable || !id || (flipped.has(id) ? !START_OPEN : START_OPEN);
+  if (bandHeads) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
+  const isOpen = (id?: string) => !bandHeads || !id || (flipped.has(id) ? !START_OPEN : START_OPEN);
   const toggle = (id: string) => setFlipped((cur) => {
     const next = new Set(cur);
     if (next.has(id)) next.delete(id);
@@ -312,11 +317,11 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   const draw = (from: number, to: number) => runs(from, to).map(({ title, id, picks: run }, i) => (
         <section key={`${from} ${i} ${title ?? ""}`} data-gift-section={title ?? ""} id={id ? `gg-sec-${id}` : undefined} className={id ? "gg-sec" : undefined}
           aria-labelledby={title && id ? `gg-sec-${id}-title` : undefined}>
-          {title && (sortable && id ? (
+          {title && (bandHeads && id ? (
             // A price section's header is its open/close button (aria-expanded; the list is drawn only while open).
             // Owner 2026-11-22 ("Add some kind of shading ..."): the header is a band in its guide's tint (gg-sec-<tint>),
             // the one section header the deals days share (GuideSectionHead).
-            <GuideSectionHead titleId={`gg-sec-${id}-title`} bodyId={`gg-sec-${id}-list`} title={title} count={sectionCount.get(id) ?? 0} tint={guide.tint}
+            <GuideSectionHead titleId={`gg-sec-${id}-title`} bodyId={`gg-sec-${id}-list`} title={!sortable && nav.length > 1 ? sectionLabel(guide, title, id) : title} count={sectionCount.get(id) ?? 0} tint={guide.tint}
               open={isOpen(id)} onToggle={() => toggle(id)} data={{ "data-gift-section-toggle": id }} />
           ) : (
             <h2 className="gg-sec-title" id={id ? `gg-sec-${id}-title` : undefined}>

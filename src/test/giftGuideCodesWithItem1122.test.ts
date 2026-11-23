@@ -32,11 +32,11 @@ describe("codes ride with their item on Her, Him and Kids (owner 11-21)", () => 
   it("every pick whose store has one of our codes carries it, with the code's last day", () => {
     let matched = 0;
     for (const p of picks) {
-      const codes = discountCodes.filter((c) => norm(c.store) === norm(storeName(p)) && (!c.expires || c.expires >= TODAY));
-      if (!codes.length) continue;
+      // A chip is a real code that works on TODAY: a no-code sale (code "", Zappos's early Black Friday sale) has no chip,
+      // and a code that has not started (Zappos's TAKE20, embargoed to Nov 27) is not one yet (deals queue 1123).
+      const live = activeCodes(discountCodes.filter((c) => c.code !== "" && norm(c.store) === norm(storeName(p))), TODAY);
+      if (!live.length) continue;
       matched++;
-      const live = activeCodes(codes, TODAY);
-      expect(live.length, `${p.guide}: ${p.name}`).toBeGreaterThan(0);
       expect(p.code, `${p.guide}: ${p.name}`).toBe(live[0].code);
       expect(p.codeEnds, `${p.guide}: ${p.name}`).toBe(live[0].expires);
     }

@@ -280,7 +280,8 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    a pick with no cart (.gg-dupe-solo) has it in the cart's place. Phone: on the row's bottom line; tablet and computer:
    on the photo beside the cart, with the same thin white halo. Its tap opens the dupe panel (DupePanel.tsx). */
 .gg-dupe{display:inline-flex;align-items:center;justify-content:flex-end;min-width:44px;height:44px;margin:0;padding:0 6px;border:0;border-radius:0;background:transparent;box-shadow:none;font:inherit;font-size:12px;font-weight:400;line-height:1;color:var(--gg-muted);white-space:nowrap;cursor:pointer;text-shadow:0 0 2px rgba(255,255,255,.95),0 0 3px rgba(255,255,255,.8)}
-.gg-dupe:hover{color:hsl(var(--bark));text-decoration:underline}
+.gg-dupe:hover{color:hsl(var(--bark));text-decoration:underline;background:transparent}
+.gg-dupe-x:hover{background:transparent;color:var(--gg-ink)}
 .gg-dupe:focus-visible{outline:2px solid hsl(var(--bark));outline-offset:1px}
 .gg-list .gg-dupe{position:absolute;z-index:1}
 @media (max-width:767px){

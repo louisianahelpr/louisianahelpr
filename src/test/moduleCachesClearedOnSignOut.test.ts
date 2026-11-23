@@ -34,6 +34,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/content/giftGuideCatalog.ts:liveSubscribed": { kind: "not-user-data", why: "which public gift-guide data sets the catalog has subscribed to live updates for (guide slugs, 11-23 live guide data); the same for every visitor" },
   "src/lib/liveGuideData.ts:entries": { kind: "not-user-data", why: "the newest validated copy of each public gift-guide data file from www (picks, prices, deals; 11-23 live guide data); the same for every visitor" },
   "src/lib/liveGuideData.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks told when a newer public gift-guide data copy is swapped in (11-23 live guide data); nothing about the signed-in member" },
+  "src/content/giftGuideCatalog.ts:drawn": { kind: "not-user-data", why: "each drawn public gift guide's redraw with its current pick chunk, by guide slug, so a newer live dupes copy re-stamps them (11-23 live guide data); the same for every visitor" },
   "src/content/giftGuideCatalog.ts:loaded": { kind: "not-user-data", why: "the public gift-guide pick chunks (static JSON shipped with the app), by guide slug; the same for every visitor" },
   "src/content/giftGuideCatalog.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks that redraw a gift guide when its public pick chunk loads; nothing about the account" },
   "src/content/giftGuideCatalog.ts:sectionWordsMemo": { kind: "not-user-data", why: "a merged gift guide's searchable section titles and keywords, by slug, from the static guide list; the same for every visitor" },

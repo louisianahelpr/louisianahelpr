@@ -72,9 +72,11 @@ describe("reading a pasted link (never opened)", () => {
   });
 
   it("Amazon: our tag (theirs dropped); a guide pick: the pick; elsewhere: as pasted; short links are marked", () => {
-    const asin = /\/dp\/([A-Z0-9]{10})/.exec(her[0].href)![1];
+    // The first Amazon pick on For Her (her list now opens with Ulta stocking stuffers on ShopMy, 11-23).
+    const amz = her.find((p) => /\/dp\/[A-Z0-9]{10}/.test(p.href))!;
+    const asin = /\/dp\/([A-Z0-9]{10})/.exec(amz.href)![1];
     const known = ourLink(u(`https://www.amazon.com/Some-Words/dp/${asin}/ref=sr_1_1?tag=someone-else-20&th=1`), her);
-    expect(known.kind === "pick" && known.pick.href).toBe(her[0].href);
+    expect(known.kind === "pick" && known.pick.href).toBe(amz.href);
     const other = ourLink(u("https://www.amazon.com/gp/product/B000000001?tag=someone-else-20"), her);
     expect(other).toEqual({ kind: "amazon", asin: "B000000001", href: "https://www.amazon.com/dp/B000000001?tag=louisianahelpr-20" });
     const shop: CatalogPick = { name: "Sherpa Throw", href: "https://www.target.com/p/sherpa-throw/-/A-1234?aff=ours", store: "store-target" };

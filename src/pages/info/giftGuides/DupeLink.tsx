@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { DUPE, type GuideDupe } from "@/content/giftGuideDupes";
+import { Button } from "@/components/ui/button";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 
@@ -33,14 +34,15 @@ export function DupeLink({ dupes, of, solo = false }: { dupes: GuideDupe[]; of: 
   }, [open, Panel]);
   return (
     <>
-      <button
-        ref={word} type="button" className={solo ? "gg-dupe gg-dupe-solo" : "gg-dupe"} aria-haspopup="dialog" aria-expanded={open}
+      {/* The shared Button (OWN-SHARED), its look set by .gg-dupe: plain words, no circle, border or fill. */}
+      <Button
+        ref={word} type="button" variant="ghost" size="sm" className={solo ? "gg-dupe gg-dupe-solo" : "gg-dupe"} aria-haspopup="dialog" aria-expanded={open}
         onClick={() => setOpen((o) => !o)} data-gift-dupe=""
       >
         {/* The visible words start the name (WCAG 2.5.3, axe label-content-name-mismatch): "shop similar: 3 similar items". */}
         {DUPE.word}
         <span className="sr-only" data-gift-dupe-sr="">{`: ${DUPE.count(dupes.length)}`}</span>
-      </button>
+      </Button>
       {Panel && <Panel dupes={dupes} of={of} open={open} onClose={() => setOpen(false)} anchor={word} />}
     </>
   );

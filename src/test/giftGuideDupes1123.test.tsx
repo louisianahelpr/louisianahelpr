@@ -189,8 +189,9 @@ describe("the card's plain 'dupe' word", () => {
     expect(rows[0].querySelector(".gg-cart")).not.toBeNull();
     expect(panel.querySelectorAll("[data-gift-prices-as-of]")).toHaveLength(1);
     act(() => { fireEvent.keyDown(panel, { key: "Escape" }); });
-    await waitFor(() => expect(document.querySelector("[data-gift-dupe-panel]")).toBeNull());
-    expect(document.activeElement).toBe(word);
+    // Wait for the positive end state (focus back on the words, which happens once the panel has closed), then the panel is gone.
+    await waitFor(() => expect(document.activeElement).toBe(word));
+    expect(document.querySelector("[data-gift-dupe-panel]")).toBeNull();
     expect(word.getAttribute("aria-expanded")).toBe("false");
   });
 
@@ -210,8 +211,9 @@ describe("the card's plain 'dupe' word", () => {
       expect(panel.querySelector("li[data-gift-pick] a.gg-item")?.getAttribute("href")).toBe(dupe.href);
       const x = screen.getByRole("button", { name: /close/i });
       act(() => { fireEvent.click(x); });
-      await waitFor(() => expect(document.querySelector("[data-gift-dupe-panel]")).toBeNull());
-      expect(document.activeElement).toBe(word);
+      // Wait for the positive end state (focus back on the words, once the sheet has closed), then the sheet is gone.
+      await waitFor(() => expect(document.activeElement).toBe(word));
+      expect(document.querySelector("[data-gift-dupe-panel]")).toBeNull();
     } finally {
       Object.defineProperty(window, "innerWidth", { configurable: true, value: was });
     }

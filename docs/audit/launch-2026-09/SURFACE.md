@@ -25,12 +25,12 @@ reports coverage against THIS file, not against the route list.
 | Multi-step flows — probable | flow | 38 |
 | Back/next navigation only | flow | 73 |
 | Forms (submittable) | form | 148 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 193 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 194 |
 | Email templates | **exported template** | 28 |
 | Notification types (defined in notification_type_pref_map) | type | 32 |
-| **Navigable surfaces** (places a person can stand) | mixed | **921** |
+| **Navigable surfaces** (places a person can stand) | mixed | **922** |
 | **Copy surfaces** (strings a person may read) | mixed | **1335** |
-| **Total auditable surface** | mixed | **2256** |
+| **Total auditable surface** | mixed | **2257** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing

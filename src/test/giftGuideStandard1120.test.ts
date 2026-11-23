@@ -73,10 +73,19 @@ describe("gift guide standard 1120: the plan is what the pages show", () => {
     for (const n of ["Printfresh Eco Satin Soho Pajama Set", "Southern Tide Textured Knit Lounge Pant", "Southern Tide Textured Knit Lounge Quarter Zip", "Olive & June Gel Mani System", "lululemon Define Cropped Jacket Nulu"]) expect(names("her"), n).not.toContain(n);
     expect(isOwnerList("her")).toBe(true);
     const louisiana = /^(louisiana-|shop-small-louisiana$)/;
+    // Owner 2026-11-22 ~5:25 PM ("add all items", train j): her approved Louisiana picks sit on her own lists (For Her /
+    // For Him / For Kids), and Community Coffee's Southern Pecan Praline pods are one of them. Everything else stays off
+    // the national guides, and the Southern Marsh youth chino stays off (no rate, owner 11-22).
+    const OWNER_LA = /^Community Coffee/i;
+    let ownerLa = 0;
     for (const [slug] of guides) {
       if (louisiana.test(slug)) continue;
-      for (const n of names(slug)) expect(/^Southern Marsh (Marshlux Augusta|FieldTec Bozeman|Youth Regatta)|^Geometry Greetings From Louisiana|^Community Coffee/i.test(n), `${slug}: ${n}`).toBe(false);
+      for (const p of page(slug)) {
+        if (["her", "him", "kids"].includes(slug) && p.ownerPick && OWNER_LA.test(p.name)) { ownerLa += 1; continue; }
+        expect(/^Southern Marsh (Marshlux Augusta|FieldTec Bozeman|Youth Regatta)|^Geometry Greetings From Louisiana|^Community Coffee/i.test(p.name), `${slug}: ${p.name}`).toBe(false);
+      }
     }
+    expect(ownerLa).toBe(1); // the one Community Coffee pick on For Her (train j)
   });
 
   it("the owner's 9:33 PM decision holds: three sponsor picks live on the sponsors guide only, and popular picks took their Her spots", () => {

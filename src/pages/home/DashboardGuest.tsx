@@ -15,7 +15,7 @@ import GuestBrowseSkeleton, { GUEST_FEED_GRID_CLASS, GUEST_FEED_RESERVE_CLASS } 
 import { GuestEmptyStateActions } from "@/components/dashboard/GuestEmptyStateActions";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
-import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
+import { GuestBrowseHeaderRow, guestOpenJobsLabel } from "./GuestBrowseHeaderRow";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 // Lazy-load the map so the map chunk (and Apple's MapKit JS script) only
 // loads when guests actually toggle to map view. List view stays cheap.
@@ -207,9 +207,11 @@ const DashboardGuest = () => {
     // pay sorts must use the same one or the order won't match the numbers.
     effectiveFee: TIER_PERKS.free.platformFeePercent,
   });
-  // F070: the field shows once the visit came with ?q= and stays for it, even emptied (its X closes it).
-  const [arrivedWithSearch] = useState(() => !!filters.searchQuery);
-  const shownSearch = arrivedWithSearch && filters.searchOpen;
+  // F070: a visit that came with ?q= opens with the field holding the word (useDashboardFilters opens search for a
+  // ?q=), unfocused, and it stays even emptied (its X closes it). G1 (app audit 1123, repeat of 1122 #1 High): on the
+  // web the field also opens from the header row's search icon, as on member Browse, and then takes focus.
+  const [arrivedWithSearch, setArrivedWithSearch] = useState(() => !!filters.searchQuery);
+  useEffect(() => { if (!filters.searchOpen) setArrivedWithSearch(false); }, [filters.searchOpen]);
 
   // Held until the session answer is in; a signed-in visitor is sent to /home (useGuestSessionCheck).
   const sessionChecked = useGuestSessionCheck(navigate);
@@ -270,7 +272,9 @@ const DashboardGuest = () => {
     <>
     {/* M13 (iOS audit 11-16): the visible "Jobs | Declutter" switch, the same one guest Declutter starts with. */}
     <GuestSectionSwitch at="jobs" className="mb-2" />
-    {!isNativePlatform && shownSearch && <BrowseSearchBar filters={filters} autoFocus={false} className="!w-full mb-3" />}
+    {/* G1 (app audit 1123): member Browse's header row on the web (count, search icon, Filters). */}
+    {!isNativePlatform && <GuestBrowseHeaderRow filters={filters} filtersButtonRef={filtersButtonRef} autoFocusSearch={!arrivedWithSearch}
+      countLabel={guestOpenJobsLabel({ listedCount: filters.filteredJobs.length, readCount: baseJobs.length, ready: feedReady && !isError && phase === "ready" })} />}
     <BrowseTasksToolbar
       // Same anchor the Filters button carries, so the desktop-web popover
       // opens against it instead of floating.
@@ -539,10 +543,8 @@ const DashboardGuest = () => {
   // Help Center growing with a stray `pt-4`. The header owns the full gap
   // above and below the title; a body under it must never add its own.
   return (
-    // No `titleActions` — see the note on the native branch's DashboardTitleBar
-    // above. The search and filter icons are gone from BOTH shells, because
-    // this page is ONE surface: diverging them would give the phone-sized
-    // website a control the native app does not have.
+    // No `titleActions`: G1 (app audit 1123) puts the count, search icon and Filters in the toolbar's own header row
+    // (above), the row member Browse draws, rather than in the title row beside the back arrow.
     // Owner 11-21: "needs a back button to the left of browse jobs" and "just name it jobs not browse jobs". The arrow
     // sits on the title's row (PageHeader's own back slot) and always goes Home, as Declutter's guest page does; the
     // title is "Jobs", the app's own name for this tab (the native branch's AppTopBar says the same).

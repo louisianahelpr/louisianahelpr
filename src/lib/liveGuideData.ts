@@ -64,7 +64,7 @@ const writeSaved = (name: string, s: Saved) => {
  * The copy of `name` a page draws now: a saved copy from a site built after this bundle (and still valid), else the
  * bundled one. Registers `name` for the background refresh, which starts off the first paint.
  */
-export function liveCopy<T>(name: string, bundled: T, valid: LiveValidator<T>): T {
+export function liveCopy<T>(name: string, bundled: T, valid: LiveValidator<NoInfer<T>>): T {
   const have = entries.get(name);
   if (have && have.bundled === bundled) {
     scheduleRefresh();

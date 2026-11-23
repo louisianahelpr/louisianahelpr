@@ -64,16 +64,33 @@ const sideGuides = () => SIDE_GUIDES.flatMap((x) => {
 const N = ({ n, noun = "items" }: { n?: number; noun?: string }) => (n ? <span className="gg-side-n">{" "}{n}<span className="sr-only"> {noun}</span></span> : null);
 
 /**
- * The numbers that change with the date (Black Friday, Cyber Monday, the Holiday Hub: railCounts.ts), from their own
- * chunk once the menu has drawn, so a guide page's first paint carries none of them; read once per page load.
+ * The numbers that change with the date or live (Black Friday, Cyber Monday, the Holiday Hub, and Small Business
+ * Saturday with its approved "Featured local" businesses: railCounts.ts), from their own chunk once the menu has drawn,
+ * so a guide page's first paint carries none of them; read once per page load and shared by every menu on the page.
+ * Small Business Saturday's number shows once its read is back (sponsors + featured local), never the sponsors first.
  */
-let live: Record<string, number> | undefined;
+let live: Record<string, number> = {};
+let started = false;
+const subs = new Set<() => void>();
+const put = (r: Record<string, number>) => {
+  live = { ...live, ...r };
+  subs.forEach((f) => f());
+};
 const useLiveCounts = () => {
-  const [c, setC] = useState(live);
+  const [, tick] = useState(0);
   useEffect(() => {
-    if (!c) void loadModule(() => import("./railCounts")).then((m) => m ?? untilReload()).then((m) => m.railCounts()).then((r) => setC((live = r)), (e) => console.warn("gift guides: menu counts failed", e));
-  }, [c]);
-  return c ?? {};
+    const f = () => tick((x) => x + 1);
+    subs.add(f);
+    if (!started) {
+      started = true;
+      void loadModule(() => import("./railCounts")).then((m) => m ?? untilReload()).then((m) => {
+        void m.smallBizCount().then((n) => put({ "small-business-saturday": n }));
+        return m.railCounts();
+      }).then(put, (e) => console.warn("gift guides: menu counts failed", e));
+    }
+    return () => void subs.delete(f);
+  }, []);
+  return live;
 };
 
 /** Which menu entry is open: a page key, a relationship view's guide (Mom -> Her), or the guide itself. */

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import type { PrintablePagePath } from "@/content/printables";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -8,6 +8,7 @@ import { giftGuides as G, type PageBanner } from "@/content/giftGuides";
 import { GiftGuideTools } from "../GiftGuideShare";
 import { GuidesTop } from "../GuidesTop";
 import { GiftGuidesSidebar } from "../GiftGuidesSidebar";
+import { GuidesDisclosure } from "../GuidesDisclosure";
 
 /** Which head-row icons a frame page shows (GuidesFrame). */
 type FrameTools = "all" | "no-search" | "none";
@@ -44,30 +45,27 @@ export function FunBody({ title, path, noindex, banner = G.pageBanners[path], to
  * The gift guides' frame for a page outside GiftGuides.tsx (the fun pages, the printables, the Holiday Hub): the guides'
  * one top (GuidesTop: back arrow + "Holiday gift guides", the shipping pill, search, My list heart and Share, the
  * phone's chip row, then the page's gingham banner holding its h1), then the page, the left menu and the disclosures
- * (holiday audit 1121 #13: the fun pages had no head row or menu). The caller brings GIFT_GUIDES_CSS. `disclosures`
- * off only on a page with no affiliate link.
+ * (holiday audit 1121 #13: the fun pages had no head row or menu). The caller brings GIFT_GUIDES_CSS. The disclosures
+ * show only while the page carries an affiliate link (GuidesDisclosure, owner 11-22).
  * Owner 2026-11-22 #13 ("gifts tags and all the other sections should have the same top section as the guides and the
  * deals"): the banner replaces this morning's plain left serif title (polish audit 1122 #10).
  * `tools`: the head row's icons. "none" on the printables (owner 11-21: "remove the search, favorite ... just polish
  * this"; 11-22: "Same row, icons off there"): the pill only. "no-search" on the Holiday Hub (owner 11-22): the heart
  * and Share, no gift search beside the Hub's own lights search.
  */
-export function GuidesFrame({ title, path, banner, tools = "all", disclosures = true, children }: { title: string; path: string; banner: PageBanner; tools?: FrameTools; disclosures?: boolean; children: ReactNode }) {
+export function GuidesFrame({ title, path, banner, tools = "all", children }: { title: string; path: string; banner: PageBanner; tools?: FrameTools; children: ReactNode }) {
+  const frame = useRef<HTMLDivElement>(null);
   return (
-    <div className="gg w-full" data-gift-fun-frame="">
+    <div className="gg w-full" data-gift-fun-frame="" ref={frame}>
       <GuidesTop backTo="/gift-guides" banner={banner} tools={tools === "none" ? null : <GiftGuideTools path={path} title={title} search={tools === "all"} />} nav={{ active: null, page: path }} />
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">
         <div className="gg-main">{children}</div>
         <GiftGuidesSidebar active={null} page={path} />
         {/* Holiday audit 1121 (High): Swipe's Shop links and the planner's ideas are affiliate links (Amazon's among
-            them), so every fun page ends with the same small muted line as the guides: the FTC disclosure
-            (16 CFR Part 255) holding the statement the Amazon Associates agreement requires (one line, owner 11-22). */}
-        {disclosures && (
-          <footer className="gg-disc" data-gift-fun-disclosure="">
-            <p data-gift-disclosure="">{G.disclosureLead} <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>
-          </footer>
-        )}
+            them), so a fun page that shows one ends with the same small muted line as the guides. Owner 11-22: a page
+            with none (the printables, Secret Santa, the Holiday Hub) shows no line. */}
+        <GuidesDisclosure scope={frame} data-gift-fun-disclosure="" />
       </div>
     </div>
   );
@@ -75,9 +73,12 @@ export function GuidesFrame({ title, path, banner, tools = "all", disclosures = 
 
 /** Scoped under .gg like the guides' own CSS, shipped in the fun pages' lazy chunks only. */
 const FUN_CSS = `
-.gg-fun{max-width:640px;margin:0;padding:4px 0 24px}
+/* Owner 2026-11-22 ("the box with the guides should fill the space to the edge of the red part above"; "needs to be wider
+   like the rest"): the fun pages and the printables fill the content column to the banner's right edge, as the guides
+   do; no 640px column. Long lines inside keep their own measure (.gg-fun-lead below). */
+.gg-fun{margin:0;padding:4px 0 24px}
 .gg-fun h2{font-size:20px;font-weight:700;margin:4px 0 6px;color:var(--gg-ink)}
-.gg-fun-lead{color:var(--gg-muted);font-size:14px;line-height:1.5;margin:0 0 16px}
+.gg-fun-lead{color:var(--gg-muted);font-size:14px;line-height:1.5;margin:0 0 16px;max-width:72ch}
 .gg-fun-card{border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card));padding:16px;margin:0 0 14px}
 .gg-fun-row{display:flex;gap:8px;align-items:center}
 .gg-fun-row>input,.gg-fun-row>select{flex:1;min-width:0}
@@ -117,7 +118,6 @@ const FUN_CSS = `
    768px (the Top 10 itself scrolls sideways on a phone and runs 5 across). */
 .gg .gg-top10.gg-swipe-saved{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;gap:20px 12px;margin:12px 0 4px;padding:0}
 @media (min-width:768px){.gg .gg-top10.gg-swipe-saved{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 16px}}
-.gg-fun:has([data-swipe-saved-grid]){max-width:none}
 .gg-swipe-done-acts{align-items:center;column-gap:16px}
 .gg-plan-person{border:1px solid var(--gg-line);border-radius:16px;padding:12px;margin:0 0 12px;background:hsl(var(--card))}
 .gg-plan-head{display:flex;gap:8px;align-items:center}
@@ -165,8 +165,6 @@ const FUN_CSS = `
 .gg-santa-link:first-child{border-top:0}
 .gg-santa-link b{font-size:15px;overflow-wrap:anywhere}
 .gg-santa-who{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:8px;min-width:0}
-/* Polish audit 1122 #11: the deck centered in the content column (it sat in the 640px column's middle, off the page's). */
-.gg-fun:has([data-swipe-deck]){max-width:none}
 @media (max-width:479px){.gg-swipe-card{padding:12px}.gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter,.gg-swipe-card .gg-thumb{width:150px;height:150px}.gg-swipe-name{margin-top:8px}.gg-swipe-btns{margin-top:12px}.gg-plan-budget{width:92px}.gg-plan-price{width:78px}}
 /* Planner polish (owner 2026-11-22): one calm card per person, spacing on 8/12/16/24. */
 .gg-plan-people{gap:16px}

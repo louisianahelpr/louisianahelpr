@@ -18,8 +18,11 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 const read = (p: string) => readFileSync(p, "utf8");
 
 describe("one feature name and one tab ending (audit 1122 #25)", () => {
-  it("the menu sheet and the sidebar use the side menu's name", () => {
+  it("the sidebar uses the side menu's name; the phone menu sheet the phone header's (audit 1122 #19)", () => {
     expect(giftGuides.sidebarLabel).toBe("Holiday gift guides");
+    // Guide consistency audit 1122 #19: the sheet opens from the phone header that reads "Gift guides".
+    expect(giftGuides.menuSheetTitle).toBe("Gift guides");
+    expect(read("src/pages/info/giftGuides/GiftGuidesPhoneSheet.tsx")).toContain("<SheetHero title={G.menuSheetTitle} />");
   });
   it("an unknown guide's tab and the wish-list tabs end ' — Helpr'", () => {
     expect(publicOrGiftGuidePageMetaFor("/gift-guides/nope", null)?.title).toBe("Holiday gift guides — Helpr");

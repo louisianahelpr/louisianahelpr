@@ -4,7 +4,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
-import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
@@ -23,7 +23,8 @@ import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { BUDGETS, BUDGET_MIN_PICKS, GiftGuideView, sectionLabel, sectionNav } from "./giftGuides/GiftGuideView";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
-import { DEALS_COVER, DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
+import { GuidesDisclosure } from "./giftGuides/GuidesDisclosure";
+import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 
@@ -170,8 +171,8 @@ export default function GiftGuides() {
   const priced = guide ? guide.picks.length === 0 || guide.picks.some((p) => showsPrice(p)) : false;
   const sort = guide && isOwnerList(guide.slug) && priced ? { order: sortOrder, onChange: (o: GuideOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
   // Owner 2026-11-21, the 25 Days sponsors page: "move search, heart and share under the line for shop our sponsors,
-  // and move those things into the filter for that section": its count, pill and icons sit on one row under the
-  // banner at every width, and its section links and price limits live in a Filter in that row (budget kept here).
+  // and move those things into the filter for that section": its section links and price limits live in a Filter among
+  // its icons (budget kept here). Owner 11-22: its pill and icons sit where Her's do (countRow below).
   const sponsorsPage = guide?.slug === "25-days-sponsors";
   const [sponsorBudget, setSponsorBudget] = useState<number | null>(null);
   const headerFilter = sponsorsPage ? { budget: sponsorBudget, onBudget: setSponsorBudget } : undefined;
@@ -195,6 +196,7 @@ export default function GiftGuides() {
   // SEO (follow-up 2026-11-18): the landing's head, or the open guide's own (one not in the sitemap is noindex).
   // SEO P1 (owner 11-19): its own description from its picks once they are in, as api/share.ts writes it before JS.
   useSyncExternalStore(subscribeGuidePicks, guidePicksVersion);
+  const page = useRef<HTMLDivElement>(null);
   usePageMeta(
     shared || myListPage ? { title: `${shared ? WISH.sharedLead : WISH.title} — Helpr`, description: PUBLIC_PAGE_META["/gift-guides"].description, robots: "noindex" }
     : deals ? giftGuidePageMeta(deals.id) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],
@@ -233,16 +235,11 @@ export default function GiftGuides() {
   if (moved) return <Navigate to={`/gift-guides/${moved}`} replace />;
   if (slug && !guide && !deals) return <Navigate to="/gift-guides" replace />;
 
-  const footer = (
-    <footer className="gg-disc">
-      {/* Owner decision 2026-11-18 (~8:50 AM): the disclosures are plain muted lines at the BOTTOM, no box. The
-          Amazon line is the exact statement the Amazon Associates Operating Agreement requires on a site with
-          Amazon links. */}
-      {/* Owner 2026-11-22 ("Make this small on 1 line"): ONE small line, the affiliate words and Amazon's statement. */}
-      <p data-gift-disclosure="">{G.disclosureLead} <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>
-      {/* Owner 11-18 PM: no "Every collection on ShopMy" / "Every gift guide on Pinterest" links; the disclosures stay. */}
-    </footer>
-  );
+  // Owner decision 2026-11-18 (~8:50 AM): the disclosures are plain muted lines at the BOTTOM, no box; the Amazon line is
+  // the exact statement the Amazon Associates Operating Agreement requires on a site with Amazon links. Owner 2026-11-22
+  // ("Make this small on 1 line"): ONE small line. Owner 11-22 later: only on a page that shows an affiliate link
+  // (GuidesDisclosure watches the page). Owner 11-18 PM: no "Every collection on ShopMy" / Pinterest links.
+  const footer = <GuidesDisclosure scope={page} />;
 
   // The search, My list heart and Share for this page (one set, on the row under the header).
   const tools = deals ? <GiftGuideTools path={`/gift-guides/${deals.id}`} title={deals.pageTitle} image={deals.kind === "deals" ? DEALS_COVER : undefined} />
@@ -253,14 +250,17 @@ export default function GiftGuides() {
   const sidePage = deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined;
   // Every page but the landing opens on its gingham banner (its own h1; owner 11-22 #13: the wish lists and Find a gift
   // too, as the guides and the deals days); the landing's h1 is the head row's title.
-  const banner: GuidesBanner | null = deals ? { lead: deals.lead, title: deals.pageTitle, tint: deals.kind === "small-biz" ? "green" : "red", sub: false }
+  const banner: GuidesBanner | null = deals ? { lead: deals.lead, title: deals.pageTitle, tint: deals.kind === "small-biz" ? "green" : DEALS_TINT, sub: false }
     : guide ? { lead: guide.age ? `${guide.lead}, ${guide.age}` : guide.lead, title: guide.title, tint: guide.tint, sub: false }
     : myList ? G.pageBanners.myList
     : shared ? G.pageBanners.shared
     : sidePage === "finder" ? G.pageBanners.finder
     : null;
   // A phone's guide page: the count, the pill and the icons on one row right under the banner.
-  const countRow = (phone && Boolean(guide) && !deals) || sponsorsPage;
+  // Owner 2026-11-22 ("104 gifts needs to move to the right like the other pages are set up"): the 25 Days sponsors page
+  // is set up as Her, Him and Kids, so on a desktop its pill and icons (its Filter among them) ride the header row and
+  // its count heads the content column, and on a phone it has the guides' one row under the banner.
+  const countRow = phone && Boolean(guide) && !deals;
   // The landing's arrow goes home; every other page's (Find a gift too, owner 11-22 #13) to the landing.
   const backTo = guide || deals || myList || shared || sidePage === "finder" ? "/gift-guides" : "/";
 
@@ -282,7 +282,7 @@ export default function GiftGuides() {
       {/* Owner 2026-11-21: a guide's hearts save for someone (the picker) and the My lists pill, on guide and deals pages. */}
       {(guide || deals?.kind === "deals") && <LazySaveForSomeone />}
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
-      <div className="gg w-full" data-gift-guides="">
+      <div className="gg w-full" data-gift-guides="" ref={page}>
         {/* Owner's mockup (2026-11-18): the way back and the header words run across the top, above the menu and the guides. */}
         {/* Owner 2026-11-18 PM: the shipping pill sits on the page header's own row ("← Gift guides"), right-aligned
             (titleActions above), so no row of its own sits above the hero. A guide page has no second "← All guides"
@@ -315,7 +315,7 @@ export default function GiftGuides() {
             {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
           </div>
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
-          <GiftGuidesSidebar active={guide} myList={myList || shared} page={sidePage} />
+          <GiftGuidesSidebar active={guide} myList={myList || shared} mine={myList} page={sidePage} />
           {footer}
         </div>
       </div>

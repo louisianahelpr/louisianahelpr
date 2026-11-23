@@ -23,7 +23,12 @@
  * @mutate src/content/holidayHub/holidayHub.mjs |     else if (!e.start \|\| e.start < today) now.push(e); |     else if (e.start < today) now.push(e);
  * @mutate src/content/holidayHub/holidayHub.mjs |     ...(showLights ? filterLights(lights, { region, cost }, today).filter(inWeekend) : []), |     ...(showLights ? filterLights(lights, { region, cost }, today) : []),
  * @mutate src/content/holidayHub/holidayHub.mjs |   next.set("what", from === "lights" ? "lights" : |   next.set("what", from === "lights" ? "events" :
- * @mutate src/pages/info/holidays/HolidayHub.tsx |           <div className="flex min-h-11 items-center gap-1"> |           <div className="flex min-h-11 items-center gap-1"><a href="/holidays/hire-a-helpr" data-holiday-hire-strip="">Hire a Helpr for the holidays</a>
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |           <div className="flex min-h-11 items-center gap-1" data-holiday-searchrow={searchOpen ? "open" : "closed"}> |           <div className="flex min-h-11 items-center gap-1" data-holiday-searchrow={searchOpen ? "open" : "closed"}><a href="/holidays/hire-a-helpr" data-holiday-hire-strip="">Hire a Helpr for the holidays</a>
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |             <p className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} text-ds-14 | <p hidden={searchOpen} className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} text-ds-14
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | <RoundIconButton ref={searchButton} className="gg-icon" | <RoundIconButton ref={searchButton} className="rounded-ds-md ctl-tint"
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | <RoundIconButton ref={filtersButton} className="gg-icon" | <RoundIconButton ref={filtersButton} className="rounded-ds-md ctl-tint"
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .hh-search{flex:1 0 160px;min-width:160px;margin-left:auto} | .hh-search{flex:1 1 100%;min-width:0;margin-left:auto}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @container (max-width:499px){.hh-count-full{position:absolute; | @container (max-width:499px){.hh-count-full{display:none;
  * @mutate src/pages/info/holidays/HolidayHub.tsx |   return words.every((w) => hay.includes(w)); |   return true;
  * @mutate src/pages/info/holidays/HolidayHub.tsx |                   onKeyDown={(e) => { if (e.key === "Escape") closeSearch(); }} |                   onKeyDown={() => undefined}
  * @mutate src/pages/info/holidays/holidayParts.tsx |       <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{children}</ul> |       <ul className="grid gap-3 md:grid-cols-2">{children}</ul>
@@ -35,7 +40,7 @@
  * @mutate src/content/holidayHub/holidayHub.mjs |     ...(now.length ? [{ key: "now", day: null, items: now.sort(closingSoonest) }] : []), |     ...(now.length ? [{ key: "now", day: null, items: now.sort(byName) }] : []),
  * @mutate src/content/holidayHub/holidayHub.mjs |     if (today && isOver(e, today)) return false; |
  * @mutate src/components/Footer.tsx |               <Link to="/holidays" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" data-gift-side-holiday-hub=""> |         <li><Link to="/help" data-gift-side-holiday-hub="">
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub=""> |         <li><Link to="/help" {...current("/holidays")} data-gift-side-holiday-hub="">
  * @mutate src/pages/info/holidays/holidayParts.tsx |             onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })} |
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -62,6 +67,7 @@ import {
 import { holidayEventsLd, holidayHubBody, holidayHubLd, holidayLightsItemListLd } from "@/lib/holidayHubSeo.mjs";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import HolidayHub from "@/pages/info/holidays/HolidayHub";
+import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 
 /** The day after a YYYY-MM-DD day. */
 const addDay = (ymd: string) => new Date(Date.parse(`${ymd}T12:00:00Z`) + 86400000).toISOString().slice(0, 10);
@@ -289,12 +295,20 @@ describe("/holidays: lights and events in one list", () => {
     const { container } = at("/holidays", <HolidayHub />);
     const button = container.querySelector("[data-holiday-filters-button]") as HTMLButtonElement;
     expect(button.textContent).toBe("");
-    expect(button.getAttribute("aria-label")).toBe("Filters");
-    expect(button.className).not.toMatch(/\bborder\b|rounded-full/);
+    // Consistency audit 1122 #6: the sliders icon that filters is "Filter" on every guides page (the sheet's title stays).
+    expect(button.getAttribute("aria-label")).toBe("Filter");
+    expect(button.className).not.toMatch(/\bborder\b/);
     expect(button.getAttribute("aria-expanded")).toBe("false");
     const search = container.querySelector("[data-holiday-search-button]") as HTMLButtonElement;
     expect(search.textContent).toBe("");
-    expect(search.className).not.toMatch(/\bborder\b|rounded-full/);
+    expect(search.className).not.toMatch(/\bborder\b/);
+    // Owner 2026-11-22 ("some icons have a circle background some are squared looking. they should all be
+    // consistent"): both icons are the guides' toolbar icon (gg-icon: no resting circle or border, a 44px circle fill on
+    // a desktop hover only, the same focus ring), never the square ghost fill (rounded-ds-md + ctl-tint).
+    for (const icon of [button, search]) {
+      expect(icon.className).toMatch(/(^| )gg-icon( |$)/);
+      expect(icon.className).not.toMatch(/rounded-ds-md|ctl-tint/);
+    }
     expect(document.querySelector("[data-holiday-what]")).toBeNull();
     expect(container.querySelector("[data-holiday-quick]")).toBeNull();
     expect(container.querySelector("[data-holiday-active]")).toBeNull();
@@ -308,10 +322,28 @@ describe("/holidays: lights and events in one list", () => {
   it("search: the icon opens a field over names, towns and places; Escape closes it and shows everything again", () => {
     const { container } = at("/holidays", <HolidayHub />);
     const all = shownIds(container).length;
+    const closedCount = container.querySelector("[data-holiday-count]")!.textContent;
     fireEvent.click(container.querySelector("[data-holiday-search-button]")!);
     const input = container.querySelector("[data-holiday-search]") as HTMLInputElement;
     expect(input).not.toBeNull();
+    // Owner 2026-11-22 ("keep count on row"): open, the count stays on the field's row, at its left (one count, never
+    // a line of its own under the row); the field, the held magnifier slot and the filter follow it in that order.
+    const row = container.querySelector('[data-holiday-searchrow="open"]')!;
+    expect(container.querySelectorAll("[data-holiday-count]").length).toBe(1);
+    const count = row.querySelector<HTMLElement>("[data-holiday-count]")!;
+    expect(count.hidden).toBe(false);
+    expect(row.firstElementChild).toBe(count);
+    expect([...row.children].map((e) => e.hasAttribute("data-holiday-count") ? "count" : e.hasAttribute("data-holiday-search-box") ? "field" : e.hasAttribute("data-search-trigger-slot") ? "slot" : e.hasAttribute("data-holiday-filters-button") ? "filter" : e.tagName))
+      .toEqual(["count", "field", "slot", "filter"]);
+    // The words, and the number a narrow row (every phone) shows in their place; the words stay for screen readers.
+    expect(count.querySelector(".hh-count-full")!.textContent).toBe(closedCount);
+    const short = count.querySelector(".hh-count-short")!;
+    expect(short.getAttribute("aria-hidden")).toBe("true");
+    expect(short.textContent).toBe(String(shownIds(container).length));
+    // The soft field (the guides' own: 16px words, light ring) with the 44px ✕.
+    expect(row.querySelector("[data-holiday-search-box]")!.className).toContain("gg-search rounded-xl focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.22)]");
     fireEvent.change(input, { target: { value: "natchitoches" } });
+    expect(count.querySelector(".hh-count-short")!.textContent).toBe(String(shownIds(container).length));
     const hits = shownIds(container);
     expect(hits.length).toBeGreaterThan(0);
     expect(hits.length).toBeLessThan(all);
@@ -323,6 +355,22 @@ describe("/holidays: lights and events in one list", () => {
     fireEvent.keyDown(input, { key: "Escape" });
     expect(container.querySelector("[data-holiday-search]")).toBeNull();
     expect(shownIds(container).length).toBe(all);
+    // The row is back exactly: the count's words, the magnifier, the filter.
+    expect(container.querySelector('[data-holiday-searchrow="closed"] [data-holiday-count]')!.textContent).toBe(closedCount);
+    expect(container.querySelector('[data-holiday-searchrow="closed"] [data-holiday-search-button]')).not.toBeNull();
+  });
+
+  it("the open search row's CSS: the field at least 160px beside the count, at most 360px on a computer; a narrow row shows the number", () => {
+    // Owner 2026-11-22: "keep count on row". Measured (Chromium, local dev build): 320 count "246" + field 162px,
+    // 375 field 211px, 768 field 342px (number only), 1024/1440 the words + a 360px field; no horizontal overflow.
+    const css = GIFT_GUIDES_CSS;
+    expect(css).toContain("[data-holiday-searchrow]{container-type:inline-size}");
+    expect(css).toContain(".hh-count-open{flex:0 1 auto;min-width:auto}");
+    expect(css).toContain(".hh-search{flex:1 0 160px;min-width:160px;margin-left:auto}");
+    expect(css).toContain(".hh-search input{padding-right:44px}");
+    expect(css).toContain("@media (min-width:768px){.hh-search{max-width:360px}}");
+    expect(css).toContain("@container (max-width:499px){.hh-count-full{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.hh-count-short{display:inline}}");
+    expect(css).toMatch(/\.hh-count-short\{display:none\}/);
   });
 
   it("compact cards: the type a small tag, one where-and-when line, the address is the Maps link, no round buttons", () => {
@@ -358,7 +406,7 @@ describe("/holidays: lights and events in one list", () => {
     fireEvent.click(show);
     expect(screen.queryByRole("dialog", { name: "Filters" })).toBeNull();
     expect(button.textContent).toBe("3"); // the icon and its count badge
-    expect(button.getAttribute("aria-label")).toBe("Filters, 3 on");
+    expect(button.getAttribute("aria-label")).toBe("Filter, 3 on");
   });
 
   it("a URL preset shows as removable chips with the count; removing one widens the list, Clear all empties them", () => {
@@ -496,7 +544,8 @@ describe("Holiday Hub routing, on every layer", () => {
   it("document scroll, linked from the footer and the gift guides left menu (owner 11-21: not the main column), never the phone top nav", () => {
     expect(read("src/hooks/useAppShellViewport.ts")).toMatch(/^\s*"\/holidays",/m);
     expect(read("src/components/Footer.tsx")).toContain('<Link to="/holidays" className={FOOTER_LINK}>');
-    expect(read("src/pages/info/giftGuides/GiftGuidesSidebar.tsx")).toContain('<Link to="/holidays" data-gift-side-holiday-hub="">');
+    // Guide consistency audit 1122 #2: marked current on its own page (src/test/giftGuideDisclosureWhereLinked1122.test.tsx).
+    expect(read("src/pages/info/giftGuides/GiftGuidesSidebar.tsx")).toContain('<Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub="">');
     // No top-nav link to it (polish audit 1122 #28 lists "/holidays" only in NAV_HOME_HIDDEN_ON, the pages that hide Home).
     expect(read("src/components/Navbar.tsx")).not.toMatch(/(?:to|href)=\{?["'`]\/holidays/);
     expect(read("src/components/Navbar.tsx")).toMatch(/NAV_HOME_HIDDEN_ON = \[[^\]]*"\/holidays"/);

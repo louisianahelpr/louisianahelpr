@@ -9,7 +9,7 @@
  *    the heart at the card's bottom-right corner.
  *  - "Remove show more just list everything" (guarded in giftGuidesPage.test.tsx).
  *
- * @mutate src/pages/info/GiftGuides.tsx |   const countRow = (phone && Boolean(guide) && !deals) \|\| sponsorsPage; |   const countRow = sponsorsPage;
+ * @mutate src/pages/info/GiftGuides.tsx |   const countRow = phone && Boolean(guide) && !deals; |   const countRow = sponsorsPage;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |   const open = searchOpen \|\| !!query; |   const open = true;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }} | onKeyDown={() => undefined}
  * @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {pillInRow && tools} |         {tools}
@@ -58,7 +58,7 @@ const renderAt = async (url: string, width: number) => {
 };
 
 describe("phone guide page: the count, the pill and the icons on one row under the banner (owner 11-21)", () => {
-  it.each(["kids", "her"])("/gift-guides/%s at 390: no pill or icons above the banner; one row after it", async (slug) => {
+  it.each(["kids", "her", "25-days-sponsors"])("/gift-guides/%s at 390: no pill or icons above the banner; one row after it", async (slug) => {
     const c = await renderAt(`/gift-guides/${slug}`, 390);
     const head = c.querySelector("[data-gift-headrow]")!;
     expect(head.querySelector("[data-gift-ship], [data-gift-quick]")).toBeNull();
@@ -82,7 +82,8 @@ describe("phone guide page: the count, the pill and the icons on one row under t
     const phone = from.slice(0, from.indexOf("\n}\n") + 2);
     expect(phone).toContain(".gg-headrow>.gg-ship,.gg-headrow>.gg-tools{display:none}");
     expect(phone).not.toContain(".gg-countrow");
-    for (const [url, width] of [["/gift-guides", 390], ["/gift-guides/kids", 1440], ["/gift-guides", 1440]] as const) {
+    // Owner 2026-11-22: the sponsors page too ("like the other pages are set up").
+    for (const [url, width] of [["/gift-guides", 390], ["/gift-guides/kids", 1440], ["/gift-guides", 1440], ["/gift-guides/25-days-sponsors", 1440]] as const) {
       const c = await renderAt(url, width);
       const head = c.querySelector("[data-gift-headrow]")!;
       expect(head.querySelector("[data-gift-ship]"), `${url}@${width}`).not.toBeNull();

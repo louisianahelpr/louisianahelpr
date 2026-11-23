@@ -26,8 +26,8 @@
  *
  * @mutate src/pages/info/giftGuides/GiftOut.tsx | rel="sponsored noopener" | rel="noopener"
  * @mutate src/pages/info/giftGuides/GiftOut.tsx | target="_blank" rel= | rel=
- * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosureLead} <span | <p data-gift-disclosure="">{null} <span
- * @mutate src/pages/info/GiftGuides.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n | </p>\n
+ * @mutate src/pages/info/giftGuides/GuidesDisclosure.tsx | <p data-gift-disclosure="">{G.disclosureLead} <span | <p data-gift-disclosure="">{null} <span
+ * @mutate src/pages/info/giftGuides/GuidesDisclosure.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n | </p>\n
  * @mutate src/content/giftGuides.ts |   disclosureLead: "Affiliate links:", |   disclosureLead: "Links:",
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | padding-top:14px;font-size:12px;color:var(--gg-muted); | padding-top:14px;font-size:10px;color:var(--gg-muted);
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
@@ -435,9 +435,11 @@ describe("gift guides: the landing opens to the guides", () => {
     const { container } = renderAt("/gift-guides");
     expect(container.querySelectorAll("[data-gift-sidebar] details, [data-gift-sidebar] summary").length).toBe(0);
     const guides = [...container.querySelectorAll("[data-gift-side-guides] a")];
-    expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids"]);
-    expect(guides.slice(1).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(["oat", "green", "red"]);
-    expect(guides.slice(1).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(["gg-dot gg-oat", "gg-dot gg-green", "gg-dot gg-red"]);
+    // Guide consistency audit 1122 #19: My Wish List closes the group, as in the phone's menu sheet (no dot).
+    expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", "/gift-guides/my-list"]);
+    expect(guides.slice(1, 4).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(["oat", "green", "red"]);
+    expect(guides.slice(1, 4).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(["gg-dot gg-oat", "gg-dot gg-green", "gg-dot gg-red"]);
+    expect(guides[4].querySelector("[data-gift-side-dot]")).toBeNull();
     expect(container.querySelector('[data-gift-sidebar] a[aria-current="page"]')?.getAttribute("href")).toBe("/gift-guides");
     cleanup();
     for (const [url, cur] of [["/gift-guides/kids", "/gift-guides/kids"], ["/gift-guides/mom", "/gift-guides/her"], ["/gift-guides/dad", "/gift-guides/him"]]) {
@@ -883,8 +885,9 @@ describe("gift guides: design audit round 2 UI fixes", () => {
       // Owner 11-21 ("make search an icon always"): the search is a magnifier icon (no field until tapped).
       expect(quick.querySelector("input"), url).toBeNull();
       const controls = [...quick.querySelectorAll("a, button")].filter((el) => !el.closest("[data-gift-search-results]"));
-      // Owner 11-21: an owner-list guide (Mom is Her's view) adds the Sort by price menu to the tool row.
-      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(url === "/gift-guides/her" ? ["Search gift guides", "Sort by price", "My Wish List, 0 saved", "Share"] : ["Search gift guides", "My Wish List, 0 saved", "Share"]);
+      // Owner 11-21: an owner-list guide (Mom is Her's view) adds the price sort menu to the tool row, named "Sort" (one name
+      // per sliders action, consistency audit 1122 #6).
+      expect(controls.map((el) => el.getAttribute("aria-label")), url).toEqual(url === "/gift-guides/her" ? ["Search gift guides", "Sort", "My Wish List, 0 saved", "Share"] : ["Search gift guides", "My Wish List, 0 saved", "Share"]);
       expect(controls[0].className, url).toMatch(/\bgg-icon\b/);
       const share = controls[controls.length - 1];
       // Icons only: 44px tap targets (RoundIconButton w-11 h-11; .gg-icon 44px), and no visible words.
@@ -942,7 +945,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
 describe("gift guides: no ShopMy collection lines on a guide page, no ShopMy/Pinterest links in the footer (owner 11-18 PM)", () => {
   // Owner: "you can remove this because my full guides are already here with the links" (Shop the full guide / More
   // on ShopMy), and "same for this" (Every collection on ShopMy / Every gift guide on Pinterest). The disclosures stay.
-  // @mutate src/pages/info/GiftGuides.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n      <p className="gg-more"><a href="https://shopmy.us/shop/lexilombas">Every collection on ShopMy</a></p>\n
+  // @mutate src/pages/info/giftGuides/GuidesDisclosure.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n      <p className="gg-more"><a href="https://shopmy.us/shop/lexilombas">Every collection on ShopMy</a></p>\n
   it("Her, Him, Dad and a store page show neither line; the footer keeps the one disclosure line and no other link", () => {
     let pages = 0;
     for (const slug of ["her", "him", "dad", "store-walmart"]) {

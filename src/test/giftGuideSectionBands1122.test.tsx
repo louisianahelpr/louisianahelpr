@@ -6,6 +6,12 @@
  * guide's colour on its left, more room above each section and the words a little bolder, on the phone and the
  * computer alike. Every section still starts open (owner 11-22, "everything expanded"); the chevron stays.
  *
+ * The deals days use the same header (owner 2026-11-22: "on black friday page. top deals, sales, and discount codes need
+ * to have the same layout and design as the collapse and expand sections on the his and hers guides. same for cyber
+ * monday"): Black Friday's and Cyber Monday's Top deals, Discount codes and Sales are guide sections drawn by the one
+ * shared header (GuideSectionHead), a band in the page's red with the title, "(count)" and the chevron, open on arrival,
+ * and a tap closes and reopens each (its cards drawn only while open, as on Her).
+ *
  * The contrast is computed here from the stylesheet's own colours (header words and the count >= 4.5:1 on the tint, light
  * and dark theme) and the band must read as a band on the white page (>= 1.15:1). Measured in Chromium on 2026-11-22
  * (local dev build of this branch): see the commit message for the boxes.
@@ -15,10 +21,13 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-sec-oat{--gg-sec-bg:#f2e9da; | .gg-sec-oat{--gg-sec-bg:#fefcf9;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | :root[data-theme="dark"] .gg-sec-green{--gg-sec-bg:#1f3328;--gg-sec-ink:#dcebdf;--gg-sec-muted:#b7cdbb; | :root[data-theme="dark"] .gg-sec-green{--gg-sec-bg:#1f3328;--gg-sec-ink:#dcebdf;--gg-sec-muted:#3c5d47;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-sec-toggle-h{margin:24px 0 0} | .gg-sec-toggle-h{margin:14px 0 0}
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <h2 className={`gg-sec-title gg-sec-toggle-h gg-sec-${guide.tint}`} | <h2 className="gg-sec-title gg-sec-toggle-h"
+ * @mutate src/pages/info/giftGuides/GuideSectionHead.tsx | <h2 className={`gg-sec-title gg-sec-toggle-h gg-sec-${tint}`} | <h2 className="gg-sec-title gg-sec-toggle-h"
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | count={x.count} tint={DEALS_TINT} | count={x.count} tint="oat"
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | open={isOpen(x.id)} onToggle={() => setOpen((o) => ({ ...o, [x.id]: !isOpen(x.id) }))} | open={false} onToggle={() => setOpen((o) => ({ ...o, [x.id]: !isOpen(x.id) }))}
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | {isOpen(x.id) && <div className="gg-deal-sec-body" | {<div className="gg-deal-sec-body"
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render } from "@testing-library/react";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
@@ -28,6 +37,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 import GiftGuides from "@/pages/info/GiftGuides";
 import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
+import { DEALS_TINT } from "@/content/giftGuideDeals.mjs";
 
 await loadAllGuidePicks();
 afterEach(cleanup);
@@ -108,5 +118,65 @@ describe("price-section headers are shaded bands in the guide's tint (owner 2026
     }
     expect(new Set(["her", "him", "kids"].map((s) => guideBySlug(s)!.tint))).toEqual(new Set(TINTS));
     expect(headers).toBeGreaterThan(9);
+  });
+});
+
+describe("the deals days' Top deals, Discount codes and Sales wear the same section header as Her (owner 2026-11-22)", () => {
+  // A day with deals, codes and sales on both pages (the pages read the clock; only Date is faked).
+  beforeAll(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2026-11-21T18:00:00Z")); });
+  afterAll(() => { vi.useRealTimers(); });
+  const renderAt = async (slug: string) => {
+    let c!: HTMLElement;
+    await act(async () => {
+      c = render(
+        <MemoryRouter initialEntries={[`/gift-guides/${slug}`]}>
+          <Routes><Route path="/gift-guides/:slug" element={<GiftGuides />} /></Routes>
+        </MemoryRouter>,
+      ).container;
+    });
+    return c;
+  };
+
+  it("Black Friday and Cyber Monday: each subsection is a band in the page's red, title + (count) + chevron, open, and a tap closes and reopens it", async () => {
+    // Her's header, the one to match.
+    const her = await renderAt("her");
+    const herToggle = her.querySelector<HTMLButtonElement>("button[data-gift-section-toggle]")!;
+    const herShape = { h2: herToggle.closest("h2")!.className.replace(/gg-sec-oat/, "gg-sec-<tint>"), button: herToggle.className, chev: herToggle.querySelector("svg.gg-sec-chev") !== null };
+    cleanup();
+    expect(TINTS).toContain(DEALS_TINT);
+    let headers = 0;
+    for (const slug of ["black-friday", "cyber-monday"]) {
+      const c = await renderAt(slug);
+      await waitFor(() => expect(c.querySelectorAll("section[data-gift-deal-sub]").length, slug).toBe(3));
+      await waitFor(() => expect(c.querySelector("[data-gift-deal]"), slug).not.toBeNull());
+      // No old fold (a <details> with a +/- marker) is left on the page's deals list.
+      expect(c.querySelector("[data-gift-deal-sections] details"), slug).toBeNull();
+      const secs = [...c.querySelectorAll<HTMLElement>("section[data-gift-deal-sub]")];
+      expect(secs.map((x) => x.getAttribute("data-gift-deal-sub")), slug).toEqual(["deals", "codes", "sales"]);
+      for (const sec of secs) {
+        const id = sec.getAttribute("data-gift-deal-sub")!;
+        const b = sec.querySelector<HTMLButtonElement>("h2 > button[data-gift-deal-toggle]")!;
+        expect(b, `${slug} ${id}`).not.toBeNull();
+        const h2 = b.closest("h2")!;
+        expect({ h2: h2.className.replace(`gg-sec-${DEALS_TINT}`, "gg-sec-<tint>"), button: b.className, chev: b.querySelector("svg.gg-sec-chev") !== null }, `${slug} ${id}`).toEqual(herShape);
+        expect(h2.classList.contains("gg-sec-red"), `${slug} ${id}`).toBe(true);
+        expect(sec.getAttribute("aria-labelledby"), `${slug} ${id}`).toBe(h2.id);
+        expect(b.querySelector("[data-gift-section-count]")?.textContent, `${slug} ${id}`).toMatch(/^ \(\d+\)$/);
+        expect(b.getAttribute("aria-expanded"), `${slug} ${id}`).toBe("true");
+        const body = () => c.querySelector(`#${b.getAttribute("aria-controls")}`);
+        expect(body()?.querySelector("li"), `${slug} ${id}`).not.toBeNull();
+        headers++;
+      }
+      // One tap closes a subsection (its cards go), one more opens it again.
+      const t = secs[1].querySelector<HTMLButtonElement>("button[data-gift-deal-toggle]")!;
+      await act(async () => { fireEvent.click(t); });
+      expect(t.getAttribute("aria-expanded"), slug).toBe("false");
+      expect(c.querySelector(`#${t.getAttribute("aria-controls")}`), slug).toBeNull();
+      await act(async () => { fireEvent.click(t); });
+      expect(t.getAttribute("aria-expanded"), slug).toBe("true");
+      expect(c.querySelector(`#${t.getAttribute("aria-controls")}`), slug).not.toBeNull();
+      cleanup();
+    }
+    expect(headers).toBe(6);
   });
 });

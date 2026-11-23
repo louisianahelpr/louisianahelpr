@@ -91,7 +91,7 @@ describe("every gift guide and Holiday Hub page opens with everything expanded (
     const slug = url.split("/")[2] ?? "";
     // A deals day loads its own chunk (lazy, off the guide pages' critical path): wait for its sections.
     if ((DEAL_DAY_SLUGS as readonly string[]).includes(slug)) await waitFor(() => expect(c.querySelector("[data-gift-deal-day-page]"), url).not.toBeNull());
-    if (slug === "black-friday" || slug === "cyber-monday") await waitFor(() => expect(c.querySelectorAll("details[data-gift-deal-sub]").length, url).toBeGreaterThan(1));
+    if (slug === "black-friday" || slug === "cyber-monday") await waitFor(() => expect(c.querySelectorAll("section[data-gift-deal-sub]").length, url).toBeGreaterThan(1));
     expect(closedOnLoad(c), url).toEqual([]);
   });
 
@@ -143,8 +143,9 @@ describe("every gift guide and Holiday Hub page opens with everything expanded (
     let extras = 0;
     for (const slug of ["black-friday", "cyber-monday"]) {
       const c = await renderAt(`/gift-guides/${slug}`);
-      await waitFor(() => expect(c.querySelectorAll("details[data-gift-deal-sub]").length, slug).toBeGreaterThan(1));
-      for (const d of c.querySelectorAll<HTMLDetailsElement>("details[data-gift-deal-sub]")) expect(d.open, `${slug} ${d.getAttribute("data-gift-deal-sub")}`).toBe(true);
+      await waitFor(() => expect(c.querySelectorAll("section[data-gift-deal-sub]").length, slug).toBeGreaterThan(1));
+      // Owner 2026-11-22: each subsection is a guide section; open = its header button says aria-expanded="true".
+      for (const d of c.querySelectorAll<HTMLElement>("section[data-gift-deal-sub]")) expect(d.querySelector("button[data-gift-deal-toggle]")?.getAttribute("aria-expanded"), `${slug} ${d.getAttribute("data-gift-deal-sub")}`).toBe("true");
       extras += c.querySelectorAll("[data-gift-code-extra]").length;
       cleanup();
     }
@@ -170,7 +171,9 @@ describe("source inventory: every collapsible under the guides and the Holiday H
     expect(all.length).toBeGreaterThan(30);
     const details: string[] = [];
     for (const f of all) for (const m of src(f).matchAll(/<details\b[^>]*>/g)) details.push(`${f}: ${m[0]}`);
-    expect(details.length).toBeGreaterThan(2);
+    // Two left (the Holiday Hub's): the deals days' subsections are guide sections with a header button now (owner
+    // 2026-11-22), checked in the walk above and by the open[id] ?? START_OPEN line below.
+    expect(details.length).toBeGreaterThan(1);
     const bad = details.filter((d) => !/\bopen=\{(START_OPEN|isOpen\()/.test(d));
     expect(bad).toEqual([]);
     // The deals page's own open state falls back to START_OPEN.

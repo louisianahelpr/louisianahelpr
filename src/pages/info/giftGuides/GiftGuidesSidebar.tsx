@@ -35,10 +35,10 @@ const SIDE_GUIDES = [
  * phones") the sidebar is hidden and the same groups open in a bottom sheet from the head row's three-line icon (owner
  * 11-22, GuidesMenuButton in GiftGuidesPhoneNav.tsx).
  */
-export function GiftGuidesSidebar({ active, myList = false, page }: MenuProps) {
+export function GiftGuidesSidebar({ active, myList = false, mine = myList, page }: MenuProps & { mine?: boolean }) {
   return (
     <nav className="gg-side" aria-label={G.sidebarLabel} data-gift-sidebar="">
-      <GiftGuidesMenu active={active} myList={myList} page={page} />
+      <GiftGuidesMenu active={active} myList={myList} mine={mine} page={page} wishList />
     </nav>
   );
 }
@@ -57,10 +57,11 @@ const openEntry = ({ active, page }: MenuProps) => page ?? active?.view?.of ?? a
 /**
  * The grouped menu's body, shared by the desktop sidebar and the phone's menu sheet (owner 11-21: "We need a way to
  * organize this on the phones"). `idPrefix` keeps the group heading ids unique when both are in the page. `wishList`:
- * the phone sheet adds My Wish List under the guides (owner 11-22: the phone's three-line menu replaced its chip row, so
- * it holds every guides page; the desktop sidebar is unchanged, its heart sits in the head row).
+ * My Wish List under the guides (owner 11-22: the phone's three-line menu replaced its chip row, so it holds every guides
+ * page; guide consistency audit 1122 #19: the desktop sidebar lists it too, so the two menus match). `mine`: the open
+ * page is the visitor's own wish list (someone's shared list marks no entry current, holiday audit 1121).
  */
-export function GiftGuidesMenu({ active, myList = false, page, idPrefix = "gg-side", wishList = false }: MenuProps & { idPrefix?: string; wishList?: boolean }) {
+export function GiftGuidesMenu({ active, myList = false, mine = myList, page, idPrefix = "gg-side", wishList = false }: MenuProps & { idPrefix?: string; wishList?: boolean; mine?: boolean }) {
   const open = openEntry({ active, page });
   const current = (slug: string | null) => (!myList && open === slug ? ({ "aria-current": "page" } as const) : {});
   const guides = sideGuides();
@@ -75,7 +76,7 @@ export function GiftGuidesMenu({ active, myList = false, page, idPrefix = "gg-si
             <Link to={`/gift-guides/${g.slug}`} {...current(g.slug)} data-gift-side={g.slug}><i className={`gg-dot gg-${g.dot}`} aria-hidden="true" data-gift-side-dot={g.dot} />{g.title}</Link>
           </li>
         ))}
-        {wishList && <li><Link to={`/gift-guides/${MY_LIST_SLUG}`} {...(myList ? ({ "aria-current": "page" } as const) : {})} data-gift-side-wish-list="">{WISH.title}</Link></li>}
+        {wishList && <li><Link to={`/gift-guides/${MY_LIST_SLUG}`} {...(mine ? ({ "aria-current": "page" } as const) : {})} data-gift-side-wish-list="">{WISH.title}</Link></li>}
       </ul>
       <p className="gg-side-h" id={`${idPrefix}-deals`}>{G.sideHeads.deals}</p>
       <ul data-gift-side-deals-group="" aria-labelledby={`${idPrefix}-deals`}>
@@ -102,7 +103,8 @@ export function GiftGuidesMenu({ active, myList = false, page, idPrefix = "gg-si
       </ul>
       <p className="gg-side-h" id={`${idPrefix}-la`}>{G.sideHeads.louisiana}</p>
       <ul data-gift-side-more="" aria-labelledby={`${idPrefix}-la`}>
-        <li><Link to="/holidays" data-gift-side-holiday-hub="">{G.sideHolidayHub}</Link></li>
+        {/* Guide consistency audit 1122 #2: the Hub is marked open on its own page, as every other entry is. */}
+        <li><Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub="">{G.sideHolidayHub}</Link></li>
         <li><Link to={`/gift-guides/${SPONSORS_SLUG}`} {...current(SPONSORS_SLUG)} data-gift-side-sponsors="">{G.sideSponsorsLabel}</Link></li>
       </ul>
     </>

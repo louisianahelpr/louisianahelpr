@@ -295,6 +295,8 @@ export const giftGuides = {
   primeTrial: { label: "Try Prime free for fast holiday shipping", href: "https://www.amazon.com/prime?tag=louisianahelpr-20" },
   allGuidesLabel: "All guides",
   sidebarLabel: "Holiday gift guides",
+  /** The phone menu sheet's title: the phone header's own words (guide consistency audit 1122 #19). */
+  menuSheetTitle: "Gift guides",
   /**
    * The left menu's links to the deals page's three day sections (owner 11-21). The ids are the section anchors of the
    * one deals page (src/content/giftGuideDeals.mjs DEAL_EVENTS on feat/guide-deals-bfcm-1121).
@@ -445,10 +447,11 @@ export const giftGuides = {
     "price-soon": "Price coming soon",
   },
   priceSectionCount: (n: number) => ` (${n})`,
-  /** The price sort on Her, Him and Kids (owner 2026-11-21: "the guides should be able to be sorted by price"). */
-  sortLabel: "Sort by price",
+  /** The price sort on Her, Him and Kids (owner 2026-11-21: "the guides should be able to be sorted by price"). One name
+   *  per action on the sliders icon (consistency audit 1122 #6): a menu that sorts is "Sort", one that filters "Filter". */
+  sortLabel: "Sort",
   /** The sort icon's name while a price order is on (audit 1122 #21: nothing showed it was on). */
-  sortLabelActive: (order: string) => `Sort by price, ${order}`,
+  sortLabelActive: (order: string) => `Sort, ${order}`,
   /** The 25 Days sponsors page's Filter (owner 11-21: its section links and price limits moved into it). */
   filterLabel: "Filter",
   filterLabelActive: (n: number) => `Filter, ${n} on`,

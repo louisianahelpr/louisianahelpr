@@ -50,7 +50,8 @@ function navSection(path: string): "jobs" | "declutter" | "guides" | null {
   const under = (p: string) => path === p || path.startsWith(p + "/");
   if (under("/browse") || under("/jobs")) return "jobs";
   if (under("/declutter")) return "declutter";
-  if (under("/gift-guides")) return "guides";
+  // Guide consistency audit 1122 #2: the Holiday Hub is a page of the guides' menu, so the gift guides link is current there.
+  if (under("/gift-guides") || path === "/holidays") return "guides";
   return null;
 }
 const NAV_CURRENT_MARK = "aria-[current=page]:text-[hsl(var(--bark))] aria-[current=page]:underline aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-[6px]";

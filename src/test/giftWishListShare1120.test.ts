@@ -48,7 +48,9 @@ describe("wish list pages before JavaScript (api/share.ts)", () => {
     const head = (await res.text()).split("</head>")[0];
     expect(head).toContain('content="Someone shared their wish list with you"');
     expect(head).toMatch(/<meta name="robots" content="noindex, nofollow"/);
-    expect(head).toContain("/gift-guides/og/landing.jpg");
+    // Owner 2026-11-22: its own 1200x630 "shared with you / Wish List" banner card (src/test/giftGuideWideOg1122.test.ts).
+    expect(head).toContain("/gift-guides/og-wide/wish-list.jpg?v=");
+    expect(head).toContain('<meta property="og:image:width" content="1200"');
     expect(head).toContain(`${ORIGIN}/gift-guides/list/abc123defghi`);
     // A malformed code never reaches og:url.
     const bad = (await (await fetchShare("_og=wishlist&_id=%3Cscript%3E")).text()).split("</head>")[0];

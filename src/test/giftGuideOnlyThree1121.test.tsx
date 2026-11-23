@@ -41,7 +41,7 @@
  * @mutate src/content/giftGuideCatalog.ts | draftOf.has(slug) && isLiveGuide(slug) && | draftOf.has(slug) &&
  * @mutate src/prerender/seoData.ts | else if (!to && !guides[old]) moved[old] = ""; | else if (!to && !guides[old] && old.startsWith("store-")) moved[old] = "";
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       {null}
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" data-gift-side-holiday-hub="">{G.sideHolidayHub}</Link></li> |         {null}
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub="">{G.sideHolidayHub}</Link></li> |         {null}
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   if (finderAsked(search, hash)) return | if (false) return
  * @mutate src/content/giftGuides.ts |     { id: "cyber-monday", label: "Cyber Monday" }, |
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       <LiveGuides /><aside data-gift-holiday-hub="" />
@@ -151,12 +151,12 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       // The banner holds the lead and the title only (owner 11-21: "remove louisiana helpr from the [banner]").
       expect(container.querySelector("[data-gift-arch]")?.textContent, slug).not.toMatch(/Louisiana Helpr/i);
       expect(container.querySelector("[data-gift-deals-jump]"), slug).toBeNull();
-      const codes = container.querySelector<HTMLDetailsElement>("[data-gift-deals-page] details[data-gift-deal-sub='codes']");
+      const codes = container.querySelector<HTMLElement>("[data-gift-deals-page] section[data-gift-deal-sub='codes']");
       if (slug === "small-business-saturday") expect(codes, slug).toBeNull();
       else {
         expect(codes, `${slug}: the codes subsection`).not.toBeNull();
         // Owner 2026-11-22 ("make everything open expanded"): open on arrival.
-        expect(codes!.open, slug).toBe(true);
+        expect(codes!.querySelector("button[data-gift-deal-toggle]")?.getAttribute("aria-expanded"), slug).toBe("true");
       }
       // Holiday audit 1121: the menu marks the open day itself (it marked Black Friday on every day).
       expect(container.querySelector(`[data-gift-side-deals='${slug}']`)?.getAttribute("aria-current"), slug).toBe("page");

@@ -24,8 +24,7 @@ import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { GhostIconButton, SearchIconButton } from "@/components/ui/SearchIconButton";
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -114,9 +113,12 @@ export default function HolidayHub() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const searchInput = useRef<HTMLInputElement>(null);
+  const searchButton = useRef<HTMLButtonElement>(null);
+  // The ✕ or Escape puts the row back and the focus on the magnifier (as the guides' search does).
   const closeSearch = () => {
     setSearchOpen(false);
     setQuery("");
+    requestAnimationFrame(() => searchButton.current?.focus());
   };
   const filtersButton = useRef<HTMLButtonElement>(null);
   const what = resolveHolidayWhat(params.get("what"), params.get("kind")) ?? "all";
@@ -171,6 +173,8 @@ export default function HolidayHub() {
     }, today).length : 0),
     [what, region, cost, when, today],
   );
+  // The count's words, drawn once: the row's left when closed, and (open) the words a wide row shows beside the field.
+  const countWords = <>{shown.length ? holidayCountLabel(shown) : ""}{unlisted > 0 && <span data-holiday-unlisted="">{` · plus ${unlisted} with no cost listed`}</span>}</>;
 
   // Every filter in effect, in the panel's order: a removable chip each, and the Filters button's count.
   const active = [
@@ -190,10 +194,10 @@ export default function HolidayHub() {
     // Owner 2026-11-22 #13: the Hub is a page of the guides' menu, so it opens on the guides' one top (GuidesFrame ->
     // GuidesTop: "Holiday gift guides" by the back arrow, the pill and the icons, its green banner) with the guides'
     // menu beside it. No gift search in that row (owner 11-22: one magnifier, the Hub's own); no affiliate link here, so
-    // no disclosures.
+    // the frame shows no disclosures (GuidesDisclosure).
     <PublicHeaderPage title={W.hubTitle} backTo="/gift-guides" wrapTitle hideHeader bottomPaddingClassName="pb-12 md:pb-16">
       <style>{GIFT_GUIDES_CSS}</style>
-      <GuidesFrame title={W.hubTitle} path="/holidays" banner={G.pageBanners["/holidays"]} tools="no-search" disclosures={false}>
+      <GuidesFrame title={W.hubTitle} path="/holidays" banner={G.pageBanners["/holidays"]} tools="no-search">
       <div className="space-y-section font-sans" data-holiday-page="hub">
         {/* Owner 2026-11-22 (iPhone: "Remove the words above 82 light displays then move that and the and filter and
             search up"): no intro line and no "Shopping too?" link above the count; the count, search and filter sit
@@ -204,37 +208,47 @@ export default function HolidayHub() {
               the icons, add a search icon". One row: the count on the left, then two plain icons (no border, no
               words): search, which opens a field over the names, towns and places (Escape closes it), and the
               filter, with how many filters are on. All / Lights / Events is the panel's "What". */}
-          <div className="flex min-h-11 items-center gap-1">
-            {searchOpen ? (
-              <label className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-card px-3 focus-within:ring-2 focus-within:ring-ring" data-holiday-search-box="">
-                <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          {/* Owner 2026-11-22 (pop-up, a desktop screenshot: the open "Name or town" box pushed the count to its own
+              line): "keep count on row". Open, the count stays at the left of this row and the soft field (the guides'
+              own, 16px words) takes the room to its right, up to 360px from 768px up, with its ✕; the filter stays at
+              the far right. Where the row is too narrow for the words and a usable field (under 440px: every phone),
+              the count shows as its number only (the words stay for screen readers). The ✕ or Escape puts the row back. */}
+          <div className="flex min-h-11 items-center gap-1" data-holiday-searchrow={searchOpen ? "open" : "closed"}>
+            <p className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} text-ds-14 text-muted-foreground`} aria-live="polite" data-holiday-count="">
+              {searchOpen ? (
+                <><span className="hh-count-full">{countWords}</span><span className="hh-count-short" aria-hidden="true">{shown.length || ""}</span></>
+              ) : countWords}
+            </p>
+            {searchOpen && (
+              <label className="hh-search gg-search rounded-xl focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.22)]" data-holiday-search-box="">
+                <Search width={15} height={15} aria-hidden />
                 <Input look="bare" ref={searchInput} type="search" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus
                   onKeyDown={(e) => { if (e.key === "Escape") closeSearch(); }}
-                  placeholder="Name or town" aria-label="Search lights and events by name, town or place"
-                  className="min-h-11 flex-1 border-0 text-ds-15 text-foreground shadow-none outline-none focus:outline-none" data-holiday-search="" />
-                <Button type="button" variant="ghost" size="iconCompact" onClick={closeSearch} aria-label="Close search"
-                  className="ctl-exit -mr-2 shrink-0 text-muted-foreground hover:text-foreground [&_svg]:size-4" data-holiday-search-close="">
-                  <X aria-hidden />
-                </Button>
+                  placeholder="Name or town" aria-label="Search lights and events by name, town or place" data-holiday-search="" />
+                <RoundIconButton className="gg-search-close" onClick={closeSearch} aria-label="Close search" data-holiday-search-close="">
+                  <X className="h-5 w-5" aria-hidden />
+                </RoundIconButton>
               </label>
-            ) : (
-              <p className="min-w-0 flex-1 text-ds-14 text-muted-foreground" aria-live="polite" data-holiday-count="">{shown.length ? holidayCountLabel(shown) : ""}{unlisted > 0 && <span data-holiday-unlisted="">{` · plus ${unlisted} with no cost listed`}</span>}</p>
             )}
             {/* Open, the magnifier's place stays held (SearchTriggerSlot) so the field's ✕ never lands under the finger
                 that opened it (src/test/searchDismissAndOverlay.test.tsx). */}
             {searchOpen && <SearchTriggerSlot />}
+            {/* Owner 2026-11-22 ("some icons have a circle background some are squared looking. they should all be
+                consistent"): the search and filter are the guides' toolbar icon (gg-icon), a 44px circle fill on a
+                desktop hover only, and the same focus ring, never the square ghost fill. */}
             {!searchOpen && (
-              <SearchIconButton label="Search lights and events" onClick={() => setSearchOpen(true)} data-holiday-search-button="" />
+              <RoundIconButton ref={searchButton} className="gg-icon" aria-label="Search lights and events" aria-expanded={false} onClick={() => setSearchOpen(true)} data-holiday-search-button="">
+                <Search className="h-5 w-5" aria-hidden />
+              </RoundIconButton>
             )}
-            <GhostIconButton ref={filtersButton} data-holiday-filters-button=""
+            <RoundIconButton ref={filtersButton} className="gg-icon" data-holiday-filters-button=""
               onClick={() => setFiltersOpen(true)} aria-haspopup="dialog" aria-expanded={filtersOpen}
-              aria-label={active.length ? `Filters, ${active.length} on` : "Filters"}
-              className={`relative hover:text-[hsl(var(--bark))] ${active.length ? "text-[hsl(var(--bark))]" : "text-foreground"}`}>
+              aria-label={active.length ? G.filterLabelActive(active.length) : G.filterLabel}>
               <SlidersHorizontal className="h-5 w-5" aria-hidden />
               {active.length > 0 && (
-                <span data-holiday-filter-count="" className="absolute right-1 top-1 min-w-4 rounded-full bg-[hsl(var(--bark))] px-1 text-center text-ds-10 font-bold leading-4 text-white">{active.length}</span>
+                <span data-holiday-filter-count="" className="gg-icon-count" aria-hidden="true">{active.length}</span>
               )}
-            </GhostIconButton>
+            </RoundIconButton>
           </div>
           {active.length > 0 && (
             <ul aria-label="Filters on" className="flex flex-wrap gap-2" data-holiday-active="">
@@ -246,9 +260,6 @@ export default function HolidayHub() {
                 </li>
               ))}
             </ul>
-          )}
-          {searchOpen && (
-            <p className="text-ds-14 text-muted-foreground" aria-live="polite" data-holiday-count="">{shown.length ? holidayCountLabel(shown) : ""}</p>
           )}
         </div>
         <FilterSheet open={filtersOpen} onOpenChange={setFiltersOpen} sections={sections} activeFilterCount={active.length}

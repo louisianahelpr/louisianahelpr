@@ -12,7 +12,7 @@
  * Guard: src/test/guideAiSearch1122.test.tsx.
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -65,7 +65,13 @@ export const moduleText = (table) => `${HEADER}export const GUIDE_UPDATED = ${JS
 const invokedDirectly = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (invokedDirectly) {
   const file = path.join(root, OUT);
-  const current = existsSync(file) ? readFileSync(file, "utf8") : "";
+  // Read once, no exists-then-read check (CodeQL js/file-system-race): a missing table is an empty one.
+  let current = "";
+  try {
+    current = readFileSync(file, "utf8");
+  } catch (e) {
+    if (e?.code !== "ENOENT") throw e;
+  }
   const text = moduleText(nextUpdated(parseUpdated(current), pageInputs(), louisianaToday()));
   if (process.argv.includes("--check")) {
     if (current !== text) {

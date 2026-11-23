@@ -10,7 +10,8 @@
  * @mutate src/components/messages/chatView/DealCard.tsx | <div className="shrink-0 text-right" data-deal-paid=""> | <div className="shrink-0 text-right" data-deal-paid="">{stage.held && <p>held safely</p>}
  *
  * Owner 11-01 (A3-87): the card's figure stands alone ("You take home" gone; an sr-only "Your pay"), and the
- * poster's price has no "held safely" line, as on the job page.
+ * poster's price has no "held safely" line, as on the job page. Owner 2026-11-22 ("One number, small label"):
+ * the figure now carries the small grey "after fees" note (src/test/helprPayAfterFeesNote.test.ts).
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -97,7 +98,7 @@ describe("chat job card: the Helpr sees their take-home (F2)", () => {
 
   it("the hired Helpr sees $35 (40 - 2.70 fee - the $2 setup fee, floored), not $40", async () => {
     const { container } = show(false);
-    await waitFor(() => expect(container.querySelector("[data-deal-take-home]")?.textContent).toBe("Your pay $35"));
+    await waitFor(() => expect(container.querySelector("[data-deal-take-home]")?.textContent).toBe("Your pay $35after fees"));
     expect(container.textContent).not.toMatch(/take home/i);
     expect(container.textContent).not.toContain("$40");
     expect(container.textContent).not.toContain("held safely");
@@ -106,7 +107,7 @@ describe("chat job card: the Helpr sees their take-home (F2)", () => {
   it("with the setup fee already paid, the take-home is $37", async () => {
     state.owed = 0;
     const { container } = show(false);
-    await waitFor(() => expect(container.querySelector("[data-deal-take-home]")?.textContent).toBe("Your pay $37"));
+    await waitFor(() => expect(container.querySelector("[data-deal-take-home]")?.textContent).toBe("Your pay $37after fees"));
   });
 
   it("the poster still sees the $40 they paid, with no 'held safely' line (owner 11-01)", async () => {

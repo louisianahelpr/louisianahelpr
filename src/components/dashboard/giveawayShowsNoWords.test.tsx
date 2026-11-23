@@ -40,6 +40,8 @@ const base = { id: "j", title: "t", budget: 60, urgent_fee: 0, is_group_job: fal
 const giveaway = { ...base, helper_fee_flat_cents: 700 };
 const ordinary = { ...base, helper_fee_flat_cents: 70 };
 const WORDS = /take[\s-]?home/i;
+// Owner 2026-11-22 ("One number, small label"): every ordinary take-home carries the small grey "after fees"; the giveaway none.
+const AFTER = /after fees/;
 
 function textOf(ui: React.ReactElement): string {
   const { container } = render(<MemoryRouter>{ui}</MemoryRouter>);
@@ -52,13 +54,13 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
   beforeEach(() => { owed.cents = 200; });
   afterEach(cleanup);
 
-  // What an ordinary job still says: the apply sheet's labelled row ("take home"); elsewhere only a screen-reader "Your pay".
+  // What an ordinary job still says: the small grey "after fees" everywhere (owner 2026-11-22), plus a screen-reader "Your pay" off the apply sheet.
   const SR = /Your pay/;
   const surfaces: Array<[string, (j: typeof giveaway) => React.ReactElement, RegExp]> = [
     ["the job page's amount and notes", (j) => <><HelprPrice job={j as never} /><HelprMoneyNotes job={j as never} hired={false} /></>, SR],
     ["the sentence (quick view, Application sent)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} after=", paid once it's confirmed done" />, SR],
     ["the bare figure (job sheet)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} bare />, SR],
-    ["the apply sheet", (j) => <ApplyEarningsBreakdown confirmApplyJob={j as unknown as EnrichedJob} platformFee={12} />, WORDS],
+    ["the apply sheet", (j) => <ApplyEarningsBreakdown confirmApplyJob={j as unknown as EnrichedJob} platformFee={12} />, AFTER],
   ];
 
   for (const [name, ui, kept] of surfaces) {
@@ -69,6 +71,7 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
       expect(text).toContain("$50");
       expect(text).not.toMatch(WORDS);
       expect(text).not.toMatch(SR);
+      expect(text).not.toMatch(AFTER);
       expect(text).not.toMatch(/setup fee/i);
       expect(text).not.toContain("$48");
     });
@@ -77,7 +80,8 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
       const text = textOf(ui(ordinary));
       expect(text).toContain("$54");
       expect(text).toMatch(kept);
-      if (kept === SR) expect(text).not.toMatch(WORDS);
+      expect(text).toMatch(AFTER);
+      expect(text).not.toMatch(WORDS);
     });
   }
 

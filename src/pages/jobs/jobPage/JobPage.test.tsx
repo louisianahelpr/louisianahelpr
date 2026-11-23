@@ -472,7 +472,9 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(document.querySelector("[data-helpr-money] p")?.textContent).toBe("Your pay $84");
     expect(document.querySelector("[data-helpr-money] .sr-only")?.textContent).toBe("Your pay ");
     // Owner 2026-10-25: no fee name, rate or maths beside the take-home.
-    expect(document.querySelector("[data-helpr-money]")?.textContent ?? "").not.toMatch(/fee|%/i);
+    // Owner 2026-11-22 ("One number, small label"): the one fee word is the small "after fees" note; no name, rate or maths.
+    expect(document.querySelector("[data-helpr-money] [data-after-fees]")?.textContent).toBe("after fees");
+    expect((document.querySelector("[data-helpr-money]")?.textContent ?? "").replace("after fees", "")).not.toMatch(/fee|%/i);
     expectWhenWhere();
     expect(document.body.textContent).not.toContain("123 Main St");
     expect(screen.getByText("The street address is shared once you're offered the job.")).toBeTruthy();
@@ -513,14 +515,18 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     const pct = tierFeePercent(undefined, undefined);
     expect(pct).toBeGreaterThan(0);
     expect(document.querySelector("[data-helpr-money] p")?.textContent).toBe(`Your pay $${Math.floor(60 - (60 * pct) / 100)}`);
-    expect(document.querySelector("[data-helpr-money]")?.textContent ?? "").not.toMatch(/fee|%/i);
+    // Owner 2026-11-22 ("One number, small label"): the one fee word is the small "after fees" note; no name, rate or maths.
+    expect(document.querySelector("[data-helpr-money] [data-after-fees]")?.textContent).toBe("after fees");
+    expect((document.querySelector("[data-helpr-money]")?.textContent ?? "").replace("after fees", "")).not.toMatch(/fee|%/i);
   });
 
   it("a poster-fee job: the Helpr keeps the whole price", () => {
     state.job = row({ helper_fee_flat_cents: 0, helper_fee_percent: 0, poster_fee_flat_cents: 520 });
     renderPage();
     expect(screen.getByText("$90")).toBeTruthy();
-    expect(document.querySelector("[data-helpr-money]")?.textContent ?? "").not.toMatch(/fee|%/i);
+    // Owner 2026-11-22 ("One number, small label"): the one fee word is the small "after fees" note; no name, rate or maths.
+    expect(document.querySelector("[data-helpr-money] [data-after-fees]")?.textContent).toBe("after fees");
+    expect((document.querySelector("[data-helpr-money]")?.textContent ?? "").replace("after fees", "")).not.toMatch(/fee|%/i);
   });
 });
 

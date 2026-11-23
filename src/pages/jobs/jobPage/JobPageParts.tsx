@@ -5,6 +5,7 @@
  * real fee rule, or it is not shown (§1.5).
  */
 import { Link } from "react-router-dom";
+import { AfterFeesNote } from "@/components/job/AfterFeesNote";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enJobPoster";
 import "@/lib/i18n/enJobs";
@@ -263,6 +264,7 @@ export function HelprPrice({ job, noShow = false }: { job: JobPageRow; noShow?: 
     <div data-helpr-money="" className="shrink-0 text-right">
       {/* Owner 11-01: "Remove you take home." The figure stands alone; a screen reader still hears "Your pay". */}
       <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>{!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}</p>
+      {!fixedPay && <AfterFeesNote />}
       {disputed && <p data-helpr-money-held="" className="mt-1 text-ds-12 font-semibold text-muted-foreground">On hold while we review</p>}
     </div>
   );

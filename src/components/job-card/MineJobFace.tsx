@@ -71,6 +71,7 @@ export function MineJobFace({
   when,
   status,
   money,
+  moneyNote = null,
   action,
   extra,
   progress,
@@ -86,6 +87,9 @@ export function MineJobFace({
   status: ReactNode;
   /** Pre-formatted, with its "$". Null hides it (spec §1.5). */
   money: string | null;
+  /** Under the money: a Helpr's small grey "after fees" note (owner 2026-11-22, "One number, small label").
+   *  A poster's card passes nothing: the posted price is theirs. */
+  moneyNote?: ReactNode;
   /** Null when the card is open: its own step row carries the action then. */
   action: MineFaceAction | null;
   /** Under the face, above the button, OUTSIDE the link (it may hold controls):
@@ -250,7 +254,9 @@ export function MineJobFace({
                   <span className="block text-ds-17 font-bold leading-snug tabular-nums text-[hsl(var(--accent-ink))]">
                     {money}
                   </span>
-                  {/* No caption under the price (owner 2026-10-25: take-home everywhere, no label word). */}
+                  {/* Owner 2026-11-22 ("One number, small label"): a Helpr's take-home carries the small grey
+                      "after fees" note (AfterFeesNote, passed by AppliedJobCard); a poster's price has none. */}
+                  {moneyNote}
                 </span>
               )}
             </span>

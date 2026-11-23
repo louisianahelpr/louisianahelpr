@@ -23,6 +23,11 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
+// The "save for" picker loads in its own chunk after the page draws, and once it is mounted a heart opens it instead
+// of saving (saveForPeople.ts requestSaveFor). Whether the tap below beat that load was a race (green locally, red on
+// CI shard 5 for #4896), so the picker is a stub here: the heart's own save is tested; the picker path is
+// savePerPerson1121.test.tsx's.
+vi.mock("@/pages/info/giftGuides/SaveForSomeone", () => ({ SaveForSomeone: () => null, SAVE_FOR_CSS: "" }));
 
 import GiftGuides from "@/pages/info/GiftGuides";
 import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";

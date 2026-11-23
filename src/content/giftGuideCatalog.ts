@@ -424,7 +424,11 @@ export const REMOVED_GUIDES = ["last-minute-gifts", "splurge-gifts", "workaholic
   "store-whokeys", "store-directdeals", "store-hero-wars", "store-skytours", "store-oojo", "store-cheapvuelos", "store-ovago", "store-hopegoo",
   "store-air-india", "store-ocean-hotels", "store-rent-cars", "store-vip-cars", "store-carla-car-rental", "store-rvshare", "store-undercover-tourist", "store-pariscityvision",
   // Lead 11-19 (1530 train): blocked stores (Free Country, Gilt, Literie) and the diecast store; their brands are blocked too.
-  "store-free-country", "store-gilt", "store-literie-candle", "store-diecast-models", "store-bade-sofa"];
+  "store-free-country", "store-gilt", "store-literie-candle", "store-diecast-models", "store-bade-sofa",
+  // Technical SEO audit TS13 (1123): store guides live 11-19 (#4750-#4772), then deleted outright, so no list named them
+  // and their links (held and queued pins among them) answered 404; they open the gift guides landing page like the rest.
+  "store-adagio-teas", "store-amscope", "store-andaseat", "store-cashmere-boutique", "store-forte-chocolate", "store-hairmax",
+  "store-kaiya-baby", "store-lofree", "store-magic-story", "store-xplora"];
 
 /**
  * Guides the owner folded into others (2026-11-18: Female Nurses and Male Nurses go into RNs, LPNs and CNAs). Each

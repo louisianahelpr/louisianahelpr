@@ -1,8 +1,10 @@
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { GUIDES, MERGED_GUIDES, OLD_SLUGS, RETIRED_SLUGS, ROWS, STORES, childrenOf, guidesIn, loadAllGuidePicks, newSlugFor, relatedGuides } from "@/content/giftGuideCatalog";
 import type { SeoData, SeoGuide } from "@/lib/seoBodies.mjs";
-import { DEAL_DAY_SLUGS, DEAL_EVENTS, dealEnds, type Deal } from "@/content/giftGuideDeals.mjs";
-import { STORE_CODES, dealDayParts } from "@/content/giftGuideDealCounts";
+import { DEALS_WORDS, DEAL_DAY_SLUGS, DEAL_EVENTS, dealEnds, type Deal } from "@/content/giftGuideDeals.mjs";
+import { STORE_CODES, codeCardsOrder, dealDayLists, dealDayParts } from "@/content/giftGuideDealCounts";
+import { publicPartners } from "@/components/sponsor/Sections";
+import { sponsorPage } from "@/content/sponsorPage";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import deals from "@/content/giftGuideDeals.json";
 import smallBiz from "@/content/giftGuideSmallBiz.json";
@@ -18,9 +20,6 @@ import { QA_PAGES, toQaPick } from "@/lib/guideQa.mjs";
  * Guard: src/test/seoPageBodies.test.ts.
  */
 
-/** A long guide's list in the raw HTML stops here (the page shows the rest): keeps the response small. */
-const SEO_MAX_PICKS = 40;
-
 export async function buildSeoData(): Promise<SeoData> {
   await loadAllGuidePicks();
   const guides: Record<string, SeoGuide> = {};
@@ -30,8 +29,9 @@ export async function buildSeoData(): Promise<SeoData> {
     const seen = new Set<string>();
     const picks: SeoGuide["picks"] = [];
     // A guide kept out of search (noindex) needs no list in the raw HTML: only its name, so its link answers 200, not 404.
+    // Seo bodies 1123 (technical SEO audit TS4): every pick, not the first 40. A 40 cap left readers with no JavaScript (AI
+    // assistants) only the cheapest picks of Her, Him and Kids while the intro said 159 (size measured in the commit).
     for (const p of indexed ? g.picks : []) {
-      if (picks.length >= SEO_MAX_PICKS) break;
       if (!p.name || !p.href || seen.has(p.href)) continue;
       seen.add(p.href);
       const store = STORES[p.store]?.name ?? "";
@@ -67,16 +67,24 @@ export async function buildSeoData(): Promise<SeoData> {
   // The deals days' cards (structured data 1121; one page per day, owner 11-21): name, shop link, last day and the
   // day page they show on; a day page that is not live carries none.
   // Guide Q&A 11-22: each card's brand and deal line too (the day's "What deals are on this page?").
-  const dealList: SeoData["deals"] = (deals as { item?: string; href?: string; ends?: string; event?: string; brand?: string; deal?: string }[])
+  const dealList: SeoData["deals"] = (deals as { item?: string; href?: string; ends?: string; event?: string; brand?: string; deal?: string; starts?: string }[])
     .filter((d) => d.item && d.href && d.event && DEAL_DAY_SLUGS.includes(d.event) && isLiveGuide(d.event))
     // Guide train p 11-23: the card's real last day (dealEnds: its own end, else its store code's end), the rule the page
     // shows a card by, so the raw HTML's list and Q&A drop a card on the same day the page does.
-    .map((d) => [d.item as string, d.href as string, dealEnds(d as Deal, STORE_CODES) ?? "", d.event as string, d.brand ?? "", d.deal ?? ""]);
+    // Seo bodies 1123: the card's first day too, so the pre-JS list says when it runs as the card does (DEALS_WORDS.runs).
+    .map((d) => [d.item as string, d.href as string, dealEnds(d as Deal, STORE_CODES) ?? "", d.event as string, d.brand ?? "", d.deal ?? "", d.starts ?? ""]);
   // Small Business Saturday's businesses for its Q&A: name, town, category, "ships" or "local".
-  const shops: SeoData["smallBiz"] = (smallBiz as { name?: string; town?: string; category?: string; ships?: string }[])
+  // Seo bodies 1123 (TS3): each one's link (the card's name link, GiftGuideSmallBiz.tsx b.href) and gift idea for the list.
+  const shops: SeoData["smallBiz"] = (smallBiz as { name?: string; town?: string; category?: string; ships?: string; href?: string; gift?: string }[])
     .filter((b) => b.name)
-    .map((b) => [b.name as string, b.town ?? "", b.category ?? "", b.ships ?? ""]);
-  return { guides, moved, groups, deals: dealList, dealParts: dealPartsTable(), smallBiz: shops };
+    .map((b) => [b.name as string, b.town ?? "", b.category ?? "", b.ships ?? "", b.href ?? "", b.gift ?? ""]);
+  // Seo bodies 1123 (TS3): the /25days lineup as the page draws it (Sections.tsx publicPartners: A to Z, never a day).
+  const lineup: SeoData["lineup"] = {
+    title: sponsorPage.lineup.title,
+    intro: sponsorPage.lineup.intro,
+    partners: publicPartners().map((p) => [p.brand, p.prizes, p.page ?? ""]),
+  };
+  return { guides, moved, groups, deals: dealList, dealParts: dealPartsTable(), dealLists: dealListsTable(), smallBiz: shops, lineup };
 }
 
 /** The first and last day the deals days' section counts are worked out for; after the last, its counts carry on. */
@@ -101,6 +109,43 @@ function dealPartsTable(): NonNullable<SeoData["dealParts"]> {
       if (!last || last[1] !== p.codes || last[2] !== p.sales) rows.push([day, p.codes, p.sales]);
     }
     out[e.id] = rows;
+  }
+  return out;
+}
+
+/**
+ * Each deals day's Discount codes and Sales rows by date (seo bodies 1123, technical SEO audit TS3: the pre-JS body
+ * listed none of the 61 deals its Q&A counted), from giftGuideDealCounts.ts dealDayLists, the rows the page's sections
+ * draw. Each code and sale is written once (`codes`, `sales`), and `rows` holds [first day, code indexes, sale indexes],
+ * one row per change, as dealPartsTable does for the counts. A code row: [store, code, offer, when it runs (as the code
+ * card says it), link], each store's best code first (codeCardsOrder); a code with no link draws no card on the page, so
+ * it is left out here too. A sale row: [store, offer, link, last day].
+ */
+function dealListsTable(): NonNullable<SeoData["dealLists"]> {
+  const out: NonNullable<SeoData["dealLists"]> = {};
+  const all = deals as Deal[];
+  for (const e of DEAL_EVENTS.filter((x) => x.kind === "deals" && isLiveGuide(x.id))) {
+    const codes: NonNullable<SeoData["dealLists"]>[string]["codes"] = [];
+    const sales: NonNullable<SeoData["dealLists"]>[string]["sales"] = [];
+    const seen = new Map<string, number>();
+    const indexOf = <R extends string[]>(table: R[], kind: string, row: R) => {
+      const key = JSON.stringify([kind, ...row]);
+      const known = seen.get(key);
+      if (known !== undefined) return known;
+      seen.set(key, table.length);
+      table.push(row);
+      return table.length - 1;
+    };
+    const rows: [string, number[], number[]][] = [];
+    for (let t = Date.parse(`${PARTS_FROM}T12:00:00Z`); t <= Date.parse(`${PARTS_TO}T12:00:00Z`); t += 864e5) {
+      const day = new Date(t).toISOString().slice(0, 10);
+      const l = dealDayLists(e.id, all, day);
+      const ci = codeCardsOrder(l.codes).map((c) => indexOf(codes, "code", [c.store, c.code, c.offer, DEALS_WORDS.runs(c.starts ?? null, c.expires ?? null), c.href as string]));
+      const si = l.sales.flatMap((x) => x.sales).map((x) => indexOf(sales, "sale", [x.store, x.offer, x.href, x.ends]));
+      const last = rows[rows.length - 1];
+      if (!last || last[1].join() !== ci.join() || last[2].join() !== si.join()) rows.push([day, ci, si]);
+    }
+    out[e.id] = { codes, sales, rows };
   }
   return out;
 }

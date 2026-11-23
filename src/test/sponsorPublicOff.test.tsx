@@ -1,8 +1,10 @@
 // @mutate src/content/sponsorPage.ts |           { brand: "Cat 5 Fishing Charters (Lake Charles)", prize: "$100 gift card toward a fishing charter trip" }, |           { brand: "Helping Hands Gallery", prize: "Handmade ceramic cup" },\n          { brand: "Cat 5 Fishing Charters (Lake Charles)", prize: "$100 gift card toward a fishing charter trip" },
 // @mutate src/content/giftGuideSponsorGiftTypes.ts |   "Candle Bloom Confections": "Product", |   "Candle Bloom Confections": "Product",\n  "Helping Hands Gallery": "Product",
 // @mutate src/content/giftGuideSponsorLogos.json | {"name":"Jaboom Baits", | {"name":"Helping Hands Gallery","slug":"helping-hands-gallery","group":"la","href":"/gift-guides/25-days-sponsors"},\n{"name":"Jaboom Baits",
-// @mutate scripts/check-25days-lineup.mjs |         .filter((p) => !PUBLIC_OFF_SPONSORS.includes(p.brand)), |         .filter(Boolean),
-// @mutate scripts/gift-guide-sponsor-logos.mjs |  && !PUBLIC_OFF_SPONSORS.includes(b)); |  && true);
+// @mutate src/content/sponsorPage.ts |           { brand: "Forgiven Hearts", prize: "$25 gift certificate" }, |           { brand: "Sprinkle in Time Too (Sulphur)", prize: "2 free sundaes" },\n          { brand: "Forgiven Hearts", prize: "$25 gift certificate" },
+// @mutate src/content/giftGuideSearchIndex.json | ["Bayou Grace Outfitters","25-days-sponsors" | ["Sprinkle in Time Too","25-days-sponsors"],\n["Bayou Grace Outfitters","25-days-sponsors"
+// @mutate scripts/check-25days-lineup.mjs |         .filter((p) => !PUBLIC_OFF_SPONSORS.some((n) => p.brand.startsWith(n))), |         .filter((p) => !PUBLIC_OFF_SPONSORS.includes(p.brand)),
+// @mutate scripts/gift-guide-sponsor-logos.mjs |  && !PUBLIC_OFF_SPONSORS.some((n) => b.startsWith(n))); |  && !PUBLIC_OFF_SPONSORS.includes(b));
 /**
  * A 25 Days sponsor who said No to being shown publicly is on no public surface of the website (owner 2026-11-21,
  * tracker: "respect their No: leave Helping Hands OFF the public sponsor wall and public lineup (still post their day +
@@ -36,9 +38,11 @@ const isOff = (s: unknown) => OFF.some((k) => fold(s).startsWith(k));
 const slug = (name: string) => name.toLowerCase().replace(/&/g, "and").replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 describe("sponsors who said No are on no public surface (owner 2026-11-21)", () => {
-  it("the list names Helping Hands Gallery (inventory floor)", () => {
-    expect(PUBLIC_OFF_SPONSORS.length).toBeGreaterThan(0);
+  it("the list names Helping Hands Gallery and Sprinkle in Time Too (inventory floor)", () => {
+    expect(PUBLIC_OFF_SPONSORS.length).toBeGreaterThan(1);
     expect(PUBLIC_OFF_SPONSORS).toContain("Helping Hands Gallery");
+    // Night audit 2026-11-23 (25days M10): her sign-up said "not OK on the wall", yet she was on the live lineup.
+    expect(PUBLIC_OFF_SPONSORS).toContain("Sprinkle in Time Too");
   });
 
   it("not in the lineup data, nor in the rendered A-Z lineup on /25days", () => {
@@ -80,7 +84,9 @@ describe("sponsors who said No are on no public surface (owner 2026-11-21)", () 
     for (const f of ["scripts/check-25days-lineup.mjs", "scripts/gift-guide-sponsor-logos.mjs"]) {
       const src = blankComments(read(f));
       expect(src, f).toMatch(/from "\.\.\/src\/content\/sponsorPublicOff\.mjs"/);
-      expect(src, f).toMatch(/!PUBLIC_OFF_SPONSORS\.includes\(/);
+      // Prefix match: the lineup names a sponsor with its town ("Sprinkle in Time Too (Sulphur)"); an exact
+      // includes() missed it and the drift check asked to put her back (2026-11-23).
+      expect(src, f).toMatch(/!PUBLIC_OFF_SPONSORS\.some\(\(n\) => (?:p\.brand|b)\.startsWith\(n\)\)/);
     }
   });
 });

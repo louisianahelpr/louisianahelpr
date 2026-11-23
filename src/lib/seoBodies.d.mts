@@ -20,11 +20,26 @@ export interface SeoData {
   moved: Record<string, string>;
   groups: [label: string, guides: [slug: string, name: string][]][];
   /** The deals days' cards: item name, shop link, last day ("" = no end), the day page's slug. */
-  deals?: [item: string, href: string, ends: string, event: string, brand?: string, deal?: string][];
+  deals?: [item: string, href: string, ends: string, event: string, brand?: string, deal?: string, starts?: string][];
   /** Each deals day's Discount codes and Sales counts by date: [first day, codes, sales], one row per change (guideQa.mjs dealPartsOn). */
   dealParts?: Record<string, [from: string, codes: number, sales: number][]>;
-  /** Small Business Saturday's businesses (its Q&A): name, town, category, "ships" or "local". */
-  smallBiz?: [name: string, town: string, category: string, ships: string][];
+  /** Each deals day's Discount codes and Sales rows by date (seoBodies.mjs dealListsOn): each row once, then [first day, code indexes, sale indexes] per change. */
+  dealLists?: Record<string, SeoDealLists>;
+  /** Small Business Saturday's businesses (its Q&A and list): name, town, category, "ships" or "local", link, gift idea. */
+  smallBiz?: [name: string, town: string, category: string, ships: string, href?: string, gift?: string][];
+  /** The /25days lineup (Sections.tsx publicPartners): A to Z, each brand's prizes and page link ("" = none); never a day. */
+  lineup?: { title: string; intro: string; partners: [brand: string, prizes: string[], page: string][] };
+}
+export interface SeoDealLists {
+  codes: [store: string, code: string, offer: string, runs: string, href: string][];
+  sales: [store: string, offer: string, href: string, ends: string][];
+  rows: [from: string, codes: number[], sales: number[]][];
+}
+export interface SeoDealsDay {
+  /** The Top deals cards showing today. */
+  deals: NonNullable<SeoData["deals"]>;
+  codes: SeoDealLists["codes"];
+  sales: SeoDealLists["sales"];
 }
 export interface TownService { slug: string; label: string; pageLabel?: string; phrase: string; category: string }
 export interface Town { slug: string; name: string }
@@ -34,9 +49,10 @@ export function jsonLdScript(data: unknown): string;
 export function breadcrumbLd(crumbs: { name: string; path: string }[]): Record<string, unknown>;
 export function seoPageBody(crumbs: { name: string; path: string }[], inner: string): string;
 export function giftGuideBody(slug: string, guide: SeoGuide): string;
-export function dealsGuideBody(slug: string, name: string, intro: string, disclosure: string): string;
+export function dealsGuideBody(slug: string, name: string, intro: string, disclosure: string, day?: SeoDealsDay | null, shops?: SeoData["smallBiz"]): string;
+export function dealsDayOn(data: Pick<SeoData, "deals" | "dealLists"> | null | undefined, slug: string, today: string): SeoDealsDay;
 export function giftGuideItemListLd(slug: string, guide: SeoGuide, today: string): Record<string, unknown>;
-export function dealsItemListLd(name: string, deals: NonNullable<SeoData["deals"]>, today: string, slug: string): Record<string, unknown> | null;
+export function dealsItemListLd(name: string, deals: NonNullable<SeoData["deals"]>, today: string, slug: string, day?: SeoDealsDay | null): Record<string, unknown> | null;
 export function giftGuidesLandingBody(groups: SeoData["groups"]): string;
 export function giftGuidesLandingLd(groups: SeoData["groups"]): Record<string, unknown>;
 export function hireBody(service: TownService, town: Town): string;
@@ -44,6 +60,7 @@ export function hireBreadcrumbLd(service: TownService, town: Town): Record<strin
 export const TWENTY_FIVE_DAYS: { name: string; startDate: string; endDate: string };
 export function twentyFiveDaysEventLd(): Record<string, unknown>;
 export const INFO_BODY_PATHS: string[];
-export function infoPageBody(path: string): string | null;
+export const INFO_BODY_LINKS: string[];
+export function infoPageBody(path: string, lineup?: SeoData["lineup"]): string | null;
 export function infoPageBreadcrumbLd(path: string): Record<string, unknown> | null;
 export function notFoundBody(kind?: "gift-guide" | "hire" | string): string;

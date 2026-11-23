@@ -26,6 +26,7 @@ import { usePlan } from "./fun/plannerStore";
 
 // The codes and sales rules (no React) live in giftGuideDealCounts.ts, so the menu's counts can use them without the cards.
 export { codeCardCount, codesOn, liveSales, salesOn } from "@/content/giftGuideDealCounts";
+import { bestCode } from "@/content/giftGuideDealCounts";
 
 export const CARD_WORDS = {
   codesTitle: "Discount codes",
@@ -121,9 +122,6 @@ export function CodeChip({ code }: { code: string }) {
   );
 }
 
-/** The bigger the percent in a code's offer, the better it is; an offer with none ranks after one with a percent. */
-const codePercent = (c: DiscountCode) => Number(/(\d+)\s*%/.exec(c.offer)?.[1] ?? 0);
-
 /**
  * One card per store (guides audit 1122 #13: Bonheur Jewelry showed three times with one photo). The store's best code
  * leads the card; any others sit under a "+N more codes" button, each with its own offer, dates and copy chip.
@@ -131,7 +129,7 @@ const codePercent = (c: DiscountCode) => Number(/(\d+)\s*%/.exec(c.offer)?.[1] ?
 function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
   // Owner 2026-11-22 ("make everything open expanded"): a store's other codes show on arrival (START_OPEN).
   const [all, setAll] = useState(START_OPEN);
-  const best = codes.reduce((a, c) => (codePercent(c) > codePercent(a) ? c : a), codes[0]);
+  const best = bestCode(codes);
   const others = codes.filter((c) => c !== best);
   const href = best.href as string;
   const line = (c: DiscountCode) => [c.offer, DEALS_WORDS.runs(c.starts, c.expires)].filter(Boolean).join(" · ");
@@ -142,9 +140,9 @@ function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
         {all && (
           <ul className="gg-card-sales" data-gift-code-more-list={store}>
             {others.map((c) => (
-              <li key={c.code} data-gift-code-extra={c.code}>
+              <li key={c.code || c.offer} data-gift-code-extra={c.code}>
                 <span>{line(c)}</span>
-                <CodeChip code={c.code} />
+                {c.code && <CodeChip code={c.code} />}
               </li>
             ))}
           </ul>
@@ -154,7 +152,8 @@ function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
         )}
       </>
     } data={{ "data-gift-code": best.code, "data-gift-code-store": store }}>
-      <CodeChip code={best.code} />
+      {/* A no-code sale (code "", Bruno Marc's Black Friday 25%) has nothing to copy. */}
+      {best.code && <CodeChip code={best.code} />}
     </Card>
   );
 }

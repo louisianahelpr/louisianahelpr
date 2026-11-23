@@ -77,7 +77,7 @@ export const shortName = (name) => String(name).split(/\s*[:(·]\s*/)[0].replace
 
 /** The lineup's brands (every `brand: "..."` in the days list) and its Facebook links. */
 export function readLineup(src) {
-  const brands = [...new Set([...src.matchAll(/\{ brand: "([^"]+)", prize:/g)].map((m) => m[1]))].filter((b) => !NOT_A_SPONSOR.has(b) && !DROPPED_SPONSORS.has(b) && !PUBLIC_OFF_SPONSORS.includes(b)); // owner 11-21: their No stands (src/content/sponsorPublicOff.mjs)
+  const brands = [...new Set([...src.matchAll(/\{ brand: "([^"]+)", prize:/g)].map((m) => m[1]))].filter((b) => !NOT_A_SPONSOR.has(b) && !DROPPED_SPONSORS.has(b) && !PUBLIC_OFF_SPONSORS.some((n) => b.startsWith(n))); // owner 11-21: their No stands (src/content/sponsorPublicOff.mjs)
   const links = {};
   for (const m of src.matchAll(/^\s+"([^"]+)": "(https:\/\/[^"]+)",$/gm)) links[m[1]] = m[2];
   return { brands, links };

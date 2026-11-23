@@ -13,12 +13,12 @@ export const GUIDE_UPDATED = {
     "hash": "e3dc9830ce4052af"
   },
   "25-days-sponsors": {
-    "day": "2026-11-22",
-    "hash": "49b99d2f3e004c17"
+    "day": "2026-11-23",
+    "hash": "5086f226a6b5ef70"
   },
   "black-friday": {
-    "day": "2026-11-22",
-    "hash": "6248c24796474bc8"
+    "day": "2026-11-23",
+    "hash": "f78f9673237fe59f"
   },
   "small-business-saturday": {
     "day": "2026-11-22",

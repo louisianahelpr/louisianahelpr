@@ -15,6 +15,8 @@
 
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, townPagePath } from "./townPages.mjs";
 import { pickPriceShown, shownDollars } from "./pickPriceShown.mjs";
+import { DEALS_WORDS, dealName, dealShows } from "../content/giftGuideDeals.mjs";
+import { SMALL_BIZ_WORDS, smallBizSections } from "../content/giftGuideSmallBiz.mjs";
 
 export const SEO_SITE_ORIGIN = "https://www.louisianahelpr.com";
 
@@ -102,15 +104,90 @@ export function giftGuideBody(slug, guide) {
   );
 }
 
+/** A row's "Deal (Ends Nov 30)" words: the card's own dates line (DEALS_WORDS.runs), never an invented day. */
+function runsText(starts, ends) {
+  return DEALS_WORDS.runs(starts || null, ends || null);
+}
+
+const outLink = (href, label, rel) => {
+  const link = safeHref(href);
+  return link ? `<a href="${escapeHtml(link)}" rel="${rel}" target="_blank">${escapeHtml(label)}</a>` : escapeHtml(label);
+};
+const SPONSORED = "sponsored nofollow noopener";
+
+/**
+ * What a deals day page shows on `today` (seo bodies 1123, technical SEO audit TS3), from the build's rows
+ * (src/prerender/seoData.ts): its Top deals cards still showing (dealShows, the page's rule: through the card's last
+ * day, or through Dec 1 when it has none), and its Discount codes and Sales rows for the day (the last dealLists row
+ * starting on or before `today`, as guideQa.mjs dealPartsOn reads the counts).
+ */
+export function dealsDayOn(data, slug, today) {
+  const deals = (Array.isArray(data?.deals) ? data.deals : []).filter(
+    ([item, href, ends, event]) => event === slug && item && safeHref(href) && dealShows({ ends: ends || undefined }, today),
+  );
+  const lists = data?.dealLists?.[slug];
+  let at = null;
+  for (const r of Array.isArray(lists?.rows) ? lists.rows : []) if (Array.isArray(r) && r[0] <= today) at = r;
+  const codes = at ? at[1].map((i) => lists.codes[i]).filter((c) => c && safeHref(c[4])) : [];
+  const sales = at ? at[2].map((i) => lists.sales[i]).filter((s) => s && safeHref(s[2])) : [];
+  return { deals, codes, sales };
+}
+
+/** Rows grouped by their first field (the store), in first-appearance order, as the page draws one card per store. */
+function byStore(rows) {
+  const out = new Map();
+  for (const r of rows) out.set(r[0], [...(out.get(r[0]) ?? []), r]);
+  return [...out.entries()];
+}
+
 /**
  * A deals day, /gift-guides/black-friday, /small-business-saturday or /cyber-monday (owner 2026-11-19; one page per day
  * owner 2026-11-21): no catalog guide (its cards load in the page), so its body is the breadcrumb, its H1 (the day's
  * name), its intro and one more line (the disclosure, or the day line on Small Business Saturday).
+ * Seo bodies 1123 (technical SEO audit TS3: AI assistants, which run no JavaScript, saw none of the day's 61 deals):
+ * then the page's own sections, in its order and with its headings. A deals day (`day`, dealsDayOn): Top deals (one row
+ * per card: its name, its deal and when it runs), Discount codes (one row per store, its best code first, as the code
+ * cards) and Sales (one row per store, each sale its own link). Small Business Saturday (`shops`): every business
+ * under its category (smallBizSections), its name linking where its card does, its town, and its gift idea.
  */
-export function dealsGuideBody(slug, name, intro, disclosure) {
+export function dealsGuideBody(slug, name, intro, disclosure, day, shops) {
+  let lists = "";
+  if (day) {
+    const top = day.deals
+      .map(([item, href, ends, , brand, deal, starts]) => {
+        const words = [deal, runsText(starts, ends)].filter(Boolean).join(" · ");
+        return `<li>${outLink(href, brand ? dealName({ brand, item, deal: deal ?? "" }) : item, SPONSORED)}${words ? ` <span>${escapeHtml(words)}</span>` : ""}</li>`;
+      })
+      .join("");
+    const codes = byStore(day.codes)
+      .map(([store, rows]) => `<li>${outLink(rows[0][4], store, SPONSORED)}: ${rows.map(([, code, offer, runs]) => `${escapeHtml([offer, runs].filter(Boolean).join(" · "))}${code ? ` (code <code>${escapeHtml(code)}</code>)` : ""}`).join("; ")}</li>`)
+      .join("");
+    const sales = byStore(day.sales)
+      .map(([store, rows]) => `<li>${escapeHtml(store)}: ${rows.map(([, offer, href, ends]) => `${outLink(href, offer, SPONSORED)}${ends ? ` <span>${escapeHtml(runsText(null, ends))}</span>` : ""}`).join("; ")}</li>`)
+      .join("");
+    lists =
+      (top ? `<h2>Top deals</h2><ul>${top}</ul>` : "") +
+      (codes ? `<h2>Discount codes</h2><ul>${codes}</ul>` : "") +
+      (sales ? `<h2>Sales</h2><ul>${sales}</ul>` : "") +
+      (top || codes || sales ? "" : `<p>${escapeHtml(DEALS_WORDS.none)}</p>`);
+  }
+  if (Array.isArray(shops) && shops.length) {
+    const rows = shops.filter((s) => s && s[0]).map(([name, town, category, ships, href, gift]) => ({ name, town, category, ships, href, gift }));
+    lists += smallBizSections(rows)
+      .map(
+        (s) =>
+          `<h2>${escapeHtml(s.category)}</h2><ul>${s.rows
+            .map((b) => {
+              const where = [b.town || "Louisiana", b.ships === "ships" ? SMALL_BIZ_WORDS.ships : SMALL_BIZ_WORDS.local].join(" · ");
+              return `<li>${outLink(b.href, b.name, "noopener noreferrer")} <span>${escapeHtml(where)}</span>${b.gift ? ` <span>${escapeHtml(`${SMALL_BIZ_WORDS.giftLabel} ${b.gift}`)}</span>` : ""}</li>`;
+            })
+            .join("")}</ul>`,
+      )
+      .join("");
+  }
   return page(
     [HOME, GUIDES, { name, path: `/gift-guides/${slug}` }],
-    `<h1>${escapeHtml(name)}</h1><p>${escapeHtml(intro)}</p><p>${escapeHtml(disclosure)}</p><p><a href="/gift-guides">All holiday gift guides</a></p>`,
+    `<h1>${escapeHtml(name)}</h1><p>${escapeHtml(intro)}</p>${lists}<p>${escapeHtml(disclosure)}</p><p><a href="/gift-guides">All holiday gift guides</a></p>`,
   );
 }
 
@@ -156,17 +233,28 @@ export function giftGuideItemListLd(slug, guide, today) {
   };
 }
 
-/** ItemList JSON-LD for one deals day page (`slug`): each of its cards showing on `today` (through its last day), name and shop link. */
-export function dealsItemListLd(name, deals, today, slug) {
-  const live = (Array.isArray(deals) ? deals : []).filter(([item, href, ends, event]) => event === slug && item && safeHref(href) && !(ends && ends < today));
-  if (live.length === 0) return null;
+/**
+ * ItemList JSON-LD for one deals day page (`slug`): each of its cards showing on `today`, name and shop link. Seo bodies
+ * 1123 (technical SEO audit TS2): a card shows by the page's rule (dealShows: through its last day, or through Dec 1 when
+ * it has none), so an undated card leaves the markup the day it leaves the page. With `day` (dealsDayOn), the list is
+ * every card the body lists, as the page names them: the Top deals, then one per Discount codes store ("Store: best
+ * offer"), then one per Sales store ("Store: first sale"). No price: the cards show none.
+ */
+export function dealsItemListLd(name, deals, today, slug, day) {
+  const live = day ? day.deals : dealsDayOn({ deals }, slug, today).deals;
+  const items = [
+    ...live.map(([item, href, , , brand, deal]) => ({ name: brand ? dealName({ brand, item, deal: deal ?? "" }) : item, url: href })),
+    ...(day ? byStore(day.codes).map(([store, rows]) => ({ name: `${store}: ${rows[0][2]}`, url: rows[0][4] })) : []),
+    ...(day ? byStore(day.sales).map(([store, rows]) => ({ name: `${store}: ${rows[0][1]}`, url: rows[0][2] })) : []),
+  ];
+  if (items.length === 0) return null;
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name,
     url: `${SEO_SITE_ORIGIN}/gift-guides/${slug}`,
-    numberOfItems: live.length,
-    itemListElement: live.map(([item, href], i) => ({ "@type": "ListItem", position: i + 1, name: item, url: href })),
+    numberOfItems: items.length,
+    itemListElement: items.map((x, i) => ({ "@type": "ListItem", position: i + 1, name: x.name, url: x.url })),
   };
 }
 
@@ -236,8 +324,10 @@ export function twentyFiveDaysEventLd() {
     "@context": "https://schema.org",
     "@type": "Event",
     name: TWENTY_FIVE_DAYS.name,
+    // Technical SEO audit TS10 (1123): gifts from Louisiana businesses and national brands (the sponsors page lists both,
+    // and some days have several winners); the organizer is the homepage's Organization node (index.html @id).
     description:
-      "Every day from December 1 to 25, 2026, Louisiana Helpr gives away a gift from a Louisiana business. Free to enter.",
+      "Every day from December 1 to 25, 2026, Louisiana Helpr gives away gifts from Louisiana businesses and national brands. Free to enter.",
     startDate: TWENTY_FIVE_DAYS.startDate,
     endDate: TWENTY_FIVE_DAYS.endDate,
     eventStatus: "https://schema.org/EventScheduled",
@@ -245,7 +335,7 @@ export function twentyFiveDaysEventLd() {
     location: { "@type": "VirtualLocation", url: `${SEO_SITE_ORIGIN}/25days` },
     image: [`${SEO_SITE_ORIGIN}/og-25days-enter.png`],
     isAccessibleForFree: true,
-    organizer: { "@type": "Organization", name: "Louisiana Helpr", url: SEO_SITE_ORIGIN },
+    organizer: { "@type": "Organization", "@id": `${SEO_SITE_ORIGIN}/#organization`, name: "Louisiana Helpr", url: SEO_SITE_ORIGIN },
   };
 }
 
@@ -268,13 +358,14 @@ const INFO_PAGES = {
     name: "Secret Santa name draw",
     h1: "Free Secret Santa name draw",
     intro: "Type everyone's first name, add a budget and who can't draw each other, and send each person a private link to their match. No emails or phone numbers.",
-    links: [["/gift-guides/secret-santa", "Secret Santa and White Elephant gift ideas"], ["/gift-guides", "Holiday gift guides"]],
+    // Technical SEO audit TS5 (1123): live pages only (the Secret Santa guide is retired and 301s to /gift-guides).
+    links: [["/gift-guides/planner", "Gift planner"], ["/gift-guides/swipe", "Swipe to find gifts"], ["/gift-guides", "Holiday gift guides"]],
   },
   "/gift-guides/printables": {
     name: "Free printables",
     h1: "Free holiday printables",
     intro: "Christmas gift tags with names (pick a design, type the To and From names, print a sheet of 9 or 10 with cut lines), two Christmas coloring books and a Happy Thanksgiving banner. Free, with no sign-up, and nothing is saved.",
-    links: [["/gift-guides", "Holiday gift guides"], ["/gift-guides/gift-wrap-and-cards", "Gift wrap and card ideas"]],
+    links: [["/gift-guides/printables/gift-tags", "Free gift tags"], ["/gift-guides/printables/coloring-books", "Free coloring books"], ["/gift-guides/printables/banners", "Free banners"], ["/gift-guides", "Holiday gift guides"]],
   },
   "/gift-guides/printables/gift-tags": {
     name: "Free gift tags",
@@ -331,23 +422,51 @@ const INFO_PAGES = {
     h1: "25 Days of Louisiana Giveaways: December 1–25, 2026",
     intro:
       "Every day from December 1 to December 25, 2026, Louisiana businesses give away gifts to Louisiana neighbors on Louisiana Helpr. It is free to enter. How to enter and the official rules are on the Louisiana Helpr Facebook post.",
-    links: [["/sponsor", "Become a sponsor"], ["/gift-guides", "Holiday gift guides"], ["/declutter", "Declutter"]],
+    links: [["/gift-guides/25-days-sponsors", "Gifts from our 25 Days sponsors"], ["/sponsor", "Become a sponsor"], ["/gift-guides", "Holiday gift guides"], ["/declutter", "Declutter"]],
   },
 };
+
+/** Info pages under /gift-guides sit under the gift guides in their breadcrumb, as their URL does (technical SEO audit TS15). */
+function infoCrumbs(path, name) {
+  return path.startsWith("/gift-guides/") ? [HOME, GUIDES, { name, path }] : [HOME, { name, path }];
+}
+
+/**
+ * /25days's lineup (seo bodies 1123, technical SEO audit TS3): the page's "This year's sponsors" grid as the page draws
+ * it (Sections.tsx Lineup, from seo-data's lineup): A to Z, each brand linking to its page when we know it, and its
+ * prizes. Never a day (owner 11-17: no sponsor's day until the lineup is final) and never how to enter (owner 11-21: the
+ * rules live only on Facebook).
+ */
+function lineupHtml(lineup) {
+  const partners = Array.isArray(lineup?.partners) ? lineup.partners.filter((p) => Array.isArray(p) && p[0]) : [];
+  if (partners.length === 0) return "";
+  const items = partners
+    .map(([brand, prizes, href]) => {
+      const gifts = (Array.isArray(prizes) ? prizes : []).filter(Boolean);
+      return `<li>${outLink(href, brand, "noopener noreferrer")}${gifts.length ? ` <span>${escapeHtml(gifts.join("; "))}</span>` : ""}</li>`;
+    })
+    .join("");
+  return `<h2>${escapeHtml(lineup.title)}</h2><p>${escapeHtml(lineup.intro)}</p><ul>${items}</ul>`;
+}
 
 /** Paths with an info body (the guard's inventory). */
 export const INFO_BODY_PATHS = Object.keys(INFO_PAGES).filter((p) => INFO_PAGES[p]);
 
-export function infoPageBody(path) {
+/** Every link an info page's body carries (the guard checks each one is a live page). */
+export const INFO_BODY_LINKS = Object.values(INFO_PAGES).flatMap((p) => (p ? p.links.map(([href]) => href) : []));
+
+/** `lineup`: seo-data's /25days lineup (only /25days draws it). */
+export function infoPageBody(path, lineup) {
   const p = Object.prototype.hasOwnProperty.call(INFO_PAGES, path) ? INFO_PAGES[path] : null;
   if (!p) return null;
   const links = p.links.map(([href, label]) => `<li><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></li>`).join("");
-  return page([HOME, { name: p.name, path }], `<h1>${escapeHtml(p.h1)}</h1><p>${escapeHtml(p.intro)}</p><ul>${links}</ul>`);
+  const extra = path === "/25days" ? lineupHtml(lineup) : "";
+  return page(infoCrumbs(path, p.name), `<h1>${escapeHtml(p.h1)}</h1><p>${escapeHtml(p.intro)}</p>${extra}<ul>${links}</ul>`);
 }
 
 export function infoPageBreadcrumbLd(path) {
   const p = Object.prototype.hasOwnProperty.call(INFO_PAGES, path) ? INFO_PAGES[path] : null;
-  return p ? breadcrumbLd([HOME, { name: p.name, path }]) : null;
+  return p ? breadcrumbLd(infoCrumbs(path, p.name)) : null;
 }
 
 /* ------------------------------------------------------------------ *

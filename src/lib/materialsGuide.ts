@@ -1,3 +1,5 @@
+import { AMAZON_TAG } from "@/content/giftGuideConstants";
+
 export interface MaterialItem {
   name: string;           // "Moving boxes (25-pack)"
   estimatedCost: string;  // "$18–$25"
@@ -46,7 +48,9 @@ export const categoryMaterials: Record<string, MaterialItem[]> = {
  * purchase made from it credits Helpr. The program requires the disclosure
  * AMAZON_ASSOCIATE_DISCLOSURE wherever these links show.
  */
-const AMAZON_ASSOCIATE_TAG = "louisianahelp-20";
+// Owner 2026-11-17: louisianahelpr.com Amazon links use the tracking ID louisianahelpr-20 (louisianahelp-20 is the
+// store ID; both pay her), so these clicks count with the gift guides' (affiliate audit 2026-11-23 F15).
+const AMAZON_ASSOCIATE_TAG = AMAZON_TAG;
 export const AMAZON_ASSOCIATE_DISCLOSURE = "As an Amazon Associate, Helpr earns from qualifying purchases.";
 
 /** The same Amazon URL with Helpr's `tag` set (replacing any other tag). */

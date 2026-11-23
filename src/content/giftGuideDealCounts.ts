@@ -35,6 +35,25 @@ export const salesOn = (day: string) => {
   return [...stores.entries()].map(([store, sales]) => ({ store, sales }));
 };
 
+/** The bigger the percent in a code's offer, the better it is; an offer with none ranks after one with a percent. */
+const codePercent = (c: DiscountCode) => Number(/(\d+)\s*%/.exec(c.offer)?.[1] ?? 0);
+
+/** The code a store's card leads with (GiftGuideDealCards.tsx CodeCard; the pre-JS list leads with the same one). */
+export const bestCode = (codes: readonly DiscountCode[]): DiscountCode => codes.reduce((a, c) => (codePercent(c) > codePercent(a) ? c : a), codes[0]);
+
+/**
+ * The codes with a link, one group per store in first-appearance order, each store's best code first and its others in
+ * order: the cards CodeCards draws, flattened (seo bodies 1123 lists them in this order).
+ */
+export function codeCardsOrder(codes: readonly DiscountCode[]): DiscountCode[] {
+  const byStore = new Map<string, DiscountCode[]>();
+  for (const c of codes) if (c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]);
+  return [...byStore.values()].flatMap((list) => {
+    const best = bestCode(list);
+    return [best, ...list.filter((c) => c !== best)];
+  });
+}
+
 /** How many cards the codes make: one per store with a link. */
 export const codeCardCount = (codes: readonly DiscountCode[]) => new Set(codes.filter((c) => c.href).map((c) => c.store)).size;
 
@@ -49,9 +68,20 @@ export const STORE_CODES = [...discountCodes, ...CLEAN_CODES];
  * heads and the Q&A cannot disagree (guide train p 11-23: the Q&A said "19 deals" beside the menu's 61).
  */
 export function dealDayParts(id: string, deals: readonly Deal[], today: string): { deals: number; codes: number; sales: number } {
+  const l = dealDayLists(id, deals, today);
+  return { deals: l.deals.length, codes: codeCardCount(l.codes), sales: l.sales.length };
+}
+
+/**
+ * The three sections' own rows on `today` (the counts above are their sizes): the Top deals cards, the codes the
+ * Discount codes cards draw (GiftGuideDeals.tsx DealSections: minus a code a Top deal card already shows) and the store
+ * Sales. The pre-JS body lists the same rows (seo bodies 1123, src/prerender/seoData.ts dealListsTable), so a reader with
+ * no JavaScript sees what the page shows.
+ */
+export function dealDayLists(id: string, deals: readonly Deal[], today: string): { deals: Deal[]; codes: DiscountCode[]; sales: { store: string; sales: Sale[] }[] } {
   const day = DEAL_EVENTS.find((e) => e.id === id)!;
   const list = dealsIn(liveDeals(deals, today, STORE_CODES), id);
   const shown = new Set(list.flatMap((d) => dealCode(d, today, STORE_CODES) ?? []).map((c) => c.toUpperCase()));
   const on = codesDay(day, today);
-  return { deals: list.length, codes: codeCardCount(codesOn(on).filter((c) => !shown.has(c.code.toUpperCase()))), sales: salesOn(on).length };
+  return { deals: list, codes: codesOn(on).filter((c) => !shown.has(c.code.toUpperCase())), sales: salesOn(on) };
 }

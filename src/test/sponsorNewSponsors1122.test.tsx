@@ -1,11 +1,11 @@
 // @mutate src/content/sponsorPage.ts | "Pixie Dust Biodegradable Glitter (New Orleans)": "https://www.instagram.com/biodegradable_glitter/", | "Pixie Dust Biodegradable Glitter (New Orleans)": "",
 // @mutate src/content/giftGuideSponsorLogos.json | "logo":"/gift-guides/sponsors/sweet-bee-organics.webp", | "logo":"/gift-guides/sponsors/sweet-bee-organics-missing.webp",
-// @mutate src/content/giftGuideSponsorGiftTypes.ts |   "Wildcat Brothers Distillery": "Gift set", |   "Wildcat Brothers": "Gift set",
+// @mutate src/content/giftGuideSponsorGiftTypes.ts |   "Wildcat Brothers Distilling": "Gift set", |   "Wildcat Brothers": "Gift set",
 // @mutate src/content/giftGuidePicks/25-days-sponsors.json | "href":"https://chattanoogabeard.co/" | "href":"https://www.facebook.com/chattanoogabeardco"
 // @mutate scripts/check-25days-lineup.mjs |   s = s.replace(EMAIL_CLAUSE, ""); |   s = s.replace(EMAIL_CLAUSE, s);
 /**
  * The six sponsors the owner placed on 2026-11-22 (10:35-10:50 PM, 25 Days Sponsor Tracker): Ethan's Closet, The Charmed
- * Page Bookstore, Wildcat Brothers Distillery, Pixie Dust Biodegradable Glitter, Chattanooga Beard Co. and Sweet Bee
+ * Page Bookstore, Wildcat Brothers Distilling, Pixie Dust Biodegradable Glitter, Chattanooga Beard Co. and Sweet Bee
  * Organics are on every public 25 Days surface, the same way as every other sponsor (owner rule 2026-11-18: nothing stale):
  *  - the public lineup (/25days), with a link to their own Facebook or Instagram page;
  *  - the gift-guides logo row, with a logo file from their own site, socials or sign-up upload (logos-from-socials);
@@ -27,7 +27,7 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const NEW: [string, string, string][] = [
   ["Ethan's Closet Children's Boutique & Little Feet", "Ethan's Closet Children's Boutique & Little Feet", "www.ethansclosetccb.com"],
   ["The Charmed Page Bookstore", "The Charmed Page Bookstore", "charmedpagebooks.com"],
-  ["Wildcat Brothers Distillery", "Wildcat Brothers Distillery", "wildcatbrothers.com"],
+  ["Wildcat Brothers Distilling", "Wildcat Brothers Distilling", "wildcatbrothers.com"],
   ["Pixie Dust Biodegradable Glitter (New Orleans)", "Pixie Dust Biodegradable Glitter", "pixiedust.eco"],
   ["Chattanooga Beard Co.", "Chattanooga Beard Co.", "chattanoogabeard.co"],
   ["Sweet Bee Organics", "Sweet Bee Organics", "sweetbeeorganics.com"],

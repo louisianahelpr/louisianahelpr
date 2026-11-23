@@ -46,7 +46,9 @@ const AMAZON_HOST = /(^|\.)(amazon\.[a-z.]+|amzn\.to|a\.co)$/;
 const NOW = Date.parse("2026-11-18T22:00:00Z");
 const checked = { price: "24.99", price_currency: "USD", price_checked_at: "2026-11-18T15:30:00-06:00", price_source: "https://www.walmart.com/ip/1" };
 const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
-const ago = (days: number) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date(Date.now() - days * 86400000));
+// Calendar days back from Louisiana's today, counted at noon UTC: subtracting n x 24 h from "now" crossed the Nov 1 DST
+// change and, from 11 PM to midnight CST, landed one Louisiana day short (ago(31) read 30 days old and still showed).
+const ago = (days: number) => new Date(Date.parse(`${today}T12:00:00Z`) - days * 86400000).toISOString().slice(0, 10);
 
 describe("gift-guide prices: the import keeps only checked, fresh, non-Amazon prices", () => {
   it("a checked Walmart price comes through, rounded nowhere, with its Louisiana check day", () => {

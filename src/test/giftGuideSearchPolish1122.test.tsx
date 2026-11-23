@@ -4,17 +4,24 @@
  * filter · heart · share"), cut "83 gift" off, and wore a heavy dark-olive 2px ring.
  *
  * Now: a soft field (white, a thin light-olive border, 12px corners, a light ring on focus), 44px tall with 16px words
- * so iOS does not zoom, the magnifier left and a 44px ✕ right. On a phone the open search takes the whole count row in
- * place (the count, the pill and the other icons step out; nothing sits under it or is cut), a small "N results" line
- * heads the results while typing, and the ✕ (or Escape) puts the row back exactly. On a computer the field takes up to
- * 360px and gives way before the title (below 1280px the pill steps out while it is open).
+ * so iOS does not zoom, the magnifier left and a 44px ✕ right. On a phone the open search sits in the count row in place,
+ * a small "N results" line heads the results while typing, and the ✕ (or Escape) puts the row back exactly. On a
+ * computer the field takes up to 360px and gives way before the title (below 1280px the pill steps out while it is open).
+ *
+ * Owner 2026-11-22 evening (pop-up, on the Holiday Hub: "keep count on row. and fix her him and kids so its this way
+ * too"): the phone's open search no longer hides the count. "146 gifts" stays at the left of the row (never wrapped),
+ * the field takes the rest of the row, the pill and the other icons step out, and the results drop under the whole row.
+ * Measured (Chromium, local dev build, Her): 320 count x 20 w 58, field x 82 w 218; 375 field x 82 w 273; 1440 the
+ * head row unchanged (field 316px); no horizontal overflow. Screenshots: ~/.lh-shots/guide-search-row-1122/.
  *
  * Measured in Chromium on 2026-11-22 (local dev build of this branch, Kids/Her/Him): 375 and 320, the open field is the
  * row's full width (375: x 20, w 335, h 44; ✕ 44x44 at its right), font 16px, border 1px, radius 12px, "3 results" for
  * "lego", the row back to count + pill + four icons after ✕; 768/1024/1440 the field 190/316/316px wide, clear of the
  * title; no horizontal overflow anywhere. Screenshots: ~/.lh-shots/guide-phonecard-1122/search-{before,after}-*.png.
  *
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow:has(.gg-tools-search.is-open)>:not(.gg-tools){display:none} | .gg-countrow:has(.gg-tools-search.is-open)>:not(.gg-tools){opacity:1}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left>:not(.gg-itemcount){display:none} | .gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left>:not(.gg-itemcount){opacity:1}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left{flex:none;flex-wrap:nowrap} | .gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left{display:none}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow:has(.gg-tools-search.is-open)>.gg-tools{flex:1 1 0;min-width:0;margin:0;position:static} | .gg-countrow:has(.gg-tools-search.is-open)>.gg-tools{flex:1 1 100%;margin:0}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-tools-search.is-open{position:relative;flex:1 1 auto;width:100%} | .gg-tools-search.is-open{position:absolute;right:0;width:100%}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | min-height:44px;font:500 16px Montserrat,sans-serif; | min-height:40px;font:500 13px Montserrat,sans-serif;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (min-width:768px){.gg-tools-search.is-open{flex:0 1 360px;width:auto;min-width:0} | @media (min-width:768px){.gg-tools-search.is-open{flex:0 0 auto;width:360px;min-width:0}
@@ -84,20 +91,33 @@ describe("the guide search, polished (owner 2026-11-22)", () => {
     expect(rule(".gg-search-close").decl).toMatchObject({ position: "absolute", right: "0", top: "50%" });
   });
 
-  it("phone: the open search fills the count row in place, and the count, pill and other icons step out (not covered)", () => {
+  it("phone: the open search keeps the count on its row (\"keep count on row\"); the field takes the rest, the pill and other icons step out", () => {
     expect(PHONE, "the phone block").toBeGreaterThan(0);
     const open = rule(".gg-tools-search.is-open", PHONE);
     expect(inPhone(open.at)).toBe(true);
     expect(open.decl).toEqual({ position: "relative", flex: "1 1 auto", width: "100%" });
+    // The pill (everything in the count's group but the count) and the other icons step out, not covered.
     for (const [selector, display] of [
-      [".gg-countrow:has(.gg-tools-search.is-open)>:not(.gg-tools)", "none"],
+      [".gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left>:not(.gg-itemcount)", "none"],
       [".gg-tools:has(>.gg-tools-search.is-open)>:not(.gg-tools-search)", "none"],
     ] as const) {
       const r = rule(selector, PHONE);
       expect(inPhone(r.at), selector).toBe(true);
       expect(r.decl.display, selector).toBe(display);
     }
-    expect(rule(".gg-countrow:has(.gg-tools-search.is-open)>.gg-tools", PHONE).decl).toMatchObject({ flex: "1 1 100%" });
+    // The count stays: its group keeps its own width on the one row (never hidden), the count never wraps.
+    const row = rule(".gg-countrow:has(.gg-tools-search.is-open)", PHONE);
+    expect(inPhone(row.at)).toBe(true);
+    expect(row.decl).toEqual({ position: "relative", "flex-wrap": "nowrap" });
+    const left = rule(".gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left", PHONE);
+    expect(inPhone(left.at)).toBe(true);
+    expect(left.decl).toEqual({ flex: "none", "flex-wrap": "nowrap" });
+    expect(rule(".gg-countrow:has(.gg-tools-search.is-open) .gg-itemcount", PHONE).decl).toEqual({ "white-space": "nowrap" });
+    // The field's group takes the rest of the row; the results drop under the whole row (positioned by the row).
+    expect(rule(".gg-countrow:has(.gg-tools-search.is-open)>.gg-tools", PHONE).decl).toEqual({ flex: "1 1 0", "min-width": "0", margin: "0", position: "static" });
+    expect(rule(".gg-countrow .gg-tools-search.is-open", PHONE).decl).toEqual({ position: "static" });
+    // The old rule that hid the count while searching is gone.
+    expect(GIFT_GUIDES_CSS).not.toContain(".gg-countrow:has(.gg-tools-search.is-open)>:not(.gg-tools){display:none}");
     // Nothing positions the open field over the row any more.
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-tools-search\.is-open\{position:absolute/);
   });
@@ -112,9 +132,13 @@ describe("the guide search, polished (owner 2026-11-22)", () => {
     const row = c.querySelector("[data-gift-countrow]")!;
     const before = [...row.querySelectorAll("[data-gift-item-count], [data-gift-ship], [data-gift-quick] > *")].map((e) => e.outerHTML.slice(0, 60));
     expect(before.length).toBeGreaterThan(4);
+    const countText = row.querySelector("[data-gift-item-count]")?.textContent;
+    expect(countText).toMatch(/^\d+ gifts$/);
     await act(async () => { fireEvent.click(row.querySelector("button[data-gift-search-button]")!); });
     const input = row.querySelector<HTMLInputElement>("input[data-gift-search]")!;
     expect(row.querySelector("[data-gift-search-box]")?.getAttribute("data-gift-search-box")).toBe("open");
+    // The count is still in the row while the field is open (owner 11-22 evening: "keep count on row").
+    expect(row.querySelector("[data-gift-item-count]")?.textContent).toBe(countText);
     expect(row.querySelector("[data-gift-search-count]")).toBeNull();
     await act(async () => { fireEvent.change(input, { target: { value: "lego" } }); });
     await waitFor(() => expect(row.querySelector("[data-gift-found-item]")).not.toBeNull());

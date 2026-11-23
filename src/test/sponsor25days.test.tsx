@@ -207,7 +207,7 @@ describe("four prize delivery options, shipping to us first (owner 11-09, 11-17)
     const radios = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="radio"][name="delivery"]'));
     expect(radios.map((r) => r.value)).toEqual(["helpr", "winner", "digital", "pickup"]);
     expect(radios.filter((r) => r.checked).map((r) => r.value)).toEqual(["helpr"]);
-    expect(screen.getByTestId("sponsor-ship-address").textContent).toContain("314 Lynn Street, Delcambre, LA 70528");
+    expect(screen.getByTestId("sponsor-ship-address").textContent).toContain("We'll send you our address");
     expect(EMPTY_SIGNUP.shipTo).toBe("helpr");
     fireEvent.click(radios[1]);
     expect(radios[1].checked).toBe(true);
@@ -230,7 +230,7 @@ describe("four prize delivery options, shipping to us first (owner 11-09, 11-17)
   });
   it("the page copy and badge describe the four options", () => {
     const faq = sponsorPage.faq.items.find((i) => i.q === "How does the prize get to the winner?")!.a;
-    for (const bit of ["314 Lynn Street, Delcambre, LA 70528", "within 24 hours of the drawing", "within a week", "photo", "digital gift card", "picks it up"]) expect(faq).toContain(bit);
+    for (const bit of ["we'll email you our address", "within 24 hours of the drawing", "within a week", "photo", "digital gift card", "picks it up"]) expect(faq).toContain(bit);
     expect(sponsorPage.whatWeAsk.body).toMatch(/ship it or drop it off to us.*straight to the winner.*digital gift card.*pick it up/);
     expect(sponsorPage.trustStrip).toContain("Easy prize delivery");
     expect(JSON.stringify(sponsorPage.trustStrip)).not.toMatch(/by us/i);

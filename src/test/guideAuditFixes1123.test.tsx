@@ -295,7 +295,7 @@ describe("9. the crawler's guide count = the page's (lead 11-23: sponsors crawle
       expect(data.guides[slug].picks.length, slug).toBe(rows);
     }
     // The four sponsors with no shop of their own share our /25days link; each is still its own row.
-    const ours = (sponsors.picks as { href: string }[]).filter((p) => /louisianahelpr\.com\/25days/.test(p.href)).length;
+    const ours = (sponsors.picks as { href: string }[]).filter((p) => /^https:\/\/www\.louisianahelpr\.com\/25days(?:[/?#]|$)/.test(p.href)).length;
     expect(ours).toBeGreaterThan(1);
   }, 60_000);
 });

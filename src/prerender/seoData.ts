@@ -1,7 +1,8 @@
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { GUIDES, MERGED_GUIDES, OLD_SLUGS, RETIRED_SLUGS, ROWS, STORES, childrenOf, guidesIn, loadAllGuidePicks, newSlugFor, relatedGuides } from "@/content/giftGuideCatalog";
 import type { SeoData, SeoGuide } from "@/lib/seoBodies.mjs";
-import { DEAL_DAY_SLUGS } from "@/content/giftGuideDeals.mjs";
+import { DEAL_DAY_SLUGS, DEAL_EVENTS, dealEnds, type Deal } from "@/content/giftGuideDeals.mjs";
+import { STORE_CODES, dealDayParts } from "@/content/giftGuideDealCounts";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import deals from "@/content/giftGuideDeals.json";
 import smallBiz from "@/content/giftGuideSmallBiz.json";
@@ -68,10 +69,38 @@ export async function buildSeoData(): Promise<SeoData> {
   // Guide Q&A 11-22: each card's brand and deal line too (the day's "What deals are on this page?").
   const dealList: SeoData["deals"] = (deals as { item?: string; href?: string; ends?: string; event?: string; brand?: string; deal?: string }[])
     .filter((d) => d.item && d.href && d.event && DEAL_DAY_SLUGS.includes(d.event) && isLiveGuide(d.event))
-    .map((d) => [d.item as string, d.href as string, d.ends ?? "", d.event as string, d.brand ?? "", d.deal ?? ""]);
+    // Guide train p 11-23: the card's real last day (dealEnds: its own end, else its store code's end), the rule the page
+    // shows a card by, so the raw HTML's list and Q&A drop a card on the same day the page does.
+    .map((d) => [d.item as string, d.href as string, dealEnds(d as Deal, STORE_CODES) ?? "", d.event as string, d.brand ?? "", d.deal ?? ""]);
   // Small Business Saturday's businesses for its Q&A: name, town, category, "ships" or "local".
   const shops: SeoData["smallBiz"] = (smallBiz as { name?: string; town?: string; category?: string; ships?: string }[])
     .filter((b) => b.name)
     .map((b) => [b.name as string, b.town ?? "", b.category ?? "", b.ships ?? ""]);
-  return { guides, moved, groups, deals: dealList, smallBiz: shops };
+  return { guides, moved, groups, deals: dealList, dealParts: dealPartsTable(), smallBiz: shops };
+}
+
+/** The first and last day the deals days' section counts are worked out for; after the last, its counts carry on. */
+const PARTS_FROM = "2026-11-01";
+const PARTS_TO = "2027-12-31";
+
+/**
+ * Each deals day's Discount codes and Sales counts by date (guide train p 11-23), for the pre-JS Q&A
+ * (guideQa.mjs dealPartsOn): [first day, codes, sales] rows, one per change, from giftGuideDealCounts.ts dealDayParts,
+ * the same counts the page's section heads and the guides menu show. The counts move only at day boundaries (each
+ * code, sale and card has a day, never a time), so a row per change is exact.
+ */
+function dealPartsTable(): NonNullable<SeoData["dealParts"]> {
+  const out: NonNullable<SeoData["dealParts"]> = {};
+  const all = deals as Deal[];
+  for (const e of DEAL_EVENTS.filter((x) => x.kind === "deals" && isLiveGuide(x.id))) {
+    const rows: [string, number, number][] = [];
+    for (let t = Date.parse(`${PARTS_FROM}T12:00:00Z`); t <= Date.parse(`${PARTS_TO}T12:00:00Z`); t += 864e5) {
+      const day = new Date(t).toISOString().slice(0, 10);
+      const p = dealDayParts(e.id, all, day);
+      const last = rows[rows.length - 1];
+      if (!last || last[1] !== p.codes || last[2] !== p.sales) rows.push([day, p.codes, p.sales]);
+    }
+    out[e.id] = rows;
+  }
+  return out;
 }

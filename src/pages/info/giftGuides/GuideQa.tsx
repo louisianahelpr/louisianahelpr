@@ -4,7 +4,7 @@ import smallBiz from "@/content/giftGuideSmallBiz.json";
 import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import { louisianaDay } from "@/content/giftGuideDeals.mjs";
-import { QA_BYLINE, QA_TITLE, catalogGuideQa, dealsDayQa, holidayHubQa, smallBizQa, toQaPick, updatedLine, type QaDeal, type QaItem } from "@/lib/guideQa.mjs";
+import { QA_BYLINE, QA_TITLE, catalogGuideQa, dealsDayQa, holidayHubQa, smallBizQa, toQaPick, updatedLine, type QaDeal, type QaDealListed, type QaItem } from "@/lib/guideQa.mjs";
 import type { CatalogPick } from "@/content/giftGuideCatalog";
 
 /**
@@ -16,7 +16,7 @@ import type { CatalogPick } from "@/content/giftGuideCatalog";
  */
 export type GuideQaProps =
   | { kind: "catalog"; page: string; picks: readonly CatalogPick[] }
-  | { kind: "deals"; page: string; deals: readonly QaDeal[] }
+  | { kind: "deals"; page: string; deals: readonly QaDeal[]; listed: QaDealListed }
   | { kind: "small-biz"; page: string }
   | { kind: "holidays"; page: "holidays" };
 
@@ -30,7 +30,7 @@ const QA_CSS = `
 
 function questions(p: GuideQaProps, today: string): QaItem[] {
   if (p.kind === "catalog") return catalogGuideQa(p.page, p.picks.filter((x) => x.name).map(toQaPick), today);
-  if (p.kind === "deals") return dealsDayQa(p.page, [...p.deals], today);
+  if (p.kind === "deals") return dealsDayQa(p.page, [...p.deals], today, p.listed);
   if (p.kind === "small-biz") return smallBizQa(smallBiz as { name: string; town?: string; category?: string; ships?: string }[], SMALL_BIZ_CATEGORIES);
   return holidayHubQa(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, today);
 }

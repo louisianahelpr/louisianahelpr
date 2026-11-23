@@ -572,4 +572,10 @@ article[data-gift-guide]>.gg-menuhint+section>.gg-list{margin-top:0}article[data
 .gg-menuhint-go:hover,.gg-menuhint-x:hover{background:none}
 .gg-menuhint-go:focus-visible,.gg-menuhint-x:focus-visible{box-shadow:none}
 }
+/* Guide train p 11-23: the tip stays one line at every phone width, measured on the build (Chromium and WebKit, Montserrat
+   600 14px): the owner's words need 277px of text room, which a phone has from 373px wide (375: 279px), so under 375px the
+   words drop "free" (245px, room from 341px), and under 346px they are 12.5px (221px; 320px has 224px). */
+.gg-menuhint-s{display:none}
+@media (max-width:374px){.gg-menuhint-l{display:none}.gg-menuhint-s{display:inline}}
+@media (max-width:345px){.gg-menuhint-go{font-size:12.5px}}
 `;

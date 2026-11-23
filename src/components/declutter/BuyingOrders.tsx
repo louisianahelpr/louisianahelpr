@@ -51,7 +51,20 @@ export type BuyerOrderView = {
   next: NextStepValue;
   /** "You paid $34.30." / "Free." */
   money: string | null;
+  /** App audit 11-23 DB1: the buyer reported the seller didn't show and the report is still waiting (buyerNoShowStep). */
+  noShow?: boolean;
 };
+
+/**
+ * App audit 11-23 DB1: the orders the pickup-day card leaves out. An order on hold (NIGHT-BUYINGopenpr-1) and an order
+ * whose buyer already reported that the seller didn't show: "Your pickup today" offered "I'm on my way" for a time
+ * that had passed, right above the card saying "You reported the seller didn't show."
+ */
+export function pickupDayHeld(views: ReadonlyMap<string, Pick<BuyerOrderView, "facts" | "noShow">>): Set<string> {
+  const out = new Set<string>();
+  for (const [id, v] of views) if (v.facts.problem || v.noShow) out.add(id);
+  return out;
+}
 
 // B134: a shipped order is its own kind; before it was here it fell back to "pickup_home" and read as a pickup.
 const KINDS: readonly OrderHandover[] = ["porch", "pickup_home", "meetup", "delivery", "seller_delivery", "ship"];
@@ -407,6 +420,7 @@ export function useBuyingTracker(): BuyingTracker {
         orderTimeWords(orderTimes, o.handover, slot), shipRows[shipOrders.indexOf(o)]?.data ?? null, checkUntil),
       // #6: a free item never reads like a paid order ("You paid $0").
       money: facts.free ? t("dbuy.order.free") : total != null && !facts.cancelled ? t("dbuy.order.paid", { amount: formatPrice(total) }) : null,
+      noShow: !!noShow,
     });
   }
   const checkouts = openCheckouts(lines, Date.now());

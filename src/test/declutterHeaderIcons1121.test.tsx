@@ -11,7 +11,7 @@
  *   4. "remove the circle around filter": the Filters icon is plain (no circle, edge or tint), like the search icon.
  *
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |             <InlineListSearch value={query} onChange={setQuery} label={t("decl.searchItems")} /> |             <InlineListSearch value={query} onChange={setQuery} label={t("decl.searchItems")} pinned />
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |             <FiltersIconButton plain open={filtersOpen} |             <FiltersIconButton open={filtersOpen}
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |             <FiltersIconButton plain open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} /> |             <FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} />
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | sellerDelivery: sellerDeliveryOn, categoryUp: desktop })} | sellerDelivery: sellerDeliveryOn })}
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx |       more: !categoryUp, |       more: true,
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         {itemsPhase !== "offline-empty" && <DeclutterNearYou ask={ask} maxMiles={maxMiles} closest={sortNow === "closest"} onChange={() => setFiltersOpen(true)} />} |

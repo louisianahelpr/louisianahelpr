@@ -85,9 +85,19 @@ describe("Declutter top 5 #2: Selling home", () => {
     expect(sellingTodoRows({ sellerOffers: 0, salesOpen: 4 }, null, false, 3)).toEqual([expect.objectContaining({ key: "handover", n: 3 })]);
     // Deep audit 11-22 #50: problem reports waiting on the seller are on the to-do too, and open To answer.
     // @mutate src/components/declutter/SellingHome.tsx |     { key: "reports", n: reports, | { key: "reports", n: 0,
-    // @mutate src/components/declutter/DeclutterMineViews.tsx | handOver={handOver} reports={reports.size} userId | handOver={handOver} userId
+    // @mutate src/components/declutter/DeclutterMineViews.tsx | handOver={handOver} reports={reports.size} asks= | handOver={handOver} asks=
     expect(sellingTodoRows({ sellerOffers: 0, salesOpen: 3 }, null, false, 3, 2)).toEqual([
       expect.objectContaining({ key: "handover", n: 3 }), expect.objectContaining({ key: "reports", n: 2, group: "offers", many: "dt5.home.reportsN" })]);
+    // App audit 11-23 S-S1: questions, trade offers, bundle requests and free asks ("To answer" counts them all) are on
+    // the to-do too, each opening To answer; before, To do said "Nothing waiting on you." above "To answer · 1".
+    // @mutate src/components/declutter/SellingHome.tsx |     { key: "questions", n: asks.questions, | { key: "questions", n: 0,
+    // @mutate src/components/declutter/SellingHome.tsx |     { key: "trades", n: asks.trades, | { key: "trades", n: 0,
+    // @mutate src/components/declutter/DeclutterMineViews.tsx |  asks={{ questions: questions.count, trades: tradeAsks, bundles: bundleAsks, free: freeAsks.length }} |
+    const asked = sellingTodoRows({ sellerOffers: 0, salesOpen: 0 }, null, false, 0, 0, { questions: 1, trades: 2, bundles: 1, free: 3 });
+    expect(asked.length).toBeGreaterThan(3);
+    expect(asked.map((r) => [r.key, r.n, r.group])).toEqual([["trades", 2, "offers"], ["bundles", 1, "offers"], ["free", 3, "offers"], ["questions", 1, "offers"]]);
+    expect(blankComments(readFileSync("src/components/declutter/DeclutterMineViews.tsx", "utf8")))
+      .toContain("asks={{ questions: questions.count, trades: tradeAsks, bundles: bundleAsks, free: freeAsks.length }}");
     // The chip and the Sold heading read the same count (source pins; the behaviour is in declutterTabs/sellingDash).
     const dash = blankComments(readFileSync("src/components/declutter/DeclutterMineViews.tsx", "utf8"));
     expect(dash).toContain('{ key: "sold", label: t("decl.mv.pickups"), count: handOver ?? todo?.salesOpen ?? 0, hot: true }');

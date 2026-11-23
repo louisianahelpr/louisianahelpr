@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { useSearchParams, useLocation } from "react-router-dom";
+import { KEEP_PAGE } from "@/lib/keepPage";
 import { Search, X } from "lucide-react";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import PageHeader from "@/components/PageHeader";
@@ -188,7 +189,9 @@ const Legal = () => {
   const setTab = (next: string) => {
     const nextParams = new URLSearchParams(params);
     nextParams.set("tab", next);
-    setParams(nextParams, { replace: true });
+    // App audit 11-23 LT-5: a plain replace makes a new location.key, RoutePageTransition remounts the whole page,
+    // and focus fell to <body> after an arrow-key tab switch. KEEP_PAGE keeps the page, so focus stays on the tab.
+    setParams(nextParams, { replace: true, state: { ...((location.state as object | null) ?? {}), [KEEP_PAGE]: true } });
   };
 
   // NATIVE header — the SHARED <PageHeader>, not a copy of it.

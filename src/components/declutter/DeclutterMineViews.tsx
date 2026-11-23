@@ -119,7 +119,7 @@ export function SellingDash({ todo, userId, listings, settings, searching = fals
           listings (a first-time seller sees the empty card below, not empty numbers). Post-merge check 11-20 #5: only the
           to-dos sit up here; the week's numbers, Shop sale and Away mode are below the lists, so a sale to hand over is
           on the first screen. */}
-      {only === null && hasListings && <SellingTodo todo={todo} handOver={handOver} reports={reports.size} userId={userId} onPick={(g) => toggle(g)} />}
+      {only === null && hasListings && <SellingTodo todo={todo} handOver={handOver} reports={reports.size} asks={{ questions: questions.count, trades: tradeAsks, bundles: bundleAsks, free: freeAsks.length }} userId={userId} onPick={(g) => toggle(g)} />}
       {/* Filters only (owner 2026-10-28): the filled "Sell an item" pill that ended this row looked like a second
           selected filter beside the pressed one; the header's "Sell an item" button is the section's one add action. */}
       <StatusChips

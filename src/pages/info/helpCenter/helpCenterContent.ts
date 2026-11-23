@@ -222,9 +222,16 @@ export const FAQ_SECTIONS: FaqSection[] = [
         q: "Can I both post jobs and do them?",
         a: 'Yes — every account can do both. There\'s no separate "poster" or "Helpr" mode.',
       },
+      // Audit S-H2 (11-23): a new free item is picked up from the porch only (useSellFlowState savedWays; the server's
+      // declutter_edit_listing refuses any other way for a free item), so no "or at your door" here.
       {
         q: "Can I give things away on Declutter?",
-        a: 'Yes. When you list an item, tick the box to give it away free on the price step. Neighbors tap "Ask for it", you pick who gets it, and they pick it up from your porch or at your door. Nothing is charged to either of you, and each person can ask for or hold up to 3 free items at a time.',
+        a: 'Yes. Tap Sell, then "More ways to sell", then "Give away free". Neighbors tap "Ask for it", you pick who gets it, and they pick it up from your porch. Nothing is charged to either of you, and each person can ask for or hold up to 3 free items at a time.',
+      },
+      // Audit S-T3 (11-23): trades are live (the trade migrations 20261106163703 on); the Terms' Trades row says the same.
+      {
+        q: "Can I trade on Declutter?",
+        a: 'Yes, when the seller marks a listing "Open to trades". Offer one of your own live listings for it, item for item: no money changes hands and no fee is charged. The seller has 48 hours to accept or say no. Once accepted, each of you sets up the pickup of the other\'s item within 48 hours, from the porch or at the door, whichever that listing offers. If either side runs out of time or backs out before a pickup is booked, the trade ends and nobody gets a strike. Free items can\'t be traded.',
       },
     ],
   },
@@ -240,7 +247,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "How do I sell?",
-        a: `List your own used household things with 1 to 12 photos you took, a price from $1 to $1,000 and a private lowest price you'll accept. The listing goes live when you post it. Buyers see your area name, never your address. Price drops are off unless you turn them on; then an unsold item's price drops each evening by the step you pick (5% to 20%), stopping above your lowest price. You set up payouts with Stripe at your first paid sale, and you receive the whole item price: the buyer pays a buyer's fee of ${DECLUTTER_BUYER_FEE_WORDS} on top, once per checkout.`,
+        a: `List your own used household things with 1 to 12 photos you took, a price from $1 to $1,000 and a private lowest price you'll accept. The listing goes live when you post it. Buyers see your area name, never your address. Price drops start on: an unsold item's price drops each evening by 5%, stopping above your lowest price. You can pick a bigger step (up to 20%) or turn drops off in Declutter settings. You set up payouts with Stripe at your first paid sale, and you receive the whole item price: the buyer pays a buyer's fee of ${DECLUTTER_BUYER_FEE_WORDS} on top, once per checkout.`,
       },
       {
         q: "How do I get the item?",

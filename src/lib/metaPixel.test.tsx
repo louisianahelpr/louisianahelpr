@@ -7,8 +7,16 @@
  * @mutate src/lib/metaPixel.ts | if (win.document.readyState === "complete") afterLoad(); | if (true) afterLoad();
  * @mutate src/lib/metaPixel.ts | win.requestIdleCallback(run, { timeout: IDLE_TIMEOUT_MS }); | run();
  * @mutate src/lib/metaPixel.ts | lastPath = pathname; | lastPath = null;
- * @mutate src/components/MetaPixelRoutes.tsx | }, [pathname]); | }, []);
+ * @mutate src/components/MetaPixelRoutes.tsx | }, [pathname, search]); | }, []);
  * @mutate src/lib/metaPixel.ts | fbq.allowDuplicatePageViews = true; | fbq.allowDuplicatePageViews = false;
+ * @mutate src/lib/metaPixel.ts | if (onSecretPage(win, `${pathname}${search}`)) return; | if (false) return;
+ * @mutate src/lib/metaPixel.ts |     carriesSecretToken(win.location.href) \|\| |     false \|\|
+ * @mutate src/lib/metaPixel.ts |     fbq("set", "autoConfig", false, META_PIXEL_ID); |     void 0;
+ * @mutate src/components/MetaPixelRoutes.tsx | metaPixelRoute(pathname, search); | metaPixelRoute(pathname);
+ * @mutate src/lib/metaPixel.ts |   if (onSecretPage(win)) {\n    state = "idle"; |   if (false) {\n    state = "idle";
+ * @mutate src/lib/metaPixel.ts |   if (onSecretPage(win)) {\n    state = "waiting"; |   if (false) {\n    state = "waiting";
+ * @mutate src/lib/metaPixel.ts |     carriesSecretToken(win.document.referrer ?? "") \|\| |     false \|\|
+ * @mutate src/lib/metaPixel.ts |     installBaseCode(win, () => initAndCount(win)); |     installBaseCode(win, () => {}); initAndCount(win);
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render } from "@testing-library/react";
@@ -27,7 +35,9 @@ vi.mock("@/lib/automatedBrowser", () => ({
   isLocalDevOrigin: () => st.local,
 }));
 
-import { FBEVENTS_SRC, META_PIXEL_ID, metaPixelAllowed, metaPixelRoute, resetMetaPixelForTests } from "./metaPixel";
+import { readFileSync } from "node:fs";
+import { blankComments } from "@/test/helpers/blankNonCode";
+import { FBEVENTS_SRC, META_PIXEL_ID, carriesSecretToken, metaPixelAllowed, metaPixelRoute, resetMetaPixelForTests } from "./metaPixel";
 import { MetaPixelRoutes } from "@/components/MetaPixelRoutes";
 
 type PixelWin = Window & { fbq?: { queue: unknown[][]; disablePushState?: boolean }; _fbq?: unknown; requestIdleCallback?: unknown };
@@ -36,6 +46,8 @@ const w = window as PixelWin;
 let idleCallbacks: Array<() => void> = [];
 const fbScripts = () => [...document.querySelectorAll("script")].filter((s) => s.src === FBEVENTS_SRC);
 const pageViews = () => (w.fbq?.queue ?? []).filter((a) => a[0] === "track" && a[1] === "PageView").length;
+/** fbevents.js arriving (jsdom fetches no scripts, so the test fires its load event). */
+const loadFb = () => fbScripts().forEach((s) => s.dispatchEvent(new Event("load")));
 const runIdle = () => {
   const cbs = idleCallbacks;
   idleCallbacks = [];
@@ -104,7 +116,11 @@ describe("Meta Pixel: loads only after the page has loaded and gone idle", () =>
     runIdle();
     expect(fbScripts()).toHaveLength(1);
     expect(fbScripts()[0].async).toBe(true);
+    // Nothing is queued until fbevents.js has loaded: a queued call is sent with the address of the moment it arrives.
+    expect(w.fbq?.queue).toEqual([]);
+    loadFb();
     expect(w.fbq?.queue).toEqual([
+      ["set", "autoConfig", false, META_PIXEL_ID],
       ["init", META_PIXEL_ID],
       ["track", "PageView"],
     ]);
@@ -134,6 +150,7 @@ describe("Meta Pixel: loads only after the page has loaded and gone idle", () =>
     expect(fbScripts()).toHaveLength(0);
     vi.advanceTimersByTime(1);
     expect(fbScripts()).toHaveLength(1);
+    loadFb();
     expect(pageViews()).toBe(1);
   });
 });
@@ -158,7 +175,7 @@ describe("Meta Pixel: PageView on every route change", () => {
     // Before idle: nothing loaded, and a route change before then is covered by the start PageView.
     act(() => go("/gift-guides/her"));
     expect(w.fbq).toBeUndefined();
-    act(() => runIdle());
+    act(() => { runIdle(); loadFb(); });
     expect(pageViews()).toBe(1);
 
     act(() => go("/gift-guides/him"));
@@ -173,11 +190,125 @@ describe("Meta Pixel: PageView on every route change", () => {
   it("a remount on the same page (StrictMode, a lazy chunk re-rendering) does not count it twice", () => {
     metaPixelRoute("/gift-guides");
     runIdle();
+    loadFb();
     expect(pageViews()).toBe(1);
     metaPixelRoute("/gift-guides");
     expect(pageViews()).toBe(1);
     metaPixelRoute("/gift-guides/kids");
     metaPixelRoute("/gift-guides/kids");
     expect(pageViews()).toBe(2);
+  });
+});
+
+/**
+ * Audit LT-1 (11-23): a Secret Santa reveal token or a Rentals invite token never reaches Meta. fbevents.js sends the
+ * whole document address as dl=, so the pixel must not start, count a PageView or run automatic events on such a page.
+ */
+describe("Meta Pixel: never on a page whose address holds a reveal or invite token", () => {
+  const SANTA = "/gift-guides/secret-santa/a1b2c3d4e5/LHSECRETTOKEN";
+  const INVITE = "/rentals/invite/LHSECRETTOKEN";
+  const LOGIN_INVITE = `/login?redirect=${encodeURIComponent(INVITE)}`;
+  afterEach(() => window.history.replaceState(null, "", "/"));
+
+  it.each([
+    ["a Secret Santa reveal link", SANTA, ""],
+    ["a Rentals invite link", INVITE, ""],
+    ["the sign-in page carrying an invite link", "/login", `?redirect=${encodeURIComponent(INVITE)}`],
+  ])("does not start the pixel on %s", (_n, path, search) => {
+    window.history.replaceState(null, "", `${path}${search}`);
+    metaPixelRoute(path, search);
+    runIdle();
+    expect(idleCallbacks).toHaveLength(0);
+    expect(w.fbq).toBeUndefined();
+    expect(fbScripts()).toHaveLength(0);
+  });
+
+  it("starts on the next page without a token, and never counts the token page", () => {
+    window.history.replaceState(null, "", LOGIN_INVITE);
+    metaPixelRoute("/login", LOGIN_INVITE.slice("/login".length));
+    expect(w.fbq).toBeUndefined();
+    window.history.replaceState(null, "", "/rentals");
+    metaPixelRoute("/rentals");
+    runIdle();
+    loadFb();
+    expect(pageViews()).toBe(1);
+    // Back to the invite page after the pixel started: no PageView for it.
+    window.history.replaceState(null, "", INVITE);
+    metaPixelRoute(INVITE);
+    expect(pageViews()).toBe(1);
+  });
+
+  it("a token page reached while fbevents.js is still loading sends nothing; the next clean page is counted", () => {
+    metaPixelRoute("/gift-guides");
+    runIdle();
+    expect(fbScripts()).toHaveLength(1);
+    window.history.replaceState(null, "", SANTA);
+    metaPixelRoute(SANTA);
+    // The script arrives on the reveal page: init and PageView would read this address, so neither is sent.
+    loadFb();
+    expect(w.fbq?.queue).toEqual([]);
+    window.history.replaceState(null, "", "/gift-guides/her");
+    metaPixelRoute("/gift-guides/her");
+    expect(w.fbq?.queue.map((a) => a[0])).toEqual(["set", "init", "track"]);
+    expect(pageViews()).toBe(1);
+  });
+
+  it("a page whose referrer is a token page never starts the pixel (fbevents.js sends the referrer as rl=)", () => {
+    Object.defineProperty(document, "referrer", { value: `https://www.louisianahelpr.com${INVITE}`, configurable: true });
+    try {
+      window.history.replaceState(null, "", "/login");
+      metaPixelRoute("/login");
+      runIdle();
+      metaPixelRoute("/rentals");
+      runIdle();
+      expect(w.fbq).toBeUndefined();
+      expect(fbScripts()).toHaveLength(0);
+    } finally {
+      Reflect.deleteProperty(document, "referrer");
+    }
+    expect(document.referrer).not.toContain("LHSECRETTOKEN");
+  });
+
+  it("stays dark when the visitor opens a token page while the page is going idle", () => {
+    metaPixelRoute("/gift-guides");
+    expect(idleCallbacks).toHaveLength(1);
+    window.history.replaceState(null, "", SANTA);
+    runIdle();
+    expect(w.fbq).toBeUndefined();
+    expect(fbScripts()).toHaveLength(0);
+  });
+
+  it("turns automatic events off before init, so fbevents.js sends nothing on its own from a token page", () => {
+    metaPixelRoute("/");
+    runIdle();
+    loadFb();
+    expect(w.fbq?.queue.slice(0, 2)).toEqual([
+      ["set", "autoConfig", false, META_PIXEL_ID],
+      ["init", META_PIXEL_ID],
+    ]);
+  });
+
+  it("the router listener passes the query, so /login?redirect=<invite> is caught", () => {
+    render(
+      <MemoryRouter initialEntries={[LOGIN_INVITE]}>
+        <MetaPixelRoutes />
+      </MemoryRouter>,
+    );
+    runIdle();
+    expect(idleCallbacks).toHaveLength(0);
+    expect(w.fbq).toBeUndefined();
+  });
+
+  it("every route in App.tsx with a :token param is caught, literal and inside a sign-in redirect", () => {
+    const app = blankComments(readFileSync("src/App.tsx", "utf8"));
+    const tokenRoutes = [...app.matchAll(/<Route\s+path="([^"]*:token[^"]*)"/g)].map((m) => m[1]);
+    expect(tokenRoutes.length).toBeGreaterThan(1);
+    for (const route of tokenRoutes) {
+      const url = route.replace(/:code\b/g, "a1b2c3d4e5").replace(/:token\b/g, "LHSECRETTOKEN").replace(/:\w+/g, "x1");
+      expect(carriesSecretToken(url), route).toBe(true);
+      expect(carriesSecretToken(`/login?redirect=${encodeURIComponent(url)}`), route).toBe(true);
+    }
+    expect(carriesSecretToken("/gift-guides/secret-santa")).toBe(false);
+    expect(carriesSecretToken("/gift-guides/her")).toBe(false);
   });
 });

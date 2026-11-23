@@ -199,6 +199,7 @@ export function DeclutterQuestions({
   isSeller,
   canAsk,
   free = false,
+  offers = true,
   preview = false,
   onMakeOffer,
   listingDown = false,
@@ -216,6 +217,8 @@ export function DeclutterQuestions({
   canAsk: boolean;
   /** A free item is claimed, never offered on (deep audit #23): no "Make an offer" line. */
   free?: boolean;
+  /** App audit 11-23 DB3: an offers-off listing (accepts_offers false) never mentions offers (AUD31-68): no deal line. */
+  offers?: boolean;
   /** The seller's "See what buyers see" (LEAD-PREVIEW-ASK): the Ask box shows, greyed out, saying how it works. */
   preview?: boolean;
   /** AUD31-15: opens the offer box on the item page; without it the hint stays plain words. */
@@ -301,7 +304,7 @@ export function DeclutterQuestions({
           </div>
           {askError && <p id="declutter-question-error" role="alert" className="text-ds-13 text-destructive-ink">{askError}</p>}
           {/* AUD31-15: "Make an offer" opens the offer box on this page (DeclutterItemView's onMakeOffer), not plain text. */}
-          <p className="text-ds-13 text-muted-foreground">{t("dq.rules")}{free ? null : onMakeOffer
+          <p className="text-ds-13 text-muted-foreground">{t("dq.rules")}{free || !offers ? null : onMakeOffer
             ? <>{t("dq.wantDeal")}<InlineTextButton className="font-semibold text-foreground underline underline-offset-2" onClick={onMakeOffer} data-question-make-offer="">{t("dq.makeOffer")}</InlineTextButton>.</>
             : t("dq.wantDealPlain")}</p>
         </form>

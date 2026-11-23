@@ -21,6 +21,19 @@ interface SignedInRedirectProps {
 }
 
 /**
+ * App audit 11-23 H1: `to` may carry its own query (/browse sends members to /jobs?tab=browse); the visit's query is
+ * merged in after it, so /browse?job=<id> lands on /jobs?tab=browse&job=<id> (the feed, with that job open) and never
+ * on a bare /jobs?job=<id>, which an old My Jobs link uses for Working.
+ */
+function withQuery(to: string, search: string): string {
+  const [path, own = ""] = to.split("?");
+  const merged = new URLSearchParams(own);
+  for (const [k, v] of new URLSearchParams(search)) if (!merged.has(k)) merged.append(k, v);
+  const q = merged.toString();
+  return q ? `${path}?${q}` : path;
+}
+
+/**
  * Sends an authenticated visitor to `to`; renders `children` for a guest.
  *
  * Lives in its OWN lazy chunk, and must keep living in one: it is the only
@@ -57,7 +70,7 @@ const SignedInRedirect = ({
   // until the real destination paints its own skeleton.
   if (isLoading) return <>{pendingFallback}</>;
 
-  if (user) return <Navigate to={keepQuery && search ? `${to}${search}` : to} replace />;
+  if (user) return <Navigate to={keepQuery && search ? withQuery(to, search) : to} replace />;
 
   return <>{children}</>;
 };

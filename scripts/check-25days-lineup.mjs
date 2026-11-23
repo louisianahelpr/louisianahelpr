@@ -63,6 +63,8 @@ const PERSON_PARENS = [/\s*\(Holli M\. Landry\)/g, /\s*\(Brandi\)/g];
  * or the seller's own name ("Mary Kay · Crystal Fakier").
  */
 const TRAILING_NOTE = /\s*·.*$/;
+/** A "; ..." clause of a prize that carries an email address. */
+const EMAIL_CLAUSE = /\s*;[^;]*[\w.+-]+@[\w-]+\.[\w.-]+[^;]*/g;
 /** One tracker prize that names two days' prizes: split it by day. */
 const PER_DAY_PRIZE = /^Dec \d+:/;
 
@@ -81,6 +83,9 @@ function publicPrize(prize, day) {
     s = part.replace(/^Dec \d+:\s*/, "");
   }
   for (const re of NOTE_PARENS) s = s.replace(re, "");
+  // Public page rule: never an email. A clause that names one ("; winner emails info@pixiedust.eco for codes") is how
+  // we hand the prize over, not the prize (Pixie Dust, 2026-11-22).
+  s = s.replace(EMAIL_CLAUSE, "");
   s = s.trim();
   if (/^TBD\b/i.test(s)) return "Prize to be announced";
   return s.charAt(0).toUpperCase() + s.slice(1);

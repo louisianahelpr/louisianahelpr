@@ -310,6 +310,14 @@ export const sponsorPage = {
       "Tays Sweet Shop": "https://www.tayssweets.org/",
       "The Crab Man Plus": "https://thecrabmanplus.com/",
       "Ty's Boutique Shop": "https://tysboutiqueshop.bigcartel.com/",
+      // Placed 2026-11-22 10:35-10:50 PM (owner): Facebook from the tracker's h.fb (Ethan's, Charmed Page) or from the
+      // sponsor's own website footer (Wildcat, Chattanooga, Sweet Bee); Pixie Dust has only its Instagram (tracker h.ig).
+      "Ethan's Closet Children's Boutique & Little Feet": "https://www.facebook.com/EthansClosetCCB1",
+      "The Charmed Page Bookstore": "https://www.facebook.com/charmedpagebooks",
+      "Wildcat Brothers Distillery": "https://www.facebook.com/WildcatBrothers",
+      "Chattanooga Beard Co.": "https://www.facebook.com/chattanoogabeardco",
+      "Sweet Bee Organics": "https://www.facebook.com/sweetbeeorganics",
+      "Pixie Dust Biodegradable Glitter (New Orleans)": "https://www.instagram.com/biodegradable_glitter/",
     } as Record<string, string>,
     /**
      * INTERNAL ONLY (owner rule 2026-11-17: "don't tell sponsors their day until it's final"): the page never shows
@@ -338,6 +346,7 @@ export const sponsorPage = {
           { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
           { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
           { brand: "Dupuy's Abbeville", prize: "$25 gift certificate" },
+          { brand: "Wanderlust by Abby", prize: "Private after-hours shopping party at Wanderlust by Abby (Baton Rouge): 6+ guests, 6:30-8:30 PM, 25% off the whole store, drinks + bites; winner 21+; winner texts Abby to set the date" },
         ],
       },
       {
@@ -355,11 +364,10 @@ export const sponsorPage = {
       {
         day: 4,
         partners: [
-          { brand: "K18 Hair", prize: "K18 FutureIQ" },
+          { brand: "K18 Hair", prize: "K18 FutureIQ + Molecular Repair Hair Mask" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Monarch Books (Baton Rouge)", prize: "Book bundle + 2 coffee mugs with stickers and bookmarks" },
           { brand: "Kate McLeod", prize: "One Daily Stone (body moisturizer)" },
-          { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
           { brand: "Jessica Lanham Photography", prize: "$300 photography gift certificate: covers the $100 session fee + $200 toward any package (one per winner; 4 winners)" },
         ],
@@ -385,6 +393,7 @@ export const sponsorPage = {
           { brand: "Perfectly Planned Events", prize: "A custom event invitation + a decor shopping list for your budget" },
           { brand: "Jessica Lanham Photography", prize: "$300 photography gift certificate: covers the $100 session fee + $200 toward any package (one per winner; 4 winners)" },
           { brand: "Haylie Rudisill · Custom wreath sashes", prize: "Santa wreath sash" },
+          { brand: "Hair Fashion and Spa (Opelousas)", prize: "$25 gift card" },
         ],
       },
       {
@@ -396,6 +405,7 @@ export const sponsorPage = {
           { brand: "Mind the Skin Labs", prize: "1 pack Signal (pre-flare patch) + 1 pack Surge (active-flare patch)" },
           { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
           { brand: "Cat 5 Fishing Charters (Lake Charles)", prize: "$100 gift card toward a fishing charter trip" },
+          { brand: "Ethan's Closet Children's Boutique & Little Feet", prize: "$25 gift card" },
         ],
       },
       {
@@ -424,7 +434,6 @@ export const sponsorPage = {
       {
         day: 10,
         partners: [
-          { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "GentleStyle Brush (CLM Creations)", prize: "GentleStyle Brush" },
           { brand: "Restore Hyper Wellness Mandeville", prize: "10 wellness sessions (cryo, infrared sauna, red light, compression)" },
@@ -441,6 +450,7 @@ export const sponsorPage = {
           { brand: "Celebration Station (Baton Rouge)", prize: "Family Four Fun Pack: unlimited attractions for four people" },
           { brand: "Ripley's Crawfish", prize: "$25 gift certificate" },
           { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
+          { brand: "Wanderlust by Abby", prize: "Private after-hours shopping party at Wanderlust by Abby (Baton Rouge): 6+ guests, 6:30-8:30 PM, 25% off the whole store, drinks + bites; winner 21+; winner texts Abby to set the date" },
         ],
       },
       {
@@ -453,6 +463,7 @@ export const sponsorPage = {
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
           { brand: "IDRA Wellness", prize: "Body lotion + body oil" },
           { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
+          { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
         ],
       },
       {
@@ -475,6 +486,7 @@ export const sponsorPage = {
           { brand: "The Sculpt Society", prize: "Workout membership for a mama" },
           { brand: "Everyday Dose", prize: "Coffee+ 15-serving + Medium Roast Coffee+ + Matcha+ + ~12 Matcha+ samples" },
           { brand: "Rock Bottom Golf", prize: "$50 Rock Bottom Golf gift card" },
+          { brand: "Wildcat Brothers Distillery", prize: "1 bottle Zydeco Bold rum + 1 bottle Noire rum (winner 21+, pickup with ID)" },
         ],
       },
       {
@@ -483,7 +495,6 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Zydeco Chop Chop", prize: "Seasoning gift basket" },
           { brand: "Sky & Sol", prize: "1 full-size tube of sunscreen" },
-          { brand: "Wanderlust by Abby", prize: "Private after-hours shopping party at Wanderlust by Abby (Baton Rouge): 6+ guests, 6:30-8:30 PM, 25% off the whole store, drinks + bites; winner 21+; winner texts Abby to set the date" },
           { brand: "Cat Lady / CatLadyBox", prize: "$60 digital gift card (Cat Lady Box or catlady.com items)" },
           { brand: "Whimsies from Within", prize: "Mixed media wall hanging ($130)" },
           { brand: "Britt Creates", prize: "Resume refresh + headshot session" },
@@ -499,6 +510,7 @@ export const sponsorPage = {
           { brand: "3 Redneck Tenors", prize: "Pair of tickets, Feb 26 2027, Strand Theatre Shreveport" },
           { brand: "Sprinkle in Time Too (Sulphur)", prize: "2 free sundaes (redeem at the shop in Sulphur, LA)" },
           { brand: "Forgiven Hearts", prize: "$25 gift certificate" },
+          { brand: "The Charmed Page Bookstore", prize: "$25 gift card" },
         ],
       },
       {
@@ -521,8 +533,8 @@ export const sponsorPage = {
           { brand: "Basic Bee", prize: "Flavored honey cube gift set + a large bourbon honey" },
           { brand: "Saranoni", prize: "Saranoni Patterned Faux Fur Throw (Clove)" },
           { brand: "Megan Benoit's Closet", prize: "$30 gift card" },
-          { brand: "Wanderlust by Abby", prize: "Private after-hours shopping party at Wanderlust by Abby (Baton Rouge): 6+ guests, 6:30-8:30 PM, 25% off the whole store, drinks + bites; winner 21+; winner texts Abby to set the date" },
           { brand: "BIME Beauty", prize: "3-brush set (scalp therapy + self-cleaning brushes)" },
+          { brand: "Pixie Dust Biodegradable Glitter (New Orleans)", prize: "$15 store credit (online) + free 2-hour glitter artist party; New Orleans area party, travel fee may apply outside Orleans Parish" },
         ],
       },
       {
@@ -557,6 +569,8 @@ export const sponsorPage = {
           { brand: "Cajun Fiya", prize: "A case of Cajun Fiya seasoning" },
           { brand: "Phyllis Guy Dance Center", prize: "One month of kids' dance classes (1 class a week; winner picks ballet, tap, jazz, hip hop, modern or musical theatre)" },
           { brand: "Ripley's Crawfish", prize: "$25 gift certificate" },
+          { brand: "Wanderlust by Abby", prize: "Private after-hours shopping party at Wanderlust by Abby (Baton Rouge): 6+ guests, 6:30-8:30 PM, 25% off the whole store, drinks + bites; winner 21+; winner texts Abby to set the date" },
+          { brand: "Sweet Bee Organics", prize: "Sweet Sleep Magnesium Butter, 120 ml (Organic Lavender)" },
         ],
       },
       {
@@ -567,8 +581,9 @@ export const sponsorPage = {
           { brand: "Botanical Nail and Skin Studio", prize: "$50 gift card toward any service" },
           { brand: "Bashi", prize: "Gift card for their new products launching in January" },
           { brand: "Barclell Photography", prize: "Family photo sitting + 11x14 wall portrait" },
-          { brand: "Wanderlust by Abby", prize: "Private after-hours shopping party at Wanderlust by Abby (Baton Rouge): 6+ guests, 6:30-8:30 PM, 25% off the whole store, drinks + bites; winner 21+; winner texts Abby to set the date" },
           { brand: "Ripley's Crawfish", prize: "$25 gift certificate" },
+          { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
+          { brand: "Chattanooga Beard Co.", prize: "Beard care gift set" },
         ],
       },
       {
@@ -578,7 +593,6 @@ export const sponsorPage = {
           { brand: "Jaboom Baits", prize: "Jaboom hat + shirt + 15 packs of soft plastic baits" },
           { brand: "Hilma", prize: "Daily Pre + Probiotic + Herbs" },
           { brand: "Mary Kay", prize: "Mary Kay gift set" },
-          { brand: "Hair Fashion and Spa (Opelousas)", prize: "$25 gift card" },
           { brand: "Arey", prize: "Arey The System (hair serum + supplements, 1-month supply)" },
           { brand: "Faith & Fire BBQ", prize: "Bible + seasoning + t-shirt" },
         ],
@@ -590,7 +604,6 @@ export const sponsorPage = {
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
           { brand: "Tufted Artworks", prize: "Handmade tufted fleur de lis Mardi Gras rug, ready to hang on the wall (~30 x 20 in.)" },
           { brand: "Bashi", prize: "Gift card for their new products launching in January" },
-          { brand: "K18 Hair", prize: "K18 Molecular Repair Hair Mask" },
           { brand: "Playtopia Lafayette", prize: "1Play Package (1 child): sand play, soft play, book nook, RC Racetrack 30 min, RC Digger Pit 30 min, Lizard Wall 15 min" },
           { brand: "Summar T. Photography", prize: "15-minute mini session (winner messages Summar T. Photography to book)" },
         ],

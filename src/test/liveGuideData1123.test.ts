@@ -141,6 +141,15 @@ describe("the page prefers a newer valid copy from the live site", () => {
     expect(asked).toEqual(["/gift-guides/data/manifest.json"]);
   });
 
+  it("a saved copy older than this bundle (an app update shipped newer data), or a malformed one, is ignored", () => {
+    const old = { ...HER, picks: [{ ...HER.picks[0], name: "Saved Before Update" }] };
+    window.localStorage.setItem("lh-live-guide-data:picks/her", JSON.stringify({ hash: liveDataHash(old), builtAt: EARLIER, value: old }));
+    expect(liveCopy("picks/her", HER, isLivePickChunk)).toBe(HER);
+    _resetLiveGuideDataForTests({ builtAt: BUNDLE_AT, origin: "" });
+    window.localStorage.setItem("lh-live-guide-data:picks/her", JSON.stringify({ hash: "x", builtAt: LATER, value: { picks: [] } }));
+    expect(liveCopy("picks/her", HER, isLivePickChunk)).toBe(HER);
+  });
+
   it("the guide page swaps the live copy in (loadGuidePicks)", async () => {
     const fresh = { ...HER, picks: [{ ...HER.picks[0], name: "Live Pick On Page" }, ...HER.picks.slice(1)] };
     const { m, path } = manifest(LATER, "picks/her", fresh);

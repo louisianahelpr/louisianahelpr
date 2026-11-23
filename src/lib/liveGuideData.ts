@@ -34,7 +34,7 @@ const bundleBuiltAt = (): string => bundleBuiltAtOverride ?? (typeof __APP_BUILT
  * The origin the data is read from: "" (same site) on the web, the live site in the installed app. A genuine platform
  * difference (the app's own origin serves only the bundled files), never a layout branch.
  */
-export function liveDataOrigin(): string {
+function liveDataOrigin(): string {
   if (originOverride !== null) return originOverride;
   if (typeof window === "undefined") return LIVE_DATA_ORIGIN;
   const cap = (window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;

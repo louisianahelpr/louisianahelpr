@@ -19,7 +19,7 @@
  */
 import { useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { FilterChip } from "@/components/ui/FilterChip";
@@ -29,7 +29,6 @@ import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
-import { START_OPEN } from "@/pages/info/giftGuides/startOpen";
 import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import {
@@ -215,7 +214,8 @@ export default function HolidayHub() {
               the far right. Where the row is too narrow for the words and a usable field (under 440px: every phone),
               the count shows as its number only (the words stay for screen readers). The ✕ or Escape puts the row back. */}
           <div className="flex min-h-11 items-center gap-1" data-holiday-searchrow={searchOpen ? "open" : "closed"}>
-            <p className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} text-ds-14 text-muted-foreground`} aria-live="polite" data-holiday-count="">
+            {/* Consistency audit 1122 #3: the guides' count style ("146 gifts": gg-itemcount, 12px/600, muted). */}
+            <p className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} gg-itemcount !m-0`} aria-live="polite" data-holiday-count="">
               {searchOpen ? (
                 <><span className="hh-count-full">{countWords}</span><span className="hh-count-short" aria-hidden="true">{shown.length || ""}</span></>
               ) : countWords}
@@ -283,26 +283,16 @@ export default function HolidayHub() {
             {/* Holiday audit 1121 area 5 #5: the days more than two weeks out and "Dates TBA" fold under one "Later dates".
                 Owner 2026-11-22 ("make everything open expanded"): both folds start open (START_OPEN); a shopper can
                 still close one. A When filter or a search shows every group open. */}
+            {/* Consistency audit 1122 #3: both are the guides' band sections (HolidaySection), open on arrival. */}
             {tbaLights && (
-              <details className="group space-y-section" id="holidays-lights-tba" open={START_OPEN} data-holiday-lights-tba="">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-ds-20 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
-                  {W.lightsTba}<span className="text-ds-15 font-normal text-muted-foreground">({tbaLights.items.length})</span>
-                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
-                </summary>
-                <p className="text-ds-14 text-muted-foreground">{W.lightsTbaNote}</p>
-                <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {tbaLights.items.map((i) => <HolidayCard key={i.id} item={i} kind="light" tag={tagFor(i)} />)}
-                </ul>
-              </details>
+              <HolidaySection id="holidays-lights-tba" title={W.lightsTba} count={tbaLights.items.length} note={W.lightsTbaNote} data={{ "data-holiday-lights-tba": "" }}>
+                {tbaLights.items.map((i) => <HolidayCard key={i.id} item={i} kind="light" tag={tagFor(i)} />)}
+              </HolidaySection>
             )}
             {later.length > 0 && (
-              <details className="group space-y-section" open={START_OPEN} data-holiday-later="">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-ds-20 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
-                  Later dates<span className="text-ds-15 font-normal text-muted-foreground">({later.reduce((n, g) => n + g.items.length, 0)})</span>
-                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
-                </summary>
-                <div className="space-y-section">{later.map(section)}</div>
-              </details>
+              <HolidaySection id="holidays-later" title="Later dates" count={later.reduce((n, g) => n + g.items.length, 0)} nested data={{ "data-holiday-later": "" }}>
+                {later.map(section)}
+              </HolidaySection>
             )}
           </>
         )}

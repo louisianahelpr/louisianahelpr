@@ -12,6 +12,7 @@ import { mapsSearchUrl } from "@/lib/mapsLink";
 import { openableDocumentUrl } from "@/lib/storagePath";
 import { DATES_TBA, holidayDateLabel, holidayMapsQuery, holidayPriceLabel, holidayWhereLabel, type HolidayItem } from "@/content/holidayHub/holidayHub.mjs";
 import { START_OPEN } from "@/pages/info/giftGuides/startOpen";
+import { GuideSectionHead } from "@/pages/info/giftGuides/GuideSectionHead";
 
 /** The hub's column (the lists sit two across from md up), and its header's: the column plus the shell's side padding. */
 export const HUB_COLUMN = "mx-auto max-w-[1040px]";
@@ -111,14 +112,34 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
   );
 }
 
-/** A heading and its cards: one column on a phone, two on a tablet, three on a wide desktop (owner 2026-11-21). */
-export function HolidaySection({ id, title, count, children }: { id: string; title: string; count: number; children: ReactNode }) {
+/**
+ * A section: its band header, then its cards (one column on a phone, two on a tablet, three on a wide desktop, owner
+ * 2026-11-21). Consistency audit 1122 #3: the header is the guides' own band (GuideSectionHead: a tinted band in the
+ * Hub's green with a left bar, the title, "(n)" and a chevron; owner 11-22: "Add some kind of shading or something so you
+ * can tell where each section is better"), open on arrival (START_OPEN, owner 11-22: "make everything open expanded");
+ * a tap closes it and opens it again. `note` is a line under the header, inside the open body. `children` is the cards,
+ * or (`nested`) whole sections.
+ */
+export function HolidaySection({ id, title, count, note, nested = false, data, children }: {
+  id: string;
+  title: string;
+  count: number;
+  note?: ReactNode;
+  nested?: boolean;
+  data?: Record<`data-${string}`, string>;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(START_OPEN);
   return (
-    <section aria-labelledby={id} className="space-y-3">
-      <h2 id={id} className="text-ds-20 font-semibold text-foreground">
-        {title}<span className="ml-1.5 text-ds-15 font-normal text-muted-foreground">({count})</span>
-      </h2>
-      <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{children}</ul>
+    <section aria-labelledby={id} className="gg-sec" data-holiday-section={id} {...data}>
+      <GuideSectionHead titleId={id} bodyId={`${id}-body`} title={title} count={count} tint="green" open={open}
+        onToggle={() => setOpen((o) => !o)} data={{ "data-holiday-section-toggle": id }} />
+      {open && (
+        <div id={`${id}-body`} className="mt-3 space-y-3">
+          {note && <p className="text-ds-14 text-muted-foreground">{note}</p>}
+          {nested ? <div className="space-y-section">{children}</div> : <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{children}</ul>}
+        </div>
+      )}
     </section>
   );
 }

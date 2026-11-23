@@ -24,7 +24,7 @@
  * @mutate src/content/holidayHub/holidayHub.mjs |     ...(showLights ? filterLights(lights, { region, cost }, today).filter(inWeekend) : []), |     ...(showLights ? filterLights(lights, { region, cost }, today) : []),
  * @mutate src/content/holidayHub/holidayHub.mjs |   next.set("what", from === "lights" ? "lights" : |   next.set("what", from === "lights" ? "events" :
  * @mutate src/pages/info/holidays/HolidayHub.tsx |           <div className="flex min-h-11 items-center gap-1" data-holiday-searchrow={searchOpen ? "open" : "closed"}> |           <div className="flex min-h-11 items-center gap-1" data-holiday-searchrow={searchOpen ? "open" : "closed"}><a href="/holidays/hire-a-helpr" data-holiday-hire-strip="">Hire a Helpr for the holidays</a>
- * @mutate src/pages/info/holidays/HolidayHub.tsx |             <p className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} text-ds-14 | <p hidden={searchOpen} className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} text-ds-14
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |             <p className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} gg-itemcount | <p hidden={searchOpen} className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} gg-itemcount
  * @mutate src/pages/info/holidays/HolidayHub.tsx | <RoundIconButton ref={searchButton} className="gg-icon" | <RoundIconButton ref={searchButton} className="rounded-ds-md ctl-tint"
  * @mutate src/pages/info/holidays/HolidayHub.tsx | <RoundIconButton ref={filtersButton} className="gg-icon" | <RoundIconButton ref={filtersButton} className="rounded-ds-md ctl-tint"
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .hh-search{flex:1 0 160px;min-width:160px;margin-left:auto} | .hh-search{flex:1 1 100%;min-width:0;margin-left:auto}
@@ -724,10 +724,10 @@ describe("Holiday Hub: Later dates fold", () => {
   const shownIds = (c: HTMLElement) => [...c.querySelectorAll("[data-holiday-item]")].map((el) => el.getAttribute("data-holiday-item")!);
   it("days past two weeks and Dates TBA sit in Later dates (open on arrival); the next two weeks come first", () => {
     const { container, unmount } = at("/holidays", <HolidayHub />);
-    const later = container.querySelector<HTMLDetailsElement>("details[data-holiday-later]")!;
+    const later = container.querySelector<HTMLElement>("section[data-holiday-later]")!;
     expect(later).not.toBeNull();
-    expect(later.open).toBe(true);
-    const inLater = [...later.querySelectorAll("h2")].map((h) => h.textContent ?? "");
+    expect(later.querySelector('[data-holiday-section-toggle="holidays-later"]')!.getAttribute("aria-expanded")).toBe("true");
+    const inLater = [...later.querySelectorAll("h2")].slice(1).map((h) => h.textContent ?? "");
     expect(inLater[inLater.length - 1]).toMatch(/^Dates TBA/);
     expect(inLater.some((h) => /December 2[0-9]/.test(h))).toBe(true);
     const open = [...container.querySelectorAll("h2")].filter((h) => !later.contains(h)).map((h) => h.textContent ?? "");
@@ -737,7 +737,7 @@ describe("Holiday Hub: Later dates fold", () => {
     expect(shownIds(container).length).toBe(filterHolidayItems(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, {}, today).length);
     unmount();
     const week = at("/holidays?when=week", <HolidayHub />);
-    expect(week.container.querySelector("details[data-holiday-later]")).toBeNull();
+    expect(week.container.querySelector("[data-holiday-later]")).toBeNull();
   });
 });
 
@@ -747,23 +747,24 @@ describe("Holiday Hub: Later dates fold", () => {
  * them as a normal section.
  * @mutate src/pages/info/holidays/HolidayHub.tsx |   const tbaLights = folds ? groups.find((g) => g.key === "lights-tba") : undefined; |   const tbaLights = folds ? undefined : groups.find((g) => g.key === "lights-tba");
  * @mutate src/content/holidayHub/holidayHub.mjs |   lightsTba: "Light displays, dates not announced", |   lightsTba: "Light displays",
- * @mutate src/pages/info/holidays/HolidayHub.tsx | <p className="text-ds-14 text-muted-foreground">{W.lightsTbaNote}</p> | <p></p>
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | note={W.lightsTbaNote} | note=""
  */
 describe("Holiday Hub: undated lights fold (guides polish 1122 #18)", () => {
   it("an open group with a count and the note, after the dated days and before Later dates", () => {
     const { container, unmount } = render(<MemoryRouter initialEntries={["/holidays"]}><HolidayHub /></MemoryRouter>);
-    const lights = container.querySelector<HTMLDetailsElement>("details[data-holiday-lights-tba]")!;
+    const lights = container.querySelector<HTMLElement>("section[data-holiday-lights-tba]")!;
     expect(lights).not.toBeNull();
-    expect(lights.open).toBe(true);
-    expect(lights.querySelector("summary")!.textContent).toMatch(/^Light displays, dates not announced\(\d+\)$/);
+    const head = lights.querySelector("[data-holiday-section-toggle]")!;
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    expect(head.textContent).toMatch(/^Light displays, dates not announced \(\d+\)$/);
     expect(lights.textContent).toContain("Dates TBA means the 2026 dates are not announced yet");
-    const later = container.querySelector("details[data-holiday-later]")!;
+    const later = container.querySelector("section[data-holiday-later]")!;
     expect(lights.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    const lastOpenDay = [...container.querySelectorAll("section h2")].filter((h) => !later.contains(h)).pop()!;
+    const lastOpenDay = [...container.querySelectorAll("section h2")].filter((h) => !later.contains(h) && !lights.contains(h)).pop()!;
     expect(lastOpenDay.compareDocumentPosition(lights) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     unmount();
     const week = render(<MemoryRouter initialEntries={["/holidays?when=week"]}><HolidayHub /></MemoryRouter>);
-    expect(week.container.querySelector("details[data-holiday-lights-tba]")).toBeNull();
+    expect(week.container.querySelector("section[data-holiday-lights-tba]")).toBeNull();
   });
 });
 
@@ -796,5 +797,41 @@ describe("Holiday Hub: Add to calendar", () => {
       expect(Boolean(c.querySelector("[data-holiday-ics]")), i.id).toBe(has);
     }
     expect(dated).toBeGreaterThan(50);
+  });
+});
+
+/**
+ * Consistency audit 1122 #3 (Guide-consistency-audit-1122.md): the Hub's section headers ("Happening now (12)", the day
+ * headings, "Light displays, dates not announced", "Later dates", "Dates TBA") are the guides' band header
+ * (GuideSectionHead: a tinted band in the Hub's green with a left bar, "(n)" and a chevron), open on arrival, a tap
+ * closing and reopening its section; the count line is the guides' count style (gg-itemcount: 12px/600, muted), not
+ * the old 14px/400 line.
+ * @mutate src/pages/info/holidays/holidayParts.tsx | count={count} tint="green" open={open} | count={count} tint="plain" open={open}
+ * @mutate src/pages/info/holidays/holidayParts.tsx |         onToggle={() => setOpen((o) => !o)} data= |         onToggle={() => undefined} data=
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | "min-w-0 flex-1"} gg-itemcount !m-0` | "min-w-0 flex-1"} text-ds-14 text-muted-foreground`
+ */
+describe("Holiday Hub: the guides' band headers and count style (consistency audit 1122 #3)", () => {
+  it("every section header is a green band button with (n), open on arrival; a tap closes and reopens it", () => {
+    const { container } = render(<MemoryRouter initialEntries={["/holidays"]}><HolidayHub /></MemoryRouter>);
+    const heads = [...container.querySelectorAll<HTMLElement>("[data-holiday-page] section > h2")];
+    expect(heads.length).toBeGreaterThan(3);
+    for (const h of heads) {
+      expect(h.className, h.textContent ?? "").toMatch(/\bgg-sec-toggle-h\b.*\bgg-sec-green\b/);
+      const b = h.querySelector("button")!;
+      expect(b.getAttribute("aria-expanded"), h.textContent ?? "").toBe("true");
+      expect(h.querySelector("[data-gift-section-count]")!.textContent).toMatch(/^ \(\d+\)$/);
+    }
+    const first = heads[0].querySelector("button")!;
+    const body = () => document.getElementById(first.getAttribute("aria-controls")!);
+    expect(body()?.querySelector("[data-holiday-item]")).not.toBeNull();
+    fireEvent.click(first);
+    expect(first.getAttribute("aria-expanded")).toBe("false");
+    expect(body()).toBeNull();
+    fireEvent.click(first);
+    expect(first.getAttribute("aria-expanded")).toBe("true");
+    expect(body()?.querySelector("[data-holiday-item]")).not.toBeNull();
+    const count = container.querySelector("[data-holiday-count]")!;
+    expect(count.className).toMatch(/\bgg-itemcount\b/);
+    expect(count.className).not.toMatch(/text-ds-14/);
   });
 });

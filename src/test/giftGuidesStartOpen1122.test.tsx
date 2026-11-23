@@ -16,7 +16,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const isOpen = (id?: string) => !bandHeads \|\| !id \|\| (flipped.has(id) ? !START_OPEN : START_OPEN); |   const isOpen = (id?: string) => !bandHeads \|\| !id \|\| flipped.has(id);
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const isOpen = (id: string) => open[id] ?? START_OPEN; |   const isOpen = (id: string) => open[id] ?? id === "deals";
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   const [all, setAll] = useState(START_OPEN);\n  const shown = all ? sales : sales.slice(0, SALE_LINES); |   const [all, setAll] = useState(false);\n  const shown = all ? sales : sales.slice(0, SALE_LINES);
- * @mutate src/pages/info/holidays/HolidayHub.tsx | <details className="group space-y-section" open={START_OPEN} data-holiday-later=""> | <details className="group space-y-section" data-holiday-later="">
+ * @mutate src/pages/info/holidays/holidayParts.tsx |   const [open, setOpen] = useState(START_OPEN); |   const [open, setOpen] = useState(false);
  */
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -153,10 +153,12 @@ describe("every gift guide and Holiday Hub page opens with everything expanded (
     expect(extras).toBeGreaterThan(0);
   });
 
-  it("/holidays: the undated light displays and Later dates start open", async () => {
+  it("/holidays: every band section (the days, the undated light displays, Later dates) starts open", async () => {
     const c = await renderAt("/holidays");
-    const folds = [...c.querySelectorAll<HTMLDetailsElement>("details[data-holiday-lights-tba], details[data-holiday-later]")];
-    expect(folds.length).toBe(2);
+    // Consistency audit 1122 #3: the Hub's sections are the guides' band headers (aria-expanded buttons), not <details>.
+    const bands = [...c.querySelectorAll<HTMLElement>("[data-holiday-section-toggle]")];
+    expect(bands.length).toBeGreaterThan(3);
+    expect(bands.every((b) => b.getAttribute("aria-expanded") === "true")).toBe(true);
     expect(closedOnLoad(c)).toEqual([]);
   });
 });
@@ -171,13 +173,16 @@ describe("source inventory: every collapsible under the guides and the Holiday H
     expect(all.length).toBeGreaterThan(30);
     const details: string[] = [];
     for (const f of all) for (const m of src(f).matchAll(/<details\b[^>]*>/g)) details.push(`${f}: ${m[0]}`);
-    // Two left (the Holiday Hub's): the deals days' subsections are guide sections with a header button now (owner
-    // 2026-11-22), checked in the walk above and by the open[id] ?? START_OPEN line below.
-    expect(details.length).toBeGreaterThan(1);
+    // None left: the deals days' subsections (owner 2026-11-22) and the Holiday Hub's sections (consistency audit 1122 #3)
+    // are guide band sections with a header button now, checked in the walk above, by the open[id] ?? START_OPEN line
+    // below and by the Hub's band open state below. A <details> added later must still read START_OPEN.
+    expect(details.length).toBeGreaterThanOrEqual(0);
     const bad = details.filter((d) => !/\bopen=\{(START_OPEN|isOpen\()/.test(d));
     expect(bad).toEqual([]);
     // The deals page's own open state falls back to START_OPEN.
     expect(src("src/pages/info/giftGuides/GiftGuideDeals.tsx")).toContain("open[id] ?? START_OPEN");
+    // The Holiday Hub's band sections (HolidaySection) start at START_OPEN.
+    expect(src("src/pages/info/holidays/holidayParts.tsx")).toContain("const [open, setOpen] = useState(START_OPEN);");
   });
 
   it("every show-all list state (\"+N more\", \"See all deals\") starts at START_OPEN", () => {

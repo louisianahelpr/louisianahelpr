@@ -224,7 +224,7 @@ export const CARD_CSS = `
 .gg-code-chip svg{width:15px;height:15px;flex:none;color:var(--gg-olive)}
 .gg-code-copied{font-size:12px;font-weight:700;color:var(--gg-olive)}
 .gg-code-copied:empty{display:none}
-/* Visual audit 1122-night #4: on a phone (under 480px) two Sales cards side by side squeezed The Home Depot's and Ring's
+/* Visual audit 1122-night #4: on a phone (under 480px) two Sales cards side by side squeezed the busiest stores'
    4-5 deals into a ~130px column, a wall of text. There each Sales card takes the full row, its photo a 96px square on
    the left and the store name and every deal beside it (the heart stays top-right). 480px and up: unchanged. */
 @media (max-width:479px){

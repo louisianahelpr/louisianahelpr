@@ -26,7 +26,7 @@ import { AMAZON_BRAND_PHOTOS_1122, cutoutPhoto } from "./giftGuideCutouts1120.mj
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 import { ADDS_STORES_1122, HER_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
-import { HER_KEEPS_1123_ROWS, HER_LINKS_1123_ROWS, HER_WALMART_1123_ROWS, KEEPS_PRICE_AT } from "./giftGuideOwnerKeeps1123.mjs";
+import { HER_KEEPS_1123_ROWS, HER_LINKS_1123_ROWS, KEEPS_PRICE_AT } from "./giftGuideOwnerKeeps1123.mjs";
 
 export const HER_GUIDE = "her";
 /** The day the ShopMy prices were checked (Louisiana day). */
@@ -226,10 +226,7 @@ export const HER_LINKS_1123 = HER_LINKS_1123_ROWS.map(([pin, price, image, name,
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 /** Her 11-21 saves plus the picks she sent on launch day (scripts/giftGuideOwnerAdds1122.mjs) and her 11-23 keeps. */
-// ... and the gifts from her Walmart "Claude" collection (lead 11-23 ~2:50 PM), priced on walmart.com 11-23.
-export const HER_WALMART_1123 = HER_WALMART_1123_ROWS.map(([href, price, image, name, brand, type, commission, line]) =>
-  ({ name, brand, line, href, image, store: "store-walmart", sortPrice: price, price, priceAt: KEEPS_PRICE_AT, commission, type }));
-export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_WALMART_1123];
+export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123];
 
 /** The page rows: cheapest first, every pick priced (Amazon too, owner 11-21), cutout photos, relationship tags, no section. */
 export function her1121Picks(rows = HER_ROWS) {

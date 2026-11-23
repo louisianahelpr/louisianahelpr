@@ -14,9 +14,9 @@ import { PickRow } from "./GiftGuideView";
  * way the other layout is for the guides"): the pick's dupes, one or many, as the guide's own rows (PickRow in a
  * .gg-list: the photo, the name, ~price, the heart, and an Amazon pick's cart; the row opens our Amazon tag link in a new
  * tab, sponsored + noopener, through GiftOut), with the list's one "Prices as of" line. The app's own patterns: the
- * shared bottom Sheet on a phone (the phone's rows), a Popover beside the "dupe" word on a tablet or computer (the
+ * shared bottom Sheet on a phone (the phone's rows), a Popover beside the "shop similar" words on a tablet or computer (the
  * computer's cards, one column per dupe up to three). Closes with its X, Escape or a tap outside, and gives focus back to
- * the "dupe" word. Its own chunk, loaded on the first tap (DupeLink). Guard: src/test/giftGuideDupes1123.test.tsx.
+ * the "shop similar" words. Its own chunk, loaded on the first tap (DupeLink). Guard: src/test/giftGuideDupes1123.test.tsx.
  */
 
 /** A dupe drawn as a guide pick: an Amazon item with its checked price and photo. */
@@ -41,7 +41,7 @@ export function DupePanel({ dupes, of, open, onClose, anchor }: { dupes: GuideDu
     return (
       <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
         <SheetContent side="bottom" className="gg gg-dupe-panel gg-dupe-sheet" data-gift-dupe-panel="" aria-describedby={undefined} onCloseAutoFocus={backToWord}>
-          <SheetHero title={DUPE.title(dupes)} />
+          <SheetHero title={DUPE.title} />
           {list}
         </SheetContent>
       </Sheet>
@@ -51,17 +51,17 @@ export function DupePanel({ dupes, of, open, onClose, anchor }: { dupes: GuideDu
     <Popover open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <PopoverAnchor virtualRef={anchor as RefObject<HTMLButtonElement>} />
       <PopoverContent
-        className="gg gg-dupe-panel gg-dupe-pop" role="dialog" aria-label={DUPE.panelLabel(dupes, of)} data-gift-dupe-panel="" side="bottom" align="end"
+        className="gg gg-dupe-panel gg-dupe-pop" role="dialog" aria-label={DUPE.panelLabel(of)} data-gift-dupe-panel="" side="bottom" align="end"
         style={{ "--gg-dupe-cols": Math.min(dupes.length, 3) } as CSSProperties}
         onCloseAutoFocus={backToWord}
-        // The "dupe" word is the anchor, not a Radix trigger: a press on it is "outside", and must not close the panel
+        // The "shop similar" words are the anchor, not a Radix trigger: a press on it is "outside", and must not close the panel
         // only for the same click to open it again.
         onInteractOutside={(e) => { if (anchor.current?.contains(e.target as Node)) e.preventDefault(); }}
       >
         <button type="button" className="gg-dupe-x" aria-label={DUPE.close} onClick={onClose} data-gift-dupe-close="">
           <X aria-hidden="true" />
         </button>
-        <p className="gg-dupe-note">{DUPE.title(dupes)}</p>
+        <p className="gg-dupe-note">{DUPE.title}</p>
         {list}
       </PopoverContent>
     </Popover>

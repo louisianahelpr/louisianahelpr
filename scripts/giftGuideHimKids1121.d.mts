@@ -19,7 +19,6 @@ export const HIM_KEEPS_1123: readonly HimKids1121Row[];
 export const KIDS_KEEPS_1123: readonly HimKids1121Row[];
 export const HIM_LINKS_1123: readonly HimKids1121Row[];
 export const HIM_WALMART_1123: readonly HimKids1121Row[];
-export const KIDS_WALMART_1123: readonly HimKids1121Row[];
 export const KIDS_LINKS_1123: readonly HimKids1121Row[];
 /** Her backyard play saves (11-22, builder-guide-adds-kids). */
 export const KIDS_PLAY_1122: readonly HimKids1121Row[];

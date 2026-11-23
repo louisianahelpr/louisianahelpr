@@ -3,7 +3,7 @@
  * word dupe to the left of the cart, no circle around it"; ~1:07 PM "those don't show on the main list, only when they
  * click dupe next to the cart will it show"). The data (src/content/giftGuideDupes.json) holds only plain Amazon
  * product links with our tag and a checked price, one or more per gift (owner ~1:50 PM: the UGG Evelina has three); a
- * pick with dupes draws the plain word "dupe" right before its cart (in the cart's place when it has none), with no
+ * pick with dupes draws the plain words "shop similar" (owner ~3:25 PM; it was "dupe") right before its cart (in the cart's place when it has none), with no
  * circle, border or fill; a pick without one draws nothing; a dupe is never a row or a count on the page and shows only
  * in the panel the word opens, as the guide's own rows ("list the dupes the same way the other layout is for the
  * guides"), with Escape / X closing it and focus going back to the word.
@@ -14,7 +14,7 @@
  * @mutate src/content/giftGuideDupes.ts | ("href" in d.for ? d.for.href === pick.href : pick.brand === d.for.brand && pick.name.includes(d.for.nameHas)) | ("href" in d.for ? d.for.href === pick.href : false)
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | border:0;border-radius:0;background:transparent;box-shadow:none;font:inherit;font-size:12px | border:1px solid;border-radius:999px;background:#eee;box-shadow:none;font:inherit;font-size:12px
  * @mutate src/pages/info/giftGuides/DupePanel.tsx |     anchor.current?.focus(); |     void 0;
- * @mutate src/pages/info/giftGuides/DupeLink.tsx | {`, ${DUPE.label(dupes, price)}`} | {""}
+ * @mutate src/pages/info/giftGuides/DupeLink.tsx | {`: ${DUPE.count(dupes.length)}`} | {""}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list.gg-top10 .gg-dupe{top:46px;bottom:auto;left:auto;right:46px;justify-content:center} | .gg-list.gg-top10 .gg-dupe{}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -119,12 +119,13 @@ describe("the card's plain 'dupe' word", () => {
     vi.setSystemTime(new Date("2026-11-23T18:00:00Z"));
     const a = row({ ...amazonPick, dupes });
     const word = a.querySelector<HTMLButtonElement>("[data-gift-dupe]")!;
-    // The visible word is "dupe" (the rest is screen-reader only), and it starts the accessible name (WCAG 2.5.3).
-    expect(word.firstChild?.textContent).toBe("dupe");
-    expect(word.querySelector(".sr-only")?.textContent).toBe(", Cheaper lookalike: Lookalike Thing, ~$50");
+    // The visible words are "shop similar" (owner 11-23 ~3:25 PM; the count is screen-reader only), and they start the
+    // accessible name (WCAG 2.5.3).
+    expect(word.firstChild?.textContent).toBe("shop similar");
+    expect(word.querySelector(".sr-only")?.textContent).toBe(": 1 similar item");
     expect(word.nextElementSibling?.classList.contains("gg-cart")).toBe(true);
     expect(word.hasAttribute("aria-label")).toBe(false);
-    expect(screen.getByRole("button", { name: "dupe, Cheaper lookalike: Lookalike Thing, ~$50" })).toBe(word);
+    expect(screen.getByRole("button", { name: "shop similar: 1 similar item" })).toBe(word);
     expect(word.getAttribute("aria-haspopup")).toBe("dialog");
     expect(word.classList.contains("gg-dupe-solo")).toBe(false);
     cleanup();
@@ -145,6 +146,8 @@ describe("the card's plain 'dupe' word", () => {
     expect(cs.height).toBe("44px");
     expect(cs.minWidth).toBe("44px");
     expect(cs.fontSize).toBe("12px");
+    // "shop similar" stays on one line (owner 11-23 ~3:25 PM; checked at 320 px by screenshot, 2026-11-23).
+    expect(cs.whiteSpace).toBe("nowrap");
     // No rule anywhere gives the word itself a border, radius, fill or shadow.
     const wordRules = [...GIFT_GUIDES_CSS.matchAll(/([^{}]*\.gg-dupe(?:-solo)?(?::hover|:focus-visible)?)\{([^}]*)\}/g)];
     expect(wordRules.length).toBeGreaterThan(5);
@@ -169,9 +172,9 @@ describe("the card's plain 'dupe' word", () => {
     expect(document.querySelector("[data-gift-dupe-panel]")).toBeNull();
     const word = c.querySelector<HTMLButtonElement>("[data-gift-dupe]")!;
     act(() => { word.focus(); fireEvent.click(word); });
-    const panel = await screen.findByRole("dialog", { name: "Cheaper lookalike for Original Amazon Thing" });
+    const panel = await screen.findByRole("dialog", { name: "Shop similar for Original Amazon Thing" });
     expect(word.getAttribute("aria-expanded")).toBe("true");
-    expect(panel.textContent).toContain("Cheaper lookalike");
+    expect(panel.textContent).toContain("Shop similar");
     const list = panel.querySelector("ol.gg-list[data-gift-dupe-list]")!;
     const rows = [...list.querySelectorAll(":scope > li[data-gift-pick]")];
     expect(rows).toHaveLength(1);
@@ -222,10 +225,10 @@ describe("several dupes on one gift", () => {
     const shapes = three.map(guideRowShape);
     const c = row({ ...shopmyPick, dupes: three });
     const word = c.querySelector<HTMLButtonElement>("[data-gift-dupe]")!;
-    expect(screen.getByRole("button", { name: "dupe, 3 cheaper lookalikes" })).toBe(word);
+    expect(screen.getByRole("button", { name: "shop similar: 3 similar items" })).toBe(word);
     act(() => { word.focus(); fireEvent.click(word); });
-    const panel = await screen.findByRole("dialog", { name: "Cheaper lookalikes for Original ShopMy Thing" });
-    expect(panel.textContent).toContain("Cheaper lookalikes");
+    const panel = await screen.findByRole("dialog", { name: "Shop similar for Original ShopMy Thing" });
+    expect(panel.textContent).toContain("Shop similar");
     const rows = [...panel.querySelectorAll("ol.gg-list > li[data-gift-pick]")];
     expect(rows.map((r) => r.querySelector("a.gg-item")?.getAttribute("href"))).toEqual(three.map((d) => d.href));
     expect(rows.map(shape)).toEqual(shapes);
@@ -269,64 +272,46 @@ describe("a real guide page: dupes ride their picks, never the list", () => {
 });
 
 /**
- * Dupe vs similar (owner 2026-11-23 ~2:40 PM: "some of them aren't dupes, they are just similar"). Every record says
- * which it is: "dupe" (a true lookalike) or "similar" (same use for less, a different look). A pick whose dupes are all
- * similar shows the plain word "similar" (same style, no circle) and its panel reads "Similar for less"; a pick with at
- * least one true dupe keeps "dupe" and "Cheaper lookalike(s)". Screen-reader names match the visible word.
+ * Shop similar (owner 2026-11-23 ~2:40 PM: "some of them aren't dupes, they are just similar", then ~3:25 PM "actually
+ * just do shop similar instead of dupe"). Every record still says in the data whether it is a true lookalike ("dupe") or
+ * just "similar", but the page shows no split: every card with any shows the same plain words "shop similar", the panel
+ * is titled "Shop similar", and the screen reader hears "shop similar: <n> similar items".
  *
- * @mutate src/content/giftGuideDupes.ts | export const hasTrueDupe = (dupes: readonly Kinded[]) => dupes.some((d) => d.kind !== "similar"); | export const hasTrueDupe = (dupes: readonly Kinded[]) => dupes.length > 0;
- * @mutate src/content/giftGuideDupes.ts | word: (dupes: readonly Kinded[]) => (hasTrueDupe(dupes) ? "dupe" : "similar"), | word: (dupes: readonly Kinded[]) => (hasTrueDupe(dupes) ? "dupe" : "dupe"),
- * @mutate src/content/giftGuideDupes.ts | (hasTrueDupe(dupes) ? (dupes.length === 1 ? "Cheaper lookalike" : "Cheaper lookalikes") : "Similar for less") | (dupes.length === 1 ? "Cheaper lookalike" : "Cheaper lookalikes")
- * @mutate src/content/giftGuideDupes.ts | return dupes.length === 1 ? `Similar for less: ${dupes[0].name}${at}` : `${dupes.length} similar for less`; | return dupes.length === 1 ? `Cheaper lookalike: ${dupes[0].name}${at}` : `${dupes.length} cheaper lookalikes`;
+ * @mutate src/content/giftGuideDupes.ts |   word: "shop similar", |   word: "dupe",
+ * @mutate src/content/giftGuideDupes.ts |   title: "Shop similar", |   title: "Cheaper lookalikes",
+ * @mutate src/content/giftGuideDupes.ts | count: (n: number) => `${n} similar item${n === 1 ? "" : "s"}`, | count: (n: number) => `${n} cheaper lookalikes`,
  */
-describe("dupe vs similar (owner 11-23 ~2:40 PM)", () => {
+describe("shop similar (owner 11-23 ~3:25 PM)", () => {
   const similar: GuideDupe = { ...dupe, kind: "similar" };
-  it("every dupe says dupe or similar; both kinds are used; the owner's own examples are labelled as she said", () => {
+  it("the data keeps each one's kind (dupe or similar), with both kinds used", () => {
     const kinds = DUPES.map((d) => d.kind);
     expect(kinds.filter((k) => k !== "dupe" && k !== "similar")).toEqual([]);
     expect(kinds.filter((k) => k === "dupe").length).toBeGreaterThan(20);
     expect(kinds.filter((k) => k === "similar").length).toBeGreaterThan(40);
-    const of = (original: RegExp) => RECORDS.filter((r) => original.test(r.original)).flatMap((r) => r.dupes.map((d) => d.kind));
-    expect(of(/Evelina/)).toEqual(["dupe", "dupe", "dupe"]);
-    expect(of(/^Oura Ring/)).toEqual(["dupe"]);
-    expect(of(/YETI Hopper Flip 12/)).toEqual(["similar"]);
   });
 
-  it("a pick whose dupes are all similar shows the plain word 'similar', its name starting with it", () => {
+  it("a card shows 'shop similar' whatever the kinds, and the panel is 'Shop similar' for all", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-23T18:00:00Z"));
-    const word = row({ ...amazonPick, dupes: [similar] }).querySelector<HTMLButtonElement>("[data-gift-dupe]")!;
-    expect(word.firstChild?.textContent).toBe("similar");
-    expect(word.getAttribute("data-gift-dupe")).toBe("similar");
-    expect(screen.getByRole("button", { name: "similar, Similar for less: Lookalike Thing, ~$50" })).toBe(word);
-    expect(word.classList.contains("gg-dupe")).toBe(true);
-    cleanup();
-    const two = row({ ...shopmyPick, dupes: [similar, { ...similar, name: "Other", href: "https://www.amazon.com/dp/B000000009?tag=louisianahelpr-20" }] }).querySelector("[data-gift-dupe]")!;
-    expect(two.textContent).toBe("similar, 2 similar for less");
+    for (const list of [[similar], [dupe], [similar, { ...dupe, name: "True Twin", href: "https://www.amazon.com/dp/B000000008?tag=louisianahelpr-20" }]]) {
+      const c = row({ ...amazonPick, dupes: list });
+      const word = c.querySelector<HTMLButtonElement>("[data-gift-dupe]")!;
+      expect(word.firstChild?.textContent).toBe("shop similar");
+      expect(screen.getByRole("button", { name: `shop similar: ${list.length} similar item${list.length === 1 ? "" : "s"}` })).toBe(word);
+      act(() => { fireEvent.click(word); });
+      const panel = await screen.findByRole("dialog", { name: "Shop similar for Original Amazon Thing" });
+      expect(panel.querySelector(".gg-dupe-note")?.textContent).toBe("Shop similar");
+      expect(panel.textContent).not.toMatch(/Cheaper lookalike|Similar for less/);
+      cleanup();
+    }
   });
 
-  it("its panel says 'Similar for less'; one true dupe among them keeps 'dupe' and 'Cheaper lookalikes'", async () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-23T18:00:00Z"));
-    let c = row({ ...amazonPick, dupes: [similar] });
-    act(() => { fireEvent.click(c.querySelector("[data-gift-dupe]")!); });
-    const panel = await screen.findByRole("dialog", { name: "Similar for less for Original Amazon Thing" });
-    expect(panel.textContent).toContain("Similar for less");
-    expect(panel.textContent).not.toContain("Cheaper lookalike");
-    cleanup();
-    c = row({ ...amazonPick, dupes: [similar, { ...dupe, name: "True Twin", href: "https://www.amazon.com/dp/B000000008?tag=louisianahelpr-20" }] });
-    const word = c.querySelector("[data-gift-dupe]")!;
-    expect(word.firstChild?.textContent).toBe("dupe");
-    act(() => { fireEvent.click(word); });
-    await screen.findByRole("dialog", { name: "Cheaper lookalikes for Original Amazon Thing" });
-  });
-
-  it("on the real pages the YETI Hopper's card (For Him) says 'similar' and the Evelina's (For Her) says 'dupe'", async () => {
+  it("on the real pages the YETI Hopper (For Him, a similar) and the Evelina (For Her, dupes) both say 'shop similar'", async () => {
     await loadAllGuidePicks();
     const hopper = guideBySlug("him")!.picks.find((p) => /YETI Hopper Flip 12/.test(p.name))!;
     const evelina = guideBySlug("her")!.picks.find((p) => /Evelina/.test(p.name))!;
-    expect(row(hopper).querySelector("[data-gift-dupe]")?.firstChild?.textContent).toBe("similar");
+    expect(row(hopper).querySelector("[data-gift-dupe]")?.firstChild?.textContent).toBe("shop similar");
     cleanup();
-    expect(row(evelina).querySelector("[data-gift-dupe]")?.firstChild?.textContent).toBe("dupe");
+    expect(row(evelina).querySelector("[data-gift-dupe]")?.firstChild?.textContent).toBe("shop similar");
   });
 });

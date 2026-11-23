@@ -10,13 +10,13 @@
  * @mutate src/lib/pickPriceShown.mjs |   { id: "stocking-stuffers", max: 10 }, |   { id: "stocking-stuffers", max: 0 },
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const grouped = [...stocking, ...order.filter((id) => id !== STOCKING_SECTION_ID) |   const grouped = [...order.filter((id) => id !== STOCKING_SECTION_ID)
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const stocking = sortByPrice(priced.filter((p) => priceSectionOf(p) === STOCKING_SECTION_ID), "low"); | const stocking = sortByPrice(priced.filter((p) => priceSectionOf(p) === STOCKING_SECTION_ID), "high");
- * @mutate scripts/giftGuideHer1121.mjs | ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_WALMART_1123]; | ...HER_POPULAR_1122, ...HER_LINKS_1123, ...HER_WALMART_1123];
+ * @mutate scripts/giftGuideHer1121.mjs | ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123]; | ...HER_POPULAR_1122, ...HER_LINKS_1123];
  * @mutate scripts/giftGuideOwnerKeeps1123.mjs | 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms, 7 in., Tequila Sunrise" | 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms"
  * @mutate src/lib/guideQa.mjs |   const stocking = band("stocking-stuffers"); |   const stocking = band("under-25");
  * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123]) { | ...HIM_KEEPS_1123, ...HIM_WALMART_1123]) {
  * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123]) { | ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123]) {
  * @mutate scripts/giftGuideOwnerKeeps1123.mjs | ["https://walmrt.us/4j41V4c", 20, | ["https://walmrt.us/4j41V4c", 25,
- * @mutate scripts/giftGuideHimKids1121.mjs | ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_WALMART_1123]) { | ...KIDS_KEEPS_1123, ...KIDS_WALMART_1123]) {
+ * @mutate scripts/giftGuideHimKids1121.mjs | ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123]) { | ...KIDS_KEEPS_1123]) {
  * @mutate scripts/giftGuideCutouts1120.mjs | for (const [from, file] of LINKS_CUTOUTS_1123) CUTOUTS_1120.set(from, file); | void LINKS_CUTOUTS_1123;
  * @mutate scripts/giftGuideOwnerKeeps1123.mjs | ["B09X55PDB7", 23, "51q7YVnVwnL" | ["B09X55PDB7", 25, "51q7YVnVwnL"
  */
@@ -37,10 +37,6 @@ import { pickAnchor } from "@/content/giftGuidePickAnchor";
 import { her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
 import { him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { existsSync } from "node:fs";
-import { HER_WALMART_1123_ROWS, HIM_WALMART_1123_ROWS, KIDS_WALMART_1123_ROWS } from "../../scripts/giftGuideOwnerKeeps1123.mjs";
-import { OWNER_PICKED_LINKS, blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
-import { tagKey } from "@/content/giftGuideKidsFilter";
-import kidsTags from "@/content/giftGuideKidsTags.json";
 import her from "@/content/giftGuidePicks/her.json";
 import him from "@/content/giftGuidePicks/him.json";
 import kids from "@/content/giftGuidePicks/kids.json";
@@ -268,54 +264,5 @@ describe("the owner's held-link keeps are on Her, Him and Kids", () => {
   it("the Ulta stocking stuffers land in Stocking stuffers under $10", () => {
     for (const [guide, , price] of LINKED) if (guide === "her") expect(priceSectionId(price)).toBe("stocking-stuffers");
     expect(priceSectionId(9.95)).toBe("under-25"); // the OOLY crayons read "~$10"
-  });
-});
-
-/**
- * Her Walmart "Claude" collection (lead 11-23 ~2:50 PM; Desktop Walmart-claude-list-1123.json): the gifts she put in her own
- * hidden Walmart Creator collection are OWNER PICKS on the guides she named, each once, on her walmrt.us link, at the price
- * read on its walmart.com page 11-23, with a cutout of Walmart's photo; the Kids ones carry their filter tags. The
- * unavailable ones (Monster Jam pajamas, the Fuggler, the BHG coasters) are on no guide. The store-brand rule lets only
- * her Better Homes & Gardens holder through, by its exact link.
- *
- * @mutate scripts/giftGuideHer1121.mjs | ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_WALMART_1123]; | ...HER_KEEPS_1123, ...HER_LINKS_1123];
- * @mutate scripts/giftGuideHimKids1121.mjs | ...KIDS_LINKS_1123, ...KIDS_WALMART_1123]) { | ...KIDS_LINKS_1123]) {
- * @mutate scripts/giftGuideBlocklist.mjs |   if (p.href && OWNER_PICKED_LINKS.includes(String(p.href))) return false; |   void 0;
- * @mutate scripts/giftGuideOwnerKeeps1123.mjs | ["https://walmrt.us/4jl0CiB",150, | ["https://walmrt.us/4jl0CiB",159,
- */
-describe("the owner's Walmart \"Claude\" picks are on Her, Him and Kids", () => {
-  const PAGES = { her: her.picks, him: him.picks, kids: kids.picks } as Record<string, { name: string; href: string; price?: number; priceAt?: string; image?: string; store?: string; ownerPick?: boolean }[]>;
-  const ROWS = { her: HER_WALMART_1123_ROWS, him: HIM_WALMART_1123_ROWS.filter((r) => r[0] !== "https://walmrt.us/4j41V4c"), kids: KIDS_WALMART_1123_ROWS };
-  it("each is on its guide once with her link, the checked price, store Walmart and a cutout photo", () => {
-    expect(Object.values(ROWS).flat().length).toBe(26); // 13 Her + 5 Him + 8 Kids (the SLUSHi on Her and Him), 2026-11-23
-    for (const [g, rows] of Object.entries(ROWS)) {
-      for (const [href, price, , name] of rows) {
-        const on = PAGES[g].filter((p) => p.href === href);
-        expect(on.length, `${g}: ${name}`).toBe(1);
-        expect(on[0], `${g}: ${name}`).toMatchObject({ name, price, priceAt: "2026-11-23", store: "store-walmart", ownerPick: true });
-        expect(on[0].image, name).toMatch(/^https:\/\/www\.louisianahelpr\.com\/gift-guides\/cutouts\/[a-z0-9-]+\.webp$/);
-        expect(existsSync(`public${new URL(on[0].image!).pathname}`), name).toBe(true);
-      }
-    }
-    expect(PAGES.her.filter((p) => /walmrt\.us/.test(p.href)).length).toBe(13);
-    expect(PAGES.kids.filter((p) => /walmrt\.us/.test(p.href)).length).toBe(8);
-  });
-  it("the unavailable ones are on no guide", () => {
-    const text = GUIDES.flatMap((g) => PAGES[g].map((p) => p.name)).join("\n");
-    expect(text).not.toMatch(/Monster Jam|Fuggler|Marble Coasters/i);
-  });
-  it("the Kids picks carry their filter tags (age from the walmart.com listing, gender)", () => {
-    const tags = (kidsTags as unknown as { tags: Record<string, { gender: string; ageMin?: number; ageSource?: string }> }).tags;
-    for (const [href, , , name] of KIDS_WALMART_1123_ROWS) {
-      const t = tags[tagKey(href)];
-      expect(t, name).toBeDefined();
-      expect(t.gender, name).toBe("everyone");
-      expect(t.ageSource ?? "", name).toMatch(/^walmart\.com\/ip\/\d+ specifications, read 2026-11-23: Age range /);
-    }
-  });
-  it("the store-brand rule lets only her Better Homes & Gardens holder through, by its exact link", () => {
-    expect(OWNER_PICKED_LINKS).toEqual(["https://walmrt.us/48Ibtx1"]);
-    expect(blockedBrand({ brand: "Better Homes & Gardens", name: "Better Homes & Gardens Wood and Marble Paper Towel Holder", href: "https://walmrt.us/48Ibtx1" })).toBe(false);
-    expect(blockedBrand({ brand: "Better Homes & Gardens", name: "Better Homes & Gardens Marble Coasters", href: "https://walmrt.us/other" })).toBe(true);
   });
 });

@@ -46,7 +46,7 @@ export const sponsorRowOrder = (a, b) =>
   (SPONSOR_ORDER.value[b.name] ?? 0) - (SPONSOR_ORDER.value[a.name] ?? 0) ||
   a.name.localeCompare(b.name, "en", { sensitivity: "base" });
 /** Logos drawn white on clear (INDEX.md: "use on a dark background"): their circle is dark. */
-const DARK_LOGOS = new Set(["Everyday Dose", "3 Redneck Tenors"]);
+const DARK_LOGOS = new Set(["Everyday Dose", "3 Redneck Tenors", "Chattanooga Beard Co."]);
 /**
  * Logos read from the sponsor's own site instead of the saved file (the saved SVGs draw cropped or tiny through Quick
  * Look): their site's own logo or share image (logos-from-socials rule).

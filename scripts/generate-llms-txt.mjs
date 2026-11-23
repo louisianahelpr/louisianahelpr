@@ -59,7 +59,7 @@ export function buildLlmsTxt(xml) {
     "",
     `> Louisiana Helpr is a website and app for Louisiana: people hire local help for everyday jobs, find work, and buy and sell used things (Declutter). For the 2026 holidays it also publishes gift guides (for her, for him, for kids), Black Friday, Small Business Saturday and Cyber Monday deal pages, a Holiday Hub of Christmas lights and events across Louisiana, and 25 Days of Louisiana Giveaways (December 1 to 25, 2026).`,
     "",
-    "Every gift guide pick links to the store that sells it and shows a recently checked price, rounded to the dollar. The gifts are picked by Louisiana Helpr's founder, a Louisiana nurse. Each guide page ends with common questions answered from its own list and the day it was last updated.",
+    "Every gift guide pick links to the store that sells it and shows a recently checked price, rounded to the dollar. The Louisiana Helpr team picks every gift. Each guide page ends with common questions answered from its own list and the day it was last updated.",
     "",
     "## Holiday gift guides",
     "",

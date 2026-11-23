@@ -6,7 +6,7 @@
  *
  * 1. Every Q&A page (Her, Him, Kids, 25 Days sponsors, Black Friday, Small Business Saturday, Cyber Monday, Holiday
  *    Hub), as api/share.ts serves it to a crawler, ends its body with a "Common questions" section of 3 to 5 questions,
- *    an "Updated <day>" from src/content/guideUpdated.mjs and the byline (Louisiana Helpr's founder, a Louisiana nurse),
+ *    an "Updated <day>" from src/content/guideUpdated.mjs and the "we" byline (owner 11-22 10:22 PM: never Lexi, founder or nurse),
  *    and carries FAQPage JSON-LD with exactly the same questions and answers.
  * 2. The answers come from the page's own rows: every "Name (~$N)" in a catalog guide's answer is a pick in that guide
  *    whose card shows ~$N today (rounded to the dollar); the under-$25 / under-$50 answers name only picks in band.
@@ -21,7 +21,7 @@
  * @mutate src/lib/guideQa.mjs |   if (!section) return body; |   return body;
  * @mutate src/lib/guideQa.mjs |   return p.priceFrom ? `from $${d}` : `~$${d}`; |   return p.priceFrom ? `from $${p.price}` : `~$${p.price}`;
  * @mutate src/lib/guideQa.mjs |   const to50 = band(25, 50); |   const to50 = band(0, 50);
- * @mutate src/lib/guideQa.mjs |   other: "Put together by Louisiana Helpr's founder, a Louisiana nurse.", |   other: "Put together by Louisiana Helpr.",
+ * @mutate src/lib/guideQa.mjs |   other: "We put this list together.", |   other: "Put together by our founder, a Louisiana nurse.",
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | QA_CATALOG_GUIDES.includes(guide.slug) && ( | false && (
  * @mutate scripts/generate-llms-txt.mjs |     ...guides.map(line), |     ...guides.slice(1).map(line),
  * @mutate scripts/guide-updated.mjs |     "cyber-monday": day("cyber-monday"), |     "cyber-monday": day("black-friday"),
@@ -103,7 +103,8 @@ describe("guide Q&A in the HTML a crawler reads", () => {
       expect(qa.length).toBeLessThanOrEqual(5);
       const text = decode(sec);
       expect(text).toContain(`Updated ${shortDate(GUIDE_UPDATED[slug].day)}`);
-      expect(text).toMatch(/Louisiana Helpr's founder, a Louisiana nurse\./);
+      expect(text).toMatch(/We picked every gift on this list\.|We put this list together\./);
+      expect(text).not.toMatch(/\bLexi\b|founder|nurse/i);
       // Owner wording rules.
       expect(text).not.toMatch(/\bmom\b|y'all|\bcher\b|affiliate|commission|\bAI\b|assistant|recommend/i);
       const ld = faq(doc);
@@ -172,7 +173,7 @@ describe("public/llms.txt", () => {
     expect(lines.find((l) => l.startsWith("> "))).toBeTruthy();
     expect(lines.filter((l) => l.startsWith("## ")).length).toBeGreaterThan(3);
     for (const l of lines.filter((x) => x.startsWith("- "))) expect(l).toMatch(/^- \[[^\]]+\]\(https:\/\/www\.louisianahelpr\.com\/[^)]*\): \S/);
-    expect(llms).not.toMatch(/\bAI\b|assistant|recommend|best in|y'all|\bcher\b|\bmom\b/i);
+    expect(llms).not.toMatch(/\bAI\b|assistant|recommend|best in|y'all|\bcher\b|\bmom\b|\bLexi\b|founder|nurse/i);
   });
 
   it("is two-way with the sitemap's gift guide, Holiday Hub and 25 Days URLs", () => {
@@ -204,7 +205,7 @@ describe("the page draws the same Q&A, open (no accordion)", () => {
       expect(shown).toEqual(catalogGuideQa("him", data.guides.him.qa ?? [], "2026-11-22"));
       expect(shown.length).toBeGreaterThanOrEqual(3);
       expect(sec.querySelector("details, [aria-expanded='false'], [hidden]")).toBeNull();
-      expect(sec.querySelector("[data-guide-qa-byline]")!.textContent).toBe(`Updated ${shortDate(GUIDE_UPDATED.him.day)} · Gifts picked by Louisiana Helpr's founder, a Louisiana nurse.`);
+      expect(sec.querySelector("[data-guide-qa-byline]")!.textContent).toBe(`Updated ${shortDate(GUIDE_UPDATED.him.day)} · We picked every gift on this list.`);
     } finally {
       vi.useRealTimers();
       cleanup();

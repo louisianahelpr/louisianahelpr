@@ -98,7 +98,8 @@ describe("no real phone number in the public repo (NL-01)", () => {
     expect(existsSync(resolve(ROOT, "fastlane/metadata/review_information/phone_number.txt")) && trackedRepoFiles().includes("fastlane/metadata/review_information/phone_number.txt")).toBe(false);
     expect(readFileSync(resolve(ROOT, ".gitignore"), "utf8")).toMatch(/^fastlane\/metadata\/review_information\/phone_number\.txt$/m);
     const fastfile = readFileSync(resolve(ROOT, "fastlane/Fastfile"), "utf8");
-    expect(fastfile).toMatch(/UI\.user_error!\("APP_REVIEW_PHONE is not set[^\n]*if phone\.empty\?/);
+    // The secret is read and an empty one stops the lane before anything else runs.
+    expect(fastfile).toMatch(/def stage_review_phone!\(staged_metadata_dir\)\n {2}phone = ENV\["APP_REVIEW_PHONE"\]\.to_s\.strip\n {2}UI\.user_error!\("APP_REVIEW_PHONE is not set[^\n]*\) if phone\.empty\?\n/);
     // Both deliver lanes (metadata + release) stage it.
     expect(fastfile.match(/^\s+stage_review_phone!\(staged_metadata_dir\)$/gm)?.length).toBe(2);
     for (const wf of [".github/workflows/deploy.yml", ".github/workflows/ios-metadata.yml"]) {

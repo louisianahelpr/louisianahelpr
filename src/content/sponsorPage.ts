@@ -313,7 +313,7 @@ export const sponsorPage = {
       // sponsor's own website footer (Wildcat, Chattanooga, Sweet Bee); Pixie Dust has only its Instagram (tracker h.ig).
       "Ethan's Closet Children's Boutique & Little Feet": "https://www.facebook.com/EthansClosetCCB1",
       "The Charmed Page Bookstore": "https://www.facebook.com/charmedpagebooks",
-      "Wildcat Brothers Distillery": "https://www.facebook.com/WildcatBrothers",
+      "Wildcat Brothers Distilling": "https://www.facebook.com/WildcatBrothers",
       "Chattanooga Beard Co.": "https://www.facebook.com/chattanoogabeardco",
       "Sweet Bee Organics": "https://www.facebook.com/sweetbeeorganics",
       "Pixie Dust Biodegradable Glitter (New Orleans)": "https://www.instagram.com/biodegradable_glitter/",
@@ -485,7 +485,7 @@ export const sponsorPage = {
           { brand: "The Sculpt Society", prize: "Workout membership for a mama" },
           { brand: "Everyday Dose", prize: "Coffee+ 15-serving + Medium Roast Coffee+ + Matcha+ + ~12 Matcha+ samples" },
           { brand: "Rock Bottom Golf", prize: "$50 Rock Bottom Golf gift card" },
-          { brand: "Wildcat Brothers Distillery", prize: "1 bottle Zydeco Bold rum + 1 bottle Noire rum (winner 21+, pickup with ID)" },
+          { brand: "Wildcat Brothers Distilling", prize: "1 bottle Zydeco Bold rum + 1 bottle Noire rum (winner 21+, pickup with ID)" },
         ],
       },
       {

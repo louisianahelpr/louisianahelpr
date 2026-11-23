@@ -29,7 +29,7 @@ export const SPONSOR_GIFT_TYPES: Readonly<Record<string, SponsorGiftType>> = {
   "Candle Bloom Confections": "Product",
   "Ethan's Closet Children's Boutique & Little Feet": "Gift card",
   "The Charmed Page Bookstore": "Gift card",
-  "Wildcat Brothers Distillery": "Gift set",
+  "Wildcat Brothers Distilling": "Gift set",
   "Pixie Dust Biodegradable Glitter": "Experience",
   "Chattanooga Beard Co.": "Gift set",
   "Sweet Bee Organics": "Product",

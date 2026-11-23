@@ -1,6 +1,6 @@
 /**
  * Owner, 2026-10-08 ("should we do an affiliate amazon link so i would get
- * money back"; Associates ID louisianahelp-20): every Amazon "Shop" link in
+ * money back"; Associates ID louisianahelp-20, the store ID; owner 2026-11-17: site links use the tracking ID louisianahelpr-20): every Amazon "Shop" link in
  * You might need carries Helpr's tag, and the panel shows the Associates
  * Program's required disclosure.
  *
@@ -13,11 +13,11 @@ import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { AMAZON_ASSOCIATE_DISCLOSURE, amazonAffiliateUrl, categoryMaterials } from "@/lib/materialsGuide";
 
 describe("Amazon links carry the Associates tag", () => {
-  it("amazonAffiliateUrl sets tag=louisianahelp-20 and keeps the search", () => {
+  it("amazonAffiliateUrl sets tag=louisianahelpr-20 and keeps the search", () => {
     const u = new URL(amazonAffiliateUrl("https://www.amazon.com/s?k=moving+boxes"));
-    expect(u.searchParams.get("tag")).toBe("louisianahelp-20");
+    expect(u.searchParams.get("tag")).toBe("louisianahelpr-20");
     expect(u.searchParams.get("k")).toBe("moving boxes");
-    expect(new URL(amazonAffiliateUrl("https://www.amazon.com/s?k=x&tag=other-20")).searchParams.get("tag")).toBe("louisianahelp-20");
+    expect(new URL(amazonAffiliateUrl("https://www.amazon.com/s?k=x&tag=other-20")).searchParams.get("tag")).toBe("louisianahelpr-20");
     expect(amazonAffiliateUrl("https://example.com/x")).toBe("https://example.com/x");
   });
 
@@ -30,7 +30,7 @@ describe("Amazon links carry the Associates tag", () => {
       if (toggle && !screen.queryAllByRole("link", { name: /shop/i }).length) fireEvent.click(toggle);
       const links = screen.getAllByRole("link", { name: /shop/i });
       expect(links.length).toBe(categoryMaterials[category].length);
-      for (const a of links) expect(new URL(a.getAttribute("href")!).searchParams.get("tag"), category).toBe("louisianahelp-20");
+      for (const a of links) expect(new URL(a.getAttribute("href")!).searchParams.get("tag"), category).toBe("louisianahelpr-20");
       expect(screen.getByText(AMAZON_ASSOCIATE_DISCLOSURE)).toBeTruthy();
       unmount();
     }

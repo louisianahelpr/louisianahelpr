@@ -60,7 +60,7 @@ const FINAL: Record<number, string[]> = {
   11: ["RYSE", "aosu", "Beaver's Abundance", "Celebration Station (Baton Rouge)", "Ripley's Crawfish", "Suzi Marques Photography", "Wanderlust by Abby"],
   12: ["Criquet Shirts", "RYSE", "Oyu Botanica", "Tree Frogs Adventure Park", "Tays Sweet Shop", "IDRA Wellness", "Suzi Marques Photography", "Wicks NOLA Candle Company"],
   13: ["SRI Labs", "RYSE", "The Crab Man Plus", "Faulk's Game Call Co.", "Cajun Belle Studio", "Hello Darlin'"],
-  14: ["Crew Dog", "Aeva Beauty", "Deming Delights", "The Sculpt Society", "Everyday Dose", "Rock Bottom Golf", "Wildcat Brothers Distillery"],
+  14: ["Crew Dog", "Aeva Beauty", "Deming Delights", "The Sculpt Society", "Everyday Dose", "Rock Bottom Golf", "Wildcat Brothers Distilling"],
   15: ["RYSE", "Zydeco Chop Chop", "Sky & Sol", "Cat Lady / CatLadyBox", "Whimsies from Within", "Britt Creates"],
   16: ["RYSE", "GoodWolf Power Yoga", "Handmade By Hayli", "Tays Sweet Shop", "3 Redneck Tenors", "Forgiven Hearts", "The Charmed Page Bookstore"],
   17: ["Dolly's Boutique", "LMNT", "Bayou Grace Outfitters", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Accesorios Para Niñas", "Jessica Lanham Photography"],

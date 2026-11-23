@@ -215,6 +215,8 @@
     }
   ],
   "undated": {
+    "BACKUP_PRIVATE_REPO_TOKEN": "fine-grained GitHub token (Contents read/write on louisianahelpr/helpr-workspace only) that db-backup.yml / db-restore-drill.yml use to keep DB backups in the private repo (OPS-6, Q2840); owner creates it; its expiry is set when created and is not readable by CI until then",
+    "SIGNUP_LEAD_REQUIRE_CAPTCHA": "config switch (exactly \"true\", case-insensitive, makes record-signup-lead require a Turnstile token; set with VITE_TURNSTILE_ENABLED at the Turnstile switch-on, DQ-1), not a credential; no expiry date",
     "STRIPE_IDENTITY_RESULTS_KEY": "Stripe restricted key that reads ID check results (date of birth for the ID ban check, B49, stripe-idv-webhook); Stripe keys carry no expiry date unless one is set when rolled, rotated by hand in the Stripe dashboard",
     "SHOP_GIFT_CARDS": "config switch (exactly \"on\" lets Shops checkout take a gift card; never set on prod), not a credential; no expiry date",
     "OWNER_ALERT_PHONE": "config (the owner's phone number for support texts), not a credential; no expiry date",

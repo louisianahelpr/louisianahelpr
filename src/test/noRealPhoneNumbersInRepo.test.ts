@@ -23,7 +23,7 @@
 // @mutate .gitignore | \nfastlane/metadata/review_information/phone_number.txt\n | \n
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
-import { readFileSync, statSync, existsSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 const ROOT = resolve(__dirname, "../..");
@@ -82,9 +82,14 @@ describe("no real phone number in the public repo (NL-01)", () => {
     let read = 0;
     for (const f of files) {
       const p = resolve(ROOT, f);
-      if (!existsSync(p) || statSync(p).size > 4_000_000) continue;
-      const buf = readFileSync(p);
-      if (buf.includes(0)) continue;
+      // One read, no exists/stat check first (CodeQL js/file-system-race): a tracked path that is gone or not a file is skipped.
+      let buf: Buffer;
+      try {
+        buf = readFileSync(p);
+      } catch {
+        continue;
+      }
+      if (buf.length > 4_000_000 || buf.includes(0)) continue;
       read += 1;
       const hits = phoneHits(buf.toString("utf8")).filter((h) => !(f === SELF && h === SELF_TEST));
       // Never print the number, not even a tail: the file and a count only.

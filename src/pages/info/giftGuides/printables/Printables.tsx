@@ -215,7 +215,11 @@ const PAGE_CSS = `
 .pr-book{align-items:center}
 .pr-book .pr-book-img{width:120px;max-width:40%}
 .pr-card-body{min-width:0;flex:1}
-.pr-card-wide{flex-direction:column;max-width:640px;grid-column:1/-1}.pr-card-wide .pr-card-img{width:100%;max-width:100%}
+.pr-card-wide{flex-direction:column;grid-column:1/-1}.pr-card-wide .pr-card-img{width:100%;max-width:100%}
+/* Owner 2026-11-22 ("put the words and button on the right side or something so it takes up less space make it wider like
+   the others"): from 1024px a banner card spans the row as a row, the banner on the left at half the card (its own 2:1
+   shape) and the title, the line and the links on its right, centred beside it. A phone and a tablet keep it stacked. */
+@media (min-width:1024px){.pr-card-wide{flex-direction:row;align-items:center;gap:20px;padding:14px}.pr-card-wide .pr-card-img{width:50%;align-self:center}}
 .pr-card-body .pr-card-title{font-size:16px;font-weight:700;margin:0 0 4px;color:var(--gg-ink)}
 .pr-card-body p{font-size:13px;color:var(--gg-muted);margin:0 0 8px}
 /* Owner 11-22 #15: the links share one row; each link stays on one line, and one that does not fit drops whole to the

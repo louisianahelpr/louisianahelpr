@@ -282,7 +282,7 @@ describe("the maker and the page", () => {
  * @mutate src/content/printables.ts | title: "Boys coloring book", preview: "/printables/coloring-book/preview-boys.webp" | title: "Boys coloring book", preview: "/printables/coloring-book/preview-girls.webp"
  * @mutate src/content/printables.ts | christmas-coloring-book-boys.pdf", title: "Boys coloring book" | christmas-coloring-book-boys.pdf", title: "Boys book (free)"
  * @mutate src/content/printables.ts | { label: "Wide banner", href: "/printables/thanksgiving-banner/ | { label: "Original 2:1 (free)", href: "/printables/thanksgiving-banner/
- * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-wide{flex-direction:column;max-width:640px; | .pr-card-wide{flex-direction:column;max-width:420px;
+ * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-wide{flex-direction:column;grid-column:1/-1} | .pr-card-wide{flex-direction:column;max-width:420px;grid-column:1/-1}
  */
 // Page counts measured 2026-11-21 from the PDFs' own page trees (the test below re-reads them).
 describe("printables audit 1121 area 5: previews, covers, page counts", () => {
@@ -310,11 +310,13 @@ describe("printables audit 1121 area 5: previews, covers, page counts", () => {
     }
   });
 
-  it("the banner buttons use plain words and the wide card has room (guides polish 1122 #31)", () => {
+  it("the banner buttons use plain words and the wide card has room (guides polish 1122 #31; owner 11-22: full row)", () => {
     render(<MemoryRouter initialEntries={["/gift-guides/printables/banners"]}><Printables /></MemoryRouter>);
     const card = document.querySelector('[data-printable-card="thanksgiving-banner"]')!;
     expect([...card.querySelectorAll("[data-printable-download]")].map((b) => b.textContent)).toEqual(["12x18 print\u00a0›", "Wide banner\u00a0›"]);
     const css = [...document.querySelectorAll("style")].map((s) => s.textContent ?? "").join("\n");
-    expect(Number(/\.pr-card-wide\{[^}]*max-width:(\d+)px/.exec(css)?.[1])).toBeGreaterThanOrEqual(640);
+    // Owner 11-22 ("make it wider like the others"): the card spans the row, no width cap (it was 640px).
+    expect(css).toMatch(/\.pr-card-wide\{flex-direction:column;grid-column:1\/-1\}/);
+    expect(css).not.toMatch(/\.pr-card-wide\{[^}]*max-width/);
   });
 });

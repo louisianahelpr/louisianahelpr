@@ -4,12 +4,12 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
-import { useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
+import { useEffect, useState, useSyncExternalStore, type ComponentType, type ReactNode } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
-import { GuidesTop, type GuidesBanner } from "./giftGuides/GuidesTop";
+import { GuidesTop, guidesShipPill, type GuidesBanner } from "./giftGuides/GuidesTop";
 import { GiftGuideLanding, finderAsked } from "./giftGuides/GiftGuideLanding";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
@@ -261,6 +261,19 @@ export default function GiftGuides() {
     : null;
   // A phone's guide page: the count, the pill and the icons on one row right under the banner.
   const countRow = (phone && Boolean(guide) && !deals) || sponsorsPage;
+  // Owner 2026-11-22 ("104 gifts needs to move to the right like the other pages are set up"): on a desktop the sponsors'
+  // row heads the content column, right of the menu, where Her, Him and Kids show their count, not across the page
+  // above the menu. A phone (no menu beside it) keeps it right under the banner.
+  const countInMain = countRow && !phone;
+  const countRowOf = (shipPill: ReactNode) => guide && (
+    <div className="gg-countrow" data-gift-countrow="">
+      <div className="gg-countrow-left">
+        {picksReady(guide.slug) && guide.picks.length > 0 && <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>}
+        {shipPill}
+      </div>
+      {tools}
+    </div>
+  );
   // The landing's arrow goes home; every other page's (Find a gift too, owner 11-22 #13) to the landing.
   const backTo = guide || deals || myList || shared || sidePage === "finder" ? "/gift-guides" : "/";
 
@@ -295,15 +308,7 @@ export default function GiftGuides() {
         {/* Owner 11-22 (phone): the head row's heart and three-line menu replace the chip row on every page; a guide's
             own count row under its banner is kept as it is ("she didn't ask to change it"). */}
         <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} pillInRow={!countRow}
-          below={(shipPill) => countRow && guide && (
-            <div className="gg-countrow" data-gift-countrow="">
-              <div className="gg-countrow-left">
-                {picksReady(guide.slug) && guide.picks.length > 0 && <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>}
-                {shipPill}
-              </div>
-              {tools}
-            </div>
-          )} />
+          below={(shipPill) => countRow && !countInMain && countRowOf(shipPill)} />
         {/* Owner 11-21 ("put like a line or something above all guides and under search bar all the way across to be a
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}
         {landing && <hr className="gg-divider" data-gift-divider="" />}
@@ -312,6 +317,7 @@ export default function GiftGuides() {
             disclosures at the very bottom. From 768px the CSS grid puts the menu on the left (GIFT_GUIDES_CSS). */}
         <div className="gg-layout">
           <div className="gg-main">
+            {countInMain && countRowOf(guidesShipPill())}
             {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
           </div>
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}

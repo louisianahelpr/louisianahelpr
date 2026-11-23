@@ -560,7 +560,9 @@ const MAKER_CSS = `${fontFaces}
 .pr-row>input{flex:1;min-width:0}
 .pr-row-n{flex:none;width:18px;font-size:12px;font-weight:700;color:var(--gg-muted);text-align:right}
 .pr-x{flex:none;color:var(--gg-muted);font-size:22px}
-.pr-previews{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:start}
+/* Owner 2026-11-22: the maker's card spans the content column; the preview pair stops at 880px so the page preview does
+   not grow taller than a screen on a wide desktop. */
+.pr-previews{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;align-items:start;max-width:880px}
 .pr-previews.is-one{grid-template-columns:minmax(0,1fr);max-width:360px}
 .pr-previews.is-one .pr-one-wrap{display:none}
 @media (max-width:419px){.pr-previews{grid-template-columns:minmax(0,1fr)}.pr-one{max-width:260px;margin:0 auto}}

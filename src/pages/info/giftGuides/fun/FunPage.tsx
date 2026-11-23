@@ -75,9 +75,12 @@ export function GuidesFrame({ title, path, banner, tools = "all", disclosures = 
 
 /** Scoped under .gg like the guides' own CSS, shipped in the fun pages' lazy chunks only. */
 const FUN_CSS = `
-.gg-fun{max-width:640px;margin:0;padding:4px 0 24px}
+/* Owner 2026-11-22 ("the box with the guides should fill the space to the edge of the red part above"; "needs to be wider
+   like the rest"): the fun pages and the printables fill the content column to the banner's right edge, as the guides
+   do; no 640px column. Long lines inside keep their own measure (.gg-fun-lead below). */
+.gg-fun{margin:0;padding:4px 0 24px}
 .gg-fun h2{font-size:20px;font-weight:700;margin:4px 0 6px;color:var(--gg-ink)}
-.gg-fun-lead{color:var(--gg-muted);font-size:14px;line-height:1.5;margin:0 0 16px}
+.gg-fun-lead{color:var(--gg-muted);font-size:14px;line-height:1.5;margin:0 0 16px;max-width:72ch}
 .gg-fun-card{border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card));padding:16px;margin:0 0 14px}
 .gg-fun-row{display:flex;gap:8px;align-items:center}
 .gg-fun-row>input,.gg-fun-row>select{flex:1;min-width:0}
@@ -117,7 +120,6 @@ const FUN_CSS = `
    768px (the Top 10 itself scrolls sideways on a phone and runs 5 across). */
 .gg .gg-top10.gg-swipe-saved{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;gap:20px 12px;margin:12px 0 4px;padding:0}
 @media (min-width:768px){.gg .gg-top10.gg-swipe-saved{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 16px}}
-.gg-fun:has([data-swipe-saved-grid]){max-width:none}
 .gg-swipe-done-acts{align-items:center;column-gap:16px}
 .gg-plan-person{border:1px solid var(--gg-line);border-radius:16px;padding:12px;margin:0 0 12px;background:hsl(var(--card))}
 .gg-plan-head{display:flex;gap:8px;align-items:center}
@@ -165,8 +167,6 @@ const FUN_CSS = `
 .gg-santa-link:first-child{border-top:0}
 .gg-santa-link b{font-size:15px;overflow-wrap:anywhere}
 .gg-santa-who{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:8px;min-width:0}
-/* Polish audit 1122 #11: the deck centered in the content column (it sat in the 640px column's middle, off the page's). */
-.gg-fun:has([data-swipe-deck]){max-width:none}
 @media (max-width:479px){.gg-swipe-card{padding:12px}.gg-swipe-card .gg-photo,.gg-swipe-card .gg-letter,.gg-swipe-card .gg-thumb{width:150px;height:150px}.gg-swipe-name{margin-top:8px}.gg-swipe-btns{margin-top:12px}.gg-plan-budget{width:92px}.gg-plan-price{width:78px}}
 /* Planner polish (owner 2026-11-22): one calm card per person, spacing on 8/12/16/24. */
 .gg-plan-people{gap:16px}

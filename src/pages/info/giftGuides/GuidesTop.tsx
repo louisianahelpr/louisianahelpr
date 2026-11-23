@@ -24,6 +24,12 @@ function GuideShipPill({ ship }: { ship: string }) {
 }
 
 /** A banner for GuidesTop: its words, and the h1's id (default "gift-guide-title"). */
+/** The shipping pill ("Order by Dec 15 for Christmas delivery"), or null once the date has passed. */
+export function guidesShipPill() {
+  const ship = shippingLine(new Date());
+  return ship ? <GuideShipPill ship={ship} /> : null;
+}
+
 export type GuidesBanner = PageBanner & { titleId?: string; sub?: boolean };
 
 /**
@@ -46,8 +52,7 @@ export function GuidesTop({ backTo, banner, tools, nav, pillInRow = true, below 
   pillInRow?: boolean;
   below?: (pill: ReactNode) => ReactNode;
 }) {
-  const ship = shippingLine(new Date());
-  const pill = ship ? <GuideShipPill ship={ship} /> : null;
+  const pill = guidesShipPill();
   return (
     <>
       {/* Owner 11-22 (phone): only the three-line menu stays, on the right of "Gift guides"; the head row's pill, search,
@@ -55,7 +60,7 @@ export function GuidesTop({ backTo, banner, tools, nav, pillInRow = true, below 
           Wish List; "they can click the 3 line ... or they can go back"). Owner 11-22 later, on the heart showing twice:
           "I think by the search and icons filter. The 3 line dash stays up": the heart lives only in a page's own toolbar
           (a guide's count row under its banner); a page with no toolbar (deals days, printables, Holiday Hub) has none. */}
-      <GuidesHeadRow backTo={backTo} titleIsH1={!banner} ship={Boolean(ship)}
+      <GuidesHeadRow backTo={backTo} titleIsH1={!banner} ship={pill !== null}
         phone={<GuidesMenuButton active={nav.active} myList={nav.myList} page={nav.page} />}>
         {pillInRow && pill}
         {pillInRow && tools}

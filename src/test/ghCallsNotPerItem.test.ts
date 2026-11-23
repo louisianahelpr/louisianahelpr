@@ -131,6 +131,8 @@ function shellHits(): string[] {
 const BOUNDED: Record<string, string> = {
   ".github/actions/refresh-pr/action.yml: gh workflow run \"$wf\" --repo \"$GITHUB_REPOSITORY\" --ref \"$BR":
     "one dispatch per CHECK_WORKFLOWS entry (6 required-check workflows), once per refresh",
+  ".github/workflows/db-backup.yml: if gh api -X DELETE \"repos/$PRIVATE_REPO/releases/assets/$ID":
+    "BACKUP_PRIVATE_REPO_TOKEN (private-repo token, not the shared 5000/h one); one DELETE per nightly backup asset older than KEEP_DAYS (30), so at most ~1 per night after the first run",
   ".github/workflows/functions-deploy.yml: RUN=$(gh api \"repos/${GITHUB_REPOSITORY}/actions/workflows/d":
     "GITHUB_TOKEN; polls the one db-deploy run of this commit until its elapsed limit",
   ".github/workflows/nightly-red-age.yml: gh issue list --repo \"${{ github.repository }}\" --label \"$LA":

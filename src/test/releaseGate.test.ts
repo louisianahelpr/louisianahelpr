@@ -181,20 +181,25 @@ describe("release gate reads every run of the sha", () => {
 });
 
 describe("owner waivers are exact: named checks, named version, nothing else", () => {
-  it("OWNER_WAIVERS holds only the 1.0.4 owner decisions (Press + A11y at 11:50 AM; all six at 6:21 PM)", () => {
+  it("OWNER_WAIVERS holds only the 1.0.4 owner decisions (Press + A11y at 11:50 AM; all six at 6:21 PM) and the 1.0.5 one (11-23)", () => {
     expect(OWNER_WAIVERS).toEqual({
       "1.0.4": {
         checks: ["press-every-control", "a11y-prod", "test", "e2e-real-backend", "journeys", "write-contract"],
         decision: expect.stringContaining("Waive GitHub checks, build now"),
       },
+      "1.0.5": {
+        checks: ["press-every-control", "a11y-prod", "test", "e2e-real-backend", "journeys", "write-contract"],
+        decision: expect.stringContaining("owner pop-up 11-23"),
+      },
     });
-    for (const id of OWNER_WAIVERS["1.0.4"].checks) expect(CHECKS.map((c) => c.id)).toContain(id);
+    for (const v of ["1.0.4", "1.0.5"] as const) for (const id of OWNER_WAIVERS[v].checks) expect(CHECKS.map((c) => c.id)).toContain(id);
   });
 
   it("refuses a check the owner did not waive, and any other version", () => {
     expect(() => resolveWaivers(["no-such-check"], "1.0.4")).toThrow(/not an owner-approved waiver/);
-    expect(() => resolveWaivers(["journeys"], "1.0.5")).toThrow(/no owner waiver exists for version 1.0.5/);
-    expect(() => resolveWaivers(["a11y-prod"], "1.0.5")).toThrow(/no owner waiver exists for version 1.0.5/);
+    expect(() => resolveWaivers(["no-such-check"], "1.0.5")).toThrow(/not an owner-approved waiver/);
+    expect(() => resolveWaivers(["journeys"], "1.0.6")).toThrow(/no owner waiver exists for version 1.0.6/);
+    expect(() => resolveWaivers(["a11y-prod"], "1.0.6")).toThrow(/no owner waiver exists for version 1.0.6/);
     expect([...resolveWaivers([], "9.9.9")]).toEqual([]);
   });
 

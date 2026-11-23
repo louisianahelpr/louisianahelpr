@@ -6,6 +6,8 @@ Declutter (in the section switcher) shows live listings from members nearby. Bro
 
 Jobs: post a job from the bottom navigation with the guided form, then message the other party once someone applies. Louisiana Helpr is a new regional marketplace, so Jobs may show "No jobs near you yet." when nobody nearby has posted. That empty state is expected.
 
+Holiday gift guides (new in 1.0.5): signed in, open the You tab and tap "Holiday gift guides"; signed out, they are in the top bar. The guides are lists of gift ideas for physical products. Tapping a gift opens the retailer's own website; nothing from the guides is sold or paid for in the app. The free printables (gift tags, coloring books, banners) cost nothing.
+
 Payments go through Stripe, which is live: purchases and job payments are real money. You do not need to complete a payment to review the app; please stop at the payment sheet and do not enter a real card. Payments are only for real-world services and physical goods exchanged in person. Gift cards are bought through Stripe and are spent when paying for a job. This version sells no digital goods and contains no in-app purchases or memberships.
 
 Location is optional. While the app is open it is used to show nearby jobs and items. Background location (UIBackgroundModes: location) is used for one feature only: after a Helpr has been hired for a job and taps "I'm On My Way", the app shares their position with the job's poster, including while the screen is off, so the poster can see them approaching. Sharing stops automatically as soon as the Helpr marks themselves arrived. The app never uses location in the background at any other time.

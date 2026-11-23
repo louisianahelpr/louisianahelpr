@@ -25,6 +25,8 @@
  * @mutate src/content/holidayHub/holidayHub.mjs |   next.set("what", from === "lights" ? "lights" : |   next.set("what", from === "lights" ? "events" :
  * @mutate src/pages/info/holidays/HolidayHub.tsx |           <div className="flex min-h-11 items-center gap-1" data-holiday-searchrow={searchOpen ? "open" : "closed"}> |           <div className="flex min-h-11 items-center gap-1" data-holiday-searchrow={searchOpen ? "open" : "closed"}><a href="/holidays/hire-a-helpr" data-holiday-hire-strip="">Hire a Helpr for the holidays</a>
  * @mutate src/pages/info/holidays/HolidayHub.tsx |             <p className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} text-ds-14 | <p hidden={searchOpen} className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} text-ds-14
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | <RoundIconButton ref={searchButton} className="gg-icon" | <RoundIconButton ref={searchButton} className="rounded-ds-md ctl-tint"
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | <RoundIconButton ref={filtersButton} className="gg-icon" | <RoundIconButton ref={filtersButton} className="rounded-ds-md ctl-tint"
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .hh-search{flex:1 0 160px;min-width:160px;margin-left:auto} | .hh-search{flex:1 1 100%;min-width:0;margin-left:auto}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @container (max-width:499px){.hh-count-full{position:absolute; | @container (max-width:499px){.hh-count-full{display:none;
  * @mutate src/pages/info/holidays/HolidayHub.tsx |   return words.every((w) => hay.includes(w)); |   return true;
@@ -294,11 +296,18 @@ describe("/holidays: lights and events in one list", () => {
     const button = container.querySelector("[data-holiday-filters-button]") as HTMLButtonElement;
     expect(button.textContent).toBe("");
     expect(button.getAttribute("aria-label")).toBe("Filters");
-    expect(button.className).not.toMatch(/\bborder\b|rounded-full/);
+    expect(button.className).not.toMatch(/\bborder\b/);
     expect(button.getAttribute("aria-expanded")).toBe("false");
     const search = container.querySelector("[data-holiday-search-button]") as HTMLButtonElement;
     expect(search.textContent).toBe("");
-    expect(search.className).not.toMatch(/\bborder\b|rounded-full/);
+    expect(search.className).not.toMatch(/\bborder\b/);
+    // Owner 2026-11-22 ("some icons have a circle background some are squared looking. they should all be
+    // consistent"): both icons are the guides' toolbar icon (gg-icon: no resting circle or border, a 44px circle fill on
+    // a desktop hover only, the same focus ring), never the square ghost fill (rounded-ds-md + ctl-tint).
+    for (const icon of [button, search]) {
+      expect(icon.className).toMatch(/(^| )gg-icon( |$)/);
+      expect(icon.className).not.toMatch(/rounded-ds-md|ctl-tint/);
+    }
     expect(document.querySelector("[data-holiday-what]")).toBeNull();
     expect(container.querySelector("[data-holiday-quick]")).toBeNull();
     expect(container.querySelector("[data-holiday-active]")).toBeNull();

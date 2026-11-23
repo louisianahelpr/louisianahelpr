@@ -435,9 +435,11 @@ describe("gift guides: the landing opens to the guides", () => {
     const { container } = renderAt("/gift-guides");
     expect(container.querySelectorAll("[data-gift-sidebar] details, [data-gift-sidebar] summary").length).toBe(0);
     const guides = [...container.querySelectorAll("[data-gift-side-guides] a")];
-    expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids"]);
-    expect(guides.slice(1).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(["oat", "green", "red"]);
-    expect(guides.slice(1).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(["gg-dot gg-oat", "gg-dot gg-green", "gg-dot gg-red"]);
+    // Guide consistency audit 1122 #19: My Wish List closes the group, as in the phone's menu sheet (no dot).
+    expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", "/gift-guides/my-list"]);
+    expect(guides.slice(1, 4).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(["oat", "green", "red"]);
+    expect(guides.slice(1, 4).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(["gg-dot gg-oat", "gg-dot gg-green", "gg-dot gg-red"]);
+    expect(guides[4].querySelector("[data-gift-side-dot]")).toBeNull();
     expect(container.querySelector('[data-gift-sidebar] a[aria-current="page"]')?.getAttribute("href")).toBe("/gift-guides");
     cleanup();
     for (const [url, cur] of [["/gift-guides/kids", "/gift-guides/kids"], ["/gift-guides/mom", "/gift-guides/her"], ["/gift-guides/dad", "/gift-guides/him"]]) {

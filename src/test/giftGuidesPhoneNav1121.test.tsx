@@ -11,6 +11,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx | onClick={() => setSheet(true)} | onClick={() => setSheet(false)}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         {wishList && <li> |         {false && <li>
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneSheet.tsx | idPrefix={idPrefix} wishList /> | idPrefix={idPrefix} />
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <GiftGuidesMenu active={active} myList={myList} page={page} wishList /> | <GiftGuidesMenu active={active} myList={myList} page={page} />
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -72,9 +73,11 @@ describe("the phone's gift guides menu (owner 11-21; opened by the head row's th
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("the desktop sidebar is unchanged (no My Wish List row there); on a phone it is not drawn at the page's foot", () => {
+  it("the desktop sidebar lists My Wish List as the sheet does (guide consistency audit 1122 #19); on a phone it is not drawn at the page's foot", () => {
     const { container } = renderAt("/gift-guides/kids");
-    expect(container.querySelector("[data-gift-sidebar] [data-gift-side-wish-list]")).toBeNull();
+    const row = container.querySelector("[data-gift-sidebar] [data-gift-side-guides] [data-gift-side-wish-list]");
+    expect(row?.getAttribute("href")).toBe("/gift-guides/my-list");
+    expect(row?.textContent).toBe("My Wish List");
     expect(GIFT_GUIDES_CSS).toMatch(/@media \(max-width:767px\)\{[^@]*\.gg-side\{display:none\}/);
   });
 });

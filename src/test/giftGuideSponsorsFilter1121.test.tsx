@@ -12,7 +12,7 @@
  *    "coloring book and banner should have their own page"), and a menu navigation scrolls the window to the top
  *    (ScrollToTop); a true #anchor still scrolls to it.
  *
- * @mutate src/pages/info/GiftGuides.tsx |   const countRow = (phone && Boolean(guide) && !deals) \|\| sponsorsPage; |   const countRow = phone && Boolean(guide) && !deals;
+ * @mutate src/pages/info/GiftGuides.tsx |   const countRow = phone && Boolean(guide) && !deals; |   const countRow = (phone && Boolean(guide) && !deals) \|\| guide?.slug === "25-days-sponsors";
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {!filter && nav.length > 1 && ( |       {nav.length > 1 && (
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {filter && <GiftGuideFilter filter={filter} />} |       {null}
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         <Icon d={SLIDERS} />\n        {active > 0 |         <Icon d="M4 5h16l-6 7.5V19l-4 1.5v-8L4 5z" />\n        {active > 0
@@ -60,13 +60,15 @@ const renderAt = async (url: string) => {
   return out.container;
 };
 
-describe("the 25 Days sponsors page: its tools and Filter under the banner (owner 11-21)", () => {
-  it("one row under the banner at desktop width: the count, the pill, then search, Filter, heart, Share; no chips or tip in the list", async () => {
+describe("the 25 Days sponsors page: its tools and Filter (owner 11-21), set up as Her on a desktop (owner 11-22)", () => {
+  it("at desktop width: the pill, then search, Filter, heart, Share in the header row, the count heading the content column; no chips or tip in the list", async () => {
+    // Owner 11-22 ("104 gifts needs to move to the right like the other pages are set up"): as on Her, no row under the
+    // banner on a desktop (a phone keeps the guides' one row there, src/test/giftGuidePhoneHeader1121.test.tsx).
     const c = await renderAt("/gift-guides/25-days-sponsors");
-    expect(c.querySelector("[data-gift-headrow] [data-gift-quick]")).toBeNull();
-    const row = c.querySelector("[data-gift-countrow]")!;
-    expect(row).not.toBeNull();
-    expect(row.querySelector("[data-gift-item-count]")?.textContent).toMatch(/^\d+ gifts$/);
+    expect(c.querySelector("[data-gift-countrow]")).toBeNull();
+    const row = c.querySelector("[data-gift-headrow]")!;
+    expect(row.querySelector("[data-gift-ship]")?.textContent).toMatch(/^Order by Dec 15/);
+    expect(c.querySelector(".gg-main [data-gift-item-count]")?.textContent).toMatch(/^\d+ gifts$/);
     const icons = [...row.querySelectorAll("[data-gift-quick] button, [data-gift-quick] a")].map((b) => b.getAttribute("aria-label"));
     expect(icons).toEqual(["Search gift guides", "Filter", "My Wish List, 0 saved", "Share"]);
     expect(c.querySelector("[data-gift-section-nav], .gg-secnav")).toBeNull();

@@ -170,8 +170,9 @@ function deriveExpandingSearchFiles(): string[] {
  *   pages/info/Legal.tsx                                   policy search
  *   pages/info/HelpCenter.tsx                              /help search (owner 11-21: the magnifier by the title
  *                                                     opens the field under it, in the page body)
- *   pages/home/DashboardGuest.tsx                          guest /browse?q= field (F070, 11-09): open for the
- *                                                     visit, no magnifier to land on
+ *   pages/home/DashboardGuest.tsx                          guest /browse: reads the flag (F070's ?q= field)
+ *   pages/home/GuestBrowseHeaderRow.tsx                    guest /browse header row (G1, 11-23): count, the
+ *                                                     Browse magnifier + Filters, field in the count's place
  *   components/job-card/embeddedActivity.tsx          Jobs > Posted / Working chip row
  *                                                     (2026-10-29, audit F20: its
  *                                                     open flag keeps only the lit chip)
@@ -194,6 +195,7 @@ const REVIEWED_EXPANDING_SEARCHES = [
   "components/profile/SavedHelpersTab.tsx",
   "pages/home/Dashboard.tsx",
   "pages/home/DashboardGuest.tsx",
+  "pages/home/GuestBrowseHeaderRow.tsx",
   "pages/info/HelpCenter.tsx",
   "pages/info/Legal.tsx",
   "pages/info/giftGuides/GiftGuideShare.tsx",
@@ -566,7 +568,9 @@ const NOT_EXERCISED: Record<string, string> = {
   "pages/home/Dashboard.tsx":
     "the desktop feed strip — pinned by its own describe block below, from source, because the page is 900 lines behind a dozen data hooks and the fact under test is structural",
   "pages/home/DashboardGuest.tsx":
-    "guest /browse?q= (F070, lead 11-09): the field is drawn open for a visit that came with a search and is never swapped in for anything; rendered and typed into by src/pages/home/DashboardGuest.search.test.tsx",
+    "guest /browse: only reads the open flag (a ?q= arrival's field stays unfocused until it closes, F070); the row is GuestBrowseHeaderRow's. Rendered and typed into by src/pages/home/DashboardGuest.search.test.tsx",
+  "pages/home/GuestBrowseHeaderRow.tsx":
+    "guest /browse's header row (G1, app audit 1123): the search icon opens the field in the count's place, focused, and it filters the list, in src/test/guestBrowseWebHeaderRow.test.tsx; the held slot is BrowseTasksActions', as on member Browse",
   "pages/info/giftGuides/GiftGuideShare.tsx":
     "the gift guides' tool row magnifier (train 1121i: an icon at every width): open, typing, Escape and the ✕ are rendered and pressed at 375 and 1440 in src/test/giftGuidePhoneHeader1121.test.tsx, and a tap outside in giftGuideHolidayPolish1121b.test.tsx (data-gift-search-*); the held slot is asserted by source below",
   "pages/info/HelpCenter.tsx":
@@ -738,7 +742,9 @@ const NO_SLOT_NEEDED: Record<string, string> = {
   "pages/home/Dashboard.tsx":
     "renders the strip whose slot BrowseTasksActions supplies — pinned by the describe block above",
   "pages/home/DashboardGuest.tsx":
-    "guest /browse?q= (F070): there is no magnifier at all (the guest bar has no search icon, owner 09-11), so the field's ✕ has no trigger to land on; it closes the field and the page stays as it was",
+    "only reads the open flag (F070's unfocused ?q= field); it renders no field and no trigger itself: the row is GuestBrowseHeaderRow (G1, app audit 1123)",
+  "pages/home/GuestBrowseHeaderRow.tsx":
+    "renders the row whose slot BrowseTasksActions supplies (SearchTriggerSlot in the magnifier's place while the field is open), the same cluster as member Browse's desktop strip",
 };
 
 /** The world, minus the written exclusions. Input and oracle are different things. */

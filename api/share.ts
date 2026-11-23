@@ -88,6 +88,11 @@ import {
   type SeoData,
 } from "../src/lib/seoBodies.mjs";
 import { holidayHubBody, holidayHubLd } from "../src/lib/holidayHubSeo.mjs";
+import { QA_BYLINE, catalogGuideQa, dealsDayQa, faqPageLd, holidayHubQa, qaSectionHtml, smallBizQa, withQaSection, type QaItem } from "../src/lib/guideQa.mjs";
+import { GUIDE_UPDATED } from "../src/content/guideUpdated.mjs";
+import { SMALL_BIZ_CATEGORIES } from "../src/content/giftGuideSmallBiz.mjs";
+import { HOLIDAY_LIGHTS } from "../src/content/holidayHub/lights.mjs";
+import { HOLIDAY_EVENTS } from "../src/content/holidayHub/events.mjs";
 import { louisianaToday } from "../src/content/holidayHub/holidayHub.mjs";
 import { OG_PROFILE_HEIGHT, OG_PROFILE_WIDTH, ogProfileImageUrl } from "../src/lib/ogProfileCard.mjs";
 import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../src/lib/browseShellCards.mjs";
@@ -1182,6 +1187,24 @@ type SeoOutcome =
   | { kind: "moved"; location: string }
   | null;
 
+/**
+ * Guide Q&A (owner pop-up 2026-11-22 9:40 PM: "Q&A + updated date + byline"): a page's questions as the section at the
+ * end of its body and its FAQPage JSON-LD, with the page's Updated day (src/content/guideUpdated.mjs). The page draws
+ * the same section from the same function (src/pages/info/giftGuides/GuideQa.tsx).
+ */
+function withQa(page: string, qa: QaItem[], byline: string): { section: string; ld: unknown[] } {
+  const ld = faqPageLd(qa);
+  return { section: qaSectionHtml(qa, hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : undefined, byline), ld: ld ? [ld] : [] };
+}
+
+/** A deals day's questions, from the build's deals and Small Business Saturday rows (scripts/generated/seo-data.js). */
+function dealDayQa(slug: string, kind: string, today: string): QaItem[] {
+  const d = seoData();
+  if (!d) return [];
+  if (kind === "small-biz") return smallBizQa((d.smallBiz ?? []).map(([name, town, category, ships]) => ({ name, town, category, ships })), SMALL_BIZ_CATEGORIES);
+  return dealsDayQa(slug, (d.deals ?? []).map(([item, , ends, event, brand, deal]) => ({ item, event, brand: brand ?? "", deal: deal ?? "", ...(ends ? { ends } : {}) })), today);
+}
+
 const HOME_CRUMB = { name: "Louisiana Helpr", path: "/" };
 const GUIDES_CRUMB = { name: "Holiday gift guides", path: "/gift-guides" };
 
@@ -1214,14 +1237,17 @@ function seoFor(url: URL): SeoOutcome {
       const line = day.kind === "deals" ? DEALS_WORDS.disclosure : day[eventPhase(day, today)];
       // Structured data 1121: a deals day carries an ItemList of its own cards still showing today.
       const list = day.kind === "deals" ? dealsItemListLd(day.pageTitle, seoData()?.deals ?? [], today, day.id) : null;
-      return { kind: "page", body: dealsGuideBody(day.id, day.pageTitle, day.description, line), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: day.pageTitle, path: `/gift-guides/${day.id}` }]), ...(list ? [list] : [])] };
+      const qa = withQa(day.id, dealDayQa(day.id, day.kind, today), QA_BYLINE.other);
+      return { kind: "page", body: withQaSection(dealsGuideBody(day.id, day.pageTitle, day.description, line), qa.section), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: day.pageTitle, path: `/gift-guides/${day.id}` }]), ...(list ? [list] : []), ...qa.ld] };
     }
     const d = seoData();
     if (!d) return null;
     if (slug && hasOwn(d.guides, slug)) {
       const g = d.guides[slug];
+      const today = louisianaDay(new Date());
       const crumbs = breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: g.name, path: `/gift-guides/${slug}` }]);
-      return { kind: "page", body: giftGuideBody(slug, g), jsonLd: g.picks.length ? [crumbs, giftGuideItemListLd(slug, g, louisianaDay(new Date()))] : [crumbs] };
+      const qa = withQa(slug, g.qa?.length ? catalogGuideQa(slug, g.qa, today) : [], slug === "25-days-sponsors" ? QA_BYLINE.other : QA_BYLINE.gifts);
+      return { kind: "page", body: withQaSection(giftGuideBody(slug, g), qa.section), jsonLd: [...(g.picks.length ? [crumbs, giftGuideItemListLd(slug, g, today)] : [crumbs]), ...qa.ld] };
     }
     // 1120: a merged guide's old slug 301s to its section ("healthcare#rns"); a folded store page to the landing page ("").
     if (slug && hasOwn(d.moved, slug) && /^([a-z0-9-]+(#[a-z0-9-]+)?)?$/.test(d.moved[slug])) return { kind: "moved", location: d.moved[slug] ? `${SITE_ORIGIN}/gift-guides/${d.moved[slug]}` : `${SITE_ORIGIN}/gift-guides` };
@@ -1239,7 +1265,9 @@ function seoFor(url: URL): SeoOutcome {
   if (id === "holidays" || id.startsWith("holidays/")) {
     const today = louisianaToday(new Date());
     const hubBody = holidayHubBody(`/${id}`, today);
-    if (hubBody) return { kind: "page", body: hubBody, jsonLd: holidayHubLd(`/${id}`, today) ?? [] };
+    // Guide Q&A 11-22: the hub itself (not the hire page) ends with its questions.
+    const qa = withQa("holidays", id === "holidays" ? holidayHubQa(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, today) : [], QA_BYLINE.other);
+    if (hubBody) return { kind: "page", body: withQaSection(hubBody, qa.section), jsonLd: [...(holidayHubLd(`/${id}`, today) ?? []), ...qa.ld] };
   }
   const path = `/${id}`;
   const body = infoPageBody(path);

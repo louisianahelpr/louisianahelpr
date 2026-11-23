@@ -42,6 +42,7 @@ import { HolidayCard, HolidayNothing, HolidaySection, useHolidayPageView } from 
 import { giftGuides as G } from "@/content/giftGuides";
 import { GIFT_GUIDES_CSS } from "../giftGuides/giftGuidesStyles";
 import { GuidesFrame } from "../giftGuides/fun/FunPage";
+import { LazyGuideQa } from "../giftGuides/LazyGuideQa";
 
 type Option = { value: string; label: string };
 const WHAT_OPTIONS: Option[] = [{ value: "all", label: "Everything" }, ...HOLIDAY_WHAT.map((w) => ({ value: w.slug, label: w.label }))];
@@ -335,6 +336,8 @@ export default function HolidayHub() {
             {SHOP_SMALL_GO ? <><span>{SHOP_SMALL_ASK}?</span><span className="whitespace-nowrap">{SHOP_SMALL_GO}&nbsp;›</span></> : <>{SBS_WORDS.landingLink}&nbsp;›</>}
           </Link>
         </p>
+        {/* Owner pop-up 11-22 9:40 PM: common questions answered from the lights and events, the Updated day, who made it. */}
+        <LazyGuideQa kind="holidays" page="holidays" />
       </div>
       </GuidesFrame>
     </PublicHeaderPage>

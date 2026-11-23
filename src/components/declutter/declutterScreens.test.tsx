@@ -632,7 +632,7 @@ describe("Declutter controls are the shared ones", () => {
   // F260q (owner 11-11 "Spanish EVERYTHING now"): the saved draft's step form in Spanish: the progress, each step's
   // head, the buttons, the review rows, the free box, the drops card and the ways step's address and times words, the condition/size chips, the ways buyers get it and
   // how long it stays up (enListingParts).
-  // @mutate src/components/declutter/DeclutterSellView.tsx | text-muted-foreground">{tr("sf.ds.stepOf", { step, total: 5 })}</span> | text-muted-foreground">{step} of 5</span>
+  // @mutate src/components/declutter/DeclutterSellView.tsx | text-muted-foreground">{tr("sf.ds.stepOf", { step: shownStep, total: totalSteps })}</span> | text-muted-foreground">{shownStep} of {totalSteps}</span>
   // @mutate src/components/declutter/DeclutterSellView.tsx | : tr("sf.ds.saveContinue")) : tr("sf.ds.continue")} | : tr("sf.ds.saveContinue")) : "Continue"}
   // @mutate src/components/declutter/DeclutterSellView.tsx | <StepHead title={tr("sf.ds.readyQ")} sub={tr("sf.ds.readySub")} /> | <StepHead title="Ready to list?" sub={tr("sf.ds.readySub")} />
   // @mutate src/components/declutter/DeclutterSellView.tsx | <ReviewRow title={tr("sf.ds.photos")} | <ReviewRow title="Photos"

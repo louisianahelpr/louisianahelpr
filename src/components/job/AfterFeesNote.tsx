@@ -8,7 +8,7 @@
  * this component; src/test/helprPayAfterFeesNote.test.ts holds every take-home
  * surface to it.
  */
-export const AFTER_FEES_WORDS = "after fees";
+const AFTER_FEES_WORDS = "after fees";
 
 export function AfterFeesNote({ inline = false, className = "" }: { inline?: boolean; className?: string }) {
   const note = (

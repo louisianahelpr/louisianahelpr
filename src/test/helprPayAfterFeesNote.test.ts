@@ -25,7 +25,7 @@
  * @mutate src/components/job-card/MineJobFace.tsx |                   {moneyNote} |                   {null}
  * @mutate src/components/messages/chatView/DealCard.tsx |       {!isGiveawayFixedPayJob(job) && <AfterFeesNote />} |       {null}
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       {!fixedPay && <AfterFeesNote />} |       {null}
- * @mutate src/components/job/AfterFeesNote.tsx | export const AFTER_FEES_WORDS = "after fees"; | export const AFTER_FEES_WORDS = "You take home";
+ * @mutate src/components/job/AfterFeesNote.tsx | const AFTER_FEES_WORDS = "after fees"; | const AFTER_FEES_WORDS = "You take home";
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -51,6 +51,7 @@ const SURFACES: Record<string, { what: string; renders: RegExp }> = {
 };
 
 /** Files that say "Your pay" to a screen reader but are not a job take-home. Exact. */
+// @two-way src/test/helprPayAfterFeesNote.test.ts:EXEMPT is exact both ways
 const EXEMPT: Record<string, string> = {
   "src/components/declutter/DeclutterDeliveryViews.tsx": "Declutter delivery pay (take_home_cents from the server), not a job's posted price; not in the 11-22 decision's job scope",
 };
@@ -81,7 +82,7 @@ describe("Helpr pay: one number, small \"after fees\" label (owner 2026-11-22)",
 
   it("the note is the words \"after fees\", small and grey, in one place", () => {
     const note = code("src/components/job/AfterFeesNote.tsx");
-    expect(note).toMatch(/export const AFTER_FEES_WORDS = "after fees";/);
+    expect(note).toMatch(/const AFTER_FEES_WORDS = "after fees";/);
     expect(note).toMatch(/text-ds-11/);
     expect(note).toMatch(/text-muted-foreground/);
     expect(note).toMatch(/\{AFTER_FEES_WORDS\}/);

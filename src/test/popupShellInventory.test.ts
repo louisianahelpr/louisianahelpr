@@ -363,6 +363,9 @@ describe("one footer convention", () => {
   const FOOTERLESS_BY_DESIGN: Record<string, string> = {
     "src/components/declutter/DeclutterFreeClaim.tsx": "How free items work: words only, nothing to act on; the sheet's X is the exit (FreeAskSheet, the ask itself, has its footer)",
     "src/pages/jobs/jobPage/JobPageActionRow.tsx": "More options: a menu, each row acts and closes; the sheet's X is the exit",
+    // Gift guides 11-23: the "shop similar" panel is a read-only list of similar gifts (each row is its own link and heart),
+    // nothing to confirm or cancel; its X, Escape or a tap outside closes it.
+    "src/pages/info/giftGuides/DupePanel.tsx": "Shop similar: a read-only list of similar gifts, each row its own link; the X is the exit",
     // Area 03 M11 (11-18): the job card's More is the job page's same "More options" sheet.
     "src/components/job-card/JobActionRow.tsx": "More options: a menu, each row acts and closes; the sheet's X is the exit",
     "src/components/declutter/DeclutterBunchPhotos.tsx": "a photo viewer: each action acts and closes, and Done sits in the same row",

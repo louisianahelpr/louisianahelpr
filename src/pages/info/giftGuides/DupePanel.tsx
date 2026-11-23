@@ -1,5 +1,6 @@
 import type { CSSProperties, RefObject } from "react";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -58,9 +59,10 @@ export function DupePanel({ dupes, of, open, onClose, anchor }: { dupes: GuideDu
         // only for the same click to open it again.
         onInteractOutside={(e) => { if (anchor.current?.contains(e.target as Node)) e.preventDefault(); }}
       >
-        <button type="button" className="gg-dupe-x" aria-label={DUPE.close} onClick={onClose} data-gift-dupe-close="">
+        {/* The shared Button (OWN-SHARED), its look set by .gg-dupe-x: a plain 44px X with no fill. */}
+        <Button type="button" variant="ghost" size="sm" className="gg-dupe-x" aria-label={DUPE.close} onClick={onClose} data-gift-dupe-close="">
           <X aria-hidden="true" />
-        </button>
+        </Button>
         <p className="gg-dupe-note">{DUPE.title}</p>
         {list}
       </PopoverContent>

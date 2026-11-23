@@ -44,7 +44,7 @@ export const useLoginTracking = () => {
       // carry ppoAttribution; the module decides "new" and fires once.
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user && isSocialProvider(session.user.app_metadata?.provider)) {
         const user = session.user;
-        void backgroundImport(() => import("@/lib/socialSignupCompleted"), "socialSignupCompleted")
+        void backgroundImport(() => import("@/lib/socialSignupCompleted"), "social-signup-completed")
           .then((mod) => mod.trackSocialSignupCompleted(user))
           .catch((e: unknown) => report(e, { severity: "warning", tags: { source: "useLoginTracking.signupCompleted" } }));
       }

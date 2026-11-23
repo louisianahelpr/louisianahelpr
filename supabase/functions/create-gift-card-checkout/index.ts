@@ -5,7 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
-import { posterCardCostFeeCents } from "../_shared/posterFees.ts";
+import { giftCardHandlingFeeCents } from "../_shared/posterFees.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { isPartyRefusal, stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor, type StripeMode } from "../_shared/stripeMode.ts";
 import { withWalletCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
@@ -164,12 +164,13 @@ serve(async (req) => {
     }
 
     // ── Charge math ──
-    // The donor covers the face value PLUS Stripe's processing cost on the
-    // charge — `posterCardCostFeeCents(amountCents)`, the same card-cost fee a
-    // poster pays at checkout. The donation still nets ~face value after
-    // Stripe, so a redeemed gift that funds a $0-to-recipient job never puts
-    // the platform underwater.
-    const feeCents = posterCardCostFeeCents(amountCents);
+    // The donor pays the face value plus a one-time handling fee: the card
+    // cost, CAPPED at $1 (`giftCardHandlingFeeCents`). La. R.S. 51:1423(B)(2)
+    // bars any service fee on a gift card except a one-time handling fee of at
+    // most $1 per card; before 2026-11-23 this charged the full card cost
+    // ($1.06 on $25, $15.25 on $500). Louisiana Helpr absorbs the card cost
+    // above $1. Guard: src/test/giftCardFeeLouisianaCap.test.ts.
+    const feeCents = giftCardHandlingFeeCents(amountCents);
     const chargeCents = amountCents + feeCents;
 
     // Never the email's local part: the webhook shows this to the recipient (as "First L.", Q2292), and
@@ -296,7 +297,8 @@ serve(async (req) => {
       // so the two Stripe environments never rely on keys being separate; the
       // LIVE key is unchanged.
       // v2: the wallet customer and payment methods changed the request (Q2084).
-      idempotencyKey: `gift-card:v2:${stripeMode === "test" ? "test:" : ""}${user.id}:${recipientEmail}:${amountCents}${walletRetry ? ":new-wallet" : ""}`,
+      // v3: the $1 handling-fee cap changed unit_amount (La. R.S. 51:1423(B)(2)); a v2 key would make Stripe refuse the changed request.
+      idempotencyKey: `gift-card:v3:${stripeMode === "test" ? "test:" : ""}${user.id}:${recipientEmail}:${amountCents}${walletRetry ? ":new-wallet" : ""}`,
     }), { adoptTagged: true });
 
     // ── Pre-register the gift BEFORE the donor can pay ──

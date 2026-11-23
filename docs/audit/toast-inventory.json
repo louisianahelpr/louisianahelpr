@@ -17195,7 +17195,7 @@
     },
     {
       "file": "src/pages/profile/GiftCard.tsx",
-      "line": 220,
+      "line": 222,
       "kind": "errorToast",
       "title": {
         "form": "literal",

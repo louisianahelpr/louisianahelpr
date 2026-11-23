@@ -50,3 +50,21 @@ export function posterCardCostFeeCents(
   }
   return feeCents;
 }
+
+/**
+ * Louisiana law caps what a gift card buyer may be charged on top of the card:
+ * La. R.S. 51:1423(B)(2) makes it unlawful to sell a gift certificate with "a
+ * service fee", except "a one-time handling fee, which shall not exceed one
+ * dollar per gift certificate" (https://legis.la.gov/Legis/Law.aspx?d=285608,
+ * read 2026-11-23). (E) makes a violation a deceptive and unfair trade practice.
+ */
+export const GIFT_CARD_HANDLING_FEE_CAP_CENTS = 100;
+
+/**
+ * The one-time handling fee a gift card buyer pays on top of the face value, in
+ * cents: the card's own card cost, but never more than the $1 the law allows.
+ * Louisiana Helpr absorbs any card cost above $1 (from a ~$23 gift up).
+ */
+export function giftCardHandlingFeeCents(faceCents: number): number {
+  return Math.min(posterCardCostFeeCents(faceCents), GIFT_CARD_HANDLING_FEE_CAP_CENTS);
+}

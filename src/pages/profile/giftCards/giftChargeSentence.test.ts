@@ -5,13 +5,14 @@
  * the screen rounded the true total to whole dollars with `formatPrice`.
  *
  * The sentence the donor reads must name the exact amount the server sends to
- * Stripe as `unit_amount` (face + posterCardCostFeeCents(face)), to the cent,
+ * Stripe as `unit_amount` (face + giftCardHandlingFeeCents(face): the card cost
+ * capped at $1, La. R.S. 51:1423(B)(2)), to the cent,
  * at every offered amount and at both bounds.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { blankComments } from "@/test/helpers/blankNonCode";
-import { posterCardCostFeeCents } from "@/lib/posterFees";
+import { giftCardHandlingFeeCents } from "@/lib/posterFees";
 import { AMOUNT_PRESETS } from "./constants";
 import { giftChargeSentence } from "./giftChargeSentence";
 
@@ -24,7 +25,7 @@ describe("the gift-card total sentence matches the Stripe charge to the cent", (
     expect(AMOUNTS_DOLLARS.length).toBeGreaterThan(5);
     for (const dollars of AMOUNTS_DOLLARS) {
       const face = Math.round(dollars * 100);
-      const chargeCents = face + posterCardCostFeeCents(face); // the server's unit_amount
+      const chargeCents = face + giftCardHandlingFeeCents(face); // the server's unit_amount
       const shown = giftChargeSentence(chargeCents).match(/\$([\d,]+(?:\.\d{2})?)/);
       expect(shown, `no amount in sentence for $${dollars}`).not.toBeNull();
       const shownCents = Math.round(Number(shown![1].replace(/,/g, "")) * 100);
@@ -32,9 +33,10 @@ describe("the gift-card total sentence matches the Stripe charge to the cent", (
     }
   });
 
-  it("pins the audited case: a $25 gift reads $26.06", () => {
-    expect(giftChargeSentence(2500 + posterCardCostFeeCents(2500))).toBe(
-      "You'll be charged $26.06 in total.",
+  it("pins the cents: a $10 gift reads $10.61, a $25 gift exactly $26 (the $1 cap)", () => {
+    expect(giftChargeSentence(1000 + giftCardHandlingFeeCents(1000))).toBe("You'll be charged $10.61 in total.");
+    expect(giftChargeSentence(2500 + giftCardHandlingFeeCents(2500))).toBe(
+      "You'll be charged $26 in total.",
     );
   });
 

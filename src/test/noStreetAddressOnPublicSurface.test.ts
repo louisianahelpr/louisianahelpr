@@ -9,10 +9,10 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = process.cwd();
 const DIRS = ["src/content", "src/components", "src/pages", "public", "supabase/functions"];
+// @two-way src/test/noStreetAddressOnPublicSurface.test.ts:stale allowlist entry
 const ALLOWED = new Set([
   "supabase/functions/_shared/resend.ts",
   "supabase/functions/_shared/email-templates/sponsorDelivery.ts",
-  "supabase/functions/_shared/email-templates/components.tsx",
 ]);
 const TEXT = /\.(tsx?|mjs|js|json|html|xml|txt|md|svg|webmanifest)$/;
 const IS_TEST = /(\.test\.|\.spec\.|\/__tests__\/|\/test\/|fixtures?\/)/;
@@ -35,5 +35,10 @@ describe("no street address on the public surface", () => {
     expect(files.length).toBeGreaterThan(300);
     const hits = files.filter((f) => !ALLOWED.has(f) && ADDR.test(/\.(tsx?|mjs|js)$/.test(f) ? blankComments(readFileSync(join(ROOT, f), "utf8")) : readFileSync(join(ROOT, f), "utf8")));
     expect(hits).toEqual([]);
+  });
+
+  it("every ALLOWED file still carries the address in code (else remove it)", () => {
+    const stale = [...ALLOWED].filter((f) => !ADDR.test(blankComments(readFileSync(join(ROOT, f), "utf8"))));
+    expect(stale, stale.map((f) => `stale allowlist entry ${f} — remove it`).join("\n")).toEqual([]);
   });
 });

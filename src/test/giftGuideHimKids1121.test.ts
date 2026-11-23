@@ -30,12 +30,13 @@ type Pick = { name: string; brand?: string; href: string; image: string; store: 
 /**
  * Owner 11-22 PM, "add all items" (Desktop note Louisiana-popular-candidates-1122.md; builder-guide-louisiana): the
  * Louisiana picks for Him and Kids. Non-Amazon rows (link -> store) are the ShopMy links made in her ShopMy that evening
- * (ShopMy-links-created-1122.md), the Toups and Southern Marsh pins reused from the hidden Louisiana guides, and the
- * kids' XTRATUF boot at xtratuf.com through CJ (15%); the Amazon rows were priced 11-22.
+ * (ShopMy-links-created-1122.md), the Toups pins reused from the hidden Louisiana guides, and the kids' XTRATUF boot at
+ * xtratuf.com through CJ (15%); the Amazon rows were priced 11-22. Owner 11-22 PM ("Drop both"): the Southern Marsh
+ * youth chino (p-107857942, no ShopMy rate) is off.
  */
 const LOUISIANA_1122: Record<string, Record<string, string>> = {
   him: { "https://go.shopmy.us/p-109340963": "store-lodge", "https://go.shopmy.us/p-108155418": "store-toups-and-co", "https://go.shopmy.us/p-109342284": "store-mignon-faget", "https://go.shopmy.us/p-109340844": "store-krewe" },
-  kids: { "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxkab100y": "store-xtratuf", "https://go.shopmy.us/p-107857942": "store-southern-marsh", "https://go.shopmy.us/p-109341055": "store-duck-commander", "https://go.shopmy.us/p-109341153": "store-toups-and-co" },
+  kids: { "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxkab100y": "store-xtratuf", "https://go.shopmy.us/p-109341055": "store-duck-commander", "https://go.shopmy.us/p-109341153": "store-toups-and-co" },
 };
 const LOUISIANA_1122_ASINS: Record<string, string[]> = {
   him: ["B0000BXHL5", "B000FTUTL6", "B00144CM2U", "B0HG3RLK77", "0935032509", "B09GCYJ8RM", "B07GG7K5SD"],

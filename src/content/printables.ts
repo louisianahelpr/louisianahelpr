@@ -156,6 +156,20 @@ const pageOfPrintable = (p: Printable): PrintablePageKey => (p.kind === "downloa
 /** The printables shown on one page. */
 export const printablesOnPage = (key: PrintablePageKey, list: Printable[] = PRINTABLES) => shownPrintables(list).filter((p) => pageOfPrintable(p) === key);
 
+/** A file that is a book of its own (its own title and cover): owner 11-22 #14. A product whose files are all books shows each as its own card. */
+export type Book = DownloadProduct["files"][number] & { title: string; preview: string };
+export const booksOf = (p: DownloadProduct): Book[] | null => {
+  const books = p.files.filter((f): f is Book => Boolean(f.title && f.preview));
+  return books.length > 1 && books.length === p.files.length ? books : null;
+};
+
+/**
+ * How many things a printables page offers, the gift guides menu's number beside it (owner 2026-11-22: "Number on the
+ * right"): a name maker's designs (its picker's tiles, a set counted once), each book of a book set, else one per download.
+ */
+export const printablesCount = (key: PrintablePageKey) =>
+  printablesOnPage(key).reduce((n, p) => n + (p.kind === "overlay" ? pickerDesigns(p).length : booksOf(p)?.length ?? 1), 0);
+
 /** The page path for a printable (a link to it lands on its page, at its card). */
 export const printablePath = (p: Printable) => `${PRINTABLE_PAGES.find((x) => x.key === pageOfPrintable(p))!.path}#${p.id}`;
 

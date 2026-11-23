@@ -33,7 +33,7 @@ color:var(--gg-ink)}
 .gg-side details{border-top:0}
 .gg-side summary{list-style:none;cursor:pointer;display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:8px;font-size:13px;font-weight:600;color:var(--gg-ink)}
 .gg-side summary:hover{background:hsl(var(--muted) / .6)}
-.gg-side-n::before{content:attr(data-n);margin-left:6px;font-size:11.5px;font-weight:500;color:var(--gg-muted)}
+.gg-side-n{margin-left:auto;padding-left:8px;font-size:12px;font-weight:400;color:var(--gg-muted);font-variant-numeric:tabular-nums}
 .gg-side-h{margin:14px 10px 4px;padding-top:12px;border-top:1px solid var(--gg-line);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gg-muted)}
 .gg-side summary::-webkit-details-marker{display:none}
 .gg-side summary::after{content:"+";margin-left:auto;font-size:15px;line-height:1}

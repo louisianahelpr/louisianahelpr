@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { NativeRadio } from "@/components/ui/NativeRadio";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { saveOrShareFile } from "@/lib/fileExport";
-import { PRINTABLES_WORDS as W, PRINTABLE_PAGES, printablesOnPage, printablesRedirect, type DownloadProduct, type OverlayProduct, type PrintablePageKey } from "@/content/printables";
+import { PRINTABLES_WORDS as W, PRINTABLE_PAGES, booksOf, printablesOnPage, printablesRedirect, type DownloadProduct, type OverlayProduct, type PrintablePageKey } from "@/content/printables";
 import { FunBody, funHeader } from "../fun/FunPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -42,12 +42,6 @@ function useDownload(p: DownloadProduct) {
 
 const DOWNLOAD_FAILED = "That download didn't work. Please try again.";
 
-/** A file that is a book of its own (its own title and cover): owner 11-22 #14. */
-type Book = DownloadProduct["files"][number] & { title: string; preview: string };
-const booksOf = (p: DownloadProduct): Book[] | null => {
-  const books = p.files.filter((f): f is Book => Boolean(f.title && f.preview));
-  return books.length > 1 && books.length === p.files.length ? books : null;
-};
 
 function DownloadCard({ p }: { p: DownloadProduct }) {
   const { busy, err, get } = useDownload(p);

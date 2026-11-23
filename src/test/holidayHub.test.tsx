@@ -616,7 +616,7 @@ describe("Holiday Hub SEO before JavaScript", () => {
  * @mutate src/pages/info/holidays/holidayParts.tsx |   const price = holidayPriceLabel(item.price); |   const price = item.price;
  * @mutate src/content/holidayHub/holidayHub.mjs |   if (region && region.toLowerCase().startsWith(item.city.toLowerCase())) return region; |
  * @mutate src/pages/info/holidays/HolidayHub.tsx |     }, today).filter((i) => !endedEarlierToday(i, today, minutes)), |     }, today),
- * @mutate src/pages/info/holidays/HolidayHub.tsx | <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard inline-flex min-h-11 items-center"> | <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard">
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard inline-flex min-h-11 flex-wrap items-center gap-x-1 font-semibold text-[hsl(var(--bark))]"> | <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard flex-wrap gap-x-1 font-semibold text-[hsl(var(--bark))]">
  * @mutate src/pages/info/holidays/HolidayHub.tsx |         <div className="space-y-2.5" data-holiday-filters=""> |         <p className="text-ds-17">{W.hubIntro}</p>\n        <div className="space-y-2.5" data-holiday-filters="">
  */
 describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices, places, closed today, tap targets", () => {

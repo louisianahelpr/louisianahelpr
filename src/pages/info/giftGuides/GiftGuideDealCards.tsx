@@ -140,9 +140,9 @@ function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
         {all && (
           <ul className="gg-card-sales" data-gift-code-more-list={store}>
             {others.map((c) => (
-              <li key={c.code} data-gift-code-extra={c.code}>
+              <li key={c.code || c.offer} data-gift-code-extra={c.code}>
                 <span>{line(c)}</span>
-                <CodeChip code={c.code} />
+                {c.code && <CodeChip code={c.code} />}
               </li>
             ))}
           </ul>
@@ -152,7 +152,8 @@ function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
         )}
       </>
     } data={{ "data-gift-code": best.code, "data-gift-code-store": store }}>
-      <CodeChip code={best.code} />
+      {/* A no-code sale (code "", Bruno Marc's Black Friday 25%) has nothing to copy. */}
+      {best.code && <CodeChip code={best.code} />}
     </Card>
   );
 }

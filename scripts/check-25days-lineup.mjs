@@ -128,7 +128,7 @@ function expectedLineup({ S, D }) {
           return { brand: publicBrand(s.n), prize: publicPrize(s.prize, day) };
         })
         // Owner 2026-11-21: a sponsor who said No to the public wall keeps its day but never shows on the site.
-        .filter((p) => !PUBLIC_OFF_SPONSORS.includes(p.brand)),
+        .filter((p) => !PUBLIC_OFF_SPONSORS.some((n) => p.brand.startsWith(n))),
     });
   }
   return days;

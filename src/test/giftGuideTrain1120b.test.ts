@@ -106,8 +106,9 @@ describe("gift guides train 1120b", () => {
       expect(r.href, r.name).toMatch(r.external ? /^https:\/\// : /^\/gift-guides\//);
       expect(JSON.stringify(r), r.name).not.toMatch(/\bdec(ember)?\s*\d|\bday \d/i);
     }
-    // The declined logo stays off (Sprinkle in Time Too declined logo use).
-    expect(rows.find((r) => /sprinkle/i.test(r.name))?.logo).toBeUndefined();
+    // Sprinkle in Time Too (declined logo use, then "not OK on the wall") is not in the row at all
+    // (src/content/sponsorPublicOff.mjs; guarded by src/test/sponsorPublicOff.test.tsx).
+    expect(rows.find((r) => /sprinkle/i.test(r.name))).toBeUndefined();
   });
 
   it("Microtel and Wingate appear nowhere; store pages keep 10-15 picks (three dated exceptions)", () => {

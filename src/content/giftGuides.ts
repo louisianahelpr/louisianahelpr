@@ -177,6 +177,7 @@ export interface DiscountCode {
   /** The store's place in the list: Louisiana popularity, most popular first (owner 2026-11-18). */
   rank: number;
   store: string;
+  /** The code to copy; "" for a brand's no-code sale (its card then shows no copy chip). */
   code: string;
   offer: string;
   /** When the code works, if the brand limited it ("Nov 29 – Dec 6"). */
@@ -196,9 +197,15 @@ export const discountCodes: DiscountCode[] = [
   { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", starts: "2026-11-20", expires: "2026-11-28", href: "https://www.anrdoezrs.net/click-101930553-15735627?url=https%3A%2F%2Fwww.muckbootcompany.com%2F" },
   // Train 1120c (lead 11-20 11:31 AM, CJ): XTRATUF's Black Friday code, 25% off sitewide, free shipping on $99+.
   { rank: 1, store: "XTRATUF", code: "XT25", offer: "25% off sitewide (Black Friday); free shipping on $99+", dates: "Nov 20 – 29", starts: "2026-11-20", expires: "2026-11-29", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2F" },
-  { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+", href: "https://www.anrdoezrs.net/click-101930553-15736401?url=https%3A%2F%2Fwww.durangoboots.com%2F" },
+  // Affiliate audit 1123 F8: TAKE30 runs Nov 20 to Dec 6 (Affiliate-approvals-1117.md, Durango's Nov 19 email); with no
+  // dates it never hid and would have shown after it ended.
+  { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+", dates: "Nov 20 – Dec 6", starts: "2026-11-20", expires: "2026-12-06", href: "https://www.anrdoezrs.net/click-101930553-15736401?url=https%3A%2F%2Fwww.durangoboots.com%2F" },
   { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions", href: "https://cookmagnifique.com/" },
-  { rank: 5, store: "Bruno Marc", code: "GREEN20", offer: "20% off sitewide", href: "https://www.brunomarc.com/" },
+  // Bruno Marc's Black Friday + Cyber Monday sale (CJ member mail, Commission-offers-log.md Nov 23): 25% off sitewide,
+  // taken off automatically with no code, Nov 23 to Dec 1. GREEN20 likely won't stack, so it steps aside for the sale
+  // and comes back Dec 2. A row with code "" is a no-code sale: its card shows no copy chip (CodeCard).
+  { rank: 5, store: "Bruno Marc", code: "", offer: "25% off sitewide, no code needed (Black Friday + Cyber Monday)", dates: "Nov 23 – Dec 1", starts: "2026-11-23", expires: "2026-12-01", href: "https://www.brunomarc.com/" },
+  { rank: 5, store: "Bruno Marc", code: "GREEN20", offer: "20% off sitewide", dates: "From Dec 2", starts: "2026-12-02", href: "https://www.brunomarc.com/" },
   // Follow-up batch 2026-11-18: the rest of her list (the brands' own codes for her; Instant Funding still left out).
   { rank: 8, store: "Everyday Dose", code: "ONBRAND-LEXI", offer: "10% off your first order; stacks with sales, one use per person", href: "https://everydaydose.com/" },
   { rank: 10, store: "Aurate", code: "LEXIL-20", offer: "20% off", href: "https://auratenewyork.com/" },

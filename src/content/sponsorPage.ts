@@ -306,7 +306,6 @@ export const sponsorPage = {
       "Phyllis Guy Dance Center": "https://www.facebook.com/danceatpgdc",
       "Proof & Pour Wax Co.": "https://www.instagram.com/proofpourwaxco/",
       "Sky & Sol": "https://www.instagram.com/skyandsolco/",
-      "Sprinkle in Time Too (Sulphur)": "https://www.facebook.com/profile.php?id=61575637593930",
       "Tays Sweet Shop": "https://www.tayssweets.org/",
       "The Crab Man Plus": "https://thecrabmanplus.com/",
       "Ty's Boutique Shop": "https://tysboutiqueshop.bigcartel.com/",
@@ -314,7 +313,7 @@ export const sponsorPage = {
       // sponsor's own website footer (Wildcat, Chattanooga, Sweet Bee); Pixie Dust has only its Instagram (tracker h.ig).
       "Ethan's Closet Children's Boutique & Little Feet": "https://www.facebook.com/EthansClosetCCB1",
       "The Charmed Page Bookstore": "https://www.facebook.com/charmedpagebooks",
-      "Wildcat Brothers Distillery": "https://www.facebook.com/WildcatBrothers",
+      "Wildcat Brothers Distilling": "https://www.facebook.com/WildcatBrothers",
       "Chattanooga Beard Co.": "https://www.facebook.com/chattanoogabeardco",
       "Sweet Bee Organics": "https://www.facebook.com/sweetbeeorganics",
       "Pixie Dust Biodegradable Glitter (New Orleans)": "https://www.instagram.com/biodegradable_glitter/",
@@ -486,7 +485,7 @@ export const sponsorPage = {
           { brand: "The Sculpt Society", prize: "Workout membership for a mama" },
           { brand: "Everyday Dose", prize: "Coffee+ 15-serving + Medium Roast Coffee+ + Matcha+ + ~12 Matcha+ samples" },
           { brand: "Rock Bottom Golf", prize: "$50 Rock Bottom Golf gift card" },
-          { brand: "Wildcat Brothers Distillery", prize: "1 bottle Zydeco Bold rum + 1 bottle Noire rum (winner 21+, pickup with ID)" },
+          { brand: "Wildcat Brothers Distilling", prize: "1 bottle Zydeco Bold rum + 1 bottle Noire rum (winner 21+, pickup with ID)" },
         ],
       },
       {
@@ -508,7 +507,6 @@ export const sponsorPage = {
           { brand: "Handmade By Hayli", prize: "Hair glitter + car diffuser" },
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
           { brand: "3 Redneck Tenors", prize: "Pair of tickets, Feb 26 2027, Strand Theatre Shreveport" },
-          { brand: "Sprinkle in Time Too (Sulphur)", prize: "2 free sundaes (redeem at the shop in Sulphur, LA)" },
           { brand: "Forgiven Hearts", prize: "$25 gift certificate" },
           { brand: "The Charmed Page Bookstore", prize: "$25 gift card" },
         ],

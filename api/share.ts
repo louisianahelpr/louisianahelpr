@@ -98,6 +98,7 @@ import { OG_ITEM_HEIGHT, OG_ITEM_WIDTH, ogItemImageUrl } from "../src/lib/ogItem
 import { jobShareDescription } from "../src/lib/jobShareLine.mjs";
 import { COVER_WEBP_SLUGS, OG_JPG_SLUGS } from "../src/lib/giftGuideShareImages.mjs";
 import { COVER_VERSIONS, OG_VERSIONS } from "../src/lib/giftGuideCoverVersions.mjs";
+import { WIDE_OG_VERSIONS } from "../src/lib/giftGuideWideOg.mjs";
 import { DEALS_SLUG, DEALS_WORDS, dealDay, eventPhase, louisianaDay, oldDealsTarget } from "../src/content/giftGuideDeals.mjs";
 import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
 
@@ -1078,11 +1079,12 @@ function metaForUser(url: string): Meta {
  * Vercel carries through the rewrite (the /signup ?ref= card relies on the
  * same behaviour); the Legal tab resolution is the page's own.
  */
-function metaForPublicPage(id: string, tab: string | null): Meta | null {
+function metaForPublicPage(id: string, tab: string | null, finder = false): Meta | null {
   const page = giftGuideHead(id) ?? publicPageMetaFor(`/${id}`, tab);
   if (!page) return null;
   const card = SECTION_CARDS[id];
-  const cover = giftGuideCover(id, page.ogTitle);
+  // A shared gift finder link (/gift-guides?who=her&budget=50, GiftGuideLanding finderAsked) previews as Find a gift.
+  const cover = (finder && id === "gift-guides" ? wideCard("find-a-gift", "Find a gift from the Louisiana Helpr holiday gift guides") : undefined) ?? giftGuideCover(id, page.ogTitle);
   return {
     title: page.title,
     description: page.description,
@@ -1127,7 +1129,8 @@ function metaForWishList(code: string): Meta {
     url: ok ? `${SITE_ORIGIN}/gift-guides/list/${code}` : `${SITE_ORIGIN}/gift-guides`,
     robots: "noindex, nofollow",
     noindexHeader: true,
-    image: { url: `${SITE_ORIGIN}${GIFT_GUIDES_LANDING_OG}`, type: "image/jpeg", width: 1200, height: 630, alt: "Louisiana Helpr holiday gift guides" },
+    // Owner 2026-11-22: the page's own "shared with you / Wish List" banner card (scripts/gift-guide-wide-og.py).
+    image: wideCard("wish-list", "A shared holiday wish list from the Louisiana Helpr gift guides") ?? { url: `${SITE_ORIGIN}${GIFT_GUIDES_LANDING_OG}`, type: "image/jpeg", width: 1200, height: 630, alt: "Louisiana Helpr holiday gift guides" },
   };
 }
 
@@ -1307,7 +1310,47 @@ function withRootBody(html: string, body: string): string {
  * Guard: src/test/giftGuideSharePreview.test.ts.
  */
 const GIFT_GUIDES_LANDING_OG = "/gift-guides/og/landing.jpg?v=5";
+
+/**
+ * Owner 2026-11-22 ("Fix the preview on these links": her Facebook post of /gift-guides/her came out as a SMALL square
+ * thumbnail beside the title, because the guide's og:image was its 600x600 cover; the landing's 1200x630 card gets the
+ * big card). Every gift guides page with its own head shares a 1200x630 card in its banner's style: the gingham, the
+ * cream arch with its lead and title, LOUISIANA HELPR, and for the guides their cover's products
+ * (scripts/gift-guide-wide-og.py, public/gift-guides/og-wide/<key>.jpg). ?v= is the file's content hash
+ * (src/lib/giftGuideWideOg.mjs, written by the script), so a redrawn card is a new URL to Facebook's cache.
+ * Guard: src/test/giftGuideWideOg1122.test.ts.
+ */
+const WIDE_CARD_FOR_ID: Record<string, string> = {
+  "gift-guides/her": "her",
+  "gift-guides/him": "him",
+  "gift-guides/kids": "kids",
+  "gift-guides/25-days-sponsors": "25-days-sponsors",
+  "gift-guides/black-friday": "black-friday",
+  "gift-guides/cyber-monday": "cyber-monday",
+  "gift-guides/small-business-saturday": "small-business-saturday",
+  "gift-guides/printables/gift-tags": "gift-tags",
+  "gift-guides/printables/coloring-books": "coloring-books",
+  "gift-guides/printables/banners": "banners",
+  "gift-guides/swipe": "swipe",
+  "gift-guides/draw-names": "draw-names",
+  "gift-guides/planner": "planner",
+  "gift-guides/my-list": "my-list",
+  holidays: "holidays",
+};
+const WIDE_ALT: Record<string, string> = {
+  "gift-tags": "Free printable Christmas gift tags with names from Louisiana Helpr",
+  "coloring-books": "Free printable Christmas coloring books from Louisiana Helpr",
+  banners: "Free printable holiday banners from Louisiana Helpr",
+};
+function wideCard(key: string, alt: string): Meta["image"] | undefined {
+  const v = hasOwn(WIDE_OG_VERSIONS, key) ? WIDE_OG_VERSIONS[key] : undefined;
+  if (!v) return undefined;
+  return { url: `${SITE_ORIGIN}/gift-guides/og-wide/${key}.jpg?v=${v}`, type: "image/jpeg", width: 1200, height: 630, alt: WIDE_ALT[key] ?? alt };
+}
+
 function giftGuideCover(id: string, name: string): Meta["image"] | undefined {
+  const wide = hasOwn(WIDE_CARD_FOR_ID, id) ? wideCard(WIDE_CARD_FOR_ID[id], name) : undefined;
+  if (wide) return wide;
   // The landing's own card (holistic review 11-18 M7: it shared the generic logo card): a 1200x630 card of the three live
   // covers (holiday audit 1121; scripts/gift-guide-landing-og.py), public/gift-guides/og/landing.jpg (<=150 KB). ?v= is the cache bust: bump it when the art changes.
   // Owner 2026-11-22: the landing's link preview is her plaid holiday gift guides card (public/gift-guides/landing-plaid-v5.jpg,
@@ -1478,7 +1521,7 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
   }
 
   if (route.kind === "page") {
-    return metaForPublicPage(route.id, url.searchParams.get("tab"));
+    return metaForPublicPage(route.id, url.searchParams.get("tab"), url.searchParams.has("who"));
   }
 
   if (route.kind === "noindex") {

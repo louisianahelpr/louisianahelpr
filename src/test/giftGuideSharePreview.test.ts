@@ -5,11 +5,12 @@
  * else the WebP cover, else the shell's brand card (no broken image URL is ever served). Which files exist comes from
  * src/lib/giftGuideShareImages.mjs, two-way with the folders, so no image folder is bundled into the function.
  *
- * @mutate api/share.ts | const cover = giftGuideCover(id, page.ogTitle); | const cover = undefined;
+ * @mutate api/share.ts | ?? giftGuideCover(id, page.ogTitle); | ?? undefined;
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { COVER_WEBP_SLUGS, OG_JPG_SLUGS } from "@/lib/giftGuideShareImages.mjs";
 import { COVER_VERSIONS, OG_VERSIONS } from "@/lib/giftGuideCoverVersions.mjs";
+import { WIDE_OG_VERSIONS } from "@/lib/giftGuideWideOg.mjs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
@@ -43,15 +44,17 @@ describe("gift guide share preview (api/share.ts)", () => {
   });
 
   // Owner 11-21: store-amazon is retired (src/content/giftGuideLive.mjs); Him took its place.
-  it.each(["him", "her", "kids"])("/gift-guides/%s previews with its own share JPG", async (slug) => {
-    expect(existsSync(`public/gift-guides/og/${slug}.jpg`)).toBe(true);
+  // Owner 2026-11-22 ("Fix the preview on these links"): the 600x600 cover gave Facebook's small square thumbnail; each
+  // live guide now shares its 1200x630 card (public/gift-guides/og-wide/<slug>.jpg; src/test/giftGuideWideOg1122.test.ts).
+  it.each(["him", "her", "kids"])("/gift-guides/%s previews with its own 1200x630 share JPG", async (slug) => {
+    expect(existsSync(`public/gift-guides/og-wide/${slug}.jpg`)).toBe(true);
     const head = await headFor(`gift-guides/${slug}`);
-    // ?v= is the share JPG's content hash (owner 11-21: a redrawn card is a new URL; src/lib/giftGuideCoverVersions.mjs).
-    const url = `${ORIGIN}/gift-guides/og/${slug}.jpg?v=${OG_VERSIONS[slug]}`;
+    // ?v= is the card's content hash (owner 11-21: a redrawn card is a new URL; src/lib/giftGuideWideOg.mjs).
+    const url = `${ORIGIN}/gift-guides/og-wide/${slug}.jpg?v=${WIDE_OG_VERSIONS[slug]}`;
     expect(head).toContain(`<meta property="og:image" content="${url}"`);
     expect(head).toContain('<meta property="og:image:type" content="image/jpeg"');
-    expect(head).toContain('<meta property="og:image:width" content="600"');
-    expect(head).toContain('<meta property="og:image:height" content="600"');
+    expect(head).toContain('<meta property="og:image:width" content="1200"');
+    expect(head).toContain('<meta property="og:image:height" content="630"');
     expect(head).toContain(`<meta name="twitter:image" content="${url}"`);
     // Exactly one og:image: the guide's own, never also the brand fallback.
     expect(head.match(/<meta property="og:image" /g)).toHaveLength(1);
@@ -61,15 +64,21 @@ describe("gift guide share preview (api/share.ts)", () => {
     expect(head).toMatch(/<meta property="og:description" content="[^"]*(\d+ hand-picked gift ideas?, like |hand-picked holiday gift ideas)/);
   });
 
-  it("a guide with a WebP cover but no share JPG falls back to the cover", async () => {
+  it("a guide with no wide card falls back to its square share JPG, then to the WebP cover", async () => {
     // @mutate api/share.ts |   if (COVER_WEBP_SLUGS.has(slug)) return |   if (false) return
-    OG_JPG_SLUGS.delete("her");
+    const wide = WIDE_OG_VERSIONS.her;
+    delete (WIDE_OG_VERSIONS as Record<string, string>).her;
     try {
+      const jpg = await headFor("gift-guides/her");
+      expect(jpg).toContain(`<meta property="og:image" content="${ORIGIN}/gift-guides/og/her.jpg?v=${OG_VERSIONS.her}"`);
+      expect(jpg).toContain('<meta property="og:image:width" content="600"');
+      OG_JPG_SLUGS.delete("her");
       const head = await headFor("gift-guides/her");
       expect(head).toContain(`<meta property="og:image" content="${ORIGIN}/gift-guides/covers/her.webp?v=${COVER_VERSIONS.her}"`);
       expect(head).toContain('<meta property="og:image:type" content="image/webp"');
     } finally {
       OG_JPG_SLUGS.add("her");
+      (WIDE_OG_VERSIONS as Record<string, string>).her = wide;
     }
   });
 

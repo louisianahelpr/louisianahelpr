@@ -18,6 +18,7 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import type { JobProgressState } from "@/components/tracker/jobProgressState";
 import { jobDayLabel } from "@/lib/jobDateWindow";
+import { AFTER_FEES_WORDS } from "@/components/job/AfterFeesNote";
 
 /** The card's one button: the real next step, or the quiet fallback that opens the card's controls. */
 export interface MineFaceAction {
@@ -215,7 +216,8 @@ export function MineJobFace({
           to={`/jobs/${encodeURIComponent(jobId)}`}
           data-mine-face-open=""
           // WCAG 2.5.3 (axe label-content-name-mismatch, Q1816): the name holds every word the face shows, in order.
-          aria-label={[`Open ${title}`, money, when].filter(Boolean).join(", ")}
+          // The "after fees" note under a Helpr's take-home is shown inside this link, so it is in the name too.
+          aria-label={[`Open ${title}`, money && moneyNote ? `${money} ${AFTER_FEES_WORDS}` : money, when].filter(Boolean).join(", ")}
           className="flex min-w-0 flex-1 items-start gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span
@@ -255,7 +257,9 @@ export function MineJobFace({
                     {money}
                   </span>
                   {/* Owner 2026-11-22 ("One number, small label"): a Helpr's take-home carries the small grey
-                      "after fees" note (AfterFeesNote, passed by AppliedJobCard); a poster's price has none. */}
+                      "after fees" note (AfterFeesNote, passed by AppliedJobCard); a poster's price has none.
+                      The space keeps "$140" and "after fees" two words for the link's name check (WCAG 2.5.3). */}
+                  {moneyNote && " "}
                   {moneyNote}
                 </span>
               )}

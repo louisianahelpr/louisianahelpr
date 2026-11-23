@@ -27,7 +27,7 @@ import { AMAZON_BRAND_PHOTOS_1122, cutoutPhoto } from "./giftGuideCutouts1120.mj
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 import { ADDS_STORES_1122, HIM_ADDS_1122, KIDS_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
-import { HIM_KEEPS_1123_ROWS, HIM_LINKS_1123_ROWS, HIM_WALMART_1123_ROWS, KEEPS_PRICE_AT, KIDS_KEEPS_1123_ROWS, KIDS_LINKS_1123_ROWS } from "./giftGuideOwnerKeeps1123.mjs";
+import { HIM_KEEPS_1123_ROWS, HIM_LINKS_1123_ROWS, HIM_WALMART_1123_ROWS, KEEPS_PRICE_AT, KIDS_KEEPS_1123_ROWS, KIDS_LINKS_1123_ROWS, KIDS_WALMART_1123_ROWS } from "./giftGuideOwnerKeeps1123.mjs";
 
 export const HIM_GUIDE = "him";
 export const KIDS_GUIDE = "kids";
@@ -459,6 +459,8 @@ export const HIM_LINKS_1123 = HIM_LINKS_1123_ROWS.map(shop).map((r) => ({ ...r, 
 // ... and the Dearfoams slippers on her Walmart Creator link (lead 11-23 ~2:20 PM), priced on walmart.com 11-23.
 const walmart = ([href, price, image, name, brand, type, commission, line]) => ({ name, brand, line, href, image, store: "store-walmart", sortPrice: price, price, commission, type });
 export const HIM_WALMART_1123 = HIM_WALMART_1123_ROWS.map(walmart).map((r) => ({ ...r, priceAt: KEEPS_PRICE_AT }));
+// ... and the Kids gifts from her Walmart "Claude" collection (lead 11-23 ~2:50 PM), priced on walmart.com 11-23.
+export const KIDS_WALMART_1123 = KIDS_WALMART_1123_ROWS.map(walmart).map((r) => ({ ...r, priceAt: KEEPS_PRICE_AT }));
 export const KIDS_LINKS_1123 = KIDS_LINKS_1123_ROWS.map(shop).map((r) => ({ ...r, priceAt: KEEPS_PRICE_AT }));
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
@@ -479,7 +481,7 @@ export function him1121Picks(rows = [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPUL
   return build(rows, HIM_GUIDE, PEOPLE_GUIDES.find((x) => x.slug === HIM_GUIDE));
 }
 /** For Kids, cheapest first. Kids has no relationship pages, so no tags. */
-export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123]) {
+export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_WALMART_1123]) {
   return build(rows, KIDS_GUIDE, null);
 }
 

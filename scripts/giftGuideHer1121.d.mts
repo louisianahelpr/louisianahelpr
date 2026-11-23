@@ -9,6 +9,8 @@ export const HER_1121: readonly Her1121Row[];
 export const HER_KEEPS_1123: readonly Her1121Row[];
 /** Her 11-23 keeps whose ShopMy links were made later (HER_LINKS_1123_ROWS). */
 export const HER_LINKS_1123: readonly Her1121Row[];
+/** Her gifts from her Walmart "Claude" collection (HER_WALMART_1123_ROWS). */
+export const HER_WALMART_1123: readonly Her1121Row[];
 export const HER_ROWS: readonly Her1121Row[];
 export function her1121Picks(rows?: readonly Her1121Row[]): Her1121Pick[];
 export function applyHer1121(pageList: Record<string, unknown[]>, storeList: Record<string, { name: string; hosts: string[] }>): { before: number; after: number; addedStores: string[]; putBack: string[] };

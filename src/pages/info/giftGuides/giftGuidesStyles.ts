@@ -561,5 +561,15 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 article[data-gift-guide]>.gg-menuhint{margin:4px 0 0}
 article[data-gift-guide]>.gg-menuhint+section>.gg-sec-title{margin-top:12px}
 article[data-gift-guide]>.gg-menuhint+section>.gg-list{margin-top:0}article[data-gift-guide]>.gg-menuhint+section>.gg-list>li:first-child{border-top:0}
+/* The tip's two controls are the shared Button (ghost, sm: 44px, the app's button floor they rendered at by hand;
+   noNewHandMadeControls). These rules keep the look the owner approved, measured on the hand-made buttons: the words
+   start at the left (block, not a centered flex row), the 12px menu icon (the Button sizes every svg 18px), a regular
+   weight Close glyph on its own line height, and no pill, hover wash or focus ring shadow (the focus outline above stays). */
+.gg-menuhint-go,.gg-menuhint-x{border-radius:0;white-space:normal}
+.gg-menuhint-go{display:block}
+.gg-menuhint-x{font-weight:400;letter-spacing:normal;line-height:1.5}
+.gg-menuhint-ico svg{width:12px;height:12px;flex-shrink:1}
+.gg-menuhint-go:hover,.gg-menuhint-x:hover{background:none}
+.gg-menuhint-go:focus-visible,.gg-menuhint-x:focus-visible{box-shadow:none}
 }
 `;

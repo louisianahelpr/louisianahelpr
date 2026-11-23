@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { giftGuides as G } from "@/content/giftGuides";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import { useHint } from "./GiftHint";
@@ -27,7 +28,7 @@ export function GuidesMenuHint() {
   if (!showing) return null;
   return (
     <div className="gg-menuhint" data-gift-menu-hint="">
-      <button type="button" className="gg-menuhint-go" onClick={openGuidesMenu} aria-haspopup="dialog" data-gift-menu-hint-open="">
+      <Button type="button" variant="ghost" size="sm" className="gg-menuhint-go" onClick={openGuidesMenu} aria-haspopup="dialog" data-gift-menu-hint-open="">
         <span className="gg-menuhint-t">
           {W.before}{" "}
           <span className="gg-menuhint-ico" aria-hidden="true">
@@ -35,10 +36,10 @@ export function GuidesMenuHint() {
           </span>
           <span className="sr-only">{W.icon}</span>{" "}{W.after}
         </span>
-      </button>
-      <button type="button" className="gg-menuhint-x" onClick={close} aria-label={W.close} data-gift-menu-hint-close="">
+      </Button>
+      <Button type="button" variant="ghost" size="sm" className="gg-menuhint-x" onClick={close} aria-label={W.close} data-gift-menu-hint-close="">
         <span aria-hidden="true">✕</span>
-      </button>
+      </Button>
     </div>
   );
 }

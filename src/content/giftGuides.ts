@@ -465,6 +465,8 @@ export const giftGuides = {
   budgetNone: "Nothing in this budget yet. Try a higher one.",
   /** The price sections on Her, Him and Kids (owner 2026-11-21: "they all need to be sorted in sections by price"). */
   priceSection: {
+    /** Owner 2026-11-23 (pop-up "Under 10"): the first section of Her, Him and Kids. */
+    "stocking-stuffers": "Stocking stuffers under $10",
     "under-25": "Under $25",
     "25-to-50": "$25 to $50",
     "50-to-75": "$50 to $75",

@@ -129,6 +129,10 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   // kitchen, out in the yard.
   tray: ["cozy", "kitchen"], cookbook: ["kitchen"], "cutting-board": ["kitchen"], "food-gift": ["kitchen"], coffee: ["kitchen"],
   seasoning: ["kitchen"], "boil-paddle": ["kitchen", "outdoors"],
+  // The owner's 11-23 Him keeps (scripts/giftGuideOwnerKeeps1123.mjs): a pocket knife sharpener and a mosquito repeller go
+  // outdoors, a lighter is outdoors and style, a magnetic tool wristband is tools, a streaming stick is a gadget.
+  "knife-sharpener": ["outdoors", "tools"], "mosquito-repeller": ["outdoors"], lighter: ["outdoors", "style"], "tool-wristband": ["tools"],
+  "streaming-stick": ["tech"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
@@ -151,6 +155,10 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   // The owner's Louisiana adds (11-22 PM): deck boots and a team jersey are for active kids, an LSU cheer dress is
   // dress-up, and chinos, a tee and a baby wash set are cozy everyday wear and care.
   boots: ["active"], jersey: ["active"], dress: ["pretend"], pants: ["cozy"], tee: ["cozy"], "baby-care": ["cozy"],
+  // The owner's 11-23 Kids keeps (scripts/giftGuideOwnerKeeps1123.mjs): figures are pretend play, a foam blaster, a fishing
+  // kit and a water bottle are for active kids, shoe charms and putty are stocking stuffers, play sand is creative.
+  figures: ["pretend"], blaster: ["active"], fishing: ["active"], "water-bottle": ["active"], "shoe-charms": ["stocking"],
+  putty: ["stocking"], "sensory-sand": ["creative"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -211,6 +219,10 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   // The owner's Louisiana adds (11-22 PM), by their sizes: Big Kids deck boots, youth chinos, the toddler-to-youth cheer
   // dress and Happy tee, the youth 4-20 Saints jersey, and a baby wash set.
   boots: ["6-8", "9-12"], pants: ["6-8", "9-12"], dress: ["3-5", "6-8"], tee: ["3-5", "6-8", "9-12"], jersey: ["6-8", "9-12", "teen"], "baby-care": ["0-2"],
+  // The owner's 11-23 Kids keeps, by each box's age (Desktop owner-keeps-1123.json): Bluey figures 3+, NERF 8+, Jibbitz
+  // 5+, Thinking Putty 3+, Kinetic Sand 3+, the fishing kit and the Owala bottle 4+.
+  figures: ["3-5", "6-8"], blaster: ["6-8", "9-12"], "shoe-charms": ["6-8", "9-12"], putty: ["3-5", "6-8", "9-12"],
+  "sensory-sand": ["3-5", "6-8"], fishing: ["3-5", "6-8", "9-12"], "water-bottle": ["3-5", "6-8"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],
@@ -231,6 +243,13 @@ const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/nintendo switch with/i, ["6-8", "9-12", "teen"]],
   [/doorbell house|ramp racer/i, ["0-2", "3-5"]],
   [/shopping cart/i, ["3-5"]],
+  // The owner's 11-23 Kids keeps whose box age differs from their type's: Ms. Rachel phone 12 months+, Spike the hedgehog
+  // 18 months+, Green Toys dump truck 12 months+, Polly Pocket 4+, Play-Doh Noodle Party 3+.
+  [/ms\. rachel talk with me phone/i, ["0-2", "3-5"]],
+  [/spike the fine motor hedgehog/i, ["0-2", "3-5"]],
+  [/green toys dump truck/i, ["0-2", "3-5"]],
+  [/polly pocket/i, ["3-5", "6-8"]],
+  [/play-doh kitchen creations noodle/i, ["3-5", "6-8"]],
 ];
 export function quizAges(pick: Pick<CatalogPick, "name" | "type">): QuizAge[] {
   for (const [re, ages] of AGE_BY_NAME) if (re.test(pick.name)) return ages;

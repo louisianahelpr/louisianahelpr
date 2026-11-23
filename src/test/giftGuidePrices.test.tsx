@@ -35,9 +35,13 @@ import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
 import { PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { verifiedPrice } from "../../scripts/giftGuidePrice.mjs";
 import { PRICE_RECHECKS } from "../../scripts/giftGuidePriceRecheck.mjs";
+import { HIM_KEEPS_1123, KIDS_KEEPS_1123 } from "../../scripts/giftGuideHimKids1121.mjs";
+import { KEEPS_PRICE_AT } from "../../scripts/giftGuideOwnerKeeps1123.mjs";
 import { openPriceSections } from "./helpers/openPriceSections";
 
 afterEach(cleanup);
+
+const KEEP_HREFS = new Set([...HIM_KEEPS_1123, ...KIDS_KEEPS_1123].map((r) => r.href));
 
 const CHUNKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
   Object.entries(import.meta.glob<PickChunk>("../content/giftGuidePicks/*.json", { eager: true, import: "default" }))
@@ -102,10 +106,11 @@ describe("gift-guide prices: the generated chunks", () => {
     // and 97 Amazon picks carry a price (20 Her + 37 Him + 40 Kids, measured 2026-11-21).
     for (const slug of OWNER_LISTS) {
       expect(CHUNKS[slug].length, slug).toBeGreaterThan(30);
-      // Checked 11-21 (her saves) or 11-22 (the picks she sent on launch day, scripts/giftGuideOwnerAdds1122.mjs), or
+      // Checked 11-21 (her saves), 11-22 (the picks she sent on launch day, scripts/giftGuideOwnerAdds1122.mjs), 11-23 (her
+      // under-$25 keeps, scripts/giftGuideOwnerKeeps1123.mjs, each listed there), or
       // the day a daily re-check read this link at this exact price (scripts/giftGuidePriceRecheck.mjs).
       const rechecked = (p: { href: string; price?: number; priceAt?: string }) => PRICE_RECHECKS[p.href]?.price === p.price && PRICE_RECHECKS[p.href]?.priceAt === p.priceAt;
-      expect(CHUNKS[slug].filter((p) => !(typeof p.price === "number" && p.price > 0 && (p.priceAt === "2026-11-21" || p.priceAt === "2026-11-22" || rechecked(p)))).map((p) => p.name), slug).toEqual([]);
+      expect(CHUNKS[slug].filter((p) => !(typeof p.price === "number" && p.price > 0 && (p.priceAt === "2026-11-21" || p.priceAt === "2026-11-22" || (p.priceAt === KEEPS_PRICE_AT && KEEP_HREFS.has(p.href)) || rechecked(p)))).map((p) => p.name), slug).toEqual([]);
     }
     expect(amazonPriced).toBeGreaterThan(90);
     // Amazon keeps its 15 best (owner's 10-15 per store page; lead 11-19, 1530 train).

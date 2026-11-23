@@ -30,6 +30,9 @@
  * @mutate supabase/functions/record-signup-lead/index.ts |     return "refused";\n  }\n  const codes |     return "ok";\n  }\n  const codes
  * @mutate supabase/functions/record-signup-lead/index.ts | token.length > MAX_TOKEN_LEN) { | token.length > MAX_TOKEN_LEN && false) {
  * @mutate supabase/functions/record-signup-lead/index.ts |     if (verdict === "unavailable") return json({ error: "Could not verify" }, 503); |     void verdict;
+ * @mutate supabase/functions/record-signup-lead/index.ts |   if (turnstileSecret && !tokenSent && !requireToken) { |   if (false) {
+ * @mutate supabase/functions/record-signup-lead/index.ts |   const requireToken = Deno.env.get("SIGNUP_LEAD_REQUIRE_CAPTCHA")?.trim().toLowerCase() === "true"; |   const requireToken = false;
+ * @mutate supabase/functions/record-signup-lead/index.ts |   if (requireToken && !turnstileSecret) { |   if (false) {
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -265,10 +268,38 @@ describe("record-signup-lead: the Turnstile bot check (Q1589)", () => {
 
   const recorded = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "record_signup_lead");
 
-  it("a capture with no token is refused and nothing is saved, without asking Cloudflare", async () => {
+  it("once the cutover requires a token (SIGNUP_LEAD_REQUIRE_CAPTCHA), a capture with none is refused and nothing is saved, without asking Cloudflare", async () => {
+    setEnv({
+      SUPABASE_URL: "https://x.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service-key",
+      TURNSTILE_SECRET_KEY: "turnstile-secret",
+      SIGNUP_LEAD_REQUIRE_CAPTCHA: "true",
+    });
     const res = await capture({ email: "stranger@gmail.com" });
     expect(res.status).toBe(403);
     expect(recorded()).toEqual([]);
+    expect(verifyBodies).toEqual([]);
+  });
+
+  it("requiring a token with no secret to check it against saves nothing (500), never an unchecked save", async () => {
+    setEnv({
+      SUPABASE_URL: "https://x.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service-key",
+      SIGNUP_LEAD_REQUIRE_CAPTCHA: "TRUE",
+    });
+    const res = await capture({ email: "visitor@gmail.com", captcha_token: "good-token" });
+    expect(res.status).toBe(500);
+    expect(recorded()).toEqual([]);
+  });
+
+  // Audit DQ-1 (2026-11-23): the web build ships the widget dormant
+  // (VITE_TURNSTILE_ENABLED off since 2026-10-20, Q2113), so no visitor can send
+  // a token; with the secret set, prod refused 12 of 12 captures in 24 h
+  // ("refused: missing captcha_token") and saved 1 lead in 26 days.
+  it("while the widget ships dormant (no SIGNUP_LEAD_REQUIRE_CAPTCHA), a token-less capture is saved (204), without asking Cloudflare (DQ-1)", async () => {
+    const res = await capture({ email: "visitor@gmail.com" });
+    expect(res.status).toBe(204);
+    expect(recorded().map((c) => c.args)).toEqual([{ p_email: "visitor@gmail.com", p_source: null, p_replaces: null }]);
     expect(verifyBodies).toEqual([]);
   });
 

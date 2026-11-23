@@ -35,5 +35,5 @@ for (const slug of LIVE_GUIDES_1121.filter((s) => isOwnerList(s))) {
   stale ||= bad;
   console.log(`${bad ? "STALE" : "ok   "} ${slug}: ${picks.length} picks, newest check ${newest ?? "none"} (${age} days), oldest ${days[0] ?? "none"}, unpriced ${unpriced}`);
 }
-if (stale) console.log(`Refresh due: re-run fill_prices.py, then node scripts/gift-guide-picks.mjs (prices hide 30 days after their check).`);
+if (stale) console.log(`Refresh due: re-read prices, then append same-price re-checks to scripts/giftGuidePriceRecheck.mjs and set priceAt in the picks JSON (never re-run gift-guide-picks.mjs; prices hide 30 days after their check).`);
 process.exit(stale ? 1 : 0);

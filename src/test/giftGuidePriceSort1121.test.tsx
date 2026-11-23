@@ -136,7 +136,7 @@ describe("the sort control on the page (owner 11-21)", () => {
   // and the default order (low to high) follows the shown prices.
   it("every row shows its price in either order, Amazon rows too, and the default order is the shown prices low to high", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-22T18:00:00Z")); // the launch-day adds were priced 11-22
+    vi.setSystemTime(new Date("2026-11-23T18:00:00Z")); // the newest check day (11-23 daily re-check, scripts/giftGuidePriceRecheck.mjs)
     await act(async () => { await loadGuidePicks("her"); });
     const { container } = renderAt("/gift-guides/her");
     const dollars = () => [...openPriceSections(container).querySelectorAll<HTMLElement>("[data-gift-pick]")].map((li) => Number((li.querySelector("[data-gift-price]")?.textContent ?? "").replace(/^(~|from )\$/, "")));
@@ -171,7 +171,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
   }));
   it.each(["him", "kids", "her"])("/gift-guides/%s: Under $25, $25 to $50, $50 to $75, $75 to $100, $100 and up, each labelled with its count; reversed high to low", async (slug) => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-22T18:00:00Z")); // the launch-day adds were priced 11-22
+    vi.setSystemTime(new Date("2026-11-23T18:00:00Z")); // the newest check day (11-23 daily re-check, scripts/giftGuidePriceRecheck.mjs)
     await act(async () => { await loadGuidePicks(slug); });
     const { container } = renderAt(`/gift-guides/${slug}`);
     // Every "Show more" (50 at a time; Him holds 141 of her saves since 11-21).

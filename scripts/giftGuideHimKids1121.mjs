@@ -26,6 +26,7 @@ import { relsOf } from "./giftGuidePeople1120.mjs";
 import { AMAZON_BRAND_PHOTOS_1122, cutoutPhoto } from "./giftGuideCutouts1120.mjs";
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 import { ADDS_STORES_1122, HIM_ADDS_1122, KIDS_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
+import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
 
 export const HIM_GUIDE = "him";
 export const KIDS_GUIDE = "kids";
@@ -458,7 +459,7 @@ const build = (rows, slug, g) =>
     // AMAZON PRICES ON (owner 2026-11-21 ~12:05 PM: "each item also needs a price"; she chose "Show Amazon prices
     // anyway" after the Associates warning): an Amazon pick shows the price captured from her saved list (sortPrice).
     const shown = isAmazon(r) ? r.sortPrice : price;
-    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: r.priceAt ?? HIM_KIDS_PRICE_AT });
+    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: recheckedPriceAt(r.href, shown, r.priceAt ?? HIM_KIDS_PRICE_AT) });
     return { ...p, rels: g ? relsOf(g, p) : [] };
   });
 

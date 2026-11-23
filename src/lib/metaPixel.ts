@@ -60,7 +60,7 @@ type PixelWindow = Window & {
   requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
 };
 
-let state: "idle" | "scheduled" | "started" = "idle";
+let state: "idle" | "scheduled" | "loading" | "waiting" | "started" = "idle";
 /** The router's latest path, and the path the last PageView counted. */
 let routerPath: string | null = null;
 let lastPath: string | null = null;
@@ -81,13 +81,22 @@ export function carriesSecretToken(url: string): boolean {
   return redactInviteToken(url) !== url;
 }
 
-/** The address fbevents.js would send as dl=, or the router's path when it is the newer of the two. */
+/**
+ * Would fbevents.js send a token right now? It sends the address as dl= and document.referrer as rl=. Our
+ * Referrer-Policy (strict-origin-when-cross-origin) keeps the whole previous address for a same-site page load, so a
+ * full load away from a token page (the session timeout's /login, a Cmd-click on a reveal page's link) carries the
+ * token in the referrer for that whole document: the pixel then never starts in it (lane review of the LT-1 fix, #1).
+ */
 function onSecretPage(win: PixelWindow, routerUrl?: string): boolean {
-  return carriesSecretToken(win.location.href) || (routerUrl !== undefined && carriesSecretToken(routerUrl));
+  return (
+    carriesSecretToken(win.location.href) ||
+    carriesSecretToken(win.document.referrer ?? "") ||
+    (routerUrl !== undefined && carriesSecretToken(routerUrl))
+  );
 }
 
-/** Meta's base code, as code: the queueing fbq stub and the async fbevents.js tag. */
-function installBaseCode(win: PixelWindow): Fbq {
+/** Meta's base code, as code: the fbq stub and the async fbevents.js tag, which calls `onReady` once it has loaded. */
+function installBaseCode(win: PixelWindow, onReady: () => void): Fbq {
   if (win.fbq) return win.fbq;
   const fbq = function (...args: unknown[]) {
     if (fbq.callMethod) fbq.callMethod(...args);
@@ -106,12 +115,37 @@ function installBaseCode(win: PixelWindow): Fbq {
   const script = win.document.createElement("script");
   script.async = true;
   script.src = FBEVENTS_SRC;
+  script.addEventListener("load", onReady, { once: true });
   win.document.head.appendChild(script);
   return fbq;
 }
 
+/**
+ * init and the first PageView, only once fbevents.js has loaded: a queued call is sent when the script arrives, with
+ * the address of that moment, so queueing them earlier would send a token page the visitor reached in between
+ * (lane review of the LT-1 fix, #2). Checked again here; on a token page it waits for the next clean route.
+ */
+function initAndCount(win: PixelWindow): void {
+  if (!metaPixelAllowed()) return;
+  if (onSecretPage(win)) {
+    state = "waiting";
+    return;
+  }
+  state = "started";
+  try {
+    const fbq = win.fbq;
+    if (!fbq) return;
+    fbq("set", "autoConfig", false, META_PIXEL_ID);
+    fbq("init", META_PIXEL_ID);
+    fbq("track", "PageView");
+    lastPath = routerPath ?? win.location.pathname;
+  } catch {
+    /* advertising measurement must never break the page */
+  }
+}
+
 function start(win: PixelWindow): void {
-  if (state === "started") return;
+  if (state !== "scheduled") return;
   // Re-checked at start: a test profile may have signed in while the page loaded.
   if (!metaPixelAllowed()) {
     state = "idle";
@@ -122,13 +156,9 @@ function start(win: PixelWindow): void {
     state = "idle";
     return;
   }
-  state = "started";
+  state = "loading";
   try {
-    const fbq = installBaseCode(win);
-    fbq("set", "autoConfig", false, META_PIXEL_ID);
-    fbq("init", META_PIXEL_ID);
-    fbq("track", "PageView");
-    lastPath = routerPath ?? win.location.pathname;
+    installBaseCode(win, () => initAndCount(win));
   } catch {
     /* advertising measurement must never break the page */
   }
@@ -152,12 +182,17 @@ function whenLoadedAndIdle(win: PixelWindow, run: () => void): void {
 export function metaPixelRoute(pathname: string, search = ""): void {
   if (!metaPixelAllowed()) return;
   const win = window as PixelWindow;
-  // A reveal or invite token in the address: never start the pixel here and never count this page.
+  // A reveal or invite token in the address (or the referrer): never start the pixel here and never count this page.
   if (onSecretPage(win, `${pathname}${search}`)) return;
   routerPath = pathname;
   if (state === "idle") {
     state = "scheduled";
     whenLoadedAndIdle(win, () => start(win));
+    return;
+  }
+  // fbevents.js loaded while the visitor was on a token page: this clean page is the first one counted.
+  if (state === "waiting") {
+    initAndCount(win);
     return;
   }
   // Not started yet: the PageView at start covers whichever page the visitor is on by then.

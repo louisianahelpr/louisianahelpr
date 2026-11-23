@@ -83,7 +83,7 @@ describe("whole-app audit 11-23: legal and help copy say what the code does", ()
     expect(terms).not.toMatch(/drops 5%/);
     const steps = DROP_PCT_CHOICES.map((p) => `${p}%`);
     expect(steps.length).toBeGreaterThan(1);
-    expect(terms).toContain(`drops by the step its seller picked (${steps.slice(0, -1).join(", ")} or ${steps.at(-1)})`);
+    expect(terms).toContain(`drops by the step its seller picked (${steps.slice(0, -1).join(", ")} or ${steps[steps.length - 1]})`);
   });
 
   it("S-T2: porch follows settings and can be changed on a live listing", () => {
@@ -92,9 +92,17 @@ describe("whole-app audit 11-23: legal and help copy say what the code does", ()
   });
 
   it("S-T3: trades are written down in the Terms and in Help", () => {
-    expect(terms).toContain('<strong className="text-foreground">Trades.</strong>');
+    const at = terms.indexOf('<strong className="text-foreground">Trades.</strong>');
+    expect(at).toBeGreaterThan(0);
+    const row = terms.slice(at, terms.indexOf("</p>", at));
+    // The trade migrations: a 48-hour answer window, a 48-hour pickup choice, a lapse or back-out with no strike.
+    expect(row).toMatch(/no money changes hands and no fee is charged/);
+    expect(row).toMatch(/48 hours to accept or say no/);
+    expect(row).toMatch(/within 48 hours, from the porch or at the door/);
+    expect(row).toMatch(/nobody gets a strike/);
     const trade = help.find((x) => x.q === "Can I trade on Declutter?");
     expect(trade?.a).toMatch(/no money changes hands/);
+    expect(trade?.a).toMatch(/nobody gets a strike/);
   });
 
   it("S-H2: a free item is porch pickup, and Help points to Give away free", () => {

@@ -301,7 +301,8 @@ describe("Small Business Saturday: the top link, the sort and the heart on one r
     expect(css).toContain("@media (min-width:768px){.gg-sbs-row .gg-mylist-icon{display:none}}");
     // The list's own order first (by category), then A to Z and Z to A by name.
     expect(slugs(container)).toEqual(file.map((b) => b.slug));
-    expect(sort.getAttribute("aria-label")).toBe("Sort businesses");
+    // Consistency audit 1122 #6: one name per action on the sliders icon ("Sort", as on Her, Him and Kids).
+    expect(sort.getAttribute("aria-label")).toBe("Sort");
     await act(async () => { fireEvent.click(sort); });
     const choices = [...container.querySelectorAll("[data-gift-sort-choice]")];
     expect(choices.map((b) => b.getAttribute("data-gift-sort-choice"))).toEqual(["category", "az", "za"]);
@@ -311,7 +312,7 @@ describe("Small Business Saturday: the top link, the sort and the heart on one r
     const az = [...file].sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" })).map((b) => b.slug);
     expect(az).not.toEqual(file.map((b) => b.slug));
     expect(slugs(container)).toEqual(az);
-    expect(sort.getAttribute("aria-label")).toBe("Sort businesses, Name: A to Z");
+    expect(sort.getAttribute("aria-label")).toBe("Sort, Name: A to Z");
     expect(sort.querySelector("[data-gift-sort-on]")).not.toBeNull();
     await act(async () => { fireEvent.click(sort); });
     await act(async () => { fireEvent.click(container.querySelector('[data-gift-sort-choice="za"]')!); });

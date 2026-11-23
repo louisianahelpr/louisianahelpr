@@ -295,7 +295,8 @@ describe("/holidays: lights and events in one list", () => {
     const { container } = at("/holidays", <HolidayHub />);
     const button = container.querySelector("[data-holiday-filters-button]") as HTMLButtonElement;
     expect(button.textContent).toBe("");
-    expect(button.getAttribute("aria-label")).toBe("Filters");
+    // Consistency audit 1122 #6: the sliders icon that filters is "Filter" on every guides page (the sheet's title stays).
+    expect(button.getAttribute("aria-label")).toBe("Filter");
     expect(button.className).not.toMatch(/\bborder\b/);
     expect(button.getAttribute("aria-expanded")).toBe("false");
     const search = container.querySelector("[data-holiday-search-button]") as HTMLButtonElement;
@@ -405,7 +406,7 @@ describe("/holidays: lights and events in one list", () => {
     fireEvent.click(show);
     expect(screen.queryByRole("dialog", { name: "Filters" })).toBeNull();
     expect(button.textContent).toBe("3"); // the icon and its count badge
-    expect(button.getAttribute("aria-label")).toBe("Filters, 3 on");
+    expect(button.getAttribute("aria-label")).toBe("Filter, 3 on");
   });
 
   it("a URL preset shows as removable chips with the count; removing one widens the list, Clear all empties them", () => {

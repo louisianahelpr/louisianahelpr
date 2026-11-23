@@ -36,6 +36,7 @@ import { GuidesMenuHint, MENU_HINT_GUIDES } from "./GiftGuideMenuHint";
 import { SHOP_SMALL_GUIDE } from "@/content/giftGuideSmallBiz.mjs";
 import { deadlineChip, louisianaToday } from "@/content/giftGuideExtras1120";
 import { LazyGuideQa, QA_CATALOG_GUIDES } from "./LazyGuideQa";
+import { DupeLink } from "./DupeLink";
 
 /**
  * One guide's body, /gift-guides/<slug> (owner's final design 2026-11-18; the back link and the gingham band sit
@@ -148,6 +149,9 @@ export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide
           Amazon cart, credited to our tag (src/lib/retailerCart.ts). Its own 44px link, outside the card link, like the
           heart; nothing for other stores. Owner 2026-11-22: it sits right under the heart on the photo's top-right; on a
           phone (owner 11-22 later) the two sit in one line at the row's bottom-right under the price, cart left of the heart. */}
+      {/* Owner 2026-11-23: a pick with an approved dupe shows the plain word "dupe" left of the cart (no circle); a pick
+          with no cart has it in the cart's place. Its tap opens the dupe panel; the dupe is never a card of its own. */}
+      {pick.dupes?.length ? <DupeLink dupes={pick.dupes} of={pick.name} solo={!cart} /> : null}
       {cart && (
         <GiftOut href={cart} className="gg-cart">
           <ShoppingCart aria-hidden="true" />

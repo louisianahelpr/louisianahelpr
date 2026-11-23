@@ -209,6 +209,32 @@ export function isLivePickChunk<T>(v: unknown): v is T {
   return Array.isArray(o.deals) && o.deals.every((d) => !!d && typeof d === "object" && typeof (d as { title?: unknown }).title === "string" && okLink((d as { href?: unknown }).href));
 }
 
+const okCount = (v: unknown) => v === undefined || (typeof v === "number" && Number.isFinite(v) && v >= 0);
+const isDupe = (d: unknown): boolean => {
+  if (!d || typeof d !== "object") return false;
+  const o = d as Record<string, unknown>;
+  return str(o.name) && typeof o.price === "number" && Number.isFinite(o.price) && o.price > 0 && str(o.priceAt) && okLink(o.href) && okPhoto(o.image) && okCount(o.rating) && okCount(o.reviewCount);
+};
+const isDupeFor = (f: unknown): boolean => {
+  if (!f || typeof f !== "object") return false;
+  const o = f as Record<string, unknown>;
+  return okLink(o.href) || (str(o.brand) && str(o.nameHas));
+};
+
+/** The owner's dupes (src/content/giftGuideDupes.json): each entry names its original and holds one or more dupes. */
+export function isLiveDupes<T>(v: unknown): v is T {
+  if (!v || typeof v !== "object") return false;
+  const list = (v as { dupes?: unknown }).dupes;
+  return (
+    Array.isArray(list) &&
+    list.every((e) => {
+      if (!e || typeof e !== "object") return false;
+      const o = e as Record<string, unknown>;
+      return isDupeFor(o.for) && Array.isArray(o.dupes) && o.dupes.length > 0 && o.dupes.every(isDupe);
+    })
+  );
+}
+
 /** The deals days' cards (src/content/giftGuideDeals.json). */
 export function isLiveDeals<T>(v: unknown): v is T {
   return (

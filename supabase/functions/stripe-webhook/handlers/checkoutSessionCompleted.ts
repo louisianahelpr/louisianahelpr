@@ -815,8 +815,8 @@ async function settleCheckoutSession(
           // UNLESS the donor is a seed (test) account and the recipient is not
           // (Q139: test data never notifies a real person). The gift itself is
           // minted either way; only the email is withheld.
-          // F497 (audit 11-10): the email names the day the credit expires. The row's expires_at comes from
-          // the column default (now() + 90 days, migration 20260612310000); nothing else sets it at mint.
+          // F497 (audit 11-10): the email states the credit's term. MON-1123-01: expires_at is always NULL
+          // (no default, trg_gift_cards_never_expire, migration 20261123090716), so the email says it never expires.
           const expiresAt = (minted[0] as { expires_at?: string | null }).expires_at ?? null;
           const seedGate = await giftEmailCrossesSeedBoundary(supabase, donorId, recipientId);
           if (seedGate.checkFailed) {

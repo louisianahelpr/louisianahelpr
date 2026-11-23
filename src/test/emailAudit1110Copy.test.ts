@@ -7,8 +7,10 @@
  * (migration 20260612310000, no later ALTER); claim raises 'This gift has expired' past it. The webhook now reads
  * the minted row's expires_at and the email says "Credit expires Feb 8, 2027." in Louisiana time. No minimum
  * spend exists in the claim or redeem paths (the only floors are the DONOR's $10 and Stripe's $0.50 card
- * shortfall), so the email states none.
- * @mutate supabase/functions/_shared/email-templates/gift-card.tsx |         Credit expires {expiresOn}.\n |         Your credit expires {expiresOn}.\n
+ * shortfall), so the email states none. MON-1123-01 (2026-11-23): gift cards never expire (20261123090716 keeps
+ * expires_at NULL), so a NULL row now reads "Your credit never expires."; a dated row would still name its day
+ * (giftCardsNeverExpire.test.tsx).
+ * @mutate supabase/functions/_shared/email-templates/gift-card.tsx | {expiresOn ? `Credit expires ${expiresOn}.` | {expiresOn ? `Your credit expires ${expiresOn}.`
  * @mutate supabase/functions/_shared/giftCardEmail.ts |       note: note \|\| null,\n      expiresOn,\n |       note: note \|\| null,\n
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |               claimToken,\n              expiresAt,\n |               claimToken,\n
  * @mutate supabase/functions/_shared/centralDateTime.ts | { month: "short", day: "numeric", year: "numeric", timeZone: MEMBER_TIMEZONE } | { month: "short", day: "numeric", timeZone: MEMBER_TIMEZONE }
@@ -63,7 +65,7 @@ describe("email copy, whole-app audit 11-10", () => {
 
     const tpl = read("supabase/functions/_shared/email-templates/gift-card.tsx");
     expect(tpl).toContain("expiresOn?: string | null");
-    expect(tpl).toMatch(/\{expiresOn \? \([\s\S]*?Credit expires \{expiresOn\}\.[\s\S]*?\) : null\}/);
+    expect(tpl).toContain("{expiresOn ? `Credit expires ${expiresOn}.` : \"Your credit never expires.\"}");
   });
 
   it("F491: the Declutter intro names both handovers the orders table allows, pickup and delivery", () => {

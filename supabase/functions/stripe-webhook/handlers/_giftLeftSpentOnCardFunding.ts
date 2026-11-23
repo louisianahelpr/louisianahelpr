@@ -76,7 +76,7 @@ export async function pageGiftLeftSpentOnCardFunding(
         severity: "critical",
         seed: job?.is_seed === true,
         title: `Gift card still spent on a job the poster paid in full by ${how}`,
-        message: `Job ${jobId} ("${title}") was just paid in full by ${how}, but ${poster}'s $${dollars} gift card ${g.id} is still marked spent on it from an earlier checkout that never funded the job (a bounced bank payment). ${poster} is owed the gift back. Return it by hand: status 'sent', job_id NULL, redeemed_at NULL, expires_at at least 90 days out, and tell ${poster} it is back.`,
+        message: `Job ${jobId} ("${title}") was just paid in full by ${how}, but ${poster}'s $${dollars} gift card ${g.id} is still marked spent on it from an earlier checkout that never funded the job (a bounced bank payment). ${poster} is owed the gift back. Return it by hand: status 'sent', job_id NULL, redeemed_at NULL (expires_at stays NULL: gift cards never expire), and tell ${poster} it is back.`,
         fields: { job_id: jobId, job_title: title, poster, gift_card_id: g.id, gift_amount: `$${dollars}`,
           ...(args.method === "bank" ? { payment_intent: sessionId } : { session_id: sessionId }) },
         oncePerDayKey: `gift-spent-card-funded:${g.id}`,

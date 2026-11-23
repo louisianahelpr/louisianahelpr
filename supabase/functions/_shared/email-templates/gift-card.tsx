@@ -30,7 +30,7 @@ export interface GiftCardEmailProps {
   claimUrl: string
   /** Optional note the donor wrote. */
   note?: string | null
-  /** The day the credit expires, already formatted ("Feb 8, 2027"); null drops the line. */
+  /** The day the credit expires, already formatted ("Feb 8, 2027"); null (every card since MON-1123-01) says it never expires. */
   expiresOn?: string | null
 }
 
@@ -73,13 +73,12 @@ export const GiftCardEmail = ({ donorName, amount, claimUrl, note, expiresOn }: 
       <strong style={{ color: brand.olivewood }}>{amount} credit</strong> works on any job on Helpr: cleaning,
       yard work, handyman help, groceries and more, and on Declutter buys.
     </Text>
-    {expiresOn ? (
-      // F497 (audit 11-10): the term, read off the gift_cards row itself. Credits expire 90 days after the gift
-      // (column default, migration 20260612310000). No minimum spend exists in the claim or redeem paths, so none is stated.
-      <Text className="e-text" style={textStyle}>
-        Credit expires {expiresOn}.
-      </Text>
-    ) : null}
+    {/* F497 (audit 11-10): the term, read off the gift_cards row itself. MON-1123-01: gift cards never expire
+        (migration 20261123090716 keeps expires_at NULL; La. R.S. 51:1423), so the line says so; a dated row would
+        still name its day. No minimum spend exists in the claim or redeem paths, so none is stated. */}
+    <Text className="e-text" style={textStyle}>
+      {expiresOn ? `Credit expires ${expiresOn}.` : "Your credit never expires."}
+    </Text>
     {note ? (
       // Translucent olive wash, so unlike the admin-action callouts this one
       // reads correctly over the dark card too — hence it KEEPS `e-text` and

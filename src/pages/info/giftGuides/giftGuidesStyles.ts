@@ -275,6 +275,36 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-heart-pick{top:2px;left:auto;right:2px}
 .gg-list .gg-cart{top:46px;left:auto;right:2px}
 }
+/* Owner 2026-11-23 ("add the word dupe to the left of the cart, no circle around it"): a pick with a dupe shows the plain
+   word "dupe" in the card's small text, a 44px box with no circle, border or fill, right beside the cart (left of it);
+   a pick with no cart (.gg-dupe-solo) has it in the cart's place. Phone: on the row's bottom line; tablet and computer:
+   on the photo beside the cart, with the same thin white halo. Its tap opens the dupe panel (DupePanel.tsx). */
+.gg-dupe{display:inline-flex;align-items:center;justify-content:flex-end;min-width:44px;height:44px;margin:0;padding:0 6px;border:0;border-radius:0;background:transparent;box-shadow:none;font:inherit;font-size:12px;font-weight:400;line-height:1;color:var(--gg-muted);white-space:nowrap;cursor:pointer;text-shadow:0 0 2px rgba(255,255,255,.95),0 0 3px rgba(255,255,255,.8)}
+.gg-dupe:hover{color:hsl(var(--bark));text-decoration:underline}
+.gg-dupe:focus-visible{outline:2px solid hsl(var(--bark));outline-offset:1px}
+.gg-list .gg-dupe{position:absolute;z-index:1}
+@media (max-width:767px){
+.gg-list>:where([data-gift-pick])>.gg-dupe{bottom:0;right:88px}
+.gg-list>:where([data-gift-pick])>.gg-dupe-solo{right:44px}
+}
+@media (min-width:768px){
+.gg-list .gg-dupe{top:46px;left:auto;right:46px;justify-content:center}
+.gg-list .gg-dupe-solo{right:2px}
+}
+/* The Top 10 card (and Swipe's saved grid) keeps its heart and cart on the photo's top-right at every width, so the word
+   sits beside the cart there too (in its place when there is no cart). */
+.gg-list.gg-top10 .gg-dupe{top:46px;bottom:auto;left:auto;right:46px;justify-content:center}
+.gg-list.gg-top10 .gg-dupe-solo{right:2px}
+.gg-dupe-pop{width:calc(var(--gg-dupe-cols,1) * 220px + (var(--gg-dupe-cols,1) - 1) * 20px + 40px);max-width:calc(100vw - 32px);max-height:min(80vh,640px);overflow-y:auto;padding:16px 20px;border-radius:16px;background:hsl(var(--card))}
+.gg-dupe-x{position:absolute;top:4px;right:4px;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;background:transparent;color:var(--gg-muted);cursor:pointer}
+.gg-dupe-x svg{width:18px;height:18px}
+.gg-dupe-x:focus-visible{outline:2px solid hsl(var(--bark));outline-offset:-4px}
+.gg-dupe-note{margin:0 40px 10px 0;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:18px;font-weight:600;line-height:1.2;color:var(--gg-ink)}
+/* The panel's dupes are the guide's own rows (PickRow in a .gg-list): the phone's rows in the sheet, the computer's cards
+   in the popover, one column per dupe up to three (--gg-dupe-cols, set on the popover). */
+.gg-dupe-pop .gg-list{margin:0;grid-template-columns:repeat(var(--gg-dupe-cols,1),minmax(0,1fr))}
+.gg-dupe-sheet .gg-dupe-list{margin:0;max-height:60dvh;overflow-y:auto}
+.gg-dupe-panel .gg-price-note{margin:10px 0 0}
 .gg-cart svg{width:20px;height:20px;filter:drop-shadow(0 0 1px rgba(255,255,255,.95)) drop-shadow(0 0 2px rgba(255,255,255,.8))}
 .gg-cart:hover{color:hsl(var(--bark))}
 .gg-cart:focus-visible{outline:2px solid hsl(var(--bark));outline-offset:1px}

@@ -18,6 +18,7 @@ import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs"
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { pickPriceShown, shownDollars } from "@/lib/pickPriceShown.mjs";
 import { loadModule, untilReload } from "@/lib/loadModule";
+import { dupesFor, type DupeEntry, type GuideDupe } from "@/content/giftGuideDupes";
 
 /** The 25 Days sponsors guide: the one guide whose picks load with their gift-type labels (loadGuidePicks). */
 const SPONSORS_GUIDE = "25-days-sponsors";
@@ -136,6 +137,9 @@ export interface CatalogPick {
    * the table is never on any guide page's first paint (lead 11-22: ~1.9 KB gz on every /gift-guides/<slug>).
    */
   giftType?: string;
+  /** The owner's cheaper lookalikes for this pick (owner 2026-11-23; one or more), stamped when its guide's picks load,
+   *  from src/content/giftGuideDupes.json loaded beside the chunk. Never cards of their own: only the "dupe" panel shows them. */
+  dupes?: GuideDupe[];
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
@@ -335,15 +339,23 @@ export const loadGuidePicks = async (slug0: string): Promise<void> => {
   // The sponsors guide's gift-type labels come with its own chunk, in parallel, so its rows draw with them (no flash) and
   // no other guide downloads the table. A prevented preload waits on the recovery reload; none coming, the load fails
   // into the page's own Try again, never rows without their labels.
-  const [chunk, types] = await Promise.all([
+  // The owner's dupes (src/content/giftGuideDupes.ts) ride the same way: their own small chunk, beside the picks, so
+  // no guide's first paint carries them and a pick draws with its "dupe" word from the start.
+  const [chunk, types, dupes] = await Promise.all([
     load(),
     slug === SPONSORS_GUIDE ? loadModule(() => import("./giftGuideSponsorGiftTypes")).then((m) => m ?? untilReload()) : null,
+    loadModule(() => import("./giftGuideDupes.json")).then((m) => m ?? untilReload()),
   ]);
   const typed = (p: CatalogPick) => {
     const t = types?.sponsorGiftType(p.name);
     return t ? { ...p, giftType: t } : p;
   };
-  loaded.set(slug, { picks: chunk.picks.map(toPick).map(typed), ...(chunk.deals ? { deals: chunk.deals } : {}) });
+  const entries = (dupes.default as { dupes: DupeEntry[] }).dupes;
+  const withDupe = (p: CatalogPick) => {
+    const d = dupesFor(p, entries);
+    return d.length ? { ...p, dupes: d } : p;
+  };
+  loaded.set(slug, { picks: chunk.picks.map(toPick).map(typed).map(withDupe), ...(chunk.deals ? { deals: chunk.deals } : {}) });
   version += 1;
   listeners.forEach((l) => l());
 };

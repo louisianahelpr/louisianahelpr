@@ -4128,6 +4128,10 @@ const liveChunkSlugs = chunkSlugs.filter(isLiveGuide);
 if (pageList[SPONSORS_GUIDE]) {
   const unconfirmed = [...NOT_CONFIRMED].map((n) => shortSponsorName(n).toLowerCase());
   pageList[SPONSORS_GUIDE] = pageList[SPONSORS_GUIDE].filter((p) => !unconfirmed.some((n) => String(p.brand ?? "").toLowerCase().startsWith(n) || n.startsWith(String(p.brand ?? "").toLowerCase() || "\u0000")));
+  // Guide audit 1123 #4: a sponsor whose own website Small Business Saturday already links gets it on its card, not its
+  // Facebook page (scripts/gift-guide-sponsor-sites-1123.json; guard src/test/guideAuditFixes1123.test.tsx).
+  const SPONSOR_SITES_1123 = JSON.parse(readFileSync(new URL("./gift-guide-sponsor-sites-1123.json", import.meta.url), "utf8")).sites;
+  pageList[SPONSORS_GUIDE] = pageList[SPONSORS_GUIDE].map((p) => (Object.hasOwn(SPONSOR_SITES_1123, p.brand ?? "") ? { ...p, href: SPONSOR_SITES_1123[p.brand] } : p));
 }
 for (const slug of chunkSlugs) {
   writeFileSync(new URL(`${slug}.json`, chunkDir), `${JSON.stringify({ picks: pageList[slug] ?? [], ...(deals[slug]?.length ? { deals: deals[slug] } : {}) })}\n`);

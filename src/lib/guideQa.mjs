@@ -14,7 +14,7 @@
  * chunk (the /gift-guides/:slug budget). Types: guideQa.d.mts. Guard: src/test/guideAiSearch1122.test.tsx.
  */
 
-import { pickPriceShown, shownDollars } from "./pickPriceShown.mjs";
+import { pickPriceShown, priceSectionId, shownDollars } from "./pickPriceShown.mjs";
 import { TWENTY_FIVE_DAYS } from "./seoBodies.mjs";
 import { DEAL_EVENTS, RETITLE_AFTER, dealEnds, dealsIn, liveDeals } from "../content/giftGuideDeals.mjs";
 import { filterEvents, filterLights } from "../content/holidayHub/holidayHub.mjs";
@@ -101,7 +101,25 @@ export function toQaPick(p) {
     ...(p.priceFrom ? { priceFrom: true } : {}),
     ...(badges.includes("louisiana-made") || badges.includes("shop-louisiana") ? { la: true } : {}),
     ...(p.brand ? { brand: p.brand } : {}),
+    // Where the card's link goes when it is not the business's own shop or site (guide audit 1123 #3: the sponsors Q&A
+    // said every sponsor links to its own site while 47 of 109 went to Facebook, Instagram or our /25days page).
+    ...(linkKind(p.href) ? { link: linkKind(p.href) } : {}),
   };
+}
+
+/** "social" for a Facebook or Instagram link, "ours" for a louisianahelpr.com link, "" for a shop or website. */
+export function linkKind(href) {
+  if (typeof href !== "string") return "";
+  let host = "";
+  try {
+    host = new URL(href).hostname.replace(/^www\./, "");
+  } catch {
+    // Not a URL (a data typo): make no claim about where it goes; the links audit catches the row itself.
+    return "";
+  }
+  if (/(^|\.)(facebook\.com|fb\.com|instagram\.com)$/.test(host)) return "social";
+  if (/(^|\.)louisianahelpr\.com$/.test(host)) return "ours";
+  return "";
 }
 
 /**
@@ -111,40 +129,49 @@ export function toQaPick(p) {
 export function catalogGuideQa(slug, picks, today) {
   const rows = (Array.isArray(picks) ? picks : []).filter((p) => p && typeof p.name === "string" && p.name);
   const priced = rows.filter((p) => pickPriceShown(p.price, p.priceAt, today));
-  const dollars = (p) => shownDollars(p.price);
   const qa = [];
   if (slug === "25-days-sponsors") {
     const brands = [...new Set(rows.map((p) => (p.brand ?? "").trim()).filter(Boolean))];
     if (brands.length === 0) return [];
     qa.push({
       q: `What is ${TWENTY_FIVE_DAYS.name}?`,
-      a: `A holiday giveaway from Louisiana Helpr that runs from ${longDate(TWENTY_FIVE_DAYS.startDate).replace(/, \d{4}$/, "")} to ${longDate(TWENTY_FIVE_DAYS.endDate)}. The ${plural(brands.length, "business or brand", "businesses and brands")} on this page are its sponsors.`,
+      // "include": a few lineup sponsors have no card here yet (guide audit 1123 #2), so the page is not the full list.
+      a: `A holiday giveaway from Louisiana Helpr that runs from ${longDate(TWENTY_FIVE_DAYS.startDate).replace(/, \d{4}$/, "")} to ${longDate(TWENTY_FIVE_DAYS.endDate)}. Its sponsors include the ${plural(brands.length, "business or brand", "businesses and brands")} on this page.`,
     });
     const more = brands.length - NAMED;
     qa.push({
       q: `Which businesses sponsor ${TWENTY_FIVE_DAYS.name}?`,
       a: `Sponsors include ${list(brands.slice(0, NAMED))}${more > 0 ? `, plus ${more} more on this page` : ""}.`,
     });
-    const under = priced.filter((p) => !p.priceFrom && dollars(p) <= 25);
+    const under = priced.filter((p) => !p.priceFrom && priceSectionId(p.price) === "under-25");
     if (under.length) qa.push({ q: "Are there sponsor gifts under $25?", a: `Yes. A few: ${list(under.slice(0, NAMED).map((p) => named(p, today)))}.` });
-    qa.push({ q: "Where can I shop the sponsors?", a: "Each sponsor on this page links to its own shop or website." });
+    // Counted from the cards' own links (toQaPick link), so the answer is never wider than the page.
+    const own = rows.filter((p) => !p.link).length;
+    const social = rows.filter((p) => p.link === "social").length;
+    qa.push({
+      q: "Where can I shop the sponsors?",
+      a: own === rows.length
+        ? "Each sponsor on this page links to its own shop or website."
+        : `Of the ${plural(rows.length, "sponsor gift", "sponsor gifts")} on this page, ${own} ${own === 1 ? "links" : "link"} to the sponsor's own shop or website${social ? ` and ${social} to its Facebook or Instagram page` : ""}.`,
+    });
     return qa;
   }
   const who = WHO[slug];
   if (!who) return [];
-  const band = (lo, hi) => priced.filter((p) => dollars(p) > lo && dollars(p) <= hi);
-  const under25 = band(0, 25);
+  // The page's own price sections (priceSectionId, shared with GiftGuideView.tsx), so each count equals its section head.
+  const band = (id) => priced.filter((p) => priceSectionId(p.price) === id);
+  const under25 = band("under-25");
   if (under25.length) {
     qa.push({
       q: `What are good gifts for ${who} under $25?`,
       a: `This guide has ${plural(under25.length, "gift", "gifts")} under $25. ${under25.length > NAMED ? "A few: " : ""}${list(under25.slice(0, NAMED).map((p) => named(p, today)))}.`,
     });
   }
-  const to50 = band(25, 50);
+  const to50 = band("25-to-50");
   if (to50.length) {
     qa.push({
       q: `What are good gifts for ${who} under $50?`,
-      a: `Besides the under-$25 picks, this guide has ${plural(to50.length, "gift", "gifts")} from $26 to $50. ${to50.length > NAMED ? "A few: " : ""}${list(to50.slice(0, NAMED).map((p) => named(p, today)))}.`,
+      a: `Besides the under-$25 picks, this guide has ${plural(to50.length, "gift", "gifts")} from $25 to $50. ${to50.length > NAMED ? "A few: " : ""}${list(to50.slice(0, NAMED).map((p) => named(p, today)))}.`,
     });
   }
   const la = rows.filter((p) => p.la);
@@ -248,6 +275,9 @@ export function smallBizQa(shops, categories) {
   return qa;
 }
 
+/** An event's date words for inside parentheses: no year, and no nested "(...)" ("Nov 20-Dec 24, many dates"; guide audit 1123 #17). */
+const eventDates = (dates) => String(dates).replace(/, \d{4}\b/g, "").replace(/\s*\(([^)]*)\)/g, ", $1");
+
 /** The Holiday Hub (/holidays): lights not over, and events with a confirmed date still ahead or on. */
 export function holidayHubQa(lights, events, today) {
   const ls = filterLights(Array.isArray(lights) ? lights : [], {}, today);
@@ -269,7 +299,7 @@ export function holidayHubQa(lights, events, today) {
   if (evs.length) {
     qa.push({
       q: "What holiday events are coming up in Louisiana?",
-      a: `On now or coming up: ${list(evs.slice(0, NAMED).map((e) => `${e.name}${e.city ? ` in ${e.city}` : ""} (${e.dates.replace(/, \d{4}\b/g, "")})`))}.`,
+      a: `On now or coming up: ${list(evs.slice(0, NAMED).map((e) => `${e.name}${e.city ? ` in ${e.city}` : ""} (${eventDates(e.dates)})`))}.`,
     });
   }
   return qa.slice(0, 5);

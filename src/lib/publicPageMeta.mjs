@@ -83,7 +83,8 @@ export const PUBLIC_PAGE_META = {
   // three before its noindex fallback for an unknown /gift-guides/<slug>.
   "/gift-guides/swipe": {
     title: "Swipe to find gifts — Helpr",
-    description: "Swipe through holiday gift ideas by who it's for and your budget. Save the ones you like to your wish list.",
+    // Guide audit 1123 I11: a Swipe save for Her, Him or Kids goes to the gift planner (owner 11-20), not the wish list.
+    description: "Swipe through holiday gift ideas by who it's for and your budget. Save the ones you like to your gift planner.",
     canonical: `${SITE_ORIGIN}/gift-guides/swipe`,
     ogTitle: "Swipe to find gifts from Louisiana Helpr",
     ogDescription: "Swipe right to save, left to skip. Holiday gift ideas by person and budget.",
@@ -118,10 +119,11 @@ export const PUBLIC_PAGE_META = {
     ogDescription: "Two 21-page Christmas coloring books to print at home, free from Louisiana Helpr.",
   },
   "/gift-guides/printables/banners": {
-    title: "Free printable Happy Thanksgiving banner — Helpr",
-    description: "A free Happy Thanksgiving banner to print as a 12x18 poster at Walgreens, from about $13 with same-day pickup, or at any photo counter. No sign-up.",
+    // Guide audit 1123 #6 / I6: the page holds 4 banners (Happy Thanksgiving and 3 Merry Christmas), so every line names both.
+    title: "Free printable holiday banners — Helpr",
+    description: "Four free holiday banners, Happy Thanksgiving and three Merry Christmas designs, to print as a 12x18 poster at Walgreens, from about $13 with same-day pickup, or at any photo counter. No sign-up.",
     canonical: `${SITE_ORIGIN}/gift-guides/printables/banners`,
-    ogTitle: "Free printable Happy Thanksgiving banner",
+    ogTitle: "Free printable Happy Thanksgiving and Merry Christmas banners",
     ogDescription: "Print it at Walgreens or any photo counter, free from Louisiana Helpr.",
   },
   "/browse": {
@@ -311,7 +313,7 @@ export const NOINDEX_PAGE_META = {
   // names, else Gift tags, so it stays out of the sitemap and serves noindex with its own head.
   "/gift-guides/printables": {
     title: "Free holiday printables — Helpr",
-    description: "Free holiday printables from Louisiana Helpr: Christmas gift tags with names, Christmas coloring books and a Happy Thanksgiving banner, each on its own page.",
+    description: "Free holiday printables from Louisiana Helpr: Christmas gift tags with names, Christmas coloring books and Happy Thanksgiving and Merry Christmas banners, each on its own page.",
     canonical: `${SITE_ORIGIN}/gift-guides/printables`,
     ogTitle: "Free holiday printables",
     ogDescription: "Gift tags with names, Christmas coloring books and a Thanksgiving banner. Print at home, free from Louisiana Helpr.",

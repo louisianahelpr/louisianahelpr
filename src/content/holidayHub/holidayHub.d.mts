@@ -19,6 +19,8 @@ interface HolidayItemBase {
   /** YYYY-MM-DD; null when TBA or unknown. */
   start: string | null;
   end: string | null;
+  /** The only days it runs (YYYY-MM-DD), when its dates have gaps ("Sat Nov 21 and Sat Dec 12"); start/end are the first and last. */
+  days?: string[];
   hours: string | null;
   price: string | null;
   cost: HolidayCost | null;
@@ -53,7 +55,7 @@ export function weekendRange(today: string): [from: string, to: string];
 export type HolidayWhen = "weekend" | "today" | "week";
 export function whenRange(when: HolidayWhen | null | undefined, today: string | undefined): [from: string, to: string] | null;
 /** An item as the date rules read it; `dates` (the date words) is read only for "Opens" / "season" with no end. */
-type HubDated = Pick<HolidayItemBase, "tba" | "start" | "end"> & { dates?: string | null };
+type HubDated = Pick<HolidayItemBase, "tba" | "start" | "end" | "days"> & { dates?: string | null };
 export declare const HOLIDAY_SEASON_END: string;
 export function isOpenEnded(item: HubDated): boolean;
 export function isOver(item: HubDated, today: string): boolean;

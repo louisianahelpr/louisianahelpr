@@ -14,7 +14,7 @@ export const GUIDE_UPDATED = {
   },
   "25-days-sponsors": {
     "day": "2026-11-23",
-    "hash": "5086f226a6b5ef70"
+    "hash": "c7b8d6f8f748e183"
   },
   "black-friday": {
     "day": "2026-11-23",
@@ -29,7 +29,7 @@ export const GUIDE_UPDATED = {
     "hash": "57dae10592ec1f57"
   },
   "holidays": {
-    "day": "2026-11-22",
-    "hash": "ba741e24dbfa00e4"
+    "day": "2026-11-23",
+    "hash": "ec411d8488fa0386"
   }
 };

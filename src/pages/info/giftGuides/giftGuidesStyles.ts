@@ -476,6 +476,8 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list>li{content-visibility:auto;contain-intrinsic-size:auto 128px}
 @media (min-width:768px){.gg-list>li{contain-intrinsic-size:auto 420px}}
 .gg-top10>li{content-visibility:visible}
+/* Guide audit 1123 I2: the gift a search result opened wears a short outline so the eye lands on it. */
+.gg-list>li[data-gift-pick-found]{outline:2px solid hsl(var(--bark));outline-offset:3px;border-radius:12px}
 /* Owner 2026-11-22 (her phone: the quiz's picks had blank photo areas): the finder's results (12 rows at most) always
    draw. Safari skipped rows that were on screen when the list arrived after an answer tap, so no row of it skips. */
 .gg-quiz-list>li{content-visibility:visible}

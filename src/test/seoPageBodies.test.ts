@@ -19,7 +19,7 @@
  * @mutate api/share.ts |     if (!found) return { kind: "notfound", body: notFoundBody("hire") }; |     if (!found) return null;
  * @mutate api/share.ts |   return html.replace(SITE_ENTITY_RE, ""); |   return html;
  * @mutate src/lib/seoBodies.mjs | rel="sponsored nofollow noopener" | rel="noopener"
- * @mutate src/lib/giftGuidePageMeta.mjs |     giftGuideDescription(name, topNames, count) ?? | null ??
+ * @mutate src/lib/giftGuidePageMeta.mjs |     giftGuideDescription(name, lead ?? topNames, count) ?? | null ??
  */
 import { describe, it, expect, beforeAll, vi } from "vitest";
 import { readFileSync } from "node:fs";

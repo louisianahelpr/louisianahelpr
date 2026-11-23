@@ -24,3 +24,23 @@ export function pickPriceShown(price, priceAt, today) {
 
 /** The whole dollars a shown price reads as ("~$24"): rounded, at least $1. */
 export const shownDollars = (price) => Math.max(1, Math.round(Number(price) || 0));
+
+/**
+ * The price section a shown price falls in: ONE rule for the guide page's sections (GiftGuideView.tsx priceSections:
+ * "Under $25 (47)", "$25 to $50 (45)") and the page's Q&A counts (src/lib/guideQa.mjs), so a "~$25" gift sits in
+ * "$25 to $50" in both (guide audit 1123 #1: the Q&A counted it as under $25, Her 51 beside the page's 47).
+ * Guard: src/test/guideAuditFixes1123.test.tsx.
+ */
+export const PRICE_SECTIONS = [
+  { id: "under-25", max: 25 },
+  { id: "25-to-50", max: 50 },
+  { id: "50-to-75", max: 75 },
+  { id: "75-to-100", max: 100 },
+  { id: "100-and-up", max: Infinity },
+];
+
+/** The section id ("under-25", "25-to-50", ...) of a shown price, by the dollars the card reads. */
+export const priceSectionId = (price) => {
+  const dollars = shownDollars(price);
+  return PRICE_SECTIONS.find((s) => dollars < s.max).id;
+};

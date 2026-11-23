@@ -1,0 +1,15 @@
+{
+  "_": "Guide audit 1123 #4 (content audit 1123-early): a 25 Days sponsors-guide card links the business's own website when Small Business Saturday (src/content/giftGuideSmallBiz.json `website`) already has it, not its Facebook page; the /25days lineup keeps Facebook. scripts/gift-guide-picks.mjs applies this map to the sponsors guide right before it writes src/content/giftGuidePicks/25-days-sponsors.json, so a regeneration keeps the links. Keys are the card's brand. Guard: src/test/guideAuditFixes1123.test.tsx.",
+  "sites": {
+    "Beaver's Abundance": "https://www.beaversabundance.com/",
+    "The Soft Life Collective": "https://www.softlifecollective.org/",
+    "Basic Bee": "https://basicbee.co/",
+    "Paddlewheeler Creole Queen": "https://www.creolequeen.com/",
+    "Suzi Marques Photography": "https://suzimarquesphotography.com/",
+    "Crabtrap Functional Fitness": "https://www.crabtrapfunctionalfitness.com/",
+    "Jessica Lanham Photography": "https://jessicalanhamphoto.com/",
+    "Britt Creates": "https://brittcreatesstudio.com/",
+    "Phyllis Guy Dance Center": "https://www.phyllisguydancecenter.com/",
+    "Botanical Nail and Skin Studio": "https://www.botanicalnailandskinstudio.com/"
+  }
+}

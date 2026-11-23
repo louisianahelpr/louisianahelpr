@@ -345,7 +345,7 @@ const INFO_PAGES = {
   "/gift-guides/swipe": {
     name: "Swipe to find gifts",
     h1: "Swipe to find gifts",
-    intro: "Pick who it's for and your budget, then swipe through gift ideas from our holiday gift guides. Swipe right to save a gift to your wish list.",
+    intro: "Pick who it's for and your budget, then swipe through gift ideas from our holiday gift guides. Swipe right to save a gift to your gift planner.",
     links: [["/gift-guides", "Holiday gift guides"], ["/gift-guides/planner", "Gift planner"], ["/gift-guides/draw-names", "Secret Santa name draw"]],
   },
   "/gift-guides/planner": {
@@ -364,7 +364,7 @@ const INFO_PAGES = {
   "/gift-guides/printables": {
     name: "Free printables",
     h1: "Free holiday printables",
-    intro: "Christmas gift tags with names (pick a design, type the To and From names, print a sheet of 9 or 10 with cut lines), two Christmas coloring books and a Happy Thanksgiving banner. Free, with no sign-up, and nothing is saved.",
+    intro: "Christmas gift tags with names (pick a design, type the To and From names, print a sheet of 9 or 10 with cut lines), two Christmas coloring books, and Happy Thanksgiving and Merry Christmas banners. Free, with no sign-up, and nothing is saved.",
     links: [["/gift-guides/printables/gift-tags", "Free gift tags"], ["/gift-guides/printables/coloring-books", "Free coloring books"], ["/gift-guides/printables/banners", "Free banners"], ["/gift-guides", "Holiday gift guides"]],
   },
   "/gift-guides/printables/gift-tags": {
@@ -381,8 +381,8 @@ const INFO_PAGES = {
   },
   "/gift-guides/printables/banners": {
     name: "Free banners",
-    h1: "Free printable Happy Thanksgiving banner",
-    intro: "A free Happy Thanksgiving banner, ready to print as a 12x18 poster at Walgreens (from about $13, same-day pickup) or any photo counter. The original 2-to-1 file is there too. No sign-up.",
+    h1: "Free printable holiday banners",
+    intro: "Four free banners, Happy Thanksgiving and three Merry Christmas designs, each ready to print as a 12x18 poster at Walgreens (from about $13, same-day pickup) or any photo counter. The original wide files are there too. No sign-up.",
     links: [["/gift-guides/printables/gift-tags", "Free gift tags"], ["/gift-guides/printables/coloring-books", "Free coloring books"], ["/gift-guides", "Holiday gift guides"]],
   },
   "/declutter": {

@@ -10,6 +10,8 @@ export interface SeoGuide {
   /** How many picks the guide holds in all (the page's count). */
   count: number;
   related?: [slug: string, name: string][];
+  /** Her, Him, Kids, 25 Days sponsors: every pick as the Q&A reads it (src/lib/guideQa.mjs toQaPick). */
+  qa?: import("./guideQa.mjs").QaPick[];
 }
 export interface SeoData {
   guides: Record<string, SeoGuide>;
@@ -18,7 +20,9 @@ export interface SeoData {
   moved: Record<string, string>;
   groups: [label: string, guides: [slug: string, name: string][]][];
   /** The deals days' cards: item name, shop link, last day ("" = no end), the day page's slug. */
-  deals?: [item: string, href: string, ends: string, event: string][];
+  deals?: [item: string, href: string, ends: string, event: string, brand?: string, deal?: string][];
+  /** Small Business Saturday's businesses (its Q&A): name, town, category, "ships" or "local". */
+  smallBiz?: [name: string, town: string, category: string, ships: string][];
 }
 export interface TownService { slug: string; label: string; pageLabel?: string; phrase: string; category: string }
 export interface Town { slug: string; name: string }

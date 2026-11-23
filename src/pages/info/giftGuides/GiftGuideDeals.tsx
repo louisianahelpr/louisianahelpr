@@ -21,6 +21,7 @@ import { SBS_WORDS as SBS } from "@/content/sbsFeaturedLocal";
 import type { SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { report } from "@/lib/errorLogger";
 import { GiftGuideLoadError } from "./GiftGuideLoadError";
+import { LazyGuideQa } from "./LazyGuideQa";
 
 /**
  * The deals days (owner 2026-11-19; owner 2026-11-21: "we still need to do the black friday section, small business
@@ -278,8 +279,11 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
           <SmallBizGrid arrange={bizOrder === "category" ? undefined : byName(bizOrder)} />
           {/* No "more on Shop Small" link: /shop-small now opens this page (guides lane 11-21). */}
           <LazyLocalListings />
+          <LazyGuideQa kind="small-biz" page={day.id} />
         </div>
       )}
+      {/* Owner pop-up 11-22 9:40 PM: common questions answered from this day's cards, its Updated day and who picks. */}
+      {kind === "deals" && deals !== null && <LazyGuideQa kind="deals" page={day.id} deals={deals} />}
     </div>
   );
 }

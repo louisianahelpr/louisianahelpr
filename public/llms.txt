@@ -1,0 +1,44 @@
+# Louisiana Helpr
+
+> Louisiana Helpr is a website and app for Louisiana: people hire local help for everyday jobs, find work, and buy and sell used things (Declutter). For the 2026 holidays it also publishes gift guides (for her, for him, for kids), Black Friday, Small Business Saturday and Cyber Monday deal pages, a Holiday Hub of Christmas lights and events across Louisiana, and 25 Days of Louisiana Giveaways (December 1 to 25, 2026).
+
+Every gift guide pick links to the store that sells it and shows a recently checked price, rounded to the dollar. The Louisiana Helpr team picks every gift. Each guide page ends with common questions answered from its own list and the day it was last updated.
+
+## Holiday gift guides
+
+- [Holiday gift guides 2026](https://www.louisianahelpr.com/gift-guides): Gift ideas for her, him and the kids from Louisiana Helpr, every pick with its price and sorted by budget.
+- [Gifts for Her](https://www.louisianahelpr.com/gift-guides/her): Gifts for Her: hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.
+- [Gifts for Him](https://www.louisianahelpr.com/gift-guides/him): Gifts for Him: hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.
+- [Gifts for Kids](https://www.louisianahelpr.com/gift-guides/kids): Gifts for Kids: hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.
+- [Shop our 25 Days of Giveaways sponsors](https://www.louisianahelpr.com/gift-guides/25-days-sponsors): The Louisiana and national brands giving away prizes in our 25 Days of Giveaways, with a gift from each one to shop.
+- [Black Friday Deals](https://www.louisianahelpr.com/gift-guides/black-friday): Black Friday Deals 2026: Black Friday sales and codes from brands you already love, picked by Louisiana Helpr.
+- [Cyber Monday Deals](https://www.louisianahelpr.com/gift-guides/cyber-monday): Cyber Monday Deals 2026: Cyber Monday and Cyber Week sales and codes from brands you already love, picked by Louisiana Helpr.
+- [Small Business Saturday](https://www.louisianahelpr.com/gift-guides/small-business-saturday): Small Business Saturday 2026: Louisiana shops, makers and local favorites sponsoring Louisiana Helpr's 25 Days of Giveaways, with a link to each one.
+
+## Holiday Hub and 25 Days of Louisiana Giveaways
+
+- [25 Days of Louisiana Giveaways, December 1–25, 2026](https://www.louisianahelpr.com/25days): Free to enter: every day from December 1 to 25, 2026, Louisiana businesses give away gifts to Louisiana neighbors. How to enter is on our Facebook post.
+- [Louisiana Holiday Hub 2026: Christmas lights and events](https://www.louisianahelpr.com/holidays): Christmas lights, parades, boat parades, markets, Santa and holiday events across Louisiana for 2026, in one list by date with maps, plus local holiday help from Louisiana Helpr.
+- [Holiday help in Louisiana: lights, decorating and cleaning](https://www.louisianahelpr.com/holidays/hire-a-helpr): Hire a local Helpr for the holidays in Louisiana: hang Christmas lights, decorate, clean before guests, set up and clean up the party, wrap gifts and haul things away.
+
+## Gift tools and printables
+
+- [Secret Santa name draw](https://www.louisianahelpr.com/gift-guides/draw-names): Draw Secret Santa names for free and send each person a private link to their match. No emails or phone numbers.
+- [Holiday gift planner](https://www.louisianahelpr.com/gift-guides/planner): Plan who you're shopping for, set budgets, add gift ideas and track what you've bought. Private and free.
+- [Free printable Happy Thanksgiving banner](https://www.louisianahelpr.com/gift-guides/printables/banners): A free Happy Thanksgiving banner to print as a 12x18 poster at Walgreens, from about $13 with same-day pickup, or at any photo counter. No sign-up.
+- [Free printable Christmas coloring books](https://www.louisianahelpr.com/gift-guides/printables/coloring-books): Two free printable Christmas coloring books, a cover and 20 simple pages each, ready to print at home. No sign-up.
+- [Free printable Christmas gift tags with names](https://www.louisianahelpr.com/gift-guides/printables/gift-tags): Free printable Christmas gift tags: pick a design, type the To and From names, and print a sheet of 9 or 10 with cut lines at home. No sign-up.
+- [Swipe to find gifts](https://www.louisianahelpr.com/gift-guides/swipe): Swipe through holiday gift ideas by who it's for and your budget. Save the ones you like to your wish list.
+
+## About Louisiana Helpr
+
+- [Louisiana Helpr](https://www.louisianahelpr.com/): Hire help, find work, or buy and sell with real Louisiana neighbors. Everyday jobs and Declutter in one account, starting in New Iberia.
+- [Browse local jobs](https://www.louisianahelpr.com/browse): See what your Louisiana neighbors need help with right now. No account needed to look.
+- [Declutter: used things for sale near you](https://www.louisianahelpr.com/declutter): Furniture, home goods and more from your Louisiana neighbors. Pick it up, meet up, or have a Helpr deliver it.
+- [Help center](https://www.louisianahelpr.com/help): Answers, guides, and support for everyone here — posting jobs, doing jobs, payments, safety, and account settings.
+- [Fees](https://www.louisianahelpr.com/fees): Posting a job on Louisiana Helpr is free. A small one-time setup fee applies to your first paid job. Any service fee is shown before you pay.
+- [Safety](https://www.louisianahelpr.com/safety): How Louisiana Helpr keeps members safe: money held until you approve the work, and a problem can be reported from any job.
+
+## Optional
+
+- [Sitemap](https://www.louisianahelpr.com/sitemap.xml): every public page, including the hire pages for each service and town

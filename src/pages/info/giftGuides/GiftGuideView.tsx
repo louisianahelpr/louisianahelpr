@@ -30,6 +30,7 @@ import { SmallBizLink } from "./GiftGuideSmallBiz";
 import { PrintablesLink } from "./printables/PrintablesLink";
 import { SHOP_SMALL_GUIDE } from "@/content/giftGuideSmallBiz.mjs";
 import { deadlineChip, louisianaToday } from "@/content/giftGuideExtras1120";
+import { LazyGuideQa, QA_CATALOG_GUIDES } from "./LazyGuideQa";
 
 /**
  * One guide's body, /gift-guides/<slug> (owner's final design 2026-11-18; the back link and the gingham band sit
@@ -502,6 +503,10 @@ export function GiftGuideView({ guide, order = "top", hideCount = false, filter 
           the codes and sales live only on the deals page, which the left menu opens. */}
       <GiftGuideList key={guide.slug} guide={guide} order={order} failed={failed === guide.slug} onRetry={retry} filter={filter} />
       {picksReady(guide.slug) && <StoreDeals key={`deals ${guide.slug}`} guide={guide} />}
+      {/* Owner pop-up 11-22 9:40 PM: common questions answered from this list, its Updated day and who picks (lazy). */}
+      {picksReady(guide.slug) && guide.picks.length > 0 && QA_CATALOG_GUIDES.includes(guide.slug) && (
+        <LazyGuideQa key={`qa ${guide.slug}`} kind="catalog" page={guide.slug} picks={guide.picks} />
+      )}
       {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
     </article>
   );

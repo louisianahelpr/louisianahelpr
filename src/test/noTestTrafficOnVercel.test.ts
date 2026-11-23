@@ -63,6 +63,8 @@ export const SOURCE_EXEMPT: Record<string, string> = {
   "scripts/giftGuideHimKids1121.mjs":
     "Owner 2026-11-21 Him/Kids store switches (train 1121j): names our own hosted cutout photos (public/gift-guides/cutouts/*) as https image URLs the importer writes into the picks; it has no fetch and never requests the site.",
   "scripts/generate-sitemap.mjs": "Writes the domain into sitemap.xml <loc> entries as text; never fetches it.",
+  "scripts/generate-llms-txt.mjs":
+    "AI search (owner 11-22): writes the domain into public/llms.txt links as text, built from public/sitemap.xml on disk; never fetches it.",
   "scripts/indexnow-ping.mjs":
     "SEO P1 (owner 11-19): names our host in the IndexNow submission (host, keyLocation, the sitemap's URLs) it POSTs " +
     "to api.indexnow.org after a prod deploy of main; it never requests the Vercel site itself.",

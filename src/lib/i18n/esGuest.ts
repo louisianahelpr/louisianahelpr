@@ -20,4 +20,6 @@ export const esGuest: Record<keyof typeof enGuest, string> = {
   "g.newHere": "¿Es nuevo aquí?",
   "g.signUpToBuy": "Regístrese para comprar, hacer ofertas o vender.",
   "g.itsFree": "Es gratis.",
+  "g.openJobs": "{n} trabajos abiertos",
+  "g.openJob": "1 trabajo abierto",
 };

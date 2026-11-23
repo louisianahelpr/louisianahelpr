@@ -12,7 +12,7 @@
  *
  * Guard: src/test/guideAiSearch1122.test.tsx (two-way with the sitemap's gift guide and holiday URLs).
  */
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { publicOrGiftGuidePageMetaFor } from "../src/lib/giftGuidePageMeta.mjs";
@@ -89,7 +89,14 @@ if (invokedDirectly) {
   const text = buildLlmsTxt(readFileSync(path.join(root, "public", "sitemap.xml"), "utf8"));
   const file = path.join(root, OUT);
   if (process.argv.includes("--check")) {
-    if (!existsSync(file) || readFileSync(file, "utf8") !== text) {
+    // Read once, no exists-then-read check (noCheckThenActInTooling, CodeQL js/file-system-race): missing reads as stale.
+    let current = null;
+    try {
+      current = readFileSync(file, "utf8");
+    } catch (e) {
+      if (e?.code !== "ENOENT") throw e;
+    }
+    if (current !== text) {
       console.error(`generate-llms-txt: ${OUT} is stale; run node scripts/generate-llms-txt.mjs`);
       process.exit(1);
     }

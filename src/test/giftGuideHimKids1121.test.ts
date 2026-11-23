@@ -116,6 +116,9 @@ const SAVES: Record<string, Record<string, string>> = {
 };
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug], ...LOUISIANA_1122[slug] });
 const popular = new Set([...HIM_POPULAR_1122, ...KIDS_POPULAR_1122].map((r) => r.href));
+/** Links audit 1122 night #4: her saved color had no Buy Box, so the same item in a color Amazon sells stands in (priced 11-22). */
+const LINK_FIXES_1122: Record<string, string> = { B08Z42695Q: "B0CSJ4TC52", B0084JUNVU: "B0084JUNXS" };
+const linkFix = new Set(Object.values(LINK_FIXES_1122).map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Pick[] }).picks;
 const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})));
 
@@ -149,7 +152,9 @@ describe.each([
       expect(p.price, p.name).toBeGreaterThan(0);
       // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day and the Dad fill-in book (owner
       // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) and the GE Opal Mini (builder-guide-him, 2026-11-22) were priced 11-22.
-      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) || louisianaAmazon.has(p.href) ? "2026-11-22" : "2026-11-21");
+      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) || louisianaAmazon.has(p.href) || linkFix.has(p.href) ? "2026-11-22" : "2026-11-21");
+      // The unbuyable links never come back.
+      for (const gone of Object.keys(LINK_FIXES_1122)) expect(p.href.includes(gone), `${p.name}: ${gone}`).toBe(false);
     }
   });
 

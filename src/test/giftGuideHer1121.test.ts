@@ -26,8 +26,11 @@ const page = (JSON.parse(readFileSync(join(ROOT, "src", "content", "giftGuidePic
 /** The owner's saves, copied from her Desktop notes (Her-saved-amazon-1121.md, Her-saved-shopmy-1121.md), not from the module. */
 const AMAZON_ASINS = ["B0D3L9BYFZ", "B0CPB1MWMP", "B0FVFV7V1R", "B0FFMJMB6K", "B0FDKC619F", "B0C246HFWN", "B0FPCH9S11", "B0FKN7FGPY", "B0B1RWJ4QJ"];
 /** Her Amazon cart saves (Her-saved-amazon-cart-1121.md; owner 2026-11-21: "we can have more than 25 items its fine"). Owner 11-22
- * ("Lake + Eberjey"): the Amazon Essentials flannel pajamas (B08X8P91FX) came off, so Her keeps two pajama sets. */
-const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", "B0D82LVR3N", "B0CDF7GJ4Y", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV",
+ * ("Lake + Eberjey"): the Amazon Essentials flannel pajamas (B08X8P91FX) came off, so Her keeps two pajama sets.
+ * Links audit 1122 night #4: her Summer Fridays balm shade (B0D82LVR3N) lost its Buy Box, so the same balm in Brown Sugar
+ * (B0BYP81HN8, sold by Amazon, priced 2026-11-22) stands in; LINK_FIXES_1122 holds the swaps. */
+const LINK_FIXES_1122: Record<string, string> = { B0D82LVR3N: "B0BYP81HN8" };
+const CART_ASINS = ["B0CWRFQCWF", "B0CCWSGSCT", LINK_FIXES_1122.B0D82LVR3N, "B0CDF7GJ4Y", "B0C7LTPXBV", "B0D7TR9PBZ", "B0F5N7S36V", "B0H42QZ8BW", "B0H2D9Q7CV",
   // Owner 11-21 ("women too"): the rest of her cart and saved-for-later, but the duplicate ZDEER listing and Mighty Patch.
   "B0HJ9ZJ8KM", "B091NJQ29P", "B0CMJZVT5P", "B0G6CR9TGW", "B0FSJQ3KJT", "B0F19YY96Z", "B0GT3W5DQL", "B0DT1CZ58V"];
 // p-108755104 is her iHerb pin for the BIODANCE masks (11-21), replacing her Sephora UK pin p-108613754 that US shoppers cannot use.
@@ -101,6 +104,8 @@ describe("For Her = the owner's saves (11-21)", () => {
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
+    // No link the audit found unbuyable comes back (links audit 1122 night #4).
+    for (const gone of Object.keys(LINK_FIXES_1122)) expect(page.some((p) => p.href.includes(gone)), gone).toBe(false);
   });
 
   it("the generated page is exactly what the module builds (re-run scripts/gift-guide-picks.mjs after a change)", () => {
@@ -140,7 +145,7 @@ describe("For Her = the owner's saves (11-21)", () => {
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
       // Her saved-list picks were captured 11-21; the Amazon picks from her launch-day screenshots, 11-22.
-      expect(p.priceAt, p.name).toBe([...ADDS_1122_ASINS, ...POPULAR_1122_ASINS, ...HER4_1122_ASINS, ...LOUISIANA_1122_ASINS].some((a) => p.href.includes(a)) || SCREENS_1122.has(p.href) ? "2026-11-22" : "2026-11-21");
+      expect(p.priceAt, p.name).toBe([...ADDS_1122_ASINS, ...POPULAR_1122_ASINS, ...HER4_1122_ASINS, ...LOUISIANA_1122_ASINS, ...Object.values(LINK_FIXES_1122)].some((a) => p.href.includes(a)) || SCREENS_1122.has(p.href) ? "2026-11-22" : "2026-11-21");
       expect(p.image, p.name).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
     }
     for (const p of shopmy) {

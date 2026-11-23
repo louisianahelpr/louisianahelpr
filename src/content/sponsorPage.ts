@@ -648,14 +648,14 @@ export const sponsorPage = {
       logoHint: "PNG, JPG or SVG, up to 5 MB",
       // Owner 11-17: four ways to get the prize to the winner; shipping to us stays the first, easiest choice.
       shipTo: "Ship your prize to",
-      shipAddress: "Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528",
+      shipAddress: "We'll email you our shipping address.",
       delivery: {
         legend: "How will your prize get to the winner?",
         /** Written into the sign-up's notes for the two choices ship_to cannot name. */
         noteLine: "Prize delivery: {option}",
         thankYou: "Prize delivery:",
         options: [
-          { value: "helpr", label: "Ship or drop off to Louisiana Helpr (easiest)", hint: "314 Lynn Street, Delcambre, LA 70528. We deliver it to the winner." },
+          { value: "helpr", label: "Ship or drop off to Louisiana Helpr (easiest)", hint: "We'll send you our address. We deliver it to the winner." },
           { value: "winner", label: "Ship straight to the winner", hint: "We send you the winner's name and shipping address within 24 hours of the drawing. Please ship within a week and send us a photo of the prize for the post." },
           { value: "digital", label: "Email a digital gift card", hint: "To us or straight to the winner." },
           { value: "pickup", label: "Local pickup (will call)", hint: "The winner picks it up from you." },
@@ -687,7 +687,7 @@ export const sponsorPage = {
     yourDays: "Your requested day(s):",
     /** Area 11b M10: days are not final until we confirm them (owner rule 11-17). */
     daysNote: "We'll confirm your final day before December 1.",
-    shipTo: "Ship your prize to:",
+    shipTo: "Where to ship:",
     anyDay: "Any day — we'll pick one together.",
     calendarEventTitle: "25 Days of Louisiana Giveaways — {brand}'s giveaway day",
     calendarEventAnyDay: "25 Days of Louisiana Giveaways begins",
@@ -700,7 +700,7 @@ export const sponsorPage = {
       { q: "Is this really free?", a: "Yes. There's no fee to join; all we ask is a prize to give away." },
       { q: "How do people enter the giveaways?", a: "How to enter and the official rules are on our Facebook post." },
       { q: "How is the winner picked?", a: "At random from eligible entries, and announced publicly on our Facebook page and group." },
-      { q: "How does the prize get to the winner?", a: "Your choice, four easy ways. 1) Easiest: ship it or drop it off to us at 314 Lynn Street, Delcambre, LA 70528, and we deliver it to the winner. 2) Ship it straight to the winner: we send you their name and shipping address within 24 hours of the drawing, you ship within a week, and you send us a photo of the prize for the post. 3) Email a digital gift card, to us or to the winner. 4) Local pickup: the winner picks it up from you." },
+      { q: "How does the prize get to the winner?", a: "Your choice, four easy ways. 1) Easiest: ship it or drop it off to us (we'll email you our address), and we deliver it to the winner. 2) Ship it straight to the winner: we send you their name and shipping address within 24 hours of the drawing, you ship within a week, and you send us a photo of the prize for the post. 3) Email a digital gift card, to us or to the winner. 4) Local pickup: the winner picks it up from you." },
       { q: "Can I sponsor more than one day?", a: "Absolutely! Days may still change as the calendar fills up. We'll confirm each brand's final day before December 1." },
       { q: "Can more than one brand be on the same day?", a: "Yes. Some days have two or three brands, and each brand's prize has its own winner. Every partner is featured and tagged on our socials." },
       { q: "What if I have more questions?", a: "Email us at admin@louisianahelpr.com. A real person replies." },

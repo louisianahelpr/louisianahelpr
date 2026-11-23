@@ -102,6 +102,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          REFRESH_PR_TOKEN: ${{ secrets.REFRESH_PR_TOKEN }}
         run: node scripts/expiry-check.mjs --ci --warn-days "$WARN_DAYS"
 
       # Only when something is inside the window. A missing webhook fails

@@ -1,5 +1,5 @@
 {
-  "$comment": "Q62 expiry monitor inventory. Read by scripts/expiry-check.mjs (daily, .github/workflows/expiry-monitor.yml) and proved exact two-way by src/test/expiryMonitor.test.ts: every secret/env NAME the repo references (workflow `secrets.X`, edge-function Deno.env.get/readEnv, .env.example keys) is in exactly one item's `env` or in `undated`, every *.louisianahelpr.com host the shipped code references has a `tls` item, and nothing here is unreferenced. read.method: tls | rdap | jwt-exp | x509-p12 | x509-pem | asc-api | vercel-token | meta-debug-token | supabase-auth-apple | no-expiry | manual. `manual` with date null is reported UNREADABLE every day until the owner records a date (or \"never\") with `recorded`.",
+  "$comment": "Q62 expiry monitor inventory. Read by scripts/expiry-check.mjs (daily, .github/workflows/expiry-monitor.yml) and proved exact two-way by src/test/expiryMonitor.test.ts: every secret/env NAME the repo references (workflow `secrets.X`, edge-function Deno.env.get/readEnv, .env.example keys) is in exactly one item's `env` or in `undated`, every *.louisianahelpr.com host the shipped code references has a `tls` item, and nothing here is unreferenced. read.method: tls | rdap | jwt-exp | x509-p12 | x509-pem | asc-api | vercel-token | meta-debug-token | github-pat | supabase-auth-apple | no-expiry | manual. `manual` with date null is reported UNREADABLE every day until the owner records a date (or \"never\") with `recorded`.",
   "warnDays": 30,
   "items": [
     {
@@ -200,9 +200,18 @@
       "label": "GitHub token used by workflows (GITHUB_TOKEN)",
       "env": ["GITHUB_TOKEN"],
       "hosts": [],
-      "sourceOfTruth": "Minted per job by GitHub Actions; no PAT is referenced by any workflow",
+      "sourceOfTruth": "Minted per job by GitHub Actions (GITHUB_TOKEN). The one PAT workflows use, REFRESH_PR_TOKEN, has its own item",
       "read": { "method": "no-expiry", "reason": "GITHUB_TOKEN is minted per job and cannot lapse on a calendar date" },
       "ciReadable": false
+    },
+    {
+      "id": "refresh-pr-token",
+      "label": "GitHub PAT for refresh PRs and the land queue (REFRESH_PR_TOKEN; contents + pull-requests write)",
+      "env": ["REFRESH_PR_TOKEN"],
+      "hosts": [],
+      "sourceOfTruth": "github.com > Settings > Developer settings > Personal access tokens (read from the github-authentication-token-expiration header); renew there and update the REFRESH_PR_TOKEN repo secret",
+      "read": { "method": "github-pat", "env": "REFRESH_PR_TOKEN" },
+      "ciReadable": true
     }
   ],
   "undated": {
@@ -257,7 +266,6 @@
     "PLAYWRIGHT_POSTER_SESSION": "test session blob refreshed by the suites that use it",
     "PLAYWRIGHT_TEST_USER_EMAIL": "test account identifier",
     "PUBLISHABLE_KEY": "Supabase sb_publishable_ key; not a JWT, no expiry date",
-    "REFRESH_PR_TOKEN": "optional PAT for refresh PRs (Q57); NOT set on 2026-09-23 (gh secret list), so github.token is used. A PAT expires: if one is added, move it to items with its expiry date",
     "RELEASE_PAYOUT_AUTO": "config flag",
     "RESEND_WEBHOOK_SECRET": "shared HMAC secret; no expiry at the vendor",
     "SECRET_KEY": "Supabase sb_secret_ key; not a JWT, no expiry date",

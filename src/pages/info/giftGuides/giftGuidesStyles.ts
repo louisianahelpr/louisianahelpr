@@ -218,7 +218,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    same as another gift, measured on www). A phone row's name runs to three lines (four under 360px wide) before it clips,
    which sits beside the photo and the heart strip; desktop keeps two.
    Guide visual audit 1123b #6: tablets (768-1023, the two-column grid) cut 41+ names a guide at two lines
-   ("Touchland Power Mist Hand Sanitiz..."); they now get the phone's three lines too. */
+   (Touchland Power Mist Hand Sanitiz...); they now get the phone's three lines too. */
 @media (max-width:1023px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:3}}
 @media (max-width:359px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:4}}
 .gg-nm .gg-nm-meta{display:flex;align-items:baseline;gap:8px;margin-top:4px;font-size:12px;font-weight:600;letter-spacing:.04em}
@@ -400,7 +400,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    567px inside it), so a swipe or a wheel pushed the Gift guides title and the close button off the top and opened
    ~360px of blank under the last row. ONE scroller now: the box is a column that never scrolls, the title stays put,
    and only the list scrolls in the room left under it. The root cause of the extra height: each row's screen-reader
-   "N gifts" (.sr-only, position:absolute) took the fixed sheet as its containing block, so the hidden words of the
+   'N gifts' (.sr-only, position:absolute) took the fixed sheet as its containing block, so the hidden words of the
    bottom rows hung ~360px below the list and stretched the sheet's own scroll area (measured: the deepest element was
    an sr-only " gifts" at 1030px in a 668px box). The list is now their containing block (position:relative), so they
    stay inside the one scroller. */
@@ -439,7 +439,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    card with a code chip (Camp Snap) keeps its price in line with the row's others. */
 /* Guide visual audit 1123b #13/#4: Top 10 names cut at two lines (5 of 10 on a phone, all 10 at 768); three lines like
    the guide rows, and the price lines still line up (every name holds three lines' height). A code chip stays on one
-   line ("Code LEXILOMBAS7" broke into three at 768). */
+   line ('Code LEXILOMBAS7' broke into three at 768). */
 .gg-top10 .gg-nm-name{-webkit-line-clamp:3;min-height:3lh}
 .gg-top10 .gg-bdg{white-space:nowrap}
 .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0;padding-top:4px;min-height:28px}

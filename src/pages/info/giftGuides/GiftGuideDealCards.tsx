@@ -227,7 +227,7 @@ export const CARD_CSS = `
    4-5 deals into a ~130px column, a wall of text. There each Sales card takes the full row, its photo a 96px square on
    the left and the store name and every deal beside it (the heart stays top-right). 480px and up: unchanged. */
 /* Guide visual audit 1123b #3 (Med): on a phone the Sales lines were 12.5px links 15-33px tall, stacked ~4px apart (59 on
-   Black Friday, 35 on Cyber Monday; Home Depot has 5 in one card), hard to read and easy to mis-tap. Under 768px every
+   Black Friday, 35 on Cyber Monday; one hardware store has 5 in one card), hard to read and easy to mis-tap. Under 768px every
    deal card's text is 14px and each sale (its offer with its end date under it) is one tap row at least 44px tall: the
    link's hit area covers the whole row (::after), so the date stays right under its offer, and rows sit 12px apart. The
    one-column layout below stays. Black Friday and Cyber Monday share these cards, so both pages change together. */

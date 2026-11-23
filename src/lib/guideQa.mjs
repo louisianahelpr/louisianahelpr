@@ -24,10 +24,10 @@ export const QA_PAGES = ["her", "him", "kids", "25-days-sponsors", "black-friday
 
 export const QA_TITLE = "Common questions";
 
-/** Who picks: the owner is Louisiana Helpr's founder and a Louisiana nurse (never "mom"). */
+/** Who picks, in "we" words (owner 2026-11-22 10:22 PM: "Don't say Lexi our founder, just say we"). */
 export const QA_BYLINE = {
-  gifts: "Gifts picked by Louisiana Helpr's founder, a Louisiana nurse.",
-  other: "Put together by Louisiana Helpr's founder, a Louisiana nurse.",
+  gifts: "We picked every gift on this list.",
+  other: "We put this list together.",
 };
 
 /** The catalog guides' person words. */

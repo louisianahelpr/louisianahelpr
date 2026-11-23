@@ -1,4 +1,5 @@
-import { Analytics } from "@vercel/analytics/react";
+import { Analytics, type BeforeSend } from "@vercel/analytics/react";
+import { redactInviteToken } from "@/lib/redactInviteToken";
 import { SpeedInsightsRouted } from "@/components/SpeedInsightsRouted";
 import { MetaPixelRoutes } from "@/components/MetaPixelRoutes";
 
@@ -18,8 +19,14 @@ export default function VercelInsights() {
   return (
     <>
       <SpeedInsightsRouted />
-      <Analytics />
+      <Analytics beforeSend={redactVercelEvent} />
       <MetaPixelRoutes />
     </>
   );
 }
+
+/**
+ * Holiday audit D M5 (11-20): a page view's url never carries a Secret Santa reveal token or a Rentals invite token
+ * to Vercel, as PostHog, Sentry, error_logs and analytics_events already redact them. Exported for its test.
+ */
+export const redactVercelEvent: BeforeSend = (event) => ({ ...event, url: redactInviteToken(event.url) });

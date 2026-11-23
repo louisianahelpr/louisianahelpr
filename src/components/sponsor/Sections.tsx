@@ -405,6 +405,21 @@ export function prizeWithoutBrand(brand: string, prize: string): string {
   return p;
 }
 
+/**
+ * Holiday audit D H1 (11-20, salvaged 11-23): a prize with alcohol in it says so where it is listed. Louisiana law
+ * (La. R.S. 14:93.12, 26:90) forbids giving alcohol to anyone under 21; owner 2026-11-17: an alcohol prize goes to a
+ * winner 21+ with ID at pickup, and the Facebook captions say the same. The rules themselves live only on Facebook
+ * (owner 2026-11-21), so this note on the prize line is the site's one mention. Derived from the prize text (the
+ * tracker carries no alcohol flag), added here, not in lineup.days, so the lineup stays exactly the owner's tracker
+ * (check-25days-lineup.mjs). A flavour or accessory ("bourbon honey", "wine tumbler", "rum cake") is not alcohol.
+ */
+const ALCOHOL_WORDS =
+  /\b(cocktails?|wines?|beers?|bourbon|whiske?y|vodka|rum|tequila|gin|liquor|liqueur|champagne|prosecco|mimosas?|margaritas?|sangria|moonshine|sake|lager|ipa|hard seltzer|hard cider|alcohol(ic)?)\b(?!\s+(honey|vanilla|sauce|glaze|cakes?|balls|pecans?|pralines?|fudge|candles?|scent|soap|salt|sugar|syrup|glass(es)?|tumblers?|opener|rack|tote|bag|stopper|charms?|napkins?|dress|ring|shaker|cups?|koozies?|flavou?red))/i;
+const ALCOHOL_NOTE = "(alcohol 21+ with ID)";
+export function withAlcoholNote(prize: string): string {
+  return ALCOHOL_WORDS.test(prize) && !/\b21\+/.test(prize) ? `${prize} ${ALCOHOL_NOTE}` : prize;
+}
+
 export type PublicPartner = { brand: string; prizes: string[]; page: string | null };
 
 /**
@@ -417,7 +432,7 @@ export function publicPartners(days: typeof C.lineup.days = C.lineup.days): Publ
   for (const d of days) {
     for (const p of d.partners) {
       const prizes = seen.get(p.brand) ?? new Set<string>();
-      const prize = prizeWithoutBrand(p.brand, p.prize);
+      const prize = withAlcoholNote(prizeWithoutBrand(p.brand, p.prize));
       if (prize) prizes.add(prize);
       seen.set(p.brand, prizes);
     }

@@ -25,6 +25,7 @@ import { relsOf } from "./giftGuidePeople1120.mjs";
 import { AMAZON_BRAND_PHOTOS_1122, cutoutPhoto } from "./giftGuideCutouts1120.mjs";
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 import { ADDS_STORES_1122, HER_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
+import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
 
 export const HER_GUIDE = "her";
 /** The day the ShopMy prices were checked (Louisiana day). */
@@ -225,7 +226,7 @@ export function her1121Picks(rows = HER_ROWS) {
     // prices anyway"). An Amazon pick shows the price captured from her own saved list that morning (sortPrice, the
     // Desktop notes); a ShopMy pick its checked price. A row with no captured price shows none.
     const shown = isAmazon(r) ? r.sortPrice : price;
-    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: r.priceAt ?? HER_PRICE_AT });
+    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: recheckedPriceAt(r.href, shown, r.priceAt ?? HER_PRICE_AT) });
     return { ...p, rels: relsOf(g, p) };
   });
 }

@@ -16,6 +16,7 @@ import { describe, expect, it } from "vitest";
 import { HIM_1121, HIM_POPULAR_1122, KIDS_POPULAR_1122, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_PLAY_1122, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { AMAZON_BRAND_PHOTOS_1122, CUTOUT_BASE, cutoutPhoto } from "../../scripts/giftGuideCutouts1120.mjs";
 import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
+import { recheckedPriceAt } from "../../scripts/giftGuidePriceRecheck.mjs";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image: string; store: string; type?: string; price?: unknown; priceAt?: unknown; sortPrice?: unknown; rels?: string[] };
@@ -174,7 +175,7 @@ describe.each([
       expect(p.price, p.name).toBeGreaterThan(0);
       // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day and the Dad fill-in book (owner
       // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) and the GE Opal Mini (builder-guide-him, 2026-11-22) were priced 11-22.
-      expect(p.priceAt, p.name).toBe(p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) || louisianaAmazon.has(p.href) || linkFix.has(p.href) ? "2026-11-22" : "2026-11-21");
+      expect(p.priceAt, p.name).toBe(recheckedPriceAt(p.href, p.price, p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) || louisianaAmazon.has(p.href) || linkFix.has(p.href) ? "2026-11-22" : "2026-11-21"));
       // The unbuyable links never come back.
       for (const gone of Object.keys(LINK_FIXES_1122)) expect(p.href.includes(gone), `${p.name}: ${gone}`).toBe(false);
     }
@@ -225,7 +226,8 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
         const p = page.find((x) => x.href === r.href);
         expect(p, r.name).toBeDefined();
         expect(p?.price, r.name).toBe(r.price);
-        expect(p?.priceAt, r.name).toBe(slug === "kids" && KIDS_PLAY_1122.some((x) => x.href === r.href) ? "2026-11-22" : HIM_KIDS_PRICE_AT);
+        // A daily re-check at this exact price moves the day forward (scripts/giftGuidePriceRecheck.mjs); nothing else does.
+        expect(p?.priceAt, r.name).toBe(recheckedPriceAt(r.href, r.price, slug === "kids" && KIDS_PLAY_1122.some((x) => x.href === r.href) ? "2026-11-22" : HIM_KIDS_PRICE_AT));
         expect(HIM_KIDS_STORES[r.store], r.store).toBeTruthy();
         expect(r.brand.toLowerCase(), r.name).not.toMatch(/vineyard vines|lilly pulitzer/);
       }

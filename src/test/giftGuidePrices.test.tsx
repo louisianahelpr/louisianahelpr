@@ -34,6 +34,7 @@ import GiftGuides from "@/pages/info/GiftGuides";
 import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
 import { PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { verifiedPrice } from "../../scripts/giftGuidePrice.mjs";
+import { PRICE_RECHECKS } from "../../scripts/giftGuidePriceRecheck.mjs";
 import { openPriceSections } from "./helpers/openPriceSections";
 
 afterEach(cleanup);
@@ -101,8 +102,10 @@ describe("gift-guide prices: the generated chunks", () => {
     // and 97 Amazon picks carry a price (20 Her + 37 Him + 40 Kids, measured 2026-11-21).
     for (const slug of OWNER_LISTS) {
       expect(CHUNKS[slug].length, slug).toBeGreaterThan(30);
-      // Checked 11-21 (her saves) or 11-22 (the picks she sent on launch day, scripts/giftGuideOwnerAdds1122.mjs).
-      expect(CHUNKS[slug].filter((p) => !(typeof p.price === "number" && p.price > 0 && (p.priceAt === "2026-11-21" || p.priceAt === "2026-11-22"))).map((p) => p.name), slug).toEqual([]);
+      // Checked 11-21 (her saves) or 11-22 (the picks she sent on launch day, scripts/giftGuideOwnerAdds1122.mjs), or
+      // the day a daily re-check read this link at this exact price (scripts/giftGuidePriceRecheck.mjs).
+      const rechecked = (p: { href: string; price?: number; priceAt?: string }) => PRICE_RECHECKS[p.href]?.price === p.price && PRICE_RECHECKS[p.href]?.priceAt === p.priceAt;
+      expect(CHUNKS[slug].filter((p) => !(typeof p.price === "number" && p.price > 0 && (p.priceAt === "2026-11-21" || p.priceAt === "2026-11-22" || rechecked(p)))).map((p) => p.name), slug).toEqual([]);
     }
     expect(amazonPriced).toBeGreaterThan(90);
     // Amazon keeps its 15 best (owner's 10-15 per store page; lead 11-19, 1530 train).
@@ -197,7 +200,7 @@ describe("gift-guide prices: a real guide page", () => {
   it("For Him (owner 11-21, all Amazon but two): every row shows its price, in the order low to high", async () => {
     await loadAllGuidePicks();
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-22T18:00:00Z")); // launch-day picks (Him's two Lake pins, the Dad book) were priced 11-22
+    vi.setSystemTime(new Date("2026-11-23T18:00:00Z")); // the newest check day (11-23 daily re-check, scripts/giftGuidePriceRecheck.mjs)
     const { container } = render(
       <MemoryRouter initialEntries={["/gift-guides/him"]}>
         <Routes><Route path="/gift-guides/:slug" element={<GiftGuides />} /></Routes>

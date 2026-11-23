@@ -17,6 +17,7 @@ import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ADDS_CUTOUTS_1122, ADDS_PRICE_AT, HER_ADDS_1122, HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { CUTOUT_BASE, CUTOUTS_1120 } from "../../scripts/giftGuideCutouts1120.mjs";
+import { recheckedPriceAt } from "../../scripts/giftGuidePriceRecheck.mjs";
 import { RESEARCHED_STORES } from "@/content/giftGuidePicks";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
 import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
@@ -140,7 +141,8 @@ describe("the owner's launch-day picks (11-22)", () => {
       const [row] = rows;
       expect(row.store, p).toBe(store);
       expect(row.price, p).toBe(price);
-      expect(row.priceAt, p).toBe(ADDS_PRICE_AT);
+      // A daily re-check at this exact price moves the day forward (scripts/giftGuidePriceRecheck.mjs); nothing else does.
+      expect(row.priceAt, p).toBe(recheckedPriceAt(row.href, price, ADDS_PRICE_AT));
       expect(row.ownerPick, p).toBe(true);
       expect(row.image?.startsWith(CUTOUT_BASE), `${p}: ${row.image}`).toBe(true);
       expect(existsSync(`public/gift-guides/cutouts/${String(row.image).slice(CUTOUT_BASE.length)}`), p).toBe(true);
@@ -151,7 +153,7 @@ describe("the owner's launch-day picks (11-22)", () => {
       expect(rows.length, `${slug}: ${href}`).toBe(1);
       expect(rows[0].store, href).toBe("store-xtratuf");
       expect(rows[0].price, href).toBe(price);
-      expect(rows[0].priceAt, href).toBe(ADDS_PRICE_AT);
+      expect(rows[0].priceAt, href).toBe(recheckedPriceAt(href, price, ADDS_PRICE_AT));
       expect(rows[0].image?.startsWith(CUTOUT_BASE), href).toBe(true);
     }
     expect(ADDS_PRICE_AT).toBe("2026-11-22");
@@ -164,7 +166,7 @@ describe("the owner's launch-day picks (11-22)", () => {
       expect(rows[0].store, asin).toBe("store-amazon");
       expect(rows[0].image, asin).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
       expect(rows[0].price, asin).toBe(price);
-      expect(rows[0].priceAt, asin).toBe(ADDS_PRICE_AT);
+      expect(rows[0].priceAt, asin).toBe(recheckedPriceAt(rows[0].href, price, ADDS_PRICE_AT));
     }
   });
 

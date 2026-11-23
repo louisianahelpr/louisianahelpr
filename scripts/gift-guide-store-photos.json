@@ -376,6 +376,41 @@
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/ugg-scuffette-ii-chestnut-9f41e6.webp",
    "page": "https://go.shopmy.us/p-104053242",
    "note": "Deals queue 11-23: the For Her pick's own cutout (sold at Zappos, our ShopMy link), copied as the Zappos code card's photo."
+  },
+  "Adagio Teas": {
+   "file": "adagio-teas.webp",
+   "product": "Fruit Bomb Herbals sampler",
+   "image": "https://www.adagio.com/images5/products_index/fruit_bomb_gift_sampler.jpg",
+   "page": "https://www.adagio.com/",
+   "note": "Deals queue 11-23 second pass: a product from the store own site, cut out with Apple Vision (scripts/gift-guide-cutout.swift), cropped to the product, ~400px WebP."
+  },
+  "Dream Pairs": {
+   "file": "dream-pairs.webp",
+   "product": "Square Toe Block Heel Knit Pumps, Denim Blue",
+   "image": "https://cdnimg.dreampairs.com/thumbnail/600x600/dreampairshoes/product/product/2023-09-27/5603/08:44--DEMIN-BLUE1.jpg",
+   "page": "https://www.dreampairs.com/products/womens-square-toe-block-heel-knit-pumps-supu2315w",
+   "note": "Deals queue 11-23 second pass: a product from the store own site, cut out with Apple Vision (scripts/gift-guide-cutout.swift), cropped to the product, ~400px WebP."
+  },
+  "PatchMD": {
+   "file": "patchmd.webp",
+   "product": "PatchMD MultiVitamin+ Topical Patch",
+   "image": "https://www.patchmd.com/wp-content/uploads/2020/01/001-MultiVitamin-Plus_F-1.webp",
+   "page": "https://www.patchmd.com/",
+   "note": "Deals queue 11-23 second pass: a product from the store own site, cut out with Apple Vision (scripts/gift-guide-cutout.swift), cropped to the product, ~400px WebP."
+  },
+  "Perelel": {
+   "file": "perelel.webp",
+   "product": "Perimenopause Duo (Perimenopause Support Pack + Triple-Support Protein)",
+   "image": "https://cdn.shopify.com/s/files/1/0417/3817/4613/files/BundleMainImage-Perimenopause.png?v=1792433556",
+   "page": "https://perelelhealth.com/products/perimenopause-duo",
+   "note": "Deals queue 11-23 second pass: a product from the store own site, cut out with Apple Vision (scripts/gift-guide-cutout.swift), cropped to the product, ~400px WebP."
+  },
+  "Perk Energy": {
+   "file": "perk-energy.webp",
+   "product": "Perk Energy Original Variety Pack",
+   "image": "https://cdn.shopify.com/s/files/1/0542/2782/8917/files/PEY_ENERGY_Variety_MCT_MHC_CSCP_WCPP_RBF__10SPK_PouchB_Front_Stickpacks_DropShadow_Transparent.png?v=1791992148",
+   "page": "https://perkenergy.com/",
+   "note": "Deals queue 11-23 second pass: a product from the store own site, cut out with Apple Vision (scripts/gift-guide-cutout.swift), cropped to the product, ~400px WebP. The tagline printed above the pouch is cropped off."
   }
  },
  "none": {

@@ -80,6 +80,17 @@ export const codeCardCount = (codes: readonly DiscountCode[]) => new Set(codes.f
 export const STORE_CODES = [...discountCodes, ...CLEAN_CODES];
 
 /**
+ * Live data (owner 2026-11-23: the app's guides pull the latest deals and codes from the site with no release): the
+ * deals page hands a newer valid copy of src/content/giftGuideCodes.json here (GiftGuideDeals.tsx), and every list that
+ * reads the codes (discountCodes, STORE_CODES, codesOn) reads its rows from then on. In place, so each reader keeps
+ * its one list. Guard: src/test/liveGuideData1123.test.ts.
+ */
+export function setStoreCodes(codes: readonly DiscountCode[]) {
+  discountCodes.splice(0, discountCodes.length, ...codes);
+  STORE_CODES.splice(0, STORE_CODES.length, ...codes, ...CLEAN_CODES);
+}
+
+/**
  * What a deals day's page lists on `today`, by its three sections (GiftGuideDeals.tsx DealSections): the Top deals cards
  * still on, the Discount codes cards (one per store, minus a code a Top deal card already shows) and the store Sales.
  * The gift guides menu's number is their sum (railCounts.ts dealDayCount) and the page's "Common questions" names the

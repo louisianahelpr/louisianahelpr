@@ -20,6 +20,7 @@
  *     Associates Operating Agreement requires. It sits at the BOTTOM of the page as one small plain line (owner
  *     2026-11-18; one line 2026-11-22).
  */
+import codesFile from "@/content/giftGuideCodes.json";
 
 export interface GiftLink {
   label: string;
@@ -196,54 +197,49 @@ export interface DiscountCode {
   /** The store's affiliate link, so a shopper who copies the code can open the store (holiday audit 1121 #81). */
   href?: string;
 }
-// Holiday audit 1121 #81 (lead 11-21: look each brand up ourselves): each code carries its store link, the brand's
-// affiliate link where we have one (CJ / Rakuten deep link to the home page, from the Link-library master-links.csv),
-// else the brand's plain https home page. Guard: src/test/giftGuideHolidayPolish1121c.test.tsx.
-export const discountCodes: DiscountCode[] = [
-  { rank: 1, store: "Muck Boot", code: "CYBER", offer: "20% off sitewide", dates: "Nov 29 – Dec 6", starts: "2026-11-29", expires: "2026-12-06", href: "https://www.anrdoezrs.net/click-101930553-15735627?url=https%3A%2F%2Fwww.muckbootcompany.com%2F" },
-  { rank: 1, store: "Muck Boot", code: "TAKE25", offer: "25% off everything (Black Friday)", dates: "Nov 20 – 28", starts: "2026-11-20", expires: "2026-11-28", href: "https://www.anrdoezrs.net/click-101930553-15735627?url=https%3A%2F%2Fwww.muckbootcompany.com%2F" },
-  // Train 1120c (lead 11-20 11:31 AM, CJ): XTRATUF's Black Friday code, 25% off sitewide, free shipping on $99+.
-  { rank: 1, store: "XTRATUF", code: "XT25", offer: "25% off sitewide (Black Friday); free shipping on $99+", dates: "Nov 20 – 29", starts: "2026-11-20", expires: "2026-11-29", href: "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2F" },
-  // Affiliate audit 1123 F8: TAKE30 runs Nov 20 to Dec 6 (Affiliate-approvals-1117.md, Durango's Nov 19 email); with no
-  // dates it never hid and would have shown after it ended.
-  { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+", dates: "Nov 20 – Dec 6", starts: "2026-11-20", expires: "2026-12-06", href: "https://www.anrdoezrs.net/click-101930553-15736401?url=https%3A%2F%2Fwww.durangoboots.com%2F" },
-  { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions", href: "https://cookmagnifique.com/" },
-  // Deals queue 11-23 (owner 11-23: every incoming Black Friday / Cyber Monday deal goes on the deals pages): Zappos's
-  // own ShopMy chat (Nov 19 "November News" image, read Nov 23). The link is our ShopMy Zappos holiday gift guide link
-  // (Link-library master-links.csv, used on the Zappos store page). TAKE20 is embargoed: Zappos asked creators not to
-  // share it until Nov 27, so no page names it before then (codesOn). HOKA Bondi 9 20% off is left off: no end date.
-  // Guard: src/test/giftGuideDealsQueue1123.test.tsx.
-  { rank: 4, store: "Zappos", code: "", offer: "Early Black Friday sale: up to 50% off eligible styles", dates: "Nov 19 – 30", starts: "2026-11-19", expires: "2026-11-30", href: "https://go.shopmy.us/p-107283587" },
-  { rank: 4, store: "Zappos", code: "", offer: "30% off On Cloudtilt and Cloudsurfer 2", dates: "Nov 26 – Dec 1", starts: "2026-11-26", expires: "2026-12-01", href: "https://go.shopmy.us/p-107283587" },
-  { rank: 4, store: "Zappos", code: "TAKE20", offer: "Cyber Monday: up to 50% off eligible styles", dates: "Nov 27 – 30", starts: "2026-11-27", expires: "2026-11-30", embargo: true, href: "https://go.shopmy.us/p-107283587" },
-  // Bruno Marc's Black Friday + Cyber Monday sale (CJ member mail, Commission-offers-log.md Nov 23): 25% off sitewide,
-  // taken off automatically with no code, Nov 23 to Dec 1. GREEN20 likely won't stack, so it steps aside for the sale
-  // and comes back Dec 2. A row with code "" is a no-code sale: its card shows no copy chip (CodeCard).
-  { rank: 5, store: "Bruno Marc", code: "", offer: "25% off sitewide, no code needed (Black Friday + Cyber Monday)", dates: "Nov 23 – Dec 1", starts: "2026-11-23", expires: "2026-12-01", href: "https://www.brunomarc.com/" },
-  { rank: 5, store: "Bruno Marc", code: "GREEN20", offer: "20% off sitewide", dates: "From Dec 2", starts: "2026-12-02", href: "https://www.brunomarc.com/" },
-  // Follow-up batch 2026-11-18: the rest of her list (the brands' own codes for her; Instant Funding still left out).
-  { rank: 8, store: "Everyday Dose", code: "ONBRAND-LEXI", offer: "10% off your first order; stacks with sales, one use per person", href: "https://everydaydose.com/" },
-  { rank: 10, store: "Aurate", code: "LEXIL-20", offer: "20% off", href: "https://auratenewyork.com/" },
-  { rank: 11, store: "Camp Snap", code: "LEXILOMBAS7", offer: "7% off", href: "https://campsnapphoto.com/" },
-  { rank: 12, store: "Bon Wellness", code: "LEXI20", offer: "20% off", href: "https://bonwellness.com/" },
-  // Club Recess (ShopMy Discount Codes + their 11-20 chat, ShopMy-codes-1121-night.md): LEXI5 (5%, stacks with their sales)
-  // through Dec 12; LEXI15 comes back Dec 13.
-  { rank: 13, store: "Club Recess", code: "LEXI5", offer: "5% off; stacks with their sales", expires: "2026-12-12", href: "https://clubrecess.com/" },
-  { rank: 13, store: "Club Recess", code: "LEXI15", offer: "15% off", starts: "2026-12-13", href: "https://clubrecess.com/" },
-  // Deals queue 11-23: Club Recess's Black Friday sale (their ShopMy chat, Nov 23): sale prices on the site, no code,
-  // Nov 24 through Cyber Monday Nov 30, and LEXI5 stacks on top. After LEXI5 so a pick's code chip stays LEXI5.
-  { rank: 13, store: "Club Recess", code: "", offer: "Black Friday through Cyber Monday: paddles and the Recess Archive (final sale) 40% off, apparel 25% off, accessories 20% off; LEXI5 stacks", dates: "Nov 24 – 30", starts: "2026-11-24", expires: "2026-11-30", href: "https://clubrecess.com/collections/black-friday" },
-  { rank: 14, store: "Thrive Creative", code: "LEXIL20", offer: "20% off", href: "https://thrivecreative.us/" },
-  { rank: 15, store: "YVO Warrior", code: "LEXI15", offer: "15% off", href: "https://yvowarrior.com/" },
-  { rank: 16, store: "Daily Crunch Snacks", code: "LEXI15", offer: "15% off", href: "https://dailycrunchsnacks.com/" },
-  // Affiliate sweep 11-18 #10: the brands in her code list that have a pick here (Bonheur's Celine Huggy Hoops, Spa
-  // Days). EF Collection, Quip and The Foggy Dog have no pick, so their codes stay off. BLKFRIDAY35 is embargoed to Nov 26.
-  { rank: 17, store: "Bonheur Jewelry", code: "SHOPMY25", offer: "25% off", href: "https://bonheurjewelry.com/" },
-  { rank: 17, store: "Bonheur Jewelry", code: "BONHEUR15", offer: "15% off", href: "https://bonheurjewelry.com/" },
-  { rank: 17, store: "Bonheur Jewelry", code: "BLKFRIDAY35", offer: "35% off (Black Friday)", dates: "From Nov 26", starts: "2026-11-26", embargo: true, href: "https://bonheurjewelry.com/" },
-  // Tushbaby confirmed LAHELPR25 for us (11-18 PM; we told the brand we'd list it): shows Dec 1, hides after Dec 25.
-  { rank: 18, store: "Tushbaby", code: "LAHELPR25", offer: "25% off sitewide", dates: "Dec 1 – 25", starts: "2026-12-01", expires: "2026-12-25", href: "https://click.linksynergy.com/deeplink?id=pqYaS88pNmA&mid=53904&murl=https%3A%2F%2Ftushbaby.com%2F" },
-];
+/*
+ * The codes themselves are DATA: src/content/giftGuideCodes.json, one code per line (live data, owner 2026-11-23: the
+ * app pulls newer codes and deals from the site with no release; scripts/lib/giftGuideLiveData.mjs emits it as "codes"
+ * and GiftGuideDeals.tsx swaps a newer copy in, giftGuideDealCounts.ts useStoreCodes). JSON keeps no comments, so where
+ * each code came from is kept here, in file order:
+ *
+ * Holiday audit 1121 #81 (lead 11-21: look each brand up ourselves): each code carries its store link, the brand's
+ * affiliate link where we have one (CJ / Rakuten deep link to the home page, from the Link-library master-links.csv),
+ * else the brand's plain https home page. Guard: src/test/giftGuideHolidayPolish1121c.test.tsx.
+ * Train 1120c (lead 11-20 11:31 AM, CJ): XTRATUF's Black Friday code, 25% off sitewide, free shipping on $99+.
+ * Affiliate audit 1123 F8: TAKE30 runs Nov 20 to Dec 6 (Affiliate-approvals-1117.md, Durango's Nov 19 email); with no
+ * dates it never hid and would have shown after it ended.
+ * Deals queue 11-23 (owner 11-23: every incoming Black Friday / Cyber Monday deal goes on the deals pages): Zappos's
+ * own ShopMy chat (Nov 19 "November News" image, read Nov 23). The link is our ShopMy Zappos holiday gift guide link
+ * (Link-library master-links.csv, used on the Zappos store page). TAKE20 is embargoed: Zappos asked creators not to
+ * share it until Nov 27, so no page names it before then (codesOn). HOKA Bondi 9 20% off is left off: no end date.
+ * Guard: src/test/giftGuideDealsQueue1123.test.tsx.
+ * Bruno Marc's Black Friday + Cyber Monday sale (CJ member mail, Commission-offers-log.md Nov 23): 25% off sitewide,
+ * taken off automatically with no code, Nov 23 to Dec 1. GREEN20 likely won't stack, so it steps aside for the sale
+ * and comes back Dec 2. A row with code "" is a no-code sale: its card shows no copy chip (CodeCard).
+ * Follow-up batch 2026-11-18: the rest of her list (the brands' own codes for her; Instant Funding still left out).
+ * Club Recess (ShopMy Discount Codes + their 11-20 chat, ShopMy-codes-1121-night.md): LEXI5 (5%, stacks with their sales)
+ * through Dec 12; LEXI15 comes back Dec 13.
+ * Deals queue 11-23: Club Recess's Black Friday sale (their ShopMy chat, Nov 23): sale prices on the site, no code,
+ * Nov 24 through Cyber Monday Nov 30, and LEXI5 stacks on top. After LEXI5 so a pick's code chip stays LEXI5.
+ * Affiliate sweep 11-18 #10: the brands in her code list that have a pick here (Bonheur's Celine Huggy Hoops, Spa
+ * Days). EF Collection, Quip and The Foggy Dog have no pick, so their codes stay off. BLKFRIDAY35 is embargoed to Nov 26.
+ * Tushbaby confirmed LAHELPR25 for us (11-18 PM; we told the brand we'd list it): shows Dec 1, hides after Dec 25.
+ *
+ * Deals queue 11-23, second pass (lead 11-23; our ShopMy earning links made 1:46-2:12 PM, ~/.lh-shots/deals-queue-1123.md
+ * "LINKS MADE"): Dream Pairs BLC521 (CJ mail, to Dec 10), PatchMD BF50 (CJ mail, to Dec 4; its later SAVE/HOLIDAY/END
+ * codes are not listed yet), Perelel BF2026 (ShopMy chat, sale Nov 9-29), Perk Energy's free
+ * gifts (ShopMy chat, to Nov 27) and Adagio Teas's spend rewards (CJ mail: free shipping to Nov 29, gift
+ * card tiers to Dec 25; its free-tea tiers are left off, no end day stated). Ravin Crossbows is left off (no end day
+ * stated), and so is Pomp and Circumstance (no link of ours yet). UNice Hair's BF150 is left off too: it ends Nov 25,
+ * before Black Friday, and a deals page lists only the codes working on its own day (codesDay), so it would never show.
+ * Guard: src/test/giftGuideDealsQueue1123.test.tsx.
+ */
+export const discountCodes: DiscountCode[] = [...(codesFile.codes as DiscountCode[])];
+/** src/content/giftGuideCodes.json's shape: the bundled copy, and a live copy the deals page swaps in. */
+export type DiscountCodesFile = { codes: DiscountCode[] };
+/** The bundled codes file as imported (never changed: the live data compares a copy's hash with it). */
+export const BUNDLED_CODES_FILE = codesFile as DiscountCodesFile;
 
 /** The codes still good on `today` (YYYY-MM-DD, local): a code is shown through its `expires` day. */
 export const activeCodes = (codes: DiscountCode[], today: string) => codes.filter((c) => (!c.expires || c.expires >= today) && (!c.starts || c.starts <= today));

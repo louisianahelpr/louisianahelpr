@@ -235,6 +235,21 @@ export function isLiveDupes<T>(v: unknown): v is T {
   );
 }
 
+/** The deals pages' store codes and no-code sales (src/content/giftGuideCodes.json): at least one valid code. */
+export function isLiveCodes<T>(v: unknown): v is T {
+  if (!v || typeof v !== "object") return false;
+  const list = (v as { codes?: unknown }).codes;
+  return (
+    Array.isArray(list) &&
+    list.length > 0 &&
+    list.every((c) => {
+      if (!c || typeof c !== "object") return false;
+      const o = c as Record<string, unknown>;
+      return typeof o.rank === "number" && Number.isFinite(o.rank) && str(o.store) && typeof o.code === "string" && str(o.offer) && (o.href === undefined || okLink(o.href)) && optStr(o.dates) && optStr(o.starts) && optStr(o.expires) && (o.embargo === undefined || o.embargo === true);
+    })
+  );
+}
+
 /** The deals days' cards (src/content/giftGuideDeals.json). */
 export function isLiveDeals<T>(v: unknown): v is T {
   return (

@@ -216,8 +216,10 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 /* Visual audit 1122-night #1: on a phone the name column is narrow (126px at 320, 181px at 375), so two lines cut names
    to their brand: Him showed "Smathers & Bran..." on row after row (48 Her/Him/Kids rows at 320 and 4 at 375 read the
    same as another gift, measured on www). A phone row's name runs to three lines (four under 360px wide) before it clips,
-   which sits beside the photo and the heart strip; tablets, desktop and the Top 10 cards keep two. */
-@media (max-width:767px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:3}}
+   which sits beside the photo and the heart strip; desktop keeps two.
+   Guide visual audit 1123b #6: tablets (768-1023, the two-column grid) cut 41+ names a guide at two lines
+   ("Touchland Power Mist Hand Sanitiz..."); they now get the phone's three lines too. */
+@media (max-width:1023px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:3}}
 @media (max-width:359px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:4}}
 .gg-nm .gg-nm-meta{display:flex;align-items:baseline;gap:8px;margin-top:4px;font-size:12px;font-weight:600;letter-spacing:.04em}
 .gg-nm-meta .gg-price{font-size:15px;letter-spacing:0}
@@ -279,7 +281,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 
 .gg-nm small{display:block;font-size:12px;color:var(--gg-muted)}
 .gg-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
-.gg-bdg{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:#eef2e6;color:#3f5a1c}
+.gg-bdg{font-style:normal;font-size:12px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:#eef2e6;color:#3f5a1c}
 .gg-last-note{display:inline-block;white-space:normal;max-width:none;margin:0 0 10px}
 .gg-bdg-sponsor{background:#f3dcd8;color:#8c3b3b}
 .gg-bdg-tiktok{background:#e9e4f5;color:#4b3a7a}.gg-bdg-preorder{background:#fbefd9;color:#7a5413}.gg-bdg-code{background:var(--gg-soft,#f4efe6);color:var(--gg-ink);letter-spacing:.04em}.gg-bdg-ship{background:#e6eef3;color:#2d4f63}.gg-bdg-back{background:#f6e7e4;color:#7a3b2e}
@@ -288,9 +290,8 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 /* Holiday audit A #6/#71: the section jump links were 24px bold text; now 44px chips like the budget chips. */
 .gg-secnav .gg-chip{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1px solid var(--gg-line);background:hsl(var(--card));color:var(--gg-ink);font-size:14px;text-decoration:none}
 .gg-secnav .gg-chip:hover,.gg-secnav .gg-chip:focus-visible{border-color:var(--gg-olive)}
-.gg-finder{scroll-margin-top:96px;margin:12px 0 4px;padding:16px 16px 8px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card))}.gg-finder-step{margin:6px 0 10px}.gg-finder-q{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--gg-ink)}
+.gg-finder{margin:12px 0 4px;padding:16px 16px 8px;border:1px solid var(--gg-line);border-radius:16px;background:hsl(var(--card))}.gg-finder-step{margin:6px 0 10px}.gg-finder-q{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--gg-ink)}
 .gg-finder-title{margin:0;font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:22px;line-height:1.15;font-weight:600;color:var(--gg-ink)}.gg-finder-lead{margin:4px 0 10px;font-size:14px;color:var(--gg-muted)}
-@media (max-width:767px){.gg-finder{scroll-margin-top:136px}}
 @media (min-width:768px){.gg-finder{padding:18px 22px 10px}.gg-finder-title{font-size:24px}}
 .gg-finder-folded{padding:0}
 .gg-finder-open{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;min-height:64px;padding:12px 16px;border:0;border-radius:16px;background:transparent;text-align:left;cursor:pointer;color:var(--gg-ink);font:inherit;white-space:normal;letter-spacing:normal}
@@ -324,7 +325,8 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-item:hover .gg-nm-name,.gg-item:focus-visible .gg-nm-name{text-decoration:underline;text-underline-offset:3px}
 .gg-price{font-size:13px;font-weight:700;color:var(--gg-ink);white-space:nowrap;font-variant-numeric:tabular-nums}
 .gg-price-note{margin:8px 0 0;font-size:12px;color:var(--gg-muted)}
-.gg-prime-trial{display:inline-block;padding:12px 0;color:inherit;text-decoration:underline;text-underline-offset:2px}
+/* Guide visual audit 1123b #15: the Prime line's tap was 42px tall; 44px now (min-height, the text centred). */
+.gg-prime-trial{display:inline-flex;align-items:center;min-height:44px;padding:12px 0;color:inherit;text-decoration:underline;text-underline-offset:2px}
 .gg-code-offer{font-size:12px;color:var(--gg-muted)}
 .gg-soon{text-align:center;padding:36px 16px;border-top:1px solid var(--gg-line);margin-top:16px}
 .gg-soon[data-gift-picks-loading]{min-height:100vh}
@@ -393,7 +395,17 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-head-phone .gg-icon,.gg-head-phone .gg-icon:hover,.gg-head-phone .gg-icon[aria-expanded="true"]{background:transparent;border:0;box-shadow:none}
 .gg-head-phone .gg-icon:focus-visible{background:transparent;outline:2px solid hsl(var(--ring));outline-offset:-2px;border-radius:8px}
 }
-/* The menu sheet: the sidebar's groups, rows and current-page look. */
+/* The menu sheet: the sidebar's groups, rows and current-page look.
+   Guide visual audit 1123b #2: the sheet box itself scrolled too (outer scrollHeight 1013 over a 652px box, the list
+   567px inside it), so a swipe or a wheel pushed the Gift guides title and the close button off the top and opened
+   ~360px of blank under the last row. ONE scroller now: the box is a column that never scrolls, the title stays put,
+   and only the list scrolls in the room left under it. The root cause of the extra height: each row's screen-reader
+   "N gifts" (.sr-only, position:absolute) took the fixed sheet as its containing block, so the hidden words of the
+   bottom rows hung ~360px below the list and stretched the sheet's own scroll area (measured: the deepest element was
+   an sr-only " gifts" at 1030px in a 668px box). The list is now their containing block (position:relative), so they
+   stay inside the one scroller. */
+.gg.gg-sheet-menu{display:flex;flex-direction:column;overflow:hidden}
+.gg-sheet-menu>.gg-sheet-menu-body{position:relative;flex:1 1 auto;min-height:0}
 .gg-sheet-menu .gg-sheet-menu-body{max-height:70dvh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
 /* Visual audit 1122-night #3: rows scrolled up under the sheet's Gift guides title and showed half-cut ("Banners" sliced at
    320). The scrolling list now starts under a hairline below the title and a row fades out in the 16px under it (at
@@ -425,7 +437,11 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-top10 .gg-nm{display:flex;flex:1;flex-direction:column;padding-bottom:0}
 /* Polish audit 1122 #20: the price right under a name held to two lines' height, and any chip under the price, so a
    card with a code chip (Camp Snap) keeps its price in line with the row's others. */
-.gg-top10 .gg-nm-name{min-height:2lh}
+/* Guide visual audit 1123b #13/#4: Top 10 names cut at two lines (5 of 10 on a phone, all 10 at 768); three lines like
+   the guide rows, and the price lines still line up (every name holds three lines' height). A code chip stays on one
+   line ("Code LEXILOMBAS7" broke into three at 768). */
+.gg-top10 .gg-nm-name{-webkit-line-clamp:3;min-height:3lh}
+.gg-top10 .gg-bdg{white-space:nowrap}
 .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0;padding-top:4px;min-height:28px}
 .gg-top10 .gg-badges{padding-right:0}
 /* Owner 2026-11-22: the cart right under the heart on the photo's top-right (see .gg-list .gg-cart); the Top 10's photo
@@ -436,7 +452,11 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
    photo's top-left corner, clear of the heart (top right) and inside the photo's padding, so it never covers the product. */
 .gg-top10 .gg-item{position:relative}
 .gg-rank{position:absolute;top:6px;left:6px;z-index:1;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 6px;border-radius:999px;background:#fbf7ee;border:1px solid hsl(var(--bark) / .35);color:hsl(var(--bark));font-family:'Bodoni Moda','Bodoni Moda Fallback',Georgia,serif;font-size:15px;font-weight:700;line-height:1;box-shadow:0 1px 2px rgba(0,0,0,.08);pointer-events:none}
-@media (min-width:768px){.gg-top10{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:20px 16px}}
+/* Guide visual audit 1123b #4: a grid of five at 768 (beside the rail) squeezed each card to a ~60px photo under the rank
+   and the heart. Up to 1023px the Top 10 stays the phone's sideways row, three cards and a bit in view; five across
+   from 1024. */
+@media (min-width:768px) and (max-width:1023px){.gg-top10{grid-auto-columns:minmax(160px,30%)}}
+@media (min-width:1024px){.gg-top10{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;gap:20px 16px}}
 /* The gift quiz (owner 11-21 ~6:15 PM): one question per screen, big answers (two across on a phone, up to four wide),
    then the result as the guides' list. */
 .gg-quiz{padding:18px 16px 14px}

@@ -13,7 +13,7 @@
  *  #7 the Holiday Hub's "Get featured free" and Hire a Helpr's "Christmas lights and holiday events" wear the guides'
  *     text-link look (olive, semibold, "›").
  *
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (max-width:767px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:3}} | @media (max-width:767px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:2}}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (max-width:1023px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:3}} | @media (max-width:1023px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:2}}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (max-width:359px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:4}} | @media (max-width:359px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:2}}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-sheet-menu .gg-sheet-menu-body{margin-top:8px;border-top:1px solid var(--gg-line);padding-top:16px} | .gg-sheet-menu .gg-sheet-menu-body{margin-top:0}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | mask-image:linear-gradient(to bottom,#000 1px,transparent 1px,#000 17px)} | }
@@ -46,15 +46,15 @@ const read = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8")
 
 describe("visual audit 1122-night #1: phone rows show enough of a name to tell gifts apart", () => {
   const sheet = GIFT_GUIDES_CSS;
-  it("three lines on a phone, four under 360px; tablet, desktop and the Top 10 keep two", () => {
-    expect(sheet).toContain("@media (max-width:767px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:3}}");
+  it("three lines on a phone and a tablet (guide visual 1123b #6), four under 360px; desktop keeps two", () => {
+    expect(sheet).toContain("@media (max-width:1023px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:3}}");
     expect(sheet).toContain("@media (max-width:359px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:4}}");
-    // The base (768px and up) stays two lines, and nothing at 768px+ raises it.
+    // The base (1024px and up) stays two lines.
     expect(sheet).toContain(".gg-nm-name{display:-webkit-box;-webkit-line-clamp:2;");
     const clamps = [...sheet.matchAll(/\.gg-nm-name\{[^}]*-webkit-line-clamp:(\d)/g)];
     expect(clamps.length).toBeGreaterThan(2);
     // The 4-line rule comes after the 3-line one, so it wins under 360px.
-    expect(sheet.indexOf("(max-width:359px){.gg-list:not(.gg-top10)")).toBeGreaterThan(sheet.indexOf("(max-width:767px){.gg-list:not(.gg-top10)"));
+    expect(sheet.indexOf("(max-width:359px){.gg-list:not(.gg-top10)")).toBeGreaterThan(sheet.indexOf("(max-width:1023px){.gg-list:not(.gg-top10)"));
   });
 });
 

@@ -788,6 +788,7 @@ test("2d · offline: OfflineBanner appears and the app degrades honestly", async
 // ───────────────────────────────────────────────────────────────────────────
 
 const AASA_URL = "https://www.louisianahelpr.com/.well-known/apple-app-site-association";
+const AASA_MAIN_RAW_URL = "https://raw.githubusercontent.com/louisianahelpr/louisianahelpr/main/public/.well-known/apple-app-site-association";
 
 /**
  * The claims and exclusions that must NOT quietly disappear.
@@ -892,7 +893,20 @@ test("3a · AASA is served over HTTPS with the claimed paths", async () => {
     join(REPO_ROOT, "public/.well-known/apple-app-site-association"),
     "utf8",
   );
-  expect(stripComments(JSON.parse(committed))).toEqual(stripComments(json));
+  // A branch that CHANGES the AASA cannot be served before it merges and deploys, so on its PR www still serves
+  // main's copy (train v, 2026-11-23: HA-03's eight new claims turned this required check red by construction).
+  // The served file must equal the committed file, or, while the change waits for its deploy, main's committed
+  // file (read from the public repo). A hand edit on the CDN or a stale deploy of anything else still fails.
+  const served = stripComments(json);
+  if (JSON.stringify(stripComments(JSON.parse(committed))) !== JSON.stringify(served)) {
+    const mainRes = await fetch(AASA_MAIN_RAW_URL);
+    expect(mainRes.status, "main's committed AASA must be readable to compare a pending AASA change").toBe(200);
+    const onMain = stripComments(JSON.parse(await mainRes.text()));
+    expect(JSON.stringify(onMain), "main already has this branch's AASA, so www should serve it: a stale deploy or a CDN edit")
+      .not.toBe(JSON.stringify(stripComments(JSON.parse(committed))));
+    test.info().annotations.push({ type: "AASA www", description: "this branch changes the AASA; www serves main's copy until it deploys" });
+    expect(served, "www serves neither this branch's AASA nor main's").toEqual(onMain);
+  }
 
   writeArtifact("aasa-www.json", { status: res.status, contentType, body: json });
 });

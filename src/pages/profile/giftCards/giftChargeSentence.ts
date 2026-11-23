@@ -2,7 +2,9 @@ import { formatPriceExact } from "@/lib/format";
 
 /**
  * The one sentence that tells a gift-card donor what their card will be
- * charged. `totalCents` is face value + the card-cost fee, the same
+ * charged. `totalCents` is face value + the one-time handling fee
+ * (`giftCardHandlingFeeCents`: the card cost, capped at $1 by La. R.S.
+ * 51:1423(B)(2)), the same
  * `unit_amount` `create-gift-card-checkout` sends to Stripe.
  *
  * Dollars AND cents (A3-B2, audit 2026-10-29): this used `formatPrice`, which

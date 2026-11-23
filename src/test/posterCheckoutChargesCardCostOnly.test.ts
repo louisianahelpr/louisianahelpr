@@ -98,7 +98,7 @@ const NOT_A_JOB_CHECKOUT: Record<string, { sites: number; why: string }> = {
   "_shared/shopBalance.ts": { sites: 1, why: "custom orders slice 2b (m1, 11-07): the off-session charge of a 50% deposit order's rest on the card saved at the deposit's Checkout, exactly the frozen balance_cents (fee and tax share priced on the deposit's page); a Shops order, not a job" },
   "create-pro-checkout/index.ts": { sites: 1, why: "a membership purchase (Stripe Price ids)" },
   "pay-onboarding-fee/index.ts": { sites: 1, why: "the one-time account setup fee, on its own" },
-  "create-gift-card-checkout/index.ts": { sites: 1, why: "a gift card purchase: face value + the same card-cost fee (posterCardCostFeeCents), no percentage" },
+  "create-gift-card-checkout/index.ts": { sites: 1, why: "a gift card purchase: face value + a one-time handling fee, the card cost capped at $1 (giftCardHandlingFeeCents; La. R.S. 51:1423(B)(2)), no percentage" },
 };
 
 function chargeSitesByFile(): Map<string, number> {

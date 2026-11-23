@@ -311,9 +311,9 @@ test.describe.serial("gift card journey against production", () => {
       expect(Number(meta.amount_cents), "Stripe carried a different face value than the gift row").toBe(faceCents);
       expect(donation.payment_intent, "the gift row names a different PaymentIntent than Stripe").toBe(minted.stripe_payment_intent_id);
       const fee = Number(donation.amount_subtotal) - faceCents;
-      // The donor pays face + the processing floor (posterCardCostFeeCents).
+      // The donor pays face + a one-time handling fee, the card cost capped at $1 (giftCardHandlingFeeCents, La. R.S. 51:1423(B)(2)).
       expect(fee, `the donor was charged ${donation.amount_subtotal}¢ for a ${faceCents}¢ gift`).toBeGreaterThan(0);
-      expect(fee, "the donor's fee is more than a processing floor").toBeLessThan(Math.ceil(faceCents * 0.1));
+      expect(fee, "the donor paid more than the $1 one-time handling fee La. R.S. 51:1423(B)(2) allows").toBeLessThanOrEqual(100);
     } else {
       announceUncovered("Gift card Stripe amounts unchecked", "STRIPE_TEST_SECRET_KEY not set — the ledger legs ran; what the card was charged was not read back.");
     }

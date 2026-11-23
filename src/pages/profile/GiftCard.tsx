@@ -45,7 +45,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { hapticMedium } from "@/lib/haptics";
-import { posterCardCostFeeCents } from "@/lib/posterFees";
+import { giftCardHandlingFeeCents } from "@/lib/posterFees";
 import { giftChargeSentence } from "./giftCards/giftChargeSentence";
 import { formatName } from "@/lib/utils";
 import { errorToast } from "@/lib/toast";
@@ -130,7 +130,9 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     rawAmount == null || !Number.isFinite(rawAmount) ? rawAmount : Math.round(rawAmount * 100) / 100;
   // What the donor is ACTUALLY charged, derived from the same function the
   // server bills with — `create-gift-card-checkout` does
-  // `posterCardCostFeeCents(amountCents)` and charges face + fee as one line.
+  // `giftCardHandlingFeeCents(amountCents)` (the card cost, capped at the $1
+  // one-time handling fee La. R.S. 51:1423(B)(2) allows) and charges face + fee
+  // as one line.
   //
   // The screen used to show the face value only, under a hand-typed sentence
   // that read "a card-processing fee (2.9% + 30c) is added at checkout". That
@@ -145,7 +147,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
     effectiveAmount != null && Number.isFinite(effectiveAmount) && effectiveAmount > 0
       ? Math.round(effectiveAmount * 100)
       : null;
-  const giftFeeCents = giftAmountCents == null ? null : posterCardCostFeeCents(giftAmountCents);
+  const giftFeeCents = giftAmountCents == null ? null : giftCardHandlingFeeCents(giftAmountCents);
   const giftTotalCents =
     giftAmountCents == null || giftFeeCents == null ? null : giftAmountCents + giftFeeCents;
 

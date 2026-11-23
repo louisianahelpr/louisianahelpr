@@ -150,7 +150,7 @@ describe("Q1750: a gift card runs in the buyer mode, and test credit goes only t
       expect(stripeMock.__keys).toEqual([TEST_KEY]);
       expect(giftWrites()).toHaveLength(1);
       // The mode is part of the idempotency key (lh-money-escrow review, finding 4).
-      expect(stripeMock.checkout.sessions.create.mock.calls[0][1]).toEqual({ idempotencyKey: `gift-card:v2:test:${TEST_BUYER}:${TEST_RECIPIENT_EMAIL}:2500` });
+      expect(stripeMock.checkout.sessions.create.mock.calls[0][1]).toEqual({ idempotencyKey: `gift-card:v3:test:${TEST_BUYER}:${TEST_RECIPIENT_EMAIL}:2500` });
     });
 
     it("a test buyer gifting a test account picked by name pays on the TEST key", async () => {

@@ -16,6 +16,7 @@ import { useLanguage } from "@/lib/i18n/language";
 import { useOnboardingFeeCents, formatFeeLabel } from "@/hooks/useOnboardingFee";
 // F236/F258 (audit 11-10): the Declutter buyer's fee, from the numbers checkoutAmounts charges (never retyped).
 import { DECLUTTER_BUYER_FEE_WORDS } from "@/lib/declutter/money";
+import { GIFT_CARD_HANDLING_FEE_CAP_CENTS } from "@/lib/posterFees";
 import { LAST_UPDATED } from "./legalSections";
 import { useFeature } from "@/hooks/useFeature";
 import { TERMS_SHIPPING_GET_ITEM, TERMS_SHIPPING_PARAGRAPHS } from "../declutterShippingCopy";
@@ -170,6 +171,10 @@ export const TermsContent = () => {
                 they were promoted into the canonical Terms rather than dropped. */}
             <p><strong className="text-foreground">Job boost:</strong> Optional paid boost to increase visibility of your listing.</p>
             <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the Helpr. The person tipping sees the total they pay before they pay; nothing is taken from the Helpr's tip.</p>
+            {/* La. R.S. 51:1423(B)(2): no service fee on a gift card, only a one-time handling fee of at most $1.
+                giftCardHandlingFeeCents is the number create-gift-card-checkout charges
+                (guard: src/test/giftCardFeeLouisianaCap.test.ts). */}
+            <p><strong className="text-foreground">Gift cards:</strong> the buyer pays the gift card amount plus a one-time handling fee of at most {formatDollarsWhole(GIFT_CARD_HANDLING_FEE_CAP_CENTS / 100)}, shown in the total before they pay. There are no other gift card fees, and nothing is taken from the card's value.</p>
           </>
         }
       />

@@ -13,7 +13,9 @@
  *      drop rule drawn (priceDrop.ts); never a promised schedule.
  *   4. How buyers get it: porch pickup (row 101), the area label (never a
  *      street address), the private pickup address and pickup times (row 52).
- *      Continue SAVES the draft (declutter_update_draft).
+ *      Continue SAVES the draft (declutter_update_draft). Asked only when the seller has no pickup address or times
+ *      saved, or the draft has no ways or address of its own (S-F2, app audit 1123; owner 2026-10-30, setup is
+ *      one-time); otherwise skipped ("n of 4"), step 3 saves the draft, and the review's Edit opens it.
  *   5. Ready to list: the preview, ONE tax checkbox stating the four facts
  *      (row 54; owner 2026-10-28; attestItem records all four), List it
  *      (live, or waiting for a review: row 33).
@@ -43,6 +45,8 @@ import { sellStepProblem } from "./sellForm";
 import { FieldLabel, SELL_INPUT, SellDropsCard, SellFreeToggle, SellPriceInput, SellTaxBox, SellWaysFields, SellYouGet } from "./SellFormParts";
 import { SellOneScreen } from "./SellOneScreen";
 import { useSellFlowState } from "./useSellFlowState";
+import { useFirstSale } from "./FirstSalePickup";
+import { anyNeeded } from "@/lib/declutter/sellerSetupSave";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import "@/lib/i18n/enSellForm";
@@ -69,6 +73,15 @@ function SellSteps({ itemId }: { itemId: string }) {
   const [triedStep, setTriedStep] = useState<number | null>(null);
   // Board 31a-158: which of the 5 steps is on screen.
   const [step, setStep] = useState(1);
+  // S-F2 (app audit 1123; owner 2026-10-30, setup is one-time: "not asked every time they post"): a seller whose pickup
+  // address and times are saved is not asked step 4 again; the draft keeps its ways, address and the saved times, and
+  // the review's "How buyers get it" row still opens the step for a change. A first-time seller is asked, as before.
+  // Guard: src/test/draftSkipsSavedPickupSetup.test.tsx.
+  const first = useFirstSale(s);
+  const [waysOpened, setWaysOpened] = useState(false);
+  const setupSaved = first.settled && !first.failed && !!first.needs && !anyNeeded(first.needs);
+  const draftHasPickup = savedWays.length > 0 && !!s.form.pickupAddress.trim() && !!s.form.areaLabel.trim() && !pickupWindowsProblem(windows);
+  const skipWays = setupSaved && draftHasPickup && !waysOpened;
 
   if (!user) return null;
   if (underAge) {
@@ -100,15 +113,18 @@ function SellSteps({ itemId }: { itemId: string }) {
       setTriedStep(step);
       return;
     }
-    // Step 4 saves the draft (and uploads the photos held on the device), so step 5 lists a real draft.
-    if (step === 4) {
+    // Step 4 saves the draft (and uploads the photos held on the device), so step 5 lists a real draft. With the ways
+    // step skipped (S-F2), step 3's Continue saves it instead.
+    if (step === 4 || (step === 3 && skipWays)) {
       const saved = await s.saveDetails();
       if (!saved) return;
     }
-    setStep((n) => Math.min(5, n + 1));
+    setStep((n) => (n === 3 && skipWays ? 5 : Math.min(5, n + 1)));
     window.scrollTo?.({ top: 0 });
   };
-  const back = () => (step > 1 ? setStep((n) => n - 1) : navigate("/declutter?tab=selling"));
+  const back = () => (step > 1 ? setStep((n) => (n === 5 && skipWays ? 3 : n - 1)) : navigate("/declutter?tab=selling"));
+  const totalSteps = skipWays ? 4 : 5;
+  const shownStep = skipWays && step === 5 ? 4 : step;
   return (
     // Design audit r2 #12: the phone app bar names the page ("Sell an item"); only "Show it off" read as a title.
     <AppPage title={tr("sf.sellAnItem")} onBack={back} narrow>
@@ -116,11 +132,11 @@ function SellSteps({ itemId }: { itemId: string }) {
       <div className="space-y-5">
       <div className="flex items-center gap-3" data-sell-progress={step}>
         <div className="flex flex-1 gap-1.5" aria-hidden>
-          {[1, 2, 3, 4, 5].map((n) => (
-            <span key={n} className={`h-1 flex-1 rounded-full ${n <= step ? "bg-primary" : "bg-border"}`} />
+          {Array.from({ length: totalSteps }, (_, i) => i + 1).map((n) => (
+            <span key={n} className={`h-1 flex-1 rounded-full ${n <= shownStep ? "bg-primary" : "bg-border"}`} />
           ))}
         </div>
-        <span className="text-ds-13 font-semibold text-muted-foreground">{tr("sf.ds.stepOf", { step, total: 5 })}</span>
+        <span className="text-ds-13 font-semibold text-muted-foreground">{tr("sf.ds.stepOf", { step: shownStep, total: totalSteps })}</span>
       </div>
 
       {step === 1 && (
@@ -208,7 +224,7 @@ function SellSteps({ itemId }: { itemId: string }) {
               ? <ReviewRow title={tr("sf.price")} body={tr("sf.ds.freeBody")} onEdit={() => setStep(3)} />
               : <ReviewRow title={tr("sf.ds.drops")} body={form.drops && priceCents && floorCents && floorCents < priceCents ? tr("sf.ds.dropsOn", { pct: form.dropPct, time: dropRunTime(), floor: formatPrice(floorCents) }) : tr("sf.ds.dropsOff")} onEdit={() => setStep(3)} />}
             <ReviewRow title={tr("sf.ds.photos")} body={tr(photoCount === 1 ? "sf.ds.photosBodyOne" : "sf.ds.photosBody", { n: photoCount })} onEdit={() => setStep(1)} />
-            <ReviewRow title={tr("sf.ds.howGet")} body={handoverSummary(savedWays)} onEdit={() => setStep(4)} />
+            <ReviewRow title={tr("sf.ds.howGet")} body={handoverSummary(savedWays)} onEdit={() => { setWaysOpened(true); setStep(4); }} />
             {/* Owner 2026-10-28: "it also never said how long it will stay open"; the rule the server runs (Q2461). */}
             <ReviewRow title={tr("sf.ds.howLong")} body={keepUp.on ? tr("lp.lifeKeepUp") : tr("lp.life")} />
           </ul>

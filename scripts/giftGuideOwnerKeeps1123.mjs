@@ -10,7 +10,7 @@
  * SECOND KEEPS (owner ~11:55 AM, owner-keeps-1123b.json): 19 Her and 9 Him Amazon picks (HER_KEEPS_1123_ROWS and the
  * end of HIM_KEEPS_1123_ROWS), re-read on amazon.com 11-23 12:02-12:04 PM; the 7 non-Amazon ones are held (below).
  * HELD LINKS MADE (11-23 12:18-12:34 PM): the Maisonette, Burt's Bees Baby, Ulta and Lodge keeps are *_LINKS_1123_ROWS
- * below; the Capri Blue car diffuser went to Amazon. Still out: Blackstone press (no link possible), Dearfoams (Walmart).
+ * below; the Capri Blue car diffuser went to Amazon. Still out: Blackstone press (no link possible). Dearfoams came in with her Walmart Creator link (HIM_WALMART_1123_ROWS).
  * Guard: src/test/giftGuideStockingStuffers1123.test.tsx.
  */
 
@@ -105,6 +105,16 @@ export const HIM_LINKS_1123_ROWS = [
   // Her link opens lodgecastiron.com on the 10.25-inch size (variant 51685752439156, L8SK3, $24.90; list $29.95).
   ["109739556", 24.9, "https://cdn.shopify.com/s/files/1/0889/2707/6724/files/l8sk3_9b279cb3-889b-440f-8fff-6956291583ad.jpg", "Lodge 10.25 in. Classic Cast Iron Skillet", "Lodge", "store-lodge", "cookware", 12, "The classic cast iron skillet, ready to cook on day one."],
 ];
+/**
+ * WALMART KEEP (lead 11-23 ~2:20 PM: her Walmart Creator link made): the Dearfoams slippers held above. Rows: [Walmart
+ * Creator link, price, Walmart photo (no query), name, brand, type, commission %, line]. Price and photo read on the
+ * walmart.com product page (ip/19586459270) 2026-11-23 2:37 PM CT: $20.00, sold by Walmart.com, in stock, the page opens
+ * on Brown. 14% is Walmart Creator's apparel rate (scripts/giftGuideSort.mjs walmartRate, "shoes"). Photo cut out
+ * (Apple Vision), LINKS_CUTOUTS_1123 below.
+ */
+export const HIM_WALMART_1123_ROWS = [
+  ["https://walmrt.us/4j41V4c", 20, "https://i5.walmartimages.com/seo/Dearfoams-Cozy-Comfort-Men-s-Cozy-Moccasin-Slippers_030d4a31-7d3f-4228-96e2-75cc069d1e59.b74fb5e53a19de44532aa81d0ee3ab60.jpeg", "Dearfoams Cozy Comfort Men's Cozy Moccasin Slippers, Brown", "Dearfoams", "shoes", 14, "Knit moccasin slippers with a soft lined collar for slow mornings."],
+];
 export const KIDS_LINKS_1123_ROWS = [
   ["109730393", 9.95, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/CThEQGkzRX6kMttAU-PieEPx0_7c08fc80-0e1f-4686-b73a-8434b4de75b3.jpg", "OOLY Hair Doodlers Hair Crayons, Set of 6", "OOLY", "store-maisonette", "hair-crayons", 16, "Six washable hair crayons in bright colors."],
   ["109730847", 16.15, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/sdKQAgU9XS8pVG8iU6Kx22JCM.jpg", "Floss & Rock Construction Memory Match", "Floss & Rock", "store-maisonette", "game", 16, "18 pairs of picture cards with trucks and diggers."],
@@ -128,6 +138,7 @@ export const LINKS_CUTOUTS_1123 = [
   ["https://media.ulta.com/i/ulta/2658859", "sweet-shimmer-candy-cane-bath-fizzer-26713b.webp"],
   ["https://media.ulta.com/i/ulta/2658887", "sweet-shimmer-bow-claw-clip-3ebe1f.webp"],
   ["https://cdn.shopify.com/s/files/1/0889/2707/6724/files/l8sk3_9b279cb3-889b-440f-8fff-6956291583ad.jpg", "lodge-classic-skillet-10-25-in-ca4f91.webp"],
+  ["https://i5.walmartimages.com/seo/Dearfoams-Cozy-Comfort-Men-s-Cozy-Moccasin-Slippers_030d4a31-7d3f-4228-96e2-75cc069d1e59.b74fb5e53a19de44532aa81d0ee3ab60.jpeg", "dearfoams-cozy-comfort-mens-moccasin-slippers-90e6c7.webp"],
   ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/CThEQGkzRX6kMttAU-PieEPx0_7c08fc80-0e1f-4686-b73a-8434b4de75b3.jpg", "ooly-hair-doodlers-hair-crayons-f570a3.webp"],
   ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/sdKQAgU9XS8pVG8iU6Kx22JCM.jpg", "floss-rock-construction-memory-match-29acea.webp"],
   ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/Zu6ntd--O4jMfhwuJN6eJDzdw.jpg", "tender-leaf-safari-binoculars-b6e1f3.webp"],

@@ -9,4 +9,6 @@ export type LinkRow1123 = readonly [pin: string, price: number, image: string, n
 export const HER_LINKS_1123_ROWS: readonly LinkRow1123[];
 export const HIM_LINKS_1123_ROWS: readonly LinkRow1123[];
 export const KIDS_LINKS_1123_ROWS: readonly LinkRow1123[];
+/** [Walmart Creator link, price, Walmart photo, name, brand, type, commission %, line]. */
+export const HIM_WALMART_1123_ROWS: readonly KeepRow1123[];
 export const LINKS_CUTOUTS_1123: readonly (readonly [string, string])[];

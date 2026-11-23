@@ -25,7 +25,7 @@ export function GiftGuidesPhoneSheet({ open, onClose, active, myList, page, idPr
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="bottom" className="gg gg-sheet-menu" data-gift-menu-sheet="">
-        <SheetHero title={G.sidebarLabel} />
+        <SheetHero title={G.menuSheetTitle} />
         {/* Not a <nav>: the sheet IS the menu, a dialog opened from the head row's three-line button. */}
         <div className="gg-sheet-menu-body" onClick={closeOnLink} role="presentation">
           <GiftGuidesMenu active={active} myList={myList} page={page} idPrefix={idPrefix} wishList />

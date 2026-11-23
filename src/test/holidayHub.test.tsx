@@ -544,7 +544,8 @@ describe("Holiday Hub routing, on every layer", () => {
   it("document scroll, linked from the footer and the gift guides left menu (owner 11-21: not the main column), never the phone top nav", () => {
     expect(read("src/hooks/useAppShellViewport.ts")).toMatch(/^\s*"\/holidays",/m);
     expect(read("src/components/Footer.tsx")).toContain('<Link to="/holidays" className={FOOTER_LINK}>');
-    expect(read("src/pages/info/giftGuides/GiftGuidesSidebar.tsx")).toContain('<Link to="/holidays" data-gift-side-holiday-hub="">');
+    // Guide consistency audit 1122 #2: marked current on its own page (src/test/giftGuideDisclosureWhereLinked1122.test.tsx).
+    expect(read("src/pages/info/giftGuides/GiftGuidesSidebar.tsx")).toContain('<Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub="">');
     // No top-nav link to it (polish audit 1122 #28 lists "/holidays" only in NAV_HOME_HIDDEN_ON, the pages that hide Home).
     expect(read("src/components/Navbar.tsx")).not.toMatch(/(?:to|href)=\{?["'`]\/holidays/);
     expect(read("src/components/Navbar.tsx")).toMatch(/NAV_HOME_HIDDEN_ON = \[[^\]]*"\/holidays"/);

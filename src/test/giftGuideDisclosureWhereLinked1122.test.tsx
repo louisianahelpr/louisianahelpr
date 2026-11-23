@@ -8,14 +8,22 @@
  *     not belong": the affiliate line shows only on a page that renders an affiliate link (GuidesDisclosure watches the
  *     page), never on the printables, Secret Santa or the Holiday Hub, and still on every guide and every page with a
  *     shop link (Amazon Associates requires it wherever an Amazon link appears);
- *   - "104 gifts needs to move to the right like the other pages are set up": on a desktop the 25 Days sponsors' count
- *     row heads the content column, right of the menu, not across the page above it; a phone keeps it under the banner.
+ *   - "104 gifts needs to move to the right like the other pages are set up": on a desktop the 25 Days sponsors page is
+ *     set up as Her (pill and icons in the header row, the count heading the content column), not one row across the
+ *     page above the menu; a phone keeps the guides' one row under the banner.
+ *
+ * Guide consistency audit 1122 (lead): #2 the Holiday Hub is marked open in the menu and in the top nav's gift link;
+ * #12 Small Business Saturday and an empty My Wish List (no affiliate link) show no line; #23 an empty My Wish List
+ * starts at the content column's left edge on a desktop.
  *
  * @mutate src/pages/info/giftGuides/GuidesDisclosure.tsx | if (!linked) return null; | if (false) return null;
  * @mutate src/pages/info/giftGuides/GuidesDisclosure.tsx | export const AFFILIATE_LINK = "a[data-gift-out], a[rel~='sponsored']"; | export const AFFILIATE_LINK = "a[data-none]";
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-fun{margin:0;padding:4px 0 24px} | .gg-fun{max-width:640px;margin:0;padding:4px 0 24px}
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | @media (min-width:1024px){.pr-card-wide{flex-direction:row; | @media (min-width:1024px){.pr-card-wide{flex-direction:column;
- * @mutate src/pages/info/GiftGuides.tsx |   const countInMain = countRow && !phone; |   const countInMain = false;
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub=""> | <Link to="/holidays" data-gift-side-holiday-hub="">
+ * @mutate src/components/Navbar.tsx | if (under("/gift-guides") \|\| path === "/holidays") return "guides"; | if (under("/gift-guides")) return "guides";
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-soon[data-gift-my-list-empty]{text-align:left; | .gg-soon[data-gift-my-list-empty]{text-align:center;
+ * @mutate src/pages/info/GiftGuides.tsx |   const countRow = phone && Boolean(guide) && !deals; |   const countRow = (phone && Boolean(guide) && !deals) \|\| guide?.slug === "25-days-sponsors";
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
@@ -24,11 +32,14 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.mock("@/lib/analytics", () => ({ track: vi.fn(), AhaEvent: new Proxy({}, { get: (_t, k) => String(k) }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: null }) }));
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: true }) }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
   PublicHeaderPage: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 
 import GiftGuides from "@/pages/info/GiftGuides";
+import Navbar from "@/components/Navbar";
+import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import Printables from "@/pages/info/giftGuides/printables/Printables";
 import SecretSanta from "@/pages/info/giftGuides/fun/SecretSanta";
 import HolidayHub from "@/pages/info/holidays/HolidayHub";
@@ -110,14 +121,15 @@ describe("the guide sub-pages fill the content column to the banner's edge (owne
     expect(c.querySelectorAll("[data-printable-card]").length).toBeGreaterThan(0); // the banners drew
   });
 
-  it("the sponsors' count row heads the content column on a desktop, and sits under the banner on a phone", () => {
-    const desk = guidesAt("/gift-guides/25-days-sponsors");
-    const row = desk.querySelectorAll("[data-gift-countrow]");
-    expect(row.length).toBe(1);
-    expect(row[0].parentElement?.classList.contains("gg-main")).toBe(true);
-    expect(row[0].parentElement?.firstElementChild).toBe(row[0]);
-    expect(row[0].querySelector("[data-gift-item-count]")).not.toBeNull();
-    cleanup();
+  it("the sponsors page is set up as Her on a desktop, and keeps the one row under the banner on a phone", () => {
+    for (const slug of ["her", "25-days-sponsors"]) {
+      const desk = guidesAt(`/gift-guides/${slug}`);
+      expect(desk.querySelector("[data-gift-countrow]"), slug).toBeNull();
+      expect(desk.querySelector("[data-gift-headrow] [data-gift-ship]"), slug).not.toBeNull();
+      expect(desk.querySelector("[data-gift-headrow] [data-gift-quick] [data-gift-search-button]"), slug).not.toBeNull();
+      expect(desk.querySelectorAll(".gg-main [data-gift-item-count]").length, slug).toBe(1);
+      cleanup();
+    }
     const width = window.innerWidth;
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 375 });
     try {
@@ -128,5 +140,38 @@ describe("the guide sub-pages fill the content column to the banner's edge (owne
     } finally {
       Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
     }
+  });
+});
+
+describe("guide consistency audit 1122 follow-ups", () => {
+  it("#12: Small Business Saturday and an empty My Wish List carry no affiliate link, so no line", async () => {
+    const sbs = guidesAt("/gift-guides/small-business-saturday");
+    await waitFor(() => expect(sbs.querySelector("[data-gift-deal-day-page='small-business-saturday']")).not.toBeNull());
+    expect(affiliateLinks(sbs).length).toBe(0);
+    expect(disclosures(sbs).length).toBe(0);
+    cleanup();
+    const mine = guidesAt("/gift-guides/my-list");
+    await waitFor(() => expect(mine.querySelector("[data-gift-my-list-empty]")).not.toBeNull());
+    expect(disclosures(mine).length).toBe(0);
+    cleanup();
+    // A deals day with shop links keeps it.
+    const bf = guidesAt("/gift-guides/black-friday");
+    await waitFor(() => expect(affiliateLinks(bf).length).toBeGreaterThan(0));
+    await waitFor(() => expect(disclosures(bf).length).toBe(1));
+  });
+
+  it("#2: on the Holiday Hub its menu entry and the top nav's gift guides links are current", () => {
+    const hub = render(<MemoryRouter initialEntries={["/holidays"]}><HolidayHub /></MemoryRouter>).container;
+    expect(hub.querySelector("[data-gift-sidebar] [data-gift-side-holiday-hub]")?.getAttribute("aria-current")).toBe("page");
+    expect(hub.querySelectorAll("[data-gift-sidebar] [aria-current]").length).toBe(1);
+    cleanup();
+    const nav = render(<MemoryRouter initialEntries={["/holidays"]}><Navbar landing={false} /></MemoryRouter>).container.querySelector('nav[aria-label="Primary"]')!;
+    const gifts = [...nav.querySelectorAll('a[href="/gift-guides"]')];
+    expect(gifts.length).toBeGreaterThan(0); // inventory floor: the words link and the phone's gift icon
+    for (const a of gifts) expect(a.getAttribute("aria-current")).toBe("page");
+  });
+
+  it("#23: an empty My Wish List starts at the content column's left edge on a desktop", () => {
+    expect(GIFT_GUIDES_CSS).toContain("@media (min-width:768px){.gg-soon[data-gift-my-list-empty]{text-align:left;padding-left:0;padding-right:0}.gg-soon[data-gift-my-list-empty] p{margin-left:0}}");
   });
 });

@@ -16,6 +16,7 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (max-width:767px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:3}} | @media (max-width:767px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:2}}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (max-width:359px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:4}} | @media (max-width:359px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:2}}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-sheet-menu .gg-sheet-menu-body{margin-top:8px;border-top:1px solid var(--gg-line);padding-top:16px} | .gg-sheet-menu .gg-sheet-menu-body{margin-top:0}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | mask-image:linear-gradient(to bottom,#000 1px,transparent 1px,#000 17px)} | }
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-deal-grid[data-gift-sales]{grid-template-columns:minmax(0,1fr)} | .gg-deal-grid[data-gift-sales]{}
  * @mutate src/pages/info/holidays/HolidayHire.tsx | className="link-standard inline-flex min-h-11 items-center font-semibold text-[hsl(var(--bark))]" data-holiday-hire-hub-link=""> | className="link-standard inline-flex min-h-11 items-center" data-holiday-hire-hub-link="">
  * @mutate src/pages/info/giftGuides/giftWishStyles.ts | .gg-deal .gg-heart-deal[aria-pressed="false"] path{fill:#fff} | .gg-deal .gg-heart-deal[aria-pressed="false"] path{}
@@ -58,9 +59,11 @@ describe("visual audit 1122-night #1: phone rows show enough of a name to tell g
 });
 
 describe("visual audit 1122-night #3: the phone menu sheet's rows scroll under a line, never half-cut under the title", () => {
-  it("a hairline under the title, the first group 16px below it", () => {
+  it("a hairline under the title, rows fading out under it, the first group 16px below it", () => {
     const sheet = GIFT_GUIDES_CSS;
     expect(sheet).toContain(".gg-sheet-menu .gg-sheet-menu-body{margin-top:8px;border-top:1px solid var(--gg-line);padding-top:16px}");
+    // A row fades out in the 16px under the line (the list's own top padding at rest).
+    expect(sheet).toContain(".gg-sheet-menu .gg-sheet-menu-body{-webkit-mask-image:linear-gradient(to bottom,#000 1px,transparent 1px,#000 17px);mask-image:linear-gradient(to bottom,#000 1px,transparent 1px,#000 17px)}");
     // The scrolling part is the body (the title sits outside it).
     expect(sheet).toMatch(/\.gg-sheet-menu \.gg-sheet-menu-body\{max-height:70dvh;overflow-y:auto/);
     expect(read("src/pages/info/giftGuides/GiftGuidesPhoneSheet.tsx")).toMatch(/<SheetHero title=\{G\.menuSheetTitle\} \/>\s*[\s\S]*?<div className="gg-sheet-menu-body"/);

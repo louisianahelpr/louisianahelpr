@@ -416,6 +416,7 @@ const Signup = () => {
       const referralRecorded = (result as { referralRecorded?: boolean } | null)?.referralRecorded === true;
 
       track(AhaEvent.SignupCompleted, {
+        provider: "email", // Apple/Google fire it from src/lib/socialSignupCompleted.ts (DQ-2)
         has_referral: !!referralCode.trim(),
         referral_recorded: referralRecorded,
         ...ppoTrackingProps(),

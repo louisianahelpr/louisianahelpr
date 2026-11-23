@@ -227,7 +227,7 @@ describe("the owner's held-link keeps are on Her, Him and Kids", () => {
     expect(rows[0].href).toBe("https://www.amazon.com/dp/B09X55PDB7?tag=louisianahelpr-20");
     expect(rows[0].price).toBe(23);
     expect(rows[0].image).toBe("https://m.media-amazon.com/images/I/51q7YVnVwnL._SL500_.jpg");
-    expect(PAGES.her.some((p) => p.href.includes("p-109738464") || p.href.includes("capri-blue.com"))).toBe(false);
+    expect(PAGES.her.some((p) => p.href.includes("p-109738464") || /(^|\.)capri-blue\.com$/.test(new URL(p.href).hostname))).toBe(false);
   });
   it("the Blackstone press stays off For Him", () => {
     const text = PAGES.him.map((p) => `${p.name} ${p.href}`).join("\n");

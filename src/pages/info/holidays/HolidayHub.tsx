@@ -25,7 +25,6 @@ import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/Fil
 import { FilterChip } from "@/components/ui/FilterChip";
 import { Input } from "@/components/ui/input";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
-import { GhostIconButton, SearchIconButton } from "@/components/ui/SearchIconButton";
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -234,18 +233,22 @@ export default function HolidayHub() {
             {/* Open, the magnifier's place stays held (SearchTriggerSlot) so the field's ✕ never lands under the finger
                 that opened it (src/test/searchDismissAndOverlay.test.tsx). */}
             {searchOpen && <SearchTriggerSlot />}
+            {/* Owner 2026-11-22 ("some icons have a circle background some are squared looking. they should all be
+                consistent"): the search and filter are the guides' toolbar icon (gg-icon), a 44px circle fill on a
+                desktop hover only, and the same focus ring, never the square ghost fill. */}
             {!searchOpen && (
-              <SearchIconButton ref={searchButton} label="Search lights and events" onClick={() => setSearchOpen(true)} data-holiday-search-button="" />
+              <RoundIconButton ref={searchButton} className="gg-icon" aria-label="Search lights and events" aria-expanded={false} onClick={() => setSearchOpen(true)} data-holiday-search-button="">
+                <Search className="h-5 w-5" aria-hidden />
+              </RoundIconButton>
             )}
-            <GhostIconButton ref={filtersButton} data-holiday-filters-button=""
+            <RoundIconButton ref={filtersButton} className="gg-icon" data-holiday-filters-button=""
               onClick={() => setFiltersOpen(true)} aria-haspopup="dialog" aria-expanded={filtersOpen}
-              aria-label={active.length ? `Filters, ${active.length} on` : "Filters"}
-              className={`relative hover:text-[hsl(var(--bark))] ${active.length ? "text-[hsl(var(--bark))]" : "text-foreground"}`}>
+              aria-label={active.length ? `Filters, ${active.length} on` : "Filters"}>
               <SlidersHorizontal className="h-5 w-5" aria-hidden />
               {active.length > 0 && (
-                <span data-holiday-filter-count="" className="absolute right-1 top-1 min-w-4 rounded-full bg-[hsl(var(--bark))] px-1 text-center text-ds-10 font-bold leading-4 text-white">{active.length}</span>
+                <span data-holiday-filter-count="" className="gg-icon-count" aria-hidden="true">{active.length}</span>
               )}
-            </GhostIconButton>
+            </RoundIconButton>
           </div>
           {active.length > 0 && (
             <ul aria-label="Filters on" className="flex flex-wrap gap-2" data-holiday-active="">

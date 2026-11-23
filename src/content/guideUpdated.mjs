@@ -2,19 +2,19 @@
 export const GUIDE_UPDATED = {
   "her": {
     "day": "2026-11-22",
-    "hash": "8a17bea23c613bd8"
+    "hash": "b0bdad8bf0e7ac77"
   },
   "him": {
     "day": "2026-11-22",
-    "hash": "76be08efc359f5ab"
+    "hash": "2b62c26b084f3c27"
   },
   "kids": {
     "day": "2026-11-22",
-    "hash": "feeebe74ef32af65"
+    "hash": "e3dc9830ce4052af"
   },
   "25-days-sponsors": {
     "day": "2026-11-22",
-    "hash": "f7fa086b2dff4c78"
+    "hash": "69652151d1ee367b"
   },
   "black-friday": {
     "day": "2026-11-22",
@@ -22,7 +22,7 @@ export const GUIDE_UPDATED = {
   },
   "small-business-saturday": {
     "day": "2026-11-22",
-    "hash": "da42af9d50484acb"
+    "hash": "cc09a5652c900e86"
   },
   "cyber-monday": {
     "day": "2026-11-22",

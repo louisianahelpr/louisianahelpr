@@ -157,7 +157,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Recent searches · Search jobs · Search jobs… · Close search |
 | `src/components/dashboard/filterSheet/FilterSheetRows.tsx` | checkbox/switch/radio×1 |  |  |  |
 | `src/components/dashboard/filterSheet/PayRangeSlider.tsx` | input×2 | range |  | pay-range · Lowest price · Highest price |
 | `src/components/dashboard/JobCard.tsx` | date/calendar×2 |  |  | job-card-countdown-slot |
@@ -168,6 +167,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/postjob/CityAutocomplete.tsx` | input×1 | text | 100 | City |
+| `src/hooks/useComboboxKeyboard.ts` | input×1 | search |  |  |
 | `src/pages/auth/CompleteProfile.tsx` | input×3, textarea×1, checkbox/switch/radio×1 | text | 5 | complete-profile-names · firstName · lastName · city · zipCode · bio · bio-contact-leak · accept-policies |
 | `src/pages/auth/completeProfile/ConsentStep.tsx` | checkbox/switch/radio×2 |  |  | complete-profile-consent-step · accept-policies · accept-policies-label · legal-in-english · age-confirm · age-confirm-label |
 
@@ -177,12 +177,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/profile/DeleteAccountDialog.tsx` | input×1 | text |  |  |
 | `src/components/profile/DeleteAccountReauth.tsx` | input×2 | password, text | 10 | delete-reauth-password · delete-reauth-code |
-
-## /complete-profile, /browse
-
-| File | Controls | input types | maxLength | hints |
-|---|---|---|---|---|
-| `src/hooks/useComboboxKeyboard.ts` | input×1 | search |  |  |
 
 ## /declutter
 
@@ -340,6 +334,12 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message-help · apply-message · save-default-pitch |
+
+## /jobs, /browse
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Recent searches · Search jobs · Search jobs… · Close search |
 
 ## /jobs, /posts
 

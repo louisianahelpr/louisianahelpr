@@ -140,6 +140,9 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   "nail-polish": ["beauty"], "nail-file": ["beauty"], "body-scrub": ["beauty"], "shower-steamers": ["beauty", "cozy"],
   "jewelry-box": ["style"], "kitchen-appliance": ["kitchen"], "matcha-set": ["kitchen"], "candle-warmer": ["cozy"],
   "hand-warmer": ["outdoors"], game: ["cozy"], carabiner: ["outdoors", "tools"], "gear-tie": ["tools", "outdoors"],
+  // Her keeps whose links came later (11-23): a candy cane bath fizzer is beauty and a cozy night in; a car diffuser
+  // is a cozy little upgrade for her car.
+  "bath-fizzer": ["beauty", "cozy"], "car-fragrance": ["cozy"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
@@ -166,6 +169,11 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   // kit and a water bottle are for active kids, shoe charms and putty are stocking stuffers, play sand is creative.
   figures: ["pretend"], blaster: ["active"], fishing: ["active"], "water-bottle": ["active"], "shoe-charms": ["stocking"],
   putty: ["stocking"], "sensory-sand": ["creative"],
+  // Kids keeps whose links came later (11-23): hair crayons are creative and a stocking stuffer, wooden binoculars are
+  // backyard pretend play, a shark projector flashlight is bedtime pretend play.
+  "hair-crayons": ["creative", "stocking"], binoculars: ["pretend", "active"], "projector-flashlight": ["pretend"],
+  // Christmas pajamas named "Pajamas" take that type (the type-agrees-with-name guard); cozy like kids-pajamas.
+  pajamas: ["cozy"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -230,6 +238,9 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   // 5+, Thinking Putty 3+, Kinetic Sand 3+, the fishing kit and the Owala bottle 4+.
   figures: ["3-5", "6-8"], blaster: ["6-8", "9-12"], "shoe-charms": ["6-8", "9-12"], putty: ["3-5", "6-8", "9-12"],
   "sensory-sand": ["3-5", "6-8"], fishing: ["3-5", "6-8", "9-12"], "water-bottle": ["3-5", "6-8"],
+  // By each box's age (Desktop owner-keeps-1123.json): OOLY hair crayons 6+, Tender Leaf binoculars 3+, the Brainstorm
+  // shark torch 4+.
+  "hair-crayons": ["6-8", "9-12"], binoculars: ["3-5", "6-8"], "projector-flashlight": ["3-5", "6-8"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],
@@ -257,6 +268,9 @@ const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/green toys dump truck/i, ["0-2", "3-5"]],
   [/polly pocket/i, ["3-5", "6-8"]],
   [/play-doh kitchen creations noodle/i, ["3-5", "6-8"]],
+  // The Floss & Rock memory match is 3+ (a game is otherwise 6+); the Burt's Bees Baby pajamas come in 12M to 12Y.
+  [/construction memory match/i, ["3-5", "6-8"]],
+  [/burt's bees baby nostalgic christmas/i, ["0-2", "3-5", "6-8", "9-12"]],
 ];
 export function quizAges(pick: Pick<CatalogPick, "name" | "type">): QuizAge[] {
   for (const [re, ages] of AGE_BY_NAME) if (re.test(pick.name)) return ages;

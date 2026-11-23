@@ -26,7 +26,7 @@ import { AMAZON_BRAND_PHOTOS_1122, cutoutPhoto } from "./giftGuideCutouts1120.mj
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 import { ADDS_STORES_1122, HER_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
-import { HER_KEEPS_1123_ROWS, KEEPS_PRICE_AT } from "./giftGuideOwnerKeeps1123.mjs";
+import { HER_KEEPS_1123_ROWS, HER_LINKS_1123_ROWS, KEEPS_PRICE_AT } from "./giftGuideOwnerKeeps1123.mjs";
 
 export const HER_GUIDE = "her";
 /** The day the ShopMy prices were checked (Louisiana day). */
@@ -161,7 +161,10 @@ export const HER_1121 = [
   // Her Best Buy pin (8%) looked $30+ dearer today.
   { name: "Skylight Calendar 2, 15 in., White", brand: "Skylight", line: "A touchscreen family calendar everyone can see.", href: amz("B0G618GK4S"), image: amzImg("7102yMFM5oL"), store: "store-amazon", sortPrice: 269.99, commission: 3, type: "calendar", priceAt: "2026-11-22" },
   // IPL5157 as pictured (two heads, pouch, Venus razor); the same device without the razor (IPL5137) is $279.99.
-  { name: "Braun Silk-expert Pro 5 IPL with Pouch and Venus Razor", brand: "Braun", line: "At-home IPL hair removal, with a pouch and a razor.", href: amz("B09WG9R7MY"), image: amzImg("81gm9rlIOzL"), store: "store-amazon", sortPrice: 419.99, commission: 3, type: "beauty-device", priceAt: "2026-11-22" },
+  // Owner 11-23 ~12:52 PM pop-up "Switch only the Braun": the IPL itself, not the $419.99 set with the Venus razor (B09WG9R7MY).
+  // B07WYY6KKC is the same Silk-expert Pro 5 (2 heads and a pouch, no razor; it shares that listing's device photos), read on
+  // amazon.com 2026-11-23 ~1:00 PM CT: $279.99, In Stock, sold and shipped by Amazon.com; its main photo is on white.
+  { name: "Braun Silk-expert Pro 5 IPL", brand: "Braun", line: "At-home IPL hair removal, with two heads and a pouch.", href: amz("B07WYY6KKC"), image: amzImg("71TXJv2ot-L"), store: "store-amazon", sortPrice: 279.99, commission: 3, type: "beauty-device", priceAt: "2026-11-23" },
   // Her ShopMy pins (11-19 links), each a cutout of the store's or brand's own photo.
   { name: "Touchland Power Mist Hand Sanitizer, Vanilla Blossom", brand: "Touchland", line: "A hydrating hand sanitizer mist with a soft vanilla scent.", href: shopmy("p-103903056"), image: "https://cdn.shopify.com/s/files/1/0027/5395/3862/files/Desktop_VanillaBlossom_ProductCard.jpg", store: "store-ulta-beauty", sortPrice: 10, price: 10, commission: 13, type: "hand-care", priceAt: "2026-11-22" },
   { name: "LUSH Turmeric Latte Massage Bar", brand: "LUSH", line: "A solid massage bar that melts into warm, soft skin.", href: shopmy("p-103891549"), image: "https://cdn.shopify.com/s/files/1/0751/1575/7852/files/turmeric_latte_massage.jpg", store: "store-lush", sortPrice: 16, price: 16, commission: 6, type: "lotion", priceAt: "2026-11-22" },
@@ -216,11 +219,14 @@ export const HER_POPULAR_1122 = [
 // owner 11-23 second keeps (scripts/giftGuideOwnerKeeps1123.mjs HER_KEEPS_1123_ROWS), Amazon, priced 11-23.
 export const HER_KEEPS_1123 = HER_KEEPS_1123_ROWS.map(([asin, sortPrice, img, name, brand, type, commission, line]) =>
   ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, priceAt: KEEPS_PRICE_AT, commission, type }));
+// ... and her Ulta keeps, whose ShopMy links she made 11-23 (HER_LINKS_1123_ROWS), priced on ulta.com 11-23.
+export const HER_LINKS_1123 = HER_LINKS_1123_ROWS.map(([pin, price, image, name, brand, store, type, commission, line]) =>
+  ({ name, brand, line, href: shopmy(`p-${pin}`), image, store, sortPrice: price, price, priceAt: KEEPS_PRICE_AT, commission, type }));
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 /** Her 11-21 saves plus the picks she sent on launch day (scripts/giftGuideOwnerAdds1122.mjs) and her 11-23 keeps. */
-export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123];
+export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123];
 
 /** The page rows: cheapest first, every pick priced (Amazon too, owner 11-21), cutout photos, relationship tags, no section. */
 export function her1121Picks(rows = HER_ROWS) {

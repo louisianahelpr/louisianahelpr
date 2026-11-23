@@ -445,6 +445,17 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-countrow .gg-ship{flex:none;font-size:11px;padding:4px 10px;max-width:none}
 .gg-countrow .gg-tools{position:relative;margin:0 0 0 auto;flex:0 0 auto;gap:0}
 @media (max-width:479px){.gg-countrow,.gg-countrow-left{gap:4px}.gg-countrow .gg-ship-order{display:none}.gg-countrow .gg-ship::first-letter{text-transform:uppercase}}
+/* Consistency audit 1122 #17 (Her and the sponsors page at 320: the four icons dropped to a second line under
+   "146 gifts" and the pill): under 360px the count and the icons share the first line (as at 375) and the pill sits
+   under the count, whole; the open search goes back to the one flex row above (the count stays, the pill steps out). */
+@media (max-width:359px){
+.gg-countrow{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:2px 4px}
+.gg-countrow-left{display:contents}
+.gg-countrow .gg-itemcount{grid-column:1;grid-row:1}
+.gg-countrow .gg-tools{grid-column:2;grid-row:1;justify-self:end}
+.gg-countrow .gg-ship{grid-column:1/-1;grid-row:2;justify-self:start}
+.gg-countrow:has(.gg-tools-search.is-open){display:flex}
+}
 
 /* Owner 11-21 (no more "Show more", every gift listed): every gift is drawn, so an off-screen card skips its layout
    and paint until it nears the screen; its reserved height keeps the scrollbar steady (no layout shift). */

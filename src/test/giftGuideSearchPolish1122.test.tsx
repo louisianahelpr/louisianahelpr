@@ -25,6 +25,10 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-tools-search.is-open{position:relative;flex:1 1 auto;width:100%} | .gg-tools-search.is-open{position:absolute;right:0;width:100%}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | min-height:44px;font:500 16px Montserrat,sans-serif; | min-height:40px;font:500 13px Montserrat,sans-serif;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (min-width:768px){.gg-tools-search.is-open{flex:0 1 360px;width:auto;min-width:0} | @media (min-width:768px){.gg-tools-search.is-open{flex:0 0 auto;width:360px;min-width:0}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow .gg-tools{grid-column:2;grid-row:1;justify-self:end} | .gg-countrow .gg-tools{grid-column:1/-1;grid-row:2;justify-self:end}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow:has(.gg-tools-search.is-open){display:flex} | .gg-countrow:has(.gg-tools-search.is-open){display:grid}
+ * @mutate src/content/sbsFeaturedLocal.ts |   sortLabel: "Sort", |   sortLabel: "Sort businesses",
+ * @mutate src/content/giftGuides.ts |   sortLabel: "Sort", |   sortLabel: "Sort by price",
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.22)] | focus-within:ring-2 focus-within:ring-ring
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |             {shown > 0 && <li className="gg-search-count" | {false && <li className="gg-search-count"
  */
@@ -41,6 +45,7 @@ import GiftGuides from "@/pages/info/GiftGuides";
 import { loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { giftGuides as G } from "@/content/giftGuides";
+import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
 
 await loadAllGuidePicks();
 const WIDTH = window.innerWidth;
@@ -125,6 +130,35 @@ describe("the guide search, polished (owner 2026-11-22)", () => {
   it("computer: the field takes up to 360px and gives way before the title; below 1280px the pill steps out", () => {
     expect(GIFT_GUIDES_CSS).toContain("@media (min-width:768px){.gg-tools-search.is-open{flex:0 1 360px;width:auto;min-width:0}.gg-tools:has(>.gg-tools-search.is-open){max-width:none}}");
     expect(GIFT_GUIDES_CSS).toContain("@media (min-width:768px) and (max-width:1279px){.gg-headrow:has(.gg-tools-search.is-open)>.gg-ship{display:none}}");
+  });
+
+  it("320 (consistency audit 1122 #17): under 360px the count and the four icons share the first line, the pill sits under the count", () => {
+    // Measured (Chromium, local dev build): Her and the sponsors page at 320, the count x 20 and the four icons at x 124,
+    // 168, 212, 256 on one line (y 327), the pill under the count (y 373); 360 keeps everything on one row.
+    const at = GIFT_GUIDES_CSS.indexOf("@media (max-width:359px){\n.gg-countrow{");
+    expect(at, "the under-360px count row block").toBeGreaterThan(0);
+    const end = GIFT_GUIDES_CSS.indexOf("\n}\n", at);
+    const inBlock = (sel: string) => { const r = rule(sel, at); expect(r.at < end, sel).toBe(true); return r.decl; };
+    expect(inBlock(".gg-countrow")).toEqual({ display: "grid", "grid-template-columns": "auto minmax(0,1fr)", "align-items": "center", gap: "2px 4px" });
+    expect(inBlock(".gg-countrow-left")).toEqual({ display: "contents" });
+    expect(inBlock(".gg-countrow .gg-itemcount")).toEqual({ "grid-column": "1", "grid-row": "1" });
+    expect(inBlock(".gg-countrow .gg-tools")).toEqual({ "grid-column": "2", "grid-row": "1", "justify-self": "end" });
+    expect(inBlock(".gg-countrow .gg-ship")).toEqual({ "grid-column": "1/-1", "grid-row": "2", "justify-self": "start" });
+    // The open search goes back to the one flex row (the count stays, the field takes the rest).
+    expect(inBlock(".gg-countrow:has(.gg-tools-search.is-open)")).toEqual({ display: "flex" });
+    // After the base count row rule, so it wins.
+    expect(at).toBeGreaterThan(GIFT_GUIDES_CSS.indexOf(".gg-countrow{display:flex;"));
+  });
+
+  it("one name per action on the sliders icon (consistency audit 1122 #6): \"Sort\" for a sort, \"Filter\" for a filter", () => {
+    expect(G.sortLabel).toBe("Sort");
+    expect(G.sortLabelActive("Price: low to high")).toBe("Sort, Price: low to high");
+    expect(SBS_WORDS.sortLabel).toBe(G.sortLabel);
+    expect(SBS_WORDS.sortLabelActive("Name: A to Z")).toBe(G.sortLabelActive("Name: A to Z"));
+    expect(G.filterLabel).toBe("Filter");
+    expect(G.filterLabelActive(2)).toBe("Filter, 2 on");
+    // The Hub's filter takes the same words (src/test/holidayHub.test.tsx clicks it by them).
+    expect(readFileSync("src/pages/info/holidays/HolidayHub.tsx", "utf8")).toContain("aria-label={active.length ? G.filterLabelActive(active.length) : G.filterLabel}");
   });
 
   it("Kids at 375: open, type, an \"N results\" line counting the rows shown; ✕ puts the row back with focus on the magnifier", async () => {

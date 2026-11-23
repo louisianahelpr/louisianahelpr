@@ -243,7 +243,7 @@ export default function HolidayHub() {
             )}
             <RoundIconButton ref={filtersButton} className="gg-icon" data-holiday-filters-button=""
               onClick={() => setFiltersOpen(true)} aria-haspopup="dialog" aria-expanded={filtersOpen}
-              aria-label={active.length ? `Filters, ${active.length} on` : "Filters"}>
+              aria-label={active.length ? G.filterLabelActive(active.length) : G.filterLabel}>
               <SlidersHorizontal className="h-5 w-5" aria-hidden />
               {active.length > 0 && (
                 <span data-holiday-filter-count="" className="gg-icon-count" aria-hidden="true">{active.length}</span>

@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-22T18:29:05.773Z",
-  "guards": 4432,
-  "registered": 4428,
+  "generated": "2026-11-23T01:43:48.168Z",
+  "guards": 4451,
+  "registered": 4447,
   "unregistered": [
     "src/lib/categorySuggestions.test.ts",
     "src/lib/celebrate.test.ts",
@@ -54,6 +54,15 @@
       ],
       "parents": [
         "src/components/dashboard/filterSheet/jobFilterSections.tsx"
+      ]
+    },
+    {
+      "module": "src/components/MetaPixelRoutes.tsx",
+      "tests": [
+        "src/lib/metaPixel.test.tsx"
+      ],
+      "parents": [
+        "src/components/VercelInsights.tsx"
       ]
     },
     {

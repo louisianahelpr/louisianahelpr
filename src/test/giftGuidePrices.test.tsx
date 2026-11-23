@@ -35,7 +35,7 @@ import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
 import { PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { verifiedPrice } from "../../scripts/giftGuidePrice.mjs";
 import { PRICE_RECHECKS } from "../../scripts/giftGuidePriceRecheck.mjs";
-import { HIM_KEEPS_1123, KIDS_KEEPS_1123, HIM_LINKS_1123, KIDS_LINKS_1123 } from "../../scripts/giftGuideHimKids1121.mjs";
+import { HIM_KEEPS_1123, KIDS_KEEPS_1123, HIM_LINKS_1123, HIM_WALMART_1123, KIDS_LINKS_1123 } from "../../scripts/giftGuideHimKids1121.mjs";
 import { HER_KEEPS_1123, HER_LINKS_1123 } from "../../scripts/giftGuideHer1121.mjs";
 import { KEEPS_PRICE_AT } from "../../scripts/giftGuideOwnerKeeps1123.mjs";
 import { openPriceSections } from "./helpers/openPriceSections";
@@ -44,7 +44,7 @@ afterEach(cleanup);
 
 // Her 11-23 keeps (Amazon, and the ShopMy links made later that day), plus the Braun IPL she switched to the device alone
 // (owner 11-23 ~12:52 PM "Switch only the Braun", read on amazon.com that day).
-const KEEP_HREFS = new Set([...[...HER_KEEPS_1123, ...HIM_KEEPS_1123, ...KIDS_KEEPS_1123, ...HER_LINKS_1123, ...HIM_LINKS_1123, ...KIDS_LINKS_1123].map((r) => r.href), "https://www.amazon.com/dp/B07WYY6KKC?tag=louisianahelpr-20"]);
+const KEEP_HREFS = new Set([...[...HER_KEEPS_1123, ...HIM_KEEPS_1123, ...KIDS_KEEPS_1123, ...HER_LINKS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123, ...KIDS_LINKS_1123].map((r) => r.href), "https://www.amazon.com/dp/B07WYY6KKC?tag=louisianahelpr-20"]);
 
 const CHUNKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
   Object.entries(import.meta.glob<PickChunk>("../content/giftGuidePicks/*.json", { eager: true, import: "default" }))

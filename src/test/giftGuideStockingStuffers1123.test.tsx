@@ -13,7 +13,9 @@
  * @mutate scripts/giftGuideHer1121.mjs | ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123]; | ...HER_POPULAR_1122, ...HER_LINKS_1123];
  * @mutate scripts/giftGuideOwnerKeeps1123.mjs | 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms, 7 in., Tequila Sunrise" | 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms"
  * @mutate src/lib/guideQa.mjs |   const stocking = band("stocking-stuffers"); |   const stocking = band("under-25");
- * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_KEEPS_1123, ...HIM_LINKS_1123]) { | ...HIM_KEEPS_1123]) {
+ * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123]) { | ...HIM_KEEPS_1123, ...HIM_WALMART_1123]) {
+ * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123]) { | ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123]) {
+ * @mutate scripts/giftGuideOwnerKeeps1123.mjs | ["https://walmrt.us/4j41V4c", 20, | ["https://walmrt.us/4j41V4c", 25,
  * @mutate scripts/giftGuideHimKids1121.mjs | ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123]) { | ...KIDS_KEEPS_1123]) {
  * @mutate scripts/giftGuideCutouts1120.mjs | for (const [from, file] of LINKS_CUTOUTS_1123) CUTOUTS_1120.set(from, file); | void LINKS_CUTOUTS_1123;
  * @mutate scripts/giftGuideOwnerKeeps1123.mjs | ["B09X55PDB7", 23, "51q7YVnVwnL" | ["B09X55PDB7", 25, "51q7YVnVwnL"
@@ -227,10 +229,20 @@ describe("the owner's held-link keeps are on Her, Him and Kids", () => {
     expect(rows[0].image).toBe("https://m.media-amazon.com/images/I/51q7YVnVwnL._SL500_.jpg");
     expect(PAGES.her.some((p) => p.href.includes("p-109738464") || p.href.includes("capri-blue.com"))).toBe(false);
   });
-  it("the Blackstone press and the Dearfoams slippers stay off For Him", () => {
+  it("the Blackstone press stays off For Him", () => {
     const text = PAGES.him.map((p) => `${p.name} ${p.href}`).join("\n");
     expect(text).not.toMatch(/Smash Burger Press with Smash Guard|blackstoneproducts\.com/i);
-    expect(text).not.toMatch(/Dearfoams/i);
+  });
+  // Train ab 11-23 (lead ~2:20 PM: her Walmart Creator link made): the Dearfoams slippers are on For Him once, on that
+  // link, at the $20.00 read on walmart.com 11-23, with the cutout of Walmart's photo, in Under $25 (not a stocking stuffer).
+  it("the Dearfoams slippers are on For Him with her Walmart Creator link, $20, a cutout", () => {
+    for (const list of [PAGES.him, him1121Picks()] as { name: string; href: string; price?: number; priceAt?: string; image?: string; store?: string }[][]) {
+      const rows = list.filter((p) => /Dearfoams/i.test(p.name));
+      expect(rows.map((p) => p.href)).toEqual(["https://walmrt.us/4j41V4c"]);
+      expect(rows[0]).toMatchObject({ price: 20, priceAt: "2026-11-23", store: "store-walmart", image: "https://www.louisianahelpr.com/gift-guides/cutouts/dearfoams-cozy-comfort-mens-moccasin-slippers-90e6c7.webp" });
+    }
+    expect(existsSync("public/gift-guides/cutouts/dearfoams-cozy-comfort-mens-moccasin-slippers-90e6c7.webp")).toBe(true);
+    for (const g of ["her", "kids"] as const) expect(PAGES[g].some((p) => /Dearfoams/i.test(p.name)), g).toBe(false);
   });
   it("the KREWE sunglasses are on For Her only (owner 11-23 ~1:00 PM: \"there shouldn't be krewe sunglasses on him\")", () => {
     const krewe = (l: { name: string; href: string }[]) => l.filter((p) => /KREWE/i.test(p.name) || p.href.includes("p-109340844"));

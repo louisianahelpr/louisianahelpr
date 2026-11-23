@@ -6,7 +6,7 @@ export const GUIDE_UPDATED = {
   },
   "him": {
     "day": "2026-11-23",
-    "hash": "93e1b762d0e1695b"
+    "hash": "bc3104590cdd23c1"
   },
   "kids": {
     "day": "2026-11-23",

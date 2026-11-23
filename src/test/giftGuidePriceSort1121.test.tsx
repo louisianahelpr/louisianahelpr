@@ -246,7 +246,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Her second keeps (11-23 ~11:55 AM, builder guides-keeps2): Him gained 9 stocking stuffers, every one under $5.
       // Held links made (11-23, builder guides-heldlinks): the Lodge 10.25 in. skillet, $24.90, reads ~$25: $25 to $50.
       // Owner 11-23 ~1:00 PM: the KREWE sunglasses ($255) are off For Him; ~1:01 PM the Steve Madden loafer ($139.99) too.
-      him: { "Stocking stuffers under $10": 23, "Under $25": 44, "$25 to $50": 50, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 48 },
+      him: { "Stocking stuffers under $10": 23, "Under $25": 45, "$25 to $50": 50, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 48 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),

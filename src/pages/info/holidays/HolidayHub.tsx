@@ -173,6 +173,8 @@ export default function HolidayHub() {
     }, today).length : 0),
     [what, region, cost, when, today],
   );
+  // The count's words, drawn once: the row's left when closed, and (open) the words a wide row shows beside the field.
+  const countWords = <>{shown.length ? holidayCountLabel(shown) : ""}{unlisted > 0 && <span data-holiday-unlisted="">{` · plus ${unlisted} with no cost listed`}</span>}</>;
 
   // Every filter in effect, in the panel's order: a removable chip each, and the Filters button's count.
   const active = [
@@ -214,10 +216,8 @@ export default function HolidayHub() {
           <div className="flex min-h-11 items-center gap-1" data-holiday-searchrow={searchOpen ? "open" : "closed"}>
             <p className={`${searchOpen ? "hh-count-open" : "min-w-0 flex-1"} text-ds-14 text-muted-foreground`} aria-live="polite" data-holiday-count="">
               {searchOpen ? (
-                <><span className="hh-count-full">{shown.length ? holidayCountLabel(shown) : ""}{unlisted > 0 && <span data-holiday-unlisted="">{` · plus ${unlisted} with no cost listed`}</span>}</span><span className="hh-count-short" aria-hidden="true">{shown.length || ""}</span></>
-              ) : (
-                <>{shown.length ? holidayCountLabel(shown) : ""}{unlisted > 0 && <span data-holiday-unlisted="">{` · plus ${unlisted} with no cost listed`}</span>}</>
-              )}
+                <><span className="hh-count-full">{countWords}</span><span className="hh-count-short" aria-hidden="true">{shown.length || ""}</span></>
+              ) : countWords}
             </p>
             {searchOpen && (
               <label className="hh-search gg-search rounded-xl focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.22)]" data-holiday-search-box="">

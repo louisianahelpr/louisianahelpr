@@ -3,7 +3,8 @@
 // Emails are out of scope on purpose: the CAN-SPAM postal footer (_shared/resend.ts) and the sponsor ship-to
 // email (sponsorDelivery.ts) must carry an address; they are listed in ALLOWED and need the owner's call.
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 

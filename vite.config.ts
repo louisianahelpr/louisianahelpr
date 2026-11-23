@@ -1552,9 +1552,11 @@ export default defineConfig(({ mode, command }) => ({
             // import only src/content/giftGuideConstants.ts (here too: no imports, two constants), never the catalog, so this
             // chunk stays light for /sponsor. giftGuideOfferCopy.mjs (no imports) and use-mobile.tsx (React only) joined
             // 11-21 (holiday batch 6 sales copy; the phone guide header's width check), both reached from the guide pages.
+            // The live guide data loader (src/lib/liveGuideData.ts + giftGuideLiveDataShared.mjs, owner 2026-11-23; imports only
+            // errorLogger, a boot module) joined 11-23: in signed-in-deep it put /gift-guides/<slug> at 611 KB gz (budget 306).
             {
               name: "public-page-reads",
-              test: /[\\/]src[\\/](lib[\\/](giftGuideFunApi|giftWishListApi|giftNameClean|retailerCart|wishLinks)|content[\\/](giftGuideFun1120|giftGuideConstants))\.ts$|[\\/]src[\\/]lib[\\/]giftGuideCoverVersions\.mjs$|[\\/]src[\\/]lib[\\/]pickPriceShown\.mjs$|[\\/]src[\\/]lib[\\/]giftGuideOfferCopy\.mjs$|[\\/]src[\\/]hooks[\\/]use-mobile\.tsx$/,
+              test: /[\\/]src[\\/](lib[\\/](giftGuideFunApi|giftWishListApi|giftNameClean|retailerCart|wishLinks)|content[\\/](giftGuideFun1120|giftGuideConstants))\.ts$|[\\/]src[\\/]lib[\\/]giftGuideCoverVersions\.mjs$|[\\/]src[\\/]lib[\\/]pickPriceShown\.mjs$|[\\/]src[\\/]lib[\\/]giftGuideOfferCopy\.mjs$|[\\/]src[\\/]hooks[\\/]use-mobile\.tsx$|[\\/]src[\\/]lib[\\/](liveGuideData\.ts|giftGuideLiveDataShared\.mjs)$/,
               priority: 16.7,
               minSize: 0,
               includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,

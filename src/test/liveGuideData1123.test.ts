@@ -16,6 +16,7 @@
  * @mutate src/lib/liveGuideData.ts |   const useSaved = saved !== null && saved.builtAt > bundleBuiltAt() && valid(saved.value); |   const useSaved = saved !== null;
  * @mutate src/content/giftGuideCatalog.ts |   applyChunk(liveCopy<PickChunk>(name, chunk, isLivePickChunk)); |   applyChunk(chunk);
  * @mutate vercel.json |       "source": "/gift-guides/data/(.*)", |       "source": "/(.*)",
+ * @mutate vite.config.ts | [\\/]src[\\/]lib[\\/](liveGuideData\.ts\|giftGuideLiveDataShared\.mjs)$/, | [\\/]src[\\/]lib[\\/](giftGuideLiveDataShared\.mjs)$/,
  * @mutate index.html | connect-src 'self' https://www.louisianahelpr.com | connect-src 'self'
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -97,6 +98,15 @@ describe("the build emits the live data files with a manifest", () => {
   it("vite.config.ts emits them in the build", () => {
     const src = blankComments(read("vite.config.ts"));
     expect(src).toMatch(/name: "lh-gift-guide-live-data",\s*apply: "build",\s*generateBundle\(\) \{\s*for \(const a of buildLiveData\(process\.cwd\(\), appBuiltAt\)\.assets\) this\.emitFile\(\{ type: "asset", fileName: a\.fileName, source: a\.source \}\);/);
+  });
+
+  it("the loader rides the public-page-reads chunk group, never signed-in-deep (611 KB gz on the guide page's path, 11-23)", () => {
+    const src = blankComments(read("vite.config.ts"));
+    const group = src.match(/name: "public-page-reads",\s*test: \/(.*)\/,\s*\n/);
+    expect(group).not.toBeNull();
+    const re = new RegExp(group![1]);
+    expect(re.test("/x/src/lib/liveGuideData.ts")).toBe(true);
+    expect(re.test("/x/src/lib/giftGuideLiveDataShared.mjs")).toBe(true);
   });
 
   it("the real bundled data passes the validators (no live copy of today's shape is ever refused)", () => {

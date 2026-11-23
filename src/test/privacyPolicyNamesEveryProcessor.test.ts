@@ -114,6 +114,9 @@ const NOT_PROCESSORS = [
   // A link only: the free Thanksgiving banner's "Print at Walgreens" opens Walgreens' poster page in a new tab
   // (src/content/printables.ts, owner 2026-11-21); no data is sent.
   "photo.walgreens.com",
+  // A law citation in comments only: posterFees.ts (both runtimes) and its guard cite La. R.S. 51:1423 on the
+  // Legislature's site (gift card $1 handling-fee cap, 2026-11-23); never called, no data is sent.
+  "legis.la.gov",
 ];
 
 // The gift guides' catalog (owner 2026-11-16..18, 25 Days sponsors and picks): every store, sponsor and image host in

@@ -16,7 +16,7 @@ import { useLanguage } from "@/lib/i18n/language";
 import { useOnboardingFeeCents, formatFeeLabel } from "@/hooks/useOnboardingFee";
 // F236/F258 (audit 11-10): the Declutter buyer's fee, from the numbers checkoutAmounts charges (never retyped).
 import { DECLUTTER_BUYER_FEE_WORDS } from "@/lib/declutter/money";
-import { GIFT_CARD_HANDLING_FEE_CAP_CENTS } from "@/lib/posterFees";
+import { GIFT_CARD_HANDLING_FEE_CAP_CENTS } from "@/lib/posterFees"; // La. R.S. 51:1423(B)(2) $1 gift card handling fee (guard: giftCardFeeLouisianaCap)
 import { LAST_UPDATED } from "./legalSections";
 import { useFeature } from "@/hooks/useFeature";
 import { TERMS_SHIPPING_GET_ITEM, TERMS_SHIPPING_PARAGRAPHS } from "../declutterShippingCopy";
@@ -165,15 +165,11 @@ export const TermsContent = () => {
             <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. A Helpr pays it out of their first payout; if you post a job before your first payout, it is charged then instead. It is never charged twice. Declutter never charges it.</p>
             <p><strong className="text-foreground">Total platform take:</strong> the one-time account setup fee and the service fee above.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. It is part of the job price the poster pays and goes to the Helpr (split among the crew on a group job), with the service fee above taken from each Helpr's share of the job price, bonus included.</p>
-            {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
-                tab's "Platform Fees" row, which was a paraphrase of this section.
-                They were the only two fee statements that lived ONLY there, so
-                they were promoted into the canonical Terms rather than dropped. */}
+            {/* Job Boost and Tipping moved here verbatim from the Profile → Legal tab's "Platform Fees" row,
+                which was a paraphrase of this section. They were the only two fee statements that lived
+                ONLY there, so they were promoted into the canonical Terms rather than dropped. */}
             <p><strong className="text-foreground">Job boost:</strong> Optional paid boost to increase visibility of your listing.</p>
             <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the Helpr. The person tipping sees the total they pay before they pay; nothing is taken from the Helpr's tip.</p>
-            {/* La. R.S. 51:1423(B)(2): no service fee on a gift card, only a one-time handling fee of at most $1.
-                giftCardHandlingFeeCents is the number create-gift-card-checkout charges
-                (guard: src/test/giftCardFeeLouisianaCap.test.ts). */}
             <p><strong className="text-foreground">Gift cards:</strong> the buyer pays the gift card amount plus a one-time handling fee of at most {formatDollarsWhole(GIFT_CARD_HANDLING_FEE_CAP_CENTS / 100)}, shown in the total before they pay. There are no other gift card fees, and nothing is taken from the card's value.</p>
           </>
         }

@@ -353,6 +353,55 @@ export function holidayDayHeading(day, today) {
   return label;
 }
 
+/**
+ * The "Pick a day" chips (owner 2026-11-22 7:46 PM: "organize these better so you can see the ones that are happening
+ * each day below"; her pop-up choice "Pick a day"): every day from today through the last day any dated item in `items`
+ * runs (an open-ended one, the season's end), one chip each, no gaps. A When filter narrows the chips to its own days
+ * (Today: today only; This weekend: Friday to Sunday; Next 7 days: today and the 6 after). No dated item: no chips.
+ */
+export function holidayDayChoices(items, today, when = null) {
+  let last = null;
+  for (const i of items) {
+    const l = lastDay(i);
+    if (l && (i.start ?? i.end) && (!last || l > last)) last = l;
+  }
+  if (!last || last < today) return [];
+  const range = whenRange(when, today);
+  let from = today;
+  let to = last;
+  if (range) {
+    if (range[0] > from) from = range[0];
+    if (range[1] < to) to = range[1];
+  }
+  const days = [];
+  for (let d = from; d <= to && days.length < 400; d = addDays(d, 1)) days.push(d);
+  return days;
+}
+
+/**
+ * Everything happening on `day`: one-day items on that date, multi-day items whose range covers it, and the light
+ * displays open that night (a dated range covering it). Undated items never. Those starting that day come first (by
+ * name), then the ones already running, closing soonest first.
+ */
+export function holidayItemsOn(items, day) {
+  const byName = (a, b) => a.name.localeCompare(b.name);
+  const on = items.filter((i) => runsBetween(i, day, day));
+  const starts = on.filter((i) => (i.start ?? i.end) === day).sort(byName);
+  const running = on.filter((i) => (i.start ?? i.end) !== day)
+    .sort((a, b) => (lastDay(a) ?? "9999-12-31").localeCompare(lastDay(b) ?? "9999-12-31") || byName(a, b));
+  return [...starts, ...running];
+}
+
+/** A day chip's words: "Today", else "Mon 23" ("Tue Dec 1" on the first of a month). */
+export function holidayDayChipLabel(day, today) {
+  if (day === today) return "Today";
+  const d = new Date(`${day}T12:00:00Z`);
+  const wd = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "short" }).format(d);
+  const md = d.getUTCDate();
+  if (md === 1) return `${wd} ${new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short" }).format(d)} 1`;
+  return `${wd} ${md}`;
+}
+
 /** The holiday jobs the hire page offers, each opening Post a job filled in (category from the real list). */
 export const HOLIDAY_HELP = [
   { title: "Hang Christmas lights", body: "Roofline, trees and porch lights up, and taken down after New Year's.", category: "handyman" },

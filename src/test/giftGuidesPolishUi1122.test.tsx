@@ -42,7 +42,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-card-more{min-height:44px; | .gg-card-more{min-height:32px;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0; | .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:auto;
  * @mutate src/pages/info/holidays/holidayParts.tsx |       <h3 className="text-ds-16 font-semibold leading-snug text-foreground">{item.name}</h3> |       <h3 className="text-ds-16 font-semibold leading-snug text-foreground">{item.name}{tag}</h3>
- * @mutate src/pages/info/holidays/HolidayHub.tsx |           query.trim() && active.length === 0 ? ( |           false ? (
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | <HolidayNothing onClear={() => setQuery("")} clearLabel="Clear search"> | <HolidayNothing onClear={clearAll}>
  * @mutate src/pages/info/giftGuides/giftWishStyles.ts | .gg-savefor-box{display:flex;flex-wrap:wrap;align-items:center} | .gg-savefor-box{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow .gg-ship-order{display:none} | .gg-countrow .gg-ship-order{}
  */

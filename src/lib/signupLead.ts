@@ -14,12 +14,19 @@ import { signupLeadSource } from "@/lib/signupLeadSource";
  *
  * Fire-and-forget: this never throws and never blocks sign-up. A failure is
  * report()ed, except a 429 (the per-address rate limit doing its job) and a
- * 403 (the Turnstile bot check refusing the token, Q1589: also the check doing
- * its job; a widget that never loaded already shows its own retry line).
+ * 403 on a capture that SENT a token (the Turnstile bot check refusing it,
+ * Q1589: also the check doing its job). A 403 on a capture that sent NO token
+ * is reported: that is the server requiring a token this client cannot mint,
+ * which refused every real visitor from 10-28 to 11-23 unseen (audit DQ-1).
  */
 
 /** Answers that are the server's checks working, not failures to report. */
 const QUIET_STATUSES = new Set([403, 429]);
+
+function isQuiet(status: number | null, sentToken: boolean): boolean {
+  if (status === 403) return sentToken;
+  return QUIET_STATUSES.has(status ?? 0);
+}
 
 // Kept in its own module so the boot path (signupSource.ts, via SessionManager) does not carry this file
 // (Q2705/Q2706 boot cut, 11-04). Re-exported for the existing callers.
@@ -53,8 +60,8 @@ export async function captureSignupLead(
         ...(captchaToken ? { captcha_token: captchaToken } : {}),
       },
     });
-    if (error && !QUIET_STATUSES.has(statusOf(error) ?? 0)) {
-      report(error, { tags: { source: "signupLead.capture" }, context: { status: statusOf(error) } });
+    if (error && !isQuiet(statusOf(error), !!captchaToken)) {
+      report(error, { tags: { source: "signupLead.capture" }, context: { status: statusOf(error), sentToken: !!captchaToken } });
     }
   } catch (err) {
     report(err, { tags: { source: "signupLead.capture" } });

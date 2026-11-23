@@ -146,7 +146,27 @@ serve(async (req) => {
   const replaces = normalizeLeadEmail(body?.replaces);
 
   const turnstileSecret = Deno.env.get("TURNSTILE_SECRET_KEY")?.trim();
-  if (turnstileSecret) {
+  const tokenSent = typeof body?.captcha_token === "string" && body.captcha_token.length > 0;
+  // DQ-1 (audit 2026-11-23): the web build ships Turnstile DORMANT
+  // (VITE_TURNSTILE_ENABLED off since 2026-10-20, with Supabase Auth's captcha,
+  // Q2113), so no client can mint a token, and with the secret set every real
+  // visitor's capture was refused: 12 of 12 POSTs in 24 h logged "missing
+  // captcha_token", 1 lead saved since 10-28. The token is REQUIRED only once
+  // the cutover turns the widget on (SIGNUP_LEAD_REQUIRE_CAPTCHA = "true", set
+  // together with VITE_TURNSTILE_ENABLED). Until then a token-less capture is
+  // saved and logged; a token that IS sent is still verified, and a bad one is
+  // still refused. The rate limit above and the reminder cron's per-run cap
+  // still bound what a token-less caller can send.
+  const requireToken = Deno.env.get("SIGNUP_LEAD_REQUIRE_CAPTCHA")?.trim().toLowerCase() === "true";
+  if (requireToken && !turnstileSecret) {
+    // Told to require a token with nothing to verify it against: refuse loudly
+    // rather than save unchecked (security review of DQ-1, finding 3).
+    console.error("[record-signup-lead] SIGNUP_LEAD_REQUIRE_CAPTCHA is on but TURNSTILE_SECRET_KEY is not set: lead not saved");
+    return json({ error: "Could not save" }, 500);
+  }
+  if (turnstileSecret && !tokenSent && !requireToken) {
+    console.warn("[record-signup-lead] no captcha_token (the web widget ships dormant): lead saved with no bot check (DQ-1)");
+  } else if (turnstileSecret) {
     const remoteIp = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
     const verdict = await verifyTurnstile(turnstileSecret, body?.captcha_token, remoteIp);
     if (verdict === "refused") return json({ error: "Security check failed" }, 403);

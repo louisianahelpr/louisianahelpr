@@ -295,6 +295,12 @@ jobs:
         run: npm run lint
 
       - name: TypeScript type check
+        # tsc -b over src/ reached Node's default ~4 GB heap on 2026-11-23 (#4922 died with
+        # "JavaScript heap out of memory" after 160 s at 4.03 GB). GitHub's hosted runners
+        # have 16 GB; give tsc 7 GB. Finding what grew the type graph is OPEN.md's
+        # "tsc heap" item, not a reason to keep this low.
+        env:
+          NODE_OPTIONS: --max-old-space-size=7168
         run: npx tsc -b --noEmit
 
       # `tsc -b` above still covers src/ ONLY — supabase/functions is Deno, with

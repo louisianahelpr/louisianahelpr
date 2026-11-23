@@ -1,6 +1,6 @@
 /** Types for src/lib/guideQa.mjs (the guide pages' Q&A, its pre-JS section and its FAQPage JSON-LD). */
 export interface QaItem { q: string; a: string }
-export interface QaPick { name: string; price?: number; priceAt?: string; priceFrom?: boolean; la?: boolean; brand?: string }
+export interface QaPick { name: string; price?: number; priceAt?: string; priceFrom?: boolean; la?: boolean; brand?: string; link?: "social" | "ours" }
 export interface QaDeal { item?: string; event?: string; brand?: string; deal?: string; ends?: string; code?: string }
 export interface QaShop { name: string; town?: string; category?: string; ships?: string }
 export const QA_PAGES: string[];
@@ -8,7 +8,8 @@ export const QA_TITLE: string;
 export const QA_BYLINE: { gifts: string; other: string };
 export function shortDate(day: string | undefined): string;
 export function updatedLine(day: string | undefined): string;
-export function toQaPick(p: { name: string; price?: number; priceAt?: string; priceFrom?: boolean; badges?: readonly string[]; brand?: string }): QaPick;
+export function toQaPick(p: { name: string; price?: number; priceAt?: string; priceFrom?: boolean; badges?: readonly string[]; brand?: string; href?: string }): QaPick;
+export function linkKind(href: string | undefined): "" | "social" | "ours";
 export function catalogGuideQa(slug: string, picks: QaPick[], today: string): QaItem[];
 /** A deals day page's other two sections on `today` (giftGuideDealCounts.ts dealDayParts) and the codes a card's end follows. */
 export interface QaDealListed { codes: number; sales: number; storeCodes?: readonly { store: string; code: string; expires?: string }[] }

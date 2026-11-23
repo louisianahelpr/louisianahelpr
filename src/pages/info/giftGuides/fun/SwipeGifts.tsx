@@ -11,6 +11,7 @@ import { PickPrice, PricesAsOf } from "@/components/giftGuides/PickPrice";
 import { track } from "@/lib/analytics";
 import { PickRow, PickThumb } from "../GiftGuideView";
 import { GiftOut } from "../GiftOut";
+import { addToWishList } from "../giftList";
 import { FunBody, funHeader } from "./FunPage";
 import { useAccountSync } from "./plannerSync";
 import { readSantaFor, saveIdeaToPlanner, saveSantaIdea } from "./santaIdeas";
@@ -198,6 +199,9 @@ export default function SwipeGifts() {
         setSavedTo("planner");
         setSaved((s) => [...s, card]);
       }
+    } else if (keep) {
+      // "Me" (no one named): My Wish List, the hearts' own store, so a save outlives the round (guide audit 1123 I11).
+      if (addToWishList({ href: card.href, name: card.name, ...(card.guide ? { guide: card.guide } : {}) })) setSaved((s) => [...s, card]);
     }
     setLastSaved(keep ? card.name : null);
     setDetails(false);
@@ -317,7 +321,7 @@ export default function SwipeGifts() {
         </div>
       ) : finished ? (
         <section aria-labelledby="swipe-done" className="gg-swipe-done" data-swipe-done="">
-          <h2 id="swipe-done">{!saved.length ? W.swipeDoneNone : santa ? W.santaSavedTitle(saved.length, santa.match) : W.swipeSavedFor(saved.length, forName ?? "")}</h2>
+          <h2 id="swipe-done">{!saved.length ? W.swipeDoneNone : santa ? W.santaSavedTitle(saved.length, santa.match) : forName ? W.swipeSavedFor(saved.length, forName) : W.swipeDoneTitle(saved.length)}</h2>
           {/* Owner 2026-11-22 #16 ("should show the pictures here"): each saved gift as the guides' own card (PickRow, as
               in the Top 10: its cutout photo, name, price and link, the heart), 2 across on a phone, 4 from 768px. */}
           {saved.length > 0 && (

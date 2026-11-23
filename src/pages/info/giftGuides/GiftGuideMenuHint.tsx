@@ -27,6 +27,11 @@ const W = G.menuHint;
  */
 export function GuidesMenuHint() {
   const [showing, close] = useHint(MENU_HINT_ID);
+  // Guide audit 1123 I4: the box leaves, so focus goes to the three-line menu button it points at (it fell to the body).
+  const closeAndFocusMenu = () => {
+    close();
+    requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-gift-head-menu]")?.focus());
+  };
   if (!showing) return null;
   return (
     <div className="gg-menuhint" data-gift-menu-hint="">
@@ -42,7 +47,7 @@ export function GuidesMenuHint() {
           <span className="gg-menuhint-s">{W.afterShort}</span>
         </span>
       </Button>
-      <Button type="button" variant="ghost" size="sm" className="gg-menuhint-x" onClick={close} aria-label={W.close} data-gift-menu-hint-close="">
+      <Button type="button" variant="ghost" size="sm" className="gg-menuhint-x" onClick={closeAndFocusMenu} aria-label={W.close} data-gift-menu-hint-close="">
         <span aria-hidden="true">✕</span>
       </Button>
     </div>

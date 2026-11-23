@@ -1,7 +1,7 @@
 import { activeCodes, codesByStore, discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
-import { DEAL_EVENTS, codesDay, dealCode, dealsIn, liveDeals, type Deal } from "@/content/giftGuideDeals.mjs";
+import { DEAL_EVENTS, codesDay, dealCode, dealsIn, liveDeals, louisianaDay, type Deal } from "@/content/giftGuideDeals.mjs";
 
 /**
  * The deals days' codes and sales rules, with no React and no card code: the deals pages draw their cards from them
@@ -20,17 +20,36 @@ export const liveSales = (sales: readonly Sale[], today: string) => {
   return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href)));
 };
 
-/** The codes that work on `day` (YYYY-MM-DD), by store rank, one entry per code. */
-export const codesOn = (day: string): DiscountCode[] => codesByStore(activeCodes([...discountCodes, ...CLEAN_CODES], day)).flatMap((s) => s.codes);
+/**
+ * Whether an offer line names the OTHER deal day and not `day`'s own (Cyber Monday's "Black Friday Deals Are in"); a
+ * line that names both days ("Black Friday/Cyber Monday") names its own too. Guides audit 1122 #15 (sales) and 1123 #11
+ * (codes: Bonheur's "35% off (Black Friday)" sat on the Cyber Monday page).
+ */
+const namesOtherDay = (day: string) => {
+  const here = DEAL_EVENTS.find((e) => e.kind === "deals" && e.day === day);
+  const other = here ? DEAL_EVENTS.filter((e) => e.kind === "deals" && e !== here).map((e) => e.title) : [];
+  return (offer: string) => Boolean(here && other.some((t) => offer.includes(t)) && !offer.includes(here.title));
+};
+
+/**
+ * The codes that work on `day` (YYYY-MM-DD), by store rank, one entry per code. A code the brand embargoed (its
+ * `embargo`, e.g. Bonheur's BLKFRIDAY35 until Nov 26) stays off every page until its `starts` day comes on `today`,
+ * even when the deal day it works on is later (guide audit 1123 #5: it showed on Nov 23 with "Starts Nov 26").
+ */
+export const codesOn = (day: string, today: string = louisianaDay(new Date())): DiscountCode[] => {
+  const namesOther = namesOtherDay(day);
+  const shown = activeCodes([...discountCodes, ...CLEAN_CODES], day)
+    .filter((c) => !(c.embargo && c.starts && today < c.starts))
+    .filter((c) => !namesOther(c.offer));
+  return codesByStore(shown).flatMap((s) => s.codes);
+};
 
 /** The store sales on `day`, one entry per store (its sales soonest end first), the stores in first-sale order. */
 export const salesOn = (day: string) => {
   const stores = new Map<string, Sale[]>();
   // Guides audit 1122 #15: a line that names the OTHER deal day (Cyber Monday's "Black Friday Deals Are in") is left off;
   // a line that names both days ("Black Friday/Cyber Monday") stays.
-  const here = DEAL_EVENTS.find((e) => e.kind === "deals" && e.day === day);
-  const other = here && DEAL_EVENTS.filter((e) => e.kind === "deals" && e !== here).map((e) => e.title);
-  const namesOther = (offer: string) => Boolean(here && other!.some((t) => offer.includes(t)) && !offer.includes(here.title));
+  const namesOther = namesOtherDay(day);
   for (const x of liveSales(CLEAN_SALES.filter((s) => !namesOther(s.offer)), day)) stores.set(x.store, [...(stores.get(x.store) ?? []), x]);
   return [...stores.entries()].map(([store, sales]) => ({ store, sales }));
 };
@@ -83,5 +102,5 @@ export function dealDayLists(id: string, deals: readonly Deal[], today: string):
   const list = dealsIn(liveDeals(deals, today, STORE_CODES), id);
   const shown = new Set(list.flatMap((d) => dealCode(d, today, STORE_CODES) ?? []).map((c) => c.toUpperCase()));
   const on = codesDay(day, today);
-  return { deals: list, codes: codesOn(on).filter((c) => !shown.has(c.code.toUpperCase())), sales: salesOn(on) };
+  return { deals: list, codes: codesOn(on, today).filter((c) => !shown.has(c.code.toUpperCase())), sales: salesOn(on) };
 }

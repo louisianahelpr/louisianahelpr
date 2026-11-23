@@ -10,6 +10,8 @@ export interface IcsItem {
   name: string;
   start: string | null;
   end: string | null;
+  /** The only days an event with gaps runs (holidayHub.d.mts); each run of back-to-back days is its own entry. */
+  days?: string[];
   tba: boolean;
   hours: string | null;
   address: string | null;
@@ -49,25 +51,50 @@ export function holidayIcs(item: IcsItem, now: Date): string | null {
   const stamp = now.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
   const where = [item.address, item.city].filter(Boolean).join(", ");
   const about = [item.hours, item.note, item.url].filter(Boolean).join("\n");
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Louisiana Helpr//Holiday Hub//EN",
-    "CALSCALE:GREGORIAN",
+  // Guide audit 1123 I7: an event with gaps (`days`) exports one entry per run of back-to-back days, never one block
+  // from its first day to its last (Santa Claus is Coming to Town, Nov 23-24 and Dec 21, was a 29-day block).
+  const runs = dayRuns(item.days) ?? [[item.start, last] as const];
+  const vevent = ([from, to]: readonly [string, string], i: number) => [
     "BEGIN:VEVENT",
-    `UID:${item.id}@louisianahelpr.com`,
+    `UID:${item.id}${runs.length > 1 ? `-${i + 1}` : ""}@louisianahelpr.com`,
     `DTSTAMP:${stamp}`,
-    `DTSTART;VALUE=DATE:${ymd(item.start)}`,
-    `DTEND;VALUE=DATE:${ymd(dayAfter(last))}`,
+    `DTSTART;VALUE=DATE:${ymd(from)}`,
+    `DTEND;VALUE=DATE:${ymd(dayAfter(to))}`,
     `SUMMARY:${esc(item.name)}`,
     ...(where ? [`LOCATION:${esc(where)}`] : []),
     ...(about ? [`DESCRIPTION:${esc(about)}`] : []),
     ...(item.url && /^https:\/\//.test(item.url) ? [`URL:${item.url}`] : []),
     "END:VEVENT",
+  ];
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Louisiana Helpr//Holiday Hub//EN",
+    "CALSCALE:GREGORIAN",
+    ...runs.flatMap(vevent),
     "END:VCALENDAR",
   ];
   return `${lines.map(fold).join("\r\n")}\r\n`;
 }
 
-/** A safe file name for the entry: the item's id. */
-export const holidayIcsName = (item: Pick<IcsItem, "id">) => `${item.id.replace(/[^a-z0-9-]/gi, "-")}.ics`;
+/** Back-to-back runs ([first, last]) of a sorted `days` list, or null when there is none. */
+function dayRuns(days: string[] | undefined): (readonly [string, string])[] | null {
+  const ok = (days ?? []).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  if (!ok.length) return null;
+  const out: [string, string][] = [];
+  for (const d of ok) {
+    const cur = out[out.length - 1];
+    if (cur && dayAfter(cur[1]) === d) cur[1] = d;
+    else out.push([d, d]);
+  }
+  return out;
+}
+
+/**
+ * A readable file name for the entry: the event's name ("santa-claus-is-coming-to-town.ics"; guide audit 1123 I7, it
+ * was "E007.ics"), falling back to the id when the name has no letters or digits.
+ */
+export const holidayIcsName = (item: Pick<IcsItem, "id"> & { name?: string }) => {
+  const slug = (item.name ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60).replace(/-+$/, "");
+  return `${slug || item.id.replace(/[^a-z0-9-]/gi, "-")}.ics`;
+};

@@ -9,6 +9,7 @@ import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import { giftGuides as G } from "@/content/giftGuides";
 import { guideBySlug, loadSearchItems, searchGuides, searchItemDollars, searchItems, searchPages, type SearchItem } from "@/content/giftGuideCatalog";
 import { MY_LIST_SLUG, useGiftList } from "./giftList";
+import { pickAnchor } from "@/content/giftGuidePickAnchor";
 import { openMyLists } from "./saveForPeople";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 
@@ -66,8 +67,11 @@ function GiftGuideFilter({ filter }: { filter: ToolsFilter }) {
     const away = (e: Event) => {
       if (!wrap.current?.contains(e.target as Node)) setOpen(false);
     };
+    // Guide audit 1123 I3: Escape hands focus back to the button that opened it (it dropped to the page body).
     const esc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      wrap.current?.querySelector<HTMLElement>("button")?.focus();
     };
     document.addEventListener("pointerdown", away);
     document.addEventListener("keydown", esc);
@@ -142,8 +146,11 @@ export function GiftGuideSort<T extends string = SortOrder>({ order, onChange, c
     const away = (e: Event) => {
       if (!wrap.current?.contains(e.target as Node)) setOpen(false);
     };
+    // Guide audit 1123 I3: Escape hands focus back to the button that opened it (it dropped to the page body).
     const esc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      wrap.current?.querySelector<HTMLElement>("button")?.focus();
     };
     document.addEventListener("pointerdown", away);
     document.addEventListener("keydown", esc);
@@ -388,7 +395,8 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
               const dollars = searchItemDollars(item);
               return (
               <li key={`${slug} ${name}`}>
-                <Link to={`/gift-guides/${slug}`} onClick={() => setQuery("")} data-gift-found-item={slug}>
+                {/* Guide audit 1123 I2: lands ON the gift (its row's #link), on another guide or the one you are on. */}
+                <Link to={`/gift-guides/${slug}#${pickAnchor(name)}`} onClick={() => setQuery("")} data-gift-found-item={slug}>
                   {image && <img className="gg-search-thumb gg-search-thumb-item" loading="lazy" decoding="async" src={image} alt="" width={36} height={36} />}
                   <span className="gg-search-item">
                     <span className="gg-search-item-name">{name}</span>

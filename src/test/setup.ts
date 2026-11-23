@@ -22,6 +22,12 @@ vi.mock("@/hooks/usePayoutSetupHireAllowed", () => ({ usePayoutSetupHireAllowed:
 // tests never reach Supabase. The read itself: src/test/guestIdWordingFollowsTheSwitch.test.tsx unmocks it.
 vi.mock("@/lib/guestIdCheckAnswer", () => ({ useGuestIdCheckAnswer: () => null }));
 
+// Owner 2026-11-22 ("add the count to small business saturday too"): every gift guides page's menu counts the approved
+// "Featured local" businesses once (src/lib/sbsFeaturedCount.ts, from the menu's lazy chunk). Tests not ABOUT that
+// count get 0 here, so the guide page tests never reach Supabase. The count itself:
+// src/test/giftGuideRailCounts1122.test.tsx unmocks it.
+vi.mock("@/lib/sbsFeaturedCount", () => ({ featuredLocalCount: async () => 0 }));
+
 // Unmount every render after every test, in every file. RTL only registers its
 // own auto-cleanup when a test file imports it statically; a file that loads it
 // with `await import(...)` left its renders mounted, and a React update fired

@@ -10,15 +10,17 @@
  *     other item listed on `from`, the minute (since `from` 00:00 Louisiana time) it leaves the list, sorted. The count at
  *     a moment inside the window = stay + the `gone` entries still ahead of it (hubCountAt in railCounts.ts). Outside the
  *     window the row shows no number.
+ *   smallBiz: the 25 Days sponsor businesses Small Business Saturday lists (giftGuideSmallBiz.json's rows, its whole
+ *     grid), so the menu need not download that file; the chunk adds the approved "Featured local" businesses the page
+ *     lists under them, read live (owner 2026-11-22, 8:36 PM: "add the count to small business saturday too").
  * Each item's leaving minute comes from the Hub's own functions (filterHolidayItems, endedEarlierToday), stepping day by
  * day and, on its last listed day, minute by minute, so it is the page's rule, not a copy of it.
  * Her, Him, Kids and the 25 Days sponsors read CHUNK_PICK_COUNTS (giftGuidePicks.ts, already in the menu's bundle), the
  * printables pages read printables.ts, and Black Friday and Cyber Monday are counted from the deals file when the chunk
- * loads. Small Business Saturday gets no number: under its sponsors it lists the approved "Featured local" businesses
- * read live from the database (sbs_public_featured, 1 on 2026-11-22), which only that page's Supabase chunk can count.
+ * loads.
  * Registered in scripts/check-generated-current.mjs (gift-guide-rail-counts). Guard: src/test/giftGuideRailCounts1122.test.tsx.
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { HOLIDAY_LIGHTS } from "../src/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "../src/content/holidayHub/events.mjs";
@@ -56,7 +58,8 @@ export function buildHub(lights = HOLIDAY_LIGHTS, events = HOLIDAY_EVENTS) {
 }
 
 export function buildRailCounts() {
-  return { hub: buildHub() };
+  const smallBiz = JSON.parse(readFileSync(join(REPO, "src/content/giftGuideSmallBiz.json"), "utf8")).length;
+  return { hub: buildHub(), smallBiz };
 }
 
 export const railCountsText = (c) => `${JSON.stringify(c)}\n`;
@@ -64,5 +67,5 @@ export const railCountsText = (c) => `${JSON.stringify(c)}\n`;
 if (import.meta.url === `file://${process.argv[1]}`) {
   const c = buildRailCounts();
   writeFileSync(OUT, railCountsText(c));
-  console.log(`gift-guide-rail-counts: hub stay ${c.hub.stay} + ${c.hub.gone.length} leaving -> src/content/giftGuideRailCounts.json`);
+  console.log(`gift-guide-rail-counts: smallBiz ${c.smallBiz}, hub stay ${c.hub.stay} + ${c.hub.gone.length} leaving -> src/content/giftGuideRailCounts.json`);
 }

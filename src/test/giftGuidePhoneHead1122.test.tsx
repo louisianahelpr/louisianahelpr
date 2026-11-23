@@ -27,7 +27,7 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (hover:hover){.gg-icon:hover,.gg-icon[aria-expanded="true"]{background:hsl(var(--muted) / .7)}} | .gg-icon:hover,.gg-icon[aria-expanded="true"]{background:hsl(var(--muted) / .7)}
  * @mutate src/pages/info/giftGuides/giftWishStyles.ts | @media (hover:hover){.gg-savefor-tool:hover{background:hsl(var(--muted));color:var(--gg-ink)}} | .gg-savefor-tool:hover{background:hsl(var(--muted));color:var(--gg-ink)}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-icon:focus-visible{outline:2px solid hsl(var(--ring)); | .gg-icon:focus-visible{background:hsl(var(--muted) / .7);
- * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />}\n      {filter && <GiftGuideFilter filter={filter} />}\n      <MyListIcon current={myList} /> |       <MyListIcon current={myList} />\n      {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />}\n      {filter && <GiftGuideFilter filter={filter} />}
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />}\n      {filter && <GiftGuideFilter filter={filter} />}\n      {heart && <MyListIcon current={myList} />} |       {heart && <MyListIcon current={myList} />}\n      {sort && <GiftGuideSort order={sort.order} onChange={sort.onChange} />}\n      {filter && <GiftGuideFilter filter={filter} />}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, waitFor } from "@testing-library/react";

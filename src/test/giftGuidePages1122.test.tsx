@@ -9,6 +9,9 @@
  *     so a new guides route without the banner fails here.
  *     Owner 11-22 ("Same row, icons off there"): the printables' head row is the pill alone (no search, heart or Share,
  *     her 11-21 call), and the Holiday Hub's has no gift search (one magnifier: the Hub's own lights search).
+ *     Owner 11-22 7:49 PM (desktop screenshot of the Hub's head row): "remove order by and the heart at the top ... i
+ *     thought we didnt do that for this section?": the Hub's row is back arrow, title and Share only, no shipping pill
+ *     and no My list heart anywhere on the page; every other page keeps its pill and icons.
  * #14 ("polish this. separate each book in its own box take them out of the 1 box"): on Coloring books, the one card
  *     holding both covers is two cards, each with its own bigger cover, title, one line and a plain download link (#15's
  *     style); side by side from 560px, stacked on a phone.
@@ -28,7 +31,11 @@
  * @mutate src/pages/info/holidays/HolidayHub.tsx | path="/holidays" banner={G.pageBanners["/holidays"]} | path="/holidays" banner={{ lead: "", title: W.hubTitle, tint: "red" }}
  * @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {pillInRow && pill}\n | \n
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <FunBody title={words.title} path={path} tools="none"> | <FunBody title={words.title} path={path}>
- * @mutate src/pages/info/holidays/HolidayHub.tsx | banner={G.pageBanners["/holidays"]} tools="no-search" | banner={G.pageBanners["/holidays"]}
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | banner={G.pageBanners["/holidays"]} tools="share" | banner={G.pageBanners["/holidays"]}
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | heart={tools !== "share"} | heart
+ * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | noPill={tools === "share"} | noPill={false}
+ * @mutate src/pages/info/giftGuides/GuidesTop.tsx |   const ship = noPill ? null : shippingLine(new Date()); |   const ship = shippingLine(new Date());
+ * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {heart && <MyListIcon current={myList} />} |       <MyListIcon current={myList} />
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {search && ( |       {true && (
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <Button key={f.href} type="button" variant="link" size="inline" className="pr-link" | <Button key={f.href} type="button" variant="outline" size="sm" className="pr-link"
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx |   const books = booksOf(p);\n |   const books = null as Book[] \| null;\n
@@ -157,12 +164,14 @@ describe("#13 every guides page opens on the guides' one top: head row, then the
     // row right under the banner, as the owner put them there on 2026-11-21.
     const top = [row, container.querySelector("[data-gift-countrow]")].filter(Boolean) as Element[];
     expect(shippingLine(new Date())).not.toBeNull();
-    expect(top.some((el) => el.querySelector("[data-gift-ship]"))).toBe(true);
-    // The icons (owner 11-22, "Same row, icons off there"): none on the printables, no gift search on the Hub.
+    // The icons (owner 11-22, "Same row, icons off there"): none on the printables, no gift search on the Hub; the Hub
+    // has no pill and no heart either (owner 11-22 7:49 PM), anywhere on the page.
     const printables = url.startsWith("/gift-guides/printables");
     const hub = url === "/holidays";
+    expect(top.some((el) => el.querySelector("[data-gift-ship]")), url).toBe(!hub);
+    if (hub) expect(container.querySelectorAll("[data-gift-ship], [data-gift-my-list-link]").length).toBe(0);
     expect(top.some((el) => el.querySelector("[data-gift-quick]")), url).toBe(!printables);
-    expect(top.some((el) => el.querySelector("[data-gift-my-list-link]")), url).toBe(!printables);
+    expect(top.some((el) => el.querySelector("[data-gift-my-list-link]")), url).toBe(!printables && !hub);
     expect(top.some((el) => el.querySelector("[data-gift-share]")), url).toBe(!printables);
     expect(top.some((el) => el.querySelector("[data-gift-search-button]")), url).toBe(!printables && !hub);
     if (hub) expect(container.querySelectorAll("[data-gift-search-button], [data-holiday-search-button]").length).toBe(1);

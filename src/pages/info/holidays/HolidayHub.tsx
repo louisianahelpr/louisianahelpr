@@ -192,12 +192,13 @@ export default function HolidayHub() {
 
   return (
     // Owner 2026-11-22 #13: the Hub is a page of the guides' menu, so it opens on the guides' one top (GuidesFrame ->
-    // GuidesTop: "Holiday gift guides" by the back arrow, the pill and the icons, its green banner) with the guides'
-    // menu beside it. No gift search in that row (owner 11-22: one magnifier, the Hub's own); no affiliate link here, so
-    // the frame shows no disclosures (GuidesDisclosure).
+    // GuidesTop: "Holiday gift guides" by the back arrow, its green banner) with the guides' menu beside it. The row's
+    // right side is Share alone (tools="share"): no gift search (owner 11-22: one magnifier, the Hub's own), and no
+    // shipping pill or My list heart (owner 11-22 7:49 PM: "remove order by and the heart at the top ... i thought we
+    // didnt do that for this section?"). No affiliate link here, so the frame shows no disclosures (GuidesDisclosure).
     <PublicHeaderPage title={W.hubTitle} backTo="/gift-guides" wrapTitle hideHeader bottomPaddingClassName="pb-12 md:pb-16">
       <style>{GIFT_GUIDES_CSS}</style>
-      <GuidesFrame title={W.hubTitle} path="/holidays" banner={G.pageBanners["/holidays"]} tools="no-search">
+      <GuidesFrame title={W.hubTitle} path="/holidays" banner={G.pageBanners["/holidays"]} tools="share">
       <div className="space-y-section font-sans" data-holiday-page="hub">
         {/* Owner 2026-11-22 (iPhone: "Remove the words above 82 light displays then move that and the and filter and
             search up"): no intro line and no "Shopping too?" link above the count; the count, search and filter sit

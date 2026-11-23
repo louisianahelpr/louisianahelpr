@@ -481,6 +481,15 @@ export const giftGuides = {
   /** The 25 Days sponsors page's Filter (owner 11-21: its section links and price limits moved into it). */
   filterLabel: "Filter",
   filterLabelActive: (n: number) => `Filter, ${n} on`,
+  /** The For Kids filters (owner 2026-11-23: "Age + price + girls/boys"): the groups, the live count and Clear. */
+  kidsAgeLabel: "Age",
+  kidsPriceLabel: "Price",
+  kidsForLabel: "For",
+  filterShown: (n: number, total: number) => `${n} of ${total} ${total === 1 ? "gift" : "gifts"}`,
+  filterClear: "Clear",
+  kidsMatch: (n: number) => `${n} ${n === 1 ? "gift matches" : "gifts match"} your filters.`,
+  kidsNone: "No gifts match these filters.",
+  kidsClear: "Clear filters",
   sortTop: "Recommended",
   sortLowHigh: "Price: low to high",
   sortHighLow: "Price: high to low",

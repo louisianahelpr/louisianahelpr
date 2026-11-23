@@ -152,8 +152,8 @@ color:var(--gg-ink)}
 .gg-icon-count{position:absolute;top:4px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#8c3b3b;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}
 .gg-share-wrap{position:relative;display:inline-flex;align-items:center}
 .gg-share-menu{position:absolute;z-index:6;top:calc(100% + 6px);right:0;display:flex;flex-direction:column;min-width:200px;white-space:nowrap;background:hsl(var(--background));border:1px solid var(--gg-line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:4px}
-.gg-share-menu a,.gg-share-menu button{display:flex;align-items:center;min-height:44px;padding:0 12px;font-size:13px;font-weight:600;color:var(--gg-ink);text-decoration:none;background:none;border:0;text-align:left;border-radius:8px}
-.gg-share-menu a:hover,.gg-share-menu button:hover{background:hsl(var(--muted) / .6)}
+.gg-share-menu a,.gg-share-menu button:not(.gg-fchip){display:flex;align-items:center;min-height:44px;padding:0 12px;font-size:13px;font-weight:600;color:var(--gg-ink);text-decoration:none;background:none;border:0;text-align:left;border-radius:8px}
+.gg-share-menu a:hover,.gg-share-menu button:not(.gg-fchip):hover{background:hsl(var(--muted) / .6)}
 /* Polish audit 1122 #10: one sub-page title (the frame pages, My Wish List, a shared list): the serif, left-aligned at
    the top of the content column under the head row. */
 .gg-words.gg-pagehead{text-align:left;padding:0 0 12px;margin:0 0 16px}
@@ -529,6 +529,13 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-filter-group{display:flex;flex-direction:column}
 .gg-filter-group+.gg-filter-group{border-top:1px solid var(--gg-line);margin-top:4px;padding-top:4px}
 .gg-filter-h{padding:8px 12px 2px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gg-muted)}
+/* The For Kids filters (owner 11-23): multi-select chips that wrap, 44px tall, inside the same panel; the panel never runs
+   past a 320px phone (16px gutters each side). */
+.gg-filter-chips-panel{width:min(300px,calc(100vw - 32px));min-width:0;white-space:normal}
+.gg-fchips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 8px 8px}
+.gg-filter-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--gg-line);margin-top:4px;padding:4px 0 0 12px}
+.gg-filter-count{font-size:13px;font-weight:600;color:var(--gg-muted)}
+.gg-share-menu .gg-filter-clear{color:var(--gg-ink);text-decoration:underline}
 /* Owner 11-21 (guide and deal-day banners): "the arches and letters are just small and squished together" and "add like
    some effect so it doesn't look flat": same design, larger airy type centred in a slightly larger arch, and a printed-
    card depth: a soft shadow under the card, a faint inner vignette on the gingham, the arch raised off it, and the

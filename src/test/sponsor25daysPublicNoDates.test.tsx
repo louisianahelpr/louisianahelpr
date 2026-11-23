@@ -10,6 +10,9 @@
  * @mutate src/components/sponsor/Sections.tsx |             {p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)} |             <span className="lh25-lineup-date">Dec {lineupCount(1)}</span>{p.prizes.map((prize) => <span key={prize} className="lh25-lineup-prize">{prize}</span>)}
  * @mutate src/content/sponsorPage.ts | a Louisiana favorite. Entry details coming soon on our Facebook page. | a Louisiana favorite. To enter: share this post and tag 2 friends.
  * @mutate src/content/sponsorPage.ts |     rulesOnFacebook: "How to enter and the official rules are on our Facebook post.", |     rulesOnFacebook: "Like the post. Limit one entry per person per day.",
+ * @mutate src/components/sponsor/Sections.tsx |       const prize = withAlcoholNote(prizeWithoutBrand(p.brand, p.prize)); |       const prize = prizeWithoutBrand(p.brand, p.prize);
+ * @mutate src/components/sponsor/Sections.tsx | (cocktails?\|wines?\| | (wines?\|
+ * @mutate src/components/sponsor/Sections.tsx | \b(?!\s+(honey\|vanilla\| | \b(?!\s+(vanilla\|
  * @mutate src/content/sponsorPage.ts |           { brand: "David Rabalais", prize: "The Fois t-shirt (winner size) + koozie + toy Magnalite pot + roux spoon + Roundhouse Ya Maw Maw seasoning" }, |           { brand: "Mary Kay · Crystal Fakier", prize: "The Fois t-shirt (winner size) + koozie + toy Magnalite pot + roux spoon + Roundhouse Ya Maw Maw seasoning" },
  */
 import { describe, expect, it } from "vitest";
@@ -18,7 +21,7 @@ import path from "node:path";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { sponsorPage } from "@/content/sponsorPage";
-import { About, BrandGets, BusinessAsk, EntrantHero, Faq, FinalCta, Hero, HowItWorks, Lineup, PreviewCard, WhatWeAsk } from "@/components/sponsor/Sections";
+import { About, BrandGets, BusinessAsk, EntrantHero, Faq, FinalCta, Hero, HowItWorks, Lineup, PreviewCard, WhatWeAsk, withAlcoholNote } from "@/components/sponsor/Sections";
 import { blankComments } from "./helpers/blankNonCode";
 
 function allStrings(v: unknown, out: string[] = []): string[] {
@@ -122,9 +125,30 @@ describe("/25days is the page for people entering; the rules are on Facebook", (
     expect(text).not.toMatch(ENTRY_STEPS);
     expect(text).toContain("How to enter and the official rules are on our Facebook post.");
     expect(text).not.toContain("Each person can win once.");
+    // Holiday audit D H1 (salvaged 11-23): a prize with alcohol says 21+ with ID on its own lineup line; a flavour
+    // (Basic Bee's bourbon honey) does not.
+    expect(text).toMatch(/2 free cocktails \(alcohol 21\+ with ID\)/);
+    expect(text).toContain("a large bourbon honey");
+    expect(text).not.toMatch(/bourbon honey \(alcohol/);
     expect(container.querySelector("[data-testid='business-ask'] a")?.getAttribute("href")).toBe("/sponsor");
     expect(container.querySelector("[data-testid='giveaway-enter']")?.getAttribute("href")).toBe("https://www.facebook.com/louisianahelpr");
     // The full sponsor list (owner 2026-11-19): every brand on the tracker's calendar, once.
     expect(container.querySelectorAll("[data-testid='lineup-partner']").length).toBeGreaterThan(100);
+  });
+
+  it("an alcohol prize line says 21+ with ID; flavours, accessories and other prizes are untouched (holiday audit D H1)", () => {
+    expect(withAlcoholNote("Bottle of wine")).toBe("Bottle of wine (alcohol 21+ with ID)");
+    expect(withAlcoholNote("Gift certificate: 2 show tickets + 2 free cocktails")).toMatch(/\(alcohol 21\+ with ID\)$/);
+    expect(withAlcoholNote("Gin tasting for two")).toMatch(/21\+/);
+    expect(withAlcoholNote("Craft beer bucket + koozie")).toMatch(/21\+ with ID\)$/);
+    for (const plain of ["Ginger body scrub", "Rummage box", "$50 gift card (plants only)", "Flavored honey cube gift set + a large bourbon honey",
+      "Wine tumbler", "Rum cake", "B.Skin Tight marine collagen + electrolyte drink", "Bourbon vanilla candle"]) expect(withAlcoholNote(plain), plain).toBe(plain);
+    // Already says 21+ (the tracker's own wording): not said twice.
+    const wildcat = "1 bottle Zydeco Bold rum + 1 bottle Noire rum (winner 21+, pickup with ID)";
+    expect(withAlcoholNote(wildcat)).toBe(wildcat);
+    // Inventory floor: the lineup has prizes, and at least one alcohol prize gets the note from the real data.
+    const prizes = sponsorPage.lineup.days.flatMap((d) => d.partners.map((p) => p.prize));
+    expect(prizes.length).toBeGreaterThan(100);
+    expect(prizes.map(withAlcoholNote).filter((p, i) => p !== prizes[i]).length).toBeGreaterThan(0);
   });
 });

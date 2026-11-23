@@ -2,7 +2,7 @@
 // @mutate src/lib/goLinks.mjs |   return GO_LINK_HOSTS.includes(host); |   return true;
 // @mutate src/lib/goLinks.mjs |   if (!isGoSlug(slug) \|\| !map \|\| !Object.prototype.hasOwnProperty.call(map, slug)) return GO_FALLBACK_URL; |   if (!map) return GO_FALLBACK_URL;
 // @mutate api/go.ts |  const target = goTargetFor(slug, GO_LINKS); |  const target = new URL(request.url).searchParams.get("url") ?? goTargetFor(slug, GO_LINKS);
-// @mutate api/go.ts | export const GO_CACHE_CONTROL = "public, max-age=300"; | export const GO_CACHE_CONTROL = "no-store";
+// @mutate api/go.ts | export const GO_CACHE_CONTROL = "private, no-store"; | export const GO_CACHE_CONTROL = "public, max-age=300";
 // @mutate api/go.ts | export const GO_ROBOTS = "noindex, nofollow"; | export const GO_ROBOTS = "all";
 // @mutate vercel.json |       "destination": "/api/go?slug=:slug" |       "destination": "/index.html"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -88,8 +88,8 @@ describe("api/go.ts", () => {
       expect(res.headers.get("location"), slug).toBe(MAP[slug].url);
     }
     const res = await go("/api/go?slug=skinfix");
-    expect(GO_CACHE_CONTROL).toBe("public, max-age=300");
-    expect(res.headers.get("cache-control")).toBe("public, max-age=300");
+    expect(GO_CACHE_CONTROL).toBe("private, no-store");
+    expect(res.headers.get("cache-control")).toBe("private, no-store");
     expect(GO_ROBOTS).toBe("noindex, nofollow");
     expect(res.headers.get("x-robots-tag")).toBe("noindex, nofollow");
   });

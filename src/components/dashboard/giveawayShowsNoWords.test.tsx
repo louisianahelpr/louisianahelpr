@@ -11,7 +11,7 @@
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     firstPayoutFee > 0 && !disputed && !fixedPay ? setupFeeWords(firstPayoutFee) : null, |     firstPayoutFee > 0 && !disputed ? setupFeeWords(firstPayoutFee) : null,
  * @mutate src/components/dashboard/helprTakeHome.tsx |       {!fixedPay && <span className="sr-only">Your pay </span>}<span className="font-semibold |       {"You take home "}<span className="font-semibold
  * @mutate src/components/dashboard/helprTakeHome.tsx |         {!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)} |         <span className="sr-only">Your pay </span>${formatPriceFloor(net)}
- * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |       {!isGiveawayFixedPayJob(confirmApplyJob) && ( |       {true && (
+ * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |       {!isGiveawayFixedPayJob(confirmApplyJob) && <AfterFeesNote />} |       {true && <AfterFeesNote />}
  * @mutate src/components/messages/chatView/DealCard.tsx | {!isGiveawayFixedPayJob(job) && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)} | <span className="sr-only">Your pay </span>${formatPriceFloor(net)}
  * @mutate src/pages/tips/TipMoment.tsx | isGiveawayFixedPayJob(job) ? "Job" : "Job, you take home" | "Job, you take home"
  * @mutate src/components/dashboard/CompactJobCard.tsx | isNet && !isGiveawayFixedPayJob(job) ? "you earn " | isNet ? "you earn "

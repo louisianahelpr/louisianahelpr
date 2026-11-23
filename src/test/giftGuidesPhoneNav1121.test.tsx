@@ -11,7 +11,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx | onClick={() => setSheet(true)} | onClick={() => setSheet(false)}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         {wishList && <li> |         {false && <li>
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneSheet.tsx | idPrefix={idPrefix} wishList /> | idPrefix={idPrefix} />
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <GiftGuidesMenu active={active} myList={myList} page={page} wishList /> | <GiftGuidesMenu active={active} myList={myList} page={page} />
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <GiftGuidesMenu active={active} myList={myList} mine={mine} page={page} wishList /> | <GiftGuidesMenu active={active} myList={myList} mine={mine} page={page} />
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";

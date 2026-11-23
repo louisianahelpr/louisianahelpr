@@ -17,7 +17,7 @@
  * starts at the content column's left edge on a desktop.
  *
  * @mutate src/pages/info/giftGuides/GuidesDisclosure.tsx | if (!linked) return null; | if (false) return null;
- * @mutate src/pages/info/giftGuides/GuidesDisclosure.tsx | export const AFFILIATE_LINK = "a[data-gift-out], a[rel~='sponsored']"; | export const AFFILIATE_LINK = "a[data-none]";
+ * @mutate src/pages/info/giftGuides/GuidesDisclosure.tsx | const AFFILIATE_LINK = "a[data-gift-out], a[rel~='sponsored']"; | const AFFILIATE_LINK = "a[data-none]";
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | .gg-fun{margin:0;padding:4px 0 24px} | .gg-fun{max-width:640px;margin:0;padding:4px 0 24px}
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | @media (min-width:1024px){.pr-card-wide{flex-direction:row; | @media (min-width:1024px){.pr-card-wide{flex-direction:column;
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub=""> | <Link to="/holidays" data-gift-side-holiday-hub="">

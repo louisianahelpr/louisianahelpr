@@ -41,7 +41,7 @@ export function DupePanel({ dupes, of, open, onClose, anchor }: { dupes: GuideDu
     return (
       <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
         <SheetContent side="bottom" className="gg gg-dupe-panel gg-dupe-sheet" data-gift-dupe-panel="" aria-describedby={undefined} onCloseAutoFocus={backToWord}>
-          <SheetHero title={DUPE.title(dupes.length)} />
+          <SheetHero title={DUPE.title(dupes)} />
           {list}
         </SheetContent>
       </Sheet>
@@ -51,7 +51,7 @@ export function DupePanel({ dupes, of, open, onClose, anchor }: { dupes: GuideDu
     <Popover open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <PopoverAnchor virtualRef={anchor as RefObject<HTMLButtonElement>} />
       <PopoverContent
-        className="gg gg-dupe-panel gg-dupe-pop" role="dialog" aria-label={DUPE.panelLabel(dupes.length, of)} data-gift-dupe-panel="" side="bottom" align="end"
+        className="gg gg-dupe-panel gg-dupe-pop" role="dialog" aria-label={DUPE.panelLabel(dupes, of)} data-gift-dupe-panel="" side="bottom" align="end"
         style={{ "--gg-dupe-cols": Math.min(dupes.length, 3) } as CSSProperties}
         onCloseAutoFocus={backToWord}
         // The "dupe" word is the anchor, not a Radix trigger: a press on it is "outside", and must not close the panel
@@ -61,7 +61,7 @@ export function DupePanel({ dupes, of, open, onClose, anchor }: { dupes: GuideDu
         <button type="button" className="gg-dupe-x" aria-label={DUPE.close} onClick={onClose} data-gift-dupe-close="">
           <X aria-hidden="true" />
         </button>
-        <p className="gg-dupe-note">{DUPE.title(dupes.length)}</p>
+        <p className="gg-dupe-note">{DUPE.title(dupes)}</p>
         {list}
       </PopoverContent>
     </Popover>

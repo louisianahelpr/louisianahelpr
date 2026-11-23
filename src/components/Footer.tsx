@@ -309,10 +309,10 @@ const Footer = (_props: { landing?: boolean } = {}) => {
               the circles `rounded-full` implies. Height was never the problem —
               width was being taken away. */}
           <div className="flex items-center gap-2.5">
-            {/* The App Store chip is HIDDEN until the listing is live (owner,
-                2026-10-04, Q1124: it 404s); it returns as a real link with the
-                real ID from the launch checklist (Q1289). Facebook and Instagram
-                are both real, clickable accounts. */}
+            {/* The App Store chip was hidden while the listing 404'd (owner,
+                2026-10-04, Q1124); it is back since Apple released 1.0.4 on
+                2026-11-19 (Q1289). Facebook and Instagram are both real,
+                clickable accounts. */}
             {APP_STORE_LISTING_LIVE && (
               <a
                 href={APP_STORE_URL}

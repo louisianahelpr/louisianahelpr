@@ -1,23 +1,27 @@
 /**
- * Q1124 — no App Store link or badge shows while the listing is not live.
+ * Q1124 + Q1289 — App Store links and badges follow the ONE switch, and the
+ * switch follows Apple.
  *
  * Owner, 2026-10-04: hide every App Store link and badge until the app is
- * approved; the listing for id 6754470134 404s (src/lib/appStore.ts has the
- * probes). Before this: index.html shipped the Smart App Banner meta (Mobile
- * Safari's banner pointed at the dead listing), the Footer drew an Apple
- * "coming soon" chip, and ForceUpdateGate's primary button linked to the 404.
+ * approved (the listing for id 6754470134 404'd). Apple released 1.0.4 on
+ * 2026-11-19, and on 2026-11-23 the site still hid every link (audit NL-04):
+ * curl -sIL of APP_STORE_URL answered 200 and the iTunes lookup had
+ * resultCount 1, yet APP_STORE_LISTING_LIVE was false and index.html had no
+ * Smart App Banner.
  *
  * Held here, from the source:
- *   - APP_STORE_LISTING_LIVE is the one switch; while it is false,
- *   - index.html carries no apple-itunes-app meta (comments ignored);
+ *   - the listing is live (APP_STORE_LISTING_LIVE true; `npm run
+ *     launch:appstore` is the probe that says so, verdict live-and-shipped);
+ *   - index.html carries the Smart App Banner meta with the SAME numeric id
+ *     as APP_STORE_URL and as fastlane's apple_id (comments ignored), and
+ *     carries none while the switch is off;
  *   - every app file that reads APP_STORE_URL also reads the switch, and no
  *     file hard-codes an apps.apple.com / itunes.apple.com URL of its own.
- * Restoring them with the real ID is the launch checklist item Q1289.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { APP_STORE_LISTING_LIVE } from "@/lib/appStore";
+import { APP_STORE_LISTING_LIVE, APP_STORE_URL } from "@/lib/appStore";
 import { walkSource } from "./helpers/walkSource";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -31,21 +35,37 @@ const appFiles = () =>
     (f) => /\.tsx?$/.test(f) && !f.startsWith(join(SRC, "test") + "/") && !/\.test\.tsx?$/.test(f) && !f.endsWith(".d.ts"),
   );
 
-describe("Q1124: App Store links and badges stay hidden until the listing is live", () => {
-  it("the listing is not live yet", () => {
-    expect(APP_STORE_LISTING_LIVE).toBe(false);
+function indexHtmlWithoutComments(): string {
+  // Strip HTML comments until none is left (a removal can join pieces into a new one).
+  let html = readFileSync(join(REPO, "index.html"), "utf8");
+  let prevLen: number;
+  do {
+    prevLen = html.length;
+    html = html.replace(/<!--[\s\S]*?-->/g, "");
+  } while (html.length !== prevLen);
+  return html;
+}
+
+describe("Q1124/Q1289: App Store links and badges follow the listing", () => {
+  it("the listing is live (Apple released 1.0.4 on 2026-11-19)", () => {
+    expect(APP_STORE_LISTING_LIVE).toBe(true);
   });
 
-  it("index.html has no Smart App Banner meta while it is not live", () => {
-    // Strip HTML comments until none is left (a removal can join pieces into a new one).
-    let html = readFileSync(join(REPO, "index.html"), "utf8");
-    let prevLen: number;
-    do {
-      prevLen = html.length;
-      html = html.replace(/<!--[\s\S]*?-->/g, "");
-    } while (html.length !== prevLen);
+  it("index.html carries the Smart App Banner with the store URL's id and fastlane's apple_id, only while live", () => {
+    const html = indexHtmlWithoutComments();
     expect(html.length).toBeGreaterThan(1000);
-    if (!APP_STORE_LISTING_LIVE) expect(html).not.toMatch(/<meta\s+name="apple-itunes-app"/);
+    const banners = [...html.matchAll(/<meta\s+name="apple-itunes-app"\s+content="([^"]*)"/g)].map((m) => m[1]);
+    if (!APP_STORE_LISTING_LIVE) {
+      expect(banners).toEqual([]);
+      return;
+    }
+    const appleId = readFileSync(join(REPO, "fastlane/ios_app_metadata.yml"), "utf8").match(
+      /^\s*apple_id:\s*"?(\d{6,12})"?\s*$/m,
+    )?.[1];
+    const urlId = APP_STORE_URL.match(/\/id(\d+)$/)?.[1];
+    expect(appleId).toMatch(/^\d{9,12}$/);
+    expect(urlId).toBe(appleId);
+    expect(banners).toEqual([`app-id=${appleId}, app-argument=helpr://`]);
   });
 
   it("every reader of APP_STORE_URL is gated by the switch", () => {
@@ -74,6 +94,7 @@ describe("Q1124: App Store links and badges stay hidden until the listing is liv
   });
 });
 
-// @mutate src/lib/appStore.ts | export const APP_STORE_LISTING_LIVE: boolean = false; | export const APP_STORE_LISTING_LIVE: boolean = true;
+// @mutate src/lib/appStore.ts | export const APP_STORE_LISTING_LIVE: boolean = true; | export const APP_STORE_LISTING_LIVE: boolean = false;
+// @mutate index.html |     <meta name="apple-itunes-app" content="app-id=6754470134, app-argument=helpr://" /> |     <meta name="apple-itunes-app" content="app-id=6754470135, app-argument=helpr://" />
 // @mutate src/components/Footer.tsx |             {APP_STORE_LISTING_LIVE && ( |             {true && (
 // @mutate src/components/ForceUpdateGate.tsx |           {APP_STORE_LISTING_LIVE && ( |           {true && (

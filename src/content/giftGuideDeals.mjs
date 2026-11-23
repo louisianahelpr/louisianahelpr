@@ -22,6 +22,8 @@
 export const DEALS_SLUG = "black-friday-cyber-monday";
 /** The deals pages' share image (moved here from GiftGuideDeals.tsx 2026-11-21 so the guide route need not load that page). */
 export const DEALS_COVER = "/gift-guides/deals/black-friday-cyber-monday.webp";
+/** The Black Friday and Cyber Monday pages' colour: their gingham banner (GiftGuides.tsx) and their section bands (GiftGuideDeals.tsx). */
+export const DEALS_TINT = "red";
 
 /** The landing features the guide at its top from this day through FEATURE_TO (owner brief 2026-11-19). */
 export const FEATURE_FROM = "2026-11-23";

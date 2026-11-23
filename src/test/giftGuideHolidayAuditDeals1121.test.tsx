@@ -91,7 +91,7 @@ describe("deal cards and the codes box read cleanly (holiday audit 1121, Lows)",
   it("the Sales subsection is there with its store cards whenever there are sales (it once showed a heading over no rows)", async () => {
     const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("black-friday")!} now={new Date("2026-11-25T18:00:00Z")} /></MemoryRouter>);
     await waitFor(() => expect(document.querySelector("[data-gift-deal]")).not.toBeNull());
-    const sales = container.querySelector("details[data-gift-deal-sub='sales'] [data-gift-sales]");
+    const sales = container.querySelector("section[data-gift-deal-sub='sales'] [data-gift-sales]");
     expect(sales).not.toBeNull();
     expect(sales!.querySelectorAll("li[data-gift-sale]").length).toBeGreaterThanOrEqual(3);
   });

@@ -201,8 +201,10 @@ describe("owner 11-21: a deals day in subsections by type", () => {
     const { container } = render(<MemoryRouter><GiftGuideDeals day={dealDay("black-friday")!} now={new Date("2026-11-21T18:00:00Z")} /></MemoryRouter>);
     await waitFor(() => expect(container.querySelector("[data-gift-deal]")).not.toBeNull());
     expect(container.querySelector("[data-gift-deal-jump]")).toBeNull();
-    const subs = [...container.querySelectorAll<HTMLDetailsElement>("details[data-gift-deal-sub]")];
-    expect(subs.map((d) => [d.getAttribute("data-gift-deal-sub"), d.open])).toEqual([["deals", true], ["codes", true], ["sales", true]]);
+    // Owner 2026-11-22: each subsection is a guide section (the shaded band header of Her's price sections), open = its
+    // header button says aria-expanded="true".
+    const subs = [...container.querySelectorAll<HTMLElement>("section[data-gift-deal-sub]")];
+    expect(subs.map((d) => [d.getAttribute("data-gift-deal-sub"), d.querySelector("button[data-gift-deal-toggle]")?.getAttribute("aria-expanded")])).toEqual([["deals", "true"], ["codes", "true"], ["sales", "true"]]);
   });
   it("the Discount codes subsection holds exactly the codes that work that day (none: no subsection)", async () => {
     // Dec 30: every dated code is over, but the owner's undated codes still work; so read a day where codesOn is empty
@@ -213,15 +215,16 @@ describe("owner 11-21: a deals day in subsections by type", () => {
     // Polish audit 1122 #12: a code a Top deal card already shows gets no second card here.
     const onDeals = new Set([...container.querySelectorAll("[data-gift-deal-list] [data-gift-code-copy]")].map((c) => c.getAttribute("data-gift-code-copy")!.toUpperCase()));
     const codes = codesOn(day.day).filter((c) => !onDeals.has(c.code.toUpperCase()));
-    const sub = container.querySelector("details[data-gift-deal-sub='codes']");
+    const sub = container.querySelector("section[data-gift-deal-sub='codes']");
     if (codes.length === 0) expect(sub).toBeNull();
     else {
-      expect(sub?.querySelector("[data-gift-deal-sub-count]")?.textContent).toBe(String(new Set(codes.map((c) => c.store)).size));
+      // The count reads as on Her's price sections: "Discount codes (12)".
+      expect(sub?.querySelector("[data-gift-section-count]")?.textContent).toBe(` (${new Set(codes.map((c) => c.store)).size})`);
       // The count is the cards: one card per store with a code that works that day.
       expect(sub!.querySelectorAll("li[data-gift-code]").length).toBe(new Set(codes.map((c) => c.store)).size);
     }
     // And the subsection list never holds an empty one.
-    for (const d of container.querySelectorAll("details[data-gift-deal-sub]")) expect(d.querySelector("li"), d.getAttribute("data-gift-deal-sub") ?? "").not.toBeNull();
+    for (const d of container.querySelectorAll("section[data-gift-deal-sub]")) expect(d.querySelector("li"), d.getAttribute("data-gift-deal-sub") ?? "").not.toBeNull();
   });
 });
 

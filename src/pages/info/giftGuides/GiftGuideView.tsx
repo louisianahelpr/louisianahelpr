@@ -11,12 +11,12 @@ import { GiftGuideHelpr } from "./GiftGuideHelpr";
 import { NAME_ONLY_SPONSORS, SECTION_ALIASES, SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { START_OPEN } from "./startOpen";
+import { GuideSectionHead } from "./GuideSectionHead";
 import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor, saveItemOf } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { Button } from "@/components/ui/button";
-import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { sortByPrice } from "@/content/giftGuidePriceSort";
 import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGuideEarnOrder";
@@ -307,13 +307,10 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
           aria-labelledby={title && id ? `gg-sec-${id}-title` : undefined}>
           {title && (sortable && id ? (
             // A price section's header is its open/close button (aria-expanded; the list is drawn only while open).
-            // Owner 2026-11-22 ("Add some kind of shading ..."): the header is a band in its guide's tint (gg-sec-<tint>).
-            <h2 className={`gg-sec-title gg-sec-toggle-h gg-sec-${guide.tint}`} id={`gg-sec-${id}-title`}>
-              <Button type="button" variant="ghost" size="md" className="gg-sec-toggle" aria-expanded={isOpen(id)} aria-controls={`gg-sec-${id}-list`} onClick={() => toggle(id)} data-gift-section-toggle={id}>
-                <span>{title}<span className="gg-sec-count" data-gift-section-count="">{G.priceSectionCount(sectionCount.get(id) ?? 0)}</span></span>
-                <svg className="gg-sec-chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" strokeLinejoin="round" /></svg>
-              </Button>
-            </h2>
+            // Owner 2026-11-22 ("Add some kind of shading ..."): the header is a band in its guide's tint (gg-sec-<tint>),
+            // the one section header the deals days share (GuideSectionHead).
+            <GuideSectionHead titleId={`gg-sec-${id}-title`} bodyId={`gg-sec-${id}-list`} title={title} count={sectionCount.get(id) ?? 0} tint={guide.tint}
+              open={isOpen(id)} onToggle={() => toggle(id)} data={{ "data-gift-section-toggle": id }} />
           ) : (
             <h2 className="gg-sec-title" id={id ? `gg-sec-${id}-title` : undefined}>
               {nav.length > 1 ? sectionLabel(guide, title, id) : title}

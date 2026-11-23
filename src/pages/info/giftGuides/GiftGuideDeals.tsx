@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { discountCodes, giftGuides as G } from "@/content/giftGuides";
-import { DEALS_COVER, DEALS_SLUG, DEALS_WORDS as W, codesDay, dealCode, dealName, dealEnds, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
+import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, DEALS_WORDS as W, codesDay, dealCode, dealName, dealEnds, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
 import { DEAL_CODES } from "@/content/giftGuidePicks";
 import { cleanCodes } from "@/lib/giftGuideOfferCopy.mjs";
 import { GiftOut } from "./GiftOut";
 import { START_OPEN } from "./startOpen";
+import { GuideSectionHead } from "./GuideSectionHead";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
@@ -52,15 +53,9 @@ const DEALS_CSS = `
 .gg-deal-meta{margin:0;font-size:12px;color:var(--gg-muted)}
 @media (max-width:767px){.gg:has([data-gift-deals-page]) .gg-banner h1{-webkit-line-clamp:3;font-size:clamp(25px,8vw,34px);line-height:1.05}}
 .gg-deals-list{margin-top:12px}
-.gg-deal-sec{border-top:1px solid var(--gg-line);scroll-margin-top:84px}
+.gg-deal-sec{scroll-margin-top:84px}
 @media (max-width:767px){.gg-deal-sec{scroll-margin-top:132px}}
-.gg-deal-sec:last-child{border-bottom:1px solid var(--gg-line)}
-.gg-deal-sec>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:8px;min-height:52px;padding:14px 0 10px}
-.gg-deal-sec>summary::-webkit-details-marker{display:none}
-.gg-deal-sec>summary::after{content:"+";margin-left:auto;font-size:18px;line-height:1;color:var(--gg-ink)}
-.gg-deal-sec[open]>summary::after{content:"\\2212"}
-.gg-deal-sec-title{margin:0;font-size:16px;font-weight:700;color:var(--gg-ink)}
-.gg-deal-sec>.gg-deal-grid{padding-bottom:16px}
+.gg-sec-toggle-h+.gg-deal-sec-body{margin-top:12px}
 .gg-deals-small{display:inline-block;margin:16px 0 4px}
 .gg-deals-feature{display:flex;align-items:center;gap:14px;margin:4px 0 14px;padding:12px;border-radius:14px;border:1px solid var(--gg-line);background:hsl(var(--card));color:var(--gg-ink);text-decoration:none}
 .gg-deals-feature img{width:88px;height:88px;flex:none;border-radius:10px;object-fit:cover}
@@ -156,9 +151,9 @@ function LazyLocalListings() {
 /**
  * A deals day's content in subsections by type (owner 2026-11-21: "it just needs to be cleaned up ... more organized"):
  * Top deals (the deal cards), Discount codes and Sales, each only when it has something on `day` (codesDay), each a
- * heading with its count that opens and closes, the first one open and the rest closed. A row of chips at the top
- * jumps to (and opens) each one. `dealCount` null = the deal cards are still loading (or failed): that subsection shows
- * the loading line or the Try again in its place.
+ * guide section: the same shaded header band as Her's price sections (GuideSectionHead, owner 2026-11-22) with its
+ * count, open on arrival (START_OPEN) and closed or opened again by its chevron. `dealCount` null = the deal cards are
+ * still loading (or failed): that subsection shows the loading line or the Try again in its place, with no count yet.
  */
 function DealSections({ day, deals, dealCount, shownCodes }: { day: string; deals: ReactNode; dealCount: number | null; shownCodes: ReadonlySet<string> }) {
   // Polish audit 1122 #12: a code a Top deal card already shows (XTRATUF's XT25) gets no second card under Discount codes.
@@ -183,15 +178,16 @@ function DealSections({ day, deals, dealCount, shownCodes }: { day: string; deal
   return (
     <div className="gg-deals-list" data-gift-deal-sections="">
       {/* Polish audit 1122 #30: no jump-chip row (36px chips that wrapped at 375 and repeated the headings right below). */}
+      {/* Owner 2026-11-22 ("top deals, sales, and discount codes need to have the same layout and design as the collapse
+          and expand sections on the his and hers guides. same for cyber monday"): each subsection is a guide section, its
+          header the same shaded band as Her's price sections (GuideSectionHead, in the page's red), title, count and
+          chevron; the body is drawn only while open, as on the guides. */}
       {sections.map((x) => (
-        <details key={x.id} id={`gg-deal-sec-${x.id}`} className="gg-deal-sec" open={isOpen(x.id)} data-gift-deal-sub={x.id}
-          onToggle={(e) => { const now = (e.currentTarget as HTMLDetailsElement).open; if (now !== isOpen(x.id)) setOpen((o) => ({ ...o, [x.id]: now })); }}>
-          <summary>
-            <h2 className="gg-deal-sec-title" id={`gg-deal-sec-${x.id}-title`}>{x.title}</h2>
-            {x.count !== null && <span className="gg-sec-count" data-gift-deal-sub-count="">{x.count}</span>}
-          </summary>
-          {x.body}
-        </details>
+        <section key={x.id} id={`gg-deal-sec-${x.id}`} className="gg-sec gg-deal-sec" aria-labelledby={`gg-deal-sec-${x.id}-title`} data-gift-deal-sub={x.id}>
+          <GuideSectionHead titleId={`gg-deal-sec-${x.id}-title`} bodyId={`gg-deal-sec-${x.id}-list`} title={x.title} count={x.count} tint={DEALS_TINT}
+            open={isOpen(x.id)} onToggle={() => setOpen((o) => ({ ...o, [x.id]: !isOpen(x.id) }))} data={{ "data-gift-deal-toggle": x.id }} />
+          {isOpen(x.id) && <div className="gg-deal-sec-body" id={`gg-deal-sec-${x.id}-list`}>{x.body}</div>}
+        </section>
       ))}
     </div>
   );

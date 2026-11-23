@@ -254,9 +254,10 @@ describe("deals days: one page per day (owner 11-21)", () => {
     const counts: number[] = [];
     for (const day of [BF, CM]) {
       const c = await renderDay(day, "2026-11-21");
-      const subs = [...c.querySelectorAll<HTMLDetailsElement>("details[data-gift-deal-sub]")];
+      const subs = [...c.querySelectorAll<HTMLElement>("section[data-gift-deal-sub]")];
       expect(subs.map((x) => x.getAttribute("data-gift-deal-sub")), day.id).toEqual(["deals", "codes", "sales"]);
-      expect(subs.map((x) => x.open), day.id).toEqual([true, true, true]);
+      // Owner 2026-11-22: each is a guide section; open = its header button says aria-expanded="true".
+      expect(subs.map((x) => x.querySelector("button[data-gift-deal-toggle]")?.getAttribute("aria-expanded")), day.id).toEqual(["true", "true", "true"]);
       const box = subs[1];
       // Its codes are exactly the ones that work on the day.
       const on = codesDay(day, "2026-11-21");
@@ -273,10 +274,10 @@ describe("deals days: one page per day (owner 11-21)", () => {
       counts.push(shown.length);
       const stores = new Set(boxCodes.filter((x) => x.href).map((x) => x.store)).size;
       expect(box.querySelectorAll("li[data-gift-code]").length, day.id).toBe(stores);
-      expect(box.querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(stores));
+      expect(box.querySelector("[data-gift-section-count]")!.textContent, day.id).toBe(` (${stores})`);
       // Sales: one card per store, the count is the stores (holiday audit 1121: store sales, not "deals").
       expect(subs[2].querySelectorAll("[data-gift-sale-store]").length, day.id).toBe(salesOn(on).length);
-      expect(subs[2].querySelector("[data-gift-deal-sub-count]")!.textContent, day.id).toBe(String(salesOn(on).length));
+      expect(subs[2].querySelector("[data-gift-section-count]")!.textContent, day.id).toBe(` (${salesOn(on).length})`);
       cleanup();
     }
     // The dated codes land on their own day only: Black Friday's TAKE25 and XT25, Cyber Monday's CYBER.

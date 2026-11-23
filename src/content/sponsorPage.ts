@@ -239,7 +239,7 @@ export const sponsorPage = {
       "Faulk's Game Call Co.": "https://www.facebook.com/Faulkcalls",
       "Forgiven Hearts": "https://www.facebook.com/forgivenheartsllc",
       "GentleStyle Brush (CLM Creations)": "https://www.facebook.com/gentlestylebrush",
-      "God's Country RV Resort": "https://www.facebook.com/GodsCountryResort/",
+      "God's Country RV Resort": "https://streamsideparks.com/gods-country-resort-shreveport-la/",
       "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)": "https://www.facebook.com/grandkyivballet",
       "Hannahbelle Photography": "https://www.facebook.com/profile.php?id=61570091493348",
       "Hello Darlin'": "https://www.facebook.com/profile.php?id=61596204632534",

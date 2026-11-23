@@ -259,8 +259,35 @@ function fromMetaScript(sourceFile: string): boolean {
   }
 }
 
+// Meta Pixel's hidden iframe + form POST fallback (2026-11-22). fbevents.js sends an event as an image GET to
+// https://www.facebook.com/tr/ when the URL fits in 2048 characters; in desktop Chrome a longer one (no sendBeacon there)
+// becomes a form POST to /tr/ into a hidden iframe, which our CSP blocks twice: form-action (the form's /tr/ action) and
+// frame-src (the frame's navigation, reported as the bare origin). Measured on the built dist with the real CSP in
+// Chrome (~/.lh-shots/pixel-csp-1122): every PageView went as a GET (1.0-1.2K characters; 1.96K landing from an ad
+// link with a long fbclid); only SubscribedButtonClick, the "automatic events" the owner's Events Manager setting adds
+// (2.0-2.8K: the button's class list), took the form POST. Meta's CSP guide asks only for scripts from
+// https://connect.facebook.net (developers.facebook.com/docs/meta-pixel/advanced/, "Content Security Policy"), so
+// vercel.json keeps form-action and frame-src closed and only this exact shape is dropped: form-action or frame-src,
+// https://www.facebook.com (default port) at /tr/ (or the bare origin for frame-src), with no script blamed or Meta's
+// connect.facebook.net. Any other Facebook frame or form (a page plugin, a login form, m.facebook.com) is kept.
+function isMetaPixelFormPost(v: Violation): boolean {
+  const directive = v.effectiveDirective;
+  if (directive !== "form-action" && directive !== "frame-src") return false;
+  if (v.sourceFile && !fromMetaScript(v.sourceFile)) return false;
+  let blocked: URL;
+  try {
+    blocked = new URL(v.blockedURL);
+  } catch {
+    return false; // not a URL: keep the report
+  }
+  if (blocked.protocol !== "https:" || blocked.port || blocked.username || blocked.password) return false;
+  if (blocked.hostname !== "www.facebook.com") return false;
+  const trPath = blocked.pathname === "/tr/" || blocked.pathname === "/tr";
+  return trPath || (directive === "frame-src" && blocked.pathname === "/" && !blocked.search);
+}
+
 export function isNoise(v: Violation): boolean {
-  if (noisy(v.blockedURL) || noisy(v.sourceFile) || isMapKitHillshadeWasm(v) || isMetaGatewayFetch(v)) return true;
+  if (noisy(v.blockedURL) || noisy(v.sourceFile) || isMapKitHillshadeWasm(v) || isMetaGatewayFetch(v) || isMetaPixelFormPost(v)) return true;
   // A report about a document that is not one of our pages (another site, an
   // extension's own page, about:blank) is not about this site.
   return !isOurDocument(v.documentURL);

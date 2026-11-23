@@ -24,6 +24,7 @@
  *   - the per-IP limit answers 429 before the insert.
  */
 import { describe, it, expect, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { resetSupabaseMock, scenario } from "./mocks/supabase";
@@ -216,7 +217,7 @@ describe("csp-report", () => {
   // Meta Pixel (owner 2026-11-22): fbevents.js "openbridge" fetch()es the owner's Conversions API Gateway. Today's two
   // hosts are allowed exactly in vercel.json; a host Meta moves it to would be blocked on every page view, so that
   // exact shape (connect-src, https *.on.aws / *.cloud.run, raised by a connect.facebook.net script) is dropped.
-  // @mutate supabase/functions/csp-report/report.ts |  \|\| isMetaGatewayFetch(v)) return true; | ) return true;
+  // @mutate supabase/functions/csp-report/report.ts | \|\| isMetaGatewayFetch(v) \|\| isMetaPixelFormPost(v)) return true; | \|\| isMetaPixelFormPost(v)) return true;
   // @mutate supabase/functions/csp-report/report.ts | src.hostname === "connect.facebook.net" && | src.hostname.endsWith("facebook.net") &&
   // @mutate supabase/functions/csp-report/report.ts |   if (v.effectiveDirective !== "connect-src") return false; |
   // @mutate supabase/functions/csp-report/report.ts |   if (blocked.protocol !== "https:" \|\| blocked.port) return false; |
@@ -261,6 +262,115 @@ describe("csp-report", () => {
     ["a gateway host on another port", "https://x.cloud.run:8443/events?cee=no", "connect-src", "https://connect.facebook.net/en_US/fbevents.js"],
     ["/events without openbridge's cee from our own script", "https://x.cloud.run/events?a=1", "connect-src", "https://www.louisianahelpr.com/assets/sentry-75UMKSCs.js"],
   ])("keeps %s", async (_label, blocked, directive, sourceFile) => {
+    const fn = await load();
+    const res = await post(fn, legacy({
+      "blocked-uri": blocked,
+      "violated-directive": directive,
+      "effective-directive": directive,
+      "source-file": sourceFile,
+      "document-uri": "https://www.louisianahelpr.com/gift-guides",
+    }));
+    expect(res.status).toBe(204);
+    expect(inserts()).toHaveLength(1);
+  });
+
+  // Meta Pixel form POST fallback (2026-11-22, real reports 6:15 + 6:16 PM from Chrome 157 on a Mac). In desktop Chrome
+  // fbevents.js sends an event whose image-GET URL is over 2048 characters as a form POST to https://www.facebook.com/tr/
+  // inside a hidden iframe; vercel.json blocks it (form-action + frame-src) on purpose: Meta's CSP guide asks only for
+  // connect.facebook.net scripts, and every PageView goes as a GET (measured on the built dist with the real CSP in
+  // Chrome, ~/.lh-shots/pixel-csp-1122/proof-main.json: PageView 1.0-1.96K characters, the form POSTs were only
+  // SubscribedButtonClick automatic events at 2.0-2.8K). Both reports carry no source file; frame-src names the bare origin.
+  // @mutate supabase/functions/csp-report/report.ts | \|\| isMetaPixelFormPost(v)) return true; | ) return true;
+  // @mutate supabase/functions/csp-report/report.ts |   if (directive !== "form-action" && directive !== "frame-src") return false; |
+  // @mutate supabase/functions/csp-report/report.ts |   if (v.sourceFile && !fromMetaScript(v.sourceFile)) return false; |
+  // @mutate supabase/functions/csp-report/report.ts |   if (blocked.protocol !== "https:" \|\| blocked.port \|\| blocked.username \|\| blocked.password) return false; |
+  // @mutate supabase/functions/csp-report/report.ts |   if (blocked.hostname !== "www.facebook.com") return false; |
+  // @mutate supabase/functions/csp-report/report.ts | (directive === "frame-src" && blocked.pathname === "/" && !blocked.search) | (blocked.pathname === "/")
+  // @mutate supabase/functions/csp-report/report.ts |   return trPath \|\| | return true \|\|
+  const metaFormPostReports: Array<[string, string, string, string]> = [
+    ["the form's /tr/ action (form-action), as measured", "form-action", "https://www.facebook.com/tr/", ""],
+    ["the hidden iframe's navigation (frame-src, the bare origin), as measured", "frame-src", "https://www.facebook.com", ""],
+    ["the iframe's navigation with the origin's slash", "frame-src", "https://www.facebook.com/", ""],
+    ["a browser that names /tr/ for the frame", "frame-src", "https://www.facebook.com/tr/", ""],
+    ["the form's action blamed on Meta's script", "form-action", "https://www.facebook.com/tr/", "https://connect.facebook.net/en_US/fbevents.js"],
+  ];
+  it.each(metaFormPostReports)("drops the Meta Pixel form POST fallback: %s, before any database call", async (_label, directive, blocked, sourceFile) => {
+    let fn = await load();
+    let res = await post(fn, legacy({
+      "blocked-uri": blocked,
+      "violated-directive": directive,
+      "effective-directive": directive,
+      "source-file": sourceFile,
+      "line-number": undefined,
+      "column-number": undefined,
+      "document-uri": "https://www.louisianahelpr.com/gift-guides",
+    }));
+    expect(res.status).toBe(204);
+    expect(inserts()).toHaveLength(0);
+    expect(rateLimitCalls).toHaveLength(0);
+
+    resetSupabaseMock();
+    resetSharedMocks();
+    fn = await load();
+    res = await post(fn, reportingApi({ blockedURL: blocked, effectiveDirective: directive, sourceFile, documentURL: "https://www.louisianahelpr.com/declutter" }), "application/reports+json");
+    expect(res.status).toBe(204);
+    expect(inserts()).toHaveLength(0);
+  });
+
+  it("drops the measured 6:16 PM batch (5 reports, 3 pages) whole, and keeps a real report beside it", async () => {
+    expect(metaFormPostReports.length).toBeGreaterThan(4);
+    const measured = [
+      ["frame-src", "https://www.facebook.com", "https://www.louisianahelpr.com/declutter"],
+      ["form-action", "https://www.facebook.com/tr/", "https://www.louisianahelpr.com/gift-guides/her"],
+      ["form-action", "https://www.facebook.com/tr/", "https://www.louisianahelpr.com/declutter"],
+      ["frame-src", "https://www.facebook.com", "https://www.louisianahelpr.com/gift-guides/her"],
+      ["frame-src", "https://www.facebook.com", "https://www.louisianahelpr.com/gift-guides"],
+    ].flatMap(([effectiveDirective, blockedURL, documentURL]) =>
+      reportingApi({ effectiveDirective, blockedURL, documentURL, sourceFile: "", lineNumber: undefined, columnNumber: undefined }).slice(1));
+    let fn = await load();
+    let res = await post(fn, measured, "application/reports+json");
+    expect(res.status).toBe(204);
+    expect(inserts()).toHaveLength(0);
+
+    resetSupabaseMock();
+    resetSharedMocks();
+    fn = await load();
+    res = await post(fn, [...measured, ...reportingApi({})], "application/reports+json");
+    expect(res.status).toBe(204);
+    const rows = inserts();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].payload as Record<string, unknown>).toMatchObject({ context: { report_count: 1, noise_dropped: 5 } });
+  });
+
+  // The rule above exists because vercel.json blocks the fallback on purpose. If form-action or frame-src ever allows
+  // www.facebook.com, nothing is blocked any more: delete isMetaPixelFormPost with it.
+  // @mutate vercel.json | form-action 'self' https://checkout.stripe.com; | form-action 'self' https://checkout.stripe.com https://www.facebook.com;
+  it("vercel.json still blocks the pixel's form POST fallback (form-action and frame-src name no facebook.com host)", () => {
+    const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as { headers: Array<{ headers: Array<{ key: string; value: string }> }> };
+    const csp = vercel.headers.flatMap((h) => h.headers).find((h) => h.key === "Content-Security-Policy")?.value ?? "";
+    const directives = new Map(csp.split(";").map((d) => d.trim().split(/\s+/)).map(([name, ...sources]) => [name, sources]));
+    expect(directives.get("connect-src")).toContain("https://www.facebook.com");
+    for (const name of ["form-action", "frame-src"]) {
+      const sources = directives.get(name) ?? [];
+      expect(sources.length).toBeGreaterThan(0);
+      expect(sources.filter((s) => /facebook\.com/.test(s))).toEqual([]);
+    }
+  });
+
+  it.each([
+    ["a Facebook page plugin frame", "frame-src", "https://www.facebook.com/plugins/page.php?href=x", ""],
+    ["a Facebook login form", "form-action", "https://www.facebook.com/login/", ""],
+    ["a form posting to the bare www.facebook.com", "form-action", "https://www.facebook.com/", ""],
+    ["a frame of the origin with a query", "frame-src", "https://www.facebook.com/?next=x", ""],
+    ["/tr/ on m.facebook.com", "form-action", "https://m.facebook.com/tr/", ""],
+    ["/tr/ on a look-alike host", "form-action", "https://www.facebook.com.evil.example/tr/", ""],
+    ["/tr/ over plain http", "form-action", "http://www.facebook.com/tr/", ""],
+    ["/tr/ on another port", "frame-src", "https://www.facebook.com:8443/tr/", ""],
+    ["/tr/ with credentials", "form-action", "https://user:pw@www.facebook.com/tr/", ""],
+    ["/tr/ as a script (not a form or frame)", "script-src-elem", "https://www.facebook.com/tr/", ""],
+    ["/tr/ from our own script", "form-action", "https://www.facebook.com/tr/", "https://www.louisianahelpr.com/assets/index.js"],
+    ["/tr/ from a look-alike Meta script host", "frame-src", "https://www.facebook.com/tr/", "https://connect.facebook.net.evil.example/fbevents.js"],
+  ])("keeps %s", async (_label, directive, blocked, sourceFile) => {
     const fn = await load();
     const res = await post(fn, legacy({
       "blocked-uri": blocked,

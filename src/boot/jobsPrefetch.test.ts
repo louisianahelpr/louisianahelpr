@@ -20,7 +20,7 @@
 // @mutate src/boot/jobsPrefetch.ts |   admin.searchParams.set("role", "eq.admin"); |
 // @mutate src/boot/jobsPrefetch.ts |   const feed = list ? Promise.resolve(null) : get(urls.feed) |   const feed = get(urls.feed)
 // @mutate src/boot/jobsPrefetch.ts |   const ctx = list ? Promise.resolve(null) : Promise.all( |   const ctx = Promise.all(
-// @mutate src/boot/jobsPrefetch.ts |   return tab ? tab === "posted" \|\| tab === "working" : ["job", "filter", "highlight", "q", "quotes"].some((k) => p.has(k)); |   return tab ? tab === "posted" : ["job", "filter", "highlight", "q"].some((k) => p.has(k));
+// @mutate src/boot/jobsPrefetch.ts |   return tab ? tab === "posted" \|\| tab === "working" : ["job", "filter", "highlight", "quotes"].some((k) => p.has(k)); |   return tab ? tab === "posted" : ["job", "filter", "highlight"].some((k) => p.has(k));
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

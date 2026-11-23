@@ -53,6 +53,8 @@ const DEALS_CSS = `
 .gg-deal-brand{margin:2px 0 0;font-size:15px;font-weight:700;color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal-text{margin:0;font-size:13px;line-height:1.4;color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal-meta{margin:0;font-size:12px;color:var(--gg-muted)}
+/* Guide visual audit 1123b #3: the Top deals' offer text was 13px on a phone; 14px now (the dates stay 12px). */
+@media (max-width:767px){.gg-deal-text{font-size:14px}}
 @media (max-width:767px){.gg:has([data-gift-deals-page]) .gg-banner h1{-webkit-line-clamp:3;font-size:clamp(25px,8vw,34px);line-height:1.05}}
 .gg-deals-list{margin-top:12px}
 .gg-deal-sec{scroll-margin-top:84px}

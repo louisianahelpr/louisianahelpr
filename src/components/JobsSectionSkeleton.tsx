@@ -211,7 +211,7 @@ function tabFromUrl(): "browse" | "posted" | "working" {
   const t = p.get("tab");
   if (t === "posted" || t === "working") return t;
   if (t) return "browse";
-  return ["job", "filter", "highlight", "q"].some((k) => p.has(k)) ? "working" : "browse";
+  return ["job", "filter", "highlight", "quotes"].some((k) => p.has(k)) ? "working" : "browse";
 }
 
 /** The /jobs route fallback (and ProtectedRoute's, on the same route). */

@@ -126,7 +126,10 @@ export function GiftFinder() {
     );
   }
   return (
-    <section id={FINDER_ID} aria-labelledby={FINDER_TITLE_ID} className="gg-finder gg-quiz" data-gift-finder="" data-gift-quiz={step}>
+    // Guide visual audit 1123b #1: no id="gift-finder" on the card. The finder view is the finder alone, so a #gift-finder
+    // jump (the menu, the rail, a shared link, each step's address) scrolled past the head row and half the banner; the
+    // view opens at the page's top instead (FinderView, GiftGuideLanding.tsx).
+    <section aria-labelledby={FINDER_TITLE_ID} className="gg-finder gg-quiz" data-gift-finder="" data-gift-quiz={step}>
       {/* Owner 11-22 #13: the page's banner says "Find a Gift" over this card, so its heading is for screen readers only. */}
       <h2 id={FINDER_TITLE_ID} className="gg-finder-title sr-only">{W.finderTitle}</h2>
       {step === "who" && <p className="gg-finder-lead">{W.finderLead}</p>}

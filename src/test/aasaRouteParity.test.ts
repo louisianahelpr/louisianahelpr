@@ -79,11 +79,11 @@ describe("AASA ↔ router parity", () => {
    * FLOOR. Every assertion below is per-claim, so an AASA file whose `paths`
    * array was emptied or renamed would pass all of them vacuously — and an
    * empty AASA is precisely the deploy in which no universal link opens the
-   * app at all. 17 claims since Q194 (2026-09-23); the floor is the count minus
+   * app at all. 17 claims since Q194 (2026-09-23), 25 since HA-03 (2026-11-23); the floor is the count minus
    * headroom, not the count, so adding one is not a test edit.
    */
   it("the AASA actually claims something", () => {
-    expect(claims.length).toBeGreaterThan(14);
+    expect(claims.length).toBeGreaterThan(22);
     expect(components.length).toBe(paths.length);
   });
 
@@ -133,6 +133,19 @@ describe("AASA ↔ router parity", () => {
       -1,
     );
     expect(lastExclusion).toBeLessThan(firstClaim);
+  });
+
+  /**
+   * App audit 11-23 HA-03: the file stopped at the September list, so every Declutter email button (See the item, See
+   * your order, See your sale), a shared /u/ profile, /book/, /tips/, /search and /helprs opened Safari, often signed
+   * out, instead of the app. Each launched area's member entry points are claimed. /shops/* stays out while Shops is
+   * not launched (docs/NOT-LAUNCHED.md); claiming it is the launch's job.
+   */
+  // @mutate public/.well-known/apple-app-site-association |           "/declutter/item/*",\n | \n
+  it("HA-03: Declutter, shared profiles, booking, tips, search and Find a Helpr open the app", () => {
+    const launched = ["/declutter", "/declutter/item/*", "/declutter/sell", "/u/*", "/book/*", "/tips/*", "/search", "/helprs"];
+    expect(launched.filter((p) => !claims.includes(p))).toEqual([]);
+    expect(claims.filter((p) => p.startsWith("/shops"))).toEqual([]);
   });
 
   it("the excluded auth paths stay excluded", () => {

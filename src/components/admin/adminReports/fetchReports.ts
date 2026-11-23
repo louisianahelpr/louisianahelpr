@@ -9,6 +9,7 @@ import { hydrateReportedWanted, wantedSubject, WANTED_REPORT } from "@/component
 import { hydrateReportedQuestions, isQuestionReport, questionAuthor, questionSubject } from "@/components/admin/adminReports/reportedQuestions";
 import { hydrateReportedShops, isShopReport, shopSubject } from "@/components/admin/adminReports/reportedShops";
 import { hydrateReportedHomes, homeSubject, HOME_LISTING_REPORT, HOME_TALK_MESSAGE_REPORT } from "@/components/admin/adminReports/reportedHomes";
+import { hydrateReportedJobWords, isJobWordsReport, jobWordsSubject } from "@/components/admin/adminReports/reportedJobWords";
 import type { Report } from "@/components/admin/adminReports/reportType";
 import { mentionsTestMarker } from "@/components/admin/seedRows";
 
@@ -48,10 +49,10 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
   // fallback exists to distinguish — gone vs. unreadable — were both wrong
   // for every job report.
   // Item B: a listing report holds a declutter_items id; its person is the seller (reportedListings.ts).
-  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type) && !isShopReport(r.reported_type) && r.reported_type !== HOME_LISTING_REPORT && r.reported_type !== HOME_TALK_MESSAGE_REPORT;
+  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type) && !isShopReport(r.reported_type) && r.reported_type !== HOME_LISTING_REPORT && r.reported_type !== HOME_TALK_MESSAGE_REPORT && !isJobWordsReport(r.reported_type);
   const { listings, failed: listingsFailed } = await hydrateReportedListings(reportRows);
-  const [{ posts: wantedPosts, failed: wantedFailed }, { questions, failed: questionsFailed }, { shops, failed: shopsFailed }, { homes, failed: homesFailed }] =
-    await Promise.all([hydrateReportedWanted(reportRows), hydrateReportedQuestions(reportRows), hydrateReportedShops(reportRows), hydrateReportedHomes(reportRows)]);
+  const [{ words: jobWords, failed: jobWordsFailed }, { posts: wantedPosts, failed: wantedFailed }, { questions, failed: questionsFailed }, { shops, failed: shopsFailed }, { homes, failed: homesFailed }] =
+    await Promise.all([hydrateReportedJobWords(reportRows), hydrateReportedWanted(reportRows), hydrateReportedQuestions(reportRows), hydrateReportedShops(reportRows), hydrateReportedHomes(reportRows)]);
   // Q366: an 'application' report holds an APPLICATION id. The person is
   // its helper and the context is its job; both are read from the row.
   const appIds = [...new Set(reportRows.filter(r => r.reported_type === "application").map(r => r.reported_id))];
@@ -75,6 +76,7 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
       : isQuestionReport(r.reported_type) ? questionAuthor(r.reported_type, questions.get(r.reported_id))
       : isShopReport(r.reported_type) ? shops.get(r.reported_id)?.owner_id ?? null
       : r.reported_type === HOME_LISTING_REPORT ? homes.get(r.reported_id)?.owner_id ?? null
+      : isJobWordsReport(r.reported_type) ? jobWords.get(r.reported_id)?.author ?? null
       : isUserSubject(r) ? r.reported_id : null;
   const userIds = [
     ...new Set(reportRows.flatMap(r => [
@@ -89,7 +91,8 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
   const jobIds = [...new Set([
     ...reportRows.filter(r => r.reported_type === "job").map(r => r.reported_id),
     ...appJob.values(),
-  ].filter(Boolean))];
+    ...[...jobWords.values()].map((w) => w.jobId),
+  ].filter(Boolean) as string[])];
   const jobTitles = new Map<string, string>();
   const seedIds = new Set<string>();
   if (jobIds.length > 0) {
@@ -156,6 +159,7 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
       if (isShopReport(r.reported_type)) return shopSubject(r.reported_type, shops.get(r.reported_id), shopsFailed);
       if (r.reported_type === HOME_LISTING_REPORT) return homeSubject(homes.get(r.reported_id), homesFailed);
       if (r.reported_type === HOME_TALK_MESSAGE_REPORT) return "Homes message";
+      if (isJobWordsReport(r.reported_type)) return jobWordsSubject(r.reported_type, jobWords.get(r.reported_id), jobWordsFailed, nameFor, (id) => (id ? jobTitles.get(id) : undefined));
       return isUserSubject(r) ? nameFor(r.reported_id) : (jobTitles.get(r.reported_id) ?? "Deleted job");
     };
 
@@ -187,7 +191,10 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
         || (r.reported_type === HOME_LISTING_REPORT && seedIds.has(homes.get(r.reported_id)?.owner_id ?? ""))
         || (r.reporter_id !== null && seedIds.has(r.reporter_id))
         || (r.reported_type === "application"
-          && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? ""))),
+          && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? "")))
+        // HA-08: a reported review or message is test data when its writer/sender or its job is (reportedJobWords.ts).
+        || (isJobWordsReport(r.reported_type)
+          && (seedIds.has(jobWords.get(r.reported_id)?.author ?? "") || seedIds.has(jobWords.get(r.reported_id)?.jobId ?? ""))),
     })).filter(r => !r.is_test).map(markTestText);
   }
   return reportRows.map(markTestText);

@@ -4,6 +4,15 @@ import { Button } from "@/components/ui/button";
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 
+/**
+ * App audit 11-23 H3 (owner 11-21, "no circles on header icons"): an on Search or Filters icon (search open or typed,
+ * the sheet open or a filter set) wore a tinted disc with a ring. The on state is the olive icon colour alone, as
+ * Declutter's plain Filters icon (FiltersIconButton plain); only the hover tint stays.
+ * Guard: src/test/headerIconsNoCircle.test.ts.
+ */
+const HEADER_ICON_ON = "ctl-tint text-[hsl(var(--bark))]";
+const HEADER_ICON_OFF = "ctl-tint text-muted-foreground hover:text-foreground";
+
 export interface BrowseTasksActionsProps {
   /** Show ONLY saved jobs. Owner: "how can they see saved jobs? add a button
    *  by search" — saving a job had no destination at all before this, so the
@@ -81,9 +90,7 @@ export function BrowseTasksActions({
               : `Show saved jobs${savedCount ? ` (${savedCount})` : ""}`
           }
           className={`btn-press relative focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${
-            savedOnly
-              ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]"
-              : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"
+            savedOnly ? HEADER_ICON_ON : HEADER_ICON_OFF
           }`}
         >
           <Bookmark
@@ -138,7 +145,7 @@ export function BrowseTasksActions({
            Dashboard's desktop feed strip. */
         data-search-trigger
         onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
-        className={`btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.searchOpen || filters.searchQuery ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
+        className={`btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.searchOpen || filters.searchQuery ? HEADER_ICON_ON : HEADER_ICON_OFF}`}
         aria-label="Search jobs"
         aria-expanded={filters.searchOpen}
       >
@@ -171,7 +178,7 @@ export function BrowseFiltersButton({ filters, filtersButtonRef }: Pick<BrowseTa
       variant="ghost"
       size="iconCompact"
       onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
-      className={`btn-press relative focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.filtersOpen || count > 0 ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
+      className={`btn-press relative focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.filtersOpen || count > 0 ? HEADER_ICON_ON : HEADER_ICON_OFF}`}
       aria-label={count > 0 ? `Filters (${count} active)` : "Filters"}
       aria-expanded={filters.filtersOpen}
     >

@@ -134,5 +134,5 @@ export function startJobsPrefetch(pathname: string): void {
 export function jobsOpensOnList(search: string): boolean {
   const p = new URLSearchParams(search);
   const tab = p.get("tab");
-  return tab ? tab === "posted" || tab === "working" : ["job", "filter", "highlight", "q", "quotes"].some((k) => p.has(k));
+  return tab ? tab === "posted" || tab === "working" : ["job", "filter", "highlight", "quotes"].some((k) => p.has(k));
 }

@@ -183,13 +183,15 @@ export function SafetyShieldButton({
         <ShieldAlert className="w-5 h-5" aria-hidden />
       </RoundIconButton>
       {/* Area 08 L6 (design audit 11-18): a red shield alone said nothing on first view. Its word beside it, the
-          same tap (the button above carries the name for screen readers). */}
+          same tap (the button above carries the name for screen readers). App audit 11-23 AS-01: on a phone the word
+          took the chat header's room and cut the other person's name to "Marc..." at 375, so it shows from 640px up;
+          on a phone the shield keeps its title and its screen-reader name. */}
       <InlineTextButton
         aria-hidden
         tabIndex={-1}
         data-sos-shield-label=""
         onClick={() => setOpen(true)}
-        className="hidden min-[360px]:inline font-sans font-semibold text-ds-11 pr-1 no-underline"
+        className="hidden sm:inline font-sans font-semibold text-ds-11 pr-1 no-underline"
         style={{ color: SOS_TINT.color }}
       >
         {t("cp.safetyLabel")}

@@ -82,7 +82,7 @@ export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Da
 
 /** What each money moment says before it runs (the words window.confirm used to carry, plus "I got it", which had none). */
 const ASK = {
-  gotIt: { title: "Do you have it?", confirm: "I got it", cancel: "Not now", words: "Tapping I got it finishes the sale and the seller is paid. You can still ask for a refund within 24 hours if something is wrong." },
+  gotIt: { title: "Do you have it?", confirm: "I got it", cancel: "Not now", words: "After you tap I got it, you still have 24 hours to ask the seller for a refund if something is wrong. Then the sale is final and the seller is paid." },
   notDelivered: { title: "It wasn't delivered?", confirm: "It wasn't delivered", cancel: "Not now", words: "We tell the seller now, and they have 24 hours to answer. If they don't, you get everything back, delivery included. If they say they delivered it, Louisiana Helpr looks at both sides." },
 } as const;
 

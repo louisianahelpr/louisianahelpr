@@ -265,6 +265,12 @@ export const giftGuides = {
   // The landing's greeting (owner 11-21, option B without gifts): a cream card in a candy-cane border.
   greetTitle: "Happy holidays, y'all",
   greetLine: "Gifts we love for everyone on your list",
+  /**
+   * The one-line menu tip (owner 2026-11-22, 11:40 PM, after the longer lists were "way too busy": visitors don't find the
+   * printables, deals and Holiday Hub, "they don't even know what to do or look for"): a small box on a phone, "Tap [menu
+   * icon] for deals, free printables & more", with a Close; GiftGuideMenuHint.tsx.
+   */
+  menuHint: { before: "Tap", icon: "the menu", after: "for deals, free printables & more", close: "Close" },
   /** The landing's Top 10 row (owner 2026-11-21 ~5:05 PM, src/content/giftGuideTop10.ts). */
   top10Title: "Top 10 gifts",
   /** The quiet line under a landing tile (lead 11-21): "36 gifts". */

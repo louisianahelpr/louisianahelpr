@@ -531,4 +531,35 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 @media (min-width:768px){.gg-banner-sub .gg-banner h1{font-size:60px;line-height:1.04}}
 @media (min-width:768px) and (max-width:1023px){.gg-banner-sub .gg-banner h1{font-size:48px}}
 @media (max-width:767px){.gg-banner-sub .gg-banner h1{-webkit-line-clamp:3;font-size:clamp(25px,8vw,34px);line-height:1.05}}
+/* The phone's one-line menu tip (owner 11-22 11:40 PM, GiftGuideMenuHint.tsx; "not as big as the mockup": slim): a 38px
+   cream box with a 1px border, 14px green words with the three-line icon in a small outlined chip, and a 14px Close on
+   the right. Both controls draw 36px tall but tap 44x44 (a ::before reaching past the box), so the box stays slim. Only
+   up to 767px, where the head row's three-line icon is; from 768px the left menu is always on screen. */
+.gg-menuhint{display:none}
+@media (max-width:767px){
+/* Owner 11-22 11:40 PM (phone: too much space under the head row; "If you change that spacing for one page you need to
+   do the other pages that are similar"): the space ABOVE stays the app's PageHeader standard (--shell-gap, as /legal and
+   /declutter); BELOW, the title's bottom sits 12px over the first content on every page with the row (the title ends
+   6.6px above the 44px row's bottom, so 5px of padding; was 12px, and the landing's divider 20px + 1px + 12px; the
+   landing's own 4px + 8px tops go too). No divider under the row on a phone (PageHeader pages have none); the 44px
+   targets and the title size stay. */
+.gg-headrow{padding-bottom:5px}
+.gg-divider{display:none}
+.gg .gg-landing{padding-top:0}
+.gg-main:has(>.gg-landing){padding-top:0}
+.gg-menuhint{display:flex;align-items:center;height:38px;margin:12px 0 10px;padding:0 0 0 10px;border:1px solid #e7dccb;border-radius:10px;background:#faf7ef}
+.gg-menuhint-go,.gg-menuhint-x{position:relative;height:36px;padding:0;border:0;background:none;cursor:pointer}
+.gg-menuhint-go::before,.gg-menuhint-x::before{content:"";position:absolute;top:-4px;bottom:-4px;left:0;right:0}
+.gg-menuhint-x::before{left:-4px;right:-4px}
+.gg-menuhint-go{flex:1;min-width:0;text-align:left;font:600 14px/1.2 Montserrat,sans-serif;letter-spacing:-.01em;color:#265e3c}
+.gg-menuhint-t{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gg-menuhint-ico{display:inline-flex;align-items:center;justify-content:center;width:18px;height:16px;border:1px solid currentColor;border-radius:4px;vertical-align:-3px}
+.gg-menuhint-x{flex:none;display:inline-flex;align-items:center;justify-content:center;width:36px;font-size:14px;color:#6b6b5f}
+.gg-menuhint-go:focus-visible,.gg-menuhint-x:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:-2px;border-radius:8px}
+/* Owner 11-22 11:40 PM: ~12px above and below the tip (the landing's 28px between blocks, and the guide column's gaps, were too much). */
+.gg .gg-landing>.gg-menuhint,.gg .gg-landing>.gg-menuhint+*{margin-top:12px}
+article[data-gift-guide]>.gg-menuhint{margin:4px 0 0}
+article[data-gift-guide]>.gg-menuhint+section>.gg-sec-title{margin-top:12px}
+article[data-gift-guide]>.gg-menuhint+section>.gg-list{margin-top:0}article[data-gift-guide]>.gg-menuhint+section>.gg-list>li:first-child{border-top:0}
+}
 `;

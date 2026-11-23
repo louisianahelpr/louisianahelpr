@@ -28,6 +28,7 @@ import { PeopleChips } from "./GiftGuidePeopleChips";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { SmallBizLink } from "./GiftGuideSmallBiz";
 import { PrintablesLink } from "./printables/PrintablesLink";
+import { GuidesMenuHint, MENU_HINT_GUIDES } from "./GiftGuideMenuHint";
 import { SHOP_SMALL_GUIDE } from "@/content/giftGuideSmallBiz.mjs";
 import { deadlineChip, louisianaToday } from "@/content/giftGuideExtras1120";
 import { LazyGuideQa, QA_CATALOG_GUIDES } from "./LazyGuideQa";
@@ -476,6 +477,8 @@ export function GiftGuideView({ guide, order = "top", hideCount = false, filter 
   };
   return (
     <article aria-labelledby="gift-guide-title" data-gift-guide={guide.slug}>
+      {/* Owner 2026-11-22, 11:40 PM: Her, Him and Kids open with the phone's one-line menu tip (Facebook lands on Her). */}
+      {MENU_HINT_GUIDES.has(guide.slug) && <GuidesMenuHint />}
       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
       {/* Holistic review 11-18 H1: Niece, Nephew and Cousins open their kids age guides by age. */}
       <AgeChips slug={guide.slug} />

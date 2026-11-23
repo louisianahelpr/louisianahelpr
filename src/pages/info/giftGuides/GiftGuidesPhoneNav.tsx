@@ -20,8 +20,18 @@ const loadSheet = () => loadModule(() => import("./GiftGuidesPhoneSheet"));
  * the shared bottom Sheet, so every guides page stays one tap away.
  * Guard: src/test/giftGuidesPhoneNav1121.test.tsx, src/test/giftGuidePhoneHead1122.test.tsx.
  */
+/** The window event the phone's menu tip sends to open this menu (GiftGuideMenuHint.tsx, owner 11-22 11:40 PM). */
+const OPEN_MENU_EVENT = "lh-gg-open-menu";
+/** Open the guides menu, exactly as tapping the head row's three-line icon does. */
+export const openGuidesMenu = () => window.dispatchEvent(new Event(OPEN_MENU_EVENT));
+
 export function GuidesMenuButton({ active, myList = false, page }: { active: CatalogGuide | null; myList?: boolean; page?: string }) {
   const [sheet, setSheet] = useState(false);
+  useEffect(() => {
+    const open = () => setSheet(true);
+    window.addEventListener(OPEN_MENU_EVENT, open);
+    return () => window.removeEventListener(OPEN_MENU_EVENT, open);
+  }, []);
   // The sheet's chunk (the dialog stack) loads on the first tap, never on the page's critical path.
   const [SheetPart, setSheetPart] = useState<SheetModule["GiftGuidesPhoneSheet"] | null>(null);
   useEffect(() => {

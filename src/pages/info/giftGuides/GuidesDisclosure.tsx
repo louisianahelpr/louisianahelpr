@@ -5,14 +5,14 @@ import { giftGuides as G } from "@/content/giftGuides";
  * An affiliate link on a gift guides page: every outbound shop link is drawn by GiftOut (data-gift-out, rel sponsored),
  * and any other sponsored link counts too.
  */
-export const AFFILIATE_LINK = "a[data-gift-out], a[rel~='sponsored']";
+const AFFILIATE_LINK = "a[data-gift-out], a[rel~='sponsored']";
 
 /**
  * Whether the page under `scope` shows at least one affiliate link, kept current as the page changes (a guide's picks
  * load after the page, Swipe deals new cards, the planner adds a saved gift). A passive effect, not a layout one: the
  * scope is an ancestor, and React attaches an ancestor's ref only after its children's layout effects have run.
  */
-export function useHasAffiliateLink(scope: RefObject<HTMLElement | null>) {
+function useHasAffiliateLink(scope: RefObject<HTMLElement | null>) {
   const [has, setHas] = useState(false);
   useEffect(() => {
     const root = scope.current;

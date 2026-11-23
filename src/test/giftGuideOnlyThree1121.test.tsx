@@ -41,7 +41,7 @@
  * @mutate src/content/giftGuideCatalog.ts | draftOf.has(slug) && isLiveGuide(slug) && | draftOf.has(slug) &&
  * @mutate src/prerender/seoData.ts | else if (!to && !guides[old]) moved[old] = ""; | else if (!to && !guides[old] && old.startsWith("store-")) moved[old] = "";
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       {null}
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" data-gift-side-holiday-hub="">{G.sideHolidayHub}</Link></li> |         {null}
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub="">{G.sideHolidayHub}</Link></li> |         {null}
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   if (finderAsked(search, hash)) return | if (false) return
  * @mutate src/content/giftGuides.ts |     { id: "cyber-monday", label: "Cyber Monday" }, |
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       <LiveGuides /><aside data-gift-holiday-hub="" />

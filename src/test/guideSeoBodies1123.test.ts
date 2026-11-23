@@ -120,7 +120,7 @@ describe("TS3: the deals days and /25days list what the page shows", () => {
         checked += parts.deals + parts.codes + parts.sales;
       }
     }
-    // 61 + 42 rows on Nov 23 alone (audit 11-23).
+    // 61 + 42 rows on 2026-11-23 alone (audit 11-23).
     expect(checked).toBeGreaterThan(100);
   });
 

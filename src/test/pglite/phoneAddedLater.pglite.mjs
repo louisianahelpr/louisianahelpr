@@ -67,10 +67,10 @@ if (!RED) check("no auto-ban trigger (it could not apply from a member's own wri
 // 3. The same number in another format is not a change, even when shared.
 // A pair that already shares a number (prod has one) predates the guard.
 await db.exec(`SET session_replication_role = replica;
-  INSERT INTO public.profiles (user_id, phone) VALUES ('55555555-0000-0000-0000-0000000000e1', '3375198454'), ('55555555-0000-0000-0000-0000000000e2', '3375198454');
+  INSERT INTO public.profiles (user_id, phone) VALUES ('55555555-0000-0000-0000-0000000000e1', '3375550142'), ('55555555-0000-0000-0000-0000000000e2', '3375550142');
   SET session_replication_role = origin;`);
 let fmtErr = null;
-try { await q(`UPDATE public.profiles SET phone = '(337) 519-8454' WHERE user_id = '55555555-0000-0000-0000-0000000000e1'`); } catch (e) { fmtErr = e; }
+try { await q(`UPDATE public.profiles SET phone = '(337) 555-0142' WHERE user_id = '55555555-0000-0000-0000-0000000000e1'`); } catch (e) { fmtErr = e; }
 check("an already-shared number can be re-saved in another format", fmtErr === null, String(fmtErr?.message));
 
 // 3b. A banned account's number is not refused: the flag trigger must see it.

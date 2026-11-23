@@ -576,6 +576,8 @@ jobs:
           ASC_TEAM_ID: ${{ secrets.ASC_TEAM_ID }}
           # Q1790: the release lane stages the App Review demo password from this secret (never from the repo).
           ASC_REVIEW_DEMO_PASSWORD: ${{ secrets.ASC_REVIEW_DEMO_PASSWORD }}
+          # NL-01: the App Review contact phone, staged by the Fastfile into the upload copy only (never in the repo).
+          APP_REVIEW_PHONE: ${{ secrets.APP_REVIEW_PHONE }}
           # Required by Fastfile for cert import (avoids hitting Apple's
           # max-distribution-certificates limit by reusing an existing one).
           IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}

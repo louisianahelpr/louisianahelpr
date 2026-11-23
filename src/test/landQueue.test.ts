@@ -102,6 +102,19 @@ describe("the queue is wired", () => {
     expect(wf).toMatch(/node scripts\/land-queue\.mjs/);
     expect(wf).toMatch(/GH_TOKEN: \$\{\{ secrets\.REFRESH_PR_TOKEN \|\| github\.token \}\}/);
   });
+
+  // OPS-2 (2026-11-23): the PAT cannot re-run checks ("Resource not accessible by personal access token").
+  // @mutate scripts/land-queue.mjs | GH_TOKEN: process.env.GH_RERUN_TOKEN \|\| process.env.GH_TOKEN | GH_TOKEN: process.env.GH_TOKEN
+  // @mutate .github/workflows/land-queue.yml | GH_RERUN_TOKEN: ${{ github.token }} | GH_RERUN_TOKEN: ${{ secrets.REFRESH_PR_TOKEN }}
+  it("run re-runs use the job's built-in token, never the PAT", () => {
+    const src = read("scripts/land-queue.mjs");
+    const rerun = src.slice(src.indexOf('case "rerun":'), src.indexOf('case "update":'));
+    expect(rerun).toMatch(/"rerun"/);
+    expect(rerun).toMatch(/GH_TOKEN: process\.env\.GH_RERUN_TOKEN \|\| process\.env\.GH_TOKEN/);
+    const wf = read(".github/workflows/land-queue.yml");
+    expect(wf).toMatch(/GH_RERUN_TOKEN: \$\{\{ github\.token \}\}/);
+    expect(wf).toMatch(/actions: write/);
+  });
 });
 
 // 2026-10-06: #2450 merged with its migration-replay gate red (auto-merge waits

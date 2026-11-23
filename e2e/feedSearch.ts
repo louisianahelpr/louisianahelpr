@@ -10,7 +10,9 @@ import type { Page } from "@playwright/test";
  * the width has one.
  */
 export async function searchFeed(page: Page, text: string, opts: { timeout?: number } = {}) {
-  const trigger = page.locator("[data-feed-strip] [data-search-trigger]").first();
+  // OPS-4 (2026-11-23): the phone Jobs magnifier is a title-bar button OUTSIDE [data-feed-strip], so the strip-scoped
+  // locator never saw it and the prod core-loop canary timed out. Match the labelled trigger anywhere, visible only.
+  const trigger = page.locator('[data-search-trigger][aria-label="Search jobs"]').filter({ visible: true }).first();
   const field0 = page.locator('input[aria-label="Search jobs"]').filter({ visible: true }).first();
   // The feed can paint after this is called (lead 11-01: the prod canary checked both triggers before Browse had
   // drawn, pressed neither, then waited 60 s for a field nobody opened). Wait for either first.

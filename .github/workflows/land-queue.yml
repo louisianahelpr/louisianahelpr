@@ -58,5 +58,8 @@ jobs:
           # REFRESH_PR_TOKEN: an update pushed with the built-in token starts no
           # workflows, so the head's checks would never run after its rebase.
           GH_TOKEN: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
+          # Re-running a run needs Actions write, which the PAT lacks (OPS-2);
+          # the job's own token has it (permissions: actions: write above).
+          GH_RERUN_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: node scripts/land-queue.mjs

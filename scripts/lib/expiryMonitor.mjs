@@ -372,6 +372,27 @@ async function readVercel(read, env, fetchFn) {
   }
 }
 
+/**
+ * GitHub PAT (OPS-3, 2026-11-23). GitHub puts `github-authentication-token-expiration`
+ * ("2026-12-01 00:00:00 UTC") on every API answer made with an expiring PAT, so the token
+ * says its own expiry. No header on a 200 = a token with no expiry date.
+ */
+async function readGithubPat(read, env, fetchFn) {
+  if (!env[read.env]) return { noExpiry: true, detail: `${read.env} is not set here; workflows fall back to the job's github.token, which is minted per job` };
+  try {
+    const r = await getJson(fetchFn, "https://api.github.com/rate_limit", { headers: { authorization: `Bearer ${env[read.env]}`, accept: "application/vnd.github+json", "user-agent": "expiry-monitor" } });
+    if (r.status === 401) return { expiresAt: new Date(0).toISOString(), detail: `GitHub answered 401 for ${read.env}: the token has expired or was revoked` };
+    if (r.status !== 200) return { expiresAt: null, detail: `unreadable here: GitHub answered ${r.status}` };
+    const h = r.headers?.get?.("github-authentication-token-expiration");
+    if (!h) return { noExpiry: true, detail: `GitHub sent no github-authentication-token-expiration header for ${read.env} (a token with no expiry date)` };
+    const d = new Date(String(h).replace(" UTC", "Z").replace(" ", "T"));
+    if (Number.isNaN(d.getTime())) return { expiresAt: null, detail: `unreadable here: unparseable expiration header ${JSON.stringify(h)}` };
+    return { expiresAt: d.toISOString(), detail: `GitHub header github-authentication-token-expiration: ${h}` };
+  } catch (e) {
+    return { expiresAt: null, detail: `unreadable here: ${errMsg(e)}` };
+  }
+}
+
 async function readMeta(read, env, fetchFn) {
   const tok = env[read.env], id = env[read.appIdEnv], sec = env[read.appSecretEnv];
   if (!tok || !id || !sec) return { expiresAt: null, detail: `unreadable here: ${read.env} / ${read.appIdEnv} / ${read.appSecretEnv} not all set (edge secrets; not given to CI)` };
@@ -419,6 +440,7 @@ export async function readItem(item, { env = process.env, root = process.cwd(), 
       case "asc-api": return await readAsc(r, env, fetchFn);
       case "vercel-token": return await readVercel(r, env, fetchFn);
       case "meta-debug-token": return await readMeta(r, env, fetchFn);
+      case "github-pat": return await readGithubPat(r, env, fetchFn);
       case "supabase-auth-apple": return await readAppleSignin(r, env, fetchFn);
       case "no-expiry": return { noExpiry: true, source: item.sourceOfTruth, detail: `${r.reason} (vendor documentation, not measured)` };
       case "manual":

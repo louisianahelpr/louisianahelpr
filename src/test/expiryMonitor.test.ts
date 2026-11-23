@@ -211,6 +211,36 @@ describe("Sign in with Apple: the API masks the secret, so its date is recorded"
     expect((await readItem(v(null), { env: { VERCEL_TOKEN: "x" }, fetchFn: notFound })).detail).toMatch(/404 \(not_found/);
     expect((await readItem(v("2027-03-01T00:00:00Z"), { env: { VERCEL_TOKEN: "x" }, fetchFn: notFound })).expiresAt).toBe("2027-03-01T00:00:00Z");
   });
+  // OPS-3 (2026-11-23): REFRESH_PR_TOKEN is a PAT that expires and was listed "undated" with a false "not set" claim.
+  describe("github-pat", () => {
+    const pat = { id: "p", label: "p", env: ["REFRESH_PR_TOKEN"], hosts: [], sourceOfTruth: "fixture", ciReadable: true, read: { method: "github-pat", env: "REFRESH_PR_TOKEN" } } as unknown as InventoryItem;
+    const reply = (status: number, headers: Record<string, string> = {}) => (async () => new Response("{}", { status, headers })) as unknown as typeof fetch;
+    it("reads the expiration header", async () => {
+      const r = await readItem(pat, { env: { REFRESH_PR_TOKEN: "x" }, fetchFn: reply(200, { "github-authentication-token-expiration": "2026-12-01 00:00:00 UTC" }) });
+      expect(r.expiresAt).toBe("2026-12-01T00:00:00.000Z");
+    });
+    it("no header on a 200 means no expiry date", async () => {
+      expect((await readItem(pat, { env: { REFRESH_PR_TOKEN: "x" }, fetchFn: reply(200) })).noExpiry).toBe(true);
+    });
+    it("a 401 reads as already expired", async () => {
+      const r = await readItem(pat, { env: { REFRESH_PR_TOKEN: "x" }, fetchFn: reply(401) });
+      expect(new Date(r.expiresAt as string).getTime()).toBe(0);
+    });
+    it("another status is unreadable, never silently fine", async () => {
+      const r = await readItem(pat, { env: { REFRESH_PR_TOKEN: "x" }, fetchFn: reply(503) });
+      expect(r.expiresAt).toBeNull();
+      expect(r.noExpiry).toBeUndefined();
+    });
+    it("the live inventory tracks REFRESH_PR_TOKEN as a CI-read PAT, not as undated, and the monitor passes it in", () => {
+      const live = loadInventory(ROOT);
+      const it0 = live.items.find((i: InventoryItem) => i.env.includes("REFRESH_PR_TOKEN"));
+      expect(it0?.read.method).toBe("github-pat");
+      expect(it0?.ciReadable).toBe(true);
+      expect(Object.keys(live.undated)).not.toContain("REFRESH_PR_TOKEN");
+      expect(JSON.stringify(live.items)).not.toMatch(/no PAT is referenced/);
+      expect(readFileSync(join(ROOT, ".github/workflows/expiry-monitor.yml"), "utf8")).toMatch(/REFRESH_PR_TOKEN: \$\{\{ secrets\.REFRESH_PR_TOKEN \}\}/);
+    });
+  });
   it("the live inventory does not claim CI can read it", () => {
     const apple = loadInventory(ROOT).items.find((i: InventoryItem) => i.id === "apple-signin-web-secret");
     expect(apple?.ciReadable).toBe(false);
@@ -244,7 +274,7 @@ describe("(c) the inventory is exact two-way against the repo", () => {
   });
 
   it("every item names a read method the monitor implements and a source of truth", () => {
-    const methods = new Set(["tls", "rdap", "jwt-exp", "x509-p12", "x509-pem", "asc-api", "vercel-token", "meta-debug-token", "supabase-auth-apple", "no-expiry", "manual"]);
+    const methods = new Set(["tls", "rdap", "jwt-exp", "x509-p12", "x509-pem", "asc-api", "vercel-token", "meta-debug-token", "github-pat", "supabase-auth-apple", "no-expiry", "manual"]);
     for (const i of inv.items) {
       expect(methods.has(i.read.method), `${i.id}: ${i.read.method}`).toBe(true);
       expect(i.sourceOfTruth.length, i.id).toBeGreaterThan(10);

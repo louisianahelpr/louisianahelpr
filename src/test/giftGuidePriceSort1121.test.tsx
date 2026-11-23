@@ -244,7 +244,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Owner 11-23 (builder guides-under10): "Stocking stuffers under $10" leads each guide, and Him gained 14 and Kids 16
       // of her Amazon keeps (scripts/giftGuideOwnerKeeps1123.mjs; the Callaway balls, $24.99, read ~$25: $25 to $50).
       // Her second keeps (11-23 ~11:55 AM, builder guides-keeps2): Him gained 9 stocking stuffers, every one under $5.
-      him: { "Stocking stuffers under $10": 23, "Under $25": 44, "$25 to $50": 49, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 50 },
+      // Held links made (11-23, builder guides-heldlinks): the Lodge 10.25 in. skillet, $24.90, reads ~$25: $25 to $50.
+      // Owner 11-23 ~1:00 PM: the KREWE sunglasses ($255) are off For Him; ~1:01 PM the Steve Madden loafer ($139.99) too.
+      him: { "Stocking stuffers under $10": 23, "Under $25": 44, "$25 to $50": 50, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 48 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -263,7 +265,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Marsh chino came off again (owner "Drop both": no ShopMy rate).
       // Owner 11-22 8:58 PM: Paint by Sticker Kids: Christmas ($3.44) came off (no Buy Box on Amazon); the Crayola pad moved
       // to its Blue listing at $30.19 (still $25 to $50).
-      kids: { "Stocking stuffers under $10": 5, "Under $25": 51, "$25 to $50": 33, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
+      // Held links made (11-23, builder guides-heldlinks): 6 Kids keeps, all Under $25 (the OOLY crayons, $9.95, read ~$10).
+      kids: { "Stocking stuffers under $10": 5, "Under $25": 57, "$25 to $50": 33, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -290,7 +293,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Her second keeps (11-23 ~11:55 AM, builder guides-keeps2, 19 Amazon): 7 under $10; Kiehl's ($9.80) and the Mont Bleu
       // files ($9.95) read ~$10, so they join the 7 others from $10 to $24 in Under $25; the Magnolia Table ($24.98), the
       // OCOOPA warmers ($24.99) and We're Not Really Strangers ($25) read ~$25: $25 to $50.
-      her: { "Stocking stuffers under $10": 13, "Under $25": 50, "$25 to $50": 48, "$50 to $75": 15, "$75 to $100": 14, "$100 and up": 38 },
+      // Held links made (11-23, builder guides-heldlinks): her 6 Ulta keeps are stocking stuffers, the Capri Blue car
+      // diffuser ($23, Amazon) is Under $25, and the Braun IPL alone ($279.99, owner "Switch only the Braun") stays $100 and up.
+      her: { "Stocking stuffers under $10": 19, "Under $25": 51, "$25 to $50": 48, "$50 to $75": 15, "$75 to $100": 14, "$100 and up": 38 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

@@ -5,8 +5,8 @@
  * to Camp Snap direct (sale price + LEXILOMBAS7); the sold-out Sleep Crown goes on now with a short "Back Dec 1" chip
  * that hides on Dec 1; the Kate McLeod lotion bar waits (sold out at The Sleep Code, no paying link elsewhere).
  *
- * @mutate scripts/giftGuideHer1121.mjs | export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123]; | export const HER_ROWS = [...HER_1121, ...HER_POPULAR_1122, ...HER_KEEPS_1123];
- * @mutate scripts/giftGuideHimKids1121.mjs | export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123]) { | export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123]) {
+ * @mutate scripts/giftGuideHer1121.mjs | export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123]; | export const HER_ROWS = [...HER_1121, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123];
+ * @mutate scripts/giftGuideHimKids1121.mjs | export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123]) { | export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123]) {
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const back = pick.backOn && today < pick.backOn ? G.backOnChip(pick.backOn) : undefined; |   const back = undefined;
  * @mutate src/content/giftGuideCatalog.ts | ...(p.backOn ? { backOn: p.backOn } : {}), |
  * @mutate scripts/giftGuideOwnerAdds1122.mjs | const dated = (r) => ({ ...r, priceAt: ADDS_PRICE_AT }); | const dated = (r) => r;
@@ -85,7 +85,7 @@ const SENT: [string, string, string, number][] = [
   ["p-109208104", "kids", "store-target", 44.99],
   ["p-109199365", "him", "store-saks-fifth-avenue", 154],
   ["p-109203985", "him", "store-st-bernard", 159],
-  ["p-109204287", "him", "store-dsw", 139.99],
+  // p-109204287 Steve Madden Natan Penny Loafer (DSW): off For Him, owner 11-23 ~1:01 PM.
   // Owner 11-22 PM (builder-guide-emibauble; ShopMy-links-created-1122.md): the BaubleBar brush from her screenshots (the
   // red Emi Jay clip was skipped, her Doe is already on Her); the Pottery Barn Kids Anywhere Chair in place of the Melissa
   // & Doug Club Chair. The CS-8 camcorder (p-109141448) is off Her ("Choose one of these camp snap cameras").
@@ -93,8 +93,9 @@ const SENT: [string, string, string, number][] = [
   ["p-109292071", "kids", "store-pottery-barn-kids", 119], // Anywhere Chair, Twill, from (personalization $17 more)
   // Owner 11-22 PM, "add all items" (Desktop note Louisiana-popular-candidates-1122.md, builder-guide-louisiana). Links
   // made in her ShopMy that evening (ShopMy-links-created-1122.md) or reused from the hidden Louisiana guides. Mignon
-  // Faget shows its page's "from" price (by metal); the Katie Kime tray is "from" (by size). The KREWE Olivier is on both
-  // Her and Him, as the note lists it. Owner 11-22 PM ("Drop both"): the Desden coin pouch and the Southern Marsh youth
+  // Faget shows its page's "from" price (by metal); the Katie Kime tray is "from" (by size). The KREWE Olivier was on both
+  // Her and Him, as the note lists it, until the owner took it off Him (11-23 ~1:00 PM, "there shouldn't be krewe
+  // sunglasses on him"); it stays on Her. Owner 11-22 PM ("Drop both"): the Desden coin pouch and the Southern Marsh youth
   // chino are off (no ShopMy rate for either).
   ["p-109341967", "her", "store-mignon-faget", 75], // Heirloom Fleur de Lis Pendant, from
   ["p-109342469", "her", "store-stoney-clover-lane", 55], // SCL x '47 Saints Clean Up hat (catalog link, 15%)
@@ -107,7 +108,6 @@ const SENT: [string, string, string, number][] = [
   ["p-109340963", "him", "store-lodge", 89.9], // 6 qt Essential Enamel Dutch Oven
   ["p-108155418", "him", "store-toups-and-co", 80], // Men's Grooming Set
   ["p-109342284", "him", "store-mignon-faget", 184], // Fleur de Lis Cufflinks, from
-  ["p-109340844", "him", "store-krewe", 255], // Olivier, Reed
   ["p-109341055", "kids", "store-duck-commander", 19.99], // Youth Happy Tee, Cream
   ["p-109341153", "kids", "store-toups-and-co", 43], // Baby Essentials Set
 ];

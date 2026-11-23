@@ -4,14 +4,19 @@
  * follow as before, and every section opens expanded. ONE rule (src/lib/pickPriceShown.mjs STOCKING_SECTION_ID, first
  * in PRICE_SECTIONS) shared by the page (GiftGuideView.tsx priceSections) and the Q&A counts (src/lib/guideQa.mjs).
  * Also: the owner's 11-23 Amazon keeps (14 For Him, 16 For Kids) are on their guides with the tagged link, and her
- * second keeps (~11:55 AM: 19 For Her, 9 For Him) with the price read on amazon.com that day; the 7 non-Amazon wait.
+ * second keeps (~11:55 AM: 19 For Her, 9 For Him) with the price read on amazon.com that day, and the keeps whose links
+ * came later (6 Ulta on Her, the Lodge skillet on Him, 6 on Kids; Capri Blue to Amazon) with their ShopMy links.
  *
  * @mutate src/lib/pickPriceShown.mjs |   { id: "stocking-stuffers", max: 10 }, |   { id: "stocking-stuffers", max: 0 },
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const grouped = [...stocking, ...order.filter((id) => id !== STOCKING_SECTION_ID) |   const grouped = [...order.filter((id) => id !== STOCKING_SECTION_ID)
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const stocking = sortByPrice(priced.filter((p) => priceSectionOf(p) === STOCKING_SECTION_ID), "low"); | const stocking = sortByPrice(priced.filter((p) => priceSectionOf(p) === STOCKING_SECTION_ID), "high");
- * @mutate scripts/giftGuideHer1121.mjs | ...HER_POPULAR_1122, ...HER_KEEPS_1123]; | ...HER_POPULAR_1122];
+ * @mutate scripts/giftGuideHer1121.mjs | ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123]; | ...HER_POPULAR_1122, ...HER_LINKS_1123];
  * @mutate scripts/giftGuideOwnerKeeps1123.mjs | 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms, 7 in., Tequila Sunrise" | 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms"
  * @mutate src/lib/guideQa.mjs |   const stocking = band("stocking-stuffers"); |   const stocking = band("under-25");
+ * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_KEEPS_1123, ...HIM_LINKS_1123]) { | ...HIM_KEEPS_1123]) {
+ * @mutate scripts/giftGuideHimKids1121.mjs | ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123]) { | ...KIDS_KEEPS_1123]) {
+ * @mutate scripts/giftGuideCutouts1120.mjs | for (const [from, file] of LINKS_CUTOUTS_1123) CUTOUTS_1120.set(from, file); | void LINKS_CUTOUTS_1123;
+ * @mutate scripts/giftGuideOwnerKeeps1123.mjs | ["B09X55PDB7", 23, "51q7YVnVwnL" | ["B09X55PDB7", 25, "51q7YVnVwnL"
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
@@ -28,7 +33,8 @@ import { catalogGuideQa, toQaPick } from "@/lib/guideQa.mjs";
 import { PRICE_SECTIONS, pickPriceShown, priceSectionId } from "@/lib/pickPriceShown.mjs";
 import { pickAnchor } from "@/content/giftGuidePickAnchor";
 import { her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
-import { him1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
+import { him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
+import { existsSync } from "node:fs";
 import her from "@/content/giftGuidePicks/her.json";
 import him from "@/content/giftGuidePicks/him.json";
 import kids from "@/content/giftGuidePicks/kids.json";
@@ -70,7 +76,7 @@ describe("Her, Him and Kids open with Stocking stuffers under $10", () => {
   for (const slug of GUIDES) {
     it(`${slug}: the first section is the stocking stuffers, exactly the picks under $10, cheapest first, open`, async () => {
       const want = await expectedStocking(slug);
-      expect(want.length, slug).toBeGreaterThan(4); // her 13, him 23, kids 5 on 2026-11-23 (after her second keeps)
+      expect(want.length, slug).toBeGreaterThan(4); // her 19, him 23, kids 5 on 2026-11-23 (after the held links)
       const { container } = render(
         <MemoryRouter initialEntries={[`/gift-guides/${slug}`]}>
           <Routes><Route path="/gift-guides/:slug" element={<GiftGuides />} /></Routes>
@@ -174,11 +180,77 @@ describe("the owner's second 11-23 keeps are on Her and Him", () => {
   it("the pages are exactly what the builders make from scripts/giftGuideOwnerKeeps1123.mjs", () => {
     expect(her.picks).toEqual(her1121Picks());
     expect(him.picks).toEqual(him1121Picks());
+    expect(kids.picks).toEqual(kids1121Picks());
   });
-  it("the 7 non-Amazon keeps wait on links: none is on Her yet", () => {
-    const names = (her.picks as { name: string; href: string }[]).map((p) => `${p.name} ${p.href}`).join("\n");
-    for (const held of [/TONYMOLY/i, /method Mini Body Wash/i, /Peach Slices/i, /STARFACE/i, /Sweet & Shimmer/i, /Car Diffuser/i, /ulta\.com/i, /capri-blue\.com/i]) {
-      expect(names, String(held)).not.toMatch(held);
+});
+
+/**
+ * The keeps that waited on links (Desktop held-links-1123.json, links made in her ShopMy 11-23 12:18-12:34 PM): each on
+ * its guide once with its ShopMy link, the price read on the store's own page 11-23, and its cutout photo (the file
+ * exists). Capri Blue's car diffuser links to Amazon (4.5% vs ShopMy's 4% at capri-blue.com, same $23). The Blackstone
+ * press (no ShopMy partner, not sold on Amazon) and the Walmart Dearfoams slippers (Walmart Creator sign-in) stay off.
+ */
+describe("the owner's held-link keeps are on Her, Him and Kids", () => {
+  const LINKED: [string, string, number, string, string][] = [
+    ["her", "109732072", 2.62, "TONYMOLY I Am Sugar Plum Sheet Mask", "tonymoly-sugar-plum-sheet-mask-be6d57.webp"],
+    ["her", "109732263", 2.8, "method Mini Body Wash, Simply Nourish, 3.4 oz", "method-mini-body-wash-simply-nourish-3634b9.webp"],
+    ["her", "109732413", 3.24, "Peach Slices Acne Spot Dots", "peach-slices-acne-spot-dots-cb0ce7.webp"],
+    ["her", "109732687", 4.54, "STARFACE Star Balm Lip Balm", "starface-star-balm-lip-balm-f95d62.webp"],
+    ["her", "109737953", 4.99, "Sweet & Shimmer Coconut Swirl Candy Cane Bath Fizzer", "sweet-shimmer-candy-cane-bath-fizzer-26713b.webp"],
+    ["her", "109738168", 4.99, "Sweet & Shimmer Bow Claw Clip", "sweet-shimmer-bow-claw-clip-3ebe1f.webp"],
+    ["him", "109739556", 24.9, "Lodge 10.25 in. Classic Cast Iron Skillet", "lodge-classic-skillet-10-25-in-ca4f91.webp"],
+    ["kids", "109730393", 9.95, "OOLY Hair Doodlers Hair Crayons, Set of 6", "ooly-hair-doodlers-hair-crayons-f570a3.webp"],
+    ["kids", "109730847", 16.15, "Floss & Rock Construction Memory Match", "floss-rock-construction-memory-match-29acea.webp"],
+    ["kids", "109730984", 18.99, "Tender Leaf Toys Safari Binoculars", "tender-leaf-safari-binoculars-b6e1f3.webp"],
+    ["kids", "109731305", 22.5, "Sweet Wink Pink Confetti Cape", "sweet-wink-pink-confetti-cape-09e68a.webp"],
+    ["kids", "109731598", 23.99, "Brainstorm Toys Shark Torch & Projector", "brainstorm-shark-torch-projector-dfd233.webp"],
+    ["kids", "109731941", 10.78, "Burt's Bees Baby Nostalgic Christmas Two-Piece Pajamas", "burts-bees-baby-nostalgic-christmas-pajamas-5ad7e3.webp"],
+  ];
+  const PAGES = { her: her.picks, him: him.picks, kids: kids.picks } as Record<string, { name: string; href: string; price: number; priceAt: string; image: string }[]>;
+  it("each linked keep once, named, priced as read today, with its ShopMy link and its cutout", () => {
+    expect(LINKED.length).toBeGreaterThan(12);
+    for (const [guide, pin, price, name, file] of LINKED) {
+      const rows = PAGES[guide].filter((p) => p.href === `https://go.shopmy.us/p-${pin}`);
+      expect(rows.length, `${guide} ${name}`).toBe(1);
+      expect(rows[0].name).toBe(name);
+      expect(rows[0].price, name).toBe(price);
+      expect(rows[0].priceAt).toBe("2026-11-23");
+      expect(rows[0].image).toBe(`https://www.louisianahelpr.com/gift-guides/cutouts/${file}`);
+      expect(existsSync(`public/gift-guides/cutouts/${file}`), file).toBe(true);
     }
+  });
+  it("Capri Blue's car diffuser links to Amazon at $23, not the 4% ShopMy link", () => {
+    const rows = PAGES.her.filter((p) => /Capri Blue Volcano Car Diffuser/.test(p.name));
+    expect(rows.length).toBe(1);
+    expect(rows[0].href).toBe("https://www.amazon.com/dp/B09X55PDB7?tag=louisianahelpr-20");
+    expect(rows[0].price).toBe(23);
+    expect(rows[0].image).toBe("https://m.media-amazon.com/images/I/51q7YVnVwnL._SL500_.jpg");
+    expect(PAGES.her.some((p) => p.href.includes("p-109738464") || p.href.includes("capri-blue.com"))).toBe(false);
+  });
+  it("the Blackstone press and the Dearfoams slippers stay off For Him", () => {
+    const text = PAGES.him.map((p) => `${p.name} ${p.href}`).join("\n");
+    expect(text).not.toMatch(/Smash Burger Press with Smash Guard|blackstoneproducts\.com/i);
+    expect(text).not.toMatch(/Dearfoams/i);
+  });
+  it("the KREWE sunglasses are on For Her only (owner 11-23 ~1:00 PM: \"there shouldn't be krewe sunglasses on him\")", () => {
+    const krewe = (l: { name: string; href: string }[]) => l.filter((p) => /KREWE/i.test(p.name) || p.href.includes("p-109340844"));
+    expect(krewe(PAGES.him)).toEqual([]);
+    expect(krewe(him1121Picks())).toEqual([]);
+    expect(krewe(PAGES.her).map((p) => p.href)).toEqual(["https://go.shopmy.us/p-109340844"]);
+  });
+  it("the Steve Madden Natan loafer is off For Him (owner 11-23 ~1:01 PM)", () => {
+    const loafer = (l: { name: string; href: string }[]) => l.filter((p) => /Steve Madden|Natan/i.test(p.name) || p.href.includes("p-109204287"));
+    expect(loafer(PAGES.him)).toEqual([]);
+    expect(loafer(him1121Picks())).toEqual([]);
+  });
+  it("the Braun on For Her is the Silk-expert Pro 5 IPL alone at $279.99 (owner 11-23 ~12:52 PM \"Switch only the Braun\")", () => {
+    const braun = PAGES.her.filter((p) => /Braun/.test(p.name));
+    expect(braun.map((p) => [p.name, p.href, p.price, p.priceAt, p.image])).toEqual([
+      ["Braun Silk-expert Pro 5 IPL", "https://www.amazon.com/dp/B07WYY6KKC?tag=louisianahelpr-20", 279.99, "2026-11-23", "https://m.media-amazon.com/images/I/71TXJv2ot-L._SL500_.jpg"],
+    ]);
+  });
+  it("the Ulta stocking stuffers land in Stocking stuffers under $10", () => {
+    for (const [guide, , price] of LINKED) if (guide === "her") expect(priceSectionId(price)).toBe("stocking-stuffers");
+    expect(priceSectionId(9.95)).toBe("under-25"); // the OOLY crayons read "~$10"
   });
 });

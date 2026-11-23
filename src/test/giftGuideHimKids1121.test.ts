@@ -13,7 +13,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { HIM_1121, HIM_POPULAR_1122, KIDS_POPULAR_1122, HIM_KEEPS_1123, KIDS_KEEPS_1123, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_PLAY_1122, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
+import { HIM_1121, HIM_POPULAR_1122, KIDS_POPULAR_1122, HIM_KEEPS_1123, KIDS_KEEPS_1123, HIM_LINKS_1123, KIDS_LINKS_1123, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_PLAY_1122, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { AMAZON_BRAND_PHOTOS_1122, CUTOUT_BASE, cutoutPhoto } from "../../scripts/giftGuideCutouts1120.mjs";
 import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "../../scripts/giftGuidePriceRecheck.mjs";
@@ -58,7 +58,7 @@ function expectAmazonPickPhoto(p: { name: string; href: string; image?: string }
 }
 
 const LOUISIANA_1122: Record<string, Record<string, string>> = {
-  him: { "https://go.shopmy.us/p-109340963": "store-lodge", "https://go.shopmy.us/p-108155418": "store-toups-and-co", "https://go.shopmy.us/p-109342284": "store-mignon-faget", "https://go.shopmy.us/p-109340844": "store-krewe" },
+  him: { "https://go.shopmy.us/p-109340963": "store-lodge", "https://go.shopmy.us/p-108155418": "store-toups-and-co", "https://go.shopmy.us/p-109342284": "store-mignon-faget" },
   kids: { "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxkab100y": "store-xtratuf", "https://go.shopmy.us/p-109341055": "store-duck-commander", "https://go.shopmy.us/p-109341153": "store-toups-and-co" },
 };
 const LOUISIANA_1122_ASINS: Record<string, string[]> = {
@@ -83,7 +83,7 @@ const SWITCHED: Record<string, Record<string, string>> = {
     "https://go.shopmy.us/p-109208941": "store-marley-lilly",
     "https://go.shopmy.us/p-107895486": "store-tractor-supply",
     // builder-guide-links 11-22.
-    "https://go.shopmy.us/p-109199365": "store-saks-fifth-avenue", "https://go.shopmy.us/p-109203985": "store-st-bernard", "https://go.shopmy.us/p-109204287": "store-dsw",
+    "https://go.shopmy.us/p-109199365": "store-saks-fifth-avenue", "https://go.shopmy.us/p-109203985": "store-st-bernard",
     // Batch 3 11-22.
     "https://go.shopmy.us/p-108089555": "store-jomashop", "https://go.shopmy.us/p-108094779": "store-l-l-bean" },
   // Rate switch 11-21 night: Segway Ninebot S2 (Amazon B0CT2WN59R, 3%) -> Tractor Supply 8% at $484.99.
@@ -137,7 +137,15 @@ const SAVES: Record<string, Record<string, string>> = {
     ...sm(["108100673"], "store-maisonette"), ...sm(["107895388"], "store-tractor-supply"),
   },
 };
-const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug], ...LOUISIANA_1122[slug] });
+/**
+ * The owner's 11-23 keeps whose ShopMy links were made later that day (Desktop held-links-1123.json): the Lodge skillet on
+ * Him; the Maisonette toys and the Burt's Bees Baby pajamas on Kids.
+ */
+const LINKS_1123: Record<string, Record<string, string>> = {
+  him: sm(["109739556"], "store-lodge"),
+  kids: { ...sm(["109730393", "109730847", "109730984", "109731305", "109731598"], "store-maisonette"), ...sm(["109731941"], "store-burts-bees-baby") },
+};
+const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug], ...LOUISIANA_1122[slug], ...LINKS_1123[slug] });
 const popular = new Set([...HIM_POPULAR_1122, ...KIDS_POPULAR_1122].map((r) => r.href));
 const keeps = new Set([...HIM_KEEPS_1123, ...KIDS_KEEPS_1123].map((r) => r.href));
 /** Links audit 1122 night #4: her saved color had no Buy Box, so the same item in a color Amazon sells stands in (priced 11-22). */
@@ -147,8 +155,8 @@ const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuideP
 const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})));
 
 describe.each([
-  ["him", [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122, ...HIM_KEEPS_1123], him1121Picks() as Pick[]],
-  ["kids", [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123], kids1121Picks() as Pick[]],
+  ["him", [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123], him1121Picks() as Pick[]],
+  ["kids", [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123], kids1121Picks() as Pick[]],
 ])("For %s is the owner's Amazon and ShopMy saves (11-21)", (slug, rows, built) => {
   const page = chunk(slug);
 
@@ -288,8 +296,8 @@ describe("the generator sets Him and Kids last", () => {
     const pages: Record<string, unknown[]> = { him: [{ name: "old" }], kids: [], her: [{ name: "keep" }] };
     const stores: Record<string, { name: string; hosts: string[] }> = { "store-dillards": { name: "Dillard's", hosts: ["www.dillards.com"] } };
     const out = applyHimKids1121(pages, stores);
-    expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length + HIM_POPULAR_1122.length + HIM_KEEPS_1123.length });
-    expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length + KIDS_POPULAR_1122.length + KIDS_KEEPS_1123.length);
+    expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length + HIM_POPULAR_1122.length + HIM_KEEPS_1123.length + HIM_LINKS_1123.length });
+    expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length + KIDS_POPULAR_1122.length + KIDS_KEEPS_1123.length + KIDS_LINKS_1123.length);
     expect(pages.her).toEqual([{ name: "keep" }]);
     expect(stores["store-dillards"]).toEqual({ name: "Dillard's", hosts: ["go.shopmy.us", "www.dillards.com"] });
     expect(stores["store-exclusive-beauty-club"]).toEqual({ name: "Exclusive Beauty Club", hosts: ["go.shopmy.us"] });

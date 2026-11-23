@@ -18,6 +18,8 @@ import { usePlan } from "./fun/plannerStore";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { Button } from "@/components/ui/button";
 import { ToggleChip } from "@/components/ui/ToggleChip";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
+import { filterKids, kidsSelectionCount, type KidTags, type KidsSelection } from "@/content/giftGuideKidsFilter";
 import { sortByPrice } from "@/content/giftGuidePriceSort";
 import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGuideEarnOrder";
 import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
@@ -264,7 +266,12 @@ export const sectionLabel = (guide: Pick<CatalogGuide, "title">, title: string, 
 };
 
 /** The section and price choices drawn in the page's header Filter (the 25 Days sponsors page, owner 11-21). */
-export interface HeaderFilter { budget: number | null; onBudget: (b: number | null) => void }
+export interface HeaderFilter {
+  budget: number | null;
+  onBudget: (b: number | null) => void;
+  /** For Kids (owner 2026-11-23): the Age / Price / For chips on in the header's Filter, the tag file, and Clear. */
+  kids?: { sel: KidsSelection; tags: KidTags; onClear: () => void };
+}
 
 function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guide: CatalogGuide; order?: GuideOrder; failed?: boolean; onRetry?: () => void; filter?: HeaderFilter }) {
   const [ownBudget, setOwnBudget] = useState<number | null>(null);
@@ -334,7 +341,10 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   // Holiday audit 1121: the budget chips filter by price, so they need prices a shopper can see (on the sponsors page
   // the prices aged out while the chips stayed); a pick counts only when it has a band AND shows its price.
   const banded = guide.picks.filter((p) => p.band !== undefined && showsPrice(p)).length;
-  const inBudget = withinBudget(guide.picks, budget);
+  // For Kids (owner 2026-11-23): the header Filter's chips narrow the list before it is sorted into price sections.
+  const kids = filter?.kids;
+  const kidsOn = kids ? kidsSelectionCount(kids.sel) > 0 : false;
+  const inBudget = kids ? filterKids(withinBudget(guide.picks, budget), kids.sel, kids.tags, louisianaToday(new Date())) : withinBudget(guide.picks, budget);
   // Owner 2026-11-21 ("they all need to be sorted in sections by price"; supersedes "one flat list"): Her, Him, Kids
   // and their views list their picks in price sections (priceSections), low to high or reversed by the sort control.
   // Lead 11-21 ("reorder by what earns"): on "Recommended" (the default) the sections run low to high and the most
@@ -404,6 +414,12 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
         </div>
       )}
       {budget !== null && <p className="gg-price-note" data-gift-budget-note="">{picks.length ? G.budgetNote : G.budgetNone}</p>}
+      {kids && kidsOn && (
+        <p className="gg-price-note gg-kids-note" data-gift-kids-note={picks.length}>
+          {picks.length ? G.kidsMatch(picks.length) : G.kidsNone}{" "}
+          <InlineTextButton onClick={kids.onClear} data-gift-kids-clear="">{G.kidsClear}</InlineTextButton>
+        </p>
+      )}
       {draw(0, upTo)}
       <PricesAsOf picks={picks.slice(0, upTo)} />
       <PrimeTrialLink picks={picks.slice(0, upTo)} />

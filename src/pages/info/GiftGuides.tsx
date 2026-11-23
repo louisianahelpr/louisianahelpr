@@ -27,6 +27,8 @@ import { GuidesDisclosure } from "./giftGuides/GuidesDisclosure";
 import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { KIDS_FILTER_GUIDE, KID_AGES, KID_GENDERS, KID_PRICES, NO_KIDS_SELECTION, filterKids, loadKidTags, toggleIn, type KidAge, type KidGender, type KidPrice, type KidTags, type KidsSelection } from "@/content/giftGuideKidsFilter";
+import { louisianaToday } from "@/content/giftGuideExtras1120";
 
 /**
  * /gift-guides and /gift-guides/<slug> (owner 2026-11-16, public 2026-11-18; rebuilt 2026-11-18 to the owner's final
@@ -175,10 +177,51 @@ export default function GiftGuides() {
   // its icons (budget kept here). Owner 11-22: its pill and icons sit where Her's do (countRow below).
   const sponsorsPage = guide?.slug === "25-days-sponsors";
   const [sponsorBudget, setSponsorBudget] = useState<number | null>(null);
-  const headerFilter = sponsorsPage ? { budget: sponsorBudget, onBudget: setSponsorBudget } : undefined;
+  // For Kids (owner pop-up 2026-11-23 ~10:55 AM: "Age + price + girls/boys"): multi-select Age, Price and For chips in
+  // the guide's Filter (the same sliders icon, which on Kids also holds the sort), kept as the sort is kept: per guide,
+  // for this visit (another guide starts with none on). The tag file loads on this page only (giftGuideKidsFilter.ts).
+  const kidsPage = guide?.slug === KIDS_FILTER_GUIDE;
+  const [kidsPick, setKidsPick] = useState<{ slug: string; sel: KidsSelection }>({ slug: "", sel: NO_KIDS_SELECTION });
+  const kidsSel = guide && kidsPick.slug === guide.slug ? kidsPick.sel : NO_KIDS_SELECTION;
+  const setKidsSel = (f: (s: KidsSelection) => KidsSelection) => {
+    if (guide) setKidsPick((cur) => ({ slug: guide.slug, sel: f(cur.slug === guide.slug ? cur.sel : NO_KIDS_SELECTION) }));
+  };
+  const clearKids = () => setKidsSel(() => NO_KIDS_SELECTION);
+  const [kidTags, setKidTags] = useState<KidTags | null>(null);
+  useEffect(() => {
+    if (!kidsPage || kidTags) return;
+    let live = true;
+    loadKidTags().then((t) => { if (live) setKidTags(t); }, (e: unknown) => {
+      // Offline or a stale deploy: the Price chips still work; Age and For come back on the next visit.
+      console.warn("gift guides: kids tags failed", e);
+    });
+    return () => { live = false; };
+  }, [kidsPage, kidTags]);
+  const headerFilter = sponsorsPage ? { budget: sponsorBudget, onBudget: setSponsorBudget }
+    : kidsPage ? { budget: null, onBudget: () => undefined, kids: { sel: kidsSel, tags: kidTags ?? {}, onClear: clearKids } }
+    : undefined;
+  const kidsTools = kidsPage && guide ? {
+    sections: [],
+    budgets: [],
+    budget: null,
+    onBudget: () => undefined,
+    onJump: () => undefined,
+    sort,
+    groups: [
+      // Age and For read the tag file; until it is in, only Price shows (never a chip that would empty the list).
+      ...(kidTags ? [{ id: "age", label: G.kidsAgeLabel, choices: KID_AGES.map((a) => ({ value: a.id, label: a.label })), selected: kidsSel.ages,
+        onToggle: (v: string) => setKidsSel((s) => ({ ...s, ages: toggleIn(s.ages, v as KidAge) })) }] : []),
+      { id: "price", label: G.kidsPriceLabel, choices: KID_PRICES.map((p) => ({ value: p.id, label: p.label })), selected: kidsSel.prices,
+        onToggle: (v: string) => setKidsSel((s) => ({ ...s, prices: toggleIn(s.prices, v as KidPrice) })) },
+      ...(kidTags ? [{ id: "for", label: G.kidsForLabel, choices: KID_GENDERS.map((g) => ({ value: g.id, label: g.label })), selected: kidsSel.genders,
+        onToggle: (v: string) => setKidsSel((s) => ({ ...s, genders: toggleIn(s.genders, v as KidGender) })) }] : []),
+    ],
+    shown: { count: filterKids(guide.picks, kidsSel, kidTags ?? {}, louisianaToday(new Date())).length, total: guide.picks.length },
+    onClear: clearKids,
+  } : undefined;
   const sponsorSections = sponsorsPage && guide && picksReady(guide.slug) ? sectionNav(guide.picks).map((x) => ({ id: x.id, title: sectionLabel(guide, x.title, x.id) })) : [];
   const sponsorBudgets = sponsorsPage && guide && picksReady(guide.slug) && guide.picks.filter((p) => p.band !== undefined && showsPrice(p)).length >= BUDGET_MIN_PICKS ? [...BUDGETS] : [];
-  const toolsFilter = headerFilter ? {
+  const toolsFilter = kidsTools ?? (sponsorsPage ? {
     sections: sponsorSections,
     budgets: sponsorBudgets,
     budget: sponsorBudget,
@@ -188,7 +231,7 @@ export default function GiftGuides() {
       window.history.replaceState(window.history.state, "", `#${id}`);
       requestAnimationFrame(() => document.getElementById(`gg-sec-${id}`)?.scrollIntoView({ block: "start" }));
     },
-  } : undefined;
+  } : undefined);
   // The deals days (owner 2026-11-21: "like each day has its own section, no need to put them all in 1"): Black Friday,
   // Small Business Saturday and Cyber Monday are each their own page (src/content/giftGuideDeals.mjs DEAL_EVENTS), not
   // a catalog list of picks. `deals` is the open day wherever the page only asks "is this a catalog guide?".
@@ -244,7 +287,7 @@ export default function GiftGuides() {
   // The search, My list heart and Share for this page (one set, on the row under the header).
   const tools = deals ? <GiftGuideTools path={`/gift-guides/${deals.id}`} title={deals.pageTitle} image={deals.kind === "deals" ? DEALS_COVER : undefined} />
     // Holiday audit 1121: shared text opens with a capital ("Gifts for Her", not "gifts for Her https://...").
-    : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={capitalFirst(`${guide.lead} ${guide.title}`)} image={guide.cover} sort={sort} filter={toolsFilter} />
+    : guide ? <GiftGuideTools path={`/gift-guides/${guide.slug}`} title={capitalFirst(`${guide.lead} ${guide.title}`)} image={guide.cover} sort={kidsTools ? undefined : sort} filter={toolsFilter} />
     : <GiftGuideTools path="/gift-guides" title={G.title} many myList={myList} />;
   // The open menu entry beyond the guides: the deals page, or the finder view on the landing.
   const sidePage = deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined;

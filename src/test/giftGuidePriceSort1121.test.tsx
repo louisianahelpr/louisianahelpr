@@ -101,20 +101,32 @@ describe("the price sort key in the three chunks (owner 11-21)", () => {
 /**
  * The header's Sort by price icon. Its name says which order is on (guides audit 1122 #21): "Sort by price" on
  * Recommended, "Sort by price, Price: high to low" after that choice. getByRole still fails when the button is gone.
+ * For Kids (owner 2026-11-23, "Age + price + girls/boys") the sort sits in the guide's Filter (one sliders icon), as its
+ * "Sort" group (src/test/giftGuideKidsFilters1123.test.tsx); the same choices, read from there.
  */
-const sortButton = () => screen.getByRole("button", { name: (n) => n === G.sortLabel || n.startsWith(`${G.sortLabel}, `) });
+const isSortIcon = (n: string) => n === G.sortLabel || n.startsWith(`${G.sortLabel}, `);
+const inFilter = () => screen.queryByRole("button", { name: isSortIcon }) === null;
+const sortButton = () => inFilter()
+  ? screen.getByRole("button", { name: (n) => n === G.filterLabel || n.startsWith(`${G.filterLabel}, `) })
+  : screen.getByRole("button", { name: isSortIcon });
+const sortMenu = () => inFilter()
+  ? within(screen.getByRole("menu", { name: G.filterLabel })).getByRole("group", { name: G.sortLabel })
+  : screen.getByRole("menu", { name: G.sortLabel });
 /** Choose an order in the header's Sort by price menu; returns the chosen item's aria-checked after reopening. */
 const choose = (label: string) => {
   fireEvent.click(sortButton());
-  fireEvent.click(within(screen.getByRole("menu", { name: G.sortLabel })).getByRole("menuitemradio", { name: new RegExp(label.replace(/[$:]/g, ".")) }));
+  fireEvent.click(within(sortMenu()).getByRole("menuitemradio", { name: new RegExp(label.replace(/[$:]/g, ".")) }));
 };
 const checked = () => {
+  const filter = inFilter();
   const button = sortButton();
   fireEvent.click(button);
-  const on = within(screen.getByRole("menu", { name: G.sortLabel })).getAllByRole("menuitemradio").filter((m) => m.getAttribute("aria-checked") === "true").map((m) => m.textContent?.replace("✓", ""));
+  const on = within(sortMenu()).getAllByRole("menuitemradio").filter((m) => m.getAttribute("aria-checked") === "true").map((m) => m.textContent?.replace("✓", ""));
   fireEvent.keyDown(document, { key: "Escape" });
-  // The icon's name names the order that is on (audit 1122 #21), so it always matches the checked item.
-  expect(button.getAttribute("aria-label")).toBe(on[0] === G.sortTop ? G.sortLabel : G.sortLabelActive(on[0] ?? ""));
+  // The icon's name names the order that is on (audit 1122 #21), so it always matches the checked item. (The Kids
+  // Filter's name counts chips; a sort that is not the default shows the sort's dot on it.)
+  if (filter) expect(!!button.querySelector("[data-gift-sort-on]")).toBe(on[0] !== G.sortTop);
+  else expect(button.getAttribute("aria-label")).toBe(on[0] === G.sortTop ? G.sortLabel : G.sortLabelActive(on[0] ?? ""));
   return on;
 };
 
@@ -124,7 +136,7 @@ describe("the sort control on the page (owner 11-21)", () => {
     const { container } = renderAt(`/gift-guides/${slug}`);
     // No big two-button toggle above the list any more; the menu lives in the header's tool row.
     expect(screen.queryByRole("radiogroup", { name: G.sortLabel })).toBeNull();
-    expect(container.querySelector("[data-gift-headrow] [data-gift-sort-button]")).not.toBeNull();
+    expect(container.querySelector(slug === "kids" ? "[data-gift-headrow] [data-gift-filter-button]" : "[data-gift-headrow] [data-gift-sort-button]")).not.toBeNull();
     expect(checked()).toEqual([G.sortTop]);
     const base = slug === "mom" ? "her" : slug === "dad" ? "him" : slug;
     const rows = CHUNKS[base].filter((r) => base === slug || r.rels?.includes(slug));

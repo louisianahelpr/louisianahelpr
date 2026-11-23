@@ -435,7 +435,6 @@ export const sponsorPage = {
       {
         day: 11,
         partners: [
-          { brand: "Boston Mints", prize: "One lip gloss each day" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "aosu", prize: "Aosu IndoorCam P1 Pro" },
           { brand: "Beaver's Abundance", prize: "$50 gift card (plants only)" },
@@ -517,7 +516,7 @@ export const sponsorPage = {
       {
         day: 18,
         partners: [
-          { brand: "Boston Mints", prize: "One lip gloss each day" },
+          { brand: "Boston Mints", prize: "3 Boston Mints lip glosses" },
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Basic Bee", prize: "Flavored honey cube gift set + a large bourbon honey" },
           { brand: "Saranoni", prize: "Saranoni Patterned Faux Fur Throw (Clove)" },
@@ -555,7 +554,6 @@ export const sponsorPage = {
           { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "The Soft Life Collective", prize: "Giving Book Bundle (3 books)" },
           { brand: "David Rabalais", prize: "The Fois t-shirt (winner size) + koozie + toy Magnalite pot + roux spoon + Roundhouse Ya Maw Maw seasoning" },
-          { brand: "Boston Mints", prize: "One lip gloss each day" },
           { brand: "Cajun Fiya", prize: "A case of Cajun Fiya seasoning" },
           { brand: "Phyllis Guy Dance Center", prize: "One month of kids' dance classes (1 class a week; winner picks ballet, tap, jazz, hip hop, modern or musical theatre)" },
           { brand: "Ripley's Crawfish", prize: "$25 gift certificate" },
@@ -600,7 +598,6 @@ export const sponsorPage = {
       {
         day: 25,
         partners: [
-          { brand: "Louisiana Helpr", prize: "$100 Louisiana Helpr gift card" },
           { brand: "Proof & Pour Wax Co.", prize: "8 oz candle + wax melt (one set each day)" },
           { brand: "Bashi", prize: "Gift card for their new products launching in January" },
           { brand: "Mind the Skin Labs", prize: "1 pack Signal + 1 pack Surge" },

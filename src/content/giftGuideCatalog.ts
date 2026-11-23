@@ -12,7 +12,8 @@ import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
 import { COVER_SLUGS } from "@/content/giftGuideCoverSlugs";
 import { COVER_VERSIONS } from "@/lib/giftGuideCoverVersions.mjs";
-import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, SECTION_ANCHORS, TOP_PICKS, RESEARCHED_STORES, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
+import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, SECTION_ANCHORS, TOP_PICKS, RESEARCHED_STORES, type PickChunk, type ResearchedPick, type StoreDeal } from "@/content/giftGuidePicks";
+import { isLivePickChunk, liveCopy, onLiveUpdate } from "@/lib/liveGuideData";
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
@@ -343,10 +344,22 @@ export const loadGuidePicks = async (slug0: string): Promise<void> => {
     const t = types?.sponsorGiftType(p.name);
     return t ? { ...p, giftType: t } : p;
   };
-  loaded.set(slug, { picks: chunk.picks.map(toPick).map(typed), ...(chunk.deals ? { deals: chunk.deals } : {}) });
-  version += 1;
-  listeners.forEach((l) => l());
+  const applyChunk = (c: PickChunk) => {
+    loaded.set(slug, { picks: c.picks.map(toPick).map(typed), ...(c.deals ? { deals: c.deals } : {}) });
+    version += 1;
+    listeners.forEach((l) => l());
+  };
+  // Live data (owner 2026-11-23): the bundled chunk, or a newer copy this device saved from the live site, draws now;
+  // a newer valid copy fetched after the first paint replaces it through the same listeners (src/lib/liveGuideData.ts).
+  const name = `picks/${slug}`;
+  if (!liveSubscribed.has(name)) {
+    liveSubscribed.add(name);
+    onLiveUpdate<PickChunk>(name, applyChunk);
+  }
+  applyChunk(liveCopy<PickChunk>(name, chunk, isLivePickChunk));
 };
+/** The chunks already listening for a live copy (one listener each, however often a page opens). */
+const liveSubscribed = new Set<string>();
 /** Every chunk (tests, and nothing on the page). */
 export const loadAllGuidePicks = () => Promise.all(CHUNK_SLUGS.map(loadGuidePicks));
 export const subscribeGuidePicks = (l: () => void) => (listeners.add(l), () => listeners.delete(l));

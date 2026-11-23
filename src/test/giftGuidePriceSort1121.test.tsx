@@ -50,6 +50,14 @@ afterEach(() => {
 type Row = { name: string; href: string; store?: string; price?: number; priceRank?: number | null; rels?: string[] };
 const CHUNKS: Record<string, Row[]> = { her: her.picks as Row[], him: him.picks as Row[], kids: kids.picks as Row[] };
 const isAmazon = (href: string) => /(^|\.)amazon\.com$/.test(new URL(href).hostname);
+/** Owner 11-23 ("Under 10"): a card that reads under $10 sits in the first section, "Stocking stuffers under $10". */
+const isStocking = (r: Pick<Row, "price">) => Math.max(1, Math.round(r.price ?? 0)) < 10;
+/** The page's order for a price choice: the stocking stuffers first, cheapest first, in either order; the rest by price. */
+const pageOrder = <T extends Pick<Row, "price">>(lowToHigh: T[], high: boolean) => {
+  const stocking = lowToHigh.filter(isStocking);
+  const rest = lowToHigh.filter((r) => !isStocking(r));
+  return [...stocking, ...(high ? [...rest].reverse() : rest)];
+};
 
 const renderAt = (url: string) =>
   render(
@@ -119,12 +127,14 @@ describe("the sort control on the page (owner 11-21)", () => {
     expect(container.querySelector("[data-gift-headrow] [data-gift-sort-button]")).not.toBeNull();
     expect(checked()).toEqual([G.sortTop]);
     const base = slug === "mom" ? "her" : slug === "dad" ? "him" : slug;
-    const expected = CHUNKS[base].filter((r) => base === slug || r.rels?.includes(slug)).map((r) => r.name);
+    const rows = CHUNKS[base].filter((r) => base === slug || r.rels?.includes(slug));
+    const expected = rows.map((r) => r.name);
     expect(expected.length, slug).toBeGreaterThan(5);
     expect(shownNames(container)).toEqual(expected);
     choose(G.sortHighLow);
     expect(checked()).toEqual([G.sortHighLow]);
-    expect(shownNames(container)).toEqual([...expected].reverse());
+    // The stocking stuffers stay first, cheapest first (owner 11-23); everything after them runs high to low.
+    expect(shownNames(container)).toEqual(pageOrder(rows, true).map((r) => r.name));
     choose(G.sortLowHigh);
     expect(checked()).toEqual([G.sortLowHigh]);
     expect(shownNames(container)).toEqual(expected);
@@ -156,7 +166,8 @@ describe("the sort control on the page (owner 11-21)", () => {
       }
       expect(amazon).toBeGreaterThan(15); // 20 Amazon rows on Her, 2026-11-21
       const d = dollars();
-      expect(d).toEqual([...d].sort((a, b) => (name === G.sortLowHigh ? a - b : b - a)));
+      const asc = [...d].sort((a, b) => a - b);
+      expect(d).toEqual(pageOrder(asc.map((price) => ({ price })), name === G.sortHighLow).map((r) => r.price));
     }
     vi.useRealTimers();
   });
@@ -178,10 +189,13 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
     openPriceSections(container);
     const low = sections(container);
     // Owner 11-21: "Each guide should have sections that go by price 25 50 75 100+".
-    const order = ["Under $25", "$25 to $50", "$50 to $75", "$75 to $100", "$100 and up"];
+    // Owner 11-23 ("Under 10"): "Stocking stuffers under $10" opens every guide.
+    const STOCKING = "Stocking stuffers under $10";
+    const order = [STOCKING, "Under $25", "$25 to $50", "$50 to $75", "$75 to $100", "$100 and up"];
     expect(low.length, slug).toBeGreaterThan(2);
+    expect(low[0].title, slug).toBe(STOCKING);
     expect(low.map((x) => x.title), slug).toEqual(order.filter((t) => low.some((x) => x.title === t)));
-    const bounds: Record<string, [number, number]> = { "Under $25": [1, 24], "$25 to $50": [25, 49], "$50 to $75": [50, 74], "$75 to $100": [75, 99], "$100 and up": [100, 1e9] };
+    const bounds: Record<string, [number, number]> = { [STOCKING]: [1, 9], "Under $25": [10, 24], "$25 to $50": [25, 49], "$50 to $75": [50, 74], "$75 to $100": [75, 99], "$100 and up": [100, 1e9] };
     for (const x of low) {
       expect(x.labelled, x.title).toBe(true);
       expect(x.count, x.title).toBe(` (${x.dollars.length})`);
@@ -192,8 +206,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
     // Every "Show more" (50 at a time; Him holds 141 of her saves since 11-21).
     openPriceSections(container);
     const high = sections(container);
-    expect(high.map((x) => x.title), slug).toEqual([...low.map((x) => x.title)].reverse());
-    for (const x of high) expect(x.dollars, x.title).toEqual([...x.dollars].sort((a, b) => b - a));
+    // High to low: the stocking stuffers stay first and cheapest first; the other sections reverse.
+    expect(high.map((x) => x.title), slug).toEqual([STOCKING, ...low.slice(1).map((x) => x.title).reverse()]);
+    for (const x of high) expect(x.dollars, x.title).toEqual([...x.dollars].sort((a, b) => (x.title === STOCKING ? a - b : b - a)));
     expect(high.reduce((n, x) => n + x.dollars.length, 0)).toBe(CHUNKS[slug].length);
     // Counts per band, measured 2026-11-21 from the shown (rounded) prices (all of her saves: Him 150 with her LSU picks, Kids 81, Her 47): exact, so a moved boundary shows.
     const COUNTS: Record<string, Record<string, number>> = {
@@ -214,7 +229,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Owner 11-22 PM, "add all items" (builder-guide-louisiana): Zatarain's and Talk About Good II (under $25), Tony's,
       // the '47 Saints cap and the boil paddle ($25-$50), the cast net ($69), Toups and Lodge ($80-$90), the jambalaya pot,
       // Mignon Faget cufflinks and KREWE ($100 and up).
-      him: { "Under $25": 45, "$25 to $50": 48, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 50 },
+      // Owner 11-23 (builder guides-under10): "Stocking stuffers under $10" leads each guide, and Him gained 14 and Kids 16
+      // of her Amazon keeps (scripts/giftGuideOwnerKeeps1123.mjs; the Callaway balls, $24.99, read ~$25: $25 to $50).
+      him: { "Stocking stuffers under $10": 14, "Under $25": 44, "$25 to $50": 49, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 50 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -233,7 +250,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Marsh chino came off again (owner "Drop both": no ShopMy rate).
       // Owner 11-22 8:58 PM: Paint by Sticker Kids: Christmas ($3.44) came off (no Buy Box on Amazon); the Crayola pad moved
       // to its Blue listing at $30.19 (still $25 to $50).
-      kids: { "Under $25": 40, "$25 to $50": 33, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
+      kids: { "Stocking stuffers under $10": 5, "Under $25": 51, "$25 to $50": 33, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -257,7 +274,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // (under $25); the cookbook (~$25), Toups and Match South ($25-$50); the Cafe Du Monde box, the SCL Saints hat, the
       // Katie Kime tray and Haydel's ($50-$75); the Mignon Faget pendant (from $75); the oyster earrings and KREWE. The
       // Desden coin pouch came off again (owner "Drop both": no ShopMy rate).
-      her: { "Under $25": 47, "$25 to $50": 45, "$50 to $75": 15, "$75 to $100": 14, "$100 and up": 38 },
+      her: { "Stocking stuffers under $10": 6, "Under $25": 41, "$25 to $50": 45, "$50 to $75": 15, "$75 to $100": 14, "$100 and up": 38 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

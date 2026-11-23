@@ -27,6 +27,7 @@ import { AMAZON_BRAND_PHOTOS_1122, cutoutPhoto } from "./giftGuideCutouts1120.mj
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 import { ADDS_STORES_1122, HIM_ADDS_1122, KIDS_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
+import { HIM_KEEPS_1123_ROWS, KEEPS_PRICE_AT, KIDS_KEEPS_1123_ROWS } from "./giftGuideOwnerKeeps1123.mjs";
 
 export const HIM_GUIDE = "him";
 export const KIDS_GUIDE = "kids";
@@ -450,6 +451,10 @@ export const HIM_POPULAR_1122 = [
   ["B0GCGGWC1M", 349, "61YEzBsddpL", "Gozney Arc Lite Propane Pizza Oven", "Gozney", "pizza-oven", 4, "Real wood-fired-style pizza in his backyard."],
 ].map(row).map((r) => ({ ...r, priceAt: "2026-11-22" }));
 
+// owner 11-23 keeps from the under-$25 suggestions (scripts/giftGuideOwnerKeeps1123.mjs), Amazon, priced 11-23.
+export const HIM_KEEPS_1123 = HIM_KEEPS_1123_ROWS.map(row).map((r) => ({ ...r, priceAt: KEEPS_PRICE_AT }));
+export const KIDS_KEEPS_1123 = KIDS_KEEPS_1123_ROWS.map(row).map((r) => ({ ...r, priceAt: KEEPS_PRICE_AT }));
+
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
 const build = (rows, slug, g) =>
@@ -464,11 +469,11 @@ const build = (rows, slug, g) =>
   });
 
 /** For Him, cheapest first, each pick tagged with the men's relationships it suits. */
-export function him1121Picks(rows = [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122]) {
+export function him1121Picks(rows = [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122, ...HIM_KEEPS_1123]) {
   return build(rows, HIM_GUIDE, PEOPLE_GUIDES.find((x) => x.slug === HIM_GUIDE));
 }
 /** For Kids, cheapest first. Kids has no relationship pages, so no tags. */
-export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122]) {
+export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123]) {
   return build(rows, KIDS_GUIDE, null);
 }
 

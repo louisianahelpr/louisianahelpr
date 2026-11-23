@@ -122,12 +122,14 @@ describe("guide Q&A in the HTML a crawler reads", () => {
       expect(qa).toEqual(catalogGuideQa(slug, picks, today()));
       for (const { q, a } of qa) {
         // The page's own price sections (guide audit 1123 #1): "Under $25" = shown dollars below 25, "$25 to $50" = 25 to 49.
-        const band = /under \$25/.test(q) ? [0, 25] : /under \$50/.test(q) ? [25, 50] : null;
+        // "Stocking stuffers under $10" (owner 11-23) = shown dollars below 10; with it, the under-$25 answer names $10 to $24.
+        const band = /under \$10/.test(q) ? [0, 10] : /under \$25/.test(q) ? [/stocking stuffers under/.test(a) ? 10 : 0, 25] : /under \$50/.test(q) ? [25, 50] : null;
         // Each named pick: "Name (~$N)". The name is the text before " (~$" back to the list separator.
         for (const m of a.matchAll(/(?:: |, | and )([^,:]+?) \((~|from )\$(\d+(?:\.\d+)?)\)/g)) {
           const [, name, , dollars] = m;
           expect(dollars, `${slug}: "${name}" price is not whole dollars`).toMatch(/^\d+$/);
-          const pick = picks.find((p) => p.name === name || p.name.endsWith(name));
+          // A name with a comma ("Meat Claws, Black") is matched by its whole name in the answer, not its last part alone.
+          const pick = picks.find((p) => (p.name === name || p.name.endsWith(name)) && a.includes(`${p.name} (`));
           expect(pick, `${slug}: "${name}" is not a pick in the guide`).toBeTruthy();
           expect(pickPriceShown(pick!.price, pick!.priceAt, today())).toBe(true);
           expect(shownDollars(pick!.price)).toBe(Number(dollars));

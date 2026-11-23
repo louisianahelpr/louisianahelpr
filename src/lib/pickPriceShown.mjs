@@ -32,6 +32,11 @@ export const shownDollars = (price) => Math.max(1, Math.round(Number(price) || 0
  * Guard: src/test/guideAuditFixes1123.test.tsx.
  */
 export const PRICE_SECTIONS = [
+  // Owner 2026-11-23 (pop-up "Under 10"): every owner-list guide (Her, Him, Kids and their relationship views) opens with
+  // "Stocking stuffers under $10", every pick whose card reads under $10, cheapest first; the price sections follow.
+  // ONE rule: GiftGuideView.tsx pins this section first (in either price order) and guideQa.mjs counts it.
+  // Guard: src/test/giftGuideStockingStuffers1123.test.tsx.
+  { id: "stocking-stuffers", max: 10 },
   { id: "under-25", max: 25 },
   { id: "25-to-50", max: 50 },
   { id: "50-to-75", max: 75 },
@@ -39,7 +44,10 @@ export const PRICE_SECTIONS = [
   { id: "100-and-up", max: Infinity },
 ];
 
-/** The section id ("under-25", "25-to-50", ...) of a shown price, by the dollars the card reads. */
+/** The first section of every owner-list guide (owner 2026-11-23): picks whose card reads under $10. */
+export const STOCKING_SECTION_ID = "stocking-stuffers";
+
+/** The section id ("stocking-stuffers", "under-25", "25-to-50", ...) of a shown price, by the dollars the card reads. */
 export const priceSectionId = (price) => {
   const dollars = shownDollars(price);
   return PRICE_SECTIONS.find((s) => dollars < s.max).id;

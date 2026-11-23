@@ -348,7 +348,7 @@ export const CUTOUTS_1120 = new Map([
   // owner 11-22 her PR picks (builder-guide-her3b)
   ["https://beekman1802.com/cdn/shop/files/B18CAFE26-WBC6_1_1.jpg", "beekman-1802-kindness-cafe-6pc-set-ef2030.webp"],
   ["https://cdn.shopify.com/s/files/1/0543/8301/files/GLASS_BALM_INFOGRAPHICS_2000x2000_FIG_V1_FRUIT-_-B-ALM.jpg", "glow-recipe-glass-balm-lip-treatment-8ecb5d.webp"],
-  ["https://eberjey.com/cdn/shop/files/TZ1018LC-MOBNY-002.jpg", "eberjey-gisele-slouchy-pj-set-navy-26c4d6.webp"],
+  ["https://cdn.shopify.com/s/files/1/0564/0598/3384/files/Low_Res-TZ1018LC-BKIV_F.jpg", "eberjey-gisele-slouchy-pj-set-black-ivory-66d0f3.webp"],
   ["https://cdn.shopify.com/s/files/1/0032/3423/4479/files/BEIS124686-Eastwesttote-Olive-product-front-0310_V1.jpg", "beis-east-to-west-tote-olive-b9796e.webp"],
   ["https://cdn.shopify.com/s/files/1/0347/8496/8840/files/cmi_Jelly_Tote_Main_Image_1_0005_cmi_Jelly_Tote_Twilly_Scarf_Something_Navy_CM059446_1_3f96afae-6486-4862-8af0-e5591d907c28.jpg", "case-mate-jelly-tote-navy-0568c9.webp"],
   ["https://cdn.shopify.com/s/files/1/0105/2265/6823/files/NATR-Multi-Peptide_Serum_Front_capoff_primary_bone.webp", "naturium-multi-peptide-advanced-serum-2ba7ff.webp"],

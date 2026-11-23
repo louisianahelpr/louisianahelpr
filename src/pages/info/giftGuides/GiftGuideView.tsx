@@ -21,7 +21,7 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import { sortByPrice } from "@/content/giftGuidePriceSort";
 import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGuideEarnOrder";
 import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
-import { PRICE_SECTIONS, priceSectionId } from "@/lib/pickPriceShown.mjs";
+import { PRICE_SECTIONS, STOCKING_SECTION_ID, priceSectionId } from "@/lib/pickPriceShown.mjs";
 import { PICK_ANCHOR_PREFIX, pickAnchor } from "@/content/giftGuidePickAnchor";
 import { PrimeTrialLink } from "@/components/giftGuides/PrimeTrialLink";
 import { AgeChips } from "./GiftGuideAges";
@@ -185,7 +185,7 @@ export const sectionNav = (picks: CatalogPick[]) => {
 
 /**
  * The price sections of the owner-list guides (owner 2026-11-21: "they all need to be sorted in sections by price"):
- * Under $25, $25-$50, $50-$75, $75-$100, $100 and up (owner 11-21: "sections that go by price 25 50 75 100+"), by the price the row SHOWS (rounded to the dollar, as "~$25" reads), and
+ * Stocking stuffers under $10 (always first, owner 11-23), Under $25, $25-$50, $50-$75, $75-$100, $100 and up (owner 11-21: "sections that go by price 25 50 75 100+"), by the price the row SHOWS (rounded to the dollar, as "~$25" reads), and
  * a last "Price coming soon" for a pick with no shown price. The picks arrive already in price order (low to high or
  * reversed), so each section keeps that order and the sections follow it; an empty section never draws.
  */
@@ -197,7 +197,10 @@ const priceSections = (picks: CatalogPick[]): CatalogPick[] => {
   // Stable group-by in the order the sections first appear (low to high, or high to low when reversed).
   const order: string[] = [];
   for (const p of priced) { const id = priceSectionOf(p); if (!order.includes(id)) order.push(id); }
-  const grouped = order.flatMap((id) => priced.filter((p) => priceSectionOf(p) === id));
+  // Owner 2026-11-23 (pop-up "Under 10"): "Stocking stuffers under $10" always opens the guide, cheapest first, in
+  // either price order (the rule: src/lib/pickPriceShown.mjs STOCKING_SECTION_ID).
+  const stocking = sortByPrice(priced.filter((p) => priceSectionOf(p) === STOCKING_SECTION_ID), "low");
+  const grouped = [...stocking, ...order.filter((id) => id !== STOCKING_SECTION_ID).flatMap((id) => priced.filter((p) => priceSectionOf(p) === id))];
   return [...grouped, ...soon].map((p) => {
     const id = priceSectionOf(p);
     return { ...p, sectionId: id, section: G.priceSection[id as keyof typeof G.priceSection] };
@@ -337,7 +340,10 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   // Lead 11-21 ("reorder by what earns"): on "Recommended" (the default) the sections run low to high and the most
   // clicked picks lead their own section (src/content/giftGuideEarnOrder.ts); the price choices stay pure price.
   const sectioned = sortable ? priceSections(sortByPrice(inBudget, order === "high" ? "high" : "low")) : inBudget;
-  const picks = sortable && order === "top" ? earnFirstInGroups(sectioned, EARN_RANKS, (p) => p.sectionId ?? "") : sectioned;
+  // The stocking-stuffer section stays cheapest first on "Recommended" too (owner 11-23): only the price sections after
+  // it lead with their most clicked picks.
+  const stockingRows = sectioned.filter((p) => p.sectionId === STOCKING_SECTION_ID);
+  const picks = sortable && order === "top" ? [...stockingRows, ...earnFirstInGroups(sectioned.filter((p) => p.sectionId !== STOCKING_SECTION_ID), EARN_RANKS, (p) => p.sectionId ?? "")] : sectioned;
   const sectionCount = new Map<string, number>();
   if (bandHeads) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
   const isOpen = (id?: string) => !bandHeads || !id || (flipped.has(id) ? !START_OPEN : START_OPEN);

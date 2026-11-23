@@ -124,7 +124,9 @@ export const PUBLIC_PAGE_META = {
     description: "Four free holiday banners, Happy Thanksgiving and three Merry Christmas designs, to print as a 12x18 poster at Walgreens, from about $13 with same-day pickup, or at any photo counter. No sign-up.",
     canonical: `${SITE_ORIGIN}/gift-guides/printables/banners`,
     ogTitle: "Free printable Happy Thanksgiving and Merry Christmas banners",
-    ogDescription: "Print it at Walgreens or any photo counter, free from Louisiana Helpr.",
+    // Lead 11-23 (live on train t, Facebook still showed the one-banner line): og:description and twitter:description
+    // (api/share.ts uses ogDescription for both) say the same four-banner line as the description.
+    ogDescription: "Four free holiday banners, Happy Thanksgiving and three Merry Christmas designs, to print as a 12x18 poster at Walgreens, from about $13 with same-day pickup, or at any photo counter. No sign-up.",
   },
   "/browse": {
     title: "Browse local jobs — Helpr",

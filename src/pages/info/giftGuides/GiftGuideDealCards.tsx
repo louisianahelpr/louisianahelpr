@@ -226,6 +226,19 @@ export const CARD_CSS = `
 /* Visual audit 1122-night #4: on a phone (under 480px) two Sales cards side by side squeezed the busiest stores'
    4-5 deals into a ~130px column, a wall of text. There each Sales card takes the full row, its photo a 96px square on
    the left and the store name and every deal beside it (the heart stays top-right). 480px and up: unchanged. */
+/* Guide visual audit 1123b #3 (Med): on a phone the Sales lines were 12.5px links 15-33px tall, stacked ~4px apart (59 on
+   Black Friday, 35 on Cyber Monday; Home Depot has 5 in one card), hard to read and easy to mis-tap. Under 768px every
+   deal card's text is 14px and each sale (its offer with its end date under it) is one tap row at least 44px tall: the
+   link's hit area covers the whole row (::after), so the date stays right under its offer, and rows sit 12px apart. The
+   one-column layout below stays. Black Friday and Cyber Monday share these cards, so both pages change together. */
+@media (max-width:767px){
+.gg-card-line{font-size:14px}
+.gg-card-sales{gap:4px}
+.gg-card-sales>li[data-gift-sale]{position:relative;min-height:44px;padding:4px 0}
+.gg-card-sale::after{content:"";position:absolute;inset:0}
+.gg-card-more{font-size:14px}
+.gg-card-when{font-size:12.5px}
+}
 @media (max-width:479px){
 .gg-deal-grid[data-gift-sales]{grid-template-columns:minmax(0,1fr)}
 [data-gift-sales]>.gg-store-card:has(>.gg-deal-photo){display:grid;grid-template-columns:96px minmax(0,1fr);column-gap:12px;row-gap:4px;align-content:start}

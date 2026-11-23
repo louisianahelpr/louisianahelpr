@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useLayoutEffect, useState, type ComponentType } from "react";
 import { useLocation } from "react-router-dom";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
@@ -112,11 +112,30 @@ function LazyGiftFinder() {
   return <Finder />;
 }
 
+/**
+ * Guide visual audit 1123b #1 (Med): Find a gift opened half scrolled, the head row and the "Find a Gift" banner title
+ * under the top bar (178px down on a phone, 356px on desktop), because the address's #gift-finder jumped to the card.
+ * The view is the finder alone, so it opens at the page's top like every other guide page: each arrival (the menu,
+ * the rail, a shared link, every quiz step) puts every page scroller back at 0 before the paint. The card carries no
+ * id, so neither the browser's own #hash jump nor ScrollToTop's in-app one moves it after.
+ * Guard: src/test/giftGuideVisual1123.test.tsx.
+ */
+function FinderView() {
+  const { key } = useLocation();
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+    document.querySelectorAll<HTMLElement>("#main-content, .app-shell-scroll, [data-app-page-scroll]").forEach((el) => {
+      el.scrollTop = 0;
+    });
+  }, [key]);
+  return <div className="gg-landing" data-gift-landing="" data-gift-finder-view=""><LazyGiftFinder /></div>;
+}
+
 export function GiftGuideLanding() {
   const { search, hash } = useLocation();
   // Owner 11-21: "if I click find a gift in 3 steps the guides shouldn't be opened up here. only the section I click in
   // the left panel should be displayed, nothing else": the finder view is the finder alone.
-  if (finderAsked(search, hash)) return <div className="gg-landing" data-gift-landing="" data-gift-finder-view=""><LazyGiftFinder /></div>;
+  if (finderAsked(search, hash)) return <FinderView />;
   return (
     <div className="gg-landing" data-gift-landing="">
       {/* Owner 11-21 (greeting mockup option B, "without gifts"): on the landing only, above the three guides, a cream

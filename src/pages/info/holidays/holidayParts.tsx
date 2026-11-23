@@ -57,20 +57,22 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
       {/* Polish audit 1122 #17: the kind is its own small line under the name, on one line (inside the title it broke
           mid-word, "Walk- / through", and a screen reader heard "Lafayette Holiday Market Market"). */}
       <h3 className="text-ds-16 font-semibold leading-snug text-foreground">{item.name}</h3>
-      {tag && <p className="whitespace-nowrap text-ds-12 font-medium text-muted-foreground" data-holiday-tag="">{tag}</p>}
-      <p className="text-ds-14 text-muted-foreground">
+      {/* Guide visual audit 1123b #5: the card's text was 11px (the kind) and 13px (place, date, hours, note, address) on
+          a phone; the kind is 13px and the rest the guide rows' 16px now (the app's type scale has no 14px step). */}
+      {tag && <p className="whitespace-nowrap text-ds-13 font-medium text-muted-foreground" data-holiday-tag="">{tag}</p>}
+      <p className="text-ds-15 text-muted-foreground">
         {where && <span>{where} · </span>}
         <span data-holiday-when="" className={tba ? "text-muted-foreground" : "font-semibold text-foreground"}>{when}</span>
       </p>
       {facts && (
-        <p className="text-ds-14 text-foreground">
+        <p className="text-ds-15 text-foreground">
           {item.hours && <span>{item.hours}</span>}
           {item.hours && price && <span> · </span>}
           {price && <span data-holiday-price="">{price}</span>}
         </p>
       )}
       {item.note && (
-        <p className={`text-ds-13 text-muted-foreground ${more ? "" : "line-clamp-1"}`} data-holiday-note="">
+        <p className={`text-ds-15 text-muted-foreground ${more ? "" : "line-clamp-1"}`} data-holiday-note="">
           {item.note}
         </p>
       )}
@@ -80,7 +82,7 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
       {maps && (
         <a href={maps} target="_blank" rel="noopener noreferrer" data-holiday-maps={item.id}
           onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}
-          className="flex min-h-11 min-w-0 items-center gap-1.5 text-ds-13 text-muted-foreground link-standard">
+          className="flex min-h-11 min-w-0 items-center gap-1.5 text-ds-15 text-muted-foreground link-standard">
           <MapPin className="h-4 w-4 shrink-0 text-[hsl(var(--olivewood))]" aria-hidden />
           <span className="min-w-0" title={item.address || "Open in Maps"}>{item.address || "Open in Maps"}</span>
           <span className="sr-only"> (open in Maps, a new tab)</span>

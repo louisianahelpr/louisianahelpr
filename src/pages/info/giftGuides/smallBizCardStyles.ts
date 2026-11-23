@@ -14,8 +14,9 @@ export const SB_CARD_CSS = `
 .gg-sb-logo b{font-size:12px;line-height:1.15;text-align:center;padding:4px;color:var(--gg-olive);overflow-wrap:anywhere}
 .gg-sb-body{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
 .gg-sb-name{margin:0;padding-right:40px;font-size:15px;font-weight:700;color:var(--gg-ink);overflow-wrap:anywhere}
-.gg-sb-town{margin:0;font-size:12px;color:var(--gg-muted)}
-.gg-sb-text{margin:0;font-size:13px;line-height:1.4;color:var(--gg-ink);overflow-wrap:anywhere}
+/* Guide visual audit 1123b #5: the town (12px) and the one line (13px) were small on a phone; both 14px now. */
+.gg-sb-town{margin:0;font-size:14px;color:var(--gg-muted)}
+.gg-sb-text{margin:0;font-size:14px;line-height:1.4;color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-sb-links{display:flex;flex-wrap:wrap;align-items:center;gap:0 14px;margin-top:auto;padding-top:2px}
 /* Owner 2026-11-22 ("remove visit, they can click the picture or title to visit"): the 72px logo and the name are the
    links. The name's tap area is 44px tall (12px above and below the 20px line) without moving the card's text. */

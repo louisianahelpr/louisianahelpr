@@ -206,8 +206,8 @@ describe("polish audit 1122 #12/#20/#30: one deal card design", () => {
 });
 
 describe("polish audit 1122 #20: Top 10 prices line up", () => {
-  it("the price sits right under a two-line name box, never pushed down past a code chip", () => {
-    expect(GIFT_GUIDES_CSS).toContain(".gg-top10 .gg-nm-name{min-height:2lh}");
+  it("the price sits right under a three-line name box (guide visual 1123b #13), never pushed down past a code chip", () => {
+    expect(GIFT_GUIDES_CSS).toContain(".gg-top10 .gg-nm-name{-webkit-line-clamp:3;min-height:3lh}");
     expect(GIFT_GUIDES_CSS).toMatch(/\.gg-top10 \.gg-nm \.gg-nm-meta\{justify-content:flex-start;margin-top:0;/);
   });
 });

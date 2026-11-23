@@ -3,7 +3,7 @@
  * BROWSE, with a segmented toggle whose leftmost segment is always Browse and
  * whose labels are one word each — Browse | Posted | Working. Browse is the
  * existing feed, Posted/Working the existing lists. Old My Jobs deep links
- * (/jobs?job=, ?filter=, ?highlight=, ?q=) land on Working, not Browse. The
+ * (/jobs?job=, ?filter=, ?highlight=) land on Working, not Browse (app audit 11-23 H1: ?q= is Browse's search). The
  * status boxes filter: tap one = only that group, tap it again = all groups.
  *
  * @mutate src/components/sections/sectionsConfig.ts | export const BROWSE = "browse" as const; | export const BROWSE = "posted" as const;
@@ -178,11 +178,20 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
 
   // AUD31-49: QUOTE_HOMES.myQuotes (/jobs?quotes=1, where Send quote and old /quotes?view=mine land) opened Browse,
   // where the sent quotes are not drawn. ?quotes= now names Working like the other My Jobs params.
-  // @mutate src/pages/jobs/JobsSection.tsx | export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "q", "quotes"] as const; | export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "q"] as const;
-  it.each(["/jobs?job=j-1", "/jobs?filter=done", "/jobs?highlight=a-1", "/jobs?q=fence", "/jobs?quotes=1"])("old My Jobs link %s lands on Working", async (url) => {
+  // @mutate src/pages/jobs/JobsSection.tsx | export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "quotes"] as const; | export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight"] as const;
+  it.each(["/jobs?job=j-1", "/jobs?filter=done", "/jobs?highlight=a-1", "/jobs?quotes=1"])("old My Jobs link %s lands on Working", async (url) => {
     open(url);
     expect(await screen.findByTestId("list-applied")).toBeTruthy();
     expect(screen.getByTestId("where").textContent).toContain("tab=working");
+  });
+
+  // App audit 11-23 H1: /jobs?q=yard (Browse's own search in the address) opened Working, "No jobs in this view".
+  // @mutate src/pages/jobs/JobsSection.tsx | export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "quotes"] as const; | export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "q", "quotes"] as const;
+  it("H1: /jobs?q=fence opens Browse with the search, never Working", () => {
+    open("/jobs?q=fence");
+    expect(screen.getByTestId("feed")).toBeTruthy();
+    expect(screen.queryByTestId("list-applied")).toBeNull();
+    expect(screen.getByTestId("where").textContent).not.toContain("tab=working");
   });
 
   it("tapping a Browse card keeps Browse: the open job's URL names tab=browse, and that URL stays on the feed (run 4: it jumped to Working)", () => {

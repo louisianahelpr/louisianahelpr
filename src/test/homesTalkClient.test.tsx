@@ -11,7 +11,7 @@
  * @mutate src/pages/messages/useMessageSections.tsx | if (section === "homes" && live.homes) empty.Lead = HomeTalkLead; | if (false) empty.Lead = HomeTalkLead;
  * @mutate src/lib/rentals/talk.ts |   if (LEAK_SENTENCE.test(msg)) return msg; |   if (false) return msg;
  * @mutate src/components/admin/adminReports/ReportedCopy.tsx | const removable = report.reported_type.startsWith("declutter_") \|\| isShopReview; | const removable = report.reported_type !== "message";
- * @mutate src/components/admin/adminReports/fetchReports.ts | && r.reported_type !== HOME_TALK_MESSAGE_REPORT; | ;
+ * @mutate src/components/admin/adminReports/fetchReports.ts | && r.reported_type !== HOME_TALK_MESSAGE_REPORT && !isJobWordsReport(r.reported_type); | ;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -142,7 +142,7 @@ describe("Homes messages, client (Q2209)", () => {
   });
 
   it("the admin queue reads a Homes message report as its kept copy, never a person, with nothing to take down", () => {
-    expect(src("src/components/admin/adminReports/fetchReports.ts")).toContain("&& r.reported_type !== HOME_TALK_MESSAGE_REPORT;");
+    expect(src("src/components/admin/adminReports/fetchReports.ts")).toContain("&& r.reported_type !== HOME_TALK_MESSAGE_REPORT && !isJobWordsReport(r.reported_type);");
     render(<ReportedCopy report={{ id: "r1", reported_type: "home_talk_message", reported_id: "m2", reported_content: "Listing: X\nFrom the owner: hi", status: "pending" }} onDone={() => {}} />);
     expect(screen.getByText("Reported Homes message:", { exact: false })).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();

@@ -434,7 +434,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         // right end; the tabs row under it carries only the tabs.
         search: (
           <SectionSearchBar noun="Declutter" home="/declutter" value={query} onChange={setQuery}
-            filter={<FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen(true)} />} />
+            filter={<FiltersIconButton plain open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen(true)} />} />
         ),
         // 8px under the chips + the column's 4px = 12px to the first cards.
         // While the list loads, the chips' bones in the same box (Q2705, 11-09: the header grew 56px when the chips

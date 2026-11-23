@@ -9,8 +9,11 @@
  * @mutate src/pages/post-job/DirectOfferBanner.tsx |   const name = formatName(offerToHelperName, "this Helpr"); |   const name = formatName(formatName(offerToHelperName, "this Helpr"), "your saved Helpr");
  *
  * P7: a member opening /browse landed on /home and lost ?cat=.
- * @mutate src/App.tsx | <MarketingRedirect to="/jobs" keepQuery fallback={<DashboardRouteSkeleton />}> | <MarketingRedirect fallback={<DashboardRouteSkeleton />}>
- * @mutate src/components/SignedInRedirect.tsx | <Navigate to={keepQuery && search ? `${to}${search}` : to} replace /> | <Navigate to={to} replace />
+ * @mutate src/App.tsx | <MarketingRedirect to="/jobs?tab=browse" keepQuery fallback={<DashboardRouteSkeleton />}> | <MarketingRedirect fallback={<DashboardRouteSkeleton />}>
+ * @mutate src/components/SignedInRedirect.tsx | <Navigate to={keepQuery && search ? withQuery(to, search) : to} replace /> | <Navigate to={to} replace />
+ * App audit 11-23 H1: /browse?job=<id> forwarded to a bare /jobs?job=<id>, an old My Jobs link, so Working opened.
+ * @mutate src/App.tsx | <MarketingRedirect to="/jobs?tab=browse" keepQuery | <MarketingRedirect to="/jobs" keepQuery
+ * @mutate src/components/SignedInRedirect.tsx |   for (const [k, v] of new URLSearchParams(search)) if (!merged.has(k)) merged.append(k, v); |
  *
  * G16: the no-show sheet said "pick a new date" with no way to, and read "Confirm No-Show".
  * @mutate src/components/job-card/NoShowDialog.tsx | "Confirm no-show" | "Confirm No-Show"
@@ -122,7 +125,7 @@ describe("P2: the direct-offer banner formats the name once", () => {
 
 describe("P7: a member opening /browse lands on the Jobs board with the query kept", () => {
   it("the /browse route sends a member to /jobs and keeps the query", () => {
-    expect(code("src/App.tsx")).toMatch(/<Route path="\/browse" element=\{<RouteErrorBoundary><MarketingRedirect to="\/jobs" keepQuery /);
+    expect(code("src/App.tsx")).toMatch(/<Route path="\/browse" element=\{<RouteErrorBoundary><MarketingRedirect to="\/jobs\?tab=browse" keepQuery /);
   });
   it("SignedInRedirect keepQuery carries ?cat= to the destination", async () => {
     user.current = { id: "m1" };
@@ -135,6 +138,18 @@ describe("P7: a member opening /browse lands on the Jobs board with the query ke
       </MemoryRouter>,
     );
     expect((await screen.findByTestId("loc")).textContent).toBe("/jobs?cat=plumbing");
+  });
+  it("H1: /browse?job=<id> lands on Browse with the job, never a bare /jobs?job= (Working)", async () => {
+    user.current = { id: "m1" };
+    render(
+      <MemoryRouter initialEntries={["/browse?job=j-9&q=yard"]}>
+        <Routes>
+          <Route path="/browse" element={<SignedInRedirect to="/jobs?tab=browse" keepQuery><p>guest board</p></SignedInRedirect>} />
+          <Route path="/jobs" element={<Loc />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect((await screen.findByTestId("loc")).textContent).toBe("/jobs?tab=browse&job=j-9&q=yard");
   });
 });
 

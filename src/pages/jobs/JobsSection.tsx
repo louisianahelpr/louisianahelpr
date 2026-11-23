@@ -62,11 +62,16 @@ export const JOBS_TABS = [
   { value: "working", label: "Working", labelKey: "jobs.tabWorking" },
 ] as const;
 
-/** Params only the old My Jobs page read (and ?quotes=, QUOTE_HOMES.myQuotes): their presence (with no ?tab=) means Working. */
-export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "q", "quotes"] as const;
+/**
+ * Params only the old My Jobs page read (and ?quotes=, QUOTE_HOMES.myQuotes): their presence (with no ?tab=) means
+ * Working. App audit 11-23 H1: not ?q=. It is Browse's own search, so /jobs?q=yard opened Working ("No jobs in this
+ * view"); no stored notification links /jobs?q= (prod notifications, 0 rows, read 11-23), and every link to a list's
+ * search names its tab. ?job= stays: 459 stored notification links are /jobs?job=<id> with no tab (same read).
+ */
+export const MY_JOBS_LINK_PARAMS = ["job", "filter", "highlight", "quotes"] as const;
 
 /** Every param a tab's list reads; switching tab drops them so one tab's state never leaks into another. */
-const LIST_PARAMS = ["tab", "status", ...MY_JOBS_LINK_PARAMS] as const;
+const LIST_PARAMS = ["tab", "status", "q", ...MY_JOBS_LINK_PARAMS] as const;
 
 export function resolveJobsTab(params: URLSearchParams, picked: string): "browse" | "posted" | "working" {
   if (params.get("tab")) return picked as "browse" | "posted" | "working";

@@ -10,6 +10,7 @@ import {
   PolicySection,
   PolicySearchContext,
   policySearchMatches,
+  policyNodeText,
 } from "@/components/policy/CollapsedPolicy";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
 import { LAST_UPDATED } from "./legalSections";
@@ -27,7 +28,20 @@ const PORTABILITY_ROW_TITLE = "Deletion & portability";
  * row would be (same predicate, same title), or when the query names the card
  * itself; otherwise it stays out of the result list as before.
  */
-const EXPORT_CARD_SEARCH_TEXT = `${PORTABILITY_ROW_TITLE} Download your data data portability export JSON`;
+// App audit 11-23 LT-3: search now reads row bodies too, so the row stays on screen for any word in its body; the
+// card matches the same body words, or the link would point at nothing again.
+const PORTABILITY_ROW_BODY = (
+  <>
+    <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from <Link to="/profile" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Profile settings</Link> — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed. One exception, to stop repeat abuse: if you verified your ID and have active Declutter strikes, we keep a record of those strikes (a one-way code made from your ID check, the reason and the dates, never your name or contact details) until each strike would have ended, and restore them if the same ID verifies a new account.</p>
+    {/* Points at the export's real home: the "Download your data"
+        card further down THIS policy (owner, 2026-09-14, VN-47). An
+        in-page hash link, not a route, so it works on the public
+        /privacy page and in the Profile Legal tab's Privacy panel
+        alike without bouncing a signed-in reader out of the app. */}
+    <p><strong className="text-foreground">Data portability:</strong> Download a copy of your data (profile, jobs, applications, reviews, messages, payments and more) as a machine-readable JSON file with <a href={`#${DATA_EXPORT_ANCHOR}`} className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Download your data</a> below. It leaves out our internal safety and moderation records (fraud and ID-check reviews, flags, staff notes, admin alerts and error logs), as California&rsquo;s privacy rules allow where sharing them would put accounts or our systems at risk (Cal. Code Regs. tit. 11, &sect; 7024(d)).</p>
+  </>
+);
+const EXPORT_CARD_SEARCH_TEXT = `${PORTABILITY_ROW_TITLE} ${policyNodeText(PORTABILITY_ROW_BODY)} Download your data data portability export JSON`;
 const ExportCardOnSearch = ({ children }: { children: ReactNode }) => {
   const query = useContext(PolicySearchContext);
   return policySearchMatches(query, EXPORT_CARD_SEARCH_TEXT) ? <>{children}</> : null;
@@ -247,17 +261,7 @@ export const PrivacyContent = () => (
       <PolicyRowItem
         icon={Trash2}
         title={PORTABILITY_ROW_TITLE}
-        body={
-          <>
-            <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from <Link to="/profile" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Profile settings</Link> — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed. One exception, to stop repeat abuse: if you verified your ID and have active Declutter strikes, we keep a record of those strikes (a one-way code made from your ID check, the reason and the dates, never your name or contact details) until each strike would have ended, and restore them if the same ID verifies a new account.</p>
-            {/* Points at the export's real home: the "Download your data"
-                card further down THIS policy (owner, 2026-09-14, VN-47). An
-                in-page hash link, not a route, so it works on the public
-                /privacy page and in the Profile Legal tab's Privacy panel
-                alike without bouncing a signed-in reader out of the app. */}
-            <p><strong className="text-foreground">Data portability:</strong> Download a copy of your data (profile, jobs, applications, reviews, messages, payments and more) as a machine-readable JSON file with <a href={`#${DATA_EXPORT_ANCHOR}`} className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Download your data</a> below. It leaves out our internal safety and moderation records (fraud and ID-check reviews, flags, staff notes, admin alerts and error logs), as California&rsquo;s privacy rules allow where sharing them would put accounts or our systems at risk (Cal. Code Regs. tit. 11, &sect; 7024(d)).</p>
-          </>
-        }
+        body={PORTABILITY_ROW_BODY}
       />
     </PolicySection>
 

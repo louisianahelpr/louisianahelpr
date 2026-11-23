@@ -65,7 +65,7 @@ export function opensOnActivityList(pathname: string, search: string): boolean {
   if (path !== "/jobs") return false;
   const p = new URLSearchParams(search);
   const tab = p.get("tab");
-  return tab ? tab === "posted" || tab === "working" : ["job", "filter", "highlight", "q", "quotes"].some((k) => p.has(k));
+  return tab ? tab === "posted" || tab === "working" : ["job", "filter", "highlight", "quotes"].some((k) => p.has(k));
 }
 
 /** Called by the entry (through signedInPrefetch.ts). No-op unless a cold list link with a live session. */

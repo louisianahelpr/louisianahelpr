@@ -401,6 +401,18 @@ describe("the photo-first Declutter item page", () => {
     expect((await screen.findByText(/Want to make a deal\?/)).textContent).toMatch(/Want to make a deal\? Make an offer\.$/);
   });
 
+  // App audit 11-23 DB3: an offers-off listing said "The seller isn't taking offers" in the panel, then "Want to make a
+  // deal? Make an offer." under Questions. An offers-off listing never mentions offers (AUD31-68).
+  // @mutate src/components/declutter/DeclutterQuestions.tsx | {free \|\| !offers ? null : onMakeOffer | {free ? null : onMakeOffer
+  // @mutate src/components/declutter/DeclutterItemView.tsx |  offers={it.accepts_offers !== false} listingDown= |  listingDown=
+  it("DB3: an offers-off listing's Questions hint never says Make an offer", async () => {
+    state.item = { ...ITEM, accepts_offers: false };
+    open();
+    expect(await screen.findByText(/Everyone can see questions and answers/)).toBeInTheDocument();
+    expect(document.querySelector("[data-question-make-offer]")).toBeNull();
+    expect(screen.queryByText(/Want to make a deal\?/)).toBeNull();
+  });
+
   // AUD31-15: the hint's "Make an offer" was plain words; it opens the offer box, as the panel's own button does.
   // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (askSignal === 0 \|\| offersOff) return; |     return;
   // @mutate src/components/declutter/DeclutterItemView.tsx | onMakeOffer={() => setOfferAsk((n) => n + 1)} | onMakeOffer={() => undefined}

@@ -21,6 +21,7 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import { sortByPrice } from "@/content/giftGuidePriceSort";
 import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGuideEarnOrder";
 import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
+import { sponsorGiftType } from "@/content/giftGuideSponsorGiftTypes";
 import { PrimeTrialLink } from "@/components/giftGuides/PrimeTrialLink";
 import { AgeChips } from "./GiftGuideAges";
 import { GiftGuideLoadError } from "./GiftGuideLoadError";
@@ -84,6 +85,8 @@ export function PickThumb({ pick, size = 52, eager }: { pick: CatalogPick; size?
 
 const SPONSORS_PAGE = "25-days-sponsors";
 const SPONSORS_PAGE_HIDDEN_BADGES: readonly string[] = ["sponsor", "shop-louisiana"];
+/** Our own 25 Days page, where a sponsor with no site or page of its own links. */
+const OUR_25_DAYS_PAGE = /^https:\/\/www\.louisianahelpr\.com\/25days(?:[/?#]|$)/;
 
 /** `rank` (the landing's Top 10, owner 11-21 evening "number the top 10 gifts"): a numeral badge on the photo's corner and "1." in the link's name. */
 export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide?: string; rank?: number; eager?: boolean }) {
@@ -103,6 +106,11 @@ export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide
   // Sold out until its restock day (owner 11-22, Sleep Crown): "Back Dec 1" until that day, then nothing.
   const back = pick.backOn && today < pick.backOn ? G.backOnChip(pick.backOn) : undefined;
   const cart = amazonCartUrl([pick.href]);
+  // Owner 11-22 (consistency audit #9, "Show the gift type"): a sponsors-page row with no price shows its gift type
+  // ("Gift card", "Experience"...) in the price slot, in the price's own style. No dollar amount is made up.
+  const giftType = guide === SPONSORS_PAGE && !showsPrice(pick) ? sponsorGiftType(pick.name) : undefined;
+  // Consistency audit 1122 #10: a sponsor with no page of its own links our 25 Days page, and the row says so.
+  const toOurPage = OUR_25_DAYS_PAGE.test(pick.href);
   return (
     <li data-gift-pick="">
       {/* Owner 2026-11-21: "remove the shop at button, when they click the title of the image it will go there to the
@@ -116,9 +124,8 @@ export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide
             the price alone. No why-line and no "On <store>"; the store is still said to screen readers (sr-only). */}
         <span className="gg-nm">
           <span className="gg-nm-name">{rank !== undefined && <span className="sr-only">{`${rank}. `}</span>}{pick.name}</span>
-          <span className="sr-only">{isShopMyCollection(pick.href) ? ` (${G.collectionOnShopMy})` : storeLabel(pick) ? ` (${G.onStore(storeLabel(pick))})` : ""}</span>
-          {/* Owner 11-22: a sponsor's logo card says the gift it gives where a price would be (no price is invented). */}
-          {pick.gift && !showsPrice(pick) ? <small className="gg-nm-meta gg-nm-gift" data-gift-sponsor-gift="">{pick.gift}</small> : <small className="gg-nm-meta"><PickPrice pick={pick} /></small>}
+          {toOurPage ? <span className="sr-only">{` (${G.onOur25DaysPage})`}</span> : <span className="sr-only">{isShopMyCollection(pick.href) ? ` (${G.collectionOnShopMy})` : storeLabel(pick) ? ` (${G.onStore(storeLabel(pick))})` : ""}</span>}
+          {giftType ? <small className="gg-nm-meta"><span className="gg-price" data-gift-type="">{giftType}</span></small> : <small className="gg-nm-meta"><PickPrice pick={pick} /></small>}
           {(badges || code || ship || back) && (
             <span className="gg-badges">
               {badges?.map((b) => <i key={b} className={`gg-bdg gg-bdg-${b}`} data-gift-badge={b}>{G.badges[b]}</i>)}

@@ -338,6 +338,8 @@ export const giftGuides = {
   // Amazon Buy Now on a card (owner 11-21): the cart icon's spoken label.
   addToAmazonCart: (name: string) => `Add ${name} to your Amazon cart (opens in a new tab)`,
   onStore: (store: string) => `On ${store}`,
+  /** A sponsor row that links our own 25 Days page (the sponsor has no site or page we could find; audit 1122 #10). */
+  onOur25DaysPage: "On our 25 Days giveaway page",
   /** A ShopMy collection link opens a page of many products, not this one (design audit r2 #3/#9): the row says so. */
   collectionOnShopMy: "Collection on ShopMy",
   /** The pick badges (owner 2026-11-18). Never a price. */

@@ -163,7 +163,8 @@ describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src
     expect(container.querySelector("[data-gift-also-sponsoring]")).toBeNull();
     const hilma = container.querySelector<HTMLAnchorElement>('a[href^="https://www.hilma.co"]')!;
     expect(hilma.textContent).toContain("Hilma");
-    expect(hilma.querySelector("[data-gift-sponsor-gift]")?.textContent).toBe("Daily Pre + Probiotic + Herbs");
+    // Owner 11-22 later ("Show the gift type"): the row says its gift type in the price slot, not the gift's name.
+    expect(hilma.querySelector("[data-gift-type]")?.textContent).toBe("Gift set");
     expect(hilma.querySelector("[data-gift-price]")).toBeNull();
   });
   it("draws the badges on the list, no price but the checked one (owner 11-18), and every Shop link is sponsored + noopener", () => {

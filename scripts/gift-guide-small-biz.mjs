@@ -34,18 +34,26 @@ const OUT = join(REPO, "src/content/giftGuideSmallBiz.json");
 const LOGOS = join(REPO, "public/gift-guides/small-biz");
 
 /**
- * The card shows the name only. Sprinkle in Time Too declined logo use (FOLLOWUP item 64). Tiffany Morton (audit 11-20):
- * the file on hand is a personal photo (a couple's photo), not a logo, and no logo could be read from her public pages;
- * add the logo file and drop the slug here when one exists.
+ * The card shows the name only. Sprinkle in Time Too declined logo use (FOLLOWUP item 64). Tiffany Morton (audit 11-20)
+ * left this list on 11-22: her TM logo from her Facebook is in SPONSOR_PAGE_LOGO below.
  */
-const NO_LOGO = new Set(["sprinkle-in-time-too", "tiffany-morton-cosmetic-tattooing"]);
+const NO_LOGO = new Set(["sprinkle-in-time-too"]);
 /**
  * A picture kept in the repo instead of a logo file from the folder. The Fois (owner 11-22 #12: "find a picture for the
  * fois"): its file on hand is David Rabalais's headshot, so the card shows the film's official poster he sent us
  * (25 Days Logos/Dec02-David-Rabalais-The-Fois-POSTER-not-logo.png), cropped to its top so the title reads small,
  * 400px WebP, not cut out (a poster, not a product). It lives in sponsor-picks/, which no generator clears.
  */
-const REPO_LOGO = { "david-rabalais-the-fois": "/gift-guides/sponsor-picks/the-fois-poster.webp" };
+/**
+ * Consistency audit 1122 #7 (the same image for the same business on every page): these cards show the logo the 25 Days
+ * sponsors page draws (public/gift-guides/sponsors/<slug>.webp, written by scripts/gift-guide-sponsor-logos.mjs from
+ * ~/Desktop/25 Days Logos). Monarch Books, Hair Fashion and Spa, Tiffany Morton and Phyllis Guy showed a beige name box
+ * here; Mystic Forests' folder file had app buttons baked in (now the clean crop the sponsors page uses).
+ */
+const SPONSOR_PAGE_LOGO = Object.fromEntries(
+  ["monarch-books", "hair-fashion-and-spa", "tiffany-morton-cosmetic-tattooing", "phyllis-guy-dance-center", "mystic-forests-nursery"].map((s) => [s, `/gift-guides/sponsors/${s}.webp`]),
+);
+const REPO_LOGO = { "david-rabalais-the-fois": "/gift-guides/sponsor-picks/the-fois-poster.webp", ...SPONSOR_PAGE_LOGO };
 /**
  * Words the page says differently: the AllWays Lounge's street ("St. Claude Ave.") reads as the Marigny, since no
  * member-facing text may say "Claude" (src/test/noClaudeInMemberCopy.test.ts).

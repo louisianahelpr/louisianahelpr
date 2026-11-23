@@ -379,8 +379,9 @@ describe("holiday audit 1121 #66 / #63: the 25 Days sponsors page's photos and p
   it("every photo is a local optimized file (no multi-MB hotlink), each under 60 KB", () => {
     expect(picks.length).toBeGreaterThan(30);
     // Owner 11-22: a logo card (gift) shows its 160 px logo from the logo row, or its name tile when no logo may be
-    // used. EXACT both ways: Summar T. and Bake & Brush have none found; Sprinkle in Time Too declined logo use.
-    expect(picks.filter((p) => !p.image).map((p) => p.name).sort()).toEqual(["Bake & Brush", "Sprinkle in Time Too", "Summar T. Photography"]);
+    // used. EXACT both ways: Summar T. and Bake & Brush have none found. (Sprinkle in Time Too, the old third, said No to
+    // being shown at all and is off the page: src/content/sponsorPublicOff.mjs.)
+    expect(picks.filter((p) => !p.image).map((p) => p.name).sort()).toEqual(["Bake & Brush", "Summar T. Photography"]);
     for (const p of picks.filter((x) => !x.image)) expect(p.gift, p.name).toBeTruthy();
     for (const p of picks.filter((x) => x.image)) {
       expect(p.image, p.name).toMatch(p.gift ? /^https:\/\/www\.louisianahelpr\.com\/gift-guides\/(sponsors|sponsor-picks)\/[a-z0-9-]+\.webp$/ : /^https:\/\/www\.louisianahelpr\.com\/gift-guides\/sponsor-picks\/[a-z0-9-]+\.webp$/);

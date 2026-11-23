@@ -40,7 +40,9 @@ import { blankComments } from "./helpers/blankNonCode";
  * minus Boston Mints on Dec 11 and Dec 21 (owner 2026-11-22: their 3 lip glosses are one prize on Dec 18), 163;
  * then the owner's 10:35-10:50 PM changes (tracker of 2026-11-22 ~10:52 PM): Ethan's Closet, Wildcat Brothers, The Charmed
  * Page, Sweet Bee Organics, Chattanooga Beard Co. and Pixie Dust placed (+6), K18 one prize on Dec 4 (-1), and Wicks, Hair
- * Fashion and Wanderlust moved days, 168.
+ * Fashion and Wanderlust moved days, 168;
+ * minus Sprinkle in Time Too on Dec 16 (sign-up said "not OK on the wall", handled like Helping Hands; night audit
+ * 2026-11-23 M10: src/content/sponsorPublicOff.mjs), 167.
  * (owner rule 2026-11-18: nothing stale anywhere). Drift check against the tracker
  * itself: `node scripts/check-25days-lineup.mjs` (manual; the tracker lives on the owner's Desktop, not in CI).
  */
@@ -60,7 +62,7 @@ const FINAL: Record<number, string[]> = {
   13: ["SRI Labs", "RYSE", "The Crab Man Plus", "Faulk's Game Call Co.", "Cajun Belle Studio", "Hello Darlin'"],
   14: ["Crew Dog", "Aeva Beauty", "Deming Delights", "The Sculpt Society", "Everyday Dose", "Rock Bottom Golf", "Wildcat Brothers Distillery"],
   15: ["RYSE", "Zydeco Chop Chop", "Sky & Sol", "Cat Lady / CatLadyBox", "Whimsies from Within", "Britt Creates"],
-  16: ["RYSE", "GoodWolf Power Yoga", "Handmade By Hayli", "Tays Sweet Shop", "3 Redneck Tenors", "Sprinkle in Time Too (Sulphur)", "Forgiven Hearts", "The Charmed Page Bookstore"],
+  16: ["RYSE", "GoodWolf Power Yoga", "Handmade By Hayli", "Tays Sweet Shop", "3 Redneck Tenors", "Forgiven Hearts", "The Charmed Page Bookstore"],
   17: ["Dolly's Boutique", "LMNT", "Bayou Grace Outfitters", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Accesorios Para Niñas", "Jessica Lanham Photography"],
   18: ["Boston Mints", "RYSE", "Basic Bee", "Saranoni", "Megan Benoit's Closet", "BIME Beauty", "Pixie Dust Biodegradable Glitter (New Orleans)"],
   19: ["Ty's Boutique Shop", "RYSE", "Hannahbelle Photography", "aosu", "Everyday Dose", "Tushbaby", "Manta Sleep"],
@@ -82,9 +84,9 @@ describe("the final lineup", () => {
     const got = Object.fromEntries(days.map((d) => [d.day, d.partners.map((p) => p.brand)]));
     expect(got).toEqual(FINAL);
     for (const d of days) for (const p of d.partners) expect(p.prize.trim().length, `Dec ${d.day} ${p.brand} prize`).toBeGreaterThan(2);
-    // 168 cards: the tracker export of 2026-11-22 minus the one public-off sponsor, our own Dec 25 gift card and Boston Mints' Dec 11 + 21 glosses (owner 2026-11-22; 2026-11-19: show the
+    // 167 cards: the tracker export of 2026-11-22 minus the two public-off sponsors, our own Dec 25 gift card and Boston Mints' Dec 11 + 21 glosses (owner 2026-11-22; 2026-11-19: show the
     // full sponsor list), and no brand twice on one day (each partner's row is keyed by its brand).
-    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(168);
+    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(167);
     for (const d of days) expect(new Set(d.partners.map((p) => p.brand)).size, `Dec ${d.day}`).toBe(d.partners.length);
   });
 

@@ -38,7 +38,6 @@ export const SPONSOR_GIFT_TYPES: Readonly<Record<string, SponsorGiftType>> = {
   "The Crab Man Plus": "Gift set",
   "Whimsies from Within": "Product",
   "Handmade By Hayli": "Gift set",
-  "Sprinkle in Time Too": "Product",
   "Bayou Grace Outfitters": "Product",
   "Accesorios Para Niñas": "Gift set",
   "Ty's Boutique Shop": "Product",

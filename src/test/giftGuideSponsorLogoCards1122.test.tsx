@@ -7,10 +7,9 @@
  *   - THE CHUNK: the sponsors guide names nobody; each logo card says its gift with no dollar amount and no giveaway day
  *     (the days are not final), carries no price (only a captured price shows), links https on an allowed host, and
  *     shows a small local logo file (lazy, 160 px) or its name tile; no removed sponsor shows;
- *   - THE ROW: the gift sits under the name where a price would be; no "Also sponsoring" line is drawn on that page.
+ *   - THE ROW: no "Also sponsoring" line is drawn on that page. Since the owner's 11-22 "Show the gift type" the row
+ *     shows its gift type in the price slot instead of the gift under the name (src/test/giftGuideSponsorGiftType1122.test.tsx).
  * @mutate scripts/giftGuideHolidayB1120.mjs | pick ??= logoCard(brand); | pick ??= undefined;
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {pick.gift && !showsPrice(pick) ? | {false ?
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-nm .gg-nm-gift{grid-column:1/-1;grid-row:2; | .gg-list .gg-nm .gg-nm-gift{grid-column:2;grid-row:1;
  */
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
@@ -87,8 +86,9 @@ describe("25 Days sponsors guide: every sponsor is a row (owner 11-22)", () => {
     for (const gone of [/Bourque/i, /Kee's/i, /Humble Home/i, /Rusty's/i, /HOTWORX Baton Rouge/i, /Bully Made/i, /Oil Center/i, /R&R Wedding/i]) expect(text, String(gone)).not.toMatch(gone);
   });
 
-  it("the row says the gift under the name, and no names-only line is drawn", async () => {
-    expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-nm .gg-nm-gift{grid-column:1/-1;grid-row:2;");
+  it("the row shows a logo card's gift type where a price would be, and no names-only line is drawn", async () => {
+    // The grey gift line under the name is gone (owner 11-22, "Show the gift type").
+    expect(GIFT_GUIDES_CSS).not.toContain(".gg-nm-gift");
     await loadGuidePicks("25-days-sponsors");
     const n = guideBySlug("25-days-sponsors")!.picks.filter((p) => p.gift).length;
     expect(n).toBe(logoCards.length);
@@ -97,11 +97,10 @@ describe("25 Days sponsors guide: every sponsor is a row (owner 11-22)", () => {
         <Routes><Route path="/gift-guides/:slug" element={<GiftGuides />} /></Routes>
       </MemoryRouter>,
     );
-    const gifts = [...container.querySelectorAll("[data-gift-sponsor-gift]")];
-    expect(gifts.length).toBe(n);
+    expect(container.querySelector("[data-gift-sponsor-gift]")).toBeNull();
     expect(container.querySelector("[data-gift-also-sponsoring]")).toBeNull();
     const birdwell = container.querySelector<HTMLAnchorElement>('a[href^="https://www.shopbirdwells.com"]')!;
-    expect(birdwell.querySelector("[data-gift-sponsor-gift]")?.textContent).toBe("Gift card");
+    expect(birdwell.querySelector("[data-gift-type]")?.textContent).toBe("Gift card");
     expect(birdwell.querySelector("[data-gift-price]")).toBeNull();
     expect(birdwell.querySelector("img")?.getAttribute("loading")).toBe("lazy");
   });

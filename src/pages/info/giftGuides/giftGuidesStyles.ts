@@ -215,6 +215,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 [data-gift-guide="25-days-sponsors"] .gg-nm-name{-webkit-line-clamp:3}
 .gg-nm .gg-nm-meta{display:flex;align-items:baseline;gap:8px;margin-top:4px;font-size:12px;font-weight:600;letter-spacing:.04em}
 .gg-nm-meta .gg-price{font-size:15px;letter-spacing:0}
+.gg-nm-meta .gg-price[data-gift-type]{white-space:nowrap}
 .gg-list>li{align-items:flex-start}
 @media (min-width:1024px){
 .gg-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 20px;align-items:stretch}
@@ -242,8 +243,6 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-nm-name{grid-column:1;grid-row:1}
 .gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1;margin-top:0;justify-content:flex-end;min-width:44px}
 /* A 25 Days sponsor logo card: its gift sits under the name, never in the narrow price column (owner 11-22). */
-.gg-list .gg-nm .gg-nm-gift{grid-column:1/-1;grid-row:2;justify-content:flex-start;margin-top:4px;font-size:13px;font-weight:500;letter-spacing:0;color:var(--gg-muted)}
-.gg-list .gg-nm-gift+.gg-badges{grid-row:3}
 .gg-list .gg-badges{grid-column:1/-1;grid-row:2}
 /* Owner 2026-11-22 ("move the heart and shopping cart back to the top right of picture. maybe put the shopping cart
    below the heart instead of on the side"): on every card (Her/Him/Kids rows, the 25 Days sponsors page, the finder's

@@ -278,6 +278,8 @@ export const sponsorPage = {
       "Tufted Artworks": "https://www.facebook.com/TuftedArtworks",
       "Tushbaby": "https://www.facebook.com/TushBabyShop/",
       "Whimsies from Within": "https://www.facebook.com/profile.php?id=61593916496429",
+      // Consistency audit 1122 #10: her public page (Wanderlust by Abby, Baton Rouge), found 11-22.
+      "Wanderlust by Abby": "https://www.facebook.com/wanderlustbyabby",
       "Wicks NOLA Candle Company": "https://www.facebook.com/wicksnola504",
       "World Ballet Company: The Nutcracker": "https://www.facebook.com/WorldBalletCompany",
       "Written on the River": "https://www.facebook.com/writtenontheriver",

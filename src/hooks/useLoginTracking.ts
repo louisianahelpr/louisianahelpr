@@ -23,6 +23,8 @@ const supabaseClient = () => loadModule(() => import("@/integrations/supabase/cl
 
 const EMAIL_VERIFIED_KEY = "helpr_email_verified_tracked";
 
+const isSocialProvider = (p: unknown) => p === "apple" || p === "google";
+
 export const useLoginTracking = () => {
   const tracked = useRef(false);
 
@@ -35,6 +37,18 @@ export const useLoginTracking = () => {
         if (!live || !m) return;
         const supabase = m.supabase;
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // DQ-2: signup_completed for a brand-new Apple/Google account (the email
+      // path fires it in Signup.tsx). INITIAL_SESSION too: a web OAuth return
+      // can sign in before this late subscriber exists, which then sees only
+      // INITIAL_SESSION. Loaded in the background so the boot path does not
+      // carry ppoAttribution; the module decides "new" and fires once.
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user && isSocialProvider(session.user.app_metadata?.provider)) {
+        const user = session.user;
+        void backgroundImport(() => import("@/lib/socialSignupCompleted"), "socialSignupCompleted")
+          .then((mod) => mod.trackSocialSignupCompleted(user))
+          .catch((e: unknown) => report(e, { severity: "warning", tags: { source: "useLoginTracking.signupCompleted" } }));
+      }
+
       if (event === "SIGNED_IN" && session?.user && !tracked.current) {
         tracked.current = true;
 

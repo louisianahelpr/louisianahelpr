@@ -43,7 +43,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 vi.mock("@/lib/analytics", () => ({
-  AhaEvent: { EmailVerified: "email_verified" },
+  AhaEvent: { EmailVerified: "email_verified", SignupCompleted: "signup_completed" },
   track: (...args: unknown[]) => mocks.trackMock(...args),
 }));
 vi.mock("@/lib/safeStorage", () => ({
@@ -237,9 +237,61 @@ describe("useLoginTracking", () => {
     await flushMicrotasks();
     expect(insertMock).toHaveBeenCalledTimes(2);
   });
+
+  // Audit DQ-2 (2026-11-23): signup_completed fired only on the email path, so
+  // the week's 6 Apple and 5 Google sign-ups never counted.
+  describe("signup_completed for a new Apple/Google account (DQ-2)", () => {
+    const signupCalls = () => trackMock.mock.calls.filter((c) => c[0] === "signup_completed");
+    const justNow = (msAgo: number) => new Date(Date.now() - msAgo).toISOString();
+    const settle = async () => {
+      for (let i = 0; i < 20 && signupCalls().length === 0; i++) await act(async () => { await new Promise((r) => setTimeout(r, 5)); });
+    };
+
+    it.each(["apple", "google"])("fires once, with provider %s, on the sign-in that created the account", async (provider) => {
+      await mount();
+      const created = justNow(1000);
+      handlerHolder.current!("SIGNED_IN", {
+        user: { id: `new-${provider}`, created_at: created, last_sign_in_at: justNow(900), app_metadata: { provider } },
+      });
+      await settle();
+      expect(signupCalls()).toHaveLength(1);
+      expect(signupCalls()[0][1]).toMatchObject({ provider });
+      expect(safeStorageMock.setItem).toHaveBeenCalledWith(`helpr_signup_completed_tracked_new-${provider}`, "1");
+    });
+
+    it("fires on INITIAL_SESSION too (a web OAuth return can sign in before the hook subscribes)", async () => {
+      await mount();
+      handlerHolder.current!("INITIAL_SESSION", {
+        user: { id: "web-new", created_at: justNow(5000), last_sign_in_at: justNow(4900), app_metadata: { provider: "google" } },
+      });
+      await settle();
+      expect(signupCalls()).toHaveLength(1);
+    });
+
+    it("does not fire for a returning Apple/Google person, an email account, or one already counted here", async () => {
+      await mount();
+      handlerHolder.current!("SIGNED_IN", {
+        user: { id: "old", created_at: "2026-11-01T00:00:00Z", last_sign_in_at: justNow(0), app_metadata: { provider: "apple" } },
+      });
+      handlerHolder.current!("INITIAL_SESSION", {
+        user: { id: "mail", created_at: justNow(1000), last_sign_in_at: justNow(900), app_metadata: { provider: "email" } },
+      });
+      safeStorageMock.getItem.mockImplementation((k: string) => (k === "helpr_signup_completed_tracked_seen" ? "1" : null));
+      handlerHolder.current!("INITIAL_SESSION", {
+        user: { id: "seen", created_at: justNow(1000), last_sign_in_at: justNow(900), app_metadata: { provider: "google" } },
+      });
+      for (let i = 0; i < 10; i++) await act(async () => { await new Promise((r) => setTimeout(r, 5)); });
+      expect(signupCalls()).toEqual([]);
+    });
+  });
 });
 
 // AUTH. The tracked-once latch: without it one sign-in writes a login_history
 // row and identifies in PostHog once per SIGNED_IN event Supabase emits, not
 // once per session.
 // @mutate src/hooks/useLoginTracking.ts | tracked.current = true; |
+// DQ-2: social sign-ups count, once, only when the account is new.
+// @mutate src/hooks/useLoginTracking.ts |       if ((event === "SIGNED_IN" \|\| event === "INITIAL_SESSION") && session?.user && isSocialProvider(session.user.app_metadata?.provider)) { |       if (event === "SIGNED_IN" && false) {
+// @mutate src/hooks/useLoginTracking.ts |       if ((event === "SIGNED_IN" \|\| event === "INITIAL_SESSION") && session?.user && | if (event === "SIGNED_IN" && session?.user &&
+// @mutate src/lib/socialSignupCompleted.ts |   if (safeStorage.getItem(key)) return; |
+// @mutate src/lib/socialSignupCompleted.ts |   track(AhaEvent.SignupCompleted, { provider, ...ppoTrackingProps() }); |   track(AhaEvent.SignupCompleted, { ...ppoTrackingProps() });

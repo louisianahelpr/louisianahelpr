@@ -3,6 +3,7 @@ import { GUIDES, guideBySlug, guidePicksVersion, loadGuidePicks, picksReady, sub
 import { DEALS_SLUG, dealName, type Deal } from "@/content/giftGuideDeals.mjs";
 import { SMALL_BIZ_SLUG, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { loadModule } from "@/lib/loadModule";
+import { isLiveDeals, liveCopy } from "@/lib/liveGuideData";
 import { itemId, type WishRef } from "./giftList";
 import { storeLabel } from "./GiftGuideView";
 
@@ -47,7 +48,8 @@ const subscribe = (l: () => void) => {
 const loadDeals = () =>
   (dealsLoad ??= loadModule(() => import("@/content/giftGuideDeals.json")).then((m) => {
     if (m) {
-      deals = m.default as Deal[];
+      // Live data (owner 2026-11-23): the newest valid copy this device holds (src/lib/liveGuideData.ts).
+      deals = liveCopy("deals", m.default as Deal[], isLiveDeals);
       bump();
     }
   }));

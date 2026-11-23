@@ -4,6 +4,7 @@ import RAIL from "@/content/giftGuideRailCounts.json";
 import { featuredLocalCount } from "@/lib/sbsFeaturedCount";
 import { dealDayParts } from "@/content/giftGuideDealCounts";
 import { loadModule, untilReload } from "@/lib/loadModule";
+import { isLiveDeals, liveCopy } from "@/lib/liveGuideData";
 
 /**
  * Small Business Saturday's whole list (owner 2026-11-22, 8:36 PM: "add the count to small business saturday too"): the
@@ -51,7 +52,8 @@ export async function railCounts(now: Date = new Date()): Promise<Record<string,
   // Through loadModule (noPropertyOffARawImport): null only while a recovery reload is on its way, so wait for it.
   const mod = await loadModule(() => import("@/content/giftGuideDeals.json"));
   if (!mod) return untilReload();
-  const deals = mod.default as Deal[];
+  // Live data (owner 2026-11-23): the newest valid copy this device holds (src/lib/liveGuideData.ts).
+  const deals = liveCopy("deals", mod.default as Deal[], isLiveDeals);
   const today = louisianaDay(now);
   const out: Record<string, number> = {};
   for (const e of DEAL_EVENTS) if (e.kind === "deals") out[e.id] = dealDayCount(e.id, deals, today);

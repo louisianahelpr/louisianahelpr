@@ -34,7 +34,8 @@ import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * The owner's lineup, day -> brands, exactly her 25 Days Sponsor Tracker's calendar (const D) as of 2026-11-22
- * ~6:30 AM (after the owner's changes the night before): 166 partner slots plus our own card on Dec 25, 167 in all
+ * ~6:30 AM (after the owner's changes the night before): 166 partner slots plus our own card on Dec 25, 167 in all;
+ * minus Helping Hands Gallery on Dec 7 (owner 2026-11-21, "respect their No": src/content/sponsorPublicOff.mjs), 166
  * (owner rule 2026-11-18: nothing stale anywhere). Drift check against the tracker
  * itself: `node scripts/check-25days-lineup.mjs` (manual; the tracker lives on the owner's Desktop, not in CI).
  */
@@ -45,7 +46,7 @@ const FINAL: Record<number, string[]> = {
   4: ["K18 Hair", "RYSE", "Monarch Books (Baton Rouge)", "Kate McLeod", "Wicks NOLA Candle Company", "Tays Sweet Shop", "Jessica Lanham Photography"],
   5: ["Oyu Botanica", "RYSE", "Breads and Sweets by Babs", "FELCO North America", "AllWays Lounge & Cabaret (New Orleans)", "Jessica Lanham Photography"],
   6: ["IOKA Skin+Science", "RYSE", "Mystic Forests Nursery", "homerunPET", "Perfectly Planned Events", "Jessica Lanham Photography", "Haylie Rudisill · Custom wreath sashes"],
-  7: ["RYSE", "Ace Bungee Fitness", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Suzi Marques Photography", "Helping Hands Gallery", "Cat 5 Fishing Charters (Lake Charles)"],
+  7: ["RYSE", "Ace Bungee Fitness", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Suzi Marques Photography", "Cat 5 Fishing Charters (Lake Charles)"],
   8: ["RYSE", "Timeless Skin Care", "Written on the River", "Tays Sweet Shop", "Active Beauty", "Candle Bloom Confections", "God's Country RV Resort"],
   9: ["RYSE", "Let's Create LLC", "CHIC by dmo", "Suzi Marques Photography", "City Sightseeing New Orleans", "Ripley's Crawfish"],
   10: ["Wicks NOLA Candle Company", "RYSE", "GentleStyle Brush (CLM Creations)", "Restore Hyper Wellness Mandeville", "Everyday Dose", "RoseMae Eimear Creations"],
@@ -76,9 +77,9 @@ describe("the final lineup", () => {
     const got = Object.fromEntries(days.map((d) => [d.day, d.partners.map((p) => p.brand)]));
     expect(got).toEqual(FINAL);
     for (const d of days) for (const p of d.partners) expect(p.prize.trim().length, `Dec ${d.day} ${p.brand} prize`).toBeGreaterThan(2);
-    // 167 cards: 166 partner slots from the tracker export of 2026-11-22 plus our own Dec 25 card (owner 2026-11-19: show the
+    // 166 cards: 166 partner slots from the tracker export of 2026-11-22 plus our own Dec 25 card, minus the one public-off sponsor (owner 2026-11-19: show the
     // full sponsor list), and no brand twice on one day (each partner's row is keyed by its brand).
-    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(167);
+    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(166);
     for (const d of days) expect(new Set(d.partners.map((p) => p.brand)).size, `Dec ${d.day}`).toBe(d.partners.length);
   });
 

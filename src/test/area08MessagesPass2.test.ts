@@ -93,6 +93,19 @@ describe("L4 / L6: reaction chip and SOS shield", () => {
     expect(src).toMatch(/data-sos-shield-label=""[\s\S]{0,300}\{t\("cp\.safetyLabel"\)\}/);
     expect(src).toContain('title={t("cp.safetyLabel")}');
   });
+  // App audit 11-23 AS-01: the word beside the shield cut the chat header's name to 4 letters at 375; it shows from
+  // 640px up only, never at phone width.
+  // @mutate src/components/SosShareButton.tsx | className="hidden sm:inline font-sans font-semibold text-ds-11 pr-1 no-underline" | className="hidden min-[360px]:inline font-sans font-semibold text-ds-11 pr-1 no-underline"
+  it("AS-01: the shield's word stays off phone widths, so the person's name keeps the room", () => {
+    const src = code("src/components/SosShareButton.tsx");
+    const label = src.match(/data-sos-shield-label=""[\s\S]{0,200}?className="([^"]*)"/);
+    expect(label?.[1]).toBeTruthy();
+    const classes = label![1].split(/\s+/);
+    expect(classes).toContain("hidden");
+    const shows = classes.filter((c) => /:(inline|block|flex)$/.test(c));
+    expect(shows.length).toBeGreaterThan(0);
+    for (const c of shows) expect(c).toMatch(/^(sm|md|lg|xl|2xl):/);
+  });
 });
 
 describe("M9: Pinned and Recently deleted have a header", () => {

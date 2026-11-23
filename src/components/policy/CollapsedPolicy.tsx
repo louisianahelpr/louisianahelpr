@@ -106,6 +106,22 @@ export type PolicyRow = {
   searchText?: string;
 };
 
+/**
+ * App audit 11-23 LT-3: the plain text of a row's body, so "Search all policies" finds words in the policies, not only
+ * in the headings ("Twilio", "refund" and "cookie" said No matches or missed rows). Walks the element tree's string
+ * children only: no render, no state.
+ */
+export const policyNodeText = (node: ReactNode): string => {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(policyNodeText).join(" ");
+  if (isValidElement(node)) return policyNodeText((node.props as { children?: ReactNode }).children);
+  return "";
+};
+
+const rowHaystack = (props: Partial<PolicyRow>) =>
+  `${props.title ?? ""} ${props.searchText ?? ""} ${policyNodeText(props.body)}`;
+
 const matches = (query: string, haystack: string) =>
   !query.trim() || haystack.toLowerCase().includes(query.trim().toLowerCase());
 
@@ -121,8 +137,8 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
   const [open, setOpen] = useState(false);
 
   const haystack = useMemo(
-    () => `${title} ${searchText ?? ""}`,
-    [title, searchText],
+    () => rowHaystack({ title, searchText, body }),
+    [title, searchText, body],
   );
   const hit = matches(query, haystack);
 
@@ -149,7 +165,7 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
   return (
     <Collapsible open={effectiveOpen} onOpenChange={setOpen}>
       <CollapsibleTrigger
-        className="group w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-ds-md text-left transition-colors btn-press hover:bg-primary/5"
+        className="group w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-ds-md text-left transition-colors btn-press hover:bg-primary/5 focus-visible:[outline-offset:-2px]"
       >
         <span className="flex items-center gap-2.5 min-w-0">
           {/* One olive line icon for every row (spec v2: single-colour olive
@@ -236,7 +252,7 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
   const childMatches = Children.toArray(children).some((child) => {
     if (!isValidElement(child)) return false;
     const props = child.props as Partial<PolicyRow>;
-    return matches(query, `${props.title ?? ""} ${props.searchText ?? ""}`);
+    return matches(query, rowHaystack(props));
   });
   const sectionHit = matches(query, `${title} ${subtitle}`) || childMatches;
 
@@ -301,7 +317,9 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
             OUTSIDE the button: <h2> is flow content and is invalid inside
             <button>, which only accepts phrasing content. */}
         <h2 className="m-0">
-        <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left btn-press">
+        {/* App audit 11-23 LT-4: the global :focus-visible outline sits 2px OUTSIDE this full-width trigger, where the
+            card's overflow-hidden clips all of it, so a keyboard user saw no focus at all. It is drawn inside. */}
+        <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left btn-press focus-visible:[outline-offset:-2px] focus-visible:rounded-[19px]">
           <span className="flex items-center gap-3 min-w-0">
             <span className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-primary/10 text-primary">
               <Icon className="w-4 h-4" />

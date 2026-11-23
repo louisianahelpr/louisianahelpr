@@ -20,10 +20,11 @@ export function MapToggleButton({ visible, onToggle, disabled = false }: { visib
       disabled={disabled}
       aria-label={visible ? "Hide the map" : "Show the map"}
       title={visible ? "Hide the map" : "Show the map"}
+      // App audit 11-23 H3: no disc behind the icon while the map shows (owner 11-21, no circles on header icons).
       className={`btn-press disabled:opacity-40 ${
         visible
-          ? "text-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.10)]"
-          : "text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--bark)/0.06)]"
+          ? "ctl-tint text-[hsl(var(--bark))]"
+          : "ctl-tint text-muted-foreground hover:text-foreground"
       }`}
     >
       {visible ? <Map className="w-5 h-5" /> : <MapPinned className="w-5 h-5" />}

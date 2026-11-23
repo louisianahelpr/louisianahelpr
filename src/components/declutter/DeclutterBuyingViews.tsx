@@ -14,7 +14,7 @@ import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes"
 import { fetchMyOffers } from "@/lib/declutter/api";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import { CartView, OffersSection, PaidOrders, SectionHeading } from "./DeclutterTradeViews";
-import { bucketChips, EndedLine, useBuyingTracker } from "./BuyingOrders";
+import { bucketChips, EndedLine, pickupDayHeld, useBuyingTracker } from "./BuyingOrders";
 import { PickupDayCard } from "./DeclutterPickupDayCard";
 import { DeclutterTabBones } from "./DeclutterSkeletons";
 import { ORDER_BUCKETS } from "./OrderSteps";
@@ -92,8 +92,9 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {/* The Free change (Q2487): a missed free pickup pauses free asks for 30 days; the date shows here. */}
       <FreePauseLine />
       {/* D-NEW11: on a day with pickups booked, what to do today comes first. */}
-      {/* NIGHT-BUYINGopenpr-1: never on an order on hold (the same open-problem read as its card's "On hold"). */}
-      <PickupDayCard orders={trk.live} bookings={trk.bookings} held={new Set(trk.live.filter((o) => trk.views.get(o.orderId)?.facts.problem).map((o) => o.orderId))} />
+      {/* NIGHT-BUYINGopenpr-1: never on an order on hold (the same open-problem read as its card's "On hold"); app audit
+          11-23 DB1: never on an order whose buyer reported the seller didn't show (pickupDayHeld). */}
+      <PickupDayCard orders={trk.live} bookings={trk.bookings} held={pickupDayHeld(trk.views)} />
       {/* Q2569 (audit 1102a): with every order in one group the row read "All · 2" "Cancelled · 2", the chip only
           repeating All; the chips show once there are two groups to choose between. */}
       {chips.length > 1 && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}

@@ -29,7 +29,15 @@
           "/support",
           "/help",
           "/legal",
-          "/rules"
+          "/rules",
+          "/declutter",
+          "/declutter/item/*",
+          "/declutter/sell",
+          "/u/*",
+          "/book/*",
+          "/tips/*",
+          "/search",
+          "/helprs"
         ],
         "components": [
           {
@@ -74,7 +82,15 @@
           { "/": "/support", "comment": "Contact form — reachable signed-out, and the only route to a human for a pending/denied/banned account." },
           { "/": "/help", "comment": "Help Center — linked from transactional email footers." },
           { "/": "/legal", "comment": "Legal — terms/privacy/community." },
-          { "/": "/rules", "comment": "Community rules. Claimed for the same reason /legal is: it is a policy document we link from moderation email, warnings and the report flow, and App.tsx redirects it to /legal?tab=community. Unclaimed it was the one policy link of the set that opened Safari while its siblings opened the app." }
+          { "/": "/rules", "comment": "Community rules. Claimed for the same reason /legal is: it is a policy document we link from moderation email, warnings and the report flow, and App.tsx redirects it to /legal?tab=community. Unclaimed it was the one policy link of the set that opened Safari while its siblings opened the app." },
+          { "/": "/declutter", "comment": "Declutter home, and the See your order / See your sale email buttons (?tab=buying, ?tab=selling). App audit 11-23 HA-03: unclaimed since Declutter launched, so those taps opened Safari, often signed out." },
+          { "/": "/declutter/item/*", "comment": "A Declutter item (See the item emails, welcome emails, shared item links). HA-03." },
+          { "/": "/declutter/sell", "comment": "Sell an item, and Finish listing / Relist links (?item=). HA-03." },
+          { "/": "/u/*", "comment": "A member's shared profile link (/u/:handle). HA-03." },
+          { "/": "/book/*", "comment": "Book a Helpr directly (/book/:userId). HA-03." },
+          { "/": "/tips/*", "comment": "A tip page (/tips/:tipId). HA-03." },
+          { "/": "/search", "comment": "Search. HA-03." },
+          { "/": "/helprs", "comment": "Find a Helpr. HA-03. /shops/* stays unclaimed while Shops is not launched (docs/NOT-LAUNCHED.md)." }
         ]
       }
     ]

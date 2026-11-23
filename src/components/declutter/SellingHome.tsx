@@ -33,13 +33,23 @@ const NOT_WHILE_AWAY = new Set(["savers", "drops", "relist"]);
  * The to-do rows, in the order a seller should do them; a row with nothing to do is left out, and while away the
  * listing nudges are too. `handOver` is useSalesToHandOver's count (null while it loads: the cart's own count).
  */
-export function sellingTodoRows(todo: Pick<DeclutterTodo, "sellerOffers" | "salesOpen"> | null, home: Pick<Home, "todo"> | null, away = false, handOver: number | null = null, reports = 0): TodoRow[] {
+/** App audit 11-23 S-S1: the rest of what "To answer" counts (DeclutterMineViews toAnswer). Free asks are listings. */
+export type SellingAsks = { questions: number; trades: number; bundles: number; free: number };
+const NO_ASKS: SellingAsks = { questions: 0, trades: 0, bundles: 0, free: 0 };
+
+export function sellingTodoRows(todo: Pick<DeclutterTodo, "sellerOffers" | "salesOpen"> | null, home: Pick<Home, "todo"> | null, away = false, handOver: number | null = null, reports = 0, asks: SellingAsks = NO_ASKS): TodoRow[] {
   const rows: TodoRow[] = [
     { key: "handover", n: handOver ?? todo?.salesOpen ?? 0, one: "dt5.home.handover1", many: "dt5.home.handoverN", group: "sold" },
     // Deep audit 11-22 #50: problem reports and refund requests waiting on the seller (useSellerReportsToAnswer, the
     // same set "To answer" lists) were left out of the to-do.
     { key: "reports", n: reports, one: "dt5.home.reports1", many: "dt5.home.reportsN", group: "offers" },
     { key: "offers", n: todo?.sellerOffers ?? 0, one: "dt5.home.offers1", many: "dt5.home.offersN", group: "offers" },
+    // App audit 11-23 S-S1: To do said "Nothing waiting on you." above "To answer · 1" when the one thing waiting was a
+    // question, a trade offer, a bundle request or a free ask. Each opens To answer, where it is listed.
+    { key: "trades", n: asks.trades, one: "dt5.home.trades1", many: "dt5.home.tradesN", group: "offers" },
+    { key: "bundles", n: asks.bundles, one: "dt5.home.bundles1", many: "dt5.home.bundlesN", group: "offers" },
+    { key: "free", n: asks.free, one: "dt5.home.free1", many: "dt5.home.freeN", group: "offers" },
+    { key: "questions", n: asks.questions, one: "dt5.home.questions1", many: "dt5.home.questionsN", group: "offers" },
     { key: "savers", n: home?.todo.savers_to_offer ?? 0, one: "dt5.home.savers1", many: "dt5.home.saversN", group: "listings" },
     { key: "drops", n: home?.todo.price_drops ?? 0, one: "dt5.home.drops1", many: "dt5.home.dropsN", group: "listings" },
     { key: "relist", n: home?.todo.to_relist ?? 0, one: "dt5.home.relist1", many: "dt5.home.relistN", group: "listings" },
@@ -83,7 +93,7 @@ export function useSellingTopSettled(userId: string, on: boolean): boolean {
 }
 
 /** The to-do card at the top of Selling. Bones of a heading and two rows while its read is on the way. */
-export function SellingTodo({ todo, handOver, reports = 0, onPick, userId }: { todo: DeclutterTodo | null; handOver: number | null; reports?: number; onPick: (g: Group) => void; userId: string }) {
+export function SellingTodo({ todo, handOver, reports = 0, asks = NO_ASKS, onPick, userId }: { todo: DeclutterTodo | null; handOver: number | null; reports?: number; asks?: SellingAsks; onPick: (g: Group) => void; userId: string }) {
   const home = useQuery(homeQuery);
   // The same read and key as the away card, so this adds no request.
   const away = useQuery(awayQuery(userId));
@@ -91,7 +101,7 @@ export function SellingTodo({ todo, handOver, reports = 0, onPick, userId }: { t
   if (home.isPending || away.isPending) return <div className="h-[164px] animate-pulse rounded-[20px] bg-muted/60" data-selling-home-bones="" aria-hidden />;
   const h = home.data;
   if (!h || !anyActivity(h)) return null;
-  const rows = sellingTodoRows(todo, h, !!away.data, handOver, reports);
+  const rows = sellingTodoRows(todo, h, !!away.data, handOver, reports, asks);
   return (
     // The rows run the card's full width (flush), so their 16px padding lines the text up under "To do" (11-20 #1:
     // they sat 16px in from it, inside the card's own padding).

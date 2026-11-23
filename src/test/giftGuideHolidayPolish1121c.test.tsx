@@ -16,8 +16,8 @@
  * @mutate src/content/giftGuideCatalog.ts |     if (budget !== null && !(pickPriceShown(price, priceAt, today) && (price as number) <= budget)) return false; |     if (budget !== null && !pickPriceShown(price, priceAt, today)) return false;
  * @mutate src/content/giftGuideCatalog.ts |   { words: ["nurse", "nurses", "rn", "rns", "lpn", "lpns"], slugs: ["her", "him"] }, |
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |               const dollars = searchItemDollars(item); |               const dollars = null as number \| null;
- * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | const CLEAN_SALES = cleanSales(SALES); | const CLEAN_SALES = SALES;
- * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | const CLEAN_CODES = cleanCodes(DEAL_CODES); | const CLEAN_CODES = DEAL_CODES;
+ * @mutate src/content/giftGuideDealCounts.ts | const CLEAN_SALES = cleanSales(SALES); | const CLEAN_SALES = SALES;
+ * @mutate src/content/giftGuideDealCounts.ts | const CLEAN_CODES = cleanCodes(DEAL_CODES); | const CLEAN_CODES = DEAL_CODES;
  * @mutate src/lib/giftGuideOfferCopy.mjs |   if (DANGLING.test(s)) return null; |
  * @mutate src/lib/giftGuideOfferCopy.mjs |   if (!IS_OFFER.test(s)) return null; |
  * @mutate src/lib/giftGuideOfferCopy.mjs |   s = sentenceCase(s); |

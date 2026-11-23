@@ -17,6 +17,10 @@ import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { pickPriceShown, shownDollars } from "@/lib/pickPriceShown.mjs";
+import { loadModule, untilReload } from "@/lib/loadModule";
+
+/** The 25 Days sponsors guide: the one guide whose picks load with their gift-type labels (loadGuidePicks). */
+const SPONSORS_GUIDE = "25-days-sponsors";
 import { AMAZON_TAG, SEARCH_FILLER } from "./giftGuideConstants";
 
 /**
@@ -126,6 +130,12 @@ export interface CatalogPick {
   priceRank?: number;
   /** A 25 Days sponsor's logo card (owner 11-22): the gift it gives ("$25 gift card"), shown where a price would be. */
   gift?: string;
+  /**
+   * The 25 Days sponsors guide's gift-type label for a row with no price ("Gift card", "Experience"...), stamped when
+   * that guide's picks load (loadGuidePicks), from src/content/giftGuideSponsorGiftTypes.ts loaded beside its chunk, so
+   * the table is never on any guide page's first paint (lead 11-22: ~1.9 KB gz on every /gift-guides/<slug>).
+   */
+  giftType?: string;
 }
 
 /** The badges a pick can carry (owner 2026-11-18). Optional; a pick with none shows none. */
@@ -322,8 +332,18 @@ export const loadGuidePicks = async (slug0: string): Promise<void> => {
   if (picksReady(slug)) return;
   const load = PICK_CHUNKS[`./giftGuidePicks/${slug}.json`];
   if (!load) throw new Error(`gift guides: no picks chunk for ${slug}`);
-  const chunk = await load();
-  loaded.set(slug, { picks: chunk.picks.map(toPick), ...(chunk.deals ? { deals: chunk.deals } : {}) });
+  // The sponsors guide's gift-type labels come with its own chunk, in parallel, so its rows draw with them (no flash) and
+  // no other guide downloads the table. A prevented preload waits on the recovery reload; none coming, the load fails
+  // into the page's own Try again, never rows without their labels.
+  const [chunk, types] = await Promise.all([
+    load(),
+    slug === SPONSORS_GUIDE ? loadModule(() => import("./giftGuideSponsorGiftTypes")).then((m) => m ?? untilReload()) : null,
+  ]);
+  const typed = (p: CatalogPick) => {
+    const t = types?.sponsorGiftType(p.name);
+    return t ? { ...p, giftType: t } : p;
+  };
+  loaded.set(slug, { picks: chunk.picks.map(toPick).map(typed), ...(chunk.deals ? { deals: chunk.deals } : {}) });
   version += 1;
   listeners.forEach((l) => l());
 };

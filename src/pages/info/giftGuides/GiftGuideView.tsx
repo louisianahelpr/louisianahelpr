@@ -21,7 +21,6 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import { sortByPrice } from "@/content/giftGuidePriceSort";
 import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGuideEarnOrder";
 import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
-import { sponsorGiftType } from "@/content/giftGuideSponsorGiftTypes";
 import { PrimeTrialLink } from "@/components/giftGuides/PrimeTrialLink";
 import { AgeChips } from "./GiftGuideAges";
 import { GiftGuideLoadError } from "./GiftGuideLoadError";
@@ -108,7 +107,7 @@ export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide
   const cart = amazonCartUrl([pick.href]);
   // Owner 11-22 (consistency audit #9, "Show the gift type"): a sponsors-page row with no price shows its gift type
   // ("Gift card", "Experience"...) in the price slot, in the price's own style. No dollar amount is made up.
-  const giftType = guide === SPONSORS_PAGE && !showsPrice(pick) ? sponsorGiftType(pick.name) : undefined;
+  const giftType = guide === SPONSORS_PAGE && !showsPrice(pick) ? pick.giftType : undefined;
   // Consistency audit 1122 #10: a sponsor with no page of its own links our 25 Days page, and the row says so.
   const toOurPage = OUR_25_DAYS_PAGE.test(pick.href);
   return (

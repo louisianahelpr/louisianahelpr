@@ -11,7 +11,7 @@
  *     Phyllis Guy) and Mystic Forests show the same image file as the sponsors guide.
  *   - #8: the cleaned logos (Birdwell's border, Perfectly Planned's grey well, Bayou Grace's cream box, Tiffany Morton's
  *     black corners) are cutouts: their corners are clear.
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const giftType = guide === SPONSORS_PAGE && !showsPrice(pick) ? sponsorGiftType(pick.name) : undefined; | const giftType = !showsPrice(pick) ? sponsorGiftType(pick.name) : undefined;
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const giftType = guide === SPONSORS_PAGE && !showsPrice(pick) ? pick.giftType : undefined; | const giftType = !showsPrice(pick) ? pick.giftType : undefined;
  * @mutate src/content/giftGuideSponsorGiftTypes.ts |   "The Fois": "Product", // a Fois Christmas sweater or the wooden Fois roux spoon |   "The Fois ": "Product",
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const toOurPage = OUR_25_DAYS_PAGE.test(pick.href); | const toOurPage = false;
  * @mutate src/content/giftGuideSmallBiz.json | "logo":"/gift-guides/sponsors/monarch-books.webp", | "logo":"/gift-guides/small-biz/monarch-books.png",
@@ -67,7 +67,7 @@ describe("25 Days sponsors guide: the gift type in the price slot (owner 11-22)"
   });
 
   it("shows no label on any other guide", () => {
-    const pick = { name: "Everyday Dose", href: "https://www.example.com/x", store: "sponsor", badges: [] } as unknown as CatalogPick;
+    const pick = { name: "Everyday Dose", href: "https://www.example.com/x", store: "sponsor", badges: [], giftType: "Gift card" } as unknown as CatalogPick;
     const c = render(<MemoryRouter><ol><PickRow pick={pick} guide="her" /></ol></MemoryRouter>).container;
     expect(c.querySelector("[data-gift-type]")).toBeNull();
   });

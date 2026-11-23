@@ -28,6 +28,9 @@
  * @mutate src/pages/info/giftGuides/railCounts.ts | return RAIL.smallBiz + (await featuredLocalCount()); | return RAIL.smallBiz;
  * @mutate src/pages/info/giftGuides/railCounts.ts | return RAIL.smallBiz; | return RAIL.smallBiz + 1;
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | put({ "small-business-saturday": n }) | put({})
+ * @mutate src/pages/info/giftGuides/railCounts.ts | import { codeCardCount, codesOn, salesOn } from "@/content/giftGuideDealCounts"; | import { codeCardCount, codesOn, salesOn } from "./GiftGuideDealCards";
+ * @mutate vite.config.ts |               name: "sbs-featured-reads", |               name: "sbs-featured-reads-off",
+ * @mutate src/content/giftGuideCatalog.ts | import { loadModule, untilReload } from "@/lib/loadModule"; | import { loadModule, untilReload } from "@/lib/loadModule"; import "@/content/giftGuideSponsorGiftTypes";
  */
 import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
@@ -64,6 +67,10 @@ import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
 import Printables from "@/pages/info/giftGuides/printables/Printables";
 import { dealDayCount, hubCountAt, smallBizCount } from "@/pages/info/giftGuides/railCounts";
 import SMALL_BIZ from "@/content/giftGuideSmallBiz.json";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { signedInOnlyModules, staticReach } from "../../scripts/perf/bootReach.mjs";
+import { blankComments } from "./helpers/blankNonCode";
 
 afterEach(cleanup);
 
@@ -196,5 +203,38 @@ describe("gift guides menu numbers (owner 11-22: Number on the right)", () => {
     // Outside the window: no number.
     expect(hubCountAt(RAIL.hub, dayOf(RAIL.hub.days), 0)).toBeNull();
     expect(hubCountAt(RAIL.hub, dayOf(-1), 0)).toBeNull();
+  });
+});
+
+/**
+ * What the menu's numbers cost (lead 11-22): the lazy railCounts chunk reaches only counting rules (no React, no cards,
+ * heart or wish list: those were ~14 KB gz after the menu drew), and every signed-in-only module it reaches is won by a
+ * public group (sbs-featured-reads: in signed-in-deep the Featured local read pulled ~310 KB gz after the menu drew).
+ * The 25 Days sponsors' gift-type table (~1.9 KB gz) loads with that guide's picks, never on a guide page's first paint.
+ */
+describe("the menu's numbers stay off the guide pages' load (lead 11-22)", () => {
+  const ROOT = resolve(__dirname, "../..");
+  const rel = (abs: string) => abs.slice(ROOT.length + 1).split("\\").join("/");
+  const config = blankComments(readFileSync(resolve(ROOT, "vite.config.ts"), "utf8"));
+  const groupTest = (name: string) => new RegExp(config.match(new RegExp(`name:\\s*"${name}",[\\s\\S]*?\\}`))?.[0].match(/test:\s*\/(.*)\/,\s*\n/)?.[1] ?? "^$");
+
+  it("railCounts reaches no React file and no signed-in-only module a public group does not win", () => {
+    const reach = [...staticReach(ROOT, [resolve(ROOT, "src/pages/info/giftGuides/railCounts.ts")])].map(rel);
+    expect(reach).toContain("src/content/giftGuideDealCounts.ts");
+    expect(reach).toContain("src/lib/sbsFeaturedApi.ts");
+    expect(reach.length).toBeGreaterThan(8);
+    expect(reach.filter((f) => f.endsWith(".tsx"))).toEqual([]);
+    const { signedInOnly } = signedInOnlyModules(ROOT);
+    const won = [groupTest("public-page-reads"), groupTest("sbs-featured-reads")];
+    const loose = reach.filter((f) => signedInOnly.has(resolve(ROOT, f).split("\\").join("/")) && !won.some((t) => t.test(`/x/${f}`)));
+    expect(loose).toEqual([]);
+    expect(won[1].test("/x/src/lib/sbsFeaturedCount.ts")).toBe(true);
+  });
+
+  it("the sponsors' gift-type table is not on any guide page's first paint", () => {
+    const reach = [...staticReach(ROOT, [resolve(ROOT, "src/pages/info/GiftGuides.tsx")])].map(rel);
+    expect(reach.length).toBeGreaterThan(100);
+    expect(reach).toContain("src/content/giftGuideCatalog.ts");
+    expect(reach).not.toContain("src/content/giftGuideSponsorGiftTypes.ts");
   });
 });

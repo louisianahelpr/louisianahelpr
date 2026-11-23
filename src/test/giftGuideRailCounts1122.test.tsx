@@ -123,8 +123,12 @@ describe("gift guides menu numbers (owner 11-22: Number on the right)", () => {
       const ymd = d <= 30 ? `2026-11-${d}` : `2026-12-0${d - 30}`;
       for (const day of DEAL_EVENTS.filter((e) => e.kind === "deals")) {
         const { container } = render(<MemoryRouter><GiftGuideDeals day={day} now={new Date(`${ymd}T18:00:00Z`)} /></MemoryRouter>);
-        await waitFor(() => expect(container.querySelector("[data-gift-deal-sections], [data-gift-deals-none]")).not.toBeNull());
-        await waitFor(() => expect(container.querySelector("[role=status]")).toBeNull());
+        // One wait: the page's sections (or its "none" line) are drawn AND no loading status is left (waitForEmptyIsVacuous:
+        // a wait for the status's absence alone passes on the first paint).
+        await waitFor(() => {
+          expect(container.querySelector("[data-gift-deal-sections], [data-gift-deals-none]")).not.toBeNull();
+          expect(container.querySelector("[role=status]")).toBeNull();
+        });
         const page = [...container.querySelectorAll("[data-gift-section-count]")].reduce((n, x) => n + Number(/\d+/.exec(x.textContent!)![0]), 0);
         expect(dealDayCount(day.id, DEALS as Deal[], ymd), `${day.id} on ${ymd}`).toBe(page);
         if (page > 0) checked++;

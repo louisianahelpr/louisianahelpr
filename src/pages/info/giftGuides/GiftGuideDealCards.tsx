@@ -224,4 +224,14 @@ export const CARD_CSS = `
 .gg-code-chip svg{width:15px;height:15px;flex:none;color:var(--gg-olive)}
 .gg-code-copied{font-size:12px;font-weight:700;color:var(--gg-olive)}
 .gg-code-copied:empty{display:none}
+/* Visual audit 1122-night #4: on a phone (under 480px) two Sales cards side by side squeezed The Home Depot's and Ring's
+   4-5 deals into a ~130px column, a wall of text. There each Sales card takes the full row, its photo a 96px square on
+   the left and the store name and every deal beside it (the heart stays top-right). 480px and up: unchanged. */
+@media (max-width:479px){
+.gg-deal-grid[data-gift-sales]{grid-template-columns:minmax(0,1fr)}
+[data-gift-sales]>.gg-store-card:has(>.gg-deal-photo){display:grid;grid-template-columns:96px minmax(0,1fr);column-gap:12px;row-gap:4px;align-content:start}
+[data-gift-sales]>.gg-store-card>.gg-deal-photo{grid-column:1;grid-row:1/span 3;align-self:start}
+[data-gift-sales]>.gg-store-card:has(>.gg-deal-photo)>:is(.gg-card-head,.gg-card-line,.gg-card-actions){grid-column:2}
+[data-gift-sales]>.gg-store-card>.gg-card-head{padding-right:38px}
+}
 `;

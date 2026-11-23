@@ -213,6 +213,12 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 /* Holiday audit 1121 #67: a sponsor's name carries the show or the product at its end ("... at The Strand Theatre A
    Christmas Carol"), so the sponsors page lets a name run to three lines before it clips. */
 [data-gift-guide="25-days-sponsors"] .gg-nm-name{-webkit-line-clamp:3}
+/* Visual audit 1122-night #1: on a phone the name column is narrow (126px at 320, 181px at 375), so two lines cut names
+   to their brand: Him showed "Smathers & Bran..." on row after row (48 Her/Him/Kids rows at 320 and 4 at 375 read the
+   same as another gift, measured on www). A phone row's name runs to three lines (four under 360px wide) before it clips,
+   which sits beside the photo and the heart strip; tablets, desktop and the Top 10 cards keep two. */
+@media (max-width:767px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:3}}
+@media (max-width:359px){.gg-list:not(.gg-top10) .gg-nm-name{-webkit-line-clamp:4}}
 .gg-nm .gg-nm-meta{display:flex;align-items:baseline;gap:8px;margin-top:4px;font-size:12px;font-weight:600;letter-spacing:.04em}
 .gg-nm-meta .gg-price{font-size:15px;letter-spacing:0}
 .gg-nm-meta .gg-price[data-gift-type]{white-space:nowrap}
@@ -389,6 +395,10 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 }
 /* The menu sheet: the sidebar's groups, rows and current-page look. */
 .gg-sheet-menu .gg-sheet-menu-body{max-height:70dvh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+/* Visual audit 1122-night #3: rows scrolled up under the "Gift guides" title and showed half-cut ("Banners" sliced at
+   320). The scrolling list now starts under a hairline below the title, so a row slides cleanly under that line, and
+   the first group sits 16px under it like the gap between groups (was ~5px). */
+.gg-sheet-menu .gg-sheet-menu-body{margin-top:8px;border-top:1px solid var(--gg-line);padding-top:16px}
 .gg-sheet-menu-body ul{list-style:none;margin:0 0 8px;padding:0}
 .gg-sheet-menu-body a{display:flex;align-items:center;min-height:44px;padding:4px 10px;border-radius:8px;color:var(--gg-ink);text-decoration:none;font-size:15px}
 .gg-sheet-menu-body a[aria-current="page"]{background:var(--gg-soft);color:var(--gg-olive);font-weight:700}

@@ -32,6 +32,12 @@ export const GIFT_WISH_CSS = `
 .gg-wish-own{display:inline-block;margin:18px 0 4px}
 .gg-deal{position:relative}
 .gg-deal .gg-heart-deal,.gg-sb .gg-heart-sb{position:absolute;top:6px;right:6px}
+/* Lead 11-22 night (train l screenshot crop-sales-hearts-375): a deal card's heart sits on the store's photo, and on a
+   full-bleed logo (Oriental Trading's purple, The Home Depot's orange) the thin rose outline vanished. Still no circle
+   behind it (owner 11-21): an unsaved deal heart is white inside its rose outline, with a firmer white edge and a soft
+   shadow, so it reads on any colour; a saved one stays filled rose. Same spot. */
+.gg-deal .gg-heart-deal[aria-pressed="false"] path{fill:#fff}
+.gg-deal .gg-heart-deal svg{filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff) drop-shadow(0 1px 2px rgba(0,0,0,.35))}
 .gg-sb{position:relative}
 .gg-toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;width:max-content;max-width:min(calc(100vw - 32px),30rem);box-sizing:border-box;padding:6px 6px 6px 16px;border-radius:999px;background:hsl(var(--ink-deep));color:hsl(var(--background));font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.2);pointer-events:auto}
 .gg-toast-text{flex:1 1 auto;min-width:0;line-height:1.3}

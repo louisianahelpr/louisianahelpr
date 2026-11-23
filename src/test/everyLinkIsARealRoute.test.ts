@@ -57,6 +57,7 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
   "/fonts": "public/fonts/ self-hosted brand font files the emails load (email-templates/styles.ts @font-face), served as files, not an app address",
   "/ti": "Apple MapKit CDN path (cdn.apple-mapkit.com/ti/csr/) that csp-report classifies as vendor noise",
   "/events": "Meta's Conversions API Gateway path (POST /events?cee=... on the pixel's *.on.aws / *.cloud.run hosts) that csp-report classifies as known noise, not an app address",
+  "/tr": "the Meta Pixel's www.facebook.com/tr/ endpoint (its blocked form-POST fallback) that csp-report classifies as known noise, not an app address",
 };
 
 /**

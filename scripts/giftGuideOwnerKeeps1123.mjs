@@ -7,6 +7,8 @@
  * HELD (waiting on affiliate links from her ShopMy / Walmart Creator accounts, signed out 11-23): Blackstone burger press,
  * Walmart Dearfoams slippers, Lodge skillet (Him); OOLY hair crayons, Floss & Rock memory match, Tender Leaf binoculars,
  * Sweet Wink cape, Brainstorm shark torch (Maisonette via ShopMy), Burt's Bees Baby pajamas (Kids).
+ * SECOND KEEPS (owner ~11:55 AM, owner-keeps-1123b.json): 19 Her and 9 Him Amazon picks (HER_KEEPS_1123_ROWS and the
+ * end of HIM_KEEPS_1123_ROWS), re-read on amazon.com 11-23 12:02-12:04 PM; the 7 non-Amazon ones are held (below).
  * Guard: src/test/giftGuideStockingStuffers1123.test.tsx.
  */
 
@@ -29,6 +31,48 @@ export const HIM_KEEPS_1123_ROWS = [
   ["B0G6GTRHCJ", 22.0, "71+R08lJ1bL", "Levi's Men's Reversible Casual Jeans Belt", "Levi's", "belt", 4, "A leather belt that flips from black to brown."],
   ["B07JCQ8GQJ", 23.88, "81WFd13Cq2L", "Thermacell Fuel-ZoneGuard Extreme Mosquito Repeller, Green", "Thermacell", "mosquito-repeller", 3, "A portable mosquito repeller for the stand, the boat or the porch."],
   ["B0DHT5XZR1", 24.99, "71Lkb3jAQnL", "Callaway Supersoft Golf Balls, 1 Dozen", "Callaway", "golf", 3, "A dozen soft golf balls for weekend rounds."],
+  // Second keeps (owner ~11:55 AM, owner-keeps-1123b.json "Him S2".."Him S10"): stocking stuffers, each re-read on its
+  // amazon.com page 2026-11-23 12:03-12:04 PM CT (sold by Amazon.com). The worms and the spinnerbait name the color the
+  // listing opens on (B00EO96HAA is Tequila Sunrise, 7 in.). The spinnerbait (B003CTQ4U6, opens on Chartreuse) carries no
+  // color in its name: "chartreuse" reads as neon to the men's style rule (src/test/giftGuideOwner1120d.test.ts).
+  ["B0051USN3A", 2.74, "71TeJyhZ+0L", "HotHands Hand Warmers, 3 Pairs", "HotHands", "hand-warmer", 3, "Pocket hand warmers for cold mornings in the stand or on the boat."],
+  ["B000WUIGYA", 2.97, "711hCdRB86L", "Nite Ize S-Biner Dual Carabiner, Size 2, Black", "Nite Ize", "carabiner", 3, "A stainless double-gate clip for keys or a belt loop."],
+  ["B000WNED08", 3.26, "61XkrUHeBJL", "Rain-X Windshield Treatment, 3.5 oz Spray", "Rain-X", "car-care", 4.5, "Makes rain bead off his windshield."],
+  ["B000050GET", 3.39, "616z-2GZeCL", "Bicycle Standard Playing Cards", "Bicycle", "game", 3, "A classic deck for card night or deer camp."],
+  ["B004MMEHKQ", 3.68, "71G1Fkrj15L", "Nite Ize Original Gear Tie, 2-Pack", "Nite Ize", "gear-tie", 3, "Bendable rubber twist ties for cords, tools and truck gear."],
+  ["B0BM5XZFWM", 3.79, "61pa4fWliRL", "CRAFTSMAN Keychain Tape Measure, 6 ft", "CRAFTSMAN", "accessory", 3, "A tiny tape measure that lives on his keyring."],
+  ["B06XFQNM8J", 4.66, "61F6+mLDiYL", "HME 3-Color Camo Face Paint Stick", "HME", "hunting", 3, "A mess-free camo face paint stick for hunting."],
+  ["B00EO96HAA", 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms, 7 in., Tequila Sunrise", "Berkley", "fishing", 3, "A pack of classic soft plastic worms for bass fishing."],
+  ["B003CTQ4U6", 4.97, "51aOoqbmkLL", "Strike King Redfish Magic Saltwater Spinnerbait", "Strike King", "fishing", 3, "A gold-blade spinnerbait made for redfish."],
+];
+
+/**
+ * For Her (owner's second keeps ~11:55 AM, owner-keeps-1123b.json, the 19 Amazon ones), each re-read on its amazon.com
+ * page 2026-11-23 12:02-12:03 PM CT. The OCOOPA link (B0FHHG23TP) is the Black hand warmers (its page's own color, and
+ * its photo is black; the listing has no White), so the card says Black. The candle warmer names the Amber shade the
+ * listing opens on. HELD (waiting on links): Her S1, S2, S4, S6, S9, S10 at Ulta (ShopMy links not made yet) and Her 21
+ * Capri Blue Volcano Car Diffuser (capri-blue.com via ShopMy).
+ */
+export const HER_KEEPS_1123_ROWS = [
+  ["B079FV8PLK", 3.17, "71oHjVJxhUL", "Sally Hansen Insta-Dri Nail Polish, Just In Wine", "Sally Hansen", "nail-polish", 3, "A quick-dry polish in a deep holiday wine shade."],
+  ["B00A8S6HM4", 3.98, "61WISQB7KNL", "Gold Bond Healing Hand Cream, 3 oz", "Gold Bond", "hand-care", 3, "A tube of hand cream that holds up to all-day handwashing."],
+  ["B0CB23NZGT", 4.78, "51WgHWxdSAL", "e.l.f. Lip Exfoliator, Brown Sugar", "e.l.f.", "lip", 3, "A brown sugar lip scrub for soft winter lips."],
+  ["B00EUBPHR6", 4.9, "71-gXRUepFL", "Real Techniques Miracle Complexion Sponge", "Real Techniques", "makeup", 3, "The makeup sponge beauty fans rebuy again and again."],
+  ["B0B2WL4CSB", 6.97, "71uX7sknZYL", "Corissy Personalized Leather Travel Jewelry Box with Name and Birth Flower", "Corissy", "jewelry-box", 4, "A small leather jewelry case with her name and birth flower."],
+  ["B0BX2TZZWG", 7.49, "61teCug7yHL", "Tree Hut Vanilla Shea Sugar Scrub, 18 oz", "Tree Hut", "body-scrub", 3, "A vanilla sugar body scrub."],
+  ["B07L5QGF38", 8.49, "812oXq0wPPL", "Cleverfy Shower Steamers, 6-Pack", "Cleverfy", "shower-steamers", 3, "Six aromatherapy tablets that scent the shower."],
+  ["B00GSH0KR2", 9.8, "61+-Ue8E4nL", "Kiehl's Lip Balm #1, 0.5 oz", "Kiehl's", "lip-balm", 10, "Kiehl's classic lip balm."],
+  ["B01N9B27XA", 9.95, "71tfYZmjXkL", "Mont Bleu Crystal Glass Nail Files, Set of 3 in Pouch", "Mont Bleu", "nail-file", 3, "Three glass nail files in a gift pouch."],
+  ["B010TCP3SC", 10.99, "6172rXS7RSL", "Dash Mini Waffle Maker, Red", "Dash", "kitchen-appliance", 4.5, "A 4-inch waffle maker for one."],
+  ["B01M10G9WJ", 11.99, "71rP7u8aCJL", "Jade Leaf Matcha Traditional Starter Set", "Jade Leaf", "matcha-set", 4.5, "A bamboo matcha whisk, scoop, sifter and handbook."],
+  ["B0DWMNVVQV", 14.99, "81w+ZTsSNrL", "Candle Warmer Lamp with Timer and Dimmer, Amber", "Funistree", "candle-warmer", 3, "A small lamp that melts a candle from the top, no flame."],
+  ["1401971369", 17.05, "91ZVf3kNrcL", "The Let Them Theory by Mel Robbins (hardcover)", "Hay House", "book", 4.5, "Mel Robbins' book on letting go of what you can't control."],
+  ["B01EXQ582Q", 18, "61Tti3h7s-L", "Sol de Janeiro Brazilian Bum Bum Cream, 2.5 oz", "Sol de Janeiro", "lotion", 10, "Sol de Janeiro's body cream in the travel jar."],
+  ["B0GXGV6FRN", 19.99, "91BBhXvpvlL", "Carhartt Women's Rib Knit Beanie, Stone Brown", "Carhartt", "hat", 4, "A soft ribbed knit beanie."],
+  ["B00023IT5S", 21.99, "51oiwmh2pIL", "Le Creuset Stoneware Mini Round Cocotte, 8 oz, Cerise", "Le Creuset", "cookware", 4.5, "A small red stoneware baking dish with a lid."],
+  ["006282015X", 24.98, "81PxN0B7CmL", "Magnolia Table, Volume 1 (Joanna Gaines)", "Harper Horizon", "cookbook", 4.5, "Joanna Gaines' first Magnolia Table cookbook."],
+  ["B0FHHG23TP", 24.99, "71UMvWt5y7L", "OCOOPA Dual-Sided Rechargeable Hand Warmers, 2-Pack, Black", "OCOOPA", "hand-warmer", 3, "Two rechargeable pocket hand warmers."],
+  ["B092GM9NWH", 25, "616XeR9df9L", "We're Not Really Strangers Card Game", "We're Not Really Strangers", "game", 3, "A conversation card game for friends."],
 ];
 
 /** For Kids (owner 11-23 keeps, Amazon). */

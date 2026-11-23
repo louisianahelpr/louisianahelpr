@@ -5,7 +5,7 @@
  * to Camp Snap direct (sale price + LEXILOMBAS7); the sold-out Sleep Crown goes on now with a short "Back Dec 1" chip
  * that hides on Dec 1; the Kate McLeod lotion bar waits (sold out at The Sleep Code, no paying link elsewhere).
  *
- * @mutate scripts/giftGuideHer1121.mjs | export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122]; | export const HER_ROWS = [...HER_1121, ...HER_POPULAR_1122];
+ * @mutate scripts/giftGuideHer1121.mjs | export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123]; | export const HER_ROWS = [...HER_1121, ...HER_POPULAR_1122, ...HER_KEEPS_1123];
  * @mutate scripts/giftGuideHimKids1121.mjs | export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123]) { | export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123]) {
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const back = pick.backOn && today < pick.backOn ? G.backOnChip(pick.backOn) : undefined; |   const back = undefined;
  * @mutate src/content/giftGuideCatalog.ts | ...(p.backOn ? { backOn: p.backOn } : {}), |
@@ -15,6 +15,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
+import { kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { ADDS_CUTOUTS_1122, ADDS_PRICE_AT, HER_ADDS_1122, HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { CUTOUT_BASE, CUTOUTS_1120 } from "../../scripts/giftGuideCutouts1120.mjs";
 import { recheckedPriceAt } from "../../scripts/giftGuidePriceRecheck.mjs";
@@ -173,6 +175,14 @@ describe("the owner's launch-day picks (11-22)", () => {
   it("every cutout of these photos is in the shared cutout map, so no add shows its boxed original", () => {
     expect(ADDS_CUTOUTS_1122.length).toBeGreaterThan(10);
     for (const [from, file] of ADDS_CUTOUTS_1122) expect(CUTOUTS_1120.get(from), from).toBe(file);
+  });
+
+  it("the Her and Kids builders feed every one of these adds to their pages (so a rebuild keeps them)", () => {
+    const herBuilt = new Set(her1121Picks().map((p) => p.href));
+    const kidsBuilt = new Set(kids1121Picks().map((p) => p.href));
+    expect(HER_ADDS_1122.length + KIDS_ADDS_1122.length).toBeGreaterThan(10);
+    for (const r of HER_ADDS_1122) expect(herBuilt.has(r.href), r.name).toBe(true);
+    for (const r of KIDS_ADDS_1122) expect(kidsBuilt.has(r.href), r.name).toBe(true);
   });
 
   it("the Swank Camp Snap pins are not used; every Camp Snap row carries her code LEXILOMBAS7", () => {

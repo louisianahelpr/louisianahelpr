@@ -3,11 +3,14 @@
  * holding every pick in that guide whose card reads under $10 (new and existing), cheapest first; the price sections
  * follow as before, and every section opens expanded. ONE rule (src/lib/pickPriceShown.mjs STOCKING_SECTION_ID, first
  * in PRICE_SECTIONS) shared by the page (GiftGuideView.tsx priceSections) and the Q&A counts (src/lib/guideQa.mjs).
- * Also: the owner's 11-23 Amazon keeps (14 For Him, 16 For Kids) are on their guides with the tagged link.
+ * Also: the owner's 11-23 Amazon keeps (14 For Him, 16 For Kids) are on their guides with the tagged link, and her
+ * second keeps (~11:55 AM: 19 For Her, 9 For Him) with the price read on amazon.com that day; the 7 non-Amazon wait.
  *
  * @mutate src/lib/pickPriceShown.mjs |   { id: "stocking-stuffers", max: 10 }, |   { id: "stocking-stuffers", max: 0 },
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const grouped = [...stocking, ...order.filter((id) => id !== STOCKING_SECTION_ID) |   const grouped = [...order.filter((id) => id !== STOCKING_SECTION_ID)
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const stocking = sortByPrice(priced.filter((p) => priceSectionOf(p) === STOCKING_SECTION_ID), "low"); | const stocking = sortByPrice(priced.filter((p) => priceSectionOf(p) === STOCKING_SECTION_ID), "high");
+ * @mutate scripts/giftGuideHer1121.mjs | ...HER_POPULAR_1122, ...HER_KEEPS_1123]; | ...HER_POPULAR_1122];
+ * @mutate scripts/giftGuideOwnerKeeps1123.mjs | 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms, 7 in., Tequila Sunrise" | 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms"
  * @mutate src/lib/guideQa.mjs |   const stocking = band("stocking-stuffers"); |   const stocking = band("under-25");
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,6 +27,9 @@ import { guideBySlug, loadGuidePicks } from "@/content/giftGuideCatalog";
 import { catalogGuideQa, toQaPick } from "@/lib/guideQa.mjs";
 import { PRICE_SECTIONS, pickPriceShown, priceSectionId } from "@/lib/pickPriceShown.mjs";
 import { pickAnchor } from "@/content/giftGuidePickAnchor";
+import { her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
+import { him1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
+import her from "@/content/giftGuidePicks/her.json";
 import him from "@/content/giftGuidePicks/him.json";
 import kids from "@/content/giftGuidePicks/kids.json";
 
@@ -64,7 +70,7 @@ describe("Her, Him and Kids open with Stocking stuffers under $10", () => {
   for (const slug of GUIDES) {
     it(`${slug}: the first section is the stocking stuffers, exactly the picks under $10, cheapest first, open`, async () => {
       const want = await expectedStocking(slug);
-      expect(want.length, slug).toBeGreaterThan(4); // her 6, him 14, kids 5 on 2026-11-23
+      expect(want.length, slug).toBeGreaterThan(4); // her 13, him 23, kids 5 on 2026-11-23 (after her second keeps)
       const { container } = render(
         <MemoryRouter initialEntries={[`/gift-guides/${slug}`]}>
           <Routes><Route path="/gift-guides/:slug" element={<GiftGuides />} /></Routes>
@@ -111,4 +117,68 @@ describe("the owner's 11-23 Amazon keeps are on their guides", () => {
       }
     });
   }
+});
+
+/**
+ * The owner's SECOND 11-23 keeps (~11:55 AM, Desktop owner-keeps-1123b.json): 19 Her and 9 Him Amazon picks, each with
+ * the price read on its amazon.com page 2026-11-23 12:02-12:04 PM CT and the main photo there. The 7 non-Amazon ones
+ * (6 Ulta stocking stuffers, the Capri Blue car diffuser) wait on links and are not on the page.
+ */
+describe("the owner's second 11-23 keeps are on Her and Him", () => {
+  const HER_B: [string, number, string, string][] = [
+    ["B079FV8PLK", 3.17, "71oHjVJxhUL", "Sally Hansen Insta-Dri Nail Polish, Just In Wine"],
+    ["B00A8S6HM4", 3.98, "61WISQB7KNL", "Gold Bond Healing Hand Cream, 3 oz"],
+    ["B0CB23NZGT", 4.78, "51WgHWxdSAL", "e.l.f. Lip Exfoliator, Brown Sugar"],
+    ["B00EUBPHR6", 4.9, "71-gXRUepFL", "Real Techniques Miracle Complexion Sponge"],
+    ["B0B2WL4CSB", 6.97, "71uX7sknZYL", "Corissy Personalized Leather Travel Jewelry Box with Name and Birth Flower"],
+    ["B0BX2TZZWG", 7.49, "61teCug7yHL", "Tree Hut Vanilla Shea Sugar Scrub, 18 oz"],
+    ["B07L5QGF38", 8.49, "812oXq0wPPL", "Cleverfy Shower Steamers, 6-Pack"],
+    ["B00GSH0KR2", 9.8, "61+-Ue8E4nL", "Kiehl's Lip Balm #1, 0.5 oz"],
+    ["B01N9B27XA", 9.95, "71tfYZmjXkL", "Mont Bleu Crystal Glass Nail Files, Set of 3 in Pouch"],
+    ["B010TCP3SC", 10.99, "6172rXS7RSL", "Dash Mini Waffle Maker, Red"],
+    ["B01M10G9WJ", 11.99, "71rP7u8aCJL", "Jade Leaf Matcha Traditional Starter Set"],
+    ["B0DWMNVVQV", 14.99, "81w+ZTsSNrL", "Candle Warmer Lamp with Timer and Dimmer, Amber"],
+    ["1401971369", 17.05, "91ZVf3kNrcL", "The Let Them Theory by Mel Robbins (hardcover)"],
+    ["B01EXQ582Q", 18, "61Tti3h7s-L", "Sol de Janeiro Brazilian Bum Bum Cream, 2.5 oz"],
+    ["B0GXGV6FRN", 19.99, "91BBhXvpvlL", "Carhartt Women's Rib Knit Beanie, Stone Brown"],
+    ["B00023IT5S", 21.99, "51oiwmh2pIL", "Le Creuset Stoneware Mini Round Cocotte, 8 oz, Cerise"],
+    ["006282015X", 24.98, "81PxN0B7CmL", "Magnolia Table, Volume 1 (Joanna Gaines)"],
+    ["B0FHHG23TP", 24.99, "71UMvWt5y7L", "OCOOPA Dual-Sided Rechargeable Hand Warmers, 2-Pack, Black"],
+    ["B092GM9NWH", 25, "616XeR9df9L", "We're Not Really Strangers Card Game"],
+  ];
+  const HIM_B: [string, number, string, string][] = [
+    ["B0051USN3A", 2.74, "71TeJyhZ+0L", "HotHands Hand Warmers, 3 Pairs"],
+    ["B000WUIGYA", 2.97, "711hCdRB86L", "Nite Ize S-Biner Dual Carabiner, Size 2, Black"],
+    ["B000WNED08", 3.26, "61XkrUHeBJL", "Rain-X Windshield Treatment, 3.5 oz Spray"],
+    ["B000050GET", 3.39, "616z-2GZeCL", "Bicycle Standard Playing Cards"],
+    ["B004MMEHKQ", 3.68, "71G1Fkrj15L", "Nite Ize Original Gear Tie, 2-Pack"],
+    ["B0BM5XZFWM", 3.79, "61pa4fWliRL", "CRAFTSMAN Keychain Tape Measure, 6 ft"],
+    ["B06XFQNM8J", 4.66, "61F6+mLDiYL", "HME 3-Color Camo Face Paint Stick"],
+    ["B00EO96HAA", 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms, 7 in., Tequila Sunrise"],
+    ["B003CTQ4U6", 4.97, "51aOoqbmkLL", "Strike King Redfish Magic Saltwater Spinnerbait"],
+  ];
+  for (const [name, list, keeps] of [["her", her.picks, HER_B], ["him", him.picks, HIM_B]] as const) {
+    it(`${name}: each keep once, named, priced as read today, with Amazon's photo and the tagged link`, () => {
+      expect(keeps.length).toBeGreaterThan(8);
+      for (const [asin, price, img, title] of keeps) {
+        const rows = (list as { name: string; href: string; price: number; priceAt: string; image: string }[]).filter((p) => p.href.includes(`/dp/${asin}`));
+        expect(rows.length, asin).toBe(1);
+        expect(rows[0].href).toBe(`https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20`);
+        expect(rows[0].name).toBe(title);
+        expect(rows[0].price, title).toBe(price);
+        expect(rows[0].priceAt).toBe("2026-11-23");
+        expect(rows[0].image).toBe(`https://m.media-amazon.com/images/I/${img}._SL500_.jpg`);
+      }
+    });
+  }
+  it("the pages are exactly what the builders make from scripts/giftGuideOwnerKeeps1123.mjs", () => {
+    expect(her.picks).toEqual(her1121Picks());
+    expect(him.picks).toEqual(him1121Picks());
+  });
+  it("the 7 non-Amazon keeps wait on links: none is on Her yet", () => {
+    const names = (her.picks as { name: string; href: string }[]).map((p) => `${p.name} ${p.href}`).join("\n");
+    for (const held of [/TONYMOLY/i, /method Mini Body Wash/i, /Peach Slices/i, /STARFACE/i, /Sweet & Shimmer/i, /Car Diffuser/i, /ulta\.com/i, /capri-blue\.com/i]) {
+      expect(names, String(held)).not.toMatch(held);
+    }
+  });
 });

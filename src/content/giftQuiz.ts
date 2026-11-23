@@ -133,6 +133,13 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   // outdoors, a lighter is outdoors and style, a magnetic tool wristband is tools, a streaming stick is a gadget.
   "knife-sharpener": ["outdoors", "tools"], "mosquito-repeller": ["outdoors"], lighter: ["outdoors", "style"], "tool-wristband": ["tools"],
   "streaming-stick": ["tech"],
+  // The owner's 11-23 second keeps (HER_KEEPS_1123_ROWS and Him S2-S10): nail polish, glass nail files, a sugar scrub and
+  // shower steamers are beauty (steamers cozy too); a jewelry box is style; a mini waffle maker and a matcha set are
+  // kitchen; a candle warmer lamp is cozy; hand warmers go outdoors; a card game or deck of cards is a cozy night in; a
+  // carabiner and gear ties are tools he clips or ties outdoors.
+  "nail-polish": ["beauty"], "nail-file": ["beauty"], "body-scrub": ["beauty"], "shower-steamers": ["beauty", "cozy"],
+  "jewelry-box": ["style"], "kitchen-appliance": ["kitchen"], "matcha-set": ["kitchen"], "candle-warmer": ["cozy"],
+  "hand-warmer": ["outdoors"], game: ["cozy"], carabiner: ["outdoors", "tools"], "gear-tie": ["tools", "outdoors"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {

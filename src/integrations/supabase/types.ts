@@ -22331,6 +22331,10 @@ export type Database = {
       profiles_locked_update_columns: { Args: never; Returns: string[] }
       promotions_resubscribe: { Args: { p_user_id: string }; Returns: string }
       promotions_unsubscribe: { Args: { p_user_id: string }; Returns: Json }
+      proof_photo_object_attached: {
+        Args: { p_name: string }
+        Returns: boolean
+      }
       prune_cron_http_requests: { Args: never; Returns: number }
       prune_cron_run_details: { Args: never; Returns: number }
       prune_cron_run_log: { Args: never; Returns: number }

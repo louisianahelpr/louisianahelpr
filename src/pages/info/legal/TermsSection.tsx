@@ -11,6 +11,7 @@ import { URGENT_FEE_FLOOR_DOLLARS, FORM_1099K_TRANSACTION_THRESHOLD, form1099kGr
 import { GUARANTEE_RULES } from "@/lib/guarantee/rules";
 import { HideOnSearch, TldrCard, PolicyFooter, TaxGuidanceLine } from "./LegalChrome";
 import { TermsSummaryEs } from "./TermsSummaryEs";
+import { GIFT_CARDS_TERMS_BODY } from "./termsGiftCards";
 import { useLanguage } from "@/lib/i18n/language";
 import { useOnboardingFeeCents, formatFeeLabel } from "@/hooks/useOnboardingFee";
 // F236/F258 (audit 11-10): the Declutter buyer's fee, from the numbers checkoutAmounts charges (never retyped).
@@ -196,6 +197,12 @@ export const TermsContent = () => {
             <p>You'll never be charged twice. Once paid, your account is set.</p>
           </>
         }
+      />
+      {/* MON-1123-01: gift cards never expire; the row's words are in termsGiftCards.tsx (guard giftCardsNeverExpire.test.tsx). */}
+      <PolicyRowItem
+        icon={Wallet}
+        title="Gift cards"
+        body={GIFT_CARDS_TERMS_BODY}
       />
       <PolicyRowItem
         icon={ShieldCheck}

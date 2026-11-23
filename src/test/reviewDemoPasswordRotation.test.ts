@@ -14,7 +14,7 @@ import { rotate, refusal, REVIEWER_EMAIL, newPassword, meetsAuthPolicy } from ".
 // @mutate scripts/rotate-review-demo-password.mjs |   if (!stored.ok) return { code: 1, | if (false) return { code: 1,
 // @mutate scripts/rotate-review-demo-password.mjs |   lines.push(`GitHub secret ${SECRET_NAME} set`); |   lines.push(`GitHub secret ${SECRET_NAME} set ${password}`);
 // @mutate scripts/rotate-review-demo-password.mjs |   if (!apply) { |   if (false) {
-// @mutate fastlane/Fastfile | stage_review_demo_password!(staged_metadata_dir)\n\n      staged_screenshots_dir | \n\n      staged_screenshots_dir
+// @mutate fastlane/Fastfile | stage_review_demo_password!(staged_metadata_dir)\n      stage_review_phone!(staged_metadata_dir)\n\n      staged_screenshots_dir | stage_review_phone!(staged_metadata_dir)\n\n      staged_screenshots_dir
 // @mutate scripts/rotate-review-demo-password.mjs |     if (meetsAuthPolicy(p)) return p; |     return p;
 // @mutate .github/workflows/deploy.yml |           ASC_REVIEW_DEMO_PASSWORD: ${{ secrets.ASC_REVIEW_DEMO_PASSWORD }} |           ASC_REVIEW_DEMO_PASSWORD_UNUSED: ${{ secrets.ASC_REVIEW_DEMO_PASSWORD }}
 // @mutate scripts/rotate-review-demo-password.mjs |  && /[^A-Za-z0-9]/.test(p); |;

@@ -47,6 +47,7 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
   "/credentials": "storage object path (credential documents)",
   "/shop-permits": "storage object path (user-documents bucket, shop permit documents; shops_submit_permit, 20261110195956)",
   "/disputes": "storage object path (dispute evidence)",
+  "/proof-photos": "storage object path (proof-photos bucket; proof_photo_object_attached matches a job's photo URLs by it, 20261123090717)",
   "/functions": "Supabase edge-function REST path",
   "/message-attachments": "storage bucket path",
   "/preview": "auth-email-hook's own admin preview endpoint",

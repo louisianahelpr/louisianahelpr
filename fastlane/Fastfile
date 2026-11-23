@@ -79,6 +79,20 @@ def stage_review_demo_password!(staged_metadata_dir)
   UI.message("Review demo password staged from ASC_REVIEW_DEMO_PASSWORD (not printed)")
 end
 
+# NL-01 (2026-11-23): the App Review contact phone is the owner's personal
+# number, so it never lives in this PUBLIC repo. It comes from the
+# APP_REVIEW_PHONE secret and is written ONLY into the temporary staged
+# metadata copy that `deliver` uploads. Unset = the lane stops: an empty
+# phone would blank the contact field on App Store Connect.
+def stage_review_phone!(staged_metadata_dir)
+  phone = ENV["APP_REVIEW_PHONE"].to_s.strip
+  UI.user_error!("APP_REVIEW_PHONE is not set: App Review would get no contact phone (NL-01). Set the GitHub secret; never commit phone_number.txt") if phone.empty?
+  target = File.join(staged_metadata_dir, "review_information", "phone_number.txt")
+  FileUtils.mkdir_p(File.dirname(target))
+  File.write(target, phone)
+  UI.message("Review contact phone staged from APP_REVIEW_PHONE (not printed)")
+end
+
 def xcode_build_target
   if File.exist?(WORKSPACE)
     UI.message("Using Xcode workspace: #{WORKSPACE}")
@@ -904,6 +918,7 @@ platform :ios do
         FileUtils.cp_r(source, File.join(staged_metadata_dir, entry))
       end
       stage_review_demo_password!(staged_metadata_dir)
+      stage_review_phone!(staged_metadata_dir)
 
       staged_screenshots_dir = File.join(staging_root, "screenshots")
       screenshots_present = Dir.exist?(source_screenshots_dir) &&
@@ -980,6 +995,7 @@ platform :ios do
         FileUtils.cp_r(source, File.join(staged_metadata_dir, entry))
       end
       stage_review_demo_password!(staged_metadata_dir)
+      stage_review_phone!(staged_metadata_dir)
 
       screenshots_present = Dir.exist?(source_screenshots_dir) &&
                             !Dir.glob(File.join(source_screenshots_dir, "**/*.{png,jpg,jpeg}")).empty?

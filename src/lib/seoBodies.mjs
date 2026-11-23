@@ -160,7 +160,7 @@ export function dealsGuideBody(slug, name, intro, disclosure, day, shops) {
       })
       .join("");
     const codes = byStore(day.codes)
-      .map(([store, rows]) => `<li>${outLink(rows[0][4], store, SPONSORED)}: ${rows.map(([, code, offer, runs]) => `${escapeHtml([offer, runs].filter(Boolean).join(" · "))} (code <code>${escapeHtml(code)}</code>)`).join("; ")}</li>`)
+      .map(([store, rows]) => `<li>${outLink(rows[0][4], store, SPONSORED)}: ${rows.map(([, code, offer, runs]) => `${escapeHtml([offer, runs].filter(Boolean).join(" · "))}${code ? ` (code <code>${escapeHtml(code)}</code>)` : ""}`).join("; ")}</li>`)
       .join("");
     const sales = byStore(day.sales)
       .map(([store, rows]) => `<li>${escapeHtml(store)}: ${rows.map(([, offer, href, ends]) => `${outLink(href, offer, SPONSORED)}${ends ? ` <span>${escapeHtml(runsText(null, ends))}</span>` : ""}`).join("; ")}</li>`)

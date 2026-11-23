@@ -18,6 +18,7 @@
 // @mutate src/prerender/seoData.ts |     for (const p of indexed ? g.picks : []) { |     for (const p of indexed ? g.picks.slice(0, 40) : []) {
 // @mutate src/lib/seoBodies.mjs | links: [["/gift-guides/planner", "Gift planner"], ["/gift-guides/swipe", "Swipe to find gifts"], ["/gift-guides", "Holiday gift guides"]], | links: [["/gift-guides/secret-santa", "Secret Santa and White Elephant gift ideas"], ["/gift-guides", "Holiday gift guides"]],
 // @mutate src/content/giftGuideCatalog.ts |   "store-kaiya-baby", "store-lofree", "store-magic-story", "store-xplora"]; |   "store-kaiya-baby", "store-lofree", "store-xplora"];
+// @mutate src/lib/seoBodies.mjs | ${code ? ` (code <code>${escapeHtml(code)}</code>)` : ""} |  (code <code>${escapeHtml(code)}</code>)
 // @mutate api/share.ts | return withRootBody(head.replace(/<link rel="canonical" href="[^"]*">\s*/, ""), body); | return withRootBody(head, body);
 import { describe, it, expect, beforeAll, vi, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -122,6 +123,19 @@ describe("TS3: the deals days and /25days list what the page shows", () => {
     }
     // 61 + 42 rows on 2026-11-23 alone (audit 11-23).
     expect(checked).toBeGreaterThan(100);
+  });
+
+  it("a no-code sale in Discount codes (Bruno Marc 25% off, code \"\", 2026-11-23) prints no empty code", async () => {
+    at("2026-11-23");
+    const noCode = Object.values(data.dealLists ?? {}).flatMap((l) => l.codes).filter((c) => c[1] === "");
+    // Bruno Marc's Black Friday sale (giftGuides.ts STORE_CODES, 2026-11-23); a floor, not an exact count.
+    expect(noCode.length).toBeGreaterThan(0);
+    for (const id of DEAL_DAYS) {
+      const body = seoBody(await page(`gift-guides/${id}`));
+      expect(body, id).not.toContain("<code></code>");
+      expect(body, id).not.toContain("(code )");
+    }
+    expect(seoBody(await page("gift-guides/black-friday"))).toContain("no code needed");
   });
 
   it("every outbound deals link is marked sponsored", async () => {

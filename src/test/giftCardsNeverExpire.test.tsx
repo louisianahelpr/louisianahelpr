@@ -22,7 +22,8 @@
  * @mutate src/pages/profile/giftCards/CreditCard.tsx |   const showExpiry = isFunded && credit.status !== "redeemed"; |   const showExpiry = credit.status !== "redeemed";
  * @mutate src/pages/profile/GiftCard.tsx |  per gift card. Never expires.{" "} |  per gift card.{" "}
  * @mutate supabase/functions/_shared/email-templates/gift-card.tsx | : "Your credit never expires."} | : null}
- * @mutate src/pages/info/legal/TermsSection.tsx | Gift cards never expire.</strong> | Gift cards last 90 days.</strong>
+ * @mutate src/pages/info/legal/termsGiftCards.tsx | Gift cards never expire.</strong> | Gift cards last 90 days.</strong>
+ * @mutate src/pages/info/legal/TermsSection.tsx |         body={GIFT_CARDS_TERMS_BODY} |         body={null}
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -44,7 +45,9 @@ describe("gift cards never expire (MON-1123-01)", () => {
   it("the last change to gift_cards.expires_at's default drops it", () => {
     const changes: { file: string; drop: boolean }[] = [];
     const RE = /ALTER\s+TABLE\s+(?:ONLY\s+)?(?:IF\s+EXISTS\s+)?(?:public\.)?"?gift_cards"?\s+ALTER\s+COLUMN\s+"?expires_at"?\s+(SET\s+DEFAULT|DROP\s+DEFAULT)/gi;
-    const CREATE_DEFAULT = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?"?(?:gift_cards|pif_credits)"?\s*\([\s\S]*?expires_at\s+timestamptz[^,\n]*DEFAULT/gi;
+    // The table's first CREATE (2026-06, under its retired name) predates the rename migration 20260913051340, so it can
+    // never be the last change: only a gift_cards CREATE is read (the retired name would trip giftCardNaming).
+    const CREATE_DEFAULT = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?"?gift_cards"?\s*\([\s\S]*?expires_at\s+timestamptz[^,\n]*DEFAULT/gi;
     for (const f of files) {
       const code = blankSqlComments(sqlOf(f));
       changes.push(...[...code.matchAll(CREATE_DEFAULT)].map(() => ({ file: f, drop: false })));
@@ -101,8 +104,9 @@ describe("gift cards never expire (MON-1123-01)", () => {
   it("the buy screen, the email and the Terms say it", () => {
     expect(blankComments(read("src/pages/profile/GiftCard.tsx"))).toMatch(/per gift card\. Never expires\./);
     expect(blankComments(read("supabase/functions/_shared/email-templates/gift-card.tsx"))).toMatch(/: "Your credit never expires\."/);
-    const terms = blankComments(read("src/pages/info/legal/TermsSection.tsx"));
-    expect(terms).toMatch(/title="Gift cards"/);
+    // The row stays in TermsSection (PolicySection's search reads its title); its words are in termsGiftCards.tsx.
+    expect(blankComments(read("src/pages/info/legal/TermsSection.tsx"))).toMatch(/title="Gift cards"\s+body=\{GIFT_CARDS_TERMS_BODY\}/);
+    const terms = blankComments(read("src/pages/info/legal/termsGiftCards.tsx"));
     expect(terms).toMatch(/Gift cards never expire\.<\/strong>/);
     // Only what the code does: chargeRefunded revokes / gives back on a FULL refund only.
     expect(terms).toMatch(/cancelled or refunded in full, the gift card part comes back/);

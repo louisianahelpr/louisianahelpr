@@ -11,6 +11,7 @@ import { URGENT_FEE_FLOOR_DOLLARS, FORM_1099K_TRANSACTION_THRESHOLD, form1099kGr
 import { GUARANTEE_RULES } from "@/lib/guarantee/rules";
 import { HideOnSearch, TldrCard, PolicyFooter, TaxGuidanceLine } from "./LegalChrome";
 import { TermsSummaryEs } from "./TermsSummaryEs";
+import { GIFT_CARDS_TERMS_BODY } from "./termsGiftCards";
 import { useLanguage } from "@/lib/i18n/language";
 import { useOnboardingFeeCents, formatFeeLabel } from "@/hooks/useOnboardingFee";
 // F236/F258 (audit 11-10): the Declutter buyer's fee, from the numbers checkoutAmounts charges (never retyped).
@@ -197,21 +198,11 @@ export const TermsContent = () => {
           </>
         }
       />
-      {/* MON-1123-01 (2026-11-23): gift cards never expire (La. R.S. 51:1423; 12 CFR 1005.20), migration
-          20261123090716. Each sentence is what the code does: restore_gift_card_for_job and
-          restore_gift_card_for_declutter_order give a refunded gift share back as gift credit;
-          revoke_gift_card_for_refund stops a card whose purchase was refunded or charged back.
-          Guard: src/test/giftCardsNeverExpire.test.tsx. */}
+      {/* MON-1123-01: gift cards never expire; the row's words are in termsGiftCards.tsx (guard giftCardsNeverExpire.test.tsx). */}
       <PolicyRowItem
         icon={Wallet}
         title="Gift cards"
-        body={
-          <>
-            <p><strong className="text-foreground">Gift cards never expire.</strong> The credit stays good until it is used up.</p>
-            <p><strong className="text-foreground">Using one:</strong> the person it is sent to claims it from the link we email them, then uses the credit toward jobs on Helpr and Declutter buys.</p>
-            <p><strong className="text-foreground">Refunds:</strong> if a job or purchase paid with gift card credit is cancelled or refunded in full, the gift card part comes back as gift card credit. If the payment for a gift card is refunded in full or disputed, any credit left on that gift card is cancelled and can no longer be used.</p>
-          </>
-        }
+        body={GIFT_CARDS_TERMS_BODY}
       />
       <PolicyRowItem
         icon={ShieldCheck}

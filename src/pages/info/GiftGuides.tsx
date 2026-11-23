@@ -23,7 +23,7 @@ import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { BUDGETS, BUDGET_MIN_PICKS, GiftGuideView, sectionLabel, sectionNav } from "./giftGuides/GiftGuideView";
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
-import { DEALS_COVER, DEALS_SLUG, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
+import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 
@@ -253,7 +253,7 @@ export default function GiftGuides() {
   const sidePage = deals ? deals.id : landing && finderAsked(params.toString() ? `?${params.toString()}` : "", hash) ? "finder" : undefined;
   // Every page but the landing opens on its gingham banner (its own h1; owner 11-22 #13: the wish lists and Find a gift
   // too, as the guides and the deals days); the landing's h1 is the head row's title.
-  const banner: GuidesBanner | null = deals ? { lead: deals.lead, title: deals.pageTitle, tint: deals.kind === "small-biz" ? "green" : "red", sub: false }
+  const banner: GuidesBanner | null = deals ? { lead: deals.lead, title: deals.pageTitle, tint: deals.kind === "small-biz" ? "green" : DEALS_TINT, sub: false }
     : guide ? { lead: guide.age ? `${guide.lead}, ${guide.age}` : guide.lead, title: guide.title, tint: guide.tint, sub: false }
     : myList ? G.pageBanners.myList
     : shared ? G.pageBanners.shared

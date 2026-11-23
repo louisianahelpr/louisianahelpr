@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import type { PrintablePagePath } from "@/content/printables";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -8,6 +8,7 @@ import { giftGuides as G, type PageBanner } from "@/content/giftGuides";
 import { GiftGuideTools } from "../GiftGuideShare";
 import { GuidesTop } from "../GuidesTop";
 import { GiftGuidesSidebar } from "../GiftGuidesSidebar";
+import { GuidesDisclosure } from "../GuidesDisclosure";
 
 /** Which head-row icons a frame page shows (GuidesFrame). */
 type FrameTools = "all" | "no-search" | "none";
@@ -44,30 +45,27 @@ export function FunBody({ title, path, noindex, banner = G.pageBanners[path], to
  * The gift guides' frame for a page outside GiftGuides.tsx (the fun pages, the printables, the Holiday Hub): the guides'
  * one top (GuidesTop: back arrow + "Holiday gift guides", the shipping pill, search, My list heart and Share, the
  * phone's chip row, then the page's gingham banner holding its h1), then the page, the left menu and the disclosures
- * (holiday audit 1121 #13: the fun pages had no head row or menu). The caller brings GIFT_GUIDES_CSS. `disclosures`
- * off only on a page with no affiliate link.
+ * (holiday audit 1121 #13: the fun pages had no head row or menu). The caller brings GIFT_GUIDES_CSS. The disclosures
+ * show only while the page carries an affiliate link (GuidesDisclosure, owner 11-22).
  * Owner 2026-11-22 #13 ("gifts tags and all the other sections should have the same top section as the guides and the
  * deals"): the banner replaces this morning's plain left serif title (polish audit 1122 #10).
  * `tools`: the head row's icons. "none" on the printables (owner 11-21: "remove the search, favorite ... just polish
  * this"; 11-22: "Same row, icons off there"): the pill only. "no-search" on the Holiday Hub (owner 11-22): the heart
  * and Share, no gift search beside the Hub's own lights search.
  */
-export function GuidesFrame({ title, path, banner, tools = "all", disclosures = true, children }: { title: string; path: string; banner: PageBanner; tools?: FrameTools; disclosures?: boolean; children: ReactNode }) {
+export function GuidesFrame({ title, path, banner, tools = "all", children }: { title: string; path: string; banner: PageBanner; tools?: FrameTools; children: ReactNode }) {
+  const frame = useRef<HTMLDivElement>(null);
   return (
-    <div className="gg w-full" data-gift-fun-frame="">
+    <div className="gg w-full" data-gift-fun-frame="" ref={frame}>
       <GuidesTop backTo="/gift-guides" banner={banner} tools={tools === "none" ? null : <GiftGuideTools path={path} title={title} search={tools === "all"} />} nav={{ active: null, page: path }} />
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">
         <div className="gg-main">{children}</div>
         <GiftGuidesSidebar active={null} page={path} />
         {/* Holiday audit 1121 (High): Swipe's Shop links and the planner's ideas are affiliate links (Amazon's among
-            them), so every fun page ends with the same small muted line as the guides: the FTC disclosure
-            (16 CFR Part 255) holding the statement the Amazon Associates agreement requires (one line, owner 11-22). */}
-        {disclosures && (
-          <footer className="gg-disc" data-gift-fun-disclosure="">
-            <p data-gift-disclosure="">{G.disclosureLead} <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>
-          </footer>
-        )}
+            them), so a fun page that shows one ends with the same small muted line as the guides. Owner 11-22: a page
+            with none (the printables, Secret Santa, the Holiday Hub) shows no line. */}
+        <GuidesDisclosure scope={frame} data-gift-fun-disclosure="" />
       </div>
     </div>
   );

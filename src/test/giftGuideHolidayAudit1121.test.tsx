@@ -9,7 +9,7 @@
  * @mutate src/content/giftGuideExtras1120.ts |   { id: "kids", label: "Kids", guides: [{ slug: "kids" }] }, |   { id: "kids", label: "Kids", guides: [{ slug: "kids", sections: ["little-kids"] }, { slug: "kids", sections: ["big-kids"] }] },
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-head-title .text-page-title{margin:0;min-width:0;overflow-wrap:anywhere} | .gg-head-title .text-page-title{margin:0;min-width:0;white-space:nowrap}
  * @mutate src/components/ScrollToTop.tsx |       return scrollToHash(hash); |       return;
- * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p> | </p>
+ * @mutate src/pages/info/giftGuides/GuidesDisclosure.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p> | </p>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
@@ -26,6 +26,7 @@ import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "./helpers/blankNonCode";
 import { giftGuides as G } from "@/content/giftGuides";
 import { FunBody } from "@/pages/info/giftGuides/fun/FunPage";
+import { GiftOut } from "@/pages/info/giftGuides/GiftOut";
 import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { SWIPE_WHO, swipePool } from "@/content/giftGuideFun1120";
 
@@ -107,8 +108,9 @@ const FUN_SOURCES = Object.entries(import.meta.glob<string>("../pages/info/giftG
   .map(([f, src]) => [f.replace(/^.*\//, ""), blankComments(src)] as const);
 
 describe("affiliate links always carry the disclosure (holiday audit 1121, High: Swipe and the planner had none)", () => {
-  it("the fun pages' shared body ends with the FTC disclosure and the Amazon Associates statement", () => {
-    const { container } = render(<MemoryRouter><FunBody title="Swipe" path="/gift-guides/swipe"><p>deck</p></FunBody></MemoryRouter>);
+  it("the fun pages' shared body ends with the FTC disclosure and the Amazon Associates statement (while it shows an affiliate link)", () => {
+    // Owner 11-22: the line shows only on a page with an affiliate link (src/test/giftGuideDisclosureWhereLinked1122.test.tsx).
+    const { container } = render(<MemoryRouter><FunBody title="Swipe" path="/gift-guides/swipe"><GiftOut href="www.amazon.com/dp/B0X?tag=louisianahelpr-20">Shop</GiftOut></FunBody></MemoryRouter>);
     expect(container.querySelector("[data-gift-fun-disclosure] [data-gift-disclosure]")?.textContent).toBe(G.disclosure);
     expect(container.querySelector("[data-gift-fun-disclosure] [data-gift-amazon-statement]")?.textContent).toBe(G.amazonStatement);
     expect(G.amazonStatement).toMatch(/As an Amazon Associate/);

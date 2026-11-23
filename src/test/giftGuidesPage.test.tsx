@@ -26,8 +26,8 @@
  *
  * @mutate src/pages/info/giftGuides/GiftOut.tsx | rel="sponsored noopener" | rel="noopener"
  * @mutate src/pages/info/giftGuides/GiftOut.tsx | target="_blank" rel= | rel=
- * @mutate src/pages/info/GiftGuides.tsx | <p data-gift-disclosure="">{G.disclosureLead} <span | <p data-gift-disclosure="">{null} <span
- * @mutate src/pages/info/GiftGuides.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n | </p>\n
+ * @mutate src/pages/info/giftGuides/GuidesDisclosure.tsx | <p data-gift-disclosure="">{G.disclosureLead} <span | <p data-gift-disclosure="">{null} <span
+ * @mutate src/pages/info/giftGuides/GuidesDisclosure.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n | </p>\n
  * @mutate src/content/giftGuides.ts |   disclosureLead: "Affiliate links:", |   disclosureLead: "Links:",
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | padding-top:14px;font-size:12px;color:var(--gg-muted); | padding-top:14px;font-size:10px;color:var(--gg-muted);
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
@@ -942,7 +942,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
 describe("gift guides: no ShopMy collection lines on a guide page, no ShopMy/Pinterest links in the footer (owner 11-18 PM)", () => {
   // Owner: "you can remove this because my full guides are already here with the links" (Shop the full guide / More
   // on ShopMy), and "same for this" (Every collection on ShopMy / Every gift guide on Pinterest). The disclosures stay.
-  // @mutate src/pages/info/GiftGuides.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n      <p className="gg-more"><a href="https://shopmy.us/shop/lexilombas">Every collection on ShopMy</a></p>\n
+  // @mutate src/pages/info/giftGuides/GuidesDisclosure.tsx | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n | <span data-gift-amazon-statement="">{G.amazonStatement}</span></p>\n      <p className="gg-more"><a href="https://shopmy.us/shop/lexilombas">Every collection on ShopMy</a></p>\n
   it("Her, Him, Dad and a store page show neither line; the footer keeps the one disclosure line and no other link", () => {
     let pages = 0;
     for (const slug of ["her", "him", "dad", "store-walmart"]) {

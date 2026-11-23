@@ -3,7 +3,8 @@
  * reports real failures, stays quiet on the rate limit, and never sends the
  * password.
  *
- * @mutate src/lib/signupLead.ts |     if (error && !QUIET_STATUSES.has(statusOf(error) ?? 0)) { |     if (false) {
+ * @mutate src/lib/signupLead.ts |     if (error && !isQuiet(statusOf(error), !!captchaToken)) { |     if (false) {
+ * @mutate src/lib/signupLead.ts |   if (status === 403) return sentToken; |   if (status === 403) return true;
  * @mutate src/lib/signupLead.ts |         ...(captchaToken ? { captcha_token: captchaToken } : {}), |         ...{},
  * @mutate src/lib/signupLead.ts |             widget.reset();\n |             \n
  * @mutate src/lib/signupLead.ts | ...(prev && prev !== next ? { replaces: prev } : {}) | ...{}
@@ -63,6 +64,16 @@ describe("captureSignupLead", () => {
       body: { email: "me@gmail.com", source: "direct", captcha_token: "tok-1" },
     });
     expect(report).not.toHaveBeenCalled();
+  });
+
+  // Audit DQ-1 (2026-11-23): the server required a token the dormant web widget
+  // never mints, and the client kept every one of those 403s quiet, so real
+  // visitors' leads were refused for 26 days with nothing reported.
+  it("reports a 403 on a capture that sent NO token: the server wants a token this client cannot mint (DQ-1)", async () => {
+    invoke.mockResolvedValue({ data: null, error: { message: "403", context: { status: 403 } } });
+    await captureSignupLead("me@gmail.com", "direct", null, null);
+    expect(report).toHaveBeenCalledTimes(1);
+    expect(report.mock.calls[0][1]).toMatchObject({ context: { status: 403, sentToken: false } });
   });
 
   it("a thrown network error is reported, not raised", async () => {

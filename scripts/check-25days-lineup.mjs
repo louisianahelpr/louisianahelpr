@@ -15,6 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { PUBLIC_OFF_SPONSORS } from "../src/content/sponsorPublicOff.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -39,6 +40,8 @@ const NOTE_PARENS = [
   /\s*\([^)]*\b\d{1,2}:\d{2}\s*[AP]M[^)]*\)/gi,
   /\s*\([^)]*\bnot given\)/gi,
   /\s*\([^)]*sign-up form\)/gi,
+  // Owner 2026-11-22: "(ONE prize; owner 11-22)" / "(one prize; owner 11-22: keep all 3 together ...)" are planning notes.
+  /\s*\(one prize\b[^)]*\)/gi,
 ];
 /**
  * Owner 2026-11-19: the public lineup shows business names, except these three sponsors, who show by their own name
@@ -113,11 +116,14 @@ function expectedLineup({ S, D }) {
     const keys = D[day] ?? [];
     days.push({
       day,
-      partners: keys.map((k) => {
-        const s = S[k];
-        if (!s) throw new Error(`Dec ${day}: calendar key "${k}" has no sponsor`);
-        return { brand: publicBrand(s.n), prize: publicPrize(s.prize, day) };
-      }),
+      partners: keys
+        .map((k) => {
+          const s = S[k];
+          if (!s) throw new Error(`Dec ${day}: calendar key "${k}" has no sponsor`);
+          return { brand: publicBrand(s.n), prize: publicPrize(s.prize, day) };
+        })
+        // Owner 2026-11-21: a sponsor who said No to the public wall keeps its day but never shows on the site.
+        .filter((p) => !PUBLIC_OFF_SPONSORS.includes(p.brand)),
     });
   }
   return days;

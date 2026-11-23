@@ -18,6 +18,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
+import { PUBLIC_OFF_SPONSORS } from "../src/content/sponsorPublicOff.mjs";
 
 const REPO = resolve(import.meta.dirname, "..");
 const LOGOS = process.env.SPONSOR_LOGOS_DIR ?? join(homedir(), "Desktop", "25 Days Logos");
@@ -76,7 +77,7 @@ export const shortName = (name) => String(name).split(/\s*[:(·]\s*/)[0].replace
 
 /** The lineup's brands (every `brand: "..."` in the days list) and its Facebook links. */
 export function readLineup(src) {
-  const brands = [...new Set([...src.matchAll(/\{ brand: "([^"]+)", prize:/g)].map((m) => m[1]))].filter((b) => !NOT_A_SPONSOR.has(b) && !DROPPED_SPONSORS.has(b));
+  const brands = [...new Set([...src.matchAll(/\{ brand: "([^"]+)", prize:/g)].map((m) => m[1]))].filter((b) => !NOT_A_SPONSOR.has(b) && !DROPPED_SPONSORS.has(b) && !PUBLIC_OFF_SPONSORS.includes(b)); // owner 11-21: their No stands (src/content/sponsorPublicOff.mjs)
   const links = {};
   for (const m of src.matchAll(/^\s+"([^"]+)": "(https:\/\/[^"]+)",$/gm)) links[m[1]] = m[2];
   return { brands, links };

@@ -102,6 +102,13 @@ function isFlat(job) {
   return !blank(job.helper_fee_flat_cents) && Number.isFinite(Number(job.helper_fee_flat_cents));
 }
 
+/**
+ * AfterFeesNote (src/components/job/AfterFeesNote.tsx) as the guest chip draws it, byte for byte (owner 2026-11-22,
+ * "One number, small label"): src/test/browseShellCards.test.tsx holds the two together.
+ */
+export const SHELL_AFTER_FEES_HTML =
+  `<span data-after-fees="" class="mt-0.5 block font-sans text-ds-11 font-normal leading-tight text-muted-foreground ">after fees</span>`;
+
 /** helprFlatFeeCents for a guest (no poster flat fee is in the view). */
 function flatFeeCents(shareCents, job) {
   const share = Math.max(0, Math.round(Number(shareCents) || 0));
@@ -332,7 +339,7 @@ function cardHtml(job) {
     `<div class="${c.body}"><div class="${c.titleRow}">` +
     `<h2 class="${c.title}" style="color:hsl(var(--ink-deep));letter-spacing:-0.02em">${title}</h2>` +
     `<div class="${c.chip}" style="background:hsl(var(--bark) / 0.1);border:0.5px solid hsl(var(--bark) / 0.28)">` +
-    `<span class="${c.amount}" style="font-weight:800;color:hsl(var(--bark));letter-spacing:-0.02em"><span style="font-size:0.82em;vertical-align:0.02em;margin-right:0.5px">$</span>${net}</span></div>` +
+    `<span class="${c.amount}" style="font-weight:800;color:hsl(var(--bark));letter-spacing:-0.02em"><span style="font-size:0.82em;vertical-align:0.02em;margin-right:0.5px">$</span>${net}</span>${shellIsGiveaway(job) ? "" : SHELL_AFTER_FEES_HTML}</div>` +
     `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="${c.catLabel}"><span class="font-sans truncate">${label}</span></span><span class="shrink-0 opacity-30">·</span><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span>${shellWhenHtml(job)}</div><div aria-hidden="true" class="${c.face}"></div></div>` +
     `</div></div></div></div></div>`
   );

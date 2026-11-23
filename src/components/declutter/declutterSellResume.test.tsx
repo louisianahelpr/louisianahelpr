@@ -50,6 +50,13 @@ vi.mock("@/components/AppPage", () => ({
   default: ({ title, children }: { title: string; children: React.ReactNode }) => (<main><h1>{title}</h1>{children}</main>),
 }));
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
+// S-F2: SellSteps now reads the seller's saved pickup setup (useFirstSale) to skip step 4 for a seller who has one.
+// These cases are a seller with nothing saved yet, so step 4 is still asked; the skip has its own guard
+// (src/test/draftSkipsSavedPickupSetup.test.tsx). Mocked so the read never reaches Supabase.
+vi.mock("./FirstSalePickup", async (orig) => ({
+  ...(await orig<object>()),
+  useFirstSale: () => ({ settled: true, failed: false, needs: { pickup: true, times: true, defaults: true }, reload: () => {}, timesProblem: null, save: async () => true }),
+}));
 // The Selling tab's own card has its own test (sellerDeliverySettings); here only that it is offered.
 vi.mock("./SellerDeliverySettings", () => ({ SellerDeliveryCard: () => <div data-testid="seller-delivery-card" /> }));
 vi.mock("@/lib/declutter/sellerDelivery", () => ({ fetchMySellerDelivery: async () => ({ ...delivery }) }));

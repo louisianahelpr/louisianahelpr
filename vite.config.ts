@@ -253,8 +253,11 @@ const HOME_DERIVE_LEAVES = /[\\/]src[\\/](pages[\\/]home[\\/]homeDashboard[\\/]u
 // Builder 2, 11-14: and pull-to-refresh (usePullToRefresh, PullToRefreshWrapper): the You landing uses both, and in
 // browse-first-screen they put that whole 20.3 KB gz guest-browse chunk (and the parish tables under it) on /profile's
 // critical path. They ride outside it. Guard: src/test/avatarCropDialogLazy.test.ts.
+// G1 (app audit 1123): and ScreenHeaderRow (SearchTriggerSlot), which guest /browse now reaches through its header row's
+// BrowseTasksActions: in browse-first-screen it put that whole chunk and its closure on /gift-guides/:slug (GiftGuideShare
+// draws ScreenHeaderRow; 313 -> 390 KB gz). It rides alone, as before. Guard: src/test/guestBrowseWebHeaderRow.test.tsx.
 const PULL_TO_REFRESH = /[\\/]src[\\/](hooks[\\/]usePullToRefresh\.ts|components[\\/]PullToRefreshWrapper\.tsx)$/;
-const BROWSE_GROUP_SKIPS = /[\\/]src[\\/](components[\\/]ui[\\/]skeleton\.tsx|hooks[\\/](useMembershipsOn|useArrivalGate|usePullToRefresh)\.ts|components[\\/]dashboard[\\/]browseTasksToolbar[\\/]BrowseViewToggle\.tsx|components[\\/]PullToRefreshWrapper\.tsx)$/;
+const BROWSE_GROUP_SKIPS = /[\\/]src[\\/](components[\\/]ui[\\/]skeleton\.tsx|hooks[\\/](useMembershipsOn|useArrivalGate|usePullToRefresh)\.ts|components[\\/]dashboard[\\/]browseTasksToolbar[\\/]BrowseViewToggle\.tsx|components[\\/]PullToRefreshWrapper\.tsx|components[\\/]ui[\\/]ScreenHeaderRow\.tsx)$/;
 // Builder 3, 11-04: the dialog primitives guest /browse shares with Money (EarningsTab) and other signed-in screens. In
 // browse-first-screen, Money's static import of them put that whole 28.9 KB gz guest-browse chunk on its critical path.
 const DECLUTTER_CATEGORY_ICONS = /[\\/]src[\\/]lib[\\/]declutter[\\/]categoryIcons\.ts$/;

@@ -10,6 +10,7 @@
  * @mutate src/pages/home/GuestBrowseHeaderRow.tsx |           {countLabel} |           {null}
  * @mutate src/pages/home/GuestBrowseHeaderRow.tsx |       {filters.searchOpen ? ( |       {false ? (
  * @mutate src/pages/home/GuestBrowseHeaderRow.tsx |   if (readCount >= GUEST_JOBS_LIMIT) return |   if (false) return
+ * @mutate vite.config.ts | \|components[\\/]ui[\\/]ScreenHeaderRow\.tsx)$/; | )$/;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
@@ -32,6 +33,8 @@ vi.mock("@/components/BrowseMap", () => ({ BrowseMap: () => null }));
 
 import DashboardGuest from "@/pages/home/DashboardGuest";
 import { GUEST_JOBS_LIMIT } from "@/lib/guestJobsQuery";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const job = (i: number) => ({
   id: `j${i}`, title: `SEED Job number ${i}`, description: "x", category: i % 2 ? "cleaning" : "yard_work", budget: 50 + i,
@@ -102,5 +105,17 @@ describe("guest /browse on the web has member Browse's header row (G1)", () => {
     await mount();
     const names = within(row()!).getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent ?? "");
     expect(names).toEqual(["Search jobs", "Filters"]);
+  });
+});
+
+describe("the header row's code stays off other screens' first load (G1, nothing slow)", () => {
+  it("ScreenHeaderRow rides outside the guest-browse chunk group (in it, /gift-guides/:slug went 313 -> 390 KB gz)", () => {
+    const vite = readFileSync(resolve(__dirname, "../../vite.config.ts"), "utf8");
+    const skips = /const BROWSE_GROUP_SKIPS = (\/.*\/);/.exec(vite)?.[1];
+    expect(skips).toBeTruthy();
+    const skip = new Function(`return ${skips}`)() as RegExp;
+    expect(skip.test("/r/src/components/ui/ScreenHeaderRow.tsx")).toBe(true);
+    // Floor: the list still holds the skips it had (pull-to-refresh among them).
+    expect(skip.test("/r/src/components/PullToRefreshWrapper.tsx")).toBe(true);
   });
 });

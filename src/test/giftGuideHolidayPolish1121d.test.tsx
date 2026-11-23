@@ -122,7 +122,8 @@ describe("owner 11-21: codes and sales are photo cards", () => {
       expect(card.querySelector("[data-gift-code-shop] .sr-only")?.textContent).toContain("new tab");
       // A no-code sale (code "", Bruno Marc's Black Friday 25%, money audit 1123) has nothing to copy: no chip at all.
       if (code) expect([...card.querySelectorAll("[data-gift-code-copy]")].map((b) => b.getAttribute("aria-label"))).toContain(`Copy code ${code}`);
-      else expect(card.querySelector("[data-gift-code-copy]")).toBeNull();
+      // Its store's other, real codes keep their own chips (deals queue 1123: Club Recess's no-code sale leads, LEXI5 stacks).
+      else expect([...card.querySelectorAll("[data-gift-code-copy]")].filter((b) => !b.closest("[data-gift-code-extra]"))).toEqual([]);
       // A store with a cutout shows it; one without shows no tile (guides polish 1122 #14).
       expect(card.querySelector("[data-gift-store-photo]") !== null).toBe(storePhoto(card.getAttribute("data-gift-code-store")!) !== null);
     }

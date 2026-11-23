@@ -34,7 +34,7 @@
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | aria-label={t("lp.bc.dropAria", { name })} | aria-label="Don't sell this"
  * Size only when the tool didn't answer (lead 10-30):
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |         {item.sizeUnknown && ( |         {true && (
- * @mutate src/lib/declutter/bunch.ts |   return it.sizeUnknown ? "size" : null; |   return null;
+ * @mutate src/lib/declutter/bunch.ts |   if (row) return it.title.trim().length < 3 ? "name" : "price"; |   if (row \|\| it.sizeUnknown) return it.title.trim().length < 3 ? "name" : "price";
  * The moving sale:
  * @mutate src/lib/declutter/bunch.ts |           id = choices.moveOutOn\n            ? await deps.createMoveDraft(choices.moveOutOn, place, fields)\n            : await deps.createDraft(fields, appId); |           id = await deps.createDraft(fields, appId);
  * @mutate src/components/declutter/DeclutterBunchView.tsx | { ...choices.choices, moveOutOn: moveDate \|\| null }, | choices.choices,
@@ -461,8 +461,10 @@ describe("finding 20: repeated buttons say which item", () => {
   });
 });
 
+// @mutate src/lib/declutter/bunch.ts |   // Size never blocks an item (owner pop-up |   if (it.sizeUnknown) return "price"; // Size never blocks an item (owner pop-up
+// @mutate src/lib/declutter/bunch.ts | category: "other", deliverySize: "small", conditionStars: 3 | category: "other", deliverySize: "large", conditionStars: 3
 describe("size is asked only when the photo tool didn't answer it (lead 10-30)", () => {
-  it("answered: not asked, and not a problem; not answered: asked, and the item waits for it", () => {
+  it("answered: not asked, and not a problem; not answered: asked (optional), and the item never waits for it", () => {
     const answer: GroupAnswer = { items: [{ photos: [0], title: "Oak", description: "", category: "furniture", deliverySize: "small", conditionStars: 4, flagged: false, priceDollars: 20 }], leftover: [1] };
     const photo = (k: string) => ({ key: k, file: new File([k], k) });
     const [told, blank] = itemsFromAnswer(answer, [photo("a"), photo("b")]);
@@ -473,7 +475,9 @@ describe("size is asked only when the photo tool didn't answer it (lead 10-30)",
     expect(bunchItemNeed(blank)).toBeNull();
     expect(blank.sizeUnknown).toBe(true);
     const named = { ...blank, notSorted: false, title: "Rug", price: "5" };
-    expect(bunchItemProblem(named)).toMatch(/Pick a size/);
+    // Owner 11-22: size is optional, never required (audit S-F1): an unpicked size is no problem, and it posts as small.
+    expect(bunchItemProblem(named)).toBeNull();
+    expect(named.deliverySize).toBe("small");
     const [picked] = editBunchItem([named], named.key, { deliverySize: "xl" });
     expect(picked.sizeUnknown).toBe(false);
     expect(bunchItemProblem(picked)).toBeNull();
@@ -482,7 +486,7 @@ describe("size is asked only when the photo tool didn't answer it (lead 10-30)",
   it("the form shows Size only while it's unknown", async () => {
     await open();
     openRow("i1");
-    expect(within(row("i1")).queryByLabelText("Size")).toBeNull();
+    expect(within(row("i1")).queryByLabelText(/^Size/)).toBeNull();
     expect(within(row("i1")).getByLabelText("Title")).toBeTruthy();
     expect(within(row("i1")).getByLabelText("Description")).toBeTruthy();
     expect(within(row("i1")).getByLabelText("Condition")).toBeTruthy();

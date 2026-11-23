@@ -142,9 +142,10 @@ let seq = 0;
 /** Unique across reloads: a bunch brought back from the device still holds the keys it was given. */
 const nextKey = (p: string) => `${p}${Date.now().toString(36)}_${++seq}`;
 
-/** An item with only photos and no words yet (split off, or the seller said these are one thing). */
+/** An item with only photos and no words yet (split off, or the seller said these are one thing). Size is optional (owner
+ * 11-22), so an unpicked size posts as small, the same default as the one-item form (sellForm.ts). */
 export function blankItem(photoKeys: string[]): BunchItem {
-  return { key: nextKey("item"), photoKeys, title: "", description: "", category: "other", deliverySize: "large", conditionStars: 3, flagged: false, price: "", sizeUnknown: true };
+  return { key: nextKey("item"), photoKeys, title: "", description: "", category: "other", deliverySize: "small", conditionStars: 3, flagged: false, price: "", sizeUnknown: true };
 }
 
 /** The photo tool's suggested price as the field shows it, or "" when it gave none we could use. */
@@ -573,7 +574,7 @@ export function bunchItemProblem(it: BunchItem): string | null {
 }
 
 /** What stops an item, as a code: the screen keys off this, never the words (they follow the member's language, F260q). */
-type BunchProblem = "notSorted" | "fewPhotos" | "manyPhotos" | "name" | "price" | "size";
+type BunchProblem = "notSorted" | "fewPhotos" | "manyPhotos" | "name" | "price";
 function bunchProblemCode(it: BunchItem): BunchProblem | null {
   if (it.notSorted) return "notSorted";
   if (it.photoKeys.length < DECLUTTER_MIN_PHOTOS) return "fewPhotos";
@@ -581,7 +582,8 @@ function bunchProblemCode(it: BunchItem): BunchProblem | null {
   // moveRowProblem stays the one rule for a name (3+ characters) and a price ($1 to $1,000); the floor is the price here.
   const row = moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" });
   if (row) return it.title.trim().length < 3 ? "name" : "price";
-  return it.sizeUnknown ? "size" : null;
+  // Size never blocks an item (owner pop-up 11-22 ~10:25 AM: "Declutter Size: optional ... never required"; audit S-F1).
+  return null;
 }
 
 const PROBLEM_WORDS = {
@@ -590,11 +592,10 @@ const PROBLEM_WORDS = {
   manyPhotos: "lp.bq.manyPhotos",
   name: "lp.bq.name",
   price: "lp.bq.price",
-  size: "lp.bq.size",
 } as const;
 
 /** Which field an item's problem is about, so the screen can go straight to it. */
-export type BunchNeed = "photos" | "name" | "price" | "size";
+export type BunchNeed = "photos" | "name" | "price";
 export function bunchItemNeed(it: BunchItem): BunchNeed | null {
   // A not-sorted pile has its own card and its own Sort again: it isn't an item waiting for a field.
   if (it.notSorted) return null;
@@ -604,8 +605,8 @@ export function bunchItemNeed(it: BunchItem): BunchNeed | null {
   return p === "notSorted" ? null : p;
 }
 
-const NEEDS_ONE = { photos: "lp.bq.needs1.photos", name: "lp.bq.needs1.name", price: "lp.bq.needs1.price", size: "lp.bq.needs1.size" } as const;
-const NEEDS_MANY = { photos: "lp.bq.needsN.photos", name: "lp.bq.needsN.name", price: "lp.bq.needsN.price", size: "lp.bq.needsN.size" } as const;
+const NEEDS_ONE = { photos: "lp.bq.needs1.photos", name: "lp.bq.needs1.name", price: "lp.bq.needs1.price" } as const;
+const NEEDS_MANY = { photos: "lp.bq.needsN.photos", name: "lp.bq.needsN.name", price: "lp.bq.needsN.price" } as const;
 
 /** "1 needs a name, 2 need a price": what is left, in the seller's words. */
 export function bunchNeedsLine(items: BunchItem[]): string | null {

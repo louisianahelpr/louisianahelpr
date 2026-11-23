@@ -23,8 +23,6 @@ export const enSellForm = {
   "sf.addPhotoOne": "Add at least 1 photo.",
   "sf.addPhotos": "Add at least {n} photos.",
   "sf.chooseWay": "Choose a way buyers can get it in Settings.",
-  "sf.sizeProblem": "Pick a size, so buyers know what it takes to move it.",
-  "sf.sizeProblemFree": "Pick a size, so the person picking it up knows what it takes to move it.",
   "sf.tickBox": "Tick the box about this item before you list it.",
   "sf.onePhotoFailed": "1 photo didn't upload",
   "sf.photosFailed": "{n} photos didn't upload",

@@ -147,7 +147,7 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, setti
         <SellTradesRow s={s} />
         {/* Not one of the owner's six: asked only when the photo tool didn't answer it (and while it is writing, never guessed). */}
         {!sizeKnown && !busy && (
-          <Row {...row("size")} title={t("sell.size")} value="" empty>
+          <Row {...row("size")} title={`${t("sell.size")} ${t("sell.optional")}`} value="" empty>
             <ChipGroup label={t("sell.size")} options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: t(`decl.size.${k}`) }))} value="" onChange={(v) => { set("deliverySize", v as DeliverySize); setSizePicked(true); }} />
           </Row>
         )}

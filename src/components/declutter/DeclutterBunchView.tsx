@@ -297,7 +297,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     const it = items.find((x) => x.key === key);
     const need = it ? bunchItemNeed(it) : null;
     setOpenRows((m) => new Map(m).set(key, true));
-    const id = need === "name" ? `title-${key}` : need === "size" ? `size-${key}` : need === "photos" ? `add-photo-${key}` : `price-${key}`;
+    const id = need === "name" ? `title-${key}` : need === "photos" ? `add-photo-${key}` : `price-${key}`;
     requestAnimationFrame(() => {
       const el = document.getElementById(id) ?? document.querySelector(`[data-bunch-row="${key}"]`);
       (el as HTMLElement | null)?.focus();

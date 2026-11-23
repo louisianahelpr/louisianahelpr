@@ -18,8 +18,6 @@ export const esSellForm: Record<keyof typeof enSellForm, string> = {
   "sf.addPhotoOne": "Agregue al menos 1 foto.",
   "sf.addPhotos": "Agregue al menos {n} fotos.",
   "sf.chooseWay": "Elija en Ajustes una forma en que los compradores puedan recibirlo.",
-  "sf.sizeProblem": "Elija un tamaño, para que los compradores sepan qué se necesita para moverlo.",
-  "sf.sizeProblemFree": "Elija un tamaño, para que quien lo recoja sepa qué se necesita para moverlo.",
   "sf.tickBox": "Marque la casilla sobre este artículo antes de publicarlo.",
   "sf.onePhotoFailed": "1 foto no se subió",
   "sf.photosFailed": "{n} fotos no se subieron",

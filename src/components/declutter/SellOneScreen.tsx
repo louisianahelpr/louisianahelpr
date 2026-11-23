@@ -71,8 +71,8 @@ function postProblems(s: SellFlow, first: FirstSale): { message: string; at: Whe
   const member = !s.isGuest;
   if (member && first.timesProblem) out.push({ message: first.timesProblem, at: "pickup" });
   if (member && s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push({ message: tr("sf.chooseWay"), at: "settings" });
-  // Nobody buys a give-away (audit 1110 F340): that form names the person picking it up.
-  if (!writing && !s.sizeKnown) out.push({ message: tr(s.form.free ? "sf.sizeProblemFree" : "sf.sizeProblem"), at: "size" });
+  // Size never blocks Post (owner pop-up 11-22 ~10:25 AM: "Declutter Size: optional ... never required"; audit S-F1 11-23).
+  // Unpicked, the listing keeps the form's default (sellForm.ts: small, fits in a car).
   if (member && !s.attested) out.push({ message: tr("sf.tickBox"), at: "tax" });
   return out;
 }

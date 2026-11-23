@@ -216,7 +216,7 @@ describe("photo-first selling, one screen", () => {
   // Owner 2026-10-29: a new listing is ONE screen. No step walk ("Continue", "1 of 5"); the summary rows and one Post.
   // @mutate src/components/declutter/DeclutterSellView.tsx |   if (!itemId) return <SellOneScreen />; |   void SellOneScreen;
   // @mutate src/components/declutter/SellOneScreen.tsx |           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : settingUp ? tr("sf.fs.saving") : s.isGuest ? tr("sf.gu.cta") : tr("sf.postIt")} |           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : settingUp ? tr("sf.fs.saving") : s.isGuest ? tr("sf.gu.cta") : "Continue"}
-  // @mutate src/components/declutter/SellSummaryCard.tsx |           <Row {...row("size")} title={t("sell.size")} value="" empty> | <Row {...row("size")} title={t("sell.size")} value="" empty field="title">
+  // @mutate src/components/declutter/SellSummaryCard.tsx |           <Row {...row("size")} title={`${t("sell.size")} ${t("sell.optional")}`} value="" empty> | <Row {...row("size")} title={`${t("sell.size")} ${t("sell.optional")}`} value="" empty field="title">
   it("a NEW listing is one screen: photos, the summary rows, the tax box and Post it; no step walk, and no settings on it (owner 2026-10-30)", async () => {
     open();
     expect(await screen.findByRole("heading", { name: "Show it off" })).toBeInTheDocument();
@@ -855,7 +855,30 @@ describe("photo-first selling, one screen", () => {
     expect(calls).toEqual([]);
   });
 
-  it("the photo tool failed: Size is asked, not guessed, and Post waits for it (audit single-free #15)", async () => {
+  // Owner pop-up 11-22 ~10:25 AM: "Declutter Size: optional ... never required" (audit S-F1 11-23).
+  // @mutate src/components/declutter/SellOneScreen.tsx |   // Size never blocks Post (owner pop-up |   if (!s.sizeKnown) out.push({ message: tr("sf.chooseWay"), at: "size" }); // Size never blocks Post (owner pop-up
+  it("the photo tool failed: Size is offered (optional, nothing picked), Post goes through without it as small", async () => {
+    aiAnswer.fails = true;
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await waitFor(() => expect(aiCalls).toHaveLength(1));
+    await waitFor(() => expect(document.querySelector('[data-summary-row="size"]')).not.toBeNull());
+    expect(document.getElementById("sell-row-size-title")?.textContent).toBe("Size (optional)");
+    const row = document.querySelector('[data-summary-row="size"]') as HTMLElement;
+    expect(within(row).queryAllByRole("radio").filter((r) => r.getAttribute("aria-checked") === "true")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Add title" }));
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Blue couch" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add price" }));
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await waitFor(() => expect(calls).toContain("publish"));
+    expect(screen.queryByText(/Pick a size/)).toBeNull();
+    expect(drafts[0]).toEqual(expect.objectContaining({ deliverySize: "small" }));
+  });
+
+  it("the photo tool failed: a seller who picks a size still gets it saved", async () => {
     aiAnswer.fails = true;
     open();
     await screen.findByRole("heading", { name: "Show it off" });
@@ -867,12 +890,8 @@ describe("photo-first selling, one screen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
     fireEvent.click(document.getElementById("sell-tax")!);
-    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    await screen.findByText("Pick a size, so buyers know what it takes to move it.");
-    expect(calls).toEqual([]);
-    // Nothing is preselected for them.
+    fireEvent.click(screen.getByRole("button", { name: "Add size" }));
     const row = document.querySelector('[data-summary-row="size"]') as HTMLElement;
-    expect(within(row).queryAllByRole("radio").filter((r) => r.getAttribute("aria-checked") === "true")).toHaveLength(0);
     fireEvent.click(within(row).getByRole("radio", { name: /Large/ }));
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(calls).toContain("publish"));
@@ -881,9 +900,8 @@ describe("photo-first selling, one screen", () => {
     expect(calls).not.toContain("windows");
   });
 
-  // Nobody buys a give-away, so its Size nudge names the person picking it up (audit 1110 F340).
-  // @mutate src/components/declutter/SellOneScreen.tsx | message: tr(s.form.free ? "sf.sizeProblemFree" : "sf.sizeProblem"), | message: tr("sf.sizeProblem"),
-  it("the photo tool failed on a give-away: the Size nudge talks about the person picking it up, not buyers", async () => {
+  // A give-away posts without a size too (owner 11-22: never required; audit S-F1 11-23).
+  it("the photo tool failed on a give-away: Post goes through with no size picked", async () => {
     aiAnswer.fails = true;
     open("/declutter/sell?free=1");
     await screen.findByRole("heading", { name: "Show it off" });
@@ -894,9 +912,8 @@ describe("photo-first selling, one screen", () => {
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Blue couch" } });
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    await screen.findByText("Pick a size, so the person picking it up knows what it takes to move it.");
-    expect(screen.queryByText(/so buyers know/)).toBeNull();
-    expect(calls).toEqual([]);
+    await waitFor(() => expect(calls).toContain("publish"));
+    expect(screen.queryByText(/Pick a size/)).toBeNull();
   });
 
   // Audit DC-1: the one-screen form still said "these go up when you save on step 4" and "change anything on the

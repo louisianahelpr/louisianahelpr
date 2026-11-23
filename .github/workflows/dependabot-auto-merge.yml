@@ -35,8 +35,11 @@ on:
     # The author check below still decides; this only stops the empty runs.
     branches: ["dependabot/**"]
 
+# Write access to contents is what GitHub's own dependabot auto-merge recipe grants; the
+# enablePullRequestAutoMerge mutation behind `gh pr merge --auto` is refused
+# without it. Merging itself is still withheld until the required checks pass.
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
@@ -61,9 +64,16 @@ jobs:
             exit 0
           fi
           AUTHOR=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json author --jq '.author.login')
-          if [ "$AUTHOR" != "dependabot[bot]" ]; then
-            echo "::notice::PR #$PR_NUMBER author is $AUTHOR, not dependabot[bot] — this workflow only auto-merges dependency-bump PRs"
-            exit 0
-          fi
+          # OPS-1 (2026-11-23): `gh pr view --json author` names dependabot
+          # "app/dependabot", not the REST login "dependabot[bot]". The old
+          # exact match to "dependabot[bot]" never held, so no bump PR ever got
+          # auto-merge. Accept both spellings of dependabot and nothing else.
+          case "$AUTHOR" in
+            "app/dependabot" | "dependabot[bot]") ;;
+            *)
+              echo "::notice::PR #$PR_NUMBER author is $AUTHOR, not dependabot — this workflow only auto-merges dependency-bump PRs"
+              exit 0
+              ;;
+          esac
           echo "Enabling auto-merge for dependabot PR #$PR_NUMBER (Test workflow succeeded on run $RUN_ID)"
           gh pr merge "$PR_NUMBER" --repo "$REPO" --auto --squash

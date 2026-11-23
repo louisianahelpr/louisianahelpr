@@ -219,7 +219,11 @@ function act(step) {
       gh(["pr", "comment", n, "--body", `Left the land queue: required or migration-gate check(s) failed (auto-merge turned off): ${step.checks.join(", ")}. Fix, push, and re-run \`bash scripts/land.sh\` (it re-queues the PR). The next PR in the queue has moved up.`]);
       return;
     case "rerun":
-      for (const id of step.runIds) gh(["run", "rerun", id, "--failed"]);
+      // OPS-2 (2026-11-23): the PAT (GH_TOKEN) has contents + pull-requests
+      // write only, so `gh run rerun` died "Resource not accessible by
+      // personal access token" and bot PRs stayed BLOCKED. Re-run with the
+      // job's built-in token (actions: write); the PAT stays for pushes and merges.
+      for (const id of step.runIds) gh(["run", "rerun", id, "--failed"], { env: { ...process.env, GH_TOKEN: process.env.GH_RERUN_TOKEN || process.env.GH_TOKEN } });
       return;
     case "update":
       gh(["pr", "update-branch", n, "--rebase"]);

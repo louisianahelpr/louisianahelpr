@@ -1,7 +1,9 @@
 // @mutate .github/workflows/dependabot-auto-merge.yml | workflows: ["Test"] | workflows: ["Something Else"]
 // @mutate .github/workflows/dependabot-auto-merge.yml | github.event.workflow_run.conclusion == 'success' | true
 // @mutate .github/workflows/dependabot-auto-merge.yml | gh pr merge "$PR_NUMBER" --repo "$REPO" --auto --squash | gh pr merge "$PR_NUMBER" --repo "$REPO" --squash
-// @mutate .github/workflows/dependabot-auto-merge.yml | if [ "$AUTHOR" != "dependabot[bot]" ]; then | if false; then
+// @mutate .github/workflows/dependabot-auto-merge.yml | "app/dependabot" \| "dependabot[bot]") ;; | "dependabot[bot]") ;;
+// @mutate .github/workflows/dependabot-auto-merge.yml | *) | *) ;;
+// @mutate .github/workflows/dependabot-auto-merge.yml |   contents: write |   contents: read
 // @mutate .github/workflows/test.yml | run: npm run lint | run: echo "lint skipped"
 // @mutate .github/workflows/test.yml | run: npx tsc -b --noEmit | run: echo "typecheck skipped"
 /*
@@ -32,7 +34,9 @@
  *      confirming the Test workflow (lint+typecheck) succeeded.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parse } from "yaml";
 
@@ -106,13 +110,34 @@ describe("dependency-bump PRs get lint + typecheck, and auto-merge cannot bypass
     const guarded = jobs.some((j) => /workflow_run\.conclusion\s*==\s*'success'/.test(j.if ?? ""));
     expect(guarded, "the job (or a step in it) must check github.event.workflow_run.conclusion == 'success' before merging").toBe(true);
     expect(runText, "a run step must actually call gh pr merge with --auto (auto-merge, not an immediate merge)").toMatch(/gh pr merge\b[^\n]*--auto\b/);
-    // Not just "the string dependabot[bot] appears somewhere" (an unreachable
-    // branch's echo would satisfy that) — an actual live comparison against it
-    // that can exit before the merge call.
-    expect(
-      runText,
-      "a LIVE comparison against dependabot[bot] must gate the merge (e.g. `if [ \"$AUTHOR\" != \"dependabot[bot]\" ]`), not just a mention in an unreachable branch",
-    ).toMatch(/if\s*\[[^\n]*!=\s*"dependabot\[bot\]"[^\n]*\][^\n]*;\s*then/);
+  });
+
+  // OPS-1 (2026-11-23): the old step compared `gh pr view --json author` to
+  // "dependabot[bot]", but gh reports "app/dependabot", so auto-merge never
+  // fired. This RUNS the step's bash with a stubbed gh: no parsing of intent.
+  describe("the author step, executed against a stub gh", () => {
+    const wf = loadWf(AUTOMERGE_WF);
+    const script = Object.values(wf.jobs).flatMap((j) => j.steps ?? []).map((st) => st.run ?? "").find((r) => /gh pr merge/.test(r)) ?? "";
+    function run(author: string): string {
+      const dir = mkdtempSync(join(tmpdir(), "dbot-"));
+      const log = join(dir, "calls.log");
+      writeFileSync(join(dir, "gh"), `#!/bin/bash\necho "$*" >> "${log}"\ncase "$1 $2" in\n  "api repos/"*) echo 7;;\n  "pr view") echo "$STUB_AUTHOR";;\nesac\n`, { mode: 0o755 });
+      try {
+        execFileSync("bash", ["-c", script], { env: { PATH: `${dir}:${process.env.PATH}`, STUB_AUTHOR: author, REPO: "o/r", RUN_ID: "1" }, stdio: "pipe" });
+      } catch { /* a nonzero exit is read from the call log below */ }
+      try { return readFileSync(log, "utf8"); } catch { return ""; }
+    }
+    it("script is found (floor)", () => expect(script.length).toBeGreaterThan(100));
+    it.each(["app/dependabot", "dependabot[bot]"])("enables auto-merge for author %s", (a) => {
+      expect(run(a)).toMatch(/pr merge 7 .*--auto --squash/);
+    });
+    it.each(["someone", "app/dependabot-lookalike", "evil/dependabot", "", "dependabot"])("does not enable auto-merge for author %j", (a) => {
+      expect(run(a)).not.toMatch(/pr merge/);
+    });
+    it("the job may write contents (the auto-merge mutation needs it)", () => {
+      const d = parse(readFileSync(AUTOMERGE_WF, "utf8")) as { permissions?: Record<string, string> };
+      expect(d.permissions?.contents).toBe("write");
+    });
   });
 
   it("no OTHER workflow enables auto-merge or merges a PR keyed on dependabot without going through the Test-gated workflow", () => {

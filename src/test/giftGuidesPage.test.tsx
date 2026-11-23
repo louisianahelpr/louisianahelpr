@@ -857,7 +857,7 @@ describe("gift guides: design audit round 2 UI fixes", () => {
     expect(checked).toBeGreaterThan(20);
   });
 
-  // @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |   return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href))); |   return sales.filter((x) => x.ends >= today);
+  // @mutate src/content/giftGuideDealCounts.ts |   return sales.filter((x) => x.ends >= today && !seen.has(x.href) && Boolean(seen.add(x.href))); |   return sales.filter((x) => x.ends >= today);
   // Owner 2026-11-22 ("make everything open expanded"): a store's card lists every sale at once (no "+N more").
   it("#10 Sales: one line per link; a store's card shows every sale at once", () => {
     const dup = { slug: "store-walmart", store: "Walmart", offer: "x", href: "https://walmrt.us/x", ends: "2099-01-01" };

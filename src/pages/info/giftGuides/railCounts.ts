@@ -5,7 +5,7 @@ import { DEAL_EVENTS, codesDay, dealCode, dealsIn, liveDeals, louisianaDay, type
 import { louisianaMinutes, louisianaToday } from "@/content/holidayHub/holidayHub.mjs";
 import RAIL from "@/content/giftGuideRailCounts.json";
 import { featuredLocalCount } from "@/lib/sbsFeaturedCount";
-import { codeCardCount, codesOn, salesOn } from "./GiftGuideDealCards";
+import { codeCardCount, codesOn, salesOn } from "@/content/giftGuideDealCounts";
 import { loadModule, untilReload } from "@/lib/loadModule";
 
 /**

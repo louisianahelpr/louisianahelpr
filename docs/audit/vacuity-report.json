@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-23T01:43:48.168Z",
-  "guards": 4451,
-  "registered": 4447,
+  "generated": "2026-11-23T04:37:06.814Z",
+  "guards": 4459,
+  "registered": 4455,
   "unregistered": [
     "src/lib/categorySuggestions.test.ts",
     "src/lib/celebrate.test.ts",
@@ -84,6 +84,7 @@
         "src/test/sponsor25days.test.tsx",
         "src/test/sponsor25daysPublicNoDates.test.tsx",
         "src/test/sponsorLineup.test.tsx",
+        "src/test/sponsorPublicOff.test.tsx",
         "src/test/twentyFiveDaysRulesOnFacebook.test.tsx"
       ],
       "parents": [

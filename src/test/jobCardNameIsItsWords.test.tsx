@@ -68,6 +68,11 @@ function visibleText(el: Element): string {
   return (clone.textContent ?? "").replace(/\s+/g, " ").trim();
 }
 
+/** The chip's figure alone, without its "after fees" note (owner 2026-11-22). */
+function figureOf(el: Element): string {
+  return visibleText(el).replace(/\s*after fees$/, "");
+}
+
 describe("a signed-in job card's accessible name is its own words (WCAG 2.5.3)", () => {
   it("the card root has no aria-label or aria-labelledby, so axe's label-in-name rule has nothing to mismatch", () => {
     const cards = draw().querySelectorAll('[data-feed-card][role="button"]');
@@ -85,16 +90,17 @@ describe("a signed-in job card's accessible name is its own words (WCAG 2.5.3)",
     expect(name).toContain("Deep clean the kitchen");
     expect(name).toContain("Lafayette");
     const chip = card.querySelector(".money-chip")!;
-    expect(visibleText(chip)).toMatch(/^\$\d+$/);
-    expect(name.replace(/\s+/g, "")).toContain(visibleText(chip));
+    // Owner 2026-11-22 ("One number, small label"): the figure, then the small grey "after fees", both spoken.
+    expect(visibleText(chip)).toMatch(/^\$\d+\s*after fees$/);
+    expect(name.replace(/\s+/g, "")).toContain(visibleText(chip).replace(/\s+/g, ""));
   });
 
   it("with the first-payout fee owed, the spoken price is the chip's figure with the fee off (Q753)", () => {
-    const before = visibleText(draw().querySelector(".money-chip")!);
+    const before = figureOf(draw().querySelector(".money-chip")!);
     cleanup();
     fee.dollars = 3;
     const card = draw().querySelector('[data-feed-card][role="button"]')!;
-    const after = visibleText(card.querySelector(".money-chip")!);
+    const after = figureOf(card.querySelector(".money-chip")!);
     expect(Number(after.slice(1))).toBe(Number(before.slice(1)) - 3);
     const name = computeAccessibleName(card).replace(/\s+/g, "");
     expect(name).toContain(after);

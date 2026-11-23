@@ -1,4 +1,5 @@
 import { ShieldCheck } from "lucide-react";
+import { AfterFeesNote } from "@/components/job/AfterFeesNote";
 import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useApplyTakeHome } from "./applyTakeHome";
@@ -45,18 +46,15 @@ export function ApplyEarningsBreakdown({
       {/* HEADLINE — floors, matching JobPrice and every other headline
           take-home in the app. The itemised rows below keep exact cents
           because they have to add up. */}
-      {/* Owner 2026-10-30: the giveaway shows its $50 with no words. */}
-      {!isGiveawayFixedPayJob(confirmApplyJob) && (
-        <p className="font-sans font-semibold text-ds-13 mb-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
-          You take home
-        </p>
-      )}
+      {/* Owner 2026-10-30: the giveaway shows its $50 with no words. Owner 2026-11-22 ("One number, small
+          label"): the figure, then the small grey "after fees" note, as on every other Helpr screen. */}
       <p
         className="font-sans font-bold tabular-nums leading-none text-ds-32"
         style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "-0.02em" }}
       >
         ${formatPriceFloor(takeHome)}
       </p>
+      {!isGiveawayFixedPayJob(confirmApplyJob) && <AfterFeesNote />}
 
       {firstPayoutFee > 0 && (
         <p className="mt-1.5 font-sans text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }} data-testid="apply-setup-fee-line">

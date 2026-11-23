@@ -4,12 +4,20 @@
  * #1 The 25 Days sponsors page's sections (Louisiana Shops & Makers, Louisiana Experiences & Events, National Brands)
  *    were plain 15px h2s. They wear the Her/Him/Kids band header now (GuideSectionHead: the page's tint, "(n)", chevron),
  *    open on arrival, and a tap closes and reopens each.
+ * #13 Black Friday / Cyber Monday: every Sales card and every Discount codes card carries the wish-list heart (only the
+ *    Top deals cards had one): the same Heart, place (.gg-heart-deal) and save as a Top deal.
+ * Audit item 5: a code chip never breaks a code mid-word ("SHOWSTOPPER3 / 0" at 375): the code is one unbroken line,
+ *    and a chip too narrow for the code and its copy icon puts the icon under the code (flex-wrap) instead.
  *
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE; |   const bandHeads = sortable;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   if (bandHeads) for (const p of picks) sectionCount |   if (sortable) for (const p of picks) sectionCount
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |       <CardHeart href={href} name={name} store={store} /> |       {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | heartTapped(togglePick({ href, name, guide: DEALS_SLUG, id })); | heartTapped("added");
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | letter-spacing:0;white-space:nowrap;text-align:left} | letter-spacing:0;overflow-wrap:anywhere;text-align:left}
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-code-chip{display:inline-flex;flex-wrap:wrap; | .gg-code-chip{display:inline-flex;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
@@ -18,6 +26,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 
 import GiftGuides from "@/pages/info/GiftGuides";
 import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
+import { CARD_CSS } from "@/pages/info/giftGuides/GiftGuideDealCards";
 
 await loadAllGuidePicks();
 afterEach(cleanup);
@@ -70,5 +79,53 @@ describe("#1 the 25 Days sponsors page's sections wear the Her/Him/Kids band hea
     await act(async () => { fireEvent.click(first); });
     expect(first.getAttribute("aria-expanded")).toBe("true");
     expect(section.querySelectorAll("li[data-gift-pick]").length).toBeGreaterThan(5);
+  });
+});
+
+describe("#13 hearts on every Sales and Discount codes card; audit item 5 codes never break mid-word", () => {
+  it("Black Friday and Cyber Monday: every code card and sale card has the deal heart, and a tap saves and unsaves it", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
+    try {
+      localStorage.clear();
+      let cards = 0;
+      for (const slug of ["black-friday", "cyber-monday"]) {
+        const c = await renderGuide(slug);
+        await waitFor(() => expect(c.querySelectorAll("li[data-gift-sale-store]").length, slug).toBeGreaterThan(0));
+        expect(c.querySelectorAll("li[data-gift-code-store]").length, slug).toBeGreaterThan(0);
+        const list = [...c.querySelectorAll<HTMLElement>("li[data-gift-sale-store], li[data-gift-code-store]")];
+        for (const li of list) {
+          const heart = li.querySelector<HTMLButtonElement>(":scope > button.gg-heart.gg-heart-deal[data-gift-heart]");
+          expect(heart, `${slug} ${li.getAttribute("data-gift-sale-store") ?? li.getAttribute("data-gift-code-store")}`).not.toBeNull();
+          expect(heart!.getAttribute("aria-label")).toBeTruthy();
+          cards++;
+        }
+        // A tap fills the heart (saved to My Wish List) and a second tap empties it.
+        const heart = list[0].querySelector<HTMLButtonElement>(":scope > button.gg-heart-deal")!;
+        expect(heart.getAttribute("aria-pressed")).toBe("false");
+        await act(async () => { fireEvent.click(heart); });
+        expect(heart.getAttribute("aria-pressed")).toBe("true");
+        await act(async () => { fireEvent.click(heart); });
+        expect(heart.getAttribute("aria-pressed")).toBe("false");
+        cleanup();
+      }
+      expect(cards).toBeGreaterThan(30);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("the code chip keeps the code on one line (no overflow-wrap/word-break) and wraps its copy icon instead", () => {
+    const body = (sel: string) => {
+      const at = CARD_CSS.indexOf(`${sel}{`);
+      expect(at, sel).toBeGreaterThan(0);
+      return CARD_CSS.slice(at, CARD_CSS.indexOf("}", at));
+    };
+    const code = body(".gg-code-chip code");
+    expect(code).toContain("white-space:nowrap");
+    expect(code).not.toMatch(/overflow-wrap|word-break/);
+    const chip = body(".gg-code-chip");
+    expect(chip).toContain("flex-wrap:wrap");
+    expect(chip).toContain("min-width:0");
   });
 });

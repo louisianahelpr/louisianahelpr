@@ -5,9 +5,14 @@ import { activeCodes, codesByStore, discountCodes, giftGuides as G, type Discoun
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
 import { storePhoto } from "@/content/giftGuideStorePhotos";
-import { DEAL_EVENTS, DEALS_WORDS } from "@/content/giftGuideDeals.mjs";
+import { DEAL_EVENTS, DEALS_SLUG, DEALS_WORDS } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
 import { START_OPEN } from "./startOpen";
+import { WISH_CORE as WISH } from "@/content/giftWishListCore";
+import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
+import { heartTapped } from "./GiftGuideHints";
+import { onAnyList, requestSaveFor } from "./saveForPeople";
+import { usePlan } from "./fun/plannerStore";
 
 /**
  * The deals days' discount codes and store sales as photo cards (owner 2026-11-21: "for discount codes we should do the
@@ -70,10 +75,27 @@ function StorePhoto({ store, href }: { store: string; href: string }) {
   );
 }
 
-function Card({ store, href, line, children, data }: { store: string; href: string; line: ReactNode; children?: ReactNode; data: Record<`data-${string}`, string> }) {
+/**
+ * A code or sale card's wish-list heart (consistency audit 1122 #13: hearts were on the Top deals cards only): the same
+ * Heart, place (.gg-heart-deal, the card's top-right) and save as a Top deal: My Wish List, or anyone's list when the
+ * "save for" sheet is up. `name` is what the list shows (the store and its offer).
+ */
+function CardHeart({ href, name, store }: { href: string; name: string; store: string }) {
+  const [wish, plan] = [useGiftList(), usePlan()];
+  const id = itemId(href);
+  const saved = isSaved(wish, id) || onAnyList(plan, href);
+  const image = storePhoto(store);
+  return (
+    <Heart saved={saved} label={WISH.saveForLabel(name)} className="gg-heart-deal" data={{ "data-gift-card-heart": store }}
+      onToggle={() => { if (!requestSaveFor({ href, name, guide: DEALS_SLUG, ...(image ? { image } : {}) })) heartTapped(togglePick({ href, name, guide: DEALS_SLUG, id })); }} />
+  );
+}
+
+function Card({ store, href, name, line, children, data }: { store: string; href: string; name: string; line: ReactNode; children?: ReactNode; data: Record<`data-${string}`, string> }) {
   return (
     <li className="gg-deal gg-store-card" {...data}>
       <StorePhoto store={store} href={href} />
+      <CardHeart href={href} name={name} store={store} />
       <div className="gg-card-head">
         {/* Polish audit 1122 #20: no arrow icon beside the name (the name, like the photo, is the link to the site). */}
         <GiftOut href={href} className="gg-deal-brand gg-card-store" data-gift-code-shop={store}>{store}<span className="sr-only"> ({G.newTab})</span></GiftOut>
@@ -136,7 +158,7 @@ function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
   const href = best.href as string;
   const line = (c: DiscountCode) => [c.offer, DEALS_WORDS.runs(c.starts, c.expires)].filter(Boolean).join(" · ");
   return (
-    <Card store={store} href={href} line={
+    <Card store={store} href={href} name={`${store}: ${best.offer}`} line={
       <>
         {line(best)}
         {all && (
@@ -191,7 +213,7 @@ function SaleCard({ store, sales }: { store: string; sales: Sale[] }) {
   const [all, setAll] = useState(START_OPEN);
   const shown = all ? sales : sales.slice(0, SALE_LINES);
   return (
-    <Card store={store} href={sales[0].href} data={{ "data-gift-sale-store": store }} line={
+    <Card store={store} href={sales[0].href} name={`${store}: ${sales[0].offer}`} data={{ "data-gift-sale-store": store }} line={
       <ul className="gg-card-sales">
         {shown.map((x) => (
           <li key={x.href} data-gift-sale={x.slug}>
@@ -218,10 +240,11 @@ export const CARD_CSS = `
 .gg-card-more{min-height:44px;padding:0;border:0;background:none;color:var(--gg-olive);font-weight:700;font-size:12.5px}
 .gg-card-head{display:flex;align-items:flex-start;gap:4px;margin-top:2px}
 .gg-card-head .gg-card-store{flex:1;min-width:0;margin:0}
+.gg-store-card:not(:has(>.gg-deal-photo))>.gg-card-head{padding-right:38px}
 .gg-store-card .gg-card-store{display:flex;align-items:center;min-height:44px}
 .gg-card-actions{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:auto;padding-top:4px}
-.gg-code-chip{display:inline-flex;align-items:center;justify-content:space-between;gap:6px;width:100%;min-height:44px;min-width:0;padding:0 10px;border:0;border-radius:10px;background:var(--gg-soft);color:var(--gg-ink);cursor:pointer}
-.gg-code-chip code{font-size:12.5px;font-weight:700;letter-spacing:.03em;overflow-wrap:anywhere;text-align:left}
+.gg-code-chip{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2px 6px;width:100%;min-height:44px;min-width:0;padding:4px 8px;border:0;border-radius:10px;background:var(--gg-soft);color:var(--gg-ink);cursor:pointer}
+.gg-code-chip code{font-size:12.5px;font-weight:700;letter-spacing:0;white-space:nowrap;text-align:left}
 .gg-code-chip svg{width:15px;height:15px;flex:none;color:var(--gg-olive)}
 .gg-code-copied{font-size:12px;font-weight:700;color:var(--gg-olive)}
 .gg-code-copied:empty{display:none}

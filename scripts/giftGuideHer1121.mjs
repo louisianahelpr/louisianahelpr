@@ -58,7 +58,9 @@ export const HER_1121 = [
   // Switched 11-21 from her Sephora UK pin p-108613754 (US shoppers cannot buy there) to the same 4-sheet set at iHerb,
   // same $19, 15% (Desktop note Commission-switches-1121.md); photo is iHerb's own.
   { name: "BIODANCE Hydro Cera-Nol Real Deep Mask, 4 Pack", brand: "BIODANCE", line: "Overnight hydrogel masks she peels off to glowy skin.", href: shopmy("p-108755104"), image: "https://www.sephora.com/productimages/sku/s2865152-main-zoom.jpg", store: "store-iherb", sortPrice: 19, price: 19, commission: 15, type: "skincare" },
-  { name: "Summer Fridays Tinted Lip Butter Balm", brand: "Summer Fridays", line: "The tinted lip balm everyone keeps in their bag.", href: amz("B0D82LVR3N"), image: amzImg("51s-g+euH5L"), store: "store-amazon", sortPrice: 19.2, commission: 10, type: "lip" },
+  { name: "Summer Fridays Tinted Lip Butter Balm", brand: "Summer Fridays", line: "The tinted lip balm everyone keeps in their bag.", href: amz("B0BYP81HN8"), image: amzImg("51fQ8A9DNpL"), store: "store-amazon", sortPrice: 24, commission: 10, type: "lip", priceAt: "2026-11-22" },
+  // Links audit 1122 night #4: her saved shade (Iced Coffee, B0D82LVR3N) had no Buy Box ("No featured offers"), so the
+  // link is the same balm in Brown Sugar, sold and shipped by Amazon, $24.00 read on its page 2026-11-22.
   { name: "Kitsch XL Microfiber Hair Towel Wrap", brand: "Kitsch", line: "A quick-dry hair towel wrap for after the shower.", href: amz("B0CDF7GJ4Y"), image: amzImg("81h7Kvf9ttL"), store: "store-amazon", sortPrice: 19.24, commission: 3, type: "hair" },
   // Owner 2026-11-22 ("Lake + Eberjey"): the Amazon Essentials flannel pajamas (B08X8P91FX) are off; Her keeps two pajama sets.
   { name: "TULA Spresso Energizing Eye Balm", brand: "TULA", line: "A cooling eye balm that wakes up tired eyes.", href: amz("B0C7LTPXBV"), image: amzImg("71N7JF4XK1L"), store: "store-amazon", sortPrice: 22.8, commission: 10, type: "skincare" },

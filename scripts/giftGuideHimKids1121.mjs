@@ -144,7 +144,9 @@ export const HIM_AMAZON_MORE_1121 = [
   ["B07MGSCM3M", 12.73, "515LwQQF0-L", "Reaction Tackle Braided Fishing Line", "Reaction Tackle", "fishing", 3, "Strong braided line to restock his reels."],
   ["B0G7XDFZK2", 111.99, "41zCPB49siL", "KastKing Royale Legend Patriot Fishing Rod", "KastKing", "fishing", 3, "A twin-tip rod in a patriotic finish."],
   ["B0CQ47S1S2", 59.99, "31pn67qSXqL", "XELFLY Waterproof Fishing Backpack", "XELFLY", "bag", 3, "A waterproof tackle backpack for the bank or the boat."],
-  ["B08Z42695Q", 49.04, "41iS+PAvr4L", "SITKA Mid Pro Trucker Hat", "SITKA", "hat", 4, "A SITKA trucker hat for the field."],
+  // Links audit 1122 night #4: her saved color (Bark, B08Z42695Q) had no Buy Box, so the link is the same hat in Oak,
+  // sold and shipped by Amazon, $42.68 read on its page 2026-11-22.
+  { ...row(["B0CSJ4TC52", 42.68, "81MKem3rMJL", "SITKA Mid Pro Trucker Hat", "SITKA", "hat", 4, "A SITKA trucker hat for the field."]), priceAt: "2026-11-22" },
   ["B002OSXDTG", 129.95, "31k8tX0z0KL", "LaCrosse Burly Air Grip 18 in. Boots", "LaCrosse", "boots", 4, "Tall rubber boots built for the marsh."],
   ["B00AQG9MGG", 88.92, "31ZTfBVeDRL", "MUCK Chore Cool Tall Boot", "MUCK", "boots", 4, "Tall, breathable work boots for the yard and barn."],
   // RATE SWITCH 11-21 night (Commission-rates-search-1121-night.md): was Amazon B0998FYXLS at 4% ($93.75); the same Mossy Oak Bottomland boot (xmabmob)
@@ -398,7 +400,9 @@ export const KIDS_1121 = [
   ["B0BP7JJWHC", 24.68, "417A8f8E5FL", "Kids Smart Watch, Ages 5-12", "", "watch", 3, "A first smart watch with games and a camera."],
   ["B0FXX575KP", 24.69, "41xKa3PEKPL", "Video Walkie Talkies, 2 Pack", "", "walkie-talkie", 3, "Walkie talkies with a screen so they can see each other."],
   ["B0FFSSWTB6", 25.49, "41htdnfvDsL", "Kids Handheld Digital Microscope", "", "science", 3, "A pocket microscope to see bugs and leaves up close."],
-  ["B0084JUNVU", 26.99, "51n6kaGkRTL", "Crayola Light Up Tracing Pad", "Crayola", "art", 3, "A light-up pad that makes tracing easy."],
+  // Links audit 1122 night #4: her saved color (Pink, B0084JUNVU) had no Buy Box, so the link is the same pad in Blue,
+  // sold and shipped by Amazon.com, $30.19 read on its page 2026-11-22.
+  { ...row(["B0084JUNXS", 30.19, "911TfZHJ1WL", "Crayola Light Up Tracing Pad", "Crayola", "art", 3, "A light-up pad that makes tracing easy."]), priceAt: "2026-11-22" },
   ["B0C9JLBY6V", 29.99, "514xs6sgmgL", "TOSY Light Up Flying Disc", "TOSY", "outdoor", 3, "A glowing flying disc for night games in the yard."],
   ["B0C6DXY5KC", 33.99, "41eg63OvH3L", "Kids Instant Print Camera", "", "camera", 3, "A camera that prints their photos right away."],
   ["B0CSJQHF6W", 34.11, "31TnRWQijXL", "Bitzee Disney Digital Pet", "Bitzee", "digital-pet", 3, "Disney pets they can touch and care for."],
@@ -419,7 +423,7 @@ export const KIDS_1121 = [
   ["B0G4SCX27Q", 382, "61B-A4JhE9L", "Meta Quest 3S VR Headset, 256GB", "Meta", "vr", 3, "A mixed-reality headset for games and fitness, made for ages 10 and up."],
   ["B0D3WSFX3L", 26.56, "717IFJm-ZNL", "JLab JBuddies Studio 2 Wireless Kids Headphones", "JLab", "audio", 3, "Volume-limited Bluetooth headphones that fold up and keep little ears safe."],
   ["B0DZ77D5HL", 399, "61Q-vahOT9L", "Apple iPad 11-inch (A16, 128GB, Wi-Fi)", "Apple", "tablet", 3, "The iPad they will actually use for games, drawing and school."],
-].map(row).concat(KIDS_AMAZON_MORE_1121, KIDS_SHOPMY_1121, KIDS_PLAY_1122);
+].map((r) => (Array.isArray(r) ? row(r) : r)).concat(KIDS_AMAZON_MORE_1121, KIDS_SHOPMY_1121, KIDS_PLAY_1122);
 
 // owner 11-22 popular approved (builder-guide-popular): Kids, Amazon listings sold by Amazon.com, prices read 11-22.
 export const KIDS_POPULAR_1122 = [

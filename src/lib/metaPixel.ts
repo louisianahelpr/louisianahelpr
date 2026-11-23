@@ -21,11 +21,20 @@
  * `allowDuplicatePageViews` lets that one through (fbevents.js drops a second PageView in the same document otherwise:
  * measured 2026-11-22, the route-change PageView never left the browser without it).
  *
+ * Never on a page whose address carries a secret (audit LT-1, 11-23): a Secret Santa reveal link and a Rentals invite
+ * link (also inside /login?redirect=...) open that person's match or tenancy, and fbevents.js sends the whole address as
+ * dl=. carriesSecretToken asks redactInviteToken, the same matcher PostHog, Sentry, Vercel and error_logs use, so a new
+ * token route added there is kept from Meta too. The pixel does not start while the visitor is on such a page, and no
+ * PageView fires for one. Automatic events (button clicks and page metadata, which fbevents.js sends with dl= on its own)
+ * are turned off with Meta's documented `fbq('set', 'autoConfig', false, id)` before init, so a visitor who goes Back to
+ * a token page after the pixel started sends nothing from it.
+ *
  * The privacy notice Meta's Business Tools Terms require is the "Meta Pixel" row on /legal?tab=privacy.
  * Guards: src/lib/metaPixel.test.tsx, src/test/metaPixelNeverInIndexHtml.test.ts.
  */
 import { Capacitor } from "@capacitor/core";
 import { automationReason, isLocalDevOrigin } from "@/lib/automatedBrowser";
+import { redactInviteToken } from "@/lib/redactInviteToken";
 
 export const META_PIXEL_ID = "2088408795197912";
 export const FBEVENTS_SRC = "https://connect.facebook.net/en_US/fbevents.js";
@@ -67,6 +76,16 @@ export function metaPixelAllowed(): boolean {
   return automationReason() === null && !isLocalDevOrigin();
 }
 
+/** True when this address (path, query or hash, literal or URL-encoded) holds a reveal or invite token. */
+export function carriesSecretToken(url: string): boolean {
+  return redactInviteToken(url) !== url;
+}
+
+/** The address fbevents.js would send as dl=, or the router's path when it is the newer of the two. */
+function onSecretPage(win: PixelWindow, routerUrl?: string): boolean {
+  return carriesSecretToken(win.location.href) || (routerUrl !== undefined && carriesSecretToken(routerUrl));
+}
+
 /** Meta's base code, as code: the queueing fbq stub and the async fbevents.js tag. */
 function installBaseCode(win: PixelWindow): Fbq {
   if (win.fbq) return win.fbq;
@@ -98,9 +117,15 @@ function start(win: PixelWindow): void {
     state = "idle";
     return;
   }
+  // The visitor may have opened a reveal or invite link while the page went idle: wait for a page without one.
+  if (onSecretPage(win)) {
+    state = "idle";
+    return;
+  }
   state = "started";
   try {
     const fbq = installBaseCode(win);
+    fbq("set", "autoConfig", false, META_PIXEL_ID);
     fbq("init", META_PIXEL_ID);
     fbq("track", "PageView");
     lastPath = routerPath ?? win.location.pathname;
@@ -124,9 +149,11 @@ function whenLoadedAndIdle(win: PixelWindow, run: () => void): void {
  * after load + idle, which then counts the page the visitor is on; each later change of path counts one PageView.
  * A no-op in the app, under automation and on localhost.
  */
-export function metaPixelRoute(pathname: string): void {
+export function metaPixelRoute(pathname: string, search = ""): void {
   if (!metaPixelAllowed()) return;
   const win = window as PixelWindow;
+  // A reveal or invite token in the address: never start the pixel here and never count this page.
+  if (onSecretPage(win, `${pathname}${search}`)) return;
   routerPath = pathname;
   if (state === "idle") {
     state = "scheduled";

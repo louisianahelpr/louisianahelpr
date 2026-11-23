@@ -23,7 +23,7 @@
  * @mutate src/pages/info/giftGuides/railCounts.ts | return hub.stay + hub.gone.filter((g) => g > at).length; | return hub.stay + hub.gone.filter((g) => g >= at).length;
  * @mutate scripts/gift-guide-rail-counts.mjs | else if (item.start === days[d]) | else if (false)
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import RAIL from "@/content/giftGuideRailCounts.json";
@@ -58,12 +58,16 @@ const NO_NUMBER = ["/gift-guides", `/gift-guides#${FINDER_ANCHOR}`, `/gift-guide
 
 const rowNumber = (a: Element) => {
   const n = a.querySelector(".gg-side-n");
-  return n ? Number(n.firstChild!.textContent) : null;
+  return n ? Number(/\d+/.exec(n.textContent!)![0]) : null;
 };
 const renderMenu = () => render(<MemoryRouter><GiftGuidesMenu active={null} wishList /></MemoryRouter>).container;
 
 describe("gift guides menu numbers (owner 11-22: Number on the right)", () => {
   it("every row is counted or a tool, both ways; the number is announced with its noun", async () => {
+    // A fixed day inside the season (the deals days and the Hub each list something), so the run never depends on the date.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-22T18:00:00Z"));
+    onTestFinished(() => void vi.useRealTimers());
     const box = renderMenu();
     // The date-bound numbers arrive from their chunk.
     await waitFor(() => expect(rowNumber(box.querySelector("a[href='/holidays']")!)).not.toBeNull());
@@ -75,7 +79,9 @@ describe("gift guides menu numbers (owner 11-22: Number on the right)", () => {
       const n = rowNumber(a);
       if (COUNTED.includes(to)) {
         expect(n, to).toBeGreaterThan(0);
+        // Read as "Her 159 gifts": a space before the number, the noun after it (sr-only).
         expect(a.querySelector(".gg-side-n .sr-only")?.textContent, to).toMatch(/^ (gifts|items)$/);
+        expect(a.textContent, to).toMatch(/[a-z] \d+ (gifts|items)$/);
       } else {
         // A tool (All guides, the finder, Swipe, Secret Santa, the planner, My Wish List) or Small Business Saturday; any other row must be classified.
         expect(tools.has(to), `unclassified menu row ${to}`).toBe(true);

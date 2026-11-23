@@ -61,7 +61,7 @@ const sideGuides = () => SIDE_GUIDES.flatMap((x) => {
  * gifts"). Tools with no list (All guides, the finder, the fun tools, My Wish List) get none.
  * Guard: src/test/giftGuideRailCounts1122.test.tsx.
  */
-const N = ({ n, noun = "items" }: { n?: number; noun?: string }) => (n ? <span className="gg-side-n">{n}<span className="sr-only"> {noun}</span></span> : null);
+const N = ({ n, noun = "items" }: { n?: number; noun?: string }) => (n ? <span className="gg-side-n">{" "}{n}<span className="sr-only"> {noun}</span></span> : null);
 
 /**
  * The numbers that change with the date (Black Friday, Cyber Monday, the Holiday Hub: railCounts.ts), from their own

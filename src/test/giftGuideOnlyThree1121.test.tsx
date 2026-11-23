@@ -41,7 +41,7 @@
  * @mutate src/content/giftGuideCatalog.ts | draftOf.has(slug) && isLiveGuide(slug) && | draftOf.has(slug) &&
  * @mutate src/prerender/seoData.ts | else if (!to && !guides[old]) moved[old] = ""; | else if (!to && !guides[old] && old.startsWith("store-")) moved[old] = "";
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       {null}
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub="">{G.sideHolidayHub}</Link></li> |         {null}
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub="">{G.sideHolidayHub}<N n={n["/holidays"]} /></Link></li> |         {null}
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   if (finderAsked(search, hash)) return | if (false) return
  * @mutate src/content/giftGuides.ts |     { id: "cyber-monday", label: "Cyber Monday" }, |
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <LiveGuides /> |       <LiveGuides /><aside data-gift-holiday-hub="" />
@@ -231,7 +231,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     expect([...side.querySelectorAll(".gg-side-h")].map((h) => h.textContent)).toEqual(["Guides", "Deals", "Free printables", "Make it fun", "Louisiana"]);
     for (const h of side.querySelectorAll(".gg-side-h")) expect(h.closest("a, button"), h.textContent!).toBeNull();
     for (const ul of side.querySelectorAll("ul")) expect(side.querySelector(`#${ul.getAttribute("aria-labelledby")}`), ul.outerHTML.slice(0, 40)).not.toBeNull();
-    const group = (sel: string) => [...side.querySelectorAll(`${sel} a`)].map((a) => [a.textContent, a.getAttribute("href")]);
+    // A row's name, without its item count on the right (owner 11-22: "Number on the right"; giftGuideRailCounts1122).
+    const group = (sel: string) => [...side.querySelectorAll(`${sel} a`)].map((a) => [a.textContent!.replace(a.querySelector(".gg-side-n")?.textContent ?? "", ""), a.getAttribute("href")]);
     expect(group("[data-gift-side-deals-group]")).toEqual([
       ["Black Friday", "/gift-guides/black-friday"],
       ["Small Business Saturday", "/gift-guides/small-business-saturday"],

@@ -61,15 +61,17 @@ describe("the phone's gift guides menu (owner 11-21; opened by the head row's th
     expect(sheet.hasAttribute("data-gift-menu-sheet")).toBe(true);
     expect([...sheet.querySelectorAll(".gg-side-h")].map((h) => h.textContent)).toEqual(["Guides", "Deals", "Free printables", "Make it fun", "Louisiana"]);
     // Everything the chips held is in the sheet: the guides, the deals days, the printables, and My Wish List.
-    const names = within(sheet).getAllByRole("link").map((a) => a.textContent);
+    // A row's name, without its item count on the right (owner 11-22: "Number on the right"; giftGuideRailCounts1122).
+    const names = within(sheet).getAllByRole("link").map((a) => a.textContent!.replace(a.querySelector(".gg-side-n")?.textContent ?? "", ""));
     for (const name of ["Her", "Him", "Kids", "My Wish List", "Black Friday", "Small Business Saturday", "Cyber Monday", "Gift tags", "Coloring books", "Banners", "Find a gift"]) {
       expect(names, name).toContain(name);
     }
     expect(within(sheet).getByRole("link", { name: "My Wish List" }).getAttribute("href")).toBe("/gift-guides/my-list");
     // Its own heading ids (no clash with the desktop sidebar's), each list labelled by its heading.
     for (const ul of sheet.querySelectorAll("ul")) expect(sheet.querySelector(`#${ul.getAttribute("aria-labelledby")}`)?.id.startsWith("gg-sheet-")).toBe(true);
-    expect(within(sheet).getByRole("link", { name: "Kids" }).getAttribute("aria-current")).toBe("page");
-    await act(async () => { fireEvent.click(within(sheet).getByRole("link", { name: "Her" })); });
+    // The name carries the row's count after it ("Kids 120 gifts", owner 11-22: "Number on the right").
+    expect(within(sheet).getByRole("link", { name: /^Kids\s*\d+\s*gifts$/ }).getAttribute("aria-current")).toBe("page");
+    await act(async () => { fireEvent.click(within(sheet).getByRole("link", { name: /^Her\s*\d+\s*gifts$/ })); });
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 

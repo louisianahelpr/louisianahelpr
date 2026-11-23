@@ -9,6 +9,8 @@
  * Sweet Wink cape, Brainstorm shark torch (Maisonette via ShopMy), Burt's Bees Baby pajamas (Kids).
  * SECOND KEEPS (owner ~11:55 AM, owner-keeps-1123b.json): 19 Her and 9 Him Amazon picks (HER_KEEPS_1123_ROWS and the
  * end of HIM_KEEPS_1123_ROWS), re-read on amazon.com 11-23 12:02-12:04 PM; the 7 non-Amazon ones are held (below).
+ * HELD LINKS MADE (11-23 12:18-12:34 PM): the Maisonette, Burt's Bees Baby, Ulta and Lodge keeps are *_LINKS_1123_ROWS
+ * below; the Capri Blue car diffuser went to Amazon. Still out: Blackstone press (no link possible), Dearfoams (Walmart).
  * Guard: src/test/giftGuideStockingStuffers1123.test.tsx.
  */
 
@@ -50,8 +52,7 @@ export const HIM_KEEPS_1123_ROWS = [
  * For Her (owner's second keeps ~11:55 AM, owner-keeps-1123b.json, the 19 Amazon ones), each re-read on its amazon.com
  * page 2026-11-23 12:02-12:03 PM CT. The OCOOPA link (B0FHHG23TP) is the Black hand warmers (its page's own color, and
  * its photo is black; the listing has no White), so the card says Black. The candle warmer names the Amber shade the
- * listing opens on. HELD (waiting on links): Her S1, S2, S4, S6, S9, S10 at Ulta (ShopMy links not made yet) and Her 21
- * Capri Blue Volcano Car Diffuser (capri-blue.com via ShopMy).
+ * listing opens on. Her S1, S2, S4, S6, S9, S10 (Ulta) are HER_LINKS_1123_ROWS below; Her 21 (Capri Blue) is the last row.
  */
 export const HER_KEEPS_1123_ROWS = [
   ["B079FV8PLK", 3.17, "71oHjVJxhUL", "Sally Hansen Insta-Dri Nail Polish, Just In Wine", "Sally Hansen", "nail-polish", 3, "A quick-dry polish in a deep holiday wine shade."],
@@ -73,6 +74,66 @@ export const HER_KEEPS_1123_ROWS = [
   ["006282015X", 24.98, "81PxN0B7CmL", "Magnolia Table, Volume 1 (Joanna Gaines)", "Harper Horizon", "cookbook", 4.5, "Joanna Gaines' first Magnolia Table cookbook."],
   ["B0FHHG23TP", 24.99, "71UMvWt5y7L", "OCOOPA Dual-Sided Rechargeable Hand Warmers, 2-Pack, Black", "OCOOPA", "hand-warmer", 3, "Two rechargeable pocket hand warmers."],
   ["B092GM9NWH", 25, "616XeR9df9L", "We're Not Really Strangers Card Game", "We're Not Really Strangers", "game", 3, "A conversation card game for friends."],
+  // Her 21 (lead 11-23 ~12:40 PM): the ShopMy link to capri-blue.com pays only 4%, and Amazon sells the same item (model
+  // CB-553-VOL-R, the capri-blue.com SKU) at the same $23.00 for 4.5%, so the card links to Amazon. Re-read on amazon.com
+  // 2026-11-23 12:44 PM CT: $23.00, In Stock, ships from Amazon, sold by CURiO Brands (Capri Blue's maker; "Visit the Capri
+  // Blue Store"). Amazon's main photo (the boxed diffuser on white); the other gallery photos are scenes.
+  ["B09X55PDB7", 23, "51q7YVnVwnL", "Capri Blue Volcano Car Diffuser + Refills", "Capri Blue", "car-fragrance", 4.5, "A clip-on car diffuser with Volcano scent reeds."],
+];
+
+/**
+ * HELD-LINK KEEPS (links made in her ShopMy 11-23 12:18-12:34 PM, Desktop held-links-1123.json): the owner's keeps that
+ * waited on a ShopMy link. Rows: [ShopMy pin, price, store photo (no query), name, brand, store, type, commission %, line].
+ * Each price re-read on the store's own product page 2026-11-23 12:40 PM CT (Shopify product data for Maisonette, Burt's
+ * Bees Baby and Lodge; the Ulta page's product data for Ulta). The Ulta prices are Ulta's Black Friday sale prices
+ * (regularly: sheet mask $3.75, body wash $4.00, spot dots $4.99, Star Balm $6.99); the bath fizzer and claw clip are full
+ * price. Photos: each store's own, cut out (LINKS_CUTOUTS_1123 below). Left out: the Blackstone Smash Burger Press (no
+ * ShopMy partner, and Amazon does not sell that press, SKU 6154) and the Walmart Dearfoams slippers (held: Walmart
+ * Creator sign-in).
+ */
+export const HER_LINKS_1123_ROWS = [
+  ["109732072", 2.62, "https://media.ulta.com/i/ulta/2661162", "TONYMOLY I Am Sugar Plum Sheet Mask", "TONYMOLY", "store-ulta-beauty", "skincare", 13, "A holiday-edition Korean sheet mask for a cozy night in."],
+  // ShopMy picked the Simply Nourish scent, the one the Ulta page opens on (sku 2635694).
+  ["109732263", 2.8, "https://media.ulta.com/i/ulta/2635694", "method Mini Body Wash, Simply Nourish, 3.4 oz", "method", "store-ulta-beauty", "body-wash", 13, "A travel-size body wash that smells like coconut and shea butter."],
+  ["109732413", 3.24, "https://media.ulta.com/i/ulta/2567110", "Peach Slices Acne Spot Dots", "Peach Slices", "store-ulta-beauty", "skincare", 13, "Clear pimple patches that work overnight."],
+  ["109732687", 4.54, "https://media.ulta.com/i/ulta/2655694", "STARFACE Star Balm Lip Balm", "STARFACE", "store-ulta-beauty", "lip-balm", 13, "A cult-favorite scented lip balm in a fun tube."],
+  ["109737953", 4.99, "https://media.ulta.com/i/ulta/2658859", "Sweet & Shimmer Coconut Swirl Candy Cane Bath Fizzer", "Sweet & Shimmer", "store-ulta-beauty", "bath-fizzer", 13, "A candy cane bath fizzer that smells like coconut."],
+  // Ulta's own description calls it the "Bow Claw Clip" (its photo is a black bow), so the card says so.
+  ["109738168", 4.99, "https://media.ulta.com/i/ulta/2658887", "Sweet & Shimmer Bow Claw Clip", "Sweet & Shimmer", "store-ulta-beauty", "hair", 13, "A black bow claw clip for a quick updo."],
+];
+export const HIM_LINKS_1123_ROWS = [
+  // Her link opens lodgecastiron.com on the 10.25-inch size (variant 51685752439156, L8SK3, $24.90; list $29.95).
+  ["109739556", 24.9, "https://cdn.shopify.com/s/files/1/0889/2707/6724/files/l8sk3_9b279cb3-889b-440f-8fff-6956291583ad.jpg", "Lodge 10.25 in. Classic Cast Iron Skillet", "Lodge", "store-lodge", "cookware", 12, "The classic cast iron skillet, ready to cook on day one."],
+];
+export const KIDS_LINKS_1123_ROWS = [
+  ["109730393", 9.95, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/CThEQGkzRX6kMttAU-PieEPx0_7c08fc80-0e1f-4686-b73a-8434b4de75b3.jpg", "OOLY Hair Doodlers Hair Crayons, Set of 6", "OOLY", "store-maisonette", "hair-crayons", 16, "Six washable hair crayons in bright colors."],
+  ["109730847", 16.15, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/sdKQAgU9XS8pVG8iU6Kx22JCM.jpg", "Floss & Rock Construction Memory Match", "Floss & Rock", "store-maisonette", "game", 16, "18 pairs of picture cards with trucks and diggers."],
+  ["109730984", 18.99, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/Zu6ntd--O4jMfhwuJN6eJDzdw.jpg", "Tender Leaf Toys Safari Binoculars", "Tender Leaf Toys", "store-maisonette", "binoculars", 16, "Wooden binoculars with kaleidoscope lenses."],
+  ["109731305", 22.5, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/2G8yemdd5Rlijzpq1apzVaMhg.jpg", "Sweet Wink Pink Confetti Cape", "Sweet Wink", "store-maisonette", "dress", 16, "A sparkly pink dress-up cape."],
+  ["109731598", 23.99, "https://cdn.shopify.com/s/files/1/0583/2323/8975/files/0seL9w_79n2bkf7Ko6DqIpgO0_1b6ddf56-898a-433e-a488-98025927d544.jpg", "Brainstorm Toys Shark Torch & Projector", "Brainstorm Toys", "store-maisonette", "projector-flashlight", 16, "A flashlight that projects 24 shark pictures."],
+  // $10.78 is the youth sizes' sale price (6Y-12Y; list $26.95); the 12M-5T sizes are $8.78 but were all sold out at the
+  // re-read, as were 6Y and 10Y (8Y and 12Y in stock).
+  ["109731941", 10.78, "https://cdn.shopify.com/s/files/1/0893/7439/2690/files/LY33506-nostalgic-christmas-organic-cotton-two-piece-pajamas-front.jpg", "Burt's Bees Baby Nostalgic Christmas Two-Piece Pajamas", "Burt's Bees Baby", "store-burts-bees-baby", "pajamas", 12, "Organic cotton Christmas pajamas in kids' sizes."],
+];
+/**
+ * Their cutouts (merged into scripts/giftGuideCutouts1120.mjs CUTOUTS_1120): Apple Vision (scripts/gift-guide-cutout.swift)
+ * for the store photos; the OOLY box by a white flood fill instead (Vision dropped its clear window); the Ulta photos
+ * are already transparent, so each is its own alpha, cropped. Checked on red 11-23.
+ */
+export const LINKS_CUTOUTS_1123 = [
+  ["https://media.ulta.com/i/ulta/2661162", "tonymoly-sugar-plum-sheet-mask-be6d57.webp"],
+  ["https://media.ulta.com/i/ulta/2635694", "method-mini-body-wash-simply-nourish-3634b9.webp"],
+  ["https://media.ulta.com/i/ulta/2567110", "peach-slices-acne-spot-dots-cb0ce7.webp"],
+  ["https://media.ulta.com/i/ulta/2655694", "starface-star-balm-lip-balm-f95d62.webp"],
+  ["https://media.ulta.com/i/ulta/2658859", "sweet-shimmer-candy-cane-bath-fizzer-26713b.webp"],
+  ["https://media.ulta.com/i/ulta/2658887", "sweet-shimmer-bow-claw-clip-3ebe1f.webp"],
+  ["https://cdn.shopify.com/s/files/1/0889/2707/6724/files/l8sk3_9b279cb3-889b-440f-8fff-6956291583ad.jpg", "lodge-classic-skillet-10-25-in-ca4f91.webp"],
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/CThEQGkzRX6kMttAU-PieEPx0_7c08fc80-0e1f-4686-b73a-8434b4de75b3.jpg", "ooly-hair-doodlers-hair-crayons-f570a3.webp"],
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/sdKQAgU9XS8pVG8iU6Kx22JCM.jpg", "floss-rock-construction-memory-match-29acea.webp"],
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/Zu6ntd--O4jMfhwuJN6eJDzdw.jpg", "tender-leaf-safari-binoculars-b6e1f3.webp"],
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/2G8yemdd5Rlijzpq1apzVaMhg.jpg", "sweet-wink-pink-confetti-cape-09e68a.webp"],
+  ["https://cdn.shopify.com/s/files/1/0583/2323/8975/files/0seL9w_79n2bkf7Ko6DqIpgO0_1b6ddf56-898a-433e-a488-98025927d544.jpg", "brainstorm-shark-torch-projector-dfd233.webp"],
+  ["https://cdn.shopify.com/s/files/1/0893/7439/2690/files/LY33506-nostalgic-christmas-organic-cotton-two-piece-pajamas-front.jpg", "burts-bees-baby-nostalgic-christmas-pajamas-5ad7e3.webp"],
 ];
 
 /** For Kids (owner 11-23 keeps, Amazon). */

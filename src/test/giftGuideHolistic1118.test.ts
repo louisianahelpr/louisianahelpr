@@ -47,8 +47,13 @@ describe("gift guides holistic fit (11-18)", () => {
 
   it("no medical or personal-care item is listed as a gift (New Mom keeps pump and nipple care)", () => {
     for (const name of ["Period Bikini, 2 Pack", "Drying Lotion", "Aquaphor Healing Ointment", "Hero Mighty Patch Acne Pimple Patches"]) expect(NOT_A_GIFT_ITEM.test(name), name).toBe(true);
-    const bad = Object.entries(CHUNKS).flatMap(([slug, l]) => l.filter((p) => NOT_A_GIFT_ITEM.test(p.name) && !((slug === "new-mom" || slug.startsWith("store-")) && NEW_MOM_CARE.test(p.name))).map((p) => `${slug}: ${p.name}`));
+    // The one exception is a pick the owner kept by name: Peach Slices Acne Spot Dots on Her (her 11-23 keeps, Desktop
+    // owner-keeps-1123b.json "Her S4"; the 11-21 note said pimple patches stay off unless the owner says to add them).
+    const OWNER_KEPT = new Set(["her https://go.shopmy.us/p-109732413"]);
+    const bad = Object.entries(CHUNKS).flatMap(([slug, l]) => l.filter((p) => NOT_A_GIFT_ITEM.test(p.name) && !OWNER_KEPT.has(`${slug} ${p.href}`) && !((slug === "new-mom" || slug.startsWith("store-")) && NEW_MOM_CARE.test(p.name))).map((p) => `${slug}: ${p.name}`));
     expect(bad).toEqual([]);
+    // Exact both ways: each exception is still on its page.
+    for (const k of OWNER_KEPT) expect(CHUNKS[k.split(" ")[0]]?.some((p) => p.href === k.split(" ")[1]), k).toBe(true);
   });
 
   it("no men's item on Her, Mom, Wife, Girlfriend, Sister, Aunt or Grandma, at any position (batch 11-19)", () => {

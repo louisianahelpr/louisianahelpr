@@ -207,7 +207,7 @@ export const HIM_ADDS_1122 = [
 // owner 11-22 popular via new ShopMy links (builder-guide-links)
   { name: "Le Labo Santal 33 Body Care Set", brand: "Le Labo", line: "Santal 33 shower gel and body lotion, his signature scent.", href: shopmy("p-109199365"), image: "https://static.shopmy.us/uploads/pretty-prod-1764081973367", store: "store-saks-fifth-avenue", sortPrice: 154, price: 154, commission: 12, type: "gift-set" },
   { name: "Patagonia Black Hole Duffel 40L", brand: "Patagonia", line: "The tough 40-liter duffel for trips and tailgates.", href: shopmy("p-109203985"), image: "https://static.shopmy.us/uploads/pretty-prod-1765371321083", store: "store-st-bernard", sortPrice: 159, price: 159, commission: 10, type: "luggage" },
-  { name: "Steve Madden Natan Penny Loafer", brand: "Steve Madden", line: "A polished penny loafer for dressy days.", href: shopmy("p-109204287"), image: "https://static.shopmy.us/uploads/pretty-prod-1764650851691", store: "store-dsw", sortPrice: 139.99, price: 139.99, commission: 12, type: "shoes" },
+  // The Steve Madden Natan Penny Loafer (DSW, p-109204287, $139.99) was here until the owner took it off, 11-23 ~1:01 PM.
   // Batch 3 for Him (11-22): her Nov 19 pins, photos from her pins (cutouts), prices as captured on her pins 11-19/20.
   // L.L.Bean's page could not be read headless; the sweater shows $130, the price on her pin data (lead 11-22).
   { name: "Costa Sullivan Polarized Glass Sunglasses", brand: "Costa", line: "Polarized glass lenses in a classic tortoise frame.", href: shopmy("p-108089555"), image: "https://static.shopmy.us/pins/zoom-108089555-1795142703033-wdsjzfbgxclrclcqtut4.jpg", store: "store-jomashop", sortPrice: 262, price: 262, commission: 8, type: "sunglasses", priceAt: "2026-11-19" },
@@ -216,7 +216,8 @@ export const HIM_ADDS_1122 = [
   // source photo (the pin's zoom image) before it can go on Him.
   { name: "L.L.Bean Men's Waterfowl Sweater", brand: "L.L.Bean", line: "A warm wool-blend quarter-zip made for cold mornings.", href: shopmy("p-108094779"), image: "https://static.shopmy.us/pins/zoom-108094779-1795143426618-237814_1225_41", store: "store-l-l-bean", sortPrice: 130, price: 130, commission: 12, type: "sweater", priceAt: "2026-11-22" },
   // LOUISIANA_ADDS_1122 (builder-guide-louisiana, owner 11-22 PM "add all items"; see the For Her block). The KREWE
-  // Olivier is on For Her too, as the note lists it.
+  // Olivier sunglasses were here too until the owner, 11-23 ~1:00 PM: "there shouldn't be krewe sunglasses on him" (they
+  // stay on For Her).
   { name: "Bayou Classic 7419 3-Gallon Cast Iron Jambalaya Pot", brand: "Bayou Classic", line: "A cast iron jambalaya pot with a lid for cook-offs.", href: amz("B0000BXHL5"), image: amzImg("71AU2JshjLL"), store: "store-amazon", sortPrice: 115.08, commission: 4.5, type: "cookware" },
   { name: "Bayou Classic 42-Inch Stainless Stir Paddle", brand: "Bayou Classic", line: "The long stainless paddle for stirring a crawfish boil.", href: amz("B000FTUTL6"), image: amzImg("51qwgICSbVL"), store: "store-amazon", sortPrice: 39.2, commission: 3, type: "boil-paddle" },
   { name: "Betts Old Salt Premium Cast Net, 4 ft", brand: "Betts", line: "A cast net for catching bait and shrimp off the dock.", href: amz("B00144CM2U"), image: amzImg("51VNqRC4hQL"), store: "store-amazon", sortPrice: 69.44, commission: 3, type: "fishing" },
@@ -227,7 +228,6 @@ export const HIM_ADDS_1122 = [
   { name: "Tony Chachere's Seasoning Blends Variety, 6 Count", brand: "Tony Chachere's", line: "Six Tony's blends from Opelousas for his spice cabinet.", href: amz("B09GCYJ8RM"), image: amzImg("710W4jdiMkL"), store: "store-amazon", sortPrice: 30.79, commission: 1, type: "seasoning" },
   { name: "Zatarain's Crawfish, Shrimp & Crab Boil, 4.5 lb", brand: "Zatarain's", line: "The big bag of New Orleans boil seasoning for a crawfish boil.", href: amz("B07GG7K5SD"), image: amzImg("91RN0dk8mZL"), store: "store-amazon", sortPrice: 6.68, commission: 1, type: "seasoning" },
   { name: "Mignon Faget Fleur de Lis Cufflinks", brand: "Mignon Faget", line: "Fleur de lis cufflinks from a New Orleans jeweler.", href: shopmy("p-109342284"), image: "https://www.mignonfaget.com/mm5/graphics/00000001/0824S.png", store: "store-mignon-faget", sortPrice: 184, price: 184, priceFrom: true, commission: 9, type: "cufflinks" },
-  { name: "KREWE Olivier Sunglasses, Reed", brand: "KREWE", line: "Handmade sunglasses from a New Orleans eyewear brand.", href: shopmy("p-109340844"), image: "https://cdn.shopify.com/s/files/1/2422/6603/files/Olivier-Reed-Front-Web.jpg", store: "store-krewe", sortPrice: 255, price: 255, commission: 16, type: "sunglasses" },
   // end LOUISIANA_ADDS_1122
 ].map(dated);
 

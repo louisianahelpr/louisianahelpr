@@ -4,7 +4,7 @@ import { useHint } from "./GiftHint";
 import { openGuidesMenu } from "./GiftGuidesPhoneNav";
 
 /** The tip's id in GiftHint's store: closed once, it stays closed on every guides page ("lh-gg-hint-menu"). */
-export const MENU_HINT_ID = "menu";
+const MENU_HINT_ID = "menu";
 
 /** The guides that open with the tip (the three live guides, owner 11-21). */
 export const MENU_HINT_GUIDES: ReadonlySet<string> = new Set(["her", "him", "kids"]);

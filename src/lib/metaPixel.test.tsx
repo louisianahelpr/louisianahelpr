@@ -7,7 +7,7 @@
  * @mutate src/lib/metaPixel.ts | if (win.document.readyState === "complete") afterLoad(); | if (true) afterLoad();
  * @mutate src/lib/metaPixel.ts | win.requestIdleCallback(run, { timeout: IDLE_TIMEOUT_MS }); | run();
  * @mutate src/lib/metaPixel.ts | lastPath = pathname; | lastPath = null;
- * @mutate src/components/MetaPixelRoutes.tsx | }, [pathname]); | }, []);
+ * @mutate src/components/MetaPixelRoutes.tsx | }, [pathname, search]); | }, []);
  * @mutate src/lib/metaPixel.ts | fbq.allowDuplicatePageViews = true; | fbq.allowDuplicatePageViews = false;
  * @mutate src/lib/metaPixel.ts | if (onSecretPage(win, `${pathname}${search}`)) return; | if (false) return;
  * @mutate src/lib/metaPixel.ts | return carriesSecretToken(win.location.href) \|\| (routerUrl | return false && (routerUrl

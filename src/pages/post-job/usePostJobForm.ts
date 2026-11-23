@@ -476,7 +476,11 @@ export function usePostJobForm() {
   // checkout screen (useJobDerived) and the quote it sends (useJobSubmit).
   const posterFeeOn = useFeature("jobs_poster_fee");
   // Q2399: card_hold_at_post (the card is held at posting, charged at the hire): the review screen's copy.
-  const cardHoldOn = useFeature("card_hold_at_post");
+  // Audit JP-02 (11-23): useFeature is false for everyone signed out, so a guest read "You're charged when you post"
+  // while every member is only held at post (20261027185147 set the switch to everyone; nothing turned it back). A
+  // guest signs up before anything is paid, so they get the members' promise. Copy only: no payment path reads this.
+  const cardHoldSwitch = useFeature("card_hold_at_post");
+  const cardHoldOn = cardHoldSwitch || isGuest;
   const { handleReview, handleSubmit } = useJobSubmit({
     posterFeeOn,
     saving,

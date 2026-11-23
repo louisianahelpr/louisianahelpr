@@ -71,7 +71,7 @@ export const PrivacyContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Account information:</strong> Name, email, phone, date of birth, and profile photo.</p>
-            <p><strong className="text-foreground">Identity verification:</strong> Government-issued ID documents are stored securely and accessed only during verification.</p>
+            <p><strong className="text-foreground">Identity verification:</strong> Stripe Identity checks your government-issued ID and keeps the ID images under its own privacy policy. We never receive or store the images: we keep the result of the check and a one-way code made from your ID details, which stops a removed account from signing up again.</p>
           </>
         }
       />
@@ -221,7 +221,7 @@ export const PrivacyContent = () => (
         body={
           <>
             <p>We use industry-standard security measures including encryption in transit (TLS) and at rest, secure authentication, and role-based access controls.</p>
-            <p>ID documents are stored in private, encrypted storage buckets accessible only to authorized verification personnel.</p>
+            <p>We do not hold ID documents: Stripe Identity keeps them, and we keep only the result of the check.</p>
             <p>In-app messages are monitored to prevent sharing of personal contact information to keep transactions safe on the platform.</p>
           </>
         }
@@ -303,6 +303,22 @@ export const PrivacyContent = () => (
           </p>
         }
       />
+      {/* Audit LT-8 (11-23): the gift guides carry Amazon Associates links (tag louisianahelpr-20) and other stores'
+          affiliate links. Amazon's Associates Program Policies ask for a privacy-policy disclosure that third parties,
+          including Amazon, may serve content and ads, collect information directly from visitors and place or recognize
+          cookies (https://affiliate-program.amazon.com/help/operating/policies). */}
+      <PolicyRowItem
+        icon={Cookie}
+        title="Affiliate links"
+        body={
+          <p>
+            Some links on our site, such as the products in our gift guides, are affiliate links to stores like Amazon.
+            We may earn from qualifying purchases, at no extra cost to you. Third parties, including Amazon,
+            may serve content and ads, collect information directly from you, and place or recognize cookies on your
+            browser when you use these links.
+          </p>
+        }
+      />
     </PolicySection>
 
     <HideOnSearch>
@@ -328,7 +344,7 @@ export const PrivacyContent = () => (
             We never sell your data.
           </p>
           <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Other members see your first name and last initial, photo, area, profile, badges, reviews and job record, never your surname, contact details or address. ID documents stay encrypted and are accessed only during verification.
+            Other members see your first name and last initial, photo, area, profile, badges, reviews and job record, never your surname, contact details or address. Your ID images stay with Stripe; we keep only the result of the check.
           </p>
         </div>
       </div>

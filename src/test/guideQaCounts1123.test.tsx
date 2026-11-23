@@ -15,7 +15,7 @@
  * @mutate src/lib/guideQa.mjs |   const total = live.length + codes + sales; |   const total = live.length;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | listed={{ ...dealDayParts(day.id, deals, today), storeCodes: STORE_CODES }} | listed={{ codes: 0, sales: 0 }}
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | listed={{ ...dealDayParts(day.id, deals, today), storeCodes: STORE_CODES }} | listed={{ ...dealDayParts(day.id, deals, today) }}
- * @mutate src/prerender/seoData.ts | deals: dealList, dealParts: dealPartsTable(), smallBiz: shops | deals: dealList, smallBiz: shops
+ * @mutate src/prerender/seoData.ts | deals: dealList, dealParts: dealPartsTable(), dealLists | deals: dealList, dealLists
  * @mutate src/prerender/seoData.ts | dealEnds(d as Deal, STORE_CODES) ?? "" | d.ends ?? ""
  * @mutate api/share.ts | today, dealPartsOn(d.dealParts?.[slug], today)); | today, { codes: 0, sales: 0 });
  * @mutate src/lib/guideQa.mjs | `The ${plural(rows.length, "Louisiana business", "Louisiana businesses")} that sponsor ${TWENTY_FIVE_DAYS.name}, including | `${plural(rows.length, "Louisiana business", "Louisiana businesses")}, including

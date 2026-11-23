@@ -22,7 +22,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | {g.title}<N n={CHUNK_PICK_COUNTS[g.slug]} noun="gifts" /> | {g.title}<N n={CHUNK_PICK_COUNTS[g.slug] + 1} noun="gifts" />
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | {G.sideSponsorsLabel}<N n={CHUNK_PICK_COUNTS[SPONSORS_SLUG]} noun="gifts" /> | {G.sideSponsorsLabel}
  * @mutate src/content/printables.ts | n + (p.kind === "overlay" ? pickerDesigns(p).length : booksOf(p)?.length ?? 1) | n + (p.kind === "overlay" ? p.designs.length : booksOf(p)?.length ?? 1)
- * @mutate src/content/giftGuideDealCounts.ts | codes: codeCardCount(codesOn(on).filter((c) => !shown.has(c.code.toUpperCase()))) | codes: codeCardCount(codesOn(on))
+ * @mutate src/content/giftGuideDealCounts.ts | codes: codesOn(on).filter((c) => !shown.has(c.code.toUpperCase())), | codes: codesOn(on),
  * @mutate src/pages/info/giftGuides/railCounts.ts | return hub.stay + hub.gone.filter((g) => g > at).length; | return hub.stay + hub.gone.filter((g) => g >= at).length;
  * @mutate scripts/gift-guide-rail-counts.mjs | else if (item.start === days[d]) | else if (false)
  * @mutate src/pages/info/giftGuides/railCounts.ts | return RAIL.smallBiz + (await featuredLocalCount()); | return RAIL.smallBiz;

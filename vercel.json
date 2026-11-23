@@ -101,6 +101,41 @@
       "permanent": true
     },
     {
+      "source": "/25-days",
+      "destination": "/25days",
+      "permanent": true
+    },
+    {
+      "source": "/25-days-of-giveaways",
+      "destination": "/25days",
+      "permanent": true
+    },
+    {
+      "source": "/giveaway",
+      "destination": "/25days",
+      "permanent": true
+    },
+    {
+      "source": "/giveaways",
+      "destination": "/25days",
+      "permanent": true
+    },
+    {
+      "source": "/black-friday",
+      "destination": "/gift-guides/black-friday",
+      "permanent": true
+    },
+    {
+      "source": "/cyber-monday",
+      "destination": "/gift-guides/cyber-monday",
+      "permanent": true
+    },
+    {
+      "source": "/small-business-saturday",
+      "destination": "/gift-guides/small-business-saturday",
+      "permanent": true
+    },
+    {
       "source": "/go",
       "destination": "/gift-guides",
       "permanent": false

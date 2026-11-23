@@ -52,13 +52,16 @@ export function FunBody({ title, path, noindex, banner = G.pageBanners[path], to
  * `tools`: the head row's icons. "none" on the printables (owner 11-21: "remove the search, favorite ... just polish
  * this"; 11-22: "Same row, icons off there"): the pill only. "share" on the Holiday Hub: Share only (owner 11-22: no
  * gift search beside the Hub's own lights search; 7:49 PM: "remove order by and the heart at the top ... i thought we
- * didnt do that for this section?"), so no pill and no My list heart there either.
+ * didnt do that for this section?"), so no My list heart there either.
+ * No shipping pill on any frame page (owner 11-22 8:58 PM pop-up, "Remove on free pages": the "Order by Dec 15" pill is for
+ * shopping pages only; every page in this frame is free: the printables, Swipe, the Secret Santa draw and reveal, the
+ * planner and the Holiday Hub).
  */
 export function GuidesFrame({ title, path, banner, tools = "all", children }: { title: string; path: string; banner: PageBanner; tools?: FrameTools; children: ReactNode }) {
   const frame = useRef<HTMLDivElement>(null);
   return (
     <div className="gg w-full" data-gift-fun-frame="" ref={frame}>
-      <GuidesTop backTo="/gift-guides" banner={banner} noPill={tools === "share"}
+      <GuidesTop backTo="/gift-guides" banner={banner} noPill
         tools={tools === "none" ? null : <GiftGuideTools path={path} title={title} search={tools === "all"} heart={tools !== "share"} />} nav={{ active: null, page: path }} />
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">

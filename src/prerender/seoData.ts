@@ -4,6 +4,8 @@ import type { SeoData, SeoGuide } from "@/lib/seoBodies.mjs";
 import { DEAL_DAY_SLUGS } from "@/content/giftGuideDeals.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import deals from "@/content/giftGuideDeals.json";
+import smallBiz from "@/content/giftGuideSmallBiz.json";
+import { QA_PAGES, toQaPick } from "@/lib/guideQa.mjs";
 
 /**
  * SEO P1 (owner 11-19): the gift guide data api/share.ts needs to write each guide's body, ItemList and 404s with no
@@ -43,7 +45,9 @@ export async function buildSeoData(): Promise<SeoData> {
     const related = (g.children ? childrenOf(g) : relatedGuides(g))
       .filter((r) => Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, r.slug))
       .map((r) => [r.slug, GIFT_GUIDE_SEO[r.slug]] as [string, string]);
-    guides[g.slug] = { name, indexed, picks, count: indexed ? new Set(g.picks.filter((p) => p.name && p.href).map((p) => p.href)).size : 0, ...(related.length ? { related } : {}) };
+    // Guide Q&A (owner pop-up 11-22 9:40 PM): every pick, in the page's order, as the Q&A reads it (guideQa.mjs toQaPick).
+    const qa = indexed && QA_PAGES.includes(g.slug) ? g.picks.filter((p) => p.name).map(toQaPick) : [];
+    guides[g.slug] = { name, indexed, picks, count: indexed ? new Set(g.picks.filter((p) => p.name && p.href).map((p) => p.href)).size : 0, ...(related.length ? { related } : {}), ...(qa.length ? { qa } : {}) };
   }
   const moved: Record<string, string> = {};
   for (const old of [...Object.keys(OLD_SLUGS), ...Object.keys(MERGED_GUIDES), ...RETIRED_SLUGS()]) {
@@ -61,8 +65,13 @@ export async function buildSeoData(): Promise<SeoData> {
   ]).filter(([, list]) => list.length > 0) as SeoData["groups"];
   // The deals days' cards (structured data 1121; one page per day, owner 11-21): name, shop link, last day and the
   // day page they show on; a day page that is not live carries none.
-  const dealList: SeoData["deals"] = (deals as { item?: string; href?: string; ends?: string; event?: string }[])
+  // Guide Q&A 11-22: each card's brand and deal line too (the day's "What deals are on this page?").
+  const dealList: SeoData["deals"] = (deals as { item?: string; href?: string; ends?: string; event?: string; brand?: string; deal?: string }[])
     .filter((d) => d.item && d.href && d.event && DEAL_DAY_SLUGS.includes(d.event) && isLiveGuide(d.event))
-    .map((d) => [d.item as string, d.href as string, d.ends ?? "", d.event as string]);
-  return { guides, moved, groups, deals: dealList };
+    .map((d) => [d.item as string, d.href as string, d.ends ?? "", d.event as string, d.brand ?? "", d.deal ?? ""]);
+  // Small Business Saturday's businesses for its Q&A: name, town, category, "ships" or "local".
+  const shops: SeoData["smallBiz"] = (smallBiz as { name?: string; town?: string; category?: string; ships?: string }[])
+    .filter((b) => b.name)
+    .map((b) => [b.name as string, b.town ?? "", b.category ?? "", b.ships ?? ""]);
+  return { guides, moved, groups, deals: dealList, smallBiz: shops };
 }

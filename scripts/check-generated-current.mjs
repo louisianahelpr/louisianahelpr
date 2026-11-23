@@ -114,6 +114,15 @@ export const GENERATED = [
     what: "the first 8 hex of each gift guide cover's and share image's MD5, the ?v= cache key on their URLs",
   },
   {
+    // Owner pop-up 2026-11-22 9:40 PM ("Q&A + updated date + byline"): each guide page's "Updated" day, moved only when
+    // that page's data changes (src/lib/guideQa.mjs).
+    id: "guide-updated",
+    script: "scripts/guide-updated.mjs",
+    cmd: ["node", "scripts/guide-updated.mjs"],
+    outputs: ["src/content/guideUpdated.mjs"],
+    what: "each Q&A guide page's data fingerprint and the day it last changed, the Q&A's Updated line",
+  },
+  {
     // SURFACE.md's toast count is read from this same scanner (Q228).
     id: "toast-inventory",
     script: "scripts/toast-inventory.mjs",
@@ -158,6 +167,14 @@ export const GENERATED = [
     cmd: ["node", "scripts/generate-sitemap.mjs"],
     outputs: ["public/sitemap.xml"],
     what: "public URLs (also sitemap-drift.yml)",
+  },
+  {
+    // Owner pop-up 2026-11-22 9:40 PM ("llms.txt"): the site map for AI assistants, from the sitemap (runs after it).
+    id: "llms-txt",
+    script: "scripts/generate-llms-txt.mjs",
+    cmd: ["node", "scripts/generate-llms-txt.mjs"],
+    outputs: ["public/llms.txt"],
+    what: "public/llms.txt: the gift guides, Holiday Hub, 25 Days and about pages from the sitemap, each with its description",
   },
   {
     id: "vacuity-report",

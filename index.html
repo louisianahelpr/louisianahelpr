@@ -50,15 +50,14 @@
     <meta name="apple-mobile-web-app-title" content="Helpr" />
 
     <!--
-      Smart App Banner: REMOVED until the App Store listing is live (owner,
-      2026-10-04, Q1124: the listing for id 6754470134 404s, so Mobile Safari's
-      banner sent people to a dead page). It comes back with the real numeric
-      App Store ID from the launch checklist (docs/OPEN.md Q1289):
-        <meta name="apple-itunes-app" content="app-id=<ID>, app-argument=helpr://" />
-      Only the digits go in the meta tag; the bundle id does not work here.
-      src/test/appStoreLinksHiddenUntilLive.test.ts fails while the meta is
-      present and src/lib/appStore.ts APP_STORE_LISTING_LIVE is false.
+      Smart App Banner (Q1289): back since the App Store listing went live
+      (1.0.4, released 2026-11-19; it was removed while id 6754470134 404'd,
+      owner 2026-10-04, Q1124). Only the numeric App Store id goes here, the
+      same id as src/lib/appStore.ts APP_STORE_URL and fastlane's apple_id;
+      src/test/appStoreLinksHiddenUntilLive.test.ts holds the three together.
+      app-argument opens the app at its helpr:// scheme (ios Info.plist).
     -->
+    <meta name="apple-itunes-app" content="app-id=6754470134, app-argument=helpr://" />
 
     <!-- Capacitor-only CSP. file:// loads can't receive HTTP headers, so
          the iOS/Android bundle relies on this meta tag. The web build

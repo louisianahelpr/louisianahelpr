@@ -228,10 +228,9 @@ export interface DiscountCode {
  *
  * Deals queue 11-23, second pass (lead 11-23; our ShopMy earning links made 1:46-2:12 PM, ~/.lh-shots/deals-queue-1123.md
  * "LINKS MADE"): Dream Pairs BLC521 (CJ mail, to Dec 10), PatchMD BF50 (CJ mail, to Dec 4; its later SAVE/HOLIDAY/END
- * codes are not listed yet), Perelel BF2026 (ShopMy chat, sale Nov 9-29), Perk Energy's free
- * gifts (ShopMy chat, to Nov 27) and Adagio Teas's spend rewards (CJ mail: free shipping to Nov 29, gift
- * card tiers to Dec 25; its free-tea tiers are left off, no end day stated). Ravin Crossbows is left off (no end day
- * stated), and so is Pomp and Circumstance (no link of ours yet). UNice Hair's BF150 is left off too: it ends Nov 25,
+ * codes are not listed yet), Perelel BF2026 (ShopMy chat, sale Nov 9-29) and Perk Energy's free gifts (ShopMy chat,
+ * to Nov 27). Left off: Adagio Teas (on the owner's 11-19 blocklist, scripts/giftGuideBlocklist.mjs), Ravin Crossbows
+ * (no end day stated) and Pomp and Circumstance (no link of ours yet). UNice Hair's BF150 is left off too: it ends Nov 25,
  * before Black Friday, and a deals page lists only the codes working on its own day (codesDay), so it would never show.
  * Guard: src/test/giftGuideDealsQueue1123.test.tsx.
  */

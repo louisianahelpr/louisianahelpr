@@ -32,8 +32,6 @@ const ADDED: { store: string; code: string; offer: RegExp; expires: string; on?:
   { store: "PatchMD", code: "BF50", offer: /^50% off sitewide$/, expires: "2026-12-04", href: "https://go.shopmy.us/p-109784016" },
   { store: "Perelel", code: "BF2026", offer: /^25% off sitewide/, expires: "2026-11-29", href: "https://go.shopmy.us/p-109782873" },
   { store: "Perk Energy", code: "", offer: /^Free gifts with purchase at \$67, \$107 and \$147$/, expires: "2026-11-27", on: "2026-11-24", href: "https://go.shopmy.us/p-109783345" },
-  { store: "Adagio Teas", code: "", offer: /^Free shipping on \$25\+$/, expires: "2026-11-29", href: "https://go.shopmy.us/p-109797913" },
-  { store: "Adagio Teas", code: "", offer: /gift card on \$150\+/, expires: "2026-12-25", href: "https://go.shopmy.us/p-109797913" },
 ];
 
 const DEAL_DAYS = DEAL_EVENTS.filter((e) => e.kind === "deals");
@@ -96,7 +94,7 @@ describe("deals queue 1123: the incoming Black Friday / Cyber Monday deals are o
   });
 
   // Once Black Friday has passed its page lists the codes that work today (codesDay), so from Nov 28 it may carry a
-  // working TAKE20 too; before Nov 27 no page names it, and after Nov 30 none does.
+  // working TAKE20 too; before Nov 27 (2026-11-27) no page names it, and after Nov 30 (2026-11-30) none does.
   it("TAKE20 is on no page before Nov 27, is on Cyber Monday's Nov 27 to 30, and is gone after", () => {
     const isTake20 = (c: DiscountCode) => c.store === "Zappos" && c.code === "TAKE20";
     let before = 0;

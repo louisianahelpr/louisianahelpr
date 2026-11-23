@@ -13,7 +13,6 @@ const DIR = "/gift-guides/deals/stores/";
 
 /** Store slug (slugify of the name the codes and sales spell, as the store-<slug> page ids do) -> its photo's file name. */
 export const STORE_PHOTO_FILES: Record<string, string> = {
-  "adagio-teas": "adagio-teas.webp",
   "anthropologie": "anthropologie.webp",
   "at-home": "at-home.webp",
   "aurate": "aurate.webp",

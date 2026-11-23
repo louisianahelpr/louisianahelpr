@@ -143,6 +143,11 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   // Her keeps whose links came later (11-23): a candy cane bath fizzer is beauty and a cozy night in; a car diffuser
   // is a cozy little upgrade for her car.
   "bath-fizzer": ["beauty", "cozy"], "car-fragrance": ["cozy"],
+  // Her and Him picks from her Walmart "Claude" collection (11-23): a 3D printer is a gadget and a tool; a slushie machine,
+  // a utensil crock, a tea kettle and a paper towel holder are kitchen; counter stools and an island are home; a striped
+  // makeup pouch is beauty and style; a sweater-knit lounge set is cozy and style.
+  "3d-printer": ["tech", "tools"], "slushie-maker": ["kitchen"], "kitchen-utensils": ["kitchen"], "tea-kettle": ["kitchen", "cozy"],
+  "kitchen-decor": ["kitchen", "cozy"], furniture: ["cozy"], "makeup-bag": ["beauty", "style"], "lounge-set": ["cozy", "style"],
 };
 /** Kids' gift types and the interests each one is. */
 const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
@@ -174,6 +179,8 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   "hair-crayons": ["creative", "stocking"], binoculars: ["pretend", "active"], "projector-flashlight": ["pretend"],
   // Christmas pajamas named "Pajamas" take that type (the type-agrees-with-name guard); cozy like kids-pajamas.
   pajamas: ["cozy"],
+  // Her Walmart "Claude" picks (11-23): a Spider-Man playhouse is pretend play, in the yard too.
+  playhouse: ["pretend", "active"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -241,8 +248,14 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   // By each box's age (Desktop owner-keeps-1123.json): OOLY hair crayons 6+, Tender Leaf binoculars 3+, the Brainstorm
   // shark torch 4+.
   "hair-crayons": ["6-8", "9-12"], binoculars: ["3-5", "6-8"], "projector-flashlight": ["3-5", "6-8"],
+  // The Delta Children Spider-Man playhouse is 2+ (walmart.com specifications, 11-23).
+  playhouse: ["0-2", "3-5"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
+  // Her Walmart "Claude" dolls (walmart.com specifications, 11-23): the Madame Alexander newborn is 2-4, the 8-inch
+  // Library Chic collectible 12 and up.
+  [/madame alexander 19 in\. newborn/i, ["0-2", "3-5"]],
+  [/madame alexander 8 in\. library chic/i, ["9-12", "teen"]],
   [/baby'?s 1st/i, ["0-2"]],
   [/infant bucket swing/i, ["0-2"]],
   [/paint with water|sticker book/i, ["3-5", "6-8"]],

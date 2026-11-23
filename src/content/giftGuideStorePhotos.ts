@@ -72,6 +72,7 @@ export const STORE_PHOTO_FILES: Record<string, string> = {
   "victorias-secret": "victorias-secret.webp",
   "xtratuf": "xtratuf.webp",
   "yvo-warrior": "yvo-warrior.webp",
+  "zappos": "zappos.webp",
 };
 
 /** The store's photo path, or null when we have none. */

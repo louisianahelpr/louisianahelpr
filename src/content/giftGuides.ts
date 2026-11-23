@@ -208,6 +208,14 @@ export const discountCodes: DiscountCode[] = [
   // dates it never hid and would have shown after it ended.
   { rank: 2, store: "Durango Boots", code: "TAKE30", offer: "30% off sitewide; free shipping on $99+", dates: "Nov 20 – Dec 6", starts: "2026-11-20", expires: "2026-12-06", href: "https://www.anrdoezrs.net/click-101930553-15736401?url=https%3A%2F%2Fwww.durangoboots.com%2F" },
   { rank: 3, store: "Magnifique", code: "LEXI10", offer: "10% off; stacks with eligible promotions", href: "https://cookmagnifique.com/" },
+  // Deals queue 11-23 (owner 11-23: every incoming Black Friday / Cyber Monday deal goes on the deals pages): Zappos's
+  // own ShopMy chat (Nov 19 "November News" image, read Nov 23). The link is our ShopMy Zappos holiday gift guide link
+  // (Link-library master-links.csv, used on the Zappos store page). TAKE20 is embargoed: Zappos asked creators not to
+  // share it until Nov 27, so no page names it before then (codesOn). HOKA Bondi 9 20% off is left off: no end date.
+  // Guard: src/test/giftGuideDealsQueue1123.test.tsx.
+  { rank: 4, store: "Zappos", code: "", offer: "Early Black Friday sale: up to 50% off eligible styles", dates: "Nov 19 – 30", starts: "2026-11-19", expires: "2026-11-30", href: "https://go.shopmy.us/p-107283587" },
+  { rank: 4, store: "Zappos", code: "", offer: "30% off On Cloudtilt and Cloudsurfer 2", dates: "Nov 26 – Dec 1", starts: "2026-11-26", expires: "2026-12-01", href: "https://go.shopmy.us/p-107283587" },
+  { rank: 4, store: "Zappos", code: "TAKE20", offer: "Cyber Monday: up to 50% off eligible styles", dates: "Nov 27 – 30", starts: "2026-11-27", expires: "2026-11-30", embargo: true, href: "https://go.shopmy.us/p-107283587" },
   // Bruno Marc's Black Friday + Cyber Monday sale (CJ member mail, Commission-offers-log.md Nov 23): 25% off sitewide,
   // taken off automatically with no code, Nov 23 to Dec 1. GREEN20 likely won't stack, so it steps aside for the sale
   // and comes back Dec 2. A row with code "" is a no-code sale: its card shows no copy chip (CodeCard).
@@ -222,6 +230,9 @@ export const discountCodes: DiscountCode[] = [
   // through Dec 12; LEXI15 comes back Dec 13.
   { rank: 13, store: "Club Recess", code: "LEXI5", offer: "5% off; stacks with their sales", expires: "2026-12-12", href: "https://clubrecess.com/" },
   { rank: 13, store: "Club Recess", code: "LEXI15", offer: "15% off", starts: "2026-12-13", href: "https://clubrecess.com/" },
+  // Deals queue 11-23: Club Recess's Black Friday sale (their ShopMy chat, Nov 23): sale prices on the site, no code,
+  // Nov 24 through Cyber Monday Nov 30, and LEXI5 stacks on top. After LEXI5 so a pick's code chip stays LEXI5.
+  { rank: 13, store: "Club Recess", code: "", offer: "Black Friday through Cyber Monday: paddles and the Recess Archive (final sale) 40% off, apparel 25% off, accessories 20% off; LEXI5 stacks", dates: "Nov 24 – 30", starts: "2026-11-24", expires: "2026-11-30", href: "https://clubrecess.com/collections/black-friday" },
   { rank: 14, store: "Thrive Creative", code: "LEXIL20", offer: "20% off", href: "https://thrivecreative.us/" },
   { rank: 15, store: "YVO Warrior", code: "LEXI15", offer: "15% off", href: "https://yvowarrior.com/" },
   { rank: 16, store: "Daily Crunch Snacks", code: "LEXI15", offer: "15% off", href: "https://dailycrunchsnacks.com/" },

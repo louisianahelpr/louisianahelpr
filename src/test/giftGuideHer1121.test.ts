@@ -16,7 +16,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { HER_ROWS, HER_WALMART_1123, her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
+import { HER_ROWS, her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
 import { AMAZON_BRAND_PHOTOS_1122, CUTOUT_BASE, cutoutPhoto } from "../../scripts/giftGuideCutouts1120.mjs";
 import { PEOPLE_GUIDES, isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { blankComments } from "./helpers/blankNonCode";
@@ -124,7 +124,7 @@ const KEEPS_1123_ASINS = ["B079FV8PLK", "B00A8S6HM4", "B0CB23NZGT", "B00EUBPHR6"
   "B010TCP3SC", "B01M10G9WJ", "B0DWMNVVQV", "1401971369", "B01EXQ582Q", "B0GXGV6FRN", "B00023IT5S", "006282015X", "B0FHHG23TP", "B092GM9NWH", "B09X55PDB7"];
 const BRAUN_1123 = "B07WYY6KKC";
 const LINKS_1123_PINS = ["p-109732072", "p-109732263", "p-109732413", "p-109732687", "p-109737953", "p-109738168"];
-const SAVED = new Set([...[...KEEPS_1123_ASINS, ...LOUISIANA_1122_ASINS, ...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS, ...LOUISIANA_1122_PINS, ...LINKS_1123_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ, ...HER_WALMART_1123.map((r) => r.href)]);
+const SAVED = new Set([...[...KEEPS_1123_ASINS, ...LOUISIANA_1122_ASINS, ...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS, ...LOUISIANA_1122_PINS, ...LINKS_1123_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
 const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
@@ -139,12 +139,10 @@ describe("For Her = the owner's saves (11-21)", () => {
     }
   });
 
-  it("the page holds exactly her 198 links, once each, and nothing else", () => {
-    // 198 = 159 + her 20 Amazon second keeps of 11-23 (KEEPS_1123_ASINS) + her 6 Ulta keeps (LINKS_1123_PINS) + her 13
-    // Walmart "Claude" collection picks (HER_WALMART_1123, 2026-11-23).
-    expect(SAVED.size).toBe(198);
-    expect(HER_WALMART_1123.length).toBe(13);
-    expect(page.length).toBe(198);
+  it("the page holds exactly her 185 links, once each, and nothing else", () => {
+    // 185 = 159 + her 20 Amazon second keeps of 11-23 (KEEPS_1123_ASINS) + her 6 Ulta keeps (LINKS_1123_PINS).
+    expect(SAVED.size).toBe(185);
+    expect(page.length).toBe(185);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
@@ -172,8 +170,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     expect(page[1].name).toMatch(/^method Mini Body Wash/);
     expect(page[2].name).toMatch(/^Sally Hansen/);
     expect(page[3].name).toMatch(/^Peach Slices/);
-    // The dearest is her Walmart pick of 11-23, the Pioneer Woman Harper kitchen island ($484).
-    expect(page[page.length - 1].name).toMatch(/^The Pioneer Woman Harper Kitchen Island/);
+    expect(page[page.length - 1].name).toMatch(/currentbody/i);
     // The module sorts by itself: fed in reverse, it still lists cheapest first.
     const again = her1121Picks([...HER_ROWS].reverse()).map((p) => seen.get(p.href) as number);
     expect(again).toEqual([...again].sort((a, b) => a - b));
@@ -187,7 +184,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(100); // 80 + her 20 Amazon second keeps of 11-23 (Capri Blue included)
-    expect(shopmy.length).toBe(98); // 79 + her 6 Ulta keeps of 11-23 + her 13 Walmart "Claude" picks (2026-11-23)
+    expect(shopmy.length).toBe(85); // 79 + her 6 Ulta keeps of 11-23
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

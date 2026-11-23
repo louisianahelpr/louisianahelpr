@@ -38,28 +38,21 @@ export interface DupeEntry {
 }
 
 /**
- * Owner 2026-11-23 ~2:40 PM: "some of them aren't dupes, they are just similar". A "dupe" is a true lookalike (same
- * item type with the same look, silhouette, color or details: the UGG Evelina clogs, Oura to RingConn); a "similar" is
- * the same use for less in a different look or brand style (Carhartt cooler for the YETI Hopper). Each record says
- * which (owner's list: ~/Desktop/Louisiana Helpr Work/Gift guides and affiliate/Dupes-1123/dupe-vs-similar-1123.md).
+ * Owner 2026-11-23 ~2:40 PM: "some of them aren't dupes, they are just similar": each record says which ("dupe", a true
+ * lookalike; "similar", the same use for less in a different look; owner's list: ~/Desktop/Louisiana Helpr Work/Gift
+ * guides and affiliate/Dupes-1123/dupe-vs-similar-1123.md). Then ~3:25 PM: "actually just do shop similar instead of
+ * dupe": every card with any shows the same plain words "shop similar" and one panel title, so the kind stays in the
+ * data only.
  */
-export type DupeKind = "dupe" | "similar";
-type Kinded = { name: string; kind?: DupeKind };
-/** True when at least one is a true lookalike (a record with no kind, e.g. an older saved live copy, counts as one). */
-export const hasTrueDupe = (dupes: readonly Kinded[]) => dupes.some((d) => d.kind !== "similar");
+type DupeKind = "dupe" | "similar";
 
-/** The plain-word copy for the "dupe" / "similar" link and its panel. */
+/** The plain-word copy for the "shop similar" link and its panel. */
 export const DUPE = {
-  /** The card's word: "dupe" when any is a true lookalike, else "similar". */
-  word: (dupes: readonly Kinded[]) => (hasTrueDupe(dupes) ? "dupe" : "similar"),
-  /** The word's screen-reader name after the word: one named with its price, several counted. */
-  label: (dupes: readonly Kinded[], price?: string) => {
-    const at = price ? `, ${price}` : "";
-    if (hasTrueDupe(dupes)) return dupes.length === 1 ? `Cheaper lookalike: ${dupes[0].name}${at}` : `${dupes.length} cheaper lookalikes`;
-    return dupes.length === 1 ? `Similar for less: ${dupes[0].name}${at}` : `${dupes.length} similar for less`;
-  },
-  title: (dupes: readonly Kinded[]) => (hasTrueDupe(dupes) ? (dupes.length === 1 ? "Cheaper lookalike" : "Cheaper lookalikes") : "Similar for less"),
-  panelLabel: (dupes: readonly Kinded[], of: string) => `${DUPE.title(dupes)} for ${of}`,
+  word: "shop similar",
+  /** The count the screen reader hears after the words: "shop similar: 3 similar items". */
+  count: (n: number) => `${n} similar item${n === 1 ? "" : "s"}`,
+  title: "Shop similar",
+  panelLabel: (of: string) => `Shop similar for ${of}`,
   close: "Close",
 };
 

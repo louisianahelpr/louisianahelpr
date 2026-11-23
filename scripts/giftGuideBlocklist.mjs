@@ -73,16 +73,8 @@ const hostCore = (h) => {
   }
 };
 
-/**
- * The owner's own picks that the store-brand rule would block (lead 11-23 ~2:50 PM: the gifts she put in her Walmart
- * Creator collection "Claude" are owner picks, exempt from the Walmart store-brand rule): her exact links, nothing else.
- * Today: the Better Homes & Gardens wood and marble paper towel holder on For Her (scripts/giftGuideOwnerKeeps1123.mjs).
- */
-export const OWNER_PICKED_LINKS = ["https://walmrt.us/48Ibtx1"];
-
 /** True when a raw pick or deal ({ brand, store, retailer, storeName, name, title, href, affiliate_href }) is blocked. */
 export function blockedBrand(p) {
-  if (p.href && OWNER_PICKED_LINKS.includes(String(p.href))) return false;
   if (WALMART_BRAND_ONLY.some((b) => String(p.brand ?? "").trim().toLowerCase() === b.toLowerCase())) return true;
   for (const v of [p.brand, p.store, p.retailer, p.storeName]) if (v && blockedCompact.includes(compact(v))) return true;
   for (const v of [p.name, p.title, p.brand, p.store, p.retailer, p.storeName]) if (v && blockedWords.some((re) => re.test(String(v)))) return true;

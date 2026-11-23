@@ -958,66 +958,6 @@
    "ageMin": 4,
    "ageSource": "owner-keeps-1123.json ages (11-23 research of the product listing): 4+",
    "list": "owner-keeps-1123"
-  },
-  "walmrt.us/3XJ8SAw": {
-   "name": "Warmies Axolotl Heatable Lavender-Scented Plush",
-   "gender": "everyone",
-   "ageMin": 0,
-   "ageSource": "walmart.com/ip/1737384545 specifications, read 2026-11-23: Age range 0 Years & Up",
-   "list": "walmart-claude-1123"
-  },
-  "walmrt.us/4zHTXnA": {
-   "name": "Kid Trax Disney Frozen 6V Wiggle Car Ride-On, Blue",
-   "gender": "everyone",
-   "ageMin": 3,
-   "ageMax": 6,
-   "ageSource": "walmart.com/ip/19494063374 specifications, read 2026-11-23: Age range 3 - 6 Years",
-   "list": "walmart-claude-1123"
-  },
-  "walmrt.us/3VOWIFL": {
-   "name": "Kid Trax Marvel Spidey 6V Wiggle Car Ride-On, Red",
-   "gender": "everyone",
-   "ageMin": 3,
-   "ageMax": 6,
-   "ageSource": "walmart.com/ip/19605318506 specifications, read 2026-11-23: Age range 3 - 6 Years",
-   "list": "walmart-claude-1123"
-  },
-  "walmrt.us/4A2ZBBB": {
-   "name": "Razor Black Label E90 Electric Scooter, Green",
-   "gender": "everyone",
-   "ageMin": 8,
-   "ageSource": "walmart.com/ip/646369283 specifications, read 2026-11-23: Age range 8 Years & Up",
-   "list": "walmart-claude-1123"
-  },
-  "walmrt.us/4krstyF": {
-   "name": "Madame Alexander 19 in. Newborn Nursery Baby Doll, Little Sweetheart",
-   "gender": "everyone",
-   "ageMin": 2,
-   "ageMax": 4,
-   "ageSource": "walmart.com/ip/980979848 specifications, read 2026-11-23: Age range 2 - 4 Years",
-   "list": "walmart-claude-1123"
-  },
-  "walmrt.us/4AOi7xC": {
-   "name": "Xuanlur 12V Licensed Ford GT Ride-On Car, Blue",
-   "gender": "everyone",
-   "ageMin": 3,
-   "ageMax": 6,
-   "ageSource": "walmart.com/ip/17561822223 specifications, read 2026-11-23: Age range 3 - 6 Years",
-   "list": "walmart-claude-1123"
-  },
-  "walmrt.us/4kxFTcw": {
-   "name": "Madame Alexander 8 in. Library Chic Collectible Doll",
-   "gender": "everyone",
-   "ageMin": 12,
-   "ageSource": "walmart.com/ip/19382812773 specifications, read 2026-11-23: Age range 12 - 100 Years",
-   "list": "walmart-claude-1123"
-  },
-  "walmrt.us/4tASiPv": {
-   "name": "Delta Children Marvel Spider-Man Indoor/Outdoor Playhouse",
-   "gender": "everyone",
-   "ageMin": 2,
-   "ageSource": "walmart.com/ip/2271352006 specifications, read 2026-11-23: Age range 2 Years & Up",
-   "list": "walmart-claude-1123"
   }
  }
 }

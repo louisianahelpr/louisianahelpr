@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-23T09:51:20.079Z",
-  "guards": 4470,
-  "registered": 4466,
+  "generated": "2026-11-23T11:06:16.749Z",
+  "guards": 4471,
+  "registered": 4467,
   "unregistered": [
     "src/lib/categorySuggestions.test.ts",
     "src/lib/celebrate.test.ts",

@@ -13,7 +13,7 @@ describe("e2e searchFeed finds the phone Jobs magnifier", () => {
     expect(line).toMatch(/\[data-search-trigger\]\[aria-label="Search jobs"\]/);
     expect(line).not.toMatch(/data-feed-strip/);
   });
-  // @mutate e2e/feedSearch.ts | .filter({ visible: true }).first(); | .first();
+  // @mutate e2e/feedSearch.ts | [data-search-trigger][aria-label="Search jobs"]').filter({ visible: true }).first(); | [data-search-trigger][aria-label="Search jobs"]').first();
   it("only a visible trigger is pressed", () => {
     expect(line).toMatch(/filter\(\{ visible: true \}\)/);
   });

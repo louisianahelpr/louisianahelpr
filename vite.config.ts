@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import { entryBootPreloads, trimEntryRouteDeps, type EntryRouteBundle } from "./scripts/perf/entryRouteDeps.mjs";
 import { stripHtmlComments } from "./scripts/perf/stripHtmlComments.mjs";
 import { PRICE_FEED_FILE, buildPriceFeed } from "./scripts/lib/giftGuidePriceFeed.mjs";
+import { buildLiveData } from "./scripts/lib/giftGuideLiveData.mjs";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";
@@ -322,6 +323,17 @@ export default defineConfig(({ mode, command }) => ({
       generateBundle() {
         const feed = buildPriceFeed(path.join(process.cwd(), "src/content/giftGuidePicks"));
         this.emitFile({ type: "asset", fileName: PRICE_FEED_FILE, source: JSON.stringify(feed) });
+      },
+    } satisfies Plugin,
+    // Live gift-guide data (owner 2026-11-23: "make the app's guides pull the latest gifts, prices and deals from the
+    // website, so later edits show up without new reviews"): every live guide data file as
+    // /gift-guides/data/<name>.<hash>.json plus /gift-guides/data/manifest.json, read by src/lib/liveGuideData.ts after
+    // the bundled copy has drawn. JSON only, never code. Not imported by any page. Guard: src/test/liveGuideData1123.test.ts.
+    {
+      name: "lh-gift-guide-live-data",
+      apply: "build",
+      generateBundle() {
+        for (const a of buildLiveData(process.cwd(), appBuiltAt).assets) this.emitFile({ type: "asset", fileName: a.fileName, source: a.source });
       },
     } satisfies Plugin,
     // Stamp the built index.html with the commit it was built from.

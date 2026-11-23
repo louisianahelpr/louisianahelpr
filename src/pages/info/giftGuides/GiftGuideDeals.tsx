@@ -21,6 +21,7 @@ import { GiftGuideSort, MyListIcon, type SortChoice } from "./GiftGuideShare";
 import { SBS_WORDS as SBS } from "@/content/sbsFeaturedLocal";
 import type { SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { report } from "@/lib/errorLogger";
+import { isLiveDeals, liveCopy, onLiveUpdate } from "@/lib/liveGuideData";
 import { GiftGuideLoadError } from "./GiftGuideLoadError";
 import { LazyGuideQa } from "./LazyGuideQa";
 
@@ -223,13 +224,17 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
       console.warn("gift guides: deals file failed", e);
       if (live) setFailed(true);
     };
+    // Live data (owner 2026-11-23): the bundled cards (or a newer saved copy) draw now; a newer valid copy from the live
+    // site replaces them when it arrives (src/lib/liveGuideData.ts).
+    const off = onLiveUpdate<Deal[]>("deals", (d) => live && setDeals(d));
     void loadDeals().then(
       // null: the app's recovery reload took the failure; if no reload comes (untilReload rejects), say so too.
-      (m) => (m ? live && setDeals(m.default as Deal[]) : untilReload().catch(fail)),
+      (m) => (m ? live && setDeals(liveCopy("deals", m.default as Deal[], isLiveDeals)) : untilReload().catch(fail)),
       fail,
     );
     return () => {
       live = false;
+      off();
     };
   }, [kind, attempt]);
   const retry = () => {

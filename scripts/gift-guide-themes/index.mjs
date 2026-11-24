@@ -8,5 +8,6 @@ import bluey from "./bluey.json" with { type: "json" };
 import marvel from "./marvel.json" with { type: "json" };
 import kpopDemonHunters from "./kpop-demon-hunters.json" with { type: "json" };
 import pokemon from "./pokemon.json" with { type: "json" };
+import minecraft from "./minecraft.json" with { type: "json" };
 
-export const THEME_FILES = { "monster-jam": monsterJam, "bluey": bluey, "marvel": marvel, "kpop-demon-hunters": kpopDemonHunters, "pokemon": pokemon };
+export const THEME_FILES = { "monster-jam": monsterJam, "bluey": bluey, "marvel": marvel, "kpop-demon-hunters": kpopDemonHunters, "pokemon": pokemon, "minecraft": minecraft };

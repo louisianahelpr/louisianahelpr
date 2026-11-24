@@ -1612,5 +1612,40 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pokemon-deluxe-battle-attack-electro-ball-pikachu-walmart-b2594a.webp"
    }
   ]
+ },
+ "minecraft": {
+  "section": "For kids",
+  "items": [
+   {
+    "name": "Minecraft My Pet Creeper Interactive Toy",
+    "key": "minecraft:mc12",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-my-pet-creeper-interactive-toy-walmart-d4f66e.webp"
+   },
+   {
+    "name": "LEGO Minecraft The Creeper",
+    "key": "minecraft:mc21",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-minecraft-the-creeper-walmart-0d81bb.webp"
+   },
+   {
+    "name": "Minecraft Creeper Hooded Throw Blanket",
+    "key": "minecraft:mc50",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-creeper-hooded-throw-blanket-walmart-824493.webp"
+   },
+   {
+    "name": "Nerf Minecraft Firebrand and Stormlander Blasters",
+    "key": "minecraft:mc11",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nerf-minecraft-firebrand-and-stormlander-blasters-walmart-7510a3.webp"
+   },
+   {
+    "name": "Minecraft Kids Mismatch Creeper and Chicken Slippers",
+    "key": "minecraft:mc41",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-kids-mismatch-creeper-and-chicken-slippers-walmart-017595.webp"
+   },
+   {
+    "name": "Minecraft Pig Plush, 8 in",
+    "key": "minecraft:mc09",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-pig-plush-8-in-walmart-066851.webp"
+   }
+  ]
  }
 }

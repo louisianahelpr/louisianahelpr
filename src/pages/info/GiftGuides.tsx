@@ -27,7 +27,7 @@ import { GuidesDisclosure } from "./giftGuides/GuidesDisclosure";
 import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
-import { KIDS_FILTER_GUIDE, KID_AGES, KID_GENDERS, KID_PRICES, NO_KIDS_SELECTION, filterKids, loadKidTags, toggleIn, type KidAge, type KidGender, type KidPrice, type KidTags, type KidsSelection } from "@/content/giftGuideKidsFilter";
+import { KIDS_FILTER_GUIDE, KID_AGES, KID_GENDERS, KID_PRICES, NO_KIDS_SELECTION, filterKids, kidsGenderCounts, loadKidTags, toggleIn, type KidAge, type KidGender, type KidPrice, type KidTags, type KidsSelection } from "@/content/giftGuideKidsFilter";
 import { louisianaToday } from "@/content/giftGuideExtras1120";
 import { searchPageGuides } from "@/content/guideSearchIndex.mjs";
 
@@ -249,7 +249,8 @@ export default function GiftGuides() {
         onToggle: (v: string) => setKidsSel((s) => ({ ...s, ages: toggleIn(s.ages, v as KidAge) })) }] : []),
       { id: "price", label: G.kidsPriceLabel, choices: KID_PRICES.map((p) => ({ value: p.id, label: p.label })), selected: kidsSel.prices,
         onToggle: (v: string) => setKidsSel((s) => ({ ...s, prices: toggleIn(s.prices, v as KidPrice) })) },
-      ...(kidTags ? [{ id: "for", label: G.kidsForLabel, choices: KID_GENDERS.map((g) => ({ value: g.id, label: g.label })), selected: kidsSel.genders,
+      // B5 (flow audit 11-23): each For chip names its count, so Girls showing every gift reads as true, not broken.
+      ...(kidTags ? [{ id: "for", label: G.kidsForLabel, choices: ((n) => KID_GENDERS.map((g) => ({ value: g.id, label: `${g.label} (${n[g.id]})` })))(kidsGenderCounts(guide.picks, kidsSel, kidTags, louisianaToday(new Date()))), selected: kidsSel.genders,
         onToggle: (v: string) => setKidsSel((s) => ({ ...s, genders: toggleIn(s.genders, v as KidGender) })) }] : []),
     ],
     shown: { count: filterKids(guide.picks, kidsSel, kidTags ?? {}, louisianaToday(new Date())).length, total: guide.picks.length },

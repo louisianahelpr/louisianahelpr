@@ -121,6 +121,17 @@ export function matchesKids(pick: { href: string; price?: number; priceAt?: stri
 export const filterKids = <P extends { href: string; price?: number; priceAt?: string }>(picks: P[], sel: KidsSelection, tags: KidTags, today: string): P[] =>
   kidsSelectionCount(sel) === 0 ? picks : picks.filter((p) => matchesKids(p, sel, tags, today));
 
+/**
+ * Flow audit 11-23 (B5): the tag file has Girls-only picks but no Boys-only ones, so Girls hid nothing ("140 of 140")
+ * and read as broken. Each For chip now names how many gifts it would show with the other groups' chips as they are,
+ * so "Girls (140)" says up front that every gift here suits girls. Never a guessed tag to make the numbers move.
+ */
+export const kidsGenderCounts = <P extends { href: string; price?: number; priceAt?: string }>(picks: P[], sel: KidsSelection, tags: KidTags, today: string): Record<KidGender, number> => {
+  const out = { girls: 0, boys: 0, everyone: 0 } as Record<KidGender, number>;
+  for (const g of KID_GENDERS) out[g.id] = filterKids(picks, { ...sel, genders: [g.id] }, tags, today).length;
+  return out;
+};
+
 /** Toggle one chip in a group. */
 export const toggleIn = <T extends string>(list: T[], v: T): T[] => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 

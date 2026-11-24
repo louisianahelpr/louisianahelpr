@@ -61,6 +61,7 @@ import { chromium, webkit } from "@playwright/test";
 import { allowedRead, mockedRead } from "./readAllowance.mjs";
 import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../../src/lib/browseShellCards.mjs";
 import { declutterGuestPreviewUrl, declutterPhotoPreloadHeader, firstPhotoPaths } from "../../src/lib/declutterFirstPhotos.mjs";
+import { withGuideShell } from "../../src/lib/guideShell.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -641,6 +642,26 @@ async function declutterPreloadHeader(distDir) {
   }
 }
 
+/**
+ * The gift guide pages' first screens, as api/share.ts serves them (guide prerender 11-24, src/lib/guideShell.mjs), from
+ * the module scripts/prerender-static-pages.mjs writes beside the build. LH_LAB_NO_GUIDE_SHELL=1: the "before" run (the
+ * same build served as it was before). path -> HTML bytes.
+ */
+async function guideShellPages(distDir) {
+  const out = new Map();
+  if (process.env.LH_LAB_NO_GUIDE_SHELL === "1") return out;
+  const file = fileURLToPath(new URL("../generated/guide-shells.js", import.meta.url));
+  if (!existsSync(file)) return out;
+  const { GUIDE_SHELLS } = await import(pathToFileURL(file).href);
+  const html = readFileSync(join(distDir, "index.html"), "utf8");
+  for (const p of Object.keys(GUIDE_SHELLS?.pages ?? {})) {
+    const page = withGuideShell(html, p, GUIDE_SHELLS);
+    if (page !== html) out.set(p, Buffer.from(page));
+  }
+  if (out.size === 0) console.warn("cwv-lab: guide pages served without their first screens (no rules in scripts/generated/guide-shells.js)");
+  return out;
+}
+
 export async function startDistServer(distDir, port, tls = localCert()) {
   const cache = new Map();
   const load = (file) => {
@@ -670,12 +691,16 @@ export async function startDistServer(distDir, port, tls = localCert()) {
     br: brotliCompressSync(browseRaw, { params: { [zc.BROTLI_PARAM_QUALITY]: 11 } }),
   };
   const declutterLink = await declutterPreloadHeader(distDir);
+  const guides = new Map(
+    [...(await guideShellPages(distDir))].map(([p, raw]) => [p, { raw, gz: gzipSync(raw, { level: 9 }), br: brotliCompressSync(raw, { params: { [zc.BROTLI_PARAM_QUALITY]: 11 } }) }]),
+  );
   const server = createSecureServer({ key: tls.key, cert: tls.cert, allowHTTP1: true }, (req, res) => {
     const p = decodeURIComponent(new URL(req.url, "https://x").pathname);
     let file = join(distDir, p);
     if (!file.startsWith(distDir) || !existsSync(file) || statSync(file).isDirectory()) file = join(distDir, "index.html");
     const type = TYPES[extname(file)] || "application/octet-stream";
-    const body = browse && p.replace(/\/+$/, "") === "/browse" ? browse : load(file);
+    const key = p.length > 1 ? p.replace(/\/+$/, "") : p;
+    const body = browse && key === "/browse" ? browse : guides.get(key) ?? load(file);
     const accept = String(req.headers["accept-encoding"] || "");
     const enc = body.br && /\bbr\b/.test(accept) ? "br" : body.gz && /\bgzip\b/.test(accept) ? "gzip" : null;
     const data = enc ? body[enc === "br" ? "br" : "gz"] : body.raw;

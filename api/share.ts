@@ -69,6 +69,9 @@ import { noindexPageMetaFor } from "../src/lib/publicPageMeta.mjs";
 import { publicOrGiftGuidePageMetaFor as publicPageMetaFor } from "../src/lib/giftGuidePageMeta.mjs";
 import { giftGuidePageMeta } from "../src/lib/giftGuidePageMeta.mjs";
 import { SEO_DATA } from "../scripts/generated/seo-data.js";
+// Guide prerender (11-24): each live guide page's first screen and its rules (src/lib/guideShell.mjs).
+import { GUIDE_SHELLS } from "../scripts/generated/guide-shells.js";
+import { withGuideShell, type GuideShellData } from "../src/lib/guideShell.mjs";
 import { findTownPage } from "../src/lib/townPages.mjs";
 import {
   breadcrumbLd,
@@ -1779,7 +1782,12 @@ export default {
         const preload = declutterPhotoPreloadHeader(SUPABASE_URL, await fetchDeclutterFirstPhotos());
         return respond(page, DECLUTTER_PAGE_CDN_CACHE, 200, meta.noindexHeader === true, preload ? { Link: preload } : {});
       }
-      return respond(page, meta.cdnCache, 200, meta.noindexHeader === true);
+      // Guide prerender (11-24): a live guide page's first screen (banner, first gifts, deal lines) drawn in the HTML,
+      // shown over the booting app until its own list is on screen (src/lib/guideShell.mjs). Head, og tags and the SEO
+      // body are untouched; any other page, or a build without the data, is exactly as before.
+      const path = routePath(url);
+      const guided = path !== null && path.startsWith("/gift-guides") ? withGuideShell(page, path, GUIDE_SHELLS as GuideShellData) : page;
+      return respond(guided, meta.cdnCache, 200, meta.noindexHeader === true);
     } catch {
       // Silence is the contract here: an OG-meta lookup that fails must
       // degrade to the plain shell, never to a broken share page. The

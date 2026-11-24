@@ -27,6 +27,7 @@ import { purgeApiCache, purgeApiCacheOnControllerChange } from "./lib/apiCachePu
 import { hasPersistedAuthToken as tokenProbeAtBoot } from "./lib/persistedAuthToken";
 import { installLargeTitles } from "./lib/largeTitles";
 import { adoptBrowseShell } from "./boot/browseShellHandoff";
+import { adoptGuideShell } from "./boot/guideShellHandoff";
 import { clearGreetingName } from "./lib/homeGreetingShell.mjs";
 
 // Build identifier — exposed on window so a deploy with only doc/cosmetic
@@ -228,6 +229,8 @@ if (import.meta.env.PROD && typeof navigator !== "undefined" && "serviceWorker" 
 applyPrePaintShellClasses();
 // /browse's server-drawn cards leave #boot-loader before React's first commit removes it (PERF-SHELL, Q652).
 adoptBrowseShell(window.location.pathname, tokenProbeAtBoot(), document, window.location.search);
+// The gift guides' server-drawn first screen likewise (guide prerender 11-24, src/boot/guideShellHandoff.ts).
+adoptGuideShell(window.location.pathname, tokenProbeAtBoot(), document);
 
 // If this page is a Stripe return being shown inside the app's in-app browser
 // sheet, hand control back to the app instead of rendering a web page the user

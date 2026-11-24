@@ -4,7 +4,6 @@ import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { contactLeakFieldError } from "@/lib/contactLeakField";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { checkPasswordPwned } from "@/lib/hibpCheck";
@@ -20,27 +19,20 @@ import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
 import { isCaptchaError } from "@/lib/turnstile";
 import { peekJobIntent, peekSignupRedirectItem, signupSubtitle } from "@/lib/jobIntent";
-import { useSignupStepHistory } from "./signup/useSignupStepHistory";
 import { useSignupEntry } from "./signup/useSignupEntry";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
-  ALLOWED_IMAGE_TYPES,
   SIGNUP_COOLDOWN_MS,
   SIGNUP_COOLDOWN_KEY,
-  validateFile,
-  fileToBase64,
   passwordProblem,
   isAlreadyRegistered,
   noteSignupRedirect,
 } from "./signup/signupHelpers";
 import { SignupStep1 } from "./signup/SignupStep1";
-import { SignupStep2 } from "./signup/SignupStep2";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
 import { isWeakPasswordError, recognizedAuthError, weakPasswordWords } from "@/lib/authErrors";
 import { completeSignupErrorCopy, isSignupAlreadyFinished, isSignupResumedOldAccount, SIGNUP_ALREADY_FINISHED_COPY, SIGNUP_RESUMED_OLD_ACCOUNT_COPY } from "./signup/completeSignupError";
-import { useParishForZip } from "@/hooks/useParishForZip";
-import { useCityZipMismatch } from "./signup/useCityZipMismatch";
 import { getLang, useLanguage } from "@/lib/i18n/language";
 import { joinName } from "@/lib/splitName";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -56,58 +48,30 @@ const Signup = () => {
   useEffect(() => removeShellOncePainted("lh-signup-shell"), []);
   const [searchParams] = useSearchParams();
   useSignupEntry(searchParams, navigate); // ?job= / ?redirect= / ?ref= kept, signed-in bounce, funnel start
-  // Dev-only: `?step=2` seeds the step for inspection; production always starts at step 1.
   // Owner 11-20 (ease batch, item 6): a sign-up on this device still waiting on its email. Every account action sends
   // a signed-out visitor here, so this is the one place that says "Check your email to finish" (PendingSignupCard).
   const [pendingSignup, setPendingSignup] = useState(() => readPendingSignup());
-  const [step, setStep] = useState(() => {
-    if (!import.meta.env.DEV) return 1;
-    const n = Number(new URLSearchParams(window.location.search).get("step"));
-    return n === 2 ? 2 : 1;
-  });
-  const { goToStep2, backToStep1 } = useSignupStepHistory(setStep, () => setStep2Errors({})); // F260n
+  // ONE screen (owner 11-23 ~10:05 PM: "There shouldn't be a screen 2"). The old "About you" step's photo, city, ZIP
+  // and bio are not asked: they are added later from Edit Profile, and its "Skip for now" already sent none of them,
+  // so the account this screen creates is the one a skipped step 2 created. Its optional referral code moved here.
   const [loading, setLoading] = useState(false);
-  // OA-002: one tap, one signUp(). `loading` is only set inside
-  // createAccountAndFinish, AFTER the awaited validateAboutYouStep, so a second
-  // tap during validation got through the disabled check and fired a second concurrent auth.signUp().
+  // OA-002: one tap, one signUp(). `loading` is only set inside createAccountAndFinish, after the awaited
+  // validation, so a second tap during validation got through the disabled check and fired a second auth.signUp().
   const submittingRef = useRef(false);
   const captcha = useCaptcha();
   const captureLead = useSignupLeadCapture(captcha.ref); // spends a token from the same widget (Q1589)
-  // Turnstile (Q1314), placed right above each step's primary button, as on
-  // Login (A3-C1). Each step mounts its own: step 1's Continue takes the token
-  // for the lead capture before the step changes (getToken takes a ready token
-  // synchronously), and step 2 gets a freshly minted one for signUp.
+  // Turnstile (Q1314), right above "Create account", as on Login (A3-C1). signUp takes the ready token first; the
+  // lead capture asks right after and gets the next one the widget mints (tokens are single-use).
   const turnstile = <TurnstileField ref={captcha.ref} action="signup" />;
 
-  // Step 1 fields
+  // The form's fields
   const [firstName, setFirstName] = useSignupDraftField("firstName"); // F259c: kept over a reload
   const [lastName, setLastName] = useSignupDraftField("lastName");
   const fullName = joinName(firstName, lastName);
   const [email, setEmail] = useSignupEmailField(); // signup-confusion 11-19: also fills an email Log in carried over
   const [password, setPassword] = useState("");
-  const [location, setLocation] = useState("");
-  // ZIP is optional (owner 2026-10-26); a typed one must be 5 digits. It resolves
-  // the member's parish, which is what drives job-match notifications, the
-  // daily digest, and Louisiana sales tax. Digits only, mirrors
-  // ProfileEditForm's own zipCode input.
-  const [zipCode, setZipCode] = useState("");
-  // Live parish resolution from the ZIP, shared with CompleteProfile and
-  // ProfileEditForm — resolved as the user types so both hints below can
-  // render before submit, not just at it.
-  const { parish: resolvedZipParish, unknownZip } = useParishForZip(zipCode, location, setLocation);
-  const cityZipMismatch = useCityZipMismatch(location, resolvedZipParish);
-  // Referral code is captured only from the `?ref=` deep link now (the manual
-  // entry field lived on the removed Step 3). process_referral just records the
-  // link at signup; the $5 credit is released by a DB trigger when the referred
-  // user posts or completes their first job.
-  // Settable since 2026-09-22: a code that arrives verbally, on a flyer or in
-  // a Facebook comment had no way in — `?ref=` was the ONLY door. The deep
-  // link still pre-fills this, so the link flow is unchanged; the Step 2 field
-  // just lets someone type one, or correct what the link supplied.
-  // Normalised on the way IN as well as out: without the trim/upper here, a
-  // `?ref=fuhnw3` link rendered a lowercase value in the field while a
-  // hand-typed one rendered FUHNW3 — the same code shown two ways. Caught on
-  // the 375 screenshot, not in a test.
+  // Settable since 2026-09-22: a code heard, read on a flyer or in a comment had no way in when `?ref=` was the only
+  // door. The link pre-fills it, normalised on the way in (trim + upper) so a link's code and a typed one look alike.
   const [referralCode, setReferralCode] = useState(
     (searchParams.get("ref") || "").trim().toUpperCase(),
   );
@@ -122,65 +86,19 @@ const Signup = () => {
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Step 2 fields
-  const [bio, setBio] = useState("");
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-
-  // Step 2 inline field errors — populated on Continue tap, cleared as user fixes each field
-  const [step2Errors, setStep2Errors] = useState<Record<string, string>>({});
-  // The server's refusal of the password, shown under step 1's field until the password changes (AUD31-53).
+  // The server's refusal of the password (HIBP or GoTrue weak_password), shown under the password field until the
+  // password changes (AUD31-53).
   const [serverPasswordError, setServerPasswordError] = useState<string | null>(null);
+  // Every other refusal of "Create account" (audit 11-23: they were toasts gone in under 3 s), shown in a box right
+  // above the button until the next try. The password's own reasons stay under its field (serverPasswordError).
+  const [formError, setFormError] = useState<string | null>(null);
+  const refuse = (words: string) => { setFormError(words); return false; };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && validateFile(file, ALLOWED_IMAGE_TYPES, t("profileGate.photoLabel"))) {
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
-    }
-  };
-
-  // Validates the "About you" content (UI step 2, the final step).
-  // Collects ALL field errors at once so the user sees every problem on a
-  // single Continue tap — no more "fix one, tap again, get next error" loop.
-  const validateAboutYouStep = async () => {
-    const errors: Record<string, string> = {};
-
-    // Every field on this screen is optional (owner 2026-10-26, the final
-    // sign-up ask: screen 2 is photo, city, ZIP, bio and referral code, all
-    // optional, with "Skip for now"). The names moved to step 1. A typed ZIP
-    // must still be five digits: a half one would resolve no parish.
-    {
-      const zip = zipCode.replace(/\D/g, "");
-      if (zip && zip.length !== 5) errors.zipCode = t("signup.zipInvalid");
-    }
-    // Bio is optional — but if the user starts one, keep the 20-char floor so
-    // a half-typed sentence doesn't ship as their whole profile.
-    if (bio.trim().length > 0 && bio.trim().length < 20) errors.bio = t("signup.bioShort");
-    // Contact details in a bio are rejected by the database (23514) — the
-    // complete-signup function would fail the whole signup on it.
-    else if (contactLeakFieldError(bio, "bio")) errors.bio = contactLeakFieldError(bio, "bio")!;
-
-    // Phone is added later: duplicates are refused and the ban-evasion flag
-    // runs there (20261009175007; restoring the phone auto-ban is OPEN).
-
-    setStep2Errors(errors);
-    if (Object.keys(errors).length > 0) {
-      track(AhaEvent.SignupStepValidationFailed, {
-        step: 2,
-        error_fields: Object.keys(errors),
-        ...ppoTrackingProps(),
-      });
-      return false;
-    }
-    return true;
-  };
-
-  // Validates the "Account credentials + agreements" content (UI step 1).
+  // Validates the form (names, email, password, agreements).
   const validateAccountStep = async () => {
-    if (!firstName.trim()) { toast.error(t("signup.firstNameToast")); return false; }
-    if (!lastName.trim()) { toast.error(t("signup.lastNameToast")); return false; }
-    if (!email.trim()) { toast.error(t("signup.emailToast")); return false; }
+    if (!firstName.trim()) return refuse(t("signup.firstNameToast"));
+    if (!lastName.trim()) return refuse(t("signup.lastNameToast"));
+    if (!email.trim()) return refuse(t("signup.emailToast"));
     // The password rules must match the Supabase project's policy exactly.
     // They did not: the project requires a lowercase letter, an uppercase
     // letter, a digit AND a symbol, while this validator asked for only the
@@ -200,52 +118,27 @@ const Signup = () => {
     // list now feeds this check, the inline gate, the requirement chips and
     // the inline error message; they cannot drift apart again.
     const pwProblem = passwordProblem(password);
-    if (pwProblem) { toast.error(pwProblem); return false; }
-    if (!acceptedPolicies) { toast.error(t("signup.termsToast")); return false; }
-    if (!ageConfirmed) { toast.error(t("signup.ageToast")); return false; }
+    if (pwProblem) return refuse(pwProblem);
+    if (!acceptedPolicies) return refuse(t("signup.termsToast"));
+    if (!ageConfirmed) return refuse(t("signup.ageToast"));
     return true;
   };
 
-  // A ?ref= link's code: the one referral "Skip for now" keeps (a typed code is skipped).
-  const linkReferralCode = (searchParams.get("ref") || "").trim().toUpperCase();
-
-  // `skipped`: "Skip for now" on step 2; none of that screen's fields are sent.
-  const completeProfile = async (userId: string, gaveUp: AbortSignal | undefined, skipped: boolean) => {
-    // The photo is optional: a failed read must not stop the profile write,
-    // which runs after the account already exists (CC-006).
-    let avatarBase64: string | null = null;
-    if (avatarFile && !skipped) {
-      try {
-        avatarBase64 = await fileToBase64(avatarFile);
-      } catch {
-        toast.error(t("signup.photoReadFailed"));
-      }
-    }
-    const avatarExt = avatarFile && !skipped ? avatarFile.name.split(".").pop() : null;
-    // Reuse the already-resolved value from the live effect above rather
-    // than re-querying — it tracks zipCode exactly, so it's always current
-    // by the time a user reaches this step.
-    const parish = skipped ? null : resolvedZipParish;
-
-    // The optional profile extras that used to be collected on Step 3 are
-    // handled two different ways now, and the difference matters:
-    //   • Skills, credentials and portfolio are added later from Edit Profile,
-    //     which has an input for each.
-    //   • Hourly rate is NOT — it was retired 2026-08-27 (poster-set pricing),
-    //     so nothing in the app ever sets it and no editor is coming.
-    // Either way the edge function defaults every omitted field to null, same as a skip.
+  const completeProfile = async (userId: string, gaveUp: AbortSignal | undefined) => {
+    // Photo, bio, city, ZIP (and its parish), skills, credentials and portfolio are all added later from Edit
+    // Profile; sign-up sends them empty, exactly as the old step 2's "Skip for now" did, and the edge function
+    // defaults each to null. Hourly rate was retired 2026-08-27 (poster-set pricing).
     // One more send when the first never got an answer (Q1810); why that is safe: retrySignupCompletion.ts.
     const { data: result, error: fnError } = await invokeWithOneRetryIfUnsent(() => supabase.functions.invoke("complete-signup", {
       body: {
         userId,
-        avatarBase64,
-        avatarExt,
-        avatarContentType: skipped ? undefined : avatarFile?.type,
-        bio: skipped ? "" : bio,
-        location: skipped ? "" : location,
-        // Optional (owner 2026-10-26); when typed, the validator guarantees 5 digits.
-        zipCode: skipped ? "" : zipCode.trim(),
-        parish,
+        avatarBase64: null,
+        avatarExt: null,
+        avatarContentType: null,
+        bio: "",
+        location: "",
+        zipCode: "",
+        parish: null,
         // Explicit marketing-email consent captured at signup. Defaults to
         // false server-side; passing it here lets a user who ticked the box
         // opt in at account-creation time.
@@ -266,7 +159,7 @@ const Signup = () => {
         // Normalised here as well as server-side: process_referral already
         // upper-cases and trims, so casing/whitespace must never be the reason
         // a hand-typed code fails. Empty stays null — never an empty string.
-        referralCode: (skipped ? linkReferralCode : referralCode.trim().toUpperCase()) || null,
+        referralCode: referralCode.trim().toUpperCase() || null,
       },
     }), undefined, gaveUp);
 
@@ -291,7 +184,7 @@ const Signup = () => {
     return result;
   };
 
-  const createAccountAndFinish = async (skipped: boolean) => {
+  const createAccountAndFinish = async () => {
     hapticMedium();
     setLoading(true);
 
@@ -301,16 +194,17 @@ const Signup = () => {
     if (elapsed < SIGNUP_COOLDOWN_MS) {
       const secsLeft = Math.ceil((SIGNUP_COOLDOWN_MS - elapsed) / 1000);
       hapticError();
-      toast.error(t("signup.tooManyAttempts", { seconds: secsLeft }));
+      setFormError(t("signup.tooManyAttempts", { seconds: secsLeft }));
       setLoading(false);
       return;
     }
     try {
-      // HIBP breached-password check (k-anonymity, fail-open). A hit reopens step 1 with the reason under the password (signup-submit 11-23).
+      // HIBP breached-password check (k-anonymity, fail-open). A hit shows the reason under the password field
+      // (signup-submit 11-23) and sends nothing.
       const pwnedCount = await checkPasswordPwned(password);
       if (pwnedCount !== null && pwnedCount > 0) {
         setServerPasswordError(t("signup.passwordPwned", { count: pwnedCount.toLocaleString() }));
-        backToStep1();
+        captureLead(email); // ONE "finish signing up" reminder (owner 2026-10-09); never blocks
         setLoading(false);
         return;
       }
@@ -322,11 +216,16 @@ const Signup = () => {
       safeStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
 
       // F260q: `lang` (switch, else browser) -> confirm email (auth-email-hook) + profiles.language (handle_new_user).
-      const { data: authData, error: authError } = await captcha.run((captchaToken) => supabase.auth.signUp({
+      const signingUp = captcha.run((captchaToken) => supabase.auth.signUp({
         email: email.trim(),
         password,
         options: { emailRedirectTo: getSignupConfirmRedirect(peekJobIntent(), peekSignupRedirectItem()), data: { full_name: fullName, lang: getLang() }, captchaToken },
       }));
+      // After signUp has TAKEN the ready token (runWithCaptcha asks synchronously), so the capture waits for the next
+      // one instead of holding signUp on a fresh challenge. ONE "finish signing up" reminder (owner 2026-10-09); never
+      // blocks, and the reminder sender skips an address that became an account (signup-lead-reminders).
+      try { captureLead(email); } catch (leadErr) { report(leadErr, { tags: { source: "Signup.captureLead" } }); } // never blocks signUp
+      const { data: authData, error: authError } = await signingUp;
       // A refused security check (Q1314) is not a real attempt: lift the cooldown.
       if (authError && isCaptchaError(authError.message)) safeStorage.removeItem(SIGNUP_COOLDOWN_KEY);
 
@@ -354,7 +253,7 @@ const Signup = () => {
       let result: Awaited<ReturnType<typeof completeProfile>>;
       try {
         const gaveUp = new AbortController(); // aborted when the 60 s wait gives up, so a pending second send never goes out after it (Q1810)
-        result = await withTimeout(completeProfile(userId, gaveUp.signal, skipped), t("signup.finishingLabel")).finally(() => gaveUp.abort());
+        result = await withTimeout(completeProfile(userId, gaveUp.signal), t("signup.finishingLabel")).finally(() => gaveUp.abort());
       } catch (completionErr) {
         const finished = isSignupAlreadyFinished(completionErr); // a resubmit, not a failure (Q1643)
         const resumed = isSignupResumedOldAccount(completionErr); // a second sign-up on an older unconfirmed account (Q2514)
@@ -444,47 +343,43 @@ const Signup = () => {
       // the auth branch it is never called, so log it here rather than lose
       // the breadcrumb a bug report depends on.
       // AUD31-53: a server refusal of the password (weak_password: a leaked one, or a rule the client's list does
-      // not know) is about step 1's field. It showed as a raw toast on step 2; now step 1 opens with the reason
-      // under the password.
+      // not know) shows its reason under the password field, never as a raw toast.
       if (isWeakPasswordError(err)) {
         setServerPasswordError(weakPasswordWords(err));
-        backToStep1();
         return;
       }
       const authCopy = recognizedAuthError((err as { message?: string } | null | undefined)?.message);
       if (authCopy) console.error("[signup:auth]", err);
-      toast.error(authCopy ?? userFacingError(err, t("signup.createFailed")));
+      setFormError(authCopy ?? userFacingError(err, t("signup.createFailed")));
     } finally {
       setLoading(false);
     }
   };
 
-  // Match the Login screen's field styling exactly so the two auth screens read as one set. (The `pl-10`/`pr-10`
-  // icon padding is appended at each call site, mirroring Login.)
-  // Step 2's two ways out, one single-flight path (OA-002): "Create account"
-  // checks the optional fields' format first; "Skip for now" sends none of them.
-  const finishStep2 = async (skip: boolean) => {
+  // "Create account": the form's own checks ran in SignupStep1; this one re-checks, then creates the account.
+  // One single-flight path (OA-002).
+  const submit = async () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
+    setFormError(null);
     try {
-      if (!skip && !(await validateAboutYouStep())) return;
-      setStep2Errors({});
-      track(AhaEvent.SignupStepCompleted, { step: 2, ...(skip ? { skipped: true } : {}), ...ppoTrackingProps() });
-      await createAccountAndFinish(skip);
+      if (!(await validateAccountStep())) return;
+      track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() }); // kept so the funnel dashboards still read
+      await createAccountAndFinish();
     } finally {
       submittingRef.current = false;
     }
   };
 
+  // Match the Login screen's field styling exactly so the two auth screens read as one set. (The `pl-10`/`pr-10`
+  // icon padding is appended at each call site, mirroring Login.)
   const inputCls =
     "rounded-ds-md text-ellipsis bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]";
   const labelCls = "text-ds-13 font-sans font-medium";
 
-  // Subtitles only where they carry information. Step 1 drops its "Create your account to get started." (the form
-  // below already says that, as Login's "Pick up right where you left off." went). `subtitle` is optional; the
-  // header renders the <p> only when one is present.
-  const stepHeading: { title: string; subtitle?: string } =
-    step === 1 ? { title: t("signup.title"), subtitle: signupSubtitle(searchParams.get("reason"), searchParams.get("redirect")) } : { title: t("signup.aboutTitle") };
+  // Subtitles only where they carry information: a reason line (e.g. "Create an account to get alerts"), else the
+  // card's default.
+  const subtitle = signupSubtitle(searchParams.get("reason"), searchParams.get("redirect"));
 
   // No `desktopBrandPanel`: the AuthBrandPane (deleted unused 2026-08-25) was only the H emblem, stacked ABOVE the form
   // at lg+ with the heading row's own emblem below: two marks, and the Google button pushed off a 922px-tall window.
@@ -493,65 +388,22 @@ const Signup = () => {
     <AuthShell
       hideHeader
       centerColumn
-      // A3-101 (audit 11-01): step 2 ran to page-measure (1,344 px at 1440); one centred column now ("lg": 576 px).
-      maxWidth={step === 1 ? "sm" : "lg"}
+      // Board 55: the Log in card's width with its heading inside the card and no back (the H links home).
+      maxWidth="sm"
       noWebChrome
-      // Board 55: step 1 sits in the Log in card's width with its heading inside the card and no
-      // back (the H links home); step 2 keeps the row title and walks the wizard back.
-      {...(step === 1 ? { hideBack: true } : { backOnClick: backToStep1 })}
-      // F259a (audit 11-10): step 2 says where it sits in the wizard; the row title carries "Step 2 of 2" under it.
-      title={
-        step === 1 ? undefined : (
-          <>
-            {stepHeading.title}
-            <span className="mt-0.5 block font-sans text-ds-12 font-normal text-muted-foreground" data-signup-step-of="">
-              {t("signup.stepTwoOfTwo")}
-            </span>
-          </>
-        )
-      }
+      hideBack
     >
       {/* F024 (owner UI audit 11-09): 48px from the window's top edge from lg up (the shell's 24 + 24 here). */}
       <div className="lg:pt-6" data-signup-top="">
           {/* Liquid-glass card: matches Login's `.liquid-glass` card so the two auth screens read as one set. */}
           <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
-            {/* No heading inside the card: both steps' [back] [title] rows are AuthShell's `title` row above it, and
-                step 2 has no subtitle (Q2257: its subtitle block could never render and was removed). */}
-
-        {/* Step 2: About you + ID */}
-        {step === 2 && (
-          <SignupStep2
-            avatarPreview={avatarPreview}
-            onAvatarChange={handleAvatarChange}
-            location={location}
-            setLocation={setLocation}
-            zipCode={zipCode}
-            setZipCode={setZipCode}
-            zipCityMismatch={cityZipMismatch}
-            zipUnknown={unknownZip}
-            zipRecognised={!!resolvedZipParish}
-            bio={bio}
-            setBio={setBio}
-            referralCode={referralCode}
-            setReferralCode={setReferralCode}
-            inputCls={inputCls}
-            labelCls={labelCls}
-            fieldErrors={step2Errors}
-            clearFieldError={(key) => setStep2Errors((prev) => { const next = { ...prev }; delete next[key]; return next; })}
-            loading={loading}
-            onContinue={() => finishStep2(false)}
-            onSkip={() => finishStep2(true)}
-            captchaSlot={turnstile}
-          />
-        )}
-
         {/* Owner 11-20: a sign-up here already waits on its email. Its final step is the email, not a second form. */}
-        {step === 1 && pendingSignup && (
+        {pendingSignup && (
           <PendingSignupCard email={pendingSignup.email} onUseDifferent={() => { clearPendingSignup(); setPendingSignup(null); }} />
         )}
 
-        {/* Step 1: Account credentials + agreements */}
-        {step === 1 && !pendingSignup && (
+        {/* The one sign-up form: names, email, password, agreements, "Create account". */}
+        {!pendingSignup && (
           <SignupStep1
             firstName={firstName}
             setFirstName={setFirstName}
@@ -570,28 +422,25 @@ const Signup = () => {
             setAgeConfirmed={setAgeConfirmed}
             marketingConsent={marketingConsent}
             setMarketingConsent={setMarketingConsent}
+            referralCode={referralCode}
+            setReferralCode={setReferralCode}
             inputCls={inputCls}
             labelCls={labelCls}
-            subtitle={stepHeading.subtitle}
+            subtitle={subtitle}
             captchaSlot={turnstile}
-            onContinue={async () => {
-              if (!(await validateAccountStep())) return;
-              track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() });
-              captureLead(email); // ONE "finish signing up" reminder (owner 2026-10-09); never blocks
-              goToStep2();
-            }}
+            loading={loading}
+            formError={formError}
+            onContinue={submit}
           />
         )}
         {/* "Already have an account? Sign in" lives in SignupStep1's social
             column (as Login's "New to Helpr?"); a second copy here rendered it twice. */}
           </div>
           {/* F025 (owner UI audit 11-09): English / Español sits UNDER the card, the same spot as on Log in
-              (it was the last line inside the card here). Step 1 only, as before. */}
-          {step === 1 && (
-            <div className="flex justify-center pt-3" data-signup-language="">
-              <LanguageToggle />
-            </div>
-          )}
+              (it was the last line inside the card here). */}
+          <div className="flex justify-center pt-3" data-signup-language="">
+            <LanguageToggle />
+          </div>
       </div>
     </AuthShell>
   );

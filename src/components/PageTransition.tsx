@@ -49,7 +49,7 @@ const VELOCITY_WINDOW_MS = 100;
  * viewport contains the frame, the same as on a cold load before this chunk
  * arrives (App.tsx renders a plain keyed div until then).
  *
- * Keyed by RoutePageTransition's page key, NOT location.key: a KEEP_PAGE step (sign-up's step 2) keeps the page.
+ * Keyed by RoutePageTransition's page key, NOT location.key: a KEEP_PAGE step (the guest job sheet) keeps the page.
  * Keyed on location.key, every sign-up that reached /signup by an in-app link after this chunk loaded was sent from
  * Continue back to an empty step 1 (password and consent gone) and never reached Create account (signup-autofill
  * 11-23: prod analytics showed signup_started again with each step-1 Continue and no step-2 event).

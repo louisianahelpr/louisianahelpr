@@ -12,18 +12,10 @@
  * merely describing the old bug in prose doesn't trip it) for the vulnerable
  * pattern and fails if it finds one outside the one documented exception.
  *
- * Exception: src/pages/auth/Signup.tsx sends `avatarExt` (read from
- * `file.name.split(".").pop()`) as a plain JSON field to the `complete-signup`
- * edge function — it does not build a storage key client-side. Server-side,
- * `resolveAvatarContentType()` (supabase/functions/_shared/storageKeys.ts)
- * only ever uses it to pick a MIME type from a tiny closed legacy-extension
- * allowlist (LEGACY_EXT_MIME); the actual object key is then built by
- * `avatarObjectKey()` from THAT resolved MIME type via its own closed
- * AVATAR_MIME_EXT map, never from caller text. No caller-supplied extension
- * text reaches a storage key through this path either way, so it is not an
- * instance of this defect class — but it's named here explicitly, not
- * silently excluded, so a future change that starts using it to build a key
- * trips this guard immediately.
+ * Exceptions: none. src/pages/auth/Signup.tsx was one (it sent `avatarExt`
+ * from `file.name.split(".").pop()` to complete-signup as plain JSON, never a
+ * storage key); sign-up no longer takes a photo (one screen, owner 11-23), so
+ * the list is empty and must stay exact.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -40,7 +32,7 @@ const PATTERN = /\.name\s*\.\s*split\s*\(\s*["'`]\.["'`]\s*\)\s*\.\s*pop\s*\(/;
 // deleted) must be removed in the same commit, or this list itself goes stale
 // and silently widens the allowlist.
 // @two-way src/test/storageKeyExtensionFromMime.test.ts:stale exception entry
-const KNOWN_EXCEPTIONS = new Set(["src/pages/auth/Signup.tsx"]);
+const KNOWN_EXCEPTIONS = new Set<string>([]);
 
 function allSourceFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -74,13 +66,10 @@ describe("storage key extension always comes from MIME type, never file.name (do
     expect(offenders).toEqual([]);
   });
 
-  it("the documented exception still exists and still only matches because of avatarExt, not a storage key", () => {
-    const full = join(REPO, "src", "pages", "auth", "Signup.tsx");
-    const code = blankComments(readFileSync(full, "utf8"));
-    expect(PATTERN.test(code)).toBe(true);
-    // It must never build a Supabase Storage path — confirms the exception
-    // wasn't papering over a real key-construction site.
-    expect(code).not.toMatch(/\.storage\s*\.\s*from\s*\([^)]*\)\s*\.\s*upload\s*\(/);
+  it("sign-up, the old exception, no longer reads a file name at all", () => {
+    const code = blankComments(readFileSync(join(REPO, "src", "pages", "auth", "Signup.tsx"), "utf8"));
+    expect(PATTERN.test(code)).toBe(false);
+    expect(KNOWN_EXCEPTIONS.size).toBe(0);
   });
 
   it("the exception list has no stale entries (every listed path still exists)", () => {

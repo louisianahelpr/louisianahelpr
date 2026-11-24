@@ -130,7 +130,6 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/profile/credentialsTab/CredentialCard.tsx": { bucket: "user-documents" },
   "src/components/profile/profileEditForm/PhotoNameSection.tsx": { bucket: "avatars" },
   "src/components/profile/profileEditForm/RecentWorkSection.tsx": { bucket: "avatars" },
-  "src/pages/auth/signup/SignupStep2.tsx": { bucket: "avatars" },
   "src/pages/auth/completeProfile/CompleteProfileAvatar.tsx": { bucket: "avatars" }, // CompleteProfile's photo picker (Q806)
   "src/components/postjob/detailsSection/PhotoUpload.tsx": { bucket: "job-photos" },
   "src/components/postjob/detailsSection/PhotoReorderGrid.tsx": { bucket: "job-photos" }, // Q1299: split out of PhotoUpload

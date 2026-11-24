@@ -8,7 +8,11 @@
  * @mutate src/pages/auth/Login.tsx |         setCredError(t("login.noMatch")); |         toast.error(t("login.noMatch"));
  * @mutate src/pages/auth/Login.tsx |               {emailValid && !credError && ( |               {emailValid && (
  * @mutate src/pages/auth/Login.tsx | onChange={(e) => { setPassword(e.target.value); setCredError(null); setCredMismatch(false); }} | onChange={(e) => setPassword(e.target.value)}
- * @mutate src/pages/auth/Login.tsx |               ) : credError === EMAIL_NOT_CONFIRMED_MESSAGE ? ( |               ) : credError === null ? (
+ * @mutate src/pages/auth/Login.tsx |               ) : credError === EMAIL_NOT_CONFIRMED_MESSAGE \|\| credError === t("login.confirmEmailFirst") ? ( |               ) : credError === null ? (
+ * @mutate src/pages/auth/Login.tsx |         setCredError(friendlyAuthError(error.message));\n        return; |         toast.error(friendlyAuthError(error.message));\n        return;
+ * @mutate src/pages/auth/Login.tsx |       setCredError(t("login.tooManyAttempts", { minutes: minutesLeft })); // inline | toast.error(t("login.tooManyAttempts", { minutes: minutesLeft })); // inline
+ *
+ * Audit 11-23: a network failure and a lockout were still corner toasts gone in seconds; they use the same box now.
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -24,12 +28,14 @@ vi.mock("@/components/auth/TurnstileField", () => ({ TurnstileField: () => null 
 const signInMessage = vi.hoisted(() => ({ value: "Invalid login credentials" }));
 vi.mock("@/lib/loginTransport", () => ({
   signInWithTimeout: async () => ({ data: { session: null }, error: new Error(signInMessage.value) }),
-  isTransportFailure: () => false,
+  isTransportFailure: () => transport.down,
 }));
+const transport = vi.hoisted(() => ({ down: false }));
 vi.mock("@/lib/haptics", () => ({ hapticMedium: () => {}, hapticSuccess: () => {}, hapticError: () => {} }));
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: () => {} }));
 
 import Login from "@/pages/auth/Login";
+import { writeAttemptState } from "@/pages/auth/loginAttempts";
 
 const WORDS = "That email and password don't match an account."; // enScreens login.noMatch (signup-confusion 11-19)
 
@@ -97,5 +103,44 @@ describe("F028: a wrong email or password is said above Log in, not in a corner 
     } finally {
       signInMessage.value = "Invalid login credentials";
     }
+  });
+
+  it("a network failure and a lockout are said in the same box above Log in, not in a corner toast", async () => {
+    const renderLogin = () => render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter initialEntries={["/login"]}>
+          <Login />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const attempt = async (container: HTMLElement) => {
+      fireEvent.change(container.querySelector("#email")!, { target: { value: "dana@example.com" } });
+      fireEvent.change(container.querySelector("#password")!, { target: { value: "a-password-here" } });
+      fireEvent.submit(container.querySelector("form")!);
+      return waitFor(() => {
+        const el = container.querySelector("[data-login-cred-error]") as HTMLElement | null;
+        expect(el).not.toBeNull();
+        return el!;
+      });
+    };
+    toastError.mockClear();
+    localStorage.clear();
+    transport.down = true;
+    signInMessage.value = "Failed to fetch";
+    try {
+      const { container, unmount } = renderLogin();
+      const alert = await attempt(container);
+      expect(alert.getAttribute("role")).toBe("alert");
+      expect(alert.textContent!.length).toBeGreaterThan(10);
+      unmount();
+    } finally {
+      transport.down = false;
+      signInMessage.value = "Invalid login credentials";
+    }
+    writeAttemptState({ attempts: [], lockedUntil: Date.now() + 4 * 60 * 1000 });
+    const { container } = renderLogin();
+    expect(await attempt(container)).toHaveTextContent(/Too many attempts/);
+    expect(toastError).not.toHaveBeenCalled();
+    localStorage.clear();
   });
 });

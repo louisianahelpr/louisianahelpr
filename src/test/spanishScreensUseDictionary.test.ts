@@ -54,7 +54,6 @@ const CONVERTED = [
   "src/pages/auth/Login.tsx",
   "src/pages/auth/Signup.tsx",
   "src/pages/auth/signup/SignupStep1.tsx",
-  "src/pages/auth/signup/SignupStep2.tsx",
   "src/pages/auth/CompleteProfile.tsx",
   "src/pages/auth/completeProfile/CompleteProfileIntro.tsx",
   "src/pages/auth/completeProfile/saveCompletedProfile.ts", // CompleteProfile's save path (Q806)
@@ -184,7 +183,7 @@ const ALLOWED: Record<string, string[]> = {
   "src/components/messages/ConversationRow.tsx": ["Louisiana Helpr team", "Enter", "Spacebar", "ConversationRow"],
   "src/components/messages/chatView/ChatTimeline.tsx": ["ChatTimeline"],
   // Report tags and a thrown Error the member never reads (userFacingError shows the t() fallback).
-  "src/pages/auth/Signup.tsx": ["Account creation failed", "Signup.completeProfile", "Signup.createAccountAndFinish"],
+  "src/pages/auth/Signup.tsx": ["Account creation failed", "Signup.captureLead", "Signup.completeProfile", "Signup.createAccountAndFinish"],
   // A report tag (CompleteProfile's save path, moved out of CompleteProfile.tsx, Q806).
   "src/pages/auth/completeProfile/saveCompletedProfile.ts": ["CompleteProfile.legalAcceptances"],
   // Keyboard key names (e.key / getModifierState), not words.

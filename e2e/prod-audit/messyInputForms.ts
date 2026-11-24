@@ -380,37 +380,14 @@ export const FORMS: FormSpec[] = [
   { name: "forgot-password", url: "/forgot-password", as: null, covers: ["src/pages/auth/ForgotPassword.tsx"] },
   { name: "signup-step1", url: "/signup", as: null, covers: ["src/pages/auth/signup/SignupStep1.tsx"] },
   {
-    name: "signup-step2", url: "/signup", as: null,
+    // Sign-up is one screen (owner 11-23); its one optional field, the referral code, sits behind
+    // "Have a referral code?". Opening it sends nothing, and the sweep never presses "Create account".
+    name: "signup-referral", url: "/signup", as: null,
     prepare: async (page) => {
-      // Step 2 is gated on a well-formed step 1; nothing is sent until the final step.
-      // First and last name are on step 1 since 2026-10-27 (owner 2026-10-26).
-      await page.locator("#firstName").fill("Messy");
-      await page.locator("#lastName").fill("Prodaudit");
-      await page.locator("#email").fill("messy.prodaudit@example.com");
-      await page.locator("#password").fill("Sturdy-passw0rd-123");
-      // A HARD GATE (SignupStep1.handleContinue): ONE box (#policies, board 55)
-      // records both the policies agreement and the 18+ attestation.
-      // Continue deliberately stays ENABLED while either is unchecked — it
-      // shakes the offending box instead of greying out, which is better for a
-      // person and invisible to a driver that only presses it. Leaving them
-      // unchecked is why step 2 never opened and every spec that starts here
-      // failed with "#firstName not found" (measured 2026-09-20).
-      for (const id of ["#policies"]) {
-        const box = page.locator(id);
-        await box.waitFor({ timeout: 10_000 });
-        if ((await box.getAttribute("data-state")) !== "checked") await box.click();
-        await expect(box, `${id} did not check — step 1 will not advance`).toHaveAttribute("data-state", "checked");
-      }
-      await page.getByRole("button", { name: /continue|next/i }).first().click();
-      // Say WHICH gate held, instead of surfacing three steps later as a
-      // missing #zipCode.
-      await expect(
-        page.locator("#zipCode"),
-        "step 1 did not advance to step 2 — email/password accepted and both consent boxes checked, " +
-          "so a new required control was added to SignupStep1",
-      ).toBeVisible({ timeout: 15_000 });
+      await page.getByTestId("referral-code-toggle").click();
+      await expect(page.locator("#referralCode"), "the referral field did not open").toBeVisible({ timeout: 10_000 });
     },
-    covers: ["src/pages/auth/signup/SignupStep2.tsx"],
+    covers: ["src/pages/auth/signup/ReferralCodeField.tsx"],
   },
   { name: "support", url: "/support", as: null, covers: ["src/pages/info/Support.tsx", "src/pages/info/support/SupportFormParts.tsx", "src/lib/supportTopics.ts"] },
   { name: "legal-search", url: "/legal", as: null, prepare: openSearch, covers: ["src/pages/info/Legal.tsx"] },

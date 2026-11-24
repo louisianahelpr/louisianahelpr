@@ -85,12 +85,11 @@ describe("Declutter's hidden photo pickers are the shared HiddenFileInput, class
       "src/components/DisputeDialog.tsx": 'accept="image/*"',
       "src/components/DisputeTimelineDialog.tsx": 'accept="image/*"',
       "src/components/guarantee/HelprGuaranteePanel.tsx": "accept=",
-      "src/pages/auth/signup/SignupStep2.tsx": "accept=",
       "src/pages/quotes/SendQuotePage.tsx": 'accept="image/*"',
       "src/components/rentals/LandlordIdReview.tsx": "accept=",
       "src/components/rentals/listings/editorParts.tsx": "accept=",
     };
-    expect(Object.keys(REST).length).toBeGreaterThan(6);
+    expect(Object.keys(REST).length).toBeGreaterThan(5); // sign-up's photo picker retired with its second screen (owner 11-23)
     for (const [f, accept] of Object.entries(REST)) {
       const s = readFileSync(f, "utf8");
       expect(s, f).not.toMatch(/type="file"/);

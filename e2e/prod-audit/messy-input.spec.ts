@@ -345,40 +345,24 @@ if (legHas("targeted")) test.describe("targeted rules", () => {
     await ctx.close();
   });
 
-  scoped("signup step 1: malformed email + whitespace password are explained inline and do not advance", async ({ browser }, info) => {
+  scoped("signup: malformed email + whitespace password are explained inline and send nothing", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS[2]);
     const signup = watchWrites(page, /\/auth\/v1\/signup/);
     await page.locator("#email").fill("bob@@example");
     await page.locator("#password").fill("   ");
-    await page.getByRole("button", { name: /continue|next/i }).first().click();
+    // "Create account" (the one sign-up screen, owner 11-23; a /continue/ match would now hit "Continue with Google").
+    // The form's own checks stop it before any request: this test runs on prod and must never create an account.
+    await page.getByRole("button", { name: /^create account$/i }).click();
     await page.waitForTimeout(400);
     expect(signup).toHaveLength(0);
     await expect(page.locator("#signup-email-error, #signup-password-error").first()).toBeVisible();
-    await expect(page.locator("#zipCode")).toHaveCount(0); // still on step 1
+    await expect(page).toHaveURL(/\/signup(\?|$)/); // still on the form
     await assertHealthy(page, info, "signup-step1-bad");
     await ctx.close();
   });
 
-  // Step 2 is photo, city, ZIP, bio and referral code, all optional (owner
-  // 2026-10-26; names moved to step 1): no phone, no birthday. Step 1's 18+ box (#policies, ticked in this form's
-  // prepare) is the age gate complete-signup accepts. Pinned on the app side by
-  // src/test/signupStepTwoIsShort.test.ts; every `#id` this file drives must
-  // exist in src/ (src/test/messyInputApplicantNames.test.ts).
-  scoped("signup step 2: asks no birthday or phone (step 1's 18+ box is the age gate); a 4-digit ZIP is refused inline; nothing is sent", async ({ browser }, info) => {
-    const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "signup-step2")!);
-    const signup = watchWrites(page, /\/auth\/v1\/signup/);
-    await expect(page.locator("#zipCode"), "step 2 did not open").toBeVisible({ timeout: 10_000 });
-    await expect(page.locator("#dob, #phone"), "step 2 asks a birthday or phone again (owner, 2026-10-09)").toHaveCount(0);
-    await page.locator("#zipCode").fill("1234");
-    await page.locator("#zipCode").press("Tab");
-    await page.getByRole("button", { name: /create account|sign up|continue|finish/i }).last().click().catch(() => {});
-    await page.waitForTimeout(600);
-    expect(signup, "an invalid step 2 must not create an account").toHaveLength(0);
-    await expect(page.getByText(/zip|5 digits|required/i).first(), "no inline message for the bad ZIP").toBeVisible();
-    await shoot(page, info, "signup-step2-bad-zip");
-    await assertHealthy(page, info, "signup-step2-bad");
-    await ctx.close();
-  });
+  // Sign-up's step 2 (photo, city, ZIP, bio) retired with owner 11-23's one-screen sign-up; its leg here went with it.
+  // The referral field it held is swept as "signup-referral" (messyInputForms.ts).
 
   scoped("support: whitespace-only required fields are blocked with messages; nothing is sent", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "support")!);

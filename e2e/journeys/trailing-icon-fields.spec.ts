@@ -10,8 +10,8 @@ import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
  * with `pr-10`: 12px more than the 16px icon at right-3 needs. At ≤430 the
  * ZIP column was a third of the row (85px), so the padding left 29px for
  * five digits and the value read "705"; a long last name simply ran off with
- * no ellipsis (coordinator, prod, 2026-09-12). Signup step 2 carries the
- * identical fields.
+ * no ellipsis (coordinator, prod, 2026-09-12). (Sign-up's step 2 carried the
+ * identical fields until owner 11-23 made sign-up one screen.)
  *
  * The CLASS, checked over the screen's OWN inventory — every <input> with an
  * absolutely-positioned sibling on its trailing side:
@@ -89,50 +89,8 @@ function judge(rows: Row[], where: string): string[] {
   return bad;
 }
 
-const guestTitle = scenarioTitle({ journey: "trailing-icon", persona: "new", state: "approved", rotation, outcome: "smooth" });
-test(guestTitle, async ({ browser, journey }) => {
-  test.skip(filteredOut(guestTitle), "SCENARIO pins another scenario");
-  const ctx = await newUserContext(browser, null, { rotation });
-  const page = journey.track("guest", await ctx.newPage());
-  await test.step("signup step 2: every ✓-bearing field shows its value", async () => {
-    await page.goto("/signup");
-    // First and last name are on step 1 since 2026-10-27 (owner 2026-10-26).
-    await page.locator("#firstName").fill("Marguerite");
-    await page.locator("#lastName").fill("Thibodeaux-Broussard");
-    await page.locator("#email").fill(`trailing-icon-${Date.now()}@example.com`);
-    await page.locator("#password").fill("Ti!journey12345");
-    // ONE consent box (board 55) records the agreement and the 18+ attestation.
-    await page.locator("#policies").click();
-    await page.getByRole("button", { name: /continue/i }).first().click();
-    await expect(page.locator("#location")).toBeVisible({ timeout: 30_000 });
-    // Step 2 is photo, city, ZIP, bio and referral code, all optional (owner
-    // 2026-10-26); no phone or birthday.
-    await page.locator("#location").fill("Lafayette, LA");
-    await page.locator("#zipCode").fill("70528");
-    await page.locator("#zipCode").blur();
-    // The ZIP's ✓ draws only once get_parish_for_zip answers (SignupStep2
-    // zipRecognised <- useParishForZip): a network read, which on the "drops"
-    // rotation outlasts a fixed 600 ms. Wait for it to be drawn (70528 resolves
-    // to Vermilion on prod, read 2026-11-03), then measure.
-    await expect
-      .poll(async () => (await trailingIconRows(page)).length, { message: "signup step 2 has ✓ icons on its fields; none were found", timeout: 20_000 })
-      .toBeGreaterThan(0);
-    // City's ✓ is local state and draws at once; give the ZIP's network-gated ✓ its own time too, so the field this
-    // journey was written for (the "705" ZIP) is in the measurement whenever the app draws it.
-    await expect
-      .poll(async () => (await trailingIconRows(page)).some((r) => r.id === "zipCode"), { timeout: 20_000 })
-      .toBe(true)
-      .catch(() => {
-        /* the parish read can be dropped on the "drops" rotation: the ZIP then shows no ✓, and the fields that do are measured */
-      });
-    const rows = await trailingIconRows(page);
-    await page.locator("#zipCode").scrollIntoViewIfNeeded();
-    await journey.milestone(page, "signup-step2-fields");
-    expect(judge(rows, "/signup")).toEqual([]);
-    await assertHealthy(page, "signup step 2");
-  });
-  await ctx.close();
-});
+// The guest leg that measured sign-up's step 2 (City, ZIP) retired with that screen (owner 11-23: sign-up is one
+// screen and asks no City or ZIP; src/test/signupOneScreen.test.tsx). Complete Profile, below, carries those fields.
 
 /* The incomplete-profile seed account comes through the SAME door as every
    other journey account: `optionalSession` (fixtures.ts) password-grants
@@ -163,7 +121,7 @@ test(incompleteTitle, async ({ browser, request, journey }) => {
     await expect(page.getByTestId("complete-profile-names"), "the seed has a full name; Complete Profile must not ask it again").toHaveCount(0);
     await page.locator("#zipCode").fill("70528");
     await page.locator("#zipCode").blur();
-    // As on signup step 2: the ZIP's ✓ draws only once the parish read answers, which on the "slow" rotation outlasted
+    // The ZIP's ✓ draws only once the parish read answers, which on the "slow" rotation outlasted
     // the fixed 600 ms this used (e2e-journeys 42221289461 and 42074601478, both "slow": 0 icons found). Wait for it.
     await expect
       .poll(async () => (await trailingIconRows(page)).length, { message: "/complete-profile has ✓ icons on its fields; none were found", timeout: 20_000 })
@@ -181,7 +139,6 @@ test(incompleteTitle, async ({ browser, request, journey }) => {
 // what the ✓ actually covers (right-3 + w-4 = 28px). `pr-8` (32px) clears the
 // icon by 4px; `pr-16` (64px) clears it by 36px, which is the "padded past the
 // icon — starves the field" leg — the exact shape that left 29px for five ZIP
-// digits at ≤430. City is the step-2 field the guest leg always renders a ✓ on
-// ("Lafayette, LA" is valid the moment it is typed; the names moved to step 1
-// on 2026-10-27), so the mutation is reachable without a parish lookup.
-// @mutate src/pages/auth/signup/SignupStep2.tsx | locationValid && !fieldErrors.location ? " pr-8" : "" | locationValid && !fieldErrors.location ? " pr-16" : ""
+// digits at ≤430. The Complete Profile leg measures the ZIP it types (it targeted
+// sign-up step 2's City until that screen retired, owner 11-23).
+// @mutate src/pages/auth/CompleteProfile.tsx | ${zipValid ? "pr-8" : ""} | ${zipValid ? "pr-16" : ""}

@@ -4,7 +4,7 @@
  * /signup) is held, with a friendly "Check your email to finish" and a way to get a new link. Supabase gives an
  * unconfirmed address no session, so the device remembers the waiting sign-up (src/lib/pendingSignup.ts).
  *
- * @mutate src/pages/auth/Signup.tsx |         {step === 1 && !pendingSignup && ( |         {step === 1 && (
+ * @mutate src/pages/auth/Signup.tsx |         {!pendingSignup && ( |         {true && (
  * @mutate src/lib/pendingSignup.ts |     if (typeof v.email !== "string" \|\| !v.email \|\| typeof v.at !== "number" \|\| now - v.at > MAX_AGE_MS \|\| v.at > now + 60_000) { |     if (typeof v.email !== "string") {
  * @mutate src/components/auth/PendingSignupCard.tsx | navigate("/signup-pending", { state: { email, resend: true } }) | navigate("/signup")
  */
@@ -56,8 +56,8 @@ describe("a pending sign-up holds only the final step (owner 11-20)", () => {
 
   it("/signup shows the card instead of a second form while a sign-up waits; finishing or signing in clears it", () => {
     const signup = read("src/pages/auth/Signup.tsx");
-    expect(signup).toContain("{step === 1 && pendingSignup && (");
-    expect(signup).toContain("{step === 1 && !pendingSignup && (");
+    expect(signup).toContain("{pendingSignup && (");
+    expect(signup).toContain("{!pendingSignup && (");
     // Both ways a sign-up reaches "Check your email" remember it first.
     expect(signup.match(/rememberPendingSignup\(email\);[^\n]*\n\s*navigate\("\/signup-pending", \{ state: \{ email \} \}\);/g)?.length).toBe(2);
     const pending = read("src/pages/auth/SignupPending.tsx");

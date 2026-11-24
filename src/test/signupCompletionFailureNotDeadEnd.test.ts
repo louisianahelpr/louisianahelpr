@@ -6,7 +6,7 @@
  *
  * Source-read: Signup's funnel needs the whole auth stack to render.
  *
- * @mutate src/pages/auth/Signup.tsx | result = await withTimeout(completeProfile(userId, gaveUp.signal, skipped), t("signup.finishingLabel")).finally(() => gaveUp.abort()); | result = await completeProfile(userId, gaveUp.signal, skipped);
+ * @mutate src/pages/auth/Signup.tsx | result = await withTimeout(completeProfile(userId, gaveUp.signal), t("signup.finishingLabel")).finally(() => gaveUp.abort()); | result = await completeProfile(userId, gaveUp.signal);
  * @mutate src/pages/auth/Signup.tsx | ${t("signup.accountCreatedConfirm")}`,\n        );\n        rememberPendingSignup(email); | ${t("signup.accountCreatedConfirm")}`,\n        );\n        throw completionErr;
  */
 import { describe, it, expect } from "vitest";

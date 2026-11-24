@@ -28,6 +28,7 @@ import { resolve } from "node:path";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
 import { buildSeoData } from "@/prerender/seoData";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
+import { THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
 import { allTownPagePaths } from "@/lib/townPages.mjs";
 import { INFO_BODY_PATHS } from "@/lib/seoBodies.mjs";
 import type { SeoData } from "@/lib/seoBodies.mjs";
@@ -98,7 +99,7 @@ describe("the data the build writes", () => {
     const slugs = Object.keys(GIFT_GUIDE_SEO);
     // Follow-up 1120: 54 measured 2026-11-20; owner 11-21: only Her, Him, Kids, the sponsors page and the 10
     // relationship pages are live (src/content/giftGuideLive.mjs; 14 measured 2026-11-21), every other guide 301s.
-    expect(slugs.length).toBe(4); // owner 11-21: Her, Him, Kids and the sponsors page; the relationship pages (Mom ...) 301 to their guide
+    expect(slugs.length).toBe(4 + THEME_GUIDES_1124.length); // owner 11-21: Her, Him, Kids and the sponsors page, plus the 11-24 theme guides; the relationship pages (Mom ...) 301 to their guide
     for (const s of slugs) expect(data.guides[s], s).toBeDefined();
     expect(Object.values(data.guides).filter((g) => g.indexed && g.picks.length > 0).length).toBeGreaterThan(3);
     expect(data.groups.length).toBeGreaterThan(2); // By person, For kids, Louisiana (the sponsors page)
@@ -235,7 +236,7 @@ describe("the sitemap lists only real, indexable pages, with lastmod", () => {
     // Search pages (owner 11-23): served 200 with their own body, checked in src/test/guideSearchPages1123.test.ts.
     const searches = new Set(SEARCH_PAGES.map((p) => `/gift-guides/${p.slug}`));
     const guides = locs.filter((p) => p.startsWith("/gift-guides/") && !own.includes(p) && !searches.has(p));
-    expect(guides.length).toBe(4); // owner 11-21: Her, Him, Kids and the sponsors page (the relationship pages 301, out of the sitemap)
+    expect(guides.length).toBe(4 + THEME_GUIDES_1124.length); // owner 11-21: Her, Him, Kids and the sponsors page, plus the 11-24 theme guides (the relationship pages 301, out of the sitemap)
     for (const p of guides) expect(data.guides[p.slice("/gift-guides/".length)]?.indexed, p).toBe(true);
     // The old one-page deals address is out of the sitemap and 301s to Black Friday (owner 11-21: each day its own page).
     expect(locs).not.toContain("/gift-guides/black-friday-cyber-monday");

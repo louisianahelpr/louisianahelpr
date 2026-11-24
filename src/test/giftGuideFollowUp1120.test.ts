@@ -21,6 +21,8 @@ import { GUIDE_MERGES, MERGED_INTO, STORE_PAGES_HELD, STORE_PAGES_KEPT } from "@
 import { SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { peopleGuideOf } from "@/content/giftGuidePeople.mjs";
 import { GUIDES, newSlugFor } from "@/content/giftGuideCatalog";
+import { RETIRED_TO_SEARCH_PAGE } from "@/content/retiredGuideForward";
+import { SEARCH_PAGES } from "@/content/guideSearchPages.mjs";
 import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
 import { GIFT_CARD, auditActions1120, brandFirst, followUpOut, moveTarget, renameOf } from "../../scripts/giftGuideFollowUp1120.mjs";
 
@@ -49,7 +51,10 @@ describe("gift guides follow-up 1120", () => {
         // For Her / For Him (owner 11-20 evening): Brother and Sister are filter pages of those guides now.
         // Owner 11-21: a retired parent (src/content/giftGuideLive.mjs) has no page; its old guides land on the landing (null).
         const live = to === parent || to === `${parent}#${SECTION_ANCHORS[s]}` || (peopleGuideOf(s) !== null && to === peopleGuideOf(s));
-        expect(isLiveGuide(parent) || peopleGuideOf(s) !== null ? live : to === null, `${s} -> ${to}`).toBe(true);
+        // Lead 11-24: unless it has an honest search page (retiredGuideForward.ts), which must be a real one.
+        const search = RETIRED_TO_SEARCH_PAGE[s];
+        if (search) expect(SEARCH_PAGES.map((p) => p.slug), s).toContain(search);
+        expect(isLiveGuide(parent) || peopleGuideOf(s) !== null ? live : to === (search ?? null), `${s} -> ${to}`).toBe(true);
       }
     }
     // Owner "FINAL MERGES -> ~30": 28 guides measured 2026-11-20; owner 11-21: only Her, Him and Kids (and the 25 Days

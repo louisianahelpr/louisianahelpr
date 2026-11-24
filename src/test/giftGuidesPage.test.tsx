@@ -104,6 +104,7 @@ import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { RETIRED_SLUGS, newSlugFor } from "@/content/giftGuideCatalog";
 import { SEARCH_PAGES } from "@/content/guideSearchPages.mjs";
+import { RETIRED_TO_SEARCH_PAGE } from "@/content/retiredGuideForward";
 import { CHUNK_PICK_COUNTS, SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { DEAL_DAY_SLUGS, DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
 // The fun pages (owner 2026-11-20: swipe, planner, the Secret Santa drawer) are own pages too: in the sitemap, no guide.
@@ -270,6 +271,14 @@ describe("gift guides: the content inventory", () => {
       if (REMOVED_GUIDES.includes(s.id)) continue;
       const to = newSlugFor(s.id);
       if (to === null) continue;
+      // Lead 11-24: a retired section slug with an honest search page opens that page (retiredGuideForward.ts); it must be
+      // the mapped one and a real search page.
+      if (Object.prototype.hasOwnProperty.call(RETIRED_TO_SEARCH_PAGE, s.id) && !slugs.includes(to.split("#")[0])) {
+        expect(to, s.id).toBe(RETIRED_TO_SEARCH_PAGE[s.id]);
+        expect(SEARCH_PAGES.map((p) => p.slug), s.id).toContain(to);
+        opened += 1;
+        continue;
+      }
       expect(slugs, s.id).toContain(to.split("#")[0]);
       opened += 1;
     }
@@ -291,7 +300,13 @@ describe("gift guides: the content inventory", () => {
         expect(guideBySlug(age), age).toBeUndefined();
         // Teens is its own guide (owner 11-20 evening): an old teens slug opens it.
         // Owner 11-21: Teens is retired (src/content/giftGuideLive.mjs), so an old teens slug lands on the landing.
-        if (age.endsWith("-teens")) { expect(newSlugFor(age), age).toBeNull(); continue; }
+        // Lead 11-24: one with a Teens search page opens it (retiredGuideForward.ts), never a guide.
+        if (age.endsWith("-teens")) {
+          const want = RETIRED_TO_SEARCH_PAGE[age] ?? null;
+          expect(newSlugFor(age), age).toBe(want);
+          if (want) expect(SEARCH_PAGES.map((p) => p.slug), age).toContain(want);
+          continue;
+        }
         expect(newSlugFor(age), age).toBe(`${KIDS_HUB}#${SECTION_ANCHORS[age]}`);
         expect(age.endsWith(SECTION_ANCHORS[age]), age).toBe(true);
       }
@@ -493,8 +508,12 @@ describe("gift guides: the landing opens to the guides", () => {
     renderAt("/gift-guides/for-mom");
     expect(screen.getByTestId("where").textContent).toBe("/gift-guides/her"); // owner 11-21: Mom is no page; it forwards to Her
     cleanup();
-    // 1120: Louisiana-Made is a section of Shop Small Louisiana; owner 11-21: that guide is retired, so the landing.
+    // 1120: Louisiana-Made is a section of Shop Small Louisiana; owner 11-21: that guide is retired. Lead 11-24: a pin opens
+    // the same search page the server's 301 sends its address to (retiredGuideForward.ts); one with no match, the landing.
     renderAt("/gift-guides#louisiana-made");
+    expect(screen.getByTestId("where").textContent).toBe("/gift-guides/louisiana-christmas-gifts");
+    cleanup();
+    renderAt("/gift-guides#golfer");
     expect(screen.getByTestId("where").textContent).toBe("/gift-guides");
     cleanup();
     renderAt("/gift-guides/no-such-guide");
@@ -596,7 +615,7 @@ describe("gift guides: links and disclosures on every view", () => {
   it("the disclosure and Amazon's statement show once each, at the bottom after the guides, as plain lines", () => {
     // Owner 11-22: one line, Amazon's statement a span inside the disclosure (so the disclosure's text is split by it).
     const disclosureLine = (_: string, el: Element | null) => el?.matches("[data-gift-disclosure]") === true && el.textContent === DISCLOSURE;
-    for (const url of ["/gift-guides", "/gift-guides/under-25", "/gift-guides/for-her"]) {
+    for (const url of ["/gift-guides", "/gift-guides/golfer", "/gift-guides/for-her"]) {
       const { container } = renderAt(url);
       expect(screen.getAllByText(disclosureLine).length, url).toBe(1);
       expect(screen.getAllByText(AMAZON_STATEMENT).length, url).toBe(1);

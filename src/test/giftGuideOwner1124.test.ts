@@ -30,6 +30,10 @@ import { RATE_SWITCHES_1124 } from "../../scripts/giftGuideOwner1124.mjs";
 import { HER_STEALS_1124_ROWS, HIM_STEALS_1124_ROWS, KIDS_STEALS_1124_ROWS } from "../../scripts/giftGuideSteals1124.mjs";
 import { RESEARCHED_STORES } from "@/content/giftGuidePicks";
 import { tagKey } from "@/content/giftGuideKidsFilter";
+import { kidsThemeMovesLive1124 } from "../../scripts/giftGuideThemes1124.mjs";
+/** Kids picks that moved to their themed guide 11-24 (scripts/giftGuideKidsThemeMoves1124.mjs; that move's own guard is
+ *  src/test/giftGuideKidsThemeRow1124.test.tsx): off Kids by design, so not expected here. */
+const MOVED_TO_THEME = new Set(kidsThemeMovesLive1124().map((m: { href: string }) => m.href));
 
 type Pick = { name: string; href: string; image?: string; store?: string; price?: number; priceAt?: string; commission?: number | null; code?: string; codeEnds?: string };
 const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Pick[] }).picks;
@@ -174,6 +178,7 @@ describe("owner 11-24: her Macy's adds", () => {
   it("each is on its guide once, Macy's 16%, at the price read 11-24, with a cutout photo", () => {
     expect(MACYS.length).toBeGreaterThan(10);
     for (const [guide, pin, price, name] of MACYS) {
+      if (guide === "kids" && MOVED_TO_THEME.has(sm(pin))) continue;
       for (const list of [chunk(guide), built[guide]]) {
         const rows = list.filter((p) => p.href === sm(pin));
         expect(rows.length, `${guide}: ${name}`).toBe(1);
@@ -200,6 +205,7 @@ describe("owner 11-24: the Black Friday steals she ticked", () => {
     expect(STEALS.length).toBeGreaterThan(12);
     expect(HER_STEALS_1124_ROWS.length + HIM_STEALS_1124_ROWS.length + KIDS_STEALS_1124_ROWS.length).toBe(STEALS.length);
     for (const [guide, href, store, commission, price, name] of STEALS) {
+      if (guide === "kids" && MOVED_TO_THEME.has(href)) continue;
       for (const list of [chunk(guide), built[guide]]) {
         const rows = list.filter((p) => p.href === href);
         expect(rows.length, `${guide}: ${name}`).toBe(1);

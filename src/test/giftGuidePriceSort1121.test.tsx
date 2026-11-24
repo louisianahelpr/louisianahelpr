@@ -284,7 +284,10 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Macy's steals 11-24: the Kuromi plush ($8) and UNO deck ($5.57) are stocking stuffers; the
       // Bowser playset, vanity, runway and girls' jacket ($12.57-$19.99) are Under $25, and so is S51 the Crocs kids' clog ($23).
       // S52 the Crocs kids' Cozzzy ($25) is $25 to $50.
-      kids: { "Stocking stuffers under $10": 11, "Under $25": 73, "$25 to $50": 42, "$50 to $75": 11, "$75 to $100": 9, "$100 and up": 27 },
+      // Owner 11-24 ~2:05 PM: 12 Kids picks moved to their themed guides (scripts/giftGuideKidsThemeMoves1124.mjs): the 2 slippers
+      // and the Bluey pajamas (stocking stuffers), the Monster Jam playset and 4-pack, both Mutant Chaos sets, the Bluey figure
+      // 4-pack and the Spider-Man fishing kit (Under $25), the air hockey game, the Grave Digger RC and the Speedway ($25 to $50).
+      kids: { "Stocking stuffers under $10": 8, "Under $25": 67, "$25 to $50": 39, "$50 to $75": 11, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

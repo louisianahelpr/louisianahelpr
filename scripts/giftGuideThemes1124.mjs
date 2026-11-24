@@ -13,6 +13,7 @@
  * rule or sweep drops or reorders these.
  */
 import { THEME_FILES } from "./gift-guide-themes/index.mjs";
+import { KIDS_THEME_MOVES_1124 } from "./giftGuideKidsThemeMoves1124.mjs";
 
 /** slug -> the theme's rows file ({ slug, name, sectionPrefix, builtFrom, rows, skipped }). */
 export const THEME_ROWS_FILES_1124 = THEME_FILES;
@@ -24,7 +25,15 @@ export const themeRows1124 = (slug) => THEME_FILES[slug]?.rows ?? [];
 export const themePicks1124 = (slug, rows = themeRows1124(slug)) =>
   rows.map(({ id: _id, was: _was, age: _age, ...p }) => ({ ...p, ownerPick: true, from: slug }));
 
-/** Puts every theme page's picks in place (the generator's last step). */
+/**
+ * The Kids picks that leave Kids for their theme page (scripts/giftGuideKidsThemeMoves1124.mjs): only a move whose theme
+ * is live and whose theme rows hold the same product (`themeId`), so the pick is never off both pages.
+ */
+export const kidsThemeMovesLive1124 = () =>
+  KIDS_THEME_MOVES_1124.filter(([, , to, id, held]) => !held && id && themeRows1124(to).some((r) => r.id === id))
+    .map(([href, name, to, id]) => ({ href, name, to, id }));
+
+/** Puts every theme page's picks in place (the generator's last step). The moved Kids picks leave in kids1121Picks. */
 export function applyThemeGuides1124(pageList) {
   const out = {};
   for (const slug of Object.keys(THEME_FILES)) {

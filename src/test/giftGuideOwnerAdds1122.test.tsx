@@ -23,6 +23,10 @@ import { recheckedPriceAt } from "../../scripts/giftGuidePriceRecheck.mjs";
 import { RESEARCHED_STORES } from "@/content/giftGuidePicks";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
 import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
+import { kidsThemeMovesLive1124 } from "../../scripts/giftGuideThemes1124.mjs";
+/** Kids picks that moved to their themed guide 11-24 (scripts/giftGuideKidsThemeMoves1124.mjs; that move's own guard is
+ *  src/test/giftGuideKidsThemeRow1124.test.tsx): off Kids by design, so not expected here. */
+const MOVED_TO_THEME = new Set(kidsThemeMovesLive1124().map((m: { href: string }) => m.href));
 
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
@@ -157,6 +161,7 @@ describe("the owner's launch-day picks (11-22)", () => {
       expect(rows[0].image?.startsWith(CUTOUT_BASE), href).toBe(true);
     }
     for (const [p, slug, store, price] of SENT) {
+      if (slug === "kids" && MOVED_TO_THEME.has(pin(p))) continue;
       const rows = chunk(slug).filter((x) => x.href === pin(p));
       expect(rows.length, `${slug}: ${p}`).toBe(1);
       const [row] = rows;
@@ -201,7 +206,7 @@ describe("the owner's launch-day picks (11-22)", () => {
     const kidsBuilt = new Set(kids1121Picks().map((p) => p.href));
     expect(HER_ADDS_1122.length + KIDS_ADDS_1122.length).toBeGreaterThan(10);
     for (const r of HER_ADDS_1122) expect(herBuilt.has(r.href), r.name).toBe(true);
-    for (const r of KIDS_ADDS_1122) expect(kidsBuilt.has(r.href), r.name).toBe(true);
+    for (const r of KIDS_ADDS_1122) expect(kidsBuilt.has(r.href) || MOVED_TO_THEME.has(r.href), r.name).toBe(true);
   });
 
   it("the Swank Camp Snap pins are not used; every Camp Snap row carries her code LEXILOMBAS7", () => {

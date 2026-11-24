@@ -500,6 +500,10 @@ export const giftGuides = {
   kidsMatch: (n: number) => `${n} ${n === 1 ? "gift matches" : "gifts match"} your filters.`,
   kidsNone: "No gifts match these filters.",
   kidsClear: "Clear filters",
+  /** The Kids page's row of themed guide covers (owner 11-24): its name for screen readers and its arrows on a desktop. */
+  themeRowLabel: "Themed kids gift guides",
+  themeRowEarlier: "Earlier themed guides",
+  themeRowMore: "More themed guides",
   sortTop: "Recommended",
   sortLowHigh: "Price: low to high",
   sortHighLow: "Price: high to low",

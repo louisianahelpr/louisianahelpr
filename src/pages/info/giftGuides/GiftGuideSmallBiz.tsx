@@ -127,7 +127,9 @@ export function SmallBizGrid({ arrange }: { arrange?: (rows: SmallBiz[]) => Smal
       {rows === null && failed ? (
         <GiftGuideLoadError message={W.failed} onRetry={retry} />
       ) : rows === null ? (
-        <p className="gg-sb-town" role="status">{W.loading}</p>
+        // Guide speed 1124 (speed-1122n S6): a screen of space while the businesses file loads (giftGuidesStyles.ts), so
+        // the "Get featured" card and the footer are not drawn in view and then pushed down (CLS 0.51 on this page).
+        <p className="gg-sb-town" role="status" data-gift-deals-loading="">{W.loading}</p>
       ) : rows.length === 0 ? (
         <p className="gg-sb-intro" data-gift-sb-none="">{W.none}</p>
       ) : (

@@ -22,6 +22,12 @@
  * @mutate src/pages/info/giftGuides/GiftGuideHelpr.tsx | new URLSearchParams({ mm: "1", | new URLSearchParams({ mx: "1",
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx | import { LOUISIANA_HELPR_FACEBOOK } from "@/content/giftGuideConstants"; | import { sponsorPage } from "@/content/sponsorPage"; const LOUISIANA_HELPR_FACEBOOK = sponsorPage.links.facebookPage;
  * @mutate vite.config.ts |               name: "sponsor-page-reads", |               name: "sponsor-page-reads-off",
+ * @mutate vite.config.ts |               name: "maps-link", |               name: "maps-link-off",
+ * @mutate vite.config.ts |               priority: 18 /* rolldown | priority: 16 /* rolldown
+ *
+ * Guide speed 1124: the Holiday Hub (pathPageRoute.ts starts it too) is walked as well. Its Directions helper, mapsLink.ts,
+ * sat in decl-buying-first, so a cold /holidays fetched Declutter's Buying chunk and its closure; it has its own
+ * maps-link group now, ranked above every Declutter group (checked below).
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -33,8 +39,8 @@ import { readMatchmakerLink } from "@/lib/matchmakerLink";
 
 const ROOT = resolve(__dirname, "../..");
 const rel = (abs: string) => abs.slice(ROOT.length + 1).split("\\").join("/");
-/** The public pages pathPageRoute.ts starts for a guest (the fun gift pages share their code). */
-const PUBLIC_PAGE_ROOTS = ["src/pages/info/GiftGuides.tsx", "src/pages/sponsor/SponsorPage.tsx"];
+/** The public pages pathPageRoute.ts starts for a guest (the fun gift pages share their code; the Holiday Hub, 11-24). */
+const PUBLIC_PAGE_ROOTS = ["src/pages/info/GiftGuides.tsx", "src/pages/sponsor/SponsorPage.tsx", "src/pages/info/holidays/HolidayHub.tsx"];
 /**
  * Signed-in-only by bootReach but imported by ONE chunk of these pages, so no signed-in group (each needs two
  * importers, minShareCount 2) takes it: it rides in its page's own chunk. Exact both ways.
@@ -53,7 +59,10 @@ describe("the public pages carry no signed-in chunk (speed 11-20)", () => {
   const test = new RegExp(group.match(/test:\s*\/(.*)\/,\s*\n/)?.[1] ?? "^$");
   const sponsorGroup = groupOf("sponsor-page-reads");
   const sponsorTest = new RegExp(sponsorGroup.match(/test:\s*\/(.*)\/,\s*\n/)?.[1] ?? "^$");
-  const won = (f: string) => test.test(`/x/${f}`) || sponsorTest.test(`/x/${f}`);
+  // Guide speed 1124: the Hub's Directions helper has its own group, ranked above the Declutter groups that wanted it.
+  const mapsGroup = groupOf("maps-link");
+  const mapsTest = new RegExp(mapsGroup.match(/test:\s*\/(.*)\/,\s*\n/)?.[1] ?? "^$");
+  const won = (f: string) => test.test(`/x/${f}`) || sponsorTest.test(`/x/${f}`) || mapsTest.test(`/x/${f}`);
 
   it("walks the real pages (floor: the pages, their reads and the deep link are reached)", () => {
     expect(reach.length).toBeGreaterThan(100);
@@ -80,6 +89,17 @@ describe("the public pages carry no signed-in chunk (speed 11-20)", () => {
     expect(priorityOf("sponsor-page-reads")).toBeGreaterThan(top);
     expect(group).toMatch(/includeDependenciesRecursively:\s*false/);
     expect(sponsorGroup).toMatch(/includeDependenciesRecursively:\s*false/);
+  });
+
+  it("maps-link (the Holiday Hub's Directions helper) ranks above every Declutter group, and the Hub still reaches it", () => {
+    const declutterTop = Math.max(...["decl-item-first", "decl-browse-first", "decl-buying-first", "declutter-first-screen"].map(priorityOf));
+    expect(Number.isFinite(declutterTop)).toBe(true);
+    // Whole numbers: rolldown reads priority as an integer (17.5 tied the 17.x Declutter groups, and they come first).
+    expect(Math.floor(priorityOf("maps-link"))).toBeGreaterThan(Math.floor(declutterTop));
+    expect(mapsGroup).toMatch(/includeDependenciesRecursively:\s*false/);
+    expect(reach).toContain("src/lib/mapsLink.ts");
+    expect(signedInReached).toContain("src/lib/mapsLink.ts");
+    expect(mapsTest.test("/x/src/lib/mapsLink.ts")).toBe(true);
   });
 
   it("a gift guide page reaches none of the 25 Days page's words or reads, and they sit in their own group (headroom 11-22)", () => {

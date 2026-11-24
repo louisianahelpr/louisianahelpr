@@ -285,7 +285,7 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
             deals === null && failed ? (
               <GiftGuideLoadError message={G.dealsFailed} onRetry={retry} />
             ) : deals === null ? (
-              <p className="gg-deal-meta" role="status">{W.loading}</p>
+              <p className="gg-deal-meta" role="status" data-gift-deals-loading="">{W.loading}</p>
             ) : stores.length === 0 ? null : (
               <DealGrid list={stores} today={today} labelledBy="gg-deal-sec-deals-title" data={{ "data-gift-deal-list": day.id }} />
             )

@@ -360,6 +360,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-code-offer{font-size:12px;color:var(--gg-muted)}
 .gg-soon{text-align:center;padding:36px 16px;border-top:1px solid var(--gg-line);margin-top:16px}
 .gg-soon[data-gift-picks-loading]{min-height:100vh}
+[data-gift-deals-loading]{min-height:100vh}
 .gg-soon h2,.gg-soon h3{font-size:18px;font-weight:700;margin:0 0 6px}
 .gg-soon p{margin:0 auto 8px;max-width:44ch;color:var(--gg-muted);font-size:14px}
 /* Guide consistency audit 1122 #23: an empty My Wish List starts at the content column's left edge on a desktop, as the

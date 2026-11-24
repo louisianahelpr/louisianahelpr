@@ -180,6 +180,17 @@ const Support = lazyWithPreload(() => import("./pages/info/Support"));
  */
 const COLD_ROUTE_PAGES: Record<string, { preload: () => void }> = { "/jobs": JobsPage };
 if (typeof window !== "undefined") COLD_ROUTE_PAGES[window.location.pathname.replace(/(.)\/+$/, "$1")]?.preload();
+/**
+ * The gift guides and the Holiday Hub too (guide speed 1124, speed-1122n S1-S3): their chunk already starts beside the
+ * app (routePreload.ts PATH_PAGE_PATH), but App.tsx asked lazy() for it only at the first render, so the route drew
+ * its blank fallback first and the page came in as a held retry. Keyed by pattern (every guide slug is one page).
+ * Measured in ~/.lh-shots/guide-speed-1124. Guard: src/boot/routePreload.publicPages.test.ts.
+ */
+const COLD_PATTERN_PAGES: Array<[RegExp, { preload: () => void }]> = [
+  [/^\/gift-guides(?:\/(?!(?:draw-names|swipe|planner|printables)\/?$)[^/]+)?\/?$/, GiftGuides],
+  [/^\/holidays\/?$/, HolidayHub],
+];
+if (typeof window !== "undefined") COLD_PATTERN_PAGES.find(([re]) => re.test(window.location.pathname))?.[1].preload();
 
 // Lazy load less-critical global components and the route wrappers.
 const StrikeBanner = optionalLazy(() => import("./components/StrikeBanner"), "StrikeBanner");

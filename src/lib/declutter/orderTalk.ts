@@ -62,7 +62,7 @@ export interface OrderTalkListRow {
   /** True when the caller sent the last message. */
   last_mine: boolean;
   open: boolean;
-  /** Audit 1122 #138 (20261122153901): the other side wrote last, after the caller's own read mark. Absent before
+  /** Audit 1122 #138 (20261124192812): the other side wrote last, after the caller's own read mark. Absent before
    *  that migration deploys, which reads as not unread. */
   unread?: boolean;
   /** The order's status (paid, handed_over, refunded, ...). Absent before deploy: no stage chip. */

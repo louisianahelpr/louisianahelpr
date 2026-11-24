@@ -2,7 +2,7 @@
  * Audit 1122 #138: Messages -> Declutter rows had no unread state and no order status: a buyer's message about a paid
  * pickup never read as unread, never counted on the Unread chip and never listed under it, and a paid order waiting for
  * its handover looked like any other. declutter_my_order_talks now returns `unread` (the caller's own read mark) and
- * `stage` (migration 20261122153901, PGlite declutterOrderTalksUnreadStage.pglite.mjs). CLASS CHECK: the row shows the
+ * `stage` (migration 20261124192812, PGlite declutterOrderTalksUnreadStage.pglite.mjs). CLASS CHECK: the row shows the
  * job row's unread mark and a stage chip; the Unread chip counts unread order chats and lists them.
  *
  * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx |       {row.unread && <span | {false && <span

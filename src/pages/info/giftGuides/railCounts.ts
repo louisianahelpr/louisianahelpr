@@ -35,7 +35,7 @@ export async function smallBizCount(): Promise<number> {
 /** A deals day's whole list on `today`: its live deal cards, its codes (minus those a card shows) and its store sales. */
 export function dealDayCount(id: string, deals: Deal[], today: string): number {
   const p = dealDayParts(id, deals, today);
-  return p.deals + p.codes + p.sales;
+  return p.deals + p.steals + p.codes + p.sales;
 }
 
 /** What /holidays lists with no filter on `today` at `minutes` (Louisiana), from the schedule; null outside its window. */

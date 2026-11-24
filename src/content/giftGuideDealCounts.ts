@@ -1,7 +1,7 @@
 import { activeCodes, codesByStore, discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { DEAL_CODES, SALES, type Sale } from "@/content/giftGuidePicks";
 import { cleanCodes, cleanSales } from "@/lib/giftGuideOfferCopy.mjs";
-import { DEAL_EVENTS, codesDay, dealCode, dealsIn, liveDeals, louisianaDay, type Deal } from "@/content/giftGuideDeals.mjs";
+import { DEAL_EVENTS, codesDay, dealCode, dealsIn, isSteal, liveDeals, louisianaDay, type Deal } from "@/content/giftGuideDeals.mjs";
 
 /**
  * The deals days' codes and sales rules, with no React and no card code: the deals pages draw their cards from them
@@ -91,15 +91,15 @@ export function setStoreCodes(codes: readonly DiscountCode[]) {
 }
 
 /**
- * What a deals day's page lists on `today`, by its three sections (GiftGuideDeals.tsx DealSections): the Top deals cards
- * still on, the Discount codes cards (one per store, minus a code a Top deal card already shows) and the store Sales.
+ * What a deals day's page lists on `today`, by its sections (GiftGuideDeals.tsx DealSections): the Biggest store sales
+ * cards still on, the steals (owner 11-24; their category sections together), the Discount codes cards (one per store, minus a code a Top deal card already shows) and the store Sales.
  * The gift guides menu's number is their sum (railCounts.ts dealDayCount) and the page's "Common questions" names the
  * same three (guideQa.mjs dealsDayQa, also in the pre-JS body through seo-data's dealParts), so the menu, the section
  * heads and the Q&A cannot disagree (guide train p 11-23: the Q&A said "19 deals" beside the menu's 61).
  */
-export function dealDayParts(id: string, deals: readonly Deal[], today: string): { deals: number; codes: number; sales: number } {
+export function dealDayParts(id: string, deals: readonly Deal[], today: string): { deals: number; steals: number; codes: number; sales: number } {
   const l = dealDayLists(id, deals, today);
-  return { deals: l.deals.length, codes: codeCardCount(l.codes), sales: l.sales.length };
+  return { deals: l.deals.length, steals: l.steals.length, codes: codeCardCount(l.codes), sales: l.sales.length };
 }
 
 /**
@@ -108,10 +108,11 @@ export function dealDayParts(id: string, deals: readonly Deal[], today: string):
  * Sales. The pre-JS body lists the same rows (seo bodies 1123, src/prerender/seoData.ts dealListsTable), so a reader with
  * no JavaScript sees what the page shows.
  */
-export function dealDayLists(id: string, deals: readonly Deal[], today: string): { deals: Deal[]; codes: DiscountCode[]; sales: { store: string; sales: Sale[] }[] } {
+export function dealDayLists(id: string, deals: readonly Deal[], today: string): { deals: Deal[]; steals: Deal[]; codes: DiscountCode[]; sales: { store: string; sales: Sale[] }[] } {
   const day = DEAL_EVENTS.find((e) => e.id === id)!;
   const list = dealsIn(liveDeals(deals, today, STORE_CODES), id);
   const shown = new Set(list.flatMap((d) => dealCode(d, today, STORE_CODES) ?? []).map((c) => c.toUpperCase()));
   const on = codesDay(day, today);
-  return { deals: list, codes: codesOn(on, today).filter((c) => !shown.has(c.code.toUpperCase())), sales: salesOn(on) };
+  // Owner pop-up 11-24: the store sales ("Biggest store sales") and the steals (by category) are separate sections.
+  return { deals: list.filter((d) => !isSteal(d)), steals: list.filter(isSteal), codes: codesOn(on, today).filter((c) => !shown.has(c.code.toUpperCase())), sales: salesOn(on) };
 }

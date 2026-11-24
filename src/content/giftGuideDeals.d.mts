@@ -17,6 +17,14 @@ export interface Deal {
   status: "live" | "announced";
   /** The store the link opens when it is not the brand's own site ("Amazon"). */
   store?: string;
+  /** "steal": one item on sale at the store `brand` names (STEAL_KIND); absent for a store's sale. */
+  kind?: "steal";
+  /** A steal's section: a STEAL_CATEGORIES id. */
+  category?: string;
+}
+export interface StealCategory {
+  id: string;
+  title: string;
 }
 export interface DealEvent {
   id: string;
@@ -44,6 +52,10 @@ export function dealDay(slug: string | undefined): DealEvent | null;
 export function oldDealsTarget(hash: string): string;
 export function codesDay(event: Pick<DealEvent, "day">, today: string): string;
 export const DEALS_PER_BRAND: number;
+export const STEAL_KIND: "steal";
+export function isSteal(deal: { kind?: string } | null | undefined): boolean;
+export const STEAL_CATEGORIES: readonly StealCategory[];
+export function stealSections<T extends { kind?: string; category?: string }>(deals: readonly T[]): (StealCategory & { deals: T[] })[];
 export const DEALS_WORDS: {
   title: string;
   laterTitle: string;
@@ -53,6 +65,7 @@ export const DEALS_WORDS: {
   shop: (brand: string) => string;
   shopShort: string;
   codeLabel: string;
+  topTitle: string;
   endsOn: (ymd: string) => string;
   startsOn: (ymd: string) => string;
   runs: (start?: string | null, end?: string | null) => string;

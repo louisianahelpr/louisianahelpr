@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { BUNDLED_CODES_FILE, giftGuides as G, type DiscountCodesFile } from "@/content/giftGuides";
-import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, DEALS_WORDS as W, codesDay, dealCode, dealName, dealEnds, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, liveDeals, louisianaDay, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
+import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, DEALS_WORDS as W, codesDay, dealCode, dealName, dealEnds, dealsFeatured, dealsIn, dealsTitle, eventOrder, eventPhase, isSteal, liveDeals, louisianaDay, stealSections, type Deal, type DealEvent } from "@/content/giftGuideDeals.mjs";
 import { GiftOut } from "./GiftOut";
 import { START_OPEN } from "./startOpen";
 import { GuideSectionHead } from "./GuideSectionHead";
@@ -126,6 +126,15 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
   );
 }
 
+/** One grid of deal cards (a store sale or a steal each), in the list's order. */
+function DealGrid({ list, today, labelledBy, data }: { list: Deal[]; today: string; labelledBy: string; data: Record<string, string> }) {
+  return (
+    <ul className="gg-deal-grid" aria-labelledby={labelledBy} {...data}>
+      {list.map((d) => <DealCard key={`${d.brand} ${d.item ?? ""} ${d.href}`} deal={d} today={today} />)}
+    </ul>
+  );
+}
+
 /**
  * The free approved "Featured local" listings and the sign-up card under the sponsors (guides lane 11-21: /shop-small
  * now opens this page, so nothing it showed is lost). Their reader (the Supabase client) loads in its own chunk after
@@ -158,12 +167,14 @@ function LazyLocalListings() {
  * count, open on arrival (START_OPEN) and closed or opened again by its chevron. `dealCount` null = the deal cards are
  * still loading (or failed): that subsection shows the loading line or the Try again in its place, with no count yet.
  */
-function DealSections({ day, deals, dealCount, shownCodes }: { day: string; deals: ReactNode; dealCount: number | null; shownCodes: ReadonlySet<string> }) {
+function DealSections({ day, deals, dealCount, steals, shownCodes }: { day: string; deals: ReactNode; dealCount: number | null; steals: { id: string; title: string; count: number; body: ReactNode }[]; shownCodes: ReadonlySet<string> }) {
   // Polish audit 1122 #12: a code a Top deal card already shows (XTRATUF's XT25) gets no second card under Discount codes.
   const codes = codesOn(day).filter((c) => !shownCodes.has(c.code.toUpperCase()));
   const sales = salesOn(day);
   const sections = [
     ...(dealCount !== 0 ? [{ id: "deals", title: CARD_WORDS.dealsTitle, count: dealCount, body: deals }] : []),
+    // The steals, one section per category (owner pop-up 11-24: "Toys & Kids (22)"), open like every section.
+    ...steals.map((s) => ({ id: `steals-${s.id}`, title: s.title, count: s.count as number | null, body: s.body })),
     ...(codes.length ? [{ id: "codes", title: CARD_WORDS.codesTitle, count: codeCardCount(codes), body: <CodeCards codes={codes} /> }] : []),
     ...(sales.length ? [{ id: "sales", title: CARD_WORDS.salesTitle, count: sales.length, body: <SaleCards stores={sales} /> }] : []),
   ];
@@ -259,6 +270,8 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
   const today = louisianaDay(now ?? new Date());
   // Only this day's cards, and only the ones still on (dealShows).
   const list = deals ? dealsIn(liveDeals(deals, today, STORE_CODES), day.id) : [];
+  // Owner pop-up 11-24: the store sales on top ("Biggest store sales"), then the steals by category (stealSections).
+  const stores = list.filter((d) => !isSteal(d));
   return (
     <div data-gift-deals-page="" data-gift-deal-day-page={day.id} data-gift-deal-phase={eventPhase(day, today)}>
       <style>{DEALS_CSS + CARD_CSS}</style>
@@ -273,13 +286,12 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
               <GiftGuideLoadError message={G.dealsFailed} onRetry={retry} />
             ) : deals === null ? (
               <p className="gg-deal-meta" role="status">{W.loading}</p>
-            ) : list.length === 0 ? null : (
-              <ul className="gg-deal-grid" aria-labelledby="gg-deal-sec-deals-title" data-gift-deal-list={day.id}>
-                {list.map((d) => <DealCard key={`${d.brand} ${d.href}`} deal={d} today={today} />)}
-              </ul>
+            ) : stores.length === 0 ? null : (
+              <DealGrid list={stores} today={today} labelledBy="gg-deal-sec-deals-title" data={{ "data-gift-deal-list": day.id }} />
             )
           }
-          dealCount={deals === null ? null : list.length}
+          dealCount={deals === null ? null : stores.length}
+          steals={deals === null ? [] : stealSections(list).map((s) => ({ id: s.id, title: s.title, count: s.deals.length, body: <DealGrid list={s.deals} today={today} labelledBy={`gg-deal-sec-steals-${s.id}-title`} data={{ "data-gift-steal-list": s.id }} /> }))}
           shownCodes={new Set(list.flatMap((d) => dealCode(d, today, STORE_CODES) ?? []).map((c) => c.toUpperCase()))}
         />
       ) : (

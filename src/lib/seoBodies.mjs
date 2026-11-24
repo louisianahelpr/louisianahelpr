@@ -15,7 +15,7 @@
 
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, townPagePath } from "./townPages.mjs";
 import { pickPriceShown, shownDollars } from "./pickPriceShown.mjs";
-import { DEALS_WORDS, dealName, dealShows } from "../content/giftGuideDeals.mjs";
+import { DEALS_WORDS, STEAL_CATEGORIES, STEAL_KIND, dealName, dealShows } from "../content/giftGuideDeals.mjs";
 import { SMALL_BIZ_WORDS, smallBizSections } from "../content/giftGuideSmallBiz.mjs";
 import { GUIDE_CROSS_LINKS, GUIDE_SEARCH } from "../content/guideSearch.mjs";
 import { isLiveGuide } from "../content/giftGuideLive.mjs";
@@ -205,11 +205,15 @@ function byStore(rows) {
 export function dealsGuideBody(slug, name, intro, disclosure, day, shops) {
   let lists = "";
   if (day) {
-    const top = day.deals
-      .map(([item, href, ends, , brand, deal, starts]) => {
-        const words = [deal, runsText(starts, ends)].filter(Boolean).join(" · ");
-        return `<li>${outLink(href, brand ? dealName({ brand, item, deal: deal ?? "" }) : item, SPONSORED)}${words ? ` <span>${escapeHtml(words)}</span>` : ""}</li>`;
-      })
+    const row = ([item, href, ends, , brand, deal, starts]) => {
+      const words = [deal, runsText(starts, ends)].filter(Boolean).join(" · ");
+      return `<li>${outLink(href, brand ? dealName({ brand, item, deal: deal ?? "" }) : item, SPONSORED)}${words ? ` <span>${escapeHtml(words)}</span>` : ""}</li>`;
+    };
+    // Owner pop-up 11-24: the store sales ("Biggest store sales"), then the steals under their categories, as the page.
+    const top = day.deals.filter((d) => d[7] !== STEAL_KIND).map(row).join("");
+    const steals = STEAL_CATEGORIES.map((c) => [c.title, day.deals.filter((d) => d[7] === STEAL_KIND && d[8] === c.id).map(row).join("")])
+      .filter(([, rows]) => rows)
+      .map(([title, rows]) => `<h2>${escapeHtml(title)}</h2><ul>${rows}</ul>`)
       .join("");
     const codes = byStore(day.codes)
       .map(([store, rows]) => `<li>${outLink(rows[0][4], store, SPONSORED)}: ${rows.map(([, code, offer, runs]) => `${escapeHtml([offer, runs].filter(Boolean).join(" · "))}${code ? ` (code <code>${escapeHtml(code)}</code>)` : ""}`).join("; ")}</li>`)
@@ -218,10 +222,11 @@ export function dealsGuideBody(slug, name, intro, disclosure, day, shops) {
       .map(([store, rows]) => `<li>${escapeHtml(store)}: ${rows.map(([, offer, href, ends]) => `${outLink(href, offer, SPONSORED)}${ends ? ` <span>${escapeHtml(runsText(null, ends))}</span>` : ""}`).join("; ")}</li>`)
       .join("");
     lists =
-      (top ? `<h2>Top deals</h2><ul>${top}</ul>` : "") +
+      (top ? `<h2>${escapeHtml(DEALS_WORDS.topTitle)}</h2><ul>${top}</ul>` : "") +
+      steals +
       (codes ? `<h2>Discount codes</h2><ul>${codes}</ul>` : "") +
       (sales ? `<h2>Sales</h2><ul>${sales}</ul>` : "") +
-      (top || codes || sales ? "" : `<p>${escapeHtml(DEALS_WORDS.none)}</p>`);
+      (top || steals || codes || sales ? "" : `<p>${escapeHtml(DEALS_WORDS.none)}</p>`);
   }
   if (Array.isArray(shops) && shops.length) {
     const rows = shops.filter((s) => s && s[0]).map(([name, town, category, ships, href, gift]) => ({ name, town, category, ships, href, gift }));

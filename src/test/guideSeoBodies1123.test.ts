@@ -27,7 +27,7 @@ import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
 import { buildSeoData } from "@/prerender/seoData";
 import { dealsItemListLd, INFO_BODY_LINKS, INFO_BODY_PATHS, type SeoData } from "@/lib/seoBodies.mjs";
 import { dealDayParts, STORE_CODES } from "@/content/giftGuideDealCounts";
-import { DEAL_EVENTS, liveDeals, dealsIn, type Deal } from "@/content/giftGuideDeals.mjs";
+import { DEAL_EVENTS, DEALS_WORDS, STEAL_CATEGORIES, liveDeals, dealsIn, type Deal } from "@/content/giftGuideDeals.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import deals from "@/content/giftGuideDeals.json";
 
@@ -109,16 +109,18 @@ describe("TS3: the deals days and /25days list what the page shows", () => {
         const body = seoBody(doc);
         const parts = dealDayParts(id, deals as Deal[], day);
         const got = sections(body);
-        expect(got["Top deals"] ?? 0, `${id} ${day} top deals`).toBe(parts.deals);
+        // Owner pop-up 11-24: "Biggest store sales" (was "Top deals"), then the steals under their category headings.
+        expect(got[DEALS_WORDS.topTitle] ?? 0, `${id} ${day} store sales`).toBe(parts.deals);
+        expect(STEAL_CATEGORIES.reduce((n, c) => n + (got[c.title.replace(/&/g, "&amp;")] ?? 0), 0), `${id} ${day} steals`).toBe(parts.steals);
         expect(got["Discount codes"] ?? 0, `${id} ${day} codes`).toBe(parts.codes);
         expect(got["Sales"] ?? 0, `${id} ${day} sales`).toBe(parts.sales);
-        // The ItemList names the same cards: one per row of the three lists.
-        expect(itemList(doc)?.numberOfItems ?? 0, `${id} ${day} ItemList`).toBe(parts.deals + parts.codes + parts.sales);
+        // The ItemList names the same cards: one per row of the lists.
+        expect(itemList(doc)?.numberOfItems ?? 0, `${id} ${day} ItemList`).toBe(parts.deals + parts.steals + parts.codes + parts.sales);
         for (const x of itemList(doc)?.itemListElement ?? []) {
           expect(x.name, `${id} ${day}`).toBeTruthy();
           expect(x.url, `${id} ${day}`).toMatch(/^https:\/\//);
         }
-        checked += parts.deals + parts.codes + parts.sales;
+        checked += parts.deals + parts.steals + parts.codes + parts.sales;
       }
     }
     // 61 + 42 rows on 2026-11-23 alone (audit 11-23).

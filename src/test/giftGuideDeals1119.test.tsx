@@ -27,6 +27,15 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   const isOpen = (id: string) => open[id] ?? START_OPEN; |   const isOpen = (id: string) => open[id] ?? false;
  * @mutate scripts/gift-guide-deals.mjs |     const key = !amazon && r.image ? cutouts[r.image] : undefined; |     const key = undefined;
  * @mutate scripts/gift-guide-deals.mjs |     if (n > DEALS_PER_BRAND) throw | if (false) throw
+ * @mutate scripts/gift-guide-deals.mjs |     if (!steal) { |     if (true) {
+ * @mutate scripts/gift-guide-deals.mjs | Number(a.deal.kind === STEAL_KIND) - Number(b.deal.kind === STEAL_KIND) \|\| | 0 \|\|
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | steals={deals === null ? [] : stealSections(list).map( | steals={[].map(
+ * @mutate scripts/gift-guide-deals.mjs | cat(a.deal) - cat(b.deal) \|\| a.sortPrice - b.sortPrice | cat(a.deal) - cat(b.deal) \|\| b.sortPrice - a.sortPrice
+ *
+ * Steals (owner 2026-11-24 ~1:45 AM: "put all 56 on the black friday page"): one item each (`kind: "steal"`), not
+ * counted by DEALS_PER_BRAND. Owner pop-up 11-24 ~1:50 AM: the page opens with "Biggest store sales" (the store sales,
+ * by our commission), then the steals in category sections (STEAL_CATEGORIES: Toys & Kids, For Her, For Him, Home &
+ * Kitchen, Beauty, Tech, Shoes & Boots), each cheapest first, open, its count in its heading.
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -35,7 +44,7 @@ import { MemoryRouter } from "react-router-dom";
 import DEALS from "@/content/giftGuideDeals.json";
 import SMALL_BIZ from "@/content/giftGuideSmallBiz.json";
 import {
-  DEAL_DAY_SLUGS, DEAL_EVENTS, DEALS_PER_BRAND, DEALS_SLUG, DEALS_WORDS, codesDay, dealDay, dealShows, dealsFeatured, dealsTitle, eventOrder, eventPhase, louisianaDay, oldDealsTarget, type Deal,
+  DEAL_DAY_SLUGS, DEAL_EVENTS, DEALS_PER_BRAND, DEALS_SLUG, DEALS_WORDS, STEAL_CATEGORIES, codesDay, dealDay, dealShows, dealsFeatured, dealsTitle, eventOrder, eventPhase, isSteal, louisianaDay, oldDealsTarget, stealSections, type Deal,
 } from "@/content/giftGuideDeals.mjs";
 import { dealDayPageMeta, giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { DEAL_DAY_SEARCH_TITLES } from "@/content/guideSearch.mjs";
@@ -97,7 +106,9 @@ describe("deals page: the data", () => {
       expect(d.deal.length, d.brand).toBeGreaterThan(5);
       expect(["live", "announced"]).toContain(d.status);
       for (const k of ["starts", "ends"] as const) if (d[k]) expect(d[k], `${d.brand} ${k}`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      perBrand.set(d.brand, (perBrand.get(d.brand) ?? 0) + 1);
+      // A steal is one item, not a store's sale: the per-brand cap counts store sales only (owner 11-24: all 56 steals).
+      if (!isSteal(d)) perBrand.set(d.brand, (perBrand.get(d.brand) ?? 0) + 1);
+      else expect(d.item, `${d.brand} steal`).toBeTruthy();
     }
     for (const [b, n] of perBrand) expect(n, b).toBeLessThanOrEqual(DEALS_PER_BRAND);
     // The source holds the proof for each one: where it was read, the day, and the words seen.
@@ -160,6 +171,18 @@ describe("deals page: the data", () => {
     expect(() => buildDeals([row("A", "black-friday", 1, { href: "https://www.amazon.com/dp/B000000000" })])).toThrow(/tag/);
     expect(() => buildDeals([row("A", "small-business-saturday", 1)])).toThrow(/unknown event/);
     expect(() => buildDeals([row("A", "black-friday", 1, { seen: "" })])).toThrow(/seen/);
+    // Steals: not counted by the cap, each names its item and category; after the day's store sales, by category
+    // (STEAL_CATEGORIES order), each category cheapest first (sortPrice, never shipped).
+    const steal = (brand: string, n: number, category: string, sortPrice: number) =>
+      row(brand, "black-friday", 16, { kind: "steal", item: `${brand} item ${n}`, href: `https://go.shopmy.us/p-${brand}-${n}`, category, sortPrice });
+    const withSteals = buildDeals([steal("Big", 1, "home-kitchen", 9.99), row("Big", "black-friday", 16), steal("Big", 2, "toys-kids", 12.57), steal("Big", 3, "toys-kids", 5.57), row("Low", "black-friday", 5), steal("Mid", 1, "home-kitchen", 8), row("Cyber", "cyber-monday", 30)]);
+    expect(withSteals.map((d) => `${d.brand}${d.kind ? ` ${d.item}` : ""}`)).toEqual(["Big", "Low", "Big Big item 3", "Big Big item 2", "Mid Mid item 1", "Big Big item 1", "Cyber"]);
+    expect(withSteals.filter((d) => d.kind === "steal").map((d) => d.category)).toEqual(["toys-kids", "toys-kids", "home-kitchen", "home-kitchen"]);
+    for (const d of withSteals) expect(d).not.toHaveProperty("sortPrice");
+    expect(() => buildDeals([row("A", "black-friday", 1, { kind: "steal", category: "her", sortPrice: 5 })])).toThrow(/item/);
+    expect(() => buildDeals([row("A", "black-friday", 1, { kind: "steal", item: "x", category: "gadgets", sortPrice: 5 })])).toThrow(/category/);
+    expect(() => buildDeals([row("A", "black-friday", 1, { kind: "steal", item: "x", category: "her" })])).toThrow(/sortPrice/);
+    expect(() => buildDeals([row("A", "black-friday", 1, { kind: "doorbuster" })])).toThrow(/kind/);
   });
 });
 
@@ -230,6 +253,36 @@ describe("deals days: one page per day (owner 11-21)", () => {
     expect(c.textContent).not.toMatch(/big sales are here|#ad|Codes copy with a tap/);
   });
 
+  it("Black Friday (owner pop-up 11-24): Biggest store sales on top, then the steals by category, each open with its count", async () => {
+    const steals = deals.filter((d) => d.event === "black-friday" && isSteal(d));
+    expect(steals.length).toBeGreaterThan(10); // 13 in the first batch 2026-11-24 (rises as each store's links land)
+    // Every steal names its item and a category, and has its own link (a heart saves the one item).
+    for (const d of steals) {
+      expect(d.item, d.brand).toBeTruthy();
+      expect(STEAL_CATEGORIES.map((x) => x.id), `${d.brand} ${d.item}`).toContain(d.category);
+    }
+    expect(new Set(steals.map((d) => d.href)).size).toBe(steals.length);
+    const c = await renderDay(BF, "2026-11-24");
+    const on = steals.filter((d) => dealShows(d, "2026-11-24"));
+    const want = stealSections(on);
+    expect(want.length).toBeGreaterThan(2);
+    const subs = [...c.querySelectorAll<HTMLElement>("section[data-gift-deal-sub]")];
+    expect(subs.map((x) => x.getAttribute("data-gift-deal-sub"))).toEqual(["deals", ...want.map((s) => `steals-${s.id}`), "codes", "sales"]);
+    expect(subs.map((x) => x.querySelector("button[data-gift-deal-toggle]")?.getAttribute("aria-expanded")).every((v) => v === "true")).toBe(true);
+    // The top section is the store sales only, under its new name.
+    expect(subs[0].querySelector("h2, h3, [id$='-title']")!.textContent).toContain(DEALS_WORDS.topTitle);
+    expect([...subs[0].querySelectorAll("[data-gift-deal]")].length).toBe(deals.filter((d) => d.event === "black-friday" && !isSteal(d) && dealShows(d, "2026-11-24")).length);
+    expect(subs[0].querySelectorAll("[data-gift-steal-list]").length).toBe(0);
+    // Each category: its title and count, its own cards in the generator's order (cheapest first).
+    want.forEach((s, i) => {
+      const sec = subs[1 + i];
+      expect(sec.textContent, s.id).toContain(s.title);
+      expect(sec.querySelector("[data-gift-section-count]")!.textContent, s.id).toBe(` (${s.deals.length})`);
+      expect([...sec.querySelectorAll("[data-gift-deal] [data-gift-deal-text]")].map((x) => x.textContent), s.id).toEqual(s.deals.map((d) => d.deal));
+    });
+    for (const a of c.querySelectorAll("[data-gift-steal-list] a")) expect(a.getAttribute("rel")).toBe("sponsored noopener");
+  });
+
   it("Cyber Monday: only Cyber Monday's cards", async () => {
     const c = await renderDay(CM, "2026-11-21");
     expect(brandsOn(c)).toEqual(deals.filter((d) => d.event === "cyber-monday").map((d) => d.brand));
@@ -257,10 +310,13 @@ describe("deals days: one page per day (owner 11-21)", () => {
     const counts: number[] = [];
     for (const day of [BF, CM]) {
       const c = await renderDay(day, "2026-11-21");
-      const subs = [...c.querySelectorAll<HTMLElement>("section[data-gift-deal-sub]")];
-      expect(subs.map((x) => x.getAttribute("data-gift-deal-sub")), day.id).toEqual(["deals", "codes", "sales"]);
+      const secs = [...c.querySelectorAll<HTMLElement>("section[data-gift-deal-sub]")];
+      // Owner pop-up 11-24: the steals' category sections sit between the store sales and the codes (Black Friday).
+      const stealIds = stealSections(deals.filter((d) => d.event === day.id && dealShows(d, "2026-11-21"))).map((s) => `steals-${s.id}`);
+      expect(secs.map((x) => x.getAttribute("data-gift-deal-sub")), day.id).toEqual(["deals", ...stealIds, "codes", "sales"]);
       // Owner 2026-11-22: each is a guide section; open = its header button says aria-expanded="true".
-      expect(subs.map((x) => x.querySelector("button[data-gift-deal-toggle]")?.getAttribute("aria-expanded")), day.id).toEqual(["true", "true", "true"]);
+      expect(secs.map((x) => x.querySelector("button[data-gift-deal-toggle]")?.getAttribute("aria-expanded")).every((v) => v === "true"), day.id).toBe(true);
+      const subs = secs.filter((x) => !x.getAttribute("data-gift-deal-sub")!.startsWith("steals-"));
       const box = subs[1];
       // Its codes are exactly the ones that work on the day.
       const on = codesDay(day, "2026-11-21");

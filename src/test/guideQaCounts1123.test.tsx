@@ -12,7 +12,7 @@
  *   3. Small Business Saturday: the answer names what its number counts (the 25 Days sponsors; the menu adds the
  *      approved Featured local businesses, a live read the pre-JS body cannot make), and the number is the sponsors'.
  *
- * @mutate src/lib/guideQa.mjs |   const total = live.length + codes + sales; |   const total = live.length;
+ * @mutate src/lib/guideQa.mjs |   const total = live.length + steals + codes + sales; |   const total = live.length + steals;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | listed={{ ...dealDayParts(day.id, deals, today), storeCodes: STORE_CODES }} | listed={{ codes: 0, sales: 0 }}
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | listed={{ ...dealDayParts(day.id, deals, today), storeCodes: STORE_CODES }} | listed={{ ...dealDayParts(day.id, deals, today) }}
  * @mutate src/prerender/seoData.ts | deals: dealList, dealParts: dealPartsTable(), dealLists | deals: dealList, dealLists
@@ -70,11 +70,14 @@ const sectionCount = (box: HTMLElement, sub: string) => {
   const n = box.querySelector(`[data-gift-deal-sub="${sub}"] [data-gift-section-count]`);
   return n ? Number(/\d+/.exec(n.textContent!)![0]) : 0;
 };
+/** The steals' category sections together (owner pop-up 11-24: "Toys & Kids (22)" and the rest). */
+const stealsCount = (box: HTMLElement) =>
+  [...box.querySelectorAll('[data-gift-deal-sub^="steals-"] [data-gift-section-count]')].reduce((n, x) => n + Number(/\d+/.exec(x.textContent!)![0]), 0);
 /** "61 right now: 19 top deals, 14 discount codes and 28 sales." or "9 top deals right now." -> the numbers it names. */
 const named = (a: string) => {
   const part = (re: RegExp) => Number(re.exec(a)?.[1] ?? 0);
-  const parts = { deals: part(/(\d+) top deals?\b/), codes: part(/(\d+) discount codes?\b/), sales: part(/(\d+) sales?\b/) };
-  const total = /^(\d+) right now: /.exec(a) ? Number(/^(\d+)/.exec(a)![1]) : parts.deals + parts.codes + parts.sales;
+  const parts = { deals: part(/(\d+) top deals?\b/), steals: part(/(\d+) steals?\b/), codes: part(/(\d+) discount codes?\b/), sales: part(/(\d+) sales?\b/) };
+  const total = /^(\d+) right now: /.exec(a) ? Number(/^(\d+)/.exec(a)![1]) : parts.deals + parts.steals + parts.codes + parts.sales;
   return { total, ...parts };
 };
 
@@ -97,13 +100,13 @@ describe("guide Q&A numbers agree with the page and the menu (train p 11-23)", (
         const qa = pageQa(container);
         const onPage = qa.find((x) => x.q === `What ${day.title} deals are on this page?`);
         expect(onPage, `${day.id} on ${ymd}: no "on this page" question`).toBeTruthy();
-        const page = { deals: sectionCount(container, "deals"), codes: sectionCount(container, "codes"), sales: sectionCount(container, "sales") };
+        const page = { deals: sectionCount(container, "deals"), steals: stealsCount(container), codes: sectionCount(container, "codes"), sales: sectionCount(container, "sales") };
         const menu = dealDayCount(day.id, DEALS as Deal[], ymd);
-        expect(page.deals + page.codes + page.sales, `${day.id} on ${ymd}: page vs menu`).toBe(menu);
+        expect(page.deals + page.steals + page.codes + page.sales, `${day.id} on ${ymd}: page vs menu`).toBe(menu);
         if (menu > 0) {
           const n = named(onPage!.a);
           expect(n, `${day.id} on ${ymd}: "${onPage!.a}"`).toEqual({ total: menu, ...page });
-          if ([page.deals, page.codes, page.sales].filter(Boolean).length > 1) partsNamed++;
+          if ([page.deals, page.steals, page.codes, page.sales].filter(Boolean).length > 1) partsNamed++;
           checked++;
         } else {
           expect(onPage!.a).toMatch(/have ended\.$/);

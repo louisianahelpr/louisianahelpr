@@ -1009,6 +1009,85 @@
    "ageMin": 6,
    "ageSource": "macys.com product page, read 2026-11-24: each doll on the collection page is listed Ages 6+",
    "list": "kids"
+  },
+  "go.shopmy.us/p-110125685": {
+   "name": "LEGO Sunflowers",
+   "gender": "everyone",
+   "ageMin": 8,
+   "ageSource": "target.com product page specs, read 2026-11-24: Suggested Age 8 Years and Up",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110125702": {
+   "name": "Monster Jam Smash and Bash Toy Vehicle Playset",
+   "gender": "everyone",
+   "ageMin": 3,
+   "ageSource": "target.com product page specs, read 2026-11-24: Suggested Age 3 Years and Up",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110125781": {
+   "name": "Hot Wheels Monster Trucks Mutant Chaos Truck, Car and Slime",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageSource": "target.com product page specs, read 2026-11-24: Suggested Age 4 Years and Up",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110125801": {
+   "name": "Hot Wheels Monster Trucks Mutant Chaos Loop Challenge Playset",
+   "gender": "everyone",
+   "ageMin": 5,
+   "ageSource": "target.com product page specs, read 2026-11-24: Suggested Age 5 Years and Up",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110125818": {
+   "name": "Frigidaire 6-Can Mini Fridge, Black",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110125837": {
+   "name": "LEGO Minecraft Woodland Mansion Fighting Ring",
+   "gender": "everyone",
+   "ageMin": 10,
+   "ageSource": "target.com product page specs, read 2026-11-24: Suggested Age 10 Years and Up",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110125353": {
+   "name": "Monster Jam Grave Digger Remote Control Truck",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageSource": "target.com product page specs, read 2026-11-24: Suggested Age 4 Years and Up",
+   "list": "kids"
+  },
+  "walmrt.us/4CpL44Q": {
+   "name": "Christmas Dumpling Advent Calendar",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4fSzHIL": {
+   "name": "Cute Farm Animal Dumpling Advent Calendar",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4jcx3OU": {
+   "name": "UUGEE Advent Calendar, 24 Pull-Back Cars",
+   "gender": "boys",
+   "genderSource": "walmart.com listing title says for Boys Kids; specs Gender: Male",
+   "ageMin": 1,
+   "ageMax": 3,
+   "ageSource": "walmart.com listing title, read 2026-11-24: Gifts for 1 2 3 Years Old Toddlers (specs: Age group Infant, Teen, Toddler)",
+   "list": "kids"
+  },
+  "walmrt.us/3V7qKEv": {
+   "name": "Monster Jam 1:64 Truck 4-Pack with 3 Mini Jams",
+   "gender": "everyone",
+   "ageMin": 3,
+   "ageMax": 13,
+   "ageSource": "walmart.com specs, read 2026-11-24: Age range 3 - 13 Years (title: for Kids 3 and up)",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110125767": {
+   "name": "Stanley Quencher H2.0 FlowState Tumbler, 30 oz, Frost",
+   "gender": "everyone",
+   "list": "kids"
   }
  }
 }

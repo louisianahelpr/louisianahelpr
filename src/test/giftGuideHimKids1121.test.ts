@@ -14,7 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { HIM_1121, HIM_POPULAR_1122, KIDS_POPULAR_1122, HIM_KEEPS_1123, KIDS_KEEPS_1123, HIM_LINKS_1123, HIM_WALMART_1123, KIDS_LINKS_1123, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_PLAY_1122, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
-import { KIDS_ADDS_1124 } from "../../scripts/giftGuideOwner1124.mjs";
+import { HIM_ADDS_1124, KIDS_ADDS_1124 } from "../../scripts/giftGuideOwner1124.mjs";
 import { AMAZON_BRAND_PHOTOS_1122, CUTOUT_BASE, cutoutPhoto } from "../../scripts/giftGuideCutouts1120.mjs";
 import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "../../scripts/giftGuidePriceRecheck.mjs";
@@ -148,14 +148,27 @@ const LINKS_1123: Record<string, Record<string, string>> = {
   kids: { ...sm(["109730393", "109730847", "109730984", "109731305", "109731598"], "store-maisonette"), ...sm(["109731941"], "store-burts-bees-baby") },
 };
 /**
+ * The Black Friday steals she ticked for the guides (owner 11-24 ~1:45 AM, ~/.lh-shots/steals-to-guides-1124.md; her
+ * Walmart links ~2:35 AM), copied from the links made that night (~/.lh-shots/later-switches-1124/steals-links.json), not
+ * from the module (scripts/giftGuideSteals1124.mjs): Him S1 (Macy's); Kids S19-S27 (Target via ShopMy, S21 the Stanley tumbler)
+ * and her 4 Walmart links.
+ */
+const STEALS_1124: Record<string, Record<string, string>> = {
+  him: sm(["110122396"], "store-macys"),
+  kids: {
+    ...sm(["110125767", "110125685", "110125702", "110125781", "110125801", "110125818", "110125837", "110125353"], "store-target"),
+    ...Object.fromEntries(["4CpL44Q", "4fSzHIL", "4jcx3OU", "3V7qKEv"].map((c) => [`https://walmrt.us/${c}`, "store-walmart"])),
+  },
+};
+/**
  * The owner's 11-24 changes (scripts/giftGuideOwner1124.mjs; owner ~1:10 AM "[if we have a] higher commission no need to
  * ask", ~2:05 / ~2:15 AM her Macy's screenshots), copied from the links made in her ShopMy and Later that night, not from
  * the module: Him's Columbia hat and fleece (Amazon 4% -> columbia.com through Later 8.4%; the fleece is the 2.0 version
  * columbia.com sells) and the Muck Arctic Pro (The Warming Store 8% -> muckbootcompany.com 16%); Kids' 7 Macy's adds (16%).
  */
 const SWITCHED_1124: Record<string, Record<string, string>> = {
-  him: { "https://mavely.app.link/rBTVe27Zj8b": "store-columbia", "https://mavely.app.link/LP97ij8Zj8b": "store-columbia", "https://go.shopmy.us/p-110119003": "store-muck-boot" },
-  kids: sm(["110119731", "110119881", "110119923", "110119952", "110119982", "110120034", "110120060"], "store-macys"),
+  him: { "https://mavely.app.link/rBTVe27Zj8b": "store-columbia", "https://mavely.app.link/LP97ij8Zj8b": "store-columbia", "https://go.shopmy.us/p-110119003": "store-muck-boot", ...STEALS_1124.him },
+  kids: { ...sm(["110119731", "110119881", "110119923", "110119952", "110119982", "110120034", "110120060"], "store-macys"), ...STEALS_1124.kids },
 };
 const SWITCHED_AWAY_1124 = ["B0FY9LPSCW", "B0076R6MN4", "p-107881822"];
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug], ...LOUISIANA_1122[slug], ...LINKS_1123[slug], ...SWITCHED_1124[slug] });
@@ -168,7 +181,7 @@ const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuideP
 const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})));
 
 describe.each([
-  ["him", [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123], him1121Picks() as Pick[]],
+  ["him", [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123, ...HIM_ADDS_1124], him1121Picks() as Pick[]],
   ["kids", [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_ADDS_1124], kids1121Picks() as Pick[]],
 ])("For %s is the owner's Amazon and ShopMy saves (11-21)", (slug, rows, built) => {
   const page = chunk(slug);
@@ -310,7 +323,7 @@ describe("the generator sets Him and Kids last", () => {
     const pages: Record<string, unknown[]> = { him: [{ name: "old" }], kids: [], her: [{ name: "keep" }] };
     const stores: Record<string, { name: string; hosts: string[] }> = { "store-dillards": { name: "Dillard's", hosts: ["www.dillards.com"] } };
     const out = applyHimKids1121(pages, stores);
-    expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length + HIM_POPULAR_1122.length + HIM_KEEPS_1123.length + HIM_LINKS_1123.length + HIM_WALMART_1123.length });
+    expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length + HIM_POPULAR_1122.length + HIM_KEEPS_1123.length + HIM_LINKS_1123.length + HIM_WALMART_1123.length + HIM_ADDS_1124.length });
     expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length + KIDS_POPULAR_1122.length + KIDS_KEEPS_1123.length + KIDS_LINKS_1123.length + KIDS_ADDS_1124.length);
     expect(pages.her).toEqual([{ name: "keep" }]);
     expect(stores["store-dillards"]).toEqual({ name: "Dillard's", hosts: ["go.shopmy.us", "www.dillards.com"] });

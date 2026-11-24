@@ -2,15 +2,15 @@
 export const GUIDE_UPDATED = {
   "her": {
     "day": "2026-11-24",
-    "hash": "9b34e9d5a70961e3"
+    "hash": "78a80122e703c397"
   },
   "him": {
     "day": "2026-11-24",
-    "hash": "765feee1f4eb42e2"
+    "hash": "ef7e60f3de726683"
   },
   "kids": {
     "day": "2026-11-24",
-    "hash": "decf970c36507891"
+    "hash": "74d02cfaa32a56ca"
   },
   "25-days-sponsors": {
     "day": "2026-11-23",

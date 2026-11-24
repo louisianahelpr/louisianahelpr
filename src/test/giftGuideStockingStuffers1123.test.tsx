@@ -13,8 +13,8 @@
  * @mutate scripts/giftGuideHer1121.mjs | ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_ADDS_1124]; | ...HER_POPULAR_1122, ...HER_LINKS_1123, ...HER_ADDS_1124];
  * @mutate scripts/giftGuideOwnerKeeps1123.mjs | 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms, 7 in., Tequila Sunrise" | 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms"
  * @mutate src/lib/guideQa.mjs |   const stocking = band("stocking-stuffers"); |   const stocking = band("under-25");
- * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123]) { | ...HIM_KEEPS_1123, ...HIM_WALMART_1123]) {
- * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123]) { | ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123]) {
+ * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123, ...HIM_ADDS_1124]) { | ...HIM_KEEPS_1123, ...HIM_WALMART_1123, ...HIM_ADDS_1124]) {
+ * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123, ...HIM_ADDS_1124]) { | ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_ADDS_1124]) {
  * @mutate scripts/giftGuideOwnerKeeps1123.mjs | ["https://walmrt.us/4j41V4c", 20, | ["https://walmrt.us/4j41V4c", 25,
  * @mutate scripts/giftGuideHimKids1121.mjs | ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_ADDS_1124]) { | ...KIDS_KEEPS_1123, ...KIDS_ADDS_1124]) {
  * @mutate scripts/giftGuideCutouts1120.mjs | for (const [from, file] of LINKS_CUTOUTS_1123) CUTOUTS_1120.set(from, file); | void LINKS_CUTOUTS_1123;

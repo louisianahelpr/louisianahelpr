@@ -1,6 +1,6 @@
 /**
- * OWNER 11-24 (Tue Nov 24, 2026, ~1:10-2:15 AM CT): higher-commission switches and her Macy's adds, For Her / For Him /
- * For Kids. Guard: src/test/giftGuideOwner1124.test.ts.
+ * OWNER 11-24 (Tue Nov 24, 2026, ~1:10-2:35 AM CT): higher-commission switches, her Macy's adds and the Black Friday
+ * steals she ticked (scripts/giftGuideSteals1124.mjs), For Her / For Him / For Kids. Guard: src/test/giftGuideOwner1124.test.ts.
  *
  * SWITCHES. She approved all 16 rows (2026-11-24) of the Desktop review page "Louisiana Helpr Tracker/reviews/later-switches-1124.html"
  * and set two standing rules: "[if we have a] higher commission no need to ask", and compare the SAME item across stores
@@ -20,6 +20,8 @@
  *   - Anker Nano Power Bank (Her, Him; Amazon 4%): anker.com sells it only in a bundle with a charger.
  *   - Sol de Janeiro Cheirosa Sol & Go mist set (Her; Amazon 10%): not on soldejaneiro.com or Ulta.
  */
+
+import { HER_STEALS_1124_ROWS, HIM_STEALS_1124_ROWS, KIDS_STEALS_1124_ROWS, STEALS_CUTOUTS_1124 } from "./giftGuideSteals1124.mjs";
 
 /** The Louisiana day these prices were read on the stores' own pages. */
 export const OWNER_1124_PRICE_AT = "2026-11-24";
@@ -115,8 +117,14 @@ export const KIDS_MACYS_1124_ROWS = [
 
 const macys = ([pin, price, image, name, brand, store, type, commission, line]) =>
   ({ name, brand, line, href: shopmy(`p-${pin}`), image, store, sortPrice: price, price, priceAt: OWNER_1124_PRICE_AT, commission, type });
-export const HER_ADDS_1124 = HER_MACYS_1124_ROWS.map(macys);
-export const KIDS_ADDS_1124 = KIDS_MACYS_1124_ROWS.map(macys);
+/** A steal row (scripts/giftGuideSteals1124.mjs) carries its whole link, since the steals go through ShopMy and Walmart. */
+const steal = ([href, price, image, name, brand, store, type, commission, line]) =>
+  ({ name, brand, line, href, image, store, sortPrice: price, price, priceAt: OWNER_1124_PRICE_AT, commission, type });
+/** Her Macy's adds, then the steals she ticked for the guide. */
+export const HER_ADDS_1124 = [...HER_MACYS_1124_ROWS.map(macys), ...HER_STEALS_1124_ROWS.map(steal)];
+/** The steals she ticked for Him (him1121Picks's last rows). */
+export const HIM_ADDS_1124 = HIM_STEALS_1124_ROWS.map(steal);
+export const KIDS_ADDS_1124 = [...KIDS_MACYS_1124_ROWS.map(macys), ...KIDS_STEALS_1124_ROWS.map(steal)];
 
 /** Store photos for the switches and adds, cut out (Apple Vision) into public/gift-guides/cutouts: photo URL -> file. */
 export const CUTOUTS_1124 = [
@@ -139,6 +147,7 @@ export const CUTOUTS_1124 = [
   ["https://slimages.macysassets.com/is/image/MCY/products/0/optimized/34225830_fpx.tif", "melissa-doug-beauty-kiosk-macys-805953.webp"],
   ["https://slimages.macysassets.com/is/image/MCY/products/0/optimized/38191070_fpx.tif", "vtech-learn-zoom-motorbike-macys-294df8.webp"],
   ["https://slimages.macysassets.com/is/image/MCY/products/8/optimized/40071418_fpx.tif", "barbie-holiday-2026-macys-b7519b.webp"],
+  ...STEALS_CUTOUTS_1124,
 ];
 
 /** Stores the 11-24 rows go to that the store list may not hold yet (key -> shown name). */

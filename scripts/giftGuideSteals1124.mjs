@@ -5,11 +5,14 @@
  * stock, photo, maker's age), and the best-paying link for it by the owner's all-factors store rule: Target toys through
  * ShopMy at 4% (Later's Target rate is by category: Toys 2.8%), Macy's through ShopMy 16%, her own Walmart links as she
  * sent them. Rows: [link, price, store photo, name, brand, store, type, commission %, line]. Names carry no model year.
- * Pulled into scripts/giftGuideOwner1124.mjs (HER_ADDS_1124 / KIDS_ADDS_1124). Guard: src/test/giftGuideOwner1124.test.ts.
+ * Pulled into scripts/giftGuideOwner1124.mjs (HER_ADDS_1124 / HIM_ADDS_1124 / KIDS_ADDS_1124). Guard: src/test/giftGuideOwner1124.test.ts.
  */
 
 /** For Kids. */
 export const KIDS_STEALS_1124_ROWS = [
+  // S21 Target (reg. $40, through Nov 28; also Rose Quartz). Store check 11-24 ~3:10 AM: stanley1913.com sells the same
+  // 30 oz H2.0 FlowState at $45 (its only $24 one is a July-4th fireworks print), so Target's $20 at ShopMy 4% wins.
+  ["https://go.shopmy.us/p-110125767", 20, "https://target.scene7.com/is/image/Target/GUEST_3fa007f1-e01f-45f0-b417-2596ef872a93", "Stanley Quencher H2.0 FlowState Tumbler, 30 oz, Frost", "Stanley", "store-target", "tumbler", 4, "A Stanley tumbler that keeps drinks cold all day."],
   // S19 Target (reg. $14.99, sale through Nov 28); LEGO's own site lists it at $14.99.
   ["https://go.shopmy.us/p-110125685", 8.99, "https://target.scene7.com/is/image/Target/GUEST_4d87f108-5489-4494-8fa1-e217b2f5b2ec", "LEGO Sunflowers", "LEGO", "store-target", "building-set", 4, "LEGO sunflowers that never need watering."],
   // S20 Target (reg. $29.99, through Nov 28).
@@ -32,8 +35,19 @@ export const KIDS_STEALS_1124_ROWS = [
   ["https://walmrt.us/4jcx3OU", 16.89, "https://i5.walmartimages.com/seo/UUGEE-2024-Christmas-Advent-Calendar-Boys-Kids-24-Days-Countdown-Calendar-Pull-Back-Cars-Toys-Set-24-Vehicles-Xmas-Surprise-Gifts-1-2-3-Years-Old-Tod_492e28fe-d787-4a63-9a78-0f73457b08bf.2903e563bf3a841cad4744e24bc94846.jpeg", "UUGEE Advent Calendar, 24 Pull-Back Cars", "UUGEE", "store-walmart", "advent-calendar", 6, "24 pull-back cars to open, one each day before Christmas."],
   ["https://walmrt.us/3V7qKEv", 15, "https://i5.walmartimages.com/seo/Monster-Jam-1-64-Truck-Collection-4-Pack-with-3-Bonus-Mini-Jams-Vehicles-for-Kids-3-and-up_5e70e26e-62fc-4d27-ac48-d6c0bbeb0a2e.8f9818984e305aa62898183ec2d08edb.jpeg", "Monster Jam 1:64 Truck 4-Pack with 3 Mini Jams", "Monster Jam", "store-walmart", "vehicle-toy", 6, "Four Monster Jam trucks plus three mini trucks to race."],
 ];
-/** For Her (filled in the next batch). */
-export const HER_STEALS_1124_ROWS = [];
+/** For Her. */
+export const HER_STEALS_1124_ROWS = [
+  // S7 Macy's ("ONLY $10, $29 value", a gift-set value; offer ends Dec 6), read on macys.com 2:35 AM, Add to Bag active.
+  // S21 Target (reg. $40, through Nov 28; also Rose Quartz). Store check 11-24 ~3:10 AM: stanley1913.com sells the same
+  // 30 oz H2.0 FlowState at $45 (its only $24 one is a July-4th fireworks print), so Target's $20 at ShopMy 4% wins.
+  ["https://go.shopmy.us/p-110125767", 20, "https://target.scene7.com/is/image/Target/GUEST_3fa007f1-e01f-45f0-b417-2596ef872a93", "Stanley Quencher H2.0 FlowState Tumbler, 30 oz, Frost", "Stanley", "store-target", "tumbler", 4, "A Stanley tumbler that keeps drinks cold all day."],
+  ["https://go.shopmy.us/p-110122551", 10, "https://slimages.macysassets.com/is/image/MCY/products/7/optimized/39005037_fpx.tif", "Clinique 2-Piece Merry Minis Gift Set", "Clinique", "store-macys", "makeup", 16, "A mini Black Honey lipstick and mascara, gift-boxed."],
+];
+/** For Him. */
+export const HIM_STEALS_1124_ROWS = [
+  // S1 Macy's exclusive (reg. $50, 80% off), read on macys.com 2:11 AM, Add to Bag active.
+  ["https://go.shopmy.us/p-110122396", 9.99, "https://slimages.macysassets.com/is/image/MCY/products/4/optimized/38043904_fpx.tif", "The Cellar Morgan Ceramic Plaid Mugs, Set of 2", "The Cellar", "store-macys", "mug", 16, "Two plaid mugs for cocoa by the tree."],
+];
 
 /** Store photos for the steals, cut out (Apple Vision) into public/gift-guides/cutouts: photo URL -> file. */
 export const STEALS_CUTOUTS_1124 = [
@@ -48,4 +62,7 @@ export const STEALS_CUTOUTS_1124 = [
   ["https://i5.walmartimages.com/seo/Cute-Farm-Animal-Dumpling-Advent-Calendar-24-Days-Christmas-Countdown-Ornament-Gift-for-Kids-Teens-Holiday-Tree-Decor_26079486-b2a9-431b-927a-7b2e8d268d0d.7c2740f8708f1d701d8f7d5534c608be.jpeg", "farm-animal-dumpling-advent-calendar-walmart-727c1f.webp"],
   ["https://i5.walmartimages.com/seo/UUGEE-2024-Christmas-Advent-Calendar-Boys-Kids-24-Days-Countdown-Calendar-Pull-Back-Cars-Toys-Set-24-Vehicles-Xmas-Surprise-Gifts-1-2-3-Years-Old-Tod_492e28fe-d787-4a63-9a78-0f73457b08bf.2903e563bf3a841cad4744e24bc94846.jpeg", "uugee-advent-calendar-pull-back-cars-walmart-e48a48.webp"],
   ["https://i5.walmartimages.com/seo/Monster-Jam-1-64-Truck-Collection-4-Pack-with-3-Bonus-Mini-Jams-Vehicles-for-Kids-3-and-up_5e70e26e-62fc-4d27-ac48-d6c0bbeb0a2e.8f9818984e305aa62898183ec2d08edb.jpeg", "monster-jam-164-4-pack-mini-jams-walmart-c6e25c.webp"],
+  ["https://slimages.macysassets.com/is/image/MCY/products/7/optimized/39005037_fpx.tif", "clinique-merry-minis-macys-f8ee8e.webp"],
+  ["https://target.scene7.com/is/image/Target/GUEST_3fa007f1-e01f-45f0-b417-2596ef872a93", "stanley-quencher-30oz-frost-target-827cc1.webp"],
+  ["https://slimages.macysassets.com/is/image/MCY/products/4/optimized/38043904_fpx.tif", "cellar-morgan-plaid-mugs-macys-6d5a78.webp"],
 ];

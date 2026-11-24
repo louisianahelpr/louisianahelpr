@@ -31,7 +31,7 @@ function setup() {
         <Route
           path="*"
           element={
-            <PageTransition>
+            <PageTransition pageKey="page">
               <div data-testid="page">
                 <Where />
               </div>

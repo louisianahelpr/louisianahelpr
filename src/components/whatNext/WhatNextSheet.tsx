@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { DialogAcknowledgeAction } from "@/components/ui/dialog";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 
 /** One row of the "What happens next" list. `done` = already happened, `now` = the step
  *  the member is waiting on (one per sheet), `later` = still to come. */
@@ -51,6 +52,8 @@ export function WhatNextSheet({
   onCloseAutoFocus?: (event: Event) => void;
 }) {
   const webDesktop = useIsWebDesktop();
+  // C2 (flow audit 11-23): phone Back / swipe-back closes this overlay, not the page under it.
+  useCloseOnBack(open, onClose);
   return (
     <Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <SheetContent

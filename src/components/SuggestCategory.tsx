@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFeature } from "@/hooks/useFeature";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 import {
   SUGGESTION_MAX,
   suggestCategory,
@@ -40,6 +41,8 @@ export function SuggestCategory({ area }: { area: SuggestionArea }) {
   const [text, setText] = useState("");
   const [touched, setTouched] = useState(false);
   const [sending, setSending] = useState(false);
+  // C2 (flow audit 11-23): phone Back / swipe-back closes this overlay, not the page under it.
+  useCloseOnBack(open, () => { if (!sending) setOpen(false); });
   if (!on) return null;
 
   const problem = suggestionProblem(text);

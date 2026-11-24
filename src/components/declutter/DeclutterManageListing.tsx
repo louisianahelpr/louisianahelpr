@@ -14,6 +14,7 @@
  */
 import { Link } from "react-router-dom";
 import { useState, type ReactNode } from "react";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -123,6 +124,8 @@ export function ManageListingSheet({
 }) {
   const [view, setView] = useState<View>(startOn);
   const close = () => onOpenChange(false);
+  // C2 (flow audit 11-23): phone Back / swipe-back closes this overlay, not the page under it.
+  useCloseOnBack(open, () => { onOpenChange(false); setView(startOn); });
   const state = useManageState(item.id, open);
   // Before migration 20261020064354 reaches prod only "take it down" works (withdraw).
   const deployed = state.data !== "not_deployed";

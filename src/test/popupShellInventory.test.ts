@@ -361,6 +361,9 @@ describe("one footer convention", () => {
    * here.
    */
   const FOOTERLESS_BY_DESIGN: Record<string, string> = {
+    // Audit 1122 #137: the Declutter order chat is a chat, not a form: the message box and its Send stay pinned at the
+    // bottom (on screen at 375), like Messages' own thread.
+    "src/components/declutter/DeclutterOrderTalk.tsx": "an order chat: the pinned message box with its Send is the action row; the sheet's X is the exit",
     "src/components/declutter/DeclutterFreeClaim.tsx": "How free items work: words only, nothing to act on; the sheet's X is the exit (FreeAskSheet, the ask itself, has its footer)",
     "src/pages/jobs/jobPage/JobPageActionRow.tsx": "More options: a menu, each row acts and closes; the sheet's X is the exit",
     // Gift guides 11-23: the "shop similar" panel is a read-only list of similar gifts (each row is its own link and heart),

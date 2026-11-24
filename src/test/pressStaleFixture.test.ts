@@ -70,9 +70,12 @@ describe("a stale notification for another sweep's fixture, answered truthfully"
     expect(harness.isForeignFixtureGoneRefusal({ toast: "Couldn't load this job. Check your connection and try again.", chain })).toBe(false);
   });
 
-  it("the excused copy is exactly what QuickApplyHandler prints when both reads found no row", () => {
+  it("QuickApplyHandler no longer prints the excused copy: a job not in Browse opens its own page (deep audit 11-22 #32)", () => {
+    // The excuse stays for builds still in people's hands; the current handler hands the link to /jobs/<id>, which
+    // says itself whether the job is gone, so no "can't open" toast is left to excuse.
     const src = blankComments(read("src/pages/home/QuickApplyHandler.tsx"));
-    expect(src).toContain(`failWith("${harness.NOT_VISIBLE_JOB_TOAST}")`);
+    expect(src).not.toContain(harness.NOT_VISIBLE_JOB_TOAST);
+    expect(src).toContain("navigate(`/jobs/${encodeURIComponent(quickApplyId)}`, { replace: true });");
   });
 
   it("the harness applies it to error toasts and lists every excuse", () => {

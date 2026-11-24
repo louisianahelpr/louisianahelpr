@@ -24,7 +24,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PUB = os.path.join(ROOT, "public")
-ROWS = json.load(open(os.path.join(ROOT, "scripts", "gift-guide-monster-jam-1124.json"), encoding="utf8"))["rows"]
+ROWS = json.load(open(os.path.join(ROOT, "scripts", "gift-guide-themes", "monster-jam.json"), encoding="utf8"))["rows"]
 MANIFEST = os.path.join(ROOT, "scripts", "gift-guide-monster-jam-collage-1124.json")
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/Desktop/Louisiana Helpr Work/Social and Pinterest/Monster-Jam-guide-1124")
 GEN = next((d for d in [os.environ.get("GIFT_COVER_GEN") or "", os.path.expanduser("~/Desktop/Pin-cover-generator"),
@@ -39,7 +39,7 @@ W, H = 1080 * S, 1350 * S
 RED = ((168, 36, 42), (222, 150, 148), (250, 247, 239))
 ACC = (158, 59, 59)
 STORE_NAMES = {"store-walmart": "Walmart", "store-target": "Target", "store-kohls": "Kohl's", "store-macys": "Macy's",
-               "store-maisonette": "Maisonette", "store-wayfair": "Wayfair", "store-dsw": "DSW"}
+               "store-maisonette": "Maisonette", "store-wayfair": "Wayfair", "store-dsw": "DSW", "store-tj-maxx": "TJ Maxx"}
 MAX_PER_PICTURE = 9
 COLS = 3
 
@@ -190,7 +190,7 @@ def picture(rows, n, total):
             d.line([(wx + wl, py2 + 29 * S), (wx + ww, py2 + 29 * S)], fill=(120, 108, 96), width=2 * S)
         else:
             d.text((x0 + cw / 2, py2 + 26 * S), price, font=pf, fill=ACC, anchor="mm")
-        store = STORE_NAMES[r["store"]].upper()
+        store = STORE_NAMES.get(r["store"], r["store"].removeprefix("store-").replace("-", " ")).upper()
         tracked_w = sum(sf.getlength(c) for c in store) + 2 * S * (len(store) - 1)
         sx = x0 + cw / 2 - tracked_w / 2
         for c in store:

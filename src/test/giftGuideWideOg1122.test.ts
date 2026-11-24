@@ -16,6 +16,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { WIDE_OG_VERSIONS } from "@/lib/giftGuideWideOg.mjs";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
+import { THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
 
 const ORIGIN = "https://www.louisianahelpr.com";
 const DIR = "public/gift-guides/og-wide";
@@ -44,7 +45,7 @@ const PAGES: [string, string][] = [
   ["_og=page&_id=gift-guides/her", "her"],
   ["_og=page&_id=gift-guides/him", "him"],
   ["_og=page&_id=gift-guides/kids", "kids"],
-  ["_og=page&_id=gift-guides/monster-jam", "monster-jam"],
+  ...THEME_GUIDES_1124.map((s): [string, string] => [`_og=page&_id=gift-guides/${s}`, s]),
   ["_og=page&_id=gift-guides/25-days-sponsors", "25-days-sponsors"],
   ["_og=page&_id=gift-guides/black-friday", "black-friday"],
   ["_og=page&_id=gift-guides/cyber-monday", "cyber-monday"],

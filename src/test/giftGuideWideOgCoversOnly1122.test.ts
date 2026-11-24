@@ -12,7 +12,7 @@
  *     gingham to within 48 per channel (measured 2026-11-22: 0 pixels off, worst 12), and each of her/him/kids has
  *     thousands of pixels off it (measured 36,447..41,214: its cover's six cutouts).
  *
- * @mutate scripts/gift-guide-wide-og.py | COVER_KEYS = ("her", "him", "kids", "monster-jam") | COVER_KEYS = ("her", "him", "kids", "monster-jam", "black-friday")
+ * @mutate scripts/gift-guide-wide-og.py | COVER_KEYS = ("her", "him", "kids", | COVER_KEYS = ("her", "him", "kids", "black-friday",
  * @mutate scripts/gift-guide-wide-og.py |     "gift-tags": ("/gift-guides/printables/gift-tags", "red", "free printables", "Gift Tags"), |     "gift-tags": ("/gift-guides/printables/gift-tags", "red", "free printables", "Gift Tags", lambda: [Image.open("public/printables/tags/a.webp")]),
  * @mutate scripts/gift-guide-wide-og.py |         photos = manifest_photos(key) if key in COVER_KEYS else [] |         photos = manifest_photos("her")
  */
@@ -21,11 +21,12 @@ import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { WIDE_OG_VERSIONS } from "@/lib/giftGuideWideOg.mjs";
 import { blankHashComments } from "./helpers/blankNonCode";
+import { THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
 
 const SCRIPT = "scripts/gift-guide-wide-og.py";
 const DIR = "public/gift-guides/og-wide";
-// Owner 2026-11-24: the Monster Jam gift guide's card carries its cover's six gifts too, like Her, Him and Kids.
-const COVERS = ["her", "him", "kids", "monster-jam"];
+// Owner 2026-11-24: each themed kids guide's card (Monster Jam, Bluey ...) carries its cover's six gifts too, like Her, Him and Kids.
+const COVERS = ["her", "him", "kids", ...THEME_GUIDES_1124];
 
 /** The generator's own gingham families (FAMILY in the script): base, stripe, crossing. */
 const CREAM: [number, number, number] = [250, 247, 239];

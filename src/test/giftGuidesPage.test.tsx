@@ -73,7 +73,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |           <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>\n        </div> |           <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>\n          <p className="gg-arch-foot">Louisiana Helpr</p>\n        </div>
  * @mutate src/content/giftGuideCodes.json | {"rank":1,"store":"Muck Boot","code":"TAKE25", | {"rank":8,"store":"Muck Boot US","code":"TAKE25",
  */
-import { isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { THEME_GUIDES_1124, THEME_GUIDE_NAMES_1124, isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { readFileSync, existsSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -353,7 +353,7 @@ describe("gift guides: the landing opens to the guides", () => {
     // Lead 11-21 landing polish: each landing tile says "Her · 36 gifts" (the count of its list, no chunk loaded).
     const lines = [...container.querySelectorAll("[data-gift-live-guides] [data-gift-tile-name]")].map((n) => n.textContent);
     // The counts are each list's own (owner 11-21: Him and Kids grow to every one of her saves).
-    expect(lines).toEqual([...["her", "him", "kids"].map((s) => `${s[0].toUpperCase()}${s.slice(1)} · , ${CHUNK_PICK_COUNTS[s]} gifts`), `Monster Jam Gift Guide · , ${CHUNK_PICK_COUNTS["monster-jam"]} gifts`]);
+    expect(lines).toEqual([...["her", "him", "kids"].map((s) => `${s[0].toUpperCase()}${s.slice(1)} · , ${CHUNK_PICK_COUNTS[s]} gifts`), ...THEME_GUIDES_1124.map((s) => `${THEME_GUIDE_NAMES_1124[s]} Gift Guide · , ${CHUNK_PICK_COUNTS[s]} gifts`)]);
     expect(CHUNK_PICK_COUNTS.him).toBeGreaterThan(100);
     cleanup();
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title. The landing's tiles (checked above) are the
@@ -452,7 +452,7 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(container.querySelectorAll("[data-gift-sidebar] details, [data-gift-sidebar] summary").length).toBe(0);
     const guides = [...container.querySelectorAll("[data-gift-side-guides] a")];
     // Guide consistency audit 1122 #19: My Wish List closes the group, as in the phone's menu sheet (no dot).
-    expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", "/gift-guides/monster-jam", "/gift-guides/my-list"]);
+    expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", ...THEME_GUIDES_1124.map((s) => `/gift-guides/${s}`), "/gift-guides/my-list"]);
     // Owner 2026-11-24: Monster Jam sits after Kids, green like its cover ("the green cover with the 6 images").
     expect(guides.slice(1, 5).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(["oat", "green", "red", "green"]);
     expect(guides.slice(1, 5).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(["gg-dot gg-oat", "gg-dot gg-green", "gg-dot gg-red", "gg-dot gg-green"]);

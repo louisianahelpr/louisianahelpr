@@ -3,7 +3,7 @@
  * facebook"; she chose a site page AND a ready-to-post Facebook picture collage, "with every item we can find").
  *
  *  - the data: the page's chunk (src/content/giftGuidePicks/monster-jam.json) is exactly the rows file's picks
- *    (scripts/gift-guide-monster-jam-1124.json via scripts/giftGuideMonsterJam1124.mjs), every row with a price, a
+ *    (scripts/gift-guide-themes/monster-jam.json via scripts/giftGuideMonsterJam1124.mjs), every row with a price, a
  *    price day, a photo and a known store, and none of the rows the research marked out of stock;
  *  - the page: /gift-guides/monster-jam renders "Monster Jam Gift Guide" with one row per pick, its groups as band
  *    sections in the rows' order, every section open on arrival, and no "shop similar" link even on a pick that has one;
@@ -12,10 +12,10 @@
  *  - the collage: no Amazon item on any picture (Facebook rule), checked two-way against the manifest the collage
  *    script writes (scripts/gift-guide-monster-jam-collage-1124.json).
  *
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE \|\| guide.slug === MONSTER_JAM_PAGE; |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE;
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | guide={guide.slug} similar={guide.slug !== MONSTER_JAM_PAGE} /> | guide={guide.slug} />
- * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "monster-jam", | export const LIVE_GUIDES_1121 = ["her", "him", "kids",
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   { slug: "monster-jam", dot: "green", label: "Monster Jam" }, |   // no Monster Jam row
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE \|\| isThemeGuide(guide.slug); |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE;
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | guide={guide.slug} similar={!isThemeGuide(guide.slug)} /> | guide={guide.slug} />
+ * @mutate src/content/giftGuideLive.mjs | export const THEME_GUIDE_NAMES_1124 = { "monster-jam": "Monster Jam" | export const THEME_GUIDE_NAMES_1124 = { "monster-jam-off": "Monster Jam"
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   ...Object.entries(THEME_GUIDE_NAMES_1124).map(([slug, label]) => ({ slug, dot: "green" as const, label })), |   // no theme rows
  * @mutate scripts/giftGuideMonsterJam1124.mjs | export const collageRows1124 = (rows = MONSTER_JAM_ROWS_1124) => rows.filter((r) => !isAmazonRow(r)); | export const collageRows1124 = (rows = MONSTER_JAM_ROWS_1124) => rows;
  * @mutate src/lib/giftGuidePageMeta.mjs |     ogTitle: /gift guide$/i.test(name) ? `${name} 2026` : `${name}: holiday gift guide 2026`, |     ogTitle: `${name}: holiday gift guide 2026`,
  * @mutate api/share.ts |   "gift-guides/monster-jam": "monster-jam", |   "gift-guides/monster-jam-off": "monster-jam",
@@ -32,11 +32,11 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 
 import { MONSTER_JAM_GUIDE, MONSTER_JAM_ROWS_1124, collageRows1124, isAmazonRow, monsterJamPicks1124 } from "../../scripts/giftGuideMonsterJam1124.mjs";
 
-const ROWS_FILE = JSON.parse(readFileSync("scripts/gift-guide-monster-jam-1124.json", "utf8")) as { rows: { id: string; href: string }[]; skipped: { id: string; why: string[] }[] };
+const ROWS_FILE = JSON.parse(readFileSync("scripts/gift-guide-themes/monster-jam.json", "utf8")) as { rows: { id: string; href: string }[]; skipped: { id: string; why: string[] }[] };
 const FIRST = MONSTER_JAM_ROWS_1124[0];
 // One Monster Jam pick gets an approved "shop similar" here, so the page has one to leave out.
 vi.mock("@/content/giftGuideDupes.json", async () => {
-  const rows = JSON.parse((await import("node:fs")).readFileSync("scripts/gift-guide-monster-jam-1124.json", "utf8")).rows;
+  const rows = JSON.parse((await import("node:fs")).readFileSync("scripts/gift-guide-themes/monster-jam.json", "utf8")).rows;
   return { default: { dupes: [{ for: { href: rows[0].href }, guide: "kids", original: rows[0].name, dupes: [{ name: "A lookalike truck", price: 5, priceAt: "2026-11-24", href: "https://www.amazon.com/dp/B000000000?tag=louisianahelpr-20", kind: "similar" }] }] } };
 });
 

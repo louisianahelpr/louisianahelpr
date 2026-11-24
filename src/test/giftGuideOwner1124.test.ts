@@ -102,7 +102,7 @@ const STEALS: [string, string, string, number, number, string][] = [
   ["kids", sm("110125818"), "store-target", 4, 19.99, "Frigidaire 6-Can Mini Fridge, Black"],
   ["kids", sm("110125837"), "store-target", 4, 24.99, "LEGO Minecraft Woodland Mansion Fighting Ring"],
   ["kids", sm("110125353"), "store-target", 4, 24.99, "Monster Jam Grave Digger Remote Control Truck"],
-  ["kids", wm("4CpL44Q"), "store-walmart", 6, 9.88, "Christmas Dumpling Advent Calendar"],
+  ["kids", wm("4CpL44Q"), "store-walmart", 6, 13.97, "Christmas Dumpling Advent Calendar"],
   ["kids", wm("4fSzHIL"), "store-walmart", 6, 12.61, "Cute Farm Animal Dumpling Advent Calendar"],
   ["kids", wm("4jcx3OU"), "store-walmart", 6, 16.89, "UUGEE Advent Calendar, 24 Pull-Back Cars"],
   ["kids", wm("3V7qKEv"), "store-walmart", 6, 15, "Monster Jam 1:64 Truck 4-Pack with 3 Mini Jams"],

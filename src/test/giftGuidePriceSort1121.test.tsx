@@ -288,7 +288,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // and the Bluey pajamas (stocking stuffers), the Monster Jam playset and 4-pack, both Mutant Chaos sets, the Bluey figure
       // 4-pack and the Spider-Man fishing kit (Under $25), the air hockey game, the Grave Digger RC and the Speedway ($25 to $50); 11-24 later the Yoto Bluey bundle ($100 and up).
       // 11-24 Minecraft import: the Woodland Mansion ($24.99, read ~$25) moves to Minecraft, so $25 to $50 -1.
-      kids: { "Stocking stuffers under $10": 8, "Under $25": 67, "$25 to $50": 38, "$50 to $75": 11, "$75 to $100": 9, "$100 and up": 26 },
+      // Kids BF sweep 11-24 (Amazon re-reads, scripts/giftGuideAmazonPrices1124.mjs): the Stomp Rocket ($24.99, shown ~$25)
+      // moves Under $25 -> $25 to $50 and the PAW Patrol Megasaurus ($83 -> $49.99, shown ~$50) $75 to $100 -> $50 to $75.
+      kids: { "Stocking stuffers under $10": 8, "Under $25": 66, "$25 to $50": 39, "$50 to $75": 12, "$75 to $100": 8, "$100 and up": 26 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

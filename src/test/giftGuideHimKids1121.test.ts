@@ -19,6 +19,7 @@ import { kidsThemeMovesLive1124 } from "../../scripts/giftGuideThemes1124.mjs";
 import { AMAZON_BRAND_PHOTOS_1122, CUTOUT_BASE, cutoutPhoto } from "../../scripts/giftGuideCutouts1120.mjs";
 import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "../../scripts/giftGuidePriceRecheck.mjs";
+import { AMAZON_PRICES_AT_1124, amazonPrice1124 } from "../../scripts/giftGuideAmazonPrices1124.mjs";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image: string; store: string; type?: string; price?: unknown; priceAt?: unknown; sortPrice?: unknown; rels?: string[] };
@@ -230,13 +231,15 @@ describe.each([
       expect(p.href).toMatch(/^https:\/\/www\.amazon\.com\/dp\/[A-Z0-9]{10}\?tag=louisianahelpr-20$/);
       expectAmazonPickPhoto(p);
       expect(p.store).toBe("store-amazon");
-      expect(p.price, p.name).toBe(captured.get(p.href));
+      // Kids Black Friday sweep 11-24: a price re-read on Amazon that changed replaces the captured one, dated that day.
+      const reread = amazonPrice1124(p.href);
+      expect(p.price, p.name).toBe(reread ?? captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
       // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day and the Dad fill-in book (owner
       // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) and the GE Opal Mini (builder-guide-him, 2026-11-22) were priced 11-22.
       // The owner's 11-23 keeps (scripts/giftGuideOwnerKeeps1123.mjs) were priced 11-23.
       const day = keeps.has(p.href) ? "2026-11-23" : p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) || louisianaAmazon.has(p.href) || linkFix.has(p.href) ? "2026-11-22" : "2026-11-21";
-      expect(p.priceAt, p.name).toBe(recheckedPriceAt(p.href, p.price, day));
+      expect(p.priceAt, p.name).toBe(reread !== undefined ? AMAZON_PRICES_AT_1124 : recheckedPriceAt(p.href, p.price, day));
       // The unbuyable links never come back.
       for (const gone of Object.keys(LINK_FIXES_1122)) expect(p.href.includes(gone), `${p.name}: ${gone}`).toBe(false);
     }
@@ -259,11 +262,13 @@ describe.each([
   });
 
   it("is cheapest first", () => {
-    const sorted = [...rows].sort((a, b) => a.sortPrice - b.sortPrice);
+    // Kids BF sweep 11-24: an Amazon price re-read that day ranks at the re-read price.
+    const at = (r: { href: string; sortPrice: number }) => amazonPrice1124(r.href) ?? r.sortPrice;
+    const sorted = [...rows].sort((a, b) => at(a) - at(b));
     // Owner 2026-11-22 ("put the ducks designs together ..."): only ties may move, a same-brand same-design row next to
     // its group (src/test/giftGuideSameDesignTogether1122.test.ts); the prices in order and the rows are exactly these.
-    const price = new Map(rows.map((r) => [r.href, r.sortPrice]));
-    expect(page.map((p) => price.get(p.href))).toEqual(sorted.map((r) => r.sortPrice));
+    const price = new Map(rows.map((r) => [r.href, at(r)]));
+    expect(page.map((p) => price.get(p.href))).toEqual(sorted.map((r) => at(r)));
     expect([...page.map((p) => p.href)].sort()).toEqual([...(sorted as unknown as Pick[]).map((r) => r.href)].sort());
   });
 

@@ -27,6 +27,7 @@ import { AMAZON_BRAND_PHOTOS_1122, cutoutPhoto } from "./giftGuideCutouts1120.mj
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 import { ADDS_STORES_1122, HIM_ADDS_1122, KIDS_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
+import { AMAZON_PRICES_AT_1124, amazonPrice1124 } from "./giftGuideAmazonPrices1124.mjs";
 import { HIM_KEEPS_1123_ROWS, HIM_LINKS_1123_ROWS, HIM_WALMART_1123_ROWS, KEEPS_PRICE_AT, KIDS_KEEPS_1123_ROWS, KIDS_LINKS_1123_ROWS } from "./giftGuideOwnerKeeps1123.mjs";
 import { HIM_ADDS_1124, KIDS_ADDS_1124, STORES_1124, rateSwitch1124 } from "./giftGuideOwner1124.mjs";
 import { kidsThemeMovesLive1124 } from "./giftGuideThemes1124.mjs";
@@ -465,14 +466,20 @@ export const KIDS_LINKS_1123 = KIDS_LINKS_1123_ROWS.map(shop).map((r) => ({ ...r
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
+/** Amazon prices re-read 11-24 (scripts/giftGuideAmazonPrices1124.mjs) replace the saved-list price before ranking. */
+const withReread1124 = (r) => {
+  const reread = isAmazon(r) ? amazonPrice1124(r.href) : undefined;
+  return reread === undefined ? r : { ...r, sortPrice: reread, reread1124: true };
+};
+
 const build = (rows, slug, g) =>
-  rankByPrice(rows).map(({ row: r, priceRank }) => {
-    const { sortPrice: _sp, price, ...rest } = r;
+  rankByPrice(rows.map(withReread1124)).map(({ row: r, priceRank }) => {
+    const { sortPrice: _sp, price, reread1124, ...rest } = r;
     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug, priceRank };
     // AMAZON PRICES ON (owner 2026-11-21 ~12:05 PM: "each item also needs a price"; she chose "Show Amazon prices
     // anyway" after the Associates warning): an Amazon pick shows the price captured from her saved list (sortPrice).
     const shown = isAmazon(r) ? r.sortPrice : price;
-    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: recheckedPriceAt(r.href, shown, r.priceAt ?? HIM_KIDS_PRICE_AT) });
+    if (typeof shown === "number" && shown > 0) Object.assign(p, { price: shown, priceAt: reread1124 ? AMAZON_PRICES_AT_1124 : recheckedPriceAt(r.href, shown, r.priceAt ?? HIM_KIDS_PRICE_AT) });
     return { ...p, rels: g ? relsOf(g, p) : [] };
   });
 

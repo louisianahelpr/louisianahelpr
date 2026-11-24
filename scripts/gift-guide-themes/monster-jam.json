@@ -1672,7 +1672,7 @@
    "href": "https://www.amazon.com/dp/B0CSVG8RNX?tag=louisianahelpr-20",
    "image": "https://m.media-amazon.com/images/I/71Yz+B0BQsL._AC_SL1000_.jpg",
    "store": "store-amazon",
-   "price": 24.93,
+   "price": 24.99,
    "priceAt": "2026-11-24",
    "section": "Room, party and Christmas",
    "sectionId": "mj-room-party-and-christmas",
@@ -1926,12 +1926,13 @@
    "href": "https://walmrt.us/4tnY5YA",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-monster-trucks-snake-slam-takedown-playset-walmart-f8f4a1.webp",
    "store": "store-walmart",
-   "price": 15.99,
+   "price": 12.99,
    "priceAt": "2026-11-24",
    "section": "Monster truck extras (Hot Wheels)",
    "sectionId": "mj-monster-truck-extras-hot-wheels",
    "commission": 6,
-   "age": "4+"
+   "age": "4+",
+   "was": 15.99
   },
   {
    "id": "MJ97",

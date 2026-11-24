@@ -8,7 +8,7 @@
  *  - the committed page shows the entry's day on every pick with that link, and so does what the builders build;
  *  - a re-check at a different price, or an older day, never moves a date.
  * @mutate scripts/giftGuidePriceRecheck.mjs | "https://go.shopmy.us/p-109205223": { price: 148, | "https://go.shopmy.us/p-109205223": { price: 149,
- * @mutate scripts/giftGuideHimKids1121.mjs | priceAt: recheckedPriceAt(r.href, shown, r.priceAt ?? HIM_KIDS_PRICE_AT) | priceAt: r.priceAt ?? HIM_KIDS_PRICE_AT
+ * @mutate scripts/giftGuideHimKids1121.mjs | : recheckedPriceAt(r.href, shown, r.priceAt ?? HIM_KIDS_PRICE_AT) }); | : r.priceAt ?? HIM_KIDS_PRICE_AT });
  * @mutate scripts/giftGuidePriceRecheck.mjs | if (!r \|\| r.price !== price \|\| | if (!r \|\|
  */
 import { readFileSync } from "node:fs";

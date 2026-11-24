@@ -35,6 +35,7 @@ import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
 import { PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { verifiedPrice } from "../../scripts/giftGuidePrice.mjs";
 import { PRICE_RECHECKS } from "../../scripts/giftGuidePriceRecheck.mjs";
+import { AMAZON_PRICES_AT_1124, amazonPrice1124 } from "../../scripts/giftGuideAmazonPrices1124.mjs";
 import { HIM_KEEPS_1123, KIDS_KEEPS_1123, HIM_LINKS_1123, HIM_WALMART_1123, KIDS_LINKS_1123 } from "../../scripts/giftGuideHimKids1121.mjs";
 import { HER_KEEPS_1123, HER_LINKS_1123 } from "../../scripts/giftGuideHer1121.mjs";
 import { KEEPS_PRICE_AT } from "../../scripts/giftGuideOwnerKeeps1123.mjs";
@@ -120,7 +121,9 @@ describe("gift-guide prices: the generated chunks", () => {
       // Macy's adds and her steals, scripts/giftGuideOwner1124.mjs; her Amazon beauty picks, scripts/giftGuideAmazonBeauty1124.mjs), or
       // the day a daily re-check read this link at this exact price (scripts/giftGuidePriceRecheck.mjs).
       const rechecked = (p: { href: string; price?: number; priceAt?: string }) => PRICE_RECHECKS[p.href]?.price === p.price && PRICE_RECHECKS[p.href]?.priceAt === p.priceAt;
-      expect(CHUNKS[slug].filter((p) => !(typeof p.price === "number" && p.price > 0 && (p.priceAt === "2026-11-21" || p.priceAt === "2026-11-22" || (p.priceAt === KEEPS_PRICE_AT && KEEP_HREFS.has(p.href)) || (p.priceAt === OWNER_1124_PRICE_AT && OWNER_1124_HREFS.has(p.href)) || rechecked(p)))).map((p) => p.name), slug).toEqual([]);
+      // Kids Black Friday sweep 11-24: an Amazon price re-read that day (scripts/giftGuideAmazonPrices1124.mjs), dated that day.
+      const reread = (p: { href: string; price?: number; priceAt?: string }) => amazonPrice1124(p.href) === p.price && p.priceAt === AMAZON_PRICES_AT_1124;
+      expect(CHUNKS[slug].filter((p) => !(typeof p.price === "number" && p.price > 0 && (p.priceAt === "2026-11-21" || p.priceAt === "2026-11-22" || (p.priceAt === KEEPS_PRICE_AT && KEEP_HREFS.has(p.href)) || (p.priceAt === OWNER_1124_PRICE_AT && OWNER_1124_HREFS.has(p.href)) || rechecked(p) || reread(p)))).map((p) => p.name), slug).toEqual([]);
     }
     expect(amazonPriced).toBeGreaterThan(90);
     expect(AMAZON_BEAUTY_1124_PRICE_AT).toBe(OWNER_1124_PRICE_AT);

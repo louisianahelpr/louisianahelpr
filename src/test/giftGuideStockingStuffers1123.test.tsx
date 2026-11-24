@@ -21,6 +21,7 @@
  * @mutate scripts/giftGuideOwnerKeeps1123.mjs | ["B09X55PDB7", 23, "51q7YVnVwnL" | ["B09X55PDB7", 25, "51q7YVnVwnL"
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AMAZON_PRICES_AT_1124, amazonPrice1124 } from "../../scripts/giftGuideAmazonPrices1124.mjs";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
@@ -125,7 +126,8 @@ describe("the owner's 11-23 Amazon keeps are on their guides", () => {
         expect(rows.length, a).toBe(1);
         expect(rows[0].href).toBe(`https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`);
         expect(rows[0].price).toBeGreaterThan(0);
-        expect(rows[0].priceAt).toBe("2026-11-23");
+        // Kids Black Friday sweep 11-24: a keep whose Amazon price changed shows the re-read price, dated that day.
+        expect(rows[0].priceAt).toBe(amazonPrice1124(rows[0].href) !== undefined ? AMAZON_PRICES_AT_1124 : "2026-11-23");
         expect(rows[0].image).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\/[^/]+\._SL500_\.jpg$/);
       }
     });

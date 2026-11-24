@@ -60,6 +60,8 @@ export const SOURCE_EXEMPT: Record<string, string> = {
     "The gift-guide importer writes our own hosted Sam's Club card photos (public/gift-guides/memberships/*.jpg) into the picks as https image URLs; it never requests the site.",
   "scripts/giftGuideCutouts1120.mjs":
     "Owner 2026-11-20 cutouts: names our own hosted cutout photos (public/gift-guides/cutouts/*) as https image URLs the importer writes into the picks; it has no fetch and never requests the site.",
+  "scripts/giftGuideOwner1124.mjs":
+    "Owner 2026-11-24 store switches (Clinique For Men to Amazon 30%): names our own hosted cutout photos (public/gift-guides/cutouts/*) as https image URLs the importer writes into the picks; it has no fetch and never requests the site.",
   "scripts/giftGuideHimKids1121.mjs":
     "Owner 2026-11-21 Him/Kids store switches (train 1121j): names our own hosted cutout photos (public/gift-guides/cutouts/*) as https image URLs the importer writes into the picks; it has no fetch and never requests the site.",
   "scripts/generate-sitemap.mjs": "Writes the domain into sitemap.xml <loc> entries as text; never fetches it.",

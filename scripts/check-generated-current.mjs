@@ -296,6 +296,14 @@ export const EVIDENCE = [
     checkedBy: "src/test/giftGuideThemes1124.test.tsx (every live theme: rows file, registry and names map two-way; chunk, page, menu, card and cover)",
   },
   {
+    id: "kids-theme-moves",
+    script: "scripts/kids-theme-moves.mjs",
+    outputs: ["src/content/giftGuidePicks/kids.json"],
+    refresh: "node scripts/kids-theme-moves.mjs (after editing scripts/giftGuideKidsThemeMoves1124.mjs; theme-guide-import.mjs runs it too)",
+    refreshedBy: "by the committer when a Kids pick moves to its themed guide (content, not a count)",
+    checkedBy: "src/test/giftGuideKidsThemeRow1124.test.tsx (the Kids chunk equals kids1121Picks(); every live move off Kids and on its theme page)",
+  },
+  {
     id: "gift-guide-standard-1120",
     script: "scripts/gift-guide-standard-1120-build.mjs",
     outputs: ["scripts/gift-guide-standard-1120.json"],

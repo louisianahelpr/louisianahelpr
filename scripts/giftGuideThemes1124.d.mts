@@ -6,3 +6,6 @@ export function themeRows1124(slug: string): readonly ThemeRow1124[];
 export function themePicks1124(slug: string, rows?: readonly ThemeRow1124[]): (Omit<ThemeRow1124, "id" | "was" | "age"> & { ownerPick: true; from: string })[];
 export function applyThemeGuides1124(pageList: Record<string, unknown[]>): Record<string, number>;
 export function isAmazonRow(r: { store: string; href: string }): boolean;
+/** One Kids pick that leaves Kids for its themed guide (scripts/giftGuideKidsThemeMoves1124.mjs), once that move applies. */
+export interface KidsThemeMove1124 { href: string; name: string; to: string; id: string }
+export function kidsThemeMovesLive1124(): KidsThemeMove1124[];

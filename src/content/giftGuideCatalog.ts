@@ -18,6 +18,7 @@ import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { searchPageGuides } from "@/content/guideSearchIndex.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { RETIRED_TO_SEARCH_PAGE } from "@/content/retiredGuideForward";
 import { pickPriceShown, shownDollars } from "@/lib/pickPriceShown.mjs";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { dupesFor, type DupeEntry, type GuideDupe } from "@/content/giftGuideDupes";
@@ -536,6 +537,14 @@ const filled = (slug: string) => draftOf.has(slug) && isLiveGuide(slug) && !REMO
 
 /** Where an old or folded guide's link now goes (null: no such guide). */
 export const newSlugFor = (slug: string): string | null => {
+  const to = oldSlugTarget(slug);
+  if (to) return to;
+  // Lead 11-24: a retired guide with no page left but an honest search page match (stocking-stuffers, teachers,
+  // hunters ...) opens that search page, never the landing (src/content/retiredGuideForward.ts).
+  const s = OLD_PEOPLE_SLUGS[OLD_SLUGS[slug] ?? slug] ?? OLD_SLUGS[slug] ?? slug;
+  return !isLiveGuide(s) && Object.prototype.hasOwnProperty.call(RETIRED_TO_SEARCH_PAGE, s) ? RETIRED_TO_SEARCH_PAGE[s] : null;
+};
+const oldSlugTarget = (slug: string): string | null => {
   const s0 = OLD_SLUGS[slug] ?? slug;
   // For Her + For Him: an old people slug opens its relationship page, and a relationship page is itself (11-20).
   const s = OLD_PEOPLE_SLUGS[s0] ?? s0;

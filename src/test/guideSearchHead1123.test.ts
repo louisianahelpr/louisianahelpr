@@ -39,7 +39,7 @@ beforeAll(async () => {
 }, 120_000);
 
 const page = async (id: string) => (await handler.fetch(new Request(`${ORIGIN}/api/share?_og=page&_id=${id}`))).text();
-const decode = (s: string) => s.replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
+const decode = (s: string) => s.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
 const tag = (doc: string, re: RegExp) => decode(doc.match(re)?.[1] ?? "");
 const ldBlocks = (doc: string) =>
   [...doc.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]) as Record<string, unknown>);
@@ -92,7 +92,7 @@ describe("gift guide search head (Her, Him, Kids)", () => {
     const xml = readFileSync(resolve(ROOT, "public/sitemap.xml"), "utf8");
     const slugs = ["her", "him", "kids", "black-friday", "cyber-monday", "small-business-saturday"];
     for (const s of slugs) {
-      const m = xml.match(new RegExp(`<loc>${ORIGIN}/gift-guides/${s}</loc>\\s*<lastmod>(\\d{4}-\\d{2}-\\d{2})</lastmod>`));
+      const m = xml.match(new RegExp(`<loc>${ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/gift-guides/${s}</loc>\\s*<lastmod>(\\d{4}-\\d{2}-\\d{2})</lastmod>`));
       expect(m, s).toBeTruthy();
       expect(m![1] >= GUIDE_UPDATED[s as keyof typeof GUIDE_UPDATED].day, s).toBe(true);
     }

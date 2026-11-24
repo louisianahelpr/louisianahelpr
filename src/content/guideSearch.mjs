@@ -15,13 +15,13 @@
 /** Her, Him and Kids: the <title> (at most 60 characters, sentence case, ending " — Helpr" as every guide tab does: audit 1122 #25), the "who" words of the description, and the visible intro. */
 export const GUIDE_SEARCH = {
   her: {
-    title: "Gifts for Her 2026: Christmas ideas under $25 & $50 — Helpr",
+    title: "Gifts for her 2026: Christmas ideas under $25 & $50 — Helpr",
     who: "for her",
     intro:
       "Christmas gift ideas for her, from stocking stuffers under $10 to gifts under $25, $50 and $100, with Louisiana gifts mixed in. Every gift shows its price, and each one links straight to the store that sells it.",
   },
   him: {
-    title: "Gifts for Him 2026: Christmas ideas under $25 & $50 — Helpr",
+    title: "Gifts for him 2026: Christmas ideas under $25 & $50 — Helpr",
     who: "for him",
     intro:
       "Christmas gift ideas for him, from stocking stuffers under $10 to gifts under $25, $50 and $100, with Louisiana gifts mixed in. Every gift shows its price, and each one links straight to the store that sells it.",

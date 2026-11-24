@@ -2,7 +2,7 @@
  "slug": "monster-jam",
  "name": "Monster Jam",
  "sectionPrefix": "mj",
- "builtFrom": "~/.lh-shots/mj-guide-1124/items.json (Tue Nov 24 11:48 AM, 64 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/mj-guide-1124/items.json (Tue Nov 24 12:36 PM, 80 items)",
  "rows": [
   {
    "id": "MJ01",
@@ -163,14 +163,14 @@
    "name": "Monster Jam 1:64 Die-Cast 9-Pack (Target exclusive)",
    "brand": "Monster Jam",
    "line": "Monster Jam trucks to collect and race.",
-   "href": "https://mavely.app.link/mB61Y0aGk8b",
+   "href": "https://go.shopmy.us/p-110326943",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-1-64-die-cast-9-pack-target-exclusive-target-8e0b16.webp",
    "store": "store-target",
    "price": 37.99,
    "priceAt": "2026-11-24",
    "section": "Trucks",
    "sectionId": "mj-trucks",
-   "commission": 2.8,
+   "commission": 4,
    "age": "3+"
   },
   {
@@ -178,14 +178,14 @@
    "name": "Monster Jam Riptide Rampage 5-Pack",
    "brand": "Monster Jam",
    "line": "Monster Jam trucks to collect and race.",
-   "href": "https://mavely.app.link/5ofTYnjGk8b",
+   "href": "https://go.shopmy.us/p-110337716",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-riptide-rampage-5-pack-target-1e93e4.webp",
    "store": "store-target",
    "price": 26.99,
    "priceAt": "2026-11-24",
    "section": "Trucks",
    "sectionId": "mj-trucks",
-   "commission": 2.8,
+   "commission": 4,
    "age": "3+"
   },
   {
@@ -193,14 +193,14 @@
    "name": "Monster Jam Marvel Heroes 5-Pack (Target exclusive)",
    "brand": "Monster Jam",
    "line": "Monster Jam trucks to collect and race.",
-   "href": "https://mavely.app.link/Fk5Mn8iGk8b",
+   "href": "https://go.shopmy.us/p-110338002",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-marvel-heroes-5-pack-target-exclusive-target-7189fa.webp",
    "store": "store-target",
    "price": 24.99,
    "priceAt": "2026-11-24",
    "section": "Trucks",
    "sectionId": "mj-trucks",
-   "commission": 2.8,
+   "commission": 4,
    "age": "3+"
   },
   {
@@ -217,6 +217,36 @@
    "sectionId": "mj-trucks",
    "was": 23.7,
    "commission": 3,
+   "age": "3+"
+  },
+  {
+   "id": "MJ15",
+   "name": "Monster Jam Grave Digger 1:24 Die-Cast Monster Truck (Series 25)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://go.shopmy.us/p-110327459",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-1-24-die-cast-monster-truck-series-target-a10ad5.webp",
+   "store": "store-target",
+   "price": 26.99,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "MJ16",
+   "name": "Monster Jam Marvel Mini Toy Vehicle 5-Pack",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://go.shopmy.us/p-110327914",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-marvel-mini-toy-vehicle-5-pack-target-69546b.webp",
+   "store": "store-target",
+   "price": 11.99,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "commission": 4,
    "age": "3+"
   },
   {
@@ -240,15 +270,15 @@
    "name": "Monster Jam Chomping Megalodon 1:15 Remote Control Truck",
    "brand": "Monster Jam",
    "line": "A remote control Monster Jam truck.",
-   "href": "https://mavely.app.link/SuoPCpeGk8b",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-chomping-megalodon-1-15-remote-control-truck-target-580df2.webp",
+   "href": "https://go.shopmy.us/p-110338162",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-chomping-megalodon-1-15-remote-control-truck-target-93309e.webp",
    "store": "store-target",
    "price": 44.99,
    "priceAt": "2026-11-24",
    "section": "Remote control trucks",
    "sectionId": "mj-remote-control-trucks",
    "was": 49.99,
-   "commission": 2.8,
+   "commission": 4,
    "age": "4+"
   },
   {
@@ -256,15 +286,110 @@
    "name": "Monster Jam Racing Rivals Grave Digger vs. Spider-Man RC Set",
    "brand": "Monster Jam",
    "line": "A remote control Monster Jam truck.",
-   "href": "https://mavely.app.link/dVtJEohGk8b",
-   "image": "https://target.scene7.com/is/image/Target/GUEST_2860630f-ceaa-4b68-bb0a-972448e06e3b",
+   "href": "https://go.shopmy.us/p-110339310",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-racing-rivals-grave-digger-vs-spider-man-rc-set-target-76b3d2.webp",
    "store": "store-target",
    "price": 32.99,
    "priceAt": "2026-11-24",
    "section": "Remote control trucks",
    "sectionId": "mj-remote-control-trucks",
-   "commission": 2.8,
+   "commission": 4,
    "age": "4+"
+  },
+  {
+   "id": "MJ120",
+   "name": "Monster Jam Adventure Ride-On Car 12V (Grave Digger graphics)",
+   "brand": "Monster Jam",
+   "line": "Ride-on trucks for a Monster Jam fan.",
+   "href": "https://go.shopmy.us/p-110328500",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-adventure-ride-on-car-12v-grave-digger-graphics-target-232438.webp",
+   "store": "store-target",
+   "price": 169.99,
+   "priceAt": "2026-11-24",
+   "section": "Ride-on trucks",
+   "sectionId": "mj-ride-on-trucks",
+   "was": 269.99,
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "MJ121",
+   "name": "Monster Jam Ride-On ATV 12V (Grave Digger)",
+   "brand": "Monster Jam",
+   "line": "Ride-on trucks for a Monster Jam fan.",
+   "href": "https://go.shopmy.us/p-110337278",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-ride-on-atv-12v-grave-digger-target-e15e15.webp",
+   "store": "store-target",
+   "price": 199.99,
+   "priceAt": "2026-11-24",
+   "section": "Ride-on trucks",
+   "sectionId": "mj-ride-on-trucks",
+   "was": 229.99,
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "MJ122",
+   "name": "Monster Jam Ride-On Car 12V, Sparkle Smash design",
+   "brand": "Monster Jam",
+   "line": "Ride-on trucks for a Monster Jam fan.",
+   "href": "https://go.shopmy.us/p-110337559",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-ride-on-car-12v-sparkle-smash-design-target-0c9516.webp",
+   "store": "store-target",
+   "price": 169.99,
+   "priceAt": "2026-11-24",
+   "section": "Ride-on trucks",
+   "sectionId": "mj-ride-on-trucks",
+   "was": 269.99,
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "MJ123",
+   "name": "Xuanlur 24V 2-Seater Ride-On with Remote (monster-truck style dinosaur UTV)",
+   "brand": "Monster Jam",
+   "line": "Ride-on trucks for a Monster Jam fan.",
+   "href": "https://walmrt.us/48DvqoI",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/xuanlur-24v-2-seater-ride-on-with-remote-monster-truck-style-walmart-a5db4c.webp",
+   "store": "store-walmart",
+   "price": 269.99,
+   "priceAt": "2026-11-24",
+   "section": "Ride-on trucks",
+   "sectionId": "mj-ride-on-trucks",
+   "was": 429.99,
+   "commission": 6,
+   "age": "3-8"
+  },
+  {
+   "id": "MJ124",
+   "name": "Licensed BIGFOOT 24V 2-Seater Ride-On Monster Truck",
+   "brand": "Monster Jam",
+   "line": "Ride-on trucks for a Monster Jam fan.",
+   "href": "https://walmrt.us/4AQKzir",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/licensed-bigfoot-24v-2-seater-ride-on-monster-truck-walmart-3e4500.webp",
+   "store": "store-walmart",
+   "price": 299.99,
+   "priceAt": "2026-11-24",
+   "section": "Ride-on trucks",
+   "sectionId": "mj-ride-on-trucks",
+   "was": 599.99,
+   "commission": 6,
+   "age": "3-8"
+  },
+  {
+   "id": "MJ125",
+   "name": "Monster Jam Grave Digger 6V Ride-On (18-36 months)",
+   "brand": "Monster Jam",
+   "line": "Ride-on trucks for a Monster Jam fan.",
+   "href": "https://walmrt.us/4CmXz0L",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-6v-ride-on-18-36-months-walmart-3a76c8.webp",
+   "store": "store-walmart",
+   "price": 77,
+   "priceAt": "2026-11-24",
+   "section": "Ride-on trucks",
+   "sectionId": "mj-ride-on-trucks",
+   "commission": 6,
+   "age": "18-36m"
   },
   {
    "id": "MJ30",
@@ -303,14 +428,15 @@
    "name": "Monster Jam Monster Motors Rev Up Raceway Playset",
    "brand": "Monster Jam",
    "line": "A Monster Jam playset for crashes and jumps.",
-   "href": "https://mavely.app.link/HHf4Z0gGk8b",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-monster-motors-rev-up-raceway-playset-target-8c7da6.webp",
-   "store": "store-target",
-   "price": 39.99,
+   "href": "https://mavely.app.link/nKUlx7vIk8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-monster-motors-rev-up-raceway-playset-kohls-06d6dc.webp",
+   "store": "store-kohls",
+   "price": 29.99,
    "priceAt": "2026-11-24",
    "section": "Playsets and tracks",
    "sectionId": "mj-playsets-and-tracks",
-   "commission": 2.8,
+   "was": 39.99,
+   "commission": 10.5,
    "age": "3+"
   },
   {
@@ -318,7 +444,7 @@
    "name": "Monster Jam Mini Jams Megalodon Squid Takedown Playset",
    "brand": "Monster Jam",
    "line": "A Monster Jam playset for crashes and jumps.",
-   "href": "https://mavely.app.link/Ad7swKcGk8b",
+   "href": "https://go.shopmy.us/p-110339567",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-mini-jams-megalodon-squid-takedown-playset-target-788146.webp",
    "store": "store-target",
    "price": 29.99,
@@ -326,7 +452,7 @@
    "section": "Playsets and tracks",
    "sectionId": "mj-playsets-and-tracks",
    "was": 34.99,
-   "commission": 2.8,
+   "commission": 4,
    "age": "3+"
   },
   {
@@ -361,6 +487,22 @@
    "age": "3+"
   },
   {
+   "id": "MJ40",
+   "name": "Monster Jam Mini Holiday Advent Calendar (24 days)",
+   "brand": "Monster Jam",
+   "line": "A Monster Jam surprise to open.",
+   "href": "https://go.shopmy.us/p-103904482",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-mini-holiday-advent-calendar-24-days-target-43dd3b.webp",
+   "store": "store-target",
+   "price": 49.99,
+   "priceAt": "2026-11-24",
+   "section": "Advent calendars and mystery packs",
+   "sectionId": "mj-advent-calendars-and-mystery-packs",
+   "was": 69.99,
+   "commission": 4,
+   "age": "3+"
+  },
+  {
    "id": "MJ41",
    "name": "Monster Jam Mini 5-Pack with Mystery Truck, 1:87",
    "brand": "Monster Jam",
@@ -373,6 +515,22 @@
    "section": "Advent calendars and mystery packs",
    "sectionId": "mj-advent-calendars-and-mystery-packs",
    "commission": 6,
+   "age": "3+"
+  },
+  {
+   "id": "MJ14",
+   "name": "Monster Jam Official Mini Mystery Collectible Monster Truck 12-Pack, 1:87",
+   "brand": "Monster Jam",
+   "line": "A Monster Jam surprise to open.",
+   "href": "https://go.shopmy.us/p-110327332",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-official-mini-mystery-collectible-monster-truck-target-608ceb.webp",
+   "store": "store-target",
+   "price": 44.19,
+   "priceAt": "2026-11-24",
+   "section": "Advent calendars and mystery packs",
+   "sectionId": "mj-advent-calendars-and-mystery-packs",
+   "was": 51.99,
+   "commission": 4,
    "age": "3+"
   },
   {
@@ -396,7 +554,7 @@
    "name": "Monster Jam Grave Digger Monstruction 5\" Buildable Truck",
    "brand": "Monster Jam",
    "line": "A Monster Jam game or build.",
-   "href": "https://mavely.app.link/RFvj1JfGk8b",
+   "href": "https://go.shopmy.us/p-110339885",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-monstruction-5-buildable-truck-target-0637cd.webp",
    "store": "store-target",
    "price": 10.49,
@@ -404,7 +562,7 @@
    "section": "Games and building sets",
    "sectionId": "mj-games-and-building-sets",
    "was": 14.99,
-   "commission": 2.8,
+   "commission": 4,
    "age": "4+"
   },
   {
@@ -412,7 +570,7 @@
    "name": "Monster Jam Monstruction Turbo Shift ThunderROARus 10\" Transforming Build",
    "brand": "Monster Jam",
    "line": "A Monster Jam game or build.",
-   "href": "https://mavely.app.link/UEXAdDiGk8b",
+   "href": "https://go.shopmy.us/p-110340130",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-monstruction-turbo-shift-thunderroarus-10-transf-target-1f9b6d.webp",
    "store": "store-target",
    "price": 12.99,
@@ -420,7 +578,7 @@
    "section": "Games and building sets",
    "sectionId": "mj-games-and-building-sets",
    "was": 25.99,
-   "commission": 2.8,
+   "commission": 4,
    "age": "4+"
   },
   {
@@ -502,6 +660,21 @@
    "age": "12m-5T"
   },
   {
+   "id": "MJ69",
+   "name": "Boys Monster Santa Truck Plush Sleep Pants (Happy Trends)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://mavely.app.link/2V15Ka6Lk8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/boys-monster-santa-truck-plush-sleep-pants-happy-trends-tj-maxx-eab8eb.webp",
+   "store": "store-tj-maxx",
+   "price": 7.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "commission": 13.3,
+   "age": "7-12"
+  },
+  {
    "id": "MJ07",
    "name": "Monster Jam Kids Slip-On Sneakers (toddler to big kid)",
    "brand": "Monster Jam",
@@ -533,6 +706,36 @@
    "age": "toddler"
   },
   {
+   "id": "MJ71",
+   "name": "Josmo Monster Jam Kids Slip-On Sneakers",
+   "brand": "Monster Jam",
+   "line": "Monster Jam shoes for little feet.",
+   "href": "https://go.shopmy.us/p-110004442",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/josmo-monster-jam-kids-slip-on-sneakers-dsw-ec66bf.webp",
+   "store": "store-dsw",
+   "price": 39.99,
+   "priceAt": "2026-11-24",
+   "section": "Shoes and slippers",
+   "sectionId": "mj-shoes-and-slippers",
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "MJ80",
+   "name": "Monster Jam Hooded Blanket",
+   "brand": "Monster Jam",
+   "line": "Monster Jam for their room or the tree.",
+   "href": "https://go.shopmy.us/p-110005166",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-hooded-blanket-target-c9ec9f.webp",
+   "store": "store-target",
+   "price": 22.99,
+   "priceAt": "2026-11-24",
+   "section": "Room, party and Christmas",
+   "sectionId": "mj-room-party-and-christmas",
+   "commission": 4,
+   "age": "3+"
+  },
+  {
    "id": "MJ81",
    "name": "Kurt Adler Monster Jam Grave Digger Ornament (for personalization)",
    "brand": "Kurt Adler",
@@ -547,6 +750,36 @@
    "was": 12.5,
    "commission": 3,
    "age": "all"
+  },
+  {
+   "id": "MJ82",
+   "name": "Monster Jam Breakin' Through Christmas Stocking",
+   "brand": "Monster Jam",
+   "line": "Monster Jam for their room or the tree.",
+   "href": "https://go.shopmy.us/p-110004388",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-breakin-through-christmas-stocking-wayfair-70436a.webp",
+   "store": "store-wayfair",
+   "price": 45.99,
+   "priceAt": "2026-11-24",
+   "section": "Room, party and Christmas",
+   "sectionId": "mj-room-party-and-christmas",
+   "commission": 11,
+   "age": "all"
+  },
+  {
+   "id": "MJ83",
+   "name": "Monster Jam Standard Pillowcase",
+   "brand": "Monster Jam",
+   "line": "Monster Jam for their room or the tree.",
+   "href": "https://go.shopmy.us/p-110005192",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-standard-pillowcase-target-e52290.webp",
+   "store": "store-target",
+   "price": 9.99,
+   "priceAt": "2026-11-24",
+   "section": "Room, party and Christmas",
+   "sectionId": "mj-room-party-and-christmas",
+   "commission": 4,
+   "age": "3+"
   },
   {
    "id": "MJ84",
@@ -703,6 +936,68 @@
    "age": "kids"
   },
   {
+   "id": "MJ112",
+   "name": "Sunny Side Up Monster Jam Grave Digger Plush Throw, 46x60",
+   "brand": "Monster Jam",
+   "line": "Monster Jam for their room or the tree.",
+   "href": "https://www.amazon.com/dp/B0CSVG8RNX?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/71Yz+B0BQsL._AC_SL1000_.jpg",
+   "store": "store-amazon",
+   "price": 24.93,
+   "priceAt": "2026-11-24",
+   "section": "Room, party and Christmas",
+   "sectionId": "mj-room-party-and-christmas",
+   "commission": 3,
+   "age": "kids"
+  },
+  {
+   "id": "MJ113",
+   "name": "Fast Forward Monster Jam Zombie Backpack",
+   "brand": "Monster Jam",
+   "line": "Monster Jam for their room or the tree.",
+   "href": "https://www.amazon.com/dp/B0FVMRS81R?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/61N-UWUi75L._AC_SL1000_.jpg",
+   "store": "store-amazon",
+   "price": 14.98,
+   "priceAt": "2026-11-24",
+   "section": "Room, party and Christmas",
+   "sectionId": "mj-room-party-and-christmas",
+   "commission": 3,
+   "age": "kids"
+  },
+  {
+   "id": "MJ115",
+   "name": "Get Trend Monster Jam Trucks Fleece Throw, 51x59",
+   "brand": "Monster Jam",
+   "line": "Monster Jam for their room or the tree.",
+   "href": "https://www.amazon.com/dp/B0H9RSPVHQ?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/818gY2NZ0uL._AC_SL1000_.jpg",
+   "store": "store-amazon",
+   "price": 16.67,
+   "priceAt": "2026-11-24",
+   "section": "Room, party and Christmas",
+   "sectionId": "mj-room-party-and-christmas",
+   "was": 19.62,
+   "commission": 3,
+   "age": "kids"
+  },
+  {
+   "id": "MJ116",
+   "name": "Jay Franco Monster Jam Grave Digger Plush Throw, 46x60",
+   "brand": "Monster Jam",
+   "line": "Monster Jam for their room or the tree.",
+   "href": "https://www.amazon.com/dp/B07T2NVV99?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/91wesrfiJ-L._AC_SL1000_.jpg",
+   "store": "store-amazon",
+   "price": 19.54,
+   "priceAt": "2026-11-24",
+   "section": "Room, party and Christmas",
+   "sectionId": "mj-room-party-and-christmas",
+   "was": 22.99,
+   "commission": 3,
+   "age": "kids"
+  },
+  {
    "id": "MJ86",
    "name": "Kid Casters Monster Jam Youth Fishing Pole + Reel Combo",
    "brand": "Kid Casters",
@@ -811,6 +1106,21 @@
    "age": "12m-5T"
   },
   {
+   "id": "MJ126",
+   "name": "Monster Jam: Gear It Up! Sound Board Book (10 truck sounds)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam for the littlest fans.",
+   "href": "https://walmrt.us/4zDmqe4",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-gear-it-up-sound-board-book-10-truck-sounds-walmart-8914fa.webp",
+   "store": "store-walmart",
+   "price": 14.38,
+   "priceAt": "2026-11-24",
+   "section": "Toddler picks",
+   "sectionId": "mj-toddler-picks",
+   "commission": 3,
+   "age": "1-5"
+  },
+  {
    "id": "MJ95",
    "name": "Hot Wheels Monster Trucks Mutant Chaos Truck, Car + Slime",
    "brand": "Hot Wheels",
@@ -855,16 +1165,25 @@
    "was": 32.49,
    "commission": 4,
    "age": "4+"
+  },
+  {
+   "id": "MJ114",
+   "name": "Hot Wheels City Ultimate Dual Dragon Transporter + 2 Cars",
+   "brand": "Monster Jam",
+   "line": "More monster truck fun from Hot Wheels.",
+   "href": "https://www.amazon.com/dp/B0DQY6WXQK?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/81m9WoZmsHL._AC_SL1000_.jpg",
+   "store": "store-amazon",
+   "price": 38.49,
+   "priceAt": "2026-11-24",
+   "section": "Monster truck extras (Hot Wheels)",
+   "sectionId": "mj-monster-truck-extras-hot-wheels",
+   "was": 54.99,
+   "commission": 3,
+   "age": "4+"
   }
  ],
  "skipped": [
-  {
-   "id": "MJ40",
-   "name": "Monster Jam Mini Holiday Advent Calendar (24 days)",
-   "why": [
-    "no photo"
-   ]
-  },
   {
    "id": "MJ60",
    "name": "Monster Jam Boys 3-Piece Pajama Set + Robe",
@@ -891,35 +1210,6 @@
    "name": "Monster Jam Short Sleeve + Shorts Pajama Set",
    "why": [
     "out of stock"
-   ]
-  },
-  {
-   "id": "MJ71",
-   "name": "Josmo Monster Jam Kids Slip-On Sneakers (code BFDEALS 30% off)",
-   "why": [
-    "no photo"
-   ]
-  },
-  {
-   "id": "MJ80",
-   "name": "Monster Jam Hooded Blanket",
-   "why": [
-    "no photo"
-   ]
-  },
-  {
-   "id": "MJ82",
-   "name": "Monster Jam Breakin' Through Christmas Stocking",
-   "why": [
-    "no photo"
-   ]
-  },
-  {
-   "id": "MJ83",
-   "name": "Monster Jam Standard Pillowcase",
-   "why": [
-    "no price",
-    "no photo"
    ]
   }
  ]

@@ -17,6 +17,8 @@ import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, townPagePath } from "./townPages.m
 import { pickPriceShown, shownDollars } from "./pickPriceShown.mjs";
 import { DEALS_WORDS, dealName, dealShows } from "../content/giftGuideDeals.mjs";
 import { SMALL_BIZ_WORDS, smallBizSections } from "../content/giftGuideSmallBiz.mjs";
+import { GUIDE_CROSS_LINKS, GUIDE_SEARCH } from "../content/guideSearch.mjs";
+import { isLiveGuide } from "../content/giftGuideLive.mjs";
 
 export const SEO_SITE_ORIGIN = "https://www.louisianahelpr.com";
 
@@ -78,6 +80,18 @@ const GUIDES = { name: "Holiday gift guides", path: "/gift-guides" };
  * as a plain link to the shop (an affiliate link, so rel="sponsored nofollow") and the store it is on.
  * `guide` is one SEO_DATA.guides entry: { name, picks: [name, store, href][], related?: [slug, name][] }.
  */
+/** A searchable guide's visible intro (Her, Him, Kids: src/content/guideSearch.mjs), else null. */
+const searchIntro = (slug) => (Object.prototype.hasOwnProperty.call(GUIDE_SEARCH, slug) ? GUIDE_SEARCH[slug].intro : null);
+
+/**
+ * Google search setup (owner 11-23; live audit: Her linked only Him, Kids and the deals days linked no other guide):
+ * the main guides and live deals days, each page leaving itself out, as plain links.
+ */
+function crossLinks(slug) {
+  const rows = GUIDE_CROSS_LINKS.filter(([s]) => s !== slug && isLiveGuide(s));
+  return rows.length ? `<h2>Gift guides and deals</h2><ul>${rows.map(([s, n]) => `<li><a href="/gift-guides/${escapeHtml(s)}">${escapeHtml(n)}</a></li>`).join("")}</ul>` : "";
+}
+
 export function giftGuideBody(slug, guide) {
   const crumbs = [HOME, GUIDES, { name: guide.name, path: `/gift-guides/${slug}` }];
   const picks = Array.isArray(guide.picks) ? guide.picks : [];
@@ -90,14 +104,18 @@ export function giftGuideBody(slug, guide) {
       return `<li>${link ? `<a href="${escapeHtml(link)}" rel="sponsored nofollow noopener" target="_blank">${label}</a>` : label}${where}</li>`;
     })
     .join("");
-  const intro = count
+  const countLine = count
     ? `${count} hand-picked holiday gift idea${count === 1 ? "" : "s"} from Louisiana Helpr, each with a link to the store that sells it. Prices change, so check the store for today's price.`
     : "Picks for this guide are coming soon. Browse every Louisiana Helpr gift guide in the meantime.";
-  const related = (guide.related ?? []).map(([s, n]) => `<li><a href="/gift-guides/${escapeHtml(s)}">${escapeHtml(n)}</a></li>`).join("");
+  const intro = searchIntro(slug) ?? "";
+  // A cross-link already says it: "More gift guides" keeps only the guides the cross-links leave out.
+  const linked = new Set(GUIDE_CROSS_LINKS.map(([s]) => s));
+  const related = (guide.related ?? []).filter(([s]) => !linked.has(s)).map(([s, n]) => `<li><a href="/gift-guides/${escapeHtml(s)}">${escapeHtml(n)}</a></li>`).join("");
   return page(
     crumbs,
-    `<h1>${escapeHtml(guide.name)}</h1><p>${escapeHtml(intro)}</p>` +
+    `<h1>${escapeHtml(guide.name)}</h1>${intro ? `<p>${escapeHtml(intro)}</p>` : ""}<p>${escapeHtml(countLine)}</p>` +
       (items ? `<ol>${items}</ol>` : "") +
+      crossLinks(slug) +
       (related ? `<h2>More gift guides</h2><ul>${related}</ul>` : "") +
       `<p><a href="/gift-guides">All holiday gift guides</a></p>` +
       `<p>Louisiana Helpr earns a commission from qualifying purchases made through these links.</p>`,
@@ -187,7 +205,7 @@ export function dealsGuideBody(slug, name, intro, disclosure, day, shops) {
   }
   return page(
     [HOME, GUIDES, { name, path: `/gift-guides/${slug}` }],
-    `<h1>${escapeHtml(name)}</h1><p>${escapeHtml(intro)}</p>${lists}<p>${escapeHtml(disclosure)}</p><p><a href="/gift-guides">All holiday gift guides</a></p>`,
+    `<h1>${escapeHtml(name)}</h1><p>${escapeHtml(intro)}</p>${lists}<p>${escapeHtml(disclosure)}</p>${crossLinks(slug)}<p><a href="/gift-guides">All holiday gift guides</a></p>`,
   );
 }
 
@@ -216,8 +234,9 @@ export function giftGuideItemListLd(slug, guide, today) {
     numberOfItems: picks.length,
     itemListElement: picks.map(([name, , href, extra], i) => {
       const x = extra && typeof extra === "object" ? extra : {};
-      if (!pickPriceShown(x.price, x.priceAt, today)) return { "@type": "ListItem", position: i + 1, name, url: href };
       const image = productImage(x.image);
+      // Google search setup 11-23: a plain row carries its photo too (schema.org Thing.image), never a price.
+      if (!pickPriceShown(x.price, x.priceAt, today)) return { "@type": "ListItem", position: i + 1, name, url: href, ...(image ? { image } : {}) };
       return {
         "@type": "ListItem",
         position: i + 1,
@@ -265,7 +284,7 @@ export function giftGuidesLandingBody(groups) {
     .join("");
   return page(
     [HOME, GUIDES],
-    `<h1>Holiday gift guides 2026</h1><p>Gift ideas for her, him and the kids from Louisiana Helpr, every pick with its price and sorted by budget. Each guide links to the store that sells every pick.</p>${sections}`,
+    `<h1>Holiday gift guides 2026</h1><p>Christmas gift ideas for her, him and the kids from Louisiana Helpr, from stocking stuffers under $10 to gifts under $25 and $50, with Louisiana gifts mixed in. Every pick shows its price, and each guide links to the store that sells every pick.</p>${sections}${crossLinks("")}`,
   );
 }
 

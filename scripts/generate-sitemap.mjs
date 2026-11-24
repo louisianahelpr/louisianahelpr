@@ -47,6 +47,7 @@ import { allTownPagePaths } from "../src/lib/townPages.mjs";
 import { GIFT_GUIDE_SEO } from "../src/content/giftGuideSeo.mjs";
 import { DEAL_DAY_SLUGS } from "../src/content/giftGuideDeals.mjs";
 import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
+import { GUIDE_UPDATED } from "../src/content/guideUpdated.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -223,7 +224,7 @@ function classify(routes) {
  * weights only.
  */
 const PICKS_DIR = path.join(repoRoot, "src", "content", "giftGuidePicks");
-export function lastmodDates(paths, readChunk = (slug) => fs.readFileSync(path.join(PICKS_DIR, `${slug}.json`), "utf8")) {
+export function lastmodDates(paths, readChunk = (slug) => fs.readFileSync(path.join(PICKS_DIR, `${slug}.json`), "utf8"), updated = GUIDE_UPDATED) {
   const result = {};
   const guideDates = [];
   for (const p of paths) {
@@ -241,6 +242,15 @@ export function lastmodDates(paths, readChunk = (slug) => fs.readFileSync(path.j
       result[p] = days.at(-1);
       guideDates.push(days.at(-1));
     }
+  }
+  // Google search setup (owner 11-23; live audit: the deals days had no lastmod): a page's Q&A "Updated" day (the day its
+  // data last changed, src/content/guideUpdated.mjs, committed and generated) counts too, the newer of the two winning.
+  for (const p of paths) {
+    const slug = p.startsWith("/gift-guides/") ? p.slice("/gift-guides/".length) : null;
+    const day = slug && Object.prototype.hasOwnProperty.call(updated, slug) ? updated[slug]?.day : null;
+    if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day)) continue;
+    if (!result[p] || day > result[p]) result[p] = day;
+    guideDates.push(result[p]);
   }
   if (guideDates.length && paths.includes("/gift-guides")) result["/gift-guides"] = guideDates.sort().at(-1);
   return result;

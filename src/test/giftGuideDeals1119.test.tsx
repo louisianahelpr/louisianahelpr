@@ -38,6 +38,7 @@ import {
   DEAL_DAY_SLUGS, DEAL_EVENTS, DEALS_PER_BRAND, DEALS_SLUG, DEALS_WORDS, codesDay, dealDay, dealShows, dealsFeatured, dealsTitle, eventOrder, eventPhase, louisianaDay, oldDealsTarget, type Deal,
 } from "@/content/giftGuideDeals.mjs";
 import { dealDayPageMeta, giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
+import { DEAL_DAY_SEARCH_TITLES } from "@/content/guideSearch.mjs";
 import { DEAL_CODES } from "@/content/giftGuidePicks";
 import { cleanCodes } from "@/lib/giftGuideOfferCopy.mjs";
 import { activeCodes, discountCodes } from "@/content/giftGuides";
@@ -197,7 +198,9 @@ describe("deals days: one page per day (owner 11-21)", () => {
     for (const e of DEAL_EVENTS) {
       const m = giftGuidePageMeta(e.id);
       expect(m).toEqual(dealDayPageMeta(e));
-      expect(m.title).toBe(`${e.pageTitle} — Helpr`);
+      // Google search setup 11-23: each day's tab is its search title (src/content/guideSearch.mjs), naming the day.
+      expect(m.title).toBe(DEAL_DAY_SEARCH_TITLES[e.id]);
+      expect(m.title.startsWith(e.title), e.id).toBe(true);
       expect(m.canonical).toBe(`https://www.louisianahelpr.com/gift-guides/${e.id}`);
       expect(m.description.length, e.id).toBeGreaterThan(60);
     }

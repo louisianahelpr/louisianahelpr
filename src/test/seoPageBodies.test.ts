@@ -19,7 +19,7 @@
  * @mutate api/share.ts |     if (!found) return { kind: "notfound", body: notFoundBody("hire") }; |     if (!found) return null;
  * @mutate api/share.ts |   return html.replace(SITE_ENTITY_RE, ""); |   return html;
  * @mutate src/lib/seoBodies.mjs | rel="sponsored nofollow noopener" | rel="noopener"
- * @mutate src/lib/giftGuidePageMeta.mjs |     giftGuideDescription(name, lead ?? topNames, count) ?? | null ??
+ * @mutate src/lib/giftGuidePageMeta.mjs |     (search ? guideSearchDescription(slug, count, first ? shortName(first) : "") : null) ?? | null ??
  */
 import { describe, it, expect, beforeAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -155,7 +155,9 @@ describe("gift guides carry their own body for a reader with no JavaScript", () 
   it("a guide's description is its own: the count and its first picks", async () => {
     const { body } = await html("gift-guides/her");
     const desc = /<meta name="description" content="([^"]*)">/.exec(body)?.[1] ?? "";
-    expect(desc).toMatch(/^Gifts for Her 2026: \d+ hand-picked gift ideas, like /);
+    // Google search setup 11-23 (src/content/guideSearch.mjs): the count, the price words and its lead pick, at most 155.
+    expect(desc).toMatch(/^\d+ Christmas gift ideas for her: stocking stuffers under \$10, gifts under \$25 and \$50, and favorites like Therabody Theragun Mini/);
+    expect(desc.length).toBeLessThanOrEqual(155);
     expect(desc).not.toContain("hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one");
   });
 

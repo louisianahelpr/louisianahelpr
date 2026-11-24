@@ -708,10 +708,10 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(src("src/pages/info/GiftGuides.tsx")).toContain(': deals ? giftGuidePageMeta(deals.id) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],');
     expect(src("src/pages/info/GiftGuides.tsx")).toContain("return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length);");
     const mom = giftGuidePageMeta("her");
-    expect(mom.title).toBe("Gifts for Her — Helpr");
+    expect(mom.title).toBe("Gifts for Her 2026: Christmas ideas under $25 & $50 — Helpr");
     expect(mom.canonical).toBe("https://www.louisianahelpr.com/gift-guides/her");
     expect(mom.robots).toBeUndefined();
-    expect(giftGuidePageMeta("kids").title).toBe("Gifts for Kids — Helpr");
+    expect(giftGuidePageMeta("kids").title).toBe("Christmas gifts for kids 2026: by age & price — Helpr");
     // A guide not in the sitemap (empty, a hub, a thin store page) is noindex under its own title.
     // (Follow-up 1120: every shown guide is in the sitemap now; a probe stands in when none is left out.)
     const unlisted = GUIDES.find((g) => !GIFT_GUIDE_SEO[g.slug]) ?? { slug: "probe-unlisted", title: "Probe" };
@@ -729,8 +729,8 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     // @mutate src/lib/publicPageMeta.mjs | import { townPageMetaFor } from "./townPages.mjs"; | import { townPageMetaFor } from "./townPages.mjs";\nimport { GIFT_GUIDE_SEO } from "../content/giftGuideSeo.mjs";
     expect(src("src/lib/publicPageMeta.mjs")).not.toMatch(/giftGuideSeo|giftGuidePageMeta/);
     expect(src("api/share.ts")).toContain('import { publicOrGiftGuidePageMetaFor as publicPageMetaFor } from "../src/lib/giftGuidePageMeta.mjs";');
-    expect(publicOrGiftGuidePageMetaFor("/gift-guides/her", null)?.title).toBe("Gifts for Her — Helpr");
-    expect(publicOrGiftGuidePageMetaFor("/gift-guides/her/", null)?.title).toBe("Gifts for Her — Helpr");
+    expect(publicOrGiftGuidePageMetaFor("/gift-guides/her", null)?.title).toBe("Gifts for Her 2026: Christmas ideas under $25 & $50 — Helpr");
+    expect(publicOrGiftGuidePageMetaFor("/gift-guides/her/", null)?.title).toBe("Gifts for Her 2026: Christmas ideas under $25 & $50 — Helpr");
     expect(publicOrGiftGuidePageMetaFor("/browse", null)).toBe(PUBLIC_PAGE_META["/browse"]);
     const rewrites = (JSON.parse(readFileSync("vercel.json", "utf8")) as { rewrites: { source: string; destination: string }[] }).rewrites;
     expect(rewrites.filter((x) => x.source.startsWith("/gift-guides"))).toEqual([

@@ -19,5 +19,15 @@
  */
 export const LIVE_GUIDES_1121 = ["her", "him", "kids", "monster-jam", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"];
 
+/**
+ * The themed kids guides (owner 2026-11-24: Monster Jam first, then Marvel, Bluey, KPop Demon Hunters ...): her own
+ * researched lists in their own groups ("with every item we can find"), so the general guides' section sizes, type
+ * variety, commission order and Amazon-price rules do not apply to them (each guard skips isThemeGuide).
+ */
+export const THEME_GUIDES_1124 = ["monster-jam"];
+
+/** Whether a guide slug is one of the themed kids guides (THEME_GUIDES_1124). */
+export const isThemeGuide = (slug) => THEME_GUIDES_1124.includes(slug);
+
 /** Whether a guide slug is live (LIVE_GUIDES_1121). */
 export const isLiveGuide = (slug) => LIVE_GUIDES_1121.includes(slug);

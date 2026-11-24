@@ -23,6 +23,7 @@ import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { cleanName, shopperLine } from "../../scripts/giftGuideHolidayB1120.mjs";
+import { isThemeGuide } from "@/content/giftGuideLive.mjs";
 
 type Pick = { name: string; brand?: string; line?: string; href: string; image?: string; section?: string; sectionId?: string; sponsor?: boolean };
 type Deal = { title: string; href: string };
@@ -163,7 +164,7 @@ describe("gift guides holiday audit B", () => {
       sections += by.size;
       // The owner's plan (11-20 evening) sets the planned guides' sections; the sponsors guide's three sections follow
       // the sign-ups (giftGuideTrain1120d.test.ts skips it too).
-      if (PLANNED.has(slug) || slug === "25-days-sponsors") continue;
+      if (PLANNED.has(slug) || slug === "25-days-sponsors" || isThemeGuide(slug)) continue;
       if (by.size > 1) for (const [id, n] of by) if (n < 8) thin.push(`${slug}#${id}: ${n}`);
     }
     expect(sections).toBeGreaterThan(50);

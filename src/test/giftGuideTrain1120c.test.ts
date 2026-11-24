@@ -15,6 +15,7 @@ import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { applyTrain1120c } from "../../scripts/giftGuideTrain1120c.mjs";
+import { isThemeGuide } from "@/content/giftGuideLive.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image?: string; store?: string; price?: number; priceAt?: string; code?: string; codeEnds?: string; campaignEnds?: string };
 const DIR = "src/content/giftGuidePicks";
@@ -33,7 +34,8 @@ describe("gift guides train 1120c", () => {
     // Owner 2026-11-21 ~12:05 PM ("each item also needs a price"; she chose "Show Amazon prices anyway" after the
     // Associates warning): an Amazon price only on her own saved picks (Her, Him, Kids), never on a researched one.
     for (const [slug, c] of CHUNKS) for (const p of c.picks.filter(isAmazon)) {
-      if (["her", "him", "kids"].includes(slug)) expect(p.price, `${slug}: ${p.name}`).toBeGreaterThan(0);
+      // The themed kids guides (owner 11-24) show her Amazon finds with their price too.
+      if (["her", "him", "kids"].includes(slug) || isThemeGuide(slug)) expect(p.price, `${slug}: ${p.name}`).toBeGreaterThan(0);
       else expect(p.price, `${slug}: ${p.name}`).toBeUndefined();
     }
     expect(priced.filter((p) => (p.price ?? 0) > 500).map((p) => p.name).filter((n) => !/Dyson Airwrap/i.test(n))).toEqual([]);

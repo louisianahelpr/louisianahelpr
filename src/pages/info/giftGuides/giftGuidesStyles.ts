@@ -591,8 +591,8 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 @media (min-width:768px){.gg-banner-sub .gg-banner h1{font-size:60px;line-height:1.04}}
 @media (min-width:768px) and (max-width:1023px){.gg-banner-sub .gg-banner h1{font-size:48px}}
 @media (max-width:767px){.gg-banner-sub .gg-banner h1{-webkit-line-clamp:3;font-size:clamp(25px,8vw,34px);line-height:1.05}}
-/* Lead 11-24 (theme guides): a long title wraps, never clips ("KPop Demon Hunters Gif…" at 375; Monster Jam's "Gift
-   Guide" line cut at 1440). The band's heights become minimums and the arch stretches with the band; the title loses
+/* Lead 11-24 (theme guides): a long title wraps, never clips (the KPop Demon Hunters title cut short at 375; Monster
+   Jam's second title line cut at 1440). The band's heights become minimums and the arch stretches with the band; the title loses
    its line clamp. A long title (GiftGuidesWords, over 12 letters) takes the deal days' 60/48px from 768px; a very long
    one (over 24) also a phone's 28-34px. Guard: src/test/guideBannerLongTitle1124.test.tsx. */
 .gg-banner{height:auto;min-height:252px}

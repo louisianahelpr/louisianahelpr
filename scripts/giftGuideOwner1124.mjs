@@ -61,6 +61,17 @@ export const RATE_SWITCHES_1124 = {
     was: "Amazon 10% ($18)", now: "soldejaneiro.com via ShopMy 16% ($18, 75 ml; Later 10.5%)",
   },
   // For Him.
+  // Lead 11-24 ~3:55 AM (owner rule, no ask): her accepted Clinique campaign on Amazon Creator Connections pays 30% (aff-sweep
+  // 11-24 3:30 AM) against ShopMy clinique.com 21%; Amazon's price is the same (both read on amazon.com ~4:00 AM, in stock).
+  // The clinique.com photo's cutout stays (same product); an Amazon row shows its image as given, so it names the cutout.
+  [shopmy("p-108625882")]: {
+    href: amz("B00IPWN1LK"), store: "store-amazon", commission: 30, price: 29.4, image: "https://www.louisianahelpr.com/gift-guides/cutouts/clinique-for-men-oil-free-moisturizer-0b9a93.webp",
+    was: "clinique.com via ShopMy 21% ($29.40)", now: "Amazon Creator Connections Clinique campaign 30% ($29.40, 3.4 oz, in stock; $8.82 a sale vs $6.17)",
+  },
+  [shopmy("p-108625877")]: {
+    href: amz("B00P4WVQNE"), store: "store-amazon", commission: 30, price: 23.1, image: "https://www.louisianahelpr.com/gift-guides/cutouts/clinique-for-men-post-shave-soother-3ebdc1.webp",
+    was: "clinique.com via ShopMy 21% ($23.10)", now: "Amazon Creator Connections Clinique campaign 30% ($23.10, 2.5 oz, in stock; $6.93 a sale vs $4.85)",
+  },
   [amz("B0H51ZX6SB")]: {
     href: "https://walmrt.us/4zZkihX", store: "store-walmart", commission: 9, price: 179, image: "https://i5.walmartimages.com/seo/GE-Profile-Opal-Mini-Nugget-Countertop-Ice-Maker-with-Descaler-36lb-Daily-Capacity-with-WIFI-Charcoal-Gray_d654d424-b612-4ab4-9b40-dd4601a73c1f.afe665b60cd90b79522d9dd708ee901a.jpeg",
     was: "Amazon 3% ($299, 11-22)", now: "Walmart Creator 9% ($179, was $279, Charcoal Gray; $120 less for the shopper and $16.11 a sale vs $8.97)",

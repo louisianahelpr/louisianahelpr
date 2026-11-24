@@ -173,7 +173,20 @@ const SWITCHED_1124: Record<string, Record<string, string>> = {
   kids: { ...sm(["110119731", "110119881", "110119923", "110119952", "110119982", "110120034", "110120060"], "store-macys"), "https://walmrt.us/4jpdmER": "store-walmart", ...STEALS_1124.kids },
 };
 const SWITCHED_AWAY_1124 = ["B0FY9LPSCW", "B0076R6MN4", "p-107881822", "B0H51ZX6SB"];
-const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug], ...LOUISIANA_1122[slug], ...LINKS_1123[slug], ...SWITCHED_1124[slug] });
+/**
+ * Lead 11-24 ~3:55 AM (owner rule "higher commission, no need to ask"): Him's 2 Clinique For Men ShopMy saves (clinique.com
+ * 21%) moved to Amazon at the same price, where her accepted Clinique Creator Connections campaign pays 30%. Old -> new.
+ * They keep the clinique.com cutout, so they stay with the store-photo picks.
+ */
+const TO_AMAZON_1124: Record<string, string> = {
+  "https://go.shopmy.us/p-108625882": "https://www.amazon.com/dp/B00IPWN1LK?tag=louisianahelpr-20",
+  "https://go.shopmy.us/p-108625877": "https://www.amazon.com/dp/B00P4WVQNE?tag=louisianahelpr-20",
+};
+const notAmazon = (slug: string): Record<string, string> => {
+  const all: Record<string, string> = { ...SWITCHED[slug], ...SAVES[slug], ...LOUISIANA_1122[slug], ...LINKS_1123[slug], ...SWITCHED_1124[slug] };
+  for (const [from, to] of Object.entries(TO_AMAZON_1124)) if (all[from]) { delete all[from]; all[to] = "store-amazon"; }
+  return all;
+};
 const popular = new Set([...HIM_POPULAR_1122, ...KIDS_POPULAR_1122].map((r) => r.href));
 const keeps = new Set([...HIM_KEEPS_1123, ...KIDS_KEEPS_1123].map((r) => r.href));
 /** Links audit 1122 night #4: her saved color had no Buy Box, so the same item in a color Amazon sells stands in (priced 11-22). */
@@ -262,6 +275,11 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
       expect(new Set(rows.map((r) => r.href)), slug).toEqual(new Set(Object.keys(SAVES[slug])));
       const page = chunk(slug);
       for (const r of rows) {
+        if (TO_AMAZON_1124[r.href]) {
+          expect(page.some((x) => x.href === r.href), r.name).toBe(false);
+          expect(page.find((x) => x.href === TO_AMAZON_1124[r.href]), r.name).toMatchObject({ name: r.name, price: r.price, store: "store-amazon", commission: 30 });
+          continue;
+        }
         const p = page.find((x) => x.href === r.href);
         expect(p, r.name).toBeDefined();
         expect(p?.price, r.name).toBe(r.price);
@@ -299,8 +317,9 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // Crossroads Backpack (Amazon showed no price), and the 6 rate switches 11-21 night (3 XTRATUF, TNF beanie, Burlebo hoodie + cap).
     // Plus the Battery Daddy (B089F9YDFC), which the owner asked for on 11-22, and B0GWXJ3PYM, the Dad fill-in book (owner
     // via the lead 11-22, her screenshot list), and Him batch 2's GE Opal Mini: none is from her saved list.
-    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM" && a !== "B0H51ZX6SB" && !LOUISIANA_1122_ASINS.him.includes(a));
+    const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM" && a !== "B0H51ZX6SB" && a !== "B00IPWN1LK" && a !== "B00P4WVQNE" && !LOUISIANA_1122_ASINS.him.includes(a));
     for (const gone of SWITCHED_AWAY_1124) expect(chunk("him").some((p) => p.href.includes(gone)), gone).toBe(false);
+    // The 2 Clinique For Men picks that moved from ShopMy to Amazon 11-24 (TO_AMAZON_1124) are not from her saved Amazon list.
     expect(amazon.length).toBe(118); // 120 until the Columbia hat and fleece moved to columbia.com 11-24 (SWITCHED_1124). 120 = 97 + the 14 Amazon keeps of 11-23 and the 9 of her second keeps (scripts/giftGuideOwnerKeeps1123.mjs). 97 = 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 3 owner-approved adds (Banded handwarmer, Klola mat, and the MVP PRO men's 2-pack B0D9PX9RBD: the brown listing was women's), plus the 5 popular adds of 11-22 (AirPods, AirTags, Bose, Garmin, Gozney)
     expect(chunk("him").filter((p) => p.href.includes("B089F9YDFC")).length).toBe(1);
     expect(chunk("him").filter((p) => p.href.includes("B0GWXJ3PYM")).length).toBe(1);

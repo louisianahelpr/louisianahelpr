@@ -150,14 +150,14 @@ const LINKS_1123: Record<string, Record<string, string>> = {
 /**
  * The Black Friday steals she ticked for the guides (owner 11-24 ~1:45 AM, ~/.lh-shots/steals-to-guides-1124.md; her
  * Walmart links ~2:35 AM), copied from the links made that night (~/.lh-shots/later-switches-1124/steals-links.json), not
- * from the module (scripts/giftGuideSteals1124.mjs): Him S1 (Macy's); Kids S19-S27 (Target via ShopMy, S21 the Stanley tumbler)
- * and her 4 Walmart links.
+ * from the module (scripts/giftGuideSteals1124.mjs): Him S1 (Macy's) and S33 (Walmart Creator); Kids S19-S27 (Target via
+ * ShopMy, S21 the Stanley tumbler), her 4 Walmart links and S28-S30 (Walmart Creator).
  */
 const STEALS_1124: Record<string, Record<string, string>> = {
-  him: sm(["110122396"], "store-macys"),
+  him: { ...sm(["110122396"], "store-macys"), "https://walmrt.us/3XKh0AM": "store-walmart" },
   kids: {
     ...sm(["110125767", "110125685", "110125702", "110125781", "110125801", "110125818", "110125837", "110125353"], "store-target"),
-    ...Object.fromEntries(["4CpL44Q", "4fSzHIL", "4jcx3OU", "3V7qKEv"].map((c) => [`https://walmrt.us/${c}`, "store-walmart"])),
+    ...Object.fromEntries(["4CpL44Q", "4fSzHIL", "4jcx3OU", "3V7qKEv", "4AQxuWv", "4CcMa3A", "3VHA424"].map((c) => [`https://walmrt.us/${c}`, "store-walmart"])),
   },
 };
 /**

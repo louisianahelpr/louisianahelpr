@@ -1085,8 +1085,31 @@
    "list": "kids"
   },
   "go.shopmy.us/p-110125767": {
-   "name": "Stanley Quencher H2.0 FlowState Tumbler, 30 oz, Frost",
+   "name": "Stanley Quencher H2.0 FlowState Tumbler, 30 oz",
    "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4AQxuWv": {
+   "name": "KPop Demon Hunters Girls Slippers",
+   "gender": "girls",
+   "genderSource": "walmart.com listing title: KPop Demon Hunters Girls Slippers",
+   "list": "kids"
+  },
+  "walmrt.us/4CcMa3A": {
+   "name": "Monster Jam Grave Digger Toddler Slippers",
+   "gender": "boys",
+   "genderSource": "walmart.com listing title: Toddler Boys",
+   "ageMin": 1,
+   "ageMax": 4,
+   "ageSource": "walmart.com listing, read 2026-11-24: toddler shoe sizes (9/10 Toddler); no age number given, 1-4 from toddler sizing",
+   "list": "kids"
+  },
+  "walmrt.us/3VHA424": {
+   "name": "Bluey Toddler Pajama Set",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com listing, read 2026-11-24: Sizes 12M-5T (toddler)",
    "list": "kids"
   }
  }

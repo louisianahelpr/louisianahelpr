@@ -175,8 +175,8 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   // Christmas pajamas named "Pajamas" take that type (the type-agrees-with-name guard); cozy like kids-pajamas.
   pajamas: ["cozy"],
   // The owner's 11-24 Kids steals (scripts/giftGuideSteals1124.mjs): an advent calendar of little toys is a stocking-style
-  // countdown, a mini fridge is for a cozy room, a tumbler goes along to practice and school.
-  "advent-calendar": ["stocking", "pretend"], "mini-fridge": ["cozy"], tumbler: ["active"],
+  // countdown, a mini fridge is for a cozy room, a tumbler goes along to practice and school, slippers are cozy.
+  "advent-calendar": ["stocking", "pretend"], "mini-fridge": ["cozy"], tumbler: ["active"], slippers: ["cozy"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -248,11 +248,15 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   // and teens (no age number; the UUGEE pull-back cars calendar is named below), the Frigidaire mini fridge and the Stanley
   // tumbler give no age and read as gifts for big kids and teens.
   "advent-calendar": ["6-8", "9-12", "teen"], "mini-fridge": ["9-12", "teen"], tumbler: ["9-12", "teen"],
+  // Kid-size slippers (the KPop Demon Hunters pair comes in little-kid sizes).
+  slippers: ["3-5", "6-8"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],
-  // UUGEE's listing: "Gifts for 1 2 3 Years Old Toddlers" (owner's Walmart link, 11-24).
+  // UUGEE's listing: "Gifts for 1 2 3 Years Old Toddlers" (owner's Walmart link, 11-24); the Bluey pajamas and Grave
+  // Digger slippers she ticked come in toddler sizes (12M-5T, toddler shoe sizes).
   [/pull-back cars/i, ["0-2", "3-5"]],
+  [/bluey toddler pajama set|grave digger toddler slippers/i, ["0-2", "3-5"]],
   [/infant bucket swing/i, ["0-2"]],
   [/paint with water|sticker book/i, ["3-5", "6-8"]],
   [/aqua puffs/i, ["3-5", "6-8"]],

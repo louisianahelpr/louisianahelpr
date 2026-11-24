@@ -64,14 +64,17 @@ const MACYS: [string, string, number, string][] = [
 /**
  * [guide, link, store, commission %, price, name]: the Black Friday steals she ticked for the guides (owner 11-24 ~1:45 AM,
  * ~/.lh-shots/steals-to-guides-1124.md) and her Walmart links (~2:35 AM), copied from the links made that night
- * (~/.lh-shots/later-switches-1124/steals-links.json), not from the module.
+ * (~/.lh-shots/later-switches-1124/steals-links.json; the Walmart Creator links in steals-b-walmart-links.json), not from
+ * the module.
  */
 const wm = (code: string) => `https://walmrt.us/${code}`;
 const STEALS: [string, string, string, number, number, string][] = [
-  ["her", sm("110125767"), "store-target", 4, 20, "Stanley Quencher H2.0 FlowState Tumbler, 30 oz, Frost"],
+  ["her", sm("110125767"), "store-target", 4, 20, "Stanley Quencher H2.0 FlowState Tumbler, 30 oz"],
   ["her", sm("110122551"), "store-macys", 16, 10, "Clinique 2-Piece Merry Minis Gift Set"],
+  ["her", wm("49fAVtS"), "store-walmart", 15, 24.99, "Big Chill Women's Quilted Puffer Coat with Faux Fur Hood"],
   ["him", sm("110122396"), "store-macys", 16, 9.99, "The Cellar Morgan Ceramic Plaid Mugs, Set of 2"],
-  ["kids", sm("110125767"), "store-target", 4, 20, "Stanley Quencher H2.0 FlowState Tumbler, 30 oz, Frost"],
+  ["him", wm("3XKh0AM"), "store-walmart", 15, 10, "The Grinch Men's 12 Days of Socks"],
+  ["kids", sm("110125767"), "store-target", 4, 20, "Stanley Quencher H2.0 FlowState Tumbler, 30 oz"],
   ["kids", sm("110125685"), "store-target", 4, 8.99, "LEGO Sunflowers"],
   ["kids", sm("110125702"), "store-target", 4, 14.99, "Monster Jam Smash and Bash Toy Vehicle Playset"],
   ["kids", sm("110125781"), "store-target", 4, 10, "Hot Wheels Monster Trucks Mutant Chaos Truck, Car and Slime"],
@@ -83,6 +86,9 @@ const STEALS: [string, string, string, number, number, string][] = [
   ["kids", wm("4fSzHIL"), "store-walmart", 6, 12.61, "Cute Farm Animal Dumpling Advent Calendar"],
   ["kids", wm("4jcx3OU"), "store-walmart", 6, 16.89, "UUGEE Advent Calendar, 24 Pull-Back Cars"],
   ["kids", wm("3V7qKEv"), "store-walmart", 6, 15, "Monster Jam 1:64 Truck 4-Pack with 3 Mini Jams"],
+  ["kids", wm("4AQxuWv"), "store-walmart", 15, 8, "KPop Demon Hunters Girls Slippers"],
+  ["kids", wm("4CcMa3A"), "store-walmart", 15, 5, "Monster Jam Grave Digger Toddler Slippers"],
+  ["kids", wm("3VHA424"), "store-walmart", 15, 5.84, "Bluey Toddler Pajama Set"],
 ];
 /**
  * Measured 11-24 and kept where they were (no store paying more for the same item at about the same price): Later's
@@ -171,7 +177,7 @@ describe("owner 11-24: the Black Friday steals she ticked", () => {
 
   it("each Kids steal has a girls/boys/everyone tag, and its listing's age wherever the listing gives one", () => {
     const tags = (JSON.parse(readFileSync("src/content/giftGuideKidsTags.json", "utf8")) as { tags: Record<string, { gender?: string; ageMin?: number; ageSource?: string }> }).tags;
-    const aged = [sm("110125685"), sm("110125702"), sm("110125781"), sm("110125801"), sm("110125837"), sm("110125353"), wm("4jcx3OU"), wm("3V7qKEv")];
+    const aged = [sm("110125685"), sm("110125702"), sm("110125781"), sm("110125801"), sm("110125837"), sm("110125353"), wm("4jcx3OU"), wm("3V7qKEv"), wm("4CcMa3A"), wm("3VHA424")];
     for (const [, href, , , , name] of STEALS.filter((m) => m[0] === "kids")) {
       const t = tags[tagKey(href)];
       expect(t, name).toBeTruthy();

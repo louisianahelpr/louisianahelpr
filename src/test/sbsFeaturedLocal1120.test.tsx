@@ -173,10 +173,13 @@ describe("the migration", () => {
 });
 
   // Holiday audit 1121 area 5 #17: the unticked box says what to do.
-  // @mutate src/content/sbsFeaturedLocal.ts |       return "Tick this box to confirm you're taking part in Small Business Saturday."; |       return "This list is for businesses taking part in Small Business Saturday.";
+  // @mutate src/content/sbsFeaturedLocal.ts | : "Tick this box to confirm you're taking part in Small Business Saturday.", | : "This list is for businesses taking part in Small Business Saturday.",
 describe("the form", () => {
   it("checks before sending and never sends an invalid request", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
+    // Before Small Business Saturday (holiday audit 1121 #54: the box's words change after Nov 28; sbsDayWords1124).
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-24T15:00:00Z"));
     render(<SmallBizSubmitForm onClose={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "Send for review" }));
     expect(await screen.findByText("Tick this box to confirm you're taking part in Small Business Saturday.")).toBeTruthy();
@@ -184,5 +187,6 @@ describe("the form", () => {
     expect(screen.getByText(/Private: only our team sees it/)).toBeTruthy();
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
+    vi.useRealTimers();
   });
 });

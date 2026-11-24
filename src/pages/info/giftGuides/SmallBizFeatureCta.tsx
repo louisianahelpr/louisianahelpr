@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Button } from "@/components/ui/button";
-import { SBS_WORDS as W } from "@/content/sbsFeaturedLocal";
+import { SBS_WORDS as W, sbsDayWords } from "@/content/sbsFeaturedLocal";
+import { louisianaDay } from "@/content/giftGuideDeals.mjs";
 import { loadModule } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 
@@ -80,7 +81,7 @@ export function FeatureCta() {
     <section className="gg-sbs-cta" id={SBS_CTA_ID} aria-labelledby="gg-sbs-cta-h" data-gift-sbs-cta="">
       <style>{SBS_CTA_CSS}</style>
       <h2 id="gg-sbs-cta-h">{W.ctaTitle}</h2>
-      <p>{W.ctaLine}</p>
+      <p>{sbsDayWords(louisianaDay(new Date())).ctaLine}</p>
       {!open ? (
         <Button ref={openButton} className="btn-grad-primary" onClick={openForm} data-gift-sbs-open="">{W.ctaButton}</Button>
       ) : failed ? (

@@ -146,9 +146,11 @@ describe("Declutter overlays: Back closes the overlay, the page stays (C2)", () 
     }
     render(<MemoryRouter><Host /></MemoryRouter>);
     await waitFor(() => expect(document.querySelector("[data-confirm-sheet]")).not.toBeNull());
+    const sheet = document.querySelector("[data-confirm-sheet]") as HTMLElement;
     expect(marked()).toBe(true);
     await back();
-    await waitFor(() => expect(document.querySelector("[data-confirm-sheet]")).toBeNull());
+    if (sheet.isConnected) await waitForElementToBeRemoved(sheet);
+    expect(document.querySelector("[data-confirm-sheet]")).toBeNull();
     expect(document.querySelector("[data-host]")).not.toBeNull();
     expect(marked()).toBe(false);
   });

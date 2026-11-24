@@ -9,7 +9,8 @@
  * is scripts/check-deferred-vendors.mjs ("signed-in-only shared module is on the
  * boot path"), which reads the real chunks' sourcemaps; this is the source half.
  *
- * @mutate scripts/perf/bootReach.mjs |     itemShared: new Set([...itemPages].filter((f) => restReach.has(f))), |     itemShared: new Set(),
+ * @mutate scripts/perf/bootReach.mjs |     itemShared: new Set([...itemPages].filter((f) => restReach.has(f) \|\| ITEM_SHARED_PINNED_RE.test(f))), |     itemShared: new Set(),
+ * @mutate scripts/perf/bootReach.mjs | restReach.has(f) \|\| ITEM_SHARED_PINNED_RE.test(f) | restReach.has(f)
  * @mutate src/lib/quotes/api.ts | import { loadModule } from "@/lib/loadModule"; | import { loadModule } from "@/lib/loadModule"; import "@/lib/declutter/photos";
  * @mutate vite.config.ts |               name: "item-shared", |               name: "declutter-item-pages",
  * @mutate scripts/perf/bootReach.mjs |     itemFirst: new Set([...(split.declutterOnly ?? [])].filter((f) => reach.has(f))), |     itemFirst: new Set(),

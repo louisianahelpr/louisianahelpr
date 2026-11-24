@@ -1647,5 +1647,40 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-pig-plush-8-in-walmart-066851.webp"
    }
   ]
+ },
+ "hot-wheels": {
+  "section": "For kids",
+  "items": [
+   {
+    "name": "Hot Wheels Monster Trucks Snake Slam Takedown Playset",
+    "key": "hot-wheels:hw12",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-monster-trucks-snake-slam-takedown-playset-walmart-f8f4a1.webp"
+   },
+   {
+    "name": "Hot Wheels Boys Graphic Hoodie (5-12Y)",
+    "key": "hot-wheels:hw70",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-boys-graphic-hoodie-5-12y-walmart-d0512c.webp"
+   },
+   {
+    "name": "Hot Wheels Action Loop Cyclone Challenge Track Set with 5 Cars (Walmart exclusive)",
+    "key": "hot-wheels:hw10",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-action-loop-cyclone-challenge-track-set-with-5-ca-walmart-e7781f.webp"
+   },
+   {
+    "name": "Hot Wheels City Ultimate T-Rex Garage",
+    "key": "hot-wheels:hw62",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-city-ultimate-t-rex-garage-walmart-045b7a.webp"
+   },
+   {
+    "name": "Hot Wheels Little Boys Fleece Sweatshirt and Pants Set, 2-Piece",
+    "key": "hot-wheels:hw76",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-little-boys-fleece-sweatshirt-and-pants-set-2-pie-walmart-d49779.webp"
+   },
+   {
+    "name": "Hot Wheels Monster Trucks Colossal Mega-Wrex",
+    "key": "hot-wheels:hw22",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-monster-trucks-colossal-mega-wrex-walmart-e49848.webp"
+   }
+  ]
  }
 }

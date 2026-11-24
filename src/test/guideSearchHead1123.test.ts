@@ -92,7 +92,8 @@ describe("gift guide search head (Her, Him, Kids)", () => {
     const xml = readFileSync(resolve(ROOT, "public/sitemap.xml"), "utf8");
     const slugs = ["her", "him", "kids", "black-friday", "cyber-monday", "small-business-saturday"];
     for (const s of slugs) {
-      const m = xml.match(new RegExp(`<loc>${ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/gift-guides/${s}</loc>\\s*<lastmod>(\\d{4}-\\d{2}-\\d{2})</lastmod>`));
+      const at = xml.indexOf(`<loc>${ORIGIN}/gift-guides/${s}</loc>`);
+      const m = at < 0 ? null : xml.slice(at).match(/^<loc>[^<]*<\/loc>\s*<lastmod>(\d{4}-\d{2}-\d{2})<\/lastmod>/);
       expect(m, s).toBeTruthy();
       expect(m![1] >= GUIDE_UPDATED[s as keyof typeof GUIDE_UPDATED].day, s).toBe(true);
     }

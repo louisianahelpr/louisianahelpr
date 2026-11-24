@@ -203,7 +203,7 @@ describe("#54: the Edit listing sheet works like the sell form", () => {
     expect(screen.getByRole("group", { name: "Category" })).toBeInTheDocument();
     // The heading row names the chosen category, as on the sell form.
     expect(screen.getByRole("button", { name: /Furniture/ })).toBeInTheDocument();
-    // Fewer than 10 rows to start (the five headings), not ~35 chips.
+    // Fewer than 10 rows to start (the five headings), not ~35 chips (2026-11-22).
     expect(sheet.querySelectorAll("[data-category-drilldown] [data-category-heading]").length).toBeGreaterThan(2);
     expect(sheet.querySelectorAll("[data-category-drilldown] button, [data-category-drilldown] [role=radio]").length).toBeLessThan(10);
   });

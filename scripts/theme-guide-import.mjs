@@ -16,7 +16,7 @@
  *  - adds a store key (or a link host) RESEARCHED_STORES lacks;
  *  - adds the theme to src/content/giftGuideLive.mjs THEME_GUIDE_NAMES_1124 and scripts/gift-guide-themes/index.mjs;
  *  - refreshes by hand-edit every generated file a theme lives in (never scripts/gift-guide-picks.mjs, which rewrites
- *    ~45 unrelated files): its picks chunk, CHUNK_PICK_COUNTS / CHUNK_SLUGS / the chunk glob, GIFT_GUIDE_SEO, sitemap.xml, llms.txt, api/share.ts WIDE_CARD_FOR_ID, and the cover generators' SLUG_TINT / COVER_KEYS / PAGES;
+ *    ~45 unrelated files): its picks chunk, CHUNK_PICK_COUNTS / CHUNK_SLUGS / the chunk glob, GIFT_GUIDE_SEO, api/share.ts WIDE_CARD_FOR_ID, and the cover generators' SLUG_TINT / COVER_KEYS / PAGES;
  *  - first import (or --redraw-cover): writes the cover manifest entry from cover6.json, draws the green square cover
  *    (scripts/theme-guide-draw.py) and the 1200x630 card (scripts/gift-guide-wide-og.py <slug>), and refreshes
  *    COVER_SLUGS, COVER_WEBP_SLUGS and both version files. A re-import keeps the cover and card as they are;
@@ -107,6 +107,9 @@ function main() {
   const rows = [];
   const skipped = [];
   const storeHosts = new Map(); // store key -> { name, hosts }
+  // The link hosts the guides already use (each store's affiliate hosts, Amazon's, ShopMy's ...): a plain store link
+  // (www.walmart.com/ip/...) earns nothing and is refused by the guides' link guard, so it waits for its affiliate link.
+  const knownHosts = new Set(Object.values(researchedStores()).flatMap((s) => s.hosts));
   for (const g of research.groups ?? []) {
     for (const raw of g.items ?? []) {
       // A store code written into the name ("Slip-On Sneakers (code BFDEALS 30% off)") comes off the name; codes show only on
@@ -119,6 +122,7 @@ function main() {
       if (it.oos) why.push("out of stock");
       if (!(Number(it.price) > 0)) why.push("no price");
       if (!href.startsWith("https://")) why.push("no link");
+      else if (!knownHosts.has(hostOf(href))) why.push(`no affiliate link (${hostOf(href)})`);
       const prev = oldById.get(it.id);
       let image = "";
       const cut = join(folder, "cutouts", `${it.id}.webp`);
@@ -209,18 +213,14 @@ function main() {
   // 5. The search index (its own small generator: it reads the picks chunks and writes only that file).
   execFileSync("node", [rel("scripts/gift-guide-search-index.mjs")], { stdio: "inherit" });
 
-  // 6. Sitemap, llms.txt, the share card map: after the last theme already listed.
+  // 6. Sitemap and llms.txt: their own generators (each writes only its file, and check-generated-current checks both),
+  // then the share card map, after the last theme already listed.
   const others = Object.keys(names).filter((s) => s !== slug);
-  insertOnce("public/sitemap.xml", `<loc>${SITE}/gift-guides/${slug}</loc>`, (src) => {
-    const block = `  <url>\n    <loc>${SITE}/gift-guides/${slug}</loc>\n    <lastmod>${today()}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
-    const anchor = lastIndexOfAny(src, others.map((s) => `<loc>${SITE}/gift-guides/${s}</loc>`));
-    const at = anchor >= 0 ? src.indexOf("</url>\n", anchor) + "</url>\n".length : src.indexOf("</urlset>");
-    return src.slice(0, at) + block + src.slice(at);
-  });
-  insertOnce("public/llms.txt", `(${SITE}/gift-guides/${slug})`, (src) => {
-    const line = `- [${theme} gift guide](${SITE}/gift-guides/${slug}): ${theme} gift guide: hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.\n`;
-    return afterLastLine(src, others.map((s) => `(${SITE}/gift-guides/${s})`), line);
-  });
+  execFileSync("node", [rel("scripts/generate-sitemap.mjs")], { stdio: ["ignore", "ignore", "inherit"] });
+  execFileSync("node", [rel("scripts/generate-llms-txt.mjs")], { stdio: "inherit" });
+  for (const [f, m] of [["public/sitemap.xml", `<loc>${SITE}/gift-guides/${slug}</loc>`], ["public/llms.txt", `(${SITE}/gift-guides/${slug})`]]) {
+    if (!read(f).includes(m)) throw new Error(`${f}: the generator did not list ${slug}`);
+  }
   insertOnce("api/share.ts", `"gift-guides/${slug}": "${slug}",`, (src) => afterLastLine(src, others.map((s) => `  "gift-guides/${s}": "${s}",`), `  "gift-guides/${slug}": "${slug}",\n`));
 
   // 7. The cover generators: green, its cover's six photos on the card.
@@ -283,6 +283,11 @@ function main() {
   console.log(`  sections: ${bySection.join(" | ")}`);
 }
 
+function researchedStores() {
+  const m = read("src/content/giftGuidePicks.ts").match(/export const RESEARCHED_STORES: [^=]+ = (.*?);\n/);
+  if (!m) throw new Error("RESEARCHED_STORES not found");
+  return JSON.parse(m[1]);
+}
 function themeNames() {
   const m = read("src/content/giftGuideLive.mjs").match(/export const THEME_GUIDE_NAMES_1124 = (\{.*\});/);
   return JSON.parse(m[1]);

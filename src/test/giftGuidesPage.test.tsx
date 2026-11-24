@@ -454,9 +454,10 @@ describe("gift guides: the landing opens to the guides", () => {
     // Guide consistency audit 1122 #19: My Wish List closes the group, as in the phone's menu sheet (no dot).
     expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", ...THEME_GUIDES_1124.map((s) => `/gift-guides/${s}`), "/gift-guides/my-list"]);
     // Owner 2026-11-24: Monster Jam sits after Kids, green like its cover ("the green cover with the 6 images").
-    expect(guides.slice(1, 5).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(["oat", "green", "red", "green"]);
-    expect(guides.slice(1, 5).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(["gg-dot gg-oat", "gg-dot gg-green", "gg-dot gg-red", "gg-dot gg-green"]);
-    expect(guides[5].querySelector("[data-gift-side-dot]")).toBeNull();
+    const dots = ["oat", "green", "red", ...THEME_GUIDES_1124.map(() => "green")];
+    expect(guides.slice(1, 4 + THEME_GUIDES_1124.length).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(dots);
+    expect(guides.slice(1, 4 + THEME_GUIDES_1124.length).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(dots.map((d) => `gg-dot gg-${d}`));
+    expect(guides[4 + THEME_GUIDES_1124.length].querySelector("[data-gift-side-dot]")).toBeNull();
     expect(container.querySelector('[data-gift-sidebar] a[aria-current="page"]')?.getAttribute("href")).toBe("/gift-guides");
     cleanup();
     for (const [url, cur] of [["/gift-guides/kids", "/gift-guides/kids"], ["/gift-guides/mom", "/gift-guides/her"], ["/gift-guides/dad", "/gift-guides/him"]]) {
@@ -713,7 +714,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
       .filter((s) => !SEARCH_PAGES.some((p) => p.slug === s));
     expect(listed).toEqual(expect.arrayContaining(OWN_PAGES.map((s) => `/gift-guides/${s}`)));
     expect(listed).not.toContain(`/gift-guides/${DEALS_SLUG}`);
-    expect(guides.length).toBe(5); // owner 11-21: Her, Him, Kids and the sponsors page (11-24: + Monster Jam); the relationship pages 301 and are out of the sitemap
+    expect(guides.length).toBe(4 + THEME_GUIDES_1124.length); // owner 11-21: Her, Him, Kids and the sponsors page (11-24: + the themed guides); the relationship pages 301 and are out of the sitemap
     // Every listed guide opens, holds picks, and is no thin store page.
     for (const s of guides) {
       const g = guideBySlug(s);
@@ -745,7 +746,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     // A "gifts for the" / "gifts for a" guide reads as one phrase (batch 11-19: og:title was "Gifts for the: Coffee
     // Lover: holiday gift guide 2026"). No name puts a colon after a dangling article. Owner 11-21: no live guide is a
     // "Gifts for the ..." one (Coffee Lover, Family and the rest are retired), so only the rule over every name stays.
-    expect(Object.keys(GIFT_GUIDE_SEO).length).toBe(5); // + Monster Jam (owner 11-24)
+    expect(Object.keys(GIFT_GUIDE_SEO).length).toBe(4 + THEME_GUIDES_1124.length); // + the themed guides (owner 11-24)
     for (const name of Object.values(GIFT_GUIDE_SEO)) expect(name).not.toMatch(/\b(the|a|an):/i);
     // Q178 (CI 11-18: /declutter/item/:id 418 -> 423 KB gz): the guides' name table stays out of publicPageMeta.mjs,
     // which Login, Signup, Index and the Declutter item page load cold; only GiftGuides.tsx and api/share.ts read it.
@@ -861,7 +862,7 @@ describe("gift guides: each row heading carries its guide count (owner 11-18 PM)
       cleanup();
     }
     expect(counts.size).toBeGreaterThan(1); // 10 rows, 2026-11-21
-    expect([...new Set(counts.values())]).toEqual([4]); // Her, Him, Kids and Monster Jam (owner 11-24), from every old group link
+    expect([...new Set(counts.values())]).toEqual([3 + THEME_GUIDES_1124.length]); // Her, Him, Kids and the themed guides (owner 11-24), from every old group link
   });
 });
 

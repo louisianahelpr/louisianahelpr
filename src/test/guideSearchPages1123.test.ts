@@ -61,7 +61,6 @@ const served = async (slug: string) => {
 };
 // &amp; last, so "&amp;quot;" never double-unescapes (CodeQL).
 const decode = (s: string) => s.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
-const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const tag = (doc: string, re: RegExp) => decode(doc.match(re)?.[1] ?? "");
 const ldBlocks = (doc: string) =>
   [...doc.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]) as Record<string, unknown>);
@@ -146,7 +145,9 @@ describe("gift guide search pages", () => {
     const xml = readFileSync(resolve(ROOT, "public/sitemap.xml"), "utf8");
     for (const sp of SEARCH_PAGES) {
       expect(paths, sp.slug).toContain(`/gift-guides/${sp.slug}`);
-      expect(xml, sp.slug).toMatch(new RegExp(`<loc>${escapeRe(`${ORIGIN}/gift-guides/${sp.slug}`)}</loc>\\s*<lastmod>\\d{4}-\\d{2}-\\d{2}</lastmod>`));
+      const at = xml.indexOf(`<loc>${ORIGIN}/gift-guides/${sp.slug}</loc>`);
+      expect(at, sp.slug).toBeGreaterThanOrEqual(0);
+      expect(xml.slice(at), sp.slug).toMatch(/^<loc>[^<]*<\/loc>\s*<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
     }
   });
 

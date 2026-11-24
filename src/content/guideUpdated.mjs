@@ -6,11 +6,11 @@ export const GUIDE_UPDATED = {
   },
   "him": {
     "day": "2026-11-24",
-    "hash": "2640dde9eb9f7b5a"
+    "hash": "31cd1176f5e826a3"
   },
   "kids": {
     "day": "2026-11-24",
-    "hash": "848dd62c9bb38ee3"
+    "hash": "fd5b4392dfc98cf2"
   },
   "25-days-sponsors": {
     "day": "2026-11-23",

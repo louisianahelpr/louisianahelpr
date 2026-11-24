@@ -1167,6 +1167,11 @@
    "ageMin": 5,
    "ageSource": "Macy's listing title (ID 27143484), read 2026-11-24: Girls' sizes 5-16",
    "list": "kids"
+  },
+  "go.shopmy.us/p-110135306": {
+   "name": "Crocs Kids' Classic Clog",
+   "gender": "everyone",
+   "list": "kids"
   }
  }
 }

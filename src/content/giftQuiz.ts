@@ -81,7 +81,7 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   "beauty-device": ["beauty", "tech"], massager: ["fitness", "tech"], grooming: ["beauty"], soap: ["beauty"], "body-wash": ["beauty"],
   lotion: ["beauty"], shave: ["beauty"],
   pants: ["style"], jewelry: ["style"], bag: ["style"], sweatshirt: ["style", "cozy"], shoes: ["style"], "matching-set": ["style", "cozy"],
-  scarf: ["style", "cozy"], hat: ["style"], shirt: ["style"], pullover: ["style", "cozy"], jacket: ["style", "outdoors"], belt: ["style"],
+  scarf: ["style", "cozy"], hat: ["style"], shirt: ["style"], pullover: ["style", "cozy"], jacket: ["style", "outdoors"], belt: ["style"], slippers: ["cozy"],
   wallet: ["style"], sunglasses: ["style", "outdoors"], vest: ["outdoors", "tech"], accessory: ["style"], boots: ["outdoors", "style"],
   luggage: ["style"], "sunglass-strap": ["outdoors", "style"], "travel-kit": ["style"],
   fishing: ["outdoors"], hunting: ["outdoors"], knife: ["outdoors"], "trail-camera": ["outdoors", "tech"], binoculars: ["outdoors"],

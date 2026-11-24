@@ -10,6 +10,7 @@ import { STORE_CODES, codeCardsOrder, dealDayLists, dealDayParts } from "@/conte
 import { publicPartners } from "@/components/sponsor/Sections";
 import { sponsorPage } from "@/content/sponsorPage";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { RETIRED_TO_SEARCH_PAGE } from "@/content/retiredGuideForward";
 import deals from "@/content/giftGuideDeals.json";
 import smallBiz from "@/content/giftGuideSmallBiz.json";
 import { QA_PAGES, toQaPick } from "@/lib/guideQa.mjs";
@@ -64,7 +65,7 @@ export async function buildSeoData(): Promise<SeoData> {
     guides[g.slug] = { name, indexed, picks, count: indexed ? new Set(g.picks.filter((p) => p.name && p.href).map((p) => `${p.href} ${p.name}`)).size : 0, ...(related.length ? { related } : {}), ...(qa.length ? { qa } : {}) };
   }
   const moved: Record<string, string> = {};
-  for (const old of [...Object.keys(OLD_SLUGS), ...Object.keys(MERGED_GUIDES), ...RETIRED_SLUGS()]) {
+  for (const old of new Set([...Object.keys(OLD_SLUGS), ...Object.keys(MERGED_GUIDES), ...RETIRED_SLUGS(), ...Object.keys(RETIRED_TO_SEARCH_PAGE)])) {
     const to = newSlugFor(old);
     if (to && to !== old && !guides[old]) moved[old] = to;
     // 1120: a folded store page (no page of its own, its items in the guides) opens the gift guides landing page ("");

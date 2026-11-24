@@ -81,7 +81,7 @@ const SPONSORS = "25-days-sponsors";
 const TOOLS = ["/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner"];
 const PRINTABLES = "/gift-guides/printables";
 /** Guides that were live before 11-21 (one of each kind): an interest guide, a store page, a color guide, a career guide. */
-const RETIRED = ["teens", "store-amazon", "gifts-by-color", "healthcare", "car-lover", "store-target", "pets", "splurge"];
+const RETIRED = ["golfer", "store-amazon", "gifts-by-color", "healthcare", "car-lover", "store-target", "pets", "splurge"];
 
 function Where() {
   const { pathname, search } = useLocation();
@@ -122,7 +122,7 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
       expect(newSlugFor(slug), slug).toBe(guide);
       expect(RETIRED_SLUGS(), slug).toContain(slug);
     }
-    for (const slug of ["teens", "store-amazon", "gifts-by-color"]) {
+    for (const slug of ["golfer", "store-amazon", "gifts-by-color"]) {
       const { container } = renderAt(`/gift-guides/${slug}`);
       expect(container.querySelector("[data-test-where]")?.textContent, slug).toBe("/gift-guides");
       cleanup();

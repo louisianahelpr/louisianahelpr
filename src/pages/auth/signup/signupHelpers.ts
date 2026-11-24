@@ -10,13 +10,6 @@ import { t } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
-export const ALLOWED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-];
-
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
@@ -353,12 +346,4 @@ export function noteSignupRedirect(): void {
     // explaining the redirect. Losing it costs a line of copy — and must
     // never cost the redirect itself, which is the enumeration defence.
   }
-}
-
-/**
- * F260n (audit 11-10): step 2 of sign-up is a history entry (location.state.step === 2), so the browser's Back
- * returns to step 1 with its fields still filled, and Forward returns to step 2. Anything else is step 1.
- */
-export function signupStepFromHistory(state: unknown): 1 | 2 {
-  return (state as { step?: unknown } | null | undefined)?.step === 2 ? 2 : 1;
 }

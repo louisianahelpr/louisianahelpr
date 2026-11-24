@@ -15,9 +15,10 @@
 // recorded, rather than the account being quietly created unreachable. The
 // owner's own profile (ZIP 70528, parish NULL) is what made that concrete.
 //
-// THREE ENTRY POINTS, which is the whole point of this file. Email signup goes
-// through SignupStep2; Google and Apple sign-ins never see that screen and land
-// on CompleteProfile; an existing member changes their ZIP in ProfileEditForm.
+// EVERY ENTRY POINT, which is the whole point of this file. Sign-up asks no ZIP
+// (one screen since owner 11-23; the old SignupStep2 is gone, and the guard
+// below fails if a ZIP field comes back there unwarned): a ZIP is typed on
+// CompleteProfile or in ProfileEditForm.
 // Warning on one of them moves the gap rather than closing it — the same
 // reasoning, and the same trap, as signupOptionalScreenTwo.test.tsx.
 //
@@ -90,16 +91,19 @@ const readsParishHook = (file: string) =>
       n.arguments[0].text === "zipCode",
   );
 
-// SignupStep2 is presentational and receives the flag as a prop, so it renders
-// on `zipUnknown`; the two that own their own state render on `unknownZip`.
 const SURFACES: Array<[label: string, path: string, flag: string]> = [
-  ["email signup (SignupStep2)", "src/pages/auth/signup/SignupStep2.tsx", "zipUnknown"],
   ["social sign-in (CompleteProfile)", "src/pages/auth/CompleteProfile.tsx", "unknownZip"],
   ["profile edit (ProfileEditForm)", "src/components/profile/ProfileEditForm.tsx", "unknownZip"],
 ];
 
 describe("every ZIP field warns on an unresolvable ZIP", () => {
-  it("covers the real ZIP surfaces (floor, Q1073, 2026-10-07)", () => expect(SURFACES.length).toBeGreaterThan(2));
+  it("covers the real ZIP surfaces (floor, Q1073, 2026-10-07)", () => expect(SURFACES.length).toBeGreaterThan(1));
+  it("sign-up asks no ZIP (one screen, owner 11-23), so it has none to leave silent", () => {
+    for (const f of ["src/pages/auth/Signup.tsx", "src/pages/auth/signup/SignupStep1.tsx"]) {
+      expect(readsParishHook(f), f).toBe(false);
+      expect(read(f), f).not.toMatch(/id="zipCode"|zipCode=\{/);
+    }
+  });
   for (const [label, path, flag] of SURFACES) {
     it(`${label} renders the shared warning`, () => {
       // Rendered on the unknown-ZIP flag specifically — not on "no parish
@@ -118,27 +122,13 @@ describe("every ZIP field warns on an unresolvable ZIP", () => {
     });
   }
 
-  it("all three read the parish through the shared hook", () => {
+  it("every ZIP field reads the parish through the shared hook", () => {
     // Each of these used to carry its own byte-identical copy of the resolve
     // effect, and each independently decided to render nothing for the case
-    // that mattered. One hook is what stops a fourth copy repeating that.
-    for (const [, path] of SURFACES.slice(1)) {
+    // that mattered. One hook is what stops another copy repeating that.
+    for (const [, path] of SURFACES) {
       expect(readsParishHook(path), path).toBe(true);
     }
-    // SignupStep2 is presentational — Signup.tsx owns the state and passes it.
-    expect(readsParishHook("src/pages/auth/Signup.tsx")).toBe(true);
-    const wired = find(
-      parse("src/pages/auth/Signup.tsx"),
-      (n) =>
-        ts.isJsxAttribute(n) &&
-        n.name.getText() === "zipUnknown" &&
-        !!n.initializer &&
-        ts.isJsxExpression(n.initializer) &&
-        !!n.initializer.expression &&
-        ts.isIdentifier(n.initializer.expression) &&
-        n.initializer.expression.text === "unknownZip",
-    );
-    expect(wired, "Signup.tsx no longer passes unknownZip into SignupStep2's zipUnknown prop").toBeTruthy();
   });
 });
 

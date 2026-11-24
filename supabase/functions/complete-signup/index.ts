@@ -895,6 +895,11 @@ async function completeSignup(req: Request, claim: NoSessionClaim): Promise<Resp
     updateData.terms_version_accepted = LEGAL_TERMS_VERSION;
     updateData.terms_accepted_at = consentAt;
     updateData.accepted_terms_at = consentAt;
+    // The 18+ box (ageAttested, from the sign-up form's one consent box) is stored where the Google/Apple path stores
+    // it (Complete Profile writes profiles.age_attested_at, migration 20261014205016). Until 11-23 this path only
+    // checked the flag above and kept nothing. trg_profiles_pin_age_attested_at stamps now() and keeps the first one,
+    // so a resubmission never moves it.
+    if (ageAttested === true) updateData.age_attested_at = consentAt;
     if (availability) updateData.availability = availability;
     if (transportation) updateData.transportation = transportation;
     if (hearAboutUs) updateData.hear_about_us = hearAboutUs;

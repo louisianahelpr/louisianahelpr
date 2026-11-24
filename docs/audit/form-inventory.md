@@ -588,8 +588,8 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
+| `src/pages/auth/signup/ReferralCodeField.tsx` | input×1 | text |  | referral-code-toggle · referralCode · referral-code-input |
 | `src/pages/auth/signup/SignupStep1.tsx` | input×4, checkbox/switch/radio×2 | text, email |  | signup-card-head · firstName · signup-firstName-error · lastName · signup-lastName-error · email · signup-email-error · signup-email-typo |
-| `src/pages/auth/signup/SignupStep2.tsx` | input×2, textarea×1 | text | 5 | avatar · avatar-error · location · location-error · zipCode · zipCode-error · zipCode-unknown · bio |
 
 ## /signup-pending
 

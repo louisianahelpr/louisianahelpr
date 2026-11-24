@@ -38,8 +38,8 @@
  * @mutate src/components/auth/TurnstileField.tsx | <InlineTextButton\n              onClick={() => { | <button type="button"\n              onClick={() => {
  * @mutate src/components/profile/SubscriptionTab.tsx | <InlineTextButton\n            onClick={handleRestorePurchases} | <button type="button"\n            onClick={handleRestorePurchases}
  * @mutate src/pages/auth/SignupPending.tsx | <InlineTextButton\n                onClick={handleResend} | <button type="button"\n                onClick={handleResend}
+ * @mutate src/pages/auth/signup/ReferralCodeField.tsx | <InlineTextButton\n          data-testid="referral-code-toggle" | <button type="button"\n          data-testid="referral-code-toggle"
  * @mutate src/components/sections/StatusBoxes.tsx | <InlineTextButton onClick={onSeeAll} | <button type="button" onClick={onSeeAll}
- * @mutate src/pages/auth/signup/SignupStep2.tsx | <InlineTextButton\n          data-testid="referral-code-toggle" | <button type="button"\n          data-testid="referral-code-toggle"
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -70,7 +70,7 @@ const CASES: [string, number][] = [
   ["src/components/auth/TurnstileField.tsx", 1],
   ["src/components/profile/SubscriptionTab.tsx", 1],
   ["src/pages/auth/SignupPending.tsx", 1],
-  ["src/pages/auth/signup/SignupStep2.tsx", 2],
+  ["src/pages/auth/signup/ReferralCodeField.tsx", 1],
   ["src/components/job-card/ActivityBucketGroups.tsx", 1],
   ["src/components/sections/StatusBoxes.tsx", 1],
   ["src/pages/search/SearchPage.tsx", 1],
@@ -92,9 +92,9 @@ function scan(file: string) {
 }
 
 describe("underlined text actions are the shared InlineTextButton (Q2709)", () => {
-  it("checks all twenty-four files, thirty-one actions (an empty list would pass every case)", () => {
+  it("checks all twenty-four files, thirty actions (an empty list would pass every case)", () => {
     expect(CASES.length).toBe(24);
-    expect(CASES.reduce((a, [, n]) => a + n, 0)).toBe(31);
+    expect(CASES.reduce((a, [, n]) => a + n, 0)).toBe(30);
   });
 
   it.each(CASES)("%s", (file, n) => {

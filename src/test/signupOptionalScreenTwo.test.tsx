@@ -1,31 +1,29 @@
 /**
- * Sign-up as the owner finally asked (2026-10-26, via the lead):
- *   Screen 1: First name + Last name side by side (required), then email,
- *             password and the Terms box, all required.
- *   Screen 2: photo, city, ZIP, bio and referral code, all OPTIONAL, with
- *             "Skip for now".
+ * Sign-up as the owner asked (2026-10-26, via the lead), then made one screen (owner 11-23: "There shouldn't be a
+ * screen 2"):
+ *   The form: First name + Last name side by side (required), then email,
+ *             password and the Terms box, all required, and "Create account".
+ *   No second screen: photo, city, ZIP and bio are not asked at sign-up (Edit
+ *             Profile has them); the account is created exactly as the old
+ *             "Skip for now" created it. The optional referral code moved
+ *             onto the form (referralCodeEnterable.test.ts).
  *   Apple/Google: Complete Profile asks first + last only when the provider
  *             gave no full name.
  * This replaces zipRequiredAtSignup.test.ts (owner 2026-09-05: ZIP required),
- * which the 2026-10-26 ask overrules. A typed ZIP must still be five digits:
- * a half one resolves no parish.
+ * which the 2026-10-26 ask overrules.
  *
- * Three layers, each read or driven here: the two screens (rendered), the
- * account write ("Skip" sends none of screen 2's fields), and the gate
- * (isProfileComplete, called for real): a skipped city must not send an email
- * sign-up to /complete-profile, or "Skip for now" is a redirect loop.
+ * Three layers, each read or driven here: the form (rendered), the account
+ * write (none of the old screen's fields are sent), and the gate
+ * (isProfileComplete, called for real): no city must not send an email
+ * sign-up to /complete-profile, or sign-up is a redirect loop.
  *
  * @mutate src/pages/auth/signup/SignupStep1.tsx |     if (!firstName.trim()) {\n      firstNameRef.current?.focus();\n      return;\n    } |
- * @mutate src/pages/auth/Signup.tsx |     if (!firstName.trim()) { toast.error(t("signup.firstNameToast")); return false; } |
- * @mutate src/pages/auth/Signup.tsx |       if (zip && zip.length !== 5) errors.zipCode = t("signup.zipInvalid"); |       if (!zip) errors.zipCode = "Add your ZIP code";
- * @mutate src/pages/auth/Signup.tsx |         location: skipped ? "" : location, |         location,
- * @mutate src/pages/auth/Signup.tsx |             onSkip={() => finishStep2(true)} |             onSkip={() => finishStep2(false)}
- * @mutate src/pages/auth/Signup.tsx |         referralCode: (skipped ? linkReferralCode : referralCode.trim().toUpperCase()) \|\| null, |         referralCode: referralCode.trim().toUpperCase() \|\| null,
+ * @mutate src/pages/auth/Signup.tsx |     if (!firstName.trim()) return refuse(t("signup.firstNameToast")); |
+ * @mutate src/pages/auth/Signup.tsx |         location: "",\n |         location: "Lafayette",\n
+ * @mutate src/pages/auth/Signup.tsx |         zipCode: "",\n |         zipCode: "70501",\n
  * @mutate src/components/ProtectedRoute.tsx |   if (!signupFinished(profile)) return false; |
  * @mutate src/components/ProtectedRoute.tsx | const signupFinished = (profile: GateProfile): boolean => filled(profile.accepted_terms_at) \|\| filled(profile.terms_accepted_at); | const signupFinished = (profile: GateProfile): boolean => filled(profile.location) \|\| filled(profile.accepted_terms_at) \|\| filled(profile.terms_accepted_at);
  * @mutate src/components/ProtectedRoute.tsx |   if (user?.app_metadata?.provider === "email" && filled(profile.accepted_terms_at)) return true; |   if (user?.app_metadata?.provider === "email") return true;
- * @mutate src/pages/auth/signup/SignupStep2.tsx |         onClick={onSkip} |         onClick={onContinue}
- * @mutate src/pages/auth/signup/SignupStep2.tsx |         {t("signup.skip")}\n |         Skip for now\n
  * @mutate src/components/ProtectedRoute.tsx |   { key: "full_name", label: "Full name" }, |   { key: "full_name", label: "Full name" }, { key: "location", label: "City" },
  * @mutate src/pages/auth/CompleteProfile.tsx |             {nameAsked && !providerGaveName && ( |             {true && (
  * @mutate src/pages/auth/CompleteProfile.tsx |     { const zip = zipCode.replace(/\D/g, ""); if (zip && zip.length !== 5) return fail( |     { const zip = zipCode.replace(/\D/g, ""); if (zip.length !== 5) return fail(
@@ -38,7 +36,6 @@ import { useState } from "react";
 import { blankComments } from "./helpers/blankNonCode";
 import { en } from "@/lib/i18n/en";
 import { SignupStep1 } from "@/pages/auth/signup/SignupStep1";
-import { SignupStep2 } from "@/pages/auth/signup/SignupStep2";
 import { isProfileComplete } from "@/components/ProtectedRoute";
 
 afterEach(cleanup);
@@ -46,7 +43,6 @@ afterEach(cleanup);
 const read = (p: string) => blankComments(readFileSync(p, "utf8"));
 const SIGNUP = read("src/pages/auth/Signup.tsx");
 const STEP1 = read("src/pages/auth/signup/SignupStep1.tsx");
-const STEP2 = read("src/pages/auth/signup/SignupStep2.tsx");
 const COMPLETE = read("src/pages/auth/CompleteProfile.tsx");
 // Its save path, where the row's fields are written (moved out of CompleteProfile.tsx, Q806).
 const COMPLETE_SAVE = read("src/pages/auth/completeProfile/saveCompletedProfile.ts");
@@ -72,8 +68,8 @@ function Step1({ onContinue }: { onContinue: () => void }) {
   );
 }
 
-describe("screen 1: first and last name, side by side, required", () => {
-  it("Continue with no names stops and names both", () => {
+describe("the form: first and last name, side by side, required", () => {
+  it("Create account with no names stops and names both", () => {
     const onContinue = vi.fn();
     render(<Step1 onContinue={onContinue} />);
     const first = screen.getByLabelText("First name");
@@ -81,79 +77,54 @@ describe("screen 1: first and last name, side by side, required", () => {
     // Side by side: one two-column row holds both.
     expect(first.closest(".grid-cols-2")).toBe(last.closest(".grid-cols-2"));
     expect(first.closest(".grid-cols-2")).not.toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
     expect(onContinue).not.toHaveBeenCalled();
     expect(screen.getByText("Add your first name")).toBeTruthy();
     expect(screen.getByText("Add your last name")).toBeTruthy();
     // Each name stops Continue on its own.
     fireEvent.change(last, { target: { value: "Lee" } });
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
     expect(onContinue).not.toHaveBeenCalled();
     fireEvent.change(last, { target: { value: "" } });
     fireEvent.change(first, { target: { value: "Ann" } });
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
     expect(onContinue).not.toHaveBeenCalled();
     fireEvent.change(last, { target: { value: "Lee" } });
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
     expect(onContinue).toHaveBeenCalledTimes(1);
   });
 
-  it("the names come before the email, and the parent refuses a step without them too", () => {
+  it("the names come before the email, and the parent refuses a submit without them too", () => {
     expect(STEP1.indexOf('htmlFor="firstName"')).toBeGreaterThan(0);
     expect(STEP1.indexOf('htmlFor="firstName"')).toBeLessThan(STEP1.indexOf('htmlFor="email"'));
-    expect(SIGNUP).toContain('if (!firstName.trim()) { toast.error(t("signup.firstNameToast")); return false; }');
+    expect(SIGNUP).toContain('if (!firstName.trim()) return refuse(t("signup.firstNameToast"));');
     expect(en["signup.firstNameToast"]).toBe("Add your first name.");
-    expect(SIGNUP).toContain('if (!lastName.trim()) { toast.error(t("signup.lastNameToast")); return false; }');
+    expect(SIGNUP).toContain('if (!lastName.trim()) return refuse(t("signup.lastNameToast"));');
     expect(en["signup.lastNameToast"]).toBe("Add your last name.");
   });
 });
 
-describe("screen 2: photo, city, ZIP, bio and referral code, all optional, with Skip for now", () => {
-  it("asks no name, marks City and ZIP optional, and Skip calls its own handler", () => {
-    expect(STEP2).not.toMatch(/id="firstName"|id="lastName"/);
-    const onSkip = vi.fn();
-    const onContinue = vi.fn();
-    render(
-      <SignupStep2
-        avatarPreview={null} onAvatarChange={() => {}}
-        location="" setLocation={() => {}} zipCode="" setZipCode={() => {}}
-        bio="" setBio={() => {}} referralCode="" setReferralCode={() => {}}
-        inputCls="" labelCls="" onContinue={onContinue} onSkip={onSkip}
-      />,
-    );
-    expect(screen.getByText(/^City/).textContent).toBe("City (optional)");
-    expect(screen.getByText(/^ZIP/).textContent).toBe("ZIP (optional)");
-    fireEvent.click(screen.getByTestId("signup-skip"));
-    expect(onSkip).toHaveBeenCalledTimes(1);
-    expect(onContinue).not.toHaveBeenCalled();
-    // ONE clear action (A3-C2): Skip is a text link that says it creates the account, not a second button.
-    expect(screen.getByTestId("signup-skip").textContent).toBe("Skip and create account");
+describe("no second screen: photo, city, ZIP and bio are not asked at sign-up", () => {
+  it("the form asks none of them, and nothing renders or validates them", () => {
+    for (const f of [SIGNUP, STEP1]) {
+      expect(f).not.toMatch(/id="(zipCode|bio|avatar|location)"/);
+      expect(f).not.toMatch(/SignupStep2|validateAboutYouStep|finishStep2|onSkip|stepTwoOfTwo|aboutTitle/);
+    }
+    expect(SIGNUP).not.toMatch(/errors\.(location|zipCode|bio)\s*=/);
+    expect(SIGNUP).not.toMatch(/useState\(\(\) => \{\s*if \(!import\.meta\.env\.DEV\) return 1;/); // the old ?step=2 seed
   });
 
-  it("requires nothing on screen 2, but a typed ZIP is five digits", () => {
-    expect(SIGNUP).not.toMatch(/errors\.location\s*=/);
-    expect(SIGNUP).not.toMatch(/errors\.firstName\s*=|errors\.lastName\s*=/);
-    expect(SIGNUP).not.toMatch(/errors\.zipCode\s*=\s*"Add your ZIP code"/);
-    expect(SIGNUP).toContain('if (zip && zip.length !== 5) errors.zipCode = t("signup.zipInvalid");');
-    expect(en["signup.zipInvalid"]).toBe("Enter a 5-digit ZIP code");
-  });
-
-  it("Skip creates the account with none of screen 2's fields (only a ?ref= link's code still counts)", () => {
-    expect(SIGNUP).toContain("onSkip={() => finishStep2(true)}");
-    expect(SIGNUP).toContain("onContinue={() => finishStep2(false)}");
-    expect(SIGNUP).toMatch(/if \(!skip && !\(await validateAboutYouStep\(\)\)\) return;[^]*?await createAccountAndFinish\(skip\);/);
-    expect(SIGNUP).toContain("completeProfile(userId, gaveUp.signal, skipped)");
-    expect(SIGNUP).toContain('bio: skipped ? "" : bio,');
-    expect(SIGNUP).toContain('location: skipped ? "" : location,');
-    expect(SIGNUP).toContain('zipCode: skipped ? "" : zipCode.trim(),');
-    expect(SIGNUP).toContain("const parish = skipped ? null : resolvedZipParish;");
-    expect(SIGNUP).toContain("if (avatarFile && !skipped) {");
-    expect(SIGNUP).toContain("referralCode: (skipped ? linkReferralCode : referralCode.trim().toUpperCase()) || null,");
-    expect(SIGNUP).toContain('const linkReferralCode = (searchParams.get("ref") || "").trim().toUpperCase();');
+  it("the account is created with none of those fields (the old Skip-for-now body)", () => {
+    expect(SIGNUP).toContain("avatarBase64: null,");
+    expect(SIGNUP).toContain('bio: "",');
+    expect(SIGNUP).toContain('location: "",');
+    expect(SIGNUP).toContain('zipCode: "",');
+    expect(SIGNUP).toContain("parish: null,");
+    expect(SIGNUP).toContain("referralCode: referralCode.trim().toUpperCase() || null,");
   });
 });
 
-describe("the gate lets a skipped city through", () => {
+describe("the gate lets a sign-up with no city through", () => {
   const email = { app_metadata: { provider: "email" } };
   const google = { app_metadata: { provider: "google" } };
   const base = { full_name: "Ann Lee", location: "", is_legacy_user: false } as Parameters<typeof isProfileComplete>[0];

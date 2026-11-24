@@ -154,14 +154,23 @@ describe("signup leads: client and unsubscribe layers", () => {
   const lib = blankComments(readFileSync(join(ROOT, "src/lib/signupLead.ts"), "utf8"));
   const unsub = blankComments(readFileSync(join(ROOT, "supabase/functions/email-unsubscribe/index.ts"), "utf8"));
 
-  it("step 1 captures the email after validation, without awaiting it (never blocks sign-up)", () => {
-    const cont = signup.indexOf("onContinue={async () => {");
-    expect(cont).toBeGreaterThan(-1);
-    const block = signup.slice(cont, signup.indexOf("setStep(2);", cont));
-    expect(block).toMatch(/await validateAccountStep\(\)/);
-    expect(block).toMatch(/\n\s*captureLead\(email\);/);
-    expect(block).not.toMatch(/await\s+captureLead/);
-    expect(block.indexOf("validateAccountStep")).toBeLessThan(block.indexOf("captureLead"));
+  it("Create account captures the email after validation, without awaiting it (never blocks sign-up)", () => {
+    // One screen (owner 11-23): submit validates, then createAccountAndFinish runs.
+    const submit = signup.slice(signup.indexOf("const submit = async () => {"));
+    expect(submit.indexOf("await validateAccountStep()")).toBeGreaterThan(-1);
+    expect(submit.indexOf("await validateAccountStep()")).toBeLessThan(submit.indexOf("await createAccountAndFinish();"));
+    const create = signup.slice(signup.indexOf("const createAccountAndFinish = async () => {"), signup.indexOf("const submit = async () => {"));
+    expect(create).not.toMatch(/await\s+captureLead/);
+    // signUp takes the ready Turnstile token first (runWithCaptcha asks synchronously); the capture is sent right
+    // after, before signUp's answer is awaited, so a sign-up that then fails still leaves its one reminder.
+    const run = create.indexOf("const signingUp = captcha.run(");
+    const lead = create.indexOf("captureLead(email);", run);
+    expect(run).toBeGreaterThan(-1);
+    expect(lead).toBeGreaterThan(run);
+    expect(lead).toBeLessThan(create.indexOf("await signingUp;"));
+    // A breached password stops before signUp: it is captured there too.
+    const pwned = create.slice(create.indexOf("if (pwnedCount !== null && pwnedCount > 0) {"));
+    expect(pwned.slice(0, pwned.indexOf("return;"))).toMatch(/captureLead\(email\);/);
     expect(signup).toMatch(/const captureLead = useSignupLeadCapture\(captcha\.ref\);/);
     // The hook never awaits, remembers the last address (a typo fix replaces
     // it), and queues each save behind the previous one so a corrected address

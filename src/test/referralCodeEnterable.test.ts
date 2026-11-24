@@ -1,10 +1,11 @@
 // A referral code must be TYPEABLE, not only linkable — and whatever ends up
 // in the field must reach complete-signup's body.
 //
-// @mutate src/pages/auth/signup/SignupStep2.tsx | id="referralCode" | id="referralCodeGone"
-// @mutate src/pages/auth/signup/SignupStep2.tsx | data-testid="referral-code-toggle" | data-testid="referral-code-toggle-gone"
+// @mutate src/pages/auth/signup/ReferralCodeField.tsx | id="referralCode" | id="referralCodeGone"
+// @mutate src/pages/auth/signup/ReferralCodeField.tsx | data-testid="referral-code-toggle" | data-testid="referral-code-toggle-gone"
+// @mutate src/pages/auth/signup/SignupStep1.tsx | <ReferralCodeField referralCode={referralCode} | <ReferralCodeFieldGone referralCode={referralCode}
 // @mutate src/pages/auth/Signup.tsx | setReferralCode={setReferralCode} | setReferralCode={() => {}}
-// @mutate src/pages/auth/Signup.tsx | referralCode: (skipped ? linkReferralCode : referralCode.trim().toUpperCase()) \|\| null, | referralCode: null,
+// @mutate src/pages/auth/Signup.tsx | referralCode: referralCode.trim().toUpperCase() \|\| null, | referralCode: null,
 // @mutate src/pages/auth/Signup.tsx | const [referralCode, setReferralCode] = useState( | const [referralCode] = useState(
 //
 // Until 2026-09-22 the only door was `?ref=<code>`:
@@ -21,8 +22,9 @@
 // This file guards three separate things, because closing one without the
 // others re-opens the hole in a way that looks fixed:
 //
-//   1. the field EXISTS and is bound to a real setter (SignupStep2),
-//   2. the setter is actually HANDED to the step by the parent (Signup),
+//   1. the field EXISTS and is bound to a real setter (ReferralCodeField, on the one
+//      sign-up form since owner 11-23 retired screen 2),
+//   2. the setter is actually HANDED down by the parent (Signup -> SignupStep1),
 //   3. the value REACHES complete-signup's body, normalised.
 //
 // Normalisation is asserted at BOTH ends on purpose. The referral RPC already
@@ -86,13 +88,15 @@ const codeOnly = (src: string): string => {
   return out.join("");
 };
 
-const STEP2 = codeOnly(read("src/pages/auth/signup/SignupStep2.tsx"));
+const STEP2 = codeOnly(read("src/pages/auth/signup/ReferralCodeField.tsx"));
+const FORM = codeOnly(read("src/pages/auth/signup/SignupStep1.tsx"));
 const SIGNUP = codeOnly(read("src/pages/auth/Signup.tsx"));
 
 describe("a referral code can be typed, not only deep-linked", () => {
-  it("SignupStep2 renders a referral-code input", () => {
-    // Anchored on the id the label's htmlFor and the parent's aria-controls
-    // both point at — rename it and the field is no longer addressable.
+  it("the sign-up form renders the referral-code field", () => {
+    expect(FORM).toContain("<ReferralCodeField referralCode={referralCode} setReferralCode={setReferralCode}");
+    // Anchored on the id the label's htmlFor points at — rename it and the
+    // field is no longer addressable.
     expect(STEP2).toContain('id="referralCode"');
   });
 
@@ -108,7 +112,7 @@ describe("a referral code can be typed, not only deep-linked", () => {
     // Collapsed by default, so it costs nothing to the majority with no code —
     // but there has to be something to press.
     expect(STEP2).toContain('data-testid="referral-code-toggle"');
-    expect(read("src/pages/auth/signup/SignupStep2.tsx")).toContain("Have a referral code?");
+    expect(STEP2).toContain('t("signup.referralAsk")');
   });
 
   it("Signup hands BOTH the value and the setter to the step", () => {
@@ -129,10 +133,7 @@ describe("a referral code can be typed, not only deep-linked", () => {
 
   it("the code reaches complete-signup's body, trimmed and upper-cased", () => {
     // The whole point. A field nobody sends is decoration.
-    // "Skip for now" (2026-10-27) sends only the code a ?ref= link brought in.
-    expect(SIGNUP).toMatch(
-      /referralCode:\s*\(skipped \? linkReferralCode : referralCode\.trim\(\)\.toUpperCase\(\)\)\s*\|\|\s*null/,
-    );
+    expect(SIGNUP).toMatch(/referralCode:\s*referralCode\.trim\(\)\.toUpperCase\(\)\s*\|\|\s*null/);
   });
 
   it("does not gate account creation on the code", () => {

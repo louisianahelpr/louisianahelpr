@@ -32,9 +32,9 @@ describe("AUD31-69: Sign up from a Declutter item says the guest comes back to i
     expect(es["signup.itemSubtitle"]).toMatch(/artículo/);
   });
 
-  it("Signup step 1 reads it from the URL", () => {
+  it("the sign-up form reads it from the URL", () => {
     const src = readFileSync(resolve(__dirname, "../pages/auth/Signup.tsx"), "utf8");
-    expect(src).toMatch(/subtitle: signupSubtitle\(searchParams\.get\("reason"\), searchParams\.get\("redirect"\)\)/);
+    expect(src).toMatch(/const subtitle = signupSubtitle\(searchParams\.get\("reason"\), searchParams\.get\("redirect"\)\)/);
   });
 
   it("Log in from an item names the item, never the bare 'That page needs an account'", () => {

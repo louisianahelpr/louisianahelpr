@@ -173,7 +173,7 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
       // City and ZIP left the checklist (owner 2026-10-26: optional, as on
       // sign-up step 2); a typed ZIP is still checked on submit.
       // Government-issued ID is intentionally NOT in the required checklist:
-      // new signup (SignupStep2) no longer collects it, and identity
+      // new signup no longer collects it, and identity
       // verification is deferred to first-post / IDV. The upload field below
       // stays available so a user CAN attach it early, but it never blocks
       // profile completion.
@@ -358,9 +358,9 @@ const CompleteProfile = ({ next }: { next?: string } = {}) => {
             onSubmit={handleSubmit}
             className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5"
           >
-            {/* Always shown, pre-filled when already known (an email signup
-                already has this from SignupStep2; Google/Apple never
-                collected it) — so the person can double-check what came
+            {/* Always shown, pre-filled when already known (sign-up asks it
+                nowhere since owner 11-23; an older email sign-up may have it)
+                — so the person can double-check what came
                 over from the provider instead of it disappearing silently. */}
             <CompleteProfileAvatar
               avatarPreview={avatarPreview}

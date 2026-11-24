@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1274,
+    "calls": 1261,
     "files": 370,
-    "rendering": 1196,
+    "rendering": 1183,
     "suppressedByPolicy": 78,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 14,
       "successToast": 8,
       "toast": 254,
-      "toast.error": 852,
+      "toast.error": 839,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 84,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 457,
       "template": 101,
-      "dynamic": 773,
+      "dynamic": 760,
       "jsx": 0
     }
   },
@@ -14614,47 +14614,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 179,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(\"login.tooManyAttempts\", { minutes: minutesLeft })"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Login.tsx",
-      "line": 195,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "friendlyAuthError(error.message)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Login.tsx",
-      "line": 216,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(\"login.tooManyAttempts\", { minutes: minutesLeft })"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Login.tsx",
-      "line": 234,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(\"login.confirmEmailFirst\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Login.tsx",
-      "line": 262,
+      "line": 261,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14664,7 +14624,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 296,
+      "line": 295,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14684,101 +14644,11 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 181,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(\"signup.firstNameToast\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
-      "line": 182,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(\"signup.lastNameToast\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
-      "line": 183,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(\"signup.emailToast\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
-      "line": 203,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "pwProblem"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
-      "line": 204,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(\"signup.termsToast\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
-      "line": 205,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(\"signup.ageToast\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
-      "line": 221,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(\"signup.photoReadFailed\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
-      "line": 304,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(\"signup.tooManyAttempts\", { seconds: secsLeft })"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
-      "line": 385,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
         "text": "t(\"photo.staleAvatar\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
-      "line": 456,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "authCopy ?? userFacingError(err, t(\"signup.createFailed\"))"
       },
       "renders": true
     },
@@ -14854,7 +14724,7 @@
     },
     {
       "file": "src/pages/auth/signup/signupHelpers.ts",
-      "line": 36,
+      "line": 29,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14881,7 +14751,7 @@
     },
     {
       "file": "src/pages/auth/signup/signupHelpers.ts",
-      "line": 40,
+      "line": 33,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

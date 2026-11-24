@@ -172,9 +172,10 @@ const FIELD_VALUES: Record<string, unknown> = {
   referralCode: "ABC123",
 };
 
-/** Profile columns the allowlisted fields (and the consent stamps) write. */
+/** Profile columns the allowlisted fields (and the consent stamps) write. age_attested_at is ageAttested's own column
+ *  since 11-23 (src/test/edge/complete-signup-age-attested.test.ts). */
 const NO_SESSION_COLUMNS = [
-  "accepted_terms_at", "avatar_url", "bio", "location", "marketing_consent", "parish",
+  "accepted_terms_at", "age_attested_at", "avatar_url", "bio", "location", "marketing_consent", "parish",
   "terms_accepted_at", "terms_version_accepted", "zip_code",
 ];
 /**

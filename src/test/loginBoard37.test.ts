@@ -12,7 +12,11 @@
  * @mutate src/components/auth/SocialAuthButtons.tsx | aria-label={loading ? t("auth.connecting") : undefined} | aria-label={loading ? t("auth.connecting") : label}
  * @mutate src/components/auth/SocialAuthButtons.tsx | <span className="font-sans font-semibold text-ds-15"> | <span aria-hidden className="font-sans font-semibold text-ds-15">
  * @mutate src/pages/auth/signup/SignupStep1.tsx | import { ArrowBigUp, Eye, EyeOff, Check, X } from "lucide-react"; | import { ArrowBigUp, Eye, EyeOff, Check, X, Lock } from "lucide-react";
- * @mutate src/pages/auth/Signup.tsx | { hideBack: true } : { backOnClick: | { backTo: "/" } : { backOnClick:
+ * @mutate src/pages/auth/Signup.tsx |       noWebChrome
+      hideBack
+ |       noWebChrome
+      backTo="/"
+
  * @mutate src/components/auth/SocialAuthButtons.tsx | style={provider === "apple" ? { backgroundColor: "hsl(var(--foreground))", color: "hsl(var(--background))" } : undefined} | style={undefined}
  * @mutate src/components/auth/AuthCardHead.tsx |       <HelprMark to="/" size="lg" emblemOnly /> |       <HelprMark to="/home" size="lg" emblemOnly />
  * @mutate src/pages/auth/Login.tsx | <AuthCardMarkRow /> | <span />
@@ -109,7 +113,7 @@ describe("Log in matches board 37", () => {
     const signup = blankComments(readFileSync(resolve(__dirname, "../pages/auth/Signup.tsx"), "utf8"));
     const social = blankComments(readFileSync(resolve(__dirname, "../components/auth/SocialAuthButtons.tsx"), "utf8"));
     expect(src).toMatch(/<AuthShell hideHeader hideBack centerColumn/);
-    expect(signup).toContain("{ hideBack: true } : { backOnClick:");
+    expect(signup).toMatch(/noWebChrome\s+hideBack\s/);
     for (const f of [src, step1]) {
       expect(f).not.toMatch(/\b(Mail|Lock)\b[^;]*from "lucide-react"/);
       expect(f).not.toMatch(/<(Mail|Lock)\s/);

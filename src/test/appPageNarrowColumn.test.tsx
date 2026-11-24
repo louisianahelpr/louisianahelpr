@@ -6,7 +6,7 @@
  * passes `narrow` instead), so no screen drifts back to a column stuck to the left. Inventory: every tracked file under src/ that renders <AppPage.
  *
  * @mutate src/components/AppPage.tsx |   const body = narrow ? <div className="mx-auto w-full max-w-xl" data-app-page-narrow="">{tabBody}</div> : tabBody; |   const body = narrow ? <div className="w-full max-w-xl" data-app-page-narrow="">{tabBody}</div> : tabBody;
- * @mutate src/components/declutter/DeclutterSellChooser.tsx | phoneHidesTitle narrow> | phoneHidesTitle>
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | backTo="/declutter?tab=selling" narrow> | backTo="/declutter?tab=selling">
  * @mutate src/components/declutter/SellerSetup.tsx | <AppPage title="Sell" backTo="/declutter?tab=selling" narrow> | <AppPage title="Sell" backTo="/declutter?tab=selling">
  */
 import { readFileSync } from "node:fs";

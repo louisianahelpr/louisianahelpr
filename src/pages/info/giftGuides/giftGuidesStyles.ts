@@ -292,10 +292,11 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-dupe{top:46px;left:auto;right:46px;justify-content:center}
 .gg-list .gg-dupe-solo{right:2px}
 }
-/* The Top 10 card (and Swipe's saved grid) keeps its heart and cart on the photo's top-right at every width, so the word
-   sits beside the cart there too (in its place when there is no cart). */
-.gg-list.gg-top10 .gg-dupe{top:46px;bottom:auto;left:auto;right:46px;justify-content:center}
-.gg-list.gg-top10 .gg-dupe-solo{right:2px}
+/* Flow audit 1123 C12: on the Top 10 card (and Swipe's saved grid, the same card) the words sat on the photo, over the
+   product's own logo. Nothing but the heart is drawn on that photo now: the words take the card's bottom line, under the
+   price, left of the cart (in the cart's place when there is no cart), like a guide row on a phone. */
+.gg-list.gg-top10 .gg-dupe{top:auto;bottom:0;left:auto;right:44px;justify-content:flex-end}
+.gg-list.gg-top10 .gg-dupe-solo{right:0}
 .gg-dupe-pop{width:calc(var(--gg-dupe-cols,1) * 220px + (var(--gg-dupe-cols,1) - 1) * 20px + 40px);max-width:calc(100vw - 32px);max-height:min(80vh,640px);overflow-y:auto;padding:16px 20px;border-radius:16px;background:hsl(var(--card))}
 .gg-dupe-x{position:absolute;top:4px;right:4px;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;background:transparent;color:var(--gg-muted);cursor:pointer}
 .gg-dupe-x svg{width:18px;height:18px}
@@ -475,10 +476,14 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-top10 .gg-bdg{white-space:nowrap}
 .gg-top10 .gg-nm .gg-nm-meta{justify-content:flex-start;margin-top:0;padding-top:4px;min-height:28px}
 .gg-top10 .gg-badges{padding-right:0}
-/* Owner 2026-11-22: the cart right under the heart on the photo's top-right (see .gg-list .gg-cart); the Top 10's photo
-   is the card's top at every width, so neither takes the phone row's bottom-right line (owner 2026-11-22 later). */
-.gg-top10 .gg-cart{position:absolute;top:46px;right:2px;z-index:1}
-.gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{left:auto;bottom:auto;justify-content:center}
+/* The heart stays on the photo's top-right (owner 11-21 evening). Flow audit 1123 C12: the cart left the photo (it sat
+   44px under the heart, on the product) for the card's bottom line, at its right end under the price, with "shop
+   similar" left of it; the name column keeps a 44px strip at its foot for that line, so nothing covers the photo, the
+   name or the price. */
+.gg-top10 .gg-cart{position:absolute;top:auto;bottom:0;right:0;z-index:1}
+.gg-top10 .gg-heart-pick{left:auto;bottom:auto;justify-content:center}
+.gg-top10 .gg-cart{left:auto;justify-content:flex-end}
+.gg-top10>li:has(>.gg-cart,>.gg-dupe) .gg-nm{padding-bottom:44px}
 /* Top 10 rank (owner 11-21 evening: "number the top 10 gifts"): a small cream disc with an olive serif numeral on the
    photo's top-left corner, clear of the heart (top right) and inside the photo's padding, so it never covers the product. */
 .gg-top10 .gg-item{position:relative}

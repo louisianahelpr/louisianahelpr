@@ -15,7 +15,7 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | border:0;border-radius:0;background:transparent;box-shadow:none;font:inherit;font-size:12px | border:1px solid;border-radius:999px;background:#eee;box-shadow:none;font:inherit;font-size:12px
  * @mutate src/pages/info/giftGuides/DupePanel.tsx |     anchor.current?.focus(); |     void 0;
  * @mutate src/pages/info/giftGuides/DupeLink.tsx | {`: ${DUPE.count(dupes.length)}`} | {""}
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list.gg-top10 .gg-dupe{top:46px;bottom:auto;left:auto;right:46px;justify-content:center} | .gg-list.gg-top10 .gg-dupe{}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list.gg-top10 .gg-dupe{top:auto;bottom:0;left:auto;right:44px;justify-content:flex-end} | .gg-list.gg-top10 .gg-dupe{}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -158,10 +158,11 @@ describe("the card's plain 'dupe' word", () => {
     expect(GIFT_GUIDES_CSS).toContain(".gg-list>:where([data-gift-pick])>.gg-dupe{bottom:0;right:88px}");
     expect(GIFT_GUIDES_CSS).toContain(".gg-list>:where([data-gift-pick])>.gg-dupe-solo{right:44px}");
     expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-dupe{top:46px;left:auto;right:46px;justify-content:center}");
-    // The Top 10 card (heart and cart on its photo at every width): beside the cart there too, after the phone rule.
-    const top10 = GIFT_GUIDES_CSS.indexOf(".gg-list.gg-top10 .gg-dupe{top:46px;bottom:auto;left:auto;right:46px;justify-content:center}");
+    // The Top 10 card (flow audit 1123 C12): off the photo, on the card's bottom line left of the cart (the cart at its
+    // right end), after the phone rule; src/test/giftGuideTop10ActionsOffPhoto1124.test.tsx computes the cascade.
+    const top10 = GIFT_GUIDES_CSS.indexOf(".gg-list.gg-top10 .gg-dupe{top:auto;bottom:0;left:auto;right:44px;justify-content:flex-end}");
     expect(top10).toBeGreaterThan(GIFT_GUIDES_CSS.indexOf(".gg-list>:where([data-gift-pick])>.gg-dupe{bottom:0;right:88px}"));
-    expect(GIFT_GUIDES_CSS).toContain(".gg-list.gg-top10 .gg-dupe-solo{right:2px}");
+    expect(GIFT_GUIDES_CSS).toContain(".gg-list.gg-top10 .gg-dupe-solo{right:0}");
   });
 
   it("opens the panel on tap (desktop popover): the dupe as the guide's own row (photo, name, ~price, cart, tag link); Escape closes it, focus returns", async () => {

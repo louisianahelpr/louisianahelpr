@@ -145,7 +145,7 @@ const PICKERS: ReadonlyArray<{ file: string; picker: RegExp; area: "jobs" | "dec
   { file: "src/components/postjob/JobCategoryGroups.tsx", picker: /JOB_CATEGORY_GROUPS\.map\(groupTile\)/, area: "jobs" },
   { file: "src/components/declutter/SellSummaryCard.tsx", picker: /<CategoryDrillDown label=\{t\("sell\.category"\)\}/, area: "declutter" },
   { file: "src/components/declutter/DeclutterSellView.tsx", picker: /<CategoryDrillDown label=\{tr\("sf\.ds\.category"\)\}/, area: "declutter" },
-  { file: "src/components/declutter/DeclutterEditListing.tsx", picker: /<ChipGroup label=\{t\("lp\.ed\.category"\)\}/, area: "declutter" },
+  { file: "src/components/declutter/DeclutterEditListing.tsx", picker: /<CategoryDrillDown label=\{t\("lp\.ed\.category"\)\}/, area: "declutter" }, // audit 1122 #54: edit uses the sell form's drill-down
   // Q1953 (Shops launch pass 2, 2026-11-18; 20261118 shops_suggest_a_category widens the server to 'shops').
   { file: "src/components/shops/ShopEditView.tsx", picker: /<ShopCategoryQuickPick id="shop-category"/, area: "shops" },
 ];

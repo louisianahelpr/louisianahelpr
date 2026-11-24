@@ -47,7 +47,6 @@ const NOT_A_PAGE_HEADER: Record<string, string> = {
   "src/components/auth/AuthShell.tsx": "signed-out / account-state card (AuthShell)",
   "src/components/dashboard/BrowseTasksToolbar.tsx": "sr-only heading of the Browse feed's collapsed toolbar",
   "src/components/dashboard/DashboardBlockedScreen.tsx": "a blocked-account screen in place of the page",
-  "src/components/firstRun/FirstRun.tsx": "the first-run welcome moment, full screen",
   "src/components/landing/HeroSection.tsx": "the signed-out landing hero (locked)",
   "src/components/sponsor/Sections.tsx": "the public 25 Days sponsor page's hero (owner spec 2026-11-09): a stand-alone page brands open from a link, signed out, with its own design and no app header row",
   "src/components/messages/ChatView.tsx": "sr-only conversation heading (the chat's visible title is ChatHeader's name pill)",

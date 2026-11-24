@@ -5,7 +5,7 @@
  * the same consent sentence, version and double opt-in); dismissed on the ACCOUNT
  * (notification_preferences.sms_phone_prompt_dismissed_at, own row only); never once a phone is confirmed; never on
  * sign-up. SMS-OPTIN (owner 2026-10-29, 20261030132841): a third moment, 'has_phone', asks a member whose profile
- * already has a phone, once, on Home, after the first-run tour. Behaviour: src/test/pglite/smsPhonePrompt.pglite.mjs
+ * already has a phone, once, on Home, never over Help's tour replay (the first run is gone since 11-24, C11). Behaviour: src/test/pglite/smsPhonePrompt.pglite.mjs
  * (23 PASS with both migrations applied 3x; PHONE_MIGRATION=skip: the 7 has_phone checks FAIL). This guard pins the
  * newest definitions and the three places it is mounted.
  *
@@ -13,8 +13,9 @@
  * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |                AND (c.sms_opt_in IS TRUE |                AND (false
  * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |   RETURN v_n = 1; |   RETURN v_n >= 1;
  * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql | WHERE p.user_id = v_uid AND nullif(btrim(p.phone), '') IS NOT NULL); | WHERE p.user_id = v_uid);
- * @mutate src/pages/home/HomeDashboard.tsx | {!firstRunActive && !customize && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /> | {!customize && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" />
- * @mutate src/pages/home/HomeDashboard.tsx | <FirstRun userId={user?.id} onActiveChange={setFirstRunActive} /> | <FirstRun userId={user?.id} />
+ * @mutate src/pages/home/HomeDashboard.tsx | {!tourActive && !customize && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /> | {!customize && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" />
+ * @mutate src/pages/home/HomeDashboard.tsx | useState(() => new URLSearchParams(window.location.search).get("tour") === "1"); | useState(false);
+ * @mutate src/pages/home/HomeDashboard.tsx | <TourReplayHost userId={user?.id} onActiveChange={setTourActive} /> | <TourReplayHost userId={user?.id} />
  * @mutate src/components/notificationPreferences/SmsPhonePromptDialog.tsx | title={allSet ? "You're all set" : moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} | title={allSet ? "You're all set" : SMS_PHONE_PROMPT_TITLE}
  * @mutate src/components/notificationPreferences/SmsPhonePromptDialog.tsx |           <SmsAlertsCard inPrompt onAllSet={onAllSet} prefillPhone={prefillPhone} /> |           <p>Text alerts</p>
  * @mutate src/components/notificationPreferences/SmsPhonePromptDialog.tsx |     void supabase.rpc("dismiss_sms_phone_prompt") |     void Promise.resolve({ data: 1, error: null })
@@ -71,11 +72,11 @@ describe("the one-time add-your-phone prompt", () => {
     expect(prompt).toContain('<DialogSecondaryAction onClick={close}>{allSet ? "Close" : "Not now"}</DialogSecondaryAction>');
   });
 
-  it("on Home for members who already gave a phone: worded as turning texts on, never over the first-run tour", () => {
+  it("on Home for members who already gave a phone: worded as turning texts on, never over the Help tour", () => {
     const home = read("src/pages/home/HomeDashboard.tsx");
-    expect(home).toContain('{!firstRunActive && !customize && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /></Suspense>}');
-    expect(home).toContain("<FirstRun userId={user?.id} onActiveChange={setFirstRunActive} />");
-    expect(home).toContain("const [firstRunActive, setFirstRunActive] = useState(true);");
+    expect(home).toContain('{!tourActive && !customize && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /></Suspense>}');
+    expect(home).toContain("<TourReplayHost userId={user?.id} onActiveChange={setTourActive} />");
+    expect(home).toContain('const [tourActive, setTourActive] = useState(() => new URLSearchParams(window.location.search).get("tour") === "1");');
     const prompt = readPrompt();
     expect(prompt).toContain('title={allSet ? "You\'re all set" : moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE}');
     expect(prompt).toContain('export const SMS_TEXTS_PROMPT_TITLE = "Turn on texts so you don\'t miss updates";');

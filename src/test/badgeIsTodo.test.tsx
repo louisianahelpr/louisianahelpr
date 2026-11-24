@@ -102,8 +102,6 @@ vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, exp
 vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
 // The title bars draw NotificationBell, which swaps the panel in: the same stand-in.
 vi.mock("@/components/notificationPanel/NotificationBell", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
-// Home mounts FirstRun (board 53 tour), which reads the account's tour stamp: answered here, never the network.
-vi.mock("@/lib/onboardingTourCompletion", () => ({ fetchTourCompletion: async () => ({ status: "completed" }), markTourCompleted: async () => true }));
 
 import NeedsYouBridge from "@/components/NeedsYouBridge";
 import MobileNav from "@/components/MobileNav";

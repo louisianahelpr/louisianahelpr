@@ -848,6 +848,9 @@ export async function seedAuthedSession(context: BrowserContext, user: FakeUser,
   });
   // …and the first-run OnboardingTour, for the same reason.
   //
+  // Since 2026-11-24 nothing opens by itself on /home (the "What brings you here?" first run is gone; the tour opens
+  // only from Help's /home?tour=1), so this key is a harmless leftover belt. History below.
+  //
   // FirstRun (src/components/firstRun/FirstRun.tsx, which replaced OnboardingTour 2026-10-20) opens on a
   // `setTimeout(…, 1500)` on /home for any account that has not completed
   // it — which every freshly-seeded test session is. It is a MODAL Radix

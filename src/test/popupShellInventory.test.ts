@@ -208,8 +208,8 @@ describe("every popup composes the shared shell", () => {
  * card frame around things that are not cards.
  */
 const HAND_ROLLED_BY_DESIGN: Record<string, string> = {
-  "src/components/firstRun/FirstRun.tsx":
-    "The first run (board 53) is a full screen of its own, and its coach marks spotlight the REAL " +
+  "src/components/tour/ShortTour.tsx":
+    "Help's short tour: its coach marks spotlight the REAL " +
     "bottom bar and sidebar; a card shell around either would cover the very chrome the tour points at " +
     "(owner, 2026-10-20). It traps nothing: Skip is always on screen and every step has Skip/Next.",
   "src/components/MessageAttachment.tsx":

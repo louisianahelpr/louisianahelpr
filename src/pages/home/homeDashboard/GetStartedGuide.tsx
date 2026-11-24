@@ -1,7 +1,7 @@
 /**
  * GET STARTED (owner 11-14: of 37 new members in 14 days, 18 saw Home once and left and none posted a job; "Is there
  * any kind of guide that walks them through to show them how to find or do things"). A checklist on Home, worded from
- * the first run's picks (./firstRunPicks; none picked = every starting step), each step a row that goes straight where
+ * the old first run's picks (components/tour/startPicks.ts; none picked = every starting step), each step a row that goes straight where
  * it is done. Steps tick themselves from the member's REAL rows (an application, a posted job, a listed item, a saved
  * item, a profile photo, job alerts), never from a tap. One checklist pattern: FirstJobHome's ChecklistProgress, every
  * step shown. "Hide" puts it away for good on this device; it goes when every step is done.
@@ -22,7 +22,7 @@ import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ListRow } from "@/components/ui/ListRow";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
-import { useFirstRunPicks, type FirstRunPick } from "@/components/firstRun/firstRunPicks";
+import { useStartPicks, type StartPick } from "@/components/tour/startPicks";
 import { ChecklistProgress } from "./FirstJobHome";
 import "@/lib/i18n/enHome";
 import "@/lib/i18n/enNewMember";
@@ -53,9 +53,9 @@ type GuideStepKey = "apply" | "post" | "list" | "save" | "photo" | "alerts";
 interface GuideFacts { applied: boolean; posted: boolean; listed: boolean; saved: boolean; photo: boolean; alertsOn: boolean }
 
 /** The steps for these picks, in order: the picked ones first (in the picker's order), then photo and alerts. */
-export function guideSteps(picks: FirstRunPick[], declutterOpen: boolean): GuideStepKey[] {
-  const by: Record<FirstRunPick, GuideStepKey> = { earn: "apply", hire: "post", sell: "list", deal: "save" };
-  const chosen = (picks.length ? picks : (["earn", "sell", "hire"] as FirstRunPick[]))
+export function guideSteps(picks: StartPick[], declutterOpen: boolean): GuideStepKey[] {
+  const by: Record<StartPick, GuideStepKey> = { earn: "apply", hire: "post", sell: "list", deal: "save" };
+  const chosen = (picks.length ? picks : (["earn", "sell", "hire"] as StartPick[]))
     .filter((p) => declutterOpen || (p !== "sell" && p !== "deal"))
     .map((p) => by[p]);
   const out: GuideStepKey[] = chosen.length ? chosen : ["apply", "post"];
@@ -106,7 +106,7 @@ export function GetStartedGuide({ userId, fresh, declutterOpen, hasPhoto, alerts
   const navigate = useNavigate();
   const gate = useAgeGate();
   const { t } = useLanguage();
-  const picks = useFirstRunPicks(userId);
+  const picks = useStartPicks(userId);
   const [state, setState] = useState<GuideState | null>(() => (userId ? readState(userId) : null));
   useEffect(() => {
     if (!userId) return;

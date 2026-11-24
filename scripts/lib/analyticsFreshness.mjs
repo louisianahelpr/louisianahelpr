@@ -214,9 +214,9 @@ export const NOT_MONITORED = {
   declutter_post_started: "funnel step: a new Declutter listing's first draft save",
   declutter_post_submitted: "funnel step: Post pressed on a listing (before the server's answer)",
   declutter_post_live: "funnel step: a listing the server put live at once (the rest go to review)",
-  // Ease batch (owner 2026-11-20): first-run intent picker and the guest post-a-job sign-up hand-off. Funnel counts read
-  // by hand; the outcomes are the jobs a new member posts and the accounts created, which have their own key events.
-  first_run_intent: "usage count of the first-run picker's choice (post, work, sell, browse), read by hand; quiet days are normal",
+  // Ease batch (owner 2026-11-20): the guest post-a-job sign-up hand-off. A funnel count read by hand; the outcome is
+  // the jobs a new member posts, which has its own key event. (Its first_run_intent twin went with the "What brings
+  // you here?" picker, owner 2026-11-24.)
   post_job_guest_signup: "funnel count of a guest's draft job asking for sign-up and resuming after it, read by hand; the outcome is job_posted",
   // Gift guides wish list (owner 2026-11-20, UX audit L7): usage counts read by hand; the outcome is gift_wish_lists rows.
   // Gift guides fun features (owner 2026-11-20, UX audit L12): usage counts read by hand; quiet days are normal.

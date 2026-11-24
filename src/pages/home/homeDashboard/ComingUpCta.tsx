@@ -1,6 +1,6 @@
 /**
  * Owner polish 11-20: Home's empty "Coming up · Nothing booked yet" offers the two ways to book something: Post a job
- * (behind the same age gate as the Create pill, like WelcomeCard) and Find work (the jobs feed). Outline buttons, so
+ * (behind the same age gate as the Create pill) and Find work (the jobs feed). Outline buttons, so
  * Home keeps its one primary action. Guard: src/test/homeComingUpCta1120.test.tsx.
  */
 import { useNavigate } from "react-router-dom";

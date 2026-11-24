@@ -94,7 +94,6 @@ const CONVERTED = [
   "src/components/declutter/SellTradesRow.tsx",
   "src/components/declutter/CategoryDrillDown.tsx",
   "src/components/declutter/OfferSentWhatNext.tsx",
-  "src/pages/home/homeDashboard/WelcomeCard.tsx",
   "src/pages/home/homeDashboard/PosterFirstJobCard.tsx",
   // F260q: Declutter's offer cards (Buying's "Your offers", Selling's "Offers on your items"; enDeclOffers.ts).
   "src/components/declutter/DeclutterOffersSection.tsx",

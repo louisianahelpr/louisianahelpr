@@ -515,7 +515,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
         </p>
         <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0" />
       </Link>
-      {/* The short coach-mark tour, again (owner 2026-10-20; FirstRun on Home reads ?tour=1). */}
+      {/* The short coach-mark tour, again (owner 2026-10-20; Home's TourReplayHost reads ?tour=1). */}
       <Link
         to="/home?tour=1"
         data-testid="take-the-tour-again"

@@ -676,7 +676,7 @@ export const hardReloadBypassCache = async () => {
  * now put this on the report's context, so the next one names its cause.
  */
 export type ChunkRecoveryDecline = {
-  reason: "offline" | "attempts_spent" | "storage_blocked_after_reload";
+  reason: "offline" | "attempts_spent" | "storage_blocked_after_reload" | "page_leaving";
   count: number;
   lastAttemptAgoMs: number | null;
   onLine: boolean | null;
@@ -717,8 +717,9 @@ export const recoverFromChunkError = (): boolean => {
   lastDecline = null;
   if (isOffline()) return declined("offline", { count: 0, last: 0 }, Date.now());
   // Leaving: a WebKit-cancelled import of the page being left, not a stale
-  // deploy. No reload, no attempt spent (see pageLeaving).
-  if (pageLeaving) return false;
+  // deploy. No reload, no attempt spent (see pageLeaving). Recorded, so a report
+  // of it names its cause instead of none (error_logs 4903ad95, 11-24).
+  if (pageLeaving) return declined("page_leaving", { count: 0, last: 0 }, Date.now());
   const now = Date.now();
   const state = readState();
   const decision = decideChunkReload(state, now, false);

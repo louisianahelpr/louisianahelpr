@@ -498,7 +498,7 @@ describe("a hard navigation away does not trigger the recovery reload", () => {
 // @mutate index.html | var wait = count === 0 ? 0 : SCHEDULE[count] - (now - last); | var wait = count === 0 ? 0 : -1; return -1;
 // The leaving gate (J8, WebKit run 41685221879): without it a hard navigation's
 // cancelled imports reload the page being left and eat the navigation.
-// @mutate src/lib/chunkReload.ts | if (pageLeaving) return false;\n  const now = Date.now(); | const now = Date.now();
+// @mutate src/lib/chunkReload.ts | if (pageLeaving) return declined("page_leaving", { count: 0, last: 0 }, Date.now());\n  const now = Date.now(); | const now = Date.now();
 // The same gate re-checked after the purge (leaving began mid-recovery).
 // @mutate src/lib/chunkReload.ts |   if (pageLeaving) {\n    refundAttempt(); |   if (false) {\n    refundAttempt();
 // A scheduled retry firing while leaving waits instead of spending an attempt.

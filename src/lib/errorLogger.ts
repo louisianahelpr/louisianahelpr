@@ -13,7 +13,7 @@ import { noteRecentError } from "@/lib/bugReportTrail";
 import { postRows } from "./restInsert";
 import { Capacitor } from "@capacitor/core";
 import type { Json } from "@/integrations/supabase/types";
-import { backgroundImport, getBackgroundImportFailures, onBackgroundImportFailure } from "@/lib/chunkReload";
+import { backgroundImport, getBackgroundImportFailures, getChunkRecoveryDecline, isChunkLoadError, isPageLeaving, onBackgroundImportFailure } from "@/lib/chunkReload";
 import { onModuleUnavailable } from "@/lib/loadModule";
 import { isAutomatedBrowser, isServerRuntime } from "@/lib/automatedBrowser";
 import { announcePermissionDenied, holdDenial, isPermissionDenied, isSessionLossNoise, isSignedInNoise, isSignedOutNoise, releaseHeldDenials } from "@/lib/permissionDenied";
@@ -405,6 +405,22 @@ export function _resetTransportBurstForTests() {
 }
 
 /**
+ * Audit C7 (11-24): two stale-chunk warnings reached error_logs from the gift guides. 07b49ceb (ScrollToTop, through
+ * optionalLazy) said why recovery declined ("offline"); 4903ad95 (SaveForSomeone-CaD0KEHR.js, GiftGuides.loadSaveFor,
+ * a loadModule caller that reports by hand) said nothing, so an offline phone, a spent retry budget and a real deploy
+ * skew all read the same. Every report of a chunk-load failure now carries the recovery decision, whoever reports it.
+ * A chunk load cancelled because the visitor is leaving the page (their own tap; chunkReload.ts pageLeaving) is not a
+ * failure: nothing on screen needed it and the next page loads its own chunks, so it is not logged.
+ * Guard: src/test/chunkFailureReportsNameTheRecovery.test.ts.
+ */
+function withChunkRecovery(err: unknown, opts: ReportOptions): ReportOptions | null {
+  if (!isChunkLoadError(err)) return opts;
+  if (isPageLeaving()) return null;
+  if (opts.context && "chunkRecovery" in opts.context) return opts;
+  return { ...opts, context: { ...opts.context, chunkRecovery: getChunkRecoveryDecline() } };
+}
+
+/**
  * prod error_logs 2026-11-14: "TypeError: Load failed" (WebKit's dropped
  * connection) logged as an ERROR once per read that was in flight: one phone
  * resuming on /messages wrote 8 rows in the same second from 8 callers. The
@@ -423,7 +439,9 @@ function quietTransportFailure(err: unknown, opts: ReportOptions): ReportOptions
 }
 
 function reportNow(err: unknown, rawOpts: ReportOptions) {
-  const opts = quietTransportFailure(err, rawOpts);
+  const chunkOpts = withChunkRecovery(err, rawOpts);
+  if (!chunkOpts) return;
+  const opts = quietTransportFailure(err, chunkOpts);
   if (!opts) return;
   const isError = err instanceof Error;
   const rawMessage = describeUnknownError(err);

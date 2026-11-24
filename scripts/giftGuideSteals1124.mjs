@@ -68,6 +68,9 @@ export const KIDS_STEALS_1124_ROWS = [
   // S51: ShopMy crocs.com 10% (link made 11-24 ~4:10 AM, rate on ShopMy's link screen); crocs.com $23 for the Kids' Classic
   // Clog (read ~3:12 AM, in stock; the photo is Black). Kids' third Crocs item is skipped (one per brand rule: Jibbitz + this).
   ["https://go.shopmy.us/p-110135306", 23, "https://media.crocs.com/images/t_standard/products/206991_001_ALT140/crocs", "Crocs Kids' Classic Clog", "Crocs", "store-crocs", "shoes", 10, "Classic Crocs clogs in kid sizes."],
+  // S52 (owner ticked it; Kids' 3rd Crocs item, over the ~2-per-brand line, for her to trim): crocs.com Kids' Classic Cozzzy
+  // Slipper 210856, $25 (crocs.com product data read 11-24 ~4:05 AM, in stock; Black photo), ShopMy 10% (link ~4:15 AM).
+  ["https://go.shopmy.us/p-110137252", 25, "https://media.crocs.com/images/t_standard/products/210856_001_ALT100/crocs", "Crocs Kids' Classic Cozzzy Slipper", "Crocs", "store-crocs", "slippers", 10, "Fuzzy Crocs slippers in kid sizes."],
 ];
 /** For Her. */
 export const HER_STEALS_1124_ROWS = [
@@ -80,6 +83,13 @@ export const HER_STEALS_1124_ROWS = [
   // where Later's Walmart rate for apparel is its 0% baseline); listing re-read ~3:10 AM, sold by Walmart, in stock.
   // S35 (reg. $115, Black Friday deal through Nov 29), sizes S-3X.
   ["https://walmrt.us/49fAVtS", 24.99, "https://i5.walmartimages.com/seo/Big-Chill-Women-s-and-Women-s-Plus-Wide-Quilted-Puffer-Coat-with-Faux-Fur-Trim-Hood-Sizes-S-3X_415ec42d-a42a-49a7-aa5a-26b95859a395.ae8dc7cc90376f7855971e13df5d658f.jpeg", "Big Chill Women's Quilted Puffer Coat with Faux Fur Hood", "Big Chill", "store-walmart", "jacket", 15, "A warm puffer coat for cold snaps, in sizes S to 3X."],
+  // S49 / S50: lululemon via ShopMy 12% (links ~4:16 AM); read on shop.lululemon.com 11-24 ~4:15 AM: the keychain $9 (reg. $18,
+  // Black/Gold, final sale, ships) and the Logo Bead Hair Ties 3 Pack $9 (reg. $20, final sale, ships).
+  ["https://go.shopmy.us/p-110137387", 9, "https://images.lululemon.com/is/image/lululemon/LU9CCJS_3385_1", "lululemon Mini Everywhere Belt Bag Keychain", "lululemon", "store-lululemon", "accessory", 12, "A tiny belt bag keychain for her keys."],
+  ["https://go.shopmy.us/p-110137457", 9, "https://images.lululemon.com/is/image/lululemon/LW9FNLS_075332_1", "lululemon Logo Bead Hair Ties, 3 Pack", "lululemon", "store-lululemon", "hair", 12, "Three logo-bead hair ties that double as bracelets."],
+  // S54: Kate Spade Outlet $29 (79% off a $139 comparable value; an extra 10% comes off in the cart, so $26.10), Black, read
+  // ~4:17 AM; ShopMy pays 16% there (quick link ~4:17 AM). Store key: Kate Spade Outlet folds into the Kate Spade New York store page.
+  ["https://go.shopmy.us/p-110137572", 29, "https://katespade.scene7.com/is/image/KateSpade/KE574_001", "Kate Spade Lucy Wristlet, Black", "Kate Spade", "store-kate-spade-new-york", "wallet", 16, "A pebbled leather wristlet for phone and cards."],
 ];
 /** For Him. */
 export const HIM_STEALS_1124_ROWS = [
@@ -138,4 +148,8 @@ export const STEALS_CUTOUTS_1124 = [
   ["https://media.crocs.com/images/t_standard/products/206991_001_ALT140/crocs", "crocs-kids-classic-clog-black-614d9c.webp"],
   ["https://media.crocs.com/images/t_standard/products/209386_001_ALT100/crocs", "crocs-classic-cozzzy-slipper-black-1fe5a2.webp"],
   ["https://media.kohlsimg.com/is/image/kohls/7173442_Black", "beats-solo-4-black-kohls-bcae83.webp"],
+  ["https://media.crocs.com/images/t_standard/products/210856_001_ALT100/crocs", "crocs-kids-classic-cozzzy-slipper-black-a68d92.webp"],
+  ["https://images.lululemon.com/is/image/lululemon/LU9CCJS_3385_1", "lululemon-mini-belt-bag-keychain-black-5fcdc5.webp"],
+  ["https://images.lululemon.com/is/image/lululemon/LW9FNLS_075332_1", "lululemon-bead-hair-ties-9752c6.webp"],
+  ["https://katespade.scene7.com/is/image/KateSpade/KE574_001", "kate-spade-lucy-wristlet-black-b22e43.webp"],
 ];

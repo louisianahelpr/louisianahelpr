@@ -112,6 +112,10 @@ const STEALS: [string, string, string, number, number, string][] = [
   ["him", sm("110135239"), "store-crocs", 10, 25, "Crocs Classic Cozzzy Slipper"],
   ["him", "https://mavely.app.link/y7KIsnyak8b", "store-kohls", 10.5, 99.99, "Beats Solo 4 On-Ear Wireless Headphones, Matte Black"],
   ["kids", sm("110135306"), "store-crocs", 10, 23, "Crocs Kids' Classic Clog"],
+  ["kids", sm("110137252"), "store-crocs", 10, 25, "Crocs Kids' Classic Cozzzy Slipper"],
+  ["her", sm("110137387"), "store-lululemon", 12, 9, "lululemon Mini Everywhere Belt Bag Keychain"],
+  ["her", sm("110137457"), "store-lululemon", 12, 9, "lululemon Logo Bead Hair Ties, 3 Pack"],
+  ["her", sm("110137572"), "store-kate-spade-new-york", 16, 29, "Kate Spade Lucy Wristlet, Black"],
 ];
 /**
  * Measured 11-24 and kept where they were (no store paying more for the same item at about the same price): Later's

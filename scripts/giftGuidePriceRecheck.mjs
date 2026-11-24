@@ -16,58 +16,58 @@ export const PRICE_RECHECKS = {
   // BaubleBar Mini 14K Gold Spaced Letter Custom Name Necklace: https://www.baublebar.com/products/mini-18k-gold-custom-spaced-letter-name-necklace
   // (re-read 11-23 PM, guides-under10: the page's own title is "Mini 14K Gold Spaced Letter Custom Name Necklace", metal
   // "14K Gold Plated Sterling Silver", $148; only its address says 18k, so the card's 14K name stays.)
-  "https://go.shopmy.us/p-109205223": { price: 148, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109205223": { price: 148, priceAt: "2026-11-24" },
   // Eberjey Gisele Slouchy PJ Set, Black/Ivory: https://eberjey.com/products/gisele-tencel-modal-slouchy-pj-set-black-ivory
   // (11-23 PM, guides-under10: store product data, $148 in every size)
   "https://go.shopmy.us/p-104580620": { price: 148, priceAt: "2026-11-23" },
   // BaubleBar Mini Fine Line Custom Hair Brush, Magenta: https://www.baublebar.com/products/fine-line-mini-custom-hair-brush-magenta
-  "https://go.shopmy.us/p-109289957": { price: 48, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109289957": { price: 48, priceAt: "2026-11-24" },
   // BURLEBO Cap: https://burlebo.com/products/burlebo-outdoors-cap
   "https://go.shopmy.us/p-109005373": { price: 28, priceAt: "2026-11-23" },
   // Burlebo Thermal Waffle Knit Hoodie: https://www.burlebo.com/products/thermal-hoodie-classic-deer-camo
-  "https://go.shopmy.us/p-109005228": { price: 47.2, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109005228": { price: 47.2, priceAt: "2026-11-24" },
   // CALPAK Insulated Lunch Bag, Polka Dot: https://www.calpaktravel.com/products/insulated-lunch-bag?variant=40771037691962 (Polka Dot variant, store product data)
-  "https://go.shopmy.us/p-109201389": { price: 38.4, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109201389": { price: 38.4, priceAt: "2026-11-24" },
   // Camp Snap 2 Screen-Free Camera, Strawberry Splash: https://campsnapphoto.com/products/camp-snap-2
   "https://go.shopmy.us/p-104219842": { price: 59.99, priceAt: "2026-11-23" },
   // Crocs Dylan Platform Clog: https://www.crocs.com/p/dylan-platform-clog/209869.html?cid=2EY
-  "https://go.shopmy.us/p-108985937": { price: 35, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-108985937": { price: 35, priceAt: "2026-11-24" },
   // Crown Affair The Silk Pillowcase: https://crownaffair.com/products/the-silk-pillowcase
   "https://go.shopmy.us/p-109200757": { price: 88, priceAt: "2026-11-23" },
   // CrunchLabs The Crunchinator: https://www.crunchlabs.com/products/the-crunchinator
-  "https://go.shopmy.us/p-109208209": { price: 34.99, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109208209": { price: 34.99, priceAt: "2026-11-24" },
   // Duck Commander Youth Happy Tee, Cream: https://duckcommander.com/products/duck-commander-cream-youth-happy-tee
   "https://go.shopmy.us/p-109341055": { price: 19.99, priceAt: "2026-11-23" },
   // Esker The Bubble Soak: https://eskerbeauty.com/products/bubble-soak
   "https://go.shopmy.us/p-109207730": { price: 75, priceAt: "2026-11-23" },
   // Haydel's Bakery Christmas King Cake: https://www.goldbelly.com/restaurants/haydels-bakery/christmas-king-cake
-  "https://go.shopmy.us/p-108155517": { price: 69.95, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-108155517": { price: 69.95, priceAt: "2026-11-24" },
   // Katie Kime New Orleans Toile Lucite Tray, Green: https://katiekime.com/products/new-orleans-lucite-tray
   "https://go.shopmy.us/p-108006579": { price: 58, priceAt: "2026-11-23" },
   // KREWE Olivier Sunglasses, Reed: https://www.krewe.com/products/olivier-reed-sunglasses
   "https://go.shopmy.us/p-109340844": { price: 255, priceAt: "2026-11-23" },
   // L'OCCITANE Softening Almond Trio: https://www.ulta.com/p/softening-almond-trio-gift-set-pimprod2060959?sku=2661577
-  "https://go.shopmy.us/p-109002206": { price: 59, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109002206": { price: 59, priceAt: "2026-11-24" },
   // Lake Men's Flannel Pajama Pants, Dark Sea Windowpane: https://lakepajamas.com/products/dark-sea-cozy-windowpane-mens-flannel-pajama-pants
-  "https://go.shopmy.us/p-104054474": { price: 108, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-104054474": { price: 108, priceAt: "2026-11-24" },
   // Lodge 6 Quart Essential Enamel Dutch Oven: https://www.lodgecastiron.com/products/6-quart-enamel-dutch-oven
   "https://go.shopmy.us/p-109340963": { price: 89.9, priceAt: "2026-11-23" },
   // Marley Lilly Personalized Waxed Canvas Small Cooler: https://www.marleylilly.com/products/personalized-waxed-canvas-small-cooler
   "https://go.shopmy.us/p-109208941": { price: 34.99, priceAt: "2026-11-23" },
   // Match South x Café Du Monde Warm Beignets Candle: https://matchsouth.com/products/warm-beignets-candle-cafe-du-monde-x-match-south
-  "https://go.shopmy.us/p-107207657": { price: 49, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-107207657": { price: 49, priceAt: "2026-11-24" },
   // Mignon Faget Fleur de Lis Cufflinks: https://www.mignonfaget.com/men/cufflinks/fleur-de-lis-cufflinks-0824/
-  "https://go.shopmy.us/p-109342284": { price: 184, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109342284": { price: 184, priceAt: "2026-11-24" },
   // Mignon Faget Heirloom Fleur de Lis Pendant: https://www.mignonfaget.com/jewelry/pendants/heirloom-fleur-de-lis-pendant-7661/
-  "https://go.shopmy.us/p-109341967": { price: 75, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109341967": { price: 75, priceAt: "2026-11-24" },
   // Mignon Faget Oyster Large Earrings: https://www.mignonfaget.com/jewelry/earrings/oyster-large-earrings-1795/
-  "https://go.shopmy.us/p-109342173": { price: 120, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109342173": { price: 120, priceAt: "2026-11-24" },
   // OOFOS OOahh PLUS Slide, Chalk: https://www.oofos.com/products/womens-ooahh-plus-slide-sandal-chalk
-  "https://go.shopmy.us/p-109202100": { price: 69.95, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109202100": { price: 69.95, priceAt: "2026-11-24" },
   // OOFOS OOcloog Limited Edition Clog, Nomad Leopard: https://www.oofos.com/products/womens-oocloog-limited-edition-clog-nomad-leopard
   "https://go.shopmy.us/p-109201629": { price: 89.95, priceAt: "2026-11-23" },
   // Patchology Rosé Fingers Renewing Hand Mask: https://www.dermstore.com/p/patchology-rose-fingers-renewing-hand-mask-54g/14014046/
-  "https://go.shopmy.us/p-109205545": { price: 11, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109205545": { price: 11, priceAt: "2026-11-24" },
   // Salt & Stone Hair & Body Spray: https://cosbar.com/products/saffron-cedar-body-mist-1
   "https://go.shopmy.us/p-109002459": { price: 45, priceAt: "2026-11-23" },
   // Slip Pure Silk Queen Zippered Pillowcase, Seabreeze: https://www.slip.com/products/seabreeze-queen-zippered-pillowcase
@@ -127,15 +127,15 @@ export const PRICE_RECHECKS = {
   // Smathers & Branson World's Best Dad Tervis Tumbler: https://smathersandbranson.com/products/worlds-best-dad-tervis-tumbler-with-lid
   "https://go.shopmy.us/p-108104267": { price: 54, priceAt: "2026-11-23" },
   // Therabody Theragun Mini: https://www.ulta.com/p/theragun-mini-3rd-generation-portable-massage-gun-pimprod2053315?sku=2647331
-  "https://go.shopmy.us/p-107903671": { price: 154.99, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-107903671": { price: 154.99, priceAt: "2026-11-24" },
   // Toups and Co Baby Essentials Set: https://toupsandco.com/products/baby-essentials-set
   "https://go.shopmy.us/p-109341153": { price: 43, priceAt: "2026-11-23" },
   // Turtlebox Original Gen 3 Speaker: https://www.onwardreserve.com/products/turtlebox-gen-3-speaker-tan
-  "https://go.shopmy.us/p-108999848": { price: 430, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-108999848": { price: 430, priceAt: "2026-11-24" },
   // Turtlebox Ranger Speaker: https://www.onwardreserve.com/products/turtlebox-ranger-tan
   "https://go.shopmy.us/p-108736312": { price: 250, priceAt: "2026-11-23" },
   // UGG Scuffette II Slipper, Chestnut: https://www.zappos.com/product/107219/color/888138
-  "https://go.shopmy.us/p-104053242": { price: 99.95, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-104053242": { price: 99.95, priceAt: "2026-11-24" },
   // XTRATUF Ankle Deck Boot: https://xtratuf.com/products/22734
   "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2F22734": { price: 115, priceAt: "2026-11-23" },
   // XTRATUF Big Kids Ankle Deck Boot, White and Blue: https://xtratuf.com/products/xkab100y
@@ -145,19 +145,19 @@ export const PRICE_RECHECKS = {
   // XTRATUF Women's Camp Fleece Lined Ankle Deck Boot, Bone White/Dark Olive: https://xtratuf.com/products/xwadbc10
   "https://www.anrdoezrs.net/click-101930553-15735628?url=https%3A%2F%2Fxtratuf.com%2Fproducts%2Fxwadbc10": { price: 130, priceAt: "2026-11-23" },
   // YETI Crossroads 22L Backpack, Alpine Brown: https://yeti.com/bags/backpacks/18060131468.html
-  "https://go.shopmy.us/p-107838580": { price: 160, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-107838580": { price: 160, priceAt: "2026-11-24" },
   // YETI Crossroads Duffel Bag, 60L: https://www.yeti.com/bags/duffels/26010000331.html
-  "https://go.shopmy.us/p-109003951": { price: 200, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109003951": { price: 200, priceAt: "2026-11-24" },
   // YETI Crossroads Luggage: https://www.yeti.com/bags/luggage/26010000370.html
-  "https://go.shopmy.us/p-109003793": { price: 280, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109003793": { price: 280, priceAt: "2026-11-24" },
   // YETI LoadOut GoBox 30 Gear Case: https://www.yeti.com/cases-storage/hard-cases/26010000539.html
-  "https://go.shopmy.us/p-109003412": { price: 250, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109003412": { price: 250, priceAt: "2026-11-24" },
   // YETI Panga Waterproof Duffel: https://www.yeti.com/bags/duffels/26010000231.html
-  "https://go.shopmy.us/p-109003630": { price: 400, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109003630": { price: 400, priceAt: "2026-11-24" },
   // YETI Rambler 12 oz Colster Can Insulator: https://www.yeti.com/drinkware/barware/21071508953.html
-  "https://go.shopmy.us/p-109004254": { price: 25, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109004254": { price: 25, priceAt: "2026-11-24" },
   // YETI Rambler 20 oz Tumbler, Upland: https://www.yeti.com/drinkware/tumblers/21071509313.html
-  "https://go.shopmy.us/p-109004159": { price: 40, priceAt: "2026-11-23" },
+  "https://go.shopmy.us/p-109004159": { price: 40, priceAt: "2026-11-24" },
 };
 
 /** The as-of day a pick shows: the re-check day when one lists this link at this exact price and is newer, else `priceAt`. */

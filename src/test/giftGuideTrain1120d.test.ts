@@ -23,6 +23,7 @@ import { BRAND_TYPE_FREE, applyTrain1120d, typeFix } from "../../scripts/giftGui
 import { SECTION_ALIASES, TOP_PICKS } from "@/content/giftGuidePicks";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
+import { isThemeGuide } from "@/content/giftGuideLive.mjs";
 
 const DIR = "src/content/giftGuidePicks";
 type Row = { name: string; brand?: string; href: string; type?: string; price?: number; section?: string; sectionId?: string; commission?: number | null; sponsor?: true; ownerPick?: true; from?: string; rels?: string[] };
@@ -140,7 +141,8 @@ describe("sections (holiday audit A #60, owner 11-19 fold thin sections)", () =>
     const bad: string[] = [];
     let sections = 0;
     for (const { slug, picks } of chunks) {
-      if (slug.startsWith("store-") || slug === "25-days-sponsors") continue;
+      // A themed kids guide (owner 11-24) keeps her own groups at their own sizes.
+      if (slug.startsWith("store-") || slug === "25-days-sponsors" || isThemeGuide(slug)) continue;
       const counts = new Map<string, number>();
       for (const p of picks) if (p.sectionId) counts.set(p.sectionId, (counts.get(p.sectionId) ?? 0) + 1);
       for (const [id, n] of counts) {

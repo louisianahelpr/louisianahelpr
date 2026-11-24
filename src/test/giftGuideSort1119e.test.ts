@@ -20,6 +20,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 import { PEOPLE_GUIDES } from "@/content/giftGuidePeople.mjs";
 import { LA_MEN_FIRST } from "../../scripts/giftGuidePeople1120.mjs";
 import { GUIDE_CAP, TYPE_MAX, buildRateData, byCommission, commissionOf, pickType, typeMax } from "../../scripts/giftGuideSort.mjs";
+import { isThemeGuide } from "@/content/giftGuideLive.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image?: string; commission?: number | null; type?: string; swappedFrom?: string; campaignEnds?: string; sectionId?: string; from?: string; ownerPick?: boolean; sponsor?: boolean };
 const DIR = "src/content/giftGuidePicks";
@@ -61,6 +62,8 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
     let picks = 0;
     let known = 0;
     for (const slug of guides) {
+      // A themed kids guide (owner 11-24) keeps her own groups and order: no commission sort, type tags or caps.
+      if (isThemeGuide(PARENT.get(slug) ?? slug)) continue;
       const list = pageOfList.get(slug)!;
       for (const p of list) {
         picks += 1;
@@ -85,6 +88,8 @@ describe("gift guides: sort pass 1119e (commission order, 25 cap, type variety)"
   it("no non-store guide holds more than 25 picks, nor more than its cap of one gift type", () => {
     const bad: string[] = [];
     for (const slug of guides) {
+      // A themed kids guide (owner 11-24) keeps her own groups and order: no commission sort, type tags or caps.
+      if (isThemeGuide(PARENT.get(slug) ?? slug)) continue;
       const list = pageOfList.get(slug)!;
       // A planned guide holds the picks the owner chose, section by section (her list beats the 25 cap and the type
       // cap: Him's grill section has three Lodge pieces by her plan); the caps hold on every unplanned list.

@@ -41,6 +41,7 @@ import { KEEPS_PRICE_AT } from "../../scripts/giftGuideOwnerKeeps1123.mjs";
 import { HER_ADDS_1124, HIM_ADDS_1124, KIDS_ADDS_1124, OWNER_1124_PRICE_AT, RATE_SWITCHES_1124 } from "../../scripts/giftGuideOwner1124.mjs";
 import { AMAZON_BEAUTY_1124_PRICE_AT, HER_AMAZON_BEAUTY_1124 } from "../../scripts/giftGuideAmazonBeauty1124.mjs";
 import { openPriceSections } from "./helpers/openPriceSections";
+import { isThemeGuide } from "@/content/giftGuideLive.mjs";
 
 afterEach(cleanup);
 
@@ -102,7 +103,8 @@ describe("gift-guide prices: the generated chunks", () => {
       const amazon = AMAZON_HOST.test(new URL(p.href).hostname) || p.store === "store-amazon";
       if (amazon) {
         amazonPriced++;
-        expect(OWNER_LISTS.includes(slug) || (slug === "top" && p.ownerPick === true), `${slug}: ${p.name}`).toBe(true);
+        // A themed kids guide (owner 11-24) shows her Amazon finds with their price, like Her, Him and Kids.
+        expect(OWNER_LISTS.includes(slug) || isThemeGuide(slug) || (slug === "top" && p.ownerPick === true), `${slug}: ${p.name}`).toBe(true);
         expect(p.ownerPick, `${slug}: ${p.name}`).toBe(true);
       }
       expect(slug, p.name).not.toBe("store-amazon");

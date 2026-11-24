@@ -29,6 +29,7 @@ import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { EXPERIENCE_GUIDES, KNIFE_OK_GUIDES, NOT_LOUISIANA_BUSINESS, PROMO_NAME, WRONG_IMAGES, brokenImage, fitsGuide, isLouisianaItem, productName, tidyName } from "../../scripts/giftGuideRules.mjs";
 import { LOUISIANA_SHOPS, SPONSOR_SITES } from "@/content/giftGuides";
 import { sectionChunks, sectionPageOf } from "./helpers/giftGuideSections";
+import { isThemeGuide } from "@/content/giftGuideLive.mjs";
 
 type Pick = { name: string; brand: string; line: string; href: string; image?: string; store?: string; louisianaFit?: true; sponsor?: true };
 // Big batch 1120: each merged guide's section under its old slug (helpers/giftGuideSections.ts).
@@ -108,14 +109,14 @@ describe("design audit r2: lines, variants, photos, brands", () => {
     const byLine = new Map<string, Set<string>>();
     // The Monster Jam guide (owner 11-24) keeps one line per group (its section blurb); rows show no why-line
     // (owner 11-22), so those lines never read as repeats on the page.
-    for (const { slug, p } of all) if (p.line && slug !== "monster-jam") byLine.set(p.line, (byLine.get(p.line) ?? new Set()).add(p.name.toLowerCase()));
+    for (const { slug, p } of all) if (p.line && !isThemeGuide(slug)) byLine.set(p.line, (byLine.get(p.line) ?? new Set()).add(p.name.toLowerCase()));
     expect([...byLine].filter(([, s]) => s.size > 3).map(([l, s]) => `${s.size}x ${l}`).slice(0, 5)).toEqual([]);
     for (const [slug, picks] of Object.entries(CHUNKS)) {
       // Her, Him and Kids are the owner's own saves (owner 11-21: "Him = ALL of her men's saves"): several Smathers &
       // Branson needlepoint pieces she chose share a long brand and a first word; each is a different product.
       // The Monster Jam guide (owner 11-24) is her own list too: several 1:64 trucks and toddler pieces share a first
       // 24 letters ("Monster Jam 1:64 Die-Cast Truck ..."); each is a different product.
-      if (slug.startsWith("store-") || isOwnerList(slug) || slug === "monster-jam") continue;
+      if (slug.startsWith("store-") || isOwnerList(slug) || isThemeGuide(slug)) continue;
       const keys = picks.map((p) => `${p.brand.toLowerCase().replace(/[^a-z0-9]/g, "")} ${p.name.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "").slice(0, 24)}`);
       expect(keys.filter((k, i) => keys.indexOf(k) !== i), slug).toEqual([]);
     }

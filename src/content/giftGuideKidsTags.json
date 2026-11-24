@@ -477,13 +477,6 @@
    "ageSource": "melissaanddoug.com: age: 3-5 years",
    "list": "kids"
   },
-  "amazon:B0G4SR68GB": {
-   "name": "Fisher-Price Little People My Mario Adventure Playset",
-   "gender": "everyone",
-   "ageMin": 1.5,
-   "ageSource": "amazon.com product page, read 2026-11-23: Manufacturer recommended age: 18 months and up",
-   "list": "kids"
-  },
   "go.shopmy.us/p-109208104": {
    "name": "Tamagotchi Paradise, Jade Forest",
    "gender": "everyone",
@@ -1110,6 +1103,26 @@
    "ageMin": 1,
    "ageMax": 5,
    "ageSource": "walmart.com listing, read 2026-11-24: Sizes 12M-5T (toddler)",
+   "list": "kids"
+  },
+  "mavely.app.link/yftqKoJ9j8b": {
+   "name": "Monster Jam Megalodon & El Toro Loco Supercharge Speedway Playset",
+   "gender": "everyone",
+   "ageMin": 3,
+   "ageSource": "kohls.com product page, read 2026-11-24: Age: 3 years & up",
+   "list": "kids"
+  },
+  "walmrt.us/4texdKc": {
+   "name": "Sony PS5 DualSense Wireless Controller, Midnight Black",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4jpdmER": {
+   "name": "Fisher-Price Little People My Mario Adventure Playset",
+   "gender": "everyone",
+   "ageMin": 1.5,
+   "ageMax": 5,
+   "ageSource": "walmart.com product page, read 2026-11-24: Minimum recommended age 18 months, maximum 5 years",
    "list": "kids"
   }
  }

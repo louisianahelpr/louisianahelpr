@@ -42,6 +42,13 @@ export const KIDS_STEALS_1124_ROWS = [
   ["https://walmrt.us/4CcMa3A", 5, "https://i5.walmartimages.com/seo/MONSTER-JAM-GRAVE-DI_def5b20b-fbde-4411-b535-8bf50039e548.c2076dadbc2472328eabc7b3f1a55779.jpeg", "Monster Jam Grave Digger Toddler Slippers", "Monster Jam", "store-walmart", "slippers", 15, "Grave Digger slippers for little feet."],
   // S30 (reg. $12.98), sizes 12M-5T; the listing's character is Bluey.
   ["https://walmrt.us/3VHA424", 5.84, "https://i5.walmartimages.com/seo/Character-Toddler-Long-Sleeve-Top-and-Pant-Pajama-Set-2-Piece-Sizes-12M-5T_85a8419b-f3f7-4696-a1fb-5ac768017ac8.20bc5657ccf727ebdbdb6c2dde622e53.jpeg", "Bluey Toddler Pajama Set", "Bluey", "store-walmart", "pajamas", 15, "A cozy Bluey pajama set for toddlers."],
+  // Owner ~3:10 AM (kohls.com screenshot, "Add this."): Kohl's $44.99 sale (reg $59.99, not eligible for coupons), ages 3+.
+  // Store check 11-24 ~3:08 AM: Target $67.99 (lead), Walmart $71 / a $99.22 marketplace seller, Amazon ~$111; Kohl's wins and
+  // pays 10.5% through Later (link made ~3:29 AM when Later signed in again; ShopMy has no Kohl's).
+  ["https://mavely.app.link/yftqKoJ9j8b", 44.99, "https://media.kohlsimg.com/is/image/kohls/8214073", "Monster Jam Megalodon & El Toro Loco Supercharge Speedway Playset", "Monster Jam", "store-kohls", "vehicle-toy", 10.5, "A light-up figure-8 Monster Jam track with two trucks."],
+  // S47: Walmart $54 (was $74.99, Midnight Black, sold by Walmart, in stock ~3:17 AM) through Walmart Creator 6%; Kohl's
+  // ($54.99 + Kohl's Cash) pays 0% on gaming, Target pays 4% (ShopMy), Later's Walmart gaming 4.9%.
+  ["https://walmrt.us/4texdKc", 54, "https://i5.walmartimages.com/seo/Sony-PS5-DualSense-Wireless-Controller-Midnight-Black_2384fbb2-237e-4e16-89bb-f39d20777a0f.a6d2c857ba5ab080f212f44d72baf0f4.png", "Sony PS5 DualSense Wireless Controller, Midnight Black", "Sony", "store-walmart", "game-controller", 6, "A PS5 DualSense controller for game nights."],
 ];
 /** For Her. */
 export const HER_STEALS_1124_ROWS = [
@@ -86,4 +93,6 @@ export const STEALS_CUTOUTS_1124 = [
   ["https://i5.walmartimages.com/seo/KPop-Demon-Hunters-Girls-Slipper_4a177782-fa79-4508-9ca0-3a1196057428.81560971bb841793f8ca6e21114a80ff.jpeg", "kpop-demon-hunters-girls-slippers-walmart-dd2d42.webp"],
   ["https://i5.walmartimages.com/seo/MONSTER-JAM-GRAVE-DI_def5b20b-fbde-4411-b535-8bf50039e548.c2076dadbc2472328eabc7b3f1a55779.jpeg", "monster-jam-grave-digger-toddler-slippers-walmart-f8f94b.webp"],
   ["https://i5.walmartimages.com/seo/Character-Toddler-Long-Sleeve-Top-and-Pant-Pajama-Set-2-Piece-Sizes-12M-5T_85a8419b-f3f7-4696-a1fb-5ac768017ac8.20bc5657ccf727ebdbdb6c2dde622e53.jpeg", "bluey-toddler-pajama-set-walmart-2c75ab.webp"],
+  ["https://media.kohlsimg.com/is/image/kohls/8214073", "monster-jam-supercharge-speedway-kohls-f0045d.webp"],
+  ["https://i5.walmartimages.com/seo/Sony-PS5-DualSense-Wireless-Controller-Midnight-Black_2384fbb2-237e-4e16-89bb-f39d20777a0f.a6d2c857ba5ab080f212f44d72baf0f4.png", "ps5-dualsense-midnight-black-walmart-186f7c.webp"],
 ];

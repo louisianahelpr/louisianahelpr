@@ -275,7 +275,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // the Monster Jam playset and 4-pack, both Mutant Chaos sets, the mini fridge and her 3 advent calendars (the dumpling
       // one $9.88, read ~$10) are Under $25; the Woodland Mansion and the Grave Digger RC ($24.99, read ~$25) $25 to $50;
       // the KPop Demon Hunters and Grave Digger slippers ($8, $5) and the Bluey pajamas ($5.84) are stocking stuffers.
-      kids: { "Stocking stuffers under $10": 9, "Under $25": 68, "$25 to $50": 40, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
+      // Owner ~3:10 AM: the Kohl's Supercharge Speedway ($44.99) is $25 to $50; S47 the DualSense ($54) is $50 to $75; the My
+      // Mario playset moved to Walmart at $44.97 (still $25 to $50).
+      kids: { "Stocking stuffers under $10": 9, "Under $25": 68, "$25 to $50": 41, "$50 to $75": 11, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

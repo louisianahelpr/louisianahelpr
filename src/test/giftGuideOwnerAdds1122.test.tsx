@@ -31,6 +31,16 @@ const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuideP
 const pin = (p: string) => `https://go.shopmy.us/${p}`;
 /** Launch-day picks whose link moved to a higher-paying store 11-24 (scripts/giftGuideOwner1124.mjs): checked that day. */
 const SWITCHED_1124_PINS = new Set(["p-110119003"]);
+/**
+ * Launch-day picks that left their 11-22 link 11-24 (scripts/giftGuideOwner1124.mjs), copied from the links made that night:
+ * BISSELL Little Green Mini (Target p-109151385) and FurGuard (Amazon B0DQLLPYGM) to bissell.com through Later 14%; the
+ * GE Opal Mini (Amazon B0H51ZX6SB, $299) to Walmart Creator 9% at $179. [link, guide, store, price checked 11-24].
+ */
+const MOVED_1124: [string, string, string, number][] = [
+  ["https://mavely.app.link/SSVg1LN9j8b", "her", "store-bissell", 79.99],
+  ["https://mavely.app.link/68WdqBM9j8b", "her", "store-bissell", 189.99],
+  ["https://walmrt.us/4zZkihX", "him", "store-walmart", 179],
+];
 
 /** Copied from the Desktop note (not from the module): pin -> guide, store, price checked 11-22. */
 const SENT: [string, string, string, number][] = [
@@ -63,7 +73,6 @@ const SENT: [string, string, string, number][] = [
   ["p-109156399", "kids", "store-yoto", 164.02],
   // Batch 2c.
   ["p-109147619", "her", "store-ulta-beauty", 18],
-  ["p-109151385", "her", "store-target", 79.99],
   ["p-109149968", "her", "store-anthropologie", 89],
   ["p-109152299", "her", "store-cos-bar", 90],
   ["p-109155568", "her", "store-madewell", 158],
@@ -122,9 +131,7 @@ const CJ_1122: [string, string, number][] = [
 /** Amazon picks from her launch-day screenshots and asks (no ShopMy pin for them): ASIN -> guide, price 11-22. */
 const AMAZON_1122: [string, string, number][] = [
   ["B0HKS18NW2", "her", 14.98], ["B0C1YBPJ43", "her", 35.98], ["B0F2937DQQ", "her", 56.98], ["B09X3WGJ3R", "her", 111.99],
-  ["B0DQLLPYGM", "her", 184.89], ["B0GP2R8TBS", "her", 199], ["B0GZSMBDYZ", "her", 237], ["B089F9YDFC", "him", 19.99],
-  // Him batch 2: the GE Profile Opal Mini (the method body wash stayed out: Him already has it).
-  ["B0H51ZX6SB", "him", 299],
+  ["B0GP2R8TBS", "her", 199], ["B0GZSMBDYZ", "her", 237], ["B089F9YDFC", "him", 19.99],
   // builder-guide-her4 block 2 (11-22)
   ["B0H2FQ5FV1", "her", 39.99], ["B0FXYGCYK6", "her", 24.99], ["B0F5K3B4Q7", "her", 29.94], ["B0CHMS3PVZ", "her", 27.99], ["B0D7GQVNNN", "her", 23.8], ["B0D1X4PNFD", "her", 29.95], ["B0F7M3HPBD", "her", 229], ["B0H3YXW87L", "her", 42.99], ["B0H9L8Z1DY", "her", 21.99], ["B0F79VTVFQ", "her", 85],
   // batch 2
@@ -140,7 +147,13 @@ const AMAZON_1122: [string, string, number][] = [
 describe("the owner's launch-day picks (11-22)", () => {
   it("each is on the guide she named, once, at the store's own price checked 11-22, with a cutout photo", () => {
     expect(SENT.length).toBeGreaterThan(10);
-    expect(HER_ADDS_1122.length + KIDS_ADDS_1122.length + HIM_ADDS_1122.length).toBe(SENT.length + AMAZON_1122.length + CJ_1122.length);
+    expect(HER_ADDS_1122.length + KIDS_ADDS_1122.length + HIM_ADDS_1122.length).toBe(SENT.length + AMAZON_1122.length + CJ_1122.length + MOVED_1124.length);
+    for (const [href, slug, store, price] of MOVED_1124) {
+      const rows = chunk(slug).filter((x) => x.href === href);
+      expect(rows.length, `${slug}: ${href}`).toBe(1);
+      expect(rows[0], href).toMatchObject({ store, price, priceAt: "2026-11-24", ownerPick: true });
+      expect(rows[0].image?.startsWith(CUTOUT_BASE), href).toBe(true);
+    }
     for (const [p, slug, store, price] of SENT) {
       const rows = chunk(slug).filter((x) => x.href === pin(p));
       expect(rows.length, `${slug}: ${p}`).toBe(1);

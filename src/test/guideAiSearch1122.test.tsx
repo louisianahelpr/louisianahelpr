@@ -176,7 +176,8 @@ describe("public/llms.txt", () => {
     expect(lines.find((l) => l.startsWith("> "))).toBeTruthy();
     expect(lines.filter((l) => l.startsWith("## ")).length).toBeGreaterThan(3);
     for (const l of lines.filter((x) => x.startsWith("- "))) expect(l).toMatch(/^- \[[^\]]+\]\(https:\/\/www\.louisianahelpr\.com\/[^)]*\): \S/);
-    expect(llms).not.toMatch(/\bAI\b|assistant|recommend|best in|y'all|\bcher\b|\bmom\b|\bLexi\b|founder|nurse/i);
+    // "for mom" is a gift recipient on the search pages (seo 1123), not the owner; any other "mom" still fails.
+    expect(llms).not.toMatch(/\bAI\b|assistant|recommend|best in|y'all|\bcher\b|(?<!for[ -])\bmom\b|\bLexi\b|founder|nurse/i);
   });
 
   it("is two-way with the sitemap's gift guide, Holiday Hub and 25 Days URLs", () => {

@@ -5,7 +5,7 @@
  *
  *   node scripts/check-25days-lineup.mjs            # diff; exits 1 on any drift
  *   node scripts/check-25days-lineup.mjs --print    # print the expected lineup.days block (paste into sponsorPage.ts)
- *   node scripts/check-25days-lineup.mjs --tracker <path>
+ *   node scripts/check-25days-lineup.mjs --tracker <path>    # .html (const S/D) or the Desktop tracker's data/sponsors.js
  *
  * Manual only: CI never runs this (the tracker lives on the owner's Desktop, not in the repo).
  * Public page rule: brand names and prizes only. The tracker's contact field (`c`) and notes are never read.
@@ -115,6 +115,20 @@ function readTracker(html) {
   return { S: grab("S"), D: grab("D") };
 }
 
+/**
+ * The Desktop tracker since 2026-11-23: ~/Desktop/Louisiana Helpr Tracker/data/sponsors.js sets
+ * `window.LH_SPONSORS = { sponsors: { key: { name, prize, ... } }, calendar: { "1": [keys], ... } }`.
+ * Only `name` and `prize` are read (never contact, notes or playbook).
+ */
+function readTrackerJs(js) {
+  const sandbox = { window: {} };
+  vm.runInNewContext(js, sandbox, { timeout: 5000 });
+  const L = sandbox.window.LH_SPONSORS;
+  if (!L?.sponsors || !L?.calendar) throw new Error("tracker has no window.LH_SPONSORS.sponsors/calendar");
+  const S = Object.fromEntries(Object.entries(L.sponsors).map(([k, v]) => [k, { n: v.name, prize: v.prize }]));
+  return { S, D: L.calendar };
+}
+
 function expectedLineup({ S, D }) {
   const days = [];
   for (let day = 1; day <= 25; day++) {
@@ -151,7 +165,7 @@ async function main() {
     console.error(`Tracker not found: ${TRACKER}`);
     process.exit(2);
   }
-  const want = expectedLineup(readTracker(fs.readFileSync(TRACKER, "utf8")));
+  const want = expectedLineup(TRACKER.endsWith(".js") ? readTrackerJs(fs.readFileSync(TRACKER, "utf8")) : readTracker(fs.readFileSync(TRACKER, "utf8")));
   if (args.includes("--print")) {
     console.log(printBlock(want));
     return;

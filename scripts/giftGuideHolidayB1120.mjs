@@ -166,6 +166,9 @@ export function applyHolidayB1120(pageList, deals, spec, ctx) {
   const sgList = page(SG);
   for (const brand of ctx.lineup ?? []) {
     if (dropped(brand)) continue;
+    // A brand on the owner's guide blocklist (scripts/giftGuideBlocklist.mjs) gets no card or name on any guide, even as
+    // a 25 Days sponsor (Adagio Teas: blocked 11-19, a Dec 25 sponsor since 2026-11-23). The /25days lineup still lists it.
+    if (ctx.blockedBrand?.({ brand })) continue;
     const mine = sgList.filter(sponsorOf(brand, spec.lineupAlias));
     let pick = mine[0];
     // A sponsor in `sponsorNameOnly` is named here, never carded twice (Hilma's probiotic keeps its one guide spot).

@@ -1435,7 +1435,11 @@
     "GoodWolf Power Yoga",
     "Restore Hyper Wellness",
     "Tree Frogs Adventure Park",
-    "Wanderlust by Abby"
+    "Wanderlust by Abby",
+    "Artivism Dance Theatre",
+    "Victoria Nicole Fine Art Portraits",
+    "Kart Ranch",
+    "Adage Pilates Centre"
    ]
   },
   "National Brands": {
@@ -1481,7 +1485,9 @@
     "Texas Beard Company",
     "Dolly's Boutique",
     "Forgiven Hearts",
-    "RoseMae Eimear Creations"
+    "RoseMae Eimear Creations",
+    "SEEN",
+    "Teleflora"
    ]
   }
  },
@@ -1934,6 +1940,30 @@
   "Cajun Fiya": {
    "gift": "A case of seasoning",
    "href": "https://cajunfiya.com/"
+  },
+  "Artivism Dance Theatre": {
+   "gift": "5-class dance package",
+   "href": "https://www.facebook.com/artivismdance"
+  },
+  "Victoria Nicole Fine Art Portraits": {
+   "gift": "Mini boudoir portrait session",
+   "href": "https://www.louisianahelpr.com/25days"
+  },
+  "Kart Ranch": {
+   "gift": "FUN card for go-karts, mini golf + arcade",
+   "href": "https://www.facebook.com/kart.ranch"
+  },
+  "Adage Pilates Centre": {
+   "gift": "4 reformer Pilates classes",
+   "href": "https://www.louisianahelpr.com/25days"
+  },
+  "SEEN": {
+   "gift": "Travel-size hair care trio",
+   "href": "https://www.instagram.com/seenskinandhair/"
+  },
+  "Teleflora": {
+   "gift": "Flower gift code (free shipping)",
+   "href": "https://www.louisianahelpr.com/25days"
   }
  }
 }

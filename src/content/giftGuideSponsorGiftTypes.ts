@@ -91,6 +91,13 @@ export const SPONSOR_GIFT_TYPES: Readonly<Record<string, SponsorGiftType>> = {
   Bashi: "Gift card",
   Hilma: "Gift set",
   "Mary Kay": "Gift set",
+  // 25 Days sync 2026-11-23 (placed on the Desktop tracker that day)
+  "Artivism Dance Theatre": "Session",
+  "Victoria Nicole Fine Art Portraits": "Session",
+  "Kart Ranch": "Gift card",
+  "Adage Pilates Centre": "Session",
+  "SEEN": "Gift set",
+  "Teleflora": "Gift card",
 };
 
 /** The sponsors guide's label for a row with no price shown, or undefined (a row with a price, or any other guide). */

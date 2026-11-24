@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Grid3x3 } from "lucide-react";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { DarkGroundCloseButton } from "@/components/ui/DarkGroundCloseButton";
 import { useOverlayFocus } from "@/hooks/useOverlayFocus";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 
 interface PhotoLightboxProps {
   /** All photos for the job. */
@@ -157,6 +158,10 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
     mo.observe(el, { attributes: true, attributeFilter: ["aria-hidden"] });
     return () => mo.disconnect();
   }, [open]);
+
+  // C2 (flow audit 11-23): Back / swipe-back closes the full-screen viewer only, not the page under it (a Declutter
+  // item, a job, a chat). Grid mode, zoom and Escape keep their own steps; Back closes the viewer outright.
+  useCloseOnBack(lightboxIndex !== null && photos.length > 0, () => setLightboxIndex(null));
 
   if (lightboxIndex === null || photos.length === 0) return null;
 

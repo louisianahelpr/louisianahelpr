@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 import {
   checkoutFree, fetchFreeRequestsForItem, fetchSellerCard, fetchItemHandovers, fetchMyCart, fetchMyFreePause, fetchMyFreeRequests, fetchPhotos, pickFreeRequest,
   pickupsLabel, withdrawFreeRequest, type DeclutterItem, type Handover, type MyFreeRequest,
@@ -105,6 +106,8 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   // Audit 1110 F359c: "Change time" on the asker's own open ask (the same sheet; the server moves its pickup_at).
   const [changing, setChanging] = useState(false);
   const [rules, setRules] = useState(false);
+  // C2 (flow audit 11-23): phone Back / swipe-back closes this overlay, not the Declutter item page.
+  useCloseOnBack(rules, () => setRules(false));
   // Audit 1110 F359c: Take back my ask asks first, as Take back my offer does (DeclutterOffersSection).
   const [takingBack, setTakingBack] = useState(false);
   // Q2560 (Auditor 1, audit 1102a) + M3 (iOS audit 11-16): a free item's Ask for it rides in the SAME bar as a paid

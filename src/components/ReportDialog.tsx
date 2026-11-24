@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 import { supabase } from "@/integrations/supabase/client";
 import { reportSubmitError } from "@/lib/reportErrors";
 import { type ReportedType, REASONS } from "./reportDialog/reportReasons";
@@ -207,6 +208,9 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
       toast.error(t("rep.copyFailed"));
     }
   };
+
+  // C2 (flow audit 11-23): phone Back / swipe-back closes this overlay, not the page under it.
+  useCloseOnBack(open, handleClose);
 
   // F260h: a report about a person names them in the title ("Report Hallie H.").
   const title = step === "confirmation"

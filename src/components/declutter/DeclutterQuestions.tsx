@@ -14,6 +14,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { answerQuestion, askQuestion, fetchMyQuestionIds, fetchQuestions, fetchSellerCard, type DeclutterQuestion } from "@/lib/declutter/api";
@@ -140,17 +141,17 @@ function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; item
     onError: (err) => setRefusal(declutterErrorMessage(err)),
   });
   const text = answer.trim();
+  const onOpenChange = (o: boolean) => {
+    if (!o) {
+      setAnswer("");
+      setRefusal(null);
+      onClose();
+    }
+  };
+  // C2 (flow audit 11-23): phone Back / swipe-back closes this overlay, not the page under it.
+  useCloseOnBack(!!q, () => onOpenChange(false));
   return (
-    <Sheet
-      open={!!q}
-      onOpenChange={(o) => {
-        if (!o) {
-          setAnswer("");
-          setRefusal(null);
-          onClose();
-        }
-      }}
-    >
+    <Sheet open={!!q} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" floor className="max-h-[90dvh] overflow-y-auto" data-answer-sheet="">
         <SheetHero title={t("dq.answerPublicly")} />
         {q && (

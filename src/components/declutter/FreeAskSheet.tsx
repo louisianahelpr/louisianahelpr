@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 import { requestFreeAt, type DeclutterItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchItemPickupWindows } from "@/lib/declutter/handover";
@@ -88,8 +89,11 @@ export default function FreeAskSheet({ item, giverFirstName, open, onClose, chan
   });
   const loading = places.isLoading || (!hasPlaces && places.isSuccess && usual.isLoading);
   const failed = places.isError ? places.error : usual.isError ? usual.error : null;
+  const onOpenChange = (o: boolean) => { if (!o && !ask.isPending) onClose(); };
+  // C2 (flow audit 11-23): phone Back / swipe-back closes this overlay, not the Declutter item page.
+  useCloseOnBack(open, () => onOpenChange(false));
   return (
-    <Sheet open={open} onOpenChange={(o) => { if (!o && !ask.isPending) onClose(); }}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
         floor={!webDesktop}

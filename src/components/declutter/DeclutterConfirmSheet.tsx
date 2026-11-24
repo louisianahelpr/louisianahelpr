@@ -8,6 +8,7 @@
 import type { ReactNode } from "react";
 import { Sheet, SheetContent, SheetDestructiveAction, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 import { focusSheetItself } from "./focusSheetItself";
 import { t } from "@/lib/i18n/language";
 
@@ -57,8 +58,11 @@ export function ConfirmSheet({
   pair?: boolean;
 }) {
   const webDesktop = useIsWebDesktop();
+  const onOpenChange = (o: boolean) => { if (!o && !pending) onClose(); };
+  // C2 (flow audit 11-23): phone Back / swipe-back closes this overlay, not the Declutter item page.
+  useCloseOnBack(open, () => onOpenChange(false));
   return (
-    <Sheet open={open} onOpenChange={(o) => { if (!o && !pending) onClose(); }}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
         floor={!webDesktop}

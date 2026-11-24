@@ -9,6 +9,7 @@
  * reads nothing extra.
  */
 import { useMemo, useState } from "react";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -33,6 +34,9 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
   const qc = useQueryClient();
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
+  const onOpenChange = (o: boolean) => { if (!send.isPending) setOpen(o); };
+  // C2 (flow audit 11-23): phone Back / swipe-back closes this overlay, not the Declutter item page.
+  useCloseOnBack(open, () => onOpenChange(false));
   const [picked, setPicked] = useState("");
   const mine = useQuery({ ...myItemsQuery(userId), enabled: open });
   const choices = tradeableListings(mine.data ?? [], item.id);
@@ -85,7 +89,7 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
       <p className="mt-1.5 text-ds-13 text-muted-foreground" data-offer-trade-what="">
         {t("dp.tradeWhat")}
       </p>
-      <Sheet open={open} onOpenChange={(o) => { if (!send.isPending) setOpen(o); }}>
+      <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-offer-trade-sheet="">
           <SheetHero title={t("dp.offerTrade")} />
           <p className="text-ds-14 text-muted-foreground [overflow-wrap:anywhere]">

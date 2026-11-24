@@ -1,10 +1,9 @@
 /**
  * OA-002: one Create Account tap fired two concurrent auth.signUp() calls.
  * `loading` (the button's disabled flag) is only set inside
- * createAccountAndFinish, after the awaited validateAboutYouStep, so a second
- * tap during validation passed. The step-2 submit must take the in-flight
- * guard before its first await.
- *
+ * createAccountAndFinish, after the awaited validation, so a second tap during
+ * validation passed. The submit must take the in-flight guard before its first
+ * await. Since owner 11-23 the one sign-up screen's "Create account" is that submit.
  * @mutate src/pages/auth/Signup.tsx | if (submittingRef.current) return; | void submittingRef;
  * @mutate src/pages/auth/Signup.tsx | submittingRef.current = false; | void 0;
  */
@@ -14,13 +13,11 @@ import { describe, expect, it } from "vitest";
 const src = readFileSync("src/pages/auth/Signup.tsx", "utf8");
 
 describe("signup Create Account is single-flight (OA-002)", () => {
-  // Both step-2 buttons ("Create account" and "Skip for now", 2026-10-27) go through finishStep2.
-  const handler = src.slice(src.indexOf("const finishStep2 = async"), src.indexOf("createAccountAndFinish(skip);", src.indexOf("const finishStep2 = async")));
+  const handler = src.slice(src.indexOf("const submit = async () => {"), src.indexOf("await createAccountAndFinish();", src.indexOf("const submit = async () => {")));
 
-  it("the step-2 handler is found", () => {
-    expect(handler).toContain("validateAboutYouStep()");
-    expect(src).toContain("onContinue={() => finishStep2(false)}");
-    expect(src).toContain("onSkip={() => finishStep2(true)}");
+  it("the submit handler is found and is what Create account calls", () => {
+    expect(handler).toContain("validateAccountStep()");
+    expect(src).toContain("onContinue={submit}");
   });
 
   it("takes the in-flight guard before the first await", () => {
@@ -33,7 +30,7 @@ describe("signup Create Account is single-flight (OA-002)", () => {
   });
 
   it("releases the guard in a finally", () => {
-    const after = src.slice(src.indexOf("await createAccountAndFinish(skip);"));
+    const after = src.slice(src.indexOf("await createAccountAndFinish();"));
     expect(after.slice(0, 200)).toMatch(/finally \{\s*submittingRef\.current = false;/);
   });
 });

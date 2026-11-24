@@ -158,7 +158,7 @@ const Login = () => {
     // call: an incomplete form is not a failed sign-in attempt and must not
     // count toward the 5-strike lockout, nor reach signInWithPassword.
     setAttempted(true);
-    // F028 review: a new try clears the last wrong-password words, so they never sit beside a lockout or network toast.
+    // F028 review: a new try clears the last error words (wrong password, lockout, network; all inline since 11-23).
     setCredError(null);
     setCredMismatch(false);
     if (!emailValid) {
@@ -176,8 +176,7 @@ const Login = () => {
       const msLeft = attemptState.lockedUntil - Date.now();
       const minutesLeft = Math.ceil(msLeft / 60000);
       hapticError();
-      toast.error(t("login.tooManyAttempts", { minutes: minutesLeft }),
-      );
+      setCredError(t("login.tooManyAttempts", { minutes: minutesLeft })); // inline, never a toast gone in seconds (audit 11-23)
       return;
     }
 
@@ -192,7 +191,7 @@ const Login = () => {
       // must not spend one of the user's attempts (see isTransportFailure).
       if (isTransportFailure(error)) {
         hapticError();
-        toast.error(friendlyAuthError(error.message));
+        setCredError(friendlyAuthError(error.message));
         return;
       }
       const next: LoginAttemptState = {
@@ -213,7 +212,7 @@ const Login = () => {
       hapticError();
       if (next.lockedUntil && next.lockedUntil > now) {
         const minutesLeft = Math.ceil((next.lockedUntil - now) / 60000);
-        toast.error(t("login.tooManyAttempts", { minutes: minutesLeft }));
+        setCredError(t("login.tooManyAttempts", { minutes: minutesLeft }));
       } else if (isInvalidCredentials(error)) {
         setCredMismatch(true);
         setCredError(t("login.noMatch"));
@@ -231,7 +230,7 @@ const Login = () => {
       await signOutWithPushCleanup();
       setLoading(false);
       hapticError();
-      toast.error(t("login.confirmEmailFirst"));
+      setCredError(t("login.confirmEmailFirst"));
       return;
     }
 
@@ -514,7 +513,7 @@ const Login = () => {
                   </Button>
                   <LoginForgotNudge state={forgotState} />
                 </span>
-              ) : credError === EMAIL_NOT_CONFIRMED_MESSAGE ? (
+              ) : credError === EMAIL_NOT_CONFIRMED_MESSAGE || credError === t("login.confirmEmailFirst") ? (
                 <Link to="/signup-pending" state={{ email: email.trim() }} data-login-resend-verify="" className="font-bold underline underline-offset-4" style={{ color: "hsl(var(--bark))" }}>
                   {t("login.resendVerify")}
                 </Link>

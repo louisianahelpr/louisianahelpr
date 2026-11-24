@@ -3,7 +3,7 @@
  * larger ones live beside their screens: signupOneLine, authFormsUseInlineErrors, loginNotice, profileGuestLinks,
  * moneyRecords, types.test, youBoard18, notificationSettingsBoard174, findHelprsDirectory, emailGateEveryProtectedRoute).
  *
- * @mutate src/pages/auth/Signup.tsx |             <div className="flex justify-center pt-3" data-signup-language=""> |             <div className="hidden" data-signup-language="">
+ * @mutate src/pages/auth/Signup.tsx | <div className="flex justify-center pt-3" data-signup-language=""> | <div className="hidden" data-signup-language="">
  * @mutate src/pages/auth/ForgotPassword.tsx |       <div className="flex justify-center pt-3" data-forgot-language=""> |       <div className="hidden" data-forgot-language="">
  * @mutate src/pages/info/NotFound.tsx |                     <Link to="/declutter">{w("pub.browseDeclutter", "Browse Declutter")}</Link> |                     <Link to="/">{w("pub.browseDeclutter", "Browse Declutter")}</Link>
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts |   { label: "Getting Started", desc: "New to Helpr? Start here." },\n  { label: "Declutter", | { label: "Getting Started", desc: "New to Helpr? Start here." },\n  { label: "Declutterx",
@@ -21,7 +21,7 @@ const read = (p: string) => blankComments(readFileSync(resolve(__dirname, "../..
 
 describe("owner UI audit 11-09: web LOWs", () => {
   it("F023: every auth field error is 13px, never 11", () => {
-    const files = ["src/pages/auth/Login.tsx", "src/pages/auth/ForgotPassword.tsx", "src/pages/auth/ResetPassword.tsx", "src/pages/auth/signup/SignupStep1.tsx", "src/pages/auth/signup/SignupStep2.tsx"];
+    const files = ["src/pages/auth/Login.tsx", "src/pages/auth/ForgotPassword.tsx", "src/pages/auth/ResetPassword.tsx", "src/pages/auth/signup/SignupStep1.tsx"];
     let n = 0;
     for (const f of files) {
       const src = read(f);

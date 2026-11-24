@@ -9,17 +9,16 @@
  * way, so opening a job remounted the whole guest feed. A push whose state carries KEEP_PAGE now keeps the page's key;
  * any other navigation still remounts.
  *
- * Driven for real: the route wrapper App.tsx uses, the whole Signup page (step 1, Continue, step 2, Create account) and
- * the guest sheet hook. Only the network (supabase-js, HIBP) and toasts are stubbed.
+ * Sign-up no longer has a step 2 (owner 11-23: one screen; src/test/signupOneScreen.test.tsx drives it inside this
+ * wrapper), so the same-URL step left to keep is the guest sheet's. Driven for real: the route wrapper App.tsx uses and
+ * the guest sheet hook. Only the network (supabase-js) and toasts are stubbed.
  *
  * @mutate src/components/RoutePageTransition.tsx |   const pageKey = keepsPage ? prev.key : location.key; |   const pageKey = location.key;
  * @mutate src/components/RoutePageTransition.tsx | prev.pathname === location.pathname && keepsPageState(location.state) | keepsPageState(location.state)
- * @mutate src/pages/auth/signup/useSignupStepHistory.ts | step: 2, [KEEP_PAGE]: true } | step: 2 }
- * @mutate src/pages/auth/signup/useSignupStepHistory.ts |     if (navigationType === "POP") setStep( |     if (navigationType === "POP" && routerLocation.key !== "default") setStep(
  * @mutate src/pages/home/useGuestJobSheet.ts | [SHEET_ENTRY]: true, [KEEP_PAGE]: true } | [SHEET_ENTRY]: true }
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, type ReactNode } from "react";
 
@@ -69,10 +68,9 @@ vi.mock("sonner", () => ({
 
 import { RoutePageTransition } from "@/components/RoutePageTransition";
 import { KEEP_PAGE } from "@/lib/keepPage";
-import Signup from "@/pages/auth/Signup";
 import { useGuestJobSheet } from "@/pages/home/useGuestJobSheet";
 import type { EnrichedJob } from "@/components/dashboard/types";
-import { clearPendingSignup, readPendingSignup } from "@/lib/pendingSignup";
+import { clearPendingSignup } from "@/lib/pendingSignup";
 
 afterEach(() => {
   cleanup();
@@ -81,71 +79,6 @@ afterEach(() => {
   // email to finish" instead of step 1. Each case here starts as a fresh visitor.
   clearPendingSignup();
   h.signUps.length = 0;
-});
-
-const PASSWORD = "Str0ng!Passw0rd#";
-
-describe("sign-up's step 2 keeps step 1's fields inside the real route wrapper", () => {
-  let nav: ReturnType<typeof useNavigate> = () => {};
-  let routerState: unknown = null;
-  function Nav() {
-    nav = useNavigate();
-    routerState = useLocation().state;
-    return null;
-  }
-  function renderSignup() {
-    render(
-      <MemoryRouter initialEntries={["/signup"]}>
-        <Nav />
-        <Routes>
-          <Route path="/signup" element={<RoutePageTransition><Signup /></RoutePageTransition>} />
-          <Route path="/signup-pending" element={<div>pending</div>} />
-        </Routes>
-      </MemoryRouter>,
-    );
-  }
-  const passwordField = () => document.getElementById("password") as HTMLInputElement | null;
-  async function fillStep1AndContinue() {
-    fireEvent.change(document.getElementById("firstName")!, { target: { value: "Kay" } });
-    fireEvent.change(document.getElementById("lastName")!, { target: { value: "Remount" } });
-    fireEvent.change(document.getElementById("email")!, { target: { value: "remount.test@example.com" } });
-    fireEvent.change(passwordField()!, { target: { value: PASSWORD } });
-    fireEvent.click(document.getElementById("policies")!);
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
-    await screen.findByRole("button", { name: /^create account$/i }, { timeout: 4000 });
-    // React Router commits a navigation in a transition, but setStep(2) is urgent, so step 2 can paint while the
-    // router still sits on step 1's entry. Pressing Back in that gap reads no step-2 entry (it just shows step 1),
-    // and Forward then has nowhere to go: the CI flake on a loaded runner (#4792, #4794). Wait for the entry itself.
-    await waitFor(() => expect(routerState).toMatchObject({ step: 2 }), { timeout: 4000 });
-  }
-
-  it("Continue reaches step 2 with the page still mounted, and Create account sends the typed password", async () => {
-    renderSignup();
-    await fillStep1AndContinue();
-    // Step 2 holds (it bounced straight back to an empty step 1 before the fix).
-    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
-    expect(passwordField()).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /^create account$/i }));
-    await waitFor(() => expect(h.signUps).toHaveLength(1), { timeout: 4000 });
-    expect(h.signUps[0]).toEqual({ email: "remount.test@example.com", password: PASSWORD });
-    expect(readPendingSignup()?.email).toBe("remount.test@example.com");
-  });
-
-  it("Back restores step 1 with the password, Forward restores step 2, and a real navigation still starts fresh", async () => {
-    renderSignup();
-    await fillStep1AndContinue();
-    // The header's back pops the step-2 entry: step 1, every field kept.
-    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
-    await waitFor(() => expect(passwordField()?.value).toBe(PASSWORD));
-    // Forward (a POP to the step-2 entry) shows step 2 again, still the same page.
-    act(() => nav(1));
-    await screen.findByRole("button", { name: /^create account$/i }, { timeout: 4000 });
-    act(() => nav(-1));
-    await waitFor(() => expect(passwordField()?.value).toBe(PASSWORD));
-    // A real navigation (a plain push, no KEEP_PAGE) remounts: the marker does not leak past its own step.
-    act(() => nav("/signup"));
-    await waitFor(() => expect(passwordField()?.value).toBe(""));
-  });
 });
 
 describe("the route wrapper keeps a page only for a KEEP_PAGE step on the same path", () => {

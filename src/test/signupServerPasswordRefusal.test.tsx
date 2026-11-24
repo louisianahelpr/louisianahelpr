@@ -1,7 +1,7 @@
 /**
  * AUD31-53: a server weak_password refusal (a leaked password GoTrue knows, or a rule the client's list does not)
- * arrives after step 2 "About you". It showed as a raw GoTrue toast on step 2, away from step 1's password field,
- * which had read "Strong". Now Signup goes back to step 1 and the reason sits under the password field (role alert,
+ * arrives after "Create account". It showed as a raw GoTrue toast (on the old step 2, away from the password field,
+ * which had read "Strong"). Now the reason sits under the password field of the one sign-up form (role alert,
  * aria-invalid), until the password changes.
  *
  * @mutate src/pages/auth/Signup.tsx |       if (isWeakPasswordError(err)) { |       if (false) {
@@ -55,12 +55,12 @@ describe("a server refusal of the password lands on the password field", () => {
     expect(document.getElementById("signup-password-error")).toBeNull();
   });
 
-  it("Signup sends a weak_password refusal back to step 1 before any toast, and a new password clears it", () => {
+  it("Signup puts a weak_password refusal under the password field before any toast, and a new password clears it", () => {
     const code = blankComments(readFileSync("src/pages/auth/Signup.tsx", "utf8"));
     const branch = code.indexOf("if (isWeakPasswordError(err)) {");
     expect(branch).toBeGreaterThan(0);
-    expect(branch).toBeLessThan(code.indexOf("toast.error(authCopy ?? userFacingError("));
-    expect(code.slice(branch, branch + 200)).toMatch(/setServerPasswordError\(weakPasswordWords\(err\)\);[\s\S]*(?:setStep\(1\)|backToStep1\(\));[\s\S]*return;/);
+    expect(branch).toBeLessThan(code.indexOf("setFormError(authCopy ?? userFacingError("));
+    expect(code.slice(branch, branch + 200)).toMatch(/setServerPasswordError\(weakPasswordWords\(err\)\);\s*return;/);
     expect(code).toContain("setPassword={(v: string) => { setServerPasswordError(null); setPassword(v); }}");
   });
 });

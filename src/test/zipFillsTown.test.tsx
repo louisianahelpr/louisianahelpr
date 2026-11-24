@@ -5,14 +5,13 @@
  * on prod, read 2026-10-29; the table is readable by anyone), so a recognised
  * ZIP fills an EMPTY City / Area with that town. A town the member typed is
  * never overwritten, and clearing it after the fill does not bring it back.
- * Applies to every ZIP + town pair: Signup, CompleteProfile, ProfileEditForm.
+ * Applies to every ZIP + town pair: CompleteProfile, ProfileEditForm (sign-up asks no ZIP since owner 11-23).
  *
  * @mutate src/hooks/useParishForZip.ts |     if (!town.trim()) setTown(city); |     setTown(city);
  * @mutate src/hooks/useParishForZip.ts |     if (!setTown \|\| !city \|\| filledFor.current === city) return; |     if (!setTown \|\| !city) return;
  * @mutate src/hooks/useParishForZip.ts |   useZipFillsTown(zipCode, town ?? "", setTown); |   useZipFillsTown(zipCode, town ?? "", undefined);
  * @mutate src/hooks/useParishForZip.ts |     if (fills) void resolveCityByZip | void resolveCityByZip
  * @mutate src/lib/parishLookup.ts |     .select("city") |     .select("parish")
- * @mutate src/pages/auth/Signup.tsx | useParishForZip(zipCode, location, setLocation); | useParishForZip(zipCode);
  * @mutate src/pages/auth/CompleteProfile.tsx | useParishForZip(zipCode, location, setLocation); | useParishForZip(zipCode);
  * @mutate src/components/profile/ProfileEditForm.tsx | useParishForZip(zipCode, location, setLocation); | useParishForZip(zipCode);
  */
@@ -99,8 +98,8 @@ describe("A3-I1: a recognised ZIP fills an empty town", () => {
   });
 
   it("every ZIP + town form uses it", () => {
-    const FILES = ["src/pages/auth/Signup.tsx", "src/pages/auth/CompleteProfile.tsx", "src/components/profile/ProfileEditForm.tsx"];
-    expect(FILES.length).toBeGreaterThan(2);
+    const FILES = ["src/pages/auth/CompleteProfile.tsx", "src/components/profile/ProfileEditForm.tsx"];
+    expect(FILES.length).toBeGreaterThan(1);
     for (const f of FILES) {
       const src = blankComments(readFileSync(resolve(__dirname, "../..", f), "utf8"));
       expect(src, f).toMatch(/useParishForZip\(zipCode, location, setLocation\);/);

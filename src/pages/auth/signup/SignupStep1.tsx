@@ -1,4 +1,4 @@
-// SignupStep1 — "Create your account" step (UI step 1 of 2).
+// SignupStep1 — the one sign-up form ("Create your account"). There is no step 2 (owner 11-23).
 //
 // Extracted from src/pages/auth/Signup.tsx. Owns no state of its own; every
 // field is a controlled input bound to props lifted into the parent.
@@ -28,6 +28,7 @@ import {
 } from "./signupHelpers";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { PasswordRuleList } from "@/components/auth/PasswordRuleList";
+import { ReferralCodeField } from "./ReferralCodeField";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
@@ -51,16 +52,25 @@ export interface SignupStep1Props {
   /** Marketing / promotional email opt-in — UNCHECKED by default, persisted to profiles.marketing_consent. */
   marketingConsent: boolean;
   setMarketingConsent: (v: boolean) => void;
+  /** Optional referral code: pre-filled (and shown open) from a `?ref=` link, typeable behind "Have a referral code?".
+   *  Signup always passes both; the field is left out only where a test renders the form without them. */
+  referralCode?: string;
+  setReferralCode?: (v: string) => void;
   inputCls: string;
   labelCls: string;
-  /** Called when the user clicks Continue — parent runs validation, then advances step. */
+  /** Called on "Create account" once the inline checks pass — the parent re-validates and creates the account. */
   onContinue: () => void | Promise<void>;
+  /** True while the account is being created: the button says "Creating account…" and ignores taps. */
+  loading?: boolean;
+  /** Why the last "Create account" did not go through (a network or server refusal, the cooldown): shown in a box
+   *  right above the button until the next try, never only a toast (audit 11-23). */
+  formError?: string | null;
   /** A reason line (e.g. "Create an account to get alerts") in place of the default. */
   subtitle?: string;
-  /** The page's security box (<TurnstileField>), placed right above Continue as on Login (A3-C1). */
+  /** The page's security box (<TurnstileField>), placed right above "Create account" as on Login (A3-C1). */
   captchaSlot?: ReactNode;
-  /** The server refused the password (GoTrue weak_password, e.g. a leaked one) after step 2 (AUD31-53): shown under
-   *  the field, in place of a toast on another step. The parent clears it when the password changes. */
+  /** The password was refused (HIBP breach hit, or GoTrue weak_password) on "Create account" (AUD31-53): shown under
+   *  the field, never as a toast. The parent clears it when the password changes. */
   serverPasswordError?: string | null;
 }
 
@@ -83,23 +93,27 @@ export function SignupStep1({
   setAgeConfirmed,
   marketingConsent,
   setMarketingConsent,
+  referralCode = "",
+  setReferralCode,
   inputCls,
   labelCls,
   onContinue,
+  loading = false,
+  formError = null,
   subtitle,
   captchaSlot,
 }: SignupStep1Props) {
   // Signup-confusion 11-19: the switch's Log in side keeps a pending, same-site ?redirect=.
   const pendingRedirect = safeInternalRedirect(useSearchParams()[0].get("redirect"));
   const loginHref = pendingRedirect ? `/login?redirect=${encodeURIComponent(pendingRedirect)}` : "/login";
-  // The Continue button stays visually active even before the policies box is
+  // The "Create account" button stays visually active even before the policies box is
   // checked — a disabled grey button is a dead end the user can't learn from.
   // Tapping it while unchecked shakes + highlights the agreement box instead,
   // pointing them at the one thing they still have to do. `nudgeKey` re-mounts
   // the animation so repeated taps replay the shake.
   const { lang, t } = useLanguage();
   const [nudgeKey, setNudgeKey] = useState(0);
-  // Set once Continue is tapped — lets the email field surface a "required"
+  // Set once "Create account" is tapped — lets the email field surface a "required"
   // error even before the user has typed anything.
   const [attempted, setAttempted] = useState(false);
   // True while a hardware Caps Lock is engaged (web/desktop only; harmless
@@ -113,7 +127,7 @@ export function SignupStep1({
 
   // Live field validity — mirrors the parent's validateAccountStep so the
   // form can gate inline (focus the first bad field) instead of firing a
-  // stack of toasts on Continue.
+  // stack of toasts on "Create account".
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   // Derived from the shared rule list, NOT re-implemented. This line used to
   // read `password.length >= 8 && /[A-Z]/ && /\d/` — three of the five rules
@@ -133,8 +147,8 @@ export function SignupStep1({
   const firstNameError = attempted && !firstName.trim();
   const lastNameError = attempted && !lastName.trim();
 
-  // signup-submit 11-23: a refusal of the password (breached, or the server's weak_password) brings the person back
-  // here; put them on the field that has to change, with its reason read out (aria-describedby).
+  // signup-submit 11-23: a refusal of the password (breached, or the server's weak_password) puts the person on the
+  // field that has to change, with its reason read out (aria-describedby).
   useEffect(() => {
     if (!serverPasswordError) return;
     passwordRef.current?.focus();
@@ -142,6 +156,7 @@ export function SignupStep1({
   }, [serverPasswordError]);
 
   const handleContinue = () => {
+    if (loading) return;
     setAttempted(true);
     if (!firstName.trim()) {
       firstNameRef.current?.focus();
@@ -155,18 +170,18 @@ export function SignupStep1({
       emailRef.current?.focus();
       return;
     }
-    // A likely typo (gmai.com, icloud.con) stops Continue until it is
+    // A likely typo (gmai.com, icloud.con) stops "Create account" until it is
     // answered: the confirmation email to a mistyped domain never arrives.
     if (emailSuggestion) {
       emailRef.current?.focus();
       return;
     }
-    // The same refused password would only be refused again after step 2: it has to change first.
+    // The same refused password would only be refused again: it has to change first.
     if (!passwordValid || serverPasswordError) {
       passwordRef.current?.focus();
       return;
     }
-    // Continue stays active even when a required box is unchecked — tapping it
+    // "Create account" stays active even when a required box is unchecked — tapping it
     // here shakes + highlights the offending box(es) instead of being a dead
     // grey button. `nudgeKey` re-mounts the labels so repeated taps replay the
     // shake. Both the policies agreement and the 18+ attestation are hard gates.
@@ -213,8 +228,8 @@ export function SignupStep1({
           app icon, "Create your account" and one line, the fields (labels
           above, no placeholder text: the owner's 2026-08-22 label-only rule),
           the olive pill, ONE consent line, then "or" and the providers.
-          Behaviour unchanged: Continue still runs the parent's validation and
-          opens step 2 (About you), where the account is created.
+          "Create account" runs the parent's validation and creates the account
+          here: there is no second screen (owner 11-23).
           Guard: src/test/signupBoard55.test.ts. */}
       <div className="flex flex-col items-center text-center gap-1.5" data-testid="signup-card-head">
         {/* The H (links home) with the back arrow at the card's top-left (owner 11-21, AuthCardMarkRow). */}
@@ -228,7 +243,7 @@ export function SignupStep1({
       <section className="space-y-3.5">
         {/* First and last name, side by side, both required (owner 2026-10-26,
             final sign-up ask: screen 1 is names, email, password and the Terms
-            box; screen 2 is optional). They moved here from step 2. */}
+            box). They moved here from the old second screen, which is gone (owner 11-23). */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2 min-w-0">
             <Label htmlFor="firstName" className={labelCls}>{t("signup.firstName")}</Label>
@@ -268,9 +283,9 @@ export function SignupStep1({
             )}
           </div>
           {/* No asterisks (board 55, the same as Log in): every field on this
-              card is needed, and a missed one is named below it on Continue. */}
+              card is needed, and a missed one is named below it on "Create account". */}
           {/* The message accompanies the red border in BOTH failure shapes —
-              a malformed address AND an untouched field after Continue. The
+              a malformed address AND an untouched field after "Create account". The
               empty case used to paint the border with no words at all, which
               is a "something's wrong" with no path out. */}
           {emailError && (
@@ -279,8 +294,8 @@ export function SignupStep1({
               {email.trim() ? t("login.emailInvalid") : t("login.emailMissing")}
             </p>
           )}
-          {/* Continue saves the email for ONE reminder if sign-up is not finished (owner 2026-10-09;
-              src/lib/signupLead.ts), so it is said before it happens. F026 (owner UI audit 11-09): never under Continue,
+          {/* "Create account" saves the email for ONE reminder if sign-up is not finished (owner 2026-10-09;
+              src/lib/signupLead.ts), so it is said before it happens. F026 (owner UI audit 11-09): never under "Create account",
               where it read like a warning at the moment of decision. Design audit areas 11-18 #17: under the Email field
               it is about (it sat under the Terms line, which is about something else). */}
           {!emailError && (
@@ -338,16 +353,21 @@ export function SignupStep1({
           )}
           {/* F021 (owner UI audit 11-09; the lead's call, superseding the 10-25 removal, the owner may override): the rule
               shows under the field from the start, and each part ticks off as it is met. passwordProblem() above still
-              names what is missing after Continue. */}
+              names what is missing after "Create account". */}
           <PasswordRuleList password={password} />
           {/* The one shared strength meter (also on Reset password). */}
           <PasswordStrengthMeter password={password} />
         </div>
+        {/* Collapsed by default so it costs nothing to the many who have none; open when a `?ref=` link brought one,
+            so the person sees what will be sent. */}
+        {setReferralCode && (
+          <ReferralCodeField referralCode={referralCode} setReferralCode={setReferralCode} inputCls={inputCls} labelCls={labelCls} />
+        )}
       </section>
 
       {/* ONE consent line (board 55): the 18+ attestation and the Terms, Rules
           and Privacy agreement are one box that records BOTH (acceptedPolicies
-          and ageConfirmed, exactly as the two boxes did). Continue stays
+          and ageConfirmed, exactly as the two boxes did). "Create account" stays
           active while it is unticked: a tap shakes the line instead of a dead
           grey button. New tabs, not in-app links: /signup keeps no draft. */}
       <div className="space-y-0">
@@ -398,7 +418,7 @@ export function SignupStep1({
         </span>
       </label>
 
-      {/* F022 (owner UI audit 11-09): Continue with the box unticked showed no words on it (every other field names
+      {/* F022 (owner UI audit 11-09): "Create account" with the box unticked showed no words on it (every other field names
           what is missing). The message is SHOWN under the box now, in the same error style as the fields, and is
           still the alert a screen reader hears. Keyed on nudgeKey so a repeat tap re-announces. */}
       <p
@@ -416,16 +436,25 @@ export function SignupStep1({
       </p>
       </div>
 
-      {/* Continue sits BELOW the consent (Q2256 / audit #44, owner 2026-10-21:
+      {/* "Create account" sits BELOW the consent (Q2256 / audit #44, owner 2026-10-21:
           keep the one combined Terms + 18+ box, read before the action). */}
       {captchaSlot}
+      {formError && (
+        <p role="alert" data-signup-form-error="" className="flex items-start gap-1.5 rounded-ds-md px-3 py-2.5 text-ds-13 font-sans text-[hsl(var(--destructive-ink))]" style={{ background: "hsl(var(--destructive) / 0.08)" }}>
+          <X className="w-4 h-4 shrink-0 mt-px" aria-hidden />
+          <span>{formError}</span>
+        </p>
+      )}
       <Button
         variant="primary"
         className="w-full rounded-full"
         size="lg"
         onClick={handleContinue}
+        disabled={loading}
+        aria-busy={loading}
+        data-testid="signup-create-account"
       >
-        {t("signup.continue")}
+        {loading ? t("signup.creating") : t("signup.create")}
       </Button>
 
       {SOCIAL_SIGN_IN_ENABLED && (

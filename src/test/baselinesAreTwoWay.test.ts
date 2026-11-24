@@ -249,7 +249,6 @@ const OUT_OF_SCOPE: Record<string, string> = {
   "src/pages/auth/completeProfile/constants.ts::ALLOWED_IMAGE_TYPES": "app upload MIME types",
   "src/pages/auth/signup/signupHelpers.ts::KNOWN_EMAIL_DOMAINS": "real mail domains the sign-up typo suggester must never 'correct' (ymail.com, me.com…); app config, excuses no offender",
   "src/pages/profile/giftCards/StatusPill.tsx::UNKNOWN": "app display fallback (name contains KNOWN)",
-  "src/pages/auth/signup/signupHelpers.ts::ALLOWED_IMAGE_TYPES": "app upload MIME types",
   "src/test/giftCardNaming.test.ts::SKIP_DIRS": "directory-walk skip set",
   "src/test/helpers/walkSource.ts::SKIP_DIRS": "directory-walk skip set",
   "src/test/openJobsLocationMasking.test.ts::KNOWN_ANON_JOB_FEEDS": "a REQUIRED-positive inventory (each must still mask), not an exemption",

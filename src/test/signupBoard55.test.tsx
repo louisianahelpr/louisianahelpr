@@ -14,9 +14,9 @@
  * @mutate src/pages/auth/signup/SignupStep1.tsx |           {t("login.submit")}\n        </Link> |           Log In\n        </Link>
  * @mutate src/pages/auth/signup/SignupStep1.tsx |         className="w-full rounded-full"\n        size="lg"\n        onClick={handleContinue} |         className="w-full rounded-ds-md"\n        size="lg"\n        onClick={handleContinue}
  * @mutate src/lib/i18n/enScreens.ts | "signup.subtitle": "One account to hire help, find work, and buy or sell nearby." | "signup.subtitle": "One account to hire help or find work."
- * @mutate src/pages/auth/Signup.tsx |         step === 1 ? undefined : ( |         step === 1 ? "Create Account" : (
+ * @mutate src/pages/auth/Signup.tsx |       hideBack\n    > |       hideBack\n      title="Create Account"\n    >
+ * @mutate src/pages/auth/Signup.tsx |             subtitle={subtitle} |             subtitle={undefined}
  */
-// @mutate src/pages/auth/Signup.tsx |         {/* Step 2: About you + ID */}\n |         {step === 2 && stepHeading.subtitle && <p>{stepHeading.subtitle}</p>}\n        {/* Step 2: About you + ID */}\n
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -41,9 +41,9 @@ describe("Create account matches board 55", () => {
     expect(button).toBeGreaterThan(consent);
   });
 
-  it("Q2257: the subtitle is passed to step 1 only; no dead step-2 subtitle block in the card", () => {
-    expect(signup.match(/stepHeading\.subtitle/g) ?? []).toHaveLength(1);
-    expect(signup).toMatch(/subtitle=\{stepHeading\.subtitle\}/);
+  it("Q2257: the subtitle is passed to the form once; no second subtitle block in the card", () => {
+    expect(signup.match(/\bsubtitle\b/g) ?? []).toHaveLength(3); // declared once, passed once (subtitle={subtitle})
+    expect(signup).toMatch(/subtitle=\{subtitle\}/);
   });
 
   it("is not vacuous", () => {
@@ -51,7 +51,7 @@ describe("Create account matches board 55", () => {
     expect(step1).toContain("onClick={handleContinue}");
   });
 
-  it("the card opens with the ROUND H icon, the sentence-case heading and one line; the shell row has no title on step 1", () => {
+  it("the card opens with the ROUND H icon, the sentence-case heading and one line; the shell row has no title", () => {
     // Owner 2026-10-20: the H mark used everywhere, never the round app icon in a circle.
     // Since owner 11-21 the H is drawn by the card's shared top row (AuthCardMarkRow, with the back arrow).
     expect(step1).toContain("<AuthCardMarkRow />");
@@ -64,7 +64,7 @@ describe("Create account matches board 55", () => {
     expect(step1).toContain('{subtitle ?? t("signup.subtitle")}');
     expect(en["signup.subtitle"]).toBe("One account to hire help, find work, and buy or sell nearby.");
     expect(step1).not.toMatch(/buy and sell/);
-    expect(signup).toContain("step === 1 ? undefined : ("); // F259a wrapped the step-2 title; step 1 still has none
+    expect(signup).not.toMatch(/\btitle=/); // the heading is inside the card; the shell row above it has none
     expect(signup + step1).not.toMatch(/"Create Account"|"About You"|>Log in<|Did You Mean/);
   });
 

@@ -95,7 +95,6 @@ const ALLOWED: Record<string, { n: number; why: string }> = {
   // AuthShell card forms: one form rhythm shared by every auth card, inside the card.
   "src/pages/auth/Login.tsx": { n: 4, why: "AuthShell card form rhythm (one column since board 37, 2026-10-20)" },
   "src/pages/auth/signup/SignupStep1.tsx": { n: 1, why: "the AuthShell card's own form rhythm (one column since board 55, 2026-10-20)" },
-  "src/pages/auth/signup/SignupStep2.tsx": { n: 1, why: "AuthShell card form rhythm" },
   "src/pages/auth/Signup.tsx": { n: 1, why: "AuthShell card form rhythm" },
   "src/pages/auth/ForgotPassword.tsx": { n: 1, why: "AuthShell card form rhythm" },
   "src/pages/auth/ResetPassword.tsx": { n: 1, why: "AuthShell card form rhythm" },

@@ -1,29 +1,26 @@
 /**
  * Spanish language option (owner-approved 2026-10-29): Sign up reads in the
- * member's language. Both steps take their words from the dictionary; the
+ * member's language. The one sign-up form (owner 11-23) takes its words from the dictionary; the
  * Terms, Rules and Privacy stay in English, so a Spanish reader is told so
  * ("Los términos legales están en inglés.") right under the consent line, and
  * the referral line keeps its exact money ($5) in Spanish. The switch sits
- * under the step-1 card, as on Log in.
+ * under the card, as on Log in.
  *
  * @mutate src/pages/auth/signup/SignupStep1.tsx | {lang === "es" && <span | {lang === "xx" && <span
  * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="text-page-title text-foreground">{t("signup.title")}</h1> | <h1 className="text-page-title text-foreground">Create your account</h1>
  * @mutate src/components/auth/OrRule.tsx | {t("auth.or")} | or
  * @mutate src/components/auth/SocialAuthButtons.tsx |   const label = t("auth.continueWith", { provider: providerName }); |   const label = `Continue with ${providerName}`;
- * @mutate src/pages/auth/signup/SignupStep2.tsx |             {t("signup.referralHelp")}\n |             Got a code from a friend? Enter it and you each get $5 once you have both finished a job or a Declutter sale or purchase.\n
+ * @mutate src/pages/auth/signup/ReferralCodeField.tsx |             {t("signup.referralHelp")}\n |             Got a code from a friend? Enter it and you each get $5 once you have both finished a job or a Declutter sale or purchase.\n
  */
 import { LanguageToggle } from "@/components/LanguageToggle";
-import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { en } from "@/lib/i18n/en";
 import { es } from "@/lib/i18n/es";
 import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
 import { SignupStep1, type SignupStep1Props } from "@/pages/auth/signup/SignupStep1";
-import { SignupStep2, type SignupStep2Props } from "@/pages/auth/signup/SignupStep2";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
-
-vi.mock("@/components/postjob/CityAutocomplete", () => ({ CityAutocomplete: () => <input id="location" /> }));
 
 const noop = () => {};
 const step1: SignupStep1Props = {
@@ -31,11 +28,6 @@ const step1: SignupStep1Props = {
   password: "", setPassword: noop, showPassword: false, setShowPassword: noop,
   acceptedPolicies: false, setAcceptedPolicies: noop, ageConfirmed: false, setAgeConfirmed: noop,
   marketingConsent: false, setMarketingConsent: noop, inputCls: "", labelCls: "", onContinue: noop,
-};
-const step2: SignupStep2Props = {
-  avatarPreview: null, onAvatarChange: noop, location: "", setLocation: noop, zipCode: "", setZipCode: noop,
-  bio: "", setBio: noop, referralCode: "FUHNW3", setReferralCode: noop, inputCls: "", labelCls: "",
-  onContinue: noop, onSkip: noop,
 };
 
 async function spanish() {
@@ -55,7 +47,7 @@ afterEach(() => {
 });
 
 describe("Sign up in Spanish", () => {
-  it("step 1 reads in Spanish and says the legal terms are in English", async () => {
+  it("the form reads in Spanish and says the legal terms are in English", async () => {
     // F025 (owner UI audit 11-09): the switch sits under the card (Signup.tsx), as on Log in; rendered beside step 1 here.
     render(<MemoryRouter><SignupStep1 {...step1} /><LanguageToggle /></MemoryRouter>);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(en["signup.title"]);
@@ -63,7 +55,7 @@ describe("Sign up in Spanish", () => {
     await spanish();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Cree su cuenta");
     expect(screen.getByTestId("legal-in-english").textContent).toBe("Los términos legales están en inglés. Hay un resumen en español en la página de Términos.");
-    expect(screen.getByRole("button", { name: es["signup.continue"] })).toBeTruthy();
+    expect(screen.getByRole("button", { name: es["signup.create"] })).toBeTruthy();
     // The shared "or" rule and the Apple / Google buttons read in Spanish too.
     expect(screen.queryByText("or")).toBeNull();
     if (SOCIAL_SIGN_IN_ENABLED) expect(screen.getByRole("button", { name: "Continuar con Apple" })).toBeTruthy();
@@ -72,13 +64,14 @@ describe("Sign up in Spanish", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(en["signup.title"]);
   });
 
-  it("step 2 reads in Spanish and keeps the referral money exact", async () => {
-    render(<SignupStep2 {...step2} />);
+  it("the referral field reads in Spanish and keeps the referral money exact", async () => {
+    // A ?ref= link's code opens the field (src/pages/auth/signup/ReferralCodeField.tsx).
+    render(<MemoryRouter><SignupStep1 {...step1} referralCode="FUHNW3" setReferralCode={noop} /></MemoryRouter>);
     await spanish();
     expect(screen.getByRole("button", { name: es["signup.create"] })).toBeTruthy();
     const help = screen.getByText(es["signup.referralHelp"]);
     expect(help.textContent).toContain("$5");
     expect(en["signup.referralHelp"]).toContain("$5");
-    expect(screen.getAllByText(/\(opcional\)/).length).toBeGreaterThan(2);
+    expect(screen.getAllByText(/\(opcional\)/).length).toBeGreaterThan(0);
   });
 });

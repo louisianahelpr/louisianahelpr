@@ -70,7 +70,7 @@ function Harness({ onContinue, initial }: { onContinue: () => void; initial: str
   );
 }
 
-const continueButton = () => screen.getByRole("button", { name: /^continue$/i });
+const continueButton = () => screen.getByRole("button", { name: /^create account$/i });
 
 describe("sign-up step 1 with a likely typo", () => {
   it("Continue stops, and the hint offers both answers", () => {

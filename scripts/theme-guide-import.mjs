@@ -9,7 +9,8 @@
  * oos, line?, brand? }] }] }, the Monster Jam research's schema), cutouts/<id>.webp, and cover6.json (the six cover
  * item ids: a list, or { ids: [...] }). It
  *  - writes scripts/gift-guide-themes/<slug>.json: one row per item in the list's group order; out-of-stock items, items
- *    with no price, no https link or no photo go under `skipped`. A re-import keeps each existing row's own line and
+ *    with no price, no https link, no photo or one that breaks the owner's style rules (giftGuideRules ownerStyleOff: no
+ *    neon on any guide) go under `skipped`. A re-import keeps each existing row's own line and
  *    brand (by id). Amazon photos are never edited (Associates terms): an Amazon row shows Amazon's own photo;
  *  - copies the cutouts into public/gift-guides/cutouts/<name>-<store>-<md5 6>.webp (the repo's naming) and removes a
  *    cutout a re-import no longer uses when nothing else names it;
@@ -30,6 +31,7 @@ import { execFileSync } from "node:child_process";
 import { constants as fsConstants, copyFileSync, existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ownerStyleOff } from "./giftGuideRules.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = "https://www.louisianahelpr.com";
@@ -134,6 +136,9 @@ function main() {
       if (!(Number(it.price) > 0)) why.push("no price");
       if (!href.startsWith("https://")) why.push("no link");
       else if (!knownHosts.has(hostOf(href))) why.push(`no affiliate link (${hostOf(href)})`);
+      // The owner's style rules hold on every guide (owner 11-20: "no neon or chartreuse on any guide";
+      // src/test/giftGuideOwner1120d.test.ts), so a research row that breaks one never reaches the page.
+      if (ownerStyleOff(slug, { name: it.name, image: it.image, href, line: it.line })) why.push("owner style rule (neon, boots or black cup)");
       const prev = oldById.get(it.id);
       let image = "";
       let cutBytes = null;

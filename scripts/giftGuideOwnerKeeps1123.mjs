@@ -62,7 +62,8 @@ export const HER_KEEPS_1123_ROWS = [
   ["B0B2WL4CSB", 6.97, "71uX7sknZYL", "Corissy Personalized Leather Travel Jewelry Box with Name and Birth Flower", "Corissy", "jewelry-box", 4, "A small leather jewelry case with her name and birth flower."],
   ["B0BX2TZZWG", 7.49, "61teCug7yHL", "Tree Hut Vanilla Shea Sugar Scrub, 18 oz", "Tree Hut", "body-scrub", 3, "A vanilla sugar body scrub."],
   ["B07L5QGF38", 8.49, "812oXq0wPPL", "Cleverfy Shower Steamers, 6-Pack", "Cleverfy", "shower-steamers", 3, "Six aromatherapy tablets that scent the shower."],
-  ["B00GSH0KR2", 9.8, "61+-Ue8E4nL", "Kiehl's Lip Balm #1, 0.5 oz", "Kiehl's", "lip-balm", 10, "Kiehl's classic lip balm."],
+  // Kiehl's Lip Balm: 30% (her accepted Kiehl's campaign on Amazon Creator Connections, to Dec 16; aff-sweep 11-24 ASIN check).
+  ["B00GSH0KR2", 9.8, "61+-Ue8E4nL", "Kiehl's Lip Balm #1, 0.5 oz", "Kiehl's", "lip-balm", 30, "Kiehl's classic lip balm."],
   ["B01N9B27XA", 9.95, "71tfYZmjXkL", "Mont Bleu Crystal Glass Nail Files, Set of 3 in Pouch", "Mont Bleu", "nail-file", 3, "Three glass nail files in a gift pouch."],
   ["B010TCP3SC", 10.99, "6172rXS7RSL", "Dash Mini Waffle Maker, Red", "Dash", "kitchen-appliance", 4.5, "A 4-inch waffle maker for one."],
   ["B01M10G9WJ", 11.99, "71rP7u8aCJL", "Jade Leaf Matcha Traditional Starter Set", "Jade Leaf", "matcha-set", 4.5, "A bamboo matcha whisk, scoop, sifter and handbook."],

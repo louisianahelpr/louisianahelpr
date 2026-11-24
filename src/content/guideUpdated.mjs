@@ -17,16 +17,16 @@ export const GUIDE_UPDATED = {
     "hash": "985b1e2f55395772"
   },
   "black-friday": {
-    "day": "2026-11-23",
-    "hash": "f78f9673237fe59f"
+    "day": "2026-11-24",
+    "hash": "c57b95ca7566781a"
   },
   "small-business-saturday": {
     "day": "2026-11-22",
     "hash": "cc09a5652c900e86"
   },
   "cyber-monday": {
-    "day": "2026-11-22",
-    "hash": "57dae10592ec1f57"
+    "day": "2026-11-24",
+    "hash": "18bde1ba52e97c14"
   },
   "holidays": {
     "day": "2026-11-23",

@@ -27,7 +27,8 @@ const CUTOUTS = join(REPO, "scripts/gift-guide-deals-cutouts.json");
 const OUT = join(REPO, "src/content/giftGuideDeals.json");
 const CUTOUT_PATH = "/gift-guides/deals/cutouts/";
 
-const AFFILIATE_HOSTS = new Set(["go.shopmy.us", "www.amazon.com", "www.anrdoezrs.net", "click.linksynergy.com"]);
+// mavely.app.link: our Later (Mavely) links (bf-page-1124: Macy's/Target/Kohl's and the other Later-only Black Friday stores).
+const AFFILIATE_HOSTS = new Set(["go.shopmy.us", "www.amazon.com", "www.anrdoezrs.net", "click.linksynergy.com", "mavely.app.link"]);
 const host = (u) => {
   try {
     return new URL(u).hostname;

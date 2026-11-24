@@ -28,6 +28,7 @@ import { ADDS_STORES_1122, HER_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
 import { HER_KEEPS_1123_ROWS, HER_LINKS_1123_ROWS, KEEPS_PRICE_AT } from "./giftGuideOwnerKeeps1123.mjs";
 import { HER_ADDS_1124, STORES_1124, rateSwitch1124 } from "./giftGuideOwner1124.mjs";
+import { HER_AMAZON_BEAUTY_1124 } from "./giftGuideAmazonBeauty1124.mjs";
 
 export const HER_GUIDE = "her";
 /** The day the ShopMy prices were checked (Louisiana day). */
@@ -228,8 +229,8 @@ export const HER_LINKS_1123 = HER_LINKS_1123_ROWS.map(([pin, price, image, name,
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
-/** Her 11-21 saves plus the picks she sent on launch day (scripts/giftGuideOwnerAdds1122.mjs), her 11-23 keeps and her 11-24 Macy's adds. */
-export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_ADDS_1124];
+/** Her 11-21 saves plus the picks she sent on launch day (scripts/giftGuideOwnerAdds1122.mjs), her 11-23 keeps, her 11-24 Macy's adds and her 11-24 Amazon beauty picks (scripts/giftGuideAmazonBeauty1124.mjs). */
+export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_ADDS_1124, ...HER_AMAZON_BEAUTY_1124];
 
 /** The page rows: cheapest first, every pick priced (Amazon too, owner 11-21), cutout photos, relationship tags, no section. */
 export function her1121Picks(rows = HER_ROWS) {

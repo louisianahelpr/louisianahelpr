@@ -1437,5 +1437,40 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/yeti-camino-35-carryall-cape-taupe-2e1972.webp"
    }
   ]
+ },
+ "monster-jam": {
+  "section": "For kids",
+  "items": [
+   {
+    "name": "Monster Jam Smash and Bash Grave Digger Remote Control Truck 1:15",
+    "key": "monster-jam:rc",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-rc-target-4eba21.webp"
+   },
+   {
+    "name": "Monster Jam Supercharge Speedway Figure-8 Playset (Megalodon + El Toro Loco)",
+    "key": "monster-jam:speedway",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-supercharge-speedway-kohls-f0045d.webp"
+   },
+   {
+    "name": "Monster Jam Grave Digger Toddler Slippers",
+    "key": "monster-jam:slippers",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-toddler-slippers-walmart-f8f94b.webp"
+   },
+   {
+    "name": "Monster Jam Tabletop Air Hockey Game",
+    "key": "monster-jam:air-hockey",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-air-hockey-macys-e5054b.webp"
+   },
+   {
+    "name": "Monster Jam 1:64 Truck 4-Pack + 3 Bonus Mini Jams (Walmart Christmas exclusive)",
+    "key": "monster-jam:truck-pack",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-1-64-truck-4-pack-3-bonus-mini-jams-walmart-chri-walmart-2d43ca.webp"
+   },
+   {
+    "name": "Monster Jam Smash and Bash Playset",
+    "key": "monster-jam:playset",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-smash-bash-playset-target-1e137b.webp"
+   }
+  ]
  }
 }

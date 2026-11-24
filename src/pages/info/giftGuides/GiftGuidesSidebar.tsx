@@ -17,11 +17,13 @@ const SPONSORS_SLUG = "25-days-sponsors";
  * need to filter it, maybe just do for her, him, kids with their color"; then the covers swapped to Her beige, Him
  * Christmas green, Kids Christmas red).
  */
-const SIDE_GUIDES = [
+const SIDE_GUIDES: readonly { slug: string; dot: "oat" | "green" | "red"; label?: string }[] = [
   { slug: "her", dot: "oat" },
   { slug: "him", dot: "green" },
   { slug: "kids", dot: "red" },
-] as const;
+  // Owner 2026-11-24: the Monster Jam gift guide, green like its cover; the menu row reads just "Monster Jam".
+  { slug: "monster-jam", dot: "green", label: "Monster Jam" },
+];
 
 
 /**
@@ -51,7 +53,7 @@ interface MenuProps { active: CatalogGuide | null; myList?: boolean; page?: stri
 /** The live guides with their cover dots, for the menu (desktop sidebar and the phone's menu sheet). */
 const sideGuides = () => SIDE_GUIDES.flatMap((x) => {
   const g = guideBySlug(x.slug);
-  return g && !g.empty ? [{ ...x, title: g.title }] : [];
+  return g && !g.empty ? [{ ...x, title: x.label ?? g.title }] : [];
 });
 
 /**

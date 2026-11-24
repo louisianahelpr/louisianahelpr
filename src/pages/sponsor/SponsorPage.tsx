@@ -17,7 +17,7 @@
  */
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { sponsorPage as C } from "@/content/sponsorPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -133,6 +133,8 @@ export default function SponsorPage() {
           <ReportErrorScreen source="SponsorPage" title="We couldn't load this page" />
           <p>We couldn't load this page. Check your connection and try again.</p>
           <Button type="button" variant="ghost" className="lh25-btn lh25-btn-primary" onClick={() => void stateQ.refetch()}>Try again</Button>
+          {/* Flow audit 1123 C8: the full-page error had no way out but an email; it links home like the 404 page. */}
+          <p><Link to="/" data-sponsor-error-home="">Go home</Link></p>
           <p>Or email <a href={`mailto:${C.links.email}`}>{C.links.email}</a>.</p>
         </div>
       </div>

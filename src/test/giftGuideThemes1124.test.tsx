@@ -23,7 +23,8 @@
  * @mutate api/share.ts |   "gift-guides/monster-jam": "monster-jam", |   "gift-guides/monster-jam-off": "monster-jam",
  * @mutate scripts/giftGuideThemes1124.mjs |   rows.map(({ id: _id, was: _was, age: _age, ...p }) => ({ ...p, ownerPick: true, from: slug })); |   rows.map(({ id: _id, was: _was, age: _age, ...p }) => ({ ...p, ownerPick: true, from: slug })).slice(1);
  */
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import sharp from "sharp";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
@@ -36,7 +37,8 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 // Each theme's first pick gets an approved "shop similar" here, so every theme page has one to leave out.
 vi.mock("@/content/giftGuideDupes.json", async () => {
   const fs = await import("node:fs");
-  const dupes = fs.readdirSync("scripts/gift-guide-themes").filter((f) => f.endsWith(".json")).map((f) => {
+  const { readdirSync: listDir } = await import("./helpers/trackedFiles");
+  const dupes = listDir("scripts/gift-guide-themes").filter((f) => f.endsWith(".json")).map((f) => {
     const r = JSON.parse(fs.readFileSync(`scripts/gift-guide-themes/${f}`, "utf8")).rows[0];
     return { for: { href: r.href }, guide: "kids", original: r.name, dupes: [{ name: "A lookalike", price: 5, priceAt: "2026-11-24", href: "https://www.amazon.com/dp/B000000000?tag=louisianahelpr-20", kind: "similar" }] };
   });

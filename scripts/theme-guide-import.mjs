@@ -26,12 +26,22 @@
  */
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { constants as fsConstants, copyFileSync, existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = "https://www.louisianahelpr.com";
+
+/** The file's bytes, or null when it is not there (read-and-handle-ENOENT, not existsSync-then-read). */
+function readIfThere(p) {
+  try {
+    return readFileSync(p);
+  } catch (e) {
+    if (e?.code === "ENOENT") return null;
+    throw e;
+  }
+}
 const CUT_DIR = join(ROOT, "public", "gift-guides", "cutouts");
 const rel = (...p) => join(ROOT, ...p);
 const read = (p) => readFileSync(rel(p), "utf8");
@@ -125,14 +135,21 @@ function main() {
       else if (!knownHosts.has(hostOf(href))) why.push(`no affiliate link (${hostOf(href)})`);
       const prev = oldById.get(it.id);
       let image = "";
+      let cutBytes = null;
       const cut = join(folder, "cutouts", `${it.id}.webp`);
       if (isAmazon(store, href)) {
         image = String(it.image ?? "").startsWith("https://") ? it.image : ""; // Amazon's own photo, never edited
-      } else if (existsSync(cut)) {
-        const bytes = readFileSync(cut);
-        const name = cutoutName(it.name, store, bytes);
+      } else if ((cutBytes = readIfThere(cut))) {
+        const name = cutoutName(it.name, store, cutBytes);
         // Copied only for a row that goes on the page (an out-of-stock or unpriced item leaves no stray file).
-        if (!why.length && !existsSync(join(CUT_DIR, name))) copyFileSync(cut, join(CUT_DIR, name));
+        // COPYFILE_EXCL instead of an existsSync check first (no check-then-act race): an existing copy is kept.
+        if (!why.length) {
+          try {
+            copyFileSync(cut, join(CUT_DIR, name), fsConstants.COPYFILE_EXCL);
+          } catch (e) {
+            if (e?.code !== "EEXIST") throw e;
+          }
+        }
         image = `${SITE}/gift-guides/cutouts/${name}`;
       } else if (prev?.image?.startsWith(`${SITE}/`) && existsSync(rel("public", prev.image.slice(SITE.length + 1)))) {
         image = prev.image;

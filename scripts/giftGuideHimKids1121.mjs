@@ -29,6 +29,7 @@ import { ADDS_STORES_1122, HIM_ADDS_1122, KIDS_ADDS_1122 } from "./giftGuideOwne
 import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
 import { HIM_KEEPS_1123_ROWS, HIM_LINKS_1123_ROWS, HIM_WALMART_1123_ROWS, KEEPS_PRICE_AT, KIDS_KEEPS_1123_ROWS, KIDS_LINKS_1123_ROWS } from "./giftGuideOwnerKeeps1123.mjs";
 import { HIM_ADDS_1124, KIDS_ADDS_1124, STORES_1124, rateSwitch1124 } from "./giftGuideOwner1124.mjs";
+import { kidsThemeMovesLive1124 } from "./giftGuideThemes1124.mjs";
 
 export const HIM_GUIDE = "him";
 export const KIDS_GUIDE = "kids";
@@ -481,7 +482,9 @@ export function him1121Picks(rows = [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPUL
 }
 /** For Kids, cheapest first. Kids has no relationship pages, so no tags. */
 export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_ADDS_1124]) {
-  return build(rows, KIDS_GUIDE, null);
+  // Owner 11-24 ~2:05 PM: a Kids pick that is on its themed guide's page leaves Kids (scripts/giftGuideKidsThemeMoves1124.mjs).
+  const moved = new Set(kidsThemeMovesLive1124().map((m) => m.href));
+  return build(rows.filter((r) => !moved.has(r.href)), KIDS_GUIDE, null);
 }
 
 /**

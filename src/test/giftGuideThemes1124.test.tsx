@@ -19,7 +19,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | similar={!isThemeGuide(guide.slug)} /> | />
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | ...Object.entries(THEME_GUIDE_NAMES_1124).map(([slug, label]) => ({ slug, dot: "green" as const, label })), | // no theme rows
  * @mutate src/content/giftGuideIndex.ts | ({ group: "For kids", tint: "green" as const, slug, | ({ group: "For kids", tint: "red" as const, slug,
- * @mutate scripts/gift-guide-photo-covers.py | "monster-jam": "green"} | "monster-jam": "red"}
+ * @mutate scripts/gift-guide-photo-covers.py | "monster-jam": "green", | "monster-jam": "red",
  * @mutate api/share.ts |   "gift-guides/monster-jam": "monster-jam", |   "gift-guides/monster-jam-off": "monster-jam",
  * @mutate scripts/giftGuideThemes1124.mjs |   rows.map(({ id: _id, was: _was, age: _age, ...p }) => ({ ...p, ownerPick: true, from: slug })); |   rows.map(({ id: _id, was: _was, age: _age, ...p }) => ({ ...p, ownerPick: true, from: slug })).slice(1);
  */

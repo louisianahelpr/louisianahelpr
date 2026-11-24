@@ -20,6 +20,7 @@
  *  - first import (or --redraw-cover): writes the cover manifest entry from cover6.json, draws the green square cover
  *    (scripts/theme-guide-draw.py) and the 1200x630 card (scripts/gift-guide-wide-og.py <slug>), and refreshes
  *    COVER_SLUGS, COVER_WEBP_SLUGS and both version files. A re-import keeps the cover and card as they are;
+ *  - takes off Kids any Kids pick waiting for this theme (scripts/kids-theme-moves.mjs, giftGuideKidsThemeMoves1124.mjs);
  *  - rewrites the search index with scripts/gift-guide-search-index.mjs (it writes only that file).
  * Guard: src/test/giftGuideThemes1124.test.tsx (every live theme: photo + price on every row, sections open, no "shop
  * similar", no Amazon on the cover, a 1200x630 card, a green cover with six photos).
@@ -226,6 +227,10 @@ function main() {
     write("src/content/giftGuidePicks.ts", src.replace(re, (_, a, b) => `${a}${JSON.stringify(chunkSlugs.map((s) => `./giftGuidePicks/${s}.json`))}${b}`));
   }
   editJsonConst("src/content/giftGuideSeo.mjs", "GIFT_GUIDE_SEO", (o) => ({ ...o, [slug]: `${theme} gift guide` }), { sortKeys: true });
+
+  // 4b. A Kids pick waiting for this theme (scripts/giftGuideKidsThemeMoves1124.mjs) leaves Kids now that the theme is
+  // live (its own process, so it reads the rows file and registry written above).
+  execFileSync("node", [rel("scripts/kids-theme-moves.mjs")], { stdio: "inherit" });
 
   // 5. The search index (its own small generator: it reads the picks chunks and writes only that file).
   execFileSync("node", [rel("scripts/gift-guide-search-index.mjs")], { stdio: "inherit" });

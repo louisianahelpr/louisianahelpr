@@ -56,6 +56,15 @@ color:var(--gg-ink)}
 .gg-link:hover,.gg-link:focus-visible{text-decoration:underline}
 .gg-row{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;scrollbar-width:thin;list-style:none;margin:0;padding-left:0;scroll-snap-type:x proximity}
 .gg-row>li{width:150px;flex:none;scroll-snap-align:start}
+/* Owner 11-24: the Kids page's themed guide covers under its red banner (GiftGuideThemeRow): a phone shows two and a
+   peek of the third (the swipe cue), snapping cover by cover; from 768px each cover is 184px, arrows once it overflows. */
+.gg-themes{position:relative;margin:14px 0 2px}
+.gg-themes-row{gap:12px;padding-bottom:6px;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none}
+.gg-themes-row::-webkit-scrollbar{display:none}
+.gg-themes-row>li{width:calc((100% - 24px) / 2.35)}
+@media (min-width:768px){.gg-themes-row>li{width:184px}.gg-themes-row{scrollbar-width:thin}}
+.gg-themes-edge{position:absolute;top:calc(50% - 23px);pointer-events:none}
+.gg-themes-edge-left{left:6px}.gg-themes-edge-right{right:6px}
 .gg-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px 14px;list-style:none;margin:0;padding:0}
 .gg-tile{display:block;color:var(--gg-ink);text-decoration:none}
 .gg-cover{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}

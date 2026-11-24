@@ -25,6 +25,7 @@ import { BUDGETS, BUDGET_MIN_PICKS, GiftGuideView, sectionLabel, sectionNav } fr
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { GuidesDisclosure } from "./giftGuides/GuidesDisclosure";
+import { GiftGuideThemeRow } from "./giftGuides/GiftGuideThemeRow";
 import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, DEALS_WORDS, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
@@ -394,14 +395,20 @@ export default function GiftGuides() {
             own count row under its banner is kept as it is ("she didn't ask to change it"). */}
         <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} pillInRow={!countRow}
           noPill={sidePage === "finder"}
-          below={(shipPill) => countRow && guide && (
-            <div className="gg-countrow" data-gift-countrow="">
-              <div className="gg-countrow-left">
-                {picksReady(guide.slug) && guide.picks.length > 0 && <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>}
-                {shipPill}
-              </div>
-              {tools}
-            </div>
+          below={(shipPill) => (
+            <>
+              {/* Owner 2026-11-24: the themed kids guides' green covers, right under the red Kids banner. */}
+              {guide?.slug === KIDS_FILTER_GUIDE && <GiftGuideThemeRow />}
+              {countRow && guide && (
+                <div className="gg-countrow" data-gift-countrow="">
+                  <div className="gg-countrow-left">
+                    {picksReady(guide.slug) && guide.picks.length > 0 && <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>}
+                    {shipPill}
+                  </div>
+                  {tools}
+                </div>
+              )}
+            </>
           )} />
         {/* Owner 11-21 ("put like a line or something above all guides and under search bar all the way across to be a
             divider"): one hairline across the content width, under the search row and above the menu and the guides. */}

@@ -40,6 +40,10 @@ import { existsSync } from "node:fs";
 import her from "@/content/giftGuidePicks/her.json";
 import him from "@/content/giftGuidePicks/him.json";
 import kids from "@/content/giftGuidePicks/kids.json";
+import { kidsThemeMovesLive1124 } from "../../scripts/giftGuideThemes1124.mjs";
+/** Kids picks that moved to their themed guide 11-24 (scripts/giftGuideKidsThemeMoves1124.mjs; that move's own guard is
+ *  src/test/giftGuideKidsThemeRow1124.test.tsx): off Kids by design, so not expected here. */
+const MOVED_TO_THEME = new Set(kidsThemeMovesLive1124().map((m: { href: string }) => m.href));
 
 const TODAY = "2026-11-23";
 const GUIDES = ["her", "him", "kids"] as const;
@@ -116,6 +120,7 @@ describe("the owner's 11-23 Amazon keeps are on their guides", () => {
     it(`${name}: each keep once, with the tagged Amazon link, a price and today's check`, () => {
       expect(asins.length).toBeGreaterThan(13);
       for (const a of asins) {
+        if (name === "kids" && MOVED_TO_THEME.has(`https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`)) continue;
         const rows = (list as { href: string; price: number; priceAt: string; image: string }[]).filter((p) => p.href.includes(`/dp/${a}`));
         expect(rows.length, a).toBe(1);
         expect(rows[0].href).toBe(`https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`);

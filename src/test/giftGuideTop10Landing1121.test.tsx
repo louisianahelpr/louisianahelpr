@@ -9,8 +9,8 @@
  * @mutate src/content/giftGuideTop10.ts |     const clicked = s.autoReplace ? hot.find((p) => !used.has(p.href)) : undefined; |     const clicked = hot.find((p) => !used.has(p.href));
  * @mutate src/content/giftGuideTop10.ts |     .filter((p) => (clicks[p.href] ?? 0) >= minClicks) |     .filter((p) => (clicks[p.href] ?? 0) > 0)
  * @mutate src/content/giftGuideTop10.ts |     .sort((a, b) => (clicks[b.href] ?? 0) - (clicks[a.href] ?? 0) \|\| | .sort((a, b) => (clicks[a.href] ?? 0) - (clicks[b.href] ?? 0) \|\|
- * @mutate src/pages/info/giftGuides/GiftGuideTop10.tsx |         {top.map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i + 1} />)} |         {top.slice(0, 9).map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i + 1} />)}
- * @mutate src/pages/info/giftGuides/GiftGuideTop10.tsx |         {top.map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i + 1} />)} |         {top.map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i} />)}
+ * @mutate src/pages/info/giftGuides/GiftGuideTop10.tsx |         {top.map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i + 1} similar={false} />)} |         {top.slice(0, 9).map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i + 1} similar={false} />)}
+ * @mutate src/pages/info/giftGuides/GiftGuideTop10.tsx |         {top.map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i + 1} similar={false} />)} |         {top.map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i} similar={false} />)}
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |         {rank !== undefined && <span className="gg-rank" aria-hidden="true" data-gift-rank={rank}>{rank}</span>} |         {null}
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {rank !== undefined && <span className="sr-only">{`${rank}. `}</span>} | {null}
  *

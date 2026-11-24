@@ -30,7 +30,7 @@ export function GiftGuideTop10() {
     <section aria-labelledby="gift-top10" className="gg-top10-wrap" data-gift-top10="">
       <h2 id="gift-top10" className="gg-top10-h">{G.top10Title}</h2>
       <ul className="gg-list gg-top10">
-        {top.map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i + 1} />)}
+        {top.map((p, i) => <PickRow key={p.href} pick={p} guide={p.guide} rank={i + 1} similar={false} />)}
       </ul>
       <PricesAsOf picks={top} />
     </section>

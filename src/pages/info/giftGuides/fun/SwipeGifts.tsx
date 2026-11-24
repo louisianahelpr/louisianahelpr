@@ -323,10 +323,11 @@ export default function SwipeGifts() {
         <section aria-labelledby="swipe-done" className="gg-swipe-done" data-swipe-done="">
           <h2 id="swipe-done">{!saved.length ? W.swipeDoneNone : santa ? W.santaSavedTitle(saved.length, santa.match) : forName ? W.swipeSavedFor(saved.length, forName) : W.swipeDoneTitle(saved.length)}</h2>
           {/* Owner 2026-11-22 #16 ("should show the pictures here"): each saved gift as the guides' own card (PickRow, as
-              in the Top 10: its cutout photo, name, price and link, the heart), 2 across on a phone, 4 from 768px. */}
+              in the Top 10: its cutout photo, name, price and link, the heart), 2 across on a phone, 4 from 768px. Not a guide
+              list, so no "shop similar" (owner 2026-11-24 10:36 AM: only in the guides, not the Top 10). */}
           {saved.length > 0 && (
             <>
-              <ul className="gg-list gg-top10 gg-swipe-saved" data-swipe-saved-grid="">{saved.map((p) => <PickRow key={p.href} pick={p} guide={p.guide} />)}</ul>
+              <ul className="gg-list gg-top10 gg-swipe-saved" data-swipe-saved-grid="">{saved.map((p) => <PickRow key={p.href} pick={p} guide={p.guide} similar={false} />)}</ul>
               <PricesAsOf picks={saved} />
             </>
           )}

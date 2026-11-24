@@ -292,12 +292,9 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-list .gg-dupe{top:46px;left:auto;right:46px;justify-content:center}
 .gg-list .gg-dupe-solo{right:2px}
 }
-/* Flow audit 1123 C12: on the Top 10 card (and Swipe's saved grid, the same card) the words sat on the photo, over the
-   product's own logo. They take the card's bottom line now, under the price at its right end, with or without a cart
-   (the cart keeps its 11-22 place under the heart); the name column keeps a 44px strip at its foot for that line, so
-   the words never cover the photo, the name or the price. */
-.gg-list.gg-top10 .gg-dupe{top:auto;bottom:0;left:auto;right:0;justify-content:flex-end}
-.gg-top10>li:has(>.gg-dupe) .gg-nm{padding-bottom:44px}
+/* Owner 2026-11-24 10:36 AM: "Shop similar should only be in the guides not the top 10". The Top 10 card (and Swipe's
+   saved grid, the same card) draws no "shop similar" at all (PickRow similar={false}), so it has no rule here and its
+   name column keeps no strip for it. */
 .gg-dupe-pop{width:calc(var(--gg-dupe-cols,1) * 220px + (var(--gg-dupe-cols,1) - 1) * 20px + 40px);max-width:calc(100vw - 32px);max-height:min(80vh,640px);overflow-y:auto;padding:16px 20px;border-radius:16px;background:hsl(var(--card))}
 .gg-dupe-x{position:absolute;top:4px;right:4px;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;background:transparent;color:var(--gg-muted);cursor:pointer}
 .gg-dupe-x svg{width:18px;height:18px}

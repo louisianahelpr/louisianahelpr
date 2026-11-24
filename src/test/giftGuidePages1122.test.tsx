@@ -33,6 +33,7 @@
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <FunBody title={words.title} path={path} tools="none"> | <FunBody title={words.title} path={path}>
  * @mutate src/pages/info/holidays/HolidayHub.tsx | banner={G.pageBanners["/holidays"]} tools="share" | banner={G.pageBanners["/holidays"]}
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | heart={tools !== "share"} | heart
+ * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | guide={p.guide} similar={false} /> | guide={p.guide} />
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | <GuidesTop backTo="/gift-guides" banner={banner} noPill | <GuidesTop backTo="/gift-guides" banner={banner} noPill={tools === "share"}
  * @mutate src/pages/info/GiftGuides.tsx |           noPill={sidePage === "finder"}\n | \n
  * @mutate src/pages/info/GiftGuides.tsx |           noPill={sidePage === "finder"}\n |           noPill\n
@@ -45,7 +46,7 @@
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-book{align-items:center} | .pr-book{flex-direction:column;padding:16px}
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx |               <h2 className="pr-card-title">{b.title}</h2>\n |               <h2 className="pr-card-title">{b.title}</h2>\n              <p>A cover and 20 Christmas pages to color.</p>\n
  * @mutate src/pages/info/giftGuides/fun/SecretSanta.tsx |           <p className="gg-fun-lead">{W.santaLead}</p>\n |           <p className="gg-fun-lead">{W.santaLead}</p>\n          <p data-gift-hint="fun-santa">Tip: we never ask for emails or phone numbers. You send each link yourself.</p>\n
- * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | {saved.map((p) => <PickRow key={p.href} pick={p} guide={p.guide} />)} | {saved.map((p) => <li key={p.href}>{p.name}</li>)}
+ * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | {saved.map((p) => <PickRow key={p.href} pick={p} guide={p.guide} similar={false} />)} | {saved.map((p) => <li key={p.href}>{p.name}</li>)}
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | @media (min-width:768px){.gg .gg-top10.gg-swipe-saved{grid-template-columns:repeat(4,minmax(0,1fr)); | @media (min-width:768px){.gg .gg-top10.gg-swipe-saved{grid-template-columns:repeat(5,minmax(0,1fr));
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | {savedTo === "planner" && <Button asChild variant="link" size="inline" className="gg-link"> | {savedTo === "planner" && <Button asChild variant="outline">
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | .pr-card-btns>.pr-link{flex:none;white-space:nowrap} | .pr-card-btns>.pr-link{flex:none}
@@ -324,6 +325,11 @@ describe("#16 Swipe's end screen shows the saved gifts as the guides' cards", ()
     expect(grid.matches("ul.gg-list.gg-top10.gg-swipe-saved")).toBe(true);
     const cards = [...grid.querySelectorAll(":scope > li[data-gift-pick]")];
     expect(cards.length).toBe(hrefs.length);
+    // Not a guide list: no "shop similar" here (owner 2026-11-24 10:36 AM: only in the guides, not the Top 10), though
+    // the saved Her gifts include picks with similar items (floor).
+    const { guideBySlug } = await import("@/content/giftGuideCatalog");
+    expect(hrefs.filter((h) => guideBySlug("her")!.picks.find((p) => p.href === h)?.dupes?.length).length).toBeGreaterThan(0);
+    expect(grid.querySelectorAll("[data-gift-dupe]")).toHaveLength(0);
     cards.forEach((li, i) => {
       const link = li.querySelector<HTMLAnchorElement>("a[data-gift-title-link]")!;
       expect(link.getAttribute("href")).toBe(hrefs[i]);

@@ -8,14 +8,14 @@
  * in the panel the word opens, as the guide's own rows ("list the dupes the same way the other layout is for the
  * guides"), with Escape / X closing it and focus going back to the word.
  *
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {pick.dupes?.length ? <DupeLink dupes={pick.dupes} of={pick.name} solo={!cart} /> : null} | {null}
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | {similar && pick.dupes?.length ? <DupeLink dupes={pick.dupes} of={pick.name} solo={!cart} /> : null} | {null}
  * @mutate src/content/giftGuideCatalog.ts | return d.length ? { ...p, dupes: d } : p; | return p;
  * @mutate src/pages/info/giftGuides/DupePanel.tsx | {picks.map((p) => <PickRow key={p.href} pick={p} />)} | {picks.slice(0, 1).map((p) => <PickRow key={p.href} pick={p} />)}
  * @mutate src/content/giftGuideDupes.ts | ("href" in d.for ? d.for.href === pick.href : pick.brand === d.for.brand && pick.name.includes(d.for.nameHas)) | ("href" in d.for ? d.for.href === pick.href : false)
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | border:0;border-radius:0;background:transparent;box-shadow:none;font:inherit;font-size:12px | border:1px solid;border-radius:999px;background:#eee;box-shadow:none;font:inherit;font-size:12px
  * @mutate src/pages/info/giftGuides/DupePanel.tsx |     anchor.current?.focus(); |     void 0;
  * @mutate src/pages/info/giftGuides/DupeLink.tsx | {`: ${DUPE.count(dupes.length)}`} | {""}
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list.gg-top10 .gg-dupe{top:auto;bottom:0;left:auto;right:0;justify-content:flex-end} | .gg-list.gg-top10 .gg-dupe{}
+ * @mutate src/pages/info/giftGuides/GiftGuideTop10.tsx | rank={i + 1} similar={false} /> | rank={i + 1} />
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -158,12 +158,9 @@ describe("the card's plain 'dupe' word", () => {
     expect(GIFT_GUIDES_CSS).toContain(".gg-list>:where([data-gift-pick])>.gg-dupe{bottom:0;right:88px}");
     expect(GIFT_GUIDES_CSS).toContain(".gg-list>:where([data-gift-pick])>.gg-dupe-solo{right:44px}");
     expect(GIFT_GUIDES_CSS).toContain(".gg-list .gg-dupe{top:46px;left:auto;right:46px;justify-content:center}");
-    // The Top 10 card (flow audit 1123 C12): the words off the photo, at the right end of the card's bottom line under
-    // the price, with or without a cart (the cart keeps its 11-22 place under the heart), after the phone rule;
-    // src/test/giftGuideTop10ActionsOffPhoto1124.test.tsx computes the cascade.
-    const top10 = GIFT_GUIDES_CSS.indexOf(".gg-list.gg-top10 .gg-dupe{top:auto;bottom:0;left:auto;right:0;justify-content:flex-end}");
-    expect(top10).toBeGreaterThan(GIFT_GUIDES_CSS.indexOf(".gg-list>:where([data-gift-pick])>.gg-dupe{bottom:0;right:88px}"));
-    expect(GIFT_GUIDES_CSS).not.toContain(".gg-list.gg-top10 .gg-dupe-solo{");
+    // The Top 10 card draws no words at all (owner 2026-11-24 10:36 AM: "Shop similar should only be in the guides not
+    // the top 10"), so no rule places them there and no strip waits for them under the price.
+    expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-top10[^{}]*\.gg-dupe/);
   });
 
   it("opens the panel on tap (desktop popover): the dupe as the guide's own row (photo, name, ~price, cart, tag link); Escape closes it, focus returns", async () => {
@@ -240,6 +237,32 @@ describe("several dupes on one gift", () => {
     expect(panel.querySelectorAll("[data-gift-prices-as-of]")).toHaveLength(1);
     expect(panel.style.getPropertyValue("--gg-dupe-cols")).toBe("3");
     expect(GIFT_GUIDES_CSS).toContain(".gg-dupe-pop .gg-list{margin:0;grid-template-columns:repeat(var(--gg-dupe-cols,1),minmax(0,1fr))}");
+  });
+});
+
+describe("only the guide pages say 'shop similar' (owner 2026-11-24 10:36 AM: \"only in the guides not the top 10\")", () => {
+  it("the landing's Top 10 draws zero, though it holds picks with similar items; a guide row with the same pick draws it", async () => {
+    await loadAllGuidePicks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-24T18:00:00Z"));
+    const { container } = render(
+      <MemoryRouter initialEntries={["/gift-guides"]}>
+        <Routes><Route path="/gift-guides" element={<GiftGuides />} /></Routes>
+      </MemoryRouter>,
+    );
+    const cards = [...container.querySelectorAll<HTMLElement>("[data-gift-top10] li[data-gift-pick]")];
+    expect(cards).toHaveLength(10);
+    const pool = new Map(["her", "him", "kids"].flatMap((g) => guideBySlug(g)!.picks.map((p) => [p.href, p] as const)));
+    const similar = cards.map((li) => pool.get(li.querySelector("a.gg-item")!.getAttribute("href")!)!).filter((p) => p.dupes?.length);
+    expect(similar.length).toBeGreaterThan(2);
+    expect(container.querySelectorAll("[data-gift-top10] [data-gift-dupe]")).toHaveLength(0);
+    expect(container.querySelector("[data-gift-top10]")?.textContent ?? "").not.toMatch(/shop similar/i);
+    cleanup();
+    // The same picks, as guide rows, keep the words.
+    for (const p of similar) {
+      expect(row(p).querySelector("[data-gift-dupe]")?.firstChild?.textContent, p.name).toBe("shop similar");
+      cleanup();
+    }
   });
 });
 

@@ -96,7 +96,9 @@ const SPONSORS_PAGE_HIDDEN_BADGES: readonly string[] = ["sponsor", "shop-louisia
 const OUR_25_DAYS_PAGE = /^https:\/\/www\.louisianahelpr\.com\/25days(?:[/?#]|$)/;
 
 /** `rank` (the landing's Top 10, owner 11-21 evening "number the top 10 gifts"): a numeral badge on the photo's corner and "1." in the link's name. */
-export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide?: string; rank?: number; eager?: boolean }) {
+/** `similar` false (the landing's Top 10 and Swipe's saved grid): no "shop similar" (owner 2026-11-24 10:36 AM: "Shop
+ *  similar should only be in the guides not the top 10"). */
+export function PickRow({ pick, guide, rank, eager, similar = true }: { pick: CatalogPick; guide?: string; rank?: number; eager?: boolean; similar?: boolean }) {
   // Owner 11-21: filled when the gift is on My Wish List or on anyone's list (saveForPeople).
   const [wish, plan] = [useGiftList(), usePlan()];
   const saved = isSaved(wish, itemId(pick.href)) || onAnyList(plan, pick.href);
@@ -152,7 +154,7 @@ export function PickRow({ pick, guide, rank, eager }: { pick: CatalogPick; guide
           phone (owner 11-22 later) the two sit in one line at the row's bottom-right under the price, cart left of the heart. */}
       {/* Owner 2026-11-23: a pick with an approved dupe shows the plain word "dupe" left of the cart (no circle); a pick
           with no cart has it in the cart's place. Its tap opens the dupe panel; the dupe is never a card of its own. */}
-      {pick.dupes?.length ? <DupeLink dupes={pick.dupes} of={pick.name} solo={!cart} /> : null}
+      {similar && pick.dupes?.length ? <DupeLink dupes={pick.dupes} of={pick.name} solo={!cart} /> : null}
       {cart && (
         <GiftOut href={cart} className="gg-cart">
           <ShoppingCart aria-hidden="true" />

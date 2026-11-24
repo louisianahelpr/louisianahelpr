@@ -100,8 +100,8 @@ describe("heart and cart: on the photo on a computer, at the row's bottom-right 
     // Neither takes the phone row's bottom-right line: the Top 10's own rules come later at the same weight and reset it.
     expect(rule(".gg-top10 .gg-heart-pick,.gg-top10 .gg-cart")).toEqual({ left: "auto", bottom: "auto", "justify-content": "center" });
     expect(rule(".gg-top10 .gg-nm")["padding-bottom"]).toBe("0");
-    // Flow audit 1123 C12: only a card with "shop similar" keeps a 44px strip under the price, for the words alone.
-    expect(rule(".gg-top10>li:has(>.gg-dupe) .gg-nm")["padding-bottom"]).toBe(`${TAP}px`);
+    // Owner 2026-11-24 10:36 AM: no "shop similar" on the Top 10, so no card keeps a strip under the price for it.
+    expect(GIFT_GUIDES_CSS).not.toContain(".gg-top10>li:has(");
     expect(GIFT_GUIDES_CSS.indexOf(".gg-top10 .gg-nm{")).toBeGreaterThan(GIFT_GUIDES_CSS.indexOf(`${ROW} .gg-nm{`));
     expect(GIFT_GUIDES_CSS.indexOf(".gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{")).toBeGreaterThan(PHONE);
     expect(rule(".gg-top10 .gg-nm .gg-nm-meta")["padding-right"]).toBeUndefined();

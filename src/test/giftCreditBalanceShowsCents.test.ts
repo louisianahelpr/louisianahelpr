@@ -37,7 +37,7 @@ const WHOLE_DOLLAR_IMPORT = /import\s*\{([^}]*)\}\s*from\s*["']@\/lib\/format["'
 /** The argument text of every call to `name(` in `code`, by balanced parentheses, with the line it starts on. */
 function calls(code: string, name: string): { arg: string; line: string }[] {
   const out: { arg: string; line: string }[] = [];
-  const re = new RegExp(`(?<![\\w.$])${name.replace(/\./g, "\\.")}\\(`, "g");
+  const re = new RegExp(`(?<![\\w.$])${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\(`, "g");
   for (let m = re.exec(code); m; m = re.exec(code)) {
     let depth = 1;
     let i = m.index + m[0].length;

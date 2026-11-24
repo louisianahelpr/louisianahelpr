@@ -38,6 +38,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 }));
 import GiftGuides from "@/pages/info/GiftGuides";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
+import { THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
 
 afterEach(cleanup);
 await loadAllGuidePicks();
@@ -168,7 +169,7 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     const { container } = renderAt("/gift-guides");
     expect(container.querySelector("[data-gift-quick-picks]")).toBeNull();
     const tiles = [...container.querySelectorAll("[data-gift-live-guides] a[data-gift-tile]")];
-    expect(tiles.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", "/gift-guides/monster-jam"]);
+    expect(tiles.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", ...THEME_GUIDES_1124.map((s) => `/gift-guides/${s}`)]);
   });
 
   // Owner 11-21 ("title on left with back arrow on the left of the title", like the other pages): the landing's back

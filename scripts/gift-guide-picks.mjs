@@ -42,7 +42,7 @@ import { applyPeople } from "./giftGuidePeople1120.mjs";
 import { applyStandard } from "./giftGuideStandard1120.mjs";
 import { applyHer1121 } from "./giftGuideHer1121.mjs";
 import { applyHimKids1121 } from "./giftGuideHimKids1121.mjs";
-import { applyMonsterJam1124 } from "./giftGuideMonsterJam1124.mjs";
+import { applyThemeGuides1124 } from "./giftGuideThemes1124.mjs";
 import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
 /** The merged guides whose picks feed For Her and For Him (the people guides and Mom and Dad). */
@@ -4107,8 +4107,8 @@ console.log(`gift-guide-picks: final sweep ${JSON.stringify(finalSweep)}`);
   const t = applyHer1121(pageList, storeList);
   console.log(`gift-guide-picks: her 1121 (after the final sweep) ${JSON.stringify(t)}`);
   console.log(`gift-guide-picks: him + kids 1121 (after the final sweep) ${JSON.stringify(applyHimKids1121(pageList, storeList))}`);
-  // The Monster Jam guide (owner 11-24): its researched rows, last, so no rule or sweep touches them.
-  console.log(`gift-guide-picks: monster jam 1124 ${JSON.stringify(applyMonsterJam1124(pageList))}`);
+  // The themed kids guides (owner 11-24: Monster Jam, Bluey ...): their researched rows, last, so no rule or sweep touches them.
+  console.log(`gift-guide-picks: theme guides 1124 ${JSON.stringify(applyThemeGuides1124(pageList))}`);
 }
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });

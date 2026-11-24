@@ -6,6 +6,7 @@ import { FUN_TOOLS, FUN_WORDS } from "@/content/giftGuideFun1120";
 import { EXTRAS_WORDS, FINDER_ANCHOR as FINDER_ID } from "@/content/giftGuideExtras1120";
 import { PRINTABLE_PAGES, printablesCount } from "@/content/printables";
 import { CHUNK_PICK_COUNTS } from "@/content/giftGuidePicks";
+import { THEME_GUIDE_NAMES_1124 } from "@/content/giftGuideLive.mjs";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { MY_LIST_SLUG } from "./giftList";
@@ -21,8 +22,9 @@ const SIDE_GUIDES: readonly { slug: string; dot: "oat" | "green" | "red"; label?
   { slug: "her", dot: "oat" },
   { slug: "him", dot: "green" },
   { slug: "kids", dot: "red" },
-  // Owner 2026-11-24: the Monster Jam gift guide, green like its cover; the menu row reads just "Monster Jam".
-  { slug: "monster-jam", dot: "green", label: "Monster Jam" },
+  // Owner 2026-11-24: the themed kids guides (Monster Jam, Bluey ...), green like their covers; each row reads just the
+  // theme's name ("Monster Jam", "Bluey").
+  ...Object.entries(THEME_GUIDE_NAMES_1124).map(([slug, label]) => ({ slug, dot: "green" as const, label })),
 ];
 
 

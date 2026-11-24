@@ -21,7 +21,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         {showResults && ( |         {false && (
  * @mutate src/content/giftGuideCatalog.ts |     loaded.set(slug, { picks: c.picks.map(toPick).map(typed).map(withDupe), | loaded.set(slug, { picks: [],
  */
-import { isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { THEME_GUIDES_1124, isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -254,7 +254,7 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     expect(container.querySelector("[data-gift-sidebar] input")).toBeNull();
     // Owner 11-21 ("just do for her, him, kids with their color instead of the filter"): plain links, no groups.
     expect(container.querySelectorAll("[data-gift-sidebar] details").length).toBe(0);
-    expect([...container.querySelectorAll("[data-gift-side-guides] a[data-gift-side]")].map((a) => a.getAttribute("data-gift-side"))).toEqual(["", "her", "him", "kids", "monster-jam"]);
+    expect([...container.querySelectorAll("[data-gift-side-guides] a[data-gift-side]")].map((a) => a.getAttribute("data-gift-side"))).toEqual(["", "her", "him", "kids", ...THEME_GUIDES_1124]);
   });
 });
 

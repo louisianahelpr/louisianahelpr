@@ -288,6 +288,14 @@ export const EVIDENCE = [
     checkedBy: "src/test/giftGuidesPage.test.tsx (two-way link allowlist, Amazon tag, no prices) + src/test/giftGuidesExtras.test.tsx (badges, loaded guides)",
   },
   {
+    id: "theme-guide-import",
+    script: "scripts/theme-guide-import.mjs",
+    outputs: ["scripts/gift-guide-themes/index.mjs"],
+    refresh: "node scripts/theme-guide-import.mjs <slug> \"<Theme name>\" <research folder> (reads a research lane's folder in ~/.lh-shots/theme-guides-1124; not in CI)",
+    refreshedBy: "by the committer when a research lane hands over a themed kids guide (content, not a count)",
+    checkedBy: "src/test/giftGuideThemes1124.test.tsx (every live theme: rows file, registry and names map two-way; chunk, page, menu, card and cover)",
+  },
+  {
     id: "gift-guide-standard-1120",
     script: "scripts/gift-guide-standard-1120-build.mjs",
     outputs: ["scripts/gift-guide-standard-1120.json"],

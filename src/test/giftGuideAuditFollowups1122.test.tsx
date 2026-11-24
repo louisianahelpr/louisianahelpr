@@ -97,6 +97,9 @@ describe("#13 hearts on every Sales and Discount codes card; audit item 5 codes 
       for (const slug of ["black-friday", "cyber-monday"]) {
         const c = await renderGuide(slug);
         await waitFor(() => expect(c.querySelectorAll("li[data-gift-sale-store]").length, slug).toBeGreaterThan(0));
+        // The deal cards load in their own chunk and redraw the page when they arrive (a code a deal card already shows
+        // loses its code card, polish audit 1122 #12). Wait for them so the taps below run on the settled page.
+        await waitFor(() => expect(c.querySelectorAll("[data-gift-deal-list] [data-gift-deal]").length, slug).toBeGreaterThan(0));
         expect(c.querySelectorAll("li[data-gift-code-store]").length, slug).toBeGreaterThan(0);
         const list = [...c.querySelectorAll<HTMLElement>("li[data-gift-sale-store], li[data-gift-code-store]")];
         for (const li of list) {
@@ -106,12 +109,17 @@ describe("#13 hearts on every Sales and Discount codes card; audit item 5 codes 
           cards++;
         }
         // A tap fills the heart (saved to My Wish List) and a second tap empties it.
-        const heart = list[0].querySelector<HTMLButtonElement>(":scope > button.gg-heart-deal")!;
-        expect(heart.getAttribute("aria-pressed")).toBe("false");
-        await act(async () => { fireEvent.click(heart); });
-        expect(heart.getAttribute("aria-pressed")).toBe("true");
-        await act(async () => { fireEvent.click(heart); });
-        expect(heart.getAttribute("aria-pressed")).toBe("false");
+        // The heart is found again before each tap and each check (by its card's store), so a redraw between the taps
+        // (red on CI shard 5 for #4942: "true" after the second tap, green locally) taps and reads the heart on the page.
+        const sel = list[0].hasAttribute("data-gift-code-store")
+          ? `li[data-gift-code-store="${list[0].getAttribute("data-gift-code-store")}"]`
+          : `li[data-gift-sale-store="${list[0].getAttribute("data-gift-sale-store")}"]`;
+        const heartNow = () => c.querySelector<HTMLButtonElement>(`${sel} > button.gg-heart-deal`)!;
+        expect(heartNow().getAttribute("aria-pressed")).toBe("false");
+        await act(async () => { fireEvent.click(heartNow()); });
+        await waitFor(() => expect(heartNow().getAttribute("aria-pressed")).toBe("true"));
+        await act(async () => { fireEvent.click(heartNow()); });
+        await waitFor(() => expect(heartNow().getAttribute("aria-pressed")).toBe("false"));
         cleanup();
       }
       expect(cards).toBeGreaterThan(30);

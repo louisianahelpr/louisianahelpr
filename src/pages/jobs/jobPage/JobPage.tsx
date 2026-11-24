@@ -15,11 +15,11 @@ import { CountdownRows } from "@/components/job-card/CountdownRows";
 import { collapsedClocks } from "@/components/job-card/collapsedClocks";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { jobDayLabel } from "@/lib/jobDateWindow";
 import { youStep } from "@/lib/nextStepWords";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import { JobHeaderShare, MenuShareProvider, useJobMenuShare } from "./menuShare";
+import { JobClosedForMe } from "./JobClosedForMe";
 import { ScopeVideo } from "@/components/jobs/ScopeVideo";
 import { safeScopeVideoUrl } from "@/lib/scopeVideo";
 import { DeclutterGallery } from "@/components/declutter/DeclutterGallery";
@@ -206,30 +206,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     );
   }
   if (!q.data) {
-    // #33: the Helpr applied, the job closed to them: the Working row's own name, date and words (useJobPage).
-    if (closedForMe?.isPending) {
-      return (
-        <AppPage title={t("jobPage.title")} backTo="/jobs">
-          <div role="status" aria-busy="true" aria-label={t("jobPage.loading")}><JobCardSkeleton /></div>
-        </AppPage>
-      );
-    }
-    const closed = closedForMe?.data;
-    if (closed) {
-      const closedTitle = closed.label?.title?.trim();
-      const closedDay = closed.label?.date_needed ? jobDayLabel(closed.label) : null;
-      return (
-        <AppPage title={closedTitle || t("jobPage.title")} backTo="/jobs">
-          <EmptyState
-            variant="inline"
-            icon={Briefcase}
-            title={closed.status}
-            body={closedDay ? `${closedDay} · ${t("jobPage.closedBody")}` : t("jobPage.closedBody")}
-            action={<Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate("/jobs")}>{t("jobPage.browseJobs")}</Button>}
-          />
-        </AppPage>
-      );
-    }
+    // #33: the Helpr applied, the job closed to them: the Working row's own name, date and words (JobClosedForMe).
+    if (closedForMe?.isPending || closedForMe?.data) return <JobClosedForMe closedForMe={closedForMe} />;
     return (
       <AppPage title={t("jobPage.title")} backTo="/jobs">
         <EmptyState

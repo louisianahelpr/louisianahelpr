@@ -6,7 +6,7 @@
  * confirm button, at every moment of the window (before it opens, on the day, after the day). Both read ONE rule,
  * helprConfirmClosed in src/lib/jobDate.ts, and so does HelperTrackerPanel's gate.
  *
- * @mutate src/components/JobTrackingView.tsx |           if (jobDateNeeded && helprConfirmClosed(jobDateNeeded, Date.now())) { |           if (false) {
+ * @mutate src/components/JobTrackingView.tsx | dayPassed={!!jobDateNeeded && helprConfirmClosed(jobDateNeeded, Date.now())} | dayPassed={false}
  * @mutate src/components/JobConfirmation.tsx | : !helprConfirmClosed(dateNeeded, now.getTime())); | : hoursUntilJob > -48);
  */
 import { describe, it, expect, vi, afterEach } from "vitest";

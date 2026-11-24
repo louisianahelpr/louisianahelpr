@@ -2,11 +2,11 @@
 export const GUIDE_UPDATED = {
   "her": {
     "day": "2026-11-24",
-    "hash": "fb386ba756719a75"
+    "hash": "698d3ab0ce8a2ddc"
   },
   "him": {
     "day": "2026-11-24",
-    "hash": "31cd1176f5e826a3"
+    "hash": "9dfd558eba92959f"
   },
   "kids": {
     "day": "2026-11-24",

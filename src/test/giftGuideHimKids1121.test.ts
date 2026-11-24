@@ -170,10 +170,11 @@ const STEALS_1124: Record<string, Record<string, string>> = {
  * columbia.com sells) and the Muck Arctic Pro (The Warming Store 8% -> muckbootcompany.com 16%); Kids' 7 Macy's adds (16%).
  */
 const SWITCHED_1124: Record<string, Record<string, string>> = {
-  him: { "https://mavely.app.link/rBTVe27Zj8b": "store-columbia", "https://mavely.app.link/LP97ij8Zj8b": "store-columbia", "https://go.shopmy.us/p-110119003": "store-muck-boot", "https://walmrt.us/4zZkihX": "store-walmart", ...STEALS_1124.him },
+  him: { "https://mavely.app.link/rBTVe27Zj8b": "store-columbia", "https://mavely.app.link/LP97ij8Zj8b": "store-columbia", "https://go.shopmy.us/p-110119003": "store-muck-boot", "https://walmrt.us/4zZkihX": "store-walmart", "https://mavely.app.link/MYePdejfk8b": "store-scheels", "https://mavely.app.link/SGyD34lfk8b": "store-scheels", "https://mavely.app.link/3DJNEdpfk8b": "store-scheels", ...STEALS_1124.him },
   kids: { ...sm(["110119731", "110119881", "110119923", "110119952", "110119982", "110120034", "110120060"], "store-macys"), "https://walmrt.us/4jpdmER": "store-walmart", ...STEALS_1124.kids },
 };
-const SWITCHED_AWAY_1124 = ["B0FY9LPSCW", "B0076R6MN4", "p-107881822", "B0H51ZX6SB"];
+// p-109001581 / p-109004991 / p-109004058: the YETI Tundra 45, Hopper Flip 12 and Sidekick Dry to SCHEELS via Later 7% (lead ~4:20 AM, Pace Purple, about 30% off).
+const SWITCHED_AWAY_1124 = ["B0FY9LPSCW", "B0076R6MN4", "p-107881822", "B0H51ZX6SB", "p-109001581", "p-109004991", "p-109004058"];
 /**
  * Lead 11-24 ~3:55 AM (owner rule "higher commission, no need to ask"): Him's 2 Clinique For Men ShopMy saves (clinique.com
  * 21%) moved to Amazon at the same price, where her accepted Clinique Creator Connections campaign pays 30%. Old -> new.
@@ -186,6 +187,8 @@ const TO_AMAZON_1124: Record<string, string> = {
 const notAmazon = (slug: string): Record<string, string> => {
   const all: Record<string, string> = { ...SWITCHED[slug], ...SAVES[slug], ...LOUISIANA_1122[slug], ...LINKS_1123[slug], ...SWITCHED_1124[slug] };
   for (const [from, to] of Object.entries(TO_AMAZON_1124)) if (all[from]) { delete all[from]; all[to] = "store-amazon"; }
+  // A ShopMy save switched away 11-24 is no longer on the page under its old link.
+  for (const gone of SWITCHED_AWAY_1124) if (gone.startsWith("p-")) delete all[`https://go.shopmy.us/${gone}`];
   return all;
 };
 const popular = new Set([...HIM_POPULAR_1122, ...KIDS_POPULAR_1122].map((r) => r.href));

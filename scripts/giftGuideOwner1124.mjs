@@ -108,6 +108,32 @@ export const RATE_SWITCHES_1124 = {
     href: shopmy("p-110119003"), store: "store-muck-boot", commission: 16, price: 195, code: "TAKE25", codeEnds: "2026-11-28", image: "https://cdn.shopify.com/s/files/1/0918/9123/7146/files/muck_men_arcticpro_acpoct_profile_32393.jpg",
     was: "The Warming Store via ShopMy 8% ($195)", now: "muckbootcompany.com via ShopMy 16% ($195, Mossy Oak Country DNA, 5 of 11 sizes in stock)",
   },
+  // Lead 11-24 ~4:20 AM (owner rule, no ask): SCHEELS's Black Friday YETI sale (Later promotion "up to $100 off YETI", to Nov 30;
+  // up to 30% off select colors only). Prices and colors read on scheels.com 11-24 ~4:43-4:47 AM (all "Shipped", free
+  // shipping); the only sale color on these is Pace Purple. Later
+  // links made ~4:48-4:51 AM in her Later account on the color's own scheels.com page; Scheels pays 7% on Later. Each is
+  // about 30% cheaper for the shopper, so the cheaper store wins under the all-factors rule though $ per sale drops.
+  // KEPT (the owner chose the color for a cover): Her's Camino 35 in Cape Taupe (her cover + top 10; Scheels has only Pace
+  // Purple on sale at $112, Cape Taupe full price) and Him's camo Rambler 20 oz (his cover, "the camo yeti cup"; Scheels's
+  // sale colors are Pace Purple $24.50 and Ridgeline $28, camo full price).
+  [amz("B0F79VTVFQ")]: {
+    href: "https://mavely.app.link/bZ5RqVnfk8b", store: "store-scheels", commission: 7, price: 59.5, image: "https://cdn.media.amplience.net/i/scheelspoc/88883061594",
+    name: "YETI Daytrip 6L Lunch Bag, Pace Purple",
+    was: "Amazon 3% ($85, Olive; $2.55 a sale)", now: "SCHEELS via Later 7% ($59.50, was $85, Pace Purple; cheaper AND $4.17 a sale; Tropical Pink $68)",
+  },
+  [shopmy("p-109001581")]: {
+    href: "https://mavely.app.link/MYePdejfk8b", store: "store-scheels", commission: 7, price: 227.5, image: "https://cdn.media.amplience.net/i/scheelspoc/88883061560",
+    was: "yeti.com via ShopMy 8% ($325, Olive/King Crab; $26 a sale)", now: "SCHEELS via Later 7% ($227.50, was $325, Pace Purple; $97.50 less for the shopper, $15.93 a sale)",
+  },
+  [shopmy("p-109004991")]: {
+    href: "https://mavely.app.link/SGyD34lfk8b", store: "store-scheels", commission: 7, price: 175, image: "https://cdn.media.amplience.net/i/scheelspoc/88883061602",
+    was: "Tractor Supply via ShopMy 8% ($270, Wetlands Camo; $21.60 a sale)", now: "SCHEELS via Later 7% ($175, was $250, Pace Purple; $95 less for the shopper, $12.25 a sale; Venom $200)",
+  },
+  [shopmy("p-109004058")]: {
+    href: "https://mavely.app.link/3DJNEdpfk8b", store: "store-scheels", commission: 7, price: 38.5, image: "https://cdn.media.amplience.net/i/scheelspoc/88883061675",
+    name: "YETI Sidekick Dry 3L Gear Case, Pace Purple",
+    was: "yeti.com via ShopMy 8% ($55, Olive; $4.40 a sale)", now: "SCHEELS via Later 7% ($38.50, was $55, Pace Purple; $16.50 less for the shopper, $2.70 a sale)",
+  },
 };
 
 /** A builder row after its 11-24 switch (unchanged when its link is not switched). */
@@ -183,8 +209,12 @@ export const CUTOUTS_1124 = [
   ["https://www.bissell.com/dw/image/v2/BDKV_PRD/on/demandware.static/-/Sites-master-catalog-bissell/default/dw0e2c398a/pwa-hi-res/Product-Images/4039/Breakout_All_P3152_4039_PowercleanFurFinder_RGB_1300x1300_transparent.png", "bissell-furguard-4039-119517.webp"],
   ["https://i5.walmartimages.com/seo/Fisher-Price-Little-People-My-Mario-Adventure-Playset-Musical-Toddler-Toy-with-2-Figures_59d463a3-b5c1-4ee3-8fbd-4611ee792102.e64adef224c128646e70f33e498f1bb4.jpeg", "little-people-my-mario-playset-walmart-f1889e.webp"],
   ["https://i5.walmartimages.com/seo/GE-Profile-Opal-Mini-Nugget-Countertop-Ice-Maker-with-Descaler-36lb-Daily-Capacity-with-WIFI-Charcoal-Gray_d654d424-b612-4ab4-9b40-dd4601a73c1f.afe665b60cd90b79522d9dd708ee901a.jpeg", "ge-opal-mini-charcoal-walmart-ef2a74.webp"],
+  ["https://cdn.media.amplience.net/i/scheelspoc/88883061560", "yeti-tundra-45-pace-purple-scheels-ef1ba2.webp"],
+  ["https://cdn.media.amplience.net/i/scheelspoc/88883061602", "yeti-hopper-flip-12-pace-purple-scheels-29f3bf.webp"],
+  ["https://cdn.media.amplience.net/i/scheelspoc/88883061594", "yeti-daytrip-6l-pace-purple-scheels-d117da.webp"],
+  ["https://cdn.media.amplience.net/i/scheelspoc/88883061675", "yeti-sidekick-dry-3l-pace-purple-scheels-04ace4.webp"],
   ...STEALS_CUTOUTS_1124,
 ];
 
 /** Stores the 11-24 rows go to that the store list may not hold yet (key -> shown name). */
-export const STORES_1124 = { "store-elf": "e.l.f. Cosmetics", "store-muck-boot": "Muck Boot", "store-bissell": "BISSELL", "store-kohls": "Kohl's" };
+export const STORES_1124 = { "store-elf": "e.l.f. Cosmetics", "store-muck-boot": "Muck Boot", "store-bissell": "BISSELL", "store-kohls": "Kohl's", "store-scheels": "SCHEELS" };

@@ -141,6 +141,8 @@ const SWITCHED_1124: Record<string, string> = {
   // Later signed in again ~3:35 AM: both BISSELL picks moved to bissell.com through Later 14%.
   "https://go.shopmy.us/p-109151385": "https://mavely.app.link/SSVg1LN9j8b",
   "https://www.amazon.com/dp/B0DQLLPYGM?tag=louisianahelpr-20": "https://mavely.app.link/68WdqBM9j8b",
+  // Lead ~4:20 AM: SCHEELS's Black Friday YETI sale through Later 7% (Daytrip 6L, Pace Purple, $59.50 vs Amazon $85 at 3%).
+  "https://www.amazon.com/dp/B0F79VTVFQ?tag=louisianahelpr-20": "https://mavely.app.link/bZ5RqVnfk8b",
 };
 /** Her Macy's adds 11-24 (owner ~2:05 / ~2:15 AM screenshots): robe, Shark Rocket Pet, Clinique Black Honey trio, UGG Raegan set. */
 const MACYS_1124_PINS = ["p-110119763", "p-110119787", "p-110119843", "p-110119860"];
@@ -212,8 +214,8 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(94); // 80 + her 20 Amazon second keeps of 11-23 (Capri Blue included), minus the 6 moved off Amazon 11-24 (SWITCHED_1124; 2026-11-24)
-    expect(shopmy.length).toBe(101); // 79 + her 6 Ulta keeps of 11-23 + the 6 moved off Amazon 11-24 + her 4 Macy's adds and 6 steals of 11-24 (2026-11-24)
+    expect(amazon.length).toBe(93); // 80 + her 20 Amazon second keeps of 11-23 (Capri Blue included), minus the 7 moved off Amazon 11-24 (SWITCHED_1124, the YETI Daytrip the 7th; 2026-11-24)
+    expect(shopmy.length).toBe(102); // 79 + her 6 Ulta keeps of 11-23 + the 6 moved off Amazon 11-24 + her 4 Macy's adds and 6 steals of 11-24 + the YETI Daytrip to SCHEELS (2026-11-24)
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

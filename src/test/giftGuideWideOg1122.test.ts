@@ -44,6 +44,7 @@ const PAGES: [string, string][] = [
   ["_og=page&_id=gift-guides/her", "her"],
   ["_og=page&_id=gift-guides/him", "him"],
   ["_og=page&_id=gift-guides/kids", "kids"],
+  ["_og=page&_id=gift-guides/monster-jam", "monster-jam"],
   ["_og=page&_id=gift-guides/25-days-sponsors", "25-days-sponsors"],
   ["_og=page&_id=gift-guides/black-friday", "black-friday"],
   ["_og=page&_id=gift-guides/cyber-monday", "cyber-monday"],

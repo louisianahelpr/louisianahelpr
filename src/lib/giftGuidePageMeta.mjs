@@ -68,7 +68,8 @@ export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count
     title: search ? search.title : `${name} — Helpr`,
     description,
     canonical: `${SITE_ORIGIN}/gift-guides/${slug}`,
-    ogTitle: `${name}: holiday gift guide 2026`,
+    // A name that already says "gift guide" (Monster Jam, owner 11-24) never says it twice on the card.
+    ogTitle: /gift guide$/i.test(name) ? `${name} 2026` : `${name}: holiday gift guide 2026`,
     ogDescription: description,
     ...(named ? {} : { robots: NOINDEX_ROBOTS }),
   };

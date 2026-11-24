@@ -591,6 +591,18 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 @media (min-width:768px){.gg-banner-sub .gg-banner h1{font-size:60px;line-height:1.04}}
 @media (min-width:768px) and (max-width:1023px){.gg-banner-sub .gg-banner h1{font-size:48px}}
 @media (max-width:767px){.gg-banner-sub .gg-banner h1{-webkit-line-clamp:3;font-size:clamp(25px,8vw,34px);line-height:1.05}}
+/* Lead 11-24 (theme guides): a long title wraps, never clips ("KPop Demon Hunters Gif…" at 375; Monster Jam's "Gift
+   Guide" line cut at 1440). The band's heights become minimums and the arch stretches with the band; the title loses
+   its line clamp. A long title (GiftGuidesWords, over 12 letters) takes the deal days' 60/48px from 768px; a very long
+   one (over 24) also a phone's 28-34px. Guard: src/test/guideBannerLongTitle1124.test.tsx. */
+.gg-banner{height:auto;min-height:252px}
+@media (min-width:768px) and (max-width:1023px){.gg-banner{min-height:220px}}
+@media (max-width:767px){.gg-banner{min-height:184px}}
+.gg-arch{height:auto;align-self:stretch}
+.gg-banner h1,.gg-banner-sub .gg-banner h1{display:block;-webkit-line-clamp:none;overflow:visible;overflow-wrap:break-word}
+@media (min-width:768px){.gg-banner-long .gg-banner h1{font-size:60px;line-height:1.04}}
+@media (min-width:768px) and (max-width:1023px){.gg-banner-long .gg-banner h1{font-size:48px}}
+@media (max-width:767px){.gg-banner-xlong .gg-banner h1{font-size:clamp(28px,8.5vw,34px);line-height:1.05}}
 /* The phone's one-line menu tip (owner 11-22 11:40 PM, GiftGuideMenuHint.tsx; "not as big as the mockup": slim): a 38px
    cream box with a 1px border, 14px green words with the three-line icon in a small outlined chip, and a 14px Close on
    the right. Both controls draw 36px tall but tap 44x44 (a ::before reaching past the box), so the box stays slim. Only

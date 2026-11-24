@@ -32,10 +32,20 @@ export function GiftGuideCover({ guide, priority = false }: { guide: CatalogGuid
  * louisiana helpr from the [banner]"). Real text and CSS only (no image); a fixed height, so nothing below moves.
  * `sub`: a page that is not a guide or a deals day (the printables, the fun pages, the wish lists, the Holiday Hub), its
  * title in the deals days' sizes. Guard: src/test/giftGuidesPage.test.tsx, src/test/giftGuidePages1122.test.tsx.
+ * A long title wraps, never clips (lead 11-24: "KPop Demon Hunters Gif…" at 375, the theme guides' second line cut at
+ * 1440): the band's heights are minimums, and a long title takes smaller type (bannerLength). Guard:
+ * src/test/guideBannerLongTitle1124.test.tsx.
  */
+/** "long" (over 12 letters: the deal days' sizes from 768px) or "xlong" (over 24: smaller on a phone too), else "". */
+export function bannerLength(title: string): "" | "long" | "xlong" {
+  return title.length > 24 ? "xlong" : title.length > 12 ? "long" : "";
+}
+
 export function GiftGuidesWords({ lead, title, titleId, tint, sub = false }: { lead: string; title: string; titleId: string; tint: CatalogGuide["tint"]; sub?: boolean }) {
+  const size = bannerLength(title);
+  const sizeClass = size === "xlong" ? " gg-banner-long gg-banner-xlong" : size === "long" ? " gg-banner-long" : "";
   return (
-    <header className={sub ? "gg-words gg-banner-wrap gg-banner-sub" : "gg-words gg-banner-wrap"} data-gift-words="" data-gift-banner={tint}>
+    <header className={(sub ? "gg-words gg-banner-wrap gg-banner-sub" : "gg-words gg-banner-wrap") + sizeClass} data-gift-words="" data-gift-banner={tint}>
       <div className={`gg-banner gg-check gg-${tint}`}>
         <div className="gg-arch" data-gift-arch="">
           {/* Holiday audit 1121: the h1 itself reads "gifts for Her" (it was just "Her" for screen readers and search);

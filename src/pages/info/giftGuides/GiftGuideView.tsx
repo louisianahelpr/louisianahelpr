@@ -37,6 +37,7 @@ import { SHOP_SMALL_GUIDE } from "@/content/giftGuideSmallBiz.mjs";
 import { deadlineChip, louisianaToday } from "@/content/giftGuideExtras1120";
 import { LazyGuideQa, QA_CATALOG_GUIDES } from "./LazyGuideQa";
 import { DupeLink } from "./DupeLink";
+import { isThemeGuide } from "@/content/giftGuideLive.mjs";
 
 /**
  * One guide's body, /gift-guides/<slug> (owner's final design 2026-11-18; the back link and the gingham band sit
@@ -91,8 +92,6 @@ export function PickThumb({ pick, size = 52, eager }: { pick: CatalogPick; size?
 }
 
 const SPONSORS_PAGE = "25-days-sponsors";
-/** The Monster Jam gift guide (owner 2026-11-24): its own groups as band sections, and no "shop similar" on its rows. */
-const MONSTER_JAM_PAGE = "monster-jam";
 const SPONSORS_PAGE_HIDDEN_BADGES: readonly string[] = ["sponsor", "shop-louisiana"];
 /** Our own 25 Days page, where a sponsor with no site or page of its own links. */
 const OUR_25_DAYS_PAGE = /^https:\/\/www\.louisianahelpr\.com\/25days(?:[/?#]|$)/;
@@ -298,9 +297,9 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   // Consistency audit 1122 #1: the 25 Days sponsors page's own sections (Louisiana Shops & Makers, Louisiana Experiences
   // & Events, National Brands) wear the same band header as Her/Him/Kids (GuideSectionHead: tint, "(n)", chevron, open
   // on arrival, a tap closes and reopens).
-  // The Monster Jam guide (owner 11-24) keeps its own groups (Stocking stuffers under $10, Trucks ...) under the same band
-  // headers, each open on arrival like every guide section.
-  const bandHeads = sortable || guide.slug === SPONSORS_PAGE || guide.slug === MONSTER_JAM_PAGE;
+  // The themed kids guides (owner 11-24: Monster Jam, Bluey ...; isThemeGuide) keep their own groups (Stocking stuffers
+  // under $10, Trucks ...) under the same band headers, each open on arrival like every guide section.
+  const bandHeads = sortable || guide.slug === SPONSORS_PAGE || isThemeGuide(guide.slug);
   const ready = picksReady(guide.slug);
   const { hash } = useLocation();
   // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.
@@ -399,7 +398,7 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
           ))}
           {isOpen(id) && (
             <ol className="gg-list" id={id ? `gg-sec-${id}-list` : undefined} data-gift-list="" style={run.start > 1 ? { counterReset: `gg ${run.start - 1}` } : undefined}>
-              {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} similar={guide.slug !== MONSTER_JAM_PAGE} />)}
+              {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} similar={!isThemeGuide(guide.slug)} />)}
             </ol>
           )}
         </section>

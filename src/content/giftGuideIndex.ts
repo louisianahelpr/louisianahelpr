@@ -5,6 +5,8 @@
  * `via: "shopmy"` marks a "By store" brand from the owner's ShopMy links: each is its own store tile (there is no "ShopMy" tile, owner 2026-11-18).
  * Regenerate from the file, never by hand.
  */
+import { THEME_GUIDE_NAMES_1124 } from "./giftGuideLive.mjs";
+
 export const GUIDE_INDEX: { group: string; tint: "green" | "oat" | "red"; slug: string; title: string; lead: string; age?: string; parent?: string; via?: "shopmy" }[] = [
   { group: "By person", tint: "green", slug: "mom", title: "Mom", lead: "gifts for" },
   { group: "By person", tint: "green", slug: "dad", title: "Dad", lead: "gifts for" },
@@ -41,9 +43,10 @@ export const GUIDE_INDEX: { group: string; tint: "green" | "oat" | "red"; slug: 
   { group: "By person", tint: "green", slug: "big-sisters", title: "Big Sisters", lead: "gifts for" },
   { group: "By person", tint: "green", slug: "mail-carrier-and-delivery-drivers", title: "Mail Carrier & Delivery Drivers", lead: "gifts for" },
   { group: "For kids", tint: "red", slug: "kids", title: "Kids", lead: "gifts for" },
-  // Owner 2026-11-24 ("lets put together a monster jam gift guide that i can share on facebook"): its own page, on the green
-  // gingham (owner 11-24: "the preview on the link is the green cover with the 6 images").
-  { group: "For kids", tint: "green", slug: "monster-jam", title: "Monster Jam Gift Guide", lead: "the" },
+  // The themed kids guides (owner 2026-11-24: "lets put together a monster jam gift guide that i can share on facebook",
+  // then Bluey, Pokémon ...): each its own page on the green gingham ("the preview on the link is the green cover with the
+  // 6 images"), right after Kids, from src/content/giftGuideLive.mjs THEME_GUIDE_NAMES_1124.
+  ...Object.entries(THEME_GUIDE_NAMES_1124).map(([slug, name]) => ({ group: "For kids", tint: "green" as const, slug, title: `${name} Gift Guide`, lead: "the" })),
   { group: "For kids", tint: "red", slug: "teens", title: "Teens", lead: "gifts for", age: "ages 13+" },
   { group: "For kids", tint: "red", slug: "girls", title: "Girls", lead: "gifts for" },
   { group: "For kids", tint: "red", slug: "boys", title: "Boys", lead: "gifts for" },

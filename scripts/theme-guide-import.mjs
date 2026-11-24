@@ -1,0 +1,315 @@
+#!/usr/bin/env node
+/**
+ * ONE-COMMAND THEMED KIDS GUIDE (owner 2026-11-24: Monster Jam, then Marvel, Bluey, KPop Demon Hunters, Pokémon ...,
+ * each "built exactly like" Monster Jam). Turns a research lane's folder into a live /gift-guides/<slug> page:
+ *
+ *   node scripts/theme-guide-import.mjs <slug> "<Theme name>" <research folder> [--redraw-cover]
+ *
+ * The folder holds items.json ({ groups: [{ category, items: [{ id, name, store, href, price, was, rate, image, age,
+ * oos, line?, brand? }] }] }, the Monster Jam research's schema), cutouts/<id>.webp, and cover6.json (the six cover
+ * item ids: a list, or { ids: [...] }). It
+ *  - writes scripts/gift-guide-themes/<slug>.json: one row per item in the list's group order; out-of-stock items, items
+ *    with no price, no https link or no photo go under `skipped`. A re-import keeps each existing row's own line and
+ *    brand (by id). Amazon photos are never edited (Associates terms): an Amazon row shows Amazon's own photo;
+ *  - copies the cutouts into public/gift-guides/cutouts/<name>-<store>-<md5 6>.webp (the repo's naming) and removes a
+ *    cutout a re-import no longer uses when nothing else names it;
+ *  - adds a store key (or a link host) RESEARCHED_STORES lacks;
+ *  - adds the theme to src/content/giftGuideLive.mjs THEME_GUIDE_NAMES_1124 and scripts/gift-guide-themes/index.mjs;
+ *  - refreshes by hand-edit every generated file a theme lives in (never scripts/gift-guide-picks.mjs, which rewrites
+ *    ~45 unrelated files): its picks chunk, CHUNK_PICK_COUNTS / CHUNK_SLUGS / the chunk glob, GIFT_GUIDE_SEO, sitemap.xml, llms.txt, api/share.ts WIDE_CARD_FOR_ID, and the cover generators' SLUG_TINT / COVER_KEYS / PAGES;
+ *  - first import (or --redraw-cover): writes the cover manifest entry from cover6.json, draws the green square cover
+ *    (scripts/theme-guide-draw.py) and the 1200x630 card (scripts/gift-guide-wide-og.py <slug>), and refreshes
+ *    COVER_SLUGS, COVER_WEBP_SLUGS and both version files. A re-import keeps the cover and card as they are;
+ *  - rewrites the search index with scripts/gift-guide-search-index.mjs (it writes only that file).
+ * Guard: src/test/giftGuideThemes1124.test.tsx (every live theme: photo + price on every row, sections open, no "shop
+ * similar", no Amazon on the cover, a 1200x630 card, a green cover with six photos).
+ */
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { copyFileSync, existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const SITE = "https://www.louisianahelpr.com";
+const CUT_DIR = join(ROOT, "public", "gift-guides", "cutouts");
+const rel = (...p) => join(ROOT, ...p);
+const read = (p) => readFileSync(rel(p), "utf8");
+const write = (p, s) => writeFileSync(rel(p), s);
+
+export const slugify = (s) => String(s).toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+/** "Walmart" -> "store-walmart", "Kohl's" -> "store-kohls" (the RESEARCHED_STORES keys). */
+export const storeKey = (name) => `store-${slugify(name)}`;
+const hostOf = (u) => {
+  try {
+    return new URL(u).hostname;
+  } catch {
+    // Not a URL: no host (the row is skipped as "no link").
+    return "";
+  }
+};
+const isAmazon = (store, href) => store === "store-amazon" || /(^|\.)amazon\.com$/.test(hostOf(href)) || hostOf(href) === "amzn.to";
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+/** The repo's cutout naming: the name's slug (60 characters at most), the store, the first 6 hex of the file's MD5. */
+export const cutoutName = (name, store, bytes) =>
+  `${slugify(name).slice(0, 60).replace(/-+$/, "")}-${store.replace(/^store-/, "")}-${createHash("md5").update(bytes).digest("hex").slice(0, 6)}.webp`;
+
+/**
+ * The name shoppers see: the research's notes to itself come off ("(matching set with MJ87)": any parenthetical naming
+ * one of the list's own ids, which share the item's id prefix).
+ */
+export const publicName = (name, id) => {
+  const pre = String(id ?? "").match(/^[A-Za-z]+/)?.[0];
+  if (!pre) return String(name).trim();
+  return String(name).replace(new RegExp(`\\s*\\([^)]*\\b${pre}\\d+\\b[^)]*\\)`, "g"), "").trim();
+};
+
+/** The line under a new row's name (a re-import keeps the row's own; the research may give one). */
+export const defaultLine = (theme, category) =>
+  /stocking/i.test(category) ? `A little ${theme} gift for the stocking.` : `${category.replace(/\s*\$\d.*$/, "")} for a ${theme} fan.`;
+
+/** One `export const NAME = <json>;` line: parse, change, write back (same JSON style). */
+function editJsonConst(file, name, fn, { sortKeys = false } = {}) {
+  const src = read(file);
+  const re = new RegExp(`(export const ${name}(?:: [^=]+)? = )(.*?);\\n`);
+  const m = src.match(re);
+  if (!m) throw new Error(`${file}: ${name} not found`);
+  let val = fn(JSON.parse(m[2]));
+  if (sortKeys) val = Object.fromEntries(Object.entries(val).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+  write(file, src.replace(re, () => `${m[1]}${JSON.stringify(val)};\n`));
+}
+const isSortedKeys = (o) => Object.keys(o).every((k, i, a) => i === 0 || a[i - 1] <= k);
+const sortedInsert = (arr, v) => (arr.includes(v) ? arr : [...arr, v].sort());
+
+function main() {
+  const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+  const redrawCover = process.argv.includes("--redraw-cover");
+  if (args.length !== 3) {
+    console.error('usage: node scripts/theme-guide-import.mjs <slug> "<Theme name>" <research folder> [--redraw-cover]');
+    process.exit(2);
+  }
+  const [slug, theme, folderArg] = args;
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error(`bad slug ${slug}`);
+  const folder = resolve(folderArg.replace(/^~(?=\/)/, process.env.HOME ?? "~"));
+  const research = JSON.parse(readFileSync(join(folder, "items.json"), "utf8"));
+  const rowsPath = `scripts/gift-guide-themes/${slug}.json`;
+  const old = existsSync(rel(rowsPath)) ? JSON.parse(read(rowsPath)) : null;
+  const oldById = new Map((old?.rows ?? []).map((r) => [r.id, r]));
+  const prefix = old?.sectionPrefix ?? slug;
+  // A section's line from the last import (the owner-facing words stay as they were for a new item in an old group).
+  const oldLineBySection = new Map();
+  for (const r of old?.rows ?? []) if (!oldLineBySection.has(r.section)) oldLineBySection.set(r.section, r.line);
+
+  // 1. The rows.
+  const rows = [];
+  const skipped = [];
+  const storeHosts = new Map(); // store key -> { name, hosts }
+  for (const g of research.groups ?? []) {
+    for (const raw of g.items ?? []) {
+      // A store code written into the name ("Slip-On Sneakers (code BFDEALS 30% off)") comes off the name; codes show only on
+      // the deals days (owner 11-21: "Codes and deals shouldn't randomly show in sections"), so it is not put on the row.
+      const codeInName = String(raw.name).match(/\s*\(code ([A-Z0-9]{3,})[^)]*\)/);
+      const it = { ...raw, name: publicName(String(raw.name).replace(codeInName?.[0] ?? "\u0000", ""), raw.id) };
+      const store = storeKey(it.store ?? "");
+      const href = String(it.href ?? "");
+      const why = [];
+      if (it.oos) why.push("out of stock");
+      if (!(Number(it.price) > 0)) why.push("no price");
+      if (!href.startsWith("https://")) why.push("no link");
+      const prev = oldById.get(it.id);
+      let image = "";
+      const cut = join(folder, "cutouts", `${it.id}.webp`);
+      if (isAmazon(store, href)) {
+        image = String(it.image ?? "").startsWith("https://") ? it.image : ""; // Amazon's own photo, never edited
+      } else if (existsSync(cut)) {
+        const bytes = readFileSync(cut);
+        const name = cutoutName(it.name, store, bytes);
+        // Copied only for a row that goes on the page (an out-of-stock or unpriced item leaves no stray file).
+        if (!why.length && !existsSync(join(CUT_DIR, name))) copyFileSync(cut, join(CUT_DIR, name));
+        image = `${SITE}/gift-guides/cutouts/${name}`;
+      } else if (prev?.image?.startsWith(`${SITE}/`) && existsSync(rel("public", prev.image.slice(SITE.length + 1)))) {
+        image = prev.image;
+      } else if (String(it.image ?? "").startsWith("https://")) {
+        image = it.image;
+      }
+      if (!image) why.push("no photo");
+      if (why.length) {
+        skipped.push({ id: it.id, name: it.name, why });
+        continue;
+      }
+      const row = {
+        id: it.id,
+        name: it.name,
+        brand: it.brand ?? prev?.brand ?? theme,
+        line: it.line || prev?.line || oldLineBySection.get(g.category) || rows.find((r) => r.section === g.category)?.line || defaultLine(theme, g.category),
+        href,
+        image,
+        store,
+        price: Number(it.price),
+        priceAt: it.priceAt ?? today(),
+        section: g.category,
+        sectionId: `${prefix}-${slugify(g.category)}`,
+      };
+      if (Number(it.was) > Number(it.price)) row.was = Number(it.was);
+      if (typeof it.rate === "number" && it.rate > 0) row.commission = it.rate;
+      if (it.age) row.age = it.age;
+      rows.push(row);
+      const s = storeHosts.get(store) ?? { name: it.store, hosts: new Set() };
+      s.hosts.add(hostOf(href));
+      storeHosts.set(store, s);
+    }
+  }
+  if (!rows.length) throw new Error("no usable rows");
+  const builtFrom = `${folderArg}/items.json (${research.builtAt ?? "?"}, ${rows.length + skipped.length} items)`;
+  write(rowsPath, `${JSON.stringify({ slug, name: theme, sectionPrefix: prefix, builtFrom, rows, skipped }, null, 1)}\n`);
+
+  // 2. The theme list and the rows registry.
+  editLive(slug, theme);
+  const names = themeNames();
+  const ident = (s) => s.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase()).replace(/^(\d)/, "_$1");
+  write("scripts/gift-guide-themes/index.mjs", [
+    "/**",
+    " * GENERATED by scripts/theme-guide-import.mjs: every themed kids guide's rows file in this folder, by slug, in menu",
+    " * order (src/content/giftGuideLive.mjs THEME_GUIDE_NAMES_1124). JSON imports (not readFileSync) so the guards can load",
+    " * them under jsdom. Do not edit by hand; re-run the import. Guard: src/test/giftGuideThemes1124.test.tsx.",
+    " */",
+    ...Object.keys(names).map((s) => `import ${ident(s)} from "./${s}.json" with { type: "json" };`),
+    "",
+    `export const THEME_FILES = { ${Object.keys(names).map((s) => `"${s}": ${ident(s)}`).join(", ")} };`,
+    "",
+  ].join("\n"));
+
+  // 3. Stores.
+  editJsonConst("src/content/giftGuidePicks.ts", "RESEARCHED_STORES", (o) => {
+    const sorted = isSortedKeys(o);
+    for (const [k, { name, hosts }] of storeHosts) {
+      if (!o[k]) o[k] = { name, hosts: [...hosts].sort() };
+      else for (const h of hosts) if (!o[k].hosts.includes(h)) o[k].hosts = [...o[k].hosts, h].sort();
+    }
+    return sorted ? Object.fromEntries(Object.entries(o).sort(([a], [b]) => (a < b ? -1 : 1))) : o;
+  });
+
+  // 4. The picks chunk and its counts, the chunk list and glob, SEO.
+  const picks = rows.map(({ id: _i, was: _w, age: _a, ...p }) => ({ ...p, ownerPick: true, from: slug }));
+  write(`src/content/giftGuidePicks/${slug}.json`, `${JSON.stringify({ picks })}\n`);
+  editJsonConst("src/content/giftGuidePicks.ts", "CHUNK_PICK_COUNTS", (o) => ({ ...o, [slug]: picks.length }), { sortKeys: true });
+  let chunkSlugs = [];
+  editJsonConst("src/content/giftGuidePicks.ts", "CHUNK_SLUGS", (a) => (chunkSlugs = sortedInsert(a, slug)));
+  {
+    const src = read("src/content/giftGuidePicks.ts");
+    const re = /(export const PICK_CHUNKS = import\.meta\.glob<PickChunk>\()\[.*?\](, \{ import: "default" \}\);)/;
+    if (!re.test(src)) throw new Error("PICK_CHUNKS glob not found");
+    write("src/content/giftGuidePicks.ts", src.replace(re, (_, a, b) => `${a}${JSON.stringify(chunkSlugs.map((s) => `./giftGuidePicks/${s}.json`))}${b}`));
+  }
+  editJsonConst("src/content/giftGuideSeo.mjs", "GIFT_GUIDE_SEO", (o) => ({ ...o, [slug]: `${theme} gift guide` }), { sortKeys: true });
+
+  // 5. The search index (its own small generator: it reads the picks chunks and writes only that file).
+  execFileSync("node", [rel("scripts/gift-guide-search-index.mjs")], { stdio: "inherit" });
+
+  // 6. Sitemap, llms.txt, the share card map: after the last theme already listed.
+  const others = Object.keys(names).filter((s) => s !== slug);
+  insertOnce("public/sitemap.xml", `<loc>${SITE}/gift-guides/${slug}</loc>`, (src) => {
+    const block = `  <url>\n    <loc>${SITE}/gift-guides/${slug}</loc>\n    <lastmod>${today()}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+    const anchor = lastIndexOfAny(src, others.map((s) => `<loc>${SITE}/gift-guides/${s}</loc>`));
+    const at = anchor >= 0 ? src.indexOf("</url>\n", anchor) + "</url>\n".length : src.indexOf("</urlset>");
+    return src.slice(0, at) + block + src.slice(at);
+  });
+  insertOnce("public/llms.txt", `(${SITE}/gift-guides/${slug})`, (src) => {
+    const line = `- [${theme} gift guide](${SITE}/gift-guides/${slug}): ${theme} gift guide: hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.\n`;
+    return afterLastLine(src, others.map((s) => `(${SITE}/gift-guides/${s})`), line);
+  });
+  insertOnce("api/share.ts", `"gift-guides/${slug}": "${slug}",`, (src) => afterLastLine(src, others.map((s) => `  "gift-guides/${s}": "${s}",`), `  "gift-guides/${slug}": "${slug}",\n`));
+
+  // 7. The cover generators: green, its cover's six photos on the card.
+  insertOnce("scripts/gift-guide-photo-covers.py", `"${slug}": "green"`, (src) => src.replace(/^(SLUG_TINT = \{.*)\}$/m, (_, a) => `${a}, "${slug}": "green"}`));
+  insertOnce("scripts/gift-guide-wide-og.py", `    "${slug}": ("/gift-guides/${slug}",`, (src) =>
+    afterLastLine(src, others.map((s) => `    "${s}": ("/gift-guides/${s}",`), `    "${slug}": ("/gift-guides/${slug}", "green", "the", "${theme} Gift Guide"),\n`));
+  {
+    const src = read("scripts/gift-guide-wide-og.py");
+    const m = src.match(/^COVER_KEYS = \(([^)]*)\)$/m);
+    if (!m) throw new Error("COVER_KEYS not found");
+    if (!m[1].includes(`"${slug}"`)) write("scripts/gift-guide-wide-og.py", src.replace(m[0], `COVER_KEYS = (${m[1]}, "${slug}")`));
+  }
+
+  // 8. The cover and the card: first import, or --redraw-cover.
+  const manifestPath = "scripts/gift-guide-cover-items.json";
+  const manifest = JSON.parse(read(manifestPath));
+  if (!manifest[slug] || redrawCover) {
+    const raw = JSON.parse(readFileSync(join(folder, "cover6.json"), "utf8"));
+    const ids = Array.isArray(raw) ? raw : raw.ids ?? (raw.items ?? []).map((x) => x.id ?? x);
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    const items = ids.map((id) => {
+      const r = byId.get(id);
+      if (!r) throw new Error(`cover6.json: ${id} is not on the page`);
+      if (isAmazon(r.store, r.href) || !r.image.startsWith(`${SITE}/gift-guides/cutouts/`)) throw new Error(`cover6.json: ${id} has no cutout of ours (Amazon photos never go on a cover)`);
+      return { name: r.name, key: `${slug}:${String(id).toLowerCase()}`, image: r.image };
+    });
+    if (items.length !== 6) throw new Error(`cover6.json: ${items.length} ids, need 6`);
+    manifest[slug] = { section: "For kids", items };
+    write(manifestPath, `${JSON.stringify(manifest, null, 1)}\n`);
+    execFileSync("python3", [rel("scripts/theme-guide-draw.py"), slug, `${theme} Gift Guide`], { stdio: "inherit" });
+    execFileSync("python3", [rel("scripts/gift-guide-wide-og.py"), slug], { stdio: "inherit" });
+    execFileSync("node", [rel("scripts/gift-guide-cover-versions.mjs")], { stdio: "inherit" });
+    editJsonConst("src/content/giftGuideCoverSlugs.ts", "COVER_SLUGS", (a) => sortedInsert(a, slug));
+    const share = read("src/lib/giftGuideShareImages.mjs");
+    const re = /export const COVER_WEBP_SLUGS = new Set\((\[.*?\])\);/;
+    const cur = JSON.parse(share.match(re)[1]);
+    write("src/lib/giftGuideShareImages.mjs", share.replace(re, () => `export const COVER_WEBP_SLUGS = new Set(${JSON.stringify(sortedInsert(cur, slug), null, 0).replace(/","/g, '", "')});`));
+  }
+
+  // 9. Cutouts a re-import no longer uses, when nothing else in the repo names them.
+  const nowUsed = new Set(rows.map((r) => r.image));
+  for (const r of old?.rows ?? []) {
+    if (nowUsed.has(r.image) || !r.image.startsWith(`${SITE}/gift-guides/cutouts/`)) continue;
+    const base = r.image.slice(r.image.lastIndexOf("/") + 1);
+    let refs = "";
+    try {
+      refs = execFileSync("git", ["-C", ROOT, "grep", "-l", "-F", base, "--", "scripts", "src", "api", "public"], { encoding: "utf8" });
+    } catch {
+      // git grep exits 1 when nothing names the file.
+      refs = "";
+    }
+    if (!refs.trim() && existsSync(join(CUT_DIR, base))) {
+      unlinkSync(join(CUT_DIR, base));
+      console.log(`removed unused cutout ${base}`);
+    }
+  }
+
+  const bySection = [...new Set(rows.map((r) => r.section))].map((s) => `${s} ${rows.filter((r) => r.section === s).length}`);
+  console.log(`theme ${slug}: ${rows.length} rows, ${skipped.length} skipped (${skipped.map((s) => `${s.id} ${s.why.join("+")}`).join(", ") || "none"})`);
+  console.log(`  sections: ${bySection.join(" | ")}`);
+}
+
+function themeNames() {
+  const m = read("src/content/giftGuideLive.mjs").match(/export const THEME_GUIDE_NAMES_1124 = (\{.*\});/);
+  return JSON.parse(m[1]);
+}
+function editLive(slug, theme) {
+  const names = themeNames();
+  if (names[slug] === theme) return;
+  names[slug] = theme;
+  const src = read("src/content/giftGuideLive.mjs");
+  const body = Object.entries(names).map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(", ");
+  write("src/content/giftGuideLive.mjs", src.replace(/export const THEME_GUIDE_NAMES_1124 = \{.*\};/, () => `export const THEME_GUIDE_NAMES_1124 = { ${body} };`));
+}
+function insertOnce(file, marker, fn) {
+  const src = read(file);
+  if (src.includes(marker)) return;
+  const out = fn(src);
+  if (!out.includes(marker)) throw new Error(`${file}: could not add ${marker}`);
+  write(file, out);
+}
+function lastIndexOfAny(src, needles) {
+  return Math.max(-1, ...needles.map((n) => src.lastIndexOf(n)));
+}
+function afterLastLine(src, needles, line) {
+  const at = lastIndexOfAny(src, needles);
+  if (at < 0) throw new Error(`no anchor line for ${line.trim()}`);
+  const eol = src.indexOf("\n", at) + 1;
+  return src.slice(0, eol) + line + src.slice(eol);
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

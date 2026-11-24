@@ -71,11 +71,12 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { signedInOnlyModules, staticReach } from "../../scripts/perf/bootReach.mjs";
 import { blankComments } from "./helpers/blankNonCode";
+import { THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
 
 afterEach(cleanup);
 
 /** Each menu row by its link target: the rows with a list (a number), and the tools (none). */
-const COUNTED = ["/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", "/gift-guides/monster-jam", "/gift-guides/black-friday", "/gift-guides/small-business-saturday",
+const COUNTED = ["/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", ...THEME_GUIDES_1124.map((s) => `/gift-guides/${s}`), "/gift-guides/black-friday", "/gift-guides/small-business-saturday",
   "/gift-guides/cyber-monday", ...PRINTABLE_PAGES.map((p) => p.path), "/holidays", "/gift-guides/25-days-sponsors"];
 const NO_NUMBER = ["/gift-guides", `/gift-guides#${FINDER_ANCHOR}`, `/gift-guides/${MY_LIST_SLUG}`, ...FUN_TOOLS.map((t) => t.to)];
 

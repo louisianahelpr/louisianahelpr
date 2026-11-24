@@ -319,7 +319,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // the Big Chill puffer ($24.99, read ~$25) is $25 to $50.
       // Her steals 11-24: the lululemon keychain and hair ties ($9 each) are stocking stuffers; the Kate Spade wristlet ($29) is $25 to $50.
       // SCHEELS YETI sale (11-24): the Daytrip lunch bag ($85 -> $59.50) moves from $75 to $100 to $50 to $75.
-      her: { "Stocking stuffers under $10": 21, "Under $25": 54, "$25 to $50": 51, "$50 to $75": 17, "$75 to $100": 13, "$100 and up": 39 },
+      // Her steals S37 (JCPenney throw, $7.99) and S43 (Kohl's socks, $1.99), 11-24: stocking stuffers under $10.
+      her: { "Stocking stuffers under $10": 23, "Under $25": 54, "$25 to $50": 51, "$50 to $75": 17, "$75 to $100": 13, "$100 and up": 39 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

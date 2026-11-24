@@ -1472,5 +1472,40 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-smash-bash-playset-target-1e137b.webp"
    }
   ]
+ },
+ "bluey": {
+  "section": "For kids",
+  "items": [
+   {
+    "name": "Bluey's Light and Surprise Heeler House (21 in)",
+    "key": "bluey:bl70",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/blueys-light-and-surprise-heeler-house-21-in-walmart-a8e11c.webp"
+   },
+   {
+    "name": "Bluey Talking 13 in Plush",
+    "key": "bluey:bl30",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-talking-13-in-plush-walmart-937829.webp"
+   },
+   {
+    "name": "LEGO Bluey Beach & Family Car Trip",
+    "key": "bluey:bl20",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-bluey-beach-family-car-trip-walmart-c89c3e.webp"
+   },
+   {
+    "name": "Bluey Toddler Boys Slippers",
+    "key": "bluey:bl41",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-toddler-boys-slippers-walmart-dd3559.webp"
+   },
+   {
+    "name": "Dynacraft Bluey 12 in Bike with Training Wheels",
+    "key": "bluey:bl72",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/dynacraft-bluey-12-in-bike-with-training-wheels-walmart-4dbb5e.webp"
+   },
+   {
+    "name": "Bluey Family Figure 4-Pack (Bluey, Bingo, Mum, Dad)",
+    "key": "bluey:bl11",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-family-figure-4-pack-bluey-bingo-mum-dad-walmart-2eeceb.webp"
+   }
+  ]
  }
 }

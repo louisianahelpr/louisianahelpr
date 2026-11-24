@@ -7,7 +7,8 @@
  * @mutate scripts/giftGuideOwner1124.mjs | href: "https://mavely.app.link/LP97ij8Zj8b", store: "store-columbia", commission: 8.4, price: 39, | href: "https://mavely.app.link/LP97ij8Zj8b", store: "store-columbia", commission: 8.4, price: 34.5,
  * @mutate scripts/giftGuideOwner1124.mjs |   return { ...r, ...rest, sortPrice: price, price, priceAt: OWNER_1124_PRICE_AT }; |   return r;
  * @mutate scripts/giftGuideHimKids1121.mjs | .concat(HIM_AMAZON_MORE_1121, HIM_SHOPMY_1121).map(rateSwitch1124); | .concat(HIM_AMAZON_MORE_1121, HIM_SHOPMY_1121);
- * @mutate scripts/giftGuideOwnerAdds1122.mjs | ].map(dated).map(rateSwitch1124); | ].map(dated);
+ * @mutate scripts/giftGuideOwnerAdds1122.mjs | ].map(dated).map(rateSwitch1124); // Muck Arctic Pro | ].map(dated); // Muck Arctic Pro
+ * @mutate scripts/giftGuideOwnerAdds1122.mjs | ].map(dated).map(rateSwitch1124); // BISSELL | ].map(dated); // BISSELL
  * @mutate scripts/giftGuideHer1121.mjs | ...HER_LINKS_1123, ...HER_ADDS_1124]; | ...HER_LINKS_1123];
  * @mutate scripts/giftGuideHimKids1121.mjs | ...KIDS_LINKS_1123, ...KIDS_ADDS_1124]) { | ...KIDS_LINKS_1123]) {
  * @mutate scripts/giftGuideCutouts1120.mjs | for (const [from, file] of CUTOUTS_1124) CUTOUTS_1120.set(from, file); | void CUTOUTS_1124;

@@ -152,7 +152,7 @@ export const HER_ADDS_1122 = [
   { name: "Café Du Monde Beignet and Coffee Gift Box", brand: "Café Du Monde", line: "Beignet mix and the orange can of coffee and chicory.", href: amz("B0915PDW38"), image: amzImg("71eU3lXhlzL"), store: "store-amazon", sortPrice: 54.99, commission: 1, type: "food-gift" },
   { name: "Old World Christmas Pelican Glass Ornament", brand: "Old World Christmas", line: "A blown-glass pelican, the Louisiana state bird.", href: amz("B002CMXGRI"), image: amzImg("71hYKki6wcL"), store: "store-amazon", sortPrice: 20.99, commission: 3, type: "ornament" },
   // end LOUISIANA_ADDS_1122
-].map(dated);
+].map(dated).map(rateSwitch1124); // BISSELL Little Green Mini and FurGuard: higher-commission switches 11-24 (scripts/giftGuideOwner1124.mjs)
 
 /** For Kids (owner via the lead, 11-22): the two Camp Snap 2 colors, at Camp Snap direct (see the header). */
 export const KIDS_ADDS_1122 = [

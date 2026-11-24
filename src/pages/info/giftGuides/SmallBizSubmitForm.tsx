@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PARISHES } from "@/lib/parishes";
-import { SBS_WORDS as W, sbsFieldError } from "@/content/sbsFeaturedLocal";
+import { SBS_WORDS as W, sbsDayWords, sbsFieldError } from "@/content/sbsFeaturedLocal";
+import { louisianaDay } from "@/content/giftGuideDeals.mjs";
 import { sbsDeviceId, submitFeaturedLocal } from "@/lib/sbsFeaturedApi";
 import { SBS_CATEGORIES, SBS_LIMITS, checkSbsLogo, townKey, validateSbsSubmission } from "../../../../supabase/functions/_shared/sbsSubmission";
 
@@ -47,6 +48,9 @@ export function SmallBizSubmitForm({ onClose }: { onClose: () => void }) {
   const [problem, setProblem] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
+  // Holiday audit 1121 #54: the deal box and the required tick stop naming Small Business Saturday once it has passed.
+  const today = louisianaDay(new Date());
+  const dayW = sbsDayWords(today);
   const fileRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => {
@@ -62,7 +66,7 @@ export function SmallBizSubmitForm({ onClose }: { onClose: () => void }) {
     setProblem(null);
     const v = validateSbsSubmission({ ...f, participating: f.participating === true });
     const errs: Partial<Record<Field, string>> = {};
-    if (!v.ok) for (const [k, code] of Object.entries(v.errors)) errs[k as Field] = sbsFieldError(k, code!);
+    if (!v.ok) for (const [k, code] of Object.entries(v.errors)) errs[k as Field] = sbsFieldError(k, code!, today);
     if (!errs.town && f.town.trim() && !isLouisianaTown(f.town)) errs.town = sbsFieldError("town", "town");
     if (logo) {
       const l = checkSbsLogo(logo.type, logo.size);
@@ -82,7 +86,7 @@ export function SmallBizSubmitForm({ onClose }: { onClose: () => void }) {
     }
     if (res.kind === "invalid") {
       const e: Partial<Record<Field, string>> = {};
-      for (const [k, code] of Object.entries(res.fields)) e[k as Field] = sbsFieldError(k, code ?? "");
+      for (const [k, code] of Object.entries(res.fields)) e[k as Field] = sbsFieldError(k, code ?? "", today);
       if (Object.keys(e).length === 0) setProblem(W.server);
       setErrors(e);
       focusFirstError();
@@ -154,8 +158,8 @@ export function SmallBizSubmitForm({ onClose }: { onClose: () => void }) {
         {err("link")}
       </label>
       <label className="gg-sbs-l">
-        {W.fields.deal}
-        <span className="gg-sbs-hint">{W.fields.dealHint}</span>
+        {dayW.deal}
+        <span className="gg-sbs-hint">{dayW.dealHint}</span>
         <Textarea value={f.deal} rows={2} maxLength={SBS_LIMITS.deal} onChange={(e) => set("deal", e.target.value)} {...aria("deal")} />
         {err("deal")}
       </label>
@@ -193,7 +197,7 @@ export function SmallBizSubmitForm({ onClose }: { onClose: () => void }) {
       <div>
         <label className="gg-sbs-check min-h-11">
           <Checkbox checked={f.participating} onCheckedChange={(v) => set("participating", v === true)} {...aria("participating")} />
-          <span>{W.fields.participating}</span>
+          <span>{dayW.participating}</span>
         </label>
         {err("participating")}
       </div>

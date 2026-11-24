@@ -4,16 +4,16 @@
  * the list with a badge"); approved free listings show below them. Guard: src/test/sbsFeaturedLocal1120.test.tsx.
  */
 import type { SbsFieldError } from "../../supabase/functions/_shared/sbsSubmission";
+import { dealDay } from "./giftGuideDeals.mjs";
+
+/**
+ * Small Business Saturday 2026: Sat Nov 28 (Thanksgiving is Thu Nov 26), from the deals days. Holiday audit 1121 #54:
+ * the words that name the day, and the sign-up's required box, change the day after it (sbsDayWords), so the
+ * page never asks a business to say it is "participating" in a day that has passed. Guard: src/test/sbsDayWords1124.test.tsx.
+ */
+export const SBS_DAY: string = dealDay("small-business-saturday")?.day ?? "2026-11-28";
 
 export const SBS_WORDS = {
-  // /shop-small (owner 2026-11-21: "add the feature that small business can sign their business up to be featured on
-  // the site"): the live page for these listings and the form, now the Small Business Saturday guide page is retired.
-  pageTitle: "Shop Small Louisiana",
-  pageLead: "Louisiana small businesses, listed free. Small Business Saturday is Nov 28: buy a gift, book a visit, or give them a follow.",
-  // Holiday audit 1121 #61: the confirmed Louisiana 25 Days sponsors lead /shop-small, so it is never an empty page.
-  pageSponsorsTitle: "Our Louisiana 25 Days sponsors",
-  pageSectionTitle: "Louisiana small businesses",
-  pageSectionIntro: "Local shops and makers taking part in Small Business Saturday, Nov 28.",
   // Holiday audit 1121 area 5 #4: the free listings say when they are loading, empty or did not load (they showed nothing).
   localLoading: "Loading Louisiana small businesses…",
   localEmptyBefore: "Local shops show here once we approve them. Check back before Small Business Saturday, Nov 28.",
@@ -24,7 +24,6 @@ export const SBS_WORDS = {
   sectionIntro: "More Louisiana small businesses taking part in Small Business Saturday, Nov 28.",
   badge: "Featured local",
   dealLabel: "Saturday deal:",
-  introLink: "Own a Louisiana small business? Get featured free",
   ctaTitle: "Get your business featured",
   ctaLine: "Free for Louisiana small businesses taking part in Small Business Saturday, Nov 28. We'll review and add you within a day.",
   ctaButton: "Get featured, free",
@@ -71,8 +70,24 @@ export const SBS_WORDS = {
   server: "That didn't send. Check your connection and try again.",
 } as const;
 
-/** Words for a field's error code. */
-export function sbsFieldError(field: string, code: SbsFieldError | "dead" | "logoType" | "logoSize" | string): string {
+/** The words that name Small Business Saturday on Louisiana day `today` (YYYY-MM-DD): unchanged through the day, then none. */
+export function sbsDayWords(today: string) {
+  const past = today > SBS_DAY;
+  return {
+    sectionIntro: past ? "More Louisiana small businesses, open all season." : SBS_WORDS.sectionIntro,
+    ctaLine: past ? "Free for Louisiana small businesses. We'll review and add you within a day." : SBS_WORDS.ctaLine,
+    dealLabel: past ? "Deal:" : SBS_WORDS.dealLabel,
+    deal: past ? "Your holiday deal or note (optional)" : SBS_WORDS.fields.deal,
+    dealHint: past ? "Like \"20% off all candles through Christmas\"" : SBS_WORDS.fields.dealHint,
+    // The server still needs the box ticked (sbs_featured_submissions.participating CHECK); after the day it confirms
+    // the business is a Louisiana small business instead.
+    participating: past ? "We're a Louisiana small business." : SBS_WORDS.fields.participating,
+    participatingError: past ? "Tick this box to confirm you're a Louisiana small business." : "Tick this box to confirm you're taking part in Small Business Saturday.",
+  };
+}
+
+/** Words for a field's error code (`today`: the Louisiana day, for the participating box's words). */
+export function sbsFieldError(field: string, code: SbsFieldError | "dead" | "logoType" | "logoSize" | string, today = ""): string {
   switch (code) {
     case "required":
       return field === "category" ? "Pick a category." : "Please fill this in.";
@@ -88,7 +103,7 @@ export function sbsFieldError(field: string, code: SbsFieldError | "dead" | "log
       return "Pick a category.";
     case "participating":
       // Holiday audit 1121 area 5 #17: say what to do (tick the box), not only why.
-      return "Tick this box to confirm you're taking part in Small Business Saturday.";
+      return sbsDayWords(today).participatingError;
     case "profanity":
       return "Please keep it family friendly.";
     case "spam":

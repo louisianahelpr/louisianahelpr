@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { giftGuides as G } from "@/content/giftGuides";
-import { SBS_WORDS as W } from "@/content/sbsFeaturedLocal";
+import { SBS_DAY, SBS_WORDS as W, sbsDayWords } from "@/content/sbsFeaturedLocal";
 import { listFeaturedLocal, sbsLogoUrl, type SbsListing } from "@/lib/sbsFeaturedApi";
 import { report } from "@/lib/errorLogger";
-import { dealDay, louisianaDay } from "@/content/giftGuideDeals.mjs";
+import { louisianaDay } from "@/content/giftGuideDeals.mjs";
 import { safeDocumentUrl } from "@/lib/storagePath";
 import { SB_CARD_CSS } from "./smallBizCardStyles";
 import { FeatureCta } from "./SmallBizFeatureCta";
@@ -76,7 +76,7 @@ function LocalCard({ b }: { b: SbsListing }) {
         <p className="gg-sb-name">{href ? out("gg-sb-name-link", <>{b.name}<span className="sr-only"> ({G.newTab})</span></>) : b.name}</p>
         <p className="gg-sb-town">{[b.town, b.category].filter(Boolean).join(" · ")}</p>
         <span className="gg-badges"><i className="gg-bdg gg-bdg-local" data-gift-badge="local">{W.badge}</i></span>
-        {b.deal && <p className="gg-sb-text"><b>{W.dealLabel}</b> {b.deal}</p>}
+        {b.deal && <p className="gg-sb-text"><b>{sbsDayWords(louisianaDay(new Date())).dealLabel}</b> {b.deal}</p>}
       </span>
     </li>
   );
@@ -86,8 +86,6 @@ function LocalCard({ b }: { b: SbsListing }) {
  * Under the sponsor sections: approved free listings (if any), then the sign-up card. `heading` replaces the section's
  * title and intro where no sponsor list sits above it (no page uses it now; the Small Business Saturday page shows the listings without a heading).
  */
-/** Small Business Saturday's day (YYYY-MM-DD), from the deals days. */
-const SBS_DAY = dealDay("small-business-saturday")?.day ?? "2026-11-28";
 
 export function SmallBizLocal({ sponsors, heading }: { sponsors: Array<{ name: string; links: Array<string | null | undefined> }>; heading?: { title: string; intro: string } }) {
   const [rows, setRows] = useState<SbsListing[]>([]);
@@ -129,7 +127,7 @@ export function SmallBizLocal({ sponsors, heading }: { sponsors: Array<{ name: s
       {list.length > 0 && (
         <section className="gg-sbs-local" aria-labelledby={SBS_LOCAL_HEAD} data-gift-sbs-section="">
           <div className="gg-rowhead"><h2 id={SBS_LOCAL_HEAD}>{heading?.title ?? W.sectionTitle}<span className="gg-rowcount">&nbsp;({list.length})</span></h2></div>
-          <p className="gg-sbs-local-intro">{heading?.intro ?? W.sectionIntro}</p>
+          <p className="gg-sbs-local-intro">{heading?.intro ?? sbsDayWords(louisianaDay(new Date())).sectionIntro}</p>
           <ul className="gg-sb-grid">{list.map((b) => <LocalCard key={b.id} b={b} />)}</ul>
         </section>
       )}

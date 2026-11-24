@@ -8,6 +8,7 @@ import { WISH } from "@/content/giftWishList";
 import { LISTS } from "@/content/giftListsManage";
 import { dollars, parseDollars, type GiftPlan, type PlanPerson } from "@/content/giftGuideFun1120";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 import { shareGiftLists } from "@/lib/giftWishListApi";
 import { planActions, usePlan } from "./fun/plannerStore";
 import { useAccountSync } from "./fun/plannerSync";
@@ -124,6 +125,8 @@ function Picker({ item, ready }: { item: SaveItem | null; ready: boolean }) {
     }
     closeSaveFor();
   };
+  // B4 (flow audit 11-23): phone Back / swipe-back closes this sheet, not the guide.
+  useCloseOnBack(item !== null, close);
   const tapMine = (gift: SaveItem) => {
     const r = togglePick({ href: gift.href, name: gift.name, ...(gift.guide ? { guide: gift.guide } : {}) });
     heartTapped(r, true);
@@ -192,6 +195,7 @@ function Panel({ only, ready }: { only: string | null | undefined; ready: boolea
   const one = only && only !== "me" ? plan.people.find((p) => p.id === only) : undefined;
   const all = !only || (only !== "me" && !one);
   const leave = () => closeMyLists();
+  useCloseOnBack(open, closeMyLists);
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) closeMyLists(); }}>
       <DialogContent data-mylists-panel={all ? "" : only}>

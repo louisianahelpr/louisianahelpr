@@ -18,7 +18,7 @@
  * sign-up to /complete-profile, or sign-up is a redirect loop.
  *
  * @mutate src/pages/auth/signup/SignupStep1.tsx |     if (!firstName.trim()) {\n      firstNameRef.current?.focus();\n      return;\n    } |
- * @mutate src/pages/auth/Signup.tsx |     if (!firstName.trim()) return refuse(t("signup.firstNameToast")); |
+ * @mutate src/pages/auth/Signup.tsx |     if (!firstName.trim()) return refuse(t("signup.firstNameToast"), "firstName"); |
  * @mutate src/pages/auth/Signup.tsx |         location: "",\n |         location: "Lafayette",\n
  * @mutate src/pages/auth/Signup.tsx |         zipCode: "",\n |         zipCode: "70501",\n
  * @mutate src/components/ProtectedRoute.tsx |   if (!signupFinished(profile)) return false; |
@@ -97,9 +97,9 @@ describe("the form: first and last name, side by side, required", () => {
   it("the names come before the email, and the parent refuses a submit without them too", () => {
     expect(STEP1.indexOf('htmlFor="firstName"')).toBeGreaterThan(0);
     expect(STEP1.indexOf('htmlFor="firstName"')).toBeLessThan(STEP1.indexOf('htmlFor="email"'));
-    expect(SIGNUP).toContain('if (!firstName.trim()) return refuse(t("signup.firstNameToast"));');
+    expect(SIGNUP).toContain('if (!firstName.trim()) return refuse(t("signup.firstNameToast"), "firstName");');
     expect(en["signup.firstNameToast"]).toBe("Add your first name.");
-    expect(SIGNUP).toContain('if (!lastName.trim()) return refuse(t("signup.lastNameToast"));');
+    expect(SIGNUP).toContain('if (!lastName.trim()) return refuse(t("signup.lastNameToast"), "lastName");');
     expect(en["signup.lastNameToast"]).toBe("Add your last name.");
   });
 });

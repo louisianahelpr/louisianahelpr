@@ -3,7 +3,7 @@
  * BEFORE each item (giftGuidesStyles.ts .gg-also-list li+li::before), so wrapped lines began with a dot (screenshot
  * ~/.lh-shots/declutter-speed-1124/searches-before-375.png). The search lists put the dot AFTER each item but the last,
  * inside the item, on a wrapping row, so every line starts with a link (searches-after-375.png). jsdom has no layout:
- * this pins the rules the 375 screenshot was taken with.
+ * this pins the rules the 2026-11-24 phone screenshot was taken with.
  *
  * @mutate src/pages/info/giftGuides/GuideSearchLinks.tsx | .gg-searches .gg-also-list li+li::before{content:none} | .gg-searches .gg-also-list li+li::before{}
  * @mutate src/pages/info/giftGuides/GuideSearchLinks.tsx | .gg-searches .gg-also-list li:not(:last-child)::after{content:"·"; | .gg-searches .gg-also-list li::after{content:"·";

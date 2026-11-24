@@ -1,11 +1,10 @@
 {
-  "generated": "2026-11-24T04:57:02.854Z",
-  "guards": 4503,
-  "registered": 4499,
+  "generated": "2026-11-24T14:09:41.882Z",
+  "guards": 4505,
+  "registered": 4502,
   "unregistered": [
     "src/lib/categorySuggestions.test.ts",
     "src/lib/celebrate.test.ts",
-    "src/lib/onboardingTourCompletion.test.ts",
     "src/lib/rentals/rentReceipt.test.ts"
   ],
   "classA_noInventoryFloor": [

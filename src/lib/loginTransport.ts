@@ -12,7 +12,7 @@ const LOGIN_TIMEOUT_MS = 15000;
  * Flow audit 11-23 (A3): why a password log-in failed, as a short code for analytics (never the email or the server's
  * words). Transport first: a timeout or offline says nothing about the password.
  */
-export const loginFailReason = (error: unknown): string => {
+const loginFailReason = (error: unknown): string => {
   const msg = String((error as { message?: unknown } | null)?.message ?? "").toLowerCase();
   if (isCaptchaError(msg)) return "captcha";
   if (isTransportFailure(error)) return "transport";

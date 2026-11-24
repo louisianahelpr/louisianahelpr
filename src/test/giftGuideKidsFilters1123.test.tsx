@@ -198,3 +198,26 @@ describe("the Kids page: the chips in its Filter", () => {
     expect(c.querySelector("[data-gift-quick] [data-gift-filter-button]")).toBeNull();
   });
 });
+
+// Flow audit 11-23 (B5): "Girls" showed 140 of 140 and looked broken. The tag file has no Boys-only picks, so Girls
+// honestly hides nothing; each For chip now names its count so the shopper sees that up front.
+// @mutate src/pages/info/GiftGuides.tsx | label: `${g.label} (${n[g.id]})` | label: g.label
+describe("the Kids page: the For chips name their counts (B5)", () => {
+  it("Girls / Boys / Everyone each show how many gifts they would list, matching the filter", async () => {
+    const c = await renderAt("/gift-guides/kids");
+    act(() => { fireEvent.click(c.querySelector<HTMLButtonElement>("[data-gift-quick] [data-gift-filter-button]")!); });
+    await waitFor(() => expect(c.querySelector("[data-gift-filter-group='for']")).not.toBeNull());
+    const labels: string[] = [];
+    for (const g of ["girls", "boys", "everyone"] as const) {
+      const n = filterKids(PICKS, sel({ genders: [g] }), TAGS, TODAY).length;
+      const text = c.querySelector(`[data-gift-filter-chip='for:${g}']`)?.textContent ?? "";
+      expect(text).toBe(`${g[0].toUpperCase()}${g.slice(1)} (${n})`);
+      labels.push(text);
+    }
+    expect(labels.length).toBeGreaterThan(2);
+    // With a price chip on, the counts follow the other groups.
+    act(() => { fireEvent.click(c.querySelector<HTMLButtonElement>("[data-gift-filter-chip='price:under-10']")!); });
+    const n = filterKids(PICKS, sel({ prices: ["under-10"], genders: ["boys"] }), TAGS, TODAY).length;
+    expect(c.querySelector("[data-gift-filter-chip='for:boys']")?.textContent).toBe(`Boys (${n})`);
+  });
+});

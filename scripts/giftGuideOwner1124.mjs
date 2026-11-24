@@ -217,4 +217,4 @@ export const CUTOUTS_1124 = [
 ];
 
 /** Stores the 11-24 rows go to that the store list may not hold yet (key -> shown name). */
-export const STORES_1124 = { "store-elf": "e.l.f. Cosmetics", "store-muck-boot": "Muck Boot", "store-bissell": "BISSELL", "store-kohls": "Kohl's", "store-scheels": "SCHEELS" };
+export const STORES_1124 = { "store-elf": "e.l.f. Cosmetics", "store-muck-boot": "Muck Boot", "store-bissell": "BISSELL", "store-kohls": "Kohl's", "store-scheels": "SCHEELS", "store-jcpenney": "JCPenney" };

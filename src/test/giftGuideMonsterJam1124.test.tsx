@@ -13,7 +13,7 @@
  *    script writes (scripts/gift-guide-monster-jam-collage-1124.json).
  *
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE \|\| isThemeGuide(guide.slug); |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE;
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | guide={guide.slug} similar={!isThemeGuide(guide.slug)} /> | guide={guide.slug} />
+ * @mutate src/content/giftGuideCatalog.ts |     const entries = isThemeGuide(slug) ? dupeEntries.filter((d) => d.guide === slug) : dupeEntries; |     const entries = dupeEntries;
  * @mutate src/content/giftGuideLive.mjs | export const THEME_GUIDE_NAMES_1124 = { "monster-jam": "Monster Jam" | export const THEME_GUIDE_NAMES_1124 = { "monster-jam-off": "Monster Jam"
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   ...Object.entries(THEME_GUIDE_NAMES_1124).map(([slug, label]) => ({ slug, dot: "green" as const, label })), |   // no theme rows
  * @mutate scripts/giftGuideMonsterJam1124.mjs | export const collageRows1124 = (rows = MONSTER_JAM_ROWS_1124) => rows.filter((r) => !isAmazonRow(r)); | export const collageRows1124 = (rows = MONSTER_JAM_ROWS_1124) => rows;

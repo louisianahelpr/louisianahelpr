@@ -8,12 +8,15 @@
  *    THEME_GUIDES_1124 entry in order, each linking /gift-guides/<slug> and showing that guide's own green square cover
  *    (sized, so nothing jumps); the first two covers load at once, the rest lazily;
  *  - the moves (scripts/giftGuideKidsThemeMoves1124.mjs): a move whose theme is live and holds its row id is off Kids
- *    and on that theme's page; a move still waiting (theme not live, or no row yet) stays on Kids.
+ *    and on that theme's page; a move still waiting (theme not live, no row yet, or held) stays on Kids;
+ *  - the Yoto Bluey bundle moved WITH its approved dupe (owner 11-24 via the lead): the Bluey page shows that one
+ *    "shop similar" on that one row and no other; Kids no longer lists the bundle.
  *
  * @mutate src/pages/info/GiftGuides.tsx |               {guide?.slug === KIDS_FILTER_GUIDE && <GiftGuideThemeRow />} |               {null}
  * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx |   const guides = THEME_GUIDES_1124.map((slug) => guideBySlug(slug)).filter((g) => g !== undefined); |   const guides = THEME_GUIDES_1124.slice(1).map((slug) => guideBySlug(slug)).filter((g) => g !== undefined);
  * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx | priority={i < EAGER_COVERS} | priority
  * @mutate scripts/giftGuideHimKids1121.mjs |   return build(rows.filter((r) => !moved.has(r.href)), KIDS_GUIDE, null); |   return build(rows, KIDS_GUIDE, null);
+ * @mutate src/content/giftGuideCatalog.ts | dupeEntries.filter((d) => d.guide === slug) | dupeEntries.filter(() => false)
  * @mutate scripts/giftGuideThemes1124.mjs |   KIDS_THEME_MOVES_1124.filter(([, , to, id, held]) => !held && id && themeRows1124(to).some((r) => r.id === id)) |   KIDS_THEME_MOVES_1124.filter(([, , to]) => to)
  */
 import { readFileSync } from "node:fs";
@@ -102,8 +105,8 @@ describe("Kids items moved to their themed guide (owner 2026-11-24)", () => {
   const live = kidsThemeMovesLive1124();
 
   it("every live move is off Kids and its product is on its theme page", () => {
-    // Inventory floor: 12 moved on 11-24.
-    expect(live.length).toBeGreaterThan(11);
+    // Inventory floor: 13 moved on 11-24.
+    expect(live.length).toBeGreaterThan(12);
     for (const m of live) {
       expect(kidsHrefs.has(m.href), m.name).toBe(false);
       expect(THEME_GUIDES_1124, m.name).toContain(m.to);
@@ -120,5 +123,26 @@ describe("Kids items moved to their themed guide (owner 2026-11-24)", () => {
   it("the Kids chunk is the build (moves applied), each move listed once", () => {
     expect(kids).toEqual(JSON.parse(JSON.stringify(kids1121Picks())));
     expect(new Set(KIDS_THEME_MOVES_1124.map(([href]) => href)).size).toBe(KIDS_THEME_MOVES_1124.length);
+  });
+});
+
+describe("the Yoto Bluey bundle moved to Bluey with its approved dupe (owner 2026-11-24)", () => {
+  const YOTO = "https://go.shopmy.us/p-109156399";
+
+  it("is off Kids and on Bluey", () => {
+    expect(chunk("kids").some((p) => p.href === YOTO)).toBe(false);
+    expect(chunk("bluey").filter((p) => p.href === YOTO)).toHaveLength(1);
+  });
+
+  it("the Bluey page shows exactly one shop similar, on the Yoto row", async () => {
+    const c = await renderAt("/gift-guides/bluey");
+    const words = [...c.querySelectorAll("[data-gift-dupe]")];
+    expect(words).toHaveLength(1);
+    expect(words[0].closest("li")?.textContent).toContain("Yoto Player 4th Gen + Bluey Adventure Bundle");
+  });
+
+  it("the Kids page no longer lists it", async () => {
+    const c = await renderAt("/gift-guides/kids");
+    expect(c.querySelector("[data-gift-guide]")?.textContent).not.toContain("Yoto Player 4th Gen + Bluey Adventure Bundle");
   });
 });

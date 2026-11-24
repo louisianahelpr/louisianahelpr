@@ -16,7 +16,7 @@
  *  - the cover: green (SLUG_TINT), six photos of our own cutouts (no Amazon photo), the file and its cache key present.
  *
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE \|\| isThemeGuide(guide.slug); |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE;
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | similar={!isThemeGuide(guide.slug)} /> | />
+ * @mutate src/content/giftGuideCatalog.ts |     const entries = isThemeGuide(slug) ? dupeEntries.filter((d) => d.guide === slug) : dupeEntries; |     const entries = dupeEntries;
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | ...Object.entries(THEME_GUIDE_NAMES_1124).map(([slug, label]) => ({ slug, dot: "green" as const, label })), | // no theme rows
  * @mutate src/content/giftGuideIndex.ts | ({ group: "For kids", tint: "green" as const, slug, | ({ group: "For kids", tint: "red" as const, slug,
  * @mutate scripts/gift-guide-photo-covers.py | "monster-jam": "green", | "monster-jam": "red",

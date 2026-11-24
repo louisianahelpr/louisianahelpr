@@ -22,6 +22,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import type { PickChunk } from "@/content/giftGuidePicks";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
+import { THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
 import { dupesFor, type DupeEntry, type GuideDupe } from "@/content/giftGuideDupes";
 import DUPES_FILE from "@/content/giftGuideDupes.json";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
@@ -44,7 +45,8 @@ const CHUNKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
   Object.entries(import.meta.glob<PickChunk>("../content/giftGuidePicks/*.json", { eager: true, import: "default" }))
     .map(([f, c]) => [f.replace(/^.*\/|\.json$/g, ""), c.picks] as const),
 );
-const OWNER_GUIDES = ["her", "him", "kids"] as const;
+// Owner 11-24: a pick moved from Kids to its themed guide keeps its approved dupe there (the Yoto Bluey bundle).
+const OWNER_GUIDES = ["her", "him", "kids", ...THEME_GUIDES_1124];
 const AMAZON_DP = /^https:\/\/www\.amazon\.com\/dp\/[A-Z0-9]{10}\?tag=louisianahelpr-20$/;
 
 describe("dupes data: plain Amazon tag links with a checked price, each on one of the owner's picks", () => {
@@ -62,7 +64,7 @@ describe("dupes data: plain Amazon tag links with a checked price, each on one o
     }
   });
 
-  it("each record attaches to exactly one pick on Her, Him or Kids, one record per pick, every dupe cheaper than it", () => {
+  it("each record attaches to exactly one pick on Her, Him, Kids or a themed guide, one record per pick, every dupe cheaper than it", () => {
     const owner = OWNER_GUIDES.flatMap((g) => CHUNKS[g].map((p) => ({ ...p, guide: g })));
     for (const r of RECORDS) {
       const hits = owner.filter((p) => p.guide === r.guide && dupesFor(p, [r]).length > 0);

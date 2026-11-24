@@ -35,8 +35,9 @@ export const KIDS_THEME_MOVES_1124 = [
   // Held: one of the six photos the owner pinned on the Kids cover (scripts/gift-guide-cover-pins.json, the Kids share
   // card), and it carries an approved "shop similar" on Kids; moving it means a new Kids cover photo, her call.
   ["https://www.amazon.com/dp/B0G3RKYTMS?tag=louisianahelpr-20", "Bluey Light and Surprise Heeler House", "bluey", "BL70", "on the Kids cover you pinned"],
-  // Held: it carries a "dupe" the owner approved on Kids (src/content/giftGuideDupes.json); a theme page shows no dupes.
-  ["https://go.shopmy.us/p-109156399", "Yoto Player 4th Gen + Bluey Adventure Bundle", "bluey", "BL74", "has the dupe you approved on Kids"],
+  // Owner 11-24 (via the lead): moves WITH its approved dupe; its record in src/content/giftGuideDupes.json now names
+  // "bluey", the one dupe a theme page shows (src/content/giftGuideCatalog.ts loadGuidePicks).
+  ["https://go.shopmy.us/p-109156399", "Yoto Player 4th Gen + Bluey Adventure Bundle", "bluey", "BL74"],
   ["https://www.amazon.com/dp/B0BRTCTT6X?tag=louisianahelpr-20", "Shakespeare Spider-Man Kids Fishing Kit", "marvel", "MV74"],
   ["https://walmrt.us/4AQxuWv", "KPop Demon Hunters Girls Slippers", "kpop-demon-hunters", "KP01"],
   // Not imported yet (research waits on Walmart links): applies when Minecraft is imported.

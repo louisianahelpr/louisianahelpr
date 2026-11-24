@@ -398,7 +398,7 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
           ))}
           {isOpen(id) && (
             <ol className="gg-list" id={id ? `gg-sec-${id}-list` : undefined} data-gift-list="" style={run.start > 1 ? { counterReset: `gg ${run.start - 1}` } : undefined}>
-              {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} similar={!isThemeGuide(guide.slug)} />)}
+              {run.rows.map((p) => <PickRow key={`${p.href} ${p.name}`} pick={p} guide={guide.slug} />)}
             </ol>
           )}
         </section>

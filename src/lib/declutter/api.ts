@@ -16,6 +16,8 @@ import type { ShipOptions, ShipPreset } from "@/lib/declutter/shipOptions";
 import { blobToBase64, cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { AI_DRAFT_PHOTOS } from "@/lib/declutter/photoRules";
 import { LANDING_CARD_PHOTO } from "@/lib/declutter/landingCardPhoto";
+import { CARD_PHOTO_SMALL_PX, squarePhotoUrl } from "@/lib/declutter/photoSizes";
+import { warmCardPhotos } from "@/lib/declutter/warmCardPhotos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { offerPushAfterAction } from "@/hooks/useNotificationPermissionPrompt";
@@ -1089,7 +1091,26 @@ export async function publishItem(itemId: string): Promise<"pending_review" | "l
   // listing (owner 11-20: "Want a ping when someone makes an offer?").
   offerPushAfterAction("listed");
   if (status === "live") track(AhaEvent.DeclutterPostLive, { item_id: itemId });
+  // declutter-speed-1124: ask for the new listing's card photos once now, so the first buyer gets them from the CDN
+  // (0.13-0.15 s) instead of waiting for the transform (0.49-0.83 s). Not awaited; src/lib/declutter/warmCardPhotos.ts.
+  void warmListingCardPhotos(itemId);
   return status;
+}
+
+/** The listing's first photo at every card size /declutter and the landing page draw it (warmCardPhotos.ts). */
+export async function warmListingCardPhotos(itemId: string): Promise<number> {
+  try {
+    const rows = unwrap(
+      await supabase.from("declutter_item_photos").select("storage_path").eq("item_id", itemId).order("position", { ascending: true }).limit(1),
+    ) as { storage_path: string }[] | null;
+    const path = rows?.[0]?.storage_path;
+    if (!path) return 0;
+    return warmCardPhotos([squarePhotoUrl(photoPublicUrl(path), CARD_PHOTO_SMALL_PX), photoCardUrl(path), photoLandingCardUrl(path)]);
+  } catch (e) {
+    // Only a speed-up: a photo not warmed is made on the first visit, as before. Said in the console, never to the seller.
+    console.warn("[declutter] could not warm the new listing's card photos", e);
+    return 0;
+  }
 }
 
 export async function fetchMyItemPrivate(itemId: string) {

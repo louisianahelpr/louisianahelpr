@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1275,
+    "calls": 1274,
     "files": 370,
-    "rendering": 1197,
+    "rendering": 1196,
     "suppressedByPolicy": 78,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 14,
       "successToast": 8,
       "toast": 254,
-      "toast.error": 853,
+      "toast.error": 852,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 84,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 457,
       "template": 101,
-      "dynamic": 774,
+      "dynamic": 773,
       "jsx": 0
     }
   },
@@ -14764,17 +14764,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 313,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(\"signup.passwordPwned\", { count: pwnedCount.toLocaleString() })"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Signup.tsx",
-      "line": 385,
+      "line": 390,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14784,7 +14774,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 456,
+      "line": 461,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

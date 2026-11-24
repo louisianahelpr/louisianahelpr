@@ -209,6 +209,6 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     // Owner 11-21 ("the arches and letters are just small and squished together"): 96px -> 136px; pass 2 the same night
     // ("gifts for her is still too small text size and still close together"): 136px -> 184px, still under 190px.
     expect(h).toBeLessThanOrEqual(190);
-    expect(GUIDES.length).toBe(5); // owner 11-21: Her, Him, Kids and the sponsors page (the relationship views are gone); 11-24 + Monster Jam
+    expect(GUIDES.length).toBe(4 + THEME_GUIDES_1124.length); // owner 11-21: Her, Him, Kids and the sponsors page (the relationship views are gone); 11-24 + the themed guides
   });
 });

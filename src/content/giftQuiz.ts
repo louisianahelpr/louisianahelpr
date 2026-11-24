@@ -174,6 +174,9 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   "hair-crayons": ["creative", "stocking"], binoculars: ["pretend", "active"], "projector-flashlight": ["pretend"],
   // Christmas pajamas named "Pajamas" take that type (the type-agrees-with-name guard); cozy like kids-pajamas.
   pajamas: ["cozy"],
+  // The owner's 11-24 Kids steals (scripts/giftGuideSteals1124.mjs): an advent calendar of little toys is a stocking-style
+  // countdown, a mini fridge is for a cozy room, a tumbler goes along to practice and school.
+  "advent-calendar": ["stocking", "pretend"], "mini-fridge": ["cozy"], tumbler: ["active"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -241,9 +244,15 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   // By each box's age (Desktop owner-keeps-1123.json): OOLY hair crayons 6+, Tender Leaf binoculars 3+, the Brainstorm
   // shark torch 4+.
   "hair-crayons": ["6-8", "9-12"], binoculars: ["3-5", "6-8"], "projector-flashlight": ["3-5", "6-8"],
+  // The owner's 11-24 Kids steals (scripts/giftGuideSteals1124.mjs): the dumpling advent calendars' listings say for kids
+  // and teens (no age number; the UUGEE pull-back cars calendar is named below), the Frigidaire mini fridge and the Stanley
+  // tumbler give no age and read as gifts for big kids and teens.
+  "advent-calendar": ["6-8", "9-12", "teen"], "mini-fridge": ["9-12", "teen"], tumbler: ["9-12", "teen"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],
+  // UUGEE's listing: "Gifts for 1 2 3 Years Old Toddlers" (owner's Walmart link, 11-24).
+  [/pull-back cars/i, ["0-2", "3-5"]],
   [/infant bucket swing/i, ["0-2"]],
   [/paint with water|sticker book/i, ["3-5", "6-8"]],
   [/aqua puffs/i, ["3-5", "6-8"]],

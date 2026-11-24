@@ -12,6 +12,12 @@
  * @mutate scripts/giftGuideHer1121.mjs | ...HER_LINKS_1123, ...HER_ADDS_1124]; | ...HER_LINKS_1123];
  * @mutate scripts/giftGuideHimKids1121.mjs | ...KIDS_LINKS_1123, ...KIDS_ADDS_1124]) { | ...KIDS_LINKS_1123]) {
  * @mutate scripts/giftGuideCutouts1120.mjs | for (const [from, file] of CUTOUTS_1124) CUTOUTS_1120.set(from, file); | void CUTOUTS_1124;
+ * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_WALMART_1123, ...HIM_ADDS_1124]) { | ...HIM_WALMART_1123]) {
+ * @mutate scripts/giftGuideOwner1124.mjs | export const HIM_ADDS_1124 = HIM_STEALS_1124_ROWS.map(steal); | export const HIM_ADDS_1124 = [];
+ * @mutate scripts/giftGuideOwner1124.mjs | ...KIDS_MACYS_1124_ROWS.map(macys), ...KIDS_STEALS_1124_ROWS.map(steal)]; | ...KIDS_MACYS_1124_ROWS.map(macys)];
+ * @mutate scripts/giftGuideOwner1124.mjs | ...HER_MACYS_1124_ROWS.map(macys), ...HER_STEALS_1124_ROWS.map(steal)]; | ...HER_MACYS_1124_ROWS.map(macys)];
+ * @mutate scripts/giftGuideOwner1124.mjs |   ...STEALS_CUTOUTS_1124, |   // no steals cutouts
+ * @mutate scripts/giftGuideSteals1124.mjs | ["https://go.shopmy.us/p-110125353", 24.99, | ["https://go.shopmy.us/p-110125353", 49.99,
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -19,6 +25,7 @@ import { her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
 import { him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
 import { RATE_SWITCHES_1124 } from "../../scripts/giftGuideOwner1124.mjs";
+import { HER_STEALS_1124_ROWS, HIM_STEALS_1124_ROWS, KIDS_STEALS_1124_ROWS } from "../../scripts/giftGuideSteals1124.mjs";
 import { RESEARCHED_STORES } from "@/content/giftGuidePicks";
 import { tagKey } from "@/content/giftGuideKidsFilter";
 
@@ -53,6 +60,29 @@ const MACYS: [string, string, number, string][] = [
   ["kids", "110119982", 43.99, "Melissa & Doug Sort, Stock, Select Beauty Kiosk Play Set"],
   ["kids", "110120034", 22.49, "VTech Learn & Zoom 2-in-1 Three-Wheel Motorbike"],
   ["kids", "110120060", 31.99, "Barbie Holiday Doll"],
+];
+/**
+ * [guide, link, store, commission %, price, name]: the Black Friday steals she ticked for the guides (owner 11-24 ~1:45 AM,
+ * ~/.lh-shots/steals-to-guides-1124.md) and her Walmart links (~2:35 AM), copied from the links made that night
+ * (~/.lh-shots/later-switches-1124/steals-links.json), not from the module.
+ */
+const wm = (code: string) => `https://walmrt.us/${code}`;
+const STEALS: [string, string, string, number, number, string][] = [
+  ["her", sm("110125767"), "store-target", 4, 20, "Stanley Quencher H2.0 FlowState Tumbler, 30 oz, Frost"],
+  ["her", sm("110122551"), "store-macys", 16, 10, "Clinique 2-Piece Merry Minis Gift Set"],
+  ["him", sm("110122396"), "store-macys", 16, 9.99, "The Cellar Morgan Ceramic Plaid Mugs, Set of 2"],
+  ["kids", sm("110125767"), "store-target", 4, 20, "Stanley Quencher H2.0 FlowState Tumbler, 30 oz, Frost"],
+  ["kids", sm("110125685"), "store-target", 4, 8.99, "LEGO Sunflowers"],
+  ["kids", sm("110125702"), "store-target", 4, 14.99, "Monster Jam Smash and Bash Toy Vehicle Playset"],
+  ["kids", sm("110125781"), "store-target", 4, 10, "Hot Wheels Monster Trucks Mutant Chaos Truck, Car and Slime"],
+  ["kids", sm("110125801"), "store-target", 4, 19.49, "Hot Wheels Monster Trucks Mutant Chaos Loop Challenge Playset"],
+  ["kids", sm("110125818"), "store-target", 4, 19.99, "Frigidaire 6-Can Mini Fridge, Black"],
+  ["kids", sm("110125837"), "store-target", 4, 24.99, "LEGO Minecraft Woodland Mansion Fighting Ring"],
+  ["kids", sm("110125353"), "store-target", 4, 24.99, "Monster Jam Grave Digger Remote Control Truck"],
+  ["kids", wm("4CpL44Q"), "store-walmart", 6, 9.88, "Christmas Dumpling Advent Calendar"],
+  ["kids", wm("4fSzHIL"), "store-walmart", 6, 12.61, "Cute Farm Animal Dumpling Advent Calendar"],
+  ["kids", wm("4jcx3OU"), "store-walmart", 6, 16.89, "UUGEE Advent Calendar, 24 Pull-Back Cars"],
+  ["kids", wm("3V7qKEv"), "store-walmart", 6, 15, "Monster Jam 1:64 Truck 4-Pack with 3 Mini Jams"],
 ];
 /**
  * Measured 11-24 and kept where they were (no store paying more for the same item at about the same price): Later's
@@ -121,5 +151,36 @@ describe("owner 11-24: her Macy's adds", () => {
       expect(typeof t.ageMin, name).toBe("number");
       expect(t.ageSource, name).toMatch(/^macys\.com product page, read 2026-11-24: /);
     }
+  });
+});
+
+describe("owner 11-24: the Black Friday steals she ticked", () => {
+  it("each is on its guide once, at the steal price read 11-24, with its link's store and rate and a cutout photo", () => {
+    expect(STEALS.length).toBeGreaterThan(12);
+    expect(HER_STEALS_1124_ROWS.length + HIM_STEALS_1124_ROWS.length + KIDS_STEALS_1124_ROWS.length).toBe(STEALS.length);
+    for (const [guide, href, store, commission, price, name] of STEALS) {
+      for (const list of [chunk(guide), built[guide]]) {
+        const rows = list.filter((p) => p.href === href);
+        expect(rows.length, `${guide}: ${name}`).toBe(1);
+        expect(rows[0], name).toMatchObject({ name, store, commission, price, priceAt: "2026-11-24" });
+        expectCutout(rows[0]);
+        expect(RESEARCHED_STORES[store]?.hosts, store).toContain(new URL(href).hostname);
+      }
+    }
+  });
+
+  it("each Kids steal has a girls/boys/everyone tag, and its listing's age wherever the listing gives one", () => {
+    const tags = (JSON.parse(readFileSync("src/content/giftGuideKidsTags.json", "utf8")) as { tags: Record<string, { gender?: string; ageMin?: number; ageSource?: string }> }).tags;
+    const aged = [sm("110125685"), sm("110125702"), sm("110125781"), sm("110125801"), sm("110125837"), sm("110125353"), wm("4jcx3OU"), wm("3V7qKEv")];
+    for (const [, href, , , , name] of STEALS.filter((m) => m[0] === "kids")) {
+      const t = tags[tagKey(href)];
+      expect(t, name).toBeTruthy();
+      expect(["girls", "boys", "everyone"]).toContain(t.gender);
+      if (aged.includes(href)) {
+        expect(typeof t.ageMin, name).toBe("number");
+        expect(t.ageSource, name).toMatch(/^(target|walmart|macys)\.com .*read 2026-11-24: /);
+      }
+    }
+    expect(aged.length).toBeGreaterThan(7);
   });
 });

@@ -1,4 +1,5 @@
 import { trackFunnel } from "@/lib/declutter/funnel";
+import { track, AhaEvent } from "@/lib/analytics";
 
 /**
  * H3 (audit 11-08): Stripe sends the buyer back to /declutter?view=cart&paid=1&order=<id> (success_url) or
@@ -18,4 +19,5 @@ export function trackStripeReturn(search: string): void {
   if (seen.has(key)) return;
   seen.add(key);
   trackFunnel("returned_from_stripe", { orderId: paid ? order : null, detail: paid ? "paid" : "back" });
+  if (paid) track(AhaEvent.DeclutterCheckoutCompleted, { via: "stripe" }); // flow audit 11-23 (A2)
 }

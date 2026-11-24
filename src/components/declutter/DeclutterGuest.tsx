@@ -23,6 +23,7 @@ import { useMarkGuestTopBarOn } from "@/lib/guestTopBar";
 import { useGuestPublicFrame } from "@/hooks/useGuestPublicFrame";
 import { enGuest } from "@/lib/i18n/enGuest";
 import { wordInLang } from "@/lib/i18n/inLang";
+import { track, AhaEvent } from "@/lib/analytics";
 
 /** The way-in words that are boot words (enCore), so the public header needs no extra chunk. */
 const CORE_GUEST = { "g.logIn": "Log in", "g.signUp": "Sign up" } as const;
@@ -145,11 +146,12 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
       <StickyActionBar label={label} spacer={false} data-guest-buttons="" pinWide>
         {!free && offers && (
           <Button asChild variant="outline" size="wrap" className="rounded-full px-3 font-semibold">
-            <Link to={signup} data-guest-offer="">{gw("g.makeOffer")}</Link>
+            <Link to={signup} data-guest-offer="" onClick={() => track(AhaEvent.DeclutterGuestTap, { action: "offer" })}>{gw("g.makeOffer")}</Link>
           </Button>
         )}
         <Button asChild size="wrap" className="rounded-full px-3">
-          <Link to={signup} data-guest-buy="">{free ? gw("g.signUpAsk") : gw("g.buyNow")}</Link>
+          {/* Flow audit 11-23 (A2): 179 of 189 item views in 14 days were guests; this counts how many tap toward sign-up. */}
+          <Link to={signup} data-guest-buy="" onClick={() => track(AhaEvent.DeclutterGuestTap, { action: free ? "ask" : "buy" })}>{free ? gw("g.signUpAsk") : gw("g.buyNow")}</Link>
         </Button>
       </StickyActionBar>
       <div className="flex items-center justify-between gap-3">

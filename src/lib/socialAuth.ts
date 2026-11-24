@@ -36,6 +36,7 @@ import { recognizedAuthError } from "@/lib/authErrors";
 import { setLastAuthMethod } from "@/lib/lastAuthMethod";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
+import { track, AhaEvent } from "@/lib/analytics";
 import {
   clearOAuthPending,
   isExpectedSocialRefusal,
@@ -284,9 +285,21 @@ function accountChoiceFrom(err: unknown): AccountChoiceRef | null {
 //   - Anything else → { kind: "error", message } with friendly copy.
 //
 // Never throws. The caller switches on `kind`.
+// Flow audit 11-23 (A3): each outcome is counted (method only; a cancel and an account choice are not failures).
 export async function signInWithProvider(
   provider: SocialProvider,
   opts: { redirectTo?: string } = {},
+): Promise<SocialSignInResult> {
+  const r = await signInWithProviderOnce(provider, opts);
+  if (r.kind === "success") track(AhaEvent.LoginSucceeded, { method: provider });
+  else if (r.kind === "error") track(AhaEvent.LoginFailed, { method: provider, reason: "provider_error" });
+  else if (r.kind === "redirecting") track(AhaEvent.LoginRedirectStarted, { method: provider });
+  return r;
+}
+
+async function signInWithProviderOnce(
+  provider: SocialProvider,
+  opts: { redirectTo?: string },
 ): Promise<SocialSignInResult> {
   if (isSocialLoginPluginAvailable()) {
     try {

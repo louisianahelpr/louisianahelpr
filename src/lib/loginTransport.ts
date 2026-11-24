@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isCaptchaError } from "@/lib/turnstile";
+import { track, AhaEvent } from "@/lib/analytics";
 
 // Login's password sign-in with a 15s race timeout, and the classifier that
 // keeps a failure that says nothing about the password out of the lockout
@@ -7,7 +8,31 @@ import { isCaptchaError } from "@/lib/turnstile";
 
 const LOGIN_TIMEOUT_MS = 15000;
 
+/**
+ * Flow audit 11-23 (A3): why a password log-in failed, as a short code for analytics (never the email or the server's
+ * words). Transport first: a timeout or offline says nothing about the password.
+ */
+export const loginFailReason = (error: unknown): string => {
+  const msg = String((error as { message?: unknown } | null)?.message ?? "").toLowerCase();
+  if (isCaptchaError(msg)) return "captcha";
+  if (isTransportFailure(error)) return "transport";
+  if (msg.includes("invalid login credentials")) return "credentials";
+  if (msg.includes("email not confirmed")) return "unconfirmed";
+  if ((msg.includes("rate") && msg.includes("limit")) || msg.includes("for security purposes")) return "rate_limit";
+  return "other";
+};
+
 export const signInWithTimeout = async (email: string, password: string, captchaToken: string | undefined) => {
+  const result = await signInRace(email, password, captchaToken).catch((e: unknown) => {
+    track(AhaEvent.LoginFailed, { method: "password", reason: loginFailReason(e) });
+    throw e;
+  });
+  if (result.error) track(AhaEvent.LoginFailed, { method: "password", reason: loginFailReason(result.error) });
+  else track(AhaEvent.LoginSucceeded, { method: "password" });
+  return result;
+};
+
+const signInRace = async (email: string, password: string, captchaToken: string | undefined) => {
   let timeoutId: number | undefined;
   try {
     return await Promise.race([

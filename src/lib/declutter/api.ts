@@ -20,6 +20,7 @@ import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { offerPushAfterAction } from "@/hooks/useNotificationPermissionPrompt";
 import { trackFunnel } from "@/lib/declutter/funnel";
+import { track, AhaEvent } from "@/lib/analytics";
 import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
 import { takeMinePrefetch, takeMineQuestions } from "@/lib/declutter/minePrefetchTake";
 import { readItems, type ItemRead } from "@/lib/declutter/myReads";
@@ -633,7 +634,9 @@ export async function fetchWatchedItems(ids: readonly string[]): Promise<Declutt
 }
 
 export async function setWatch(itemId: string, watch: boolean): Promise<string> {
-  return rpcData(await supabase.rpc("declutter_set_watch", { p_item_id: itemId, p_watch: watch }), (e) => rpcErrorMessage("declutter_set_watch", e)) as string;
+  const r = rpcData(await supabase.rpc("declutter_set_watch", { p_item_id: itemId, p_watch: watch }), (e) => rpcErrorMessage("declutter_set_watch", e)) as string;
+  track(AhaEvent.DeclutterSaved, { item_id: itemId, on: watch }); // flow audit 11-23 (A2)
+  return r;
 }
 
 export async function askQuestion(itemId: string, question: string): Promise<string> {
@@ -667,6 +670,12 @@ const draftArgs = (f: DraftFields) => ({
  * draft gets a fresh id instead; the caller compares and uploads the photos again into the right folder.
  */
 export async function createDraft(f: DraftFields, withId?: string): Promise<string> {
+  const id = await createDraftRow(f, withId);
+  track(AhaEvent.DeclutterPostStarted, { item_id: id }); // flow audit 11-23 (A3): the first save of a new listing
+  return id;
+}
+
+async function createDraftRow(f: DraftFields, withId?: string): Promise<string> {
   if (withId) {
     const res = await supabase.rpc("declutter_create_item_with_id", { p_item_id: withId, ...draftArgs(f) });
     // The id already made: a first Post whose answer was lost made this seller's draft with it. Review of 62f90f3368
@@ -1074,10 +1083,12 @@ export async function setPickupWindows(windows: PickupWindow[]): Promise<number>
 }
 
 export async function publishItem(itemId: string): Promise<"pending_review" | "live"> {
+  track(AhaEvent.DeclutterPostSubmitted, { item_id: itemId }); // flow audit 11-23 (A3)
   const status = rpcData(await supabase.rpc("declutter_publish_item", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_publish_item", e)) as "pending_review" | "live";
   // PUSH-REACH: a listing that went up is when a seller wants to hear from buyers; the website's push ask, worded for
   // listing (owner 11-20: "Want a ping when someone makes an offer?").
   offerPushAfterAction("listed");
+  if (status === "live") track(AhaEvent.DeclutterPostLive, { item_id: itemId });
   return status;
 }
 
@@ -1393,6 +1404,7 @@ export interface CartLine {
 
 export async function makeOffer(itemId: string, amountCents: number): Promise<string> {
   const offerId = rpcData(await supabase.rpc("declutter_make_offer", { p_item_id: itemId, p_amount_cents: amountCents }), (e) => rpcErrorMessage("declutter_make_offer", e)) as string;
+  track(AhaEvent.DeclutterOfferSent, { item_id: itemId }); // flow audit 11-23 (A2)
   // PUSH-REACH: the seller's answer is what the buyer waits for; the website's push ask.
   offerPushAfterAction();
   return offerId;
@@ -1552,10 +1564,13 @@ export async function fetchMyFreePause(): Promise<string | null> {
  * set at once and goes to the handover (pickup at the seller's home or from the porch). Returns the order id.
  */
 export async function checkoutFree(sellerId: string, handover: "pickup_home" | "porch"): Promise<string> {
-  return rpcData(
+  track(AhaEvent.DeclutterCheckoutStarted, { kind: "free", handover }); // flow audit 11-23 (A2)
+  const order = rpcData(
     await supabase.rpc("declutter_checkout_free", { p_seller_id: sellerId, p_handover: handover }),
     (e) => rpcErrorMessage("declutter_checkout_free", e),
   ) as string;
+  track(AhaEvent.DeclutterCheckoutCompleted, { via: "free" });
+  return order;
 }
 
 export async function buyNow(itemId: string, seenPriceCents: number): Promise<string> {
@@ -1564,6 +1579,7 @@ export async function buyNow(itemId: string, seenPriceCents: number): Promise<st
     await supabase.rpc("declutter_buy_now", { p_item_id: itemId, p_expected_price_cents: seenPriceCents }),
     (e) => rpcErrorMessage("declutter_buy_now", e),
   ) as string;
+  track(AhaEvent.DeclutterCartAdded, { item_id: itemId, via: "buy_now" }); // flow audit 11-23 (A2): held into the cart
   // PUSH-REACH: pickup and the seller's messages follow a buy; the website's push ask.
   offerPushAfterAction();
   return held;
@@ -1633,6 +1649,7 @@ export async function startCheckoutPayment(sellerId: string, handover: Handover,
   expectedDeliveryCents?: number | null, quoteId?: string | null, giftCardId?: string | null): Promise<{ url: string | null; paid: boolean; giftCents: number }> {
   // A seller delivery carries the picked time (held while the payment page is open), the buyer's door choice
   // and the delivery price the screen showed ("Free" = 0): a different frozen price stops before Stripe.
+  track(AhaEvent.DeclutterCheckoutStarted, { kind: "pay", handover }); // flow audit 11-23 (A2)
   const data = await invokeDeclutter("declutter-checkout", {
     action: "pay", seller_id: sellerId, handover,
     ...(handover === "seller_delivery"
@@ -1652,6 +1669,7 @@ export async function startCheckoutPayment(sellerId: string, handover: Handover,
   });
   // H3 (audit 11-08): Stripe's page is about to open for this order.
   if (typeof data.url === "string") trackFunnel("checkout_opened", { orderId: typeof data.order_id === "string" ? data.order_id : null });
+  if (data.paid === true) track(AhaEvent.DeclutterCheckoutCompleted, { via: "gift_card" });
   return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true,
     giftCents: typeof data.gift_cents === "number" && Number.isInteger(data.gift_cents) ? data.gift_cents : 0 };
 }

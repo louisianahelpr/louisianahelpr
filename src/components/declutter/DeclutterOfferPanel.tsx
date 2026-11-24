@@ -16,6 +16,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { StickyActionBar, usePhoneWidth } from "@/components/ui/StickyActionBar";
 import { buyNow, fetchItemHandovers, fetchMyCard, fetchMyCart, fetchMyOffers, makeOffer, startCardSave, type DeclutterItem, type DeliverySize } from "@/lib/declutter/api";
+import { track, AhaEvent } from "@/lib/analytics";
 import { noDeliveryWay, totalPhrase, type NoDeliveryWay } from "@/lib/declutter/pickupWords";
 import { deliveryPriceCents } from "@/lib/declutter/delivery";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -265,6 +266,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
     setNeedCard(null);
     // DA-11: the amount comes first; the card is asked for at Send (sendOffer).
     if (action === "offer") {
+      track(AhaEvent.DeclutterOfferStarted, { item_id: item.id }); // flow audit 11-23 (A2)
       setOpen(true);
       return;
     }

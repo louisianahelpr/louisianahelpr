@@ -121,7 +121,7 @@ describe("one account per person: a no-match social sign-in never silently creat
 
   it("the native catch returns the choice before treating anything as an error", () => {
     const src = code(SOCIAL);
-    const body = enclosingFunction(src, src.indexOf("export async function signInWithProvider"));
+    const body = enclosingFunction(src, src.indexOf("async function signInWithProviderOnce")) // flow audit 11-23: the exported wrapper only counts the outcome;
     const choose = body.indexOf('return { kind: "choose", choice: err.choice }');
     expect(choose).toBeGreaterThan(-1);
     expect(choose).toBeLessThan(body.indexOf("report("));

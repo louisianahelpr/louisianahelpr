@@ -143,6 +143,49 @@ export const KEY_EVENTS = [
                LEFT JOIN public.profiles sp ON sp.user_id = m.sender_id
               WHERE m.created_at > $SINCE AND NOT coalesce(m.is_system, false) AND m.client_id IS NOT NULL`,
   },
+  // Flow audit 11-23 (A2/A3): log in, password reset and the Declutter buyer steps had no event at all, so nothing
+  // could say whether they broke. Ground truth only where one row is written by exactly that action; the rest report
+  // "quiet, cannot tell broken" instead of guessing.
+  {
+    event: "login_succeeded",
+    label: "logged in",
+    windowDays: 7,
+    // auth.users.last_sign_in_at also moves on an email-verify link, a sign-up and a web OAuth return, none of which
+    // pass the Log in screen, so it is not this event's ground truth.
+    ground: null,
+  },
+  {
+    event: "password_reset_sent",
+    label: "password reset sent",
+    windowDays: 7,
+    // GoTrue stamps recovery_sent_at when it sends a recovery email, which only ForgotPassword asks for in the app.
+    ground: `SELECT count(*) FILTER (WHERE NOT coalesce(p.is_seed, false)) AS real,
+                    count(*) FILTER (WHERE p.is_seed) AS test
+               FROM auth.users u LEFT JOIN public.profiles p ON p.user_id = u.id
+              WHERE u.recovery_sent_at > $SINCE`,
+  },
+  {
+    event: "declutter_offer_sent",
+    label: "Declutter offer sent",
+    windowDays: 7,
+    // declutter_offers also gets the seller's offers to savers (20261120010630) and counters, so no clean ground.
+    ground: null,
+  },
+  {
+    event: "declutter_cart_added",
+    label: "Declutter cart add",
+    windowDays: 7,
+    // An accepted offer also puts the item in the buyer's cart server-side, with no client; no clean ground.
+    ground: null,
+  },
+  {
+    event: "declutter_checkout_completed",
+    label: "Declutter checkout completed",
+    windowDays: 7,
+    // stripe-webhook settles orders with no client, and a buyer who closes the tab before the return is never
+    // counted, so declutter_orders is not this event's ground truth.
+    ground: null,
+  },
 ];
 
 /**
@@ -159,6 +202,18 @@ export const MISSING_MILESTONES = {
  * Held equal to the source both ways by the guard.
  */
 export const NOT_MONITORED = {
+  // Flow audit 11-23 (A2/A3): the steps around the key events above, read by hand to see where people stop.
+  login_failed: "friction signal (method + reason code: credentials, transport, captcha, rate_limit, unconfirmed, provider_error); a rise with no login_succeeded is the alarm, read by hand",
+  login_redirect_started: "funnel step: a web Google/Apple sign-in left for the provider; its return is counted by the app's session, read by hand",
+  password_reset_requested: "funnel step before password_reset_sent",
+  password_reset_failed: "friction signal (reason code: transport, captcha, rate_limit, server); zero is the good case",
+  declutter_guest_tap: "funnel step: a signed-out visitor tapped Make offer / Buy now / Ask on an item (it goes to sign up and back), read by hand",
+  declutter_saved: "usage count of Declutter saves (item id, on/off), read by hand; a quiet day of zero is normal",
+  declutter_offer_started: "funnel step before declutter_offer_sent (the offer box opened)",
+  declutter_checkout_started: "funnel step before declutter_checkout_completed (free or pay)",
+  declutter_post_started: "funnel step: a new Declutter listing's first draft save",
+  declutter_post_submitted: "funnel step: Post pressed on a listing (before the server's answer)",
+  declutter_post_live: "funnel step: a listing the server put live at once (the rest go to review)",
   // Ease batch (owner 2026-11-20): first-run intent picker and the guest post-a-job sign-up hand-off. Funnel counts read
   // by hand; the outcomes are the jobs a new member posts and the accounts created, which have their own key events.
   first_run_intent: "usage count of the first-run picker's choice (post, work, sell, browse), read by hand; quiet days are normal",

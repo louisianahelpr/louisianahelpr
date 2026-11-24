@@ -1542,5 +1542,40 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-marvel-heroes-5-pack-target-exclusive-target-7189fa.webp"
    }
   ]
+ },
+ "kpop-demon-hunters": {
+  "section": "For kids",
+  "items": [
+   {
+    "name": "KPop Demon Hunters Derpy Tiger Plush, 12 in",
+    "key": "kpop-demon-hunters:kp20",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-derpy-tiger-plush-12-in-walmart-f99628.webp"
+   },
+   {
+    "name": "KPop Demon Hunters Zoey Fashion Doll",
+    "key": "kpop-demon-hunters:kp12",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-zoey-fashion-doll-walmart-03a359.webp"
+   },
+   {
+    "name": "KPop Demon Hunters HUNTR/X Light Stick with Light FX",
+    "key": "kpop-demon-hunters:kp10",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-huntr-x-light-stick-with-light-fx-walmart-b9858c.webp"
+   },
+   {
+    "name": "KPop Demon Hunters Girls Slippers",
+    "key": "kpop-demon-hunters:kp01",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-girls-slippers-walmart-870a14.webp"
+   },
+   {
+    "name": "LEGO KPop Demon Hunters Derpy Tiger and Sussie Bird",
+    "key": "kpop-demon-hunters:kp60",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-kpop-demon-hunters-derpy-tiger-and-sussie-bird-walmart-b16cf2.webp"
+   },
+   {
+    "name": "KPop Demon Hunters Rumi 6-inch Action Figure",
+    "key": "kpop-demon-hunters:kp11",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-rumi-6-inch-action-figure-walmart-b0727d.webp"
+   }
+  ]
  }
 }

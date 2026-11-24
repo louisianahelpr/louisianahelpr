@@ -31,7 +31,8 @@ import { bestCode } from "@/content/giftGuideDealCounts";
 export const CARD_WORDS = {
   codesTitle: "Discount codes",
   salesTitle: "Sales",
-  dealsTitle: "Top deals",
+  // Owner pop-up 2026-11-24: "Biggest store sales" (was "Top deals"); one word list with the pre-JS body (DEALS_WORDS).
+  dealsTitle: DEALS_WORDS.topTitle,
   openSite: (store: string) => `Open ${store} site`,
   copyCode: (code: string) => `Copy code ${code}`,
   copied: "Copied",

@@ -91,6 +91,39 @@ export function codesDay(event, today) {
 /** At most this many deals from one brand on the whole page (owner 11-20: about 2 of a brand at most). */
 export const DEALS_PER_BRAND = 2;
 
+/**
+ * A steal: one item on sale at a store (owner 2026-11-24 ~1:45 AM: "put all 56 on the black friday page", the 56 steals
+ * bf-research-1124 found, ~/.lh-shots/bf-store-sales-1124.md). Its card names the item and the store's sale price
+ * against its regular price in its words, and links our link for that item. Steals are not store sales, so
+ * DEALS_PER_BRAND does not count them (Macy's alone has 17); the generator lists them after a day's store sales, and the
+ * page draws them in STEAL_CATEGORIES sections under the store sales (GiftGuideDeals.tsx).
+ */
+export const STEAL_KIND = "steal";
+
+/** Whether a deal is a steal (one item), not a store's sale. */
+export const isSteal = (deal) => deal?.kind === STEAL_KIND;
+
+/**
+ * The Black Friday page's layout (owner pop-up 2026-11-24 ~1:50 AM): on top "Biggest store sales" (one card per store
+ * sale, by our commission), then the steals grouped by these categories, in this order, each cheapest first and open
+ * (never collapsed), its heading with its count ("Toys & Kids (22)"); a category with no steal on the day is left out.
+ * Each steal names its `category` (one of these ids); the generator refuses any other.
+ */
+export const STEAL_CATEGORIES = [
+  { id: "toys-kids", title: "Toys & Kids" },
+  { id: "her", title: "For Her" },
+  { id: "him", title: "For Him" },
+  { id: "home-kitchen", title: "Home & Kitchen" },
+  { id: "beauty", title: "Beauty" },
+  { id: "tech", title: "Tech" },
+  { id: "shoes-boots", title: "Shoes & Boots" },
+];
+
+/** A day's steals by category, in STEAL_CATEGORIES order, each in its list order (the generator's: cheapest first); empty ones left out. */
+export function stealSections(deals) {
+  return STEAL_CATEGORIES.map((c) => ({ ...c, deals: deals.filter((d) => isSteal(d) && d.category === c.id) })).filter((s) => s.deals.length > 0);
+}
+
 
 export const DEALS_WORDS = {
   title: "Black Friday & Cyber Monday Deals",
@@ -105,6 +138,8 @@ export const DEALS_WORDS = {
   shop: (brand) => `Shop ${brand}`,
   shopShort: "Shop",
   codeLabel: "Code",
+  /** The store sales' section (owner pop-up 11-24: "Biggest store sales"; it was "Top deals"). */
+  topTitle: "Biggest store sales",
   endsOn: (ymd) => `Ends ${shortDay(ymd)}`,
   startsOn: (ymd) => `Starts ${shortDay(ymd)}`,
   /**

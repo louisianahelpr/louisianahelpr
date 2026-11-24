@@ -1210,7 +1210,8 @@ function dealDayQa(slug: string, kind: string, today: string): QaItem[] {
   if (kind === "small-biz") return smallBizQa((d.smallBiz ?? []).map(([name, town, category, ships]) => ({ name, town, category, ships })), SMALL_BIZ_CATEGORIES);
   // The seo rows carry each card's real last day (its store code's end counted at build), and dealParts the day's code and
   // sale counts: the same three sections the page and the guides menu count (guide train p 11-23).
-  return dealsDayQa(slug, (d.deals ?? []).map(([item, , ends, event, brand, deal]) => ({ item, event, brand: brand ?? "", deal: deal ?? "", ...(ends ? { ends } : {}) })), today, dealPartsOn(d.dealParts?.[slug], today));
+  // Owner pop-up 11-24: a steal (row field 8) is counted as a steal, as the page counts it (guideQa.mjs dealsDayQa).
+  return dealsDayQa(slug, (d.deals ?? []).map(([item, , ends, event, brand, deal, , kind]) => ({ item, event, brand: brand ?? "", deal: deal ?? "", ...(ends ? { ends } : {}), ...(kind ? { kind } : {}) })), today, dealPartsOn(d.dealParts?.[slug], today));
 }
 
 const HOME_CRUMB = { name: "Louisiana Helpr", path: "/" };

@@ -45,8 +45,14 @@ export function GuideSearchLinks({ slug }: { slug: string }) {
   );
 }
 
+// Lead 11-24: on a phone the shared "·" (giftGuidesStyles.ts, before every item but the first) began each wrapped line.
+// Here the dot trails each item but the last, inside its item, on a wrapping row: a wrapped line starts with a link.
+// Guard: src/test/guideSearchLinksWrap1124.test.ts.
 export const GUIDE_SEARCH_CSS = `
 .gg-searches{margin-top:24px}
+.gg-searches .gg-also-list{display:flex;flex-wrap:wrap;align-items:baseline}
+.gg-searches .gg-also-list li+li::before{content:none}
+.gg-searches .gg-also-list li:not(:last-child)::after{content:"·";margin:0 8px;color:var(--gg-muted)}
 .gg-also-list a{display:inline-block;padding:4px 0;color:var(--gg-olive);text-decoration:none}
 .gg-also-list a:hover,.gg-also-list a:focus-visible{text-decoration:underline}
 .gg-search-intro{margin:0;max-width:60ch;font-size:14px;line-height:1.55;color:var(--gg-muted)}

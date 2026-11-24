@@ -401,7 +401,7 @@ beforeEach(() => {
  */
 describe("a job closed to a Helpr who applied (#33)", () => {
   it("names the job and says what the Working row says, never the generic 'taken down'", () => {
-    state.closedForMe = { label: { title: "Rake the front yard", date_needed: "2026-11-14", date_window_end: null }, status: "This job is no longer available" };
+    state.closedForMe = { label: { title: "Rake the front yard", date_needed: jobLocalDateISO(-10), date_window_end: null }, status: "This job is no longer available" };
     renderPage();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Rake the front yard");
     expect(screen.getByText("This job is no longer available")).toBeTruthy();

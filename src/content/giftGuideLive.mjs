@@ -25,7 +25,7 @@
  * exactly when its rows file scripts/gift-guide-themes/<slug>.json exists: `node scripts/theme-guide-import.mjs` adds
  * both. Guard: src/test/giftGuideThemes1124.test.tsx.
  */
-export const THEME_GUIDE_NAMES_1124 = { "monster-jam": "Monster Jam", "bluey": "Bluey" };
+export const THEME_GUIDE_NAMES_1124 = { "monster-jam": "Monster Jam", "bluey": "Bluey", "marvel": "Marvel" };
 export const THEME_GUIDES_1124 = Object.keys(THEME_GUIDE_NAMES_1124);
 
 export const LIVE_GUIDES_1121 = ["her", "him", "kids", ...THEME_GUIDES_1124, "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"];

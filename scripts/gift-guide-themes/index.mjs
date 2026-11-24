@@ -5,5 +5,6 @@
  */
 import monsterJam from "./monster-jam.json" with { type: "json" };
 import bluey from "./bluey.json" with { type: "json" };
+import marvel from "./marvel.json" with { type: "json" };
 
-export const THEME_FILES = { "monster-jam": monsterJam, "bluey": bluey };
+export const THEME_FILES = { "monster-jam": monsterJam, "bluey": bluey, "marvel": marvel };

@@ -1507,5 +1507,40 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-family-figure-4-pack-bluey-bingo-mum-dad-walmart-2eeceb.webp"
    }
   ]
+ },
+ "marvel": {
+  "section": "For kids",
+  "items": [
+   {
+    "name": "Spider-Man Titan Series 11.5 in Action Figure",
+    "key": "marvel:mv06",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spider-man-titan-series-11-5-in-action-figure-walmart-df9059.webp"
+   },
+   {
+    "name": "Hulk Gamma Smash Fists",
+    "key": "marvel:mv21",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hulk-gamma-smash-fists-walmart-a10aa9.webp"
+   },
+   {
+    "name": "Team Spidey Copter with 3 in Spidey Figure",
+    "key": "marvel:mv22",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/team-spidey-copter-with-3-in-spidey-figure-walmart-a5b735.webp"
+   },
+   {
+    "name": "LEGO Marvel Hulkbuster vs. The Hulk",
+    "key": "marvel:mv70",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-marvel-hulkbuster-vs-the-hulk-walmart-38e45f.webp"
+   },
+   {
+    "name": "Marvel Spider-Man Hero Mask",
+    "key": "marvel:mv09",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/marvel-spider-man-hero-mask-walmart-13c7f9.webp"
+   },
+   {
+    "name": "Monster Jam Marvel Heroes 5-Pack (Target exclusive)",
+    "key": "marvel:mv29",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-marvel-heroes-5-pack-target-exclusive-target-7189fa.webp"
+   }
+  ]
  }
 }

@@ -17,12 +17,12 @@
  */
 
 /** Every URL a new listing's first photo is drawn at on /declutter and the landing page (one per place, no repeats). */
-export function cardPhotoWarmUrls(urls: ReadonlyArray<string | null | undefined>): string[] {
+function cardPhotoWarmUrls(urls: ReadonlyArray<string | null | undefined>): string[] {
   return [...new Set(urls.filter((u): u is string => typeof u === "string" && u.startsWith("http")))];
 }
 
 /** How a URL is asked for: an off-screen image, so the browser sends its own image Accept header. */
-export type PhotoLoader = (url: string) => void;
+type PhotoLoader = (url: string) => void;
 
 const loadAsImage: PhotoLoader = (url) => {
   if (typeof Image === "undefined") return;

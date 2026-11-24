@@ -50,6 +50,7 @@ export const esPublic: Record<keyof typeof enPublic, string> = {
   "pub.goBack": "Volver",
   "pub.browseDeclutter": "Ver Declutter",
   "pub.browseJobs": "Ver trabajos",
+  "pub.giftGuides": "Guías de regalos",
   "pub.logIn": "Iniciar sesión",
   "pub.job.notOpenTitle": "Este trabajo ya no está abierto",
   "pub.job.notOpenBody": "Puede que ya se haya cubierto, vencido o quitado. Si usted lo publicó o lo está haciendo, inicie sesión para verlo.",

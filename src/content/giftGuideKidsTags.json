@@ -1124,6 +1124,49 @@
    "ageMax": 5,
    "ageSource": "walmart.com product page, read 2026-11-24: Minimum recommended age 18 months, maximum 5 years",
    "list": "kids"
+  },
+  "go.shopmy.us/p-110122442": {
+   "name": "Gund Kuromi Cupcake Plush",
+   "gender": "everyone",
+   "ageMin": 3,
+   "ageSource": "Macy's product title (ID 17611947), read 2026-11-24: Stuffed Animal, For Ages 3 and up",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110122526": {
+   "name": "UNO Artiste Vexx Card Game",
+   "gender": "everyone",
+   "ageMin": 7,
+   "ageSource": "Mattel's UNO Artiste Vexx page, read 2026-11-24: 2 to 6 players ages 7 years old and up",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110122583": {
+   "name": "Super Mario Deluxe Bowser Battle Playset",
+   "gender": "everyone",
+   "ageMin": 3,
+   "ageSource": "Jakks Pacific / Target listing, read 2026-11-24: ages 3 and up",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110122602": {
+   "name": "Starlight Glam Light-Up Vanity Playset",
+   "gender": "girls",
+   "genderSource": "Macy's listing (ID 18890561): a light-up beauty vanity playset in the girls' toys",
+   "ageMin": 3,
+   "ageSource": "Macy's description (ID 18890561), read 2026-11-24: Designed for children aged 3+",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110122700": {
+   "name": "Journey Girls Glam Runway 4-Sided Fashion Show Playset",
+   "gender": "girls",
+   "genderSource": "Macy's listing (ID 23693052): Journey Girls fashion show playset",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110122792": {
+   "name": "Steve Madden Girls' Lightweight Hooded Packable Jacket",
+   "gender": "girls",
+   "genderSource": "Macy's listing title (ID 27143484): Girls' 5-16 Lightweight Hooded Packable Jacket",
+   "ageMin": 5,
+   "ageSource": "Macy's listing title (ID 27143484), read 2026-11-24: Girls' sizes 5-16",
+   "list": "kids"
   }
  }
 }

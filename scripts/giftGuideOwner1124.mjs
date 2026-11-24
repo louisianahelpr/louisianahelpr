@@ -106,11 +106,11 @@ export const KIDS_MACYS_1124_ROWS = [
   ["110119731", 24.99, "https://slimages.macysassets.com/is/image/MCY/products/1/optimized/39965411_fpx.tif", "Monster Jam Air Hockey Tabletop Game", "Forever Clever", "store-macys", "game", 16, "A tabletop air hockey game with Monster Jam trucks."],
   ["110119881", 32.49, "https://slimages.macysassets.com/is/image/MCY/products/5/optimized/36521135_fpx.tif", "Sharper Image 1:14 Scale Polaris General Off-Road RC Vehicle", "Sharper Image", "store-macys", "vehicle-toy", 16, "A camo remote-control side-by-side built for the yard."],
   ["110119923", 11.99, "https://slimages.macysassets.com/is/image/MCY/products/7/optimized/29531977_fpx.tif", "Discovery Kids Glow Lighted Tracing Tablet", "Discovery Kids", "store-macys", "art", 16, "A light-up tracing pad for drawing and coloring."],
-  ["110119952", 24.99, "https://slimages.macysassets.com/is/image/MCY/products/9/optimized/33901459_fpx.tif", "Play-Doh Sizzlin' Grill Playset", "Play-Doh", "store-macys", "pretend-play", 16, "A Play-Doh grill on a stand for pretend cookouts."],
+  ["110119952", 24.99, "https://slimages.macysassets.com/is/image/MCY/products/9/optimized/33901459_fpx.tif", "Play-Doh Sizzlin' Grill Playset", "Play-Doh", "store-macys", "toy", 16, "A Play-Doh grill on a stand for pretend cookouts."],
   ["110119982", 43.99, "https://slimages.macysassets.com/is/image/MCY/products/0/optimized/34225830_fpx.tif", "Melissa & Doug Sort, Stock, Select Beauty Kiosk Play Set", "Melissa & Doug", "store-macys", "pretend-play", 16, "A wooden beauty shop kiosk with pretend makeup to sort."],
   ["110120034", 22.49, "https://slimages.macysassets.com/is/image/MCY/products/0/optimized/38191070_fpx.tif", "VTech Learn & Zoom 2-in-1 Three-Wheel Motorbike", "VTech", "store-macys", "ride-on", 16, "A toddler ride-on motorbike with lights and songs."],
   // Macy's sells each doll by hair color on one page; the photo shows the four.
-  ["110120060", 31.99, "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/40071418_fpx.tif", "Barbie Holiday 2026 Doll", "Barbie", "store-macys", "doll", 16, "The 2026 holiday Barbie in a red gown, in four hair colors."],
+  ["110120060", 31.99, "https://slimages.macysassets.com/is/image/MCY/products/8/optimized/40071418_fpx.tif", "Barbie Holiday Doll", "Barbie", "store-macys", "doll", 16, "This year's holiday Barbie in a red gown, in four hair colors."],
 ];
 
 const macys = ([pin, price, image, name, brand, store, type, commission, line]) =>

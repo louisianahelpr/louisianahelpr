@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 30 |
 | Overlay surfaces | **instance** | 261 |
 | — of which hand-rolled, no dialog primitive | instance | 13 (across 10 files) |
-| Toast messages | **call site** | 1274 (across 370 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 60 |
+| Toast messages | **call site** | 1261 (across 370 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Multi-step flows — confirmed | flow | 58 |
 | Multi-step flows — probable | flow | 38 |
-| Back/next navigation only | flow | 73 |
+| Back/next navigation only | flow | 72 |
 | Forms (submittable) | form | 148 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 194 |
 | Email templates | **exported template** | 28 |
 | Notification types (defined in notification_type_pref_map) | type | 32 |
-| **Navigable surfaces** (places a person can stand) | mixed | **924** |
-| **Copy surfaces** (strings a person may read) | mixed | **1334** |
-| **Total auditable surface** | mixed | **2258** |
+| **Navigable surfaces** (places a person can stand) | mixed | **921** |
+| **Copy surfaces** (strings a person may read) | mixed | **1321** |
+| **Total auditable surface** | mixed | **2242** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 30 | 24 | agree |
 | Overlay surfaces | 261 | 130 | agree within method (script counts every menu instance) |
 | Forms | 148 | ~38 | agree |
-| Confirmed multi-step flows | 60 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 58 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -516,8 +516,6 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/admin/preview/MessagesPreviewPage.tsx` | compare |
 | `src/pages/admin/preview/messagesPreviewSamples.ts` | compare |
 | `src/pages/admin/preview/OnboardingPreviewPage.tsx` | compare |
-| `src/pages/auth/Signup.tsx` | compare, nav-handler |
-| `src/pages/auth/signup/signupHelpers.ts` | compare |
 | `src/pages/auth/Unsubscribe.tsx` | compare, nav-handler |
 | `src/pages/helprs/FindHelprs.tsx` | compare, nav-handler |
 | `src/pages/home/DashboardGuest.tsx` | compare, nav-handler |
@@ -637,7 +635,6 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/lib/i18n/es.ts` | nav-handler |
 | `src/pages/admin/AdminFrame.tsx` | nav-handler |
 | `src/pages/auth/completeProfile/ProfileNextStep.tsx` | nav-handler |
-| `src/pages/auth/signup/useSignupStepHistory.ts` | nav-handler |
 | `src/pages/info/Legal.tsx` | nav-handler |
 | `src/pages/jobs/jobPage/HiredSeriesSection.tsx` | nav-handler |
 | `src/pages/post-job/CheckoutStepView.tsx` | nav-handler |

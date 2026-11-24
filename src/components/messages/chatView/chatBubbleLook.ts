@@ -10,7 +10,7 @@ export function chatBubbleShape(mine: boolean): string {
 }
 
 /** "Mine": bark with a subtle inner highlight and a soft shadow, for a tactile, brand-aligned feel. */
-export const CHAT_BUBBLE_MINE_STYLE: CSSProperties = {
+const CHAT_BUBBLE_MINE_STYLE: CSSProperties = {
   background: "linear-gradient(180deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.92) 100%)",
   color: "hsl(var(--parchment))",
   boxShadow:
@@ -20,7 +20,7 @@ export const CHAT_BUBBLE_MINE_STYLE: CSSProperties = {
 };
 
 /** "Theirs": translucent parchment with a hairline border, so it reads as an inbound card, never grey on grey. */
-export const CHAT_BUBBLE_THEIRS_STYLE: CSSProperties = {
+const CHAT_BUBBLE_THEIRS_STYLE: CSSProperties = {
   backgroundColor: "hsl(var(--ivory-sand) / 0.78)",
   color: "hsl(var(--ink-deep))",
   border: "0.5px solid hsl(var(--olivewood) / 0.14)",

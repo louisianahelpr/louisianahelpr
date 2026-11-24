@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { takeHelperStepRequest } from "@/components/job-card/helperStepRequest";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { TrackerConfirmNote } from "@/components/TrackerConfirmNote";
 import { APPROVAL_WINDOW_HOURS } from "../../supabase/functions/_shared/escrowTiming";
 import { jobStartDateTime } from "@/lib/dateUtils";
 import { confirmOpensMs, helprConfirmClosed, jobDateMs, todayMs, JOB_TIMEZONE } from "@/lib/jobDate";
@@ -226,25 +227,8 @@ export function JobTrackingView(m: JobTrackingModel) {
              "you'll confirm later", stacked, is the duplication this card
              keeps being audited for. */
           if (!confirmOpen) return null;
-          /* #31 (deep audit 11-22): once the job day is over JobConfirmation hides its button (the SAME
-             helprConfirmClosed rule), so "Confirm the job below" pointed at nothing. Say what the Helpr CAN do. */
-          if (jobDateNeeded && helprConfirmClosed(jobDateNeeded, Date.now())) {
-            const posterFirst = (posterName ?? "").trim().split(/\s+/)[0] || "the poster";
-            return (
-              <div className="pt-2 border-t border-border">
-                <p className="text-ds-11 text-muted-foreground text-center" data-confirm-day-passed="">
-                  The day passed without a confirm. Message {posterFirst} or cancel the job.
-                </p>
-              </div>
-            );
-          }
-          return (
-            <div className="pt-2 border-t border-border">
-              <p className="text-ds-11 text-muted-foreground text-center">
-                Confirm the job below to unlock the next step
-              </p>
-            </div>
-          );
+          // #31 (deep audit 11-22): past the job day the button below is gone (the SAME helprConfirmClosed rule).
+          return <TrackerConfirmNote dayPassed={!!jobDateNeeded && helprConfirmClosed(jobDateNeeded, Date.now())} posterName={posterName} />;
         }
 
         // While a revision is open, the revision flow OWNS completion (the

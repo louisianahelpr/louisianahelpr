@@ -397,7 +397,7 @@ beforeEach(() => {
  * isn't available. It may have been filled, expired or taken down." The row it came from names the job and says
  * "This job is no longer available" (owner 10-21: an applicant who was not hired is not told about a cancellation).
  * The class: when the job can't be read but the viewer applied, the page says what the Working row says.
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |     if (closed) { |     if (false) {
+ * @mutate src/pages/jobs/jobPage/JobClosedForMe.tsx |   if (closed) { |   if (false) {
  */
 describe("a job closed to a Helpr who applied (#33)", () => {
   it("names the job and says what the Working row says, never the generic 'taken down'", () => {

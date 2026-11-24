@@ -247,8 +247,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Held links made (11-23, builder guides-heldlinks): the Lodge 10.25 in. skillet, $24.90, reads ~$25: $25 to $50.
       // Owner 11-23 ~1:00 PM: the KREWE sunglasses ($255) are off For Him; ~1:01 PM the Steve Madden loafer ($139.99) too.
       // 11-24 (scripts/giftGuideOwner1124.mjs): the Columbia hat moved to columbia.com at $22.50 (was $30), so Under $25 +1, $25 to $50 -1.
-      // Her steals 11-24 (scripts/giftGuideSteals1124.mjs): the plaid mug set ($9.99, read ~$10) is Under $25.
-      him: { "Stocking stuffers under $10": 23, "Under $25": 47, "$25 to $50": 49, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 48 },
+      // Her steals 11-24 (scripts/giftGuideSteals1124.mjs): the plaid mug set ($9.99, read ~$10) and the Grinch socks ($10)
+      // are Under $25.
+      him: { "Stocking stuffers under $10": 23, "Under $25": 48, "$25 to $50": 49, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 48 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -272,8 +273,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Play-Doh grill ($24.99, read ~$25), the Polaris RC ($32.49), Barbie ($31.99) and the beauty kiosk ($43.99) $25 to $50.
       // Her steals 11-24 (scripts/giftGuideSteals1124.mjs): LEGO Sunflowers ($8.99) is a stocking stuffer; the Stanley tumbler,
       // the Monster Jam playset and 4-pack, both Mutant Chaos sets, the mini fridge and her 3 advent calendars (the dumpling
-      // one $9.88, read ~$10) are Under $25; the Woodland Mansion and the Grave Digger RC ($24.99, read ~$25) $25 to $50.
-      kids: { "Stocking stuffers under $10": 6, "Under $25": 68, "$25 to $50": 40, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
+      // one $9.88, read ~$10) are Under $25; the Woodland Mansion and the Grave Digger RC ($24.99, read ~$25) $25 to $50;
+      // the KPop Demon Hunters and Grave Digger slippers ($8, $5) and the Bluey pajamas ($5.84) are stocking stuffers.
+      kids: { "Stocking stuffers under $10": 9, "Under $25": 68, "$25 to $50": 40, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -304,8 +306,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // diffuser ($23, Amazon) is Under $25, and the Braun IPL alone ($279.99, owner "Switch only the Braun") stays $100 and up.
       // Her Macy's adds 11-24: the Clinique trio ($21) Under $25, the robe ($29.99, ~$30) $25 to $50, the UGG set ($49.99, ~$50)
       // $50 to $75, the Shark Rocket Pet ($99.99, ~$100) $100 and up; the e.l.f. exfoliator ($6 at elfcosmetics.com) stays a stocking stuffer.
-      // Her steals 11-24 (scripts/giftGuideSteals1124.mjs): the Stanley tumbler ($20) and Clinique Merry Minis ($10) are Under $25.
-      her: { "Stocking stuffers under $10": 19, "Under $25": 54, "$25 to $50": 49, "$50 to $75": 16, "$75 to $100": 14, "$100 and up": 39 },
+      // Her steals 11-24 (scripts/giftGuideSteals1124.mjs): the Stanley tumbler ($20) and Clinique Merry Minis ($10) are Under $25;
+      // the Big Chill puffer ($24.99, read ~$25) is $25 to $50.
+      her: { "Stocking stuffers under $10": 19, "Under $25": 54, "$25 to $50": 50, "$50 to $75": 16, "$75 to $100": 14, "$100 and up": 39 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

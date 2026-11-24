@@ -299,7 +299,7 @@ export function declutterItemSplit(root, split = signedInSplit(root)) {
     // copy, offer clock and upload helpers). In declutter-item-pages they made signed-in /jobs (and every screen that
     // fetches signed-in-pages) download that whole chunk, Declutter's api and seller tools included (lab, 375: 30 KB
     // gz on /jobs' first round for these ~6 modules). Their own chunk; the item page fetches it beside its own.
-    itemShared: new Set([...itemPages].filter((f) => restReach.has(f))),
+    itemShared: new Set([...itemPages].filter((f) => restReach.has(f) || ITEM_SHARED_PINNED_RE.test(f))),
     // Q178 (11-20, after #4779): the part of declutter-first-screen (declutterOnly) the item page reaches. That chunk
     // is Selling's and Browse's first-screen code (seller delivery, wanted posts, saved searches, Helpr tasks' error
     // copy, ...); the item page runs 25 of its 78 modules, yet fetched all of it (~34 KB gz of its 420). Its own chunk:
@@ -336,6 +336,14 @@ export function declutterTabSplit(root, split = signedInSplit(root)) {
     buyingFirst: new Set(only.filter((f) => buying.has(f) && !browse.has(f) && !member.has(f))),
   };
 }
+
+/**
+ * itemPages modules /jobs reaches only through components (11-24): restReach walks from signed-in-pages' shared-dir
+ * modules, so an importer under src/components (outside SHARED_DIR_RE) is invisible to it. useCloseOnBack (Back closes
+ * a sheet) is imported by the item page's sheets AND by WhatNextSheet, which the job lists run (PaymentHeldDialog,
+ * HelperDoneWhatNext). Unpinned it fell to declutter-item-pages, and /jobs fetched that whole chunk for it.
+ */
+export const ITEM_SHARED_PINNED_RE = /[\\/]src[\\/]hooks[\\/]useCloseOnBack\.ts$/;
 
 /** Modules vite.config.ts pins into declutter-item-pages by path, whatever the split says (L32, L46). */
 // talkTime/talkRead (Builder 1, 11-11): the item page used to reach them through DeclutterHandoverTalk, now lazy; unpinned

@@ -14,6 +14,9 @@ export interface SourceDeal {
   ends?: string;
   status?: string;
   store?: string;
+  kind?: string;
+  category?: string;
+  sortPrice?: number;
   commission?: number;
   source?: string;
   checked?: string;

@@ -20,7 +20,7 @@ export interface SeoData {
   moved: Record<string, string>;
   groups: [label: string, guides: [slug: string, name: string][]][];
   /** The deals days' cards: item name, shop link, last day ("" = no end), the day page's slug. */
-  deals?: [item: string, href: string, ends: string, event: string, brand?: string, deal?: string, starts?: string][];
+  deals?: [item: string, href: string, ends: string, event: string, brand?: string, deal?: string, starts?: string, kind?: string, category?: string][];
   /** Each deals day's Discount codes and Sales counts by date: [first day, codes, sales], one row per change (guideQa.mjs dealPartsOn). */
   dealParts?: Record<string, [from: string, codes: number, sales: number][]>;
   /** Each deals day's Discount codes and Sales rows by date (seoBodies.mjs dealListsOn): each row once, then [first day, code indexes, sale indexes] per change. */

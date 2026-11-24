@@ -147,12 +147,14 @@ describe("the deals days' Top deals, Discount codes and Sales wear the same sect
     let headers = 0;
     for (const slug of ["black-friday", "cyber-monday"]) {
       const c = await renderAt(slug);
-      await waitFor(() => expect(c.querySelectorAll("section[data-gift-deal-sub]").length, slug).toBe(3));
+      await waitFor(() => expect(c.querySelectorAll("section[data-gift-deal-sub]").length, slug).toBeGreaterThanOrEqual(3));
       await waitFor(() => expect(c.querySelector("[data-gift-deal]"), slug).not.toBeNull());
       // No old fold (a <details> with a +/- marker) is left on the page's deals list.
       expect(c.querySelector("[data-gift-deal-sections] details"), slug).toBeNull();
       const secs = [...c.querySelectorAll<HTMLElement>("section[data-gift-deal-sub]")];
-      expect(secs.map((x) => x.getAttribute("data-gift-deal-sub")), slug).toEqual(["deals", "codes", "sales"]);
+      // Owner pop-up 11-24: Black Friday's steals sit in category sections (steals-<category>) after the store sales; each
+      // wears the same band below.
+      expect(secs.map((x) => x.getAttribute("data-gift-deal-sub")).filter((id) => !id!.startsWith("steals-")), slug).toEqual(["deals", "codes", "sales"]);
       for (const sec of secs) {
         const id = sec.getAttribute("data-gift-deal-sub")!;
         const b = sec.querySelector<HTMLButtonElement>("h2 > button[data-gift-deal-toggle]")!;
@@ -177,6 +179,7 @@ describe("the deals days' Top deals, Discount codes and Sales wear the same sect
       expect(c.querySelector(`#${t.getAttribute("aria-controls")}`), slug).not.toBeNull();
       cleanup();
     }
-    expect(headers).toBe(6);
+    // Three per day (store sales, codes, sales) plus Black Friday's steal categories (owner pop-up 11-24).
+    expect(headers).toBeGreaterThan(6);
   });
 });

@@ -207,7 +207,10 @@ describe("owner 11-21: a deals day in subsections by type", () => {
     // Owner 2026-11-22: each subsection is a guide section (the shaded band header of Her's price sections), open = its
     // header button says aria-expanded="true".
     const subs = [...container.querySelectorAll<HTMLElement>("section[data-gift-deal-sub]")];
-    expect(subs.map((d) => [d.getAttribute("data-gift-deal-sub"), d.querySelector("button[data-gift-deal-toggle]")?.getAttribute("aria-expanded")])).toEqual([["deals", "true"], ["codes", "true"], ["sales", "true"]]);
+    // Owner pop-up 11-24: the steals' category sections (steals-<category>) sit between the store sales and the codes.
+    const rows = subs.map((d) => [d.getAttribute("data-gift-deal-sub"), d.querySelector("button[data-gift-deal-toggle]")?.getAttribute("aria-expanded")]);
+    expect(rows.filter(([id]) => !id!.startsWith("steals-"))).toEqual([["deals", "true"], ["codes", "true"], ["sales", "true"]]);
+    expect(rows.every(([, open]) => open === "true")).toBe(true);
   });
   it("the Discount codes subsection holds exactly the codes that work that day (none: no subsection)", async () => {
     // Dec 30: every dated code is over, but the owner's undated codes still work; so read a day where codesOn is empty

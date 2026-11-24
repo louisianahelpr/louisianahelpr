@@ -81,12 +81,13 @@ export async function buildSeoData(): Promise<SeoData> {
   // The deals days' cards (structured data 1121; one page per day, owner 11-21): name, shop link, last day and the
   // day page they show on; a day page that is not live carries none.
   // Guide Q&A 11-22: each card's brand and deal line too (the day's "What deals are on this page?").
-  const dealList: SeoData["deals"] = (deals as { item?: string; href?: string; ends?: string; event?: string; brand?: string; deal?: string; starts?: string }[])
+  const dealList: SeoData["deals"] = (deals as { item?: string; href?: string; ends?: string; event?: string; brand?: string; deal?: string; starts?: string; kind?: string; category?: string }[])
     .filter((d) => d.item && d.href && d.event && DEAL_DAY_SLUGS.includes(d.event) && isLiveGuide(d.event))
     // Guide train p 11-23: the card's real last day (dealEnds: its own end, else its store code's end), the rule the page
     // shows a card by, so the raw HTML's list and Q&A drop a card on the same day the page does.
     // Seo bodies 1123: the card's first day too, so the pre-JS list says when it runs as the card does (DEALS_WORDS.runs).
-    .map((d) => [d.item as string, d.href as string, dealEnds(d as Deal, STORE_CODES) ?? "", d.event as string, d.brand ?? "", d.deal ?? "", d.starts ?? ""]);
+    // Owner pop-up 11-24: a steal's kind and category, so the pre-JS body lists it under its category as the page does.
+    .map((d) => [d.item as string, d.href as string, dealEnds(d as Deal, STORE_CODES) ?? "", d.event as string, d.brand ?? "", d.deal ?? "", d.starts ?? "", d.kind ?? "", d.category ?? ""]);
   // Small Business Saturday's businesses for its Q&A: name, town, category, "ships" or "local".
   // Seo bodies 1123 (TS3): each one's link (the card's name link, GiftGuideSmallBiz.tsx b.href) and gift idea for the list.
   const shops: SeoData["smallBiz"] = (smallBiz as { name?: string; town?: string; category?: string; ships?: string; href?: string; gift?: string }[])

@@ -1577,5 +1577,40 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-rumi-6-inch-action-figure-walmart-b0727d.webp"
    }
   ]
+ },
+ "pokemon": {
+  "section": "For kids",
+  "items": [
+   {
+    "name": "Squishmallows Pokemon Pikachu Plush, 10 in",
+    "key": "pokemon:pk30",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/squishmallows-pokemon-pikachu-plush-10-in-walmart-751137.webp"
+   },
+   {
+    "name": "LEGO Pokemon SMART Play: Training House with Pikachu",
+    "key": "pokemon:pk71",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-pokemon-smart-play-training-house-with-pikachu-walmart-852c00.webp"
+   },
+   {
+    "name": "Pokemon Battle Figure 2-Pack, Charizard and Pikachu",
+    "key": "pokemon:pk10",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pokemon-battle-figure-2-pack-charizard-and-pikachu-walmart-94d034.webp"
+   },
+   {
+    "name": "Pokemon Sleeping Snorlax Plush, 18 in",
+    "key": "pokemon:pk31",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pokemon-sleeping-snorlax-plush-18-in-walmart-5fa3de.webp"
+   },
+   {
+    "name": "Pokemon Clip 'N' Go Belt Set with Pikachu and Poke Balls",
+    "key": "pokemon:pk11",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pokemon-clip-n-go-belt-set-with-pikachu-and-poke-balls-walmart-ecaf69.webp"
+   },
+   {
+    "name": "Pokemon Deluxe Battle Attack Electro Ball Pikachu",
+    "key": "pokemon:pk12",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pokemon-deluxe-battle-attack-electro-ball-pikachu-walmart-b2594a.webp"
+   }
+  ]
  }
 }

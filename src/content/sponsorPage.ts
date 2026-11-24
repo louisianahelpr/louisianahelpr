@@ -194,7 +194,7 @@ export const sponsorPage = {
    * The final lineup (owner 2026-11-16: "each person will have their own day" is no longer true; some days have
    * two or three brands, each with its own winner). Source: the owner's 25 Days Sponsor Tracker (const S and D); owner 2026-11-17: every sponsor who said yes by
    * email or Facebook is listed on their tracker day. Owner 2026-11-18 (nothing stale anywhere): lineup.days is exactly
-   * the tracker's calendar (176 giveaways as of 2026-11-20 6:45 PM; 175 after the owner dropped one Dec 5 sponsor on 2026-11-20). Check drift with `node scripts/check-25days-lineup.mjs`,
+   * the tracker's calendar (176 giveaways as of 2026-11-20 6:45 PM; 175 after the owner dropped one Dec 5 sponsor on 2026-11-20; 164 after the 2026-11-23 sync: RYSE on 10 days, 7 new sponsors, Popsy Clothing public-off). Check drift with `node scripts/check-25days-lineup.mjs`,
    * regenerate with `--print` (manual; never in CI).
    * Business names, prizes and Facebook Page links ONLY: never a contact person's name, email or phone (this page and repo are public).
    * Owner 2026-11-19: three sponsors show by their own name (David Rabalais; Tevin Lewis, District 2 Alderman, linked to his own page;
@@ -317,6 +317,12 @@ export const sponsorPage = {
       "Chattanooga Beard Co.": "https://www.facebook.com/chattanoogabeardco",
       "Sweet Bee Organics": "https://www.facebook.com/sweetbeeorganics",
       "Pixie Dust Biodegradable Glitter (New Orleans)": "https://www.instagram.com/biodegradable_glitter/",
+      // Placed 2026-11-23 (sponsor-placement-1123): links from the tracker's socials (fb, else ig). No socials in the
+      // tracker yet, so no link: Adage Pilates Centre, Teleflora, Victoria Nicole Fine Art Portraits.
+      "Artivism Dance Theatre": "https://www.facebook.com/artivismdance",
+      "Kart Ranch": "https://www.facebook.com/kart.ranch",
+      "Adagio Teas": "https://www.facebook.com/adagioteas",
+      "SEEN": "https://www.instagram.com/seenskinandhair/",
     } as Record<string, string>,
     /**
      * INTERNAL ONLY (owner rule 2026-11-17: "don't tell sponsors their day until it's final"): the page never shows
@@ -328,7 +334,7 @@ export const sponsorPage = {
         day: 1,
         partners: [
           { brand: "Olivia Grace Photography", prize: "One-hour photo session, up to 2 outfits, 30+ edited images" },
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
+          { brand: "RYSE", prize: "2 cases of RYSE Fuel (two 12-packs)" },
           { brand: "CMI Entertainment: A Christmas Carol", prize: "Family four-pack to A Christmas Carol, Strand Theatre Shreveport, Dec 6" },
           { brand: "Rip Van Winkle Gardens", prize: "Gift certificate: 2 house tours + $50 café gift certificate" },
           { brand: "Paddlewheeler Creole Queen (New Orleans)", prize: "Dinner Jazz Cruise for a party of two" },
@@ -339,7 +345,6 @@ export const sponsorPage = {
         day: 2,
         partners: [
           { brand: "Texas Beard Company", prize: "Beard Oil + Balm, winner's choice of scents" },
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "World Ballet Company: The Nutcracker", prize: "Pair of Nutcracker tickets, Strand Theatre Shreveport, Dec 8" },
           { brand: "Cher Bebe Embroidery", prize: "Tea towel of choice + custom wreath sash" },
           { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
@@ -352,7 +357,7 @@ export const sponsorPage = {
         day: 3,
         partners: [
           { brand: "Tevin Lewis, District 2 Alderman", prize: "$25 Shucks gift card" },
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
+          { brand: "RYSE", prize: "2 cases of RYSE Fuel (two 12-packs)" },
           { brand: "Crabtrap Functional Fitness", prize: "Free month membership" },
           { brand: "Bake & Brush", prize: "Bake & Brush gift card" },
           { brand: "Everyday Dose", prize: "Coffee+ 15-serving + Medium Roast Coffee+ + Matcha+ + ~12 Matcha+ samples" },
@@ -364,7 +369,7 @@ export const sponsorPage = {
         day: 4,
         partners: [
           { brand: "K18 Hair", prize: "K18 FutureIQ + Molecular Repair Hair Mask" },
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
+          { brand: "RYSE", prize: "2 cases of RYSE Fuel (two 12-packs)" },
           { brand: "Monarch Books (Baton Rouge)", prize: "Book bundle + 2 coffee mugs with stickers and bookmarks" },
           { brand: "Kate McLeod", prize: "One Daily Stone (body moisturizer)" },
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
@@ -375,18 +380,17 @@ export const sponsorPage = {
         day: 5,
         partners: [
           { brand: "Oyu Botanica", prize: "Winter Radiance Duo stocking stuffer (one each day)" },
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Breads and Sweets by Babs", prize: "$25 gift certificate" },
           { brand: "FELCO North America", prize: "FELCO 2 pruner + FELCO 910 holster" },
           { brand: "AllWays Lounge & Cabaret (New Orleans)", prize: "Gift certificate: 2 show tickets + 2 free cocktails" },
           { brand: "Jessica Lanham Photography", prize: "$300 photography gift certificate: covers the $100 session fee + $200 toward any package (one per winner; 4 winners)" },
+          { brand: "SEEN", prize: "Travel Trio Kit (2 oz Shampoo, Conditioner and Blow-Out Creme)" },
         ],
       },
       {
         day: 6,
         partners: [
           { brand: "IOKA Skin+Science", prize: "$50 gift card" },
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Mystic Forests Nursery", prize: "5-gallon Rising Sun redbud" },
           { brand: "homerunPET", prize: "Pet-friendly space heater (PH20)" },
           { brand: "Perfectly Planned Events", prize: "A custom event invitation + a decor shopping list for your budget" },
@@ -398,7 +402,6 @@ export const sponsorPage = {
       {
         day: 7,
         partners: [
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Ace Bungee Fitness", prize: "Private bungee fitness party for 6" },
           { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
           { brand: "Mind the Skin Labs", prize: "1 pack Signal (pre-flare patch) + 1 pack Surge (active-flare patch)" },
@@ -410,7 +413,7 @@ export const sponsorPage = {
       {
         day: 8,
         partners: [
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
+          { brand: "RYSE", prize: "2 cases of RYSE Fuel (two 12-packs)" },
           { brand: "Timeless Skin Care", prize: "Skincare package" },
           { brand: "Written on the River", prize: "Mug or tile with her Louisiana design" },
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
@@ -422,28 +425,30 @@ export const sponsorPage = {
       {
         day: 9,
         partners: [
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
+          { brand: "RYSE", prize: "2 cases of RYSE Fuel (two 12-packs)" },
           { brand: "Let's Create LLC", prize: "Permanent jewelry stainless steel bracelet" },
           { brand: "CHIC by dmo", prize: "Deep Cleanse Scalp Scrub + Hand and Body Wash" },
           { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
           { brand: "City Sightseeing New Orleans", prize: "Two 3-Day Hop-On Hop-Off Passes + Guided Walking Tours of the Garden District and French Quarter" },
           { brand: "Ripley's Crawfish", prize: "$25 gift certificate" },
+          { brand: "Adage Pilates Centre", prize: "4 reformer Pilates classes (downtown Lafayette studio)" },
         ],
       },
       {
         day: 10,
         partners: [
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
+          { brand: "RYSE", prize: "2 cases of RYSE Fuel (two 12-packs)" },
           { brand: "GentleStyle Brush (CLM Creations)", prize: "GentleStyle Brush" },
           { brand: "Restore Hyper Wellness Mandeville", prize: "10 wellness sessions (cryo, infrared sauna, red light, compression)" },
           { brand: "Everyday Dose", prize: "Coffee+ 15-serving + Medium Roast Coffee+ + Matcha+ + ~12 Matcha+ samples" },
           { brand: "RoseMae Eimear Creations", prize: "Soap bar or bath soak (winner picks) + candle (winner picks scent)" },
+          { brand: "Artivism Dance Theatre", prize: "5 class package (digital gift card; classes in person at their New Orleans studio)" },
         ],
       },
       {
         day: 11,
         partners: [
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
+          { brand: "RYSE", prize: "2 cases of RYSE Fuel (two 12-packs)" },
           { brand: "aosu", prize: "Aosu IndoorCam P1 Pro" },
           { brand: "Beaver's Abundance", prize: "$50 gift card (plants only)" },
           { brand: "Celebration Station (Baton Rouge)", prize: "Family Four Fun Pack: unlimited attractions for four people" },
@@ -456,7 +461,6 @@ export const sponsorPage = {
         day: 12,
         partners: [
           { brand: "Criquet Shirts", prize: "$150 Criquet gift certificate" },
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Oyu Botanica", prize: "Winter Radiance Duo stocking stuffer (one each day)" },
           { brand: "Tree Frogs Adventure Park", prize: "2 Tree Top Adventure Course (aerial) tickets" },
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
@@ -469,7 +473,7 @@ export const sponsorPage = {
         day: 13,
         partners: [
           { brand: "SRI Labs", prize: "DryQ blow dryer + KeeWee shampoo" },
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
+          { brand: "RYSE", prize: "2 cases of RYSE Fuel (two 12-packs)" },
           { brand: "The Crab Man Plus", prize: "Seasoning + tumbler" },
           { brand: "Faulk's Game Call Co.", prize: "CA-11 Cane Duck Call" },
           { brand: "Cajun Belle Studio", prize: "Alligator earrings" },
@@ -491,7 +495,7 @@ export const sponsorPage = {
       {
         day: 15,
         partners: [
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
+          { brand: "RYSE", prize: "2 cases of RYSE Fuel (two 12-packs)" },
           { brand: "Zydeco Chop Chop", prize: "Seasoning gift basket" },
           { brand: "Sky & Sol", prize: "1 full-size tube of sunscreen" },
           { brand: "Cat Lady / CatLadyBox", prize: "$60 digital gift card (Cat Lady Box or catlady.com items)" },
@@ -502,7 +506,6 @@ export const sponsorPage = {
       {
         day: 16,
         partners: [
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "GoodWolf Power Yoga", prize: "5 Class Pass (yoga, barre or any fitness class)" },
           { brand: "Handmade By Hayli", prize: "Hair glitter + car diffuser" },
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
@@ -527,7 +530,6 @@ export const sponsorPage = {
         day: 18,
         partners: [
           { brand: "Boston Mints", prize: "3 Boston Mints lip glosses" },
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Basic Bee", prize: "Flavored honey cube gift set + a large bourbon honey" },
           { brand: "Saranoni", prize: "Saranoni Patterned Faux Fur Throw (Clove)" },
           { brand: "Megan Benoit's Closet", prize: "$30 gift card" },
@@ -539,7 +541,7 @@ export const sponsorPage = {
         day: 19,
         partners: [
           { brand: "Ty's Boutique Shop", prize: "Women's two-piece set, winner's choice ($30)" },
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
+          { brand: "RYSE", prize: "2 cases of RYSE Fuel (two 12-packs)" },
           { brand: "Hannahbelle Photography", prize: "Free 20-minute photoshoot" },
           { brand: "aosu", prize: "Aosu IndoorCam P1 Pro" },
           { brand: "Everyday Dose", prize: "Coffee+ 15-serving + Medium Roast Coffee+ + Matcha+ + ~12 Matcha+ samples" },
@@ -550,7 +552,6 @@ export const sponsorPage = {
       {
         day: 20,
         partners: [
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Proof & Pour Wax Co.", prize: "8 oz candle + wax melt (one set each day)" },
           { brand: "Tiffany Morton Cosmetic Tattooing", prize: "Gift certificate: service of choice" },
           { brand: "Krazy Bull Kreations", prize: "$25 shop credit (freshies)" },
@@ -561,7 +562,6 @@ export const sponsorPage = {
       {
         day: 21,
         partners: [
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "The Soft Life Collective", prize: "Giving Book Bundle (3 books)" },
           { brand: "David Rabalais", prize: "The Fois t-shirt (winner size) + koozie + toy Magnalite pot + roux spoon + Roundhouse Ya Maw Maw seasoning" },
           { brand: "Cajun Fiya", prize: "A case of Cajun Fiya seasoning" },
@@ -575,7 +575,6 @@ export const sponsorPage = {
         day: 22,
         partners: [
           { brand: "LMNT", prize: "LMNT Variety Pack (ships to winner)" },
-          { brand: "RYSE", prize: "A 12-pack of RYSE Fuel ($30)" },
           { brand: "Botanical Nail and Skin Studio", prize: "$50 gift card toward any service" },
           { brand: "Bashi", prize: "Gift card for their new products launching in January" },
           { brand: "Barclell Photography", prize: "Family photo sitting + 11x14 wall portrait" },
@@ -592,7 +591,8 @@ export const sponsorPage = {
           { brand: "Hilma", prize: "Daily Pre + Probiotic + Herbs" },
           { brand: "Mary Kay", prize: "Mary Kay gift set" },
           { brand: "Arey", prize: "Arey The System (hair serum + supplements, 1-month supply)" },
-          { brand: "Faith & Fire BBQ", prize: "Bible + seasoning + t-shirt" },
+          { brand: "Faith & Fire BBQ", prize: "Bible + seasoning" },
+          { brand: "Victoria Nicole Fine Art Portraits", prize: "Mini boudoir session with a digital image" },
         ],
       },
       {
@@ -604,6 +604,7 @@ export const sponsorPage = {
           { brand: "Bashi", prize: "Gift card for their new products launching in January" },
           { brand: "Playtopia Lafayette", prize: "1Play Package (1 child): sand play, soft play, book nook, RC Racetrack 30 min, RC Digger Pit 30 min, Lizard Wall 15 min" },
           { brand: "Summar T. Photography", prize: "15-minute mini session (winner messages Summar T. Photography to book)" },
+          { brand: "Kart Ranch", prize: "$50 FUN card (go-karts, water wars, mini golf, arcade; Lafayette)" },
         ],
       },
       {
@@ -614,6 +615,8 @@ export const sponsorPage = {
           { brand: "Mind the Skin Labs", prize: "1 pack Signal + 1 pack Surge" },
           { brand: "HOTWORX Denham Springs", prize: "1-month Sweat Basic membership + free equipment rental" },
           { brand: "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)", prize: "Family four-pack: 4 tickets, The Strand Theatre Shreveport, Fri Jan 22 2027, 7 PM" },
+          { brand: "Adagio Teas", prize: "Frosty's Faves Sampler Set (six holiday loose-leaf blends in collectible tins)" },
+          { brand: "Teleflora", prize: "$100 Teleflora gift code (free shipping included; the winner picks a bouquet)" },
         ],
       },
     ],

@@ -18,6 +18,7 @@
  * @mutate scripts/giftGuideHolidayB1120.mjs |     if (tail.length && tail.every((w) => COMPANY_WORDS.has(w.toLowerCase())) && fold(rest.split(/\s+/)[0]) === fold(head)) n = rest; |     if (tail.length && fold(rest.split(/\s+/)[0]) === fold(head)) n = rest;
  */
 import { NOT_CONFIRMED } from "../../scripts/gift-guide-sponsor-logos.mjs";
+import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
 import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
@@ -66,7 +67,9 @@ describe("gift guides holiday audit B", () => {
     const short = (n: string) => n.split(/\s*[:(·]\s*/)[0].replace(/\s*\/.*$/, "").trim();
     const dropped = (n: string) => SPEC.droppedSponsors.some((d: { brand: string }) => fold(n).startsWith(fold(d.brand)));
     // Owner 11-21: a sponsor whose prize, value or delivery is not confirmed is off the sponsors guide until it is.
-    const lineup = [...new Set([...src.matchAll(/\{ brand: "([^"]+)", prize:/g)].map((m) => short(m[1])))].filter((b) => b !== "Louisiana Helpr" && !dropped(b) && !NOT_CONFIRMED.has(b));
+    // A brand on the owner's guide blocklist (Adagio Teas, a 25 Days sponsor since 2026-11-23) is on no guide at all.
+    const lineup = [...new Set([...src.matchAll(/\{ brand: "([^"]+)", prize:/g)].map((m) => short(m[1])))].filter((b) => b !== "Louisiana Helpr" && !dropped(b) && !NOT_CONFIRMED.has(b) && !blockedBrand({ brand: b }));
+    expect(lineup).not.toContain("Adagio Teas");
     // 103 brands on the lineup on 2026-11-20, one dropped by the owner; 92 confirmed on 2026-11-21 (16 not confirmed yet).
     expect(lineup.length).toBeGreaterThanOrEqual(92);
     const sg = CHUNKS.get("25-days-sponsors")?.picks ?? [];

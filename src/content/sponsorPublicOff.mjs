@@ -10,8 +10,12 @@
  * Helping Hands, and no owner OK to show them was found (night audit 2026-11-23, 25days M10). Handled the same way:
  * their Dec 16 day, graphic and tag stay; the tracker keeps them on their day.
  *
+ * Popsy Clothing (UK): their sign-up form (Mon Nov 23, 5:11 PM) said "NOT OK on the wall" (tracker: "leave off the
+ * public sponsor wall"), the same answer as Helping Hands and Sprinkle, so it is handled the same way (2026-11-23,
+ * sponsor-lineup-sync-1123): their Dec 20 day and tag stay on the tracker; nothing on the website names them.
+ *
  * Read by scripts/check-25days-lineup.mjs (the tracker still lists them on their day, so the drift check leaves them out)
  * and scripts/gift-guide-sponsor-logos.mjs readLineup (which scripts/gift-guide-picks.mjs also reads); guarded by
  * src/test/sponsorPublicOff.test.tsx.
  */
-export const PUBLIC_OFF_SPONSORS = ["Helping Hands Gallery", "Sprinkle in Time Too"];
+export const PUBLIC_OFF_SPONSORS = ["Helping Hands Gallery", "Sprinkle in Time Too", "Popsy Clothing"];

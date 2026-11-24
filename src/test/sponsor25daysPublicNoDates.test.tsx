@@ -32,7 +32,8 @@ function allStrings(v: unknown, out: string[] = []): string[] {
 }
 
 const ENTRY_STEPS = /share this post|tag (2|two) friends|tag 2\b|one entry per (day|person per day)|like and follow|to enter:/i;
-const REMOVED = ["Peigneur", "Victoria Nicole", "GlassWorks", "Minky", "Alice Lane", "Floral Cottage", "Blackstone",
+// Victoria Nicole Fine Art Portraits came back: placed on the tracker 2026-11-23 (Dec 23, owner decisions ~12:30 PM).
+const REMOVED = ["Peigneur", "GlassWorks", "Minky", "Alice Lane", "Floral Cottage", "Blackstone",
   // Owner removed these from the lineup 2026-11-21 night (tracker export 2026-11-22).
   "Bourque", "Kee's Pretty", "Humble Home", "Rusty's", "HOTWORX Baton Rouge", "Bully Made", "Oil Center"];
 /** People behind sponsor businesses (the tracker's contact names that once reached the page, or could). */

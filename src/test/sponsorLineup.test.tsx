@@ -42,36 +42,40 @@ import { blankComments } from "./helpers/blankNonCode";
  * Page, Sweet Bee Organics, Chattanooga Beard Co. and Pixie Dust placed (+6), K18 one prize on Dec 4 (-1), and Wicks, Hair
  * Fashion and Wanderlust moved days, 168;
  * minus Sprinkle in Time Too on Dec 16 (sign-up said "not OK on the wall", handled like Helping Hands; night audit
- * 2026-11-23 M10: src/content/sponsorPublicOff.mjs), 167.
+ * 2026-11-23 M10: src/content/sponsorPublicOff.mjs), 167;
+ * then the Desktop tracker of 2026-11-23 6:26 PM (data/sponsors.js; Placements-1123.md Rounds 1-4): RYSE off Dec 2, 5, 6, 7,
+ * 12, 16, 18, 20, 21, 22 (-10; 2 cases on each of its 10 days), Faith & Fire's t-shirt dropped, and Artivism, Victoria Nicole,
+ * Kart Ranch, Adagio Teas, Adage Pilates, SEEN and Teleflora placed (+7); Popsy Clothing (Dec 20) is public-off, 164
+ * (src/test/sponsorLineupSync1123.test.tsx).
  * (owner rule 2026-11-18: nothing stale anywhere). Drift check against the tracker
  * itself: `node scripts/check-25days-lineup.mjs` (manual; the tracker lives on the owner's Desktop, not in CI).
  */
 const FINAL: Record<number, string[]> = {
   1: ["Olivia Grace Photography", "RYSE", "CMI Entertainment: A Christmas Carol", "Rip Van Winkle Gardens", "Paddlewheeler Creole Queen (New Orleans)", "Le Petit Theatre (New Orleans)"],
-  2: ["Texas Beard Company", "RYSE", "World Ballet Company: The Nutcracker", "Cher Bebe Embroidery", "Wicks NOLA Candle Company", "Suzi Marques Photography", "Dupuy's Abbeville", "Wanderlust by Abby"],
+  2: ["Texas Beard Company", "World Ballet Company: The Nutcracker", "Cher Bebe Embroidery", "Wicks NOLA Candle Company", "Suzi Marques Photography", "Dupuy's Abbeville", "Wanderlust by Abby"],
   3: ["Tevin Lewis, District 2 Alderman", "RYSE", "Crabtrap Functional Fitness", "Bake & Brush", "Everyday Dose", "Birdwell's", "Suzi Marques Photography"],
   4: ["K18 Hair", "RYSE", "Monarch Books (Baton Rouge)", "Kate McLeod", "Tays Sweet Shop", "Jessica Lanham Photography"],
-  5: ["Oyu Botanica", "RYSE", "Breads and Sweets by Babs", "FELCO North America", "AllWays Lounge & Cabaret (New Orleans)", "Jessica Lanham Photography"],
-  6: ["IOKA Skin+Science", "RYSE", "Mystic Forests Nursery", "homerunPET", "Perfectly Planned Events", "Jessica Lanham Photography", "Haylie Rudisill · Custom wreath sashes", "Hair Fashion and Spa (Opelousas)"],
-  7: ["RYSE", "Ace Bungee Fitness", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Suzi Marques Photography", "Cat 5 Fishing Charters (Lake Charles)", "Ethan's Closet Children's Boutique & Little Feet"],
+  5: ["Oyu Botanica", "Breads and Sweets by Babs", "FELCO North America", "AllWays Lounge & Cabaret (New Orleans)", "Jessica Lanham Photography", "SEEN"],
+  6: ["IOKA Skin+Science", "Mystic Forests Nursery", "homerunPET", "Perfectly Planned Events", "Jessica Lanham Photography", "Haylie Rudisill · Custom wreath sashes", "Hair Fashion and Spa (Opelousas)"],
+  7: ["Ace Bungee Fitness", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Suzi Marques Photography", "Cat 5 Fishing Charters (Lake Charles)", "Ethan's Closet Children's Boutique & Little Feet"],
   8: ["RYSE", "Timeless Skin Care", "Written on the River", "Tays Sweet Shop", "Active Beauty", "Candle Bloom Confections", "God's Country RV Resort"],
-  9: ["RYSE", "Let's Create LLC", "CHIC by dmo", "Suzi Marques Photography", "City Sightseeing New Orleans", "Ripley's Crawfish"],
-  10: ["RYSE", "GentleStyle Brush (CLM Creations)", "Restore Hyper Wellness Mandeville", "Everyday Dose", "RoseMae Eimear Creations"],
+  9: ["RYSE", "Let's Create LLC", "CHIC by dmo", "Suzi Marques Photography", "City Sightseeing New Orleans", "Ripley's Crawfish", "Adage Pilates Centre"],
+  10: ["RYSE", "GentleStyle Brush (CLM Creations)", "Restore Hyper Wellness Mandeville", "Everyday Dose", "RoseMae Eimear Creations", "Artivism Dance Theatre"],
   11: ["RYSE", "aosu", "Beaver's Abundance", "Celebration Station (Baton Rouge)", "Ripley's Crawfish", "Suzi Marques Photography", "Wanderlust by Abby"],
-  12: ["Criquet Shirts", "RYSE", "Oyu Botanica", "Tree Frogs Adventure Park", "Tays Sweet Shop", "IDRA Wellness", "Suzi Marques Photography", "Wicks NOLA Candle Company"],
+  12: ["Criquet Shirts", "Oyu Botanica", "Tree Frogs Adventure Park", "Tays Sweet Shop", "IDRA Wellness", "Suzi Marques Photography", "Wicks NOLA Candle Company"],
   13: ["SRI Labs", "RYSE", "The Crab Man Plus", "Faulk's Game Call Co.", "Cajun Belle Studio", "Hello Darlin'"],
   14: ["Crew Dog", "Aeva Beauty", "Deming Delights", "The Sculpt Society", "Everyday Dose", "Rock Bottom Golf", "Wildcat Brothers Distilling"],
   15: ["RYSE", "Zydeco Chop Chop", "Sky & Sol", "Cat Lady / CatLadyBox", "Whimsies from Within", "Britt Creates"],
-  16: ["RYSE", "GoodWolf Power Yoga", "Handmade By Hayli", "Tays Sweet Shop", "3 Redneck Tenors", "Forgiven Hearts", "The Charmed Page Bookstore"],
+  16: ["GoodWolf Power Yoga", "Handmade By Hayli", "Tays Sweet Shop", "3 Redneck Tenors", "Forgiven Hearts", "The Charmed Page Bookstore"],
   17: ["Dolly's Boutique", "LMNT", "Bayou Grace Outfitters", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Accesorios Para Niñas", "Jessica Lanham Photography"],
-  18: ["Boston Mints", "RYSE", "Basic Bee", "Saranoni", "Megan Benoit's Closet", "BIME Beauty", "Pixie Dust Biodegradable Glitter (New Orleans)"],
+  18: ["Boston Mints", "Basic Bee", "Saranoni", "Megan Benoit's Closet", "BIME Beauty", "Pixie Dust Biodegradable Glitter (New Orleans)"],
   19: ["Ty's Boutique Shop", "RYSE", "Hannahbelle Photography", "aosu", "Everyday Dose", "Tushbaby", "Manta Sleep"],
-  20: ["RYSE", "Proof & Pour Wax Co.", "Tiffany Morton Cosmetic Tattooing", "Krazy Bull Kreations", "Salty Cat", "Tays Sweet Shop"],
-  21: ["RYSE", "The Soft Life Collective", "David Rabalais", "Cajun Fiya", "Phyllis Guy Dance Center", "Ripley's Crawfish", "Wanderlust by Abby", "Sweet Bee Organics"],
-  22: ["LMNT", "RYSE", "Botanical Nail and Skin Studio", "Bashi", "Barclell Photography", "Ripley's Crawfish", "Wicks NOLA Candle Company", "Chattanooga Beard Co."],
-  23: ["Bashi", "Jaboom Baits", "Hilma", "Mary Kay", "Arey", "Faith & Fire BBQ"],
-  24: ["LMNT", "Tays Sweet Shop", "Tufted Artworks", "Bashi", "Playtopia Lafayette", "Summar T. Photography"],
-  25: ["Proof & Pour Wax Co.", "Bashi", "Mind the Skin Labs", "HOTWORX Denham Springs", "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)"],
+  20: ["Proof & Pour Wax Co.", "Tiffany Morton Cosmetic Tattooing", "Krazy Bull Kreations", "Salty Cat", "Tays Sweet Shop"],
+  21: ["The Soft Life Collective", "David Rabalais", "Cajun Fiya", "Phyllis Guy Dance Center", "Ripley's Crawfish", "Wanderlust by Abby", "Sweet Bee Organics"],
+  22: ["LMNT", "Botanical Nail and Skin Studio", "Bashi", "Barclell Photography", "Ripley's Crawfish", "Wicks NOLA Candle Company", "Chattanooga Beard Co."],
+  23: ["Bashi", "Jaboom Baits", "Hilma", "Mary Kay", "Arey", "Faith & Fire BBQ", "Victoria Nicole Fine Art Portraits"],
+  24: ["LMNT", "Tays Sweet Shop", "Tufted Artworks", "Bashi", "Playtopia Lafayette", "Summar T. Photography", "Kart Ranch"],
+  25: ["Proof & Pour Wax Co.", "Bashi", "Mind the Skin Labs", "HOTWORX Denham Springs", "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)", "Adagio Teas", "Teleflora"],
 };
 
 const NO_DB: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
@@ -84,9 +88,9 @@ describe("the final lineup", () => {
     const got = Object.fromEntries(days.map((d) => [d.day, d.partners.map((p) => p.brand)]));
     expect(got).toEqual(FINAL);
     for (const d of days) for (const p of d.partners) expect(p.prize.trim().length, `Dec ${d.day} ${p.brand} prize`).toBeGreaterThan(2);
-    // 167 cards: the tracker export of 2026-11-22 minus the two public-off sponsors, our own Dec 25 gift card and Boston Mints' Dec 11 + 21 glosses (owner 2026-11-22; 2026-11-19: show the
+    // 164 cards (2026-11-23 sync, see FINAL); before it, 167: the tracker export of 2026-11-22 minus the two public-off sponsors, our own Dec 25 gift card and Boston Mints' Dec 11 + 21 glosses (owner 2026-11-22; 2026-11-19: show the
     // full sponsor list), and no brand twice on one day (each partner's row is keyed by its brand).
-    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(167);
+    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(164);
     for (const d of days) expect(new Set(d.partners.map((p) => p.brand)).size, `Dec ${d.day}`).toBe(d.partners.length);
   });
 
@@ -115,16 +119,16 @@ describe("the final lineup", () => {
 
   it("a day the lineup lists never reads Open on the sign-up calendar, even with no sign-up row", () => {
     expect(tileCount(NO_DB, 4)).toBe(6);
-    expect(tileCount(NO_DB, 25)).toBe(5); // our own gift card off (owner 2026-11-22)
-    expect(tileCount(NO_DB, 24)).toBe(6);
+    expect(tileCount(NO_DB, 25)).toBe(7); // our own gift card off (owner 2026-11-22); Adagio Teas + Teleflora on (2026-11-23)
+    expect(tileCount(NO_DB, 24)).toBe(7);
     expect(tileCount(NO_DB, 14)).toBe(7);
     expect(tileCount(NO_DB, 8)).toBe(7);
-    expect(tileCount(NO_DB, 12)).toBe(8);
+    expect(tileCount(NO_DB, 12)).toBe(7);
     expect(tileCount(NO_DB, 1)).toBe(6);
     expect(tileCount(NO_DB, 3)).toBe(7);
     expect(tileCount(NO_DB, 5)).toBe(6);
-    expect(tileCount(NO_DB, 10)).toBe(5);
-    expect(tileCount({ dayCounts: { 2: 9 } }, 2)).toBe(9); // a higher sign-up count wins (Dec 2 lists 8 since 2026-11-22)
+    expect(tileCount(NO_DB, 10)).toBe(6);
+    expect(tileCount({ dayCounts: { 2: 9 } }, 2)).toBe(9); // a higher sign-up count wins (Dec 2 lists 6 since RYSE left it, 2026-11-23)
     render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
     const day4 = screen.getByRole("button", { name: /^December 4,/ });
     expect(day4.textContent).toContain("6 brands joined");

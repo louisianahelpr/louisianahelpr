@@ -4,5 +4,6 @@
  * them under jsdom. Do not edit by hand; re-run the import. Guard: src/test/giftGuideThemes1124.test.tsx.
  */
 import monsterJam from "./monster-jam.json" with { type: "json" };
+import bluey from "./bluey.json" with { type: "json" };
 
-export const THEME_FILES = { "monster-jam": monsterJam };
+export const THEME_FILES = { "monster-jam": monsterJam, "bluey": bluey };

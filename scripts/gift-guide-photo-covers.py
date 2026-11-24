@@ -80,7 +80,7 @@ TINT = {"By person": "green", "By store": "green", "Life moments": "green", "Lou
 # live guides never share a colour. Wins over the section tint above. Owner 2026-11-21 (later): "make her beige and
 # change the kids cover to red".
 # Owner 2026-11-24 ("the preview on the link is the green cover with the 6 images"): Monster Jam is green.
-SLUG_TINT = {"her": "tan", "him": "green", "kids": "red", "monster-jam": "green"}
+SLUG_TINT = {"her": "tan", "him": "green", "kids": "red", "monster-jam": "green", "bluey": "green"}
 TIGHT = re.compile(r"airpods", re.I)
 # The cover audit's six per guide (11-18; "idk that a girl wants a grill toy"), then the fit audit's final_top25 for
 # that guide (owner 11-18: "Make sure all gifts are appropriate per section"). Only the guide's own picks are used

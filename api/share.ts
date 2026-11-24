@@ -1381,6 +1381,7 @@ const WIDE_CARD_FOR_ID: Record<string, string> = {
   "gift-guides/marvel": "marvel",
   "gift-guides/kpop-demon-hunters": "kpop-demon-hunters",
   "gift-guides/pokemon": "pokemon",
+  "gift-guides/minecraft": "minecraft",
   "gift-guides/25-days-sponsors": "25-days-sponsors",
   "gift-guides/black-friday": "black-friday",
   "gift-guides/cyber-monday": "cyber-monday",

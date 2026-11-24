@@ -2,7 +2,7 @@
  * OWNER 11-24 (Tue Nov 24, 2026, ~1:10-2:15 AM CT): higher-commission switches and her Macy's adds, For Her / For Him /
  * For Kids. Guard: src/test/giftGuideOwner1124.test.ts.
  *
- * SWITCHES. She approved all 16 rows of the Desktop review page "Louisiana Helpr Tracker/reviews/later-switches-1124.html"
+ * SWITCHES. She approved all 16 rows (2026-11-24) of the Desktop review page "Louisiana Helpr Tracker/reviews/later-switches-1124.html"
  * and set two standing rules: "[if we have a] higher commission no need to ask", and compare the SAME item across stores
  * on every factor (in stock, the shopper's price, our rate, our $ per sale = price x rate; a store that is clearly pricier
  * loses unless it pays about 2x per sale with a gap under ~15%). Each row below moves one pick to the best-paying link for

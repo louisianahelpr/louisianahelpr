@@ -246,7 +246,8 @@ async function mintSession(supabaseUrl, serviceKey) {
  *  1. install the minted session, when there is one;
  *  2. ALWAYS suppress the onboarding tour.
  *
- * (2) is not optional. `FirstRun` (src/components/firstRun/FirstRun.tsx, ex-OnboardingTour,
+ * (2) is history since 2026-11-24 (the first run is gone; the tour opens only from Help), kept as a harmless
+ * belt. `FirstRun` (the old src/components/firstRun/FirstRun.tsx, ex-OnboardingTour,
  * mounted by src/pages/home/Dashboard.tsx) opens on /home 1.5s after load in
  * every fresh browser context — and every context here is fresh. It is a Radix
  * dialog that blurs the page behind it and intercepts clicks, so without this

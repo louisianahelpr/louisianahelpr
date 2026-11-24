@@ -96,8 +96,6 @@ vi.mock("@/hooks/useAgeGate", () => ({
 vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
 // The title bars draw NotificationBell, which swaps the panel in: the same stand-in.
 vi.mock("@/components/notificationPanel/NotificationBell", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
-// Home mounts FirstRun (board 53 tour), which reads the account's tour stamp: answered here, never the network.
-vi.mock("@/lib/onboardingTourCompletion", () => ({ fetchTourCompletion: async () => ({ status: "completed" }), markTourCompleted: async () => true }));
 const job = (id: string, status: string) => ({ id, title: `Job ${id}`, status, date_needed: "2099-01-02", start_time: "09:00:00", location: "Baton Rouge, LA", budget: 50, helper_id: null });
 vi.mock("@/hooks/useActivityData", () => ({
   // Home's to-do list (badge = To-do) reads the same posted core.
@@ -292,7 +290,9 @@ describe("Home", () => {
       wrap(<HomeDashboard />);
       expect(await screen.findByText("Waiting on Helprs")).toBeTruthy();
       expect(screen.getByTestId("next-up-label").textContent).toBe("Waiting on Helprs");
-      expect(screen.getByTestId("next-up-title").textContent).toBe("Job w");
+      // The label can draw while the to-do read is still out ("Checking your to-dos"): wait for the job's title. Home
+      // mounted the first run until 11-24, whose own async reads happened to cover this wait.
+      await waitFor(() => expect(screen.getByTestId("next-up-title").textContent).toBe("Job w"));
       expect(screen.queryByText("You're all caught up")).toBeNull();
       expect(screen.queryByTestId("next-up-action")).toBeNull();
       fireEvent.click(screen.getByTestId("next-up-see-job"));

@@ -2,15 +2,15 @@
  * OWNER REQUEST 11-14: new members saw Home once and left (prod, 14 days: 37 new members, 18 only ever loaded /home,
  * 5 opened Jobs and all 5 applied, none posted a job). Three parts, each red on the code before it:
  *   1. a new member's Home leads with real things near them (jobs, items for sale) and big starting actions;
- *   2. a Get started guide worded from the first-run picks, ticking itself from real rows, hideable;
- *   3. the first-run tour points at today's chrome (dock Home/Jobs/Declutter, the top row's Messages, Create), finds
+ *   2. a Get started guide worded from the old start picks (the picker is gone since 11-24, C11), ticking itself from real rows, hideable;
+ *   3. the Help tour points at today's chrome (dock Home/Jobs/Declutter, the top row's Messages, Create), finds
  *      each mark by path, never by words, and says "Home", never "Dashboard".
  *
- * @mutate src/components/firstRun/FirstRun.tsx |   messages: ['[data-testid="top-bar-inbox"]', '[data-sidebar-item="/messages"]'], |   messages: ['nav[aria-label="Bottom navigation"] button[aria-label$="Messages"]', '[data-sidebar-item="/messages"]'],
- * @mutate src/components/firstRun/FirstRun.tsx |     { target: "home", text: "Home shows what needs you, and what's new near you" }, |     { target: "home", text: "Dashboard shows what needs you" },
- * @mutate src/components/firstRun/FirstRun.tsx |   const declutterFirst = sells && (sell \|\| deal) && !earn && !hire; |   const declutterFirst = false;
- * @mutate src/components/firstRun/FirstRun.tsx |   return { left: centred, width: w, top: rect.top + rect.height + 16 }; |   return { left: rect.right + 16, top: rect.top, width: 320 };
- * @mutate src/components/firstRun/FirstRun.tsx |           if (userId) saveFirstRunPicks(userId, [o.id]); |           void saveFirstRunPicks;
+ * @mutate src/components/tour/ShortTour.tsx |   messages: ['[data-testid="top-bar-inbox"]', '[data-sidebar-item="/messages"]'], |   messages: ['nav[aria-label="Bottom navigation"] button[aria-label$="Messages"]', '[data-sidebar-item="/messages"]'],
+ * @mutate src/components/tour/ShortTour.tsx |     { target: "home", text: "Home shows what needs you, and what's new near you" }, |     { target: "home", text: "Dashboard shows what needs you" },
+ * @mutate src/components/tour/ShortTour.tsx |   const declutterFirst = sells && (sell \|\| deal) && !earn && !hire; |   const declutterFirst = false;
+ * @mutate src/components/tour/ShortTour.tsx |   return { left: centred, width: w, top: rect.top + rect.height + 16 }; |   return { left: rect.right + 16, top: rect.top, width: 320 };
+ * @mutate src/components/tour/startPicks.ts |     if (Array.isArray(parsed)) picks = ALL.filter((p) => parsed.includes(p)); |     if (Array.isArray(parsed)) picks = parsed as StartPick[];
  * @mutate src/components/mobileNav/TabButton.tsx |     data-dock-tab={dockPath} | data-dock-x={dockPath}
  * @mutate src/pages/home/homeDashboard/GetStartedGuide.tsx |   apply: (f) => f.applied, |   apply: () => false,
  * @mutate src/pages/home/homeDashboard/GetStartedGuide.tsx |   if (steps.every((s) => s.done)) return null; |   void steps;
@@ -24,7 +24,7 @@
  * @mutate src/pages/home/homeDashboard/NewMemberHome.tsx | <ForSaleNearYou userId={userId} max={4} /> | <ForSaleNearYou userId={userId} />
  * @mutate src/pages/home/HomeDashboard.tsx |             {nearYouDay && pageSettled && <NearYouBlock userId={user?.id} sell={sellOpen} />} |             {nearYouDay && <NearYouBlock userId={user?.id} sell={sellOpen} />}
  * @mutate src/pages/home/HomeDashboard.tsx | const nearYouDay = !welcome && firstJob !== null && !firstJobShown; | const nearYouDay = !welcome && firstJob !== null;
- * @mutate src/pages/home/HomeDashboard.tsx |             {welcome ? <NewMemberHome userId={user?.id} sell={sellOpen} guide={guide(true)} /> : ( |             {welcome ? <WelcomeCard sell={sellOpen} /> : (
+ * @mutate src/pages/home/HomeDashboard.tsx |             {welcome ? <NewMemberHome userId={user?.id} sell={sellOpen} guide={guide(true)} /> : ( |             {welcome ? null : (
  */
 import { readFileSync } from "node:fs";
 import type { ReactNode } from "react";
@@ -59,9 +59,9 @@ vi.mock("@/hooks/useAgeGate", () => ({
 }));
 vi.mock("@/lib/haptics", () => { const n = () => {}; return { hapticLight: n, hapticMedium: n, hapticSuccess: n }; });
 
-import { TARGETS, coachCardPosition, tourSteps } from "@/components/firstRun/FirstRun";
+import { TARGETS, coachCardPosition, tourSteps } from "@/components/tour/ShortTour";
 import { TabButton } from "@/components/mobileNav/TabButton";
-import { readFirstRunPicks, saveFirstRunPicks } from "@/components/firstRun/firstRunPicks";
+import { readStartPicks } from "@/components/tour/startPicks";
 import { GetStartedGuide, getStartedKey, guideSteps } from "@/pages/home/homeDashboard/GetStartedGuide";
 import ForSaleNearYou from "@/pages/home/homeDashboard/ForSaleNearYou";
 import { NearYouBlock, NewMemberHome } from "@/pages/home/homeDashboard/NewMemberHome";
@@ -89,7 +89,7 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-describe("3. the first-run tour points at today's chrome (owner 11-14)", () => {
+describe("3. the Help tour points at today's chrome (owner 11-14)", () => {
   it("every mark is found by path or test id: dock tabs, the top row's Messages, Create; never the old bottom-bar Messages", () => {
     const all = Object.values(TARGETS).flat();
     expect(all.length).toBeGreaterThan(8);
@@ -133,12 +133,10 @@ describe("3. the first-run tour points at today's chrome (owner 11-14)", () => {
     expect(rail.left).toBe(252);
   });
 
-  it("the pick is kept for Home's guide when it is tapped (never in the admin preview)", () => {
-    const fr = src("src/components/firstRun/FirstRun.tsx");
-    expect(fr).toContain("if (userId) saveFirstRunPicks(userId, [o.id]);");
-    expect(src("src/components/firstRun/FirstRunHost.tsx")).toContain("userId={userId}");
-    saveFirstRunPicks("u1", ["sell", "earn"]);
-    expect(readFirstRunPicks("u1")).toEqual(["earn", "sell"]);
+  it("picks a member made before the picker went are still read back, in order, junk dropped", () => {
+    localStorage.setItem("helpr_first_run_picks_u1", JSON.stringify(["sell", "bogus", "earn"]));
+    expect(readStartPicks("u1")).toEqual(["earn", "sell"]);
+    expect(readStartPicks(undefined)).toEqual([]);
   });
 });
 
@@ -221,7 +219,7 @@ describe("1. a new member's Home leads with real things near them (owner 11-14)"
     expect(container.querySelector("[data-home-for-sale]")).toBeNull();
   });
 
-  it("NewMemberHome mounts the starting actions, the guide and the items strip (vacuity: rendered as a whole)", async () => {
+  it("NewMemberHome mounts the guide and the items strip, and no welcome card (vacuity: rendered as a whole)", async () => {
     db.rows = {
       declutter_items: [
         { id: "i1", seller_id: "s1", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4, delivery_size: "small", price_cents: 4000, current_price_cents: 4000, area_label: "Mid City", area_lat: 30.45, area_lng: -91.15, live_at: "2026-11-13" },
@@ -229,20 +227,21 @@ describe("1. a new member's Home leads with real things near them (owner 11-14)"
       declutter_item_photos: [{ item_id: "i1", storage_path: "s1/i1/a.jpg", position: 0 }],
     };
     render(wrap(<NewMemberHome userId="me" sell guide={<p data-testid="guide-slot">guide</p>} />));
-    expect(screen.getByTestId("home-welcome")).toBeTruthy();
+    expect(screen.queryByTestId("home-welcome")).toBeNull();
+    expect(screen.queryByText("What brings you here?")).toBeNull();
     expect(screen.getByTestId("guide-slot")).toBeTruthy();
     // The lazy strip arrives on its own.
     expect(await screen.findByText("Oak rocking chair")).toBeTruthy();
     cleanup();
     db.rows = {};
-    // Not selling: no items strip, the actions still drawn.
+    // Not selling: no items strip.
     render(wrap(<NewMemberHome userId="me" sell={false} guide={null} />));
-    expect(screen.getByTestId("home-welcome")).toBeTruthy();
+    expect(screen.getByTestId("new-member-home")).toBeTruthy();
     await new Promise((r) => setTimeout(r, 20));
     expect(document.querySelector("[data-home-for-sale]")).toBeNull();
   });
 
-  it("Home swaps the new-member block in (actions, guide, jobs near, items for sale), the items strip loaded on its own", () => {
+  it("Home swaps the new-member block in (guide, jobs near, items for sale), the items strip loaded on its own", () => {
     const home = src("src/pages/home/HomeDashboard.tsx");
     expect(home).toContain("{welcome ? <NewMemberHome userId={user?.id} sell={sellOpen} guide={guide(true)} /> : (");
     expect(home).toContain("{!welcome && guide(false)}");
@@ -250,7 +249,8 @@ describe("1. a new member's Home leads with real things near them (owner 11-14)"
     const nm = src("src/pages/home/homeDashboard/NewMemberHome.tsx");
     expect(nm).toContain('const ForSaleNearYou = lazy(() => import("./ForSaleNearYou"));');
     expect(nm).not.toMatch(/^import .*ForSaleNearYou/m);
-    expect(nm).toMatch(/<WelcomeCard sell=\{sell\} \/>\s*\{guide\}\s*<JobsNearYouList/);
+    expect(nm).toMatch(/className="flex flex-col gap-section">\s*\{guide\}\s*<JobsNearYouList/);
+    expect(nm).not.toContain("WelcomeCard");
   });
 });
 

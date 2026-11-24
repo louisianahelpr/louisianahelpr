@@ -5,7 +5,7 @@ import { greetingDate, greetingFor, readGreetingName, saveGreetingName } from "@
 import { YourPageLink, publicPageQuery } from "@/components/profile/YourPageLink";
 import { fetchPublicProfile } from "@/lib/profileLink/api";
 import { takeHomeOwnPagePrefetch } from "./homeDashboard/homePrefetchTake";
-import { FirstRun } from "@/components/firstRun/FirstRunHost";
+import { TourReplayHost } from "@/components/tour/TourReplayHost";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -166,8 +166,9 @@ function HomeDashboardScreen() {
   // Plain state, never stored: a remount (load, coming back) starts collapsed.
   const [todoOpen, setTodoOpen] = useState(false);
   const toggleTodo = () => setTodoOpen((o) => !o);
-  // True until the first-run tour is settled (it reports pending): the texts ask waits behind it.
-  const [firstRunActive, setFirstRunActive] = useState(true);
+  // True while Help's tour replay is on screen: the texts ask waits behind it. Seeded from the URL, so on
+  // /home?tour=1 the ask never mounts for the one render before the replay host reports itself open.
+  const [tourActive, setTourActive] = useState(() => new URLSearchParams(window.location.search).get("tour") === "1");
   useOnTabReselect("/home", () => setTodoOpen(false));
   // Profile's "Your sections" row opens Home with ?customize=1.
   const [params, setParams] = useSearchParams();
@@ -199,8 +200,9 @@ function HomeDashboardScreen() {
   // own action, and See all opens the rest below. Guards: src/test/homeBoard7.test.ts, src/test/dashboardsShell.test.tsx.
   const next = summary.todos[0];
   const listed = todoCount > 1 ? summary.todos.slice(0, NEXT_UP_LIST_MAX) : [];
-  // Design audit A D3 (owner approved 11-08): a new member with nothing to do sees ONE welcome card (WelcomeCard) in
-  // place of "You're all caught up" and an empty "Coming up". Same "new" rule as the first-job checklist below.
+  // Design audit A D3 (owner approved 11-08): a new member with nothing to do sees the new-member block (NewMemberHome:
+  // Get started, jobs and items near them) in place of "You're all caught up" and an empty "Coming up". Same "new" rule
+  // as the first-job checklist below. (Its welcome card went on 2026-11-24, owner.)
   const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && !next && !summary.todosLoading && !summary.waiting;
   const sellOpen = visible.filter(isLive).some((v) => v.key === "declutter");
   // Get started (owner 11-14): starts on the new-member block and stays, while steps are left, once the member acts.
@@ -284,8 +286,8 @@ function HomeDashboardScreen() {
                 to-do from every section and both sides, with its one action. Replaces the three
                 stat boxes. Nothing invented: no to-do, no task; the money line only when the
                 to-do carries a real amount. "See all" is the ONE control for the full list. */}
-            {/* Owner 11-14: a new member's Home leads with the starting actions, the Get started guide and the real jobs
-                and items near them (NewMemberHome), not an empty "Nothing booked yet". */}
+            {/* Owner 11-14: a new member's Home leads with the Get started guide (its rows are the starting actions)
+                and the real jobs and items near them (NewMemberHome), not an empty "Nothing booked yet". */}
             {welcome ? <NewMemberHome userId={user?.id} sell={sellOpen} guide={guide(true)} /> : (
             // F083 (owner UI audit 11-09): the card is named "Needs you" here as everywhere else (it was "Next up").
             <section ref={nextUpRef} data-testid="next-up" aria-label={t(NEEDS_YOU_KEY)} className="liquid-glass p-card flex flex-col gap-1.5" style={summary.todosLoading && nextUpReserve ? { minHeight: nextUpReserve } : undefined}>
@@ -546,12 +548,12 @@ function HomeDashboardScreen() {
 
       </div>
       {customizeMounted && <Suspense fallback={null}><CustomizeSheet open={customize} onOpenChange={setCustomize} /></Suspense>}
-      {/* Board 53 + the short coach-mark tour (owner 2026-10-20). It replaced the 7-step OnboardingTour,
-          which only ever opened on /home from the Jobs feed and so never showed once Home moved here. */}
-      <FirstRun userId={user?.id} onActiveChange={setFirstRunActive} />
+      {/* Help's "Take the tour again" (owner 2026-10-20). Never opens by itself: the first-run picker
+          is gone (owner 2026-11-24, C11), so a new account just lands on Home. */}
+      <TourReplayHost userId={user?.id} onActiveChange={setTourActive} />
       {/* SMS-OPTIN (owner 2026-10-29): members who gave a phone are asked once to turn texts on; never over the tour
           and never over or under Customize (M2, iOS audit 11-16: the two sheets stacked). */}
-      {!firstRunActive && !customize && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /></Suspense>}
+      {!tourActive && !customize && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /></Suspense>}
     </SectionScreen>
   );
 }

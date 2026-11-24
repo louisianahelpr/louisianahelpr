@@ -152,7 +152,7 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   // and, 12px under it, its "Back to You" button (testid memberships-back-to-you, y 98.8, 44px): "2 placeholder rows
   // -> 3", "row 68px -> 44px".
   subscription: MEMBERSHIPS_HIDDEN_IN_THIS_APP ? [{ h: 19 }, { h: 44 }] : [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
-  // + "Take the tour again" (2026-10-20, FirstRun replay).
+  // + "Take the tour again" (2026-10-20, the tour replay).
   support: [{ h: 469 }, { h: 43 }, { h: 43 }],
   warnings: [{ h: 243, media: 1 }],
   credentials: [{ h: 92 }, { h: 152 }, { h: 169 }, { h: 70 }],

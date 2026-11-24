@@ -1,45 +1,21 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useAgeGate } from "@/hooks/useAgeGate";
 import { createPortal } from "react-dom";
-import { Briefcase, Search, Sofa, type LucideIcon } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { ChoiceCard } from "@/components/ui/ChoiceCard";
-import { SELL_START_PATH } from "@/lib/declutter/sellChooser";
-import { track } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
-import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
-import type { SectionKey } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { t } from "@/lib/i18n/language";
-import "@/lib/i18n/enNewMember";
-import type { MsgKey } from "@/lib/i18n/en";
-import { saveFirstRunPicks, useFirstRunPicks, type FirstRunPick } from "./firstRunPicks";
+import { useStartPicks, type StartPick } from "./startPicks";
 
 /**
- * FIRST RUN (board 53) + THE SHORT TOUR (owner 2026-10-20; replaces the old
- * 7-step OnboardingTour).
+ * THE SHORT TOUR (owner 2026-10-20): four or five coach marks on the REAL chrome (the dock and the top row's
+ * Messages on a phone, the sidebar on desktop; owner 11-14), worded for the member's old start picks
+ * (./startPicks): one line, dots, Skip and Next, "Done" on the last. Olive actions, sentence case, no rust.
  *
- * 1. "What brings you here?" (owner 2026-11-20, ease batch item 2): ONE question right after sign-up, three
- *    single-tap answers, Hire help / Find work / Sell stuff, each going straight to Post a job / Jobs near you /
- *    Declutter's one-item Sell. The answer also puts that section first on Home (useSectionPrefs.putFirst); nothing
- *    is locked, and Skip is always top right (Skip still runs the short tour). Profile details are asked later, only
- *    when an action needs them (ProtectedRoute fullProfile, src/lib/profileGateRoutes.ts). Sell stuff shows only
- *    while Declutter is open for the member. Before: four multi-select cards that only reordered Home.
- * 2. Four or five coach marks on the REAL chrome (the dock and the top row's
- *    Messages on a phone, the sidebar on desktop; owner 11-14), worded for the picks: one line, dots, Skip and
- *    Next, "Done" on the last. Olive actions, sentence case, no rust.
- * Seen state: firstRunGate (the old tour's account column + device key), held by
- * ./FirstRunHost, which loads these screens only when the gate opens.
- * Replay: /home?tour=1 (Help's "Take the tour again") runs step 2 again.
+ * It opens ONLY from Help's "Take the tour again" (/home?tour=1, ./TourReplayHost), never by itself (owner
+ * 2026-11-24 removed the first-run picker that used to lead into it, C11).
+ * Guard: src/test/newMemberHome1114.test.tsx, src/test/whatBringsYouHereRemoved.test.tsx.
  */
 
-type Pick = FirstRunPick;
-export const FIRST_RUN_OPTIONS: { id: Pick; title: string; sub: string; section: SectionKey; to: string; icon: LucideIcon }[] = [
-  { id: "hire", title: "Hire help", sub: "Post a job in three short steps", section: "jobs", to: "/post-job", icon: Briefcase },
-  { id: "earn", title: "Find work", sub: "Jobs near you, paid through Helpr", section: "jobs", to: "/jobs", icon: Search },
-  { id: "sell", title: "Sell stuff", sub: "Snap a photo, set a price, post", section: "declutter", to: SELL_START_PATH, icon: Sofa },
-];
+type Pick = StartPick;
 
 /** Where each coach mark points: the phone first, then the desktop sidebar (owner 11-14: the phone dock is Home, Jobs,
  *  Declutter, Shops, Homes and Messages is the top row's chat button). Dock tabs and rail rows are found by their path
@@ -111,100 +87,16 @@ function findTarget(t: Target): HTMLElement | null {
   return null;
 }
 
-/** The first run's screens. Loaded only when the gate opens (./FirstRunHost holds the gate). */
-export default function FirstRunScreens({ startInTour, onDone, onPicks, userId }: {
-  startInTour: boolean;
-  /** Whose picks to keep for Home's Get started guide (./firstRunPicks); none in the admin preview. */
-  userId?: string;
-  onDone: () => void;
-  /** Q2664 (b): the admin onboarding preview takes the picks itself, so its Continue never reorders the admin's own Home. */
-  onPicks?: (sections: SectionKey[]) => void;
-}) {
-  const [phase, setPhase] = useState<"pick" | "tour">(startInTour ? "tour" : "pick");
-  const [picks, setPicks] = useState<Pick[]>([]);
-  const navigate = useNavigate();
-  // A replay ("Take the tour again") is worded for the picks made on the first run.
-  const storedPicks = useFirstRunPicks(userId);
+/** The tour's screens. Loaded only when Help asks for it (./TourReplayHost). */
+export default function ShortTour({ onDone, userId, paused = false }: { onDone: () => void; userId?: string; paused?: boolean }) {
+  const picks = useStartPicks(userId);
   const desktop = useIsWebDesktop();
   const live = useSectionTabs();
-  const { putFirst } = useSectionPrefs();
   const declutterOpen = !!live.find((t) => t.path === "/declutter")?.on;
-  // Q1586(c): "Hire help" opens /post-job, so an under-18 member's tap explains instead (the form refuses too).
-  const { underAge, explain: explainAge } = useAgeGate();
-  const options = FIRST_RUN_OPTIONS.filter((o) => o.section === "jobs" || declutterOpen);
-
-  if (phase === "pick") {
-    return (
-      <FirstRunPicker
-        options={options}
-        onSkip={() => setPhase("tour")}
-        onPick={(o) => {
-          track("first_run_intent", { pick: o.id });
-          if (o.to === "/post-job" && underAge) {
-            explainAge("post");
-            return;
-          }
-          // The admin onboarding preview takes the pick itself and shows the tour (it never leaves the preview).
-          if (onPicks) {
-            onPicks([o.section]);
-            setPicks([o.id]);
-            setPhase("tour");
-            return;
-          }
-          putFirst([o.section]);
-          if (userId) saveFirstRunPicks(userId, [o.id]);
-          // Straight to the action (owner 11-20): the first run is done; no tour stands between them and it.
-          onDone();
-          navigate(o.to);
-        }}
-      />
-    );
-  }
-  return <CoachMarks steps={tourSteps(picks.length ? picks : storedPicks, declutterOpen, desktop)} onDone={onDone} />;
+  return <CoachMarks steps={tourSteps(picks, declutterOpen, desktop)} onDone={onDone} paused={paused} />;
 }
 
-function FirstRunPicker({ options, onSkip, onPick }: {
-  options: typeof FIRST_RUN_OPTIONS; onSkip: () => void; onPick: (o: (typeof FIRST_RUN_OPTIONS)[number]) => void;
-}) {
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  useEffect(() => { headingRef.current?.focus(); }, []);
-  return createPortal(
-    <div role="dialog" aria-modal="true" aria-labelledby="first-run-title" data-first-run="pick" className="fixed inset-0 z-[70] flex flex-col bg-background">
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-[480px] px-5 pt-[calc(var(--safe-area-top,0px)+12px)] pb-6">
-          <div className="flex justify-end">
-            <Button type="button" variant="ghost" size="sm" onClick={onSkip} className="px-2 text-ds-15" style={{ color: "hsl(var(--bark))" }}>{t("firstRun.skip")}</Button>
-          </div>
-          <h1 id="first-run-title" ref={headingRef} tabIndex={-1} style={{ outline: "none" }} className="font-moment text-page-title text-foreground mt-2">
-            {t("firstRun.title")}
-          </h1>
-          <p className="text-ds-14 text-muted-foreground mt-1">{t("firstRun.lede")}</p>
-          {/* One tap is the answer and goes straight there (owner 11-20): the shared first-step card (ChoiceCard). */}
-          <ul className="mt-4 flex flex-col gap-3">
-            {options.map((o) => {
-              const Icon = o.icon;
-              return (
-                <li key={o.id}>
-                  <ChoiceCard
-                    data-first-run-option={o.id}
-                    icon={<Icon className="h-5 w-5" aria-hidden />}
-                    title={t(`firstRun.${o.id}.title` as MsgKey)}
-                    line={t(`firstRun.${o.id}.sub` as MsgKey)}
-                    onClick={() => onPick(o)}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-          <p className="text-ds-13 text-muted-foreground mt-3">{t("firstRun.note")}</p>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
-function CoachMarks({ steps, onDone }: { steps: { target: Target; text: string }[]; onDone: () => void }) {
+function CoachMarks({ steps, onDone, paused }: { steps: { target: Target; text: string }[]; onDone: () => void; paused: boolean }) {
   const [i, setI] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const step = steps[i];
@@ -223,8 +115,10 @@ function CoachMarks({ steps, onDone }: { steps: { target: Target; text: string }
   // Messages button), always inside the screen with a 16px gutter.
   const pos = useMemo(() => coachCardPosition(rect, window.innerWidth, window.innerHeight), [rect]);
 
+  if (paused) return null;
+
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label="Quick tour" data-first-run="tour" className="fixed inset-0 z-[70]">
+    <div role="dialog" aria-modal="true" aria-label="Quick tour" data-tour="coach" className="fixed inset-0 z-[70]">
       {rect ? (
         <div
           aria-hidden

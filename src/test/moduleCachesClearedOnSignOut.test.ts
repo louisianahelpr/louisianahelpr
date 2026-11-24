@@ -69,10 +69,9 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/lib/proofPhotoStorage.ts:inFlight": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
   "src/lib/proofPhotoStorage.ts:pending": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
   "src/lib/pinnedConversations.ts:cache": { kind: "keyed-by-user-id" },
-  // Owner 11-14 new-member Home: the "What brings you to Helpr?" picks, cached per account id (the raw value is in
-  // safeStorage under helpr_first_run_picks_<userId>), and the subscribers that redraw the Get started guide.
-  "src/components/firstRun/firstRunPicks.ts:cache": { kind: "keyed-by-user-id" },
-  "src/components/firstRun/firstRunPicks.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks that redraw the Get started guide when the picks change (owner 11-14); holds no account data" },
+  // Owner 11-14 new-member Home: the old "What brings you to Helpr?" picks, cached per account id (the raw value is in
+  // safeStorage under helpr_first_run_picks_<userId>); read only since the picker went (owner 11-24, C11).
+  "src/components/tour/startPicks.ts:cache": { kind: "keyed-by-user-id" },
   "src/pages/home/homeDashboard/useNeedsYouTodos.ts:deriveListeners": { kind: "not-user-data", why: "subscriber callbacks told once when Home's derivation code chunk is in (B51, 2026-11-03); a yes or no about loading code, nothing about the account" },
   "src/hooks/useCloseOnBack.ts:closers": { kind: "not-user-data", why: "close callbacks of the sheets open right now (flow audit 11-23 B4); emptied when they close, nothing about the account" },
   "src/hooks/usePageReadsSettled.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the one per-launch page-reads latch; a yes or no about timing, nothing about the account" },

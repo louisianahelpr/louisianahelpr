@@ -1130,20 +1130,11 @@ export const PRESS_PASS_THROUGH_RPCS = {
 
 /**
  * Side effects told apart by their BODY, because the path alone also carries real writes: each entry is the path,
- * the method, and the exact set of body keys. press-every-control 41817058240 (legs 1-4, 30 presses): every press
- * that landed on /home as the incomplete persona "wrote PATCH /rest/v1/profiles". The sweep seeds the device's
- * "tour done" hint (helpr_onboarding, press-every-control.mjs addInitScript) and that account's
- * profiles.onboarding_tour_completed_at is null, so firstRunGate heals the account (markTourCompleted, a PATCH of
- * that one column). Aborted every run, it never healed and failed every run. A PATCH naming any other column is
- * still a write.
+ * the method, and the exact set of body keys. (The first entry, firstRunGate's PATCH of
+ * profiles.onboarding_tour_completed_at, press-every-control 41817058240, went with the first run itself on
+ * 2026-11-24: the app no longer sends it, so such a PATCH is a write again.)
  */
 export const PRESS_SIDE_EFFECT_BODY_WRITES = [
-  {
-    method: "PATCH",
-    path: "/rest/v1/profiles",
-    keys: ["onboarding_tour_completed_at"],
-    why: "firstRunGate stamps the account's tour completion from the device hint the sweep seeds (src/lib/onboardingTourCompletion.ts markTourCompleted)",
-  },
   // press-every-control 41817058240 (Q946, 3 MISSes on /profile?tab=saved_searches): opening a saved search stamps
   // when its results were last seen, so "N new" starts again (src/lib/savedSearches.ts markSeen). Turning its alerts
   // on or off (notify_enabled / notify_email) is a different body and stays a write.

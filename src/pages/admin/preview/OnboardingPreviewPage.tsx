@@ -2,17 +2,15 @@
  * /admin/preview/onboarding — the onboarding screens no test account can reach without a write (Q2664 (b),
  * audit 1102d): the Terms + 18+ step every new member sees before Home (owner 11-14, completeProfile/ConsentStep.tsx),
  * the unfinished Complete your profile form (since 11-14 asked only on the way to a commitment route such as
- * /post-job, src/lib/profileGateRoutes.ts; a finished account is sent to /home) and the first-run picker "What brings
- * you to Helpr?" (shown once per account, stamped on every shared seat). Admin only (the route).
+ * /post-job, src/lib/profileGateRoutes.ts; a finished account is sent to /home). Admin only (the route). The
+ * first-run picker stage went with the picker itself (owner 2026-11-24, C11).
  *
- * It draws the REAL screens: pages/auth/CompleteProfile.tsx (what /complete-profile draws) and the first run's own
- * screens (components/firstRun/FirstRun.tsx, what FirstRunHost loads), so a change to them shows here with no change
- * to this file. What they are fed is made up:
+ * It draws the REAL screen: pages/auth/CompleteProfile.tsx (what /complete-profile draws), so a change to it shows
+ * here with no change to this file. What it is fed is made up:
  *  - the form reads a made-up, unfinished profile from the preview's own query cache (the admin's real profile, in the
  *    app's cache, is never touched): blank for the Terms + 18+ step, Terms and 18+ already agreed for the full form;
  *  - every Supabase request is answered by the Messages preview's backend (messagesPreviewBackend.ts) and never sent:
  *    reads from the sample, every write, RPC and function answered "done" with a "Preview: this would ..." note;
- *  - the picker's Continue never reorders the admin's own Home (onPicks), and Done starts it again;
  *  - every navigation stays on this page, with the same note.
  * Guard: src/test/adminOnboardingPreviewIsInert.test.tsx.
  */
@@ -29,12 +27,10 @@ import { installMessagesPreviewFetch, messagesPreviewChecks } from "./messagesPr
 import { EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, forgetSharedReads, installInertRealtime, sayWouldHave } from "./previewParts";
 
 const CompleteProfile = lazy(() => import("@/pages/auth/CompleteProfile"));
-const FirstRunScreens = lazy(() => import("@/components/firstRun/FirstRun"));
 
 const ONBOARDING_PREVIEW_STAGES = [
   { key: "consent", label: "Terms + 18+" },
   { key: "profile", label: "Finish your profile" },
-  { key: "picker", label: "What brings you" },
 ] as const;
 export type OnboardingPreviewStage = (typeof ONBOARDING_PREVIEW_STAGES)[number]["key"];
 const isStage = (v: string | null): v is OnboardingPreviewStage => ONBOARDING_PREVIEW_STAGES.some((s) => s.key === v);
@@ -93,18 +89,6 @@ function PreviewBackend({ children }: { children: ReactNode }) {
   return ready ? <>{children}</> : null;
 }
 
-function PickerStage() {
-  const [round, setRound] = useState(0);
-  return (
-    <FirstRunScreens
-      key={round}
-      startInTour={false}
-      onPicks={() => sayWouldHave("put your picks first on Home")}
-      onDone={() => { sayWouldHave("mark the tour seen"); setRound((r) => r + 1); }}
-    />
-  );
-}
-
 function Controls({ stage, onStage, onLeave }: { stage: OnboardingPreviewStage; onStage: (s: OnboardingPreviewStage) => void; onLeave: () => void }) {
   // Q1646: the panel sits on the screen edge, over the phone's tab bar, so the tab bar yields while it shows
   // (as the Messages preview's open panel does).
@@ -114,7 +98,7 @@ function Controls({ stage, onStage, onLeave }: { stage: OnboardingPreviewStage; 
       data-preview-controls=""
       role="region"
       aria-label="Onboarding preview controls"
-      // Above the picker and the coach marks (both z-[70], full screen), so a stage can always be changed or left.
+      // Above the full-screen form, so a stage can always be changed or left.
       className="preview-dock fixed inset-x-2 bottom-[calc(var(--safe-area-bottom,0px)+0.5rem)] z-[80] mx-auto max-w-md rounded-2xl border border-border bg-card p-3 shadow-lg pointer-events-auto lg:bottom-4 lg:right-4 lg:left-auto lg:mx-0 lg:w-[26rem]"
     >
       <div className="flex items-center gap-2">
@@ -155,7 +139,7 @@ export default function OnboardingPreviewPage() {
             <div data-preview-view={stage}>
               {me && (
                 <Suspense fallback={<div role="status" aria-busy="true" aria-label="Loading the preview" />}>
-                  {stage === "picker" ? <PickerStage /> : stage === "profile" ? <CompleteProfile next={FULL_FORM_NEXT} /> : <CompleteProfile />}
+                  {stage === "profile" ? <CompleteProfile next={FULL_FORM_NEXT} /> : <CompleteProfile />}
                 </Suspense>
               )}
             </div>

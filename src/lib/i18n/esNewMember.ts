@@ -2,13 +2,6 @@
 import type { enNewMember } from "./enNewMember";
 
 export const esNewMember: Record<keyof typeof enNewMember, string> = {
-  "home.wc.title": "¿Qué le trae por aquí?",
-  "home.wc.post": "Publicar un trabajo",
-  "home.wc.postMeta": "Reciba ayuda de un vecino",
-  "home.wc.find": "Buscar trabajo",
-  "home.wc.findMeta": "Vea los trabajos publicados cerca de usted",
-  "home.wc.sell": "Vender algo",
-  "home.wc.sellMeta": "Publique un artículo en Declutter",
   "home.gs.title": "Primeros pasos",
   "home.gs.apply": "Postúlese a su primer trabajo",
   "home.gs.post": "Publique su primer trabajo",
@@ -22,15 +15,4 @@ export const esNewMember: Record<keyof typeof enNewMember, string> = {
   "home.ns.forSale": "En venta cerca de usted",
   "home.ns.free": "Gratis",
   "home.ns.seeAll": "Ver todo",
-  // Area 11b M1: the first-run picker (FirstRun.tsx).
-  "firstRun.skip": "Omitir",
-  "firstRun.title": "¿Qué le trae por aquí?",
-  "firstRun.lede": "Toque una para empezar. Una sola cuenta lo hace todo.",
-  "firstRun.hire.title": "Contratar ayuda",
-  "firstRun.hire.sub": "Publique un trabajo en tres pasos cortos",
-  "firstRun.earn.title": "Encontrar trabajo",
-  "firstRun.earn.sub": "Trabajos cerca de usted, pagados por Helpr",
-  "firstRun.sell.title": "Vender cosas",
-  "firstRun.sell.sub": "Tome una foto, ponga un precio y publique",
-  "firstRun.note": "Puede hacer lo demás cuando quiera. Nada queda fijo.",
 };

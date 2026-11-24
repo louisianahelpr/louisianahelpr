@@ -7,7 +7,7 @@ export interface TabButtonProps {
   onTap: () => void;
   onPrefetch: () => void;
   ariaLabel: string;
-  /** The tab's path, on the button as `data-dock-tab` (the first-run coach marks find a tab by it, in any language). */
+  /** The tab's path, on the button as `data-dock-tab` (the Help tour's coach marks find a tab by it, in any language). */
   dockPath?: string;
   ariaCurrent: "page" | undefined;
   /** A section whose switch is off for the viewer: shown greyed, never navigates. */

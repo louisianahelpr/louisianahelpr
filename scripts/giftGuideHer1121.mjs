@@ -27,6 +27,7 @@ import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 import { ADDS_STORES_1122, HER_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
 import { HER_KEEPS_1123_ROWS, HER_LINKS_1123_ROWS, KEEPS_PRICE_AT } from "./giftGuideOwnerKeeps1123.mjs";
+import { HER_ADDS_1124, STORES_1124, rateSwitch1124 } from "./giftGuideOwner1124.mjs";
 
 export const HER_GUIDE = "her";
 /** The day the ShopMy prices were checked (Louisiana day). */
@@ -203,7 +204,7 @@ export const HER_1121 = [
   { name: "Patchology Rosé Fingers Renewing Hand Mask", brand: "Patchology", line: "Moisturizing hand mask gloves for hardworking hands.", href: shopmy("p-109205545"), image: "https://cdn.shopify.com/s/files/1/0283/0185/2747/files/global_images-818262023879-1.jpg", store: "store-dermstore", sortPrice: 11, price: 11, commission: 16, type: "hand-care", priceAt: "2026-11-22" },
   // The creator tagged BaubleBar; small plain gold letters on a fine chain = the Mini Spaced Letter necklace (best match).
   { name: "BaubleBar Mini 14K Gold Spaced Letter Custom Name Necklace", brand: "BaubleBar", line: "Her initials or name in little gold letters on a fine chain.", href: shopmy("p-109205223"), image: "https://cdn.shopify.com/s/files/1/0267/5746/4148/files/115932_G_01_Accent_Vis.jpg", store: "store-baublebar", sortPrice: 148, price: 148, commission: 20, type: "jewelry", priceAt: "2026-11-22" },
-];
+].map(rateSwitch1124); // higher-commission switches 11-24 (scripts/giftGuideOwner1124.mjs)
 
 // owner 11-22 popular approved (builder-guide-popular): Amazon listings sold by Amazon.com or the brand, prices read 11-22.
 const popular = (asin, sortPrice, img, name, brand, type, commission, line) =>
@@ -214,19 +215,19 @@ export const HER_POPULAR_1122 = [
   popular("B0DWHDM15Q", 69, "81AV7BtkRvL", "The Ridge 20W Magnetic Power Bank", "The Ridge", "power-bank", 4, "A slim magnetic charger that snaps onto her phone."),
   popular("B0F41DGFXT", 42.49, "61+YocOS65L", "Matador Global Travel Adapter", "Matador", "travel-adapter", 4, "One adapter for plugs in every country."),
   popular("B0BGQT41ZZ", 42.49, "419M2kqpsCL", "TRUFF Chef Starter Kit, Set of 3", "TRUFF", "gift-set", 4, "Three truffle hot sauces in one gift box."),
-];
+].map(rateSwitch1124);
 
 // owner 11-23 second keeps (scripts/giftGuideOwnerKeeps1123.mjs HER_KEEPS_1123_ROWS), Amazon, priced 11-23.
 export const HER_KEEPS_1123 = HER_KEEPS_1123_ROWS.map(([asin, sortPrice, img, name, brand, type, commission, line]) =>
-  ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, priceAt: KEEPS_PRICE_AT, commission, type }));
+  ({ name, brand, line, href: amz(asin), image: amzImg(img), store: "store-amazon", sortPrice, priceAt: KEEPS_PRICE_AT, commission, type })).map(rateSwitch1124);
 // ... and her Ulta keeps, whose ShopMy links she made 11-23 (HER_LINKS_1123_ROWS), priced on ulta.com 11-23.
 export const HER_LINKS_1123 = HER_LINKS_1123_ROWS.map(([pin, price, image, name, brand, store, type, commission, line]) =>
   ({ name, brand, line, href: shopmy(`p-${pin}`), image, store, sortPrice: price, price, priceAt: KEEPS_PRICE_AT, commission, type }));
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
-/** Her 11-21 saves plus the picks she sent on launch day (scripts/giftGuideOwnerAdds1122.mjs) and her 11-23 keeps. */
-export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123];
+/** Her 11-21 saves plus the picks she sent on launch day (scripts/giftGuideOwnerAdds1122.mjs), her 11-23 keeps and her 11-24 Macy's adds. */
+export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_ADDS_1124];
 
 /** The page rows: cheapest first, every pick priced (Amazon too, owner 11-21), cutout photos, relationship tags, no section. */
 export function her1121Picks(rows = HER_ROWS) {
@@ -254,7 +255,7 @@ export function applyHer1121(pageList, storeList) {
   const addedStores = [];
   for (const p of pageList[HER_GUIDE]) {
     if (p.store === "store-amazon" || storeList[p.store]) continue;
-    storeList[p.store] = { name: HER_STORES[p.store] ?? ADDS_STORES_1122[p.store] ?? p.store, hosts: [new URL(p.href).hostname] };
+    storeList[p.store] = { name: HER_STORES[p.store] ?? ADDS_STORES_1122[p.store] ?? STORES_1124[p.store] ?? p.store, hosts: [new URL(p.href).hostname] };
     addedStores.push(p.store);
   }
   for (const p of pageList[HER_GUIDE]) {

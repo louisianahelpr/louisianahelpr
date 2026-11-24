@@ -5,8 +5,8 @@
  * to Camp Snap direct (sale price + LEXILOMBAS7); the sold-out Sleep Crown goes on now with a short "Back Dec 1" chip
  * that hides on Dec 1; the Kate McLeod lotion bar waits (sold out at The Sleep Code, no paying link elsewhere).
  *
- * @mutate scripts/giftGuideHer1121.mjs | export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123]; | export const HER_ROWS = [...HER_1121, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123];
- * @mutate scripts/giftGuideHimKids1121.mjs | export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123]) { | export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123]) {
+ * @mutate scripts/giftGuideHer1121.mjs | export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_ADDS_1124]; | export const HER_ROWS = [...HER_1121, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_ADDS_1124];
+ * @mutate scripts/giftGuideHimKids1121.mjs | export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_ADDS_1124]) { | export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_ADDS_1124]) {
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const back = pick.backOn && today < pick.backOn ? G.backOnChip(pick.backOn) : undefined; |   const back = undefined;
  * @mutate src/content/giftGuideCatalog.ts | ...(p.backOn ? { backOn: p.backOn } : {}), |
  * @mutate scripts/giftGuideOwnerAdds1122.mjs | const dated = (r) => ({ ...r, priceAt: ADDS_PRICE_AT }); | const dated = (r) => r;
@@ -29,6 +29,8 @@ afterEach(() => { cleanup(); vi.useRealTimers(); });
 type Pick = { name: string; href: string; image?: string; store: string; price?: number; priceAt?: string; priceFrom?: true; code?: string; backOn?: string; ownerPick?: true };
 const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Pick[] }).picks;
 const pin = (p: string) => `https://go.shopmy.us/${p}`;
+/** Launch-day picks whose link moved to a higher-paying store 11-24 (scripts/giftGuideOwner1124.mjs): checked that day. */
+const SWITCHED_1124_PINS = new Set(["p-110119003"]);
 
 /** Copied from the Desktop note (not from the module): pin -> guide, store, price checked 11-22. */
 const SENT: [string, string, string, number][] = [
@@ -69,7 +71,9 @@ const SENT: [string, string, string, number][] = [
   // Him batch 1 (her Nov 19 pins) and batch 2 (links the lead made 11-22), builder-guide-him.
   ["p-107850277", "him", "store-l-l-bean", 299.99], // Solo Stove Bonfire with stand
   ["p-107837448", "him", "store-l-l-bean", 165], // YETI Roadie 8 (the Roadie 15 is off: same cooler)
-  ["p-107881822", "him", "store-the-warming-store", 195], // Muck Arctic Pro
+  // Muck Arctic Pro: The Warming Store p-107881822 (8%) until the 11-24 higher-commission switch to muckbootcompany.com
+  // (16%, same $195; scripts/giftGuideOwner1124.mjs), so it shows that day's check.
+  ["p-110119003", "him", "store-muck-boot", 195],
   ["p-107847793", "him", "store-cavenders", 129.99], // Carhartt Duck Insulated Active Jacket
   ["p-107895312", "him", "store-tractor-supply", 64.99], // Duck Commander Phil Robertson Pro Series
   ["p-107895486", "him", "store-tractor-supply", 44.99], // Duck Commander Camo Max Mallard Hen
@@ -144,7 +148,7 @@ describe("the owner's launch-day picks (11-22)", () => {
       expect(row.store, p).toBe(store);
       expect(row.price, p).toBe(price);
       // A daily re-check at this exact price moves the day forward (scripts/giftGuidePriceRecheck.mjs); nothing else does.
-      expect(row.priceAt, p).toBe(recheckedPriceAt(row.href, price, ADDS_PRICE_AT));
+      expect(row.priceAt, p).toBe(recheckedPriceAt(row.href, price, SWITCHED_1124_PINS.has(p) ? "2026-11-24" : ADDS_PRICE_AT));
       expect(row.ownerPick, p).toBe(true);
       expect(row.image?.startsWith(CUTOUT_BASE), `${p}: ${row.image}`).toBe(true);
       expect(existsSync(`public/gift-guides/cutouts/${String(row.image).slice(CUTOUT_BASE.length)}`), p).toBe(true);

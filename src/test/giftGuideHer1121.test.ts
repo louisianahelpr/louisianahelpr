@@ -124,7 +124,24 @@ const KEEPS_1123_ASINS = ["B079FV8PLK", "B00A8S6HM4", "B0CB23NZGT", "B00EUBPHR6"
   "B010TCP3SC", "B01M10G9WJ", "B0DWMNVVQV", "1401971369", "B01EXQ582Q", "B0GXGV6FRN", "B00023IT5S", "006282015X", "B0FHHG23TP", "B092GM9NWH", "B09X55PDB7"];
 const BRAUN_1123 = "B07WYY6KKC";
 const LINKS_1123_PINS = ["p-109732072", "p-109732263", "p-109732413", "p-109732687", "p-109737953", "p-109738168"];
-const SAVED = new Set([...[...KEEPS_1123_ASINS, ...LOUISIANA_1122_ASINS, ...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS, ...LOUISIANA_1122_PINS, ...LINKS_1123_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ]);
+/**
+ * Higher-commission switches 11-24 (owner ~1:10 AM approved the Desktop review page reviews/later-switches-1124.html and
+ * said "[if we have a] higher commission no need to ask"; scripts/giftGuideOwner1124.mjs): old link -> the link made in
+ * her ShopMy / Later that night, copied from the made links (Desktop ~/.lh-shots/later-switches-1124-handoff.md), not
+ * from the module. ChillPill, Depuffi and the lip oil moved to Ulta 13%, the food jar to stanley1913.com 18%, the Bum Bum
+ * Cream to soldejaneiro.com 16%, the lip exfoliator to elfcosmetics.com through Later 10.5%.
+ */
+const SWITCHED_1124: Record<string, string> = {
+  "https://www.amazon.com/dp/B0GGTPW6Q9?tag=louisianahelpr-20": "https://go.shopmy.us/p-110118023",
+  "https://go.shopmy.us/p-107555566": "https://go.shopmy.us/p-110117910",
+  "https://www.amazon.com/dp/B0D858S2H5?tag=louisianahelpr-20": "https://go.shopmy.us/p-110117645",
+  "https://www.amazon.com/dp/B0CMJZVT5P?tag=louisianahelpr-20": "https://go.shopmy.us/p-110118320",
+  "https://www.amazon.com/dp/B0CB23NZGT?tag=louisianahelpr-20": "https://mavely.app.link/TptnXLe0j8b",
+  "https://www.amazon.com/dp/B01EXQ582Q?tag=louisianahelpr-20": "https://go.shopmy.us/p-110117734",
+};
+/** Her Macy's adds 11-24 (owner ~2:05 / ~2:15 AM screenshots): robe, Shark Rocket Pet, Clinique Black Honey trio, UGG Raegan set. */
+const MACYS_1124_PINS = ["p-110119763", "p-110119787", "p-110119843", "p-110119860"];
+const SAVED = new Set([...[...[...KEEPS_1123_ASINS, ...LOUISIANA_1122_ASINS, ...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS, ...LOUISIANA_1122_PINS, ...LINKS_1123_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ].map((h) => SWITCHED_1124[h] ?? h), ...MACYS_1124_PINS.map((p) => `https://go.shopmy.us/${p}`)]);
 const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
@@ -139,10 +156,12 @@ describe("For Her = the owner's saves (11-21)", () => {
     }
   });
 
-  it("the page holds exactly her 185 links, once each, and nothing else", () => {
-    // 185 = 159 + her 20 Amazon second keeps of 11-23 (KEEPS_1123_ASINS) + her 6 Ulta keeps (LINKS_1123_PINS).
-    expect(SAVED.size).toBe(185);
-    expect(page.length).toBe(185);
+  it("the page holds exactly her 189 links, once each, and nothing else", () => {
+    // 189 = 159 + her 20 Amazon second keeps of 11-23 (KEEPS_1123_ASINS) + her 6 Ulta keeps (LINKS_1123_PINS) + her 4 Macy's
+    // adds of 11-24 (MACYS_1124_PINS); the 11-24 switches (SWITCHED_1124) changed links, not the count.
+    expect(SAVED.size).toBe(189);
+    expect(page.length).toBe(189);
+    for (const gone of Object.keys(SWITCHED_1124)) expect(page.some((p) => p.href === gone), gone).toBe(false);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
     expect(page.some((p) => p.href.includes("B0H1N3TWP1"))).toBe(false);
@@ -183,8 +202,8 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(100); // 80 + her 20 Amazon second keeps of 11-23 (Capri Blue included)
-    expect(shopmy.length).toBe(85); // 79 + her 6 Ulta keeps of 11-23
+    expect(amazon.length).toBe(95); // 80 + her 20 Amazon second keeps of 11-23 (Capri Blue included), minus the 5 moved off Amazon 11-24 (SWITCHED_1124)
+    expect(shopmy.length).toBe(94); // 79 + her 6 Ulta keeps of 11-23 + the 5 moved off Amazon 11-24 + her 4 Macy's adds of 11-24
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

@@ -104,7 +104,7 @@ describe("the landing shows the Top 10 under the three tiles", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     // Spot 6 is the Camp Snap 2 Chestnut since 11-22 PM (owner: "Choose one"). The clock is the newest check day (11-23
     // daily re-check, scripts/giftGuidePriceRecheck.mjs): a pick re-checked 11-23 hides its price on an 11-22 clock.
-    vi.setSystemTime(new Date("2026-11-23T18:00:00Z"));
+    vi.setSystemTime(new Date("2026-11-24T18:00:00Z")); // the newest check day (11-24, scripts/giftGuideOwner1124.mjs)
     await act(async () => { await Promise.all(["her", "him", "kids"].map(loadGuidePicks)); });
     const { container } = renderAt("/gift-guides");
     const section = container.querySelector<HTMLElement>("[data-gift-top10]")!;

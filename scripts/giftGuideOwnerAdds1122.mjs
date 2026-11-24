@@ -18,6 +18,8 @@
  *   (scripts/giftGuideHer1121.mjs) are off Her.
  * Guard: src/test/giftGuideOwnerAdds1122.test.ts.
  */
+import { rateSwitch1124 } from "./giftGuideOwner1124.mjs";
+
 const shopmy = (pin) => `https://go.shopmy.us/${pin}`;
 const amz = (asin) => `https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20`;
 /** Amazon's own photo, never edited (Associates rules); the page shows it as is. */
@@ -229,7 +231,7 @@ export const HIM_ADDS_1122 = [
   { name: "Zatarain's Crawfish, Shrimp & Crab Boil, 4.5 lb", brand: "Zatarain's", line: "The big bag of New Orleans boil seasoning for a crawfish boil.", href: amz("B07GG7K5SD"), image: amzImg("91RN0dk8mZL"), store: "store-amazon", sortPrice: 6.68, commission: 1, type: "seasoning" },
   { name: "Mignon Faget Fleur de Lis Cufflinks", brand: "Mignon Faget", line: "Fleur de lis cufflinks from a New Orleans jeweler.", href: shopmy("p-109342284"), image: "https://www.mignonfaget.com/mm5/graphics/00000001/0824S.png", store: "store-mignon-faget", sortPrice: 184, price: 184, priceFrom: true, commission: 9, type: "cufflinks" },
   // end LOUISIANA_ADDS_1122
-].map(dated);
+].map(dated).map(rateSwitch1124); // Muck Arctic Pro: higher-commission switch 11-24 (scripts/giftGuideOwner1124.mjs)
 
 /** Transparent cutouts for these photos (Apple Vision, scripts/gift-guide-cutout.swift; each checked by eye, 400 px). */
 export const ADDS_CUTOUTS_1122 = [

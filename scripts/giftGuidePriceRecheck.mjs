@@ -70,8 +70,6 @@ export const PRICE_RECHECKS = {
   "https://go.shopmy.us/p-109205545": { price: 11, priceAt: "2026-11-23" },
   // Salt & Stone Hair & Body Spray: https://cosbar.com/products/saffron-cedar-body-mist-1
   "https://go.shopmy.us/p-109002459": { price: 45, priceAt: "2026-11-23" },
-  // Shark Depuffi Hot & Cold Face Sculpting Tool: https://www.sharkninja.com/shark-depuffi-contrast-therapy-device-in-pink-sparkle/FH220PK1.html
-  "https://go.shopmy.us/p-107555566": { price: 149.99, priceAt: "2026-11-23" },
   // Slip Pure Silk Queen Zippered Pillowcase, Seabreeze: https://www.slip.com/products/seabreeze-queen-zippered-pillowcase
   "https://go.shopmy.us/p-109201186": { price: 84, priceAt: "2026-11-23" },
   // Smathers & Branson Camo Needlepoint Belt: https://duckhead.com/products/smathers-branson-camo-belt-camo

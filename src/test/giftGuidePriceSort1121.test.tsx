@@ -158,7 +158,7 @@ describe("the sort control on the page (owner 11-21)", () => {
   // and the default order (low to high) follows the shown prices.
   it("every row shows its price in either order, Amazon rows too, and the default order is the shown prices low to high", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-23T18:00:00Z")); // the newest check day (11-23 daily re-check, scripts/giftGuidePriceRecheck.mjs)
+    vi.setSystemTime(new Date("2026-11-24T18:00:00Z")); // the newest check day (11-24 switches and Macy's adds, scripts/giftGuideOwner1124.mjs; was 11-23, the daily re-check)
     await act(async () => { await loadGuidePicks("her"); });
     const { container } = renderAt("/gift-guides/her");
     const dollars = () => [...openPriceSections(container).querySelectorAll<HTMLElement>("[data-gift-pick]")].map((li) => Number((li.querySelector("[data-gift-price]")?.textContent ?? "").replace(/^(~|from )\$/, "")));
@@ -194,7 +194,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
   }));
   it.each(["him", "kids", "her"])("/gift-guides/%s: Under $25, $25 to $50, $50 to $75, $75 to $100, $100 and up, each labelled with its count; reversed high to low", async (slug) => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-23T18:00:00Z")); // the newest check day (11-23 daily re-check, scripts/giftGuidePriceRecheck.mjs)
+    vi.setSystemTime(new Date("2026-11-24T18:00:00Z")); // the newest check day (11-24 switches and Macy's adds, scripts/giftGuideOwner1124.mjs; was 11-23, the daily re-check)
     await act(async () => { await loadGuidePicks(slug); });
     const { container } = renderAt(`/gift-guides/${slug}`);
     // Every "Show more" (50 at a time; Him holds 141 of her saves since 11-21).
@@ -246,7 +246,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Her second keeps (11-23 ~11:55 AM, builder guides-keeps2): Him gained 9 stocking stuffers, every one under $5.
       // Held links made (11-23, builder guides-heldlinks): the Lodge 10.25 in. skillet, $24.90, reads ~$25: $25 to $50.
       // Owner 11-23 ~1:00 PM: the KREWE sunglasses ($255) are off For Him; ~1:01 PM the Steve Madden loafer ($139.99) too.
-      him: { "Stocking stuffers under $10": 23, "Under $25": 45, "$25 to $50": 50, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 48 },
+      // 11-24 (scripts/giftGuideOwner1124.mjs): the Columbia hat moved to columbia.com at $22.50 (was $30), so Under $25 +1, $25 to $50 -1.
+      him: { "Stocking stuffers under $10": 23, "Under $25": 46, "$25 to $50": 49, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 48 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -266,7 +267,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Owner 11-22 8:58 PM: Paint by Sticker Kids: Christmas ($3.44) came off (no Buy Box on Amazon); the Crayola pad moved
       // to its Blue listing at $30.19 (still $25 to $50).
       // Held links made (11-23, builder guides-heldlinks): 6 Kids keeps, all Under $25 (the OOLY crayons, $9.95, read ~$10).
-      kids: { "Stocking stuffers under $10": 5, "Under $25": 57, "$25 to $50": 33, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
+      // Her Macy's adds 11-24: the tracing tablet ($11.99) and VTech motorbike ($22.49) Under $25; the air hockey game and
+      // Play-Doh grill ($24.99, read ~$25), the Polaris RC ($32.49), Barbie ($31.99) and the beauty kiosk ($43.99) $25 to $50.
+      kids: { "Stocking stuffers under $10": 5, "Under $25": 59, "$25 to $50": 38, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -295,7 +298,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // OCOOPA warmers ($24.99) and We're Not Really Strangers ($25) read ~$25: $25 to $50.
       // Held links made (11-23, builder guides-heldlinks): her 6 Ulta keeps are stocking stuffers, the Capri Blue car
       // diffuser ($23, Amazon) is Under $25, and the Braun IPL alone ($279.99, owner "Switch only the Braun") stays $100 and up.
-      her: { "Stocking stuffers under $10": 19, "Under $25": 51, "$25 to $50": 48, "$50 to $75": 15, "$75 to $100": 14, "$100 and up": 38 },
+      // Her Macy's adds 11-24: the Clinique trio ($21) Under $25, the robe ($29.99, ~$30) $25 to $50, the UGG set ($49.99, ~$50)
+      // $50 to $75, the Shark Rocket Pet ($99.99, ~$100) $100 and up; the e.l.f. exfoliator ($6 at elfcosmetics.com) stays a stocking stuffer.
+      her: { "Stocking stuffers under $10": 19, "Under $25": 52, "$25 to $50": 49, "$50 to $75": 16, "$75 to $100": 14, "$100 and up": 39 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

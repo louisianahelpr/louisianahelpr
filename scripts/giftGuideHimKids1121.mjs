@@ -28,6 +28,7 @@ import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 import { ADDS_STORES_1122, HIM_ADDS_1122, KIDS_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
 import { HIM_KEEPS_1123_ROWS, HIM_LINKS_1123_ROWS, HIM_WALMART_1123_ROWS, KEEPS_PRICE_AT, KIDS_KEEPS_1123_ROWS, KIDS_LINKS_1123_ROWS } from "./giftGuideOwnerKeeps1123.mjs";
+import { KIDS_ADDS_1124, STORES_1124, rateSwitch1124 } from "./giftGuideOwner1124.mjs";
 
 export const HIM_GUIDE = "him";
 export const KIDS_GUIDE = "kids";
@@ -291,7 +292,7 @@ export const HIM_1121 = [
   // owner 11-22 screenshot list (builder-guide-adds-2): the owner, via the lead, 2026-11-22: the Dad version of the Mom
   // fill-in book on For Her goes on Him. Amazon, price read 2026-11-22.
   { name: "Just a Few Things I Love About You, Dad", brand: "", line: "A fill-in book of all the reasons you love him.", href: amz("B0GWXJ3PYM"), image: amzImg("61kkHlm55KL"), store: "store-amazon", sortPrice: 17.99, commission: 4.5, type: "book", priceAt: "2026-11-22" },
-].map((r) => (Array.isArray(r) ? row(r) : r)).concat(HIM_AMAZON_MORE_1121, HIM_SHOPMY_1121);
+].map((r) => (Array.isArray(r) ? row(r) : r)).concat(HIM_AMAZON_MORE_1121, HIM_SHOPMY_1121).map(rateSwitch1124); // higher-commission switches 11-24 (scripts/giftGuideOwner1124.mjs)
 
 /**
  * Her kids' ShopMy saves (Desktop note Kids-saved-shopmy-1121.md, 54 pins), 16 kept by her rules: at most 2 of a brand
@@ -479,7 +480,7 @@ export function him1121Picks(rows = [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPUL
   return build(rows, HIM_GUIDE, PEOPLE_GUIDES.find((x) => x.slug === HIM_GUIDE));
 }
 /** For Kids, cheapest first. Kids has no relationship pages, so no tags. */
-export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123]) {
+export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_ADDS_1124]) {
   return build(rows, KIDS_GUIDE, null);
 }
 
@@ -496,7 +497,7 @@ export function applyHimKids1121(pageList, storeList = null) {
     for (const p of picks) {
       if (isAmazon(p)) continue;
       const host = new URL(p.href).hostname;
-      storeList[p.store] ??= { name: HIM_KIDS_STORES[p.store] ?? ADDS_STORES_1122[p.store] ?? p.store, hosts: [] };
+      storeList[p.store] ??= { name: HIM_KIDS_STORES[p.store] ?? ADDS_STORES_1122[p.store] ?? STORES_1124[p.store] ?? p.store, hosts: [] };
       if (!storeList[p.store].hosts.includes(host)) storeList[p.store].hosts = [...storeList[p.store].hosts, host].sort();
     }
   }

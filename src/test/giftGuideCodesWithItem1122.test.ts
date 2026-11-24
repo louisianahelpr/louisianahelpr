@@ -64,8 +64,10 @@ describe("codes ride with their item on Her, Him and Kids (owner 11-21)", () => 
     const boots = chunk("him").filter((p) => p.store === "store-xtratuf");
     expect(boots.length).toBe(2);
     for (const b of boots) expect([b.code, b.codeEnds]).toEqual(["XT25", "2026-11-29"]);
-    // A MUCK pick links Amazon, where Muck Boot's codes do not work.
-    for (const p of chunk("him").filter((x) => /muck/i.test(x.name))) expect(p.code).toBeUndefined();
+    // A MUCK pick on Amazon gets no code (Muck Boot's codes do not work there); the Arctic Pro at muckbootcompany.com (since
+    // the 11-24 switch, scripts/giftGuideOwner1124.mjs) carries Muck Boot's TAKE25.
+    for (const p of chunk("him").filter((x) => /muck/i.test(x.name))) expect(p.code).toBe(p.store === "store-muck-boot" ? "TAKE25" : undefined);
+    expect(chunk("him").filter((x) => x.store === "store-muck-boot").length).toBe(1);
   });
 
   it("the three pages show no codes list (owner-list guides; the deals pages hold the codes)", () => {

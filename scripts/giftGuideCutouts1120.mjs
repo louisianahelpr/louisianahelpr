@@ -8,6 +8,7 @@
  */
 import { ADDS_CUTOUTS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 import { LINKS_CUTOUTS_1123 } from "./giftGuideOwnerKeeps1123.mjs";
+import { CUTOUTS_1124 } from "./giftGuideOwner1124.mjs";
 
 export const CUTOUT_BASE = "https://www.louisianahelpr.com/gift-guides/cutouts/";
 export const CUTOUTS_1120 = new Map([
@@ -388,6 +389,8 @@ export const CUTOUTS_1120 = new Map([
 for (const [from, file] of ADDS_CUTOUTS_1122) CUTOUTS_1120.set(from, file);
 // The owner's 11-23 keeps whose links were made later keep theirs beside their rows (scripts/giftGuideOwnerKeeps1123.mjs).
 for (const [from, file] of LINKS_CUTOUTS_1123) CUTOUTS_1120.set(from, file);
+// The owner's 11-24 switches and Macy's adds keep theirs beside their rows (scripts/giftGuideOwner1124.mjs).
+for (const [from, file] of CUTOUTS_1124) CUTOUTS_1120.set(from, file);
 
 /**
  * BRAND PHOTOS ON AMAZON PICKS (links audit 1122 night #5; owner 2026-11-22 8:58 PM pop-up, "Brand photo cutout"). These

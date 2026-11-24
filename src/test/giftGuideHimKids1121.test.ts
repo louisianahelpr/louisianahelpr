@@ -14,6 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { HIM_1121, HIM_POPULAR_1122, KIDS_POPULAR_1122, HIM_KEEPS_1123, KIDS_KEEPS_1123, HIM_LINKS_1123, HIM_WALMART_1123, KIDS_LINKS_1123, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_PLAY_1122, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
+import { KIDS_ADDS_1124 } from "../../scripts/giftGuideOwner1124.mjs";
 import { AMAZON_BRAND_PHOTOS_1122, CUTOUT_BASE, cutoutPhoto } from "../../scripts/giftGuideCutouts1120.mjs";
 import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "../../scripts/giftGuidePriceRecheck.mjs";
@@ -78,7 +79,8 @@ const SWITCHED: Record<string, Record<string, string>> = {
     // Launch day 11-22 (Owner-adds-1122.md): her older Lake Pajamas pins, sent for Him.
     "https://go.shopmy.us/p-103892269": "store-lake-pajamas", "https://go.shopmy.us/p-104054474": "store-lake-pajamas",
     // Batch 1 for Him 11-22: her Nov 19 pins (prices as checked 11-20).
-    "https://go.shopmy.us/p-107850277": "store-l-l-bean", "https://go.shopmy.us/p-107837448": "store-l-l-bean", "https://go.shopmy.us/p-107881822": "store-the-warming-store",
+    "https://go.shopmy.us/p-107850277": "store-l-l-bean", "https://go.shopmy.us/p-107837448": "store-l-l-bean",
+    // The Muck Arctic Pro was The Warming Store p-107881822 (8%) until the 11-24 switch (SWITCHED_1124 below).
     "https://go.shopmy.us/p-107847793": "store-cavenders", "https://go.shopmy.us/p-107895312": "store-tractor-supply", "https://go.shopmy.us/p-109208695": "store-smathers-and-branson",
     "https://go.shopmy.us/p-109208941": "store-marley-lilly",
     "https://go.shopmy.us/p-107895486": "store-tractor-supply",
@@ -145,7 +147,18 @@ const LINKS_1123: Record<string, Record<string, string>> = {
   him: { ...sm(["109739556"], "store-lodge"), "https://walmrt.us/4j41V4c": "store-walmart" },
   kids: { ...sm(["109730393", "109730847", "109730984", "109731305", "109731598"], "store-maisonette"), ...sm(["109731941"], "store-burts-bees-baby") },
 };
-const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug], ...LOUISIANA_1122[slug], ...LINKS_1123[slug] });
+/**
+ * The owner's 11-24 changes (scripts/giftGuideOwner1124.mjs; owner ~1:10 AM "[if we have a] higher commission no need to
+ * ask", ~2:05 / ~2:15 AM her Macy's screenshots), copied from the links made in her ShopMy and Later that night, not from
+ * the module: Him's Columbia hat and fleece (Amazon 4% -> columbia.com through Later 8.4%; the fleece is the 2.0 version
+ * columbia.com sells) and the Muck Arctic Pro (The Warming Store 8% -> muckbootcompany.com 16%); Kids' 7 Macy's adds (16%).
+ */
+const SWITCHED_1124: Record<string, Record<string, string>> = {
+  him: { "https://mavely.app.link/rBTVe27Zj8b": "store-columbia", "https://mavely.app.link/LP97ij8Zj8b": "store-columbia", "https://go.shopmy.us/p-110119003": "store-muck-boot" },
+  kids: sm(["110119731", "110119881", "110119923", "110119952", "110119982", "110120034", "110120060"], "store-macys"),
+};
+const SWITCHED_AWAY_1124 = ["B0FY9LPSCW", "B0076R6MN4", "p-107881822"];
+const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug], ...LOUISIANA_1122[slug], ...LINKS_1123[slug], ...SWITCHED_1124[slug] });
 const popular = new Set([...HIM_POPULAR_1122, ...KIDS_POPULAR_1122].map((r) => r.href));
 const keeps = new Set([...HIM_KEEPS_1123, ...KIDS_KEEPS_1123].map((r) => r.href));
 /** Links audit 1122 night #4: her saved color had no Buy Box, so the same item in a color Amazon sells stands in (priced 11-22). */
@@ -156,7 +169,7 @@ const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<str
 
 describe.each([
   ["him", [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123], him1121Picks() as Pick[]],
-  ["kids", [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123], kids1121Picks() as Pick[]],
+  ["kids", [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_ADDS_1124], kids1121Picks() as Pick[]],
 ])("For %s is the owner's Amazon and ShopMy saves (11-21)", (slug, rows, built) => {
   const page = chunk(slug);
 
@@ -272,7 +285,8 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     // Plus the Battery Daddy (B089F9YDFC), which the owner asked for on 11-22, and B0GWXJ3PYM, the Dad fill-in book (owner
     // via the lead 11-22, her screenshot list), and Him batch 2's GE Opal Mini: none is from her saved list.
     const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM" && a !== "B0H51ZX6SB" && !LOUISIANA_1122_ASINS.him.includes(a));
-    expect(amazon.length).toBe(120); // 97 + the 14 Amazon keeps of 11-23 and the 9 of her second keeps (scripts/giftGuideOwnerKeeps1123.mjs). 97 = 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 3 owner-approved adds (Banded handwarmer, Klola mat, and the MVP PRO men's 2-pack B0D9PX9RBD: the brown listing was women's), plus the 5 popular adds of 11-22 (AirPods, AirTags, Bose, Garmin, Gozney)
+    for (const gone of SWITCHED_AWAY_1124) expect(chunk("him").some((p) => p.href.includes(gone)), gone).toBe(false);
+    expect(amazon.length).toBe(118); // 120 until the Columbia hat and fleece moved to columbia.com 11-24 (SWITCHED_1124). 120 = 97 + the 14 Amazon keeps of 11-23 and the 9 of her second keeps (scripts/giftGuideOwnerKeeps1123.mjs). 97 = 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 3 owner-approved adds (Banded handwarmer, Klola mat, and the MVP PRO men's 2-pack B0D9PX9RBD: the brown listing was women's), plus the 5 popular adds of 11-22 (AirPods, AirTags, Bose, Garmin, Gozney)
     expect(chunk("him").filter((p) => p.href.includes("B089F9YDFC")).length).toBe(1);
     expect(chunk("him").filter((p) => p.href.includes("B0GWXJ3PYM")).length).toBe(1);
     for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P", "B0CQ4QM7Q2", "B0732FCCL4", "B09R5TGLFR"]) expect(amazon, asin).not.toContain(asin);
@@ -297,7 +311,7 @@ describe("the generator sets Him and Kids last", () => {
     const stores: Record<string, { name: string; hosts: string[] }> = { "store-dillards": { name: "Dillard's", hosts: ["www.dillards.com"] } };
     const out = applyHimKids1121(pages, stores);
     expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length + HIM_POPULAR_1122.length + HIM_KEEPS_1123.length + HIM_LINKS_1123.length + HIM_WALMART_1123.length });
-    expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length + KIDS_POPULAR_1122.length + KIDS_KEEPS_1123.length + KIDS_LINKS_1123.length);
+    expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length + KIDS_POPULAR_1122.length + KIDS_KEEPS_1123.length + KIDS_LINKS_1123.length + KIDS_ADDS_1124.length);
     expect(pages.her).toEqual([{ name: "keep" }]);
     expect(stores["store-dillards"]).toEqual({ name: "Dillard's", hosts: ["go.shopmy.us", "www.dillards.com"] });
     expect(stores["store-exclusive-beauty-club"]).toEqual({ name: "Exclusive Beauty Club", hosts: ["go.shopmy.us"] });
@@ -328,16 +342,18 @@ describe("the generator sets Him and Kids last", () => {
  * @mutate scripts/giftGuideHimKids1121.mjs | sortPrice: 115, price: 115, commission: 15, type: "boots", code: "XT25", codeEnds: "2026-11-29" } | sortPrice: 115, price: 115, commission: 15, type: "boots" }
  */
 describe("the XTRATUF code chip on For Him (owner 11-21)", () => {
-  it("every xtratuf.com boot carries XT25, ending Nov 29, on the page and in the module, and nothing else does", () => {
+  it("every xtratuf.com boot carries XT25, ending Nov 29, on the page and in the module, and nothing else does but the Muck Arctic Pro's TAKE25", () => {
     type Coded = Pick & { code?: string; codeEnds?: string };
     for (const list of [chunk("him") as Coded[], him1121Picks() as Coded[]]) {
       const coded = list.filter((p) => p.code);
       expect(coded.map((p) => [p.name, p.store, p.code, p.codeEnds, p.price]).sort()).toEqual([
         ["XTRATUF Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 115],
         ["XTRATUF Mossy Oak Bottomland Ankle Deck Boot", "store-xtratuf", "XT25", "2026-11-29", 125],
-      ]);
-      expect(list.filter((p) => p.store === "store-xtratuf").length).toBe(coded.length);
-      for (const p of coded) {
+        // 11-24: the Arctic Pro moved to muckbootcompany.com (scripts/giftGuideOwner1124.mjs), where Muck Boot's TAKE25 works.
+        ["Muck Arctic Pro Boot", "store-muck-boot", "TAKE25", "2026-11-28", 195],
+      ].sort());
+      expect(list.filter((p) => p.store === "store-xtratuf").length).toBe(coded.filter((p) => p.store === "store-xtratuf").length);
+      for (const p of coded.filter((x) => x.store === "store-xtratuf")) {
         expect(new URL(p.href).hostname).toBe("www.anrdoezrs.net");
         expect(decodeURIComponent(p.href)).toMatch(/^https:\/\/www\.anrdoezrs\.net\/click-101930553-15735628\?url=https:\/\/xtratuf\.com\/products\/(22734|xmabmob)$/);
       }

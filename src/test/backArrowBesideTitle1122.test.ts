@@ -10,8 +10,8 @@
  * Inventory (from source, comments blanked): every non-test file under src/ that names `phoneHidesTitle` or
  * `hidesTitle`, minus the shared primitives that only pass the prop through.
  *
- * @mutate src/components/declutter/SellOneScreen.tsx | : "sf.sellAnItem")} backTo="/declutter?tab=selling"> | : "sf.sellAnItem")} backTo="/declutter?tab=selling" phoneHidesTitle={!form.free} hidesTitle={!form.free}>
- * @mutate src/components/declutter/DeclutterSellChooser.tsx | <AppPage title="Sell something" backTo="/declutter?tab=selling"> | <AppPage title="Sell something" backTo="/declutter?tab=selling" phoneHidesTitle>
+ * @mutate src/components/declutter/SellOneScreen.tsx | : "sf.sellAnItem")} backTo="/declutter?tab=selling" narrow> | : "sf.sellAnItem")} backTo="/declutter?tab=selling" phoneHidesTitle={!form.free} hidesTitle={!form.free} narrow>
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | <AppPage title="Sell something" backTo="/declutter?tab=selling" narrow> | <AppPage title="Sell something" backTo="/declutter?tab=selling" phoneHidesTitle narrow>
  * @mutate src/pages/tips/TipMoment.tsx | <AppPage title="Tip" backTo="/home">\n      <div className="flex flex-col items-center text-center | <AppPage title="Tip" backTo="/home" phoneHidesTitle>\n      <div className="flex flex-col items-center text-center
  * @mutate src/pages/jobs/JobDetail.tsx | hidesTitle={!showsGuestPage && (authLoading \|\| isLoading)} | hidesTitle={!showsGuestPage}
  * @mutate src/pages/jobs/JobDetail.tsx | headerWrapperClassName={showsStateCard ? CARD_HEADER_COLUMN : NARROW_HEADER_COLUMN} | headerWrapperClassName={NARROW_HEADER_COLUMN}
@@ -59,7 +59,7 @@ describe("the back arrow sits beside the page title, never alone (deep audit 11-
 
   it("the four screens from the audit paint '<- Title' at every width", () => {
     expect(code("src/components/declutter/SellOneScreen.tsx")).not.toMatch(/\b(phoneHidesTitle|hidesTitle)\b/);
-    expect(code("src/components/declutter/DeclutterSellChooser.tsx")).toContain('<AppPage title="Sell something" backTo="/declutter?tab=selling">');
+    expect(code("src/components/declutter/DeclutterSellChooser.tsx")).toContain('<AppPage title="Sell something" backTo="/declutter?tab=selling" narrow>');
     expect(code("src/pages/tips/TipMoment.tsx")).not.toMatch(/\bphoneHidesTitle\b/);
     expect(code("src/pages/jobs/JobDetail.tsx")).toContain("hidesTitle={!showsGuestPage && (authLoading || isLoading)}");
   });

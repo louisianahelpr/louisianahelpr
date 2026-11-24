@@ -85,9 +85,11 @@ import {
   infoPageBreadcrumbLd,
   jsonLdScript,
   notFoundBody,
+  searchPageBody,
   twentyFiveDaysEventLd,
   type SeoData,
 } from "../src/lib/seoBodies.mjs";
+import { SEARCH_GUIDE_NAMES, searchPageBySlug, searchPageMeta, searchPageParent } from "../src/content/guideSearchPages.mjs";
 import { holidayHubBody, holidayHubLd } from "../src/lib/holidayHubSeo.mjs";
 import { QA_BYLINE, catalogGuideQa, dealPartsOn, dealsDayQa, faqPageLd, holidayHubQa, qaSectionHtml, smallBizQa, withQaSection, type QaItem } from "../src/lib/guideQa.mjs";
 import { GUIDE_UPDATED } from "../src/content/guideUpdated.mjs";
@@ -1086,7 +1088,10 @@ function metaForUser(url: string): Meta {
  * same behaviour); the Legal tab resolution is the page's own.
  */
 function metaForPublicPage(id: string, tab: string | null, finder = false): Meta | null {
-  const page = giftGuideHead(id) ?? publicPageMetaFor(`/${id}`, tab);
+  // Search pages (owner 11-23, src/content/guideSearchPages.mjs): their own indexed head, before the generic noindex
+  // head publicPageMetaFor gives any other /gift-guides/<slug>.
+  const search = searchPageBySlug(giftGuideSlug(id) ?? "");
+  const page = giftGuideHead(id) ?? (search ? searchPageMeta(search) : null) ?? publicPageMetaFor(`/${id}`, tab);
   if (!page) return null;
   const card = SECTION_CARDS[id];
   // A shared gift finder link (/gift-guides?who=her&budget=50, GiftGuideLanding finderAsked) previews as Find a gift.
@@ -1255,6 +1260,16 @@ function seoFor(url: URL): SeoOutcome {
       const crumbs = breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: g.name, path: `/gift-guides/${slug}` }]);
       const qa = withQa(slug, g.qa?.length ? catalogGuideQa(slug, g.qa, today) : [], slug === "25-days-sponsors" ? QA_BYLINE.other : QA_BYLINE.gifts);
       return { kind: "page", body: withQaSection(giftGuideBody(slug, g), qa.section), jsonLd: [...(g.picks.length ? [crumbs, giftGuideItemListLd(slug, g, today)] : [crumbs]), ...qa.ld] };
+    }
+    // Search pages (owner 11-23, "add a lot of different searches"; src/content/guideSearchPages.mjs): a filtered view of
+    // Her, Him or Kids with its own body, BreadcrumbList and ItemList (its picks from the build, by the page's matcher).
+    const sp = slug ? searchPageBySlug(slug) : null;
+    const spPicks = sp && d.searchPages && hasOwn(d.searchPages, sp.slug) ? d.searchPages[sp.slug] : null;
+    if (sp && spPicks) {
+      const parent = searchPageParent(sp);
+      const crumbs = breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, ...(parent ? [{ name: SEARCH_GUIDE_NAMES[parent], path: `/gift-guides/${parent}` }] : []), { name: sp.h1, path: `/gift-guides/${sp.slug}` }]);
+      const list = giftGuideItemListLd(sp.slug, { name: sp.h1, indexed: true, picks: spPicks, count: spPicks.length }, louisianaDay(new Date()));
+      return { kind: "page", body: searchPageBody(sp, spPicks), jsonLd: [crumbs, list] };
     }
     // 1120: a merged guide's old slug 301s to its section ("healthcare#rns"); a folded store page to the landing page ("").
     if (slug && hasOwn(d.moved, slug) && /^([a-z0-9-]+(#[a-z0-9-]+)?)?$/.test(d.moved[slug])) return { kind: "moved", location: d.moved[slug] ? `${SITE_ORIGIN}/gift-guides/${d.moved[slug]}` : `${SITE_ORIGIN}/gift-guides` };

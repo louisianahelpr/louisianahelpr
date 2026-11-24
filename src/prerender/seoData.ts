@@ -1,5 +1,9 @@
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
-import { GUIDES, MERGED_GUIDES, OLD_SLUGS, RETIRED_SLUGS, ROWS, STORES, childrenOf, guidesIn, loadAllGuidePicks, newSlugFor, relatedGuides } from "@/content/giftGuideCatalog";
+import { SEARCH_PAGES } from "@/content/guideSearchPages.mjs";
+import { searchPagePicks } from "@/content/guideSearchView";
+import type { KidTags } from "@/content/giftGuideKidsFilter";
+import kidTagsFile from "@/content/giftGuideKidsTags.json";
+import { GUIDES, MERGED_GUIDES, guideBySlug, type CatalogPick, OLD_SLUGS, RETIRED_SLUGS, ROWS, STORES, childrenOf, guidesIn, loadAllGuidePicks, newSlugFor, relatedGuides } from "@/content/giftGuideCatalog";
 import type { SeoData, SeoGuide } from "@/lib/seoBodies.mjs";
 import { DEALS_WORDS, DEAL_DAY_SLUGS, DEAL_EVENTS, dealEnds, type Deal } from "@/content/giftGuideDeals.mjs";
 import { STORE_CODES, codeCardsOrder, dealDayLists, dealDayParts } from "@/content/giftGuideDealCounts";
@@ -20,6 +24,18 @@ import { QA_PAGES, toQaPick } from "@/lib/guideQa.mjs";
  * Guard: src/test/seoPageBodies.test.ts.
  */
 
+/**
+ * One pick as the pre-JS rows carry it: name, where (a 25 Days sponsor's brand, else the store; "a 25 Days sponsor"
+ * reads oddly in a list), link, and (structured data, lead 11-21) its photo URL and checked price for the ItemList of
+ * Products (seoBodies.mjs giftGuideItemListLd); whether the price shows is decided per request, as the card decides it.
+ */
+function seoPick(p: CatalogPick): SeoGuide["picks"][number] {
+  const store = STORES[p.store]?.name ?? "";
+  const extra = { ...(p.image ? { image: p.image } : {}), ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}) };
+  const where = p.store === "sponsor" && p.brand ? p.brand : store;
+  return Object.keys(extra).length ? [p.name, where, p.href, extra] : [p.name, where, p.href];
+}
+
 export async function buildSeoData(): Promise<SeoData> {
   await loadAllGuidePicks();
   const guides: Record<string, SeoGuide> = {};
@@ -37,13 +53,7 @@ export async function buildSeoData(): Promise<SeoData> {
       const key = `${p.href} ${p.name}`;
       if (!p.name || !p.href || seen.has(key)) continue;
       seen.add(key);
-      const store = STORES[p.store]?.name ?? "";
-      // "a 25 Days sponsor" reads oddly in a list: the brand is the store there.
-      // Structured data (lead 11-21): the photo URL and checked price feed the guide's ItemList of Products
-      // (seoBodies.mjs giftGuideItemListLd); whether the price shows is decided per request, as the card decides it.
-      const extra = { ...(p.image ? { image: p.image } : {}), ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}) };
-      const where = p.store === "sponsor" && p.brand ? p.brand : store;
-      picks.push(Object.keys(extra).length ? [p.name, where, p.href, extra] : [p.name, where, p.href]);
+      picks.push(seoPick(p));
     }
     // A hub (For Kids, Girls...) lists its child guides; any other guide, its siblings.
     const related = (g.children ? childrenOf(g) : relatedGuides(g))
@@ -87,7 +97,12 @@ export async function buildSeoData(): Promise<SeoData> {
     intro: sponsorPage.lineup.intro,
     partners: publicPartners().map((p) => [p.brand, p.prizes, p.page ?? ""]),
   };
-  return { guides, moved, groups, deals: dealList, dealParts: dealPartsTable(), dealLists: dealListsTable(), smallBiz: shops, lineup };
+  // Search pages (owner 11-23): each page's picks by the page's own matcher (guideSearchView.ts), from the same chunks.
+  const kidTags = (kidTagsFile as unknown as { tags: KidTags }).tags;
+  const searchPages: NonNullable<SeoData["searchPages"]> = Object.fromEntries(
+    SEARCH_PAGES.map((sp) => [sp.slug, searchPagePicks(sp, (s) => guideBySlug(s)?.picks ?? [], kidTags).map(seoPick)]),
+  );
+  return { guides, moved, groups, searchPages, deals: dealList, dealParts: dealPartsTable(), dealLists: dealListsTable(), smallBiz: shops, lineup };
 }
 
 /** The first and last day the deals days' section counts are worked out for; after the last, its counts carry on. */

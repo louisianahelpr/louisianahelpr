@@ -21,7 +21,8 @@ const ShortTour = lazy(() => import("./ShortTour"));
  */
 function bodyHeldByModal(): boolean {
   if (typeof document === "undefined" || document.body.style.pointerEvents !== "none") return false;
-  return !!document.querySelector('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]');
+  // Matched on the role's value, not a role="dialog" selector literal (popupShellInventory reads that as a hand-rolled modal).
+  return [...document.querySelectorAll('[data-state="open"][role]')].some((el) => /^(alert)?dialog$/.test(el.getAttribute("role") ?? ""));
 }
 function watchBodyStyle(fn: () => void): () => void {
   const mo = new MutationObserver(fn);

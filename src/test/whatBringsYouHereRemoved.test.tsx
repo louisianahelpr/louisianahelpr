@@ -16,14 +16,14 @@
  *
  * @mutate src/components/tour/ShortTour.tsx |   if (paused) return null; |
  * @mutate src/components/tour/TourReplayHost.tsx |       <ShortTour key={replays} paused={modalOpen} | <ShortTour key={replays} paused={false}
- * @mutate src/components/tour/TourReplayHost.tsx |   return !!document.querySelector('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]'); |   return true;
+ * @mutate src/components/tour/TourReplayHost.tsx |   return [...document.querySelectorAll('[data-state="open"][role]')].some((el) => /^(alert)?dialog$/.test(el.getAttribute("role") ?? "")); |   return true;
  * @mutate src/components/tour/TourReplayHost.tsx |   const [open, setOpen] = useState(false); |   const [open, setOpen] = useState(true);
  * @mutate src/lib/i18n/enNewMember.ts |   "home.gs.title": "Get started", |   "firstRun.title": "What brings you here?",\n  "home.gs.title": "Get started",
  * @mutate src/pages/home/homeDashboard/NewMemberHome.tsx |       {guide}\n |       <h2>What brings you here?</h2>\n      {guide}\n
  * @mutate scripts/lib/analyticsFreshness.mjs |   post_job_guest_signup: |   first_run_intent: "x",\n  post_job_guest_signup:
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, waitForElementToBeRemoved } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { useSyncExternalStore } from "react";
 import { existsSync, readFileSync } from "node:fs";
@@ -135,10 +135,11 @@ describe("/home with Terms re-consent required (C11)", () => {
     expect(effectivePointerEvents(agree)).toBe("auto");
     expect(agree.closest('[aria-hidden="true"]')).toBeNull();
 
+    const sheetGone = waitForElementToBeRemoved(() => screen.queryByText(TITLE)); // armed while the sheet is up
     fireEvent.click(agree);
-    await waitFor(() => expect(updates.length).toBe(1));
+    await sheetGone;
+    expect(updates.length).toBe(1);
     expect(updates[0].terms_version_accepted).toBe(LATEST_TERMS_VERSION);
-    await waitFor(() => expect(screen.queryByText(TITLE)).toBeNull());
     // After I agree: a plain Home, still nothing full screen.
     await settle();
     expect(document.querySelector(OVERLAY)).toBeNull();
@@ -158,19 +159,20 @@ describe("/home with Terms re-consent required (C11)", () => {
     const agree = await screen.findByRole("button", { name: "I agree" });
     await settle();
     expect(document.querySelector(OVERLAY), "tour drawn over an open Radix modal").toBeNull();
+    const sheetGone = waitForElementToBeRemoved(() => screen.queryByText(TITLE));
     fireEvent.click(agree);
-    await waitFor(() => expect(screen.queryByText(TITLE)).toBeNull());
-    await waitFor(() => expect(document.body.style.pointerEvents).not.toBe("none"));
+    await sheetGone;
     const tour = await waitFor(() => {
       const el = document.querySelector('[data-tour="coach"]');
       expect(el).not.toBeNull();
       return el!;
     });
     const next = screen.getByRole("button", { name: "Next" });
+    expect(document.body.style.pointerEvents).not.toBe("none");
     expect(effectivePointerEvents(tour)).toBe("auto");
     expect(effectivePointerEvents(next)).toBe("auto");
     fireEvent.click(screen.getByRole("button", { name: "Skip" }));
-    await waitFor(() => expect(document.querySelector('[data-tour="coach"]')).toBeNull());
+    expect(document.querySelector('[data-tour="coach"]')).toBeNull(); // Skip closes it at once
     expect(screen.getByTestId("where").textContent).toBe("/home");
   });
 });

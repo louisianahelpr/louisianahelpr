@@ -143,7 +143,9 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
         if (run.some((p) => !p.section)) bad.push(`${m.parent}#${id}: a pick with no section title`);
       }
     }
-    for (const [slug, list] of guideChunks) if (!GUIDE_MERGES.some((m) => m.parent === slug) && !peopleGuideOf(slug) && list.length > SECTION_CAP) bad.push(`${slug}: ${list.length} picks`);
+    // The Monster Jam guide (owner 11-24: "with every item we can find") is her own researched list in its own groups, like
+    // Her, Him and Kids: no SECTION_CAP.
+    for (const [slug, list] of guideChunks) if (!GUIDE_MERGES.some((m) => m.parent === slug) && !peopleGuideOf(slug) && slug !== "monster-jam" && list.length > SECTION_CAP) bad.push(`${slug}: ${list.length} picks`);
     // Follow-up 1120: 80 sections on the ~30 guides, measured 2026-11-20 (more on the 65 guides before).
     // Owner's standard plan (11-20 evening): the planned merged guides follow the plan, the rest keep these rules.
     expect(sections + planned).toBeGreaterThan(8);

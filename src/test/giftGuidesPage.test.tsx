@@ -453,9 +453,9 @@ describe("gift guides: the landing opens to the guides", () => {
     const guides = [...container.querySelectorAll("[data-gift-side-guides] a")];
     // Guide consistency audit 1122 #19: My Wish List closes the group, as in the phone's menu sheet (no dot).
     expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", "/gift-guides/monster-jam", "/gift-guides/my-list"]);
-    // Owner 2026-11-24: Monster Jam sits after Kids in Kids red.
-    expect(guides.slice(1, 5).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(["oat", "green", "red", "red"]);
-    expect(guides.slice(1, 5).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(["gg-dot gg-oat", "gg-dot gg-green", "gg-dot gg-red", "gg-dot gg-red"]);
+    // Owner 2026-11-24: Monster Jam sits after Kids, green like its cover ("the green cover with the 6 images").
+    expect(guides.slice(1, 5).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(["oat", "green", "red", "green"]);
+    expect(guides.slice(1, 5).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(["gg-dot gg-oat", "gg-dot gg-green", "gg-dot gg-red", "gg-dot gg-green"]);
     expect(guides[5].querySelector("[data-gift-side-dot]")).toBeNull();
     expect(container.querySelector('[data-gift-sidebar] a[aria-current="page"]')?.getAttribute("href")).toBe("/gift-guides");
     cleanup();

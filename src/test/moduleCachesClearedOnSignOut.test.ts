@@ -26,6 +26,7 @@ type Kind =
   | { kind: "not-user-data"; why: string };
 
 const CLASSIFIED: Record<string, Kind> = {
+  "src/components/ui/stickyActionHeight.ts:heights": { kind: "not-user-data", why: "the painted height of each mounted phone StickyActionBar, by a throwaway key per bar (deep audit 11-22 #13), so a toast clears the tallest; pixel sizes, emptied as each bar unmounts, nothing about the account" },
   "src/components/mobileNav/useShopTalksInBadge.ts:reads": { kind: "keyed-by-user-id" },
   "src/components/mobileNav/useShopTalksInBadge.ts:frontSubs": { kind: "not-user-data", why: "subscriber callbacks for 'the app came back to the front' (shared shop chat badge read, 11-15): a counter of visibility changes, nothing about the account" },
   "src/components/header/desktopTitleSlot.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks for the desktop top bar's title-slot DOM node (page settle, 11-15): which element hosts the title row, nothing about the account" },

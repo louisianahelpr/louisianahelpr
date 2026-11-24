@@ -12,7 +12,7 @@
  *  - the Yoto Bluey bundle moved WITH its approved dupe (owner 11-24 via the lead): the Bluey page shows that one
  *    "shop similar" on that one row and no other; Kids no longer lists the bundle.
  *
- * @mutate src/pages/info/GiftGuides.tsx |               {guide?.slug === KIDS_FILTER_GUIDE && <GiftGuideThemeRow />} |               {null}
+ * @mutate src/pages/info/GiftGuides.tsx |               {guide?.slug === KIDS_FILTER_GUIDE && <LazyThemeRow />} |               {null}
  * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx |   const guides = THEME_GUIDES_1124.map((slug) => guideBySlug(slug)).filter((g) => g !== undefined); |   const guides = THEME_GUIDES_1124.slice(1).map((slug) => guideBySlug(slug)).filter((g) => g !== undefined);
  * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx | priority={i < EAGER_COVERS} | priority
  * @mutate scripts/giftGuideHimKids1121.mjs |   return build(rows.filter((r) => !moved.has(r.href)), KIDS_GUIDE, null); |   return build(rows, KIDS_GUIDE, null);
@@ -21,7 +21,7 @@
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: null }) }));
@@ -54,10 +54,17 @@ const renderAt = async (url: string) => {
   });
   return out.container;
 };
+/** The Kids page, once the cover row's own chunk is in (it loads after the page draws; a same-height stand-in first). */
+const renderKids = async () => {
+  const c = await renderAt("/gift-guides/kids");
+  await waitFor(() => expect(c.querySelector("[data-gift-theme-row]")).toBeTruthy());
+  expect(c.querySelector("[data-gift-theme-row-wait]")).toBeNull();
+  return c;
+};
 
 describe("the Kids page's themed guides row (owner 2026-11-24)", () => {
   it("lists every THEME_GUIDES_1124 entry, in order, each linking its page with its own green cover", async () => {
-    const c = await renderAt("/gift-guides/kids");
+    const c = await renderKids();
     const row = c.querySelector("[data-gift-theme-row]");
     expect(row).toBeTruthy();
     const tiles = [...row!.querySelectorAll("a[data-gift-tile]")];
@@ -80,13 +87,21 @@ describe("the Kids page's themed guides row (owner 2026-11-24)", () => {
   });
 
   it("sits right under the red banner, before the gifts", async () => {
-    const c = await renderAt("/gift-guides/kids");
+    const c = await renderKids();
     const banner = c.querySelector("[data-gift-banner]");
     const row = c.querySelector("[data-gift-theme-row]");
     const firstGift = c.querySelector("[data-gift-guide]");
     expect(banner?.getAttribute("data-gift-banner")).toBe("red");
     expect(banner!.nextElementSibling).toBe(row);
     expect(row!.compareDocumentPosition(firstGift!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("holds its place with a same-size stand-in until its chunk is in, then is the row (not on the page's first chunk)", async () => {
+    const src = readFileSync("src/pages/info/GiftGuides.tsx", "utf8");
+    expect(src).toContain('loadModule(() => import("./giftGuides/GiftGuideThemeRow"))');
+    expect(src).not.toMatch(/^import [^;]*GiftGuideThemeRow/m);
+    const c = await renderKids();
+    expect(c.querySelectorAll("[data-gift-theme-row]")).toHaveLength(1);
   });
 
   it("is on the Kids page only", async () => {

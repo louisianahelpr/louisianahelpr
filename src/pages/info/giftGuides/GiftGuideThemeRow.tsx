@@ -7,6 +7,16 @@ import { RowNudgeButton } from "@/components/ui/RowNudgeButton";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { GiftGuideTile } from "./GiftGuideTile";
 
+/** The row's scroll behaviour and arrows: snap cover by cover, no scrollbar on a phone, a thin one from 768px, the arrows
+ *  centred on the covers. Its SIZES stay in GIFT_GUIDES_CSS (.gg-themes, .gg-themes-row: a phone shows two covers and a
+ *  peek of the third, 184px each from 768px), so the stand-in GiftGuides draws before this chunk is in has the row's
+ *  exact height; they are the only theme-row bytes on a guide page's critical path (Q178). */
+const THEME_ROW_CSS = `.gg-themes-row{overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none}
+.gg-themes-row::-webkit-scrollbar{display:none}
+@media (min-width:768px){.gg-themes-row{scrollbar-width:thin}}
+.gg-themes-edge{position:absolute;top:calc(50% - 23px);pointer-events:none}
+.gg-themes-edge-left{left:6px}.gg-themes-edge-right{right:6px}`;
+
 /** Covers that load at once; the rest load lazily as the row scrolls to them (each keeps its square, so nothing moves). */
 const EAGER_COVERS = 2;
 
@@ -47,6 +57,7 @@ export function GiftGuideThemeRow() {
   if (guides.length === 0) return null;
   return (
     <section className="gg-themes" aria-label={G.themeRowLabel} data-gift-theme-row="">
+      <style>{THEME_ROW_CSS}</style>
       <ul ref={row} className="gg-row gg-themes-row" onScroll={desktop ? measure : undefined}>
         {guides.map((g, i) => <GiftGuideTile key={g.slug} g={g} priority={i < EAGER_COVERS} />)}
       </ul>

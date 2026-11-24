@@ -61,7 +61,7 @@ def manifest_photos(slug):
 
 
 # The guides whose card is their cover (Her, Him, Kids; Monster Jam since 11-24): their cover's six cutouts beside the arch. Every other key is the arch alone.
-COVER_KEYS = ("her", "him", "kids", "monster-jam", "bluey")
+COVER_KEYS = ("her", "him", "kids", "monster-jam", "bluey", "marvel")
 
 # key -> (served path it is for, tint, lead, title). No photo source here: photos come only from COVER_KEYS' covers.
 PAGES = {
@@ -72,6 +72,7 @@ PAGES = {
     # gingham ("the preview on the link is the green cover with the 6 images").
     "monster-jam": ("/gift-guides/monster-jam", "green", "the", "Monster Jam Gift Guide"),
     "bluey": ("/gift-guides/bluey", "green", "the", "Bluey Gift Guide"),
+    "marvel": ("/gift-guides/marvel", "green", "the", "Marvel Gift Guide"),
     "25-days-sponsors": ("/gift-guides/25-days-sponsors", "green", "shop our", "25 Days Sponsors"),
     "black-friday": ("/gift-guides/black-friday", "red", "the best", "Black Friday Deals"),
     "cyber-monday": ("/gift-guides/cyber-monday", "red", "the best", "Cyber Monday Deals"),

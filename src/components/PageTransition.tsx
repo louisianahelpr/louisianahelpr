@@ -1,11 +1,13 @@
 import { ReactNode, useEffect, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { useReducedMotion } from "@/lib/accessibility";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 
 interface PageTransitionProps {
   children: ReactNode;
+  /** RoutePageTransition's page key: it stays the same across a KEEP_PAGE step (src/lib/keepPage.ts). */
+  pageKey: string;
 }
 
 // Edge-swipe-back tuning. iOS only recognizes a back-swipe that begins in a
@@ -47,11 +49,13 @@ const VELOCITY_WINDOW_MS = 100;
  * viewport contains the frame, the same as on a cold load before this chunk
  * arrives (App.tsx renders a plain keyed div until then).
  *
- * Keyed by location.key so every navigation mounts a fresh wrapper.
+ * Keyed by RoutePageTransition's page key, NOT location.key: a KEEP_PAGE step (sign-up's step 2) keeps the page.
+ * Keyed on location.key, every sign-up that reached /signup by an in-app link after this chunk loaded was sent from
+ * Continue back to an empty step 1 (password and consent gone) and never reached Create account (signup-autofill
+ * 11-23: prod analytics showed signup_started again with each step-1 Continue and no step-2 event).
  * Under `prefers-reduced-motion` the page does not follow the finger, as before.
  */
-const PageTransition = ({ children }: PageTransitionProps) => {
-  const location = useLocation();
+const PageTransition = ({ children, pageKey }: PageTransitionProps) => {
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
   const pageRef = useRef<HTMLDivElement>(null);
@@ -149,7 +153,7 @@ const PageTransition = ({ children }: PageTransitionProps) => {
   };
 
   return (
-    <div key={location.key} ref={pageRef} onPointerDownCapture={handlePointerDown}>
+    <div key={pageKey} ref={pageRef} onPointerDownCapture={handlePointerDown}>
       {children}
     </div>
   );

@@ -24,7 +24,7 @@
  * settles, so each made every visitor download framer-motion for a fade. Both
  * are plain pointer events / CSS now; the built half is check-deferred-vendors.mjs's
  * PageTransition and ScrollToTop roots.
- * @mutate src/components/PageTransition.tsx | import { useLocation, useNavigate } from "react-router-dom"; | import { useLocation, useNavigate } from "react-router-dom";\nimport { motion } from "framer-motion";
+ * @mutate src/components/PageTransition.tsx | import { useNavigate } from "react-router-dom"; | import { useNavigate } from "react-router-dom";\nimport { motion } from "framer-motion";
  * @mutate src/components/ScrollToTop.tsx | import { ChevronUp } from "lucide-react"; | import { ChevronUp } from "lucide-react";\nimport { AnimatePresence } from "framer-motion";
  * SuccessMomentHost mounts on every route as well; it reaches SuccessMoment (framer) by import().
  * @mutate src/components/feedback/SuccessMomentHost.tsx | const moment = createLazyModule(() => import("./SuccessMoment"), "SuccessMomentHost.load"); | import * as Eager from "./SuccessMoment";\nconst moment = createLazyModule(() => Promise.resolve(Eager), "SuccessMomentHost.load");

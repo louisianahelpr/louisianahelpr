@@ -11,7 +11,7 @@ import { keepsPageState } from "@/lib/keepPage";
 // swipe back to). It loads once the page has settled (App.tsx calls
 // loadAnimatedPageTransition). The pick is made once per page key (below), so a
 // page never swaps wrappers (which would remount it) mid-life.
-let AnimatedPageTransition: ComponentType<{ children: ReactNode }> | null = null;
+let AnimatedPageTransition: ComponentType<{ children: ReactNode; pageKey: string }> | null = null;
 export const loadAnimatedPageTransition = () =>
   import("@/components/PageTransition").then((m) => {
     AnimatedPageTransition = m.default;
@@ -20,7 +20,7 @@ export const loadAnimatedPageTransition = () =>
 const PageTransitionPick = ({ pageKey, children }: { pageKey: string; children: ReactNode }) => {
   const [Animated] = useState(() => AnimatedPageTransition);
   if (!Animated) return <div key={pageKey}>{children}</div>;
-  return <Animated>{children}</Animated>;
+  return <Animated pageKey={pageKey}>{children}</Animated>;
 };
 // Keyed so each navigation re-picks: React reuses this across same-shaped
 // routes, and a once-per-mount pick kept a cold start's plain div, without the

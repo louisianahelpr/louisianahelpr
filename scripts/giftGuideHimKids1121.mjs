@@ -441,7 +441,7 @@ export const KIDS_POPULAR_1122 = [
   ["B000FGECAI", 10, "712W+h7AF6L", "Kanoodle Brain Teaser Puzzle Game", "Educational Insights", "puzzle", 3, "A pocket puzzle game with 200+ challenges."],
   ["B0G2T1VN17", 175, "81lwvfbDd8L", "LEGO City Lava Land Roller Coaster Park 60501", "LEGO", "building-set", 3, "A build-it roller coaster park."],
   ["B0GWKJG2XR", 145, "71KXM3QhGbL", "American Girl Disney Frozen Elsa 18-inch Doll", "American Girl", "doll", 3, "Elsa as an 18-inch American Girl doll."],
-].map(row).map((r) => ({ ...r, priceAt: "2026-11-22" }));
+].map(row).map((r) => ({ ...r, priceAt: "2026-11-22" })).map(rateSwitch1124); // My Mario playset: Walmart switch 11-24 (scripts/giftGuideOwner1124.mjs)
 
 // owner 11-22 popular approved (builder-guide-popular): Him, Amazon listings sold by Amazon.com or the brand, prices read 11-22.
 export const HIM_POPULAR_1122 = [

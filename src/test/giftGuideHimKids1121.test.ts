@@ -157,7 +157,8 @@ const STEALS_1124: Record<string, Record<string, string>> = {
   him: { ...sm(["110122396"], "store-macys"), "https://walmrt.us/3XKh0AM": "store-walmart" },
   kids: {
     ...sm(["110125767", "110125685", "110125702", "110125781", "110125801", "110125818", "110125837", "110125353"], "store-target"),
-    ...Object.fromEntries(["4CpL44Q", "4fSzHIL", "4jcx3OU", "3V7qKEv", "4AQxuWv", "4CcMa3A", "3VHA424"].map((c) => [`https://walmrt.us/${c}`, "store-walmart"])),
+    ...Object.fromEntries(["4CpL44Q", "4fSzHIL", "4jcx3OU", "3V7qKEv", "4AQxuWv", "4CcMa3A", "3VHA424", "4texdKc"].map((c) => [`https://walmrt.us/${c}`, "store-walmart"])),
+    "https://mavely.app.link/yftqKoJ9j8b": "store-kohls",
   },
 };
 /**
@@ -167,10 +168,10 @@ const STEALS_1124: Record<string, Record<string, string>> = {
  * columbia.com sells) and the Muck Arctic Pro (The Warming Store 8% -> muckbootcompany.com 16%); Kids' 7 Macy's adds (16%).
  */
 const SWITCHED_1124: Record<string, Record<string, string>> = {
-  him: { "https://mavely.app.link/rBTVe27Zj8b": "store-columbia", "https://mavely.app.link/LP97ij8Zj8b": "store-columbia", "https://go.shopmy.us/p-110119003": "store-muck-boot", ...STEALS_1124.him },
-  kids: { ...sm(["110119731", "110119881", "110119923", "110119952", "110119982", "110120034", "110120060"], "store-macys"), ...STEALS_1124.kids },
+  him: { "https://mavely.app.link/rBTVe27Zj8b": "store-columbia", "https://mavely.app.link/LP97ij8Zj8b": "store-columbia", "https://go.shopmy.us/p-110119003": "store-muck-boot", "https://walmrt.us/4zZkihX": "store-walmart", ...STEALS_1124.him },
+  kids: { ...sm(["110119731", "110119881", "110119923", "110119952", "110119982", "110120034", "110120060"], "store-macys"), "https://walmrt.us/4jpdmER": "store-walmart", ...STEALS_1124.kids },
 };
-const SWITCHED_AWAY_1124 = ["B0FY9LPSCW", "B0076R6MN4", "p-107881822"];
+const SWITCHED_AWAY_1124 = ["B0FY9LPSCW", "B0076R6MN4", "p-107881822", "B0H51ZX6SB"];
 const notAmazon = (slug: string): Record<string, string> => ({ ...SWITCHED[slug], ...SAVES[slug], ...LOUISIANA_1122[slug], ...LINKS_1123[slug], ...SWITCHED_1124[slug] });
 const popular = new Set([...HIM_POPULAR_1122, ...KIDS_POPULAR_1122].map((r) => r.href));
 const keeps = new Set([...HIM_KEEPS_1123, ...KIDS_KEEPS_1123].map((r) => r.href));
@@ -310,7 +311,7 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
 describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
   it("54 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (Segway S2 is at Tractor Supply; 11-22 the Switch with Joy-Con, the C2 Lite and C2 Pro, the Amazon S2 and the mini CreateOn tiles went as duplicates, and Paint by Sticker came off; the Quest 3S, iPad and JLab kids headphones were added)", () => {
     const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
-    expect(amazon.length).toBe(86); // 70 + the 16 Amazon keeps of 11-23 (scripts/giftGuideOwnerKeeps1123.mjs). 70 = 54 after the duplicate removals and Paint by Sticker + the 9 popular adds of 11-22 + the 7 Louisiana books, plush and team gear (owner 11-22 PM)
+    expect(amazon.length).toBe(85); // 86 until the My Mario playset moved to Walmart 11-24 (2026-11-24). 86 = 70 + the 16 Amazon keeps of 11-23 (scripts/giftGuideOwnerKeeps1123.mjs). 70 = 54 after the duplicate removals and Paint by Sticker + the 9 popular adds of 11-22 + the 7 Louisiana books, plush and team gear (owner 11-22 PM)
     // Owner 2026-11-22 8:58 PM ("take it off"): Paint by Sticker Kids: Christmas had no Buy Box and no other listing.
     expect(amazon.some((p) => p.href.includes("152350675X"))).toBe(false);
     for (const asin of ["B0F3GWXLTS", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);

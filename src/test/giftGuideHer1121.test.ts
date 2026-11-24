@@ -138,6 +138,9 @@ const SWITCHED_1124: Record<string, string> = {
   "https://www.amazon.com/dp/B0CMJZVT5P?tag=louisianahelpr-20": "https://go.shopmy.us/p-110118320",
   "https://www.amazon.com/dp/B0CB23NZGT?tag=louisianahelpr-20": "https://mavely.app.link/TptnXLe0j8b",
   "https://www.amazon.com/dp/B01EXQ582Q?tag=louisianahelpr-20": "https://go.shopmy.us/p-110117734",
+  // Later signed in again ~3:35 AM: both BISSELL picks moved to bissell.com through Later 14%.
+  "https://go.shopmy.us/p-109151385": "https://mavely.app.link/SSVg1LN9j8b",
+  "https://www.amazon.com/dp/B0DQLLPYGM?tag=louisianahelpr-20": "https://mavely.app.link/68WdqBM9j8b",
 };
 /** Her Macy's adds 11-24 (owner ~2:05 / ~2:15 AM screenshots): robe, Shark Rocket Pet, Clinique Black Honey trio, UGG Raegan set. */
 const MACYS_1124_PINS = ["p-110119763", "p-110119787", "p-110119843", "p-110119860"];
@@ -209,8 +212,8 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(95); // 80 + her 20 Amazon second keeps of 11-23 (Capri Blue included), minus the 5 moved off Amazon 11-24 (SWITCHED_1124)
-    expect(shopmy.length).toBe(97); // 79 + her 6 Ulta keeps of 11-23 + the 5 moved off Amazon 11-24 + her 4 Macy's adds and 3 steals of 11-24 (2026-11-24)
+    expect(amazon.length).toBe(94); // 80 + her 20 Amazon second keeps of 11-23 (Capri Blue included), minus the 6 moved off Amazon 11-24 (SWITCHED_1124; 2026-11-24)
+    expect(shopmy.length).toBe(98); // 79 + her 6 Ulta keeps of 11-23 + the 6 moved off Amazon 11-24 + her 4 Macy's adds and 3 steals of 11-24 (2026-11-24)
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

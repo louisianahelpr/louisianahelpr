@@ -176,7 +176,7 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   pajamas: ["cozy"],
   // The owner's 11-24 Kids steals (scripts/giftGuideSteals1124.mjs): an advent calendar of little toys is a stocking-style
   // countdown, a mini fridge is for a cozy room, a tumbler goes along to practice and school, slippers are cozy.
-  "advent-calendar": ["stocking", "pretend"], "mini-fridge": ["cozy"], tumbler: ["active"], slippers: ["cozy"],
+  "advent-calendar": ["stocking", "pretend"], "mini-fridge": ["cozy"], tumbler: ["active"], slippers: ["cozy"], "game-controller": ["games"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -250,6 +250,8 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   "advent-calendar": ["6-8", "9-12", "teen"], "mini-fridge": ["9-12", "teen"], tumbler: ["9-12", "teen"],
   // Kid-size slippers (the KPop Demon Hunters pair comes in little-kid sizes).
   slippers: ["3-5", "6-8"],
+  // A PS5 controller is for gamers 6 and up.
+  "game-controller": ["6-8", "9-12", "teen"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],

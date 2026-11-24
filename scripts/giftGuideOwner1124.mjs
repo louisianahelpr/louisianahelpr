@@ -61,6 +61,10 @@ export const RATE_SWITCHES_1124 = {
     was: "Amazon 10% ($18)", now: "soldejaneiro.com via ShopMy 16% ($18, 75 ml; Later 10.5%)",
   },
   // For Him.
+  [amz("B0H51ZX6SB")]: {
+    href: "https://walmrt.us/4zZkihX", store: "store-walmart", commission: 9, price: 179, image: "https://i5.walmartimages.com/seo/GE-Profile-Opal-Mini-Nugget-Countertop-Ice-Maker-with-Descaler-36lb-Daily-Capacity-with-WIFI-Charcoal-Gray_d654d424-b612-4ab4-9b40-dd4601a73c1f.afe665b60cd90b79522d9dd708ee901a.jpeg",
+    was: "Amazon 3% ($299, 11-22)", now: "Walmart Creator 9% ($179, was $279, Charcoal Gray; $120 less for the shopper and $16.11 a sale vs $8.97)",
+  },
   [amz("B0FY9LPSCW")]: {
     href: "https://mavely.app.link/rBTVe27Zj8b", store: "store-columbia", commission: 8.4, price: 22.5, image: "https://media.columbia.com/i/columbia/2070981_126_f_tt",
     was: "Amazon 4% ($30, Ancient Fossil/Road Runner)", now: "columbia.com via Later 8.4% ($22.50, Sea Salt/Buffalo; columbia.com does not sell the Road Runner color; ShopMy 8%)",
@@ -69,6 +73,23 @@ export const RATE_SWITCHES_1124 = {
     href: "https://mavely.app.link/LP97ij8Zj8b", store: "store-columbia", commission: 8.4, price: 39, image: "https://media.columbia.com/i/columbia/1476671_011_f_om",
     name: "Columbia Men's Steens Mountain 2.0 Full Zip Fleece Jacket",
     was: "Amazon 4% (shown $34.50 from 11-21; $37.05 on amazon.com 11-24, Black/Grill)", now: "columbia.com via Later 8.4% ($39, the 2.0 version, Black/Grill; 5% above Amazon's $37.05, $3.28 a sale vs $1.48)",
+  },
+  // Owner 11-24 ~3:35 AM: Later signed in again; links made ~3:30 AM in her Later account, rate read on Later's BISSELL brand
+  // page ("Up to 14%", base commission), prices read on bissell.com then (both in stock).
+  [shopmy("p-109151385")]: {
+    href: "https://mavely.app.link/SSVg1LN9j8b", store: "store-bissell", commission: 14, price: 79.99, image: "https://www.bissell.com/dw/image/v2/BDKV_PRD/on/demandware.static/-/Sites-master-catalog-bissell/default/dwc952753b/pwa-hi-res/Product-Images/4075/4075_Hero.png",
+    name: "BISSELL Little Green Mini Portable Carpet Cleaner",
+    was: "Target via ShopMy 4% ($79.99)", now: "bissell.com via Later 14% ($79.99, 4075, in stock; $11.20 a sale vs $3.20)",
+  },
+  [amz("B0DQLLPYGM")]: {
+    href: "https://mavely.app.link/68WdqBM9j8b", store: "store-bissell", commission: 14, price: 189.99, image: "https://www.bissell.com/dw/image/v2/BDKV_PRD/on/demandware.static/-/Sites-master-catalog-bissell/default/dw0e2c398a/pwa-hi-res/Product-Images/4039/Breakout_All_P3152_4039_PowercleanFurFinder_RGB_1300x1300_transparent.png",
+    was: "Amazon 3% ($184.89)", now: "bissell.com via Later 14% ($189.99, 4039, in stock; $5.10 more for the shopper, $26.60 a sale vs $5.55)",
+  },
+  // Lead 11-24 ~3:25 AM (owner rule, no ask): Walmart is cheaper or level AND pays more. Walmart Creator links made ~3:28 AM
+  // (Black Friday elevated: home 9%, toys 6%); listings read ~3:22 AM, sold by Walmart, in stock.
+  [amz("B0G4SR68GB")]: {
+    href: "https://walmrt.us/4jpdmER", store: "store-walmart", commission: 6, price: 44.97, image: "https://i5.walmartimages.com/seo/Fisher-Price-Little-People-My-Mario-Adventure-Playset-Musical-Toddler-Toy-with-2-Figures_59d463a3-b5c1-4ee3-8fbd-4611ee792102.e64adef224c128646e70f33e498f1bb4.jpeg",
+    was: "Amazon 3% ($44, 11-22)", now: "Walmart Creator 6% ($44.97, was $54.99; $2.70 a sale vs $1.32)",
   },
   [shopmy("p-107881822")]: {
     // Muck Boot's TAKE25 (25% off everything through Nov 28, src/content/giftGuideCodes.json) rides on the card, as it did at
@@ -147,8 +168,12 @@ export const CUTOUTS_1124 = [
   ["https://slimages.macysassets.com/is/image/MCY/products/0/optimized/34225830_fpx.tif", "melissa-doug-beauty-kiosk-macys-805953.webp"],
   ["https://slimages.macysassets.com/is/image/MCY/products/0/optimized/38191070_fpx.tif", "vtech-learn-zoom-motorbike-macys-294df8.webp"],
   ["https://slimages.macysassets.com/is/image/MCY/products/8/optimized/40071418_fpx.tif", "barbie-holiday-2026-macys-b7519b.webp"],
+  ["https://www.bissell.com/dw/image/v2/BDKV_PRD/on/demandware.static/-/Sites-master-catalog-bissell/default/dwc952753b/pwa-hi-res/Product-Images/4075/4075_Hero.png", "bissell-little-green-mini-4075-beb909.webp"],
+  ["https://www.bissell.com/dw/image/v2/BDKV_PRD/on/demandware.static/-/Sites-master-catalog-bissell/default/dw0e2c398a/pwa-hi-res/Product-Images/4039/Breakout_All_P3152_4039_PowercleanFurFinder_RGB_1300x1300_transparent.png", "bissell-furguard-4039-119517.webp"],
+  ["https://i5.walmartimages.com/seo/Fisher-Price-Little-People-My-Mario-Adventure-Playset-Musical-Toddler-Toy-with-2-Figures_59d463a3-b5c1-4ee3-8fbd-4611ee792102.e64adef224c128646e70f33e498f1bb4.jpeg", "little-people-my-mario-playset-walmart-f1889e.webp"],
+  ["https://i5.walmartimages.com/seo/GE-Profile-Opal-Mini-Nugget-Countertop-Ice-Maker-with-Descaler-36lb-Daily-Capacity-with-WIFI-Charcoal-Gray_d654d424-b612-4ab4-9b40-dd4601a73c1f.afe665b60cd90b79522d9dd708ee901a.jpeg", "ge-opal-mini-charcoal-walmart-ef2a74.webp"],
   ...STEALS_CUTOUTS_1124,
 ];
 
 /** Stores the 11-24 rows go to that the store list may not hold yet (key -> shown name). */
-export const STORES_1124 = { "store-elf": "e.l.f. Cosmetics", "store-muck-boot": "Muck Boot", "store-bissell": "BISSELL" };
+export const STORES_1124 = { "store-elf": "e.l.f. Cosmetics", "store-muck-boot": "Muck Boot", "store-bissell": "BISSELL", "store-kohls": "Kohl's" };

@@ -18,6 +18,8 @@
  * @mutate scripts/giftGuideOwner1124.mjs | ...HER_MACYS_1124_ROWS.map(macys), ...HER_STEALS_1124_ROWS.map(steal)]; | ...HER_MACYS_1124_ROWS.map(macys)];
  * @mutate scripts/giftGuideOwner1124.mjs |   ...STEALS_CUTOUTS_1124, |   // no steals cutouts
  * @mutate scripts/giftGuideSteals1124.mjs | ["https://go.shopmy.us/p-110125353", 24.99, | ["https://go.shopmy.us/p-110125353", 49.99,
+ * @mutate scripts/giftGuideHimKids1121.mjs | .map(rateSwitch1124); // My Mario playset | ; // My Mario playset
+ * @mutate scripts/giftGuideOwner1124.mjs | href: "https://walmrt.us/4zZkihX", store: "store-walmart", commission: 9, price: 179, | href: "https://walmrt.us/4zZkihX", store: "store-walmart", commission: 3, price: 299,
  */
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -46,6 +48,12 @@ const SWITCHES: [string, string, string, string, number, number, string][] = [
   ["him", amz("B0FY9LPSCW"), "https://mavely.app.link/rBTVe27Zj8b", "store-columbia", 8.4, 22.5, "Columbia Ratchet Strap Snapback Hat"],
   ["him", amz("B0076R6MN4"), "https://mavely.app.link/LP97ij8Zj8b", "store-columbia", 8.4, 39, "Columbia Men's Steens Mountain 2.0 Full Zip Fleece Jacket"],
   ["him", sm("107881822"), sm("110119003"), "store-muck-boot", 16, 195, "Muck Arctic Pro Boot"],
+  // Later signed in again ~3:35 AM: bissell.com via Later 14% (links made ~3:30 AM).
+  ["her", sm("109151385"), "https://mavely.app.link/SSVg1LN9j8b", "store-bissell", 14, 79.99, "BISSELL Little Green Mini Portable Carpet Cleaner"],
+  ["her", amz("B0DQLLPYGM"), "https://mavely.app.link/68WdqBM9j8b", "store-bissell", 14, 189.99, "BISSELL PowerClean FurGuard Cordless Stick Vacuum"],
+  // Walmart cheaper or level and paying more (Walmart Creator links made ~3:28 AM).
+  ["him", amz("B0H51ZX6SB"), "https://walmrt.us/4zZkihX", "store-walmart", 9, 179, "GE Profile Opal Mini Nugget Ice Maker"],
+  ["kids", amz("B0G4SR68GB"), "https://walmrt.us/4jpdmER", "store-walmart", 6, 44.97, "Fisher-Price Little People My Mario Adventure Playset"],
 ];
 /** [guide, ShopMy pin, price, name]: her Macy's adds, all Macy's via ShopMy 16%. */
 const MACYS: [string, string, number, string][] = [
@@ -89,15 +97,17 @@ const STEALS: [string, string, string, number, number, string][] = [
   ["kids", wm("4AQxuWv"), "store-walmart", 15, 8, "KPop Demon Hunters Girls Slippers"],
   ["kids", wm("4CcMa3A"), "store-walmart", 15, 5, "Monster Jam Grave Digger Toddler Slippers"],
   ["kids", wm("3VHA424"), "store-walmart", 15, 5.84, "Bluey Toddler Pajama Set"],
+  ["kids", "https://mavely.app.link/yftqKoJ9j8b", "store-kohls", 10.5, 44.99, "Monster Jam Megalodon & El Toro Loco Supercharge Speedway Playset"],
+  ["kids", wm("4texdKc"), "store-walmart", 6, 54, "Sony PS5 DualSense Wireless Controller, Midnight Black"],
 ];
 /**
  * Measured 11-24 and kept where they were (no store paying more for the same item at about the same price): Later's
  * Target rate is by category (Toys 2.8%, Home & Outdoor 4.9%; "up to 7%" is Target's HeyDay brand only) against ShopMy
- * Target's 4%, and bissell.com on ShopMy is 4%; anker.com sells the power bank only in a bundle; the Sol & Go mist set is
+ * Target's 4%; anker.com sells the power bank only in a bundle; the Sol & Go mist set is
  * on neither soldejaneiro.com nor Ulta.
  */
 const KEPT: [string, string][] = [
-  ["kids", sm("109218761")], ["kids", sm("109208104")], ["her", sm("109151385")],
+  ["kids", sm("109218761")], ["kids", sm("109208104")],
   ["her", amz("B0C6XK77HJ")], ["him", amz("B0C6XK77HJ")], ["her", amz("B0H42QZ8BW")],
 ];
 
@@ -177,14 +187,14 @@ describe("owner 11-24: the Black Friday steals she ticked", () => {
 
   it("each Kids steal has a girls/boys/everyone tag, and its listing's age wherever the listing gives one", () => {
     const tags = (JSON.parse(readFileSync("src/content/giftGuideKidsTags.json", "utf8")) as { tags: Record<string, { gender?: string; ageMin?: number; ageSource?: string }> }).tags;
-    const aged = [sm("110125685"), sm("110125702"), sm("110125781"), sm("110125801"), sm("110125837"), sm("110125353"), wm("4jcx3OU"), wm("3V7qKEv"), wm("4CcMa3A"), wm("3VHA424")];
+    const aged = [sm("110125685"), sm("110125702"), sm("110125781"), sm("110125801"), sm("110125837"), sm("110125353"), wm("4jcx3OU"), wm("3V7qKEv"), wm("4CcMa3A"), wm("3VHA424"), "https://mavely.app.link/yftqKoJ9j8b"];
     for (const [, href, , , , name] of STEALS.filter((m) => m[0] === "kids")) {
       const t = tags[tagKey(href)];
       expect(t, name).toBeTruthy();
       expect(["girls", "boys", "everyone"]).toContain(t.gender);
       if (aged.includes(href)) {
         expect(typeof t.ageMin, name).toBe("number");
-        expect(t.ageSource, name).toMatch(/^(target|walmart|macys)\.com .*read 2026-11-24: /);
+        expect(t.ageSource, name).toMatch(/^(target|walmart|macys|kohls)\.com .*read 2026-11-24: /);
       }
     }
     expect(aged.length).toBeGreaterThan(7);

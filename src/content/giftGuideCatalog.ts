@@ -17,7 +17,7 @@ import { isLiveDupes, isLivePickChunk, liveCopy, onLiveUpdate } from "@/lib/live
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { searchPageGuides } from "@/content/guideSearchIndex.mjs";
-import { isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { isLiveGuide, isThemeGuide } from "@/content/giftGuideLive.mjs";
 import { RETIRED_TO_SEARCH_PAGE } from "@/content/retiredGuideForward";
 import { pickPriceShown, shownDollars } from "@/lib/pickPriceShown.mjs";
 import { loadModule, untilReload } from "@/lib/loadModule";
@@ -370,8 +370,12 @@ const loadChunk = async (slug: string): Promise<void> => {
   dupeEntries = liveCopy<DupesFile>("dupes", dupes.default as DupesFile, isLiveDupes).dupes;
   const applyChunk = (c: PickChunk) => {
     drawn.set(slug, () => applyChunk(c));
+    // A themed kids guide shows no "shop similar" except a dupe the owner approved on that page (DupeEntry.guide is
+    // the theme's slug; owner 11-24: the Yoto Bluey bundle moved from Kids to Bluey with its dupe). Every other guide
+    // takes every record that names its pick, as before.
+    const entries = isThemeGuide(slug) ? dupeEntries.filter((d) => d.guide === slug) : dupeEntries;
     const withDupe = (p: CatalogPick) => {
-      const d = dupesFor(p, dupeEntries);
+      const d = dupesFor(p, entries);
       return d.length ? { ...p, dupes: d } : p;
     };
     loaded.set(slug, { picks: c.picks.map(toPick).map(typed).map(withDupe), ...(c.deals ? { deals: c.deals } : {}) });

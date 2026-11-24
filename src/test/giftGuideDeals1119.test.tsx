@@ -127,7 +127,7 @@ describe("deals page: the data", () => {
   });
 
   it("every link is an affiliate link we hold; every Amazon link carries our tag; Amazon photos unedited, others cut out or on white", () => {
-    const hosts = new Set(["go.shopmy.us", "www.amazon.com", "www.anrdoezrs.net", "click.linksynergy.com", "mavely.app.link"]);
+    const hosts = new Set(["go.shopmy.us", "www.amazon.com", "www.anrdoezrs.net", "click.linksynergy.com", "mavely.app.link", "walmrt.us"]);
     for (const d of deals) {
       const u = new URL(d.href);
       expect(u.protocol, d.brand).toBe("https:");

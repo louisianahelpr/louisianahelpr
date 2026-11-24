@@ -11,8 +11,7 @@
  * both leave the 88px photo for ONE line at the row's bottom-right, under the price, the cart left of the heart, and the
  * name column keeps a 44px strip at its foot so a name or the chips never run under them. Both stay outside the card's
  * link, with no circle behind either (owner 11-21). The landing's Top 10 card (photo on top at every width) keeps the
- * heart on its photo; since flow audit 1123 C12 (2026-11-24) its cart sits on the card's bottom line under the price
- * (src/test/giftGuideTop10ActionsOffPhoto1124.test.tsx computes that nothing else is drawn on a Top 10 photo).
+ * heart and cart on its photo.
  *
  * The geometry is read from the stylesheet itself. Measured in Chromium on 2026-11-22 (local build of this branch, every
  * drawn row of Her at 320/375/414 and Kids at 375): phone heart box at the row's right edge and bottom (Her 375: row
@@ -26,8 +25,8 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (max-width:767px){\n.gg-list>:where([data-gift-pick])>.gg-heart-pick | @media (min-width:0px){\n.gg-list>:where([data-gift-pick])>.gg-heart-pick
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-heart-pick,.gg-list .gg-cart{position:absolute;z-index:1} | .gg-list .gg-heart-pick,.gg-list .gg-cart{position:absolute;top:4px;left:54px;z-index:1}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-cart{top:46px;left:auto;right:2px} | .gg-list .gg-cart{top:2px;left:auto;right:46px}
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-cart{position:absolute;top:auto;bottom:0;right:0;z-index:1} | .gg-top10 .gg-cart{position:absolute;bottom:-10px;right:-10px;z-index:1}
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-heart-pick{left:auto;bottom:auto;justify-content:center} | .gg-top10 .gg-heart-pick{left:auto}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-cart{position:absolute;top:46px;right:2px;z-index:1} | .gg-top10 .gg-cart{position:absolute;bottom:-10px;right:-10px;z-index:1}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{left:auto;bottom:auto;justify-content:center} | .gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{left:auto}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-cart:hover{color:hsl(var(--bark))} | .gg-cart:hover{background:var(--gg-soft)}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -95,16 +94,16 @@ describe("heart and cart: on the photo on a computer, at the row's bottom-right 
     expect([cart.top, cart.right, cart.left]).toEqual([`${2 + TAP}px`, "2px", "auto"]);
   });
 
-  it("the Top 10 card: the heart on the photo's top-right; the cart off the photo, at the card's bottom line (flow audit 1123 C12)", () => {
+  it("the Top 10 card: the heart on the photo's top-right and the cart under it (not at the end of the price line)", () => {
     expect(rule(".gg-top10 .gg-heart-pick")).toMatchObject({ position: "absolute", top: "2px", right: "2px" });
-    expect(rule(".gg-top10 .gg-cart")).toMatchObject({ position: "absolute", top: "auto", bottom: "0", right: "0" });
-    // The heart never takes the phone row's bottom-right line: the Top 10's own rule comes later at the same weight.
-    expect(rule(".gg-top10 .gg-heart-pick", GIFT_GUIDES_CSS.indexOf(".gg-top10 .gg-cart{"))).toEqual({ left: "auto", bottom: "auto", "justify-content": "center" });
-    // No strip under a card with no cart or similar-items words; a card with one keeps 44px for that line.
+    expect(rule(".gg-top10 .gg-cart")).toMatchObject({ position: "absolute", top: `${2 + TAP}px`, right: "2px" });
+    // Neither takes the phone row's bottom-right line: the Top 10's own rules come later at the same weight and reset it.
+    expect(rule(".gg-top10 .gg-heart-pick,.gg-top10 .gg-cart")).toEqual({ left: "auto", bottom: "auto", "justify-content": "center" });
     expect(rule(".gg-top10 .gg-nm")["padding-bottom"]).toBe("0");
-    expect(rule(".gg-top10>li:has(>.gg-cart,>.gg-dupe) .gg-nm")["padding-bottom"]).toBe(`${TAP}px`);
+    // Flow audit 1123 C12: only a card with "shop similar" keeps a 44px strip under the price, for the words alone.
+    expect(rule(".gg-top10>li:has(>.gg-dupe) .gg-nm")["padding-bottom"]).toBe(`${TAP}px`);
     expect(GIFT_GUIDES_CSS.indexOf(".gg-top10 .gg-nm{")).toBeGreaterThan(GIFT_GUIDES_CSS.indexOf(`${ROW} .gg-nm{`));
-    expect(GIFT_GUIDES_CSS.indexOf(".gg-top10 .gg-heart-pick{left:auto")).toBeGreaterThan(PHONE);
+    expect(GIFT_GUIDES_CSS.indexOf(".gg-top10 .gg-heart-pick,.gg-top10 .gg-cart{")).toBeGreaterThan(PHONE);
     expect(rule(".gg-top10 .gg-nm .gg-nm-meta")["padding-right"]).toBeUndefined();
   });
 

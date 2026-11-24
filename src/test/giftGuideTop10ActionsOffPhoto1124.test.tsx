@@ -1,23 +1,25 @@
 /**
- * NOTHING BUT THE HEART IS DRAWN ON A TOP 10 PHOTO (flow audit 1123 C12, 2026-11-24).
+ * NO ACTION TEXT IS DRAWN ON A TOP 10 PHOTO (flow audit 1123 C12, 2026-11-24).
  *
  * On the gift guides landing (the page the Facebook posts send shoppers to), the Top 10 cards drew the grey words "shop
- * similar" and the Amazon cart ON the product photo (phone 375: #1 Therabody over its own logo, #2 over the Lola band;
- * desktop 1440: #1-#3), which read as a rendering mistake. The fix moves both to the card's bottom line under the price
- * ("shop similar" left of the cart, or in its place when there is no cart), and the name column keeps a 44px strip at
- * its foot for that line. The heart stays on the photo's top-right corner (owner 11-21 evening).
+ * similar" ON the product photo (phone 375: #1 Therabody over its own logo, #2 over the Lola band; desktop 1440: #1-#3),
+ * which read as a rendering mistake. The fix moves the words to the card's bottom line, under the price at its right
+ * end, with or without a cart, and the name column keeps a 44px strip at its foot for that line. The two icons keep
+ * their owner-chosen places on the photo: the heart on the top-right (owner 11-21 evening) and an Amazon cart right
+ * under it (owner 2026-11-22).
  *
  * jsdom draws no layout, so this test computes it: it renders the real landing (the real Top 10 picks, the real
- * stylesheet), and for every action control on every Top 10 card it resolves the cascade itself (every rule of the
+ * stylesheet), and for every control beside each Top 10 card's link it resolves the cascade itself (every rule of the
  * page's gift-guide CSS whose @media width test holds at 375 and at 1440, matched with element.matches, ordered by
- * specificity then source order). A control is off the photo when it is absolutely placed against the card's bottom
- * (top auto, 0 <= bottom, bottom + 44 <= the strip the name column keeps), the card's link has no bottom padding or
- * margin (so the name column's foot is the card's foot), and the photo sits above the name column. The inventory is
- * the rendered cards themselves, with a floor.
+ * specificity then source order, box shorthands expanded). A control that shows text (anything not in .sr-only) is off
+ * the photo when it is absolutely placed against the card's bottom (top auto, 0 <= bottom, bottom + 44 <= the strip the
+ * name column keeps), the card's link has no bottom padding or margin (so the name column's foot is the card's foot),
+ * and the photo sits above the name column. An icon-only control must be the heart or the cart, in its own spot. The
+ * inventory is the rendered cards themselves, with floors.
  *
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-cart{position:absolute;top:auto;bottom:0;right:0;z-index:1} | .gg-top10 .gg-cart{position:absolute;top:46px;right:2px;z-index:1}
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list.gg-top10 .gg-dupe{top:auto;bottom:0;left:auto;right:44px;justify-content:flex-end} | .gg-list.gg-top10 .gg-dupe{top:46px;bottom:auto;left:auto;right:46px;justify-content:center}
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10>li:has(>.gg-cart,>.gg-dupe) .gg-nm{padding-bottom:44px} | .gg-top10>li:has(>.gg-cart,>.gg-dupe) .gg-nm{padding-bottom:10px}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list.gg-top10 .gg-dupe{top:auto;bottom:0;left:auto;right:0;justify-content:flex-end} | .gg-list.gg-top10 .gg-dupe{top:46px;bottom:auto;left:auto;right:46px;justify-content:center}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10>li:has(>.gg-dupe) .gg-nm{padding-bottom:44px} | .gg-top10>li:has(>.gg-dupe) .gg-nm{padding-bottom:10px}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-cart{position:absolute;top:46px;right:2px;z-index:1} | .gg-top10 .gg-cart{position:absolute;top:auto;bottom:0;right:0;z-index:1}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
@@ -186,6 +188,7 @@ describe("Top 10 cards draw nothing but the heart on the photo (flow audit 1123 
   it("the cascade helper reads the stylesheet (sanity: the guide row's phone cart and the Top 10 heart resolve as written)", () => {
     expect(RULES.length).toBeGreaterThan(200);
     expect(specificity(".gg-list>:where([data-gift-pick])>.gg-cart")).toEqual([0, 2, 0]);
+    expect(specificity(".gg-top10>li:has(>.gg-dupe) .gg-nm")).toEqual([0, 3, 1]);
     expect(specificity(".gg-top10>li:has(>.gg-cart,>.gg-dupe) .gg-nm")).toEqual([0, 3, 1]);
     expect(specificity(".gg-list.gg-top10 .gg-dupe")).toEqual([0, 3, 0]);
     expect(mediaHolds("@media (min-width:768px) and (max-width:1023px)", 375)).toBe(false);
@@ -194,12 +197,12 @@ describe("Top 10 cards draw nothing but the heart on the photo (flow audit 1123 
     expect(sideOf("1px 2px", "left")).toBe("2px");
   });
 
-  it.each([375, 1440])("at %ipx every 'shop similar' and cart sits on the card's bottom line, under the price, never on the photo", async (width) => {
+  it.each([375, 1440])("at %ipx every control that shows text ('shop similar') sits on the card's bottom line, under the price, never on the photo", async (width) => {
     const c = await landing();
     const cards = [...c.querySelectorAll<HTMLElement>("[data-gift-top10] ul.gg-top10 > li[data-gift-pick]")];
     expect(cards).toHaveLength(10);
-    let actions = 0;
     let words = 0;
+    let carts = 0;
     for (const li of cards) {
       const name = li.querySelector(".gg-nm-name")?.textContent ?? "?";
       const item = li.querySelector<HTMLElement>(":scope > a.gg-item")!;
@@ -214,19 +217,28 @@ describe("Top 10 cards draw nothing but the heart on the photo (flow audit 1123 
         expect(v === "" || px(v) === 0, `${name}: the card link's ${p} is ${v}`).toBe(true);
       }
       const strip = px(cascaded(nm, "padding-bottom", width) || "0");
-      for (const el of li.querySelectorAll<HTMLElement>(":scope > .gg-cart, :scope > [data-gift-dupe]")) {
-        actions++;
-        if (el.matches("[data-gift-dupe]")) words++;
-        const what = `${width}px #${cards.indexOf(li) + 1} ${name}: ${el.matches("[data-gift-dupe]") ? "'shop similar'" : "cart"}`;
+      for (const el of li.querySelectorAll<HTMLElement>(":scope > :not(a.gg-item)")) {
+        const shown = [...el.childNodes].map((n) => (n instanceof HTMLElement && n.classList.contains("sr-only") ? "" : n.textContent ?? "")).join("").trim();
+        const at = `${width}px #${cards.indexOf(li) + 1} ${name}`;
+        if (!shown) {
+          // An icon-only control: the heart (top-right) or the cart right under it (owner 2026-11-22), nothing else.
+          const spot = [cascaded(el, "top", width), cascaded(el, "right", width)];
+          if (el.matches(".gg-heart-pick")) expect(spot, `${at}: heart`).toEqual(["2px", "2px"]);
+          else if (el.matches(".gg-cart")) { carts++; expect(spot, `${at}: cart`).toEqual([`${2 + TAP}px`, "2px"]); }
+          else throw new Error(`${at}: an unknown icon-only control (${el.className}) on the card`);
+          continue;
+        }
+        words++;
+        const what = `${at}: "${shown}"`;
         expect(cascaded(el, "position", width), what).toBe("absolute");
         expect(cascaded(el, "top", width), `${what} is pinned from the top (onto the photo)`).toBe("auto");
         const bottom = px(cascaded(el, "bottom", width));
         expect(bottom >= 0 && bottom + TAP <= strip, `${what}: bottom ${bottom}px, strip ${strip}px under the price`).toBe(true);
       }
     }
-    // The landing's Top 10 has Amazon carts and similar-item words today (floor; read from the rendered cards).
-    expect(actions).toBeGreaterThan(3);
-    expect(words).toBeGreaterThan(0);
+    // The landing's Top 10 has similar-item words and an Amazon cart today (floors; read from the rendered cards).
+    expect(words).toBeGreaterThan(3);
+    expect(carts).toBeGreaterThan(0);
   });
 
   it("the heart keeps its corner of the photo (owner 11-21 evening), clear of the rank on the top-left", async () => {

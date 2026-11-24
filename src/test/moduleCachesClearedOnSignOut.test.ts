@@ -74,6 +74,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/components/firstRun/firstRunPicks.ts:cache": { kind: "keyed-by-user-id" },
   "src/components/firstRun/firstRunPicks.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks that redraw the Get started guide when the picks change (owner 11-14); holds no account data" },
   "src/pages/home/homeDashboard/useNeedsYouTodos.ts:deriveListeners": { kind: "not-user-data", why: "subscriber callbacks told once when Home's derivation code chunk is in (B51, 2026-11-03); a yes or no about loading code, nothing about the account" },
+  "src/hooks/useCloseOnBack.ts:closers": { kind: "not-user-data", why: "close callbacks of the sheets open right now (flow audit 11-23 B4); emptied when they close, nothing about the account" },
   "src/hooks/usePageReadsSettled.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the one per-launch page-reads latch; a yes or no about timing, nothing about the account" },
   "src/components/job-card/faceActionRequest.ts:pending": { kind: "not-user-data", why: "a one-shot tap request (job id + 'confirm') that expires after 10 s and is cleared when JobConfirmation draws; nothing to leak to the next account" },
   "src/components/job-card/photoCaptureRequest.ts:pending":{ kind: "not-user-data", why: "a one-shot tap request (job id + before/after) that expires after 10 s and is cleared when its photo control draws; holds no photo and nothing to leak to the next account" },

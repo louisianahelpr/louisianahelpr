@@ -9,7 +9,7 @@
  * @mutate src/hooks/useCloseOnBack.ts |       window.history.pushState({ ...prev, [MARK]: true }, ""); |       void prev;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, waitForElementToBeRemoved } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
@@ -50,8 +50,11 @@ describe("guide sheets close on Back (B4)", () => {
       act(() => { c.open(); });
       await waitFor(() => expect(document.querySelector(c.sel)).not.toBeNull());
       expect((window.history.state as Record<string, unknown> | null)?.lhSheet).toBe(true);
+      // waitForElementToBeRemoved fails if the sheet is already gone at the start: it proves Back removed it.
+      const shown = document.querySelector(c.sel)!;
       await back();
-      await waitFor(() => expect(document.querySelector(c.sel)).toBeNull());
+      if (shown.isConnected) await waitForElementToBeRemoved(shown);
+      expect(document.querySelector(c.sel)).toBeNull();
       expect(window.location.pathname + window.location.search).toBe(startUrl);
 
       // Open again: closing with Done leaves the history where it was (no stray entry for the next Back).
@@ -60,8 +63,10 @@ describe("guide sheets close on Back (B4)", () => {
       const s = window.history.state as Record<string, unknown> | null;
       expect(s?.lhSheet).toBe(true);
       const done = screen.getAllByRole("button").find((b) => /done|close/i.test(b.textContent ?? "") || /close/i.test(b.getAttribute("aria-label") ?? ""))!;
+      const shownAgain = document.querySelector(c.sel)!;
       fireEvent.click(done);
-      await waitFor(() => expect(document.querySelector(c.sel)).toBeNull());
+      if (shownAgain.isConnected) await waitForElementToBeRemoved(shownAgain);
+      expect(document.querySelector(c.sel)).toBeNull();
       await tick();
       expect((window.history.state as Record<string, unknown> | null)?.lhSheet).not.toBe(true);
     });

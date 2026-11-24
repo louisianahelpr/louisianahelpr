@@ -13,6 +13,7 @@ import { TurnstileField, type TurnstileHandle } from "@/components/auth/Turnstil
 import { isCaptchaError } from "@/lib/turnstile";
 import { runWithCaptcha } from "@/hooks/useCaptcha";
 import { recognizedAuthError } from "@/lib/authErrors";
+import { isTransportFailure } from "@/lib/loginTransport";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -47,6 +48,10 @@ const ForgotPassword = () => {
     return () => window.clearTimeout(id);
   }, [loading]);
   const [sent, setSent] = useState(false);
+  // Flow audit 11-23 (B3): a send that never reached the server (offline, fetch
+  // rejected, 5xx) says nothing about the address, so it gets an inline error
+  // instead of the "Check your inbox" screen.
+  const [sendFailed, setSendFailed] = useState(false);
   // Resend cooldown — counts down from 60s after each send so users can
   // re-trigger the email without spam-clicking but also know how long to
   // wait. Supabase rate-limits server-side anyway; this is just the UX.
@@ -74,6 +79,7 @@ const ForgotPassword = () => {
   // so the screen doesn't reveal registration state.
   const performSend = async () => {
     hapticMedium();
+    setSendFailed(false);
     setLoading(true);
     // Never held on the security box unless the server refuses (A3-B1);
     // runWithCaptcha re-arms the single-use token for the resend.
@@ -96,6 +102,15 @@ const ForgotPassword = () => {
       if (msg.includes("rate") || msg.includes("limit") || msg.includes("too many")) {
         hapticError();
         toast.error(t("forgot.tooMany"));
+        return false;
+      }
+      // A transport failure (no connection, AuthRetryableFetchError, our
+      // captcha case already handled above) never reached the account lookup,
+      // so naming it leaks nothing. Only these show the inline error; every
+      // server answer about the address still falls through below.
+      if (isTransportFailure(error)) {
+        hapticError();
+        setSendFailed(true);
         return false;
       }
       // Fall through: success-shaped UX even on error.
@@ -267,6 +282,7 @@ const ForgotPassword = () => {
                         value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
+                      if (sendFailed) setSendFailed(false);
                       if (showEmailError) setShowEmailError(false);
                     }}
                     required
@@ -319,6 +335,12 @@ const ForgotPassword = () => {
               </Button>
               {slow && <p role="status" data-forgot-slow="" className="text-ds-12 text-center font-sans text-muted-foreground">{t("forgot.stillSending")}</p>}
             </form>
+        )}
+        {sendFailed && (
+          <p role="alert" data-forgot-send-failed="" className="flex items-center justify-center gap-1 text-ds-13 text-center font-sans text-[hsl(var(--destructive-ink))]">
+            <X className="w-3.5 h-3.5 shrink-0" aria-hidden />
+            {t("forgot.sendFailed")}
+          </p>
         )}
         {/* Turnstile for resetPasswordForEmail (Q1314), mounted in BOTH states
             so the "sent" screen's resend carries a token too. */}

@@ -248,6 +248,7 @@ export const es: Record<MsgKey, string> = {
   "forgot.close": "Cerrar",
   "forgot.captchaFailed": "La verificación de seguridad no terminó. Inténtelo de nuevo.",
   "forgot.tooMany": "Demasiados intentos por ahora. Espere un momento e inténtelo de nuevo.",
+  "forgot.sendFailed": "No se pudo enviar. Revise su conexión e inténtelo de nuevo.",
 
   // Sign up, step 1
   "signup.title": "Cree su cuenta",

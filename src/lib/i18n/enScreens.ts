@@ -119,6 +119,7 @@ export const enScreens = {
   "forgot.close": "Close",
   "forgot.captchaFailed": "The security check didn't finish. Try again.",
   "forgot.tooMany": "Too many attempts just now. Give it a moment and try again.", // area 11 L13: authErrors AUTH_RATE_LIMIT_MESSAGE
+  "forgot.sendFailed": "Couldn't send it. Check your connection and try again.", // flow audit 11-23 B3
 
   // Sign up, step 1
   "signup.title": "Create your account",

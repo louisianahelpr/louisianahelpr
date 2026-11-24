@@ -168,6 +168,10 @@ const NotFound = () => {
                   <Button asChild variant="outline" size="sm" className="rounded-full">
                     <Link to="/browse">{w("pub.browseJobs", "Browse jobs")}</Link>
                   </Button>
+                  {/* Whole-app audit 1123 LA-7: the page's search description offers the gift guides, so they are one tap away too. */}
+                  <Button asChild variant="outline" size="sm" className="rounded-full">
+                    <Link to="/gift-guides">{w("pub.giftGuides", "Gift guides")}</Link>
+                  </Button>
                 </div>
                 <Button
                   type="button"

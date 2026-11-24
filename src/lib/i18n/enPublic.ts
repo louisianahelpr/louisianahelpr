@@ -62,6 +62,7 @@ export const enPublic = {
   "pub.goBack": "Go back",
   "pub.browseDeclutter": "Browse Declutter",
   "pub.browseJobs": "Browse jobs",
+  "pub.giftGuides": "Gift guides",
   "pub.logIn": "Log in",
   "pub.job.notOpenTitle": "This job isn't open anymore",
   "pub.job.notOpenBody": "It may have been filled, expired or removed. If you posted it or you're doing it, log in to see it.",

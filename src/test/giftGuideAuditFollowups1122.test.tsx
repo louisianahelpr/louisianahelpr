@@ -9,7 +9,7 @@
  * Audit item 5: a code chip never breaks a code mid-word ("SHOWSTOPPER3 / 0" at 375): the code is one unbroken line,
  *    and a chip too narrow for the code and its copy icon puts the icon under the code (flex-wrap) instead.
  *
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE; |   const bandHeads = sortable;
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE \|\| guide.slug === MONSTER_JAM_PAGE; |   const bandHeads = sortable \|\| guide.slug === MONSTER_JAM_PAGE;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   if (bandHeads) for (const p of picks) sectionCount |   if (sortable) for (const p of picks) sectionCount
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx |       <CardHeart href={href} name={name} store={store} /> |       {null}
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | heartTapped(togglePick({ href, name, guide: DEALS_SLUG, id })); | heartTapped("added");

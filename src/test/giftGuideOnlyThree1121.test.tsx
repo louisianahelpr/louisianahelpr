@@ -31,8 +31,8 @@
  * card. The left menu holds Her, Him, Kids, then Black Friday deals, Small Business Saturday, Cyber Monday (the deals
  * page's sections), Free printables, Louisiana Holiday Hub and 25 Days sponsors, then the fun tools.
  *
- * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"]; | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday", "teens"];
- * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"]; | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday", "cyber-monday"];
+ * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "monster-jam", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"]; | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "monster-jam", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday", "teens"];
+ * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "monster-jam", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"]; | export const LIVE_GUIDES_1121 = ["her", "him", "kids", "monster-jam", "25-days-sponsors", "black-friday", "cyber-monday"];
  * @mutate src/pages/info/GiftGuides.tsx |   if (slug === DEALS_SLUG) return <Navigate to={`/gift-guides/${oldDealsTarget(hash)}`} replace />; |   if (slug === DEALS_SLUG) return <Navigate to="/gift-guides/black-friday" replace />;
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   LIVE_GUIDES_1121.filter((slug) => !NOT_TILES.has(slug)).flatMap((slug) => { |   LIVE_GUIDES_1121.flatMap((slug) => {
  * @mutate src/pages/info/GiftGuides.tsx |         {landing && <hr className="gg-divider" data-gift-divider="" />} |         {null}
@@ -75,7 +75,8 @@ import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
 
 afterEach(cleanup);
 
-const LIVE = ["her", "him", "kids"];
+// Owner 2026-11-24: the Monster Jam gift guide is live too (scripts/giftGuideMonsterJam1124.mjs).
+const LIVE = ["her", "him", "kids", "monster-jam"];
 const SPONSORS = "25-days-sponsors";
 /** The fun tools' pages the landing and the sidebar link (App.tsx routes), and the printables page. */
 const TOOLS = ["/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner"];

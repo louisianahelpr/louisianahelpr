@@ -353,7 +353,7 @@ describe("gift guides: the landing opens to the guides", () => {
     // Lead 11-21 landing polish: each landing tile says "Her · 36 gifts" (the count of its list, no chunk loaded).
     const lines = [...container.querySelectorAll("[data-gift-live-guides] [data-gift-tile-name]")].map((n) => n.textContent);
     // The counts are each list's own (owner 11-21: Him and Kids grow to every one of her saves).
-    expect(lines).toEqual(["her", "him", "kids"].map((s) => `${s[0].toUpperCase()}${s.slice(1)} · , ${CHUNK_PICK_COUNTS[s]} gifts`));
+    expect(lines).toEqual([...["her", "him", "kids"].map((s) => `${s[0].toUpperCase()}${s.slice(1)} · , ${CHUNK_PICK_COUNTS[s]} gifts`), `Monster Jam Gift Guide · , ${CHUNK_PICK_COUNTS["monster-jam"]} gifts`]);
     expect(CHUNK_PICK_COUNTS.him).toBeGreaterThan(100);
     cleanup();
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title. The landing's tiles (checked above) are the
@@ -452,10 +452,11 @@ describe("gift guides: the landing opens to the guides", () => {
     expect(container.querySelectorAll("[data-gift-sidebar] details, [data-gift-sidebar] summary").length).toBe(0);
     const guides = [...container.querySelectorAll("[data-gift-side-guides] a")];
     // Guide consistency audit 1122 #19: My Wish List closes the group, as in the phone's menu sheet (no dot).
-    expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", "/gift-guides/my-list"]);
-    expect(guides.slice(1, 4).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(["oat", "green", "red"]);
-    expect(guides.slice(1, 4).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(["gg-dot gg-oat", "gg-dot gg-green", "gg-dot gg-red"]);
-    expect(guides[4].querySelector("[data-gift-side-dot]")).toBeNull();
+    expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", "/gift-guides/monster-jam", "/gift-guides/my-list"]);
+    // Owner 2026-11-24: Monster Jam sits after Kids in Kids red.
+    expect(guides.slice(1, 5).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(["oat", "green", "red", "red"]);
+    expect(guides.slice(1, 5).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(["gg-dot gg-oat", "gg-dot gg-green", "gg-dot gg-red", "gg-dot gg-red"]);
+    expect(guides[5].querySelector("[data-gift-side-dot]")).toBeNull();
     expect(container.querySelector('[data-gift-sidebar] a[aria-current="page"]')?.getAttribute("href")).toBe("/gift-guides");
     cleanup();
     for (const [url, cur] of [["/gift-guides/kids", "/gift-guides/kids"], ["/gift-guides/mom", "/gift-guides/her"], ["/gift-guides/dad", "/gift-guides/him"]]) {
@@ -712,7 +713,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
       .filter((s) => !SEARCH_PAGES.some((p) => p.slug === s));
     expect(listed).toEqual(expect.arrayContaining(OWN_PAGES.map((s) => `/gift-guides/${s}`)));
     expect(listed).not.toContain(`/gift-guides/${DEALS_SLUG}`);
-    expect(guides.length).toBe(4); // owner 11-21: Her, Him, Kids and the sponsors page; the relationship pages 301 and are out of the sitemap
+    expect(guides.length).toBe(5); // owner 11-21: Her, Him, Kids and the sponsors page (11-24: + Monster Jam); the relationship pages 301 and are out of the sitemap
     // Every listed guide opens, holds picks, and is no thin store page.
     for (const s of guides) {
       const g = guideBySlug(s);
@@ -744,7 +745,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     // A "gifts for the" / "gifts for a" guide reads as one phrase (batch 11-19: og:title was "Gifts for the: Coffee
     // Lover: holiday gift guide 2026"). No name puts a colon after a dangling article. Owner 11-21: no live guide is a
     // "Gifts for the ..." one (Coffee Lover, Family and the rest are retired), so only the rule over every name stays.
-    expect(Object.keys(GIFT_GUIDE_SEO).length).toBe(4);
+    expect(Object.keys(GIFT_GUIDE_SEO).length).toBe(5); // + Monster Jam (owner 11-24)
     for (const name of Object.values(GIFT_GUIDE_SEO)) expect(name).not.toMatch(/\b(the|a|an):/i);
     // Q178 (CI 11-18: /declutter/item/:id 418 -> 423 KB gz): the guides' name table stays out of publicPageMeta.mjs,
     // which Login, Signup, Index and the Declutter item page load cold; only GiftGuides.tsx and api/share.ts read it.
@@ -860,7 +861,7 @@ describe("gift guides: each row heading carries its guide count (owner 11-18 PM)
       cleanup();
     }
     expect(counts.size).toBeGreaterThan(1); // 10 rows, 2026-11-21
-    expect([...new Set(counts.values())]).toEqual([3]); // Her, Him and Kids, from every old group link
+    expect([...new Set(counts.values())]).toEqual([4]); // Her, Him, Kids and Monster Jam (owner 11-24), from every old group link
   });
 });
 

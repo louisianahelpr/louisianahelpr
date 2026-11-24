@@ -42,6 +42,7 @@ import { applyPeople } from "./giftGuidePeople1120.mjs";
 import { applyStandard } from "./giftGuideStandard1120.mjs";
 import { applyHer1121 } from "./giftGuideHer1121.mjs";
 import { applyHimKids1121 } from "./giftGuideHimKids1121.mjs";
+import { applyMonsterJam1124 } from "./giftGuideMonsterJam1124.mjs";
 import { PEOPLE_GUIDES } from "../src/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
 /** The merged guides whose picks feed For Her and For Him (the people guides and Mom and Dad). */
@@ -4106,6 +4107,8 @@ console.log(`gift-guide-picks: final sweep ${JSON.stringify(finalSweep)}`);
   const t = applyHer1121(pageList, storeList);
   console.log(`gift-guide-picks: her 1121 (after the final sweep) ${JSON.stringify(t)}`);
   console.log(`gift-guide-picks: him + kids 1121 (after the final sweep) ${JSON.stringify(applyHimKids1121(pageList, storeList))}`);
+  // The Monster Jam guide (owner 11-24): its researched rows, last, so no rule or sweep touches them.
+  console.log(`gift-guide-picks: monster jam 1124 ${JSON.stringify(applyMonsterJam1124(pageList))}`);
 }
 rmSync(chunkDir, { recursive: true, force: true });
 mkdirSync(chunkDir, { recursive: true });
@@ -4199,7 +4202,8 @@ for (const slug of liveChunkSlugs) {
     ? (e.age ? `${cap(e.lead)}, ${e.title.toLowerCase()} (${e.age})` : /^gifts for$/i.test(e.lead) ? `Gifts for ${e.title}`
       // "Gifts for the Coffee Lover", never "Gifts for the: Coffee Lover" (batch 11-19: the og:title read "the: ...").
       : /^gifts for (the|a)$/i.test(e.lead) ? `${cap(e.lead)} ${e.title}` : `${cap(e.lead)}: ${e.title}`)
-    : `${e.title} gift guide`;
+    // A title that already says it ("Monster Jam Gift Guide", owner 11-24) is the name, in sentence case.
+    : /\bgift guide$/i.test(e.title) ? e.title.replace(/gift guide$/i, "gift guide") : `${e.title} gift guide`;
   if (usedNames.has(named.toLowerCase())) named = `${named} (${slug.startsWith("store-") ? "store" : slug})`;
   usedNames.add(named.toLowerCase());
   seo[slug] = named;

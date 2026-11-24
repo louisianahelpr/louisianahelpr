@@ -168,7 +168,7 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     const { container } = renderAt("/gift-guides");
     expect(container.querySelector("[data-gift-quick-picks]")).toBeNull();
     const tiles = [...container.querySelectorAll("[data-gift-live-guides] a[data-gift-tile]")];
-    expect(tiles.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/her", "/gift-guides/him", "/gift-guides/kids"]);
+    expect(tiles.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", "/gift-guides/monster-jam"]);
   });
 
   // Owner 11-21 ("title on left with back arrow on the left of the title", like the other pages): the landing's back
@@ -208,6 +208,6 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     // Owner 11-21 ("the arches and letters are just small and squished together"): 96px -> 136px; pass 2 the same night
     // ("gifts for her is still too small text size and still close together"): 136px -> 184px, still under 190px.
     expect(h).toBeLessThanOrEqual(190);
-    expect(GUIDES.length).toBe(4); // owner 11-21: Her, Him, Kids and the sponsors page (the relationship views are gone)
+    expect(GUIDES.length).toBe(5); // owner 11-21: Her, Him, Kids and the sponsors page (the relationship views are gone); 11-24 + Monster Jam
   });
 });

@@ -13,9 +13,11 @@
  * DEAL_DAY_SLUGS). Small Business Saturday is the confirmed Louisiana 25 Days sponsors only. The old one-page address
  * "black-friday-cyber-monday" opens Black Friday. The store codes and sales live on the deals days too (owner 11-21:
  * "Codes and deals shouldn't randomly show in sections"), each day only its own, with a sidebar entry and no tile.
+ * The Monster Jam gift guide (owner 2026-11-24: "lets put together a monster jam gift guide that i can share on
+ * facebook") is live too, after Kids: scripts/giftGuideMonsterJam1124.mjs, guard src/test/giftGuideMonsterJam1124.test.ts.
  * Guard: src/test/giftGuideOnlyThree1121.test.tsx.
  */
-export const LIVE_GUIDES_1121 = ["her", "him", "kids", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"];
+export const LIVE_GUIDES_1121 = ["her", "him", "kids", "monster-jam", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"];
 
 /** Whether a guide slug is live (LIVE_GUIDES_1121). */
 export const isLiveGuide = (slug) => LIVE_GUIDES_1121.includes(slug);

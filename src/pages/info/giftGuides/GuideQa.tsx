@@ -1,4 +1,5 @@
 import { GUIDE_UPDATED } from "@/content/guideUpdated.mjs";
+import { GUIDE_SEARCH } from "@/content/guideSearch.mjs";
 import { SMALL_BIZ_CATEGORIES } from "@/content/giftGuideSmallBiz.mjs";
 import smallBiz from "@/content/giftGuideSmallBiz.json";
 import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
@@ -25,6 +26,7 @@ const QA_CSS = `
 .gqa h2{margin:0 0 4px;font-size:20px;line-height:1.25;font-weight:700;color:hsl(var(--foreground))}
 .gqa dt{margin-top:16px;font-size:15px;line-height:1.4;font-weight:600;color:hsl(var(--foreground))}
 .gqa dd{margin:4px 0 0;font-size:15px;line-height:1.55;color:hsl(var(--foreground))}
+.gqa-intro{margin:0 0 20px;font-size:15px;line-height:1.55;color:hsl(var(--foreground))}
 .gqa-by{margin:18px 0 0;font-size:13px;line-height:1.5;color:hsl(var(--muted-foreground))}
 `;
 
@@ -40,9 +42,13 @@ export function GuideQa(props: GuideQaProps) {
   if (qa.length === 0) return null;
   const updated = Object.prototype.hasOwnProperty.call(GUIDE_UPDATED, props.page) ? updatedLine(GUIDE_UPDATED[props.page].day) : "";
   const byline = props.kind === "catalog" && props.page !== "25-days-sponsors" ? QA_BYLINE.gifts : QA_BYLINE.other;
+  // Google search setup (owner 11-23): Her, Him and Kids open this section with their short intro (guideSearch.mjs), the
+  // same words the pre-JS body has under its H1. Not under the banner: owner 11-18, no subtitle under a guide's title.
+  const intro = props.kind === "catalog" && Object.prototype.hasOwnProperty.call(GUIDE_SEARCH, props.page) ? GUIDE_SEARCH[props.page as keyof typeof GUIDE_SEARCH].intro : null;
   return (
     <section className="gqa" aria-labelledby="guide-qa-title" data-guide-qa={props.page}>
       <style>{QA_CSS}</style>
+      {intro && <p className="gqa-intro" data-guide-intro="">{intro}</p>}
       <h2 id="guide-qa-title">{QA_TITLE}</h2>
       <dl>
         {qa.map(({ q, a }) => (

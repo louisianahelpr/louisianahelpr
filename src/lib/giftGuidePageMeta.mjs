@@ -8,6 +8,7 @@
 import { SITE_ORIGIN, NOINDEX_ROBOTS, PUBLIC_PAGE_META, publicPageMetaFor } from "./publicPageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "../content/giftGuideSeo.mjs";
 import { dealDay } from "../content/giftGuideDeals.mjs";
+import { DEAL_DAY_SEARCH_TITLES, GUIDE_SEARCH, guideSearchDescription } from "../content/guideSearch.mjs";
 
 /** "A, B and C" */
 function joinNames(names) {
@@ -56,10 +57,15 @@ export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count
   const named = Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, slug) ? GIFT_GUIDE_SEO[slug] : null;
   const name = named ?? `${fallbackTitle} gift guide`;
   const lead = Object.prototype.hasOwnProperty.call(GUIDE_LEAD_PICKS, slug) ? GUIDE_LEAD_PICKS[slug] : null;
+  // Google search setup (owner 11-23): Her, Him and Kids get their keyword title and a description of at most 155
+  // characters (src/content/guideSearch.mjs); og:title (the Facebook headline) stays as it was.
+  const search = named && Object.prototype.hasOwnProperty.call(GUIDE_SEARCH, slug) ? GUIDE_SEARCH[slug] : null;
+  const first = (lead ?? topNames)[0];
   const description =
+    (search ? guideSearchDescription(slug, count, first ? shortName(first) : "") : null) ??
     giftGuideDescription(name, lead ?? topNames, count) ??`${name}: hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.`;
   return {
-    title: `${name} — Helpr`,
+    title: search ? search.title : `${name} — Helpr`,
     description,
     canonical: `${SITE_ORIGIN}/gift-guides/${slug}`,
     ogTitle: `${name}: holiday gift guide 2026`,
@@ -90,7 +96,8 @@ const SPONSORS_META = {
  * own description (giftGuideDeals.mjs DEAL_EVENTS). No catalog guide, so not in GIFT_GUIDE_SEO.
  */
 export function dealDayPageMeta(day) {
-  return { title: `${day.pageTitle} — Helpr`, description: day.description, canonical: `${SITE_ORIGIN}/gift-guides/${day.id}`, ogTitle: day.pageTitle, ogDescription: day.description };
+  const title = Object.prototype.hasOwnProperty.call(DEAL_DAY_SEARCH_TITLES, day.id) ? DEAL_DAY_SEARCH_TITLES[day.id] : `${day.pageTitle} — Helpr`;
+  return { title, description: day.description, canonical: `${SITE_ORIGIN}/gift-guides/${day.id}`, ogTitle: day.pageTitle, ogDescription: day.description };
 }
 
 /** publicPageMetaFor plus the indexed gift guides (api/share.ts's pre-JS head and route table). */

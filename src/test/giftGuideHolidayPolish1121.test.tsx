@@ -4,7 +4,7 @@
  *   - the landing's head and pre-JS body name only what is live (they promised budget, career and store guides);
  *   - search matches word starts (not the inside of words) and every meaning-word points to a live guide.
  *
- * @mutate src/lib/publicPageMeta.mjs |     description: "Gift ideas for her, him and the kids from Louisiana Helpr, every pick with its price and sorted by budget.", |     description: "Gift ideas for everyone on your list, from Louisiana Helpr: by person, budget, career and store, plus Louisiana favorites.",
+ * @mutate src/lib/publicPageMeta.mjs |     description: "Christmas gift ideas for her, him and the kids, from stocking stuffers under $10 to gifts under $25 and $50. Every pick shows its price and store.", |     description: "Gift ideas for everyone on your list, from Louisiana Helpr: by person, budget, career and store, plus Louisiana favorites.",
  * @mutate src/content/giftGuideCatalog.ts |   if (w.length >= 5) return hay.includes(w); |   return hay.includes(w);
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |   const pages = query.trim() ? searchPages(query) : []; |   const pages: { to: string; title: string; tint: string }[] = [];
  * @mutate src/content/giftGuideCatalog.ts |     budgetSlugs.push("her", "him", "kids"); |     budgetSlugs.push();

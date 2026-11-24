@@ -5,7 +5,7 @@
  * the one rule both read); every other pick is a plain ListItem (a Product with no offers, review or rating is an error
  * in Google's Product rules). Never availability, rating or review: we show none of them.
  *
- * @mutate src/lib/seoBodies.mjs |       if (!pickPriceShown(x.price, x.priceAt, today)) return { "@type": "ListItem", position: i + 1, name, url: href }; |       if (!x.price) return { "@type": "ListItem", position: i + 1, name, url: href };
+ * @mutate src/lib/seoBodies.mjs |       if (!pickPriceShown(x.price, x.priceAt, today)) return { "@type": "ListItem", position: i + 1, name, url: href, ...(image ? { image } : {}) }; |       if (!x.price) return { "@type": "ListItem", position: i + 1, name, url: href, ...(image ? { image } : {}) };
  * @mutate src/lib/seoBodies.mjs |           offers: { "@type": "Offer", price: shownDollars(x.price), priceCurrency: "USD", url: href }, |           offers: { "@type": "Offer", price: x.price, priceCurrency: "USD", url: href },
  * @mutate api/share.ts | const list = lists ? dealsItemListLd(day.pageTitle, seoData()?.deals ?? [], today, day.id, lists) : null; | const list = null;
  * @mutate src/prerender/seoData.ts |       const extra = { ...(p.image ? { image: p.image } : {}), ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}) }; |       const extra = {};
@@ -82,7 +82,8 @@ describe("the guide ItemList (unit)", () => {
 
   it("keeps a pick with no shown price (none, or older than the card allows) a plain ListItem, never a Product", () => {
     const els = elements(ld);
-    expect(els[1]).toEqual({ "@type": "ListItem", position: 2, name: "Stale price", url: "https://go.shopmy.us/p-1" });
+    // Google search setup 11-23: a plain row keeps its photo (schema.org Thing.image), never a price or an Offer.
+    expect(els[1]).toEqual({ "@type": "ListItem", position: 2, name: "Stale price", url: "https://go.shopmy.us/p-1", image: `${ORIGIN}/gift-guides/c/a.webp` });
     expect(els[2]).toEqual({ "@type": "ListItem", position: 3, name: "No price", url: "https://go.shopmy.us/p-2" });
   });
 

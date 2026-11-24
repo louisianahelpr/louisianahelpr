@@ -74,10 +74,11 @@ export function PickThumb({ pick, size = 52, eager }: { pick: CatalogPick; size?
     // Owner 11-19 ("remove the white around these images"): the cream sits on the gg-photo box and the photo multiplies
     // onto it, so a white photo background blends into the card. A photo that already failed before React attached
     // onError (ref check), or that loads as a blank/tiny image (onLoad), draws the store tile instead.
+    // Google search setup 11-23: "<name> gift idea" alt for image search; aria-hidden, as the link already reads the name.
     return (
       <span className="gg-photo">
         <img
-          className="gg-thumb" loading={eager ? "eager" : "lazy"} decoding="async" src={pick.image} alt="" width={size} height={size} referrerPolicy="no-referrer-when-downgrade"
+          className="gg-thumb" loading={eager ? "eager" : "lazy"} decoding="async" src={pick.image} alt={G.photoAlt(pick.name)} aria-hidden="true" width={size} height={size} referrerPolicy="no-referrer-when-downgrade"
           ref={(img) => { if (img?.currentSrc && photoFailed(img)) setFailed(true); }}
           onLoad={(e) => { if (photoFailed(e.currentTarget)) setFailed(true); }}
           onError={() => setFailed(true)}

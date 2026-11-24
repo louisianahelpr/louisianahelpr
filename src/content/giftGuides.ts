@@ -367,6 +367,8 @@ export const giftGuides = {
   /** A deal's end date, "2026-11-22" -> "Ends Nov 22". */
   dealEnds: (ymd: string) => `Ends ${new Date(`${ymd}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`,
   newTab: "opens in a new tab",
+  /** A pick photo's alt (Google search setup 11-23, image search). The photo is aria-hidden: the link already reads the name. */
+  photoAlt: (name: string) => `${name} gift idea`,
   // Amazon Buy Now on a card (owner 11-21): the cart icon's spoken label.
   addToAmazonCart: (name: string) => `Add ${name} to your Amazon cart (opens in a new tab)`,
   onStore: (store: string) => `On ${store}`,

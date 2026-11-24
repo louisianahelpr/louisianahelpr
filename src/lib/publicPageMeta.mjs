@@ -70,9 +70,10 @@ export const PUBLIC_PAGE_META = {
   // Holiday gift guides (owner 2026-11-16; indexed from the follow-up batch 2026-11-18, SEO): in the sitemap with every
   // guide that holds picks (scripts/generate-sitemap.mjs allGiftGuidePaths); each guide's own head is giftGuidePageMeta (giftGuidePageMeta.mjs).
   "/gift-guides": {
-    title: "Holiday gift guides 2026 — Helpr",
+    // Google search setup (owner 11-23): a keyword title and description (src/test/guideSearchHead1123.test.ts).
+    title: "Christmas gift ideas 2026: for her, him & kids — Helpr",
     // Holiday audit 1121: only Her, Him and Kids are live (src/content/giftGuideLive.mjs), so the head names only them.
-    description: "Gift ideas for her, him and the kids from Louisiana Helpr, every pick with its price and sorted by budget.",
+    description: "Christmas gift ideas for her, him and the kids, from stocking stuffers under $10 to gifts under $25 and $50. Every pick shows its price and store.",
     canonical: `${SITE_ORIGIN}/gift-guides`,
     // Owner 2026-11-22 (her 6 PM Facebook post): the shared link's headline is "Holiday gift guides 2026" with no "from
     // Louisiana Helpr" (og:site_name still names the site); Facebook will not let her edit the headline herself.

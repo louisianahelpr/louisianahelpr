@@ -249,8 +249,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // 11-24 (scripts/giftGuideOwner1124.mjs): the Columbia hat moved to columbia.com at $22.50 (was $30), so Under $25 +1, $25 to $50 -1.
       // Her steals 11-24 (scripts/giftGuideSteals1124.mjs): the plaid mug set ($9.99, read ~$10) and the Grinch socks ($10)
       // are Under $25.
-      // Macy's steal S16 (11-24): the adidas hoodie ($25) is $25 to $50.
-      him: { "Stocking stuffers under $10": 23, "Under $25": 48, "$25 to $50": 50, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 48 },
+      // Macy's steal S16 (11-24): the adidas hoodie ($25) is $25 to $50; S52 the Crocs Cozzzy ($25) too; S36 the Beats
+      // Solo 4 ($99.99, read ~$100) is $100 and up.
+      him: { "Stocking stuffers under $10": 23, "Under $25": 48, "$25 to $50": 51, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 49 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -279,8 +280,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Owner ~3:10 AM: the Kohl's Supercharge Speedway ($44.99) is $25 to $50; S47 the DualSense ($54) is $50 to $75; the My
       // Mario playset moved to Walmart at $44.97 (still $25 to $50).
       // Macy's steals 11-24: the Kuromi plush ($8) and UNO deck ($5.57) are stocking stuffers; the
-      // Bowser playset, vanity, runway and girls' jacket ($12.57-$19.99) are Under $25.
-      kids: { "Stocking stuffers under $10": 11, "Under $25": 72, "$25 to $50": 41, "$50 to $75": 11, "$75 to $100": 9, "$100 and up": 27 },
+      // Bowser playset, vanity, runway and girls' jacket ($12.57-$19.99) are Under $25, and so is S51 the Crocs kids' clog ($23).
+      kids: { "Stocking stuffers under $10": 11, "Under $25": 73, "$25 to $50": 41, "$50 to $75": 11, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

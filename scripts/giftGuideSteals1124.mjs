@@ -65,6 +65,9 @@ export const KIDS_STEALS_1124_ROWS = [
   ["https://go.shopmy.us/p-110122700", 16.77, "https://5thave-img-cdn.santasmartnetwork.com/pf/7089d969-7721-3baa-b676-dff0c0b25fe0.jpg", "Journey Girls Glam Runway 4-Sided Fashion Show Playset", "Journey Girls", "store-macys", "pretend-play", 16, "A light-up runway for at-home fashion shows."],
   // S15 (reg. $65), Macy's ID 27143484, girls' sizes 5-16 (the Steve Madden jacket of the "Reebok or Steve Madden" deal).
   ["https://go.shopmy.us/p-110122792", 19.99, "https://5thave-img-cdn.santasmartnetwork.com/pf/978baa26-8b88-3a81-9edc-30ddba307077.jpg", "Steve Madden Girls' Lightweight Hooded Packable Jacket", "Steve Madden", "store-macys", "jacket", 16, "A light packable puffer in girls' sizes 5-16."],
+  // S51: ShopMy crocs.com 10% (link made 11-24 ~4:10 AM, rate on ShopMy's link screen); crocs.com $23 for the Kids' Classic
+  // Clog (read ~3:12 AM, in stock; the photo is Black). Kids' third Crocs item is skipped (one per brand rule: Jibbitz + this).
+  ["https://go.shopmy.us/p-110135306", 23, "https://media.crocs.com/images/t_standard/products/206991_001_ALT140/crocs", "Crocs Kids' Classic Clog", "Crocs", "store-crocs", "shoes", 10, "Classic Crocs clogs in kid sizes."],
 ];
 /** For Her. */
 export const HER_STEALS_1124_ROWS = [
@@ -93,6 +96,13 @@ export const HIM_STEALS_1124_ROWS = [
   // S16 (reg. $50), Macy's ID 20376480. Store check 11-24 ~3:55 AM: Hibbett $50, Nordstrom Rack $39.97+, adidas.com's
   // Essentials hoodie $35 (adidas ShopMy 12%); Macy's $25 at 16% wins on price and rate.
   ["https://go.shopmy.us/p-110122844", 25, "https://5thave-img-cdn.santasmartnetwork.com/pf/96c05f84-372b-3d82-afad-8d13a22ed3a9.jpg", "adidas Men's Essentials Feel Cozy Fleece Hoodie", "adidas", "store-macys", "sweatshirt", 16, "A soft fleece hoodie for chilly mornings."],
+  // S52: ShopMy crocs.com 10% (link made 11-24 ~4:08 AM); crocs.com $25 (reg. $49.99, read ~3:12 AM, in stock, Black photo).
+  // Zappos and DSW (ShopMy 12%) list the Cozzzy at full price, so crocs.com's $25 wins.
+  ["https://go.shopmy.us/p-110135239", 25, "https://media.crocs.com/images/t_standard/products/209386_001_ALT100/crocs", "Crocs Classic Cozzzy Slipper", "Crocs", "store-crocs", "slippers", 10, "Fuzzy-lined Crocs slippers for cold floors."],
+  // S36: Kohl's $99.99 (reg. $199.99, plus $15 Kohl's Cash; read on kohls.com 11-24 ~4:12 AM) through Later (link by bf-page
+  // ~3:45 AM; Kohl's 10.5%, Later did not show an electronics rate). Walmart's $88.97 listing is gone (only open-box or
+  // marketplace sellers) and Walmart pays 0% on Beats; Target pays ShopMy 4%.
+  ["https://mavely.app.link/y7KIsnyak8b", 99.99, "https://media.kohlsimg.com/is/image/kohls/7173442_Black", "Beats Solo 4 On-Ear Wireless Headphones, Matte Black", "Beats", "store-kohls", "headphones", 10.5, "Wireless Beats headphones with 50 hours of battery."],
 ];
 
 /** Store photos for the steals, cut out (Apple Vision) into public/gift-guides/cutouts: photo URL -> file. */
@@ -125,4 +135,7 @@ export const STEALS_CUTOUTS_1124 = [
   ["https://5thave-img-cdn.santasmartnetwork.com/pf/7089d969-7721-3baa-b676-dff0c0b25fe0.jpg", "glam-runway-playset-macys-1afb7a.webp"],
   ["https://5thave-img-cdn.santasmartnetwork.com/pf/978baa26-8b88-3a81-9edc-30ddba307077.jpg", "steve-madden-girls-packable-jacket-macys-1bd659.webp"],
   ["https://5thave-img-cdn.santasmartnetwork.com/pf/96c05f84-372b-3d82-afad-8d13a22ed3a9.jpg", "adidas-feelcozy-hoodie-macys-f5b284.webp"],
+  ["https://media.crocs.com/images/t_standard/products/206991_001_ALT140/crocs", "crocs-kids-classic-clog-black-614d9c.webp"],
+  ["https://media.crocs.com/images/t_standard/products/209386_001_ALT100/crocs", "crocs-classic-cozzzy-slipper-black-1fe5a2.webp"],
+  ["https://media.kohlsimg.com/is/image/kohls/7173442_Black", "beats-solo-4-black-kohls-bcae83.webp"],
 ];

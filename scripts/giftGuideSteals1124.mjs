@@ -49,6 +49,22 @@ export const KIDS_STEALS_1124_ROWS = [
   // S47: Walmart $54 (was $74.99, Midnight Black, sold by Walmart, in stock ~3:17 AM) through Walmart Creator 6%; Kohl's
   // ($54.99 + Kohl's Cash) pays 0% on gaming, Target pays 4% (ShopMy), Later's Walmart gaming 4.9%.
   ["https://walmrt.us/4texdKc", 54, "https://i5.walmartimages.com/seo/Sony-PS5-DualSense-Wireless-Controller-Midnight-Black_2384fbb2-237e-4e16-89bb-f39d20777a0f.a6d2c857ba5ab080f212f44d72baf0f4.png", "Sony PS5 DualSense Wireless Controller, Midnight Black", "Sony", "store-walmart", "game-controller", 6, "A PS5 DualSense controller for game nights."],
+  // Macy's steals (links made in her ShopMy at Macy's 16%, 11-24 ~2:00 AM). Prices are the Macy's Black Friday prices read
+  // ~1:30 AM (bf-store-sales-1124.md); macys.com has refused page reads since ~2:11 AM (Access Denied in Chrome and curl), so
+  // each photo is Macy's own product photo as mirrored on a Macy's price-tracker page (beyondstyle.us, id macys_<ID>), and
+  // each age is the maker's (Jakks lists Bowser 3+, Mattel lists UNO 7+).
+  // S5 (reg. $23, offer ends Dec 6), Macy's ID 17611947, "for ages 3 and up".
+  ["https://go.shopmy.us/p-110122442", 8, "https://5thave-img-cdn.santasmartnetwork.com/pf/a4439462-c327-3203-a0af-134c8b7e1f9a.jpg", "Gund Kuromi Cupcake Plush", "Gund", "store-macys", "plush", 16, "A squishy Kuromi cupcake plush to hug."],
+  // S6 (reg. $26.99), Macy's ID 23353679.
+  ["https://go.shopmy.us/p-110122526", 5.57, "https://5thave-img-cdn.santasmartnetwork.com/pf/5639cc43-2a59-3a28-8865-53a02bedabf8.jpg", "UNO Artiste Vexx Card Game", "Mattel", "store-macys", "game", 16, "An art-filled UNO deck for family game night."],
+  // S8 (reg. $44.99; Walmart and Target $26.99), Macy's ID 17037168.
+  ["https://go.shopmy.us/p-110122583", 12.57, "https://5thave-img-cdn.santasmartnetwork.com/pf/21ce5baf-790f-3743-a60e-6f71d23bd440.jpg", "Super Mario Deluxe Bowser Battle Playset", "Jakks Pacific", "store-macys", "playset", 16, "A Bowser boss battle with glowing lava and sounds."],
+  // S9 (reg. $99.99, created for Macy's), Macy's ID 18890561, "designed for children aged 3+".
+  ["https://go.shopmy.us/p-110122602", 13.97, "https://5thave-img-cdn.santasmartnetwork.com/pf/1a9b2af2-832b-374b-b7d9-45e706e2a90b.jpg", "Starlight Glam Light-Up Vanity Playset", "Geoffrey's Toy Box", "store-macys", "pretend-play", 16, "A light-up play vanity with beauty accessories."],
+  // S10 (reg. $119.99), Macy's ID 23693052; no maker's age on the listing.
+  ["https://go.shopmy.us/p-110122700", 16.77, "https://5thave-img-cdn.santasmartnetwork.com/pf/7089d969-7721-3baa-b676-dff0c0b25fe0.jpg", "Journey Girls Glam Runway 4-Sided Fashion Show Playset", "Journey Girls", "store-macys", "pretend-play", 16, "A light-up runway for at-home fashion shows."],
+  // S15 (reg. $65), Macy's ID 27143484, girls' sizes 5-16 (the Steve Madden jacket of the "Reebok or Steve Madden" deal).
+  ["https://go.shopmy.us/p-110122792", 19.99, "https://5thave-img-cdn.santasmartnetwork.com/pf/978baa26-8b88-3a81-9edc-30ddba307077.jpg", "Steve Madden Girls' Lightweight Hooded Packable Jacket", "Steve Madden", "store-macys", "jacket", 16, "A light packable puffer in girls' sizes 5-16."],
 ];
 /** For Her. */
 export const HER_STEALS_1124_ROWS = [
@@ -70,6 +86,13 @@ export const HIM_STEALS_1124_ROWS = [
   // where Later's Walmart rate for apparel is its 0% baseline); listing re-read ~3:10 AM, sold by Walmart, in stock.
   // S33 (reg. $24.98, through Nov 29).
   ["https://walmrt.us/3XKh0AM", 10, "https://i5.walmartimages.com/seo/The-Grinch-12-Days-of-Socks-Combo_e33cd6e5-1e35-4769-9490-059af8503126.9e5e89e3e8c8b7df6251e0b6d39896b6.jpeg", "The Grinch Men's 12 Days of Socks", "Dr. Seuss", "store-walmart", "socks", 15, "Twelve pairs of Grinch socks, one for each day of Christmas."],
+  // Macy's steals (links made in her ShopMy at Macy's 16%, 11-24 ~2:00 AM). Prices are the Macy's Black Friday prices read
+  // ~1:30 AM (bf-store-sales-1124.md); macys.com has refused page reads since ~2:11 AM (Access Denied in Chrome and curl), so
+  // each photo is Macy's own product photo as mirrored on a Macy's price-tracker page (beyondstyle.us, id macys_<ID>), and
+  // each age is the maker's (Jakks lists Bowser 3+, Mattel lists UNO 7+).
+  // S16 (reg. $50), Macy's ID 20376480. Store check 11-24 ~3:55 AM: Hibbett $50, Nordstrom Rack $39.97+, adidas.com's
+  // Essentials hoodie $35 (adidas ShopMy 12%); Macy's $25 at 16% wins on price and rate.
+  ["https://go.shopmy.us/p-110122844", 25, "https://5thave-img-cdn.santasmartnetwork.com/pf/96c05f84-372b-3d82-afad-8d13a22ed3a9.jpg", "adidas Men's Essentials Feel Cozy Fleece Hoodie", "adidas", "store-macys", "sweatshirt", 16, "A soft fleece hoodie for chilly mornings."],
 ];
 
 /** Store photos for the steals, cut out (Apple Vision) into public/gift-guides/cutouts: photo URL -> file. */
@@ -95,4 +118,11 @@ export const STEALS_CUTOUTS_1124 = [
   ["https://i5.walmartimages.com/seo/Character-Toddler-Long-Sleeve-Top-and-Pant-Pajama-Set-2-Piece-Sizes-12M-5T_85a8419b-f3f7-4696-a1fb-5ac768017ac8.20bc5657ccf727ebdbdb6c2dde622e53.jpeg", "bluey-toddler-pajama-set-walmart-2c75ab.webp"],
   ["https://media.kohlsimg.com/is/image/kohls/8214073", "monster-jam-supercharge-speedway-kohls-f0045d.webp"],
   ["https://i5.walmartimages.com/seo/Sony-PS5-DualSense-Wireless-Controller-Midnight-Black_2384fbb2-237e-4e16-89bb-f39d20777a0f.a6d2c857ba5ab080f212f44d72baf0f4.png", "ps5-dualsense-midnight-black-walmart-186f7c.webp"],
+  ["https://5thave-img-cdn.santasmartnetwork.com/pf/a4439462-c327-3203-a0af-134c8b7e1f9a.jpg", "kuromi-cupcake-plush-macys-bd4aac.webp"],
+  ["https://5thave-img-cdn.santasmartnetwork.com/pf/5639cc43-2a59-3a28-8865-53a02bedabf8.jpg", "uno-artiste-vexx-macys-c5446b.webp"],
+  ["https://5thave-img-cdn.santasmartnetwork.com/pf/21ce5baf-790f-3743-a60e-6f71d23bd440.jpg", "bowser-battle-playset-macys-7709e0.webp"],
+  ["https://5thave-img-cdn.santasmartnetwork.com/pf/1a9b2af2-832b-374b-b7d9-45e706e2a90b.jpg", "starlight-glam-vanity-macys-93527e.webp"],
+  ["https://5thave-img-cdn.santasmartnetwork.com/pf/7089d969-7721-3baa-b676-dff0c0b25fe0.jpg", "glam-runway-playset-macys-1afb7a.webp"],
+  ["https://5thave-img-cdn.santasmartnetwork.com/pf/978baa26-8b88-3a81-9edc-30ddba307077.jpg", "steve-madden-girls-packable-jacket-macys-1bd659.webp"],
+  ["https://5thave-img-cdn.santasmartnetwork.com/pf/96c05f84-372b-3d82-afad-8d13a22ed3a9.jpg", "adidas-feelcozy-hoodie-macys-f5b284.webp"],
 ];

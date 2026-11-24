@@ -99,6 +99,13 @@ const STEALS: [string, string, string, number, number, string][] = [
   ["kids", wm("3VHA424"), "store-walmart", 15, 5.84, "Bluey Toddler Pajama Set"],
   ["kids", "https://mavely.app.link/yftqKoJ9j8b", "store-kohls", 10.5, 44.99, "Monster Jam Megalodon & El Toro Loco Supercharge Speedway Playset"],
   ["kids", wm("4texdKc"), "store-walmart", 6, 54, "Sony PS5 DualSense Wireless Controller, Midnight Black"],
+  ["kids", sm("110122442"), "store-macys", 16, 8, "Gund Kuromi Cupcake Plush"],
+  ["kids", sm("110122526"), "store-macys", 16, 5.57, "UNO Artiste Vexx Card Game"],
+  ["kids", sm("110122583"), "store-macys", 16, 12.57, "Super Mario Deluxe Bowser Battle Playset"],
+  ["kids", sm("110122602"), "store-macys", 16, 13.97, "Starlight Glam Light-Up Vanity Playset"],
+  ["kids", sm("110122700"), "store-macys", 16, 16.77, "Journey Girls Glam Runway 4-Sided Fashion Show Playset"],
+  ["kids", sm("110122792"), "store-macys", 16, 19.99, "Steve Madden Girls' Lightweight Hooded Packable Jacket"],
+  ["him", sm("110122844"), "store-macys", 16, 25, "adidas Men's Essentials Feel Cozy Fleece Hoodie"],
 ];
 /**
  * Measured 11-24 and kept where they were (no store paying more for the same item at about the same price): Later's

@@ -154,11 +154,12 @@ const LINKS_1123: Record<string, Record<string, string>> = {
  * ShopMy, S21 the Stanley tumbler), her 4 Walmart links and S28-S30 (Walmart Creator).
  */
 const STEALS_1124: Record<string, Record<string, string>> = {
-  him: { ...sm(["110122396"], "store-macys"), "https://walmrt.us/3XKh0AM": "store-walmart" },
+  him: { ...sm(["110122396", "110122844"], "store-macys"), "https://walmrt.us/3XKh0AM": "store-walmart" },
   kids: {
     ...sm(["110125767", "110125685", "110125702", "110125781", "110125801", "110125818", "110125837", "110125353"], "store-target"),
     ...Object.fromEntries(["4CpL44Q", "4fSzHIL", "4jcx3OU", "3V7qKEv", "4AQxuWv", "4CcMa3A", "3VHA424", "4texdKc"].map((c) => [`https://walmrt.us/${c}`, "store-walmart"])),
     "https://mavely.app.link/yftqKoJ9j8b": "store-kohls",
+    ...sm(["110122442", "110122526", "110122583", "110122602", "110122700", "110122792"], "store-macys"),
   },
 };
 /**

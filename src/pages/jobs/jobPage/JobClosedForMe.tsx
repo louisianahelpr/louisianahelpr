@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import { jobDayLabel } from "@/lib/jobDateWindow";
 import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobs";
 import type { useJobPage } from "./useJobPage";
 
 /**

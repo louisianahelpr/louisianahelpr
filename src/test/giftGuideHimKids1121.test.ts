@@ -160,7 +160,7 @@ const STEALS_1124: Record<string, Record<string, string>> = {
     ...Object.fromEntries(["4CpL44Q", "4fSzHIL", "4jcx3OU", "3V7qKEv", "4AQxuWv", "4CcMa3A", "3VHA424", "4texdKc"].map((c) => [`https://walmrt.us/${c}`, "store-walmart"])),
     "https://mavely.app.link/yftqKoJ9j8b": "store-kohls",
     ...sm(["110122442", "110122526", "110122583", "110122602", "110122700", "110122792"], "store-macys"),
-    ...sm(["110135306"], "store-crocs"),
+    ...sm(["110135306", "110137252"], "store-crocs"),
   },
 };
 /**

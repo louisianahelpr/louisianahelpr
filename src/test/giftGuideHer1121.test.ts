@@ -149,7 +149,7 @@ const MACYS_1124_PINS = ["p-110119763", "p-110119787", "p-110119843", "p-1101198
  * links made that night (~/.lh-shots/later-switches-1124/steals-links.json): S21 Stanley 30 oz (Target via ShopMy), S7
  * Clinique Merry Minis (Macy's via ShopMy), S35 Big Chill puffer (Walmart Creator).
  */
-const STEALS_1124 = ["https://go.shopmy.us/p-110125767", "https://go.shopmy.us/p-110122551", "https://walmrt.us/49fAVtS"];
+const STEALS_1124 = ["https://go.shopmy.us/p-110125767", "https://go.shopmy.us/p-110122551", "https://walmrt.us/49fAVtS", "https://go.shopmy.us/p-110137387", "https://go.shopmy.us/p-110137457", "https://go.shopmy.us/p-110137572"];
 const SAVED = new Set([...[...[...KEEPS_1123_ASINS, ...LOUISIANA_1122_ASINS, ...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS, ...LOUISIANA_1122_PINS, ...LINKS_1123_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ].map((h) => SWITCHED_1124[h] ?? h), ...MACYS_1124_PINS.map((p) => `https://go.shopmy.us/${p}`), ...STEALS_1124]);
 const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
@@ -165,12 +165,12 @@ describe("For Her = the owner's saves (11-21)", () => {
     }
   });
 
-  it("the page holds exactly her 192 links (2026-11-24), once each, and nothing else", () => {
-    // 192 = 159 + her 20 Amazon second keeps of 11-23 (KEEPS_1123_ASINS) + her 6 Ulta keeps (LINKS_1123_PINS) + her 4 Macy's
-    // adds of 11-24 (MACYS_1124_PINS) + her 3 steals of 11-24 (STEALS_1124); the 11-24 switches (SWITCHED_1124) changed
+  it("the page holds exactly her 195 links (2026-11-24), once each, and nothing else", () => {
+    // 195 = 159 + her 20 Amazon second keeps of 11-23 (KEEPS_1123_ASINS) + her 6 Ulta keeps (LINKS_1123_PINS) + her 4 Macy's
+    // adds of 11-24 (MACYS_1124_PINS) + her 6 steals of 11-24 (STEALS_1124); the 11-24 switches (SWITCHED_1124) changed
     // links, not the count.
-    expect(SAVED.size).toBe(192);
-    expect(page.length).toBe(192);
+    expect(SAVED.size).toBe(195);
+    expect(page.length).toBe(195);
     for (const gone of Object.keys(SWITCHED_1124)) expect(page.some((p) => p.href === gone), gone).toBe(false);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
@@ -213,7 +213,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(94); // 80 + her 20 Amazon second keeps of 11-23 (Capri Blue included), minus the 6 moved off Amazon 11-24 (SWITCHED_1124; 2026-11-24)
-    expect(shopmy.length).toBe(98); // 79 + her 6 Ulta keeps of 11-23 + the 6 moved off Amazon 11-24 + her 4 Macy's adds and 3 steals of 11-24 (2026-11-24)
+    expect(shopmy.length).toBe(101); // 79 + her 6 Ulta keeps of 11-23 + the 6 moved off Amazon 11-24 + her 4 Macy's adds and 6 steals of 11-24 (2026-11-24)
     const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

@@ -281,7 +281,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Mario playset moved to Walmart at $44.97 (still $25 to $50).
       // Macy's steals 11-24: the Kuromi plush ($8) and UNO deck ($5.57) are stocking stuffers; the
       // Bowser playset, vanity, runway and girls' jacket ($12.57-$19.99) are Under $25, and so is S51 the Crocs kids' clog ($23).
-      kids: { "Stocking stuffers under $10": 11, "Under $25": 73, "$25 to $50": 41, "$50 to $75": 11, "$75 to $100": 9, "$100 and up": 27 },
+      // S52 the Crocs kids' Cozzzy ($25) is $25 to $50.
+      kids: { "Stocking stuffers under $10": 11, "Under $25": 73, "$25 to $50": 42, "$50 to $75": 11, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -314,7 +315,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // $50 to $75, the Shark Rocket Pet ($99.99, ~$100) $100 and up; the e.l.f. exfoliator ($6 at elfcosmetics.com) stays a stocking stuffer.
       // Her steals 11-24 (scripts/giftGuideSteals1124.mjs): the Stanley tumbler ($20) and Clinique Merry Minis ($10) are Under $25;
       // the Big Chill puffer ($24.99, read ~$25) is $25 to $50.
-      her: { "Stocking stuffers under $10": 19, "Under $25": 54, "$25 to $50": 50, "$50 to $75": 16, "$75 to $100": 14, "$100 and up": 39 },
+      // Her steals 11-24: the lululemon keychain and hair ties ($9 each) are stocking stuffers; the Kate Spade wristlet ($29) is $25 to $50.
+      her: { "Stocking stuffers under $10": 21, "Under $25": 54, "$25 to $50": 51, "$50 to $75": 16, "$75 to $100": 14, "$100 and up": 39 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

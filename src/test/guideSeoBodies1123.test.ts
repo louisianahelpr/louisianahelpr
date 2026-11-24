@@ -151,7 +151,9 @@ describe("TS3: the deals days and /25days list what the page shows", () => {
     const body = seoBody(await page("gift-guides/small-business-saturday"));
     const shops = data.smallBiz ?? [];
     expect(shops.length).toBeGreaterThan(20);
-    expect((body.match(/<li>/g) ?? []).length).toBe(shops.length);
+    // The "Gift guides and deals" cross-links (seo 1123) are their own list after the businesses.
+    const bizList = body.split("<h2>Gift guides and deals</h2>")[0];
+    expect((bizList.match(/<li>/g) ?? []).length).toBe(shops.length);
     for (const [name, , , , href] of shops) {
       const label = name.replace(/&/g, "&amp;").replace(/'/g, "&#39;");
       if (href) expect(body, name).toContain(`href="${href.replace(/&/g, "&amp;")}" rel="noopener noreferrer" target="_blank">${label}</a>`);

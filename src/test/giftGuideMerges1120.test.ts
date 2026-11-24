@@ -26,6 +26,7 @@ import { OLD_PEOPLE_SLUGS, isOwnerList, peopleGuideOf } from "@/content/giftGuid
 import { HER_1121 } from "../../scripts/giftGuideHer1121.mjs";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
 import { GUIDES, guideBySlug, newSlugFor } from "@/content/giftGuideCatalog";
+import { RETIRED_TO_SEARCH_PAGE } from "@/content/retiredGuideForward";
 import { buildSeoData } from "@/prerender/seoData";
 import { blankComments } from "./helpers/blankNonCode";
 import { importRows1120, parseSwaps, productKey1120 } from "../../scripts/giftGuideBig1120.mjs";
@@ -84,6 +85,8 @@ describe("gift guides big batch 1120: merges, redirects, one place per item", ()
       // Owner 11-21: a retired parent (src/content/giftGuideLive.mjs) has no page; its old guides 301 to the landing.
       if (!isLiveGuide(parent)) {
         expect(guideBySlug(parent), parent).toBeUndefined();
+        // Lead 11-24: one with an honest search page opens it (guarded by retiredGuideForward1124.test.ts).
+        if (Object.prototype.hasOwnProperty.call(RETIRED_TO_SEARCH_PAGE, s)) continue;
         expect(newSlugFor(s), s).toBeNull();
         expect(moved[s], `route map: ${s}`).toBe("");
         continue;

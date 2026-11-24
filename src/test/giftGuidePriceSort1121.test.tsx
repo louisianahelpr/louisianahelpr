@@ -321,7 +321,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // SCHEELS YETI sale (11-24): the Daytrip lunch bag ($85 -> $59.50) moves from $75 to $100 to $50 to $75.
       // Her steals S37 (JCPenney throw, $7.99) and S43 (Kohl's socks, $1.99), 11-24: stocking stuffers under $10.
       // Her steal S42 (JCPenney Beautyrest heated throw, $29.99, 11-24): $25 to $50.
-      her: { "Stocking stuffers under $10": 23, "Under $25": 54, "$25 to $50": 52, "$50 to $75": 17, "$75 to $100": 13, "$100 and up": 39 },
+      // Her Amazon beauty picks 11-24 (owner, all 48 of A1-A48, scripts/giftGuideAmazonBeauty1124.mjs): 20 Under $25 (the two
+      // $9.60 mascaras read ~$10), 20 $25 to $50 (the $25.20 perfumes read ~$25), 5 $50 to $75, 3 $75 to $100.
+      her: { "Stocking stuffers under $10": 23, "Under $25": 74, "$25 to $50": 72, "$50 to $75": 22, "$75 to $100": 16, "$100 and up": 39 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

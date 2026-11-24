@@ -5,7 +5,7 @@
  * to Camp Snap direct (sale price + LEXILOMBAS7); the sold-out Sleep Crown goes on now with a short "Back Dec 1" chip
  * that hides on Dec 1; the Kate McLeod lotion bar waits (sold out at The Sleep Code, no paying link elsewhere).
  *
- * @mutate scripts/giftGuideHer1121.mjs | export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_ADDS_1124]; | export const HER_ROWS = [...HER_1121, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_ADDS_1124];
+ * @mutate scripts/giftGuideHer1121.mjs | export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_ADDS_1124, ...HER_AMAZON_BEAUTY_1124]; | export const HER_ROWS = [...HER_1121, ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_ADDS_1124, ...HER_AMAZON_BEAUTY_1124];
  * @mutate scripts/giftGuideHimKids1121.mjs | export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_ADDS_1124]) { | export function kids1121Picks(rows = [...KIDS_1121, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_ADDS_1124]) {
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const back = pick.backOn && today < pick.backOn ? G.backOnChip(pick.backOn) : undefined; |   const back = undefined;
  * @mutate src/content/giftGuideCatalog.ts | ...(p.backOn ? { backOn: p.backOn } : {}), |

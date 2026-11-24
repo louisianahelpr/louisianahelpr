@@ -39,6 +39,7 @@ import { HIM_KEEPS_1123, KIDS_KEEPS_1123, HIM_LINKS_1123, HIM_WALMART_1123, KIDS
 import { HER_KEEPS_1123, HER_LINKS_1123 } from "../../scripts/giftGuideHer1121.mjs";
 import { KEEPS_PRICE_AT } from "../../scripts/giftGuideOwnerKeeps1123.mjs";
 import { HER_ADDS_1124, HIM_ADDS_1124, KIDS_ADDS_1124, OWNER_1124_PRICE_AT, RATE_SWITCHES_1124 } from "../../scripts/giftGuideOwner1124.mjs";
+import { AMAZON_BEAUTY_1124_PRICE_AT, HER_AMAZON_BEAUTY_1124 } from "../../scripts/giftGuideAmazonBeauty1124.mjs";
 import { openPriceSections } from "./helpers/openPriceSections";
 
 afterEach(cleanup);
@@ -46,7 +47,7 @@ afterEach(cleanup);
 // Her 11-23 keeps (Amazon, and the ShopMy links made later that day), plus the Braun IPL she switched to the device alone
 // (owner 11-23 ~12:52 PM "Switch only the Braun", read on amazon.com that day).
 /** The 11-24 switches' new links and her Macy's adds, each priced on its store's page that night (scripts/giftGuideOwner1124.mjs). */
-const OWNER_1124_HREFS = new Set([...Object.values(RATE_SWITCHES_1124).map((s) => s.href), ...[...HER_ADDS_1124, ...HIM_ADDS_1124, ...KIDS_ADDS_1124].map((r) => r.href)]);
+const OWNER_1124_HREFS = new Set([...Object.values(RATE_SWITCHES_1124).map((s) => s.href), ...[...HER_ADDS_1124, ...HIM_ADDS_1124, ...KIDS_ADDS_1124, ...HER_AMAZON_BEAUTY_1124].map((r) => r.href)]);
 const KEEP_HREFS = new Set([...[...HER_KEEPS_1123, ...HIM_KEEPS_1123, ...KIDS_KEEPS_1123, ...HER_LINKS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123, ...KIDS_LINKS_1123].map((r) => r.href), "https://www.amazon.com/dp/B07WYY6KKC?tag=louisianahelpr-20"]);
 
 const CHUNKS: Record<string, PickChunk["picks"]> = Object.fromEntries(
@@ -114,12 +115,13 @@ describe("gift-guide prices: the generated chunks", () => {
       expect(CHUNKS[slug].length, slug).toBeGreaterThan(30);
       // Checked 11-21 (her saves), 11-22 (the picks she sent on launch day, scripts/giftGuideOwnerAdds1122.mjs), 11-23 (her
       // under-$25 keeps, scripts/giftGuideOwnerKeeps1123.mjs, each listed there), 11-24 (the higher-commission switches, her
-      // Macy's adds and her steals, scripts/giftGuideOwner1124.mjs), or
+      // Macy's adds and her steals, scripts/giftGuideOwner1124.mjs; her Amazon beauty picks, scripts/giftGuideAmazonBeauty1124.mjs), or
       // the day a daily re-check read this link at this exact price (scripts/giftGuidePriceRecheck.mjs).
       const rechecked = (p: { href: string; price?: number; priceAt?: string }) => PRICE_RECHECKS[p.href]?.price === p.price && PRICE_RECHECKS[p.href]?.priceAt === p.priceAt;
       expect(CHUNKS[slug].filter((p) => !(typeof p.price === "number" && p.price > 0 && (p.priceAt === "2026-11-21" || p.priceAt === "2026-11-22" || (p.priceAt === KEEPS_PRICE_AT && KEEP_HREFS.has(p.href)) || (p.priceAt === OWNER_1124_PRICE_AT && OWNER_1124_HREFS.has(p.href)) || rechecked(p)))).map((p) => p.name), slug).toEqual([]);
     }
     expect(amazonPriced).toBeGreaterThan(90);
+    expect(AMAZON_BEAUTY_1124_PRICE_AT).toBe(OWNER_1124_PRICE_AT);
     // Amazon keeps its 15 best (owner's 10-15 per store page; lead 11-19, 1530 train).
     expect((CHUNKS["store-amazon"] ?? []).length).toBeGreaterThanOrEqual(10);
     expect((CHUNKS["store-amazon"] ?? []).length).toBeLessThanOrEqual(15);

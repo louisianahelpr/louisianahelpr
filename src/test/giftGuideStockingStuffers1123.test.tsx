@@ -10,7 +10,7 @@
  * @mutate src/lib/pickPriceShown.mjs |   { id: "stocking-stuffers", max: 10 }, |   { id: "stocking-stuffers", max: 0 },
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const grouped = [...stocking, ...order.filter((id) => id !== STOCKING_SECTION_ID) |   const grouped = [...order.filter((id) => id !== STOCKING_SECTION_ID)
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | const stocking = sortByPrice(priced.filter((p) => priceSectionOf(p) === STOCKING_SECTION_ID), "low"); | const stocking = sortByPrice(priced.filter((p) => priceSectionOf(p) === STOCKING_SECTION_ID), "high");
- * @mutate scripts/giftGuideHer1121.mjs | ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_ADDS_1124]; | ...HER_POPULAR_1122, ...HER_LINKS_1123, ...HER_ADDS_1124];
+ * @mutate scripts/giftGuideHer1121.mjs | ...HER_POPULAR_1122, ...HER_KEEPS_1123, ...HER_LINKS_1123, ...HER_ADDS_1124, ...HER_AMAZON_BEAUTY_1124]; | ...HER_POPULAR_1122, ...HER_LINKS_1123, ...HER_ADDS_1124, ...HER_AMAZON_BEAUTY_1124];
  * @mutate scripts/giftGuideOwnerKeeps1123.mjs | 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms, 7 in., Tequila Sunrise" | 4.81, "61qGzw5ywoL", "Berkley PowerBait Power Worms"
  * @mutate src/lib/guideQa.mjs |   const stocking = band("stocking-stuffers"); |   const stocking = band("under-25");
  * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123, ...HIM_ADDS_1124]) { | ...HIM_KEEPS_1123, ...HIM_WALMART_1123, ...HIM_ADDS_1124]) {

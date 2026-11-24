@@ -123,6 +123,7 @@ const STEALS: [string, string, string, number, number, string][] = [
   ["her", sm("110137572"), "store-kate-spade-new-york", 16, 29, "Kate Spade Lucy Wristlet, Black"],
   ["her", "https://mavely.app.link/wb8BXrxck8b", "store-jcpenney", 10.5, 7.99, "North Pole Trading Co. Holiday Velvet Plush Throw, Trees"],
   ["her", "https://mavely.app.link/vRv8iAthk8b", "store-kohls", 10.5, 1.99, "SHINE Women's Holiday Crew Socks, Santa"],
+  ["her", "https://mavely.app.link/n2955rKik8b", "store-jcpenney", 10.5, 29.99, "Beautyrest Ultrasoft Plush Heated Throw, Gray Fairisle"],
 ];
 /**
  * Measured 11-24 and kept where they were (no store paying more for the same item at about the same price): Later's

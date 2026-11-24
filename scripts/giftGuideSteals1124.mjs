@@ -95,6 +95,9 @@ export const HER_STEALS_1124_ROWS = [
   // $1.99 (reg. $6; $1.59 with TAKE20 through Nov 28), Santa, best seller.
   ["https://mavely.app.link/wb8BXrxck8b", 7.99, "https://sc-images.jcpenney.com/JCPenney/DP69992719-20260803190503M", "North Pole Trading Co. Holiday Velvet Plush Throw, Trees", "North Pole Trading Co.", "store-jcpenney", "throw-blanket", 10.5, "A soft holiday throw for movie nights on the couch."],
   ["https://mavely.app.link/vRv8iAthk8b", 1.99, "https://media.kohlsimg.com/is/image/kohls/3840392_Santa", "SHINE Women's Holiday Crew Socks, Santa", "SHINE", "store-kohls", "socks", 10.5, "Festive Santa socks for her stocking."],
+  // S42: JCPenney via Later 10.5% (bf-page link 11-24 ~5:35 AM); read on jcpenney.com 11-24 ~8:33 AM: $29.99 (reg. $150,
+  // Black Friday deal), Gray Fairisle (the page's default color, the one with a product-only photo), 17 left, ships.
+  ["https://mavely.app.link/n2955rKik8b", 29.99, "https://sc-images.jcpenney.com/JCPenney/DP0527202607083329M", "Beautyrest Ultrasoft Plush Heated Throw, Gray Fairisle", "Beautyrest", "store-jcpenney", "throw-blanket", 10.5, "A plush heated throw for cold nights on the couch."],
 ];
 /** For Him. */
 export const HIM_STEALS_1124_ROWS = [
@@ -124,6 +127,7 @@ export const HIM_STEALS_1124_ROWS = [
 export const STEALS_CUTOUTS_1124 = [
   ["https://sc-images.jcpenney.com/JCPenney/DP69992719-20260803190503M", "jcpenney-holiday-velvet-plush-throw-trees-folded-9d76e9.webp"],
   ["https://media.kohlsimg.com/is/image/kohls/3840392_Santa", "kohls-shine-holiday-crew-socks-santa-6d3af3.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0527202607083329M", "jcpenney-beautyrest-heated-throw-gray-fairisle-b0cc71.webp"],
   ["https://target.scene7.com/is/image/Target/GUEST_4d87f108-5489-4494-8fa1-e217b2f5b2ec", "lego-sunflowers-40524-target-1c9b32.webp"],
   ["https://target.scene7.com/is/image/Target/GUEST_17112714-0b0d-42cf-8155-764b003d717c", "monster-jam-smash-bash-playset-target-1e137b.webp"],
   ["https://target.scene7.com/is/image/Target/GUEST_3c239da7-60a0-4778-9907-30c1d39c75e1", "hot-wheels-mutant-chaos-truck-slime-target-cca8dc.webp"],

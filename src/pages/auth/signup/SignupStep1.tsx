@@ -7,7 +7,7 @@
 // Reusable input/label class constants are passed in so the parent stays
 // the single source of truth for form styling.
 
-import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AuthCardMarkRow } from "@/components/auth/AuthCardHead";
 import { Button } from "@/components/ui/button";
@@ -133,6 +133,14 @@ export function SignupStep1({
   const firstNameError = attempted && !firstName.trim();
   const lastNameError = attempted && !lastName.trim();
 
+  // signup-submit 11-23: a refusal of the password (breached, or the server's weak_password) brings the person back
+  // here; put them on the field that has to change, with its reason read out (aria-describedby).
+  useEffect(() => {
+    if (!serverPasswordError) return;
+    passwordRef.current?.focus();
+    passwordRef.current?.scrollIntoView?.({ block: "center" });
+  }, [serverPasswordError]);
+
   const handleContinue = () => {
     setAttempted(true);
     if (!firstName.trim()) {
@@ -153,7 +161,8 @@ export function SignupStep1({
       emailRef.current?.focus();
       return;
     }
-    if (!passwordValid) {
+    // The same refused password would only be refused again after step 2: it has to change first.
+    if (!passwordValid || serverPasswordError) {
       passwordRef.current?.focus();
       return;
     }

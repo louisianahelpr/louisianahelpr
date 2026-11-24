@@ -49,7 +49,7 @@ describe("Her: the owner's 48 Amazon beauty picks (11-24)", () => {
 
   // Both the generated page and what the module builds now (so a module edit fails here before anyone regenerates).
   it.each([["her.json", her], ["her1121Picks()", her1121Picks() as Pick[]]] as const)("each is on For Her once (%s): owner pick, tagged Amazon link, campaign rate and last day, 11-24 price, Amazon's photo, no model year", (_label, list) => {
-    expect(list.length).toBeGreaterThan(240); // 246 measured 2026-11-24
+    expect(list.length).toBeGreaterThan(220); // 229 measured 2026-11-24 (246 before the owner's 11-24 trim of 17)
     for (const [asin, price, brand] of PAGE) {
       const rows = list.filter((p) => p.href.includes(`/dp/${asin}`));
       expect(rows.length, asin).toBe(1);

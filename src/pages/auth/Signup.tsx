@@ -69,8 +69,7 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   // OA-002: one tap, one signUp(). `loading` is only set inside
   // createAccountAndFinish, AFTER the awaited validateAboutYouStep, so a second
-  // tap during validation got through the disabled check and fired a second
-  // concurrent auth.signUp().
+  // tap during validation got through the disabled check and fired a second concurrent auth.signUp().
   const submittingRef = useRef(false);
   const captcha = useCaptcha();
   const captureLead = useSignupLeadCapture(captcha.ref); // spends a token from the same widget (Q1589)
@@ -307,12 +306,8 @@ const Signup = () => {
       return;
     }
     try {
-      // HIBP breached-password check (k-anonymity, fail-open on network error)
+      // HIBP breached-password check (k-anonymity, fail-open). A hit reopens step 1 with the reason under the password (signup-submit 11-23).
       const pwnedCount = await checkPasswordPwned(password);
-      // signup-submit 11-23: a breached password is step 1's field, so step 1 opens with the reason under it (as the
-      // server's weak_password refusal does, AUD31-53). It was a corner toast on step 2, where there is no password
-      // field: Create account then did nothing a person could see, and a real sign-up (iPad Safari) went round step 1
-      // three times with no account made.
       if (pwnedCount !== null && pwnedCount > 0) {
         setServerPasswordError(t("signup.passwordPwned", { count: pwnedCount.toLocaleString() }));
         backToStep1();

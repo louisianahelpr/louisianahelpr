@@ -11,8 +11,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * @mutate src/boot/pathPageRoute.ts | } else if (path === "/holidays") { | } else if (path === "/holidaysx") {
  * @mutate src/boot/pathPageRoute.ts | (?:black-friday\|small-business-saturday\|cyber-monday)$/.test(path)) { | (?:x)$/.test(path)) {
  * @mutate src/boot/pathPageRoute.ts | if (path === "/gift-guides/small-business-saturday") { | if (path === "/gift-guides/sbs-x") {
- * @mutate src/App.tsx | ?.[1].preload(); | ?.[1];
- * @mutate src/App.tsx | [/^\/holidays\/?$/, HolidayHub], | 
+ * @mutate src/boot/coldPatternPages.ts | ?.[1].preload(); | ?.[1];
+ * @mutate src/boot/coldPatternPages.ts | (?:draw-names\|swipe\|planner\|printables) | (?:draw-names\|swipe\|planner)
+ * @mutate src/App.tsx | preloadColdPatternPage([[COLD_GUIDE_PAGE, GiftGuides], [COLD_HUB_PAGE, HolidayHub]]); | preloadColdPatternPage([[COLD_GUIDE_PAGE, GiftGuides]]);
  *
  * Guide speed 1124 (speed-1122n S1-S5): the Holiday Hub starts here too, a deals day page starts its deals file
  * beside its page (GiftGuides.tsx starts the deals chunk as it runs) (they waited one after the other: "Loading your list…", then "Loading deals…"), and
@@ -94,16 +95,23 @@ describe("the gift guides and the 25 Days page start on the first network round"
     const { readFileSync } = await import("node:fs");
     const { resolve } = await import("node:path");
     const { blankComments } = await import("@/test/helpers/blankNonCode");
-    const app = blankComments(readFileSync(resolve(__dirname, "../App.tsx"), "utf8"));
-    const block = /const COLD_PATTERN_PAGES[^\n]*> = \[\n([\s\S]*?)\n\];/.exec(app)?.[1] ?? "";
-    const rows = [...block.matchAll(/\[\/(.+?)\/, (\w+)\]/g)].map((m) => [new RegExp(m[1]), m[2]] as const);
-    // Inventory floor: the guides and the Hub.
+    const { COLD_GUIDE_PAGE, COLD_HUB_PAGE, preloadColdPatternPage } = await import("./coldPatternPages");
+    const started: string[] = [];
+    const page = (name: string) => ({ preload: () => void started.push(name) });
+    const rows = [[COLD_GUIDE_PAGE, page("GiftGuides")], [COLD_HUB_PAGE, page("HolidayHub")]] as const;
+    const pick = (p: string) => {
+      started.length = 0;
+      preloadColdPatternPage(rows, p);
+      return started.join(",") || undefined;
+    };
+    // Inventory floor: both rows answer.
     expect(rows.length).toBeGreaterThan(1);
-    const pick = (p: string) => rows.find(([re]) => re.test(p))?.[1];
     for (const p of ["/gift-guides", "/gift-guides/", "/gift-guides/her", "/gift-guides/black-friday", "/gift-guides/my-list"]) expect(pick(p), p).toBe("GiftGuides");
     expect(pick("/holidays")).toBe("HolidayHub");
     for (const p of ["/gift-guides/swipe", "/gift-guides/draw-names", "/gift-guides/planner", "/gift-guides/printables", "/gift-guides/list/abc", "/holidays/hire-a-helpr"]) expect(pick(p), p).toBeUndefined();
-    expect(app).toMatch(/COLD_PATTERN_PAGES\.find\(\(\[re\]\) => re\.test\(window\.location\.pathname\)\)\?\.\[1\]\.preload\(\);/);
+    // App.tsx calls it as the file runs, with both pages.
+    const app = blankComments(readFileSync(resolve(__dirname, "../App.tsx"), "utf8"));
+    expect(app).toMatch(/\npreloadColdPatternPage\(\[\[COLD_GUIDE_PAGE, GiftGuides\], \[COLD_HUB_PAGE, HolidayHub\]\]\);/);
   });
 
   it("the fun pages (their own chunks), deeper paths and look-alikes start neither", async () => {

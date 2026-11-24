@@ -1,5 +1,5 @@
 /**
- * Whole-app audit 1123 LA-7: the 404 page's search description offers the gift guides, but the page itself had no
+ * Whole-app audit 1123 LA-7 (fixed 2026-11-24): the 404 page's search description offers the gift guides, but the page itself had no
  * link to them (only Go home, Browse Declutter, Browse jobs). It now has "Gift guides" beside the two browse links.
  *
  * @mutate src/pages/info/NotFound.tsx |                     <Link to="/gift-guides">{w("pub.giftGuides", "Gift guides")}</Link> |                     <Link to="/browse">{w("pub.giftGuides", "Gift guides")}</Link>

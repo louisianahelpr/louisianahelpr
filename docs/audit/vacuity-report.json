@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-24T20:46:32.533Z",
-  "guards": 4510,
-  "registered": 4507,
+  "generated": "2026-11-24T23:52:42.794Z",
+  "guards": 4526,
+  "registered": 4523,
   "unregistered": [
     "src/lib/categorySuggestions.test.ts",
     "src/lib/celebrate.test.ts",
@@ -14,14 +14,17 @@
     "src/components/declutter/setupFeeNamesTheAmount.test.ts",
     "src/lib/disputeEvidencePhotos.test.ts",
     "src/test/authCardBackArrow1121.test.tsx",
+    "src/test/confirmLinePointsAtAButton1122.test.tsx",
     "src/test/declutterGiftOnlyClose.test.ts",
     "src/test/declutterGuestHomeLinks1120.test.tsx",
     "src/test/declutterOgItemCard.test.ts",
+    "src/test/disputeNamesOneReviewer1122.test.ts",
     "src/test/giftGuideBudgetCaps1120.test.ts",
     "src/test/giftGuideCoversMatchGuide.test.ts",
     "src/test/giftGuideTapSizes1120.test.ts",
     "src/test/jobPageHeadKeepsLeftColumn.test.ts",
     "src/test/jobsAudit1121Visual.test.tsx",
+    "src/test/nextStepKeepsNameCapital1122.test.ts",
     "src/test/quoteInsertJobMirrorsJobsInsertPolicy.test.ts",
     "src/test/referralCopyOneRule.test.ts"
   ],

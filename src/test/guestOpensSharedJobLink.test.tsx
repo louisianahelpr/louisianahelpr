@@ -156,11 +156,13 @@ describe("a guest opening a shared link", () => {
     expect(screen.queryByRole("heading", { name: "Details" })).toBeNull();
   });
 
-  it("F268a: a state that is not the job (not available) keeps the heading for readers only", async () => {
+  it("F268a + deep audit 11-22 #12: a state that is not the job (not available) paints \"Job\" beside the arrow", async () => {
     state.row = null;
     openLink();
     await screen.findAllByText(/isn't available|Log in/);
-    expect(screen.getByRole("heading", { level: 1 }).className).toMatch(/\bsr-only\b/);
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1.textContent).toBe("Job");
+    expect(h1.className).not.toMatch(/\bsr-only\b/);
   });
 
   it("asks the public view for nothing private", async () => {

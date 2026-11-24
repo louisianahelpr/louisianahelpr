@@ -255,7 +255,7 @@ describe("deals days: one page per day (owner 11-21)", () => {
 
   it("Black Friday (owner pop-up 11-24): Biggest store sales on top, then the steals by category, each open with its count", async () => {
     const steals = deals.filter((d) => d.event === "black-friday" && isSteal(d));
-    expect(steals.length).toBeGreaterThan(10); // 13 in the first batch 2026-11-24 (rises as each store's links land)
+    expect(steals.length).toBeGreaterThan(25); // 30 on 2026-11-24 2:30 AM (rises as each store's links land)
     // Every steal names its item and a category, and has its own link (a heart saves the one item).
     for (const d of steals) {
       expect(d.item, d.brand).toBeTruthy();

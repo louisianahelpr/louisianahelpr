@@ -16,7 +16,7 @@
 
 import { pickPriceShown, priceSectionId, shownDollars } from "./pickPriceShown.mjs";
 import { TWENTY_FIVE_DAYS } from "./seoBodies.mjs";
-import { DEAL_EVENTS, RETITLE_AFTER, dealEnds, dealsIn, liveDeals } from "../content/giftGuideDeals.mjs";
+import { DEAL_EVENTS, RETITLE_AFTER, dealEnds, dealsIn, isSteal, liveDeals } from "../content/giftGuideDeals.mjs";
 import { filterEvents, filterLights } from "../content/holidayHub/holidayHub.mjs";
 
 /** The pages that carry a Q&A (each one's key in guideUpdated.json). */
@@ -218,10 +218,14 @@ const dealWords = (deal) => String(deal ?? "").replace(/^[^:]{0,40}\b(?:Friday|M
 export function dealsDayQa(slug, deals, today, listed) {
   const day = DEAL_EVENTS.find((e) => e.id === slug && e.kind === "deals");
   if (!day) return [];
-  const live = dealsIn(liveDeals(Array.isArray(deals) ? deals : [], today, listed?.storeCodes ?? []), slug);
+  const shown = dealsIn(liveDeals(Array.isArray(deals) ? deals : [], today, listed?.storeCodes ?? []), slug);
+  // Owner pop-up 11-24: the store sales and the steals (one item each, by category) are separate sections; "top deals"
+  // here are the store sales, and the steals are counted on their own.
+  const live = shown.filter((d) => !isSteal(d));
+  const steals = shown.length - live.length;
   const codes = Math.max(0, Number(listed?.codes) || 0);
   const sales = Math.max(0, Number(listed?.sales) || 0);
-  const total = live.length + codes + sales;
+  const total = live.length + steals + codes + sales;
   const qa = [{ q: `When is ${day.title} 2026?`, a: `${day.title} is ${longDate(day.day)}.` }];
   if (total === 0) {
     qa.push({ q: `What ${day.title} deals are on this page?`, a: `The ${day.title} deals on this page have ended.` });
@@ -229,6 +233,7 @@ export function dealsDayQa(slug, deals, today, listed) {
   }
   const parts = [
     live.length ? plural(live.length, "top deal", "top deals") : "",
+    steals ? plural(steals, "steal", "steals") : "",
     codes ? plural(codes, "discount code", "discount codes") : "",
     sales ? plural(sales, "sale", "sales") : "",
   ].filter(Boolean);

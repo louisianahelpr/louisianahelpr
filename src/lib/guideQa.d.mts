@@ -1,7 +1,7 @@
 /** Types for src/lib/guideQa.mjs (the guide pages' Q&A, its pre-JS section and its FAQPage JSON-LD). */
 export interface QaItem { q: string; a: string }
 export interface QaPick { name: string; price?: number; priceAt?: string; priceFrom?: boolean; la?: boolean; brand?: string; link?: "social" | "ours" }
-export interface QaDeal { item?: string; event?: string; brand?: string; deal?: string; ends?: string; code?: string }
+export interface QaDeal { item?: string; event?: string; brand?: string; deal?: string; ends?: string; code?: string; kind?: string }
 export interface QaShop { name: string; town?: string; category?: string; ships?: string }
 export const QA_PAGES: string[];
 export const QA_TITLE: string;

@@ -6,7 +6,11 @@
  * Connections campaign, with its source, day and the words seen) and writes src/content/giftGuideDeals.json:
  *   - each deal in its event (Black Friday or Cyber Monday; Small Business Saturday is the 25 Days sponsors' file,
  *     src/content/giftGuideSmallBiz.json), each event sorted by our commission, high to low, then brand;
- *   - at most DEALS_PER_BRAND deals per brand across the page; never a price; an Amazon link carries our tag;
+ *   - at most DEALS_PER_BRAND deals per brand across the page; never a price field; an Amazon link carries our tag;
+ *   - a steal (`kind: "steal"`, one item on sale; owner 2026-11-24: "put all 56 on the black friday page") is not a
+ *     store sale: the cap does not count it, it needs its `item` and a `category` (STEAL_CATEGORIES), and it is listed
+ *     after its day's store sales, by category, cheapest first (`sortPrice`, the sale price as a number, read only for
+ *     the order and never shipped, like `commission`);
  *   - a photo with a background shows its cutout (public/gift-guides/deals/cutouts/<key>.webp, made by
  *     scripts/gift-guide-deals-cutouts.py, listed in scripts/gift-guide-deals-cutouts.json); Amazon photos never.
  * The commission, source, day checked and words seen stay in the source file: the shipped JSON carries only the order.
@@ -19,7 +23,7 @@
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { DEAL_EVENTS, DEALS_PER_BRAND } from "../src/content/giftGuideDeals.mjs";
+import { DEAL_EVENTS, DEALS_PER_BRAND, STEAL_CATEGORIES, STEAL_KIND } from "../src/content/giftGuideDeals.mjs";
 
 const REPO = resolve(import.meta.dirname, "..");
 const SRC = join(REPO, "scripts/gift-guide-deals-1121.json");
@@ -50,12 +54,20 @@ export function buildDeals(rows, cutouts = {}) {
     if (amazon && new URL(r.href).searchParams.get("tag") !== "louisianahelpr-20") throw new Error(`gift-guide-deals: ${r.brand}: Amazon link without our tag`);
     if ("price" in r) throw new Error(`gift-guide-deals: ${r.brand}: a price never ships`);
     if (!r.source || !r.checked || !r.seen) throw new Error(`gift-guide-deals: ${r.brand}: needs source, checked and seen`);
-    const n = (perBrand.get(r.brand) ?? 0) + 1;
-    if (n > DEALS_PER_BRAND) throw new Error(`gift-guide-deals: ${r.brand}: more than ${DEALS_PER_BRAND} deals`);
-    perBrand.set(r.brand, n);
+    if (r.kind !== undefined && r.kind !== STEAL_KIND) throw new Error(`gift-guide-deals: ${r.brand}: unknown kind ${r.kind}`);
+    const steal = r.kind === STEAL_KIND;
+    if (steal && !r.item) throw new Error(`gift-guide-deals: ${r.brand}: a steal names its item`);
+    if (steal && !STEAL_CATEGORIES.some((c) => c.id === r.category)) throw new Error(`gift-guide-deals: ${r.brand}: ${r.item}: unknown category ${r.category}`);
+    if (steal && !(Number(r.sortPrice) > 0)) throw new Error(`gift-guide-deals: ${r.brand}: ${r.item}: a steal needs its sortPrice`);
+    if (!steal) {
+      const n = (perBrand.get(r.brand) ?? 0) + 1;
+      if (n > DEALS_PER_BRAND) throw new Error(`gift-guide-deals: ${r.brand}: more than ${DEALS_PER_BRAND} deals`);
+      perBrand.set(r.brand, n);
+    }
     const key = !amazon && r.image ? cutouts[r.image] : undefined;
     kept.push({
       commission: Number(r.commission) || 0,
+      sortPrice: Number(r.sortPrice) || 0,
       deal: {
         event: r.event,
         brand: r.brand,
@@ -68,12 +80,17 @@ export function buildDeals(rows, cutouts = {}) {
         ...(r.ends ? { ends: r.ends } : {}),
         status: r.status === "announced" ? "announced" : "live",
         ...(amazon ? { store: "Amazon" } : {}),
+        ...(steal ? { kind: STEAL_KIND, category: r.category } : {}),
       },
     });
   }
   const order = DEAL_EVENTS.map((e) => e.id);
+  const cat = (d) => STEAL_CATEGORIES.findIndex((c) => c.id === d.category);
+  // Store sales by our commission; then the steals by category, each cheapest first (owner pop-up 11-24).
+  const byStore = (a, b) => b.commission - a.commission || a.deal.brand.localeCompare(b.deal.brand);
+  const bySteal = (a, b) => cat(a.deal) - cat(b.deal) || a.sortPrice - b.sortPrice || a.deal.brand.localeCompare(b.deal.brand);
   return kept
-    .sort((a, b) => order.indexOf(a.deal.event) - order.indexOf(b.deal.event) || b.commission - a.commission || a.deal.brand.localeCompare(b.deal.brand))
+    .sort((a, b) => order.indexOf(a.deal.event) - order.indexOf(b.deal.event) || Number(a.deal.kind === STEAL_KIND) - Number(b.deal.kind === STEAL_KIND) || (a.deal.kind === STEAL_KIND ? bySteal(a, b) : byStore(a, b)))
     .map((k) => k.deal);
 }
 

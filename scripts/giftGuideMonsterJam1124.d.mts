@@ -5,4 +5,4 @@ export const MONSTER_JAM_ROWS_1124: readonly MonsterJamRow1124[];
 export function monsterJamPicks1124(): (Omit<MonsterJamRow1124, "id" | "was" | "age"> & { ownerPick: true; from: "monster-jam" })[];
 export function applyMonsterJam1124(pageList: Record<string, unknown[]>): Record<string, number>;
 export function isAmazonRow(r: { store: string; href: string }): boolean;
-export function collageRows1124<R extends { store: string; href: string }>(rows?: readonly R[]): R[];
+export function collageRows1124<R extends { store: string; href: string } = MonsterJamRow1124>(rows?: readonly R[]): R[];

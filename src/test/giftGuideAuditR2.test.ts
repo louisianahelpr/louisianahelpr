@@ -106,12 +106,16 @@ describe("design audit r2: what each guide holds", () => {
 describe("design audit r2: lines, variants, photos, brands", () => {
   it("no stock line sits on more than 3 different products; no near-duplicate variants in one guide", () => {
     const byLine = new Map<string, Set<string>>();
-    for (const { p } of all) if (p.line) byLine.set(p.line, (byLine.get(p.line) ?? new Set()).add(p.name.toLowerCase()));
+    // The Monster Jam guide (owner 11-24) keeps one line per group (its section blurb); rows show no why-line
+    // (owner 11-22), so those lines never read as repeats on the page.
+    for (const { slug, p } of all) if (p.line && slug !== "monster-jam") byLine.set(p.line, (byLine.get(p.line) ?? new Set()).add(p.name.toLowerCase()));
     expect([...byLine].filter(([, s]) => s.size > 3).map(([l, s]) => `${s.size}x ${l}`).slice(0, 5)).toEqual([]);
     for (const [slug, picks] of Object.entries(CHUNKS)) {
       // Her, Him and Kids are the owner's own saves (owner 11-21: "Him = ALL of her men's saves"): several Smathers &
       // Branson needlepoint pieces she chose share a long brand and a first word; each is a different product.
-      if (slug.startsWith("store-") || isOwnerList(slug)) continue;
+      // The Monster Jam guide (owner 11-24) is her own list too: several 1:64 trucks and toddler pieces share a first
+      // 24 letters ("Monster Jam 1:64 Die-Cast Truck ..."); each is a different product.
+      if (slug.startsWith("store-") || isOwnerList(slug) || slug === "monster-jam") continue;
       const keys = picks.map((p) => `${p.brand.toLowerCase().replace(/[^a-z0-9]/g, "")} ${p.name.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "").slice(0, 24)}`);
       expect(keys.filter((k, i) => keys.indexOf(k) !== i), slug).toEqual([]);
     }

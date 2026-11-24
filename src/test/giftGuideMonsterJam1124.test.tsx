@@ -89,7 +89,7 @@ describe("the Monster Jam gift guide's data (owner 2026-11-24)", () => {
       expect(p.priceAt, p.name).toMatch(/^2026-\d\d-\d\d$/);
       expect(p.image, p.name).toMatch(/^https:\/\//);
       expect(p.href, p.name).toMatch(/^https:\/\//);
-      expect(Object.hasOwn(RESEARCHED_STORES, p.store ?? ""), `${p.name} ${p.store}`).toBe(true);
+      expect(Object.prototype.hasOwnProperty.call(RESEARCHED_STORES, p.store ?? ""), `${p.name} ${p.store}`).toBe(true);
       expect(p.section && p.sectionId, p.name).toBeTruthy();
       expect(p.line, p.name).not.toMatch(/\$\d/);
       // A cutout we host must be in public/ (a missing file is a blank tile on the live page).

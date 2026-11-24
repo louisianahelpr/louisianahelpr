@@ -51,7 +51,7 @@ const MACYS: [string, string, number, string][] = [
   ["kids", "110119952", 24.99, "Play-Doh Sizzlin' Grill Playset"],
   ["kids", "110119982", 43.99, "Melissa & Doug Sort, Stock, Select Beauty Kiosk Play Set"],
   ["kids", "110120034", 22.49, "VTech Learn & Zoom 2-in-1 Three-Wheel Motorbike"],
-  ["kids", "110120060", 31.99, "Barbie Holiday 2026 Doll"],
+  ["kids", "110120060", 31.99, "Barbie Holiday Doll"],
 ];
 /**
  * Measured 11-24 and kept where they were (no store paying more for the same item at about the same price): Later's

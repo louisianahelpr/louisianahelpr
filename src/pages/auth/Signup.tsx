@@ -92,13 +92,18 @@ const Signup = () => {
   // Every other refusal of "Create account" (audit 11-23: they were toasts gone in under 3 s), shown in a box right
   // above the button until the next try. The password's own reasons stay under its field (serverPasswordError).
   const [formError, setFormError] = useState<string | null>(null);
-  const refuse = (words: string) => { setFormError(words); return false; };
+  const refuse = (words: string, field?: string) => {
+    setFormError(words);
+    // The one form's refusals stay on the funnel (this was step 2's validation event).
+    if (field) track(AhaEvent.SignupStepValidationFailed, { step: 1, error_fields: [field], ...ppoTrackingProps() });
+    return false;
+  };
 
   // Validates the form (names, email, password, agreements).
   const validateAccountStep = async () => {
-    if (!firstName.trim()) return refuse(t("signup.firstNameToast"));
-    if (!lastName.trim()) return refuse(t("signup.lastNameToast"));
-    if (!email.trim()) return refuse(t("signup.emailToast"));
+    if (!firstName.trim()) return refuse(t("signup.firstNameToast"), "firstName");
+    if (!lastName.trim()) return refuse(t("signup.lastNameToast"), "lastName");
+    if (!email.trim()) return refuse(t("signup.emailToast"), "email");
     // The password rules must match the Supabase project's policy exactly.
     // They did not: the project requires a lowercase letter, an uppercase
     // letter, a digit AND a symbol, while this validator asked for only the
@@ -118,9 +123,9 @@ const Signup = () => {
     // list now feeds this check, the inline gate, the requirement chips and
     // the inline error message; they cannot drift apart again.
     const pwProblem = passwordProblem(password);
-    if (pwProblem) return refuse(pwProblem);
-    if (!acceptedPolicies) return refuse(t("signup.termsToast"));
-    if (!ageConfirmed) return refuse(t("signup.ageToast"));
+    if (pwProblem) return refuse(pwProblem, "password");
+    if (!acceptedPolicies) return refuse(t("signup.termsToast"), "terms");
+    if (!ageConfirmed) return refuse(t("signup.ageToast"), "age");
     return true;
   };
 

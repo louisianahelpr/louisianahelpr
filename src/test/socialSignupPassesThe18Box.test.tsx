@@ -271,6 +271,7 @@ const TOUCHES_AGE_ATTESTED_AT: Record<string, string> = {
   "src/components/ProtectedRoute.tsx": "the gate: the only reader that lets an account in",
   "src/integrations/supabase/types.ts": "generated column types",
   "src/pages/admin/preview/OnboardingPreviewPage.tsx": "admin preview's sample unfinished profile (null, in the preview's own cache; never written)",
+  "supabase/functions/complete-signup/index.ts": "the email sign-up's 18+ tick, saved at account creation like the social paths (one-screen sign-up 11-23)",
 };
 
 describe("only the named code touches profiles.age_attested_at", () => {

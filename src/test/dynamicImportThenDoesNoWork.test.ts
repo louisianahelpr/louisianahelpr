@@ -155,7 +155,6 @@ describe("no read runs inside Vite's dynamic-import wrapper", () => {
       "src/lib/signupSource.ts": 1, // the sign-up source report: not marked sent, so the next load sends it (Q2705 boot cut)
       "src/pages/home/homeDashboard/useNeedsYouTodos.ts": 1, // B51: Home's derivations; an empty module leaves them unloaded (the hook stays loading, no to-dos) and loadModule's reload takes over
       "src/lib/sonnerFacade.ts": 1, // resets `loading`: the next toast loads Sonner
-      "src/pages/auth/signup/useCityZipMismatch.ts": 1, // an advisory hint
       "src/hooks/useWebPush.ts": 2, // boot-bytes 11-15: the permission explainer not loaded = no ask this time; the cooldown is stamped only once the sheet shows (markAskShown), so the next visit asks. +1 2026-11-20 (train 1120e, contextual push ask): the context words (pushAskWords) not loaded = the sheet's general words, nothing lost
       "src/hooks/useNotifyWhenWorkLands.ts": 1, // Q2705 pass 3 (/jobs first screen): the job-match preference is already saved; only the OS push ask is skipped while the stale-chunk reload runs, and the next tap asks (same as useWebPush)
       "src/lib/appSignIns.ts": 1, // app sign-ins (11-20): a best-effort record; an empty client module skips this one, and the next launch or resume records it again

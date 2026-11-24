@@ -1,6 +1,6 @@
 /**
  * Flow audit 1123 C8: when sponsor_public_state fails, /25days and /sponsor show a full-page error whose only way out
- * was an email address. It now links home (like the 404 page's "Go home").
+ * was an email address. It now links home (2026-11-24, like the 404 page's "Go home").
  *
  * @mutate src/pages/sponsor/SponsorPage.tsx |           <p><Link to="/" data-sponsor-error-home="">Go home</Link></p> |
  */

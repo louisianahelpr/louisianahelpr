@@ -6,6 +6,7 @@
  * shows the neutral sent screen, so the screen stays enumeration-safe.
  *
  * @mutate src/pages/auth/ForgotPassword.tsx |       if (isTransportFailure(error)) { |       if (false) {
+ * @mutate src/pages/auth/ForgotPassword.tsx |     if (!error) track(AhaEvent.PasswordResetSent); |
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -23,6 +24,8 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+const track = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/analytics", async (orig) => ({ ...(await orig<typeof import("@/lib/analytics")>()), track: (...a: unknown[]) => track(...a) }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 const EMAIL = "jane.doe@example.com";
@@ -34,7 +37,9 @@ const submit = () => {
 };
 
 describe("ForgotPassword: a send that never reached the server says so", () => {
-  beforeEach(() => resetMock.mockReset());
+  beforeEach(() => { resetMock.mockReset(); track.mockReset(); });
+  // Flow audit 11-23 (A3): requested / sent / failed events, a reason code only, never the address.
+  const events = () => track.mock.calls.map(([e, p]) => (p ? `${e}:${(p as { reason: string }).reason}` : e));
 
   for (const [label, err] of [
     ["WebKit offline (AuthRetryableFetchError: Load failed)", Object.assign(new Error("Load failed"), { name: "AuthRetryableFetchError", status: 0 })],
@@ -46,6 +51,7 @@ describe("ForgotPassword: a send that never reached the server says so", () => {
       submit();
       expect(await screen.findByText(/couldn't send it\. check your connection and try again/i)).toBeInTheDocument();
       expect(screen.queryByText(/check your inbox/i)).toBeNull();
+      expect(events()).toEqual(["password_reset_requested", "password_reset_failed:transport"]);
       // Typing again clears the error.
       fireEvent.change(screen.getByLabelText(/email/i), { target: { value: EMAIL + "x" } });
       expect(screen.queryByText(/couldn't send it/i)).toBeNull();
@@ -64,5 +70,7 @@ describe("ForgotPassword: a send that never reached the server says so", () => {
     submit();
     expect(await screen.findByText(/check your inbox/i)).toBeInTheDocument();
     expect(screen.queryByText(/couldn't send it/i)).toBeNull();
+    expect(events()).toEqual(["password_reset_requested", "password_reset_sent"]);
+    expect(JSON.stringify(track.mock.calls)).not.toContain(EMAIL);
   });
 });

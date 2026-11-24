@@ -18,6 +18,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { report as reportError } from "@/lib/errorLogger";
+import { track, AhaEvent } from "@/lib/analytics";
 import { useLanguage } from "@/lib/i18n/language";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
@@ -81,6 +82,8 @@ const ForgotPassword = () => {
     hapticMedium();
     setSendFailed(false);
     setLoading(true);
+    // Flow audit 11-23 (A3): requested / sent / failed, with a reason code only (never the address).
+    track(AhaEvent.PasswordResetRequested);
     // Never held on the security box unless the server refuses (A3-B1);
     // runWithCaptcha re-arms the single-use token for the resend.
     const { error } = await runWithCaptcha(turnstileRef.current, (captchaToken) =>
@@ -94,12 +97,14 @@ const ForgotPassword = () => {
       // inbox" path below: nothing was sent, and saying so reveals nothing
       // about whether the address has an account.
       if (isCaptchaError(error.message)) {
+        track(AhaEvent.PasswordResetFailed, { reason: "captcha" });
         hapticError();
         toast.error(recognizedAuthError(error.message) ?? t("forgot.captchaFailed"));
         return false;
       }
       const msg = (error.message ?? "").toLowerCase();
       if (msg.includes("rate") || msg.includes("limit") || msg.includes("too many")) {
+        track(AhaEvent.PasswordResetFailed, { reason: "rate_limit" });
         hapticError();
         toast.error(t("forgot.tooMany"));
         return false;
@@ -109,11 +114,13 @@ const ForgotPassword = () => {
       // so naming it leaks nothing. Only these show the inline error; every
       // server answer about the address still falls through below.
       if (isTransportFailure(error)) {
+        track(AhaEvent.PasswordResetFailed, { reason: "transport" });
         hapticError();
         setSendFailed(true);
         return false;
       }
       // Fall through: success-shaped UX even on error.
+      track(AhaEvent.PasswordResetFailed, { reason: "server" });
       //
       // But NOT silence. The neutral UX above is right — telling the user "no
       // account with that email" is a free user-existence oracle — and it is
@@ -145,6 +152,7 @@ const ForgotPassword = () => {
         },
       });
     }
+    if (!error) track(AhaEvent.PasswordResetSent);
     hapticSuccess();
     setResendCooldown(RESEND_COOLDOWN_S);
     return true;

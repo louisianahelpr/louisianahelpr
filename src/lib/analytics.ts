@@ -73,6 +73,25 @@ export const AhaEvent = {
   PayoutSetupStarted: "payout_setup_started",
   PayoutSetupCompleted: "payout_setup_completed",
   ReviewLeft: "review_left",
+  // Flow audit 11-23 (A2/A3): log in, password reset, Declutter buying and posting had no events at all, so a broken
+  // step read as a quiet one (the same blind spot that hid the 11-13 sign-up break for 10 days). Properties carry a
+  // method, a reason code or a public item id only: never an email, name or amount.
+  LoginSucceeded: "login_succeeded",
+  LoginFailed: "login_failed",
+  LoginRedirectStarted: "login_redirect_started",
+  PasswordResetRequested: "password_reset_requested",
+  PasswordResetSent: "password_reset_sent",
+  PasswordResetFailed: "password_reset_failed",
+  DeclutterSaved: "declutter_saved",
+  DeclutterGuestTap: "declutter_guest_tap",
+  DeclutterOfferStarted: "declutter_offer_started",
+  DeclutterOfferSent: "declutter_offer_sent",
+  DeclutterCartAdded: "declutter_cart_added",
+  DeclutterCheckoutStarted: "declutter_checkout_started",
+  DeclutterCheckoutCompleted: "declutter_checkout_completed",
+  DeclutterPostStarted: "declutter_post_started",
+  DeclutterPostSubmitted: "declutter_post_submitted",
+  DeclutterPostLive: "declutter_post_live",
   // Retention
   AppOpenedFromPush: "app_opened_from_push",
   AppOpenedFromDeepLink: "app_opened_from_deep_link",

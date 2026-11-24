@@ -40,6 +40,8 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+// Flow audit 11-23: ForgotPassword now sends password_reset_* events; keep them off the network.
+vi.mock("@/lib/analytics", async (orig) => ({ ...(await orig<typeof import("@/lib/analytics")>()), track: vi.fn() }));
 vi.mock("sonner", () => ({ toast: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({ hapticMedium: vi.fn(), hapticSuccess: vi.fn(), hapticError: vi.fn(), hapticLight: vi.fn() }));
 

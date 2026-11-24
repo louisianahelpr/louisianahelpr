@@ -10,7 +10,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     run(action);\n  }; |     if (card.data) run(action);\n    else setNeedCard(action);\n  };
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               rememberAfterCard(itemId, action, undefined, offerAmount);\n | \n
  * DA-11 (Declutter audit 2026-10-30): the amount first, the card at Send, and the typed amount survives the trip.
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (action === "offer") {\n      setOpen(true);\n      return;\n    } |     if (action === "offer") {\n      setNeedCard("offer");\n      return;\n    }
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setOpen(true);\n      return;\n    }\n    // Owner 11-07 | setNeedCard("offer");\n      return;\n    }\n    // Owner 11-07
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     else setNeedCard("offer"); |     else send.mutate();
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | offerAmount={action === "offer" ? amount.trim() : undefined} | offerAmount={undefined}
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState(() => offerAmountFromState(location.state) ?? ""); | useState("");
@@ -131,6 +131,8 @@ const state = {
 // Q2471: the offer box asks declutter-ai-reply for a suggested amount; no suggestion here (the box works without it).
 // H3 (audit 11-08): the buy funnel is fire-and-forget telemetry; this spec never reaches Supabase for it.
 vi.mock("@/lib/declutter/funnel", () => ({ trackFunnel: () => {} }));
+// Flow audit 11-23: the buyer steps now send analytics events too; keep them off the network.
+vi.mock("@/lib/analytics", async (orig) => ({ ...(await orig<typeof import("@/lib/analytics")>()), track: () => {} }));
 vi.mock("@/lib/declutter/aiReply", async (orig) => ({ ...(await orig<object>()), requestSuggestedOffer: async () => null }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => (key === "declutter_seller_delivery" ? state.sellerDeliveryOn

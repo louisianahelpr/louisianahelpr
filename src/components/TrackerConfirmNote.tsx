@@ -6,7 +6,7 @@
  */
 export function TrackerConfirmNote({ dayPassed, posterName }: { dayPassed: boolean; posterName?: string | null }) {
   if (dayPassed) {
-    const posterFirst = (posterName ?? "").trim().split(/\s+/)[0] || "the poster";
+    const posterFirst = (posterName ?? "").trim().split(/\s+/)[0] || "the person who posted this job";
     return (
       <div className="pt-2 border-t border-border">
         <p className="text-ds-11 text-muted-foreground text-center" data-confirm-day-passed="">

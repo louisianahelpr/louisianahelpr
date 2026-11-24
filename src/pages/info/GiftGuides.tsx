@@ -29,6 +29,7 @@ import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { KIDS_FILTER_GUIDE, KID_AGES, KID_GENDERS, KID_PRICES, NO_KIDS_SELECTION, filterKids, loadKidTags, toggleIn, type KidAge, type KidGender, type KidPrice, type KidTags, type KidsSelection } from "@/content/giftGuideKidsFilter";
 import { louisianaToday } from "@/content/giftGuideExtras1120";
+import { searchPageGuides } from "@/content/guideSearchIndex.mjs";
 
 /**
  * /gift-guides and /gift-guides/<slug> (owner 2026-11-16, public 2026-11-18; rebuilt 2026-11-18 to the owner's final
@@ -45,7 +46,7 @@ import { louisianaToday } from "@/content/giftGuideExtras1120";
  * prod (Slow 4G + 4x, 375, guest) the list drew at 8.1 s. Elsewhere (a prefetch from another page) it does nothing.
  */
 const coldSlug = typeof window === "undefined" ? undefined : /^\/gift-guides\/([^/]+)\/?$/.exec(window.location.pathname)?.[1];
-if (coldSlug && guideBySlug(coldSlug)) {
+if (coldSlug && (guideBySlug(coldSlug) || searchPageGuides(coldSlug))) {
   loadGuidePicks(coldSlug).catch((e: unknown) => {
     // GiftGuideView asks again on mount and owns the failure (its loading line stays).
     console.warn("gift guides: early picks load failed", coldSlug, e);
@@ -142,6 +143,34 @@ function LazyDeals({ day }: { day: NonNullable<ReturnType<typeof dealDay>> }) {
   if (!mod) return <p className="gg-soon" role="status">{WISH.loading}</p>;
   return <mod.GiftGuideDeals day={day} />;
 }
+/**
+ * Search pages (owner 2026-11-23, "add a lot of different searches"): their words, matcher and the guides' "Popular
+ * searches" line load in their own chunk (src/pages/info/giftGuides/GuideSearchLinks.tsx), never on a guide page's
+ * first paint (the /gift-guides/<slug> critical-path budget, Q178). Only the slug map (guideSearchIndex.mjs) is here.
+ */
+type SearchModule = typeof import("./giftGuides/GuideSearchLinks");
+const loadSearch = () => loadModule(() => import("./giftGuides/GuideSearchLinks"));
+function useSearchModule(wanted: boolean): SearchModule | "failed" | null {
+  const [mod, setMod] = useState<SearchModule | "failed" | null>(null);
+  useEffect(() => {
+    if (!wanted || mod) return;
+    let live = true;
+    void loadSearch()
+      .then((m) => m ?? untilReload())
+      .then(
+        (m) => { if (live) setMod(m); },
+        (e) => {
+          report(e as Error, { tags: { source: "GiftGuides.loadSearch" } });
+          if (live) setMod("failed");
+        },
+      );
+    return () => {
+      live = false;
+    };
+  }, [wanted, mod]);
+  return mod;
+}
+
 function LazyMyList() {
   const mod = useLazyPart(loadMyList, "GiftGuides.loadMyList");
   if (mod === "failed") return <p className="gg-soon" role="alert" data-gift-mylist-failed="">{WISH.sharedFailed}</p>;
@@ -159,7 +188,14 @@ export default function GiftGuides() {
   useWishListSync();
   const { hash } = useLocation();
   const [params] = useSearchParams();
-  const guide = guideBySlug(slug) ?? null;
+  // Search pages (owner 11-23, guideSearchPages.mjs): a filtered view of Her, Him or Kids, drawn once its chunk is in; an
+  // age page waits for the Kids tags too. A main guide loads the same chunk for its "Popular searches" line.
+  const searchSlug = searchPageGuides(slug) ? slug : undefined;
+  const searchMod = useSearchModule(Boolean(searchSlug || guideBySlug(slug)));
+  const sm = searchMod && searchMod !== "failed" ? searchMod : null;
+  const search = sm && searchSlug ? sm.searchPageBySlug(searchSlug) : null;
+  const [kidTags, setKidTags] = useState<KidTags | null>(null);
+  const guide = guideBySlug(slug) ?? (sm ? sm.searchGuide(searchSlug, kidTags) : null);
   // Owner 11-21 (iPhone, Kids): "put the icons below the red banner. On the same line as the 81 gifts ... also move the
   // order by dec below the red banner". On a phone, a guide page draws the pill and the icons on the count's row under
   // its banner (countRow below), not on the row above it; the landing and every desktop keep them in the header row.
@@ -187,16 +223,16 @@ export default function GiftGuides() {
     if (guide) setKidsPick((cur) => ({ slug: guide.slug, sel: f(cur.slug === guide.slug ? cur.sel : NO_KIDS_SELECTION) }));
   };
   const clearKids = () => setKidsSel(() => NO_KIDS_SELECTION);
-  const [kidTags, setKidTags] = useState<KidTags | null>(null);
+  const needsTags = kidsPage || Boolean(sm && search && sm.searchNeedsTags(search));
   useEffect(() => {
-    if (!kidsPage || kidTags) return;
+    if (!needsTags || kidTags) return;
     let live = true;
     loadKidTags().then((t) => { if (live) setKidTags(t); }, (e: unknown) => {
       // Offline or a stale deploy: the Price chips still work; Age and For come back on the next visit.
       console.warn("gift guides: kids tags failed", e);
     });
     return () => { live = false; };
-  }, [kidsPage, kidTags]);
+  }, [needsTags, kidTags]);
   const headerFilter = sponsorsPage ? { budget: sponsorBudget, onBudget: setSponsorBudget }
     : kidsPage ? { budget: null, onBudget: () => undefined, kids: { sel: kidsSel, tags: kidTags ?? {}, onClear: clearKids } }
     : undefined;
@@ -242,7 +278,7 @@ export default function GiftGuides() {
   const page = useRef<HTMLDivElement>(null);
   usePageMeta(
     shared || myListPage ? { title: `${shared ? WISH.sharedLead : WISH.title} — Helpr`, description: PUBLIC_PAGE_META["/gift-guides"].description, robots: "noindex" }
-    : deals ? giftGuidePageMeta(deals.id) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],
+    : deals ? giftGuidePageMeta(deals.id) : sm && search ? sm.searchPageMeta(search) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],
   );
   const groupParam = params.get("group");
   // The old My list address (?list=mine) opens My Wish List's own page.
@@ -276,7 +312,7 @@ export default function GiftGuides() {
   if (otherDay) return <Navigate to={`/gift-guides/${otherDay.id}`} replace />;
   const moved = slug && !guide && !deals ? newSlugFor(slug) : null;
   if (moved) return <Navigate to={`/gift-guides/${moved}`} replace />;
-  if (slug && !guide && !deals) return <Navigate to="/gift-guides" replace />;
+  if (slug && !guide && !deals && !searchSlug) return <Navigate to="/gift-guides" replace />;
 
   // Owner decision 2026-11-18 (~8:50 AM): the disclosures are plain muted lines at the BOTTOM, no box; the Amazon line is
   // the exact statement the Amazon Associates Operating Agreement requires on a site with Amazon links. Owner 2026-11-22
@@ -319,7 +355,7 @@ export default function GiftGuides() {
     // search + heart + share are ONE row (the page draws it, so the shell's own header row is off); a phone wraps it to
     // two rows (arrow + title, then the pill and the icons).
     <PublicHeaderPage title={G.headerTitle} titleTag={banner ? "p" : "h1"} backTo={backTo} hideHeader bottomPaddingClassName="pb-12 md:pb-16">
-      <style>{GIFT_GUIDES_CSS + GIFT_WISH_CSS}</style>
+      <style>{GIFT_GUIDES_CSS + GIFT_WISH_CSS + (sm ? sm.GUIDE_SEARCH_CSS : "")}</style>
       {/* The first heart's one-time "Saved to your wish list" note (owner 2026-11-20 hints), on every gift guides page. */}
       <FirstHeartHint />
       {/* Owner 2026-11-21: a guide's hearts save for someone (the picker) and the My lists pill, on guide and deals pages. */}
@@ -356,7 +392,8 @@ export default function GiftGuides() {
             disclosures at the very bottom. From 768px the CSS grid puts the menu on the left (GIFT_GUIDES_CSS). */}
         <div className="gg-layout">
           <div className="gg-main">
-            {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
+            {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? (search && sm?.searchNeedsTags(search) && !kidTags ? <p className="gg-soon" role="status">{WISH.loading}</p> : <><GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} />{sm && <sm.GuideSearchLinks slug={guide.slug} />}</>)
+              : searchSlug ? (searchMod === "failed" ? <p className="gg-soon" role="alert">{G.picksFailed}</p> : <p className="gg-soon" role="status">{WISH.loading}</p>) : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
           </div>
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}
           <GiftGuidesSidebar active={guide} myList={myList || shared} mine={myList} page={sidePage} />

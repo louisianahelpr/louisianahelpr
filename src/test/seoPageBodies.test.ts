@@ -21,6 +21,7 @@
  * @mutate src/lib/seoBodies.mjs | rel="sponsored nofollow noopener" | rel="noopener"
  * @mutate src/lib/giftGuidePageMeta.mjs |     (search ? guideSearchDescription(slug, count, first ? shortName(first) : "") : null) ?? | null ??
  */
+import { SEARCH_PAGES } from "@/content/guideSearchPages.mjs";
 import { describe, it, expect, beforeAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -231,7 +232,9 @@ describe("the sitemap lists only real, indexable pages, with lastmod", () => {
     // The deals days (owner 2026-11-21: one page each) answer 200 with their own body: checked by fetching.
     // The fun pages (owner 2026-11-20) are info pages under /gift-guides: 200 with their own body, no guide.
     const own = ["/gift-guides/black-friday", "/gift-guides/small-business-saturday", "/gift-guides/cyber-monday", "/gift-guides/swipe", "/gift-guides/planner", "/gift-guides/draw-names", "/gift-guides/printables/gift-tags", "/gift-guides/printables/coloring-books", "/gift-guides/printables/banners"];
-    const guides = locs.filter((p) => p.startsWith("/gift-guides/") && !own.includes(p));
+    // Search pages (owner 11-23): served 200 with their own body, checked in src/test/guideSearchPages1123.test.ts.
+    const searches = new Set(SEARCH_PAGES.map((p) => `/gift-guides/${p.slug}`));
+    const guides = locs.filter((p) => p.startsWith("/gift-guides/") && !own.includes(p) && !searches.has(p));
     expect(guides.length).toBe(4); // owner 11-21: Her, Him, Kids and the sponsors page (the relationship pages 301, out of the sitemap)
     for (const p of guides) expect(data.guides[p.slice("/gift-guides/".length)]?.indexed, p).toBe(true);
     // The old one-page deals address is out of the sitemap and 301s to Black Friday (owner 11-21: each day its own page).

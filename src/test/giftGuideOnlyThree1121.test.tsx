@@ -64,6 +64,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 import GiftGuides from "@/pages/info/GiftGuides";
 import { LIVE_GUIDES_1121 } from "@/content/giftGuideLive.mjs";
 import { GUIDES, RETIRED_SLUGS, ROWS, guidesIn, loadAllGuidePicks, newSlugFor, searchGuides } from "@/content/giftGuideCatalog";
+import { SEARCH_PAGES } from "@/content/guideSearchPages.mjs";
 import { RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { CHUNK_SLUGS, PICK_CHUNKS } from "@/content/giftGuidePicks";
@@ -297,7 +298,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     for (const q of ["teens", "amazon", "color", "nurse", "coffee"]) {
       for (const g of searchGuides(q)) expect([...LIVE, SPONSORS, ...Object.keys(RELATION_PAGES)], `${q}: ${g.slug}`).toContain(g.slug);
     }
-    const allowed = new Set([...LIVE, SPONSORS, ...DEAL_DAY_SLUGS, ...Object.keys(RELATION_PAGES)]);
+    // Search pages (owner 11-23): filtered views of Her, Him and Kids, each checked in src/test/guideSearchPages1123.test.ts.
+    const allowed = new Set([...LIVE, SPONSORS, ...DEAL_DAY_SLUGS, ...Object.keys(RELATION_PAGES), ...SEARCH_PAGES.map((p) => p.slug)]);
     const sitemap = [...readFileSync("public/sitemap.xml", "utf8").matchAll(/\/gift-guides\/([a-z0-9-]+)</g)].map((m) => m[1]);
     const tools = new Set(["swipe", "planner", "draw-names", "printables"]);
     expect(sitemap.filter((s) => !tools.has(s)).length).toBeGreaterThan(3);

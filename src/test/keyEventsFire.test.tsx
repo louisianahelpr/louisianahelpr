@@ -84,6 +84,9 @@ const h = vi.hoisted(() => {
       // job's poster is counted as having paid (Q1385/Q1386b).
       getSession: async () => ({ data: { session: { user: { id: USER_ID } } }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      // Flow audit 11-23: log in and password reset are key events too.
+      signInWithPassword: async () => ({ data: { session: { user: { id: USER_ID } }, user: { id: USER_ID } }, error: null }),
+      resetPasswordForEmail: async () => ({ data: {}, error: null }),
       signUp: async () => {
         state.signUpCalls += 1;
         return { data: { user: { id: USER_ID }, session: null }, error: null };
@@ -180,6 +183,10 @@ import { useApplyFlow } from "@/pages/home/useApplyFlow";
 import { createSendHandlers } from "@/pages/messages/messagesData/sendHandlers";
 import type { Conversation } from "@/components/messages/types";
 import { useActivityActions } from "@/components/job-card/useActivityActions";
+import { signInWithTimeout } from "@/lib/loginTransport";
+import ForgotPassword from "@/pages/auth/ForgotPassword";
+import { buyNow, makeOffer } from "@/lib/declutter/api";
+import { trackStripeReturn } from "@/lib/declutter/stripeReturn";
 import type { Application, Job } from "@/components/job-card/activityConstants";
 
 // ── Analytics boundary helpers ──────────────────────────────────────────────
@@ -373,6 +380,36 @@ async function driveMessageSent(): Promise<string> {
   return JOB;
 }
 
+// Flow audit 11-23 (A2/A3): log in, password reset and the Declutter buyer steps. None carries a job_id.
+async function driveLoginSucceeded(): Promise<undefined> {
+  await signInWithTimeout("someone@example.com", "correct horse", undefined);
+  return undefined;
+}
+
+async function drivePasswordResetSent(): Promise<undefined> {
+  render(<ForgotPassword />, { wrapper });
+  fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "someone@example.com" } });
+  fireEvent.submit(screen.getByLabelText(/email/i).closest("form") as HTMLFormElement);
+  return undefined;
+}
+
+async function driveDeclutterOfferSent(): Promise<undefined> {
+  h.state.rpcHandler = (name) => (name === "declutter_make_offer" ? { data: "offer-1", error: null } : undefined);
+  await makeOffer("item-key-1", 500);
+  return undefined;
+}
+
+async function driveDeclutterCartAdded(): Promise<undefined> {
+  h.state.rpcHandler = (name) => (name === "declutter_buy_now" ? { data: "line-1", error: null } : undefined);
+  await buyNow("item-key-2", 900);
+  return undefined;
+}
+
+async function driveDeclutterCheckoutCompleted(): Promise<undefined> {
+  trackStripeReturn("?view=cart&paid=1&order=order-key-1");
+  return undefined;
+}
+
 /**
  * Event -> the real path that emits it. The inventory test holds these keys
  * equal to KEY_EVENTS both ways; each driver returns the job_id the event must
@@ -387,6 +424,11 @@ const DRIVERS: Record<string, () => Promise<string | undefined>> = {
   job_completed: driveJobCompleted,
   review_left: driveReviewLeft,
   message_sent: driveMessageSent,
+  login_succeeded: driveLoginSucceeded,
+  password_reset_sent: drivePasswordResetSent,
+  declutter_offer_sent: driveDeclutterOfferSent,
+  declutter_cart_added: driveDeclutterCartAdded,
+  declutter_checkout_completed: driveDeclutterCheckoutCompleted,
 };
 
 let createObjectURLBefore: typeof URL.createObjectURL | undefined;
@@ -656,3 +698,8 @@ describe("inventory", () => {
 // @mutate src/components/CompletionPrompts.tsx | trackReviewLeft(jobId, rating, userId); | void 0;
 // @mutate src/pages/messages/messagesData/sendHandlers.ts | if (!alreadyLanded) track("message_sent" | if (false) track("message_sent"
 // @mutate src/pages/messages/messagesData/sendHandlers.ts | if (!alreadyLanded) track("message_sent" | track("message_sent"
+// @mutate src/lib/loginTransport.ts |   else track(AhaEvent.LoginSucceeded, { method: "password" }); | void 0;
+// @mutate src/pages/auth/ForgotPassword.tsx |     if (!error) track(AhaEvent.PasswordResetSent); | void 0;
+// @mutate src/lib/declutter/api.ts |   track(AhaEvent.DeclutterOfferSent, { item_id: itemId }); // flow audit 11-23 (A2) | void 0;
+// @mutate src/lib/declutter/api.ts |   track(AhaEvent.DeclutterCartAdded, { item_id: itemId, via: "buy_now" }); // flow audit 11-23 (A2): held into the cart | void 0;
+// @mutate src/lib/declutter/stripeReturn.ts |   if (paid) track(AhaEvent.DeclutterCheckoutCompleted, { via: "stripe" }); // flow audit 11-23 (A2) | void 0;

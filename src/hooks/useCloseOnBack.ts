@@ -12,21 +12,24 @@ import { useEffect, useRef } from "react";
  */
 const MARK = "lhSheet";
 const closers = new Map<symbol, () => void>();
-let pushed = false;
-let ignorePops = 0;
-let listening = false;
+/** `pushed`: our copy entry is on top of history. `ignorePops`: our own history.back() calls still to arrive. */
+const sheet = { pushed: false, ignorePops: 0 };
 
 const onPop = () => {
-  if (ignorePops > 0) {
-    ignorePops -= 1;
+  if (sheet.ignorePops > 0) {
+    sheet.ignorePops -= 1;
     return;
   }
-  if (!pushed) return;
-  pushed = false;
+  if (!sheet.pushed) return;
+  sheet.pushed = false;
   const all = [...closers.values()];
   closers.clear();
   for (const close of all) close();
 };
+
+// One process-lifetime listener, added when the module loads: it does nothing while no sheet is open, so no effect
+// installs it (an effect-installed once-flag with [open] deps is the NB-017 class, onceSetupNotCancellable.test.ts).
+if (typeof window !== "undefined") window.addEventListener("popstate", onPop);
 
 const onTop = () => {
   const s = window.history.state as Record<string, unknown> | null;
@@ -38,25 +41,21 @@ export function useCloseOnBack(open: boolean, close: () => void): void {
   ref.current = close;
   useEffect(() => {
     if (!open || typeof window === "undefined") return;
-    if (!listening) {
-      window.addEventListener("popstate", onPop);
-      listening = true;
-    }
     const id = Symbol("sheet");
     closers.set(id, () => ref.current());
-    if (!pushed) {
+    if (!sheet.pushed) {
       const prev = (window.history.state as Record<string, unknown> | null) ?? {};
       window.history.pushState({ ...prev, [MARK]: true }, "");
-      pushed = true;
+      sheet.pushed = true;
     }
     return () => {
       // Already closed by Back: its entry is gone.
       if (!closers.delete(id)) return;
       window.setTimeout(() => {
-        if (closers.size > 0 || !pushed) return;
-        pushed = false;
+        if (closers.size > 0 || !sheet.pushed) return;
+        sheet.pushed = false;
         if (onTop()) {
-          ignorePops += 1;
+          sheet.ignorePops += 1;
           window.history.back();
         }
       }, 0);

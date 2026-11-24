@@ -40,6 +40,8 @@ const MOVED_1124: [string, string, string, number][] = [
   ["https://mavely.app.link/SSVg1LN9j8b", "her", "store-bissell", 79.99],
   ["https://mavely.app.link/68WdqBM9j8b", "her", "store-bissell", 189.99],
   ["https://walmrt.us/4zZkihX", "him", "store-walmart", 179],
+  // YETI Daytrip Lunch Bag (Amazon B0F79VTVFQ, $85) to SCHEELS through Later 7% at $59.50, Pace Purple (lead ~4:20 AM).
+  ["https://mavely.app.link/bZ5RqVnfk8b", "her", "store-scheels", 59.5],
 ];
 
 /** Copied from the Desktop note (not from the module): pin -> guide, store, price checked 11-22. */
@@ -133,7 +135,7 @@ const AMAZON_1122: [string, string, number][] = [
   ["B0HKS18NW2", "her", 14.98], ["B0C1YBPJ43", "her", 35.98], ["B0F2937DQQ", "her", 56.98], ["B09X3WGJ3R", "her", 111.99],
   ["B0GP2R8TBS", "her", 199], ["B0GZSMBDYZ", "her", 237], ["B089F9YDFC", "him", 19.99],
   // builder-guide-her4 block 2 (11-22)
-  ["B0H2FQ5FV1", "her", 39.99], ["B0FXYGCYK6", "her", 24.99], ["B0F5K3B4Q7", "her", 29.94], ["B0CHMS3PVZ", "her", 27.99], ["B0D7GQVNNN", "her", 23.8], ["B0D1X4PNFD", "her", 29.95], ["B0F7M3HPBD", "her", 229], ["B0H3YXW87L", "her", 42.99], ["B0H9L8Z1DY", "her", 21.99], ["B0F79VTVFQ", "her", 85],
+  ["B0H2FQ5FV1", "her", 39.99], ["B0FXYGCYK6", "her", 24.99], ["B0F5K3B4Q7", "her", 29.94], ["B0CHMS3PVZ", "her", 27.99], ["B0D7GQVNNN", "her", 23.8], ["B0D1X4PNFD", "her", 29.95], ["B0F7M3HPBD", "her", 229], ["B0H3YXW87L", "her", 42.99], ["B0H9L8Z1DY", "her", 21.99],
   // batch 2
   ["B0D92375JB", "her", 26.99], ["B0G4M22BQL", "her", 32.99], ["B0BGS3L9XS", "her", 27.99], ["B0DXWP12C8", "her", 13.99], ["B0HKYH5TF2", "her", 39.99], ["B0H2CSG4SZ", "her", 15.99], ["B0FXBBD5GS", "her", 17.5], ["B0G3948RG8", "her", 14.8], ["B0HKQYLRBB", "her", 22.99],
   ["B07XL9MFZQ", "her", 12.74], // owner 11-22 PM: tortoise blue light glasses in place of the Stoggles

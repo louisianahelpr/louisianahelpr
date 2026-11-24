@@ -158,10 +158,6 @@ export const PRICE_RECHECKS = {
   "https://go.shopmy.us/p-109004254": { price: 25, priceAt: "2026-11-23" },
   // YETI Rambler 20 oz Tumbler, Upland: https://www.yeti.com/drinkware/tumblers/21071509313.html
   "https://go.shopmy.us/p-109004159": { price: 40, priceAt: "2026-11-23" },
-  // YETI Sidekick Dry 3L Gear Case, Olive: https://www.yeti.com/bags/bags-accessories/18060131320.html
-  "https://go.shopmy.us/p-109004058": { price: 55, priceAt: "2026-11-23" },
-  // YETI Tundra 45 Hard Cooler: https://www.yeti.com/coolers/hard-coolers/tundra/10045450025.html
-  "https://go.shopmy.us/p-109001581": { price: 325, priceAt: "2026-11-23" },
 };
 
 /** The as-of day a pick shows: the re-check day when one lists this link at this exact price and is newer, else `priceAt`. */

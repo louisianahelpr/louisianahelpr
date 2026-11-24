@@ -57,6 +57,11 @@ const SWITCHES: [string, string, string, string, number, number, string][] = [
   // Lead ~3:55 AM: her Clinique campaign on Amazon Creator Connections pays 30% against ShopMy 21%, same price.
   ["him", sm("108625882"), amz("B00IPWN1LK"), "store-amazon", 30, 29.4, "Clinique For Men Oil-Free Moisturizer"],
   ["him", sm("108625877"), amz("B00P4WVQNE"), "store-amazon", 30, 23.1, "Clinique For Men Post-Shave Soother"],
+  // Lead ~4:20 AM: SCHEELS's Black Friday YETI sale via Later 7% (Pace Purple / Ridgeline, about 30% cheaper; links made ~4:48-4:51 AM).
+  ["her", amz("B0F79VTVFQ"), "https://mavely.app.link/bZ5RqVnfk8b", "store-scheels", 7, 59.5, "YETI Daytrip 6L Lunch Bag, Pace Purple"],
+  ["him", sm("109001581"), "https://mavely.app.link/MYePdejfk8b", "store-scheels", 7, 227.5, "YETI Tundra 45 Hard Cooler"],
+  ["him", sm("109004991"), "https://mavely.app.link/SGyD34lfk8b", "store-scheels", 7, 175, "YETI Hopper Flip 12 Soft Cooler"],
+  ["him", sm("109004058"), "https://mavely.app.link/3DJNEdpfk8b", "store-scheels", 7, 38.5, "YETI Sidekick Dry 3L Gear Case, Pace Purple"],
 ];
 /** [guide, ShopMy pin, price, name]: her Macy's adds, all Macy's via ShopMy 16%. */
 const MACYS: [string, string, number, string][] = [

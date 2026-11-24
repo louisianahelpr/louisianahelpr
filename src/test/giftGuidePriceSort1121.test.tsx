@@ -251,7 +251,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // are Under $25.
       // Macy's steal S16 (11-24): the adidas hoodie ($25) is $25 to $50; S52 the Crocs Cozzzy ($25) too; S36 the Beats
       // Solo 4 ($99.99, read ~$100) is $100 and up.
-      him: { "Stocking stuffers under $10": 23, "Under $25": 48, "$25 to $50": 51, "$50 to $75": 26, "$75 to $100": 13, "$100 and up": 49 },
+      // SCHEELS YETI sale (11-24, Later 7%): the Sidekick Dry ($55 -> $38.50) moves from $50 to $75 to $25 to $50; the Tundra 45
+      // ($227.50) and Hopper Flip 12 ($175) stay $100 and up.
+      him: { "Stocking stuffers under $10": 23, "Under $25": 48, "$25 to $50": 52, "$50 to $75": 25, "$75 to $100": 13, "$100 and up": 49 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -316,7 +318,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Her steals 11-24 (scripts/giftGuideSteals1124.mjs): the Stanley tumbler ($20) and Clinique Merry Minis ($10) are Under $25;
       // the Big Chill puffer ($24.99, read ~$25) is $25 to $50.
       // Her steals 11-24: the lululemon keychain and hair ties ($9 each) are stocking stuffers; the Kate Spade wristlet ($29) is $25 to $50.
-      her: { "Stocking stuffers under $10": 21, "Under $25": 54, "$25 to $50": 51, "$50 to $75": 16, "$75 to $100": 14, "$100 and up": 39 },
+      // SCHEELS YETI sale (11-24): the Daytrip lunch bag ($85 -> $59.50) moves from $75 to $100 to $50 to $75.
+      her: { "Stocking stuffers under $10": 21, "Under $25": 54, "$25 to $50": 51, "$50 to $75": 17, "$75 to $100": 13, "$100 and up": 39 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

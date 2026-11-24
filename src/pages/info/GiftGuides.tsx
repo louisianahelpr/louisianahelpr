@@ -25,7 +25,6 @@ import { BUDGETS, BUDGET_MIN_PICKS, GiftGuideView, sectionLabel, sectionNav } fr
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { GuidesDisclosure } from "./giftGuides/GuidesDisclosure";
-import { GiftGuideThemeRow } from "./giftGuides/GiftGuideThemeRow";
 import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, DEALS_WORDS, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
@@ -153,6 +152,24 @@ if (coldSlug && dealDay(coldSlug)) {
   loadDeals().catch(() => {
     /* LazyDeals asks again on mount and owns the failure (its Try again line) */
   });
+}
+/**
+ * The Kids page's row of themed guide covers (owner 2026-11-24) loads its own chunk once the page has drawn (the theme
+ * train put /gift-guides/<slug> at 325 KB gz over its 321 KB critical-path allowance, Q178: the row's arrow icons and
+ * button). Until it is in, an invisible stand-in of the same height holds its place (one cover-sized square in the same
+ * row and tile CSS), so nothing below it moves; a failed load leaves the stand-in and is reported.
+ */
+const loadThemeRow = () => loadModule(() => import("./giftGuides/GiftGuideThemeRow"));
+function LazyThemeRow() {
+  const mod = useLazyPart(loadThemeRow, "GiftGuides.loadThemeRow");
+  if (!mod || mod === "failed") {
+    return (
+      <div className="gg-themes" aria-hidden="true" data-gift-theme-row-wait="">
+        <ul className="gg-row gg-themes-row invisible"><li><span className="gg-cover" /></li></ul>
+      </div>
+    );
+  }
+  return <mod.GiftGuideThemeRow />;
 }
 function LazyDeals({ day }: { day: NonNullable<ReturnType<typeof dealDay>> }) {
   const mod = useLazyPart(loadDeals, "GiftGuides.loadDeals");
@@ -398,7 +415,7 @@ export default function GiftGuides() {
           below={(shipPill) => (
             <>
               {/* Owner 2026-11-24: the themed kids guides' green covers, right under the red Kids banner. */}
-              {guide?.slug === KIDS_FILTER_GUIDE && <GiftGuideThemeRow />}
+              {guide?.slug === KIDS_FILTER_GUIDE && <LazyThemeRow />}
               {countRow && guide && (
                 <div className="gg-countrow" data-gift-countrow="">
                   <div className="gg-countrow-left">

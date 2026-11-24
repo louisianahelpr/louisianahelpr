@@ -26,6 +26,7 @@ import { describe, expect, it } from "vitest";
 import { her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
 import { him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
+import { TRIM_1124_ROWS } from "../../scripts/giftGuideTrim1124.mjs";
 import { RATE_SWITCHES_1124 } from "../../scripts/giftGuideOwner1124.mjs";
 import { HER_STEALS_1124_ROWS, HIM_STEALS_1124_ROWS, KIDS_STEALS_1124_ROWS } from "../../scripts/giftGuideSteals1124.mjs";
 import { RESEARCHED_STORES } from "@/content/giftGuidePicks";
@@ -36,6 +37,7 @@ const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuideP
 const built: Record<string, Pick[]> = { her: her1121Picks() as Pick[], him: him1121Picks() as Pick[], kids: kids1121Picks() as Pick[] };
 const amz = (asin: string) => `https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20`;
 const sm = (pin: string) => `https://go.shopmy.us/p-${pin}`;
+const TRIMMED_1124 = new Set(TRIM_1124_ROWS.map((r) => r[2]));
 
 /** [guide, old link, new link, store, commission %, price, name on the card]. */
 const SWITCHES: [string, string, string, string, number, number, string][] = [
@@ -153,6 +155,11 @@ describe("owner 11-24: higher-commission switches", () => {
       for (const list of [chunk(guide), built[guide]]) {
         expect(list.some((p) => p.href === from), `${guide}: ${from} still listed`).toBe(false);
         const rows = list.filter((p) => p.href === to);
+        // Owner 11-24 trim (scripts/giftGuideTrim1124.mjs): the two e.l.f. lip picks and the GE Opal Mini came off entirely.
+        if (TRIMMED_1124.has(to)) {
+          expect(rows.length, `${guide}: ${to} trimmed`).toBe(0);
+          continue;
+        }
         expect(rows.length, `${guide}: ${to}`).toBe(1);
         expect(rows[0], name).toMatchObject({ name, store, commission, price, priceAt: "2026-11-24" });
         // Amazon's photo is allowed only on an Amazon link: every switched pick shows a store photo, cut out.

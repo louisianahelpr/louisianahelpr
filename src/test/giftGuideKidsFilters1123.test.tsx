@@ -46,7 +46,7 @@ describe("the Kids tag file covers every pick, and every age says where it came 
 
   it("the 16 new Amazon kids picks the owner kept (owner-keeps-1123) are tagged by ASIN, so they match once they land", () => {
     const keeps = Object.entries(TAGS).filter(([, t]) => (t as KidTag & { list?: string }).list === "owner-keeps-1123");
-    expect(keeps.length).toBe(22);
+    expect(keeps.length).toBe(21); // 22 until the Burt's Bees Baby Christmas pajamas came off Kids in the owner's 11-24 trim (its tag went with it; 2026-11-24)
     expect(keeps.filter(([k]) => k.startsWith("amazon:")).length).toBe(16);
   });
 

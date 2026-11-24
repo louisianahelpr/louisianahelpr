@@ -253,7 +253,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Solo 4 ($99.99, read ~$100) is $100 and up.
       // SCHEELS YETI sale (11-24, Later 7%): the Sidekick Dry ($55 -> $38.50) moves from $50 to $75 to $25 to $50; the Tundra 45
       // ($227.50) and Hopper Flip 12 ($175) stay $100 and up.
-      him: { "Stocking stuffers under $10": 23, "Under $25": 48, "$25 to $50": 52, "$50 to $75": 25, "$75 to $100": 13, "$100 and up": 49 },
+      // Owner 11-24 trim (scripts/giftGuideTrim1124.mjs): Duke Cannon soap (stocking stuffer), the KastKing kit and Fire TV Stick
+      // (Under $25), the HOTO vacuum ($50 to $75) and the GE Opal Mini ($100 and up) came off.
+      him: { "Stocking stuffers under $10": 22, "Under $25": 46, "$25 to $50": 52, "$50 to $75": 24, "$75 to $100": 13, "$100 and up": 48 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -284,7 +286,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Macy's steals 11-24: the Kuromi plush ($8) and UNO deck ($5.57) are stocking stuffers; the
       // Bowser playset, vanity, runway and girls' jacket ($12.57-$19.99) are Under $25, and so is S51 the Crocs kids' clog ($23).
       // S52 the Crocs kids' Cozzzy ($25) is $25 to $50.
-      kids: { "Stocking stuffers under $10": 11, "Under $25": 73, "$25 to $50": 42, "$50 to $75": 11, "$75 to $100": 9, "$100 and up": 27 },
+      // Owner 11-24 trim: the butter squishy ($9.98, read ~$10), Aqua Puffs ornaments, karaoke, YEEHAO camera and Burt's Bees PJs
+      // (Under $25) and the hammock chair ($49.99, read ~$50: $50 to $75) came off.
+      kids: { "Stocking stuffers under $10": 11, "Under $25": 68, "$25 to $50": 42, "$50 to $75": 10, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -323,7 +327,10 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Her steal S42 (JCPenney Beautyrest heated throw, $29.99, 11-24): $25 to $50.
       // Her Amazon beauty picks 11-24 (owner, all 48 of A1-A48, scripts/giftGuideAmazonBeauty1124.mjs): 20 Under $25 (the two
       // $9.60 mascaras read ~$10), 20 $25 to $50 (the $25.20 perfumes read ~$25), 5 $50 to $75, 3 $75 to $100.
-      her: { "Stocking stuffers under $10": 23, "Under $25": 74, "$25 to $50": 72, "$50 to $75": 22, "$75 to $100": 16, "$100 and up": 39 },
+      // Owner 11-24 trim: both e.l.f. lip picks (stocking stuffers); Kiehl's, CFUNIQ, Kitsch, TULA, Capri Blue diffuser, card holder,
+      // gift bags, gift tags and Scrub Mommy (Under $25); the cookbook, HydroJug and Matador ($25 to $50); The Ridge ($50 to $75);
+      // Crown Affair pillowcase ($75 to $100) and the eto decanter ($100 and up) came off.
+      her: { "Stocking stuffers under $10": 21, "Under $25": 65, "$25 to $50": 69, "$50 to $75": 21, "$75 to $100": 15, "$100 and up": 38 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

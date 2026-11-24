@@ -15,6 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { HIM_1121, HIM_POPULAR_1122, KIDS_POPULAR_1122, HIM_KEEPS_1123, KIDS_KEEPS_1123, HIM_LINKS_1123, HIM_WALMART_1123, KIDS_LINKS_1123, HIM_KIDS_PRICE_AT, HIM_KIDS_STORES, HIM_SHOPMY_1121, KIDS_1121, KIDS_PLAY_1122, KIDS_SHOPMY_1121, applyHimKids1121, him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { HIM_ADDS_1124, KIDS_ADDS_1124 } from "../../scripts/giftGuideOwner1124.mjs";
+import { TRIM_1124_ROWS, trim1124 } from "../../scripts/giftGuideTrim1124.mjs";
 import { AMAZON_BRAND_PHOTOS_1122, CUTOUT_BASE, cutoutPhoto } from "../../scripts/giftGuideCutouts1120.mjs";
 import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "../../scripts/giftGuidePriceRecheck.mjs";
@@ -189,6 +190,8 @@ const notAmazon = (slug: string): Record<string, string> => {
   for (const [from, to] of Object.entries(TO_AMAZON_1124)) if (all[from]) { delete all[from]; all[to] = "store-amazon"; }
   // A ShopMy save switched away 11-24 is no longer on the page under its old link.
   for (const gone of SWITCHED_AWAY_1124) if (gone.startsWith("p-")) delete all[`https://go.shopmy.us/${gone}`];
+  // A pick she took off in the 11-24 trim is not on the page at all.
+  for (const [, guide, href] of TRIM_1124_ROWS) if (guide === slug) delete all[href];
   return all;
 };
 const popular = new Set([...HIM_POPULAR_1122, ...KIDS_POPULAR_1122].map((r) => r.href));
@@ -200,8 +203,9 @@ const chunk = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuideP
 const most = (xs: string[]) => Math.max(0, ...Object.values(xs.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})));
 
 describe.each([
-  ["him", [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123, ...HIM_ADDS_1124], him1121Picks() as Pick[]],
-  ["kids", [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_ADDS_1124], kids1121Picks() as Pick[]],
+  // Less the picks she took off in the 11-24 trim (scripts/giftGuideTrim1124.mjs; pinned in src/test/giftGuideTrim1124.test.ts).
+  ["him", trim1124("him", [...HIM_1121, ...HIM_ADDS_1122, ...HIM_POPULAR_1122, ...HIM_KEEPS_1123, ...HIM_LINKS_1123, ...HIM_WALMART_1123, ...HIM_ADDS_1124]), him1121Picks() as Pick[]],
+  ["kids", trim1124("kids", [...KIDS_1121, ...KIDS_ADDS_1122, ...KIDS_POPULAR_1122, ...KIDS_KEEPS_1123, ...KIDS_LINKS_1123, ...KIDS_ADDS_1124]), kids1121Picks() as Pick[]],
 ])("For %s is the owner's Amazon and ShopMy saves (11-21)", (slug, rows, built) => {
   const page = chunk(slug);
 
@@ -324,21 +328,21 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
     const amazon = chunk("him").filter((p) => p.store === "store-amazon").map((p) => /\/dp\/([A-Z0-9]{10})/.exec(p.href)![1]).filter((a) => a !== "B089F9YDFC" && a !== "B0GWXJ3PYM" && a !== "B0H51ZX6SB" && a !== "B00IPWN1LK" && a !== "B00P4WVQNE" && !LOUISIANA_1122_ASINS.him.includes(a));
     for (const gone of SWITCHED_AWAY_1124) expect(chunk("him").some((p) => p.href.includes(gone)), gone).toBe(false);
     // The 2 Clinique For Men picks that moved from ShopMy to Amazon 11-24 (TO_AMAZON_1124) are not from her saved Amazon list.
-    expect(amazon.length).toBe(118); // 120 until the Columbia hat and fleece moved to columbia.com 11-24 (SWITCHED_1124). 120 = 97 + the 14 Amazon keeps of 11-23 and the 9 of her second keeps (scripts/giftGuideOwnerKeeps1123.mjs). 97 = 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 3 owner-approved adds (Banded handwarmer, Klola mat, and the MVP PRO men's 2-pack B0D9PX9RBD: the brown listing was women's), plus the 5 popular adds of 11-22 (AirPods, AirTags, Bose, Garmin, Gozney)
+    expect(amazon.length).toBe(114); // 118 until the 11-24 trim took off the KastKing tool kit, Duke Cannon soap, Fire TV Stick and HOTO car vacuum (2026-11-24). 120 until the Columbia hat and fleece moved to columbia.com 11-24 (SWITCHED_1124). 120 = 97 + the 14 Amazon keeps of 11-23 and the 9 of her second keeps (scripts/giftGuideOwnerKeeps1123.mjs). 97 = 91, minus the 2 dupe removals (GoBox Collection, RAK tool), plus 3 owner-approved adds (Banded handwarmer, Klola mat, and the MVP PRO men's 2-pack B0D9PX9RBD: the brown listing was women's), plus the 5 popular adds of 11-22 (AirPods, AirTags, Bose, Garmin, Gozney)
     expect(chunk("him").filter((p) => p.href.includes("B089F9YDFC")).length).toBe(1);
     expect(chunk("him").filter((p) => p.href.includes("B0GWXJ3PYM")).length).toBe(1);
     for (const asin of ["B001DPHF4U", "B0FKCJNHWB", "B08Q1RN656", "B0F2JHSGCJ", "B0F22HTHMJ", "B0D1RJZCWZ", "B0H7CRMDKS", "B0DVM13SRM", "B0DVM24NF8", "B0B64CJZQQ", "B0D9QXT97F", "B0DHHK1YP7", "B0D9QX9F67", "B0H7CNPH2S", "B0H7DRWL2T", "B0FDYG11V3", "B0FDYD1C2N", "B0FDY7G84C", "B0002A7GMS", "B07M9LRQ4J", "B0FDXLSNN1", "B09ZYT939N", "B0998FYXLS", "B082JHQP7N", "B0GV4BKM4W", "B0DQF73JH4", "B0FT97QYYZ", "B08P2C446P", "B0CQ4QM7Q2", "B0732FCCL4", "B09R5TGLFR"]) expect(amazon, asin).not.toContain(asin);
-    for (const asin of ["B0F2K9B696", "B0F53HMTX5", "B0FR98X1DZ", "B0D31TCLN2", "B0FKN7JH1D"]) expect(amazon, asin).toContain(asin);
+    for (const asin of ["B0F2K9B696", "B0FR98X1DZ", "B0D31TCLN2", "B0FKN7JH1D"]) expect(amazon, asin).toContain(asin); // the HOTO car vacuum B0F53HMTX5 came off in the 11-24 trim
   });
 });
 
 describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
   it("54 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (Segway S2 is at Tractor Supply; 11-22 the Switch with Joy-Con, the C2 Lite and C2 Pro, the Amazon S2 and the mini CreateOn tiles went as duplicates, and Paint by Sticker came off; the Quest 3S, iPad and JLab kids headphones were added)", () => {
     const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
-    expect(amazon.length).toBe(85); // 86 until the My Mario playset moved to Walmart 11-24 (2026-11-24). 86 = 70 + the 16 Amazon keeps of 11-23 (scripts/giftGuideOwnerKeeps1123.mjs). 70 = 54 after the duplicate removals and Paint by Sticker + the 9 popular adds of 11-22 + the 7 Louisiana books, plush and team gear (owner 11-22 PM)
+    expect(amazon.length).toBe(80); // 85 until the 11-24 trim took off the butter squishy, Aqua Puffs ornaments, Kinglucky karaoke, YEEHAO camera and hammock chair (2026-11-24). 86 until the My Mario playset moved to Walmart 11-24 (2026-11-24). 86 = 70 + the 16 Amazon keeps of 11-23 (scripts/giftGuideOwnerKeeps1123.mjs). 70 = 54 after the duplicate removals and Paint by Sticker + the 9 popular adds of 11-22 + the 7 Louisiana books, plush and team gear (owner 11-22 PM)
     // Owner 2026-11-22 8:58 PM ("take it off"): Paint by Sticker Kids: Christmas had no Buy Box and no other listing.
     expect(amazon.some((p) => p.href.includes("152350675X"))).toBe(false);
-    for (const asin of ["B0F3GWXLTS", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
+    for (const asin of ["B0F3GWXLTS", "B0FJ2ZHPDY", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true); // the YEEHAO camera B0D6RMZ3D1 came off in the 11-24 trim
     expect(amazon.some((p) => p.href.includes("B0CT2WN59R"))).toBe(false);
   });
 });
@@ -348,8 +352,9 @@ describe("the generator sets Him and Kids last", () => {
     const pages: Record<string, unknown[]> = { him: [{ name: "old" }], kids: [], her: [{ name: "keep" }] };
     const stores: Record<string, { name: string; hosts: string[] }> = { "store-dillards": { name: "Dillard's", hosts: ["www.dillards.com"] } };
     const out = applyHimKids1121(pages, stores);
-    expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length + HIM_POPULAR_1122.length + HIM_KEEPS_1123.length + HIM_LINKS_1123.length + HIM_WALMART_1123.length + HIM_ADDS_1124.length });
-    expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length + KIDS_POPULAR_1122.length + KIDS_KEEPS_1123.length + KIDS_LINKS_1123.length + KIDS_ADDS_1124.length);
+    // Less the 5 Him and 6 Kids picks of the 11-24 trim.
+    expect(out.him).toEqual({ before: 1, after: HIM_1121.length + HIM_ADDS_1122.length + HIM_POPULAR_1122.length + HIM_KEEPS_1123.length + HIM_LINKS_1123.length + HIM_WALMART_1123.length + HIM_ADDS_1124.length - 5 });
+    expect(pages.kids.length).toBe(KIDS_1121.length + KIDS_ADDS_1122.length + KIDS_POPULAR_1122.length + KIDS_KEEPS_1123.length + KIDS_LINKS_1123.length + KIDS_ADDS_1124.length - 6);
     expect(pages.her).toEqual([{ name: "keep" }]);
     expect(stores["store-dillards"]).toEqual({ name: "Dillard's", hosts: ["go.shopmy.us", "www.dillards.com"] });
     expect(stores["store-exclusive-beauty-club"]).toEqual({ name: "Exclusive Beauty Club", hosts: ["go.shopmy.us"] });

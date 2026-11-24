@@ -34,12 +34,16 @@ import { guideBySlug, loadGuidePicks } from "@/content/giftGuideCatalog";
 import { catalogGuideQa, toQaPick } from "@/lib/guideQa.mjs";
 import { PRICE_SECTIONS, pickPriceShown, priceSectionId } from "@/lib/pickPriceShown.mjs";
 import { pickAnchor } from "@/content/giftGuidePickAnchor";
-import { her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
+import { HER_KEEPS_1123, her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
+import { TRIM_1124_ROWS } from "../../scripts/giftGuideTrim1124.mjs";
 import { him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { existsSync } from "node:fs";
 import her from "@/content/giftGuidePicks/her.json";
 import him from "@/content/giftGuidePicks/him.json";
 import kids from "@/content/giftGuidePicks/kids.json";
+
+/** The picks the owner took off in the 11-24 trim (pinned two-way in src/test/giftGuideTrim1124.test.ts). */
+const TRIMMED_1124 = new Set(TRIM_1124_ROWS.map((r) => r[2]));
 
 const TODAY = "2026-11-23";
 const GUIDES = ["her", "him", "kids"] as const;
@@ -117,6 +121,11 @@ describe("the owner's 11-23 Amazon keeps are on their guides", () => {
       expect(asins.length).toBeGreaterThan(13);
       for (const a of asins) {
         const rows = (list as { href: string; price: number; priceAt: string; image: string }[]).filter((p) => p.href.includes(`/dp/${a}`));
+        // Off since the owner's 11-24 trim (scripts/giftGuideTrim1124.mjs): Duke Cannon soap and the Fire TV Stick on Him.
+        if (TRIMMED_1124.has(`https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`)) {
+          expect(rows.length, `${a} trimmed`).toBe(0);
+          continue;
+        }
         expect(rows.length, a).toBe(1);
         expect(rows[0].href).toBe(`https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`);
         expect(rows[0].price).toBeGreaterThan(0);
@@ -170,6 +179,11 @@ describe("the owner's second 11-23 keeps are on Her and Him", () => {
       expect(keeps.length).toBeGreaterThan(8);
       for (const [asin, price, img, title] of keeps) {
         const rows = (list as { name: string; href: string; price: number; priceAt: string; image: string }[]).filter((p) => p.href.includes(`/dp/${asin}`));
+        // Off since the owner's 11-24 trim (scripts/giftGuideTrim1124.mjs): Kiehl's Lip Balm on Her.
+        if (TRIMMED_1124.has(`https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20`)) {
+          expect(rows.length, `${asin} trimmed`).toBe(0);
+          continue;
+        }
         expect(rows.length, asin).toBe(1);
         expect(rows[0].href).toBe(`https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20`);
         expect(rows[0].name).toBe(title);
@@ -213,6 +227,11 @@ describe("the owner's held-link keeps are on Her, Him and Kids", () => {
     expect(LINKED.length).toBeGreaterThan(12);
     for (const [guide, pin, price, name, file] of LINKED) {
       const rows = PAGES[guide].filter((p) => p.href === `https://go.shopmy.us/p-${pin}`);
+      // Off since the owner's 11-24 trim (scripts/giftGuideTrim1124.mjs): the Burt's Bees Baby Christmas pajamas on Kids.
+      if (TRIMMED_1124.has(`https://go.shopmy.us/p-${pin}`)) {
+        expect(rows.length, `${guide} ${name} trimmed`).toBe(0);
+        continue;
+      }
       expect(rows.length, `${guide} ${name}`).toBe(1);
       expect(rows[0].name).toBe(name);
       expect(rows[0].price, name).toBe(price);
@@ -221,11 +240,13 @@ describe("the owner's held-link keeps are on Her, Him and Kids", () => {
       expect(existsSync(`public/gift-guides/cutouts/${file}`), file).toBe(true);
     }
   });
-  it("Capri Blue's car diffuser links to Amazon at $23, not the 4% ShopMy link", () => {
-    const rows = PAGES.her.filter((p) => /Capri Blue Volcano Car Diffuser/.test(p.name));
+  it("Capri Blue's car diffuser row links to Amazon at $23, not the 4% ShopMy link (off the page since the 11-24 trim)", () => {
+    // Owner 11-24 trim (scripts/giftGuideTrim1124.mjs, Her R21): the diffuser is off For Her; its 11-23 keep row stays as history.
+    expect(PAGES.her.filter((p) => /Capri Blue Volcano Car Diffuser/.test(p.name)).length).toBe(0);
+    const rows = HER_KEEPS_1123.filter((p) => /Capri Blue Volcano Car Diffuser/.test(p.name));
     expect(rows.length).toBe(1);
     expect(rows[0].href).toBe("https://www.amazon.com/dp/B09X55PDB7?tag=louisianahelpr-20");
-    expect(rows[0].price).toBe(23);
+    expect(rows[0].sortPrice).toBe(23);
     expect(rows[0].image).toBe("https://m.media-amazon.com/images/I/51q7YVnVwnL._SL500_.jpg");
     expect(PAGES.her.some((p) => p.href.includes("p-109738464") || /(^|\.)capri-blue\.com$/.test(new URL(p.href).hostname))).toBe(false);
   });

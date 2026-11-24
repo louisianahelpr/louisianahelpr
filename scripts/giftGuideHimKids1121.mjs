@@ -29,6 +29,7 @@ import { ADDS_STORES_1122, HIM_ADDS_1122, KIDS_ADDS_1122 } from "./giftGuideOwne
 import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
 import { HIM_KEEPS_1123_ROWS, HIM_LINKS_1123_ROWS, HIM_WALMART_1123_ROWS, KEEPS_PRICE_AT, KIDS_KEEPS_1123_ROWS, KIDS_LINKS_1123_ROWS } from "./giftGuideOwnerKeeps1123.mjs";
 import { HIM_ADDS_1124, KIDS_ADDS_1124, STORES_1124, rateSwitch1124 } from "./giftGuideOwner1124.mjs";
+import { trim1124 } from "./giftGuideTrim1124.mjs";
 
 export const HIM_GUIDE = "him";
 export const KIDS_GUIDE = "kids";
@@ -464,8 +465,9 @@ export const KIDS_LINKS_1123 = KIDS_LINKS_1123_ROWS.map(shop).map((r) => ({ ...r
 
 const isAmazon = (p) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
+// Owner 11-24 trim: the picks she took off (scripts/giftGuideTrim1124.mjs) leave before the price ranks.
 const build = (rows, slug, g) =>
-  rankByPrice(rows).map(({ row: r, priceRank }) => {
+  rankByPrice(trim1124(slug, rows)).map(({ row: r, priceRank }) => {
     const { sortPrice: _sp, price, ...rest } = r;
     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug, priceRank };
     // AMAZON PRICES ON (owner 2026-11-21 ~12:05 PM: "each item also needs a price"; she chose "Show Amazon prices

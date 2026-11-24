@@ -31,13 +31,6 @@
    "ageSource": "amazon.com product page, read 2026-11-23: Manufacturer recommended age: 4 years and up",
    "list": "kids"
   },
-  "amazon:B0H9ZZGK8W": {
-   "name": "Crunchy Butter Squishy Toy",
-   "gender": "everyone",
-   "ageMin": 3,
-   "ageSource": "amazon.com product page, read 2026-11-23: Manufacturer recommended age: 3 years and up",
-   "list": "kids"
-  },
   "amazon:B0FG2Z88P7": {
    "name": "JoyCat Christmas Paint with Water Books",
    "gender": "everyone",
@@ -129,14 +122,6 @@
    "ageSource": "amazon.com product page, read 2026-11-23: Listing title: for Kids Age 3-12",
    "list": "kids"
   },
-  "amazon:B0D6RMZ3D1": {
-   "name": "YEEHAO Kids Digital Camera",
-   "gender": "everyone",
-   "ageMin": 3,
-   "ageMax": 9,
-   "ageSource": "amazon.com product page, read 2026-11-23: Listing: Best Gifts for Ages 3-9",
-   "list": "kids"
-  },
   "go.shopmy.us/p-108631978": {
    "name": "Melissa & Doug Pull-Back Vehicle Toys",
    "gender": "everyone",
@@ -162,14 +147,6 @@
    "gender": "everyone",
    "ageMin": 3,
    "ageSource": "amazon.com product page, read 2026-11-23: Manufacturer recommended age: 3 years and up",
-   "list": "kids"
-  },
-  "amazon:B0DCVF7YNW": {
-   "name": "Kinglucky Mini Karaoke Machine for Kids",
-   "gender": "everyone",
-   "ageMin": 3,
-   "ageMax": 12,
-   "ageSource": "amazon.com product page, read 2026-11-23: Listing: for 3-12 Years Old boys and girls",
    "list": "kids"
   },
   "amazon:B0CFDW7GNB": {
@@ -260,14 +237,6 @@
    "ageMin": 3,
    "ageMax": 5,
    "ageSource": "melissaanddoug.com: age: 3-5 years",
-   "list": "kids"
-  },
-  "amazon:B0HGX9TVW6": {
-   "name": "Skillmatics Aqua Puffs Christmas Ornaments",
-   "gender": "everyone",
-   "ageMin": 4,
-   "ageMax": 10,
-   "ageSource": "amazon.com product page, read 2026-11-23: Listing: for 4, 5, 6, 7, 8, 9, and 10 year olds",
    "list": "kids"
   },
   "amazon:B0DDLZV8YM": {
@@ -507,13 +476,6 @@
    "ageMin": 2,
    "ageMax": 6,
    "ageSource": "amazon.com product page, read 2026-11-23: Listing: Toddler/Youth sizes 2T, 3T, 4T and 6",
-   "list": "kids"
-  },
-  "amazon:B0F1N2MPND": {
-   "name": "Kids Hammock Chair with Cup Holder",
-   "gender": "everyone",
-   "ageMin": 3,
-   "ageSource": "amazon.com product page, read 2026-11-23: Listing: For age 3+ kids",
    "list": "kids"
   },
   "go.shopmy.us/p-109160719": {
@@ -851,14 +813,6 @@
    "gender": "everyone",
    "ageMin": 8,
    "ageSource": "amazon.com product page, read 2026-11-23: Manufacturer recommended age: 8 years and up",
-   "list": "owner-keeps-1123"
-  },
-  "go.shopmy.us/p-109731941": {
-   "name": "Burt's Bees Baby Nostalgic Christmas Two-Piece Pajamas",
-   "gender": "everyone",
-   "ageMin": 1,
-   "ageMax": 12,
-   "ageSource": "owner-keeps-1123.json ages (11-23 research of the product listing): sizes 12M-12Y",
    "list": "owner-keeps-1123"
   },
   "amazon:B083QZLSXS": {

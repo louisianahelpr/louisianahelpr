@@ -29,6 +29,7 @@ import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
 import { HER_KEEPS_1123_ROWS, HER_LINKS_1123_ROWS, KEEPS_PRICE_AT } from "./giftGuideOwnerKeeps1123.mjs";
 import { HER_ADDS_1124, STORES_1124, rateSwitch1124 } from "./giftGuideOwner1124.mjs";
 import { HER_AMAZON_BEAUTY_1124 } from "./giftGuideAmazonBeauty1124.mjs";
+import { trim1124 } from "./giftGuideTrim1124.mjs";
 
 export const HER_GUIDE = "her";
 /** The day the ShopMy prices were checked (Louisiana day). */
@@ -235,7 +236,8 @@ export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...
 /** The page rows: cheapest first, every pick priced (Amazon too, owner 11-21), cutout photos, relationship tags, no section. */
 export function her1121Picks(rows = HER_ROWS) {
   const g = PEOPLE_GUIDES.find((x) => x.slug === HER_GUIDE);
-  return rankByPrice(rows).map(({ row: r, priceRank }) => {
+  // Owner 11-24 trim: the picks she took off (scripts/giftGuideTrim1124.mjs) leave before the price ranks.
+  return rankByPrice(trim1124(HER_GUIDE, rows)).map(({ row: r, priceRank }) => {
     const { sortPrice: _sp, price, ...rest } = r;
     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: HER_GUIDE, priceRank };
     // AMAZON PRICES ON (owner 2026-11-21 ~12:05 PM: "each item also needs a price"; warned in a pop-up that Amazon only

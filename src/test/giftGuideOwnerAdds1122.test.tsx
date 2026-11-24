@@ -23,6 +23,7 @@ import { recheckedPriceAt } from "../../scripts/giftGuidePriceRecheck.mjs";
 import { RESEARCHED_STORES } from "@/content/giftGuidePicks";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
 import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
+import { TRIM_1124_ROWS } from "../../scripts/giftGuideTrim1124.mjs";
 
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
@@ -146,12 +147,20 @@ const AMAZON_1122: [string, string, number][] = [
   ["1455627143", "kids", 19.8], ["B08GVN1J37", "kids", 24.99], ["B074YZWKMB", "kids", 48.99], ["B0792C316R", "kids", 19.99], ["B0CCBMLJM5", "kids", 37.99], ["1455625639", "kids", 19.95], ["0142500704", "kids", 8.38],
 ];
 
+/** The picks the owner took off in the 11-24 trim (pinned two-way in src/test/giftGuideTrim1124.test.ts). */
+const TRIMMED_1124 = new Set(TRIM_1124_ROWS.map((r) => r[2]));
+
 describe("the owner's launch-day picks (11-22)", () => {
   it("each is on the guide she named, once, at the store's own price checked 11-22, with a cutout photo", () => {
     expect(SENT.length).toBeGreaterThan(10);
     expect(HER_ADDS_1122.length + KIDS_ADDS_1122.length + HIM_ADDS_1122.length).toBe(SENT.length + AMAZON_1122.length + CJ_1122.length + MOVED_1124.length);
     for (const [href, slug, store, price] of MOVED_1124) {
       const rows = chunk(slug).filter((x) => x.href === href);
+      // Owner 11-24 trim (scripts/giftGuideTrim1124.mjs): the GE Opal Mini came off For Him entirely.
+      if (TRIMMED_1124.has(href)) {
+        expect(rows.length, `${slug}: ${href} trimmed`).toBe(0);
+        continue;
+      }
       expect(rows.length, `${slug}: ${href}`).toBe(1);
       expect(rows[0], href).toMatchObject({ store, price, priceAt: "2026-11-24", ownerPick: true });
       expect(rows[0].image?.startsWith(CUTOUT_BASE), href).toBe(true);
@@ -183,6 +192,11 @@ describe("the owner's launch-day picks (11-22)", () => {
   it("each Amazon pick is on its guide once, with her tag, Amazon's own photo (never cut out) and the price she'd see 11-22", () => {
     for (const [asin, slug, price] of AMAZON_1122) {
       const rows = chunk(slug).filter((x) => x.href === `https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20`);
+      // Owner 11-24 trim (scripts/giftGuideTrim1124.mjs): CFUNIQ bag, eto decanter, HydroJug, gift bags and tags, card holder, cookbook.
+      if (TRIMMED_1124.has(`https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20`)) {
+        expect(rows.length, `${slug}: ${asin} trimmed`).toBe(0);
+        continue;
+      }
       expect(rows.length, `${slug}: ${asin}`).toBe(1);
       expect(rows[0].store, asin).toBe("store-amazon");
       expect(rows[0].image, asin).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
@@ -200,8 +214,9 @@ describe("the owner's launch-day picks (11-22)", () => {
     const herBuilt = new Set(her1121Picks().map((p) => p.href));
     const kidsBuilt = new Set(kids1121Picks().map((p) => p.href));
     expect(HER_ADDS_1122.length + KIDS_ADDS_1122.length).toBeGreaterThan(10);
-    for (const r of HER_ADDS_1122) expect(herBuilt.has(r.href), r.name).toBe(true);
-    for (const r of KIDS_ADDS_1122) expect(kidsBuilt.has(r.href), r.name).toBe(true);
+    // Except the picks she took off in the 11-24 trim (scripts/giftGuideTrim1124.mjs).
+    for (const r of HER_ADDS_1122) expect(herBuilt.has(r.href), r.name).toBe(!TRIMMED_1124.has(r.href));
+    for (const r of KIDS_ADDS_1122) expect(kidsBuilt.has(r.href), r.name).toBe(!TRIMMED_1124.has(r.href));
   });
 
   it("the Swank Camp Snap pins are not used; every Camp Snap row carries her code LEXILOMBAS7", () => {

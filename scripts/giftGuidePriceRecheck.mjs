@@ -32,8 +32,7 @@ export const PRICE_RECHECKS = {
   "https://go.shopmy.us/p-104219842": { price: 59.99, priceAt: "2026-11-23" },
   // Crocs Dylan Platform Clog: https://www.crocs.com/p/dylan-platform-clog/209869.html?cid=2EY
   "https://go.shopmy.us/p-108985937": { price: 35, priceAt: "2026-11-24" },
-  // Crown Affair The Silk Pillowcase: https://crownaffair.com/products/the-silk-pillowcase
-  "https://go.shopmy.us/p-109200757": { price: 88, priceAt: "2026-11-23" },
+  // (Crown Affair The Silk Pillowcase, p-109200757: off For Her in the owner's 11-24 trim, scripts/giftGuideTrim1124.mjs.)
   // CrunchLabs The Crunchinator: https://www.crunchlabs.com/products/the-crunchinator
   "https://go.shopmy.us/p-109208209": { price: 34.99, priceAt: "2026-11-24" },
   // Duck Commander Youth Happy Tee, Cream: https://duckcommander.com/products/duck-commander-cream-youth-happy-tee

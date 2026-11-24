@@ -31,7 +31,7 @@
  * @mutate src/content/giftGuides.ts |   disclosureLead: "Affiliate links:", |   disclosureLead: "Links:",
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | padding-top:14px;font-size:12px;color:var(--gg-muted); | padding-top:14px;font-size:10px;color:var(--gg-muted);
  * @mutate src/content/giftGuides.ts | amazonStatement: "As an Amazon Associate, Louisiana Helpr earns from qualifying purchases.", | amazonStatement: "As an Amazon Associate I earn from qualifying purchases.",
- * @mutate src/pages/info/GiftGuides.tsx | {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />} | {footer}{deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? <GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} /> : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
+ * @mutate src/pages/info/GiftGuides.tsx | {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? | {footer}{deals ? <LazyDeals key={deals.id} day={deals} /> : guide ?
  * @mutate src/content/giftGuideCatalog.ts |   return { row: rowId(group), label: group, tint }; |   return { row: rowId(group), label: group, tint: "oat" as GuideTint };
  * @mutate src/pages/info/giftGuides/GiftGuideTile.tsx | <Link to={`/gift-guides/${g.slug}`} | <Link to={`/gift-guides#${g.slug}`}
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   { slug: "him", dot: "green" }, |   { slug: "him", dot: "red" },
@@ -103,6 +103,7 @@ import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
 import { RETIRED_SLUGS, newSlugFor } from "@/content/giftGuideCatalog";
+import { SEARCH_PAGES } from "@/content/guideSearchPages.mjs";
 import { CHUNK_PICK_COUNTS, SECTION_ANCHORS } from "@/content/giftGuidePicks";
 import { DEAL_DAY_SLUGS, DEALS_SLUG } from "@/content/giftGuideDeals.mjs";
 // The fun pages (owner 2026-11-20: swipe, planner, the Secret Santa drawer) are own pages too: in the sitemap, no guide.
@@ -687,7 +688,9 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(listed).toContain("/gift-guides");
     // The own pages (the fun pages and the three deals days, owner 11-21: "each day has its own section") are in the
     // sitemap too, but are no catalog guide. The old one-page deals address is a redirect, never listed.
-    const guides = listed.filter((x) => x !== "/gift-guides").map((x) => x.replace("/gift-guides/", "")).filter((s) => !OWN_PAGES.includes(s));
+    const guides = listed.filter((x) => x !== "/gift-guides").map((x) => x.replace("/gift-guides/", "")).filter((s) => !OWN_PAGES.includes(s))
+      // Search pages (owner 11-23): filtered views, no catalog guide; checked in src/test/guideSearchPages1123.test.ts.
+      .filter((s) => !SEARCH_PAGES.some((p) => p.slug === s));
     expect(listed).toEqual(expect.arrayContaining(OWN_PAGES.map((s) => `/gift-guides/${s}`)));
     expect(listed).not.toContain(`/gift-guides/${DEALS_SLUG}`);
     expect(guides.length).toBe(4); // owner 11-21: Her, Him, Kids and the sponsors page; the relationship pages 301 and are out of the sitemap
@@ -705,7 +708,7 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     expect(Object.keys(NOINDEX_PAGE_META)).not.toContain("/gift-guides");
     // Each deals day (owner 2026-11-21) has its own head (src/test/giftGuideDeals1119.test.tsx).
     // My Wish List and a shared list (owner 2026-11-20) are noindex (src/test/giftWishList1120.test.tsx).
-    expect(src("src/pages/info/GiftGuides.tsx")).toContain(': deals ? giftGuidePageMeta(deals.id) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],');
+    expect(src("src/pages/info/GiftGuides.tsx")).toContain(': deals ? giftGuidePageMeta(deals.id) : sm && search ? sm.searchPageMeta(search) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],');
     expect(src("src/pages/info/GiftGuides.tsx")).toContain("return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length);");
     const mom = giftGuidePageMeta("her");
     expect(mom.title).toBe("Gifts for her 2026: Christmas ideas under $25 & $50 — Helpr");

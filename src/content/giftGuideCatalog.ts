@@ -16,6 +16,7 @@ import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, PICK_CHUNKS, SECTION_ANCHORS, TOP_PICKS
 import { isLiveDupes, isLivePickChunk, liveCopy, onLiveUpdate } from "@/lib/liveGuideData";
 import { MERGED_INTO, isFoldedStore } from "@/content/giftGuideMerges.mjs";
 import { OLD_PEOPLE_SLUGS, RELATION_PAGES } from "@/content/giftGuidePeople.mjs";
+import { searchPageGuides } from "@/content/guideSearchIndex.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { pickPriceShown, shownDollars } from "@/lib/pickPriceShown.mjs";
 import { loadModule, untilReload } from "@/lib/loadModule";
@@ -330,11 +331,16 @@ let version = 0;
 /** Whether a guide's picks are in hand (a guide with no chunk always is). */
 /** The chunk a guide reads: a relationship page reads its guide's (/gift-guides/mom reads For Her's). */
 const chunkOf = (slug: string) => RELATION_PAGES[slug]?.guide ?? slug;
-export const picksReady = (slug0: string) => { const slug = chunkOf(slug0); return !HAS_CHUNK.has(slug) || loaded.has(slug); };
-/** Fetch one guide's chunk (once); every guide object's `picks` and `deals` read it from then on. */
+/** Search pages (owner 11-23, src/content/guideSearchIndex.mjs) read every guide they list: /gift-guides/stocking-stuffers-under-10 reads Her, Him and Kids. */
+const chunksOf = (slug: string): string[] => searchPageGuides(slug) ?? [chunkOf(slug)];
+const chunkReady = (slug: string) => !HAS_CHUNK.has(slug) || loaded.has(slug);
+export const picksReady = (slug0: string) => chunksOf(slug0).every(chunkReady);
+/** Fetch a guide's chunk (once; a search page's every listed chunk); every guide object's `picks` and `deals` read it from then on. */
 export const loadGuidePicks = async (slug0: string): Promise<void> => {
-  const slug = chunkOf(slug0);
-  if (picksReady(slug)) return;
+  await Promise.all(chunksOf(slug0).map(loadChunk));
+};
+const loadChunk = async (slug: string): Promise<void> => {
+  if (chunkReady(slug)) return;
   const load = PICK_CHUNKS[`./giftGuidePicks/${slug}.json`];
   if (!load) throw new Error(`gift guides: no picks chunk for ${slug}`);
   // The sponsors guide's gift-type labels come with its own chunk, in parallel, so its rows draw with them (no flash) and

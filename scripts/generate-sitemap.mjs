@@ -48,6 +48,7 @@ import { GIFT_GUIDE_SEO } from "../src/content/giftGuideSeo.mjs";
 import { DEAL_DAY_SLUGS } from "../src/content/giftGuideDeals.mjs";
 import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
 import { GUIDE_UPDATED } from "../src/content/guideUpdated.mjs";
+import { SEARCH_PAGES, searchPageBySlug } from "../src/content/guideSearchPages.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -64,7 +65,10 @@ export function allGiftGuidePaths() {
   if (slugs.length === 0) throw new Error("generate-sitemap: src/content/giftGuideSeo.mjs lists no guide");
   // The deals days' own pages (no catalog guide, indexed; owner 11-21: "each day has its own section"): Black Friday,
   // Small Business Saturday and Cyber Monday, listed only while live (src/content/giftGuideLive.mjs).
-  return ["/gift-guides", ...slugs.sort().map((slug) => `/gift-guides/${slug}`), ...DEAL_DAY_SLUGS.filter(isLiveGuide).map((slug) => `/gift-guides/${slug}`)];
+  // Search pages (owner 11-23, "add a lot of different searches"; src/content/guideSearchPages.mjs): filtered views of
+  // the live guides, listed while every guide they read is live.
+  const searches = SEARCH_PAGES.filter((p) => p.guides.every(isLiveGuide)).map((p) => `/gift-guides/${p.slug}`);
+  return ["/gift-guides", ...slugs.sort().map((slug) => `/gift-guides/${slug}`), ...DEAL_DAY_SLUGS.filter(isLiveGuide).map((slug) => `/gift-guides/${slug}`), ...searches.sort()];
 }
 
 /** Canonical origin — must match src/lib/sitemap.test.ts. */
@@ -232,7 +236,8 @@ export function lastmodDates(paths, readChunk = (slug) => fs.readFileSync(path.j
     if (!slug || !/^[a-z0-9-]+$/.test(slug)) continue;
     let picks = [];
     try {
-      picks = JSON.parse(readChunk(slug)).picks ?? [];
+      // A search page's date is the newest of the guides it reads (Her, Him, Kids chunks).
+      picks = (searchPageBySlug(slug)?.guides ?? [slug]).flatMap((s) => JSON.parse(readChunk(s)).picks ?? []);
     } catch {
       // A guide with no chunk file (a fixed content guide): no date to state.
       continue;

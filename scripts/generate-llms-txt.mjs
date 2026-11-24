@@ -17,6 +17,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { publicOrGiftGuidePageMetaFor } from "../src/lib/giftGuidePageMeta.mjs";
 import { LANDING_PAGE_META } from "../src/lib/publicPageMeta.mjs";
+import { searchPageBySlug, searchPageMeta } from "../src/content/guideSearchPages.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ORIGIN = "https://www.louisianahelpr.com";
@@ -36,7 +37,9 @@ export const isHolidayPath = (p) => p === "/gift-guides" || p.startsWith("/gift-
 const ABOUT = ["/", "/browse", "/declutter", "/help", "/fees", "/safety"];
 
 function line(p) {
-  const meta = p === "/" ? { title: LANDING_PAGE_META.title, description: LANDING_PAGE_META.description } : publicOrGiftGuidePageMetaFor(p);
+  // A search page (owner 11-23) carries its own head, as api/share.ts serves it.
+  const search = searchPageBySlug(p.replace(/^\/gift-guides\//, ""));
+  const meta = p === "/" ? { title: LANDING_PAGE_META.title, description: LANDING_PAGE_META.description } : search ? searchPageMeta(search) : publicOrGiftGuidePageMetaFor(p);
   if (!meta?.title || !meta?.description) throw new Error(`generate-llms-txt: no title or description for ${p}`);
   const title = meta.title.replace(/\s+—\s+(Louisiana )?Helpr$/, "").replace(/\s+—\s+Louisiana's local partner\.$/, "");
   return `- [${title}](${ORIGIN}${p === "/" ? "/" : p}): ${meta.description}`;

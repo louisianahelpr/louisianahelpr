@@ -12,6 +12,8 @@
  * pages and the old links), and the sitemap (through GIFT_GUIDE_SEO). Guard: src/test/giftGuidePeople1120.test.ts.
  */
 
+import { searchPageGuides } from "./guideSearchIndex.mjs";
+
 /**
  * The two guides: the old guides whose picks they take (`sources`, by the pick's `from`), their interest sections in
  * page order, and their relationships (`rels`: the chip, its own page's slug and the old guides it came from).
@@ -66,7 +68,8 @@ export const PEOPLE_GUIDES = [
 export const OWNER_LIST_GUIDES = ["her", "him", "kids"];
 /** True when `slug` (a guide, or a relationship page such as "mom") shows one of the owner's own lists. */
 const relationPageGuide = (slug) => PEOPLE_GUIDES.find((g) => g.rels.some((r) => r.slug === slug))?.slug ?? slug;
-export const isOwnerList = (slug) => OWNER_LIST_GUIDES.includes(relationPageGuide(slug));
+// Search pages (owner 11-23, guideSearchIndex.mjs) are views of the owner's lists too: the same flat price-sorted list.
+export const isOwnerList = (slug) => OWNER_LIST_GUIDES.includes(relationPageGuide(slug)) || Boolean(searchPageGuides(slug)?.every((g) => OWNER_LIST_GUIDES.includes(g)));
 
 /** The most picks one interest section shows, and of one gift type in it (owner 11-19/11-20). */
 export const PEOPLE_SECTION_CAP = 25;

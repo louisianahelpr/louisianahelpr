@@ -29,6 +29,8 @@ export interface SeoData {
   smallBiz?: [name: string, town: string, category: string, ships: string, href?: string, gift?: string][];
   /** The /25days lineup (Sections.tsx publicPartners): A to Z, each brand's prizes and page link ("" = none); never a day. */
   lineup?: { title: string; intro: string; partners: [brand: string, prizes: string[], page: string][] };
+  /** Search pages (owner 11-23, guideSearchPages.mjs): each page's matching picks, in the guide rows' shape. */
+  searchPages?: Record<string, SeoGuide["picks"]>;
 }
 export interface SeoDealLists {
   codes: [store: string, code: string, offer: string, runs: string, href: string][];
@@ -64,3 +66,4 @@ export const INFO_BODY_LINKS: string[];
 export function infoPageBody(path: string, lineup?: SeoData["lineup"]): string | null;
 export function infoPageBreadcrumbLd(path: string): Record<string, unknown> | null;
 export function notFoundBody(kind?: "gift-guide" | "hire" | string): string;
+export function searchPageBody(page: import("../content/guideSearchPages.mjs").SearchPage, picks: SeoGuide["picks"]): string;

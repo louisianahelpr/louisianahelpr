@@ -19,6 +19,7 @@ import { DEALS_WORDS, dealName, dealShows } from "../content/giftGuideDeals.mjs"
 import { SMALL_BIZ_WORDS, smallBizSections } from "../content/giftGuideSmallBiz.mjs";
 import { GUIDE_CROSS_LINKS, GUIDE_SEARCH } from "../content/guideSearch.mjs";
 import { isLiveGuide } from "../content/giftGuideLive.mjs";
+import { SEARCH_GUIDE_NAMES, searchPageParent, searchPageSiblings, searchPagesOf } from "../content/guideSearchPages.mjs";
 
 export const SEO_SITE_ORIGIN = "https://www.louisianahelpr.com";
 
@@ -96,14 +97,7 @@ export function giftGuideBody(slug, guide) {
   const crumbs = [HOME, GUIDES, { name: guide.name, path: `/gift-guides/${slug}` }];
   const picks = Array.isArray(guide.picks) ? guide.picks : [];
   const count = Math.max(Number(guide.count) || 0, picks.length);
-  const items = picks
-    .map(([name, store, href]) => {
-      const link = safeHref(href);
-      const label = escapeHtml(name);
-      const where = store ? ` <span>on ${escapeHtml(store)}</span>` : "";
-      return `<li>${link ? `<a href="${escapeHtml(link)}" rel="sponsored nofollow noopener" target="_blank">${label}</a>` : label}${where}</li>`;
-    })
-    .join("");
+  const items = pickItems(picks);
   const countLine = count
     ? `${count} hand-picked holiday gift idea${count === 1 ? "" : "s"} from Louisiana Helpr, each with a link to the store that sells it. Prices change, so check the store for today's price.`
     : "Picks for this guide are coming soon. Browse every Louisiana Helpr gift guide in the meantime.";
@@ -116,7 +110,47 @@ export function giftGuideBody(slug, guide) {
     `<h1>${escapeHtml(guide.name)}</h1>${intro ? `<p>${escapeHtml(intro)}</p>` : ""}<p>${escapeHtml(countLine)}</p>` +
       (items ? `<ol>${items}</ol>` : "") +
       crossLinks(slug) +
+      searchLinks("Popular searches", searchPagesOf(slug)) +
       (related ? `<h2>More gift guides</h2><ul>${related}</ul>` : "") +
+      `<p><a href="/gift-guides">All holiday gift guides</a></p>` +
+      `<p>Louisiana Helpr earns a commission from qualifying purchases made through these links.</p>`,
+  );
+}
+
+/** Picks as list items: each name a plain link to the shop (an affiliate link, so rel="sponsored nofollow") and its store. */
+function pickItems(picks) {
+  return picks
+    .map(([name, store, href]) => {
+      const link = safeHref(href);
+      const label = escapeHtml(name);
+      const where = store ? ` <span>on ${escapeHtml(store)}</span>` : "";
+      return `<li>${link ? `<a href="${escapeHtml(link)}" rel="sponsored nofollow noopener" target="_blank">${label}</a>` : label}${where}</li>`;
+    })
+    .join("");
+}
+
+/** A plain list of search pages (owner 11-23, guideSearchPages.mjs), under `title`; "" with none. */
+function searchLinks(title, pages) {
+  return pages.length ? `<h2>${escapeHtml(title)}</h2><ul>${pages.map((p) => `<li><a href="/gift-guides/${escapeHtml(p.slug)}">${escapeHtml(p.h1)}</a></li>`).join("")}</ul>` : "";
+}
+
+/**
+ * A search page (owner 11-23, "add a lot of different searches"): breadcrumb, its H1 and intro, its picks as the guide
+ * body lists them, the link back to its full guide, its sibling searches and the main guides. `picks` are the build's
+ * rows for it (src/prerender/seoData.ts, the page's own matcher).
+ */
+export function searchPageBody(searchPage, picks) {
+  const parent = searchPageParent(searchPage);
+  const crumbs = [HOME, GUIDES, ...(parent ? [{ name: SEARCH_GUIDE_NAMES[parent], path: `/gift-guides/${parent}` }] : []), { name: searchPage.h1, path: `/gift-guides/${searchPage.slug}` }];
+  const rows = pickItems(Array.isArray(picks) ? picks : []);
+  const back = parent ? `<p><a href="/gift-guides/${escapeHtml(parent)}">See the full ${escapeHtml(SEARCH_GUIDE_NAMES[parent])} guide</a></p>` : "";
+  return page(
+    crumbs,
+    `<h1>${escapeHtml(searchPage.h1)}</h1><p>${escapeHtml(searchPage.intro)}</p>` +
+      (rows ? `<ol>${rows}</ol>` : "") +
+      back +
+      searchLinks("More gift searches", searchPageSiblings(searchPage)) +
+      crossLinks("") +
       `<p><a href="/gift-guides">All holiday gift guides</a></p>` +
       `<p>Louisiana Helpr earns a commission from qualifying purchases made through these links.</p>`,
   );

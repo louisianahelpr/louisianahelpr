@@ -14,6 +14,7 @@ import { GiftGuideLanding, finderAsked } from "./giftGuides/GiftGuideLanding";
 import { useWishListSync } from "./giftGuides/wishListSync";
 import { FirstHeartHint } from "./giftGuides/GiftGuideHints";
 import { loadModule, untilReload } from "@/lib/loadModule";
+import { whenPageSettled } from "@/lib/pageSettled";
 import { report } from "@/lib/errorLogger";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { MY_LIST_SLUG } from "./giftGuides/giftList";
@@ -24,7 +25,7 @@ import { BUDGETS, BUDGET_MIN_PICKS, GiftGuideView, sectionLabel, sectionNav } fr
 import { showsPrice } from "@/components/giftGuides/PickPrice";
 import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { GuidesDisclosure } from "./giftGuides/GuidesDisclosure";
-import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
+import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, DEALS_WORDS, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
 import { isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { KIDS_FILTER_GUIDE, KID_AGES, KID_GENDERS, KID_PRICES, NO_KIDS_SELECTION, filterKids, kidsGenderCounts, loadKidTags, toggleIn, type KidAge, type KidGender, type KidPrice, type KidTags, type KidsSelection } from "@/content/giftGuideKidsFilter";
@@ -72,15 +73,22 @@ function LazySaveForSomeone() {
   const [mod, setMod] = useState<SaveForModule | null>(null);
   useEffect(() => {
     let live = true;
+    // Guide speed 1124 (speed-1122n S1/S8): only once the page has settled (whenPageSettled: loaded, then 1 s with no
+    // download). Started at the first render, this chunk's preload list (~150 KB: the dialog, the planner store,
+    // signed-in-deep) shared the phone's link with the guide's own picks chunk, and the list drew at 7.0 s (local build,
+    // Slow 4G + 4x, 375; her.json took 2.2-2.4 s to arrive instead of 0.8 s).
     // An empty module (a stale-chunk reload on its way) waits on untilReload(); the hearts save to My Wish List meanwhile.
-    void loadSaveFor()
-      .then((m) => m ?? untilReload())
-      .then(
-        (m) => { if (live) setMod(m); },
-        (e) => report(e as Error, { tags: { source: "GiftGuides.loadSaveFor" } }),
-      );
+    const stop = whenPageSettled(() => {
+      void loadSaveFor()
+        .then((m) => m ?? untilReload())
+        .then(
+          (m) => { if (live) setMod(m); },
+          (e) => report(e as Error, { tags: { source: "GiftGuides.loadSaveFor" } }),
+        );
+    });
     return () => {
       live = false;
+      stop();
     };
   }, []);
   if (!mod) return null;
@@ -137,10 +145,20 @@ function LazySharedList({ code }: { code: string }) {
  * 352.8 KB budget). A failed load says so, like the lists above.
  */
 const loadDeals = () => loadModule(() => import("./giftGuides/GiftGuideDeals"));
+// Guide speed 1124 (speed-1122n S5): a cold deals day page starts its deals chunk as this module runs, not from
+// LazyDeals' effect after the first render (the deals file itself starts beside the app, src/boot/pathPageRoute.ts).
+// The import is memoised by the browser, so LazyDeals' own loadDeals() gets the same module; it owns the failure.
+if (coldSlug && dealDay(coldSlug)) {
+  loadDeals().catch(() => {
+    /* LazyDeals asks again on mount and owns the failure (its Try again line) */
+  });
+}
 function LazyDeals({ day }: { day: NonNullable<ReturnType<typeof dealDay>> }) {
   const mod = useLazyPart(loadDeals, "GiftGuides.loadDeals");
   if (mod === "failed") return <p className="gg-soon" role="alert" data-gift-deals-failed="">{G.dealsLoadFailed}</p>;
-  if (!mod) return <p className="gg-soon" role="status">{WISH.loading}</p>;
+  // Guide speed 1124 (speed-1122n S5): it said "Loading your list…" (the wish list's words) and then the page's own
+  // "Loading deals…"; now it says the page's words from the start.
+  if (!mod) return <p className="gg-soon" role="status" data-gift-deals-loading="">{DEALS_WORDS.loading}</p>;
   return <mod.GiftGuideDeals day={day} />;
 }
 /**

@@ -1561,6 +1561,19 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,
             },
+            // The Holiday Hub's "Directions" link helper (src/lib/mapsLink.ts; imports only nativeInit, a boot module). bootReach
+            // calls it Declutter-only (the Buying tab is its one signed-in reader; the Hub is started by pathPageRoute.ts, which
+            // publicRoots does not read), so decl-buying-first (17.02) won it, and a cold /holidays fetched that chunk and its
+            // Declutter closure (decl-item-first, declutter-item-pages, signed-in-late, ...) before the Hub could run (guide
+            // speed 1124, speed-1122n S2/S8; local build, Slow 4G + 4x, 375). Its own tiny chunk, ranked above every Declutter
+            // group. Guard: src/test/publicPagesSkipSignedInChunks.test.ts.
+            {
+              name: "maps-link",
+              test: /[\\/]src[\\/]lib[\\/]mapsLink\.ts$/,
+              priority: 18 /* rolldown reads priority as a whole number: 17.5 tied the 17.x Declutter groups, which come first */,
+              minSize: 0,
+              includeDependenciesRecursively: false /* the module alone (maps-link) */,
+            },
             // Small Business Saturday's "Featured local" read (src/lib/sbsFeaturedApi.ts) and the gift guides menu's count
             // of it (sbsFeaturedCount.ts, owner 11-22 "add the count to small business saturday too"; loaded by the menu's
             // lazy railCounts chunk on every guide page). In signed-in-deep they made that chunk fetch it and its static

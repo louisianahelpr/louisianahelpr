@@ -76,6 +76,27 @@ if (path.startsWith("/declutter/item/")) {
   import("@/pages/info/GiftGuides").catch(() => {
     /* App.tsx's lazy import of the same module owns the failure */
   });
+  // Guide speed 1124 (speed-1122n S4/S5): a deals day page drew "Loading your list…", then "Loading deals…", then its
+  // cards, because its chunk and its deals file each waited for the one before (GiftGuides -> GiftGuideDeals ->
+  // giftGuideDeals.json). The deals file (a leaf: no imports) starts here, beside the page; GiftGuides.tsx starts
+  // GiftGuideDeals as it runs. Starting GiftGuideDeals here too split the guides' shared chunk (+2 KB gz on every
+  // guide's critical path, over its budget).
+  if (/^\/gift-guides\/(?:black-friday|small-business-saturday|cyber-monday)$/.test(path)) {
+    import("@/content/giftGuideDeals.json").catch(() => {
+      /* GiftGuideDeals' import of the same module owns the failure */
+    });
+  }
+  // speed-1122n S6: Small Business Saturday's businesses file (a leaf too) starts beside its page.
+  if (path === "/gift-guides/small-business-saturday") {
+    import("@/content/giftGuideSmallBiz.json").catch(() => {
+      /* SmallBizGrid's import of the same module owns the failure */
+    });
+  }
+} else if (path === "/holidays") {
+  // Guide speed 1124 (speed-1122n S2): the Holiday Hub drew at 5.7 s; its page chunk waited for App.tsx.
+  import("@/pages/info/holidays/HolidayHub").catch(() => {
+    /* App.tsx's lazy import of the same module owns the failure */
+  });
 }
 for (const link of document.querySelectorAll('link[rel="modulepreload"]')) {
   if (!before.has(link)) link.setAttribute("data-lh-page-preload", "");

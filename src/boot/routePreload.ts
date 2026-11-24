@@ -148,9 +148,10 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
  *   instead of after it (pathPageRoute.ts).
  * - /gift-guides, every /gift-guides/<slug>, /sponsor and /25days (speed 11-20): their page chunk waited for App.tsx
  *   too (prod, Slow 4G + 4x, 375, guest: /sponsor's first words at 8.3-8.6 s; pathPageRoute.ts).
+ * - /holidays, the Holiday Hub (guide speed 1124, speed-1122n S2: 5.7 s, its chunk waited for App.tsx).
  * One pattern and one loader: separate rows and loaders put the entry chunk +69 B gz, over its band (lander l108).
  */
-const PATH_PAGE_PATH = /^\/(?:declutter\/item\/[^/]+|help|hire\/[^/]+\/[^/]+|jobs\/[0-9a-f-]{36}|gift-guides(?:\/[^/]+)?|sponsor|25days)$/i;
+const PATH_PAGE_PATH = /^\/(?:declutter\/item\/[^/]+|help|hire\/[^/]+\/[^/]+|jobs\/[0-9a-f-]{36}|gift-guides(?:\/[^/]+)?|sponsor|25days|holidays)$/i;
 
 /** Set on every <link rel="modulepreload"> the page preload adds; index.html's watchdog skips them. */
 const PAGE_PRELOAD_ATTR = "data-lh-page-preload";

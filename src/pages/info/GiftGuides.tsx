@@ -444,11 +444,11 @@ export default function GiftGuides() {
         <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} toolsInRow={!countRow}
           below={(
             <>
-              {/* Owner 2026-11-24 8:23 PM: on Kids the "Tap the menu" tip sits ABOVE the theme covers ("Move the tap box
-                  above the new guides"); Her and Him keep it in the guide (GiftGuideView). */}
-              {guide?.slug === KIDS_FILTER_GUIDE && MENU_HINT_GUIDES.has(guide.slug) && <GuidesMenuHint />}
-              {/* Owner 2026-11-24: the themed kids guides' green covers, right under the red Kids banner. */}
-              {guide?.slug === KIDS_FILTER_GUIDE && <LazyThemeRow />}
+              {/* Phone polish audit 1125 #8: ONE top on every guide, in one order: the banner, the count row (the
+                  toolbar), the tip box, the theme covers (Kids only), then the sections, 16px apart (Kids had its count
+                  row under the theme covers, ~50px over its first section). Owner 11-24 8:23 PM's "Move the tap box
+                  above the new guides" still holds: the tip stays above Kids' theme covers. A computer draws no count
+                  row, so its order is unchanged. Guard: src/test/guidesPhonePolish1125.test.tsx. */}
               {/* A phone's count row: the count on the left, the icons on the right (no shipping pill, owner 11-24). */}
               {countRow && guide && (
                 <div className="gg-countrow" data-gift-countrow="">
@@ -458,6 +458,11 @@ export default function GiftGuides() {
                   {tools}
                 </div>
               )}
+              {/* Owner 2026-11-24 8:23 PM: on Kids the "Tap the menu" tip sits ABOVE the theme covers ("Move the tap box
+                  above the new guides"); Her and Him keep it in the guide (GiftGuideView). */}
+              {guide?.slug === KIDS_FILTER_GUIDE && MENU_HINT_GUIDES.has(guide.slug) && <GuidesMenuHint />}
+              {/* Owner 2026-11-24: the themed kids guides' green covers, right under the red Kids banner. */}
+              {guide?.slug === KIDS_FILTER_GUIDE && <LazyThemeRow />}
             </>
           )} />
         {/* Owner 11-21 ("put like a line or something above all guides and under search bar all the way across to be a

@@ -88,6 +88,13 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
   const isWebDesktop = useIsWebDesktop();
   const location = useLocation();
   const railOwnsNav = isWebDesktop && !!user && isDesktopRailRoute(location.pathname);
+  // Phone polish audit 1125 #5 (owner 11-25: "polish the signed out and in version on phones"): a signed-out phone had
+  // TWO headers on every gift guides page (this bar, fixed, over the guides' own "← Gift guides ≡" row). Up to 767px on
+  // the guides' pages (every guide, deals day, printable, fun page and the Holiday Hub: navSection "guides") the bar is
+  // drawn at the page's top and scrolls away with it, so once a shopper scrolls only the guides' row and the gifts are
+  // on screen. The spacer under it is unchanged, so nothing moves at the top. Every other page, and 768px up, keep the
+  // fixed bar. Guard: src/test/guidesPhonePolish1125.test.tsx.
+  const scrollsAway = navSection(location.pathname) === "guides";
   // This nav is `position: fixed; top: 0`, so the global OfflineBanner (also
   // fixed at top:0) would overlay it. The `#root` padding that reserves space
   // for the banner on document-scroll pages can't move a fixed element, so
@@ -112,8 +119,10 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
     <nav
       ref={ref}
       aria-label="Primary"
+      data-nav-scrolls-away={scrollsAway ? "" : undefined}
       className={cn(
         "fixed top-0 left-0 right-0 z-50 glass-nav",
+        scrollsAway && "max-[767px]:absolute",
         solid && "is-scrolled",
         landing && atTop && "landing-nav-top",
         !landing && !atTop && "nav-past-top",

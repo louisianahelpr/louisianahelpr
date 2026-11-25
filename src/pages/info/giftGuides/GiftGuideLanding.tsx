@@ -4,7 +4,7 @@ import { loadModule, untilReload } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { giftGuides as G } from "@/content/giftGuides";
 import { GUIDES, type CatalogGuide } from "@/content/giftGuideCatalog";
-import { LIVE_GUIDES_1121 } from "@/content/giftGuideLive.mjs";
+import { LIVE_GUIDES_1121, isThemeGuide } from "@/content/giftGuideLive.mjs";
 // The Facebook link alone, not the 25 Days page's words and reads (vite.config.ts sponsor-page-reads: ~46 KB gz off
 // every guide page's critical path, 11-22).
 import { LOUISIANA_HELPR_FACEBOOK } from "@/content/giftGuideConstants";
@@ -43,9 +43,13 @@ import { GuidesMenuHint } from "./GiftGuideMenuHint";
 /** Live slugs that are pages, not guide tiles: the 25 Days sponsors page (a left-menu entry) and the deals days (left-menu entries). */
 const NOT_TILES = new Set(["25-days-sponsors", ...DEAL_DAY_SLUGS]);
 
-/** The landing's tiles: the live guides in the owner's order (Her, Him, Kids), each that holds picks. */
+/**
+ * The landing's tiles: the live guides in the owner's order (Her, Him, Kids), each that holds picks. The themed kids
+ * guides are NOT tiles here (owner 2026-11-24 6:54 PM: "these should only show when you click into kids"); they show
+ * only in the green cover row on /gift-guides/kids (GiftGuideThemeRow.tsx).
+ */
 const liveGuideTiles = (): CatalogGuide[] =>
-  LIVE_GUIDES_1121.filter((slug) => !NOT_TILES.has(slug)).flatMap((slug) => {
+  LIVE_GUIDES_1121.filter((slug) => !NOT_TILES.has(slug) && !isThemeGuide(slug)).flatMap((slug) => {
     const g = GUIDES.find((x) => x.slug === slug && !x.view);
     return g && !g.empty ? [g] : [];
   });

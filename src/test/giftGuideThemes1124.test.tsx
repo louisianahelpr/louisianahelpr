@@ -157,13 +157,13 @@ describe.each([...THEME_GUIDES_1124])("the %s guide", (slug) => {
     expect(c.querySelectorAll("[data-gift-dupe]").length).toBe(0);
   });
 
-  it("has a green-dot menu row reading its name, a landing tile, and its GUIDE_INDEX entry", async () => {
+  it("has a green-dot menu row reading its name, NO landing tile (owner 11-24 6:54 PM: only inside Kids), a Kids row cover, and its GUIDE_INDEX entry", async () => {
     const c = await renderAt("/gift-guides");
     const row = c.querySelector(`[data-gift-sidebar] [data-gift-side="${slug}"]`);
     expect(row, slug).not.toBeNull();
     expect(row?.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot")).toBe("green");
     expect(row?.textContent).toContain(name);
-    expect(c.querySelector(`[data-gift-live-guides] a[href="/gift-guides/${slug}"]`)).not.toBeNull();
+    expect(c.querySelector(`[data-gift-live-guides] a[href="/gift-guides/${slug}"]`)).toBeNull();
     expect(GUIDE_INDEX.filter((g) => g.slug === slug)).toEqual([{ group: "For kids", tint: "green", slug, title: `${name} Gift Guide`, lead: "the" }]);
   });
 

@@ -169,7 +169,7 @@ describe("M9, L1, L2, L3, L6: the landing and guide page are quick to use", () =
     const { container } = renderAt("/gift-guides");
     expect(container.querySelector("[data-gift-quick-picks]")).toBeNull();
     const tiles = [...container.querySelectorAll("[data-gift-live-guides] a[data-gift-tile]")];
-    expect(tiles.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", ...THEME_GUIDES_1124.map((s) => `/gift-guides/${s}`)]);
+    expect(tiles.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides/her", "/gift-guides/him", "/gift-guides/kids"]); // owner 11-24 6:54 PM: theme guides only inside Kids
   });
 
   // Owner 11-21 ("title on left with back arrow on the left of the title", like the other pages): the landing's back

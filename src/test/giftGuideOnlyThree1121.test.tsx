@@ -34,7 +34,8 @@
  * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", "him", "kids", ...THEME_GUIDES_1124, "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"]; | export const LIVE_GUIDES_1121 = ["her", "him", "kids", ...THEME_GUIDES_1124, "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday", "teens"];
  * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", "him", "kids", ...THEME_GUIDES_1124, "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"]; | export const LIVE_GUIDES_1121 = ["her", "him", "kids", ...THEME_GUIDES_1124, "25-days-sponsors", "black-friday", "cyber-monday"];
  * @mutate src/pages/info/GiftGuides.tsx |   if (slug === DEALS_SLUG) return <Navigate to={`/gift-guides/${oldDealsTarget(hash)}`} replace />; |   if (slug === DEALS_SLUG) return <Navigate to="/gift-guides/black-friday" replace />;
- * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   LIVE_GUIDES_1121.filter((slug) => !NOT_TILES.has(slug)).flatMap((slug) => { |   LIVE_GUIDES_1121.flatMap((slug) => {
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   LIVE_GUIDES_1121.filter((slug) => !NOT_TILES.has(slug) && !isThemeGuide(slug)).flatMap((slug) => { |   LIVE_GUIDES_1121.flatMap((slug) => {
+ * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |   LIVE_GUIDES_1121.filter((slug) => !NOT_TILES.has(slug) && !isThemeGuide(slug)).flatMap((slug) => { |   LIVE_GUIDES_1121.filter((slug) => !NOT_TILES.has(slug)).flatMap((slug) => {
  * @mutate src/pages/info/GiftGuides.tsx |         {landing && <hr className="gg-divider" data-gift-divider="" />} |         {null}
  * @mutate src/content/printables.ts |   if (!p.ready) return false; |   if (false) return false;
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |     ...(codes.length ? [{ id: "codes" |     ...(false ? [{ id: "codes"
@@ -205,7 +206,10 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
   it("the landing: a divider, the three guide tiles and the 25 Days card; the rest is in the left menu; no Gift of the Day or codes", async () => {
     const { container } = renderAt("/gift-guides");
     const tiles = [...container.querySelectorAll<HTMLAnchorElement>("[data-gift-live-guides] a[data-gift-tile]")].map((a) => a.getAttribute("href"));
-    expect(tiles).toEqual(LIVE.map((s) => `/gift-guides/${s}`));
+    // Owner 2026-11-24 6:54 PM: the themed kids guides show only inside Kids ("these should only show when you click into
+    // kids"), so the landing tiles stay exactly Her, Him and Kids even with every theme live.
+    expect(tiles).toEqual(["her", "him", "kids"].map((s) => `/gift-guides/${s}`));
+    for (const t of THEME_GUIDES_1124) expect(tiles).not.toContain(`/gift-guides/${t}`);
     // The hairline sits between the search row and the menu + guides (owner 11-21), on the landing only.
     const divider = container.querySelector("hr[data-gift-divider]");
     expect(divider).not.toBeNull();

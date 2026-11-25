@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-24T23:52:42.794Z",
-  "guards": 4526,
-  "registered": 4523,
+  "generated": "2026-11-25T01:26:37.183Z",
+  "guards": 4534,
+  "registered": 4531,
   "unregistered": [
     "src/lib/categorySuggestions.test.ts",
     "src/lib/celebrate.test.ts",
@@ -72,33 +72,6 @@
       ],
       "parents": [
         "src/components/VercelInsights.tsx"
-      ]
-    },
-    {
-      "module": "src/components/sponsor/ClaimSection.tsx",
-      "tests": [
-        "src/test/sponsor25days.test.tsx",
-        "src/test/sponsorButtonGeometry.test.tsx",
-        "src/test/sponsorLineup.test.tsx",
-        "src/test/sponsorSignupNeverSilentlyDropped.test.tsx"
-      ],
-      "parents": [
-        "src/pages/sponsor/SponsorPage.tsx"
-      ]
-    },
-    {
-      "module": "src/components/sponsor/Sections.tsx",
-      "tests": [
-        "src/test/giveawayReminders.test.tsx",
-        "src/test/sponsor25days.test.tsx",
-        "src/test/sponsor25daysPublicNoDates.test.tsx",
-        "src/test/sponsorLineup.test.tsx",
-        "src/test/sponsorNoOwnGiftCard.test.tsx",
-        "src/test/sponsorPublicOff.test.tsx",
-        "src/test/twentyFiveDaysRulesOnFacebook.test.tsx"
-      ],
-      "parents": [
-        "src/pages/sponsor/SponsorPage.tsx"
       ]
     },
     {

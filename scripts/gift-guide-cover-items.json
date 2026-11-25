@@ -1682,5 +1682,40 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-monster-trucks-colossal-mega-wrex-walmart-e49848.webp"
    }
   ]
+ },
+ "cars": {
+  "section": "For kids",
+  "items": [
+   {
+    "name": "Cars Track Talkers Lightning McQueen Talking Car",
+    "key": "cars:cr10",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-track-talkers-lightning-mcqueen-talking-car-walmart-254196.webp"
+   },
+   {
+    "name": "Cars Track Talkers Mater Talking Tow Truck",
+    "key": "cars:cr11",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-track-talkers-mater-talking-tow-truck-walmart-5b5807.webp"
+   },
+   {
+    "name": "Cars Transforming Mack Playset (truck + tune-up station)",
+    "key": "cars:cr21",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-transforming-mack-playset-truck-tune-up-station-walmart-33b42f.webp"
+   },
+   {
+    "name": "Cars 3 Lightning McQueen Light & Sound Ride-On",
+    "key": "cars:cr70",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-3-lightning-mcqueen-light-sound-ride-on-walmart-81e077.webp"
+   },
+   {
+    "name": "Pixar Cars Toddler Boys Full-Zip Fleece Hoodie (12M-5T)",
+    "key": "cars:cr41",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pixar-cars-toddler-boys-full-zip-fleece-hoodie-12m-5t-walmart-4a60ef.webp"
+   },
+   {
+    "name": "Lightning McQueen Toddler Boys Chunky Sneakers",
+    "key": "cars:cr42",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lightning-mcqueen-toddler-boys-chunky-sneakers-walmart-192b8c.webp"
+   }
+  ]
  }
 }

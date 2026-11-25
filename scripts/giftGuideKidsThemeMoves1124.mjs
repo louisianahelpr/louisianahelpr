@@ -45,4 +45,18 @@ export const KIDS_THEME_MOVES_1124 = [
   // Owner 11-24 ~10:45 PM (via the lead): "the minecraft tooth brush in the kids guide can be moved to the minecraft
   // guide." The Minecraft research now holds it as her pick MC80 (Amazon, page only; read 10:47 PM, $5.42, in stock).
   ["https://www.amazon.com/dp/B0CFFZ389Y?tag=louisianahelpr-20", "Colgate Minecraft Kids Toothbrush", "minecraft", "MC80"],
+  // Melissa & Doug (owner 11-24 ~11:05 PM: "create a lego and melissa and doug guide"): all seven Kids M&D picks move.
+  // Same link on the theme page: the easel and beauty kiosk (Walmart.com doesn't sell them) and the 4-vehicle pull-back
+  // set (Walmart.com has only a 2-pack; sold out at Macy's 11-24, kept on). The theme row is on Walmart for the SAME item
+  // where Walmart is in stock or clearly cheaper (11-24 ~11:15 PM): Doorbell House (Macy's sold out, Walmart $23.49),
+  // Cardboard Blocks 24 (Macy's $32.99, Walmart $17.49), Shopping Cart (Wayfair $55.99, Walmart $45.99).
+  ["https://go.shopmy.us/p-108631978", "Melissa & Doug Pull-Back Vehicle Toys", "melissa-and-doug", "MD35"],
+  ["https://go.shopmy.us/p-108632004", "Melissa & Doug Wooden Doorbell House", "melissa-and-doug", "MD40"],
+  ["https://go.shopmy.us/p-109002741", "Melissa & Doug Jumbo Cardboard Blocks, 24 Pieces", "melissa-and-doug", "MD33"],
+  ["https://go.shopmy.us/p-108631991", "Melissa & Doug Double-Sided Magnetic Tabletop Easel", "melissa-and-doug", "MD14"],
+  ["https://go.shopmy.us/p-110119982", "Melissa & Doug Sort, Stock, Select Beauty Kiosk Play Set", "melissa-and-doug", "MD28"],
+  ["https://go.shopmy.us/p-108632046", "Melissa & Doug Toy Shopping Cart", "melissa-and-doug", "MD27"],
+  // Moves WITH its approved dupe, the owner's Yoto precedent (lead 11-24 ~11:40 PM): its record in
+  // src/content/giftGuideDupes.json now names "melissa-and-doug".
+  ["https://go.shopmy.us/p-108632077", "Melissa & Doug Wood Furnished Mansion", "melissa-and-doug", "MD44"],
 ];

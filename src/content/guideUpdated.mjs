@@ -9,8 +9,8 @@ export const GUIDE_UPDATED = {
     "hash": "ce4776de0c9c4137"
   },
   "kids": {
-    "day": "2026-11-24",
-    "hash": "f8c62936a1d37242"
+    "day": "2026-11-25",
+    "hash": "5a714276a76c4bcb"
   },
   "25-days-sponsors": {
     "day": "2026-11-24",

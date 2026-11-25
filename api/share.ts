@@ -1385,6 +1385,7 @@ const WIDE_CARD_FOR_ID: Record<string, string> = {
   "gift-guides/hot-wheels": "hot-wheels",
   "gift-guides/cars": "cars",
   "gift-guides/numberblocks": "numberblocks",
+  "gift-guides/melissa-and-doug": "melissa-and-doug",
   "gift-guides/25-days-sponsors": "25-days-sponsors",
   "gift-guides/black-friday": "black-friday",
   "gift-guides/cyber-monday": "cyber-monday",

@@ -322,11 +322,28 @@ export function RevisionAsk({ job, side, posterFirst }: { job: JobPageRow; side:
   if (!note && Number.isNaN(dueMs)) return null;
   const due = Number.isNaN(dueMs) ? null : new Date(dueMs).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const whose = side === "poster" ? "Your note" : posterFirst?.trim() ? `${posterFirst.trim()}'s note` : "Their note";
+  // Deep audit 11-22 #44: a fix past its deadline still read "The fix is due by Thu, Nov 12" on Nov 22, and nothing
+  // said what happens when the time runs out. auto-release-payment (every 30 min) opens a dispute for a held payment
+  // whose fix was never marked done by revision_deadline (open_dispute_as, 20260912023326), and Helpr support decides
+  // the payment. So: an overdue fix says it is late, and the line says what happens next, only while the payment is
+  // held (payment_status escrow, the sweep's own filter). Guard: src/test/overdueFixSaysSo.test.tsx.
+  const overdue = due !== null && dueMs <= Date.now();
+  const held = job.payment_status === "escrow";
+  const dueLine = overdue
+    ? `The fix was due ${due} and isn't marked done.`
+    : side === "poster" ? `The fix is due by ${due}.` : `Fix it and mark it done by ${due}.`;
+  const nextLine = !held ? null : overdue
+    ? "Helpr support will step in and decide the payment."
+    : "If it isn't marked done by then, Helpr support steps in and decides the payment.";
   return (
     <section aria-label="What to fix" data-revision-ask="" className={CARD}>
       <p className="text-ds-15 font-semibold">What to fix</p>
       {note && <p className="mt-1.5 whitespace-pre-line text-ds-14 [overflow-wrap:anywhere]"><span className="font-semibold">{whose}: </span>{note}</p>}
-      {due && <p className="mt-1.5 text-ds-13 text-muted-foreground">{side === "poster" ? "The fix is due by" : "Fix it and mark it done by"} {due}.</p>}
+      {due && (
+        <p className={overdue ? "mt-1.5 text-ds-13 font-semibold text-destructive" : "mt-1.5 text-ds-13 text-muted-foreground"} data-revision-overdue={overdue ? "" : undefined}>
+          {dueLine}{nextLine ? ` ${nextLine}` : ""}
+        </p>
+      )}
     </section>
   );
 }

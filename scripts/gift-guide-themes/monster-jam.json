@@ -2,7 +2,7 @@
  "slug": "monster-jam",
  "name": "Monster Jam",
  "sectionPrefix": "mj",
- "builtFrom": "/Users/lexilombas/.lh-shots/mj-guide-1124/items.json (Tue Nov 24 12:43 PM, 285 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/mj-guide-1124/items.json (Tue Nov 24 12:43 PM, 287 items)",
  "rows": [
   {
    "id": "MJ01",
@@ -1953,6 +1953,34 @@
    "sectionId": "mj-games-and-building-sets",
    "commission": 12,
    "age": "4+"
+  },
+  {
+   "id": "MJL01",
+   "name": "LEGO Technic Monster Jam Grave Digger Fire and Ice",
+   "brand": "Monster Jam",
+   "line": "A Monster Jam game or build.",
+   "href": "https://mavely.app.link/bUi2LnACl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-technic-monster-jam-grave-digger-fire-and-ice-kohls-111b50.webp",
+   "store": "store-kohls",
+   "price": 33.24,
+   "priceAt": "2026-11-24",
+   "section": "Games and building sets",
+   "sectionId": "mj-games-and-building-sets",
+   "commission": 10.5
+  },
+  {
+   "id": "MJL02",
+   "name": "LEGO Technic Monster Jam Sparkle Smash Pull-Back",
+   "brand": "Monster Jam",
+   "line": "A Monster Jam game or build.",
+   "href": "https://go.shopmy.us/p-110716559",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-technic-monster-jam-sparkle-smash-pull-back-target-970f60.webp",
+   "store": "store-target",
+   "price": 27.99,
+   "priceAt": "2026-11-24",
+   "section": "Games and building sets",
+   "sectionId": "mj-games-and-building-sets",
+   "commission": 4
   },
   {
    "id": "MJ60",

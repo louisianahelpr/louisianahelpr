@@ -301,12 +301,12 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // drawing kit, Noah's Ark, planetarium), the easel and the $69.99 ATV at $50-$75, the $99.99 go kart $100 and up.
       // Owner Kohl's mix 11-25 1:10 AM (5 on Kids): the $5.24 Matchbox 5-pack under $10; the $9.99 Toy Story throw (shown ~$10), the $20 PAW
       // pajamas and $20.99 Bowser airship Under $25, the $24.99 Matchbox carrier (shown ~$25) $25 to $50.
-      // Owner JCPenney picks round 4 11-25 (25 on Kids): 3 under $10 (Play-Doh, Energy Ball, Grinch slime; the QUOKKA 30-piece puzzle came off as a near-twin of the 60-piece, jigsaw cap), 9 Under $25,
+      // Owner JCPenney picks round 4 11-25 (25 on Kids): 4 under $10 (Play-Doh, Energy Ball, Grinch slime, and the QUOKKA 30-piece puzzle, back on 11-25: hers, and a 30-piece is not the 60-piece), 9 Under $25,
       // 6 at $25-$50 (the $24.99s shown ~$25, marble run, track set, engine kit), the $49.99 dragon + robots and the $68.99
       // punching bag $50-$75, the $79.99 wiggle car $75-$100, the $99.99 train and $149.99 ATV $100 and up.
       // 11-25 LEGO import: Sunflowers ($8.99) -1 stocking stuffers, Snowman Ornaments ($10.29, shown ~$10) -1 Under $25,
       // Gingerbread House ($39.99) -1 $25 to $50, Lava Land ($174.98) -1 $100 and up; all four move to /gift-guides/lego.
-      kids: { "Stocking stuffers under $10": 44, "Under $25": 103, "$25 to $50": 46, "$50 to $75": 17, "$75 to $100": 9, "$100 and up": 27 },
+      kids: { "Stocking stuffers under $10": 45, "Under $25": 103, "$25 to $50": 46, "$50 to $75": 17, "$75 to $100": 9, "$100 and up": 27 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

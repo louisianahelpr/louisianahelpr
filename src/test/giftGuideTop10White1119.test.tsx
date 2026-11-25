@@ -41,6 +41,11 @@ const chunk = (slug: string): Pick[] => sectionPageOf<Pick>(slug);
 const slugs = Object.keys(sectionChunks());
 const guides = slugs.filter((s) => !s.startsWith("store-") && s !== "25-days-sponsors");
 // The owner's own picks (ownerPick) are exempt from every rule (owner 11-19).
+// Jigsaw puzzles past the site-wide cap of 3, owner-sent rows (ownerPick) not counted.
+const jigsawOverCap = (picks: Pick[]) => {
+  const counted = picks.filter((p) => !p.ownerPick && JIGSAW.test(p.name)).map((p) => p.name);
+  return counted.length > 3 ? counted : [];
+};
 const offenders = (rule: (slug: string, p: Pick) => boolean) =>
   guides.flatMap((s) => chunk(s).filter((p) => !p.ownerPick && rule(s, p)).map((p) => `${s}: ${p.name}`));
 
@@ -121,6 +126,14 @@ describe("gift guides 11-19: the Top 10 is ten real holiday best-sellers", () =>
 });
 
 describe("gift guides 11-19: the owner's content rules hold on every guide", () => {
+  it("the jigsaw cap counts every puzzle the owner did not send (planted red) and none she sent", () => {
+    const jig = (name: string, ownerPick?: true): Pick => ({ name, href: `https://x.test/${name}`, ...(ownerPick ? { ownerPick } : {}) });
+    const four = ["A 30-Piece Kids Jigsaw Puzzle", "B 60-Piece Kids Jigsaw Puzzle", "C 1000-Piece Puzzle", "D Jigsaw Puzzle"];
+    expect(jigsawOverCap(four.map((n) => jig(n)))).toEqual(four);
+    expect(jigsawOverCap(four.map((n, i) => jig(n, i === 0 ? true : undefined)))).toEqual([]);
+    expect(jigsawOverCap([...four.map((n) => jig(n, true)), jig("E Jigsaw Puzzle"), jig("F Jigsaw Puzzle"), jig("G Jigsaw Puzzle"), jig("H Jigsaw Puzzle")])).toHaveLength(4);
+  });
+
   it("bans Ying Mart, Brooklyn Delhi, eCreamery, AimHave, Minteefy and Mosaic Weighted Blankets everywhere, store pages included", () => {
     for (const brand of ["Ying Mart", "YingMart", "Brooklyn Delhi", "eCreamery", "AimHave", "Minteefy", "Mosaic Weighted Blankets", "Dragontree", "Deme by Gabriella", "CHORD", "Life is Good", "The Jacket Maker", "Diamond Art Club", "Lubiwood", "nixplay", "onn.", "Mainstays", "Hyper Tough", "Holiday Time", "Great Value", "Time and Tru", "George"]) expect(blockedBrand({ brand }), brand).toBe(true);
     expect(blockedBrand({ name: "x", href: "https://www.awin1.com/cread.php?ued=https%3A%2F%2Fx.com", brand: "TangMosaic" })).toBe(false);
@@ -129,7 +142,9 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(slugs.flatMap((s) => chunk(s).filter((p) => /brooklyn ?delhi/i.test(`${p.brand ?? ""} ${p.name}`) || /brooklyndelhi/i.test(p.href)).map((p) => `${s}: ${p.name}`))).toEqual([]);
     // Photo books, custom photo products and digital frames: at most 2 site-wide (owner 2026-11-19).
     expect(guides.flatMap((s) => chunk(s).filter((p) => DIGITAL_FRAME.test(`${p.name} ${p.brand ?? ""}`) || PHOTO_PRODUCT.test(p.name) || PHOTO_PRODUCT.test((p.brand ?? "").trim()))).length).toBeLessThanOrEqual(2);
-    expect(guides.flatMap((s) => chunk(s).filter((p) => JIGSAW.test(p.name))).length).toBeLessThanOrEqual(3);
+    // Jigsaw cap of 3 site-wide; what the owner sent herself is not counted (owner 11-24 11:30 PM: "if i send it add it
+    // unless its a duplicate"; a 30-piece and a 60-piece QUOKKA puzzle are two products), as the pajama cap does.
+    expect(jigsawOverCap(guides.flatMap((s) => chunk(s)))).toEqual([]);
     expect(slugs.flatMap((s) => chunk(s).filter((p) => /life is good/i.test(`${p.brand ?? ""} ${p.name}`)).map((p) => `${s}: ${p.name}`)).length).toBeLessThanOrEqual(2);
     for (const s of ["store-ying-mart", "store-brooklyn-delhi", "store-ecreamery-ice-cream-and-gifts", "store-aimhave", "store-minteefy", "store-mosaic-weighted-blankets"]) expect(slugs).not.toContain(s);
   });

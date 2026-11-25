@@ -11,6 +11,8 @@ import { useHiddenUnreadBarMarks } from "./HiddenUnreadBar";
 import { getPinnedSet, loadPins, pinnedKey, togglePinned, PIN_ROLLED_BACK_EVENT, type PinRolledBackDetail } from "@/lib/pinnedConversations";
 import {
   ARCHIVE_CHANGED_EVENT,
+  ARCHIVE_ROLLED_BACK_EVENT,
+  type ArchiveRolledBackDetail,
   isArchived as isConvoArchived,
   loadArchives,
 } from "@/lib/archivedConversations";
@@ -222,6 +224,18 @@ export function useConversationListState({
     };
     window.addEventListener(PIN_ROLLED_BACK_EVENT, onPinRolledBack);
     return () => window.removeEventListener(PIN_ROLLED_BACK_EVENT, onPinRolledBack);
+  }, []);
+
+  // A hide or restore the server refused: archivedConversations rolled its
+  // map back and fired ARCHIVE_CHANGED_EVENT (which re-filters the list);
+  // this says so, unless the thread's job or person is gone.
+  useEffect(() => {
+    const onArchiveRolledBack = (e: Event) => {
+      const detail = (e as CustomEvent<ArchiveRolledBackDetail>).detail;
+      if (detail && !detail.gone) toast.error(detail.archived ? "Couldn't hide that conversation. Try again." : "Couldn't restore that conversation. Try again.");
+    };
+    window.addEventListener(ARCHIVE_ROLLED_BACK_EVENT, onArchiveRolledBack);
+    return () => window.removeEventListener(ARCHIVE_ROLLED_BACK_EVENT, onArchiveRolledBack);
   }, []);
 
   // Pull the pin list from the server once the user is known.

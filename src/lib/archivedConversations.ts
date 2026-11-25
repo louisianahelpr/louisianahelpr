@@ -62,6 +62,37 @@ function emitArchiveChanged(): void {
   }
 }
 
+/**
+ * App audit 11-24 (same class as deep audit 11-22 #139): a hide or restore the
+ * server refused rolled back with no word. The thread came back (or vanished
+ * again) and the member was never told; Restore had even toasted "Restored".
+ * The background write's rollback now fires this, and the inbox
+ * (useConversationListState) shows an error toast unless the thread's job or
+ * person is gone (23503, dropped silently as before). Guard:
+ * src/test/optimisticRollbackSpeaksUp.test.ts.
+ */
+export const ARCHIVE_ROLLED_BACK_EVENT = "helpr:archive-rolled-back";
+export type ArchiveRolledBackDetail = { archived: boolean; gone: boolean };
+
+function emitArchiveRolledBack(detail: ArchiveRolledBackDetail): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent<ArchiveRolledBackDetail>(ARCHIVE_ROLLED_BACK_EVENT, { detail }));
+  }
+}
+
+/**
+ * Generation per user, as pinnedConversations' Q813 loadGen: loadArchives
+ * awaits the network, so a hide, restore or rollback can land while a load is
+ * in flight. Only a load that saw no write since it started may write its
+ * snapshot back, or it re-adds a hide the server just refused.
+ */
+const loadGen = new Map<string, number>();
+const bumpGen = (userId: string) => {
+  const gen = (loadGen.get(userId) ?? 0) + 1;
+  loadGen.set(userId, gen);
+  return gen;
+};
+
 
 /**
  * Q335 (owner, 2026-09-26): a job's deleted-account thread (otherUserId null,
@@ -241,6 +272,7 @@ function writeLocal(userId: string, map: ArchiveMap): void {
  */
 export async function loadArchives(userId: string): Promise<ArchiveMap> {
   if (!userId) return {};
+  const gen = bumpGen(userId);
   // Seed from the mirror first so the very first paint is right.
   const local = readLocal(userId);
   cache.set(userId, local);
@@ -359,6 +391,10 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
     }
     for (const [k, e] of localOnly) server[k] = e.archivedAt;
   }
+  // A hide, restore or rollback landed while this load was in flight: its
+  // snapshot is older than the cache, so it may not write back (the next
+  // load reconciles; a pending key left in place is re-pushed idempotently).
+  if (loadGen.get(userId) !== gen) return getArchiveMap(userId);
   writePending(userId, pending);
 
   cache.set(userId, server);
@@ -397,6 +433,7 @@ export function archiveConversation(
   const key = conversationKey(jobId, otherUserId);
   const archivedAt = new Date().toISOString();
   const map = { ...getArchiveMap(userId), [key]: archivedAt };
+  bumpGen(userId);
   cache.set(userId, map);
   writeLocal(userId, map);
   // Q511: pending until the server confirms it; only a pending key is pushed
@@ -418,14 +455,17 @@ export function archiveConversation(
       if (otherUserId === null && (error as { code?: string }).code === "23502") return;
       const rollback = { ...getArchiveMap(userId) };
       delete rollback[key];
+      bumpGen(userId);
       cache.set(userId, rollback);
       writeLocal(userId, rollback);
       setPending(userId, key, false);
       emitArchiveChanged();
+      const gone = isGoneReference(error);
+      emitArchiveRolledBack({ archived: true, gone });
       // The thread's job (or person) was deleted while the inbox was open:
       // it can never be archived and the rollback above already dropped it,
       // so this is not a fault. Any other error still reports.
-      if (isGoneReference(error)) return;
+      if (gone) return;
       report(error, { severity: "warning", tags: { source: "archivedConversations.archiveConversation" } });
     }
   })();
@@ -447,6 +487,7 @@ export function unarchiveConversation(
   const map = { ...getArchiveMap(userId) };
   if (cleared) map[key] = cleared;
   else delete map[key];
+  bumpGen(userId);
   cache.set(userId, map);
   writeLocal(userId, map);
   // Q511: a restore cancels any unconfirmed archive of the same thread.
@@ -472,9 +513,11 @@ export function unarchiveConversation(
       if (isMissingTable(error)) return; // pre-deploy — the mirror still holds it
       if (previous) {
         const rollback = { ...getArchiveMap(userId), [key]: previous };
+        bumpGen(userId);
         cache.set(userId, rollback);
         writeLocal(userId, rollback);
         emitArchiveChanged();
+        emitArchiveRolledBack({ archived: false, gone: isGoneReference(error) });
       }
       report(error, { severity: "warning", tags: { source: "archivedConversations.unarchiveConversation" } });
     }
@@ -551,6 +594,7 @@ export async function deleteConversationForMe(
   const prevCleared = getClearMap(userId)[key];
   const archiveMap = { ...getArchiveMap(userId), [key]: now };
   const clearMap = { ...getClearMap(userId), [key]: now };
+  bumpGen(userId);
   cache.set(userId, archiveMap);
   writeLocal(userId, archiveMap);
   setClearMap(userId, clearMap);
@@ -573,6 +617,7 @@ export async function deleteConversationForMe(
   const rollClear = { ...getClearMap(userId) };
   if (prevCleared) rollClear[key] = prevCleared;
   else delete rollClear[key];
+  bumpGen(userId);
   cache.set(userId, rollArchive);
   writeLocal(userId, rollArchive);
   setClearMap(userId, rollClear);

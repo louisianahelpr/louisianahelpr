@@ -441,6 +441,14 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
 
 
 
+          {/* Deep audit 11-22 #35: the money outcome of cancelling a job whose card is only held sat inside the closed
+              policy link, so the poster confirmed without it. Said here, before the buttons (the policy's own words). */}
+          {cardHeld && !hasHelper && !nobodyLeft && (
+            <p data-cancel-card-held="" className="font-sans text-ds-13 text-foreground">
+              Nothing is charged. Your card was only held, and the hold is let go within about 10 minutes.
+            </p>
+          )}
+
           {/* Fee summary callout: only when a non-zero fee applies (hasHelper + late). */}
           {hasHelper && cancellationFee > 0 && (
             <CancelFeeCallout fee={cancellationFee} crew={!!crewQuote} feeTier={feeTier} helperName={helperName} strike={strikeApplies} />

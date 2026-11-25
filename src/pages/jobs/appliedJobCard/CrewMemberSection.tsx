@@ -11,7 +11,7 @@ import { hasJobStarted } from "@/lib/dateUtils";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { arrivalVerdictMessage } from "@/lib/arrivalGate";
 import { hasRequiredProof } from "@/lib/photoProofPolicy";
-import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
+import { StrikeLadderDetails } from "@/components/StrikeLadderDetails";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { useCrewSlot } from "@/hooks/useCrewSlot";
 import {
@@ -407,7 +407,8 @@ export function CrewMemberSection({
                 ? undefined
                 : {
                     icon: CalendarX2,
-                    text: `${CREW_ACCEPT_COPY.lateLeaveStrike} — ${RELIABILITY_LADDER_SENTENCE}.`,
+                    // Deep audit 11-22 #35: the one fact; the ladder sits behind "How strikes work" below.
+                    text: `${CREW_ACCEPT_COPY.lateLeaveStrike}.`,
                   }
             }
             primaryLabel={busy ? "Leaving…" : step === "confirm" ? "Turn down" : "Leave crew"}
@@ -415,7 +416,9 @@ export function CrewMemberSection({
             primaryDisabled={busy}
             onPrimary={() => void onCancel()}
             secondaryLabel="Cancel"
-          />
+          >
+            {step === "confirm" ? null : <StrikeLadderDetails />}
+          </BrandConfirmDialog>
           </>
         }
       />

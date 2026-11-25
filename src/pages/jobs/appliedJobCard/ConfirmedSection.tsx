@@ -2,7 +2,8 @@ import { useState } from "react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { JobActionChip, JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
-import { helperCancelCallout, helperCancelToast } from "./helperCancelCopy";
+import { helperCancelCallout, helperCancelIsStrike, helperCancelToast } from "./helperCancelCopy";
+import { StrikeLadderDetails } from "@/components/StrikeLadderDetails";
 import { MessageSquare, CalendarX2, CalendarClock, Clock } from "lucide-react";
 import { RunningLateSheet } from "@/components/job-card/RunningLateSheet";
 import { ScheduleChangeAskDialog, usePendingScheduleChange } from "@/components/schedule/ScheduleChangeControl";
@@ -254,7 +255,10 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
         onPrimary={() => void handleCancelBooking()}
         // Area 04 #30 (11-18): "Cancel" beside "Cancel job" read as two ways to cancel; the dismiss keeps the job.
         secondaryLabel="Keep job"
-      />
+      >
+        {/* Deep audit 11-22 #35: the ladder behind one closed link, only when this cancel is a strike. */}
+        {helperCancelIsStrike(job.date_needed, job.start_time) && <StrikeLadderDetails />}
+      </BrandConfirmDialog>
       </>
       }
     />

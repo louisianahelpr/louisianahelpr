@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { hapticError, hapticLight } from "@/lib/haptics";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { Textarea } from "@/components/ui/textarea";
-import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
+import { StrikeLadderDetails } from "@/components/StrikeLadderDetails";
 import { hasRequiredProof } from "@/lib/photoProofPolicy";
 import { report } from "@/lib/errorLogger";
 import type { TrackingData } from "@/components/JobTracking";
@@ -367,9 +367,11 @@ export function ActiveJobSection({
         onOpenChange={(next) => { if (!aborting) setAbortOpen(next); }}
         title="Cancel this job?"
         description=""
+        // Deep audit 11-22 #35: the callout packed four strike rungs and a guilt line into one red sentence. It now leads
+        // with the one fact; the ladder sits behind "How strikes work" (the shared sentence, so it cannot drift).
         callout={{
           icon: CalendarX2,
-          text: `Cancelling a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}. Telling us costs exactly the same as going quiet, and going quiet costs the person who posted it their whole day.`,
+          text: "Cancelling a job you committed to counts as a reliability strike.",
         }}
         primaryLabel={aborting ? "Sending…" : "Cancel job"}
         primaryTone="sienna"
@@ -386,8 +388,10 @@ export function ActiveJobSection({
               ? "You’ve already started, so we won’t decide who’s owed what on our own. Their payment is held safely and our team reviews it — you may still be paid for the part you did."
               : "You never started, so the person who posted it is charged nothing. The job reopens for other Helprs right away and their payment stays protected."}
           </p>
+          <StrikeLadderDetails />
+          {/* #35: the reason is required (Cancel job stays grey under 5 characters), so the label says so. */}
           <label htmlFor={`abort-reason-${app.job_id}`} className="block text-ds-11 font-medium text-foreground">
-            What happened? The person who posted this job sees this.
+            What happened? (required) The person who posted this job sees this.
           </label>
           <Textarea
             id={`abort-reason-${app.job_id}`}
@@ -397,6 +401,7 @@ export function ActiveJobSection({
             rows={3}
             disabled={aborting}
             placeholder="My van broke down and I can’t get back out there today."
+            aria-required="true"
           />
         </div>
       </BrandConfirmDialog>

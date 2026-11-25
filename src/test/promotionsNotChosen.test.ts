@@ -9,9 +9,12 @@
  * one-time backfill turns a false that was never written after insert into
  * NULL), true = turned on, false = turned off by the member or an unsubscribe
  * link. The come-back claim and engagement-automations skip only an explicit
- * false. send-marketing-blast and the 'promotion' notification email keep
- * the reach they had (they need an explicit true): the owner's words cover the
- * welcome and follow-up emails only.
+ * false. The 'promotion' notification email keeps the reach it had (it needs
+ * an explicit true; nothing sends that type today). send-marketing-blast
+ * needed an explicit true too until the owner's decision by pop-up on
+ * 2026-11-25 (~2 AM): a member who ticked the sign-up box and never turned
+ * Promotions off gets marketing email, so the blast now skips only an explicit
+ * false as well (run for real in src/test/edge/marketingBlastConsentReach.test.ts).
  *
  * Behaviour is proven in src/test/pglite/promotionsNotChosen.pglite.mjs (the
  * real switch and come-back migrations, then both new ones 3x): 32 PASS;
@@ -25,7 +28,7 @@
  * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql |    AND updated_at = created_at; |    AND true;
  * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql | np.email_promotions IS FALSE OR | np.email_promotions IS NOT TRUE OR
  * @mutate supabase/functions/engagement-automations/index.ts |         .filter((p) => p.email_promotions === false \|\| p.email_enabled === false) |         .filter((p) => p.email_promotions !== true \|\| p.email_enabled === false)
- * @mutate supabase/functions/send-marketing-blast/index.ts |           .filter((p) => p.email_promotions !== true \|\| p.email_enabled === false) |           .filter((p) => p.email_promotions === false \|\| p.email_enabled === false)
+ * @mutate supabase/functions/send-marketing-blast/index.ts |           .filter((p) => p.email_promotions === false \|\| p.email_enabled === false) |           .filter((p) => p.email_promotions !== true \|\| p.email_enabled === false)
  * @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | SET email_promotions = CASE WHEN (v_saved ->> 'email_promotions')::boolean THEN true END | SET email_promotions = true
  * @mutate supabase/functions/email-unsubscribe/index.ts |     .upsert({ user_id: userId, email_promotions: on }, { onConflict: 'user_id' }) |     .upsert({ user_id: userId, email_promotions: true }, { onConflict: 'user_id' })
  * @mutate src/lib/promotionsEmail.ts |   return marketingConsent === true; |   return false;
@@ -74,8 +77,8 @@ const READERS: Record<string, { rule: string; pin: RegExp }> = {
     pin: /\.filter\(\(p\) => p\.email_promotions === false \|\| p\.email_enabled === false\)/,
   },
   "supabase/functions/send-marketing-blast/index.ts": {
-    rule: "marketing blast: unchanged reach, needs an explicit true",
-    pin: /\.filter\(\(p\) => p\.email_promotions !== true \|\| p\.email_enabled === false\)/,
+    rule: "marketing blast (owner, 2026-11-25): sign-up box + never turned off is enough; only an explicit false (or the Email master off) stops it",
+    pin: /\.filter\(\(p\) => p\.email_promotions === false \|\| p\.email_enabled === false\)/,
   },
   // The type table send-notification-email reads (audit E2-12); the falsy-column
   // skip itself is pinned in send-notification-email below the loop.
@@ -138,10 +141,12 @@ describe("Q2299: the sign-up box alone is enough for the welcome and come-back e
     }
   });
 
-  it("the welcome drip and win-back never read NULL as an opt-out", () => {
-    const src = code("supabase/functions/engagement-automations/index.ts");
-    expect(src).not.toMatch(/email_promotions\s*!==\s*true/);
-    expect(src).not.toMatch(/!\s*p\.email_promotions\b/);
+  it("the welcome drip, win-back and marketing blast never read NULL as an opt-out", () => {
+    for (const f of ["supabase/functions/engagement-automations/index.ts", "supabase/functions/send-marketing-blast/index.ts"]) {
+      const src = code(f);
+      expect(src, f).not.toMatch(/email_promotions\s*!==\s*true/);
+      expect(src, f).not.toMatch(/!\s*p\.email_promotions\b/);
+    }
   });
 
   it("the Settings switch shows what the senders do while Promotions was never chosen", () => {

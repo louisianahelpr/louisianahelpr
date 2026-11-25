@@ -228,10 +228,16 @@ serve(async (req) => {
       const baseRecipients = (countOpt: CountOption) => {
         let b = supabase
           .from("profiles")
-          .select("user_id, email, full_name, parish", countOpt)
+          .select("user_id, email, full_name, parish, marketing_consent, email_verified, ban_status, anonymized_at", countOpt)
           .not("email", "is", null)
           .eq("email_verified", true)
-          .eq("marketing_consent", true);
+          .eq("marketing_consent", true)
+          // A banned or deleted (anonymized) member is never blasted, the same
+          // as the come-back claim (lh-silent-failure review 2026-11-25: with
+          // NULL Promotions now mailed, reach went from 0 to ~133). 0 such
+          // members among the consenting on prod, measured 2026-11-25.
+          .eq("ban_status", "active")
+          .is("anonymized_at", null);
         if (body.segment === "by_parish" && body.parish) b = b.eq("parish", body.parish);
         return b.order("user_id", { ascending: true });
       };
@@ -305,6 +311,10 @@ serve(async (req) => {
         email: string | null;
         full_name: string | null;
         parish: string | null;
+        marketing_consent: boolean | null;
+        email_verified: boolean | null;
+        ban_status: string | null;
+        anonymized_at: string | null;
       };
       const recipientScan = segmentIds === null
         ? await scanAll<RecipientRow>("profiles (blast recipients)", baseRecipients)
@@ -342,14 +352,19 @@ serve(async (req) => {
         );
       }
 
-      // Honor email opt-out: drop anyone whose Promotions email is not
-      // explicitly ON. Since 20261021135832 email_promotions is three-valued:
-      // NULL = never chosen (the new column default; it stands where the old
-      // default `false` stood), true = turned on, false = turned off or
-      // unsubscribed. The owner's 2026-10-21 answer (Q2299: the sign-up box
-      // alone is enough) covers the welcome and come-back emails ONLY; a blast
-      // is a separate decision, so it keeps exactly the reach it had: a
-      // never-chosen member is not blasted. `!== true`, never `=== false`.
+      // Honor email opt-out: drop anyone who turned Promotions email OFF.
+      // Since 20261021135832 email_promotions is three-valued: NULL = never
+      // chosen (the column default), true = turned on, false = turned off by
+      // the member or an unsubscribe link. Owner decision by pop-up,
+      // 2026-11-25 ~2 AM: a member who ticked "email me" at sign-up
+      // (marketing_consent, required by the query above) and never turned
+      // Promotions off gets marketing email, the same rule the welcome drip,
+      // win-back and come-back emails use (Q2299). Until then the blast needed
+      // an explicit true, and its reach on prod was 0 of 136 consenting,
+      // verified members. `=== false`, never `!== true`. A member with no
+      // preferences row at all has the column defaults (NULL, Email master
+      // on) and is mailed, as before. The Settings switch already shows a
+      // never-chosen, box-ticked member as ON (src/lib/promotionsEmail.ts).
       //
       // This read MUST fail closed, exactly like the recipient query above.
       // Dropping the error made the opt-out list fail OPEN: `prefs` comes back
@@ -387,15 +402,26 @@ serve(async (req) => {
       }
       const optedOut = new Set(
         prefsScan.rows
-          .filter((p) => p.email_promotions !== true || p.email_enabled === false)
+          .filter((p) => p.email_promotions === false || p.email_enabled === false)
           .map((p) => p.user_id),
       );
 
       // The query above already includes the segment filter (in() on
       // helper-applicants or poster-customers, or .eq parish). No need
-      // to refetch + cross-check; just drop opted-out users.
+      // to refetch + cross-check; just drop opted-out users. The sign-up box
+      // and the verified email are re-checked here as well as in the query:
+      // with NULL now mailed, the box is the ONLY consent a never-chosen
+      // member gave, so it is never left to one filter clause alone.
       recipients = data
-        .filter((p) => p.user_id && !optedOut.has(p.user_id) && !!p.email)
+        .filter((p) =>
+          !!p.user_id &&
+          p.marketing_consent === true &&
+          p.email_verified === true &&
+          p.ban_status === "active" &&
+          !p.anonymized_at &&
+          !optedOut.has(p.user_id) &&
+          !!p.email
+        )
         .map((p) => ({ email: p.email!, full_name: p.full_name }));
     }
 

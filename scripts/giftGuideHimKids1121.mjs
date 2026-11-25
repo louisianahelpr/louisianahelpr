@@ -359,7 +359,7 @@ export const KIDS_AMAZON_MORE_1121 = [
   ["B09GXDQ122", 11.6, "41g75nJNagL", "Would You Rather Book for Kids", "", "book", 3, "Silly would-you-rather questions for car rides."],
   ["B0GT16T874", 14.98, "51u+SjYL7DL", "Taba Squishies Fidget Toys, 3 Pack", "", "squishy", 3, "Three squishy fidget toys to squeeze."],
   ["B0DDLZV8YM", 23.73, "51VHRxyCCdL", "Magic Gel Water Pets Kit", "", "craft", 3, "Make little gel water pets that come to life."],
-].map((r) => (Array.isArray(r) ? row(r) : r));
+].map((r) => (Array.isArray(r) ? row(r) : r)).map(rateSwitch1124); // Toniebox 2 Starter Set: Kohl's switch 11-24 (scripts/giftGuideOwner1124.mjs)
 
 // owner 11-22 kids play saves (builder-guide-adds-kids): her ShopMy play pins, prices read from the store pages 11-22.
 export const KIDS_PLAY_1122 = [

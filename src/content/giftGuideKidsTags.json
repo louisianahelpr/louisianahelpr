@@ -642,14 +642,6 @@
    "ageSource": "amazon.com product page, read 2026-11-23: Manufacturer recommended age: 0 - 9 years",
    "list": "kids"
   },
-  "amazon:B0FJ2ZHPDY": {
-   "name": "Toniebox 2 Starter Set, Cloud Pink",
-   "gender": "everyone",
-   "ageMin": 0,
-   "ageMax": 9,
-   "ageSource": "amazon.com product page, read 2026-11-23: Manufacturer recommended age: 0 - 9 years",
-   "list": "kids"
-  },
   "go.shopmy.us/p-108632077": {
    "name": "Melissa & Doug Wood Furnished Mansion",
    "gender": "everyone",
@@ -1181,6 +1173,14 @@
   "walmrt.us/4zIzr6p": {
    "name": "The Elf on the Shelf Advent Calendar Story and Activity Collection",
    "gender": "everyone",
+   "list": "kids"
+  },
+  "mavely.app.link/iqXO1Sgtl8b": {
+   "name": "tonies Playtime Puppy Toniebox 2 Starter Set, Sunset Red",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 9,
+   "ageSource": "kohls.com product page, read 2026-11-24: screen-free for kids ages 1-9+",
    "list": "kids"
   }
  }

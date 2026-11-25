@@ -126,10 +126,10 @@ describe("the Monster Jam page (owner 2026-11-24)", () => {
     expect(c.querySelectorAll("[data-gift-dupe]").length).toBe(0);
   });
 
-  it("is a tile on the gift guides landing and a row in the guides menu", async () => {
+  it("is NOT a landing tile (owner 11-24 6:54 PM: theme guides only inside Kids) but is a row in the guides menu", async () => {
     expect(LIVE_GUIDES_1121).toContain("monster-jam");
     const c = await renderAt("/gift-guides");
-    expect(c.querySelector('[data-gift-live-guides] a[href="/gift-guides/monster-jam"]')).not.toBeNull();
+    expect(c.querySelector('[data-gift-live-guides] a[href="/gift-guides/monster-jam"]')).toBeNull();
     const menu = c.querySelector("[data-gift-sidebar]") as HTMLElement;
     expect(within(menu).getByText("Monster Jam")).toBeTruthy();
     expect(menu.querySelector('[data-gift-side="monster-jam"]')).not.toBeNull();

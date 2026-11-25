@@ -73,7 +73,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |           <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>\n        </div> |           <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>\n          <p className="gg-arch-foot">Louisiana Helpr</p>\n        </div>
  * @mutate src/content/giftGuideCodes.json | {"rank":1,"store":"Muck Boot","code":"TAKE25", | {"rank":8,"store":"Muck Boot US","code":"TAKE25",
  */
-import { THEME_GUIDES_1124, THEME_GUIDE_NAMES_1124, isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { THEME_GUIDES_1124, isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { readFileSync, existsSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -353,7 +353,7 @@ describe("gift guides: the landing opens to the guides", () => {
     // Lead 11-21 landing polish: each landing tile says "Her · 36 gifts" (the count of its list, no chunk loaded).
     const lines = [...container.querySelectorAll("[data-gift-live-guides] [data-gift-tile-name]")].map((n) => n.textContent);
     // The counts are each list's own (owner 11-21: Him and Kids grow to every one of her saves).
-    expect(lines).toEqual([...["her", "him", "kids"].map((s) => `${s[0].toUpperCase()}${s.slice(1)} · , ${CHUNK_PICK_COUNTS[s]} gifts`), ...THEME_GUIDES_1124.map((s) => `${THEME_GUIDE_NAMES_1124[s]} Gift Guide · , ${CHUNK_PICK_COUNTS[s]} gifts`)]);
+    expect(lines).toEqual([...["her", "him", "kids"].map((s) => `${s[0].toUpperCase()}${s.slice(1)} · , ${CHUNK_PICK_COUNTS[s]} gifts`)]); // owner 11-24 6:54 PM: theme guides show only inside Kids, never as landing tiles
     expect(CHUNK_PICK_COUNTS.him).toBeGreaterThan(100);
     cleanup();
     // Owner 2026-11-18: no "25 picks" count and no subtitle under any title. The landing's tiles (checked above) are the
@@ -862,7 +862,7 @@ describe("gift guides: each row heading carries its guide count (owner 11-18 PM)
       cleanup();
     }
     expect(counts.size).toBeGreaterThan(1); // 10 rows, 2026-11-21
-    expect([...new Set(counts.values())]).toEqual([3 + THEME_GUIDES_1124.length]); // Her, Him, Kids and the themed guides (owner 11-24), from every old group link
+    expect([...new Set(counts.values())]).toEqual([3]); // Her, Him, Kids only (owner 11-24 6:54 PM: themed guides show only inside Kids), from every old group link
   });
 });
 

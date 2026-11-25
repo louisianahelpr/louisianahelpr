@@ -23,7 +23,7 @@ import { DateTimeField } from "@/components/DateTimeField";
  * An order (the buyer booking) or an OPEN delivery task (the Helpr accepting it: helpr_task_pickup_windows,
  * 20261028232930, the same chips and the same rule).
  */
-export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, enabled = true, own = false, current = null, noTimes = null, porch = false }: {
+export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, enabled = true, own = false, current = null, noTimes = null, porch = false, actions = null }: {
   orderId?: string;
   taskId?: string;
   value: string | null;
@@ -46,6 +46,12 @@ export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, ena
    * into the order's window (20261102005411).
    */
   porch?: boolean;
+  /**
+   * Deep audit 11-22 #48: the caller's Book button, drawn only where there is something to book (the chips, or the
+   * free picker before the reads are deployed). With no open times, a failed read or while loading it is not drawn, so
+   * no dead "Book" sits under "No pickup times are open".
+   */
+  actions?: ReactNode;
 }) {
   const q = useQuery(taskId
     ? { queryKey: ["helpr-tasks", "task-pickup-windows", taskId], queryFn: () => fetchTaskPickupWindows(taskId), enabled }
@@ -63,7 +69,7 @@ export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, ena
   const [dayPick, setDayPick] = useState<string | null>(null);
   if (q.isError) return <ErrorState variant="inline" title="We couldn't load the seller's pickup times." body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />;
   if (q.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading the seller's pickup times…</p>;
-  if (q.data === null) return <>{fallback}</>;
+  if (q.data === null) return <>{fallback}{actions}</>;
   if (days.length === 0) {
     return <div className="space-y-2"><p className="text-sm text-muted-foreground" data-testid="declutter-no-pickup-slots">{taskId
       ? "None of the seller's pickup times are open before this delivery's deadline."
@@ -83,6 +89,7 @@ export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, ena
           <Chip key={s.iso} on={s.iso === value} onClick={() => onPick(s.iso)}>{s.label}{current && Date.parse(s.iso) === Date.parse(current) ? " (now)" : ""}</Chip>
         ))}
       </div>
+      {actions}
     </div>
   );
 }

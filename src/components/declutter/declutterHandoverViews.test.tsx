@@ -1379,11 +1379,14 @@ describe("#2: the buyer books from the seller's pickup times", () => {
     await waitFor(() => expect(state.calls).toContainEqual(["book", "o1", days[1].slots[2].iso]));
   });
 
-  it("no open slot before the deadline: says so, and nothing can be booked", async () => {
+  // Deep audit 11-22 #48: with no times it showed a dead, disabled "Book" under "No pickup times are open"; now no Book.
+  // @mutate src/components/declutter/DeclutterBookingPanel.tsx |           actions={booked ? null : buttons} />\n        {booked && buttons} |           />\n        {buttons}
+  // @mutate src/components/declutter/DeclutterPickupWindows.tsx |       </div>\n      {actions}\n    </div> |       </div>\n    </div>
+  it("no open slot before the deadline: says so, and offers no Book", async () => {
     state.windows = { windows, latestPickupAt: new Date(Date.now() + 60_000).toISOString() };
     show([line()]);
     expect(await screen.findByTestId("declutter-no-pickup-slots")).toHaveTextContent("Message the seller to agree a time.");
-    expect(screen.getByRole("button", { name: "Book" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Book" })).toBeNull();
   });
 
   it("the seller's one move keeps the folded free picker (the server checks only the deadline for the seller)", async () => {

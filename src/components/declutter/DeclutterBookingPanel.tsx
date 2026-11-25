@@ -45,6 +45,13 @@ export function BookingPanel({ order, booking, frozen = false, noTimes = null }:
   // A3-49: the seller's wait is said once, by the card's next-step line ("Waiting on Ann to pick a pickup time · by …").
   if (!booked && order.side === "seller") return null;
   const id = `dcl-slot-${order.orderId}`;
+  const buttons = (
+    <div className="flex flex-wrap gap-2">
+      <Button type="button" variant={booked ? "outline" : "primary"} size="sm" disabled={book.isPending || !(slot ?? localInputToIso(value))}
+        onClick={() => { const iso = slot ?? localInputToIso(value); if (iso) book.mutate(iso); }}>{booked ? "Move" : "Book"}</Button>
+      {booked && <Button type="button" variant="outline" size="sm" onClick={() => { setMoving(false); setSlot(null); }}>Cancel</Button>}
+    </div>
+  );
   if (frozen) return booked ? timeLine("Pickup") : null;
   // Q2432: the no-show rule (declutter_report_no_show) where the buyer books, plus the reminder. Q2635 (audit 1102c
   // R10): before a time is booked the picker comes first, and the rule follows it once a time is chosen.
@@ -71,13 +78,12 @@ export function BookingPanel({ order, booking, frozen = false, noTimes = null }:
       <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (you can do this once)" : "Pick a pickup time"}</label>
       {/* Area 05 #20: the card's "Book a pickup time" scrolls here (goToOrderControl). */}
       <div className="scroll-mt-3 space-y-2" tabIndex={-1} data-booking-picker="">
+        {/* Deep audit 11-22 #48: a first booking's Book rides in the picker's `actions`, so no dead "Book" shows when no
+            times are open. A move keeps its row outside: its Cancel is the way out of the picker even with no times. */}
         <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot} noTimes={booked ? null : noTimes} porch={porch}
-          fallback={<DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />} />
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant={booked ? "outline" : "primary"} size="sm" disabled={book.isPending || !(slot ?? localInputToIso(value))}
-            onClick={() => { const iso = slot ?? localInputToIso(value); if (iso) book.mutate(iso); }}>{booked ? "Move" : "Book"}</Button>
-          {booked && <Button type="button" variant="outline" size="sm" onClick={() => { setMoving(false); setSlot(null); }}>Cancel</Button>}
-        </div>
+          fallback={<DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />}
+          actions={booked ? null : buttons} />
+        {booked && buttons}
         {!booked && !!(slot ?? localInputToIso(value)) && noShowRule}
       </div>
       </>

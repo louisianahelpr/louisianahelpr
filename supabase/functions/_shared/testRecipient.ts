@@ -107,13 +107,29 @@ export const SEED_LOOKUP_CHUNK = 100
  * marketing blast reads up to 5000). Returns the lowercased addresses that
  * belong to an is_seed profile. Same failure policy as `isTestRecipient`: a
  * failed chunk is logged and its addresses fall back to the address check.
+ *
+ * `{ failClosed: true }` (the marketing blast, lead decision 2026-11-25):
+ * a failed chunk THROWS `SeedLookupFailedError` instead, so a commercial send
+ * to a whole list aborts rather than mailing a seed account at a real-looking
+ * address. The caller reads this before it sends anything.
  */
+export class SeedLookupFailedError extends Error {
+  constructor(count: number, why: string) {
+    super(`is_seed lookup failed for ${count} address(es): ${why}`)
+    this.name = 'SeedLookupFailedError'
+  }
+}
+
 export async function seedAddressesAmong(
   supabase: ProfilesReader | null | undefined,
   emails: readonly string[],
+  opts: { failClosed?: boolean } = {},
 ): Promise<Set<string>> {
   const seeds = new Set<string>()
-  if (!supabase) return seeds
+  if (!supabase) {
+    if (opts.failClosed && emails.length > 0) throw new SeedLookupFailedError(emails.length, 'no database client')
+    return seeds
+  }
   const wanted = [...new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean))]
   for (let i = 0; i < wanted.length; i += SEED_LOOKUP_CHUNK) {
     const chunk = wanted.slice(i, i + SEED_LOOKUP_CHUNK)
@@ -122,9 +138,11 @@ export async function seedAddressesAmong(
       .in('email', chunk)
       .eq('is_seed', true)
     if (error) {
+      if (opts.failClosed) throw new SeedLookupFailedError(chunk.length, error.message)
       console.error(`[testRecipient] is_seed batch lookup failed for ${chunk.length} address(es); using the address check only:`, error.message)
       continue
     }
+    if (opts.failClosed && !Array.isArray(data)) throw new SeedLookupFailedError(chunk.length, 'no rows array in the reply')
     for (const row of Array.isArray(data) ? data : []) {
       const email = (row as { email?: unknown })?.email
       if (typeof email === 'string') seeds.add(email.trim().toLowerCase())

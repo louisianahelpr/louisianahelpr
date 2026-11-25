@@ -10,7 +10,10 @@
  * The rule now, the same one the welcome drip, win-back and come-back emails
  * use: email verified AND marketing_consent true AND email_promotions is not
  * false AND the Email master is not off AND not on the suppression list AND
- * not a seed/test recipient. Run for real through the edge harness.
+ * not a seed/test recipient AND not banned/anonymized AND not in
+ * public.test_accounts. The is_seed lookup and the test_accounts read FAIL
+ * CLOSED (lead, 2026-11-25): either failing aborts the blast before any send.
+ * Run for real through the edge harness.
  *
  * @mutate supabase/functions/send-marketing-blast/index.ts |           .filter((p) => p.email_promotions === false \|\| p.email_enabled === false) |           .filter((p) => p.email_promotions !== true \|\| p.email_enabled === false)
  * @mutate supabase/functions/send-marketing-blast/index.ts |           .filter((p) => p.email_promotions === false \|\| p.email_enabled === false) |           .filter((p) => p.email_enabled === false)
@@ -20,6 +23,12 @@
  * @mutate supabase/functions/send-marketing-blast/index.ts |           !p.anonymized_at && |           true &&
  * @mutate supabase/functions/send-marketing-blast/index.ts |     recipients = recipients.filter((r) => !suppressedSet.has(r.email.toLowerCase())); |     recipients = recipients.filter((r) => !!r.email);
  * @mutate supabase/functions/send-marketing-blast/index.ts |       if (prefsScan.error \|\| !prefsScan.complete) { |       if (false) {
+ * @mutate supabase/functions/send-marketing-blast/index.ts |           !testAccountIds.has(p.user_id) && |           true &&
+ * @mutate supabase/functions/send-marketing-blast/index.ts |       if (testScan.error \|\| !testScan.complete) { |       if (false) {
+ * @mutate supabase/functions/send-marketing-blast/index.ts |       if (testScan.error \|\| !testScan.complete) { |       if (testScan.error) {
+ * @mutate supabase/functions/send-marketing-blast/index.ts |       if (prefsScan.error \|\| !prefsScan.complete) { |       if (prefsScan.error) {
+ * @mutate supabase/functions/send-marketing-blast/index.ts | recipients.map((r) => r.email), { failClosed: true }); | recipients.map((r) => r.email));
+ * @mutate supabase/functions/_shared/testRecipient.ts |       if (opts.failClosed) throw new SeedLookupFailedError(chunk.length, error.message) |       if (false) throw new SeedLookupFailedError(chunk.length, error.message)
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -63,6 +72,7 @@ const MEMBERS: Member[] = [
   member("unverified", { email_verified: false }), // email not verified -> skipped
   member("banned", { ban_status: "banned" }), // banned -> skipped
   member("deleted", { anonymized_at: "2026-11-01T00:00:00Z" }), // deleted account -> skipped
+  member("test-acct"), // listed in public.test_accounts -> skipped
   member("bounced"), // on the suppression list -> skipped
   member("seed-acct"), // is_seed -> logged 'suppressed', never mailed
 ];
@@ -74,6 +84,7 @@ const PREFS = [
   { user_id: "no-consent", email_promotions: null, email_enabled: true },
   { user_id: "unverified", email_promotions: null, email_enabled: true },
   { user_id: "bounced", email_promotions: null, email_enabled: true },
+  { user_id: "test-acct", email_promotions: null, email_enabled: true },
   { user_id: "seed-acct", email_promotions: null, email_enabled: true },
 ];
 
@@ -101,6 +112,7 @@ describe("send-marketing-blast reaches consenting members who never turned Promo
     scenario.rpc.has_role = true;
     scenario.reads.suppressed_emails = { rows: [{ email: "Bounced@gmail.com" }] };
     scenario.reads.notification_preferences = { rows: PREFS };
+    scenario.reads.test_accounts = { rows: [{ user_id: "test-acct" }] };
     scenario.reads.profiles = {
       // seedAddressesAmong reads `select('email')`; the recipient read names full_name.
       rows: [{ email: "seed-acct@gmail.com" }],
@@ -109,7 +121,7 @@ describe("send-marketing-blast reaches consenting members who never turned Promo
   });
   afterEach(() => resetEnv());
 
-  it("mails NULL (never chosen) and true; skips false, master off, no consent, unverified, banned, deleted, suppressed and seed", async () => {
+  it("mails NULL (never chosen) and true; skips false, master off, no consent, unverified, banned, deleted, test accounts, suppressed and seed", async () => {
     const res = await blast();
     expect(res.status).toBe(200);
     expect(mailedTo().sort()).toEqual(["never-chose@gmail.com", "no-prefs-row@gmail.com", "turned-on@gmail.com"]);
@@ -138,6 +150,43 @@ describe("send-marketing-blast reaches consenting members who never turned Promo
     const res = await blast();
     expect(res.status).toBe(500);
     expect(sendWithResend).not.toHaveBeenCalled();
+  });
+
+  it("fails closed: an unreadable test-account list sends nothing", async () => {
+    scenario.reads.test_accounts = { error: { message: "boom" } };
+    const res = await blast();
+    expect(res.status).toBe(503);
+    expect(JSON.stringify(await res.json())).toMatch(/test-account list[\s\S]*no email was sent/);
+    expect(sendWithResend).not.toHaveBeenCalled();
+    expect(logRows()).toEqual([]);
+  });
+
+  it("fails closed: a SHORT test-account read (server count above the rows returned) sends nothing", async () => {
+    scenario.reads.test_accounts = { rows: [{ user_id: "test-acct" }], count: 1500 };
+    const res = await blast();
+    expect(res.status).toBe(503);
+    expect(sendWithResend).not.toHaveBeenCalled();
+  });
+
+  it("fails closed: a SHORT opt-out read sends nothing", async () => {
+    scenario.reads.notification_preferences = { rows: PREFS, count: 1500 };
+    const res = await blast();
+    expect(res.status).toBe(500);
+    expect(sendWithResend).not.toHaveBeenCalled();
+  });
+
+  it("fails closed: a failed is_seed lookup aborts the blast instead of falling back to the address check", async () => {
+    scenario.reads.profiles = {
+      error: { message: "seed read timed out" },
+      selectOverrides: [{ includes: "full_name", result: { rows: MEMBERS } }],
+    };
+    const res = await blast();
+    expect(res.status).toBe(503);
+    const text = JSON.stringify(await res.json());
+    expect(text).toMatch(/test or seed accounts[\s\S]*no email was sent/);
+    expect(text).not.toMatch(/seed read timed out/); // logged, never echoed (EF-5)
+    expect(sendWithResend).not.toHaveBeenCalled();
+    expect(logRows()).toEqual([]);
   });
 
   it("fails closed: an unreadable suppression list sends nothing", async () => {

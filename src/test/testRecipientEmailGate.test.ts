@@ -27,11 +27,12 @@
 // @mutate supabase/functions/process-email-queue/index.ts |         if (error instanceof Error && error.name === 'TestRecipientRefusedError') { |         if (false) {
 // @mutate supabase/functions/_shared/testRecipient.ts |       .eq('email', addr.trim().toLowerCase())\n      .eq('is_seed', true) |       .eq('email', addr.trim().toLowerCase())\n      .eq('is_seed', false)
 // @mutate supabase/functions/_shared/testRecipient.ts |       .in('email', chunk)\n      .eq('is_seed', true) |       .in('email', chunk)\n      .eq('is_seed', false)
+// @mutate supabase/functions/_shared/testRecipient.ts |     if (opts.failClosed && !Array.isArray(data)) throw |     if (false) throw
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { isTestAddress, isTestRecipient, isTestRecipientIn, seedAddressesAmong, SEED_LOOKUP_CHUNK } from "../../supabase/functions/_shared/testRecipient";
+import { isTestAddress, isTestRecipient, isTestRecipientIn, seedAddressesAmong, SeedLookupFailedError, SEED_LOOKUP_CHUNK } from "../../supabase/functions/_shared/testRecipient";
 import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = join(__dirname, "..", "..");
@@ -199,6 +200,19 @@ describe("Q855: the batched seed lookup", () => {
     const { db } = inClient([{ data: null, error: { message: "boom" } }]);
     const seeds = await seedAddressesAmong(db, ["real@gmail.com"]);
     expect(isTestRecipientIn(seeds, "real@gmail.com")).toBe(false);
+  });
+
+  it("{ failClosed: true } throws on a failed chunk instead of falling back (the marketing blast, 2026-11-25)", async () => {
+    const { db } = inClient([{ data: [], error: null }, { data: null, error: { message: "boom" } }]);
+    const emails = Array.from({ length: SEED_LOOKUP_CHUNK + 1 }, (_, i) => `u${i}@gmail.com`);
+    await expect(seedAddressesAmong(db, emails, { failClosed: true })).rejects.toBeInstanceOf(SeedLookupFailedError);
+    await expect(seedAddressesAmong(null, ["real@gmail.com"], { failClosed: true })).rejects.toBeInstanceOf(SeedLookupFailedError);
+    // A reply with neither rows nor an error is not "no seeds" either.
+    await expect(seedAddressesAmong(inClient([{ data: null, error: null }]).db, ["real@gmail.com"], { failClosed: true }))
+      .rejects.toBeInstanceOf(SeedLookupFailedError);
+    // A clean read still answers normally.
+    const ok = inClient([{ data: [{ email: "u1@gmail.com" }], error: null }]);
+    expect([...(await seedAddressesAmong(ok.db, ["u1@gmail.com"], { failClosed: true }))]).toEqual(["u1@gmail.com"]);
   });
 });
 

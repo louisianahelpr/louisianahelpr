@@ -8,7 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // function used to carry its own copy of each, including the only use of
 // hello@ in the product.
 import { FROM_DEFAULT, POSTAL_ADDRESS, sendWithResend } from "../_shared/resend.ts";
-import { isTestRecipientIn, seedAddressesAmong, TEST_RECIPIENT_REASON } from "../_shared/testRecipient.ts";
+import { isTestRecipientIn, seedAddressesAmong, SeedLookupFailedError, TEST_RECIPIENT_REASON } from "../_shared/testRecipient.ts";
 import { buildUnsubscribeUrl, unsubscribeHeaders } from "../_shared/unsubscribe.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { htmlEscape } from "../_shared/safe-strings.ts";
@@ -406,6 +406,29 @@ serve(async (req) => {
           .map((p) => p.user_id),
       );
 
+      // Test accounts (public.test_accounts) are never blasted, the same as
+      // the come-back claim (lh-silent-failure review 2026-11-25). Paged and
+      // FAIL CLOSED like every list above: a short or failed read would look
+      // exactly like "nobody is a test account". 0 test accounts among the
+      // consenting members on prod, measured 2026-11-25.
+      const testScan = await scanAll<{ user_id: string }>(
+        "test_accounts",
+        (countOpt) =>
+          supabase.from("test_accounts").select("user_id", countOpt).order("user_id", { ascending: true }),
+      );
+      if (testScan.error || !testScan.complete) {
+        const why = testScan.error?.message ?? testScan.shortfall;
+        // Detail logged, fixed text returned (same as the seed abort below).
+        console.error("[send-marketing-blast] test_accounts read failed:", why);
+        return new Response(
+          JSON.stringify({
+            error: "Could not load the test-account list. Blast aborted — no email was sent.",
+          }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const testAccountIds = new Set(testScan.rows.map((t) => t.user_id));
+
       // The query above already includes the segment filter (in() on
       // helper-applicants or poster-customers, or .eq parish). No need
       // to refetch + cross-check; just drop opted-out users. The sign-up box
@@ -420,6 +443,7 @@ serve(async (req) => {
           p.ban_status === "active" &&
           !p.anonymized_at &&
           !optedOut.has(p.user_id) &&
+          !testAccountIds.has(p.user_id) &&
           !!p.email
         )
         .map((p) => ({ email: p.email!, full_name: p.full_name }));
@@ -532,7 +556,26 @@ serve(async (req) => {
     // SEED_LOOKUP_CHUNK rather than once per recipient (a 5000-recipient
     // campaign made 5000 profile reads). Fixture addresses are caught by the
     // address check inside isTestRecipientIn.
-    const seedAddresses = await seedAddressesAmong(supabase, recipients.map((r) => r.email));
+    //
+    // FAIL CLOSED (lead decision 2026-11-25): this used to log a failed chunk
+    // and fall back to the address check, so a seed account at a real-looking
+    // address (three use @louisianahelpr.com) would have been mailed. It runs
+    // before the send loop, so aborting here sends nothing, exactly like the
+    // suppression-list read above.
+    let seedAddresses: Set<string>;
+    try {
+      seedAddresses = await seedAddressesAmong(supabase, recipients.map((r) => r.email), { failClosed: true });
+    } catch (e) {
+      // The detail is logged, never echoed: a caught error stays out of the
+      // response body (EF-5, src/test/edge/error-leak-EF5.test.ts).
+      console.error("[send-marketing-blast] seed lookup failed:", e instanceof SeedLookupFailedError ? e.message : e);
+      return new Response(
+        JSON.stringify({
+          error: "Could not check which recipients are test or seed accounts. Blast aborted — no email was sent.",
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     for (let i = 0; i < recipients.length; i += 10) {
       const batch = recipients.slice(i, i + 10);

@@ -2077,23 +2077,15 @@
    "was": 34.97,
    "commission": 6,
    "age": "3+"
-  },
+  }
+ ],
+ "skipped": [
   {
    "id": "PKX059",
    "name": "Google Fitbit Air Special Edition Pokémon Sleep, Sleepy Blue",
-   "brand": "Pokémon",
-   "line": "Big gifts for a Pokémon fan.",
-   "href": "https://go.shopmy.us/p-110699919",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/google-fitbit-air-special-edition-pok-mon-sleep-sleepy-blue-target-41d04a.webp",
-   "store": "store-target",
-   "price": 129.99,
-   "priceAt": "2026-11-25",
-   "section": "Big gifts",
-   "sectionId": "pokemon-big-gifts",
-   "commission": 4,
-   "age": "kids",
-   "ownerAdd": true
+   "why": [
+    "ShopMy pin p-110699919 is the generic Google Fitbit Air, not the Pokémon Sleep edition"
+   ]
   }
- ],
- "skipped": []
+ ]
 }

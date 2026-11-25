@@ -7,8 +7,9 @@ import GiftGuides from "@/pages/info/GiftGuides";
 import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
 import { loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { LIVE_GUIDES_1121 } from "@/content/giftGuideLive.mjs";
-import { dealDay } from "@/content/giftGuideDeals.mjs";
-import { WISH_CORE } from "@/content/giftWishListCore";
+import { dealDay, type Deal } from "@/content/giftGuideDeals.mjs";
+import { GiftGuideThemeRow } from "@/pages/info/giftGuides/GiftGuideThemeRow";
+import bundledDeals from "@/content/giftGuideDeals.json";
 import { setPrerenderPhone } from "./useIsMobileStub";
 
 /**
@@ -26,9 +27,10 @@ import { setPrerenderPhone } from "./useIsMobileStub";
 /** The pages that get a first screen: the landing, then every live guide (deals days and the sponsors page included). */
 export const GUIDE_SHELL_PATHS: string[] = ["/gift-guides", ...LIVE_GUIDES_1121.map((s) => `/gift-guides/${s}`)];
 
-// A static render reads each store's client snapshot (the picks are loaded before it), so a hook written without a
-// server snapshot renders as it would once the store has settled. Patched on the server renderer's hook table
-// (React 18 internals), because a page's own imports are bound before this module runs.
+// A static render reads each store's CLIENT snapshot, even where a hook gives a server one: the first screen is what a
+// first-time visitor's browser draws once the store has settled (the picks are loaded before it; a tip a visitor has
+// not closed yet shows, and src/lib/guideShell.mjs hides it again for one who has). Patched on the server renderer's
+// hook table (React 18 internals), because a page's own imports are bound before this module runs.
 type Dispatcher = { useSyncExternalStore?: (s: unknown, g: unknown, gs?: unknown) => unknown; __lh?: boolean };
 const internals = (React as unknown as Record<string, { ReactCurrentDispatcher: { current: Dispatcher | null } }>)
   .__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
@@ -41,7 +43,7 @@ if (!Object.getOwnPropertyDescriptor(holder, "current")?.get) {
     set: (d: Dispatcher | null) => {
       if (d && d.useSyncExternalStore && !d.__lh) {
         const orig = d.useSyncExternalStore;
-        d.useSyncExternalStore = (s, g, gs) => orig(s, g, gs ?? g);
+        d.useSyncExternalStore = (s, g) => orig(s, g, g);
         d.__lh = true;
       }
       current = d;
@@ -59,24 +61,33 @@ function render(path: string, node: ReactNode): string {
   );
 }
 
-/** The deals day's list is its own lazy chunk on the page ("Loading your list…" until it is in): drawn here in its place. */
-const LOADING_LINE = `<p class="gg-soon" role="status">${WISH_CORE.loading}</p>`;
+/**
+ * Two parts of a guide page are their own lazy chunks, drawn here in place of their stand-ins: a deals day's list
+ * ("Loading deals…" until it is in) and the theme row on Kids and the themed guides (an invisible stand-in of the same
+ * height). The first screen shows them as the page does once they are in.
+ */
+const DEALS_LOADING = /<p class="gg-soon" role="status" data-gift-deals-loading="">[^<]*<\/p>/;
+const THEME_ROW_WAIT = /<div class="gg-themes" aria-hidden="true" data-gift-theme-row-wait=""><ul[^>]*><li><span class="gg-cover"><\/span><\/li><\/ul><\/div>/;
 
 /** One page's markup as the app draws it once its data is in, at a phone's width or a desktop's. */
 export async function renderGuidePage(path: string, phone: boolean): Promise<string> {
   await loadAllGuidePicks();
   setPrerenderPhone(phone);
-  const page = render(
+  let page = render(
     path,
     <Routes>
       <Route path="/gift-guides" element={<GiftGuides />} />
       <Route path="/gift-guides/:slug" element={<GiftGuides />} />
     </Routes>,
   );
+  if (page.includes("data-gift-theme-row-wait")) {
+    if (!THEME_ROW_WAIT.test(page)) throw new Error(`guide prerender: ${path} has a theme row stand-in this file cannot read`);
+    page = page.replace(THEME_ROW_WAIT, () => render(path, <GiftGuideThemeRow />));
+  }
   const day = dealDay(path.replace(/^\/gift-guides\/?/, ""));
   if (!day) return page;
-  if (!page.includes(LOADING_LINE)) throw new Error(`guide prerender: ${path} has no deals loading line to fill`);
-  return page.replace(LOADING_LINE, () => render(path, <GiftGuideDeals day={day} />));
+  if (!DEALS_LOADING.test(page)) throw new Error(`guide prerender: ${path} has no deals loading line to fill`);
+  return page.replace(DEALS_LOADING, () => render(path, <GiftGuideDeals day={day} initialDeals={bundledDeals as Deal[]} />));
 }
 
 /** Every shell page at both widths: { path: { phone, desktop } }. */

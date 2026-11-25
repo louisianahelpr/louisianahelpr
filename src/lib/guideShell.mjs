@@ -20,10 +20,47 @@ export const GUIDE_SHELL_ID = "lh-guide-shell";
  * The block's own rules: a fixed, scrolling layer over the booting app, and one width's drawing shown at a time (the
  * page draws a phone's structure below 768px, src/hooks/use-mobile.tsx).
  */
+/**
+ * Set on <html> by index.html's guide script before the first paint, from the same stored-session test the app uses
+ * (src/lib/persistedAuthToken.ts): a signed-in visitor (member) and the guide tips already closed (hints, space
+ * separated GiftHint ids).
+ */
+export const GUIDE_MEMBER_ATTR = "data-lh-guide-member";
+export const GUIDE_HINTS_ATTR = "data-lh-gg-hints";
+/** The desktop website's top bar (src/lib/desktopBar.ts DESKTOP_BAR_H) and left rail (index.css --desktop-sidebar-w). */
+export const MEMBER_BAR_PX = 70;
+export const MEMBER_RAIL_PX = 248;
+/** The width the rail and bar appear from (src/hooks/useIsWebDesktop.ts WEB_DESKTOP_QUERY). */
+export const MEMBER_DESKTOP_MIN_PX = 900;
+
+/**
+ * The block's own rules: a fixed, scrolling layer over the booting app, and one width's drawing shown at a time (the
+ * page draws a phone's structure below 768px, src/hooks/use-mobile.tsx). For a member (Finish + land for everyone,
+ * owner 2026-11-24 ~10 PM) the guest site bar and its spacer are hidden (PublicLayout draws the same container in the
+ * app's frame, with no bar), and from 900px the layer starts below the app's top bar and right of its rail, so both
+ * appear beside it as soon as the app draws them and the guide does not move at the hand-off.
+ */
 export const GUIDE_SHELL_SHOW_RULE =
   `#${GUIDE_SHELL_ID}{display:block;position:fixed;inset:0;z-index:2147483000;overflow-x:hidden;overflow-y:auto;background:#fff;text-align:left}` +
   `@media (min-width:768px){#${GUIDE_SHELL_ID}>[data-lh-guide-v="phone"]{display:none}}` +
-  `@media (max-width:767px){#${GUIDE_SHELL_ID}>[data-lh-guide-v="desktop"]{display:none}}`;
+  `@media (max-width:767px){#${GUIDE_SHELL_ID}>[data-lh-guide-v="desktop"]{display:none}}` +
+  `html[${GUIDE_MEMBER_ATTR}] #${GUIDE_SHELL_ID} [data-lh-guest-only]{display:none}` +
+  `@media (min-width:${MEMBER_DESKTOP_MIN_PX}px){html[${GUIDE_MEMBER_ATTR}] #${GUIDE_SHELL_ID}{top:${MEMBER_BAR_PX}px;left:${MEMBER_RAIL_PX}px}}`;
+
+/**
+ * The build draws a guide's tips as a first-time visitor sees them (src/prerender/guidePages.tsx); one rule per tip in
+ * the drawings hides it again for a visitor who closed it (GUIDE_HINTS_ATTR). The menu tip carries data-gift-menu-hint,
+ * every other GiftHint data-gift-hint="<id>".
+ */
+export function guideShellHintRules(html) {
+  const ids = new Set();
+  if (html.includes("data-gift-menu-hint=")) ids.add("menu");
+  for (const m of html.matchAll(/data-gift-hint="([\w-]+)"/g)) ids.add(m[1]);
+  return [...ids]
+    .sort()
+    .map((id) => `html[${GUIDE_HINTS_ATTR}~="${id}"] #${GUIDE_SHELL_ID} ${id === "menu" ? "[data-gift-menu-hint]" : `[data-gift-hint="${id}"]`}{display:none}`)
+    .join("");
+}
 
 /** "/gift-guides/her/" -> "/gift-guides/her" (the key a page's block is stored under). */
 export function guideShellKey(pathname) {

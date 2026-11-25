@@ -5,6 +5,7 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { useEffect, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
+import { usePhoneNow as usePhoneWidth } from "@/hooks/use-mobile";
 import { STORES, guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GuidesMenuHint, MENU_HINT_GUIDES } from "./giftGuides/GiftGuideMenuHint";
@@ -107,23 +108,6 @@ function LazySaveForSomeone() {
     </>
   );
 }
-
-/**
- * A phone-width window (under 768px, useIsMobile's line), known on the FIRST render. useIsMobile starts false and
- * flips in an effect after the first paint, so a phone painted every guide page once without its count row ("159
- * gifts", the pill and the icons) and then pushed the gifts 54px down (owner 2026-11-24 ~7 PM, the Kids page: "It
- * shouldn't move like this"; layout shift 0.0255 at 375, measured on a local build). Guard:
- * src/test/giftGuideKidsThemeRow1124.test.tsx.
- */
-const PHONE_QUERY = "(max-width: 767px)";
-const phoneNow = () => window.innerWidth < 768;
-const onPhoneChange = (fire: () => void) => {
-  if (typeof window.matchMedia !== "function") return () => {};
-  const mql = window.matchMedia(PHONE_QUERY);
-  mql.addEventListener("change", fire);
-  return () => mql.removeEventListener("change", fire);
-};
-const usePhoneWidth = () => useSyncExternalStore(onPhoneChange, phoneNow, phoneNow);
 
 /** "gifts for Her" -> "Gifts for Her". */
 const capitalFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

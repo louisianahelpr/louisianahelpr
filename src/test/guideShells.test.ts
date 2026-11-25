@@ -3,12 +3,20 @@
  * landing have a first screen in the raw HTML (src/prerender/guidePages.tsx -> scripts/lib/guideShellBuild.mjs ->
  * api/share.ts via src/lib/guideShell.mjs), drawn from the page's own component, carrying its banner and its first
  * items (name, link, photo), and src/boot/guideShellHandoff.ts keeps it over the booting app only until the page's own
- * content is on screen.
+ * content is on screen. Round 2 (owner 2026-11-24 ~10 PM, "Finish + land for everyone"): signed-in visitors too (the
+ * member rules and index.html's guide script), the page's own rules inside the block (after the app sheet, as the page
+ * has them), the deals list and theme row drawn in, built asset paths, and a redraw once the web fonts are in.
  *
  * @mutate src/lib/guideShell.mjs |   const page = html.replace(/<div\s+id="boot-loader"[^>]*>/, (open) => `${open}${block}`); |   const page = html;
  * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", | export const LIVE_GUIDES_1121 = ["her", "lh-not-prerendered",
  * @mutate scripts/lib/guideShellBuild.mjs |   if (items.length > FIRST_SCREEN_ITEMS) { |   if (items.length > 0) {
- * @mutate src/boot/guideShellHandoff.ts |   if (signedIn \|\| el.getAttribute("data-guide-shell") !== path) { |   if (el.getAttribute("data-guide-shell") !== path) {
+ * @mutate src/boot/guideShellHandoff.ts |   if (signedIn !== member \|\| el.getAttribute("data-guide-shell") !== path) { |   if (el.getAttribute("data-guide-shell") !== path) {
+ * @mutate src/boot/guideShellHandoff.ts |     if (!content \|\| Boolean(content.closest(".app-shell-frame")) !== member) return; |     if (!content) return;
+ * @mutate scripts/lib/guideShellBuild.mjs |     for (const sib of [...(node.parentElement?.children ?? [])]) if (sib !== node) sib.setAttribute("data-lh-guest-only", ""); |     void node;
+ * @mutate scripts/lib/guideShellBuild.mjs |       return [path, `${block.slice(0, at)}<style>${ownCss}</style>${block.slice(at)}`]; |       return [path, block];
+ * @mutate src/prerender/guidePages.tsx |   return page.replace(DEALS_LOADING, () => render(path, <GiftGuideDeals day={day} initialDeals={bundledDeals as Deal[]} />)); |   return page;
+ * @mutate index.html |             if (key.indexOf("sb-") === 0 && key.slice(-11) === "-auth-token") html.setAttribute("data-lh-guide-member", ""); |             void key;
+ * @mutate index.html |           el.innerHTML = el.innerHTML; |           void el;
  * @mutate src/boot/guideShellHandoff.ts |   doc.body.appendChild(el); |   void doc.body;
  * @mutate src/main.tsx | adoptGuideShell(window.location.pathname, tokenProbeAtBoot(), document); | void adoptGuideShell;
  * @mutate api/share.ts |       return respond(guided, meta.cdnCache, 200, meta.noindexHeader === true); |       return respond(page, meta.cdnCache, 200, meta.noindexHeader === true);
@@ -18,9 +26,9 @@ import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
 import { LIVE_GUIDES_1121 } from "@/content/giftGuideLive.mjs";
 import { DEAL_DAY_SLUGS } from "@/content/giftGuideDeals.mjs";
-import { GUIDE_SHELL_ID, GUIDE_SHELL_SHOW_RULE, withGuideShell } from "@/lib/guideShell.mjs";
-import { adoptGuideShell, GUIDE_SHELL_ELEMENT_ID, GUIDE_SHELL_MAX_MS } from "@/boot/guideShellHandoff";
-import { FIRST_SCREEN_ITEMS, ITEM_SELECTOR, guideShellData } from "../../scripts/lib/guideShellBuild.mjs";
+import { GUIDE_HINTS_ATTR, GUIDE_MEMBER_ATTR, GUIDE_SHELL_ID, GUIDE_SHELL_SHOW_RULE, guideShellHintRules, withGuideShell } from "@/lib/guideShell.mjs";
+import { adoptGuideShell, GUIDE_MEMBER_ATTR as BOOT_MEMBER_ATTR, GUIDE_SHELL_ELEMENT_ID, GUIDE_SHELL_MAX_MS } from "@/boot/guideShellHandoff";
+import { FIRST_SCREEN_ITEMS, ITEM_SELECTOR, builtAssetPaths, guideShellData } from "../../scripts/lib/guideShellBuild.mjs";
 
 // The page renders once per width, as the build's Vite config makes it (useIsMobile aliased to the stub).
 vi.mock("@/hooks/use-mobile", async () => await import("@/prerender/useIsMobileStub"));
@@ -58,7 +66,8 @@ describe("every live guide page has its first screen in the HTML", () => {
     let checked = 0;
     for (const p of paths) {
       const block = data.pages[p];
-      expect(block.startsWith(`<div id="${GUIDE_SHELL_ID}" data-guide-shell="${p}">`), p).toBe(true);
+      // The page's own rules come first inside the block, after the app sheet in document order, as the page has them.
+      expect(block.startsWith(`<div id="${GUIDE_SHELL_ID}" data-guide-shell="${p}"><style>`), p).toBe(true);
       // A guide opens on at least 4 gifts; a deals day on at least one line (Small Business Saturday's shop grid is read live).
       const least = DEAL_DAY_SLUGS.includes(p.replace("/gift-guides/", "")) ? 1 : 4;
       expect(counts[p], p).toBeGreaterThanOrEqual(least);
@@ -79,15 +88,40 @@ describe("every live guide page has its first screen in the HTML", () => {
       for (const v of doc.querySelectorAll(`#${GUIDE_SHELL_ID} > [data-lh-guide-v]`)) {
         expect(v.querySelectorAll(ITEM_SELECTOR).length, p).toBeLessThanOrEqual(FIRST_SCREEN_ITEMS);
       }
-      expect(block, p).not.toMatch(/<style|<script|<footer/);
+      const bare = block.replace(/^<div[^>]*><style>[^<]*<\/style>/, "");
+      expect(bare, p).not.toMatch(/<style|<script|<footer/);
+      // No stand-in where the page draws a lazy part once it is in (the deals list, the theme row), and no source path.
+      expect(block, p).not.toMatch(/data-gift-deals-loading|data-gift-theme-row-wait|\/src\/assets\//);
+      // A member's drawing: the guest site bar and spacer are marked, the guide's container and its parents are not.
+      for (const v of doc.querySelectorAll(`#${GUIDE_SHELL_ID} > [data-lh-guide-v]`)) {
+        const box = v.querySelector("[data-public-container]");
+        expect(box, p).not.toBeNull();
+        expect(box?.closest("[data-lh-guest-only]"), p).toBeNull();
+        expect(v.querySelectorAll("[data-lh-guest-only]").length, p).toBeGreaterThan(0);
+        expect(v.querySelector("[data-lh-guest-only] a[href='/login'], [data-lh-guest-only] a[href^='/login'], [data-lh-guest-only] a[href^='/signup']"), `${p} site bar marked`).not.toBeNull();
+      }
       checked++;
     }
     expect(checked).toBeGreaterThan(6);
   });
 
-  it("the rules end with the block's own show rule", () => {
-    expect(data.css?.endsWith(GUIDE_SHELL_SHOW_RULE)).toBe(true);
+  it("the rules end with the block's own show rule and one hide rule per tip drawn", () => {
+    const hints = guideShellHintRules(Object.values(data.pages).join(""));
+    expect(hints).toContain(`html[${GUIDE_HINTS_ATTR}~="menu"] #${GUIDE_SHELL_ID} [data-gift-menu-hint]{display:none}`);
+    expect(data.css?.endsWith(GUIDE_SHELL_SHOW_RULE + hints)).toBe(true);
+    expect(GUIDE_SHELL_SHOW_RULE).toContain(`html[${GUIDE_MEMBER_ATTR}] #${GUIDE_SHELL_ID} [data-lh-guest-only]{display:none}`);
     expect(guideShellData(rendered, null).data.css).toBeNull();
+  });
+
+  it("the menu tip is drawn for a first-time visitor (Her, Him, Kids, the landing)", () => {
+    for (const p of ["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids"]) expect(data.pages[p], p).toContain("data-gift-menu-hint=");
+  });
+
+  it("source asset paths become the build's hashed files, and a missing one fails the build", () => {
+    const names = ["helpr-logo-256-7lzBG8jC.webp", "helpr-logo-96-C77gmY--.webp", "helpr-logo-96-Dg-lBfwp.js"];
+    expect(builtAssetPaths('<img src="/src/assets/helpr-logo-256.webp" srcset="/src/assets/helpr-logo-96.webp 96w">', names))
+      .toBe('<img src="/assets/helpr-logo-256-7lzBG8jC.webp" srcset="/assets/helpr-logo-96-C77gmY--.webp 96w">');
+    expect(() => builtAssetPaths('<img src="/src/assets/gone.webp">', names)).toThrow(/gone\.webp/);
   });
 });
 
@@ -123,7 +157,11 @@ describe("adoptGuideShell", () => {
   };
   const el = () => document.getElementById(GUIDE_SHELL_ID);
 
-  it("one id everywhere", () => expect(GUIDE_SHELL_ELEMENT_ID).toBe(GUIDE_SHELL_ID));
+  afterEach(() => document.documentElement.removeAttribute(GUIDE_MEMBER_ATTR));
+  it("one id and one member mark everywhere", () => {
+    expect(GUIDE_SHELL_ELEMENT_ID).toBe(GUIDE_SHELL_ID);
+    expect(BOOT_MEMBER_ATTR).toBe(GUIDE_MEMBER_ATTR);
+  });
 
   it("a guest on the page it was drawn for: moved out of #boot-loader, kept until the page's own list is in", async () => {
     page();
@@ -136,10 +174,36 @@ describe("adoptGuideShell", () => {
     await vi.waitFor(() => expect(el()).toBeNull());
   });
 
-  it("signed in, or another path: removed at once", () => {
+  it("signed in (marked by index.html's script): kept until the page is drawn inside the app's frame", async () => {
+    page();
+    document.documentElement.setAttribute(GUIDE_MEMBER_ATTR, "");
+    adoptGuideShell("/gift-guides/her", true);
+    expect(el()?.parentElement).toBe(document.body);
+    // The guest layout's list (auth not known yet) is not the member's page: the block stays.
+    document.getElementById("root")!.innerHTML = '<ol><li data-gift-pick="">gift</li></ol>';
+    await new Promise((r) => setTimeout(r, 50));
+    expect(el()).not.toBeNull();
+    document.getElementById("root")!.innerHTML = '<div class="app-shell-frame"><ol><li data-gift-pick="">gift</li></ol></div>';
+    await vi.waitFor(() => expect(el()).toBeNull());
+  });
+
+  it("a guest's hand-off never waits on the member frame", async () => {
+    page();
+    adoptGuideShell("/gift-guides/her", false);
+    document.getElementById("root")!.innerHTML = '<div class="app-shell-frame"><ol><li data-gift-pick="">gift</li></ol></div>';
+    await new Promise((r) => setTimeout(r, 50));
+    expect(el()).not.toBeNull();
+  });
+
+  it("signed in without the mark (the script did not run), a mark without a session, or another path: removed at once", () => {
     page();
     adoptGuideShell("/gift-guides/her", true);
     expect(el()).toBeNull();
+    page();
+    document.documentElement.setAttribute(GUIDE_MEMBER_ATTR, "");
+    adoptGuideShell("/gift-guides/her", false);
+    expect(el()).toBeNull();
+    document.documentElement.removeAttribute(GUIDE_MEMBER_ATTR);
     page("/gift-guides/her");
     adoptGuideShell("/gift-guides/him", false);
     expect(el()).toBeNull();
@@ -153,5 +217,54 @@ describe("adoptGuideShell", () => {
     expect(el()).not.toBeNull();
     vi.advanceTimersByTime(1);
     expect(el()).toBeNull();
+  });
+});
+
+describe("index.html's guide script (before the first paint)", () => {
+  const html = readFileSync("index.html", "utf8");
+  const at = html.indexOf('if (location.pathname.indexOf("/gift-guides") !== 0');
+  const code = html.slice(html.lastIndexOf("<script>", at) + "<script>".length, html.indexOf("</script>", at));
+  const store = (entries: Record<string, string>) => ({
+    get length() { return Object.keys(entries).length; },
+    key: (i: number) => Object.keys(entries)[i] ?? null,
+    getItem: (k: string) => entries[k] ?? null,
+  });
+  const run = (pathname: string, entries: Record<string, string>, fonts?: unknown) => {
+    const doc = document.implementation.createHTMLDocument("x");
+    doc.head.innerHTML = '<link rel="preload" as="font" href="/fonts/bodoni-moda-normal-latin.woff2" data-lh-hero-font media="not all">';
+     
+    new Function("location", "window", "document", "localStorage", code)({ pathname, protocol: "https:" }, {}, Object.assign(doc, fonts ? { fonts } : {}), store(entries));
+    return doc;
+  };
+  it("is in the page and runs before the body", () => {
+    expect(at).toBeGreaterThan(0);
+    expect(at).toBeLessThan(html.indexOf("<body"));
+  });
+  it("marks a stored session and the closed tips on a guide path only", () => {
+    const d = run("/gift-guides/her", { "sb-x-auth-token": "{}", "lh-gg-hint-menu": "1", "lh-gg-hint-heart": "0" });
+    expect(d.documentElement.hasAttribute(GUIDE_MEMBER_ATTR)).toBe(true);
+    expect(d.documentElement.getAttribute(GUIDE_HINTS_ATTR)).toBe("menu");
+    const guest = run("/gift-guides/her", {});
+    expect(guest.documentElement.hasAttribute(GUIDE_MEMBER_ATTR)).toBe(false);
+    expect(guest.documentElement.hasAttribute(GUIDE_HINTS_ATTR)).toBe(false);
+    const off = run("/browse", { "sb-x-auth-token": "{}" });
+    expect(off.documentElement.hasAttribute(GUIDE_MEMBER_ATTR)).toBe(false);
+    expect(off.querySelector("link")?.getAttribute("media")).toBe("not all");
+  });
+  it("turns on the Bodoni preloads on a guide page (its banner is set in both faces)", () => {
+    expect(run("/gift-guides/monster-jam", {}).querySelector("link")?.getAttribute("media")).toBe("all");
+  });
+  it("draws the block again, at the same scroll, each time a web font finishes loading", () => {
+    let done: (() => void) | null = null;
+    const d = run("/gift-guides/her", {}, { addEventListener: (type: string, f: () => void) => { if (type === "loadingdone") done = f; } });
+    d.body.innerHTML = `<div id="${GUIDE_SHELL_ID}"><p>gift</p></div>`;
+    const before = d.querySelector(`#${GUIDE_SHELL_ID} p`);
+    expect(done).not.toBeNull();
+    done!();
+    const after = d.querySelector(`#${GUIDE_SHELL_ID} p`);
+    expect(after?.textContent).toBe("gift");
+    expect(after).not.toBe(before);
+    d.getElementById(GUIDE_SHELL_ID)!.remove();
+    expect(() => done!()).not.toThrow();
   });
 });

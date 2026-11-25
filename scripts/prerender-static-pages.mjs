@@ -15,7 +15,7 @@ import { mkdir, writeFile, rename } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { guideShellData, FIRST_SCREEN_ITEMS } from "./lib/guideShellBuild.mjs";
 import { DEAL_DAY_SLUGS } from "../src/content/giftGuideDeals.mjs";
@@ -106,7 +106,9 @@ if (existsSync(distIndex)) {
   const hrefs = [...readFileSync(distIndex, "utf8").matchAll(/<link rel="stylesheet" href="(\/assets\/[^"]+\.css)"[^>]*data-async-css>/g)].map((m) => m[1]);
   if (hrefs.length) appCss = hrefs.map((h) => readFileSync(path.join(root, "dist", h), "utf8")).join("\n");
 }
-const { data: guideData, counts } = guideShellData(guidePages, appCss);
+// The page's image imports, mapped to the build's hashed files (no dist/: no rules either, so nothing is drawn).
+const assetNames = appCss ? readdirSync(path.join(root, "dist", "assets")) : null;
+const { data: guideData, counts } = guideShellData(guidePages, appCss, assetNames);
 // A guide (and the landing's Top 10) opens on at least 4 gifts; a deals day on at least one line (Small Business
 // Saturday's shop grid is read live from the database, so its first screen is its banner and its one static row).
 const short = Object.entries(counts).filter(([p, n]) => n < (DEAL_DAY_SLUGS.includes(p.replace("/gift-guides/", "")) ? 1 : Math.min(4, FIRST_SCREEN_ITEMS)));

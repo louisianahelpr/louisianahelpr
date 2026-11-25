@@ -3,6 +3,7 @@ import type { GuideShellData } from "../../src/lib/guideShell.mjs";
 export declare const FIRST_SCREEN_ITEMS: number;
 export declare const ITEM_SELECTOR: string;
 export declare function trimGuideMarkup(markup: string, phone: boolean): { html: string; css: string[]; items: number };
+export declare function builtAssetPaths(html: string, assetNames: string[]): string;
 export declare function guideShellBlock(
   path: string,
   phoneMarkup: string,
@@ -11,4 +12,5 @@ export declare function guideShellBlock(
 export declare function guideShellData(
   rendered: Record<string, { phone: string; desktop: string }>,
   appCss: string | null,
+  assetNames?: string[] | null,
 ): { data: GuideShellData; counts: Record<string, number> };

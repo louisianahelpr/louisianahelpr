@@ -216,9 +216,13 @@ const BIZ_ORDERS: SortChoice<BizOrder>[] = [{ value: "category", label: SBS.sort
 const byName = (order: BizOrder) => (rows: SmallBiz[]) =>
   [...rows].sort((a, b) => (order === "za" ? -1 : 1) * a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
 
-/** One deals day's page. `now` is for tests; the page passes nothing and reads the clock. */
-export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
-  const [deals, setDeals] = useState<Deal[] | null>(null);
+/**
+ * One deals day's page. `now` is for tests; the page passes nothing and reads the clock. `initialDeals` is for the
+ * build's static first screen (src/prerender/guidePages.tsx: the bundled deals file, drawn as the page draws it once
+ * the file is in); the page passes nothing and loads the file.
+ */
+export function GiftGuideDeals({ day, now, initialDeals }: { day: DealEvent; now?: Date; initialDeals?: Deal[] }) {
+  const [deals, setDeals] = useState<Deal[] | null>(initialDeals ?? null);
   // Live data (owner 2026-11-23): the codes too. The bundled codes (or a newer saved copy) draw now; a newer valid copy
   // from the live site replaces them when it arrives, and the page draws again with it (src/lib/liveGuideData.ts).
   const [, setCodesCopy] = useState(0);

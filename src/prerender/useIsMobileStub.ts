@@ -11,3 +11,7 @@ export function setPrerenderPhone(v: boolean): void {
 export function useIsMobile(): boolean {
   return phone;
 }
+/** usePhoneNow (the guide page's first-render width) answers the same. */
+export function usePhoneNow(): boolean {
+  return phone;
+}

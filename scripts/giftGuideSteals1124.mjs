@@ -145,6 +145,55 @@ export const KIDS_STEALS_1124_ROWS = [
   ["https://walmrt.us/4ANUqp7", 3.38, "https://i5.walmartimages.com/asr/f403338a-c23f-474d-b079-4d6af1886e1e.0ae877f0943aacdd60b5e3bf80e2a855.jpeg", "Ms. Rachel Baby Girls Tee and Shorts Set (0-9M)", "Ms. Rachel", "store-walmart", "baby-clothes", 15, "A sweet Ms. Rachel tee and shorts set for babies."],
   // non-Bluey item: walmart.com/ip/1755280341 read 11-25 ~12:25 AM, $11.04, was $12.99, sold by Walmart.com.
   ["https://walmrt.us/4ku91Bo", 11.04, "https://i5.walmartimages.com/asr/f1e5ed5c-9c8c-4039-9601-53eb93bc24d7.a3f4a70fcc79512f97fe3036c051d341.jpeg", "Disney Eeyore Mini Bean Bag Plush", "Disney", "store-walmart", "plush", 6, "A soft little Eeyore to hug."],
+  // OWNER JCPENNEY "KIDS TOYS" PICKS (owner screenshots 11-25 12:32-12:35 AM via the lead, ~/.lh-shots/kids-owner-adds-1125/
+  // jcpenney-kids-toys.md): the 23 found on the jcpenney.com "kids toys" search page; her Later links (JCPenney via Later 10.5%),
+  // made in the Later dashboard 11-25 ~1:00 AM, never opened.
+  // JCPenney #3: costway-6v-kids-electric-quad-atv-4-wheels-ride-on-toy-toddlers-forward-reverse/ppm6100050812 read 11-25 ~12:58 AM (kids toys search): $69.99 (was $239.99).
+  ["https://mavely.app.link/mQ3bdqWDl8b", 69.99, "https://mktpl-images.jcpenney.com/SOURCE/833aadb99d5b4febb801a50dc07b9f62", "Costway 6V Kids Electric Quad ATV Ride-On", "Costway", "store-jcpenney", "ride-on", 10.5, "A battery-powered ATV for little riders."],
+  // JCPenney #31: costway-kids-pedal-go-kart-4-wheel-ride-on-toys-w-adjustable-seat-handbrake/ppm6100050884 read 11-25 ~12:58 AM (kids toys search): $99.99.
+  ["https://mavely.app.link/fqxGCAWDl8b", 99.99, "https://mktpl-images.jcpenney.com/SOURCE/48cf8aa374884218b899e9f1277a24d4", "Costway Kids Pedal Go Kart", "Costway", "store-jcpenney", "ride-on", 10.5, "A pedal go kart with an adjustable seat."],
+  // JCPenney #32: learning-resources-a-to-z-mini-foods-discovery-toy/ppr5008757332 read 11-25 ~12:58 AM (kids toys search): $14.99 (was $25).
+  ["https://mavely.app.link/1aPI2KWDl8b", 14.99, "https://sc-images.jcpenney.com/JCPenney/DP0622202607143941M", "Learning Resources A to Z Mini Foods", "Learning Resources", "store-jcpenney", "pretend-play", 10.5, "Tiny play foods for every letter, A to Z."],
+  // JCPenney #35: snowball-headband-hoop-game-set-of-2/ppr5008738146 read 11-25 ~12:58 AM (kids toys search): $14.99 (was $25).
+  ["https://mavely.app.link/1i1TtVWDl8b", 14.99, "https://sc-images.jcpenney.com/JCPenney/DP0624202609034881M", "Snowball Headband Hoop Game, Set of 2", "", "store-jcpenney", "game", 10.5, "A silly headband toss game for two."],
+  // JCPenney #36: quokka-60-piece-jigsaw-puzzle-for-kids-illustrated-learning-puzzles-with-animal-and-fantasy-themes-for-ages-3/ppm6100020594 read 11-25 ~12:58 AM (kids toys search): $8.99 (was $9.99).
+  ["https://mavely.app.link/Rut9K5WDl8b", 8.99, "https://mktpl-images.jcpenney.com/SOURCE/0b6728a3e5454162bb35976503bb33ed", "QUOKKA 60-Piece Kids Jigsaw Puzzle", "QUOKKA", "store-jcpenney", "puzzle", 10.5, "A 60-piece picture puzzle for kids."],
+  // JCPenney #37: discovery-mindblown-bionic-hand-diy-hydraulic-build-kit/ppr5008499526 read 11-25 ~12:58 AM (kids toys search): $24.99 (was $40).
+  ["https://mavely.app.link/1fbvugXDl8b", 24.99, "https://sc-images.jcpenney.com/JCPenney/DP0929202509090126M", "Discovery Mindblown Bionic Hand DIY Hydraulic Kit", "Discovery", "store-jcpenney", "stem-kit", 10.5, "A hydraulic robot hand to build."],
+  // JCPenney #38: discovery-kids-spy-goggles/ppr5008807329 read 11-25 ~12:58 AM (kids toys search): $14.99 (was $30).
+  ["https://mavely.app.link/e3OCqrXDl8b", 14.99, "https://sc-images.jcpenney.com/JCPenney/DP73214776-20260924050938M", "Discovery Kids Spy Goggles", "Discovery", "store-jcpenney", "spy-toy", 10.5, "Spy goggles for backyard missions."],
+  // JCPenney #39: disney-collection-mickey-mouse-clubhouse-grill-set/ppr5008819397 read 11-25 ~12:58 AM (kids toys search): $17.49 (was $24.99).
+  ["https://mavely.app.link/VjBJoCXDl8b", 17.49, "https://sc-images.jcpenney.com/JCPenney/DP73027399-20260923025700M", "Disney Mickey Mouse Clubhouse Grill Set", "Disney", "store-jcpenney", "pretend-play", 10.5, "A Mickey Mouse Clubhouse play grill."],
+  // JCPenney #40: discovery-kids-discovery-11-pc-drawing-kit/ppr5008807318 read 11-25 ~12:58 AM (kids toys search): $34.99 (was $70).
+  ["https://mavely.app.link/ZxaYRVXDl8b", 34.99, "https://sc-images.jcpenney.com/JCPenney/DP72784624-20260918030400M", "Discovery Kids 11-Piece Light Designer Drawing Kit", "Discovery", "store-jcpenney", "art", 10.5, "A light-up drawing kit for little artists."],
+  // JCPenney #41: 4-in-1-kids-art-easel-3-tier-bookshelf-double-sided-magnetic-whiteboard-blackboard-adjustable-angle-carry-handle/ppm6100026514 read 11-25 ~12:58 AM (kids toys search): $50.99 (was $101.99).
+  ["https://mavely.app.link/vgUK49XDl8b", 50.99, "https://mktpl-images.jcpenney.com/SOURCE/e147e73cc07c4ebd8a0a50c7773775c3", "4-in-1 Kids Art Easel with Bookshelf", "", "store-jcpenney", "art", 10.5, "A 4-in-1 art easel with a bookshelf."],
+  // JCPenney #43: disney-collection-9-pc-minnie-mouse-toy-playset/ppr5008546698 read 11-25 ~12:58 AM (kids toys search): $16.8 (was $24).
+  ["https://mavely.app.link/LUeIqlYDl8b", 16.8, "https://sc-images.jcpenney.com/JCPenney/DP0909202509125637M", "Disney Minnie Mouse 9-Piece Shopping Playset", "Disney", "store-jcpenney", "pretend-play", 10.5, "A Minnie Mouse shopping cart playset."],
+  // JCPenney #44: quokka-scavenger-hunt-cards-for-toddlers-50-activity-challenges-learning-games-for-kids-ages-2/ppm6100020555 read 11-25 ~12:58 AM (kids toys search): $11.69 (was $12.99).
+  ["https://mavely.app.link/XeknLvYDl8b", 11.69, "https://mktpl-images.jcpenney.com/SOURCE/01327d718e384708b418413cffc8100f", "QUOKKA Toddler Scavenger Hunt Cards", "QUOKKA", "store-jcpenney", "game", 10.5, "Scavenger hunt cards for toddlers."],
+  // JCPenney #45: discovery-kids-toy-24-piece-magnetic-tile/ppr5007275541 read 11-25 ~12:58 AM (kids toys search): $19.99 (was $42).
+  ["https://mavely.app.link/5mhK5l0Dl8b", 19.99, "https://sc-images.jcpenney.com/JCPenney/DP0710201717120536M", "Discovery Kids 24-Piece Magnetic Tiles", "Discovery", "store-jcpenney", "building-set", 10.5, "Magnetic tiles to build with."],
+  // JCPenney #46: disney-collection-talking-mickey-mouse-clubhouse-minnie-mouse-interactive-plush/ppr5008450298 read 11-25 ~12:58 AM (kids toys search): $17.5 (was $25).
+  ["https://mavely.app.link/7QubVC0Dl8b", 17.5, "https://sc-images.jcpenney.com/JCPenney/DP0614202411032024M", "Disney Talking Minnie Mouse Clubhouse Plush", "Disney", "store-jcpenney", "plush", 10.5, "A talking Minnie Mouse plush."],
+  // JCPenney #47: sperric-splash-catch-bath-toy-magnetic-fishing-game-w-surprise-animal-eggs-floating-fun-for-toddlers-kids/ppm6100027749 read 11-25 ~12:58 AM (kids toys search): $19.87 (was $26.85).
+  ["https://mavely.app.link/wZWXGO0Dl8b", 19.87, "https://mktpl-images.jcpenney.com/SOURCE/b1c342a8849f4e04a959c45a6c65a681", "Sperric Splash and Catch Magnetic Fishing Bath Toy", "Sperric", "store-jcpenney", "bath-toy", 10.5, "A magnetic fishing game for the tub."],
+  // JCPenney #48: retro-arcade-desktop-pool-table-game/ppr5008738140 read 11-25 ~12:58 AM (kids toys search): $19.99 (was $50).
+  ["https://mavely.app.link/2hIOUY0Dl8b", 19.99, "https://sc-images.jcpenney.com/JCPenney/DP0624202609030169M", "Retro Arcade Desktop Pool Table Game", "Retro Arcade", "store-jcpenney", "game", 10.5, "A tabletop pool table game."],
+  // JCPenney #49: learning-resources-lock-and-key-clubhouse-discovery-toy/ppr5008757331 read 11-25 ~12:58 AM (kids toys search): $14.99 (was $25).
+  ["https://mavely.app.link/lAc8De1Dl8b", 14.99, "https://sc-images.jcpenney.com/JCPenney/DP0622202607144150M", "Learning Resources Lock and Key Clubhouse", "Learning Resources", "store-jcpenney", "pretend-play", 10.5, "A lock-and-key clubhouse for little hands."],
+  // JCPenney #50: retro-arcade-duck-shooting-gallery-game/ppr5008738137 read 11-25 ~12:58 AM (kids toys search): $19.99 (was $50).
+  ["https://mavely.app.link/5QNqNo1Dl8b", 19.99, "https://sc-images.jcpenney.com/JCPenney/DP0624202609031843M", "Retro Arcade Duck Shooting Gallery Game", "Retro Arcade", "store-jcpenney", "game", 10.5, "A duck shooting gallery game for the table."],
+  // JCPenney #51: kiddieland-noahs-ark-play-set/ppr5007754169 read 11-25 ~12:58 AM (kids toys search): $31.99.
+  ["https://mavely.app.link/j53Kfz1Dl8b", 31.99, "https://sc-images.jcpenney.com/JCPenney/5f7979b8-4f04-11e8-b3d8-35fb160e5921", "Kiddieland Noah's Ark Play Set", "Kiddieland", "store-jcpenney", "playset", 10.5, "A Noah's Ark playset with animals."],
+  // JCPenney #52: discovery-mindblown-planetarium-projector-discovery-toy/ppr5008807323 read 11-25 ~12:58 AM (kids toys search): $29.99 (was $65).
+  ["https://mavely.app.link/YteYEJ1Dl8b", 29.99, "https://sc-images.jcpenney.com/JCPenney/DP73197925-20260924043449M", "Discovery Mindblown Planetarium Projector", "Discovery", "store-jcpenney", "stem-toy", 10.5, "A planetarium projector for bedtime stars."],
+  // JCPenney #53: sharper-image-flip-stunt-rally-remote-control-car/ppr5008279405 read 11-25 ~12:58 AM (kids toys search): $19.99 (was $40).
+  ["https://mavely.app.link/6EGA1T1Dl8b", 19.99, "https://sc-images.jcpenney.com/JCPenney/DP0310202309015796M", "Sharper Image Flip Stunt Rally RC Car", "Sharper Image", "store-jcpenney", "rc-car", 10.5, "A remote-control stunt car that flips."],
+  // JCPenney #54: quokka-kids-sewing-craft-kit-felt-toy-making-beginner-stitching-set-for-kids-ages-6/ppm6100020547 read 11-25 ~12:58 AM (kids toys search): $20.69 (was $22.99).
+  ["https://mavely.app.link/eLRI671Dl8b", 20.69, "https://mktpl-images.jcpenney.com/SOURCE/fb1a47cbf3934e45a2d1894bb075b80b", "QUOKKA Kids Sewing Craft Kit", "QUOKKA", "store-jcpenney", "craft-kit", 10.5, "A felt sewing kit for beginners."],
+  // JCPenney #55: discovery-kids-bright-doodles-lcd-art-tablet-drawing-kit/ppr5008499523 read 11-25 ~12:58 AM (kids toys search): $19.99 (was $30).
+  ["https://mavely.app.link/phkEti2Dl8b", 19.99, "https://sc-images.jcpenney.com/JCPenney/DP1120202409072907M", "Discovery Kids Bright Doodles LCD Art Tablet", "Discovery", "store-jcpenney", "art", 10.5, "An LCD drawing tablet for doodling."],
   // Owner ~3:10 AM (kohls.com screenshot, "Add this."): Kohl's $44.99 sale (reg $59.99, not eligible for coupons), ages 3+.
   // Store check 11-24 ~3:08 AM: Target $67.99 (lead), Walmart $71 / a $99.22 marketplace seller, Amazon ~$111; Kohl's wins and
   // pays 10.5% through Later (link made ~3:29 AM when Later signed in again; ShopMy has no Kohl's).
@@ -228,6 +277,29 @@ export const HIM_STEALS_1124_ROWS = [
 
 /** Store photos for the steals, cut out (Apple Vision) into public/gift-guides/cutouts: photo URL -> file. */
 export const STEALS_CUTOUTS_1124 = [
+  ["https://mktpl-images.jcpenney.com/SOURCE/833aadb99d5b4febb801a50dc07b9f62", "costway-6v-kids-electric-quad-atv-ride-on-jcpenney-aa68f2.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/48cf8aa374884218b899e9f1277a24d4", "costway-kids-pedal-go-kart-jcpenney-f21ed3.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0622202607143941M", "learning-resources-a-to-z-mini-foods-jcpenney-7f4c4a.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0624202609034881M", "snowball-headband-hoop-game-set-of-2-jcpenney-2b10bd.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/0b6728a3e5454162bb35976503bb33ed", "quokka-60-piece-kids-jigsaw-puzzle-jcpenney-b6c0e0.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0929202509090126M", "discovery-mindblown-bionic-hand-diy-hydraulic-kit-jcpenney-de14c8.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP73214776-20260924050938M", "discovery-kids-spy-goggles-jcpenney-2a3e71.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP73027399-20260923025700M", "disney-mickey-mouse-clubhouse-grill-set-jcpenney-1d9b24.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP72784624-20260918030400M", "discovery-kids-11-piece-light-designer-drawing-kit-jcpenney-fe63c0.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/e147e73cc07c4ebd8a0a50c7773775c3", "4-in-1-kids-art-easel-with-bookshelf-jcpenney-a227b5.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0909202509125637M", "disney-minnie-mouse-9-piece-shopping-playset-jcpenney-de4e92.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/01327d718e384708b418413cffc8100f", "quokka-toddler-scavenger-hunt-cards-jcpenney-33b5bb.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0710201717120536M", "discovery-kids-24-piece-magnetic-tiles-jcpenney-c2c58c.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0614202411032024M", "disney-talking-minnie-mouse-clubhouse-plush-jcpenney-3065dc.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/b1c342a8849f4e04a959c45a6c65a681", "sperric-splash-and-catch-magnetic-fishing-bath-toy-jcpenney-6b8e69.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0624202609030169M", "retro-arcade-desktop-pool-table-game-jcpenney-6633c1.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0622202607144150M", "learning-resources-lock-and-key-clubhouse-jcpenney-39bac8.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0624202609031843M", "retro-arcade-duck-shooting-gallery-game-jcpenney-e24e85.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/5f7979b8-4f04-11e8-b3d8-35fb160e5921", "kiddieland-noahs-ark-play-set-jcpenney-66ad8d.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP73197925-20260924043449M", "discovery-mindblown-planetarium-projector-jcpenney-4708da.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0310202309015796M", "sharper-image-flip-stunt-rally-rc-car-jcpenney-c6ce0b.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/fb1a47cbf3934e45a2d1894bb075b80b", "quokka-kids-sewing-craft-kit-jcpenney-4fe0a2.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP1120202409072907M", "discovery-kids-bright-doodles-lcd-art-tablet-jcpenney-ebf2e6.webp"],
   ["https://target.scene7.com/is/image/Target/GUEST_aa607c4c-29d7-4ce2-af5b-587ebde268f0", "paw-patrol-my-size-lookout-tower-vehicle-playset-target-5cef1e.webp"],
   ["https://i5.walmartimages.com/asr/2ebd2ffc-3fe0-41ea-a2a7-89c10d55fa40.ad137f7373e995ff3ebad5439edbb758.jpeg", "spongebob-toddler-pajama-set-12m-5t-walmart-fe120b.webp"],
   ["https://i5.walmartimages.com/asr/ffaee3a0-afdb-48b2-8b58-927bdd968029.49055b2639cae3288f4a732efc800e92.jpeg", "disney-princess-toddler-pajama-set-pink-12m-5t-walmart-4ee2ef.webp"],

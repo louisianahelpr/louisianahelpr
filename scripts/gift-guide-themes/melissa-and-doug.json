@@ -2,7 +2,7 @@
  "slug": "melissa-and-doug",
  "name": "Melissa & Doug",
  "sectionPrefix": "melissa-and-doug",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/melissa-and-doug/items.json (Wed Nov 25 12:27 AM, 142 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/melissa-and-doug/items.json (Wed Nov 25 1:36 AM, 160 items)",
  "rows": [
   {
    "id": "MD01",
@@ -290,14 +290,15 @@
    "name": "Melissa & Doug Double-Sided Magnetic Tabletop Easel",
    "brand": "Melissa & Doug",
    "line": "Puzzles, stickers and art for a Melissa & Doug fan.",
-   "href": "https://go.shopmy.us/p-108631991",
+   "href": "https://go.shopmy.us/p-110714287",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-magnetic-tabletop-easel-a4b2f2.webp",
-   "store": "store-macys",
-   "price": 43.49,
-   "priceAt": "2026-11-21",
+   "store": "store-kohls",
+   "price": 28.99,
+   "priceAt": "2026-11-24",
    "section": "Puzzles, stickers and art",
    "sectionId": "melissa-and-doug-puzzles-stickers-and-art",
-   "commission": 16,
+   "was": 57.99,
+   "commission": 12,
    "age": "3+",
    "ownerAdd": true
   },
@@ -581,19 +582,79 @@
    "age": "3+"
   },
   {
+   "id": "MDJ02",
+   "name": "Melissa & Doug See-Inside Alphabet Peg Puzzle",
+   "brand": "Melissa & Doug",
+   "line": "Puzzles, stickers and art for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/MR2Tf7EHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-see-inside-alphabet-peg-puzzle-jcpenney-411659.webp",
+   "store": "store-jcpenney",
+   "price": 12.99,
+   "priceAt": "2026-11-24",
+   "section": "Puzzles, stickers and art",
+   "sectionId": "melissa-and-doug-puzzles-stickers-and-art",
+   "commission": 10.5,
+   "age": "baby/toddler"
+  },
+  {
+   "id": "MDJ10",
+   "name": "Melissa & Doug PAW Patrol See & Spell Pup Pad",
+   "brand": "Melissa & Doug",
+   "line": "Puzzles, stickers and art for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/qy5UNkIHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-paw-patrol-see-spell-pup-pad-jcpenney-cffc40.webp",
+   "store": "store-jcpenney",
+   "price": 41.99,
+   "priceAt": "2026-11-24",
+   "section": "Puzzles, stickers and art",
+   "sectionId": "melissa-and-doug-puzzles-stickers-and-art",
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
+   "id": "MDJ11",
+   "name": "Melissa & Doug Wooden Dinosaur Magnets",
+   "brand": "Melissa & Doug",
+   "line": "Puzzles, stickers and art for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/ZqXPKMIHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-wooden-dinosaur-magnets-jcpenney-92bb6a.webp",
+   "store": "store-jcpenney",
+   "price": 12.99,
+   "priceAt": "2026-11-24",
+   "section": "Puzzles, stickers and art",
+   "sectionId": "melissa-and-doug-puzzles-stickers-and-art",
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
+   "id": "MDJ13",
+   "name": "Melissa & Doug Mickey Mouse & Friends Vehicles Sound Puzzle",
+   "brand": "Melissa & Doug",
+   "line": "Puzzles, stickers and art for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/7huBpeJHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-mickey-mouse-friends-vehicles-sound-puzzle-jcpenney-390d37.webp",
+   "store": "store-jcpenney",
+   "price": 18.99,
+   "priceAt": "2026-11-24",
+   "section": "Puzzles, stickers and art",
+   "sectionId": "melissa-and-doug-puzzles-stickers-and-art",
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
    "id": "MD20",
    "name": "Melissa & Doug Slice and Bake Wooden Cookie Set",
    "brand": "Melissa & Doug",
    "line": "Play food and pretend play for a Melissa & Doug fan.",
-   "href": "https://walmrt.us/4ClNKA7",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-slice-and-bake-wooden-cookie-set-walmart-ec0da6.webp",
-   "store": "store-walmart",
-   "price": 24.97,
+   "href": "https://go.shopmy.us/p-110713808",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-slice-and-bake-wooden-cookie-set-kohls-ec0da6.webp",
+   "store": "store-kohls",
+   "price": 17.49,
    "priceAt": "2026-11-24",
    "section": "Play food and pretend play",
    "sectionId": "melissa-and-doug-play-food-and-pretend-play",
-   "was": 49.98,
-   "commission": 6,
+   "was": 24.99,
+   "commission": 12,
    "age": "3+"
   },
   {
@@ -617,15 +678,15 @@
    "name": "Melissa & Doug Scoop and Serve Ice Cream Counter",
    "brand": "Melissa & Doug",
    "line": "Play food and pretend play for a Melissa & Doug fan.",
-   "href": "https://walmrt.us/4lcyuQ1",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-scoop-and-serve-ice-cream-counter-walmart-a030ce.webp",
-   "store": "store-walmart",
-   "price": 35.99,
+   "href": "https://go.shopmy.us/p-110713948",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-scoop-and-serve-ice-cream-counter-kohls-a030ce.webp",
+   "store": "store-kohls",
+   "price": 29.99,
    "priceAt": "2026-11-24",
    "section": "Play food and pretend play",
    "sectionId": "melissa-and-doug-play-food-and-pretend-play",
    "was": 59.99,
-   "commission": 6,
+   "commission": 12,
    "age": "3+"
   },
   {
@@ -680,14 +741,15 @@
    "name": "Melissa & Doug Fire Chief Role Play Costume Set",
    "brand": "Melissa & Doug",
    "line": "Play food and pretend play for a Melissa & Doug fan.",
-   "href": "https://walmrt.us/4j3AKb6",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-fire-chief-role-play-costume-set-walmart-b3efd3.webp",
-   "store": "store-walmart",
-   "price": 22.49,
+   "href": "https://go.shopmy.us/p-110714228",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-fire-chief-role-play-costume-set-kohls-b3efd3.webp",
+   "store": "store-kohls",
+   "price": 20.99,
    "priceAt": "2026-11-24",
    "section": "Play food and pretend play",
    "sectionId": "melissa-and-doug-play-food-and-pretend-play",
-   "commission": 6,
+   "was": 41.99,
+   "commission": 12,
    "age": "3-6"
   },
   {
@@ -1440,6 +1502,81 @@
    "age": "3+"
   },
   {
+   "id": "MDJ04",
+   "name": "Melissa & Doug Dinosaur Party Play Set",
+   "brand": "Melissa & Doug",
+   "line": "Play food and pretend play for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/OpLVeyFHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-dinosaur-party-play-set-jcpenney-fc5afb.webp",
+   "store": "store-jcpenney",
+   "price": 26.99,
+   "priceAt": "2026-11-24",
+   "section": "Play food and pretend play",
+   "sectionId": "melissa-and-doug-play-food-and-pretend-play",
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
+   "id": "MDJ08",
+   "name": "Melissa & Doug Wooden Sandwich-Making Set",
+   "brand": "Melissa & Doug",
+   "line": "Play food and pretend play for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/igOttnHHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-wooden-sandwich-making-set-jcpenney-2436d8.webp",
+   "store": "store-jcpenney",
+   "price": 30.99,
+   "priceAt": "2026-11-24",
+   "section": "Play food and pretend play",
+   "sectionId": "melissa-and-doug-play-food-and-pretend-play",
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
+   "id": "MDJ17",
+   "name": "Melissa & Doug Wooden Trailer & Excavator",
+   "brand": "Melissa & Doug",
+   "line": "Play food and pretend play for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/gfDFSaKHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-wooden-trailer-excavator-jcpenney-5b442e.webp",
+   "store": "store-jcpenney",
+   "price": 30.99,
+   "priceAt": "2026-11-24",
+   "section": "Play food and pretend play",
+   "sectionId": "melissa-and-doug-play-food-and-pretend-play",
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
+   "id": "MDJ19",
+   "name": "Melissa & Doug Hop & Count Hopscotch Rug",
+   "brand": "Melissa & Doug",
+   "line": "Play food and pretend play for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/Ymyy14KHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-hop-count-hopscotch-rug-jcpenney-99ba0c.webp",
+   "store": "store-jcpenney",
+   "price": 48.99,
+   "priceAt": "2026-11-24",
+   "section": "Play food and pretend play",
+   "sectionId": "melissa-and-doug-play-food-and-pretend-play",
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
+   "id": "MDJ21",
+   "name": "Melissa & Doug Play to Go Cake & Cookies Set",
+   "brand": "Melissa & Doug",
+   "line": "Play food and pretend play for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/ATblaALHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-play-to-go-cake-cookies-set-jcpenney-0757de.webp",
+   "store": "store-jcpenney",
+   "price": 10.99,
+   "priceAt": "2026-11-24",
+   "section": "Play food and pretend play",
+   "sectionId": "melissa-and-doug-play-food-and-pretend-play",
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
    "id": "MD30",
    "name": "Melissa & Doug Latches Wooden Activity Board",
    "brand": "Melissa & Doug",
@@ -1524,14 +1661,15 @@
    "name": "Melissa & Doug K's Kids Pull-Back Vehicles",
    "brand": "Melissa & Doug",
    "line": "Baby and toddler for a Melissa & Doug fan.",
-   "href": "https://go.shopmy.us/p-108631978",
+   "href": "https://go.shopmy.us/p-110715244",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-pull-back-vehicles-7ca9db.webp",
-   "store": "store-macys",
-   "price": 17.99,
-   "priceAt": "2026-11-21",
+   "store": "store-kohls",
+   "price": 25.19,
+   "priceAt": "2026-11-24",
    "section": "Baby and toddler",
    "sectionId": "melissa-and-doug-baby-and-toddler",
-   "commission": 16,
+   "was": 35.99,
+   "commission": 12,
    "age": "0m+",
    "ownerAdd": true
   },
@@ -1752,6 +1890,66 @@
    "age": "3+"
   },
   {
+   "id": "MDJ05",
+   "name": "Melissa & Doug Ocean Tummy Time Triangle",
+   "brand": "Melissa & Doug",
+   "line": "Baby and toddler for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/XfaSe1FHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-ocean-tummy-time-triangle-jcpenney-59a41b.webp",
+   "store": "store-jcpenney",
+   "price": 15.99,
+   "priceAt": "2026-11-24",
+   "section": "Baby and toddler",
+   "sectionId": "melissa-and-doug-baby-and-toddler",
+   "commission": 10.5,
+   "age": "baby/toddler"
+  },
+  {
+   "id": "MDJ09",
+   "name": "Melissa & Doug Strawberry Take-Along Baby Toy",
+   "brand": "Melissa & Doug",
+   "line": "Baby and toddler for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/qQZrjQHHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-strawberry-take-along-baby-toy-jcpenney-c20469.webp",
+   "store": "store-jcpenney",
+   "price": 10.99,
+   "priceAt": "2026-11-24",
+   "section": "Baby and toddler",
+   "sectionId": "melissa-and-doug-baby-and-toddler",
+   "commission": 10.5,
+   "age": "baby/toddler"
+  },
+  {
+   "id": "MDJ15",
+   "name": "Melissa & Doug K's Kids Fish & Count Game",
+   "brand": "Melissa & Doug",
+   "line": "Baby and toddler for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/P8AlOGJHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-ks-kids-fish-count-game-jcpenney-f8ece6.webp",
+   "store": "store-jcpenney",
+   "price": 30.99,
+   "priceAt": "2026-11-24",
+   "section": "Baby and toddler",
+   "sectionId": "melissa-and-doug-baby-and-toddler",
+   "commission": 10.5,
+   "age": "baby/toddler"
+  },
+  {
+   "id": "MDJ23",
+   "name": "Melissa & Doug Match & Push Spinning Tops",
+   "brand": "Melissa & Doug",
+   "line": "Baby and toddler for a Melissa & Doug fan.",
+   "href": "https://mavely.app.link/2KY8H2LHl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-match-push-spinning-tops-jcpenney-0dfdd8.webp",
+   "store": "store-jcpenney",
+   "price": 24.99,
+   "priceAt": "2026-11-24",
+   "section": "Baby and toddler",
+   "sectionId": "melissa-and-doug-baby-and-toddler",
+   "commission": 10.5,
+   "age": "baby/toddler"
+  },
+  {
    "id": "MD40",
    "name": "Melissa & Doug Take-Along Wooden Doorbell Dollhouse",
    "brand": "Melissa & Doug",
@@ -1773,14 +1971,15 @@
    "name": "Melissa & Doug Cheery Lane Modular Dollhouse",
    "brand": "Melissa & Doug",
    "line": "Dolls, dollhouses and dress-up for a Melissa & Doug fan.",
-   "href": "https://walmrt.us/4ClA9cj",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-cheery-lane-modular-dollhouse-walmart-5b6850.webp",
-   "store": "store-walmart",
-   "price": 34.97,
+   "href": "https://go.shopmy.us/p-110714370",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-cheery-lane-modular-dollhouse-macys-5b6850.webp",
+   "store": "store-macys",
+   "price": 24.49,
    "priceAt": "2026-11-24",
    "section": "Dolls, dollhouses and dress-up",
    "sectionId": "melissa-and-doug-dolls-dollhouses-and-dress-up",
-   "commission": 6,
+   "was": 34.99,
+   "commission": 16,
    "age": "2+"
   },
   {
@@ -2213,5 +2412,41 @@
    "age": "3+"
   }
  ],
- "skipped": []
+ "skipped": [
+  {
+   "id": "MDJ06",
+   "name": "Melissa & Doug Ms. Rachel Wooden Blocks and Activity Cards",
+   "why": [
+    "duplicate: same item cheaper in the M&D lane rows (MK029 Target $15.89)"
+   ]
+  },
+  {
+   "id": "MDJ01",
+   "name": "Melissa & Doug Magnetic Car Loader",
+   "why": [
+    "duplicate: same item cheaper in the M&D lane rows (MK038 Kohl's $13.49)"
+   ]
+  },
+  {
+   "id": "MDJ07",
+   "name": "Melissa & Doug Wooden Farm Train",
+   "why": [
+    "duplicate: same item cheaper in the M&D lane rows (MK053 Kohl's $18.89)"
+   ]
+  },
+  {
+   "id": "MDJ18",
+   "name": "Melissa & Doug Work & Play Desktop Activity Board",
+   "why": [
+    "duplicate: same item cheaper in the M&D lane rows (MK095 Kohl's $21.69)"
+   ]
+  },
+  {
+   "id": "MDJ24",
+   "name": "Melissa & Doug Cafe Barista Coffee Shop",
+   "why": [
+    "duplicate: same item cheaper in the M&D lane rows (MK008 Kohl's $49.99)"
+   ]
+  }
+ ]
 }

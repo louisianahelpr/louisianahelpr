@@ -3,15 +3,16 @@
  *
  * #13 ("gifts tags and all the other sections should have the same top section as the guides and the deals"; her right
  *     example Small Business Saturday, her wrong one Free gift tags): every /gift-guides/* page and the Holiday Hub open
- *     on ONE top, GuidesTop: the head row (back arrow + "Holiday gift guides", the shipping pill, the icons), then the
+ *     on ONE top, GuidesTop: the head row (back arrow + "Holiday gift guides", the icons), then the
  *     gingham banner holding the page's h1 (a small italic lead, the serif title) in the guides' red / green / beige,
  *     then the menu and the page. It replaces the morning's plain left serif sub-page title. Routes are read from App.tsx,
  *     so a new guides route without the banner fails here.
- *     Owner 11-22 ("Same row, icons off there"): the printables' head row is the pill alone (no search, heart or Share,
+ *     Owner 11-22 ("Same row, icons off there"): the printables' head row has no icons (no search, heart or Share,
  *     her 11-21 call), and the Holiday Hub's has no gift search (one magnifier: the Hub's own lights search).
  *     Owner 11-22 7:49 PM (desktop screenshot of the Hub's head row): "remove order by and the heart at the top ... i
- *     thought we didnt do that for this section?": the Hub's row is back arrow, title and Share only, no shipping pill
- *     and no My list heart anywhere on the page; every other page keeps its pill and icons.
+ *     thought we didnt do that for this section?": the Hub's row is back arrow, title and Share only, no My list heart
+ *     anywhere on the page; every other page keeps its icons. Owner 2026-11-24 ~8:30 PM ("Remove by Dec 15
+ *     everywhere"): no page shows the "Order by Dec 15" shipping pill (guard: giftGuideNoShipPill1124.test.tsx).
  * #14 ("polish this. separate each book in its own box take them out of the 1 box"): on Coloring books, the one card
  *     holding both covers is two cards, each with its own bigger cover, title, one line and a plain download link (#15's
  *     style); side by side from 560px, stacked on a phone.
@@ -29,15 +30,10 @@
  * @mutate src/pages/info/GiftGuides.tsx |     : myList ? G.pageBanners.myList | : myList ? null
  * @mutate src/pages/info/GiftGuides.tsx |     : sidePage === "finder" ? G.pageBanners.finder | : sidePage === "finder" ? null
  * @mutate src/pages/info/holidays/HolidayHub.tsx | path="/holidays" banner={G.pageBanners["/holidays"]} | path="/holidays" banner={{ lead: "", title: W.hubTitle, tint: "red" }}
- * @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {pillInRow && pill}\n | \n
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <FunBody title={words.title} path={path} tools="none"> | <FunBody title={words.title} path={path}>
  * @mutate src/pages/info/holidays/HolidayHub.tsx | banner={G.pageBanners["/holidays"]} tools="share" | banner={G.pageBanners["/holidays"]}
  * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | heart={tools !== "share"} | heart
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | guide={p.guide} similar={false} /> | guide={p.guide} />
- * @mutate src/pages/info/giftGuides/fun/FunPage.tsx | <GuidesTop backTo="/gift-guides" banner={banner} noPill | <GuidesTop backTo="/gift-guides" banner={banner} noPill={tools === "share"}
- * @mutate src/pages/info/GiftGuides.tsx |           noPill={sidePage === "finder"}\n | \n
- * @mutate src/pages/info/GiftGuides.tsx |           noPill={sidePage === "finder"}\n |           noPill\n
- * @mutate src/pages/info/giftGuides/GuidesTop.tsx |   const ship = noPill ? null : shippingLine(new Date()); |   const ship = shippingLine(new Date());
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {heart && <MyListIcon current={myList} />} |       <MyListIcon current={myList} />
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {search && ( |       {true && (
  * @mutate src/pages/info/giftGuides/printables/Printables.tsx | <Button key={f.href} type="button" variant="link" size="inline" className="pr-link" | <Button key={f.href} type="button" variant="outline" size="sm" className="pr-link"
@@ -88,7 +84,6 @@ import GiftPlanner from "@/pages/info/giftGuides/fun/GiftPlanner";
 import HolidayHub from "@/pages/info/holidays/HolidayHub";
 import { FUN_WORDS } from "@/content/giftGuideFun1120";
 import { giftGuides as G } from "@/content/giftGuides";
-import { shippingLine } from "@/content/giftGuideShipping";
 
 afterEach(cleanup);
 
@@ -117,8 +112,6 @@ const ROUTES: Record<string, [url: string, title: RegExp][]> = {
   "/gift-guides/list/:code": [["/gift-guides/list/abc123def456", /^shared with you Wish List$/]],
   "/holidays": [["/holidays", /^lights & events Louisiana Holiday Hub$/]],
 };
-/** The shopping pages, the only ones with the shipping pill (owner 11-22 8:58 PM); every other case is a free page. */
-const SHOPPING = new Set(["/gift-guides/her", "/gift-guides/black-friday", "/gift-guides/small-business-saturday", "/gift-guides/cyber-monday", "/gift-guides/25-days-sponsors", "/gift-guides/my-list", "/gift-guides/list/abc123def456"]);
 /** Find a gift is the landing's finder view (/gift-guides#gift-finder), not a route of its own. */
 const FINDER: [url: string, title: RegExp] = ["/gift-guides#gift-finder", /^make it fun Find a Gift$/];
 
@@ -142,7 +135,7 @@ const renderAt = (url: string) =>
 
 describe("#13 every guides page opens on the guides' one top: head row, then the gingham banner with its h1", () => {
   const cases = [...Object.values(ROUTES).flat(), FINDER];
-  // A day the shipping pill shows (it goes away after the last order day), so the pill check never goes vacuous.
+  // A day the old "Order by Dec 15" pill showed (owner 11-24 removed it everywhere), so its absence is not a date's.
   beforeAll(() => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-22T12:00:00-06:00"));
@@ -155,9 +148,6 @@ describe("#13 every guides page opens on the guides' one top: head row, then the
     expect(routes.length).toBeGreaterThan(9); // inventory floor: 11 on 2026-11-22
     expect(routes.filter((r) => !(r in ROUTES))).toEqual([]);
     expect(cases.length).toBeGreaterThan(14);
-    // Both kinds are checked: the shopping pages and the free ones (8 free on 2026-11-22).
-    expect(cases.filter(([u]) => SHOPPING.has(u)).length).toBe(SHOPPING.size);
-    expect(cases.filter(([u]) => !SHOPPING.has(u)).length).toBeGreaterThan(6);
   });
 
   it.each(cases)("%s", async (url, title) => {
@@ -168,20 +158,15 @@ describe("#13 every guides page opens on the guides' one top: head row, then the
     const row = rows[0];
     expect(row.querySelector("[data-gift-head-name]")?.textContent).toBe("Holiday gift guides");
     expect(row.querySelector("[data-gift-back-to]")?.getAttribute("data-gift-back-to")).toBe("/gift-guides");
-    // The shipping pill and the icons: on the head row, or (a guide on a phone, the 25 Days sponsors page) on the count
-    // row right under the banner, as the owner put them there on 2026-11-21.
+    // The icons: on the head row, or (a guide on a phone, the 25 Days sponsors page) on the count row right under the
+    // banner, as the owner put them there on 2026-11-21.
     const top = [row, container.querySelector("[data-gift-countrow]")].filter(Boolean) as Element[];
-    expect(shippingLine(new Date())).not.toBeNull();
     // The icons (owner 11-22, "Same row, icons off there"): none on the printables, no gift search on the Hub; the Hub
-    // has no pill and no heart either (owner 11-22 7:49 PM), anywhere on the page.
+    // has no heart either (owner 11-22 7:49 PM), anywhere on the page.
     const printables = url.startsWith("/gift-guides/printables");
     const hub = url === "/holidays";
-    // Owner 11-22 8:58 PM pop-up ("Remove on free pages"): the "Order by Dec 15" pill shows on the shopping pages only
-    // (the guides, the deals days, Small Business Saturday, the 25 Days sponsors and the wish lists), at every width;
-    // the free pages (printables, Swipe, Secret Santa, the planner, Find a gift, the Holiday Hub) show none anywhere.
-    const shopping = SHOPPING.has(url);
-    expect(top.some((el) => el.querySelector("[data-gift-ship]")), url).toBe(shopping);
-    if (!shopping) expect(container.querySelectorAll("[data-gift-ship]").length, url).toBe(0);
+    // Owner 2026-11-24 ~8:30 PM ("Remove by Dec 15 everywhere"): no "Order by Dec 15" shipping pill on any page.
+    expect(container.querySelectorAll("[data-gift-ship]").length, url).toBe(0);
     if (hub) expect(container.querySelectorAll("[data-gift-my-list-link]").length).toBe(0);
     expect(top.some((el) => el.querySelector("[data-gift-quick]")), url).toBe(!printables);
     expect(top.some((el) => el.querySelector("[data-gift-my-list-link]")), url).toBe(!printables && !hub);

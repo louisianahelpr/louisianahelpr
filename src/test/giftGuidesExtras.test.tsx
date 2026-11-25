@@ -1,11 +1,8 @@
 /**
- * The gift guides' extras (owner 2026-11-18): the date-driven shipping banner, the sidebar search, the hearts / My
- * list and the merged discount codes. The main page guard is src/test/giftGuidesPage.test.tsx.
+ * The gift guides' extras (owner 2026-11-18): the sidebar search, the hearts / My list and the merged discount codes.
+ * The main page guard is src/test/giftGuidesPage.test.tsx. (The date-driven "Order by Dec 15" shipping banner came off
+ * every guides page, owner 2026-11-24 ~8:30 PM: "Remove by Dec 15 everywhere"; guard giftGuideNoShipPill1124.test.tsx.)
  *
- * @mutate src/content/giftGuideShipping.ts |   if (month === 11 \|\| (month === 12 && day < 15)) return SHIP_LINES.early; |   if (month === 11 \|\| (month === 12 && day <= 15)) return SHIP_LINES.early;
- * @mutate src/content/giftGuideShipping.ts |   if (day <= 20) return SHIP_LINES.late; |   if (day < 20) return SHIP_LINES.late;
- * @mutate src/content/giftGuideShipping.ts |   if (day <= 25) return SHIP_LINES.instant; |   if (day <= 31) return SHIP_LINES.instant;
- * @mutate src/content/giftGuideShipping.ts | timeZone: "America/Chicago" | timeZone: "UTC"
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.louisianaFit && brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []), |   ...(brand && LOUISIANA_MADE_BRANDS.includes(brand) ? (["louisiana-made"] as const) : []),
  * @mutate src/content/giftGuideCatalog.ts |   ...(flags.sponsor \|\| (brand && SPONSOR_BRANDS.includes(brand)) ? (["sponsor"] as const) : []), |   ...(brand && SPONSOR_BRANDS.includes(brand) ? (["sponsor"] as const) : []),
  * @mutate src/content/giftGuideCatalog.ts | store === "louisiana" && !badges.includes("louisiana-made") ? [...badges, "shop-louisiana"] : badges | false ? [...badges, "shop-louisiana"] : badges
@@ -25,7 +22,6 @@ import { THEME_GUIDES_1124, isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { SHIP_LINES, shippingLine } from "@/content/giftGuideShipping";
 import type { PickChunk } from "@/content/giftGuidePicks";
 import { LOUISIANA_MADE_BRANDS, SPONSOR_BRANDS, giftGuides } from "@/content/giftGuides";
 import { badgesFor, guideBySlug, loadAllGuidePicks, searchGuides } from "@/content/giftGuideCatalog";
@@ -92,36 +88,6 @@ const renderMine = async (url: string) => {
   return view;
 };
 
-describe("gift guides: the shipping banner follows the date in Louisiana", () => {
-  // Noon Chicago time is 18:00Z (CST, UTC-6).
-  const at = (iso: string) => new Date(iso);
-  it("before Dec 15, Dec 15–20, Dec 21–25, then hidden", () => {
-    expect(shippingLine(at("2026-11-18T18:00:00Z"))).toBe(SHIP_LINES.early);
-    expect(shippingLine(at("2026-12-14T18:00:00Z"))).toBe(SHIP_LINES.early);
-    expect(shippingLine(at("2026-12-15T18:00:00Z"))).toBe(SHIP_LINES.late);
-    expect(shippingLine(at("2026-12-20T18:00:00Z"))).toBe(SHIP_LINES.late);
-    expect(shippingLine(at("2026-12-21T18:00:00Z"))).toBe(SHIP_LINES.instant);
-    expect(shippingLine(at("2026-12-25T18:00:00Z"))).toBe(SHIP_LINES.instant);
-    expect(shippingLine(at("2026-12-26T18:00:00Z"))).toBeNull();
-    expect(shippingLine(at("2026-12-31T18:00:00Z"))).toBeNull();
-    // Holiday audit 1121: hidden from Dec 26 through Oct 31 (it came back every January), back on Nov 1.
-    expect(shippingLine(at("2027-01-02T18:00:00Z"))).toBeNull();
-    expect(shippingLine(at("2027-10-31T18:00:00Z"))).toBeNull();
-    expect(shippingLine(at("2027-11-01T18:00:00Z"))).toBe(SHIP_LINES.early);
-  });
-  it("uses Louisiana's date, not UTC: 11 PM Chicago on Dec 14 is 05:00Z Dec 15", () => {
-    expect(shippingLine(at("2026-12-15T05:00:00Z"))).toBe(SHIP_LINES.early);
-    expect(shippingLine(at("2026-12-26T05:30:00Z"))).toBe(SHIP_LINES.instant);
-  });
-  it("the exact owner wording", () => {
-    expect(Object.values(SHIP_LINES)).toEqual([
-      "Order by Dec 15 for Christmas delivery",
-      "Last days for Christmas shipping: choose fast shipping",
-      // Owner 2026-11-21 (holiday audit 1121, #28): "Just don't mention gift cards." (gift cards left the guides 11-20).
-      "Too late to ship? Print a free gift tag or coloring book today",
-    ]);
-  });
-});
 
 describe("gift guides: the researched picks (scripts/gift-guide-picks.mjs -> src/content/giftGuidePicks.ts)", () => {
   const all = Object.values(RESEARCHED_PICKS).flat();

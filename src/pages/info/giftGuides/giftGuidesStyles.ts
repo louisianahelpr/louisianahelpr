@@ -72,7 +72,6 @@ color:var(--gg-ink)}
 /* Owner 11-21 ("move gifts for up, it's too close to the main title"): a clear gap between the banner's lead and its name. */
 .gg-banner .gg-lead{margin:0 0 12px}
 
-.gg-ship{margin:0;font-size:12px;font-weight:600;line-height:1.3;color:#3f5a1c;background:#eef2e6;border-radius:999px;padding:5px 12px;white-space:nowrap}@media (max-width:479px){.gg-ship{white-space:normal;max-width:52vw;font-size:11px;text-align:center;padding:4px 10px;border-radius:14px}}
 .gg-tools{display:flex;align-items:center;justify-content:center;gap:4px;max-width:440px;margin:8px auto 0}
 /* Owner 11-21 ("make search an icon always"): a 44px magnifier like the heart and Share at every width; opened, the field
    is 300px beside them (a phone lays it over the icon row, inside the screen). */
@@ -85,7 +84,7 @@ color:var(--gg-ink)}
    with a heavy dark-olive ring): a soft field (thin light-olive border, white, 12px corners) whose focus darkens the
    border and adds a light ring. Owner 2026-11-22 evening ("keep count on row", for every guide too): on a phone the
    open search keeps the count ("146 gifts", never wrapped) at the left of its row and the field takes the rest of the
-   row in place at the same 44px height; the order-by pill and the other icons step out (display:none, nothing under
+   row in place at the same 44px height; the other icons step out (display:none, nothing under
    it, nothing cut), the results drop under the whole row, and the ✕ or Escape puts the row back exactly. The computer
    keeps its row (below). */
 .gg-search:focus-within input{border-color:hsl(var(--bark) / .55)}
@@ -95,7 +94,6 @@ color:var(--gg-ink)}
 .gg-tools-search.is-open [data-search-trigger-slot]{display:none}
 .gg-countrow:has(.gg-tools-search.is-open){position:relative;flex-wrap:nowrap}
 .gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left{flex:none;flex-wrap:nowrap}
-.gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left>:not(.gg-itemcount){display:none}
 .gg-countrow:has(.gg-tools-search.is-open) .gg-itemcount{white-space:nowrap}
 .gg-countrow:has(.gg-tools-search.is-open)>.gg-tools{flex:1 1 0;min-width:0;margin:0;position:static}
 .gg-countrow .gg-tools-search.is-open{position:static}
@@ -117,11 +115,10 @@ color:var(--gg-ink)}
 @container (max-width:499px){.hh-count-full{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.hh-count-short{display:inline}}
 @container (max-width:299px){.hh-search>svg{display:none}.hh-search input{padding:0 34px 0 8px;text-overflow:ellipsis}}
 /* The computer: the open field takes up to 360px and gives way before it would reach the title (at 768 it ran over
-   "Holiday gift guides"); below 1280px the order-by pill steps out while the search is open. */
+   "Holiday gift guides"). */
 @media (min-width:768px){.gg-tools-search.is-open{flex:0 1 360px;width:auto;min-width:0}.gg-tools:has(>.gg-tools-search.is-open){max-width:none}}
-@media (min-width:768px) and (max-width:1279px){.gg-headrow:has(.gg-tools-search.is-open)>.gg-ship{display:none}}
-/* Owner 11-21: ONE header row from 768px up: back arrow + title, the shipping pill, then search + heart + share
-   pushed right, all centred; a phone wraps it (arrow + title, then the pill and the icons). The shell's own header row
+/* Owner 11-21: ONE header row from 768px up: back arrow + title, then search + heart + share
+   pushed right, all centred (no shipping pill, owner 11-24). The shell's own header row
    is off, so this row keeps the shell's air above it (--shell-gap on a phone, 24px from sm up). */
 .gg-headrow{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:var(--shell-gap,12px) 0 12px}
 .gg-head-title{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 100%}
@@ -130,7 +127,6 @@ color:var(--gg-ink)}
    wider than the screen and clipped share, the hearts and sort (at 375 on the old header, at 320 on today's). One line
    from 768px up (the owner's one header row). */
 .gg-head-title .text-page-title{margin:0;min-width:0;overflow-wrap:anywhere}
-.gg-headrow .gg-ship{flex:none;max-width:none}
 .gg-headrow .gg-tools{margin:0 0 0 auto;flex:0 1 auto;justify-content:flex-end}
 .gg-search input::placeholder{color:var(--gg-muted);opacity:1}
 .gg-sort-check{display:inline-block;width:16px;flex:none}
@@ -415,13 +411,13 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 /* The phone's head row (owner 11-22: everything under the holiday gift guides comes off the phone view; "Only thing
    that will stay is the 3 line with no circle around it and the heart. Both of those will go on the right"; "change
    holiday gift guides to just gift guides"): up to 767px ONE line, back arrow + the Gift guides title on the left, the heart and
-   the three-line menu on the right (44x44 targets, no circle, border or fill, even on a tap); the pill, the search and
+   the three-line menu on the right (44x44 targets, no circle, border or fill, even on a tap); the search and
    Share are hidden. It replaces 11-21's sticky chip row. Hidden from 768px up, where the sidebar is the menu. */
 .gg-head-phone{display:none}
 @media (max-width:767px){
 .gg-headrow{flex-wrap:nowrap;gap:4px}
 .gg-head-title{flex:1 1 auto}
-.gg-headrow>.gg-ship,.gg-headrow>.gg-tools{display:none}
+.gg-headrow>.gg-tools{display:none}
 .gg-head-holiday{display:none}
 .gg-head-title [data-gift-head-name]::first-letter{text-transform:uppercase}
 .gg-head-phone{display:flex;align-items:center;flex:none;margin:0 -10px 0 auto}
@@ -504,23 +500,22 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 @media (min-width:768px){.gg-quiz-list[data-quiz-count="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .gg-quiz-after{align-items:center;gap:12px 16px;margin-top:14px}
 @media (min-width:768px){.gg-quiz{padding:22px 24px 16px}.gg-quiz-answers{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.gg-quiz-answer{min-height:64px}}
-/* Owner 11-21 (phone guide page): the count, the order-by pill and the icons on ONE row under the banner (wraps at 320);
+/* Owner 11-21 (phone guide page): the count on the left and the icons on the right, ONE row under the banner (no
+   shipping pill, owner 11-24 ~8:30 PM "Remove by Dec 15 everywhere");
    the search is a bare magnifier like the other icons until tapped. */
 .gg-countrow{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 8px;margin:10px 0 2px}
 .gg-countrow-left{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0}
 .gg-countrow .gg-itemcount{margin:0}
-.gg-countrow .gg-ship{flex:none;font-size:11px;padding:4px 10px;max-width:none}
 .gg-countrow .gg-tools{position:relative;margin:0 0 0 auto;flex:0 0 auto;gap:0}
-@media (max-width:479px){.gg-countrow,.gg-countrow-left{gap:4px}.gg-countrow .gg-ship-order{display:none}.gg-countrow .gg-ship::first-letter{text-transform:uppercase}}
+@media (max-width:479px){.gg-countrow{gap:4px}}
 /* Consistency audit 1122 #17 (Her and the sponsors page at 320: the four icons dropped to a second line under
-   "146 gifts" and the pill): under 360px the count and the icons share the first line (as at 375) and the pill sits
-   under the count, whole; the open search goes back to the one flex row above (the count stays, the pill steps out). */
+   "146 gifts"): under 360px the count and the icons share the first line (as at 375); the open search goes back to
+   the one flex row above (the count stays). */
 @media (max-width:359px){
 .gg-countrow{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:2px 4px}
 .gg-countrow-left{display:contents}
 .gg-countrow .gg-itemcount{grid-column:1;grid-row:1}
 .gg-countrow .gg-tools{grid-column:2;grid-row:1;justify-self:end}
-.gg-countrow .gg-ship{grid-column:1/-1;grid-row:2;justify-self:start}
 .gg-countrow:has(.gg-tools-search.is-open){display:flex}
 }
 

@@ -6,11 +6,12 @@
  * Now: a soft field (white, a thin light-olive border, 12px corners, a light ring on focus), 44px tall with 16px words
  * so iOS does not zoom, the magnifier left and a 44px ✕ right. On a phone the open search sits in the count row in place,
  * a small "N results" line heads the results while typing, and the ✕ (or Escape) puts the row back exactly. On a
- * computer the field takes up to 360px and gives way before the title (below 1280px the pill steps out while it is open).
+ * computer the field takes up to 360px and gives way before the title.
  *
  * Owner 2026-11-22 evening (pop-up, on the Holiday Hub: "keep count on row. and fix her him and kids so its this way
  * too"): the phone's open search no longer hides the count. "146 gifts" stays at the left of the row (never wrapped),
- * the field takes the rest of the row, the pill and the other icons step out, and the results drop under the whole row.
+ * the field takes the rest of the row, the other icons step out, and the results drop under the whole row.
+ * Owner 2026-11-24 ~8:30 PM ("Remove by Dec 15 everywhere"): the "By Dec 15" pill is gone from the row (and its rules).
  * Measured (Chromium, local dev build, Her): 320 count x 20 w 58, field x 82 w 218; 375 field x 82 w 273; 1440 the
  * head row unchanged (field 316px); no horizontal overflow. Screenshots: ~/.lh-shots/guide-search-row-1122/.
  *
@@ -19,7 +20,6 @@
  * "lego", the row back to count + pill + four icons after ✕; 768/1024/1440 the field 190/316/316px wide, clear of the
  * title; no horizontal overflow anywhere. Screenshots: ~/.lh-shots/guide-phonecard-1122/search-{before,after}-*.png.
  *
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left>:not(.gg-itemcount){display:none} | .gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left>:not(.gg-itemcount){opacity:1}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left{flex:none;flex-wrap:nowrap} | .gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left{display:none}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow:has(.gg-tools-search.is-open)>.gg-tools{flex:1 1 0;min-width:0;margin:0;position:static} | .gg-countrow:has(.gg-tools-search.is-open)>.gg-tools{flex:1 1 100%;margin:0}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-tools-search.is-open{position:relative;flex:1 1 auto;width:100%} | .gg-tools-search.is-open{position:absolute;right:0;width:100%}
@@ -96,14 +96,13 @@ describe("the guide search, polished (owner 2026-11-22)", () => {
     expect(rule(".gg-search-close").decl).toMatchObject({ position: "absolute", right: "0", top: "50%" });
   });
 
-  it("phone: the open search keeps the count on its row (\"keep count on row\"); the field takes the rest, the pill and other icons step out", () => {
+  it("phone: the open search keeps the count on its row (\"keep count on row\"); the field takes the rest, the other icons step out", () => {
     expect(PHONE, "the phone block").toBeGreaterThan(0);
     const open = rule(".gg-tools-search.is-open", PHONE);
     expect(inPhone(open.at)).toBe(true);
     expect(open.decl).toEqual({ position: "relative", flex: "1 1 auto", width: "100%" });
-    // The pill (everything in the count's group but the count) and the other icons step out, not covered.
+    // The other icons step out, not covered.
     for (const [selector, display] of [
-      [".gg-countrow:has(.gg-tools-search.is-open)>.gg-countrow-left>:not(.gg-itemcount)", "none"],
       [".gg-tools:has(>.gg-tools-search.is-open)>:not(.gg-tools-search)", "none"],
     ] as const) {
       const r = rule(selector, PHONE);
@@ -127,14 +126,14 @@ describe("the guide search, polished (owner 2026-11-22)", () => {
     expect(GIFT_GUIDES_CSS).not.toMatch(/\.gg-tools-search\.is-open\{position:absolute/);
   });
 
-  it("computer: the field takes up to 360px and gives way before the title; below 1280px the pill steps out", () => {
+  it("computer: the field takes up to 360px and gives way before the title (no pill, owner 11-24)", () => {
     expect(GIFT_GUIDES_CSS).toContain("@media (min-width:768px){.gg-tools-search.is-open{flex:0 1 360px;width:auto;min-width:0}.gg-tools:has(>.gg-tools-search.is-open){max-width:none}}");
-    expect(GIFT_GUIDES_CSS).toContain("@media (min-width:768px) and (max-width:1279px){.gg-headrow:has(.gg-tools-search.is-open)>.gg-ship{display:none}}");
+    expect(GIFT_GUIDES_CSS).not.toContain(".gg-ship");
   });
 
-  it("320 (consistency audit 1122 #17): under 360px the count and the four icons share the first line, the pill sits under the count", () => {
-    // Measured (Chromium, local dev build): Her and the sponsors page at 320, the count x 20 and the four icons at x 124,
-    // 168, 212, 256 on one line (y 327), the pill under the count (y 373); 360 keeps everything on one row.
+  it("320 (consistency audit 1122 #17): under 360px the count and the four icons share the first line", () => {
+    // Measured (Chromium, local dev build, 11-22): Her and the sponsors page at 320, the count x 20 and the four icons at
+    // x 124, 168, 212, 256 on one line (y 327); 360 keeps everything on one row. (The pill under the count is gone, 11-24.)
     const at = GIFT_GUIDES_CSS.indexOf("@media (max-width:359px){\n.gg-countrow{");
     expect(at, "the under-360px count row block").toBeGreaterThan(0);
     const end = GIFT_GUIDES_CSS.indexOf("\n}\n", at);
@@ -143,7 +142,6 @@ describe("the guide search, polished (owner 2026-11-22)", () => {
     expect(inBlock(".gg-countrow-left")).toEqual({ display: "contents" });
     expect(inBlock(".gg-countrow .gg-itemcount")).toEqual({ "grid-column": "1", "grid-row": "1" });
     expect(inBlock(".gg-countrow .gg-tools")).toEqual({ "grid-column": "2", "grid-row": "1", "justify-self": "end" });
-    expect(inBlock(".gg-countrow .gg-ship")).toEqual({ "grid-column": "1/-1", "grid-row": "2", "justify-self": "start" });
     // The open search goes back to the one flex row (the count stays, the field takes the rest).
     expect(inBlock(".gg-countrow:has(.gg-tools-search.is-open)")).toEqual({ display: "flex" });
     // After the base count row rule, so it wins.
@@ -164,7 +162,7 @@ describe("the guide search, polished (owner 2026-11-22)", () => {
   it("Kids at 375: open, type, an \"N results\" line counting the rows shown; ✕ puts the row back with focus on the magnifier", async () => {
     const c = await renderAt("/gift-guides/kids", 375);
     const row = c.querySelector("[data-gift-countrow]")!;
-    const before = [...row.querySelectorAll("[data-gift-item-count], [data-gift-ship], [data-gift-quick] > *")].map((e) => e.outerHTML.slice(0, 60));
+    const before = [...row.querySelectorAll("[data-gift-item-count], [data-gift-quick] > *")].map((e) => e.outerHTML.slice(0, 60));
     expect(before.length).toBeGreaterThan(4);
     const countText = row.querySelector("[data-gift-item-count]")?.textContent;
     expect(countText).toMatch(/^\d+ gifts$/);
@@ -184,7 +182,7 @@ describe("the guide search, polished (owner 2026-11-22)", () => {
     expect(G.searchCount(1)).toBe("1 result");
     await act(async () => { fireEvent.click(row.querySelector("button[data-gift-search-close]")!); });
     await act(async () => { await new Promise((r) => requestAnimationFrame(() => r(null))); });
-    const after = [...row.querySelectorAll("[data-gift-item-count], [data-gift-ship], [data-gift-quick] > *")].map((e) => e.outerHTML.slice(0, 60));
+    const after = [...row.querySelectorAll("[data-gift-item-count], [data-gift-quick] > *")].map((e) => e.outerHTML.slice(0, 60));
     expect(after).toEqual(before);
     expect(document.activeElement).toBe(row.querySelector("button[data-gift-search-button]"));
   });

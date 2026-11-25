@@ -61,13 +61,13 @@ const renderAt = async (url: string) => {
 };
 
 describe("the 25 Days sponsors page: its tools and Filter (owner 11-21), set up as Her on a desktop (owner 11-22)", () => {
-  it("at desktop width: the pill, then search, Filter, heart, Share in the header row, the count heading the content column; no chips or tip in the list", async () => {
+  it("at desktop width: search, Filter, heart, Share in the header row (no pill), the count heading the content column; no chips or tip in the list", async () => {
     // Owner 11-22 ("104 gifts needs to move to the right like the other pages are set up"): as on Her, no row under the
     // banner on a desktop (a phone keeps the guides' one row there, src/test/giftGuidePhoneHeader1121.test.tsx).
     const c = await renderAt("/gift-guides/25-days-sponsors");
     expect(c.querySelector("[data-gift-countrow]")).toBeNull();
     const row = c.querySelector("[data-gift-headrow]")!;
-    expect(row.querySelector("[data-gift-ship]")?.textContent).toMatch(/^Order by Dec 15/);
+    expect(c.querySelector("[data-gift-ship]")).toBeNull(); // owner 2026-11-24 ~8:30 PM: "Remove by Dec 15 everywhere"
     expect(c.querySelector(".gg-main [data-gift-item-count]")?.textContent).toMatch(/^\d+ gifts$/);
     const icons = [...row.querySelectorAll("[data-gift-quick] button, [data-gift-quick] a")].map((b) => b.getAttribute("aria-label"));
     expect(icons).toEqual(["Search gift guides", "Filter", "My Wish List, 0 saved", "Share"]);

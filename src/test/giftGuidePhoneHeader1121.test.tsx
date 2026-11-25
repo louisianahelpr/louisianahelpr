@@ -3,7 +3,8 @@
  *  - "put the icons below the red banner. On the same line as the 81 gifts ... also move the order by dec below the red
  *    banner": on a phone, a guide page draws ONE row under its banner (the count and the order-by pill on the left, the
  *    icons on the right) and no pill or icons above the banner. The landing (no banner) and every desktop keep them in
- *    the header row.
+ *    the header row. Owner 2026-11-24 ~8:30 PM ("Remove by Dec 15 everywhere"): the pill is gone from both rows at
+ *    every width; the count row is the count on the left and the icons on the right.
  *  - "Put the price in the top right corner where the heart is and the heart in the bottom right": every card (one
  *    PickRow: guide lists, the Top 10, the finder's results) has the price beside the name's first line on the right and
  *    the heart at the card's bottom-right corner.
@@ -12,7 +13,7 @@
  * @mutate src/pages/info/GiftGuides.tsx |   const countRow = phone && Boolean(guide) && !deals; |   const countRow = sponsorsPage;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |   const open = searchOpen \|\| !!query; |   const open = true;
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx | onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); closeSearch(); } }} | onKeyDown={() => undefined}
- * @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {pillInRow && tools} |         {tools}
+ * @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {toolsInRow && tools} |         {tools}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-nm .gg-nm-meta{grid-column:2;grid-row:1; | .gg-list .gg-nm .gg-nm-meta{grid-column:1;grid-row:2;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list>:where([data-gift-pick])>.gg-heart-pick{bottom:0;right:0;justify-content:flex-end} | .gg-list>:where([data-gift-pick])>.gg-heart-pick{top:4px;left:54px;justify-content:flex-end}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list>:where([data-gift-pick])>.gg-cart{bottom:0;right:44px;justify-content:flex-end} | .gg-list>:where([data-gift-pick])>.gg-cart{top:48px;left:54px;justify-content:flex-end}
@@ -57,17 +58,17 @@ const renderAt = async (url: string, width: number) => {
   return out.container;
 };
 
-describe("phone guide page: the count, the pill and the icons on one row under the banner (owner 11-21)", () => {
-  it.each(["kids", "her", "25-days-sponsors"])("/gift-guides/%s at 390: no pill or icons above the banner; one row after it", async (slug) => {
+describe("phone guide page: the count and the icons on one row under the banner (owner 11-21; no pill, owner 11-24)", () => {
+  it.each(["kids", "her", "25-days-sponsors"])("/gift-guides/%s at 390: no icons above the banner; one row after it; no pill anywhere", async (slug) => {
     const c = await renderAt(`/gift-guides/${slug}`, 390);
     const head = c.querySelector("[data-gift-headrow]")!;
-    expect(head.querySelector("[data-gift-ship], [data-gift-quick]")).toBeNull();
+    expect(head.querySelector("[data-gift-quick]")).toBeNull();
     const banner = c.querySelector("[data-gift-banner]")!;
     const row = c.querySelector("[data-gift-countrow]")!;
     expect(row).not.toBeNull();
     expect(banner.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(row.querySelector("[data-gift-item-count]")?.textContent).toMatch(/^\d+ gifts$/);
-    expect(row.querySelector("[data-gift-ship]")?.textContent).toMatch(/^Order by Dec 15/);
+    expect(c.querySelector("[data-gift-ship]")).toBeNull();
     expect(row.querySelector("[data-gift-quick] [data-gift-search-button]")).not.toBeNull();
     expect(row.querySelector("[data-gift-quick] [data-gift-share]")).not.toBeNull();
     // One count on the page (the list's own count is not drawn twice), one tool row.
@@ -75,18 +76,18 @@ describe("phone guide page: the count, the pill and the icons on one row under t
     expect(c.querySelectorAll("[data-gift-quick]").length).toBe(1);
   });
 
-  // Owner 2026-11-22 (phone): the head row's pill and icons are hidden up to 767px (only the heart and the three-line
-  // menu show there, src/test/giftGuidePhoneHead1122.test.tsx); a guide's count row above is unchanged.
-  it("every page on a desktop keeps the pill and the icons in the header row; on a phone the CSS hides them there", async () => {
+  // Owner 2026-11-22 (phone): the head row's icons are hidden up to 767px (only the three-line menu shows there,
+  // src/test/giftGuidePhoneHead1122.test.tsx); a guide's count row above is unchanged. No pill (owner 11-24).
+  it("every page on a desktop keeps the icons in the header row, no pill; on a phone the CSS hides them there", async () => {
     const from = GIFT_GUIDES_CSS.slice(GIFT_GUIDES_CSS.indexOf(".gg-head-phone{display:none}"));
     const phone = from.slice(0, from.indexOf("\n}\n") + 2);
-    expect(phone).toContain(".gg-headrow>.gg-ship,.gg-headrow>.gg-tools{display:none}");
+    expect(phone).toContain(".gg-headrow>.gg-tools{display:none}");
     expect(phone).not.toContain(".gg-countrow");
     // Owner 2026-11-22: the sponsors page too ("like the other pages are set up").
     for (const [url, width] of [["/gift-guides", 390], ["/gift-guides/kids", 1440], ["/gift-guides", 1440], ["/gift-guides/25-days-sponsors", 1440]] as const) {
       const c = await renderAt(url, width);
       const head = c.querySelector("[data-gift-headrow]")!;
-      expect(head.querySelector("[data-gift-ship]"), `${url}@${width}`).not.toBeNull();
+      expect(c.querySelector("[data-gift-ship]"), `${url}@${width}`).toBeNull();
       expect(head.querySelector("[data-gift-quick]"), `${url}@${width}`).not.toBeNull();
       expect(c.querySelector("[data-gift-countrow]"), `${url}@${width}`).toBeNull();
       cleanup();

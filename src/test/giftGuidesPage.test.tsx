@@ -173,10 +173,10 @@ describe("gift guides: one header on every page (owner 11-21)", () => {
   // centered "top-rated finds / Holiday gift guides" block is gone.
   // Owner 11-21 (later): "all of this should be on the same row": the back arrow + title, the pill and the tools are ONE
   // row the page draws (one line from 768px up; a phone wraps it).
+  // Owner 2026-11-24 ~8:30 PM ("Remove by Dec 15 everywhere"): the pill is gone; the row is the title, then the tools.
   // @mutate src/pages/info/giftGuides/GuidesTop.tsx | <GuidesHeadRow backTo={backTo} titleIsH1={!banner} | <GuidesHeadRow backTo={backTo} titleIsH1
-  // @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {pillInRow && pill}\n |         {null}\n
   // @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (min-width:768px){.gg-head-title{flex:0 0 auto}.gg-headrow{flex-wrap:nowrap} | @media (min-width:768px){.gg-head-title{flex:1 1 100%}.gg-headrow{flex-wrap:wrap}
-  it("one header row: back arrow + 'Holiday gift guides', the pill and the tools; no second title", () => {
+  it("one header row: back arrow + 'Holiday gift guides' and the tools (no pill); no second title", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-21T18:00:00Z"));
     let checked = 0;
@@ -190,10 +190,11 @@ describe("gift guides: one header on every page (owner 11-21)", () => {
       expect(head!.querySelector("[data-gift-back-to] button[aria-label]"), url).not.toBeNull();
       expect(head!.querySelector("[data-gift-head-name]")?.textContent, url).toBe("Holiday gift guides");
       expect(head!.querySelector("[data-gift-head-name]")?.tagName, url).toBe(tag);
-      // Arrow + title, then the pill, then the tools (search, heart, Share), as siblings of the one row; last the phone's
-      // heart + three-line menu (owner 11-22), which the CSS shows only up to 767px.
+      // Arrow + title, then the tools (search, heart, Share), as siblings of the one row; last the phone's three-line
+      // menu (owner 11-22), which the CSS shows only up to 767px. No shipping pill (owner 11-24).
       const kids = [...head!.children];
-      expect(kids.map((k) => (k.matches("[data-gift-head-title]") ? "title" : k.matches("[data-gift-ship]") ? "ship" : k.matches("[data-gift-quick]") ? "tools" : k.matches("[data-gift-head-phone]") ? "phone" : k.tagName)), url).toEqual(["title", "ship", "tools", "phone"]);
+      expect(kids.map((k) => (k.matches("[data-gift-head-title]") ? "title" : k.matches("[data-gift-ship]") ? "ship" : k.matches("[data-gift-quick]") ? "tools" : k.matches("[data-gift-head-phone]") ? "phone" : k.tagName)), url).toEqual(["title", "tools", "phone"]);
+      expect(container.querySelector("[data-gift-ship]"), url).toBeNull();
       // No centered title block: the landing has none, a guide keeps only its cover banner (its own h1).
       expect(container.querySelector("[data-gift-words]:not([data-gift-banner])"), url).toBeNull();
       expect(container.textContent, url).not.toMatch(/top-rated finds/i);
@@ -896,12 +897,12 @@ describe("gift guides: design audit round 2 UI fixes", () => {
 
   // Owner redesign 11-18 PM ("share text search list codes is too much buttons right here"): ONE slim row under every
   // title, at every width: the search field, My list (an icon with its count) and Share (an icon). No pill buttons.
-  // @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {pillInRow && tools}\n |         {null}\n
+  // @mutate src/pages/info/giftGuides/GuidesTop.tsx |         {toolsInRow && tools}\n |         {null}\n
   // @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |       {heart && <MyListIcon current={myList} />}\n |       <a href="#codes">Codes</a>\n      {heart && <MyListIcon current={myList} />}\n
   it("#15 / redesign: the tool row under the title is search, My list and Share, nothing else", () => {
     for (const url of ["/gift-guides", "/gift-guides/her", "/gift-guides/store-walmart"]) {
       const { container } = renderAt(url);
-      // Owner 11-21: the row under the header (pill + tools) holds the one tool row.
+      // Owner 11-21: the row under the header holds the one tool row.
       const head = container.querySelector("[data-gift-headrow]")!;
       const quick = head.querySelector("[data-gift-quick]")!;
       expect(container.querySelectorAll("[data-gift-quick]").length, url).toBe(1);

@@ -6,19 +6,21 @@
  *
  * Up to 767px every guides page's head row (GuidesTop -> GuidesHeadRow, the landing too) is ONE line: back arrow +
  * "Gift guides", then the three-line menu ("Guides menu") on the right, a 44x44 target with no circle, border or fill.
- * The head row's "Order by Dec 15" pill, search and Share and the Her / Him / Kids / Deals chip row are gone there; a
+ * The head row's search and Share and the Her / Him / Kids / Deals chip row are gone there; a
  * guide's own count row under its banner is unchanged (lead 11-22: "she didn't ask to change it").
  * Owner 11-22 later, asked about the heart showing twice on a phone: "Where should we have it on all the pages it
  * belongs on? I think by the search and icons filter. The 3 line dash stays up." So the head row's heart is gone: the
  * heart lives only in a page's own toolbar (Her/Him/Kids: search, sort, heart, Share under the banner); a page with no
  * toolbar on a phone (the deals days, the printables, the fun pages, My Wish List, the Holiday Hub) shows none, and My
  * Wish List stays one tap away in the menu sheet (giftGuidesPhoneNav1121.test.tsx).
- * From 768px up nothing changes ("Holiday gift guides", the pill, search, heart, Share, the sidebar).
+ * From 768px up nothing changes ("Holiday gift guides", search, heart, Share, the sidebar).
+ * Owner 2026-11-24 ~8:30 PM ("Remove by Dec 15 everywhere"): the "Order by Dec 15" shipping pill is gone at every width,
+ * from the head row and the phone count row alike (guard: giftGuideNoShipPill1124.test.tsx).
  * jsdom reads no @media, so the phone-only rules are read from the shipped CSS and the DOM is checked for the parts.
  *
  * @mutate src/pages/info/giftGuides/GuidesTop.tsx | phone={<GuidesMenuButton active={nav.active} myList={nav.myList} page={nav.page} />}> | phone={<><a className="gg-icon" href="/gift-guides/my-list" data-gift-head-heart="">x</a><GuidesMenuButton active={nav.active} myList={nav.myList} page={nav.page} /></>}>
  * @mutate src/pages/info/giftGuides/GuidesHeadRow.tsx | <><span className="gg-head-holiday">{HOLIDAY}</span>{G.headerTitle.slice(HOLIDAY.length)}</> | G.headerTitle
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-headrow>.gg-ship,.gg-headrow>.gg-tools{display:none} | .gg-headrow>.gg-ship{display:none}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-headrow>.gg-tools{display:none} | .gg-headrow>.gg-tools{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-head-holiday{display:none} | .gg-head-holiday{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-head-phone{display:none} | .gg-head-phone{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-head-phone .gg-icon,.gg-head-phone .gg-icon:hover,.gg-head-phone .gg-icon[aria-expanded="true"]{background:transparent; | .gg-head-phone .gg-icon{background:transparent;
@@ -121,11 +123,11 @@ describe("the phone head row on every guides page (owner 11-22)", () => {
     for (const heart of c.querySelectorAll("[data-gift-my-list-link]")) expect(heart.closest("[data-gift-headrow] > [data-gift-quick]"), url).not.toBeNull();
   });
 
-  it("the phone CSS: one line, the pill and the icons hidden, 'Holiday ' hidden and the g capitalised, the heart + menu shown with no circle", () => {
+  it("the phone CSS: one line, the icons hidden, 'Holiday ' hidden and the g capitalised, the heart + menu shown with no circle", () => {
     const css = phoneCss();
     expect(css).toMatch(/^\.gg-head-phone\{display:none\}\n@media \(max-width:767px\)\{/);
     expect(css).toContain(".gg-headrow{flex-wrap:nowrap;gap:4px}");
-    expect(css).toContain(".gg-headrow>.gg-ship,.gg-headrow>.gg-tools{display:none}");
+    expect(css).toContain(".gg-headrow>.gg-tools{display:none}");
     // (the head row's tools, and with them their heart, are hidden on a phone: the count row's toolbar holds the heart)
     expect(css).toContain(".gg-head-holiday{display:none}");
     expect(css).toContain(".gg-head-title [data-gift-head-name]::first-letter{text-transform:uppercase}");
@@ -175,12 +177,16 @@ describe("the phone head row on every guides page (owner 11-22)", () => {
 // Lead 11-22, owner on the Her page: "Remove him kids her buttons under holiday gift guides. deals from here they can
 // click the 3 line ... or they can go back"; a guide's own toolbar row under its banner stays as it is.
 describe("a phone's guide page: the count row under the banner is unchanged (owner 11-22)", () => {
-  it.each(["/gift-guides/her", "/gift-guides/kids"])("%s at 375: the count, the pill, then search, sort, heart and Share under the banner (the heart right after search and sort); the head row has only the menu", async (url) => {
+  it.each(["/gift-guides/her", "/gift-guides/kids"])("%s at 375: the count on the left, then search, sort, heart and Share on the right under the banner (no pill) (the heart right after search and sort); the head row has only the menu", async (url) => {
     const c = await renderAt(url, 375);
     const row = c.querySelector("[data-gift-countrow]")!;
     expect(row).not.toBeNull();
     expect(row.querySelector("[data-gift-item-count]")?.textContent).toMatch(/^\d+ gifts$/);
-    expect(row.querySelector("[data-gift-ship]")).not.toBeNull();
+    // Owner 2026-11-24 ~8:30 PM ("Remove by Dec 15 everywhere"): no "By Dec 15" pill on the count row; the count is
+    // the row's first thing and the icons its last.
+    expect(c.querySelector("[data-gift-ship]")).toBeNull();
+    expect(row.firstElementChild?.querySelector(":scope > [data-gift-item-count]")).not.toBeNull();
+    expect(row.lastElementChild?.matches("[data-gift-quick]")).toBe(true);
     // For Kids (owner 2026-11-23, "Age + price + girls/boys") the sliders icon is its Filter, which holds the sort too.
     const sortSel = url.endsWith("/kids") ? "[data-gift-filter-button]" : "[data-gift-sort-button]";
     for (const sel of ["[data-gift-search-button]", sortSel, "[data-gift-my-list-link]", "[data-gift-share]"]) expect(row.querySelector(`[data-gift-quick] ${sel}`), sel).not.toBeNull();
@@ -191,17 +197,17 @@ describe("a phone's guide page: the count row under the banner is unchanged (own
     expect(order).toEqual(["search", "sort", "heart", "share"]);
     // The head row holds none of those, only the phone's menu (no second heart).
     const head = c.querySelector("[data-gift-headrow]")!;
-    expect(head.querySelector("[data-gift-ship], [data-gift-quick]")).toBeNull();
+    expect(head.querySelector("[data-gift-quick]")).toBeNull();
     expect([...head.querySelectorAll("[data-gift-head-phone] > *")].map((k) => k.getAttribute("data-gift-head-menu") !== null ? "menu" : k.tagName)).toEqual(["menu"]);
     expect(c.querySelectorAll("[data-gift-my-list-link]").length).toBe(1);
   });
 });
 
 describe("desktop is unchanged (owner 11-22: the phone view only)", () => {
-  it.each(["/gift-guides", "/gift-guides/her", "/gift-guides/black-friday"])("%s at 1440: the pill, search, heart and Share in the head row; the sidebar", async (url) => {
+  it.each(["/gift-guides", "/gift-guides/her", "/gift-guides/black-friday"])("%s at 1440: search, heart and Share in the head row (no pill); the sidebar", async (url) => {
     const c = await renderAt(url, 1440);
     const row = c.querySelector("[data-gift-headrow]")!;
-    expect(row.querySelector(":scope > [data-gift-ship]")).not.toBeNull();
+    expect(c.querySelector("[data-gift-ship]")).toBeNull();
     const tools = row.querySelector(":scope > [data-gift-quick]")!;
     expect(tools.querySelector("[data-gift-search-button]")).not.toBeNull();
     expect(tools.querySelector("[data-gift-my-list-link]")?.getAttribute("aria-label")).toMatch(/^My Wish List, \d+ saved$/);

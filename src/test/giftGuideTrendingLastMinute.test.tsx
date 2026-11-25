@@ -11,6 +11,7 @@
  *
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | ?.filter((b) => !SPONSORS_PAGE_HIDDEN_BADGES.includes(b)) : pick.badges; | ?.filter((b) => !SPONSORS_PAGE_HIDDEN_BADGES.includes(b)) : ["trending" as const, ...(pick.badges ?? [])];
  * @mutate src/content/giftGuideShipping.ts |   return month === 12 && day >= 15 && day <= 25; |   return month === 12 && day >= 14 && day <= 25;
+ * @mutate src/content/giftGuideShipping.ts | timeZone: "America/Chicago" | timeZone: "UTC"
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";

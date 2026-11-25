@@ -73,7 +73,10 @@ export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, ena
   if (days.length === 0) {
     return <div className="space-y-2"><p className="text-sm text-muted-foreground" data-testid="declutter-no-pickup-slots">{taskId
       ? "None of the seller's pickup times are open before this delivery's deadline."
-      : "No pickup times are open before the pickup deadline. Message the seller to agree a time."}</p>{noTimes}</div>;
+      : own
+        // The seller moving their own Helpr pickup is the seller: "Message the seller" told them to message themselves.
+        ? "None of your pickup times are open before the pickup deadline."
+        : "No pickup times are open before the pickup deadline. Message the seller to agree a time."}</p>{noTimes}</div>;
   }
   const chosenDay = days.find((d) => d.ymd === dayPick) ?? days.find((d) => d.slots.some((s) => s.iso === value)) ?? days[0];
   return (

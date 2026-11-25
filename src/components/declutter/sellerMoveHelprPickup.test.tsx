@@ -23,8 +23,8 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: { rpc: async (name: string, args: unknown) => { state.calls.push([name, args]); return { data: { result: "moved", pickup_slot_start: NEW_TIME }, error: null }; } },
 }));
 vi.mock("./DeclutterPickupWindows", () => ({
-  PickupSlotPicker: ({ onPick, orderId, own, current }: { onPick: (iso: string | null) => void; orderId?: string; own?: boolean; current?: string | null }) => (
-    <><button type="button" onClick={() => onPick(NEW_TIME)}>{`chip for ${orderId}`}</button><span data-testid="picker-props">{`own=${String(own)} current=${String(current)}`}</span></>
+  PickupSlotPicker: ({ onPick, orderId, own, current, actions }: { onPick: (iso: string | null) => void; orderId?: string; own?: boolean; current?: string | null; actions?: import("react").ReactNode }) => (
+    <><button type="button" onClick={() => onPick(NEW_TIME)}>{`chip for ${orderId}`}</button><span data-testid="picker-props">{`own=${String(own)} current=${String(current)}`}</span>{actions}</>
   ),
 }));
 

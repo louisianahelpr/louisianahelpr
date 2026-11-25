@@ -40,15 +40,21 @@ export function SellerMoveHelprPickup({ taskId, orderId, who, current = null }: 
       <p className="text-ds-13">
         Can't make it? Pick another of your pickup times, at least 2 hours from now. You can move it once; {who} and the buyer are told.
       </p>
+      {/* Same as deep audit 11-22 #48's Book: "Move to this time" rides in the picker's `actions`, so it shows only where
+          there is a time to pick, never dead under "None of your pickup times are open". Keep the time stays outside:
+          it is the way out even with no times. */}
       <PickupSlotPicker orderId={orderId} value={pick} onPick={setPick} own current={current}
-        fallback={<p className="text-sm text-muted-foreground">Message the Helpr to agree a new time.</p>} />
+        fallback={<p className="text-sm text-muted-foreground">Message the Helpr to agree a new time.</p>}
+        noTimes={<p className="text-sm text-muted-foreground">{`Message ${who} to agree a new time.`}</p>}
+        actions={
+          <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={!pick || move.isPending}
+            onClick={() => { if (pick) move.mutate(pick); }}>
+            Move to this time
+          </Button>
+        } />
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={move.isPending} onClick={() => { setOpen(false); setPick(null); }}>
           Keep the time
-        </Button>
-        <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={!pick || move.isPending}
-          onClick={() => { if (pick) move.mutate(pick); }}>
-          Move to this time
         </Button>
       </div>
     </div>

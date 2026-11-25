@@ -456,7 +456,10 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     const el = card("home0");
     expect(el.querySelector("[data-order-body]")).not.toBeNull();
     expect(within(el).queryByRole("button", { name: "Book a pickup time" })).toBeNull();
-    expect(within(el).getByRole("button", { name: "Book" })).toBeInTheDocument();
+    // The fixture's pickup-times read answers null (reads not deployed), so the free time picker is the way to book.
+    // Deep audit 11-22 #48: Book rides with the picker and shows once that read has answered (never under "No pickup
+    // times are open"), so it is awaited, not read on the same tick as the click.
+    expect(await within(el).findByRole("button", { name: "Book" })).toBeInTheDocument();
     expect(within(el).getByRole("button", { name: "Hide details" })).toHaveAttribute("aria-expanded", "true");
     // One tracker on the card: the head's, never the old pickup bar beside it.
     expect(el.querySelectorAll('ol[aria-label^="Step "]').length).toBe(1);

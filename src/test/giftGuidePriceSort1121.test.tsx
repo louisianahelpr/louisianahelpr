@@ -295,7 +295,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // 11-24 Melissa & Doug import: its 7 Kids picks move: pull-back vehicles $17.99 and Doorbell House $23.49 (Under $25 -2),
       // cardboard blocks $32.99, tabletop easel $43.49 and beauty kiosk $43.99 ($25 to $50 -3), shopping cart $55.99 ($50 to $75 -1),
       // Wood Furnished Mansion $117.99 ($100 and up -1).
-      kids: { "Stocking stuffers under $10": 7, "Under $25": 65, "$25 to $50": 36, "$50 to $75": 11, "$75 to $100": 8, "$100 and up": 25 },
+      // Owner round-3 screenshot picks 11-25 (46 on Kids): 33 under $10 (the $4.50-$7.19 character pajama prints, tees, beanies),
+      // 12 Under $25 (the $11-$16 prints, Eeyore) and the $59.99 PAW Patrol Lookout Tower.
+      kids: { "Stocking stuffers under $10": 40, "Under $25": 77, "$25 to $50": 36, "$50 to $75": 12, "$75 to $100": 8, "$100 and up": 25 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

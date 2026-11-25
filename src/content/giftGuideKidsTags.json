@@ -1182,6 +1182,393 @@
    "ageMax": 9,
    "ageSource": "kohls.com product page, read 2026-11-24: screen-free for kids ages 1-9+",
    "list": "kids"
+  },
+  "walmrt.us/4eUyq3F": {
+   "name": "SpongeBob Toddler Pajama Set (12M-5T)",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20389152512 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4lc3orK": {
+   "name": "Disney Princess Toddler Pajama Set, Pink (12M-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20369808997 listing, read 2026-11-25: Character Toddler Long Sleeve Top and Pant Pajama Set, 2-Piece, Sizes  (Disney Princess Pink print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20369808997 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4zETfHG": {
+   "name": "Grinch Toddler Pajama Set, Red (12M-5T)",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20398568986 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4eVQ07i": {
+   "name": "Toy Story Toddler Coat-Top Pajama Set (12M-5T)",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20386967657 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4AXpPpv": {
+   "name": "PAW Patrol Toddler Coat-Top Pajama Set (12M-5T)",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20405856543 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4eWzgNd": {
+   "name": "Barbie Toddler Coat-Top Pajama Set (2T-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/5430873089 listing, read 2026-11-25: Character Toddler Long Sleeve Top and Pants Pajama Coat Set, 2-Pieces, (Barbie print)",
+   "ageMin": 2,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/5430873089 listing, read 2026-11-25: sizes in the title (Sizes 2T-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4iW9on6": {
+   "name": "Hello Kitty Toddler Coat-Top Pajama Set (12M-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20197123334 listing, read 2026-11-25: Hello Kitty Toddler Long Sleeve Button Front Sleep Top and Sleep Pants (Hello Kitty print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20197123334 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/48Ej3ZE": {
+   "name": "Strawberry Shortcake Toddler Coat-Top Pajama Set (12M-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20386967653 listing, read 2026-11-25: Character Toddler Long Sleeve Coat and Pant Pajama Set, 2-Piece, Sizes (Strawberry Shortcake Blue print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20386967653 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4j1P1VH": {
+   "name": "Mickey Mouse Toddler Coat-Top Pajama Set (12M-5T)",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20355162857 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4fPIaMM": {
+   "name": "Minnie Mouse Toddler Coat-Top Pajama Set (12M-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20434060218 listing, read 2026-11-25: Character Toddler Long Sleeve and Pant Coat Pajama Set, Sizes 12M-5T (Minnie print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20434060218 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/3VHakCW": {
+   "name": "Tonka Toddler Coat-Top Pajama Set (12M-5T)",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20233415040 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4tjUhqV": {
+   "name": "Disney Princess Toddler Coat-Top Pajama Set (12M-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20417757802 listing, read 2026-11-25: Character Toddler Long Sleeve and Pant Coat Pajama Set, Sizes 12M-5T (Princess print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20417757802 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4lbUIl6": {
+   "name": "Barbie Toddler Coat-Top Pajama Set, Pink (12M-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20166867398 listing, read 2026-11-25: Barbie Toddler Long Sleeve Button Front Sleep Top and Sleep Pants, 2-P (Barbie Pink print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20166867398 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4lbUESo": {
+   "name": "Disney Princess Kids Pajama Set (4-16)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20140608346 listing, read 2026-11-25: Character Kids Long Sleeve Top and Pant Pajama Set, 2-Piece, Sizes 4-1 (Disney Princess Pink print)",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20140608346 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/4A7xCkw": {
+   "name": "Super Mario Kids Pajama Set, Purple (4-16)",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20140508718 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/4AQzIVE": {
+   "name": "Super Mario Kids Pajama Set, Blue (4-16)",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20098360915 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/4AaBwJk": {
+   "name": "Hello Kitty Kids Pajama Set, Purple (4-16)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20160254345 listing, read 2026-11-25: Character Kids Long Sleeve Top and Pant Pajama Set, 2-Piece, Sizes 4-1 (Hello Kitty Purple print)",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20160254345 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/4tlQ2eK": {
+   "name": "Hello Kitty Kids Pajama Set, Red (4-16)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20167205509 listing, read 2026-11-25: Character Kids Long Sleeve Top and Pant Pajama Set, 2-Piece, Sizes 4-1 (Hello Kitty Red print)",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20167205509 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/4eZnjGG": {
+   "name": "Frozen Kids Pajama Set (4-16)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20160254339 listing, read 2026-11-25: Character Kids Long Sleeve Top and Pant Pajama Set, 2-Piece, Sizes 4-1 (Frozen Blue print)",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20160254339 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/4Aa49X8": {
+   "name": "Lilo & Stitch Kids Pajama Set, Blue (4-16)",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20167155634 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/4ARwgKs": {
+   "name": "Lilo & Stitch Kids Pajama Set, Pink (4-16)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20144763452 listing, read 2026-11-25: Character Kids Long Sleeve Top and Pant Pajama Set, 2-Piece, Sizes 4-1 (Lilo & Stitch Pink print)",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20144763452 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/3Vg2vDU": {
+   "name": "Jurassic World Kids Pajama Set (4-16)",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20073103005 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/4tfD9Tf": {
+   "name": "Sonic Kids Pajama Set (4-16)",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20073103004 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/3Vj4Kqe": {
+   "name": "Teenage Mutant Ninja Turtles Kids Pajama Set (4-16)",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20058008197 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/4tl8fZF": {
+   "name": "Barbie Kids Pajama Set (4-16)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20180056418 listing, read 2026-11-25: Character Kids Long Sleeve Top and Pant Pajama Set, 2-Piece, Sizes 4-1 (Barbie White print)",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20180056418 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/4tgDB3I": {
+   "name": "Toy Story Kids Pajama Set (4-16)",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20082018805 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/4A0YC4p": {
+   "name": "Grinch Kids Pajama Set, Pink (4-16)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20160254347 listing, read 2026-11-25: Character Kids Long Sleeve Top and Pant Pajama Set, 2-Piece, Sizes 4-1 (The Grinch Pink print)",
+   "ageMin": 4,
+   "ageMax": 16,
+   "ageSource": "walmart.com/ip/20160254347 listing, read 2026-11-25: sizes in the title (Sizes 4-16)",
+   "list": "kids"
+  },
+  "walmrt.us/4zGPOjQ": {
+   "name": "Care Bears Toddler One-Piece Sleeper (2T-5T)",
+   "gender": "everyone",
+   "ageMin": 2,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20369808086 listing, read 2026-11-25: sizes in the title (Sizes 2T-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/48I4xQr": {
+   "name": "Minnie Mouse Toddler One-Piece Sleeper (2T-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20405856677 listing, read 2026-11-25: Character Toddler Long Sleeve One Piece Sleepwear, Sizes 2T-5T (Minnie Red print)",
+   "ageMin": 2,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20405856677 listing, read 2026-11-25: sizes in the title (Sizes 2T-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4kzGB9d": {
+   "name": "Disney Princess Toddler One-Piece Sleeper (2T-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20362270201 listing, read 2026-11-25: Character Toddler Long Sleeve One Piece Sleepwear, Sizes 2T-5T (Disney Princess Blue print)",
+   "ageMin": 2,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20362270201 listing, read 2026-11-25: sizes in the title (Sizes 2T-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4jBxIKf": {
+   "name": "Grinch Toddler Fleece Robe (12M-5T)",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20389102588 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4jaUUPc": {
+   "name": "Strawberry Shortcake Toddler Fleece Robe (12M-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20398618096 listing, read 2026-11-25: Character Toddler Fleece Robe, Sizes 12M-5T (Strawberry Shortcake Pink print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20398618096 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4jb5vcF": {
+   "name": "Minnie Mouse Toddler Fleece Robe (12M-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20335801879 listing, read 2026-11-25: Character Toddler Fleece Robe, Sizes 12M-5T (Minnie Mouse Pink print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20335801879 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4j9FpqC": {
+   "name": "Minnie Mouse Toddler Patriotic Tee (12M-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/19191554965 listing, read 2026-11-25: Minnie Mouse Toddler Graphic Patriotic Americana Crewneck Tee with Sho (Minnie Mouse Vivid White print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/19191554965 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4A1HtrP": {
+   "name": "Toy Story Toddler Patriotic Tee (12M-5T)",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/19179908893 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4jamQm7": {
+   "name": "Stitch Toddler Patriotic Tee (12M-5T)",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/19201107354 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/3X7CzuU": {
+   "name": "Mickey Mouse Toddler Patriotic Tee (12M-5T)",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/19171211827 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4A1xnHu": {
+   "name": "Hello Kitty Toddler Patriotic Tee (12M-5T)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/13947161779 listing, read 2026-11-25: Hello Kitty Toddler Americana Graphic Tee, Sizes 12M-5T (Hello Kitty Clear Sky print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/13947161779 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4fqQX7K": {
+   "name": "Hello Kitty Toddler Girls Beanie and Gloves Set",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20493453524 listing, read 2026-11-25: Character Toddler Girls Beanie Hat and Glove Set (Hello Kitty print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20493453524 listing, read 2026-11-25: sizes in the title (toddler)",
+   "list": "kids"
+  },
+  "walmrt.us/4jb5wgJ": {
+   "name": "Lilo & Stitch Toddler Girls Beanie and Gloves Set",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20178702330 listing, read 2026-11-25: Character Toddler Girls Beanie Hat and Glove Set (Lilo & Stitch print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20178702330 listing, read 2026-11-25: sizes in the title (toddler)",
+   "list": "kids"
+  },
+  "walmrt.us/4jhFZmp": {
+   "name": "Toy Story Jessie Toddler Girls Beanie and Gloves Set",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20187555500 listing, read 2026-11-25: Character Toddler Girls Beanie Hat and Glove Set (Toy Story Jessie print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20187555500 listing, read 2026-11-25: sizes in the title (toddler)",
+   "list": "kids"
+  },
+  "walmrt.us/4j8cZ03": {
+   "name": "Toy Story Toddler Girls Beanie and Gloves Set",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/20122651246 listing, read 2026-11-25: Character Toddler Girls Beanie Hat and Glove Set (Toy Story print)",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/20122651246 listing, read 2026-11-25: sizes in the title (toddler)",
+   "list": "kids"
+  },
+  "walmrt.us/3Vfu4xm": {
+   "name": "PAW Patrol Toddler Pajama Set (12M-5T)",
+   "gender": "everyone",
+   "ageMin": 1,
+   "ageMax": 5,
+   "ageSource": "walmart.com/ip/5395472280 listing, read 2026-11-25: sizes in the title (Sizes 12M-5T)",
+   "list": "kids"
+  },
+  "walmrt.us/4ANUqp7": {
+   "name": "Ms. Rachel Baby Girls Tee and Shorts Set (0-9M)",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/18523809793 listing, read 2026-11-25: Ms. Rachel Baby Girls' Allover Print Short Sleeve Tee and Matching Sho (Ms. Rachel Platinum Silver Heather print)",
+   "ageMin": 0,
+   "ageMax": 1,
+   "ageSource": "walmart.com/ip/18523809793 listing, read 2026-11-25: sizes in the title (0/2M-6/9M)",
+   "list": "kids"
+  },
+  "walmrt.us/4ku91Bo": {
+   "name": "Disney Eeyore Mini Bean Bag Plush",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-110699595": {
+   "name": "PAW Patrol My Size Lookout Tower Vehicle Playset",
+   "gender": "everyone",
+   "list": "kids"
   }
  }
 }

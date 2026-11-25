@@ -2,7 +2,7 @@
  "slug": "cars",
  "name": "Pixar Cars",
  "sectionPrefix": "cars",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/cars/items.json (Tue Nov 24 9:27 PM, 38 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/cars/items.json (Tue Nov 24 9:27 PM, 41 items)",
  "rows": [
   {
    "id": "CR01",
@@ -508,6 +508,54 @@
    "sectionId": "cars-clothes-and-shoes",
    "commission": 15,
    "age": "toddler"
+  },
+  {
+   "id": "CRO01",
+   "name": "Cars Toddler Pajama Set, Black (12M-5T)",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://walmrt.us/3WUo8dH",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-toddler-pajama-set-black-12m-5t-walmart-c55941.webp",
+   "store": "store-walmart",
+   "price": 5.4,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "was": 10.98,
+   "age": "12m-5T",
+   "ownerAdd": true
+  },
+  {
+   "id": "CRO02",
+   "name": "Cars Toddler Coat-Top Pajama Set, Red (12M-5T)",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://walmrt.us/4zKT3Xs",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-toddler-coat-top-pajama-set-red-12m-5t-walmart-75c9d9.webp",
+   "store": "store-walmart",
+   "price": 7.19,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "was": 12.98,
+   "age": "12m-5T",
+   "ownerAdd": true
+  },
+  {
+   "id": "CRO03",
+   "name": "Cars Toddler One-Piece Sleeper, Red (2T-5T)",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://walmrt.us/4tkdsRG",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-toddler-one-piece-sleeper-red-2t-5t-walmart-73bfbd.webp",
+   "store": "store-walmart",
+   "price": 5.4,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "was": 10.98,
+   "age": "2T-5T",
+   "ownerAdd": true
   },
   {
    "id": "CR60",

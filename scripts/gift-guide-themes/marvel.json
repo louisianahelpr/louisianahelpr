@@ -2,7 +2,7 @@
  "slug": "marvel",
  "name": "Marvel",
  "sectionPrefix": "marvel",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/marvel/items.json (Tue Nov 24 12:47 PM, 165 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/marvel/items.json (Tue Nov 24 12:47 PM, 192 items)",
  "rows": [
   {
    "id": "MV01",
@@ -1170,6 +1170,40 @@
    "sectionId": "marvel-plush",
    "commission": 6,
    "age": "kids"
+  },
+  {
+   "id": "MVK25",
+   "name": "Marvel Spider-Man Plush Action Figure",
+   "brand": "Marvel",
+   "line": "Plush for a Marvel fan.",
+   "href": "https://mavely.app.link/H4YaGaqGl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/marvel-spider-man-plush-action-figure-jcpenney-f4dfb7.webp",
+   "store": "store-jcpenney",
+   "price": 15.4,
+   "priceAt": "2026-11-24",
+   "section": "Plush",
+   "sectionId": "marvel-plush",
+   "was": 22,
+   "commission": 10.5,
+   "age": "3+",
+   "ownerAdd": true
+  },
+  {
+   "id": "MVK26",
+   "name": "Marvel Spider-Man Plush Talker",
+   "brand": "Marvel",
+   "line": "Plush for a Marvel fan.",
+   "href": "https://mavely.app.link/LfPe4kqGl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/marvel-spider-man-plush-talker-jcpenney-ce34d9.webp",
+   "store": "store-jcpenney",
+   "price": 17.5,
+   "priceAt": "2026-11-24",
+   "section": "Plush",
+   "sectionId": "marvel-plush",
+   "was": 25,
+   "commission": 10.5,
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MV40",

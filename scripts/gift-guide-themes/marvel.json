@@ -264,7 +264,8 @@
    "section": "Monster Jam x Marvel",
    "sectionId": "marvel-monster-jam-x-marvel",
    "commission": 6,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MV28",
@@ -294,7 +295,8 @@
    "section": "Monster Jam x Marvel",
    "sectionId": "marvel-monster-jam-x-marvel",
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MV26",
@@ -310,7 +312,8 @@
    "sectionId": "marvel-monster-jam-x-marvel",
    "was": 23.7,
    "commission": 3,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MV30",
@@ -472,11 +475,10 @@
    "href": "https://walmrt.us/4tCIfJL",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-marvel-hulkbuster-vs-the-hulk-walmart-38e45f.webp",
    "store": "store-walmart",
-   "price": 39.99,
+   "price": 49.97,
    "priceAt": "2026-11-24",
    "section": "Big gifts",
    "sectionId": "marvel-big-gifts",
-   "was": 49.99,
    "commission": 6,
    "age": "7+"
   },
@@ -524,7 +526,8 @@
    "sectionId": "marvel-big-gifts",
    "was": 19.99,
    "commission": 7,
-   "age": "4+"
+   "age": "4+",
+   "ownerAdd": true
   }
  ],
  "skipped": []

@@ -8,9 +8,10 @@
  * The folder holds items.json ({ groups: [{ category, items: [{ id, name, store, href, price, was, rate, image, age,
  * oos, line?, brand? }] }] }, the Monster Jam research's schema), cutouts/<id>.webp, and cover6.json (the six cover
  * item ids: a list, or { ids: [...] }). It
- *  - writes scripts/gift-guide-themes/<slug>.json: one row per item in the list's group order; out-of-stock items, items
- *    with no price, no https link, no photo or one that breaks the owner's style rules (giftGuideRules ownerStyleOff: no
- *    neon on any guide) go under `skipped`. A re-import keeps each existing row's own line and
+ *  - writes scripts/gift-guide-themes/<slug>.json: one row per item in the list's group order; items with no price, no
+ *    https link, no affiliate link, no photo or one that breaks the owner's style rules (giftGuideRules ownerStyleOff: no
+ *    neon on any guide) go under `skipped`. An item marked out of stock (`oos`) stays on the page (owner 11-24 ~9:30 PM:
+ *    "No leave the sold out stuff on"). An item with `hold: "<why>"` goes under `skipped` with that reason. A re-import keeps each existing row's own line and
  *    brand (by id). Amazon photos are never edited (Associates terms): an Amazon row shows Amazon's own photo;
  *  - copies the cutouts into public/gift-guides/cutouts/<name>-<store>-<md5 6>.webp (the repo's naming) and removes a
  *    cutout a re-import no longer uses when nothing else names it;
@@ -142,7 +143,8 @@ function main() {
       const store = storeKey(it.store ?? "");
       const href = String(it.href ?? "");
       const why = [];
-      if (it.oos) why.push("out of stock");
+      // A research row held on purpose (`hold: "<why>"`: the same product as another row, a page rule) stays off.
+      if (typeof it.hold === "string" && it.hold) why.push(it.hold);
       if (!(Number(it.price) > 0)) why.push("no price");
       if (!href.startsWith("https://")) why.push("no link");
       else if (!knownHosts.has(hostOf(href))) why.push(`no affiliate link (${hostOf(href)})`);
@@ -157,7 +159,7 @@ function main() {
         image = String(it.image ?? "").startsWith("https://") ? it.image : ""; // Amazon's own photo, never edited
       } else if ((cutBytes = readIfThere(cut))) {
         const name = cutoutName(it.name, store, cutBytes);
-        // Copied only for a row that goes on the page (an out-of-stock or unpriced item leaves no stray file).
+        // Copied only for a row that goes on the page (an unpriced or unlinked item leaves no stray file).
         // COPYFILE_EXCL instead of an existsSync check first (no check-then-act race): an existing copy is kept.
         if (!why.length) {
           try {

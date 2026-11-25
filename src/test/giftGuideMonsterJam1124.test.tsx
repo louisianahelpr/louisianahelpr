@@ -4,7 +4,7 @@
  *
  *  - the data: the page's chunk (src/content/giftGuidePicks/monster-jam.json) is exactly the rows file's picks
  *    (scripts/gift-guide-themes/monster-jam.json via scripts/giftGuideMonsterJam1124.mjs), every row with a price, a
- *    price day, a photo and a known store, and none of the rows the research marked out of stock;
+ *    price day, a photo and a known store; a row the research marked out of stock stays on (owner 11-24 ~9:30 PM);
  *  - the page: /gift-guides/monster-jam renders "Monster Jam Gift Guide" with one row per pick, in the main guides' price
  *    sections (owner 11-24 ~7 PM: "sorted like the main 3 guides"; src/test/giftGuideThemeLayout1124.test.tsx), every
  *    section open on arrival, and no "shop similar" link even on a pick that has one;
@@ -100,10 +100,15 @@ describe("the Monster Jam gift guide's data (owner 2026-11-24)", () => {
     }
   });
 
-  it("no out-of-stock item is on the page", () => {
-    const oos = ROWS_FILE.skipped.filter((s) => s.why.includes("out of stock")).map((s) => s.id);
+  // Owner 11-24 ~9:30 PM: "No leave the sold out stuff on." Her own pick MJO42 (sold out at Walmart) and the research's
+  // sold-out rows are on the page; the importer skips a row only for no price, link, photo or a style rule.
+  it("sold-out items stay on the page (her pick MJO42 included)", () => {
+    expect(ROWS_FILE.skipped.filter((s) => s.why.includes("out of stock"))).toEqual([]);
     const ids = new Set(MONSTER_JAM_ROWS_1124.map((r) => r.id));
-    for (const id of oos) expect(ids.has(id), id).toBe(false);
+    for (const id of ["MJO42", "MJ60", "MJ62", "MJ67"]) expect(ids.has(id), id).toBe(true);
+    // MJ66 is the same Walmart product as her MJO42 (one place per item): held, not lost.
+    expect(ROWS_FILE.skipped.map((s) => s.id)).toEqual(["MJ66"]);
+    expect(chunk.some((p) => p.href === "https://walmrt.us/4j3ikWo")).toBe(true);
   });
 
   it("the picks run cheapest first, so Stocking stuffers under $10 opens the page", () => {

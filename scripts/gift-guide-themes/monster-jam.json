@@ -961,6 +961,22 @@
    "age": "4+"
   },
   {
+   "id": "MJ60",
+   "name": "Monster Jam Boys 3-Piece Pajama Set + Robe",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4jytpAd",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-3-piece-pajama-set-robe-walmart-e4e968.webp",
+   "store": "store-walmart",
+   "price": 15,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 29.98,
+   "commission": 15,
+   "age": "4-10"
+  },
+  {
    "id": "MJ61",
    "name": "Monster Jam Boys Long Sleeve Pajama Set, 2-Piece",
    "brand": "Monster Jam",
@@ -973,6 +989,23 @@
    "section": "Clothing and pajamas",
    "sectionId": "mj-clothing-and-pajamas",
    "was": 12.98,
+   "commission": 15,
+   "age": "4-12",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJ62",
+   "name": "Monster Jam Boys Robe",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4AQqLfg",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-robe-walmart-24f3a3.webp",
+   "store": "store-walmart",
+   "price": 10,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 15.98,
    "commission": 15,
    "age": "4-12",
    "ownerAdd": true
@@ -1025,6 +1058,22 @@
    "sectionId": "mj-clothing-and-pajamas",
    "commission": 16,
    "age": "18m-12",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJ67",
+   "name": "Monster Jam Short Sleeve + Shorts Pajama Set",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4AUm9Vt",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-short-sleeve-shorts-pajama-set-walmart-d32c58.webp",
+   "store": "store-walmart",
+   "price": 20,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "commission": 15,
+   "age": "4-12",
    "ownerAdd": true
   },
   {
@@ -1400,6 +1449,22 @@
    "sectionId": "mj-clothing-and-pajamas",
    "was": 12.98,
    "age": "4-16",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO42",
+   "name": "Monster Jam Boys Short Sleeve Pajama Set, 2-Piece (4-12)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4j3ikWo",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-short-sleeve-pajama-set-2-piece-4-12-walmart-3d15c2.webp",
+   "store": "store-walmart",
+   "price": 8.18,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 12.98,
+   "age": "4-12",
    "ownerAdd": true
   },
   {
@@ -1946,9 +2011,9 @@
    "priceAt": "2026-11-24",
    "section": "Monster truck extras (Hot Wheels)",
    "sectionId": "mj-monster-truck-extras-hot-wheels",
+   "was": 15.99,
    "commission": 6,
-   "age": "4+",
-   "was": 15.99
+   "age": "4+"
   },
   {
    "id": "MJ97",
@@ -1986,38 +2051,10 @@
  ],
  "skipped": [
   {
-   "id": "MJ60",
-   "name": "Monster Jam Boys 3-Piece Pajama Set + Robe",
-   "why": [
-    "out of stock"
-   ]
-  },
-  {
-   "id": "MJ62",
-   "name": "Monster Jam Boys Robe",
-   "why": [
-    "out of stock"
-   ]
-  },
-  {
    "id": "MJ66",
    "name": "Monster Jam Boys Short Sleeve Pajama Set, 2-Piece",
    "why": [
-    "out of stock"
-   ]
-  },
-  {
-   "id": "MJ67",
-   "name": "Monster Jam Short Sleeve + Shorts Pajama Set",
-   "why": [
-    "out of stock"
-   ]
-  },
-  {
-   "id": "MJO42",
-   "name": "Monster Jam Boys Short Sleeve Pajama Set, 2-Piece (4-12)",
-   "why": [
-    "out of stock"
+    "same product as her pick MJO42 (same Walmart photo)"
    ]
   }
  ]

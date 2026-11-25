@@ -23,11 +23,17 @@
  * @mutate src/lib/guideShell.mjs |   const page = html.replace(/<head>/, () => `<head>${guideShellPreloads(block)}`) |   const page = html
  * @mutate src/lib/guideShell.mjs |   "/fonts/montserrat-normal-latin-rest.woff2", | 
  * @mutate src/lib/guideShell.mjs |     if (src && !covers.includes(src)) covers.push(src); |     void src;
+ * @mutate scripts/lib/guideShellBuild.mjs |       if (!present.has(unescapeIdent(m[1]))) return false; |       if (!present.has(m[1])) return false;
+ * @mutate scripts/lib/guideShellBuild.mjs |   for (const m of topLevel(sel).matchAll( |   for (const m of sel.matchAll(
  * @mutate src/pages/info/giftGuides/GiftGuideTop10.tsx |   if (!TOP10_GUIDES.every((s) => picksReady(s))) return <Top10Wait />; |   if (!TOP10_GUIDES.every((s) => picksReady(s))) return null;
  *
  * Round 3 (11-24, the late LCP): the guide pages preload their four web fonts and their first-screen covers first in
  * <head>, at high priority (the redraw once the fonts are in is the page's largest paint), and the landing's Top 10
  * keeps its place while its picks load (the 25 Days card below it was the landing's largest paint and its 0.149 CLS).
+ *
+ * Round 4 (11-25): the build cuts the app sheet to the classes the first screens have before jsdom judges it
+ * (withoutAbsentClasses). With the theme guides at 140-290 gifts the full-sheet pass took 58 s and 1.6 GB and the
+ * build died out of heap.
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -36,7 +42,7 @@ import { LIVE_GUIDES_1121 } from "@/content/giftGuideLive.mjs";
 import { DEAL_DAY_SLUGS } from "@/content/giftGuideDeals.mjs";
 import { GUIDE_HINTS_ATTR, GUIDE_MEMBER_ATTR, GUIDE_SHELL_FONTS, GUIDE_SHELL_ID, GUIDE_SHELL_SHOW_RULE, guideShellHintRules, withGuideShell } from "@/lib/guideShell.mjs";
 import { adoptGuideShell, GUIDE_MEMBER_ATTR as BOOT_MEMBER_ATTR, GUIDE_SHELL_ELEMENT_ID, GUIDE_SHELL_MAX_MS } from "@/boot/guideShellHandoff";
-import { FIRST_SCREEN_ITEMS, ITEM_SELECTOR, builtAssetPaths, guideShellData } from "../../scripts/lib/guideShellBuild.mjs";
+import { FIRST_SCREEN_ITEMS, ITEM_SELECTOR, builtAssetPaths, guideShellData, withoutAbsentClasses } from "../../scripts/lib/guideShellBuild.mjs";
 
 // The page renders once per width, as the build's Vite config makes it (useIsMobile aliased to the stub).
 vi.mock("@/hooks/use-mobile", async () => await import("@/prerender/useIsMobileStub"));
@@ -136,6 +142,24 @@ describe("every live guide page has its first screen in the HTML", () => {
     expect(builtAssetPaths('<img src="/src/assets/helpr-logo-256.webp" srcset="/src/assets/helpr-logo-96.webp 96w">', names))
       .toBe('<img src="/assets/helpr-logo-256-7lzBG8jC.webp" srcset="/assets/helpr-logo-96-C77gmY--.webp 96w">');
     expect(() => builtAssetPaths('<img src="/src/assets/gone.webp">', names)).toThrow(/gone\.webp/);
+  });
+
+  it("the sheet is cut to the classes the first screens have before jsdom judges it (the build ran out of heap without)", () => {
+    const html = '<div class="gg md:flex [&amp;&gt;svg]:size-4 10"><p class="x"></p></div>';
+    const css = [
+      ".gg{a:1}", ".md\\:flex{a:2}", ".\\[\\&\\>svg\\]\\:size-4>svg{a:3}", ".\\31 0{a:4}", ".gg:not(.absent) .x{a:5}",
+      "[class~=\"absent\"]{a:6}", ".gg,.absent{a:7}", ".absent{b:1}", ".gg .absent{b:2}", ".md\\:grid{b:3}",
+    ].join("");
+    const out = withoutAbsentClasses(css, html);
+    for (const n of [1, 2, 3, 4, 5, 6]) expect(out, `a:${n}`).toContain(`{a:${n}}`);
+    expect(out).toContain(".gg{a:7}");
+    for (const n of [1, 2, 3]) expect(out, `b:${n}`).not.toContain(`b:${n}`);
+    // Against the real pages: nothing a first screen draws loses its rule.
+    const pages = Object.values(rendered).map((r) => r.phone).join("");
+    const classes = new Set([...pages.matchAll(/\sclass="([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/)));
+    expect(classes.size).toBeGreaterThan(50);
+    const sheet = [...classes].filter((c) => /^[\w-]+$/.test(c)).map((c, i) => `.${c}{a:${i}}`).join("");
+    expect(withoutAbsentClasses(sheet, pages)).toBe(sheet);
   });
 });
 

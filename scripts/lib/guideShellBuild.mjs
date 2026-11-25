@@ -4,6 +4,7 @@
  * needs from the app sheet plus the page's own <style> blocks (scripts/inline-shell-css.mjs shellCriticalCss).
  */
 import { JSDOM } from "jsdom";
+import postcss from "postcss";
 import { shellCriticalCss } from "../inline-shell-css.mjs";
 import { GUIDE_SHELL_ID, GUIDE_SHELL_SHOW_RULE, guideShellHintRules } from "../../src/lib/guideShell.mjs";
 
@@ -56,7 +57,11 @@ export function trimGuideMarkup(markup, phone) {
     const layout = main.parentElement;
     for (const el of [...(layout?.children ?? [])]) if (el !== main) el.remove();
   }
-  return { html: box.innerHTML, css, items: Math.min(items.length, FIRST_SCREEN_ITEMS) };
+  const html = box.innerHTML;
+  // A theme page renders all of its 140-290 gifts before the cut; an unclosed window keeps that whole document alive,
+  // and 40 of them ran the build out of heap (11-25, after the theme data trains).
+  dom.window.close();
+  return { html, css, items: Math.min(items.length, FIRST_SCREEN_ITEMS) };
 }
 
 /**
@@ -98,6 +103,64 @@ function pageFaces(appCss, ownCss) {
   return (appCss.match(/@font-face\{[^}]*\}/g) ?? []).filter((r) => named.has(fam(/font-family:([^;}]+)/.exec(r)?.[1] ?? ""))).join("");
 }
 
+/** A selector's text with everything inside (), [] and quotes blanked: what remains must all match the element. */
+function topLevel(sel) {
+  let out = "";
+  let depth = 0;
+  let quote = "";
+  for (let i = 0; i < sel.length; i++) {
+    const c = sel[i];
+    if (c === "\\") {
+      out += depth || quote ? "  " : c + (sel[i + 1] ?? "");
+      i++;
+    } else if (quote) {
+      if (c === quote) quote = "";
+      out += " ";
+    } else if (c === '"' || c === "'") {
+      quote = c;
+      out += " ";
+    } else if (c === "(" || c === "[") {
+      depth++;
+      out += " ";
+    } else if (c === ")" || c === "]") {
+      depth = Math.max(0, depth - 1);
+      out += " ";
+    } else out += depth ? " " : c;
+  }
+  return out;
+}
+
+/** A CSS identifier's escapes undone: ".md\\:flex" names the class "md:flex", ".\\31 0" the class "10". */
+function unescapeIdent(id) {
+  return id.replace(/\\([0-9a-fA-F]{1,6})\s?|\\([\s\S])/g, (_, hex, ch) => (hex ? String.fromCodePoint(parseInt(hex, 16)) : ch));
+}
+
+/**
+ * The app sheet less every selector that names, outside any (), [] or quotes, a class no first screen has: such a
+ * selector cannot match, so shellCriticalCss would drop it anyway, and its output is the same. It is a speed and memory
+ * step only. jsdom took ~16 ms and ~0.45 MB per selector against the 19 pages' first screens (3,514 selectors: 58 s and
+ * 1.6 GB, which ran the build out of heap on 11-25 once the theme guides had 140-290 gifts each).
+ */
+export function withoutAbsentClasses(css, html) {
+  const present = new Set();
+  const decode = (v) => v.replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+  for (const m of html.matchAll(/\sclass="([^"]*)"/g)) for (const c of decode(m[1]).split(/\s+/)) if (c) present.add(c);
+  const possible = (sel) => {
+    for (const m of topLevel(sel).matchAll(/\.((?:\\[0-9a-fA-F]{1,6}\s?|\\[\s\S]|[\w-]|[^\x00-\x7F])+)/g)) {
+      if (!present.has(unescapeIdent(m[1]))) return false;
+    }
+    return true;
+  };
+  const root = postcss.parse(css);
+  root.walkRules((rule) => {
+    if (rule.parent?.type === "atrule" && /keyframes$/.test(rule.parent.name)) return;
+    const keep = rule.selectors.filter(possible);
+    if (keep.length === 0) rule.remove();
+    else if (keep.length !== rule.selectors.length) rule.selectors = keep;
+  });
+  return root.toString();
+}
+
 /**
  * Every page's block and the rules its first screen needs (a rule is kept when it matches something in any guide's
  * first screen). Two sets, in the order the page itself has them: the app sheet's rules go into the head's inlined
@@ -121,7 +184,7 @@ export function guideShellData(rendered, appCss, assetNames = null) {
     for (const c of b.css) pageCss.add(c);
   }
   const used = [{ html: htmls.join(""), htmlAttr: "" }];
-  const ownCss = shellCriticalCss(used, [...pageCss].join("\n"));
+  const ownCss = shellCriticalCss(used, withoutAbsentClasses([...pageCss].join("\n"), used[0].html));
   const open = `<div id="${GUIDE_SHELL_ID}"`;
   const pages = Object.fromEntries(
     Object.entries(blocks).map(([path, block]) => {
@@ -134,7 +197,7 @@ export function guideShellData(rendered, appCss, assetNames = null) {
   // painted at their real size). font-display block was measured worse (11-24, Slow 4G + 4x, 2 runs: the text stayed
   // blank until the Bodoni file arrived, Monster Jam 3.8 s, Black Friday 4.8 s).
   const css = typeof appCss === "string" && appCss.length
-    ? shellCriticalCss(used, appCss) + pageFaces(appCss, ownCss) + GUIDE_SHELL_SHOW_RULE + guideShellHintRules(htmls.join(""))
+    ? shellCriticalCss(used, withoutAbsentClasses(appCss, used[0].html)) + pageFaces(appCss, ownCss) + GUIDE_SHELL_SHOW_RULE + guideShellHintRules(htmls.join(""))
     : null;
   return { data: { css, pages }, counts };
 }

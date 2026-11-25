@@ -83,12 +83,15 @@ describe("gift guides: owner 11-20 removals and style rules", () => {
 
   it("at most 2 pajamas per section on every guide", () => {
     const over: string[] = [];
+    // An item the owner sent herself is her decision (as in the style rules above; owner 11-24 ~9:30 PM on her sold-out
+    // Monster Jam pajamas: "No leave the sold out stuff on"): a theme row marked ownerAdd is not counted.
+    const ownerSent = new Set(Object.values(THEME_ROWS_FILES_1124).flatMap((f) => f.rows.filter((r) => r.ownerAdd).map((r) => r.href)));
     for (const [slug, picks] of GUIDES) {
       const n = new Map<string, number>();
       // A themed kids guide's sections are the price sections its page draws (owner 11-24 ~7 PM: laid out as Kids; its
       // chunk carries no section of its own).
       const sectionOf = (p: (typeof picks)[number]) => (isThemeGuide(slug) ? priceSectionId(p.price) : String(p.section));
-      for (const p of picks) if (p.type === "pajamas" || /\b(pajamas?|pj set|sleep (set|dress))\b/i.test(p.name)) n.set(sectionOf(p), (n.get(sectionOf(p)) ?? 0) + 1);
+      for (const p of picks) if (!ownerSent.has(p.href) && (p.type === "pajamas" || /\b(pajamas?|pj set|sleep (set|dress))\b/i.test(p.name))) n.set(sectionOf(p), (n.get(sectionOf(p)) ?? 0) + 1);
       for (const [s, c] of n) if (c > 2) over.push(`${slug} / ${s}: ${c}`);
     }
     expect(over).toEqual([]);

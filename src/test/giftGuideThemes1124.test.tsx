@@ -143,9 +143,9 @@ describe.each([...THEME_GUIDES_1124])("the %s guide", (slug) => {
     }
   });
 
-  it("no out-of-stock item is on the page, and the chunk runs cheapest first, priceRank 1..n", () => {
-    const ids = new Set(rows.map((r) => r.id));
-    for (const s of THEME_ROWS_FILES_1124[slug].skipped) if (s.why.includes("out of stock")) expect(ids.has(s.id), s.id).toBe(false);
+  // Owner 11-24 ~9:30 PM: "No leave the sold out stuff on": no theme skips a row for being out of stock.
+  it("sold-out items stay on the page, and the chunk runs cheapest first, priceRank 1..n", () => {
+    for (const s of THEME_ROWS_FILES_1124[slug].skipped) expect(s.why, s.id).not.toContain("out of stock");
     expect(chunk.map((p) => p.priceRank)).toEqual(chunk.map((_, i) => i + 1));
     for (let i = 1; i < chunk.length; i++) expect(chunk[i].price, chunk[i].name).toBeGreaterThanOrEqual(chunk[i - 1].price);
   });
@@ -205,5 +205,12 @@ describe.each([...THEME_GUIDES_1124])("the %s guide", (slug) => {
       expect(existsSync(`public/${it.image.slice(SITE.length)}`), it.image).toBe(true);
       expect(isAmazonRow({ store: "", href: it.image }), it.image).toBe(false);
     }
+  });
+});
+
+describe("sold-out Pokémon picks stay on (owner 11-24 ~9:30 PM)", () => {
+  it("PK03, PK08, PK50 and PK52 are rows on the Pokémon page", () => {
+    const ids = new Set(THEME_ROWS_FILES_1124.pokemon.rows.map((r) => r.id));
+    for (const id of ["PK03", "PK08", "PK50", "PK52"]) expect(ids.has(id), id).toBe(true);
   });
 });

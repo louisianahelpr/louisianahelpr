@@ -1861,6 +1861,21 @@
    "age": "kids"
   },
   {
+   "id": "CRM04",
+   "name": "Cars Toddler Boys' I Am Speed Top and Pants Set (Epic Threads)",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110875542",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-toddler-boys-i-am-speed-top-and-pants-set-epic-threads-macys-f9bc03.webp",
+   "store": "store-macys",
+   "price": 24,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "commission": 16,
+   "age": "toddler"
+  },
+  {
    "id": "CRM06",
    "name": "Lightning McQueen Big Boys' Graphic Tee",
    "brand": "Pixar Cars",
@@ -1904,6 +1919,38 @@
    "priceAt": "2026-11-24",
    "section": "Clothes and shoes",
    "sectionId": "cars-clothes-and-shoes",
+   "commission": 16,
+   "age": "toddler"
+  },
+  {
+   "id": "CRM09",
+   "name": "Lightning McQueen Speedway Full-Zip Hoodie (Epic Threads, 12M-5T)",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110875838",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lightning-mcqueen-speedway-full-zip-hoodie-epic-threads-12m-macys-eb4e82.webp",
+   "store": "store-macys",
+   "price": 18.4,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "was": 46,
+   "commission": 16,
+   "age": "toddler"
+  },
+  {
+   "id": "CRM10",
+   "name": "Cars Boys' Screen-Printed Crewneck Sweatshirt (Epic Threads, 12M-5T)",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110875908",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-boys-screen-printed-crewneck-sweatshirt-epic-threads-12-macys-13ebc7.webp",
+   "store": "store-macys",
+   "price": 17.6,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "was": 44,
    "commission": 16,
    "age": "toddler"
   },
@@ -2172,7 +2219,6 @@
    "id": "CRK15",
    "name": "Lightning McQueen Toddler Boys' Boxer Briefs, 3-Pack",
    "why": [
-    "Kohl's has no product photo (placeholder)",
     "no link"
    ]
   },
@@ -2194,7 +2240,6 @@
    "id": "CRK10",
    "name": "Cars Kids' Fleece Sweatshirt and Pants Set",
    "why": [
-    "Kohl's has no product photo (placeholder)",
     "no link"
    ]
   },
@@ -2214,31 +2259,10 @@
    ]
   },
   {
-   "id": "CRM04",
-   "name": "Cars Toddler Boys' I Am Speed Top and Pants Set (Epic Threads)",
-   "why": [
-    "Macy's photo shows a child wearing the set (product photos only)"
-   ]
-  },
-  {
    "id": "CRM05",
    "name": "Cars Toddler Boys' Button-Front 2-Piece Pajama Set",
    "why": [
     "pajama cap: at most 2 pajamas per price section (owner 11-20); u25 already has 2"
-   ]
-  },
-  {
-   "id": "CRM09",
-   "name": "Lightning McQueen Speedway Full-Zip Hoodie (Epic Threads, 12M-5T)",
-   "why": [
-    "Macy's photo is a close-up of the print, not the product (needs the product photo)"
-   ]
-  },
-  {
-   "id": "CRM10",
-   "name": "Cars Boys' Screen-Printed Crewneck Sweatshirt (Epic Threads, 12M-5T)",
-   "why": [
-    "Macy's photo is a close-up of the print, not the product (needs the product photo)"
    ]
   }
  ]

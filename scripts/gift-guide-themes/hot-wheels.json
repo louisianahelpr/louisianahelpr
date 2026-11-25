@@ -1443,6 +1443,21 @@
    "age": "kids"
   },
   {
+   "id": "HWK26",
+   "name": "Hot Wheels Fleece Sweatshirt and Pants Set",
+   "brand": "Hot Wheels",
+   "line": "Clothes for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724179",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-fleece-sweatshirt-and-pants-set-kohls-24d17e.webp",
+   "store": "store-kohls",
+   "price": 26.44,
+   "priceAt": "2026-11-24",
+   "section": "Clothes",
+   "sectionId": "hot-wheels-clothes",
+   "commission": 12,
+   "age": "kids"
+  },
+  {
    "id": "HWK27",
    "name": "Hot Wheels Toddler Boys' Long Sleeve Graphic Tee",
    "brand": "Hot Wheels",
@@ -1489,6 +1504,70 @@
    "was": 25,
    "commission": 16,
    "age": "kids"
+  },
+  {
+   "id": "HWM23",
+   "name": "Hot Wheels Big Boys' Stickers Graphic Tee",
+   "brand": "Hot Wheels",
+   "line": "Clothes for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110867445",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-big-boys-stickers-graphic-tee-macys-30ba59.webp",
+   "store": "store-macys",
+   "price": 17.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothes",
+   "sectionId": "hot-wheels-clothes",
+   "was": 21.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "HWM24",
+   "name": "Hot Wheels Toddler Boys' Truck Graphic Tee",
+   "brand": "Hot Wheels",
+   "line": "Clothes for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110867507",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-toddler-boys-truck-graphic-tee-macys-3a9ecd.webp",
+   "store": "store-macys",
+   "price": 17.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothes",
+   "sectionId": "hot-wheels-clothes",
+   "was": 21.99,
+   "commission": 16,
+   "age": "toddler"
+  },
+  {
+   "id": "HWM26",
+   "name": "Hot Wheels Boys' Pajama Shirt and Pants",
+   "brand": "Hot Wheels",
+   "line": "Clothes for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110867848",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-boys-pajama-shirt-and-pants-macys-b178af.webp",
+   "store": "store-macys",
+   "price": 28,
+   "priceAt": "2026-11-24",
+   "section": "Clothes",
+   "sectionId": "hot-wheels-clothes",
+   "was": 55.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "HWM28",
+   "name": "Hot Wheels Toddler Boys' Go Big Graphic Tee",
+   "brand": "Hot Wheels",
+   "line": "Clothes for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110868180",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-toddler-boys-go-big-graphic-tee-macys-a16f5b.webp",
+   "store": "store-macys",
+   "price": 16.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothes",
+   "sectionId": "hot-wheels-clothes",
+   "was": 21.99,
+   "commission": 16,
+   "age": "toddler"
   },
   {
    "id": "HWM29",
@@ -2036,6 +2115,21 @@
    "age": "kids"
   },
   {
+   "id": "HWK32",
+   "name": "Hot Wheels Color and Sticker Fun Spiral Book",
+   "brand": "Hot Wheels",
+   "line": "Cars and RC for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724297",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-color-and-sticker-fun-spiral-book-kohls-9a9043.webp",
+   "store": "store-kohls",
+   "price": 27.99,
+   "priceAt": "2026-11-24",
+   "section": "Cars and RC",
+   "sectionId": "hot-wheels-cars-and-rc",
+   "commission": 12,
+   "age": "kids"
+  },
+  {
    "id": "HWM01",
    "name": "Hot Wheels Scuderia Ferrari HP Formula 1 Hamilton & Leclerc Die-Cast 2-Pack",
    "brand": "Hot Wheels",
@@ -2409,6 +2503,22 @@
    "age": "kids"
   },
   {
+   "id": "HWM21",
+   "name": "Hot Wheels Classic '68 Kids Sling Bag",
+   "brand": "Hot Wheels",
+   "line": "Room and Christmas for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110867366",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-classic-68-kids-sling-bag-macys-be7006.webp",
+   "store": "store-macys",
+   "price": 29.69,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "hot-wheels-room-and-christmas",
+   "was": 32.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
    "id": "HWM25",
    "name": "Hot Wheels Turbo Blaze Kids Sling Bag",
    "brand": "Hot Wheels",
@@ -2725,13 +2835,6 @@
    ]
   },
   {
-   "id": "HWK26",
-   "name": "Hot Wheels Fleece Sweatshirt and Pants Set",
-   "why": [
-    "Kohl's has no product photo (placeholder)"
-   ]
-  },
-  {
    "id": "HWK29",
    "name": "Hot Wheels Boys' 2-Piece Pajama Set (6-12)",
    "why": [
@@ -2746,34 +2849,6 @@
    ]
   },
   {
-   "id": "HWM23",
-   "name": "Hot Wheels Big Boys' Stickers Graphic Tee",
-   "why": [
-    "Macy's photo is a close-up of the print, not the product (needs the product photo)"
-   ]
-  },
-  {
-   "id": "HWM24",
-   "name": "Hot Wheels Toddler Boys' Truck Graphic Tee",
-   "why": [
-    "Macy's photo is a close-up of the print, not the product (needs the product photo)"
-   ]
-  },
-  {
-   "id": "HWM26",
-   "name": "Hot Wheels Boys' Pajama Shirt and Pants",
-   "why": [
-    "Macy's photo is a close-up of the print, not the product (needs the product photo)"
-   ]
-  },
-  {
-   "id": "HWM28",
-   "name": "Hot Wheels Toddler Boys' Go Big Graphic Tee",
-   "why": [
-    "Macy's photo is a close-up of the print, not the product (needs the product photo)"
-   ]
-  },
-  {
    "id": "HWT07",
    "name": "Hot Wheels Formula 1 10-Pack, 1:64 (2025 teams)",
    "why": [
@@ -2784,21 +2859,7 @@
    "id": "HWK22",
    "name": "Hot Wheels Mario Wheelie Motocross RC",
    "why": [
-    "photo shows a person's hand (no product-only photo)"
-   ]
-  },
-  {
-   "id": "HWK32",
-   "name": "Hot Wheels Color and Sticker Fun Spiral Book",
-   "why": [
-    "Kohl's photo is not the book (no product photo)"
-   ]
-  },
-  {
-   "id": "HWM21",
-   "name": "Hot Wheels Classic '68 Kids Sling Bag",
-   "why": [
-    "Macy's photo shows a child wearing the bag (product photos only)"
+    "same item as HWM10 (Macy's $27.49 < Kohl's $37.79); one place per item (sweep E 11-25)"
    ]
   }
  ]

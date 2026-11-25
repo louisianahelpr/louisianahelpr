@@ -8,7 +8,8 @@
  *
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-banner h1,.gg-banner-sub .gg-banner h1{display:block;-webkit-line-clamp:none;overflow:visible; | .gg-banner h1,.gg-banner-sub .gg-banner h1{display:-webkit-box;-webkit-line-clamp:2;overflow:hidden;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-banner{height:auto;min-height:252px} | .gg-banner{height:252px}
- * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |   return title.length > 24 ? "xlong" : title.length > 12 ? "long" : ""; |   return "";
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |   return title.length > 24 \|\| longestWord > 11 ? "xlong" : title.length > 12 ? "long" : ""; |   return "";
+ * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx | title.length > 24 \|\| longestWord > 11 ? | title.length > 24 ?
  */
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
@@ -24,6 +25,10 @@ describe("guide banner: a long title wraps, never clips", () => {
     expect(bannerLength("Her")).toBe("");
     expect(bannerLength("Monster Jam Gift Guide")).toBe("long");
     expect(bannerLength(LONG)).toBe("xlong");
+    // Numberblocks lane 2026-11-24 (screenshot at 375): one 12-letter word ran past the arch at the phone size, so a
+    // title with a word over 11 letters takes the phone's smaller type too, whatever its length.
+    expect(bannerLength("Numberblocks Gift Guide")).toBe("xlong");
+    expect(bannerLength("Pixar Cars Gift Guide")).toBe("long");
     const c = render(<GiftGuidesWords lead="the" title={LONG} titleId="t" tint="green" sub={false} />).container;
     const header = c.querySelector("header[data-gift-words]")!;
     expect(header.className).toBe("gg-words gg-banner-wrap gg-banner-long gg-banner-xlong");

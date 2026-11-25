@@ -36,9 +36,13 @@ export function GiftGuideCover({ guide, priority = false }: { guide: CatalogGuid
  * 1440): the band's heights are minimums, and a long title takes smaller type (bannerLength). Guard:
  * src/test/guideBannerLongTitle1124.test.tsx.
  */
-/** "long" (over 12 letters: the deal days' sizes from 768px) or "xlong" (over 24: smaller on a phone too), else "". */
+/**
+ * "long" (over 12 letters: the deal days' sizes from 768px) or "xlong" (over 24, or one word over 11 letters: smaller on
+ * a phone too), else "". The word rule: "Numberblocks" (12 letters) ran past the arch at 375 at the phone size (11-24).
+ */
 export function bannerLength(title: string): "" | "long" | "xlong" {
-  return title.length > 24 ? "xlong" : title.length > 12 ? "long" : "";
+  const longestWord = Math.max(0, ...title.split(/\s+/).map((w) => w.length));
+  return title.length > 24 || longestWord > 11 ? "xlong" : title.length > 12 ? "long" : "";
 }
 
 export function GiftGuidesWords({ lead, title, titleId, tint, sub = false }: { lead: string; title: string; titleId: string; tint: CatalogGuide["tint"]; sub?: boolean }) {

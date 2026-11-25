@@ -11,5 +11,6 @@ import pokemon from "./pokemon.json" with { type: "json" };
 import minecraft from "./minecraft.json" with { type: "json" };
 import hotWheels from "./hot-wheels.json" with { type: "json" };
 import cars from "./cars.json" with { type: "json" };
+import numberblocks from "./numberblocks.json" with { type: "json" };
 
-export const THEME_FILES = { "monster-jam": monsterJam, "bluey": bluey, "marvel": marvel, "kpop-demon-hunters": kpopDemonHunters, "pokemon": pokemon, "minecraft": minecraft, "hot-wheels": hotWheels, "cars": cars };
+export const THEME_FILES = { "monster-jam": monsterJam, "bluey": bluey, "marvel": marvel, "kpop-demon-hunters": kpopDemonHunters, "pokemon": pokemon, "minecraft": minecraft, "hot-wheels": hotWheels, "cars": cars, "numberblocks": numberblocks };

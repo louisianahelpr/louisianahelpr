@@ -1717,5 +1717,40 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lightning-mcqueen-toddler-boys-chunky-sneakers-walmart-192b8c.webp"
    }
   ]
+ },
+ "numberblocks": {
+  "section": "For kids",
+  "items": [
+   {
+    "name": "Numberblocks Ten Playful Pal Plush, 17\"",
+    "key": "numberblocks:nb15",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/numberblocks-ten-playful-pal-plush-17-walmart-713264.webp"
+   },
+   {
+    "name": "Sing-Along Numberblock Five Plush",
+    "key": "numberblocks:nb16",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/sing-along-numberblock-five-plush-walmart-ba3d7b.webp"
+   },
+   {
+    "name": "Numberblocks Seven Playful Pal Plush, 24\"",
+    "key": "numberblocks:nb13",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/numberblocks-seven-playful-pal-plush-24-walmart-bb6e25.webp"
+   },
+   {
+    "name": "Numberblocks 1-10 MathLink Cubes Activity Set",
+    "key": "numberblocks:nb30",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/numberblocks-1-10-mathlink-cubes-activity-set-walmart-3c8921.webp"
+   },
+   {
+    "name": "Numberblocks Rainbow Counting Bus",
+    "key": "numberblocks:nb24",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/numberblocks-rainbow-counting-bus-walmart-08ed64.webp"
+   },
+   {
+    "name": "Numberblocks One and Two Playful Pals Plush (5\" and 8\")",
+    "key": "numberblocks:nb10",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/numberblocks-one-and-two-playful-pals-plush-5-and-8-walmart-e7607d.webp"
+   }
+  ]
  }
 }

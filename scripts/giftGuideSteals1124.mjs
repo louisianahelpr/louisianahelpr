@@ -34,6 +34,11 @@ export const KIDS_STEALS_1124_ROWS = [
   ["https://walmrt.us/4fSzHIL", 12.61, "https://i5.walmartimages.com/seo/Cute-Farm-Animal-Dumpling-Advent-Calendar-24-Days-Christmas-Countdown-Ornament-Gift-for-Kids-Teens-Holiday-Tree-Decor_26079486-b2a9-431b-927a-7b2e8d268d0d.7c2740f8708f1d701d8f7d5534c608be.jpeg", "Cute Farm Animal Dumpling Advent Calendar", "", "store-walmart", "advent-calendar", 6, "Farm animal dumpling squishies, one for each day of December."],
   ["https://walmrt.us/4jcx3OU", 16.89, "https://i5.walmartimages.com/seo/UUGEE-2024-Christmas-Advent-Calendar-Boys-Kids-24-Days-Countdown-Calendar-Pull-Back-Cars-Toys-Set-24-Vehicles-Xmas-Surprise-Gifts-1-2-3-Years-Old-Tod_492e28fe-d787-4a63-9a78-0f73457b08bf.2903e563bf3a841cad4744e24bc94846.jpeg", "UUGEE Advent Calendar, 24 Pull-Back Cars", "UUGEE", "store-walmart", "advent-calendar", 6, "24 pull-back cars to open, one each day before Christmas."],
   ["https://walmrt.us/3V7qKEv", 15, "https://i5.walmartimages.com/seo/Monster-Jam-1-64-Truck-Collection-4-Pack-with-3-Bonus-Mini-Jams-Vehicles-for-Kids-3-and-up_5e70e26e-62fc-4d27-ac48-d6c0bbeb0a2e.8f9818984e305aa62898183ec2d08edb.jpeg", "Monster Jam 1:64 Truck 4-Pack with 3 Mini Jams", "Monster Jam", "store-walmart", "vehicle-toy", 6, "Four Monster Jam trucks plus three mini trucks to race."],
+  // Owner 11-24 ~9:45 PM (via the lead, "add this"; picks round 2): her Walmart link, resolved by one header-only request;
+  // walmart.com/ip/19251169318 read 9:44 PM: hardcover, sold by Walmart.com, IN_STOCK, $21.56, no was-price, age group Child
+  // (no minimum age listed). Her link's own rate is not shown and books are not on the Black Friday elevated list: 6% is the
+  // rate her other Walmart Kids links carry here, unconfirmed for books.
+  ["https://walmrt.us/4zIzr6p", 21.56, "https://i5.walmartimages.com/seo/Elf-on-the-Shelf-The-Elf-on-the-Shelf-Advent-Calendar-Story-Activity-Collection-Series-10-Hardcover-9780063327351_c56acf0d-01e7-4f68-a407-a8651906af07.f5971afc5371def279f4c5461e01a47c.jpeg", "The Elf on the Shelf Advent Calendar Story and Activity Collection", "The Elf on the Shelf", "store-walmart", "book", 6, "A 24-day advent book of Elf on the Shelf stories and activities."],
   // Walmart Creator links made 11-24 ~3:05 AM (creator.walmart.com; Black Friday elevated rate for apparel and shoes 15%,
   // where Later's Walmart rate for apparel is its 0% baseline); listing re-read ~3:10 AM, sold by Walmart, in stock.
   // S28: the kid-size KPop Demon Hunters slipper (reg. $16.98; the $5 Huntrx pair is adult/teen sizes only).
@@ -125,6 +130,7 @@ export const HIM_STEALS_1124_ROWS = [
 
 /** Store photos for the steals, cut out (Apple Vision) into public/gift-guides/cutouts: photo URL -> file. */
 export const STEALS_CUTOUTS_1124 = [
+  ["https://i5.walmartimages.com/seo/Elf-on-the-Shelf-The-Elf-on-the-Shelf-Advent-Calendar-Story-Activity-Collection-Series-10-Hardcover-9780063327351_c56acf0d-01e7-4f68-a407-a8651906af07.f5971afc5371def279f4c5461e01a47c.jpeg", "elf-on-the-shelf-advent-calendar-story-activity-walmart-c7043f.webp"],
   ["https://sc-images.jcpenney.com/JCPenney/DP69992719-20260803190503M", "jcpenney-holiday-velvet-plush-throw-trees-folded-9d76e9.webp"],
   ["https://media.kohlsimg.com/is/image/kohls/3840392_Santa", "kohls-shine-holiday-crew-socks-santa-6d3af3.webp"],
   ["https://sc-images.jcpenney.com/JCPenney/DP0527202607083329M", "jcpenney-beautyrest-heated-throw-gray-fairisle-b0cc71.webp"],

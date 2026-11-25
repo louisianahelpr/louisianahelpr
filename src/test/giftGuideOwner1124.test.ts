@@ -106,6 +106,7 @@ const STEALS: [string, string, string, number, number, string][] = [
   ["kids", wm("4fSzHIL"), "store-walmart", 6, 12.61, "Cute Farm Animal Dumpling Advent Calendar"],
   ["kids", wm("4jcx3OU"), "store-walmart", 6, 16.89, "UUGEE Advent Calendar, 24 Pull-Back Cars"],
   ["kids", wm("3V7qKEv"), "store-walmart", 6, 15, "Monster Jam 1:64 Truck 4-Pack with 3 Mini Jams"],
+  ["kids", wm("4zIzr6p"), "store-walmart", 6, 21.56, "The Elf on the Shelf Advent Calendar Story and Activity Collection"],
   ["kids", wm("4AQxuWv"), "store-walmart", 15, 8, "KPop Demon Hunters Girls Slippers"],
   ["kids", wm("4CcMa3A"), "store-walmart", 15, 5, "Monster Jam Grave Digger Toddler Slippers"],
   ["kids", wm("3VHA424"), "store-walmart", 15, 5.84, "Bluey Toddler Pajama Set"],

@@ -176,6 +176,8 @@ if (coldSlug && dealDay(coldSlug)) {
  * row and tile CSS), so nothing below it moves; a failed load leaves the stand-in and is reported.
  */
 const loadThemeRow = () => loadModule(() => import("./giftGuides/GiftGuideThemeRow"));
+// A themed guide's Filter tags: the import alone in its loader, the read on its result (dynamicImportThenDoesNoWork).
+const loadThemeTags = () => loadModule(() => import("@/content/giftGuideThemeTags"));
 function LazyThemeRow() {
   const mod = useLazyPart(loadThemeRow, "GiftGuides.loadThemeRow");
   if (!mod || mod === "failed") {
@@ -285,7 +287,7 @@ export default function GiftGuides() {
   useEffect(() => {
     if (!needsTags || kidTags) return;
     let live = true;
-    (tagsKey === "kids" ? loadKidTags() : import("@/content/giftGuideThemeTags").then((m) => m.themeTags(tagsKey))).then((t) => { if (live) setTagsAt({ key: tagsKey, tags: t }); }, (e: unknown) => {
+    (tagsKey === "kids" ? loadKidTags() : loadThemeTags().then((m) => m ?? untilReload()).then((m) => m.themeTags(tagsKey))).then((t) => { if (live) setTagsAt({ key: tagsKey, tags: t }); }, (e: unknown) => {
       // Offline or a stale deploy: the Price chips still work; Age and For come back on the next visit.
       console.warn("gift guides: kids tags failed", e);
     });

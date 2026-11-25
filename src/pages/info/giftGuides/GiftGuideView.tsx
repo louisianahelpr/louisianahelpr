@@ -552,7 +552,8 @@ export function GiftGuideView({ guide, order = "top", hideCount = false, filter 
   return (
     <article aria-labelledby="gift-guide-title" data-gift-guide={guide.slug}>
       {/* Owner 2026-11-22, 11:40 PM: Her, Him and Kids open with the phone's one-line menu tip (Facebook lands on Her). */}
-      {MENU_HINT_GUIDES.has(guide.slug) && <GuidesMenuHint />}
+      {/* Kids shows the tip above its theme covers instead (GiftGuides.tsx, owner 11-24 8:23 PM). */}
+      {MENU_HINT_GUIDES.has(guide.slug) && guide.slug !== "kids" && <GuidesMenuHint />}
       {guide.slug === GIFT_WRAP_GUIDE && <GiftGuideHelpr />}
       {/* Holistic review 11-18 H1: Niece, Nephew and Cousins open their kids age guides by age. */}
       <AgeChips slug={guide.slug} />

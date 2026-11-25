@@ -116,13 +116,16 @@ describe("the Kids page's themed guides row (owner 2026-11-24)", () => {
     });
   });
 
-  it("sits right under the red banner, before the gifts", async () => {
+  it("sits right under the red banner and the menu tip, before the gifts", async () => {
     const c = await renderKids();
     const banner = c.querySelector("[data-gift-banner]");
     const row = c.querySelector("[data-gift-theme-row]");
     const firstGift = c.querySelector("[data-gift-guide]");
     expect(banner?.getAttribute("data-gift-banner")).toBe("red");
-    expect(banner!.nextElementSibling).toBe(row);
+    // Owner 11-24 8:23 PM: the "Tap the menu" tip sits between the banner and the row ("above the new guides").
+    const hint = banner!.nextElementSibling;
+    expect(hint?.hasAttribute("data-gift-menu-hint")).toBe(true);
+    expect(hint!.nextElementSibling).toBe(row);
     expect(row!.compareDocumentPosition(firstGift!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

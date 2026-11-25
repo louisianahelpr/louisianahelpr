@@ -90,7 +90,16 @@ describe("gift guides: the phone's one-line menu tip (owner 11-22)", () => {
     expect(hint.compareDocumentPosition(covers) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it.each(["her", "him", "kids"])("opens %s, first in the guide's column", (slug) => {
+  // Kids is the exception since 11-24 8:23 PM: its tip sits above the theme covers (owner: "Move the tap box above the
+  // new guides"), right under the red banner; giftGuideKidsThemeRow1124 checks that order.
+  it("on kids sits above the theme covers, not in the guide's column", () => {
+    const { container } = renderAt("/gift-guides/kids");
+    const article = container.querySelector('article[data-gift-guide="kids"]')!;
+    expect(article.querySelector("[data-gift-menu-hint]")).toBeNull();
+    expect(container.querySelectorAll("[data-gift-menu-hint]")).toHaveLength(1);
+  });
+
+  it.each(["her", "him"])("opens %s, first in the guide's column", (slug) => {
     const { container } = renderAt(`/gift-guides/${slug}`);
     const article = container.querySelector(`article[data-gift-guide="${slug}"]`)!;
     expect(article.firstElementChild?.hasAttribute("data-gift-menu-hint")).toBe(true);

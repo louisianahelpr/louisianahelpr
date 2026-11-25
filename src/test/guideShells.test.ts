@@ -7,7 +7,7 @@
  * member rules and index.html's guide script), the page's own rules inside the block (after the app sheet, as the page
  * has them), the deals list and theme row drawn in, built asset paths, and a redraw once the web fonts are in.
  *
- * @mutate src/lib/guideShell.mjs |   const page = html.replace(/<div\s+id="boot-loader"[^>]*>/, (open) => `${open}${block}`); |   const page = html;
+ * @mutate src/lib/guideShell.mjs | .replace(/<div\s+id="boot-loader"[^>]*>/, (open) => `${open}${block}`); | ;
  * @mutate src/content/giftGuideLive.mjs | export const LIVE_GUIDES_1121 = ["her", | export const LIVE_GUIDES_1121 = ["her", "lh-not-prerendered",
  * @mutate scripts/lib/guideShellBuild.mjs |   if (items.length > FIRST_SCREEN_ITEMS) { |   if (items.length > 0) {
  * @mutate src/boot/guideShellHandoff.ts |   if (signedIn !== member \|\| el.getAttribute("data-guide-shell") !== path) { |   if (el.getAttribute("data-guide-shell") !== path) {

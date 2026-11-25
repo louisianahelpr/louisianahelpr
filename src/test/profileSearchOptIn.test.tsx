@@ -8,7 +8,7 @@
  * @mutate api/share.ts |     robots: card.show_in_search === true ? PROFILE_ROBOTS_SHOWN : PROFILE_ROBOTS, |     robots: PROFILE_ROBOTS_SHOWN,
  * @mutate api/share.ts |     noindexHeader: card.show_in_search !== true, |     noindexHeader: false,
  * @mutate api/share.ts |       if (!meta) return respond(shell, undefined, 200, resolveRoute(url)?.kind === "profile"); |       if (!meta) return respond(shell);
- * @mutate api/share.ts |       return respond(page, meta.cdnCache, 200, meta.noindexHeader === true); |       return respond(page, meta.cdnCache);
+ * @mutate api/share.ts |       return respond(guided, meta.cdnCache, 200, meta.noindexHeader === true); |       return respond(guided, meta.cdnCache);
  * @mutate src/pages/u/PublicProfilePage.tsx |     robots: p?.show_in_search === true ? ROBOTS_SHOWN : ROBOTS, |     robots: p?.show_in_search !== false ? ROBOTS_SHOWN : ROBOTS,
  * @mutate src/components/profile/ShowInSearchSwitch.tsx | .update({ show_in_search: next }).eq("user_id", userId).select("id") | .update({ show_in_search: next }).eq("user_id", userId)
  * @mutate src/components/profile/ShowInSearchSwitch.tsx |       setOn(next); |

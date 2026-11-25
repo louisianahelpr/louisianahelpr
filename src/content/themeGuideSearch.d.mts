@@ -27,4 +27,5 @@ export declare function themeGuideSearch(
   picks: readonly ThemeSearchPick[],
   count: number,
   today: string,
+  opts?: { deals?: boolean },
 ): { title: string; description: string; ogTitle: string; intro: string } | null;

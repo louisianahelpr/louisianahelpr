@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
 import { guideBySlug, type CatalogGuide } from "@/content/giftGuideCatalog";
@@ -6,7 +6,7 @@ import { FUN_TOOLS, FUN_WORDS } from "@/content/giftGuideFun1120";
 import { EXTRAS_WORDS, FINDER_ANCHOR as FINDER_ID } from "@/content/giftGuideExtras1120";
 import { PRINTABLE_PAGES, printablesCount } from "@/content/printables";
 import { CHUNK_PICK_COUNTS } from "@/content/giftGuidePicks";
-import { THEME_GUIDE_NAMES_1124, isThemeGuide } from "@/content/giftGuideLive.mjs";
+import { THEME_GUIDE_NAMES_1124, isDealTheme, isKidsTheme, isThemeGuide } from "@/content/giftGuideLive.mjs";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { MY_LIST_SLUG } from "./giftList";
@@ -120,11 +120,14 @@ export function GiftGuidesMenu({ active, myList = false, mine = myList, page, id
   // view), elsewhere folded behind its + / - at the right of Kids, which opens them in place. Native, so no new script
   // on the guide page's first paint (the /gift-guides/:slug critical-path budget, Q178).
   // Guard: src/test/giftGuideSideThemes1124.test.tsx.
-  const onKids = open === "kids" || isThemeGuide(open ?? "");
+  const onKids = open === "kids" || isKidsTheme(open ?? "");
   const row = (g: (typeof guides)[number]) => (
     <Link to={`/gift-guides/${g.slug}`} {...current(g.slug)} data-gift-side={g.slug}><i className={`gg-dot gg-${g.dot}`} aria-hidden="true" data-gift-side-dot={g.dot} />{g.title}<N n={CHUNK_PICK_COUNTS[g.slug]} noun="gifts" /></Link>
   );
-  const themes = guides.filter((g) => isThemeGuide(g.slug));
+  const themes = guides.filter((g) => isKidsTheme(g.slug));
+  // A store deals guide (Sam's Club Black Friday, owner 11-25) is a deals page: its row sits in Deals, right after Black
+  // Friday, never under Kids. Guard: src/test/samsClubBlackFriday1125.test.tsx.
+  const dealThemes = guides.filter((g) => isDealTheme(g.slug));
   return (
     <>
       <p className="gg-side-h" id={`${idPrefix}-guides`}>{G.sideHeads.guides}</p>
@@ -142,7 +145,10 @@ export function GiftGuidesMenu({ active, myList = false, mine = myList, page, id
         {/* Holiday audit 1121 (High): each day is its own page, so each entry opens that page and is marked current on
             it (it was a #anchor on the one-page address that never scrolled, with Black Friday always marked). */}
         {G.sideDeals.map((d) => (
-          <li key={d.id}><Link to={`/gift-guides/${d.id}`} {...current(d.id)} data-gift-side-deals={d.id}>{d.label}<N n={n[d.id]} /></Link></li>
+          <Fragment key={d.id}>
+            <li><Link to={`/gift-guides/${d.id}`} {...current(d.id)} data-gift-side-deals={d.id}>{d.label}<N n={n[d.id]} /></Link></li>
+            {d.id === "black-friday" && dealThemes.map((t) => <li key={t.slug}>{row(t)}</li>)}
+          </Fragment>
         ))}
       </ul>
       {printables.length > 0 && (

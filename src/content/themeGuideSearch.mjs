@@ -91,20 +91,24 @@ export function themeGuideFacts(picks, count, today) {
  * A theme's title, description, card title and visible intro, or null with no picks. `name` is the theme's name
  * ("Monster Jam"); the rest as themeGuideFacts.
  */
-export function themeGuideSearch(name, picks, count, today) {
+export function themeGuideSearch(name, picks, count, today, { deals = false } = {}) {
   const f = themeGuideFacts(picks, count, today);
   if (!f.count) return null;
   const theme = String(name ?? "").trim();
+  // A store deals guide (Sam's Club Black Friday, owner 11-25; giftGuideLive.mjs isDealTheme) says "deals", never "for kids".
+  const gifts = deals ? "deals" : "gifts";
   // Title: the theme's own gift words, the most common kinds first, then stocking stuffers when it has any.
   const tail = f.stocking ? ["stocking stuffers"] : [];
   const titles = [3, 2, 1, 0].map((k) => {
     const words = [...f.kinds.slice(0, k), ...tail];
-    return words.length ? `${theme} gifts 2026: ${joinWords(words, "&")} — Helpr` : `${theme} Christmas gifts 2026 — Helpr`;
+    return words.length ? `${theme} ${gifts} 2026: ${joinWords(words, "&")} — Helpr` : deals ? `${theme} deals 2026 — Helpr` : `${theme} Christmas gifts 2026 — Helpr`;
   });
-  const title = titles.find((t) => t.length <= THEME_TITLE_MAX) ?? `${theme} Christmas gifts 2026 — Helpr`;
+  // A deals guide's title names its count of deals, not gift kinds (a sale list mixes TVs, mixers and lip balm).
+  const dealTitles = [`${theme} deals 2026: ${f.count} gifts on sale — Helpr`, `${theme} deals 2026 — Helpr`];
+  const title = (deals ? dealTitles : titles).find((t) => t.length <= THEME_TITLE_MAX) ?? (deals ? `${theme} deals 2026 — Helpr` : `${theme} Christmas gifts 2026 — Helpr`);
   // Description: count, price range (its priciest gift by name when it fits) and the stores that sell the priced gifts.
-  const head = `${f.count} ${theme} Christmas gift idea${f.count === 1 ? "" : "s"} for kids`;
-  const low = f.min === null ? "" : f.min < 10 ? `$${f.min} stocking stuffers` : `$${f.min}`;
+  const head = deals ? `${f.count} ${theme} deal${f.count === 1 ? "" : "s"}` : `${f.count} ${theme} Christmas gift idea${f.count === 1 ? "" : "s"} for kids`;
+  const low = f.min === null ? "" : f.min < 10 && !deals ? `$${f.min} stocking stuffers` : `$${f.min}`;
   const ranges = f.min === null || f.max === null || f.max === f.min ? [""] : [
     ...(f.topName ? [`, from ${low} to the $${f.max} ${f.topName}`] : []),
     `, from ${low} to $${f.max}`,
@@ -117,7 +121,9 @@ export function themeGuideSearch(name, picks, count, today) {
   const kindsSaid = [...f.kinds.slice(0, 4), ...tail];
   const what = kindsSaid.length ? `: ${joinWords(kindsSaid)}` : "";
   const range = f.min !== null && f.max !== null && f.max > f.min ? `, from $${f.min} to $${f.max}` : "";
-  const every = f.priced === f.count ? "Every gift shows its price, and each one links straight to the store that sells it." : "Each gift links straight to the store that sells it.";
-  const intro = `${theme} Christmas gifts for kids${what}${range}. ${every}`;
+  const every = deals
+    ? "Every deal shows its Black Friday price, and each one links straight to the store's page."
+    : f.priced === f.count ? "Every gift shows its price, and each one links straight to the store that sells it." : "Each gift links straight to the store that sells it.";
+  const intro = deals ? `${theme} deals${what}${range}. ${every}` : `${theme} Christmas gifts for kids${what}${range}. ${every}`;
   return { title, description, ogTitle: title.replace(/ — Helpr$/, ""), intro };
 }

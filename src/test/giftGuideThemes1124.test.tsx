@@ -48,7 +48,7 @@ vi.mock("@/content/giftGuideDupes.json", async () => {
 
 import { THEME_ROWS_FILES_1124, isAmazonRow, themePicks1124, themeRows1124 } from "../../scripts/giftGuideThemes1124.mjs";
 import GiftGuides from "@/pages/info/GiftGuides";
-import { LIVE_GUIDES_1121, THEME_GUIDES_1124, THEME_GUIDE_NAMES_1124, isThemeGuide } from "@/content/giftGuideLive.mjs";
+import { LIVE_GUIDES_1121, THEME_GUIDES_1124, THEME_GUIDE_NAMES_1124, isThemeGuide, themeTitle } from "@/content/giftGuideLive.mjs";
 import { CHUNK_PICK_COUNTS, CHUNK_SLUGS, RESEARCHED_STORES } from "@/content/giftGuidePicks";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 import { GUIDE_INDEX } from "@/content/giftGuideIndex";
@@ -152,7 +152,8 @@ describe.each([...THEME_GUIDES_1124])("the %s guide", (slug) => {
 
   it("renders its title, one row per pick, every section open, and no shop similar", async () => {
     const c = await renderAt(`/gift-guides/${slug}`);
-    expect(c.textContent).toContain(`${name} Gift Guide`);
+    // "<Theme> Gift Guide"; a store deals guide (Sam's Club Black Friday, owner 11-25) has its own title.
+    expect(c.textContent).toContain(themeTitle(slug));
     expect(c.querySelectorAll("li[data-gift-pick]").length).toBe(chunk.length);
     const toggles = [...c.querySelectorAll<HTMLButtonElement>("[data-gift-section-toggle]")];
     // The main guides' price sections, Stocking stuffers under $10 first (the chunk is cheapest first).
@@ -170,7 +171,7 @@ describe.each([...THEME_GUIDES_1124])("the %s guide", (slug) => {
     expect(row?.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot")).toBe("green");
     expect(row?.textContent).toContain(name);
     expect(c.querySelector(`[data-gift-live-guides] a[href="/gift-guides/${slug}"]`)).toBeNull();
-    expect(GUIDE_INDEX.filter((g) => g.slug === slug)).toEqual([{ group: "For kids", tint: "green", slug, title: `${name} Gift Guide`, lead: "the" }]);
+    expect(GUIDE_INDEX.filter((g) => g.slug === slug)).toEqual([{ group: "For kids", tint: "green", slug, title: themeTitle(slug), lead: "the" }]);
   });
 
   it("is indexed: SEO title, sitemap, llms.txt and every pick in the search index", () => {
@@ -187,7 +188,7 @@ describe.each([...THEME_GUIDES_1124])("the %s guide", (slug) => {
     expect(SHARE).toContain(`  "gift-guides/${slug}": "${slug}",`);
     const meta = await sharp(`public/gift-guides/og-wide/${slug}.jpg`).metadata();
     expect([meta.width, meta.height]).toEqual([1200, 630]);
-    expect(WIDE_PY).toContain(`    "${slug}": ("/gift-guides/${slug}", "green", "the", "${name} Gift Guide"),`);
+    expect(WIDE_PY).toContain(`    "${slug}": ("/gift-guides/${slug}", "green", "the", "${themeTitle(slug)}"),`);
     const keys = WIDE_PY.match(/^COVER_KEYS = \(([^)]*)\)$/m)?.[1] ?? "";
     expect(keys).toContain(`"${slug}"`);
   });

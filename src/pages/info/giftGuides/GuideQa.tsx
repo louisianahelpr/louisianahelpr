@@ -7,7 +7,7 @@ import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import { louisianaDay } from "@/content/giftGuideDeals.mjs";
 import { QA_BYLINE, QA_TITLE, catalogGuideQa, dealsDayQa, holidayHubQa, newestPriceDay, smallBizQa, toStoreQaPick, updatedLine, type QaDeal, type QaDealListed, type QaItem } from "@/lib/guideQa.mjs";
 import { STORES, type CatalogPick } from "@/content/giftGuideCatalog";
-import { THEME_GUIDE_NAMES_1124 } from "@/content/giftGuideLive.mjs";
+import { THEME_GUIDE_NAMES_1124, isDealTheme } from "@/content/giftGuideLive.mjs";
 import { themeGuideSearch } from "@/content/themeGuideSearch.mjs";
 
 /**
@@ -51,7 +51,7 @@ function themeIntro(page: string, picks: readonly CatalogPick[], today: string):
   if (!name) return null;
   const seen = new Set<string>();
   const rows = picks.filter((p) => p.name && p.href && !seen.has(p.href) && seen.add(p.href));
-  return themeGuideSearch(name, rows.map((p) => ({ name: p.name, price: p.price, priceAt: p.priceAt, priceFrom: p.priceFrom, store: STORES[p.store]?.name ?? "" })), rows.length, today)?.intro ?? null;
+  return themeGuideSearch(name, rows.map((p) => ({ name: p.name, price: p.price, priceAt: p.priceAt, priceFrom: p.priceFrom, store: STORES[p.store]?.name ?? "" })), rows.length, today, { deals: isDealTheme(page) })?.intro ?? null;
 }
 
 export function GuideQa(props: GuideQaProps) {

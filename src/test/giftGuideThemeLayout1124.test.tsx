@@ -31,7 +31,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 }));
 
 import GiftGuides from "@/pages/info/GiftGuides";
-import { THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
+import { KIDS_THEME_GUIDES_1124, THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
 import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { NO_KIDS_SELECTION, filterKids, type KidsSelection } from "@/content/giftGuideKidsFilter";
 import { tagsFromPicks } from "@/content/giftGuideThemeTags";
@@ -93,7 +93,8 @@ describe("the data: one chunk rule for the generator and the import", () => {
     expect(src).toMatch(/import \{ themeChunkPicks \} from "\.\/giftGuideThemePicks\.mjs";/);
   });
 
-  it.each([...THEME_GUIDES_1124])("%s: no category section, cheapest first with priceRank, ages from the research", (slug) => {
+  // The kids themes (a store deals guide states no ages and has no Kids Filter: samsClubBlackFriday1125).
+  it.each([...KIDS_THEME_GUIDES_1124])("%s: no category section, cheapest first with priceRank, ages from the research", (slug) => {
     const chunk = chunkOf(slug);
     expect(chunk).toEqual(JSON.parse(JSON.stringify(themeChunkPicks(slug, themeRows1124(slug)))));
     expect(chunk).toEqual(JSON.parse(JSON.stringify(themePicks1124(slug))));
@@ -110,7 +111,7 @@ describe("the data: one chunk rule for the generator and the import", () => {
   });
 });
 
-describe.each([...THEME_GUIDES_1124])("the %s page is set up as For Kids", (slug) => {
+describe.each([...KIDS_THEME_GUIDES_1124])("the %s page is set up as For Kids", (slug) => {
   it("no section chips; the main guides' price sections in order, all open; the toolbar is search, Filter, heart, share", async () => {
     const c = await renderAt(`/gift-guides/${slug}`);
     const picks = guideBySlug(slug)!.picks;

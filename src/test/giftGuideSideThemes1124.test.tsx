@@ -9,7 +9,7 @@
  *  - on Kids and on every theme page it is open, so the open page stays in view (aria-current).
  *
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <details open={onKids}> | <details open>
- * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   const onKids = open === "kids" \|\| isThemeGuide(open ?? ""); |   const onKids = open === "kids";
+ * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   const onKids = open === "kids" \|\| isKidsTheme(open ?? ""); |   const onKids = open === "kids";
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <summary>{row(g)}</summary><ul data-gift-side-themes=""> | {row(g)}<ul data-gift-side-themes="">
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg summary::-webkit-details-marker{display:none} | .gg-side summary::-webkit-details-marker{display:none}
  */
@@ -24,7 +24,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 
 import { GiftGuidesMenu } from "@/pages/info/giftGuides/GiftGuidesSidebar";
 import { guideBySlug } from "@/content/giftGuideCatalog";
-import { THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
+import { KIDS_THEME_GUIDES_1124 as THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 
 afterEach(cleanup);

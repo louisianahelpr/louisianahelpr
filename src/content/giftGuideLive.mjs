@@ -25,13 +25,31 @@
  * exactly when its rows file scripts/gift-guide-themes/<slug>.json exists: `node scripts/theme-guide-import.mjs` adds
  * both. Guard: src/test/giftGuideThemes1124.test.tsx.
  */
-export const THEME_GUIDE_NAMES_1124 = { "monster-jam": "Monster Jam", "bluey": "Bluey", "marvel": "Marvel", "kpop-demon-hunters": "KPop Demon Hunters", "pokemon": "Pokémon", "minecraft": "Minecraft", "hot-wheels": "Hot Wheels", "cars": "Pixar Cars", "numberblocks": "Numberblocks", "melissa-and-doug": "Melissa & Doug", "lego": "LEGO" };
+export const THEME_GUIDE_NAMES_1124 = { "monster-jam": "Monster Jam", "bluey": "Bluey", "marvel": "Marvel", "kpop-demon-hunters": "KPop Demon Hunters", "pokemon": "Pokémon", "minecraft": "Minecraft", "hot-wheels": "Hot Wheels", "cars": "Pixar Cars", "numberblocks": "Numberblocks", "melissa-and-doug": "Melissa & Doug", "lego": "LEGO", "sams-club-black-friday": "Sam's Club Black Friday" };
 export const THEME_GUIDES_1124 = Object.keys(THEME_GUIDE_NAMES_1124);
 
 export const LIVE_GUIDES_1121 = ["her", "him", "kids", ...THEME_GUIDES_1124, "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday"];
 
 /** Whether a guide slug is one of the themed kids guides (THEME_GUIDES_1124). */
 export const isThemeGuide = (slug) => THEME_GUIDES_1124.includes(slug);
+
+/**
+ * The store deals guides (owner 2026-11-25 ~4:55 PM: "Can you make a gift guide with the Sam's Club Black Friday deals"):
+ * built by the same one-command import as a themed guide (theme-guide-import.mjs: rows file, picks chunk, price sections,
+ * green cover with six photos, 1200x630 card), but they are deals pages, not kids guides: no Kids cover row, no row under
+ * Kids in the menu, no Kids Filter and no "for kids" words. They sit in the menu's Deals group and on the Black Friday
+ * page, never on the /gift-guides landing tiles (owner 11-24: only Her, Him and Kids). slug -> the page's title.
+ * Guard: src/test/samsClubBlackFriday1125.test.tsx.
+ */
+export const DEAL_THEME_TITLES_1125 = { "sams-club-black-friday": "Sam's Club Black Friday Deals 2026" };
+/** Whether a guide slug is a store deals guide (DEAL_THEME_TITLES_1125). */
+export const isDealTheme = (slug) => Object.prototype.hasOwnProperty.call(DEAL_THEME_TITLES_1125, slug);
+/** The themed KIDS guides: every theme but the store deals guides (the Kids cover row, the menu under Kids, Kids' SEO list). */
+export const KIDS_THEME_GUIDES_1124 = THEME_GUIDES_1124.filter((s) => !isDealTheme(s));
+/** Whether a guide slug is one of the themed kids guides that sit under Kids. */
+export const isKidsTheme = (slug) => KIDS_THEME_GUIDES_1124.includes(slug);
+/** A themed guide's page title: "<name> Gift Guide", or a store deals guide's own title. */
+export const themeTitle = (slug) => (isDealTheme(slug) ? DEAL_THEME_TITLES_1125[slug] : `${THEME_GUIDE_NAMES_1124[slug]} Gift Guide`);
 
 /** Whether a guide slug is live (LIVE_GUIDES_1121). */
 export const isLiveGuide = (slug) => LIVE_GUIDES_1121.includes(slug);

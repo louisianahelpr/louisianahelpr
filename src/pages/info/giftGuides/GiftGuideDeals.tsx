@@ -22,6 +22,7 @@ import { report } from "@/lib/errorLogger";
 import { isLiveCodes, isLiveDeals, liveCopy, onLiveUpdate } from "@/lib/liveGuideData";
 import { GiftGuideLoadError } from "./GiftGuideLoadError";
 import { LazyGuideQa } from "./LazyGuideQa";
+import { SamsBlackFridayFeature } from "./SamsClubParts";
 
 /**
  * The deals days (owner 2026-11-19; owner 2026-11-21: "we still need to do the black friday section, small business
@@ -278,6 +279,8 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
       {/* Owner 2026-11-21 ("remove this"): no intro, "#ad" or helper line here, and no day line under the banner
           ("Fri, Nov 27. Plenty of these sales are on already"); each card says when it starts and ends. The footer's
           affiliate disclosure stays. */}
+      {/* Owner 2026-11-25: the Sam's Club Black Friday deals guide opens from the top of the Black Friday page. */}
+      {day.id === "black-friday" && <SamsBlackFridayFeature />}
       {kind === "deals" ? (
         <DealSections
           day={codesDay(day, today)}

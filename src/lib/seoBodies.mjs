@@ -18,7 +18,7 @@ import { pickPriceShown, shownDollars } from "./pickPriceShown.mjs";
 import { DEALS_WORDS, STEAL_CATEGORIES, STEAL_KIND, dealName, dealShows } from "../content/giftGuideDeals.mjs";
 import { SMALL_BIZ_WORDS, smallBizSections } from "../content/giftGuideSmallBiz.mjs";
 import { GUIDE_CROSS_LINKS, GUIDE_SEARCH } from "../content/guideSearch.mjs";
-import { THEME_GUIDE_NAMES_1124, isLiveGuide } from "../content/giftGuideLive.mjs";
+import { THEME_GUIDE_NAMES_1124, isDealTheme, isLiveGuide } from "../content/giftGuideLive.mjs";
 import { themeGuideSearch } from "../content/themeGuideSearch.mjs";
 import { SEARCH_GUIDE_NAMES, searchPageParent, searchPageSiblings, searchPagesOf } from "../content/guideSearchPages.mjs";
 
@@ -105,7 +105,7 @@ export function themeSearchPicks(picks) {
 /** A themed kids guide's intro from its picks (owner 11-25, search), or null for any other guide. */
 function themeIntro(slug, picks, count, today) {
   if (!Object.prototype.hasOwnProperty.call(THEME_GUIDE_NAMES_1124, slug) || !today) return null;
-  return themeGuideSearch(THEME_GUIDE_NAMES_1124[slug], themeSearchPicks(picks), count, today)?.intro ?? null;
+  return themeGuideSearch(THEME_GUIDE_NAMES_1124[slug], themeSearchPicks(picks), count, today, { deals: isDealTheme(slug) })?.intro ?? null;
 }
 
 export function giftGuideBody(slug, guide, today) {

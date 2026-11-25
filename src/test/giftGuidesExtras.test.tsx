@@ -18,7 +18,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideShare.tsx |         {showResults && ( |         {false && (
  * @mutate src/content/giftGuideCatalog.ts |     loaded.set(slug, { picks: c.picks.map(toPick).map(typed).map(withDupe), | loaded.set(slug, { picks: [],
  */
-import { THEME_GUIDES_1124, isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { KIDS_THEME_GUIDES_1124, isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -221,7 +221,7 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     // Owner 11-21 ("just do for her, him, kids with their color instead of the filter"): plain links, no groups.
     // Owner 11-24 ~7:50 PM: the themed guides are Kids' subsections, a list nested in Kids' row (giftGuideSideThemes1124): Kids' row is the one disclosure.
     expect([...container.querySelectorAll("[data-gift-sidebar] details")].map((d) => d.querySelector("summary a")?.getAttribute("data-gift-side"))).toEqual(["kids"]);
-    expect([...container.querySelectorAll("[data-gift-side-guides] a[data-gift-side]")].map((a) => a.getAttribute("data-gift-side"))).toEqual(["", "her", "him", "kids", ...THEME_GUIDES_1124]);
+    expect([...container.querySelectorAll("[data-gift-side-guides] a[data-gift-side]")].map((a) => a.getAttribute("data-gift-side"))).toEqual(["", "her", "him", "kids", ...KIDS_THEME_GUIDES_1124]);
   });
 });
 

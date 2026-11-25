@@ -243,6 +243,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     const group = (sel: string) => [...side.querySelectorAll(`${sel} a`)].map((a) => [a.textContent!.replace(a.querySelector(".gg-side-n")?.textContent ?? "", ""), a.getAttribute("href")]);
     expect(group("[data-gift-side-deals-group]")).toEqual([
       ["Black Friday", "/gift-guides/black-friday"],
+      // Owner 11-25: the Sam's Club Black Friday deals guide, right after Black Friday (samsClubBlackFriday1125).
+      ["Sam's Club Black Friday", "/gift-guides/sams-club-black-friday"],
       ["Small Business Saturday", "/gift-guides/small-business-saturday"],
       ["Cyber Monday", "/gift-guides/cyber-monday"],
     ]);

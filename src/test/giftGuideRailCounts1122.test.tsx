@@ -107,7 +107,7 @@ describe("gift guides menu numbers (owner 11-22: Number on the right)", () => {
         expect(n, to).toBeGreaterThan(0);
         // Read as "Her 159 gifts": a space before the number, the noun after it (sr-only).
         expect(a.querySelector(".gg-side-n .sr-only")?.textContent, to).toMatch(/^ (gifts|items)$/);
-        expect(a.textContent, to).toMatch(/[a-z] \d+ (gifts|items)$/);
+        expect(a.textContent, to).toMatch(/[A-Za-z] \d+ (gifts|items)$/); // "LEGO 48 gifts": a name can end in a capital
       } else {
         // A tool (All guides, the finder, Swipe, Secret Santa, the planner, My Wish List) or Small Business Saturday; any other row must be classified.
         expect(tools.has(to), `unclassified menu row ${to}`).toBe(true);

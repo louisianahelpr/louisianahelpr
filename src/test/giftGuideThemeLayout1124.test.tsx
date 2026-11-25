@@ -44,10 +44,11 @@ import { blankComments } from "./helpers/blankNonCode";
 await loadAllGuidePicks();
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
-const TODAY = "2026-11-24";
+// The newest price-read day (LEGO's rows were read 11-24 night into 11-25); a row priced after "today" shows "price soon".
+const TODAY = "2026-11-25";
 const renderAt = async (url: string) => {
   vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-11-24T18:00:00Z"));
+  vi.setSystemTime(new Date("2026-11-25T18:00:00Z"));
   let out!: ReturnType<typeof render>;
   await act(async () => {
     out = render(

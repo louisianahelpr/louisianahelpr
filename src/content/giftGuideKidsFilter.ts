@@ -11,7 +11,9 @@ import { pickPriceShown, shownDollars } from "@/lib/pickPriceShown.mjs";
  *     so a "~$10" gift is in $10-$25 as the eye reads it. A gift showing no price stays out of every price chip.
  *   - Girls / Boys / Everyone: a gift for anyone is "Everyone" and shows under Girls AND under Boys. Girls or Boys only
  *     where the listing itself names one (the tag file's genderSource); anything untagged counts as Everyone.
- * Filters exist only on the Kids guide for now. Guard: src/test/giftGuideKidsFilters1123.test.ts.
+ * The themed kids guides (Monster Jam, Bluey ...) have the same Filter (owner 2026-11-24 ~7 PM: "add a filter like the
+ * main 3 guides"); their tags come from their own picks (src/content/giftGuideThemeTags.ts, loaded on their page only).
+ * Guard: src/test/giftGuideKidsFilters1123.test.ts, src/test/giftGuideThemeLayout1124.test.tsx.
  */
 export const KIDS_FILTER_GUIDE = "kids";
 

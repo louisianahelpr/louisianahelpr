@@ -7,13 +7,16 @@
  * and price read on the research day. Out-of-stock items, items with no price and items with no photo are left out
  * (listed under `skipped`), so every row shows a photo and a price.
  *
- * Page rules (src/test/giftGuideThemes1124.test.tsx): the rows keep the list's own groups (Stocking stuffers under $10
- * first ...), each group a section that opens expanded; no "shop similar"; Amazon links are fine on the page.
+ * Page rules (src/test/giftGuideThemes1124.test.tsx, giftGuideThemeLayout1124.test.tsx): laid out as For Kids (owner
+ * 11-24 ~7 PM: "add a filter like the main 3 guides ... sorted like the main 3 guides"): the main guides' price sections,
+ * Stocking stuffers under $10 first, each open on arrival, and Kids' Filter (age, price, for, sort); no "shop similar";
+ * Amazon links are fine on the page.
  * scripts/gift-guide-picks.mjs runs applyThemeGuides1124 LAST, next to applyHer1121 and applyHimKids1121, so no earlier
  * rule or sweep drops or reorders these.
  */
 import { THEME_FILES } from "./gift-guide-themes/index.mjs";
 import { KIDS_THEME_MOVES_1124 } from "./giftGuideKidsThemeMoves1124.mjs";
+import { themeChunkPicks } from "./giftGuideThemePicks.mjs";
 
 /** slug -> the theme's rows file ({ slug, name, sectionPrefix, builtFrom, rows, skipped }). */
 export const THEME_ROWS_FILES_1124 = THEME_FILES;
@@ -21,9 +24,12 @@ export const THEME_ROWS_FILES_1124 = THEME_FILES;
 /** The researched rows of one theme, in the page's order (`id` is the research list's, `was` the store's crossed-out price). */
 export const themeRows1124 = (slug) => THEME_FILES[slug]?.rows ?? [];
 
-/** One theme's chunk picks (the ResearchedPick shape the other guides use; `id`, `was` and `age` stay in the rows file). */
-export const themePicks1124 = (slug, rows = themeRows1124(slug)) =>
-  rows.map(({ id: _id, was: _was, age: _age, ...p }) => ({ ...p, ownerPick: true, from: slug }));
+/**
+ * One theme's chunk picks (the ResearchedPick shape the other guides use; `id`, `was`, `age` and the research's own
+ * groups stay in the rows file): cheapest first with `priceRank` and the age in years, no category sections, so the page
+ * lays it out as For Kids (owner 11-24 ~7 PM; the rule: scripts/giftGuideThemePicks.mjs).
+ */
+export const themePicks1124 = (slug, rows = themeRows1124(slug)) => themeChunkPicks(slug, rows);
 
 /**
  * The Kids picks that leave Kids for their theme page (scripts/giftGuideKidsThemeMoves1124.mjs): only a move whose theme

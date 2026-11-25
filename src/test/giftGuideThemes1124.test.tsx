@@ -6,22 +6,23 @@
  *  - live exactly when its rows file exists: scripts/gift-guide-themes/<slug>.json, the registry index.mjs and
  *    THEME_GUIDE_NAMES_1124 agree both ways;
  *  - the data: its chunk is exactly its rows' picks; every row has a price, a price day, a photo (a cutout we host is
- *    in public/), an https link on a store we know (and that store's link host), and a section; no out-of-stock row;
- *    each group in one run; an Amazon row shows Amazon's own photo, never a cutout of ours (Associates terms);
- *  - the page: its title, one row per pick, its groups as band sections all open on arrival, no "shop similar" even on
+ *    in public/), an https link on a store we know (and that store's link host), and no category section (owner 11-24
+ *    ~7 PM: laid out as Kids, src/test/giftGuideThemeLayout1124.test.tsx); no out-of-stock row; cheapest first; an
+ *    Amazon row shows Amazon's own photo, never a cutout of ours (Associates terms);
+ *  - the page: its title, one row per pick, the main guides' price sections all open on arrival, no "shop similar" even on
  *    a pick that has one; a green-dot menu row reading the theme's name; a GUIDE_INDEX entry (For kids, green, "the",
  *    "<Theme> Gift Guide");
  *  - the way in: indexed (GIFT_GUIDE_SEO, sitemap, llms.txt, search index) and its shared link shows its own 1200x630
  *    card (api/share.ts WIDE_CARD_FOR_ID, og-wide/<slug>.jpg measured 1200x630, a green PAGES entry in COVER_KEYS);
  *  - the cover: green (SLUG_TINT), six photos of our own cutouts (no Amazon photo), the file and its cache key present.
  *
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE \|\| isThemeGuide(guide.slug); |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE;
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const sortable = isOwnerList(guide.slug) \|\| isThemeGuide(guide.slug); |   const sortable = isOwnerList(guide.slug);
  * @mutate src/content/giftGuideCatalog.ts |     const entries = isThemeGuide(slug) ? dupeEntries.filter((d) => d.guide === slug) : dupeEntries; |     const entries = dupeEntries;
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | ...Object.entries(THEME_GUIDE_NAMES_1124).map(([slug, label]) => ({ slug, dot: "green" as const, label })), | // no theme rows
  * @mutate src/content/giftGuideIndex.ts | ({ group: "For kids", tint: "green" as const, slug, | ({ group: "For kids", tint: "red" as const, slug,
  * @mutate scripts/gift-guide-photo-covers.py | "monster-jam": "green", | "monster-jam": "red",
  * @mutate api/share.ts |   "gift-guides/monster-jam": "monster-jam", |   "gift-guides/monster-jam-off": "monster-jam",
- * @mutate scripts/giftGuideThemes1124.mjs |   rows.map(({ id: _id, was: _was, age: _age, ...p }) => ({ ...p, ownerPick: true, from: slug })); |   rows.map(({ id: _id, was: _was, age: _age, ...p }) => ({ ...p, ownerPick: true, from: slug })).slice(1);
+ * @mutate scripts/giftGuideThemes1124.mjs | export const themePicks1124 = (slug, rows = themeRows1124(slug)) => themeChunkPicks(slug, rows); | export const themePicks1124 = (slug, rows = themeRows1124(slug)) => themeChunkPicks(slug, rows).slice(1);
  */
 import { existsSync, readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -57,12 +58,13 @@ import { COVER_WEBP_SLUGS } from "@/lib/giftGuideShareImages.mjs";
 import { COVER_SLUGS } from "@/content/giftGuideCoverSlugs";
 import { loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { blankHashComments } from "./helpers/blankNonCode";
+import { priceSectionId } from "@/lib/pickPriceShown.mjs";
 
 await loadAllGuidePicks();
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 const SITE = "https://www.louisianahelpr.com/";
-type Pick = { name: string; href: string; image: string; store: string; price: number; priceAt: string; line: string; section: string; sectionId: string };
+type Pick = { name: string; href: string; image: string; store: string; price: number; priceAt: string; line: string; section?: string; sectionId?: string; priceRank?: number };
 const chunkOf = (slug: string) => (JSON.parse(readFileSync(`src/content/giftGuidePicks/${slug}.json`, "utf8")) as { picks: Pick[] }).picks;
 const hostOf = (u: string) => new URL(u).hostname;
 const PICKS_TS = readFileSync("src/content/giftGuidePicks.ts", "utf8");
@@ -121,7 +123,7 @@ describe.each([...THEME_GUIDES_1124])("the %s guide", (slug) => {
     expect(PICKS_TS).toContain(`"./giftGuidePicks/${slug}.json"`);
   });
 
-  it("every row shows a photo and a price, links an https page on a store we know, and sits in a section", () => {
+  it("every row shows a photo and a price, links an https page on a store we know, and carries no category section", () => {
     for (const p of chunk) {
       expect(p.price, p.name).toBeGreaterThan(0);
       expect(p.priceAt, p.name).toMatch(/^2026-\d\d-\d\d$/);
@@ -130,7 +132,9 @@ describe.each([...THEME_GUIDES_1124])("the %s guide", (slug) => {
       const store = RESEARCHED_STORES[p.store];
       expect(store, `${p.name} ${p.store}`).toBeTruthy();
       expect(store.hosts, `${p.name}: ${hostOf(p.href)} on ${p.store}`).toContain(hostOf(p.href));
-      expect(p.section && p.sectionId, p.name).toBeTruthy();
+      // Owner 11-24 ~7 PM: laid out as Kids, so no category section (the page draws the price sections).
+      expect(p.section, p.name).toBeUndefined();
+      expect(p.sectionId, p.name).toBeUndefined();
       expect(p.line, p.name).toBeTruthy();
       expect(p.line, p.name).not.toMatch(/\$\d/);
       if (p.image.startsWith(SITE)) expect(existsSync(`public/${p.image.slice(SITE.length)}`), p.image).toBe(true);
@@ -139,11 +143,11 @@ describe.each([...THEME_GUIDES_1124])("the %s guide", (slug) => {
     }
   });
 
-  it("no out-of-stock item is on the page, and each group is one run", () => {
+  it("no out-of-stock item is on the page, and the chunk runs cheapest first, priceRank 1..n", () => {
     const ids = new Set(rows.map((r) => r.id));
     for (const s of THEME_ROWS_FILES_1124[slug].skipped) if (s.why.includes("out of stock")) expect(ids.has(s.id), s.id).toBe(false);
-    const order = [...new Set(chunk.map((p) => p.section))];
-    expect(chunk.map((p) => p.section).filter((s, i, a) => i === 0 || a[i - 1] !== s)).toEqual(order);
+    expect(chunk.map((p) => p.priceRank)).toEqual(chunk.map((_, i) => i + 1));
+    for (let i = 1; i < chunk.length; i++) expect(chunk[i].price, chunk[i].name).toBeGreaterThanOrEqual(chunk[i - 1].price);
   });
 
   it("renders its title, one row per pick, every section open, and no shop similar", async () => {
@@ -151,7 +155,9 @@ describe.each([...THEME_GUIDES_1124])("the %s guide", (slug) => {
     expect(c.textContent).toContain(`${name} Gift Guide`);
     expect(c.querySelectorAll("li[data-gift-pick]").length).toBe(chunk.length);
     const toggles = [...c.querySelectorAll<HTMLButtonElement>("[data-gift-section-toggle]")];
-    expect(toggles.map((t) => t.getAttribute("data-gift-section-toggle"))).toEqual([...new Set(chunk.map((p) => p.sectionId))]);
+    // The main guides' price sections, Stocking stuffers under $10 first (the chunk is cheapest first).
+    expect(toggles.map((t) => t.getAttribute("data-gift-section-toggle"))).toEqual([...new Set(chunk.map((p) => priceSectionId(p.price)))]);
+    expect(c.querySelector("[data-gift-section-nav]")).toBeNull();
     for (const t of toggles) expect(t.getAttribute("aria-expanded"), t.textContent ?? "").toBe("true");
     expect([...c.querySelectorAll("li[data-gift-pick]")].some((li) => li.textContent?.includes(rows[0].name))).toBe(true);
     expect(c.querySelectorAll("[data-gift-dupe]").length).toBe(0);

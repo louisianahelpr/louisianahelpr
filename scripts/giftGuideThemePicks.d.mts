@@ -1,0 +1,4 @@
+/** Types for scripts/giftGuideThemePicks.mjs (a themed kids guide's page picks, laid out like For Kids; owner 11-24). */
+export interface ThemeChunkPick { name: string; brand: string; line: string; href: string; image: string; store: string; price: number; priceAt: string; commission?: number; code?: string; ageMin?: number; ageMax?: number; priceRank?: number; ownerPick: true; from: string }
+export function themeAge(age: string | undefined): { ageMin?: number; ageMax?: number };
+export function themeChunkPicks(slug: string, rows: readonly { id: string; name: string; brand: string; line: string; href: string; image: string; store: string; price: number; priceAt: string; section?: string; sectionId?: string; was?: number; commission?: number; code?: string; age?: string; ownerAdd?: true }[]): ThemeChunkPick[];

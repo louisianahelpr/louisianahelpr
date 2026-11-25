@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1261,
+    "calls": 1262,
     "files": 370,
-    "rendering": 1183,
+    "rendering": 1184,
     "suppressedByPolicy": 78,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 14,
       "successToast": 8,
       "toast": 254,
-      "toast.error": 839,
+      "toast.error": 840,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 84,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 457,
       "template": 101,
-      "dynamic": 760,
+      "dynamic": 761,
       "jsx": 0
     }
   },
@@ -4551,7 +4551,7 @@
     },
     {
       "file": "src/components/dashboard/BrowseTasksFeed.tsx",
-      "line": 291,
+      "line": 295,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9828,7 +9828,27 @@
     },
     {
       "file": "src/components/messages/useConversationListState.ts",
-      "line": 430,
+      "line": 221,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "detail.pinned ? \"Couldn't pin that conversation. Try again.\" : \"Couldn't unpin that conversation. Try again.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Couldn't pin that conversation. Try again."
+          },
+          {
+            "form": "literal",
+            "text": "Couldn't unpin that conversation. Try again."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/messages/useConversationListState.ts",
+      "line": 441,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -9838,7 +9858,7 @@
     },
     {
       "file": "src/components/messages/useConversationListState.ts",
-      "line": 436,
+      "line": 447,
       "kind": "toast",
       "title": {
         "form": "template",

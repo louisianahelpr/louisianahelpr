@@ -96,12 +96,11 @@ export function themeGuideSearch(name, picks, count, today, { deals = false } = 
   if (!f.count) return null;
   const theme = String(name ?? "").trim();
   // A store deals guide (Sam's Club Black Friday, owner 11-25; giftGuideLive.mjs isDealTheme) says "deals", never "for kids".
-  const gifts = deals ? "deals" : "gifts";
   // Title: the theme's own gift words, the most common kinds first, then stocking stuffers when it has any.
   const tail = f.stocking ? ["stocking stuffers"] : [];
   const titles = [3, 2, 1, 0].map((k) => {
     const words = [...f.kinds.slice(0, k), ...tail];
-    return words.length ? `${theme} ${gifts} 2026: ${joinWords(words, "&")} — Helpr` : deals ? `${theme} deals 2026 — Helpr` : `${theme} Christmas gifts 2026 — Helpr`;
+    return words.length ? `${theme} gifts 2026: ${joinWords(words, "&")} — Helpr` : `${theme} Christmas gifts 2026 — Helpr`;
   });
   // A deals guide's title names its count of deals, not gift kinds (a sale list mixes TVs, mixers and lip balm).
   const dealTitles = [`${theme} deals 2026: ${f.count} gifts on sale — Helpr`, `${theme} deals 2026 — Helpr`];

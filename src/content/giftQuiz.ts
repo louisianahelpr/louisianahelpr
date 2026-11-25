@@ -181,6 +181,12 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   jacket: ["cozy"], shoes: ["active"],
   // The owner's screenshot picks round 3 (11-25): character fleece robes and toddler beanie-and-gloves sets keep a kid cozy.
   robe: ["cozy"], hat: ["cozy"],
+  // The owner's Kohl's mix and JCPenney kids toys (11-25): die-cast cars, spy goggles and a race track are pretend play, STEM
+  // toys and DIY kits are building and science, play dough and craft kits are creative, RC cars and robots are active
+  // play, a toddler learning tablet is learning, a plush throw is cozy.
+  "die-cast": ["pretend", "stocking"], "spy-toy": ["pretend"], "race-track": ["build", "pretend"], "stem-toy": ["build"],
+  "stem-kit": ["build"], "play-dough": ["creative"], "craft-kit": ["creative"], "rc-car": ["active", "games"],
+  "rc-toy": ["active", "games"], "learning-toy": ["build"], blanket: ["cozy"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -258,6 +264,12 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   "game-controller": ["6-8", "9-12", "teen"],
   // Girls' sizes 5-16 (Steve Madden jacket); Crocs kids' clogs run toddler to big-kid sizes.
   jacket: ["6-8", "9-12", "teen"], shoes: ["3-5", "6-8", "9-12"],
+  // The owner's Kohl's mix and JCPenney kids toys (11-25), by each listing's age: Matchbox 3+, Play-Doh 3+, the race
+  // track 3+, spy goggles, RC cars and robots, the sewing kit and the Energy Ball 5-8+, Discovery Mindblown kits 8+, the
+  // GBruno tablet for toddlers, a plush throw for any kid.
+  "die-cast": ["3-5", "6-8"], "play-dough": ["3-5", "6-8"], "race-track": ["3-5", "6-8"], "spy-toy": ["6-8", "9-12"],
+  "rc-car": ["6-8", "9-12"], "rc-toy": ["6-8", "9-12"], "craft-kit": ["6-8", "9-12"], "stem-toy": ["6-8", "9-12"],
+  "stem-kit": ["6-8", "9-12", "teen"], "learning-toy": ["0-2", "3-5"], blanket: ["3-5", "6-8", "9-12"],
 };
 const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/baby'?s 1st/i, ["0-2"]],
@@ -296,6 +308,7 @@ const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   // sets are 0-2 and 3-5; kids' pajama sizes 4-16 run from little kids to teens.
   [/\((?:12M|2T)-5T\)|toddler girls beanie and gloves/i, ["0-2", "3-5"]],
   [/\(4-16\)/, ["3-5", "6-8", "9-12", "teen"]],
+  [/toddler boys? 4-piece pajama/i, ["0-2", "3-5"]],
 ];
 export function quizAges(pick: Pick<CatalogPick, "name" | "type">): QuizAge[] {
   for (const [re, ages] of AGE_BY_NAME) if (re.test(pick.name)) return ages;

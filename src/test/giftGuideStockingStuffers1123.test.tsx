@@ -83,7 +83,7 @@ describe("Her, Him and Kids open with Stocking stuffers under $10", () => {
   for (const slug of GUIDES) {
     it(`${slug}: the first section is the stocking stuffers, exactly the picks under $10, cheapest first, open`, async () => {
       const want = await expectedStocking(slug);
-      expect(want.length, slug).toBeGreaterThan(4); // her 19, him 23, kids 5 on 2026-11-23 (after the held links)
+      expect(want.length, slug).toBeGreaterThan(3); // her 19, him 23, kids 5 on 2026-11-23 (after the held links); kids 4 from 2026-11-24 ~10:45 PM (owner moved the Minecraft toothbrush to Minecraft)
       const { container } = render(
         <MemoryRouter initialEntries={[`/gift-guides/${slug}`]}>
           <Routes><Route path="/gift-guides/:slug" element={<GiftGuides />} /></Routes>

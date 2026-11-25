@@ -42,6 +42,7 @@ export const KIDS_THEME_MOVES_1124 = [
   ["https://walmrt.us/4AQxuWv", "KPop Demon Hunters Girls Slippers", "kpop-demon-hunters", "KP01"],
   // Not imported yet (research waits on Walmart links): applies when Minecraft is imported.
   ["https://go.shopmy.us/p-110125837", "LEGO Minecraft Woodland Mansion Fighting Ring", "minecraft", "MC20"],
-  // The Minecraft research has no toothbrush row: stays on Kids until one is added to that list.
-  ["https://www.amazon.com/dp/B0CFFZ389Y?tag=louisianahelpr-20", "Colgate Minecraft Kids Toothbrush", "minecraft", null],
+  // Owner 11-24 ~10:45 PM (via the lead): "the minecraft tooth brush in the kids guide can be moved to the minecraft
+  // guide." The Minecraft research now holds it as her pick MC80 (Amazon, page only; read 10:47 PM, $5.42, in stock).
+  ["https://www.amazon.com/dp/B0CFFZ389Y?tag=louisianahelpr-20", "Colgate Minecraft Kids Toothbrush", "minecraft", "MC80"],
 ];

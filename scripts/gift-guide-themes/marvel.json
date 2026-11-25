@@ -3539,6 +3539,97 @@
    "age": "kids"
   },
   {
+   "id": "MVM22",
+   "name": "Spider-Man Night Light and Speaker",
+   "brand": "Marvel",
+   "line": "Room for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-110881049",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spider-man-night-light-and-speaker-macys-b81949.webp",
+   "store": "store-macys",
+   "price": 24.99,
+   "priceAt": "2026-11-24",
+   "section": "Room",
+   "sectionId": "marvel-room",
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MVM24",
+   "name": "Spider-Man 4-in-1 Rechargeable Kids' Camera",
+   "brand": "Marvel",
+   "line": "Room for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-110881287",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spider-man-4-in-1-rechargeable-kids-camera-macys-370cc7.webp",
+   "store": "store-macys",
+   "price": 39.99,
+   "priceAt": "2026-11-24",
+   "section": "Room",
+   "sectionId": "marvel-room",
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MVM25",
+   "name": "eKids Spider-Man Bluetooth Kids' Headphones",
+   "brand": "Marvel",
+   "line": "Room for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-110881359",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/ekids-spider-man-bluetooth-kids-headphones-macys-4415c5.webp",
+   "store": "store-macys",
+   "price": 25.99,
+   "priceAt": "2026-11-24",
+   "section": "Room",
+   "sectionId": "marvel-room",
+   "was": 29.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MVM26",
+   "name": "Spider-Man Magic Slate 11-Inch Drawing Tablet",
+   "brand": "Marvel",
+   "line": "Room for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-110882247",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spider-man-magic-slate-11-inch-drawing-tablet-macys-2acfe5.webp",
+   "store": "store-macys",
+   "price": 29.99,
+   "priceAt": "2026-11-24",
+   "section": "Room",
+   "sectionId": "marvel-room",
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MVM27",
+   "name": "eKids Spider-Man Padded On-Ear Headphones",
+   "brand": "Marvel",
+   "line": "Room for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-110882308",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/ekids-spider-man-padded-on-ear-headphones-macys-109828.webp",
+   "store": "store-macys",
+   "price": 22.99,
+   "priceAt": "2026-11-24",
+   "section": "Room",
+   "sectionId": "marvel-room",
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MVM28",
+   "name": "Milk Snob Spider-Man Sketch 5-in-1 Cover",
+   "brand": "Marvel",
+   "line": "Room for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-110882358",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/milk-snob-spider-man-sketch-5-in-1-cover-macys-8f577e.webp",
+   "store": "store-macys",
+   "price": 40.99,
+   "priceAt": "2026-11-24",
+   "section": "Room",
+   "sectionId": "marvel-room",
+   "commission": 16,
+   "age": "kids"
+  },
+  {
    "id": "MVM31",
    "name": "VTech Iron Man and His Awesome Friends Learning Watch",
    "brand": "Marvel",
@@ -4112,6 +4203,21 @@
    "sectionId": "marvel-big-gifts",
    "commission": 6,
    "age": "kids"
+  },
+  {
+   "id": "MVM23",
+   "name": "Spider-Man My Rock Band 3-in-1 Electronic Drum Set",
+   "brand": "Marvel",
+   "line": "Big gifts for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-110881128",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spider-man-my-rock-band-3-in-1-electronic-drum-set-macys-9e76d0.webp",
+   "store": "store-macys",
+   "price": 99.99,
+   "priceAt": "2026-11-24",
+   "section": "Big gifts",
+   "sectionId": "marvel-big-gifts",
+   "commission": 16,
+   "age": "kids"
   }
  ],
  "skipped": [
@@ -4249,59 +4355,10 @@
    ]
   },
   {
-   "id": "MVM22",
-   "name": "Spider-Man Night Light and Speaker",
-   "why": [
-    "Macy's photo shows a person (product photos only)"
-   ]
-  },
-  {
-   "id": "MVM24",
-   "name": "Spider-Man 4-in-1 Rechargeable Kids' Camera",
-   "why": [
-    "Macy's photo shows a person (product photos only)"
-   ]
-  },
-  {
-   "id": "MVM25",
-   "name": "eKids Spider-Man Bluetooth Kids' Headphones",
-   "why": [
-    "Macy's photo shows a person (product photos only)"
-   ]
-  },
-  {
-   "id": "MVM26",
-   "name": "Spider-Man Magic Slate 11-Inch Drawing Tablet",
-   "why": [
-    "Macy's photo shows a person (product photos only)"
-   ]
-  },
-  {
-   "id": "MVM27",
-   "name": "eKids Spider-Man Padded On-Ear Headphones",
-   "why": [
-    "Macy's photo shows a person (product photos only)"
-   ]
-  },
-  {
-   "id": "MVM28",
-   "name": "Milk Snob Spider-Man Sketch 5-in-1 Cover",
-   "why": [
-    "Macy's photo shows a person (product photos only)"
-   ]
-  },
-  {
    "id": "MVM33",
    "name": "Spidey 4-in-1 Kids' Camera (photo, video, MP3, games)",
    "why": [
     "Macy's photo is a Peanuts microphone, not the Spidey camera (listing mixes products)"
-   ]
-  },
-  {
-   "id": "MVM23",
-   "name": "Spider-Man My Rock Band 3-in-1 Electronic Drum Set",
-   "why": [
-    "Macy's photo shows a person (product photos only)"
    ]
   }
  ]

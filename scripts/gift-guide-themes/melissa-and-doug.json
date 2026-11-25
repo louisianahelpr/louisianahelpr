@@ -3749,6 +3749,22 @@
    "age": "3+"
   },
   {
+   "id": "MK049",
+   "name": "Melissa & Doug Wooden Table & Chairs Set",
+   "brand": "Melissa & Doug",
+   "line": "Big gifts for a Melissa & Doug fan.",
+   "href": "https://go.shopmy.us/p-110719082",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-wooden-table-chairs-set-kohls-add700.webp",
+   "store": "store-kohls",
+   "price": 138.59,
+   "priceAt": "2026-11-24",
+   "section": "Big gifts",
+   "sectionId": "melissa-and-doug-big-gifts",
+   "was": 197.99,
+   "commission": 12,
+   "age": "3+"
+  },
+  {
    "id": "MK055",
    "name": "Melissa & Doug Wooden Toy Chest",
    "brand": "Melissa & Doug",
@@ -3906,13 +3922,6 @@
    "name": "Melissa & Doug Work & Play Desktop Activity Board",
    "why": [
     "duplicate: same item cheaper in the M&D lane rows (MK095 Kohl's $21.69)"
-   ]
-  },
-  {
-   "id": "MK049",
-   "name": "Melissa & Doug Wooden Table & Chairs Set",
-   "why": [
-    "no clean product photo yet (store sweep 11-25)"
    ]
   },
   {

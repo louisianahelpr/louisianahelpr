@@ -24,7 +24,7 @@
  * @mutate src/lib/goneReference.ts | return (error as { code?: string }).code === "23503"; | return true;
  * @mutate src/lib/archivedConversations.ts | const cannotExist = (e: { code?: string }) => isGoneReference(e) \|\| code(e) === "22P02"; | const cannotExist = (e: { code?: string }) => code(e) === "22P02";
  * @mutate src/lib/archivedConversations.ts | if (isGoneReference(error)) return; | if (false) return;
- * @mutate src/lib/pinnedConversations.ts | if (isGoneReference(error)) return; | if (false) return;
+ * @mutate src/lib/pinnedConversations.ts | const gone = isGoneReference(error); | const gone = false;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";

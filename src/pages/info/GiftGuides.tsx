@@ -35,10 +35,10 @@ import { searchPageGuides } from "@/content/guideSearchIndex.mjs";
  * /gift-guides and /gift-guides/<slug> (owner 2026-11-16, public 2026-11-18; rebuilt 2026-11-18 to the owner's final
  * design): the page opens to the guides (a collapsible sidebar of every guide by group, and one sideways row of cover
  * tiles per group), and a tile opens that guide (a gingham band with its arch card, then its numbered list) or, for a
- * hub like For Kids, its child guides' tiles. Every word, pick and link comes from src/content/giftGuides.ts and
- * src/content/giftGuidesAmazon.ts (gathered in src/content/giftGuideCatalog.ts). Every outbound link is an affiliate
- * link (GiftOut). The FTC disclosure (16 CFR Part 255) and Amazon's required Associates statement sit at the BOTTOM
- * as plain muted lines (owner decision 2026-11-18). Guard: src/test/giftGuidesPage.test.tsx.
+ * hub like For Kids, its child guides' tiles. Every word, pick and link comes from src/content/giftGuides.ts and the
+ * researched picks, gathered in src/content/giftGuideCatalog.ts (the retired Amazon guides are not read). Every
+ * outbound link is an affiliate link (GiftOut). The FTC disclosure (16 CFR Part 255) and Amazon's required Associates
+ * statement sit at the BOTTOM as plain muted lines (owner decision 2026-11-18). Guard: src/test/giftGuidesPage.test.tsx.
  */
 /**
  * Speed 11-20: a cold /gift-guides/<slug> starts its guide's picks chunk as soon as this module runs (it is started

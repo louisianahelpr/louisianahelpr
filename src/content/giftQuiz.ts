@@ -139,7 +139,8 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   // carabiner and gear ties are tools he clips or ties outdoors.
   "nail-polish": ["beauty"], "nail-file": ["beauty"], "body-scrub": ["beauty"], "shower-steamers": ["beauty", "cozy"],
   "jewelry-box": ["style"], "kitchen-appliance": ["kitchen"], "matcha-set": ["kitchen"], "candle-warmer": ["cozy"],
-  "hand-warmer": ["outdoors"], game: ["cozy"], carabiner: ["outdoors", "tools"], "gear-tie": ["tools", "outdoors"],
+  // A jigsaw puzzle (Her's Festive Factory, 11-25) is a cozy night in, like a card game.
+  "hand-warmer": ["outdoors"], game: ["cozy"], puzzle: ["cozy"], carabiner: ["outdoors", "tools"], "gear-tie": ["tools", "outdoors"],
   // Her keeps whose links came later (11-23): a candy cane bath fizzer is beauty and a cozy night in; a car diffuser
   // is a cozy little upgrade for her car.
   "bath-fizzer": ["beauty", "cozy"], "car-fragrance": ["cozy"],

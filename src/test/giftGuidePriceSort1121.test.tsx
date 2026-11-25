@@ -158,7 +158,7 @@ describe("the sort control on the page (owner 11-21)", () => {
   // and the default order (low to high) follows the shown prices.
   it("every row shows its price in either order, Amazon rows too, and the default order is the shown prices low to high", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-24T18:00:00Z")); // the newest check day (11-24 switches and Macy's adds, scripts/giftGuideOwner1124.mjs; was 11-23, the daily re-check)
+    vi.setSystemTime(new Date("2026-11-25T18:00:00Z")); // the newest check day (11-25: the Festive Factory puzzle, HER_OWNER_1125_ROWS; was 11-24, the switches and Macy's adds)
     await act(async () => { await loadGuidePicks("her"); });
     const { container } = renderAt("/gift-guides/her");
     const dollars = () => [...openPriceSections(container).querySelectorAll<HTMLElement>("[data-gift-pick]")].map((li) => Number((li.querySelector("[data-gift-price]")?.textContent ?? "").replace(/^(~|from )\$/, "")));
@@ -194,7 +194,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
   }));
   it.each(["him", "kids", "her"])("/gift-guides/%s: Under $25, $25 to $50, $50 to $75, $75 to $100, $100 and up, each labelled with its count; reversed high to low", async (slug) => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-24T18:00:00Z")); // the newest check day (11-24 switches and Macy's adds, scripts/giftGuideOwner1124.mjs; was 11-23, the daily re-check)
+    vi.setSystemTime(new Date("2026-11-25T18:00:00Z")); // the newest check day (11-25: the Festive Factory puzzle, HER_OWNER_1125_ROWS; was 11-24, the switches and Macy's adds)
     await act(async () => { await loadGuidePicks(slug); });
     const { container } = renderAt(`/gift-guides/${slug}`);
     // Every "Show more" (50 at a time; Him holds 141 of her saves since 11-21).
@@ -345,7 +345,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Her steal S42 (JCPenney Beautyrest heated throw, $29.99, 11-24): $25 to $50.
       // Her Amazon beauty picks 11-24 (owner, all 48 of A1-A48, scripts/giftGuideAmazonBeauty1124.mjs): 20 Under $25 (the two
       // $9.60 mascaras read ~$10), 20 $25 to $50 (the $25.20 perfumes read ~$25), 5 $50 to $75, 3 $75 to $100.
-      her: { "Stocking stuffers under $10": 23, "Under $25": 74, "$25 to $50": 72, "$50 to $75": 22, "$75 to $100": 16, "$100 and up": 39 },
+      // Her owner pick 11-25 (the Festive Factory puzzle, $19.99 at Target, reads ~$20): Under $25.
+      her: { "Stocking stuffers under $10": 23, "Under $25": 75, "$25 to $50": 72, "$50 to $75": 22, "$75 to $100": 16, "$100 and up": 39 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

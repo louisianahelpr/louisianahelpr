@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { useComboboxKeyboard } from "@/hooks/useComboboxKeyboard";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { COMBOBOX_ACTIVE_OPTION_CLASS } from "@/lib/comboboxOptionClass";
+import { isLouisianaSuggestion } from "@/lib/louisianaSuggestion";
 
 interface AddressAutocompleteProps {
   id?: string;
@@ -163,10 +164,11 @@ export function AddressAutocomplete({
           trimmed,
                   (err, data) => {
             if (cancelled || err || !data?.results) return;
-                      const next: MapKitSuggestion[] = data.results.slice(0, 6).map((r) => ({
-              displayLines: Array.isArray(r.displayLines) ? r.displayLines : [],
-              raw: r,
-            }));
+            // Deep audit 11-22 #25: out-of-state results are dropped BEFORE the six are taken (isLouisianaSuggestion).
+            const next: MapKitSuggestion[] = data.results
+              .map((r) => ({ displayLines: Array.isArray(r.displayLines) ? r.displayLines : [], raw: r }))
+              .filter((s) => isLouisianaSuggestion(s.displayLines))
+              .slice(0, 6);
             setSuggestions(next);
           },
         );

@@ -60,8 +60,10 @@ const TOWN = {
   displayLines: ["Baton Rouge", "LA"],
   place: { locality: "Baton Rouge", administrativeAreaCode: "LA", coordinate: { latitude: 30.45, longitude: -91.15 } },
 };
+// Deep audit 11-22 #25: a suggestion whose lines name another state is never listed (isLouisianaSuggestion), so the
+// downstream refusal is reached by one whose lines name no state but whose place resolves outside Louisiana.
 const ELSEWHERE = {
-  displayLines: ["9 Elm St", "Dallas, TX"],
+  displayLines: ["9 Elm St", "Dallas"],
   place: { subThoroughfare: "9", thoroughfare: "Elm St", locality: "Dallas", administrativeAreaCode: "TX", postCode: "75201", coordinate: { latitude: 32.78, longitude: -96.8 } },
 };
 const SAVED = { id: "p1", position: 0, label: "Home", address: "12 Home Street, Lafayette", area: "Mid-City", lat: 30.2, lng: -92, weekdays: [6] };
@@ -144,6 +146,19 @@ describe("a pickup place's address", () => {
     expect(said).toMatch(/can't look up addresses just now/);
     expect(said).not.toMatch(/couldn't find/);
     expect(saved()).toHaveLength(0);
+  });
+
+  // Deep audit 11-22 #25: "200 Jefferson St Lafayette" listed Lafayette, Oregon first, then refused it.
+  // @mutate src/components/postjob/AddressAutocomplete.tsx |               .filter((s) => isLouisianaSuggestion(s.displayLines)) |               .filter(Boolean)
+  it("a suggestion that names another state is never listed; the Louisiana one is", async () => {
+    h.suggestions = [
+      { displayLines: ["200 Jefferson St", "Lafayette, OR 97127, United States"], place: {} },
+      { displayLines: ["200 Jefferson St", "Lafayette, LA 70501, United States"], place: {} },
+    ];
+    await newPlace();
+    type("200 Jefferson St Lafayette");
+    expect(await screen.findByText("Lafayette, LA 70501, United States")).toBeInTheDocument();
+    expect(screen.queryByText("Lafayette, OR 97127, United States")).toBeNull();
   });
 
   it("a pick outside Louisiana is refused, as on Post a Job", async () => {

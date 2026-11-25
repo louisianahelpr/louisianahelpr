@@ -1187,9 +1187,12 @@ export default defineConfig(({ mode, command }) => ({
             // The shared address search and its "Use my current location" pill (Post a job, the seller's address, and
             // since 11-01 checkout's Deliver to). Several screens share both, so each was its own chunk, and each chunk an
             // entry route reaches is named in the entry (budget 5.0 KB gz): one chunk for the pair.
+            // Deep audit 11-22 #25: the search's Louisiana-only filter (src/lib/louisianaSuggestion.ts, used only here)
+            // rides with it. Left to bootReach it joined signed-in-pages, which put that 21 KB gz chunk on
+            // /declutter?tab=buying's critical path (552 -> 585 KB gz).
             {
               name: "address-search",
-              test: /[\\/]src[\\/]components[\\/]postjob[\\/](AddressAutocomplete|CurrentLocationPill)\.tsx$/,
+              test: /[\\/]src[\\/](?:components[\\/]postjob[\\/](AddressAutocomplete|CurrentLocationPill)\.tsx|lib[\\/]louisianaSuggestion\.ts)$/,
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,

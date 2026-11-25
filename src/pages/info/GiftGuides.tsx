@@ -7,6 +7,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { useEffect, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
+import { GuidesMenuHint } from "./giftGuides/GiftGuideMenuHint";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GuidesTop, type GuidesBanner } from "./giftGuides/GuidesTop";
 import { GiftGuideLanding, finderAsked } from "./giftGuides/GiftGuideLanding";
@@ -438,6 +439,9 @@ export default function GiftGuides() {
           noPill={sidePage === "finder"}
           below={(shipPill) => (
             <>
+              {/* Owner 2026-11-24 8:23 PM: on Kids the "Tap the menu" tip sits ABOVE the theme covers ("Move the tap box
+                  above the new guides"); Her and Him keep it in the guide (GiftGuideView). */}
+              {guide?.slug === KIDS_FILTER_GUIDE && <GuidesMenuHint />}
               {/* Owner 2026-11-24: the themed kids guides' green covers, right under the red Kids banner. */}
               {guide?.slug === KIDS_FILTER_GUIDE && <LazyThemeRow />}
               {countRow && guide && (

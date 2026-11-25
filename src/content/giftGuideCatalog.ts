@@ -3,12 +3,15 @@
  * the budget, or the person"): every guide the page shows, as one list in three rows. Built from the two content files
  * and nothing else, so no pick, price or link is made up here:
  *   - src/content/giftGuides.ts: the ShopMy sections, their picks, the brand-site picks and the Pinterest links;
- *   - src/content/giftGuidesAmazon.ts: the owner's Amazon guides, copied from her artifact.
+ *   - src/content/giftGuidesAmazon.ts (the owner's Amazon guides, copied from her artifact) is NOT read here: every one of
+ *     its 46 guides is retired (src/content/giftGuideLive.mjs), and its 13.8 KB gz sat on every /gift-guides/<slug>
+ *     first load while changing no live guide (guide trim 2026-11-24: the catalog's whole output, dumped before and
+ *     after, was byte-identical). A revived Amazon guide re-adds it; src/test/giftGuideCatalogNoRetiredData.test.ts
+ *     fails until then.
  * Every pick carries a `store`, read from its link's host (storeOf), and each "Shop by store" guide is every pick on
  * that store. Guard: src/test/giftGuidesPage.test.tsx.
  */
 import { giftGuides, LOUISIANA_MADE_BRANDS, LOUISIANA_SHOPS, SHOPMY_COLLECTIONS, SPONSOR_BRANDS, SPONSOR_SITES, NATIONAL_SPONSOR_SITES, shopmyCollection, type GiftLink, type GiftSection } from "@/content/giftGuides";
-import { AMAZON_GUIDES } from "@/content/giftGuidesAmazon";
 import { GUIDE_INDEX as OWNER_INDEX } from "@/content/giftGuideIndex";
 import { COVER_SLUGS } from "@/content/giftGuideCoverSlugs";
 import { COVER_VERSIONS } from "@/lib/giftGuideCoverVersions.mjs";
@@ -277,18 +280,6 @@ const SHOPMY_GUIDE: Record<number, string> = {
 const shopmyLinkFor = (slug: string): GiftLink[] =>
   SHOPMY_COLLECTIONS.filter((c) => SHOPMY_GUIDE[c.id] === slug).map((c) => ({ label: `${c.label} on ShopMy`, href: shopmyCollection(c.id) }));
 
-const amazonGuides: Draft[] = AMAZON_GUIDES.map((g) => ({
-  slug: slugOf(g.slug),
-  lead: g.lead,
-  title: g.title,
-  line: g.blurb,
-  // The old For Kids section's two picks come from the ShopMy Gifts for Toddlers collection, so they lead Toddlers
-  // (the artifact's Toddlers and Teens lists are not boy- or girl-specific, so they sit under Gender-Neutral).
-  picks: [...(g.slug === "for-toddler" ? fromSection(section("for-kids")) : []), ...g.items.map(([name, href]) => ({ name, href, store: storeOf(href) }))],
-  // The Stocking Stuffers guide keeps the Pinterest boards the old section linked to.
-  links: [...shopmyLinkFor(slugOf(g.slug)), ...(g.slug === "stocking-stuffers" ? [section("stocking-stuffers").shop, ...section("stocking-stuffers").more] : [])],
-}));
-
 /**
  * A researched pick's store: Amazon, a Louisiana shop, a sponsor or a brand site by its host; otherwise (an affiliate
  * link, or a ShopMy pick with a retailer) the store page the loader named.
@@ -316,7 +307,7 @@ const toPick = (p: ResearchedPick): CatalogPick => {
 export const topPicks = (): CatalogPick[] => TOP_PICKS.map(toPick);
 
 /** The static picks (content files). The researched picks arrive per guide, from its chunk (loadGuidePicks). */
-const allPicks = (): CatalogPick[] => [...giftGuides.sections.flatMap(fromSection), ...amazonGuides.flatMap((g) => g.picks)];
+const allPicks = (): CatalogPick[] => giftGuides.sections.flatMap(fromSection);
 
 /**
  * PERF (follow-up 2026-11-18): the researched picks are one lazy chunk per guide (src/content/giftGuidePicks/<slug>.json,
@@ -422,10 +413,9 @@ const storeGuide = (stores: GiftStore[], slug: string, title: string, line: stri
 /** Every guide's content, by slug. A GUIDE_INDEX slug with no draft (or an empty one) is hidden until it has some. */
 const DRAFTS: Draft[] = [
   ...["for-her", "for-him", "for-the-home", "louisiana-made"].map(sectionGuide),
-  // Kids is a hub; its section's two picks are Toddlers picks (amazonGuides), so the hub keeps only its collection links.
+  // Kids is a hub; its section's two picks were the retired Toddlers guide's, so the hub keeps only its collection links.
   { ...sectionGuide("for-kids"), picks: [] },
-  ...amazonGuides,
-  ...GUIDE_INDEX.filter((g) => !amazonGuides.some((a) => a.slug === g.slug) && shopmyLinkFor(g.slug).length > 0)
+  ...GUIDE_INDEX.filter((g) => shopmyLinkFor(g.slug).length > 0)
     .map((g) => ({ slug: g.slug, lead: g.lead, title: g.title, line: `The ${g.title} collection on ShopMy.`, picks: [], links: shopmyLinkFor(g.slug) })),
   storeGuide(["amazon"], "store-amazon", STORES.amazon.name, "Every Amazon find from every guide."),
   storeGuide(["zchocolat"], "store-zchocolat", STORES.zchocolat.name, "French chocolate gift boxes."),

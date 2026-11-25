@@ -10,8 +10,15 @@ import { GiftGuideTile } from "./GiftGuideTile";
 /** The row's scroll behaviour and arrows: snap cover by cover, no scrollbar on a phone, a thin one from 768px, the arrows
  *  centred on the covers. Its SIZES stay in GIFT_GUIDES_CSS (.gg-themes, .gg-themes-row: a phone shows two covers and a
  *  peek of the third, 184px each from 768px), so the stand-in GiftGuides draws before this chunk is in has the row's
- *  exact height; they are the only theme-row bytes on a guide page's critical path (Q178). */
-const THEME_ROW_CSS = `.gg-themes-row{overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none}
+ *  exact height; they are the only theme-row bytes on a guide page's critical path (Q178).
+ *  Sideways only (owner 2026-11-24 ~7 PM, a phone screenshot of the row dragged up, the covers' tops cut off and an empty
+ *  band under them: "It shouldn't move like this"): each tile's screen-reader name sat 8px under its cover (.gg-name's
+ *  7px top margin), so the row was 2px taller inside than out (scrollHeight 164 > clientHeight 162 at 430, measured in
+ *  WebKit and Chromium on prod) and, with overflow-x:auto making overflow-y auto too, iOS let a swipe drag it up and down.
+ *  The name now sits inside the cover's box (top:0) and the row never scrolls vertically (overflow-y:hidden).
+ *  Guard: src/test/giftGuideKidsThemeRow1124.test.tsx. */
+const THEME_ROW_CSS = `.gg-themes-row{overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none}
+.gg-themes-row .gg-name{top:0}
 .gg-themes-row::-webkit-scrollbar{display:none}
 @media (min-width:768px){.gg-themes-row{scrollbar-width:thin}}
 .gg-themes-edge{position:absolute;top:calc(50% - 23px);pointer-events:none}

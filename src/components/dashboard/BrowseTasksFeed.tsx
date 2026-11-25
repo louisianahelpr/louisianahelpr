@@ -28,6 +28,7 @@ import { EmptyFeedActions } from "@/components/dashboard/EmptyFeedActions";
 import { OwnOpenJobsNote } from "@/components/dashboard/OwnOpenJobsNote";
 import { BROWSE_EMPTY_SLOT } from "@/components/sections/browseHeaderSpacing";
 import { ScrollAwaySpacer } from "@/components/sections/ScrollAwayScope";
+import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 import { JobsSaveSearchRow } from "@/components/dashboard/JobsSaveSearchRow";
 import type { BrowseTasksFeedProps } from "@/components/dashboard/browseTasksFeedProps";
 
@@ -265,6 +266,9 @@ export function BrowseTasksFeed({
 
       {view === "map" && (
         <div className="relative flex-1 min-h-0 px-3 pt-2 pb-0">
+          {/* Deep audit 11-22 #8: the floating "+ Post a job" sat on the map's my-location button (same corner, same
+              floor), so a Helpr could not re-center. The pill steps aside while the phone map shows (createFabHidden). */}
+          <HideSectionCreateFab />
           {onShowList && <MapShowListPill onClick={onShowList} />}
           <Suspense fallback={<Skeleton className="h-full w-full rounded-t-2xl" />}>
             <BrowseMap

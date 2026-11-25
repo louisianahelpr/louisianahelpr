@@ -485,6 +485,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
             Show list
           </Button>
         </div>
+        {/* Deep audit 11-22 #8: the floating "+ Sell" covered the map's main cluster of pins; it steps aside on the map. */}
+        <HideSectionCreateFab />
         <div className="h-[calc(100dvh-19rem)] min-h-[320px]">{map(false)}</div>
       </div>
     );

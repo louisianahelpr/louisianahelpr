@@ -142,7 +142,7 @@ describe("gift guides 11-19: the owner's content rules hold on every guide", () 
     expect(slugs.flatMap((s) => chunk(s).filter((p) => /brooklyn ?delhi/i.test(`${p.brand ?? ""} ${p.name}`) || /brooklyndelhi/i.test(p.href)).map((p) => `${s}: ${p.name}`))).toEqual([]);
     // Photo books, custom photo products and digital frames: at most 2 site-wide (owner 2026-11-19).
     expect(guides.flatMap((s) => chunk(s).filter((p) => DIGITAL_FRAME.test(`${p.name} ${p.brand ?? ""}`) || PHOTO_PRODUCT.test(p.name) || PHOTO_PRODUCT.test((p.brand ?? "").trim()))).length).toBeLessThanOrEqual(2);
-    // Jigsaw cap of 3 site-wide; what the owner sent herself is not counted (owner 11-24 11:30 PM: "if i send it add it
+    // Jigsaw cap of 3 site-wide (owner 2026-11-19); what the owner sent herself is not counted (owner 11-24 11:30 PM: "if i send it add it
     // unless its a duplicate"; a 30-piece and a 60-piece QUOKKA puzzle are two products), as the pajama cap does.
     expect(jigsawOverCap(guides.flatMap((s) => chunk(s)))).toEqual([]);
     expect(slugs.flatMap((s) => chunk(s).filter((p) => /life is good/i.test(`${p.brand ?? ""} ${p.name}`)).map((p) => `${s}: ${p.name}`)).length).toBeLessThanOrEqual(2);

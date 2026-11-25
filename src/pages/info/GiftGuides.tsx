@@ -293,8 +293,6 @@ export default function GiftGuides() {
     });
     return () => { live = false; };
   }, [needsTags, kidTags, tagsKey]);
-  // A theme shows Age only when its research gave some pick an age (never a chip that would empty the list).
-  const ageChips = Boolean(kidTags && Object.values(kidTags).some((t) => t.ageMin !== undefined));
   const headerFilter = sponsorsPage ? { budget: sponsorBudget, onBudget: setSponsorBudget }
     : kidsPage ? { budget: null, onBudget: () => undefined, kids: { sel: kidsSel, tags: kidTags ?? {}, onClear: clearKids } }
     : undefined;
@@ -307,7 +305,7 @@ export default function GiftGuides() {
     sort,
     groups: [
       // Age and For read the tag file; until it is in, only Price shows (never a chip that would empty the list).
-      ...(ageChips ? [{ id: "age", label: G.kidsAgeLabel, choices: KID_AGES.map((a) => ({ value: a.id, label: a.label })), selected: kidsSel.ages,
+      ...(kidTags ? [{ id: "age", label: G.kidsAgeLabel, choices: KID_AGES.map((a) => ({ value: a.id, label: a.label })), selected: kidsSel.ages,
         onToggle: (v: string) => setKidsSel((s) => ({ ...s, ages: toggleIn(s.ages, v as KidAge) })) }] : []),
       { id: "price", label: G.kidsPriceLabel, choices: KID_PRICES.map((p) => ({ value: p.id, label: p.label })), selected: kidsSel.prices,
         onToggle: (v: string) => setKidsSel((s) => ({ ...s, prices: toggleIn(s.prices, v as KidPrice) })) },

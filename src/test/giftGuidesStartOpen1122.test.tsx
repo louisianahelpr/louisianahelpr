@@ -67,6 +67,9 @@ const renderAt = async (url: string) => {
 function closedOnLoad(c: HTMLElement): string[] {
   const out: string[] = [];
   for (const d of c.querySelectorAll<HTMLDetailsElement>("details")) {
+    // The guides menu's Kids row folds its themed guides off Kids (owner 2026-11-24 ~7:50 PM: "like when you click Kids
+    // they expand down"; giftGuideSideThemes1124): menu navigation, it folds no page content away.
+    if (d.closest("[data-gift-sidebar], [data-gift-menu-sheet]")) continue;
     if (!d.open) out.push(`closed <details> "${d.querySelector("summary")?.textContent?.trim()}"`);
   }
   for (const b of c.querySelectorAll<HTMLElement>('[aria-expanded="false"]')) {
@@ -177,7 +180,11 @@ describe("source inventory: every collapsible under the guides and the Holiday H
     // are guide band sections with a header button now, checked in the walk above, by the open[id] ?? START_OPEN line
     // below and by the Hub's band open state below. A <details> added later must still read START_OPEN.
     expect(details.length).toBeGreaterThanOrEqual(0);
-    const bad = details.filter((d) => !/\bopen=\{(START_OPEN|isOpen\()/.test(d));
+    // The one exception: the guides menu's Kids row (owner 2026-11-24 ~7:50 PM: the themed guides "show as subsections
+    // of kids in the left, like when you click Kids they expand down"), open on Kids and the theme pages only.
+    const MENU_KIDS = "src/pages/info/giftGuides/GiftGuidesSidebar.tsx: <details open={onKids}>";
+    expect(details).toContain(MENU_KIDS);
+    const bad = details.filter((d) => d !== MENU_KIDS && !/\bopen=\{(START_OPEN|isOpen\()/.test(d));
     expect(bad).toEqual([]);
     // The deals page's own open state falls back to START_OPEN.
     expect(src("src/pages/info/giftGuides/GiftGuideDeals.tsx")).toContain("open[id] ?? START_OPEN");

@@ -18,7 +18,6 @@
  * @mutate scripts/giftGuideThemePicks.mjs |     const { id: _id, was: _was, age, section: _section, sectionId: _sectionId, ownerAdd: _ownerAdd, sortPrice: _sp, ...p } = row; |     const { id: _id, was: _was, age, ownerAdd: _ownerAdd, sortPrice: _sp, ...p } = row;
  * @mutate scripts/theme-guide-import.mjs |   const picks = themeChunkPicks(slug, rows); |   const picks = rows.map(({ id: _i, was: _w, age: _a, ...p }) => ({ ...p, ownerPick: true, from: slug }));
  * @mutate src/content/giftGuideThemeTags.ts |   return girls === boys ? "everyone" : girls ? "girls" : "boys"; |   return "everyone";
- * @mutate src/pages/info/GiftGuides.tsx |   const ageChips = Boolean(kidTags && Object.values(kidTags).some((t) => t.ageMin !== undefined)); |   const ageChips = false;
  * @mutate scripts/theme-guide-import.mjs | export const breaksStyleRule = (slug, it, href) => !it.ownerAdd && ownerStyleOff( | export const breaksStyleRule = (slug, it, href) => ownerStyleOff(
  */
 import { readFileSync } from "node:fs";
@@ -100,6 +99,8 @@ describe("the data: one chunk rule for the generator and the import", () => {
     expect(chunk.length).toBeGreaterThan(5);
     for (const p of chunk) expect([p.section, p.sectionId], p.name).toEqual([undefined, undefined]);
     expect(chunk.map((p) => p.priceRank)).toEqual(chunk.map((_, i) => i + 1));
+    // The Filter shows Age on every theme (as on Kids), so every theme must have aged picks to show under it.
+    expect(chunk.filter((p) => typeof p.ageMin === "number").length, slug).toBeGreaterThan(2);
     const byHref = new Map(themeRows1124(slug).map((r) => [r.href, r]));
     for (const p of chunk) {
       const want = themeAge(byHref.get(p.href)?.age);

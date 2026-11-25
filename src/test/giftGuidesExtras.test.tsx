@@ -253,7 +253,8 @@ describe("gift guides: the search in the tool row filters guides by title and gr
     // The menu is the guides alone.
     expect(container.querySelector("[data-gift-sidebar] input")).toBeNull();
     // Owner 11-21 ("just do for her, him, kids with their color instead of the filter"): plain links, no groups.
-    expect(container.querySelectorAll("[data-gift-sidebar] details").length).toBe(0);
+    // Owner 11-24 ~7:50 PM: the themed guides are Kids' subsections, a list nested in Kids' row (giftGuideSideThemes1124): Kids' row is the one disclosure.
+    expect([...container.querySelectorAll("[data-gift-sidebar] details")].map((d) => d.querySelector("summary a")?.getAttribute("data-gift-side"))).toEqual(["kids"]);
     expect([...container.querySelectorAll("[data-gift-side-guides] a[data-gift-side]")].map((a) => a.getAttribute("data-gift-side"))).toEqual(["", "her", "him", "kids", ...THEME_GUIDES_1124]);
   });
 });

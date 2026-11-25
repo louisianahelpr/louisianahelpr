@@ -30,17 +30,15 @@ color:var(--gg-ink)}
 .gg-list>li>.gg-item{min-width:0}
 .gg-shop-btn{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;min-height:44px;margin:-4px 0 8px 100px;padding:0 6px 0 0;border:0;border-radius:0;background:none;font-size:14px;font-weight:700;color:var(--gg-olive);text-decoration:none}
 .gg-shop-btn:hover,.gg-shop-btn:focus-visible{text-decoration:underline}
-.gg-side details{border-top:0}
-.gg-side summary{list-style:none;cursor:pointer;display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:8px;font-size:13px;font-weight:600;color:var(--gg-ink)}
-.gg-side summary:hover{background:hsl(var(--muted) / .6)}
+.gg summary{list-style:none;cursor:pointer;display:flex;align-items:center;border-radius:8px}.gg summary>a{flex:1}
 .gg-side-n{margin-left:auto;padding-left:8px;font-size:12px;font-weight:400;color:var(--gg-muted);font-variant-numeric:tabular-nums}
 .gg-side-h{margin:14px 10px 4px;padding-top:12px;border-top:1px solid var(--gg-line);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gg-muted)}
-.gg-side summary::-webkit-details-marker{display:none}
-.gg-side summary::after{content:"+";margin-left:auto;font-size:15px;line-height:1}
-.gg-side details[open] summary::after{content:"\\2212"}
+.gg summary::-webkit-details-marker{display:none}
+.gg summary::after{content:"+";padding:0 17px;font-size:15px}
+.gg details[open] summary::after{content:"\\2212"}
 .gg-side ul{list-style:none;margin:0 0 8px;padding:0}
 .gg-side>.gg-side-h:first-child{margin-top:0;padding-top:0;border-top:0}
-.gg-side details a{padding-left:28px}
+.gg details ul a{padding-left:28px}
 .gg-side ul ul a{padding-left:44px;font-size:12.5px}
 .gg-side ul ul{margin:0}
 

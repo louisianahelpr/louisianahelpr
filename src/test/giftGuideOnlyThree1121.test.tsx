@@ -237,7 +237,8 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     const side = container.querySelector("[data-gift-sidebar]")!;
     expect([...side.querySelectorAll(".gg-side-h")].map((h) => h.textContent)).toEqual(["Guides", "Deals", "Free printables", "Make it fun", "Louisiana"]);
     for (const h of side.querySelectorAll(".gg-side-h")) expect(h.closest("a, button"), h.textContent!).toBeNull();
-    for (const ul of side.querySelectorAll("ul")) expect(side.querySelector(`#${ul.getAttribute("aria-labelledby")}`), ul.outerHTML.slice(0, 40)).not.toBeNull();
+    // Owner 11-24 ~7:50 PM: the themed guides are Kids' subsections, a list nested in Kids' row (giftGuideSideThemes1124): each group's own list is labelled by its heading.
+    for (const ul of side.querySelectorAll("ul:not([data-gift-side-themes])")) expect(side.querySelector(`#${ul.getAttribute("aria-labelledby")}`), ul.outerHTML.slice(0, 40)).not.toBeNull();
     // A row's name, without its item count on the right (owner 11-22: "Number on the right"; giftGuideRailCounts1122).
     const group = (sel: string) => [...side.querySelectorAll(`${sel} a`)].map((a) => [a.textContent!.replace(a.querySelector(".gg-side-n")?.textContent ?? "", ""), a.getAttribute("href")]);
     expect(group("[data-gift-side-deals-group]")).toEqual([

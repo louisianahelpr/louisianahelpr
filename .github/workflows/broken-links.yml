@@ -105,6 +105,21 @@ jobs:
 
       - name: Run lychee link checker on homepage
         # Catches broken outbound links (CDN images, social profiles, etc.)
+        #
+        # NEVER OUR OWN AFFILIATE LINKS (owner 2026-11-24, "Yes, change it"). A
+        # request to a short link (go.shopmy.us, mavely.app.link, walmrt.us,
+        # amzn.to, CJ, Rakuten, Awin, Impact, samsclub.co, or an Amazon page with
+        # our tag) counts as a click on the owner's dashboards, and the networks
+        # can treat self-clicks as invalid traffic. The second --exclude keeps
+        # every affiliate host out of this check even if a guide link ever lands
+        # in the homepage HTML; a pick's store page is price/stock-checked by the
+        # daily price job from its stored product URL instead.
+        # Guard: src/test/noScheduledJobOpensAffiliateLinks.test.ts.
+        #
+        # lychee 0.24.2 (the action's default) has no --exclude-mail (mail is
+        # excluded by default); the old flag made the step stop at "unexpected
+        # argument" with 0 links checked while it stayed green (fail: false):
+        # runs 44143458785 (2026-11-17) and 45474556150 (2026-11-24).
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           args: >-
@@ -112,9 +127,9 @@ jobs:
             --no-progress
             --max-concurrency 4
             --accept 200,206,429
-            --exclude-mail
             --exclude-path node_modules
             --exclude '^https?://(www\.)?louisianahelpr\.com'
+            --exclude '^https?://([^/?#]*\.)?(go\.shopmy\.us|shopmy\.us|mavely\.app\.link|walmrt\.us|goto\.walmart\.com|samsclub\.co|amzn\.to|amzn\.com|a\.co|link\.amazon|amzlinks\.in|amazon\.[a-z.]+|anrdoezrs\.net|jdoqocy\.com|tkqlhce\.com|dpbolvw\.net|kqzyfj\.com|linksynergy\.com|awin1\.com|sjv\.io|pxf\.io|7eer\.net|evyy\.net|ojrq\.net)([/?#:]|$)'
             http://127.0.0.1:4173/
           fail: false # don't fail on flaky external links — log only
 

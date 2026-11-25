@@ -60,257 +60,300 @@
    "file": "monster-jam-guide-5.png",
    "ids": [
     "MJJ52",
+    "MJS70",
+    "MJS98",
     "MJ10",
     "MJ11",
     "MJ12",
     "MJ13",
     "MJ15",
-    "MJ16",
-    "MJO04",
-    "MJO10"
+    "MJ16"
    ]
   },
   {
    "file": "monster-jam-guide-6.png",
    "ids": [
+    "MJO04",
+    "MJO10",
     "MJO16",
     "MJO17",
     "MJO18",
     "MJO19",
     "MJO20",
     "MJO21",
-    "MJO22",
-    "MJO23",
-    "MJO25"
+    "MJO22"
    ]
   },
   {
    "file": "monster-jam-guide-7.png",
    "ids": [
+    "MJO23",
+    "MJO25",
     "MJO26",
     "MJO27",
     "MJO32",
     "MJO33",
     "MJO34",
     "MJO35",
-    "MJO44",
-    "MJS05",
-    "MJS08"
+    "MJO44"
    ]
   },
   {
    "file": "monster-jam-guide-8.png",
    "ids": [
+    "MJS05",
+    "MJS08",
     "MJS11",
     "MJS19",
     "MJS20",
     "MJS40",
     "MJS43",
     "MJS45",
-    "MJS46",
-    "MJS48",
-    "MJ20"
+    "MJS46"
    ]
   },
   {
    "file": "monster-jam-guide-9.png",
    "ids": [
+    "MJS48",
+    "MJS105",
+    "MJ20",
     "MJ21",
     "MJ22",
     "MJ23",
     "MJS01",
     "MJS06",
-    "MJS09",
-    "MJS22",
-    "MJS26",
-    "MJS28"
+    "MJS09"
    ]
   },
   {
    "file": "monster-jam-guide-10.png",
    "ids": [
+    "MJS22",
+    "MJS26",
+    "MJS28",
     "MJS31",
     "MJS44",
     "MJ120",
     "MJ121",
     "MJ122",
-    "MJ123",
-    "MJ124",
-    "MJ125",
-    "MJ30"
+    "MJ123"
    ]
   },
   {
    "file": "monster-jam-guide-11.png",
    "ids": [
+    "MJ124",
+    "MJ125",
+    "MJ30",
     "MJ31",
     "MJ32",
     "MJ33",
     "MJ34",
     "MJO15",
-    "MJO24",
-    "MJS02",
-    "MJS13",
-    "MJS17"
+    "MJO24"
    ]
   },
   {
    "file": "monster-jam-guide-12.png",
    "ids": [
+    "MJS02",
+    "MJS13",
+    "MJS17",
     "MJS18",
     "MJS25",
     "MJS27",
     "MJS47",
     "MJS64",
-    "MJ40",
-    "MJ41",
-    "MJ14",
-    "MJ50"
+    "MJ40"
    ]
   },
   {
    "file": "monster-jam-guide-13.png",
    "ids": [
+    "MJ41",
+    "MJ14",
+    "MJ50",
     "MJ51",
     "MJ52",
     "MJS41",
     "MJS84",
     "MJS89",
-    "MJJ12",
-    "MJJ13",
-    "MJ60",
-    "MJ61"
+    "MJJ12"
    ]
   },
   {
    "file": "monster-jam-guide-14.png",
    "ids": [
+    "MJJ13",
+    "MJS124",
+    "MJ60",
+    "MJ61",
     "MJ62",
     "MJ63",
     "MJ64",
     "MJ65",
-    "MJ67",
-    "MJ68",
-    "MJ69",
-    "MJO01",
-    "MJO02"
+    "MJ67"
    ]
   },
   {
    "file": "monster-jam-guide-15.png",
    "ids": [
+    "MJ68",
+    "MJ69",
+    "MJO01",
+    "MJO02",
     "MJO03",
     "MJO05",
     "MJO06",
     "MJO07",
-    "MJO08",
-    "MJO09",
-    "MJO11",
-    "MJO12",
-    "MJO13"
+    "MJO08"
    ]
   },
   {
    "file": "monster-jam-guide-16.png",
    "ids": [
+    "MJO09",
+    "MJO11",
+    "MJO12",
+    "MJO13",
     "MJO14",
     "MJO28",
     "MJO29",
     "MJO30",
-    "MJO31",
-    "MJO36",
-    "MJO37",
-    "MJO38",
-    "MJO39"
+    "MJO31"
    ]
   },
   {
    "file": "monster-jam-guide-17.png",
    "ids": [
+    "MJO36",
+    "MJO37",
+    "MJO38",
+    "MJO39",
     "MJO40",
     "MJO41",
     "MJO42",
     "MJS49",
-    "MJO45",
-    "MJJ01",
-    "MJJ03",
-    "MJJ05",
-    "MJJ06"
+    "MJO45"
    ]
   },
   {
    "file": "monster-jam-guide-18.png",
    "ids": [
+    "MJJ01",
+    "MJJ03",
+    "MJJ05",
+    "MJJ06",
     "MJJ07",
     "MJJ08",
     "MJJ09",
     "MJJ10",
-    "MJJ11",
-    "MJJ14",
-    "MJJ16",
-    "MJJ17",
-    "MJJ18"
+    "MJJ11"
    ]
   },
   {
    "file": "monster-jam-guide-19.png",
    "ids": [
+    "MJJ14",
+    "MJJ16",
+    "MJJ17",
+    "MJJ18",
     "MJJ19",
     "MJJ21",
     "MJJ22",
     "MJJ23",
-    "MJJ24",
-    "MJJ25",
-    "MJJ27",
-    "MJJ28",
-    "MJJ30"
+    "MJJ24"
    ]
   },
   {
    "file": "monster-jam-guide-20.png",
    "ids": [
+    "MJJ25",
+    "MJJ27",
+    "MJJ28",
+    "MJJ30",
     "MJJ31",
     "MJJ32",
     "MJJ33",
     "MJJ34",
-    "MJJ36",
-    "MJJ37",
-    "MJJ39",
-    "MJJ40",
-    "MJJ42"
+    "MJJ36"
    ]
   },
   {
    "file": "monster-jam-guide-21.png",
    "ids": [
+    "MJJ37",
+    "MJJ39",
+    "MJJ40",
+    "MJJ42",
     "MJJ43",
     "MJJ48",
-    "MJ07",
-    "MJ70",
-    "MJ71",
-    "MJJ02",
-    "MJJ44",
-    "MJ80",
-    "MJ82"
+    "MJS63",
+    "MJS65",
+    "MJS66"
    ]
   },
   {
    "file": "monster-jam-guide-22.png",
    "ids": [
-    "MJ83",
-    "MJ85",
-    "MJS60",
-    "MJS61",
-    "MJS91",
-    "MJ86",
-    "MJ87",
-    "MJ90",
-    "MJ91"
+    "MJS79",
+    "MJS80",
+    "MJS83",
+    "MJS93",
+    "MJS106",
+    "MJS114",
+    "MJS118",
+    "MJS119",
+    "MJS121"
    ]
   },
   {
    "file": "monster-jam-guide-23.png",
    "ids": [
+    "MJS122",
+    "MJS123",
+    "MJS125",
+    "MJS128",
+    "MJ07",
+    "MJ70",
+    "MJ71",
+    "MJJ02",
+    "MJJ44"
+   ]
+  },
+  {
+   "file": "monster-jam-guide-24.png",
+   "ids": [
+    "MJS71",
+    "MJS73",
+    "MJS87",
+    "MJS90",
+    "MJS120",
+    "MJ80",
+    "MJ82",
+    "MJ83",
+    "MJ85"
+   ]
+  },
+  {
+   "file": "monster-jam-guide-25.png",
+   "ids": [
+    "MJS60",
+    "MJS61",
+    "MJS91",
+    "MJS102",
+    "MJS107",
+    "MJS112",
+    "MJ86",
+    "MJ87",
+    "MJ90"
+   ]
+  },
+  {
+   "file": "monster-jam-guide-26.png",
+   "ids": [
+    "MJ91",
     "MJ92",
     "MJ93",
     "MJ94",
@@ -318,17 +361,20 @@
     "MJJ35",
     "MJJ46",
     "MJJ47",
-    "MJJ49",
-    "MJJ51"
+    "MJJ49"
    ]
   },
   {
-   "file": "monster-jam-guide-24.png",
+   "file": "monster-jam-guide-27.png",
    "ids": [
+    "MJJ51",
+    "MJS101",
+    "MJS110",
     "MJ95",
     "MJ96",
     "MJ97",
-    "MJS68"
+    "MJS68",
+    "MJS94"
    ]
   }
  ]

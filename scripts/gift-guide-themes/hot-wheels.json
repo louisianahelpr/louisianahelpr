@@ -2,7 +2,7 @@
  "slug": "hot-wheels",
  "name": "Hot Wheels",
  "sectionPrefix": "hot-wheels",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/hot-wheels/items.json (Tue Nov 24 3:45 PM, 186 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/hot-wheels/items.json (Tue Nov 24 3:45 PM, 188 items)",
  "rows": [
   {
    "id": "HW08",
@@ -2499,6 +2499,38 @@
    "priceAt": "2026-11-24",
    "section": "Room and Christmas",
    "sectionId": "hot-wheels-room-and-christmas",
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "HWM44",
+   "name": "Hot Wheels Race Team Kids Belt Bag",
+   "brand": "Hot Wheels",
+   "line": "Room and Christmas for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110881990",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-race-team-kids-belt-bag-macys-7e84d4.webp",
+   "store": "store-macys",
+   "price": 26.99,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "hot-wheels-room-and-christmas",
+   "was": 29.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "HWM45",
+   "name": "Hot Wheels Off the Track Kids Sling Bag",
+   "brand": "Hot Wheels",
+   "line": "Room and Christmas for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110882090",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-off-the-track-kids-sling-bag-macys-416051.webp",
+   "store": "store-macys",
+   "price": 29.69,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "hot-wheels-room-and-christmas",
+   "was": 32.99,
    "commission": 16,
    "age": "kids"
   },

@@ -2,7 +2,7 @@
  "slug": "cars",
  "name": "Pixar Cars",
  "sectionPrefix": "cars",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/cars/items.json (Tue Nov 24 9:27 PM, 149 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/cars/items.json (Tue Nov 24 9:27 PM, 150 items)",
  "rows": [
   {
    "id": "CR01",
@@ -1182,6 +1182,21 @@
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tonies-cars-lightning-mcqueen-mater-audio-figurines-2-pack-macys-778b71.webp",
    "store": "store-macys",
    "price": 39.99,
+   "priceAt": "2026-11-24",
+   "section": "Plush and room",
+   "sectionId": "cars-plush-and-room",
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "CRM15",
+   "name": "tonies Cars and Toy Story Audio Figurines, 4-Pack",
+   "brand": "Pixar Cars",
+   "line": "Plush and room for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110882190",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tonies-cars-and-toy-story-audio-figurines-4-pack-macys-3c8bc4.webp",
+   "store": "store-macys",
+   "price": 79.99,
    "priceAt": "2026-11-24",
    "section": "Plush and room",
    "sectionId": "cars-plush-and-room",

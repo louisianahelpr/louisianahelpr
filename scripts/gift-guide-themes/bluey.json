@@ -2,7 +2,7 @@
  "slug": "bluey",
  "name": "Bluey",
  "sectionPrefix": "bluey",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/bluey/items.json (Tue Nov 24 12:47 PM, 244 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/bluey/items.json (Tue Nov 24 12:47 PM, 245 items)",
  "rows": [
   {
    "id": "BL01",
@@ -1735,6 +1735,22 @@
    "sectionId": "bluey-toys-and-playsets",
    "was": 24.99,
    "commission": 16,
+   "age": "3+",
+   "ownerAdd": true
+  },
+  {
+   "id": "BLD01",
+   "name": "Best Friend Bluey 10-Inch Articulated Figure",
+   "brand": "Bluey",
+   "line": "Toys and playsets for a Bluey fan.",
+   "href": "https://walmrt.us/4j2ZrUX",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/best-friend-bluey-10-inch-articulated-figure-walmart-2f541a.webp",
+   "store": "store-walmart",
+   "price": 25.55,
+   "priceAt": "2026-11-24",
+   "section": "Toys and playsets",
+   "sectionId": "bluey-toys-and-playsets",
+   "commission": 9,
    "age": "3+",
    "ownerAdd": true
   },

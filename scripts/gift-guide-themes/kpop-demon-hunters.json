@@ -2,7 +2,7 @@
  "slug": "kpop-demon-hunters",
  "name": "KPop Demon Hunters",
  "sectionPrefix": "kpop-demon-hunters",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/kpop-demon-hunters/items.json (Tue Nov 24 12:47 PM, 106 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/kpop-demon-hunters/items.json (Tue Nov 24 12:47 PM, 124 items)",
  "rows": [
   {
    "id": "KP01",
@@ -476,6 +476,86 @@
    "age": "kids"
   },
   {
+   "id": "KPK31",
+   "name": "Crayola KPop Demon Hunters Colorable Fuzzy Stickers",
+   "brand": "KPop Demon Hunters",
+   "line": "A little KPop Demon Hunters gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110906789",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/crayola-kpop-demon-hunters-colorable-fuzzy-stickers-kohls-540100.webp",
+   "store": "store-kohls",
+   "price": 4.26,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "kpop-demon-hunters-stocking-stuffers-under-10",
+   "was": 5.69,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "KPK32",
+   "name": "KPop Demon Hunters World Tour Poster Girls' Tee",
+   "brand": "KPop Demon Hunters",
+   "line": "A little KPop Demon Hunters gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110906883",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-world-tour-poster-girls-tee-kohls-e61a08.webp",
+   "store": "store-kohls",
+   "price": 7.99,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "kpop-demon-hunters-stocking-stuffers-under-10",
+   "was": 12.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "KPK34",
+   "name": "KPop Demon Hunters 1000 Sticker Collection",
+   "brand": "KPop Demon Hunters",
+   "line": "A little KPop Demon Hunters gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110907116",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-1000-sticker-collection-kohls-80e38e.webp",
+   "store": "store-kohls",
+   "price": 6.74,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "kpop-demon-hunters-stocking-stuffers-under-10",
+   "was": 8.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "KPK36",
+   "name": "KPop Demon Hunters 75+ Piece Fashion Sketch Set",
+   "brand": "KPop Demon Hunters",
+   "line": "A little KPop Demon Hunters gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110907346",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-75-piece-fashion-sketch-set-kohls-4f2a52.webp",
+   "store": "store-kohls",
+   "price": 9.74,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "kpop-demon-hunters-stocking-stuffers-under-10",
+   "was": 12.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "KPK37",
+   "name": "Gui Gui KPop Demon Hunters Slime Kit (styles vary)",
+   "brand": "KPop Demon Hunters",
+   "line": "A little KPop Demon Hunters gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110907500",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/gui-gui-kpop-demon-hunters-slime-kit-styles-vary-kohls-ad0702.webp",
+   "store": "store-kohls",
+   "price": 9.74,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "kpop-demon-hunters-stocking-stuffers-under-10",
+   "was": 12.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
    "id": "KP10",
    "name": "KPop Demon Hunters HUNTR/X Light Stick with Light FX",
    "brand": "KPop Demon Hunters",
@@ -511,15 +591,15 @@
    "name": "KPop Demon Hunters Zoey Fashion Doll",
    "brand": "KPop Demon Hunters",
    "line": "Toys and dolls for a KPop Demon Hunters fan.",
-   "href": "https://walmrt.us/4ja6mff",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-zoey-fashion-doll-walmart-03a359.webp",
-   "store": "store-walmart",
-   "price": 26.98,
+   "href": "https://go.shopmy.us/p-110918497",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-zoey-fashion-doll-macys-03a359.webp",
+   "store": "store-macys",
+   "price": 22.9,
    "priceAt": "2026-11-24",
    "section": "Toys and dolls",
    "sectionId": "kpop-demon-hunters-toys-and-dolls",
-   "was": 57.64,
-   "commission": 6,
+   "was": 26.99,
+   "commission": 16,
    "age": "6+"
   },
   {
@@ -663,22 +743,6 @@
    "commission": 6,
    "age": "kids",
    "ownerAdd": true
-  },
-  {
-   "id": "KPJ09",
-   "name": "KPop Demon Hunters Tattoo Maker Kit",
-   "brand": "KPop Demon Hunters",
-   "line": "Toys and dolls for a KPop Demon Hunters fan.",
-   "href": "https://mavely.app.link/BneGAJBGl8b",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-tattoo-maker-kit-jcpenney-2a82f0.webp",
-   "store": "store-jcpenney",
-   "price": 29.99,
-   "priceAt": "2026-11-24",
-   "section": "Toys and dolls",
-   "sectionId": "kpop-demon-hunters-toys-and-dolls",
-   "was": 40,
-   "commission": 10.5,
-   "age": "kids"
   },
   {
    "id": "KPJ22",
@@ -851,6 +915,164 @@
    "age": "kids"
   },
   {
+   "id": "KPK30",
+   "name": "Nerf KPop Demon Hunters Mira's Curved Moon Sword",
+   "brand": "KPop Demon Hunters",
+   "line": "Toys and dolls for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110915646",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nerf-kpop-demon-hunters-miras-curved-moon-sword-kohls-9f6af7.webp",
+   "store": "store-kohls",
+   "price": 14.99,
+   "priceAt": "2026-11-24",
+   "section": "Toys and dolls",
+   "sectionId": "kpop-demon-hunters-toys-and-dolls",
+   "was": 19.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "KPK38",
+   "name": "Huntrix KPop 3-Piece Spa Gift Box",
+   "brand": "KPop Demon Hunters",
+   "line": "Toys and dolls for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110907806",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/huntrix-kpop-3-piece-spa-gift-box-kohls-bb9bfb.webp",
+   "store": "store-kohls",
+   "price": 19.99,
+   "priceAt": "2026-11-24",
+   "section": "Toys and dolls",
+   "sectionId": "kpop-demon-hunters-toys-and-dolls",
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "KPM01",
+   "name": "KPop Demon Hunters Gold-Tone Jewelry Advent Calendar, 12-Piece",
+   "brand": "KPop Demon Hunters",
+   "line": "Toys and dolls for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110918596",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-gold-tone-jewelry-advent-calendar-12-piec-macys-1fd41f.webp",
+   "store": "store-macys",
+   "price": 30,
+   "priceAt": "2026-11-24",
+   "section": "Toys and dolls",
+   "sectionId": "kpop-demon-hunters-toys-and-dolls",
+   "was": 200,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "KPM02",
+   "name": "Bitzee KPop Demon Hunters Interactive Digital Pet",
+   "brand": "KPop Demon Hunters",
+   "line": "Toys and dolls for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110921018",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bitzee-kpop-demon-hunters-interactive-digital-pet-macys-36275f.webp",
+   "store": "store-macys",
+   "price": 34.99,
+   "priceAt": "2026-11-24",
+   "section": "Toys and dolls",
+   "sectionId": "kpop-demon-hunters-toys-and-dolls",
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "KPM03",
+   "name": "Little People Collector KPop Demon Hunters HUNTR/X 3-Figure Set",
+   "brand": "KPop Demon Hunters",
+   "line": "Toys and dolls for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110921098",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/little-people-collector-kpop-demon-hunters-huntr-x-3-figure-macys-8e8966.webp",
+   "store": "store-macys",
+   "price": 19.79,
+   "priceAt": "2026-11-24",
+   "section": "Toys and dolls",
+   "sectionId": "kpop-demon-hunters-toys-and-dolls",
+   "was": 21.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "KPM04",
+   "name": "KPop Demon Hunters Rumi, Zoey & Mira Friendship Necklace Set, 3-Piece",
+   "brand": "KPop Demon Hunters",
+   "line": "Toys and dolls for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110921182",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-rumi-zoey-mira-friendship-necklace-set-3-macys-87303f.webp",
+   "store": "store-macys",
+   "price": 25.5,
+   "priceAt": "2026-11-24",
+   "section": "Toys and dolls",
+   "sectionId": "kpop-demon-hunters-toys-and-dolls",
+   "was": 85,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "KPM05",
+   "name": "4D Build KPop Demon Hunters Rumi Ramen Cup 3D Puzzle, 138 Pieces",
+   "brand": "KPop Demon Hunters",
+   "line": "Toys and dolls for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110921275",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/4d-build-kpop-demon-hunters-rumi-ramen-cup-3d-puzzle-138-pie-macys-2bc6c6.webp",
+   "store": "store-macys",
+   "price": 17.99,
+   "priceAt": "2026-11-24",
+   "section": "Toys and dolls",
+   "sectionId": "kpop-demon-hunters-toys-and-dolls",
+   "was": 19.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "KPM06",
+   "name": "Funko Pop! KPop Demon Hunters Glow-in-the-Dark Derpy with Sussie",
+   "brand": "KPop Demon Hunters",
+   "line": "Toys and dolls for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110921369",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/funko-pop-kpop-demon-hunters-glow-in-the-dark-derpy-with-sus-macys-3e8bfb.webp",
+   "store": "store-macys",
+   "price": 12.74,
+   "priceAt": "2026-11-24",
+   "section": "Toys and dolls",
+   "sectionId": "kpop-demon-hunters-toys-and-dolls",
+   "was": 14.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "KPM07",
+   "name": "Funko Pop! KPop Demon Hunters Rumi",
+   "brand": "KPop Demon Hunters",
+   "line": "Toys and dolls for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110921447",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/funko-pop-kpop-demon-hunters-rumi-macys-80c08d.webp",
+   "store": "store-macys",
+   "price": 12.74,
+   "priceAt": "2026-11-24",
+   "section": "Toys and dolls",
+   "sectionId": "kpop-demon-hunters-toys-and-dolls",
+   "was": 14.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "KPM08",
+   "name": "KPop Demon Hunters Kids' Derpy Beaded Bracelets, 2-Piece",
+   "brand": "KPop Demon Hunters",
+   "line": "Toys and dolls for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110921505",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-kids-derpy-beaded-bracelets-2-piece-macys-5dc523.webp",
+   "store": "store-macys",
+   "price": 14.99,
+   "priceAt": "2026-11-24",
+   "section": "Toys and dolls",
+   "sectionId": "kpop-demon-hunters-toys-and-dolls",
+   "was": 60,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
    "id": "KP20",
    "name": "KPop Demon Hunters Derpy Tiger Plush, 12 in",
    "brand": "KPop Demon Hunters",
@@ -895,6 +1117,22 @@
    "was": 14.99,
    "commission": 12,
    "age": "6+"
+  },
+  {
+   "id": "KPK35",
+   "name": "Furby Furblets KPop Demon Hunters Saja Boy Demon",
+   "brand": "KPop Demon Hunters",
+   "line": "Plush for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110907204",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/furby-furblets-kpop-demon-hunters-saja-boy-demon-kohls-a5d00c.webp",
+   "store": "store-kohls",
+   "price": 11.24,
+   "priceAt": "2026-11-24",
+   "section": "Plush",
+   "sectionId": "kpop-demon-hunters-plush",
+   "was": 14.99,
+   "commission": 12,
+   "age": "kids"
   },
   {
    "id": "KP30",
@@ -1197,6 +1435,22 @@
    "age": "kids"
   },
   {
+   "id": "KPK04",
+   "name": "KPop Demon Hunters For the Fans Girls' Hoodie and Flare Pants Set",
+   "brand": "KPop Demon Hunters",
+   "line": "Clothes and pajamas for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110900595",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-for-the-fans-girls-hoodie-and-flare-pants-kohls-9cb985.webp",
+   "store": "store-kohls",
+   "price": 35.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and pajamas",
+   "sectionId": "kpop-demon-hunters-clothes-and-pajamas",
+   "was": 44.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
    "id": "KPK05",
    "name": "KPop Demon Hunters Ramyeon Panels Girls' Fleece Set",
    "brand": "KPop Demon Hunters",
@@ -1271,6 +1525,22 @@
    "priceAt": "2026-11-24",
    "section": "Clothes and pajamas",
    "sectionId": "kpop-demon-hunters-clothes-and-pajamas",
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "KPK39",
+   "name": "KPop Demon Hunters Expressions Panels Girls' Long Sleeve Tee",
+   "brand": "KPop Demon Hunters",
+   "line": "Clothes and pajamas for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110908269",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-expressions-panels-girls-long-sleeve-tee-kohls-e72140.webp",
+   "store": "store-kohls",
+   "price": 14.39,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and pajamas",
+   "sectionId": "kpop-demon-hunters-clothes-and-pajamas",
+   "was": 17.99,
    "commission": 12,
    "age": "kids"
   },
@@ -1369,6 +1639,22 @@
    "commission": 9,
    "age": "kids",
    "ownerAdd": true
+  },
+  {
+   "id": "KPK03",
+   "name": "KPop Demon Hunters Huntr/x Throw Blanket",
+   "brand": "KPop Demon Hunters",
+   "line": "Room for a KPop Demon Hunters fan.",
+   "href": "https://go.shopmy.us/p-110899326",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-huntr-x-throw-blanket-kohls-843b88.webp",
+   "store": "store-kohls",
+   "price": 16.99,
+   "priceAt": "2026-11-24",
+   "section": "Room",
+   "sectionId": "kpop-demon-hunters-room",
+   "was": 21.99,
+   "commission": 12,
+   "age": "kids"
   },
   {
    "id": "KPK09",
@@ -1502,14 +1788,15 @@
    "name": "KPop Demon Hunters Rumi & Jinu Final Battle Figure Set",
    "brand": "KPop Demon Hunters",
    "line": "Big gifts for a KPop Demon Hunters fan.",
-   "href": "https://walmrt.us/48DpBYu",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-rumi-jinu-final-battle-figure-set-walmart-54d520.webp",
-   "store": "store-walmart",
-   "price": 39.97,
+   "href": "https://go.shopmy.us/p-110908501",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-rumi-jinu-final-battle-figure-set-kohls-54d520.webp",
+   "store": "store-kohls",
+   "price": 32.24,
    "priceAt": "2026-11-24",
    "section": "Big gifts",
    "sectionId": "kpop-demon-hunters-big-gifts",
-   "commission": 6,
+   "was": 42.99,
+   "commission": 12,
    "age": "4+"
   },
   {
@@ -1533,31 +1820,32 @@
    "name": "KPop Demon Hunters Rumi Deluxe Fashion Doll with Sword",
    "brand": "KPop Demon Hunters",
    "line": "Big gifts for a KPop Demon Hunters fan.",
-   "href": "https://walmrt.us/4AVjP0o",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-rumi-deluxe-fashion-doll-with-sword-walmart-37907c.webp",
-   "store": "store-walmart",
-   "price": 52.98,
+   "href": "https://go.shopmy.us/p-110918397",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kpop-demon-hunters-rumi-deluxe-fashion-doll-with-sword-macys-37907c.webp",
+   "store": "store-macys",
+   "price": 48.59,
    "priceAt": "2026-11-24",
    "section": "Big gifts",
    "sectionId": "kpop-demon-hunters-big-gifts",
-   "commission": 6,
+   "was": 53.99,
+   "commission": 16,
    "age": "kids",
    "ownerAdd": true
   }
  ],
  "skipped": [
   {
+   "id": "KPJ09",
+   "name": "KPop Demon Hunters Tattoo Maker Kit",
+   "why": [
+    "same kit as KPK18 (Cool Maker HUNTR/X Shimmer Foil Tattoos; photos match), Kohl's $18.74 < JCPenney $29.99; one place per item (sweep E 11-25)"
+   ]
+  },
+  {
    "id": "KPJ05",
    "name": "KPop Demon Hunters Girls' 4-Piece Pajama Set",
    "why": [
     "pajama cap: at most 2 pajamas per price section (owner 11-20); u25 already has 2"
-   ]
-  },
-  {
-   "id": "KPK04",
-   "name": "KPop Demon Hunters For the Fans Girls' Hoodie and Flare Pants Set",
-   "why": [
-    "Kohl's photo shows a child wearing it (product photos only)"
    ]
   },
   {
@@ -1596,17 +1884,17 @@
    ]
   },
   {
-   "id": "KPK03",
-   "name": "KPop Demon Hunters Huntr/x Throw Blanket",
+   "id": "KPK33",
+   "name": "KPop Demon Hunters Derpy Girls' One-Piece Pajamas",
    "why": [
-    "Kohl's has no product photo (placeholder)"
+    "pajama cap: at most 2 pajamas per price section (owner 11-20); u25 already has 2"
    ]
   },
   {
    "id": "KPK10",
    "name": "KPop Demon Hunters Dance Mat",
    "why": [
-    "Kohl's photo shows a person dancing on the mat (product photos only)"
+    "Kohl's photos all show a person (girl dancing on the mat; box art photo of a child); no product-only photo (sweep E 11-25)"
    ]
   }
  ]

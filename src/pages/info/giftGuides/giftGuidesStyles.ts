@@ -501,7 +501,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-quiz-after{align-items:center;gap:12px 16px;margin-top:14px}
 @media (min-width:768px){.gg-quiz{padding:22px 24px 16px}.gg-quiz-answers{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.gg-quiz-answer{min-height:64px}}
 /* Owner 11-21 (phone guide page): the count on the left and the icons on the right, ONE row under the banner (no
-   shipping pill, owner 11-24 ~8:30 PM "Remove by Dec 15 everywhere");
+   shipping pill: the owner took the by-Dec-15 pill off everywhere, 11-24 ~8:30 PM);
    the search is a bare magnifier like the other icons until tapped. */
 .gg-countrow{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 8px;margin:10px 0 2px}
 .gg-countrow-left{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0}

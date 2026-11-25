@@ -223,6 +223,16 @@ export const KIDS_STEALS_1124_ROWS = [
   // S52 (owner ticked it; Kids' 3rd Crocs item, over the ~2-per-brand line, for her to trim): crocs.com Kids' Classic Cozzzy
   // Slipper 210856, $25 (crocs.com product data read 11-24 ~4:05 AM, in stock; Black photo), ShopMy 10% (link ~4:15 AM).
   ["https://go.shopmy.us/p-110137252", 25, "https://media.crocs.com/images/t_standard/products/210856_001_ALT100/crocs", "Crocs Kids' Classic Cozzzy Slipper", "Crocs", "store-crocs", "slippers", 10, "Fuzzy Crocs slippers in kid sizes."],
+  // Owner Kohl's screenshot 11-25 1:09 AM (kohls-mixed-0110.md #3): kohls.com prd-4576090 read 11-25 ~1:20 AM: $9.99 sale (reg $17.99; $7.99 with TAKE20), print Toy Story Retro (pick that print on the page). ShopMy quick link, Kohl's 12%; never opened.
+  ["https://go.shopmy.us/p-110718740", 9.99, "https://media.kohlsimg.com/is/image/kohls/4576090_Toy_Story_Retro", "The Big One Disney Toy Story Oversized Supersoft Plush Throw", "The Big One", "store-kohls", "blanket", 12, "A huge, soft Toy Story throw for movie nights."],
+  // Owner Kohl's screenshot 11-25 1:09 AM (kohls-mixed-0110.md #5): kohls.com prd-8577832 read 11-25 ~1:20 AM: $20 sale (orig $40; $16 with TAKE20). ShopMy quick link, Kohl's 12%; never opened.
+  ["https://go.shopmy.us/p-110718757", 20, "https://media.kohlsimg.com/is/image/kohls/8577832", "PAW Patrol Toddler Boy 4-Piece Pajama Set", "PAW Patrol", "store-kohls", "pajamas", 12, "Two cozy PAW Patrol pajama sets in one pack."],
+  // Owner Kohl's screenshot 11-25 1:10 AM (kohls-mixed-0110.md #8): kohls.com prd-8053525 read 11-25 ~1:20 AM: $20.99 sale (reg $29.99). ShopMy quick link, Kohl's 12%; never opened.
+  ["https://go.shopmy.us/p-110718832", 20.99, "https://media.kohlsimg.com/is/image/kohls/8053525", "Fisher-Price Little People Bowser's Airship and Figure", "Fisher-Price", "store-kohls", "playset", 12, "Bowser's airship for little Mario fans."],
+  // Owner Kohl's screenshot 11-25 1:10 AM (kohls-mixed-0110.md #9; Hot Wheels has no Matchbox rows, so Kids): kohls.com prd-7006887 read 11-25 ~1:20 AM: $24.99 sale (reg $49.99). ShopMy quick link, Kohl's 12%; never opened.
+  ["https://go.shopmy.us/p-110718853", 24.99, "https://media.kohlsimg.com/is/image/kohls/7006887", "Matchbox Aircraft Carrier Play Set with 10 Die-Cast Planes", "Matchbox", "store-kohls", "playset", 12, "An aircraft carrier with 10 Sky Busters planes and a car."],
+  // Owner Kohl's screenshot 11-25 1:10 AM (kohls-mixed-0110.md #9, the 5-pack): kohls.com prd-8100049 read 11-25 ~1:20 AM: $5.24 sale (reg $6.99), styles vary. ShopMy quick link, Kohl's 12%; never opened.
+  ["https://go.shopmy.us/p-110718866", 5.24, "https://media.kohlsimg.com/is/image/kohls/8100049", "Matchbox Die-Cast Cars 5-Pack", "Matchbox", "store-kohls", "die-cast", 12, "Five Matchbox cars for a stocking."],
 ];
 /** For Her. */
 export const HER_STEALS_1124_ROWS = [
@@ -385,6 +395,11 @@ export const STEALS_CUTOUTS_1124 = [
   ["https://images.lululemon.com/is/image/lululemon/LU9CCJS_3385_1", "lululemon-mini-belt-bag-keychain-black-5fcdc5.webp"],
   ["https://images.lululemon.com/is/image/lululemon/LW9FNLS_075332_1", "lululemon-bead-hair-ties-9752c6.webp"],
   ["https://katespade.scene7.com/is/image/KateSpade/KE574_001", "kate-spade-lucy-wristlet-black-b22e43.webp"],
+  ["https://media.kohlsimg.com/is/image/kohls/4576090_Toy_Story_Retro", "the-big-one-disney-toy-story-oversized-supersoft-plush-throw-kohls-660ad2.webp"],
+  ["https://media.kohlsimg.com/is/image/kohls/8577832", "paw-patrol-toddler-boy-4-piece-pajama-set-kohls-6c414d.webp"],
+  ["https://media.kohlsimg.com/is/image/kohls/8053525", "fisher-price-little-people-bowsers-airship-and-figure-kohls-e3d844.webp"],
+  ["https://media.kohlsimg.com/is/image/kohls/7006887", "matchbox-aircraft-carrier-play-set-with-10-die-cast-planes-kohls-c34731.webp"],
+  ["https://media.kohlsimg.com/is/image/kohls/8100049", "matchbox-die-cast-cars-5-pack-kohls-21591d.webp"],
 ];
 
 /**

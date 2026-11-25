@@ -292,7 +292,10 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // moves Under $25 -> $25 to $50 and the PAW Patrol Megasaurus ($83 -> $49.99, shown ~$50) $75 to $100 -> $50 to $75.
       // Owner round-2 link 11-24 ~9:45 PM: the Elf on the Shelf advent book ($21.56) is Under $25.
       // Owner 11-24 ~10:45 PM: the Colgate Minecraft toothbrush ($5.42) moves to Minecraft, so Kids stocking stuffers -1.
-      kids: { "Stocking stuffers under $10": 7, "Under $25": 67, "$25 to $50": 39, "$50 to $75": 12, "$75 to $100": 8, "$100 and up": 26 },
+      // 11-24 Melissa & Doug import: its 7 Kids picks move: pull-back vehicles $17.99 and Doorbell House $23.49 (Under $25 -2),
+      // cardboard blocks $32.99, tabletop easel $43.49 and beauty kiosk $43.99 ($25 to $50 -3), shopping cart $55.99 ($50 to $75 -1),
+      // Wood Furnished Mansion $117.99 ($100 and up -1).
+      kids: { "Stocking stuffers under $10": 7, "Under $25": 65, "$25 to $50": 36, "$50 to $75": 11, "$75 to $100": 8, "$100 and up": 25 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

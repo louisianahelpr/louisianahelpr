@@ -68,7 +68,8 @@ describe("the phone's gift guides menu (owner 11-21; opened by the head row's th
     }
     expect(within(sheet).getByRole("link", { name: "My Wish List" }).getAttribute("href")).toBe("/gift-guides/my-list");
     // Its own heading ids (no clash with the desktop sidebar's), each list labelled by its heading.
-    for (const ul of sheet.querySelectorAll("ul")) expect(sheet.querySelector(`#${ul.getAttribute("aria-labelledby")}`)?.id.startsWith("gg-sheet-")).toBe(true);
+    // Owner 11-24 ~7:50 PM: the themed guides are Kids' subsections, a list nested in Kids' row (giftGuideSideThemes1124): each group's own list is labelled by its heading.
+    for (const ul of sheet.querySelectorAll("ul:not([data-gift-side-themes])")) expect(sheet.querySelector(`#${ul.getAttribute("aria-labelledby")}`)?.id.startsWith("gg-sheet-")).toBe(true);
     // The name carries the row's count after it ("Kids 120 gifts", owner 11-22: "Number on the right").
     expect(within(sheet).getByRole("link", { name: /^Kids\s*\d+\s*gifts$/ }).getAttribute("aria-current")).toBe("page");
     await act(async () => { fireEvent.click(within(sheet).getByRole("link", { name: /^Her\s*\d+\s*gifts$/ })); });

@@ -449,7 +449,8 @@ describe("gift guides: the landing opens to the guides", () => {
   // their color instead of the filter there"; then the covers swapped to Her beige, Him Christmas green, Kids Christmas red.
   it("the menu is three plain guide links with their cover's colour, no groups; the open guide (or its view's guide) is current; it shows on a phone too", () => {
     const { container } = renderAt("/gift-guides");
-    expect(container.querySelectorAll("[data-gift-sidebar] details, [data-gift-sidebar] summary").length).toBe(0);
+    // Owner 11-24 ~7:50 PM: the themed guides are Kids' subsections, a list nested in Kids' row (giftGuideSideThemes1124): Kids' row is the one disclosure.
+    expect([...container.querySelectorAll("[data-gift-sidebar] summary")].map((s) => s.querySelector("a")?.getAttribute("data-gift-side"))).toEqual(["kids"]);
     const guides = [...container.querySelectorAll("[data-gift-side-guides] a")];
     // Guide consistency audit 1122 #19: My Wish List closes the group, as in the phone's menu sheet (no dot).
     expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", ...THEME_GUIDES_1124.map((s) => `/gift-guides/${s}`), "/gift-guides/my-list"]);

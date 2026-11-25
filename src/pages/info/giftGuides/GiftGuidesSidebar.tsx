@@ -6,7 +6,7 @@ import { FUN_TOOLS, FUN_WORDS } from "@/content/giftGuideFun1120";
 import { EXTRAS_WORDS, FINDER_ANCHOR as FINDER_ID } from "@/content/giftGuideExtras1120";
 import { PRINTABLE_PAGES, printablesCount } from "@/content/printables";
 import { CHUNK_PICK_COUNTS } from "@/content/giftGuidePicks";
-import { THEME_GUIDE_NAMES_1124 } from "@/content/giftGuideLive.mjs";
+import { THEME_GUIDE_NAMES_1124, isThemeGuide } from "@/content/giftGuideLive.mjs";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { MY_LIST_SLUG } from "./giftList";
@@ -23,7 +23,8 @@ const SIDE_GUIDES: readonly { slug: string; dot: "oat" | "green" | "red"; label?
   { slug: "him", dot: "green" },
   { slug: "kids", dot: "red" },
   // Owner 2026-11-24: the themed kids guides (Monster Jam, Bluey ...), green like their covers; each row reads just the
-  // theme's name ("Monster Jam", "Bluey").
+  // theme's name ("Monster Jam", "Bluey"). They sit under Kids as its subsections (owner 11-24 ~7:50 PM: "like when you
+  // click Kids they expand down"; GiftGuidesMenu).
   ...Object.entries(THEME_GUIDE_NAMES_1124).map(([slug, label]) => ({ slug, dot: "green" as const, label })),
 ];
 
@@ -113,15 +114,26 @@ export function GiftGuidesMenu({ active, myList = false, mine = myList, page, id
   const guides = sideGuides();
   const printables = PRINTABLE_PAGES.map((p) => ({ ...p, n: printablesCount(p.key) })).filter((p) => p.n > 0);
   const n = useLiveCounts();
+  // The themed guides are Kids' subsections (owner 11-24 ~7:50 PM: "They can show as subsections of kids in the left,
+  // like when you click Kids they expand down"): a native disclosure (details/summary: the summary is announced as a
+  // button with its expanded state) holding the Kids row, open on Kids and on every theme page (the open page stays in
+  // view), elsewhere folded behind its + / - at the right of Kids, which opens them in place. Native, so no new script
+  // on the guide page's first paint (the /gift-guides/:slug critical-path budget, Q178).
+  // Guard: src/test/giftGuideSideThemes1124.test.tsx.
+  const onKids = open === "kids" || isThemeGuide(open ?? "");
+  const row = (g: (typeof guides)[number]) => (
+    <Link to={`/gift-guides/${g.slug}`} {...current(g.slug)} data-gift-side={g.slug}><i className={`gg-dot gg-${g.dot}`} aria-hidden="true" data-gift-side-dot={g.dot} />{g.title}<N n={CHUNK_PICK_COUNTS[g.slug]} noun="gifts" /></Link>
+  );
+  const themes = guides.filter((g) => isThemeGuide(g.slug));
   return (
     <>
       <p className="gg-side-h" id={`${idPrefix}-guides`}>{G.sideHeads.guides}</p>
       <ul data-gift-side-guides="" aria-labelledby={`${idPrefix}-guides`}>
         <li><Link to="/gift-guides" {...current(null)} data-gift-side="">{G.allGuidesLabel}</Link></li>
-        {guides.map((g) => (
-          <li key={g.slug}>
-            <Link to={`/gift-guides/${g.slug}`} {...current(g.slug)} data-gift-side={g.slug}><i className={`gg-dot gg-${g.dot}`} aria-hidden="true" data-gift-side-dot={g.dot} />{g.title}<N n={CHUNK_PICK_COUNTS[g.slug]} noun="gifts" /></Link>
-          </li>
+        {guides.filter((g) => !isThemeGuide(g.slug)).map((g) => (
+          <li key={g.slug}>{g.slug === "kids" ? (
+            <details open={onKids}><summary>{row(g)}</summary><ul data-gift-side-themes="">{themes.map((t) => <li key={t.slug}>{row(t)}</li>)}</ul></details>
+          ) : row(g)}</li>
         ))}
         {wishList && <li><Link to={`/gift-guides/${MY_LIST_SLUG}`} {...(mine ? ({ "aria-current": "page" } as const) : {})} data-gift-side-wish-list="">{WISH.title}</Link></li>}
       </ul>

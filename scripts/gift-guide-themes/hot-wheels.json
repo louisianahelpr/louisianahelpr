@@ -2,7 +2,7 @@
  "slug": "hot-wheels",
  "name": "Hot Wheels",
  "sectionPrefix": "hot-wheels",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/hot-wheels/items.json (Tue Nov 24 3:45 PM, 109 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/hot-wheels/items.json (Tue Nov 24 3:45 PM, 143 items)",
  "rows": [
   {
    "id": "HW08",
@@ -466,6 +466,102 @@
    "age": "kids"
   },
   {
+   "id": "HWK05",
+   "name": "Hot Wheels Boys' Jumping Beans Graphic Tee",
+   "brand": "Hot Wheels",
+   "line": "A little Hot Wheels gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110723804",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-boys-jumping-beans-graphic-tee-kohls-8f9e21.webp",
+   "store": "store-kohls",
+   "price": 9.99,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "hot-wheels-stocking-stuffers-under-10",
+   "was": 12.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK09",
+   "name": "Hot Wheels Track Creator Car and 10-Foot Track Pack",
+   "brand": "Hot Wheels",
+   "line": "A little Hot Wheels gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110723921",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-track-creator-car-and-10-foot-track-pack-kohls-a1cb8f.webp",
+   "store": "store-kohls",
+   "price": 7.49,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "hot-wheels-stocking-stuffers-under-10",
+   "was": 9.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK16",
+   "name": "Hot Wheels 1:43 Scale Die-Cast Car (styles vary)",
+   "brand": "Hot Wheels",
+   "line": "A little Hot Wheels gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110724036",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-1-43-scale-die-cast-car-styles-vary-kohls-a79171.webp",
+   "store": "store-kohls",
+   "price": 4.04,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "hot-wheels-stocking-stuffers-under-10",
+   "was": 5.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK24",
+   "name": "Hot Wheels Pull-Back Speeders Car (styles vary)",
+   "brand": "Hot Wheels",
+   "line": "A little Hot Wheels gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110724160",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-pull-back-speeders-car-styles-vary-kohls-913c28.webp",
+   "store": "store-kohls",
+   "price": 5.99,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "hot-wheels-stocking-stuffers-under-10",
+   "was": 7.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK28",
+   "name": "Hot Wheels Monster Truck and Car 2-Pack, 1:64",
+   "brand": "Hot Wheels",
+   "line": "A little Hot Wheels gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110724235",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-monster-truck-and-car-2-pack-1-64-kohls-e9d7d6.webp",
+   "store": "store-kohls",
+   "price": 3.36,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "hot-wheels-stocking-stuffers-under-10",
+   "was": 4.49,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK31",
+   "name": "Hot Wheels Boys' Jumping Beans Checkered Flag Long Sleeve Tee",
+   "brand": "Hot Wheels",
+   "line": "A little Hot Wheels gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110724279",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-boys-jumping-beans-checkered-flag-long-sleeve-tee-kohls-cfd83e.webp",
+   "store": "store-kohls",
+   "price": 9.99,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "hot-wheels-stocking-stuffers-under-10",
+   "was": 12.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
    "id": "HW12",
    "name": "Hot Wheels Monster Trucks Snake Slam Takedown Playset",
    "brand": "Hot Wheels",
@@ -772,6 +868,100 @@
    "sectionId": "hot-wheels-tracks-and-playsets",
    "commission": 4,
    "age": "3+"
+  },
+  {
+   "id": "HWK01",
+   "name": "Hot Wheels Auto Lift Expressway Track and Cars Playset (Kohl's exclusive)",
+   "brand": "Hot Wheels",
+   "line": "Tracks and playsets for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110723622",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-auto-lift-expressway-track-and-cars-playset-kohls-kohls-fe6341.webp",
+   "store": "store-kohls",
+   "price": 26.49,
+   "priceAt": "2026-11-24",
+   "section": "Tracks and playsets",
+   "sectionId": "hot-wheels-tracks-and-playsets",
+   "was": 52.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK02",
+   "name": "Fisher-Price Little People Hot Wheels Spiral Stunt Speedway",
+   "brand": "Hot Wheels",
+   "line": "Tracks and playsets for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110723718",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/fisher-price-little-people-hot-wheels-spiral-stunt-speedway-kohls-6bfd06.webp",
+   "store": "store-kohls",
+   "price": 31.49,
+   "priceAt": "2026-11-24",
+   "section": "Tracks and playsets",
+   "sectionId": "hot-wheels-tracks-and-playsets",
+   "was": 44.99,
+   "commission": 12,
+   "age": "toddler"
+  },
+  {
+   "id": "HWK03",
+   "name": "Hot Wheels Stunt Tracks Double Loop Dash with 4 Cars",
+   "brand": "Hot Wheels",
+   "line": "Tracks and playsets for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110723740",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-stunt-tracks-double-loop-dash-with-4-cars-kohls-74c7dc.webp",
+   "store": "store-kohls",
+   "price": 21.49,
+   "priceAt": "2026-11-24",
+   "section": "Tracks and playsets",
+   "sectionId": "hot-wheels-tracks-and-playsets",
+   "was": 42.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK04",
+   "name": "Tara Toy ZipBin Hot Wheels Racetrack Playmat and Car Ramp",
+   "brand": "Hot Wheels",
+   "line": "Tracks and playsets for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110723785",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tara-toy-zipbin-hot-wheels-racetrack-playmat-and-car-ramp-kohls-ae6fe4.webp",
+   "store": "store-kohls",
+   "price": 33.99,
+   "priceAt": "2026-11-24",
+   "section": "Tracks and playsets",
+   "sectionId": "hot-wheels-tracks-and-playsets",
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK10",
+   "name": "Hot Wheels Buzz Lightyear's Star Command Adventure Track Set",
+   "brand": "Hot Wheels",
+   "line": "Tracks and playsets for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110723932",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-buzz-lightyears-star-command-adventure-track-set-kohls-e25284.webp",
+   "store": "store-kohls",
+   "price": 28.34,
+   "priceAt": "2026-11-24",
+   "section": "Tracks and playsets",
+   "sectionId": "hot-wheels-tracks-and-playsets",
+   "was": 37.79,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK13",
+   "name": "Tara Toy ZipBin Hot Wheels Wheelie Track Pack",
+   "brand": "Hot Wheels",
+   "line": "Tracks and playsets for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110723963",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tara-toy-zipbin-hot-wheels-wheelie-track-pack-kohls-c122d0.webp",
+   "store": "store-kohls",
+   "price": 33.99,
+   "priceAt": "2026-11-24",
+   "section": "Tracks and playsets",
+   "sectionId": "hot-wheels-tracks-and-playsets",
+   "commission": 12,
+   "age": "kids"
   },
   {
    "id": "HW70",
@@ -1109,6 +1299,118 @@
    "age": "kids"
   },
   {
+   "id": "HWK11",
+   "name": "Hot Wheels Boys' Jumping Beans Racing Sweatshirt",
+   "brand": "Hot Wheels",
+   "line": "Clothes for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110723942",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-boys-jumping-beans-racing-sweatshirt-kohls-8d8b71.webp",
+   "store": "store-kohls",
+   "price": 12.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothes",
+   "sectionId": "hot-wheels-clothes",
+   "was": 18.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK18",
+   "name": "Hot Wheels Boys' Race Life Graphic Pullover (4-8)",
+   "brand": "Hot Wheels",
+   "line": "Clothes for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724057",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-boys-race-life-graphic-pullover-4-8-kohls-485ec9.webp",
+   "store": "store-kohls",
+   "price": 18,
+   "priceAt": "2026-11-24",
+   "section": "Clothes",
+   "sectionId": "hot-wheels-clothes",
+   "was": 30,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK19",
+   "name": "Hot Wheels Toddler Boys' Briefs, 7-Pack",
+   "brand": "Hot Wheels",
+   "line": "Clothes for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724067",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-toddler-boys-briefs-7-pack-kohls-3fb6d3.webp",
+   "store": "store-kohls",
+   "price": 14,
+   "priceAt": "2026-11-24",
+   "section": "Clothes",
+   "sectionId": "hot-wheels-clothes",
+   "was": 20,
+   "commission": 12,
+   "age": "toddler"
+  },
+  {
+   "id": "HWK20",
+   "name": "Hot Wheels Boys' Christmas Sweater",
+   "brand": "Hot Wheels",
+   "line": "Clothes for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724078",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-boys-christmas-sweater-kohls-f9bea3.webp",
+   "store": "store-kohls",
+   "price": 14.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothes",
+   "sectionId": "hot-wheels-clothes",
+   "was": 24.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK23",
+   "name": "Hot Wheels Boys' Fuzzy Babba Slipper Socks",
+   "brand": "Hot Wheels",
+   "line": "Clothes for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724149",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-boys-fuzzy-babba-slipper-socks-kohls-727968.webp",
+   "store": "store-kohls",
+   "price": 10,
+   "priceAt": "2026-11-24",
+   "section": "Clothes",
+   "sectionId": "hot-wheels-clothes",
+   "was": 20,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK27",
+   "name": "Hot Wheels Toddler Boys' Long Sleeve Graphic Tee",
+   "brand": "Hot Wheels",
+   "line": "Clothes for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724190",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-toddler-boys-long-sleeve-graphic-tee-kohls-96b1b7.webp",
+   "store": "store-kohls",
+   "price": 14.4,
+   "priceAt": "2026-11-24",
+   "section": "Clothes",
+   "sectionId": "hot-wheels-clothes",
+   "was": 24,
+   "commission": 12,
+   "age": "toddler"
+  },
+  {
+   "id": "HWK30",
+   "name": "Hot Wheels Boys' Flame Hat and Gloves Set",
+   "brand": "Hot Wheels",
+   "line": "Clothes for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724266",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-boys-flame-hat-and-gloves-set-kohls-5182f1.webp",
+   "store": "store-kohls",
+   "price": 10,
+   "priceAt": "2026-11-24",
+   "section": "Clothes",
+   "sectionId": "hot-wheels-clothes",
+   "was": 20,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
    "id": "HW20",
    "name": "Hot Wheels Monster Trucks Mutant Chaos Truck, Car and Slime",
    "brand": "Hot Wheels",
@@ -1386,6 +1688,54 @@
    "age": "kids"
   },
   {
+   "id": "HWK08",
+   "name": "Hot Wheels x Transformers Action Figures by Hasbro",
+   "brand": "Hot Wheels",
+   "line": "Cars and RC for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110723906",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-x-transformers-action-figures-by-hasbro-kohls-d75969.webp",
+   "store": "store-kohls",
+   "price": 26.24,
+   "priceAt": "2026-11-24",
+   "section": "Cars and RC",
+   "sectionId": "hot-wheels-cars-and-rc",
+   "was": 34.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK14",
+   "name": "Hot Wheels 2-Pack GT-Scorcher and Street Shrieker",
+   "brand": "Hot Wheels",
+   "line": "Cars and RC for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724008",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-2-pack-gt-scorcher-and-street-shrieker-kohls-9ab5ca.webp",
+   "store": "store-kohls",
+   "price": 14.99,
+   "priceAt": "2026-11-24",
+   "section": "Cars and RC",
+   "sectionId": "hot-wheels-cars-and-rc",
+   "was": 19.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK25",
+   "name": "Hot Wheels RC Ferrari SF90 Stradale",
+   "brand": "Hot Wheels",
+   "line": "Cars and RC for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724172",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-rc-ferrari-sf90-stradale-kohls-b09599.webp",
+   "store": "store-kohls",
+   "price": 14.99,
+   "priceAt": "2026-11-24",
+   "section": "Cars and RC",
+   "sectionId": "hot-wheels-cars-and-rc",
+   "was": 19.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
    "id": "HW43",
    "name": "Little Tikes Classic Racing Tire Toy Chest",
    "brand": "Hot Wheels",
@@ -1505,6 +1855,84 @@
    "section": "Room and Christmas",
    "sectionId": "hot-wheels-room-and-christmas",
    "commission": 10.5,
+   "age": "kids"
+  },
+  {
+   "id": "HWK07",
+   "name": "Hot Wheels Leading the Way Throw Blanket",
+   "brand": "Hot Wheels",
+   "line": "Room and Christmas for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110723833",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-leading-the-way-throw-blanket-kohls-a24d83.webp",
+   "store": "store-kohls",
+   "price": 16.99,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "hot-wheels-room-and-christmas",
+   "was": 21.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK12",
+   "name": "Tara Toy Hot Wheels Tire Display Case (holds 30 cars)",
+   "brand": "Hot Wheels",
+   "line": "Room and Christmas for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110723954",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tara-toy-hot-wheels-tire-display-case-holds-30-cars-kohls-c6aff1.webp",
+   "store": "store-kohls",
+   "price": 16.99,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "hot-wheels-room-and-christmas",
+   "was": 31.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK15",
+   "name": "Tara Toy Hot Wheels Wood Display Case (holds 42 cars)",
+   "brand": "Hot Wheels",
+   "line": "Room and Christmas for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724023",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tara-toy-hot-wheels-wood-display-case-holds-42-cars-kohls-15767d.webp",
+   "store": "store-kohls",
+   "price": 64.99,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "hot-wheels-room-and-christmas",
+   "was": 78.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK21",
+   "name": "Tara Toy ZipBin Hot Wheels 300-Car Storage Cube",
+   "brand": "Hot Wheels",
+   "line": "Room and Christmas for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724122",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tara-toy-zipbin-hot-wheels-300-car-storage-cube-kohls-07ed0e.webp",
+   "store": "store-kohls",
+   "price": 35.99,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "hot-wheels-room-and-christmas",
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "HWK34",
+   "name": "Hot Wheels All-Over Print 16-Inch Backpack",
+   "brand": "Hot Wheels",
+   "line": "Room and Christmas for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110724331",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-all-over-print-16-inch-backpack-kohls-b481ea.webp",
+   "store": "store-kohls",
+   "price": 24.99,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "hot-wheels-room-and-christmas",
+   "commission": 12,
    "age": "kids"
   },
   {
@@ -1662,10 +2090,59 @@
    ]
   },
   {
+   "id": "HWK06",
+   "name": "Hot Wheels Toddler Boys' 4-Piece Snug Fit Pajama Set",
+   "why": [
+    "pajama cap: at most 2 pajamas per price section (owner 11-20); u25 already has 2"
+   ]
+  },
+  {
+   "id": "HWK17",
+   "name": "Hot Wheels Boys' 4-Piece Snug Fit Pajama Set (4-10)",
+   "why": [
+    "pajama cap: at most 2 pajamas per price section (owner 11-20); u25 already has 2"
+   ]
+  },
+  {
+   "id": "HWK26",
+   "name": "Hot Wheels Fleece Sweatshirt and Pants Set",
+   "why": [
+    "Kohl's has no product photo (placeholder)"
+   ]
+  },
+  {
+   "id": "HWK29",
+   "name": "Hot Wheels Boys' 2-Piece Pajama Set (6-12)",
+   "why": [
+    "pajama cap: at most 2 pajamas per price section (owner 11-20); u25 already has 2"
+   ]
+  },
+  {
+   "id": "HWK33",
+   "name": "Hot Wheels Boys' Car Tree Long Sleeve Tee (8-20)",
+   "why": [
+    "Kohl's has no product photo (placeholder)"
+   ]
+  },
+  {
    "id": "HWT07",
    "name": "Hot Wheels Formula 1 10-Pack, 1:64 (2025 teams)",
    "why": [
     "model-year rule: no shown name carries a model year (\"2025 teams\"); owner 11-19 (lander3 11-25)"
+   ]
+  },
+  {
+   "id": "HWK22",
+   "name": "Hot Wheels Mario Wheelie Motocross RC",
+   "why": [
+    "photo shows a person's hand (no product-only photo)"
+   ]
+  },
+  {
+   "id": "HWK32",
+   "name": "Hot Wheels Color and Sticker Fun Spiral Book",
+   "why": [
+    "Kohl's photo is not the book (no product photo)"
    ]
   }
  ]

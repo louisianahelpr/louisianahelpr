@@ -233,8 +233,6 @@ export const KIDS_STEALS_1124_ROWS = [
   ["https://go.shopmy.us/p-110718853", 24.99, "https://media.kohlsimg.com/is/image/kohls/7006887", "Matchbox Aircraft Carrier Play Set with 10 Die-Cast Planes", "Matchbox", "store-kohls", "playset", 12, "An aircraft carrier with 10 Sky Busters planes and a car."],
   // Owner Kohl's screenshot 11-25 1:10 AM (kohls-mixed-0110.md #9, the 5-pack): kohls.com prd-8100049 read 11-25 ~1:20 AM: $5.24 sale (reg $6.99), styles vary. ShopMy quick link, Kohl's 12%; never opened.
   ["https://go.shopmy.us/p-110718866", 5.24, "https://media.kohlsimg.com/is/image/kohls/8100049", "Matchbox Die-Cast Cars 5-Pack", "Matchbox", "store-kohls", "die-cast", 12, "Five Matchbox cars for a stocking."],
-  // JCPenney #1: quokka-30-piece-jigsaw-puzzle-for-kids-educational-puzzles-with-princess-animals-dinosaurs-ages-2-6/ppm6100020584 read 11-25 ~1:20 AM (jcpenney.com search by name): $8.99 (was $9.99). Later link ~1:40 AM.
-  ["https://mavely.app.link/7hnOQCcGl8b", 8.99, "https://mktpl-images.jcpenney.com/SOURCE/cd5db8076eda48e3a2fa581121ec607b", "QUOKKA 30-Piece Kids Jigsaw Puzzle", "QUOKKA", "store-jcpenney", "puzzle", 10.5, "A 30-piece puzzle with princesses, animals and dinos."],
   // JCPenney #2: what-do-you-meme-color-stack-board-game/ppr5008745357 read 11-25 ~1:20 AM (jcpenney.com search by name): $19.99 (was $35). Later link ~1:40 AM.
   ["https://mavely.app.link/C7qabzgGl8b", 19.99, "https://sc-images.jcpenney.com/JCPenney/DP0616202607221825M", "What Do You Meme Color Stack Board Game", "What Do You Meme", "store-jcpenney", "game", 10.5, "A fast color-stacking family game."],
   // JCPenney #4: sharper-image-2-pc-remote-control-car/ppr5008807351 read 11-25 ~1:20 AM (jcpenney.com search by name): $14.99 (was $35). Later link ~1:40 AM.
@@ -450,7 +448,6 @@ export const STEALS_CUTOUTS_1124 = [
   ["https://media.kohlsimg.com/is/image/kohls/8053525", "fisher-price-little-people-bowsers-airship-and-figure-kohls-e3d844.webp"],
   ["https://media.kohlsimg.com/is/image/kohls/7006887", "matchbox-aircraft-carrier-play-set-with-10-die-cast-planes-kohls-c34731.webp"],
   ["https://media.kohlsimg.com/is/image/kohls/8100049", "matchbox-die-cast-cars-5-pack-kohls-21591d.webp"],
-  ["https://mktpl-images.jcpenney.com/SOURCE/cd5db8076eda48e3a2fa581121ec607b", "quokka-30-piece-kids-jigsaw-puzzle-jcpenney-8f1bb3.webp"],
   ["https://sc-images.jcpenney.com/JCPenney/DP0616202607221825M", "what-do-you-meme-color-stack-board-game-jcpenney-e19b2f.webp"],
   ["https://sc-images.jcpenney.com/JCPenney/DP73212561-20260924050435M", "sharper-image-2-piece-remote-control-cars-jcpenney-14f723.webp"],
   ["https://sc-images.jcpenney.com/JCPenney/DP0909202515062231M", "play-doh-fun-factory-starter-set-jcpenney-5b166f.webp"],

@@ -15,11 +15,16 @@
  * @mutate src/pages/info/GiftGuides.tsx |               {guide?.slug === KIDS_FILTER_GUIDE && <LazyThemeRow />} |               {null}
  * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx |   const guides = THEME_GUIDES_1124.map((slug) => guideBySlug(slug)).filter((g) => g !== undefined); |   const guides = THEME_GUIDES_1124.slice(1).map((slug) => guideBySlug(slug)).filter((g) => g !== undefined);
  * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx | priority={i < EAGER_COVERS} | priority
+ * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx | const THEME_ROW_CSS = `.gg-themes-row{overflow-y:hidden; | const THEME_ROW_CSS = `.gg-themes-row{
+ * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx | .gg-themes-row .gg-name{top:0} | .gg-themes-row .gg-name{}
+ * @mutate src/pages/info/GiftGuides.tsx |         <ul className="gg-row gg-themes-row invisible"> |         <ul className="gg-row invisible">
+ * @mutate src/pages/info/GiftGuides.tsx |   const phone = usePhoneWidth(); |   const phone = useState(false)[0];
  * @mutate scripts/giftGuideHimKids1121.mjs |   return build(rows.filter((r) => !moved.has(r.href)), KIDS_GUIDE, null); |   return build(rows, KIDS_GUIDE, null);
  * @mutate src/content/giftGuideCatalog.ts | dupeEntries.filter((d) => d.guide === slug) | dupeEntries.filter(() => false)
  * @mutate scripts/giftGuideThemes1124.mjs |   KIDS_THEME_MOVES_1124.filter(([, , to, id, held]) => !held && id && themeRows1124(to).some((r) => r.id === id)) |   KIDS_THEME_MOVES_1124.filter(([, , to]) => to)
  */
 import { readFileSync } from "node:fs";
+import { useLayoutEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -53,6 +58,31 @@ const renderAt = async (url: string) => {
     );
   });
   return out.container;
+};
+/**
+ * The page as its FIRST commit drew it, before any effect ran (a layout effect of a later sibling runs after the page's
+ * DOM is in and before any passive effect, such as one that flips a hook's first value): what the first paint shows.
+ */
+const renderFirstCommit = async (url: string) => {
+  let first: HTMLElement | null = null;
+  const Snap = () => {
+    useLayoutEffect(() => {
+      if (!first) first = (document.querySelector("[data-gift-guides]")?.cloneNode(true) as HTMLElement | undefined) ?? null;
+    }, []);
+    return null;
+  };
+  let out!: ReturnType<typeof render>;
+  await act(async () => {
+    out = render(
+      <MemoryRouter initialEntries={[url]}>
+        <Routes>
+          <Route path="/gift-guides/:slug" element={<><GiftGuides /><Snap /></>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  });
+  expect(first, "the page drew on its first commit").toBeTruthy();
+  return { first: first as unknown as HTMLElement, c: out.container };
 };
 /** The Kids page, once the cover row's own chunk is in (it loads after the page draws; a same-height stand-in first). */
 const renderKids = async () => {
@@ -102,6 +132,56 @@ describe("the Kids page's themed guides row (owner 2026-11-24)", () => {
     expect(src).not.toMatch(/^import [^;]*GiftGuideThemeRow/m);
     const c = await renderKids();
     expect(c.querySelectorAll("[data-gift-theme-row]")).toHaveLength(1);
+  });
+
+  it("moves sideways only: no tile part overflows the row's height and the row never scrolls up or down (owner 11-24 ~7 PM)", async () => {
+    // The owner's phone screenshot: the row dragged up, the covers' tops cut off, an empty band under them ("It shouldn't
+    // move like this"). Measured on prod (WebKit and Chromium, 430): scrollHeight 164 > clientHeight 162, because each
+    // tile's screen-reader name sat 8px under its cover; overflow-x:auto made overflow-y auto, so a swipe moved it.
+    const c = await renderKids();
+    const css = [...c.querySelectorAll("[data-gift-theme-row] style")].map((s) => s.textContent ?? "").join("\n");
+    const rule = (sel: string) => [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter((m) => m[1].trim() === sel).map((m) => m[2]).join(";");
+    expect(rule(".gg-themes-row")).toMatch(/(^|;)overflow-y:hidden(;|$)/);
+    expect(rule(".gg-themes-row .gg-name")).toMatch(/(^|;)top:0(;|$)/);
+    // Every tile's name is the screen-reader-only kind the rule above pins (a visible name or age line would add height).
+    const tiles = [...c.querySelectorAll("[data-gift-theme-row] li")];
+    expect(tiles.length).toBeGreaterThan(3);
+    for (const li of tiles) {
+      const extra = [...li.querySelectorAll("a > :not(img)")];
+      expect(extra.map((e) => e.className), li.textContent ?? "").toEqual(["gg-name sr-only"]);
+    }
+  });
+
+  it("the stand-in's box is the row's box: same row classes, one cover-sized square, and no size rule only the row's chunk has", async () => {
+    const { first, c } = await renderFirstCommit("/gift-guides/kids");
+    // First paint: the stand-in (the row's chunk is not in yet).
+    const wait = first.querySelector("[data-gift-theme-row-wait]");
+    const waitUl = wait?.querySelector("ul");
+    expect(waitUl?.className.replace(/\binvisible\b/, "").trim()).toBe("gg-row gg-themes-row");
+    expect([...waitUl!.querySelectorAll("li > *")].map((e) => e.className)).toEqual(["gg-cover"]);
+    await waitFor(() => expect(c.querySelector("[data-gift-theme-row]")).toBeTruthy());
+    expect(wait!.className).toBe(c.querySelector("[data-gift-theme-row]")!.className);
+    expect(c.querySelector("[data-gift-theme-row] ul")!.className).toBe("gg-row gg-themes-row");
+    // The row's own chunk CSS sets no box size (width/height/padding/margin/gap/aspect/flex/font): those live in the
+    // page's GIFT_GUIDES_CSS, which the stand-in has too, so its height is the row's at every width.
+    const css = [...c.querySelectorAll("[data-gift-theme-row] style")].map((st) => st.textContent ?? "").join("\n");
+    expect(css).toContain(".gg-themes-row{");
+    // (the scrollbar pseudo-element's display:none takes no room in the box, so ::selectors are left out)
+    const sizing = [...css.matchAll(/\.gg-themes-row([^{]*)\{([^}]*)\}/g)].filter((m) => !m[1].includes("::")).flatMap((m) => m[2].split(";")).filter((d) => /^(width|height|min-|max-|padding|margin|gap|aspect-ratio|flex|font|line-height|display)/.test(d.trim()));
+    expect(sizing).toEqual([]);
+  });
+
+  it("a phone draws the count row under the cover row on its FIRST paint, so the gifts never drop 54px after it", async () => {
+    const was = window.innerWidth;
+    try {
+      Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: 375 });
+      const { first } = await renderFirstCommit("/gift-guides/kids");
+      const wait = first.querySelector("[data-gift-theme-row-wait]");
+      expect(wait).toBeTruthy();
+      expect(wait!.nextElementSibling?.hasAttribute("data-gift-countrow")).toBe(true);
+    } finally {
+      Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: was });
+    }
   });
 
   it("is on the Kids page only", async () => {

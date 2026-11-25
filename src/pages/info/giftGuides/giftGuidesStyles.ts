@@ -647,4 +647,63 @@ article[data-gift-guide]>.gg-menuhint+section>.gg-list{margin-top:0}article[data
 .gg-menuhint-s{display:none}
 @media (max-width:374px){.gg-menuhint-l{display:none}.gg-menuhint-s{display:inline}}
 @media (max-width:345px){.gg-menuhint-go{font-size:12.5px}}
+/* Phone polish audit 1125 (owner 11-25 ~5:30 PM: "We need to polish the signed out and in version on phones"; findings in
+   ~/.lh-shots/phone-polish-audit-1125/FINDINGS.md). Up to 767px only, and LAST, so these win over the layers above; a
+   computer is unchanged. One shared rule per part, so every guide, deals day, printable and Holiday Hub page moves
+   together (owner 11-22: "If you change that spacing for one page you need to do the other pages that are similar").
+   Guard: src/test/guidesPhonePolish1125.test.tsx. */
+@media (max-width:767px){
+/* #5: the guides' own row is the phone's one header once a shopper scrolls (the site bar scrolls away, Navbar.tsx). The
+   row's own spacing stays the owner's 11-22 11:40 PM rule (the app's PageHeader gap above, 5px below; giftGuideMenuHint1122). */
+/* #6: a banner title never runs past the arch: at most 72% of the arch's inner width, its lines balanced. Long titles
+   (bannerLength "long"/"xlong") and the deals days take clamp(30px, 8.5vw, 43px); a short one (Her, Him, Kids) keeps its
+   size, which already fits ("gifts for her is still too small text size", owner 11-21). */
+.gg .gg-words.gg-banner-wrap .gg-banner h1{max-width:72%;margin-left:auto;margin-right:auto;text-wrap:balance}
+.gg .gg-words.gg-banner-long .gg-banner h1,.gg:has([data-gift-deals-page]) .gg-words.gg-banner-wrap .gg-banner h1{font-size:clamp(30px,8.5vw,43px);line-height:1.05}
+/* #7: a gift row about 88px tall: a 72px photo, 8px above and below, the name 15px on two lines at most beside it, the
+   price top-right and, 8px under the price, the cart then the heart (owner 11-22: "On the phone the heart goes in the
+   bottom right below the price and the cart goes on the left of that"), each still a 44px box. The price column is the
+   icons' width (88px; 132px with "dupe"), so a name never runs under them and the blank band under short names is gone. */
+.gg .gg-list:not(.gg-top10)>li[data-gift-pick]{position:relative;contain-intrinsic-size:auto 88px}
+.gg .gg-list:not(.gg-top10) .gg-item{align-items:flex-start;gap:12px;padding:8px 0}
+.gg .gg-list:not(.gg-top10) .gg-thumb{width:72px;height:72px;padding:4px}
+.gg .gg-list:not(.gg-top10)>:where([data-gift-pick]) .gg-nm{grid-template-columns:minmax(0,1fr) 88px;padding-bottom:0}
+.gg .gg-list>:where([data-gift-pick]):has(>.gg-dupe) .gg-nm{grid-template-columns:minmax(0,1fr) 132px}
+.gg .gg-list:not(.gg-top10)>:where([data-gift-pick]) .gg-nm-name{font-size:15px;line-height:1.3;-webkit-line-clamp:2}
+.gg .gg-list:not(.gg-top10)>:where([data-gift-pick]) .gg-badges{grid-column:1}
+.gg .gg-list:not(.gg-top10)>:where([data-gift-pick])>:is(.gg-heart-pick,.gg-cart){top:25px;bottom:auto}
+/* "dupe" (beside the cart) on the same line; the Top 10 never draws it (owner 11-24), so its rules name no Top 10. */
+.gg .gg-list>:where([data-gift-pick])>.gg-dupe{top:25px;bottom:auto}
+/* #8: one top on every guide: banner, count row, tip box, theme covers (Kids), sections, 16px apart. */
+.gg>.gg-countrow,.gg>.gg-menuhint,.gg>[data-gift-theme-row],.gg article[data-gift-guide]>.gg-menuhint{margin:16px 0 0}
+.gg .gg-main{padding-top:0}
+.gg .gg-words.gg-banner-wrap{margin-bottom:0}
+.gg article[data-gift-guide]>section:first-child>.gg-sec-title,.gg article[data-gift-guide]>.gg-menuhint+section>.gg-sec-title{margin-top:16px}
+.gg [data-gift-deals-page]>.gg-deals-list{margin-top:16px}
+.gg [data-gift-deals-page] .gg-deal-sec:first-of-type>.gg-sec-title{margin-top:0}
+/* #9: the deals days' cards (Black Friday, Cyber Monday and every deals page that shares them): a 120px photo, the
+   brand 15px bold 8px under it, the offer 14px/1.35 4px under that, the dates 12px; 12px inside the card. The brand
+   stays a 44px link: its box reaches 12px past its words, so the gaps are drawn by negative margins. A row's cards share
+   one height (the grid stretches them). The phone's one-column Sales cards (96px photo beside the words) keep theirs. */
+.gg .gg-deal-grid:not([data-gift-sales])>.gg-deal{gap:0;padding:12px}
+.gg .gg-deal-grid:not([data-gift-sales])>.gg-deal>.gg-deal-photo{aspect-ratio:auto;height:120px}
+.gg .gg-deal-grid:not([data-gift-sales])>.gg-deal>:is(.gg-deal-brand,.gg-card-head){margin:-4px 0 -12px}
+.gg .gg-deal-grid:not([data-gift-sales])>.gg-deal .gg-card-store{font-size:15px;font-weight:700;line-height:20px}
+.gg .gg-deal-grid:not([data-gift-sales])>.gg-deal>:is(.gg-deal-text,.gg-card-line){margin-top:4px;font-size:14px;line-height:1.35}
+.gg .gg-deal-grid:not([data-gift-sales])>.gg-deal>[data-gift-deal-dates]{margin-top:4px;font-size:12px}
+.gg .gg-deal-grid:not([data-gift-sales])>.gg-deal>.gg-card-actions{padding-top:8px}
+/* #46: the Popular searches links and a Sales card's offer lines draw 36px tall and tap 44px. */
+.gg .gg-searches .gg-also-list a{position:relative;display:inline-flex;align-items:center;min-height:36px;padding:0}
+.gg .gg-searches .gg-also-list a::after{content:"";position:absolute;left:0;right:0;top:-4px;bottom:-4px}
+.gg .gg-card-sales .gg-card-sale{display:inline-flex;align-items:center;min-height:36px}
+/* #48: the landing's holiday banner 80px tall; the Top 10 two cards across (about 44% of the screen each), so no third
+   card peeks in cut mid-word; swipe for the rest. Names 15px/600, wrapping between words. */
+.gg .gg-greet{padding:6px}
+.gg .gg-greet-in{padding:8px 12px}
+.gg .gg-greet-p{margin-top:4px;font-size:14px;line-height:1.3}
+.gg .gg-top10{grid-auto-columns:calc((100% - 16px) / 2)}
+.gg .gg-top10 .gg-nm{overflow-wrap:break-word}
+.gg .gg-top10 .gg-nm-name{font-size:15px;font-weight:600}
+}
+@media (max-width:359px){.gg .gg-list:not(.gg-top10)>:where([data-gift-pick]) .gg-nm-name{-webkit-line-clamp:3}}
 `;

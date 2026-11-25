@@ -176,14 +176,19 @@ describe("the Kids page's themed guides row (owner 2026-11-24)", () => {
     expect(sizing).toEqual([]);
   });
 
-  it("a phone draws the count row under the cover row on its FIRST paint, so the gifts never drop 54px after it", async () => {
+  // Phone polish audit 1125 #8: the count row now comes FIRST under the banner (banner, count row, tip box, theme covers,
+  // sections on every guide); it must still be drawn on the first paint with the covers' stand-in under it, so the
+  // gifts never drop 54px after it (src/test/guidesPhonePolish1125.test.tsx guards the order).
+  it("a phone draws the count row, then the cover row's stand-in, on its FIRST paint, so the gifts never drop 54px after it", async () => {
     const was = window.innerWidth;
     try {
       Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: 375 });
       const { first } = await renderFirstCommit("/gift-guides/kids");
       const wait = first.querySelector("[data-gift-theme-row-wait]");
       expect(wait).toBeTruthy();
-      expect(wait!.nextElementSibling?.hasAttribute("data-gift-countrow")).toBe(true);
+      const count = first.querySelector("[data-gift-countrow]");
+      expect(count).toBeTruthy();
+      expect(count!.compareDocumentPosition(wait!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     } finally {
       Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: was });
     }

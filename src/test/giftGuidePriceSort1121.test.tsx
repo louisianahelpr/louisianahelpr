@@ -290,7 +290,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // 11-24 Minecraft import: the Woodland Mansion ($24.99, read ~$25) moves to Minecraft, so $25 to $50 -1.
       // Kids BF sweep 11-24 (Amazon re-reads, scripts/giftGuideAmazonPrices1124.mjs): the Stomp Rocket ($24.99, shown ~$25)
       // moves Under $25 -> $25 to $50 and the PAW Patrol Megasaurus ($83 -> $49.99, shown ~$50) $75 to $100 -> $50 to $75.
-      kids: { "Stocking stuffers under $10": 8, "Under $25": 66, "$25 to $50": 39, "$50 to $75": 12, "$75 to $100": 8, "$100 and up": 26 },
+      // Owner round-2 link 11-24 ~9:45 PM: the Elf on the Shelf advent book ($21.56) is Under $25.
+      kids: { "Stocking stuffers under $10": 8, "Under $25": 67, "$25 to $50": 39, "$50 to $75": 12, "$75 to $100": 8, "$100 and up": 26 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

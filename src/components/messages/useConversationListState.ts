@@ -8,7 +8,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useSearchOnOwnLine } from "@/components/messages/useSearchOnOwnLine";
 import type { VirtualListHandle } from "@/components/VirtualList";
 import { useHiddenUnreadBarMarks } from "./HiddenUnreadBar";
-import { getPinnedSet, loadPins, pinnedKey, togglePinned } from "@/lib/pinnedConversations";
+import { getPinnedSet, loadPins, pinnedKey, togglePinned, PIN_ROLLED_BACK_EVENT, type PinRolledBackDetail } from "@/lib/pinnedConversations";
 import {
   ARCHIVE_CHANGED_EVENT,
   isArchived as isConvoArchived,
@@ -211,6 +211,17 @@ export function useConversationListState({
     const onArchiveChanged = () => setArchiveNonce((n) => n + 1);
     window.addEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
     return () => window.removeEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
+  }, []);
+
+  // Deep audit 11-22 #139: a pin the server refused snaps back, and the member is told (a gone thread just drops).
+  useEffect(() => {
+    const onPinRolledBack = (e: Event) => {
+      setPinNonce((n) => n + 1);
+      const detail = (e as CustomEvent<PinRolledBackDetail>).detail;
+      if (detail && !detail.gone) toast.error(detail.pinned ? "Couldn't pin that conversation. Try again." : "Couldn't unpin that conversation. Try again.");
+    };
+    window.addEventListener(PIN_ROLLED_BACK_EVENT, onPinRolledBack);
+    return () => window.removeEventListener(PIN_ROLLED_BACK_EVENT, onPinRolledBack);
   }, []);
 
   // Pull the pin list from the server once the user is known.

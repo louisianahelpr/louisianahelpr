@@ -32,6 +32,15 @@ import { isGoneReference } from "@/lib/goneReference";
 import { planMergeUp } from "@/lib/archivedConversations";
 import { isTeamThreadKey } from "@/lib/teamThread";
 
+/**
+ * Deep audit 11-22 #139: a pin the server refused was rolled back in the cache and the mirror only, so the inbox kept
+ * drawing the row pinned (its pin nonce never moved) and said nothing. The rollback now fires this event; the inbox
+ * re-reads the set (the row snaps back) and, unless the thread's job is gone, says the pin did not save.
+ * `detail`: { pinned: the state that failed to save; gone: the thread's job or person no longer exists }.
+ */
+export const PIN_ROLLED_BACK_EVENT = "helpr:pin-rolled-back";
+export type PinRolledBackDetail = { pinned: boolean; gone: boolean };
+
 const STORAGE_KEY_PREFIX = "helpr_pinned_threads_v2_";
 /** Pre-server key. Read once so existing session pins aren't yanked away. */
 const LEGACY_SESSION_PREFIX = "helpr_pinned_threads_session_";
@@ -310,12 +319,18 @@ export function togglePinned(userId: string, jobId: string, otherUserId: string)
       rollback.delete(k);
       setPending(userId, k, false);
     } else rollback.add(k);
+    // A load still in flight holds a snapshot from before the rollback: it may not write it back.
+    bumpGen(userId);
     cache.set(userId, rollback);
     writeLocal(userId, rollback);
+    const gone = isGoneReference(error);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent<PinRolledBackDetail>(PIN_ROLLED_BACK_EVENT, { detail: { pinned: next, gone } }));
+    }
     // The thread's job (or person) was deleted while the inbox was open:
     // the pin can never be stored and the rollback above already dropped
     // it, so this is not a fault. Any other error still reports.
-    if (isGoneReference(error)) return;
+    if (gone) return;
     report(error, { severity: "warning", tags: { source: "pinnedConversations.togglePinned" } });
   })();
 

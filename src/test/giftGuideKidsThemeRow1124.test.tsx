@@ -196,7 +196,9 @@ describe("the Kids page's themed guides row (owner 2026-11-24)", () => {
       expect(c.querySelector("[data-gift-theme-row]"), slug).toBeNull();
       cleanup();
     }
-  });
+    // Renders Her, Him and all 11 theme guides (~2,000 picks): 3.7 s on main locally, 4.8 s with the 11-25 sweeps, over the
+    // 20 s default on a loaded CI shard (#4986).
+  }, 90_000);
 });
 
 describe("Kids items moved to their themed guide (owner 2026-11-24)", () => {

@@ -102,7 +102,7 @@ describe("holiday audit 1121: gift lists Lows", () => {
     const priced = her.find((p) => p.price !== undefined)!;
     togglePick({ href: priced.href, name: priced.name, guide: "her" });
     guidePage();
-    await waitFor(() => expect(document.querySelector("[data-savefor-ready]")).not.toBeNull());
+    await waitFor(() => expect(document.querySelector("[data-savefor-ready]")).not.toBeNull(), { timeout: 10_000 }); // 1 s timed out on a loaded CI shard (#4986)
     // Only Me has a gift: the pill still shows it.
     const pillText = () => document.querySelector("[data-mylists-pill-total]")?.textContent;
     await waitFor(() => expect(pillText()).toBe(`1 gift · $${shownDollars(priced.price)}`));
@@ -133,7 +133,7 @@ describe("holiday audit 1121: gift lists Lows", () => {
     resetPlanStoreForTests();
     window.localStorage.clear();
     const page = guidePage();
-    await waitFor(() => expect(document.querySelector("[data-savefor-ready]")).not.toBeNull());
+    await waitFor(() => expect(document.querySelector("[data-savefor-ready]")).not.toBeNull(), { timeout: 10_000 }); // 1 s timed out on a loaded CI shard (#4986)
     fireEvent.click(page.container.querySelector<HTMLButtonElement>("[data-gift-pick] [data-gift-heart]")!);
     const addBtn = await waitFor(() => {
       const b = document.querySelector<HTMLButtonElement>("[data-savefor-add]");

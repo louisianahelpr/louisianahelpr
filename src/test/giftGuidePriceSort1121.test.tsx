@@ -297,7 +297,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Wood Furnished Mansion $117.99 ($100 and up -1).
       // Owner round-3 screenshot picks 11-25 (46 on Kids): 33 under $10 (the $4.50-$7.19 character pajama prints, tees, beanies),
       // 12 Under $25 (the $11-$16 prints, Eeyore) and the $59.99 PAW Patrol Lookout Tower.
-      kids: { "Stocking stuffers under $10": 40, "Under $25": 77, "$25 to $50": 36, "$50 to $75": 12, "$75 to $100": 8, "$100 and up": 25 },
+      // Owner JCPenney "kids toys" picks 11-25 (23): the $8.99 puzzle under $10, 15 Under $25, 4 at $25-$50 (Bionic Hand,
+      // drawing kit, Noah's Ark, planetarium), the easel and the $69.99 ATV at $50-$75, the $99.99 go kart $100 and up.
+      kids: { "Stocking stuffers under $10": 41, "Under $25": 92, "$25 to $50": 40, "$50 to $75": 14, "$75 to $100": 8, "$100 and up": 26 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

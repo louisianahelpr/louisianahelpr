@@ -191,7 +191,6 @@ const STEALS: [string, string, string, number, number, string][] = [
   ["kids", "https://go.shopmy.us/p-110718832", "store-kohls", 12, 20.99, "Fisher-Price Little People Bowser's Airship and Figure"],
   ["kids", "https://go.shopmy.us/p-110718853", "store-kohls", 12, 24.99, "Matchbox Aircraft Carrier Play Set with 10 Die-Cast Planes"],
   ["kids", "https://go.shopmy.us/p-110718866", "store-kohls", 12, 5.24, "Matchbox Die-Cast Cars 5-Pack"],
-  ["kids", "https://mavely.app.link/7hnOQCcGl8b", "store-jcpenney", 10.5, 8.99, "QUOKKA 30-Piece Kids Jigsaw Puzzle"],
   ["kids", "https://mavely.app.link/C7qabzgGl8b", "store-jcpenney", 10.5, 19.99, "What Do You Meme Color Stack Board Game"],
   ["kids", "https://mavely.app.link/kzmOaJgGl8b", "store-jcpenney", 10.5, 14.99, "Sharper Image 2-Piece Remote Control Cars"],
   ["kids", "https://mavely.app.link/nz2t3xiGl8b", "store-jcpenney", 10.5, 7.99, "Play-Doh Fun Factory Starter Set"],

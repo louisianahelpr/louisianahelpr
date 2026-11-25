@@ -43,25 +43,24 @@ export function FunBody({ title, path, noindex, banner = G.pageBanners[path], to
 
 /**
  * The gift guides' frame for a page outside GiftGuides.tsx (the fun pages, the printables, the Holiday Hub): the guides'
- * one top (GuidesTop: back arrow + "Holiday gift guides", the shipping pill, search, My list heart and Share, the
+ * one top (GuidesTop: back arrow + "Holiday gift guides", search, My list heart and Share, the
  * phone's chip row, then the page's gingham banner holding its h1), then the page, the left menu and the disclosures
  * (holiday audit 1121 #13: the fun pages had no head row or menu). The caller brings GIFT_GUIDES_CSS. The disclosures
  * show only while the page carries an affiliate link (GuidesDisclosure, owner 11-22).
  * Owner 2026-11-22 #13 ("gifts tags and all the other sections should have the same top section as the guides and the
  * deals"): the banner replaces this morning's plain left serif title (polish audit 1122 #10).
  * `tools`: the head row's icons. "none" on the printables (owner 11-21: "remove the search, favorite ... just polish
- * this"; 11-22: "Same row, icons off there"): the pill only. "share" on the Holiday Hub: Share only (owner 11-22: no
+ * this"; 11-22: "Same row, icons off there"): the title only. "share" on the Holiday Hub: Share only (owner 11-22: no
  * gift search beside the Hub's own lights search; 7:49 PM: "remove order by and the heart at the top ... i thought we
  * didnt do that for this section?"), so no My list heart there either.
- * No shipping pill on any frame page (owner 11-22 8:58 PM pop-up, "Remove on free pages": the "Order by Dec 15" pill is for
- * shopping pages only; every page in this frame is free: the printables, Swipe, the Secret Santa draw and reveal, the
- * planner and the Holiday Hub).
+ * No shipping pill (owner 11-22 8:58 PM took it off these free pages; owner 2026-11-24 ~8:30 PM, "Remove by Dec 15
+ * everywhere", took it off every guides page).
  */
 export function GuidesFrame({ title, path, banner, tools = "all", children }: { title: string; path: string; banner: PageBanner; tools?: FrameTools; children: ReactNode }) {
   const frame = useRef<HTMLDivElement>(null);
   return (
     <div className="gg w-full" data-gift-fun-frame="" ref={frame}>
-      <GuidesTop backTo="/gift-guides" banner={banner} noPill
+      <GuidesTop backTo="/gift-guides" banner={banner}
         tools={tools === "none" ? null : <GiftGuideTools path={path} title={title} search={tools === "all"} heart={tools !== "share"} />} nav={{ active: null, page: path }} />
       {/* Page, then menu, then disclosures in the code (holiday audit 1121 #22 / #27), as on the guides. */}
       <div className="gg-layout">

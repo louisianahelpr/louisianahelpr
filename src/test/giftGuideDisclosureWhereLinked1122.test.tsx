@@ -125,7 +125,7 @@ describe("the guide sub-pages fill the content column to the banner's edge (owne
     for (const slug of ["her", "25-days-sponsors"]) {
       const desk = guidesAt(`/gift-guides/${slug}`);
       expect(desk.querySelector("[data-gift-countrow]"), slug).toBeNull();
-      expect(desk.querySelector("[data-gift-headrow] [data-gift-ship]"), slug).not.toBeNull();
+      expect(desk.querySelector("[data-gift-ship]"), slug).toBeNull(); // no "Order by Dec 15" pill (owner 11-24)
       expect(desk.querySelector("[data-gift-headrow] [data-gift-quick] [data-gift-search-button]"), slug).not.toBeNull();
       expect(desk.querySelectorAll(".gg-main [data-gift-item-count]").length, slug).toBe(1);
       cleanup();

@@ -23,7 +23,7 @@
  *      (FunBody) and the Holiday Hub. No other stylesheet sets the row's padding.
  *
  * @mutate src/pages/info/giftGuides/GiftGuideLanding.tsx |       <GuidesMenuHint />\n      <LiveGuides /> |       <LiveGuides />\n      <GuidesMenuHint />
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {MENU_HINT_GUIDES.has(guide.slug) && <GuidesMenuHint />}\n |
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {MENU_HINT_GUIDES.has(guide.slug) && guide.slug !== "kids" && <GuidesMenuHint />}\n |
  * @mutate src/pages/info/giftGuides/GiftGuideMenuHint.tsx | new Set(["her", "him", "kids"]) | new Set(["her", "him"])
  * @mutate src/pages/info/giftGuides/GiftGuideMenuHint.tsx | onClick={openGuidesMenu} | onClick={() => undefined}
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx |     window.addEventListener(OPEN_MENU_EVENT, open); |

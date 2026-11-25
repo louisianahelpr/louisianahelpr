@@ -7,7 +7,8 @@
  * #3 (High): Gift tags, Coloring books, Banners, Swipe, Secret Santa, the planner and Shop Small had no phone menu.
  *    GuidesFrame draws it now (owner 11-22: the head row's three-line menu, which replaced the chip row).
  * #6: the menu always shows (owner 11-22: on the head row's right, beside the heart; was a pinned More chip).
- * #5: a phone's count row (count, pill, 4 icons) fits one row at 375: the pill reads "By Dec 15" there, gaps 4px.
+ * #5: a phone's count row (count, 4 icons) fits one row at 375, gaps 4px. Its "By Dec 15" pill is gone (owner 2026-11-24
+ *     ~8:30 PM: "Remove by Dec 15 everywhere").
  * #9: My Wish List has no second "All guides" back link (the head row's arrow goes to /gift-guides).
  * #10: one sub-page title (overtaken by the owner's 11-22 #13 "the same top section as the guides and the deals"): the
  *      frame pages' title is their gingham banner above the menu and the content column, in the deals days' sizes.
@@ -44,7 +45,7 @@
  * @mutate src/pages/info/holidays/holidayParts.tsx |       <h3 className="text-ds-16 font-semibold leading-snug text-foreground">{item.name}</h3> |       <h3 className="text-ds-16 font-semibold leading-snug text-foreground">{item.name}{tag}</h3>
  * @mutate src/pages/info/holidays/HolidayHub.tsx | <HolidayNothing onClear={() => setQuery("")} clearLabel="Clear search"> | <HolidayNothing onClear={clearAll}>
  * @mutate src/pages/info/giftGuides/giftWishStyles.ts | .gg-savefor-box{display:flex;flex-wrap:wrap;align-items:center} | .gg-savefor-box{}
- * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-countrow .gg-ship-order{display:none} | .gg-countrow .gg-ship-order{}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (max-width:479px){.gg-countrow{gap:4px}} | @media (max-width:479px){.gg-countrow{gap:12px}}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
@@ -116,9 +117,10 @@ describe("polish audit 1122 #3/#6, owner 11-22: the phone's menu on every frame 
 const src = (f: string) => blankComments(readFileSync(f, "utf8"));
 
 describe("polish audit 1122 #5/#9/#10/#19", () => {
-  it("#5: the phone count row's pill drops 'Order ' and the gaps are 4px", () => {
-    expect(src("src/pages/info/giftGuides/GuidesTop.tsx")).toContain('<span className="gg-ship-order">Order </span>');
-    expect(GIFT_GUIDES_CSS).toContain("@media (max-width:479px){.gg-countrow,.gg-countrow-left{gap:4px}.gg-countrow .gg-ship-order{display:none}.gg-countrow .gg-ship::first-letter{text-transform:uppercase}}");
+  it("#5: the phone count row's gaps are 4px; its pill is gone (owner 11-24)", () => {
+    expect(GIFT_GUIDES_CSS).toContain("@media (max-width:479px){.gg-countrow{gap:4px}}");
+    expect(GIFT_GUIDES_CSS).not.toContain("gg-ship");
+    expect(src("src/pages/info/giftGuides/GuidesTop.tsx")).not.toContain("gg-ship");
   });
 
   it("#9: My Wish List draws no second back link", () => {

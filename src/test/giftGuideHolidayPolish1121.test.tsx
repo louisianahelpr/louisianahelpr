@@ -10,8 +10,6 @@
  * @mutate src/content/giftGuideCatalog.ts |     budgetSlugs.push("her", "him", "kids"); |     budgetSlugs.push();
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {!guide.children && guide.picks.length === 0 && ( |       {!guide.children && guide.picks.length === 0 && guide.links.length === 0 && (
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const banded = guide.picks.filter((p) => p.band !== undefined && showsPrice(p)).length; |   const banded = guide.picks.filter((p) => p.band !== undefined).length;
- * @mutate src/content/giftGuideShipping.ts |   instant: "Too late to ship? Print a free gift tag or coloring book today", |   instant: "Last-minute? Gift cards and digital gifts arrive instantly",
- * @mutate src/content/giftGuideShipping.ts |   if (month !== 12) return null; |   if (month !== 12) return SHIP_LINES.early;
  * @mutate src/pages/info/GiftGuides.tsx | <GiftGuidesSidebar active={guide} myList={myList \|\| shared} mine={myList} page= | <GiftGuidesSidebar active={guide} myList={myList} mine={myList} page=
  * @mutate src/pages/info/GiftGuides.tsx |   if (rawSlug && rawSlug !== rawSlug.toLowerCase()) return | if (false) return
  * @mutate src/pages/info/giftGuides/GuideSectionHead.tsx | return <h2 className={`gg-sec-title gg-sec-toggle-h gg-sec-${tint}`} id={titleId}>{toggle}</h2>; | return <h3 className={`gg-sec-title gg-sec-toggle-h gg-sec-${tint}`} id={titleId}>{toggle}</h3>;
@@ -21,7 +19,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { FUN_WORDS } from "@/content/giftGuideFun1120";
-import { SHIP_LINES, shippingLine } from "@/content/giftGuideShipping";
 // The Small Business Saturday page reads the free approved listings (SmallBizLocal); never the network in a unit test.
 vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsLogoUrl: () => "" }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({
@@ -138,16 +135,6 @@ describe("an empty view says so (holiday audit 1121)", () => {
   });
 });
 
-describe("the shipping pill (holiday audit 1121)", () => {
-  const at = (iso: string) => new Date(iso);
-  it("shows only Nov 1 through Dec 25 (it came back every January)", () => {
-    expect(shippingLine(at("2027-01-15T18:00:00Z"))).toBeNull();
-    expect(shippingLine(at("2027-06-15T18:00:00Z"))).toBeNull();
-    expect(shippingLine(at("2026-11-01T18:00:00Z"))).toBe(SHIP_LINES.early);
-    // Owner 2026-11-21: "Just don't mention gift cards." (they left the guides 11-20).
-    expect(Object.values(SHIP_LINES).filter((l) => /gift card/i.test(l))).toEqual([]);
-  });
-});
 
 function Where() {
   const { pathname, search, hash } = useLocation();

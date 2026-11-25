@@ -7,7 +7,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import { useEffect, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
-import { GuidesMenuHint } from "./giftGuides/GiftGuideMenuHint";
+import { GuidesMenuHint, MENU_HINT_GUIDES } from "./giftGuides/GiftGuideMenuHint";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
 import { GuidesTop, type GuidesBanner } from "./giftGuides/GuidesTop";
 import { GiftGuideLanding, finderAsked } from "./giftGuides/GiftGuideLanding";
@@ -425,30 +425,28 @@ export default function GiftGuides() {
       {/* The full public container (78rem), never a narrower page column (owner 2026-11-18: "fill the screen"). */}
       <div className="gg w-full" data-gift-guides="" ref={page}>
         {/* Owner's mockup (2026-11-18): the way back and the header words run across the top, above the menu and the guides. */}
-        {/* Owner 2026-11-18 PM: the shipping pill sits on the page header's own row ("← Gift guides"), right-aligned
-            (titleActions above), so no row of its own sits above the hero. A guide page has no second "← All guides"
-            link ("double back button?? does the same thing"): the header's back arrow goes to /gift-guides. */}
+        {/* A guide page has no second "← All guides" link ("double back button?? does the same thing"): the header's back
+            arrow goes to /gift-guides. Owner 2026-11-24 ~8:30 PM, "Remove by Dec 15 everywhere": no shipping pill. */}
         {/* Owner redesign 11-18 PM: under the title ONE slim row (search, My list, Share); Text and Copy link sit in
             Share's menu and the codes are a "Deals & codes" section of the page. The banner title is the page's h1
             (live audit r3 #7); the header's "Gift guides" is a plain line (titleTag="p"). */}
         {/* The one top of every guides page (GuidesTop): the head row, the banner. A phone's guide
-            page and the 25 Days sponsors page put the pill and the icons on the count row under the banner. */}
+            page and the 25 Days sponsors page put the icons on the count row under the banner. */}
         {/* Owner 11-22 (phone): the head row's heart and three-line menu replace the chip row on every page; a guide's
             own count row under its banner is kept as it is ("she didn't ask to change it"). */}
-        <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} pillInRow={!countRow}
-          noPill={sidePage === "finder"}
-          below={(shipPill) => (
+        <GuidesTop backTo={backTo} banner={banner} tools={tools} nav={{ active: guide, myList: myList || shared, page: sidePage }} toolsInRow={!countRow}
+          below={(
             <>
               {/* Owner 2026-11-24 8:23 PM: on Kids the "Tap the menu" tip sits ABOVE the theme covers ("Move the tap box
                   above the new guides"); Her and Him keep it in the guide (GiftGuideView). */}
-              {guide?.slug === KIDS_FILTER_GUIDE && <GuidesMenuHint />}
+              {guide?.slug === KIDS_FILTER_GUIDE && MENU_HINT_GUIDES.has(guide.slug) && <GuidesMenuHint />}
               {/* Owner 2026-11-24: the themed kids guides' green covers, right under the red Kids banner. */}
               {guide?.slug === KIDS_FILTER_GUIDE && <LazyThemeRow />}
+              {/* A phone's count row: the count on the left, the icons on the right (no shipping pill, owner 11-24). */}
               {countRow && guide && (
                 <div className="gg-countrow" data-gift-countrow="">
                   <div className="gg-countrow-left">
                     {picksReady(guide.slug) && guide.picks.length > 0 && <p className="gg-itemcount" data-gift-item-count="">{G.itemCount(guide.picks.length)}</p>}
-                    {shipPill}
                   </div>
                   {tools}
                 </div>

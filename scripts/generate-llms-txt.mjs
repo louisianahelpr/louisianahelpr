@@ -15,7 +15,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { publicOrGiftGuidePageMetaFor } from "../src/lib/giftGuidePageMeta.mjs";
+import { giftGuidePageMeta, publicOrGiftGuidePageMetaFor } from "../src/lib/giftGuidePageMeta.mjs";
+import { isThemeGuide } from "../src/content/giftGuideLive.mjs";
 import { LANDING_PAGE_META } from "../src/lib/publicPageMeta.mjs";
 import { searchPageBySlug, searchPageMeta } from "../src/content/guideSearchPages.mjs";
 
@@ -36,10 +37,45 @@ export const isHolidayPath = (p) => p === "/gift-guides" || p.startsWith("/gift-
 
 const ABOUT = ["/", "/browse", "/declutter", "/help", "/fees", "/safety"];
 
+/**
+ * Every store's shown name by slug ("store-walmart" -> "Walmart"): the researched stores (src/content/giftGuidePicks.ts
+ * RESEARCHED_STORES, generated) and the fixed ones (src/content/giftGuideCatalog.ts FIXED_STORES), read as text because
+ * both are TypeScript.
+ */
+export function storeNames(picksTs, catalogTs) {
+  const researched = JSON.parse(/export const RESEARCHED_STORES[^=]*= (\{.*?\});\n/.exec(picksTs)?.[1] ?? "{}");
+  const fixedBlock = /const FIXED_STORES[^=]*= \{([\s\S]*?)\n\};/.exec(catalogTs)?.[1] ?? "";
+  const fixed = Object.fromEntries([...fixedBlock.matchAll(/^\s*([a-z0-9-]+): \{ name: "([^"]+)"/gm)].map((m) => [m[1], m[2]]));
+  if (!Object.keys(researched).length || !fixed.amazon) throw new Error("generate-llms-txt: could not read the store names");
+  return { ...fixed, ...Object.fromEntries(Object.entries(researched).map(([k, v]) => [k, v.name])) };
+}
+
+/**
+ * A themed kids guide's head from its picks chunk (owner 2026-11-25, search: src/content/themeGuideSearch.mjs), as the
+ * page and api/share.ts build it. "Today" is the chunk's newest price check, so the line never changes with the date
+ * the generator runs (check-generated-current compares the bytes).
+ */
+export function themeGuideMeta(slug, chunk, stores) {
+  const seen = new Set();
+  const picks = (chunk?.picks ?? []).filter((p) => p?.name && p?.href && !seen.has(`${p.href} ${p.name}`) && seen.add(`${p.href} ${p.name}`));
+  const today = picks.map((p) => p.priceAt).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? "")).sort().at(-1);
+  if (!picks.length || !today) return null;
+  const rows = picks.map((p) => ({ name: p.name, price: p.price, priceAt: p.priceAt, priceFrom: p.priceFrom, store: stores[p.store] ?? "" }));
+  return giftGuidePageMeta(slug, "", [], picks.length, rows, today);
+}
+
+let STORE_NAMES = null;
+function themeMetaFor(p) {
+  const slug = p.replace(/^\/gift-guides\//, "");
+  if (slug === p || !isThemeGuide(slug)) return null;
+  STORE_NAMES ??= storeNames(readFileSync(path.join(root, "src/content/giftGuidePicks.ts"), "utf8"), readFileSync(path.join(root, "src/content/giftGuideCatalog.ts"), "utf8"));
+  return themeGuideMeta(slug, JSON.parse(readFileSync(path.join(root, "src/content/giftGuidePicks", `${slug}.json`), "utf8")), STORE_NAMES);
+}
+
 function line(p) {
   // A search page (owner 11-23) carries its own head, as api/share.ts serves it.
   const search = searchPageBySlug(p.replace(/^\/gift-guides\//, ""));
-  const meta = p === "/" ? { title: LANDING_PAGE_META.title, description: LANDING_PAGE_META.description } : search ? searchPageMeta(search) : publicOrGiftGuidePageMetaFor(p);
+  const meta = p === "/" ? { title: LANDING_PAGE_META.title, description: LANDING_PAGE_META.description } : search ? searchPageMeta(search) : themeMetaFor(p) ?? publicOrGiftGuidePageMetaFor(p);
   if (!meta?.title || !meta?.description) throw new Error(`generate-llms-txt: no title or description for ${p}`);
   const title = meta.title.replace(/\s+—\s+(Louisiana )?Helpr$/, "").replace(/\s+—\s+Louisiana's local partner\.$/, "");
   return `- [${title}](${ORIGIN}${p === "/" ? "/" : p}): ${meta.description}`;

@@ -5,8 +5,10 @@ import smallBiz from "@/content/giftGuideSmallBiz.json";
 import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import { louisianaDay } from "@/content/giftGuideDeals.mjs";
-import { QA_BYLINE, QA_TITLE, catalogGuideQa, dealsDayQa, holidayHubQa, smallBizQa, toQaPick, updatedLine, type QaDeal, type QaDealListed, type QaItem } from "@/lib/guideQa.mjs";
-import type { CatalogPick } from "@/content/giftGuideCatalog";
+import { QA_BYLINE, QA_TITLE, catalogGuideQa, dealsDayQa, holidayHubQa, newestPriceDay, smallBizQa, toStoreQaPick, updatedLine, type QaDeal, type QaDealListed, type QaItem } from "@/lib/guideQa.mjs";
+import { STORES, type CatalogPick } from "@/content/giftGuideCatalog";
+import { THEME_GUIDE_NAMES_1124 } from "@/content/giftGuideLive.mjs";
+import { themeGuideSearch } from "@/content/themeGuideSearch.mjs";
 
 /**
  * A guide page's "Common questions" (owner pop-up 2026-11-22 9:40 PM: "Q&A + updated date + byline"), near its end:
@@ -31,20 +33,38 @@ const QA_CSS = `
 `;
 
 function questions(p: GuideQaProps, today: string): QaItem[] {
-  if (p.kind === "catalog") return catalogGuideQa(p.page, p.picks.filter((x) => x.name).map(toQaPick), today);
+  if (p.kind === "catalog") return catalogGuideQa(p.page, p.picks.filter((x) => x.name).map((x) => toStoreQaPick(x, STORES[x.store]?.name)), today);
   if (p.kind === "deals") return dealsDayQa(p.page, [...p.deals], today, p.listed);
   if (p.kind === "small-biz") return smallBizQa(smallBiz as { name: string; town?: string; category?: string; ships?: string }[], SMALL_BIZ_CATEGORIES);
   return holidayHubQa(HOLIDAY_LIGHTS, HOLIDAY_EVENTS, today);
 }
 
+/** A themed kids guide's name (src/content/giftGuideLive.mjs), or null. */
+const themeName = (page: string): string | null => (Object.prototype.hasOwnProperty.call(THEME_GUIDE_NAMES_1124, page) ? THEME_GUIDE_NAMES_1124[page as keyof typeof THEME_GUIDE_NAMES_1124] : null);
+
+/**
+ * A themed kids guide's intro (owner 11-25, search: src/content/themeGuideSearch.mjs, the words the pre-JS body has under
+ * its H1), from its picks and their unique links, as the head counts them.
+ */
+function themeIntro(page: string, picks: readonly CatalogPick[], today: string): string | null {
+  const name = themeName(page);
+  if (!name) return null;
+  const seen = new Set<string>();
+  const rows = picks.filter((p) => p.name && p.href && !seen.has(p.href) && seen.add(p.href));
+  return themeGuideSearch(name, rows.map((p) => ({ name: p.name, price: p.price, priceAt: p.priceAt, priceFrom: p.priceFrom, store: STORES[p.store]?.name ?? "" })), rows.length, today)?.intro ?? null;
+}
+
 export function GuideQa(props: GuideQaProps) {
-  const qa = questions(props, louisianaDay(new Date()));
+  const today = louisianaDay(new Date());
+  const qa = questions(props, today);
   if (qa.length === 0) return null;
-  const updated = Object.prototype.hasOwnProperty.call(GUIDE_UPDATED, props.page) ? updatedLine(GUIDE_UPDATED[props.page].day) : "";
+  // A themed kids guide has no row in guideUpdated.mjs: its Updated day is its newest price check (as api/share.ts says).
+  const updatedDay = Object.prototype.hasOwnProperty.call(GUIDE_UPDATED, props.page) ? GUIDE_UPDATED[props.page].day : props.kind === "catalog" && themeName(props.page) ? newestPriceDay([...props.picks]) : undefined;
+  const updated = updatedDay ? updatedLine(updatedDay) : "";
   const byline = props.kind === "catalog" && props.page !== "25-days-sponsors" ? QA_BYLINE.gifts : QA_BYLINE.other;
   // Google search setup (owner 11-23): Her, Him and Kids open this section with their short intro (guideSearch.mjs), the
   // same words the pre-JS body has under its H1. Not under the banner: owner 11-18, no subtitle under a guide's title.
-  const intro = props.kind === "catalog" && Object.prototype.hasOwnProperty.call(GUIDE_SEARCH, props.page) ? GUIDE_SEARCH[props.page as keyof typeof GUIDE_SEARCH].intro : null;
+  const intro = props.kind !== "catalog" ? null : Object.prototype.hasOwnProperty.call(GUIDE_SEARCH, props.page) ? GUIDE_SEARCH[props.page as keyof typeof GUIDE_SEARCH].intro : themeIntro(props.page, props.picks, today);
   return (
     <section className="gqa" aria-labelledby="guide-qa-title" data-guide-qa={props.page}>
       <style>{QA_CSS}</style>

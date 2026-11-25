@@ -1,5 +1,5 @@
 /** Types for src/lib/seoBodies.mjs (api/share.ts's per-page bodies and JSON-LD). */
-export interface SeoPickExtra { image?: string; price?: number; priceAt?: string }
+export interface SeoPickExtra { image?: string; price?: number; priceAt?: string; priceFrom?: true }
 export type SeoPick = [name: string, store: string, href: string, extra?: SeoPickExtra];
 export interface SeoGuide {
   name: string;
@@ -10,7 +10,9 @@ export interface SeoGuide {
   /** How many picks the guide holds in all (the page's count). */
   count: number;
   related?: [slug: string, name: string][];
-  /** Her, Him, Kids, 25 Days sponsors: every pick as the Q&A reads it (src/lib/guideQa.mjs toQaPick). */
+  /** Kids: every themed kids guide (owner 11-25, search), linked by name in its pre-JS body. */
+  themes?: [slug: string, name: string][];
+  /** Her, Him, Kids, 25 Days sponsors and the themed kids guides: every pick as the Q&A reads it (src/lib/guideQa.mjs toQaPick). */
   qa?: import("./guideQa.mjs").QaPick[];
 }
 export interface SeoData {
@@ -50,7 +52,8 @@ export function escapeHtml(value: unknown): string;
 export function jsonLdScript(data: unknown): string;
 export function breadcrumbLd(crumbs: { name: string; path: string }[]): Record<string, unknown>;
 export function seoPageBody(crumbs: { name: string; path: string }[], inner: string): string;
-export function giftGuideBody(slug: string, guide: SeoGuide): string;
+export function giftGuideBody(slug: string, guide: SeoGuide, today?: string): string;
+export function themeSearchPicks(picks: readonly SeoPick[]): import("../content/themeGuideSearch.mjs").ThemeSearchPick[];
 export function dealsGuideBody(slug: string, name: string, intro: string, disclosure: string, day?: SeoDealsDay | null, shops?: SeoData["smallBiz"]): string;
 export function dealsDayOn(data: Pick<SeoData, "deals" | "dealLists"> | null | undefined, slug: string, today: string): SeoDealsDay;
 export function giftGuideItemListLd(slug: string, guide: SeoGuide, today: string): Record<string, unknown>;

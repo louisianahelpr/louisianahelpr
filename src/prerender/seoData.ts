@@ -9,11 +9,11 @@ import { DEALS_WORDS, DEAL_DAY_SLUGS, DEAL_EVENTS, dealEnds, type Deal } from "@
 import { STORE_CODES, codeCardsOrder, dealDayLists, dealDayParts } from "@/content/giftGuideDealCounts";
 import { publicPartners } from "@/components/sponsor/Sections";
 import { sponsorPage } from "@/content/sponsorPage";
-import { isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { THEME_GUIDES_1124, isLiveGuide, isThemeGuide } from "@/content/giftGuideLive.mjs";
 import { RETIRED_TO_SEARCH_PAGE } from "@/content/retiredGuideForward";
 import deals from "@/content/giftGuideDeals.json";
 import smallBiz from "@/content/giftGuideSmallBiz.json";
-import { QA_PAGES, toQaPick } from "@/lib/guideQa.mjs";
+import { hasGuideQa, toStoreQaPick } from "@/lib/guideQa.mjs";
 
 /**
  * SEO P1 (owner 11-19): the gift guide data api/share.ts needs to write each guide's body, ItemList and 404s with no
@@ -33,8 +33,10 @@ import { QA_PAGES, toQaPick } from "@/lib/guideQa.mjs";
 function seoPick(p: CatalogPick): SeoGuide["picks"][number] {
   const store = STORES[p.store]?.name ?? "";
   const extra = { ...(p.image ? { image: p.image } : {}), ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt } : {}) };
+  // A "from $41" price says so (owner 11-25, search: a themed guide's head reads its price range from these rows).
+  const shown = p.priceFrom && "price" in extra ? { ...extra, priceFrom: true as const } : extra;
   const where = p.store === "sponsor" && p.brand ? p.brand : store;
-  return Object.keys(extra).length ? [p.name, where, p.href, extra] : [p.name, where, p.href];
+  return Object.keys(shown).length ? [p.name, where, p.href, shown] : [p.name, where, p.href];
 }
 
 export async function buildSeoData(): Promise<SeoData> {
@@ -56,13 +58,17 @@ export async function buildSeoData(): Promise<SeoData> {
       seen.add(key);
       picks.push(seoPick(p));
     }
-    // A hub (For Kids, Girls...) lists its child guides; any other guide, its siblings.
-    const related = (g.children ? childrenOf(g) : relatedGuides(g))
+    // A hub (For Kids, Girls...) lists its child guides; any other guide, its siblings. Owner 11-25 (search): a themed kids
+    // guide links every other theme (the catalog's six siblings left the later themes unlinked from the earlier ones).
+    const related = (isThemeGuide(g.slug) ? THEME_GUIDES_1124.filter((s) => s !== g.slug).map((s) => guideBySlug(s)).filter((r) => r !== undefined) : g.children ? childrenOf(g) : relatedGuides(g))
       .filter((r) => Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, r.slug))
       .map((r) => [r.slug, GIFT_GUIDE_SEO[r.slug]] as [string, string]);
-    // Guide Q&A (owner pop-up 11-22 9:40 PM): every pick, in the page's order, as the Q&A reads it (guideQa.mjs toQaPick).
-    const qa = indexed && QA_PAGES.includes(g.slug) ? g.picks.filter((p) => p.name).map(toQaPick) : [];
-    guides[g.slug] = { name, indexed, picks, count: indexed ? new Set(g.picks.filter((p) => p.name && p.href).map((p) => `${p.href} ${p.name}`)).size : 0, ...(related.length ? { related } : {}), ...(qa.length ? { qa } : {}) };
+    // Owner 11-25 (search): Kids links every themed kids guide by name, so a reader with no JavaScript reaches each one.
+    const themes = indexed && g.slug === "kids" ? THEME_GUIDES_1124.filter((s) => Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, s)).map((s) => [s, GIFT_GUIDE_SEO[s]] as [string, string]) : [];
+    // Guide Q&A (owner pop-up 11-22 9:40 PM): every pick, in the page's order, as the Q&A reads it (guideQa.mjs toQaPick),
+    // with its store's shown name (a themed guide's "Where can I buy", owner 11-25).
+    const qa = indexed && hasGuideQa(g.slug) ? g.picks.filter((p) => p.name).map((p) => toStoreQaPick(p, STORES[p.store]?.name)) : [];
+    guides[g.slug] = { name, indexed, picks, count: indexed ? new Set(g.picks.filter((p) => p.name && p.href).map((p) => `${p.href} ${p.name}`)).size : 0, ...(related.length ? { related } : {}), ...(themes.length ? { themes } : {}), ...(qa.length ? { qa } : {}) };
   }
   const moved: Record<string, string> = {};
   for (const old of new Set([...Object.keys(OLD_SLUGS), ...Object.keys(MERGED_GUIDES), ...RETIRED_SLUGS(), ...Object.keys(RETIRED_TO_SEARCH_PAGE)])) {

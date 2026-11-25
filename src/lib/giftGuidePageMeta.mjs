@@ -7,8 +7,10 @@
 
 import { SITE_ORIGIN, NOINDEX_ROBOTS, PUBLIC_PAGE_META, publicPageMetaFor } from "./publicPageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "../content/giftGuideSeo.mjs";
-import { dealDay } from "../content/giftGuideDeals.mjs";
+import { dealDay, louisianaDay } from "../content/giftGuideDeals.mjs";
 import { DEAL_DAY_SEARCH_TITLES, GUIDE_SEARCH, guideSearchDescription } from "../content/guideSearch.mjs";
+import { THEME_GUIDE_NAMES_1124 } from "../content/giftGuideLive.mjs";
+import { themeGuideSearch } from "../content/themeGuideSearch.mjs";
 
 /** "A, B and C" */
 function joinNames(names) {
@@ -36,7 +38,8 @@ export function giftGuideDescription(name, topNames, count) {
  * One gift guide's head. A guide search engines see (in GIFT_GUIDE_SEO, generated with the sitemap's list) gets its
  * unique name ("Gifts for Mom", "Walmart gift guide") as title and card, never a price; any other guide (empty, a hub,
  * a thin store page) is noindex under its own title. `topNames` and `count` (its picks' first names and how many it
- * holds) give it its own description; without them, the template.
+ * holds) give it its own description; without them, the template. A themed kids guide also takes `themePicks` (its picks
+ * as { name, price, priceAt, priceFrom, store: the store's shown name }) and `today` (Louisiana, for which prices show).
  */
 /**
  * The picks a guide's description names when it has its own (guide audit 1123 #7): Her, Him and Kids list low to high,
@@ -50,12 +53,20 @@ export const GUIDE_LEAD_PICKS = {
   kids: ["Nintendo Switch 2", "Tickle Me Elmo Giggle Max", "Toniebox 2, Sky Blue"],
 };
 
-export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count = 0) {
+export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count = 0, themePicks = null, today = louisianaDay(new Date())) {
   const day = dealDay(slug);
   if (day) return dealDayPageMeta(day);
   if (slug === SPONSORS_SLUG) return SPONSORS_META;
   const named = Object.prototype.hasOwnProperty.call(GIFT_GUIDE_SEO, slug) ? GIFT_GUIDE_SEO[slug] : null;
   const name = named ?? `${fallbackTitle} gift guide`;
+  // Owner 2026-11-25 ("seen in Google searches and with other ai searches"): a themed kids guide's title, description and
+  // card text come from its own picks (src/content/themeGuideSearch.mjs): what the gifts are, the price range and the
+  // stores. The card's picture (og:image, api/share.ts) is unchanged.
+  const themeName = named && Object.prototype.hasOwnProperty.call(THEME_GUIDE_NAMES_1124, slug) ? THEME_GUIDE_NAMES_1124[slug] : null;
+  const theme = themeName && Array.isArray(themePicks) && themePicks.length ? themeGuideSearch(themeName, themePicks, count, today) : null;
+  if (theme) {
+    return { title: theme.title, description: theme.description, canonical: `${SITE_ORIGIN}/gift-guides/${slug}`, ogTitle: theme.ogTitle, ogDescription: theme.description };
+  }
   const lead = Object.prototype.hasOwnProperty.call(GUIDE_LEAD_PICKS, slug) ? GUIDE_LEAD_PICKS[slug] : null;
   // Google search setup (owner 11-23): Her, Him and Kids get their keyword title and a description of at most 155
   // characters (src/content/guideSearch.mjs); og:title (the Facebook headline) stays as it was.

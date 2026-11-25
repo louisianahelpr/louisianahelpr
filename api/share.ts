@@ -86,12 +86,13 @@ import {
   jsonLdScript,
   notFoundBody,
   searchPageBody,
+  themeSearchPicks,
   twentyFiveDaysEventLd,
   type SeoData,
 } from "../src/lib/seoBodies.mjs";
 import { SEARCH_GUIDE_NAMES, searchPageBySlug, searchPageMeta, searchPageParent } from "../src/content/guideSearchPages.mjs";
 import { holidayHubBody, holidayHubLd } from "../src/lib/holidayHubSeo.mjs";
-import { QA_BYLINE, catalogGuideQa, dealPartsOn, dealsDayQa, faqPageLd, holidayHubQa, qaSectionHtml, smallBizQa, withQaSection, type QaItem } from "../src/lib/guideQa.mjs";
+import { QA_BYLINE, catalogGuideQa, dealPartsOn, dealsDayQa, faqPageLd, holidayHubQa, newestPriceDay, qaSectionHtml, smallBizQa, withQaSection, type QaItem } from "../src/lib/guideQa.mjs";
 import { GUIDE_UPDATED } from "../src/content/guideUpdated.mjs";
 import { SMALL_BIZ_CATEGORIES } from "../src/content/giftGuideSmallBiz.mjs";
 import { HOLIDAY_LIGHTS } from "../src/content/holidayHub/lights.mjs";
@@ -108,7 +109,7 @@ import { COVER_WEBP_SLUGS, OG_JPG_SLUGS } from "../src/lib/giftGuideShareImages.
 import { COVER_VERSIONS, OG_VERSIONS } from "../src/lib/giftGuideCoverVersions.mjs";
 import { WIDE_OG_VERSIONS } from "../src/lib/giftGuideWideOg.mjs";
 import { DEALS_SLUG, DEALS_WORDS, dealDay, eventPhase, louisianaDay, oldDealsTarget } from "../src/content/giftGuideDeals.mjs";
-import { isLiveGuide } from "../src/content/giftGuideLive.mjs";
+import { isLiveGuide, isThemeGuide } from "../src/content/giftGuideLive.mjs";
 
 /**
  * og:url and the canonical link are built from this constant, never from the
@@ -1184,7 +1185,9 @@ function giftGuideHead(id: string): ReturnType<typeof giftGuidePageMeta> | null 
   if (!slug || !d || !hasOwn(d.guides, slug)) return null;
   const g = d.guides[slug];
   // A guide out of search is named "<title> gift guide" in the data: the name giftGuidePageMeta builds from its title.
-  return giftGuidePageMeta(slug, g.name.replace(/ gift guide$/, ""), g.picks.slice(0, 3).map((p) => p[0]), g.count);
+  // A themed kids guide's head reads every pick's price and store (owner 11-25, search; giftGuidePageMeta ignores them
+  // for any other guide).
+  return giftGuidePageMeta(slug, g.name.replace(/ gift guide$/, ""), g.picks.slice(0, 3).map((p) => p[0]), g.count, isThemeGuide(slug) ? themeSearchPicks(g.picks) : null, louisianaDay(new Date()));
 }
 
 type SeoOutcome =
@@ -1198,9 +1201,9 @@ type SeoOutcome =
  * end of its body and its FAQPage JSON-LD, with the page's Updated day (src/content/guideUpdated.mjs). The page draws
  * the same section from the same function (src/pages/info/giftGuides/GuideQa.tsx).
  */
-function withQa(page: string, qa: QaItem[], byline: string): { section: string; ld: unknown[] } {
+function withQa(page: string, qa: QaItem[], byline: string, updated?: string): { section: string; ld: unknown[] } {
   const ld = faqPageLd(qa);
-  return { section: qaSectionHtml(qa, hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : undefined, byline), ld: ld ? [ld] : [] };
+  return { section: qaSectionHtml(qa, hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : updated, byline), ld: ld ? [ld] : [] };
 }
 
 /** A deals day's questions, from the build's deals and Small Business Saturday rows (scripts/generated/seo-data.js). */
@@ -1259,8 +1262,9 @@ function seoFor(url: URL): SeoOutcome {
       const g = d.guides[slug];
       const today = louisianaDay(new Date());
       const crumbs = breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: g.name, path: `/gift-guides/${slug}` }]);
-      const qa = withQa(slug, g.qa?.length ? catalogGuideQa(slug, g.qa, today) : [], slug === "25-days-sponsors" ? QA_BYLINE.other : QA_BYLINE.gifts);
-      return { kind: "page", body: withQaSection(giftGuideBody(slug, g), qa.section), jsonLd: [...(g.picks.length ? [crumbs, giftGuideItemListLd(slug, g, today)] : [crumbs]), ...qa.ld] };
+      // A themed kids guide (no guideUpdated row) says its newest price check as its Updated day (owner 11-25, search).
+      const qa = withQa(slug, g.qa?.length ? catalogGuideQa(slug, g.qa, today) : [], slug === "25-days-sponsors" ? QA_BYLINE.other : QA_BYLINE.gifts, isThemeGuide(slug) ? newestPriceDay(g.qa) : undefined);
+      return { kind: "page", body: withQaSection(giftGuideBody(slug, g, today), qa.section), jsonLd: [...(g.picks.length ? [crumbs, giftGuideItemListLd(slug, g, today)] : [crumbs]), ...qa.ld] };
     }
     // Search pages (owner 11-23, "add a lot of different searches"; src/content/guideSearchPages.mjs): a filtered view of
     // Her, Him or Kids with its own body, BreadcrumbList and ItemList (its picks from the build, by the page's matcher).

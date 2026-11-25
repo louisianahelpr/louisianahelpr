@@ -18,6 +18,7 @@ import { pickPriceShown, priceSectionId, shownDollars } from "./pickPriceShown.m
 import { TWENTY_FIVE_DAYS } from "./seoBodies.mjs";
 import { DEAL_EVENTS, RETITLE_AFTER, dealEnds, dealsIn, isSteal, liveDeals } from "../content/giftGuideDeals.mjs";
 import { filterEvents, filterLights } from "../content/holidayHub/holidayHub.mjs";
+import { THEME_GUIDE_NAMES_1124 } from "../content/giftGuideLive.mjs";
 
 /** The pages that carry a Q&A (each one's key in guideUpdated.json). */
 export const QA_PAGES = ["her", "him", "kids", "25-days-sponsors", "black-friday", "small-business-saturday", "cyber-monday", "holidays"];
@@ -107,6 +108,11 @@ export function toQaPick(p) {
   };
 }
 
+/** toQaPick plus its store's shown name ("Walmart"), which the themed guides' "Where can I buy" counts (owner 11-25). */
+export function toStoreQaPick(p, store) {
+  return { ...toQaPick(p), ...(typeof store === "string" && store ? { store } : {}) };
+}
+
 /** "social" for a Facebook or Instagram link, "ours" for a louisianahelpr.com link, "" for a shop or website. */
 export function linkKind(href) {
   if (typeof href !== "string") return "";
@@ -122,9 +128,57 @@ export function linkKind(href) {
   return "";
 }
 
+/** Whether a guide page carries a Q&A: the QA_PAGES, and every themed kids guide (owner 11-25, search). */
+export const hasGuideQa = (slug) => QA_PAGES.includes(slug) || Object.prototype.hasOwnProperty.call(THEME_GUIDE_NAMES_1124, slug);
+
 /**
- * Her, Him, Kids and the 25 Days sponsors page. `picks`: every pick in the guide's order, each
- * { name, price?, priceAt?, priceFrom?, la?, brand? } (la: the Louisiana-made or Shop Louisiana badge).
+ * A page's "Updated" day for its Q&A when it has no row in guideUpdated.mjs (the themed kids guides): the newest price
+ * check among its picks (as the sitemap's lastmod reads it), or undefined with none.
+ */
+export function newestPriceDay(picks) {
+  const days = (Array.isArray(picks) ? picks : []).map((p) => p?.priceAt).filter((d) => ymd(d)).sort();
+  return days.length ? days[days.length - 1] : undefined;
+}
+
+/**
+ * A themed kids guide (owner 2026-11-25: "seen in Google searches and with other ai searches"): its price bands as
+ * the page sorts them, its gifts over $50, the stores its gifts link to and how current the prices are. `theme` is its
+ * name ("Monster Jam"); `rows` every pick in the page's order (toQaPick, with its store's shown name).
+ */
+function themeGuideQa(theme, rows, priced, today) {
+  const qa = [];
+  const bandOf = (id) => priced.filter((p) => priceSectionId(p.price) === id);
+  const few = (xs) => `${xs.length > NAMED ? "A few: " : ""}${list(xs.slice(0, NAMED).map((p) => named(p, today)))}.`;
+  const small = bandOf("stocking-stuffers");
+  if (small.length) qa.push({ q: `What are good ${theme} stocking stuffers under $10?`, a: `This guide has ${plural(small.length, "stocking stuffer", "stocking stuffers")} under $10. ${few(small)}` });
+  const upTo25 = bandOf("under-25");
+  if (upTo25.length) qa.push({ q: `What are good ${theme} gifts under $25?`, a: `${small.length ? "Besides the stocking stuffers under $10, this" : "This"} guide has ${plural(upTo25.length, "gift", "gifts")} from $10 to $25. ${few(upTo25)}` });
+  const upTo50 = bandOf("25-to-50");
+  if (upTo50.length) qa.push({ q: `What are good ${theme} gifts under $50?`, a: `This guide has ${plural(upTo50.length, "gift", "gifts")} from $25 to $50. ${few(upTo50)}` });
+  // The big gifts, the priciest first (the page lists low to high, so these sit at its end).
+  const big = priced.filter((p) => shownDollars(p.price) >= 50).sort((a, b) => b.price - a.price);
+  if (big.length) qa.push({ q: `What ${theme} gifts cost more than $50?`, a: `This guide has ${plural(big.length, "gift", "gifts")} at $50 or more. ${big.length > NAMED ? "The priciest: " : ""}${list(big.slice(0, NAMED).map((p) => named(p, today)))}.` });
+  // Where each gift's link goes, by the store its card names, the most gifts first.
+  const stores = [...rows.reduce((m, p) => (p.store && !/^a /i.test(p.store) ? m.set(p.store, (m.get(p.store) ?? 0) + 1) : m), new Map())].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  if (stores.length) {
+    const more = stores.length - 4;
+    const named4 = stores.slice(0, 4).map(([s, c]) => `${s} (${c})`);
+    qa.push({
+      q: `Where can I buy these ${theme} gifts?`,
+      a: `Each gift links straight to the store that sells it. The ${plural(rows.length, "gift", "gifts")} here link to ${more > 0 ? `${named4.join(", ")} and ${plural(more, "more store", "more stores")}` : list(named4)}.`,
+    });
+  }
+  if (priced.length) {
+    const oldest = priced.map((p) => p.priceAt).sort()[0];
+    qa.push({ q: "How current are the prices?", a: `Prices are as of ${shortDate(oldest)}, rounded to the dollar. Prices change, so the store's page has today's price.` });
+  }
+  return qa;
+}
+
+/**
+ * Her, Him, Kids, the 25 Days sponsors page and the themed kids guides. `picks`: every pick in the guide's order, each
+ * { name, price?, priceAt?, priceFrom?, la?, brand?, store? } (la: the Louisiana-made or Shop Louisiana badge; store:
+ * its store's shown name, which the themed guides' "Where can I buy" counts).
  */
 export function catalogGuideQa(slug, picks, today) {
   const rows = (Array.isArray(picks) ? picks : []).filter((p) => p && typeof p.name === "string" && p.name);
@@ -157,6 +211,7 @@ export function catalogGuideQa(slug, picks, today) {
     });
     return qa;
   }
+  if (Object.prototype.hasOwnProperty.call(THEME_GUIDE_NAMES_1124, slug)) return themeGuideQa(THEME_GUIDE_NAMES_1124[slug], rows, priced, today);
   const who = WHO[slug];
   if (!who) return [];
   // The page's own price sections (priceSectionId, shared with GiftGuideView.tsx), so each count equals its section head.

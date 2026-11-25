@@ -12,3 +12,5 @@ export function classify(...args: unknown[]): unknown;
 export const NOINDEX: Record<string, string>;
 export const WEIGHTS: Record<string, { changefreq: string; priority: string }>;
 export function allGiftGuidePaths(): string[];
+/** Each gift guide path's <lastmod>: its newest price check or newer Q&A Updated day. */
+export function lastmodDates(paths: string[], readChunk?: (slug: string) => string, updated?: Record<string, { day: string }>): Record<string, string>;

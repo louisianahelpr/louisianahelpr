@@ -8,7 +8,10 @@ import type { GuideQaProps } from "./GuideQa";
  * /gift-guides/:slug first load (critical-path budget). Until it is in, or if it fails (reported), nothing shows: the
  * pre-JS body already carries the same questions for readers without JavaScript (api/share.ts).
  */
-/** The catalog guides with a Q&A (guideQa.mjs QA_PAGES' catalog ones; kept here so the guide chunk never imports it). */
+/**
+ * The catalog guides with a Q&A (guideQa.mjs QA_PAGES' catalog ones; kept here so the guide chunk never imports it).
+ * The themed kids guides have one too (guideQa.mjs hasGuideQa; GiftGuideView asks isThemeGuide).
+ */
 export const QA_CATALOG_GUIDES: readonly string[] = ["her", "him", "kids", "25-days-sponsors"];
 
 const loadQa =() => loadModule(() => import("./GuideQa"));

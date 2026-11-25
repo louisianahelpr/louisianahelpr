@@ -269,6 +269,22 @@
    "age": "toddler"
   },
   {
+   "id": "CRK15",
+   "name": "Lightning McQueen Toddler Boys' Boxer Briefs, 3-Pack",
+   "brand": "Pixar Cars",
+   "line": "A little Pixar Cars gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110934102",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lightning-mcqueen-toddler-boys-boxer-briefs-3-pack-kohls-2d2833.webp",
+   "store": "store-kohls",
+   "price": 9.8,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "cars-stocking-stuffers-under-10",
+   "was": 14,
+   "commission": 12,
+   "age": "toddler"
+  },
+  {
    "id": "CRK17",
    "name": "Lightning McQueen Toddler Boys' Jumping Beans Tee",
    "brand": "Pixar Cars",
@@ -1704,6 +1720,21 @@
    "age": "toddler"
   },
   {
+   "id": "CRK10",
+   "name": "Cars Kids' Fleece Sweatshirt and Pants Set",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110934188",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-kids-fleece-sweatshirt-and-pants-set-kohls-436c28.webp",
+   "store": "store-kohls",
+   "price": 27.3,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "commission": 12,
+   "age": "kids"
+  },
+  {
    "id": "CRK12",
    "name": "Cars Boys' Fuzzy Slipper Socks with 3D Wheels",
    "brand": "Pixar Cars",
@@ -2216,13 +2247,6 @@
  ],
  "skipped": [
   {
-   "id": "CRK15",
-   "name": "Lightning McQueen Toddler Boys' Boxer Briefs, 3-Pack",
-   "why": [
-    "no link"
-   ]
-  },
-  {
    "id": "CRJ11",
    "name": "Cars Toddler Boys' 4-Piece Pajama Set",
    "why": [
@@ -2234,13 +2258,6 @@
    "name": "Cars Toddler Boys' Game Day 2-Piece Pajama Set",
    "why": [
     "pajama cap: at most 2 pajamas per price section (owner 11-20); u25 already has 2"
-   ]
-  },
-  {
-   "id": "CRK10",
-   "name": "Cars Kids' Fleece Sweatshirt and Pants Set",
-   "why": [
-    "no link"
    ]
   },
   {

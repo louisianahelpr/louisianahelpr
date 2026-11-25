@@ -93,7 +93,7 @@ describe("heading order never skips a level (holiday audit 1121: h1 then h3 on t
     await loadAllGuidePicks();
     for (const path of ["/gift-guides/her", "/gift-guides/wife", "/gift-guides/25-days-sponsors", "/gift-guides/black-friday"]) {
       const { container } = renderAt(path);
-      if (path.endsWith("black-friday")) await waitFor(() => expect(document.querySelector("[data-gift-deal]")).not.toBeNull());
+      if (path.endsWith("black-friday")) await waitFor(() => expect(document.querySelector("[data-gift-deal]")).not.toBeNull(), { timeout: 10_000 }); // the deals chunk is lazy; 1 s timed out on loaded CI shards (#4985, #4986)
       const levels = [...container.querySelectorAll("h1, h2, h3, h4, h5, h6")].map((h) => Number(h.tagName[1]));
       expect(levels.length, path).toBeGreaterThan(1);
       expect(levels[0], path).toBe(1);

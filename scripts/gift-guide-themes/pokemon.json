@@ -2,7 +2,7 @@
  "slug": "pokemon",
  "name": "Pokémon",
  "sectionPrefix": "pokemon",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/pokemon/items.json (Tue Nov 24 3:46 PM, 140 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/pokemon/items.json (Tue Nov 24 3:46 PM, 141 items)",
  "rows": [
   {
    "id": "PK01",
@@ -792,6 +792,20 @@
    "commission": 12,
    "age": "kids",
    "ownerAdd": true
+  },
+  {
+   "id": "PKL01",
+   "name": "LEGO Pokémon SMART Play: Mewtwo's Lab Break",
+   "brand": "Pokémon",
+   "line": "LEGO and building for a Pokémon fan.",
+   "href": "https://walmrt.us/49hqXrW",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-pok-mon-smart-play-mewtwos-lab-break-walmart-d6c415.webp",
+   "store": "store-walmart",
+   "price": 69.96,
+   "priceAt": "2026-11-24",
+   "section": "LEGO and building",
+   "sectionId": "pokemon-lego-and-building",
+   "commission": 6
   },
   {
    "id": "PK30",

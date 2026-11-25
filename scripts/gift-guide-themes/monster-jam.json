@@ -2,7 +2,7 @@
  "slug": "monster-jam",
  "name": "Monster Jam",
  "sectionPrefix": "mj",
- "builtFrom": "/Users/lexilombas/.lh-shots/mj-guide-1124/items.json (Tue Nov 24 12:43 PM, 128 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/mj-guide-1124/items.json (Tue Nov 24 12:43 PM, 129 items)",
  "rows": [
   {
    "id": "MJ01",
@@ -181,6 +181,22 @@
    "was": 11.49,
    "commission": 10.5,
    "age": "3+"
+  },
+  {
+   "id": "MJO43",
+   "name": "Monster Jam Shaped Bandages, 14 Count",
+   "brand": "Monster Jam",
+   "line": "A little Monster Jam gift for the stocking.",
+   "href": "https://walmrt.us/4j9z52m",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-shaped-bandages-14-count-walmart-965a3c.webp",
+   "store": "store-walmart",
+   "price": 3.59,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "mj-stocking-stuffers-under-10",
+   "was": 3.99,
+   "age": "all",
+   "ownerAdd": true
   },
   {
    "id": "MJ10",

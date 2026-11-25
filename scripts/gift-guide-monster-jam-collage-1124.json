@@ -17,6 +17,7 @@
   {
    "file": "monster-jam-guide-2.png",
    "ids": [
+    "MJO43",
     "MJ10",
     "MJ11",
     "MJ12",
@@ -24,13 +25,13 @@
     "MJ15",
     "MJ16",
     "MJO04",
-    "MJO10",
-    "MJO16"
+    "MJO10"
    ]
   },
   {
    "file": "monster-jam-guide-3.png",
    "ids": [
+    "MJO16",
     "MJO17",
     "MJO18",
     "MJO19",
@@ -38,13 +39,13 @@
     "MJO21",
     "MJO22",
     "MJO23",
-    "MJO25",
-    "MJO26"
+    "MJO25"
    ]
   },
   {
    "file": "monster-jam-guide-4.png",
    "ids": [
+    "MJO26",
     "MJO27",
     "MJO32",
     "MJO33",
@@ -52,13 +53,13 @@
     "MJO35",
     "MJ20",
     "MJ21",
-    "MJ22",
-    "MJ23"
+    "MJ22"
    ]
   },
   {
    "file": "monster-jam-guide-5.png",
    "ids": [
+    "MJ23",
     "MJ120",
     "MJ121",
     "MJ122",
@@ -66,13 +67,13 @@
     "MJ124",
     "MJ125",
     "MJ30",
-    "MJ31",
-    "MJ32"
+    "MJ31"
    ]
   },
   {
    "file": "monster-jam-guide-6.png",
    "ids": [
+    "MJ32",
     "MJ33",
     "MJ34",
     "MJO15",
@@ -80,13 +81,13 @@
     "MJ40",
     "MJ41",
     "MJ14",
-    "MJ50",
-    "MJ51"
+    "MJ50"
    ]
   },
   {
    "file": "monster-jam-guide-7.png",
    "ids": [
+    "MJ51",
     "MJ52",
     "MJ61",
     "MJ63",
@@ -94,13 +95,13 @@
     "MJ65",
     "MJ68",
     "MJ69",
-    "MJO01",
-    "MJO02"
+    "MJO01"
    ]
   },
   {
    "file": "monster-jam-guide-8.png",
    "ids": [
+    "MJO02",
     "MJO03",
     "MJO05",
     "MJO06",
@@ -108,13 +109,13 @@
     "MJO08",
     "MJO09",
     "MJO11",
-    "MJO12",
-    "MJO13"
+    "MJO12"
    ]
   },
   {
    "file": "monster-jam-guide-9.png",
    "ids": [
+    "MJO13",
     "MJO14",
     "MJO28",
     "MJO29",
@@ -122,13 +123,13 @@
     "MJO31",
     "MJO36",
     "MJO37",
-    "MJO38",
-    "MJO39"
+    "MJO38"
    ]
   },
   {
    "file": "monster-jam-guide-10.png",
    "ids": [
+    "MJO39",
     "MJO40",
     "MJO41",
     "MJ07",
@@ -136,13 +137,13 @@
     "MJ71",
     "MJ80",
     "MJ82",
-    "MJ83",
-    "MJ85"
+    "MJ83"
    ]
   },
   {
    "file": "monster-jam-guide-11.png",
    "ids": [
+    "MJ85",
     "MJ86",
     "MJ87",
     "MJ90",
@@ -150,13 +151,13 @@
     "MJ92",
     "MJ93",
     "MJ94",
-    "MJ126",
-    "MJ95"
+    "MJ126"
    ]
   },
   {
    "file": "monster-jam-guide-12.png",
    "ids": [
+    "MJ95",
     "MJ96",
     "MJ97"
    ]

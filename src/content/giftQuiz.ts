@@ -179,6 +179,8 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   "advent-calendar": ["stocking", "pretend"], "mini-fridge": ["cozy"], tumbler: ["active"], slippers: ["cozy"], "game-controller": ["games"],
   // A girls' packable jacket (Macy's steal S15) keeps a kid cozy; Crocs kids' clogs go everywhere kids play.
   jacket: ["cozy"], shoes: ["active"],
+  // The owner's screenshot picks round 3 (11-25): character fleece robes and toddler beanie-and-gloves sets keep a kid cozy.
+  robe: ["cozy"], hat: ["cozy"],
 };
 /**
  * Name words that add an interest the gift type alone misses (each from what the product is, by its name). Tag pass by
@@ -290,6 +292,10 @@ const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   // The Floss & Rock memory match is 3+ (a game is otherwise 6+); the Burt's Bees Baby pajamas come in 12M to 12Y.
   [/construction memory match/i, ["3-5", "6-8"]],
   [/burt's bees baby nostalgic christmas/i, ["0-2", "3-5", "6-8", "9-12"]],
+  // Picks round 3 (11-25), by the size range in each name: toddler sizes 12M-5T / 2T-5T and the toddler beanie-and-gloves
+  // sets are 0-2 and 3-5; kids' pajama sizes 4-16 run from little kids to teens.
+  [/\((?:12M|2T)-5T\)|toddler girls beanie and gloves/i, ["0-2", "3-5"]],
+  [/\(4-16\)/, ["3-5", "6-8", "9-12", "teen"]],
 ];
 export function quizAges(pick: Pick<CatalogPick, "name" | "type">): QuizAge[] {
   for (const [re, ages] of AGE_BY_NAME) if (re.test(pick.name)) return ages;

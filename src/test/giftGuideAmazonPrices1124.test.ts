@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { AMAZON_PRICES_1124, AMAZON_PRICES_AT_1124, amazonPrice1124 } from "../../scripts/giftGuideAmazonPrices1124.mjs";
 import { kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
+import { KIDS_THEME_MOVES_1124 } from "../../scripts/giftGuideKidsThemeMoves1124.mjs";
 
 const READ: [string, number, string][] = [
   ["B0CBT2N7N1", 14.28, "UNO Show 'em No Mercy Card Game in Tin"],
@@ -45,6 +46,8 @@ describe("Kids Amazon prices re-read 11-24", () => {
   it("each re-read pick shows that price, dated the read day, on the chunk and the builder", () => {
     for (const list of [chunk, kids1121Picks() as Pick[]]) {
       for (const [asin, price, name] of READ) {
+        // A pick that moved to its themed guide (scripts/giftGuideKidsThemeMoves1124.mjs) is no longer on Kids.
+        if (KIDS_THEME_MOVES_1124.some(([href]) => href.includes(`/dp/${asin}`))) continue;
         const hits = list.filter((p) => p.href.includes(`/dp/${asin}`));
         expect(hits.length, name).toBe(1);
         expect(hits[0], name).toMatchObject({ name, price, priceAt: AMAZON_PRICES_AT_1124, store: "store-amazon" });

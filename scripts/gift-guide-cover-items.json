@@ -1787,5 +1787,40 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-chomp-and-clack-alligator-push-toy-walmart-19be29.webp"
    }
   ]
+ },
+ "lego": {
+  "section": "For kids",
+  "items": [
+   {
+    "name": "LEGO Bluey Brick-Built Bluey Family",
+    "key": "lego:lg44",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-bluey-brick-built-bluey-family-macys-039e26.webp"
+   },
+   {
+    "name": "LEGO Festive Gingerbread House",
+    "key": "lego:lg54",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-festive-gingerbread-house-kohls-3e0095.webp"
+   },
+   {
+    "name": "LEGO DC The Batman Batmobile",
+    "key": "lego:lg37",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-dc-the-batman-batmobile-walmart-c58e4d.webp"
+   },
+   {
+    "name": "LEGO Speed Champions McLaren F1 Race Car",
+    "key": "lego:lg35",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-speed-champions-mclaren-f1-race-car-kohls-741e15.webp"
+   },
+   {
+    "name": "LEGO Gabby's Dollhouse Brick-Built Cat Friends",
+    "key": "lego:lg39",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-gabbys-dollhouse-brick-built-cat-friends-walmart-4d63d7.webp"
+   },
+   {
+    "name": "LEGO Botanicals Pretty Pink Flower Bouquet",
+    "key": "lego:lg60",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-botanicals-pretty-pink-flower-bouquet-walmart-d6e9e7.webp"
+   }
+  ]
  }
 }

@@ -42,6 +42,13 @@ export const KIDS_THEME_MOVES_1124 = [
   ["https://walmrt.us/4AQxuWv", "KPop Demon Hunters Girls Slippers", "kpop-demon-hunters", "KP01"],
   // Not imported yet (research waits on Walmart links): applies when Minecraft is imported.
   ["https://go.shopmy.us/p-110125837", "LEGO Minecraft Woodland Mansion Fighting Ring", "minecraft", "MC20"],
+  // LEGO (owner 11-24 ~11:05 PM): her four Kids LEGO picks live on the LEGO page. Sunflowers moves from ShopMy Target
+  // to Walmart (same $8.99, 6%); Snowman Ornaments and Gingerbread House from Amazon 3% to ShopMy Target 4% (same price);
+  // Lava Land stays on Amazon (Walmart has it only from a marketplace seller).
+  ["https://go.shopmy.us/p-110125685", "LEGO Sunflowers", "lego", "LG07"],
+  ["https://www.amazon.com/dp/B0G2KJ8V5R?tag=louisianahelpr-20", "LEGO Snowman Ornaments", "lego", "LG12"],
+  ["https://www.amazon.com/dp/B0G2T2Q1RH?tag=louisianahelpr-20", "LEGO Gingerbread House", "lego", "LG54"],
+  ["https://www.amazon.com/dp/B0G2T1VN17?tag=louisianahelpr-20", "LEGO City Lava Land Roller Coaster Park 60501", "lego", "LG80"],
   // Owner 11-24 ~10:45 PM (via the lead): "the minecraft tooth brush in the kids guide can be moved to the minecraft
   // guide." The Minecraft research now holds it as her pick MC80 (Amazon, page only; read 10:47 PM, $5.42, in stock).
   ["https://www.amazon.com/dp/B0CFFZ389Y?tag=louisianahelpr-20", "Colgate Minecraft Kids Toothbrush", "minecraft", "MC80"],

@@ -78,7 +78,7 @@ const MANIFEST = JSON.parse(readFileSync("scripts/gift-guide-cover-items.json", 
 
 const renderAt = async (url: string) => {
   vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-11-24T18:00:00Z"));
+  vi.setSystemTime(new Date("2026-11-25T18:00:00Z")); // the newest price-read day (LEGO, 11-25)
   let out!: ReturnType<typeof render>;
   await act(async () => {
     out = render(

@@ -38,7 +38,7 @@ beforeAll(async () => {
 }, 120_000);
 
 const page = async (slug: string) => (await handler.fetch(new Request(`${ORIGIN}/api/share?_og=page&_id=gift-guides/${slug}`))).text();
-const attr = (doc: string, re: RegExp) => (re.exec(doc)?.[1] ?? "").replace(/&amp;/g, "&").replace(/&#39;/g, "'");
+const attr = (doc: string, re: RegExp) => (re.exec(doc)?.[1] ?? "").replace(/&#39;/g, "'").replace(/&amp;/g, "&");
 const titleOf = (doc: string) => attr(doc, /<title>([^<]*)<\/title>/);
 const descOf = (doc: string) => attr(doc, /<meta name="description" content="([^"]*)"/);
 const jsonLd = (doc: string) => [...doc.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]) as Record<string, unknown>);

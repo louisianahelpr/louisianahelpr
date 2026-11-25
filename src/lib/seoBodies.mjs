@@ -18,7 +18,8 @@ import { pickPriceShown, shownDollars } from "./pickPriceShown.mjs";
 import { DEALS_WORDS, STEAL_CATEGORIES, STEAL_KIND, dealName, dealShows } from "../content/giftGuideDeals.mjs";
 import { SMALL_BIZ_WORDS, smallBizSections } from "../content/giftGuideSmallBiz.mjs";
 import { GUIDE_CROSS_LINKS, GUIDE_SEARCH } from "../content/guideSearch.mjs";
-import { isLiveGuide } from "../content/giftGuideLive.mjs";
+import { THEME_GUIDE_NAMES_1124, isLiveGuide } from "../content/giftGuideLive.mjs";
+import { themeGuideSearch } from "../content/themeGuideSearch.mjs";
 import { SEARCH_GUIDE_NAMES, searchPageParent, searchPageSiblings, searchPagesOf } from "../content/guideSearchPages.mjs";
 
 export const SEO_SITE_ORIGIN = "https://www.louisianahelpr.com";
@@ -93,7 +94,21 @@ function crossLinks(slug) {
   return rows.length ? `<h2>Gift guides and deals</h2><ul>${rows.map(([s, n]) => `<li><a href="/gift-guides/${escapeHtml(s)}">${escapeHtml(n)}</a></li>`).join("")}</ul>` : "";
 }
 
-export function giftGuideBody(slug, guide) {
+/** SEO_DATA picks as a themed guide's search words read them (src/content/themeGuideSearch.mjs). */
+export function themeSearchPicks(picks) {
+  return (Array.isArray(picks) ? picks : []).map(([name, store, , extra]) => {
+    const x = extra && typeof extra === "object" ? extra : {};
+    return { name, store, ...(typeof x.price === "number" ? { price: x.price } : {}), ...(x.priceAt ? { priceAt: x.priceAt } : {}), ...(x.priceFrom ? { priceFrom: true } : {}) };
+  });
+}
+
+/** A themed kids guide's intro from its picks (owner 11-25, search), or null for any other guide. */
+function themeIntro(slug, picks, count, today) {
+  if (!Object.prototype.hasOwnProperty.call(THEME_GUIDE_NAMES_1124, slug) || !today) return null;
+  return themeGuideSearch(THEME_GUIDE_NAMES_1124[slug], themeSearchPicks(picks), count, today)?.intro ?? null;
+}
+
+export function giftGuideBody(slug, guide, today) {
   const crumbs = [HOME, GUIDES, { name: guide.name, path: `/gift-guides/${slug}` }];
   const picks = Array.isArray(guide.picks) ? guide.picks : [];
   const count = Math.max(Number(guide.count) || 0, picks.length);
@@ -101,14 +116,17 @@ export function giftGuideBody(slug, guide) {
   const countLine = count
     ? `${count} hand-picked holiday gift idea${count === 1 ? "" : "s"} from Louisiana Helpr, each with a link to the store that sells it. Prices change, so check the store for today's price.`
     : "Picks for this guide are coming soon. Browse every Louisiana Helpr gift guide in the meantime.";
-  const intro = searchIntro(slug) ?? "";
-  // A cross-link already says it: "More gift guides" keeps only the guides the cross-links leave out.
-  const linked = new Set(GUIDE_CROSS_LINKS.map(([s]) => s));
+  const intro = searchIntro(slug) ?? themeIntro(slug, picks, count, today) ?? "";
+  // Owner 11-25 (search): Kids links every themed kids guide by its theme's name ("Monster Jam gifts").
+  const themes = (guide.themes ?? []).map(([s, n]) => `<li><a href="/gift-guides/${escapeHtml(s)}">${escapeHtml(Object.prototype.hasOwnProperty.call(THEME_GUIDE_NAMES_1124, s) ? `${THEME_GUIDE_NAMES_1124[s]} gifts` : n)}</a></li>`).join("");
+  // A cross-link or a theme link already says it: "More gift guides" keeps only the guides those leave out.
+  const linked = new Set([...GUIDE_CROSS_LINKS.map(([s]) => s), ...(guide.themes ?? []).map(([s]) => s)]);
   const related = (guide.related ?? []).filter(([s]) => !linked.has(s)).map(([s, n]) => `<li><a href="/gift-guides/${escapeHtml(s)}">${escapeHtml(n)}</a></li>`).join("");
   return page(
     crumbs,
     `<h1>${escapeHtml(guide.name)}</h1>${intro ? `<p>${escapeHtml(intro)}</p>` : ""}<p>${escapeHtml(countLine)}</p>` +
       (items ? `<ol>${items}</ol>` : "") +
+      (themes ? `<h2>Gifts by theme</h2><ul>${themes}</ul>` : "") +
       crossLinks(slug) +
       searchLinks("Popular searches", searchPagesOf(slug)) +
       (related ? `<h2>More gift guides</h2><ul>${related}</ul>` : "") +

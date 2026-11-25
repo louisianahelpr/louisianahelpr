@@ -16,13 +16,13 @@
  * 5. public/llms.txt is current and two-way with the sitemap's gift guide, Holiday Hub and 25 Days URLs.
  * 6. Off the first load: the guide route's modules reach the Q&A code only through LazyGuideQa's import().
  *
- * @mutate api/share.ts | return { kind: "page", body: withQaSection(giftGuideBody(slug, g), qa.section), | return { kind: "page", body: giftGuideBody(slug, g),
- * @mutate api/share.ts | section: qaSectionHtml(qa, hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : undefined, byline), ld: ld ? [ld] : [] }; | section: qaSectionHtml(qa, hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : undefined, byline), ld: [] };
+ * @mutate api/share.ts | return { kind: "page", body: withQaSection(giftGuideBody(slug, g, today), qa.section), | return { kind: "page", body: giftGuideBody(slug, g, today),
+ * @mutate api/share.ts | section: qaSectionHtml(qa, hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : updated, byline), ld: ld ? [ld] : [] }; | section: qaSectionHtml(qa, hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : updated, byline), ld: [] };
  * @mutate src/lib/guideQa.mjs |   if (!section) return body; |   return body;
  * @mutate src/lib/guideQa.mjs |   return p.priceFrom ? `from $${d}` : `~$${d}`; |   return p.priceFrom ? `from $${p.price}` : `~$${p.price}`;
  * @mutate src/lib/guideQa.mjs |   const to50 = band("25-to-50"); |   const to50 = priced;
  * @mutate src/lib/guideQa.mjs |   other: "We put this list together.", |   other: "Put together by our founder, a Louisiana nurse.",
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | QA_CATALOG_GUIDES.includes(guide.slug) && ( | false && (
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | (QA_CATALOG_GUIDES.includes(guide.slug) \|\| isThemeGuide(guide.slug)) && ( | false && (
  * @mutate scripts/generate-llms-txt.mjs |     ...guides.map(line), |     ...guides.slice(1).map(line),
  * @mutate scripts/guide-updated.mjs |     "cyber-monday": day("cyber-monday"), |     "cyber-monday": day("black-friday"),
  */

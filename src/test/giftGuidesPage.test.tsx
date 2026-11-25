@@ -732,7 +732,8 @@ describe("gift guides: public but not yet indexed or linked (owner 2026-11-17, p
     // Each deals day (owner 2026-11-21) has its own head (src/test/giftGuideDeals1119.test.tsx).
     // My Wish List and a shared list (owner 2026-11-20) are noindex (src/test/giftWishList1120.test.tsx).
     expect(src("src/pages/info/GiftGuides.tsx")).toContain(': deals ? giftGuidePageMeta(deals.id) : sm && search ? sm.searchPageMeta(search) : guide ? guideHead(guide) : PUBLIC_PAGE_META["/gift-guides"],');
-    expect(src("src/pages/info/GiftGuides.tsx")).toContain("return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length);");
+    // Owner 11-25 (search): a themed kids guide also passes its picks' prices and stores (src/test/themeGuideSearch1125.test.ts).
+    expect(src("src/pages/info/GiftGuides.tsx")).toContain("return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length, themePicks);");
     const mom = giftGuidePageMeta("her");
     expect(mom.title).toBe("Gifts for her 2026: Christmas ideas under $25 & $50 — Helpr");
     expect(mom.canonical).toBe("https://www.louisianahelpr.com/gift-guides/her");

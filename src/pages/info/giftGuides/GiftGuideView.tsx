@@ -582,7 +582,7 @@ export function GiftGuideView({ guide, order = "top", hideCount = false, filter 
       <GiftGuideList key={guide.slug} guide={guide} order={order} failed={failed === guide.slug} onRetry={retry} filter={filter} />
       {picksReady(guide.slug) && <StoreDeals key={`deals ${guide.slug}`} guide={guide} />}
       {/* Owner pop-up 11-22 9:40 PM: common questions answered from this list, its Updated day and who picks (lazy). */}
-      {picksReady(guide.slug) && guide.picks.length > 0 && QA_CATALOG_GUIDES.includes(guide.slug) && (
+      {picksReady(guide.slug) && guide.picks.length > 0 && (QA_CATALOG_GUIDES.includes(guide.slug) || isThemeGuide(guide.slug)) && (
         <LazyGuideQa key={`qa ${guide.slug}`} kind="catalog" page={guide.slug} picks={guide.picks} />
       )}
       {guide.slug !== GIFT_WRAP_GUIDE && <GiftGuideHelpr />}

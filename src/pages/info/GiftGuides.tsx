@@ -5,7 +5,7 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { useEffect, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
-import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
+import { STORES, guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GuidesMenuHint, MENU_HINT_GUIDES } from "./giftGuides/GiftGuideMenuHint";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
@@ -54,11 +54,18 @@ if (coldSlug && (guideBySlug(coldSlug) || searchPageGuides(coldSlug))) {
   });
 }
 
-/** The guide's head: its picks' first three names and their count (unique links, as src/prerender/seoData.ts counts). */
+/**
+ * The guide's head: its picks' first three names and their count (unique links, as src/prerender/seoData.ts counts).
+ * A themed kids guide's head is built from all its picks (owner 11-25, search): their prices and stores, as the pre-JS
+ * head is (api/share.ts giftGuideHead, from the same catalog picks).
+ */
 function guideHead(guide: CatalogGuide) {
   const seen = new Set<string>();
   const picks = guide.picks.filter((p) => p.name && p.href && !seen.has(p.href) && seen.add(p.href));
-  return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length);
+  const themePicks = isThemeGuide(guide.slug)
+    ? picks.map((p) => ({ name: p.name, price: p.price, priceAt: p.priceAt, priceFrom: p.priceFrom, store: STORES[p.store]?.name ?? "" }))
+    : null;
+  return giftGuidePageMeta(guide.slug, guide.title, picks.slice(0, 3).map((p) => p.name), picks.length, themePicks);
 }
 
 /**

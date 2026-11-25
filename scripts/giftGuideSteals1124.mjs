@@ -311,6 +311,17 @@ export const HER_STEALS_1124_ROWS = [
   // Black Friday deal), Gray Fairisle (the page's default color, the one with a product-only photo), 17 left, ships.
   ["https://mavely.app.link/n2955rKik8b", 29.99, "https://sc-images.jcpenney.com/JCPenney/DP0527202607083329M", "Beautyrest Ultrasoft Plush Heated Throw, Gray Fairisle", "Beautyrest", "store-jcpenney", "throw-blanket", 10.5, "A plush heated throw for cold nights on the couch."],
 ];
+/**
+ * HER OWNER PICK 11-25 (owner via the lead, 2026-11-25 ~4:15 PM): the Magic Puzzle Company "The Festive Factory" 1000-piece
+ * puzzle, our first Later (Mavely) sale, through her own Later link (never opened or fetched by us). Target's own listing,
+ * TCIN 1011193016 (target.com/p/-/A-1011193016, sold by Target), read through Target's product API 2026-11-25 ~3:42 PM CT
+ * for the digital store and both Lafayette stores: regular $19.99 (the price the page shows; $9.99 only in the cart),
+ * ships out of stock, pickup in stock at one Lafayette store. Lead: show $19.99 (the sale's $44.98 was the order total).
+ * Later's Target rate for Toys is 2.8%. Photo: Target's lead photo, cut out (Apple Vision).
+ */
+export const HER_OWNER_1125_ROWS = [
+  ["https://mavely.app.link/Etc8x0jLk8b", 19.99, "https://target.scene7.com/is/image/Target/GUEST_111f8fbc-5d93-4ed4-85e5-34eb057e8c00", "Magic Puzzle Company The Festive Factory 1000-Piece Puzzle", "Magic Puzzle Company", "store-target", "puzzle", 2.8, "A Santa's-workshop jigsaw packed with tiny details to find."],
+];
 /** For Him. */
 export const HIM_STEALS_1124_ROWS = [
   // S1 Macy's exclusive (reg. $50, 80% off), read on macys.com 2:11 AM, Add to Bag active.
@@ -337,6 +348,7 @@ export const HIM_STEALS_1124_ROWS = [
 
 /** Store photos for the steals, cut out (Apple Vision) into public/gift-guides/cutouts: photo URL -> file. */
 export const STEALS_CUTOUTS_1124 = [
+  ["https://target.scene7.com/is/image/Target/GUEST_111f8fbc-5d93-4ed4-85e5-34eb057e8c00", "target-magic-puzzle-festive-factory-1000-111f8f.webp"],
   ["https://mktpl-images.jcpenney.com/SOURCE/833aadb99d5b4febb801a50dc07b9f62", "costway-6v-kids-electric-quad-atv-ride-on-jcpenney-aa68f2.webp"],
   ["https://mktpl-images.jcpenney.com/SOURCE/48cf8aa374884218b899e9f1277a24d4", "costway-kids-pedal-go-kart-jcpenney-f21ed3.webp"],
   ["https://sc-images.jcpenney.com/JCPenney/DP0622202607143941M", "learning-resources-a-to-z-mini-foods-jcpenney-7f4c4a.webp"],

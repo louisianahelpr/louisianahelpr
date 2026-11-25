@@ -21,7 +21,7 @@
  *   - Sol de Janeiro Cheirosa Sol & Go mist set (Her; Amazon 10%): not on soldejaneiro.com or Ulta.
  */
 
-import { HER_STEALS_1124_ROWS, HIM_STEALS_1124_ROWS, KIDS_STEALS_1124_ROWS, STEALS_CUTOUTS_1124 } from "./giftGuideSteals1124.mjs";
+import { HER_OWNER_1125_ROWS, HER_STEALS_1124_ROWS, HIM_STEALS_1124_ROWS, KIDS_STEALS_1124_ROWS, STEALS_CUTOUTS_1124 } from "./giftGuideSteals1124.mjs";
 
 /** The Louisiana day these prices were read on the stores' own pages. */
 export const OWNER_1124_PRICE_AT = "2026-11-24";
@@ -190,8 +190,8 @@ const macys = ([pin, price, image, name, brand, store, type, commission, line]) 
 /** A steal row (scripts/giftGuideSteals1124.mjs) carries its whole link, since the steals go through ShopMy and Walmart. */
 const steal = ([href, price, image, name, brand, store, type, commission, line]) =>
   ({ name, brand, line, href, image, store, sortPrice: price, price, priceAt: OWNER_1124_PRICE_AT, commission, type });
-/** Her Macy's adds, then the steals she ticked for the guide. */
-export const HER_ADDS_1124 = [...HER_MACYS_1124_ROWS.map(macys), ...HER_STEALS_1124_ROWS.map(steal)];
+/** Her Macy's adds, then the steals she ticked for the guide, then her 11-25 owner pick (priced 11-25). */
+export const HER_ADDS_1124 = [...HER_MACYS_1124_ROWS.map(macys), ...HER_STEALS_1124_ROWS.map(steal), ...HER_OWNER_1125_ROWS.map((r) => ({ ...steal(r), priceAt: "2026-11-25" }))];
 /** The steals she ticked for Him (him1121Picks's last rows). */
 export const HIM_ADDS_1124 = HIM_STEALS_1124_ROWS.map(steal);
 export const KIDS_ADDS_1124 = [...KIDS_MACYS_1124_ROWS.map(macys), ...KIDS_STEALS_1124_ROWS.map(steal)];

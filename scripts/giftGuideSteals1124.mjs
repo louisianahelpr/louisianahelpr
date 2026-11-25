@@ -142,7 +142,7 @@ export const KIDS_STEALS_1124_ROWS = [
   // non-Bluey item print Paw Patrol: walmart.com/ip/5395472280 read 11-25 ~12:25 AM, $4.5, was $9.98, sold by Walmart.com.
   ["https://walmrt.us/3Vfu4xm", 4.5, "https://i5.walmartimages.com/asr/ef7d50b4-9a5c-4f2b-807c-579889bc4cdc.bb33e009f98fc8f410ea8a125eb931fb.jpeg", "PAW Patrol Toddler Pajama Set (12M-5T)", "PAW Patrol", "store-walmart", "pajamas", 15, "PAW Patrol pajamas at a Black Friday price."],
   // non-Bluey item print Ms. Rachel Platinum Silver Heather: walmart.com/ip/18523809793 read 11-25 ~12:25 AM, $3.38, sold by Walmart.com.
-  ["https://walmrt.us/4ANUqp7", 3.38, "https://i5.walmartimages.com/asr/f403338a-c23f-474d-b079-4d6af1886e1e.0ae877f0943aacdd60b5e3bf80e2a855.jpeg", "Ms. Rachel Baby Girls Tee and Shorts Set (0-9M)", "Ms. Rachel", "store-walmart", "baby-outfit", 15, "A sweet Ms. Rachel tee and shorts set for babies."],
+  ["https://walmrt.us/4ANUqp7", 3.38, "https://i5.walmartimages.com/asr/f403338a-c23f-474d-b079-4d6af1886e1e.0ae877f0943aacdd60b5e3bf80e2a855.jpeg", "Ms. Rachel Baby Girls Tee and Shorts Set (0-9M)", "Ms. Rachel", "store-walmart", "baby-clothes", 15, "A sweet Ms. Rachel tee and shorts set for babies."],
   // non-Bluey item: walmart.com/ip/1755280341 read 11-25 ~12:25 AM, $11.04, was $12.99, sold by Walmart.com.
   ["https://walmrt.us/4ku91Bo", 11.04, "https://i5.walmartimages.com/asr/f1e5ed5c-9c8c-4039-9601-53eb93bc24d7.a3f4a70fcc79512f97fe3036c051d341.jpeg", "Disney Eeyore Mini Bean Bag Plush", "Disney", "store-walmart", "plush", 6, "A soft little Eeyore to hug."],
   // Owner ~3:10 AM (kohls.com screenshot, "Add this."): Kohl's $44.99 sale (reg $59.99, not eligible for coupons), ages 3+.

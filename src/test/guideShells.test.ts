@@ -51,7 +51,11 @@ beforeAll(async () => {
   paths = mod.GUIDE_SHELL_PATHS;
   rendered = await mod.renderGuidePages();
   // A stand-in sheet: the real one is the build's (scripts/prerender-static-pages.mjs reads dist/).
-  ({ data, counts } = guideShellData(rendered, ".gg{color:red}"));
+  // And stand-in built names for the page's image imports (the build lists dist/assets).
+  const all = Object.values(rendered).map((r) => r.phone + r.desktop).join("");
+  const names = [...new Set([...all.matchAll(/\/src\/assets\/([\w.-]+?)\.(webp|png|jpe?g|svg|avif|gif)\b/g)].map((m) => `${m[1]}-AbCd1234.${m[2]}`))];
+  expect(names.length).toBeGreaterThan(0);
+  ({ data, counts } = guideShellData(rendered, ".gg{color:red}", names));
 }, 120_000);
 
 describe("every live guide page has its first screen in the HTML", () => {
@@ -91,7 +95,9 @@ describe("every live guide page has its first screen in the HTML", () => {
       const bare = block.replace(/^<div[^>]*><style>[^<]*<\/style>/, "");
       expect(bare, p).not.toMatch(/<style|<script|<footer/);
       // No stand-in where the page draws a lazy part once it is in (the deals list, the theme row), and no source path.
-      expect(block, p).not.toMatch(/data-gift-deals-loading|data-gift-theme-row-wait|\/src\/assets\//);
+      // (Small Business Saturday's shop grid is read live from the database, so it keeps its loading line.)
+      const standIn = p.endsWith("/small-business-saturday") ? /data-gift-theme-row-wait|\/src\/assets\/[^"]*/ : /data-gift-deals-loading|data-gift-theme-row-wait|\/src\/assets\/[^"]*/;
+      expect(standIn.exec(bare)?.[0] ?? null, p).toBeNull();
       // A member's drawing: the guest site bar and spacer are marked, the guide's container and its parents are not.
       for (const v of doc.querySelectorAll(`#${GUIDE_SHELL_ID} > [data-lh-guide-v]`)) {
         const box = v.querySelector("[data-public-container]");
@@ -238,7 +244,7 @@ describe("index.html's guide script (before the first paint)", () => {
   };
   it("is in the page and runs before the body", () => {
     expect(at).toBeGreaterThan(0);
-    expect(at).toBeLessThan(html.indexOf("<body"));
+    expect(at).toBeLessThan(html.indexOf("</head>"));
   });
   it("marks a stored session and the closed tips on a guide path only", () => {
     const d = run("/gift-guides/her", { "sb-x-auth-token": "{}", "lh-gg-hint-menu": "1", "lh-gg-hint-heart": "0" });

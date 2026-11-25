@@ -1055,21 +1055,6 @@
    "age": "3+"
   },
   {
-   "id": "HWT07",
-   "name": "Hot Wheels Formula 1 10-Pack, 1:64 (2025 teams)",
-   "brand": "Hot Wheels",
-   "line": "Cars and RC for a Hot Wheels fan.",
-   "href": "https://go.shopmy.us/p-110718763",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-formula-1-10-pack-1-64-2025-teams-target-9c3fbe.webp",
-   "store": "store-target",
-   "price": 14.99,
-   "priceAt": "2026-11-24",
-   "section": "Cars and RC",
-   "sectionId": "hot-wheels-cars-and-rc",
-   "commission": 4,
-   "age": "3+"
-  },
-  {
    "id": "HWT12",
    "name": "Hot Wheels RC Dodge Viper ACR, 1:64",
    "brand": "Hot Wheels",
@@ -1330,5 +1315,13 @@
    "ownerAdd": true
   }
  ],
- "skipped": []
+ "skipped": [
+  {
+   "id": "HWT07",
+   "name": "Hot Wheels Formula 1 10-Pack, 1:64 (2025 teams)",
+   "why": [
+    "model-year rule: no shown name carries a model year (\"2025 teams\"); owner 11-19 (lander3 11-25)"
+   ]
+  }
+ ]
 }

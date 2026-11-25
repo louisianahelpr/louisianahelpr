@@ -177,7 +177,7 @@ export function EarningsWalletBones({ testId = "earnings-wallet-loading" }: { te
         <div>
           <div className="flex items-center gap-1.5 mb-1"><Skeleton className="w-3 h-3 rounded-sm" /></div>
           <WalletGhost className={amount} style={{ letterSpacing: "-0.02em" }}>$000.00</WalletGhost>
-          <WalletGhost className="font-sans mt-1 text-ds-12">on its way · reaches your bank Mon, Nov 9</WalletGhost>
+          <WalletGhost className="font-sans mt-1 text-ds-12">payout sent · reaches your bank Mon, Nov 9</WalletGhost>
         </div>
         <div className="border-l border-border/40 pl-4">
           <div className="flex items-center gap-1.5 mb-1"><Skeleton className="w-3 h-3 rounded-sm" /></div>

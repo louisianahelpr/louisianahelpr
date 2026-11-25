@@ -1,4 +1,4 @@
-import { Wallet, RefreshCw, Loader2, Banknote, Zap } from "lucide-react";
+import { Wallet, RefreshCw, Clock, Banknote, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCents } from "./earningsTabHelpers";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
@@ -33,7 +33,10 @@ export function availableLine(stripeData: StripePayoutData, instantTileShown: bo
   const onWay = stripeData.payouts
     .filter((p) => p.status === "pending" || p.status === "in_transit")
     .sort((a, b) => a.arrival_date - b.arrival_date)[0];
-  if (onWay) return `on its way · reaches your bank ${dayWords(new Date(onWay.arrival_date * 1000))}`;
+  // Deep audit 11-22 #34: this said "on its way", the same words as the Money tile above ("On its way", the owner's
+  // F266a name for approved pay not sent yet), for a different amount. A Stripe payout in transit is money already
+  // SENT, so it says so. Guard: src/test/moneyPageWordsAndIcons.test.tsx.
+  if (onWay) return `payout sent · reaches your bank ${dayWords(new Date(onWay.arrival_date * 1000))}`;
   return `goes to your bank on its own · usually by ${dayWords(twoBusinessDaysFrom(now))}`;
 }
 
@@ -131,7 +134,8 @@ export function WalletCard({
         </div>
         <div className="border-l border-border/40 pl-4">
           <div className="flex items-center gap-1.5 mb-1">
-            <Loader2 className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+            {/* Deep audit 11-22 #34: a still loading spinner here made "$66.00 clearing soon" look like it was loading. */}
+            <Clock className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.8)" }} aria-hidden="true" />
             {/* See the "Available" note above — sr-only for the same reason. */}
             <span className="sr-only">Pending</span>
           </div>

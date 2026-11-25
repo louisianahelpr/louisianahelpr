@@ -34,7 +34,7 @@ describe("WalletCard says when the money reaches the bank (A3-89)", () => {
   it("a payout Stripe has on its way: its exact arrival day", () => {
     const arrival = Date.UTC(2026, 10, 3, 18) / 1000; // Tue Nov 3 2026
     const line = availableLine({ ...base, payouts: [{ id: "po_1", amount: 4000, currency: "usd", status: "in_transit", arrival_date: arrival, method: "standard", created: arrival - 86400, description: null }] }, false);
-    expect(line).toBe("on its way · reaches your bank Tue, Nov 3");
+    expect(line).toBe("payout sent · reaches your bank Tue, Nov 3");
   });
 
   it("two business days skips the weekend: Friday -> Tuesday, Monday -> Wednesday", () => {

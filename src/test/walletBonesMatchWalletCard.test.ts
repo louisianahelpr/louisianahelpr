@@ -63,8 +63,8 @@ describe("You › Money: every loading frame is the height of what arrives (Q270
     const wallet = read("components/profile/earningsTab/WalletCard.tsx");
     expect(wallet).toMatch(/>\s*Wallet\s*</);
     expect(wallet).toMatch(/>\s*clearing soon\s*</);
-    expect(wallet).toContain("return `on its way · reaches your bank ${dayWords(");
-    expect(ghosts.some((g) => /^on its way · reaches your bank [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}$/.test(g))).toBe(true);
+    expect(wallet).toContain("return `payout sent · reaches your bank ${dayWords(");
+    expect(ghosts.some((g) => /^payout sent · reaches your bank [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}$/.test(g))).toBe(true);
   });
 
   it("the bones hold the refresh button's 44px (iconCompact is h-11) and no action row WalletCard does not draw", () => {

@@ -299,7 +299,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // 12 Under $25 (the $11-$16 prints, Eeyore) and the $59.99 PAW Patrol Lookout Tower.
       // Owner JCPenney "kids toys" picks 11-25 (23): the $8.99 puzzle under $10, 15 Under $25, 4 at $25-$50 (Bionic Hand,
       // drawing kit, Noah's Ark, planetarium), the easel and the $69.99 ATV at $50-$75, the $99.99 go kart $100 and up.
-      kids: { "Stocking stuffers under $10": 41, "Under $25": 92, "$25 to $50": 40, "$50 to $75": 14, "$75 to $100": 8, "$100 and up": 26 },
+      // Owner Kohl's mix 11-25 1:10 AM (5 on Kids): the $5.24 Matchbox 5-pack under $10; the $9.99 Toy Story throw (shown ~$10), the $20 PAW
+      // pajamas and $20.99 Bowser airship Under $25, the $24.99 Matchbox carrier (shown ~$25) $25 to $50.
+      kids: { "Stocking stuffers under $10": 42, "Under $25": 95, "$25 to $50": 41, "$50 to $75": 14, "$75 to $100": 8, "$100 and up": 26 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

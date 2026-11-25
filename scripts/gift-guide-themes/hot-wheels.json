@@ -2,7 +2,7 @@
  "slug": "hot-wheels",
  "name": "Hot Wheels",
  "sectionPrefix": "hot-wheels",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/hot-wheels/items.json (Tue Nov 24 3:45 PM, 70 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/hot-wheels/items.json (Tue Nov 24 3:45 PM, 86 items)",
  "rows": [
   {
    "id": "HW08",
@@ -1084,6 +1084,23 @@
    "was": 124.99,
    "commission": 12,
    "age": "4+"
+  },
+  {
+   "id": "HWO01",
+   "name": "Hot Wheels 3-Wheel Scooter with Light-Up Wheels",
+   "brand": "Hot Wheels",
+   "line": "Big gifts for a Hot Wheels fan.",
+   "href": "https://go.shopmy.us/p-110718815",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-3-wheel-scooter-with-light-up-wheels-kohls-7905aa.webp",
+   "store": "store-kohls",
+   "price": 14.99,
+   "priceAt": "2026-11-24",
+   "section": "Big gifts",
+   "sectionId": "hot-wheels-big-gifts",
+   "was": 29.99,
+   "commission": 12,
+   "age": "3+",
+   "ownerAdd": true
   }
  ],
  "skipped": []

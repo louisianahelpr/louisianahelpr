@@ -2,7 +2,7 @@
  "slug": "cars",
  "name": "Pixar Cars",
  "sectionPrefix": "cars",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/cars/items.json (Tue Nov 24 9:27 PM, 65 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/cars/items.json (Tue Nov 24 9:27 PM, 83 items)",
  "rows": [
   {
    "id": "CR01",
@@ -434,15 +434,17 @@
    "name": "Cars Lightning McQueen Celebration Raceway Playset",
    "brand": "Pixar Cars",
    "line": "Tracks and playsets for a Pixar Cars fan.",
-   "href": "https://walmrt.us/3VbFylw",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-lightning-mcqueen-celebration-raceway-playset-walmart-c73ccd.webp",
-   "store": "store-walmart",
-   "price": 39.97,
+   "href": "https://go.shopmy.us/p-110718732",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-lightning-mcqueen-celebration-raceway-playset-kohls-cb549e.webp",
+   "store": "store-kohls",
+   "price": 32.99,
    "priceAt": "2026-11-24",
    "section": "Tracks and playsets",
    "sectionId": "cars-tracks-and-playsets",
-   "commission": 6,
-   "age": "4+"
+   "was": 43.99,
+   "commission": 12,
+   "age": "4+",
+   "ownerAdd": true
   },
   {
    "id": "CRS021",
@@ -841,6 +843,23 @@
    "sectionId": "cars-clothes-and-shoes",
    "commission": 15,
    "age": "kids"
+  },
+  {
+   "id": "CRO04",
+   "name": "Jumping Beans Cars Lightning McQueen Boys Pullover Woobie (4-12)",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110718669",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/jumping-beans-cars-lightning-mcqueen-boys-pullover-woobie-4-kohls-e6c199.webp",
+   "store": "store-kohls",
+   "price": 14.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "was": 24.99,
+   "commission": 12,
+   "age": "4-12",
+   "ownerAdd": true
   },
   {
    "id": "CR60",

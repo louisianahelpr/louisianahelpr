@@ -173,4 +173,16 @@ describe("an item the owner sent herself goes on (owner-decides-guide-items)", (
     expect(breaksStyleRule("hot-wheels", neon, "https://walmrt.us/x")).toBe(true);
     expect(breaksStyleRule("hot-wheels", { ...neon, ownerAdd: true }, "https://walmrt.us/x")).toBe(false);
   });
+
+  it("every ownerAdd row in a theme's rows file is on its page with the owner's own link", () => {
+    let n = 0;
+    for (const slug of THEME_GUIDES_1124) {
+      const hrefs = new Set(chunkOf(slug).map((p) => p.href));
+      for (const r of themeRows1124(slug).filter((x) => x.ownerAdd)) {
+        n++;
+        expect(hrefs.has(r.href), `${slug} ${r.id}`).toBe(true);
+      }
+    }
+    expect(n).toBeGreaterThan(40);
+  });
 });

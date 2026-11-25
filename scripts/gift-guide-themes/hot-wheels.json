@@ -18,7 +18,8 @@
    "sectionId": "hot-wheels-stocking-stuffers-under-10",
    "was": 13.98,
    "commission": 15,
-   "age": "12m-5T"
+   "age": "12m-5T",
+   "ownerAdd": true
   },
   {
    "id": "HW01",
@@ -142,7 +143,8 @@
    "sectionId": "hot-wheels-tracks-and-playsets",
    "was": 15.99,
    "commission": 6,
-   "age": "4+"
+   "age": "4+",
+   "ownerAdd": true
   },
   {
    "id": "HW15",
@@ -158,7 +160,8 @@
    "sectionId": "hot-wheels-tracks-and-playsets",
    "was": 38.72,
    "commission": 6,
-   "age": "4+"
+   "age": "4+",
+   "ownerAdd": true
   },
   {
    "id": "HW13",
@@ -174,7 +177,8 @@
    "sectionId": "hot-wheels-tracks-and-playsets",
    "was": 32.49,
    "commission": 4,
-   "age": "4+"
+   "age": "4+",
+   "ownerAdd": true
   },
   {
    "id": "HW10",
@@ -222,7 +226,8 @@
    "sectionId": "hot-wheels-clothes",
    "was": 29.99,
    "commission": 15,
-   "age": "5-12"
+   "age": "5-12",
+   "ownerAdd": true
   },
   {
    "id": "HW71",
@@ -238,7 +243,8 @@
    "sectionId": "hot-wheels-clothes",
    "was": 19.99,
    "commission": 15,
-   "age": "5-12"
+   "age": "5-12",
+   "ownerAdd": true
   },
   {
    "id": "HW72",
@@ -254,7 +260,8 @@
    "sectionId": "hot-wheels-clothes",
    "was": 25.98,
    "commission": 15,
-   "age": "2-6"
+   "age": "2-6",
+   "ownerAdd": true
   },
   {
    "id": "HW73",
@@ -270,7 +277,8 @@
    "sectionId": "hot-wheels-clothes",
    "was": 25.98,
    "commission": 15,
-   "age": "2-6"
+   "age": "2-6",
+   "ownerAdd": true
   },
   {
    "id": "HW74",
@@ -285,7 +293,8 @@
    "section": "Clothes",
    "sectionId": "hot-wheels-clothes",
    "commission": 15,
-   "age": "12m-5T"
+   "age": "12m-5T",
+   "ownerAdd": true
   },
   {
    "id": "HW75",
@@ -301,7 +310,8 @@
    "sectionId": "hot-wheels-clothes",
    "was": 43.99,
    "commission": 15,
-   "age": "5-12"
+   "age": "5-12",
+   "ownerAdd": true
   },
   {
    "id": "HW76",
@@ -316,7 +326,8 @@
    "section": "Clothes",
    "sectionId": "hot-wheels-clothes",
    "commission": 15,
-   "age": "4-7"
+   "age": "4-7",
+   "ownerAdd": true
   },
   {
    "id": "HW20",
@@ -331,7 +342,25 @@
    "section": "Monster trucks",
    "sectionId": "hot-wheels-monster-trucks",
    "commission": 4,
-   "age": "4+"
+   "age": "4+",
+   "ownerAdd": true
+  },
+  {
+   "id": "HW21",
+   "name": "Hot Wheels Monster Trucks Neon Smashers 4 Trucks + 5 Cars",
+   "brand": "Hot Wheels",
+   "line": "Monster trucks for a Hot Wheels fan.",
+   "href": "https://walmrt.us/3WOdS6K",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-monster-trucks-neon-smashers-4-trucks-5-cars-walmart-4b4699.webp",
+   "store": "store-walmart",
+   "price": 15,
+   "priceAt": "2026-11-24",
+   "section": "Monster trucks",
+   "sectionId": "hot-wheels-monster-trucks",
+   "was": 29.99,
+   "commission": 6,
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "HW22",
@@ -422,7 +451,8 @@
    "section": "Room and Christmas",
    "sectionId": "hot-wheels-room-and-christmas",
    "commission": 6,
-   "age": "2+"
+   "age": "2+",
+   "ownerAdd": true
   },
   {
    "id": "HW40",
@@ -545,13 +575,5 @@
    "age": "3-5"
   }
  ],
- "skipped": [
-  {
-   "id": "HW21",
-   "name": "Hot Wheels Monster Trucks Neon Smashers 4 Trucks + 5 Cars",
-   "why": [
-    "owner style rule (neon, boots or black cup)"
-   ]
-  }
- ]
+ "skipped": []
 }

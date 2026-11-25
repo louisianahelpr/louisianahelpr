@@ -24,6 +24,7 @@ import { describe, expect, it } from "vitest";
 import { MEN_COLOR_GUIDES, MEN_PASTEL, OWNER_REMOVED, elderBootOff, menPastelOff, menStyleWhy, neonOff, ownerStyleOff, womenBlackCupOff } from "../../scripts/giftGuideRules.mjs";
 import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
 import { isThemeGuide } from "@/content/giftGuideLive.mjs";
+import { THEME_ROWS_FILES_1124 } from "../../scripts/giftGuideThemes1124.mjs";
 import { priceSectionId } from "@/lib/pickPriceShown.mjs";
 import { HER_1121 } from "../../scripts/giftGuideHer1121.mjs";
 import { HIM_1121 } from "../../scripts/giftGuideHimKids1121.mjs";
@@ -74,7 +75,10 @@ describe("gift guides: owner 11-20 removals and style rules", () => {
     const menRows = GUIDES.flatMap(([slug, picks]) => picks.filter((p) => [slug, p.from, p.sectionId].some((k) => MEN_COLOR_GUIDES.includes(String(k)))));
     expect(menRows.length).toBeGreaterThan(40); // owner's standard plan (11-20 evening, 49 guides by use): measured 2026-11-20 night (45)
     expect(menRows.filter((p) => MEN_PASTEL.test(p.name) || menStyleWhy(p) !== "").map((p) => p.name)).toEqual([]);
-    expect(GUIDES.flatMap(([slug, picks]) => picks.filter((p) => ownerStyleOff(slug, p)).map((p) => `${slug}: ${p.name}`))).toEqual([]);
+    // An item the owner sent herself is her decision (owner-decides-guide-items; lead 11-24 on her Hot Wheels Neon
+    // Smashers link): a theme row marked ownerAdd goes on even where a style rule would keep it off.
+    const ownerSent = new Set(Object.values(THEME_ROWS_FILES_1124).flatMap((f) => f.rows.filter((r) => r.ownerAdd).map((r) => r.href)));
+    expect(GUIDES.flatMap(([slug, picks]) => picks.filter((p) => ownerStyleOff(slug, p) && !ownerSent.has(p.href)).map((p) => `${slug}: ${p.name}`))).toEqual([]);
   });
 
   it("at most 2 pajamas per section on every guide", () => {

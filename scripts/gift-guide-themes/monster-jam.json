@@ -2,7 +2,7 @@
  "slug": "monster-jam",
  "name": "Monster Jam",
  "sectionPrefix": "mj",
- "builtFrom": "/Users/lexilombas/.lh-shots/mj-guide-1124/items.json (Tue Nov 24 12:36 PM, 80 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/mj-guide-1124/items.json (Tue Nov 24 12:43 PM, 128 items)",
  "rows": [
   {
    "id": "MJ01",
@@ -18,7 +18,8 @@
    "sectionId": "mj-stocking-stuffers-under-10",
    "was": 2.98,
    "commission": 6,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ02",
@@ -33,7 +34,8 @@
    "section": "Stocking stuffers under $10",
    "sectionId": "mj-stocking-stuffers-under-10",
    "commission": 6,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ03",
@@ -64,7 +66,8 @@
    "section": "Stocking stuffers under $10",
    "sectionId": "mj-stocking-stuffers-under-10",
    "commission": 6,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ05",
@@ -79,7 +82,8 @@
    "section": "Stocking stuffers under $10",
    "sectionId": "mj-stocking-stuffers-under-10",
    "commission": 6,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ06",
@@ -94,7 +98,8 @@
    "section": "Stocking stuffers under $10",
    "sectionId": "mj-stocking-stuffers-under-10",
    "commission": 6,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ08",
@@ -110,7 +115,8 @@
    "sectionId": "mj-stocking-stuffers-under-10",
    "was": 12.23,
    "commission": 6,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ104",
@@ -125,7 +131,8 @@
    "section": "Stocking stuffers under $10",
    "sectionId": "mj-stocking-stuffers-under-10",
    "commission": 3,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ110",
@@ -140,7 +147,40 @@
    "section": "Stocking stuffers under $10",
    "sectionId": "mj-stocking-stuffers-under-10",
    "commission": 3,
-   "age": "all"
+   "age": "all",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJ17",
+   "name": "Monster Jam Megalodon 1:24 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "A little Monster Jam gift for the stocking.",
+   "href": "https://mavely.app.link/wZjQXZfNk8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-megalodon-1-24-die-cast-truck-kohls-d9c724.webp",
+   "store": "store-kohls",
+   "price": 8.61,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "mj-stocking-stuffers-under-10",
+   "was": 11.49,
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
+   "id": "MJ18",
+   "name": "Monster Jam El Toro Loco 1:24 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "A little Monster Jam gift for the stocking.",
+   "href": "https://mavely.app.link/4fT2CSgNk8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-el-toro-loco-1-24-die-cast-truck-kohls-24999d.webp",
+   "store": "store-kohls",
+   "price": 8.61,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "mj-stocking-stuffers-under-10",
+   "was": 11.49,
+   "commission": 10.5,
+   "age": "3+"
   },
   {
    "id": "MJ10",
@@ -156,7 +196,8 @@
    "sectionId": "mj-trucks",
    "was": 24.82,
    "commission": 6,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ11",
@@ -171,7 +212,8 @@
    "section": "Trucks",
    "sectionId": "mj-trucks",
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ12",
@@ -186,7 +228,8 @@
    "section": "Trucks",
    "sectionId": "mj-trucks",
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ13",
@@ -201,7 +244,8 @@
    "section": "Trucks",
    "sectionId": "mj-trucks",
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ106",
@@ -217,7 +261,8 @@
    "sectionId": "mj-trucks",
    "was": 23.7,
    "commission": 3,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ15",
@@ -232,7 +277,8 @@
    "section": "Trucks",
    "sectionId": "mj-trucks",
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ16",
@@ -247,7 +293,264 @@
    "section": "Trucks",
    "sectionId": "mj-trucks",
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO04",
+   "name": "Monster Jam 1:72 Mini Trucks 8-Pack",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4tiWGCc",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-1-72-mini-trucks-8-pack-walmart-331025.webp",
+   "store": "store-walmart",
+   "price": 19.49,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 23.44,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO10",
+   "name": "Monster Jam Dalmatian 1:64 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4ASmRCj",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-dalmatian-1-64-die-cast-truck-walmart-84a061.webp",
+   "store": "store-walmart",
+   "price": 8.89,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 9.99,
+   "age": "3+",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO16",
+   "name": "Monster Jam Fuel Academy 1:64 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4kA3yZM",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-fuel-academy-1-64-die-cast-truck-walmart-e98d19.webp",
+   "store": "store-walmart",
+   "price": 11.99,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 14.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO17",
+   "name": "Monster Jam Megalodon vs. Pirate's Curse Color-Changing Trucks, 1:64",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/3VfRjXU",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-megalodon-vs-pirates-curse-color-changing-trucks-walmart-4cb69d.webp",
+   "store": "store-walmart",
+   "price": 17.59,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 19.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO18",
+   "name": "Monster Jam Scooby-Doo 1:64 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4jbhgQx",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-scooby-doo-1-64-die-cast-truck-walmart-b847a6.webp",
+   "store": "store-walmart",
+   "price": 13.59,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 16.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO19",
+   "name": "Monster Jam Monster Mutt Rottweiler vs. Scooby-Doo Color-Changing Trucks, 1:64",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/3X7gk8m",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-monster-mutt-rottweiler-vs-scooby-doo-color-chan-walmart-e3ddd6.webp",
+   "store": "store-walmart",
+   "price": 19.89,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 24.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO20",
+   "name": "Monster Jam Jurassic Attack 1:64 Die-Cast Truck with Bonus Accessory",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4jhurj3",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-jurassic-attack-1-64-die-cast-truck-with-bonus-a-walmart-f45a55.webp",
+   "store": "store-walmart",
+   "price": 11.9,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 14.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO21",
+   "name": "Monster Jam Aftershock 1:64 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4eXZIWR",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-aftershock-1-64-die-cast-truck-walmart-1cc780.webp",
+   "store": "store-walmart",
+   "price": 11.49,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 14.89,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO22",
+   "name": "Monster Jam Max-D Legacy Trucks 1:64 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4A7KQxq",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-max-d-legacy-trucks-1-64-die-cast-truck-walmart-dfb158.webp",
+   "store": "store-walmart",
+   "price": 11.99,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 14.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO23",
+   "name": "Monster Jam Bakugan Dragonoid vs. Batman Trucks, 1:64",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4CoeT5s",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-bakugan-dragonoid-vs-batman-trucks-1-64-walmart-21edba.webp",
+   "store": "store-walmart",
+   "price": 17.59,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 22.39,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO25",
+   "name": "Monster Jam Grave Digger Legacy Trucks 1:64 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4ARtZPt",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-legacy-trucks-1-64-die-cast-truck-walmart-0c0c29.webp",
+   "store": "store-walmart",
+   "price": 10.99,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 14.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO26",
+   "name": "Monster Jam Higher Education 1:24 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4zCl4Ap",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-higher-education-1-24-die-cast-truck-walmart-bee847.webp",
+   "store": "store-walmart",
+   "price": 23.19,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 28.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO27",
+   "name": "Monster Jam Ice Cream Man 1:24 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4tiXKpG",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-ice-cream-man-1-24-die-cast-truck-walmart-f93fb2.webp",
+   "store": "store-walmart",
+   "price": 23.19,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 28.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO32",
+   "name": "Monster Jam Peanuts Snoopy Halloween Edition 1:64 Truck (Limited Edition)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4l8Iaej",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-peanuts-snoopy-halloween-edition-1-64-truck-limi-walmart-970dc1.webp",
+   "store": "store-walmart",
+   "price": 39.99,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 44.94,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO33",
+   "name": "Monster Jam Sparkle Smash 1:24 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4lgWwt4",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-sparkle-smash-1-24-die-cast-truck-walmart-9d71b0.webp",
+   "store": "store-walmart",
+   "price": 23.99,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 29.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO34",
+   "name": "Monster Jam BKT 1:24 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4thvK69",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-bkt-1-24-die-cast-truck-walmart-210a30.webp",
+   "store": "store-walmart",
+   "price": 23.99,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 29.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO35",
+   "name": "Monster Jam Grave Digger 1:24 Collector Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4jht3g9",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-1-24-collector-die-cast-truck-walmart-024987.webp",
+   "store": "store-walmart",
+   "price": 21.59,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "was": 26.99,
+   "ownerAdd": true
   },
   {
    "id": "MJ20",
@@ -263,7 +566,8 @@
    "sectionId": "mj-remote-control-trucks",
    "was": 49.99,
    "commission": 4,
-   "age": "4+"
+   "age": "4+",
+   "ownerAdd": true
   },
   {
    "id": "MJ21",
@@ -297,6 +601,22 @@
    "age": "4+"
   },
   {
+   "id": "MJ23",
+   "name": "Monster Jam Grave Digger 1:24 Remote Control Truck",
+   "brand": "Monster Jam",
+   "line": "A remote control Monster Jam truck.",
+   "href": "https://mavely.app.link/UHzmILhNk8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-1-24-remote-control-truck-kohls-2f9193.webp",
+   "store": "store-kohls",
+   "price": 12.36,
+   "priceAt": "2026-11-24",
+   "section": "Remote control trucks",
+   "sectionId": "mj-remote-control-trucks",
+   "was": 16.49,
+   "commission": 10.5,
+   "age": "4+"
+  },
+  {
    "id": "MJ120",
    "name": "Monster Jam Adventure Ride-On Car 12V (Grave Digger graphics)",
    "brand": "Monster Jam",
@@ -310,7 +630,8 @@
    "sectionId": "mj-ride-on-trucks",
    "was": 269.99,
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ121",
@@ -326,7 +647,8 @@
    "sectionId": "mj-ride-on-trucks",
    "was": 229.99,
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ122",
@@ -358,7 +680,8 @@
    "sectionId": "mj-ride-on-trucks",
    "was": 429.99,
    "commission": 6,
-   "age": "3-8"
+   "age": "3-8",
+   "ownerAdd": true
   },
   {
    "id": "MJ124",
@@ -374,7 +697,8 @@
    "sectionId": "mj-ride-on-trucks",
    "was": 599.99,
    "commission": 6,
-   "age": "3-8"
+   "age": "3-8",
+   "ownerAdd": true
   },
   {
    "id": "MJ125",
@@ -405,7 +729,8 @@
    "sectionId": "mj-playsets-and-tracks",
    "was": 29.99,
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ31",
@@ -437,7 +762,8 @@
    "sectionId": "mj-playsets-and-tracks",
    "was": 39.99,
    "commission": 10.5,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ33",
@@ -453,7 +779,8 @@
    "sectionId": "mj-playsets-and-tracks",
    "was": 34.99,
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ34",
@@ -484,7 +811,38 @@
    "sectionId": "mj-playsets-and-tracks",
    "was": 41.99,
    "commission": 3,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO15",
+   "name": "Monster Jam Dueling Dragon Playset with Exclusive Truck",
+   "brand": "Monster Jam",
+   "line": "A Monster Jam playset for crashes and jumps.",
+   "href": "https://walmrt.us/4zGDaBo",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-dueling-dragon-playset-with-exclusive-truck-walmart-9b5d2d.webp",
+   "store": "store-walmart",
+   "price": 22.24,
+   "priceAt": "2026-11-24",
+   "section": "Playsets and tracks",
+   "sectionId": "mj-playsets-and-tracks",
+   "was": 28.24,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO24",
+   "name": "Monster Jam Grave Digger 1:72 Mini Truck Playset",
+   "brand": "Monster Jam",
+   "line": "A Monster Jam playset for crashes and jumps.",
+   "href": "https://walmrt.us/4eQ8iXI",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-1-72-mini-truck-playset-walmart-8afff8.webp",
+   "store": "store-walmart",
+   "price": 15.7,
+   "priceAt": "2026-11-24",
+   "section": "Playsets and tracks",
+   "sectionId": "mj-playsets-and-tracks",
+   "was": 20.51,
+   "ownerAdd": true
   },
   {
    "id": "MJ40",
@@ -500,7 +858,8 @@
    "sectionId": "mj-advent-calendars-and-mystery-packs",
    "was": 69.99,
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ41",
@@ -515,7 +874,8 @@
    "section": "Advent calendars and mystery packs",
    "sectionId": "mj-advent-calendars-and-mystery-packs",
    "commission": 6,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ14",
@@ -531,7 +891,8 @@
    "sectionId": "mj-advent-calendars-and-mystery-packs",
    "was": 51.99,
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ50",
@@ -547,7 +908,8 @@
    "sectionId": "mj-games-and-building-sets",
    "was": 49.99,
    "commission": 16,
-   "age": "6+"
+   "age": "6+",
+   "ownerAdd": true
   },
   {
    "id": "MJ51",
@@ -563,7 +925,8 @@
    "sectionId": "mj-games-and-building-sets",
    "was": 14.99,
    "commission": 4,
-   "age": "4+"
+   "age": "4+",
+   "ownerAdd": true
   },
   {
    "id": "MJ52",
@@ -595,7 +958,8 @@
    "sectionId": "mj-clothing-and-pajamas",
    "was": 12.98,
    "commission": 15,
-   "age": "4-12"
+   "age": "4-12",
+   "ownerAdd": true
   },
   {
    "id": "MJ63",
@@ -611,7 +975,8 @@
    "sectionId": "mj-clothing-and-pajamas",
    "was": 33.74,
    "commission": 15,
-   "age": "toddler-big kid"
+   "age": "toddler-big kid",
+   "ownerAdd": true
   },
   {
    "id": "MJ64",
@@ -627,7 +992,8 @@
    "sectionId": "mj-clothing-and-pajamas",
    "was": 38.74,
    "commission": 15,
-   "age": "toddler"
+   "age": "toddler",
+   "ownerAdd": true
   },
   {
    "id": "MJ65",
@@ -642,7 +1008,8 @@
    "section": "Clothing and pajamas",
    "sectionId": "mj-clothing-and-pajamas",
    "commission": 16,
-   "age": "18m-12"
+   "age": "18m-12",
+   "ownerAdd": true
   },
   {
    "id": "MJ68",
@@ -657,7 +1024,8 @@
    "section": "Clothing and pajamas",
    "sectionId": "mj-clothing-and-pajamas",
    "commission": 15,
-   "age": "12m-5T"
+   "age": "12m-5T",
+   "ownerAdd": true
   },
   {
    "id": "MJ69",
@@ -672,7 +1040,351 @@
    "section": "Clothing and pajamas",
    "sectionId": "mj-clothing-and-pajamas",
    "commission": 13.3,
-   "age": "7-12"
+   "age": "7-12",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO01",
+   "name": "Monster Jam Toddler Boys Holiday Graphic Tee (12M-5T)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/3VMGblG",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-toddler-boys-holiday-graphic-tee-12m-5t-walmart-cf86cc.webp",
+   "store": "store-walmart",
+   "price": 7.48,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "age": "12m-5T",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO02",
+   "name": "Monster Jam Boys Coat and Pant Pajama Set, 2-Piece (4-12)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4ALNPvs",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-coat-and-pant-pajama-set-2-piece-4-12-walmart-1c77fa.webp",
+   "store": "store-walmart",
+   "price": 16.98,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "age": "4-12",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO03",
+   "name": "Monster Jam Toddler Boys Football Tee and Shorts Set (12M-5T)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4fdAmED",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-toddler-boys-football-tee-and-shorts-set-12m-5t-walmart-b82f26.webp",
+   "store": "store-walmart",
+   "price": 5.7,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 16.98,
+   "age": "12m-5T",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO05",
+   "name": "Monster Jam Toddler Boys Button-Down Work Shirt with Patches (12M-5T)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4jcFSs7",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-toddler-boys-button-down-work-shirt-with-patches-walmart-58d578.webp",
+   "store": "store-walmart",
+   "price": 3.98,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 14.98,
+   "age": "12m-5T",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO06",
+   "name": "Monster Jam Grave Digger, El Toro Loco and Megalodon T-Shirts, 3-Pack",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4zKFyqK",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-el-toro-loco-and-megalodon-t-shirts-walmart-3d6077.webp",
+   "store": "store-walmart",
+   "price": 35.89,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 44.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO07",
+   "name": "Monster Jam Mohawk Warrior, Earth Shaker and Max-D T-Shirts, 3-Pack",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4zHBpE8",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-mohawk-warrior-earth-shaker-and-max-d-t-shirts-3-walmart-a6e6aa.webp",
+   "store": "store-walmart",
+   "price": 29.59,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 36.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO08",
+   "name": "Monster Jam Grave Digger, El Toro Loco and Megalodon Athletic Tees, 3-Pack",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/3VfgwC0",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-el-toro-loco-and-megalodon-athletic-walmart-a2b67c.webp",
+   "store": "store-walmart",
+   "price": 28.79,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 35.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO09",
+   "name": "Monster Jam Monster Mutt, Zombie and Son-uva Digger T-Shirts, 3-Pack",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4ASFNky",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-monster-mutt-zombie-and-son-uva-digger-t-shirts-walmart-28251a.webp",
+   "store": "store-walmart",
+   "price": 29.59,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 36.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO11",
+   "name": "Monster Jam Grave Digger Toddler Boys Button Shirt (12M-5T)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4j3T7MT",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-toddler-boys-button-shirt-12m-5t-walmart-c32359.webp",
+   "store": "store-walmart",
+   "price": 4.51,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 13.98,
+   "age": "12m-5T",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO12",
+   "name": "Monster Jam El Toro Loco Toddler Boys Button Shirt (12M-5T)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/48KU079",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-el-toro-loco-toddler-boys-button-shirt-12m-5t-walmart-5c515d.webp",
+   "store": "store-walmart",
+   "price": 4.45,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 13.98,
+   "age": "12m-5T",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO13",
+   "name": "Monster Jam Digatron Toddler Boys Button Shirt (12M-5T)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4jgC2yg",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-digatron-toddler-boys-button-shirt-12m-5t-walmart-77dd0a.webp",
+   "store": "store-walmart",
+   "price": 4.42,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 13.98,
+   "age": "12m-5T",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO14",
+   "name": "Monster Jam Megalodon Toddler Boys Button Shirt (12M-5T)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4zLQZi3",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-megalodon-toddler-boys-button-shirt-12m-5t-walmart-75c9a5.webp",
+   "store": "store-walmart",
+   "price": 4.42,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 13.98,
+   "age": "12m-5T",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO28",
+   "name": "Monster Jam Toddler Boys Tee and Shortalls Set (12M-5T)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/48DrEvG",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-toddler-boys-tee-and-shortalls-set-12m-5t-walmart-eb2350.webp",
+   "store": "store-walmart",
+   "price": 12,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 19.98,
+   "age": "12m-5T",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO29",
+   "name": "Monster Jam Grave Digger Fleece Zip-Up Hoodie",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4jhuFqp",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-fleece-zip-up-hoodie-walmart-75532a.webp",
+   "store": "store-walmart",
+   "price": 32.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 39.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO30",
+   "name": "Monster Jam Grave Digger, El Toro Loco and Megalodon Tee and Jogger Set",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4jyPXAW",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-grave-digger-el-toro-loco-and-megalodon-tee-and-walmart-e62b79.webp",
+   "store": "store-walmart",
+   "price": 28.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 33.74,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO31",
+   "name": "Monster Jam Boys Windbreaker Jacket (4-12)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4jACbh9",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-windbreaker-jacket-4-12-walmart-a7c1d2.webp",
+   "store": "store-walmart",
+   "price": 13,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 25.98,
+   "age": "4-12",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO36",
+   "name": "Monster Jam Toddler Boys Graphic Crewneck Sweatshirt (12M-5T)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4eTKGkR",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-toddler-boys-graphic-crewneck-sweatshirt-12m-5t-walmart-8faf17.webp",
+   "store": "store-walmart",
+   "price": 6,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 13.98,
+   "age": "12m-5T",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO37",
+   "name": "Monster Jam Boys Long Sleeve Windbreaker Jacket (4-12)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4Apucd7",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-long-sleeve-windbreaker-jacket-4-12-walmart-855bee.webp",
+   "store": "store-walmart",
+   "price": 14,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 26.98,
+   "age": "4-12",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO38",
+   "name": "Monster Jam Boys Sweatshirt and Joggers Set, 2-Piece (4-16)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4jBKeKI",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-sweatshirt-and-joggers-set-2-piece-4-16-walmart-f93ed4.webp",
+   "store": "store-walmart",
+   "price": 14,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 22.98,
+   "age": "4-16",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO39",
+   "name": "Monster Jam Toddler Boys Sweatshirt and Jogger Set (12M-5T)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4jA8RYe",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-toddler-boys-sweatshirt-and-jogger-set-12m-5t-walmart-bfc244.webp",
+   "store": "store-walmart",
+   "price": 7.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 15.98,
+   "age": "12m-5T",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO40",
+   "name": "Monster Jam Boys Soccer Jersey and Shorts Set, 2-Piece (4-16)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/4lbSja8",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-soccer-jersey-and-shorts-set-2-piece-4-16-walmart-609b9d.webp",
+   "store": "store-walmart",
+   "price": 24.98,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "age": "4-16",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO41",
+   "name": "Monster Jam Boys Long Sleeve Top and Pant Pajama Set, 2-Piece (4-16)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/3XuX44R",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-long-sleeve-top-and-pant-pajama-set-2-piece-walmart-2e2ba7.webp",
+   "store": "store-walmart",
+   "price": 7,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 12.98,
+   "age": "4-16",
+   "ownerAdd": true
   },
   {
    "id": "MJ07",
@@ -688,7 +1400,8 @@
    "sectionId": "mj-shoes-and-slippers",
    "was": 19.98,
    "commission": 15,
-   "age": "toddler-big kid"
+   "age": "toddler-big kid",
+   "ownerAdd": true
   },
   {
    "id": "MJ70",
@@ -703,7 +1416,8 @@
    "section": "Shoes and slippers",
    "sectionId": "mj-shoes-and-slippers",
    "commission": 15,
-   "age": "toddler"
+   "age": "toddler",
+   "ownerAdd": true
   },
   {
    "id": "MJ71",
@@ -718,7 +1432,8 @@
    "section": "Shoes and slippers",
    "sectionId": "mj-shoes-and-slippers",
    "commission": 12,
-   "age": "kids"
+   "age": "kids",
+   "ownerAdd": true
   },
   {
    "id": "MJ80",
@@ -733,7 +1448,8 @@
    "section": "Room, party and Christmas",
    "sectionId": "mj-room-party-and-christmas",
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ81",
@@ -749,7 +1465,8 @@
    "sectionId": "mj-room-party-and-christmas",
    "was": 12.5,
    "commission": 3,
-   "age": "all"
+   "age": "all",
+   "ownerAdd": true
   },
   {
    "id": "MJ82",
@@ -764,7 +1481,8 @@
    "section": "Room, party and Christmas",
    "sectionId": "mj-room-party-and-christmas",
    "commission": 11,
-   "age": "all"
+   "age": "all",
+   "ownerAdd": true
   },
   {
    "id": "MJ83",
@@ -779,7 +1497,8 @@
    "section": "Room, party and Christmas",
    "sectionId": "mj-room-party-and-christmas",
    "commission": 4,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ84",
@@ -794,7 +1513,8 @@
    "section": "Room, party and Christmas",
    "sectionId": "mj-room-party-and-christmas",
    "commission": 3,
-   "age": "kids"
+   "age": "kids",
+   "ownerAdd": true
   },
   {
    "id": "MJ85",
@@ -809,7 +1529,8 @@
    "section": "Room, party and Christmas",
    "sectionId": "mj-room-party-and-christmas",
    "commission": 16,
-   "age": "all"
+   "age": "all",
+   "ownerAdd": true
   },
   {
    "id": "MJ101",
@@ -824,7 +1545,8 @@
    "section": "Room, party and Christmas",
    "sectionId": "mj-room-party-and-christmas",
    "commission": 3,
-   "age": "all"
+   "age": "all",
+   "ownerAdd": true
   },
   {
    "id": "MJ102",
@@ -840,7 +1562,8 @@
    "sectionId": "mj-room-party-and-christmas",
    "was": 23.99,
    "commission": 3,
-   "age": "kids"
+   "age": "kids",
+   "ownerAdd": true
   },
   {
    "id": "MJ103",
@@ -855,7 +1578,8 @@
    "section": "Room, party and Christmas",
    "sectionId": "mj-room-party-and-christmas",
    "commission": 3,
-   "age": "3+"
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "MJ105",
@@ -870,7 +1594,8 @@
    "section": "Room, party and Christmas",
    "sectionId": "mj-room-party-and-christmas",
    "commission": 3,
-   "age": "kids"
+   "age": "kids",
+   "ownerAdd": true
   },
   {
    "id": "MJ107",
@@ -886,7 +1611,8 @@
    "sectionId": "mj-room-party-and-christmas",
    "was": 15.99,
    "commission": 3,
-   "age": "kids"
+   "age": "kids",
+   "ownerAdd": true
   },
   {
    "id": "MJ108",
@@ -902,7 +1628,8 @@
    "sectionId": "mj-room-party-and-christmas",
    "was": 17.99,
    "commission": 3,
-   "age": "kids"
+   "age": "kids",
+   "ownerAdd": true
   },
   {
    "id": "MJ109",
@@ -918,7 +1645,8 @@
    "sectionId": "mj-room-party-and-christmas",
    "was": 31.99,
    "commission": 3,
-   "age": "kids"
+   "age": "kids",
+   "ownerAdd": true
   },
   {
    "id": "MJ111",
@@ -933,7 +1661,8 @@
    "section": "Room, party and Christmas",
    "sectionId": "mj-room-party-and-christmas",
    "commission": 3,
-   "age": "kids"
+   "age": "kids",
+   "ownerAdd": true
   },
   {
    "id": "MJ112",
@@ -948,7 +1677,8 @@
    "section": "Room, party and Christmas",
    "sectionId": "mj-room-party-and-christmas",
    "commission": 3,
-   "age": "kids"
+   "age": "kids",
+   "ownerAdd": true
   },
   {
    "id": "MJ113",
@@ -963,7 +1693,8 @@
    "section": "Room, party and Christmas",
    "sectionId": "mj-room-party-and-christmas",
    "commission": 3,
-   "age": "kids"
+   "age": "kids",
+   "ownerAdd": true
   },
   {
    "id": "MJ115",
@@ -979,7 +1710,8 @@
    "sectionId": "mj-room-party-and-christmas",
    "was": 19.62,
    "commission": 3,
-   "age": "kids"
+   "age": "kids",
+   "ownerAdd": true
   },
   {
    "id": "MJ116",
@@ -995,7 +1727,50 @@
    "sectionId": "mj-room-party-and-christmas",
    "was": 22.99,
    "commission": 3,
-   "age": "kids"
+   "age": "kids",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJA01",
+   "name": "Holographic Monster Truck Christmas Wrapping Paper, Red (17 in x 33 ft)",
+   "brand": "Yarcony",
+   "line": "Monster Jam for their room or the tree.",
+   "href": "https://www.amazon.com/dp/B0H3JDPFWY?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/81dRYlntD2L._AC_SL1000_.jpg",
+   "store": "store-amazon",
+   "price": 13.95,
+   "priceAt": "2026-11-24",
+   "section": "Room, party and Christmas",
+   "sectionId": "mj-room-party-and-christmas",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJA02",
+   "name": "Holographic Monster Truck Christmas Wrapping Paper, Green (17 in x 33 ft)",
+   "brand": "Yarcony",
+   "line": "Monster Jam for their room or the tree.",
+   "href": "https://www.amazon.com/dp/B0H2VRLSNP?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/81dc7LpBXAL._AC_SL1000_.jpg",
+   "store": "store-amazon",
+   "price": 11.86,
+   "priceAt": "2026-11-24",
+   "section": "Room, party and Christmas",
+   "sectionId": "mj-room-party-and-christmas",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJA03",
+   "name": "Green Monster Truck Christmas Gift Bag, 13 in",
+   "brand": "Loveinside",
+   "line": "Monster Jam for their room or the tree.",
+   "href": "https://www.amazon.com/dp/B0H1R7DFJP?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/81RFdaTrmoL._AC_SL1000_.jpg",
+   "store": "store-amazon",
+   "price": 5.59,
+   "priceAt": "2026-11-24",
+   "section": "Room, party and Christmas",
+   "sectionId": "mj-room-party-and-christmas",
+   "ownerAdd": true
   },
   {
    "id": "MJ86",
@@ -1010,7 +1785,8 @@
    "section": "Matching fishing set",
    "sectionId": "mj-matching-fishing-set",
    "commission": 7,
-   "age": "4-8"
+   "age": "4-8",
+   "ownerAdd": true
   },
   {
    "id": "MJ87",
@@ -1025,7 +1801,8 @@
    "section": "Matching fishing set",
    "sectionId": "mj-matching-fishing-set",
    "commission": 7,
-   "age": "4-8"
+   "age": "4-8",
+   "ownerAdd": true
   },
   {
    "id": "MJ90",
@@ -1041,7 +1818,8 @@
    "sectionId": "mj-toddler-picks",
    "was": 15.98,
    "commission": 15,
-   "age": "12m-5T"
+   "age": "12m-5T",
+   "ownerAdd": true
   },
   {
    "id": "MJ91",
@@ -1057,7 +1835,8 @@
    "sectionId": "mj-toddler-picks",
    "was": 13.98,
    "commission": 15,
-   "age": "12m-5T"
+   "age": "12m-5T",
+   "ownerAdd": true
   },
   {
    "id": "MJ92",
@@ -1073,7 +1852,8 @@
    "sectionId": "mj-toddler-picks",
    "was": 12.98,
    "commission": 15,
-   "age": "12m-5T"
+   "age": "12m-5T",
+   "ownerAdd": true
   },
   {
    "id": "MJ93",
@@ -1088,7 +1868,8 @@
    "section": "Toddler picks",
    "sectionId": "mj-toddler-picks",
    "commission": 15,
-   "age": "12m-5T"
+   "age": "12m-5T",
+   "ownerAdd": true
   },
   {
    "id": "MJ94",
@@ -1103,7 +1884,8 @@
    "section": "Toddler picks",
    "sectionId": "mj-toddler-picks",
    "commission": 15,
-   "age": "12m-5T"
+   "age": "12m-5T",
+   "ownerAdd": true
   },
   {
    "id": "MJ126",
@@ -1118,7 +1900,8 @@
    "section": "Toddler picks",
    "sectionId": "mj-toddler-picks",
    "commission": 3,
-   "age": "1-5"
+   "age": "1-5",
+   "ownerAdd": true
   },
   {
    "id": "MJ95",
@@ -1180,7 +1963,8 @@
    "sectionId": "mj-monster-truck-extras-hot-wheels",
    "was": 54.99,
    "commission": 3,
-   "age": "4+"
+   "age": "4+",
+   "ownerAdd": true
   }
  ],
  "skipped": [
@@ -1208,6 +1992,13 @@
   {
    "id": "MJ67",
    "name": "Monster Jam Short Sleeve + Shorts Pajama Set",
+   "why": [
+    "out of stock"
+   ]
+  },
+  {
+   "id": "MJO42",
+   "name": "Monster Jam Boys Short Sleeve Pajama Set, 2-Piece (4-12)",
    "why": [
     "out of stock"
    ]

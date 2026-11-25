@@ -122,6 +122,7 @@ export const enPostJob = {
   "postJob.f.budgetRaise": "Raise the budget by $5",
   "postJob.f.giftPre": "You have a",
   "postJob.f.giftPost": " gift card. Set whatever budget the job is worth — the gift comes off your total at checkout.",
+  "postJob.f.crewEach": "Each of your {n} Helprs gets at least {amount}.",
   "postJob.f.budgetMin": "The minimum budget is {min}.",
   "postJob.f.budgetSetTo": "Set it to {min}",
   "postJob.f.budgetCap": "The most a job can be is {max}. Split a bigger project into separate jobs.",

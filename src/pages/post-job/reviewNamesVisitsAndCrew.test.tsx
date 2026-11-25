@@ -4,7 +4,7 @@
 //     then "The total is for the first visit; each later visit is charged to your saved card about 3 days before
 //     it." (charge-recurring-visits FUND_LEAD_DAYS = 3). The total is not called "charged now": under
 //     card_hold_at_post (on for everyone, 20261027185147) a card is only held until the hire.
-//   - C33: a $90 crew job of 3 read "Total $90". Now "3 Helprs, about $30 each" (allocateCents, the server's
+//   - C33: a $90 crew job of 3 read "Total $90". Now "3 Helprs, at least $30 each" (allocateCents, the server's
 //     largest-remainder split, as the form's "~$30/Helpr" hint reads).
 //
 // Red first (2026-10-29) against origin/main 1a38dea437: neither line rendered.
@@ -80,18 +80,18 @@ describe("A2-C36: a Repeats job's review says the total is one visit of several"
 });
 
 describe("A2-C33: a crew job's review says how the budget splits", () => {
-  it("$90 for a crew of 3: '3 Helprs, about $30 each'", () => {
+  it("$90 for a crew of 3: '3 Helprs, at least $30 each'", () => {
     render(<CheckoutStepView form={makeForm({ isGroupJob: true, helpersNeeded: "3", budgetNum: 90, totalCharge: 90 })} />);
-    expect(totalRow()).toContain("3 Helprs, about $30 each");
+    expect(totalRow()).toContain("3 Helprs, at least $30 each");
   });
 
   it("an uneven split quotes the smallest share, never more than a Helpr gets", () => {
     render(<CheckoutStepView form={makeForm({ isGroupJob: true, helpersNeeded: "3", budgetNum: 100, totalCharge: 100 })} />);
-    expect(totalRow()).toContain("3 Helprs, about $33.33 each");
+    expect(totalRow()).toContain("3 Helprs, at least $33.33 each");
   });
 
   it("a one-Helpr job names no crew", () => {
     render(<CheckoutStepView form={makeForm({ helpersNeeded: "3" })} />);
-    expect(totalRow()).not.toMatch(/Helprs, about/);
+    expect(totalRow()).not.toMatch(/Helprs, (about|at least)/);
   });
 });

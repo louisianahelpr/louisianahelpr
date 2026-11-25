@@ -11,7 +11,8 @@ import { seriesLaterVisitsCharged, seriesVisitsSuffix } from "@/lib/seriesMoneyC
  * 4 visits" and when the rest is charged (charge-recurring-visits, FUND_LEAD_DAYS = 3). Not "charged now": under
  * card_hold_at_post (on for everyone) a card is only held until the hire.
  * A2-C33: a crew job says how its budget splits, at the smallest frozen share (allocateCents, the server's
- * largest-remainder split), as the form's "~$30/Helpr" hint does.
+ * largest-remainder split), as the form's "~$30/Helpr" hint does. Deep audit 11-22 #43: "at least", as the
+ * Where and Budget screens say (the smallest share), never "about".
  */
 export function CheckoutBudgetLine({
   budgetNum, totalWithTax, hasGift, giftAppliedAmount, isUrgent, urgentFeeNum, onboardingFeeAmount, visitCount = 1, crewSize = 1,
@@ -36,7 +37,7 @@ export function CheckoutBudgetLine({
   const crewShare = crew ? allocateCents(Math.round(budgetNum * 100), crewSize, crewSize - 1) / 100 : 0;
   const crewLine = crew && budgetNum > 0 ? (
     <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-      {crewSize} Helprs, about ${formatPriceExact(crewShare)} each
+      {crewSize} Helprs, at least ${formatPriceExact(crewShare)} each
     </p>
   ) : null;
   if (series && budgetNum > 0) {

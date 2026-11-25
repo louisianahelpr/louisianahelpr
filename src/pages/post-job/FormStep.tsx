@@ -427,6 +427,7 @@ export function FormStep({ form }: FormStepProps) {
             setCustomUrgentFee={form.setCustomUrgentFee}
             budgetComplete={form.budgetComplete}
             giftAmount={form.giftCreditAmount}
+            crewSize={form.isGroupJob ? (parseInt(form.helpersNeeded) || 2) : 1}
           />
           {/* POST-H2 (owner 10-31): a Have-a-Helpr-list-it job suggests a range from its item count; still editable. */}
           {isSellForMeJob(form.category) && (

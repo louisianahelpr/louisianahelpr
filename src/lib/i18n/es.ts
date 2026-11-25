@@ -545,6 +545,7 @@ export const es: Record<MsgKey, string> = {
   "postJob.f.budgetRaise": "Subir el presupuesto $5",
   "postJob.f.giftPre": "Tiene una tarjeta de regalo de",
   "postJob.f.giftPost": ". Ponga el presupuesto que valga el trabajo; el regalo se descuenta de su total al pagar.",
+  "postJob.f.crewEach": "Cada uno de sus {n} Helprs recibe al menos {amount}.",
   "postJob.f.budgetMin": "El presupuesto mínimo es {min}.",
   "postJob.f.budgetSetTo": "Ponerlo en {min}",
   "postJob.f.budgetCap": "Lo máximo para un trabajo es {max}. Divida un proyecto más grande en trabajos separados.",

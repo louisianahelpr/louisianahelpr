@@ -1,4 +1,5 @@
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { crewSmallestShare } from "@/components/postjob/crewSmallestShare";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -68,6 +69,11 @@ interface BudgetSectionProps {
    * theirs.
    */
   giftAmount?: number;
+  /**
+   * Deep audit 11-22 #43: Helprs on a crew job (1 otherwise). The split ("at least $40 per Helpr") showed only on the
+   * earlier Where screen, so the price screen said just "$80"; it now says each Helpr's smallest share under the price.
+   */
+  crewSize?: number;
 }
 
 
@@ -83,6 +89,7 @@ export function BudgetSection({
   setCustomUrgentFee,
   budgetComplete,
   giftAmount = 0,
+  crewSize = 1,
 }: BudgetSectionProps) {
   // Design audit r2 #32: the price step's lines in the member's language (CARD_HOLD_COPY, the money promise shared with
   // the edge functions, stays as written).
@@ -168,6 +175,11 @@ export function BudgetSection({
               <Plus className="h-5 w-5" aria-hidden />
             </Button>
           </div>
+          {crewSize > 1 && budgetNum > 0 && (
+            <p className="text-center text-ds-12 text-muted-foreground" data-crew-each="">
+              {tr("postJob.f.crewEach", { n: String(crewSize), amount: `$${formatPriceExact(crewSmallestShare(budgetNum, crewSize))}` })}
+            </p>
+          )}
           {/* Gift note — the answer to "where did my gift card go?".
               Deliberately phrased as a DEDUCTION off whatever they choose,
               not as a budget suggestion: the field above stays the poster's

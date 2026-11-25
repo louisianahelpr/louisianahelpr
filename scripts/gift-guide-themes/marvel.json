@@ -1249,22 +1249,6 @@
    "commission": 10.5
   },
   {
-   "id": "MVL08",
-   "name": "LEGO Marvel Avengers: Endgame Final Battle",
-   "brand": "Marvel",
-   "line": "Toys and action figures for a Marvel fan.",
-   "href": "https://walmrt.us/4j1tM6i",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-marvel-avengers-endgame-final-battle-walmart-03b6d5.webp",
-   "store": "store-walmart",
-   "price": 80,
-   "priceAt": "2026-11-24",
-   "section": "Toys and action figures",
-   "sectionId": "marvel-toys-and-action-figures",
-   "was": 99.99,
-   "commission": 6,
-   "age": "10+"
-  },
-  {
    "id": "MVL09",
    "name": "LEGO Marvel 76313 Brick-Built MARVEL Sign & Minifigures",
    "brand": "Marvel",
@@ -2974,6 +2958,13 @@
   }
  ],
  "skipped": [
+  {
+   "id": "MVL08",
+   "name": "LEGO Marvel Avengers: Endgame Final Battle",
+   "why": [
+    "same product as MVS013 (same Walmart link walmrt.us/4j1tM6i, $80; lander4 11-25)"
+   ]
+  },
   {
    "id": "MVS011",
    "name": "Spiderman Boys Long Sleeve Top and Pant with Robe Pajama Set, 3PC",

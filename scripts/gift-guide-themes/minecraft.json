@@ -2,7 +2,7 @@
  "slug": "minecraft",
  "name": "Minecraft",
  "sectionPrefix": "minecraft",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/minecraft/items.json (Tue Nov 24 3:45 PM, 181 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/minecraft/items.json (Tue Nov 24 3:45 PM, 194 items)",
  "rows": [
   {
    "id": "MC01",
@@ -531,6 +531,22 @@
    "age": "kids"
   },
   {
+   "id": "MCK13",
+   "name": "Minecraft Boys' Game Over Graphic Tee (8-20)",
+   "brand": "Minecraft",
+   "line": "A little Minecraft gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110888362",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-boys-game-over-graphic-tee-8-20-kohls-664e3b.webp",
+   "store": "store-kohls",
+   "price": 7.99,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "minecraft-stocking-stuffers-under-10",
+   "was": 12.99,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
    "id": "MCK15",
    "name": "Minecraft Game Over Creeper Jumping Beans Long Sleeve Tee",
    "brand": "Minecraft",
@@ -560,6 +576,38 @@
    "sectionId": "minecraft-stocking-stuffers-under-10",
    "was": 12.99,
    "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "MCM04",
+   "name": "Epic Threads Boys' Just Keep Digging Minecraft Tee (Macy's exclusive)",
+   "brand": "Minecraft",
+   "line": "A little Minecraft gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110916979",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/epic-threads-boys-just-keep-digging-minecraft-tee-macys-excl-macys-050f86.webp",
+   "store": "store-macys",
+   "price": 8.8,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "minecraft-stocking-stuffers-under-10",
+   "was": 22,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MCM06",
+   "name": "Epic Threads Boys' Minecraft Bad Mobs Tee (Macy's exclusive)",
+   "brand": "Minecraft",
+   "line": "A little Minecraft gift for the stocking.",
+   "href": "https://go.shopmy.us/p-110917338",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/epic-threads-boys-minecraft-bad-mobs-tee-macys-exclusive-macys-5bafa2.webp",
+   "store": "store-macys",
+   "price": 8.8,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "minecraft-stocking-stuffers-under-10",
+   "was": 22,
+   "commission": 16,
    "age": "kids"
   },
   {
@@ -599,14 +647,15 @@
    "name": "Minecraft My Pet Creeper Interactive Toy",
    "brand": "Minecraft",
    "line": "Toys and role play for a Minecraft fan.",
-   "href": "https://walmrt.us/4APtKED",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-my-pet-creeper-interactive-toy-walmart-d4f66e.webp",
-   "store": "store-walmart",
-   "price": 29.97,
+   "href": "https://go.shopmy.us/p-110916346",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-my-pet-creeper-interactive-toy-macys-d4f66e.webp",
+   "store": "store-macys",
+   "price": 26.39,
    "priceAt": "2026-11-24",
    "section": "Toys and role play",
    "sectionId": "minecraft-toys-and-role-play",
-   "commission": 6,
+   "was": 32.99,
+   "commission": 16,
    "age": "6+"
   },
   {
@@ -675,14 +724,15 @@
    "name": "Minecraft Pixel Spyglass Toy",
    "brand": "Minecraft",
    "line": "Toys and role play for a Minecraft fan.",
-   "href": "https://walmrt.us/4zESApG",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-pixel-spyglass-toy-walmart-68c42a.webp",
-   "store": "store-walmart",
-   "price": 24.99,
+   "href": "https://go.shopmy.us/p-110917761",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-pixel-spyglass-toy-macys-68c42a.webp",
+   "store": "store-macys",
+   "price": 13.59,
    "priceAt": "2026-11-24",
    "section": "Toys and role play",
    "sectionId": "minecraft-toys-and-role-play",
-   "commission": 6,
+   "was": 16.99,
+   "commission": 16,
    "age": "kids",
    "ownerAdd": true
   },
@@ -895,6 +945,130 @@
    "sectionId": "minecraft-toys-and-role-play",
    "was": 29.99,
    "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "MCM01",
+   "name": "Minecraft Ender Dragon Dragon's Breath Attack 21.6-inch Action Figure",
+   "brand": "Minecraft",
+   "line": "Toys and role play for a Minecraft fan.",
+   "href": "https://go.shopmy.us/p-110916270",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-ender-dragon-dragons-breath-attack-21-6-inch-actio-macys-935340.webp",
+   "store": "store-macys",
+   "price": 35.99,
+   "priceAt": "2026-11-24",
+   "section": "Toys and role play",
+   "sectionId": "minecraft-toys-and-role-play",
+   "was": 44.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MCM03",
+   "name": "Minecraft Twisted Warden & Soul Corrupted Creeper Slam Attack Figures, 2-Pack",
+   "brand": "Minecraft",
+   "line": "Toys and role play for a Minecraft fan.",
+   "href": "https://go.shopmy.us/p-110916822",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-twisted-warden-soul-corrupted-creeper-slam-attack-macys-53a7e5.webp",
+   "store": "store-macys",
+   "price": 35.99,
+   "priceAt": "2026-11-24",
+   "section": "Toys and role play",
+   "sectionId": "minecraft-toys-and-role-play",
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MCM05",
+   "name": "Minecraft Chicken Jockey Action Figure 2-Pack with 3 Baby Zombie Faces",
+   "brand": "Minecraft",
+   "line": "Toys and role play for a Minecraft fan.",
+   "href": "https://go.shopmy.us/p-110917076",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-chicken-jockey-action-figure-2-pack-with-3-baby-zo-macys-7b07fb.webp",
+   "store": "store-macys",
+   "price": 27.99,
+   "priceAt": "2026-11-24",
+   "section": "Toys and role play",
+   "sectionId": "minecraft-toys-and-role-play",
+   "was": 39.99,
+   "commission": 16,
+   "age": "toddler"
+  },
+  {
+   "id": "MCM07",
+   "name": "Minecraft The Creaking 8-inch Lights and Sounds Action Figure",
+   "brand": "Minecraft",
+   "line": "Toys and role play for a Minecraft fan.",
+   "href": "https://go.shopmy.us/p-110917418",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-the-creaking-8-inch-lights-and-sounds-action-figur-macys-27cfba.webp",
+   "store": "store-macys",
+   "price": 21.59,
+   "priceAt": "2026-11-24",
+   "section": "Toys and role play",
+   "sectionId": "minecraft-toys-and-role-play",
+   "was": 26.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MCM09",
+   "name": "Epic Threads Boys' Creeper Survivor Mod Hooded Bomber Jacket (Macy's exclusive)",
+   "brand": "Minecraft",
+   "line": "Toys and role play for a Minecraft fan.",
+   "href": "https://go.shopmy.us/p-110917627",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/epic-threads-boys-creeper-survivor-mod-hooded-bomber-jacket-macys-5ec689.webp",
+   "store": "store-macys",
+   "price": 27.2,
+   "priceAt": "2026-11-24",
+   "section": "Toys and role play",
+   "sectionId": "minecraft-toys-and-role-play",
+   "was": 68,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MCM10",
+   "name": "Minecraft Standard Edition (PlayStation 5)",
+   "brand": "Minecraft",
+   "line": "Toys and role play for a Minecraft fan.",
+   "href": "https://go.shopmy.us/p-110917864",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-standard-edition-playstation-5-macys-bc5589.webp",
+   "store": "store-macys",
+   "price": 39.99,
+   "priceAt": "2026-11-24",
+   "section": "Toys and role play",
+   "sectionId": "minecraft-toys-and-role-play",
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MCM11",
+   "name": "Minecraft Dungeons Ultimate Edition (Nintendo Switch)",
+   "brand": "Minecraft",
+   "line": "Toys and role play for a Minecraft fan.",
+   "href": "https://go.shopmy.us/p-110918100",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-dungeons-ultimate-edition-nintendo-switch-macys-295ace.webp",
+   "store": "store-macys",
+   "price": 45.08,
+   "priceAt": "2026-11-24",
+   "section": "Toys and role play",
+   "sectionId": "minecraft-toys-and-role-play",
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MCM12",
+   "name": "Jada Minecraft MetalFigs 4-Piece Die-Cast Figures Set",
+   "brand": "Minecraft",
+   "line": "Toys and role play for a Minecraft fan.",
+   "href": "https://go.shopmy.us/p-110918186",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/jada-minecraft-metalfigs-4-piece-die-cast-figures-set-macys-9e20bb.webp",
+   "store": "store-macys",
+   "price": 36.99,
+   "priceAt": "2026-11-24",
+   "section": "Toys and role play",
+   "sectionId": "minecraft-toys-and-role-play",
+   "commission": 16,
    "age": "kids"
   },
   {
@@ -1222,15 +1396,30 @@
    "name": "LEGO Minecraft Wither Battle 21590",
    "brand": "Minecraft",
    "line": "LEGO for a Minecraft fan.",
-   "href": "https://go.shopmy.us/p-110891628",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-minecraft-wither-battle-21590-kohls-c19b94.webp",
-   "store": "store-kohls",
-   "price": 61.74,
+   "href": "https://go.shopmy.us/p-110916687",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-minecraft-wither-battle-21590-macys-c19b94.webp",
+   "store": "store-macys",
+   "price": 51.99,
    "priceAt": "2026-11-24",
    "section": "LEGO",
    "sectionId": "minecraft-lego",
    "was": 64.99,
-   "commission": 12,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "MCM13",
+   "name": "LEGO Minecraft Evoker Village Attack 21596",
+   "brand": "Minecraft",
+   "line": "LEGO for a Minecraft fan.",
+   "href": "https://go.shopmy.us/p-110918280",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-minecraft-evoker-village-attack-21596-macys-b3cede.webp",
+   "store": "store-macys",
+   "price": 89.99,
+   "priceAt": "2026-11-24",
+   "section": "LEGO",
+   "sectionId": "minecraft-lego",
+   "commission": 16,
    "age": "kids"
   },
   {
@@ -2345,6 +2534,22 @@
    "age": "kids"
   },
   {
+   "id": "MCK25",
+   "name": "adidas x Minecraft Pro Little Kid Shoes",
+   "brand": "Minecraft",
+   "line": "Clothes and slippers for a Minecraft fan.",
+   "href": "https://go.shopmy.us/p-110890720",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/adidas-x-minecraft-pro-little-kid-shoes-kohls-c93247.webp",
+   "store": "store-kohls",
+   "price": 45,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and slippers",
+   "sectionId": "minecraft-clothes-and-slippers",
+   "was": 60,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
    "id": "MCK26",
    "name": "Minecraft Creeper Survival Mode Boys' Sweatshirt (8-20)",
    "brand": "Minecraft",
@@ -2389,6 +2594,22 @@
    "sectionId": "minecraft-clothes-and-slippers",
    "was": 49.99,
    "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "MCM02",
+   "name": "Minecraft Little Boys Creeper Fleece Pullover Hoodie and Pants Set",
+   "brand": "Minecraft",
+   "line": "Clothes and slippers for a Minecraft fan.",
+   "href": "https://go.shopmy.us/p-110916548",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-little-boys-creeper-fleece-pullover-hoodie-and-pan-macys-1b0310.webp",
+   "store": "store-macys",
+   "price": 35,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and slippers",
+   "sectionId": "minecraft-clothes-and-slippers",
+   "was": 69.99,
+   "commission": 16,
    "age": "kids"
   },
   {
@@ -2800,10 +3021,10 @@
  ],
  "skipped": [
   {
-   "id": "MCK13",
-   "name": "Minecraft Boys' Game Over Graphic Tee (8-20)",
+   "id": "MCM08",
+   "name": "AME Boys' Zombie Creeper Minecraft Top and Pants Set",
    "why": [
-    "Kohl's photo shows a child wearing it (product photos only)"
+    "pajama cap: AME's Zombie Creeper top and pants set is a sleepwear set (2 pajama sets already in its price section; owner 11-20)"
    ]
   },
   {
@@ -2825,13 +3046,6 @@
    "name": "Minecraft Zombie and Creeper Boys' Pajama Set (6-12)",
    "why": [
     "Kohl's photo shows a child wearing it (product photos only)"
-   ]
-  },
-  {
-   "id": "MCK25",
-   "name": "adidas x Minecraft Pro Little Kid Shoes",
-   "why": [
-    "Kohl's has no product photo (placeholder)"
    ]
   },
   {

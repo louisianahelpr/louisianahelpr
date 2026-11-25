@@ -10,7 +10,7 @@ export const GUIDE_UPDATED = {
   },
   "kids": {
     "day": "2026-11-25",
-    "hash": "5a714276a76c4bcb"
+    "hash": "922e24fe5d355b3c"
   },
   "25-days-sponsors": {
     "day": "2026-11-24",

@@ -137,12 +137,13 @@
     "MJO40",
     "MJO41",
     "MJO42",
-    "MJ07"
+    "MJO45"
    ]
   },
   {
    "file": "monster-jam-guide-11.png",
    "ids": [
+    "MJ07",
     "MJ70",
     "MJ71",
     "MJ80",
@@ -150,13 +151,13 @@
     "MJ83",
     "MJ85",
     "MJ86",
-    "MJ87",
-    "MJ90"
+    "MJ87"
    ]
   },
   {
    "file": "monster-jam-guide-12.png",
    "ids": [
+    "MJ90",
     "MJ91",
     "MJ92",
     "MJ93",

@@ -47,6 +47,104 @@ export const KIDS_STEALS_1124_ROWS = [
   ["https://walmrt.us/4CcMa3A", 5, "https://i5.walmartimages.com/seo/MONSTER-JAM-GRAVE-DI_def5b20b-fbde-4411-b535-8bf50039e548.c2076dadbc2472328eabc7b3f1a55779.jpeg", "Monster Jam Grave Digger Toddler Slippers", "Monster Jam", "store-walmart", "slippers", 15, "Grave Digger slippers for little feet."],
   // S30 (reg. $12.98), sizes 12M-5T; the listing's character is Bluey.
   ["https://walmrt.us/3VHA424", 5.84, "https://i5.walmartimages.com/seo/Character-Toddler-Long-Sleeve-Top-and-Pant-Pajama-Set-2-Piece-Sizes-12M-5T_85a8419b-f3f7-4696-a1fb-5ac768017ac8.20bc5657ccf727ebdbdb6c2dde622e53.jpeg", "Bluey Toddler Pajama Set", "Bluey", "store-walmart", "pajamas", 15, "A cozy Bluey pajama set for toddlers."],
+  // OWNER SCREENSHOT PICKS, round 3 (owner 11-24 ~11:08-11:15 PM walmart.com screenshots via the lead; her 11:30 PM rule "if i send it
+  // add it unless its a duplicate"; non-theme items go on Kids). The multi-print Walmart listings she sent ("Character" toddler/kids pajama
+  // sets, coat-top sets, one-piece sleepers, fleece robe, patriotic tee, beanie + gloves): each print with no theme guide is its own row
+  // here, one walmrt.us link per print variant (Walmart Creator API, 11-25 ~12:20 AM); the Bluey, Marvel, Cars, Pokemon, Minecraft and
+  // Monster Jam prints are on their theme guides. Walmart Creator Black Friday apparel rate 15%, toys 6%.
+  // Owner pick (via the lead, 11-24 night): Target A-1010386996 read 11-25 ~12:15 AM (redsky): $59.99, reg $59.99. Her ShopMy link (made by the
+  // lead; never opened). ShopMy Target toys 4%.
+  ["https://go.shopmy.us/p-110699595", 59.99, "https://target.scene7.com/is/image/Target/GUEST_aa607c4c-29d7-4ce2-af5b-587ebde268f0", "PAW Patrol My Size Lookout Tower Vehicle Playset", "PAW Patrol", "store-target", "playset", 4, "A kid-size PAW Patrol Lookout Tower with a working elevator."],
+  // #8 print SpongeBob SquarePants Blue: walmart.com/ip/20389152512 read 11-25 ~12:25 AM, $5.4, was $10.98, sold by Walmart.com.
+  ["https://walmrt.us/4eUyq3F", 5.4, "https://i5.walmartimages.com/asr/2ebd2ffc-3fe0-41ea-a2a7-89c10d55fa40.ad137f7373e995ff3ebad5439edbb758.jpeg", "SpongeBob Toddler Pajama Set (12M-5T)", "Nickelodeon", "store-walmart", "pajamas", 15, "SpongeBob pajamas at a Black Friday price."],
+  // #8 print Disney Princess Pink: walmart.com/ip/20369808997 read 11-25 ~12:25 AM, $5.4, was $10.98, sold by Walmart.com.
+  ["https://walmrt.us/4lc3orK", 5.4, "https://i5.walmartimages.com/asr/ffaee3a0-afdb-48b2-8b58-927bdd968029.49055b2639cae3288f4a732efc800e92.jpeg", "Disney Princess Toddler Pajama Set, Pink (12M-5T)", "Disney", "store-walmart", "pajamas", 15, "Disney Princess pajamas at a Black Friday price."],
+  // #8 print How The Grinch Stole Christmas Red: walmart.com/ip/20398568986 read 11-25 ~12:25 AM, $5.4, was $10.98, sold by Walmart.com.
+  ["https://walmrt.us/4zETfHG", 5.4, "https://i5.walmartimages.com/asr/3deb60dd-e31f-450a-be92-f0792f7bad41.c5785be7e2e2c296d6f278f59fb8ea2a.jpeg", "Grinch Toddler Pajama Set, Red (12M-5T)", "Dr. Seuss", "store-walmart", "pajamas", 15, "Grinch pajamas at a Black Friday price."],
+  // #17 print Toy Story Blue: walmart.com/ip/20386967657 read 11-25 ~12:25 AM, $7.19, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4eVQ07i", 7.19, "https://i5.walmartimages.com/asr/4ee60411-45a7-4672-8fd3-34eb543cefe6.18d5db898fa8312d61f343d68ca1b677.jpeg", "Toy Story Toddler Coat-Top Pajama Set (12M-5T)", "Disney Pixar", "store-walmart", "pajamas", 15, "Toy Story pajamas at a Black Friday price."],
+  // #17 print Paw Patrol Blue: walmart.com/ip/20405856543 read 11-25 ~12:25 AM, $7.19, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4AXpPpv", 7.19, "https://i5.walmartimages.com/asr/3df14a41-6925-4f54-984d-07e1c6c1e9df.ead35d5940ee90daab4d22be0adfce76.jpeg", "PAW Patrol Toddler Coat-Top Pajama Set (12M-5T)", "PAW Patrol", "store-walmart", "pajamas", 15, "PAW Patrol pajamas at a Black Friday price."],
+  // #17 print Barbie: walmart.com/ip/5430873089 read 11-25 ~12:25 AM, $15.99, sold by Walmart.com.
+  ["https://walmrt.us/4eWzgNd", 15.99, "https://i5.walmartimages.com/asr/fafd9f5f-77d4-4fab-9c7f-c9f67132c40c.9d13039c6fb94a9cfd84a453569ea44e.jpeg", "Barbie Toddler Coat-Top Pajama Set (2T-5T)", "Barbie", "store-walmart", "pajamas", 15, "Barbie pajamas at a Black Friday price."],
+  // #17 print Hello Kitty: walmart.com/ip/20197123334 read 11-25 ~12:25 AM, $7.19, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4iW9on6", 7.19, "https://i5.walmartimages.com/asr/5e1bfb70-f352-47e1-9b2b-6f915d85fb89.e0c093ce2ebeb9831ed5adbf810fd03f.jpeg", "Hello Kitty Toddler Coat-Top Pajama Set (12M-5T)", "Hello Kitty", "store-walmart", "pajamas", 15, "Hello Kitty pajamas at a Black Friday price."],
+  // #17 print Strawberry Shortcake Blue: walmart.com/ip/20386967653 read 11-25 ~12:25 AM, $7.19, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/48Ej3ZE", 7.19, "https://i5.walmartimages.com/asr/b17dc25a-2a4c-46af-9edc-dc722f18288e.b6fb2b224dcfeb438d711c68f3567732.jpeg", "Strawberry Shortcake Toddler Coat-Top Pajama Set (12M-5T)", "Strawberry Shortcake", "store-walmart", "pajamas", 15, "Strawberry Shortcake pajamas at a Black Friday price."],
+  // #17 print Mickey Mouse Grey: walmart.com/ip/20355162857 read 11-25 ~12:25 AM, $7.19, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4j1P1VH", 7.19, "https://i5.walmartimages.com/asr/b06e3d84-ac3f-45d5-8f84-a2251192fcbb.4669a86c3ab63577707a024650571205.jpeg", "Mickey Mouse Toddler Coat-Top Pajama Set (12M-5T)", "Disney", "store-walmart", "pajamas", 15, "Mickey Mouse pajamas at a Black Friday price."],
+  // #17 print Minnie: walmart.com/ip/20434060218 read 11-25 ~12:25 AM, $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4fPIaMM", 12.98, "https://i5.walmartimages.com/asr/c12c540a-ce7d-4d26-83f5-eed6d2cd0f60.f462ec92b5ec2f7632263ddf7b60f54c.jpeg", "Minnie Mouse Toddler Coat-Top Pajama Set (12M-5T)", "Disney", "store-walmart", "pajamas", 15, "Minnie Mouse pajamas at a Black Friday price."],
+  // #17 print Tonka: walmart.com/ip/20233415040 read 11-25 ~12:25 AM, $7.19, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/3VHakCW", 7.19, "https://i5.walmartimages.com/asr/cc8c8286-6c3e-4aee-884a-e6b1e6c1fbb5.83c3fedf566ba8b545d337239b6cb5da.jpeg", "Tonka Toddler Coat-Top Pajama Set (12M-5T)", "Tonka", "store-walmart", "pajamas", 15, "Tonka pajamas at a Black Friday price."],
+  // #17 print Princess: walmart.com/ip/20417757802 read 11-25 ~12:25 AM, $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4tjUhqV", 12.98, "https://i5.walmartimages.com/asr/9576c00f-8eed-40f9-8cca-e740662c1803.9298c12850a5e22e21827a2031705bc6.jpeg", "Disney Princess Toddler Coat-Top Pajama Set (12M-5T)", "Disney", "store-walmart", "pajamas", 15, "Disney Princess pajamas at a Black Friday price."],
+  // #17 print Barbie Pink: walmart.com/ip/20166867398 read 11-25 ~12:25 AM, $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4lbUIl6", 12.98, "https://i5.walmartimages.com/asr/047dce25-f472-4a5c-a459-c4ebe35dbb5c.3cdb476e191f4e081eb2963f76110e32.jpeg", "Barbie Toddler Coat-Top Pajama Set, Pink (12M-5T)", "Barbie", "store-walmart", "pajamas", 15, "Barbie pajamas at a Black Friday price."],
+  // #27 print Disney Princess Pink: walmart.com/ip/20140608346 read 11-25 ~12:25 AM, $7, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4lbUESo", 7.0, "https://i5.walmartimages.com/asr/55ef313b-6669-4a28-abfb-03734a50a3be.f56880b9f3f02e3f1a081f19b7e1b450.jpeg", "Disney Princess Kids Pajama Set (4-16)", "Disney", "store-walmart", "pajamas", 15, "Disney Princess pajamas at a Black Friday price."],
+  // #27 print Super Mario Purple: walmart.com/ip/20140508718 read 11-25 ~12:25 AM, $7, sold by Walmart.com.
+  ["https://walmrt.us/4A7xCkw", 7.0, "https://i5.walmartimages.com/asr/6dd738f3-1d78-4e91-a90e-e221e67d8948.1791e22c86efa528750ef835afce7d11.jpeg", "Super Mario Kids Pajama Set, Purple (4-16)", "Nintendo", "store-walmart", "pajamas", 15, "Super Mario pajamas at a Black Friday price."],
+  // #27 print Super Mario Blue: walmart.com/ip/20098360915 read 11-25 ~12:25 AM, $7, sold by Walmart.com.
+  ["https://walmrt.us/4AQzIVE", 7.0, "https://i5.walmartimages.com/asr/360e68a9-b50a-4c3a-9a17-15ccef70434c.82ae25a0f268c1e4b3429bb0ba45ce39.jpeg", "Super Mario Kids Pajama Set, Blue (4-16)", "Nintendo", "store-walmart", "pajamas", 15, "Super Mario pajamas at a Black Friday price."],
+  // #27 print Hello Kitty Purple: walmart.com/ip/20160254345 read 11-25 ~12:25 AM, $7, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4AaBwJk", 7.0, "https://i5.walmartimages.com/asr/894ad2aa-37c1-4b5a-a10e-9cbaa60dedee.90b20f4cfa81ca5485cb0d5e00cfd9db.jpeg", "Hello Kitty Kids Pajama Set, Purple (4-16)", "Hello Kitty", "store-walmart", "pajamas", 15, "Hello Kitty pajamas at a Black Friday price."],
+  // #27 print Hello Kitty Red: walmart.com/ip/20167205509 read 11-25 ~12:25 AM, $7, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4tlQ2eK", 7.0, "https://i5.walmartimages.com/asr/6f575ffd-8900-46d5-83c3-617fedfc7694.e9da7557e5da15986819c85a1d805862.jpeg", "Hello Kitty Kids Pajama Set, Red (4-16)", "Hello Kitty", "store-walmart", "pajamas", 15, "Hello Kitty pajamas at a Black Friday price."],
+  // #27 print Frozen Blue: walmart.com/ip/20160254339 read 11-25 ~12:25 AM, $7, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4eZnjGG", 7.0, "https://i5.walmartimages.com/asr/fae8f15b-58e1-477d-9b8a-d5b34284060e.08c596f66fa8a90f174ca7001b011cf3.jpeg", "Frozen Kids Pajama Set (4-16)", "Disney", "store-walmart", "pajamas", 15, "Frozen pajamas at a Black Friday price."],
+  // #27 print Lilo & Stitch Blue: walmart.com/ip/20167155634 read 11-25 ~12:25 AM, $7, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4Aa49X8", 7.0, "https://i5.walmartimages.com/asr/4cc12905-68a7-4ffd-953e-3c78731435d4.4f198f76f3f81f3d56bb12dcfc2619bd.jpeg", "Lilo & Stitch Kids Pajama Set, Blue (4-16)", "Disney", "store-walmart", "pajamas", 15, "Lilo & Stitch pajamas at a Black Friday price."],
+  // #27 print Lilo & Stitch Pink: walmart.com/ip/20144763452 read 11-25 ~12:25 AM, $7, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4ARwgKs", 7.0, "https://i5.walmartimages.com/asr/e8dc85b2-908a-4207-8f3a-6fcf568d669e.3d10978fd4ee62f48b9c47d9df03d161.jpeg", "Lilo & Stitch Kids Pajama Set, Pink (4-16)", "Disney", "store-walmart", "pajamas", 15, "Lilo & Stitch pajamas at a Black Friday price."],
+  // #27 print Jurassic World Orange: walmart.com/ip/20073103005 read 11-25 ~12:25 AM, $7, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/3Vg2vDU", 7.0, "https://i5.walmartimages.com/asr/6bba4e57-5147-4ec1-bac0-813078a168d7.ec95580470e8da93de03df051a73f5a3.jpeg", "Jurassic World Kids Pajama Set (4-16)", "Jurassic World", "store-walmart", "pajamas", 15, "Jurassic World pajamas at a Black Friday price."],
+  // #27 print Sonic Blue: walmart.com/ip/20073103004 read 11-25 ~12:25 AM, $7, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4tfD9Tf", 7.0, "https://i5.walmartimages.com/asr/2754ebbd-be3d-43b3-808f-597f462ab6b3.5909ddb8283bac9b04a357fcd43deeb8.jpeg", "Sonic Kids Pajama Set (4-16)", "Sonic the Hedgehog", "store-walmart", "pajamas", 15, "Sonic pajamas at a Black Friday price."],
+  // #27 print Ninja Turtles Green: walmart.com/ip/20058008197 read 11-25 ~12:25 AM, $7, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/3Vj4Kqe", 7.0, "https://i5.walmartimages.com/asr/22b867fd-a3d6-4117-885c-ac0c63191dee.69c2407749596105c702cf769972ca76.jpeg", "Teenage Mutant Ninja Turtles Kids Pajama Set (4-16)", "Nickelodeon", "store-walmart", "pajamas", 15, "Teenage Mutant Ninja Turtles pajamas at a Black Friday price."],
+  // #27 print Barbie White: walmart.com/ip/20180056418 read 11-25 ~12:25 AM, $7, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4tl8fZF", 7.0, "https://i5.walmartimages.com/asr/871fd944-6ae5-4a57-be62-c6cf606869b1.528d06fbe5af70830d8905304f283833.jpeg", "Barbie Kids Pajama Set (4-16)", "Barbie", "store-walmart", "pajamas", 15, "Barbie pajamas at a Black Friday price."],
+  // #27 print Toy Story Blue: walmart.com/ip/20082018805 read 11-25 ~12:25 AM, $7, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4tgDB3I", 7.0, "https://i5.walmartimages.com/asr/3b3f91b7-5af1-4149-827f-167715111605.e1966f8953a9c13ead95d703a476b000.jpeg", "Toy Story Kids Pajama Set (4-16)", "Disney Pixar", "store-walmart", "pajamas", 15, "Toy Story pajamas at a Black Friday price."],
+  // #27 print The Grinch Pink: walmart.com/ip/20160254347 read 11-25 ~12:25 AM, $7, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4A0YC4p", 7.0, "https://i5.walmartimages.com/asr/4922d1a2-ccf4-45a5-9e2e-21a8467c4fe1.1650015e1358693d870dac478458282f.jpeg", "Grinch Kids Pajama Set, Pink (4-16)", "Dr. Seuss", "store-walmart", "pajamas", 15, "Grinch pajamas at a Black Friday price."],
+  // #64 print Care Bears Blue: walmart.com/ip/20369808086 read 11-25 ~12:25 AM, $5.4, was $10.98, sold by Walmart.com.
+  ["https://walmrt.us/4zGPOjQ", 5.4, "https://i5.walmartimages.com/asr/f5d3d7cb-4f0e-404e-8bbd-7cf47633ba77.5c780257a5748f0ca073e1c69d90217d.jpeg", "Care Bears Toddler One-Piece Sleeper (2T-5T)", "Care Bears", "store-walmart", "pajamas", 15, "A one-piece Care Bears sleeper for toddlers."],
+  // #64 print Minnie Red: walmart.com/ip/20405856677 read 11-25 ~12:25 AM, $5.4, was $10.98, sold by Walmart.com.
+  ["https://walmrt.us/48I4xQr", 5.4, "https://i5.walmartimages.com/asr/3efcd901-4b2f-4510-b78f-5ab3388c239d.451fa83be286167d9075ab0ead747a9f.jpeg", "Minnie Mouse Toddler One-Piece Sleeper (2T-5T)", "Disney", "store-walmart", "pajamas", 15, "A one-piece Minnie Mouse sleeper for toddlers."],
+  // #64 print Disney Princess Blue: walmart.com/ip/20362270201 read 11-25 ~12:25 AM, $5.4, was $10.98, sold by Walmart.com.
+  ["https://walmrt.us/4kzGB9d", 5.4, "https://i5.walmartimages.com/asr/63a7a91c-78c1-4fd6-b62c-7a62c451ec42.12c899427a9c8891693f96daf6537d6c.jpeg", "Disney Princess Toddler One-Piece Sleeper (2T-5T)", "Disney", "store-walmart", "pajamas", 15, "A one-piece Disney Princess sleeper for toddlers."],
+  // #65 print How The Grinch Stole Christmas White: walmart.com/ip/20389102588 read 11-25 ~12:25 AM, $6.3, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4jBxIKf", 6.3, "https://i5.walmartimages.com/asr/e48d05c0-6d9b-4819-a050-a9576ab34c3b.fc53795d6005913ecdfaf33f1e189e0b.jpeg", "Grinch Toddler Fleece Robe (12M-5T)", "Dr. Seuss", "store-walmart", "robe", 15, "A fleece Grinch robe for toddlers."],
+  // #65 print Strawberry Shortcake Pink: walmart.com/ip/20398618096 read 11-25 ~12:25 AM, $6.3, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4jaUUPc", 6.3, "https://i5.walmartimages.com/asr/28ede100-bd45-40d7-a7d7-47646c097eac.1bddfd91848c45ea91adab82b152caaa.jpeg", "Strawberry Shortcake Toddler Fleece Robe (12M-5T)", "Strawberry Shortcake", "store-walmart", "robe", 15, "A fleece Strawberry Shortcake robe for toddlers."],
+  // #65 print Minnie Mouse Pink: walmart.com/ip/20335801879 read 11-25 ~12:25 AM, $6.3, was $12.98, sold by Walmart.com.
+  ["https://walmrt.us/4jb5vcF", 6.3, "https://i5.walmartimages.com/asr/d5e48c94-eb64-44e9-9ce0-11ca27aaf1ad.1cd80398f966aed0905dd0ed2d190af4.jpeg", "Minnie Mouse Toddler Fleece Robe (12M-5T)", "Disney", "store-walmart", "robe", 15, "A fleece Minnie Mouse robe for toddlers."],
+  // #66 print Minnie Mouse Vivid White: walmart.com/ip/19191554965 read 11-25 ~12:25 AM, $10, sold by Walmart.com.
+  ["https://walmrt.us/4j9FpqC", 10.0, "https://i5.walmartimages.com/asr/8fdaacd3-1710-4f71-8514-fc081b812912.808255a2df42cc2c02012ee8b7b060a0.jpeg", "Minnie Mouse Toddler Patriotic Tee (12M-5T)", "Disney", "store-walmart", "tee", 15, "A patriotic Minnie Mouse tee for toddlers."],
+  // #66 print Toy Story Pink Frost: walmart.com/ip/19179908893 read 11-25 ~12:25 AM, $14, sold by Walmart.com.
+  ["https://walmrt.us/4A1HtrP", 14.0, "https://i5.walmartimages.com/asr/a4819d31-0543-446d-b4a4-562f291e43a8.ecf712cb861fd37be72c5f9659654555.jpeg", "Toy Story Toddler Patriotic Tee (12M-5T)", "Disney Pixar", "store-walmart", "tee", 15, "A patriotic Toy Story tee for toddlers."],
+  // #66 print Stitch Rally Blue: walmart.com/ip/19201107354 read 11-25 ~12:25 AM, $11.97, sold by Walmart.com.
+  ["https://walmrt.us/4jamQm7", 11.97, "https://i5.walmartimages.com/asr/2ac162af-6c13-45e1-b85a-734c6cae7e70.0e3603d3c0c859ef8469cbe34fc33dd2.jpeg", "Stitch Toddler Patriotic Tee (12M-5T)", "Disney", "store-walmart", "tee", 15, "A patriotic Stitch tee for toddlers."],
+  // #66 print Mickey Mouse Blue Crest: walmart.com/ip/19171211827 read 11-25 ~12:25 AM, $14, sold by Walmart.com.
+  ["https://walmrt.us/3X7CzuU", 14.0, "https://i5.walmartimages.com/asr/1308c9ef-0e89-4578-a9b8-24f039ec5f98.ef4339f86c2a22cc9443af30d4a63296.jpeg", "Mickey Mouse Toddler Patriotic Tee (12M-5T)", "Disney", "store-walmart", "tee", 15, "A patriotic Mickey Mouse tee for toddlers."],
+  // #66 print Hello Kitty Clear Sky: walmart.com/ip/13947161779 read 11-25 ~12:25 AM, $14.49, sold by Walmart.com.
+  ["https://walmrt.us/4A1xnHu", 14.49, "https://i5.walmartimages.com/asr/c246c850-105b-42c7-b6c7-1c4d4ee908d9.93adff5b41e98fa699a0ba4b1e29d1b5.jpeg", "Hello Kitty Toddler Patriotic Tee (12M-5T)", "Hello Kitty", "store-walmart", "tee", 15, "A patriotic Hello Kitty tee for toddlers."],
+  // #78 print Hello Kitty: walmart.com/ip/20493453524 read 11-25 ~12:25 AM, $7, was $11.98, sold by Walmart.com.
+  ["https://walmrt.us/4fqQX7K", 7.0, "https://i5.walmartimages.com/asr/d0773dd6-c747-4f9d-bbde-339c52ff3532.644388db831d18ffd32469c0a51024f9.jpeg", "Hello Kitty Toddler Girls Beanie and Gloves Set", "Hello Kitty", "store-walmart", "hat", 15, "A Hello Kitty beanie with matching gloves."],
+  // #78 print Lilo & Stitch: walmart.com/ip/20178702330 read 11-25 ~12:25 AM, $7, sold by Walmart.com.
+  ["https://walmrt.us/4jb5wgJ", 7.0, "https://i5.walmartimages.com/asr/a4c55790-df92-4cdc-b3f9-ca6ba5525081.a511fa68d50ad2ba3f13f6bf5232fcdf.jpeg", "Lilo & Stitch Toddler Girls Beanie and Gloves Set", "Disney", "store-walmart", "hat", 15, "A Lilo & Stitch beanie with matching gloves."],
+  // #78 print Toy Story Jessie: walmart.com/ip/20187555500 read 11-25 ~12:25 AM, $11.98, sold by Walmart.com.
+  ["https://walmrt.us/4jhFZmp", 11.98, "https://i5.walmartimages.com/asr/b512b8c8-a164-434c-941a-46c55006adda.f7d7b1a94dfc67789c5ba9ae98233b02.jpeg", "Toy Story Jessie Toddler Girls Beanie and Gloves Set", "Disney Pixar", "store-walmart", "hat", 15, "A Toy Story Jessie beanie with matching gloves."],
+  // #78 print Toy Story: walmart.com/ip/20122651246 read 11-25 ~12:25 AM, $11.98, sold by Walmart.com.
+  ["https://walmrt.us/4j8cZ03", 11.98, "https://i5.walmartimages.com/asr/f6c684e2-142b-4dfa-8942-4f7dab88025b.41a792897967012f1485352504c441ac.jpeg", "Toy Story Toddler Girls Beanie and Gloves Set", "Disney Pixar", "store-walmart", "hat", 15, "A Toy Story beanie with matching gloves."],
+  // non-Bluey item print Paw Patrol: walmart.com/ip/5395472280 read 11-25 ~12:25 AM, $4.5, was $9.98, sold by Walmart.com.
+  ["https://walmrt.us/3Vfu4xm", 4.5, "https://i5.walmartimages.com/asr/ef7d50b4-9a5c-4f2b-807c-579889bc4cdc.bb33e009f98fc8f410ea8a125eb931fb.jpeg", "PAW Patrol Toddler Pajama Set (12M-5T)", "PAW Patrol", "store-walmart", "pajamas", 15, "PAW Patrol pajamas at a Black Friday price."],
+  // non-Bluey item print Ms. Rachel Platinum Silver Heather: walmart.com/ip/18523809793 read 11-25 ~12:25 AM, $3.38, sold by Walmart.com.
+  ["https://walmrt.us/4ANUqp7", 3.38, "https://i5.walmartimages.com/asr/f403338a-c23f-474d-b079-4d6af1886e1e.0ae877f0943aacdd60b5e3bf80e2a855.jpeg", "Ms. Rachel Baby Girls Tee and Shorts Set (0-9M)", "Ms. Rachel", "store-walmart", "baby-outfit", 15, "A sweet Ms. Rachel tee and shorts set for babies."],
+  // non-Bluey item: walmart.com/ip/1755280341 read 11-25 ~12:25 AM, $11.04, was $12.99, sold by Walmart.com.
+  ["https://walmrt.us/4ku91Bo", 11.04, "https://i5.walmartimages.com/asr/f1e5ed5c-9c8c-4039-9601-53eb93bc24d7.a3f4a70fcc79512f97fe3036c051d341.jpeg", "Disney Eeyore Mini Bean Bag Plush", "Disney", "store-walmart", "plush", 6, "A soft little Eeyore to hug."],
   // Owner ~3:10 AM (kohls.com screenshot, "Add this."): Kohl's $44.99 sale (reg $59.99, not eligible for coupons), ages 3+.
   // Store check 11-24 ~3:08 AM: Target $67.99 (lead), Walmart $71 / a $99.22 marketplace seller, Amazon ~$111; Kohl's wins and
   // pays 10.5% through Later (link made ~3:29 AM when Later signed in again; ShopMy has no Kohl's).
@@ -130,6 +228,52 @@ export const HIM_STEALS_1124_ROWS = [
 
 /** Store photos for the steals, cut out (Apple Vision) into public/gift-guides/cutouts: photo URL -> file. */
 export const STEALS_CUTOUTS_1124 = [
+  ["https://target.scene7.com/is/image/Target/GUEST_aa607c4c-29d7-4ce2-af5b-587ebde268f0", "paw-patrol-my-size-lookout-tower-vehicle-playset-target-5cef1e.webp"],
+  ["https://i5.walmartimages.com/asr/2ebd2ffc-3fe0-41ea-a2a7-89c10d55fa40.ad137f7373e995ff3ebad5439edbb758.jpeg", "spongebob-toddler-pajama-set-12m-5t-walmart-fe120b.webp"],
+  ["https://i5.walmartimages.com/asr/ffaee3a0-afdb-48b2-8b58-927bdd968029.49055b2639cae3288f4a732efc800e92.jpeg", "disney-princess-toddler-pajama-set-pink-12m-5t-walmart-4ee2ef.webp"],
+  ["https://i5.walmartimages.com/asr/3deb60dd-e31f-450a-be92-f0792f7bad41.c5785be7e2e2c296d6f278f59fb8ea2a.jpeg", "grinch-toddler-pajama-set-red-12m-5t-walmart-53c862.webp"],
+  ["https://i5.walmartimages.com/asr/4ee60411-45a7-4672-8fd3-34eb543cefe6.18d5db898fa8312d61f343d68ca1b677.jpeg", "toy-story-toddler-coat-top-pajama-set-12m-5t-walmart-dbdcba.webp"],
+  ["https://i5.walmartimages.com/asr/3df14a41-6925-4f54-984d-07e1c6c1e9df.ead35d5940ee90daab4d22be0adfce76.jpeg", "paw-patrol-toddler-coat-top-pajama-set-12m-5t-walmart-ec0179.webp"],
+  ["https://i5.walmartimages.com/asr/fafd9f5f-77d4-4fab-9c7f-c9f67132c40c.9d13039c6fb94a9cfd84a453569ea44e.jpeg", "barbie-toddler-coat-top-pajama-set-2t-5t-walmart-a1731a.webp"],
+  ["https://i5.walmartimages.com/asr/5e1bfb70-f352-47e1-9b2b-6f915d85fb89.e0c093ce2ebeb9831ed5adbf810fd03f.jpeg", "hello-kitty-toddler-coat-top-pajama-set-12m-5t-walmart-08e1f1.webp"],
+  ["https://i5.walmartimages.com/asr/b17dc25a-2a4c-46af-9edc-dc722f18288e.b6fb2b224dcfeb438d711c68f3567732.jpeg", "strawberry-shortcake-toddler-coat-top-pajama-set-12m-5t-walmart-5b6611.webp"],
+  ["https://i5.walmartimages.com/asr/b06e3d84-ac3f-45d5-8f84-a2251192fcbb.4669a86c3ab63577707a024650571205.jpeg", "mickey-mouse-toddler-coat-top-pajama-set-12m-5t-walmart-3e7fb7.webp"],
+  ["https://i5.walmartimages.com/asr/c12c540a-ce7d-4d26-83f5-eed6d2cd0f60.f462ec92b5ec2f7632263ddf7b60f54c.jpeg", "minnie-mouse-toddler-coat-top-pajama-set-12m-5t-walmart-b4f160.webp"],
+  ["https://i5.walmartimages.com/asr/cc8c8286-6c3e-4aee-884a-e6b1e6c1fbb5.83c3fedf566ba8b545d337239b6cb5da.jpeg", "tonka-toddler-coat-top-pajama-set-12m-5t-walmart-5fb01e.webp"],
+  ["https://i5.walmartimages.com/asr/9576c00f-8eed-40f9-8cca-e740662c1803.9298c12850a5e22e21827a2031705bc6.jpeg", "disney-princess-toddler-coat-top-pajama-set-12m-5t-walmart-179e3d.webp"],
+  ["https://i5.walmartimages.com/asr/047dce25-f472-4a5c-a459-c4ebe35dbb5c.3cdb476e191f4e081eb2963f76110e32.jpeg", "barbie-toddler-coat-top-pajama-set-pink-12m-5t-walmart-e2eb1b.webp"],
+  ["https://i5.walmartimages.com/asr/55ef313b-6669-4a28-abfb-03734a50a3be.f56880b9f3f02e3f1a081f19b7e1b450.jpeg", "disney-princess-kids-pajama-set-4-16-walmart-bc6178.webp"],
+  ["https://i5.walmartimages.com/asr/6dd738f3-1d78-4e91-a90e-e221e67d8948.1791e22c86efa528750ef835afce7d11.jpeg", "super-mario-kids-pajama-set-purple-4-16-walmart-61ea14.webp"],
+  ["https://i5.walmartimages.com/asr/360e68a9-b50a-4c3a-9a17-15ccef70434c.82ae25a0f268c1e4b3429bb0ba45ce39.jpeg", "super-mario-kids-pajama-set-blue-4-16-walmart-aff255.webp"],
+  ["https://i5.walmartimages.com/asr/894ad2aa-37c1-4b5a-a10e-9cbaa60dedee.90b20f4cfa81ca5485cb0d5e00cfd9db.jpeg", "hello-kitty-kids-pajama-set-purple-4-16-walmart-d9701d.webp"],
+  ["https://i5.walmartimages.com/asr/6f575ffd-8900-46d5-83c3-617fedfc7694.e9da7557e5da15986819c85a1d805862.jpeg", "hello-kitty-kids-pajama-set-red-4-16-walmart-6679de.webp"],
+  ["https://i5.walmartimages.com/asr/fae8f15b-58e1-477d-9b8a-d5b34284060e.08c596f66fa8a90f174ca7001b011cf3.jpeg", "frozen-kids-pajama-set-4-16-walmart-ffe9a0.webp"],
+  ["https://i5.walmartimages.com/asr/4cc12905-68a7-4ffd-953e-3c78731435d4.4f198f76f3f81f3d56bb12dcfc2619bd.jpeg", "lilo-stitch-kids-pajama-set-blue-4-16-walmart-9e324d.webp"],
+  ["https://i5.walmartimages.com/asr/e8dc85b2-908a-4207-8f3a-6fcf568d669e.3d10978fd4ee62f48b9c47d9df03d161.jpeg", "lilo-stitch-kids-pajama-set-pink-4-16-walmart-a5ba23.webp"],
+  ["https://i5.walmartimages.com/asr/6bba4e57-5147-4ec1-bac0-813078a168d7.ec95580470e8da93de03df051a73f5a3.jpeg", "jurassic-world-kids-pajama-set-4-16-walmart-c860a5.webp"],
+  ["https://i5.walmartimages.com/asr/2754ebbd-be3d-43b3-808f-597f462ab6b3.5909ddb8283bac9b04a357fcd43deeb8.jpeg", "sonic-kids-pajama-set-4-16-walmart-214000.webp"],
+  ["https://i5.walmartimages.com/asr/22b867fd-a3d6-4117-885c-ac0c63191dee.69c2407749596105c702cf769972ca76.jpeg", "teenage-mutant-ninja-turtles-kids-pajama-set-4-16-walmart-3f122a.webp"],
+  ["https://i5.walmartimages.com/asr/871fd944-6ae5-4a57-be62-c6cf606869b1.528d06fbe5af70830d8905304f283833.jpeg", "barbie-kids-pajama-set-4-16-walmart-823678.webp"],
+  ["https://i5.walmartimages.com/asr/3b3f91b7-5af1-4149-827f-167715111605.e1966f8953a9c13ead95d703a476b000.jpeg", "toy-story-kids-pajama-set-4-16-walmart-75fb38.webp"],
+  ["https://i5.walmartimages.com/asr/4922d1a2-ccf4-45a5-9e2e-21a8467c4fe1.1650015e1358693d870dac478458282f.jpeg", "grinch-kids-pajama-set-pink-4-16-walmart-880abf.webp"],
+  ["https://i5.walmartimages.com/asr/f5d3d7cb-4f0e-404e-8bbd-7cf47633ba77.5c780257a5748f0ca073e1c69d90217d.jpeg", "care-bears-toddler-one-piece-sleeper-2t-5t-walmart-5618d5.webp"],
+  ["https://i5.walmartimages.com/asr/3efcd901-4b2f-4510-b78f-5ab3388c239d.451fa83be286167d9075ab0ead747a9f.jpeg", "minnie-mouse-toddler-one-piece-sleeper-2t-5t-walmart-6ae94f.webp"],
+  ["https://i5.walmartimages.com/asr/63a7a91c-78c1-4fd6-b62c-7a62c451ec42.12c899427a9c8891693f96daf6537d6c.jpeg", "disney-princess-toddler-one-piece-sleeper-2t-5t-walmart-3e0e2a.webp"],
+  ["https://i5.walmartimages.com/asr/e48d05c0-6d9b-4819-a050-a9576ab34c3b.fc53795d6005913ecdfaf33f1e189e0b.jpeg", "grinch-toddler-fleece-robe-12m-5t-walmart-6677bc.webp"],
+  ["https://i5.walmartimages.com/asr/28ede100-bd45-40d7-a7d7-47646c097eac.1bddfd91848c45ea91adab82b152caaa.jpeg", "strawberry-shortcake-toddler-fleece-robe-12m-5t-walmart-77263c.webp"],
+  ["https://i5.walmartimages.com/asr/d5e48c94-eb64-44e9-9ce0-11ca27aaf1ad.1cd80398f966aed0905dd0ed2d190af4.jpeg", "minnie-mouse-toddler-fleece-robe-12m-5t-walmart-006018.webp"],
+  ["https://i5.walmartimages.com/asr/8fdaacd3-1710-4f71-8514-fc081b812912.808255a2df42cc2c02012ee8b7b060a0.jpeg", "minnie-mouse-toddler-patriotic-tee-12m-5t-walmart-4f6bb0.webp"],
+  ["https://i5.walmartimages.com/asr/a4819d31-0543-446d-b4a4-562f291e43a8.ecf712cb861fd37be72c5f9659654555.jpeg", "toy-story-toddler-patriotic-tee-12m-5t-walmart-1d57c4.webp"],
+  ["https://i5.walmartimages.com/asr/2ac162af-6c13-45e1-b85a-734c6cae7e70.0e3603d3c0c859ef8469cbe34fc33dd2.jpeg", "stitch-toddler-patriotic-tee-12m-5t-walmart-edca45.webp"],
+  ["https://i5.walmartimages.com/asr/1308c9ef-0e89-4578-a9b8-24f039ec5f98.ef4339f86c2a22cc9443af30d4a63296.jpeg", "mickey-mouse-toddler-patriotic-tee-12m-5t-walmart-45af7a.webp"],
+  ["https://i5.walmartimages.com/asr/c246c850-105b-42c7-b6c7-1c4d4ee908d9.93adff5b41e98fa699a0ba4b1e29d1b5.jpeg", "hello-kitty-toddler-patriotic-tee-12m-5t-walmart-2541ff.webp"],
+  ["https://i5.walmartimages.com/asr/d0773dd6-c747-4f9d-bbde-339c52ff3532.644388db831d18ffd32469c0a51024f9.jpeg", "hello-kitty-toddler-girls-beanie-and-gloves-set-walmart-2fe1a4.webp"],
+  ["https://i5.walmartimages.com/asr/a4c55790-df92-4cdc-b3f9-ca6ba5525081.a511fa68d50ad2ba3f13f6bf5232fcdf.jpeg", "lilo-stitch-toddler-girls-beanie-and-gloves-set-walmart-354404.webp"],
+  ["https://i5.walmartimages.com/asr/b512b8c8-a164-434c-941a-46c55006adda.f7d7b1a94dfc67789c5ba9ae98233b02.jpeg", "toy-story-jessie-toddler-girls-beanie-and-gloves-set-walmart-a42715.webp"],
+  ["https://i5.walmartimages.com/asr/f6c684e2-142b-4dfa-8942-4f7dab88025b.41a792897967012f1485352504c441ac.jpeg", "toy-story-toddler-girls-beanie-and-gloves-set-walmart-e2c6f5.webp"],
+  ["https://i5.walmartimages.com/asr/ef7d50b4-9a5c-4f2b-807c-579889bc4cdc.bb33e009f98fc8f410ea8a125eb931fb.jpeg", "paw-patrol-toddler-pajama-set-12m-5t-walmart-7232cb.webp"],
+  ["https://i5.walmartimages.com/asr/f403338a-c23f-474d-b079-4d6af1886e1e.0ae877f0943aacdd60b5e3bf80e2a855.jpeg", "ms-rachel-baby-girls-tee-and-shorts-set-0-9m-walmart-579bcb.webp"],
+  ["https://i5.walmartimages.com/asr/f1e5ed5c-9c8c-4039-9601-53eb93bc24d7.a3f4a70fcc79512f97fe3036c051d341.jpeg", "disney-eeyore-mini-bean-bag-plush-walmart-ae08ed.webp"],
   ["https://i5.walmartimages.com/seo/Elf-on-the-Shelf-The-Elf-on-the-Shelf-Advent-Calendar-Story-Activity-Collection-Series-10-Hardcover-9780063327351_c56acf0d-01e7-4f68-a407-a8651906af07.f5971afc5371def279f4c5461e01a47c.jpeg", "elf-on-the-shelf-advent-calendar-story-activity-walmart-c7043f.webp"],
   ["https://sc-images.jcpenney.com/JCPenney/DP69992719-20260803190503M", "jcpenney-holiday-velvet-plush-throw-trees-folded-9d76e9.webp"],
   ["https://media.kohlsimg.com/is/image/kohls/3840392_Santa", "kohls-shine-holiday-crew-socks-santa-6d3af3.webp"],
@@ -170,3 +314,9 @@ export const STEALS_CUTOUTS_1124 = [
   ["https://images.lululemon.com/is/image/lululemon/LW9FNLS_075332_1", "lululemon-bead-hair-ties-9752c6.webp"],
   ["https://katespade.scene7.com/is/image/KateSpade/KE574_001", "kate-spade-lucy-wristlet-black-b22e43.webp"],
 ];
+
+/**
+ * The owner's round-3 screenshot picks on Kids (links above): her own sends, so the "at most 2 pajamas per section" rule
+ * (src/test/giftGuideOwner1120d.test.ts) does not count them, as it does not count a theme row marked ownerAdd.
+ */
+export const KIDS_OWNER_SCREENSHOTS_1125 = ["https://go.shopmy.us/p-110699595", "https://walmrt.us/4eUyq3F", "https://walmrt.us/4lc3orK", "https://walmrt.us/4zETfHG", "https://walmrt.us/4eVQ07i", "https://walmrt.us/4AXpPpv", "https://walmrt.us/4eWzgNd", "https://walmrt.us/4iW9on6", "https://walmrt.us/48Ej3ZE", "https://walmrt.us/4j1P1VH", "https://walmrt.us/4fPIaMM", "https://walmrt.us/3VHakCW", "https://walmrt.us/4tjUhqV", "https://walmrt.us/4lbUIl6", "https://walmrt.us/4lbUESo", "https://walmrt.us/4A7xCkw", "https://walmrt.us/4AQzIVE", "https://walmrt.us/4AaBwJk", "https://walmrt.us/4tlQ2eK", "https://walmrt.us/4eZnjGG", "https://walmrt.us/4Aa49X8", "https://walmrt.us/4ARwgKs", "https://walmrt.us/3Vg2vDU", "https://walmrt.us/4tfD9Tf", "https://walmrt.us/3Vj4Kqe", "https://walmrt.us/4tl8fZF", "https://walmrt.us/4tgDB3I", "https://walmrt.us/4A0YC4p", "https://walmrt.us/4zGPOjQ", "https://walmrt.us/48I4xQr", "https://walmrt.us/4kzGB9d", "https://walmrt.us/4jBxIKf", "https://walmrt.us/4jaUUPc", "https://walmrt.us/4jb5vcF", "https://walmrt.us/4j9FpqC", "https://walmrt.us/4A1HtrP", "https://walmrt.us/4jamQm7", "https://walmrt.us/3X7CzuU", "https://walmrt.us/4A1xnHu", "https://walmrt.us/4fqQX7K", "https://walmrt.us/4jb5wgJ", "https://walmrt.us/4jhFZmp", "https://walmrt.us/4j8cZ03", "https://walmrt.us/3Vfu4xm", "https://walmrt.us/4ANUqp7", "https://walmrt.us/4ku91Bo"];

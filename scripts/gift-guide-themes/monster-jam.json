@@ -2,7 +2,7 @@
  "slug": "monster-jam",
  "name": "Monster Jam",
  "sectionPrefix": "mj",
- "builtFrom": "/Users/lexilombas/.lh-shots/mj-guide-1124/items.json (Tue Nov 24 12:43 PM, 130 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/mj-guide-1124/items.json (Tue Nov 24 12:43 PM, 131 items)",
  "rows": [
   {
    "id": "MJ01",
@@ -1480,6 +1480,21 @@
    "sectionId": "mj-clothing-and-pajamas",
    "was": 12.98,
    "age": "4-12",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO45",
+   "name": "Monster Jam x Captain America Toddler Patriotic Tee (12M-5T)",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://walmrt.us/48DDE0c",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-x-captain-america-toddler-patriotic-tee-12m-5t-walmart-8891bf.webp",
+   "store": "store-walmart",
+   "price": 10,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "age": "12m-5T",
    "ownerAdd": true
   },
   {

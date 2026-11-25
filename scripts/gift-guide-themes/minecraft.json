@@ -2,7 +2,7 @@
  "slug": "minecraft",
  "name": "Minecraft",
  "sectionPrefix": "minecraft",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/minecraft/items.json (Tue Nov 24 3:45 PM, 33 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/minecraft/items.json (Tue Nov 24 3:45 PM, 34 items)",
  "rows": [
   {
    "id": "MC01",
@@ -357,6 +357,22 @@
    "was": 12.98,
    "commission": 15,
    "age": "4-12"
+  },
+  {
+   "id": "MCO01",
+   "name": "Minecraft Kids Pajama Set, Gray (4-16)",
+   "brand": "Minecraft",
+   "line": "Clothes and slippers for a Minecraft fan.",
+   "href": "https://walmrt.us/3XtHgPM",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/minecraft-kids-pajama-set-gray-4-16-walmart-775d2c.webp",
+   "store": "store-walmart",
+   "price": 7,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and slippers",
+   "sectionId": "minecraft-clothes-and-slippers",
+   "was": 12.98,
+   "age": "4-16",
+   "ownerAdd": true
   },
   {
    "id": "MC50",

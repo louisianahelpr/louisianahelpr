@@ -159,7 +159,8 @@ const STEALS_1124: Record<string, Record<string, string>> = {
   him: { ...sm(["110122396", "110122844"], "store-macys"), ...sm(["110135239"], "store-crocs"), "https://mavely.app.link/y7KIsnyak8b": "store-kohls", "https://walmrt.us/3XKh0AM": "store-walmart" },
   kids: {
     ...sm(["110125767", "110125685", "110125702", "110125781", "110125801", "110125818", "110125837", "110125353"], "store-target"),
-    ...Object.fromEntries(["4CpL44Q", "4fSzHIL", "4jcx3OU", "3V7qKEv", "4zIzr6p", "4AQxuWv", "4CcMa3A", "3VHA424", "4texdKc"].map((c) => [`https://walmrt.us/${c}`, "store-walmart"])),
+    ...Object.fromEntries(["4CpL44Q", "4fSzHIL", "4jcx3OU", "3V7qKEv", "4zIzr6p", "4AQxuWv", "4CcMa3A", "3VHA424", "4eUyq3F", "4lc3orK", "4zETfHG", "4eVQ07i", "4AXpPpv", "4eWzgNd", "4iW9on6", "48Ej3ZE", "4j1P1VH", "4fPIaMM", "3VHakCW", "4tjUhqV", "4lbUIl6", "4lbUESo", "4A7xCkw", "4AQzIVE", "4AaBwJk", "4tlQ2eK", "4eZnjGG", "4Aa49X8", "4ARwgKs", "3Vg2vDU", "4tfD9Tf", "3Vj4Kqe", "4tl8fZF", "4tgDB3I", "4A0YC4p", "4zGPOjQ", "48I4xQr", "4kzGB9d", "4jBxIKf", "4jaUUPc", "4jb5vcF", "4j9FpqC", "4A1HtrP", "4jamQm7", "3X7CzuU", "4A1xnHu", "4fqQX7K", "4jb5wgJ", "4jhFZmp", "4j8cZ03", "3Vfu4xm", "4ANUqp7", "4ku91Bo", "4texdKc"].map((c) => [`https://walmrt.us/${c}`, "store-walmart"])),
+    ...sm(["110699595"], "store-target"),
     "https://mavely.app.link/yftqKoJ9j8b": "store-kohls",
     ...sm(["110122442", "110122526", "110122583", "110122602", "110122700", "110122792"], "store-macys"),
     ...sm(["110135306", "110137252"], "store-crocs"),

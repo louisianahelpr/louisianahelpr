@@ -25,6 +25,7 @@ import { MEN_COLOR_GUIDES, MEN_PASTEL, OWNER_REMOVED, elderBootOff, menPastelOff
 import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
 import { isThemeGuide } from "@/content/giftGuideLive.mjs";
 import { THEME_ROWS_FILES_1124 } from "../../scripts/giftGuideThemes1124.mjs";
+import { KIDS_OWNER_SCREENSHOTS_1125 } from "../../scripts/giftGuideSteals1124.mjs";
 import { priceSectionId } from "@/lib/pickPriceShown.mjs";
 import { HER_1121 } from "../../scripts/giftGuideHer1121.mjs";
 import { HIM_1121 } from "../../scripts/giftGuideHimKids1121.mjs";
@@ -85,7 +86,8 @@ describe("gift guides: owner 11-20 removals and style rules", () => {
     const over: string[] = [];
     // An item the owner sent herself is her decision (as in the style rules above; owner 11-24 ~9:30 PM on her sold-out
     // Monster Jam pajamas: "No leave the sold out stuff on"): a theme row marked ownerAdd is not counted.
-    const ownerSent = new Set(Object.values(THEME_ROWS_FILES_1124).flatMap((f) => f.rows.filter((r) => r.ownerAdd).map((r) => r.href)));
+    // Her round-3 screenshot picks on Kids (owner 11-24 11:30 PM: "if i send it add it unless its a duplicate") are hers too.
+    const ownerSent = new Set([...Object.values(THEME_ROWS_FILES_1124).flatMap((f) => f.rows.filter((r) => r.ownerAdd).map((r) => r.href)), ...KIDS_OWNER_SCREENSHOTS_1125]);
     for (const [slug, picks] of GUIDES) {
       const n = new Map<string, number>();
       // A themed kids guide's sections are the price sections its page draws (owner 11-24 ~7 PM: laid out as Kids; its

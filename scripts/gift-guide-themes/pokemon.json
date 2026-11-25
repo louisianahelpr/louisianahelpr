@@ -2,7 +2,7 @@
  "slug": "pokemon",
  "name": "Pokémon",
  "sectionPrefix": "pokemon",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/pokemon/items.json (Tue Nov 24 3:46 PM, 31 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/pokemon/items.json (Tue Nov 24 3:46 PM, 32 items)",
  "rows": [
   {
    "id": "PK01",
@@ -294,6 +294,22 @@
    "sectionId": "pokemon-clothes-and-shoes",
    "commission": 15,
    "age": "kids"
+  },
+  {
+   "id": "PKO01",
+   "name": "Pokemon Pikachu Kids Pajama Set (4-16)",
+   "brand": "Pokémon",
+   "line": "Clothes and shoes for a Pokémon fan.",
+   "href": "https://walmrt.us/4fRkYOa",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pokemon-pikachu-kids-pajama-set-4-16-walmart-1270a6.webp",
+   "store": "store-walmart",
+   "price": 7,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "pokemon-clothes-and-shoes",
+   "was": 12.98,
+   "age": "4-16",
+   "ownerAdd": true
   },
   {
    "id": "PK50",

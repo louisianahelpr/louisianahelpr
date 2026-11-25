@@ -294,6 +294,12 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
           expect(page.find((x) => x.href === TO_AMAZON_1124[r.href]), r.name).toMatchObject({ name: r.name, price: r.price, store: "store-amazon", commission: 30 });
           continue;
         }
+        // A save that moved to its themed guide 11-24 (the seven Melissa & Doug picks) is off Kids; its theme page shows it
+        // (src/test/giftGuideKidsThemeRow1124.test.tsx).
+        if (slug === "kids" && MOVED_TO_THEME.has(r.href)) {
+          expect(page.some((x) => x.href === r.href), r.name).toBe(false);
+          continue;
+        }
         const p = page.find((x) => x.href === r.href);
         expect(p, r.name).toBeDefined();
         expect(p?.price, r.name).toBe(r.price);

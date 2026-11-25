@@ -1752,5 +1752,40 @@
     "image": "https://www.louisianahelpr.com/gift-guides/cutouts/numberblocks-one-and-two-playful-pals-plush-5-and-8-walmart-e7607d.webp"
    }
   ]
+ },
+ "melissa-and-doug": {
+  "section": "For kids",
+  "items": [
+   {
+    "name": "Melissa & Doug Chef's Wooden Play Kitchen",
+    "key": "melissa-and-doug:md70",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-chefs-wooden-play-kitchen-walmart-ecc846.webp"
+   },
+   {
+    "name": "Melissa & Doug Take-Along Wooden Doorbell Dollhouse",
+    "key": "melissa-and-doug:md40",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-take-along-wooden-doorbell-dollhouse-walmart-5fb09e.webp"
+   },
+   {
+    "name": "Melissa & Doug Cutting Fruit Set",
+    "key": "melissa-and-doug:md21",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-cutting-fruit-set-walmart-02bc5e.webp"
+   },
+   {
+    "name": "Melissa & Doug On the Go Water Wow! Dinosaurs",
+    "key": "melissa-and-doug:md01",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-on-the-go-water-wow-dinosaurs-walmart-518d82.webp"
+   },
+   {
+    "name": "Melissa & Doug Scoop and Serve Ice Cream Counter",
+    "key": "melissa-and-doug:md22",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-scoop-and-serve-ice-cream-counter-walmart-a030ce.webp"
+   },
+   {
+    "name": "Melissa & Doug Chomp and Clack Alligator Push Toy",
+    "key": "melissa-and-doug:md34",
+    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/melissa-doug-chomp-and-clack-alligator-push-toy-walmart-19be29.webp"
+   }
+  ]
  }
 }

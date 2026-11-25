@@ -10,8 +10,10 @@
  *  - the moves (scripts/giftGuideKidsThemeMoves1124.mjs): a move whose theme is live and holds its row id is off Kids
  *    and on that theme's page; a move still waiting (theme not live, no row yet, or held) stays on Kids;
  *  - the Yoto Bluey bundle moved WITH its approved dupe (owner 11-24 via the lead): the Bluey page shows that one
- *    "shop similar" on that one row and no other; Kids no longer lists the bundle.
+ *    "shop similar" on that one row and no other; Kids no longer lists the bundle. The Melissa & Doug Wood Furnished
+ *    Mansion likewise (lead 11-24 ~11:40 PM, the owner's Yoto precedent): one "shop similar" on Melissa & Doug, its row.
  *
+ * @mutate src/content/giftGuideDupes.json |    "guide": "melissa-and-doug", |    "guide": "kids",
  * @mutate src/pages/info/GiftGuides.tsx |               {guide?.slug === KIDS_FILTER_GUIDE && <LazyThemeRow />} |               {null}
  * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx |   const guides = THEME_GUIDES_1124.map((slug) => guideBySlug(slug)).filter((g) => g !== undefined); |   const guides = THEME_GUIDES_1124.slice(1).map((slug) => guideBySlug(slug)).filter((g) => g !== undefined);
  * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx | priority={i < EAGER_COVERS} | priority
@@ -242,5 +244,21 @@ describe("the Yoto Bluey bundle moved to Bluey with its approved dupe (owner 202
   it("the Kids page no longer lists it", async () => {
     const c = await renderAt("/gift-guides/kids");
     expect(c.querySelector("[data-gift-guide]")?.textContent).not.toContain("Yoto Player 4th Gen + Bluey Adventure Bundle");
+  });
+});
+
+describe("the Melissa & Doug Wood Furnished Mansion moved WITH its approved dupe (lead 11-24, the owner's Yoto precedent)", () => {
+  const MANSION = "https://go.shopmy.us/p-108632077";
+
+  it("is off Kids and on Melissa & Doug", () => {
+    expect(chunk("kids").some((p) => p.href === MANSION)).toBe(false);
+    expect(chunk("melissa-and-doug").filter((p) => p.href === MANSION)).toHaveLength(1);
+  });
+
+  it("the Melissa & Doug page shows exactly one shop similar, on the Mansion row", async () => {
+    const c = await renderAt("/gift-guides/melissa-and-doug");
+    const words = [...c.querySelectorAll("[data-gift-dupe]")];
+    expect(words).toHaveLength(1);
+    expect(words[0].closest("li")?.textContent).toContain("Melissa & Doug Wood Furnished Mansion");
   });
 });

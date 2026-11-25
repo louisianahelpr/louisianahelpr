@@ -2,7 +2,7 @@
  "slug": "cars",
  "name": "Pixar Cars",
  "sectionPrefix": "cars",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/cars/items.json (Tue Nov 24 9:27 PM, 135 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/cars/items.json (Tue Nov 24 9:27 PM, 149 items)",
  "rows": [
   {
    "id": "CR01",
@@ -698,6 +698,53 @@
    "age": "3+"
   },
   {
+   "id": "CRM01",
+   "name": "Cars Mini Racers Die-Cast Vehicles Set",
+   "brand": "Pixar Cars",
+   "line": "Die-cast cars and toys for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110875410",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-mini-racers-die-cast-vehicles-set-macys-494d97.webp",
+   "store": "store-macys",
+   "price": 34.99,
+   "priceAt": "2026-11-24",
+   "section": "Die-cast cars and toys",
+   "sectionId": "cars-die-cast-cars-and-toys",
+   "was": 49.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "CRM02",
+   "name": "Cars Mack Hauler 13-Inch Transporter Truck with Ramp",
+   "brand": "Pixar Cars",
+   "line": "Die-cast cars and toys for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110875458",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-mack-hauler-13-inch-transporter-truck-with-ramp-macys-62db1e.webp",
+   "store": "store-macys",
+   "price": 14.99,
+   "priceAt": "2026-11-24",
+   "section": "Die-cast cars and toys",
+   "sectionId": "cars-die-cast-cars-and-toys",
+   "was": 17.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "CRM03",
+   "name": "Cars Action Scene Lightning McQueen with Sound Effects",
+   "brand": "Pixar Cars",
+   "line": "Die-cast cars and toys for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110875500",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-action-scene-lightning-mcqueen-with-sound-effects-macys-36dfe3.webp",
+   "store": "store-macys",
+   "price": 43.19,
+   "priceAt": "2026-11-24",
+   "section": "Die-cast cars and toys",
+   "sectionId": "cars-die-cast-cars-and-toys",
+   "commission": 16,
+   "age": "kids"
+  },
+  {
    "id": "CR20",
    "name": "Cars Piston Cup Stunting Speedway Playset",
    "brand": "Pixar Cars",
@@ -1124,6 +1171,21 @@
    "section": "Plush and room",
    "sectionId": "cars-plush-and-room",
    "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "CRM12",
+   "name": "tonies Cars Lightning McQueen & Mater Audio Figurines, 2-Pack",
+   "brand": "Pixar Cars",
+   "line": "Plush and room for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110876041",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tonies-cars-lightning-mcqueen-mater-audio-figurines-2-pack-macys-778b71.webp",
+   "store": "store-macys",
+   "price": 39.99,
+   "priceAt": "2026-11-24",
+   "section": "Plush and room",
+   "sectionId": "cars-plush-and-room",
+   "commission": 16,
    "age": "kids"
   },
   {
@@ -1757,15 +1819,15 @@
    "name": "Lightning McQueen Toddler Boys' Hooded Puffer Jacket",
    "brand": "Pixar Cars",
    "line": "Clothes and shoes for a Pixar Cars fan.",
-   "href": "https://go.shopmy.us/p-110725601",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lightning-mcqueen-toddler-boys-hooded-puffer-jacket-kohls-1cbd4c.webp",
-   "store": "store-kohls",
-   "price": 40,
+   "href": "https://go.shopmy.us/p-110875630",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lightning-mcqueen-toddler-boys-hooded-puffer-jacket-macys-1cbd4c.webp",
+   "store": "store-macys",
+   "price": 29.99,
    "priceAt": "2026-11-24",
    "section": "Clothes and shoes",
    "sectionId": "cars-clothes-and-shoes",
    "was": 80,
-   "commission": 12,
+   "commission": 16,
    "age": "toddler"
   },
   {
@@ -1782,6 +1844,101 @@
    "sectionId": "cars-clothes-and-shoes",
    "commission": 12,
    "age": "kids"
+  },
+  {
+   "id": "CRM06",
+   "name": "Lightning McQueen Big Boys' Graphic Tee",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110875691",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lightning-mcqueen-big-boys-graphic-tee-macys-3cf864.webp",
+   "store": "store-macys",
+   "price": 16.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "was": 21.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "CRM07",
+   "name": "Lightning McQueen Boys' Slip-On Canvas Shoes",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110875732",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lightning-mcqueen-boys-slip-on-canvas-shoes-macys-4193bc.webp",
+   "store": "store-macys",
+   "price": 31.49,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "was": 34.99,
+   "commission": 16,
+   "age": "kids"
+  },
+  {
+   "id": "CRM08",
+   "name": "Cars Toddler Boys' American Speed Graphic Tee",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110875777",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-toddler-boys-american-speed-graphic-tee-macys-edbcf5.webp",
+   "store": "store-macys",
+   "price": 24.99,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "commission": 16,
+   "age": "toddler"
+  },
+  {
+   "id": "CRM11",
+   "name": "Lightning McQueen Champ Varsity Jacket (Epic Threads, 12M-5T)",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110875977",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lightning-mcqueen-champ-varsity-jacket-epic-threads-12m-5t-macys-2c43cf.webp",
+   "store": "store-macys",
+   "price": 22.4,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "was": 56,
+   "commission": 16,
+   "age": "toddler"
+  },
+  {
+   "id": "CRM13",
+   "name": "Cars Toddler Boys' Tee and Shorts 4-Piece Set",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110876094",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-toddler-boys-tee-and-shorts-4-piece-set-macys-5ce842.webp",
+   "store": "store-macys",
+   "price": 16.73,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "was": 48,
+   "commission": 16,
+   "age": "toddler"
+  },
+  {
+   "id": "CRM14",
+   "name": "Cars Toddler Boys' Beanie and Mittens Set",
+   "brand": "Pixar Cars",
+   "line": "Clothes and shoes for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-110876156",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-toddler-boys-beanie-and-mittens-set-macys-918f78.webp",
+   "store": "store-macys",
+   "price": 10,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and shoes",
+   "sectionId": "cars-clothes-and-shoes",
+   "was": 25,
+   "commission": 16,
+   "age": "toddler"
   },
   {
    "id": "CR60",
@@ -2039,6 +2196,34 @@
    "name": "Cars Baby Snug Fit Sleep and Play One-Piece Pajama",
    "why": [
     "pajama cap: at most 2 pajamas per price section (owner 11-20); u25 already has 2"
+   ]
+  },
+  {
+   "id": "CRM04",
+   "name": "Cars Toddler Boys' I Am Speed Top and Pants Set (Epic Threads)",
+   "why": [
+    "Macy's photo shows a child wearing the set (product photos only)"
+   ]
+  },
+  {
+   "id": "CRM05",
+   "name": "Cars Toddler Boys' Button-Front 2-Piece Pajama Set",
+   "why": [
+    "pajama cap: at most 2 pajamas per price section (owner 11-20); u25 already has 2"
+   ]
+  },
+  {
+   "id": "CRM09",
+   "name": "Lightning McQueen Speedway Full-Zip Hoodie (Epic Threads, 12M-5T)",
+   "why": [
+    "Macy's photo is a close-up of the print, not the product (needs the product photo)"
+   ]
+  },
+  {
+   "id": "CRM10",
+   "name": "Cars Boys' Screen-Printed Crewneck Sweatshirt (Epic Threads, 12M-5T)",
+   "why": [
+    "Macy's photo is a close-up of the print, not the product (needs the product photo)"
    ]
   }
  ]

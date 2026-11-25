@@ -27,7 +27,7 @@ import {
   JOB_CARD_BODY,
   JOB_CARD_CLIP,
   JOB_CARD_META,
-  JOB_CARD_TITLE_ROW, JOB_CARD_ROW_FRAME } from "@/components/job/cardGeometry";
+  JOB_CARD_TITLE_ROW, JOB_CARD_ROW_FRAME, JOB_ROW_BADGE_LINE, JOB_ROW_BODY, JOB_ROW_MEDIA_PAD } from "@/components/job/cardGeometry";
 import type { JobCardProps } from "./jobCardProps";
 import { jobDayLabel } from "@/lib/jobDateWindow";
 
@@ -227,7 +227,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         {/* Photo-first (owner 2026-10-17, Q2043 + Q2036): the picture leads, the text sits beside it. */}
         <div className={showMedia ? JOB_CARD_MEDIA_ROW : "contents"}>
         {showMedia && (
-          <div className={row ? "py-3" : JOB_CARD_MEDIA_PAD}>
+          <div className={row ? JOB_ROW_MEDIA_PAD : JOB_CARD_MEDIA_PAD}>
             <JobCardMedia photo={job.photos?.[0]} category={job.category} />
           </div>
         )}
@@ -238,7 +238,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             keeps the in-flow rail (badge, then the category label, which is the only item that truncates). History:
             git log -S "BADGE RAIL" on this file. */}
         {row ? (
-          <div data-job-badge-line="" className="flex pl-3 pt-3 -mb-2 empty:hidden">
+          <div data-job-badge-line="" className={JOB_ROW_BADGE_LINE}>
             <JobCardBadge job={job} justIn={isJustIn} recommended={recommended} />
           </div>
         ) : (
@@ -253,7 +253,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             it — the rail is in flow above, so this padding no longer has to
             guess how tall a badge chip is (the guess it replaces, `pt-6`,
             was already wrong in senior mode). */}
-        <div className={row ? "w-full pl-3 pt-3 pb-3" : JOB_CARD_BODY}>
+        <div className={row ? JOB_ROW_BODY : JOB_CARD_BODY}>
         {/* Title + price share the top row — price chip is vertically
             centered against the title. The location/date/time meta spans
             the full card width below.
@@ -322,7 +322,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             </>)}
             {/* Never hidden (owner, 2026-10-08); floor = pin + ~5 letters, not a city's width (owner, 2026-10-19: even "·" spacing). */}
             <span className="flex items-center gap-1 min-w-[3.625rem] overflow-hidden">
-              <MapPin className="w-2.5 h-2.5 shrink-0" />
+              {/* No pin on a row's one meta line (owner 11-25): the city keeps the width instead. */}
+              {!row && <MapPin className="w-2.5 h-2.5 shrink-0" />}
               {/* `min-w-0` + `overflow-hidden` + `truncate`, and NOTHING that
                   sets a width. Two wrong answers were tried here first, and the
                   comment records both so neither comes back:
@@ -401,14 +402,15 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             <span className="inline-flex shrink-0 items-center gap-x-2">
               {!job.date_needed && !job.start_time ? (
                 <span className="flex items-center gap-1">
-                  <Calendar className="w-2.5 h-2.5 shrink-0" />
+                  {!row && <Calendar className="w-2.5 h-2.5 shrink-0" />}
                   <span className="font-sans">Flexible</span>
                 </span>
               ) : (
                 <>
                   {job.date_needed && (
                     <span className="flex items-center gap-1">
-                      <Calendar className="w-2.5 h-2.5 shrink-0" />
+                      {/* Owner 11-25 (compact rows): a row's one meta line carries no calendar or clock icon. */}
+                      {!row && <Calendar className="w-2.5 h-2.5 shrink-0" />}
                       <span className="font-sans whitespace-nowrap">
                         {jobDayLabel(job)}
                       </span>
@@ -427,8 +429,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   {job.date_needed && timeLabel && <span className="shrink-0 opacity-30">·</span>}
                   {timeLabel && (
                     <span data-meta-time className="shrink-0 flex items-center gap-1">
-                      <Clock className="w-2.5 h-2.5 shrink-0" />
-                      <span className="font-sans whitespace-nowrap">{timeLabel}</span>
+                      {!row && <Clock className="w-2.5 h-2.5 shrink-0" />}
+                      {/* A row says "9 AM" for 9:00 AM (owner 11-25, one meta line); the shell does the same. */}
+                      <span className="font-sans whitespace-nowrap">{row ? timeLabel.replace(/:00(?= [AP]M)/g, "") : timeLabel}</span>
                     </span>
                   )}
                 </>
@@ -524,13 +527,17 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               </span>
             )}
           </div>
-          <JobCardPosterFace
-            posterId={job.customer_id}
-            name={job.posterName}
-            avatarUrl={job.posterAvatarUrl}
-            avgRating={job.posterAvgRating}
-            reviewCount={job.posterReviewCount}
-          />
+          {/* Owner 11-25 (compact rows): a guest's feed never carries a poster's name, so its row drew an empty 20px
+              line on every card; a guest card draws none (every guest card the same height still). */}
+          {!isGuest && (
+            <JobCardPosterFace
+              posterId={job.customer_id}
+              name={job.posterName}
+              avatarUrl={job.posterAvatarUrl}
+              avgRating={job.posterAvgRating}
+              reviewCount={job.posterReviewCount}
+            />
+          )}
         </div>
         </div>
         </div>

@@ -28,7 +28,6 @@ import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { DeclutterNotice } from "./declutterUi";
 import { ITEM_PHOTO_ASPECT, ITEM_PHOTO_BLEED, ITEM_PHOTO_FRAME_BASE } from "./itemPhotoFrame";
 import { useScreenfulBelow } from "@/hooks/useScreenfulBelow";
-import { CHIPS_ROW_PAD } from "@/components/sections/browseHeaderSpacing";
 
 /**
  * /declutter: the section shell (top bar), the tab row and the first cards.
@@ -49,7 +48,8 @@ export function DeclutterHomeSkeleton({ guestJoin }: { guestJoin?: ReactNode } =
       title="Declutter"
       globalSearch={false}
       // Phone (owner 11-08, the Vinted header; just the icon, owner 11-21): the bar shows the real "Declutter" title, then
-      // SectionSearchBar's closed row as bones (the magnifier and Filters, 44px each, gap-1); the chips' bones under it.
+      // SectionSearchBar's closed row as bones (the magnifier and Filters, 44px each, gap-1). No chips' bones: owner
+      // 11-25 moved the category chips into Filters.
       search={desktop ? undefined : (
         <div className="flex shrink-0 items-center justify-end gap-1" aria-hidden data-skeleton-part="search-icons">
           <span className="h-11 w-11 shrink-0 flex items-center justify-center"><Skeleton className="h-5 w-5 rounded-full" /></span>
@@ -61,7 +61,9 @@ export function DeclutterHomeSkeleton({ guestJoin }: { guestJoin?: ReactNode } =
           {/* F153: a member's phone has the section tabs under the search; a guest's has none. index.html's copy
               (guestJoin) always draws the row, and its guest rule hides it (index.css, data-lh-declutter-guest). */}
           {(guestJoin || hasPersistedAuthToken()) && <DeclutterPhoneTabBones />}
-          <DeclutterChipBones />
+          {/* A guest's phone has the "Jobs | Declutter ... + Sell" row there instead (DeclutterGuestHome); index.html's
+              copy draws it hidden, shown by the same guest rule as the sign-up line. */}
+          {guestJoin ? <div data-lh-guest-join="" style={{ display: "none" }}><DeclutterGuestSwitchBones /></div> : !hasPersistedAuthToken() && <DeclutterGuestSwitchBones />}
         </>
       )}
     >
@@ -93,19 +95,19 @@ function DeclutterPhoneTabBones() {
 }
 
 /**
- * The phone's category chips while Browse loads (Q2705, 11-09): the chips' own box (DeclutterBrowseView's pb-2 row
- * around DeclutterCategoryChips' pb-1 row of 40px chips), so the first cards start where Browse puts them (124px at
- * 375, not 116px) and the header does not grow when the chips arrive (CLS 0.062 at 375 on 11-09, the cards moving
- * 56px down). index.html draws this frame with the first photos in it, and they must not jump either.
+ * A guest's phone row while Browse loads: the "Jobs | Declutter" switch and "+ Sell" (DeclutterGuestHome's pb-2 row of
+ * 44px pills), so the first cards start where Browse puts them and nothing moves when the row arrives. It replaced the
+ * category chips' bones (Q2705, 11-09) when owner 11-25 moved the chips into Filters. index.html draws this frame with
+ * the first photos in it, and they must not jump either.
  */
-export function DeclutterChipBones() {
+function DeclutterGuestSwitchBones() {
   return (
-    <div className={CHIPS_ROW_PAD} aria-hidden data-declutter-chip-bones="">
-      <div className="flex gap-2 overflow-hidden pb-1">
-        <Skeleton className="h-10 w-14 shrink-0 rounded-full" />
-        <Skeleton className="h-10 w-32 shrink-0 rounded-full" />
-        <Skeleton className="h-10 w-36 shrink-0 rounded-full" />
+    <div className="flex items-center justify-between gap-2 pb-2" aria-hidden data-declutter-switch-bones="">
+      <div className="flex gap-2">
+        <Skeleton className="h-11 w-16 shrink-0 rounded-full" />
+        <Skeleton className="h-11 w-24 shrink-0 rounded-full" />
       </div>
+      <Skeleton className="h-11 w-20 shrink-0 rounded-full" />
     </div>
   );
 }

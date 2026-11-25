@@ -14,7 +14,5 @@
 export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-2 pb-0.5";
 /** A phone bar with no search (You, a closed section): the visible title with the bell (and photo), 56px. */
 export const TITLE_TOP_ROW = "app-top-bar flex items-center justify-between gap-2 h-14";
-/** Under the phone category chip row's own 4px: nothing more, so 8px to the first content with the column's 4px. */
-export const CHIPS_ROW_PAD = "pb-0";
 /** Where a Browse's nothing-to-show state sits in its column (Jobs and Declutter alike). */
 export const BROWSE_EMPTY_SLOT = "px-0 lg:px-4 pt-1 lg:pt-3 flex-1 min-h-0 flex";

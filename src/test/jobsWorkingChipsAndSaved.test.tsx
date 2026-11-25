@@ -9,8 +9,8 @@
  * @mutate src/components/job-card/embeddedActivity.tsx |   const chips: readonly string[] = tab === "posted" ? BOX_BUCKETS : WORKING_CHIPS; |   const chips: readonly string[] = BOX_BUCKETS;
  * @mutate src/lib/activityBuckets.ts |   if (filter === "scheduled") return "active"; |   if (filter === "scheduled") return "scheduled";
  * @mutate src/components/job-card/activityFilters.ts |   return app.status === "accepted" ? "active" : "applied"; |   return "applied";
- * @mutate src/components/dashboard/JobCategoryChips.tsx |   const savedChip = !!saved && (saved.on \|\| saved.count > 0); |   const savedChip = false;
- * @mutate src/pages/home/Dashboard.tsx |       saved={{ on: savedOnly, count: savedJobIds.size, onToggle: toggleSavedOnly }} /> |       />
+ * @mutate src/components/dashboard/JobActiveFilters.tsx |   if (savedOn && onClearSaved) pills.push | if (false) pills.push
+ * @mutate src/pages/home/Dashboard.tsx |       savedOn={savedOnly} onClearSaved={toggleSavedOnly} /> |       />
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -18,7 +18,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { EmbeddedActivityHeader } from "@/components/job-card/embeddedActivity";
-import { JobCategoryChips } from "@/components/dashboard/JobCategoryChips";
+import { JobActiveFilters } from "@/components/dashboard/JobActiveFilters";
 import { workingChip } from "@/components/job-card/activityFilters";
 import { WORKING_CHIPS, workingChipForFilter } from "@/lib/activityBuckets";
 import type { AppliedApp } from "@/components/job-card/activityConstants";
@@ -73,21 +73,16 @@ describe("F107: Working's chips and Browse's Saved chip", () => {
     expect(page).toContain('return tab === "applied" ? workingChipForFilter(f) : f;');
   });
 
-  it("Browse: a Saved chip after All once a job is saved; it toggles the saved-only filter; All clears it", () => {
-    const onToggle = vi.fn();
-    const { rerender } = render(<JobCategoryChips value={null} onChange={() => {}} saved={{ on: false, count: 0, onToggle }} />);
-    expect(screen.queryByRole("button", { name: "Saved" })).toBeNull();
-    rerender(<JobCategoryChips value={null} onChange={() => {}} saved={{ on: false, count: 2, onToggle }} />);
-    const names = screen.getAllByRole("button").map((b) => b.getAttribute("data-category-chip"));
-    expect(names.slice(0, 2)).toEqual(["all", "saved"]);
-    fireEvent.click(screen.getByRole("button", { name: "Saved" }));
-    expect(onToggle).toHaveBeenCalledTimes(1);
-    rerender(<JobCategoryChips value={null} onChange={() => {}} saved={{ on: true, count: 2, onToggle }} />);
-    expect(screen.getByRole("button", { name: "Saved" }).getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe("false");
-    fireEvent.click(screen.getByRole("button", { name: "All" }));
-    expect(onToggle).toHaveBeenCalledTimes(2);
+  // Owner 11-25: Browse's chip row left for Filters (where "Only saved jobs" lives); a saved-only filter that is on
+  // shows as a removable "Saved" chip under the tabs, and pressing it turns the filter off.
+  it("Browse: the saved-only filter, when on, is a removable Saved chip; off, nothing", () => {
+    const onClear = vi.fn();
+    const { rerender, container } = render(<JobActiveFilters category={null} onClearCategory={() => {}} savedOn={false} onClearSaved={onClear} />);
+    expect(container.innerHTML).toBe("");
+    rerender(<JobActiveFilters category={null} onClearCategory={() => {}} savedOn onClearSaved={onClear} />);
+    fireEvent.click(screen.getByRole("button", { name: "Remove filter: Saved" }));
+    expect(onClear).toHaveBeenCalledTimes(1);
     const dash = blankComments(readFileSync(join(__dirname, "..", "pages", "home", "Dashboard.tsx"), "utf8"));
-    expect(dash).toContain("saved={{ on: savedOnly, count: savedJobIds.size, onToggle: toggleSavedOnly }}");
+    expect(dash).toContain("savedOn={savedOnly} onClearSaved={toggleSavedOnly} />");
   });
 });

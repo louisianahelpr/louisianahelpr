@@ -7,7 +7,6 @@ import { PostedListBones, WorkingListBones } from "@/components/ui/skeletons/App
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { PageTitleBar, useHeaderInDesktopBar } from "@/components/header/PageTitleBar";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { jobChipsRowSeen } from "@/lib/jobChipsSeen";
 import { EmptyStateSkeleton, useCachedListCount } from "@/components/ui/skeletons/EmptyStateSkeleton";
 import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
 import { COMPACT_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
@@ -32,8 +31,7 @@ import { COMPACT_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
  * Working tabs, as bones.
  * The Browse | Posted | Working tabs row is drawn on every width and tab (F152, owner audit 11-09).
  */
-function JobsHeaderBones({ chips = false }: { chips?: boolean }) {
-  const desktop = useIsWebDesktop();
+function JobsHeaderBones() {
   return (
     <div className="explore-header flex flex-col gap-1" aria-hidden>
       {/* The section header's top row. On the DESKTOP WEBSITE it is the settled bar itself: the real "Jobs" title in
@@ -76,15 +74,7 @@ function JobsHeaderBones({ chips = false }: { chips?: boolean }) {
       />
       {/* SectionTabs: thin underline tabs, 44px, on a phone too since F152 (owner audit 11-09). */}
       <Skeleton className="h-11 w-full rounded-ds-md" />
-      {/* Browse's category chips row (phone; JobCategoryChips: 44px `tall` chips + 4px scroller pad), only when the last
-          loaded Browse drew it (jobChipsSeen.ts), so the list does not jump down when the chips arrive. */}
-      {!desktop && chips && (
-        <div data-chips-bone="" className="flex min-w-0 gap-2 overflow-hidden pb-1">
-          <Skeleton className="h-11 w-14 shrink-0 rounded-full" />
-          <Skeleton className="h-11 w-24 shrink-0 rounded-full" />
-          <Skeleton className="h-11 w-32 shrink-0 rounded-full" />
-        </div>
-      )}
+      {/* No category chips bone: owner 11-25 moved the chips into Filters, so Browse draws no chips row. */}
     </div>
   );
 }
@@ -225,7 +215,7 @@ const JobsSectionSkeleton = () => {
       {!titleInBar && <h1 className="sr-only">Jobs</h1>}
       <span className="sr-only">Loading Jobs…</span>
       {tab === "browse" ? (
-        <BrowseFrame header={<JobsHeaderBones chips={jobChipsRowSeen()} />} />
+        <BrowseFrame header={<JobsHeaderBones />} />
       ) : (
         <JobsListLoadingFrame header={<JobsHeaderBones />} tab={tab === "posted" ? "posted" : "applied"} />
       )}

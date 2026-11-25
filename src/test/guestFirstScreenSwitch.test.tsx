@@ -58,6 +58,6 @@ describe("a guest's first screen is labelled and reaches Declutter (M13)", () =>
 
   it("both guest screens draw it", () => {
     expect(blankComments(readFileSync("src/pages/home/DashboardGuest.tsx", "utf8"))).toContain('<GuestSectionSwitch at="jobs"');
-    expect(blankComments(readFileSync("src/components/declutter/DeclutterGuestHome.tsx", "utf8"))).toMatch(/<GuestSectionSwitch at="declutter"[^>]*\/>(?:\{guestSell\(true\)\}<\/div>)?<ScrollAwayRows>\{browse\.chips\}/);
+    expect(blankComments(readFileSync("src/components/declutter/DeclutterGuestHome.tsx", "utf8"))).toMatch(/<GuestSectionSwitch at="declutter"[^>]*\/>\{guestSell\(true\)\}<\/div>,/);
   });
 });

@@ -8,13 +8,11 @@
  * - StickyActionBar: the buttons render ONCE (inline on a wide screen), never a second copy.
  *
  * @mutate src/components/declutter/DeclutterItemCard.tsx | {photoTag === "trades" && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>} | {null}
- * @mutate src/components/declutter/DeclutterCategoryChips.tsx |       {chips.map((k) => ( |       <FilterChip pressed={free} onClick={() => onFree?.(!free)} size="tall" className="shrink-0" data-category-chip="free">Free</FilterChip>\n      {chips.map((k) => (
  */
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ItemCard } from "@/components/declutter/DeclutterItemCard";
-import { DeclutterCategoryChips } from "@/components/declutter/DeclutterCategoryChips";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 
 const item = (extra: Record<string, unknown> = {}) => ({
@@ -39,20 +37,7 @@ describe("owner picks 11-08: Declutter redesign", () => {
     off.unmount();
   });
 
-  // M4 (iOS design audit 11-16): Declutter's Free TAB sits beside Browse, so the row no longer repeats it as a chip.
-  it("the chip row has no icons and no 'Free' chip (the Free tab is the one way in); All clears a Free filter", () => {
-    const onFree = vi.fn();
-    const items = [{ category: "furniture", current_price_cents: 0 }, { category: "kitchen", current_price_cents: 500 }];
-    const r = render(<DeclutterCategoryChips items={items} value={null} onChange={() => undefined} free onFree={onFree} />);
-    const chips = [...r.container.querySelectorAll("[data-category-chip]")].map((c) => c.getAttribute("data-category-chip"));
-    expect(chips.length).toBeGreaterThan(1);
-    expect(chips).not.toContain("free");
-    expect(r.container.querySelector("[data-chip-row] svg")).toBeNull();
-    fireEvent.click(screen.getByText("All"));
-    expect(onFree).toHaveBeenCalledWith(false);
-    r.unmount();
-  });
-
+  // M4's chip-row checks retired with the row (owner 11-25: the categories are in Filters).
   it("the sticky action bar renders its buttons once", () => {
     const r = render(<StickyActionBar label="Buy or make an offer"><button type="button">Make offer</button><button type="button">Buy now</button></StickyActionBar>);
     expect(screen.getAllByRole("button", { name: "Buy now" })).toHaveLength(1);

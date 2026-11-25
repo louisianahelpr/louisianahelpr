@@ -5076,6 +5076,16 @@ label[for].bg-card,
 .money-chip, .money-chip * { color: hsl(var(--foreground)) !important; }
 .money-chip > :first-child { font-size: 1rem !important; font-weight: 700 !important; }
 .job-card-title { font-size: 1rem !important; }
+/* Owner 11-25 (signed-out Jobs: "They take up too much space"; lead: semibold title, ONE meta line; title and price stay
+   16px, the type scale's size, since 17px is off the 11/13/16/20/28 scale, typeAndIconScaleRatchet):
+   the Browse feed's compact rows. From 360px a row's meta is one line (category · place · day · time), whatever its
+   column width; below 360 it keeps the two-line break (Q2222). Guard: src/test/phoneCompactBrowse1125.test.tsx. */
+[data-feed-row] .job-card-title { font-weight: 600 !important; }
+@media (min-width: 360px) {
+  [data-feed-row] .job-card-media-col .job-meta-row { flex-wrap: nowrap; }
+  [data-feed-row] .job-card-media-col .job-meta-row > [data-meta-break] { display: none; }
+  [data-feed-row] .job-card-media-col .job-meta-row > [data-meta-break] + span { display: inline; }
+}
 .job-cat-label { padding-left: 1rem; padding-top: 0.75rem; }
 [data-activity-card] div.pt-6 { padding-top: 2.25rem !important; }
 [data-feed-card] .job-cat-label { padding-left: 0.875rem; }

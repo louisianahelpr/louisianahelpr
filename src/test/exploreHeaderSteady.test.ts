@@ -111,7 +111,7 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     const bar = code("src/components/sections/AppTopBar.tsx");
     // Owner 11-21 (search is just the icon): the title is visible (flex-1) and turns reader-only only while the row
     // holds an opened field; the search slot grows only then.
-    expect(bar).toMatch(/<header className=\{`\$\{COMPACT_TOP_ROW\} group\/top`\}[^>]*>\s*\{backEl\}\s*(?:\{\s*\}\s*)?\{title \? \(\s*<h1 data-top-bar-title="" className="min-w-0 flex-1 truncate text-page-title text-foreground group-has-\[\[data-search-open\]\]\/top:!sr-only" title=\{title\}>\{title\}<\/h1>\s*\) : \([\s\S]{0,200}?\)\}\s*<div data-testid="app-top-bar-search" className="flex min-w-0 shrink-0 justify-end has-\[\[data-search-open\]\]:flex-1">\{search\}<\/div>/);
+    expect(bar).toMatch(/<header className=\{`\$\{COMPACT_TOP_ROW\} group\/top`\}[^>]*>\s*\{backEl\}\s*(?:\{\s*\}\s*)?(?:\{\s*\}\s*)*\{(?:title && guestBar \? \([\s\S]*?\) : )?title \? \(\s*<h1 data-top-bar-title="" className="min-w-0 flex-1 truncate text-page-title text-foreground group-has-\[\[data-search-open\]\]\/top:!sr-only" title=\{title\}>\{title\}<\/h1>\s*\) : \([\s\S]{0,200}?\)\}\s*<div data-testid="app-top-bar-search" className="flex min-w-0 shrink-0 justify-end has-\[\[data-search-open\]\]:flex-1">\{search\}<\/div>/);
     // The visible title is drawn once (titleEl), alone or after the guest's back arrow (owner 11-21).
     expect(bar).toContain('const titleEl = title ? <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> : null;');
     expect(bar).toMatch(/<header className=\{TITLE_TOP_ROW\}[^>]*>\s*\{titleEl && backEl \? \([\s\S]{0,200}?\) : titleEl \?\? \(/);

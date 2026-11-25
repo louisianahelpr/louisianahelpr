@@ -26,7 +26,10 @@ describe("the browse card keeps place, date and time; the countdown only fills s
   });
 
   it("the start time is never hidden by a width rule", () => {
-    const time = SRC.slice(SRC.indexOf("{timeLabel && ("), SRC.indexOf("{timeLabel}</span>"));
+    // Owner 11-25: a row says "9 AM" for 9:00 AM, so the label ends `: timeLabel}</span>`.
+    const end = SRC.indexOf(": timeLabel}</span>");
+    expect(end).toBeGreaterThan(0);
+    const time = SRC.slice(SRC.indexOf("{timeLabel && ("), end);
     expect(time.length).toBeGreaterThan(0);
     expect(time).not.toMatch(/\bhidden\b/);
   });

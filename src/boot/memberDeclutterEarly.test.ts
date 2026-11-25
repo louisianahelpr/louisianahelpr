@@ -23,8 +23,7 @@
 // @mutate src/boot/declutterPrefetch.ts |     takeEarlyMemberRead(session.userId) ?? | (null as Promise<unknown> \| null) ??
 // @mutate src/boot/declutterPrefetch.ts |       if (document.getElementById("lh-declutter-shell")?.hasAttribute("data-lh-photos")) return; |
 // @mutate src/components/declutter/DeclutterSkeletons.tsx |           <div className="h-[52px] space-y-1.5 px-0.5 pt-2 lg:h-[110px]"> |           <div className="space-y-1.5 px-0.5 pt-2">
-// @mutate src/components/declutter/DeclutterSkeletons.tsx |     <div className={CHIPS_ROW_PAD} aria-hidden data-declutter-chip-bones=""> |     <div className="pb-4" aria-hidden data-declutter-chip-bones="">
-// @mutate src/components/declutter/DeclutterBrowseView.tsx |  : listLoading && !items.isError ? <DeclutterChipBones /> : null, |  : null,
+// @mutate src/components/declutter/DeclutterSkeletons.tsx |     <div className="flex items-center justify-between gap-2 pb-2" aria-hidden data-declutter-switch-bones=""> |     <div className="flex items-center justify-between gap-2 pb-4" aria-hidden data-declutter-switch-bones="">
 // @mutate src/components/declutter/DeclutterBrowseView.tsx |     if (!listLoading) releaseDeclutterShellForCards(); |
 // @mutate src/components/declutter/declutterShell.ts |   if (!el.hasAttribute("data-lh-photos")) { |   if (el) {
 // @mutate src/components/declutter/declutterShell.ts | removeShellOncePainted(DECLUTTER_SHELL_ID, doc), SHELL_PHOTO_HOLD_MS); | removeShellOncePainted(DECLUTTER_SHELL_ID, doc), SHELL_PHOTO_HOLD_MS * 10);
@@ -298,20 +297,21 @@ describe("the entry takes the HTML's answer (declutterPrefetch.ts)", () => {
 });
 
 describe("the skeleton's boxes are Browse's (no jump when Browse replaces the drawn photos)", () => {
-  it("the chips row and the card text block match Browse's measured geometry at 375", () => {
+  it("the guest's switch row and the card text block match Browse's measured geometry at 375", () => {
     const sk = blankComments(readFileSync("src/components/declutter/DeclutterSkeletons.tsx", "utf8"));
     const browse = blankComments(readFileSync("src/components/declutter/DeclutterBrowseView.tsx", "utf8"));
-    // Browse wraps its chips in a CHIPS_ROW_PAD row (owner 11-12: pb-0, was pb-2) (DeclutterCategoryChips: a pb-1 row of 40px chips); measured 11-09 at
-    // 375: the explore header is 120px and the first photo row starts at 124px. Owner 11-14 (Depop/Vinted audit item
+    // Owner 11-25: no category chips (they are in Filters); a guest's phone has the "Jobs | Declutter ... + Sell" row, a
+    // pb-2 row of 44px pills (DeclutterGuestHome), and its bones are that row. Owner 11-14 (Depop/Vinted audit item
     // 8): a phone card is a 3:4 photo and two text lines, 52px (measured 11-14 at 390: photo 175x233, text 52); from
     // lg the 110px block as before.
-    expect(sk).toMatch(/<div className=\{CHIPS_ROW_PAD\} aria-hidden data-declutter-chip-bones="">\s*<div className="flex gap-2 overflow-hidden pb-1">\s*(<Skeleton className="h-10 w-\d+ shrink-0 rounded-full" \/>\s*){3}<\/div>/);
+    expect(sk).toMatch(/<div className="flex items-center justify-between gap-2 pb-2" aria-hidden data-declutter-switch-bones="">\s*<div className="flex gap-2">\s*(<Skeleton className="h-11 w-\d+ shrink-0 rounded-full" \/>\s*){2}<\/div>\s*<Skeleton className="h-11 w-\d+ shrink-0 rounded-full" \/>/);
+    expect(blankComments(readFileSync("src/components/declutter/DeclutterGuestHome.tsx", "utf8"))).toContain('<div className="flex items-center justify-between gap-2 pb-2"><GuestSectionSwitch at="declutter"');
     expect(sk).toContain('<div className="h-[52px] space-y-1.5 px-0.5 pt-2 lg:h-[110px]">');
-    // The skeleton's phone tabs slot and Browse's loading chips are the same bones (the header never grows).
-    // F153: a member's tab bones (SectionTabs' 44px row over its 1px rule) come first, hidden for a guest.
-    expect(sk).toMatch(/\{\(guestJoin \|\| hasPersistedAuthToken\(\)\) && <DeclutterPhoneTabBones \/>\}\s*<DeclutterChipBones \/>/);
+    // F153: a member's tab bones (SectionTabs' 44px row over its 1px rule); a guest's switch-row bones instead.
+    expect(sk).toMatch(/\{\(guestJoin \|\| hasPersistedAuthToken\(\)\) && <DeclutterPhoneTabBones \/>\}/);
+    expect(sk).toContain('{guestJoin ? <div data-lh-guest-join="" style={{ display: "none" }}><DeclutterGuestSwitchBones /></div> : !hasPersistedAuthToken() && <DeclutterGuestSwitchBones />}');
     expect(sk).toMatch(/<div className="flex items-end gap-1 border-b border-border\/60" aria-hidden data-lh-member-tabs="">\s*<div className="flex h-11 items-center/);
-    expect(browse).toContain("chips: chipRow ? <div data-declutter-chips-row=\"\" className={CHIPS_ROW_PAD}>{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null,");
+    expect(browse).not.toMatch(/DeclutterChipBones|chips:/);
     // index.html's shell is rendered from this skeleton (messagesDeclutterShellsMatchSkeletons holds it byte-equal).
     expect(INDEX).toContain('class="h-[52px] space-y-1.5 px-0.5 pt-2 lg:h-[110px]"');
   });
@@ -335,12 +335,12 @@ describe("the skeleton's boxes are Browse's (no jump when Browse replaces the dr
   });
 
   // F153 (owner UI audit 11-09): a member's phone shows the section tabs under the search, a guest's none. The shell
-  // draws the member's tab bones above the chip bones; the guest mark hides them (inlined rule + the app's sheet).
+  // draws the member's tab bones above the guest's switch bones (owner 11-25; the chip bones before); the guest mark hides them (inlined rule + the app's sheet).
   it("a member's copy carries the tab row's bones under the search; a guest's hides them", () => {
     const shell = shellMarkup(INDEX);
     const tabs = shell.indexOf('data-lh-member-tabs=""');
     expect(tabs).toBeGreaterThan(shell.indexOf('data-testid="app-top-bar-search"'));
-    expect(tabs).toBeLessThan(shell.indexOf("data-declutter-chip-bones"));
+    expect(tabs).toBeLessThan(shell.indexOf("data-declutter-switch-bones"));
     expect(DECLUTTER_GUEST_NO_TABS_RULE).toBe("[data-lh-declutter-guest] #lh-declutter-shell [data-lh-member-tabs]{display:none!important}");
     const decl = SHELLS.find((s: { id: string }) => s.id === "lh-declutter-shell") as { show: string };
     expect(decl.show).toContain(DECLUTTER_GUEST_NO_TABS_RULE);

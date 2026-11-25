@@ -8,7 +8,7 @@
  * @mutate src/index.css |   --cat-tint-rose-bg:   350 65% 94%;  --cat-tint-rose-fg:   350 52% 34%; |   --cat-tint-rose-bg:   350 65% 94%;  --cat-tint-rose-fg:   350 52% 70%;
  * @mutate src/index.css |   --cat-tint-teal-bg:   178 28% 18%;  --cat-tint-teal-fg:   175 45% 68%; |   --cat-tint-teal-bg:   178 28% 18%;
  * @mutate src/lib/jobCategoryTint.mjs |   pet_care: "rose", |
- * @mutate src/components/dashboard/JobCardMedia.tsx | aria-hidden className="w-6 h-6" style={{ color: tint.color }} /> | aria-hidden className="w-6 h-6 text-primary" />
+ * @mutate src/components/dashboard/JobCardMedia.tsx | aria-hidden className="w-5 h-5" style={{ color: tint.color }} /> | aria-hidden className="w-5 h-5 text-primary" />
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -69,11 +69,11 @@ describe("job category tile tints (owner 11-17)", () => {
     });
   }
 
-  it("the real tile draws its category's background and icon colour, at 48 px", () => {
+  it("the real tile draws its category's background and icon colour, at 40 px (owner 11-25; 48 from 11-17)", () => {
     const { container } = render(createElement(JobCardMedia, { photo: null, category: "pet_care" }));
     const tile = container.querySelector<HTMLElement>("[data-testid=job-card-media]")!;
     expect(tile.getAttribute("style")).toContain(jobCategoryTint("pet_care").background);
-    expect(tile.className.split(/\s+/)).toEqual(expect.arrayContaining(["w-12", "h-12"]));
+    expect(tile.className.split(/\s+/)).toEqual(expect.arrayContaining(["w-10", "h-10"]));
     const icon = tile.querySelector<SVGElement>("svg")!;
     expect(icon.getAttribute("style")).toContain(jobCategoryTint("pet_care").color);
   });

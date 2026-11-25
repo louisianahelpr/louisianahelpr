@@ -22,15 +22,13 @@
  * @mutate src/components/sections/ScrollAway.tsx |       style={overlay ? { marginBottom: -scope!.height } : undefined} |       style={undefined}
  * @mutate src/components/sections/ScrollAway.tsx |       onFocusCapture={() => setHidden(false)} |
  * @mutate src/components/sections/ScrollAway.tsx |   if (desktop) return <>{children}</>; |
- * @mutate src/components/declutter/DeclutterHomeView.tsx |         <ScrollAwayRows off={!browse}>{browse?.chips}</ScrollAwayRows> |         <ScrollAwayRows>{browse?.chips}</ScrollAwayRows>
- * @mutate src/components/declutter/DeclutterHomeView.tsx |         <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />\n        <ScrollAwayRows off={!browse}>{browse?.chips}</ScrollAwayRows> |         <ScrollAwayRows off={!browse}><SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />{browse?.chips}</ScrollAwayRows>
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |     tabs: <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />, |     tabs: <ScrollAwayRows><SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} /></ScrollAwayRows>,
  * @mutate src/components/sections/ScrollAwayScope.tsx |   if (!scope?.rows) return null; |   if (!scope) return null;
  * @mutate src/components/sections/SectionScreen.tsx |           <ScrollAwaySpacer />\n |\n
  * @mutate src/components/dashboard/BrowseTasksFeed.tsx |         top={view === "map" ? undefined : <><ScrollAwaySpacer /><JobsSaveSearchRow filters={filters} user={user} place="list" /></>} |
  * @mutate src/pages/jobs/JobsSection.tsx |           <ScrollAwayRows>{tab === "browse" && browse?.chips}</ScrollAwayRows> |           <ScrollAwayRows><SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} />{tab === "browse" && browse?.chips}</ScrollAwayRows>
  * @mutate src/pages/jobs/JobsSection.tsx |   return <><ScrollAwayScope><Dashboard embeddedHeader={makeHeader} /></ScrollAwayScope>{fab}</>; |   return <><Dashboard embeddedHeader={makeHeader} />{fab}</>;
  * @mutate src/pages/home/Dashboard.tsx |       titleCardClassName={isWebDesktop ? "" : "!overflow-visible z-10"} |       titleCardClassName=""
- * @mutate src/components/declutter/DeclutterGuestHome.tsx | <ScrollAwayRows>{browse.chips}</ScrollAwayRows></>, | {browse.chips}</>,
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -192,13 +190,12 @@ describe("3. wired into Jobs Browse and Declutter Browse", () => {
     expect(dash).toContain('titleCardClassName={isWebDesktop ? "" : "!overflow-visible z-10"}');
   });
 
-  it("Declutter: the tabs stay pinned and the chips slide (member), the guest chips slide, SectionScreen draws the spacer first in its scroll column", () => {
+  it("Declutter: the tabs stay pinned (no chips to slide since owner 11-25), SectionScreen draws the spacer first in its scroll column", () => {
     const decl = code("src/components/declutter/DeclutterHomeView.tsx");
-    // A guest's Browse chrome lives in its own file since Q2705 (11-14).
-    expect(code("src/components/declutter/DeclutterGuestHome.tsx")).toContain("<ScrollAwayRows>{browse.chips}</ScrollAwayRows></>,");
-    // The tabs stay pinned like Jobs' (M14, owner 11-16 "keep tabs pinned"); only Browse's chips slide.
-    expect(decl).toMatch(/tabs: \(\s*<>\s*<SectionTabs [^>]*\/>\s*<ScrollAwayRows off=\{!browse\}>\{browse\?\.chips\}<\/ScrollAwayRows>/);
+    // The tabs stay pinned like Jobs' (M14, owner 11-16 "keep tabs pinned"); the chip row that slid is gone (owner 11-25).
+    expect(decl).toContain('tabs: <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />,');
     expect(decl).not.toMatch(/<ScrollAwayRows[^>]*>\s*<SectionTabs/);
+    expect(code("src/components/declutter/DeclutterGuestHome.tsx")).not.toContain("ScrollAwayRows");
     const screenSrc = code("src/components/sections/SectionScreen.tsx");
     expect(screenSrc).toMatch(/data-app-page-scroll=""[^>]*>\s*<ScrollAwaySpacer \/>/);
     expect(screenSrc).toMatch(/<ScrollAwayScope>\s*<AppShell/);

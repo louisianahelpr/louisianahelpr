@@ -7,7 +7,7 @@
  *
  * @mutate src/components/dashboard/JobCard.tsx |   const row = !bare && !(hero && job.photos?.[0]); |   const row = false;
  * @mutate src/index.css | [data-feed-card][data-feed-row] {\n  background-color: transparent !important; | [data-feed-card][data-feed-row] {\n  background-color: hsl(var(--card)) !important;
- * @mutate src/components/dashboard/JobCardMedia.tsx | const JOB_CARD_MEDIA = "relative shrink-0 self-start w-12 h-12 | const JOB_CARD_MEDIA = "relative shrink-0 self-start w-[4.5rem] h-[4.5rem]
+ * @mutate src/components/job/cardGeometry.ts | export const JOB_ROW_MEDIA = "relative shrink-0 self-start w-10 h-10 | export const JOB_ROW_MEDIA = "relative shrink-0 self-start w-[4.5rem] h-[4.5rem]
  * @mutate src/components/dashboard/SwipeableJobCard.tsx | ${hero && job.photos?.[0] ? "rounded-2xl" : ""} | rounded-2xl
  */
 import { readFileSync } from "node:fs";
@@ -40,14 +40,15 @@ const swipe = blankComments(readFileSync("src/components/dashboard/SwipeableJobC
 describe("the Jobs feed is hairline rows (design audit A J2/J3, 11-08)", () => {
   afterEach(cleanup);
 
-  it("a feed card is a row: no box, fill, radius or shadow; one bottom hairline; a 48 px thumb (owner 11-17, was 56)", () => {
+  it("a feed card is a row: no box, fill, radius or shadow; one bottom hairline; a 40 px thumb (owner 11-25; 48 from 11-17, 56 before)", () => {
     const root = draw(job()).querySelector<HTMLElement>("[data-feed-card]")!;
     expect(root.hasAttribute("data-feed-row")).toBe(true);
     const cls = root.className.split(/\s+/);
     expect(cls).toEqual(expect.arrayContaining(["border-b", "border-border"]));
     expect(cls.filter((c) => /^(rounded|bg-|shadow)/.test(c) || c === "border")).toEqual([]);
     const media = root.querySelector<HTMLElement>("[data-testid=job-card-media]")!;
-    expect(media.className.split(/\s+/)).toEqual(expect.arrayContaining(["w-12", "h-12"]));
+    // 40 px since owner 11-25 (compact rows); 48 since 11-17, 56 before.
+    expect(media.className.split(/\s+/)).toEqual(expect.arrayContaining(["w-10", "h-10"]));
     expect(media.className).not.toMatch(/md:w-|md:h-/);
   });
 

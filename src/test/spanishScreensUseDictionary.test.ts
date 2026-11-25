@@ -66,7 +66,6 @@ const CONVERTED = [
   "src/components/sections/AppTopBar.tsx",
   // F260q (owner 11-11 "Spanish everything"): the section search bar and Declutter Browse's chips and cards.
   "src/components/sections/SectionSearchBar.tsx",
-  "src/components/declutter/DeclutterCategoryChips.tsx",
   "src/components/declutter/DeclutterActiveFilters.tsx",
   "src/components/declutter/DeclutterItemCard.tsx",
   // F260q: Home (the Dashboard) chrome; its to-do lines are data (useNeedsYouTodos.ts).

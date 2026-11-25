@@ -3,7 +3,7 @@
  * the public header's, AppTopBar's guest pair under it, and the "Sign up to buy" card's. Under the public frame
  * (useGuestPublicFrame) AppTopBar now draws no guest pair; the native app and AppShell pages keep it.
  *
- * @mutate src/components/sections/AppTopBar.tsx | !isWebDesktop && !publicFrame && ( | !isWebDesktop && (
+ * @mutate src/components/sections/AppTopBar.tsx | !hasPersistedAuthToken() && !isWebDesktop && !publicFrame; | !hasPersistedAuthToken() && !isWebDesktop;
  */
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";

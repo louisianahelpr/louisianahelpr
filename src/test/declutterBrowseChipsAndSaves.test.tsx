@@ -4,7 +4,7 @@
  *   - the card shows the condition in the item page's words; the heart shows "N" and says "saved by N"; no count
  *     (none, or not read yet) shows no number; a guest sees the count without a heart to press;
  *   - a heart tap moves the number at once (shownSaves), never below zero;
- *   - the chips: All first, then the categories on the list, busiest first, the chosen one kept; no row for one;
+ *   - (the category chips left Browse for the Filters sheet, owner 11-25: src/test/phoneCompactBrowse1125.test.tsx);
  *   - SPEED: the counts are read AFTER the cards paint, never inside Browse's first-screen loading gate;
  *   - the read asks at most PER_READ items per call (the server cap) and, before the server read is deployed, shows
  *     no numbers (never zeros).
@@ -14,15 +14,12 @@
 // @mutate src/components/declutter/DeclutterItemCard.tsx |   return n && n > 0 ? (n > 999 ? "999+" : String(n)) : null; |   return null;
 // @mutate src/components/declutter/DeclutterItemCard.tsx |     if (!savesText) return card; |     return card;
 // @mutate src/lib/declutter/saveCounts.ts |   return Math.max(0, serverCount - (savedAtRead ? 1 : 0) + (savedNow ? 1 : 0)); |   return serverCount;
-// @mutate src/components/declutter/DeclutterCategoryChips.tsx |     return keys.sort((a, b) => last(a) - last(b) \|\| (n.get(b) ?? 0) - (n.get(a) ?? 0) \|\| (order.get(a) ?? 99) - (order.get(b) ?? 99)); |     return keys;
-// @mutate src/components/declutter/DeclutterCategoryChips.tsx |     const last = (k: string) => (k === "other" ? 1 : 0); |     const last = (k: string) => (k === "other" ? 0 : 0);
-// @mutate src/components/declutter/DeclutterCategoryChips.tsx |     if (value && CATEGORY_LABEL[value] && !n.has(value)) keys.push(value); | /* gone */
 // @mutate src/components/declutter/DeclutterBrowseView.tsx |     enabled: cardsPainted && others.length > 0, |     enabled: others.length > 0,
 // @mutate src/lib/declutter/saveCounts.ts |     if (res.error && isMissingRpcNamed(res.error, "declutter_item_save_counts")) return null; | /* gone */
 // @mutate src/lib/declutter/saveCounts.ts | const PER_READ = 200; | const PER_READ = 1000;
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
@@ -38,7 +35,6 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 import { ItemCard } from "@/components/declutter/DeclutterItemCard";
-import { DeclutterCategoryChips } from "@/components/declutter/DeclutterCategoryChips";
 import { fetchSaveCounts, shownSaves } from "@/lib/declutter/saveCounts";
 
 const item = {
@@ -84,38 +80,6 @@ describe("Browse cards: condition and the heart's save count", () => {
     expect(shownSaves(3, true, false)).toBe(2);
     expect(shownSaves(3, true, true)).toBe(3);
     expect(shownSaves(0, true, false)).toBe(0);
-  });
-});
-
-describe("Browse's category chips", () => {
-  const items = [{ category: "toys_games" }, { category: "furniture" }, { category: "kitchen" }, { category: "kitchen" }, { category: "kitchen" }, { category: "furniture" }];
-  it("All first, then the categories on the list, busiest first; a tap picks one, a second tap shows all", () => {
-    const onChange = vi.fn();
-    const { rerender } = render(<DeclutterCategoryChips items={items} value={null} onChange={onChange} />);
-    const row = screen.getByRole("group", { name: "Categories" });
-    expect(within(row).getAllByRole("button").map((b) => b.textContent)).toEqual(["All", "Kitchen", "Furniture", "Toys and games"]);
-    expect(within(row).getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe("true");
-    fireEvent.click(within(row).getByRole("button", { name: "Kitchen" }));
-    expect(onChange).toHaveBeenLastCalledWith("kitchen");
-    rerender(<DeclutterCategoryChips items={items} value="kitchen" onChange={onChange} />);
-    fireEvent.click(within(row).getByRole("button", { name: "Kitchen" }));
-    expect(onChange).toHaveBeenLastCalledWith(null);
-  });
-
-  // L021 (landing audit 11-09): "Other" sat mid-row; it is always last, however many items it has.
-  it("Other is always the last chip", () => {
-    const withOther = [...items, { category: "other" }, { category: "other" }, { category: "other" }, { category: "other" }];
-    render(<DeclutterCategoryChips items={withOther} value={null} onChange={vi.fn()} />);
-    const names = within(screen.getByRole("group", { name: "Categories" })).getAllByRole("button").map((b) => b.textContent);
-    expect(names).toEqual(["All", "Kitchen", "Furniture", "Toys and games", "Other"]);
-  });
-
-  it("keeps the chosen category even with nothing in it; no row for a single category", () => {
-    const { unmount } = render(<DeclutterCategoryChips items={items} value="bikes" onChange={vi.fn()} />);
-    expect(screen.getByRole("button", { name: "Bikes" }).getAttribute("aria-pressed")).toBe("true");
-    unmount();
-    const { container } = render(<DeclutterCategoryChips items={[{ category: "kitchen" }]} value={null} onChange={vi.fn()} />);
-    expect(container.querySelector("[data-chip-row]")).toBeNull();
   });
 });
 

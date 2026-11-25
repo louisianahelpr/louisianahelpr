@@ -15,6 +15,7 @@ import GuestBrowseSkeleton, { GUEST_FEED_GRID_CLASS, GUEST_FEED_RESERVE_CLASS } 
 import { GuestEmptyStateActions } from "@/components/dashboard/GuestEmptyStateActions";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
+import { BrowseFiltersButton } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { GuestBrowseHeaderRow, guestOpenJobsLabel } from "./GuestBrowseHeaderRow";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 // Lazy-load the map so the map chunk (and Apple's MapKit JS script) only
@@ -293,6 +294,9 @@ const DashboardGuest = () => {
       view={view}
       setView={setView}
       onClearAllFilters={scrollFeedToTop}
+      // The app's guest Jobs has no map (owner 2026-08-19, below): the Filters icon it gained 11-25 opens the sheet
+      // without the List / Map row.
+      hideViewToggle={isNativePlatform}
     />
     </>
   );
@@ -485,7 +489,11 @@ const DashboardGuest = () => {
         // where a member's Inbox and photo sit. Guest Declutter draws the same bar (SectionScreen).
         titleCard={
           <AppTopBar title={tr("nav.jobs")} desktopGap={false}
-            search={<SectionSearchBar noun="jobs" home="/browse" value={filters.searchQuery} onChange={filters.setSearchQuery} />} />
+            search={<SectionSearchBar noun="jobs" home="/browse" value={filters.searchQuery} onChange={filters.setSearchQuery}
+              // Owner 11-25 (lead): with the category chips moved into Filters, a signed-out visitor needs the Filters
+              // icon to pick one, so the app's guest bar has it as member Jobs and Declutter do. Guard:
+              // src/test/phoneCompactBrowse1125.test.tsx.
+              filter={<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />} />} />
         }
         // The member Jobs header's title card (Dashboard): the search row's own spacing, nothing clipped.
         titleCardClassName="!overflow-visible z-10"
@@ -494,13 +502,11 @@ const DashboardGuest = () => {
             "Don't give the list or map option in the guest page like this.
             Remove it and move jobs up").
 
-            Consequence, recorded deliberately: the guest title bar carries
-            no filter icon, and the filter sheet is where this control lives
-            on every other surface — so a signed-out visitor now has no route
-            to the map at all, and `view` is effectively pinned to "list"
-            here. That is the owner's call, not an oversight. Restoring map
-            access means putting the filter icon back in the guest title bar
-            (pass `actions` to DashboardTitleBar), NOT re-adding this row. */}
+            Consequence, recorded deliberately: a signed-out visitor in the app
+            has no route to the map, and `view` is pinned to "list" here. That
+            is the owner's call, not an oversight. Since 11-25 the guest bar has
+            the Filters icon (the category chips moved into Filters), and the
+            toolbar opens the sheet with hideViewToggle, so still no map. */}
         {toolbar}
 
         {/* Inner scroll area — list of cards or map. Map renders flush
@@ -508,13 +514,15 @@ const DashboardGuest = () => {
         {view === "map" ? (
           <div className="flex-1 min-h-0 overflow-hidden">{mapView}</div>
         ) : (
+          // Owner 11-25 (compact rows): no second 16px gutter inside the scaffold's (the rows sat 32px in, the switch
+          // above them 16px), and 4px, not 12px, under the switch.
           <PullToRefreshWrapper
             ref={containerRef}
             pullDistance={pullDistance}
             refreshing={refreshing}
             isPulling={isPulling}
             canTrigger={canTrigger}
-            className="flex-1 min-h-0 px-4 pt-3 pb-0"
+            className="flex-1 min-h-0 px-0 pt-1 pb-0"
           >
             {feedList}
           </PullToRefreshWrapper>

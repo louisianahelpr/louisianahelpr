@@ -12,8 +12,7 @@
  *
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |             <InlineListSearch value={query} onChange={setQuery} label={t("decl.searchItems")} /> |             <InlineListSearch value={query} onChange={setQuery} label={t("decl.searchItems")} pinned />
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |             <FiltersIconButton plain open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} /> |             <FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} />
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | sellerDelivery: sellerDeliveryOn, categoryUp: desktop })} | sellerDelivery: sellerDeliveryOn })}
- * @mutate src/components/declutter/DeclutterFilterPanel.tsx |       more: !categoryUp, |       more: true,
+ * @mutate src/components/declutter/DeclutterFilterPanel.tsx |       active: !!filters.category, |       more: true, active: !!filters.category,
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         {itemsPhase !== "offline-empty" && <DeclutterNearYou ask={ask} maxMiles={maxMiles} closest={sortNow === "closest"} onChange={() => setFiltersOpen(true)} />} |
  * @mutate src/components/declutter/DeclutterMilesFrom.tsx |   const words = maxMiles !== null ? t("decl.loc.nearWithin", { miles: maxMiles }) : closest ? t("decl.loc.near") : t("decl.loc.nearPlain"); |   const words = closest ? t("decl.loc.near") : t("decl.loc.nearPlain");
  * @mutate src/components/dashboard/browseTasksToolbar/FiltersIconButton.tsx |     ? `ctl-tint ${on ? "text-[hsl(var(--bark))]" : "text-muted-foreground hover:text-foreground"}` |     ? `ring-1 ring-inset ${on ? "bg-[hsl(var(--bark)/0.12)]" : ""}`
@@ -149,7 +148,7 @@ describe("Declutter desktop header (owner 11-21)", () => {
     const kitchen = within(panel).getByRole("button", { name: "Kitchen" });
     expect(kitchen.getAttribute("aria-pressed")).toBe("true");
     expect(within(panel).getByRole("button", { name: "Use my location" })).toBeTruthy();
-    // Category sits third, after Sort and Distance, outside the More filters fold.
+    // Category sits first (owner 11-25; third after Sort and Distance since 11-21), outside the More filters fold.
     expect(panel.querySelector("#filter-sheet-more [data-category-group]")).toBeNull();
     fireEvent.click(within(panel).getByRole("button", { name: "Use my location" }));
     expect(state.askDevice).toHaveBeenCalledTimes(1);
@@ -194,12 +193,12 @@ describe("Declutter desktop header (owner 11-21)", () => {
     expect(document.querySelector("[data-device-note]")?.textContent).toMatch(/couldn't read/);
   });
 
-  it("phone keeps its own header: the search bar with Filters inside, and the chip row", async () => {
+  it("phone keeps its own header: the search bar with Filters inside (no chip row since owner 11-25)", async () => {
     state.live = LIST();
     state.desktop = false;
     browse("me");
     await cardsIn();
     expect(header?.search).toBeTruthy();
-    expect(header?.chips).toBeTruthy();
+    expect(header && "chips" in header).toBe(false);
   });
 });

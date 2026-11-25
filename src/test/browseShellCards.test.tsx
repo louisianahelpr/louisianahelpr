@@ -206,7 +206,9 @@ describe("the shell card wears the real guest JobCard's classes", () => {
     expect(c.textCol).toBe(real("[data-feed-card] > div > div:first-child > div:nth-child(2)"));
     expect(c.badgeLine).toBe(real("[data-feed-card] > div > div:first-child > div:nth-child(2) > div:first-child"));
     expect(container.querySelector("[data-feed-card]")?.hasAttribute("data-feed-row")).toBe(true);
-    expect(c.face).toBe(real("[data-testid=job-card-poster]"));
+    // Owner 11-25 (compact rows): a guest card draws no poster line, and the shell none either.
+    expect(container.querySelector("[data-testid=job-card-poster]")).toBeNull();
+    expect("face" in c).toBe(false);
     expect(c.catLabel).toBe(real(".job-cat-label"));
     expect(c.title).toBe(real(".job-card-title"));
     expect(c.titleRow).toBe(container.querySelector(".job-card-title")?.parentElement?.getAttribute("class"));

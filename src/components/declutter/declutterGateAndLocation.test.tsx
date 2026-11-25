@@ -401,10 +401,10 @@ describe("Declutter location ask", () => {
     delete dropStates.i1;
   });
 
-  it("category chips at the top of Browse (owner 11-07, replacing 10-21's sheet-only rule) and in the filter sheet set ONE category; a tap shows only that category and marks it, a second tap shows everything", async () => {
+  it("the filter sheet's Category (owner 11-25: the chip row left Browse) sets ONE category; it shows as a removable chip; a second tap shows everything", async () => {
     // @mutate src/lib/declutter/browseFilters.ts |     if (f.category && item.category !== f.category) return false; |
     // @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: filters.category === key ? null : key })}> | <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: key })}>
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx | onChange={(category) => setFilters((f) => ({ ...f, category }))} free= | onChange={() => undefined} free=
+    // @mutate src/components/declutter/DeclutterActiveFilters.tsx |     out.push({ key: "category", label, clear: (x, m) => ({ filters: { ...x, category: null }, maxMiles: m }) }); |     out.push({ key: "category", label, clear: (x, m) => ({ filters: x, maxMiles: m }) });
     const item = (id: string, title: string, category: string) => ({
       id, seller_id: "u2", status: "live", title, category, condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
@@ -418,20 +418,11 @@ describe("Declutter location ask", () => {
     // Owner 11-21: it starts as its one magnifier.
     expect(screen.getAllByRole("button", { name: "Search Declutter" })).toHaveLength(1);
     expect(screen.queryByRole("button", { name: "Search all sections" })).toBeNull();
-    // The chip row: All, then the categories on the list (never one with nothing for sale), each one tap.
-    const chipRow = screen.getByRole("group", { name: "Categories" });
-    expect(within(chipRow).getAllByRole("button").map((b) => b.textContent)).toEqual(["All", "Furniture", "Kitchen"]);
-    expect(within(chipRow).getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(within(chipRow).getByRole("button", { name: "Kitchen" }));
-    expect(screen.queryByText("Oak Rocking Chair")).toBeNull();
-    expect(screen.getByText("Stand Mixer")).toBeInTheDocument();
-    expect(within(chipRow).getByRole("button", { name: "Kitchen" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(within(chipRow).getByRole("button", { name: "Kitchen" }));
-    expect(screen.getByText("Oak Rocking Chair")).toBeInTheDocument();
+    // No chip row on Browse (owner 11-25).
+    expect(screen.queryByRole("group", { name: "Categories" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Filters" }));
     const sheet = await screen.findByRole("dialog");
-    // M10 (iOS audit 11-16): Category waits behind the sheet's one "More filters" row.
-    fireEvent.click(within(sheet).getByRole("button", { name: "More filters" }));
+    // Category is the sheet's first section, open (not behind "More filters").
     const kitchen = within(sheet).getByRole("button", { name: "Kitchen" });
     // One category-name map (lead 2026-10-28): the sheet says what Sell and Wanted say.
     expect(within(sheet).getByRole("button", { name: "Home decor" })).toBeInTheDocument();
@@ -441,6 +432,8 @@ describe("Declutter location ask", () => {
     expect(kitchen).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByText("Oak Rocking Chair")).toBeNull();
     expect(screen.getByText("Stand Mixer")).toBeInTheDocument();
+    // The chosen category stays visible over the cards as one removable chip.
+    expect(document.querySelector('[data-active-filter="category"]')?.textContent).toBe("Kitchen");
     fireEvent.click(within(sheet).getByRole("button", { name: "Toys and games" }));
     expect(screen.getByText("Nothing in Toys and games right now.")).toBeInTheDocument();
     const toys = within(sheet).getByRole("button", { name: "Toys and games" });
@@ -508,11 +501,10 @@ describe("Declutter location ask", () => {
     }
   });
 
-  it("phone (owner 11-08, the Vinted header; just the icon, owner 11-21): the Search Declutter icon opens the bar with Filters inside it, the section tabs under it (F153), then the category chips; the filter sheet's View switches the list to the map, as Jobs' does", async () => {
+  it("phone (owner 11-08, the Vinted header; just the icon, owner 11-21): the Search Declutter icon opens the bar with Filters inside it, the section tabs under it (F153), then the grid (no chip row, owner 11-25); the filter sheet's View switches the list to the map, as Jobs' does", async () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: mapShown && others.length > 0 }); |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: others.length > 0 });
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |   } else if (!desktop && mapShown) { |   } else if (false) {
     // @mutate src/components/declutter/DeclutterHomeView.tsx |         <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs= |         <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} onlySelected tabs=
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx |         chips: chipRow ? <div data-declutter-chips-row="" className={CHIPS_ROW_PAD}>{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null, |         chips: null,
     twoItems();
     pins.reads = 0;
     try {
@@ -528,12 +520,9 @@ describe("Declutter location ask", () => {
       expect(bar.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       expect(within(bar).getByRole("button", { name: "Filters" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Declutter settings" })).toBeNull();
-      // The chips sit in the header, under the bar, before the grid.
-      const chips = container.querySelector("[data-declutter-chips-row]") as HTMLElement;
-      expect(chips).not.toBeNull();
-      expect(bar.compareDocumentPosition(chips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      expect(tabs.compareDocumentPosition(chips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      expect(chips.compareDocumentPosition(screen.getByText("Oak Rocking Chair")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      // No category chip row (owner 11-25): the grid follows the tabs.
+      expect(container.querySelector("[data-chip-row]")).toBeNull();
+      expect(tabs.compareDocumentPosition(screen.getByText("Oak Rocking Chair")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       // Typing filters the feed.
       fireEvent.change(within(bar).getByRole("searchbox", { name: "Search Declutter" }), { target: { value: "lamp" } });
       expect(await screen.findByText("Brass Lamp")).toBeInTheDocument();

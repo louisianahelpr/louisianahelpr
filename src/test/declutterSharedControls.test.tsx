@@ -7,7 +7,6 @@
  *
  * @mutate src/components/declutter/DeclutterActiveFilters.tsx | <RemoveFilterChip\n | <button type="button" className="h-10"\n
  * @mutate src/components/declutter/DeclutterGallery.tsx | <PhotoDotButton key={url} current={i === at} | <button key={url} type="button" data-current={i === at}
- * @mutate src/components/declutter/DeclutterCategoryChips.tsx | <RowNudgeButton aria-label={t("decl.moreCategories")} onClick={() => nudge(1)}> | <button type="button" aria-label={t("decl.moreCategories")} onClick={() => nudge(1)}>
  * @mutate src/components/ui/PhotoDotButton.tsx | aria-current={current ? "true" : undefined} | aria-current={undefined}
  * @mutate src/components/ui/RemoveFilterChip.tsx |       <X className="h-3.5 w-3.5" aria-hidden />\n |
  */
@@ -77,7 +76,6 @@ describe("Declutter's audit controls are shared, look-identical controls", () =>
 
   it.each([
     ["src/components/declutter/DeclutterActiveFilters.tsx", "RemoveFilterChip", 1],
-    ["src/components/declutter/DeclutterCategoryChips.tsx", "RowNudgeButton", 2],
     ["src/components/declutter/DeclutterGallery.tsx", "PhotoDotButton", 1],
   ])("%s uses %s (no hand-made button in its place)", (file, tag, n) => {
     const tags = jsxTags(file);
@@ -85,8 +83,9 @@ describe("Declutter's audit controls are shared, look-identical controls", () =>
     expect(tags.filter((t) => t === tag).length).toBe(n);
   });
 
-  it("the filter chips and the category row keep no hand-made <button> at all", () => {
-    for (const f of ["src/components/declutter/DeclutterActiveFilters.tsx", "src/components/declutter/DeclutterCategoryChips.tsx"]) {
+  // The category row (DeclutterCategoryChips) left Browse for the Filters sheet, owner 11-25.
+  it("the filters-on chips keep no hand-made <button> at all", () => {
+    for (const f of ["src/components/declutter/DeclutterActiveFilters.tsx"]) {
       expect(jsxTags(f).filter((t) => t === "button")).toEqual([]);
     }
   });

@@ -1,6 +1,14 @@
+import { Link } from "react-router-dom";
+import { Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { wordInLang } from "@/lib/i18n/inLang";
 
 /**
+ * Owner 11-25 ("there is no way for signed out people to see the gift guides", on the app's signed-out Jobs and
+ * Declutter): the gift icon, then ONE "Join / Log in" pill (owner 11-22's phone header words, Navbar), in place of
+ * the separate "Log in" and "Join free" this used to draw. The notes below are the history of the pair.
+ * Guard: src/test/phoneCompactBrowse1125.test.tsx.
+ *
  * The guest feed's trailing controls — the signed-out counterpart to Home's
  * notification bell, occupying the same slot at the end of the title bar's
  * single row.
@@ -48,25 +56,27 @@ import { Button } from "@/components/ui/button";
  * padding still to spare, and documentElement.scrollWidth === clientWidth.
  * Going solid cost the button 6px (82 → 88); the row absorbed it.
  */
-export function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup: () => void }) {
+export function GuestAuthActions({ onSignup }: { onSignup: () => void }) {
   return (
     <>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={onLogin}
-        className="text-ds-11 h-11 px-2 font-sans font-semibold"
-        style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
+      {/* A plain 44px-tall link with no circle (search-is-an-icon), named "Gift guides", like the web phone bar's
+          (Navbar, nav-gift-guides-phone). */}
+      <Link
+        to="/gift-guides"
+        aria-label={wordInLang("pub.giftGuides", "Gift guides")}
+        data-testid="top-bar-gift-guides"
+        className="inline-flex h-11 w-10 shrink-0 items-center justify-center rounded-full text-foreground btn-press hover:text-[hsl(var(--bark))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        Log in
-      </Button>
+        <Gift aria-hidden className="h-5 w-5" />
+      </Link>
       <Button
         size="sm"
         onClick={onSignup}
-        className="text-ds-11 h-11 px-3 font-sans font-semibold btn-press"
+        data-testid="top-bar-join"
+        className="text-ds-11 h-11 px-3 font-sans font-semibold btn-press whitespace-nowrap"
         style={{ color: "hsl(var(--parchment))" }}
       >
-        Join free
+        {wordInLang("g.joinOrLogIn", "Join / Log in")}
       </Button>
     </>
   );

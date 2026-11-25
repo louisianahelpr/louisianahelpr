@@ -1357,21 +1357,6 @@
    "age": "toddler"
   },
   {
-   "id": "MVS011",
-   "name": "Spiderman Boys Long Sleeve Top and Pant with Robe Pajama Set, 3PC",
-   "brand": "Marvel",
-   "line": "Clothes and pajamas for a Marvel fan.",
-   "href": "https://walmrt.us/3WVSoow",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spiderman-boys-long-sleeve-top-and-pant-with-robe-pajama-set-walmart-0d3e0e.webp",
-   "store": "store-walmart",
-   "price": 15,
-   "priceAt": "2026-11-24",
-   "section": "Clothes and pajamas",
-   "sectionId": "marvel-clothes-and-pajamas",
-   "commission": 15,
-   "age": "kids"
-  },
-  {
    "id": "MVS018",
    "name": "Disney Marvel Spider-Man Costume Boys Sweatshirt Outfit Set Toddler Sweatshirt",
    "brand": "Marvel",
@@ -1400,21 +1385,6 @@
    "sectionId": "marvel-clothes-and-pajamas",
    "commission": 15,
    "age": "kids"
-  },
-  {
-   "id": "MVS025",
-   "name": "Spider-Man Toddler Cosplay 2-Piece Pajama Set",
-   "brand": "Marvel",
-   "line": "Clothes and pajamas for a Marvel fan.",
-   "href": "https://walmrt.us/4ATr09f",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spider-man-toddler-cosplay-2-piece-pajama-set-walmart-12c9dd.webp",
-   "store": "store-walmart",
-   "price": 11.48,
-   "priceAt": "2026-11-24",
-   "section": "Clothes and pajamas",
-   "sectionId": "marvel-clothes-and-pajamas",
-   "commission": 15,
-   "age": "toddler"
   },
   {
    "id": "MVS037",
@@ -2502,5 +2472,20 @@
    "age": "kids"
   }
  ],
- "skipped": []
+ "skipped": [
+  {
+   "id": "MVS011",
+   "name": "Spiderman Boys Long Sleeve Top and Pant with Robe Pajama Set, 3PC",
+   "why": [
+    "pajama cap: at most 2 pajamas per price section (owner 11-20); Under $25 already has MV40 and MV41"
+   ]
+  },
+  {
+   "id": "MVS025",
+   "name": "Spider-Man Toddler Cosplay 2-Piece Pajama Set",
+   "why": [
+    "pajama cap: at most 2 pajamas per price section (owner 11-20); Under $25 already has MV40 and MV41"
+   ]
+  }
+ ]
 }

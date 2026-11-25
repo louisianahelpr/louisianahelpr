@@ -239,7 +239,7 @@ describe("no scheduled job or link check requests our own affiliate links", () =
 
   it("no repo job code both makes a request and names an affiliate host (exact allowlist)", () => {
     const files = tracked("scripts", "supabase/functions", "api", "e2e", "tools", "ops", ".github").filter(
-      (f) => /\.(mjs|cjs|js|ts|tsx|sh|py|ya?ml)$/.test(f) && !/\.test\.|\/__tests__\/|\.d\.m?ts$/.test(f),
+      (f) => /\.(mjs|cjs|js|ts|tsx|sh|py|ya?ml)$/.test(f) && !/(?:\.test\.|\/__tests__\/|\.d\.m?ts$)/.test(f),
     );
     expect(files.length).toBeGreaterThan(800);
     const hits = files.filter((f) => {

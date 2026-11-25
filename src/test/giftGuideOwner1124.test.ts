@@ -58,6 +58,9 @@ const SWITCHES: [string, string, string, string, number, number, string][] = [
   // Walmart cheaper or level and paying more (Walmart Creator links made ~3:28 AM).
   ["him", amz("B0H51ZX6SB"), "https://walmrt.us/4zZkihX", "store-walmart", 9, 179, "GE Profile Opal Mini Nugget Ice Maker"],
   ["kids", amz("B0G4SR68GB"), "https://walmrt.us/4jpdmER", "store-walmart", 6, 44.97, "Fisher-Price Little People My Mario Adventure Playset"],
+  // Owner 11-24 ~10:10 PM: her Cloud Pink Toniebox's Amazon page is dead; Cloud Pink is sold nowhere we earn, she chose Kohl's
+  // (Sunset Red, store pickup only; Later link made in her dashboard ~10:12 PM).
+  ["kids", amz("B0FJ2ZHPDY"), "https://mavely.app.link/iqXO1Sgtl8b", "store-kohls", 10.5, 99.99, "tonies Playtime Puppy Toniebox 2 Starter Set, Sunset Red"],
   // Lead ~3:55 AM: her Clinique campaign on Amazon Creator Connections pays 30% against ShopMy 21%, same price.
   ["him", sm("108625882"), amz("B00IPWN1LK"), "store-amazon", 30, 29.4, "Clinique For Men Oil-Free Moisturizer"],
   ["him", sm("108625877"), amz("B00P4WVQNE"), "store-amazon", 30, 23.1, "Clinique For Men Post-Shave Soother"],

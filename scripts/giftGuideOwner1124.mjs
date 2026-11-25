@@ -102,6 +102,18 @@ export const RATE_SWITCHES_1124 = {
     href: "https://walmrt.us/4jpdmER", store: "store-walmart", commission: 6, price: 44.97, image: "https://i5.walmartimages.com/seo/Fisher-Price-Little-People-My-Mario-Adventure-Playset-Musical-Toddler-Toy-with-2-Figures_59d463a3-b5c1-4ee3-8fbd-4611ee792102.e64adef224c128646e70f33e498f1bb4.jpeg",
     was: "Amazon 3% ($44, 11-22)", now: "Walmart Creator 6% ($44.97, was $54.99; $2.70 a sale vs $1.32)",
   },
+  // Owner 11-24 ~10:10 PM (via the lead): her Toniebox 2 Starter Set, Cloud Pink (Playtime Puppy, per Amazon's photo) went
+  // to a dead Amazon page; "Find it at another store." Cloud Pink is sold nowhere we earn (read ~9:55-10:00 PM: tonies.com
+  // $149.99 sold out; Walmart only Toniebox 1 from marketplace sellers; not at Target or Best Buy; Kohl's has Sky Blue and
+  // Sunset Red only). She chose "Kohl's, Sky Blue or Sunset Red"; lead: Sunset Red. kohls.com prd-7838021 read ~10:10 PM:
+  // Sunset Red $99.99 sale (reg. $149.99), pickup 2 in stock at Slidell, shipping "Not Available", so the line says pickup.
+  // Later link made ~10:12 PM in her Later Creator dashboard (Create link, the Kohl's product URL with color=Sunset Red);
+  // Kohl's via Later is 10.5% as on her other Kohl's picks. Kohl's photo, cut out.
+  [amz("B0FJ2ZHPDY")]: {
+    href: "https://mavely.app.link/iqXO1Sgtl8b", store: "store-kohls", commission: 10.5, price: 99.99, image: "https://media.kohlsimg.com/is/image/kohls/7838021_Sunset_Red",
+    name: "tonies Playtime Puppy Toniebox 2 Starter Set, Sunset Red", line: "A screen-free story and music player. Kohl's store pickup only.",
+    was: "Amazon 3% ($99.99, Cloud Pink; Amazon page dead 11-24)", now: "Kohl's via Later 10.5% ($99.99, reg. $149.99, Sunset Red; store pickup only; $10.50 a sale vs $3)",
+  },
   [shopmy("p-107881822")]: {
     // Muck Boot's TAKE25 (25% off everything through Nov 28, src/content/giftGuideCodes.json) rides on the card, as it did at
     // The Warming Store's code before.
@@ -186,6 +198,7 @@ export const KIDS_ADDS_1124 = [...KIDS_MACYS_1124_ROWS.map(macys), ...KIDS_STEAL
 
 /** Store photos for the switches and adds, cut out (Apple Vision) into public/gift-guides/cutouts: photo URL -> file. */
 export const CUTOUTS_1124 = [
+  ["https://media.kohlsimg.com/is/image/kohls/7838021_Sunset_Red", "tonies-playtime-puppy-toniebox-2-sunset-red-kohls-12fca2.webp"],
   ["https://media.ulta.com/i/ulta/2656433", "shark-chillpill-purple-ulta-bd9778.webp"],
   ["https://media.ulta.com/i/ulta/2615650", "elf-glow-reviver-lip-oil-honey-talks-ulta-913bce.webp"],
   ["https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-The_Adventure_To-Go_Food_Jar_18OZ_-_Frost_-_Front.png", "stanley-adventure-to-go-food-jar-18oz-frost-9746c2.webp"],

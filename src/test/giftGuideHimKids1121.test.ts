@@ -173,7 +173,7 @@ const STEALS_1124: Record<string, Record<string, string>> = {
  */
 const SWITCHED_1124: Record<string, Record<string, string>> = {
   him: { "https://mavely.app.link/rBTVe27Zj8b": "store-columbia", "https://mavely.app.link/LP97ij8Zj8b": "store-columbia", "https://go.shopmy.us/p-110119003": "store-muck-boot", "https://walmrt.us/4zZkihX": "store-walmart", "https://mavely.app.link/MYePdejfk8b": "store-scheels", "https://mavely.app.link/SGyD34lfk8b": "store-scheels", "https://mavely.app.link/3DJNEdpfk8b": "store-scheels", ...STEALS_1124.him },
-  kids: { ...sm(["110119731", "110119881", "110119923", "110119952", "110119982", "110120034", "110120060"], "store-macys"), "https://walmrt.us/4jpdmER": "store-walmart", ...STEALS_1124.kids },
+  kids: { ...sm(["110119731", "110119881", "110119923", "110119952", "110119982", "110120034", "110120060"], "store-macys"), "https://walmrt.us/4jpdmER": "store-walmart", "https://mavely.app.link/iqXO1Sgtl8b": "store-kohls", ...STEALS_1124.kids },
 };
 // p-109001581 / p-109004991 / p-109004058: the YETI Tundra 45, Hopper Flip 12 and Sidekick Dry to SCHEELS via Later 7% (lead ~4:20 AM, Pace Purple, about 30% off).
 const SWITCHED_AWAY_1124 = ["B0FY9LPSCW", "B0076R6MN4", "p-107881822", "B0H51ZX6SB", "p-109001581", "p-109004991", "p-109004058"];
@@ -345,10 +345,10 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
 describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
   it("54 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (Segway S2 is at Tractor Supply; 11-22 the Switch with Joy-Con, the C2 Lite and C2 Pro, the Amazon S2 and the mini CreateOn tiles went as duplicates, and Paint by Sticker came off; the Quest 3S, iPad and JLab kids headphones were added)", () => {
     const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
-    expect(amazon.length).toBe(83); // 85 until the Bluey figure 4-pack and the Spider-Man fishing kit moved to their themed guides (on Walmart there) 11-24. 86 until the My Mario playset moved to Walmart 11-24 (2026-11-24). 86 = 70 + the 16 Amazon keeps of 11-23 (scripts/giftGuideOwnerKeeps1123.mjs). 70 = 54 after the duplicate removals and Paint by Sticker + the 9 popular adds of 11-22 + the 7 Louisiana books, plush and team gear (owner 11-22 PM)
+    expect(amazon.length).toBe(82); // 83 until the Cloud Pink Toniebox starter set moved to Kohl's (Amazon page dead; owner 11-24 ~10:10 PM). 85 until the Bluey figure 4-pack and the Spider-Man fishing kit moved to their themed guides (on Walmart there) 11-24. 86 until the My Mario playset moved to Walmart 11-24 (2026-11-24). 86 = 70 + the 16 Amazon keeps of 11-23 (scripts/giftGuideOwnerKeeps1123.mjs). 70 = 54 after the duplicate removals and Paint by Sticker + the 9 popular adds of 11-22 + the 7 Louisiana books, plush and team gear (owner 11-22 PM)
     // Owner 2026-11-22 8:58 PM ("take it off"): Paint by Sticker Kids: Christmas had no Buy Box and no other listing.
     expect(amazon.some((p) => p.href.includes("152350675X"))).toBe(false);
-    for (const asin of ["B0F3GWXLTS", "B0FJ2ZHPDY", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
+    for (const asin of ["B0F3GWXLTS", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);
     expect(amazon.some((p) => p.href.includes("B0CT2WN59R"))).toBe(false);
   });
 });

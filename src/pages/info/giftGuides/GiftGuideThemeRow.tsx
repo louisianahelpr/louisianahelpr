@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { guideBySlug } from "@/content/giftGuideCatalog";
-import { THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
+import { KIDS_THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { RowNudgeButton } from "@/components/ui/RowNudgeButton";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -60,7 +60,8 @@ export function GiftGuideThemeRow() {
     const el = row.current;
     if (el) el.scrollBy({ left: dir * Math.max(160, el.clientWidth * 0.8), behavior: "smooth" });
   };
-  const guides = THEME_GUIDES_1124.map((slug) => guideBySlug(slug)).filter((g) => g !== undefined);
+  // The kids themes only: a store deals guide (Sam's Club Black Friday, owner 11-25) is not a kids guide.
+  const guides = KIDS_THEME_GUIDES_1124.map((slug) => guideBySlug(slug)).filter((g) => g !== undefined);
   if (guides.length === 0) return null;
   return (
     <section className="gg-themes" aria-label={G.themeRowLabel} data-gift-theme-row="">

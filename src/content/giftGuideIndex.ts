@@ -5,7 +5,7 @@
  * `via: "shopmy"` marks a "By store" brand from the owner's ShopMy links: each is its own store tile (there is no "ShopMy" tile, owner 2026-11-18).
  * Regenerate from the file, never by hand.
  */
-import { THEME_GUIDE_NAMES_1124 } from "./giftGuideLive.mjs";
+import { THEME_GUIDE_NAMES_1124, themeTitle } from "./giftGuideLive.mjs";
 
 export const GUIDE_INDEX: { group: string; tint: "green" | "oat" | "red"; slug: string; title: string; lead: string; age?: string; parent?: string; via?: "shopmy" }[] = [
   { group: "By person", tint: "green", slug: "mom", title: "Mom", lead: "gifts for" },
@@ -46,7 +46,8 @@ export const GUIDE_INDEX: { group: string; tint: "green" | "oat" | "red"; slug: 
   // The themed kids guides (owner 2026-11-24: "lets put together a monster jam gift guide that i can share on facebook",
   // then Bluey, Pokémon ...): each its own page on the green gingham ("the preview on the link is the green cover with the
   // 6 images"), right after Kids, from src/content/giftGuideLive.mjs THEME_GUIDE_NAMES_1124.
-  ...Object.entries(THEME_GUIDE_NAMES_1124).map(([slug, name]) => ({ group: "For kids", tint: "green" as const, slug, title: `${name} Gift Guide`, lead: "the" })),
+  // A store deals guide (Sam's Club Black Friday, owner 11-25) keeps its own title (giftGuideLive.mjs themeTitle).
+  ...Object.keys(THEME_GUIDE_NAMES_1124).map((slug) => ({ group: "For kids", tint: "green" as const, slug, title: themeTitle(slug), lead: "the" })),
   { group: "For kids", tint: "red", slug: "teens", title: "Teens", lead: "gifts for", age: "ages 13+" },
   { group: "For kids", tint: "red", slug: "girls", title: "Girls", lead: "gifts for" },
   { group: "For kids", tint: "red", slug: "boys", title: "Boys", lead: "gifts for" },

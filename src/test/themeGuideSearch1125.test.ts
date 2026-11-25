@@ -16,7 +16,7 @@ import { resolve } from "node:path";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
 import { buildSeoData } from "@/prerender/seoData";
 import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
-import { THEME_GUIDES_1124, THEME_GUIDE_NAMES_1124 } from "@/content/giftGuideLive.mjs";
+import { KIDS_THEME_GUIDES_1124, THEME_GUIDES_1124, THEME_GUIDE_NAMES_1124, isDealTheme } from "@/content/giftGuideLive.mjs";
 import { giftKind, themeGuideSearch, THEME_DESCRIPTION_MAX, THEME_TITLE_MAX } from "@/content/themeGuideSearch.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { catalogGuideQa, newestPriceDay } from "@/lib/guideQa.mjs";
@@ -63,7 +63,9 @@ describe("themed kids guides in search (owner 2026-11-25)", () => {
       // llms.txt: the theme's search title and its data line, never the old template.
       const line = llms.split("\n").find((l) => l.includes(`(${ORIGIN}/gift-guides/${s})`)) ?? "";
       expect(line, s).toContain(`[${THEME_GUIDE_NAMES_1124[s as keyof typeof THEME_GUIDE_NAMES_1124]} `);
-      expect(line, s).toMatch(/\d+ .+ Christmas gift ideas? for kids/);
+      // A store deals guide (Sam's Club Black Friday, owner 11-25) counts deals, never "for kids".
+      expect(line, s).toMatch(isDealTheme(s) ? /\d+ .+ deals?\b/ : /\d+ .+ Christmas gift ideas? for kids/);
+      if (isDealTheme(s)) expect(line, s).not.toMatch(/for kids/i);
       expect(line, s).not.toContain("hand-picked holiday gift ideas");
     }
   });
@@ -74,14 +76,14 @@ describe("themed kids guides in search (owner 2026-11-25)", () => {
       const name = THEME_GUIDE_NAMES_1124[s as keyof typeof THEME_GUIDE_NAMES_1124];
       const picks = themeSearchPicks(g.picks);
       const meta = giftGuidePageMeta(s, "", [], g.count, picks, today());
-      const t = themeGuideSearch(name, picks, g.count, today());
+      const t = themeGuideSearch(name, picks, g.count, today(), { deals: isDealTheme(s) });
       expect(t, s).not.toBeNull();
       expect(meta.title, s).toBe(t!.title);
       expect(meta.title.startsWith(`${name} `), s).toBe(true);
       expect(meta.title, s).toMatch(/ 2026[: ].* — Helpr$/);
       expect(meta.title.length, s).toBeLessThanOrEqual(THEME_TITLE_MAX);
       expect(meta.description.length, s).toBeLessThanOrEqual(THEME_DESCRIPTION_MAX);
-      expect(meta.description.startsWith(`${g.count} ${name} Christmas gift idea`), s).toBe(true);
+      expect(meta.description.startsWith(isDealTheme(s) ? `${g.count} ${name} deal` : `${g.count} ${name} Christmas gift idea`), s).toBe(true);
       expect(meta.ogTitle, s).toBe(meta.title.replace(/ — Helpr$/, ""));
       expect(meta.ogDescription, s).toBe(meta.description);
       expect(meta.robots, s).toBeUndefined();
@@ -141,14 +143,15 @@ describe("themed kids guides in search (owner 2026-11-25)", () => {
       expect(body, s).toMatch(/Updated [A-Z][a-z]{2} \d{1,2}, 2026/);
       // Links back to Kids and to every other theme.
       expect(body, s).toContain('<a href="/gift-guides/kids">');
-      for (const o of THEME_GUIDES_1124.filter((x) => x !== s)) expect(body, `${s} -> ${o}`).toContain(`<a href="/gift-guides/${o}">`);
+      for (const o of KIDS_THEME_GUIDES_1124.filter((x) => x !== s)) expect(body, `${s} -> ${o}`).toContain(`<a href="/gift-guides/${o}">`);
     }
   });
 
   it("Kids' pre-JS body links every themed guide by its theme's name", async () => {
     const body = (await page("kids")).split('<main id="seo-page"')[1] ?? "";
     expect(body).toContain("<h2>Gifts by theme</h2>");
-    for (const s of THEME_GUIDES_1124) {
+    // The kids themes (a store deals guide is not one: samsClubBlackFriday1125).
+    for (const s of KIDS_THEME_GUIDES_1124) {
       expect(body, s).toContain(`<a href="/gift-guides/${s}">${THEME_GUIDE_NAMES_1124[s as keyof typeof THEME_GUIDE_NAMES_1124].replace(/&/g, "&amp;")} gifts</a>`);
     }
   });

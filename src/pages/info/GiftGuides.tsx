@@ -27,7 +27,9 @@ import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { GuidesDisclosure } from "./giftGuides/GuidesDisclosure";
 import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, DEALS_WORDS, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
-import { isLiveGuide, isThemeGuide } from "@/content/giftGuideLive.mjs";
+import { isDealTheme, isKidsTheme, isLiveGuide, isThemeGuide } from "@/content/giftGuideLive.mjs";
+import { SAMS_BF_SLUG } from "@/content/samsClubBlackFriday1125";
+import { SamsJoinCard } from "./giftGuides/SamsClubParts";
 import { KIDS_FILTER_GUIDE, KID_AGES, KID_GENDERS, KID_PRICES, NO_KIDS_SELECTION, filterKids, kidsGenderCounts, loadKidTags, toggleIn, type KidAge, type KidGender, type KidPrice, type KidTags, type KidsSelection } from "@/content/giftGuideKidsFilter";
 import { louisianaToday } from "@/content/giftGuideExtras1120";
 import { searchPageGuides } from "@/content/guideSearchIndex.mjs";
@@ -258,7 +260,8 @@ export default function GiftGuides() {
   const search = sm && searchSlug ? sm.searchPageBySlug(searchSlug) : null;
   // The Kids tag file, or a theme's own tags (owner 11-24 ~7 PM; giftGuideThemeTags.ts, loaded on its page only), by page.
   const [tagsAt, setTagsAt] = useState<{ key: string; tags: KidTags } | null>(null);
-  const tagsKey = slug && isThemeGuide(slug) ? slug : "kids";
+  // A store deals guide (Sam's Club Black Friday, owner 11-25) is no kids guide: no Kids Filter, only the price sort.
+  const tagsKey = slug && isKidsTheme(slug) ? slug : "kids";
   const kidTags = tagsAt?.key === tagsKey ? tagsAt.tags : null;
   const guide = guideBySlug(slug) ?? (sm ? sm.searchGuide(searchSlug, kidTags) : null);
   // Owner 11-21 (iPhone, Kids): "put the icons below the red banner. On the same line as the 81 gifts ... also move the
@@ -275,7 +278,7 @@ export default function GiftGuides() {
   // The themed kids guides (owner 11-24 ~7 PM: "add a filter like the main 3 guides. They should also be sorted like the
   // main 3 guides") are set up as Kids: the price sort, and Kids' Filter (its tags from the theme's own picks).
   const themePage = tagsKey !== "kids";
-  const sort = guide && (isOwnerList(guide.slug) || themePage) && priced ? { order: sortOrder, onChange: (o: GuideOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
+  const sort = guide && (isOwnerList(guide.slug) || themePage || isDealTheme(guide.slug)) && priced ? { order: sortOrder, onChange: (o: GuideOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
   // Owner 2026-11-21, the 25 Days sponsors page: "move search, heart and share under the line for shop our sponsors,
   // and move those things into the filter for that section": its section links and price limits live in a Filter among
   // its icons (budget kept here). Owner 11-22: its pill and icons sit where Her's do (countRow below).
@@ -468,7 +471,7 @@ export default function GiftGuides() {
             disclosures at the very bottom. From 768px the CSS grid puts the menu on the left (GIFT_GUIDES_CSS). */}
         <div className="gg-layout">
           <div className="gg-main">
-            {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? (search && sm?.searchNeedsTags(search) && !kidTags ? <p className="gg-soon" role="status">{WISH.loading}</p> : <><GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} />{sm && <sm.GuideSearchLinks slug={guide.slug} />}</>)
+            {deals ? <LazyDeals key={deals.id} day={deals} /> : guide ? (search && sm?.searchNeedsTags(search) && !kidTags ? <p className="gg-soon" role="status">{WISH.loading}</p> : <>{guide.slug === SAMS_BF_SLUG && <SamsJoinCard />}<GiftGuideView guide={guide} order={sortOrder} hideCount={countRow} filter={headerFilter} />{sm && <sm.GuideSearchLinks slug={guide.slug} />}</>)
               : searchSlug ? (searchMod === "failed" ? <p className="gg-soon" role="alert">{G.picksFailed}</p> : <p className="gg-soon" role="status">{WISH.loading}</p>) : shared ? <LazySharedList code={code} /> : myList ? <LazyMyList /> : <GiftGuideLanding />}
           </div>
           {/* A shared list marks nothing current either (holiday audit 1121: it marked "All guides"). */}

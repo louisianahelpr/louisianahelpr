@@ -3,3 +3,8 @@ export declare const isLiveGuide: (slug: string) => boolean;
 export declare const THEME_GUIDES_1124: readonly string[];
 export declare const isThemeGuide: (slug: string) => boolean;
 export declare const THEME_GUIDE_NAMES_1124: Readonly<Record<string, string>>;
+export declare const DEAL_THEME_TITLES_1125: Readonly<Record<string, string>>;
+export declare const isDealTheme: (slug: string) => boolean;
+export declare const KIDS_THEME_GUIDES_1124: readonly string[];
+export declare const isKidsTheme: (slug: string) => boolean;
+export declare const themeTitle: (slug: string) => string;

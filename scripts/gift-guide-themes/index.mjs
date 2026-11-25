@@ -14,5 +14,6 @@ import cars from "./cars.json" with { type: "json" };
 import numberblocks from "./numberblocks.json" with { type: "json" };
 import melissaAndDoug from "./melissa-and-doug.json" with { type: "json" };
 import lego from "./lego.json" with { type: "json" };
+import samsClubBlackFriday from "./sams-club-black-friday.json" with { type: "json" };
 
-export const THEME_FILES = { "monster-jam": monsterJam, "bluey": bluey, "marvel": marvel, "kpop-demon-hunters": kpopDemonHunters, "pokemon": pokemon, "minecraft": minecraft, "hot-wheels": hotWheels, "cars": cars, "numberblocks": numberblocks, "melissa-and-doug": melissaAndDoug, "lego": lego };
+export const THEME_FILES = { "monster-jam": monsterJam, "bluey": bluey, "marvel": marvel, "kpop-demon-hunters": kpopDemonHunters, "pokemon": pokemon, "minecraft": minecraft, "hot-wheels": hotWheels, "cars": cars, "numberblocks": numberblocks, "melissa-and-doug": melissaAndDoug, "lego": lego, "sams-club-black-friday": samsClubBlackFriday };

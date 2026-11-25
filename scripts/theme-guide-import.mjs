@@ -36,6 +36,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ownerStyleOff } from "./giftGuideRules.mjs";
 import { themeChunkPicks } from "./giftGuideThemePicks.mjs";
+import { DEAL_THEME_TITLES_1125 } from "../src/content/giftGuideLive.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = "https://www.louisianahelpr.com";
@@ -116,6 +117,8 @@ function main() {
     process.exit(2);
   }
   const [slug, theme, folderArg] = args;
+  // The cover's and card's title: "<theme> Gift Guide", or a store deals guide's own (Sam's Club Black Friday, owner 11-25).
+  const coverTitle = Object.prototype.hasOwnProperty.call(DEAL_THEME_TITLES_1125, slug) ? DEAL_THEME_TITLES_1125[slug] : `${theme} Gift Guide`;
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error(`bad slug ${slug}`);
   const folder = resolve(folderArg.replace(/^~(?=\/)/, process.env.HOME ?? "~"));
   const research = JSON.parse(readFileSync(join(folder, "items.json"), "utf8"));
@@ -268,7 +271,7 @@ function main() {
   // 7. The cover generators: green, its cover's six photos on the card.
   insertOnce("scripts/gift-guide-photo-covers.py", `"${slug}": "green"`, (src) => src.replace(/^(SLUG_TINT = \{.*)\}$/m, (_, a) => `${a}, "${slug}": "green"}`));
   insertOnce("scripts/gift-guide-wide-og.py", `    "${slug}": ("/gift-guides/${slug}",`, (src) =>
-    afterLastLine(src, others.map((s) => `    "${s}": ("/gift-guides/${s}",`), `    "${slug}": ("/gift-guides/${slug}", "green", "the", "${theme} Gift Guide"),\n`));
+    afterLastLine(src, others.map((s) => `    "${s}": ("/gift-guides/${s}",`), `    "${slug}": ("/gift-guides/${slug}", "green", "the", "${coverTitle}"),\n`));
   {
     const src = read("scripts/gift-guide-wide-og.py");
     const m = src.match(/^COVER_KEYS = \(([^)]*)\)$/m);
@@ -292,7 +295,7 @@ function main() {
     if (items.length !== 6) throw new Error(`cover6.json: ${items.length} ids, need 6`);
     manifest[slug] = { section: "For kids", items };
     write(manifestPath, `${JSON.stringify(manifest, null, 1)}\n`);
-    execFileSync("python3", [rel("scripts/theme-guide-draw.py"), slug, `${theme} Gift Guide`], { stdio: "inherit" });
+    execFileSync("python3", [rel("scripts/theme-guide-draw.py"), slug, coverTitle], { stdio: "inherit" });
     execFileSync("python3", [rel("scripts/gift-guide-wide-og.py"), slug], { stdio: "inherit" });
     execFileSync("node", [rel("scripts/gift-guide-cover-versions.mjs")], { stdio: "inherit" });
     editJsonConst("src/content/giftGuideCoverSlugs.ts", "COVER_SLUGS", (a) => sortedInsert(a, slug));

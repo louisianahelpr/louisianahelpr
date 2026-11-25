@@ -73,7 +73,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideCover.tsx |           <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>\n        </div> |           <h1 id={titleId}><span className="sr-only">{lead}</span>{" "}{title}</h1>\n          <p className="gg-arch-foot">Louisiana Helpr</p>\n        </div>
  * @mutate src/content/giftGuideCodes.json | {"rank":1,"store":"Muck Boot","code":"TAKE25", | {"rank":8,"store":"Muck Boot US","code":"TAKE25",
  */
-import { THEME_GUIDES_1124, isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { KIDS_THEME_GUIDES_1124, THEME_GUIDES_1124, isLiveGuide } from "@/content/giftGuideLive.mjs";
 import { readFileSync, existsSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -454,12 +454,13 @@ describe("gift guides: the landing opens to the guides", () => {
     expect([...container.querySelectorAll("[data-gift-sidebar] summary")].map((s) => s.querySelector("a")?.getAttribute("data-gift-side"))).toEqual(["kids"]);
     const guides = [...container.querySelectorAll("[data-gift-side-guides] a")];
     // Guide consistency audit 1122 #19: My Wish List closes the group, as in the phone's menu sheet (no dot).
-    expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", ...THEME_GUIDES_1124.map((s) => `/gift-guides/${s}`), "/gift-guides/my-list"]);
+    expect(guides.map((a) => a.getAttribute("href"))).toEqual(["/gift-guides", "/gift-guides/her", "/gift-guides/him", "/gift-guides/kids", ...KIDS_THEME_GUIDES_1124.map((s) => `/gift-guides/${s}`), "/gift-guides/my-list"]);
     // Owner 2026-11-24: Monster Jam sits after Kids, green like its cover ("the green cover with the 6 images").
-    const dots = ["oat", "green", "red", ...THEME_GUIDES_1124.map(() => "green")];
-    expect(guides.slice(1, 4 + THEME_GUIDES_1124.length).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(dots);
-    expect(guides.slice(1, 4 + THEME_GUIDES_1124.length).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(dots.map((d) => `gg-dot gg-${d}`));
-    expect(guides[4 + THEME_GUIDES_1124.length].querySelector("[data-gift-side-dot]")).toBeNull();
+    // The kids themes; a store deals guide's row sits in Deals (samsClubBlackFriday1125).
+    const dots = ["oat", "green", "red", ...KIDS_THEME_GUIDES_1124.map(() => "green")];
+    expect(guides.slice(1, 4 + KIDS_THEME_GUIDES_1124.length).map((a) => a.querySelector("[data-gift-side-dot]")?.getAttribute("data-gift-side-dot"))).toEqual(dots);
+    expect(guides.slice(1, 4 + KIDS_THEME_GUIDES_1124.length).map((a) => a.querySelector("[data-gift-side-dot]")?.className)).toEqual(dots.map((d) => `gg-dot gg-${d}`));
+    expect(guides[4 + KIDS_THEME_GUIDES_1124.length].querySelector("[data-gift-side-dot]")).toBeNull();
     expect(container.querySelector('[data-gift-sidebar] a[aria-current="page"]')?.getAttribute("href")).toBe("/gift-guides");
     cleanup();
     for (const [url, cur] of [["/gift-guides/kids", "/gift-guides/kids"], ["/gift-guides/mom", "/gift-guides/her"], ["/gift-guides/dad", "/gift-guides/him"]]) {

@@ -15,7 +15,7 @@
  *
  * @mutate src/content/giftGuideDupes.json |    "guide": "melissa-and-doug", |    "guide": "kids",
  * @mutate src/pages/info/GiftGuides.tsx |               {guide?.slug === KIDS_FILTER_GUIDE && <LazyThemeRow />} |               {null}
- * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx |   const guides = THEME_GUIDES_1124.map((slug) => guideBySlug(slug)).filter((g) => g !== undefined); |   const guides = THEME_GUIDES_1124.slice(1).map((slug) => guideBySlug(slug)).filter((g) => g !== undefined);
+ * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx |   const guides = KIDS_THEME_GUIDES_1124.map((slug) => guideBySlug(slug)).filter((g) => g !== undefined); |   const guides = KIDS_THEME_GUIDES_1124.slice(1).map((slug) => guideBySlug(slug)).filter((g) => g !== undefined);
  * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx | priority={i < EAGER_COVERS} | priority
  * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx | const THEME_ROW_CSS = `.gg-themes-row{overflow-y:hidden; | const THEME_ROW_CSS = `.gg-themes-row{
  * @mutate src/pages/info/giftGuides/GiftGuideThemeRow.tsx | .gg-themes-row .gg-name{top:0} | .gg-themes-row .gg-name{}
@@ -37,7 +37,7 @@ vi.mock("@/components/marketing/PublicHeaderPage", () => ({
 }));
 
 import GiftGuides from "@/pages/info/GiftGuides";
-import { THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
+import { KIDS_THEME_GUIDES_1124, THEME_GUIDES_1124 } from "@/content/giftGuideLive.mjs";
 import { guideBySlug, loadAllGuidePicks } from "@/content/giftGuideCatalog";
 import { KIDS_THEME_MOVES_1124 } from "../../scripts/giftGuideKidsThemeMoves1124.mjs";
 import { kidsThemeMovesLive1124, themeRows1124 } from "../../scripts/giftGuideThemes1124.mjs";
@@ -101,10 +101,11 @@ describe("the Kids page's themed guides row (owner 2026-11-24)", () => {
     expect(row).toBeTruthy();
     const tiles = [...row!.querySelectorAll("a[data-gift-tile]")];
     // Inventory floor: Monster Jam, Bluey, Marvel, KPop Demon Hunters at least.
-    expect(THEME_GUIDES_1124.length).toBeGreaterThan(3);
-    expect(tiles.map((a) => a.getAttribute("href"))).toEqual(THEME_GUIDES_1124.map((s) => `/gift-guides/${s}`));
+    // The kids themes only: a store deals guide (Sam's Club Black Friday, owner 11-25) is not in Kids' row.
+    expect(KIDS_THEME_GUIDES_1124.length).toBeGreaterThan(3);
+    expect(tiles.map((a) => a.getAttribute("href"))).toEqual(KIDS_THEME_GUIDES_1124.map((s) => `/gift-guides/${s}`));
     tiles.forEach((a, i) => {
-      const slug = THEME_GUIDES_1124[i];
+      const slug = KIDS_THEME_GUIDES_1124[i];
       expect(guideBySlug(slug)?.tint, slug).toBe("green");
       const img = a.querySelector("img[data-gift-cover]");
       expect(img, slug).toBeTruthy();

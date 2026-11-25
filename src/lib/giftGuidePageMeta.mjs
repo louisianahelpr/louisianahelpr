@@ -9,7 +9,7 @@ import { SITE_ORIGIN, NOINDEX_ROBOTS, PUBLIC_PAGE_META, publicPageMetaFor } from
 import { GIFT_GUIDE_SEO } from "../content/giftGuideSeo.mjs";
 import { dealDay, louisianaDay } from "../content/giftGuideDeals.mjs";
 import { DEAL_DAY_SEARCH_TITLES, GUIDE_SEARCH, guideSearchDescription } from "../content/guideSearch.mjs";
-import { THEME_GUIDE_NAMES_1124 } from "../content/giftGuideLive.mjs";
+import { THEME_GUIDE_NAMES_1124, isDealTheme } from "../content/giftGuideLive.mjs";
 import { themeGuideSearch } from "../content/themeGuideSearch.mjs";
 
 /** "A, B and C" */
@@ -63,7 +63,7 @@ export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count
   // card text come from its own picks (src/content/themeGuideSearch.mjs): what the gifts are, the price range and the
   // stores. The card's picture (og:image, api/share.ts) is unchanged.
   const themeName = named && Object.prototype.hasOwnProperty.call(THEME_GUIDE_NAMES_1124, slug) ? THEME_GUIDE_NAMES_1124[slug] : null;
-  const theme = themeName && Array.isArray(themePicks) && themePicks.length ? themeGuideSearch(themeName, themePicks, count, today) : null;
+  const theme = themeName && Array.isArray(themePicks) && themePicks.length ? themeGuideSearch(themeName, themePicks, count, today, { deals: isDealTheme(slug) }) : null;
   if (theme) {
     return { title: theme.title, description: theme.description, canonical: `${SITE_ORIGIN}/gift-guides/${slug}`, ogTitle: theme.ogTitle, ogDescription: theme.description };
   }

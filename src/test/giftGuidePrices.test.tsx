@@ -14,7 +14,7 @@
  * @mutate src/components/giftGuides/PickPrice.tsx | => pickPriceShown(pick.price, pick.priceAt, today); | => pick.store !== "amazon" && pickPriceShown(pick.price, pick.priceAt, today);
  * @mutate src/lib/pickPriceShown.mjs |   return age >= 0 && age <= PRICE_MAX_AGE_DAYS; |   return age >= 0;
  * @mutate src/lib/pickPriceShown.mjs | export const PRICE_MAX_AGE_DAYS = 30; | export const PRICE_MAX_AGE_DAYS = 3;
- * @mutate src/pages/info/GiftGuides.tsx | (isOwnerList(guide.slug) \|\| themePage) && priced ? { | (isOwnerList(guide.slug) \|\| themePage) ? {
+ * @mutate src/pages/info/GiftGuides.tsx | (isOwnerList(guide.slug) \|\| themePage \|\| isDealTheme(guide.slug)) && priced ? { | (isOwnerList(guide.slug) \|\| themePage \|\| isDealTheme(guide.slug)) ? {
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <small className="gg-nm-meta"><PickPrice pick={pick} /></small> | <small className="gg-nm-meta">{null}</small>
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <PricesAsOf picks={picks.slice(0, upTo)} /> |       {null}
  * @mutate src/content/giftGuideCatalog.ts | ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt, ...(p.priceFrom ? { priceFrom: p.priceFrom } : {}) } : {}), | ...(p.price && p.priceAt && store !== "amazon" ? { price: p.price, priceAt: p.priceAt, ...(p.priceFrom ? { priceFrom: p.priceFrom } : {}) } : {}),

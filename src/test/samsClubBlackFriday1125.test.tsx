@@ -14,7 +14,7 @@
  * @mutate src/content/giftGuideLive.mjs | export const KIDS_THEME_GUIDES_1124 = THEME_GUIDES_1124.filter((s) => !isDealTheme(s)); | export const KIDS_THEME_GUIDES_1124 = THEME_GUIDES_1124;
  * @mutate src/pages/info/GiftGuides.tsx | {guide.slug === SAMS_BF_SLUG && <SamsJoinCard />} | {null}
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       {day.id === "black-friday" && <SamsBlackFridayFeature />} |       {null}
- * @mutate src/content/themeGuideSearch.mjs |   const gifts = deals ? "deals" : "gifts"; |   const gifts = "gifts";
+ * @mutate src/content/themeGuideSearch.mjs |   const head = deals ? | const head = false ?
  * @mutate src/pages/info/GiftGuides.tsx |   const tagsKey = slug && isKidsTheme(slug) ? slug : "kids"; |   const tagsKey = slug && isThemeGuide(slug) ? slug : "kids";
  */
 import { readFileSync } from "node:fs";
@@ -92,8 +92,11 @@ describe("the Sam's Club Black Friday deals guide (owner 2026-11-25)", () => {
     expect(first).not.toBeNull();
     expect(card!.compareDocumentPosition(first!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(c.querySelectorAll("li[data-gift-pick]").length).toBe(chunk.length);
-    // No Kids Filter on a deals page (its Age and For chips are for kids).
     expect(c.textContent).toContain(themeTitle(SAMS_BF_SLUG));
+    // No Kids Filter on a deals page (its Age and For chips are for kids): the price sort only.
+    const quick = c.querySelector("[data-gift-quick]")!;
+    expect(quick.querySelector("[data-gift-filter-button]")).toBeNull();
+    expect(quick.querySelector("[data-gift-sort-button]")).not.toBeNull();
   });
 
   it("sits in the menu's Deals group after Black Friday, never under Kids, and has no landing tile", async () => {

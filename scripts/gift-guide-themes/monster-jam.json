@@ -2,7 +2,7 @@
  "slug": "monster-jam",
  "name": "Monster Jam",
  "sectionPrefix": "mj",
- "builtFrom": "/Users/lexilombas/.lh-shots/mj-guide-1124/items.json (Tue Nov 24 12:43 PM, 129 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/mj-guide-1124/items.json (Tue Nov 24 12:43 PM, 130 items)",
  "rows": [
   {
    "id": "MJ01",
@@ -566,6 +566,21 @@
    "section": "Trucks",
    "sectionId": "mj-trucks",
    "was": 26.99,
+   "ownerAdd": true
+  },
+  {
+   "id": "MJO44",
+   "name": "Monster Jam Jet Fighter 1:64 Die-Cast Truck",
+   "brand": "Monster Jam",
+   "line": "Monster Jam trucks to collect and race.",
+   "href": "https://walmrt.us/4thquz8",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-jet-fighter-1-64-die-cast-truck-walmart-aa7800.webp",
+   "store": "store-walmart",
+   "price": 17.98,
+   "priceAt": "2026-11-24",
+   "section": "Trucks",
+   "sectionId": "mj-trucks",
+   "age": "3+",
    "ownerAdd": true
   },
   {

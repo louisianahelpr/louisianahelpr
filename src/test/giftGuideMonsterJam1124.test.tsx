@@ -106,8 +106,9 @@ describe("the Monster Jam gift guide's data (owner 2026-11-24)", () => {
     expect(ROWS_FILE.skipped.filter((s) => s.why.includes("out of stock"))).toEqual([]);
     const ids = new Set(MONSTER_JAM_ROWS_1124.map((r) => r.id));
     for (const id of ["MJO42", "MJ60", "MJ62", "MJ67"]) expect(ids.has(id), id).toBe(true);
-    // MJ66 is the same Walmart product as her MJO42 (one place per item): held, not lost.
-    expect(ROWS_FILE.skipped.map((s) => s.id)).toEqual(["MJ66"]);
+    // MJ66 is the same Walmart product as her MJO42 (one place per item): held, not lost. Lander3 11-25: A2's Kohl's
+    // sweep rows MJS65 + MJS66 (pajama cap, owner 11-20) and MJS132 (site jigsaw cap, owner 11-19) are held too.
+    expect(ROWS_FILE.skipped.map((s) => s.id).sort()).toEqual(["MJ66", "MJS132", "MJS65", "MJS66"]);
     expect(chunk.some((p) => p.href === "https://walmrt.us/4j3ikWo")).toBe(true);
   });
 

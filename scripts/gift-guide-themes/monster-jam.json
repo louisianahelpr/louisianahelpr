@@ -1955,21 +1955,6 @@
    "age": "4+"
   },
   {
-   "id": "MJS132",
-   "name": "Eurographics Grave Digger 550-Piece Puzzle with Tin",
-   "brand": "Monster Jam",
-   "line": "A Monster Jam game or build.",
-   "href": "https://go.shopmy.us/p-110716857",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/eurographics-grave-digger-550-piece-puzzle-with-tin-kohls-f017d0.webp",
-   "store": "store-kohls",
-   "price": 32.99,
-   "priceAt": "2026-11-24",
-   "section": "Games and building sets",
-   "sectionId": "mj-games-and-building-sets",
-   "commission": 12,
-   "age": "8+"
-  },
-  {
    "id": "MJ60",
    "name": "Monster Jam Boys 3-Piece Pajama Set + Robe",
    "brand": "Monster Jam",
@@ -3082,38 +3067,6 @@
    "was": 18,
    "commission": 12,
    "age": "2T-5T"
-  },
-  {
-   "id": "MJS65",
-   "name": "Toddler Boy Monster Jam 2-Piece Pajama Set",
-   "brand": "Monster Jam",
-   "line": "Monster Jam clothes for a truck fan.",
-   "href": "https://go.shopmy.us/p-110715010",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/toddler-boy-monster-jam-2-piece-pajama-set-kohls-5d8583.webp",
-   "store": "store-kohls",
-   "price": 17,
-   "priceAt": "2026-11-24",
-   "section": "Clothing and pajamas",
-   "sectionId": "mj-clothing-and-pajamas",
-   "was": 34,
-   "commission": 12,
-   "age": "2T-5T"
-  },
-  {
-   "id": "MJS66",
-   "name": "Boys 4-10 Monster Jam 4-Piece Pajama Set",
-   "brand": "Monster Jam",
-   "line": "Monster Jam clothes for a truck fan.",
-   "href": "https://go.shopmy.us/p-110715037",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/boys-4-10-monster-jam-4-piece-pajama-set-kohls-a8d625.webp",
-   "store": "store-kohls",
-   "price": 19.2,
-   "priceAt": "2026-11-24",
-   "section": "Clothing and pajamas",
-   "sectionId": "mj-clothing-and-pajamas",
-   "was": 48,
-   "commission": 12,
-   "age": "4-10"
   },
   {
    "id": "MJS79",
@@ -4529,10 +4482,31 @@
  ],
  "skipped": [
   {
+   "id": "MJS132",
+   "name": "Eurographics Grave Digger 550-Piece Puzzle with Tin",
+   "why": [
+    "jigsaw cap: at most 3 jigsaw puzzles site-wide (owner 11-19); the two owner-sent Eurographics puzzles and QUOKKA already count (lander3 11-25)"
+   ]
+  },
+  {
    "id": "MJ66",
    "name": "Monster Jam Boys Short Sleeve Pajama Set, 2-Piece",
    "why": [
     "same product as her pick MJO42 (same Walmart photo)"
+   ]
+  },
+  {
+   "id": "MJS65",
+   "name": "Toddler Boy Monster Jam 2-Piece Pajama Set",
+   "why": [
+    "pajama cap: at most 2 pajamas per price section (owner 11-20); Under $25 already has the Walmart 3-piece + robe and the Sparkle Smash set (lander3 11-25)"
+   ]
+  },
+  {
+   "id": "MJS66",
+   "name": "Boys 4-10 Monster Jam 4-Piece Pajama Set",
+   "why": [
+    "pajama cap: at most 2 pajamas per price section (owner 11-20); Under $25 already has the Walmart 3-piece + robe and the Sparkle Smash set (lander3 11-25)"
    ]
   }
  ]

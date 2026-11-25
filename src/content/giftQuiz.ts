@@ -182,10 +182,10 @@ const KIDS_TYPE_TAGS: Record<string, QuizInto[]> = {
   // The owner's screenshot picks round 3 (11-25): character fleece robes and toddler beanie-and-gloves sets keep a kid cozy.
   robe: ["cozy"], hat: ["cozy"],
   // The owner's Kohl's mix and JCPenney kids toys (11-25): die-cast cars, spy goggles and a race track are pretend play, STEM
-  // toys and DIY kits are building and science, play dough and craft kits are creative, RC cars and robots are active
+  // toys and DIY kits are building and science, craft kits are creative, RC cars and robots are active
   // play, a toddler learning tablet is learning, a plush throw is cozy.
   "die-cast": ["pretend", "stocking"], "spy-toy": ["pretend"], "race-track": ["build", "pretend"], "stem-toy": ["build"],
-  "stem-kit": ["build"], "play-dough": ["creative"], "craft-kit": ["creative"], "rc-car": ["active", "games"],
+  "stem-kit": ["build"], "craft-kit": ["creative"], "rc-car": ["active", "games"],
   "rc-toy": ["active", "games"], "learning-toy": ["build"], blanket: ["cozy"],
 };
 /**
@@ -211,6 +211,8 @@ const TAG_OVERRIDES: [RegExp, QuizInto[]][] = [
   [/^camp snap\b/i, ["tech"]],
   // A baby's first-Christmas tote of toys is for the littlest, not a stocking stuffer.
   [/^baby'?s 1st christmas/i, ["pretend"]],
+  // Play-Doh is a toy by type (the type-agrees-with-name guard) but it is creative play (JCPenney pick, 11-25).
+  [/^play-doh fun factory/i, ["creative", "stocking"]],
 ];
 
 export function quizTags(pick: Pick<CatalogPick, "name" | "type">, who: QuizWho): QuizInto[] {
@@ -264,10 +266,10 @@ const AGE_BY_TYPE: Record<string, QuizAge[]> = {
   "game-controller": ["6-8", "9-12", "teen"],
   // Girls' sizes 5-16 (Steve Madden jacket); Crocs kids' clogs run toddler to big-kid sizes.
   jacket: ["6-8", "9-12", "teen"], shoes: ["3-5", "6-8", "9-12"],
-  // The owner's Kohl's mix and JCPenney kids toys (11-25), by each listing's age: Matchbox 3+, Play-Doh 3+, the race
+  // The owner's Kohl's mix and JCPenney kids toys (11-25), by each listing's age: Matchbox 3+, the race
   // track 3+, spy goggles, RC cars and robots, the sewing kit and the Energy Ball 5-8+, Discovery Mindblown kits 8+, the
   // GBruno tablet for toddlers, a plush throw for any kid.
-  "die-cast": ["3-5", "6-8"], "play-dough": ["3-5", "6-8"], "race-track": ["3-5", "6-8"], "spy-toy": ["6-8", "9-12"],
+  "die-cast": ["3-5", "6-8"], "race-track": ["3-5", "6-8"], "spy-toy": ["6-8", "9-12"],
   "rc-car": ["6-8", "9-12"], "rc-toy": ["6-8", "9-12"], "craft-kit": ["6-8", "9-12"], "stem-toy": ["6-8", "9-12"],
   "stem-kit": ["6-8", "9-12", "teen"], "learning-toy": ["0-2", "3-5"], blanket: ["3-5", "6-8", "9-12"],
 };
@@ -301,6 +303,7 @@ const AGE_BY_NAME: [RegExp, QuizAge[]][] = [
   [/green toys dump truck/i, ["0-2", "3-5"]],
   [/polly pocket/i, ["3-5", "6-8"]],
   [/play-doh kitchen creations noodle/i, ["3-5", "6-8"]],
+  [/play-doh fun factory/i, ["3-5", "6-8"]],
   // The Floss & Rock memory match is 3+ (a game is otherwise 6+); the Burt's Bees Baby pajamas come in 12M to 12Y.
   [/construction memory match/i, ["3-5", "6-8"]],
   [/burt's bees baby nostalgic christmas/i, ["0-2", "3-5", "6-8", "9-12"]],

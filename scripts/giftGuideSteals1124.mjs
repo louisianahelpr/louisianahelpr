@@ -240,7 +240,7 @@ export const KIDS_STEALS_1124_ROWS = [
   // JCPenney #4: sharper-image-2-pc-remote-control-car/ppr5008807351 read 11-25 ~1:20 AM (jcpenney.com search by name): $14.99 (was $35). Later link ~1:40 AM.
   ["https://mavely.app.link/kzmOaJgGl8b", 14.99, "https://sc-images.jcpenney.com/JCPenney/DP73212561-20260924050435M", "Sharper Image 2-Piece Remote Control Cars", "Sharper Image", "store-jcpenney", "rc-car", 10.5, "Two remote-control cars for racing."],
   // JCPenney #6: play-doh-fun-factory-starter-set/ppr5008551588 read 11-25 ~1:20 AM (jcpenney.com search by name): $7.99 (was $10). Later link ~1:40 AM.
-  ["https://mavely.app.link/nz2t3xiGl8b", 7.99, "https://sc-images.jcpenney.com/JCPenney/DP0909202515062231M", "Play-Doh Fun Factory Starter Set", "Play-Doh", "store-jcpenney", "play-dough", 10.5, "The classic Play-Doh Fun Factory."],
+  ["https://mavely.app.link/nz2t3xiGl8b", 7.99, "https://sc-images.jcpenney.com/JCPenney/DP0909202515062231M", "Play-Doh Fun Factory Starter Set", "Play-Doh", "store-jcpenney", "toy", 10.5, "The classic Play-Doh Fun Factory."],
   // JCPenney #7: discovery-mindblown-glow-roll-marble-run-interactive-toy/ppr5008807327 read 11-25 ~1:20 AM (jcpenney.com search by name): $39.99 (was $75). Later link ~1:40 AM.
   ["https://mavely.app.link/Vd9SWHiGl8b", 39.99, "https://sc-images.jcpenney.com/JCPenney/DP72769952-20260917185741M", "Discovery Mindblown Glow Roll Marble Run", "Discovery", "store-jcpenney", "stem-toy", 10.5, "A glowing marble run to build."],
   // JCPenney #8: costway-24v-kids-ride-on-electric-atv-car-toy-with-spring-suspension-led-lights-usb/ppm6100050834 read 11-25 ~1:20 AM (jcpenney.com search by name): $149.99 (was $349.99). Later link ~1:40 AM.

@@ -10,5 +10,8 @@ export interface GuideShellData {
   css: string | null;
   pages: Record<string, string>;
 }
+export declare const GUIDE_SHELL_FONTS: string[];
+export declare const GUIDE_SHELL_MAX_COVER_PRELOADS: number;
+export declare function guideShellPreloads(block: string): string;
 export declare function guideShellKey(pathname: string): string;
 export declare function withGuideShell(html: string, pathname: string, data: GuideShellData | null | undefined): string;

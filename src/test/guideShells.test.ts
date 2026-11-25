@@ -20,13 +20,21 @@
  * @mutate src/boot/guideShellHandoff.ts |   doc.body.appendChild(el); |   void doc.body;
  * @mutate src/main.tsx | adoptGuideShell(window.location.pathname, tokenProbeAtBoot(), document); | void adoptGuideShell;
  * @mutate api/share.ts |       return respond(guided, meta.cdnCache, 200, meta.noindexHeader === true); |       return respond(page, meta.cdnCache, 200, meta.noindexHeader === true);
+ * @mutate src/lib/guideShell.mjs |   const page = html.replace(/<head>/, () => `<head>${guideShellPreloads(block)}`) |   const page = html
+ * @mutate src/lib/guideShell.mjs |   "/fonts/montserrat-normal-latin-rest.woff2", | 
+ * @mutate src/lib/guideShell.mjs |     if (src && !covers.includes(src)) covers.push(src); |     void src;
+ * @mutate src/pages/info/giftGuides/GiftGuideTop10.tsx |   if (!TOP10_GUIDES.every((s) => picksReady(s))) return <Top10Wait />; |   if (!TOP10_GUIDES.every((s) => picksReady(s))) return null;
+ *
+ * Round 3 (11-24, the late LCP): the guide pages preload their four web fonts and their first-screen covers first in
+ * <head>, at high priority (the redraw once the fonts are in is the page's largest paint), and the landing's Top 10
+ * keeps its place while its picks load (the 25 Days card below it was the landing's largest paint and its 0.149 CLS).
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
 import { LIVE_GUIDES_1121 } from "@/content/giftGuideLive.mjs";
 import { DEAL_DAY_SLUGS } from "@/content/giftGuideDeals.mjs";
-import { GUIDE_HINTS_ATTR, GUIDE_MEMBER_ATTR, GUIDE_SHELL_ID, GUIDE_SHELL_SHOW_RULE, guideShellHintRules, withGuideShell } from "@/lib/guideShell.mjs";
+import { GUIDE_HINTS_ATTR, GUIDE_MEMBER_ATTR, GUIDE_SHELL_FONTS, GUIDE_SHELL_ID, GUIDE_SHELL_SHOW_RULE, guideShellHintRules, withGuideShell } from "@/lib/guideShell.mjs";
 import { adoptGuideShell, GUIDE_MEMBER_ATTR as BOOT_MEMBER_ATTR, GUIDE_SHELL_ELEMENT_ID, GUIDE_SHELL_MAX_MS } from "@/boot/guideShellHandoff";
 import { FIRST_SCREEN_ITEMS, ITEM_SELECTOR, builtAssetPaths, guideShellData } from "../../scripts/lib/guideShellBuild.mjs";
 
@@ -138,6 +146,36 @@ describe("withGuideShell", () => {
     expect(out).toContain(`<div id="boot-loader" role="status">${data.pages["/gift-guides/her"]}<p>x</p>`);
     expect(out).toContain(`<style id="lh-shell-css">${data.css}</style>`);
     expect(out).not.toContain(".landing{}");
+  });
+  it("preloads the four web fonts and the page's first-screen covers first in <head>, at high priority", () => {
+    expect(GUIDE_SHELL_FONTS).toHaveLength(4);
+    for (const href of GUIDE_SHELL_FONTS) expect(readFileSync(`public${href}`).length).toBeGreaterThan(1000);
+    const head = (p: string) => {
+      const out = withGuideShell(shell, p, data);
+      return out.slice(out.indexOf("<head>") + 6, out.indexOf('<style id="lh-shell-css">'));
+    };
+    const her = head("/gift-guides/her");
+    const fonts = [...her.matchAll(/<link rel="preload" as="font" type="font\/woff2" href="([^"]+)" crossorigin fetchpriority="high" data-lh-guide-preload>/g)].map((m) => m[1]);
+    expect(fonts).toEqual(GUIDE_SHELL_FONTS);
+    // Each is a face the app sheet declares (a renamed file would leave a preload nothing uses).
+    const sheet = readFileSync("src/index.css", "utf8");
+    for (const href of GUIDE_SHELL_FONTS) expect(sheet).toContain(`url("${href}")`);
+    // Kids' theme row and the landing's tiles: their priority covers, each one the page draws, at most three.
+    for (const p of ["/gift-guides/kids", "/gift-guides"]) {
+      const covers = [...head(p).matchAll(/<link rel="preload" as="image" href="([^"]+)" fetchpriority="high" data-lh-guide-preload>/g)].map((m) => m[1]);
+      expect(covers.length, p).toBeGreaterThan(1);
+      expect(covers.length, p).toBeLessThanOrEqual(3);
+      for (const c of covers) expect(data.pages[p], p).toContain(`src="${c}"`);
+    }
+    // A guide with no cover in its first screen preloads no image.
+    expect(her).not.toContain('as="image"');
+  });
+  it("the landing's Top 10 keeps its place while its picks load (same card boxes, unpainted)", () => {
+    const src = blankComments(readFileSync("src/pages/info/giftGuides/GiftGuideTop10.tsx", "utf8"));
+    expect(src).toMatch(/if \(!TOP10_GUIDES\.every\(\(s\) => picksReady\(s\)\)\) return <Top10Wait \/>;/);
+    expect(src).toMatch(/data-gift-top10-wait="" style=\{\{ visibility: "hidden" \}\}/);
+    expect(src).toMatch(/className="gg-list gg-top10"/);
+    expect(src).toMatch(/Array\.from\(\{ length: TOP10_SLOTS\.length \}/);
   });
   it("leaves every other page, and a build without rules, as it was", () => {
     expect(withGuideShell(shell, "/gift-guides/nope", data)).toBe(shell);

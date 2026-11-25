@@ -217,8 +217,9 @@ describe("only Her, Him and Kids are live (owner 11-21)", () => {
     // The main column, in order and nothing else (owner 11-21): the tiles and the 25 Days card right under them. The
     // finder (the quiz) shows under them only when the menu's link (#gift-finder) or a shared finder link asks for it.
     // Owner 11-21 ~5:05 PM: the "Top 10 gifts" row is back, between them, once the three guides' picks are in
-    // (its order and cards: src/test/giftGuideTop10Landing1121.test.tsx).
-    const kinds = (c: HTMLElement) => [...c.querySelector(".gg-landing")!.children].map((x) => (x.matches("[data-gift-browse]") ? "tiles" : x.matches("[data-gift-giveaways]") ? "giveaways" : x.matches("[data-gift-finder]") ? "finder" : x.matches("[data-gift-top10]") ? "top10" : x.matches("[data-gift-greeting]") ? "greeting" : x.matches("[data-gift-menu-hint]") ? "menu-hint" : x.outerHTML.slice(0, 60)));
+    // (its order and cards: src/test/giftGuideTop10Landing1121.test.tsx); until then its unpainted stand-in keeps the place
+    // (guide prerender round 3, src/test/guideShells.test.ts).
+    const kinds = (c: HTMLElement) => [...c.querySelector(".gg-landing")!.children].map((x) => (x.matches("[data-gift-browse]") ? "tiles" : x.matches("[data-gift-giveaways]") ? "giveaways" : x.matches("[data-gift-finder]") ? "finder" : x.matches("[data-gift-top10], [data-gift-top10-wait]") ? "top10" : x.matches("[data-gift-greeting]") ? "greeting" : x.matches("[data-gift-menu-hint]") ? "menu-hint" : x.outerHTML.slice(0, 60)));
     // Owner 11-22 (option B): the "Happy holidays, y'all" greeting sits first, above the tiles (giftGuideGreeting1122).
     // Owner 11-22 11:40 PM: the phone's one-line menu tip sits between the greeting and the tiles (giftGuideMenuHint1122).
     expect(kinds(container).filter((k) => k !== "top10")).toEqual(["greeting", "menu-hint", "tiles", "giveaways"]);

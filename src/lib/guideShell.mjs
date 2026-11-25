@@ -68,13 +68,51 @@ export function guideShellKey(pathname) {
 }
 
 /**
- * The shell document with this path's guide block first inside #boot-loader and its rules in the inlined block.
- * No data for the path, no rules, or no #boot-loader / inlined block: the page exactly as it was.
+ * The web fonts every guide first screen paints in (round 3, 11-24): the banner's two Bodoni faces, Montserrat's core
+ * file (everything else) and its latin-rest file (each guide's first screen draws an accented letter, the "é" of
+ * Pokémon or Lancôme, which that file holds). The block's text first paints in the size-matched fallback and is drawn
+ * again once they are in (index.html's guide script), and that redraw is the page's largest paint, so the page is only
+ * as fast as these four files. index.html turns the Bodoni preloads on from a script (media="not all" elsewhere) and
+ * leaves latin-rest to the @font-face fetch, which starts only after the first layout; measured on Slow 4G + 4x, Black
+ * Friday's banner waited for the app (4.8 s). Plain preloads first in <head>, at high priority, start all four with
+ * the HTML.
+ */
+export const GUIDE_SHELL_FONTS = [
+  "/fonts/bodoni-moda-normal-latin.woff2",
+  "/fonts/bodoni-moda-italic-latin.woff2",
+  "/fonts/montserrat-normal-latin-core.woff2",
+  "/fonts/montserrat-normal-latin-rest.woff2",
+];
+/** At most this many cover photos are preloaded (Kids' theme row and the landing's guide tiles draw two or three). */
+export const GUIDE_SHELL_MAX_COVER_PRELOADS = 3;
+
+/**
+ * The preloads for one page's block: the fonts, then the cover photos the page itself marks as first-screen covers
+ * (data-gift-cover-priority: Kids' theme row and the landing's tiles, where a cover is the largest paint). A preload
+ * in <head> starts the photo with the HTML instead of when the parser reaches the block, 90 KB further down.
+ */
+export function guideShellPreloads(block) {
+  const covers = [];
+  for (const m of block.matchAll(/<img\b[^>]*\bdata-gift-cover-priority\b[^>]*>/g)) {
+    const src = /\bsrc="([^"]+)"/.exec(m[0])?.[1];
+    if (src && !covers.includes(src)) covers.push(src);
+    if (covers.length === GUIDE_SHELL_MAX_COVER_PRELOADS) break;
+  }
+  return (
+    GUIDE_SHELL_FONTS.map((href) => `<link rel="preload" as="font" type="font/woff2" href="${href}" crossorigin fetchpriority="high" data-lh-guide-preload>`).join("") +
+    covers.map((href) => `<link rel="preload" as="image" href="${href}" fetchpriority="high" data-lh-guide-preload>`).join("")
+  );
+}
+
+/**
+ * The shell document with this path's guide block first inside #boot-loader, its rules in the inlined block and its
+ * preloads first in <head>. No data for the path, no rules, or no #boot-loader / inlined block / <head>: the page
+ * exactly as it was.
  */
 export function withGuideShell(html, pathname, data) {
   const block = data && data.pages && Object.prototype.hasOwnProperty.call(data.pages, guideShellKey(pathname)) ? data.pages[guideShellKey(pathname)] : null;
   if (!block || typeof data.css !== "string" || !data.css.includes(GUIDE_SHELL_SHOW_RULE)) return html;
-  if (!/<div\s+id="boot-loader"[^>]*>/.test(html) || !html.includes('<style id="lh-shell-css">')) return html;
-  const page = html.replace(/<div\s+id="boot-loader"[^>]*>/, (open) => `${open}${block}`);
+  if (!/<div\s+id="boot-loader"[^>]*>/.test(html) || !html.includes('<style id="lh-shell-css">') || !/<head>/.test(html)) return html;
+  const page = html.replace(/<head>/, () => `<head>${guideShellPreloads(block)}`).replace(/<div\s+id="boot-loader"[^>]*>/, (open) => `${open}${block}`);
   return page.replace(/<style id="lh-shell-css">[\s\S]*?<\/style>/, () => `<style id="lh-shell-css">${data.css}</style>`);
 }

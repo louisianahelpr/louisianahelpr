@@ -23,8 +23,10 @@
  *    COVER_SLUGS, COVER_WEBP_SLUGS and both version files. A re-import keeps the cover and card as they are;
  *  - takes off Kids any Kids pick waiting for this theme (scripts/kids-theme-moves.mjs, giftGuideKidsThemeMoves1124.mjs);
  *  - rewrites the search index with scripts/gift-guide-search-index.mjs (it writes only that file).
+ * The research's groups stay in the rows file (its history); the page's chunk has none: it is laid out as For Kids
+ * (owner 11-24 ~7 PM), cheapest first in the main guides' price sections with Kids' Filter (scripts/giftGuideThemePicks.mjs).
  * Guard: src/test/giftGuideThemes1124.test.tsx (every live theme: photo + price on every row, sections open, no "shop
- * similar", no Amazon on the cover, a 1200x630 card, a green cover with six photos).
+ * similar", no Amazon on the cover, a 1200x630 card, a green cover with six photos), giftGuideThemeLayout1124.test.tsx.
  */
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -32,6 +34,7 @@ import { constants as fsConstants, copyFileSync, existsSync, readFileSync, unlin
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ownerStyleOff } from "./giftGuideRules.mjs";
+import { themeChunkPicks } from "./giftGuideThemePicks.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = "https://www.louisianahelpr.com";
@@ -79,6 +82,13 @@ export const publicName = (name, id) => {
   if (!pre) return String(name).trim();
   return String(name).replace(new RegExp(`\\s*\\([^)]*\\b${pre}\\d+\\b[^)]*\\)`, "g"), "").trim();
 };
+
+/**
+ * Whether a research row is kept off the page by the owner's style rules (owner 11-20: no neon on any guide). An item
+ * the owner sent herself (`ownerAdd`, lead 11-24 on her Hot Wheels Neon Smashers link) is her decision and always goes on
+ * (owner-decides-guide-items: she keeps or removes every item). Guard: src/test/giftGuideThemeLayout1124.test.tsx.
+ */
+export const breaksStyleRule = (slug, it, href) => !it.ownerAdd && ownerStyleOff(slug, { name: it.name, image: it.image, href, line: it.line });
 
 /** The line under a new row's name (a re-import keeps the row's own; the research may give one). */
 export const defaultLine = (theme, category) =>
@@ -138,7 +148,7 @@ function main() {
       else if (!knownHosts.has(hostOf(href))) why.push(`no affiliate link (${hostOf(href)})`);
       // The owner's style rules hold on every guide (owner 11-20: "no neon or chartreuse on any guide";
       // src/test/giftGuideOwner1120d.test.ts), so a research row that breaks one never reaches the page.
-      if (ownerStyleOff(slug, { name: it.name, image: it.image, href, line: it.line })) why.push("owner style rule (neon, boots or black cup)");
+      if (breaksStyleRule(slug, it, href)) why.push("owner style rule (neon, boots or black cup)");
       const prev = oldById.get(it.id);
       let image = "";
       let cutBytes = null;
@@ -183,6 +193,7 @@ function main() {
       if (Number(it.was) > Number(it.price)) row.was = Number(it.was);
       if (typeof it.rate === "number" && it.rate > 0) row.commission = it.rate;
       if (it.age) row.age = it.age;
+      if (it.ownerAdd) row.ownerAdd = true;
       rows.push(row);
       const s = storeHosts.get(store) ?? { name: it.store, hosts: new Set() };
       s.hosts.add(hostOf(href));
@@ -220,7 +231,9 @@ function main() {
   });
 
   // 4. The picks chunk and its counts, the chunk list and glob, SEO.
-  const picks = rows.map(({ id: _i, was: _w, age: _a, ...p }) => ({ ...p, ownerPick: true, from: slug }));
+  // Laid out as For Kids (owner 11-24 ~7 PM): cheapest first with priceRank and the age in years, no category sections
+  // (the page draws the main guides' price sections and Kids' Filter). ONE rule with the generator: giftGuideThemePicks.mjs.
+  const picks = themeChunkPicks(slug, rows);
   write(`src/content/giftGuidePicks/${slug}.json`, `${JSON.stringify({ picks })}\n`);
   editJsonConst("src/content/giftGuidePicks.ts", "CHUNK_PICK_COUNTS", (o) => ({ ...o, [slug]: picks.length }), { sortKeys: true });
   let chunkSlugs = [];

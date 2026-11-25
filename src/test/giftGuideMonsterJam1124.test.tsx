@@ -5,14 +5,15 @@
  *  - the data: the page's chunk (src/content/giftGuidePicks/monster-jam.json) is exactly the rows file's picks
  *    (scripts/gift-guide-themes/monster-jam.json via scripts/giftGuideMonsterJam1124.mjs), every row with a price, a
  *    price day, a photo and a known store, and none of the rows the research marked out of stock;
- *  - the page: /gift-guides/monster-jam renders "Monster Jam Gift Guide" with one row per pick, its groups as band
- *    sections in the rows' order, every section open on arrival, and no "shop similar" link even on a pick that has one;
+ *  - the page: /gift-guides/monster-jam renders "Monster Jam Gift Guide" with one row per pick, in the main guides' price
+ *    sections (owner 11-24 ~7 PM: "sorted like the main 3 guides"; src/test/giftGuideThemeLayout1124.test.tsx), every
+ *    section open on arrival, and no "shop similar" link even on a pick that has one;
  *  - the way in: it is live (LIVE_GUIDES_1121), a landing tile and a menu row, indexed (GIFT_GUIDE_SEO, sitemap,
  *    llms.txt) under a sentence-case title, and its shared link shows its own 1200x630 card;
  *  - the collage: no Amazon item on any picture (Facebook rule), checked two-way against the manifest the collage
  *    script writes (scripts/gift-guide-monster-jam-collage-1124.json).
  *
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE \|\| isThemeGuide(guide.slug); |   const bandHeads = sortable \|\| guide.slug === SPONSORS_PAGE;
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const sortable = isOwnerList(guide.slug) \|\| isThemeGuide(guide.slug); |   const sortable = isOwnerList(guide.slug);
  * @mutate src/content/giftGuideCatalog.ts |     const entries = isThemeGuide(slug) ? dupeEntries.filter((d) => d.guide === slug) : dupeEntries; |     const entries = dupeEntries;
  * @mutate src/content/giftGuideLive.mjs | export const THEME_GUIDE_NAMES_1124 = { "monster-jam": "Monster Jam" | export const THEME_GUIDE_NAMES_1124 = { "monster-jam-off": "Monster Jam"
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |   ...Object.entries(THEME_GUIDE_NAMES_1124).map(([slug, label]) => ({ slug, dot: "green" as const, label })), |   // no theme rows
@@ -48,6 +49,7 @@ import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { WIDE_OG_VERSIONS } from "@/lib/giftGuideWideOg.mjs";
 import { COVER_SLUGS } from "@/content/giftGuideCoverSlugs";
 import { loadAllGuidePicks } from "@/content/giftGuideCatalog";
+import { priceSectionId } from "@/lib/pickPriceShown.mjs";
 
 await loadAllGuidePicks();
 afterEach(() => { cleanup(); vi.useRealTimers(); });
@@ -83,14 +85,15 @@ describe("the Monster Jam gift guide's data (owner 2026-11-24)", () => {
     expect(chunk.length).toBeGreaterThan(30);
   });
 
-  it("every pick shows a photo and a price, links an https store page we know, and sits in a section", () => {
+  it("every pick shows a photo and a price, links an https store page we know, and carries no category section", () => {
     for (const p of chunk) {
       expect(p.price, p.name).toBeGreaterThan(0);
       expect(p.priceAt, p.name).toMatch(/^2026-\d\d-\d\d$/);
       expect(p.image, p.name).toMatch(/^https:\/\//);
       expect(p.href, p.name).toMatch(/^https:\/\//);
       expect(Object.prototype.hasOwnProperty.call(RESEARCHED_STORES, p.store ?? ""), `${p.name} ${p.store}`).toBe(true);
-      expect(p.section && p.sectionId, p.name).toBeTruthy();
+      expect(p.section, p.name).toBeUndefined();
+      expect(p.sectionId, p.name).toBeUndefined();
       expect(p.line, p.name).not.toMatch(/\$\d/);
       // A cutout we host must be in public/ (a missing file is a blank tile on the live page).
       if (p.image?.startsWith("https://www.louisianahelpr.com/")) expect(existsSync(`public/${p.image.split("louisianahelpr.com/")[1]}`), p.image).toBe(true);
@@ -103,12 +106,10 @@ describe("the Monster Jam gift guide's data (owner 2026-11-24)", () => {
     for (const id of oos) expect(ids.has(id), id).toBe(false);
   });
 
-  it("the groups run in the list's order, Stocking stuffers under $10 first, each group in one run", () => {
-    const order = [...new Set(chunk.map((p) => p.section))];
-    expect(order[0]).toBe("Stocking stuffers under $10");
-    const runs = chunk.map((p) => p.section).filter((s, i, a) => i === 0 || a[i - 1] !== s);
-    expect(runs).toEqual(order);
-    expect(order.length).toBeGreaterThan(5);
+  it("the picks run cheapest first, so Stocking stuffers under $10 opens the page", () => {
+    const order = [...new Set(chunk.map((p) => priceSectionId(p.price)))];
+    expect(order[0]).toBe("stocking-stuffers");
+    expect(order.length).toBeGreaterThan(3);
   });
 });
 
@@ -118,7 +119,8 @@ describe("the Monster Jam page (owner 2026-11-24)", () => {
     expect(c.textContent).toContain("Monster Jam Gift Guide");
     expect(c.querySelectorAll("li[data-gift-pick]").length).toBe(chunk.length);
     const toggles = [...c.querySelectorAll<HTMLButtonElement>("[data-gift-section-toggle]")];
-    expect(toggles.map((t) => t.getAttribute("data-gift-section-toggle"))).toEqual([...new Set(chunk.map((p) => p.sectionId))]);
+    expect(toggles.map((t) => t.getAttribute("data-gift-section-toggle"))).toEqual([...new Set(chunk.map((p) => priceSectionId(p.price)))]);
+    expect(toggles[0].textContent).toContain("Stocking stuffers under $10");
     for (const t of toggles) expect(t.getAttribute("aria-expanded"), t.textContent ?? "").toBe("true");
     // The first pick has an approved dupe in this test's dupes file; the Monster Jam page never shows it.
     const first = [...c.querySelectorAll("li[data-gift-pick]")].find((li) => li.textContent?.includes(FIRST.name));

@@ -23,6 +23,8 @@ import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { MEN_COLOR_GUIDES, MEN_PASTEL, OWNER_REMOVED, elderBootOff, menPastelOff, menStyleWhy, neonOff, ownerStyleOff, womenBlackCupOff } from "../../scripts/giftGuideRules.mjs";
 import { blockedBrand } from "../../scripts/giftGuideBlocklist.mjs";
+import { isThemeGuide } from "@/content/giftGuideLive.mjs";
+import { priceSectionId } from "@/lib/pickPriceShown.mjs";
 import { HER_1121 } from "../../scripts/giftGuideHer1121.mjs";
 import { HIM_1121 } from "../../scripts/giftGuideHimKids1121.mjs";
 
@@ -79,7 +81,10 @@ describe("gift guides: owner 11-20 removals and style rules", () => {
     const over: string[] = [];
     for (const [slug, picks] of GUIDES) {
       const n = new Map<string, number>();
-      for (const p of picks) if (p.type === "pajamas" || /\b(pajamas?|pj set|sleep (set|dress))\b/i.test(p.name)) n.set(String(p.section), (n.get(String(p.section)) ?? 0) + 1);
+      // A themed kids guide's sections are the price sections its page draws (owner 11-24 ~7 PM: laid out as Kids; its
+      // chunk carries no section of its own).
+      const sectionOf = (p: (typeof picks)[number]) => (isThemeGuide(slug) ? priceSectionId(p.price) : String(p.section));
+      for (const p of picks) if (p.type === "pajamas" || /\b(pajamas?|pj set|sleep (set|dress))\b/i.test(p.name)) n.set(sectionOf(p), (n.get(sectionOf(p)) ?? 0) + 1);
       for (const [s, c] of n) if (c > 2) over.push(`${slug} / ${s}: ${c}`);
     }
     expect(over).toEqual([]);

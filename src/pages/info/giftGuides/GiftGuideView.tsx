@@ -293,13 +293,14 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   // holds the sections a tap turned away from that default, for this visit only; a new order opens them all again.
   const [flipped, setFlipped] = useState<ReadonlySet<string>>(() => new Set());
   useEffect(() => { setFlipped(new Set()); }, [order]);
-  const sortable = isOwnerList(guide.slug);
+  // The themed kids guides (owner 11-24 ~7 PM, on Monster Jam: "Remove these buttons and add a filter like the main 3
+  // guides. They should also be sorted like the main 3 guides") list their picks in the same price sections as Her, Him
+  // and Kids (Stocking stuffers under $10 first), with Kids' Filter in the header; their chunk has no category sections.
+  const sortable = isOwnerList(guide.slug) || isThemeGuide(guide.slug);
   // Consistency audit 1122 #1: the 25 Days sponsors page's own sections (Louisiana Shops & Makers, Louisiana Experiences
   // & Events, National Brands) wear the same band header as Her/Him/Kids (GuideSectionHead: tint, "(n)", chevron, open
   // on arrival, a tap closes and reopens).
-  // The themed kids guides (owner 11-24: Monster Jam, Bluey ...; isThemeGuide) keep their own groups (Stocking stuffers
-  // under $10, Trucks ...) under the same band headers, each open on arrival like every guide section.
-  const bandHeads = sortable || guide.slug === SPONSORS_PAGE || isThemeGuide(guide.slug);
+  const bandHeads = sortable || guide.slug === SPONSORS_PAGE;
   const ready = picksReady(guide.slug);
   const { hash } = useLocation();
   // A merged guide's section link (/gift-guides/healthcare#rns, 1120): draw through that section, then scroll to it.

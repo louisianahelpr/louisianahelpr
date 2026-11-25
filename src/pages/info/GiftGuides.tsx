@@ -26,7 +26,7 @@ import { GiftGuidesSidebar } from "./giftGuides/GiftGuidesSidebar";
 import { GuidesDisclosure } from "./giftGuides/GuidesDisclosure";
 import { DEALS_COVER, DEALS_SLUG, DEALS_TINT, DEALS_WORDS, dealDay, oldDealsTarget } from "@/content/giftGuideDeals.mjs";
 import { OLD_PEOPLE_ANCHORS } from "@/content/giftGuidePeople.mjs";
-import { isLiveGuide } from "@/content/giftGuideLive.mjs";
+import { isLiveGuide, isThemeGuide } from "@/content/giftGuideLive.mjs";
 import { KIDS_FILTER_GUIDE, KID_AGES, KID_GENDERS, KID_PRICES, NO_KIDS_SELECTION, filterKids, kidsGenderCounts, loadKidTags, toggleIn, type KidAge, type KidGender, type KidPrice, type KidTags, type KidsSelection } from "@/content/giftGuideKidsFilter";
 import { louisianaToday } from "@/content/giftGuideExtras1120";
 import { searchPageGuides } from "@/content/guideSearchIndex.mjs";
@@ -246,7 +246,10 @@ export default function GiftGuides() {
   const searchMod = useSearchModule(Boolean(searchSlug || guideBySlug(slug)));
   const sm = searchMod && searchMod !== "failed" ? searchMod : null;
   const search = sm && searchSlug ? sm.searchPageBySlug(searchSlug) : null;
-  const [kidTags, setKidTags] = useState<KidTags | null>(null);
+  // The Kids tag file, or a theme's own tags (owner 11-24 ~7 PM; giftGuideThemeTags.ts, loaded on its page only), by page.
+  const [tagsAt, setTagsAt] = useState<{ key: string; tags: KidTags } | null>(null);
+  const tagsKey = slug && isThemeGuide(slug) ? slug : "kids";
+  const kidTags = tagsAt?.key === tagsKey ? tagsAt.tags : null;
   const guide = guideBySlug(slug) ?? (sm ? sm.searchGuide(searchSlug, kidTags) : null);
   // Owner 11-21 (iPhone, Kids): "put the icons below the red banner. On the same line as the 81 gifts ... also move the
   // order by dec below the red banner". On a phone, a guide page draws the pill and the icons on the count's row under
@@ -259,7 +262,10 @@ export default function GiftGuides() {
   const sortOrder: GuideOrder = guide && order.slug === guide.slug ? order.order : "top";
   // Holiday audit 1121: no price sort over a list that shows no price (a list still loading keeps it, so it never jumps).
   const priced = guide ? guide.picks.length === 0 || guide.picks.some((p) => showsPrice(p)) : false;
-  const sort = guide && isOwnerList(guide.slug) && priced ? { order: sortOrder, onChange: (o: GuideOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
+  // The themed kids guides (owner 11-24 ~7 PM: "add a filter like the main 3 guides. They should also be sorted like the
+  // main 3 guides") are set up as Kids: the price sort, and Kids' Filter (its tags from the theme's own picks).
+  const themePage = tagsKey !== "kids";
+  const sort = guide && (isOwnerList(guide.slug) || themePage) && priced ? { order: sortOrder, onChange: (o: GuideOrder) => setOrder({ slug: guide.slug, order: o }) } : undefined;
   // Owner 2026-11-21, the 25 Days sponsors page: "move search, heart and share under the line for shop our sponsors,
   // and move those things into the filter for that section": its section links and price limits live in a Filter among
   // its icons (budget kept here). Owner 11-22: its pill and icons sit where Her's do (countRow below).
@@ -268,7 +274,7 @@ export default function GiftGuides() {
   // For Kids (owner pop-up 2026-11-23 ~10:55 AM: "Age + price + girls/boys"): multi-select Age, Price and For chips in
   // the guide's Filter (the same sliders icon, which on Kids also holds the sort), kept as the sort is kept: per guide,
   // for this visit (another guide starts with none on). The tag file loads on this page only (giftGuideKidsFilter.ts).
-  const kidsPage = guide?.slug === KIDS_FILTER_GUIDE;
+  const kidsPage = guide?.slug === KIDS_FILTER_GUIDE || themePage;
   const [kidsPick, setKidsPick] = useState<{ slug: string; sel: KidsSelection }>({ slug: "", sel: NO_KIDS_SELECTION });
   const kidsSel = guide && kidsPick.slug === guide.slug ? kidsPick.sel : NO_KIDS_SELECTION;
   const setKidsSel = (f: (s: KidsSelection) => KidsSelection) => {
@@ -279,12 +285,14 @@ export default function GiftGuides() {
   useEffect(() => {
     if (!needsTags || kidTags) return;
     let live = true;
-    loadKidTags().then((t) => { if (live) setKidTags(t); }, (e: unknown) => {
+    (tagsKey === "kids" ? loadKidTags() : import("@/content/giftGuideThemeTags").then((m) => m.themeTags(tagsKey))).then((t) => { if (live) setTagsAt({ key: tagsKey, tags: t }); }, (e: unknown) => {
       // Offline or a stale deploy: the Price chips still work; Age and For come back on the next visit.
       console.warn("gift guides: kids tags failed", e);
     });
     return () => { live = false; };
-  }, [needsTags, kidTags]);
+  }, [needsTags, kidTags, tagsKey]);
+  // A theme shows Age only when its research gave some pick an age (never a chip that would empty the list).
+  const ageChips = Boolean(kidTags && Object.values(kidTags).some((t) => t.ageMin !== undefined));
   const headerFilter = sponsorsPage ? { budget: sponsorBudget, onBudget: setSponsorBudget }
     : kidsPage ? { budget: null, onBudget: () => undefined, kids: { sel: kidsSel, tags: kidTags ?? {}, onClear: clearKids } }
     : undefined;
@@ -297,7 +305,7 @@ export default function GiftGuides() {
     sort,
     groups: [
       // Age and For read the tag file; until it is in, only Price shows (never a chip that would empty the list).
-      ...(kidTags ? [{ id: "age", label: G.kidsAgeLabel, choices: KID_AGES.map((a) => ({ value: a.id, label: a.label })), selected: kidsSel.ages,
+      ...(ageChips ? [{ id: "age", label: G.kidsAgeLabel, choices: KID_AGES.map((a) => ({ value: a.id, label: a.label })), selected: kidsSel.ages,
         onToggle: (v: string) => setKidsSel((s) => ({ ...s, ages: toggleIn(s.ages, v as KidAge) })) }] : []),
       { id: "price", label: G.kidsPriceLabel, choices: KID_PRICES.map((p) => ({ value: p.id, label: p.label })), selected: kidsSel.prices,
         onToggle: (v: string) => setKidsSel((s) => ({ ...s, prices: toggleIn(s.prices, v as KidPrice) })) },

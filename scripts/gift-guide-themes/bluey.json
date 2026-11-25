@@ -2,7 +2,7 @@
  "slug": "bluey",
  "name": "Bluey",
  "sectionPrefix": "bluey",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/bluey/items.json (Tue Nov 24 12:47 PM, 245 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/bluey/items.json (Tue Nov 24 12:47 PM, 265 items)",
  "rows": [
   {
    "id": "BL01",
@@ -876,6 +876,48 @@
    "commission": 12,
    "age": "4-12",
    "ownerAdd": true
+  },
+  {
+   "id": "BLW01",
+   "name": "Bluey Scratch Art Activity Book with Stylus",
+   "brand": "Bluey",
+   "line": "A little Bluey gift for the stocking.",
+   "href": "https://walmrt.us/4fq8fSw",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-scratch-art-activity-book-with-stylus-walmart-bef935.webp",
+   "store": "store-walmart",
+   "price": 0.97,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "bluey-stocking-stuffers-under-10",
+   "age": "3+"
+  },
+  {
+   "id": "BLW05",
+   "name": "Bluey Bathtime Book",
+   "brand": "Bluey",
+   "line": "A little Bluey gift for the stocking.",
+   "href": "https://walmrt.us/4jD2zHi",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-bathtime-book-walmart-46f76f.webp",
+   "store": "store-walmart",
+   "price": 9.74,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "bluey-stocking-stuffers-under-10",
+   "age": "3+"
+  },
+  {
+   "id": "BLW07",
+   "name": "BumBumz Bluey Bumz 7.5-inch Plush",
+   "brand": "Bluey",
+   "line": "A little Bluey gift for the stocking.",
+   "href": "https://walmrt.us/3WZNZ3T",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bumbumz-bluey-bumz-7-5-inch-plush-walmart-583d4c.webp",
+   "store": "store-walmart",
+   "price": 9.98,
+   "priceAt": "2026-11-24",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "bluey-stocking-stuffers-under-10",
+   "age": "3+"
   },
   {
    "id": "BL20",
@@ -1755,6 +1797,91 @@
    "ownerAdd": true
   },
   {
+   "id": "BLW04",
+   "name": "VTech Bluey Dance Mode Chattermax",
+   "brand": "Bluey",
+   "line": "Toys and playsets for a Bluey fan.",
+   "href": "https://walmrt.us/4jfjTAS",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/vtech-bluey-dance-mode-chattermax-walmart-633c0d.webp",
+   "store": "store-walmart",
+   "price": 19.97,
+   "priceAt": "2026-11-24",
+   "section": "Toys and playsets",
+   "sectionId": "bluey-toys-and-playsets",
+   "age": "toddler"
+  },
+  {
+   "id": "BLW06",
+   "name": "LEGO Bluey School with Rusty and Bluey (11221)",
+   "brand": "Bluey",
+   "line": "Toys and playsets for a Bluey fan.",
+   "href": "https://walmrt.us/48C4khR",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-bluey-school-with-rusty-and-bluey-11221-walmart-1847bf.webp",
+   "store": "store-walmart",
+   "price": 19.99,
+   "priceAt": "2026-11-24",
+   "section": "Toys and playsets",
+   "sectionId": "bluey-toys-and-playsets",
+   "was": 24.99,
+   "age": "4+"
+  },
+  {
+   "id": "BLW08",
+   "name": "Bluey Electronic Harmonica and Songbook",
+   "brand": "Bluey",
+   "line": "Toys and playsets for a Bluey fan.",
+   "href": "https://walmrt.us/4Aed4Ha",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-electronic-harmonica-and-songbook-walmart-ac9e00.webp",
+   "store": "store-walmart",
+   "price": 12.97,
+   "priceAt": "2026-11-24",
+   "section": "Toys and playsets",
+   "sectionId": "bluey-toys-and-playsets",
+   "age": "3+"
+  },
+  {
+   "id": "BLW11",
+   "name": "VTech Bluey Game Time Laptop",
+   "brand": "Bluey",
+   "line": "Toys and playsets for a Bluey fan.",
+   "href": "https://walmrt.us/3VafeIv",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/vtech-bluey-game-time-laptop-walmart-318621.webp",
+   "store": "store-walmart",
+   "price": 31.97,
+   "priceAt": "2026-11-24",
+   "section": "Toys and playsets",
+   "sectionId": "bluey-toys-and-playsets",
+   "age": "3+"
+  },
+  {
+   "id": "BLW12",
+   "name": "Bluey Wooden Hospital Playset, 20 Pieces",
+   "brand": "Bluey",
+   "line": "Toys and playsets for a Bluey fan.",
+   "href": "https://walmrt.us/4thTmHC",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-wooden-hospital-playset-20-pieces-walmart-8ecd8f.webp",
+   "store": "store-walmart",
+   "price": 19.97,
+   "priceAt": "2026-11-24",
+   "section": "Toys and playsets",
+   "sectionId": "bluey-toys-and-playsets",
+   "age": "3+"
+  },
+  {
+   "id": "BLW13",
+   "name": "Bluey x Caboodles Multi-Piece Set",
+   "brand": "Bluey",
+   "line": "Toys and playsets for a Bluey fan.",
+   "href": "https://walmrt.us/3VQMULo",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-x-caboodles-multi-piece-set-walmart-1ea4e8.webp",
+   "store": "store-walmart",
+   "price": 27.98,
+   "priceAt": "2026-11-24",
+   "section": "Toys and playsets",
+   "sectionId": "bluey-toys-and-playsets",
+   "age": "kids"
+  },
+  {
    "id": "BL30",
    "name": "Bluey Talking 13 in Plush",
    "brand": "Bluey",
@@ -1910,6 +2037,20 @@
    "commission": 16,
    "age": "all",
    "ownerAdd": true
+  },
+  {
+   "id": "BLW14",
+   "name": "Bluey Talking Muffin 11-inch Plush",
+   "brand": "Bluey",
+   "line": "Plush for a Bluey fan.",
+   "href": "https://walmrt.us/3X31lMP",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-talking-muffin-11-inch-plush-walmart-642be7.webp",
+   "store": "store-walmart",
+   "price": 14.97,
+   "priceAt": "2026-11-24",
+   "section": "Plush",
+   "sectionId": "bluey-plush",
+   "age": "3+"
   },
   {
    "id": "BL40",
@@ -2949,6 +3090,20 @@
    "ownerAdd": true
   },
   {
+   "id": "BLW02",
+   "name": "Bluey Toddler Boy 2-Piece Active Jacket and Pant Set (12M-5T)",
+   "brand": "Bluey",
+   "line": "Clothes and pajamas for a Bluey fan.",
+   "href": "https://walmrt.us/4kU5rRp",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-toddler-boy-2-piece-active-jacket-and-pant-set-12m-5t-walmart-4777c8.webp",
+   "store": "store-walmart",
+   "price": 19.98,
+   "priceAt": "2026-11-24",
+   "section": "Clothes and pajamas",
+   "sectionId": "bluey-clothes-and-pajamas",
+   "age": "toddler"
+  },
+  {
    "id": "BL50",
    "name": "Bluey Family Kids Throw Blanket, 46 x 60",
    "brand": "Bluey",
@@ -3426,6 +3581,78 @@
    "ownerAdd": true
   },
   {
+   "id": "BLW03",
+   "name": "tonies Bluey Listen & Go Carrying Case for Toniebox",
+   "brand": "Bluey",
+   "line": "Room and Christmas for a Bluey fan.",
+   "href": "https://walmrt.us/4A2xiDq",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tonies-bluey-listen-go-carrying-case-for-toniebox-walmart-ae8c4d.webp",
+   "store": "store-walmart",
+   "price": 22.99,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "bluey-room-and-christmas",
+   "was": 29.99,
+   "age": "3+"
+  },
+  {
+   "id": "BLW17",
+   "name": "Bluey Bingo Plush Hugger and Silk Touch Throw Set",
+   "brand": "Bluey",
+   "line": "Room and Christmas for a Bluey fan.",
+   "href": "https://walmrt.us/4l5dafi",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-bingo-plush-hugger-and-silk-touch-throw-set-walmart-03b757.webp",
+   "store": "store-walmart",
+   "price": 18.99,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "bluey-room-and-christmas",
+   "age": "3+"
+  },
+  {
+   "id": "BLW18",
+   "name": "Bluey and Bingo Christmas Faces Throw and Mini Pillow Buddy Set",
+   "brand": "Bluey",
+   "line": "Room and Christmas for a Bluey fan.",
+   "href": "https://walmrt.us/4AUYdBf",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-and-bingo-christmas-faces-throw-and-mini-pillow-buddy-walmart-522d4e.webp",
+   "store": "store-walmart",
+   "price": 16.98,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "bluey-room-and-christmas",
+   "age": "3+"
+  },
+  {
+   "id": "BLW19",
+   "name": "Bluey Happy Hugs Silk Touch Sherpa Throw, 46 x 60",
+   "brand": "Bluey",
+   "line": "Room and Christmas for a Bluey fan.",
+   "href": "https://walmrt.us/3XO9KDW",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-happy-hugs-silk-touch-sherpa-throw-46-x-60-walmart-5520f8.webp",
+   "store": "store-walmart",
+   "price": 12.88,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "bluey-room-and-christmas",
+   "was": 16.96,
+   "age": "3+"
+  },
+  {
+   "id": "BLW20",
+   "name": "Bluey In The Dream Kids Throw, 46 x 60",
+   "brand": "Bluey",
+   "line": "Room and Christmas for a Bluey fan.",
+   "href": "https://walmrt.us/3XO8oJp",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-in-the-dream-kids-throw-46-x-60-walmart-f7de6d.webp",
+   "store": "store-walmart",
+   "price": 13.97,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "bluey-room-and-christmas",
+   "age": "3+"
+  },
+  {
    "id": "BL60",
    "name": "Bluey Little Library 4-Book Box Set",
    "brand": "Bluey",
@@ -3629,6 +3856,34 @@
    "commission": 16,
    "age": "6+",
    "ownerAdd": true
+  },
+  {
+   "id": "BLW09",
+   "name": "Bluey: Oooh, Shiny! Flashlight Sound Book",
+   "brand": "Bluey",
+   "line": "Books and games for a Bluey fan.",
+   "href": "https://walmrt.us/3Vafffx",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-oooh-shiny-flashlight-sound-book-walmart-f54355.webp",
+   "store": "store-walmart",
+   "price": 11.54,
+   "priceAt": "2026-11-24",
+   "section": "Books and games",
+   "sectionId": "bluey-books-and-games",
+   "age": "3+"
+  },
+  {
+   "id": "BLW16",
+   "name": "Bluey: Awesome Advent Calendar Book Bundle",
+   "brand": "Bluey",
+   "line": "Books and games for a Bluey fan.",
+   "href": "https://walmrt.us/4iZ5IB4",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-awesome-advent-calendar-book-bundle-walmart-4e1a35.webp",
+   "store": "store-walmart",
+   "price": 14.99,
+   "priceAt": "2026-11-24",
+   "section": "Books and games",
+   "sectionId": "bluey-books-and-games",
+   "age": "3+"
   },
   {
    "id": "BL70",
@@ -3836,6 +4091,20 @@
    "commission": 12,
    "age": "toddler",
    "ownerAdd": true
+  },
+  {
+   "id": "BLW10",
+   "name": "Bluey Draw and Play Desk by Delta Children",
+   "brand": "Bluey",
+   "line": "Big gifts for a Bluey fan.",
+   "href": "https://walmrt.us/4CsA8U4",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-draw-and-play-desk-by-delta-children-walmart-22a315.webp",
+   "store": "store-walmart",
+   "price": 39.99,
+   "priceAt": "2026-11-24",
+   "section": "Big gifts",
+   "sectionId": "bluey-big-gifts",
+   "age": "3+"
   }
  ],
  "skipped": [
@@ -3851,6 +4120,13 @@
    "name": "Squishmallows Bluey HugMees Plush, 10 in",
    "why": [
     "no affiliate link (www.target.com)"
+   ]
+  },
+  {
+   "id": "BLW15",
+   "name": "Bluey Paint Your Own Ceramic Figurine Kit",
+   "why": [
+    "Walmart photo shows a person's hand painting the figurine (product photos only)"
    ]
   },
   {

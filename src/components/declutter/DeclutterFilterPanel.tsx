@@ -88,9 +88,9 @@ function DollarBox({ label, value, onCommit }: { label: string; value: number | 
  * shared sheet's one "More filters" row (`more`), open from the start when one of them is in effect (`active`).
  * Guard: src/test/declutterFiltersFold.test.tsx.
  *
- * `categoryUp` (owner 11-21, desktop: "move them all into the filter button"): the category chips left the desktop
- * page for this panel, so Category shows open, third (after Sort and Distance, where "Use my location" is), never
- * folded. Guard: src/test/declutterHeaderIcons1121.test.tsx.
+ * Category (owner 11-21 desktop, owner 11-25 every width: "move the category chips into the filter bc they take up too
+ * much space here"): the chip row left Browse for this panel, so Category is the FIRST section, open, never folded.
+ * Guards: src/test/declutterHeaderIcons1121.test.tsx, src/test/phoneCompactBrowse1125.test.tsx.
  */
 export function declutterFilterSections({
   filters,
@@ -100,7 +100,6 @@ export function declutterFilterSections({
   ask,
   showDrops,
   sellerDelivery = false,
-  categoryUp = false,
 }: {
   filters: DeclutterFilters;
   onChange: (f: DeclutterFilters) => void;
@@ -110,8 +109,6 @@ export function declutterFilterSections({
   showDrops: boolean;
   /** The declutter_seller_delivery switch: checkout offers "Seller delivers" only while it is on. */
   sellerDelivery?: boolean;
-  /** Desktop: Category open and third, not folded under More filters. */
-  categoryUp?: boolean;
 }): FilterSheetSection[] {
   const otherWays = OTHER_WAYS.filter((w) => w !== "seller_delivery" || sellerDelivery);
   const toggleWay = (w: OtherWay) =>
@@ -218,7 +215,6 @@ export function declutterFilterSections({
     {
       key: "category",
       title: t("decl.item.category"),
-      more: !categoryUp,
       active: !!filters.category,
       content: (
         // About 32 categories (owner 2026-10-30), so they sit under the same headings as the Sell picker.
@@ -253,9 +249,8 @@ export function declutterFilterSections({
       ),
     });
   }
-  if (categoryUp) {
-    const at = sections.findIndex((x) => x.key === "category");
-    sections.splice(2, 0, ...sections.splice(at, 1));
-  }
+  // Category first (owner 11-25).
+  const at = sections.findIndex((x) => x.key === "category");
+  sections.unshift(...sections.splice(at, 1));
   return sections;
 }

@@ -251,25 +251,22 @@ export const SHELL_CARD_CLASSES = {
   // the place line, at most one badge in its own line above the title (the shell draws none: an empty line is hidden).
   root: "group relative h-full cursor-pointer border-b border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
   inner: "relative h-full",
-  badgeLine: "flex pl-3 pt-3 -mb-2 empty:hidden",
+  badgeLine: "flex pl-3 pt-2.5 -mb-1.5 empty:hidden",
   catLabel: "job-cat-label inline-flex items-center gap-1.5 min-w-0 text-ds-11 font-semibold text-muted-foreground shrink-0",
-  body: "w-full pl-3 pt-3 pb-3",
+  body: "w-full pl-3 pt-2.5 pb-2.5",
   titleRow: "flex items-center justify-between gap-3",
   title: "job-card-title senior-clamp-2 text-headline-card flex-1 font-display font-bold text-foreground leading-tight line-clamp-2 break-words min-w-0",
   chip: "money-chip inline-flex flex-col items-center justify-center rounded-ds-md text-center px-2.5 py-1 shrink-0 self-start",
   amount: "font-sans leading-none tabular-nums text-ds-17",
-  metaWrap: "mt-1.5 flex flex-col gap-0.5 text-ds-11 leading-tight text-muted-foreground",
+  metaWrap: "mt-1 flex flex-col gap-0.5 text-ds-11 leading-tight text-muted-foreground",
   metaRow: "job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden",
-  // Photo-first cards (Q2043 + Q2036): the picture tile beside the text and the poster-face row, same size as the app's.
+  // Photo-first cards (Q2043 + Q2036): the picture tile beside the text, same size as the app's (owner 11-25: no poster-face line, a guest card draws none).
   mediaRow: "flex items-stretch",
-  mediaPad: "py-3",
-  media: "relative shrink-0 self-start w-12 h-12 overflow-hidden rounded-xl",
+  mediaPad: "py-2.5",
+  media: "relative shrink-0 self-start w-10 h-10 overflow-hidden rounded-xl",
   textCol: "job-card-media-col min-w-0 flex-1",
-  face: "mt-1 flex h-5 items-center gap-1.5 min-w-0 text-ds-11 text-muted-foreground",
 };
 
-const CAL_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M8 2v3"></path><path d="M16 2v3"></path><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18"></path></svg>';
-const CLOCK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock w-2.5 h-2.5 shrink-0" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>';
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 const utcDay = (ymd, opts) => {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -310,14 +307,14 @@ export function shellTimeLabel(startTime, isFlexible) {
 export function shellWhenHtml(job) {
   const day = shellDayLabel(job);
   const time = shellTimeLabel(job.start_time, job.is_flexible_schedule);
-  const dayHtml = (label) => `<span class="flex items-center gap-1">${CAL_SVG}<span class="font-sans whitespace-nowrap">${escapeShellText(label)}</span></span>`;
+  const dayHtml = (label) => `<span class="flex items-center gap-1"><span class="font-sans whitespace-nowrap">${escapeShellText(label)}</span></span>`;
   let inner;
   // JobCard's own test: no date_needed and no start_time (raw), whatever the Flexible tick says.
-  if (!job.date_needed && !job.start_time) inner = `<span class="flex items-center gap-1">${CAL_SVG}<span class="font-sans">Flexible</span></span>`;
+  if (!job.date_needed && !job.start_time) inner = `<span class="flex items-center gap-1"><span class="font-sans">Flexible</span></span>`;
   else {
     inner = day ? dayHtml(day) : "";
     if (day && time) inner += '<span class="shrink-0 opacity-30">·</span>';
-    if (time) inner += `<span data-meta-time="true" class="shrink-0 flex items-center gap-1">${CLOCK_SVG}<span class="font-sans whitespace-nowrap">${escapeShellText(time)}</span></span>`;
+    if (time) inner += `<span data-meta-time="true" class="shrink-0 flex items-center gap-1"><span class="font-sans whitespace-nowrap">${escapeShellText(time.replace(/:00(?= [AP]M)/g, ""))}</span></span>`;
   }
   return (
     '<span aria-hidden="true" data-meta-break="true" class="hidden max-[359px]:block basis-full h-0.5"></span>' +
@@ -340,7 +337,7 @@ function cardHtml(job) {
     `<h2 class="${c.title}" style="color:hsl(var(--ink-deep));letter-spacing:-0.02em">${title}</h2>` +
     `<div class="${c.chip}" style="background:hsl(var(--bark) / 0.1);border:0.5px solid hsl(var(--bark) / 0.28)">` +
     `<span class="${c.amount}" style="font-weight:800;color:hsl(var(--bark));letter-spacing:-0.02em"><span style="font-size:0.82em;vertical-align:0.02em;margin-right:0.5px">$</span>${net}</span>${shellIsGiveaway(job) ? "" : SHELL_AFTER_FEES_HTML}</div>` +
-    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="${c.catLabel}"><span class="font-sans truncate">${label}</span></span><span class="shrink-0 opacity-30">·</span><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span>${shellWhenHtml(job)}</div><div aria-hidden="true" class="${c.face}"></div></div>` +
+    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="${c.catLabel}"><span class="font-sans truncate">${label}</span></span><span class="shrink-0 opacity-30">·</span><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span>${shellWhenHtml(job)}</div></div>` +
     `</div></div></div></div></div>`
   );
 }

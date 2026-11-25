@@ -27,7 +27,6 @@ import { useFeature } from "@/hooks/useFeature";
 import { safeStorage } from "@/lib/safeStorage";
 import { fetchDropStates, fetchDroppedIntoBudget, fetchItemWays, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching, type DeclutterItem } from "@/lib/declutter/api";
 import { useWatchToggle } from "./useWatchToggle";
-import { DeclutterCategoryChips } from "./DeclutterCategoryChips";
 import { fetchSaveCounts, shownSaves } from "@/lib/declutter/saveCounts";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
@@ -53,7 +52,7 @@ import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
-import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, DeclutterChipBones, declutterAboveFoldCount, declutterFirstRowCount } from "./DeclutterSkeletons";
+import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, declutterAboveFoldCount, declutterFirstRowCount } from "./DeclutterSkeletons";
 import { releaseDeclutterShellForCards } from "./declutterShell";
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
 import { guestSaveHref } from "@/lib/declutter/guestSave";
@@ -66,7 +65,7 @@ import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
 import "@/lib/i18n/enDeclBrowse";
-import { BROWSE_EMPTY_SLOT, CHIPS_ROW_PAD } from "@/components/sections/browseHeaderSpacing";
+import { BROWSE_EMPTY_SLOT } from "@/components/sections/browseHeaderSpacing";
 import { DeclutterNewThisWeek } from "./declutterNewThisWeekLazy";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
@@ -81,8 +80,6 @@ export interface DeclutterBrowseHeader {
   onlySelected?: boolean;
   /** Phone (owner 11-08, the Vinted header): Browse's own search bar, with Filters inside it, in the top bar. */
   search?: ReactNode;
-  /** Phone (owner 11-08): the category chips, the row under the bar; the grid starts right under them. */
-  chips?: ReactNode;
 }
 
 /** What the page hands Browse's section screen: the row under the bar, and on a phone the bar's search and "My …". */
@@ -407,12 +404,10 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   const phoneResults = !desktop && q !== "" && itemsPhase !== "offline-empty";
   const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice, zip, guest: !member };
 
-  // Owner 11-07 (Vinted review): the category chips; on a phone (owner 11-08) the steady row under the search bar. On
-  // desktop (owner 11-21, "move them all into the filter button") they are in the Filters panel (categoryUp).
-  // Owner 11-12: also with nothing for sale (DeclutterCategoryChips draws All and the first categories), as Jobs does.
-  const chipRow = itemsPhase !== "offline-empty" && (others.length > 0 || (!listLoading && !items.isError))
-    ? <DeclutterCategoryChips items={others} value={filters.category} onChange={(category) => setFilters((f) => ({ ...f, category }))} free={filters.freeOnly} onFree={(freeOnly) => setFilters((f) => ({ ...f, freeOnly }))} />
-    : null;
+  // OWNER 11-25 ("move the category chips into the filter bc they take up too much space here", signed in and out): no
+  // category chip row on any width (desktop moved them 11-21). Category is the Filters sheet's FIRST section
+  // (declutterFilterSections), and a category that is on shows as one small "Home decor ×" chip above the cards
+  // (DeclutterActiveFilters) and in the Filters icon's count. Guard: src/test/phoneCompactBrowse1125.test.tsx.
   const header: DeclutterBrowseHeader = desktop
     ? {
         count: listLoading || preview || items.isError ? undefined : rows.length,
@@ -436,10 +431,6 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
           <SectionSearchBar noun="Declutter" home="/declutter" value={query} onChange={setQuery}
             filter={<FiltersIconButton plain open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen(true)} />} />
         ),
-        // 8px under the chips + the column's 4px = 12px to the first cards.
-        // While the list loads, the chips' bones in the same box (Q2705, 11-09: the header grew 56px when the chips
-        // arrived, CLS 0.062 at 375).
-        chips: chipRow ? <div data-declutter-chips-row="" className={CHIPS_ROW_PAD}>{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null,
       };
 
   const sheet = (
@@ -447,7 +438,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
       open={filtersOpen}
       onOpenChange={setFiltersOpen}
       anchorRef={filtersButtonRef}
-      sections={declutterFilterSections({ filters, onChange: setFilters, maxMiles, onMaxMiles: setMaxMiles, ask, showDrops, sellerDelivery: sellerDeliveryOn, categoryUp: desktop })}
+      sections={declutterFilterSections({ filters, onChange: setFilters, maxMiles, onMaxMiles: setMaxMiles, ask, showDrops, sellerDelivery: sellerDeliveryOn })}
       filterCount={filterCount}
       shown={rows.length}
       onClearAll={clearAll}

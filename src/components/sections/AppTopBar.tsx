@@ -178,6 +178,12 @@ export function AppTopBar({
     </div>
   );
   const actions = isWebDesktop && showAdd && section && sectionByKey(section).add ? <SectionAddButton section={section} add={add} /> : undefined;
+  // The signed-out phone bar (the app; on the web a guest wears the public header instead). Owner 11-25: it carries the
+  // gift icon and one "Join / Log in" pill, and leads with the logo as the web phone bar does (owner 11-22: "logo ·
+  // Jobs · Declutter · gift icon · Join / Log in"); the page's name stays the screen reader's h1 and the Jobs | Declutter
+  // switch under the bar shows which one this is. At 375 "Declutter" was already cut to "Declut..." beside Log in and
+  // Join free. Guard: src/test/phoneCompactBrowse1125.test.tsx.
+  const guestBar = !user && !hasPersistedAuthToken() && !isWebDesktop && !publicFrame;
   // The phone bar's right side: the Inbox (owner 11-15), then You. Help is INTO You (You > Help, one tap).
   const personal = (
     <>
@@ -187,9 +193,9 @@ export function AppTopBar({
       {/* M13 (owner 11-16: guests get the same search as members in one consistent header): a guest's right side is
           Log in and Join free where a member's Inbox and photo sit. Only when no session is stored, so a member's cold
           start never flashes them. */}
-      {!user && !hasPersistedAuthToken() && !isWebDesktop && !publicFrame && (
+      {guestBar && (
         <div className="flex items-center" data-testid="top-bar-guest">
-          <GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />
+          <GuestAuthActions onSignup={() => navigate("/signup")} />
         </div>
       )}
       {user && !isWebDesktop && showProfile && (
@@ -233,7 +239,14 @@ export function AppTopBar({
             {/* JUST THE ICON (owner 11-21): the search starts as a magnifier, so the row shows the page's name again (the
                 logo on Home); an opened field (`data-search-open`) takes the row and the name steps back to the screen
                 reader's h1. Guard: src/test/searchIsAnIconEverywhere1121.test.tsx. */}
-            {title ? (
+            {title && guestBar ? (
+              <>
+                <h1 data-top-bar-title="" className="sr-only">{title}</h1>
+                <div className="flex min-w-0 flex-1 items-center group-has-[[data-search-open]]/top:hidden" data-top-bar-guest-logo="">
+                  <HelprMark size="sm" emblemOnly to="/home" />
+                </div>
+              </>
+            ) : title ? (
               <h1 data-top-bar-title="" className="min-w-0 flex-1 truncate text-page-title text-foreground group-has-[[data-search-open]]/top:!sr-only" title={title}>{title}</h1>
             ) : (
               <div className="flex min-w-0 flex-1 items-center group-has-[[data-search-open]]/top:hidden"><HelprMark size="sm" emblemOnly to="/home" /></div>

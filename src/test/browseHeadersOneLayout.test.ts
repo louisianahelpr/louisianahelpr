@@ -1,12 +1,11 @@
 // @mutate src/components/sections/browseHeaderSpacing.ts | export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-2 pb-0.5"; | export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-2 pb-2";
 // @mutate src/components/declutter/DeclutterBrowseView.tsx | <div className={BROWSE_EMPTY_SLOT} data-browse-empty-slot=""> | <div data-browse-empty-slot="">
-// @mutate src/components/declutter/DeclutterCategoryChips.tsx | items.length === 0 ? CATEGORIES.slice(0, 3).map((c) => c.key) : | false ? [] :
 /**
  * OWNER 11-12 (iPhone screenshots of Jobs and Declutter Browse, both empty):
- * 1. Both Browses have ONE layout: search + filter, tabs, a category chip row (Declutter's too, even with nothing for
- *    sale), then the shared empty state (BrowseEmptyState) in the same slot (BROWSE_EMPTY_SLOT), with the same icon
+ * 1. Both Browses have ONE layout: search + filter, tabs (no category chip row since owner 11-25: the categories are
+ *    in Filters, src/test/phoneCompactBrowse1125.test.tsx), then the shared empty state (BrowseEmptyState) in the same slot (BROWSE_EMPTY_SLOT), with the same icon
  *    circle, title, subline, primary pill and quiet link (EmptyStateActions; browseEmptyActionsOneLayout).
- * 2. Tighter header rhythm, shared: search -> tabs 6px, tabs -> chips 4px, chips -> content 8px (browseHeaderSpacing).
+ * 2. Tighter header rhythm, shared: search -> tabs 6px (browseHeaderSpacing).
  *    Since the compact top (owner 11-14) the search row is the top bar itself (COMPACT_TOP_ROW, its 2px under-pad).
  * 3. The Declutter tabs have no "N more" pill: one sideways strip (sectionTabsNeverCutAWord).
  * 4. The light app background is white #FFFFFF (lightGroundIsWhite, owner 2026-11-17).
@@ -26,21 +25,14 @@ describe("owner 11-12: Jobs and Declutter Browse share one layout", () => {
       expect({ f, shared: s.includes("<BrowseEmptyState") }).toEqual({ f, shared: true });
     }
   });
-  it("Declutter's chip row shows with nothing for sale (All and the first categories), as Jobs' does", () => {
-    expect(read("src/components/declutter/DeclutterBrowseView.tsx")).toContain('const chipRow = itemsPhase !== "offline-empty" && (others.length > 0 || (!listLoading && !items.isError))');
-    expect(read("src/components/declutter/DeclutterCategoryChips.tsx")).toContain("items.length === 0 ? CATEGORIES.slice(0, 3).map((c) => c.key) :");
-  });
   it("the header gaps come from one file, used by the real bar and its skeletons", () => {
     const sp = read("src/components/sections/browseHeaderSpacing.ts");
     expect(sp).toContain('export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-2 pb-0.5";');
-    expect(sp).toContain('export const CHIPS_ROW_PAD = "pb-0";');
     for (const f of ["src/components/sections/AppTopBar.tsx", "src/components/DashboardRouteSkeleton.tsx", "src/components/JobsSectionSkeleton.tsx"]) {
       // The real bar adds its `group/top` hook (owner 11-21: the opened search hides the title) after the shared gaps.
       const s = read(f);
       expect({ f, pad: s.includes("className={COMPACT_TOP_ROW}") || s.includes("className={`${COMPACT_TOP_ROW} ") }).toEqual({ f, pad: true });
     }
-    expect(read("src/components/declutter/DeclutterBrowseView.tsx")).toContain('<div data-declutter-chips-row="" className={CHIPS_ROW_PAD}>');
-    expect(read("src/components/declutter/DeclutterSkeletons.tsx")).toContain("<div className={CHIPS_ROW_PAD} aria-hidden data-declutter-chip-bones=\"\">");
     expect(read("src/pages/home/Dashboard.tsx").match(/tightPanelGap/g)?.length).toBe(2);
   });
   it("the tab row has no 'more' pill or chevrons", () => {

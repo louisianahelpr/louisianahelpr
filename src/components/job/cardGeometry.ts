@@ -37,7 +37,7 @@ export const JOB_CARD_BODY = "w-full px-3.5 pt-2 pb-2.5";
 export const JOB_CARD_TITLE_ROW = "flex items-center justify-between gap-3";
 
 /** The meta block below the title row. */
-export const JOB_CARD_META = "mt-1.5 flex flex-col gap-0.5 text-ds-11 leading-tight";
+export const JOB_CARD_META = "mt-1 flex flex-col gap-0.5 text-ds-11 leading-tight";
 
 /** Photo-first rows (Q2043): the tile and the text column side by side. Shared with the pre-boot Browse shell
  *  (src/lib/browseShellCards.mjs), which must match byte for byte, and with JobCardSkeleton (Jobs audit 11-21, P10). */
@@ -47,3 +47,15 @@ export const JOB_CARD_TEXT_COL = "job-card-media-col min-w-0 flex-1";
 /** The feed card's ROW frame (every Browse card that is not a photo hero): a hairline under it, no box. JobCard and
  *  JobCardSkeleton both wear it, so the bones' frame is the row's by construction (Jobs audit 11-21, P10). */
 export const JOB_CARD_ROW_FRAME = "group relative h-full cursor-pointer border-b border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+
+/**
+ * THE COMPACT ROW (owner 11-25, signed-out Jobs on her phone: "This needs polishing. They take up too much space."):
+ * a 40px tile (was 48), 10px above and below (was 12), ONE meta line (category · place · day · time, no calendar or
+ * clock icons; index.css "compact rows"), a semibold title, and no empty poster line on a guest
+ * row (JobCard): 6+ jobs on a 375 phone screen. JobCard, JobCardSkeleton and the pre-boot Browse shell
+ * (src/lib/browseShellCards.mjs, byte for byte) all wear these. Guard: src/test/phoneCompactBrowse1125.test.tsx.
+ */
+export const JOB_ROW_MEDIA_PAD = "py-2.5";
+export const JOB_ROW_MEDIA = "relative shrink-0 self-start w-10 h-10 overflow-hidden rounded-xl";
+export const JOB_ROW_BADGE_LINE = "flex pl-3 pt-2.5 -mb-1.5 empty:hidden";
+export const JOB_ROW_BODY = "w-full pl-3 pt-2.5 pb-2.5";

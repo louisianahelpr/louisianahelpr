@@ -52,10 +52,12 @@ export function DeclutterFilterSheet({
   anchorRef?: RefObject<HTMLElement | null>;
   view?: { value: "list" | "map"; set: (v: "list" | "map") => void };
 }) {
-  // M10 (iOS design audit 11-16): List | Map rides on the first row's title line (FilterSheet's `trailing`, as the
-  // sheet's own doc names it), not a section of its own.
+  // M10 (iOS design audit 11-16): List | Map rides on Sort's title line (FilterSheet's `trailing`, as the sheet's own
+  // doc names it), not a section of its own. Sort was the first row until owner 11-25 put Category first; the toggle
+  // stays with Sort (a view choice beside how the list is ordered, not beside a category).
+  const at = Math.max(0, sections.findIndex((s) => s.key === "sort"));
   const all: FilterSheetSection[] = view && sections.length > 0
-    ? [{ ...sections[0], trailing: <BrowseViewToggle className="w-auto" view={view.value} setView={view.set} onSelect={() => onOpenChange(false)} /> }, ...sections.slice(1)]
+    ? sections.map((s, i) => (i === at ? { ...s, trailing: <BrowseViewToggle className="w-auto" view={view.value} setView={view.set} onSelect={() => onOpenChange(false)} /> } : s))
     : sections;
   return (
     <FilterSheet

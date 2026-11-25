@@ -60,7 +60,6 @@ import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
-import { ScrollAwayRows } from "@/components/sections/ScrollAway";
 import {
   OLD_DECLUTTER_VIEWS,
   oldDeclutterView,
@@ -543,12 +542,8 @@ function DeclutterMemberHome() {
     // The row is the desktop's SectionTabs (it scrolls and never cuts a word); the gear stays in My Declutter.
     // Owner 11-14 (Depop/Vinted item 5): on Browse the chips slide away while the grid scrolls down (ScrollAway.tsx).
     // The tabs stay pinned, as on Jobs (M14, owner 11-16: "keep tabs pinned"), so a tab switch never needs a scroll up.
-    tabs: (
-      <>
-        <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />
-        <ScrollAwayRows off={!browse}>{browse?.chips}</ScrollAwayRows>
-      </>
-    ),
+    // Owner 11-25: no category chips under the tabs any more (they are in Filters).
+    tabs: <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />,
   };
   // Owner pick 4 (11-08, design audit B #12): no "+ Sell" pill on a screen with its own main button (Wanted's "Post what
   // you're looking for", Deliver's vehicle form): two filled primaries competed there, and the pill covered "I have a truck".

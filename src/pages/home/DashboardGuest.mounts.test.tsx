@@ -8,8 +8,8 @@
  * DashboardTitleBar as the title card.
  *
  * @mutate src/pages/home/DashboardGuest.tsx |       <BrowseMap\n |       <BrowseMapGone\n
- * @mutate src/pages/home/DashboardGuest.tsx |             search={<SectionSearchBar noun="jobs" home="/browse" value={filters.searchQuery} onChange={filters.setSearchQuery} />} /> |             /> 
- * @mutate src/components/sections/AppTopBar.tsx |       {!user && !hasPersistedAuthToken() && !isWebDesktop && !publicFrame && ( |       {false && (
+ * @mutate src/pages/home/GuestAuthActions.tsx |         {wordInLang("g.joinOrLogIn", "Join / Log in")} |         Log in
+ * @mutate src/components/sections/AppTopBar.tsx |       {guestBar && ( |       {false && (
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -64,8 +64,9 @@ describe("DashboardGuest mounts its children", () => {
   });
 
   // M13 (owner 11-16, replacing 09-11's "no search in the guest bar"): the app draws the MEMBERS' header for a guest:
-  // AppTopBar with the jobs search field, and Log in / Join free where a member's Inbox and photo sit.
-  it("the app (native) draws the members' top bar: the jobs search, and Log in / Join free (M13)", async () => {
+  // AppTopBar with the jobs search field, and (owner 11-25) the Filters icon, the gift guides and one Join / Log in
+  // pill where a member's Inbox and photo sit.
+  it("the app (native) draws the members' top bar: the jobs search with Filters, the gift guides and Join / Log in (M13, 11-25)", async () => {
     vi.resetModules();
     vi.doMock("@/lib/nativeInit", async (orig) => ({ ...(await orig<typeof import("@/lib/nativeInit")>()), isNativePlatform: true }));
     const { default: NativeGuest } = await import("./DashboardGuest");
@@ -80,7 +81,9 @@ describe("DashboardGuest mounts its children", () => {
     // Owner 11-21: the bar's search is just the icon until tapped.
     await waitFor(() => expect(container.querySelector('.page-title-card [data-testid="app-top-bar-search"] button[data-search-icon]')).not.toBeNull());
     const guest = container.querySelector('.page-title-card [data-testid="top-bar-guest"]');
-    expect(guest?.textContent).toBe("Log inJoin free");
+    expect(guest?.textContent).toBe("Join / Log in");
+    expect(guest?.querySelector('a[href="/gift-guides"]')).not.toBeNull();
+    expect(container.querySelector('.page-title-card [data-testid="app-top-bar-search"] button[aria-label="Filters"]')).not.toBeNull();
     vi.doUnmock("@/lib/nativeInit");
   });
 

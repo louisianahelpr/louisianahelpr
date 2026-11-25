@@ -58,7 +58,8 @@ describe("F402: a guest's order link says the order is behind a log in", () => {
 
   it("plain Browse keeps the join line", () => {
     show("/declutter");
-    expect(screen.getByText("Sign up to buy, make offers or sell.")).toBeInTheDocument();
+    // Owner 11-25: the plain line is one slim line ("Join to buy or sell." + Sign up).
+    expect(screen.getByText("Join to buy or sell.")).toBeInTheDocument();
     expect(screen.queryByText(/Log in to see/)).toBeNull();
   });
 });

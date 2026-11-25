@@ -1,16 +1,13 @@
 /**
- * Design audit A J1 (owner approved 11-08, change 2 of 5): Jobs Browse gets the category chips row under the search
- * bar, the same pattern as Declutter. Owner 2026-11-13 ("Where are the other categories from post a job?") replaced the
- * old "only groups with a job, busiest first, never opens an empty list" rule: "All" first, then ALL 8 Post a job
- * groups in JOB_CATEGORY_GROUPS order, always, as one scroll row, even with an empty feed. The row reads no jobs, so
- * the viewer's own (Browse-hidden) jobs cannot count toward it. A group alone on an empty list gets its own empty
- * state ("No Yard jobs near you yet." + Post a job / Notify me), never "No jobs match your filters." / a blank list.
- * A chip sets the filter sheet's own category value; tapping the lit chip again shows everything. The phone header
- * draws the row on Browse only (never under Posted / Working's back row). Labels are Post a job's t("postJob.group.*").
+ * Jobs Browse's categories. History: design audit A J1 (owner 11-08) put a category chip row under the search bar; owner
+ * 11-13 made it every Post a job group. Owner 11-25 ("move the category chips into the filter bc they take up too much
+ * space here") took the row off Browse: the groups are the Filters sheet's FIRST section (Post a job's order and
+ * words), and what is on shows under the tabs as small removable chips ("Yard ×"), on Browse only. A group alone on an
+ * empty list still gets its own empty state ("No Yard jobs near you yet." + Post a job / Notify me), never "No jobs
+ * match your filters." / a blank list.
  *
- * @mutate src/components/dashboard/JobCategoryChips.tsx |       {JOB_CATEGORY_GROUPS.map((g) => { |       {JOB_CATEGORY_GROUPS.slice(0, 3).map((g) => {
- * @mutate src/components/dashboard/JobCategoryChips.tsx | onChange(value === g.id ? null : g.id) | onChange(g.id)
- * @mutate src/components/dashboard/JobCategoryChips.tsx |   return w && w !== key ? w : groupTileLabel(g); |   return groupTileLabel(g);
+ * @mutate src/components/dashboard/JobFilters.tsx |       {JOB_CATEGORY_GROUPS.map((g) => { |       {JOB_CATEGORY_GROUPS.slice(0, 3).map((g) => {
+ * @mutate src/components/dashboard/JobActiveFilters.tsx |   return isJobCategoryGroupId(value) ? wordInLang(`postJob.group.${value}`, categoryFilterLabel(value)) : categoryFilterLabel(value); |   return categoryFilterLabel(value);
  * @mutate src/lib/browseEmptyCopy.ts |   if (!i.groupLabel \|\| i.activeFilterCount !== 1 \|\| i.searchQuery.trim()) return null; |   if (!i.groupLabel) return null;
  * @mutate src/components/dashboard/BrowseTasksFeed.tsx |         const narrowed = filters.hasFilters && !groupTitle; |         const narrowed = filters.hasFilters;
  * @mutate src/pages/jobs/JobsSection.tsx | <ScrollAwayRows>{tab === "browse" && browse?.chips}</ScrollAwayRows> | <ScrollAwayRows>{browse?.chips}</ScrollAwayRows>
@@ -18,9 +15,10 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { JobCategoryChips } from "@/components/dashboard/JobCategoryChips";
+import { afterEach, describe, expect, it } from "vitest";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import { CategoryContent } from "@/components/dashboard/JobFilters";
+import { JobActiveFilters } from "@/components/dashboard/JobActiveFilters";
 import { JOB_CATEGORY_GROUPS } from "@/lib/jobCategoryGroups";
 import { browseGroupEmptyTitle } from "@/lib/browseEmptyCopy";
 import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
@@ -28,47 +26,22 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = join(__dirname, "..", "..");
 const read = (p: string) => blankComments(readFileSync(join(ROOT, p), "utf8"));
-
-const chipNames = () => screen.getAllByRole("button").map((b) => b.getAttribute("data-category-chip"));
 const ALL_8 = ["home", "yard", "moving_errands", "auto", "pets", "events", "trades", "other"];
 
 afterEach(() => { cleanup(); __resetLangForTests(); });
 
-describe("Jobs Browse category chips (design audit A J1; owner 11-13: all 8 groups)", () => {
-  it("All first, then all 8 Post a job groups in Post a job's order, with no jobs to go on", () => {
+describe("Jobs categories live in Filters (owner 11-25)", () => {
+  it("the sheet's Category offers every Post a job group in Post a job's order", () => {
     expect(JOB_CATEGORY_GROUPS.map((g) => g.id)).toEqual(ALL_8);
-    render(<JobCategoryChips value={null} onChange={() => {}} />);
-    expect(chipNames()).toEqual(["all", ...ALL_8]);
-    expect(screen.getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByRole("button", { name: /Moving & errands/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Something else/ })).toBeTruthy();
-    const row = document.querySelector("[data-chip-row='job-categories']")!;
-    expect(row.className).toContain("overflow-x-auto"); // one scroll row, Declutter's layout
+    render(<CategoryContent selectedCategory={null} setSelectedCategory={() => {}} />);
+    const ids = [...document.querySelectorAll("[data-category-group]")].map((b) => b.getAttribute("data-category-group"));
+    expect(ids).toEqual(ALL_8);
   });
 
-  it("a chip sets the group id; the lit chip tapped again clears it", () => {
-    const onChange = vi.fn();
-    const { rerender } = render(<JobCategoryChips value={null} onChange={onChange} />);
-    fireEvent.click(screen.getByRole("button", { name: /Yard/ }));
-    expect(onChange).toHaveBeenLastCalledWith("yard");
-    rerender(<JobCategoryChips value="yard" onChange={onChange} />);
-    expect(screen.getByRole("button", { name: /Yard/ }).getAttribute("aria-pressed")).toBe("true");
-    fireEvent.click(screen.getByRole("button", { name: /Yard/ }));
-    expect(onChange).toHaveBeenLastCalledWith(null);
-  });
-
-  it("the chips read no jobs: Dashboard passes none, so the viewer's own hidden jobs cannot count", () => {
-    const feed = read("src/pages/home/Dashboard.tsx");
-    expect(feed).toContain("<JobCategoryChips value={filters.selectedCategory} onChange={filters.setSelectedCategory}");
-    expect(feed).not.toMatch(/<JobCategoryChips[^>]*jobs=/);
-  });
-
-  it("Spanish: the chips use Post a job's own words", async () => {
+  it("Spanish: the filters-on chip uses Post a job's own words", async () => {
     await act(async () => { setLang("es"); await ensureLangLoaded(); });
-    render(<JobCategoryChips value={null} onChange={() => {}} />);
-    expect(await screen.findByRole("button", { name: /Jardín/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Mudanzas y mandados/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Todo" })).toBeTruthy();
+    render(<JobActiveFilters category="yard" onClearCategory={() => {}} />);
+    expect(await screen.findByText("Jardín")).toBeTruthy();
   });
 
   it("a group with no jobs gets its own empty state, not the filtered one", () => {
@@ -82,7 +55,7 @@ describe("Jobs Browse category chips (design audit A J1; owner 11-13: all 8 grou
     expect(feed).toMatch(/narrowed \? \([\s\S]*?<EmptyFeedActions onNotify=\{notifyWhenWorkLands\} \/>/);
   });
 
-  it("the phone header draws the row under the tabs on Browse only, fed by the feed's own filter", () => {
+  it("the phone header draws the filters-on chips under the tabs on Browse only, fed by the feed's own filter", () => {
     const section = read("src/pages/jobs/JobsSection.tsx");
     const feed = read("src/pages/home/Dashboard.tsx");
     expect(section).toContain('{tab === "browse" && browse?.chips}');

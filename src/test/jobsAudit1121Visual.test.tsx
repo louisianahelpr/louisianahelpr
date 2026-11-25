@@ -52,7 +52,8 @@ describe("P10: the Browse bones are the loaded rows", () => {
     const row = container.querySelector("[data-feed-row-skeleton]")!;
     expect(row.className.split(/\s+/)).toEqual(expect.arrayContaining(["border-b", "border-border"]));
     expect(row.querySelector(".job-card-media-col .job-meta-row [data-meta-break]")).not.toBeNull();
-    expect(row.querySelector(".rounded-xl.w-12.h-12")).not.toBeNull();
+    // The tile: 40px since owner 11-25 (compact rows, JOB_ROW_MEDIA), was 48.
+    expect(row.querySelector(".rounded-xl.w-10.h-10")).not.toBeNull();
     const src = code("src/components/ui/skeletons/JobCardSkeleton.tsx");
     expect(src).not.toMatch(/JOB_CARD_(FRAME|CLIP)|JOB_CATEGORY_TAB_FRAME/);
   });

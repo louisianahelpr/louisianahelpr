@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { JOB_CARD_MEDIA_ROW, JOB_CARD_META, JOB_CARD_ROW_FRAME, JOB_CARD_TEXT_COL, JOB_CARD_TITLE_ROW } from "@/components/job/cardGeometry";
+import { JOB_CARD_MEDIA_ROW, JOB_CARD_META, JOB_CARD_ROW_FRAME, JOB_CARD_TEXT_COL, JOB_CARD_TITLE_ROW, JOB_ROW_BODY, JOB_ROW_MEDIA, JOB_ROW_MEDIA_PAD } from "@/components/job/cardGeometry";
 
 /** A zero-width character: gives a bone row the real text's line box without showing anything. */
 const ZW = "\u200b";
@@ -11,7 +11,7 @@ const ZW = "\u200b";
  * Jobs audit 11-21 (P10): the bone still drew the retired bordered card (a rounded frame with a tab corner, about
  * 85px tall), while the loaded list is flat rows (an icon tile, the title, a two-line meta block at a phone's column
  * width, the price, a hairline under each), about 100-120px tall. The page jumped when the list landed. It now
- * IMPORTS the row's own geometry: JOB_CARD_MEDIA_ROW, the tile's box (w-12 h-12 rounded-xl inside the row's py-3),
+ * IMPORTS the row's own geometry: JOB_CARD_MEDIA_ROW, the tile's box (JOB_ROW_MEDIA inside the row's JOB_ROW_MEDIA_PAD; 40px in 10px since owner 11-25),
  * JOB_CARD_TEXT_COL (so the meta row's container query, index.css, gives it the card's one or two lines at the same
  * column widths), the row's body padding, JOB_CARD_TITLE_ROW and JOB_CARD_META. Each bone sits in an invisible line
  * box of the real text's class, so the reservation is the real height at every text size.
@@ -26,20 +26,20 @@ export function JobCardSkeleton({ badge = false }: { badge?: boolean } = {}) {
     <div data-feed-row-skeleton="" className={JOB_CARD_ROW_FRAME} aria-hidden>
       <div className={JOB_CARD_MEDIA_ROW}>
         {/* The tile, in the row's own py-3 (JobCard: row ? "py-3"), at JobCardMedia's 48px. */}
-        <div className="py-3">
-          <Skeleton className="w-12 h-12 shrink-0 rounded-xl" style={{ background: "hsl(var(--olivewood) / 0.10)" }} />
+        <div className={JOB_ROW_MEDIA_PAD}>
+          <Skeleton className={JOB_ROW_MEDIA} style={{ background: "hsl(var(--olivewood) / 0.10)" }} />
         </div>
         <div className={JOB_CARD_TEXT_COL}>
           {/* The badge line a row draws above the title only when it has a badge (RecommendedJobCardSkeleton). */}
           {badge && (
-            <div className="flex pl-3 pt-3 -mb-2">
+            <div className="flex pl-3 pt-2.5 -mb-1.5">
               <span className="inline-flex items-center text-ds-10 leading-tight">
                 <span className="invisible w-0">{ZW}</span>
                 <Skeleton className="h-2.5 w-20 rounded" style={{ background: "hsl(var(--burnt-sienna) / 0.18)" }} />
               </span>
             </div>
           )}
-          <div className="w-full pl-3 pt-3 pb-3">
+          <div className={JOB_ROW_BODY}>
             <div className={JOB_CARD_TITLE_ROW}>
               {/* The title's own line box (text-headline-card, leading-tight, display bold). */}
               <span className="text-headline-card flex-1 min-w-0 font-display font-bold leading-tight flex items-center">

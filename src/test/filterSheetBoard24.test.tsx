@@ -129,8 +129,9 @@ describe("board 24: sections and defaults", () => {
     locationFilter: "", setLocationFilter: noop,
   });
 
-  it("orders Sort, Price, Distance, When, Category, Show only (spec §3)", () => {
-    expect(sections.map((s) => s.key)).toEqual(["sort", "price", "nearby", "when", "category", "show-only"]);
+  // Owner 11-25: the Browse category chips moved into this sheet, so Category leads (spec §3 had it fifth).
+  it("orders Category, Sort, Price, Distance, When, Show only", () => {
+    expect(sections.map((s) => s.key)).toEqual(["category", "sort", "price", "nearby", "when", "show-only"]);
   });
 
   it("Distance starts on Any: no default radius, so no location prompt on open", () => {

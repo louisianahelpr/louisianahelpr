@@ -1,0 +1,56 @@
+{
+ "home@375": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "her@375": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "kids@375": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "monster-jam@375": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "black-friday@375": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "sams-club@375": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "home@390": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "her@390": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "kids@390": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "monster-jam@390": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "black-friday@390": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "sams-club@390": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "home@1440": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "her@1440": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "kids@1440": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "monster-jam@1440": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "black-friday@1440": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ },
+ "sams-club@1440": {
+  "err": "Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"after/"
+ }
+}

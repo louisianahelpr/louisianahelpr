@@ -10,7 +10,6 @@
  *         photos row next to Send.
  *
  * @mutate src/components/declutter/DeclutterHomeView.tsx | view === "wanted" \|\| view === "deliver" \|\| view === "buying"; | view === "wanted" \|\| view === "deliver";
- * @mutate src/components/declutter/DeclutterCategoryChips.tsx | size="tall" className="shrink-0" data-category-chip="all" | className="shrink-0" data-category-chip="all"
  * @mutate src/components/declutter/DeclutterProblemForm.tsx |       <HideSectionCreateFab />\n |
  */
 import { readFileSync } from "node:fs";
@@ -24,7 +23,6 @@ vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonner
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/lib/declutter/handover", () => ({ reportProblem: vi.fn() }));
 
-import { DeclutterCategoryChips } from "@/components/declutter/DeclutterCategoryChips";
 import { ProblemForm } from "@/components/declutter/DeclutterProblemForm";
 import { useSectionCreateFabHidden } from "@/components/sections/createFabHidden";
 
@@ -44,17 +42,7 @@ describe("F360: no + Sell pill on the Buying tab", () => {
   });
 });
 
-describe("F313: category chips keep the 44px tap floor", () => {
-  it("every chip (All, Free, each category) wears min-h-11, none the 40px default", () => {
-    render(<DeclutterCategoryChips items={[{ category: "furniture", current_price_cents: 0 }, { category: "appliances" }, { category: "electronics" }]} value={null} onChange={() => undefined} onFree={() => undefined} />);
-    const chips = screen.getAllByRole("button").filter((b) => b.hasAttribute("data-category-chip"));
-    expect(chips.length).toBeGreaterThan(3);
-    for (const c of chips) {
-      expect(c.className, c.getAttribute("data-category-chip") ?? "").toContain("min-h-11");
-      expect(c.className, c.getAttribute("data-category-chip") ?? "").not.toContain("min-h-10");
-    }
-  });
-});
+// F313 (category chips at the 44px floor) retired with the chip row: owner 11-25 moved the categories into Filters.
 
 describe("F388: the pill steps aside while Report a problem is open", () => {
   it("the open form hides the section's create pill; closed, it does not", () => {

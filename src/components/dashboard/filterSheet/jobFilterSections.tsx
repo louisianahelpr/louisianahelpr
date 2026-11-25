@@ -73,8 +73,9 @@ export interface JobFilterSectionsArgs {
  * for the signed-in feed and the signed-out /browse feed so the two cannot
  * drift apart.
  *
- * Order (spec §3 "Filter sheet"): Sort · Price · Distance · When · Category ·
- * Show only. View (List / Map) is prepended by the caller where a map exists.
+ * Order: Category · Sort · Price · Distance · When · Show only (spec §3 "Filter sheet" had Category fifth; owner
+ * 11-25 moved the Browse category chips in here, so it leads). View (List / Map) is prepended by the caller where a
+ * map exists. Guard: src/test/phoneCompactBrowse1125.test.tsx.
  *
  * Every chip section renders the SAME chip at the SAME size in a wrapping row
  * (`chipBase`/`chipRow` in JobFilters.tsx).
@@ -104,6 +105,17 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
   } = args;
 
   const sections: FilterSheetSection[] = [
+    // Owner 11-25 ("move the category chips into the filter"): the chip row left Browse, so Category leads the sheet.
+    {
+      key: "category",
+      title: t("jh.f.category"),
+      content: (
+        <CategoryContent
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+        />
+      ),
+    },
     {
       key: "sort",
       title: t("jh.f.sort"),
@@ -167,16 +179,6 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
   }
 
   sections.push(
-    {
-      key: "category",
-      title: t("jh.f.category"),
-      content: (
-        <CategoryContent
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-        />
-      ),
-    },
     {
       key: "show-only",
       title: t("jh.f.showOnly"),

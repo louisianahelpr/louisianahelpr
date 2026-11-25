@@ -12,7 +12,7 @@ import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/Brows
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseFiltersButton, BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
-import { JobCategoryChips } from "@/components/dashboard/JobCategoryChips";
+import { JobActiveFilters } from "@/components/dashboard/JobActiveFilters";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useWantsQuotes } from "@/pages/home/useWantsQuotes";
 import { WantsQuotesSlot } from "@/components/quotes/WantsQuotesSlot";
@@ -320,11 +320,12 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
       filter={<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />} />
   );
 
-  /* Phone row 2 (design audit A J1, owner 11-08): the category chips. Owner 2026-11-13: all 8 Post a job groups, always;
-     they read no jobs, so the viewer's own (hidden) jobs never count toward them. */
+  /* Phone row 2: owner 11-25 ("move the category chips into the filter bc they take up too much space here") took the
+     category chip row off Browse; Category is the Filters sheet's first section. What is ON shows here as small
+     removable chips ("Home ×", "Saved ×"), nothing at all while nothing is on. Guard: src/test/phoneCompactBrowse1125.test.tsx. */
   const phoneBrowseChips = isWebDesktop ? undefined : (
-    <JobCategoryChips value={filters.selectedCategory} onChange={filters.setSelectedCategory}
-      saved={{ on: savedOnly, count: savedJobIds.size, onToggle: toggleSavedOnly }} />
+    <JobActiveFilters category={filters.selectedCategory} onClearCategory={() => filters.setSelectedCategory(null)}
+      savedOn={savedOnly} onClearSaved={toggleSavedOnly} />
   );
 
   const embeddedTitle = (

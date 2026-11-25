@@ -100,19 +100,19 @@ describe("BUY-16: guests browse Declutter", () => {
   });
 
   it("a guest gets Browse alone, a sign-up line that comes back here, and no member-only control or read", async () => {
-    // Phone width: no guest top bar, so the line carries the logo and both buttons.
+    // Phone width (owner 11-25): ONE slim line with Sign up. The bar above has "Join / Log in" and the logo (the web's
+    // public header, the app's guest bar), so the line no longer repeats Log in or the H.
     state.desktop = false;
     show(<DeclutterHome />);
     expect(await screen.findByText("Thing 1")).toBeInTheDocument();
     expect(screen.getByText("Thing 2")).toBeInTheDocument();
     const join = document.querySelector('[data-guest-join="browse"]') as HTMLElement;
     expect(join).not.toBeNull();
-    expect(join).toHaveTextContent("Sign up to buy, make offers or sell.");
+    expect(join).toHaveTextContent("Join to buy or sell. It's free.");
     const back = encodeURIComponent("/declutter");
     expect(within(join).getByRole("link", { name: "Sign up" })).toHaveAttribute("href", `/signup?redirect=${back}`);
-    expect(within(join).getByRole("link", { name: "Log in" })).toHaveAttribute("href", `/login?redirect=${back}`);
-    // AUD31-67: the brand, and a way to the rest of Louisiana Helpr.
-    expect(within(join).getByRole("link", { name: "Helpr home" })).toHaveAttribute("href", "/");
+    expect(within(join).queryByRole("link", { name: "Log in" })).toBeNull();
+    expect(within(join).queryByRole("link", { name: "Helpr home" })).toBeNull();
     // Browse is the only tab; no gear.
     for (const tab of ["Buying", "Selling", "Deliver", "Free"]) expect(screen.queryByRole("tab", { name: new RegExp(`^${tab}`) })).toBeNull();
     expect(screen.queryByRole("link", { name: /settings/i })).toBeNull();

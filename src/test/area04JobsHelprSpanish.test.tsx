@@ -61,7 +61,7 @@ describe("Area 04: the Helpr's Jobs screens", () => {
 
   describe("in English (the old copy)", () => {
     it("the filter sheet's headings and footer read as before", () => {
-      expect(sections().map((s) => s.title)).toEqual(["Sort", "Price", "Distance", "When", "Category", "Show only"]);
+      expect(sections().map((s) => s.title)).toEqual(["Category", "Sort", "Price", "Distance", "When", "Show only"]);
       render(<FilterSheetFooter activeFilterCount={1} onClearAll={noop} onDone={noop} resultCount={4} resultNoun={["job", "jobs"]} />);
       expect(screen.getByRole("button", { name: "Show 4 jobs" })).toBeTruthy();
       expect(screen.getByRole("button", { name: "Clear all" })).toBeTruthy();
@@ -83,7 +83,7 @@ describe("Area 04: the Helpr's Jobs screens", () => {
     });
 
     it("#2: the filter sheet's headings, chips and footer are Spanish", () => {
-      expect(sections().map((s) => s.title)).toEqual(["Ordenar", "Precio", "Distancia", "Cuándo", "Categoría", "Mostrar solo"]);
+      expect(sections().map((s) => s.title)).toEqual(["Categoría", "Ordenar", "Precio", "Distancia", "Cuándo", "Mostrar solo"]);
       render(<SortContent sortBy="smart" setSortBy={noop} />);
       expect(screen.getByText(es["jh.f.sort.smart"])).toBeTruthy();
       cleanup();

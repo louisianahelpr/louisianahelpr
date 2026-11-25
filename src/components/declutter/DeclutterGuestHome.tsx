@@ -9,7 +9,6 @@
  */
 import { lazy, Suspense } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { ScrollAwayRows } from "@/components/sections/ScrollAway";
 import { GuestSectionSwitch } from "@/components/sections/GuestSectionSwitch";
 import { SectionAddLink } from "@/components/sections/SectionAddLink";
 import { SELL_START_PATH } from "@/lib/declutter/sellChooser";
@@ -52,7 +51,8 @@ export function DeclutterGuestHome() {
   } : {
     // M13: the "Jobs | Declutter" switch sits ABOVE the category chips (under them it read as one more filter row).
     search: browse.search,
-    tabs: <><div className="flex items-center justify-between gap-2 pb-2"><GuestSectionSwitch at="declutter" className="min-w-0" />{guestSell(true)}</div><ScrollAwayRows>{browse.chips}</ScrollAwayRows></>,
+    // Owner 11-25: no category chips under it any more (they are in Filters), so the row is the whole strip.
+    tabs: <div className="flex items-center justify-between gap-2 pb-2"><GuestSectionSwitch at="declutter" className="min-w-0" />{guestSell(true)}</div>,
   };
   return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={null} chrome={chrome} top={<DeclutterGuestBrowseJoin />} /></Suspense>;
 }

@@ -7,7 +7,7 @@
  *
  * @mutate src/components/dashboard/FilterSheet.tsx |   const shown = sections.filter((s) => !s.more); |   const shown = sections;
  * @mutate src/components/dashboard/FilterSheet.tsx |   const [moreOpen, setMoreOpen] = useState(() => folded.some((s) => s.active)); |   const [moreOpen, setMoreOpen] = useState(() => false);
- * @mutate src/components/declutter/DeclutterFilterPanel.tsx |       active: !!filters.category, |       active: false,
+ * @mutate src/components/declutter/DeclutterFilterPanel.tsx |       active: filters.freeOnly \|\| filters.tradesOnly \|\| filters.minDollars !== null \|\| filters.maxDollars !== null, |       active: false,
  * @mutate src/components/declutter/DeclutterBrowseBar.tsx |   const all: FilterSheetSection[] = view && sections.length > 0 |   const all: FilterSheetSection[] = false
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -48,18 +48,18 @@ const eyebrows = () => Array.from(document.querySelectorAll("p.uppercase")).map(
 afterEach(cleanup);
 
 describe("M10: Declutter's Filters sheet opens short", () => {
-  it("shows Sort and Distance; the rest wait behind one More filters row", () => {
+  it("shows Category (first since owner 11-25), Sort and Distance; the rest wait behind one More filters row", () => {
     const sections = sheet(NO_FILTERS);
     // Inventory floor: the sheet still offers every section (nothing was dropped, only folded).
     expect(sections.length).toBeGreaterThan(6);
-    expect(sections.filter((s) => s.more).map((s) => s.key)).toEqual(["handover", "price", "condition", "category", "show"]);
-    expect(eyebrows()).toEqual(["Sort", "Distance"]);
+    expect(sections.filter((s) => s.more).map((s) => s.key)).toEqual(["handover", "price", "condition", "show"]);
+    expect(eyebrows()).toEqual(["Category", "Sort", "Distance"]);
     const more = screen.getByRole("button", { name: "More filters" });
     expect(more).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByRole("button", { name: "Like new" })).toBeNull();
     fireEvent.click(more);
     expect(more).toHaveAttribute("aria-expanded", "true");
-    expect(eyebrows()).toEqual(["Sort", "Distance", "How you get it", "Price", "Condition", "Category", "Show"]);
+    expect(eyebrows()).toEqual(["Category", "Sort", "Distance", "How you get it", "Price", "Condition", "Show"]);
     expect(screen.getByRole("button", { name: "Like new" })).toBeTruthy();
   });
 
@@ -70,8 +70,8 @@ describe("M10: Declutter's Filters sheet opens short", () => {
   });
 
   it("a folded filter in effect opens the More filters row from the start", () => {
-    sheet({ ...NO_FILTERS, category: "furniture" });
+    sheet({ ...NO_FILTERS, minDollars: 5 });
     expect(screen.getByRole("button", { name: "More filters" })).toHaveAttribute("aria-expanded", "true");
-    expect(eyebrows()).toContain("Category");
+    expect(eyebrows()).toContain("Price");
   });
 });

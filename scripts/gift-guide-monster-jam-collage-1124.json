@@ -10,70 +10,139 @@
     "MJ05",
     "MJ06",
     "MJ08",
-    "MJ10",
-    "MJ11"
+    "MJ17",
+    "MJ18"
    ]
   },
   {
    "file": "monster-jam-guide-2.png",
    "ids": [
+    "MJ10",
+    "MJ11",
     "MJ12",
     "MJ13",
     "MJ15",
     "MJ16",
-    "MJ20",
-    "MJ21",
-    "MJ22",
-    "MJ120",
-    "MJ121"
+    "MJO04",
+    "MJO10",
+    "MJO16"
    ]
   },
   {
    "file": "monster-jam-guide-3.png",
    "ids": [
+    "MJO17",
+    "MJO18",
+    "MJO19",
+    "MJO20",
+    "MJO21",
+    "MJO22",
+    "MJO23",
+    "MJO25",
+    "MJO26"
+   ]
+  },
+  {
+   "file": "monster-jam-guide-4.png",
+   "ids": [
+    "MJO27",
+    "MJO32",
+    "MJO33",
+    "MJO34",
+    "MJO35",
+    "MJ20",
+    "MJ21",
+    "MJ22",
+    "MJ23"
+   ]
+  },
+  {
+   "file": "monster-jam-guide-5.png",
+   "ids": [
+    "MJ120",
+    "MJ121",
     "MJ122",
     "MJ123",
     "MJ124",
     "MJ125",
     "MJ30",
     "MJ31",
-    "MJ32",
-    "MJ33",
-    "MJ34"
-   ]
-  },
-  {
-   "file": "monster-jam-guide-4.png",
-   "ids": [
-    "MJ40",
-    "MJ41",
-    "MJ14",
-    "MJ50",
-    "MJ51",
-    "MJ52",
-    "MJ61",
-    "MJ63",
-    "MJ64"
-   ]
-  },
-  {
-   "file": "monster-jam-guide-5.png",
-   "ids": [
-    "MJ65",
-    "MJ68",
-    "MJ69",
-    "MJ07",
-    "MJ70",
-    "MJ71",
-    "MJ80",
-    "MJ82",
-    "MJ83"
+    "MJ32"
    ]
   },
   {
    "file": "monster-jam-guide-6.png",
    "ids": [
-    "MJ85",
+    "MJ33",
+    "MJ34",
+    "MJO15",
+    "MJO24",
+    "MJ40",
+    "MJ41",
+    "MJ14",
+    "MJ50",
+    "MJ51"
+   ]
+  },
+  {
+   "file": "monster-jam-guide-7.png",
+   "ids": [
+    "MJ52",
+    "MJ61",
+    "MJ63",
+    "MJ64",
+    "MJ65",
+    "MJ68",
+    "MJ69",
+    "MJO01",
+    "MJO02"
+   ]
+  },
+  {
+   "file": "monster-jam-guide-8.png",
+   "ids": [
+    "MJO03",
+    "MJO05",
+    "MJO06",
+    "MJO07",
+    "MJO08",
+    "MJO09",
+    "MJO11",
+    "MJO12",
+    "MJO13"
+   ]
+  },
+  {
+   "file": "monster-jam-guide-9.png",
+   "ids": [
+    "MJO14",
+    "MJO28",
+    "MJO29",
+    "MJO30",
+    "MJO31",
+    "MJO36",
+    "MJO37",
+    "MJO38",
+    "MJO39"
+   ]
+  },
+  {
+   "file": "monster-jam-guide-10.png",
+   "ids": [
+    "MJO40",
+    "MJO41",
+    "MJ07",
+    "MJ70",
+    "MJ71",
+    "MJ80",
+    "MJ82",
+    "MJ83",
+    "MJ85"
+   ]
+  },
+  {
+   "file": "monster-jam-guide-11.png",
+   "ids": [
     "MJ86",
     "MJ87",
     "MJ90",
@@ -81,13 +150,13 @@
     "MJ92",
     "MJ93",
     "MJ94",
-    "MJ126"
+    "MJ126",
+    "MJ95"
    ]
   },
   {
-   "file": "monster-jam-guide-7.png",
+   "file": "monster-jam-guide-12.png",
    "ids": [
-    "MJ95",
     "MJ96",
     "MJ97"
    ]

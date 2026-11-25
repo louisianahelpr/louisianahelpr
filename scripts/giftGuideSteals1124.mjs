@@ -233,6 +233,56 @@ export const KIDS_STEALS_1124_ROWS = [
   ["https://go.shopmy.us/p-110718853", 24.99, "https://media.kohlsimg.com/is/image/kohls/7006887", "Matchbox Aircraft Carrier Play Set with 10 Die-Cast Planes", "Matchbox", "store-kohls", "playset", 12, "An aircraft carrier with 10 Sky Busters planes and a car."],
   // Owner Kohl's screenshot 11-25 1:10 AM (kohls-mixed-0110.md #9, the 5-pack): kohls.com prd-8100049 read 11-25 ~1:20 AM: $5.24 sale (reg $6.99), styles vary. ShopMy quick link, Kohl's 12%; never opened.
   ["https://go.shopmy.us/p-110718866", 5.24, "https://media.kohlsimg.com/is/image/kohls/8100049", "Matchbox Die-Cast Cars 5-Pack", "Matchbox", "store-kohls", "die-cast", 12, "Five Matchbox cars for a stocking."],
+  // JCPenney #1: quokka-30-piece-jigsaw-puzzle-for-kids-educational-puzzles-with-princess-animals-dinosaurs-ages-2-6/ppm6100020584 read 11-25 ~1:20 AM (jcpenney.com search by name): $8.99 (was $9.99). Later link ~1:40 AM.
+  ["https://mavely.app.link/7hnOQCcGl8b", 8.99, "https://mktpl-images.jcpenney.com/SOURCE/cd5db8076eda48e3a2fa581121ec607b", "QUOKKA 30-Piece Kids Jigsaw Puzzle", "QUOKKA", "store-jcpenney", "puzzle", 10.5, "A 30-piece puzzle with princesses, animals and dinos."],
+  // JCPenney #2: what-do-you-meme-color-stack-board-game/ppr5008745357 read 11-25 ~1:20 AM (jcpenney.com search by name): $19.99 (was $35). Later link ~1:40 AM.
+  ["https://mavely.app.link/C7qabzgGl8b", 19.99, "https://sc-images.jcpenney.com/JCPenney/DP0616202607221825M", "What Do You Meme Color Stack Board Game", "What Do You Meme", "store-jcpenney", "game", 10.5, "A fast color-stacking family game."],
+  // JCPenney #4: sharper-image-2-pc-remote-control-car/ppr5008807351 read 11-25 ~1:20 AM (jcpenney.com search by name): $14.99 (was $35). Later link ~1:40 AM.
+  ["https://mavely.app.link/kzmOaJgGl8b", 14.99, "https://sc-images.jcpenney.com/JCPenney/DP73212561-20260924050435M", "Sharper Image 2-Piece Remote Control Cars", "Sharper Image", "store-jcpenney", "rc-car", 10.5, "Two remote-control cars for racing."],
+  // JCPenney #6: play-doh-fun-factory-starter-set/ppr5008551588 read 11-25 ~1:20 AM (jcpenney.com search by name): $7.99 (was $10). Later link ~1:40 AM.
+  ["https://mavely.app.link/nz2t3xiGl8b", 7.99, "https://sc-images.jcpenney.com/JCPenney/DP0909202515062231M", "Play-Doh Fun Factory Starter Set", "Play-Doh", "store-jcpenney", "play-dough", 10.5, "The classic Play-Doh Fun Factory."],
+  // JCPenney #7: discovery-mindblown-glow-roll-marble-run-interactive-toy/ppr5008807327 read 11-25 ~1:20 AM (jcpenney.com search by name): $39.99 (was $75). Later link ~1:40 AM.
+  ["https://mavely.app.link/Vd9SWHiGl8b", 39.99, "https://sc-images.jcpenney.com/JCPenney/DP72769952-20260917185741M", "Discovery Mindblown Glow Roll Marble Run", "Discovery", "store-jcpenney", "stem-toy", 10.5, "A glowing marble run to build."],
+  // JCPenney #8: costway-24v-kids-ride-on-electric-atv-car-toy-with-spring-suspension-led-lights-usb/ppm6100050834 read 11-25 ~1:20 AM (jcpenney.com search by name): $149.99 (was $349.99). Later link ~1:40 AM.
+  ["https://mavely.app.link/FFeATSiGl8b", 149.99, "https://mktpl-images.jcpenney.com/SOURCE/2a5aaefd3b2c453eabd88a50129c1fa1", "Costway 24V Kids Ride-On Electric ATV", "Costway", "store-jcpenney", "ride-on", 10.5, "A big 24V ATV with lights and suspension."],
+  // JCPenney #9: disney-collection-minnie-mouse-cell-phone-toy-playset/ppr5008542862 read 11-25 ~1:20 AM (jcpenney.com search by name): $20. Later link ~1:40 AM.
+  ["https://mavely.app.link/F0aXA3iGl8b", 20.0, "https://sc-images.jcpenney.com/JCPenney/DP0804202511092279M", "Disney Minnie Mouse Cell Phone Toy Playset", "Disney", "store-jcpenney", "pretend-play", 10.5, "A Minnie Mouse play phone."],
+  // JCPenney #10: costway-6v-electric-kids-ride-on-train-motorized-train-toy-w-track-6-wheels/ppm6100050868 read 11-25 ~1:20 AM (jcpenney.com search by name): $99.99 (was $309.99). Later link ~1:40 AM.
+  ["https://mavely.app.link/Qw4Y2djGl8b", 99.99, "https://mktpl-images.jcpenney.com/SOURCE/ad42853b83084a22af9829d09d6a0f67", "Costway 6V Kids Ride-On Train with Track", "Costway", "store-jcpenney", "ride-on", 10.5, "A ride-on train with its own track."],
+  // JCPenney #11: jitterygit-kids-construktor-glow-in-the-dark-track-set-194-piece-stem-building-toy/ppm6100083944 read 11-25 ~1:20 AM (jcpenney.com search by name): $31.99 (was $39.99). Later link ~1:40 AM.
+  ["https://mavely.app.link/9VRXk5kGl8b", 31.99, "https://mktpl-images.jcpenney.com/SOURCE/41f6994664d94d58919b69efb93e3e96", "JitteryGit Glow-in-the-Dark Construktor Track Set, 194 Pieces", "JitteryGit", "store-jcpenney", "race-track", 10.5, "A glow-in-the-dark car track to build."],
+  // JCPenney #12: costway-wiggle-car-ride-on-toy-w-flashing-wheels-for-toddlers-kids/ppm6100050815 read 11-25 ~1:20 AM (jcpenney.com search by name): $79.99 (was $259.99). Later link ~1:40 AM.
+  ["https://mavely.app.link/G4VkFflGl8b", 79.99, "https://mktpl-images.jcpenney.com/SOURCE/81d79d2f2d3e4ff58e20c381a42fcea0", "Costway Wiggle Car Ride-On with Flashing Wheels", "Costway", "store-jcpenney", "ride-on", 10.5, "A wiggle car with light-up wheels."],
+  // JCPenney #14: discovery-rc-smoke-breathing-dragon/ppr5007994625 read 11-25 ~1:20 AM (jcpenney.com search by name): $49.99 (was $79). Later link ~1:40 AM.
+  ["https://mavely.app.link/8OJevqlGl8b", 49.99, "https://sc-images.jcpenney.com/JCPenney/DP0701202009010173M", "Discovery RC Smoke Breathing Dragon", "Discovery", "store-jcpenney", "rc-toy", 10.5, "A remote-control dragon that breathes mist."],
+  // JCPenney #15: sugift-adjustable-kids-stand-punching-bag-toy-set-with-boxing-gloves-32-485-in-tall-ages-3-pinkwhite-blackred/ppm6100073656 read 11-25 ~1:20 AM (jcpenney.com search by name): $68.99 (was $137.99). Later link ~1:40 AM.
+  ["https://mavely.app.link/hRAxiBlGl8b", 68.99, "https://mktpl-images.jcpenney.com/SOURCE/d52f5b2d3f86448a9a7671d3df19a774", "SUGIFT Adjustable Kids Punching Bag Set with Gloves", "SUGIFT", "store-jcpenney", "sports", 10.5, "A stand-up punching bag with kid gloves."],
+  // JCPenney #16: disney-collection-fabulous-fashion-mickey-mouse-clubhouse-minnie-mouse-doll/ppr5008352983 read 11-25 ~1:20 AM (jcpenney.com search by name): $21 (was $30). Later link ~1:40 AM.
+  ["https://mavely.app.link/yS22DLlGl8b", 21.0, "https://sc-images.jcpenney.com/JCPenney/DP0922202317102880M", "Disney Fabulous Fashion Minnie Mouse Doll", "Disney", "store-jcpenney", "doll", 10.5, "Minnie with outfits to mix and match."],
+  // JCPenney #17: safari-ltd-energy-ball-kids-science-toy/ppm6100024378 read 11-25 ~1:20 AM (jcpenney.com search by name): $7.63. Later link ~1:40 AM.
+  ["https://mavely.app.link/WHKsiknGl8b", 7.63, "https://mktpl-images.jcpenney.com/SOURCE/62998981d7de4cad8fdd4f4e4f471bf6", "Safari Ltd. Energy Ball Science Toy", "Safari Ltd.", "store-jcpenney", "stem-toy", 10.5, "A ball that lights up and buzzes when you touch it."],
+  // JCPenney #18: disney-collection-mickey-mouse-fishing-set-mickey-mouse-toy-playset/ppr5008232656 read 11-25 ~1:20 AM (jcpenney.com search by name): $19.99 (was $40). Later link ~1:40 AM.
+  ["https://mavely.app.link/fd1RVunGl8b", 19.99, "https://sc-images.jcpenney.com/JCPenney/DP0802202211033966M", "Disney Mickey Mouse Fishing Set", "Disney", "store-jcpenney", "game", 10.5, "A Mickey Mouse fishing game."],
+  // JCPenney #19: merry-merry-bingo-table-game/ppr5008739336 read 11-25 ~1:20 AM (jcpenney.com search by name): $24.99 (was $50). Later link ~1:40 AM.
+  ["https://mavely.app.link/repxKInGl8b", 24.99, "https://sc-images.jcpenney.com/JCPenney/DP0624202609055756M", "Merry Merry Bingo Table Game", "", "store-jcpenney", "game", 10.5, "Christmas bingo for the whole family."],
+  // JCPenney #20: sharper-image-sharper-image-toys-robot/ppr5008807339 read 11-25 ~1:20 AM (jcpenney.com search by name): $49.99 (was $90). Later link ~1:40 AM.
+  ["https://mavely.app.link/Cx8yzTnGl8b", 49.99, "https://sc-images.jcpenney.com/JCPenney/DP73228802-20260924053918M", "Sharper Image Remote Control Robots, 2-Pack", "Sharper Image", "store-jcpenney", "rc-toy", 10.5, "Two remote-control robots to battle."],
+  // JCPenney #21: banzai-kids-inflatable-mega-boxing-gloves/ppr5007752327 read 11-25 ~1:20 AM (jcpenney.com search by name): $14.99. Later link ~1:40 AM.
+  ["https://mavely.app.link/wY4lB4nGl8b", 14.99, "https://sc-images.jcpenney.com/JCPenney/DP0201202407105949M", "Banzai Kids Inflatable Mega Boxing Gloves", "Banzai", "store-jcpenney", "sports", 10.5, "Giant inflatable boxing gloves for silly matches."],
+  // JCPenney #22: retro-arcade-desktop-foosball-game/ppr5008738139 read 11-25 ~1:20 AM (jcpenney.com search by name): $19.99 (was $50). Later link ~1:40 AM.
+  ["https://mavely.app.link/fnOhMEpGl8b", 19.99, "https://sc-images.jcpenney.com/JCPenney/DP0624202609032785M", "Retro Arcade Desktop Foosball Game", "Retro Arcade", "store-jcpenney", "game", 10.5, "A tabletop foosball game."],
+  // JCPenney #23: cra-z-art-grinch-slime-bucket-art-set/ppr5008809633 read 11-25 ~1:20 AM (jcpenney.com search by name): $7.99 (was $12). Later link ~1:40 AM.
+  ["https://mavely.app.link/F3147OpGl8b", 7.99, "https://sc-images.jcpenney.com/JCPenney/DP75669144-20261102094620M", "Cra-Z-Art Grinch Slime Bucket", "Cra-Z-Art", "store-jcpenney", "slime", 10.5, "A Grinch slime-making bucket."],
+  // JCPenney #24: gbruno-baby-learning-tablet-educational-mini-pads-toys-touch-learn-toddler-tablet-for-abc-numbers-words-blue/ppm6100132572 read 11-25 ~1:20 AM (jcpenney.com search by name): $22.99 (was $28.99). Later link ~1:40 AM.
+  ["https://mavely.app.link/zDsVGZpGl8b", 22.99, "https://mktpl-images.jcpenney.com/SOURCE/3fc5737d2a014907964de813080afb37", "GBruno Toddler Learning Tablet", "GBruno", "store-jcpenney", "learning-toy", 10.5, "A toddler tablet for letters, numbers and words."],
+  // JCPenney #28: discovery-kids-magnetic-tiles-set-with-12-triangles-and-12-squares-24-pieces/ppr5007920359 read 11-25 ~1:20 AM (jcpenney.com search by name): $24.99 (was $40). Later link ~1:40 AM.
+  ["https://mavely.app.link/ZL7PwlrGl8b", 24.99, "https://sc-images.jcpenney.com/JCPenney/DP1008202007111712M", "Discovery Kids Magnetic Tiles, 24 Pieces with Triangles", "Discovery", "store-jcpenney", "building-set", 10.5, "Magnetic tiles with triangles and squares."],
+  // JCPenney #30: supreme-silent-sports-basketball/ppr5008575837 read 11-25 ~1:20 AM (jcpenney.com search by name): $19.99 (was $40). Later link ~1:40 AM.
+  ["https://mavely.app.link/YY7h4vrGl8b", 19.99, "https://sc-images.jcpenney.com/JCPenney/DP0730202507115886M", "Supreme Silent Sports Basketball", "Supreme", "store-jcpenney", "sports", 10.5, "A soft, quiet basketball for indoor play."],
+  // JCPenney #34: discovery-mindblown-discovery-discovery-toy/ppr5008807322 read 11-25 ~1:20 AM (jcpenney.com search by name): $39.99 (was $75). Later link ~1:40 AM.
+  ["https://mavely.app.link/4u6AoErGl8b", 39.99, "https://sc-images.jcpenney.com/JCPenney/DP73198890-20260924043646M", "Discovery Mindblown DIY Model Hybrid Engine Kit", "Discovery", "store-jcpenney", "stem-kit", 10.5, "A see-through engine model to build."],
+  // JCPenney #42: discovery-mindblown-interactive-toy/ppr5008807325 read 11-25 ~1:20 AM (jcpenney.com search by name): $24.99 (was $50). Later link ~1:40 AM.
+  ["https://mavely.app.link/kn5OcRrGl8b", 24.99, "https://sc-images.jcpenney.com/JCPenney/DP73206521-20260924045155M", "Discovery Mindblown DIY Arm Blaster", "Discovery", "store-jcpenney", "stem-kit", 10.5, "A build-it-yourself arm blaster."],
 ];
 /** For Her. */
 export const HER_STEALS_1124_ROWS = [
@@ -400,6 +450,31 @@ export const STEALS_CUTOUTS_1124 = [
   ["https://media.kohlsimg.com/is/image/kohls/8053525", "fisher-price-little-people-bowsers-airship-and-figure-kohls-e3d844.webp"],
   ["https://media.kohlsimg.com/is/image/kohls/7006887", "matchbox-aircraft-carrier-play-set-with-10-die-cast-planes-kohls-c34731.webp"],
   ["https://media.kohlsimg.com/is/image/kohls/8100049", "matchbox-die-cast-cars-5-pack-kohls-21591d.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/cd5db8076eda48e3a2fa581121ec607b", "quokka-30-piece-kids-jigsaw-puzzle-jcpenney-8f1bb3.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0616202607221825M", "what-do-you-meme-color-stack-board-game-jcpenney-e19b2f.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP73212561-20260924050435M", "sharper-image-2-piece-remote-control-cars-jcpenney-14f723.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0909202515062231M", "play-doh-fun-factory-starter-set-jcpenney-5b166f.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP72769952-20260917185741M", "discovery-mindblown-glow-roll-marble-run-jcpenney-569ff0.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/2a5aaefd3b2c453eabd88a50129c1fa1", "costway-24v-kids-ride-on-electric-atv-jcpenney-0f6cd0.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0804202511092279M", "disney-minnie-mouse-cell-phone-toy-playset-jcpenney-932d58.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/ad42853b83084a22af9829d09d6a0f67", "costway-6v-kids-ride-on-train-with-track-jcpenney-8392de.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/41f6994664d94d58919b69efb93e3e96", "jitterygit-glow-in-the-dark-construktor-track-set-194-pieces-jcpenney-0a7d11.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/81d79d2f2d3e4ff58e20c381a42fcea0", "costway-wiggle-car-ride-on-with-flashing-wheels-jcpenney-685dfe.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0701202009010173M", "discovery-rc-smoke-breathing-dragon-jcpenney-3797b2.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/d52f5b2d3f86448a9a7671d3df19a774", "sugift-adjustable-kids-punching-bag-set-with-gloves-jcpenney-b53139.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0922202317102880M", "disney-fabulous-fashion-minnie-mouse-doll-jcpenney-97d2a7.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/62998981d7de4cad8fdd4f4e4f471bf6", "safari-ltd-energy-ball-science-toy-jcpenney-322773.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0802202211033966M", "disney-mickey-mouse-fishing-set-jcpenney-dae9c7.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0624202609055756M", "merry-merry-bingo-table-game-jcpenney-c65ff1.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP73228802-20260924053918M", "sharper-image-remote-control-robots-2-pack-jcpenney-6b8e0f.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0201202407105949M", "banzai-kids-inflatable-mega-boxing-gloves-jcpenney-982cc9.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0624202609032785M", "retro-arcade-desktop-foosball-game-jcpenney-dfdf43.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP75669144-20261102094620M", "cra-z-art-grinch-slime-bucket-jcpenney-03f9f2.webp"],
+  ["https://mktpl-images.jcpenney.com/SOURCE/3fc5737d2a014907964de813080afb37", "gbruno-toddler-learning-tablet-jcpenney-c496cd.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP1008202007111712M", "discovery-kids-magnetic-tiles-24-pieces-with-triangles-jcpenney-3d7d32.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP0730202507115886M", "supreme-silent-sports-basketball-jcpenney-08ea42.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP73198890-20260924043646M", "discovery-mindblown-diy-model-hybrid-engine-kit-jcpenney-592129.webp"],
+  ["https://sc-images.jcpenney.com/JCPenney/DP73206521-20260924045155M", "discovery-mindblown-diy-arm-blaster-jcpenney-4d6351.webp"],
 ];
 
 /**

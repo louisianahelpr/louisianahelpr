@@ -5,7 +5,6 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { giftGuidePageMeta } from "@/lib/giftGuidePageMeta.mjs";
 import { giftGuides as G } from "@/content/giftGuides";
 import { useEffect, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { guideBySlug, guidePicksVersion, loadGuidePicks, newSlugFor, picksReady, subscribeGuidePicks, type CatalogGuide } from "@/content/giftGuideCatalog";
 import { GIFT_GUIDES_CSS } from "./giftGuides/giftGuidesStyles";
 import { GIFT_WISH_CSS } from "./giftGuides/giftWishStyles";
@@ -100,6 +99,23 @@ function LazySaveForSomeone() {
     </>
   );
 }
+
+/**
+ * A phone-width window (under 768px, useIsMobile's line), known on the FIRST render. useIsMobile starts false and
+ * flips in an effect after the first paint, so a phone painted every guide page once without its count row ("159
+ * gifts", the pill and the icons) and then pushed the gifts 54px down (owner 2026-11-24 ~7 PM, the Kids page: "It
+ * shouldn't move like this"; layout shift 0.0255 at 375, measured on a local build). Guard:
+ * src/test/giftGuideKidsThemeRow1124.test.tsx.
+ */
+const PHONE_QUERY = "(max-width: 767px)";
+const phoneNow = () => window.innerWidth < 768;
+const onPhoneChange = (fire: () => void) => {
+  if (typeof window.matchMedia !== "function") return () => {};
+  const mql = window.matchMedia(PHONE_QUERY);
+  mql.addEventListener("change", fire);
+  return () => mql.removeEventListener("change", fire);
+};
+const usePhoneWidth = () => useSyncExternalStore(onPhoneChange, phoneNow, phoneNow);
 
 /** "gifts for Her" -> "Gifts for Her". */
 const capitalFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -235,7 +251,7 @@ export default function GiftGuides() {
   // Owner 11-21 (iPhone, Kids): "put the icons below the red banner. On the same line as the 81 gifts ... also move the
   // order by dec below the red banner". On a phone, a guide page draws the pill and the icons on the count's row under
   // its banner (countRow below), not on the row above it; the landing and every desktop keep them in the header row.
-  const phone = useIsMobile();
+  const phone = usePhoneWidth();
   // Sort by price (owner 11-21: "add the filter button up with the search icons"): the header's menu sets the order of
   // an owner-list guide (Her, Him, Kids and their views); a new guide starts low to high.
   // Lead 11-21 (earn order): a new guide starts on "Recommended" (clicked picks first in each price section).

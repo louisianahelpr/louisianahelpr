@@ -2,7 +2,7 @@
  "slug": "numberblocks",
  "name": "Numberblocks",
  "sectionPrefix": "numberblocks",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/numberblocks/items.json (Tue Nov 24 10:58 PM, 53 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/numberblocks/items.json (Tue Nov 24 10:58 PM, 71 items)",
  "rows": [
   {
    "id": "NB01",
@@ -515,6 +515,22 @@
    "ownerAdd": true
   },
   {
+   "id": "NBT02",
+   "name": "Yoto Sing with Numberblocks Audio Card",
+   "brand": "Numberblocks",
+   "line": "Figures and playsets for a Numberblocks fan.",
+   "href": "https://go.shopmy.us/p-111281559",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/yoto-sing-with-numberblocks-audio-card-target-50edf4.webp",
+   "store": "store-target",
+   "price": 22.49,
+   "priceAt": "2026-11-26",
+   "section": "Figures and playsets",
+   "sectionId": "numberblocks-figures-and-playsets",
+   "was": 29.99,
+   "commission": 4,
+   "age": "3+"
+  },
+  {
    "id": "NB30",
    "name": "Numberblocks 1-10 MathLink Cubes Activity Set",
    "brand": "Numberblocks",
@@ -670,6 +686,52 @@
    "commission": 12,
    "age": "kids",
    "ownerAdd": true
+  },
+  {
+   "id": "NBT01",
+   "name": "hand2mind Numberblocks Counting Sheep MathLink Cube Activity Set",
+   "brand": "Numberblocks",
+   "line": "MathLink and learning sets for a Numberblocks fan.",
+   "href": "https://go.shopmy.us/p-111281671",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hand2mind-numberblocks-counting-sheep-mathlink-cube-activity-target-a6ac3f.webp",
+   "store": "store-target",
+   "price": 19.19,
+   "priceAt": "2026-11-26",
+   "section": "MathLink and learning sets",
+   "sectionId": "numberblocks-mathlink-and-learning-sets",
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "NBT07",
+   "name": "Learning Resources MathLink Cubes, Set of 100",
+   "brand": "Numberblocks",
+   "line": "MathLink and learning sets for a Numberblocks fan.",
+   "href": "https://go.shopmy.us/p-111281796",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/learning-resources-mathlink-cubes-set-of-100-target-289ca3.webp",
+   "store": "store-target",
+   "price": 12.59,
+   "priceAt": "2026-11-26",
+   "section": "MathLink and learning sets",
+   "sectionId": "numberblocks-mathlink-and-learning-sets",
+   "commission": 4,
+   "age": "5+"
+  },
+  {
+   "id": "NBT20",
+   "name": "Learning Resources AlphaLink Cubes Activity Set",
+   "brand": "Numberblocks",
+   "line": "MathLink and learning sets for a Numberblocks fan.",
+   "href": "https://www.amazon.com/dp/B0H5ZD6PS6?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/81+Yppf2dhL._SL500_.jpg",
+   "store": "store-amazon",
+   "price": 22.29,
+   "priceAt": "2026-11-26",
+   "section": "MathLink and learning sets",
+   "sectionId": "numberblocks-mathlink-and-learning-sets",
+   "was": 23.99,
+   "commission": 3,
+   "age": "4+"
   },
   {
    "id": "NB40",
@@ -833,6 +895,21 @@
    "ownerAdd": true
   },
   {
+   "id": "NBT04",
+   "name": "hand2mind Numberblocks Memory Match Game",
+   "brand": "Numberblocks",
+   "line": "Puzzles, games and books for a Numberblocks fan.",
+   "href": "https://www.amazon.com/dp/B0BMQWTHF8?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/81rBaBkK78L._SL500_.jpg",
+   "store": "store-amazon",
+   "price": 11.99,
+   "priceAt": "2026-11-26",
+   "section": "Puzzles, games and books",
+   "sectionId": "numberblocks-puzzles-games-and-books",
+   "commission": 3,
+   "age": "3+"
+  },
+  {
    "id": "NB70",
    "name": "Numberblocks Heroes with Zeroes MathLink Cubes Activity Set",
    "brand": "Numberblocks",
@@ -847,7 +924,161 @@
    "was": 99.99,
    "commission": 6,
    "age": "4+"
+  },
+  {
+   "id": "NBT08",
+   "name": "Toniebox 2 Starter Set, My First Farm",
+   "brand": "Numberblocks",
+   "line": "Big gifts for a Numberblocks fan.",
+   "href": "https://go.shopmy.us/p-111281591",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/toniebox-2-starter-set-my-first-farm-target-fda269.webp",
+   "store": "store-target",
+   "price": 99,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "numberblocks-big-gifts",
+   "was": 169.99,
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "NBT09",
+   "name": "Yoto Mini Audio Player",
+   "brand": "Numberblocks",
+   "line": "Big gifts for a Numberblocks fan.",
+   "href": "https://go.shopmy.us/p-111281710",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/yoto-mini-audio-player-target-b2581c.webp",
+   "store": "store-target",
+   "price": 59.99,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "numberblocks-big-gifts",
+   "was": 79.99,
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "NBT14",
+   "name": "Magna-Tiles microMAGS LEARN Numbers, 56 Pieces",
+   "brand": "Numberblocks",
+   "line": "Big gifts for a Numberblocks fan.",
+   "href": "https://go.shopmy.us/p-111281613",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/magna-tiles-micromags-learn-numbers-56-pieces-target-622317.webp",
+   "store": "store-target",
+   "price": 39.99,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "numberblocks-big-gifts",
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "NBT10",
+   "name": "Mighty Mojo Numberblocks Deluxe Party Supplies Kit, 79 Pieces",
+   "brand": "Numberblocks",
+   "line": "Room, party and Christmas for a Numberblocks fan.",
+   "href": "https://www.amazon.com/dp/B0HC41BZDM?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/81Xcb9CNJUL._SL500_.jpg",
+   "store": "store-amazon",
+   "price": 44.99,
+   "priceAt": "2026-11-26",
+   "section": "Room, party and Christmas",
+   "sectionId": "numberblocks-room-party-and-christmas",
+   "commission": 3,
+   "age": "3+"
+  },
+  {
+   "id": "NBT11",
+   "name": "Mighty Mojo Numberblocks Treat Boxes, 10 Pack",
+   "brand": "Numberblocks",
+   "line": "Room, party and Christmas for a Numberblocks fan.",
+   "href": "https://www.amazon.com/dp/B0HC4SWK86?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/71ZFc6kSoVL._SL500_.jpg",
+   "store": "store-amazon",
+   "price": 15.99,
+   "priceAt": "2026-11-26",
+   "section": "Room, party and Christmas",
+   "sectionId": "numberblocks-room-party-and-christmas",
+   "commission": 3,
+   "age": "3+"
+  },
+  {
+   "id": "NBT12",
+   "name": "Mighty Mojo Numberblocks 5 Foot Poster",
+   "brand": "Numberblocks",
+   "line": "Room, party and Christmas for a Numberblocks fan.",
+   "href": "https://www.amazon.com/dp/B0HCPNY45L?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/71cE3-MqlDL._SL500_.jpg",
+   "store": "store-amazon",
+   "price": 12.99,
+   "priceAt": "2026-11-26",
+   "section": "Room, party and Christmas",
+   "sectionId": "numberblocks-room-party-and-christmas",
+   "commission": 3,
+   "age": "3+"
   }
  ],
- "skipped": []
+ "skipped": [
+  {
+   "id": "NBT03",
+   "name": "Numberblocks Sticker Activity Book",
+   "why": [
+    "not released yet: Amazon's page says the title has not yet been released (read 11-26)",
+    "no photo"
+   ]
+  },
+  {
+   "id": "NBT06",
+   "name": "hand2mind Numberblocks One to Five Wooden Blocks",
+   "why": [
+    "product photo shows a child (photo of a child on the box in Target's main image)",
+    "no link"
+   ]
+  },
+  {
+   "id": "NBT17",
+   "name": "hand2mind Numberblocks 1-10 Reusable Clings Set",
+   "why": [
+    "Kohl's price unverified (Kohl's blocks reads) and one Kohl's page showed out of stock",
+    "no link",
+    "no photo"
+   ]
+  },
+  {
+   "id": "NBT05",
+   "name": "hand2mind Numberblocks Adding and Subtracting Puzzle Set",
+   "why": [
+    "Walmart ip/5315726108 not found in Walmart Creator product search on 11-26, so the $11.99 price and the seller are unconfirmed",
+    "no link",
+    "no photo"
+   ]
+  },
+  {
+   "id": "NBT22",
+   "name": "Alphablocks Word Builder",
+   "why": [
+    "seller unconfirmed (probably a marketplace import; review flag)",
+    "no link",
+    "no photo"
+   ]
+  },
+  {
+   "id": "NBT13",
+   "name": "Numberblocks Backpack, Lunch Bag and Pencil Case Set",
+   "why": [
+    "seller not confirmed (search result only; may not be Lora Dora, the licensed maker)",
+    "no link",
+    "no photo"
+   ]
+  },
+  {
+   "id": "NBT16",
+   "name": "Numberblocks Hooded Towel Poncho",
+   "why": [
+    "price is above its usual $18.99 (review: add it when the price drops)",
+    "no link",
+    "no photo"
+   ]
+  }
+ ]
 }

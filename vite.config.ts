@@ -7,7 +7,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";
 import { execSync } from "node:child_process";
-import { readdirSync } from "node:fs";
+import { readdirSync, rmSync } from "node:fs";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
 import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, adminIconFiles, bootModules, clientReachers, bootIconFiles, declutterItemSplit, declutterTabSplit,guestIconSplit, guestBrowseSplit, sellingIconFiles, buyingIconFiles, guidesIconFiles, profileIconFiles, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, jobsBrowseReach, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
@@ -41,6 +41,14 @@ const appCommit = (() => {
   }
 })();
 const appBuiltAt = new Date().toISOString();
+
+// OTA bundle number (docs/OTA_UPDATES.md): the UTC build time as yyyymmddHHMMSS,
+// or OTA_BUNDLE when scripts/ota/build-ota.mjs passes the one it signs. The app
+// installs a published OTA bundle only when its number is higher than this one,
+// so a newer store build is never replaced by an older OTA bundle.
+const otaBundle = /^[1-9][0-9]{13}$/.test(process.env.OTA_BUNDLE ?? "")
+  ? (process.env.OTA_BUNDLE as string)
+  : appBuiltAt.replace(/[^0-9]/g, "").slice(0, 14);
 
 // FULL commit SHA, for the build stamp the prod-freshness gate reads back.
 //
@@ -303,6 +311,7 @@ export default defineConfig(({ mode, command }) => ({
     // meta tag and is correct on Vercel via VERCEL_GIT_COMMIT_SHA; exposing it
     // here closes the gap with zero new secrets.
     __APP_COMMIT_FULL__: JSON.stringify(appCommitFull),
+    __OTA_BUNDLE__: JSON.stringify(otaBundle),
   },
   server: {
     host: "::",
@@ -410,6 +419,16 @@ export default defineConfig(({ mode, command }) => ({
     // resources the header allows (PostHog ingestion, OpenAI, Stripe
     // checkout iframes, blob: workers, unsafe-eval). This plugin keeps
     // the meta only for the Capacitor bundle where it's actually needed.
+    // public/ota/ holds the published OTA release (docs/OTA_UPDATES.md). Vite
+    // copies public/ into every build; the website serves it from there, but
+    // the app bundle must not carry the previous release inside itself.
+    isCapacitorBuild && {
+      name: "ios-drop-ota-release",
+      apply: "build",
+      closeBundle() {
+        rmSync(path.resolve(__dirname, "dist/ota"), { recursive: true, force: true });
+      },
+    } satisfies Plugin,
     !isCapacitorBuild && {
       name: "html-strip-meta-csp",
       apply: "build",

@@ -15,7 +15,7 @@ import { resolve } from "node:path";
 import ts from "typescript";
 
 // @mutate src/main.tsx |   if (isNativePlatform) {\n    void backgroundImport( |   if (true) {\n    void backgroundImport(
-// @mutate src/main.tsx | import { initNative, hideSplash, isNativePlatform } from "./lib/nativeInit"; | import { initNative, hideSplash, isNativePlatform } from "./lib/nativeInit";\nimport "./lib/shakeToReport";
+// @mutate src/main.tsx | import { initNative, hideSplash, isNativePlatform, isNativeIos } from "./lib/nativeInit"; | import { initNative, hideSplash, isNativePlatform, isNativeIos } from "./lib/nativeInit";\nimport "./lib/shakeToReport";
 
 const FILE = "src/main.tsx";
 const MODULE = "./lib/shakeToReport";

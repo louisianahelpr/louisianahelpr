@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1262,
+    "calls": 1264,
     "files": 370,
-    "rendering": 1184,
+    "rendering": 1186,
     "suppressedByPolicy": 78,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 14,
       "successToast": 8,
-      "toast": 254,
-      "toast.error": 840,
+      "toast": 255,
+      "toast.error": 841,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 84,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 457,
       "template": 101,
-      "dynamic": 761,
+      "dynamic": 763,
       "jsx": 0
     }
   },
@@ -7839,7 +7839,71 @@
     },
     {
       "file": "src/components/declutter/SaverOffer.tsx",
-      "line": 69,
+      "line": 97,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "r ? t(\"dt5.ao.toastOn\", { pct: r.percent_off }) : t(\"dt5.ao.toastOff\")",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "t(\"dt5.ao.toastOn\", { pct: r.percent_off })",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "dynamic",
+            "text": "t(\"dt5.ao.toastOff\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/SaverOffer.tsx",
+      "line": 101,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/SaverOffer.tsx",
+      "line": 146,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -7893,7 +7957,7 @@
     },
     {
       "file": "src/components/declutter/SaverOffer.tsx",
-      "line": 74,
+      "line": 151,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

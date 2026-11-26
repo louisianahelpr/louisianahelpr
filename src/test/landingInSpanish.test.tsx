@@ -53,7 +53,7 @@ const renderLanding = () => render(<MemoryRouter><SectionsShowcase /><TrustAndJo
 
 describe("F260q: the landing under the hero speaks the visitor's language", () => {
   it("the English written in the landing is enLanding's, word for word", () => {
-    expect(literalPairs.length).toBeGreaterThan(13); // 14 since the trust badges' label went (owner 2026-11-17)
+    expect(literalPairs.length).toBeGreaterThan(10); // 11 since the close's repeat links went (Browse jobs, Shop Declutter, member log-in; lead 2026-11-25, phone polish A #41); 14 before
     for (const [k, english] of literalPairs) expect(enLanding[k as keyof typeof enLanding], k).toBe(english);
   });
 

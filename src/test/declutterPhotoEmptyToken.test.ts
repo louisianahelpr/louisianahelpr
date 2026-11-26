@@ -37,8 +37,9 @@ describe("Declutter photos paint --photo-empty, not bg-muted", () => {
     }
     // Inventory floor: card, gallery, sell tiles x2, preview, skeletons, moving sale, delivery photo.
     expect(frames.length).toBeGreaterThan(8);
-    // The dashed "Add photos" tile is a button, not a photo.
-    const photoFrames = frames.filter((s) => !/border-dashed/.test(s));
+    // The dashed "Add photos" tile is a button, not a photo. The card's PhotoCorner (phone polish 11-25, heart at the
+    // photo's bottom-right) is a see-through tap-through layer the photo's shape over the photo, not a photo frame.
+    const photoFrames = frames.filter((s) => !/border-dashed/.test(s) && !/\bpointer-events-none absolute\b/.test(s));
     const ownFrame = (s: string) => /bg-photo-empty/.test(s) || /\bFRAME\b|h-full w-full object-cover|w-full h-full object-cover/.test(s);
     expect(photoFrames.filter((s) => /\bbg-muted\b/.test(s))).toEqual([]);
     expect(photoFrames.filter((s) => !ownFrame(s))).toEqual([]);

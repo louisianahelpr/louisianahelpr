@@ -97,6 +97,8 @@ function tableRows(table: string, s: DeclutterPreviewSample): unknown[] | undefi
     case "declutter_seller_away": return [];
     // Declutter top 5 #1 (owner 11-19): no sample seller has sent an offer to savers yet.
     case "declutter_saver_offer_sends": return [];
+    // Auto-offer new savers (owner 11-25, 20261126002822): no sample seller has the auto-offer on.
+    case "declutter_auto_liker_offers": return [];
     default: return undefined;
   }
 }

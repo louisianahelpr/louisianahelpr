@@ -186,6 +186,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_price_nudge_sweep: "alerts", // 20261030141656: a test listing or seller never gets the nudge
   declutter_item_demand: "hides", // 20261120012729 (Declutter top 5 #3): a test listing shows no demand to a member while test data is hidden, and test accounts' offers and views are never counted; display only
   declutter_send_saver_offer: "hides", // 20261120010630 (Declutter top 5 #1): a test listing's or test seller's offer reaches only test savers; no money moves here
+  declutter_auto_offer_new_saver: "hides", // 20261126002822 (auto-offer new savers): a test listing's or test seller's auto-offer reaches only test savers; no money moves here
   identity_notify_posters_before_start: "alerts", // 20261031221530 (B49 051341 rebuilt): a seed job or a test poster or Helpr never gets the ID notice
   declutter_refund_cancels_setup_jobs: "alerts",
   declutter_refund_gave_up_check: "alerts",

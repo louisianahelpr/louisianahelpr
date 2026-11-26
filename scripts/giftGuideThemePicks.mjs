@@ -8,6 +8,7 @@
  *    no `section` / `sectionId` and the "Jump to a section" chips have nothing to draw;
  *  - `priceRank`, the cheapest-first place the main guides' price sort reads (scripts/giftGuidePriceRank1121.mjs rankByPrice
  *    on the row's own price), and the chunk is written in that order;
+ *  - `ownerAdd: true` on a row the owner sent herself (guides audit 1126), so the page leads each price section with hers;
  *  - `ageMin` / `ageMax` (years) from the research's own age ("3+", "4-12", "18-36m", "12m-5T", "toddler"), for the
  *    Filter's Age chips. An age the research did not state as a number or a toddler ("kids", "all", "adult sizes") gives
  *    none, so that pick stays out of every Age chip, as an untagged Kids pick does (never a guess).
@@ -41,7 +42,9 @@ export function themeAge(age) {
 export function themeChunkPicks(slug, rows) {
   const ranked = rankByPrice(rows.map((r) => ({ ...r, sortPrice: Number(r.price) })));
   return ranked.map(({ row, priceRank }) => {
-    const { id: _id, was: _was, age, section: _section, sectionId: _sectionId, ownerAdd: _ownerAdd, sortPrice: _sp, ...p } = row;
-    return { ...p, ...themeAge(age), ...(priceRank === null ? {} : { priceRank }), ownerPick: true, from: slug };
+    const { id: _id, was: _was, age, section: _section, sectionId: _sectionId, ownerAdd, sortPrice: _sp, ...p } = row;
+    // ownerAdd (guides audit 1126): the owner sent this one herself, so the page puts it first in its price section
+    // (GiftGuideView ownerAddsFirst). Every theme row stays ownerPick (the import's keep rule); ownerAdd marks hers.
+    return { ...p, ...themeAge(age), ...(priceRank === null ? {} : { priceRank }), ownerPick: true, ...(ownerAdd ? { ownerAdd: true } : {}), from: slug };
   });
 }

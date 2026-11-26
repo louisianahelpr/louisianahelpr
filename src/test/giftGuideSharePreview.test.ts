@@ -118,7 +118,7 @@ describe("gift guide share preview (api/share.ts)", () => {
     expect(head).not.toContain("Holiday gift guides 2026 from Louisiana Helpr");
     expect(head).toContain('<meta property="og:site_name" content="Louisiana Helpr"');
     // Google search setup 11-23: the tab title is the search one; og:title (above) stays the owner's headline.
-    expect(head).toContain("<title>Christmas gift ideas 2026: for her, him &amp; kids — Helpr</title>");
+    expect(head).toContain("<title>Christmas gift ideas 2026: for her, him &amp; kids | Louisiana Helpr</title>");
     expect(head).toContain(`<meta name="twitter:image" content="${ORIGIN}/gift-guides/landing-plaid-v5.jpg"`);
     expect(head).toContain('<meta property="og:image:type" content="image/jpeg"');
     expect(head).toContain('<meta property="og:image:width" content="1200"');

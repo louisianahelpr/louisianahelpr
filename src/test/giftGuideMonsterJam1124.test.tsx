@@ -149,7 +149,7 @@ describe("the Monster Jam page's head and share card", () => {
   it("is indexed under a sentence-case title that says gift guide once", () => {
     expect(GIFT_GUIDE_SEO["monster-jam"]).toBe("Monster Jam gift guide");
     const meta = giftGuidePageMeta("monster-jam", "Monster Jam Gift Guide", chunk.map((p) => p.name), chunk.length);
-    expect(meta.title).toBe("Monster Jam gift guide — Helpr");
+    expect(meta.title).toBe("Monster Jam gift guide | Louisiana Helpr");
     expect(meta.ogTitle).toBe("Monster Jam gift guide 2026");
     expect("robots" in meta).toBe(false);
     expect(readFileSync("public/sitemap.xml", "utf8")).toContain("<loc>https://www.louisianahelpr.com/gift-guides/monster-jam</loc>");

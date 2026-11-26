@@ -51,6 +51,8 @@ export const SEO_SITE_ORIGIN: string;
 export function escapeHtml(value: unknown): string;
 export function jsonLdScript(data: unknown): string;
 export function breadcrumbLd(crumbs: { name: string; path: string }[]): Record<string, unknown>;
+export function dealsCountLine(day: { deals?: unknown[]; codes?: unknown[]; sales?: unknown[] } | null | undefined): string;
+export function guidePageLd(name: string, path: string, dateModified: string | undefined): Record<string, unknown> | null;
 export function seoPageBody(crumbs: { name: string; path: string }[], inner: string): string;
 export function giftGuideBody(slug: string, guide: SeoGuide, today?: string): string;
 export function themeSearchPicks(picks: readonly SeoPick[]): import("../content/themeGuideSearch.mjs").ThemeSearchPick[];

@@ -16,8 +16,9 @@
  */
 
 import { pickPriceShown, shownDollars } from "../lib/pickPriceShown.mjs";
+import { GUIDE_TITLE_SUFFIX } from "./guideSearch.mjs";
 
-/** The longest <title> a theme gets, " — Helpr" included (Google cuts by width; past this the brand alone is cut). */
+/** The longest <title> a theme gets, GUIDE_TITLE_SUFFIX included (Google cuts by width; past this the brand alone is cut). */
 export const THEME_TITLE_MAX = 70;
 /** The longest description Google shows before cutting it (as guideSearch.mjs MAX_DESCRIPTION). */
 export const THEME_DESCRIPTION_MAX = 155;
@@ -98,13 +99,26 @@ export function themeGuideSearch(name, picks, count, today, { deals = false } = 
   // A store deals guide (Sam's Club Black Friday, owner 11-25; giftGuideLive.mjs isDealTheme) says "deals", never "for kids".
   // Title: the theme's own gift words, the most common kinds first, then stocking stuffers when it has any.
   const tail = f.stocking ? ["stocking stuffers"] : [];
-  const titles = [3, 2, 1, 0].map((k) => {
+  // The card headline (og:title, what Facebook shows the owner's posts) keeps the theme's own gift words.
+  const cards = [3, 2, 1, 0].map((k) => {
     const words = [...f.kinds.slice(0, k), ...tail];
-    return words.length ? `${theme} gifts 2026: ${joinWords(words, "&")} — Helpr` : `${theme} Christmas gifts 2026 — Helpr`;
+    return words.length ? `${theme} gifts 2026: ${joinWords(words, "&")}` : `${theme} Christmas gifts 2026`;
   });
+  const fits = (t) => `${t}${GUIDE_TITLE_SUFFIX}`.length <= THEME_TITLE_MAX;
+  // The <title> leads with what people type into Google (lead 11-26, owner "make us well known in Google": "Bluey Gifts
+  // 2026: 287 Bluey Toys & Gift Ideas | Louisiana Helpr"), the count from the page itself; a long theme name drops its
+  // second mention, then the count.
+  const searchTitles = [
+    `${theme} gifts 2026: ${f.count} ${theme} toys & gift ideas`,
+    `${theme} gifts 2026: ${f.count} toys & gift ideas`,
+    `${theme} gifts 2026: toys & gift ideas`,
+  ];
   // A deals guide's title names its count of deals, not gift kinds (a sale list mixes TVs, mixers and lip balm).
-  const dealTitles = [`${theme} deals 2026: ${f.count} gifts on sale — Helpr`, `${theme} deals 2026 — Helpr`];
-  const title = (deals ? dealTitles : titles).find((t) => t.length <= THEME_TITLE_MAX) ?? (deals ? `${theme} deals 2026 — Helpr` : `${theme} Christmas gifts 2026 — Helpr`);
+  const dealTitles = [`${theme} deals 2026: ${f.count} gifts on sale`, `${theme} deals 2026`];
+  const base = (deals ? dealTitles : searchTitles).find(fits) ?? (deals ? `${theme} deals 2026` : `${theme} gifts 2026`);
+  const title = `${base}${GUIDE_TITLE_SUFFIX}`;
+  // Unchanged from 11-25: the card fits the width the old " — Helpr" title had (8 characters), so no shared card moves.
+  const ogTitle = deals ? base : cards.find((t) => `${t} — Helpr`.length <= THEME_TITLE_MAX) ?? `${theme} Christmas gifts 2026`;
   // Description: count, price range (its priciest gift by name when it fits) and the stores that sell the priced gifts.
   const head = deals ? `${f.count} ${theme} deal${f.count === 1 ? "" : "s"}` : `${f.count} ${theme} Christmas gift idea${f.count === 1 ? "" : "s"} for kids`;
   const low = f.min === null ? "" : f.min < 10 && !deals ? `$${f.min} stocking stuffers` : `$${f.min}`;
@@ -124,5 +138,5 @@ export function themeGuideSearch(name, picks, count, today, { deals = false } = 
     ? "Every deal shows its Black Friday price, and each one links straight to the store's page."
     : f.priced === f.count ? "Every gift shows its price, and each one links straight to the store that sells it." : "Each gift links straight to the store that sells it.";
   const intro = deals ? `${theme} deals${what}${range}. ${every}` : `${theme} Christmas gifts for kids${what}${range}. ${every}`;
-  return { title, description, ogTitle: title.replace(/ — Helpr$/, ""), intro };
+  return { title, description, ogTitle, intro };
 }

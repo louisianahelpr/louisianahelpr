@@ -71,7 +71,7 @@ export const PUBLIC_PAGE_META = {
   // guide that holds picks (scripts/generate-sitemap.mjs allGiftGuidePaths); each guide's own head is giftGuidePageMeta (giftGuidePageMeta.mjs).
   "/gift-guides": {
     // Google search setup (owner 11-23): a keyword title and description (src/test/guideSearchHead1123.test.ts).
-    title: "Christmas gift ideas 2026: for her, him & kids — Helpr",
+    title: "Christmas gift ideas 2026: for her, him & kids | Louisiana Helpr",
     // Holiday audit 1121: only Her, Him and Kids are live (src/content/giftGuideLive.mjs), so the head names only them.
     description: "Christmas gift ideas for her, him and the kids, from stocking stuffers under $10 to gifts under $25 and $50. Every pick shows its price and store.",
     canonical: `${SITE_ORIGIN}/gift-guides`,
@@ -83,7 +83,7 @@ export const PUBLIC_PAGE_META = {
   // Gift guides fun features (owner 2026-11-20): in the sitemap with the guides; giftGuidePageMeta.mjs answers these
   // three before its noindex fallback for an unknown /gift-guides/<slug>.
   "/gift-guides/swipe": {
-    title: "Swipe to find gifts — Helpr",
+    title: "Swipe to find gifts | Louisiana Helpr",
     // Guide audit 1123 I11: a Swipe save for Her, Him or Kids goes to the gift planner (owner 11-20), not the wish list.
     description: "Swipe through holiday gift ideas by who it's for and your budget. Save the ones you like to your gift planner.",
     canonical: `${SITE_ORIGIN}/gift-guides/swipe`,
@@ -91,14 +91,15 @@ export const PUBLIC_PAGE_META = {
     ogDescription: "Swipe right to save, left to skip. Holiday gift ideas by person and budget.",
   },
   "/gift-guides/planner": {
-    title: "Holiday gift planner — Helpr",
+    title: "Holiday gift planner | Louisiana Helpr",
     description: "Plan who you're shopping for, set budgets, add gift ideas and track what you've bought. Private and free.",
     canonical: `${SITE_ORIGIN}/gift-guides/planner`,
     ogTitle: "Holiday gift planner from Louisiana Helpr",
     ogDescription: "Budgets, gift ideas and what you've bought, all in one place.",
   },
   "/gift-guides/draw-names": {
-    title: "Secret Santa name draw — Helpr",
+    // Search Console 11-26: this page shows for "drawing names for christmas" and "secret santa name draw" at position 25.
+    title: "Secret Santa name draw: drawing names for Christmas | Louisiana Helpr",
     description: "Draw Secret Santa names for free and send each person a private link to their match. No emails or phone numbers.",
     canonical: `${SITE_ORIGIN}/gift-guides/draw-names`,
     ogTitle: "Free Secret Santa name draw from Louisiana Helpr",
@@ -106,14 +107,14 @@ export const PUBLIC_PAGE_META = {
   },
   // Each kind of printable on its own page (owner 2026-11-21: "coloring book and banner should have their own page").
   "/gift-guides/printables/gift-tags": {
-    title: "Free printable Christmas gift tags with names — Helpr",
+    title: "Free printable Christmas gift tags with names | Louisiana Helpr",
     description: "Free printable Christmas gift tags: pick a design, type the To and From names, and print a sheet of 9 or 10 with cut lines at home. No sign-up.",
     canonical: `${SITE_ORIGIN}/gift-guides/printables/gift-tags`,
     ogTitle: "Free printable Christmas gift tags with names",
     ogDescription: "Pick a tag, type the names, and print a sheet at home. Free from Louisiana Helpr.",
   },
   "/gift-guides/printables/coloring-books": {
-    title: "Free printable Christmas coloring books — Helpr",
+    title: "Free printable Christmas coloring books | Louisiana Helpr",
     description: "Two free printable Christmas coloring books, a cover and 20 simple pages each, ready to print at home. No sign-up.",
     canonical: `${SITE_ORIGIN}/gift-guides/printables/coloring-books`,
     ogTitle: "Free printable Christmas coloring books",
@@ -121,7 +122,7 @@ export const PUBLIC_PAGE_META = {
   },
   "/gift-guides/printables/banners": {
     // Guide audit 1123 #6 / I6: the page holds 4 banners (Happy Thanksgiving and 3 Merry Christmas), so every line names both.
-    title: "Free printable holiday banners — Helpr",
+    title: "Free printable holiday banners | Louisiana Helpr",
     description: "Four free holiday banners, Happy Thanksgiving and three Merry Christmas designs, to print as a 12x18 poster at Walgreens, from about $13 with same-day pickup, or at any photo counter. No sign-up.",
     canonical: `${SITE_ORIGIN}/gift-guides/printables/banners`,
     ogTitle: "Free printable Happy Thanksgiving and Merry Christmas banners",

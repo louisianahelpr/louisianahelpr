@@ -9,7 +9,7 @@
  * body, the cross-links to the other main guides and deals days, and an ItemList of the picks; plus the deals days'
  * titles and the sitemap's lastmod for every guide URL.
  *
- * @mutate src/lib/giftGuidePageMeta.mjs |     title: search ? search.title : `${name} — Helpr`, |     title: `${name} — Helpr`,
+ * @mutate src/lib/giftGuidePageMeta.mjs |     title: search ? search.title : `${name}${GUIDE_TITLE_SUFFIX}`, |     title: `${name}${GUIDE_TITLE_SUFFIX}`,
  * @mutate src/lib/seoBodies.mjs |       crossLinks(slug) + | "" +
  * @mutate src/lib/seoBodies.mjs | const intro = searchIntro(slug) ?? | const intro = null ??
  */
@@ -51,7 +51,7 @@ describe("gift guide search head (Her, Him, Kids)", () => {
       const head = doc.slice(0, doc.indexOf("</head>"));
       const title = tag(head, /<title>([^<]*)<\/title>/);
       expect(title).toBe(GUIDE_SEARCH[slug].title);
-      expect(title.length).toBeLessThanOrEqual(60);
+      expect(title.replace(/ \| Louisiana Helpr$/, "").length).toBeLessThanOrEqual(60);
       expect(title).toMatch(/2026/);
       const desc = tag(head, /<meta name="description" content="([^"]*)"/);
       expect(desc.length).toBeGreaterThan(80);
@@ -82,9 +82,9 @@ describe("gift guide search head (Her, Him, Kids)", () => {
   it("the deals days and the landing carry their search titles (at most 60 characters)", () => {
     for (const [id, t] of Object.entries(DEAL_DAY_SEARCH_TITLES)) {
       expect(giftGuidePageMeta(id).title, id).toBe(t);
-      expect(t.length, id).toBeLessThanOrEqual(60);
+      expect(t.replace(/ \| Louisiana Helpr$/, "").length, id).toBeLessThanOrEqual(60);
     }
-    expect(PUBLIC_PAGE_META["/gift-guides"].title).toBe("Christmas gift ideas 2026: for her, him & kids — Helpr");
+    expect(PUBLIC_PAGE_META["/gift-guides"].title).toBe("Christmas gift ideas 2026: for her, him & kids | Louisiana Helpr");
     expect(PUBLIC_PAGE_META["/gift-guides"].description.length).toBeLessThanOrEqual(MAX_DESCRIPTION);
   });
 

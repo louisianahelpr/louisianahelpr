@@ -12,33 +12,41 @@
  * Guard: src/test/guideSearchHead1123.test.ts. Types: guideSearch.d.mts.
  */
 
-/** Her, Him and Kids: the <title> (at most 60 characters, sentence case, ending " — Helpr" as every guide tab does: audit 1122 #25), the "who" words of the description, and the visible intro. */
+/**
+ * Every gift guide page's <title> ends with the full brand (lead 2026-11-26, owner "make us well known in Google"):
+ * "Helpr" alone is another company's name on Google (hellohelpr.com, SEO plan 11-19), and brand searches already put
+ * us at position 1.7, so the full name rides on every guide title. The rest of the app keeps " — Helpr" (F064/F137).
+ * Guard: src/test/guideTitlesFullBrand1126.test.ts.
+ */
+export const GUIDE_TITLE_SUFFIX = " | Louisiana Helpr";
+
+/** Her, Him and Kids: the <title> (sentence case, ending GUIDE_TITLE_SUFFIX), the "who" words of the description, and the visible intro. */
 export const GUIDE_SEARCH = {
   her: {
-    title: "Gifts for her 2026: Christmas ideas under $25 & $50 — Helpr",
+    title: "Gifts for her 2026: Christmas ideas under $25 & $50 | Louisiana Helpr",
     who: "for her",
     intro:
       "Christmas gift ideas for her, from stocking stuffers under $10 to gifts under $25, $50 and $100, with Louisiana gifts mixed in. Every gift shows its price, and each one links straight to the store that sells it.",
   },
   him: {
-    title: "Gifts for him 2026: Christmas ideas under $25 & $50 — Helpr",
+    title: "Gifts for him 2026: Christmas ideas under $25 & $50 | Louisiana Helpr",
     who: "for him",
     intro:
       "Christmas gift ideas for him, from stocking stuffers under $10 to gifts under $25, $50 and $100, with Louisiana gifts mixed in. Every gift shows its price, and each one links straight to the store that sells it.",
   },
   kids: {
-    title: "Christmas gifts for kids 2026: by age & price — Helpr",
+    title: "Christmas gifts for kids 2026: by age & price | Louisiana Helpr",
     who: "for kids",
     intro:
       "Christmas gifts for kids, from stocking stuffers to gifts under $25 and $50, with a few Louisiana books and toys mixed in. Filter by age and price to narrow the list, and every gift links straight to the store that sells it.",
   },
 };
 
-/** The deals days' <title>s (each at most 60 characters). Their banner and og:title stay their pageTitle. */
+/** The deals days' <title>s (the phrase people search, "Black Friday deals 2026", first). Their banner and og:title stay their pageTitle. */
 export const DEAL_DAY_SEARCH_TITLES = {
-  "black-friday": "Black Friday gift deals & codes 2026 — Helpr",
-  "cyber-monday": "Cyber Monday gift deals & codes 2026 — Helpr",
-  "small-business-saturday": "Small Business Saturday 2026: Louisiana shops — Helpr",
+  "black-friday": "Black Friday deals 2026 + discount codes | Louisiana Helpr",
+  "cyber-monday": "Cyber Monday deals 2026 + discount codes | Louisiana Helpr",
+  "small-business-saturday": "Small Business Saturday 2026: Louisiana shops | Louisiana Helpr",
 };
 
 /** The main guide and deals pages, linked from each other in the pre-JS body (each page leaves itself out). */

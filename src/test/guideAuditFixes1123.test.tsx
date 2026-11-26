@@ -25,7 +25,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   }, [navKey, ready, hash]); |   }, [navKey]);
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx | <li data-gift-pick="" id={guide && rank === undefined ? pickAnchor(pick.name) : undefined}> | <li data-gift-pick="">
  * @mutate src/pages/info/giftGuides/fun/SwipeGifts.tsx | : forName ? W.swipeSavedFor(saved.length, forName) : W.swipeDoneTitle(saved.length)} | : W.swipeSavedFor(saved.length, forName ?? "")}
- * @mutate src/lib/publicPageMeta.mjs |     title: "Free printable holiday banners — Helpr", |     title: "Free printable Happy Thanksgiving banner — Helpr",
+ * @mutate src/lib/publicPageMeta.mjs |     title: "Free printable holiday banners \| Louisiana Helpr", |     title: "Free printable Happy Thanksgiving banner \| Louisiana Helpr",
  * @mutate src/lib/giftGuidePageMeta.mjs |     giftGuideDescription(name, lead ?? topNames, count) ?? |     giftGuideDescription(name, topNames, count) ??
  * @mutate src/lib/guideQa.mjs | .replace(/\s*\(([^)]*)\)/g, ", $1"); | ;
  * @mutate src/pages/info/giftGuides/GiftGuideMenuHint.tsx | onClick={closeAndFocusMenu} aria-label={W.close} | onClick={close} aria-label={W.close}
@@ -264,7 +264,7 @@ describe("6-7. Swipe end title, banners head, guide descriptions (I11, I6 / #6, 
 
   it("Banners page title, description, og title and llms.txt name both kinds of banner", () => {
     const m = PUBLIC_PAGE_META["/gift-guides/printables/banners"];
-    expect(m.title).toBe("Free printable holiday banners — Helpr");
+    expect(m.title).toBe("Free printable holiday banners | Louisiana Helpr");
     for (const text of [m.description, m.ogTitle]) {
       expect(text).toMatch(/Thanksgiving/);
       expect(text).toMatch(/Merry Christmas/);

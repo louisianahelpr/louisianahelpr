@@ -80,18 +80,20 @@ describe("themed kids guides in search (owner 2026-11-25)", () => {
       expect(t, s).not.toBeNull();
       expect(meta.title, s).toBe(t!.title);
       expect(meta.title.startsWith(`${name} `), s).toBe(true);
-      expect(meta.title, s).toMatch(/ 2026[: ].* — Helpr$/);
+      expect(meta.title, s).toMatch(/ 2026[: ].* \| Louisiana Helpr$/);
       expect(meta.title.length, s).toBeLessThanOrEqual(THEME_TITLE_MAX);
       expect(meta.description.length, s).toBeLessThanOrEqual(THEME_DESCRIPTION_MAX);
       expect(meta.description.startsWith(isDealTheme(s) ? `${g.count} ${name} deal` : `${g.count} ${name} Christmas gift idea`), s).toBe(true);
-      expect(meta.ogTitle, s).toBe(meta.title.replace(/ — Helpr$/, ""));
+      expect(meta.ogTitle, s).toMatch(/ 2026/);
+      expect(meta.ogTitle, s).not.toMatch(/Helpr$/);
       expect(meta.ogDescription, s).toBe(meta.description);
       expect(meta.robots, s).toBeUndefined();
       // Every kind the title names is one at least three of its gifts are, and every store the description names sells
       // a priced gift on the list.
       const kinds = g.picks.map((p) => giftKind(p[0]));
       for (const k of ["trucks", "clothes", "plush", "toys", "books", "games", "LEGO sets", "room decor", "cars", "school gear"]) {
-        if (meta.title.includes(` ${k}`)) expect(kinds.filter((x) => x === k).length, `${s} ${k}`).toBeGreaterThanOrEqual(3);
+        // 1126: the <title> says the fixed "toys & gift ideas"; the kinds are named on the card (og:title).
+        if (meta.ogTitle.includes(` ${k}`)) expect(kinds.filter((x) => x === k).length, `${s} ${k}`).toBeGreaterThanOrEqual(3);
       }
       for (const store of new Set(g.picks.map((p) => p[1]).filter(Boolean))) {
         if (meta.description.includes(store)) expect(g.picks.some((p) => p[1] === store && p[3]?.price), `${s} ${store}`).toBe(true);
@@ -99,7 +101,7 @@ describe("themed kids guides in search (owner 2026-11-25)", () => {
       expect(ownWords(`${meta.title} ${meta.description} ${t!.intro}`, g.picks.flatMap((p) => [p[0], p[1]])), s).not.toMatch(BANNED);
     }
     // Any other guide ignores theme picks: Her keeps its keyword head.
-    expect(giftGuidePageMeta("her", "", [], 10, [{ name: "x", price: 5, priceAt: today(), store: "Walmart" }]).title).toBe("Gifts for her 2026: Christmas ideas under $25 & $50 — Helpr");
+    expect(giftGuidePageMeta("her", "", [], 10, [{ name: "x", price: 5, priceAt: today(), store: "Walmart" }]).title).toBe("Gifts for her 2026: Christmas ideas under $25 & $50 | Louisiana Helpr");
   });
 
   it("each theme's Q&A answers only from its own picks", () => {

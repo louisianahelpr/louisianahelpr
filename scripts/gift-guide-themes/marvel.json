@@ -2,7 +2,7 @@
  "slug": "marvel",
  "name": "Marvel",
  "sectionPrefix": "marvel",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/marvel/items.json (Tue Nov 24 12:47 PM, 296 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/marvel/items.json (Tue Nov 24 12:47 PM, 333 items)",
  "rows": [
   {
    "id": "MV01",
@@ -226,7 +226,7 @@
    "href": "https://walmrt.us/4jcUXd8",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spider-man-toddler-boys-graphic-crewneck-sweatshirt-and-jogg-walmart-135756.webp",
    "store": "store-walmart",
-   "price": 6.0,
+   "price": 6,
    "priceAt": "2026-11-26",
    "section": "Stocking stuffers under $10",
    "sectionId": "marvel-stocking-stuffers-under-10",
@@ -1656,9 +1656,9 @@
    "priceAt": "2026-11-26",
    "section": "Toys and action figures",
    "sectionId": "marvel-toys-and-action-figures",
+   "was": 79.99,
    "commission": 4,
-   "age": "toddler",
-   "was": 79.99
+   "age": "toddler"
   },
   {
    "id": "MVT18",
@@ -1730,6 +1730,190 @@
    "store": "store-target",
    "price": 32.99,
    "priceAt": "2026-11-24",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "MVB07",
+   "name": "Marvel Avengers Captain America Battle-React Shield (Avengers: Doomsday)",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://walmrt.us/3X3IS2E",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/marvel-avengers-captain-america-battle-react-shield-avengers-walmart-8e3922.webp",
+   "store": "store-walmart",
+   "price": 29.97,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "MVB08",
+   "name": "Avengers: Doomsday Doctor Doom Doomglow Nerf Blaster",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111280731",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/avengers-doomsday-doctor-doom-doomglow-nerf-blaster-target-a53bc3.webp",
+   "store": "store-target",
+   "price": 18.79,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "MVB12",
+   "name": "LEGO Marvel Avengers: Doomsday Quinjet 76347",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://walmrt.us/4eSBe1g",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-marvel-avengers-doomsday-quinjet-76347-walmart-88e176.webp",
+   "store": "store-walmart",
+   "price": 59.95,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "commission": 4,
+   "age": "9+"
+  },
+  {
+   "id": "MVB15",
+   "name": "Spider-Man: Brand New Day Nerf Web Strike Blaster",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://walmrt.us/4AcUnU6",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spider-man-brand-new-day-nerf-web-strike-blaster-walmart-4efcc3.webp",
+   "store": "store-walmart",
+   "price": 21.24,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "was": 24.97,
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "MVB16",
+   "name": "Spider-Man: Brand New Day ActionVerse Spider-Man, Hulk & Iron Spider 3-Pack (Target exclusive)",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111280909",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spider-man-brand-new-day-actionverse-spider-man-hulk-iron-sp-target-4bc2e5.webp",
+   "store": "store-target",
+   "price": 24.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "was": 27.99,
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "MVB03",
+   "name": "Funko Pop! Avengers Doomsday Doctor Doom with Franklin #1645 (Target exclusive)",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111280816",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/funko-pop-avengers-doomsday-doctor-doom-with-franklin-1645-t-target-36297f.webp",
+   "store": "store-target",
+   "price": 14.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "MVB04",
+   "name": "Marvel Spidey and His Amazing Friends Ghost-Spider with Copter-Cycle",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281065",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/marvel-spidey-and-his-amazing-friends-ghost-spider-with-copt-target-fed93f.webp",
+   "store": "store-target",
+   "price": 17.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "was": 19.99,
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "MVB09",
+   "name": "Avengers: Doomsday Doctor Doom Power Surge FX Mask",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://walmrt.us/4j4sM1h",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/avengers-doomsday-doctor-doom-power-surge-fx-mask-walmart-b492f3.webp",
+   "store": "store-walmart",
+   "price": 22.49,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "was": 29.97,
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "MVB10",
+   "name": "Avengers: Doomsday Thor Rumble Strike Hammer",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281082",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/avengers-doomsday-thor-rumble-strike-hammer-target-2e28f5.webp",
+   "store": "store-target",
+   "price": 24.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "MVB11",
+   "name": "Avengers: Doomsday Titan Series Thor 11.5 in Figure",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281088",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/avengers-doomsday-titan-series-thor-11-5-in-figure-target-41efef.webp",
+   "store": "store-target",
+   "price": 10.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "MVB17",
+   "name": "Hot Wheels Superstar Speeders Spider-Man & Hulk Smash Down Track Set",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281122",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-superstar-speeders-spider-man-hulk-smash-down-tra-target-18a490.webp",
+   "store": "store-target",
+   "price": 27.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "MVB14",
+   "name": "Marvel Legends Doctor Doom (Avengers: Doomsday) 6 in Figure",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281481",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/marvel-legends-doctor-doom-avengers-doomsday-6-in-figure-target-829e01.webp",
+   "store": "store-target",
+   "price": 27.99,
+   "priceAt": "2026-11-26",
    "section": "Toys and action figures",
    "sectionId": "marvel-toys-and-action-figures",
    "commission": 4,
@@ -1908,6 +2092,21 @@
    "commission": 10.5,
    "age": "3+",
    "ownerAdd": true
+  },
+  {
+   "id": "MVB23",
+   "name": "Squishmallows Original 10 in Marvel Spider-Man",
+   "brand": "Marvel",
+   "line": "Plush for a Marvel fan.",
+   "href": "https://walmrt.us/4zCCFYV",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/squishmallows-original-10-in-marvel-spider-man-walmart-c89015.webp",
+   "store": "store-walmart",
+   "price": 14.97,
+   "priceAt": "2026-11-26",
+   "section": "Plush",
+   "sectionId": "marvel-plush",
+   "commission": 6,
+   "age": "3+"
   },
   {
    "id": "MV40",
@@ -3615,6 +3814,37 @@
    "age": "kids"
   },
   {
+   "id": "MVB32",
+   "name": "Marvel Spider-Man Kids' Sheet Set (Twin)",
+   "brand": "Marvel",
+   "line": "Room for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111280916",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/marvel-spider-man-kids-sheet-set-twin-target-bf98ce.webp",
+   "store": "store-target",
+   "price": 16.79,
+   "priceAt": "2026-11-26",
+   "section": "Room",
+   "sectionId": "marvel-room",
+   "was": 27.99,
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "MVB06",
+   "name": "Hallmark Marvel Spider-Man Hanging From Web Ornament",
+   "brand": "Marvel",
+   "line": "Room for a Marvel fan.",
+   "href": "https://walmrt.us/4CogsjT",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hallmark-marvel-spider-man-hanging-from-web-ornament-walmart-586c04.webp",
+   "store": "store-walmart",
+   "price": 21,
+   "priceAt": "2026-11-26",
+   "section": "Room",
+   "sectionId": "marvel-room",
+   "commission": 6,
+   "age": "kids"
+  },
+  {
    "id": "MV60",
    "name": "5-Minute Spidey and His Amazing Friends Stories",
    "brand": "Marvel",
@@ -3885,6 +4115,21 @@
    "sectionId": "marvel-books-and-games",
    "commission": 16,
    "age": "kids"
+  },
+  {
+   "id": "MVB02",
+   "name": "UNO Junior Card Game: Marvel Spidey and His Amazing Friends",
+   "brand": "Marvel",
+   "line": "Books and games for a Marvel fan.",
+   "href": "https://walmrt.us/3VbwgpF",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/uno-junior-card-game-marvel-spidey-and-his-amazing-friends-walmart-f28758.webp",
+   "store": "store-walmart",
+   "price": 10.44,
+   "priceAt": "2026-11-26",
+   "section": "Books and games",
+   "sectionId": "marvel-books-and-games",
+   "commission": 6,
+   "age": "3+"
   },
   {
    "id": "MV70",
@@ -4187,6 +4432,36 @@
    "sectionId": "marvel-big-gifts",
    "commission": 16,
    "age": "kids"
+  },
+  {
+   "id": "MVB13",
+   "name": "LEGO Marvel Epic Battle: Avengers: Doomsday 76348",
+   "brand": "Marvel",
+   "line": "Big gifts for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281103",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-marvel-epic-battle-avengers-doomsday-76348-target-5da64e.webp",
+   "store": "store-target",
+   "price": 99.99,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "marvel-big-gifts",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "MVB19",
+   "name": "LEGO Marvel Spider-Man Hero Figure 76346",
+   "brand": "Marvel",
+   "line": "Big gifts for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281130",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-marvel-spider-man-hero-figure-76346-target-059ef8.webp",
+   "store": "store-target",
+   "price": 99.99,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "marvel-big-gifts",
+   "commission": 4,
+   "age": "kids"
   }
  ],
  "skipped": [
@@ -4219,6 +4494,22 @@
    ]
   },
   {
+   "id": "MVB01",
+   "name": "Marvel Spider-Man 20 in Velour Christmas Stocking",
+   "why": [
+    "Walmart stocking (ip 348352532) not found in Creator product search: price and seller unconfirmed",
+    "no affiliate link (www.walmart.com)",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVL06",
+   "name": "LEGO Marvel Iron Spider-Man Bust Collectible",
+   "why": [
+    "guides audit 1126: an adults 18+ LEGO collector bust on a kids guide, not an owner add"
+   ]
+  },
+  {
    "id": "MVL08",
    "name": "LEGO Marvel Avengers: Endgame Final Battle",
    "why": [
@@ -4226,10 +4517,42 @@
    ]
   },
   {
+   "id": "MVT26",
+   "name": "Spidey and His Amazing Friends SuperRollers Web-City Playset",
+   "why": [
+    "guides audit 1126: same Web-City playset as Walmart MVS030, which is cheaper ($39.97 vs $39.99) and earns more (6% vs 4%)"
+   ]
+  },
+  {
    "id": "MVT29",
    "name": "Spider-Man Boys' Hockey Jersey",
    "why": [
     "Target's photo shows a child wearing it (product photos only)"
+   ]
+  },
+  {
+   "id": "MVB25",
+   "name": "Marvel Titan Hero Series Black Panther 12 in Figure",
+   "why": [
+    "Titan Black Panther (ip 289628364) not found in Creator product search: price and seller unconfirmed",
+    "no affiliate link (www.walmart.com)",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB20",
+   "name": "Hasbro Spidey and His Amazing Friends Dino-Webs Treehouse Playset",
+   "why": [
+    "ShopMy pin made (https://go.shopmy.us/p-111281141) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB21",
+   "name": "Hasbro Spidey and His Amazing Friends Dino-Webs Crawler Vehicle",
+   "why": [
+    "ShopMy pin made (https://go.shopmy.us/p-111281149) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "no photo"
    ]
   },
   {
@@ -4324,6 +4647,64 @@
    ]
   },
   {
+   "id": "MVB26",
+   "name": "Marvel Black Panther Kids Costume (Jazwares)",
+   "why": [
+    "Black Panther costume (ip 15452305788) not found in Creator product search: price and seller unconfirmed",
+    "no affiliate link (www.walmart.com)",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB27",
+   "name": "Marvel Black Panther Shuri Girls' Costume",
+   "why": [
+    "Shuri costume (ip 5298947925) not found in Creator product search: price and seller unconfirmed",
+    "no affiliate link (www.walmart.com)",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB28",
+   "name": "Sam Wilson Captain America Kids Costume",
+   "why": [
+    "ShopMy pin made (https://go.shopmy.us/p-111281182) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB29",
+   "name": "Marvel Ghost-Spider Girls' Cosplay Hooded Tutu Dress",
+   "why": [
+    "ShopMy pin made (https://go.shopmy.us/p-111281193) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB30",
+   "name": "Marvel Spider-Verse Ghost-Spider Girls' 2-Piece Tee and Leggings Set",
+   "why": [
+    "ShopMy pin made (https://go.shopmy.us/p-111281202) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB37",
+   "name": "Crocs Marvel Spider-Man Jibbitz 5-Pack",
+   "why": [
+    "ShopMy pin made (https://go.shopmy.us/p-111281231) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB31",
+   "name": "Little & Big Kid Boys Qualux Iron Man Costume",
+   "why": [
+    "ShopMy pin made (https://go.shopmy.us/p-111281489) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "no photo"
+   ]
+  },
+  {
    "id": "MVM33",
    "name": "Spidey 4-in-1 Kids' Camera (photo, video, MP3, games)",
    "why": [
@@ -4331,17 +4712,70 @@
    ]
   },
   {
-   "id": "MVT26",
-   "name": "Spidey and His Amazing Friends SuperRollers Web-City Playset",
+   "id": "MVB05",
+   "name": "Hallmark Marvel Super Heroes Miniature Ornaments, Set of 6",
    "why": [
-    "guides audit 1126: same Web-City playset as Walmart MVS030, which is cheaper ($39.97 vs $39.99) and earns more (6% vs 4%)"
+    "Hallmark ornament set of 6 (ip 1682808843) not found in Creator product search: price and seller unconfirmed",
+    "no affiliate link (www.walmart.com)",
+    "no photo"
    ]
   },
   {
-   "id": "MVL06",
-   "name": "LEGO Marvel Iron Spider-Man Bust Collectible",
+   "id": "MVB24",
+   "name": "Spidey and His Amazing Friends Kids Armchair",
    "why": [
-    "guides audit 1126: an adults 18+ LEGO collector bust on a kids guide, not an owner add"
+    "ShopMy pin made (https://go.shopmy.us/p-111281166) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB33",
+   "name": "Hooded Spider-Man Wearable Blanket",
+   "why": [
+    "ShopMy pin made (https://go.shopmy.us/p-111281218) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB34",
+   "name": "Marvel Spider-Man 6-Cubby Toy Organizer",
+   "why": [
+    "ShopMy pin made (https://go.shopmy.us/p-111281226) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB36",
+   "name": "Marvel Spider-Man Tent for Twin Loft Bed",
+   "why": [
+    "ShopMy pin made (https://go.shopmy.us/p-111281496) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB22",
+   "name": "Monopoly Junior: Marvel Spidey and His Amazing Friends Edition",
+   "why": [
+    "Monopoly Junior (ip 13974317001) not found in Creator product search: price and seller unconfirmed",
+    "no affiliate link (www.walmart.com)",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB18",
+   "name": "LEGO Marvel Spider-Man vs. Hulk Epic Clash 76350",
+   "why": [
+    "Creator price $109.99 vs research $89.99 (LEGO 76350): price mismatch, likely not sold by Walmart",
+    "no affiliate link (www.walmart.com)",
+    "no photo"
+   ]
+  },
+  {
+   "id": "MVB35",
+   "name": "Marvel Spider-Man Deluxe Wooden Toy Box",
+   "why": [
+    "ShopMy pin made (https://go.shopmy.us/p-111281227) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "no photo"
    ]
   }
  ]

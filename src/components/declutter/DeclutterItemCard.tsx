@@ -2,7 +2,7 @@
  * The Declutter item card (Browse grid and the item page's "More from this
  * seller" / "Similar items" rows): one card for every list of items.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { displayTitle } from "@/lib/declutter/displayTitle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,15 @@ const LATER_PHOTO: Record<string, string> = { loading: "lazy" };
 
 /** The card's photo source, in order: the card-sized thumbnail, then the full photo if the thumbnail fails, then none. */
 type PhotoStage = "card" | "full" | "failed";
+
+/**
+ * Owner 2026-11-25 ("a heart in the bottom right of the picture"): the heart and its count sit at the photo's
+ * BOTTOM-RIGHT corner. A layer the photo's own size and shape (the same aspect classes as the photo tile), over the
+ * top of the card, so the corner is the photo's whatever the text under it; it lets taps through except on the heart.
+ */
+function PhotoCorner({ children }: { children: ReactNode }) {
+  return <span data-card-photo-corner="" className="pointer-events-none absolute inset-x-0 top-0 block aspect-[3/4] lg:aspect-[4/5]">{children}</span>;
+}
 
 export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, saves, tag, bundle, firstRow, aboveFold, guestSaveTo: guestSaveToProp, mine, noPhotoTags = false }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; saves?: number | null; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean; aboveFold?: boolean;
   /** Design audit 11-17 #35: a carousel-size card (the item page's rows) wears no photo tags; they truncated to "Porch pick…". */
@@ -227,19 +236,21 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
     return (
       <div className="relative">
         {card}
+        <PhotoCorner>
         <Link
           to={guestSaveTo}
           data-card-heart=""
           data-card-guest-heart=""
           data-card-saves={saves ?? undefined}
           aria-label={`${t("decl.card.signUpToSave", { title: item.title })}${savesText ? t("decl.card.savedByShort", { n: saves ?? 0 }) : ""}`}
-          className="absolute right-0.5 top-0.5 flex h-11 min-w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="pointer-events-auto absolute bottom-0.5 right-0.5 flex h-11 min-w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span className={`flex h-8 items-center justify-center gap-1 rounded-full bg-background/90 shadow-sm ${savesText ? "px-2.5" : "w-8"}`}>
             <Heart className="h-4 w-4 text-foreground" fill="none" aria-hidden />
             {savesText && <span aria-hidden className="text-ds-13 font-semibold tabular-nums text-foreground">{savesText}</span>}
           </span>
         </Link>
+        </PhotoCorner>
       </div>
     );
   }
@@ -249,11 +260,13 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
     return (
       <div className="relative">
         {card}
-        <span data-card-saves={saves ?? 0} className="pointer-events-none absolute right-1.5 top-1.5 flex h-8 items-center gap-1 rounded-full bg-background/90 px-2.5 text-ds-13 font-semibold tabular-nums text-foreground shadow-sm">
+        <PhotoCorner>
+        <span data-card-saves={saves ?? 0} className="pointer-events-none absolute bottom-1.5 right-1.5 flex h-8 items-center gap-1 rounded-full bg-background/90 px-2.5 text-ds-13 font-semibold tabular-nums text-foreground shadow-sm">
           <Heart className="h-3.5 w-3.5" aria-hidden />
           <span aria-hidden>{savesText}</span>
           <span className="sr-only">{saves === 1 ? t("decl.card.savedBy1") : t("decl.card.savedByN", { n: saves ?? 0 })}</span>
         </span>
+        </PhotoCorner>
       </div>
     );
   }
@@ -261,6 +274,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
   return (
     <div className="relative">
       {card}
+      <PhotoCorner>
       <Button
         type="button"
         variant="ghost"
@@ -272,13 +286,14 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
         data-card-saves={saves ?? undefined}
         disabled={save.pending}
         onClick={save.toggle}
-        className="absolute right-0.5 top-0.5 disabled:opacity-100 [&_svg]:size-4"
+        className="pointer-events-auto absolute bottom-0.5 right-0.5 disabled:opacity-100 [&_svg]:size-4"
       >
         <span className={`flex h-8 items-center justify-center gap-1 rounded-full bg-background/90 shadow-sm ${savesText ? "px-2.5" : "w-8"}`}>
           <Heart className={`h-4 w-4 ${save.on ? "text-[hsl(var(--burnt-sienna))]" : "text-foreground"}`} fill={save.on ? "currentColor" : "none"} aria-hidden />
           {savesText && <span aria-hidden className="text-ds-13 font-semibold tabular-nums text-foreground">{savesText}</span>}
         </span>
       </Button>
+      </PhotoCorner>
     </div>
   );
 }

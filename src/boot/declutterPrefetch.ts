@@ -108,7 +108,7 @@ export function startDeclutterPrefetch(pathname: string): void {
   if (opensOnBrowse) {
     void answer.then((a) => {
       if (document.getElementById("lh-declutter-shell")?.hasAttribute("data-lh-photos")) return;
-      preloadFirstCardPhotos(firstCardPhotoPreloads(base, a));
+      preloadFirstCardPhotos(firstCardPhotoPreloads(base, a, undefined, session.userId));
     });
   }
   // B81: the tab row's three reads (every tab waits on them), beside this one.
@@ -151,6 +151,8 @@ export function firstCardPhotoPreloads(
   supabaseUrl: string,
   answer: unknown,
   view: { width: number; height: number } = { width: window.innerWidth, height: window.innerHeight },
+  /** Owner 2026-11-25 (#40): Browse leaves out the viewer's own listings, so their photos get no grid slot. */
+  viewerId?: string,
 ): CardPhotoPreload[] {
   const a = answer as { items?: unknown; photos?: unknown } | null;
   if (!a || !Array.isArray(a.items) || !Array.isArray(a.photos)) return [];
@@ -163,9 +165,10 @@ export function firstCardPhotoPreloads(
   const root = `${supabaseUrl.replace(/\/$/, "")}/storage/v1/render/image/public/${BUCKET}/`;
   const out: CardPhotoPreload[] = [];
   let slot = 0;
-  for (const i of a.items as { id?: unknown }[]) {
+  for (const i of a.items as { id?: unknown; seller_id?: unknown }[]) {
     if (slot >= slots) break;
     if (typeof i?.id !== "string") continue;
+    if (viewerId && i.seller_id === viewerId) continue;
     const at = slot++;
     const path = first.get(i.id);
     if (!path || path.includes("?")) continue;

@@ -1,22 +1,22 @@
 /**
- * GUARD (owner 2026-11-16: "my declutter page shows nothing right now and that should not happen"). Every live listing
- * on prod was the owner's own, and Browse left out the viewer's own listings, so the owner's /declutter was empty while
- * guests saw 236 items. Now, as Vinted does:
- *   - Browse and the Free tab show the viewer's own live listings, marked "Yours" (the shared PhotoTag);
- *   - an own card has no heart (you don't save your own item) and no "Bundle deal" chip, and it opens the item page,
- *     which for its seller is the manage view (DeclutterItemView isSeller: no buy, offer or message);
- *   - someone else's card is unchanged: no "Yours", its heart;
- *   - the boot photo preloads count the own listing's slot (they match the grid's cards).
- * Server half (declutter_first_screen holds the caller's own rows): src/test/pglite/declutterFirstScreenIncludesOwn.pglite.mjs.
+ * GUARD (owner 2026-11-25, phone audit #40, reverses 2026-11-16): Declutter Browse HIDES the viewer's own listings;
+ * they show only under Selling. Browse is for discovering other people's items.
+ *   - Browse and the Free tab leave out the viewer's own live listings (no "Yours" card in the feed);
+ *   - a seller whose only live listings are their own sees "Nothing for sale" bones-then-empty, never their own cards;
+ *   - someone else's card is unchanged: its heart, at the photo's BOTTOM-RIGHT (owner 11-25: "a heart in the bottom
+ *     right of the picture"), for members and guests alike (a guest's heart opens sign-up);
+ *   - the boot photo preloads skip the own listing (they match the grid's cards), and index.html's early skeleton
+ *     photos skip it too.
  *
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |   const others = useMemo(() => listed ?? [], [listed]); |   const others = useMemo(() => (listed ?? []).filter((i) => i.seller_id !== userId), [listed, userId]);
- * @mutate src/components/declutter/DeclutterFreeView.tsx |     return applyBrowseFilters(nearestFirst(items.data ?? [], from, null), FREE_ONLY, "", undefined); |     return applyBrowseFilters(nearestFirst((items.data ?? []).filter((i) => i.seller_id !== userId), from, null), FREE_ONLY, "", undefined);
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |  mine={!!userId && item.seller_id === userId} saves= |  saves=
- * @mutate src/components/declutter/DeclutterItemCard.tsx |             {photoTag === "mine" && <PhotoTag data-card-mine="" tone="plain">{t("decl.card.yours")}</PhotoTag>} |
- * @mutate src/components/declutter/DeclutterItemCard.tsx |   const save = mine ? undefined : saveProp; |   const save = saveProp;
- * @mutate src/boot/declutterPrefetch.ts |     if (typeof i?.id !== "string") continue; |     if (typeof i?.id !== "string" \|\| i.id === "mine") continue;
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |   const others = useMemo(() => (listed ?? []).filter((i) => !userId \|\| i.seller_id !== userId), [listed, userId]); |   const others = useMemo(() => listed ?? [], [listed]);
+ * @mutate src/components/declutter/DeclutterFreeView.tsx |     const theirs = (items.data ?? []).filter((i) => i.seller_id !== userId); |     const theirs = items.data ?? [];
+ * @mutate src/boot/declutterPrefetch.ts |     if (viewerId && i.seller_id === viewerId) continue; |
+ * @mutate src/components/declutter/DeclutterItemCard.tsx |         className="pointer-events-auto absolute bottom-0.5 right-0.5 disabled:opacity-100 [&_svg]:size-4" |         className="pointer-events-auto absolute right-0.5 top-0.5 disabled:opacity-100 [&_svg]:size-4"
+ * @mutate src/components/declutter/DeclutterItemCard.tsx |           className="pointer-events-auto absolute bottom-0.5 right-0.5 flex h-11 |           className="pointer-events-auto absolute right-0.5 top-0.5 flex h-11
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -69,49 +69,62 @@ afterEach(() => {
   state.bundleSellers = new Set();
 });
 
-describe("Declutter Browse shows the viewer's own live listings (owner 2026-11-16)", () => {
-  it("the only seller sees their own listings, not an empty feed; each says Yours, has no heart, opens its item page", async () => {
+describe("Declutter Browse hides the viewer's own listings (owner 2026-11-25, #40)", () => {
+  it("a seller whose only live listings are their own sees none of them on Browse", async () => {
     state.live = [item(1, ME), item(2, ME), item(3, ME)];
-    state.bundleSellers = new Set([ME]);
     wrap(<DeclutterBrowse userId={ME} chrome={() => ({ tabs: null })} />);
-    await waitFor(() => expect(screen.queryAllByText(/^Thing \d$/)).toHaveLength(3));
-    // Inventory floor: the cards really rendered.
-    expect(document.querySelectorAll("[data-item-card]").length).toBeGreaterThan(2);
-    expect(screen.queryByText(/Nothing for sale/i)).toBeNull();
-    for (const n of [1, 2, 3]) {
-      const li = cardOf(`Thing ${n}`);
-      expect(li.querySelector("[data-card-mine]")?.textContent).toBe("Yours");
-      expect(li.querySelector("[data-card-heart]")).toBeNull();
-      expect(li.querySelector("[data-card-bundle]")).toBeNull();
-      expect(li.querySelector("a[data-item-card]")?.getAttribute("href")).toBe(`/declutter/item/i${n}`);
-    }
+    await waitFor(() => expect(screen.getByText(/Nothing for sale/i)).toBeTruthy());
+    expect(screen.queryAllByText(/^Thing \d$/)).toHaveLength(0);
+    expect(document.querySelectorAll("[data-card-mine]")).toHaveLength(0);
   });
 
-  it("someone else's card is unchanged: no Yours, its heart", async () => {
-    state.live = [item(1, ME), item(2, "s2")];
+  it("someone else's card shows, with its heart at the photo's bottom-right; your own card is left out", async () => {
+    state.live = [item(1, ME), item(2, "s2"), item(3, "s3")];
     wrap(<DeclutterBrowse userId={ME} chrome={() => ({ tabs: null })} />);
     await waitFor(() => expect(screen.queryAllByText(/^Thing \d$/)).toHaveLength(2));
+    // Inventory floor: the other sellers' cards really rendered.
+    expect(document.querySelectorAll("[data-item-card]").length).toBeGreaterThan(1);
+    expect(screen.queryByText("Thing 1")).toBeNull();
     const theirs = cardOf("Thing 2");
     expect(theirs.querySelector("[data-card-mine]")).toBeNull();
-    expect(theirs.querySelector("[data-card-heart]")).not.toBeNull();
-    expect(cardOf("Thing 1").querySelector("[data-card-mine]")).not.toBeNull();
+    const heart = theirs.querySelector("[data-card-heart]") as HTMLElement;
+    expect(heart).not.toBeNull();
+    expect(heart.className).toMatch(/\bbottom-0\.5\b/);
+    expect(heart.className).not.toMatch(/\btop-0\.5\b/);
+    // The corner is the PHOTO's: the heart's layer has the photo tile's own shape.
+    const corner = heart.closest("[data-card-photo-corner]") as HTMLElement;
+    expect(corner?.className).toContain("aspect-[3/4]");
   });
 
-  it("the Free tab shows your own free listing too, marked Yours", async () => {
+  it("a guest's heart (opens sign-up) sits at the photo's bottom-right too", async () => {
+    state.live = [item(2, "s2")];
+    wrap(<DeclutterBrowse userId={null} chrome={() => ({ tabs: null })} />);
+    await waitFor(() => expect(screen.queryAllByText(/^Thing \d$/)).toHaveLength(1));
+    const heart = cardOf("Thing 2").querySelector("[data-card-guest-heart]") as HTMLElement;
+    expect(heart).not.toBeNull();
+    expect(heart.className).toMatch(/\bbottom-0\.5\b/);
+    expect(heart.closest("[data-card-photo-corner]")).not.toBeNull();
+  });
+
+  it("the Free tab leaves out your own free listing", async () => {
     state.live = [item(1, ME, 0), item(2, "s2", 0)];
     wrap(<FreeView userId={ME} />);
-    await waitFor(() => expect(screen.queryAllByText(/^Thing \d$/)).toHaveLength(2));
-    expect(cardOf("Thing 1").querySelector("[data-card-mine]")?.textContent).toBe("Yours");
-    expect(cardOf("Thing 1").querySelector("[data-card-heart]")).toBeNull();
-    expect(cardOf("Thing 2").querySelector("[data-card-mine]")).toBeNull();
+    await waitFor(() => expect(screen.queryAllByText(/^Thing \d$/)).toHaveLength(1));
+    expect(screen.queryByText("Thing 1")).toBeNull();
+    expect(cardOf("Thing 2").querySelector("[data-card-heart]")).not.toBeNull();
   });
 
-  it("the boot photo preloads give the own listing its grid slot, as the grid draws it", async () => {
+  it("the boot photo preloads skip the own listing's photo, as the grid does", async () => {
     await act(async () => undefined);
     const answer = { items: [{ id: "mine", seller_id: ME }, { id: "a", seller_id: "s1" }], photos: [{ item_id: "mine", storage_path: "u/declutter/mine/1.jpg" }, { item_id: "a", storage_path: "u/declutter/a/1.jpg" }] };
-    const got = firstCardPhotoPreloads("https://x.supabase.co", answer, { width: 375, height: 812 });
-    expect(got).toHaveLength(2);
-    expect(got[0].href).toContain("/mine/1.jpg");
+    const got = firstCardPhotoPreloads("https://x.supabase.co", answer, { width: 375, height: 812 }, ME);
+    expect(got).toHaveLength(1);
+    expect(got[0].href).toContain("/a/1.jpg");
     expect(got[0].high).toBe(true);
+  });
+
+  it("index.html's early skeleton photos skip the viewer's own item", () => {
+    const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
+    expect(html).toContain('if (typeof it.id !== "string" || it.seller_id === me) continue;');
   });
 });

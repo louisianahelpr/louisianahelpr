@@ -1135,7 +1135,7 @@
           var slot = 0;
           for (var j = 0; j < a.items.length && slot < 4; j++) {
             var it = a.items[j] || {};
-            if (typeof it.id !== "string") continue;
+            if (typeof it.id !== "string" || it.seller_id === me) continue;
             var at = slot++;
             var li = tiles[at];
             var tile = li && li.firstElementChild;

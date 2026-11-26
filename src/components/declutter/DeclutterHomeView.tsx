@@ -330,7 +330,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
             </div>
             {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} itemStatus={item.status} optedIn={!!haul.data?.optedIn.has(item.id)} />}
             <PriceNudgeLine item={item} dropState={myDrops.data?.get(item.id)} onOpen={() => openNudge(item.id)} />
-            <SaverOfferLine item={item} saves={saverOffers.saves?.get(item.id) ?? 0} lastSend={saverOffers.sends?.get(item.id)} />
+            <SaverOfferLine item={item} saves={saverOffers.saves?.get(item.id) ?? 0} lastSend={saverOffers.sends?.get(item.id)} autoPct={saverOffers.auto?.get(item.id) ?? null} />
           </li>
           );
         })}

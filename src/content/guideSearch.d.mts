@@ -1,3 +1,4 @@
+export declare const GUIDE_TITLE_SUFFIX: string;
 export declare const GUIDE_SEARCH: Record<"her" | "him" | "kids", { title: string; who: string; intro: string }>;
 export declare const DEAL_DAY_SEARCH_TITLES: Record<string, string>;
 export declare const GUIDE_CROSS_LINKS: readonly (readonly [string, string])[];

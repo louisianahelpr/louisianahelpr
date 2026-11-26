@@ -162,8 +162,10 @@ const STEALS_1124 = ["https://go.shopmy.us/p-110125767", "https://go.shopmy.us/p
 const OWNER_1125 = ["https://mavely.app.link/Etc8x0jLk8b"];
 /** Her owner picks 11-26 (owner via the lead ~1:35 AM and ~2:10 AM): the six women's items in her Walmart Black Friday carousel screenshots and the RetroAudio record player from her Walmart Creator screenshots, Walmart Creator links. */
 const OWNER_1126 = ["https://walmrt.us/4zFKs8B", "https://walmrt.us/4fsKWaE", "https://walmrt.us/49hvnz1", "https://walmrt.us/4f01xT8", "https://walmrt.us/4jgbfSw", "https://walmrt.us/4zHKVqA", "https://walmrt.us/4j3rR1c"];
+/** TikTok Shop via CJ 11-26 (HER_OWNER_1126_ROWS, tiktok-adds-1126): the Glow Recipe Fruit Babies Glow & Soothe Kit, TikTok product 1729978049055265593. */
+const TIKTOK_1126 = ["https://www.anrdoezrs.net/click-101930553-17099898?url=https%3A%2F%2Fwww.tiktok.com%2Fview%2Fproduct%2F1729978049055265593%3Fchain_key%3D%257B%2522t%2522%253A1%252C%2522k%2522%253A%2522000000000000000007528530629727586062%2522%252C%2522sc%2522%253A%2522OPEN_API%2522%257D%26scene%3Dpdp%26utm_source%3Dopen_api%26trackParams%3D%257B%2522enter_from_info%2522%253A%2522product_share_outside%2522%252C%2522source_page_type%2522%253A%2522product_share%2522%252C%2522enable_shop_tab_popup%2522%253A1%257D%26share_app_id%3D1233&cjsku=1729978049055265593"];
 const AMAZON_BEAUTY_1124_ASINS = ["B0HFQ324TF", "B0GQ14CTW7", "B0CS4LRHHS", "B092W4P1N9", "B00IMU2IPA", "B005IQ866G", "B0D6L6TWJC", "B00PWVIQKI", "B004EHOTJS", "B06X9DFBNK", "B0HB6Z65TX", "B0D19JDZJS", "B07KWM3JXN", "B00E1HJLEY", "B0DNLC5T7S", "B0081KINZK", "B0009OAIBI", "B0012RSTIA", "B0HB6KB3BW", "B096CFPBLY", "B0DBVZX9YH", "B0GQJRMLG4", "B0F22N1MNV", "B000P20PU8", "B0G319B1CR", "B0DFDSRCHY", "B0H9ZVR21B", "B0BJBT1WQJ", "B077Y7CTR8", "B002LK0GAQ", "B0GQJPHLK7", "B0GZ8BDMHS", "B0FTHLKL42", "B0DY1WSW83", "B0DM3S16NM", "B000S97MAY", "B00EKT4MCY", "B08P541DPH", "B016Z69QF2", "B007GOQYR6", "B0CTL1F8LW", "B00DNGVPZW", "B083PXLPHC", "B074G4J1KK", "B08LHFXTX7", "B07Q6J2C9C", "B07V5X4KDZ", "B0FZXN4HN9"];
-const SAVED = new Set([...[...[...KEEPS_1123_ASINS, ...LOUISIANA_1122_ASINS, ...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS, ...LOUISIANA_1122_PINS, ...LINKS_1123_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ].map((h) => SWITCHED_1124[h] ?? h), ...MACYS_1124_PINS.map((p) => `https://go.shopmy.us/${p}`), ...STEALS_1124, ...OWNER_1125, ...OWNER_1126, ...AMAZON_BEAUTY_1124_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`)]);
+const SAVED = new Set([...[...[...KEEPS_1123_ASINS, ...LOUISIANA_1122_ASINS, ...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS, ...LOUISIANA_1122_PINS, ...LINKS_1123_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ].map((h) => SWITCHED_1124[h] ?? h), ...MACYS_1124_PINS.map((p) => `https://go.shopmy.us/${p}`), ...STEALS_1124, ...OWNER_1125, ...OWNER_1126, ...TIKTOK_1126, ...AMAZON_BEAUTY_1124_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`)]);
 const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
@@ -178,14 +180,14 @@ describe("For Her = the owner's saves (11-21)", () => {
     }
   });
 
-  it("the page holds exactly her 254 links (2026-11-26), once each, and nothing else", () => {
+  it("the page holds exactly her 255 links (2026-11-26), once each, and nothing else", () => {
     // 198 = 159 + her 20 Amazon second keeps of 11-23 (KEEPS_1123_ASINS) + her 6 Ulta keeps (LINKS_1123_PINS) + her 4 Macy's
     // adds of 11-24 (MACYS_1124_PINS) + her 9 steals of 11-24 (STEALS_1124) = 198, + her 48 Amazon beauty picks of 11-24
-    // (AMAZON_BEAUTY_1124_ASINS) = 246, + her Festive Factory puzzle of 11-25 (OWNER_1125) = 247, + her 7 Walmart picks of 2026-11-26 (OWNER_1126: 6 carousel items and the Creator record player) = 254; the 11-24 switches (SWITCHED_1124) changed
+    // (AMAZON_BEAUTY_1124_ASINS) = 246, + her Festive Factory puzzle of 11-25 (OWNER_1125) = 247, + her 7 Walmart picks of 2026-11-26 (OWNER_1126: 6 carousel items and the Creator record player) = 254, + the TikTok Shop Glow Recipe kit (TIKTOK_1126) = 255; the 11-24 switches (SWITCHED_1124) changed
     // links, not the count.
     expect(AMAZON_BEAUTY_1124_ASINS.length).toBe(48);
-    expect(SAVED.size).toBe(254);
-    expect(page.length).toBe(254);
+    expect(SAVED.size).toBe(255);
+    expect(page.length).toBe(255);
     for (const gone of Object.keys(SWITCHED_1124)) expect(page.some((p) => p.href === gone), gone).toBe(false);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
@@ -231,7 +233,7 @@ describe("For Her = the owner's saves (11-21)", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(141); // 93 before her 48 Amazon beauty picks of 11-24 (AMAZON_BEAUTY_1124_ASINS); 80 + her 20 Amazon second keeps of 11-23 (Capri Blue included), minus the 7 moved off Amazon 11-24 (SWITCHED_1124, the YETI Daytrip the 7th; 2026-11-24)
-    expect(shopmy.length).toBe(113); // 79 + her 6 Ulta keeps of 11-23 + the 6 moved off Amazon 11-24 + her 4 Macy's adds and 9 steals of 11-24 + the YETI Daytrip to SCHEELS (2026-11-24) + her Festive Factory puzzle (Later, 11-25) + her 7 Walmart picks (11-26)
+    expect(shopmy.length).toBe(114); // + the TikTok Shop Glow Recipe kit (11-26) + 79 + her 6 Ulta keeps of 11-23 + the 6 moved off Amazon 11-24 + her 4 Macy's adds and 9 steals of 11-24 + the YETI Daytrip to SCHEELS (2026-11-24) + her Festive Factory puzzle (Later, 11-25) + her 7 Walmart picks (11-26)
     const captured = new Map(HER_ROWS.map(withPrice1126).map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));

@@ -64,7 +64,8 @@ describe("tab titles read '<Page> — Helpr' (F137)", () => {
       ...TOWN_PAGE_SERVICES.flatMap((s) => TOWN_PAGE_TOWNS.map((t) => [`/hire/${s.slug}/${t.slug}`, townPageMeta(s, t).title] as [string, string])),
     ];
     expect(heads.length).toBeGreaterThan(30);
-    expect(heads.filter(([, title]) => !title.endsWith(" — Helpr"))).toEqual([]);
+    // Gift guide pages end with the full brand instead (lead 11-26; src/test/guideTitlesFullBrand1126.test.ts).
+    expect(heads.filter(([path, title]) => !title.endsWith(" — Helpr") && !(path.startsWith("/gift-guides") && title.endsWith(" | Louisiana Helpr")))).toEqual([]);
     expect(townPageMeta(TOWN_PAGE_SERVICES[0], TOWN_PAGE_TOWNS[0]).ogTitle).toMatch(/, LA — Helpr$/);
   });
 });

@@ -8,7 +8,7 @@
 import { SITE_ORIGIN, NOINDEX_ROBOTS, PUBLIC_PAGE_META, publicPageMetaFor } from "./publicPageMeta.mjs";
 import { GIFT_GUIDE_SEO } from "../content/giftGuideSeo.mjs";
 import { dealDay, louisianaDay } from "../content/giftGuideDeals.mjs";
-import { DEAL_DAY_SEARCH_TITLES, GUIDE_SEARCH, guideSearchDescription } from "../content/guideSearch.mjs";
+import { DEAL_DAY_SEARCH_TITLES, GUIDE_SEARCH, GUIDE_TITLE_SUFFIX, guideSearchDescription } from "../content/guideSearch.mjs";
 import { THEME_GUIDE_NAMES_1124, isDealTheme } from "../content/giftGuideLive.mjs";
 import { themeGuideSearch } from "../content/themeGuideSearch.mjs";
 
@@ -76,7 +76,7 @@ export function giftGuidePageMeta(slug, fallbackTitle = "", topNames = [], count
     (search ? guideSearchDescription(slug, count, first ? shortName(first) : "") : null) ??
     giftGuideDescription(name, lead ?? topNames, count) ??`${name}: hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.`;
   return {
-    title: search ? search.title : `${name} — Helpr`,
+    title: search ? search.title : `${name}${GUIDE_TITLE_SUFFIX}`,
     description,
     canonical: `${SITE_ORIGIN}/gift-guides/${slug}`,
     // A name that already says "gift guide" (Monster Jam, owner 11-24) never says it twice on the card.
@@ -95,7 +95,7 @@ const SPONSORS_SLUG = "25-days-sponsors";
 const SPONSORS_NAME = "Shop our 25 Days of Giveaways sponsors";
 const SPONSORS_DESCRIPTION = "The Louisiana and national brands giving away prizes in our 25 Days of Giveaways, with a gift from each one to shop.";
 const SPONSORS_META = {
-  title: `${SPONSORS_NAME} — Helpr`,
+  title: `${SPONSORS_NAME}${GUIDE_TITLE_SUFFIX}`,
   description: SPONSORS_DESCRIPTION,
   canonical: `${SITE_ORIGIN}/gift-guides/${SPONSORS_SLUG}`,
   ogTitle: SPONSORS_NAME,
@@ -108,7 +108,7 @@ const SPONSORS_META = {
  * own description (giftGuideDeals.mjs DEAL_EVENTS). No catalog guide, so not in GIFT_GUIDE_SEO.
  */
 export function dealDayPageMeta(day) {
-  const title = Object.prototype.hasOwnProperty.call(DEAL_DAY_SEARCH_TITLES, day.id) ? DEAL_DAY_SEARCH_TITLES[day.id] : `${day.pageTitle} — Helpr`;
+  const title = Object.prototype.hasOwnProperty.call(DEAL_DAY_SEARCH_TITLES, day.id) ? DEAL_DAY_SEARCH_TITLES[day.id] : `${day.pageTitle}${GUIDE_TITLE_SUFFIX}`;
   return { title, description: day.description, canonical: `${SITE_ORIGIN}/gift-guides/${day.id}`, ogTitle: day.pageTitle, ogDescription: day.description };
 }
 
@@ -124,7 +124,7 @@ export function publicOrGiftGuidePageMetaFor(pathname, tabParam) {
   // (gg-r3 UX audit #12: the emptied store pages answered "index, follow" with the generic card).
   if (gift) {
     const description = "Hand-picked holiday gift ideas from Louisiana Helpr, with a link to shop each one.";
-    return { title: "Holiday gift guides — Helpr", description, canonical: `${SITE_ORIGIN}/gift-guides`, ogTitle: "Holiday gift guides 2026", ogDescription: description, robots: NOINDEX_ROBOTS };
+    return { title: `Holiday gift guides${GUIDE_TITLE_SUFFIX}`, description, canonical: `${SITE_ORIGIN}/gift-guides`, ogTitle: "Holiday gift guides 2026", ogDescription: description, robots: NOINDEX_ROBOTS };
   }
   return publicPageMetaFor(pathname, tabParam);
 }

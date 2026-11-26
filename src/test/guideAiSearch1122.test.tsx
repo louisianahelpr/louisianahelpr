@@ -17,7 +17,7 @@
  * 6. Off the first load: the guide route's modules reach the Q&A code only through LazyGuideQa's import().
  *
  * @mutate api/share.ts | return { kind: "page", body: withQaSection(giftGuideBody(slug, g, today), qa.section), | return { kind: "page", body: giftGuideBody(slug, g, today),
- * @mutate api/share.ts | section: qaSectionHtml(qa, hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : updated, byline), ld: ld ? [ld] : [] }; | section: qaSectionHtml(qa, hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : updated, byline), ld: [] };
+ * @mutate api/share.ts | section: qaSectionHtml(qa, day, byline), ld: ld ? [ld] : [], | section: qaSectionHtml(qa, day, byline), ld: [],
  * @mutate src/lib/guideQa.mjs |   if (!section) return body; |   return body;
  * @mutate src/lib/guideQa.mjs |   return p.priceFrom ? `from $${d}` : `~$${d}`; |   return p.priceFrom ? `from $${p.price}` : `~$${p.price}`;
  * @mutate src/lib/guideQa.mjs |   const to50 = band("25-to-50"); |   const to50 = priced;

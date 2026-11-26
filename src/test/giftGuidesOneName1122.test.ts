@@ -1,5 +1,5 @@
 // @mutate src/content/giftGuides.ts | sidebarLabel: "Holiday gift guides" | sidebarLabel: "Gift guides"
-// @mutate src/lib/giftGuidePageMeta.mjs | title: "Holiday gift guides — Helpr" | title: "Gift guides — Helpr"
+// @mutate src/lib/giftGuidePageMeta.mjs | title: `Holiday gift guides${GUIDE_TITLE_SUFFIX}` | title: `Gift guides${GUIDE_TITLE_SUFFIX}`
 // @mutate src/pages/info/giftGuides/GiftGuideSharedList.tsx | — Helpr`; | — Louisiana Helpr`;
 // @mutate src/components/DesktopSidebarNav.tsx | label: "Holiday gift guides" | label: "Holiday Gift Guides"
 // @mutate src/components/Navbar.tsx |                 Holiday gift guides\n              </Link> |                 Holiday Gift Guides\n              </Link>
@@ -25,10 +25,10 @@ describe("one feature name and one tab ending (audit 1122 #25)", () => {
     expect(read("src/pages/info/giftGuides/GiftGuidesPhoneSheet.tsx")).toContain("<SheetHero title={G.menuSheetTitle} />");
   });
   it("an unknown guide's tab and the wish-list tabs end ' — Helpr'", () => {
-    expect(publicOrGiftGuidePageMetaFor("/gift-guides/nope", null)?.title).toBe("Holiday gift guides — Helpr");
+    expect(publicOrGiftGuidePageMetaFor("/gift-guides/nope", null)?.title).toBe("Holiday gift guides | Louisiana Helpr");
     expect(read("src/pages/info/giftGuides/GiftGuideSharedList.tsx")).not.toContain("— Louisiana Helpr");
     expect(read("src/pages/info/GiftGuides.tsx")).not.toContain("— Louisiana Helpr");
-    expect(PUBLIC_PAGE_META["/gift-guides"].title).toMatch(/ — Helpr$/);
+    expect(PUBLIC_PAGE_META["/gift-guides"].title).toMatch(/ \| Louisiana Helpr$/);
   });
   it("every surface writes the name in the owner's sentence case (nav, menus, promo, landing, page and share titles)", () => {
     expect(giftGuides.title).toBe("Holiday gift guides");

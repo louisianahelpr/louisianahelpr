@@ -100,7 +100,9 @@ describe("page titles are sentence case", () => {
   });
   it("every page title ends ' — Helpr', never ' — Louisiana Helpr' (P5-8)", () => {
     expect(pageTitles.length).toBeGreaterThan(15);
-    const odd = pageTitles.filter((t) => t !== meta.LANDING_PAGE_META.title && !/ — Helpr$/.test(t));
+    // Gift guide pages end with the full brand instead (lead 11-26; src/test/guideTitlesFullBrand1126.test.ts).
+    const guidePages = new Set(Object.entries(meta.PUBLIC_PAGE_META).filter(([k]) => k.startsWith("/gift-guides")).map(([, m]) => (m as { title: string }).title));
+    const odd = pageTitles.filter((t) => t !== meta.LANDING_PAGE_META.title && !/ — Helpr$/.test(t) && !(guidePages.has(t) && t.endsWith(" | Louisiana Helpr")));
     expect(odd).toEqual([]);
   });
 });

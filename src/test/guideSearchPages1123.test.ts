@@ -104,8 +104,9 @@ describe("gift guide search pages", () => {
         expect(fields[f].has(sp[f]), `${f} repeated: ${sp[f]}`).toBe(false);
         fields[f].add(sp[f]);
       }
-      expect(sp.title.length, sp.slug).toBeLessThanOrEqual(60);
-      expect(sp.title).toMatch(/ — Helpr$/);
+      // The keywords before the brand fit Google's ~60 characters; a longer title loses only the brand off its end (1126).
+      expect(sp.title.replace(/ \| Louisiana Helpr$/, "").length, sp.slug).toBeLessThanOrEqual(60);
+      expect(sp.title).toMatch(/ \| Louisiana Helpr$/);
       expect(sp.description.length, sp.slug).toBeLessThanOrEqual(155);
       expect(sp.description.length, sp.slug).toBeGreaterThan(80);
       expect(sp.slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);

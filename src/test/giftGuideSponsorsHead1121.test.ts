@@ -12,7 +12,7 @@ import { GIFT_GUIDE_SEO } from "@/content/giftGuideSeo.mjs";
 describe("the 25 Days sponsors page's head (holiday audit 1121 #75)", () => {
   it("names the giveaway sponsors, says gift guide at most once, and never 'hand-picked'", () => {
     const m = giftGuidePageMeta("25-days-sponsors", "25 Days Sponsors", ["Faulk's"], 39);
-    expect(m.title).toBe("Shop our 25 Days of Giveaways sponsors — Helpr");
+    expect(m.title).toBe("Shop our 25 Days of Giveaways sponsors | Louisiana Helpr");
     expect(m.ogTitle).toBe("Shop our 25 Days of Giveaways sponsors");
     for (const t of [m.title, m.ogTitle, m.description, m.ogDescription]) {
       expect((t.match(/gift guide/gi) ?? []).length, t).toBeLessThanOrEqual(1);

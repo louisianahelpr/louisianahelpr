@@ -72,6 +72,7 @@ import { SEO_DATA } from "../scripts/generated/seo-data.js";
 import { findTownPage } from "../src/lib/townPages.mjs";
 import {
   breadcrumbLd,
+  guidePageLd,
   dealsDayOn,
   dealsGuideBody,
   giftGuideBody,
@@ -1201,9 +1202,17 @@ type SeoOutcome =
  * end of its body and its FAQPage JSON-LD, with the page's Updated day (src/content/guideUpdated.mjs). The page draws
  * the same section from the same function (src/pages/info/giftGuides/GuideQa.tsx).
  */
-function withQa(page: string, qa: QaItem[], byline: string, updated?: string): { section: string; ld: unknown[] } {
+function withQa(page: string, qa: QaItem[], byline: string, updated?: string): { section: string; ld: unknown[]; shownDay: string | undefined } {
   const ld = faqPageLd(qa);
-  return { section: qaSectionHtml(qa, hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : updated, byline), ld: ld ? [ld] : [] };
+  const day = hasOwn(GUIDE_UPDATED, page) ? GUIDE_UPDATED[page].day : updated;
+  // shownDay: the "Updated" day the section prints (none without questions), the only date the page's dateModified may say.
+  return { section: qaSectionHtml(qa, day, byline), ld: ld ? [ld] : [], shownDay: qa.length ? day : undefined };
+}
+
+/** The page's CollectionPage (its dateModified = the Updated day it shows), or nothing. */
+function pageLd(name: string, path: string, shownDay: string | undefined): unknown[] {
+  const ld = guidePageLd(name, path, shownDay);
+  return ld ? [ld] : [];
 }
 
 /** A deals day's questions, from the build's deals and Small Business Saturday rows (scripts/generated/seo-data.js). */
@@ -1254,7 +1263,7 @@ function seoFor(url: URL): SeoOutcome {
       const list = lists ? dealsItemListLd(day.pageTitle, seoData()?.deals ?? [], today, day.id, lists) : null;
       const shops = day.kind === "small-biz" ? seoData()?.smallBiz : undefined;
       const qa = withQa(day.id, dealDayQa(day.id, day.kind, today), QA_BYLINE.other);
-      return { kind: "page", body: withQaSection(dealsGuideBody(day.id, day.pageTitle, day.description, line, lists, shops), qa.section), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: day.pageTitle, path: `/gift-guides/${day.id}` }]), ...(list ? [list] : []), ...qa.ld] };
+      return { kind: "page", body: withQaSection(dealsGuideBody(day.id, day.pageTitle, day.description, line, lists, shops), qa.section), jsonLd: [breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: day.pageTitle, path: `/gift-guides/${day.id}` }]), ...(list ? [list] : []), ...qa.ld, ...pageLd(day.pageTitle, `/gift-guides/${day.id}`, qa.shownDay)] };
     }
     const d = seoData();
     if (!d) return null;
@@ -1264,7 +1273,7 @@ function seoFor(url: URL): SeoOutcome {
       const crumbs = breadcrumbLd([HOME_CRUMB, GUIDES_CRUMB, { name: g.name, path: `/gift-guides/${slug}` }]);
       // A themed kids guide (no guideUpdated row) says its newest price check as its Updated day (owner 11-25, search).
       const qa = withQa(slug, g.qa?.length ? catalogGuideQa(slug, g.qa, today) : [], slug === "25-days-sponsors" ? QA_BYLINE.other : QA_BYLINE.gifts, isThemeGuide(slug) ? newestPriceDay(g.qa) : undefined);
-      return { kind: "page", body: withQaSection(giftGuideBody(slug, g, today), qa.section), jsonLd: [...(g.picks.length ? [crumbs, giftGuideItemListLd(slug, g, today)] : [crumbs]), ...qa.ld] };
+      return { kind: "page", body: withQaSection(giftGuideBody(slug, g, today), qa.section), jsonLd: [...(g.picks.length ? [crumbs, giftGuideItemListLd(slug, g, today)] : [crumbs]), ...qa.ld, ...pageLd(g.name, `/gift-guides/${slug}`, qa.shownDay)] };
     }
     // Search pages (owner 11-23, "add a lot of different searches"; src/content/guideSearchPages.mjs): a filtered view of
     // Her, Him or Kids with its own body, BreadcrumbList and ItemList (its picks from the build, by the page's matcher).

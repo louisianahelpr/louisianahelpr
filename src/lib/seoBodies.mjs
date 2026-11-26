@@ -53,6 +53,23 @@ export function breadcrumbLd(crumbs) {
   };
 }
 
+/**
+ * A guide page's CollectionPage with its dateModified (SEO 1126, owner "make us well known in Google": Google shows a
+ * fresh date beside a result and reads it from here). `dateModified` is ONLY the "Updated" day the page itself shows in
+ * its Q&A footer (guideQa.mjs qaSectionHtml), so the markup never claims a date the reader cannot see; no day, no block.
+ */
+export function guidePageLd(name, path, dateModified) {
+  if (typeof dateModified !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dateModified)) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name,
+    url: `${SEO_SITE_ORIGIN}${path}`,
+    dateModified,
+    isPartOf: { "@type": "WebSite", name: "Louisiana Helpr", url: `${SEO_SITE_ORIGIN}/` },
+  };
+}
+
 function breadcrumbNav(crumbs) {
   const parts = crumbs.map((c, i) =>
     i === crumbs.length - 1 ? `<span aria-current="page">${escapeHtml(c.name)}</span>` : `<a href="${escapeHtml(c.path)}">${escapeHtml(c.name)}</a>`,
@@ -220,8 +237,29 @@ function byStore(rows) {
  * cards) and Sales (one row per store, each sale its own link). Small Business Saturday (`shops`): every business
  * under its category (smallBizSections), its name linking where its card does, its town, and its gift idea.
  */
+/**
+ * A deals day's second intro sentence (SEO 1126: the crawler intro was the one-line description): what the page holds,
+ * counted from the same rows its lists print, so it can never claim a deal the page does not show. "" with none.
+ */
+export function dealsCountLine(day) {
+  if (!day) return "";
+  const n = (k) => (Array.isArray(day[k]) ? day[k].length : 0);
+  const deals = n("deals");
+  const codeStores = byStore(day.codes ?? []).length;
+  const saleStores = byStore(day.sales ?? []).length;
+  const parts = [
+    ...(deals ? [`${deals} deal${deals === 1 ? "" : "s"}`] : []),
+    ...(codeStores ? [`discount codes from ${codeStores} store${codeStores === 1 ? "" : "s"}`] : []),
+    ...(saleStores ? [`sales at ${saleStores} store${saleStores === 1 ? "" : "s"}`] : []),
+  ];
+  if (!parts.length) return "";
+  const said = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+  return `This page lists ${said}, each with the day it ends when the store gives one and a link straight to the store.`;
+}
+
 export function dealsGuideBody(slug, name, intro, disclosure, day, shops) {
   let lists = "";
+  const more = dealsCountLine(day);
   if (day) {
     const row = ([item, href, ends, , brand, deal, starts]) => {
       const words = [deal, runsText(starts, ends)].filter(Boolean).join(" · ");
@@ -262,7 +300,7 @@ export function dealsGuideBody(slug, name, intro, disclosure, day, shops) {
   }
   return page(
     [HOME, GUIDES, { name, path: `/gift-guides/${slug}` }],
-    `<h1>${escapeHtml(name)}</h1><p>${escapeHtml(intro)}</p>${lists}<p>${escapeHtml(disclosure)}</p>${crossLinks(slug)}<p><a href="/gift-guides">All holiday gift guides</a></p>`,
+    `<h1>${escapeHtml(name)}</h1><p>${escapeHtml(intro)}${more ? ` ${escapeHtml(more)}` : ""}</p>${lists}<p>${escapeHtml(disclosure)}</p>${crossLinks(slug)}<p><a href="/gift-guides">All holiday gift guides</a></p>`,
   );
 }
 

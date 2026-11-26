@@ -173,7 +173,7 @@ export function GroupSection({
   return (
     <section className="flex flex-col gap-2" aria-label={title}>
       <div className="flex items-baseline justify-between px-1">
-        <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">
+        <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           {title}
           {count !== undefined && <span className="ml-1.5 text-foreground/70">{count}</span>}
         </h2>

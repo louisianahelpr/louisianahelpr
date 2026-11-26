@@ -458,7 +458,7 @@ function HomeDashboardScreen() {
                     <GroupRow
                       key={c.id}
                       leading={
-                        <span aria-hidden data-coming-up-section={c.section} className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-muted">
+                        <span aria-hidden data-coming-up-section={c.section} className="w-6 h-6 shrink-0 flex items-center justify-center">
                           <Icon className="w-5 h-5 text-primary" />
                         </span>
                       }
@@ -503,7 +503,7 @@ function HomeDashboardScreen() {
             {!holdBelowNextUp && <>
             <div className="flex items-baseline justify-between px-1">
               {/* Design audit 11-17 #27: the same eyebrow as "Needs you" and "Coming up" (GroupSection). */}
-              <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">{t("home.yourSections")}</h2>
+              <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("home.yourSections")}</h2>
               <Button type="button" variant="link" size="sm" data-testid="open-customize" onClick={() => setCustomize(true)} className="px-0 text-ds-13 font-semibold tracking-normal text-primary">
                 {t("home.customize")}
               </Button>

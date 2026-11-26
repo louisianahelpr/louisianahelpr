@@ -38,7 +38,7 @@ export function HelprsNearYou({ userId }: { userId: string | undefined }) {
   if (!data || data.length === 0) return null;
   return (
     <section data-testid="helprs-near-you" aria-labelledby="helprs-near-you-title" className="min-w-0">
-      <h2 id="helprs-near-you-title" className="px-1 mb-2 text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">
+      <h2 id="helprs-near-you-title" className="px-1 mb-2 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         Helprs near you
       </h2>
       <ul className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 snap-x" role="list">

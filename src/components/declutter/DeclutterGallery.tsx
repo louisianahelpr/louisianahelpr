@@ -94,6 +94,10 @@ export function DeclutterGallery({ urls, display, category, title, icon, shape =
               onClick={() => setOpen(i)}
               data-photo-backdrop={backdrops[url] ? "" : undefined}
             >
+              {/* Phone polish C #13 (11-25): on a phone the category placeholder is the photo's ground, as on every Browse
+                  card, so a photo still loading or one with nothing opaque in it shows the beige icon, never a grey box. From
+                  sm the whole photo shows on the frame (object-contain), so the ground stays the frame's own. */}
+              <PhotoPlaceholder icon={icon ?? categoryIcon(category)} seed={category} warm={shape === "banner"} className="absolute inset-0 h-full w-full sm:hidden" />
               {/* Owner 11-20 #3: the photo's own blurred, darkened copy fills the sides (from sm, where the photo is shown
                   whole; a phone's square frame is filled by its square crop). The same file as the photo: no extra fetch. */}
               {backdrops[url] && (
@@ -122,7 +126,7 @@ export function DeclutterGallery({ urls, display, category, title, icon, shape =
                 // phone's square frame keeps the square crop it is served. Owner 11-20 #3: from sm the photo's own grey ground
                 // is cleared (the frame behind it is the same grey), so a blurred backdrop shows at its sides.
                 className="relative h-full w-full object-cover sm:object-contain sm:bg-transparent"
-                fallback={<span aria-hidden className="block h-full w-full bg-photo-empty" />}
+                fallback={<PhotoPlaceholder icon={icon ?? categoryIcon(category)} seed={category} warm={shape === "banner"} className="relative h-full w-full" />}
               />
             </button>
           ))}

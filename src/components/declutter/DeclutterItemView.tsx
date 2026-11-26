@@ -243,8 +243,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // B67 (DECL-ITEM-SPEED): the frame shows a resized WebP (462 -> 124 KB measured on a live photo), the viewer the original.
   const display = urls.map(pagePhoto);
 
+  // Phone polish C #12 (11-25): heart and share are plain 22px icons on 44px targets, no circle (they were two
+  // differently drawn 44px circles; owner 11-21: no circles on header icons).
   const saveShare = (
-    <div className="flex shrink-0 items-center gap-2" data-item-save-share="">
+    <div className="flex shrink-0 items-center gap-1" data-item-save-share="">
       {canAct && user && (
         <Button
           type="button"
@@ -252,11 +254,11 @@ export default function ItemView({ itemId }: { itemId: string }) {
           size="iconCompact"
           aria-pressed={isWatching}
           aria-label={isWatching ? t("decl.item.unsave") : t("decl.item.save")}
-          className={`border border-border bg-card ${isWatching ? "text-[hsl(var(--burnt-sienna))]" : ""}`}
+          className={isWatching ? "text-[hsl(var(--burnt-sienna))]" : undefined}
           disabled={toggleWatch.isPending}
           onClick={() => (preview ? noteOwnListing() : toggleWatch.mutate({ id: itemId, on: !isWatching }))}
         >
-          <Heart className="w-5 h-5" fill={isWatching ? "currentColor" : "none"} />
+          <Heart className="!h-[22px] !w-[22px]" fill={isWatching ? "currentColor" : "none"} />
         </Button>
       )}
       {/* Area 06b L2: the seller's live listing already has the Share row in its own card; one share control, not two. */}
@@ -266,10 +268,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
           variant="ghost"
           size="iconCompact"
           aria-label={t("decl.item.share")}
-          className="border border-border bg-card"
           onClick={() => shareListing(it)}
         >
-          <Share2 className="w-5 h-5" aria-hidden />
+          <Share2 className="!h-[22px] !w-[22px]" aria-hidden />
         </Button>
       )}
     </div>

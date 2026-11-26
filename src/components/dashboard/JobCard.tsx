@@ -9,7 +9,7 @@ import { listingChip, listingDeadline } from "@/lib/listingDeadline";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import { formatRecurrenceInterval, seriesSummary } from "@/lib/format";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
-import { jobStartTimeLabel } from "@/lib/jobDate";
+import { FLEXIBLE_TIME_LABEL, jobStartTimeLabel } from "@/lib/jobDate";
 import { getCity } from "@/lib/locationUtils";
 import { haversineMiles, isCommutableDistance, tripMiles } from "@/lib/geo";
 import { getParishCentroid, getCentroidFromLocation } from "@/lib/parishCentroids";
@@ -164,6 +164,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // Design audit A J2 (owner approved 11-08): every feed card but the photo hero is a hairline ROW (~88 px: 56 px
   // thumb, one badge, title, two meta lines, price in ink), not a white card. Guard: src/test/jobsHairlineRows.test.tsx.
   const row = !bare && !(hero && job.photos?.[0]);
+  // A clock time AND the Flexible tick: on a member's row the tag moves to the poster line (owner 2026-10-23: Helprs
+  // must still see "Flexible"; owner: the meta stays ONE line). A guest row has no poster line, so it keeps both inline.
+  const flexibleOnPosterLine = row && !isGuest && !!timeLabel && timeLabel.endsWith(` · ${FLEXIBLE_TIME_LABEL}`);
 
   // NO ENTRY ANIMATION (Q169, owner 2026-09-23: "more cards appear ... they
   // don't all load together"). Each card used to fade and rise in on its own
@@ -431,7 +434,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                     <span data-meta-time className="shrink-0 flex items-center gap-1">
                       {!row && <Clock className="w-2.5 h-2.5 shrink-0" />}
                       {/* A row says "9 AM" for 9:00 AM (owner 11-25, one meta line); the shell does the same. */}
-                      <span className="font-sans whitespace-nowrap">{row ? timeLabel.replace(/:00(?= [AP]M)/g, "") : timeLabel}</span>
+                      {/* Phone polish C (11-25): a member's row shows the clock only and "Flexible time" rides the poster
+                          line below (at 375 "1 PM · Flexible" was cut to "1 PM · Flexib" and the city to "Baton R…"). */}
+                      <span className="font-sans whitespace-nowrap">{row ? (flexibleOnPosterLine ? timeLabel.slice(0, -` · ${FLEXIBLE_TIME_LABEL}`.length) : timeLabel).replace(/:00(?= [AP]M)/g, "") : timeLabel}</span>
                     </span>
                   )}
                 </>
@@ -536,6 +541,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               avatarUrl={job.posterAvatarUrl}
               avgRating={job.posterAvgRating}
               reviewCount={job.posterReviewCount}
+              flexibleTag={flexibleOnPosterLine}
             />
           )}
         </div>

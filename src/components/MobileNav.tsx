@@ -509,8 +509,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             className="flex-1 rounded-full transition-shadow duration-300"
             style={{
               backgroundColor: "var(--nav-pill-bg)",
-              backdropFilter: "blur(40px) saturate(180%)",
-              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              // Phone polish C #32: a 12px blur under 96% white (was 40px under 40%).
+              backdropFilter: "blur(12px) saturate(180%)",
+              WebkitBackdropFilter: "blur(12px) saturate(180%)",
               // Stronger high-contrast white edge along the top — mimics
               // the Apple Dock's "glass-catching-light" rim. Sides + bottom
               // stay softer. Rim opacities drop in dark mode via the tokens.

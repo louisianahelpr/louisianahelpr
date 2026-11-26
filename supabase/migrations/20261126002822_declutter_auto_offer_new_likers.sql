@@ -15,7 +15,8 @@
 --   * p_percent_off NULL turns it off. Otherwise 5..50, and today's offer price must pass the saver-offer rules: below
 --     today's price, at least $1, at least half today's price, never below the seller's own lowest price.
 -- declutter_auto_offer_new_saver(): AFTER INSERT ON declutter_watchlist (every way a save is written; today only
---   declutter_set_watch). It never refuses the save: when the offer cannot go (no rule, listing not live or hidden,
+--   declutter_set_watch). It never refuses the save: when the offer cannot go (no rule, listing not live or hidden, the
+--   seller out of Declutter,
 --   the price now too low for the percent, below the lowest price, the saver is the seller, already has an open
 --   offer, got an automatic offer on this item before, is in a block with the seller, is out of Declutter or has
 --   Declutter off), it simply sends nothing. ONE automatic offer per saver per item, ever (declutter_offers.auto_liker),
@@ -173,7 +174,10 @@ BEGIN
               WHERE o.item_id = NEW.item_id AND o.buyer_id = NEW.user_id AND (o.status = 'open' OR o.auto_liker)) THEN
     RETURN NEW;
   END IF;
+  -- Review (2026-11-25): a seller out of Declutter (banned, strikes, under 18, business-like) sends nothing, so a rule
+  -- set before that never sends offers declutter_respond_offer would refuse to accept.
   IF public.are_users_blocked(NEW.user_id, v_item.seller_id)
+     OR public.declutter_seller_out(v_item.seller_id)
      OR public.declutter_member_out(NEW.user_id)
      OR NOT public.feature_enabled_for_user('declutter', NEW.user_id) THEN
     RETURN NEW;
@@ -188,6 +192,10 @@ BEGIN
     RETURN NEW;
   END IF;
 
+  -- The save always stands: the offer and its notice are one sub-block, and any error in it (say a buyer's own offer
+  -- opened in the same instant, hitting declutter_offers_one_open_per_buyer) undoes only the offer, with a warning in
+  -- the database log, never the heart tap. Review 2026-11-25.
+  BEGIN
   INSERT INTO public.declutter_offers (item_id, buyer_id, seller_id, amount_cents, awaiting, respond_by, counter_count, auto_liker)
   VALUES (NEW.item_id, NEW.user_id, v_item.seller_id, v_amount, 'buyer', now() + interval '48 hours', 0, true)
   RETURNING id INTO v_offer;
@@ -204,6 +212,9 @@ BEGIN
                   v_item.title, to_char(v_amount / 100.0, 'FM999990.00'),
                   to_char(v_item.current_price_cents / 100.0, 'FM999990.00')) END,
     '/declutter?tab=buying', v_item.seller_id);
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'declutter_auto_offer_new_saver: item % saver %: %', NEW.item_id, NEW.user_id, SQLERRM;
+  END;
   RETURN NEW;
 END;
 $fn$;

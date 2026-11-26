@@ -54,6 +54,7 @@ create function public.declutter_assert_member(b boolean) returns uuid language 
 create function public.are_users_blocked(a uuid, b uuid) returns boolean language sql stable as $$
   select coalesce(a::text = nullif(current_setting('t.blocked', true), '') or b::text = nullif(current_setting('t.blocked', true), ''), false) $$;
 create function public.declutter_member_out(u uuid) returns boolean language sql stable as $$ select coalesce(u::text = nullif(current_setting('t.out', true), ''), false) $$;
+create function public.declutter_seller_out(u uuid) returns boolean language sql stable as $$ select coalesce(u::text = nullif(current_setting('t.sellerout', true), ''), false) $$;
 create function public.feature_enabled_for_user(k text, u uuid) returns boolean language sql stable as $$ select not coalesce(u::text = nullif(current_setting('t.nofeature', true), ''), false) $$;
 create function public.declutter_names_hidden(a uuid, b uuid) returns boolean language sql stable as $$ select false $$;
 create function public.member_display_name(n text, d text) returns text language sql immutable as $$ select split_part(n, ' ', 1) || ' ' || left(split_part(n, ' ', 2), 1) || '.' $$;
@@ -136,6 +137,26 @@ for (const [who, name] of [[B, "B (open offer)"], [C, "C (blocked)"], [D, "D (ou
 o = await offersFor(it(1));
 ok(o.length === 1 && o[0].buyer_id === A, `no automatic offer to B, C, D or E (${o.map((x) => x.buyer_id).join(",")})`);
 await set("blocked", ""); await set("out", ""); await set("nofeature", "");
+
+// A seller out of Declutter (banned, strikes) sends nothing; the save stands.
+await set("sellerout", SELLER);
+await unsave(B, it(1));
+await db.exec(`delete from public.declutter_offers where buyer_id = '${B}' and item_id = '${it(1)}'`);
+ok((await save(B, it(1))).ok, "B saves while the seller is out of Declutter: the save stands");
+ok(!(await offersFor(it(1))).some((x) => x.buyer_id === B), "and no automatic offer goes out in an out seller's name");
+await set("sellerout", "");
+await unsave(B, it(1));
+
+// The save always stands: an error inside the send (here the notice) undoes only the offer.
+await set("failnotify", "on");
+await db.exec(`create or replace function public.declutter_notify(p_user uuid, p_type text, p_title text, p_message text, p_link text, p_other uuid default null)
+  returns void language plpgsql as $$ begin
+    if current_setting('t.failnotify', true) = 'on' then raise exception 'notify broke'; end if;
+    insert into public.notices values (p_user, p_type, p_title, p_message, p_link, p_other, current_setting('t.ref', true)); end $$`);
+ok((await save(B, it(1))).ok, "a failing notice never fails the save");
+ok((await db.query(`select count(*)::int c from public.declutter_watchlist where user_id = '${B}' and item_id = '${it(1)}'`)).rows[0].c === 1, "the save row is there");
+ok(!(await offersFor(it(1))).some((x) => x.buyer_id === B), "and the half-made offer was undone with it (no offer without its notice)");
+await set("failnotify", "");
 
 // No rule: nothing.
 ok((await save(A, it(5))).ok && (await offersFor(it(5))).length === 0, "a listing without the rule sends nothing");

@@ -1,8 +1,9 @@
 /**
  * Owner 2026-11-25 ("they can do auto offers like depop"): Auto-offer new savers.
  *
- * Behaviour on a real database: src/test/pglite/declutterAutoOfferNewSavers.pglite.mjs (41 PASS applied 3x;
- * NEW_MIGRATION=skip RED; a planted body without the once-per-saver, block and test-data checks 5 FAIL). This file pins
+ * Behaviour on a real database: src/test/pglite/declutterAutoOfferNewSavers.pglite.mjs (46 PASS applied 3x;
+ * NEW_MIGRATION=skip RED; a planted body without the once-per-saver, block and test-data checks 5 FAIL; without the
+ * seller-out check 1+ FAIL; with the save-protecting EXCEPTION narrowed 2 FAIL). This file pins
  * the rules that matter in the NEWEST definitions, so a later restatement cannot drop them silently, and the Selling
  * row that turns it on.
  *
@@ -10,6 +11,8 @@
  * @mutate supabase/migrations/20261126002822_declutter_auto_offer_new_likers.sql |   IF public.are_users_blocked(NEW.user_id, v_item.seller_id)\n | IF false\n
  * @mutate supabase/migrations/20261126002822_declutter_auto_offer_new_likers.sql |   IF v_floor IS NOT NULL AND v_amount < v_floor THEN\n    RETURN NEW; |   IF false THEN\n    RETURN NEW;
  * @mutate src/components/declutter/SaverOffer.tsx |   if (saves < 1) return auto; |   if (saves < 1) return null;
+ * @mutate supabase/migrations/20261126002822_declutter_auto_offer_new_likers.sql |      OR public.declutter_seller_out(v_item.seller_id)\n |
+ * @mutate supabase/migrations/20261126002822_declutter_auto_offer_new_likers.sql |   EXCEPTION WHEN OTHERS THEN | EXCEPTION WHEN division_by_zero THEN
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -56,7 +59,9 @@ describe("Auto-offer new savers (server)", () => {
       "IF NOT FOUND OR v_item.status <> 'live' OR v_item.seller_hidden OR NEW.user_id = v_item.seller_id THEN",
       "IF v_floor IS NOT NULL AND v_amount < v_floor THEN",
       "AND (o.status = 'open' OR o.auto_liker)) THEN",
-      "IF public.are_users_blocked(NEW.user_id, v_item.seller_id) OR public.declutter_member_out(NEW.user_id) OR NOT public.feature_enabled_for_user('declutter', NEW.user_id) THEN",
+      "IF public.are_users_blocked(NEW.user_id, v_item.seller_id) OR public.declutter_seller_out(v_item.seller_id) OR public.declutter_member_out(NEW.user_id) OR NOT public.feature_enabled_for_user('declutter', NEW.user_id) THEN",
+      // The save always stands: the send is a sub-block whose errors undo only the offer.
+      "EXCEPTION WHEN OTHERS THEN RAISE WARNING 'declutter_auto_offer_new_saver: item % saver %: %', NEW.item_id, NEW.user_id, SQLERRM; END; RETURN NEW;",
       "IF v_test_seller AND NOT COALESCE((SELECT pr.is_seed FROM public.profiles pr WHERE pr.user_id = NEW.user_id), false) AND NOT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = NEW.user_id) THEN",
       "VALUES (NEW.item_id, NEW.user_id, v_item.seller_id, v_amount, 'buyer', now() + interval '48 hours', 0, true)",
       "PERFORM public.declutter_notice_ref(v_offer);",

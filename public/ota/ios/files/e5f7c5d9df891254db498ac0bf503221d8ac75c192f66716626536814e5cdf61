@@ -1,0 +1,1 @@
+var e=`3 days after the job is approved`;function t(e){if(!e)return null;let t=Date.parse(e);return Number.isFinite(t)?new Date(t).toLocaleDateString(`en-US`,{weekday:`short`,month:`short`,day:`numeric`,timeZone:`America/Chicago`}):null}var n=e=>e*60*60*1e3;export{n,t as r,e as t};

@@ -1,0 +1,1 @@
+function e(){return typeof window>`u`?null:window.mapkit||null}function t(e,t){let n=e.Map.ColorSchemes;return t?n?.Dark??`dark`:n?.Light??`light`}function n(e,t,n=1.08){let[[r,i],[a,o]]=t,s=(r+a)/2,c=(i+o)/2,l=Math.max((a-r)*n,.02),u=Math.max((o-i)*n,.02);return new e.CoordinateRegion(new e.Coordinate(s,c),new e.CoordinateSpan(l,u))}export{e as n,n as r,t};

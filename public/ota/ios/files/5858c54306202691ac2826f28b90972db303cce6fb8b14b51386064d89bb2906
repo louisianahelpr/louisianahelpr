@@ -1,0 +1,1 @@
+var e=`lh-home-shell`,t=`lh-jobs-shell`,n=`lh-messages-shell`,r=`lh-declutter-shell`;function i(t=document){t.getElementById(e)?.remove(),a(t),t.getElementById(n)?.remove(),t.getElementById(r)?.remove()}function a(e=document){e.getElementById(t)?.remove()}export{i as a,n as i,e as n,a as o,t as r,r as t};

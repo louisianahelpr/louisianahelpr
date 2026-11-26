@@ -1,0 +1,1 @@
+var e=`mx-auto max-w-2xl`,t=`mx-auto max-w-[calc(42rem+2.5rem)] sm:max-w-[calc(42rem+4rem)] lg:max-w-[calc(42rem+6rem)]`,n=`divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card font-sans text-ds-15 leading-relaxed text-foreground`,r=`px-5 py-4 sm:px-6`;export{t as i,r as n,e as r,n as t};

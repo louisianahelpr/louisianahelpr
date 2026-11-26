@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-XKyaHtl9.js";import{i as t,r as n}from"./react-vendor-DBuF32qy.js";var r=e(t(),1),i=n(),a=(0,r.forwardRef)(({className:e=``,style:t,...n},r)=>(0,i.jsx)(`input`,{ref:r,type:`radio`,className:`h-4 w-4 min-h-0 min-w-0 shrink-0 ${e}`.trim(),style:{accentColor:`hsl(var(--primary))`,...t},...n}));a.displayName=`NativeRadio`;export{a as t};

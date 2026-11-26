@@ -1,0 +1,1 @@
+function e(e=document){t(`lh-landing-shell`,e)}function t(e,t=document){let n=t.getElementById(e);if(!n)return;let r=typeof requestAnimationFrame==`function`?requestAnimationFrame:e=>setTimeout(e,16);r(()=>r(()=>n.remove()))}export{t as n,e as t};

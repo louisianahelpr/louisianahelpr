@@ -1,0 +1,1 @@
+import{r as e}from"./react-vendor-DBuF32qy.js";var t=e();function n({n:e}){return e<=0?null:(0,t.jsxs)(`span`,{className:`shrink-0 rounded-full px-2 py-0.5 font-sans font-semibold text-ds-11 tabular-nums`,style:{background:`hsl(var(--bark))`,color:`hsl(var(--primary-foreground))`},"data-testid":`saved-search-new`,children:[e,` new`]})}export{n as t};

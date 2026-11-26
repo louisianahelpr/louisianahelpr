@@ -1,0 +1,1 @@
+import{a as e}from"./shopsUi-CMnQ2ONf.js";import{t}from"./ShopDashboardView-BtEsiw-W.js";import{t as n}from"./AppPage-CU8Vq2IY.js";import{r}from"./react-vendor-DBuF32qy.js";var i=r();function a(){return(0,i.jsx)(e,{title:`Shop`,backTo:`/shops`,children:(0,i.jsx)(n,{title:`Shop`,backTo:`/shops`,children:(0,i.jsx)(t,{embedded:!0})})})}export{a as default};

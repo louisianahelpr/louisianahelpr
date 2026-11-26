@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-XKyaHtl9.js";import{i as t,r as n}from"./react-vendor-DBuF32qy.js";var r=e(t(),1),i=n(),a=(0,r.forwardRef)(({className:e=``,type:t=`button`,...n},r)=>(0,i.jsx)(`button`,{ref:r,type:t,className:`link-standard min-h-0 min-w-0 p-0 align-baseline ${e}`.trim(),...n}));a.displayName=`InlineTextButton`;export{a as t};

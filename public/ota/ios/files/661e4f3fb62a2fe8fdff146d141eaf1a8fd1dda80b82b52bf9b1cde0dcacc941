@@ -1,0 +1,1 @@
+import{s as e}from"./tanstack-Dt62v76_.js";function t(t,n,r,i){let a=e({queries:t.map(e=>({queryKey:n(e),queryFn:()=>r(e),staleTime:6e4,gcTime:3e5}))}),o=new Map;return t.forEach((e,t)=>{let n=a[t];n&&n.data!==void 0&&o.set(e,i(n.data))}),o}var n=(e,t)=>t===void 0?e:`${e} (${t})`;export{t as n,n as t};

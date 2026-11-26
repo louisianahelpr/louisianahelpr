@@ -1,0 +1,1 @@
+import{Ti as e}from"./app-shared-B7IosoRB.js";import{q as t}from"./home-shared-DkzbYvPI.js";import{r as n}from"./react-vendor-DBuF32qy.js";var r=n();function i(){return(0,r.jsx)(e,{to:t,replace:!0})}export{i as default};

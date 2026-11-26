@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-XKyaHtl9.js";import{i as t,r as n}from"./react-vendor-DBuF32qy.js";var r=e(t(),1),i=n(),a=(0,r.forwardRef)(({peer:e=!1,...t},n)=>(0,i.jsx)(`input`,{ref:n,type:`file`,className:e?`peer sr-only`:`sr-only`,...t}));a.displayName=`HiddenFileInput`;export{a as t};

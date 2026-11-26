@@ -447,7 +447,7 @@ export const HIM_OWNER_1126_ROWS = [
  */
 /** For Her. */
 export const HER_TRENDING_1126_ROWS = [
-  // Amazon B09V7Z4TJG $13.23, In Stock (sold by Medicube & Aprilskin, fulfilled by Amazon). Walmart $15.74 (item 17765066886); TikTok Shop $23.
+  // Amazon B09V7Z4TJG $13.23, In Stock (sold by Medicube & Aprilskin, fulfilled by Amazon). Walmart $15.74 (walmart.com/ip/17765066886); TikTok Shop $23.
   ["https://www.amazon.com/dp/B09V7Z4TJG?tag=louisianahelpr-20", 13.23, "https://m.media-amazon.com/images/I/71Mcspt-6AL._SL500_.jpg", "medicube Zero Pore Pad 2.0, 70 Pads", "medicube", "store-amazon", "skincare", 3, "The viral K-beauty toner pads that smooth and clear pores."],
   // kohls.com prd-5076965, Berry (skuId 70187017): $18 (reg. $24). us.laneige.com $24 (ShopMy 16%), so Kohl's (ShopMy 12%) is 25% cheaper.
   ["https://go.shopmy.us/p-111499036", 18, "https://media.kohlsimg.com/is/image/kohls/5076965_Berry", "LANEIGE Lip Sleeping Mask, Berry", "LANEIGE", "store-kohls", "lip-balm", 12, "The overnight lip mask everyone keeps on their nightstand."],

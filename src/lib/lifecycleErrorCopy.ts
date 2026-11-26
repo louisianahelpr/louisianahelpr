@@ -1975,6 +1975,7 @@ export const RPC_ERROR_COPY = {
   declutter_set_auto_liker_offer: {
     account_restricted: DC.account_restricted,
     below_your_lowest: DC.below_your_lowest,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
     invalid_input: "Pick 10, 15 or 20% off.",
     invalid_offer_amount: "This price is too low to take anything off.",
@@ -1982,6 +1983,7 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
     offer_too_low: "Offers must be at least half the price. Pick a smaller discount.",
+    under_18: DC.under_18,
   },
   // Declutter top 5 #4 (20261120014036): the shop-wide sale's two buttons.
   declutter_start_shop_sale: {

@@ -59,7 +59,7 @@ const code = (f: string) => blankComments(readFileSync(f, "utf8"));
 
 /** Every ConfirmSheet the Declutter top 5 (#4779) added: saver offer, shop sale start + end, bulk x3 (plus Put back on sale, audit 11-20 night #8), away. */
 const NEW_SHEET_FILES = {
-  "src/components/declutter/SaverOffer.tsx": 1,
+  "src/components/declutter/SaverOffer.tsx": 2, // + Auto-offer new savers (11-25)
   "src/components/declutter/ShopSaleCard.tsx": 2,
   "src/components/declutter/BulkActions.tsx": 4,
   "src/components/declutter/AwayMode.tsx": 1,

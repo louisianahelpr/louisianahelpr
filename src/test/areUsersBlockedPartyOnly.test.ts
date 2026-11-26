@@ -67,6 +67,9 @@ const EXPECTED_CALLERS = [
   // Declutter slice 1 (20261014193955): v_uid := auth.uid() is one argument,
   // the item's seller the other (a blocked pair cannot watch or ask, B17).
   "declutter_ask_question",
+  // Auto-offer new savers (20261126002822): a trigger on the saver's own watchlist insert; the pair (NEW.user_id = the
+  // saver, the saved listing's seller), so both are parties to the offer it opens.
+  "declutter_auto_offer_new_saver",
   "declutter_checkout_free",
   // Declutter slice 3 (20261014210518): lock_buyable_item gets p_buyer =
   // v_uid := declutter_assert_member() (auth.uid()) from make_offer / buy_now;

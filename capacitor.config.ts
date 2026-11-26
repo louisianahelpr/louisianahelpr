@@ -190,7 +190,28 @@ const config: CapacitorConfig = {
     // The plugin's SPM Package.swift unconditionally includes facebook-ios-sdk —
     // a separate upstream fix is needed there, but setting false here documents
     // intent and is correct for the Android and CocoaPods paths.
-    SocialLogin: { providers: { google: true, apple: true, facebook: false, twitter: false } }
+    SocialLogin: { providers: { google: true, apple: true, facebook: false, twitter: false } },
+    // Self-hosted OTA web-bundle updates (docs/OTA_UPDATES.md). MANUAL mode:
+    // the plugin never checks, downloads or applies anything by itself. Our
+    // code (src/lib/ota/otaUpdater.ts) fetches our signed manifest and calls
+    // download() + next(). The three URLs are blanked so the plugin never
+    // contacts Capgo's cloud (its stats default to plugin.capgo.app, and an
+    // empty statsUrl is the plugin's documented off switch).
+    CapacitorUpdater: {
+      autoUpdate: false,
+      updateUrl: '',
+      statsUrl: '',
+      channelUrl: '',
+      // A new bundle must call notifyAppReady() within 10 s of loading or the
+      // plugin marks it failed and rolls back to the last good bundle.
+      appReadyTimeout: 10000,
+      autoDeleteFailed: true,
+      autoDeletePrevious: true,
+      // A new store binary drops every OTA bundle and runs its own built-in one.
+      resetWhenUpdate: true,
+      shakeMenu: false,
+      allowModifyUrl: false,
+    }
   }
 };
 

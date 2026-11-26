@@ -13,7 +13,7 @@ import { landingAuthHint, noteAuthEventForDiagnostics } from "./lib/authLanding"
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { initNative, hideSplash, isNativePlatform } from "./lib/nativeInit";
+import { initNative, hideSplash, isNativePlatform, isNativeIos } from "./lib/nativeInit";
 import { installGlobalErrorHandlers, report } from "./lib/errorLogger";
 import { USER_ERROR_SCREEN } from "./lib/currentScreen";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
@@ -564,6 +564,14 @@ void hydrateStorage();
   // Fire-and-forget native setup (status bar, platform attributes). Web =
   // no-op. The splash hide is NOT in here — it runs above, after first paint.
   initNative();
+
+  // OTA web-bundle updates, iOS app only, lazy so the website never fetches it (docs/OTA_UPDATES.md).
+  // A failed load skips OTA this launch; the plugin then rolls a just-installed bundle back (the safe side).
+  if (isNativeIos) {
+    void backgroundImport(() => import("./lib/ota/otaUpdater"), "boot-ota")
+      .then(({ initOta }) => initOta())
+      .catch((err) => console.warn("[ota] could not load the OTA updater", err));
+  }
 
   // Shake-to-report: navigate to support pre-tagged as a bug report.
   // The app only, and only once the member turns it on in Account and

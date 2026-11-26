@@ -29,6 +29,7 @@ let package = Package(
         .package(name: "CapacitorStatusBar", path: "../../../node_modules/@capacitor/status-bar"),
         .package(name: "CapawesomeCapacitorBadge", path: "../../../node_modules/@capawesome/capacitor-badge"),
         .package(name: "CapgoCapacitorSocialLogin", path: "../../../node_modules/@capgo/capacitor-social-login"),
+        .package(name: "CapgoCapacitorUpdater", path: "../../../node_modules/@capgo/capacitor-updater"),
         .package(name: "CordovaPluginPurchase", path: "../../capacitor-cordova-ios-plugins/sources/CordovaPluginPurchase")
     ],
     targets: [
@@ -54,6 +55,7 @@ let package = Package(
                 .product(name: "CapacitorStatusBar", package: "CapacitorStatusBar"),
                 .product(name: "CapawesomeCapacitorBadge", package: "CapawesomeCapacitorBadge"),
                 .product(name: "CapgoCapacitorSocialLogin", package: "CapgoCapacitorSocialLogin"),
+                .product(name: "CapgoCapacitorUpdater", package: "CapgoCapacitorUpdater"),
                 .product(name: "CordovaPluginPurchase", package: "CordovaPluginPurchase")
             ]
         )

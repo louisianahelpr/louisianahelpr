@@ -385,6 +385,7 @@ export const HISTORICAL = {
  * reason. A script that starts writing a committed file must move out of here.
  */
 export const WRITES_NOT_COMMITTED = {
+  "scripts/ota/build-ota.mjs": "OTA release (docs/OTA_UPDATES.md): a signed release artifact (public/ota/ios/manifest.json + files/<sha256>), written only when someone deliberately publishes an app update with the release key; not an inventory, and CI must never regenerate it (it has no signing key and a re-run would publish a new bundle)",
   "scripts/gift-guide-shopmy-cdn.mjs": "the checked ShopMy S3 -> static.shopmy.us photo map, _shopmy-cdn-photos.json in the lead's picks folder (~/Desktop/Gift-guide-picks, outside the repo); scripts/gift-guide-picks.mjs reads it; never a repo file",
   "scripts/ci/guide-only.mjs": "guide fast lane (2026-11-20): guide_only=true|false to $GITHUB_OUTPUT in vitest.yml / e2e-happy-path.yml / mobile-viewports.yml (a step output, never a repo file)",
   "scripts/ci/previous-refresh-pr-red.mjs":"Q2395: red=/message= lines to $GITHUB_OUTPUT in scoreboard.yml's land job (a step output, never a repo file)",

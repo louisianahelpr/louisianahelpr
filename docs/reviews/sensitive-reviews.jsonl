@@ -473,3 +473,4 @@
 {"sha":"e2e3fb8f70fe7e00593dec43edd4b4d9dd8abe13","reviewer":"lh-authz-rls","verdict":"approve (same SQL, restamped in 808d8d769)","date":"2026-11-24"}
 {"sha":"6ad7e2f62b5b79a63ffbbdaf5d2e487a8e2669c6","reviewer":"code-review","verdict":"approve (copy/labels/icon only: one reviewer name 'Helpr support'; no dispute state, money or permission logic changed; guard disputeNamesOneReviewer1122 added)","date":"2026-11-24"}
 {"sha":"e5c47d43a67827af9f4c855ccc7f326fa4e0b3e2","reviewer":"code-review","verdict":"approve (TipMoment: drops phoneHidesTitle so the title shows beside the back arrow; layout only, no tip/money logic touched)","date":"2026-11-24"}
+{"sha":"abcdd5c97d58082011e1bc1e4dbe7a0047482b1c","reviewer":"code-review","verdict":"approve (comments only: Signup.tsx comment lines shortened under the 600-line threshold; no code changed)","date":"2026-11-26"}

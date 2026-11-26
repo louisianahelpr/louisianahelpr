@@ -41,7 +41,7 @@ import { HER_KEEPS_1123, HER_LINKS_1123 } from "../../scripts/giftGuideHer1121.m
 import { KEEPS_PRICE_AT } from "../../scripts/giftGuideOwnerKeeps1123.mjs";
 import { HER_ADDS_1124, HIM_ADDS_1124, KIDS_ADDS_1124, OWNER_1124_PRICE_AT, RATE_SWITCHES_1124 } from "../../scripts/giftGuideOwner1124.mjs";
 import { AMAZON_BEAUTY_1124_PRICE_AT, HER_AMAZON_BEAUTY_1124 } from "../../scripts/giftGuideAmazonBeauty1124.mjs";
-import { HER_OWNER_1125_ROWS, HER_OWNER_1126_ROWS, HIM_OWNER_1126_ROWS, KIDS_OWNER_1126_ROWS } from "../../scripts/giftGuideSteals1124.mjs";
+import { HER_OWNER_1125_ROWS, HER_OWNER_1126_ROWS, HIM_OWNER_1126_ROWS, KIDS_OWNER_1126_ROWS, PRICE_AT_1126, PRICED_1126_HREFS } from "../../scripts/giftGuideSteals1124.mjs";
 /** Her owner pick 11-25 (the Festive Factory puzzle), priced on Target 11-25. */
 const OWNER_1125_HREFS = new Set(HER_OWNER_1125_ROWS.map((r) => r[0]));
 /** Her, Him and Kids owner picks 11-26 (her Walmart carousel and Walmart Creator screenshots), priced 11-26. */
@@ -128,7 +128,7 @@ describe("gift-guide prices: the generated chunks", () => {
       const rechecked = (p: { href: string; price?: number; priceAt?: string }) => PRICE_RECHECKS[p.href]?.price === p.price && PRICE_RECHECKS[p.href]?.priceAt === p.priceAt;
       // Kids Black Friday sweep 11-24: an Amazon price re-read that day (scripts/giftGuideAmazonPrices1124.mjs), dated that day.
       const reread = (p: { href: string; price?: number; priceAt?: string }) => amazonPrice1124(p.href) === p.price && p.priceAt === AMAZON_PRICES_AT_1124;
-      expect(CHUNKS[slug].filter((p) => !(typeof p.price === "number" && p.price > 0 && (p.priceAt === "2026-11-21" || p.priceAt === "2026-11-22" || (p.priceAt === KEEPS_PRICE_AT && KEEP_HREFS.has(p.href)) || (p.priceAt === OWNER_1124_PRICE_AT && OWNER_1124_HREFS.has(p.href)) || (p.priceAt === "2026-11-25" && OWNER_1125_HREFS.has(p.href)) || (p.priceAt === "2026-11-26" && OWNER_1126_HREFS.has(p.href)) || rechecked(p) || reread(p)))).map((p) => p.name), slug).toEqual([]);
+      expect(CHUNKS[slug].filter((p) => !(typeof p.price === "number" && p.price > 0 && (p.priceAt === "2026-11-21" || p.priceAt === "2026-11-22" || (p.priceAt === KEEPS_PRICE_AT && KEEP_HREFS.has(p.href)) || (p.priceAt === OWNER_1124_PRICE_AT && OWNER_1124_HREFS.has(p.href)) || (p.priceAt === "2026-11-25" && OWNER_1125_HREFS.has(p.href)) || (p.priceAt === "2026-11-26" && OWNER_1126_HREFS.has(p.href)) || (p.priceAt === PRICE_AT_1126 && PRICED_1126_HREFS.has(p.href)) || rechecked(p) || reread(p)))).map((p) => p.name), slug).toEqual([]);
     }
     expect(amazonPriced).toBeGreaterThan(90);
     expect(AMAZON_BEAUTY_1124_PRICE_AT).toBe(OWNER_1124_PRICE_AT);

@@ -1865,8 +1865,7 @@
    "section": "Room and Christmas",
    "sectionId": "pokemon-room-and-christmas",
    "commission": 9,
-   "age": "all",
-   "ownerAdd": true
+   "age": "all"
   },
   {
    "id": "PK51",
@@ -2010,6 +2009,22 @@
    "section": "Room and Christmas",
    "sectionId": "pokemon-room-and-christmas",
    "was": 84.99,
+   "commission": 12,
+   "age": "kids",
+   "ownerAdd": true
+  },
+  {
+   "id": "PKX088",
+   "name": "Hallmark Pokémon Resin Figural Christmas Ornament",
+   "brand": "Pokémon",
+   "line": "Room and Christmas for a Pokémon fan.",
+   "href": "https://go.shopmy.us/p-110706721",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hallmark-pok-mon-resin-figural-christmas-ornament-kohls-b4c678.webp",
+   "store": "store-kohls",
+   "price": 11.49,
+   "priceAt": "2026-11-24",
+   "section": "Room and Christmas",
+   "sectionId": "pokemon-room-and-christmas",
    "commission": 12,
    "age": "kids",
    "ownerAdd": true
@@ -2258,13 +2273,6 @@
    "name": "Google Fitbit Air Special Edition Pokémon Sleep, Sleepy Blue",
    "why": [
     "ShopMy pin p-110699919 is the generic Google Fitbit Air, not the Pokémon Sleep edition"
-   ]
-  },
-  {
-   "id": "PKX088",
-   "name": "Hallmark Pokémon Resin Figural Christmas Ornament",
-   "why": [
-    "guides audit 1126: same Hallmark ornament (pixel-identical photo) as Walmart PK50, which is cheaper ($10.98 vs $11.49)"
    ]
   },
   {

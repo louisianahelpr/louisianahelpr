@@ -183,9 +183,14 @@ describe("landing", () => {
       expect(esLanding[k].length, k).toBeLessThanOrEqual(enLanding[k].length + 3);
     }
   });
-  it("#25 the close's four links are a 2 x 2 grid on a phone", () => {
+  it("#25 / owner 11-25 #41: the close's two links share one row; the landing repeats nothing (Browse jobs, Shop Declutter, member Log in)", () => {
     const s = src("src/components/landing/SectionsShowcase.tsx");
-    expect(s).toMatch(/className="grid grid-cols-2 justify-items-center sm:flex[^"]*" data-testid="landing-join-starts"/);
+    expect(s).toMatch(/className="flex flex-wrap items-center justify-center[^"]*" data-testid="landing-join-starts"/);
+    // Each of these appears ONCE in the landing's sections + close (the section card's link), never twice.
+    const code = s; // src() already blanks comments (blankComments)
+    expect(code.match(/w\("landing\.browseJobs"/g)?.length ?? 0).toBe(1);
+    expect(code.match(/w\("landing\.shopDeclutter"/g)?.length ?? 0).toBe(1);
+    expect(code).not.toContain("landing.memberLogin");
   });
 });
 

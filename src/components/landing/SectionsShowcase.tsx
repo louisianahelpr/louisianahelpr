@@ -306,18 +306,13 @@ export function TrustAndJoin() {
             )}
           </div>
           {/* Owner #7 (11-09): the close names both open sections' first steps, quietly (links, not more buttons), in the
-              landing's one set of verbs (D012, 11-10). */}
-          {/* Design audit areas 11-18 #25: at 390 three links fit a row and "Sell something" sat alone under them. A
-              2 x 2 grid on a phone (Jobs' pair, then Declutter's), one row from sm. The links stay (owner #7). */}
-          <nav aria-label={w("landing.startHere", "Start here")} className="grid grid-cols-2 justify-items-center sm:flex sm:flex-wrap items-center justify-center gap-x-5 gap-y-1 text-ds-15 font-semibold" data-testid="landing-join-starts">
-            <Link to="/browse" className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>{w("landing.browseJobs", "Browse jobs")}</Link>
+              landing's one set of verbs (D012, 11-10). Owner 2026-11-25 (phone audit #41): "Browse jobs" and "Shop
+              Declutter" are each already on their section card above, so the close keeps only the two ways to START
+              (post, sell), one row; the "Already a member? Log in" line under it went too (Log in is in the top bar). */}
+          <nav aria-label={w("landing.startHere", "Start here")} className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-ds-15 font-semibold" data-testid="landing-join-starts">
             <Link to={POST_JOB_SIGNED_OUT} onClick={(e) => { e.preventDefault(); void goSignedInOr(navigate, POST_JOB_PATH, POST_JOB_SIGNED_OUT); }} className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>{w("landing.postJob", "Post a job")}</Link>
-            <Link to="/declutter" className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>{w("landing.shopDeclutter", "Shop Declutter")}</Link>
             <Link to={SELL_SIGNED_OUT} onClick={(e) => { e.preventDefault(); void goSignedInOr(navigate, SELL_PATH, SELL_SIGNED_OUT); }} className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>{w("landing.sell", "Sell something")}</Link>
           </nav>
-          <Link to="/login" className="inline-flex items-center min-h-11 text-ds-15 font-bold underline underline-offset-4" style={{ color: "var(--lp-action-strong)" }}>
-            {w("landing.memberLogin", "Already a member? Log in")}
-          </Link>
         </div>
       </section>
     </>

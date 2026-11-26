@@ -15,7 +15,7 @@
  *
  * @mutate src/pages/info/GiftGuides.tsx |   const kidsPage = guide?.slug === KIDS_FILTER_GUIDE \|\| themePage; |   const kidsPage = guide?.slug === KIDS_FILTER_GUIDE;
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const sortable = isOwnerList(guide.slug) \|\| isThemeGuide(guide.slug); |   const sortable = isOwnerList(guide.slug);
- * @mutate scripts/giftGuideThemePicks.mjs |     const { id: _id, was: _was, age, section: _section, sectionId: _sectionId, ownerAdd: _ownerAdd, sortPrice: _sp, ...p } = row; |     const { id: _id, was: _was, age, ownerAdd: _ownerAdd, sortPrice: _sp, ...p } = row;
+ * @mutate scripts/giftGuideThemePicks.mjs |     const { id: _id, was: _was, age, section: _section, sectionId: _sectionId, ownerAdd, sortPrice: _sp, ...p } = row; |     const { id: _id, was: _was, age, ownerAdd, sortPrice: _sp, ...p } = row;
  * @mutate scripts/theme-guide-import.mjs |   const picks = themeChunkPicks(slug, rows); |   const picks = rows.map(({ id: _i, was: _w, age: _a, ...p }) => ({ ...p, ownerPick: true, from: slug }));
  * @mutate src/content/giftGuideThemeTags.ts |   return girls === boys ? "everyone" : girls ? "girls" : "boys"; |   return "everyone";
  * @mutate scripts/theme-guide-import.mjs | export const breaksStyleRule = (slug, it, href) => !it.ownerAdd && ownerStyleOff( | export const breaksStyleRule = (slug, it, href) => ownerStyleOff(
@@ -44,11 +44,11 @@ import { blankComments } from "./helpers/blankNonCode";
 await loadAllGuidePicks();
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
-// The newest price-read day (LEGO's rows were read 11-24 night into 11-25); a row priced after "today" shows "price soon".
-const TODAY = "2026-11-25";
+// The newest price-read day (guides audit 1126 re-read prices on 11-26); a row priced after "today" shows "price soon".
+const TODAY = "2026-11-26";
 const renderAt = async (url: string) => {
   vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-11-25T18:00:00Z"));
+  vi.setSystemTime(new Date("2026-11-26T18:00:00Z"));
   let out!: ReturnType<typeof render>;
   await act(async () => {
     out = render(

@@ -1002,8 +1002,8 @@
    "href": "https://walmrt.us/4jamVGr",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-bkt-1-24-die-cast-truck-walmart-210a30.webp",
    "store": "store-walmart",
-   "price": 10.88,
-   "priceAt": "2026-11-24",
+   "price": 19.29,
+   "priceAt": "2026-11-26",
    "section": "Trucks",
    "sectionId": "mj-trucks",
    "was": 29.99,
@@ -1063,8 +1063,8 @@
    "href": "https://walmrt.us/49f9pNb",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-dragon-1-24-die-cast-truck-walmart-22fd36.webp",
    "store": "store-walmart",
-   "price": 10.88,
-   "priceAt": "2026-11-24",
+   "price": 22.25,
+   "priceAt": "2026-11-26",
    "section": "Trucks",
    "sectionId": "mj-trucks",
    "commission": 6,
@@ -1108,8 +1108,8 @@
    "href": "https://walmrt.us/4fqVBme",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-soldier-of-fortune-1-24-die-cast-truck-walmart-0c0dc3.webp",
    "store": "store-walmart",
-   "price": 10.88,
-   "priceAt": "2026-11-24",
+   "price": 24.74,
+   "priceAt": "2026-11-26",
    "section": "Trucks",
    "sectionId": "mj-trucks",
    "commission": 6,
@@ -2911,23 +2911,6 @@
    "ownerAdd": true
   },
   {
-   "id": "MJJ32",
-   "name": "Monster Jam Boys' 2-Piece Tee and Pants Set",
-   "brand": "Monster Jam",
-   "line": "Monster Jam clothes for a truck fan.",
-   "href": "https://mavely.app.link/gxEj4a9Cl8b",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-2-piece-tee-and-pants-set-jcpenney-1c0ef4.webp",
-   "store": "store-jcpenney",
-   "price": 33.74,
-   "priceAt": "2026-11-24",
-   "section": "Clothing and pajamas",
-   "sectionId": "mj-clothing-and-pajamas",
-   "was": 60.99,
-   "commission": 10.5,
-   "age": "kids",
-   "ownerAdd": true
-  },
-  {
    "id": "MJJ33",
    "name": "Monster Jam Boys' Fleece Pullover Hoodie",
    "brand": "Monster Jam",
@@ -2974,23 +2957,6 @@
    "section": "Clothing and pajamas",
    "sectionId": "mj-clothing-and-pajamas",
    "was": 50.99,
-   "commission": 10.5,
-   "age": "kids",
-   "ownerAdd": true
-  },
-  {
-   "id": "MJJ37",
-   "name": "Monster Jam Boys' Zip-Up Hooded Windbreaker Jacket",
-   "brand": "Monster Jam",
-   "line": "Monster Jam clothes for a truck fan.",
-   "href": "https://mavely.app.link/VJbgVSaDl8b",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-zip-up-hooded-windbreaker-jacket-jcpenney-23ad83.webp",
-   "store": "store-jcpenney",
-   "price": 29.98,
-   "priceAt": "2026-11-24",
-   "section": "Clothing and pajamas",
-   "sectionId": "mj-clothing-and-pajamas",
-   "was": 62.99,
    "commission": 10.5,
    "age": "kids",
    "ownerAdd": true
@@ -3370,7 +3336,8 @@
    "sectionId": "mj-clothing-and-pajamas",
    "was": 60.99,
    "commission": 16,
-   "age": "2T-5T"
+   "age": "2T-5T",
+   "ownerAdd": true
   },
   {
    "id": "MJS154",
@@ -3389,22 +3356,6 @@
    "age": "2T-4T"
   },
   {
-   "id": "MJS155",
-   "name": "Monster Jam Girls' Pullover Hoodie",
-   "brand": "Monster Jam",
-   "line": "Monster Jam clothes for a truck fan.",
-   "href": "https://go.shopmy.us/p-110717510",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-girls-pullover-hoodie-macys-430d21.webp",
-   "store": "store-macys",
-   "price": 34,
-   "priceAt": "2026-11-24",
-   "section": "Clothing and pajamas",
-   "sectionId": "mj-clothing-and-pajamas",
-   "was": 67.99,
-   "commission": 16,
-   "age": "girls"
-  },
-  {
    "id": "MJS156",
    "name": "Monster Jam Toddler Boys' Zip-Up Hooded Windbreaker Jacket",
    "brand": "Monster Jam",
@@ -3418,7 +3369,8 @@
    "sectionId": "mj-clothing-and-pajamas",
    "was": 57.99,
    "commission": 16,
-   "age": "2T-5T"
+   "age": "2T-5T",
+   "ownerAdd": true
   },
   {
    "id": "MJS157",
@@ -4184,23 +4136,6 @@
    "ownerAdd": true
   },
   {
-   "id": "MJ91",
-   "name": "Monster Jam Toddler Graphic Crewneck Sweatshirt",
-   "brand": "Monster Jam",
-   "line": "Monster Jam for the littlest fans.",
-   "href": "https://walmrt.us/4tdTPdP",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-toddler-graphic-crewneck-sweatshirt-walmart-deb54d.webp",
-   "store": "store-walmart",
-   "price": 6,
-   "priceAt": "2026-11-24",
-   "section": "Toddler picks",
-   "sectionId": "mj-toddler-picks",
-   "was": 13.98,
-   "commission": 15,
-   "age": "12m-5T",
-   "ownerAdd": true
-  },
-  {
    "id": "MJ92",
    "name": "Monster Jam Toddler Pajama Set, 2-Piece",
    "brand": "Monster Jam",
@@ -4535,6 +4470,34 @@
    "name": "Boys 4-10 Monster Jam 4-Piece Pajama Set",
    "why": [
     "pajama cap: at most 2 pajamas per price section (owner 11-20); Under $25 already has the Walmart 3-piece + robe and the Sparkle Smash set (lander3 11-25)"
+   ]
+  },
+  {
+   "id": "MJ91",
+   "name": "Monster Jam Toddler Graphic Crewneck Sweatshirt",
+   "why": [
+    "guides audit 1126: same Walmart sweatshirt (same photo, same $6) as MJO36, the link the owner sent"
+   ]
+  },
+  {
+   "id": "MJJ37",
+   "name": "Monster Jam Boys' Zip-Up Hooded Windbreaker Jacket",
+   "why": [
+    "guides audit 1126: same windbreaker as Macy's MJS156, which is cheaper ($29 vs $29.98) and earns more (16% vs 10.5%)"
+   ]
+  },
+  {
+   "id": "MJJ32",
+   "name": "Monster Jam Boys' 2-Piece Tee and Pants Set",
+   "why": [
+    "guides audit 1126: same tee and pants set as Macy's MJS153, which is cheaper ($30.50 vs $33.74) and earns more (16% vs 10.5%)"
+   ]
+  },
+  {
+   "id": "MJS155",
+   "name": "Monster Jam Girls' Pullover Hoodie",
+   "why": [
+    "guides audit 1126: same hoodie (same photo) as JCPenney MJJ16, which is cheaper ($19.99 vs $34)"
    ]
   }
  ]

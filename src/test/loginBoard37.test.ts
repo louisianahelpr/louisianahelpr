@@ -24,7 +24,7 @@
  * @mutate src/lib/i18n/enScreens.ts | "login.title": "Log in", | "login.title": "Log In",
  * @mutate src/lib/i18n/enScreens.ts |   "login.forgot": "Forgot password?", |   "login.forgot": "Forgot Password?",
  * @mutate src/components/auth/SocialAuthButtons.tsx |   const label = t("auth.continueWith", { provider: providerName }); |   const label = providerName;
- * @mutate src/pages/auth/Login.tsx |             className="w-full rounded-full"\n            size="lg" |             className="w-full rounded-ds-md"\n            size="lg"
+ * @mutate src/pages/auth/Login.tsx |             className="w-full rounded-full"\n            size="authMain" |             className="w-full rounded-ds-md"\n            size="authMain"
  * @mutate src/pages/auth/Login.tsx | <div className="grid gap-6 w-full [&>*]:min-w-0"> | <div className="grid gap-6 w-full">
  * @mutate src/components/auth/OrRule.tsx |     <div className="flex items-center gap-3"> |     <div className="flex items-center gap-3 lg:hidden">
  */

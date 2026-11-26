@@ -3155,6 +3155,17 @@ button,
     0 4px 12px -6px hsl(var(--olivewood) / 0.12);
 }
 
+/* Phone audit 11-25 #10: on a phone the auth card (Log in, Create account) is the page itself: no hairline, no
+   shadow and no side padding, so the form uses the full width under the tabs. From 480px it is the card again. */
+@media (max-width: 479px) {
+  .liquid-glass.auth-card {
+    border-color: transparent;
+    box-shadow: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
 /* Subtle paper-like depth for empty-state surfaces — barely-there
    radial verdigris-tinted gradient + a fine warm-charcoal pinpoint
    pattern. Together they read as light falling on a subtly-textured

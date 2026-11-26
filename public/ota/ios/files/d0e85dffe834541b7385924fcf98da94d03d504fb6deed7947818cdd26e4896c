@@ -1,0 +1,1 @@
+function e(e){return e.replace(/\s+/g,` `).trim().slice(0,80)}function t(t){let n=e(t),r=n?`?${new URLSearchParams({q:n}).toString()}`:``;return{signedIn:n?`/search${r}`:`/jobs`,signedOut:n?`/search${r}`:`/browse`}}export{t};

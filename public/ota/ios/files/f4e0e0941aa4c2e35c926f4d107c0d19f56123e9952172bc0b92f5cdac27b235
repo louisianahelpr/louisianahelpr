@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-XKyaHtl9.js";import{i as t,r as n}from"./react-vendor-DBuF32qy.js";var r=e(t(),1),i=n(),a=(0,r.forwardRef)((e,t)=>(0,i.jsx)(`button`,{ref:t,type:`button`,...e}));a.displayName=`PhotoOpenButton`;export{a as t};

@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <title>Louisiana Helpr — Louisiana's local partner.</title>
+    <meta name="p:domain_verify" content="4a7045b0180c2c15df06c4f2db199497"/>
+    <meta name="description" content="Hire help, find work, or buy and sell with real Louisiana neighbors. Everyday jobs and Declutter in one account, starting in New Iberia.">
+    <meta name="keywords" content="Louisiana Helprs, local jobs, Declutter, buy and sell used items, garage sale, yard work, moving help, errands, handyman, New Iberia, Delcambre, Acadiana">
+    <meta name="geo.region" content="US-LA">
+    <meta name="geo.placename" content="Louisiana">
+    <link rel="canonical" href="https://www.louisianahelpr.com">
+    <meta name="author" content="Louisiana Helpr" />
+    <meta name="fo-verify" content="df23e0ed-1167-4d92-9460-445fab2a2838" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#FFFFFF" />
+    <meta name="application-name" content="Louisiana Helpr" />
+    <meta name="lh-supabase-url" content="https://fncmgoasalhdgfwzhsqa.supabase.co" />
+    <meta name="lh-supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZuY21nb2FzYWxoZGdmd3poc3FhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NDY1NDMsImV4cCI6MjA5MzIyMjU0M30.87hwQ90vpGPtaoIe0JOJvH6oxmabeWRSpomP5hIkhpY" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Helpr" />
+    <meta name="apple-itunes-app" content="app-id=6754470134, app-argument=helpr://" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-gqGU6r9HbrUIpdPthhuPeXU+B2zcmZT1aAmpD4gchlU=' 'sha256-duvv7l/N2Dk2UPVHhqWrbfpf01OVN8op3f3mHhD90C4=' 'sha256-iM0f4+aBKl+E/kyF/rtYvwGr3DReX7pZBVOsJTHp8Hs=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-tOgkAt/SMBr74KOk0t7kmxkrjmJKHDuMUfyp42ar0/M=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-y1aXsC/o/rpfCYQZRJULEaEnE7AxBaPaSve8/k2wUC4=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' 'sha256-ldDEb7cz2Q5EmRdHpOg+df/dED81vDhVRuFf5p38GOM=' 'sha256-mTnxF+2o2IOA+O6CdKvNm9CyJlzgk3lwnFgCnXpeBq8=' 'sha256-9SK0q+p0IVew/V7KKZOWJ7JAfavBLHPr19zewHZtet8=' 'sha256-y6aFXodIjzQ1oBnBnfRU4A587k5dKqrsMiv3dZYq0Yk=' 'sha256-CNL6CFgEbleCRr+8NMiY+WUFWOKxd+yxCbeOhrHTGYE=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://www.louisianahelpr.com https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="shortcut icon" href="/favicon-32.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/bodoni-moda-normal-latin.woff2"
+      crossorigin
+      data-lh-hero-font
+      media="not all"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/montserrat-normal-latin-core.woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/bodoni-moda-italic-latin.woff2"
+      crossorigin
+      data-lh-hero-font
+      media="not all"
+    />
+    <script>
+      (function () {
+        var path = location.pathname.replace(/\/+$/, "") || "/";
+        if (path !== "/") {
+          if (/local partner\.$/.test(document.title)) document.title = "Louisiana Helpr";
+          if (path !== "/sponsor" && path !== "/25days") return;
+        }
+        var fonts = document.querySelectorAll("link[data-lh-hero-font]");
+        for (var i = 0; i < fonts.length; i++) fonts[i].media = "all";
+      })();
+    </script>
+    <link rel="preconnect" href="https://fncmgoasalhdgfwzhsqa.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://fncmgoasalhdgfwzhsqa.supabase.co" />
+    <link id="emblem-preload" rel="preload" as="image" media="not all"
+          href="/assets/helpr-logo-256-7lzBG8jC.webp"
+          imagesrcset="/assets/helpr-logo-96-C77gmY--.webp 96w, /assets/helpr-logo-256-7lzBG8jC.webp 256w"
+          imagesizes="40px" />
+    <script>
+      (function () {
+        var noEmblem = ["/signup-pending", "/complete-profile", "/account-banned", "/forgot-password", "/reset-password", "/payment-success", "/unsubscribe"];
+        var cardEmblem = ["/login", "/signup"];
+        var link = document.getElementById("emblem-preload");
+        var path = location.pathname.replace(/\/+$/, "") || "/";
+        if (link && cardEmblem.indexOf(path) !== -1) link.setAttribute("imagesizes", "56px");
+        if (link && noEmblem.indexOf(path) === -1) link.media = "all";
+      })();
+    </script>
+    <link rel="dns-prefetch" href="https://o4511265714601984.ingest.us.sentry.io" />
+    <link rel="dns-prefetch" href="https://us.i.posthog.com" />
+    <link rel="dns-prefetch" href="https://us-assets.i.posthog.com" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.louisianahelpr.com" />
+    <meta property="og:title" content="Louisiana Helpr — Louisiana's local partner." />
+    <meta property="og:description" content="Hire help, find work, or buy and sell. One account, real Louisiana neighbors." />
+    <meta property="og:image" content="https://www.louisianahelpr.com/og-image.png?v=h3" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Helpr mark — an ornate wrought-iron letter H with a fleur-de-lis at its centre" />
+    <meta property="og:site_name" content="Louisiana Helpr" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://www.louisianahelpr.com" />
+    <meta name="twitter:title" content="Louisiana Helpr — Louisiana's local partner." />
+    <meta name="twitter:description" content="Hire help, find work, or buy and sell. One account, real Louisiana neighbors." />
+    <meta name="twitter:image" content="https://www.louisianahelpr.com/og-image.png?v=h3" />
+    <meta name="twitter:image:alt" content="The Helpr mark — an ornate wrought-iron letter H with a fleur-de-lis at its centre" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "@id": "https://www.louisianahelpr.com/#business",
+      "name": "Louisiana Helpr",
+      "description": "Louisiana's local marketplace: hire neighbors for yard work, moving, errands and more, or buy and sell used items on Declutter.",
+      "url": "https://www.louisianahelpr.com",
+      "logo": "https://www.louisianahelpr.com/pwa-512x512-v2.png",
+      "image": "https://www.louisianahelpr.com/pwa-512x512-v2.png",
+      "priceRange": "$$",
+      "areaServed": [
+        { "@type": "State", "name": "Louisiana", "sameAs": "https://en.wikipedia.org/wiki/Louisiana" },
+        { "@type": "City", "name": "New Orleans", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Baton Rouge", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Shreveport", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Lafayette", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Lake Charles", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Kenner", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Bossier City", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Monroe", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Alexandria", "containedInPlace": { "@type": "State", "name": "Louisiana" } },
+        { "@type": "City", "name": "Houma", "containedInPlace": { "@type": "State", "name": "Louisiana" } }
+      ],
+      "geo": { "@type": "GeoCoordinates", "latitude": 30.9843, "longitude": -91.9623 },
+      "address": { "@type": "PostalAddress", "addressRegion": "LA", "addressCountry": "US" },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "opens": "00:00",
+        "closes": "23:59"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://www.louisianahelpr.com/#website",
+      "name": "Louisiana Helpr",
+      "url": "https://www.louisianahelpr.com"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://www.louisianahelpr.com/#organization",
+      "name": "Louisiana Helpr",
+      "legalName": "Helpr LLC",
+      "url": "https://www.louisianahelpr.com",
+      "logo": "https://www.louisianahelpr.com/pwa-512x512-v2.png",
+      "description": "Louisiana's local marketplace: hire neighbors for yard work, moving, errands and more, or buy and sell used items on Declutter.",
+      "email": "admin@louisianahelpr.com",
+      "foundingDate": "2026",
+      "areaServed": { "@type": "State", "name": "Louisiana" },
+      "address": { "@type": "PostalAddress", "addressRegion": "LA", "addressCountry": "US" },
+      "sameAs": ["https://www.facebook.com/louisianahelpr", "https://www.instagram.com/louisianahelpr/"]
+    }
+    </script>
+    <script>
+      (function () {
+        try {
+          var probeKey = "__helpr_boot_storage_probe__";
+          window.localStorage.setItem(probeKey, "1");
+          window.localStorage.removeItem(probeKey);
+        } catch (e) {
+          var mem = Object.create(null);
+          var memoryStorage = {
+            getItem: function (key) {
+              return Object.prototype.hasOwnProperty.call(mem, key) ? mem[key] : null;
+            },
+            setItem: function (key, value) {
+              mem[key] = String(value);
+            },
+            removeItem: function (key) {
+              delete mem[key];
+            },
+            clear: function () {
+              mem = Object.create(null);
+            },
+            key: function (index) {
+              var keys = Object.keys(mem);
+              return index >= 0 && index < keys.length ? keys[index] : null;
+            },
+            get length() {
+              return Object.keys(mem).length;
+            },
+          };
+          try {
+            Object.defineProperty(window, "localStorage", {
+              value: memoryStorage,
+              writable: false,
+              configurable: true,
+            });
+          } catch (e2) {
+            /* A browser that won't even let us redefine the property is
+               beyond what this page can repair — nothing further to try. */
+          }
+        }
+      })();
+    </script>
+    <meta name="lh-signed-in-prefetch" content="/assets/signedInPrefetch-1UmBMxM4.js" />
+    <script>
+      (function () {
+        var meta = document.querySelector('meta[name="lh-signed-in-prefetch"]');
+        var src = meta && meta.getAttribute("content");
+        var path = location.pathname;
+        if (!src || !/^\/(home|jobs)?\/?$/.test(path)) return;
+        try {
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (!k || k.indexOf("sb-") !== 0 || !/-auth-token$/.test(k)) continue;
+            var live = JSON.parse(localStorage.getItem(k) || "null");
+            if (!live || typeof live.access_token !== "string" || typeof live.expires_at !== "number" || !live.user || typeof live.user.id !== "string") return;
+            if (live.expires_at - Date.now() / 1000 <= 60) return;
+            import(src).then(function (m) { m.startSignedInPrefetch(path); }, function () { /* speculative: the entry starts it */ });
+            return;
+          }
+        } catch (e) {
+          /* storage blocked or unreadable: the entry starts the reads as before */
+        }
+      })();
+    </script>
+    <script>
+      (function () {
+        var FLAG = "helpr_chunk_reload_at";
+        var COUNT = "helpr_chunk_reload_count";
+        var fired = false;
+        // The chunk whose load failed. WebKit keeps that failure in its
+        // in-memory cache and replays it to the next document in the same
+        // process without asking the server, so a reload (automatic or Try
+        // Again) failed on the same file even after the network or deploy
+        // was fine again: measured in Playwright WebKit, only index-*.js
+        // reached the server on the retry. reloadFresh refetches it first.
+        var failedSrc = "";
+        // BEGIN decideChunkReload (mirror of src/lib/chunkReload.ts)
+        function decide(count, last, now, offline) {
+          var SCHEDULE = [0, 5000, 15000, 40000];
+          if (offline) return -1;
+          if (last > 0 && now - last > 300000) { count = 0; last = 0; }
+          if (count >= SCHEDULE.length) return -1;
+          var wait = count === 0 ? 0 : SCHEDULE[count] - (now - last);
+          return wait > 0 ? wait : 0;
+        }
+        // END decideChunkReload
+        function readState() {
+          var count = 0, last = 0;
+          try {
+            last = Number(sessionStorage.getItem(FLAG) || "0") || 0;
+            var raw = sessionStorage.getItem(COUNT);
+            count = Number(raw || "0") || 0;
+            if (last > 0 && raw === null && count < 1) count = 1;
+          } catch (e) { /* no storage: fresh, and writeAttempt fails closed */ }
+          return { count: count, last: last };
+        }
+        function writeAttempt(n) {
+          try {
+            sessionStorage.setItem(FLAG, String(Date.now()));
+            sessionStorage.setItem(COUNT, String(n));
+            return sessionStorage.getItem(COUNT) === String(n);
+          } catch (e) { return false; }
+        }
+        function recentRecoveryReload() {
+          try {
+            var v = Number(new URL(location.href).searchParams.get("_v") || "0") || 0;
+            return v > 0 && Date.now() - v <= 300000;
+          } catch (e) { return true; }
+        }
+        function booted() {
+          return !document.getElementById("boot-loader");
+        }
+        function reloadFresh() {
+          var go = function () {
+            var u = new URL(window.location.href);
+            u.searchParams.set("_v", String(Date.now()));
+            window.location.replace(u.toString());
+          };
+          var tasks = [];
+          try {
+            if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+              tasks.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+                return Promise.all(rs.map(function (r) { return r.unregister().catch(function () {}); }));
+              }).catch(function () {}));
+            }
+            if (window.caches) {
+              tasks.push(caches.keys().then(function (ks) {
+                return Promise.all(ks.map(function (k) { return caches.delete(k).catch(function () {}); }));
+              }).catch(function () {}));
+            }
+            if (failedSrc && typeof fetch === "function") {
+              tasks.push(fetch(failedSrc, { cache: "reload", credentials: "same-origin" }).catch(function () {}));
+            }
+          } catch (e) { /* proceed to reload */ }
+          // Never wait forever on the cleanup: a request that stalled once
+          // (the stall path) can stall again, and then nothing would reload.
+          var gone = false;
+          var once = function () { if (!gone) { gone = true; go(); } };
+          setTimeout(once, 3000);
+          Promise.all(tasks).then(once, once);
+        }
+        // Q229: the failure is sent NOW, straight to error_logs (the anon
+        // insert policy anyone_can_insert_errors; same request errorLogger's
+        // postRows makes), so it reaches the owner even when this device
+        // never boots again. The localStorage record stays as the fallback:
+        // main.tsx reports it on the next good boot unless `sent` is true.
+        // Local hosts never post (errorLogger skips them too), so e2e runs
+        // against a local build do not write to prod.
+        function saveRecord(rec) {
+          try { localStorage.setItem("helpr_boot_failure", JSON.stringify(rec)); } catch (e) { /* storage blocked */ }
+        }
+        function post(row, onOk) {
+          // 11-17: a link scanner posing as "Firefox/116.0" sent 19 boot rows
+          // with url and route null. A real browser's location.pathname is
+          // always a string; an emulated one that lacks it is not a person.
+          if (typeof location.pathname !== "string") return;
+          var h = location.hostname;
+          if (h === "localhost" || h === "127.0.0.1" || /\.local$/.test(h)) return;
+          var m = function (n) { var el = document.querySelector('meta[name="' + n + '"]'); return el ? el.getAttribute("content") || "" : ""; };
+          var base = m("lh-supabase-url"), key = m("lh-supabase-key");
+          if (!/^https:\/\//.test(base) || !key || key.charAt(0) === "%" || typeof fetch !== "function") return;
+          try {
+            fetch(base.replace(/\/$/, "") + "/rest/v1/error_logs", {
+              method: "POST",
+              keepalive: true,
+              headers: { apikey: key, Authorization: "Bearer " + key, "Content-Type": "application/json", "Content-Profile": "public", Prefer: "return=minimal" },
+              body: JSON.stringify(row)
+            }).then(function (r) {
+              if (onOk && r && r.status >= 200 && r.status < 300) onOk();
+            }, function () { /* network down: nothing more to do here */ });
+          } catch (e) { /* never break the boot over a log row */ }
+        }
+        function beacon(rec) {
+          var screen = String(rec.url || "").split("?")[0];
+          post({
+            user_id: null, severity: "error",
+            message: "Boot failed: entry module graph did not load (" + rec.src + ")",
+            stack: null, url: rec.url, user_agent: navigator.userAgent,
+            tags: { source: "BootWatchdog", kind: "user-error-screen", route: rec.url, screen: screen, via: "inline-beacon" },
+            context: { failedAt: rec.at }
+          }, function () { rec.sent = true; saveRecord(rec); });
+        }
+        function showFailure(src, offline) {
+          var rec = { at: Date.now(), src: src, offline: offline, url: location.pathname };
+          saveRecord(rec);
+          if (!offline) beacon(rec);
+          var paint = function () {
+            var el = document.getElementById("boot-loader");
+            if (!el) return;
+            el.setAttribute("role", "alert");
+            el.setAttribute("aria-label", offline ? "You're offline." : "Helpr couldn't load.");
+            el.innerHTML =
+              '<div style="max-width:320px;padding:24px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:#2E2F22">' +
+              '<h1 style="margin:0 0 8px;font-size:22px;font-weight:700;line-height:1.25">' +
+              (offline ? "You're offline." : "Helpr couldn't load.") + "</h1>" +
+              '<p style="margin:0 0 20px;font-size:15px;line-height:1.5;opacity:.8">' +
+              (offline ? "Reconnect and try again." : "We've logged it. Check your connection and try again.") + "</p>" +
+              '<button type="button" id="boot-retry" style="min-height:44px;padding:0 22px;border:0;border-radius:12px;background:#2E2F22;color:#fff;font-size:15px;font-weight:600;cursor:pointer">Try Again</button>' +
+              "</div>";
+            var b = document.getElementById("boot-retry");
+            if (b) b.addEventListener("click", reloadFresh);
+          };
+          if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", paint);
+          else paint();
+        }
+        function recover(path) {
+          fired = true;
+          failedSrc = path;
+          var offline = navigator.onLine === false;
+          var st = readState();
+          var wait = decide(st.count, st.last, Date.now(), offline);
+          if (wait < 0) {
+            // Spent: keep the episode alive, as recoverFromChunkError does.
+            if (!offline) { try { sessionStorage.setItem(FLAG, String(Date.now())); } catch (e) { /* ignore */ } }
+            showFailure(path, offline);
+            return;
+          }
+          setTimeout(function () {
+            // Without storage the counter cannot cap anything, so only a
+            // first attempt, from a page that is not itself a recovery
+            // reload, may go ahead: fail closed, never loop.
+            if (!writeAttempt(st.count + 1) && (st.count > 0 || recentRecoveryReload())) {
+              showFailure(path, false);
+              return;
+            }
+            reloadFresh();
+          }, wait);
+        }
+        // Q2818: a stall with NOTHING unfinished (11-17: /sponsor and
+        // /gift-guides, "unfinished: 0", each cured by the reload) left no
+        // clue. An uncaught error or rejection before the app's first commit
+        // is kept here and sent with the stall row, and it means the entry
+        // will not boot on its own: earlyCheck() below reloads at once.
+        var preBootErrors = [];
+        function notePreBoot(msg) {
+          if (fired || booted() || preBootErrors.length >= 3) return;
+          preBootErrors.push(String(msg || "unknown").slice(0, 200));
+        }
+        window.addEventListener("unhandledrejection", function (ev) {
+          var r = ev && ev.reason;
+          notePreBoot("rejection: " + ((r && r.message) || r));
+        });
+        window.addEventListener("error", function (ev) {
+          var t = ev.target;
+          if (!t || t === window || !t.tagName) { notePreBoot(ev.message); return; }
+          if (fired) return;
+          var src = (t.tagName === "SCRIPT" && t.src) || (t.tagName === "LINK" && t.href) || "";
+          if (!src) return;
+          if (t.hasAttribute("data-lh-page-preload")) return;
+          var u;
+          try { u = new URL(src, location.href); } catch (e) { return; }
+          if (u.origin !== location.origin || u.pathname.indexOf("/assets/") !== 0 || !/\.js$/.test(u.pathname)) return;
+          if (document.readyState !== "loading" && booted()) return;
+          recover(u.pathname);
+        }, true);
+        // A STALL never fires "error" (owner, 2026-10-09: a Facebook link sat
+        // on the H + bar until a manual refresh). Still on the boot screen
+        // after STALL_MS, visible and online: log which /assets/ scripts never
+        // finished, then take the same budgeted fresh reload the error path
+        // takes. A hidden tab is re-checked when it is looked at, never reloaded.
+        var STALL_MS = 20000;
+        function unfinished() {
+          var done = {}, out = [];
+          try {
+            performance.getEntriesByType("resource").forEach(function (e) {
+              try { if (e.responseEnd > 0) done[new URL(e.name).pathname] = 1; } catch (x) { /* skip */ }
+            });
+          } catch (e) { /* no timing API: report none */ }
+          var els = document.querySelectorAll('script[src*="/assets/"], link[rel="modulepreload"][href*="/assets/"]');
+          for (var i = 0; i < els.length; i++) {
+            var p;
+            try { p = new URL(els[i].getAttribute("src") || els[i].getAttribute("href"), location.href).pathname; } catch (e) { continue; }
+            if (!done[p] && out.indexOf(p) < 0) out.push(p);
+          }
+          return out;
+        }
+        function stallCheck(early) {
+          if (fired || booted()) return;
+          if (document.visibilityState === "hidden") { setTimeout(stallCheck, 5000); return; }
+          if (navigator.onLine === false) { setTimeout(stallCheck, 5000); return; }
+          var pending = unfinished();
+          // Q1633: the message names the CLASS, not the files. Hashed chunk
+          // names change every deploy, and the ledger keys an item on the
+          // message, so each stall opened a new item and the old one closed
+          // on quiet. The files stay in context.pending.
+          post({
+            user_id: null, severity: "error",
+            message: "Boot stalled " + ((early === true ? EARLY_MS : STALL_MS) / 1000) + "s on the startup screen (boot scripts unfinished: " + pending.length + ")",
+            stack: null, url: location.pathname, user_agent: navigator.userAgent,
+            tags: { source: "BootWatchdog", kind: "boot-stall", route: location.pathname, screen: location.pathname, via: "inline-beacon" },
+            context: {
+              pending: pending, readyState: document.readyState, attempt: readState().count,
+              early: early === true, entryRan: !!window.__lhEntryRan, errors: preBootErrors,
+              webdriver: navigator.webdriver === true, focused: typeof document.hasFocus === "function" ? document.hasFocus() : null
+            }
+          });
+          try { sessionStorage.setItem(STALL_FLAG, String(Date.now())); } catch (e) { /* no storage: no recovery report */ }
+          recover(pending[0] || "");
+        }
+        // Q1633: did the reload after a stall boot? A stall row alone cannot
+        // tell a network stall the reload cured from a visitor who gave up.
+        // The page after a stall reports once, as info, when it boots.
+        var STALL_FLAG = "helpr_boot_stall_at";
+        function stallRecoveredCheck(left) {
+          var at = 0;
+          try { at = Number(sessionStorage.getItem(STALL_FLAG) || "0") || 0; } catch (e) { return; }
+          if (!at) return;
+          // Older than one recovery episode: not this stall's reload.
+          if (Date.now() - at > 300000) { try { sessionStorage.removeItem(STALL_FLAG); } catch (e) { /* ignore */ } return; }
+          // In <head>, #boot-loader is not parsed yet: absent is not booted.
+          if (document.readyState === "loading" || !booted()) { if (left > 0) setTimeout(function () { stallRecoveredCheck(left - 1); }, 500); return; }
+          try { sessionStorage.removeItem(STALL_FLAG); } catch (e) { /* ignore */ }
+          post({
+            user_id: null, severity: "info",
+            message: "Boot recovered after a stall (reload attempt " + readState().count + ")",
+            stack: null, url: location.pathname, user_agent: navigator.userAgent,
+            tags: { source: "BootWatchdog", kind: "boot-stall-recovered", route: location.pathname, screen: location.pathname, via: "inline-beacon" },
+            context: { stalledAt: at, recoveredAfterMs: Date.now() - at }
+          });
+        }
+        // Q2818: every boot script has arrived (nothing unfinished) and the
+        // entry module either threw or never started (main.tsx sets
+        // window.__lhEntryRan first thing): nothing is left to wait for, so
+        // waiting the full STALL_MS only keeps the visitor on the H. Take the
+        // same budgeted reload now. A slow download still gets the full
+        // STALL_MS: this only fires when nothing is downloading.
+        var EARLY_MS = 8000;
+        function earlyCheck() {
+          if (fired || booted() || document.readyState === "loading") return;
+          if (document.visibilityState === "hidden" || navigator.onLine === false) return;
+          if (window.__lhEntryRan && !preBootErrors.length) return;
+          if (unfinished().length) return;
+          stallCheck(true);
+        }
+        stallRecoveredCheck(STALL_MS / 500);
+        setTimeout(earlyCheck, EARLY_MS);
+        setTimeout(stallCheck, STALL_MS);
+      })();
+    </script>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("helpr-theme") || "system";
+          var resolved =
+            t === "system"
+              ? window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
+              : t;
+          document.documentElement.setAttribute("data-theme", resolved);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
+    <script>
+      (function () {
+        if ((location.pathname.replace(/\/+$/, "") || "/") !== "/" || window.Capacitor || location.protocol === "capacitor:") return;
+        try {
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && k.indexOf("sb-") === 0 && k.slice(-11) === "-auth-token") return;
+          }
+        } catch (e) {
+          return;
+        }
+        document.documentElement.setAttribute("data-lh-landing-shell", "");
+        setTimeout(function () {
+          var el = document.getElementById("lh-landing-shell");
+          if (el) el.remove();
+        }, 10000);
+      })();
+    </script>
+    <script>
+      (function () {
+        var page = { "/login": "login", "/signup": "signup" }[location.pathname.replace(/\/+$/, "")];
+        if (!page || location.search || location.hash || window.Capacitor || location.protocol === "capacitor:") return;
+        try {
+          var lang = localStorage.getItem("helpr_lang");
+          if (lang === "es" || (lang !== "en" && /^es/i.test(navigator.language || ""))) return;
+          for (var i = 0; i < localStorage.length; i++) {
+            var key = localStorage.key(i) || "";
+            if (key.indexOf("sb-") === 0 && key.slice(-11) === "-auth-token") return;
+          }
+        } catch (e) {
+          return;
+        }
+        document.documentElement.setAttribute("data-lh-auth-shell", page);
+        setTimeout(function () {
+          var el = document.getElementById("lh-" + page + "-shell");
+          if (el) el.remove();
+        }, 10000);
+      })();
+    </script>
+    <script>
+      (function () {
+        var page = { "/home": "home", "/jobs": "jobs", "/messages": "messages", "/declutter": "declutter" }[location.pathname.replace(/\/+$/, "") || "/"];
+        if (!page) return;
+        if (location.search || location.hash || window.Capacitor || location.protocol === "capacitor:" || window.innerWidth >= 900) return;
+        var stored = false;
+        try {
+          if (page === "messages" || page === "declutter") {
+            var lang = localStorage.getItem("helpr_lang");
+            if (lang === "es" || (lang !== "en" && /^es/i.test(navigator.language || ""))) return;
+          }
+          for (var n = 0; n < localStorage.length; n++) {
+            var name = localStorage.key(n) || "";
+            if (name.slice(0, 3) === "sb-" && /-auth-token$/.test(name)) stored = true;
+            if (page === "declutter" && name.indexOf("helpr_section_prefs:") === 0) return;
+          }
+        } catch (e) {
+          return;
+        }
+        if (!stored) return;
+        document.documentElement.setAttribute("data-lh-app-shell", page);
+        setTimeout(function () {
+          var el = document.getElementById("lh-" + page + "-shell");
+          if (el) el.remove();
+        }, 10000);
+      })();
+    </script>
+    <script>
+      (function () {
+        if ((location.pathname.replace(/\/+$/, "") || "/") !== "/declutter" || window.Capacitor || location.protocol === "capacitor:") return;
+        if (typeof fetch !== "function" || typeof Promise !== "function") return;
+        function m(n) {
+          var el = document.querySelector('meta[name="' + n + '"]');
+          return (el && el.getAttribute("content")) || "";
+        }
+        var base = m("lh-supabase-url").replace(/\/$/, "");
+        var key = m("lh-supabase-key");
+        if (!/^https?:\/\/[^%]+$/.test(base) || !key || key.indexOf("%") !== -1) return;
+        var prefs = false;
+        try {
+          for (var n = 0; n < localStorage.length; n++) {
+            var name = localStorage.key(n) || "";
+            if (name.slice(0, 3) === "sb-" && /-auth-token$/.test(name)) return;
+            if (name.indexOf("helpr_section_prefs:") === 0) prefs = true;
+          }
+          var lang = localStorage.getItem("helpr_lang");
+        } catch (e) {
+          return;
+        }
+        function rpc(fn) {
+          return fetch(base + "/rest/v1/rpc/" + fn + "?apikey=" + encodeURIComponent(key))
+            .then(function (r) {
+              return r.ok ? r.json() : null;
+            })
+            .catch(function () {
+              return null;
+            });
+        }
+        var open = rpc("features_open_to_everyone");
+        var preview = rpc("declutter_guest_preview");
+        window.__lhGuestDeclutterEarly = { at: Date.now(), open: open, preview: preview };
+        if (location.search || location.hash || window.innerWidth >= 900 || prefs) return;
+        if (lang === "es" || (lang !== "en" && /^es/i.test(navigator.language || ""))) return;
+        var early = false;
+        if (!document.documentElement.getAttribute("data-lh-app-shell")) {
+          early = true;
+          document.documentElement.setAttribute("data-lh-app-shell", "declutter");
+          document.documentElement.setAttribute("data-lh-declutter-guest", "");
+        }
+        function unshow() {
+          if (early && document.documentElement.getAttribute("data-lh-app-shell") === "declutter") document.documentElement.removeAttribute("data-lh-app-shell");
+          document.documentElement.removeAttribute("data-lh-declutter-guest");
+        }
+        var root = base + "/storage/v1/render/image/public/job-photos/";
+        function url(path, px) {
+          return root + path + "?width=" + px + "&height=" + px + "&resize=cover&quality=55";
+        }
+        function usable(path) {
+          return typeof path === "string" && path.indexOf("/") > 0 && path.indexOf("..") === -1 && /^[A-Za-z0-9_.\/-]+$/.test(path);
+        }
+        var slots = [];
+        function startPhotos(paths) {
+          var row = [];
+          var later = [];
+          for (var s = 0; s < paths.length && s < 4; s++) {
+            if (!usable(paths[s])) continue;
+            var img = document.createElement("img");
+            img.setAttribute("alt", "");
+            img.setAttribute("width", "480");
+            img.setAttribute("height", "480");
+            img.setAttribute("decoding", "async");
+            img.className = "relative h-full w-full object-cover";
+            slots.push({ at: s, img: img });
+            (s < 2 ? row : later).push({ img: img, path: paths[s] });
+          }
+          var waiting = row.length;
+          var started = false;
+          function load(x, high) {
+            x.img.setAttribute("loading", "eager");
+            if (high) x.img.setAttribute("fetchpriority", "high");
+            x.img.setAttribute("sizes", "(min-width: 640px) 250px, calc(50vw - 26px)");
+            x.img.setAttribute("srcset", url(x.path, 340) + " 340w, " + url(x.path, 480) + " 480w");
+            x.img.setAttribute("src", url(x.path, 480));
+          }
+          function rest() {
+            if (started) return;
+            started = true;
+            for (var j = 0; j < later.length; j++) load(later[j], false);
+          }
+          function done() {
+            if (--waiting <= 0) rest();
+          }
+          for (var r = 0; r < row.length; r++) {
+            row[r].img.addEventListener("load", done);
+            row[r].img.addEventListener("error", done);
+            load(row[r], true);
+          }
+          if (!waiting) rest();
+          setTimeout(rest, 3000);
+        }
+        function placeAndShow() {
+          var tries = 0;
+          (function place() {
+            var shell = document.getElementById("lh-declutter-shell");
+            if (!shell) {
+              if (document.readyState === "loading" && tries++ < 400) setTimeout(place, 25);
+              else unshow();
+              return;
+            }
+            var html = document.documentElement;
+            var mark = html.getAttribute("data-lh-app-shell");
+            if (mark && mark !== "declutter") return;
+            var tiles = shell.querySelectorAll("ul > li");
+            for (var i = 0; i < slots.length; i++) {
+              var li = tiles[slots[i].at];
+              var tile = li && li.firstElementChild;
+              if (!tile || slots[i].img.parentNode) continue;
+              tile.className = "relative overflow-hidden aspect-[3/4] w-full rounded-2xl bg-photo-empty lg:aspect-square";
+              tile.removeAttribute("data-skeleton");
+              tile.appendChild(slots[i].img);
+            }
+            if (slots.length) shell.setAttribute("data-lh-photos", "");
+            if (mark === "declutter" && !early) return;
+            early = false;
+            html.setAttribute("data-lh-app-shell", "declutter");
+            setTimeout(function () {
+              var el = document.getElementById("lh-declutter-shell");
+              if (el) el.remove();
+            }, 10000);
+          })();
+        }
+        function isOpen(o) {
+          return !!o && typeof o.indexOf === "function" && o.indexOf("declutter") !== -1;
+        }
+        Promise.all([open, preview]).then(function (a) {
+          var p = a[1];
+          if (!isOpen(a[0]) || !p || !p.items || !p.photos || !p.items.length || typeof p.photos.length !== "number") return unshow();
+          var first = {};
+          for (var i = 0; i < p.photos.length; i++) {
+            var ph = p.photos[i] || {};
+            if (typeof ph.item_id === "string" && typeof ph.storage_path === "string" && !first.hasOwnProperty(ph.item_id)) first[ph.item_id] = ph.storage_path;
+          }
+          var list = [];
+          for (var s = 0; s < p.items.length && s < 4; s++) list.push(typeof (p.items[s] || {}).id === "string" ? first[p.items[s].id] : "");
+          startPhotos(list);
+          placeAndShow();
+        });
+      })();
+    </script>
+    <script>
+      (function () {
+        if ((location.pathname.replace(/\/+$/, "") || "/") !== "/declutter" || window.Capacitor || location.protocol === "capacitor:") return;
+        if (typeof fetch !== "function" || typeof Promise !== "function") return;
+        function m(n) {
+          var el = document.querySelector('meta[name="' + n + '"]');
+          return (el && el.getAttribute("content")) || "";
+        }
+        var base = m("lh-supabase-url").replace(/\/$/, "");
+        var key = m("lh-supabase-key");
+        if (!/^https?:\/\/[^%]+$/.test(base) || !key || key.indexOf("%") !== -1) return;
+        var s = null;
+        var prefs = false;
+        try {
+          for (var n = 0; n < localStorage.length; n++) {
+            var name = localStorage.key(n) || "";
+            if (!s && name.slice(0, 3) === "sb-" && /-auth-token$/.test(name)) s = JSON.parse(localStorage.getItem(name) || "null");
+            if (name.indexOf("helpr_section_prefs:") === 0) prefs = true;
+          }
+          var lang = localStorage.getItem("helpr_lang");
+          var map = localStorage.getItem("helpr.declutterPhoneView") === "map";
+        } catch (e) {
+          return;
+        }
+        if (!s || typeof s.access_token !== "string" || typeof s.expires_at !== "number" || !s.user || typeof s.user.id !== "string") return;
+        if (s.expires_at - Date.now() / 1000 <= 60) return;
+        var me = s.user.id;
+        var keys = ["instant_book", "switch_canary", "declutter", "declutter_moving_out", "suggest_category", "memberships", "quotes", "declutter_wanted", "declutter_price_hint", "shops", "declutter_haul_away", "declutter_add_helpr", "declutter_manager", "rentals", "jobs_poster_fee", "applicant_proof", "job_reach", "declutter_seller_delivery", "come_back_emails", "refund_requests", "sms_alerts", "payout_setup", "identity_check", "paypal_payments", "payout_after_hire", "checkout_nudge", "confirm_reminders", "scanner_safe_confirm_links", "declutter_refund_requests", "card_hold_at_post", "declutter_shipping", "ai_support_answers", "sponsor_25days"];
+        var answer = fetch(base + "/rest/v1/rpc/declutter_first_screen", {
+          method: "POST",
+          headers: { apikey: key, Authorization: "Bearer " + s.access_token, "Content-Type": "application/json" },
+          body: JSON.stringify({ p_switch_keys: keys }),
+        })
+          .then(function (r) {
+            return r.ok ? r.json() : null;
+          })
+          .catch(function () {
+            return null;
+          });
+        window.__lhMemberDeclutterEarly = { at: Date.now(), userId: me, keys: keys.join(","), answer: answer };
+        if (location.search || location.hash || window.innerWidth >= 900 || prefs || map) return;
+        if (lang === "es" || (lang !== "en" && /^es/i.test(navigator.language || ""))) return;
+        if (document.documentElement.getAttribute("data-lh-app-shell") !== "declutter") return;
+        var root = base + "/storage/v1/render/image/public/job-photos/";
+        function url(path, px) {
+          return root + path + "?width=" + px + "&height=" + px + "&resize=cover&quality=55";
+        }
+        function usable(path) {
+          return typeof path === "string" && path.indexOf("/") > 0 && path.indexOf("..") === -1 && /^[A-Za-z0-9_.\/-]+$/.test(path);
+        }
+        answer.then(function (a) {
+          if (!a || !a.items || !a.photos || typeof a.items.length !== "number" || typeof a.photos.length !== "number") return;
+          if (document.documentElement.getAttribute("data-lh-app-shell") !== "declutter") return;
+          var shell = document.getElementById("lh-declutter-shell");
+          if (!shell) return;
+          var tiles = shell.querySelectorAll("ul > li");
+          var first = {};
+          for (var i = 0; i < a.photos.length; i++) {
+            var ph = a.photos[i] || {};
+            if (typeof ph.item_id === "string" && typeof ph.storage_path === "string" && !first.hasOwnProperty(ph.item_id)) first[ph.item_id] = ph.storage_path;
+          }
+          var row = [];
+          var later = [];
+          var slot = 0;
+          for (var j = 0; j < a.items.length && slot < 4; j++) {
+            var it = a.items[j] || {};
+            if (typeof it.id !== "string" || it.seller_id === me) continue;
+            var at = slot++;
+            var li = tiles[at];
+            var tile = li && li.firstElementChild;
+            if (!tile || !usable(first[it.id])) continue;
+            var img = document.createElement("img");
+            img.setAttribute("alt", "");
+            img.setAttribute("width", "480");
+            img.setAttribute("height", "480");
+            img.setAttribute("decoding", "async");
+            img.className = "relative h-full w-full object-cover";
+            tile.className = "relative overflow-hidden aspect-[3/4] w-full rounded-2xl bg-photo-empty lg:aspect-square";
+            tile.removeAttribute("data-skeleton");
+            tile.appendChild(img);
+            (at < 2 ? row : later).push({ img: img, path: first[it.id] });
+          }
+          var waiting = row.length;
+          var started = false;
+          function load(x, high) {
+            x.img.setAttribute("loading", "eager");
+            if (high) x.img.setAttribute("fetchpriority", "high");
+            x.img.setAttribute("sizes", "(min-width: 640px) 250px, calc(50vw - 26px)");
+            x.img.setAttribute("srcset", url(x.path, 340) + " 340w, " + url(x.path, 480) + " 480w");
+            x.img.setAttribute("src", url(x.path, 480));
+          }
+          function rest() {
+            if (started) return;
+            started = true;
+            for (var k = 0; k < later.length; k++) load(later[k], false);
+          }
+          function done() {
+            if (--waiting <= 0) rest();
+          }
+          for (var r = 0; r < row.length; r++) {
+            row[r].img.addEventListener("load", done);
+            row[r].img.addEventListener("error", done);
+            load(row[r], true);
+          }
+          if (!waiting) rest();
+          setTimeout(rest, 3000);
+          if (row.length || later.length) shell.setAttribute("data-lh-photos", "");
+        });
+      })();
+    </script>
+    <script>
+      (function () {
+        var html = document.documentElement;
+        if (html.getAttribute("data-lh-app-shell") === "declutter" || html.hasAttribute("data-lh-landing-shell") || html.hasAttribute("data-lh-auth-shell")) return;
+        var link = document.createElement("link");
+        link.rel = "preload";
+        link.as = "image";
+        link.setAttribute("fetchpriority", "high");
+        link.href = html.getAttribute("data-theme") === "dark" ? "/boot-h-dark.webp" : "/boot-h.webp";
+        link.setAttribute("data-lh-boot-h-preload", "");
+        document.head.appendChild(link);
+      })();
+    </script>
+    <style id="boot-theme">html,body{margin:0}#lh-landing-shell,#lh-login-shell,#lh-signup-shell,#lh-home-shell,#lh-jobs-shell,#lh-messages-shell,#lh-declutter-shell{display:none}[data-theme=dark] #root,[data-theme=dark] #boot-loader{background:#191715 linear-gradient(160deg,#191715 0%,#1c1a17 40%,#1f1d1a 100%)!important}#boot-loader .boot-stack{opacity:0;animation:.24s ease-out .6s forwards boot-progress-in;position:relative}#boot-loader .boot-h{aspect-ratio:256/220;background:url(/boot-h.webp) 50%/contain no-repeat;width:calc(max(100vw,100vh)/9.09091)}[data-theme=dark] #boot-loader .boot-h{background-image:url(/boot-h-dark.webp)}[data-lh-app-shell=declutter] #boot-loader .boot-h{background-image:none}#boot-loader .boot-progress{background:#5f654324;border-radius:999px;width:112px;height:3px;margin-left:-56px;position:absolute;top:calc(100% + 18px);left:50%;overflow:hidden}#boot-loader .boot-progress-fill{border-radius:inherit;background:#5f6543;width:40%;height:100%;animation:1.3s ease-in-out infinite boot-progress-slide}[data-theme=dark] #boot-loader .boot-progress{background:#95a06a2e}[data-theme=dark] #boot-loader .boot-progress-fill{background:#95a06a}#boot-loader .boot-foot{left:16px;right:16px;bottom:calc(24px + env(safe-area-inset-bottom,0px));text-align:center;color:#4b5035;font:600 15px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;position:absolute}#boot-loader .boot-foot p{margin:0}#boot-loader .boot-links{margin-top:4px;font-size:13px;font-weight:500}#boot-loader .boot-links a{color:inherit;text-underline-offset:2px;text-decoration:underline}[data-theme=dark] #boot-loader .boot-foot{color:#d9d4c9}@keyframes boot-progress-in{to{opacity:1}}@keyframes boot-progress-slide{0%{transform:translate(-100%)}to{transform:translate(250%)}}@media (prefers-reduced-motion:reduce){#boot-loader .boot-progress-fill{width:50%;animation:none}}</style>
+    <script type="module" crossorigin src="/assets/index-CrEjKDpT.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/preload-helper-DodJttzY.js">
+    <link rel="modulepreload" crossorigin href="/assets/main-Y9mMun-D.js">
+    <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-XKyaHtl9.js">
+    <link rel="modulepreload" crossorigin href="/assets/app-shared-B7IosoRB.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-DBuF32qy.js">
+    <link rel="modulepreload" crossorigin href="/assets/tanstack-Dt62v76_.js">
+    <link rel="modulepreload" crossorigin href="/assets/toast-facade-CYoIGDkr.js">
+    <link rel="modulepreload" crossorigin href="/assets/homeShell-BtfmSM7n.js">
+    <link rel="modulepreload" crossorigin href="/assets/button-_P2ItQlS.js">
+    <link rel="modulepreload" crossorigin href="/assets/ChunkRecoveringState-CeVirv-N.js">
+    <link rel="modulepreload" crossorigin href="/assets/RouteSuspenseFallback-MPqzEONf.js">
+    <link rel="modulepreload" crossorigin href="/assets/icons-boot-CFzXcF6l.js">
+    <link rel="modulepreload" crossorigin href="/assets/desktopTitleSlot-CMyrU_Fa.js">
+    <link rel="preload" as="style" href="/assets/index-BZKjqrqI.css"><link rel="stylesheet" href="/assets/index-BZKjqrqI.css" media="print" data-async-css><noscript><link rel="stylesheet" href="/assets/index-BZKjqrqI.css"></noscript>
+    <meta name="build-commit" content="c16cd6944da0617d56c3f4c7ec17a4b34ccc0f02">
+    <meta name="build-time" content="2026-11-26T09:23:39.392Z">
+  </head>
+  <body>
+    <div id="root" style="background:linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 100%);background-color:#FFFFFF;min-height:100vh;">
+      <div
+        id="boot-loader"
+        role="status"
+        aria-label="Loading Helpr"
+        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 100%);background-color:#FFFFFF;"
+      >
+        <div class="boot-stack" aria-hidden="true"><div class="boot-h"></div><div class="boot-progress"><div class="boot-progress-fill"></div></div></div>
+        <div class="boot-foot"><p class="boot-name">Louisiana Helpr</p><p class="boot-links"><a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a></p></div>
+      </div>
+    </div>
+    <noscript><p style="text-align:center;font:600 15px/1.5 system-ui,-apple-system,sans-serif;color:#4B4F33;padding:24px 16px">Louisiana Helpr needs JavaScript to run. <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a></p></noscript><script>(function(){var l=document.querySelectorAll("link[data-async-css]");for(var i=0;i<l.length;i++){(function(k){var on=function(){k.media="all"};if(k.sheet)on();else k.addEventListener("load",on)})(l[i])}})();</script>
+    <div id="lh-landing-shell" aria-hidden="true" inert data-lh-shell="start"><div class="min-h-screen page-warmth pb-[calc(var(--safe-area-bottom,0px)_+_var(--bottom-nav-h,96px))] relative flex flex-col overflow-x-clip landing-page"><div aria-hidden="true" class="mesh-gradient-global"></div><nav aria-label="Primary" class="fixed top-0 left-0 right-0 z-50 glass-nav landing-nav-top" style="backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding-top:max(var(--safe-area-top, 0px), 0.25rem)"><div class="w-full flex items-center justify-between h-[var(--public-nav-h)] pl-[max(1.25rem,var(--safe-area-left,0px))] pr-[max(1.25rem,var(--safe-area-right,0px))] sm:pl-[max(2rem,var(--safe-area-left,0px))] sm:pr-[max(2rem,var(--safe-area-right,0px))] lg:pl-[max(3rem,var(--safe-area-left,0px))] lg:pr-[max(3rem,var(--safe-area-right,0px))] max-w-[78rem] mx-auto max-[399px]:pl-[max(0.75rem,var(--safe-area-left,0px))] max-[399px]:pr-[max(0.75rem,var(--safe-area-right,0px))]"><a aria-label="Helpr home" class="flex items-center gap-2.5 group shrink-0 min-h-11" href="/" data-discover="true"><img loading="lazy" src="/assets/helpr-logo-256-7lzBG8jC.webp" srcSet="/assets/helpr-logo-96-C77gmY--.webp 96w, /assets/helpr-logo-256-7lzBG8jC.webp 256w" sizes="40px" alt="Helpr" class="helpr-emblem h-10 w-auto select-none transition-transform duration-200 group-hover:scale-105" draggable="false"/></a><div class="flex items-center gap-0 min-[480px]:gap-1 sm:gap-3"><a class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 ctl-tint h-11 text-ds-14 rounded-full px-1.5 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] aria-[current=page]:text-[hsl(var(--bark))] aria-[current=page]:underline aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-[6px] group relative max-[479px]:min-w-11" href="/browse" data-discover="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-briefcase min-[480px]:hidden" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path><rect vector-effect="non-scaling-stroke" width="20" height="14" x="2" y="6" rx="2"></rect></svg><span aria-hidden="true" class="pointer-events-none absolute bottom-1.5 left-1/2 h-0.5 w-[18px] -translate-x-1/2 rounded-full bg-current opacity-0 group-aria-[current=page]:opacity-100 min-[480px]:hidden"></span><span class="max-[479px]:sr-only">Jobs</span></a><a class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 ctl-tint h-11 text-ds-14 rounded-full px-1.5 max-[374px]:text-ds-13 min-[375px]:px-2 sm:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] aria-[current=page]:text-[hsl(var(--bark))] aria-[current=page]:underline aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-[6px] group relative max-[479px]:min-w-11" href="/declutter" data-discover="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sofa min-[480px]:hidden" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"></path><path vector-effect="non-scaling-stroke" d="M2 16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z"></path><path vector-effect="non-scaling-stroke" d="M4 18v2"></path><path vector-effect="non-scaling-stroke" d="M20 18v2"></path><path vector-effect="non-scaling-stroke" d="M12 4v9"></path></svg><span aria-hidden="true" class="pointer-events-none absolute bottom-1.5 left-1/2 h-0.5 w-[18px] -translate-x-1/2 rounded-full bg-current opacity-0 group-aria-[current=page]:opacity-100 min-[480px]:hidden"></span><span class="max-[479px]:sr-only">Declutter</span></a><a data-testid="nav-gift-guides" class="items-center justify-center gap-2 whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 ctl-tint h-11 text-ds-14 hidden md:inline-flex rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] aria-[current=page]:text-[hsl(var(--bark))] aria-[current=page]:underline aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-[6px]" href="/gift-guides" data-discover="true">Holiday gift guides</a><a data-testid="nav-gift-guides-phone" class="inline-flex items-center justify-center whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 ctl-tint h-11 text-ds-14 md:hidden gap-1 rounded-full px-1.5 min-[375px]:px-2 max-[374px]:text-ds-13 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))] aria-[current=page]:text-[hsl(var(--bark))] aria-[current=page]:underline aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-[6px] group relative max-[479px]:min-w-11" href="/gift-guides" data-discover="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-gift" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M12 7v14"></path><path vector-effect="non-scaling-stroke" d="M20 11v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path><path vector-effect="non-scaling-stroke" d="M7.5 7a1 1 0 0 1 0-5A4.8 8 0 0 1 12 7a4.8 8 0 0 1 4.5-5 1 1 0 0 1 0 5"></path><rect vector-effect="non-scaling-stroke" x="3" y="7" width="18" height="4" rx="1"></rect></svg><span aria-hidden="true" class="pointer-events-none absolute bottom-1.5 left-1/2 h-0.5 w-[18px] -translate-x-1/2 rounded-full bg-current opacity-0 group-aria-[current=page]:opacity-100 min-[480px]:hidden"></span><span class="sr-only">Gift guides</span><span aria-hidden="true" class="max-[479px]:hidden">Guides</span></a><span aria-hidden="true" class="hidden sm:block w-px h-5 mx-1" style="background:hsl(var(--olivewood) / 0.18)"></span><a class="items-center justify-center gap-2 whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 ctl-tint h-11 text-ds-14 hidden md:inline-flex rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]" href="/login" data-discover="true">Log in</a><a class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 btn-grad-primary hover:brightness-110 shadow-[0_1px_2px_hsl(var(--ink-deep)/0.10),0_2px_6px_-2px_hsl(var(--ink-deep)/0.12)] active:scale-[0.97] active:shadow-[0_1px_1px_hsl(var(--ink-deep)/0.14)] h-11 text-ds-14 rounded-full px-3 max-[374px]:text-ds-13 min-[375px]:px-4 sm:px-5 btn-press !text-[hsl(var(--parchment))] [&amp;_*]:!text-[hsl(var(--parchment))]" style="color:hsl(var(--parchment))" href="/signup" data-discover="true"><span class="md:hidden" data-nav-join="phone">Join / Log in</span><span class="hidden md:inline" data-nav-join="wide">Join free</span></a></div></div></nav><div class="flex-1"><section class="landing-hero-band relative flex flex-col px-5 sm:px-8 lg:px-12 pt-32 sm:pt-28 lg:pt-24 pb-8 lg:pb-10"><div data-testid="landing-hero-block" class="flex flex-1 flex-col justify-center"><div class="relative mx-auto w-full max-w-[760px]"><div data-testid="landing-hero-column" class="flex flex-col items-center text-center min-w-0"><h1 class="landing-h1 relative z-10 landing-serif-text font-bold leading-[1] text-balance break-words text-[3.25rem] min-[400px]:text-[3.5rem] sm:text-[4.75rem] lg:text-[6.5rem] xl:text-[7.75rem]" style="color:var(--lp-ink);letter-spacing:-0.03em">Louisiana’s local <span class="landing-h1-accent">partner.</span></h1><p class="mt-6 lg:mt-7 text-[16px] sm:text-[17px] lg:text-[20px] leading-relaxed lg:whitespace-nowrap" style="font-family:Montserrat, system-ui, sans-serif;font-weight:400;color:var(--lp-body)">Hire help, find work, or buy and sell. One account, real neighbors.</p><form role="search" aria-label="Search Helpr" class="landing-search mt-8 lg:mt-10 w-full max-w-xl lg:max-w-[640px] text-left flex items-center gap-1.5 p-1.5" data-testid="landing-search"><label for="lh-shell-landing-:R4:" class="sr-only">Search jobs and Declutter</label><div class="landing-search-field flex-1 min-w-0 flex items-center gap-2.5 pl-4 lg:pl-5 pr-1 h-12 lg:h-[52px]"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search hidden sm:block w-[18px] h-[18px] lg:w-5 lg:h-5 shrink-0" aria-hidden="true" style="color:var(--lp-muted)"><path vector-effect="non-scaling-stroke" d="m21 21-4.34-4.34"></path><circle vector-effect="non-scaling-stroke" cx="11" cy="11" r="8"></circle></svg><input id="lh-shell-landing-:R4:" type="search" enterKeyHint="search" autoComplete="off" maxLength="80" placeholder="Search jobs and Declutter" class="w-full min-w-0 bg-transparent outline-none text-ds-16 lg:text-ds-17 placeholder:text-[color:var(--lp-muted)] placeholder:opacity-70" style="color:var(--lp-ink)" value=""/></div><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 btn-grad-primary !text-[hsl(var(--parchment))] [&amp;_*]:!text-[hsl(var(--parchment))] hover:brightness-110 shadow-[0_1px_2px_hsl(var(--ink-deep)/0.10),0_2px_6px_-2px_hsl(var(--ink-deep)/0.12)] active:scale-[0.97] active:shadow-[0_1px_1px_hsl(var(--ink-deep)/0.14)] btn-grad-primary h-12 w-12 sm:w-auto lg:h-[52px] rounded-full p-0 sm:px-7 lg:px-8 text-ds-15 lg:text-ds-16 font-semibold shrink-0" type="submit" data-testid="landing-search-submit" aria-label="Search"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search sm:hidden w-5 h-5" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="m21 21-4.34-4.34"></path><circle vector-effect="non-scaling-stroke" cx="11" cy="11" r="8"></circle></svg><span class="hidden sm:inline">Search</span></button></form></div></div></div></section></div></div><span data-lh-shell="end" hidden></span></div>
+    <div id="lh-login-shell" aria-hidden="true" inert data-lh-shell="start"><div class="min-h-screen bg-premium-page relative overflow-hidden"><div aria-hidden="true" class="hidden lg:block pointer-events-none absolute inset-0 z-0" style="background:radial-gradient(60% 55% at 12% 22%, hsl(var(--olivewood) / 0.09) 0%, transparent 60%), radial-gradient(50% 45% at 88% 78%, hsl(var(--stormy-sky) / 0.08) 0%, transparent 60%), radial-gradient(38% 32% at 92% 18%, hsl(var(--olivewood) / 0.05) 0%, transparent 65%)"></div><div class="relative z-10 flex flex-col items-center justify-start min-h-screen px-5 sm:px-8 lg:px-12 pb-10 sm:pb-8 lg:pb-6 pt-[calc(var(--safe-area-top,0px)_+_var(--shell-gap))] sm:pt-8 lg:pt-6"><div class="w-full max-w-sm "><div class="liquid-glass auth-card p-5 sm:p-6 lg:p-8 space-y-6"><div class="flex flex-col items-center text-center gap-1.5" data-testid="login-card-head"><div class="relative mb-2 flex w-full items-center justify-center" data-auth-card-mark=""><div class="absolute left-0 top-1/2 -translate-y-1/2" data-auth-card-back=""><button type="button" aria-label="Go back" class="w-11 h-11 -ml-2 ctl-exit flex items-center justify-center ctl-tint active:scale-[0.97] shrink-0 " style="color:hsl(var(--olivewood))"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left w-5 h-5" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="m12 19-7-7 7-7"></path><path vector-effect="non-scaling-stroke" d="M19 12H5"></path></svg></button></div><a aria-label="Helpr home" class="flex items-center gap-2.5 group min-h-11" href="/" data-discover="true"><img loading="lazy" src="/assets/helpr-logo-256-7lzBG8jC.webp" srcSet="/assets/helpr-logo-96-C77gmY--.webp 96w, /assets/helpr-logo-256-7lzBG8jC.webp 256w" sizes="56px" alt="Helpr" class="helpr-emblem h-14 w-auto select-none transition-transform duration-200 group-hover:scale-105" draggable="false"/></a></div><div class="w-full mb-3"><div data-testid="auth-mode-tabs"><div role="tablist" aria-label="Log in or create an account" class="segmented-track p-0.5 flex items-center gap-0.5 rounded-full w-full"><button type="button" role="tab" aria-selected="true" tabindex="0" class="segmented-option rounded-full font-sans font-semibold h-11 min-h-11 px-3 text-ds-13 whitespace-nowrap transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] inline-flex items-center justify-center gap-1.5 flex-1 min-w-fit disabled:opacity-50 disabled:pointer-events-none btn-grad-primary segmented-option-selected"><span class="min-w-[1.25rem] text-center">Log in</span></button><button type="button" role="tab" aria-selected="false" tabindex="-1" class="segmented-option rounded-full font-sans font-semibold h-11 min-h-11 px-3 text-ds-13 whitespace-nowrap transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] inline-flex items-center justify-center gap-1.5 flex-1 min-w-fit disabled:opacity-50 disabled:pointer-events-none"><span class="min-w-[1.25rem] text-center">Create account</span></button></div></div></div><div class="text-page-title text-foreground max-[479px]:sr-only">Log in</div><p class="text-ds-14 text-muted-foreground">Welcome back, neighbor.</p></div><div class="grid gap-6 w-full [&amp;&gt;*]:min-w-0"><form novalidate="" class="space-y-3.5"><div class="space-y-2"><label class="tracking-[-0.005em] text-foreground/80 mb-2 block peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-ds-13 font-sans font-medium" for="lh-shell-login-email">Email</label><div class="relative"><input type="email" class="flex h-12 w-full border px-4 py-2 text-ds-15 glass-field focus-visible:outline-none focus-visible:border-[hsl(var(--olivewood)/0.6)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.25)] focus-visible:ring-offset-0 transition-[border-color,box-shadow] duration-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground disabled:cursor-not-allowed disabled:opacity-50 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]" id="lh-shell-login-email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellcheck="false" enterKeyHint="next" required="" autoComplete="email" aria-invalid="false" value=""/></div></div><div class="grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-2" data-testid="login-password-field"><label class="tracking-[-0.005em] text-foreground/80 mb-2 block peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-start-1 row-start-1 text-ds-13 font-sans font-medium" for="lh-shell-login-password">Password</label><div class="relative col-span-2 row-start-2"><input type="password" class="flex h-12 w-full border px-4 py-2 text-ds-15 glass-field focus-visible:outline-none focus-visible:border-[hsl(var(--olivewood)/0.6)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.25)] focus-visible:ring-offset-0 transition-[border-color,box-shadow] duration-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground disabled:cursor-not-allowed disabled:opacity-50 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]" id="lh-shell-login-password" enterKeyHint="done" required="" autoComplete="current-password" aria-invalid="false" value=""/><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 ctl-tint h-11 w-11 border-2 border-transparent bg-clip-padding absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground [&amp;_svg]:size-4" type="button" aria-label="Show password"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle vector-effect="non-scaling-stroke" cx="12" cy="12" r="3"></circle></svg></button></div><a class="col-start-2 row-start-1 justify-self-end min-h-[44px] -my-3 inline-flex items-center text-ds-13 font-sans font-bold hover:underline active:opacity-60 transition-opacity" style="color:hsl(var(--bark))" href="/forgot-password" data-discover="true">Forgot password?</a></div><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 btn-grad-primary !text-[hsl(var(--parchment))] [&amp;_*]:!text-[hsl(var(--parchment))] hover:brightness-110 shadow-[0_1px_2px_hsl(var(--ink-deep)/0.10),0_2px_6px_-2px_hsl(var(--ink-deep)/0.12)] active:scale-[0.97] active:shadow-[0_1px_1px_hsl(var(--ink-deep)/0.14)] h-[60px] px-8 text-ds-17 max-[479px]:h-12 max-[479px]:text-ds-16 w-full rounded-full" type="submit">Log in</button></form><div class="space-y-6"><div class="flex items-center gap-3"><span class="h-px flex-1" style="background-color:hsl(var(--border))"></span><span class="text-ds-13 font-sans text-muted-foreground">or</span><span class="h-px flex-1" style="background-color:hsl(var(--border))"></span></div><div class="flex flex-col gap-4"><button class="inline-flex items-center justify-center whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 ctl-tint border-[1.5px] bg-background/70 backdrop-blur-md shadow-none active:scale-[0.97] px-8 text-ds-17 w-full h-12 rounded-full gap-2 border-transparent" type="button" style="background-color:hsl(var(--foreground));color:hsl(var(--background))" data-provider="apple"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.04c-.03-2.93 2.39-4.34 2.5-4.41-1.36-1.99-3.48-2.27-4.24-2.3-1.81-.18-3.53 1.06-4.45 1.06-.92 0-2.34-1.03-3.85-1-1.98.03-3.81 1.15-4.83 2.92-2.06 3.57-.53 8.85 1.48 11.75.98 1.42 2.15 3.02 3.69 2.96 1.48-.06 2.04-.96 3.83-.96 1.79 0 2.29.96 3.86.93 1.59-.03 2.6-1.45 3.57-2.88 1.13-1.65 1.59-3.25 1.62-3.33-.04-.02-3.11-1.19-3.14-4.74zM14.13 3.5c.81-.99 1.36-2.36 1.21-3.72-1.17.05-2.59.78-3.43 1.76-.75.87-1.41 2.27-1.23 3.6 1.31.1 2.64-.66 3.45-1.64z"></path></svg><span class="font-sans font-semibold text-ds-15">Continue with Apple</span></button><button class="inline-flex items-center justify-center whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 ctl-tint border-[1.5px] bg-background/70 backdrop-blur-md shadow-none active:scale-[0.97] px-8 text-ds-17 w-full h-12 rounded-full gap-2 border-border/70 hover:bg-muted/40" type="button" data-provider="google"><svg class="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"></path><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"></path><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"></path><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"></path></svg><span class="font-sans font-semibold text-ds-15">Continue with Google</span></button></div><p class="text-center text-ds-14 font-sans" style="color:hsl(var(--olivewood) / 0.8)" data-login-new-here="">New to Helpr? <a class="-my-3 inline-flex min-h-11 items-center px-1 font-semibold hover:underline whitespace-nowrap" style="color:hsl(var(--bark))" data-login-signup-link="" href="/signup" data-discover="true">Create an account</a></p></div></div></div><div class="flex justify-center pt-3"><div role="group" aria-label="Language" data-testid="language-toggle" class="inline-flex items-center gap-1 text-ds-13 font-sans "><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-languages h-4 w-4 shrink-0" aria-hidden="true" style="color:hsl(var(--olivewood) / 0.8)"><path vector-effect="non-scaling-stroke" d="m5 8 6 6"></path><path vector-effect="non-scaling-stroke" d="m4 14 6-6 2-3"></path><path vector-effect="non-scaling-stroke" d="M2 5h12"></path><path vector-effect="non-scaling-stroke" d="M7 2h1"></path><path vector-effect="non-scaling-stroke" d="m22 22-5-10-5 10"></path><path vector-effect="non-scaling-stroke" d="M14 18h6"></path></svg><span class="inline-flex items-center"><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-bold ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 link-standard text-primary shadow-none h-11 px-1.5 text-ds-13 tracking-normal" type="button" lang="en" aria-pressed="true" data-account-setting="true" style="color:hsl(var(--bark));font-weight:700"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check h-3.5 w-3.5 mr-0.5 shrink-0" aria-hidden="true" data-lang-check=""><path vector-effect="non-scaling-stroke" d="M20 6 9 17l-5-5"></path></svg>English</button></span><span class="inline-flex items-center"><span aria-hidden="true" class="px-1">·</span><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-bold ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 link-standard text-primary shadow-none h-11 px-1.5 text-ds-13 tracking-normal" type="button" lang="es" aria-pressed="false" data-account-setting="true" style="color:hsl(var(--olivewood) / 0.8);font-weight:500">Español</button></span></div></div></div></div></div><span data-lh-shell="end" hidden></span></div>
+    <div id="lh-signup-shell" aria-hidden="true" inert data-lh-shell="start"><div class="min-h-screen bg-premium-page relative overflow-hidden"><div aria-hidden="true" class="hidden lg:block pointer-events-none absolute inset-0 z-0" style="background:radial-gradient(60% 55% at 12% 22%, hsl(var(--olivewood) / 0.09) 0%, transparent 60%), radial-gradient(50% 45% at 88% 78%, hsl(var(--stormy-sky) / 0.08) 0%, transparent 60%), radial-gradient(38% 32% at 92% 18%, hsl(var(--olivewood) / 0.05) 0%, transparent 65%)"></div><div class="relative z-10 flex flex-col items-center justify-start min-h-screen px-5 sm:px-8 lg:px-12 pb-10 sm:pb-8 lg:pb-6 pt-[calc(var(--safe-area-top,0px)_+_var(--shell-gap))] sm:pt-8 lg:pt-6"><div class="w-full max-w-sm "><div class="lg:pt-6" data-signup-top=""><div class="liquid-glass auth-card p-5 sm:p-6 lg:p-10 space-y-6"><div class="space-y-5"><div class="flex flex-col items-center text-center gap-1.5" data-testid="signup-card-head"><div class="relative mb-2 flex w-full items-center justify-center" data-auth-card-mark=""><div class="absolute left-0 top-1/2 -translate-y-1/2" data-auth-card-back=""><button type="button" aria-label="Go back" class="w-11 h-11 -ml-2 ctl-exit flex items-center justify-center ctl-tint active:scale-[0.97] shrink-0 " style="color:hsl(var(--olivewood))"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left w-5 h-5" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="m12 19-7-7 7-7"></path><path vector-effect="non-scaling-stroke" d="M19 12H5"></path></svg></button></div><a aria-label="Helpr home" class="flex items-center gap-2.5 group min-h-11" href="/" data-discover="true"><img loading="lazy" src="/assets/helpr-logo-256-7lzBG8jC.webp" srcSet="/assets/helpr-logo-96-C77gmY--.webp 96w, /assets/helpr-logo-256-7lzBG8jC.webp 256w" sizes="56px" alt="Helpr" class="helpr-emblem h-14 w-auto select-none transition-transform duration-200 group-hover:scale-105" draggable="false"/></a></div><div class="w-full mb-3"><div data-testid="auth-mode-tabs"><div role="tablist" aria-label="Log in or create an account" class="segmented-track p-0.5 flex items-center gap-0.5 rounded-full w-full"><button type="button" role="tab" aria-selected="false" tabindex="-1" class="segmented-option rounded-full font-sans font-semibold h-11 min-h-11 px-3 text-ds-13 whitespace-nowrap transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] inline-flex items-center justify-center gap-1.5 flex-1 min-w-fit disabled:opacity-50 disabled:pointer-events-none"><span class="min-w-[1.25rem] text-center">Log in</span></button><button type="button" role="tab" aria-selected="true" tabindex="0" class="segmented-option rounded-full font-sans font-semibold h-11 min-h-11 px-3 text-ds-13 whitespace-nowrap transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] inline-flex items-center justify-center gap-1.5 flex-1 min-w-fit disabled:opacity-50 disabled:pointer-events-none btn-grad-primary segmented-option-selected"><span class="min-w-[1.25rem] text-center">Create account</span></button></div></div></div><div class="text-page-title text-foreground max-[479px]:sr-only">Create your account</div><p class="text-ds-14 text-muted-foreground">One account to hire help, find work, and buy or sell nearby.</p></div><section class="space-y-3.5"><div class="grid grid-cols-2 gap-3"><div class="space-y-2 min-w-0"><label class="tracking-[-0.005em] text-foreground/80 mb-2 block peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-ds-13 font-sans font-medium" for="lh-shell-signup-firstName">First name</label><input class="flex h-12 w-full border px-4 py-2 text-ds-15 glass-field focus-visible:outline-none focus-visible:border-[hsl(var(--olivewood)/0.6)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.25)] focus-visible:ring-offset-0 transition-[border-color,box-shadow] duration-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground disabled:cursor-not-allowed disabled:opacity-50 rounded-ds-md text-ellipsis bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]" id="lh-shell-signup-firstName" required="" aria-required="true" autoComplete="given-name" autoCapitalize="words" enterKeyHint="next" aria-invalid="false" value=""/></div><div class="space-y-2 min-w-0"><label class="tracking-[-0.005em] text-foreground/80 mb-2 block peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-ds-13 font-sans font-medium" for="lh-shell-signup-lastName">Last name</label><input class="flex h-12 w-full border px-4 py-2 text-ds-15 glass-field focus-visible:outline-none focus-visible:border-[hsl(var(--olivewood)/0.6)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.25)] focus-visible:ring-offset-0 transition-[border-color,box-shadow] duration-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground disabled:cursor-not-allowed disabled:opacity-50 rounded-ds-md text-ellipsis bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]" id="lh-shell-signup-lastName" required="" aria-required="true" autoComplete="family-name" autoCapitalize="words" enterKeyHint="next" aria-invalid="false" value=""/></div></div><div class="space-y-2"><label class="tracking-[-0.005em] text-foreground/80 mb-2 block peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-ds-13 font-sans font-medium" for="lh-shell-signup-email">Email</label><div class="relative"><input type="email" class="flex h-12 w-full border px-4 py-2 text-ds-15 glass-field focus-visible:outline-none focus-visible:border-[hsl(var(--olivewood)/0.6)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.25)] focus-visible:ring-offset-0 transition-[border-color,box-shadow] duration-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground disabled:cursor-not-allowed disabled:opacity-50 rounded-ds-md text-ellipsis bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]" id="lh-shell-signup-email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellcheck="false" enterKeyHint="next" required="" autoComplete="email" aria-invalid="false" value=""/></div><p class="text-ds-13 font-sans text-muted-foreground" data-may-email-once="">We may email once if you don&#x27;t finish.</p></div><div class="space-y-2"><label class="tracking-[-0.005em] text-foreground/80 mb-2 block peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-ds-13 font-sans font-medium" for="lh-shell-signup-password">Password</label><div class="relative"><input type="password" class="flex h-12 w-full border px-4 py-2 text-ds-15 glass-field focus-visible:outline-none focus-visible:border-[hsl(var(--olivewood)/0.6)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.25)] focus-visible:ring-offset-0 transition-[border-color,box-shadow] duration-200 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground disabled:cursor-not-allowed disabled:opacity-50 rounded-ds-md text-ellipsis bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] pr-10" id="lh-shell-signup-password" enterKeyHint="next" required="" minLength="12" aria-invalid="false" autoComplete="new-password" value=""/><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 ctl-tint h-11 w-11 border-2 border-transparent bg-clip-padding absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground [&amp;_svg]:size-4" type="button" aria-label="Show password"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle vector-effect="non-scaling-stroke" cx="12" cy="12" r="3"></circle></svg></button></div><div data-password-rules="" class="space-y-1"><ul class="flex flex-wrap gap-x-3 gap-y-1" aria-label="At least 12 characters with a lowercase letter, a capital letter, a number and a symbol."><li data-rule-met="false" class="inline-flex items-center gap-1 text-ds-13 text-muted-foreground"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check w-3.5 h-3.5 text-border" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M20 6 9 17l-5-5"></path></svg><span>12 characters or more</span><span class="sr-only">still needed</span></li><li data-rule-met="false" class="inline-flex items-center gap-1 text-ds-13 text-muted-foreground"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check w-3.5 h-3.5 text-border" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M20 6 9 17l-5-5"></path></svg><span>a lowercase letter</span><span class="sr-only">still needed</span></li><li data-rule-met="false" class="inline-flex items-center gap-1 text-ds-13 text-muted-foreground"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check w-3.5 h-3.5 text-border" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M20 6 9 17l-5-5"></path></svg><span>an uppercase letter</span><span class="sr-only">still needed</span></li><li data-rule-met="false" class="inline-flex items-center gap-1 text-ds-13 text-muted-foreground"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check w-3.5 h-3.5 text-border" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M20 6 9 17l-5-5"></path></svg><span>a number</span><span class="sr-only">still needed</span></li><li data-rule-met="false" class="inline-flex items-center gap-1 text-ds-13 text-muted-foreground"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check w-3.5 h-3.5 text-border" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M20 6 9 17l-5-5"></path></svg><span>a symbol like ! ? # or $</span><span class="sr-only">still needed</span></li></ul></div></div><div class="space-y-2"><button type="button" class="link-standard min-h-0 min-w-0 p-0 align-baseline flex items-center gap-1 text-ds-12 underline" data-testid="referral-code-toggle" style="color:hsl(var(--olivewood) / 0.85)" aria-expanded="false">Have a referral code?<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down w-3.5 h-3.5 shrink-0" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="m6 9 6 6 6-6"></path></svg></button></div></section><div class="space-y-0"><label for="lh-shell-signup-policies" class="flex items-start gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer transition-colors " style="border:1px solid transparent"><button type="button" role="checkbox" aria-checked="false" data-state="unchecked" value="on" class="peer h-[18px] w-[18px] rounded-sm border border-[hsl(var(--ink-deep)/0.25)] data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground transition-colors duration-150 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood))] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-px shrink-0" id="lh-shell-signup-policies" aria-labelledby="lh-shell-signup-policies-label" aria-invalid="false"></button><input type="checkbox" aria-hidden="true" tabindex="-1" style="position:absolute;pointer-events:none;opacity:0;margin:0;transform:translateX(-100%)" value="on"/><span id="lh-shell-signup-policies-label" class="text-ds-13 leading-snug font-sans text-muted-foreground">I&#x27;m 18 or older and agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" class="tap-44 font-semibold underline text-primary">Terms</a>, <a href="/rules" target="_blank" rel="noopener noreferrer" class="tap-44 font-semibold underline text-primary">Rules</a> &amp; <a href="/privacy" target="_blank" rel="noopener noreferrer" class="tap-44 font-semibold underline text-primary">Privacy</a>.</span></label><label for="lh-shell-signup-marketing-consent" class="flex items-start gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer"><button type="button" role="checkbox" aria-checked="false" data-state="unchecked" value="on" class="peer h-[18px] w-[18px] rounded-sm border border-[hsl(var(--ink-deep)/0.25)] data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground transition-colors duration-150 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood))] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-px shrink-0" id="lh-shell-signup-marketing-consent" aria-labelledby="lh-shell-signup-marketing-consent-label"></button><input type="checkbox" aria-hidden="true" tabindex="-1" style="position:absolute;pointer-events:none;opacity:0;margin:0;transform:translateX(-100%)" value="on"/><span id="lh-shell-signup-marketing-consent-label" class="text-ds-13 leading-snug font-sans text-muted-foreground">Email me Helpr news and offers.</span></label><p role="alert" data-consent-error="" class="sr-only"></p></div><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 btn-grad-primary !text-[hsl(var(--parchment))] [&amp;_*]:!text-[hsl(var(--parchment))] hover:brightness-110 shadow-[0_1px_2px_hsl(var(--ink-deep)/0.10),0_2px_6px_-2px_hsl(var(--ink-deep)/0.12)] active:scale-[0.97] active:shadow-[0_1px_1px_hsl(var(--ink-deep)/0.14)] h-[60px] px-8 text-ds-17 max-[479px]:h-12 max-[479px]:text-ds-16 w-full rounded-full" aria-busy="false" data-testid="signup-create-account">Create account</button><div class="flex items-center gap-3"><span class="h-px flex-1" style="background-color:hsl(var(--border))"></span><span class="text-ds-13 font-sans text-muted-foreground">or</span><span class="h-px flex-1" style="background-color:hsl(var(--border))"></span></div><div class="flex flex-col gap-4"><button class="inline-flex items-center justify-center whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 ctl-tint border-[1.5px] bg-background/70 backdrop-blur-md shadow-none active:scale-[0.97] px-8 text-ds-17 w-full h-12 rounded-full gap-2 border-transparent" type="button" style="background-color:hsl(var(--foreground));color:hsl(var(--background))" data-provider="apple"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.04c-.03-2.93 2.39-4.34 2.5-4.41-1.36-1.99-3.48-2.27-4.24-2.3-1.81-.18-3.53 1.06-4.45 1.06-.92 0-2.34-1.03-3.85-1-1.98.03-3.81 1.15-4.83 2.92-2.06 3.57-.53 8.85 1.48 11.75.98 1.42 2.15 3.02 3.69 2.96 1.48-.06 2.04-.96 3.83-.96 1.79 0 2.29.96 3.86.93 1.59-.03 2.6-1.45 3.57-2.88 1.13-1.65 1.59-3.25 1.62-3.33-.04-.02-3.11-1.19-3.14-4.74zM14.13 3.5c.81-.99 1.36-2.36 1.21-3.72-1.17.05-2.59.78-3.43 1.76-.75.87-1.41 2.27-1.23 3.6 1.31.1 2.64-.66 3.45-1.64z"></path></svg><span class="font-sans font-semibold text-ds-15">Continue with Apple</span></button><button class="inline-flex items-center justify-center whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 ctl-tint border-[1.5px] bg-background/70 backdrop-blur-md shadow-none active:scale-[0.97] px-8 text-ds-17 w-full h-12 rounded-full gap-2 border-border/70 hover:bg-muted/40" type="button" data-provider="google"><svg class="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"></path><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"></path><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"></path><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"></path></svg><span class="font-sans font-semibold text-ds-15">Continue with Google</span></button></div><p class="text-center text-ds-13 font-sans" style="color:hsl(var(--olivewood) / 0.8)">Already have an account? <a class="tap-44 font-semibold hover:underline whitespace-nowrap" style="color:hsl(var(--bark))" href="/login" data-discover="true">Log in</a></p></div></div><div class="flex justify-center pt-3" data-signup-language=""><div role="group" aria-label="Language" data-testid="language-toggle" class="inline-flex items-center gap-1 text-ds-13 font-sans "><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-languages h-4 w-4 shrink-0" aria-hidden="true" style="color:hsl(var(--olivewood) / 0.8)"><path vector-effect="non-scaling-stroke" d="m5 8 6 6"></path><path vector-effect="non-scaling-stroke" d="m4 14 6-6 2-3"></path><path vector-effect="non-scaling-stroke" d="M2 5h12"></path><path vector-effect="non-scaling-stroke" d="M7 2h1"></path><path vector-effect="non-scaling-stroke" d="m22 22-5-10-5 10"></path><path vector-effect="non-scaling-stroke" d="M14 18h6"></path></svg><span class="inline-flex items-center"><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-bold ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 link-standard text-primary shadow-none h-11 px-1.5 text-ds-13 tracking-normal" type="button" lang="en" aria-pressed="true" data-account-setting="true" style="color:hsl(var(--bark));font-weight:700"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check h-3.5 w-3.5 mr-0.5 shrink-0" aria-hidden="true" data-lang-check=""><path vector-effect="non-scaling-stroke" d="M20 6 9 17l-5-5"></path></svg>English</button></span><span class="inline-flex items-center"><span aria-hidden="true" class="px-1">·</span><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-bold ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 link-standard text-primary shadow-none h-11 px-1.5 text-ds-13 tracking-normal" type="button" lang="es" aria-pressed="false" data-account-setting="true" style="color:hsl(var(--olivewood) / 0.8);font-weight:500">Español</button></span></div></div></div></div></div></div><span data-lh-shell="end" hidden></span></div>
+    <div id="lh-jobs-shell" aria-hidden="true" inert data-lh-shell="start"><div role="status" aria-live="polite" aria-busy="true" data-testid="jobs-route-skeleton"><div class="sr-only">Jobs</div><span class="sr-only">Loading Jobs…</span><div class="app-shell-frame fixed inset-x-0 bottom-0 flex flex-col overflow-hidden bg-premium-page pt-safe-top" style="top:0;height:100dvh"><div class="flex-1 min-h-0 flex flex-col overflow-hidden" style="scrollbar-width:none;-ms-overflow-style:none"><div data-scaffold-container="" class="container mx-auto px-4 lg:px-6 xl:px-6 pt-[var(--shell-gap)] lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"><div class="w-full max-w-3xl ds-desktop-wide mx-auto flex-1 min-h-0 flex flex-col gap-1 lg:gap-4 overflow-hidden"><div class="page-title-card liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden supports-[overflow:clip]:overflow-clip" style="background-color:var(--glass-bg-title);background-image:radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.05) 0%, transparent 55%), radial-gradient(60% 80% at 0% 100%, hsl(165 18% 80% / 0.12) 0%, transparent 60%);box-shadow:inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), 0 1px 2px hsl(var(--olivewood) / 0.05), 0 8px 18px -6px hsl(var(--olivewood) / 0.1), 0 18px 32px -10px hsl(var(--olivewood) / 0.12)"><div class="explore-header flex flex-col gap-1" aria-hidden="true"><div class="app-top-bar flex items-center gap-1 pt-2 pb-0.5"><span class="sr-only">Jobs</span><div class="min-w-0 flex-1" data-skeleton-part="title"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-7 w-16 rounded-full"></div></div><div class="flex shrink-0 items-center justify-end gap-1" data-skeleton-part="search-icons"><span class="h-11 w-11 shrink-0 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-5 w-5 rounded-full"></div></span><span class="h-11 w-11 shrink-0 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-5 w-5 rounded-full"></div></span></div><div class="flex items-center shrink-0"><span class="h-11 w-11 shrink-0 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-6 w-6 rounded-full"></div></span><span class="h-11 w-11 shrink-0 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] w-9 h-9 rounded-full"></div></span></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-11 w-full rounded-ds-md"></div></div></div><section class="page-panel liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col" style="border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:none;background-color:var(--glass-bg-crisp);box-shadow:inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.06), 0 14px 30px -8px hsl(var(--olivewood) / 0.14), 0 36px 64px -16px hsl(var(--olivewood) / 0.18)"><div class="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4" aria-hidden="true"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] rounded-2xl h-[104px]" style="border-radius:1rem"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] rounded-2xl h-[104px]" style="border-radius:1rem"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] rounded-2xl h-[104px]" style="border-radius:1rem"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] rounded-2xl h-[104px]" style="border-radius:1rem"></div></div></section></div></div></div></div></div><span data-lh-shell="end" hidden></span></div>
+    <div id="lh-messages-shell" aria-hidden="true" inert data-lh-shell="start"><div role="status" aria-live="polite" aria-busy="true" data-testid="messages-route-skeleton"><div class="sr-only">Inbox</div><span class="sr-only">Loading messages…</span><div class="app-shell-frame fixed inset-x-0 bottom-0 flex flex-col overflow-hidden bg-premium-page pt-safe-top" style="top:0;height:100dvh"><div class="flex-1 min-h-0 flex flex-col overflow-hidden" style="scrollbar-width:none;-ms-overflow-style:none"><div data-scaffold-container="" class="container mx-auto px-5 lg:px-6 xl:px-6 pt-[var(--shell-gap)] lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"><div class="w-full max-w-3xl ds-desktop-wide mx-auto flex-1 min-h-0 flex flex-col gap-[var(--shell-gap)] lg:gap-4 overflow-hidden"><div class="page-title-card liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden supports-[overflow:clip]:overflow-clip !py-1.5 lg:!py-2" style="background-color:var(--glass-bg-title);background-image:radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.05) 0%, transparent 55%), radial-gradient(60% 80% at 0% 100%, hsl(165 18% 80% / 0.12) 0%, transparent 60%);box-shadow:inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), 0 1px 2px hsl(var(--olivewood) / 0.05), 0 8px 18px -6px hsl(var(--olivewood) / 0.1), 0 18px 32px -10px hsl(var(--olivewood) / 0.12)"><div class="shrink-0"><header class="app-top-bar flex items-center justify-between gap-2 h-14" aria-hidden="true"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-7 w-24 rounded-full" data-testid="messages-skeleton-title"></div><div class="flex items-center shrink-0 gap-1"><span class="h-11 w-11 shrink-0 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-6 w-6 rounded-full"></div></span><span class="h-11 w-11 shrink-0 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-9 w-9 rounded-full"></div></span></div></header></div><div class="shrink-0 h-11 flex border-b border-[hsl(var(--olivewood)/0.12)]" data-testid="messages-skeleton-inbox-tabs" aria-hidden="true"><span class="flex-1 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3.5 w-20 rounded-full"></div></span><span class="flex-1 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3.5 w-24 rounded-full"></div></span></div><div class="shrink-0 pt-2 pb-1.5" data-testid="messages-skeleton-search" aria-hidden="true"><div class="flex h-11 items-center justify-end gap-1"><span class="h-11 w-11 shrink-0 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-6 w-6 rounded-full"></div></span><span class="h-11 w-11 shrink-0 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-6 w-6 rounded-full"></div></span></div></div><div class="shrink-0 pt-1 pb-1.5" data-testid="messages-skeleton-chips" aria-hidden="true"><div class="flex gap-2 overflow-hidden"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-9 w-12 shrink-0 rounded-full"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-9 w-[4.75rem] shrink-0 rounded-full"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-9 w-14 shrink-0 rounded-full"></div></div></div></div><section class="page-panel liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col" style="border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:none;background-color:var(--glass-bg-crisp);box-shadow:inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.06), 0 14px 30px -8px hsl(var(--olivewood) / 0.14), 0 36px 64px -16px hsl(var(--olivewood) / 0.18)"><div class="flex-1 min-h-0 overflow-hidden px-3 py-3" data-testid="messages-skeleton-rows"><div class="relative w-full text-left px-3 py-2.5 flex items-center gap-2.5" aria-hidden="true"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] shrink-0 rounded-full w-11 h-11" style="background:hsl(var(--olivewood) / 0.14)"></div><div class="flex-1 min-w-0"><div class="flex items-start gap-x-1.5" data-testid="skeleton-line-1"><div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 flex-1"><div class="min-w-0 basis-[7.5rem] grow h-6 flex items-center" data-testid="skeleton-name"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-28 max-w-full rounded" style="background:hsl(var(--olivewood) / 0.14)"></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-5 w-[4.5rem] rounded-full shrink-0" data-testid="skeleton-status-chip" style="background:hsl(var(--olivewood) / 0.10)"></div></div><div class="ml-auto shrink-0 h-6 flex items-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3 w-10 rounded" style="background:hsl(var(--olivewood) / 0.10)"></div></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] mt-1 h-3.5 w-24 rounded" style="background:hsl(var(--olivewood) / 0.10)"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] mt-1 h-3.5 w-[80%] rounded" style="background:hsl(var(--olivewood) / 0.10)"></div></div><span aria-hidden="true" class="absolute bottom-0 right-0 h-px" style="left:calc(0.75rem + 2.75rem + 0.625rem);background:hsl(var(--olivewood) / 0.10)"></span></div><div class="relative w-full text-left px-3 py-2.5 flex items-center gap-2.5" aria-hidden="true"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] shrink-0 rounded-full w-11 h-11" style="background:hsl(var(--olivewood) / 0.14)"></div><div class="flex-1 min-w-0"><div class="flex items-start gap-x-1.5" data-testid="skeleton-line-1"><div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 flex-1"><div class="min-w-0 basis-[7.5rem] grow h-6 flex items-center" data-testid="skeleton-name"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-28 max-w-full rounded" style="background:hsl(var(--olivewood) / 0.14)"></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-5 w-[4.5rem] rounded-full shrink-0" data-testid="skeleton-status-chip" style="background:hsl(var(--olivewood) / 0.10)"></div></div><div class="ml-auto shrink-0 h-6 flex items-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3 w-10 rounded" style="background:hsl(var(--olivewood) / 0.10)"></div></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] mt-1 h-3.5 w-24 rounded" style="background:hsl(var(--olivewood) / 0.10)"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] mt-1 h-3.5 w-[80%] rounded" style="background:hsl(var(--olivewood) / 0.10)"></div></div><span aria-hidden="true" class="absolute bottom-0 right-0 h-px" style="left:calc(0.75rem + 2.75rem + 0.625rem);background:hsl(var(--olivewood) / 0.10)"></span></div><div class="relative w-full text-left px-3 py-2.5 flex items-center gap-2.5" aria-hidden="true"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] shrink-0 rounded-full w-11 h-11" style="background:hsl(var(--olivewood) / 0.14)"></div><div class="flex-1 min-w-0"><div class="flex items-start gap-x-1.5" data-testid="skeleton-line-1"><div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 flex-1"><div class="min-w-0 basis-[7.5rem] grow h-6 flex items-center" data-testid="skeleton-name"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-28 max-w-full rounded" style="background:hsl(var(--olivewood) / 0.14)"></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-5 w-[4.5rem] rounded-full shrink-0" data-testid="skeleton-status-chip" style="background:hsl(var(--olivewood) / 0.10)"></div></div><div class="ml-auto shrink-0 h-6 flex items-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3 w-10 rounded" style="background:hsl(var(--olivewood) / 0.10)"></div></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] mt-1 h-3.5 w-24 rounded" style="background:hsl(var(--olivewood) / 0.10)"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] mt-1 h-3.5 w-[80%] rounded" style="background:hsl(var(--olivewood) / 0.10)"></div></div><span aria-hidden="true" class="absolute bottom-0 right-0 h-px" style="left:calc(0.75rem + 2.75rem + 0.625rem);background:hsl(var(--olivewood) / 0.10)"></span></div><div class="relative w-full text-left px-3 py-2.5 flex items-center gap-2.5" aria-hidden="true"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] shrink-0 rounded-full w-11 h-11" style="background:hsl(var(--olivewood) / 0.14)"></div><div class="flex-1 min-w-0"><div class="flex items-start gap-x-1.5" data-testid="skeleton-line-1"><div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 flex-1"><div class="min-w-0 basis-[7.5rem] grow h-6 flex items-center" data-testid="skeleton-name"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-28 max-w-full rounded" style="background:hsl(var(--olivewood) / 0.14)"></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-5 w-[4.5rem] rounded-full shrink-0" data-testid="skeleton-status-chip" style="background:hsl(var(--olivewood) / 0.10)"></div></div><div class="ml-auto shrink-0 h-6 flex items-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3 w-10 rounded" style="background:hsl(var(--olivewood) / 0.10)"></div></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] mt-1 h-3.5 w-24 rounded" style="background:hsl(var(--olivewood) / 0.10)"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] mt-1 h-3.5 w-[80%] rounded" style="background:hsl(var(--olivewood) / 0.10)"></div></div><span aria-hidden="true" class="absolute bottom-0 right-0 h-px" style="left:calc(0.75rem + 2.75rem + 0.625rem);background:hsl(var(--olivewood) / 0.10)"></span></div><div class="relative w-full text-left px-3 py-2.5 flex items-center gap-2.5" aria-hidden="true"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] shrink-0 rounded-full w-11 h-11" style="background:hsl(var(--olivewood) / 0.14)"></div><div class="flex-1 min-w-0"><div class="flex items-start gap-x-1.5" data-testid="skeleton-line-1"><div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 flex-1"><div class="min-w-0 basis-[7.5rem] grow h-6 flex items-center" data-testid="skeleton-name"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-28 max-w-full rounded" style="background:hsl(var(--olivewood) / 0.14)"></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-5 w-[4.5rem] rounded-full shrink-0" data-testid="skeleton-status-chip" style="background:hsl(var(--olivewood) / 0.10)"></div></div><div class="ml-auto shrink-0 h-6 flex items-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3 w-10 rounded" style="background:hsl(var(--olivewood) / 0.10)"></div></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] mt-1 h-3.5 w-24 rounded" style="background:hsl(var(--olivewood) / 0.10)"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] mt-1 h-3.5 w-[80%] rounded" style="background:hsl(var(--olivewood) / 0.10)"></div></div><span aria-hidden="true" class="absolute bottom-0 right-0 h-px" style="left:calc(0.75rem + 2.75rem + 0.625rem);background:hsl(var(--olivewood) / 0.10)"></span></div><div class="relative w-full text-left px-3 py-2.5 flex items-center gap-2.5" aria-hidden="true"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] shrink-0 rounded-full w-11 h-11" style="background:hsl(var(--olivewood) / 0.14)"></div><div class="flex-1 min-w-0"><div class="flex items-start gap-x-1.5" data-testid="skeleton-line-1"><div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 flex-1"><div class="min-w-0 basis-[7.5rem] grow h-6 flex items-center" data-testid="skeleton-name"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-28 max-w-full rounded" style="background:hsl(var(--olivewood) / 0.14)"></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-5 w-[4.5rem] rounded-full shrink-0" data-testid="skeleton-status-chip" style="background:hsl(var(--olivewood) / 0.10)"></div></div><div class="ml-auto shrink-0 h-6 flex items-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3 w-10 rounded" style="background:hsl(var(--olivewood) / 0.10)"></div></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] mt-1 h-3.5 w-24 rounded" style="background:hsl(var(--olivewood) / 0.10)"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] mt-1 h-3.5 w-[80%] rounded" style="background:hsl(var(--olivewood) / 0.10)"></div></div><span aria-hidden="true" class="absolute bottom-0 right-0 h-px" style="left:calc(0.75rem + 2.75rem + 0.625rem);background:hsl(var(--olivewood) / 0.10)"></span></div></div></section></div></div></div></div></div><span data-lh-shell="end" hidden></span></div>
+    <div id="lh-declutter-shell" aria-hidden="true" inert data-lh-shell="start"><div role="status" aria-live="polite" aria-busy="true" data-testid="declutter-route-skeleton"><span class="sr-only">Loading Declutter…</span><div class="app-shell-frame fixed inset-x-0 bottom-0 flex flex-col overflow-hidden bg-premium-page pt-safe-top" style="top:0;height:100dvh"><div class="flex-1 min-h-0 flex flex-col overflow-hidden" style="scrollbar-width:none;-ms-overflow-style:none"><div class="container mx-auto px-4 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"><div data-explore-header="" class="explore-header page-measure w-full shrink-0 flex flex-col gap-1"><header class="app-top-bar flex items-center gap-1 pt-2 pb-0.5 group/top" data-testid="app-top-bar" data-compact-top=""><div data-top-bar-title="" class="min-w-0 flex-1 truncate text-page-title text-foreground group-has-[[data-search-open]]/top:!sr-only" title="Declutter">Declutter</div><div data-testid="app-top-bar-search" class="flex min-w-0 shrink-0 justify-end has-[[data-search-open]]:flex-1"><div class="flex shrink-0 items-center justify-end gap-1" aria-hidden="true" data-skeleton-part="search-icons"><span class="h-11 w-11 shrink-0 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-5 w-5 rounded-full"></div></span><span class="h-11 w-11 shrink-0 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-5 w-5 rounded-full"></div></span></div></div><div class="flex items-center shrink-0"></div></header><div class="flex items-end gap-1 border-b border-border/60" aria-hidden="true" data-lh-member-tabs=""><div class="flex h-11 items-center gap-3"><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-14"></div><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-12"></div><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-14"></div><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-14"></div></div></div><div data-lh-guest-join="" style="display:none"><div class="flex items-center justify-between gap-2 pb-2" aria-hidden="true" data-declutter-switch-bones=""><div class="flex gap-2"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-11 w-16 shrink-0 rounded-full"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-11 w-24 shrink-0 rounded-full"></div></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-11 w-20 shrink-0 rounded-full"></div></div></div></div><div data-app-page-scroll="" class="page-measure w-[calc(100%+1.5rem)] flex-1 min-h-0 overflow-y-auto px-3 -mx-3 pb-safe-nav"><div class="flex min-h-full flex-col gap-4 pt-1 pb-6"><div data-lh-guest-join="" style="display:none"><section data-guest-join="browse" data-guest-join-slim="" aria-label="Join to buy or sell" class="flex items-center gap-2 rounded-2xl border border-border bg-card py-1 pl-3 pr-1"><p class="min-w-0 flex-1 truncate text-ds-13"><span class="font-semibold">Join to buy or sell.</span> <span class="text-muted-foreground">It&#x27;s free.</span></p><a class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 btn-grad-primary !text-[hsl(var(--parchment))] [&amp;_*]:!text-[hsl(var(--parchment))] hover:brightness-110 shadow-[0_1px_2px_hsl(var(--ink-deep)/0.10),0_2px_6px_-2px_hsl(var(--ink-deep)/0.12)] active:scale-[0.97] active:shadow-[0_1px_1px_hsl(var(--ink-deep)/0.14)] h-11 text-ds-14 shrink-0 rounded-full px-4" data-guest-join-buttons="" href="/signup?redirect=%2Fdeclutter" data-discover="true">Sign up</a></section></div><div role="status" aria-label="Loading items"><div class="min-w-0"><ul class="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 sm:gap-x-3 sm:gap-y-5 2xl:grid-cols-4" aria-hidden="true"><li class="min-w-0"><div data-skeleton="" class="relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] aspect-[3/4] w-full rounded-2xl bg-photo-empty lg:aspect-square"></div><div class="h-[52px] space-y-1.5 px-0.5 pt-2 lg:h-[110px]"><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-14"></div><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3.5 w-4/5"></div><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3 w-3/5"></div></div></li><li class="min-w-0"><div data-skeleton="" class="relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] aspect-[3/4] w-full rounded-2xl bg-photo-empty lg:aspect-square"></div><div class="h-[52px] space-y-1.5 px-0.5 pt-2 lg:h-[110px]"><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-14"></div><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3.5 w-4/5"></div><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3 w-3/5"></div></div></li><li class="min-w-0"><div data-skeleton="" class="relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] aspect-[3/4] w-full rounded-2xl bg-photo-empty lg:aspect-square"></div><div class="h-[52px] space-y-1.5 px-0.5 pt-2 lg:h-[110px]"><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-14"></div><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3.5 w-4/5"></div><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3 w-3/5"></div></div></li><li class="min-w-0"><div data-skeleton="" class="relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] aspect-[3/4] w-full rounded-2xl bg-photo-empty lg:aspect-square"></div><div class="h-[52px] space-y-1.5 px-0.5 pt-2 lg:h-[110px]"><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-14"></div><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3.5 w-4/5"></div><div data-skeleton="" class="rounded-md bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3 w-3/5"></div></div></li></ul></div></div></div></div></div></div></div></div><span data-lh-shell="end" hidden></span></div>
+    <div id="lh-home-shell" aria-hidden="true" inert data-lh-shell="start"><div role="status" aria-live="polite" aria-busy="true" data-testid="dashboard-route-skeleton"><span class="sr-only">Loading…</span><div class="app-shell-frame fixed inset-x-0 bottom-0 flex flex-col overflow-hidden bg-premium-page pt-safe-top" style="top:0;height:100dvh"><div class="flex-1 min-h-0 flex flex-col overflow-hidden" style="scrollbar-width:none;-ms-overflow-style:none"><div class="container mx-auto px-4 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" aria-hidden="true"><div class="page-measure w-[calc(100%+1.5rem)] h-full overflow-hidden px-3 -mx-3 pb-safe-nav"><div class="app-top-bar flex items-center gap-1 pt-2 pb-0.5"><div class="flex min-w-0 flex-1 items-center" data-skeleton-part="logo"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-8 w-[37px] rounded-ds-md"></div></div><div class="flex min-w-0 shrink-0 justify-end" data-skeleton-part="search-icon"><span class="h-11 w-11 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-5 w-5 rounded-full"></div></span></div><div class="flex items-center shrink-0"><span class="h-11 w-11 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-6 w-6 rounded-full"></div></span><span class="h-11 w-11 flex items-center justify-center"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] w-9 h-9 rounded-full"></div></span></div></div><div class="flex min-h-full flex-col gap-4 pt-1 pb-6"><div class="flex flex-col gap-section pt-2.5"><div class="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up" style="min-height:176px"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3.5 w-16 rounded-ds-md"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-6 w-48 max-w-full rounded-ds-md"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-40 max-w-full rounded-ds-md"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-11 w-36 mt-2 rounded-full"></div></div><div class="flex flex-col gap-2"><div class="px-1"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-24 rounded-ds-md"></div></div><div class="liquid-glass overflow-hidden" data-skeleton-part="coming-up"><div class="flex items-center gap-3 px-4 py-3 border-b border-border/70"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] w-10 h-10 shrink-0 rounded-full"></div><div class="flex-1 min-w-0 flex flex-col gap-1.5"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-40 max-w-full rounded-ds-md"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3.5 w-52 max-w-full rounded-ds-md"></div></div></div><div class="flex items-center gap-3 px-4 py-3 "><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] w-10 h-10 shrink-0 rounded-full"></div><div class="flex-1 min-w-0 flex flex-col gap-1.5"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-40 max-w-full rounded-ds-md"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-3.5 w-52 max-w-full rounded-ds-md"></div></div></div></div></div><div class="flex flex-col gap-2"><div class="flex items-baseline justify-between px-1"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-28 rounded-ds-md"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-4 w-16 rounded-ds-md"></div></div><div class="grid grid-cols-2 gap-2" data-skeleton-part="tiles"><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-11 w-full rounded-full"></div><div data-skeleton="" class="bg-[hsl(var(--olivewood)/0.10)] relative overflow-hidden after:absolute after:inset-0 after:translate-x-[-100%] after:bg-gradient-to-r after:from-transparent after:via-foreground/[0.06] after:to-transparent motion-safe:after:animate-[shimmer_2s_infinite] h-11 w-full rounded-full"></div></div></div></div></div></div></div></div></div></div><span data-lh-shell="end" hidden></span></div>
+  </body>
+</html>

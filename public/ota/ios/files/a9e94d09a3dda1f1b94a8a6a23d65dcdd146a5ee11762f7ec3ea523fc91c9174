@@ -1,0 +1,1 @@
+import{o as e}from"./tanstack-Dt62v76_.js";import{a as t}from"./spent-reads-CVps2e0G.js";function n(n,r=!0){let i=[...new Set(n)].sort();return e({queryKey:[`declutter`,`my-paid-cents`,i.join(`,`)],queryFn:()=>t(i),enabled:r&&i.length>0}).data??null}export{n as t};

@@ -1,0 +1,1 @@
+var e=`relative w-full overflow-hidden rounded-2xl`,t=`max-sm:-mx-5`,n={item:`aspect-square max-h-[52dvh] max-sm:rounded-none sm:max-h-[max(55dvh,calc(100dvh-400px))] sm:aspect-[4/3] bg-photo-empty`,banner:`aspect-[16/9] bg-photo-empty`};export{t as n,e as r,n as t};

@@ -1,0 +1,1 @@
+import{r as e}from"./react-vendor-DBuF32qy.js";var t=e();function n({children:e,id:n}){return e?(0,t.jsx)(`p`,{id:n,role:`alert`,className:`text-ds-11 font-sans font-semibold leading-snug`,style:{color:`hsl(var(--destructive-ink))`},children:e}):null}export{n as t};

@@ -1,0 +1,1 @@
+var e=`Bigger text and buttons`,t=`Larger text and bigger tap targets`;export{t as n,e as t};

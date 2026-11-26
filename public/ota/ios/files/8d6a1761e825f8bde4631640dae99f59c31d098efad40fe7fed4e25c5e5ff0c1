@@ -1,0 +1,1 @@
+import{n as e}from"./toast-facade-CYoIGDkr.js";function t(t){e(`Saved. Find it under Buying, in Saved.`,{action:{label:`See it`,onClick:()=>t(`/declutter?tab=buying`)}})}function n(e){e.invalidateQueries({queryKey:[`declutter`]})}export{t as n,n as t};

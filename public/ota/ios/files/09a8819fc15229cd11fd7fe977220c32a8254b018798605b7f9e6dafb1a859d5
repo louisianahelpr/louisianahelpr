@@ -1,0 +1,1 @@
+var e=`group p-0 box-border ctl-exit btn-press ctl-tint flex items-center justify-center text-muted-foreground hover:text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none`;export{e as t};

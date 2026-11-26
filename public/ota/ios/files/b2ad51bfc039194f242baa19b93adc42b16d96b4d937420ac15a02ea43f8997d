@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-XKyaHtl9.js";import{i as t,r as n}from"./react-vendor-DBuF32qy.js";var r=e(t(),1),i=n(),a=`btn-press liquid-glass text-left flex flex-col min-w-0`,o=(0,r.forwardRef)(({className:e=``,...t},n)=>(0,i.jsx)(`button`,{ref:n,type:`button`,...t,className:`${a} ${e}`.trim()}));o.displayName=`GlassTileButton`;export{o as t};

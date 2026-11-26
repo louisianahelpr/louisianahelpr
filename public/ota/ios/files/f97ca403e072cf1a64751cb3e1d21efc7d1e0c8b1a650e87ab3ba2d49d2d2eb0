@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-XKyaHtl9.js";import{i as t}from"./react-vendor-DBuF32qy.js";var n=e(t(),1),r=`dock-yield`,i=0;function a(e){(0,n.useEffect)(()=>{if(e)return i+=1,document.documentElement.classList.add(r),()=>{i=Math.max(0,i-1),i===0&&document.documentElement.classList.remove(r)}},[e])}export{a as t};

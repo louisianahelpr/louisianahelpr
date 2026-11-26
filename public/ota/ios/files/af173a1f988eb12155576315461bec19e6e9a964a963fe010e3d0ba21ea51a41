@@ -1,0 +1,1 @@
+import{r as e}from"./react-vendor-DBuF32qy.js";var t=e(),n=()=>(0,t.jsx)(`div`,{role:`status`,"aria-live":`polite`,"aria-busy":`true`,className:`w-full min-h-[60vh]`,"data-testid":`route-suspense-fallback`,children:(0,t.jsx)(`span`,{className:`sr-only`,children:`Loading…`})});export{n as t};

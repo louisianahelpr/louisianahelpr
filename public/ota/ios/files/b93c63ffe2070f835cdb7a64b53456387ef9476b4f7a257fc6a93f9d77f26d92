@@ -1,0 +1,1 @@
+var e=`lh-gift-guides-promo-closed`,t=e=>`${e.getFullYear()}-${String(e.getMonth()+1).padStart(2,`0`)}-${String(e.getDate()).padStart(2,`0`)}`;function n(){try{return window.localStorage.getItem(e)===`1`}catch{return!1}}function r(e){return t(e)>`2026-12-25`}function i(e=new Date){return!n()&&!r(e)}export{i,n,r,e as t};

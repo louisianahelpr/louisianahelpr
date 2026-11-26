@@ -1,0 +1,1 @@
+import{t as e}from"./homeShell-BtfmSM7n.js";import{n as t}from"./landingShell-BTKslefy.js";var n=3e3;function r(r=document){let i=r.getElementById(e);if(!i)return()=>{};if(!i.hasAttribute(`data-lh-photos`))return t(e,r),()=>{};let a=setTimeout(()=>t(e,r),n);return()=>clearTimeout(a)}function i(n=document){t(e,n)}export{i as n,r as t};

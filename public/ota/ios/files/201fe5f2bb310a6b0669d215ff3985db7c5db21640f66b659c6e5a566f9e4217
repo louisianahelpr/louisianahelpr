@@ -1,0 +1,1 @@
+function e(e){let t=e/100;return Number.isInteger(t)?`$${t}`:`$${t.toFixed(2)}`}export{e as t};

@@ -2,7 +2,7 @@
  "slug": "cars",
  "name": "Pixar Cars",
  "sectionPrefix": "cars",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/cars/items.json (Tue Nov 24 9:27 PM, 151 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/cars/items.json (Tue Nov 24 9:27 PM, 183 items)",
  "rows": [
   {
    "id": "CR01",
@@ -397,6 +397,83 @@
    "age": "toddler"
   },
   {
+   "id": "CRX17",
+   "name": "Toddler Boys' Disney Cars Baseball Hat (Charcoal)",
+   "brand": "Pixar Cars",
+   "line": "A little Pixar Cars gift for the stocking.",
+   "href": "https://go.shopmy.us/p-111277495",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/toddler-boys-disney-cars-baseball-hat-charcoal-target-a24f66.webp",
+   "store": "store-target",
+   "price": 6,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "cars-stocking-stuffers-under-10",
+   "was": 10,
+   "commission": 4,
+   "age": "toddler"
+  },
+  {
+   "id": "CRX19",
+   "name": "Cars Swaddle Blanket",
+   "brand": "Pixar Cars",
+   "line": "A little Pixar Cars gift for the stocking.",
+   "href": "https://go.shopmy.us/p-111277513",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-swaddle-blanket-jcpenney-5586de.webp",
+   "store": "store-jcpenney",
+   "price": 9.6,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "cars-stocking-stuffers-under-10",
+   "was": 24,
+   "commission": 12,
+   "age": "toddler"
+  },
+  {
+   "id": "CRX30",
+   "name": "Good Night, Lightning (Cars Board Book)",
+   "brand": "Pixar Cars",
+   "line": "A little Pixar Cars gift for the stocking.",
+   "href": "https://walmrt.us/4BgG8On",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/good-night-lightning-cars-board-book-walmart-b37606.webp",
+   "store": "store-walmart",
+   "price": 7.45,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "cars-stocking-stuffers-under-10",
+   "commission": 6,
+   "age": "toddler"
+  },
+  {
+   "id": "CRX31",
+   "name": "Disney Baby Cars on the Go STEAM Gear Sound Book",
+   "brand": "Pixar Cars",
+   "line": "A little Pixar Cars gift for the stocking.",
+   "href": "https://walmrt.us/49dQX7E",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/disney-baby-cars-on-the-go-steam-gear-sound-book-walmart-bec786.webp",
+   "store": "store-walmart",
+   "price": 8.78,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "cars-stocking-stuffers-under-10",
+   "commission": 6,
+   "age": "toddler"
+  },
+  {
+   "id": "CRX32",
+   "name": "Cars Little Golden Book Favorites (hardcover, 3 stories)",
+   "brand": "Pixar Cars",
+   "line": "A little Pixar Cars gift for the stocking.",
+   "href": "https://walmrt.us/4f1Htjk",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-little-golden-book-favorites-hardcover-3-stories-walmart-190cc5.webp",
+   "store": "store-walmart",
+   "price": 8.36,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "cars-stocking-stuffers-under-10",
+   "commission": 6,
+   "age": "kids"
+  },
+  {
    "id": "CRO05",
    "name": "Cars Winter 5-Pack: Sarge, Mater, Doc Hudson, Sally & Lightning McQueen Die-Cast Cars",
    "brand": "Pixar Cars",
@@ -777,6 +854,82 @@
    "age": "kids"
   },
   {
+   "id": "CRX01",
+   "name": "Cars Race & Rescue Crew Die-Cast 4-Pack (Red, Lightning McQueen, Sally, Sarge)",
+   "brand": "Pixar Cars",
+   "line": "Die-cast cars and toys for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111277644",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-race-rescue-crew-die-cast-4-pack-red-lightning-mcqueen-target-5b10fc.webp",
+   "store": "store-target",
+   "price": 27.99,
+   "priceAt": "2026-11-26",
+   "section": "Die-cast cars and toys",
+   "sectionId": "cars-die-cast-cars-and-toys",
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "CRX10",
+   "name": "Cars Collectible Figure Set, 5-Pack (3 in.)",
+   "brand": "Pixar Cars",
+   "line": "Die-cast cars and toys for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111277340",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-collectible-figure-set-5-pack-3-in-target-84f9e9.webp",
+   "store": "store-target",
+   "price": 17.99,
+   "priceAt": "2026-11-26",
+   "section": "Die-cast cars and toys",
+   "sectionId": "cars-die-cast-cars-and-toys",
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "CRX11",
+   "name": "Cars Large Scale Red Fire Truck",
+   "brand": "Pixar Cars",
+   "line": "Die-cast cars and toys for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111277349",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-large-scale-red-fire-truck-target-6c6e3c.webp",
+   "store": "store-target",
+   "price": 19.99,
+   "priceAt": "2026-11-26",
+   "section": "Die-cast cars and toys",
+   "sectionId": "cars-die-cast-cars-and-toys",
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "CRX12",
+   "name": "Disney Pixar Cars Carrying Case (holds about 25-30 cars)",
+   "brand": "Pixar Cars",
+   "line": "Die-cast cars and toys for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111277353",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/disney-pixar-cars-carrying-case-holds-about-25-30-cars-target-df238f.webp",
+   "store": "store-target",
+   "price": 14.99,
+   "priceAt": "2026-11-26",
+   "section": "Die-cast cars and toys",
+   "sectionId": "cars-die-cast-cars-and-toys",
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "CRX26",
+   "name": "Disney Store Cars Mega Figure Set (17 sculpted vehicles)",
+   "brand": "Pixar Cars",
+   "line": "Die-cast cars and toys for a Pixar Cars fan.",
+   "href": "https://walmrt.us/4eYOtNN",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/disney-store-cars-mega-figure-set-17-sculpted-vehicles-walmart-bf041b.webp",
+   "store": "store-walmart",
+   "price": 44.99,
+   "priceAt": "2026-11-26",
+   "section": "Die-cast cars and toys",
+   "sectionId": "cars-die-cast-cars-and-toys",
+   "was": 54.99,
+   "commission": 6,
+   "age": "3+"
+  },
+  {
    "id": "CR20",
    "name": "Cars Piston Cup Stunting Speedway Playset",
    "brand": "Pixar Cars",
@@ -878,6 +1031,21 @@
    "store": "store-target",
    "price": 32.99,
    "priceAt": "2026-11-24",
+   "section": "Tracks and playsets",
+   "sectionId": "cars-tracks-and-playsets",
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "CRX02",
+   "name": "Cars Radiator Springs Race & Rescue Track Talkers Playset with Lightning McQueen & Mater",
+   "brand": "Pixar Cars",
+   "line": "Tracks and playsets for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111276998",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-radiator-springs-race-rescue-track-talkers-playset-with-target-4b13de.webp",
+   "store": "store-target",
+   "price": 29.99,
+   "priceAt": "2026-11-26",
    "section": "Tracks and playsets",
    "sectionId": "cars-tracks-and-playsets",
    "commission": 4,
@@ -1234,6 +1402,144 @@
    "sectionId": "cars-plush-and-room",
    "commission": 16,
    "age": "kids"
+  },
+  {
+   "id": "CRX03",
+   "name": "Cars Global Racers Cup Twin Sheet Set",
+   "brand": "Pixar Cars",
+   "line": "Plush and room for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111277008",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-global-racers-cup-twin-sheet-set-jcpenney-a1b54d.webp",
+   "store": "store-jcpenney",
+   "price": 25,
+   "priceAt": "2026-11-26",
+   "section": "Plush and room",
+   "sectionId": "cars-plush-and-room",
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "CRX04",
+   "name": "Cars 5-Piece Bath Towel Set",
+   "brand": "Pixar Cars",
+   "line": "Plush and room for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111277017",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-5-piece-bath-towel-set-jcpenney-56b993.webp",
+   "store": "store-jcpenney",
+   "price": 12.8,
+   "priceAt": "2026-11-26",
+   "section": "Plush and room",
+   "sectionId": "cars-plush-and-room",
+   "was": 32,
+   "commission": 12,
+   "age": "kids"
+  },
+  {
+   "id": "CRX06",
+   "name": "Cars Twin Comforter (64 x 86)",
+   "brand": "Pixar Cars",
+   "line": "Plush and room for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111277294",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-twin-comforter-64-x-86-target-9c6f9c.webp",
+   "store": "store-target",
+   "price": 22.19,
+   "priceAt": "2026-11-26",
+   "section": "Plush and room",
+   "sectionId": "cars-plush-and-room",
+   "was": 36.99,
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "CRX07",
+   "name": "NoJo Cars Mater 3D Plush Toddler Pillow",
+   "brand": "Pixar Cars",
+   "line": "Plush and room for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111277301",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nojo-cars-mater-3d-plush-toddler-pillow-target-5f11b9.webp",
+   "store": "store-target",
+   "price": 24.99,
+   "priceAt": "2026-11-26",
+   "section": "Plush and room",
+   "sectionId": "cars-plush-and-room",
+   "commission": 4,
+   "age": "toddler"
+  },
+  {
+   "id": "CRX08",
+   "name": "Disney Shop Mater Plush (11 in.)",
+   "brand": "Pixar Cars",
+   "line": "Plush and room for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111277318",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/disney-shop-mater-plush-11-in-target-d96379.webp",
+   "store": "store-target",
+   "price": 19.99,
+   "priceAt": "2026-11-26",
+   "section": "Plush and room",
+   "sectionId": "cars-plush-and-room",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "CRX16",
+   "name": "Delta Children Cars Cozee Buddy Chair",
+   "brand": "Pixar Cars",
+   "line": "Plush and room for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111277771",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/delta-children-cars-cozee-buddy-chair-jcpenney-90ad9f.webp",
+   "store": "store-jcpenney",
+   "price": 44.8,
+   "priceAt": "2026-11-26",
+   "section": "Plush and room",
+   "sectionId": "cars-plush-and-room",
+   "was": 64,
+   "commission": 12,
+   "age": "toddler"
+  },
+  {
+   "id": "CRX21",
+   "name": "NoJo Cars Radiator Springs 2-Piece Toddler Sheet Set",
+   "brand": "Pixar Cars",
+   "line": "Plush and room for a Pixar Cars fan.",
+   "href": "https://walmrt.us/3Va0nxH",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nojo-cars-radiator-springs-2-piece-toddler-sheet-set-walmart-424a07.webp",
+   "store": "store-walmart",
+   "price": 19.99,
+   "priceAt": "2026-11-26",
+   "section": "Plush and room",
+   "sectionId": "cars-plush-and-room",
+   "commission": 6,
+   "age": "toddler"
+  },
+  {
+   "id": "CRX22",
+   "name": "Disney Cars 18-Inch Toddler Square Beanbag Chair (Red)",
+   "brand": "Pixar Cars",
+   "line": "Plush and room for a Pixar Cars fan.",
+   "href": "https://walmrt.us/4A8NWS5",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/disney-cars-18-inch-toddler-square-beanbag-chair-red-walmart-bdee1c.webp",
+   "store": "store-walmart",
+   "price": 24.97,
+   "priceAt": "2026-11-26",
+   "section": "Plush and room",
+   "sectionId": "cars-plush-and-room",
+   "commission": 6,
+   "age": "toddler"
+  },
+  {
+   "id": "CRX25",
+   "name": "NoJo Cars Radiator Springs Toddler Nap Mat",
+   "brand": "Pixar Cars",
+   "line": "Plush and room for a Pixar Cars fan.",
+   "href": "https://walmrt.us/4fx4FGd",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/nojo-cars-radiator-springs-toddler-nap-mat-walmart-b7bfe0.webp",
+   "store": "store-walmart",
+   "price": 29.99,
+   "priceAt": "2026-11-26",
+   "section": "Plush and room",
+   "sectionId": "cars-plush-and-room",
+   "commission": 6,
+   "age": "toddler"
   },
   {
    "id": "CR40",
@@ -2140,6 +2446,22 @@
    "age": "3+"
   },
   {
+   "id": "CRX13",
+   "name": "Yoto Disney Pixar Cars Audio Card",
+   "brand": "Pixar Cars",
+   "line": "Books and games for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111277362",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/yoto-disney-pixar-cars-audio-card-target-48f059.webp",
+   "store": "store-target",
+   "price": 11.24,
+   "priceAt": "2026-11-26",
+   "section": "Books and games",
+   "sectionId": "cars-books-and-games",
+   "was": 14.99,
+   "commission": 4,
+   "age": "3+"
+  },
+  {
    "id": "CR70",
    "name": "Cars 3 Lightning McQueen Light & Sound Ride-On",
    "brand": "Pixar Cars",
@@ -2259,9 +2581,106 @@
    "was": 69.99,
    "commission": 12,
    "age": "kids"
+  },
+  {
+   "id": "CRX09",
+   "name": "Disney Clubhouse Kids' Ride-On Suitcase, Cars",
+   "brand": "Pixar Cars",
+   "line": "Big gifts for a Pixar Cars fan.",
+   "href": "https://go.shopmy.us/p-111277329",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/disney-clubhouse-kids-ride-on-suitcase-cars-target-b3de3d.webp",
+   "store": "store-target",
+   "price": 103.99,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "cars-big-gifts",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "CRX23",
+   "name": "Disney Cars Lightning McQueen Rug, 4'6\" x 6'6\"",
+   "brand": "Pixar Cars",
+   "line": "Big gifts for a Pixar Cars fan.",
+   "href": "https://walmrt.us/4fOFPld",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/disney-cars-lightning-mcqueen-rug-46-x-66-walmart-6a6379.webp",
+   "store": "store-walmart",
+   "price": 89.99,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "cars-big-gifts",
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "CRX27",
+   "name": "Bell Disney Cars Titanium McQueen Bike Helmet (Child 5+)",
+   "brand": "Pixar Cars",
+   "line": "Big gifts for a Pixar Cars fan.",
+   "href": "https://walmrt.us/3X9W7ig",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bell-disney-cars-titanium-mcqueen-bike-helmet-child-5-walmart-60fbc2.webp",
+   "store": "store-walmart",
+   "price": 14.41,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "cars-big-gifts",
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "CRX28",
+   "name": "Cars 3D Lightning McQueen Toddler Multisport Helmet (3+)",
+   "brand": "Pixar Cars",
+   "line": "Big gifts for a Pixar Cars fan.",
+   "href": "https://walmrt.us/4tiQmL8",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-3d-lightning-mcqueen-toddler-multisport-helmet-3-walmart-316e1a.webp",
+   "store": "store-walmart",
+   "price": 26.69,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "cars-big-gifts",
+   "commission": 6,
+   "age": "toddler"
+  },
+  {
+   "id": "CRX29",
+   "name": "Bell Disney Cars Protective Pad and Glove Set",
+   "brand": "Pixar Cars",
+   "line": "Big gifts for a Pixar Cars fan.",
+   "href": "https://walmrt.us/48Kod6f",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bell-disney-cars-protective-pad-and-glove-set-walmart-6752e1.webp",
+   "store": "store-walmart",
+   "price": 16.79,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "cars-big-gifts",
+   "was": 20.99,
+   "commission": 6,
+   "age": "kids"
   }
  ],
  "skipped": [
+  {
+   "id": "CRX14",
+   "name": "Toddler Boys' Lightning McQueen Graphic Tee (Blue)",
+   "why": [
+    "the only photo shows a child wearing it (b2 11-26)"
+   ]
+  },
+  {
+   "id": "CRX20",
+   "name": "Cars Kids 3-Piece Twin Sheet Set, The Race Is On",
+   "why": [
+    "the only photo is a made bed with its headboard (b2 11-26); NoJo toddler sheets CRX21 cover sheets"
+   ]
+  },
+  {
+   "id": "CRX24",
+   "name": "RoomMates Lightning McQueen Peel & Stick Giant Wall Decal",
+   "why": [
+    "the only photo is a staged bedroom scene (b2 11-26)"
+   ]
+  },
   {
    "id": "CRJ11",
    "name": "Cars Toddler Boys' 4-Piece Pajama Set",
@@ -2296,6 +2715,27 @@
    "name": "Cars Toddler Boys' Button-Front 2-Piece Pajama Set",
    "why": [
     "pajama cap: at most 2 pajamas per price section (owner 11-20); u25 already has 2"
+   ]
+  },
+  {
+   "id": "CRX05",
+   "name": "Toddler Boys' Pit Crew Lightning McQueen Jumpsuit (Black)",
+   "why": [
+    "the only photo shows a child wearing it (b2 11-26)"
+   ]
+  },
+  {
+   "id": "CRX15",
+   "name": "Toddler Boys' Holiday 4-Piece Cars Snug Fit Pajama Set",
+   "why": [
+    "pajama cap: at most 2 pajamas per price section (owner 11-20); u25 already has 2"
+   ]
+  },
+  {
+   "id": "CRX18",
+   "name": "Baby Boys' Lightning McQueen Christmas Sweater (Red, 12M-5T)",
+   "why": [
+    "the only photo shows a child wearing it (b2 11-26)"
    ]
   }
  ]

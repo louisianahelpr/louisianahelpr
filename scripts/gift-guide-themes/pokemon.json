@@ -2,7 +2,7 @@
  "slug": "pokemon",
  "name": "Pokémon",
  "sectionPrefix": "pokemon",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/pokemon/items.json (Tue Nov 24 3:46 PM, 188 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/pokemon/items.json (Tue Nov 24 3:46 PM, 189 items)",
  "rows": [
   {
    "id": "PK02",
@@ -2184,6 +2184,22 @@
    "section": "Clothes and shoes",
    "sectionId": "pokemon-clothes-and-shoes",
    "commission": 15,
+   "age": "kids"
+  },
+  {
+   "id": "PKT15",
+   "name": "Kids' Pokémon Sneakers, White",
+   "brand": "Pokémon",
+   "line": "Clothes and shoes for a Pokémon fan.",
+   "href": "https://go.shopmy.us/p-111279015",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/kids-pok-mon-sneakers-white-target-1e6d18.webp",
+   "store": "store-target",
+   "price": 22.8,
+   "priceAt": "2026-11-26",
+   "section": "Clothes and shoes",
+   "sectionId": "pokemon-clothes-and-shoes",
+   "was": 38,
+   "commission": 4,
    "age": "kids"
   },
   {

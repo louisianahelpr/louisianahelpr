@@ -337,7 +337,8 @@ describe("owner 11-24: the Black Friday steals she ticked", () => {
 
   it("the 11-26 Kids adds are each on Kids once, at the price read 11-26, with the Walmart store and Creator rate, a cutout and a tag", () => {
     expect(OWNER_1126.length).toBe(10);
-    expect(KIDS_OWNER_1126_ROWS.length).toBe(OWNER_1126.length);
+    // KIDS_OWNER_1126_ROWS also holds the owner's Walmart Barbie/Creator picks (giftGuidePriceSort1121); these 10 are hers too.
+    expect(OWNER_1126.every(([, href]) => KIDS_OWNER_1126_ROWS.some((r) => r[0] === href))).toBe(true);
     const tags = (JSON.parse(readFileSync("src/content/giftGuideKidsTags.json", "utf8")) as { tags: Record<string, { gender?: string }> }).tags;
     for (const [guide, href, store, commission, price, name] of OWNER_1126) {
       for (const list of [chunk(guide), built[guide]]) {

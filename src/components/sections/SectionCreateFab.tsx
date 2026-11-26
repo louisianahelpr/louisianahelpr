@@ -46,8 +46,35 @@ function useFabClearance(on: boolean) {
  * again. The app scrolls inside its own panels, not the window, so this listens to every scroll in capture phase
  * and reads the scrolled element's own position.
  */
-function useFoldsWhileScrollingDown(on: boolean): boolean {
+/**
+ * Phone audit 11-25 #1: the open pill still sat on the END of a list ("That's every open job…" on Jobs, Home's last
+ * card) whenever the list's end was on screen, at rest too, since nothing was scrolling. Within END_FOLD_PX of the
+ * scroll's end (the dock's room plus the pill's own), the pill is the round "+" as well, so the end card reads whole.
+ */
+export const END_FOLD_PX = 160;
+/** How far the element scrolls before its end: scrollHeight - scrollTop - clientHeight (0 for one that cannot scroll). */
+export function scrollLeft(el: Pick<Element, "scrollHeight" | "scrollTop" | "clientHeight">): number {
+  return Math.max(0, el.scrollHeight - el.scrollTop - el.clientHeight);
+}
+/** The list's end is on screen (a laid-out panel only: one with no height, as before layout, is not "at its end"). */
+export function endNear(el: Pick<Element, "scrollHeight" | "scrollTop" | "clientHeight">): boolean {
+  return el.clientHeight > 0 && scrollLeft(el) <= END_FOLD_PX;
+}
+/** The panel that scrolls under the pill: the nearest scrolling ancestor of what is drawn at the pill's spot. */
+function scrollerUnderPill(pill: Element | null): Element | null {
+  if (!pill || typeof document.elementsFromPoint !== "function") return null;
+  const r = pill.getBoundingClientRect();
+  const under = document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2).find((e) => e !== pill && !pill.contains(e));
+  for (let e: Element | null = under ?? null; e; e = e.parentElement) {
+    const oy = getComputedStyle(e).overflowY;
+    if ((oy === "auto" || oy === "scroll") && e.scrollHeight > e.clientHeight + 1) return e;
+  }
+  return document.scrollingElement;
+}
+
+function useFoldsWhileScrollingDown(on: boolean, pill: () => Element | null): boolean {
   const [folded, setFolded] = useState(false);
+  const [atEnd, setAtEnd] = useState(false);
   useEffect(() => {
     if (!on || typeof document === "undefined") return;
     const last = new WeakMap<EventTarget, number>();
@@ -57,20 +84,34 @@ function useFoldsWhileScrollingDown(on: boolean): boolean {
       const top = (el as Element).scrollTop;
       const before = last.get(el) ?? 0;
       last.set(el, top);
+      setAtEnd(endNear(el as Element));
       if (top <= 8) setFolded(false);
       else if (top - before > 4) setFolded(true);
       else if (before - top > 4) setFolded(false);
     };
+    // At rest (nothing scrolled yet): look again as the list arrives and settles.
+    const look = () => {
+      const el = scrollerUnderPill(pill());
+      if (el) setAtEnd(endNear(el));
+    };
+    const timers = [0, 400, 1200, 2500].map((ms) => setTimeout(look, ms));
     document.addEventListener("scroll", onScroll, { capture: true, passive: true });
-    return () => document.removeEventListener("scroll", onScroll, { capture: true });
-  }, [on]);
-  return folded;
+    window.addEventListener("resize", look);
+    return () => {
+      document.removeEventListener("scroll", onScroll, { capture: true });
+      window.removeEventListener("resize", look);
+      timers.forEach(clearTimeout);
+    };
+  }, [on, pill]);
+  return folded || atEnd;
 }
 
 /**
  * `add`: this member's own action when it is not the section's usual one (Shops: a member who already has a shop is
  * offered "+ Add an item", not "+ Open a shop"; ShopsHomeView). Guard: src/test/shopOwnerAddNotOpenShop.test.tsx.
  */
+const findPill = () => (typeof document === "undefined" ? null : document.querySelector("[data-testid='section-create-fab']"));
+
 export function SectionCreateFab({ section, text: given, add: own }: { section?: SectionKey; text?: string; add?: SectionAdd }) {
   const { t: tr } = useLanguage();
   const text = own?.cta ?? own?.label ?? given ?? tr("nav.create");
@@ -84,7 +125,7 @@ export function SectionCreateFab({ section, text: given, add: own }: { section?:
   const add = own ?? (section ? sectionByKey(section).add : null);
   const shown = !desktop && !hidden && !(section && !add);
   useFabClearance(shown);
-  const folded = useFoldsWhileScrollingDown(shown);
+  const folded = useFoldsWhileScrollingDown(shown, findPill);
   if (!shown || typeof document === "undefined") return null;
   const isPost = add?.path === "/post-job";
   const go = () => { hapticMedium(); if (add) navigate(add.path); else setCreateSheetOpen((o) => !o); };

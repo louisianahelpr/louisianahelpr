@@ -168,9 +168,10 @@ function LazyLocalListings() {
  * count, open on arrival (START_OPEN) and closed or opened again by its chevron. `dealCount` null = the deal cards are
  * still loading (or failed): that subsection shows the loading line or the Try again in its place, with no count yet.
  */
-function DealSections({ day, deals, dealCount, steals, shownCodes }: { day: string; deals: ReactNode; dealCount: number | null; steals: { id: string; title: string; count: number; body: ReactNode }[]; shownCodes: ReadonlySet<string> }) {
+function DealSections({ day, today, deals, dealCount, steals, shownCodes }: { day: string; today: string; deals: ReactNode; dealCount: number | null; steals: { id: string; title: string; count: number; body: ReactNode }[]; shownCodes: ReadonlySet<string> }) {
   // Polish audit 1122 #12: a code a Top deal card already shows (XTRATUF's XT25) gets no second card under Discount codes.
-  const codes = codesOn(day).filter((c) => !shownCodes.has(c.code.toUpperCase()));
+  // `today` is the page's day (its `now`), so an embargoed code's `starts` reads the same clock as the rest of the page.
+  const codes = codesOn(day, today).filter((c) => !shownCodes.has(c.code.toUpperCase()));
   const sales = salesOn(day);
   const sections = [
     ...(dealCount !== 0 ? [{ id: "deals", title: CARD_WORDS.dealsTitle, count: dealCount, body: deals }] : []),
@@ -284,6 +285,7 @@ export function GiftGuideDeals({ day, now }: { day: DealEvent; now?: Date }) {
       {kind === "deals" ? (
         <DealSections
           day={codesDay(day, today)}
+          today={today}
           deals={
             deals === null && failed ? (
               <GiftGuideLoadError message={G.dealsFailed} onRetry={retry} />

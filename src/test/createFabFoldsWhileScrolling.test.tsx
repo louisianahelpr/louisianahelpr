@@ -7,6 +7,8 @@
  * @mutate src/components/sections/SectionCreateFab.tsx |       else if (top - before > 4) setFolded(true); |       else if (top - before > 4) setFolded(false);
  * @mutate src/components/sections/SectionCreateFab.tsx |       {!folded && text} |       {text}
  * @mutate src/components/sections/SectionCreateFab.tsx |   return folded \|\| atEnd; |   return folded;
+ * @mutate src/components/sections/SectionCreateFab.tsx |   const folded = useFoldsWhileScrollingDown(shown, findPill) \|\| round; |   const folded = useFoldsWhileScrollingDown(shown, findPill);
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | \|\| view === "buying" \|\| view === "selling"; | \|\| view === "buying";
  * @mutate src/components/sections/SectionCreateFab.tsx |   return el.clientHeight > 0 && scrollLeft(el) <= END_FOLD_PX; |   return false;
  *
  * Phone audit 11-25 #1: the open pill sat on the END of a list ("That's every open job…") whenever the list's end was
@@ -15,6 +17,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { readFileSync } from "node:fs";
+import { blankComments } from "./helpers/blankNonCode";
 
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ gate: (_k: string, f: () => void) => f, gatedProps: () => ({}) }) }));
@@ -92,5 +96,25 @@ describe("the create pill folds at the end of the list (phone audit 11-25 #1)", 
     expect(fab().textContent).not.toContain("Post a job");
     scrollTo(panel, 500); // well up the list, on the way up: open again (F262)
     expect(fab().hasAttribute("data-folded")).toBe(false);
+  });
+});
+
+describe("lead 11-25 (phone audit #1): Declutter Browse's pill is round from the start; none on Selling", () => {
+  it("round: the + alone at rest, still named", () => {
+    render(
+      <MemoryRouter>
+        <SectionCreateFab section="declutter" text="Sell" round />
+      </MemoryRouter>,
+    );
+    const fab = screen.getByTestId("section-create-fab");
+    expect(fab.hasAttribute("data-folded")).toBe(true);
+    expect(fab.textContent).not.toContain("Sell");
+    expect(fab.getAttribute("aria-label")).toBeTruthy();
+  });
+
+  it("Declutter's home view: no pill on Selling, round on Browse", () => {
+    const src = blankComments(readFileSync("src/components/declutter/DeclutterHomeView.tsx", "utf8"));
+    expect(src).toContain('const ownMainButton = view === "wanted" || view === "deliver" || view === "buying" || view === "selling";');
+    expect(src).toContain('<SectionCreateFab section="declutter" text={t("decl.hv.sell")} round={view === "browse"} />');
   });
 });

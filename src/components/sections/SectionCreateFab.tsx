@@ -114,7 +114,11 @@ function useFoldsWhileScrollingDown(on: boolean, pill: () => Element | null): bo
  */
 const findPill = () => (typeof document === "undefined" ? null : document.querySelector("[data-testid='section-create-fab']"));
 
-export function SectionCreateFab({ section, text: given, add: own }: { section?: SectionKey; text?: string; add?: SectionAdd }) {
+/**
+ * `round` (lead 11-25, phone audit #1): the pill is the round "+" from the start (Declutter Browse, whose two-column
+ * photo grid it sat on at rest); its name stays on aria-label.
+ */
+export function SectionCreateFab({ section, text: given, add: own, round = false }: { section?: SectionKey; text?: string; add?: SectionAdd; round?: boolean }) {
   const { t: tr } = useLanguage();
   const text = own?.cta ?? own?.label ?? given ?? tr("nav.create");
   const navigate = useNavigate();
@@ -127,7 +131,7 @@ export function SectionCreateFab({ section, text: given, add: own }: { section?:
   const add = own ?? (section ? sectionByKey(section).add : null);
   const shown = !desktop && !hidden && !(section && !add);
   useFabClearance(shown);
-  const folded = useFoldsWhileScrollingDown(shown, findPill);
+  const folded = useFoldsWhileScrollingDown(shown, findPill) || round;
   if (!shown || typeof document === "undefined") return null;
   const isPost = add?.path === "/post-job";
   const go = () => { hapticMedium(); if (add) navigate(add.path); else setCreateSheetOpen((o) => !o); };

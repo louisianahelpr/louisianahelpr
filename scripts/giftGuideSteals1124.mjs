@@ -322,6 +322,24 @@ export const HER_STEALS_1124_ROWS = [
 export const HER_OWNER_1125_ROWS = [
   ["https://mavely.app.link/Etc8x0jLk8b", 19.99, "https://target.scene7.com/is/image/Target/GUEST_111f8fbc-5d93-4ed4-85e5-34eb057e8c00", "Magic Puzzle Company The Festive Factory 1000-Piece Puzzle", "Magic Puzzle Company", "store-target", "puzzle", 2.8, "A Santa's-workshop jigsaw packed with tiny details to find."],
 ];
+/**
+ * THE 11-26 ADDS (owner, Thu 2026-11-26): her picks from a "Gift Guide For Little Boys" ad (on Kids) and the US best-seller
+ * adds (~/.lh-shots/us-best-sellers-adds-1126-handoff.md). Each row was priced 2026-11-26 (priceAt PRICE_AT_1126): Walmart
+ * rows from Walmart Creator search (price, rating and photo; walmart.com itself showed a bot check, not passed), other stores
+ * from their own product pages. Rows: [link, price, store photo, name, brand, store, type, commission %, line].
+ */
+export const PRICE_AT_1126 = "2026-11-26";
+/** Kids, 11-26. */
+export const KIDS_OWNER_1126_ROWS = [
+];
+/** Her, 11-26. */
+export const HER_OWNER_1126_ROWS = [
+];
+/** Him, 11-26. */
+export const HIM_OWNER_1126_ROWS = [
+];
+/** Every pick priced 2026-11-26: the rows above plus Amazon re-reads that day (AirPods Pro 3 on Him, $149). */
+export const PRICED_1126_HREFS = new Set([...KIDS_OWNER_1126_ROWS, ...HER_OWNER_1126_ROWS, ...HIM_OWNER_1126_ROWS].map((r) => r[0]).concat(["https://www.amazon.com/dp/B0FQFB8FMG?tag=louisianahelpr-20"]));
 /** For Him. */
 export const HIM_STEALS_1124_ROWS = [
   // S1 Macy's exclusive (reg. $50, 80% off), read on macys.com 2:11 AM, Add to Bag active.

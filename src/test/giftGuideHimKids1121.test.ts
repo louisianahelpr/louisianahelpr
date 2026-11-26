@@ -242,7 +242,8 @@ describe.each([
       // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day and the Dad fill-in book (owner
       // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) and the GE Opal Mini (builder-guide-him, 2026-11-22) were priced 11-22.
       // The owner's 11-23 keeps (scripts/giftGuideOwnerKeeps1123.mjs) were priced 11-23.
-      const day = keeps.has(p.href) ? "2026-11-23" : p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) || louisianaAmazon.has(p.href) || linkFix.has(p.href) ? "2026-11-22" : "2026-11-21";
+      // AirPods Pro 3 was re-read on Amazon 2026-11-26 ($149; PRICED_1126_HREFS).
+      const day = p.href.includes("B0FQFB8FMG") ? "2026-11-26" : keeps.has(p.href) ? "2026-11-23" : p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) || louisianaAmazon.has(p.href) || linkFix.has(p.href) ? "2026-11-22" : "2026-11-21";
       expect(p.priceAt, p.name).toBe(reread !== undefined ? AMAZON_PRICES_AT_1124 : recheckedPriceAt(p.href, p.price, day));
       // The unbuyable links never come back.
       for (const gone of Object.keys(LINK_FIXES_1122)) expect(p.href.includes(gone), `${p.name}: ${gone}`).toBe(false);

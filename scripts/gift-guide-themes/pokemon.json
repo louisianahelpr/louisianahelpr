@@ -2,7 +2,7 @@
  "slug": "pokemon",
  "name": "Pokémon",
  "sectionPrefix": "pokemon",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/pokemon/items.json (Tue Nov 24 3:46 PM, 141 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/pokemon/items.json (Tue Nov 24 3:46 PM, 188 items)",
  "rows": [
   {
    "id": "PK02",
@@ -460,6 +460,127 @@
    "age": "kids"
   },
   {
+   "id": "PKT01",
+   "name": "Hallmark Pokémon Pikachu Shatterproof Christmas Ornament",
+   "brand": "Pokémon",
+   "line": "A little Pokémon gift for the stocking.",
+   "href": "https://go.shopmy.us/p-111277134",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hallmark-pok-mon-pikachu-shatterproof-christmas-ornament-target-351f2e.webp",
+   "store": "store-target",
+   "price": 6,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "pokemon-stocking-stuffers-under-10",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "PKT02",
+   "name": "Hallmark Pokémon Poké Ball Shatterproof Christmas Ornament",
+   "brand": "Pokémon",
+   "line": "A little Pokémon gift for the stocking.",
+   "href": "https://go.shopmy.us/p-111277150",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hallmark-pok-mon-pok-ball-shatterproof-christmas-ornament-target-8aa123.webp",
+   "store": "store-target",
+   "price": 6,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "pokemon-stocking-stuffers-under-10",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "PKW01",
+   "name": "Squishmallows Pokémon Snorlax Clip-On Plush",
+   "brand": "Pokémon",
+   "line": "A little Pokémon gift for the stocking.",
+   "href": "https://walmrt.us/4CqFGhH",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/squishmallows-pok-mon-snorlax-clip-on-plush-walmart-b8e34e.webp",
+   "store": "store-walmart",
+   "price": 7.97,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "pokemon-stocking-stuffers-under-10",
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "PKW02",
+   "name": "Pokémon Gengar Clip-On Plush (Jazwares)",
+   "brand": "Pokémon",
+   "line": "A little Pokémon gift for the stocking.",
+   "href": "https://walmrt.us/4Ak6Jtq",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-gengar-clip-on-plush-jazwares-walmart-87c6ae.webp",
+   "store": "store-walmart",
+   "price": 7.97,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "pokemon-stocking-stuffers-under-10",
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "PKW04",
+   "name": "A Friend Like Pikachu! (Little Golden Book)",
+   "brand": "Pokémon",
+   "line": "A little Pokémon gift for the stocking.",
+   "href": "https://walmrt.us/4AacxWo",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/a-friend-like-pikachu-little-golden-book-walmart-09c7d8.webp",
+   "store": "store-walmart",
+   "price": 5.29,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "pokemon-stocking-stuffers-under-10",
+   "commission": 4,
+   "age": "toddler"
+  },
+  {
+   "id": "PKW05",
+   "name": "Pikachu Loves (Pokémon Monpoké Board Book)",
+   "brand": "Pokémon",
+   "line": "A little Pokémon gift for the stocking.",
+   "href": "https://walmrt.us/4jf1owe",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pikachu-loves-pok-mon-monpok-board-book-walmart-9c818a.webp",
+   "store": "store-walmart",
+   "price": 6.98,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "pokemon-stocking-stuffers-under-10",
+   "was": 8.99,
+   "commission": 4,
+   "age": "toddler"
+  },
+  {
+   "id": "PKW07",
+   "name": "Pokémon 48-Piece Party Favor Kit for 8 Guests",
+   "brand": "Pokémon",
+   "line": "A little Pokémon gift for the stocking.",
+   "href": "https://walmrt.us/3VfRO4h",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-48-piece-party-favor-kit-for-8-guests-walmart-b7ee8f.webp",
+   "store": "store-walmart",
+   "price": 9.47,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "pokemon-stocking-stuffers-under-10",
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "PKW08",
+   "name": "Hallmark Pokémon Boxed Christmas Cards, 18 Count",
+   "brand": "Pokémon",
+   "line": "A little Pokémon gift for the stocking.",
+   "href": "https://walmrt.us/4tox7jo",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hallmark-pok-mon-boxed-christmas-cards-18-count-walmart-9bc59d.webp",
+   "store": "store-walmart",
+   "price": 6.47,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "pokemon-stocking-stuffers-under-10",
+   "commission": 9,
+   "age": "kids"
+  },
+  {
    "id": "PK10",
    "name": "Pokemon Battle Figure 2-Pack, Charizard and Pikachu",
    "brand": "Pokémon",
@@ -615,6 +736,127 @@
    "commission": 12,
    "age": "kids",
    "ownerAdd": true
+  },
+  {
+   "id": "PKT03",
+   "name": "Pokémon Battle Figure Multipack, 10-Pack (Target)",
+   "brand": "Pokémon",
+   "line": "Toys and figures for a Pokémon fan.",
+   "href": "https://go.shopmy.us/p-111277176",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-battle-figure-multipack-10-pack-target-target-d8e820.webp",
+   "store": "store-target",
+   "price": 34.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and figures",
+   "sectionId": "pokemon-toys-and-figures",
+   "was": 63.99,
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "PKT04",
+   "name": "Pokémon Battle Figures 2026 Holiday Calendar, 24 Figures",
+   "brand": "Pokémon",
+   "line": "Toys and figures for a Pokémon fan.",
+   "href": "https://go.shopmy.us/p-111277202",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-battle-figures-2026-holiday-calendar-24-figures-target-ea2caa.webp",
+   "store": "store-target",
+   "price": 46.49,
+   "priceAt": "2026-11-26",
+   "section": "Toys and figures",
+   "sectionId": "pokemon-toys-and-figures",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "PKT05",
+   "name": "Pokémon Battle Figure 30th Anniversary Multipack, 5-Pack",
+   "brand": "Pokémon",
+   "line": "Toys and figures for a Pokémon fan.",
+   "href": "https://go.shopmy.us/p-111277233",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-battle-figure-30th-anniversary-multipack-5-pack-target-ce39c1.webp",
+   "store": "store-target",
+   "price": 29.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and figures",
+   "sectionId": "pokemon-toys-and-figures",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "PKT06",
+   "name": "Pokémon Select 6 in Articulated Mega Charizard Y (Pokémon x Target)",
+   "brand": "Pokémon",
+   "line": "Toys and figures for a Pokémon fan.",
+   "href": "https://go.shopmy.us/p-111277341",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-select-6-in-articulated-mega-charizard-y-pok-mon-x-t-target-e0aa3e.webp",
+   "store": "store-target",
+   "price": 19.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and figures",
+   "sectionId": "pokemon-toys-and-figures",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "PKT07",
+   "name": "Pokémon Rayquaza 6 in Super-Articulated Figure (Target Exclusive)",
+   "brand": "Pokémon",
+   "line": "Toys and figures for a Pokémon fan.",
+   "href": "https://go.shopmy.us/p-111277352",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-rayquaza-6-in-super-articulated-figure-target-exclus-target-776474.webp",
+   "store": "store-target",
+   "price": 19.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and figures",
+   "sectionId": "pokemon-toys-and-figures",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "PKT08",
+   "name": "Pokémon Select Evolution Multipack: Gastly, Haunter, Gengar",
+   "brand": "Pokémon",
+   "line": "Toys and figures for a Pokémon fan.",
+   "href": "https://go.shopmy.us/p-111277361",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-select-evolution-multipack-gastly-haunter-gengar-target-042736.webp",
+   "store": "store-target",
+   "price": 29.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and figures",
+   "sectionId": "pokemon-toys-and-figures",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "PKT09",
+   "name": "Squish-a-longs Pokémon Camping Adventure Playset",
+   "brand": "Pokémon",
+   "line": "Toys and figures for a Pokémon fan.",
+   "href": "https://go.shopmy.us/p-111277377",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/squish-a-longs-pok-mon-camping-adventure-playset-target-beb39a.webp",
+   "store": "store-target",
+   "price": 19.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and figures",
+   "sectionId": "pokemon-toys-and-figures",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
+   "id": "PKW10",
+   "name": "Pokémon Battle Disc Showdown Game: Pikachu and Larvitar",
+   "brand": "Pokémon",
+   "line": "Toys and figures for a Pokémon fan.",
+   "href": "https://walmrt.us/4CqGqmO",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-battle-disc-showdown-game-pikachu-and-larvitar-walmart-a4c007.webp",
+   "store": "store-walmart",
+   "price": 24.97,
+   "priceAt": "2026-11-26",
+   "section": "Toys and figures",
+   "sectionId": "pokemon-toys-and-figures",
+   "commission": 6,
+   "age": "kids"
   },
   {
    "id": "PK20",
@@ -791,6 +1033,53 @@
    "section": "LEGO and building",
    "sectionId": "pokemon-lego-and-building",
    "commission": 6
+  },
+  {
+   "id": "PKW12",
+   "name": "LEGO Pokémon SMART Play: Charizard vs. Jolteon Ultimate Battle",
+   "brand": "Pokémon",
+   "line": "LEGO and building for a Pokémon fan.",
+   "href": "https://walmrt.us/3VLH8e4",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-pok-mon-smart-play-charizard-vs-jolteon-ultimate-battle-walmart-6b984d.webp",
+   "store": "store-walmart",
+   "price": 120,
+   "priceAt": "2026-11-26",
+   "section": "LEGO and building",
+   "sectionId": "pokemon-lego-and-building",
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "PKW13",
+   "name": "LEGO Pokémon SMART Play: Sprigatito, Fuecoco and Quaxly Battle 72158",
+   "brand": "Pokémon",
+   "line": "LEGO and building for a Pokémon fan.",
+   "href": "https://walmrt.us/4tvVoUH",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-pok-mon-smart-play-sprigatito-fuecoco-and-quaxly-battle-walmart-fd519f.webp",
+   "store": "store-walmart",
+   "price": 27.97,
+   "priceAt": "2026-11-26",
+   "section": "LEGO and building",
+   "sectionId": "pokemon-lego-and-building",
+   "was": 34.99,
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "PKT10",
+   "name": "LEGO Pokémon SMART Play: Drone Search for Mythical Mew 72161",
+   "brand": "Pokémon",
+   "line": "LEGO and building for a Pokémon fan.",
+   "href": "https://go.shopmy.us/p-111277398",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-pok-mon-smart-play-drone-search-for-mythical-mew-72161-target-aa3b86.webp",
+   "store": "store-target",
+   "price": 39.99,
+   "priceAt": "2026-11-26",
+   "section": "LEGO and building",
+   "sectionId": "pokemon-lego-and-building",
+   "was": 49.99,
+   "commission": 4,
+   "age": "kids"
   },
   {
    "id": "PK30",
@@ -987,6 +1276,36 @@
    "commission": 16,
    "age": "kids",
    "ownerAdd": true
+  },
+  {
+   "id": "PKW16",
+   "name": "Pokémon Mewtwo Plush, 12 in",
+   "brand": "Pokémon",
+   "line": "Plush for a Pokémon fan.",
+   "href": "https://walmrt.us/4trXTaM",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-mewtwo-plush-12-in-walmart-a10a2f.webp",
+   "store": "store-walmart",
+   "price": 24.97,
+   "priceAt": "2026-11-26",
+   "section": "Plush",
+   "sectionId": "pokemon-plush",
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "PKT11",
+   "name": "Pokémon Growlithe Plush, 24 in",
+   "brand": "Pokémon",
+   "line": "Plush for a Pokémon fan.",
+   "href": "https://go.shopmy.us/p-111277696",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-growlithe-plush-24-in-target-8ee4f1.webp",
+   "store": "store-target",
+   "price": 49.99,
+   "priceAt": "2026-11-26",
+   "section": "Plush",
+   "sectionId": "pokemon-plush",
+   "commission": 4,
+   "age": "kids"
   },
   {
    "id": "PK42",
@@ -1853,6 +2172,21 @@
    "age": "kids"
   },
   {
+   "id": "PKW33",
+   "name": "Pokémon Little and Big Boys High Top Sneaker",
+   "brand": "Pokémon",
+   "line": "Clothes and shoes for a Pokémon fan.",
+   "href": "https://walmrt.us/4AYAXT2",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-little-and-big-boys-high-top-sneaker-walmart-d11322.webp",
+   "store": "store-walmart",
+   "price": 24.98,
+   "priceAt": "2026-11-26",
+   "section": "Clothes and shoes",
+   "sectionId": "pokemon-clothes-and-shoes",
+   "commission": 15,
+   "age": "kids"
+  },
+  {
    "id": "PK50",
    "name": "Hallmark Pokemon Pikachu on Poke Ball Christmas Ornament",
    "brand": "Pokémon",
@@ -2046,6 +2380,156 @@
    "ownerAdd": true
   },
   {
+   "id": "PKW06",
+   "name": "Pokémon Kids Bath Towel, 27 x 54",
+   "brand": "Pokémon",
+   "line": "Room and Christmas for a Pokémon fan.",
+   "href": "https://walmrt.us/3WSbqw2",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-kids-bath-towel-27-x-54-walmart-7006e4.webp",
+   "store": "store-walmart",
+   "price": 9.88,
+   "priceAt": "2026-11-26",
+   "section": "Room and Christmas",
+   "sectionId": "pokemon-room-and-christmas",
+   "commission": 15,
+   "age": "kids"
+  },
+  {
+   "id": "PKW24",
+   "name": "Pokémon Friendly Battle Twin Bed in a Bag",
+   "brand": "Pokémon",
+   "line": "Room and Christmas for a Pokémon fan.",
+   "href": "https://walmrt.us/4iYjCU0",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-friendly-battle-twin-bed-in-a-bag-walmart-23e910.webp",
+   "store": "store-walmart",
+   "price": 43.98,
+   "priceAt": "2026-11-26",
+   "section": "Room and Christmas",
+   "sectionId": "pokemon-room-and-christmas",
+   "commission": 15,
+   "age": "kids"
+  },
+  {
+   "id": "PKW25",
+   "name": "Pokémon On The Horizon 2-Piece Twin/Full Comforter and Pillowcase Set",
+   "brand": "Pokémon",
+   "line": "Room and Christmas for a Pokémon fan.",
+   "href": "https://walmrt.us/4CELO6e",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-on-the-horizon-2-piece-twin-full-comforter-and-pillo-walmart-6d54c4.webp",
+   "store": "store-walmart",
+   "price": 31.92,
+   "priceAt": "2026-11-26",
+   "section": "Room and Christmas",
+   "sectionId": "pokemon-room-and-christmas",
+   "commission": 15,
+   "age": "kids"
+  },
+  {
+   "id": "PKW26",
+   "name": "Pokémon On The Horizon 3-Piece Twin Sheet Set",
+   "brand": "Pokémon",
+   "line": "Room and Christmas for a Pokémon fan.",
+   "href": "https://walmrt.us/4CobyU1",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-on-the-horizon-3-piece-twin-sheet-set-walmart-4dce2f.webp",
+   "store": "store-walmart",
+   "price": 22.86,
+   "priceAt": "2026-11-26",
+   "section": "Room and Christmas",
+   "sectionId": "pokemon-room-and-christmas",
+   "commission": 15,
+   "age": "kids"
+  },
+  {
+   "id": "PKW27",
+   "name": "Pokémon Pikachu Kids Hooded Towel",
+   "brand": "Pokémon",
+   "line": "Room and Christmas for a Pokémon fan.",
+   "href": "https://walmrt.us/4jakP9t",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-pikachu-kids-hooded-towel-walmart-404091.webp",
+   "store": "store-walmart",
+   "price": 13.84,
+   "priceAt": "2026-11-26",
+   "section": "Room and Christmas",
+   "sectionId": "pokemon-room-and-christmas",
+   "commission": 15,
+   "age": "toddler"
+  },
+  {
+   "id": "PKW28",
+   "name": "Hallmark Pokémon Charizard Christmas Ornament",
+   "brand": "Pokémon",
+   "line": "Room and Christmas for a Pokémon fan.",
+   "href": "https://walmrt.us/4leLXa1",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hallmark-pok-mon-charizard-christmas-ornament-walmart-7f103b.webp",
+   "store": "store-walmart",
+   "price": 10.98,
+   "priceAt": "2026-11-26",
+   "section": "Room and Christmas",
+   "sectionId": "pokemon-room-and-christmas",
+   "commission": 9,
+   "age": "kids"
+  },
+  {
+   "id": "PKW29",
+   "name": "Hallmark Pokémon Gengar Christmas Ornament",
+   "brand": "Pokémon",
+   "line": "Room and Christmas for a Pokémon fan.",
+   "href": "https://walmrt.us/4CptptO",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hallmark-pok-mon-gengar-christmas-ornament-walmart-9e36e1.webp",
+   "store": "store-walmart",
+   "price": 10.98,
+   "priceAt": "2026-11-26",
+   "section": "Room and Christmas",
+   "sectionId": "pokemon-room-and-christmas",
+   "commission": 9,
+   "age": "kids"
+  },
+  {
+   "id": "PKW30",
+   "name": "Hallmark Pokémon Sylveon Figural Ornament",
+   "brand": "Pokémon",
+   "line": "Room and Christmas for a Pokémon fan.",
+   "href": "https://walmrt.us/4Cunvry",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hallmark-pok-mon-sylveon-figural-ornament-walmart-9faec0.webp",
+   "store": "store-walmart",
+   "price": 14.99,
+   "priceAt": "2026-11-26",
+   "section": "Room and Christmas",
+   "sectionId": "pokemon-room-and-christmas",
+   "commission": 9,
+   "age": "kids"
+  },
+  {
+   "id": "PKW31",
+   "name": "Pokémon Pikachu-Shaped Pull Piñata",
+   "brand": "Pokémon",
+   "line": "Room and Christmas for a Pokémon fan.",
+   "href": "https://walmrt.us/4tlmHAQ",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-pikachu-shaped-pull-pi-ata-walmart-9317e0.webp",
+   "store": "store-walmart",
+   "price": 24.88,
+   "priceAt": "2026-11-26",
+   "section": "Room and Christmas",
+   "sectionId": "pokemon-room-and-christmas",
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "PKT12",
+   "name": "Pokémon Kids' 16 in Backpack, Green",
+   "brand": "Pokémon",
+   "line": "Room and Christmas for a Pokémon fan.",
+   "href": "https://go.shopmy.us/p-111277703",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-kids-16-in-backpack-green-target-9a4180.webp",
+   "store": "store-target",
+   "price": 16.99,
+   "priceAt": "2026-11-26",
+   "section": "Room and Christmas",
+   "sectionId": "pokemon-room-and-christmas",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
    "id": "PK60",
    "name": "Pokemon TCG: Azure Legends Tin",
    "brand": "Pokémon",
@@ -2206,6 +2690,98 @@
    "ownerAdd": true
   },
   {
+   "id": "PKW18",
+   "name": "Pokémon Legends: Z-A Nintendo Switch 2 Edition",
+   "brand": "Pokémon",
+   "line": "Cards, books and games for a Pokémon fan.",
+   "href": "https://walmrt.us/4tp0WAv",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-legends-z-a-nintendo-switch-2-edition-walmart-34ab63.webp",
+   "store": "store-walmart",
+   "price": 49.94,
+   "priceAt": "2026-11-26",
+   "section": "Cards, books and games",
+   "sectionId": "pokemon-cards-books-and-games",
+   "was": 69,
+   "commission": 1,
+   "age": "kids"
+  },
+  {
+   "id": "PKW19",
+   "name": "Pokémon: Let's Go, Pikachu! (Nintendo Switch)",
+   "brand": "Pokémon",
+   "line": "Cards, books and games for a Pokémon fan.",
+   "href": "https://walmrt.us/4lb8c0v",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-lets-go-pikachu-nintendo-switch-walmart-997b8c.webp",
+   "store": "store-walmart",
+   "price": 54.88,
+   "priceAt": "2026-11-26",
+   "section": "Cards, books and games",
+   "sectionId": "pokemon-cards-books-and-games",
+   "commission": 1,
+   "age": "kids"
+  },
+  {
+   "id": "PKW20",
+   "name": "Ravensburger Pokémon Labyrinth Board Game",
+   "brand": "Pokémon",
+   "line": "Cards, books and games for a Pokémon fan.",
+   "href": "https://walmrt.us/4jbMx5Q",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/ravensburger-pok-mon-labyrinth-board-game-walmart-7550cb.webp",
+   "store": "store-walmart",
+   "price": 29.99,
+   "priceAt": "2026-11-26",
+   "section": "Cards, books and games",
+   "sectionId": "pokemon-cards-books-and-games",
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "PKW21",
+   "name": "Ceaco Pokémon 10-in-1 Puzzle Multipack",
+   "brand": "Pokémon",
+   "line": "Cards, books and games for a Pokémon fan.",
+   "href": "https://walmrt.us/3VdEayz",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/ceaco-pok-mon-10-in-1-puzzle-multipack-walmart-c8b73c.webp",
+   "store": "store-walmart",
+   "price": 10,
+   "priceAt": "2026-11-26",
+   "section": "Cards, books and games",
+   "sectionId": "pokemon-cards-books-and-games",
+   "was": 24.99,
+   "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "PKW22",
+   "name": "Pokémon: Oh, the Trainer You'll Be! (Interactive Board Book)",
+   "brand": "Pokémon",
+   "line": "Cards, books and games for a Pokémon fan.",
+   "href": "https://walmrt.us/3X6fOrh",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-oh-the-trainer-youll-be-interactive-board-book-walmart-a79b23.webp",
+   "store": "store-walmart",
+   "price": 12.99,
+   "priceAt": "2026-11-26",
+   "section": "Cards, books and games",
+   "sectionId": "pokemon-cards-books-and-games",
+   "commission": 4,
+   "age": "toddler"
+  },
+  {
+   "id": "PKW23",
+   "name": "Pokémon Festive Calendar (DK advent book)",
+   "brand": "Pokémon",
+   "line": "Cards, books and games for a Pokémon fan.",
+   "href": "https://walmrt.us/48IvPpX",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pok-mon-festive-calendar-dk-advent-book-walmart-3496b2.webp",
+   "store": "store-walmart",
+   "price": 29.99,
+   "priceAt": "2026-11-26",
+   "section": "Cards, books and games",
+   "sectionId": "pokemon-cards-books-and-games",
+   "commission": 4,
+   "age": "kids"
+  },
+  {
    "id": "PK70",
    "name": "Pokemon Legends: Z-A (Nintendo Switch)",
    "brand": "Pokémon",
@@ -2236,21 +2812,6 @@
    "age": "8+"
   },
   {
-   "id": "PK72",
-   "name": "Pokemon TCG: Mega Evolution Chaos Rising Elite Trainer Box",
-   "brand": "Pokémon",
-   "line": "Big gifts for a Pokémon fan.",
-   "href": "https://go.shopmy.us/p-104191240",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/pokemon-tcg-mega-evolution-chaos-rising-elite-trainer-box-best-buy-bdbf45.webp",
-   "store": "store-best-buy",
-   "price": 91.99,
-   "priceAt": "2026-11-24",
-   "section": "Big gifts",
-   "sectionId": "pokemon-big-gifts",
-   "commission": 1,
-   "age": "6+"
-  },
-  {
    "id": "PK73",
    "name": "Pokemon Mew Sleeping Plush, 18 in",
    "brand": "Pokémon",
@@ -2269,17 +2830,91 @@
  ],
  "skipped": [
   {
-   "id": "PKX059",
-   "name": "Google Fitbit Air Special Edition Pokémon Sleep, Sleepy Blue",
-   "why": [
-    "ShopMy pin p-110699919 is the generic Google Fitbit Air, not the Pokémon Sleep edition"
-   ]
-  },
-  {
    "id": "PK01",
    "name": "PEZ Christmas Pikachu Dispenser with 3 Candy Rolls",
    "why": [
     "guides audit 1126: candy (PEZ with 3 candy rolls) on a non-food guide, not an owner add"
+   ]
+  },
+  {
+   "id": "PKW03",
+   "name": "Pokémon Pikachu Kids LED Watch",
+   "why": [
+    "not found in Walmart Creator search 11-26 (no photo, price unconfirmed; walmart.com product pages bot-blocked)",
+    "no photo"
+   ]
+  },
+  {
+   "id": "PKW11",
+   "name": "Pokémon Umbreon Select Vinyl Figure, 4 in",
+   "why": [
+    "Creator search shows $29.99 now (research read $10.47) for a 4-inch vinyl figure: looks like a marketplace markup"
+   ]
+  },
+  {
+   "id": "PKW14",
+   "name": "Pokémon Pikachu Plush with Scarf and Hat, 24 in",
+   "why": [
+    "24-inch Pikachu at $25: the seller is not confirmed (Creator search shows no seller; walmart.com pages bot-blocked 11-26). Lead asked to check it first"
+   ]
+  },
+  {
+   "id": "PKW15",
+   "name": "Pokémon Pikachu Winking Plush, 8 in",
+   "why": [
+    "not found in Walmart Creator search 11-26 (no photo, price unconfirmed; walmart.com product pages bot-blocked)",
+    "no photo"
+   ]
+  },
+  {
+   "id": "PKW09",
+   "name": "Pokémon Toddler Boy Short Sleeve Jersey, 12M-5T",
+   "why": [
+    "not found in Walmart Creator search 11-26 (no photo, price unconfirmed; walmart.com product pages bot-blocked)",
+    "no photo"
+   ]
+  },
+  {
+   "id": "PKT13",
+   "name": "Boys' Pokémon Pikachu Christmas Fleece Crewneck Sweatshirt, Green",
+   "why": [
+    "person in the photo (every guide photo is a product cutout; Target main photo shows a child/model)"
+   ]
+  },
+  {
+   "id": "PKT14",
+   "name": "Boys' Pokémon Pikachu Christmas Lounge Pants, Black",
+   "why": [
+    "person in the photo (every guide photo is a product cutout; Target main photo shows a child/model)"
+   ]
+  },
+  {
+   "id": "PKW32",
+   "name": "Pokémon Kids Moc Slippers",
+   "why": [
+    "not found in Walmart Creator search 11-26 (no photo, price unconfirmed; walmart.com product pages bot-blocked)",
+    "no photo"
+   ]
+  },
+  {
+   "id": "PKW17",
+   "name": "Pokémon Pokopia (Nintendo Switch 2)",
+   "why": [
+    "Pokopia: not confirmed as the physical copy (lead: physical only); Creator search shows no format and walmart.com pages are bot-blocked 11-26"
+   ]
+  },
+  {
+   "id": "PK72",
+   "name": "Pokemon TCG: Mega Evolution Chaos Rising Elite Trainer Box",
+   "why": [
+    "Chaos Rising ETB: $91.99 at Best Buy vs $59.99 MSRP (1% rate, price from Nov 20); no first-party seller at MSRP found 11-26 (gap research: every ETB online is a reseller markup). Not an owner pick"
+   ]
+  },
+  {
+   "id": "PKX059",
+   "name": "Google Fitbit Air Special Edition Pokémon Sleep, Sleepy Blue",
+   "why": [
+    "ShopMy pin p-110699919 is the generic Google Fitbit Air, not the Pokémon Sleep edition"
    ]
   }
  ]

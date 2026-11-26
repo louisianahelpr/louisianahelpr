@@ -55,6 +55,7 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
   "/s": "the typed-signature mark on a signed lease PDF (\"/s/ Dana Smith\", src/lib/rentals/leasePdf.ts), not an address",
   "/landing": "public/landing/ static photos on the landing page (LandingProof.tsx), served as files, not an app address",
   "/printables": "public/printables/ free holiday printables (tag designs, PDFs, share card; src/content/printables.ts), served as files, not an app address",
+  "/ota": "public/ota/ios/ signed iOS live-update manifest and files (src/lib/ota/otaManifest.ts, docs/OTA_UPDATES.md), served as files, not an app address",
   "/fonts": "public/fonts/ self-hosted brand font files the emails load (email-templates/styles.ts @font-face), served as files, not an app address",
   "/ti": "Apple MapKit CDN path (cdn.apple-mapkit.com/ti/csr/) that csp-report classifies as vendor noise",
   "/events": "Meta's Conversions API Gateway path (POST /events?cee=... on the pixel's *.on.aws / *.cloud.run hosts) that csp-report classifies as known noise, not an app address",

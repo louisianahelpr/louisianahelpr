@@ -23,6 +23,7 @@ import {
   toPluginManifest,
   verifyOtaManifest,
 } from "./otaManifest";
+import { raceVisibleDeadlineAbortable } from "../visibleDeadline";
 
 export const OTA_RESUME_THROTTLE_MS = 6 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 10_000;
@@ -35,20 +36,20 @@ async function checkForUpdate(): Promise<void> {
   checking = true;
   lastCheckAt = Date.now();
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-    let raw: unknown;
-    try {
-      const res = await fetch(OTA_MANIFEST_URL, { cache: "no-store", signal: ctrl.signal, credentials: "omit" });
-      if (res.status === 404) return; // nothing published yet
-      if (!res.ok) {
-        console.warn("[ota] manifest fetch returned", res.status);
-        return;
-      }
-      raw = await res.json();
-    } finally {
-      clearTimeout(timer);
+    // The deadline counts only visible time (src/lib/visibleDeadline.ts): this check runs on
+    // launch and resume, and a page frozen mid-read must not count as a timeout. A timeout
+    // throws into the catch below, which leaves the current bundle running.
+    const res = await raceVisibleDeadlineAbortable(
+      (signal) => fetch(OTA_MANIFEST_URL, { cache: "no-store", signal, credentials: "omit" }),
+      FETCH_TIMEOUT_MS,
+      "[ota] manifest fetch timed out",
+    );
+    if (res.status === 404) return; // nothing published yet
+    if (!res.ok) {
+      console.warn("[ota] manifest fetch returned", res.status);
+      return;
     }
+    const raw: unknown = await res.json();
 
     const manifest = parseOtaManifest(raw);
     if (!manifest) {

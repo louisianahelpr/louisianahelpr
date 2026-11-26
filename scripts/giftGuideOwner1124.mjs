@@ -21,7 +21,7 @@
  *   - Sol de Janeiro Cheirosa Sol & Go mist set (Her; Amazon 10%): not on soldejaneiro.com or Ulta.
  */
 
-import { HER_OWNER_1125_ROWS, HER_OWNER_1126_ROWS, HER_STEALS_1124_ROWS, HIM_OWNER_1126_ROWS, HIM_STEALS_1124_ROWS, KIDS_OWNER_1126_ROWS, KIDS_STEALS_1124_ROWS, PRICE_AT_1126, STEALS_CUTOUTS_1124 } from "./giftGuideSteals1124.mjs";
+import { HER_OWNER_1125_ROWS, HER_OWNER_1126_ROWS, HER_STEALS_1124_ROWS, HIM_OWNER_1126_ROWS, HIM_STEALS_1124_ROWS, KIDS_OWNER_1126_ROWS, KIDS_STEALS_1124_ROWS, PRICE_AT_1126, STEALS_CUTOUTS_1124, HER_TRENDING_1126_ROWS, KIDS_TRENDING_1126_ROWS, TRENDING_CUTOUTS_1126 } from "./giftGuideSteals1124.mjs";
 
 /** The Louisiana day these prices were read on the stores' own pages. */
 export const OWNER_1124_PRICE_AT = "2026-11-24";
@@ -191,10 +191,10 @@ const macys = ([pin, price, image, name, brand, store, type, commission, line]) 
 const steal = ([href, price, image, name, brand, store, type, commission, line]) =>
   ({ name, brand, line, href, image, store, sortPrice: price, price, priceAt: OWNER_1124_PRICE_AT, commission, type });
 /** Her Macy's adds, then the steals she ticked for the guide, then her 11-25 owner pick (priced 11-25). */
-export const HER_ADDS_1124 = [...HER_MACYS_1124_ROWS.map(macys), ...HER_STEALS_1124_ROWS.map(steal), ...HER_OWNER_1125_ROWS.map((r) => ({ ...steal(r), priceAt: "2026-11-25" })), ...HER_OWNER_1126_ROWS.map((r) => ({ ...steal(r), priceAt: PRICE_AT_1126 }))];
+export const HER_ADDS_1124 = [...HER_MACYS_1124_ROWS.map(macys), ...HER_STEALS_1124_ROWS.map(steal), ...HER_OWNER_1125_ROWS.map((r) => ({ ...steal(r), priceAt: "2026-11-25" })), ...HER_OWNER_1126_ROWS.map((r) => ({ ...steal(r), priceAt: PRICE_AT_1126 })), ...HER_TRENDING_1126_ROWS.map((r) => ({ ...steal(r), priceAt: PRICE_AT_1126 }))];
 /** The steals she ticked for Him (him1121Picks's last rows). */
 export const HIM_ADDS_1124 = [...HIM_STEALS_1124_ROWS.map(steal), ...HIM_OWNER_1126_ROWS.map((r) => ({ ...steal(r), priceAt: PRICE_AT_1126 }))];
-export const KIDS_ADDS_1124 = [...KIDS_MACYS_1124_ROWS.map(macys), ...KIDS_STEALS_1124_ROWS.map(steal), ...KIDS_OWNER_1126_ROWS.map((r) => ({ ...steal(r), priceAt: PRICE_AT_1126 }))];
+export const KIDS_ADDS_1124 = [...KIDS_MACYS_1124_ROWS.map(macys), ...KIDS_STEALS_1124_ROWS.map(steal), ...KIDS_OWNER_1126_ROWS.map((r) => ({ ...steal(r), priceAt: PRICE_AT_1126 })), ...KIDS_TRENDING_1126_ROWS.map((r) => ({ ...steal(r), priceAt: PRICE_AT_1126 }))];
 
 /** Store photos for the switches and adds, cut out (Apple Vision) into public/gift-guides/cutouts: photo URL -> file. */
 export const CUTOUTS_1124 = [
@@ -227,7 +227,8 @@ export const CUTOUTS_1124 = [
   ["https://cdn.media.amplience.net/i/scheelspoc/88883061594", "yeti-daytrip-6l-pace-purple-scheels-d117da.webp"],
   ["https://cdn.media.amplience.net/i/scheelspoc/88883061675", "yeti-sidekick-dry-3l-pace-purple-scheels-04ace4.webp"],
   ...STEALS_CUTOUTS_1124,
+  ...TRENDING_CUTOUTS_1126,
 ];
 
 /** Stores the 11-24 rows go to that the store list may not hold yet (key -> shown name). */
-export const STORES_1124 = { "store-elf": "e.l.f. Cosmetics", "store-muck-boot": "Muck Boot", "store-bissell": "BISSELL", "store-kohls": "Kohl's", "store-scheels": "SCHEELS", "store-jcpenney": "JCPenney" };
+export const STORES_1124 = { "store-elf": "e.l.f. Cosmetics", "store-muck-boot": "Muck Boot", "store-bissell": "BISSELL", "store-kohls": "Kohl's", "store-scheels": "SCHEELS", "store-jcpenney": "JCPenney", "store-tonies": "tonies" };

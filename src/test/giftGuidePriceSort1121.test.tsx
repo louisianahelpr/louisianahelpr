@@ -318,7 +318,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // bin, tool set, bug catcher, flying orb), Warmies $29.99 and Yoshi $49.48 $25 to $50, laser tag $69.99 $50 to $75, the
       // $90.60 bumper car $75 to $100 and the $169.99 Bronco $100 and up.
       // TikTok Shop adds 11-26 (tiktok-adds-1126): the $19.99 Crocs Jibbitz Super Hyper Me Bows Under $25.
-      kids: { "Stocking stuffers under $10": 46, "Under $25": 122, "$25 to $50": 47, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 31 },
+      // Trending adds 11-26 (KIDS_TRENDING_1126_ROWS, trending-adds2-1126): the $15 Grinch Tonie Under $25, the $28 Owala Disney
+      // Princess FreeSip $25 to $50; the Nex Playground ($209, now Walmart) stays $100 and up.
+      kids: { "Stocking stuffers under $10": 46, "Under $25": 123, "$25 to $50": 48, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 31 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -364,7 +366,9 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // stuffers; the $11.79 slippers, $12 pants and $19.99 lounge set Under $25; the $25 pink Crocs $25 to $50; the $99.89
       // RetroAudio record player (her Creator screenshots, shown ~$100) $100 and up.
       // TikTok Shop adds 11-26 (tiktok-adds-1126): the $38 Glow Recipe Fruit Babies Glow & Soothe Kit $25 to $50.
-      her: { "Stocking stuffers under $10": 25, "Under $25": 80, "$25 to $50": 72, "$50 to $75": 22, "$75 to $100": 16, "$100 and up": 40 },
+      // Trending adds 11-26 (HER_TRENDING_1126_ROWS, trending-adds2-1126): the $6.30 Kitsch dermaplaners are a stocking stuffer;
+      // the $13.23 medicube pads, $17.60 Kitsch bonnet and $18 LANEIGE mask Under $25.
+      her: { "Stocking stuffers under $10": 26, "Under $25": 83, "$25 to $50": 72, "$50 to $75": 22, "$75 to $100": 16, "$100 and up": 40 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

@@ -31,6 +31,7 @@ export const STORE_PHOTO_FILES: Record<string, string> = {
   "daily-crunch-snacks": "daily-crunch-snacks.webp",
   "dolce-vita": "dolce-vita.webp",
   "dream-pairs": "dream-pairs.webp",
+  "dsw": "dsw.webp",
   "durango-boots": "durango-boots.webp",
   "everyday-dose": "everyday-dose.webp",
   "fabrique": "fabrique.webp",

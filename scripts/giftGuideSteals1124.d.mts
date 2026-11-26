@@ -10,3 +10,5 @@ export const HIM_STEALS_1124_ROWS: readonly Steal1124Row[];
 export const KIDS_STEALS_1124_ROWS: readonly Steal1124Row[];
 export const STEALS_CUTOUTS_1124: readonly (readonly [string, string])[];
 export const KIDS_OWNER_SCREENSHOTS_1125: readonly string[];
+export const PRICE_AT_1126: string;
+export const PRICED_1126_HREFS: ReadonlySet<string>;

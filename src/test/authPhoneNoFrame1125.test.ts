@@ -5,7 +5,7 @@
  * for screen readers only (still the page's h1), and the main button is 48px (the named `authMain` size). From
  * 480px the card, heading and 60px button are as before.
  *
- * @mutate src/index.css |   .liquid-glass.auth-card {\n    border-color: transparent; |   .liquid-glass.auth-card-off {\n    border-color: transparent;
+ * @mutate src/index.css |   .liquid-glass.auth-card {\n    border-color: transparent !important; |   .liquid-glass.auth-card-off {\n    border-color: transparent !important;
  * @mutate src/pages/auth/Login.tsx | <h1 className="text-page-title text-foreground max-[479px]:sr-only">{t("login.title")}</h1> | <h1 className="text-page-title text-foreground">{t("login.title")}</h1>
  * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="text-page-title text-foreground max-[479px]:sr-only">{t("signup.title")}</h1> | <h1 className="text-page-title text-foreground">{t("signup.title")}</h1>
  * @mutate src/components/ui/button.tsx | max-[479px]:h-12 max-[479px]:text-ds-16 | max-[479px]:text-ds-16
@@ -24,8 +24,8 @@ describe("auth screens on a phone (phone audit 11-25 #10)", () => {
     const cards = [login, signup].filter((s) => /className="liquid-glass auth-card /.test(s));
     expect(cards.length).toBeGreaterThan(1);
     const rule = css.match(/@media \(max-width: 479px\) \{\s*\.liquid-glass\.auth-card \{([^}]*)\}/);
-    expect(rule?.[1]).toContain("border-color: transparent;");
-    expect(rule?.[1]).toContain("box-shadow: none;");
+    expect(rule?.[1]).toContain("border-color: transparent !important;");
+    expect(rule?.[1]).toContain("box-shadow: none !important;"); // T2 draws the hairline as an !important ring
     expect(rule?.[1]).toContain("padding-left: 0;");
   });
 

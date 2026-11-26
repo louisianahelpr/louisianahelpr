@@ -229,8 +229,8 @@ describe("OTA install decision", () => {
 
 describe("OTA stays off the website and off Capgo's cloud", () => {
   it("main.tsx loads the updater only lazily, only inside if (isNativeIos)", () => {
-    const file = "src/main.tsx";
-    const sf = ts.createSourceFile(file, readFileSync(join(process.cwd(), file), "utf8"), ts.ScriptTarget.Latest, true);
+    // One file read by path, not a directory walk (noSrcDirectoryWalksInTests flags a quoted src path).
+    const sf = ts.createSourceFile("main.tsx", readFileSync(join(__dirname, "..", "main.tsx"), "utf8"), ts.ScriptTarget.Latest, true);
     const statics: string[] = [];
     const lazyGuards: string[] = [];
     const visit = (node: ts.Node) => {

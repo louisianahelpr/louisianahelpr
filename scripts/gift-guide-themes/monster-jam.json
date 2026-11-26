@@ -2911,6 +2911,23 @@
    "ownerAdd": true
   },
   {
+   "id": "MJJ32",
+   "name": "Monster Jam Boys' 2-Piece Tee and Pants Set",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://mavely.app.link/gxEj4a9Cl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-2-piece-tee-and-pants-set-jcpenney-1c0ef4.webp",
+   "store": "store-jcpenney",
+   "price": 33.74,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 60.99,
+   "commission": 10.5,
+   "age": "kids",
+   "ownerAdd": true
+  },
+  {
    "id": "MJJ33",
    "name": "Monster Jam Boys' Fleece Pullover Hoodie",
    "brand": "Monster Jam",
@@ -2957,6 +2974,23 @@
    "section": "Clothing and pajamas",
    "sectionId": "mj-clothing-and-pajamas",
    "was": 50.99,
+   "commission": 10.5,
+   "age": "kids",
+   "ownerAdd": true
+  },
+  {
+   "id": "MJJ37",
+   "name": "Monster Jam Boys' Zip-Up Hooded Windbreaker Jacket",
+   "brand": "Monster Jam",
+   "line": "Monster Jam clothes for a truck fan.",
+   "href": "https://mavely.app.link/VJbgVSaDl8b",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-boys-zip-up-hooded-windbreaker-jacket-jcpenney-23ad83.webp",
+   "store": "store-jcpenney",
+   "price": 29.98,
+   "priceAt": "2026-11-24",
+   "section": "Clothing and pajamas",
+   "sectionId": "mj-clothing-and-pajamas",
+   "was": 62.99,
    "commission": 10.5,
    "age": "kids",
    "ownerAdd": true
@@ -3323,23 +3357,6 @@
    "ownerAdd": true
   },
   {
-   "id": "MJS153",
-   "name": "Monster Jam Toddler Boys' 2-Piece Tee and Pants Set",
-   "brand": "Monster Jam",
-   "line": "Monster Jam clothes for a truck fan.",
-   "href": "https://go.shopmy.us/p-110717403",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-toddler-boys-2-piece-tee-and-pants-set-macys-56698b.webp",
-   "store": "store-macys",
-   "price": 30.5,
-   "priceAt": "2026-11-24",
-   "section": "Clothing and pajamas",
-   "sectionId": "mj-clothing-and-pajamas",
-   "was": 60.99,
-   "commission": 16,
-   "age": "2T-5T",
-   "ownerAdd": true
-  },
-  {
    "id": "MJS154",
    "name": "Monster Jam Toddler Girls' Long Sleeve T-Shirts, 2-Pack",
    "brand": "Monster Jam",
@@ -3354,23 +3371,6 @@
    "was": 48.99,
    "commission": 16,
    "age": "2T-4T"
-  },
-  {
-   "id": "MJS156",
-   "name": "Monster Jam Toddler Boys' Zip-Up Hooded Windbreaker Jacket",
-   "brand": "Monster Jam",
-   "line": "Monster Jam clothes for a truck fan.",
-   "href": "https://go.shopmy.us/p-110717535",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/monster-jam-toddler-boys-zip-up-hooded-windbreaker-jacket-macys-d9cb7c.webp",
-   "store": "store-macys",
-   "price": 29,
-   "priceAt": "2026-11-24",
-   "section": "Clothing and pajamas",
-   "sectionId": "mj-clothing-and-pajamas",
-   "was": 57.99,
-   "commission": 16,
-   "age": "2T-5T",
-   "ownerAdd": true
   },
   {
    "id": "MJS157",
@@ -4480,24 +4480,24 @@
    ]
   },
   {
-   "id": "MJJ37",
-   "name": "Monster Jam Boys' Zip-Up Hooded Windbreaker Jacket",
-   "why": [
-    "guides audit 1126: same windbreaker as Macy's MJS156, which is cheaper ($29 vs $29.98) and earns more (16% vs 10.5%)"
-   ]
-  },
-  {
-   "id": "MJJ32",
-   "name": "Monster Jam Boys' 2-Piece Tee and Pants Set",
-   "why": [
-    "guides audit 1126: same tee and pants set as Macy's MJS153, which is cheaper ($30.50 vs $33.74) and earns more (16% vs 10.5%)"
-   ]
-  },
-  {
    "id": "MJS155",
    "name": "Monster Jam Girls' Pullover Hoodie",
    "why": [
     "guides audit 1126: same hoodie (same photo) as JCPenney MJJ16, which is cheaper ($19.99 vs $34)"
+   ]
+  },
+  {
+   "id": "MJS156",
+   "name": "Monster Jam Toddler Boys' Zip-Up Hooded Windbreaker Jacket",
+   "why": [
+    "guides audit 1126 (lander, owner-pick rule): same item as MJJ37, the owner's own pick, which stays"
+   ]
+  },
+  {
+   "id": "MJS153",
+   "name": "Monster Jam Toddler Boys' 2-Piece Tee and Pants Set",
+   "why": [
+    "guides audit 1126 (lander, owner-pick rule): same item as MJJ32, the owner's own pick, which stays"
    ]
   }
  ]

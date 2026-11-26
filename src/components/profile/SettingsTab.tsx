@@ -310,7 +310,43 @@ export function SettingsTab({
       <section className="liquid-glass overflow-hidden">
         <Row testId="logout" label="Log out" onClick={onRequestLogout} right={<span />} />
       </section>
+      <AppVersionLine />
     </ProfileTabBody>
+  );
+}
+
+/** "Nov 26, 2:15 AM" (Central) from an OTA bundle number (UTC yyyymmddHHMMSS), or null when it is not one. */
+export function bundleTimeLabel(stamp: string): string | null {
+  const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec(stamp);
+  if (!m) return null;
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]));
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+/**
+ * OTA live updates (docs/OTA_UPDATES.md): the app's version, build and the time its web bundle was built, so the owner
+ * and support can see which update a phone runs. "Updated" changes when an OTA bundle is applied; the store version and
+ * build do not. Native app only: the website has no store build (App.getInfo is unimplemented there).
+ */
+export function AppVersionLine() {
+  const [native, setNative] = useState<string | null>(null);
+  useEffect(() => {
+    // Same check as src/lib/nativeInit.ts, inlined so this chunk does not pull in its status bar / splash plugins.
+    if ((window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.() !== true) return;
+    let live = true;
+    void import("@capacitor/app")
+      .then(({ App }) => App.getInfo())
+      .then((info) => { if (live) setNative(`${info.version} (${info.build})`); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
+  if (!native) return null;
+  const updated = typeof __OTA_BUNDLE__ === "string" ? bundleTimeLabel(__OTA_BUNDLE__) : null;
+  return (
+    <p data-settings-version="" className="px-4 pb-2 text-center text-ds-11 text-muted-foreground">
+      Version {native}{updated ? ` · Updated ${updated}` : ""}
+    </p>
   );
 }
 

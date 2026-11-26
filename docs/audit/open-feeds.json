@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-21T23:52Z",
+  "measured_at": "2026-11-26T20:21Z",
   "issues": {
     "readable": true,
     "open": [
@@ -15,14 +15,14 @@
         "number": 2245,
         "title": "nightly-red: prod-audit",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44490394532",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45792409374",
         "runTruncated": false
       },
       {
         "number": 2353,
         "title": "nightly-red: press-every-control",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44896793045",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45617526333",
         "runTruncated": false
       },
       {
@@ -36,14 +36,14 @@
         "number": 2375,
         "title": "nightly-red: a11y-webkit-prod",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44933482023",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45682792873",
         "runTruncated": false
       },
       {
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44749072058",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45880828671",
         "runTruncated": false
       },
       {
@@ -57,70 +57,70 @@
         "number": 3454,
         "title": "nightly-red: slow-network",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44703757688",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45379679184",
         "runTruncated": false
       },
       {
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44933459647",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45889803284",
         "runTruncated": false
       },
       {
         "number": 3813,
         "title": "nightly-red: e2e-real-backend",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44932876224",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45848247853",
         "runTruncated": false
       },
       {
         "number": 4253,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44955477483",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45525787687",
         "runTruncated": false
       },
       {
         "number": 4270,
         "title": "nightly-red: nightly-live-smoke",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44456663415",
-        "runTruncated": false
-      },
-      {
-        "number": 4730,
-        "title": "nightly-red: main: Sensitive review record",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44956209409",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45759073595",
         "runTruncated": false
       },
       {
         "number": 4733,
         "title": "nightly-red: ui-sweep",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44746315440",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45641250389",
         "runTruncated": false
       },
       {
         "number": 4766,
         "title": "nightly-red: code-scanning-alerts",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44916380087",
-        "runTruncated": false
-      },
-      {
-        "number": 4812,
-        "title": "nightly-red: main: Vitest",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44760498612",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45866440812",
         "runTruncated": false
       },
       {
         "number": 4844,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/44924015151",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45877134416",
+        "runTruncated": false
+      },
+      {
+        "number": 4892,
+        "title": "nightly-red: core-loop-canary",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45826870097",
+        "runTruncated": false
+      },
+      {
+        "number": 4934,
+        "title": "nightly-red: scoreboard",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45537074940",
         "runTruncated": false
       }
     ]
@@ -145,14 +145,6 @@
         "issue": 2353
       },
       {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": 4812
-      },
-      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -167,6 +159,22 @@
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
         "issue": 4253
+      },
+      {
+        "fingerprint": "0fa6c60d7a29c7cb3d1e008672334f57",
+        "source_kind": "sql_slack",
+        "source": "slack-ops-alert:custom",
+        "status": "open",
+        "title": "# cron http failure(s) in the last hour",
+        "issue": null
+      },
+      {
+        "fingerprint": "e49f68d9cbd6a2ac70d216dee53051a5",
+        "source_kind": "error_logs",
+        "source": "push-tokens-empty",
+        "status": "open",
+        "title": "no device can receive a push",
+        "issue": null
       },
       {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
@@ -225,20 +233,20 @@
         "issue": 2375
       },
       {
-        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: sensitive review record",
-        "issue": 4730
-      },
-      {
         "fingerprint": "2e4f3e726722e14159d0b5cf50568f30",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: ui-sweep",
         "issue": 4733
+      },
+      {
+        "fingerprint": "18539240a894224e952b88b2b21bb927",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: core-loop-canary",
+        "issue": null
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -265,6 +273,22 @@
         "issue": null
       },
       {
+        "fingerprint": "341247bd75499ca81fbf89df6319f75f",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: scoreboard",
+        "issue": 4934
+      },
+      {
+        "fingerprint": "60298a019ea399dd0c9b00f14cad6b4a",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: void-cancelled-payments returned 500 (# defect(s) reported)",
+        "issue": null
+      },
+      {
         "fingerprint": "c2e77e40435efc12778adbbdcb9fc240",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -273,20 +297,20 @@
         "issue": 4766
       },
       {
+        "fingerprint": "e32aa223d475dd1349363e900374a77e",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "error: script error.",
+        "issue": null
+      },
+      {
         "fingerprint": "feb363ff214ac3c02969933acc795e1e",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: nightly-live-smoke",
         "issue": 4270
-      },
-      {
-        "fingerprint": "b757f9393658386f1d245a1055db0291",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/sponsor · boot stalled #s on the startup screen (boot scripts unfinished: #)",
-        "issue": null
       },
       {
         "fingerprint": "5844c03737d13e6f92de61e382d42d72",
@@ -391,6 +415,86 @@
         "status": "open",
         "title": "error: coalesce types text and uuid cannot be matched",
         "issue": null
+      },
+      {
+        "fingerprint": "ceb7b6589512041b30b59704e65ddea4",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/gift-guides/her · gift guides: <url> is on no store in stores",
+        "issue": null
+      },
+      {
+        "fingerprint": "0cdf2fb683437ed0944fc545dc36f6ae",
+        "source_kind": "sentry",
+        "source": "sentry:assets/giftGuideCatalog",
+        "status": "open",
+        "title": "error: gift guides: <url> is on no store in stores",
+        "issue": null
+      },
+      {
+        "fingerprint": "1892fa673bfadc91150e9fb9eee6e538",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/gift-guides/kids · gift guides: <url> is on no store in stores",
+        "issue": null
+      },
+      {
+        "fingerprint": "ed932adeb57d8487798f132a1dcc3fe0",
+        "source_kind": "sentry",
+        "source": "sentry:assets/sentry",
+        "status": "open",
+        "title": "error: invalid api key",
+        "issue": null
+      },
+      {
+        "fingerprint": "71361671e5953dc5c0086ef337fbe424",
+        "source_kind": "sentry",
+        "source": "sentry:https://www.louisianahelpr.com/legal",
+        "status": "open",
+        "title": "syntaxerror: unexpected token '<'",
+        "issue": null
+      },
+      {
+        "fingerprint": "655dc0a641ff64cb145df49b33fb539c",
+        "source_kind": "sentry",
+        "source": "sentry:assets/sentry",
+        "status": "open",
+        "title": "error: undefined is not an object (evaluating 'window.webkit.messagehandlers.navigationperformanceloggerwithreply.postmessage')",
+        "issue": null
+      },
+      {
+        "fingerprint": "fe4d0899c6efce4120ceb7b26b568fc9",
+        "source_kind": "sentry",
+        "source": "sentry:setupIosCallbackHandler(gift-guides/him)",
+        "status": "open",
+        "title": "typeerror: undefined is not an object (evaluating 'window.webkit.messagehandlers.navigationperformanceloggerwithreply.postmessage')",
+        "issue": null
+      },
+      {
+        "fingerprint": "f3955cc7a60dbda32abaedab4ca354dc",
+        "source_kind": "sentry",
+        "source": "sentry:setupIosCallbackHandler(gift-guides)",
+        "status": "open",
+        "title": "typeerror: undefined is not an object (evaluating 'window.webkit.messagehandlers.navigationperformanceloggerwithreply.postmessage')",
+        "issue": null
+      },
+      {
+        "fingerprint": "34eda148feac2807e3c7d9e560d0fa76",
+        "source_kind": "workflow",
+        "source": "analytics-freshness",
+        "status": "open",
+        "title": "analytics: password_reset_sent stopped recording (real users acted, zero events)",
+        "issue": null
+      },
+      {
+        "fingerprint": "043150ec3a63815458e230c9cc39a5c1",
+        "source_kind": "sentry",
+        "source": "sentry:assets/NotFound",
+        "status": "open",
+        "title": "error: 404 — non-existent route: /gift-guid",
+        "issue": null
       }
     ]
   },
@@ -409,25 +513,31 @@
     "issue #4270": "Q1816",
     "issue #4450": "Q2800",
     "issue #4553": "Q2802",
-    "issue #4730": "Q1816",
     "issue #4733": "Q1816",
     "issue #4766": "Q1816",
-    "issue #4812": "Q1816",
     "issue #4844": "Q1816",
+    "issue #4892": "Q1816",
+    "issue #4934": "Q1816",
     "ledger 0411d219f410": "Q1810",
+    "ledger 043150ec3a63": "Q2853",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0add1f9db848": "Q2830",
     "ledger 0bebf0385b3e": "Q1615",
+    "ledger 0cdf2fb68343": "Q2846",
     "ledger 0f3682e34a38": "Q2829",
     "ledger 0fa6c60d7a29": "Q1776",
     "ledger 11f46545733f": "Q2409",
     "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
+    "ledger 18539240a894": "Q1816",
+    "ledger 1892fa673bfa": "Q2847",
     "ledger 18d08f75c165": "Q2817",
     "ledger 227a34518198": "Q2801",
     "ledger 259df5331023": "Q2826",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 308b390594da": "Q2804",
+    "ledger 341247bd7549": "Q1816",
+    "ledger 34eda148feac": "Q2852",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",
     "ledger 3a3460b71be7": "Q1816",
@@ -446,7 +556,9 @@
     "ledger 60298a019ea3": "Q1776",
     "ledger 6205197429d4": "Q1816",
     "ledger 6389f98a9f66": "Q1816",
+    "ledger 655dc0a641ff": "Q2850",
     "ledger 6cb2d5a2d9cd": "Q2824",
+    "ledger 71361671e595": "Q2849",
     "ledger 76b6114fb848": "Q2833",
     "ledger 79112fbf22c8": "Q2831",
     "ledger 7e141f206640": "Q1816",
@@ -474,13 +586,17 @@
     "ledger c540527c8265": "Q2517",
     "ledger c5d2aafd1f77": "Q2410",
     "ledger cae29df0662b": "Q2351",
+    "ledger ceb7b6589512": "Q2845",
     "ledger d13e663f2f12": "Q2820",
     "ledger d1f8391b44ec": "Q1631",
     "ledger db0fb15c4ec3": "Q1816",
-    "ledger e41c806b9175": "Q1816",
+    "ledger e32aa223d475": "Q2844",
+    "ledger e49f68d9cbd6": "Q2843",
+    "ledger ed932adeb57d": "Q2848",
     "ledger f1bfed973a2a": "Q2734",
-    "ledger f22e3275d50d": "Q1816",
+    "ledger f3955cc7a60d": "Q2851",
     "ledger fad6897fcfae": "Q2802",
+    "ledger fe4d0899c6ef": "Q2851",
     "ledger feb363ff214a": "Q1816"
   }
 }

@@ -449,12 +449,13 @@ export const KIDS_POPULAR_1122 = [
 
 // owner 11-22 popular approved (builder-guide-popular): Him, Amazon listings sold by Amazon.com or the brand, prices read 11-22.
 export const HIM_POPULAR_1122 = [
-  ["B0FQFB8FMG", 169.99, "61solmQSSlL", "Apple AirPods Pro 3", "Apple", "earbuds", 1, "Noise-cancelling earbuds he will use daily."],
+  // AirPods Pro 3: Amazon's plain page read 2026-11-26 ~2 AM CT shows $149.00 (list $249), In Stock, so this row is priced 11-26.
+  ["B0FQFB8FMG", 149, "61solmQSSlL", "Apple AirPods Pro 3", "Apple", "earbuds", 1, "Noise-cancelling earbuds he will use daily."],
   ["B0GJTXVN9Z", 79, "611DjYhflAL", "Apple AirTag 4 Pack", "Apple", "tracker", 1, "Keys, wallet, bag: never lost again."],
   ["B0GXW9C8QC", 219, "615XBVqPGaL", "Bose QuietComfort Headphones, 2nd Gen", "Bose", "headphones", 3, "Noise-cancelling over-ear headphones with big sound."],
   ["B0CT3SGHXL", 191.99, "61m+fKy7wzL", "Garmin Forerunner 165 Running Smartwatch", "Garmin", "smartwatch", 3, "A bright running watch that tracks every mile."],
   ["B0GCGGWC1M", 349, "61YEzBsddpL", "Gozney Arc Lite Propane Pizza Oven", "Gozney", "pizza-oven", 4, "Real wood-fired-style pizza in his backyard."],
-].map(row).map((r) => ({ ...r, priceAt: "2026-11-22" }));
+].map(row).map((r) => ({ ...r, priceAt: r.href.includes("B0FQFB8FMG") ? "2026-11-26" : "2026-11-22" }));
 
 // owner 11-23 keeps from the under-$25 suggestions (scripts/giftGuideOwnerKeeps1123.mjs), Amazon, priced 11-23.
 export const HIM_KEEPS_1123 = HIM_KEEPS_1123_ROWS.map(row).map((r) => ({ ...r, priceAt: KEEPS_PRICE_AT }));

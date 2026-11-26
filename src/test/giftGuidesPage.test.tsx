@@ -536,18 +536,23 @@ describe("gift guides: one guide at /gift-guides/<slug>", () => {
       expandAll(container);
       const rows = [...container.querySelectorAll("ol[data-gift-list] > li[data-gift-pick]")];
       expect(rows.length, g.slug).toBe(g.picks.length);
-      rows.forEach((li, i) => {
+      // Guides audit 1126: on a themed guide the owner's own rows (ownerAdd) lead each price section (GiftGuideView
+      // ownerAddsFirst), so a row is matched to its pick by link and name, each pick drawn exactly once; the order itself
+      // is pinned by giftGuidePrices1126 and giftGuidePriceSort1121.
+      const unused = new Set(g.picks.map((_, k) => k));
+      rows.forEach((li) => {
         const a = li.querySelector("a")!;
-        expect(a.getAttribute("href")).toBe(g.picks[i].href);
-        expect(a.textContent).toContain(g.picks[i].name);
+        const i = [...unused].find((k) => g.picks[k].href === a.getAttribute("href") && (a.textContent ?? "").includes(g.picks[k].name));
+        expect(i, `${g.slug}: ${a.getAttribute("href")}`).toBeDefined();
+        unused.delete(i!);
         const img = a.querySelector("img.gg-thumb");
-        if (g.picks[i].image) {
+        if (g.picks[i!].image) {
           expect(img?.getAttribute("loading")).toBe("lazy");
           expect(Number(img?.getAttribute("width"))).toBeGreaterThan(0);
           expect(Number(img?.getAttribute("height"))).toBeGreaterThan(0);
         } else {
           expect(img).toBeNull();
-          expect(a.querySelector("[data-gift-letter]")?.textContent).toBe(storeLabel(g.picks[i]));
+          expect(a.querySelector("[data-gift-letter]")?.textContent).toBe(storeLabel(g.picks[i!]));
         }
       });
       checked += 1;

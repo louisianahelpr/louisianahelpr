@@ -31,8 +31,10 @@ export function FreeView({ userId }: { userId: string }) {
   const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems });
   const rows = useMemo(() => {
     const from = lat !== null && lng !== null ? { lat, lng } : null;
-    return applyBrowseFilters(nearestFirst(items.data ?? [], from, null), FREE_ONLY, "", undefined);
-  }, [items.data, lat, lng]);
+    // Owner 2026-11-25 (phone audit #40): your own listings show under Selling, never on Browse or Free.
+    const theirs = (items.data ?? []).filter((i) => i.seller_id !== userId);
+    return applyBrowseFilters(nearestFirst(theirs, from, null), FREE_ONLY, "", undefined);
+  }, [items.data, lat, lng, userId]);
   const ids = rows.map((r) => r.item.id);
   const photos = useQuery({ queryKey: ["declutter", "photos", ids.join(",")], queryFn: () => fetchPhotos(ids), enabled: ids.length > 0 });
   const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);

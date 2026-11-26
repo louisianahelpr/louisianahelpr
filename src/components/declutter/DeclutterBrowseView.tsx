@@ -281,10 +281,9 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems, enabled: fullListNow || fullListAsked });
   const preview = !items.data && previewFits;
   const listed = (items.data ?? (preview ? capped?.items : undefined)) as typeof items.data;
-  // Owner 2026-11-16 ("my declutter page shows nothing"): the viewer's own live listings stay in the list (the
-  // name `others` predates that), as Vinted shows yours, each marked "Yours" with no heart (ItemCard `mine`).
-  // Guard: src/test/declutterBrowseShowsOwn.test.tsx.
-  const others = useMemo(() => listed ?? [], [listed]);
+  // Owner 2026-11-25 (phone audit #40, reverses 11-16): Browse is for other people's items. The viewer's own
+  // listings are left out here; they show under Selling. Guard: src/test/declutterBrowseShowsOwn.test.tsx.
+  const others = useMemo(() => (listed ?? []).filter((i) => !userId || i.seller_id !== userId), [listed, userId]);
   // keepPreviousData: when the full list replaces the preview the ids change, and the cards on screen keep their photos
   // and tags instead of going back to the bones. Below them, a card's photo comes with the next read.
   const photos = useQuery({
@@ -357,7 +356,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   // there is nothing to show.
   // A guest's full list not asked yet (it waits on the preview, above) is loading too, never "Nothing for sale".
   const fullListWaiting = !fullListNow && !fullListAsked && items.data === undefined;
-  const listLoading = ((items.isLoading || fullListWaiting) && !preview) || photos.isLoading || drops.isLoading || watching.isLoading || origin.status === "pending";
+  // #40: a seller whose own listings fill the capped first answer sees bones, not "Nothing for sale", until the full list.
+  const listLoading = ((items.isLoading || fullListWaiting) && (!preview || others.length === 0)) || photos.isLoading || drops.isLoading || watching.isLoading || origin.status === "pending";
   // Owner 11-07 (Vinted review): each heart shows how many saved the item. Read only AFTER the cards have painted,
   // never inside the gate above (a guest from Facebook waits for nothing extra), for guests and members alike.
   const [cardsPainted, setCardsPainted] = useState(false);

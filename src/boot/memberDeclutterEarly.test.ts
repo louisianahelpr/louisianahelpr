@@ -6,12 +6,12 @@
  *
  * index.html's inline script naming __lhMemberDeclutterEarly fires declutter_first_screen with the stored session
  * (the entry's own read), leaves the answer for the entry (declutterPrefetch.ts takeEarlyMemberRead), and, while the
- * signed-in skeleton is on screen, draws THAT answer's first four photos (the member's own listings included, as
- * Browse shows them since owner 2026-11-16) into the skeleton's photo slots, the first row first, with the card's own URLs. The
+ * signed-in skeleton is on screen, draws THAT answer's first four photos (the member's own listings left out, as
+ * Browse leaves them out since owner 2026-11-25, phone audit #40) into the skeleton's photo slots, the first row first, with the card's own URLs. The
  * skeleton's boxes are Browse's boxes (DeclutterBrowseBones: the chips' pb-2 row of 40px chips, a 110px text block),
  * so nothing moves when Browse replaces it.
  */
-// @mutate index.html |             if (typeof it.id !== "string") continue; |             if (typeof it.id !== "string" \|\| it.seller_id === me) continue;
+// @mutate index.html |             if (typeof it.id !== "string" \|\| it.seller_id === me) continue; |             if (typeof it.id !== "string") continue;
 // @mutate index.html |         if (s.expires_at - Date.now() / 1000 <= 60) return; |
 // @mutate index.html |         if (location.search \|\| location.hash \|\| window.innerWidth >= 900 \|\| prefs \|\| map) return; |         if (location.hash \|\| prefs) return;
 // @mutate index.html |         if (document.documentElement.getAttribute("data-lh-app-shell") !== "declutter") return;\n        var root | var root
@@ -175,16 +175,17 @@ describe("index.html's member /declutter script (Q2705, 11-09)", () => {
     expect(setup({ capacitor: true }).calls).toHaveLength(0);
   });
 
-  it("draws the answer's first four photos, the member's own included, the first row first, with the card's own URLs", async () => {
+  it("draws the answer's first four photos, the member's own left out, the first row first, with the card's own URLs", async () => {
     const r = setup();
     await flush();
     const imgs = r.imgs();
-    // Slots: a, mine, b, c (no photo: keeps its bone). The member's own listing takes its slot, as on Browse.
+    // Slots: a, b, c (no photo: keeps its bone), d. The member's own listing gets no slot, as on Browse (#40).
     expect(imgs).toHaveLength(3);
-    expect(imgs.some((i) => (i.getAttribute("src") ?? "").includes("/mine/"))).toBe(true);
-    expect(r.tiles()[3].hasAttribute("data-skeleton")).toBe(true);
+    expect(imgs.some((i) => (i.getAttribute("src") ?? "").includes("/mine/"))).toBe(false);
+    expect(imgs.some((i) => (i.getAttribute("src") ?? "").includes("/mine/") || (i.getAttribute("data-src") ?? "").includes("/mine/"))).toBe(false);
+    expect(r.tiles()[2].hasAttribute("data-skeleton")).toBe(true);
     expect(r.tiles()[0].hasAttribute("data-skeleton")).toBe(false);
-    const want = firstCardPhotoPreloads(BASE, ANSWER, { width: 375, height: 812 });
+    const want = firstCardPhotoPreloads(BASE, ANSWER, { width: 375, height: 812 }, ME);
     expect(imgs.slice(0, 2).map((i) => [i.getAttribute("src"), i.getAttribute("srcset")])).toEqual(want.slice(0, 2).map((p) => [p.href, p.srcset]));
     expect(imgs.slice(0, 2).map((i) => i.getAttribute("fetchpriority"))).toEqual(["high", "high"]);
     // The second row waits for the first (or 3 s).
@@ -193,7 +194,7 @@ describe("index.html's member /declutter script (Q2705, 11-09)", () => {
     imgs[0].dispatchEvent(new Event("load"));
     expect(imgs[2].getAttribute("src")).toBeNull();
     imgs[1].dispatchEvent(new Event("error"));
-    expect(imgs[2].getAttribute("src")).toBe(want.find((p) => p.href.includes("/b/"))!.href);
+    expect(imgs[2].getAttribute("src")).toBe(want.find((p) => p.href.includes("/d/"))!.href);
     expect(imgs[2].getAttribute("fetchpriority")).toBeNull();
     expect(document.getElementById("lh-declutter-shell")!.hasAttribute("data-lh-photos")).toBe(true);
   });

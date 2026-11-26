@@ -464,7 +464,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/DeclutterFreeView.tsx | const FREE_ONLY = { ...NO_FILTERS, freeOnly: true }; | const FREE_ONLY = { ...NO_FILTERS };
   // @mutate src/components/declutter/DeclutterFreeView.tsx | nearestFirst(items.data ?? [], from, null) | nearestFirst((items.data ?? []).filter((i) => i.seller_id !== userId), from, null)
   // @mutate src/components/declutter/DeclutterHomeView.tsx | const MINE_TABS_FREE = [...MINE_TABS, "free"] as const; | const MINE_TABS_FREE = [...MINE_TABS] as const;
-  it("the Free tab lists the live free items, your own marked Yours, and says so when there are none", async () => {
+  it("the Free tab lists the live free items, never your own (owner 11-25, #40), and says so when there are none", async () => {
     state.live = [
       { ...ITEM, id: "f1", seller_id: "s9", title: "Free Bookshelf", price_cents: 0, current_price_cents: 0 },
       { ...ITEM, id: "f2", seller_id: "s9", title: "Brass Floor Lamp" },
@@ -474,9 +474,9 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(await screen.findByText("Free Bookshelf")).toBeInTheDocument();
     expect(tab(/^Free/)).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByText("Brass Floor Lamp")).toBeNull();
-    expect(screen.getByText("My Own Free Crib").closest("li")?.querySelector("[data-card-mine]")?.textContent).toBe("Yours");
+    expect(screen.queryByText("My Own Free Crib")).toBeNull();
     expect(screen.getByText("Free Bookshelf").closest("li")?.querySelector("[data-card-mine]")).toBeNull();
-    expect(screen.getByTestId("declutter-free-list").querySelectorAll("li").length).toBe(2);
+    expect(screen.getByTestId("declutter-free-list").querySelectorAll("li").length).toBe(1);
     first.unmount();
     // Wanted off: Free is still a tab.
     state.wantedOn = false;

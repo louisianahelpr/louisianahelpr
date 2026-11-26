@@ -17,6 +17,17 @@
  */
 import { blankSqlComments } from "./blankNonCode";
 
+/** blankSqlComments per migration text, once: callers replay the same files for many tables. */
+const BLANKED = new Map<string, string>();
+function blanked(sql: string): string {
+  let b = BLANKED.get(sql);
+  if (b === undefined) {
+    b = blankSqlComments(sql);
+    BLANKED.set(sql, b);
+  }
+  return b;
+}
+
 export type Priv = "SELECT" | "INSERT" | "UPDATE" | "DELETE";
 const PRIVS: Priv[] = ["SELECT", "INSERT", "UPDATE", "DELETE"];
 type RoleState = { table: Set<Priv>; cols: Map<Priv, Set<string>> };
@@ -43,7 +54,7 @@ export function replayTablePrivileges(files: { name: string; sql: string }[], ta
     "gi",
   );
   for (const f of files) {
-    const sql = blankSqlComments(f.sql);
+    const sql = blanked(f.sql);
     for (const m of sql.matchAll(stmt)) {
       if (m[1]) {
         if (m[2].toLowerCase() === t) { own = fresh(true); pub = fresh(false); }

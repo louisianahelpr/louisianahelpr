@@ -11,16 +11,16 @@
  * Info.plist reads the build from the project ($(CURRENT_PROJECT_VERSION)) so there is one number, and an
  * xcodebuild CURRENT_PROJECT_VERSION= override reaches the built app.
  *
- * @mutate fastlane/ios_app_metadata.yml | current_project_version: "7602" | current_project_version: "7112"
+ * @mutate fastlane/ios_app_metadata.yml | current_project_version: "8801" | current_project_version: "7112"
  * @mutate ios/App/App/Info.plist | <string>$(CURRENT_PROJECT_VERSION)</string> | <string>7112</string>
- * @mutate capacitor.config.ts | build: '7602', | build: '7112',
+ * @mutate capacitor.config.ts | build: '8801', | build: '7112',
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 
-/** The newest build submitted to App Store Connect (1.0.4 build 7601, 11-03 8:36 PM). Raise it with each submission. */
-const LAST_SUBMITTED_BUILD = 7601;
+/** The newest build submitted to App Store Connect (1.0.5 build 8801, 11-25 00:56 UTC). Raise it with each submission. */
+const LAST_SUBMITTED_BUILD = 8801;
 
 const yaml = readFileSync("fastlane/ios_app_metadata.yml", "utf8");
 const pbxproj = readFileSync("ios/App/App.xcodeproj/project.pbxproj", "utf8");

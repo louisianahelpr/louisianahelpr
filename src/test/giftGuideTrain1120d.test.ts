@@ -24,6 +24,9 @@ import { SECTION_ALIASES, TOP_PICKS } from "@/content/giftGuidePicks";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { isThemeGuide } from "@/content/giftGuideLive.mjs";
+import { HER_OWNER_1126_ROWS } from "../../scripts/giftGuideSteals1124.mjs";
+/** Her own sends are her call, not the audit cap's (owner 11-24 11:30 PM: "if i send it add it unless its a duplicate"): her 11-26 carousel picks. */
+const HER_SENT_1126 = new Set(HER_OWNER_1126_ROWS.map((r) => r[0]));
 
 const DIR = "src/content/giftGuidePicks";
 type Row = { name: string; brand?: string; href: string; type?: string; price?: number; section?: string; sectionId?: string; commission?: number | null; sponsor?: true; ownerPick?: true; from?: string; rels?: string[] };
@@ -76,7 +79,7 @@ describe("page-level type caps (holiday audit A #1)", () => {
 
   it("the audit's examples: Her has at most 2 pajama sets and 1 Printfresh set, Him one needlepoint belt and 2 sunglasses", () => {
     const her = guide("her");
-    expect(her.filter((p) => p.type === "pajamas").length).toBeLessThanOrEqual(2);
+    expect(her.filter((p) => p.type === "pajamas" && !HER_SENT_1126.has(p.href)).length).toBeLessThanOrEqual(2);
     expect(her.filter((p) => /printfresh/i.test(p.name) && p.type === "pajamas").length).toBeLessThanOrEqual(1);
     const him = guide("him");
     // The owner's plan keeps no needlepoint belt on Him (11-20 evening); never more than one.

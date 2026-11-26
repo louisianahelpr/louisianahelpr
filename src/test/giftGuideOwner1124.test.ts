@@ -13,8 +13,8 @@
  * @mutate scripts/giftGuideHimKids1121.mjs | ...KIDS_LINKS_1123, ...KIDS_ADDS_1124]) { | ...KIDS_LINKS_1123]) {
  * @mutate scripts/giftGuideCutouts1120.mjs | for (const [from, file] of CUTOUTS_1124) CUTOUTS_1120.set(from, file); | void CUTOUTS_1124;
  * @mutate scripts/giftGuideHimKids1121.mjs | ...HIM_WALMART_1123, ...HIM_ADDS_1124]) { | ...HIM_WALMART_1123]) {
- * @mutate scripts/giftGuideOwner1124.mjs | export const HIM_ADDS_1124 = HIM_STEALS_1124_ROWS.map(steal); | export const HIM_ADDS_1124 = [];
- * @mutate scripts/giftGuideOwner1124.mjs | ...KIDS_MACYS_1124_ROWS.map(macys), ...KIDS_STEALS_1124_ROWS.map(steal)]; | ...KIDS_MACYS_1124_ROWS.map(macys)];
+ * @mutate scripts/giftGuideOwner1124.mjs | export const HIM_ADDS_1124 = [...HIM_STEALS_1124_ROWS.map(steal), | export const HIM_ADDS_1124 = [
+ * @mutate scripts/giftGuideOwner1124.mjs | ...KIDS_MACYS_1124_ROWS.map(macys), ...KIDS_STEALS_1124_ROWS.map(steal), ...KIDS_OWNER_1126_ROWS | ...KIDS_MACYS_1124_ROWS.map(macys), ...KIDS_OWNER_1126_ROWS
  * @mutate scripts/giftGuideOwner1124.mjs | ...HER_MACYS_1124_ROWS.map(macys), ...HER_STEALS_1124_ROWS.map(steal), ...HER_OWNER_1125_ROWS | ...HER_MACYS_1124_ROWS.map(macys), ...HER_OWNER_1125_ROWS
  * @mutate scripts/giftGuideOwner1124.mjs |   ...STEALS_CUTOUTS_1124, |   // no steals cutouts
  * @mutate scripts/giftGuideSteals1124.mjs | ["https://go.shopmy.us/p-110125353", 24.99, | ["https://go.shopmy.us/p-110125353", 49.99,

@@ -322,6 +322,87 @@ export const HER_STEALS_1124_ROWS = [
 export const HER_OWNER_1125_ROWS = [
   ["https://mavely.app.link/Etc8x0jLk8b", 19.99, "https://target.scene7.com/is/image/Target/GUEST_111f8fbc-5d93-4ed4-85e5-34eb057e8c00", "Magic Puzzle Company The Festive Factory 1000-Piece Puzzle", "Magic Puzzle Company", "store-target", "puzzle", 2.8, "A Santa's-workshop jigsaw packed with tiny details to find."],
 ];
+/**
+ * OWNER PICKS 11-26 (owner via the lead, Thu 11-26 ~1:35 AM): two Walmart app screenshots of the Black Friday home carousels
+ * "Gifting Deals for everyone" and "Deals on top brands" ("make sure we have all the items that fit in each guide"). Both
+ * View-all pages (walmart.com/shop/deals/gifting, /shop/deals/top-brands) were read in Chrome ~1:40 AM CT; each row is its plain
+ * walmart.com/ip page, read ~2:00 AM CT (price, was price, stock, photo, maker age). Links made in Walmart Creator 11-26 ~2:10 AM
+ * (never opened; ~/.lh-shots/kids-bf-sweep-1124/walmrt-to-ip.json "creator1126"). Rates are the Walmart Creator Black Friday rates
+ * the 11-24 lanes recorded (apparel and shoes 15%, toys 6%), not re-read tonight. Photos cut out (Apple Vision).
+ * Second batch (owner via the lead ~2:10 AM): her two Walmart Creator screenshots of its deal sections ("Top Marketplace Deals",
+ * "Top Collectibles from Marketplace brands"): the picks she could see, at the price and rate Creator's cards showed ~1:53 AM;
+ * one power bank only (the rated 10000mAh one). walmart.com then served its bot check, so these rows' own pages were not re-read.
+ */
+/** For Her: the six women's items in her screenshots. */
+export const HER_OWNER_1126_ROWS = [
+  // walmart.com/ip/9271117509 read 11-26 ~2:00 AM CT: $11.79 (was $29.99), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/4zFKs8B", 11.79, "https://i5.walmartimages.com/seo/BERANMEY-Cozy-Platform-Fuzzy-Slippers-Women-Men-Short-Ankle-Slippers-Anti-Slip-Sole-Lined-Warm-Furry-Perfect-Indoor-Outdoor-Use_2ebef010-96dc-425f-85ff-67111e014c3a.54ced53c32bbba56613d7941c0b51062.jpeg", "BERANMEY Cozy Platform Fuzzy Slippers", "BERANMEY", "store-walmart", "slippers", 15, "Fuzzy platform slippers that look like the pricey ones."],
+  // walmart.com/ip/20114862537 read 11-26 ~2:00 AM CT: $7 (was $9.98), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/4fsKWaE", 7, "https://i5.walmartimages.com/seo/Joyspun-Women-s-Velour-Sleep-Pants-Sizes-XS-3X_2ed0a78b-dcd6-41ec-9511-f80488257470.d7464b7d07b5a60641ac0c40cc5c2795.jpeg", "Joyspun Women's Velour Sleep Pants", "Joyspun", "store-walmart", "pajamas", 15, "Soft velour pajama pants in a holiday print."],
+  // walmart.com/ip/20279263865 read 11-26 ~2:00 AM CT: $8 (was $12.48), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/49hvnz1", 8, "https://i5.walmartimages.com/seo/No-Boundaries-Fleece-Joggers-26-5-28-5-30-5-Inseams-Women-s-Women-s-Plus-XXS-4X_56783531-1669-4dc8-b6f9-b2ff93b423cc.c1651f77c87f202a7f31c5d37b1d0fee.jpeg", "No Boundaries Women's Fleece Joggers", "No Boundaries", "store-walmart", "loungewear", 15, "Cozy fleece joggers for lazy weekends."],
+  // walmart.com/ip/20790758007 read 11-26 ~2:00 AM CT: $25 (was $49.99), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/4f01xT8", 25, "https://i5.walmartimages.com/seo/Crocs-Adult-Classic-Cozzzy-Slippers-Pink-Milk-W8-M6_320a1a3f-069f-4085-aa74-88476001cfa6.39ba32bc2c2ba0b352799f48050819b8.jpeg", "Crocs Classic Cozzzy Slippers, Pink Milk", "Crocs", "store-walmart", "slippers", 15, "Fuzzy pink Crocs slippers she can wear all winter."],
+  // walmart.com/ip/17045518366 read 11-26 ~2:00 AM CT: $19.99 (was $39.98), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/4jgbfSw", 19.99, "https://i5.walmartimages.com/seo/Fantaslook-Two-Piece-Lounge-Sets-for-Women-Fall-Outfits-Long-Sleeve-Tops-Wide-Leg-Pants-Matching-Sets-Vacation-Travel-Outfits_66344bfb-4805-4016-a75b-bcc46862b913.2fdcb4da5489898faf3236320403d09c.jpeg", "Fantaslook Women's Two-Piece Lounge Set", "Fantaslook", "store-walmart", "loungewear", 15, "A matching top and wide-leg pants set for travel or home."],
+  // walmart.com/ip/19978971616 read 11-26 ~2:00 AM CT: $12 (was $23), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/4zHKVqA", 12, "https://i5.walmartimages.com/seo/Scoop-Women-s-and-Women-s-Plus-Scubaknit-Wide-Leg-Tie-Waist-Seamed-Pants-Regular-Short-Lengths-Sizes-XS-4X_212eeef3-8e98-4829-8193-0a51514c71d4.bddc56f024a4811fc81546388dac9690.jpeg", "Scoop Women's Scubaknit Wide Leg Pants", "Scoop", "store-walmart", "pants", 15, "Comfy wide-leg pants that still look dressed up."],
+  // walmart.com/ip/1127117059: in the Walmart Creator deal sections ~1:53 AM CT at $99.89 (was $122.99), 6%; IN_STOCK in walmart.com search ~1:55 AM,
+  // sold by RetroAudio (187 reviews (stars not read)).
+  ["https://walmrt.us/4j3rR1c", 99.89, "https://i5.walmartimages.com/seo/RetroAudio-Vinyl-Record-Player-10-in-1-Vintage-Turntable-Bluetooth-CD-Cassette-AM-FM-Radio-USB-Recorder-Red_98148795-7010-4d20-8465-02ecca96cc9a.d574984c2c68448ca9dbbf703a0527e5.jpeg", "RetroAudio 10-in-1 Vintage Record Player, Red", "RetroAudio", "store-walmart", "record-player", 6, "A red retro record player that also plays CDs, tapes and radio."],
+];
+/** For Kids: the two Barbie sets in her screenshots, then every other Barbie set on the two View-all pages (Barbie goes on Kids). */
+export const KIDS_OWNER_1126_ROWS = [
+  // walmart.com/ip/17797505706 read 11-26 ~2:00 AM CT: $10 (was $19.99), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/48FzF3e", 10, "https://i5.walmartimages.com/seo/Barbie-Skipper-Babysitters-Inc-Playset-with-Skipper-Doll-Baby-Doll-Stroller-7-Accessories_35b9a439-921a-40c6-b227-0803e668d59c.f33711fd6e285535c0c818040a1fbc7a.jpeg", "Barbie Skipper Babysitters Inc. Stroller Playset", "Barbie", "store-walmart", "doll", 6, "Skipper, a baby doll and a stroller for pretend babysitting."],
+  // walmart.com/ip/18959412579 read 11-26 ~2:00 AM CT: $10 (was $21.99), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/3VPDWOv", 10, "https://i5.walmartimages.com/seo/Barbie-Dream-Besties-Weekend-Getaway-Teresa-Fashion-Doll-with-7-Travel-Themed-Accessories_944e5b52-0da5-44ab-847a-04bda81ab7f2.6ae581bc0bcd9576f185b8c410dbf550.jpeg", "Barbie Dream Besties Weekend Getaway Teresa Doll", "Barbie", "store-walmart", "doll", 6, "Teresa packed for a trip with travel accessories."],
+  // walmart.com/ip/320737977 read 11-26 ~2:00 AM CT: $10 (was $26.99), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/48BMjAa", 10, "https://i5.walmartimages.com/seo/Barbie-Careers-Ice-Cream-Shop-Playset-with-Blonde-Doll-Ice-Cream-Machine-Molds-Dough-Accessories_c62a783b-f32e-47cc-a9f4-fe079f33eefb.ae4a35daef609c4aebd0d66e03a91d28.jpeg", "Barbie Ice Cream Shop Playset", "Barbie", "store-walmart", "doll", 6, "A Barbie ice cream shop with dough and molds."],
+  // walmart.com/ip/17675201845 read 11-26 ~2:00 AM CT: $10 (was $21.59), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/4AaKztP", 10, "https://i5.walmartimages.com/seo/Barbie-Careers-Baby-Doctor-Playset-with-Blonde-Fashion-Doll-2-Baby-Dolls-Exam-Table-Accessories_02bee736-b10e-4cd8-b0c0-79ebc6421d34.856ab92c17739136b5c68b289c20aa8b.jpeg", "Barbie Baby Doctor Playset", "Barbie", "store-walmart", "doll", 6, "Doctor Barbie with two babies and an exam table."],
+  // walmart.com/ip/18987607837 read 11-26 ~2:00 AM CT: $10 (was $21.99), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/3X6iWU1", 10, "https://i5.walmartimages.com/seo/Barbie-Dream-Besties-Weekend-Getaway-Malibu-Fashion-Doll-with-7-Travel-Themed-Accessories_75dfe4e0-5e97-48e8-af7c-a4bbc6905915.f21500b181e649c9cf698142ba81122d.jpeg", "Barbie Dream Besties Weekend Getaway Malibu Doll", "Barbie", "store-walmart", "doll", 6, "Malibu Barbie ready for a weekend away."],
+  // walmart.com/ip/282037680 read 11-26 ~2:00 AM CT: $10 (was $26.99), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/4jeOSgi", 10, "https://i5.walmartimages.com/seo/Barbie-Doll-Newborn-Pets-Playset-with-Pregnant-Mom-Dog-Color-Change-Puppies-Accessories-Blonde_5f22618e-f6e9-46ab-892d-abde9f208f45.a4c0491f2217cbcc4b6f6e31542eb9df.jpeg", "Barbie Newborn Pets Playset with Color-Change Puppies", "Barbie", "store-walmart", "doll", 6, "A mom dog and surprise puppies for Barbie to care for."],
+  // walmart.com/ip/815252947 read 11-26 ~2:00 AM CT: $10 (was $26.99), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/4tjylwp", 10, "https://i5.walmartimages.com/seo/Barbie-Pets-Stroll-Play-Pups-Playset-with-Blonde-Doll-Transforming-Stroller-2-Pets-Accessories-Multicolor_06802a9c-713c-4c0c-bdf4-3c09523f4962.28d3ff88bdafeb697a44b997f65fb9ef.jpeg", "Barbie Stroll & Play Pups Playset", "Barbie", "store-walmart", "doll", 6, "Barbie, two puppies and a stroller that transforms."],
+  // walmart.com/ip/17797655278 read 11-26 ~2:00 AM CT: $10 (was $19.99), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/4kBxapN", 10, "https://i5.walmartimages.com/seo/Barbie-Skipper-Babysitters-Inc-Playset-with-Skipper-Doll-Toddler-Doll-Bathtub-6-Accessories_5f2ca370-3823-4e2e-bd94-a5faadf9bf6a.006bf0de93cbb44f94825953ffd92015.jpeg", "Barbie Skipper Babysitters Inc. Bathtub Playset", "Barbie", "store-walmart", "doll", 6, "Skipper gives a toddler doll bath time."],
+  // walmart.com/ip/5309881409 read 11-26 ~2:00 AM CT: $10 (was $26.99), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/4zGSMVq", 10, "https://i5.walmartimages.com/seo/Barbie-Doll-with-2-Fantasy-Pets-Barbie-Malibu-from-Barbie-a-Touch-of-Magic_cc470004-bb77-4d9b-a257-11001471c41f.256d0f29658d57bbe00e10dc51be1643.jpeg", "Barbie A Touch of Magic Malibu Doll with 2 Fantasy Pets", "Barbie", "store-walmart", "doll", 6, "Malibu Barbie with two magical pets."],
+  // walmart.com/ip/17704462372 read 11-26 ~2:00 AM CT: $10 (was $19.99), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/49hrhqI", 10, "https://i5.walmartimages.com/seo/Barbie-Careers-Snowboarder-Doll-in-Pink-Jacket-with-10-Accessories-Including-Color-Change-Snowboard_b32cb7b6-cf44-483f-983f-eb1ee90c1388.67409576993350a2e4d95c0debbd0746.jpeg", "Barbie Snowboarder Doll with Color-Change Snowboard", "Barbie", "store-walmart", "doll", 6, "Snowboarder Barbie with a board that changes color."],
+  // walmart.com/ip/902424093 read 11-26 ~2:00 AM CT: $10 (was $21.88), IN_STOCK, sold by Walmart.com.
+  ["https://walmrt.us/4fr3Uys", 10, "https://i5.walmartimages.com/seo/Barbie-Malibu-Doll-10-Accessories-Camping-Theme-Set-with-Puppy-Sleeping-Bag-More_e2985824-9c6f-4d5a-a623-b8f9502f0119.1483d9c075f6f876c0d9efdcd3094312.jpeg", "Barbie Malibu Camping Doll Set with Puppy", "Barbie", "store-walmart", "doll", 6, "Barbie goes camping with a puppy and a sleeping bag."],
+  // walmart.com/ip/5306649113: in the Walmart Creator deal sections ~1:53 AM CT at $14.99 (was $37.78), 14%; IN_STOCK in walmart.com search ~1:55 AM,
+  // sold by FunMagic Toy (4.6 stars, 6,328 reviews).
+  ["https://walmrt.us/4tiOeD6", 14.99, "https://i5.walmartimages.com/seo/Magnetic-Tiles-for-Kids-Educational-Magnetic-Building-Blocks-for-Boys-Girls-STEM-Preschool-Kidergarten-Learning-Toys_ffd0d43d-91a5-4aef-ba1f-3ecfa9c54859.409085d7abebe036d1670846e8987b68.jpeg", "FunMagic Magnetic Tiles Building Set", "FunMagic", "store-walmart", "building-set", 14, "Magnetic tiles for building towers, cars and castles."],
+  // walmart.com/ip/379345756: in the Walmart Creator deal sections ~1:53 AM CT at $19.98 (was $42.99), 6%; IN_STOCK in walmart.com search ~1:55 AM,
+  // sold by Sendida (4.3 stars, 1,273 reviews).
+  ["https://walmrt.us/3Xx5Qzj", 19.98, "https://i5.walmartimages.com/seo/Sendida-Kids-Makeup-Kit-Girl-Gifts-54PCS-1-Makeup-Toys-Washable-Little-Girls-Princess-Make-Toys-4-5-6-7-8-9-Year-Old-Girl-Birthday-Gift-Purple_1a3b57c3-bafa-457a-b256-e2ed29a5473a.7239df8a85f301eca220ec7d20f9b202.jpeg", "Sendida Kids Washable Makeup Kit, 54 Pieces", "Sendida", "store-walmart", "pretend-play", 6, "A washable play makeup set in a purple case."],
+  // walmart.com/ip/17834606816: in the Walmart Creator deal sections ~1:53 AM CT at $9.59, 6%; IN_STOCK in walmart.com search ~1:55 AM,
+  // sold by Bandai Toys and Collectibles (no ratings yet).
+  ["https://walmrt.us/4A8gR8F", 9.59, "https://i5.walmartimages.com/seo/Bandai-Namco-Movie-Monster-Series-Godzilla-Chibi-Godzilla-Figure_df68ea6f-c664-4e05-b90c-72ad2c8505f5.841fd5e579d3497700bfdf5af69c4522.jpeg", "Bandai Movie Monster Series Chibi Godzilla Figure", "Bandai", "store-walmart", "figures", 6, "A chubby little Godzilla vinyl figure."],
+  // walmart.com/ip/18549052761: in the Walmart Creator deal sections ~1:53 AM CT at $43.99 (was $49.0), 6%; IN_STOCK in walmart.com search ~1:55 AM,
+  // sold by Beast Kingdom (no ratings yet).
+  ["https://walmrt.us/4B0cOLP", 43.99, "https://i5.walmartimages.com/seo/Beast-Kingdom-Dynamic-8ction-Heroes-DC-Comic-The-Flash_e91a5a25-7e40-441b-8ddc-94ab8c3174b8.124a0ec394bd3cc7dc064cd7b17dfe01.jpeg", "Beast Kingdom Dynamic 8ction Heroes DC The Flash Figure", "Beast Kingdom", "store-walmart", "figures", 6, "A posable collector's Flash figure from DC Comics."],
+  // walmart.com/ip/21033474062: in the Walmart Creator deal sections ~1:53 AM CT at $112.5 (was $125.0), 6%; IN_STOCK in walmart.com search ~1:55 AM,
+  // sold by Dogu Publishing (5 stars, 4 reviews).
+  ["https://walmrt.us/4ja2TvF", 112.5, "https://i5.walmartimages.com/seo/Usagi-Yojimbo-x-TMNT-Teenage-Mutant-Ninja-Turtle-Leonardo-7-Scale-Action-Figures-Collector-Set-Summer-Edition_e5accc27-6108-49c6-a722-58b058446415.7fbc046cbc34dd1e23b9e75676929e0e.png", "Usagi Yojimbo x TMNT Leonardo 7\" Action Figures, Summer Edition (1 of 750)", "Dogu Publishing", "store-walmart", "figures", 6, "A limited Usagi Yojimbo and Ninja Turtles collector figure."],
+  // walmart.com/ip/980979848: in the Walmart Creator deal sections ~1:53 AM CT at $104.99, 6%; IN_STOCK in walmart.com search ~1:55 AM,
+  // sold by Madame Alexander Doll Company (no ratings yet).
+  ["https://walmrt.us/4krstyF", 104.99, "https://i5.walmartimages.com/seo/Madame-Alexander-19-inch-Newborn-Nursery-Baby-Doll-Little-Sweetheart-Light-Skin-Tone-Blue-Eyes-Blonde-Hair_c7caf6db-e3af-48f5-a9e4-b0b5abe359ee.c918721070cab2e8e15c38236bb6c684.jpeg", "Madame Alexander 19\" Newborn Nursery Baby Doll, Little Sweetheart", "Madame Alexander", "store-walmart", "doll", 6, "A soft, lifelike 19-inch baby doll to love."],
+  // walmart.com/ip/19382812773: in the Walmart Creator deal sections ~1:53 AM CT at $116.87, 6%; IN_STOCK in walmart.com search ~1:55 AM,
+  // sold by Madame Alexander Doll Company (no ratings yet).
+  ["https://walmrt.us/4kxFTcw", 116.87, "https://i5.walmartimages.com/seo/Madame-Alexander-8-inch-Library-Chic-Collectible-Doll_e68deef8-9287-451e-a277-db4711e8ebf3.bf7124a0c5fb8ba18a5b626462a602a5.jpeg", "Madame Alexander 8\" Library Chic Collectible Doll", "Madame Alexander", "store-walmart", "doll", 6, "A little collectible doll dressed for the library."],
+];
+/** For Him: the power bank from her Creator screenshots. */
+export const HIM_OWNER_1126_ROWS = [
+  // walmart.com/ip/16191501363: in the Walmart Creator deal sections ~1:53 AM CT at $19.99, 10%; IN_STOCK in walmart.com search ~1:55 AM,
+  // sold by BTOOTOS (4.3 stars, 3,986 reviews).
+  ["https://walmrt.us/4kwPr7B", 19.99, "https://i5.walmartimages.com/seo/Magnetic-Wireless-Portable-Charger-10000mAh-Power-Bank-PD20w-Fast-Charging-USB-C-in-Out-Battery-Pack-Compatible-Mag-Safe-iPhone-16-15-14-13-12-Series_3905bd7a-b9bd-4ccf-b036-658c28c4ec6e.ed5c6b74bd87a70b65c4306b9e288025.png", "Magnetic Wireless 10000mAh Power Bank", "BTOOTOS", "store-walmart", "power-bank", 10, "A magnetic power bank that snaps onto his phone."],
+];
 /** For Him. */
 export const HIM_STEALS_1124_ROWS = [
   // S1 Macy's exclusive (reg. $50, 80% off), read on macys.com 2:11 AM, Add to Bag active.
@@ -348,6 +429,32 @@ export const HIM_STEALS_1124_ROWS = [
 
 /** Store photos for the steals, cut out (Apple Vision) into public/gift-guides/cutouts: photo URL -> file. */
 export const STEALS_CUTOUTS_1124 = [
+  ["https://i5.walmartimages.com/seo/Magnetic-Tiles-for-Kids-Educational-Magnetic-Building-Blocks-for-Boys-Girls-STEM-Preschool-Kidergarten-Learning-Toys_ffd0d43d-91a5-4aef-ba1f-3ecfa9c54859.409085d7abebe036d1670846e8987b68.jpeg", "funmagic-magnetic-tiles-building-set-walmart-1e64ae.webp"],
+  ["https://i5.walmartimages.com/seo/Sendida-Kids-Makeup-Kit-Girl-Gifts-54PCS-1-Makeup-Toys-Washable-Little-Girls-Princess-Make-Toys-4-5-6-7-8-9-Year-Old-Girl-Birthday-Gift-Purple_1a3b57c3-bafa-457a-b256-e2ed29a5473a.7239df8a85f301eca220ec7d20f9b202.jpeg", "sendida-kids-washable-makeup-kit-54-pieces-walmart-72c32d.webp"],
+  ["https://i5.walmartimages.com/seo/Bandai-Namco-Movie-Monster-Series-Godzilla-Chibi-Godzilla-Figure_df68ea6f-c664-4e05-b90c-72ad2c8505f5.841fd5e579d3497700bfdf5af69c4522.jpeg", "bandai-movie-monster-series-chibi-godzilla-figure-walmart-3bbc80.webp"],
+  ["https://i5.walmartimages.com/seo/Beast-Kingdom-Dynamic-8ction-Heroes-DC-Comic-The-Flash_e91a5a25-7e40-441b-8ddc-94ab8c3174b8.124a0ec394bd3cc7dc064cd7b17dfe01.jpeg", "beast-kingdom-dynamic-8ction-heroes-dc-the-flash-figure-walmart-b99295.webp"],
+  ["https://i5.walmartimages.com/seo/Usagi-Yojimbo-x-TMNT-Teenage-Mutant-Ninja-Turtle-Leonardo-7-Scale-Action-Figures-Collector-Set-Summer-Edition_e5accc27-6108-49c6-a722-58b058446415.7fbc046cbc34dd1e23b9e75676929e0e.png", "usagi-yojimbo-x-tmnt-leonardo-7-figure-summer-edition-1-of-7-walmart-84eb6a.webp"],
+  ["https://i5.walmartimages.com/seo/Madame-Alexander-19-inch-Newborn-Nursery-Baby-Doll-Little-Sweetheart-Light-Skin-Tone-Blue-Eyes-Blonde-Hair_c7caf6db-e3af-48f5-a9e4-b0b5abe359ee.c918721070cab2e8e15c38236bb6c684.jpeg", "madame-alexander-19-newborn-nursery-baby-doll-little-sweethe-walmart-0ed2fc.webp"],
+  ["https://i5.walmartimages.com/seo/Madame-Alexander-8-inch-Library-Chic-Collectible-Doll_e68deef8-9287-451e-a277-db4711e8ebf3.bf7124a0c5fb8ba18a5b626462a602a5.jpeg", "madame-alexander-8-library-chic-collectible-doll-walmart-1e2297.webp"],
+  ["https://i5.walmartimages.com/seo/RetroAudio-Vinyl-Record-Player-10-in-1-Vintage-Turntable-Bluetooth-CD-Cassette-AM-FM-Radio-USB-Recorder-Red_98148795-7010-4d20-8465-02ecca96cc9a.d574984c2c68448ca9dbbf703a0527e5.jpeg", "retroaudio-10-in-1-vintage-record-player-red-walmart-0a72c0.webp"],
+  ["https://i5.walmartimages.com/seo/Magnetic-Wireless-Portable-Charger-10000mAh-Power-Bank-PD20w-Fast-Charging-USB-C-in-Out-Battery-Pack-Compatible-Mag-Safe-iPhone-16-15-14-13-12-Series_3905bd7a-b9bd-4ccf-b036-658c28c4ec6e.ed5c6b74bd87a70b65c4306b9e288025.png", "magnetic-wireless-10000mah-power-bank-walmart-a67121.webp"],
+  ["https://i5.walmartimages.com/seo/BERANMEY-Cozy-Platform-Fuzzy-Slippers-Women-Men-Short-Ankle-Slippers-Anti-Slip-Sole-Lined-Warm-Furry-Perfect-Indoor-Outdoor-Use_2ebef010-96dc-425f-85ff-67111e014c3a.54ced53c32bbba56613d7941c0b51062.jpeg", "beranmey-cozy-platform-fuzzy-slippers-walmart-19f93d.webp"],
+  ["https://i5.walmartimages.com/seo/Joyspun-Women-s-Velour-Sleep-Pants-Sizes-XS-3X_2ed0a78b-dcd6-41ec-9511-f80488257470.d7464b7d07b5a60641ac0c40cc5c2795.jpeg", "joyspun-womens-velour-sleep-pants-walmart-3d35e8.webp"],
+  ["https://i5.walmartimages.com/seo/No-Boundaries-Fleece-Joggers-26-5-28-5-30-5-Inseams-Women-s-Women-s-Plus-XXS-4X_56783531-1669-4dc8-b6f9-b2ff93b423cc.c1651f77c87f202a7f31c5d37b1d0fee.jpeg", "no-boundaries-womens-fleece-joggers-walmart-f40c99.webp"],
+  ["https://i5.walmartimages.com/seo/Crocs-Adult-Classic-Cozzzy-Slippers-Pink-Milk-W8-M6_320a1a3f-069f-4085-aa74-88476001cfa6.39ba32bc2c2ba0b352799f48050819b8.jpeg", "crocs-classic-cozzzy-slippers-pink-milk-walmart-44f931.webp"],
+  ["https://i5.walmartimages.com/seo/Fantaslook-Two-Piece-Lounge-Sets-for-Women-Fall-Outfits-Long-Sleeve-Tops-Wide-Leg-Pants-Matching-Sets-Vacation-Travel-Outfits_66344bfb-4805-4016-a75b-bcc46862b913.2fdcb4da5489898faf3236320403d09c.jpeg", "fantaslook-womens-two-piece-lounge-set-walmart-1776fb.webp"],
+  ["https://i5.walmartimages.com/seo/Scoop-Women-s-and-Women-s-Plus-Scubaknit-Wide-Leg-Tie-Waist-Seamed-Pants-Regular-Short-Lengths-Sizes-XS-4X_212eeef3-8e98-4829-8193-0a51514c71d4.bddc56f024a4811fc81546388dac9690.jpeg", "scoop-womens-scubaknit-wide-leg-pants-walmart-5267a6.webp"],
+  ["https://i5.walmartimages.com/seo/Barbie-Skipper-Babysitters-Inc-Playset-with-Skipper-Doll-Baby-Doll-Stroller-7-Accessories_35b9a439-921a-40c6-b227-0803e668d59c.f33711fd6e285535c0c818040a1fbc7a.jpeg", "barbie-skipper-babysitters-inc-stroller-playset-walmart-405138.webp"],
+  ["https://i5.walmartimages.com/seo/Barbie-Dream-Besties-Weekend-Getaway-Teresa-Fashion-Doll-with-7-Travel-Themed-Accessories_944e5b52-0da5-44ab-847a-04bda81ab7f2.6ae581bc0bcd9576f185b8c410dbf550.jpeg", "barbie-dream-besties-weekend-getaway-teresa-doll-walmart-c18d9e.webp"],
+  ["https://i5.walmartimages.com/seo/Barbie-Careers-Ice-Cream-Shop-Playset-with-Blonde-Doll-Ice-Cream-Machine-Molds-Dough-Accessories_c62a783b-f32e-47cc-a9f4-fe079f33eefb.ae4a35daef609c4aebd0d66e03a91d28.jpeg", "barbie-ice-cream-shop-playset-walmart-bf2fb2.webp"],
+  ["https://i5.walmartimages.com/seo/Barbie-Careers-Baby-Doctor-Playset-with-Blonde-Fashion-Doll-2-Baby-Dolls-Exam-Table-Accessories_02bee736-b10e-4cd8-b0c0-79ebc6421d34.856ab92c17739136b5c68b289c20aa8b.jpeg", "barbie-baby-doctor-playset-walmart-e5e9fb.webp"],
+  ["https://i5.walmartimages.com/seo/Barbie-Dream-Besties-Weekend-Getaway-Malibu-Fashion-Doll-with-7-Travel-Themed-Accessories_75dfe4e0-5e97-48e8-af7c-a4bbc6905915.f21500b181e649c9cf698142ba81122d.jpeg", "barbie-dream-besties-weekend-getaway-malibu-doll-walmart-77fcbd.webp"],
+  ["https://i5.walmartimages.com/seo/Barbie-Doll-Newborn-Pets-Playset-with-Pregnant-Mom-Dog-Color-Change-Puppies-Accessories-Blonde_5f22618e-f6e9-46ab-892d-abde9f208f45.a4c0491f2217cbcc4b6f6e31542eb9df.jpeg", "barbie-newborn-pets-playset-with-color-change-puppies-walmart-47c70b.webp"],
+  ["https://i5.walmartimages.com/seo/Barbie-Pets-Stroll-Play-Pups-Playset-with-Blonde-Doll-Transforming-Stroller-2-Pets-Accessories-Multicolor_06802a9c-713c-4c0c-bdf4-3c09523f4962.28d3ff88bdafeb697a44b997f65fb9ef.jpeg", "barbie-stroll-play-pups-playset-walmart-d66042.webp"],
+  ["https://i5.walmartimages.com/seo/Barbie-Skipper-Babysitters-Inc-Playset-with-Skipper-Doll-Toddler-Doll-Bathtub-6-Accessories_5f2ca370-3823-4e2e-bd94-a5faadf9bf6a.006bf0de93cbb44f94825953ffd92015.jpeg", "barbie-skipper-babysitters-inc-bathtub-playset-walmart-b6d3a3.webp"],
+  ["https://i5.walmartimages.com/seo/Barbie-Doll-with-2-Fantasy-Pets-Barbie-Malibu-from-Barbie-a-Touch-of-Magic_cc470004-bb77-4d9b-a257-11001471c41f.256d0f29658d57bbe00e10dc51be1643.jpeg", "barbie-a-touch-of-magic-malibu-doll-with-2-fantasy-pets-walmart-5f59b7.webp"],
+  ["https://i5.walmartimages.com/seo/Barbie-Careers-Snowboarder-Doll-in-Pink-Jacket-with-10-Accessories-Including-Color-Change-Snowboard_b32cb7b6-cf44-483f-983f-eb1ee90c1388.67409576993350a2e4d95c0debbd0746.jpeg", "barbie-snowboarder-doll-with-color-change-snowboard-walmart-701105.webp"],
+  ["https://i5.walmartimages.com/seo/Barbie-Malibu-Doll-10-Accessories-Camping-Theme-Set-with-Puppy-Sleeping-Bag-More_e2985824-9c6f-4d5a-a623-b8f9502f0119.1483d9c075f6f876c0d9efdcd3094312.jpeg", "barbie-malibu-camping-doll-set-with-puppy-walmart-c181bf.webp"],
   ["https://target.scene7.com/is/image/Target/GUEST_111f8fbc-5d93-4ed4-85e5-34eb057e8c00", "target-magic-puzzle-festive-factory-1000-111f8f.webp"],
   ["https://mktpl-images.jcpenney.com/SOURCE/833aadb99d5b4febb801a50dc07b9f62", "costway-6v-kids-electric-quad-atv-ride-on-jcpenney-aa68f2.webp"],
   ["https://mktpl-images.jcpenney.com/SOURCE/48cf8aa374884218b899e9f1277a24d4", "costway-kids-pedal-go-kart-jcpenney-f21ed3.webp"],

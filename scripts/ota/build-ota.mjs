@@ -83,7 +83,14 @@ export function buildManifest({ distDir, publicDir, bundle, minNativeBuild, priv
     const sha256 = sha256Hex(readFileSync(abs));
     const pub = join(publicDir, ...name.split("/"));
     let url;
-    if (existsSync(pub) && statSync(pub).isFile() && sha256Hex(readFileSync(pub)) === sha256) {
+    // Read once, no exists/stat check first (CodeQL js/file-system-race): a missing file or a directory just throws.
+    let pubSha = null;
+    try {
+      pubSha = sha256Hex(readFileSync(pub));
+    } catch {
+      pubSha = null;
+    }
+    if (pubSha === sha256) {
       url = `${OTA_ORIGIN}/${name.split("/").map(encodeURIComponent).join("/")}`;
     } else {
       url = `${OTA_ORIGIN}/ota/ios/files/${sha256}`;

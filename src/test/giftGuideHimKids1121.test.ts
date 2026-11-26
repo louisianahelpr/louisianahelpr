@@ -170,6 +170,8 @@ const STEALS_1124: Record<string, Record<string, string>> = {
     "https://mavely.app.link/yftqKoJ9j8b": "store-kohls",
     ...sm(["110122442", "110122526", "110122583", "110122602", "110122700", "110122792"], "store-macys"),
     ...sm(["110135306", "110137252"], "store-crocs"),
+    // TikTok Shop via CJ 11-26 (KIDS_OWNER_1126_ROWS): Crocs Jibbitz Super Hyper Me Bows, TikTok product 1731500414927410110.
+    "https://www.dpbolvw.net/click-101930553-17099898?url=https%3A%2F%2Fwww.tiktok.com%2Fview%2Fproduct%2F1731500414927410110%3Fchain_key%3D%257B%2522t%2522%253A1%252C%2522k%2522%253A%2522000000000000000007546326446206732045%2522%252C%2522sc%2522%253A%2522OPEN_API%2522%257D%26scene%3Dpdp%26utm_source%3Dopen_api%26trackParams%3D%257B%2522enter_from_info%2522%253A%2522product_share_outside%2522%252C%2522source_page_type%2522%253A%2522product_share%2522%252C%2522enable_shop_tab_popup%2522%253A1%257D%26share_app_id%3D1233&cjsku=1731500414927410110": "store-tiktok-shop",
   },
 };
 /**

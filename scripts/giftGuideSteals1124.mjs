@@ -350,6 +350,11 @@ export const HER_OWNER_1126_ROWS = [
   // walmart.com/ip/1127117059: in the Walmart Creator deal sections ~1:53 AM CT at $99.89 (was $122.99), 6%; IN_STOCK in walmart.com search ~1:55 AM,
   // sold by RetroAudio (187 reviews (stars not read)).
   ["https://walmrt.us/4j3rR1c", 99.89, "https://i5.walmartimages.com/seo/RetroAudio-Vinyl-Record-Player-10-in-1-Vintage-Turntable-Bluetooth-CD-Cassette-AM-FM-Radio-USB-Recorder-Red_98148795-7010-4d20-8465-02ecca96cc9a.d574984c2c68448ca9dbbf703a0527e5.jpeg", "RetroAudio 10-in-1 Vintage Record Player, Red", "RetroAudio", "store-walmart", "record-player", 6, "A red retro record player that also plays CDs, tapes and radio."],
+  // TikTok Shop via CJ (11-26 ~3:30 PM CT, tiktok-adds-1126): TikTok product 1729978049055265593, $38 in CJ's TikTok Shop US feed.
+  // Not on glowrecipe.com (its search and /products/<handle> checked 11-26) and no US store listing found in a web search, so TikTok
+  // Shop is the only store. CJ Click Url read on the Get Code page (matched in-page); one header check: 302 to cj.dotomi.com carrying
+  // this product id and tiktok.com. CJ does not show the per-product rate (0-49%), so commission 0 until a sale reports it.
+  ["https://www.anrdoezrs.net/click-101930553-17099898?url=https%3A%2F%2Fwww.tiktok.com%2Fview%2Fproduct%2F1729978049055265593%3Fchain_key%3D%257B%2522t%2522%253A1%252C%2522k%2522%253A%2522000000000000000007528530629727586062%2522%252C%2522sc%2522%253A%2522OPEN_API%2522%257D%26scene%3Dpdp%26utm_source%3Dopen_api%26trackParams%3D%257B%2522enter_from_info%2522%253A%2522product_share_outside%2522%252C%2522source_page_type%2522%253A%2522product_share%2522%252C%2522enable_shop_tab_popup%2522%253A1%257D%26share_app_id%3D1233&cjsku=1729978049055265593", 38, "https://p19-oec-general-useast5.ttcdn-us.com/tos-useast5-i-omjb5zjo8w-tx/da7d0189e77b40e387a87467b82c176d~tplv-fhlh96nyum-origin-jpeg.jpeg", "Glow Recipe Fruit Babies Glow & Soothe Kit", "Glow Recipe", "store-tiktok-shop", "skincare-set", 0, "Six watermelon, avocado and plum minis in one cute box."],
 ];
 /** For Kids: the two Barbie sets in her screenshots, then every other Barbie set on the two View-all pages (Barbie goes on Kids). */
 export const KIDS_OWNER_1126_ROWS = [
@@ -420,6 +425,11 @@ export const KIDS_OWNER_1126_ROWS = [
   // US best sellers 11-26: Super Mario Galaxy Movie Hatchin' Yoshi, walmart.com/ip/17692502283 sold by Walmart.com, $49.48 (was $59.99),
   // 2,307 reviews, ages 4+ (Macy's $59.99 is more than 15% higher). Link made by the best-sellers lane 11-26, never opened.
   ["https://walmrt.us/4kC8I7A", 49.48, "https://i5.walmartimages.com/seo/Super-Mario-Galaxy-Movie-Hatchin-Yoshi-Interactive-Figure-Action-Figure-for-Ages-4-and-up_4665fa88-918d-4656-a206-f69db1222c95.17b0dc2239090f7c1d6896d1f5715c4c.jpeg", "Super Mario Galaxy Movie Hatchin' Yoshi Interactive Figure", "Super Mario", "store-walmart", "hatching-toy", 6, "Yoshi hatches from his egg and reacts to play."],
+  // TikTok Shop via CJ (11-26 ~3:30 PM CT, tiktok-adds-1126): Crocs Jibbitz Super Hyper Me Bows 5 Pack, TikTok product 1731500414927410110,
+  // $19.99 in CJ's TikTok Shop US feed; no other store lists this pack (web search 11-26), so TikTok Shop is the only store. CJ Click Url
+  // read on the Get Code page (matched in-page); one header check: 302 to cj.dotomi.com carrying this product id and tiktok.com.
+  // CJ does not show the per-product rate (0-49%), so commission 0 until a sale reports it.
+  ["https://www.dpbolvw.net/click-101930553-17099898?url=https%3A%2F%2Fwww.tiktok.com%2Fview%2Fproduct%2F1731500414927410110%3Fchain_key%3D%257B%2522t%2522%253A1%252C%2522k%2522%253A%2522000000000000000007546326446206732045%2522%252C%2522sc%2522%253A%2522OPEN_API%2522%257D%26scene%3Dpdp%26utm_source%3Dopen_api%26trackParams%3D%257B%2522enter_from_info%2522%253A%2522product_share_outside%2522%252C%2522source_page_type%2522%253A%2522product_share%2522%252C%2522enable_shop_tab_popup%2522%253A1%257D%26share_app_id%3D1233&cjsku=1731500414927410110", 19.99, "https://p16-oec-general-useast5.ttcdn-us.com/tos-useast5-i-omjb5zjo8w-tx/2b92b261f4b94fe691558cb56da3c455~tplv-fhlh96nyum-origin-webp.webp", "Crocs Jibbitz Super Hyper Me Bows, 5 Pack", "Crocs", "store-tiktok-shop", "shoe-charms", 0, "Five puffy bright bows to clip onto any Crocs."],
 ];
 /** For Him: the power bank from her Creator screenshots. */
 export const HIM_OWNER_1126_ROWS = [
@@ -632,6 +642,8 @@ export const STEALS_CUTOUTS_1124 = [
   ["https://i5.walmartimages.com/seo/Rirool-Kids-Tool-Set-with-Electronic-Drill-37pc-Pretend-Play-Construction-Toys-for-Toddlers-3-6-Toolbox-Hammer-Screwdriver-Wood-Blocks_7e80ce0c-37e3-4009-bfb9-3566df6badc5.c9ac125d7c84395f70d85cf7144b5ccc.jpeg", "rirool-kids-tool-set-with-drill-walmart-050c47.webp"],
   ["https://i5.walmartimages.com/seo/Creativity-Kids-Sensory-Bin-Construction-Zone-Playset-Preschool-Learning-Activities-Excavator-Toys-Boys-Outdoor-Toys-Gifts-Kids-Ages-3_f95220ff-6966-4adf-bdbc-07f767ad136a.f2de0516b21a4d6f130d49b7c675b12d.jpeg", "creativity-for-kids-construction-sensory-bin-walmart-92d6a1.webp"],
   ["https://i5.walmartimages.com/seo/Super-Mario-Galaxy-Movie-Hatchin-Yoshi-Interactive-Figure-Action-Figure-for-Ages-4-and-up_4665fa88-918d-4656-a206-f69db1222c95.17b0dc2239090f7c1d6896d1f5715c4c.jpeg", "hatchin-yoshi-interactive-figure-walmart-173c13.webp"],
+  ["https://p19-oec-general-useast5.ttcdn-us.com/tos-useast5-i-omjb5zjo8w-tx/da7d0189e77b40e387a87467b82c176d~tplv-fhlh96nyum-origin-jpeg.jpeg", "glow-recipe-fruit-babies-glow-soothe-kit-tiktok-shop-f7b5d0.webp"],
+  ["https://p16-oec-general-useast5.ttcdn-us.com/tos-useast5-i-omjb5zjo8w-tx/2b92b261f4b94fe691558cb56da3c455~tplv-fhlh96nyum-origin-webp.webp", "crocs-jibbitz-super-hyper-me-bows-5-pack-tiktok-shop-cce964.webp"],
 ];
 
 /**

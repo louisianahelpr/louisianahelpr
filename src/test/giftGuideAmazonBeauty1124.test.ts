@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { HER_AMAZON_BEAUTY_1124_ROWS } from "../../scripts/giftGuideAmazonBeauty1124.mjs";
 import { her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
+import { PRICES_AT_1126, price1126 } from "../../scripts/giftGuidePrices1126.mjs";
 
 type Pick = { name: string; brand: string; href: string; image?: string; store?: string; price?: number; priceAt?: string; commission?: number | null; campaignEnds?: string; ownerPick?: true; type?: string };
 const her = (JSON.parse(readFileSync("src/content/giftGuidePicks/her.json", "utf8")) as { picks: Pick[] }).picks;
@@ -61,8 +62,10 @@ describe("Her: the owner's 48 Amazon beauty picks (11-24)", () => {
       expect(p.name.startsWith(brand), `${asin}: ${p.name}`).toBe(true);
       expect(p.name, asin).not.toMatch(/\b20\d\d\b/);
       expect([p.commission, p.campaignEnds], `${asin} ${brand}`).toEqual(CAMPAIGN[brand]);
-      expect(p.price, asin).toBe(price);
-      expect(p.priceAt, asin).toBe("2026-11-24");
+      // A price that changed on 11-26 (guides audit 1126, scripts/giftGuidePrices1126.mjs) shows that read and day.
+      const now = price1126(p.href);
+      expect(p.price, asin).toBe(now ?? price);
+      expect(p.priceAt, asin).toBe(now === undefined ? "2026-11-24" : PRICES_AT_1126);
       expect(p.image, asin).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\/[^/]+\._SL500_\.jpg$/);
       expect(p.type, asin).toMatch(/^[a-z-]+$/);
     }

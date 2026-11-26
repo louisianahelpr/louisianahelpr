@@ -59,7 +59,7 @@ const chunk = (JSON.parse(readFileSync("src/content/giftGuidePicks/monster-jam.j
 
 const renderAt = async (url: string) => {
   vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-11-24T18:00:00Z"));
+  vi.setSystemTime(new Date("2026-11-26T18:00:00Z"));
   let out!: ReturnType<typeof render>;
   await act(async () => {
     out = render(
@@ -108,7 +108,9 @@ describe("the Monster Jam gift guide's data (owner 2026-11-24)", () => {
     for (const id of ["MJO42", "MJ60", "MJ62", "MJ67"]) expect(ids.has(id), id).toBe(true);
     // MJ66 is the same Walmart product as her MJO42 (one place per item): held, not lost. Lander3 11-25: A2's Kohl's
     // sweep rows MJS65 + MJS66 (pajama cap, owner 11-20) and MJS132 (site jigsaw cap, owner 11-19) are held too.
-    expect(ROWS_FILE.skipped.map((s) => s.id).sort()).toEqual(["MJ66", "MJS132", "MJS65", "MJS66"]);
+    // Guides audit 1126: four duplicates held, each kept at its cheapest store (MJ91 = MJO36, MJJ37 = MJS156, MJJ32 = MJS153,
+    // MJS155 = MJJ16).
+    expect(ROWS_FILE.skipped.map((s) => s.id).sort()).toEqual(["MJ66", "MJ91", "MJJ32", "MJJ37", "MJS132", "MJS155", "MJS65", "MJS66"]);
     expect(chunk.some((p) => p.href === "https://walmrt.us/4j3ikWo")).toBe(true);
   });
 

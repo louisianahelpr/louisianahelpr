@@ -96,6 +96,9 @@ export { AMAZON_TAG, SEARCH_FILLER };
 export type GuideTint = (typeof GUIDE_INDEX)[number]["tint"];
 
 export interface CatalogPick {
+  /** A themed guide's pick the owner sent herself (the research row's ownerAdd, guides audit 1126): it leads its price
+   *  section (GiftGuideView ownerAddsFirst). Never shown. Her, Him and Kids are all hers, so none carries it. */
+  ownerAdd?: true;
   name: string;
   href: string;
   store: GiftStore;
@@ -301,7 +304,8 @@ const toPick = (p: ResearchedPick): CatalogPick => {
     // only from its PA-API feed and that showing them risks the Associates account, she chose "Show Amazon prices
     // anyway"). Only her saved-list picks carry one: scripts/giftGuidePrice.mjs still writes no Amazon price elsewhere.
     ...(p.price && p.priceAt ? { price: p.price, priceAt: p.priceAt, ...(p.priceFrom ? { priceFrom: p.priceFrom } : {}) } : {}), ...(p.rels ? { rels: p.rels } : {}),
-    ...(typeof p.priceRank === "number" ? { priceRank: p.priceRank } : {}), ...(p.gift ? { gift: p.gift } : {}) };
+    ...(typeof p.priceRank === "number" ? { priceRank: p.priceRank } : {}), ...(p.gift ? { gift: p.gift } : {}),
+    ...(p.ownerAdd ? { ownerAdd: p.ownerAdd } : {}) };
 };
 /** The landing's "Top 10 most-loved" row (owner 2026-11-18): the picks the most guides list, photos first (generated). */
 export const topPicks = (): CatalogPick[] => TOP_PICKS.map(toPick);

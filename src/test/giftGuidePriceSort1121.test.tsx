@@ -253,8 +253,10 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Solo 4 ($99.99, read ~$100) is $100 and up.
       // SCHEELS YETI sale (11-24, Later 7%): the Sidekick Dry ($55 -> $38.50) moves from $50 to $75 to $25 to $50; the Tundra 45
       // ($227.50) and Hopper Flip 12 ($175) stay $100 and up.
+      // Guides audit 1126 (scripts/giftGuidePrices1126.mjs): Jack Black lip balm ($8.50) in, the gun patches ($9.99, ~$10)
+      // out of Stocking stuffers; the Palmetto knife ($26.95) moves from Under $25 to $25 to $50.
       // Him owner pick 11-26 (HIM_OWNER_1126_ROWS): the $19.99 power bank from her Walmart Creator screenshots, Under $25.
-      him: { "Stocking stuffers under $10": 23, "Under $25": 49, "$25 to $50": 52, "$50 to $75": 25, "$75 to $100": 13, "$100 and up": 49 },
+      him: { "Stocking stuffers under $10": 23, "Under $25": 48, "$25 to $50": 53, "$50 to $75": 25, "$75 to $100": 13, "$100 and up": 49 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -307,10 +309,12 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // punching bag $50-$75, the $79.99 wiggle car $75-$100, the $99.99 train and $149.99 ATV $100 and up.
       // 11-25 LEGO import: Sunflowers ($8.99) -1 stocking stuffers, Snowman Ornaments ($10.29, shown ~$10) -1 Under $25,
       // Gingerbread House ($39.99) -1 $25 to $50, Lava Land ($174.98) -1 $100 and up; all four move to /gift-guides/lego.
+      // Guides audit 1126 (scripts/giftGuidePrices1126.mjs): OOLY hair crayons ($7.46) join Stocking stuffers; the Megalodon
+      // egg ($49.99, ~$50) and the LSU cheer dress ($50.95) move from $25 to $50 to $50 to $75.
       // Owner Walmart picks 11-26 (KIDS_OWNER_1126_ROWS): 11 Barbie sets at $10, all Under $25; then her Creator screenshots: the
       // $9.59 Chibi Godzilla (shown ~$10), the $14.99 magnetic tiles and $19.98 makeup kit Under $25, the $43.99 Flash $25 to $50,
       // the $104.99 and $116.87 Madame Alexander dolls and the $112.50 Usagi x TMNT set $100 and up.
-      kids: { "Stocking stuffers under $10": 45, "Under $25": 117, "$25 to $50": 47, "$50 to $75": 17, "$75 to $100": 9, "$100 and up": 30 },
+      kids: { "Stocking stuffers under $10": 46, "Under $25": 116, "$25 to $50": 45, "$50 to $75": 19, "$75 to $100": 9, "$100 and up": 30 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -350,10 +354,12 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Her Amazon beauty picks 11-24 (owner, all 48 of A1-A48, scripts/giftGuideAmazonBeauty1124.mjs): 20 Under $25 (the two
       // $9.60 mascaras read ~$10), 20 $25 to $50 (the $25.20 perfumes read ~$25), 5 $50 to $75, 3 $75 to $100.
       // Her owner pick 11-25 (the Festive Factory puzzle, $19.99 at Target, reads ~$20): Under $25.
+      // Guides audit 1126 (scripts/giftGuidePrices1126.mjs): the Loritta scarf ($8.96) in and the Maybelline set ($10.99) out of
+      // Stocking stuffers; She's Birdie ($22.46) and the Too Faced mini ($21) move from $25 to $50 to Under $25.
       // Her owner picks 11-26 (HER_OWNER_1126_ROWS, Walmart carousel screenshots): the $7 pajama pants and $8 joggers are stocking
       // stuffers; the $11.79 slippers, $12 pants and $19.99 lounge set Under $25; the $25 pink Crocs $25 to $50; the $99.89
       // RetroAudio record player (her Creator screenshots, shown ~$100) $100 and up.
-      her: { "Stocking stuffers under $10": 25, "Under $25": 78, "$25 to $50": 73, "$50 to $75": 22, "$75 to $100": 16, "$100 and up": 40 },
+      her: { "Stocking stuffers under $10": 25, "Under $25": 80, "$25 to $50": 71, "$50 to $75": 22, "$75 to $100": 16, "$100 and up": 40 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

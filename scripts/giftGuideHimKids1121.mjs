@@ -27,6 +27,7 @@ import { AMAZON_BRAND_PHOTOS_1122, cutoutPhoto } from "./giftGuideCutouts1120.mj
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 import { ADDS_STORES_1122, HIM_ADDS_1122, KIDS_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
+import { withPrice1126 } from "./giftGuidePrices1126.mjs";
 import { AMAZON_PRICES_AT_1124, amazonPrice1124 } from "./giftGuideAmazonPrices1124.mjs";
 import { HIM_KEEPS_1123_ROWS, HIM_LINKS_1123_ROWS, HIM_WALMART_1123_ROWS, KEEPS_PRICE_AT, KIDS_KEEPS_1123_ROWS, KIDS_LINKS_1123_ROWS } from "./giftGuideOwnerKeeps1123.mjs";
 import { HIM_ADDS_1124, KIDS_ADDS_1124, STORES_1124, rateSwitch1124 } from "./giftGuideOwner1124.mjs";
@@ -209,7 +210,8 @@ export const HIM_AMAZON_MORE_1121 = [
   // NIGHT LINK 11-21 (owner: "switch all 3 to the higher commission"; Commission-links-1121-night.md): was Amazon B0F22HTHMJ at
   // 3% ($408.5); same item and color, Tan, onwardreserve.com/products/turtlebox-gen-3-speaker-tan: 15%, $430.
   { name: "Turtlebox Original Gen 3 Speaker", brand: "Turtlebox", line: "The loudest Turtlebox, built for the outdoors.", href: shopmy("p-108999848"), image: "https://cdn.shopify.com/s/files/1/2117/2759/files/tan_59e105ca-50c6-4429-9dcb-6465e0c50aea.jpg", store: "store-onward-reserve", sortPrice: 430, price: 430, commission: 15, type: "speaker" },
-  ["B00IU19FRK", 11.97, "41iKqPmPrRL", "Wildlife Research Scent Killer Gold Spray", "Wildlife Research Center", "hunting", 3, "Scent control spray for the stand."],
+  // Guides audit 1126: this ASIN is the 32 oz laundry detergent (its Amazon title and photo), not the spray.
+  ["B00IU19FRK", 11.97, "41iKqPmPrRL", "Wildlife Research Scent Killer Gold Laundry Detergent, 32 oz", "Wildlife Research Center", "hunting", 3, "Scent control detergent for his hunting clothes."],
   ["B073VBXY7L", 5.37, "41DXHXOJ+KL", "Scent Killer Gold Antiperspirant", "Wildlife Research Center", "hunting", 3, "Scent-free antiperspirant for hunting days."],
   ["B018NKHBZU", 16.14, "41M3Of1q5kL", "Mossy Oak Fixed Blade Hunting Knife Set", "Mossy Oak", "knife", 3, "A two-piece hunting knife set with sheaths."],
   ["B0FYVZYD6F", 56.99, "41ANX3EfIcL", "Hunting Range Finder, 1700 Yards", "", "hunting", 3, "A laser range finder for the stand or the course."],
@@ -473,8 +475,9 @@ const withReread1124 = (r) => {
 };
 
 const build = (rows, slug, g) =>
-  rankByPrice(rows.map(withReread1124)).map(({ row: r, priceRank }) => {
-    const { sortPrice: _sp, price, reread1124, ...rest } = r;
+  // Guides audit 1126: a price that changed on 11-26 wins over the 11-24 re-read (scripts/giftGuidePrices1126.mjs).
+  rankByPrice(rows.map(withReread1124).map((r) => { const n = withPrice1126(r); return n === r ? r : { ...n, reread1124: false }; })).map(({ row: r, priceRank }) => {
+    const { sortPrice: _sp, price, reread1124, price1126: _p1126, ...rest } = r;
     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: slug, priceRank };
     // AMAZON PRICES ON (owner 2026-11-21 ~12:05 PM: "each item also needs a price"; she chose "Show Amazon prices
     // anyway" after the Associates warning): an Amazon pick shows the price captured from her saved list (sortPrice).

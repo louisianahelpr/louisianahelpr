@@ -3,7 +3,7 @@
  * amazon.com/dp page; the ones whose price changed show the price read, dated that day, on both the committed chunk and the
  * builder. The expected rows are copied from the read (~/.lh-shots/kids-bf-sweep-1124/amazon-reads.jsonl), not from the
  * module, so the check is two-way.
- * @mutate scripts/giftGuideHimKids1121.mjs |   rankByPrice(rows.map(withReread1124)).map(({ row: r, priceRank }) => { |   rankByPrice(rows).map(({ row: r, priceRank }) => {
+ * @mutate scripts/giftGuideHimKids1121.mjs |   rankByPrice(rows.map(withReread1124).map((r) => { | rankByPrice(rows.map((r) => r).map((r) => {
  * @mutate scripts/giftGuideAmazonPrices1124.mjs |   "B0GH39S2GJ": 49.99, |   "B0GH39S2GJ": 83,
  */
 import { readFileSync } from "node:fs";

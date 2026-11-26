@@ -7,7 +7,7 @@
  * attestation, the plain "or" rule (no rust), Continue with Apple / Google,
  * "Already have an account? Log in". Sentence case throughout.
  *
- * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="text-page-title text-foreground">{t("signup.title")}</h1> | <h1 className="text-page-title text-foreground">Create Account</h1>
+ * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="text-page-title text-foreground max-[479px]:sr-only">{t("signup.title")}</h1> | <h1 className="text-page-title text-foreground max-[479px]:sr-only">Create Account</h1>
  * @mutate src/pages/auth/signup/SignupStep1.tsx | <AuthCardMarkRow /> | <img src="/apple-touch-icon.png" alt="" className="w-16 h-16 rounded-full" />
  * @mutate src/pages/auth/signup/SignupStep1.tsx |           <OrRule />\n |           <div className="uppercase tracking-[0.2em]" style={{ color: "hsl(var(--accent-ink))" }}>or</div>\n
  * @mutate src/pages/auth/signup/SignupStep1.tsx |             setAgeConfirmed(checked === true);\n |             void 0;\n

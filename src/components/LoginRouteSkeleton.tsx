@@ -66,14 +66,14 @@ const LoginRouteSkeleton = () => (
             with the H emblem, the "Log in" h1 and one welcome line, so the
             skeleton's card starts at the same y and its head has the same
             stack. Pinned to Login.tsx by src/test/loginSkeletonMatchesLogin.test.ts. */}
-        <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6">
+        <div className="liquid-glass auth-card p-5 sm:p-6 lg:p-8 space-y-6">
           <div className="flex flex-col items-center text-center gap-1.5">
             {/* HelprMark size="lg" emblemOnly is h-14; a bone, because the
                 image would put the logo asset on the entry chunk. */}
             <div className="mb-2" aria-hidden>
               <Skeleton className="h-14 w-14 rounded-xl" />
             </div>
-            <h1 className="text-page-title text-foreground">Log in</h1>
+            <h1 className="text-page-title text-foreground max-[479px]:sr-only">Log in</h1>
             <Skeleton className="h-4 w-44 rounded" aria-hidden />
           </div>
           {/* Bones at the height of the email + password + submit stack. */}
@@ -86,7 +86,7 @@ const LoginRouteSkeleton = () => (
               <Skeleton className="h-3.5 w-24 rounded" />
               <Skeleton className="h-12 w-full rounded-2xl" />
             </div>
-            <Skeleton className="h-[60px] w-full rounded-full" />
+            <Skeleton className="h-[60px] w-full rounded-full max-[479px]:h-12" />
           </div>
         </div>
       </div>

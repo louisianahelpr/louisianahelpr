@@ -308,8 +308,8 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Gingerbread House ($39.99) -1 $25 to $50, Lava Land ($174.98) -1 $100 and up; all four move to /gift-guides/lego.
       // Owner's "Little Boys" ad picks + Hatchin' Yoshi 11-26 (10, KIDS_OWNER_1126_ROWS): 5 Under $25 (RC dino truck, sensory
       // bin, tool set, bug catcher, flying orb), Warmies $29.99 and Yoshi $49.48 $25 to $50, laser tag $69.99 $50 to $75, the
-      // $99.98 bumper car (shown ~$100) and the $169.99 Bronco $100 and up.
-      kids: { "Stocking stuffers under $10": 45, "Under $25": 108, "$25 to $50": 48, "$50 to $75": 18, "$75 to $100": 9, "$100 and up": 29 },
+      // $90.60 bumper car $75 to $100 and the $169.99 Bronco $100 and up.
+      kids: { "Stocking stuffers under $10": 45, "Under $25": 108, "$25 to $50": 48, "$50 to $75": 18, "$75 to $100": 10, "$100 and up": 28 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

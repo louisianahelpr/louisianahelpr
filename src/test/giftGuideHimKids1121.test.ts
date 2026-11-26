@@ -170,6 +170,11 @@ const STEALS_1124: Record<string, Record<string, string>> = {
     "https://mavely.app.link/yftqKoJ9j8b": "store-kohls",
     ...sm(["110122442", "110122526", "110122583", "110122602", "110122700", "110122792"], "store-macys"),
     ...sm(["110135306", "110137252"], "store-crocs"),
+    // Trending adds 11-26 (KIDS_TRENDING_1126_ROWS): the Owala Disney Princess FreeSip and the Grinch Tonie; and the Nex Playground
+    // switched from Amazon B0D2JGYX3F to Walmart (scripts/giftGuideHimKids1121.mjs).
+    "https://go.shopmy.us/p-111498409": "store-owala",
+    "https://go.shopmy.us/p-111498488": "store-tonies",
+    "https://walmrt.us/4j5cOEd": "store-walmart",
   },
 };
 /**
@@ -368,7 +373,7 @@ describe("For Him holds every one of her men's saves (owner 11-21)", () => {
 describe("For Kids holds every one of her kids' Amazon saves (owner 11-21)", () => {
   it("54 of the 58 Amazon rows in Kids-saved-amazon-1121.md are on the page (Segway S2 is at Tractor Supply; 11-22 the Switch with Joy-Con, the C2 Lite and C2 Pro, the Amazon S2 and the mini CreateOn tiles went as duplicates, and Paint by Sticker came off; the Quest 3S, iPad and JLab kids headphones were added)", () => {
     const amazon = chunk("kids").filter((p) => p.store === "store-amazon");
-    expect(amazon.length).toBe(78); // 81 until the LEGO Snowman Ornaments, Gingerbread House and Lava Land Roller Coaster moved to the LEGO guide 11-25 (Target, Kohl's and Amazon there). 82 until the Colgate Minecraft toothbrush moved to Minecraft (owner 11-24 ~10:45 PM). 83 until the Cloud Pink Toniebox starter set moved to Kohl's (Amazon page dead; owner 11-24 ~10:10 PM). 85 until the Bluey figure 4-pack and the Spider-Man fishing kit moved to their themed guides (on Walmart there) 11-24. 86 until the My Mario playset moved to Walmart 11-24 (2026-11-24). 86 = 70 + the 16 Amazon keeps of 11-23 (scripts/giftGuideOwnerKeeps1123.mjs). 70 = 54 after the duplicate removals and Paint by Sticker + the 9 popular adds of 11-22 + the 7 Louisiana books, plush and team gear (owner 11-22 PM)
+    expect(amazon.length).toBe(77); // 78 until the Nex Playground moved to Walmart 11-26 (6% vs 1%). 81 until the LEGO Snowman Ornaments, Gingerbread House and Lava Land Roller Coaster moved to the LEGO guide 11-25 (Target, Kohl's and Amazon there). 82 until the Colgate Minecraft toothbrush moved to Minecraft (owner 11-24 ~10:45 PM). 83 until the Cloud Pink Toniebox starter set moved to Kohl's (Amazon page dead; owner 11-24 ~10:10 PM). 85 until the Bluey figure 4-pack and the Spider-Man fishing kit moved to their themed guides (on Walmart there) 11-24. 86 until the My Mario playset moved to Walmart 11-24 (2026-11-24). 86 = 70 + the 16 Amazon keeps of 11-23 (scripts/giftGuideOwnerKeeps1123.mjs). 70 = 54 after the duplicate removals and Paint by Sticker + the 9 popular adds of 11-22 + the 7 Louisiana books, plush and team gear (owner 11-22 PM)
     // Owner 2026-11-22 8:58 PM ("take it off"): Paint by Sticker Kids: Christmas had no Buy Box and no other listing.
     expect(amazon.some((p) => p.href.includes("152350675X"))).toBe(false);
     for (const asin of ["B0F3GWXLTS", "B0D6RMZ3D1", "B0DDLZV8YM"]) expect(amazon.some((p) => p.href.includes(asin)), asin).toBe(true);

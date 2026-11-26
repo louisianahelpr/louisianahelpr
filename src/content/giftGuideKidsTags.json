@@ -735,7 +735,7 @@
    "gender": "everyone",
    "list": "kids"
   },
-  "amazon:B0D2JGYX3F": {
+  "walmrt.us/4j5cOEd": {
    "name": "Nex Playground",
    "gender": "everyone",
    "ageMin": 5,
@@ -2015,6 +2015,19 @@
    "gender": "everyone",
    "ageMin": 4,
    "ageSource": "Walmart Creator listing title, read 2026-11-26: For Ages 4 and up",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-111498409": {
+   "name": "Owala FreeSip Disney Princess Collection, 24 oz",
+   "gender": "girls",
+   "genderSource": "owalalife.com product page, read 2026-11-26: Disney Princess Collection (Rapunzel, Ariel, Cinderella, Belle, Moana, Tiana)",
+   "list": "kids"
+  },
+  "go.shopmy.us/p-111498488": {
+   "name": "tonies Dr. Seuss How the Grinch Stole Christmas! Tonie",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageSource": "us.tonies.com product page, read 2026-11-26: Age 4+",
    "list": "kids"
   }
  }

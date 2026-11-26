@@ -426,7 +426,10 @@ export const KIDS_1121 = [
   ["B081RJ8DW1", 80.02, "41XdbpXmFvL", "Gskyer Telescope", "Gskyer", "science", 3, "A real starter telescope for the moon and stars."],
   ["B0FJ3S78NR", 99.97, "41PRwqm4mXL", "Toniebox 2, Sky Blue", "tonies", "audio", 3, "A screen-free story and music player."],
   ["B0HDSSPY7Z", 127.49, "21gcm6OqZ0L", "Segway Ninebot C2 Go Kids Scooter", "Segway", "scooter", 3, "An electric scooter made for kids."],
-  ["B0D2JGYX3F", 209, "31HNx5am69L", "Nex Playground", "Nex", "game-console", 3, "Active family games that get everyone moving."],
+  // STORE SWITCH 11-26 (lead via trending-adds2-1126): was Amazon B0D2JGYX3F at 3% ($209). The same Nex Playground at Walmart,
+  // item 9402952208, sold by Walmart (Creator affiliate_links seller_type 1P), $209 (was $299) in Creator search 11-26 ~3:50 PM CT,
+  // Walmart Creator 6%. Link made by trending-adds-1126 (one header-only check: 301 to goto.walmart.com, prodsku=9402952208).
+  { name: "Nex Playground", brand: "Nex", line: "Active family games that get everyone moving.", href: "https://walmrt.us/4j5cOEd", image: "https://i5.walmartimages.com/seo/Nex-Playground-Interactive-Game-System-64-GB-Multi-Color_067d67d8-9118-4c41-a0f6-947c9b42fa0a.9c5d6ad61e3c032620aa6896026742a9.png", store: "store-walmart", sortPrice: 209, price: 209, priceAt: "2026-11-26", commission: 6, type: "game-console" },
   ["B07V4GCFP9", 229, "31CHVspmUeL", "Nintendo Switch Lite", "Nintendo", "game-console", 1, "The handheld Switch for games on the go."],
   // owner 11-22 kids tech (builder-guide-adds-kids): the owner asked for popular tech; prices captured from Amazon 11-22.
   ["B0G4SCX27Q", 382, "61B-A4JhE9L", "Meta Quest 3S VR Headset, 256GB", "Meta", "vr", 3, "A mixed-reality headset for games and fitness, made for ages 10 and up."],

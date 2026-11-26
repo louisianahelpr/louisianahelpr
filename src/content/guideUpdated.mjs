@@ -2,7 +2,7 @@
 export const GUIDE_UPDATED = {
   "her": {
     "day": "2026-11-26",
-    "hash": "9c2cc9be0eb3ed7d"
+    "hash": "03ca17e50337a2b9"
   },
   "him": {
     "day": "2026-11-26",
@@ -10,7 +10,7 @@ export const GUIDE_UPDATED = {
   },
   "kids": {
     "day": "2026-11-26",
-    "hash": "585046daf4d2f02f"
+    "hash": "70bdaf477d06a6f2"
   },
   "25-days-sponsors": {
     "day": "2026-11-24",

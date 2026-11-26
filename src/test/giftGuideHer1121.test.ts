@@ -162,8 +162,10 @@ const STEALS_1124 = ["https://go.shopmy.us/p-110125767", "https://go.shopmy.us/p
 const OWNER_1125 = ["https://mavely.app.link/Etc8x0jLk8b"];
 /** Her owner picks 11-26 (owner via the lead ~1:35 AM and ~2:10 AM): the six women's items in her Walmart Black Friday carousel screenshots and the RetroAudio record player from her Walmart Creator screenshots, Walmart Creator links. */
 const OWNER_1126 = ["https://walmrt.us/4zFKs8B", "https://walmrt.us/4fsKWaE", "https://walmrt.us/49hvnz1", "https://walmrt.us/4f01xT8", "https://walmrt.us/4jgbfSw", "https://walmrt.us/4zHKVqA", "https://walmrt.us/4j3rR1c"];
+/** Trending adds 11-26 (HER_TRENDING_1126_ROWS, trending-adds2-1126): medicube pads (Amazon), LANEIGE Lip Sleeping Mask (Kohl's) and the two Kitsch cherry items (mykitsch.com). */
+const TRENDING_1126 = ["https://www.amazon.com/dp/B09V7Z4TJG?tag=louisianahelpr-20", "https://go.shopmy.us/p-111499036", "https://go.shopmy.us/p-111497791", "https://go.shopmy.us/p-111498299"];
 const AMAZON_BEAUTY_1124_ASINS = ["B0HFQ324TF", "B0GQ14CTW7", "B0CS4LRHHS", "B092W4P1N9", "B00IMU2IPA", "B005IQ866G", "B0D6L6TWJC", "B00PWVIQKI", "B004EHOTJS", "B06X9DFBNK", "B0HB6Z65TX", "B0D19JDZJS", "B07KWM3JXN", "B00E1HJLEY", "B0DNLC5T7S", "B0081KINZK", "B0009OAIBI", "B0012RSTIA", "B0HB6KB3BW", "B096CFPBLY", "B0DBVZX9YH", "B0GQJRMLG4", "B0F22N1MNV", "B000P20PU8", "B0G319B1CR", "B0DFDSRCHY", "B0H9ZVR21B", "B0BJBT1WQJ", "B077Y7CTR8", "B002LK0GAQ", "B0GQJPHLK7", "B0GZ8BDMHS", "B0FTHLKL42", "B0DY1WSW83", "B0DM3S16NM", "B000S97MAY", "B00EKT4MCY", "B08P541DPH", "B016Z69QF2", "B007GOQYR6", "B0CTL1F8LW", "B00DNGVPZW", "B083PXLPHC", "B074G4J1KK", "B08LHFXTX7", "B07Q6J2C9C", "B07V5X4KDZ", "B0FZXN4HN9"];
-const SAVED = new Set([...[...[...KEEPS_1123_ASINS, ...LOUISIANA_1122_ASINS, ...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS, ...LOUISIANA_1122_PINS, ...LINKS_1123_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ].map((h) => SWITCHED_1124[h] ?? h), ...MACYS_1124_PINS.map((p) => `https://go.shopmy.us/${p}`), ...STEALS_1124, ...OWNER_1125, ...OWNER_1126, ...AMAZON_BEAUTY_1124_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`)]);
+const SAVED = new Set([...[...[...KEEPS_1123_ASINS, ...LOUISIANA_1122_ASINS, ...HER4_1122_ASINS, ...AMAZON_ASINS, ...CART_ASINS, ...ADDS_1122_ASINS, ...SCREENS_1122_ASINS, ...POPULAR_1122_ASINS].map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`), ...[...SHOPMY_PINS, ...SWITCHED_PINS, ...ADDS_1122_PINS, ...SCREENS_1122_PINS, ...PR_PINS, ...LOUISIANA_1122_PINS, ...LINKS_1123_PINS].map((p) => `https://go.shopmy.us/${p}`), ...SCREENS_1122_CJ].map((h) => SWITCHED_1124[h] ?? h), ...MACYS_1124_PINS.map((p) => `https://go.shopmy.us/${p}`), ...STEALS_1124, ...OWNER_1125, ...OWNER_1126, ...TRENDING_1126, ...AMAZON_BEAUTY_1124_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`)]);
 const SCREENS_1122 = new Set(SCREENS_1122_ASINS.map((a) => `https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`));
 const isAmazon = (p: Pick) => p.store === "store-amazon" || /^https:\/\/(www\.)?amazon\.com\//.test(p.href);
 
@@ -178,14 +180,14 @@ describe("For Her = the owner's saves (11-21)", () => {
     }
   });
 
-  it("the page holds exactly her 254 links (2026-11-26), once each, and nothing else", () => {
+  it("the page holds exactly her 258 links (2026-11-26), once each, and nothing else", () => {
     // 198 = 159 + her 20 Amazon second keeps of 11-23 (KEEPS_1123_ASINS) + her 6 Ulta keeps (LINKS_1123_PINS) + her 4 Macy's
     // adds of 11-24 (MACYS_1124_PINS) + her 9 steals of 11-24 (STEALS_1124) = 198, + her 48 Amazon beauty picks of 11-24
-    // (AMAZON_BEAUTY_1124_ASINS) = 246, + her Festive Factory puzzle of 11-25 (OWNER_1125) = 247, + her 7 Walmart picks of 2026-11-26 (OWNER_1126: 6 carousel items and the Creator record player) = 254; the 11-24 switches (SWITCHED_1124) changed
+    // (AMAZON_BEAUTY_1124_ASINS) = 246, + her Festive Factory puzzle of 11-25 (OWNER_1125) = 247, + her 7 Walmart picks of 2026-11-26 (OWNER_1126: 6 carousel items and the Creator record player) = 254, + the 4 trending adds of 11-26 (TRENDING_1126) = 258; the 11-24 switches (SWITCHED_1124) changed
     // links, not the count.
     expect(AMAZON_BEAUTY_1124_ASINS.length).toBe(48);
-    expect(SAVED.size).toBe(254);
-    expect(page.length).toBe(254);
+    expect(SAVED.size).toBe(258);
+    expect(page.length).toBe(258);
     for (const gone of Object.keys(SWITCHED_1124)) expect(page.some((p) => p.href === gone), gone).toBe(false);
     expect(new Set(page.map((p) => p.href))).toEqual(SAVED);
     // Owner 11-22, "Keep only Oura": the Ultrahuman ring is not on the page.
@@ -230,8 +232,8 @@ describe("For Her = the owner's saves (11-21)", () => {
   it("an Amazon pick carries the price captured from her saved list and keeps Amazon's own photo; a ShopMy pick shows its checked price and a cutout", () => {
     const amazon = page.filter(isAmazon);
     const shopmy = page.filter((p) => !isAmazon(p));
-    expect(amazon.length).toBe(141); // 93 before her 48 Amazon beauty picks of 11-24 (AMAZON_BEAUTY_1124_ASINS); 80 + her 20 Amazon second keeps of 11-23 (Capri Blue included), minus the 7 moved off Amazon 11-24 (SWITCHED_1124, the YETI Daytrip the 7th; 2026-11-24)
-    expect(shopmy.length).toBe(113); // 79 + her 6 Ulta keeps of 11-23 + the 6 moved off Amazon 11-24 + her 4 Macy's adds and 9 steals of 11-24 + the YETI Daytrip to SCHEELS (2026-11-24) + her Festive Factory puzzle (Later, 11-25) + her 7 Walmart picks (11-26)
+    expect(amazon.length).toBe(142); // + the medicube pads (trending adds 11-26); 93 before her 48 Amazon beauty picks of 11-24 (AMAZON_BEAUTY_1124_ASINS); 80 + her 20 Amazon second keeps of 11-23 (Capri Blue included), minus the 7 moved off Amazon 11-24 (SWITCHED_1124, the YETI Daytrip the 7th; 2026-11-24)
+    expect(shopmy.length).toBe(116); // + the LANEIGE mask and 2 Kitsch items (trending adds 11-26); 79 + her 6 Ulta keeps of 11-23 + the 6 moved off Amazon 11-24 + her 4 Macy's adds and 9 steals of 11-24 + the YETI Daytrip to SCHEELS (2026-11-24) + her Festive Factory puzzle (Later, 11-25) + her 7 Walmart picks (11-26)
     const captured = new Map(HER_ROWS.map(withPrice1126).map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));
@@ -248,6 +250,12 @@ describe("For Her = the owner's saves (11-21)", () => {
       // Her Amazon beauty picks of 11-24, read on amazon.com that day, keep Amazon's own photo (on white).
       if (AMAZON_BEAUTY_1124_ASINS.some((a) => p.href.includes(`/dp/${a}?`))) {
         expect(p.priceAt, p.name).toBe("2026-11-24");
+        expectAmazonPickPhoto(p);
+        continue;
+      }
+      // The trending medicube pads of 11-26 (HER_TRENDING_1126_ROWS), read on amazon.com that day.
+      if (p.href === TRENDING_1126[0]) {
+        expect(p.priceAt, p.name).toBe("2026-11-26");
         expectAmazonPickPhoto(p);
         continue;
       }

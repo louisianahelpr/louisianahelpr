@@ -427,10 +427,44 @@ export const HIM_OWNER_1126_ROWS = [
   // sold by BTOOTOS (4.3 stars, 3,986 reviews).
   ["https://walmrt.us/4kwPr7B", 19.99, "https://i5.walmartimages.com/seo/Magnetic-Wireless-Portable-Charger-10000mAh-Power-Bank-PD20w-Fast-Charging-USB-C-in-Out-Battery-Pack-Compatible-Mag-Safe-iPhone-16-15-14-13-12-Series_3905bd7a-b9bd-4ccf-b036-658c28c4ec6e.ed5c6b74bd87a70b65c4306b9e288025.png", "Magnetic Wireless 10000mAh Power Bank", "BTOOTOS", "store-walmart", "power-bank", 10, "A magnetic power bank that snaps onto his phone."],
 ];
+/**
+ * TRENDING ADDS, second batch (lead via trending-adds2-1126, 11-26 ~3:20 PM CT): items from the TikTok Shop trending list,
+ * each linked at the store where the same item costs least (~/.lh-shots/trending-adds2-1126/pins.md). Every price was read on
+ * the store's own product page in Chrome 11-26 ~3:30-3:45 PM CT with Add to Cart showing. ShopMy pin ids and destinations were
+ * read from the shopmy.us/links row (never the clipboard). Photos: store photos cut out (Apple Vision); the Amazon photo unedited.
+ */
+/** For Her. */
+export const HER_TRENDING_1126_ROWS = [
+  // Amazon B09V7Z4TJG $13.23, In Stock (sold by Medicube & Aprilskin, fulfilled by Amazon). Walmart $15.74 (item 17765066886); TikTok Shop $23.
+  ["https://www.amazon.com/dp/B09V7Z4TJG?tag=louisianahelpr-20", 13.23, "https://m.media-amazon.com/images/I/71Mcspt-6AL._SL500_.jpg", "medicube Zero Pore Pad 2.0, 70 Pads", "medicube", "store-amazon", "skincare", 3, "The viral K-beauty toner pads that smooth and clear pores."],
+  // kohls.com prd-5076965, Berry (skuId 70187017): $18 (reg. $24). us.laneige.com $24 (ShopMy 16%), so Kohl's (ShopMy 12%) is 25% cheaper.
+  ["https://go.shopmy.us/p-111499036", 18, "https://media.kohlsimg.com/is/image/kohls/5076965_Berry", "LANEIGE Lip Sleeping Mask, Berry", "LANEIGE", "store-kohls", "lip-balm", 12, "The overnight lip mask everyone keeps on their nightstand."],
+  // mykitsch.com $17.60 (Black Friday, prices as marked; Kitsch ShopMy 15%). Ulta $18 (ShopMy 13%); TikTok Shop $20.25.
+  ["https://go.shopmy.us/p-111497791", 17.6, "https://cdn.shopify.com/s/files/1/0104/6904/8384/files/500621-AdjustableOversizedSatinBonnet-SeasonalCollection-CherryPrint-hero-1280x1280px.jpg", "Kitsch Cherry Print Oversized Satin Bonnet", "Kitsch", "store-kitsch", "hair", 15, "A roomy cherry-print satin bonnet that saves her hair overnight."],
+  // mykitsch.com $6.30 (30% off $9; ShopMy 15%). Ulta does not carry this set (its search, 11-26); TikTok Shop $5.51 via CJ shows no rate.
+  ["https://go.shopmy.us/p-111498299", 6.3, "https://cdn.shopify.com/s/files/1/0104/6904/8384/files/501420-Dermaplaners-6pc-SeasonalCollection-AssortedCherryBlossom-hero-1280x1280px.jpg", "Kitsch Cherry Blossom Dermaplaners, 6 Pack", "Kitsch", "store-kitsch", "skincare", 15, "Six cherry-print face razors for smooth, glowy skin."],
+];
+/** For Kids (girls' cups go to Kids). Ages and girls/boys/everyone are in src/content/giftGuideKidsTags.json. */
+export const KIDS_TRENDING_1126_ROWS = [
+  // owalalife.com $28 (20% off $34.99), 24 oz FreeSip, six princesses (Rapunzel shown); Trove Brands ShopMy 8%. TikTok Shop $34.99.
+  ["https://go.shopmy.us/p-111498409", 28, "https://cdn.shopify.com/s/files/1/0439/2537/3087/files/Princess_SC_sticker_Rapunzel.png", "Owala FreeSip Disney Princess Collection, 24 oz", "Owala", "store-owala", "water-bottle", 8, "A Disney princess Owala with stickers to match."],
+  // us.tonies.com $15 (reg. $19.99), Age 4+; Tonies US ShopMy 4%. Target $17.99, TikTok Shop $19.99.
+  ["https://go.shopmy.us/p-111498488", 15, "https://cdn.shopify.com/s/files/1/0403/5431/6439/files/The-Grinch-10000791-PLPTB2MainImageTransparent.png", "tonies Dr. Seuss How the Grinch Stole Christmas! Tonie", "tonies", "store-tonies", "audio", 4, "The Grinch story and songs for their Toniebox."],
+];
+/** Store photos for the trending adds and the Nex Playground switch, cut out (Apple Vision) into public/gift-guides/cutouts. */
+export const TRENDING_CUTOUTS_1126 = [
+  ["https://media.kohlsimg.com/is/image/kohls/5076965_Berry", "laneige-lip-sleeping-mask-berry-kohls-3f2312.webp"],
+  ["https://cdn.shopify.com/s/files/1/0104/6904/8384/files/500621-AdjustableOversizedSatinBonnet-SeasonalCollection-CherryPrint-hero-1280x1280px.jpg", "kitsch-cherry-print-oversized-satin-bonnet-c41e0a.webp"],
+  ["https://cdn.shopify.com/s/files/1/0104/6904/8384/files/501420-Dermaplaners-6pc-SeasonalCollection-AssortedCherryBlossom-hero-1280x1280px.jpg", "kitsch-cherry-blossom-dermaplaners-6pc-a33693.webp"],
+  ["https://cdn.shopify.com/s/files/1/0439/2537/3087/files/Princess_SC_sticker_Rapunzel.png", "owala-freesip-disney-princess-rapunzel-2c6126.webp"],
+  ["https://cdn.shopify.com/s/files/1/0403/5431/6439/files/The-Grinch-10000791-PLPTB2MainImageTransparent.png", "tonies-grinch-tonie-8be4e8.webp"],
+  ["https://i5.walmartimages.com/seo/Nex-Playground-Interactive-Game-System-64-GB-Multi-Color_067d67d8-9118-4c41-a0f6-947c9b42fa0a.9c5d6ad61e3c032620aa6896026742a9.png", "nex-playground-walmart-b802fb.webp"],
+];
 /** The day the 11-26 rows (and the Amazon re-reads that day) were priced. */
 export const PRICE_AT_1126 = "2026-11-26";
-/** Every pick priced 2026-11-26: the rows above plus Amazon re-reads that day (AirPods Pro 3 on Him, $149). */
-export const PRICED_1126_HREFS = new Set([...KIDS_OWNER_1126_ROWS, ...HER_OWNER_1126_ROWS, ...HIM_OWNER_1126_ROWS].map((r) => r[0]).concat(["https://www.amazon.com/dp/B0FQFB8FMG?tag=louisianahelpr-20"]));
+/** Every pick priced 2026-11-26: the rows above plus Amazon re-reads that day (AirPods Pro 3 on Him, $149) and the Nex Playground
+ * switched to Walmart that day (scripts/giftGuideHimKids1121.mjs, $209 in Walmart Creator search). */
+export const PRICED_1126_HREFS = new Set([...KIDS_OWNER_1126_ROWS, ...HER_OWNER_1126_ROWS, ...HIM_OWNER_1126_ROWS, ...HER_TRENDING_1126_ROWS, ...KIDS_TRENDING_1126_ROWS].map((r) => r[0]).concat(["https://www.amazon.com/dp/B0FQFB8FMG?tag=louisianahelpr-20", "https://walmrt.us/4j5cOEd"]));
 /** For Him. */
 export const HIM_STEALS_1124_ROWS = [
   // S1 Macy's exclusive (reg. $50, 80% off), read on macys.com 2:11 AM, Add to Bag active.

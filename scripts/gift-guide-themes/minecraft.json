@@ -2,7 +2,7 @@
  "slug": "minecraft",
  "name": "Minecraft",
  "sectionPrefix": "minecraft",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/minecraft/items.json (Tue Nov 24 3:45 PM, 240 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/minecraft/items.json (Tue Nov 24 3:45 PM, 241 items)",
  "rows": [
   {
    "id": "MC03",
@@ -732,6 +732,21 @@
    "was": 5.99,
    "commission": 4,
    "age": "3+"
+  },
+  {
+   "id": "MCB50",
+   "name": "Slimygloop Gelli Gels Minecraft Creeper Squishy",
+   "brand": "Horizon Group USA",
+   "line": "A little Minecraft gift for the stocking.",
+   "href": "https://www.amazon.com/dp/B0GZ4ZZ4QS?tag=louisianahelpr-20",
+   "image": "https://m.media-amazon.com/images/I/814Mco1pjlL._AC_SL1500_.jpg",
+   "store": "store-amazon",
+   "price": 8.99,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "minecraft-stocking-stuffers-under-10",
+   "commission": 3,
+   "age": "kids"
   },
   {
    "id": "MC10",

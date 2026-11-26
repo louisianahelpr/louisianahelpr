@@ -2,7 +2,7 @@
  "slug": "cars",
  "name": "Pixar Cars",
  "sectionPrefix": "cars",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/cars/items.json (Tue Nov 24 9:27 PM, 150 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/cars/items.json (Tue Nov 24 9:27 PM, 151 items)",
  "rows": [
   {
    "id": "CR01",
@@ -395,6 +395,22 @@
    "was": 10.99,
    "commission": 12,
    "age": "toddler"
+  },
+  {
+   "id": "CRO05",
+   "name": "Cars Winter 5-Pack: Sarge, Mater, Doc Hudson, Sally & Lightning McQueen Die-Cast Cars",
+   "brand": "Pixar Cars",
+   "line": "Die-cast cars and toys for a Pixar Cars fan.",
+   "href": "https://walmrt.us/4ANUiGe",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/cars-winter-5-pack-sarge-mater-doc-hudson-sally-lightning-mc-walmart-04960f.webp",
+   "store": "store-walmart",
+   "price": 41.99,
+   "priceAt": "2026-11-25",
+   "section": "Die-cast cars and toys",
+   "sectionId": "cars-die-cast-cars-and-toys",
+   "commission": 6,
+   "age": "3+",
+   "ownerAdd": true
   },
   {
    "id": "CR10",

@@ -25,7 +25,7 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-soon[data-gift-my-list-empty]{text-align:left; | .gg-soon[data-gift-my-list-empty]{text-align:center;
  * @mutate src/pages/info/GiftGuides.tsx |   const countRow = phone && Boolean(guide) && !deals; |   const countRow = (phone && Boolean(guide) && !deals) \|\| guide?.slug === "25-days-sponsors";
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -145,6 +145,11 @@ describe("the guide sub-pages fill the content column to the banner's edge (owne
 
 describe("guide consistency audit 1122 follow-ups", () => {
   it("#12: Small Business Saturday and an empty My Wish List carry no affiliate link, so no line", async () => {
+    // Pinned to the day this was written (lander 11-26): the deals days read today's date (embargoed codes, the day's own
+    // cards), so an unpinned run changed answer as the calendar moved.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-22T18:00:00Z"));
+    onTestFinished(() => { vi.useRealTimers(); });
     const sbs = guidesAt("/gift-guides/small-business-saturday");
     await waitFor(() => expect(sbs.querySelector("[data-gift-deal-day-page='small-business-saturday']")).not.toBeNull());
     expect(affiliateLinks(sbs).length).toBe(0);

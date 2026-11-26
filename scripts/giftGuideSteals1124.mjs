@@ -403,6 +403,10 @@ export const HIM_OWNER_1126_ROWS = [
   // sold by BTOOTOS (4.3 stars, 3,986 reviews).
   ["https://walmrt.us/4kwPr7B", 19.99, "https://i5.walmartimages.com/seo/Magnetic-Wireless-Portable-Charger-10000mAh-Power-Bank-PD20w-Fast-Charging-USB-C-in-Out-Battery-Pack-Compatible-Mag-Safe-iPhone-16-15-14-13-12-Series_3905bd7a-b9bd-4ccf-b036-658c28c4ec6e.ed5c6b74bd87a70b65c4306b9e288025.png", "Magnetic Wireless 10000mAh Power Bank", "BTOOTOS", "store-walmart", "power-bank", 10, "A magnetic power bank that snaps onto his phone."],
 ];
+/** The day the 11-26 rows (and the Amazon re-reads that day) were priced. */
+export const PRICE_AT_1126 = "2026-11-26";
+/** Every pick priced 2026-11-26: the rows above plus Amazon re-reads that day (AirPods Pro 3 on Him, $149). */
+export const PRICED_1126_HREFS = new Set([...KIDS_OWNER_1126_ROWS, ...HER_OWNER_1126_ROWS, ...HIM_OWNER_1126_ROWS].map((r) => r[0]).concat(["https://www.amazon.com/dp/B0FQFB8FMG?tag=louisianahelpr-20"]));
 /** For Him. */
 export const HIM_STEALS_1124_ROWS = [
   // S1 Macy's exclusive (reg. $50, 80% off), read on macys.com 2:11 AM, Add to Bag active.

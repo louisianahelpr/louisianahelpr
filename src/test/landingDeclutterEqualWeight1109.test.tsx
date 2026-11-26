@@ -108,6 +108,8 @@ describe("owner #7: the landing gives Declutter equal weight below the hero", ()
       const steps = [...document.querySelectorAll("[data-how-step]")];
       expect(steps.length, t.textContent!).toBe(3);
       for (const s of steps) expect(s.querySelector("[data-how-step-icon] svg"), t.textContent!).not.toBeNull();
+      // Phone audit 11-25 #3 (owner 11-17: no icon-in-circle rows): the icon has no circle or tint behind it.
+      for (const s of steps) expect(s.querySelector("[data-how-step-icon]")!.className).not.toMatch(/rounded-full|\bbg-/);
     }
   });
 

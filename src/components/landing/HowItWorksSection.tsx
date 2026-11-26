@@ -213,7 +213,8 @@ const HowItWorksSection = () => {
               }}
             >
               {/* The ordinal in Bodoni, olive (rust is for money only), and (B3, owner 11-20) the step's small accent
-                  icon on a soft olive tint at the card's right. */}
+                  icon at the card's right. Phone audit 11-25 #3 (owner 11-17: no icon-in-circle rows): the icon
+                  stands alone, no tinted circle behind it. */}
               <div className="flex items-start justify-between gap-3">
                 <span
                   aria-hidden
@@ -225,7 +226,7 @@ const HowItWorksSection = () => {
                 <span
                   aria-hidden
                   data-how-step-icon=""
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.08)]"
+                  className="flex h-10 w-10 shrink-0 items-center justify-end"
                   style={{ color: "var(--lp-action)" }}
                 >
                   <Icon key={side} className="h-5 w-5" />

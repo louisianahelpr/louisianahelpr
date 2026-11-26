@@ -549,8 +549,10 @@ function DeclutterMemberHome() {
   // you're looking for", Deliver's vehicle form): two filled primaries competed there, and the pill covered "I have a truck".
   // Audit 11-10 F360: no "+ Sell" pill on Buying either. It sat on the order cards (a price, a pickup chip, a trade
   // card's title, "See the item") and a member looking at what they bought is not here to sell.
-  const ownMainButton = view === "wanted" || view === "deliver" || view === "buying";
-  const fab = desktop || ownMainButton ? undefined : <SectionCreateFab section="declutter" text={t("decl.hv.sell")} />;
+  // Lead 11-25 (phone audit #1): none on Selling either, where it sat on the listing cards' buttons ("Change", "Send them
+  // an offer"); and on Browse it is the round "+" from the start, so it never covers a card's price line.
+  const ownMainButton = view === "wanted" || view === "deliver" || view === "buying" || view === "selling";
+  const fab = desktop || ownMainButton ? undefined : <SectionCreateFab section="declutter" text={t("decl.hv.sell")} round={view === "browse"} />;
   // Browse draws its own section screen, so its header can carry its search, filters, chips, map toggle and count.
   if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} full={false} pausedOnly />} fab={fab} /></Suspense>;
   // Owner 11-13: Selling's bar is a field over the seller's own listings (desktop: the same field before the gear).

@@ -9,7 +9,7 @@
  * @mutate src/components/declutter/DeclutterBuyingViews.tsx | <DeclutterNotice title={t("decl.mv.noneBought")}> | <DeclutterNotice title="Nothing bought yet.">
  * @mutate src/components/declutter/DeclutterMineViews.tsx |         {t("decl.mv.all")}\n      </ToggleChip> |         All\n      </ToggleChip>
  * @mutate src/components/declutter/declutterSellingParts.tsx | font-semibold">{t("decl.hv.settings")}</span> | font-semibold">Declutter settings</span>
- * @mutate src/components/declutter/DeclutterHomeView.tsx | text={t("decl.hv.sell")} /> | text="Sell" />
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | text={t("decl.hv.sell")} round={view === "browse"} /> | text="Sell" round={view === "browse"} />
  * @mutate src/components/declutter/declutterSellingParts.tsx | { get label() { return t("decl.hv.settings"); }, | { label: "Declutter settings",
  */
 import { readFileSync } from "node:fs";

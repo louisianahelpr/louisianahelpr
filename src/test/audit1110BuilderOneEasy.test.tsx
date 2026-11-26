@@ -9,7 +9,7 @@
  *  F388 — while the "Report a problem" form is open it mounts HideSectionCreateFab, so the pill never sits on the
  *         photos row next to Send.
  *
- * @mutate src/components/declutter/DeclutterHomeView.tsx | view === "wanted" \|\| view === "deliver" \|\| view === "buying"; | view === "wanted" \|\| view === "deliver";
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | view === "wanted" \|\| view === "deliver" \|\| view === "buying" \|\| view === "selling"; | view === "wanted" \|\| view === "deliver" \|\| view === "selling";
  * @mutate src/components/declutter/DeclutterProblemForm.tsx |       <HideSectionCreateFab />\n |
  */
 import { readFileSync } from "node:fs";

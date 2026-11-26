@@ -24,6 +24,7 @@ import { RESEARCHED_STORES } from "@/content/giftGuidePicks";
 import { guideBySlug, loadAllGuidePicks, type CatalogPick } from "@/content/giftGuideCatalog";
 import { PickRow } from "@/pages/info/giftGuides/GiftGuideView";
 import { kidsThemeMovesLive1124 } from "../../scripts/giftGuideThemes1124.mjs";
+import { PRICES_AT_1126, price1126 } from "../../scripts/giftGuidePrices1126.mjs";
 /** Kids picks that moved to their themed guide 11-24 (scripts/giftGuideKidsThemeMoves1124.mjs; that move's own guard is
  *  src/test/giftGuideKidsThemeRow1124.test.tsx): off Kids by design, so not expected here. */
 const MOVED_TO_THEME = new Set(kidsThemeMovesLive1124().map((m: { href: string }) => m.href));
@@ -191,8 +192,10 @@ describe("the owner's launch-day picks (11-22)", () => {
       expect(rows.length, `${slug}: ${asin}`).toBe(1);
       expect(rows[0].store, asin).toBe("store-amazon");
       expect(rows[0].image, asin).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\//);
-      expect(rows[0].price, asin).toBe(price);
-      expect(rows[0].priceAt, asin).toBe(recheckedPriceAt(rows[0].href, price, ADDS_PRICE_AT));
+      // A price that changed on 11-26 (guides audit 1126, scripts/giftGuidePrices1126.mjs) shows that read and day.
+      const now = price1126(rows[0].href);
+      expect(rows[0].price, asin).toBe(now ?? price);
+      expect(rows[0].priceAt, asin).toBe(now !== undefined ? PRICES_AT_1126 : recheckedPriceAt(rows[0].href, price, ADDS_PRICE_AT));
     }
   });
 

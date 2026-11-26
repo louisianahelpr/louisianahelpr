@@ -22,6 +22,7 @@ import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { filterKids, kidsSelectionCount, type KidTags, type KidsSelection } from "@/content/giftGuideKidsFilter";
 import { sortByPrice } from "@/content/giftGuidePriceSort";
 import { EARN_RANKS, earnFirstInGroups, type GuideOrder } from "@/content/giftGuideEarnOrder";
+import { ownerAddsFirst } from "@/content/giftGuideOwnerOrder";
 import { PickPrice, PricesAsOf, showsPrice } from "@/components/giftGuides/PickPrice";
 import { PRICE_SECTIONS, STOCKING_SECTION_ID, priceSectionId } from "@/lib/pickPriceShown.mjs";
 import { PICK_ANCHOR_PREFIX, pickAnchor } from "@/content/giftGuidePickAnchor";
@@ -364,7 +365,9 @@ function GiftGuideList({ guide, order = "top", failed, onRetry, filter }: { guid
   // The stocking-stuffer section stays cheapest first on "Recommended" too (owner 11-23): only the price sections after
   // it lead with their most clicked picks.
   const stockingRows = sectioned.filter((p) => p.sectionId === STOCKING_SECTION_ID);
-  const picks = sortable && order === "top" ? [...stockingRows, ...earnFirstInGroups(sectioned.filter((p) => p.sectionId !== STOCKING_SECTION_ID), EARN_RANKS, (p) => p.sectionId ?? "")] : sectioned;
+  const ordered = sortable && order === "top" ? [...stockingRows, ...earnFirstInGroups(sectioned.filter((p) => p.sectionId !== STOCKING_SECTION_ID), EARN_RANKS, (p) => p.sectionId ?? "")] : sectioned;
+  // Guides audit 1126: her own picks lead each price section on a themed guide (ownerAddsFirst).
+  const picks = sortable ? ownerAddsFirst(ordered) : ordered;
   const sectionCount = new Map<string, number>();
   if (bandHeads) for (const p of picks) sectionCount.set(p.sectionId ?? "", (sectionCount.get(p.sectionId ?? "") ?? 0) + 1);
   const isOpen = (id?: string) => !bandHeads || !id || (flipped.has(id) ? !START_OPEN : START_OPEN);

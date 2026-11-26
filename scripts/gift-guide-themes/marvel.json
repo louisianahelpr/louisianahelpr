@@ -160,7 +160,7 @@
   },
   {
    "id": "MVS005",
-   "name": "Marvel Venom l Perch'd 4-inch Shoulder Plush Stuffed Animal",
+   "name": "Marvel Venom Perch'd 4-inch Shoulder Plush",
    "brand": "Marvel",
    "line": "A little Marvel gift for the stocking.",
    "href": "https://walmrt.us/4AbVcg2",
@@ -226,8 +226,8 @@
    "href": "https://walmrt.us/4jcUXd8",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spider-man-toddler-boys-graphic-crewneck-sweatshirt-and-jogg-walmart-135756.webp",
    "store": "store-walmart",
-   "price": 7.99,
-   "priceAt": "2026-11-24",
+   "price": 6.0,
+   "priceAt": "2026-11-26",
    "section": "Stocking stuffers under $10",
    "sectionId": "marvel-stocking-stuffers-under-10",
    "commission": 15,
@@ -625,7 +625,7 @@
   },
   {
    "id": "MVS121",
-   "name": "Spider-Man Scratch Art Activity Book for",
+   "name": "Spider-Man Scratch Art Activity Book",
    "brand": "Marvel",
    "line": "A little Marvel gift for the stocking.",
    "href": "https://walmrt.us/4kAE4vj",
@@ -1165,7 +1165,7 @@
   },
   {
    "id": "MVS055",
-   "name": "Marvel Spidey and his Amazing Friends Rescue-Webs Web-Quarters Playset for",
+   "name": "Marvel Spidey and his Amazing Friends Rescue-Webs Web-Quarters Playset",
    "brand": "Marvel",
    "line": "Toys and action figures for a Marvel fan.",
    "href": "https://walmrt.us/4CFpxFt",
@@ -1420,22 +1420,6 @@
    "commission": 10.5
   },
   {
-   "id": "MVL06",
-   "name": "LEGO Marvel Iron Spider-Man Bust Collectible",
-   "brand": "Marvel",
-   "line": "Toys and action figures for a Marvel fan.",
-   "href": "https://walmrt.us/4zCxfx7",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-marvel-iron-spider-man-bust-collectible-walmart-b44cbc.webp",
-   "store": "store-walmart",
-   "price": 47.99,
-   "priceAt": "2026-11-24",
-   "section": "Toys and action figures",
-   "sectionId": "marvel-toys-and-action-figures",
-   "was": 59.99,
-   "commission": 6,
-   "age": "18+"
-  },
-  {
    "id": "MVL07",
    "name": "LEGO Marvel Ravager Jumpsuit Groot",
    "brand": "Marvel",
@@ -1668,12 +1652,13 @@
    "href": "https://go.shopmy.us/p-110880044",
    "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-duplo-marvel-team-spidey-webquarters-10464-target-6654e4.webp",
    "store": "store-target",
-   "price": 79.99,
-   "priceAt": "2026-11-24",
+   "price": 74.99,
+   "priceAt": "2026-11-26",
    "section": "Toys and action figures",
    "sectionId": "marvel-toys-and-action-figures",
    "commission": 4,
-   "age": "toddler"
+   "age": "toddler",
+   "was": 79.99
   },
   {
    "id": "MVT18",
@@ -1747,22 +1732,6 @@
    "priceAt": "2026-11-24",
    "section": "Toys and action figures",
    "sectionId": "marvel-toys-and-action-figures",
-   "commission": 4,
-   "age": "kids"
-  },
-  {
-   "id": "MVT26",
-   "name": "Spidey and His Amazing Friends SuperRollers Web-City Playset",
-   "brand": "Marvel",
-   "line": "Toys and action figures for a Marvel fan.",
-   "href": "https://go.shopmy.us/p-110880971",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spidey-and-his-amazing-friends-superrollers-web-city-playset-target-cb93c4.webp",
-   "store": "store-target",
-   "price": 39.99,
-   "priceAt": "2026-11-24",
-   "section": "Toys and action figures",
-   "sectionId": "marvel-toys-and-action-figures",
-   "was": 44.99,
    "commission": 4,
    "age": "kids"
   },
@@ -3207,7 +3176,7 @@
   },
   {
    "id": "MVS058",
-   "name": "Marvel Spider-Man iTime Unisex",
+   "name": "Marvel Spider-Man iTime Kids Smart Watch",
    "brand": "Marvel",
    "line": "Room for a Marvel fan.",
    "href": "https://walmrt.us/4jesKCX",
@@ -3738,7 +3707,7 @@
   },
   {
    "id": "MVS104",
-   "name": "Spider-Man 4-in-1 Imagine Ink Activity Kit for",
+   "name": "Spider-Man 4-in-1 Imagine Ink Activity Kit",
    "brand": "Marvel",
    "line": "Books and games for a Marvel fan.",
    "href": "https://walmrt.us/3XpsQjF",
@@ -4191,7 +4160,7 @@
   },
   {
    "id": "MVS001",
-   "name": "tonies Toniebox 2 Screen-Free Audio Player Bundle for Kids with Spidey and His Amazing",
+   "name": "tonies Toniebox 2 Screen-Free Audio Player Bundle with Spidey and His Amazing Friends",
    "brand": "Marvel",
    "line": "Big gifts for a Marvel fan.",
    "href": "https://walmrt.us/48HyqQU",
@@ -4359,6 +4328,20 @@
    "name": "Spidey 4-in-1 Kids' Camera (photo, video, MP3, games)",
    "why": [
     "Macy's photo is a Peanuts microphone, not the Spidey camera (listing mixes products)"
+   ]
+  },
+  {
+   "id": "MVT26",
+   "name": "Spidey and His Amazing Friends SuperRollers Web-City Playset",
+   "why": [
+    "guides audit 1126: same Web-City playset as Walmart MVS030, which is cheaper ($39.97 vs $39.99) and earns more (6% vs 4%)"
+   ]
+  },
+  {
+   "id": "MVL06",
+   "name": "LEGO Marvel Iron Spider-Man Bust Collectible",
+   "why": [
+    "guides audit 1126: an adults 18+ LEGO collector bust on a kids guide, not an owner add"
    ]
   }
  ]

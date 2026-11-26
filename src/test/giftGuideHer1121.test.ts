@@ -7,7 +7,7 @@
  *
  * @mutate scripts/giftGuideCutouts1120.mjs |   B0D9PX9RBD: "https | B0D9PX9RBX: "https
  * @mutate scripts/giftGuideHer1121.mjs | image: cutoutPhoto(AMAZON_BRAND_PHOTOS_1122.B0F5N7S36V), | image: amzImg("91HJeXmiufL"),
- * @mutate scripts/giftGuideHer1121.mjs |   return rankByPrice(rows).map(({ row: r, priceRank }) => { |   return rows.map((r) => ({ row: r, priceRank: null })).map(({ row: r, priceRank }) => {
+ * @mutate scripts/giftGuideHer1121.mjs |   return rankByPrice(rows.map(withPrice1126)).map(({ row: r, priceRank }) => { |   return rows.map(withPrice1126).map((r) => ({ row: r, priceRank: null })).map(({ row: r, priceRank }) => {
  * @mutate scripts/giftGuideHer1121.mjs |     const shown = isAmazon(r) ? r.sortPrice : price; |     const shown = isAmazon(r) ? r.sortPrice + 1 : price;
  * @mutate scripts/giftGuideHer1121.mjs |     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: HER_GUIDE, priceRank }; |     const p = { ...rest, image: r.image, ownerPick: true, from: HER_GUIDE, priceRank };
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       {!isOwnerList(guide.slug) && <PeopleChips guide={guide} />} |       <PeopleChips guide={guide} />
@@ -17,6 +17,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { HER_ROWS, her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
+import { PRICES_AT_1126, price1126, withPrice1126 } from "../../scripts/giftGuidePrices1126.mjs";
 import { AMAZON_BRAND_PHOTOS_1122, CUTOUT_BASE, cutoutPhoto } from "../../scripts/giftGuideCutouts1120.mjs";
 import { PEOPLE_GUIDES, isOwnerList } from "@/content/giftGuidePeople.mjs";
 import { blankComments } from "./helpers/blankNonCode";
@@ -204,7 +205,8 @@ describe("For Her = the owner's saves (11-21)", () => {
       // No budget band either: the budget chips stay off this list.
       expect(p.band, p.name).toBeUndefined();
     }
-    const seen = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
+    // A price that changed on 11-26 (guides audit 1126) is the one the shopper sees: scripts/giftGuidePrices1126.mjs.
+    const seen = new Map(HER_ROWS.map(withPrice1126).map((r) => [r.href, r.sortPrice]));
     const prices = page.map((p) => seen.get(p.href) as number);
     expect(prices).toEqual([...prices].sort((a, b) => a - b));
     // The cheapest is the Kohl's steal S43 (SHINE holiday crew socks, $1.99, 11-24), then two of her Ulta keeps of 11-23 at
@@ -230,10 +232,16 @@ describe("For Her = the owner's saves (11-21)", () => {
     const shopmy = page.filter((p) => !isAmazon(p));
     expect(amazon.length).toBe(141); // 93 before her 48 Amazon beauty picks of 11-24 (AMAZON_BEAUTY_1124_ASINS); 80 + her 20 Amazon second keeps of 11-23 (Capri Blue included), minus the 7 moved off Amazon 11-24 (SWITCHED_1124, the YETI Daytrip the 7th; 2026-11-24)
     expect(shopmy.length).toBe(113); // 79 + her 6 Ulta keeps of 11-23 + the 6 moved off Amazon 11-24 + her 4 Macy's adds and 9 steals of 11-24 + the YETI Daytrip to SCHEELS (2026-11-24) + her Festive Factory puzzle (Later, 11-25) + her 7 Walmart picks (11-26)
-    const captured = new Map(HER_ROWS.map((r) => [r.href, r.sortPrice]));
+    const captured = new Map(HER_ROWS.map(withPrice1126).map((r) => [r.href, r.sortPrice]));
     for (const p of amazon) {
       expect(p.price, p.name).toBe(captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
+      // Re-read 11-26 with a new price (guides audit 1126): dated that day.
+      if (price1126(p.href) !== undefined) {
+        expect(p.priceAt, p.name).toBe(PRICES_AT_1126);
+        expectAmazonPickPhoto(p);
+        continue;
+      }
       // Her saved-list picks were captured 11-21; the Amazon picks from her launch-day screenshots, 11-22.
       // Her second keeps, 11-23 (re-read on amazon.com that day).
       // ... and the Braun IPL, switched 11-23 to the device alone (owner pop-up "Switch only the Braun"; it was B09WG9R7MY).

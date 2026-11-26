@@ -1286,21 +1286,6 @@
    "age": "kids"
   },
   {
-   "id": "HWJ13",
-   "name": "Hot Wheels Boys' Light-Up Sneakers",
-   "brand": "Hot Wheels",
-   "line": "Clothes for a Hot Wheels fan.",
-   "href": "https://mavely.app.link/ZwECFXuHl8b",
-   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hot-wheels-boys-light-up-sneakers-jcpenney-ac6710.webp",
-   "store": "store-jcpenney",
-   "price": 34.99,
-   "priceAt": "2026-11-24",
-   "section": "Clothes",
-   "sectionId": "hot-wheels-clothes",
-   "commission": 10.5,
-   "age": "kids"
-  },
-  {
    "id": "HWJ16",
    "name": "Hot Wheels Toddler Boys' Race Ace Sweatshirt (Blue)",
    "brand": "Hot Wheels",
@@ -2860,6 +2845,13 @@
    "name": "Hot Wheels Mario Wheelie Motocross RC",
    "why": [
     "same item as HWM10 (Macy's $27.49 < Kohl's $37.79); one place per item (sweep E 11-25)"
+   ]
+  },
+  {
+   "id": "HWJ13",
+   "name": "Hot Wheels Boys' Light-Up Sneakers",
+   "why": [
+    "guides audit 1126: same light-up sneaker as Macy's HWM30, which is cheaper ($29.74 vs $34.99) and earns more"
    ]
   }
  ]

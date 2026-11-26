@@ -42,6 +42,7 @@ import her from "@/content/giftGuidePicks/her.json";
 import him from "@/content/giftGuidePicks/him.json";
 import kids from "@/content/giftGuidePicks/kids.json";
 import { kidsThemeMovesLive1124 } from "../../scripts/giftGuideThemes1124.mjs";
+import { PRICES_AT_1126, price1126 } from "../../scripts/giftGuidePrices1126.mjs";
 /** Kids picks that moved to their themed guide 11-24 (scripts/giftGuideKidsThemeMoves1124.mjs; that move's own guard is
  *  src/test/giftGuideKidsThemeRow1124.test.tsx): off Kids by design, so not expected here. */
 const MOVED_TO_THEME = new Set(kidsThemeMovesLive1124().map((m: { href: string }) => m.href));
@@ -127,7 +128,8 @@ describe("the owner's 11-23 Amazon keeps are on their guides", () => {
         expect(rows[0].href).toBe(`https://www.amazon.com/dp/${a}?tag=louisianahelpr-20`);
         expect(rows[0].price).toBeGreaterThan(0);
         // Kids Black Friday sweep 11-24: a keep whose Amazon price changed shows the re-read price, dated that day.
-        expect(rows[0].priceAt).toBe(amazonPrice1124(rows[0].href) !== undefined ? AMAZON_PRICES_AT_1124 : "2026-11-23");
+        // Guides audit 1126: a keep whose price changed 11-26 shows that day (scripts/giftGuidePrices1126.mjs).
+        expect(rows[0].priceAt).toBe(price1126(rows[0].href) !== undefined ? PRICES_AT_1126 : amazonPrice1124(rows[0].href) !== undefined ? AMAZON_PRICES_AT_1124 : "2026-11-23");
         expect(rows[0].image).toMatch(/^https:\/\/m\.media-amazon\.com\/images\/I\/[^/]+\._SL500_\.jpg$/);
       }
     });
@@ -180,8 +182,9 @@ describe("the owner's second 11-23 keeps are on Her and Him", () => {
         expect(rows.length, asin).toBe(1);
         expect(rows[0].href).toBe(`https://www.amazon.com/dp/${asin}?tag=louisianahelpr-20`);
         expect(rows[0].name).toBe(title);
-        expect(rows[0].price, title).toBe(price);
-        expect(rows[0].priceAt).toBe("2026-11-23");
+        // Guides audit 1126: a price that changed 11-26 shows that read and day (scripts/giftGuidePrices1126.mjs).
+        expect(rows[0].price, title).toBe(price1126(rows[0].href) ?? price);
+        expect(rows[0].priceAt).toBe(price1126(rows[0].href) !== undefined ? PRICES_AT_1126 : "2026-11-23");
         expect(rows[0].image).toBe(`https://m.media-amazon.com/images/I/${img}._SL500_.jpg`);
       }
     });
@@ -222,8 +225,9 @@ describe("the owner's held-link keeps are on Her, Him and Kids", () => {
       const rows = PAGES[guide].filter((p) => p.href === `https://go.shopmy.us/p-${pin}`);
       expect(rows.length, `${guide} ${name}`).toBe(1);
       expect(rows[0].name).toBe(name);
-      expect(rows[0].price, name).toBe(price);
-      expect(rows[0].priceAt).toBe("2026-11-23");
+      // Guides audit 1126: a price that changed 11-26 shows that read and day (scripts/giftGuidePrices1126.mjs).
+      expect(rows[0].price, name).toBe(price1126(rows[0].href) ?? price);
+      expect(rows[0].priceAt).toBe(price1126(rows[0].href) !== undefined ? PRICES_AT_1126 : "2026-11-23");
       expect(rows[0].image).toBe(`https://www.louisianahelpr.com/gift-guides/cutouts/${file}`);
       expect(existsSync(`public/gift-guides/cutouts/${file}`), file).toBe(true);
     }

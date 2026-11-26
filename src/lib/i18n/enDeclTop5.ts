@@ -21,6 +21,17 @@ export const enDeclTop5 = {
   "dt5.so.toastN": "Offer sent to {n} people.",
   "dt5.so.cardTag": "The seller's offer",
   "dt5.so.cardWhy": "You saved this, so the seller sent you a lower price.",
+  // Auto-offer new savers (owner 11-25, Depop-style, 20261126002822).
+  "dt5.ao.off": "Auto-offer new savers: off.",
+  "dt5.ao.on": "Auto-offer new savers: {pct}% off.",
+  "dt5.ao.turnOn": "Turn on",
+  "dt5.ao.change": "Change",
+  "dt5.ao.turnOff": "Turn off auto-offers",
+  "dt5.ao.title": "Auto-offer new savers of “{title}”",
+  "dt5.ao.body": "Each person who saves this gets a private offer right away, with 48 hours to accept. Each person gets it once.",
+  "dt5.ao.confirm": "Turn on",
+  "dt5.ao.toastOn": "Auto-offers on: new savers get {pct}% off.",
+  "dt5.ao.toastOff": "Auto-offers off.",
   // #2 Selling home (20261120012050).
   "dt5.home.title": "Your week",
   "dt5.home.todo": "To do",

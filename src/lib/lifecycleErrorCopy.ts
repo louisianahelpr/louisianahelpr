@@ -1971,6 +1971,18 @@ export const RPC_ERROR_COPY = {
     saver_offer_rate_limited: DC.saver_offer_rate_limited,
     under_18: DC.under_18,
   },
+  // Owner 2026-11-25 (Depop-style, 20261126002822): the seller turns "Auto-offer new savers" on or off.
+  declutter_set_auto_liker_offer: {
+    account_restricted: DC.account_restricted,
+    below_your_lowest: DC.below_your_lowest,
+    feature_disabled: DC.feature_disabled,
+    invalid_input: "Pick 10, 15 or 20% off.",
+    invalid_offer_amount: "This price is too low to take anything off.",
+    item_not_available: "Only a listing that is for sale can send offers.",
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    offer_too_low: "Offers must be at least half the price. Pick a smaller discount.",
+  },
   // Declutter top 5 #4 (20261120014036): the shop-wide sale's two buttons.
   declutter_start_shop_sale: {
     account_restricted: DC.account_restricted,

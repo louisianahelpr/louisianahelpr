@@ -65,10 +65,31 @@ async function fetchRecentSaverOffers(sellerId: string): Promise<Map<string, { a
   return out;
 }
 
-/** Selling's one read for the offer-to-savers line: save counts for the seller's live priced listings and their last sends. */
-export async function fetchSaverOfferState(sellerId: string, itemIds: string[]): Promise<{ saves: Map<string, number> | null; sends: Map<string, { at: string; sent: number }> }> {
-  const [saves, sends] = await Promise.all([fetchSaveCounts(itemIds), fetchRecentSaverOffers(sellerId)]);
-  return { saves, sends };
+/**
+ * Owner 2026-11-25 (Depop-style, 20261126002822): "Auto-offer new savers". While on for a listing, each member who saves
+ * it gets one private offer at this percent off at once (the server's declutter_watchlist trigger). NULL turns it off.
+ */
+export async function setAutoLikerOffer(itemId: string, percent: number | null): Promise<{ percent_off: number; amount_cents: number } | null> {
+  // nullable-arg: p_percent_off NULL is the server's "turn it off".
+  const res = await supabase.rpc("declutter_set_auto_liker_offer", { p_item_id: itemId, p_percent_off: percent as unknown as number });
+  if (res.error) {
+    throw Object.assign(new Error(res.error.message), { userMessage: rpcErrorMessage("declutter_set_auto_liker_offer", res.error) ?? declutterErrorMessage(res.error) });
+  }
+  return res.data as unknown as { percent_off: number; amount_cents: number } | null;
+}
+
+/** The seller's "Auto-offer new savers" rules: item id -> percent off. */
+async function fetchAutoLikerOffers(sellerId: string): Promise<Map<string, number>> {
+  const res = await supabase.from("declutter_auto_liker_offers").select("item_id, percent_off").eq("seller_id", sellerId);
+  // Before the migration reaches prod the table is missing: no rules, so every row shows the switch off.
+  if (res.error && /declutter_auto_liker_offers/.test(res.error.message ?? "")) return new Map();
+  return new Map((unwrap(res) ?? []).map((r) => [r.item_id, r.percent_off]));
+}
+
+/** Selling's one read for the offer-to-savers line: save counts, last sends and the auto-offer rules. */
+export async function fetchSaverOfferState(sellerId: string, itemIds: string[]): Promise<{ saves: Map<string, number> | null; sends: Map<string, { at: string; sent: number }>; auto: Map<string, number> }> {
+  const [saves, sends, auto] = await Promise.all([fetchSaveCounts(itemIds), fetchRecentSaverOffers(sellerId), fetchAutoLikerOffers(sellerId)]);
+  return { saves, sends, auto };
 }
 
 /**

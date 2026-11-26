@@ -1289,6 +1289,38 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_auto_liker_offers: {
+        Row: {
+          created_at: string
+          item_id: string
+          percent_off: number
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          item_id: string
+          percent_off: number
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          item_id?: string
+          percent_off?: number
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_auto_liker_offers_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_bookings: {
         Row: {
           buyer_on_way_at: string | null
@@ -2847,6 +2879,7 @@ export type Database = {
           item_id: string
           respond_by: string
           saver_offer_id: string | null
+          auto_liker: boolean
           seller_id: string
           status: string
           updated_at: string
@@ -2865,6 +2898,7 @@ export type Database = {
           item_id: string
           respond_by: string
           saver_offer_id?: string | null
+          auto_liker?: boolean
           seller_id: string
           status?: string
           updated_at?: string
@@ -2883,6 +2917,7 @@ export type Database = {
           item_id?: string
           respond_by?: string
           saver_offer_id?: string | null
+          auto_liker?: boolean
           seller_id?: string
           status?: string
           updated_at?: string
@@ -17402,6 +17437,10 @@ export type Database = {
       declutter_selling_home: { Args: never; Returns: Json }
       declutter_send_saver_offer: {
         Args: { p_amount_cents: number; p_item_id: string; p_percent_off: number }
+        Returns: Json
+      }
+      declutter_set_auto_liker_offer: {
+        Args: { p_item_id: string; p_percent_off: number }
         Returns: Json
       }
       declutter_shop_sale_apply: { Args: { p_sale_id: string }; Returns: number }

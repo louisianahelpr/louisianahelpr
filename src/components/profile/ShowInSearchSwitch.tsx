@@ -40,7 +40,8 @@ export function ShowInSearchSwitch({ userId, initial }: { userId: string; initia
     }
   };
   return (
-    <div className="flex items-start gap-3" data-testid="show-in-search">
+    // Phone polish C #30 (11-25): centred like every other Settings switch row (it sat top-aligned beside 4 lines).
+    <div className="flex items-center gap-3" data-testid="show-in-search">
       <label htmlFor={id} className="flex-1 min-w-0">
         <span className="block text-ds-15 font-semibold leading-tight text-foreground">{t("acct.searchTitle")}</span>
         <span className="block text-ds-13 text-muted-foreground mt-0.5">{t("acct.searchBody")}</span>

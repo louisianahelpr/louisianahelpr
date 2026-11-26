@@ -81,7 +81,7 @@ function HelprDealPrice({ job }: { job: TakeHomeJob }) {
     <div className="shrink-0 text-right" data-deal-take-home="">
       {/* Owner 11-01 (A3-87): "Remove you take home": the figure alone; a screen reader still hears "Your pay"
           (the giveaway, owner 10-30, has no words at all). */}
-      <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>{!isGiveawayFixedPayJob(job) && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}</p>
+      <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>{!isGiveawayFixedPayJob(job) && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}</p>
       {!isGiveawayFixedPayJob(job) && <AfterFeesNote />}
     </div>
   );
@@ -299,7 +299,7 @@ export function DealCard({ convo, userId, hasMessages = false }: { convo: Conver
         {typeof job.budget === "number" && job.budget > 0 && viewerIsPoster && (
           // Owner 11-01 (A3-87): no "held safely" line under a paid job's price, as on the job page.
           <div className="shrink-0 text-right" data-deal-paid="">
-            <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>${formatPrice(job.budget)}</p>
+            <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${formatPrice(job.budget)}</p>
           </div>
         )}
       </div>

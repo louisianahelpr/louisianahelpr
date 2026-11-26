@@ -91,7 +91,8 @@ const DialogOverlay = React.forwardRef<
       // and the blur still does the focal work. Contrast against the white
       // .glass-modal surface is unaffected — the card is opaque enough that
       // its edge never depended on the scrim.
-      "fixed inset-0 z-50 backdrop-blur-[24px] backdrop-saturate-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      // Phone polish C #37 (11-25): `phone-scrim` = on a phone, a plain dim with no blur (index.css).
+      "phone-scrim fixed inset-0 z-50 backdrop-blur-[24px] backdrop-saturate-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     style={{

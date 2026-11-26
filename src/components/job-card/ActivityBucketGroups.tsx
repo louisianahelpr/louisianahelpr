@@ -71,7 +71,7 @@ export function ActivityBucketGroups<T>({
         return (
           <section key={b} aria-label={labels[b]} data-group={b} className="flex flex-col gap-2">
             <div className="flex min-h-7 items-center justify-between px-1">
-              <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">
+              <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 {labels[b]}
                 <span className="ml-1.5 text-foreground/70">{list.length}</span>
               </h2>

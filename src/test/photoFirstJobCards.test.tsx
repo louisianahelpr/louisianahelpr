@@ -9,7 +9,7 @@
  * @mutate src/components/dashboard/JobCard.tsx |   const showMedia = !bare && !(hero && job.photos?.[0]); |   const showMedia = false;
  * @mutate src/components/dashboard/JobCardMedia.tsx |       {photo ? ( |       {false ? (
  * @mutate src/components/dashboard/JobCardMedia.tsx |   const rated = (reviewCount ?? 0) > 0 && (avgRating ?? 0) > 0; |   const rated = false;
- * @mutate src/components/dashboard/JobCardMedia.tsx |   if (!first \|\| name === "a neighbor") return <div data-testid="job-card-poster" aria-hidden className={JOB_CARD_FACE_ROW} />; |   if (!first \|\| name === "a neighbor") return null;
+ * @mutate src/components/dashboard/JobCardMedia.tsx | : <div data-testid="job-card-poster" aria-hidden className={JOB_CARD_FACE_ROW} />; | : null;
  * @mutate src/index.css |   .job-card-media-col .job-meta-row { flex-wrap: wrap; } |   .job-card-media-col .job-meta-row { flex-wrap: nowrap; }
  */
 import fs from "node:fs";

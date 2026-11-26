@@ -2,8 +2,7 @@
  * Home = board 7 (owner-approved 2026-10-20), restyle only:
  *   - Next up names the to-do's section (icon + name) top right, and its row is
  *     one to-do keeps its ONE action under it; several are a short list (owner polish 11-20, no carousel dots);
- *   - Coming up sits ABOVE the section tiles, each row a section icon in a
- *     tinted circle + "<your side> · <when>" ("You hired" / "You're working");
+ *   - Coming up sits ABOVE the section tiles, each row a section icon (no circle since phone polish C, 11-25) + "<your side> · <when>" ("You hired" / "You're working");
  *   - no price on a Coming up job row (rust is money only; the board shows none).
  *
  * @mutate src/pages/home/homeDashboard/comingUp.ts |   posted: "You hired", |   posted: "Posted",
@@ -46,7 +45,9 @@ describe("Home matches board 7", () => {
     expect(block).toContain("t(`home.role.${c.role}`)");
     // The phone row's caption: "<your side> · <when>".
     expect(block).toMatch(/meta=\{<span data-coming-up-role=\{c\.role\}>\{\[t\(`home\.role\.\$\{c\.role\}`\), whenLine\(c\)\]/);
-    expect(block).toMatch(/leading=\{\s*<span aria-hidden data-coming-up-section=\{c\.section\} className="w-10 h-10 shrink-0 rounded-full/);
+    expect(block).toMatch(/leading=\{\s*<span aria-hidden data-coming-up-section=\{c\.section\} className="w-6 h-6 shrink-0 flex items-center justify-center">/);
+    // Phone polish C #17 (11-25, owner 11-17 "icon-in-circle rows" are an AI tell): the icon stands alone, no circle.
+    expect(block).not.toMatch(/data-coming-up-section=\{c\.section\} className="[^"]*rounded-full/);
     // The row's icon is ITS section's (spec v2 §5.4: Declutter and Shops rows sit beside jobs).
     expect(block).toMatch(/const d = sectionDef\(c\.section\);\s*const Icon = d\.icon;/);
     expect(block).not.toMatch(/budget|right=\{/);

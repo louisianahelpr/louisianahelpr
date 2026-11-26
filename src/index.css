@@ -887,7 +887,8 @@
      tokens to follow the theme. Light defaults reproduce the original
      warm-white liquid-glass look; the dark overrides flip them to a deep
      warm surface so the dock doesn't stay bright-white over a dark page. */
-  --nav-pill-bg:       hsla(0, 0%, 100%, 0.40);
+  /* Phone polish C #32 (11-25): 96% white so the floating bar never picks up the page's muddy colours. */
+  --nav-pill-bg:       hsla(0, 0%, 100%, 0.96);
   /* The long-press quick-menu panel. OPAQUE, and it has to be: the panel is
      anchored `absolute bottom-full` INSIDE the dock pill (NavQuickMenu's own
      comment explains the anchoring is why it can't be portalled), and the pill
@@ -5237,6 +5238,14 @@ html.page-scrolled .sticky-title-row-name { opacity: 1; }
 .sheet-floor-scrim {
   -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
   background-color: hsl(0 0% 0% / 0.28) !important;
+}
+/* Phone polish C #37 (11-25): every dialog/sheet scrim on a phone is the floor sheet's plain dim, no blur
+   (a job tapped signed out opened over a heavy 24px blur). Desktop keeps the light tint + blur. */
+@media (max-width: 767px) {
+  .phone-scrim {
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+    background-color: hsl(0 0% 0% / 0.28) !important;
+  }
 }
 
 /* T7 — pill filter chips: one sideways-scrolling row, an edge fade shows there is more. */

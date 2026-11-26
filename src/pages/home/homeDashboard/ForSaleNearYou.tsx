@@ -22,6 +22,8 @@ import { formatPrice, nearestFirst } from "@/lib/declutter/distance";
 import { getCachedUserLocation } from "@/hooks/useUserLocation";
 import { getBlockedUserIds } from "@/lib/userBlocks";
 import { PRICE_PAID } from "@/components/ui/designScale";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
+import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import "@/lib/i18n/enHome";
 import "@/lib/i18n/enNewMember";
 import { useLanguage } from "@/lib/i18n/language";
@@ -44,6 +46,9 @@ function ForSaleTile({ item, photoPath }: { item: DeclutterItem; photoPath: stri
   return (
     <Link to={`/declutter/item/${item.id}`} data-for-sale-tile="" className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <span className="relative block aspect-[3/4] overflow-hidden rounded-xl bg-photo-empty">
+        {/* Phone polish C #13 (11-25): the same ground as every Declutter card, the category icon on its tint, so a
+            photo loading, failed or transparent never reads as a plain grey box. */}
+        <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" />
         {!failed && (
           <img loading="lazy" decoding="async" src={photoCardUrl(photoPath)} alt={item.title} onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
         )}

@@ -27,6 +27,8 @@ import { useLanguage } from "@/lib/i18n/language";
 const HOME_MORE_SHOWN = 3;
 
 const LEAD = "w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-muted overflow-hidden";
+/** Phone polish C #17 (11-25): a section icon stands alone, 20px, no grey circle (an avatar keeps LEAD's round well). */
+const ICON_LEAD = "w-6 h-6 shrink-0 flex items-center justify-center";
 
 export function RecentMessagesRows({ user }: { user: User | null | undefined }) {
   const navigate = useNavigate();
@@ -80,7 +82,7 @@ export function ActiveRows({ active }: { active: readonly HomeActiveItem[] }) {
           return (
             <GroupRow
               key={r.id}
-              leading={<span aria-hidden data-home-active-kind={r.kind} className={LEAD}><Icon className="w-5 h-5 text-primary" /></span>}
+              leading={<span aria-hidden data-home-active-kind={r.kind} className={ICON_LEAD}><Icon className="w-5 h-5 text-primary" /></span>}
               title={r.title}
               meta={meta}
               onClick={() => navigate(r.to)}

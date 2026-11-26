@@ -118,6 +118,11 @@ const findPill = () => (typeof document === "undefined" ? null : document.queryS
  * `round` (lead 11-25, phone audit #1): the pill is the round "+" from the start (Declutter Browse, whose two-column
  * photo grid it sat on at rest); its name stays on aria-label.
  */
+/** Phone polish C (11-25, lead): the always-round + on Declutter Browse sits 6px from the edge, not 16px. At rest on a
+ * 375 phone the 16px spot covered the end of the right card's "$40.60 incl. fee" line (measured: text x232-319, + x311-359);
+ * at 6px the + starts at x321. Guard: src/test/phonePolishC1125.test.tsx. */
+const FAB_ROUND_RIGHT = "right-1.5";
+
 export function SectionCreateFab({ section, text: given, add: own, round = false }: { section?: SectionKey; text?: string; add?: SectionAdd; round?: boolean }) {
   const { t: tr } = useLanguage();
   const text = own?.cta ?? own?.label ?? given ?? tr("nav.create");
@@ -147,7 +152,7 @@ export function SectionCreateFab({ section, text: given, add: own, round = false
       {...(add ? {} : { "aria-haspopup": "dialog" as const, "aria-expanded": sheetOpen })}
       onClick={isPost ? gate.gate("post", go) : go}
       {...(isPost ? gate.gatedProps("post") : {})}
-      className={`fixed bottom-safe-nav right-4 z-40 rounded-full font-semibold shadow-lg [&>svg]:h-5 [&>svg]:w-5 ${folded ? "w-12 px-0" : "gap-1.5 pl-4 pr-5"}`}
+      className={`fixed bottom-safe-nav ${round ? FAB_ROUND_RIGHT : "right-4"} z-40 rounded-full font-semibold shadow-lg [&>svg]:h-5 [&>svg]:w-5 ${folded ? "w-12 px-0" : "gap-1.5 pl-4 pr-5"}`}
       style={{ marginRight: "var(--safe-area-right, 0px)" }}
     >
       <Plus aria-hidden />

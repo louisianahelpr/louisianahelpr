@@ -35,7 +35,8 @@ export function useHelprTakeHome(job: TakeHomeJob): { net: number; helpers: numb
 }
 
 /**
- * "You take home $103" (rust). Never the job price beside it (owner 2026-10-25,
+ * "You take home $103". The large figure (`bare`, the job sheet) is dark ink since phone polish C #18 (11-25); the
+ * inline figure in a sentence stays rust (board 77, src/test/whatNextBoard77.test.tsx). Never the job price beside it (owner 2026-10-25,
  * job sheet screenshot: "this should never show job price. only what they take
  * home"): a Helpr sees one figure, theirs. Guard: src/test/takeHomeOnlyNoJobPrice.test.ts.
  */
@@ -58,7 +59,7 @@ export function JobPriceTakeHome({ job, className = "", after = "", fallback = n
   const fixedPay = isGiveawayFixedPayJob(job);
   if (bare) {
     return (
-      <span data-job-price-take-home="" className={`font-display text-ds-28 font-bold leading-none tabular-nums text-[hsl(var(--accent-ink))] ${className}`}>
+      <span data-job-price-take-home="" className={`font-display text-ds-24 font-bold leading-none tabular-nums text-[hsl(var(--ink-deep))] ${className}`}>
         {!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}
         {!fixedPay && <AfterFeesNote className="text-right" />}
       </span>

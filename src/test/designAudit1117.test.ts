@@ -16,7 +16,7 @@
  * @mutate src/components/declutter/SellOneScreen.tsx | "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling" narrow> | "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling">
  * @mutate src/components/declutter/SellMeetupSpots.tsx | <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setDraft({ name: "" | <Button type="button" variant="outline" className="rounded-full" onClick={() => setDraft({ name: ""
  * @mutate src/components/profile/ProfileEditForm.tsx | <p data-skill-group-head="" className="text-ds-13 font-medium text-muted-foreground"> | <p data-skill-group-head="" className="text-ds-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
- * @mutate src/pages/home/HomeDashboard.tsx | <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">{t("home.yourSections")}</h2> | <h2 className="text-ds-15 font-semibold text-foreground">{t("home.yourSections")}</h2>
+ * @mutate src/pages/home/HomeDashboard.tsx | <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("home.yourSections")}</h2> | <h2 className="text-ds-15 font-semibold text-foreground">{t("home.yourSections")}</h2>
  * @mutate src/components/messages/chatView/SystemEventRow.tsx | {at ? label.replace(/\.$/, "") : label} | {label}
  * @mutate src/components/declutter/DeclutterItemRows.tsx | noPhotoTags | aboveFold={false}
  * @mutate src/components/dashboard/jobDetailDialog/JobDetailBadgeRow.tsx | className={`w-3.5 h-3.5 shrink-0 ${railIsCrowded ? "max-[399px]:hidden" : ""}`} | className="w-3.5 h-3.5 shrink-0"
@@ -139,7 +139,7 @@ describe("design audit 11-17", () => {
   });
 
   it("#27: Home's Your sections heading is the same eyebrow as GroupSection's", () => {
-    const eyebrow = /<h2 className="(text-ds-13 font-bold uppercase tracking-\[0\.06em\] text-muted-foreground)">/.exec(src("src/components/sections/StatusBoxes.tsx"))?.[1];
+    const eyebrow = /<h2 className="(text-ds-12 font-semibold uppercase tracking-\[0\.08em\] text-muted-foreground)">/.exec(src("src/components/sections/StatusBoxes.tsx"))?.[1];
     expect(eyebrow).toBeTruthy();
     expect(src("src/pages/home/HomeDashboard.tsx")).toContain(`<h2 className="${eyebrow}">{t("home.yourSections")}</h2>`);
   });

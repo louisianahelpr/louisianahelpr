@@ -58,7 +58,10 @@ export function JobCardPosterFace({
   avatarUrl,
   avgRating,
   reviewCount,
+  flexibleTag = false,
 }: {
+  /** Phone polish C (11-25): a row moves "Flexible" off its one meta line ("1 PM · Flexib" cut at 375) to a small tag here. */
+  flexibleTag?: boolean;
   posterId: string | null | undefined;
   name: string | null | undefined;
   avatarUrl: string | null | undefined;
@@ -68,7 +71,10 @@ export function JobCardPosterFace({
   const first = (name ?? "").trim().split(/\s+/)[0] ?? "";
   // The row always holds its 20px, named or not, so every card (and the
   // pre-boot Browse shell, which never carries a name) is the same height.
-  if (!first || name === "a neighbor") return <div data-testid="job-card-poster" aria-hidden className={JOB_CARD_FACE_ROW} />;
+  const tag = flexibleTag ? (
+    <span data-flexible-tag="" className="shrink-0 rounded-full border border-border px-1.5 text-ds-10 font-semibold leading-4 text-muted-foreground">Flexible time</span>
+  ) : null;
+  if (!first || name === "a neighbor") return tag ? <div data-testid="job-card-poster" className={JOB_CARD_FACE_ROW}>{tag}</div> : <div data-testid="job-card-poster" aria-hidden className={JOB_CARD_FACE_ROW} />;
   const rated = (reviewCount ?? 0) > 0 && (avgRating ?? 0) > 0;
   return (
     <div data-testid="job-card-poster" className={JOB_CARD_FACE_ROW}>
@@ -80,6 +86,7 @@ export function JobCardPosterFace({
           <span className="font-sans">{(avgRating ?? 0).toFixed(1)}</span>
         </span>
       )}
+      {tag}
     </div>
   );
 }

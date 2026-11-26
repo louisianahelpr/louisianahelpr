@@ -30,8 +30,8 @@ export function NeedsYouList({ todos, total, rest, open, onToggle, sectionOf, on
           const { Icon, label } = sectionOf(td.section);
           return (
             <li key={td.id} data-next-up-row={i} className="flex items-center gap-3 py-2.5 first:pt-1 last:pb-0">
-              <span aria-hidden title={label} className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center bg-muted">
-                <Icon className="w-4 h-4 text-primary" />
+              <span aria-hidden title={label} className="w-6 h-6 shrink-0 flex items-center justify-center">
+                <Icon className="w-5 h-5 text-primary" />
               </span>
               <div className="min-w-0 flex-1">
                 <p data-testid={i === 0 ? "next-up-title" : undefined} className="text-ds-15 font-semibold leading-snug text-foreground line-clamp-2 [overflow-wrap:anywhere]">{td.title}</p>

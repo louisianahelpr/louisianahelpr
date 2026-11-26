@@ -253,7 +253,7 @@ export function MineJobFace({
               </span>
               {money && (
                 <span className="shrink-0 text-right" data-mine-face-money="">
-                  <span className="block text-ds-17 font-bold leading-snug tabular-nums text-[hsl(var(--accent-ink))]">
+                  <span className="block text-ds-17 font-bold leading-snug tabular-nums text-[hsl(var(--ink-deep))]">
                     {money}
                   </span>
                   {/* Owner 2026-11-22 ("One number, small label"): a Helpr's take-home carries the small grey

@@ -32,7 +32,8 @@ const SheetOverlay = React.forwardRef<
       // + 24px blur that the owner lightened three times (45% -> 26% -> 14% ->
       // 8%). Two scrims meant a Sheet and a Dialog opened over the same page
       // looked like two different apps.
-      "fixed inset-0 z-50 backdrop-blur-[24px] backdrop-saturate-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      // Phone polish C #37 (11-25): `phone-scrim` = on a phone, a plain dim with no blur (index.css).
+      "phone-scrim fixed inset-0 z-50 backdrop-blur-[24px] backdrop-saturate-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     style={{

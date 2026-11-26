@@ -37,7 +37,9 @@ import { jobNextStep } from "@/components/tracker/jobNextStep";
 
 /** The "What to fix" card (RevisionAsk): a card on a phone, flat inside the desktop side column. */
 const CARD = "rounded-2xl border border-border bg-card p-4 lg:border-0 lg:p-0 lg:rounded-none lg:bg-transparent lg:!shadow-none";
-const MONEY = "text-[hsl(var(--burnt-sienna))]";
+/** Phone polish C #18 (11-25): the job page price is the dark ink every other price wears, at 24px (was 28px rust,
+ * read 34px on a phone beside a 3-line title); rust stays for warnings. */
+const MONEY = "text-[hsl(var(--ink-deep))]";
 
 /**
  * The job page's tracker is THE one tracker (owner, 2026-10-21): the same four segments and next line as
@@ -140,7 +142,7 @@ function releasedLine(job: JobPageRow): string {
  * from payment_status alone (JA-47: "Paid · held" beside "card held, not charged" said two things about one payment).
  */
 export function PosterPrice({ job }: { job: JobPageRow }) {
-  const amount = <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPrice(job.budget)}</p>;
+  const amount = <p className={`text-ds-24 font-bold tabular-nums leading-none ${MONEY}`}>${formatPrice(job.budget)}</p>;
   return <div data-poster-money="" className="shrink-0 text-right">{amount}</div>;
 }
 
@@ -263,7 +265,7 @@ export function HelprPrice({ job, noShow = false }: { job: JobPageRow; noShow?: 
   return (
     <div data-helpr-money="" className="shrink-0 text-right">
       {/* Owner 11-01: "Remove you take home." The figure stands alone; a screen reader still hears "Your pay". */}
-      <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>{!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}</p>
+      <p className={`text-ds-24 font-bold tabular-nums leading-none ${MONEY}`}>{!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}</p>
       {!fixedPay && <AfterFeesNote />}
       {disputed && <p data-helpr-money-held="" className="mt-1 text-ds-12 font-semibold text-muted-foreground">On hold while we review</p>}
     </div>

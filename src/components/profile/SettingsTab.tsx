@@ -335,10 +335,18 @@ export function AppVersionLine() {
     // Same check as src/lib/nativeInit.ts, inlined so this chunk does not pull in its status bar / splash plugins.
     if ((window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.() !== true) return;
     let live = true;
-    void import("@capacitor/app")
-      .then(({ App }) => App.getInfo())
-      .then((info) => { if (live) setNative(`${info.version} (${info.build})`); })
-      .catch(() => {});
+    // Load the plugin alone, then read (dynamicImportThenDoesNoWork): a prevented preload resolves undefined, which
+    // throws into the catch and leaves the line hidden.
+    const readInfo = async () => {
+      try {
+        const { App } = await import("@capacitor/app");
+        const info = await App.getInfo();
+        if (live) setNative(`${info.version} (${info.build})`);
+      } catch {
+        // No version line: nothing else depends on it.
+      }
+    };
+    void readInfo();
     return () => { live = false; };
   }, []);
   if (!native) return null;

@@ -5,12 +5,12 @@ export const GUIDE_UPDATED = {
     "hash": "bf52f64a863d9898"
   },
   "him": {
-    "day": "2026-11-24",
-    "hash": "ce4776de0c9c4137"
+    "day": "2026-11-26",
+    "hash": "eea5085c4eb1ac58"
   },
   "kids": {
-    "day": "2026-11-25",
-    "hash": "d32c1d8b5952afe3"
+    "day": "2026-11-26",
+    "hash": "86ab6b07c2889332"
   },
   "25-days-sponsors": {
     "day": "2026-11-24",

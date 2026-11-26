@@ -1835,6 +1835,67 @@
    "name": "Discovery Mindblown DIY Arm Blaster",
    "gender": "everyone",
    "list": "kids"
+  },
+  "walmrt.us/4ArzYuN": {
+   "name": "Warmies 13-Inch Weighted Lavender Alligator Plush",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4CtvOE4": {
+   "name": "Neche 12V LED Bumper Car with Remote, Blue",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4tpKHTF": {
+   "name": "Huge Wave RC Dinosaur Monster Truck with Spray and Lights",
+   "gender": "boys",
+   "genderSource": "Walmart Creator listing title, read 2026-11-26: Remote Control Cars for Boys, RC Dinosaur Toys for Boys 3-6",
+   "ageMin": 3,
+   "ageMax": 8,
+   "ageSource": "Walmart Creator listing title, read 2026-11-26: Toys for Boys 3-6 ... Gift for Boys 3 4 5 6 7 8",
+   "list": "kids"
+  },
+  "walmrt.us/4tjAatf": {
+   "name": "Creativity for Kids Sensory Bin: Construction Zone",
+   "gender": "everyone",
+   "ageMin": 3,
+   "ageSource": "Walmart Creator listing title, read 2026-11-26: Gifts for Kids Ages 3+",
+   "list": "kids"
+  },
+  "walmrt.us/3X0EkKw": {
+   "name": "Rirool Kids Tool Set with Toy Drill and Toolbox",
+   "gender": "everyone",
+   "ageMin": 3,
+   "ageMax": 7,
+   "ageSource": "Walmart Creator listing title, read 2026-11-26: Ages 3-7",
+   "list": "kids"
+  },
+  "walmrt.us/4CqoeKf": {
+   "name": "Carson BugView Bug Catcher with 5x Magnifier",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4A8hJdr": {
+   "name": "LED Flying Orb Ball",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4kxCQRD": {
+   "name": "Ford Bronco Raptor 12V Kids Ride-On with Remote, Black",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4AaM37p": {
+   "name": "Best Choice Products Rechargeable Laser Tag Set, 4 Pack",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4kC8I7A": {
+   "name": "Super Mario Galaxy Movie Hatchin' Yoshi Interactive Figure",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageSource": "Walmart Creator listing title, read 2026-11-26: For Ages 4 and up",
+   "list": "kids"
   }
  }
 }

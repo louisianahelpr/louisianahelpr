@@ -27,7 +27,7 @@ import { her1121Picks } from "../../scripts/giftGuideHer1121.mjs";
 import { him1121Picks, kids1121Picks } from "../../scripts/giftGuideHimKids1121.mjs";
 import { CUTOUT_BASE } from "../../scripts/giftGuideCutouts1120.mjs";
 import { RATE_SWITCHES_1124 } from "../../scripts/giftGuideOwner1124.mjs";
-import { HER_STEALS_1124_ROWS, HIM_STEALS_1124_ROWS, KIDS_STEALS_1124_ROWS } from "../../scripts/giftGuideSteals1124.mjs";
+import { HER_STEALS_1124_ROWS, HIM_STEALS_1124_ROWS, KIDS_OWNER_1126_ROWS, KIDS_STEALS_1124_ROWS, PRICE_AT_1126 } from "../../scripts/giftGuideSteals1124.mjs";
 import { RESEARCHED_STORES } from "@/content/giftGuidePicks";
 import { tagKey } from "@/content/giftGuideKidsFilter";
 import { kidsThemeMovesLive1124 } from "../../scripts/giftGuideThemes1124.mjs";
@@ -233,7 +233,20 @@ const STEALS: [string, string, string, number, number, string][] = [
   ["her", sm("110137572"), "store-kate-spade-new-york", 16, 29, "Kate Spade Lucy Wristlet, Black"],
   ["her", "https://mavely.app.link/wb8BXrxck8b", "store-jcpenney", 10.5, 7.99, "North Pole Trading Co. Holiday Velvet Plush Throw, Trees"],
   ["her", "https://mavely.app.link/vRv8iAthk8b", "store-kohls", 10.5, 1.99, "SHINE Women's Holiday Crew Socks, Santa"],
-  ["her", "https://mavely.app.link/n2955rKik8b", "store-jcpenney", 10.5, 29.99, "Beautyrest Ultrasoft Plush Heated Throw, Gray Fairisle"],
+  ["her", "https://mavely.app.link/n2955rKik8b", "store-jcpenney", 10.5, 29.99, "Beautyrest Ultrasoft Plush Heated Throw, Gray Fairisle"],];
+/** The 11-26 adds on Kids (KIDS_OWNER_1126_ROWS), priced 11-26: the owner's "Little Boys" ad picks and Hatchin' Yoshi. */
+const OWNER_1126: [string, string, string, number, number, string][] = [
+  // Owner's "Little Boys" ad picks + Hatchin' Yoshi 11-26 (Walmart Creator; Creator search cards ~1:30-2:45 AM CT).
+  ["kids", wm("4ArzYuN"), "store-walmart", 6, 29.99, "Warmies 13-Inch Weighted Lavender Alligator Plush"],
+  ["kids", wm("4CtvOE4"), "store-walmart", 6, 99.98, "Neche 12V LED Bumper Car with Remote, Blue"],
+  ["kids", wm("4tpKHTF"), "store-walmart", 6, 22.49, "Huge Wave RC Dinosaur Monster Truck with Spray and Lights"],
+  ["kids", wm("4tjAatf"), "store-walmart", 22, 15, "Creativity for Kids Sensory Bin: Construction Zone"],
+  ["kids", wm("3X0EkKw"), "store-walmart", 6, 22.94, "Rirool Kids Tool Set with Toy Drill and Toolbox"],
+  ["kids", wm("4CqoeKf"), "store-walmart", 6, 11.99, "Carson BugView Bug Catcher with 5x Magnifier"],
+  ["kids", wm("4A8hJdr"), "store-walmart", 6, 18.89, "LED Flying Orb Ball"],
+  ["kids", wm("4kxCQRD"), "store-walmart", 6, 169.99, "Ford Bronco Raptor 12V Kids Ride-On with Remote, Black"],
+  ["kids", wm("4AaM37p"), "store-walmart", 14, 69.99, "Best Choice Products Rechargeable Laser Tag Set, 4 Pack"],
+  ["kids", wm("4kC8I7A"), "store-walmart", 6, 49.48, "Super Mario Galaxy Movie Hatchin' Yoshi Interactive Figure"],
 ];
 /**
  * Measured 11-24 and kept where they were (no store paying more for the same item at about the same price): Later's
@@ -319,6 +332,22 @@ describe("owner 11-24: the Black Friday steals she ticked", () => {
         expectCutout(rows[0]);
         expect(RESEARCHED_STORES[store]?.hosts, store).toContain(new URL(href).hostname);
       }
+    }
+  });
+
+  it("the 11-26 Kids adds are each on Kids once, at the price read 11-26, with the Walmart store and Creator rate, a cutout and a tag", () => {
+    expect(OWNER_1126.length).toBe(10);
+    expect(KIDS_OWNER_1126_ROWS.length).toBe(OWNER_1126.length);
+    const tags = (JSON.parse(readFileSync("src/content/giftGuideKidsTags.json", "utf8")) as { tags: Record<string, { gender?: string }> }).tags;
+    for (const [guide, href, store, commission, price, name] of OWNER_1126) {
+      for (const list of [chunk(guide), built[guide]]) {
+        const rows = list.filter((p) => p.href === href);
+        expect(rows.length, `${guide}: ${name}`).toBe(1);
+        expect(rows[0], name).toMatchObject({ name, store, commission, price, priceAt: PRICE_AT_1126 });
+        expectCutout(rows[0]);
+        expect(RESEARCHED_STORES[store]?.hosts, store).toContain(new URL(href).hostname);
+      }
+      expect(["girls", "boys", "everyone"], name).toContain(tags[tagKey(href)]?.gender);
     }
   });
 

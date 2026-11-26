@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-25T19:59:57.228Z",
-  "guards": 4545,
-  "registered": 4542,
+  "generated": "2026-11-26T06:29:16.687Z",
+  "guards": 4549,
+  "registered": 4546,
   "unregistered": [
     "src/lib/categorySuggestions.test.ts",
     "src/lib/celebrate.test.ts",
@@ -60,7 +60,8 @@
     {
       "module": "src/components/dashboard/JobFilters.tsx",
       "tests": [
-        "src/test/area04JobsHelprSpanish.test.tsx"
+        "src/test/area04JobsHelprSpanish.test.tsx",
+        "src/test/jobsCategoryChipsRow.test.tsx"
       ],
       "parents": [
         "src/components/dashboard/filterSheet/jobFilterSections.tsx"
@@ -73,6 +74,15 @@
       ],
       "parents": [
         "src/components/VercelInsights.tsx"
+      ]
+    },
+    {
+      "module": "src/components/ui/RowNudgeButton.tsx",
+      "tests": [
+        "src/test/declutterSharedControls.test.tsx"
+      ],
+      "parents": [
+        "src/pages/info/giftGuides/GiftGuideThemeRow.tsx"
       ]
     },
     {

@@ -276,7 +276,8 @@
     "MJJ27",
     "MJJ28",
     "MJJ30",
-    "MJJ31"
+    "MJJ31",
+    "MJJ32"
    ]
   },
   {
@@ -285,6 +286,7 @@
     "MJJ33",
     "MJJ34",
     "MJJ36",
+    "MJJ37",
     "MJJ39",
     "MJJ40",
     "MJJ42",
@@ -323,9 +325,7 @@
   {
    "file": "monster-jam-guide-24.png",
    "ids": [
-    "MJS153",
     "MJS154",
-    "MJS156",
     "MJS157",
     "MJS158",
     "MJS160",

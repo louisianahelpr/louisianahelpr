@@ -236,7 +236,7 @@ export function SignupStep1({
         <AuthCardMarkRow />
         {/* Signup-confusion 11-19: which form this is, before anything else (AuthModeTabs). */}
         <div className="w-full mb-3"><AuthModeTabs active="signup" loginHref={loginHref} email={email} /></div>
-        <h1 className="text-page-title text-foreground">{t("signup.title")}</h1>
+        <h1 className="text-page-title text-foreground max-[479px]:sr-only">{t("signup.title")}</h1>
         <p className="text-ds-14 text-muted-foreground">{subtitle ?? t("signup.subtitle")}</p>
       </div>
 
@@ -448,7 +448,7 @@ export function SignupStep1({
       <Button
         variant="primary"
         className="w-full rounded-full"
-        size="lg"
+        size="authMain"
         onClick={handleContinue}
         disabled={loading}
         aria-busy={loading}

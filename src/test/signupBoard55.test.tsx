@@ -12,7 +12,7 @@
  * @mutate src/pages/auth/signup/SignupStep1.tsx |           <OrRule />\n |           <div className="uppercase tracking-[0.2em]" style={{ color: "hsl(var(--accent-ink))" }}>or</div>\n
  * @mutate src/pages/auth/signup/SignupStep1.tsx |             setAgeConfirmed(checked === true);\n |             void 0;\n
  * @mutate src/pages/auth/signup/SignupStep1.tsx |           {t("login.submit")}\n        </Link> |           Log In\n        </Link>
- * @mutate src/pages/auth/signup/SignupStep1.tsx |         className="w-full rounded-full"\n        size="lg"\n        onClick={handleContinue} |         className="w-full rounded-ds-md"\n        size="lg"\n        onClick={handleContinue}
+ * @mutate src/pages/auth/signup/SignupStep1.tsx |         className="w-full rounded-full"\n        size="authMain"\n        onClick={handleContinue} |         className="w-full rounded-ds-md"\n        size="authMain"\n        onClick={handleContinue}
  * @mutate src/lib/i18n/enScreens.ts | "signup.subtitle": "One account to hire help, find work, and buy or sell nearby." | "signup.subtitle": "One account to hire help or find work."
  * @mutate src/pages/auth/Signup.tsx |       hideBack\n    > |       hideBack\n      title="Create Account"\n    >
  * @mutate src/pages/auth/Signup.tsx |             subtitle={subtitle} |             subtitle={undefined}
@@ -77,7 +77,7 @@ describe("Create account matches board 55", () => {
   it("the plain 'or' rule and an olive pill; nothing rust on the card (rust is money only)", () => {
     expect(step1).toContain("<OrRule />");
     expect(step1).not.toMatch(/burnt-sienna|accent-ink|tracking-\[0\.2em\]/);
-    expect(step1).toMatch(/className="w-full rounded-full"\s+size="lg"\s+onClick=\{handleContinue\}/);
+    expect(step1).toMatch(/className="w-full rounded-full"\s+size="authMain"\s+onClick=\{handleContinue\}/);
   });
 
   it("ONE consent box records BOTH the agreement and the 18+ attestation", () => {

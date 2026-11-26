@@ -337,7 +337,8 @@ const Login = () => {
           </div>
         </div>
       )}
-      <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6">
+      {/* Phone audit 11-25 #10: below 480px the card loses its frame (.auth-card) and the heading (the tabs say it). */}
+      <div className="liquid-glass auth-card p-5 sm:p-6 lg:p-8 space-y-6">
         {/* Board 37 (owner 2026-10-20): the ROUND H app icon, "Log in" and one
             welcome line head the card; email + password come first, then "or"
             and the providers. Restyle only: every handler below is unchanged.
@@ -348,7 +349,7 @@ const Login = () => {
             <AuthCardMarkRow />
             {/* Signup-confusion 11-19: which form this is, before anything else (AuthModeTabs). */}
             <div className="w-full mb-3"><AuthModeTabs active="login" signupHref={signupHref} email={email} /></div>
-            <h1 className="text-page-title text-foreground">{t("login.title")}</h1>
+            <h1 className="text-page-title text-foreground max-[479px]:sr-only">{t("login.title")}</h1>
             <p className="text-ds-14 text-muted-foreground">{t("login.welcome")}</p>
           </div>
         )}
@@ -526,7 +527,7 @@ const Login = () => {
             variant="primary"
             type="submit"
             className="w-full rounded-full"
-            size="lg"
+            size="authMain"
             // Loading-only disable (owner, V5) — the pattern Signup's Continue
             // and Create Account already use. A greyed-out Log In is a dead
             // end that says something is wrong without saying WHAT; the button

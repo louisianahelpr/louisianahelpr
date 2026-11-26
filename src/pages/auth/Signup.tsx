@@ -401,7 +401,7 @@ const Signup = () => {
       {/* F024 (owner UI audit 11-09): 48px from the window's top edge from lg up (the shell's 24 + 24 here). */}
       <div className="lg:pt-6" data-signup-top="">
           {/* Liquid-glass card: matches Login's `.liquid-glass` card so the two auth screens read as one set. */}
-          <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
+          <div className="liquid-glass auth-card p-5 sm:p-6 lg:p-10 space-y-6">
         {/* Owner 11-20: a sign-up here already waits on its email. Its final step is the email, not a second form. */}
         {pendingSignup && (
           <PendingSignupCard email={pendingSignup.email} onUseDifferent={() => { clearPendingSignup(); setPendingSignup(null); }} />

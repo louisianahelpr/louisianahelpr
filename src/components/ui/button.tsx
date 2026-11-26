@@ -172,6 +172,9 @@ const buttonVariants = cva(
         // hand-sets max-lg:h-11 (no-button-height-override).
         phoneSm: "h-14 px-6 py-2 text-ds-16 max-lg:h-11 max-lg:px-4 max-lg:py-0 max-lg:text-ds-14",
         lg: "h-[60px] px-8 text-ds-17",
+        // Phone audit 11-25 #10: the auth screens' main button (Log in, Create account) is `lg` (60px) from 480px up and
+        // 48px on a phone, where the card's frame is dropped too (.auth-card). A named size, never a hand-set height.
+        authMain: "h-[60px] px-8 text-ds-17 max-[479px]:h-12 max-[479px]:text-ds-16",
         xl: "h-16 px-10 text-ds-18",
         icon: "h-14 w-14",
         // A 48px icon disc beside a large value (Post a job's budget - / + steppers, Q2709 11-04): over the 44px tap minimum,

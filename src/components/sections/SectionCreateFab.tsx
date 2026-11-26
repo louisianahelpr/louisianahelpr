@@ -49,9 +49,11 @@ function useFabClearance(on: boolean) {
 /**
  * Phone audit 11-25 #1: the open pill still sat on the END of a list ("That's every open job…" on Jobs, Home's last
  * card) whenever the list's end was on screen, at rest too, since nothing was scrolling. Within END_FOLD_PX of the
- * scroll's end (the dock's room plus the pill's own), the pill is the round "+" as well, so the end card reads whole.
+ * scroll's end, the pill is the round "+" as well, so the end card reads whole. Measured 11-25 at 375 (webkit, local build):
+ * Declutter Browse at rest with its end card on screen had 299px left to scroll (the dock's room, the pill's room and
+ * the end block's own margin), so 320.
  */
-export const END_FOLD_PX = 160;
+export const END_FOLD_PX = 320;
 /** How far the element scrolls before its end: scrollHeight - scrollTop - clientHeight (0 for one that cannot scroll). */
 export function scrollLeft(el: Pick<Element, "scrollHeight" | "scrollTop" | "clientHeight">): number {
   return Math.max(0, el.scrollHeight - el.scrollTop - el.clientHeight);

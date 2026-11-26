@@ -18,7 +18,7 @@ export const GUIDE_UPDATED = {
   },
   "black-friday": {
     "day": "2026-11-25",
-    "hash": "8cdac7c0d78742cc"
+    "hash": "f249b38d30f28dd7"
   },
   "small-business-saturday": {
     "day": "2026-11-22",

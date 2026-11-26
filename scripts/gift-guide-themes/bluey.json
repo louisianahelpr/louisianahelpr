@@ -2,7 +2,7 @@
  "slug": "bluey",
  "name": "Bluey",
  "sectionPrefix": "bluey",
- "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/bluey/items.json (Tue Nov 24 12:47 PM, 295 items)",
+ "builtFrom": "/Users/lexilombas/.lh-shots/theme-guides-1124/bluey/items.json (Tue Nov 24 12:47 PM, 327 items)",
  "rows": [
   {
    "id": "BL01",
@@ -1112,6 +1112,112 @@
    "ownerAdd": true
   },
   {
+   "id": "BLB14",
+   "name": "Bluey Playing Cards",
+   "brand": "Bluey",
+   "line": "A little Bluey gift for the stocking.",
+   "href": "https://walmrt.us/4lbuj74",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-playing-cards-walmart-dc1e36.webp",
+   "store": "store-walmart",
+   "price": 6.99,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "bluey-stocking-stuffers-under-10",
+   "was": 8.22,
+   "commission": 6,
+   "age": "4+"
+  },
+  {
+   "id": "BLB16",
+   "name": "Bluey Happy Christmas Tin Lunch Box Ornament",
+   "brand": "Bluey",
+   "line": "A little Bluey gift for the stocking.",
+   "href": "https://walmrt.us/4zO7yJX",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-happy-christmas-tin-lunch-box-ornament-walmart-22b473.webp",
+   "store": "store-walmart",
+   "price": 5.98,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "bluey-stocking-stuffers-under-10",
+   "commission": 6,
+   "age": "3+"
+  },
+  {
+   "id": "BLB17",
+   "name": "TOMY Toomies Bluey Family Bath Squirters, 4 Pack",
+   "brand": "Bluey",
+   "line": "A little Bluey gift for the stocking.",
+   "href": "https://go.shopmy.us/p-111282811",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tomy-toomies-bluey-family-bath-squirters-4-pack-target-49726f.webp",
+   "store": "store-target",
+   "price": 9.29,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "bluey-stocking-stuffers-under-10",
+   "commission": 4,
+   "age": "18m+"
+  },
+  {
+   "id": "BLB18",
+   "name": "TOMY Toomies Bluey Bath Puzzle with Net Bag",
+   "brand": "Bluey",
+   "line": "A little Bluey gift for the stocking.",
+   "href": "https://go.shopmy.us/p-111283042",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tomy-toomies-bluey-bath-puzzle-with-net-bag-target-e82008.webp",
+   "store": "store-target",
+   "price": 7.29,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "bluey-stocking-stuffers-under-10",
+   "commission": 4,
+   "age": "18m+"
+  },
+  {
+   "id": "BLB23",
+   "name": "Bluey 5-Piece Wooden Sound Puzzle",
+   "brand": "Bluey",
+   "line": "A little Bluey gift for the stocking.",
+   "href": "https://walmrt.us/3WWHVsZ",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-5-piece-wooden-sound-puzzle-walmart-8d5e85.webp",
+   "store": "store-walmart",
+   "price": 5.97,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "bluey-stocking-stuffers-under-10",
+   "commission": 6,
+   "age": "2+"
+  },
+  {
+   "id": "BLB25",
+   "name": "Bluey 5-Minute Stories: 6 Stories in 1 Book",
+   "brand": "Bluey",
+   "line": "A little Bluey gift for the stocking.",
+   "href": "https://walmrt.us/3WSimcy",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-5-minute-stories-6-stories-in-1-book-walmart-54f185.webp",
+   "store": "store-walmart",
+   "price": 7.86,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "bluey-stocking-stuffers-under-10",
+   "commission": 6,
+   "age": "3+"
+  },
+  {
+   "id": "BLB26",
+   "name": "Bluey 48-Piece Birthday Party Favor Kit for 8",
+   "brand": "Bluey",
+   "line": "A little Bluey gift for the stocking.",
+   "href": "https://walmrt.us/4AVk4bI",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-48-piece-birthday-party-favor-kit-for-8-walmart-9cd018.webp",
+   "store": "store-walmart",
+   "price": 9.47,
+   "priceAt": "2026-11-26",
+   "section": "Stocking stuffers under $10",
+   "sectionId": "bluey-stocking-stuffers-under-10",
+   "commission": 6,
+   "age": "3+"
+  },
+  {
    "id": "BL20",
    "name": "LEGO Bluey Beach & Family Car Trip",
    "brand": "Bluey",
@@ -2219,6 +2325,67 @@
    "ownerAdd": true
   },
   {
+   "id": "BLB04",
+   "name": "LEGO DUPLO Bluey Ice Cream Trip with Bluey 10458",
+   "brand": "Bluey",
+   "line": "Toys and playsets for a Bluey fan.",
+   "href": "https://walmrt.us/4l9HNAf",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-duplo-bluey-ice-cream-trip-with-bluey-10458-walmart-587098.webp",
+   "store": "store-walmart",
+   "price": 27.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and playsets",
+   "sectionId": "bluey-toys-and-playsets",
+   "commission": 6,
+   "age": "2+"
+  },
+  {
+   "id": "BLB05",
+   "name": "LEGO DUPLO Bluey Pizza Girls with Muffin and Bluey 10469",
+   "brand": "Bluey",
+   "line": "Toys and playsets for a Bluey fan.",
+   "href": "https://walmrt.us/4CCua30",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-duplo-bluey-pizza-girls-with-muffin-and-bluey-10469-walmart-9e316b.webp",
+   "store": "store-walmart",
+   "price": 31.95,
+   "priceAt": "2026-11-26",
+   "section": "Toys and playsets",
+   "sectionId": "bluey-toys-and-playsets",
+   "was": 39.99,
+   "commission": 6,
+   "age": "2+"
+  },
+  {
+   "id": "BLB07",
+   "name": "Polly Pocket Bluey Compact",
+   "brand": "Bluey",
+   "line": "Toys and playsets for a Bluey fan.",
+   "href": "https://go.shopmy.us/p-111282754",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/polly-pocket-bluey-compact-target-9e9a42.webp",
+   "store": "store-target",
+   "price": 21.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and playsets",
+   "sectionId": "bluey-toys-and-playsets",
+   "commission": 4,
+   "age": "4+"
+  },
+  {
+   "id": "BLB20",
+   "name": "TOMY Swimming Bluey Bath Toy with Seahorse",
+   "brand": "Bluey",
+   "line": "Toys and playsets for a Bluey fan.",
+   "href": "https://go.shopmy.us/p-111282858",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tomy-swimming-bluey-bath-toy-with-seahorse-target-519e12.webp",
+   "store": "store-target",
+   "price": 12.79,
+   "priceAt": "2026-11-26",
+   "section": "Toys and playsets",
+   "sectionId": "bluey-toys-and-playsets",
+   "commission": 4,
+   "age": "18m+"
+  },
+  {
    "id": "BL30",
    "name": "Bluey Talking 13 in Plush",
    "brand": "Bluey",
@@ -2420,6 +2587,21 @@
    "commission": 4,
    "age": "kids",
    "ownerAdd": true
+  },
+  {
+   "id": "BLB29",
+   "name": "Bluey Friends Unicorse Hand Puppet Plush",
+   "brand": "Bluey",
+   "line": "Plush for a Bluey fan.",
+   "href": "https://walmrt.us/4tjd3yM",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-friends-unicorse-hand-puppet-plush-walmart-de6784.webp",
+   "store": "store-walmart",
+   "price": 29.66,
+   "priceAt": "2026-11-26",
+   "section": "Plush",
+   "sectionId": "bluey-plush",
+   "commission": 6,
+   "age": "3+"
   },
   {
    "id": "BL40",
@@ -4038,6 +4220,22 @@
    "ownerAdd": true
   },
   {
+   "id": "BLB33",
+   "name": "Gemmy Bluey in Santa Hat Inflatable, 3.5 ft",
+   "brand": "Bluey",
+   "line": "Room and Christmas for a Bluey fan.",
+   "href": "https://go.shopmy.us/p-111282897",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/gemmy-bluey-in-santa-hat-inflatable-3-5-ft-target-059ee3.webp",
+   "store": "store-target",
+   "price": 22.52,
+   "priceAt": "2026-11-26",
+   "section": "Room and Christmas",
+   "sectionId": "bluey-room-and-christmas",
+   "was": 37.54,
+   "commission": 4,
+   "age": "3+"
+  },
+  {
    "id": "BL60",
    "name": "Bluey Little Library 4-Book Box Set",
    "brand": "Bluey",
@@ -4336,6 +4534,81 @@
    "ownerAdd": true
   },
   {
+   "id": "BLB08",
+   "name": "Bluey Pass the Parcel Musical Game",
+   "brand": "Bluey",
+   "line": "Books and games for a Bluey fan.",
+   "href": "https://go.shopmy.us/p-111283004",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-pass-the-parcel-musical-game-target-8570d5.webp",
+   "store": "store-target",
+   "price": 14.89,
+   "priceAt": "2026-11-26",
+   "section": "Books and games",
+   "sectionId": "bluey-books-and-games",
+   "commission": 4,
+   "age": "3+"
+  },
+  {
+   "id": "BLB09",
+   "name": "Bluey's Rubbish Run Game",
+   "brand": "Bluey",
+   "line": "Books and games for a Bluey fan.",
+   "href": "https://walmrt.us/4j5UNFS",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/blueys-rubbish-run-game-walmart-b9fcf3.webp",
+   "store": "store-walmart",
+   "price": 19.99,
+   "priceAt": "2026-11-26",
+   "section": "Books and games",
+   "sectionId": "bluey-books-and-games",
+   "commission": 6,
+   "age": "4+"
+  },
+  {
+   "id": "BLB10",
+   "name": "Chutes and Ladders Bluey Edition",
+   "brand": "Bluey",
+   "line": "Books and games for a Bluey fan.",
+   "href": "https://walmrt.us/4j5VhMc",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/chutes-and-ladders-bluey-edition-walmart-d3fe0e.webp",
+   "store": "store-walmart",
+   "price": 14.97,
+   "priceAt": "2026-11-26",
+   "section": "Books and games",
+   "sectionId": "bluey-books-and-games",
+   "commission": 6,
+   "age": "3+"
+  },
+  {
+   "id": "BLB11",
+   "name": "Hi Ho! Cherry-O Bluey Board Game",
+   "brand": "Bluey",
+   "line": "Books and games for a Bluey fan.",
+   "href": "https://walmrt.us/48GGuS6",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hi-ho-cherry-o-bluey-board-game-walmart-3ae996.webp",
+   "store": "store-walmart",
+   "price": 12.97,
+   "priceAt": "2026-11-26",
+   "section": "Books and games",
+   "sectionId": "bluey-books-and-games",
+   "commission": 6,
+   "age": "3+"
+  },
+  {
+   "id": "BLB12",
+   "name": "TOMY Pop-Up Bluey Game",
+   "brand": "Bluey",
+   "line": "Books and games for a Bluey fan.",
+   "href": "https://walmrt.us/48C1Ujf",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/tomy-pop-up-bluey-game-walmart-499a3c.webp",
+   "store": "store-walmart",
+   "price": 17.97,
+   "priceAt": "2026-11-26",
+   "section": "Books and games",
+   "sectionId": "bluey-books-and-games",
+   "commission": 6,
+   "age": "4+"
+  },
+  {
    "id": "BL70",
    "name": "Bluey's Light and Surprise Heeler House (21 in)",
    "brand": "Bluey",
@@ -4588,6 +4861,51 @@
    "commission": 4,
    "age": "kids",
    "ownerAdd": true
+  },
+  {
+   "id": "BLB02",
+   "name": "LEGO Bluey Brick-Built Bluey Family 11217",
+   "brand": "Bluey",
+   "line": "Big gifts for a Bluey fan.",
+   "href": "https://walmrt.us/4j9gFyM",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/lego-bluey-brick-built-bluey-family-11217-walmart-232467.webp",
+   "store": "store-walmart",
+   "price": 55.95,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "bluey-big-gifts",
+   "commission": 6,
+   "age": "5+"
+  },
+  {
+   "id": "BLB38",
+   "name": "Bluey 6V ImaginAir Ride-On Bumper Car with Inflatable Character",
+   "brand": "Bluey",
+   "line": "Big gifts for a Bluey fan.",
+   "href": "https://walmrt.us/4l6wYPq",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-6v-imaginair-ride-on-bumper-car-with-inflatable-charac-walmart-aa80a9.webp",
+   "store": "store-walmart",
+   "price": 104,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "bluey-big-gifts",
+   "commission": 6,
+   "age": "18m-5"
+  },
+  {
+   "id": "BLB39",
+   "name": "Bluey 4-Wheel Balance Bike",
+   "brand": "Bluey",
+   "line": "Big gifts for a Bluey fan.",
+   "href": "https://walmrt.us/4j0pgVI",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/bluey-4-wheel-balance-bike-walmart-6dee5f.webp",
+   "store": "store-walmart",
+   "price": 29.97,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "bluey-big-gifts",
+   "commission": 6,
+   "age": "18m-3"
   }
  ],
  "skipped": [
@@ -4613,6 +4931,24 @@
    ]
   },
   {
+   "id": "BLB15",
+   "name": "Bluey Bingo Christmas Ornament",
+   "why": [
+    "not found in Walmart Creator product search on 11-26, so the price is unconfirmed",
+    "no link",
+    "no photo"
+   ]
+  },
+  {
+   "id": "BLB24",
+   "name": "Bluey Puzzle Sphere, 64 Pieces",
+   "why": [
+    "not found in Walmart Creator product search on 11-26, so the price is unconfirmed",
+    "no link",
+    "no photo"
+   ]
+  },
+  {
    "id": "BL26",
    "name": "Bluey's Car Wash Playset (Target exclusive)",
    "why": [
@@ -4624,6 +4960,32 @@
    "name": "Crayola Color Wonder Magic Light-Up Bluey Stamper",
    "why": [
     "no price"
+   ]
+  },
+  {
+   "id": "BLB01",
+   "name": "LEGO Bluey Bluey's Family House 11203",
+   "why": [
+    "Kohl's price from a search snapshot only (Kohl's blocks reads), and Kohl's links on this guide are Mavely links this lane cannot make",
+    "no link",
+    "no photo"
+   ]
+  },
+  {
+   "id": "BLB03",
+   "name": "LEGO Bluey Playground Fun with Bluey and Chloe 11201",
+   "why": [
+    "price mismatch: Walmart Creator shows $28.49 on 11-26, the research had $15.95",
+    "no link"
+   ]
+  },
+  {
+   "id": "BLB30",
+   "name": "Bluey Vehicle Adventure Playset",
+   "why": [
+    "Kohl's price from a search snapshot only (Kohl's blocks reads), and Kohl's links on this guide are Mavely links this lane cannot make",
+    "no link",
+    "no photo"
    ]
   },
   {
@@ -4645,6 +5007,57 @@
    "name": "Bluey Girls Underwear, 7-Pack (4-8)",
    "why": [
     "same item as BLO45 (Walmart Bluey Girls Underwear 7-Pack 4-8, $6): cheapest store wins"
+   ]
+  },
+  {
+   "id": "BLB31",
+   "name": "Gemmy Bingo with Present Inflatable, 3.5 ft",
+   "why": [
+    "ShopMy could not pull this Target Plus partner listing (no pin made on 11-26), so there is no affiliate link",
+    "no link"
+   ]
+  },
+  {
+   "id": "BLB34",
+   "name": "eKids Bluey Bluetooth Wireless Headphones",
+   "why": [
+    "price mismatch: Walmart Creator shows $28.98 on 11-26 vs the research's $19.99",
+    "no link"
+   ]
+  },
+  {
+   "id": "BLB35",
+   "name": "Bluey B Is for Bluey 10.5 in Mini Backpack",
+   "why": [
+    "not found in Walmart Creator product search on 11-26, so the price is unconfirmed",
+    "no link",
+    "no photo"
+   ]
+  },
+  {
+   "id": "BLB36",
+   "name": "Licensed Bluey 5-Piece Backpack Set",
+   "why": [
+    "JCPenney links on this guide are Mavely links this lane cannot make",
+    "no link",
+    "no photo"
+   ]
+  },
+  {
+   "id": "BLB13",
+   "name": "Bluey's Quest for the Gold Pen (Nintendo Switch)",
+   "why": [
+    "price mismatch: Walmart Creator shows $19.93 (was $23.99) on 11-26 vs the research's $39.88; the listing may not be the game itself",
+    "no link"
+   ]
+  },
+  {
+   "id": "BLB06",
+   "name": "LEGO DUPLO Bluey's Family House with Memory Game 10459",
+   "why": [
+    "JCPenney links on this guide are Mavely links this lane cannot make (no other store link found)",
+    "no link",
+    "no photo"
    ]
   }
  ]

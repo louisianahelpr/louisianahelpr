@@ -118,6 +118,7 @@ const CLASSIFIED: Record<string, string> = {
   "pages/info/giftGuides/AmazonCartButton.tsx::url": "GiftOut's prop: amazonCartUrl (src/lib/retailerCart.ts) returns the fixed Amazon cart https:// origin plus URLSearchParams of ASINs read from our content file's Amazon links; GiftOut forces the https:// scheme",
   "components/giftGuides/PrimeTrialLink.tsx::G.primeTrial.href": "GiftOut's prop (a fixed https://www.amazon.com/prime link in src/content/giftGuides.ts); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/GiftGuideView.tsx::pick.href": "GiftOut's prop (a guide's picks, our content file); GiftOut forces the https:// scheme",
+  "pages/info/giftGuides/SamsClubParts.tsx::SAMS_MEMBERSHIP.href": "GiftOut's prop (a fixed Later https:// link constant in src/content/samsClubBlackFriday1125.ts); GiftOut forces the https:// scheme",
   "pages/info/giftGuides/printables/NameMaker.tsx::item.design.image": "an SVG <image href>, not a navigation: the design's picture, a fixed site-relative /printables/... path from our content file (src/content/printables.ts; printables1120.test.tsx checks every one exists)",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.facebook": "shareLinks(): a fixed https://www.facebook.com/sharer/... prefix + URLSearchParams",
   "pages/info/giftGuides/GiftGuideShare.tsx::links.pinterest": "shareLinks(): a fixed https://www.pinterest.com/pin/create/... prefix + URLSearchParams",

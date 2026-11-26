@@ -7,7 +7,7 @@ import { GiftOut } from "./GiftOut";
 /**
  * The two pieces the Sam's Club Black Friday deals guide adds (owner 2026-11-25 ~4:55 PM; src/content/samsClubBlackFriday1125.ts):
  *  - SamsJoinCard: first on the guide, because the deals are for members only: the membership prices and a "Join Sam's
- *    Club" button (our Later link to samsclub.com/join), then the sale's dates;
+ *    Club" button (our Later link to the Sam's Club join page), then the sale's dates;
  *  - SamsBlackFridayFeature: the card on the Black Friday page that opens the guide, with the guide's green cover.
  * Plain markup and a few CSS rules (no new script on the guide page's first paint, Q178).
  * Guard: src/test/samsClubBlackFriday1125.test.tsx.
@@ -50,7 +50,7 @@ export function SamsBlackFridayFeature() {
     <>
       <style>{SAMS_CSS}</style>
       <Link to={`/gift-guides/${SAMS_BF_SLUG}`} className="gg-sams-feature" data-gift-sams-feature="">
-        {g.cover && <img src={g.cover} alt="" width={88} height={88} decoding="async" loading="lazy" />}
+        {g.cover && <img loading="lazy" decoding="async" src={g.cover} alt="" width={88} height={88} />}
         <span>
           <b>{W.featureTitle}</b>
           <span>{W.featureLine}</span>

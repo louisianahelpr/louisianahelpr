@@ -5,8 +5,8 @@
  * gift-guide shop link (GiftOut.tsx) sends "gift_out_click" with its link, and scripts/gift-guide-earn-rank.mjs ranks
  * the last 14 days into src/content/giftGuideEarnRank.json. "Price: low to high / high to low" stay pure price.
  *
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const picks = sortable && order === "top" ? [...stockingRows, ...earnFirstInGroups(sectioned.filter((p) => p.sectionId !== STOCKING_SECTION_ID), EARN_RANKS, (p) => p.sectionId ?? "")] : sectioned; |   const picks = sectioned;
- * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const picks = sortable && order === "top" ? [...stockingRows, |   const picks = sortable ? [...stockingRows,
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const ordered = sortable && order === "top" ? [...stockingRows, ...earnFirstInGroups(sectioned.filter((p) => p.sectionId !== STOCKING_SECTION_ID), EARN_RANKS, (p) => p.sectionId ?? "")] : sectioned; |   const ordered = sectioned;
+ * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |   const ordered = sortable && order === "top" ? [...stockingRows, |   const ordered = sortable ? [...stockingRows,
  * @mutate src/content/giftGuideEarnOrder.ts |     out.push(...designTogether([...hot, ...run.filter((p) => !ranked(ranks[p.href]))], (p) => p)); |     out.push(...run);
  * @mutate src/content/giftGuideEarnOrder.ts | .sort((a, b) => ranks[a.href] - ranks[b.href]) | .sort((a, b) => ranks[b.href] - ranks[a.href])
  * @mutate src/pages/info/GiftGuides.tsx |   const sortOrder: GuideOrder = guide && order.slug === guide.slug ? order.order : "top"; |   const sortOrder: GuideOrder = guide && order.slug === guide.slug ? order.order : "low";

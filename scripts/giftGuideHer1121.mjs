@@ -26,6 +26,7 @@ import { AMAZON_BRAND_PHOTOS_1122, cutoutPhoto } from "./giftGuideCutouts1120.mj
 import { rankByPrice } from "./giftGuidePriceRank1121.mjs";
 import { ADDS_STORES_1122, HER_ADDS_1122 } from "./giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "./giftGuidePriceRecheck.mjs";
+import { withPrice1126 } from "./giftGuidePrices1126.mjs";
 import { HER_KEEPS_1123_ROWS, HER_LINKS_1123_ROWS, KEEPS_PRICE_AT } from "./giftGuideOwnerKeeps1123.mjs";
 import { HER_ADDS_1124, STORES_1124, rateSwitch1124 } from "./giftGuideOwner1124.mjs";
 import { HER_AMAZON_BEAUTY_1124 } from "./giftGuideAmazonBeauty1124.mjs";
@@ -235,8 +236,9 @@ export const HER_ROWS = [...HER_1121, ...HER_ADDS_1122, ...HER_POPULAR_1122, ...
 /** The page rows: cheapest first, every pick priced (Amazon too, owner 11-21), cutout photos, relationship tags, no section. */
 export function her1121Picks(rows = HER_ROWS) {
   const g = PEOPLE_GUIDES.find((x) => x.slug === HER_GUIDE);
-  return rankByPrice(rows).map(({ row: r, priceRank }) => {
-    const { sortPrice: _sp, price, ...rest } = r;
+  // Guides audit 1126: a price that changed on 11-26 replaces the row's before the rank (scripts/giftGuidePrices1126.mjs).
+  return rankByPrice(rows.map(withPrice1126)).map(({ row: r, priceRank }) => {
+    const { sortPrice: _sp, price, price1126: _p1126, ...rest } = r;
     const p = { ...rest, image: isAmazon(r) ? r.image : cutoutPhoto(r.image), ownerPick: true, from: HER_GUIDE, priceRank };
     // AMAZON PRICES ON (owner 2026-11-21 ~12:05 PM: "each item also needs a price"; warned in a pop-up that Amazon only
     // allows prices from its PA-API feed and that showing them risks the Associates account, she chose "Show Amazon

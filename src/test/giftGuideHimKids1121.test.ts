@@ -20,6 +20,7 @@ import { AMAZON_BRAND_PHOTOS_1122, CUTOUT_BASE, cutoutPhoto } from "../../script
 import { HIM_ADDS_1122, KIDS_ADDS_1122 } from "../../scripts/giftGuideOwnerAdds1122.mjs";
 import { recheckedPriceAt } from "../../scripts/giftGuidePriceRecheck.mjs";
 import { AMAZON_PRICES_AT_1124, amazonPrice1124 } from "../../scripts/giftGuideAmazonPrices1124.mjs";
+import { PRICES_AT_1126, price1126 } from "../../scripts/giftGuidePrices1126.mjs";
 import { isOwnerList } from "@/content/giftGuidePeople.mjs";
 
 type Pick = { name: string; brand?: string; href: string; image: string; store: string; type?: string; price?: unknown; priceAt?: unknown; sortPrice?: unknown; rels?: string[] };
@@ -238,14 +239,16 @@ describe.each([
       expectAmazonPickPhoto(p);
       expect(p.store).toBe("store-amazon");
       // Kids Black Friday sweep 11-24: a price re-read on Amazon that changed replaces the captured one, dated that day.
+      // Guides audit 1126: a price that changed on 11-26 wins over both (scripts/giftGuidePrices1126.mjs).
+      const now1126 = price1126(p.href);
       const reread = amazonPrice1124(p.href);
-      expect(p.price, p.name).toBe(reread ?? captured.get(p.href));
+      expect(p.price, p.name).toBe(now1126 ?? reread ?? captured.get(p.href));
       expect(p.price, p.name).toBeGreaterThan(0);
       // Captured from her saved lists 11-21; the Battery Daddy she asked for on launch day and the Dad fill-in book (owner
       // 11-22 screenshot list, B0GWXJ3PYM) and the popular adds (builder-guide-popular) and the GE Opal Mini (builder-guide-him, 2026-11-22) were priced 11-22.
       // The owner's 11-23 keeps (scripts/giftGuideOwnerKeeps1123.mjs) were priced 11-23.
       const day = keeps.has(p.href) ? "2026-11-23" : p.href.includes("B089F9YDFC") || p.href.includes("B0GWXJ3PYM") || p.href.includes("B0H51ZX6SB") || popular.has(p.href) || louisianaAmazon.has(p.href) || linkFix.has(p.href) ? "2026-11-22" : "2026-11-21";
-      expect(p.priceAt, p.name).toBe(reread !== undefined ? AMAZON_PRICES_AT_1124 : recheckedPriceAt(p.href, p.price, day));
+      expect(p.priceAt, p.name).toBe(now1126 !== undefined ? PRICES_AT_1126 : reread !== undefined ? AMAZON_PRICES_AT_1124 : recheckedPriceAt(p.href, p.price, day));
       // The unbuyable links never come back.
       for (const gone of Object.keys(LINK_FIXES_1122)) expect(p.href.includes(gone), `${p.name}: ${gone}`).toBe(false);
     }
@@ -269,7 +272,8 @@ describe.each([
 
   it("is cheapest first", () => {
     // Kids BF sweep 11-24: an Amazon price re-read that day ranks at the re-read price.
-    const at = (r: { href: string; sortPrice: number }) => amazonPrice1124(r.href) ?? r.sortPrice;
+    // Guides audit 1126: a price that changed on 11-26 ranks at that price (scripts/giftGuidePrices1126.mjs).
+    const at = (r: { href: string; sortPrice: number }) => price1126(r.href) ?? amazonPrice1124(r.href) ?? r.sortPrice;
     const sorted = [...rows].sort((a, b) => at(a) - at(b));
     // Owner 2026-11-22 ("put the ducks designs together ..."): only ties may move, a same-brand same-design row next to
     // its group (src/test/giftGuideSameDesignTogether1122.test.ts); the prices in order and the rows are exactly these.
@@ -308,6 +312,12 @@ describe("her ShopMy saves for Him and Kids (11-21)", () => {
         }
         const p = page.find((x) => x.href === r.href);
         expect(p, r.name).toBeDefined();
+        // A price that changed on 11-26 (guides audit 1126) shows that read and day.
+        if (price1126(r.href) !== undefined) {
+          expect([p?.price, p?.priceAt], r.name).toEqual([price1126(r.href), PRICES_AT_1126]);
+          expect(HIM_KIDS_STORES[r.store], r.store).toBeTruthy();
+          continue;
+        }
         expect(p?.price, r.name).toBe(r.price);
         // A daily re-check at this exact price moves the day forward (scripts/giftGuidePriceRecheck.mjs); nothing else does.
         expect(p?.priceAt, r.name).toBe(recheckedPriceAt(r.href, r.price, slug === "kids" && KIDS_PLAY_1122.some((x) => x.href === r.href) ? "2026-11-22" : HIM_KIDS_PRICE_AT));

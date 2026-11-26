@@ -160,7 +160,10 @@ describe("H4: every item says tap to buy: its photo and name are the link", () =
       expect(a.contains(li.querySelector("[data-gift-heart]"))).toBe(false);
       expect(li.querySelector(".gg-shop-btn, [data-gift-shop]")).toBeNull();
     }
-    expect(rows.some((li) => /\bShop\b/.test(li.textContent ?? ""))).toBe(false);
+    // Visible text only: a store named "TikTok Shop" is read out in the row's screen-reader "(On TikTok Shop)" note, which is
+    // not a Shop button (lander 11-26).
+    const visible = (li: Element) => { const c = li.cloneNode(true) as Element; c.querySelectorAll(".sr-only").forEach((n) => n.remove()); return c.textContent ?? ""; };
+    expect(rows.some((li) => /\bShop\b/.test(visible(li)))).toBe(false);
   });
 });
 

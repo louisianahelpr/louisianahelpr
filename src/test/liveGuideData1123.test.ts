@@ -250,6 +250,8 @@ describe("vercel.json: CORS only on the data path", () => {
   it("no other rule sends a CORS header", () => {
     const cors = headers.filter((h) => h.headers.some((x) => /^access-control-/i.test(x.key)));
     expect(headers.length).toBeGreaterThan(5);
-    expect(cors.map((h) => h.source)).toEqual(["/gift-guides/data/(.*)"]);
+    // /ota/(.*): the iOS app (origin capacitor://localhost) fetches the signed live-update manifest from www
+    // (docs/OTA_UPDATES.md); the manifest's signature, not the origin, is what the app trusts.
+    expect(cors.map((h) => h.source)).toEqual(["/gift-guides/data/(.*)", "/ota/(.*)"]);
   });
 });

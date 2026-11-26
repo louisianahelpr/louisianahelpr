@@ -2,7 +2,7 @@
  * Browse with more listings than the first answer holds (declutter_first_screen): the first cards show at once ONLY when
  * they are exactly the top of the final list. Nothing moves when the rest arrive, and no screen goes back to bones.
  *
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | const listLoading = ((items.isLoading \|\| fullListWaiting) && !preview) \|\| photos.isLoading | const listLoading = items.isLoading \|\| photos.isLoading
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | const listLoading = ((items.isLoading \|\| fullListWaiting) && (!preview \|\| others.length === 0)) \|\| photos.isLoading | const listLoading = items.isLoading \|\| photos.isLoading
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   const previewFits = !!capped && origin.status !== "pending" && previewIsTopOfList(capped.near, from, defaultView); |   const previewFits = !!capped;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |     queryFn: () => fetchPhotos(others.map((i) => i.id)),\n    enabled: others.length > 0,\n    placeholderData: keepPreviousData, |     queryFn: () => fetchPhotos(others.map((i) => i.id)),\n    enabled: others.length > 0,
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |       if (next.toString() !== params.toString()) setParams(next, { replace: true, preventScrollReset: true }); |

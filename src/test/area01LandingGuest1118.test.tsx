@@ -46,7 +46,7 @@
  * @mutate src/pages/info/legal/LegalChrome.tsx |         : "rounded-[20px] border border-border bg-muted/40 px-4 py-3 flex items-center justify-between gap-3" |         : "rounded-[20px] bg-muted px-4 py-3 flex items-center justify-between gap-3"
  * @mutate src/lib/supportTopics.ts |     messagePlaceholder: "Tell us what happened.", |     messagePlaceholder: "How can our team help you today?",
  * @mutate src/pages/info/legal/LegalTabBar.tsx | rounded-full text-ds-13 font-sans | rounded-full text-ds-11 sm:text-ds-13 font-sans
- * @mutate src/components/landing/SectionsShowcase.tsx | className="grid grid-cols-2 justify-items-center sm:flex | className="flex
+ * @mutate src/components/landing/SectionsShowcase.tsx | className="flex flex-wrap items-center justify-center gap-x-5 | className="grid grid-cols-2 justify-items-center sm:flex sm:flex-wrap items-center justify-center gap-x-5
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

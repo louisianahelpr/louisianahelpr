@@ -462,7 +462,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/DeclutterHomeView.tsx |         { value: "free", label: "Free", labelKey: "decl.tab.free" },\n |
   // @mutate src/components/declutter/DeclutterHomeView.tsx |               : view === "free" ? <FreeView userId={user.id} /> |               : view === "free" ? <WantedView />
   // @mutate src/components/declutter/DeclutterFreeView.tsx | const FREE_ONLY = { ...NO_FILTERS, freeOnly: true }; | const FREE_ONLY = { ...NO_FILTERS };
-  // @mutate src/components/declutter/DeclutterFreeView.tsx | nearestFirst(items.data ?? [], from, null) | nearestFirst((items.data ?? []).filter((i) => i.seller_id !== userId), from, null)
+  // @mutate src/components/declutter/DeclutterFreeView.tsx | const theirs = (items.data ?? []).filter((i) => i.seller_id !== userId); | const theirs = items.data ?? [];
   // @mutate src/components/declutter/DeclutterHomeView.tsx | const MINE_TABS_FREE = [...MINE_TABS, "free"] as const; | const MINE_TABS_FREE = [...MINE_TABS] as const;
   it("the Free tab lists the live free items, never your own (owner 11-25, #40), and says so when there are none", async () => {
     state.live = [

@@ -40,7 +40,7 @@ interface RouteRow { url: string; personas: string[]; redirect: boolean }
 
 // A planted shape defect: Login's skeleton card 32px lower moves its
 // card bone below the loaded card at both widths.
-// @mutate src/components/LoginRouteSkeleton.tsx | <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6"> | <div className="liquid-glass mt-8 p-5 sm:p-6 lg:p-8 space-y-6">
+// @mutate src/components/LoginRouteSkeleton.tsx | <div className="liquid-glass auth-card p-5 sm:p-6 lg:p-8 space-y-6"> | <div className="liquid-glass auth-card mt-8 p-5 sm:p-6 lg:p-8 space-y-6">
 
 // @two-way e2e/prod-audit/skeleton-shape.spec.ts:KNOWN_SHAPES entries that now match: delete them
 // Filed in docs/OPEN.md as the skeleton-shape-known item (from Q201): each looked at (skeleton + loaded frame) and recorded

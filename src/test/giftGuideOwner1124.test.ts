@@ -238,7 +238,7 @@ const STEALS: [string, string, string, number, number, string][] = [
 const OWNER_1126: [string, string, string, number, number, string][] = [
   // Owner's "Little Boys" ad picks + Hatchin' Yoshi 11-26 (Walmart Creator; Creator search cards ~1:30-2:45 AM CT).
   ["kids", wm("4ArzYuN"), "store-walmart", 6, 29.99, "Warmies 13-Inch Weighted Lavender Alligator Plush"],
-  ["kids", wm("4CtvOE4"), "store-walmart", 6, 99.98, "Neche 12V LED Bumper Car with Remote, Blue"],
+  ["kids", wm("4zNrkFI"), "store-walmart", 6, 90.6, "Neche 12V LED Bumper Car with Remote, Blue"],
   ["kids", wm("4tpKHTF"), "store-walmart", 6, 22.49, "Huge Wave RC Dinosaur Monster Truck with Spray and Lights"],
   ["kids", wm("4tjAatf"), "store-walmart", 22, 15, "Creativity for Kids Sensory Bin: Construction Zone"],
   ["kids", wm("3X0EkKw"), "store-walmart", 6, 22.94, "Rirool Kids Tool Set with Toy Drill and Toolbox"],

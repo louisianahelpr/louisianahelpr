@@ -331,7 +331,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7602;
+				CURRENT_PROJECT_VERSION = 8801;
 				DEVELOPMENT_TEAM = P85MCK558V;
 				INFOPLIST_FILE = App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Louisiana Helpr";
@@ -341,7 +341,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.5;
+				MARKETING_VERSION = 1.0.6;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Helpr;
 				PRODUCT_NAME = "Louisiana Helpr";
@@ -358,7 +358,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 7602;
+				CURRENT_PROJECT_VERSION = 8801;
 				DEVELOPMENT_TEAM = P85MCK558V;
 				INFOPLIST_FILE = App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Louisiana Helpr";
@@ -368,7 +368,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.5;
+				MARKETING_VERSION = 1.0.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.Helpr;
 				PRODUCT_NAME = "Louisiana Helpr";
 				PROVISIONING_PROFILE = "68448fe9-65b4-45d5-82c6-73b7f8ecd4cc";

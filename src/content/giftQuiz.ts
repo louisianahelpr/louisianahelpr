@@ -113,6 +113,8 @@ const ADULT_TYPE_TAGS: Record<string, QuizInto[]> = {
   // tracker are gadgets; a smartwatch is a gadget for workouts; a pizza oven is kitchen, out in the yard.
   "personal-fan": ["tech"], "power-bank": ["tech"], "travel-adapter": ["tech"], earbuds: ["tech"], headphones: ["tech"],
   tracker: ["tech"], smartwatch: ["tech", "fitness"], "pizza-oven": ["kitchen", "outdoors"],
+  // Her owner pick 11-26 (scripts/giftGuideSteals1124.mjs HER_OWNER_1126_ROWS): a retro record player is a gadget for a cozy night in.
+  "record-player": ["tech", "cozy"],
   // Him batch 1 of her Nov 19 pins (11-22): a fire pit and duck calls go outdoors.
   "fire-pit": ["outdoors"], "duck-call": ["outdoors"],
   // Him batch 2: a nugget ice maker is kitchen.

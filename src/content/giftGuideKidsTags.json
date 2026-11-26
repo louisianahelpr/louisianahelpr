@@ -1835,6 +1835,126 @@
    "name": "Discovery Mindblown DIY Arm Blaster",
    "gender": "everyone",
    "list": "kids"
+  },
+  "walmrt.us/48FzF3e": {
+   "name": "Barbie Skipper Babysitters Inc. Stroller Playset",
+   "gender": "everyone",
+   "ageMin": 3,
+   "ageSource": "walmart.com/ip/17797505706 listing, read 2026-11-26: Age range 3 years & Up",
+   "list": "kids"
+  },
+  "walmrt.us/3VPDWOv": {
+   "name": "Barbie Dream Besties Weekend Getaway Teresa Doll",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageSource": "walmart.com/ip/18959412579 listing, read 2026-11-26: Age range 4 years & Up",
+   "list": "kids"
+  },
+  "walmrt.us/48BMjAa": {
+   "name": "Barbie Ice Cream Shop Playset",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 12,
+   "ageSource": "walmart.com/ip/320737977 listing, read 2026-11-26: Age range 4 - 12 Years",
+   "list": "kids"
+  },
+  "walmrt.us/4AaKztP": {
+   "name": "Barbie Baby Doctor Playset",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 12,
+   "ageSource": "walmart.com/ip/17675201845 listing, read 2026-11-26: Age range 4 - 12 Years",
+   "list": "kids"
+  },
+  "walmrt.us/3X6iWU1": {
+   "name": "Barbie Dream Besties Weekend Getaway Malibu Doll",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageSource": "walmart.com/ip/18987607837 listing, read 2026-11-26: Age range 4 years & Up",
+   "list": "kids"
+  },
+  "walmrt.us/4jeOSgi": {
+   "name": "Barbie Newborn Pets Playset with Color-Change Puppies",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 12,
+   "ageSource": "walmart.com/ip/282037680 listing, read 2026-11-26: Age range 4 - 12 Years",
+   "list": "kids"
+  },
+  "walmrt.us/4tjylwp": {
+   "name": "Barbie Stroll & Play Pups Playset",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 12,
+   "ageSource": "walmart.com/ip/815252947 listing, read 2026-11-26: Age range 4 - 12 Years",
+   "list": "kids"
+  },
+  "walmrt.us/4kBxapN": {
+   "name": "Barbie Skipper Babysitters Inc. Bathtub Playset",
+   "gender": "everyone",
+   "ageMin": 3,
+   "ageSource": "walmart.com/ip/17797655278 listing, read 2026-11-26: Age range 3 Years & Up",
+   "list": "kids"
+  },
+  "walmrt.us/4zGSMVq": {
+   "name": "Barbie A Touch of Magic Malibu Doll with 2 Fantasy Pets",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 12,
+   "ageSource": "walmart.com/ip/5309881409 listing, read 2026-11-26: Age range 4 - 12 Years",
+   "list": "kids"
+  },
+  "walmrt.us/49hrhqI": {
+   "name": "Barbie Snowboarder Doll with Color-Change Snowboard",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 12,
+   "ageSource": "walmart.com/ip/17704462372 listing, read 2026-11-26: Age range 4 - 12 Years",
+   "list": "kids"
+  },
+  "walmrt.us/4fr3Uys": {
+   "name": "Barbie Malibu Camping Doll Set with Puppy",
+   "gender": "everyone",
+   "ageMin": 4,
+   "ageMax": 12,
+   "ageSource": "walmart.com/ip/902424093 listing, read 2026-11-26: Age range 4 - 12 Years",
+   "list": "kids"
+  },
+  "walmrt.us/4tiOeD6": {
+   "name": "FunMagic Magnetic Tiles Building Set",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/3Xx5Qzj": {
+   "name": "Sendida Kids Washable Makeup Kit, 54 Pieces",
+   "gender": "girls",
+   "genderSource": "walmart.com/ip/379345756 listing title, read 2026-11-26: Sendida Kids Makeup Kit for Girl Gifts, 54PCS ... Little Girls Princess Make Up Toys for 4 5 6 7 8 9 Year Old Girl",
+   "list": "kids"
+  },
+  "walmrt.us/4A8gR8F": {
+   "name": "Bandai Movie Monster Series Chibi Godzilla Figure",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4B0cOLP": {
+   "name": "Beast Kingdom Dynamic 8ction Heroes DC The Flash Figure",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4ja2TvF": {
+   "name": "Usagi Yojimbo x TMNT Leonardo 7\" Figure, Summer Edition (1 of 750)",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4krstyF": {
+   "name": "Madame Alexander 19\" Newborn Nursery Baby Doll, Little Sweetheart",
+   "gender": "everyone",
+   "list": "kids"
+  },
+  "walmrt.us/4kxFTcw": {
+   "name": "Madame Alexander 8\" Library Chic Collectible Doll",
+   "gender": "everyone",
+   "list": "kids"
   }
  }
 }

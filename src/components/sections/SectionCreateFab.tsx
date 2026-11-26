@@ -55,7 +55,7 @@ function useFabClearance(on: boolean) {
  */
 export const END_FOLD_PX = 320;
 /** How far the element scrolls before its end: scrollHeight - scrollTop - clientHeight (0 for one that cannot scroll). */
-export function scrollLeft(el: Pick<Element, "scrollHeight" | "scrollTop" | "clientHeight">): number {
+function scrollLeft(el: Pick<Element, "scrollHeight" | "scrollTop" | "clientHeight">): number {
   return Math.max(0, el.scrollHeight - el.scrollTop - el.clientHeight);
 }
 /** The list's end is on screen (a laid-out panel only: one with no height, as before layout, is not "at its end"). */

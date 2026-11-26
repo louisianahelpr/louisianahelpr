@@ -69,7 +69,7 @@ export function SaverOfferLine({ item, saves, lastSend, autoPct }: { item: Declu
  * opens a sheet of 10 / 15 / 20% and Turn off. While on, each member who saves the listing gets one private offer at
  * once (declutter_set_auto_liker_offer + the server's save trigger, 20261126002822).
  */
-export function AutoLikerOfferRow({ item, pct }: { item: DeclutterItem; pct: number | null }) {
+function AutoLikerOfferRow({ item, pct }: { item: DeclutterItem; pct: number | null }) {
   const [open, setOpen] = useState(false);
   return (
     <>

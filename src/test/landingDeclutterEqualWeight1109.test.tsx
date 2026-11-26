@@ -132,6 +132,7 @@ describe("owner #7: the landing gives Declutter equal weight below the hero", ()
   it("the close names Declutter too, in the landing's verbs", () => {
     render(<MemoryRouter><TrustAndJoin /></MemoryRouter>);
     const starts = within(screen.getByTestId("landing-join-starts")).getAllByRole("link").map((a) => a.textContent);
-    expect(starts).toEqual(["Browse jobs", "Post a job", "Shop Declutter", "Sell something"]);
+    // Owner 2026-11-25 (phone audit #41): Browse jobs / Shop Declutter live on the section cards only; no repeats here.
+    expect(starts).toEqual(["Post a job", "Sell something"]);
   });
 });

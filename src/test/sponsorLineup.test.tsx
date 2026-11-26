@@ -46,7 +46,9 @@ import { blankComments } from "./helpers/blankNonCode";
  * then the Desktop tracker of 2026-11-23 6:26 PM (data/sponsors.js; Placements-1123.md Rounds 1-4): RYSE off Dec 2, 5, 6, 7,
  * 12, 16, 18, 20, 21, 22 (-10; 2 cases on each of its 10 days), Faith & Fire's t-shirt dropped, and Artivism, Victoria Nicole,
  * Kart Ranch, Adagio Teas, Adage Pilates, SEEN and Teleflora placed (+7); Popsy Clothing (Dec 20) is public-off, 164
- * (src/test/sponsorLineupSync1123.test.tsx).
+ * (src/test/sponsorLineupSync1123.test.tsx);
+ * then the Desktop tracker of Thu 2026-11-26 1:56 AM: Cure Hydration (Dec 5, credited as a sponsor, owner 11-26), Fleurish
+ * Forever (Dec 16) and Escape My Room (Dec 22) placed (+3), 167 (src/test/sponsorLineupSync1126.test.tsx).
  * (owner rule 2026-11-18: nothing stale anywhere). Drift check against the tracker
  * itself: `node scripts/check-25days-lineup.mjs` (manual; the tracker lives on the owner's Desktop, not in CI).
  */
@@ -55,7 +57,7 @@ const FINAL: Record<number, string[]> = {
   2: ["Texas Beard Company", "World Ballet Company: The Nutcracker", "Cher Bebe Embroidery", "Wicks NOLA Candle Company", "Suzi Marques Photography", "Dupuy's Abbeville", "Wanderlust by Abby"],
   3: ["Tevin Lewis, District 2 Alderman", "RYSE", "Crabtrap Functional Fitness", "Bake & Brush", "Everyday Dose", "Birdwell's", "Suzi Marques Photography"],
   4: ["K18 Hair", "RYSE", "Monarch Books (Baton Rouge)", "Kate McLeod", "Tays Sweet Shop", "Jessica Lanham Photography"],
-  5: ["Oyu Botanica", "Breads and Sweets by Babs", "FELCO North America", "AllWays Lounge & Cabaret (New Orleans)", "Jessica Lanham Photography", "SEEN"],
+  5: ["Oyu Botanica", "Breads and Sweets by Babs", "FELCO North America", "AllWays Lounge & Cabaret (New Orleans)", "Jessica Lanham Photography", "SEEN", "Cure Hydration"],
   6: ["IOKA Skin+Science", "Mystic Forests Nursery", "homerunPET", "Perfectly Planned Events", "Jessica Lanham Photography", "Haylie Rudisill · Custom wreath sashes", "Hair Fashion and Spa (Opelousas)"],
   7: ["Ace Bungee Fitness", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Suzi Marques Photography", "Cat 5 Fishing Charters (Lake Charles)", "Ethan's Closet Children's Boutique & Little Feet"],
   8: ["RYSE", "Timeless Skin Care", "Written on the River", "Tays Sweet Shop", "Active Beauty", "Candle Bloom Confections", "God's Country RV Resort"],
@@ -66,13 +68,13 @@ const FINAL: Record<number, string[]> = {
   13: ["SRI Labs", "RYSE", "The Crab Man Plus", "Faulk's Game Call Co.", "Cajun Belle Studio", "Hello Darlin'"],
   14: ["Crew Dog", "Aeva Beauty", "Deming Delights", "The Sculpt Society", "Everyday Dose", "Rock Bottom Golf", "Wildcat Brothers Distilling"],
   15: ["RYSE", "Zydeco Chop Chop", "Sky & Sol", "Cat Lady / CatLadyBox", "Whimsies from Within", "Britt Creates"],
-  16: ["GoodWolf Power Yoga", "Handmade By Hayli", "Tays Sweet Shop", "3 Redneck Tenors", "Forgiven Hearts", "The Charmed Page Bookstore"],
+  16: ["GoodWolf Power Yoga", "Handmade By Hayli", "Tays Sweet Shop", "3 Redneck Tenors", "Forgiven Hearts", "The Charmed Page Bookstore", "Fleurish Forever"],
   17: ["Dolly's Boutique", "LMNT", "Bayou Grace Outfitters", "Wicks NOLA Candle Company", "Mind the Skin Labs", "Accesorios Para Niñas", "Jessica Lanham Photography"],
   18: ["Boston Mints", "Basic Bee", "Saranoni", "Megan Benoit's Closet", "BIME Beauty", "Pixie Dust Biodegradable Glitter (New Orleans)"],
   19: ["Ty's Boutique Shop", "RYSE", "Hannahbelle Photography", "aosu", "Everyday Dose", "Tushbaby", "Manta Sleep"],
   20: ["Proof & Pour Wax Co.", "Tiffany Morton Cosmetic Tattooing", "Krazy Bull Kreations", "Salty Cat", "Tays Sweet Shop"],
   21: ["The Soft Life Collective", "David Rabalais", "Cajun Fiya", "Phyllis Guy Dance Center", "Ripley's Crawfish", "Wanderlust by Abby", "Sweet Bee Organics"],
-  22: ["LMNT", "Botanical Nail and Skin Studio", "Bashi", "Barclell Photography", "Ripley's Crawfish", "Wicks NOLA Candle Company", "Chattanooga Beard Co."],
+  22: ["LMNT", "Botanical Nail and Skin Studio", "Bashi", "Barclell Photography", "Ripley's Crawfish", "Wicks NOLA Candle Company", "Chattanooga Beard Co.", "Escape My Room"],
   23: ["Bashi", "Jaboom Baits", "Hilma", "Mary Kay", "Arey", "Faith & Fire BBQ", "Victoria Nicole Fine Art Portraits"],
   24: ["LMNT", "Tays Sweet Shop", "Tufted Artworks", "Bashi", "Playtopia Lafayette", "Summar T. Photography", "Kart Ranch"],
   25: ["Proof & Pour Wax Co.", "Bashi", "Mind the Skin Labs", "HOTWORX Denham Springs", "Grand Kyiv Ballet: Swan Lake (Symphony of Lights)", "Adagio Teas", "Teleflora"],
@@ -88,9 +90,9 @@ describe("the final lineup", () => {
     const got = Object.fromEntries(days.map((d) => [d.day, d.partners.map((p) => p.brand)]));
     expect(got).toEqual(FINAL);
     for (const d of days) for (const p of d.partners) expect(p.prize.trim().length, `Dec ${d.day} ${p.brand} prize`).toBeGreaterThan(2);
-    // 164 cards (2026-11-23 sync, see FINAL); before it, 167: the tracker export of 2026-11-22 minus the two public-off sponsors, our own Dec 25 gift card and Boston Mints' Dec 11 + 21 glosses (owner 2026-11-22; 2026-11-19: show the
+    // 167 cards (2026-11-26 sync, see FINAL); 164 after the 2026-11-23 sync; before it, 167: the tracker export of 2026-11-22 minus the two public-off sponsors, our own Dec 25 gift card and Boston Mints' Dec 11 + 21 glosses (owner 2026-11-22; 2026-11-19: show the
     // full sponsor list), and no brand twice on one day (each partner's row is keyed by its brand).
-    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(164);
+    expect(days.reduce((n, d) => n + d.partners.length, 0)).toBe(167);
     for (const d of days) expect(new Set(d.partners.map((p) => p.brand)).size, `Dec ${d.day}`).toBe(d.partners.length);
   });
 
@@ -126,7 +128,7 @@ describe("the final lineup", () => {
     expect(tileCount(NO_DB, 12)).toBe(7);
     expect(tileCount(NO_DB, 1)).toBe(6);
     expect(tileCount(NO_DB, 3)).toBe(7);
-    expect(tileCount(NO_DB, 5)).toBe(6);
+    expect(tileCount(NO_DB, 5)).toBe(7); // Cure Hydration on (2026-11-26)
     expect(tileCount(NO_DB, 10)).toBe(6);
     expect(tileCount({ dayCounts: { 2: 9 } }, 2)).toBe(9); // a higher sign-up count wins (Dec 2 lists 6 since RYSE left it, 2026-11-23)
     render(<ClaimSection state={NO_DB} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);

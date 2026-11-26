@@ -46,7 +46,12 @@ export const sponsorRowOrder = (a, b) =>
   (SPONSOR_ORDER.value[b.name] ?? 0) - (SPONSOR_ORDER.value[a.name] ?? 0) ||
   a.name.localeCompare(b.name, "en", { sensitivity: "base" });
 /** Logos drawn white on clear (INDEX.md: "use on a dark background"): their circle is dark. */
-const DARK_LOGOS = new Set(["Everyday Dose", "3 Redneck Tenors", "Chattanooga Beard Co."]);
+const DARK_LOGOS = new Set(["Everyday Dose", "3 Redneck Tenors", "Chattanooga Beard Co.", "Adagio Teas"]);
+/**
+ * Saved files that are not a logo: Victoria Nicole Fine Art Portraits' only image is a dark sample shoot (owner's call,
+ * 2026-11-24: text badge, no logo), so her tile keeps its initials.
+ */
+const NOT_A_LOGO = new Set(["Victoria Nicole Fine Art Portraits"]);
 /**
  * Logos read from the sponsor's own site instead of the saved file (the saved SVGs draw cropped or tiny through Quick
  * Look): their site's own logo or share image (logos-from-socials rule).
@@ -154,7 +159,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const slug = sponsorSlug(brand);
     if (rows.some((r) => r.slug === slug)) continue; // HOTWORX Baton Rouge + Denham Springs: one logo, one tile.
     if (NOT_CONFIRMED.has(shortName(brand))) continue; // owner 11-21: details not all confirmed yet
-    const file = logoFor(brand, index, logoFiles);
+    const file = NOT_A_LOGO.has(brand) ? undefined : logoFor(brand, index, logoFiles);
     // Else the Small Business Saturday page's own logo for that sponsor (public/gift-guides/small-biz/<slug>.*).
     const small = smallBiz.find((b) => fold(shortName(b.name)).startsWith(fold(shortName(brand)).slice(0, 8)) || fold(shortName(brand)).startsWith(fold(shortName(b.name))));
     const smallFile = small && smallLogos.find((f) => f.replace(/\.[a-z]+$/i, "") === small.slug);

@@ -42,6 +42,13 @@ const NOTE_PARENS = [
   /\s*\([^)]*sign-up form\)/gi,
   // Owner 2026-11-22: "(ONE prize; owner 11-22)" / "(one prize; owner 11-22: keep all 3 together ...)" are planning notes.
   /\s*\(one prize\b[^)]*\)/gi,
+  // 2026-11-26 sync: "(the ShopMy gifted products, in hand)" and "; owner 11-25: use it as a prize" (Cure Hydration) and
+  // ". Earlier: mug or tile" (Written on the River) are planning notes, not the prize.
+  /\s*\([^)]*\bin hand\)/gi,
+  /\s*;\s*owner \d{1,2}-\d{1,2}\b.*$/gi,
+  /\.\s*Earlier:.*$/gi,
+  // A street address inside a parenthetical ("(New Orleans, 1152 Camp St)" -> "(New Orleans)"): the town is enough.
+  /,\s*\d+ [A-Z][\w.]*(?: [A-Z][\w.]*)*(?=\))/g,
 ];
 /**
  * Owner 2026-11-19: the public lineup shows business names, except these three sponsors, who show by their own name

@@ -1439,7 +1439,9 @@
     "Artivism Dance Theatre",
     "Victoria Nicole Fine Art Portraits",
     "Kart Ranch",
-    "Adage Pilates Centre"
+    "Adage Pilates Centre",
+    "Escape My Room",
+    "Fleurish Forever"
    ]
   },
   "National Brands": {
@@ -1487,7 +1489,8 @@
     "Forgiven Hearts",
     "RoseMae Eimear Creations",
     "SEEN",
-    "Teleflora"
+    "Teleflora",
+    "Cure Hydration"
    ]
   }
  },
@@ -1969,6 +1972,21 @@
    "gift": "Flower gift code (free shipping)",
    "href": "https://www.teleflora.com/",
    "image": "https://www.louisianahelpr.com/gift-guides/sponsor-picks/teleflora-logo.webp"
+  },
+  "Cure Hydration": {
+   "gift": "Cure Hydration gift pack",
+   "href": "https://www.facebook.com/curehydration/",
+   "image": "https://www.louisianahelpr.com/gift-guides/sponsor-picks/cure-hydration-logo.webp"
+  },
+  "Escape My Room": {
+   "gift": "Escape room for 4 players, New Orleans",
+   "href": "https://www.facebook.com/escapemyroom",
+   "image": "https://www.louisianahelpr.com/gift-guides/sponsor-picks/escape-my-room-logo.webp"
+  },
+  "Fleurish Forever": {
+   "gift": "Dance class for 2, Scott",
+   "href": "https://www.facebook.com/fleurishforeverllc",
+   "image": "https://www.louisianahelpr.com/gift-guides/sponsor-picks/fleurish-forever-logo.webp"
   }
  }
 }

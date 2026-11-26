@@ -98,6 +98,10 @@ export const SPONSOR_GIFT_TYPES: Readonly<Record<string, SponsorGiftType>> = {
   "Adage Pilates Centre": "Session",
   "SEEN": "Gift set",
   "Teleflora": "Gift card",
+  // 25 Days sync 2026-11-26 (Cure Hydration credited as a sponsor, owner 11-26; Escape My Room + Fleurish Forever placed)
+  "Cure Hydration": "Gift set",
+  "Escape My Room": "Gift card",
+  "Fleurish Forever": "Gift card",
 };
 
 /** The sponsors guide's label for a row with no price shown, or undefined (a row with a price, or any other guide). */

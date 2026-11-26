@@ -90,6 +90,17 @@ const createsNewView = (code: string, t: string, earlier: { code: string }[]) =>
   new RegExp(String.raw`\bcreate\s+(?:or\s+replace\s+)?view\s+(?:public\.)?"?${t}"?\b`, "i").test(code) &&
   !earlier.some((f) => new RegExp(String.raw`\b${t}\b`, "i").test(f.code));
 
+/** Per-file facts the narrowing scan asks of every earlier migration, computed once. */
+const PROBES = new WeakMap<File, { lower: string; allTables: boolean }>();
+function probe(f: File): { lower: string; allTables: boolean } {
+  let p = PROBES.get(f);
+  if (!p) {
+    p = { lower: f.code.toLowerCase(), allTables: /all\s+tables\s+in\s+schema/i.test(f.code) };
+    PROBES.set(f, p);
+  }
+  return p;
+}
+
 /** Does migration `idx` take away a privilege `authenticated` held on any table? Returns those tables. */
 function narrowedBy(idx: number, files: File[] = ALL): string[] {
   const m = files[idx];
@@ -102,7 +113,12 @@ function narrowedBy(idx: number, files: File[] = ALL): string[] {
     // A table this migration creates has no older reader to strand.
     if (createsTable(m.code, t) || createsNewView(m.code, t, files.slice(0, idx))) continue;
     const word = new RegExp(String.raw`\b${t}\b|all\s+tables\s+in\s+schema`, "i");
-    const prior = files.slice(0, idx).filter((f) => word.test(f.code)).map((f) => ({ name: f.name, sql: f.code }));
+    // Same result as word.test(f.code), cheaper: a file without the table's name
+    // (any case) or ALL TABLES IN SCHEMA cannot match (2026-11-25: CI hit 20 s).
+    const prior = files
+      .slice(0, idx)
+      .filter((f) => probe(f).allTables || (probe(f).lower.includes(t) && word.test(f.code)))
+      .map((f) => ({ name: f.name, sql: f.code }));
     const before = replayTablePrivileges(prior, t, "authenticated");
     const after = replayTablePrivileges([...prior, { name: m.name, sql: m.code }], t, "authenticated");
     const lost = (["SELECT", "INSERT", "UPDATE", "DELETE"] as Priv[]).some(

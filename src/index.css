@@ -3159,8 +3159,8 @@ button,
    shadow and no side padding, so the form uses the full width under the tabs. From 480px it is the card again. */
 @media (max-width: 479px) {
   .liquid-glass.auth-card {
-    border-color: transparent;
-    box-shadow: none;
+    border-color: transparent !important;
+    box-shadow: none !important; /* outranks T2's !important hairline ring (.liquid-glass, below) */
     padding-left: 0;
     padding-right: 0;
   }

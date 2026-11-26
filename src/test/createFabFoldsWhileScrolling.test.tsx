@@ -6,6 +6,11 @@
  *
  * @mutate src/components/sections/SectionCreateFab.tsx |       else if (top - before > 4) setFolded(true); |       else if (top - before > 4) setFolded(false);
  * @mutate src/components/sections/SectionCreateFab.tsx |       {!folded && text} |       {text}
+ * @mutate src/components/sections/SectionCreateFab.tsx |   return folded \|\| atEnd; |   return folded;
+ * @mutate src/components/sections/SectionCreateFab.tsx |   return el.clientHeight > 0 && scrollLeft(el) <= END_FOLD_PX; |   return false;
+ *
+ * Phone audit 11-25 #1: the open pill sat on the END of a list ("That's every open job…") whenever the list's end was
+ * on screen. Within END_FOLD_PX of the scroll's end the pill is the round "+" too, whichever way the member scrolls.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -15,7 +20,7 @@ vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ gate: (_k: string, f: () => void) => f, gatedProps: () => ({}) }) }));
 vi.mock("@/lib/haptics", () => ({ hapticMedium: () => {}, hapticLight: () => {} }));
 
-import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
+import { END_FOLD_PX, SectionCreateFab, endNear } from "@/components/sections/SectionCreateFab";
 
 afterEach(cleanup);
 
@@ -52,6 +57,40 @@ describe("the create pill folds while scrolling down (F262)", () => {
     scrollTo(panel, 600);
     expect(fab().hasAttribute("data-folded")).toBe(true);
     scrollTo(panel, 0);
+    expect(fab().hasAttribute("data-folded")).toBe(false);
+  });
+});
+
+function panelWithGeometry(el: HTMLElement, scrollHeight: number, clientHeight: number) {
+  Object.defineProperty(el, "scrollHeight", { configurable: true, get: () => scrollHeight });
+  Object.defineProperty(el, "clientHeight", { configurable: true, get: () => clientHeight });
+}
+
+describe("the create pill folds at the end of the list (phone audit 11-25 #1)", () => {
+  it("endNear: within END_FOLD_PX of the end of a laid-out panel; never for an unlaid one", () => {
+    expect(END_FOLD_PX).toBeGreaterThan(100);
+    expect(endNear({ scrollHeight: 2000, scrollTop: 0, clientHeight: 800 })).toBe(false);
+    expect(endNear({ scrollHeight: 2000, scrollTop: 1100, clientHeight: 800 })).toBe(true);
+    expect(endNear({ scrollHeight: 900, scrollTop: 0, clientHeight: 800 })).toBe(true); // a short list: its end is on screen
+    expect(endNear({ scrollHeight: 0, scrollTop: 0, clientHeight: 0 })).toBe(false);
+  });
+
+  it("scrolling UP near the end keeps the round +; scrolling back up the list opens it again", () => {
+    render(
+      <MemoryRouter>
+        <div data-testid="panel" style={{ overflow: "auto", height: 800 }}><div style={{ height: 2000 }} /></div>
+        <SectionCreateFab section="jobs" text="Post a job" />
+      </MemoryRouter>,
+    );
+    const panel = screen.getByTestId("panel");
+    panelWithGeometry(panel, 2000, 800);
+    const fab = () => screen.getByTestId("section-create-fab");
+    scrollTo(panel, 1200); // the very end, on the way down
+    expect(fab().hasAttribute("data-folded")).toBe(true);
+    scrollTo(panel, 1100); // up a little: the end card is still on screen, so the pill stays round
+    expect(fab().hasAttribute("data-folded")).toBe(true);
+    expect(fab().textContent).not.toContain("Post a job");
+    scrollTo(panel, 500); // well up the list, on the way up: open again (F262)
     expect(fab().hasAttribute("data-folded")).toBe(false);
   });
 });

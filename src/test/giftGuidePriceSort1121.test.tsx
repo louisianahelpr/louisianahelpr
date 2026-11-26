@@ -317,7 +317,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Owner's "Little Boys" ad picks + Hatchin' Yoshi 11-26 (10, KIDS_OWNER_1126_ROWS): 5 Under $25 (RC dino truck, sensory
       // bin, tool set, bug catcher, flying orb), Warmies $29.99 and Yoshi $49.48 $25 to $50, laser tag $69.99 $50 to $75, the
       // $90.60 bumper car $75 to $100 and the $169.99 Bronco $100 and up.
-      kids: { "Stocking stuffers under $10": 46, "Under $25": 116, "$25 to $50": 45, "$50 to $75": 19, "$75 to $100": 9, "$100 and up": 30 },
+      kids: { "Stocking stuffers under $10": 46, "Under $25": 121, "$25 to $50": 47, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 31 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar

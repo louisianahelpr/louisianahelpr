@@ -1905,6 +1905,36 @@
    "age": "kids"
   },
   {
+   "id": "MVB20",
+   "name": "Hasbro Spidey and His Amazing Friends Dino-Webs Treehouse Playset",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281141",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hasbro-spidey-and-his-amazing-friends-dino-webs-treehouse-pl-jcpenney-f733ec.webp",
+   "store": "store-jcpenney",
+   "price": 52.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
+   "id": "MVB21",
+   "name": "Hasbro Spidey and His Amazing Friends Dino-Webs Crawler Vehicle",
+   "brand": "Marvel",
+   "line": "Toys and action figures for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281149",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hasbro-spidey-and-his-amazing-friends-dino-webs-crawler-vehi-jcpenney-b8e778.webp",
+   "store": "store-jcpenney",
+   "price": 37.99,
+   "priceAt": "2026-11-26",
+   "section": "Toys and action figures",
+   "sectionId": "marvel-toys-and-action-figures",
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
    "id": "MVB14",
    "name": "Marvel Legends Doctor Doom (Avengers: Doomsday) 6 in Figure",
    "brand": "Marvel",
@@ -3239,6 +3269,38 @@
    "age": "toddler"
   },
   {
+   "id": "MVB29",
+   "name": "Marvel Ghost-Spider Girls' Cosplay Hooded Tutu Dress",
+   "brand": "Marvel",
+   "line": "Clothes and pajamas for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281193",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/marvel-ghost-spider-girls-cosplay-hooded-tutu-dress-jcpenney-497635.webp",
+   "store": "store-jcpenney",
+   "price": 34.99,
+   "priceAt": "2026-11-26",
+   "section": "Clothes and pajamas",
+   "sectionId": "marvel-clothes-and-pajamas",
+   "was": 58.99,
+   "commission": 10.5,
+   "age": "kids"
+  },
+  {
+   "id": "MVB30",
+   "name": "Marvel Spider-Verse Ghost-Spider Girls' 2-Piece Tee and Leggings Set",
+   "brand": "Marvel",
+   "line": "Clothes and pajamas for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281202",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/marvel-spider-verse-ghost-spider-girls-2-piece-tee-and-leggi-jcpenney-d737a4.webp",
+   "store": "store-jcpenney",
+   "price": 19.99,
+   "priceAt": "2026-11-26",
+   "section": "Clothes and pajamas",
+   "sectionId": "marvel-clothes-and-pajamas",
+   "was": 49.99,
+   "commission": 10.5,
+   "age": "kids"
+  },
+  {
    "id": "MV50",
    "name": "Spider-Man Kids Throw Blanket, 46 x 60",
    "brand": "Marvel",
@@ -3842,6 +3904,69 @@
    "section": "Room",
    "sectionId": "marvel-room",
    "commission": 6,
+   "age": "kids"
+  },
+  {
+   "id": "MVB24",
+   "name": "Spidey and His Amazing Friends Kids Armchair",
+   "brand": "Marvel",
+   "line": "Room for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281166",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/spidey-and-his-amazing-friends-kids-armchair-jcpenney-0020f2.webp",
+   "store": "store-jcpenney",
+   "price": 39.99,
+   "priceAt": "2026-11-26",
+   "section": "Room",
+   "sectionId": "marvel-room",
+   "was": 90,
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
+   "id": "MVB33",
+   "name": "Hooded Spider-Man Wearable Blanket",
+   "brand": "Marvel",
+   "line": "Room for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281218",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/hooded-spider-man-wearable-blanket-jcpenney-4c90d2.webp",
+   "store": "store-jcpenney",
+   "price": 33,
+   "priceAt": "2026-11-26",
+   "section": "Room",
+   "sectionId": "marvel-room",
+   "commission": 10.5,
+   "age": "3+"
+  },
+  {
+   "id": "MVB34",
+   "name": "Marvel Spider-Man 6-Cubby Toy Organizer",
+   "brand": "Marvel",
+   "line": "Room for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281226",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/marvel-spider-man-6-cubby-toy-organizer-jcpenney-1110a6.webp",
+   "store": "store-jcpenney",
+   "price": 53.99,
+   "priceAt": "2026-11-26",
+   "section": "Room",
+   "sectionId": "marvel-room",
+   "was": 120,
+   "commission": 10.5,
+   "age": "kids"
+  },
+  {
+   "id": "MVB36",
+   "name": "Marvel Spider-Man Tent for Twin Loft Bed",
+   "brand": "Marvel",
+   "line": "Room for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281496",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/marvel-spider-man-tent-for-twin-loft-bed-jcpenney-773133.webp",
+   "store": "store-jcpenney",
+   "price": 75.99,
+   "priceAt": "2026-11-26",
+   "section": "Room",
+   "sectionId": "marvel-room",
+   "was": 170,
+   "commission": 10.5,
    "age": "kids"
   },
   {
@@ -4462,6 +4587,22 @@
    "sectionId": "marvel-big-gifts",
    "commission": 4,
    "age": "kids"
+  },
+  {
+   "id": "MVB35",
+   "name": "Marvel Spider-Man Deluxe Wooden Toy Box",
+   "brand": "Marvel",
+   "line": "Big gifts for a Marvel fan.",
+   "href": "https://go.shopmy.us/p-111281227",
+   "image": "https://www.louisianahelpr.com/gift-guides/cutouts/marvel-spider-man-deluxe-wooden-toy-box-jcpenney-c0494e.webp",
+   "store": "store-jcpenney",
+   "price": 93.99,
+   "priceAt": "2026-11-26",
+   "section": "Big gifts",
+   "sectionId": "marvel-big-gifts",
+   "was": 210,
+   "commission": 10.5,
+   "age": "kids"
   }
  ],
  "skipped": [
@@ -4536,22 +4677,6 @@
    "why": [
     "Titan Black Panther (walmart.com/ip/289628364) not found in Creator product search: price and seller unconfirmed",
     "no affiliate link (www.walmart.com)",
-    "no photo"
-   ]
-  },
-  {
-   "id": "MVB20",
-   "name": "Hasbro Spidey and His Amazing Friends Dino-Webs Treehouse Playset",
-   "why": [
-    "ShopMy pin made (https://go.shopmy.us/p-111281141) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
-    "no photo"
-   ]
-  },
-  {
-   "id": "MVB21",
-   "name": "Hasbro Spidey and His Amazing Friends Dino-Webs Crawler Vehicle",
-   "why": [
-    "ShopMy pin made (https://go.shopmy.us/p-111281149) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
     "no photo"
    ]
   },
@@ -4668,23 +4793,7 @@
    "id": "MVB28",
    "name": "Sam Wilson Captain America Kids Costume",
    "why": [
-    "ShopMy pin made (https://go.shopmy.us/p-111281182) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
-    "no photo"
-   ]
-  },
-  {
-   "id": "MVB29",
-   "name": "Marvel Ghost-Spider Girls' Cosplay Hooded Tutu Dress",
-   "why": [
-    "ShopMy pin made (https://go.shopmy.us/p-111281193) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
-    "no photo"
-   ]
-  },
-  {
-   "id": "MVB30",
-   "name": "Marvel Spider-Verse Ghost-Spider Girls' 2-Piece Tee and Leggings Set",
-   "why": [
-    "ShopMy pin made (https://go.shopmy.us/p-111281202) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "ShopMy pin made (https://go.shopmy.us/p-111281182); price $37.99 re-read on jcpenney.com 11-26. HELD: the only product photo on jcpenney.com shows a child model (trending-adds-1126).",
     "no photo"
    ]
   },
@@ -4692,7 +4801,7 @@
    "id": "MVB37",
    "name": "Crocs Marvel Spider-Man Jibbitz 5-Pack",
    "why": [
-    "ShopMy pin made (https://go.shopmy.us/p-111281231) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "ShopMy pin made (https://go.shopmy.us/p-111281231); kohls.com product page read 11-26 ~3:15 PM CT in Chrome: Out of Stock (pickup and shipping not available), $11.97 sale. HELD until back in stock (trending-adds-1126).",
     "no photo"
    ]
   },
@@ -4700,7 +4809,7 @@
    "id": "MVB31",
    "name": "Little & Big Kid Boys Qualux Iron Man Costume",
    "why": [
-    "ShopMy pin made (https://go.shopmy.us/p-111281489) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
+    "ShopMy pin made (https://go.shopmy.us/p-111281489); price $51.99 re-read on jcpenney.com 11-26. HELD: the only product photo on jcpenney.com shows a child model (trending-adds-1126).",
     "no photo"
    ]
   },
@@ -4721,38 +4830,6 @@
    ]
   },
   {
-   "id": "MVB24",
-   "name": "Spidey and His Amazing Friends Kids Armchair",
-   "why": [
-    "ShopMy pin made (https://go.shopmy.us/p-111281166) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
-    "no photo"
-   ]
-  },
-  {
-   "id": "MVB33",
-   "name": "Hooded Spider-Man Wearable Blanket",
-   "why": [
-    "ShopMy pin made (https://go.shopmy.us/p-111281218) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
-    "no photo"
-   ]
-  },
-  {
-   "id": "MVB34",
-   "name": "Marvel Spider-Man 6-Cubby Toy Organizer",
-   "why": [
-    "ShopMy pin made (https://go.shopmy.us/p-111281226) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
-    "no photo"
-   ]
-  },
-  {
-   "id": "MVB36",
-   "name": "Marvel Spider-Man Tent for Twin Loft Bed",
-   "why": [
-    "ShopMy pin made (https://go.shopmy.us/p-111281496) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
-    "no photo"
-   ]
-  },
-  {
    "id": "MVB22",
    "name": "Monopoly Junior: Marvel Spidey and His Amazing Friends Edition",
    "why": [
@@ -4767,14 +4844,6 @@
    "why": [
     "Creator price $109.99 vs research $89.99 (LEGO 76350): price mismatch, likely not sold by Walmart",
     "no affiliate link (www.walmart.com)",
-    "no photo"
-   ]
-  },
-  {
-   "id": "MVB35",
-   "name": "Marvel Spider-Man Deluxe Wooden Toy Box",
-   "why": [
-    "ShopMy pin made (https://go.shopmy.us/p-111281227) but no product photo yet: the ShopMy pin has only the store logo, and jcpenney.com/kohls.com block page reads",
     "no photo"
    ]
   }

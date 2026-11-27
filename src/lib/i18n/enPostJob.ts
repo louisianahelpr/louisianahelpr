@@ -25,7 +25,7 @@ export const enPostJob = {
   "postJob.readyShort": "Ready",
   // Owner 11-20: the optional parts of each step, folded
   "postJob.extras.title": "Add photos and more",
-  "postJob.extras.sub": "Optional. A photo helps Helprs say yes.",
+  "postJob.extras.sub": "Optional",
   "postJob.extras.titleTrade": "Photos, and who can apply",
   "postJob.extras.subTrade": "Optional. Ask for licensed or insured Helprs, or add a photo.",
   "postJob.extras.onePhoto": "1 photo added",

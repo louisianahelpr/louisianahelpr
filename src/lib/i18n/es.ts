@@ -454,7 +454,7 @@ export const es: Record<MsgKey, string> = {
   "postJob.readyToPost": "Listo para publicar",
   "postJob.readyShort": "Listo",
   "postJob.extras.title": "Agregar fotos y más",
-  "postJob.extras.sub": "Opcional. Una foto ayuda a que los Helprs digan que sí.",
+  "postJob.extras.sub": "Opcional",
   "postJob.extras.titleTrade": "Fotos, y quién puede postularse",
   "postJob.extras.subTrade": "Opcional. Pida Helprs con licencia o seguro, o agregue una foto.",
   "postJob.extras.onePhoto": "1 foto agregada",

@@ -25,3 +25,5 @@ export interface SourceDeal {
 }
 export function buildDeals(rows: SourceDeal[], cutouts?: Record<string, string>): Deal[];
 export function dealsText(deals: Deal[]): string;
+export const DEAL_TEXT_MAX: number;
+export function dealTextProblem(r: Pick<SourceDeal, "deal" | "brand" | "code">): string;

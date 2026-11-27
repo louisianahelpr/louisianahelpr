@@ -11,7 +11,7 @@ import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
-import { CARD_CSS, CARD_WORDS, CodeCards, CodeChip, codeCardCount, SaleCards, codesOn, salesOn } from "./GiftGuideDealCards";
+import { CARD_CSS, CARD_WORDS, CappedGrid, CodeCards, CodeChip, codeCardCount, SaleCards, codesOn, salesOn } from "./GiftGuideDealCards";
 import { STORE_CODES, dealDayParts, setStoreCodes } from "@/content/giftGuideDealCounts";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
 import { FeatureCta, FeatureCtaLink } from "./SmallBizFeatureCta";
@@ -46,15 +46,16 @@ const DEALS_CSS = `
 .gg-deal-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media (min-width:640px){.gg-deal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (min-width:1100px){.gg-deal-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.gg-deal{display:flex;flex-direction:column;gap:6px;min-width:0;padding:10px;border:1px solid var(--gg-line);border-radius:14px;background:hsl(var(--card));color:var(--gg-ink)}
-.gg-deal-photo{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;border-radius:10px;background:#fff;overflow:hidden;isolation:isolate;text-decoration:none}
+.gg-deal{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;padding:12px;border:1px solid var(--gg-line);border-radius:14px;background:hsl(var(--card));color:var(--gg-ink)}
+.gg-deal-photo{display:flex;align-items:center;justify-content:center;height:120px;flex:none;border-radius:10px;background:#fff;overflow:hidden;isolation:isolate;text-decoration:none}
 .gg-deal-photo img{width:100%;height:100%;object-fit:contain;padding:8px;mix-blend-mode:multiply}
 .gg-deal-photo b{font-size:15px;color:var(--gg-muted);padding:8px;text-align:center}
 .gg-deal-brand{margin:2px 0 0;font-size:15px;font-weight:700;color:var(--gg-ink);overflow-wrap:anywhere}
-.gg-deal-text{margin:0;font-size:13px;line-height:1.4;color:var(--gg-ink);overflow-wrap:anywhere}
+.gg-deal-text{margin:0;font-size:14px;line-height:1.35;color:var(--gg-ink);overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
 .gg-deal-meta{margin:0;font-size:12px;color:var(--gg-muted)}
-/* Guide visual audit 1123b #3: the Top deals' offer text was 13px on a phone; 14px now (the dates stay 12px). */
-@media (max-width:767px){.gg-deal-text{font-size:14px}}
+.gg-deal>.gg-deal-meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Polish audit 1127 #17: one compact deal card (~230px on a phone, was ~375px): 12px padding, a 120px photo, the brand
+   15px/700, the offer 14px/1.35 clamped to 3 lines, the end date one 12px grey line. */
 @media (max-width:767px){.gg:has([data-gift-deals-page]) .gg-banner h1{-webkit-line-clamp:3;font-size:clamp(25px,8vw,34px);line-height:1.05}}
 .gg-deals-list{margin-top:12px}
 .gg-deal-sec{scroll-margin-top:84px}
@@ -129,11 +130,7 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
 
 /** One grid of deal cards (a store sale or a steal each), in the list's order. */
 function DealGrid({ list, today, labelledBy, data }: { list: Deal[]; today: string; labelledBy: string; data: Record<string, string> }) {
-  return (
-    <ul className="gg-deal-grid" aria-labelledby={labelledBy} {...data}>
-      {list.map((d) => <DealCard key={`${d.brand} ${d.item ?? ""} ${d.href}`} deal={d} today={today} />)}
-    </ul>
-  );
+  return <CappedGrid labelledBy={labelledBy} data={data} items={list.map((d) => <DealCard key={`${d.brand} ${d.item ?? ""} ${d.href}`} deal={d} today={today} />)} />;
 }
 
 /**

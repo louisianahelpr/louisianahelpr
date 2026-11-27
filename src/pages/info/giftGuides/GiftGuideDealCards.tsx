@@ -38,7 +38,33 @@ export const CARD_WORDS = {
   copied: "Copied",
   moreSales: (n: number) => `+${n} more`,
   moreCodes: (n: number) => `+${n} more ${n === 1 ? "code" : "codes"}`,
+  showAll: (n: number) => `Show all ${n}`,
 };
+
+/**
+ * Polish audit 1127 #17: the Black Friday page was ~30,000px on a phone ("Biggest store sales" alone has 65 cards). A deals
+ * section with more than SECTION_CAP cards shows the first SECTION_CAP and a "Show all N" text button under them; the
+ * section itself stays open (START_OPEN, owner 2026-11-22), so nothing a shopper opens starts closed.
+ */
+export const SECTION_CAP = 12;
+
+/**
+ * A deals grid: every card when SECTION_CAP or fewer, else the first SECTION_CAP showing and a "Show all N" button. The
+ * cards past the cap stay in the page (hidden by .gg-deal-grid[data-gift-capped], so their lazy photos never load until
+ * shown), so the page's words and in-page search still hold every deal.
+ */
+export function CappedGrid({ items, data, labelledBy }: { items: ReactNode[]; data: Record<string, string>; labelledBy?: string }) {
+  const [all, setAll] = useState(false);
+  const capped = !all && items.length > SECTION_CAP;
+  return (
+    <>
+      <ul className="gg-deal-grid" aria-labelledby={labelledBy} {...data} data-gift-capped={capped ? "" : undefined}>{items}</ul>
+      {capped && (
+        <InlineTextButton className="gg-show-all" onClick={() => setAll(true)} data-gift-show-all={items.length}>{CARD_WORDS.showAll(items.length)}</InlineTextButton>
+      )}
+    </>
+  );
+}
 
 
 /** The photo: the store's cutout. A store with no photo shows none (guides polish 1122 #14: its name is already the card's
@@ -133,7 +159,11 @@ function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
   const best = bestCode(codes);
   const others = codes.filter((c) => c !== best);
   const href = best.href as string;
-  const line = (c: DiscountCode) => [c.offer, DEALS_WORDS.runs(c.starts, c.expires)].filter(Boolean).join(" · ");
+  // Polish audit 1127 #93: the offer in ink like every deal card, its dates on their own 12px grey line (were one grey line).
+  const line = (c: DiscountCode) => {
+    const when = DEALS_WORDS.runs(c.starts, c.expires);
+    return <><span className="gg-card-offer">{c.offer}</span>{when && <span className="gg-card-when">{when}</span>}</>;
+  };
   return (
     <Card store={store} href={href} name={`${store}: ${best.offer}`} line={
       <>
@@ -166,20 +196,12 @@ export function CodeCards({ codes }: { codes: DiscountCode[] }) {
   // A code with no link (none today; src/test/giftGuideHolidayPolish1121c.test.tsx) is not drawn as a dead card.
   const byStore = new Map<string, DiscountCode[]>();
   for (const c of codes) if (c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]);
-  return (
-    <ul className="gg-deal-grid" data-gift-codes="">
-      {[...byStore.entries()].map(([store, list]) => <CodeCard key={store} store={store} codes={list} />)}
-    </ul>
-  );
+  return <CappedGrid data={{ "data-gift-codes": "" }} items={[...byStore.entries()].map(([store, list]) => <CodeCard key={store} store={store} codes={list} />)} />;
 }
 
 /** The store sales on `day`, one card per store. */
 export function SaleCards({ stores }: { stores: { store: string; sales: Sale[] }[] }) {
-  return (
-    <ul className="gg-deal-grid" data-gift-sales="">
-      {stores.map(({ store, sales }) => <SaleCard key={store} store={store} sales={sales} />)}
-    </ul>
-  );
+  return <CappedGrid data={{ "data-gift-sales": "" }} items={stores.map(({ store, sales }) => <SaleCard key={store} store={store} sales={sales} />)} />;
 }
 
 const SALE_LINES = 2;
@@ -211,10 +233,14 @@ export const CARD_CSS = `
 .gg-card-line{font-size:12.5px;line-height:1.4;overflow-wrap:anywhere}
 .gg-card-sales{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
 .gg-card-sale{color:var(--gg-ink);text-decoration:none}
+.gg-card-offer{color:var(--gg-ink)}
+[data-gift-codes] .gg-card-when{font-size:12px}
 .gg-card-sale:hover,.gg-card-sale:focus-visible{text-decoration:underline}
 .gg-card-when{display:block;color:var(--gg-muted);white-space:nowrap}
 .gg-card-more{min-height:44px;padding:0;border:0;background:none;color:var(--gg-olive);font-weight:700;font-size:12.5px}
 .gg-card-head{display:flex;align-items:flex-start;gap:4px;margin-top:2px}
+.gg-deal-grid[data-gift-capped]>li:nth-child(n+13){display:none}
+.gg-show-all{display:block;min-height:44px;margin:4px auto 0;padding:0 12px;border:0;background:none;color:var(--gg-olive);font-weight:700;font-size:15px;text-decoration:underline;text-underline-offset:3px}
 .gg-card-head .gg-card-store{flex:1;min-width:0;margin:0}
 .gg-store-card:not(:has(>.gg-deal-photo))>.gg-card-head{padding-right:38px}
 .gg-store-card .gg-card-store{display:flex;align-items:center;min-height:44px}
@@ -243,7 +269,7 @@ export const CARD_CSS = `
 @media (max-width:479px){
 .gg-deal-grid[data-gift-sales]{grid-template-columns:minmax(0,1fr)}
 [data-gift-sales]>.gg-store-card:has(>.gg-deal-photo){display:grid;grid-template-columns:96px minmax(0,1fr);column-gap:12px;row-gap:4px;align-content:start}
-[data-gift-sales]>.gg-store-card>.gg-deal-photo{grid-column:1;grid-row:1/span 3;align-self:start}
+[data-gift-sales]>.gg-store-card>.gg-deal-photo{grid-column:1;grid-row:1/span 3;align-self:start;height:96px}
 [data-gift-sales]>.gg-store-card:has(>.gg-deal-photo)>:is(.gg-card-head,.gg-card-line,.gg-card-actions){grid-column:2}
 [data-gift-sales]>.gg-store-card>.gg-card-head{padding-right:38px}
 }

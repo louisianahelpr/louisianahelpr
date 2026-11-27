@@ -2,7 +2,7 @@
 // @mutate src/content/giftGuideCodes.json | "dates":"From Dec 2","starts":"2026-12-02", | "dates":"From Dec 2",
 // @mutate src/content/giftGuideCodes.json | "dates":"Nov 20 – Dec 6","starts":"2026-11-20","expires":"2026-12-06", | "dates":"Nov 20 – Dec 6",
 // @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | {best.code && <CodeChip code={best.code} />} | <CodeChip code={best.code} />
-// @mutate src/content/giftGuideDeals.json | "deal":"Black Friday: 30% off sitewide, plus 20% off custom gifts" | "deal":"Beat Black Friday: 20% off custom gifts"
+// @mutate src/content/giftGuideDeals.json | "deal":"30% off sitewide; 20% off custom gifts" | "deal":"20% off custom gifts"
 // @mutate src/content/giftGuideDeals.json | "code":"LETSGO","ends":"2026-12-02" | "code":"LETSGO"
 /**
  * Money audit 2026-11-23 (~/Desktop/Louisiana Helpr Work/Gift guides and affiliate/Audit-affiliate-links-1123.md, skeptic-
@@ -62,7 +62,8 @@ describe("money audit 1123: deals codes and cards", () => {
 
   it("BaubleBar's card names the 30% sitewide event through Dec 1; Madewell's LETSGO ends Dec 2", () => {
     const bauble = dealRows().find((d) => d.brand === "BaubleBar")!;
-    expect(bauble.deal).toBe("Black Friday: 30% off sitewide, plus 20% off custom gifts");
+    // Polish audit 1127 #18: the offer only (the page names the day, the date line says Dec 1).
+    expect(bauble.deal).toBe("30% off sitewide; 20% off custom gifts");
     expect(bauble.ends).toBe("2026-12-01");
     const madewell = dealRows().find((d) => d.brand === "Madewell" && d.code === "LETSGO")!;
     expect(madewell.ends).toBe("2026-12-02");

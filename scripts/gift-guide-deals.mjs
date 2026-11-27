@@ -43,6 +43,30 @@ const host = (u) => {
   }
 };
 
+/**
+ * A store sale's text is the offer only (polish audit 1127 #18: "Black Friday" 83 times on the Black Friday page, end
+ * dates twice, codes twice, the brand twice, ELEMIS "through Cyber Monday" beside "Ends Dec 12"). The page title already
+ * names the day, the card's date line says when it ends, its chip carries the code and its heading is the brand, so the
+ * text never repeats them: no day name, no date or "through ...", not the card's own code, not the brand's name (Kohl's
+ * Cash is the reward's name), and at most DEAL_TEXT_MAX characters (the card shows 3 lines). Several offers are joined
+ * with "; " and the card shows one per line. Returns the broken rule, or "" when the text is clean. Steals (an item and
+ * its price) are not store sales and keep their own wording.
+ */
+export const DEAL_TEXT_MAX = 110;
+const DAY_NAME = /\b(black friday|cyber (monday|week|weekend|sale)|bfcm)\b/i;
+const DATE_WORDS = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.? \d{1,2}\b|\b\d{1,2}\/\d{1,2}\b|\b(through|thru|until|ends?)\b|\b(mon|tues|wednes|thurs|fri|satur|sun)day\b/i;
+const BRAND_NAMED_REWARDS = /kohl's cash/gi;
+export function dealTextProblem(r) {
+  const text = String(r.deal ?? "");
+  if (!text.trim()) return "no offer text";
+  if (DAY_NAME.test(text)) return "names the sale day (the page title says it)";
+  if (DATE_WORDS.test(text)) return "carries a date (the card's date line says it)";
+  if (r.code && text.toLowerCase().includes(String(r.code).toLowerCase())) return `repeats its code ${r.code} (the code chip shows it)`;
+  if (text.replace(BRAND_NAMED_REWARDS, "").toLowerCase().includes(String(r.brand).toLowerCase())) return "repeats the brand's name (the card's heading)";
+  if (text.length > DEAL_TEXT_MAX) return `longer than ${DEAL_TEXT_MAX} characters`;
+  return "";
+}
+
 /** The page's deals from the checked source rows; throws on a row that breaks a rule. */
 export function buildDeals(rows, cutouts = {}) {
   const perBrand = new Map();
@@ -61,6 +85,8 @@ export function buildDeals(rows, cutouts = {}) {
     if (steal && !STEAL_CATEGORIES.some((c) => c.id === r.category)) throw new Error(`gift-guide-deals: ${r.brand}: ${r.item}: unknown category ${r.category}`);
     if (steal && !(Number(r.sortPrice) > 0)) throw new Error(`gift-guide-deals: ${r.brand}: ${r.item}: a steal needs its sortPrice`);
     if (!steal) {
+      const problem = dealTextProblem(r);
+      if (problem) throw new Error(`gift-guide-deals: ${r.brand} (${r.event}): deal text ${problem}: ${r.deal}`);
       const n = (perBrand.get(r.brand) ?? 0) + 1;
       if (n > DEALS_PER_BRAND) throw new Error(`gift-guide-deals: ${r.brand}: more than ${DEALS_PER_BRAND} deals`);
       perBrand.set(r.brand, n);

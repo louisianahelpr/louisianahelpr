@@ -76,7 +76,7 @@ describe("visual audit 1122-night #4: Sales cards are one per row on a phone", (
     const phone = cards.slice(cards.indexOf("@media (max-width:479px){"));
     expect(phone).toContain(".gg-deal-grid[data-gift-sales]{grid-template-columns:minmax(0,1fr)}");
     expect(phone).toContain("grid-template-columns:96px minmax(0,1fr)");
-    expect(phone).toContain("[data-gift-sales]>.gg-store-card>.gg-deal-photo{grid-column:1;grid-row:1/span 3;align-self:start}");
+    expect(phone).toContain("[data-gift-sales]>.gg-store-card>.gg-deal-photo{grid-column:1;grid-row:1/span 3;align-self:start;height:96px}");
     const deals = read("src/pages/info/giftGuides/GiftGuideDeals.tsx");
     expect(deals).toContain(".gg-deal-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}");
     expect(deals).toContain("@media (min-width:640px){.gg-deal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}");
@@ -84,7 +84,8 @@ describe("visual audit 1122-night #4: Sales cards are one per row on a phone", (
     const rules = phone.match(/\[data-gift-sales\]/g) ?? [];
     expect(rules.length).toBeGreaterThan(3);
     expect(phone).not.toContain("[data-gift-codes]");
-    expect(read("src/pages/info/giftGuides/GiftGuideDealCards.tsx")).toContain('<ul className="gg-deal-grid" data-gift-sales="">');
+    // Polish audit 1127 #17: the Sales grid is the shared capped grid (CappedGrid), still marked data-gift-sales.
+    expect(read("src/pages/info/giftGuides/GiftGuideDealCards.tsx")).toContain('<CappedGrid data={{ "data-gift-sales": "" }}');
   });
 });
 

@@ -1081,6 +1081,8 @@ export const GAPS: Record<string, string> = {
   "src/components/notificationPreferences/constants.tsx": "false positive — constants module",
   "src/components/job-card/JobCardMetaRow.tsx": "false positive — displays a date, no control",
   "src/components/dashboard/JobCard.tsx": "false positive — displays a date, no control",
+  // Polish audit 11-27 #3: the shared job details line (a calendar ICON before the day), no control.
+  "src/components/job/JobMetaLine.tsx": "false positive — displays a date beside a calendar icon, no control",
   "src/hooks/useComboboxKeyboard.ts": "false positive — a keyboard hook; the scanner matched `<input type=\"search\">` in a comment, it renders nothing",
   "src/components/postjob/CheckoutStep.tsx": "checkboxes only (save-card, confirm-details) — the 'input×1' is a comment naming the raw `<input type=\"checkbox\">` it replaced; no typed text",
   "src/components/postjob/CheckoutGlanceCard.tsx": "false positive — a read-only summary card (moved out of CheckoutStep, Q806); the 'date/calendar' is the Calendar icon beside the When row, no control",

@@ -11,7 +11,7 @@ import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
 import { heartTapped } from "./GiftGuideHints";
 import { onAnyList, requestSaveFor } from "./saveForPeople";
 import { usePlan } from "./fun/plannerStore";
-import { CARD_CSS, CARD_WORDS, CappedGrid, CodeCards, CodeChip, codeCardCount, SaleCards, codesOn, salesOn } from "./GiftGuideDealCards";
+import { CARD_CSS, CARD_WORDS, CodeCards, CodeChip, codeCardCount, SaleCards, codesOn, salesOn } from "./GiftGuideDealCards";
 import { STORE_CODES, dealDayParts, setStoreCodes } from "@/content/giftGuideDealCounts";
 import { SmallBizGrid } from "./GiftGuideSmallBiz";
 import { FeatureCta, FeatureCtaLink } from "./SmallBizFeatureCta";
@@ -133,7 +133,11 @@ function DealCard({ deal, today }: { deal: Deal; today: string }) {
 
 /** One grid of deal cards (a store sale or a steal each), in the list's order. */
 function DealGrid({ list, today, labelledBy, data }: { list: Deal[]; today: string; labelledBy: string; data: Record<string, string> }) {
-  return <CappedGrid labelledBy={labelledBy} data={data} items={list.map((d) => <DealCard key={`${d.brand} ${d.item ?? ""} ${d.href}`} deal={d} today={today} />)} />;
+  return (
+    <ul className="gg-deal-grid" aria-labelledby={labelledBy} {...data}>
+      {list.map((d) => <DealCard key={`${d.brand} ${d.item ?? ""} ${d.href}`} deal={d} today={today} />)}
+    </ul>
+  );
 }
 
 /**

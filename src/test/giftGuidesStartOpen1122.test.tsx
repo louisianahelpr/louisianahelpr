@@ -196,12 +196,6 @@ describe("source inventory: every collapsible under the guides and the Holiday H
     const states: string[] = [];
     for (const f of all) for (const m of src(f).matchAll(/const \[(all|showAll|more|seeAll|expanded), set\w+\] = useState(?:<[^>]*>)?\(([^)]*)\)/g)) states.push(`${f}: ${m[1]} = ${m[2]}`);
     expect(states.length).toBeGreaterThan(2);
-    // The one exception, exact: polish audit 1127 #17 (owner-requested phone audit; lead brief 11-27 "sections over 12
-    // cards show 12 + 'Show all N' ... but sections stay OPEN"): a deals section over SECTION_CAP cards shows the first 12
-    // and a "Show all N" button. The section itself still starts open (the test above).
-    const CAPPED = "src/pages/info/giftGuides/GiftGuideDealCards.tsx: all = false";
-    expect(states).toContain(CAPPED);
-    expect(src("src/pages/info/giftGuides/GiftGuideDealCards.tsx")).toContain("export const SECTION_CAP = 12;");
-    expect(states.filter((s) => s !== CAPPED && !s.endsWith("= START_OPEN"))).toEqual([]);
+    expect(states.filter((s) => !s.endsWith("= START_OPEN"))).toEqual([]);
   });
 });

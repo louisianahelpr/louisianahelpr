@@ -84,8 +84,7 @@ describe("visual audit 1122-night #4: Sales cards are one per row on a phone", (
     const rules = phone.match(/\[data-gift-sales\]/g) ?? [];
     expect(rules.length).toBeGreaterThan(3);
     expect(phone).not.toContain("[data-gift-codes]");
-    // Polish audit 1127 #17: the Sales grid is the shared capped grid (CappedGrid), still marked data-gift-sales.
-    expect(read("src/pages/info/giftGuides/GiftGuideDealCards.tsx")).toContain('<CappedGrid data={{ "data-gift-sales": "" }}');
+    expect(read("src/pages/info/giftGuides/GiftGuideDealCards.tsx")).toContain('<ul className="gg-deal-grid" data-gift-sales="">');
   });
 });
 

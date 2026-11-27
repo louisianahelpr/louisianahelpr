@@ -10,7 +10,7 @@
  * thumbnail is checked, not a hand-picked few.
  *
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-list .gg-photo{border-radius:12px;background:#fff} | .gg-list .gg-photo{border-radius:12px;background:#faf6ee}
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | aspect-ratio:1/1;border-radius:10px;background:#fff; | aspect-ratio:1/1;border-radius:10px;background:#faf6ee;
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | height:120px;flex:none;border-radius:10px;background:#fff; | height:120px;flex:none;border-radius:10px;background:#faf6ee;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply} | img.gg-thumb{background:transparent;mix-blend-mode:multiply}
  * @mutate src/pages/info/giftGuides/GiftGuideView.tsx |       <Heart saved={saved} label={WISH.saveForLabel(pick.name)} |       <GiftOut href={pick.href} className="gg-shop-btn">Shop</GiftOut><Heart saved={saved} label={WISH.saveForLabel(pick.name)}
  * @mutate src/pages/info/giftGuides/GiftGuideMyList.tsx |       {heart && ( |       <Out href={item.href} className="gg-shop-btn">Shop</Out>{heart && (

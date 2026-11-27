@@ -160,7 +160,7 @@ describe("deals page: the data", () => {
 
   it("the generator sorts each section by commission, and refuses a third deal from a brand, a price, a foreign link or an untagged Amazon link", () => {
     const row = (brand: string, event: string, commission: number, extra: Partial<SourceDeal> = {}): SourceDeal => ({
-      event, brand, deal: `${brand} 30% off sitewide`, href: `https://go.shopmy.us/p-${brand}`, commission, source: `https://${brand}.com`, checked: "2026-11-21", seen: `${brand} 30% off sitewide`, ...extra,
+      event, brand, deal: "30% off sitewide", href: `https://go.shopmy.us/p-${brand}`, commission, source: `https://${brand}.com`, checked: "2026-11-21", seen: `${brand} 30% off sitewide`, ...extra,
     });
     const out = buildDeals([row("Low", "black-friday", 5), row("Cyber", "cyber-monday", 30), row("High", "black-friday", 20), row("Soon", "cyber-monday", 1, { status: "announced", starts: "2026-11-26" })]);
     expect(out.map((d) => d.brand)).toEqual(["High", "Low", "Cyber", "Soon"]);

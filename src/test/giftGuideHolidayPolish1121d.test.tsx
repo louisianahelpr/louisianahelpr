@@ -33,7 +33,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideSmallBiz.tsx |             <Out href={b.href} className="gg-sb-name-link"> |             <Out href={b.href} className="gg-sb-name-link rounded-full border">
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |   return Local ? <Local sponsors={[]} /> : <FeatureCta />; |   return null;
  * @mutate src/content/giftGuideDeals.mjs |   runs: (start, end) => (start && end ? | runs: (start, end) => (false ? 
- * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | [c.offer, DEALS_WORDS.runs(c.starts, c.expires)] | [c.offer, DEALS_WORDS.runs(null, c.expires)]
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | const when = DEALS_WORDS.runs(c.starts, c.expires); | const when = DEALS_WORDS.runs(null, c.expires);
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx |       <style>{DEALS_CSS + CARD_CSS}</style> |       <style>{DEALS_CSS + CARD_CSS}</style><p data-gift-deal-day="">{day[eventPhase(day, today)]}</p>
  * @mutate src/content/printables.ts | export const printablesOnPage = (key: PrintablePageKey, list: Printable[] = PRINTABLES) => shownPrintables(list).filter((p) => pageOfPrintable(p) === key); | export const printablesOnPage = (key: PrintablePageKey, list: Printable[] = PRINTABLES) => shownPrintables(list).filter(() => Boolean(key));
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx | <Link to={p.path} {...current(p.path)} data-gift-side-printables={p.key}> | <Link to={p.path} data-gift-side-printables={p.key}>

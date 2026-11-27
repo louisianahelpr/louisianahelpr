@@ -24,7 +24,7 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-card-sales>li[data-gift-sale]{position:relative;min-height:44px;padding:4px 0} | .gg-card-sales>li[data-gift-sale]{position:relative;padding:4px 0}
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-card-sale::after{content:"";position:absolute;inset:0} | .gg-card-sale::after{content:""}
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-card-line{font-size:14px} | .gg-card-line{font-size:12.5px}
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | @media (max-width:767px){.gg-deal-text{font-size:14px}} | @media (max-width:767px){.gg-deal-text{font-size:13px}}
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | .gg-deal-text{margin:0;font-size:14px; | .gg-deal-text{margin:0;font-size:13px;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | @media (min-width:1024px){.gg-top10{grid-auto-flow:row; | @media (min-width:768px){.gg-top10{grid-auto-flow:row;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-bdg{white-space:nowrap} | .gg-top10 .gg-bdg{}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-top10 .gg-nm-name{-webkit-line-clamp:3;min-height:3lh} | .gg-top10 .gg-nm-name{min-height:2lh}
@@ -140,7 +140,8 @@ describe("#3 deal lines on a phone", () => {
     expect(px(decls(phone, ".gg-card-sales"), "gap") + 2 * pad).toBeGreaterThanOrEqual(12);
     expect(px(decls(phone, ".gg-card-more"), "font-size")).toBeGreaterThanOrEqual(14);
     const deals = src("src/pages/info/giftGuides/GiftGuideDeals.tsx");
-    const m = /@media \(max-width:767px\)\{\.gg-deal-text\{font-size:(\d+)px\}\}/.exec(deals);
+    // Polish audit 1127 #17: the offer is 14px at every width (one rule, no phone override).
+    const m = /\n\.gg-deal-text\{margin:0;font-size:(\d+)px/.exec(deals);
     expect(Number(m?.[1])).toBeGreaterThanOrEqual(14);
     // The one-column phone layout stays.
     expect(CARD_CSS).toContain(".gg-deal-grid[data-gift-sales]{grid-template-columns:minmax(0,1fr)}");

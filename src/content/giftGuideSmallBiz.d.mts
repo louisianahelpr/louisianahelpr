@@ -33,7 +33,6 @@ export const SMALL_BIZ_WORDS: {
   website: string;
   ships: string;
   local: string;
-  giftLabel: string;
   guideLink: string;
   featuredLine: string;
   featuredCta: string;
@@ -45,3 +44,4 @@ export function smallBizDay(now: Date): string;
 export function smallBizFeatured(today: string): boolean;
 export function smallBizTitle(today: string): string;
 export function smallBizSections<T extends { category: string }>(rows: readonly T[]): { category: string; rows: T[] }[];
+export function giftLine(name: string, gift: string | null | undefined): string;

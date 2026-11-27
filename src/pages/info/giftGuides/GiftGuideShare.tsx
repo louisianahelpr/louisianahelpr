@@ -323,9 +323,10 @@ function GiftGuideShare({ path, title, image, many = false }: { path: string; ti
         <span ref={menu} className="gg-share-menu" role="menu" aria-label={G.shareMenuLabel} onKeyDown={arrows} data-gift-share-menu="">
           <InlineTextButton role="menuitem" onClick={copy} data-gift-copy-link="">{copied ? G.linkCopied : G.copyLink}</InlineTextButton>
           <a role="menuitem" href={smsHref(links.url, title, typeof navigator === "undefined" ? "" : navigator.userAgent)} data-gift-text="">{many ? G.textGuides : G.textGuide}</a>
-          {native && <InlineTextButton role="menuitem" onClick={shareSheet} data-gift-share-native="">{G.moreShare}</InlineTextButton>}
           <a role="menuitem" href={links.facebook} target="_blank" rel="noopener noreferrer">Facebook</a>
           <a role="menuitem" href={links.pinterest} target="_blank" rel="noopener noreferrer" data-gift-pin="">Pinterest</a>
+          {/* Polish audit 1127 #149: the phone's own share sheet is last (it sat in the middle, between Text and Facebook). */}
+          {native && <InlineTextButton role="menuitem" onClick={shareSheet} data-gift-share-native="">{G.moreShare}</InlineTextButton>}
         </span>
       )}
     </span>

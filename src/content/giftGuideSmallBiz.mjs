@@ -32,8 +32,8 @@ export const SMALL_BIZ_WORDS = {
   instagram: "Instagram",
   website: "Website",
   ships: "Ships",
-  local: "Local",
-  giftLabel: "Gift idea:",
+  // Polish audit 1127 #142: "Local" did not say how you get it.
+  local: "Pickup in town",
   guideLink: "More Louisiana-made gifts in Shop Small Louisiana",
   featuredLine: "Our 25 Days sponsors: Louisiana shops, makers and local favorites.",
   featuredCta: "Shop small",
@@ -41,6 +41,25 @@ export const SMALL_BIZ_WORDS = {
   failed: "The shops didn't load. Check your connection and try again.",
   none: "Our small business list is on its way. Browse the gift guides in the meantime.",
 };
+
+/**
+ * A sponsor card's gift line without the business's name in front (polish audit 1127 #142: "Gift idea: Ripley's Crawfish
+ * gift certificate" under the name "Ripley's Crawfish", on all 38 cards). The name comes off when the gift starts with
+ * the whole name (with or without a leading "The"), its first two or more words, or its first word when that is a
+ * possessive ("Dupuy's gift certificate"); "Candle flower bouquet" under "Candle Bloom Confections" keeps its word.
+ */
+export function giftLine(name, gift) {
+  const text = String(gift ?? "").trim();
+  const words = (s) => s.split(/\s+/).filter(Boolean);
+  const nameWords = words(String(name ?? "").replace(/^the\s+/i, ""));
+  const giftWords = words(text);
+  let n = 0;
+  while (n < nameWords.length && n < giftWords.length && nameWords[n].toLowerCase() === giftWords[n].toLowerCase()) n++;
+  const strip = n === nameWords.length || n >= 2 || (n === 1 && /['’]s$/i.test(giftWords[0]));
+  const rest = strip ? giftWords.slice(n).join(" ") : text;
+  if (!rest) return text;
+  return rest[0].toUpperCase() + rest.slice(1);
+}
 
 /** The calendar day at `now` in Louisiana, "YYYY-MM-DD". */
 export function smallBizDay(now) {

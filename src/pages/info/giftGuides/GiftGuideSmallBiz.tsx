@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { giftGuides as G } from "@/content/giftGuides";
-import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS as W, smallBizDay, smallBizFeatured, smallBizTitle, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
+import { SMALL_BIZ_SLUG, SMALL_BIZ_WORDS as W, giftLine, smallBizDay, smallBizFeatured, smallBizTitle, type SmallBiz } from "@/content/giftGuideSmallBiz.mjs";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
 import { Heart, isSaved, itemId, togglePick, useGiftList } from "./giftList";
@@ -72,7 +72,7 @@ function SmallBizCard({ b, compact = false }: { b: SmallBiz; compact?: boolean }
         <p className="gg-sb-town">{[b.town || "Louisiana", b.ships === "ships" ? W.ships : W.local].join(" · ")}</p>
         {!compact && <span className="gg-badges"><i className="gg-bdg gg-bdg-sponsor" data-gift-badge="sponsor">{W.badge}</i></span>}
         {!compact && b.description && <p className="gg-sb-text">{b.description}</p>}
-        {b.gift && <p className="gg-sb-text" data-gift-sb-gift=""><b>{W.giftLabel}</b> {b.gift}</p>}
+        {b.gift && <p className="gg-sb-text" data-gift-sb-gift="">{giftLine(b.name, b.gift)}</p>}
         {/* The business's other pages (not compact), never the one the name already opens. */}
         {b.href && !compact && [b.website, b.facebook, b.instagram].some((x) => x && x !== b.href) && (
           <span className="gg-sb-links">

@@ -966,8 +966,8 @@ describe("gift guides: design audit round 2 UI fixes", () => {
       const land = renderAt("/gift-guides").container;
       fireEvent.click(screen.getByRole("button", { name: "Share" }));
       const items = [...land.querySelectorAll("[data-gift-share-menu] [role=menuitem]")];
-      expect(items.map((x) => x.textContent)).toEqual(["Copy link", "Text these guides", "More ways to share", "Facebook", "Pinterest"]);
-      fireEvent.click(items[2]);
+      expect(items.map((x) => x.textContent)).toEqual(["Copy link", "Text these guides", "Facebook", "Pinterest", "More ways to share"]);
+      fireEvent.click(items[4]);
       expect(native).toHaveBeenCalledWith({ title: "Holiday gift guides", url: "https://www.louisianahelpr.com/gift-guides" });
     } finally {
       delete (navigator as { share?: unknown }).share;

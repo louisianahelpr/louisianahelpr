@@ -54,11 +54,11 @@ const DEALS_CSS = `
 /* Polish audit 1127 #17: the brand link keeps its 44px tap height (.gg-card-store) but overlaps the 6px gaps around it,
    so the card reads photo, brand, offer, date with no tall empty band under the photo. */
 .gg-deal>.gg-card-store,.gg-deal>.gg-card-head{margin-block:-6px}
-.gg-deal-text{margin:0;font-size:14px;line-height:1.35;color:var(--gg-ink);overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.gg-deal-text{margin:0;font-size:14px;line-height:1.35;color:var(--gg-ink);overflow-wrap:anywhere}
 .gg-deal-meta{margin:0;font-size:12px;color:var(--gg-muted)}
-.gg-deal>p[data-gift-deal-dates]{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Polish audit 1127 #17: one compact deal card (~230px on a phone, was ~375px): 12px padding, a 120px photo, the brand
-   15px/700, the offer 14px/1.35 clamped to 3 lines, the end date one 12px grey line. */
+   15px/700, the offer 14px/1.35, the end date 12px grey. Nothing is cut off: no line clamp or ellipsis on deal text
+   (owner rule via lead 11-27: never hide deal text; the offer-only texts are short). */
 @media (max-width:767px){.gg:has([data-gift-deals-page]) .gg-banner h1{-webkit-line-clamp:3;font-size:clamp(25px,8vw,34px);line-height:1.05}}
 .gg-deals-list{margin-top:12px}
 .gg-deal-sec{scroll-margin-top:84px}

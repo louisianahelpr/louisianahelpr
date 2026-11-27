@@ -1,7 +1,7 @@
 /**
  * Polish audit 1127 #17 and #18 (owner-requested phone polish audit, ~/.lh-shots/polish-audit-1127/FINDINGS.md):
  *   #17: the Black Friday / Cyber Monday deal cards were ~375px tall and the Black Friday page ~30,000px on a phone. One
- *        compact card (12px padding, a 120px photo, the offer 14px/1.35 clamped to 3 lines, the end date one 12px line),
+ *        compact card (12px padding, a 120px photo, the offer 14px/1.35, the end date 12px), with nothing cut off,
  *        and every card of every section shows (owner rule: everything on the guide and deal pages is expanded, never
  *        collapsed or cut short; lead 11-27: no "Show all" cap).
  *   #18: the deal text repeated itself ("Black Friday" 83 times on the Black Friday page, the end date, the code and the
@@ -18,7 +18,7 @@
  * @mutate scripts/gift-guide-deals.mjs | if (problem) throw new Error | if (false) throw new Error
  * @mutate src/content/giftGuideDeals.json | "deal":"Up to 50% off on Amazon" | "deal":"Up to 50% off Lancôme on Amazon"
  * @mutate src/content/giftGuideDeals.json | "deal":"30% off best sellers on Amazon" | "deal":"Black Friday through Cyber Monday on Amazon: 30% off ELEMIS best sellers"
- * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | -webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden} | }
+ * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | line-height:1.35;color:var(--gg-ink);overflow-wrap:anywhere} | line-height:1.35;color:var(--gg-ink);overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | justify-content:center;height:120px;flex:none; | justify-content:center;aspect-ratio:1/1;
  * @mutate src/lib/giftGuideOfferCopy.mjs | const t = raw.replace(DAY_PAREN, "").replace(DAY_LEAD, "") | const t = raw
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | className="gg-card-sale">{offerOnly(x.offer)}</GiftOut> | className="gg-card-sale">{x.offer}</GiftOut>
@@ -72,12 +72,15 @@ describe("polish audit 1127 #18: a store sale's text is the offer only", () => {
 });
 
 describe("polish audit 1127 #17: compact deal cards and capped sections", () => {
-  it("one compact card: 12px padding, a 120px photo, the offer 14px/1.35 in 3 lines, the date one line", () => {
+  it("one compact card: 12px padding, a 120px photo, the offer 14px/1.35; no deal text is clamped or cut off", () => {
     const css = src("src/pages/info/giftGuides/GiftGuideDeals.tsx");
     expect(css).toContain("padding:12px;border:1px solid var(--gg-line);border-radius:14px");
     expect(css).toContain(".gg-deal-photo{display:flex;align-items:center;justify-content:center;height:120px;flex:none;");
-    expect(css).toContain(".gg-deal-text{margin:0;font-size:14px;line-height:1.35;color:var(--gg-ink);overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}");
-    expect(css).toContain(".gg-deal>p[data-gift-deal-dates]{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}");
+    expect(css).toContain(".gg-deal-text{margin:0;font-size:14px;line-height:1.35;color:var(--gg-ink);overflow-wrap:anywhere}");
+    // Owner rule (lead 11-27): never hide deal text, so no clamp and no ellipsis on the deal or code/sale cards.
+    const cardRules = (css + src("src/pages/info/giftGuides/GiftGuideDealCards.tsx")).split("\n").filter((l) => /\.gg-(deal|card|store-card)/.test(l) && !/gg-banner/.test(l));
+    expect(cardRules.length).toBeGreaterThan(10);
+    expect(cardRules.filter((l) => /line-clamp|text-overflow:ellipsis/.test(l))).toEqual([]);
     expect(css).toContain(".gg-deal-brand{margin:2px 0 0;font-size:15px;font-weight:700;");
   });
 

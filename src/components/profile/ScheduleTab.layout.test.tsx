@@ -161,7 +161,7 @@ describe("Schedule card — Add to calendar sits in the meta row, no extra row",
       const row = add.closest('[data-testid="schedule-card-meta-row"]') as HTMLElement;
       expect(row, "Add to calendar is not inside the meta row").not.toBeNull();
       // The same row states the date and the time.
-      expect(row.textContent).toMatch(/2:00 PM/);
+      expect(row.textContent).toMatch(/2 PM/); // polish 11-27 #3: the details line says "2 PM"
       expect(add.parentElement).toBe(row);
       // Not nested in the navigation button.
       expect(add.parentElement!.closest("button")).toBeNull();

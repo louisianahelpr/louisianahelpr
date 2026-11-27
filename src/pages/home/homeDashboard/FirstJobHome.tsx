@@ -14,6 +14,8 @@ import { STANDARD_PAYOUT_DAYS_AFTER_APPROVAL } from "../../../../supabase/functi
 import { STANDARD_PAYOUT_WINDOW_DAYS } from "@/lib/payoutTiming";
 import { formatShortDate } from "@/lib/format";
 import { hasDateWindow, jobDayLabel } from "@/lib/jobDateWindow";
+import { JobMetaLine } from "@/components/job/JobMetaLine";
+import { getCity } from "@/lib/locationUtils";
 import { takeHomeFirstJobPrefetch } from "./homePrefetchTake";
 import type { Profile } from "@/components/profile/profileLanding/types";
 import "@/lib/i18n/enHome";
@@ -134,9 +136,9 @@ export function JobsNearYouList({ jobs, seeAll }: { jobs: NearJob[]; seeAll?: Re
               <ListRow key={j.id} title={j.title} onClick={() => navigate(`/jobs/${j.id}`)} className="min-h-11 flex items-center gap-3 px-card py-3 text-left">
                 <span className="flex-1 min-w-0">
                   <span className="block text-ds-15 font-semibold text-foreground truncate">{j.title}</span>
-                  <span className="block text-ds-13 text-muted-foreground truncate">
-                    {[j.location || j.parish, j.distance_band, hasDateWindow(j) ? jobDayLabel(j) : j.date_needed ? formatShortDate(j.date_needed) : null].filter(Boolean).join(" · ")}
-                  </span>
+                  {/* Polish audit 11-27 #3: the shared details line (pin, calendar), never a cut "·" string. */}
+                  <JobMetaLine className="text-ds-13 text-muted-foreground" place={getCity(j.location ?? "") || j.parish} extra={j.distance_band}
+                    day={hasDateWindow(j) ? jobDayLabel(j) : j.date_needed ? formatShortDate(j.date_needed) : null} />
                 </span>
                 {j.pricing_mode === "quotes" ? (
                   <span className="shrink-0 text-ds-13 font-semibold text-foreground">{tr("home.fj.quotes")}</span>

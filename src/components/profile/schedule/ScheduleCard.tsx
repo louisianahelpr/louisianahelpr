@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { MapPin, Clock, Calendar, CalendarPlus } from "lucide-react";
+import { CalendarPlus } from "lucide-react";
+import { JobMetaLine, shortTime } from "@/components/job/JobMetaLine";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { StatusBadge } from "@/components/StatusBadge";
 import { JobCardShell } from "@/components/job-card/JobCardShell";
@@ -220,16 +221,15 @@ export const ScheduleCard = ({
                 button would. Keyboard and AT reach that same navigation through
                 the overlay button, so this is a pointer-only duplicate. */}
             <span
-              className="pointer-events-auto cursor-pointer inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-full text-center shrink-0 ml-3"
+              className="pointer-events-auto cursor-pointer inline-flex flex-col items-center justify-center text-center shrink-0 ml-3"
               title={amountTitle}
               onClick={() => navigate(to)}
-              // Money is rust on the money tint (spec v2 §3 job card: "price
-              // pill (rust on money tint)"); it was olive, the action colour.
-              style={{ background: "hsl(var(--accent-ink) / 0.10)" }}
+              data-schedule-price=""
             >
+              {/* Polish audit 11-27 #22: ink, no pink pill (rust is for warnings). */}
               <span
                 className="font-sans leading-none tabular-nums text-ds-17"
-                style={{ fontWeight: 800, color: "hsl(var(--accent-ink))", letterSpacing: "-0.02em" }}
+                style={{ fontWeight: 800, color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
               >
                 <span style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}>$</span>
                 {amount}
@@ -254,36 +254,11 @@ export const ScheduleCard = ({
               chip); the action never does — it is `shrink-0`, so a long city
               gives way to it instead of pushing it off the card. */}
           <div data-testid="schedule-card-meta-row" className="mt-1.5 flex items-center gap-3 min-w-0">
-            <div
-              aria-hidden
-              className="job-meta-row flex flex-1 items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 overflow-hidden text-ds-11 text-muted-foreground"
-            >
-              {/* A job whose poster deleted their account is anonymised rather
-                  than removed (20260901033011), so it stands with no address.
-                  The chip drops out entirely rather than printing a pin with
-                  nothing beside it — the date and time hold the row on their
-                  own. */}
-              {job.location && (
-                <span className="flex items-center gap-1 min-[360px]:gap-1.5 min-w-0 shrink">
-                  <MapPin className="w-3 h-3 shrink-0" />
-                  <span className="truncate">{getCity(job.location)}</span>
-                </span>
-              )}
-              <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                <Calendar className="w-3 h-3 shrink-0" />
-                {jobDayLabel(job)}
-              </span>
-              {/* Drops out entirely — icon included — when the job has neither
-                  a start time nor the flexible flag, exactly as the location
-                  chip above does for an anonymised job. A clock face with
-                  nothing beside it is the "empty block" this pass removed. */}
-              {time && (
-                <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                  <Clock className="w-3 h-3 shrink-0" />
-                  {time}
-                </span>
-              )}
-            </div>
+            {/* Polish audit 11-27 #3: the shared details line (JobMetaLine: pin, calendar, clock, each part unbreakable,
+                the town never cut; the time moves under it on a narrow screen). */}
+            <span aria-hidden className="flex-1 min-w-0">
+              <JobMetaLine className="text-ds-11 text-muted-foreground" place={job.location ? getCity(job.location) : null} day={jobDayLabel(job)} time={shortTime(time)} />
+            </span>
             {/* The one secondary action. Rendered unconditionally:
                 `useProfileSchedule` only ever fetches open / accepted /
                 in_progress jobs, so there is no settled row here to hide it
@@ -325,7 +300,8 @@ export const ScheduleCard = ({
               in a different place. Structure must not depend on how long a
               label happens to be. */}
           <div aria-hidden className="mt-2 flex items-center gap-x-2 min-w-0">
-            <StatusBadge status={job.status} className="shrink-0" />
+            {/* Polish audit 11-27 #3: a status chip only when the job is not simply Open. */}
+            {job.status !== "open" && <StatusBadge status={job.status} className="shrink-0" />}
             <span
               className="inline-flex items-center rounded-ds-pill px-2 py-0.5 text-ds-10 font-semibold leading-none whitespace-nowrap shrink-0"
               style={{

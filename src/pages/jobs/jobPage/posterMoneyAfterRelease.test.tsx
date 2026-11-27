@@ -85,7 +85,7 @@ describe("the poster's money after the release (F32)", () => {
   });
 
   // Owner 11-01: "Remove paid Louisiana Helpr holds until job is done." A paid (escrow) job: $40 and no money line.
-  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   unpaid: "Not paid yet. Helprs can't see this job until it's paid.", |   unpaid: "Not paid yet. Helprs can't see this job until it's paid.", escrow: "Paid. Louisiana Helpr holds it until the job is done.",
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   unpaid: "Not posted yet. Pay to post it so Helprs can see it.", |   unpaid: "Not posted yet. Pay to post it so Helprs can see it.", escrow: "Paid. Louisiana Helpr holds it until the job is done.",
   it("still held (escrow): $40 and no 'holds it until the job is done' line, no receipt link", () => {
     show(row({ status: "in_progress", payment_status: "escrow" }));
     expect(price()).toBe("$40");
@@ -100,6 +100,6 @@ describe("the poster's money after the release (F32)", () => {
     expect(notes()).toContain("Your card isn't charged until you hire a Helpr.");
     document.body.innerHTML = "";
     show(row({ status: "open", payment_status: "unpaid" }));
-    expect(notes()).toContain("Not paid yet. Helprs can't see this job until it's paid.");
+    expect(notes()).toContain("Not posted yet. Pay to post it so Helprs can see it.");
   });
 });

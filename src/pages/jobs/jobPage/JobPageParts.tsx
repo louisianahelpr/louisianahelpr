@@ -33,6 +33,7 @@ import { jobStartDateTime } from "@/lib/dateUtils";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { isExpiredListing } from "@/lib/expiredListing";
 import { jobNextStep } from "@/components/tracker/jobNextStep";
+import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 
 /** The "What to fix" card (RevisionAsk): a card on a phone, flat inside the desktop side column. */
 const CARD = "rounded-2xl border border-border bg-card p-4 lg:border-0 lg:p-0 lg:rounded-none lg:bg-transparent lg:!shadow-none";
@@ -85,6 +86,10 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
     refundKeptCents: refund?.keptCents ?? null,
   });
   if (progress.stage === null && !progress.next) return null;
+  // Polish audit 11-27 #9: a job never paid for says "Not posted yet" ONCE, in the money line under the price
+  // (PosterMoneyNotes); the "Next: not posted yet: pay to post it" card and the tracker's grey "Not posted yet" said it
+  // two more times above the page's own "Pay to post" button. Guard: src/pages/jobs/jobPage/JobPage.test.tsx ("says 'Not posted yet' once").
+  if (progress.unpaid) return null;
   // THE STATUS LINE IS THE NEXT STEP (owner 11-01 12:05 PM): what to do or who we wait on, with its deadline, ABOVE the
   // bar (mockups 4 and 5); the bar draws no line of its own under it. Off the path the tracker keeps its own words.
   const step = hideNext ? null : continueStep ?? jobNextStep(progress, { side, otherFirst, pendingApplicants, offerOut, offerUntil, noShowRepostedOn, helprCancelled, approveLeft, crew: job.is_group_job === true });
@@ -101,8 +106,8 @@ const HELD_LINE: Partial<Record<string, string>> = {
   // Owner 11-01: "Remove paid Louisiana Helpr holds until job is done." A paid (escrow) job prints no line here.
   // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire.
   held: "Your card isn't charged until you hire a Helpr.",
-  unpaid: "Not paid yet. Helprs can't see this job until it's paid.",
-  abandoned: "Not paid yet. Helprs can't see this job until it's paid.",
+  unpaid: "Not posted yet. Pay to post it so Helprs can see it.",
+  abandoned: "Not posted yet. Pay to post it so Helprs can see it.",
   // Q2608 (Jobs audit 1102b row 22): the same words as the Job done sheet ("Paid to Eli · It's on its way to their bank").
   released: "Paid to your Helpr. It's on its way to their bank.",
 };
@@ -167,7 +172,9 @@ export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; tot
   const refund = usePosterJobRefund(job);
   const refundLine = status === "refunded" ? `${refundedWords(refund).replace(/\.$/, "")}.` : null;
   const line = released ? (waitsOnBank ? paidWaitsOnBankLine(waitsOnBank.firstName) : releasedLine(job)) : refundInTracker ? null : refundLine ?? heldWords[status] ?? HELD_LINE[status] ?? null;
-  const count = job.status === "open" && !loading && total > 0;
+  // Polish audit 11-27 #9: no applicant count on a job nobody can see yet (never paid for).
+  const unposted = (NEVER_PAID_STATUSES as readonly string[]).includes(status);
+  const count = job.status === "open" && !loading && total > 0 && !unposted;
   if (!line && !released && !count) return null;
   return (
     <div data-poster-money-notes="" className="space-y-1.5">

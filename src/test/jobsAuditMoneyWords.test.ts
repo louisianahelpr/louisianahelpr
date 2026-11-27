@@ -16,7 +16,7 @@
  * @mutate src/components/GroupJobHelpers.tsx | open. Most of that share comes back to you after the job.` | open. That share is refunded to you after the job.`
  * @mutate src/components/DisputeDialog.tsx | If nobody settles it by the deadline, Helpr support decides, and the payment stays on hold until then. | If nobody resolves or escalates it, the hold simply lapses at the deadline and the payment releases on its normal schedule.
  * @mutate src/components/job-card/NoShowDialog.tsx | Then pick a new date on the job to hire someone else. | Reopen your job so you can pick another applicant.
- * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx | We hold the payment. You're paid {STANDARD_PAYOUT_PHRASE}. | Held securely, released when the job is marked complete.
+ * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx | Paid {STANDARD_PAYOUT_PHRASE}. | Held securely, released when the job is marked complete.
  * @mutate src/components/richMessageInput/ViolationDialog.tsx | Keeping it here is what keeps the work covered, the payment held safely, | Keeping it here is what keeps the work covered, the payment held in escrow,
  */
 import { describe, expect, it } from "vitest";

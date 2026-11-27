@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-26T20:21Z",
+  "measured_at": "2026-11-27T02:15Z",
   "issues": {
     "readable": true,
     "open": [
@@ -78,7 +78,7 @@
         "number": 4253,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45525787687",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45920037462",
         "runTruncated": false
       },
       {
@@ -113,14 +113,14 @@
         "number": 4892,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45826870097",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45905957503",
         "runTruncated": false
       },
       {
         "number": 4934,
         "title": "nightly-red: scoreboard",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45537074940",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/45889674892",
         "runTruncated": false
       }
     ]

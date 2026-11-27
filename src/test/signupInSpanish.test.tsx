@@ -7,7 +7,7 @@
  * under the card, as on Log in.
  *
  * @mutate src/pages/auth/signup/SignupStep1.tsx | {lang === "es" && <span | {lang === "xx" && <span
- * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="text-page-title text-foreground max-[479px]:sr-only">{t("signup.title")}</h1> | <h1 className="text-page-title text-foreground max-[479px]:sr-only">Create your account</h1>
+ * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="sr-only">{t("signup.title")}</h1> | <h1 className="sr-only">Create your account</h1>
  * @mutate src/components/auth/OrRule.tsx | {t("auth.or")} | or
  * @mutate src/components/auth/SocialAuthButtons.tsx |   const label = t("auth.continueWith", { provider: providerName }); |   const label = `Continue with ${providerName}`;
  * @mutate src/pages/auth/signup/ReferralCodeField.tsx |             {t("signup.referralHelp")}\n |             Got a code from a friend? Enter it and you each get $5 once you have both finished a job or a Declutter sale or purchase.\n

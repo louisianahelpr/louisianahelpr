@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
-import { AlertCircle, Clock, Info, Loader2, Eye, EyeOff, Check, ShieldCheck, X } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, ShieldCheck, X } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useQueryClient } from "@tanstack/react-query";
@@ -109,7 +109,7 @@ const Login = () => {
       tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider ?? "unknown", code: oauthError.code },
     });
   }, [oauthError]);
-  const { accountChoice, notice, leadWithSignup, timedOut } = loginNotice({ oauthError, connect: searchParams.get("connect"), signedOutForInactivity, sessionLost: searchParams.get("signed_out") === "session-lost", hadSessionHere: hadSessionOnThisBrowser(), arrivedFromSignup, bouncedFromGatedRoute, redirect: safeInternalRedirect(pendingRedirect), reason: searchParams.get("reason") });
+  const { accountChoice, notice, timedOut } = loginNotice({ oauthError, connect: searchParams.get("connect"), signedOutForInactivity, sessionLost: searchParams.get("signed_out") === "session-lost", hadSessionHere: hadSessionOnThisBrowser(), arrivedFromSignup, bouncedFromGatedRoute, redirect: safeInternalRedirect(pendingRedirect), reason: searchParams.get("reason") });
   const queryClient = useQueryClient();
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/login"]);
@@ -311,31 +311,11 @@ const Login = () => {
           round H icon at the top of the card links home ("/"), the one
           predictable parent; history-back is never used (arriving from
           /forgot-password must not bounce back into password reset). */}
+      {/* Polish audit 11-27 #4: the notice is one 14px grey line, no box, icon or link (the tabs cover sign-up). */}
       {notice && (
-        <div
-          className="flex items-start gap-3 px-4 py-3 mb-4 rounded-2xl"
-          style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
-          role="status"
-        >
-          {oauthError ? (
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />
-          ) : timedOut ? (
-            <Clock className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />
-          ) : (
-            <Info className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} aria-hidden="true" data-login-notice-info="" />
-          )}
-          <div className="min-w-0 space-y-2">
-            <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
-              {loginNoticeInLang(notice)}
-            </p>
-            {/* AUD31-16: a shared Declutter link's guest is most likely new: sign-up first, here, not only the small last line. */}
-            {leadWithSignup && (
-              <Link to={signupHref} className="link-standard font-semibold" style={{ color: "hsl(var(--bark))" }} data-login-lead-signup="">
-                {t("login.createAccount")}
-              </Link>
-            )}
-          </div>
-        </div>
+        <p className={`text-ds-14 leading-snug mb-4 text-center ${oauthError ? "text-[hsl(var(--destructive-ink))]" : "text-muted-foreground"}`} role="status" data-login-notice="" data-login-notice-kind={oauthError ? "error" : timedOut ? "timed-out" : "info"}>
+          {loginNoticeInLang(notice)}
+        </p>
       )}
       {/* Phone audit 11-25 #10: below 480px the card loses its frame (.auth-card) and the heading (the tabs say it). */}
       <div className="liquid-glass auth-card p-5 sm:p-6 lg:p-8 space-y-6">
@@ -349,7 +329,8 @@ const Login = () => {
             <AuthCardMarkRow />
             {/* Signup-confusion 11-19: which form this is, before anything else (AuthModeTabs). */}
             <div className="w-full mb-3"><AuthModeTabs active="login" signupHref={signupHref} email={email} /></div>
-            <h1 className="text-page-title text-foreground max-[479px]:sr-only">{t("login.title")}</h1>
+            {/* Polish audit 11-27 #4: the tab and the button already say "Log in"; the heading is for screen readers only. */}
+            <h1 className="sr-only">{t("login.title")}</h1>
             <p className="text-ds-14 text-muted-foreground">{t("login.welcome")}</p>
           </div>
         )}
@@ -448,7 +429,7 @@ const Login = () => {
           </div>
           {/* Q2248: a grid so "Forgot password?" still draws on the Password label's row (board 37) but comes AFTER
               the input in the DOM: Tab from Email reaches Password first, then the link. */}
-          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-2" data-testid="login-password-field">
+          <div className="grid grid-cols-[1fr_auto] items-baseline gap-x-2 gap-y-2" data-testid="login-password-field">
             <Label htmlFor="password" className="col-start-1 row-start-1 text-ds-13 font-sans font-medium">{t("login.password")}</Label>
             <div className="relative col-span-2 row-start-2">
               <Input
@@ -484,7 +465,7 @@ const Login = () => {
             <Link
               to="/forgot-password"
               state={{ email: email.trim() }}
-              className="col-start-2 row-start-1 justify-self-end min-h-[44px] -my-3 inline-flex items-center text-ds-13 font-sans font-bold hover:underline active:opacity-60 transition-opacity"
+              className="col-start-2 row-start-1 justify-self-end min-h-[44px] -my-3 inline-flex items-center text-ds-14 font-sans font-medium hover:underline active:opacity-60 transition-opacity"
               style={{ color: "hsl(var(--bark))" }}
             >
               {t("login.forgot")}
@@ -555,30 +536,7 @@ const Login = () => {
             <SocialAuthButtons initialChoice={accountChoice} />
           </>
         )}
-        {/* Under the providers (owner). It has been outside the card and under
-            both columns; back here, closing the social column. */}
-        {/* Design audit areas 11-18 #16: 14px (was 12), the size of the form's own words; the link keeps its 44px row. */}
-        <p className="text-center text-ds-14 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-login-new-here="">
-          {t("login.newHere")}{" "}
-          {/* Carries the job forward. `rememberJobIntent` (called by
-              ProtectedRoute when it bounced this visitor) already stores the id
-              durably, so this param is a FALLBACK — but a real one: if storage
-              is blocked (Safari "Block All Cookies", a locked-down WebView,
-              kiosk policy) safeStorage silently keeps nothing, and the URL is
-              then the only thing carrying the job through signup. A guest who
-              tapped a shared job link and lost it at the account step is the
-              exact failure this whole path exists to prevent. */}
-          {/* L9 (iOS design audit 11-16): the link was a 105x14 target. A 44px-tall inline box, its extra height
-              pulled back out of the line with -my-3 so the sentence keeps its spacing. */}
-          <Link
-            to={signupHref}
-            className="-my-3 inline-flex min-h-11 items-center px-1 font-semibold hover:underline whitespace-nowrap"
-            style={{ color: "hsl(var(--bark))" }}
-            data-login-signup-link=""
-          >
-            {t("login.createAccount")}
-          </Link>
-        </p>
+        {/* Polish audit 11-27 #4: no "New to Helpr? Create an account" line: the Create account tab at the top covers it. */}
         {/* Creating an account is the alternative to BOTH sign-in methods, so
             it closes the right column rather than floating under the card. */}
         </div>

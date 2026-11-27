@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
-import Navbar from "@/components/Navbar";
+import Navbar, { navSection } from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AppShell from "@/components/AppShell";
 import { routeHasDock } from "@/components/mobileNav/mobileNavHelpers";
@@ -152,9 +152,13 @@ const PublicLayout = ({
           the nav belongs to PageHeader (`--shell-gap`), as on every signed-in
           page. The landing hero opts out (noNavSpacer) so it flows under the
           nav. */}
+      {/* Polish audit 11-27 #7: no bar on a guides page below 768px (Navbar), so no spacer for it either; the safe-area
+          inset stays. */}
       {!noNavSpacer && (
         <div
           aria-hidden
+          data-public-nav-spacer=""
+          className={navSection(location.pathname) === "guides" ? "max-[767px]:!h-[var(--safe-area-top,0px)]" : undefined}
           style={{ height: "calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))" }}
         />
       )}

@@ -429,5 +429,8 @@ export const HOLIDAY_WORDS = {
   hireIntro: "Hire a local Helpr for the holidays: hang the lights, decorate, clean before family comes, set up and clean up the party, wrap gifts, haul things away and get the yard ready for guests. Post the job and name your price.",
   lightsTba: "Light displays, dates not announced",
   lightsTbaNote: "Dates TBA means the 2026 dates are not announced yet. Most house displays are lit most evenings in December.",
+  // Polish audit 11-27 #15: the one section for every item with no 2026 date yet (light displays and events).
+  undated: "Dates not announced yet",
+  undatedNote: "Most house displays are lit most evenings in December.",
   checkFirst: "Dates and times can change, so check with the organizer before you go. Dates TBA means the 2026 dates are not announced yet; most house displays are lit most evenings in December.",
 };

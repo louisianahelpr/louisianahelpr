@@ -58,25 +58,22 @@ export function loginNotice(o: {
       : o.arrivedFromSignup
         ? "If that email already has an account, log in below. Forgot your password? Reset it and you'll be back in."
         : o.bouncedFromGatedRoute
-          ? declutterPage ?? `That page needs a free account. ${BACK_TO_IT}`
+          ? declutterPage ?? GENERIC_PAGE_NOTICE
           : null;
-  // AUD31-16: a guest who followed a Declutter link is most likely new, so the notice leads with Create an account.
-  // F080 (owner UI audit 11-09): every gated page does the same (the Sell pattern), with its own line.
-  // F252: the returning-member lines (payment, finish profile) end with LOG_BACK_IN, so they do not lead with sign-up.
-  // F286a: a private job link is the poster's or Helpr's, so it leads with Log in too.
-  const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && notice !== JOB_LINK_NOTICE && notice.endsWith(BACK_TO_IT);
+  // Polish audit 11-27 #4: the notice no longer carries its own "Create an account" link (the tabs above the form
+  // say it), so there is no sign-up lead to compute; every gated line is one short "Log in to …" sentence.
   // Audit 11-21 (P27): the notice wore a clock for every reason, which read as a time-out on a plain login wall. Only
   // the two signed-out lines are about time; the rest get an info mark (Login picks the icon from this).
   const timedOut = notice === SESSION_LOST_NOTICE || notice === INACTIVITY_NOTICE;
-  return { accountChoice, notice, leadWithSignup, timedOut };
+  return { accountChoice, notice, timedOut };
 }
 
 const SESSION_LOST_NOTICE = "You were signed out on this browser. Log back in and we'll take you right back to where you were.";
 const INACTIVITY_NOTICE = "You were signed out after 30 minutes of inactivity. Log back in to pick up where you left off.";
-const BACK_TO_IT = "Create an account, or log in and we'll take you straight back to it.";
-/** F286a: the one gated line that does not end with BACK_TO_IT, so the form leads with Log in. */
+/** Polish audit 11-27 #4: one short line per page, the same "Log in to …" pattern everywhere. */
+const GENERIC_PAGE_NOTICE = "Log in to see that page.";
 /** Log in from an open job a guest was reading (guestLogInUrl): it is public, so never "only visible to". */
-export const JOB_APPLY_NOTICE = "Log in to apply, and we'll take you straight back to this job.";
+export const JOB_APPLY_NOTICE = "Log in to apply for this job.";
 export const JOB_LINK_NOTICE = "This job is only visible to the person who posted it and the person doing it. Log in and we'll take you straight back to it.";
 
 /**
@@ -85,13 +82,13 @@ export const JOB_LINK_NOTICE = "This job is only visible to the person who poste
  * way: "Posting a job needs a free account." + Create an account / Log in. Declutter keeps its own lines (AUD31-16).
  */
 const GATED_PAGE_LINES: readonly [prefix: string, line: string][] = [
-  ["/post-job", "Posting a job needs a free account."],
-  ["/shops", "Shops needs a free account."],
-  ["/jobs", "Your jobs need an account."],
-  ["/profile", "Your profile needs an account."],
-  ["/home", "Your home page needs an account."],
+  ["/post-job", "Log in to post a job."],
+  ["/shops", "Log in to see Shops."],
+  ["/jobs", "Log in to see your jobs."],
+  ["/profile", "Log in to see your profile."],
+  ["/home", "Log in to see your Home."],
   // Audit 11-21 (P27): /posts said the generic "That page needs a free account."
-  ["/posts", "Your posts need an account."],
+  ["/posts", "Log in to see your posts."],
 ];
 
 /**
@@ -110,7 +107,6 @@ const RETURNING_PAGE_LINES: readonly [prefix: string, line: string][] = [
   ["/tips", "Log in to send your tip."],
   ["/quotes", "Log in to see your quote."],
 ];
-const LOG_BACK_IN = "We'll take you straight back to it.";
 
 export function gatedPageNotice(redirect: string | null | undefined, reason?: string | null): string | null {
   const declutter = declutterGatedNotice(redirect);
@@ -124,9 +120,8 @@ export function gatedPageNotice(redirect: string | null | undefined, reason?: st
   if (/^\/jobs\/[0-9a-f-]{36}$/i.test(path)) return JOB_LINK_NOTICE;
   const first = `/${path.split("/")[1] ?? ""}`;
   const returning = RETURNING_PAGE_LINES.find(([prefix]) => prefix === first)?.[1];
-  if (returning) return `${returning} ${LOG_BACK_IN}`;
-  const line = GATED_PAGE_LINES.find(([prefix]) => prefix === first)?.[1];
-  return line ? `${line} ${BACK_TO_IT}` : null;
+  if (returning) return returning;
+  return GATED_PAGE_LINES.find(([prefix]) => prefix === first)?.[1] ?? null;
 }
 
 /**
@@ -138,17 +133,16 @@ export function declutterGatedNotice(redirect: string | null | undefined): strin
   const url = new URL(redirect, "https://x.invalid");
   // The first path segment, so "/declutter" and everything under it match, and "/declutterx" does not.
   if (url.pathname.split("/")[1] !== "declutter") return null;
-  const back = BACK_TO_IT;
-  if (url.pathname.startsWith("/declutter/item/")) return `That's an item for sale on Declutter, neighbors selling what they don't need. ${back}`;
+  if (url.pathname.startsWith("/declutter/item/")) return "Log in to see this item.";
   // Every Sell address (the one-item form, a bunch, the chooser) starts with the one-item form's path.
-  if (url.pathname.startsWith(SELL_ONE_PATH)) return `Selling on Declutter needs an account. ${back}`;
-  // Audit 11-10 F359l: the settings page and the moving-sale planner were "That's Declutter..." too; they say what they are.
-  if (url.pathname.startsWith("/declutter/settings")) return `Your Declutter settings need an account. ${back}`;
-  if (url.pathname.startsWith("/declutter/move")) return `Planning a moving sale? That needs an account. ${back}`;
+  if (url.pathname.startsWith(SELL_ONE_PATH)) return "Log in to sell on Declutter.";
+  // Audit 11-10 F359l: the settings page and the moving-sale planner say what they are.
+  if (url.pathname.startsWith("/declutter/settings")) return "Log in to see your Declutter settings.";
+  if (url.pathname.startsWith("/declutter/move")) return "Log in to plan a moving sale.";
   const tab = url.searchParams.get("tab");
-  if (tab === "buying") return `Your Declutter orders need an account. ${back}`;
-  if (tab === "selling") return `Your Declutter listings need an account. ${back}`;
-  return `That's Declutter, neighbors selling what they don't need. ${back}`;
+  if (tab === "buying") return "Log in to see your Declutter orders.";
+  if (tab === "selling") return "Log in to see your Declutter listings.";
+  return "Log in to use Declutter.";
 }
 
 /**
@@ -157,28 +151,27 @@ export function declutterGatedNotice(redirect: string | null | undefined): strin
  * (an OAuth error, the connect line) stays as it is. English readers get the notice unchanged.
  */
 const NOTICE_KEYS: readonly [english: string, key: string][] = [
-  ["Create an account, or log in and we'll take you straight back to it.", "ln.backToIt"],
   ["This job is only visible to the person who posted it and the person doing it. Log in and we'll take you straight back to it.", "ln.jobLink"],
-  ["We'll take you straight back to it.", "ln.logBackIn"],
-  ["Posting a job needs a free account.", "ln.g.postJob"],
-  ["Shops needs a free account.", "ln.g.shops"],
-  ["Your jobs need an account.", "ln.g.jobs"],
-  ["Your profile needs an account.", "ln.g.profile"],
-  ["Your home page needs an account.", "ln.g.home"],
-  ["Your posts need an account.", "ln.g.posts"],
+  ["Log in to apply for this job.", "ln.jobApply"],
+  ["Log in to post a job.", "ln.g.postJob"],
+  ["Log in to see Shops.", "ln.g.shops"],
+  ["Log in to see your jobs.", "ln.g.jobs"],
+  ["Log in to see your profile.", "ln.g.profile"],
+  ["Log in to see your Home.", "ln.g.home"],
+  ["Log in to see your posts.", "ln.g.posts"],
   ["Log in to see your payment.", "ln.r.payment"],
   ["Log in to finish your profile.", "ln.r.profile"],
   ["Log in to see your messages.", "ln.r.messages"],
   ["Log in to send your tip.", "ln.r.tips"],
   ["Log in to see your quote.", "ln.r.quotes"],
-  ["That's an item for sale on Declutter, neighbors selling what they don't need.", "ln.d.item"],
-  ["Selling on Declutter needs an account.", "ln.d.sell"],
-  ["Your Declutter settings need an account.", "ln.d.settings"],
-  ["Planning a moving sale? That needs an account.", "ln.d.move"],
-  ["Your Declutter orders need an account.", "ln.d.buying"],
-  ["Your Declutter listings need an account.", "ln.d.selling"],
-  ["That's Declutter, neighbors selling what they don't need.", "ln.d.any"],
-  ["That page needs a free account.", "ln.pageNeeds"],
+  ["Log in to see this item.", "ln.d.item"],
+  ["Log in to sell on Declutter.", "ln.d.sell"],
+  ["Log in to see your Declutter settings.", "ln.d.settings"],
+  ["Log in to plan a moving sale.", "ln.d.move"],
+  ["Log in to see your Declutter orders.", "ln.d.buying"],
+  ["Log in to see your Declutter listings.", "ln.d.selling"],
+  ["Log in to use Declutter.", "ln.d.any"],
+  ["Log in to see that page.", "ln.pageNeeds"],
   ["You were signed out on this browser. Log back in and we'll take you right back to where you were.", "ln.sessionLost"],
   ["You were signed out after 30 minutes of inactivity. Log back in to pick up where you left off.", "ln.inactivity"],
   ["If that email already has an account, log in below. Forgot your password? Reset it and you'll be back in.", "ln.fromSignup"],

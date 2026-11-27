@@ -1,14 +1,14 @@
 /**
  * The "Show only" rows of FilterSheet's stacked job filters (buildJobFilterSections):
- * the switch row, its signed-out signup counterpart, and the availability row.
+ * the switch row and the availability row (polish audit 11-27 #5: the signed-out sign-up rows are gone).
  * Pure presentation, extracted verbatim from FilterSheet.tsx (OPEN.md Q184).
  */
 import type { ReactNode } from "react";
 import "@/lib/i18n/enJobsHelpr";
 import { t } from "@/lib/i18n/language";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowUpRight, ChevronRight, Clock, FileText, type LucideIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowUpRight, Clock, FileText, type LucideIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { hapticLight } from "@/lib/haptics";
 
@@ -18,40 +18,6 @@ import { hapticLight } from "@/lib/haptics";
  * they read as one settings group instead of one stray gold pill under its
  * own heading plus one switch buried in the When section.
  */
-/**
- * The signed-out counterpart to ToggleRow: same height, same icon lane, same
- * label + hint stack — but it goes to signup instead of flipping a switch.
- * Deliberately NOT a disabled Switch, which would look like a control that is
- * broken rather than one that needs an account.
- */
-export function SignupRow({
-  icon: Icon,
-  iconClassName,
-  label,
-  hint,
-  href,
-}: {
-  icon: LucideIcon;
-  iconClassName?: string;
-  label: string;
-  hint: string;
-  href: string;
-}) {
-  return (
-    <Link
-      to={href}
-      className="w-full flex items-center gap-2 min-h-11 py-2 px-3 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
-    >
-      <Icon className={`w-3.5 h-3.5 shrink-0 ${iconClassName ?? "text-primary"}`} aria-hidden />
-      <span className="min-w-0 flex-1">
-        <span className="block text-ds-12 font-semibold text-foreground">{label}</span>
-        <span className="block text-ds-11 text-muted-foreground leading-snug">{hint}</span>
-      </span>
-      <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
-    </Link>
-  );
-}
-
 export function ToggleRow({
   icon: Icon,
   iconClassName,

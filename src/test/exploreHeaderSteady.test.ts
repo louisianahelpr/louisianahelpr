@@ -29,7 +29,7 @@
  * @mutate src/components/sections/AppTopBar.tsx | <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> | <h1 className="sr-only">{title}</h1>
  * @mutate src/components/rentals/listings/RentBrowse.tsx | title={preview ? "Coming soon" | title={preview ? "Opens soon"
  * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !unknown && (!on \|\| isPreview(s)); |     const soon = !unknown && (!on);
- * @mutate src/components/sections/SectionScreen.tsx |           <div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>\n |           <div className={`flex flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>\n            {section && <p role="status">Coming soon – early preview</p>}\n
+ * @mutate src/components/sections/SectionScreen.tsx |           <div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-[88px]" : "pb-6"}`}>\n |           <div className={`flex flex-col gap-4 pt-1 ${fab ? "pb-[88px]" : "pb-6"}`}>\n            {section && <p role="status">Coming soon – early preview</p>}\n
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

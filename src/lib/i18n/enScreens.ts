@@ -112,7 +112,7 @@ export const enScreens = {
   "forgot.resendIn": "Resend in {s}s",
   "forgot.resend": "Resend email",
   "forgot.emailInvalid": "Enter a valid email address.",
-  "forgot.emailMissing": "Add your email address.",
+  "forgot.emailMissing": "Add your email address",
   "forgot.send": "Send reset link",
   "forgot.remembered": "Remembered it?",
   "forgot.backToLogin": "Back to log in",

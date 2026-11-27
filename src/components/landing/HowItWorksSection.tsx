@@ -1,12 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Camera, Coins, Handshake, MapPin, PackageCheck, PenLine, ShieldCheck, UserCheck, Wallet, type LucideIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { goSignedInOr } from "./goSignedInOr";
+import { Camera, Coins, Handshake, MapPin, PackageCheck, PenLine, ShieldCheck, UserCheck, Wallet, type LucideIcon } from "lucide-react";
 import { HIRE_STEPS } from "./hireSteps";
 import { useLandingMode, type LandingMode } from "./landingMode";
 import { useGuestSpanish } from "./useGuestSpanish";
-import { SELL_START_PATH } from "@/lib/declutter/sellChooser";
 import {
   SegmentedControl,
   type SegmentedOption,
@@ -81,38 +77,12 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
  */
 type Reveal = "shown" | "waiting" | "revealed";
 
-/**
- * The "I need help" side's own action (lead, 2026-10-25: the signed-out home
- * had no way to post). Owner 2026-11-21: "when they click post a job or sell
- * something ... let them post and sell and before it will be submitted make
- * them sign up". Signed out or in, it opens /post-job itself: a guest fills the
- * post there and is asked to sign up at the end (src/lib/guestPostDraft.ts),
- * coming back to it after the email is verified. Not
- * filled: the hero's Search and the close's account button stay the page's
- * two primaries (landingFrontDoor.test.tsx).
- */
-export const POST_JOB_PATH = "/post-job";
-export const POST_JOB_SIGNED_OUT: string = "/post-job"; // the same page signed out (11-21); its own literal so knip sees no duplicate export
-/** Owner #7 (11-09): the Declutter side's Sell button, with the same rule as Post a job (11-21: the form itself, sign-up at Post). It opened the sell chooser (owner pick 5, 11-08); the ease batch (owner-approved 11-20) opens one item straight away, with the chooser one tap away there. */
-export const SELL_PATH = SELL_START_PATH;
-// Owner 11-21: a guest opens the sell form itself and fills it; sign-up is asked at Post (src/lib/guestSellDraft.ts).
-export const SELL_SIGNED_OUT = SELL_PATH;
 
 /** Owner's preview tweak 1 (11-10): in Declutter mode How it works opens on "Buy or sell"; in Jobs mode on "I need help". */
 function sideForMode(mode: LandingMode): Side {
   return mode === "declutter" ? "sell" : "hire";
 }
 
-/**
- * D012 / D020 (landing design audit 11-10): each side's ONE action. Owner 11-20 (site polish B2): a real button under
- * the three cards (it was a quiet "Post a job →" link beside the switch), following the switch: Post a job / Find work /
- * Start selling, on the same routes.
- */
-const SIDE_ACTION: Record<Side, { label: string; key: string; signedOut: string; signedIn: string; testId: string }> = {
-  hire: { label: "Post a job", key: "landing.postJob", signedOut: POST_JOB_SIGNED_OUT, signedIn: POST_JOB_PATH, testId: "landing-post-job" },
-  work: { label: "Find work", key: "landing.how.findWork", signedOut: "/browse", signedIn: "/browse", testId: "landing-find-work" },
-  sell: { label: "Start selling", key: "landing.how.startSelling", signedOut: SELL_SIGNED_OUT, signedIn: SELL_PATH, testId: "landing-sell" },
-};
 
 /** Owner 11-20 (site polish B3): a small accent icon on each step card, one per step of each side. */
 // Icons the Declutter first screen does not draw, so / never fetches icons-guest-shared (critical-path budget, Q178).
@@ -129,8 +99,6 @@ const HowItWorksSection = () => {
   const [side, setSide] = useState<Side>(() => sideForMode(mode));
   // A /#declutter visit opens this section on "Buy or sell" (preview tweak 1; landingMode.ts).
   useEffect(() => setSide(sideForMode(mode)), [mode]);
-  const navigate = useNavigate();
-  const action = SIDE_ACTION[side];
   // F260q (owner 11-11): the Spanish words when the visitor's language is Spanish (enLanding.ts / esLanding.ts).
   const es = useGuestSpanish();
   const w = (key: string, english: string) => es?.[key] ?? english;
@@ -250,23 +218,8 @@ const HowItWorksSection = () => {
           })}
         </div>
 
-        {/* Owner 11-20 (site polish B2): the side's one action, a real button under the cards that follows the switch.
-            Outline, not filled: the hero's Search and the close's account button stay the page's two primaries. */}
-        <div data-how-action="" className="flex justify-center sm:justify-start">
-          <Button asChild variant="outline" size="md" className="rounded-full px-6 font-bold">
-            <Link
-              to={action.signedOut}
-              onClick={(e) => {
-                e.preventDefault();
-                void goSignedInOr(navigate, action.signedIn, action.signedOut);
-              }}
-              data-testid={action.testId}
-            >
-              {w(action.key, action.label)}
-              <ArrowRight className="w-4 h-4" aria-hidden />
-            </Link>
-          </Button>
-        </div>
+        {/* Polish audit 11-27 #16 (owner: remove the repeats): no "Post a job" / "Find work" / "Start selling" button under
+            the steps; each is on the page already (the job list, the Declutter grid, the close's account button). */}
 
         {/* No Helpr Guarantee box here (owner, 2026-10-31: "it doesn't fit there"). The
             promise stays where it is offered: first post's Review and /book/<id>. */}

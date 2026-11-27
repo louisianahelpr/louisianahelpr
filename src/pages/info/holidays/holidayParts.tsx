@@ -34,6 +34,34 @@ async function addToCalendar(item: HolidayItem) {
   await saveOrShareFile({ blob: new Blob([text], { type: "text/calendar" }), filename: holidayIcsName(item), label: item.name, source: "holidayHub.ics" });
 }
 
+const MONTH = "(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)";
+const DAY = "(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)";
+/**
+ * Polish audit 11-27 #14: the card's date line, one fact on its own line. "Nov 27, 2026-Jan 1, 2027; closed Dec 7, 14,
+ * 24, 31" -> "Nov 27 – Jan 1, 2027 · closed Dec 7, 14, 24, 31": no "2026" (the whole hub is the 2026 season; a range
+ * into 2027 keeps its 2027), ranges as dashes that never break ("27–28"; a month change gets spaces), a month and its
+ * day held together (no "Nov" / "27-Dec 20"), and the separator kept on the line before it (never a line that starts
+ * with "·").
+ */
+export function holidayDatesDisplay(dates: string): string {
+  const NB = "\u00a0";
+  const WJ = "\u2060";
+  return dates
+    .replace(/,? 2026\b/g, "")
+    .replace(/;\s*/g, `${NB}· `)
+    .replace(/(\d)-(?=[A-Z])/g, `$1${NB}– `)
+    .replace(/(\d)-(\d)/g, `$1${WJ}–${WJ}$2`)
+    .replace(new RegExp(`\\b(${DAY}) (?=${MONTH})`, "g"), `$1${NB}`)
+    .replace(new RegExp(`\\b(${MONTH}) (?=\\d)`, "g"), `$1${NB}`);
+}
+
+/** The card's place line: the area, then the address unless the address already names the town. */
+function placeLine(where: string, address: string | null | undefined, city: string | null | undefined): string {
+  if (!address) return where || "Open in Maps";
+  if (city && address.toLowerCase().includes(city.toLowerCase())) return address;
+  return [where, address].filter(Boolean).join(" · ");
+}
+
 /**
  * One light display or event, compact (owner 2026-11-21: "needs polishing, they are too big"; then "remove the circles
  * around open in maps and website"): the name with its kind as a small muted tag, one muted line "Lake Charles · Nov
@@ -60,14 +88,15 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
       {/* Guide visual audit 1123b #5: the card's text was 11px (the kind) and 13px (place, date, hours, note, address) on
           a phone; the kind is 13px and the rest the guide rows' 16px now (the app's type scale has no 14px step). */}
       {tag && <p className="whitespace-nowrap text-ds-13 font-medium text-muted-foreground" data-holiday-tag="">{tag}</p>}
-      <p className="text-ds-15 text-muted-foreground">
-        {where && <span>{where} · </span>}
-        <span data-holiday-when="" className={tba ? "text-muted-foreground" : "font-semibold text-foreground"}>{when}</span>
-      </p>
+      {/* Polish audit 11-27 #14: one fact per line (the type above, then the dates, the hours and cost, the place). The
+          dates no longer share a line with the region, so "Nov" / "27-Dec 20" never split and "2026" is gone. */}
+      {!tba && (
+        <p className="text-ds-15 font-semibold text-foreground" data-holiday-when="">{holidayDatesDisplay(when)}</p>
+      )}
       {facts && (
-        <p className="text-ds-15 text-foreground">
+        <p className="text-ds-15 text-foreground" data-holiday-facts="">
           {item.hours && <span>{item.hours}</span>}
-          {item.hours && price && <span> · </span>}
+          {item.hours && price && <span>{"\u00a0· "}</span>}
           {price && <span data-holiday-price="">{price}</span>}
         </p>
       )}
@@ -82,9 +111,10 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
       {maps && (
         <a href={maps} target="_blank" rel="noopener noreferrer" data-holiday-maps={item.id}
           onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}
-          className="flex min-h-11 min-w-0 items-center gap-1.5 text-ds-15 text-muted-foreground link-standard">
-          <MapPin className="h-4 w-4 shrink-0 text-[hsl(var(--olivewood))]" aria-hidden />
-          <span className="min-w-0" title={item.address || "Open in Maps"}>{item.address || "Open in Maps"}</span>
+          className="flex min-h-11 min-w-0 items-start gap-1.5 py-2.5 text-ds-15 text-muted-foreground link-standard" data-holiday-place="">
+          {/* Polish audit 11-27 #136: the pin sits on the first line of a 2-3 line address, not centred on it. */}
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--olivewood))]" aria-hidden />
+          <span className="min-w-0" title={item.address || "Open in Maps"}>{placeLine(where, item.address, item.city)}</span>
           <span className="sr-only"> (open in Maps, a new tab)</span>
         </a>
       )}
@@ -122,12 +152,14 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
  * a tap closes it and opens it again. `note` is a line under the header, inside the open body. `children` is the cards,
  * or (`nested`) whole sections.
  */
-export function HolidaySection({ id, title, count, note, nested = false, data, children }: {
+export function HolidaySection({ id, title, count, note, nested = false, rows = false, data, children }: {
   id: string;
   title: string;
   count: number;
   note?: ReactNode;
   nested?: boolean;
+  /** Polish audit 11-27 #15: compact two-line rows (HolidayUndatedRow) in one hairline-divided list, not cards. */
+  rows?: boolean;
   data?: Record<`data-${string}`, string>;
   children: ReactNode;
 }) {
@@ -139,10 +171,51 @@ export function HolidaySection({ id, title, count, note, nested = false, data, c
       {open && (
         <div id={`${id}-body`} className="mt-3 space-y-3">
           {note && <p className="text-ds-14 text-muted-foreground">{note}</p>}
-          {nested ? <div className="space-y-section">{children}</div> : <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{children}</ul>}
+          {nested ? <div className="space-y-section">{children}</div>
+            : rows ? <ul className="divide-y divide-border md:grid md:grid-cols-2 md:gap-x-8 md:divide-y-0" data-holiday-rows="">{children}</ul>
+              : <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{children}</ul>}
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Polish audit 11-27 #15: an item with no 2026 date yet, as a two-line row (~72px) instead of a 270-620px card that
+ * said "Dates TBA": the name, then "area · price · Website". The section's own heading says the dates are not out.
+ */
+export function HolidayUndatedRow({ item, kind }: { item: HolidayItem; kind: "light" | "event" }) {
+  const where = holidayWhereLabel(item);
+  const price = holidayPriceLabel(item.price);
+  const site = openableDocumentUrl(item.url);
+  const maps = mapsSearchUrl(holidayMapsQuery(item));
+  const bits: [string, ReactNode][] = [];
+  if (where) bits.push(["where", where]);
+  if (price) bits.push(["price", <span data-holiday-price="">{price}</span>]);
+  return (
+    <li className="flex min-w-0 flex-col gap-0.5 py-3 font-sans md:border-b md:border-border" data-holiday-item={item.id} data-holiday-undated="">
+      <h3 className="text-ds-15 font-semibold leading-snug text-foreground">{item.name}</h3>
+      <p className="text-ds-14 text-muted-foreground">
+        {bits.map(([k, b], i) => <span key={k}>{i > 0 && "\u00a0· "}{b}</span>)}
+        {maps && (
+          <>
+            {bits.length > 0 && "\u00a0· "}
+            <a href={maps} target="_blank" rel="noopener noreferrer" data-holiday-maps={item.id} className="link-standard"
+              onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}>
+              Map<span className="sr-only"> for {item.name} (opens in a new tab)</span>
+            </a>
+          </>
+        )}
+        {site && (
+          <>
+            {"\u00a0· "}
+            <a href={site} target="_blank" rel="noopener noreferrer" data-holiday-site={item.id} className="font-semibold text-[hsl(var(--olivewood))] link-standard">
+              Website<span className="sr-only"> for {item.name} (opens in a new tab)</span>
+            </a>
+          </>
+        )}
+      </p>
+    </li>
   );
 }
 

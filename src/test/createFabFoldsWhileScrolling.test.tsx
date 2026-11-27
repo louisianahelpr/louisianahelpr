@@ -6,8 +6,13 @@
  *
  * @mutate src/components/sections/SectionCreateFab.tsx |       else if (top - before > 4) setFolded(true); |       else if (top - before > 4) setFolded(false);
  * @mutate src/components/sections/SectionCreateFab.tsx |       {!folded && text} |       {text}
- * @mutate src/components/sections/SectionCreateFab.tsx |   return folded \|\| atEnd; |   return folded;
- * @mutate src/components/sections/SectionCreateFab.tsx |   const folded = useFoldsWhileScrollingDown(shown, findPill) \|\| round; |   const folded = useFoldsWhileScrollingDown(shown, findPill);
+ * @mutate src/components/sections/SectionCreateFab.tsx |   return { folded: folded \|\| atEnd, away: folded }; |   return { folded, away: folded };
+ * @mutate src/components/sections/SectionCreateFab.tsx |   const folded = scroll.folded \|\| round; |   const folded = scroll.folded;
+ *
+ * Polish audit 11-27 #6: folding was not enough (the round "+" on Declutter sat on a card's save heart while the grid
+ * scrolled). Scrolling DOWN now also hides it: faded, moved down, aria-hidden, untappable; up or the top brings it back.
+ * @mutate src/components/sections/SectionCreateFab.tsx |   return { folded: folded \|\| atEnd, away: folded }; |   return { folded: folded \|\| atEnd, away: false };
+ * @mutate src/components/sections/SectionCreateFab.tsx | ${away ? "pointer-events-none translate-y-4 opacity-0" : ""} | ${away ? "translate-y-4" : ""}
  * @mutate src/components/declutter/DeclutterHomeView.tsx | \|\| view === "buying" \|\| view === "selling"; | \|\| view === "buying";
  * @mutate src/components/sections/SectionCreateFab.tsx |   return el.clientHeight > 0 && scrollLeft(el) <= END_FOLD_PX; |   return false;
  *
@@ -62,6 +67,35 @@ describe("the create pill folds while scrolling down (F262)", () => {
     expect(fab().hasAttribute("data-folded")).toBe(true);
     scrollTo(panel, 0);
     expect(fab().hasAttribute("data-folded")).toBe(false);
+  });
+});
+
+describe("the create pill hides while scrolling down (polish audit 11-27 #6)", () => {
+  it("is away (untappable, hidden) on the way down, back on the way up and at the top, round Declutter + too", () => {
+    for (const round of [false, true]) {
+      render(
+        <MemoryRouter>
+          <div data-testid="panel" style={{ overflow: "auto", height: 200 }}><div style={{ height: 2000 }} /></div>
+          <SectionCreateFab section="declutter" text="Sell" round={round} />
+        </MemoryRouter>,
+      );
+      const panel = screen.getByTestId("panel");
+      const fab = () => screen.getByTestId("section-create-fab");
+      expect(fab().hasAttribute("data-away"), String(round)).toBe(false);
+      scrollTo(panel, 300);
+      expect(fab().hasAttribute("data-away"), String(round)).toBe(true);
+      expect(fab().className).toMatch(/(^|\s)pointer-events-none(\s|$)/);
+      expect(fab().className).toMatch(/(^|\s)opacity-0(\s|$)/);
+      expect(fab().getAttribute("aria-hidden")).toBe("true");
+      expect(fab().getAttribute("tabindex")).toBe("-1");
+      scrollTo(panel, 200);
+      expect(fab().hasAttribute("data-away")).toBe(false);
+      expect(fab().className).not.toMatch(/(^|\s)pointer-events-none(\s|$)/);
+      scrollTo(panel, 600);
+      scrollTo(panel, 0);
+      expect(fab().hasAttribute("data-away")).toBe(false);
+      cleanup();
+    }
   });
 });
 

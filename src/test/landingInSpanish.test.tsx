@@ -53,7 +53,7 @@ const renderLanding = () => render(<MemoryRouter><SectionsShowcase /><TrustAndJo
 
 describe("F260q: the landing under the hero speaks the visitor's language", () => {
   it("the English written in the landing is enLanding's, word for word", () => {
-    expect(literalPairs.length).toBeGreaterThan(10); // 11 since the close's repeat links went (Browse jobs, Shop Declutter, member log-in; lead 2026-11-25, phone polish A #41); 14 before
+    expect(literalPairs.length).toBeGreaterThan(7); // 8 since the card and close links went (polish audit 11-27 #16); 11 since the close's repeat links went (Browse jobs, Shop Declutter, member log-in; lead 2026-11-25, phone polish A #41); 14 before
     for (const [k, english] of literalPairs) expect(enLanding[k as keyof typeof enLanding], k).toBe(english);
   });
 
@@ -107,7 +107,7 @@ describe("F260q: How it works speaks the visitor's language", () => {
     }
   });
 
-  it("Spanish saved: heading, sides, steps and the action are Spanish", async () => {
+  it("Spanish saved: heading, sides and steps are Spanish", async () => {
     window.localStorage.setItem("helpr_lang", "es");
     render(<MemoryRouter><HowItWorksSection /></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole("heading", { level: 2 }).textContent).toBe(esLanding["landing.how.title"]));
@@ -115,7 +115,6 @@ describe("F260q: How it works speaks the visitor's language", () => {
     expect(text).toContain(esLanding["landing.how.hire1Title"]);
     expect(text).toContain(esLanding["landing.how.hire3Desc"]);
     expect(text).toContain(esLanding["landing.how.side.work"]);
-    expect(text).toContain(esLanding["landing.postJob"]);
     expect(text).not.toContain(enLanding["landing.how.hire1Title"]);
     expect(text).not.toContain(enLanding["landing.how.side.sell"]);
   });

@@ -4,13 +4,13 @@
  * in. The join card now reads the link: "Log in to see your order" (offer: "your offer"; tab=selling: "your sales"),
  * Log in is the filled button and keeps ?redirect= to the same link, and "New here?" leads the Sign up link. A plain
  * Browse visit keeps the old line. F359k (same problem, older id): ?tab=wanted&post=1 reads "Log in to post what you
- * want", ?tab=wanted "Log in to see your Wanted posts".
+ * want". Polish audit 11-27 #5: plain ?tab=wanted is one 15px link "Log in to post a Wanted", no box and no Sign up.
  *
  * @mutate src/components/declutter/DeclutterGuest.tsx |   const want = guestWants(location.search); |   const want = null;
  * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.has("offer")) return gw("g.want.offer"); |   if (q.has("offer")) return gw("g.want.order");
  * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.get("tab") === "selling") return gw("g.want.sales"); |
  * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.has("post")) return gw("g.want.post"); |
- * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.get("tab") === "wanted") return gw("g.want.wanted"); |
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   if (new URLSearchParams(location.search).get("tab") === "wanted" && | if (false &&
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -47,13 +47,17 @@ describe("F402: a guest's order link says the order is behind a log in", () => {
     expect(screen.getByText("Log in to see your sales")).toBeInTheDocument();
   });
 
-  it("F359k: ?tab=wanted&post=1 says log in to post; ?tab=wanted says your Wanted posts", () => {
+  it("F359k: ?tab=wanted&post=1 says log in to post; ?tab=wanted is one 'Log in to post a Wanted' link", () => {
     show("/declutter?tab=wanted&post=1");
     expect(screen.getByText("Log in to post what you want")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login?redirect=" + encodeURIComponent("/declutter?tab=wanted&post=1"));
     cleanup();
     show("/declutter?tab=wanted");
-    expect(screen.getByText("Log in to see your Wanted posts")).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "Log in to post a Wanted" });
+    expect(link).toHaveAttribute("href", "/login?redirect=" + encodeURIComponent("/declutter?tab=wanted"));
+    expect(screen.queryByRole("link", { name: "Sign up" })).toBeNull();
+    expect(screen.queryByText("New here?")).toBeNull();
+    expect(document.querySelector('[data-guest-join="wanted"]')?.className).toContain("text-ds-15");
   });
 
   it("plain Browse draws no join line (the top bar's Join / Log in is the way in)", () => {

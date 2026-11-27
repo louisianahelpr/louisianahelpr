@@ -31,7 +31,7 @@
  * @mutate src/components/sections/SectionCreateFab.tsx |   const shown = !desktop && !hidden && !(section && !add); |   const shown = !hidden && !(section && !add);
  * @mutate src/components/sections/SectionSearchBar.tsx |       {filter && <span data-search-bar-filter="" | {false && <span data-search-bar-filter=""
  * @mutate src/components/sections/SectionSearchBar.tsx |         onClick={() => navigate(home, { state: FOCUS_SEARCH_STATE })} |         onClick={() => navigate("/search")}
- * @mutate src/components/sections/SectionScreen.tsx | ${fab ? "pb-20" : "pb-6"} | pb-6
+ * @mutate src/components/sections/SectionScreen.tsx | ${fab ? "pb-[88px]" : "pb-6"} | pb-6
  * @mutate src/components/declutter/DeclutterHomeView.tsx | <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} | <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search}
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         {desktop && itemsPhase !== "offline-empty" && <DeclutterDeviceNote ask={ask} />} |         {itemsPhase !== "offline-empty" && <DeclutterDeviceNote ask={ask} />}
  */
@@ -192,7 +192,7 @@ describe("Sell: the floating + Sell pill", () => {
   });
 
   it("the screen leaves room under its last row for the pill, and Declutter's screens hand the bar its search (and a member's, My Declutter)", () => {
-    expect(code("src/components/sections/SectionScreen.tsx")).toMatch(/\$\{fab \? "pb-20" : "pb-6"\}/);
+    expect(code("src/components/sections/SectionScreen.tsx")).toMatch(/\$\{fab \? "pb-\[88px\]" : "pb-6"\}/);
     const screens = ["src/components/declutter/DeclutterHomeView.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/DeclutterSkeletons.tsx"];
     const calls = screens.flatMap((f) => [...code(f).matchAll(/<SectionScreen\b[\s\S]*?>\n/g)].map((m) => [f, m[0]] as const));
     expect(calls.length).toBeGreaterThan(2);

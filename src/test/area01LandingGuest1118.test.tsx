@@ -12,7 +12,7 @@
  * #10 Help's Common problems has a Declutter tile and a selected look.
  * #11 a signed-out visitor on a dead shop link is not sent to the login-walled Browse shops (shopUnavailable.test.tsx).
  * #12 the desktop footer's link rows are 32px with a mouse.
- * #16 Log in's "New here? Create an account" line is 14px.
+ * #16 Log in's "New here? Create an account" line was 14px; polish audit 11-27 #4 removed it (the tabs cover it).
  * #17 the one-reminder line sits under Email (uiAudit1109WebLows.test.ts F026).
  * #18 Reset password's no-link sentence has no em dash.
  * #19 the job's not-found card is the 404's card.
@@ -38,7 +38,7 @@
  * @mutate src/pages/info/Safety.tsx |         <li className={INFO_CARD_ROW} data-safety-declutter="">{t("safety.declutter")}</li> |
  * @mutate src/pages/info/HelpCenter.tsx | ${open ? "border-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.08)]" : "border-border bg-card"} | ${open ? "border-[hsl(var(--bark)/0.45)] bg-card" : "border-border bg-card"}
  * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center min-h-11 lg:[@media(pointer:fine)]:min-h-8"; | const FOOTER_LINK = "link-standard inline-flex items-center min-h-11";
- * @mutate src/pages/auth/Login.tsx | <p className="text-center text-ds-14 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-login-new-here=""> | <p className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-login-new-here="">
+ * @mutate src/pages/auth/Login.tsx |         {/* Creating an account is the alternative to BOTH | <p data-login-new-here="">x</p>{/* Creating an account is the alternative to BOTH
  * @mutate src/pages/auth/ResetPassword.tsx | "Open the reset link from your email, or request a new one." | "To set a new password, use the reset link from your email — or request one below."
  * @mutate src/pages/jobs/JobDetail.tsx |             <div className="mx-auto w-full max-w-[440px] flex" data-job-not-found="login"> |             <div className="flex" data-job-not-found="login">
  * @mutate src/pages/u/PublicProfilePage.tsx | <Link to={user ? "/home" : "/"}>Go home</Link> | <Link to={user ? "/home" : "/"}>Go to Louisiana Helpr</Link>
@@ -46,7 +46,7 @@
  * @mutate src/pages/info/legal/LegalChrome.tsx |         : "rounded-[20px] border border-border bg-muted/40 px-4 py-3 flex items-center justify-between gap-3" |         : "rounded-[20px] bg-muted px-4 py-3 flex items-center justify-between gap-3"
  * @mutate src/lib/supportTopics.ts |     messagePlaceholder: "Tell us what happened.", |     messagePlaceholder: "How can our team help you today?",
  * @mutate src/pages/info/legal/LegalTabBar.tsx | rounded-full text-ds-13 font-sans | rounded-full text-ds-11 sm:text-ds-13 font-sans
- * @mutate src/components/landing/SectionsShowcase.tsx | className="flex flex-wrap items-center justify-center gap-x-5 | className="grid grid-cols-2 justify-items-center sm:flex sm:flex-wrap items-center justify-center gap-x-5
+ * @mutate src/components/landing/SectionsShowcase.tsx |           {/* Polish audit 11-27 #16 (owner: remove the repeats): the close is one | <nav data-testid="landing-join-starts" />{/* x
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -183,13 +183,13 @@ describe("landing", () => {
       expect(esLanding[k].length, k).toBeLessThanOrEqual(enLanding[k].length + 3);
     }
   });
-  it("#25 / owner 11-25 #41: the close's two links share one row; the landing repeats nothing (Browse jobs, Shop Declutter, member Log in)", () => {
+  it("#25 / owner 11-25 #41 / polish audit 11-27 #16: the landing repeats nothing (no card links, no close links, no member Log in)", () => {
     const s = src("src/components/landing/SectionsShowcase.tsx");
-    expect(s).toMatch(/className="flex flex-wrap items-center justify-center[^"]*" data-testid="landing-join-starts"/);
-    // Each of these appears ONCE in the landing's sections + close (the section card's link), never twice.
+    expect(s).not.toContain('data-testid="landing-join-starts"');
+    // Browse jobs and Shop Declutter live under their own sections (the job list, the Declutter grid), not on these cards.
     const code = s; // src() already blanks comments (blankComments)
-    expect(code.match(/w\("landing\.browseJobs"/g)?.length ?? 0).toBe(1);
-    expect(code.match(/w\("landing\.shopDeclutter"/g)?.length ?? 0).toBe(1);
+    expect(code.match(/w\("landing\.browseJobs"/g)?.length ?? 0).toBe(0);
+    expect(code.match(/w\("landing\.shopDeclutter"/g)?.length ?? 0).toBe(0);
     expect(code).not.toContain("landing.memberLogin");
   });
 });
@@ -237,8 +237,8 @@ describe("Help, support, legal, auth", () => {
   it("#12 the footer's desktop rows are 32px with a mouse", () => {
     expect(src("src/components/Footer.tsx")).toContain('const FOOTER_LINK = "link-standard inline-flex items-center min-h-11 lg:[@media(pointer:fine)]:min-h-8";');
   });
-  it("#16 Log in's sign-up line is 14px", () => {
-    expect(src("src/pages/auth/Login.tsx")).toContain('<p className="text-center text-ds-14 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-login-new-here="">');
+  it("#16 Log in has no closing sign-up line (polish audit 11-27 #4)", () => {
+    expect(src("src/pages/auth/Login.tsx")).not.toContain("data-login-new-here");
   });
   it("#18 Reset password says it plainly, with no em dash", () => {
     const reset = src("src/pages/auth/ResetPassword.tsx");

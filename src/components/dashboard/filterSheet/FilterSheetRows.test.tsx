@@ -45,12 +45,16 @@ describe("FilterSheet 'Show only' rows", () => {
     expect(screen.getAllByRole("switch").length).toBeGreaterThanOrEqual(2);
   });
 
-  it("signed out, the account-only rows are signup links, not switches", () => {
+  // Polish audit 11-27 #5: a guest saw three bordered "Sign up to save…" rows plus the header's Join / Log in. Now
+  // Boosted / Urgent only, and one grey 13px line; the header keeps the one sign-up action.
+  // @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |           {signupHref && (\n            <p className="text-ds-13 text-muted-foreground" data-filter-guest-signup-line=""> |           {signupHref && (\n            <a href={signupHref}>Saved searches</a>)}{signupHref && (\n            <p className="text-ds-13 text-muted-foreground" data-filter-guest-signup-line="">
+  it("signed out, the account-only rows are hidden behind one grey line, no sign-up links", () => {
     renderShowOnly({ signupHref: "/signup?redirect=/browse" });
-    const links = screen.getAllByRole("link");
-    expect(links.length).toBe(3);
-    for (const a of links) expect(a.getAttribute("href")).toBe("/signup?redirect=/browse");
-    expect(screen.getByText("Saved searches")).toBeTruthy();
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
+    expect(screen.queryByText("Saved searches")).toBeNull();
+    expect(screen.queryByText("Saved jobs only")).toBeNull();
+    const line = screen.getByText("Sign up to save jobs, hours and searches.");
+    expect(line.className).toContain("text-ds-13");
   });
 
   it("the availability row is inert until hours exist, and live once they do", () => {

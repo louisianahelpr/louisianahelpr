@@ -13,7 +13,8 @@
  * Measured on a local build against prod data (B115, ~/.lh-shots/b115): before, 0 strip cards and the card to
  * /signup?redirect=%2Fdeclutter; after, 6 cards (4 shown at 375), the card to /declutter, nav fits 320-1440.
  *
- * @mutate src/components/landing/SectionsShowcase.tsx |   if (key === "declutter") return { to: path, text: `Shop ${label}`, signedIn: path }; |
+ * Polish audit 11-27 #16: the section cards no longer link (Shop Declutter is under the grid itself).
+ * @mutate src/components/landing/SectionsShowcase.tsx |         {/* Polish audit 11-27 #16 (owner: remove the repeats): no "Browse jobs" | <i data-testid="landing-browse-declutter" />{/* x
  * @mutate src/pages/info/Index.tsx |       <LandingBrowseSwitch />\n |
  * @mutate src/components/Navbar.tsx |                 to="/declutter" |                 to="/signup?redirect=%2Fdeclutter"
  * @mutate src/components/Footer.tsx |               <Link to="/declutter" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>
@@ -40,7 +41,6 @@ import { blankComments } from "./helpers/blankNonCode";
 import { FRESH_DECLUTTER_LIMIT, type FreshItem } from "@/components/landing/FreshDeclutterSection";
 import FreshDeclutterStrip, { porchTagTellsApart } from "@/components/landing/FreshDeclutterStrip";
 import { LANDING_CARD_PHOTO } from "@/lib/declutter/landingCardPhoto";
-import { cardLinkFor } from "@/components/landing/SectionsShowcase";
 
 const ROOT = process.cwd();
 const read = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));
@@ -61,10 +61,9 @@ const item = (n: number, cents = 1000 * n): FreshItem => ({
 afterEach(cleanup);
 
 describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
-  it("the Declutter card goes straight to /declutter as 'Shop Declutter' (D012: one verb per destination)", () => {
-    expect(cardLinkFor("declutter", "/declutter", "Declutter")).toEqual({ to: "/declutter", text: "Shop Declutter", signedIn: "/declutter" });
-    // Shops / Homes keep sign-up (they are behind sign-in).
-    expect(cardLinkFor("shops", "/shops", "Shops").to).toBe("/signup?redirect=%2Fshops");
+  it("polish audit 11-27 #16: the section cards carry no Browse jobs / Shop Declutter link (no repeats)", () => {
+    const showcase = blankComments(readFileSync("src/components/landing/SectionsShowcase.tsx", "utf8"));
+    expect(showcase).not.toContain("landing-browse-");
   });
 
   it("the grid wears the /declutter browse card style: price or Free, title, town, each to its item page, plus Shop Declutter", () => {

@@ -6,7 +6,7 @@
  * P27: login walls for /tips and /quotes (reached from a member's own notifications) led with Create an account,
  * /posts said the generic line, and every notice wore a clock.
  * @mutate src/pages/auth/loginNotice.ts |   ["/quotes", "Log in to see your quote."], |
- * @mutate src/pages/auth/loginNotice.ts |   ["/posts", "Your posts need an account."], |
+ * @mutate src/pages/auth/loginNotice.ts |   ["/posts", "Log in to see your posts."], |
  * @mutate src/pages/auth/loginNotice.ts |   const timedOut = notice === SESSION_LOST_NOTICE \|\| notice === INACTIVITY_NOTICE; |   const timedOut = notice !== null;
  *
  * P18 and P28 (a stale link leads with open jobs; Sign up keeps ?ref=share): mutations in guestOpensSharedJobLink.test.tsx.
@@ -123,18 +123,18 @@ describe("P27: login walls name the page and lead the right way", () => {
   it("/tips and /quotes are a member's own links: Log in leads, no Create an account", () => {
     for (const [path, line] of [["/tips/abc", "Log in to send your tip."], ["/quotes/request/abc", "Log in to see your quote."], ["/quotes/send/abc", "Log in to see your quote."]] as const) {
       const n = loginNotice({ ...base, redirect: path });
-      expect(n.notice, path).toBe(`${line} We'll take you straight back to it.`);
-      expect(n.leadWithSignup, path).toBe(false);
+      expect(n.notice, path).toBe(line);
     }
   });
   it("/posts names itself", () => {
-    expect(gatedPageNotice("/posts")).toBe("Your posts need an account. Create an account, or log in and we'll take you straight back to it.");
+    expect(gatedPageNotice("/posts")).toBe("Log in to see your posts.");
   });
   it("only the two signed-out lines wear the clock", () => {
     expect(loginNotice({ ...base, redirect: "/posts" }).timedOut).toBe(false);
     expect(loginNotice({ ...base, bouncedFromGatedRoute: false, signedOutForInactivity: true }).timedOut).toBe(true);
     expect(loginNotice({ ...base, sessionLost: true, redirect: "/jobs" }).timedOut).toBe(true);
-    expect(src("src/pages/auth/Login.tsx")).toMatch(/timedOut \? \(\s*<Clock[^]*?\) : \(\s*<Info /);
+    // Polish audit 11-27 #4: the notice is a plain grey line with no icon; timedOut only names its kind.
+    expect(src("src/pages/auth/Login.tsx")).toContain('data-login-notice-kind={oauthError ? "error" : timedOut ? "timed-out" : "info"}');
   });
 });
 

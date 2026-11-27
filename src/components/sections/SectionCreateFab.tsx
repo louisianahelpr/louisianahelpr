@@ -74,7 +74,13 @@ function scrollerUnderPill(pill: Element | null): Element | null {
   return document.scrollingElement;
 }
 
-function useFoldsWhileScrollingDown(on: boolean, pill: () => Element | null): boolean {
+/**
+ * Polish audit 11-27 #6: folding was not enough. The round "+" on Declutter Browse sat on the right card's save heart
+ * while the grid scrolled, so a heart tap opened Sell, and on Jobs Posted the folded "+" still covered "Report no-show".
+ * While the list scrolls DOWN the button now hides (faded, moved down, not tappable); scrolling up or reaching the top
+ * brings it back. Near the list's end it stays the round "+" (phone audit 11-25 #1).
+ */
+function useFoldsWhileScrollingDown(on: boolean, pill: () => Element | null): { folded: boolean; away: boolean } {
   const [folded, setFolded] = useState(false);
   const [atEnd, setAtEnd] = useState(false);
   useEffect(() => {
@@ -105,7 +111,7 @@ function useFoldsWhileScrollingDown(on: boolean, pill: () => Element | null): bo
       timers.forEach(clearTimeout);
     };
   }, [on, pill]);
-  return folded || atEnd;
+  return { folded: folded || atEnd, away: folded };
 }
 
 /**
@@ -136,7 +142,9 @@ export function SectionCreateFab({ section, text: given, add: own, round = false
   const add = own ?? (section ? sectionByKey(section).add : null);
   const shown = !desktop && !hidden && !(section && !add);
   useFabClearance(shown);
-  const folded = useFoldsWhileScrollingDown(shown, findPill) || round;
+  const scroll = useFoldsWhileScrollingDown(shown, findPill);
+  const folded = scroll.folded || round;
+  const away = scroll.away;
   if (!shown || typeof document === "undefined") return null;
   const isPost = add?.path === "/post-job";
   const go = () => { hapticMedium(); if (add) navigate(add.path); else setCreateSheetOpen((o) => !o); };
@@ -147,12 +155,15 @@ export function SectionCreateFab({ section, text: given, add: own, round = false
       size="md"
       data-testid="section-create-fab"
       data-folded={folded ? "" : undefined}
+      data-away={away ? "" : undefined}
+      aria-hidden={away ? true : undefined}
+      tabIndex={away ? -1 : undefined}
       data-create-section={section ?? "sheet"}
       aria-label={add ? add.label : text}
       {...(add ? {} : { "aria-haspopup": "dialog" as const, "aria-expanded": sheetOpen })}
       onClick={isPost ? gate.gate("post", go) : go}
       {...(isPost ? gate.gatedProps("post") : {})}
-      className={`fixed bottom-safe-nav ${round ? FAB_ROUND_RIGHT : "right-4"} z-40 rounded-full font-semibold shadow-lg [&>svg]:h-5 [&>svg]:w-5 ${folded ? "w-12 px-0" : "gap-1.5 pl-4 pr-5"}`}
+      className={`fixed bottom-safe-nav ${round ? FAB_ROUND_RIGHT : "right-4"} z-40 rounded-full font-semibold shadow-lg [&>svg]:h-5 [&>svg]:w-5 ${folded ? "w-12 px-0" : "gap-1.5 pl-4 pr-5"} transition-[opacity,transform] duration-200 ${away ? "pointer-events-none translate-y-4 opacity-0" : ""}`}
       style={{ marginRight: "var(--safe-area-right, 0px)" }}
     >
       <Plus aria-hidden />

@@ -109,7 +109,7 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
   // @mutate src/components/declutter/DeclutterGuest.tsx |         {!loginShown && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login=""> |         {true && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login="">
   it("desktop: the item's Make offer / Buy now stay; no logo, no Sign up, no Log in in the panel", () => {
     const join = panel();
-    expect(join).toHaveTextContent("Signing up is free. We'll bring you back to this item.");
+    expect(join).not.toHaveTextContent("Signing up is free");
     expect(within(join).getAllByRole("link").map((a) => a.textContent)).toEqual(["Make offer", "Buy now"]);
     expect(within(join).queryByRole("link", { name: /Log in|Sign up/ })).toBeNull();
     expect(join.querySelector("[data-guest-brand]")).toBeNull();
@@ -118,8 +118,9 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
   // F048 / F059 (owner UI audit 11-09): a free item's one button says what it does for a guest ("Sign up to ask for
   // it"), and the line says SIGNING UP is free (under a $3 price "Free to join" / "It's free" read as a free item).
   // @mutate src/components/declutter/DeclutterGuest.tsx | {free ? gw("g.signUpAsk") : gw("g.buyNow")} | {free ? "Ask for it" : "Buy now"}
-  // @mutate src/components/declutter/DeclutterGuest.tsx |           {gw("g.freeJoin")} |           {"Free to join. You come back here after."}
-  it("F048: a free item gets one real 'Sign up to ask for it' button and the owner's sign-up line, at both widths", () => {
+  // Polish audit 11-27 #5: the 11px sign-up line under the button is gone (one sign-up action per screen).
+  // @mutate src/components/declutter/DeclutterGuest.tsx |       <div className="flex items-center justify-end gap-3"> |       <div className="flex items-center justify-end gap-3"><p>Signing up is free</p>
+  it("F048: a free item gets one real 'Sign up to ask for it' button and no second sign-up line, at both widths", () => {
     for (const desktop of [true, false]) {
       state.desktop = desktop;
       const { unmount } = render(<MemoryRouter initialEntries={["/declutter/item/i1"]}><DeclutterGuestJoin free /></MemoryRouter>);
@@ -128,8 +129,7 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
       expect(buy.textContent, String(desktop)).toBe("Sign up to ask for it");
       expect(buy.getAttribute("href")).toBe("/signup?redirect=%2Fdeclutter%2Fitem%2Fi1");
       expect(join.querySelector("[data-guest-offer]")).toBeNull();
-      expect(join).toHaveTextContent("Signing up is free. We'll bring you back to this item.");
-      expect(join.textContent).not.toMatch(/Free to join|It's free/);
+      expect(join.textContent).not.toMatch(/Signing up is free|Free to join|It's free/);
       unmount();
     }
   });

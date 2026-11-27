@@ -28,7 +28,7 @@
  * @mutate src/pages/jobs/JobDetail.tsx | ) : !job && id && UUID_RE.test(id) ? ( | ) : !job && id && !UUID_RE.test(id) ? (
  * @mutate src/pages/jobs/JobDetail.tsx | navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`) | navigate("/login")
  * @mutate src/pages/auth/loginNotice.ts | if (/^\/jobs\/[0-9a-f-]{36}$/i.test(path)) return JOB_LINK_NOTICE; | 
- * @mutate src/pages/auth/loginNotice.ts | notice !== JOB_LINK_NOTICE && notice.endsWith(BACK_TO_IT) | notice.endsWith(BACK_TO_IT)
+ * @mutate src/pages/auth/loginNotice.ts |   if (/^\/jobs\/[0-9a-f-]{36}$/i.test(path)) return JOB_LINK_NOTICE; |   if (/^\/jobs\/[0-9a-f-]{36}$/i.test(path)) return GENERIC_PAGE_NOTICE;
  * @mutate src/pages/jobs/JobDetail.tsx | onSignUp={requireSignup} onLogIn={(id) => navigate(guestLogInUrl(id))} /> | onSignUp={requireSignup} />
  * @mutate src/pages/auth/Login.tsx | const signupHref = signupUrlFor(pendingRedirect); | const signupHref = pendingRedirect?.match(/^\/jobs\/([^/?#]+)$/) ? signupUrlFor(pendingRedirect) : "/signup";
  */
@@ -201,12 +201,14 @@ describe("a guest opening a shared link", () => {
   });
 
   // F268a (audit 11-10): a member opening a shared link had to find Log in behind the blur.
-  it("a member can log in from the preview and comes back to the job", async () => {
+  // Polish audit 11-27 #5: one sign-up action per guest screen. "Already a member? Log in" under Sign up to apply is
+  // gone (the header's Log in covers it); the not-public state below keeps its own Log in (it is the main way in there).
+  // @mutate src/components/dashboard/GuestJobPage.tsx |         {/* Polish audit 11-27 #5: no "Already a member? | <button type="button">Log in</button>{/* x
+  it("the open job's page has one sign-up action and no second Log in line", async () => {
     openLink();
     await screen.findByText("Sign up to apply");
-    fireEvent.click(screen.getByRole("button", { name: "Log in" }));
-    // Audit 11-21 (P1): the open job's Log in says why (reason=apply), so Login never calls a public job private.
-    expect(screen.getByTestId("where").textContent).toBe(`/login?redirect=${encodeURIComponent(`/jobs/${JOB_ID}`)}&reason=apply`);
+    expect(screen.queryByRole("button", { name: "Log in" })).toBeNull();
+    expect(screen.queryByText(/Already a member\?/)).toBeNull();
   });
 
   // F286a (audit 11-10, High): an email or push link to a hired, done or cancelled job, opened signed out,
@@ -238,12 +240,11 @@ describe("a guest opening a shared link", () => {
   });
 
   it("the Log in screen that link opens leads with Log in, not Create an account", () => {
-    const { notice, leadWithSignup } = loginNotice({ oauthError: null, connect: null, signedOutForInactivity: false, arrivedFromSignup: false, bouncedFromGatedRoute: true, redirect: `/jobs/${JOB_ID}` });
+    const { notice } = loginNotice({ oauthError: null, connect: null, signedOutForInactivity: false, arrivedFromSignup: false, bouncedFromGatedRoute: true, redirect: `/jobs/${JOB_ID}` });
     expect(notice).toBe(JOB_LINK_NOTICE);
     expect(notice).toMatch(/only visible to the person who posted it and the person doing it/);
-    expect(leadWithSignup).toBe(false);
-    // The Jobs tabs themselves keep the generic account line.
-    expect(loginNotice({ oauthError: null, connect: null, signedOutForInactivity: false, arrivedFromSignup: false, bouncedFromGatedRoute: true, redirect: "/jobs?tab=posted" }).leadWithSignup).toBe(true);
+    // The Jobs tabs themselves keep the one-line account notice (polish audit 11-27 #4).
+    expect(loginNotice({ oauthError: null, connect: null, signedOutForInactivity: false, arrivedFromSignup: false, bouncedFromGatedRoute: true, redirect: "/jobs?tab=posted" }).notice).toBe("Log in to see your jobs.");
   });
 });
 

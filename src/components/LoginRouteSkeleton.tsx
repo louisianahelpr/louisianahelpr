@@ -73,7 +73,7 @@ const LoginRouteSkeleton = () => (
             <div className="mb-2" aria-hidden>
               <Skeleton className="h-14 w-14 rounded-xl" />
             </div>
-            <h1 className="text-page-title text-foreground max-[479px]:sr-only">Log in</h1>
+            <h1 className="sr-only">Log in</h1>
             <Skeleton className="h-4 w-44 rounded" aria-hidden />
           </div>
           {/* Bones at the height of the email + password + submit stack. */}

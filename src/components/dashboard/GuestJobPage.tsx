@@ -19,12 +19,12 @@ import { wordInLang } from "@/lib/i18n/inLang";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { getCity } from "@/lib/locationUtils";
 
-export function GuestJobPage({ job, onSignUp, onLogIn, onBrowse }: {
+export function GuestJobPage({ job, onSignUp, onBrowse }: {
   job: GuestJob;
   /** Sign up carrying this job (signupUrlFor(`/jobs/<id>`)), so the job is waiting after sign-up. */
   onSignUp: (jobId: string) => void;
   /** A member logs in and comes back to this job (guestLogInUrl). */
-  onLogIn: (jobId: string) => void;
+  onLogIn?: (jobId: string) => void;
   /** The public Browse list. */
   onBrowse: () => void;
 }) {
@@ -53,12 +53,7 @@ export function GuestJobPage({ job, onSignUp, onLogIn, onBrowse }: {
         <Button type="button" className="w-full" data-guest-sign-up="" onClick={() => onSignUp(job.id)}>
           Sign up to apply
         </Button>
-        <p className="text-center font-sans text-ds-13 text-muted-foreground" data-guest-log-in="">
-          Already a member?{" "}
-          <Button type="button" variant="link" size="sm" className="px-1 text-ds-13 font-semibold" onClick={() => onLogIn(job.id)}>
-            Log in
-          </Button>
-        </p>
+        {/* Polish audit 11-27 #5: no "Already a member? Log in" under Sign up to apply; the header's Log in covers it. */}
         <p className="text-center">
           <Button type="button" variant="link" size="sm" className="px-1 text-ds-13" data-guest-browse="" onClick={onBrowse}>
             See other open jobs

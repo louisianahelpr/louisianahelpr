@@ -154,11 +154,8 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
           <Link to={signup} data-guest-buy="" onClick={() => track(AhaEvent.DeclutterGuestTap, { action: free ? "ask" : "buy" })}>{free ? gw("g.signUpAsk") : gw("g.buyNow")}</Link>
         </Button>
       </StickyActionBar>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">
-          {/* F048 / F059 (owner UI audit 11-09, newest wording): it is SIGNING UP that is free, never read as the item. */}
-          {gw("g.freeJoin")}
-        </p>
+      {/* Polish audit 11-27 #5: no 11px "Signing up is free…" line under the sticky sign-up button (one sign-up action). */}
+      <div className="flex items-center justify-end gap-3">
         {/* The desktop guest bar already has Log in (AUD31-67 follow-up): only a phone gets it here. Audit 1110 F318: as
             an inline underlined word it measured 36x14px; it is a 44px (h-11) outline pill now, like the Browse card's. */}
         {!loginShown && (
@@ -205,6 +202,17 @@ export function DeclutterGuestBrowseJoin() {
   // AppTopBar/GuestAuthActions), so 11-25's slim "Join to buy or sell. It's free. [Sign up]" line said it twice. A link
   // to something of theirs (F402, below) keeps the full card: there Log in is the main way in.
   // Guard: src/test/phoneCompactBrowse1125.test.tsx.
+  // Polish audit 11-27 #5: the signed-out Wanted tab drew a boxed "Log in to see your Wanted posts. New here? [Log in]
+  // [Sign up]". It is one 15px link now, "Log in to post a Wanted"; the header's Join / Log in covers sign-up.
+  if (new URLSearchParams(location.search).get("tab") === "wanted" && !new URLSearchParams(location.search).has("post")) {
+    return (
+      <p data-guest-join="wanted" className="text-ds-15">
+        <Link to={`/login?redirect=${here(location)}`} className="link-standard font-semibold" style={{ color: "hsl(var(--bark))" }}>
+          {gw("g.want.wantedPost")}
+        </Link>
+      </p>
+    );
+  }
   if (!want) return null;
   return (
     <section data-guest-join="browse" aria-label={gw("g.joinAria")} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-border bg-card p-3">

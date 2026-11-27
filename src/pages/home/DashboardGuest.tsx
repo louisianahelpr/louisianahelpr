@@ -271,8 +271,10 @@ const DashboardGuest = () => {
   // differs.
   const toolbar = (
     <>
-    {/* M13 (iOS audit 11-16): the visible "Jobs | Declutter" switch, the same one guest Declutter starts with. */}
-    <GuestSectionSwitch at="jobs" className="mb-2" />
+    {/* M13 (iOS audit 11-16): the visible "Jobs | Declutter" switch, the same one guest Declutter starts with. Polish
+        audit 11-27 #7: on the web the site bar above already has the Jobs and Declutter icons, so the chips were a second
+        header row there; only the app's guest screen (no site bar) keeps them. */}
+    {isNativePlatform && <GuestSectionSwitch at="jobs" className="mb-2" />}
     {/* G1 (app audit 1123): member Browse's header row on the web (count, search icon, Filters). */}
     {!isNativePlatform && <GuestBrowseHeaderRow filters={filters} filtersButtonRef={filtersButtonRef} autoFocusSearch={!arrivedWithSearch}
       countLabel={guestOpenJobsLabel({ listedCount: filters.filteredJobs.length, readCount: baseJobs.length, ready: feedReady && !isError && phase === "ready" })} />}

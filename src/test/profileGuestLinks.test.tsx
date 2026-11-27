@@ -6,10 +6,8 @@
  *     "I have this": the Wanted quick-list that answers THAT post (quickListHref), through sign-up for a guest;
  *     never on your own page.
  *
- * @mutate src/lib/hireMe.ts |   return `/login?redirect=${encodeURIComponent(`/u/${encodeURIComponent(handle)}?${HIRE_PARAM}=1`)}`; |   return "/login";
  * @mutate src/pages/u/PublicProfilePage.tsx | <Link to={guestAware(quickListHref(w), signedIn)} data-testid="pp-wanted-reply"> | <Link to={guestAware("/declutter", signedIn)} data-testid="pp-wanted-reply">
  * @mutate src/pages/u/PublicProfilePage.tsx |                   {!isMe && (\n                    <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full"> |                   {(\n                    <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full">
- * @mutate src/pages/u/PublicProfilePage.tsx |       {!signedIn && (\n        <p className="mt-1 text-ds-13 text-muted-foreground max-lg:order-4 max-lg:mt-0 max-lg:w-full max-lg:text-ds-12" data-testid="pp-hire-join"> |       {false && (\n        <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-join">
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -55,35 +53,20 @@ beforeEach(() => {
 });
 
 describe("the share profile brings a guest back where they were going (audit L3, L8)", () => {
-  it("L3: a guest's Hire me has a Log in link that comes back to continue the hire", async () => {
-    show();
-    const login = (await screen.findByTestId("pp-hire-login")).querySelector("a")!;
-    expect(login.textContent).toBe("Log in");
-    const href = login.getAttribute("href")!;
-    expect(href.startsWith("/login?redirect=")).toBe(true);
-    expect(redirectOf(href)).toBe("/u/eli-b?hire=1");
-  });
-
-  // F068 (owner UI audit 11-09): a new guest also gets "New here? Join free", to sign-up and back to the hire.
-  // @mutate src/pages/u/PublicProfilePage.tsx |           New here? <Link to={hireGuestHref(handle)} | <Link to={hireGuestLoginHref(handle)}
-  it("F068: a guest's Hire me also offers Join free, through sign-up back to the hire", async () => {
-    show();
-    const join = (await screen.findByTestId("pp-hire-join")).querySelector("a")!;
-    expect(join.textContent).toBe("Join free");
-    expect(join.getAttribute("href")!.startsWith("/signup")).toBe(true);
-    expect(join.getAttribute("href")).toContain(encodeURIComponent("/u/eli-b?hire=1"));
-  });
-
-  // F230 / F231 (audit 11-10): Join free measured 58x16 and Log in 36x14 (tap-44 gives each a 44px hit area in
-  // place), and a guest asked what Hire me costs: free to look, pay only when you hire. A member keeps the old line.
-  // @mutate src/pages/u/PublicProfilePage.tsx | className="tap-44 font-semibold text-foreground underline underline-offset-2">Join free</Link> | className="font-semibold text-foreground underline underline-offset-2">Join free</Link>
-  // @mutate src/pages/u/PublicProfilePage.tsx | className="tap-44 font-semibold text-foreground underline underline-offset-2">Log in</Link> | className="font-semibold text-foreground underline underline-offset-2">Log in</Link>
+  // Polish audit 11-27 #5 (one sign-up action per guest screen): the "New here? Join free · Have an account? Log in"
+  // line under Hire me is gone (L3 and F068 had added it); Hire me goes through sign-up back to the hire, and the
+  // header's Join / Log in covers the rest.
+  // @mutate src/pages/u/PublicProfilePage.tsx |       {/* Polish audit 11-27 #5: no "New here? | <p data-testid="pp-hire-join"><a href="/login">Log in</a></p>{/* x
   // @mutate src/pages/u/PublicProfilePage.tsx | {signedIn ? "Offer a job directly. Your payment is held safely until the work is done." : "Free to look. You pay only when you hire, and your payment is held safely until the work is done."} | {"Offer a job directly. Your payment is held safely until the work is done."}
-  it("F230/F231: a guest's Join free and Log in are 44px targets and the line says it is free to look", async () => {
+  it("a guest's Hire me is the one sign-up action, back to the hire; the line says it is free to look", async () => {
     show();
-    const join = await screen.findByTestId("pp-hire-join");
-    for (const a of Array.from(join.querySelectorAll("a"))) expect(a.className, a.textContent ?? "").toMatch(/\btap-44\b/);
-    expect(screen.getByTestId("pp-hire").textContent).toContain(
+    const hire = await screen.findByTestId("pp-hire");
+    expect(screen.queryByTestId("pp-hire-join")).toBeNull();
+    expect(screen.queryByTestId("pp-hire-login")).toBeNull();
+    expect(hire.textContent).not.toMatch(/New here\?|Have an account\?/);
+    const go = hire.querySelector('a[href^="/signup"]')!;
+    expect(go.getAttribute("href")).toContain(encodeURIComponent("/u/eli-b?hire=1"));
+    expect(hire.textContent).toContain(
       "Free to look. You pay only when you hire, and your payment is held safely until the work is done.",
     );
   });

@@ -8,7 +8,7 @@
 // the single source of truth for form styling.
 
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { AuthCardMarkRow } from "@/components/auth/AuthCardHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -236,7 +236,8 @@ export function SignupStep1({
         <AuthCardMarkRow />
         {/* Signup-confusion 11-19: which form this is, before anything else (AuthModeTabs). */}
         <div className="w-full mb-3"><AuthModeTabs active="signup" loginHref={loginHref} email={email} /></div>
-        <h1 className="text-page-title text-foreground max-[479px]:sr-only">{t("signup.title")}</h1>
+        {/* Polish audit 11-27 #4: the tab and the button already say "Create account"; the heading is for screen readers only. */}
+        <h1 className="sr-only">{t("signup.title")}</h1>
         <p className="text-ds-14 text-muted-foreground">{subtitle ?? t("signup.subtitle")}</p>
       </div>
 
@@ -464,13 +465,7 @@ export function SignupStep1({
         </>
       )}
 
-      {/* Design audit 11-17 #30: 13px (was 12) and a 44px hit area on Log in (tap-44), as on the policy links above. */}
-      <p className="text-center text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        {t("signup.haveAccount")}{" "}
-        <Link to={loginHref} className="tap-44 font-semibold hover:underline whitespace-nowrap" style={{ color: "hsl(var(--bark))" }}>
-          {t("login.submit")}
-        </Link>
-      </p>
+      {/* Polish audit 11-27 #4: no "Already have an account? Log in" line: the Log in tab at the top covers it. */}
     </div>
   );
 }

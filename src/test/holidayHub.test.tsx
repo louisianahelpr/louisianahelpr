@@ -41,7 +41,7 @@
  * @mutate src/content/holidayHub/holidayHub.mjs |     if (today && isOver(e, today)) return false; |
  * @mutate src/components/Footer.tsx |               <Link to="/holidays" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>
  * @mutate src/pages/info/giftGuides/GiftGuidesSidebar.tsx |         <li><Link to="/holidays" {...current("/holidays")} data-gift-side-holiday-hub=""> |         <li><Link to="/help" {...current("/holidays")} data-gift-side-holiday-hub="">
- * @mutate src/pages/info/holidays/holidayParts.tsx |             onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })} |
+ * @mutate src/pages/info/holidays/holidayParts.tsx | data-holiday-maps={item.id}\n          onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })} | data-holiday-maps={item.id}
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -67,6 +67,7 @@ import {
 import { holidayEventsLd, holidayHubBody, holidayHubLd, holidayLightsItemListLd } from "@/lib/holidayHubSeo.mjs";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import HolidayHub from "@/pages/info/holidays/HolidayHub";
+import { HolidayCard, holidayDatesDisplay } from "@/pages/info/holidays/holidayParts";
 import { GIFT_GUIDES_CSS } from "@/pages/info/giftGuides/giftGuidesStyles";
 
 /**
@@ -295,7 +296,7 @@ describe("/holidays: lights and events in one list", () => {
     expect(ids.filter((id) => eventIds.has(id)).length).toBeGreaterThan(40);
     const headings = [...container.querySelectorAll("h2")].map((h) => h.textContent ?? "");
     expect(headings[0]).toMatch(/^Today, Friday, November 20 \(\d+\)$/);
-    expect(headings[headings.length - 1]).toMatch(/^Dates TBA/);
+    expect(headings[headings.length - 1]).toMatch(/^Dates not announced yet \(\d+\)$/);
     expect(container.querySelector("[data-holiday-count]")!.textContent).toMatch(/^\d+ light displays and \d+ events$/);
     expect(track).toHaveBeenCalledWith("page_view", { page: "holidays" });
   });
@@ -387,8 +388,10 @@ describe("/holidays: lights and events in one list", () => {
 
   it("compact cards: the type a small tag, one where-and-when line, the address is the Maps link, no round buttons", () => {
     const { container } = at("/holidays", <HolidayHub />);
-    const cards = [...container.querySelectorAll("[data-holiday-item]")];
-    expect(cards.length).toBeGreaterThan(60);
+    expect(container.querySelectorAll("[data-holiday-item]").length).toBeGreaterThan(60);
+    // Polish audit 11-27 #15: the undated items are two-line rows (below); the dated ones keep the card.
+    const cards = [...container.querySelectorAll("[data-holiday-item]:not([data-holiday-undated])")];
+    expect(cards.length).toBeGreaterThan(5);
     for (const c of cards.slice(0, 40)) {
       expect(c.querySelector("[data-holiday-tag]"), c.getAttribute("data-holiday-item")!).not.toBeNull();
       for (const a of c.querySelectorAll("a")) expect(a.className, c.getAttribute("data-holiday-item")!).not.toMatch(/rounded-full|\bborder\b/);
@@ -467,6 +470,15 @@ describe("/holidays: lights and events in one list", () => {
     fireEvent.click(link);
     expect(track).toHaveBeenCalledTimes(1);
     expect(track).toHaveBeenCalledWith("holiday_maps_click", { kind: "light", id, region: "acadiana" });
+  });
+
+  it("a dated card's own place link sends the same click event, and its price is never a bare '$' (polish audit 11-27 #14)", () => {
+    const l = HOLIDAY_LIGHTS.find((x) => x.region === "acadiana" && x.address && !x.tba)!;
+    const { container } = render(<MemoryRouter><ul><HolidayCard item={{ ...l, price: "$" }} kind="light" tag="Lights" /></ul></MemoryRouter>);
+    expect(container.querySelector("[data-holiday-price]")!.textContent).toBe("Paid");
+    track.mockClear();
+    fireEvent.click(container.querySelector("[data-holiday-maps]")!);
+    expect(track).toHaveBeenCalledWith("holiday_maps_click", { kind: "light", id: l.id, region: "acadiana" });
   });
 
   it("/holidays/hire-a-helpr: Post a job and Find work, each holiday job opens Post a job filled in, and no ID prompt", () => {
@@ -613,7 +625,7 @@ describe("Holiday Hub SEO before JavaScript", () => {
  * @mutate src/content/holidayHub/holidayHub.mjs | export const costMatches = (itemCost, cost) => !cost \|\| (cost === "unlisted" ? itemCost == null : itemCost === cost); | export const costMatches = (itemCost, cost) => !cost \|\| itemCost === cost;
  * @mutate src/pages/info/holidays/HolidayHub.tsx | {unlisted > 0 && <span data-holiday-unlisted=""> | {false && <span data-holiday-unlisted="">
  * @mutate src/content/holidayHub/holidayHub.mjs |     if ((e.tba \|\| (!e.start && !e.end)) && isHolidayLight(e)) lightsTba.push(e); |     if (false) lightsTba.push(e);
- * @mutate src/pages/info/holidays/holidayParts.tsx |   const price = holidayPriceLabel(item.price); |   const price = item.price;
+ * @mutate src/pages/info/holidays/holidayParts.tsx |   const price = holidayPriceLabel(item.price);\n  const maps = |   const price = item.price;\n  const maps =
  * @mutate src/content/holidayHub/holidayHub.mjs |   if (region && region.toLowerCase().startsWith(item.city.toLowerCase())) return region; |
  * @mutate src/pages/info/holidays/HolidayHub.tsx |     }, today).filter((i) => !endedEarlierToday(i, today, minutes)), |     }, today),
  * @mutate src/pages/info/holidays/HolidayHub.tsx | <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard inline-flex min-h-11 flex-wrap items-center gap-x-1 font-semibold text-[hsl(var(--bark))]"> | <Link to="/gift-guides/small-business-saturday#get-featured" className="link-standard flex-wrap gap-x-1 font-semibold text-[hsl(var(--bark))]">
@@ -642,7 +654,8 @@ describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices
     expect(tbaLights.length).toBeGreaterThan(40);
     expect(tbaLights.every((i) => isHolidayLight(i))).toBe(true);
     expect((groups.find((g) => g.key === "tba")?.items ?? []).some((i) => isHolidayLight(i))).toBe(false);
-    expect(hub().querySelector("#holidays-lights-tba")?.textContent).toContain("Light displays, dates not announced");
+    // Polish audit 11-27 #15: on the page the undated displays and events share one band, "Dates not announced yet".
+    expect(hub().querySelector("#holidays-undated")?.textContent).toContain("Dates not announced yet");
   });
 
   it("never shows a bare '$' as a price, and never repeats the city in the place line", () => {
@@ -654,8 +667,9 @@ describe("Holiday Hub audit 1121 area 5: cost not listed, undated lights, prices
     const prices = [...c.querySelectorAll("[data-holiday-price]")].map((e) => e.textContent ?? "");
     expect(prices.length).toBeGreaterThan(20);
     for (const p of prices) expect(p).not.toMatch(/^\$\s*(\(|$)|^\$ [a-z]/i);
-    const places = [...c.querySelectorAll("[data-holiday-item] h3 + p")].map((e) => e.textContent ?? "");
-    expect(places.length).toBeGreaterThan(40);
+    // Polish audit 11-27 #14: the place is its own line now (the Maps link), not shared with the dates.
+    const places = [...c.querySelectorAll("[data-holiday-place]")].map((e) => e.textContent ?? "");
+    expect(places.length).toBeGreaterThan(5);
     for (const w of places) {
       const [city, region] = w.split(" · ");
       if (region) expect(region.toLowerCase().startsWith(city.toLowerCase()), w).toBe(false);
@@ -728,29 +742,81 @@ describe("Holiday Hub When: Today and Next 7 days", () => {
  * @mutate src/pages/info/holidays/holidayParts.tsx |         {item.start && !item.tba && ( |         {false && (
  */
 /**
- * Guides polish 1122 #18, kept under owner 11-22 "Pick a day": the undated light displays sit in their own open band
- * under the chosen day's list, titled with their count and carrying the TBA note, then "Dates TBA"; a When filter
- * (dated by definition) shows neither.
- * @mutate src/content/holidayHub/holidayHub.mjs |   lightsTba: "Light displays, dates not announced", |   lightsTba: "Light displays",
- * @mutate src/pages/info/holidays/HolidayHub.tsx | note={g.key === "lights-tba" ? W.lightsTbaNote : undefined} | note={undefined}
+ * Polish audit 11-27 #15 (was guides polish 1122 #18): "Light displays, dates not announced (57)" and "Dates TBA (44)"
+ * meant the same thing and every card in them said "Dates TBA" (~15,000px on a phone). One open band, "Dates not
+ * announced yet (n)", right after the chosen day's list, of two-line rows (name / area · price · Map · Website), no
+ * "Dates TBA" on any row; a When filter (dated by definition) shows none.
+ * @mutate src/content/holidayHub/holidayHub.mjs |   undated: "Dates not announced yet", |   undated: "Dates TBA",
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |   const undated = undatedItems.length ? [{ key: "undated", day: null, items: undatedItems }] : []; |   const undated = groups.filter((g) => g.key === "lights-tba" \|\| g.key === "tba");
+ * @mutate src/pages/info/holidays/HolidayHub.tsx |       {g.items.map((i) => <HolidayUndatedRow key={i.id} | {g.items.map((i) => <HolidayCard tag={null} key={i.id}
  * @mutate src/pages/info/holidays/HolidayHub.tsx |             {undated.map(section)} |             {null}
+ * @mutate src/pages/info/holidays/HolidayHub.tsx | note={W.undatedNote} rows data= | note={W.undatedNote} data=
  */
-describe("Holiday Hub: undated lights and Dates TBA under the day (guides polish 1122 #18)", () => {
-  it("an open band with a count and the note right after the day's list, then Dates TBA", () => {
+describe("Holiday Hub: one undated band of two-line rows (polish audit 11-27 #15)", () => {
+  it("one open band with a count right after the day's list; rows, not cards; no 'Dates TBA' anywhere", () => {
     const { container, unmount } = render(<MemoryRouter initialEntries={["/holidays"]}><HolidayHub /></MemoryRouter>);
-    const lights = container.querySelector<HTMLElement>("section[data-holiday-lights-tba]")!;
-    expect(lights).not.toBeNull();
-    const head = lights.querySelector("[data-holiday-section-toggle]")!;
+    const band = container.querySelector<HTMLElement>("section[data-holiday-undated-section]")!;
+    expect(band).not.toBeNull();
+    expect(container.querySelector("section[data-holiday-lights-tba]")).toBeNull();
+    expect(container.querySelector("#holidays-tba")).toBeNull();
+    const head = band.querySelector("[data-holiday-section-toggle]")!;
     expect(head.getAttribute("aria-expanded")).toBe("true");
-    expect(head.textContent).toMatch(/^Light displays, dates not announced \(\d+\)$/);
-    expect(lights.textContent).toContain("Dates TBA means the 2026 dates are not announced yet");
+    const n = Number(/^Dates not announced yet \((\d+)\)$/.exec(head.textContent ?? "")?.[1]);
+    expect(n).toBeGreaterThan(80);
+    const rows = [...band.querySelectorAll<HTMLElement>("[data-holiday-undated]")];
+    expect(rows.length).toBe(n);
+    expect(band.querySelector("[data-holiday-rows]")).not.toBeNull();
+    for (const r of rows) {
+      expect(r.className, r.getAttribute("data-holiday-item")!).not.toMatch(/rounded|bg-card/);
+      expect(r.querySelectorAll("p").length).toBe(1); // name, then one line
+    }
+    expect(band.textContent).not.toContain("Dates TBA");
     const dayList = container.querySelector("section[data-holiday-day-list]")!;
-    expect(lights.previousElementSibling).toBe(dayList);
-    const tba = container.querySelector("#holidays-tba")!.closest("section")!;
-    expect(tba.previousElementSibling).toBe(lights);
+    expect(band.previousElementSibling).toBe(dayList);
     unmount();
     const week = render(<MemoryRouter initialEntries={["/holidays?when=week"]}><HolidayHub /></MemoryRouter>);
-    expect(week.container.querySelector("section[data-holiday-lights-tba]")).toBeNull();
+    expect(week.container.querySelector("section[data-holiday-undated-section]")).toBeNull();
+  });
+});
+
+/**
+ * Polish audit 11-27 #14: a card says one fact per line: the kind, the dates (no "2026"; ranges and "Mon D" never
+ * split; never a line that starts with "·"), the hours and cost, then the place.
+ * @mutate src/pages/info/holidays/holidayParts.tsx |     .replace(/,? 2026\b/g, "") |     .replace(/,? 2025\b/g, "")
+ * @mutate src/pages/info/holidays/holidayParts.tsx | g, `${NB}· `) | g, " · ")
+ * @mutate src/pages/info/holidays/holidayParts.tsx |     .replace(new RegExp(`\\b(${MONTH}) (?=\\d)`, "g"), `$1${NB}`); |     ;
+ * @mutate src/pages/info/holidays/holidayParts.tsx |         <p className="text-ds-15 font-semibold text-foreground" data-holiday-when="">{holidayDatesDisplay(when)}</p> |         <p className="text-ds-15 font-semibold text-foreground" data-holiday-when="">{holidayWhereLabel(item)} · {when}</p>
+ */
+describe("Holiday Hub cards: one fact per line (polish audit 11-27 #14)", () => {
+  it("holidayDatesDisplay drops 2026, keeps 2027, joins ranges and month-days, and hangs the separator", () => {
+    const NB = "\u00a0";
+    const WJ = "\u2060";
+    expect(holidayDatesDisplay("Nov 27, 2026-Jan 1, 2027; closed Dec 7, 14, 24, 31")).toBe(`Nov${NB}27${NB}– Jan${NB}1, 2027${NB}· closed Dec${NB}7, 14, 24, 31`);
+    expect(holidayDatesDisplay("Nov 27-28; Dec 4-5, 2026")).toBe(`Nov${NB}27${WJ}–${WJ}28${NB}· Dec${NB}4${WJ}–${WJ}5`);
+    expect(holidayDatesDisplay("Fri Nov 27, 2026")).toBe(`Fri${NB}Nov${NB}27`);
+    const every = [...HOLIDAY_LIGHTS, ...HOLIDAY_EVENTS].map((i) => i.dates).filter((d): d is string => Boolean(d));
+    expect(every.length).toBeGreaterThan(80);
+    for (const d of every) {
+      const out = holidayDatesDisplay(d);
+      expect(out, d).not.toMatch(/2026/);
+      expect(out, d).not.toMatch(/(^| )·/); // a "·" always follows a non-breaking space, never a breaking one
+      expect(out, d).not.toMatch(new RegExp("(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \\d"));
+    }
+  });
+
+  it("each dated card: kind, then dates alone on their line, then hours and cost, then the place as the Maps link", () => {
+    const { container } = render(<MemoryRouter initialEntries={["/holidays"]}><HolidayHub /></MemoryRouter>);
+    const cards = [...container.querySelectorAll<HTMLElement>("[data-holiday-item]:not([data-holiday-undated])")];
+    expect(cards.length).toBeGreaterThan(5);
+    for (const c of cards) {
+      const id = c.getAttribute("data-holiday-item")!;
+      const when = c.querySelector("[data-holiday-when]")!;
+      expect(when, id).not.toBeNull();
+      expect(when.textContent, id).not.toMatch(/2026| · [A-Z][a-z]+ & /);
+      expect(when.className).toMatch(/font-semibold/);
+      const place = c.querySelector("[data-holiday-place]");
+      if (place) expect(place.compareDocumentPosition(when) & Node.DOCUMENT_POSITION_PRECEDING, id).toBeTruthy();
+    }
   });
 });
 
@@ -801,7 +867,7 @@ describe("Holiday Hub: the guides' band headers and count style (consistency aud
   it("every section header is a green band button with (n), open on arrival; a tap closes and reopens it", () => {
     const { container } = render(<MemoryRouter initialEntries={["/holidays"]}><HolidayHub /></MemoryRouter>);
     const heads = [...container.querySelectorAll<HTMLElement>("[data-holiday-page] section > h2")];
-    expect(heads.length).toBeGreaterThan(2);
+    expect(heads.length).toBeGreaterThan(1); // the day's band and "Dates not announced yet" (polish audit 11-27 #15)
     for (const h of heads) {
       expect(h.className, h.textContent ?? "").toMatch(/\bgg-sec-toggle-h\b.*\bgg-sec-green\b/);
       const b = h.querySelector("button")!;

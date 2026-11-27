@@ -46,7 +46,7 @@ import {
   shareMyProfile,
   type PublicProfile,
 } from "@/lib/profileLink/api";
-import { HIRE_PARAM, hireGuestHref, hireGuestLoginHref, hireOfferPath, hireTargetByHandle } from "@/lib/hireMe";
+import { HIRE_PARAM, hireGuestHref, hireOfferPath, hireTargetByHandle } from "@/lib/hireMe";
 import { isHelprTeam } from "@/lib/helprTeam";
 import { quickListHref } from "@/lib/declutter/wantedLinks";
 import { PublicProfileReviews, reviewTotal } from "@/components/profile/publicProfile/PublicProfileReviews";
@@ -162,16 +162,8 @@ function HireMeButton({ handle, signedIn }: { handle: string; signedIn: boolean 
       <p className="mt-2 text-ds-13 text-muted-foreground max-lg:order-3 max-lg:mt-0 max-lg:w-full max-lg:text-ds-12">
         {signedIn ? "Offer a job directly. Your payment is held safely until the work is done." : "Free to look. You pay only when you hire, and your payment is held safely until the work is done."}
       </p>
-      {/* Audit L3 (11-05): a guest who already has an account was sent to sign-up only. F068 (owner UI audit 11-09): and
-          a new guest had no plain way to sign up, so both are offered: "New here? Join free · Have an account? Log in". */}
-      {!signedIn && (
-        <p className="mt-1 text-ds-13 text-muted-foreground max-lg:order-4 max-lg:mt-0 max-lg:w-full max-lg:text-ds-12" data-testid="pp-hire-join">
-          {/* F230 (audit 11-10): Join free measured 58x16 and Log in 36x14; tap-44 gives each a 44px hit area in place. */}
-          New here? <Link to={hireGuestHref(handle)} className="tap-44 font-semibold text-foreground underline underline-offset-2">Join free</Link>
-          <span aria-hidden="true"> · </span>
-          <span data-testid="pp-hire-login">Have an account? <Link to={hireGuestLoginHref(handle)} className="tap-44 font-semibold text-foreground underline underline-offset-2">Log in</Link></span>
-        </p>
-      )}
+      {/* Polish audit 11-27 #5: no "New here? Join free · Have an account? Log in" line (it was F068's); Hire me is the
+          one sign-up action and the header's Join / Log in covers the rest. */}
     </div>
   );
 }

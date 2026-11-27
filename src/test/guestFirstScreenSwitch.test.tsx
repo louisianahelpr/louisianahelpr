@@ -3,7 +3,7 @@
  * Declutter, though Declutter is open to everyone. Both guest screens now draw the same labelled "Jobs | Declutter"
  * switch (GuestSectionSwitch: the shared FilterChips), the current one pressed; Declutter only while it is open.
  *
- * @mutate src/pages/home/DashboardGuest.tsx |     <GuestSectionSwitch at="jobs" className="mb-2" />\n |
+ * @mutate src/pages/home/DashboardGuest.tsx |     {isNativePlatform && <GuestSectionSwitch at="jobs" className="mb-2" />}\n |
  * @mutate src/components/declutter/DeclutterGuestHome.tsx | <div className="flex items-center justify-between gap-2 pb-2"><GuestSectionSwitch at="declutter" className="min-w-0" /> | <div className="flex items-center justify-between gap-2 pb-2">
  * @mutate src/components/sections/GuestSectionSwitch.tsx |   if (at !== "declutter" && !open?.has("declutter")) return null; |   if (open) return null;
  */

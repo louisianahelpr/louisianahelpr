@@ -18,7 +18,7 @@
  * @mutate src/components/landing/HeroSection.tsx | Hire help, find work, or buy and sell. One account | Hire help or find work. Sell or find a deal. Shop local or open a shop. Find a place or list one. One account
  * @mutate src/components/landing/SectionsShowcase.tsx |           {badged && (\n            <span | {false && (\n            <span
  * @mutate src/components/landing/SectionsShowcase.tsx | ...(badged ? { opacity: 0.8 } : null) | ...(false ? { opacity: 0.8 } : null)
- * @mutate src/components/landing/SectionsShowcase.tsx |         {!soon && (\n          <Link |         {true && (\n          <Link
+ * @mutate src/components/landing/SectionsShowcase.tsx |         {/* Polish audit 11-27 #16 (owner: remove the repeats): no "Browse jobs" | <a href="/browse">Browse jobs</a>{/* x
  * @mutate src/components/landing/SectionsShowcase.tsx | One free account for jobs and Declutter. | One free account. Jobs are open now.
  *
  * ONE WORD for a closed section (audit 2026-10-28 P5-4): the landing said
@@ -84,7 +84,7 @@ describe("the landing says what is open today", () => {
   // @mutate src/components/landing/SectionsShowcase.tsx |   const pending = open === null; |   const pending = false;
   // @mutate src/components/landing/SectionsShowcase.tsx | export const LANDING_CARD_KEYS: readonly SectionKey[] = ["jobs", "declutter"]; | export const LANDING_CARD_KEYS: readonly SectionKey[] = ["jobs", "declutter", "shops", "rentals"];
   // @mutate src/components/landing/SectionsShowcase.tsx |         {later.length > 0 && ( |         {false && (
-  it("while pending: no Coming soon badge yet, no card dimmed, two cards in one row, only Jobs links (fails closed)", () => {
+  it("while pending: no Coming soon badge yet, no card dimmed, two cards in one row, no card links (polish audit 11-27 #16)", () => {
     const { container, unmount } = renderSections(null);
     const cards = [...container.querySelectorAll<HTMLElement>("[data-section]")];
     // Inventory floor: the open pair from sectionsConfig has a card each.
@@ -92,10 +92,8 @@ describe("the landing says what is open today", () => {
     expect(cards.length).toBeGreaterThan(1);
     expect(screen.queryByText("Coming soon")).toBeNull();
     for (const c of cards) expect(c.style.opacity, c.dataset.section).toBe("");
-    // Jobs keeps its link to the public board; no switched card has one until the answer is in.
-    const jobs = container.querySelector('[data-section="jobs"]') as HTMLElement;
-    expect(within(jobs).getByRole("link", { name: /Browse jobs/ }).getAttribute("href")).toBe("/browse");
-    expect(container.querySelector('[data-section="declutter"] a')).toBeNull();
+    // Polish audit 11-27 #16: the cards carry no links (Browse jobs / Shop Declutter sit under their own sections).
+    expect(container.querySelector('[data-section] a')).toBeNull();
     // The rest are one line, never a card each.
     expect(screen.getByTestId("landing-sections-later").textContent).toBe("Shops and Homes are on the way.");
     unmount();
@@ -118,12 +116,12 @@ describe("the landing says what is open today", () => {
     unmount();
   });
 
-  it("a section that opens loses its badge and gains its link; an opened Shops leaves the line", () => {
+  it("a section that opens loses its badge (no link: polish audit 11-27 #16); an opened Shops leaves the line", () => {
     const { container, unmount } = renderSections(new Set(["declutter"]));
     const declutter = container.querySelector('[data-section="declutter"]') as HTMLElement;
     expect(within(declutter).queryByText("Coming soon")).toBeNull();
     expect(declutter.style.opacity).toBe("");
-    expect(declutter.querySelector("a")).not.toBeNull();
+    expect(declutter.querySelector("a")).toBeNull();
     expect(screen.queryByText("Coming soon")).toBeNull();
     unmount();
     const r = renderSections(new Set(["declutter", "shops"]));

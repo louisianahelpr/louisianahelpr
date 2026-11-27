@@ -1,6 +1,6 @@
 // @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx |         Try again\n      </Button> |         Retry\n      </Button>
 // @mutate src/components/declutter/DeclutterBrowseView.tsx | <DeclutterActiveFilters filters={filters} maxMiles={from ? maxMiles : null} | <DeclutterActiveFilters filters={filters} maxMiles={maxMiles}
-// @mutate src/pages/auth/signup/SignupStep1.tsx | <Link to={loginHref} className="tap-44 | <Link to="/login" className="tap-44
+// @mutate src/pages/auth/signup/SignupStep1.tsx | <AuthModeTabs active="signup" loginHref={loginHref} | <AuthModeTabs active="signup" loginHref="/login"
 // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | , "Pickup places": "[data-porch-places-card]" | 
 // @mutate src/lib/i18n/enListingParts.ts | it's kept under History in Selling. | it's kept under Taken down in Selling.
 /**
@@ -30,7 +30,8 @@ describe("audit 11-20 night quick Lows", () => {
   it("26: no plain /login link is left on sign-up step 1", () => {
     const src = readSource("src/pages/auth/signup/SignupStep1.tsx");
     expect(src).not.toMatch(/to="\/login"/);
-    expect(src).toContain("<Link to={loginHref}");
+    // Polish audit 11-27 #4: the bottom Log in line is gone; the Log in tab carries loginHref.
+    expect(src).toContain('<AuthModeTabs active="signup" loginHref={loginHref}');
   });
 
   it("6 (settings): Declutter settings reads the dictionary, and its chips find their sections in either language", () => {

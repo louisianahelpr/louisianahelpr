@@ -443,6 +443,7 @@ img.gg-thumb{background:transparent;border:0;mix-blend-mode:multiply}
 .gg-sheet-menu .gg-sheet-menu-body{margin-top:8px;border-top:1px solid var(--gg-line);padding-top:16px}
 .gg-sheet-menu .gg-sheet-menu-body{-webkit-mask-image:linear-gradient(to bottom,#000 1px,transparent 1px,#000 17px);mask-image:linear-gradient(to bottom,#000 1px,transparent 1px,#000 17px)}
 .gg-sheet-menu-body ul{list-style:none;margin:0 0 8px;padding:0}
+.gg-sheet-join{display:flex;align-items:center;min-height:52px;margin:0 0 8px;font-size:16px;font-weight:600;color:var(--gg-olive);text-decoration:none;border-bottom:1px solid var(--gg-line)}
 .gg-sheet-menu-body a{display:flex;align-items:center;min-height:44px;padding:4px 10px;border-radius:8px;color:var(--gg-ink);text-decoration:none;font-size:15px}
 .gg-sheet-menu-body a[aria-current="page"]{background:var(--gg-soft);color:var(--gg-olive);font-weight:700}
 .gg-sheet-menu-body .gg-side-h{scroll-margin-top:8px}

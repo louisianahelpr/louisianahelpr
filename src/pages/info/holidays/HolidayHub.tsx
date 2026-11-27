@@ -34,11 +34,11 @@ import { SBS_WORDS } from "@/content/sbsFeaturedLocal";
 import { HOLIDAY_LIGHTS } from "@/content/holidayHub/lights.mjs";
 import { HOLIDAY_EVENTS } from "@/content/holidayHub/events.mjs";
 import {
-  DATES_TBA, HOLIDAY_EVENT_KIND, HOLIDAY_LIGHT_FORMAT, HOLIDAY_REGIONS, HOLIDAY_WHAT, HOLIDAY_WORDS as W,
+  HOLIDAY_EVENT_KIND, HOLIDAY_LIGHT_FORMAT, HOLIDAY_REGIONS, HOLIDAY_WHAT, HOLIDAY_WORDS as W,
   endedEarlierToday, filterHolidayItems, holidayCountLabel, holidayDayChipLabel, holidayDayChoices, holidayWhereLabel, holidayDayHeading, holidayItemsByDay, holidayItemsOn, isHolidayLight, louisianaMinutes, louisianaToday,
   resolveHolidayWhat, type HolidayCostFilter, type HolidayItem, type HolidayRegion, type HolidayWhen,
 } from "@/content/holidayHub/holidayHub.mjs";
-import { HolidayCard, HolidayNothing, HolidaySection, useHolidayPageView } from "./holidayParts";
+import { HolidayCard, HolidayNothing, HolidaySection, HolidayUndatedRow, useHolidayPageView } from "./holidayParts";
 import { giftGuides as G } from "@/content/giftGuides";
 import { GIFT_GUIDES_CSS } from "../giftGuides/giftGuidesStyles";
 import { GuidesFrame } from "../giftGuides/fun/FunPage";
@@ -159,10 +159,17 @@ export default function HolidayHub() {
   const day = asked && days.includes(asked) ? asked : days[0] ?? null;
   const onDay = useMemo(() => (day ? holidayItemsOn(filtered, day) : []), [filtered, day]);
   const groups = useMemo(() => holidayItemsByDay(shown, today), [shown, today]);
-  const undated = groups.filter((g) => g.key === "lights-tba" || g.key === "tba");
-  const section = (g: (typeof groups)[number]) => (
-    <HolidaySection key={g.key} id={`holidays-${g.key}`} title={g.day ? holidayDayHeading(g.day, today) : g.key === "now" ? "Happening now" : g.key === "lights-tba" ? W.lightsTba : DATES_TBA}
-      count={g.items.length} note={g.key === "lights-tba" ? W.lightsTbaNote : undefined} data={g.key === "lights-tba" ? { "data-holiday-lights-tba": "" } : undefined}>
+  // Polish audit 11-27 #15: "Light displays, dates not announced" and "Dates TBA" meant the same thing (two sections,
+  // ~15,000px of cards each saying "Dates TBA"). One section, "Dates not announced yet", of two-line rows; still open.
+  const undatedItems = groups.filter((g) => g.key === "lights-tba" || g.key === "tba").flatMap((g) => g.items);
+  const undated = undatedItems.length ? [{ key: "undated", day: null, items: undatedItems }] : [];
+  const section = (g: (typeof groups)[number]) => g.key === "undated" ? (
+    <HolidaySection key="undated" id="holidays-undated" title={W.undated} count={g.items.length} note={W.undatedNote} rows data={{ "data-holiday-undated-section": "" }}>
+      {g.items.map((i) => <HolidayUndatedRow key={i.id} item={i} kind={isHolidayLight(i) ? "light" : "event"} />)}
+    </HolidaySection>
+  ) : (
+    <HolidaySection key={g.key} id={`holidays-${g.key}`} title={g.day ? holidayDayHeading(g.day, today) : "Happening now"}
+      count={g.items.length}>
       {g.items.map((i) => <HolidayCard key={i.id} item={i} kind={isHolidayLight(i) ? "light" : "event"} tag={tagFor(i)} />)}
     </HolidaySection>
   );
@@ -310,7 +317,7 @@ export default function HolidayHub() {
             ) : (
               <HolidayNothing onClear={clearAll}>Nothing matches these filters.</HolidayNothing>
             )
-          ) : groups.map(section)
+          ) : [...groups.filter((g) => g.key !== "lights-tba" && g.key !== "tba"), ...undated].map(section)
         ) : filtered.length === 0 ? (
           <HolidayNothing onClear={clearAll}>
             {when !== "all" ? `Nothing matches these filters ${WHEN_NOTHING[when]}.` : "Nothing matches these filters."}
@@ -323,7 +330,7 @@ export default function HolidayHub() {
                   : <li className="text-ds-14 text-muted-foreground" data-holiday-day-empty="">Nothing listed for this day. Try another day.</li>}
               </HolidaySection>
             )}
-            {/* The undated light displays and "Dates TBA" stay reachable under the day, each its own open band. */}
+            {/* Everything with no 2026 date yet stays reachable under the day, in one open band (polish audit 11-27 #15). */}
             {undated.map(section)}
           </>
         )}

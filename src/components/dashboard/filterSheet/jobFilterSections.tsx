@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import "@/lib/i18n/enJobsHelpr";
 import { t } from "@/lib/i18n/language";
-import { Bookmark, Clock, Rocket, SearchCheck, Zap } from "lucide-react";
+import { Bookmark, Rocket, Zap } from "lucide-react";
 import type { FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import {
   SortContent,
@@ -10,7 +10,7 @@ import {
   WhenContent,
 } from "@/components/dashboard/JobFilters";
 import { PayRangeSlider, payRangeLabel } from "@/components/dashboard/filterSheet/PayRangeSlider";
-import { AvailabilityRow, SignupRow, ToggleRow, WantsQuotesRow } from "@/components/dashboard/filterSheet/FilterSheetRows";
+import { AvailabilityRow, ToggleRow, WantsQuotesRow } from "@/components/dashboard/filterSheet/FilterSheetRows";
 
 export interface JobFilterSectionsArgs {
   selectedCategory: string | null;
@@ -222,22 +222,8 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
             onChange={setUrgentOnly}
             ariaLabel={t("jh.f.urgentAria")}
           />
-          {signupHref && (
-            <SignupRow
-              icon={Bookmark}
-              label="Saved jobs only"
-              hint="Sign up to save jobs and filter to just those"
-              href={signupHref}
-            />
-          )}
-          {signupHref && (
-            <SignupRow
-              icon={Clock}
-              label="During my hours"
-              hint="Sign up to save your weekly hours and match on them"
-              href={signupHref}
-            />
-          )}
+          {/* Polish audit 11-27 #5: a guest saw three bordered "Sign up to save…" rows here plus the header's Join /
+              Log in. One grey line now; the header keeps the one sign-up action. */}
           {!signupHref && showAvailability && setMatchAvailability && (
             <AvailabilityRow
               matchAvailability={matchAvailability}
@@ -247,12 +233,9 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
           )}
           {savedSearchesButton}
           {signupHref && (
-            <SignupRow
-              icon={SearchCheck}
-              label="Saved searches"
-              hint="Sign up to save this search and get told about new matches"
-              href={signupHref}
-            />
+            <p className="text-ds-13 text-muted-foreground" data-filter-guest-signup-line="">
+              Sign up to save jobs, hours and searches.
+            </p>
           )}
         </div>
       ),

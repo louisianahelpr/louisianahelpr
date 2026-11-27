@@ -2,7 +2,7 @@
  * F150 (owner UI audit 11-09): the floating "+ Create" / "+ Sell" / "+ Post a job" pills sat on card text (e.g.
  * "3 mi away · Porch pickup"). Owner's fix: "Bottom padding = dock + floating button height". Every list that scrolls
  * under a pill ends that much higher:
- *   - SectionScreen (Home, Declutter, Shops, Homes) adds pb-20 under its last row when it has a `fab`;
+ *   - SectionScreen (Home, Declutter, Shops, Homes) adds pb-[88px] (polish audit 11-27 #6: 48px pill + 16px gap + 24px clear; was pb-20) under its last row when it has a `fab`;
  *   - Jobs (PageScaffold, not SectionScreen: the feed and the Posted / Working lists) add --section-fab-clearance,
  *     which <html class="has-section-fab"> sets while a SectionCreateFab is on screen.
  * Measured at 375 (cwv-lab --scroll-end, ~/.lh-shots/ui-audit-1109/fixes/f150/): the text under the pill at the end.
@@ -10,7 +10,7 @@
  * @mutate src/components/sections/SectionCreateFab.tsx |     document.documentElement.classList.add("has-section-fab"); |     void 0;
  * @mutate src/components/job-card/JobListPage.tsx |  + ${toastClearance}px + var(--section-fab-clearance, 0px))` }} |  + ${toastClearance}px)` }}
  * @mutate src/components/dashboard/MainFeedSection.tsx | var(--safe-area-bottom, 0px) + var(--section-fab-clearance, 0px))" }} | var(--safe-area-bottom, 0px))" }}
- * @mutate src/index.css | html.has-section-fab { --section-fab-clearance: 4rem; } | html.has-section-fab { --section-fab-clearance: 1rem; }
+ * @mutate src/index.css | html.has-section-fab { --section-fab-clearance: 4.5rem; } | html.has-section-fab { --section-fab-clearance: 1rem; }
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
@@ -44,17 +44,18 @@ describe("a list ends above the floating create pill (F150)", () => {
     expect(html.classList.contains("has-section-fab")).toBe(false);
   });
 
-  it("the clearance is the pill's height plus its gap over the dock (Button md h-12 = 48px, + 16px)", () => {
+  it("the clearance is the pill's height plus its gap over the dock (Button md h-12 = 48px, + 24px clear)", () => {
     expect(read("src/components/ui/button.tsx")).toMatch(/md: "h-12 /);
-    expect(read("src/components/sections/SectionCreateFab.tsx")).toMatch(/size="md"[\s\S]{0,400}bottom-safe-nav/);
-    expect(css).toContain("html.has-section-fab { --section-fab-clearance: 4rem; }");
+    expect(read("src/components/sections/SectionCreateFab.tsx")).toMatch(/size="md"[\s\S]{0,600}bottom-safe-nav/);
+    // Polish audit 11-27 #6: + 24px of clear space under the pill (48 + 24 = 72px = 4.5rem).
+    expect(css).toContain("html.has-section-fab { --section-fab-clearance: 4.5rem; }");
   });
 
-  it("every Jobs list under the pill adds the clearance; SectionScreen keeps its pb-20", () => {
+  it("every Jobs list under the pill adds the clearance; SectionScreen keeps its pb-[88px]", () => {
     const users = ["src/components/job-card/JobListPage.tsx", "src/components/dashboard/MainFeedSection.tsx", "src/components/dashboard/BrowseTasksFeed.tsx"];
     expect(users).toHaveLength(3);
     for (const f of users) expect(read(f), f).toMatch(/paddingBottom:[^\n]*var\(--section-fab-clearance, 0px\)/);
-    expect(read("src/components/sections/SectionScreen.tsx")).toMatch(/\$\{fab \? "pb-20" : "pb-6"\}/);
+    expect(read("src/components/sections/SectionScreen.tsx")).toMatch(/\$\{fab \? "pb-\[88px\]" : "pb-6"\}/);
     expect(read("src/pages/jobs/JobsSection.tsx")).toMatch(/<SectionCreateFab section="jobs"/);
   });
 });

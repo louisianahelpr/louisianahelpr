@@ -9,6 +9,7 @@ import { confirmSessionLost } from "@/lib/sessionLoss";
 import { authDiagnostics } from "@/lib/authDiagnostics";
 import { PERMISSION_DENIED_EVENT, markSessionLost, releaseHeldDenials } from "@/lib/permissionDenied";
 import { signedOutOnPurposeRecently } from "@/lib/unexpectedSignOut";
+import { hadSessionOnThisBrowser } from "@/lib/hadSession";
 import { track, AhaEvent } from "@/lib/analytics";
 import { rememberJobIntent } from "@/lib/jobIntent";
 import { hasPreload } from "@/lib/lazyWithPreload";
@@ -415,6 +416,11 @@ const ProtectedRoute = ({
     // after they sign in, instead of silently dumping them on /home.
     const intended = location.pathname + location.search;
     const lostMidUse = hadUser.current && !signedOutOnPurposeRecently();
+    // Polish audit 11-27 #4: a first-time guest who opens a plain /jobs only wanted to look, so the public job list
+    // (/browse) opens instead of a log-in wall. Anyone this browser has known as a member (hadSessionOnThisBrowser),
+    // a session lost mid-use, and every /jobs link with a query (?job=, ?tab= from emails and pushes: the member's own
+    // job, which the public list cannot show) still go to Log in and come back to it (auth review 11-27).
+    if (!lostMidUse && location.pathname === "/jobs" && !location.search && !hadSessionOnThisBrowser()) return <Navigate to="/browse" replace />;
     const to =
       (intended && intended !== "/"
         ? `/login?redirect=${encodeURIComponent(intended)}`

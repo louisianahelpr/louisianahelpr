@@ -20,6 +20,7 @@
  * @mutate src/components/Navbar.tsx | className="hidden md:inline-flex rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"\n            >\n              <Link\n                to="/login" | className="rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"\n            >\n              <Link\n                to="/login"
  * @mutate src/components/Navbar.tsx | <span className="md:hidden" data-nav-join="phone">{wordInLang("g.joinOrLogIn", "Join / Log in")}</span> | <span className="md:hidden" data-nav-join="phone">{wordInLang("g.joinFree", "Join free")}</span>
  * @mutate src/components/Navbar.tsx | <span className="hidden md:inline" data-nav-join="wide"> | <span data-nav-join="wide">
+ * @mutate src/lib/i18n/es.ts |   "g.joinOrLogIn": "Entrar", |   "g.joinOrLogIn": "Únase / Iniciar sesión",
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -133,7 +134,8 @@ describe("owner 11-22: the phone bar has one Join / Log in button; the desktop b
     const en = readFileSync(join(ROOT, "src/lib/i18n/enCore.ts"), "utf8");
     const es = readFileSync(join(ROOT, "src/lib/i18n/es.ts"), "utf8");
     expect(en).toContain('"g.joinOrLogIn": "Join / Log in"');
-    expect(es).toMatch(/"g\.joinOrLogIn": "Únase \/ [^"]+"/);
+    // Polish audit 11-27 #90: "Únase / Iniciar sesión" (~174px) pushed the icons to ~4px from the logo at 375; one word now.
+    expect(es).toContain('"g.joinOrLogIn": "Entrar"');
     const html = readFileSync(join(ROOT, "index.html"), "utf8");
     expect(html).toContain('<span class="md:hidden" data-nav-join="phone">Join / Log in</span>');
     expect(html).toContain('<span class="hidden md:inline" data-nav-join="wide">Join free</span>');

@@ -9,7 +9,6 @@ export const esGuest: Record<keyof typeof enGuest, string> = {
   "g.makeOffer": "Hacer oferta",
   "g.buyNow": "Comprar ahora",
   "g.signUpAsk": "Regístrese para pedirlo",
-  "g.freeJoin": "Registrarse es gratis. Lo traeremos de vuelta a este artículo.",
   "g.trades": "Inicie sesión y publique un artículo para ofrecer un intercambio.",
   "g.want.offer": "Inicie sesión para ver su oferta",
   "g.want.order": "Inicie sesión para ver su pedido",
@@ -18,6 +17,7 @@ export const esGuest: Record<keyof typeof enGuest, string> = {
   "g.want.wanted": "Inicie sesión para ver lo que busca",
   "g.joinAria": "Únase para comprar o vender",
   "g.newHere": "¿Es nuevo aquí?",
+  "g.want.wantedPost": "Inicie sesión para publicar un Wanted",
   "g.openJobs": "{n} trabajos abiertos",
   "g.openJob": "1 trabajo abierto",
 };

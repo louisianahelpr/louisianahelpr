@@ -944,7 +944,8 @@ describe("the photo-first Declutter item page", () => {
     expect(await screen.findByRole("heading", { name: "Oak Rocking Chair", level: 2 })).toBeInTheDocument();
     expect(document.querySelector("[data-item-price]")?.textContent).toContain("$40");
     const join = document.querySelector("[data-guest-join]") as HTMLElement;
-    expect(join).toHaveTextContent("Signing up is free. We'll bring you back to this item.");
+    // Polish audit 11-27 #5: no second sign-up line under the buttons.
+    expect(join).not.toHaveTextContent("Signing up is free");
     const back = encodeURIComponent(`/declutter/item/${ID}`);
     // The real pair, in the member's order (Make offer, then the one filled Buy now), each to sign up and back here.
     // @mutate src/components/declutter/DeclutterGuest.tsx |           <Link to={signup} data-guest-buy="" onClick= |           <Link to="/signup" data-guest-buy="" onClick=

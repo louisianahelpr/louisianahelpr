@@ -19,21 +19,18 @@ describe("F281a: /login tells a lapsed member from a guest", () => {
   it("a browser that held a session gets the session-lost line and leads with Log in", () => {
     const n = loginNotice({ ...base, hadSessionHere: true });
     expect(n.notice).toBe("You were signed out on this browser. Log back in and we'll take you right back to where you were.");
-    expect(n.leadWithSignup).toBe(false);
   });
 
-  it("a browser that never held one keeps the guest line and leads with Create an account", () => {
+  it("a browser that never held one keeps the guest line (polish audit 11-27 #4: one short Log in line)", () => {
     const n = loginNotice({ ...base, redirect: "/post-job", hadSessionHere: false });
-    expect(n.notice).toMatch(/^Posting a job needs a free account\./);
-    expect(n.leadWithSignup).toBe(true);
+    expect(n.notice).toBe("Log in to post a job.");
   });
 
   // F418 (audit 11-10): a /messages link is a member's (message email or notice), so even a fresh browser leads with Log in.
   // @mutate src/pages/auth/loginNotice.ts |   ["/messages", "Log in to see your messages."], |   ["/messagesx", "Log in to see your messages."],
   it("a messages link on a fresh browser says log in and leads with Log in", () => {
     const n = loginNotice({ ...base, hadSessionHere: false });
-    expect(n.notice).toBe("Log in to see your messages. We'll take you straight back to it.");
-    expect(n.leadWithSignup).toBe(false);
+    expect(n.notice).toBe("Log in to see your messages.");
   });
 
   it("the flag is remembered on this browser once set", () => {

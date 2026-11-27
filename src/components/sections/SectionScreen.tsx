@@ -112,7 +112,7 @@ export function SectionScreen({
   const content = (
         <>
           {!section && <AppTopBar title={title} search={search} mine={mine} />}
-          <div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>
+          <div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-[88px]" : "pb-6"}`}>
             <HeaderSearchSlot.Provider value={slotted ? slotEl : null}>{children}</HeaderSearchSlot.Provider>
           </div>
           {fab}

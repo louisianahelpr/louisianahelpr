@@ -1,5 +1,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
+import { definitelyGuest } from "@/lib/persistedAuthToken";
+import { wordInLang } from "@/lib/i18n/inLang";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
@@ -7,7 +9,7 @@ import { giftGuides as G } from "@/content/giftGuides";
 import type { CatalogGuide } from "@/content/giftGuideCatalog";
 
 const SHEET_PREFIX = "gg-sheet";
-type SheetModule = { GiftGuidesPhoneSheet: ComponentType<{ open: boolean; onClose: () => void; active: CatalogGuide | null; myList: boolean; page?: string; idPrefix: string }> };
+type SheetModule = { GiftGuidesPhoneSheet: ComponentType<{ open: boolean; onClose: () => void; active: CatalogGuide | null; myList: boolean; page?: string; idPrefix: string; join?: string }> };
 const loadSheet = () => loadModule(() => import("./GiftGuidesPhoneSheet"));
 
 /**
@@ -52,7 +54,7 @@ export function GuidesMenuButton({ active, myList = false, page }: { active: Cat
       <RoundIconButton className="gg-icon gg-head-menu" aria-label={G.phoneMenuLabel} aria-haspopup="dialog" aria-expanded={sheet} onClick={() => setSheet(true)} data-gift-head-menu="">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" /></svg>
       </RoundIconButton>
-      {SheetPart && <SheetPart open={sheet} onClose={() => setSheet(false)} active={active} myList={myList} page={page} idPrefix={SHEET_PREFIX} />}
+      {SheetPart && <SheetPart open={sheet} onClose={() => setSheet(false)} active={active} myList={myList} page={page} idPrefix={SHEET_PREFIX} join={definitelyGuest() ? wordInLang("g.joinOrLogIn", "Join / Log in") : undefined} />}
     </>
   );
 }

@@ -46,7 +46,7 @@ const navHomeHiddenOn = (path: string) => NAV_HOME_HIDDEN_ON.some((p) => path ==
  * current at all. The section a path belongs to (a job page is Jobs, an item page is Declutter), and the visible mark
  * the current link wears: the brand olive and an underline (colour is never the only signal).
  */
-function navSection(path: string): "jobs" | "declutter" | "guides" | null {
+export function navSection(path: string): "jobs" | "declutter" | "guides" | null {
   const under = (p: string) => path === p || path.startsWith(p + "/");
   if (under("/browse") || under("/jobs")) return "jobs";
   if (under("/declutter")) return "declutter";
@@ -94,7 +94,10 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
   // drawn at the page's top and scrolls away with it, so once a shopper scrolls only the guides' row and the gifts are
   // on screen. The spacer under it is unchanged, so nothing moves at the top. Every other page, and 768px up, keep the
   // fixed bar. Guard: src/test/guidesPhonePolish1125.test.tsx.
-  const scrollsAway = navSection(location.pathname) === "guides";
+  // Polish audit 11-27 #7 (owner rule 11-22, guides phone header = back + "Gift guides" + ≡ only, which signed in already
+  // matched): scrolling away still showed two header rows at the top. Up to 767px the bar is not drawn at all on the
+  // guides' pages for a guest; "Join / Log in" is the first row of the guides' ≡ menu (GiftGuidesPhoneSheet) instead.
+  const phoneHidden = navSection(location.pathname) === "guides";
   // This nav is `position: fixed; top: 0`, so the global OfflineBanner (also
   // fixed at top:0) would overlay it. The `#root` padding that reserves space
   // for the banner on document-scroll pages can't move a fixed element, so
@@ -119,10 +122,10 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
     <nav
       ref={ref}
       aria-label="Primary"
-      data-nav-scrolls-away={scrollsAway ? "" : undefined}
+      data-nav-phone-hidden={phoneHidden ? "" : undefined}
       className={cn(
         "fixed top-0 left-0 right-0 z-50 glass-nav",
-        scrollsAway && "max-[767px]:absolute",
+        phoneHidden && "max-[767px]:hidden",
         solid && "is-scrolled",
         landing && atTop && "landing-nav-top",
         !landing && !atTop && "nav-past-top",

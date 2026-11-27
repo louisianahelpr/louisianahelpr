@@ -53,8 +53,8 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(skeleton).toContain('className="container mx-auto px-4 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"');
     // The frame's gutter: 16px beside a bar that holds a search; Dashboard's bar holds one since 11-08 (design audit A D1).
     expect(frame).toContain('className={`container mx-auto ${barSearch ? "px-4" : "px-5"} lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}');
-    // Dashboard's floating "+ Create" (owner 11-08) adds room under the last row (pb-20); the skeleton does not scroll.
-    expect(frame).toContain('<div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>');
+    // Dashboard's floating "+ Create" (owner 11-08) adds room under the last row (pb-[88px]); the skeleton does not scroll.
+    expect(frame).toContain('<div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-[88px]" : "pb-6"}`}>');
     expect(skeleton).toContain('<div className="flex min-h-full flex-col gap-4 pt-1 pb-6">');
   });
 

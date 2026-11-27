@@ -1,63 +1,99 @@
 /**
- * AUD31-16 (audit 2026-10-31, Guests on Declutter pages): a guest who opened a shared Declutter link got "That page
- * needs an account" over "Welcome back, neighbor.", with Create an account only as the small last line and nothing
- * saying what the page was. The notice names the Declutter page and Login leads with Create an account.
- * @mutate src/pages/auth/loginNotice.ts |   const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && notice !== JOB_LINK_NOTICE && notice.endsWith(BACK_TO_IT); |   const leadWithSignup = false;
- * F080 (owner UI audit 11-09): every gated page names itself and leads with Create an account (the Sell pattern).
- * @mutate src/pages/auth/loginNotice.ts |   ["/post-job", "Posting a job needs a free account."], |
- * @mutate src/pages/auth/loginNotice.ts |   if (url.pathname.startsWith("/declutter/item/")) return | if (false) return
- * @mutate src/pages/auth/Login.tsx | {leadWithSignup && ( | {false && (
+ * Polish audit 11-27 #4 (owner phone polish audit): the Log in screen asked a guest to sign up three times (a boxed
+ * notice with its own "Create an account" link, the Create account tab, and "New to Helpr? Create an account" at the
+ * bottom), Sign up ended with "Already have an account? Log in", desktop Sign up said "Create account" three times, and
+ * the notice changed shape by page ("Your home page needs an account"). Now: the notice is ONE 14px grey line, no
+ * box, icon or link, the same "Log in to …" pattern for every page; both footer lines are gone (the tabs cover them);
+ * the desktop headings are screen-reader only; a guest opening /jobs lands on the public list (/browse).
+ * (Earlier history kept here: AUD31-16 named the Declutter page; F080 named every gated page.)
+ *
+ * @mutate src/pages/auth/loginNotice.ts |   ["/home", "Log in to see your Home."], |   ["/home", "Your home page needs an account."],
+ * @mutate src/pages/auth/loginNotice.ts |   if (url.pathname.startsWith("/declutter/item/")) return "Log in to see this item."; |   if (url.pathname.startsWith("/declutter/item/")) return "That's an item for sale on Declutter.";
+ * @mutate src/pages/auth/loginNotice.ts |   if (returning) return returning; |   if (returning) return `${returning} We'll take you straight back to it.`;
+ * @mutate src/pages/auth/Login.tsx | <p className={`text-ds-14 leading-snug mb-4 text-center ${oauthError | <p className={`text-ds-13 leading-snug mb-4 px-4 py-3 rounded-2xl border ${oauthError
+ * @mutate src/pages/auth/Login.tsx |           {loginNoticeInLang(notice)}\n        </p> |           {loginNoticeInLang(notice)} <Link to={signupHref}>{t("login.createAccount")}</Link>\n        </p>
+ * @mutate src/pages/auth/signup/SignupStep1.tsx |         <h1 className="sr-only">{t("signup.title")}</h1> |         <h1 className="text-page-title text-foreground max-[479px]:sr-only">{t("signup.title")}</h1>
+ * @mutate src/pages/auth/signup/SignupStep1.tsx |       {/* Polish audit 11-27 #4: no "Already have an account? Log in" line | <p>{t("signup.haveAccount")}</p>{/* x
+ * @mutate src/components/ProtectedRoute.tsx |     if (!lostMidUse && location.pathname === "/jobs" && !location.search && !hadSessionOnThisBrowser()) return | if (false) return
+ * @mutate src/components/ProtectedRoute.tsx | location.pathname === "/jobs" && !location.search && !hadSessionOnThisBrowser()) | location.pathname === "/jobs")
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { blankComments } from "@/test/helpers/blankNonCode";
-import { declutterGatedNotice, gatedPageNotice, loginNotice } from "./loginNotice";
+import { enPublic } from "@/lib/i18n/enPublic";
+import { esPublic } from "@/lib/i18n/esPublic";
+import { declutterGatedNotice, gatedPageNotice, loginNotice, loginNoticeInLang } from "./loginNotice";
 
 const base = { oauthError: null, connect: null, signedOutForInactivity: false, arrivedFromSignup: false, bouncedFromGatedRoute: true };
+const src = (p: string) => blankComments(readFileSync(p, "utf8"));
 
-describe("Login for a guest who opened a Declutter link (AUD31-16)", () => {
-  it("names the Declutter page they were opening", () => {
-    const cases: [string, RegExp][] = [
-      ["/declutter/item/00000000-0000-4000-8000-000000000001", /^That's an item for sale on Declutter/],
-      ["/declutter/sell", /^Selling on Declutter needs an account/],
-      ["/declutter?tab=buying", /^Your Declutter orders need an account/],
-      ["/declutter?tab=selling", /^Your Declutter listings need an account/],
-      // Audit 11-10 F359l: settings and the moving-sale planner name themselves too.
-      ["/declutter/settings", /^Your Declutter settings need an account/],
-      ["/declutter/move", /^Planning a moving sale\? That needs an account/],
-      ["/declutter", /^That's Declutter/],
+describe("Login notice: one short 'Log in to …' line for every gated page (polish audit 11-27 #4)", () => {
+  it("names each page in the same pattern, with no Create an account sentence", () => {
+    const cases: [string, string][] = [
+      ["/home", "Log in to see your Home."],
+      ["/profile?tab=settings", "Log in to see your profile."],
+      ["/jobs?tab=posted", "Log in to see your jobs."],
+      ["/post-job?category=cleaning", "Log in to post a job."],
+      ["/shops", "Log in to see Shops."],
+      ["/posts", "Log in to see your posts."],
+      ["/messages?jobId=j1", "Log in to see your messages."],
+      ["/tips/abc", "Log in to send your tip."],
+      ["/payment-success?session_id=cs_x", "Log in to see your payment."],
+      ["/declutter/item/00000000-0000-4000-8000-000000000001", "Log in to see this item."],
+      ["/declutter/sell", "Log in to sell on Declutter."],
+      ["/declutter?tab=buying", "Log in to see your Declutter orders."],
+      ["/declutter?tab=selling", "Log in to see your Declutter listings."],
+      ["/declutter/settings", "Log in to see your Declutter settings."],
+      ["/declutter/move", "Log in to plan a moving sale."],
+      ["/declutter", "Log in to use Declutter."],
+      ["/somewhere-new", "Log in to see that page."],
     ];
-    expect(cases.length).toBeGreaterThan(6);
-    for (const [path, words] of cases) {
-      const n = declutterGatedNotice(path);
-      expect(n, path).toMatch(words);
-      expect(n, path).toMatch(/Create an account, or log in and we'll take you straight back to it\.$/);
+    expect(cases.length).toBeGreaterThan(15);
+    for (const [path, line] of cases) {
+      const n = loginNotice({ ...base, redirect: path });
+      expect(n.notice, path).toBe(line);
+      expect(n.notice, path).not.toMatch(/Create an account|needs? (a free|an) account/);
+      expect("leadWithSignup" in n, path).toBe(false);
     }
-  });
-
-  it("leads with Create an account for every gated page (F080), naming the page", () => {
-    const d = loginNotice({ ...base, redirect: "/declutter/item/abc" });
-    expect(d.leadWithSignup).toBe(true);
-    expect(d.notice).toMatch(/^That's an item for sale on Declutter/);
-    const post = loginNotice({ ...base, redirect: "/post-job?category=cleaning" });
-    expect(post.leadWithSignup).toBe(true);
-    expect(post.notice).toBe("Posting a job needs a free account. Create an account, or log in and we'll take you straight back to it.");
-    // Audit 11-21 (P27): a tip link comes from the member's own notification, so it is a returning line now.
-    expect(gatedPageNotice("/tips/abc")).toBe("Log in to send your tip. We'll take you straight back to it.");
-    expect(gatedPageNotice("/shops")).toMatch(/^Shops needs a free account\./);
-    const other = loginNotice({ ...base, redirect: "/somewhere-new" });
-    expect(other.leadWithSignup).toBe(true);
-    expect(other.notice).toBe("That page needs a free account. Create an account, or log in and we'll take you straight back to it.");
+    expect(gatedPageNotice("/payment-successish")).toBeNull();
     expect(declutterGatedNotice("/declutterish")).toBeNull();
     expect(declutterGatedNotice(null)).toBeNull();
-    // A stronger reason (signed out for inactivity) keeps its own words and no sign-up lead.
-    const idle = loginNotice({ ...base, signedOutForInactivity: true, redirect: "/declutter" });
-    expect(idle.leadWithSignup).toBe(false);
   });
 
-  it("Login puts Create an account inside the notice when it leads", () => {
-    const src = blankComments(readFileSync("src/pages/auth/Login.tsx", "utf8"));
-    expect(src).toContain(`redirect: safeInternalRedirect(pendingRedirect), reason: searchParams.get("reason") });`);
-    expect(src).toMatch(/\{leadWithSignup && \(\s*<Link to=\{signupHref\}[^>]*data-login-lead-signup=""/);
+  it("every line has a Spanish twin, and the en/es tables carry no stale back-to-it sentence", () => {
+    const lines = ["Log in to see your Home.", "Log in to see this item.", "Log in to see that page.", "Log in to apply for this job."];
+    for (const l of lines) expect(loginNoticeInLang(l), l).toBe(l); // English reader: unchanged
+    const es = esPublic as Record<string, string>;
+    const en = enPublic as Record<string, string>;
+    expect(en["ln.g.home"]).toBe("Log in to see your Home.");
+    expect(es["ln.g.home"]).toMatch(/^Inicie sesión/);
+    expect(Object.keys(en).filter((k) => k.startsWith("ln.")).sort()).toEqual(Object.keys(es).filter((k) => k.startsWith("ln.")).sort());
+    expect(en["ln.backToIt"]).toBeUndefined();
+    expect(en["ln.logBackIn"]).toBeUndefined();
+  });
+
+  it("Login draws the notice as one plain 14px grey line with no link, and no sign-up footer", () => {
+    const login = src("src/pages/auth/Login.tsx");
+    const at = login.indexOf("data-login-notice=\"\"");
+    expect(at).toBeGreaterThan(0);
+    const open = login.lastIndexOf("<p", at);
+    const close = login.indexOf("</p>", at);
+    const block = login.slice(open, close);
+    expect(block).toContain('className={`text-ds-14 leading-snug mb-4 text-center ${oauthError ? "text-[hsl(var(--destructive-ink))]" : "text-muted-foreground"}`}');
+    expect(block).not.toMatch(/<Link|rounded|border|<svg|Info|Clock/);
+    expect(login).not.toContain("data-login-new-here");
+    expect(login).not.toContain("data-login-lead-signup");
+    expect(login).toMatch(/<h1 className="sr-only">\{t\("login\.title"\)\}<\/h1>/);
+  });
+
+  it("Sign up has no 'Already have an account?' footer and its heading is for screen readers only", () => {
+    const step = src("src/pages/auth/signup/SignupStep1.tsx");
+    expect(step).not.toContain('t("signup.haveAccount")');
+    expect(step).toMatch(/<h1 className="sr-only">\{t\("signup\.title"\)\}<\/h1>/);
+  });
+
+  it("only a first-time guest opening a plain /jobs goes to the public list; members and /jobs?job= links still log in", () => {
+    const pr = src("src/components/ProtectedRoute.tsx");
+    expect(pr).toContain('if (!lostMidUse && location.pathname === "/jobs" && !location.search && !hadSessionOnThisBrowser()) return <Navigate to="/browse" replace />;');
   });
 });

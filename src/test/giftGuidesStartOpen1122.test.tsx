@@ -156,11 +156,12 @@ describe("every gift guide and Holiday Hub page opens with everything expanded (
     expect(extras).toBeGreaterThan(0);
   });
 
-  it("/holidays: every band section (the chosen day, the undated light displays, Dates TBA) starts open", async () => {
+  it("/holidays: every band section (the chosen day, then Dates not announced yet) starts open", async () => {
     const c = await renderAt("/holidays");
     // Consistency audit 1122 #3: the Hub's sections are the guides' band headers (aria-expanded buttons), not <details>.
+    // Polish audit 11-27 #15: the two undated bands are one, so the day's band plus that one.
     const bands = [...c.querySelectorAll<HTMLElement>("[data-holiday-section-toggle]")];
-    expect(bands.length).toBeGreaterThan(2);
+    expect(bands.length).toBeGreaterThan(1);
     expect(bands.every((b) => b.getAttribute("aria-expanded") === "true")).toBe(true);
     expect(closedOnLoad(c)).toEqual([]);
   });

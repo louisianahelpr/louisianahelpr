@@ -17,8 +17,13 @@
  * jsdom has no layout, so the heights are summed from the rules the phone uses, and the rules must be the LAST in the
  * stylesheet (so nothing later undoes them). A computer (768px up) is untouched: every rule sits in max-width:767px.
  *
- * @mutate src/components/Navbar.tsx |         scrollsAway && "max-[767px]:absolute", |         false,
- * @mutate src/components/Navbar.tsx |   const scrollsAway = navSection(location.pathname) === "guides"; |   const scrollsAway = location.pathname === "/gift-guides";
+ * Polish audit 11-27 #7 (owner rule 11-22: back + "Gift guides" + ≡ only): scrolling away still left two rows at the top,
+ * so up to 767px the bar is not drawn on a guides page for a guest (its spacer shrinks to the safe area), and the ≡
+ * menu's first row is "Join / Log in".
+ * @mutate src/components/Navbar.tsx |         phoneHidden && "max-[767px]:hidden", |         false,
+ * @mutate src/components/Navbar.tsx |   const phoneHidden = navSection(location.pathname) === "guides"; |   const phoneHidden = location.pathname === "/gift-guides";
+ * @mutate src/components/marketing/PublicLayout.tsx | className={navSection(location.pathname) === "guides" ? "max-[767px]:!h-[var(--safe-area-top,0px)]" : undefined} | className={undefined}
+ * @mutate src/pages/info/giftGuides/GiftGuidesPhoneSheet.tsx |           {join && <Link | {false && <Link
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg .gg-words.gg-banner-wrap .gg-banner h1{max-width:72%; | .gg .gg-words.gg-banner-wrap .gg-banner h1{max-width:100%;
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg .gg-list:not(.gg-top10) .gg-thumb{width:72px;height:72px;padding:4px} | .gg .gg-list:not(.gg-top10) .gg-thumb{width:88px;height:88px;padding:4px}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | >:is(.gg-heart-pick,.gg-cart){top:25px;bottom:auto} | >:is(.gg-heart-pick,.gg-cart){bottom:0}
@@ -66,7 +71,7 @@ describe("guides phone polish 1125: the rules are phone-only and last", () => {
   });
 });
 
-describe("#5 one header on a phone: the site bar scrolls away on every guides page", () => {
+describe("#5 / polish audit 11-27 #7 one header on a phone: no site bar on any guides page up to 767px", () => {
   const GUIDES = ["/gift-guides", "/gift-guides/her", "/gift-guides/kids", "/gift-guides/monster-jam", "/gift-guides/black-friday", "/gift-guides/printables/gift-tags", "/gift-guides/swipe", "/holidays"];
   const OTHERS = ["/", "/browse", "/declutter", "/jobs/abc", "/legal"];
   const navAt = (path: string) => {
@@ -74,13 +79,13 @@ describe("#5 one header on a phone: the site bar scrolls away on every guides pa
     const nav = document.querySelector('nav[aria-label="Primary"]')!;
     const cls = (nav.getAttribute("class") ?? "").split(/\s+/);
     cleanup();
-    return { cls, away: nav.hasAttribute("data-nav-scrolls-away") };
+    return { cls, away: nav.hasAttribute("data-nav-phone-hidden") };
   };
-  it("guides pages: fixed from 768px, drawn at the page's top (absolute) up to 767px", () => {
+  it("guides pages: fixed from 768px, not drawn up to 767px", () => {
     for (const p of GUIDES) {
       const { cls, away } = navAt(p);
       expect(cls, p).toContain("fixed");
-      expect(cls, p).toContain("max-[767px]:absolute");
+      expect(cls, p).toContain("max-[767px]:hidden");
       expect(away, p).toBe(true);
     }
     expect(GUIDES.length).toBeGreaterThan(6);
@@ -89,9 +94,17 @@ describe("#5 one header on a phone: the site bar scrolls away on every guides pa
     for (const p of OTHERS) {
       const { cls, away } = navAt(p);
       expect(cls, p).toContain("fixed");
-      expect(cls.some((c) => c.endsWith(":absolute")), p).toBe(false);
+      expect(cls.some((c) => c.endsWith(":absolute") || c.endsWith(":hidden")), p).toBe(false);
       expect(away, p).toBe(false);
     }
+  });
+  it("polish audit 11-27 #7: the bar's spacer shrinks to the safe area on a guides phone, and the ≡ menu leads with Join / Log in", () => {
+    const layout = blankComments(readFileSync(resolve(process.cwd(), "src/components/marketing/PublicLayout.tsx"), "utf8"));
+    expect(layout).toContain('className={navSection(location.pathname) === "guides" ? "max-[767px]:!h-[var(--safe-area-top,0px)]" : undefined}');
+    const sheet = blankComments(readFileSync(resolve(process.cwd(), "src/pages/info/giftGuides/GiftGuidesPhoneSheet.tsx"), "utf8"));
+    expect(sheet).toMatch(/\{join && <Link to="\/signup" className="gg-sheet-join" data-gift-menu-join="">\{join\}<\/Link>\}/);
+    const nav = blankComments(readFileSync(resolve(process.cwd(), "src/pages/info/giftGuides/GiftGuidesPhoneNav.tsx"), "utf8"));
+    expect(nav).toContain('join={definitelyGuest() ? wordInLang("g.joinOrLogIn", "Join / Log in") : undefined}');
   });
   it("the guides' own row keeps the owner's 11-22 spacing: the 1125 block sets none of its own", () => {
     expect(block).not.toMatch(/\.gg-headrow\{/);

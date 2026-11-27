@@ -4,7 +4,10 @@
  * 35px) failed messages-thread.spec.ts's 44px tap-target scan on PR #2841.
  *
  * @mutate src/components/ScrollToTop.tsx | if (!rendered) return null; | if (false) return null;
- * @mutate src/components/ScrollToTop.tsx | setVisible(pos > REVEAL_AFTER_PX && !footerInView() && !onLanding(pathname) && !onHeartList(pathname)); | setVisible(pos > REVEAL_AFTER_PX && !onLanding(pathname) && !onHeartList(pathname));
+ * @mutate src/components/ScrollToTop.tsx | setVisible(pos > revealAfter(viewport) && !footerInView() && !onLanding(pathname) && !onHeartList(pathname)); | setVisible(pos > revealAfter(viewport) && !onLanding(pathname) && !onHeartList(pathname));
+ * Polish audit 11-27 #6: only after two screens (jsdom's window is 768px tall, so 1536px), and no shadow.
+ * @mutate src/components/ScrollToTop.tsx |   return Math.max(REVEAL_AFTER_PX, REVEAL_AFTER_SCREENS * viewport); |   return REVEAL_AFTER_PX;
+ * @mutate src/components/ScrollToTop.tsx |         boxShadow: "none", |         boxShadow: "0 8px 18px -6px hsl(var(--olivewood) / 0.16)",
  * @mutate src/components/ScrollToTop.tsx |   return pathname === "/"; |   return false;
  * @mutate src/components/ScrollToTop.tsx |   return pathname === "/gift-guides" \|\| pathname.startsWith("/gift-guides/"); |   return false;
  */
@@ -29,7 +32,7 @@ describe("ScrollToTop's button is in the page only while wanted (Q1356)", () => 
     scrollTo(0);
   });
 
-  it("no button at the top, a button past 1200px, none again after the fade-out", () => {
+  it("no button at the top or one screen down, a button past two screens, none again after the fade-out", () => {
     vi.useFakeTimers();
     render(
       <MemoryRouter initialEntries={["/messages"]}>
@@ -38,12 +41,20 @@ describe("ScrollToTop's button is in the page only while wanted (Q1356)", () => 
     );
     expect(screen.queryByLabelText("Scroll to top")).toBeNull();
 
-    scrollTo(1500);
+    expect(window.innerHeight).toBe(768);
+    scrollTo(1500); // past the old 1200px, under two screens: still none
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(screen.queryByLabelText("Scroll to top")).toBeNull();
+
+    scrollTo(1600);
     act(() => {
       vi.advanceTimersByTime(50);
     });
     const btn = screen.getByLabelText("Scroll to top");
     expect(btn.getAttribute("aria-hidden")).toBeNull();
+    expect(btn.style.boxShadow).toBe("none");
 
     scrollTo(100);
     expect(screen.getByLabelText("Scroll to top").getAttribute("aria-hidden")).toBe("true");
@@ -65,7 +76,7 @@ describe("ScrollToTop's button is in the page only while wanted (Q1356)", () => 
         <ScrollToTop />
       </MemoryRouter>,
     );
-    scrollTo(1500);
+    scrollTo(1600);
     act(() => {
       vi.advanceTimersByTime(50);
     });
@@ -115,7 +126,7 @@ describe("ScrollToTop's button is in the page only while wanted (Q1356)", () => 
           <ScrollToTop />
         </MemoryRouter>,
       );
-      scrollTo(1500);
+      scrollTo(1600);
       act(() => {
         vi.advanceTimersByTime(50);
       });

@@ -19,7 +19,7 @@
  * @mutate src/components/landing/HowItWorksSection.tsx |   useEffect(() => setSide(sideForMode(mode)), [mode]); |
  * @mutate src/components/landing/HowItWorksSection.tsx |               tone="solid"\n |               tone="quiet"\n
  * @mutate src/components/landing/HowItWorksSection.tsx |                   <Icon key={side} className="h-5 w-5" /> | {null}
- * @mutate src/components/landing/HowItWorksSection.tsx |         <div data-how-action="" className="flex justify-center sm:justify-start"> |         <div className="flex justify-center sm:justify-start">
+ * @mutate src/components/landing/HowItWorksSection.tsx |         {/* Polish audit 11-27 #16 (owner: remove the repeats): no "Post a job" / "Find work" | <div data-how-action="" />{/* x
  * @mutate src/components/landing/SectionsShowcase.tsx | const MONEY_HEADLINE = "Nobody gets paid until it’s really done, or really handed over."; | const MONEY_HEADLINE = "Nobody gets paid until the job is really done.";
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -37,7 +37,7 @@ vi.mock("@/lib/routePrefetch", async (importOriginal) => {
 vi.mock("@/lib/socialAuth", () => ({ SOCIAL_SIGN_IN_ENABLED: false, signInWithProvider: vi.fn() }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: true }) }));
 
-import HowItWorksSection, { POST_JOB_SIGNED_OUT, SELL_SIGNED_OUT } from "@/components/landing/HowItWorksSection";
+import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import { TrustAndJoin } from "@/components/landing/SectionsShowcase";
 import { resetLandingModeForTests, setLandingMode } from "@/components/landing/landingMode";
 
@@ -53,38 +53,22 @@ afterEach(() => {
 const selected = () => screen.getAllByRole("tab").find((t) => t.getAttribute("aria-selected") === "true")!;
 
 describe("owner #7: the landing gives Declutter equal weight below the hero", () => {
-  it("How it works has a Buy or sell side with Declutter's three steps and ONE action, beside the tabs", () => {
+  it("How it works has a Buy or sell side with Declutter's three steps", () => {
     render(<MemoryRouter><HowItWorksSection /></MemoryRouter>);
     fireEvent.click(screen.getByRole("tab", { name: "Buy or sell" }));
     for (const t of ["List it in a minute", "Neighbors buy or offer", "Hand it over, get paid"]) expect(screen.getByText(t)).toBeTruthy();
-    expect(screen.getByTestId("landing-sell").getAttribute("href")).toBe(SELL_SIGNED_OUT);
-    expect(screen.queryByTestId("landing-shop")).toBeNull(); // D012: one action per side
-    expect(screen.queryByTestId("landing-post-job")).toBeNull();
-    // Owner 11-20 (site polish B2, replaces D020): the action is a real button under the three cards, worded "Start selling".
-    const action = screen.getByTestId("landing-sell");
-    expect(action.textContent).toBe("Start selling");
-    expect(action.closest("[data-how-action]")).not.toBeNull();
-    expect(screen.getByRole("tablist").parentElement?.contains(action)).toBe(false);
-    const lastStep = [...document.querySelectorAll("[data-how-step]")].pop()!;
-    expect(lastStep.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("D012: every side has exactly one action link besides the tabs", () => {
+  // Polish audit 11-27 #16 (owner: remove the repeats): no "Post a job" / "Find work" / "Start selling" under the steps.
+  // @mutate src/components/landing/HowItWorksSection.tsx |         {/* Polish audit 11-27 #16 (owner: remove the repeats): no "Post a job" | <a href="/post-job">Post a job</a>{/* x
+  it("no side carries an action link under its steps (the page has each one already)", () => {
     const { container } = render(<MemoryRouter><HowItWorksSection /></MemoryRouter>);
     const tabs = screen.getAllByRole("tab");
     expect(tabs.length).toBeGreaterThan(2);
-    const want: Record<string, [string, string]> = {
-      "I need help": ["landing-post-job", POST_JOB_SIGNED_OUT],
-      "I want to work": ["landing-find-work", "/browse"],
-      "Buy or sell": ["landing-sell", SELL_SIGNED_OUT],
-    };
     for (const t of tabs) {
       fireEvent.click(t);
-      const links = [...container.querySelectorAll("a")];
-      expect(links.length, t.textContent!).toBe(1);
-      const [id, href] = want[t.textContent!];
-      expect(links[0].getAttribute("data-testid")).toBe(id);
-      expect(links[0].getAttribute("href")).toBe(href);
+      expect(container.querySelectorAll("a").length, t.textContent!).toBe(0);
+      expect(container.querySelector("[data-how-action]"), t.textContent!).toBeNull();
     }
   });
 
@@ -131,10 +115,13 @@ describe("owner #7: the landing gives Declutter equal weight below the hero", ()
     expect(band.textContent).not.toMatch(/Your money, protected/i);
   });
 
-  it("the close names Declutter too, in the landing's verbs", () => {
+  // Polish audit 11-27 #16 (owner: remove the repeats): the close is one "Create your free account" + Apple, no line of
+  // "Post a job · Sell something" under them.
+  // @mutate src/components/landing/SectionsShowcase.tsx |           {/* Polish audit 11-27 #16 (owner: remove the repeats): the close is one | <nav data-testid="landing-join-starts"><a href="/post-job">Post a job</a></nav>{/* x
+  it("the close is one account button (and Apple), with no start links under it", () => {
     render(<MemoryRouter><TrustAndJoin /></MemoryRouter>);
-    const starts = within(screen.getByTestId("landing-join-starts")).getAllByRole("link").map((a) => a.textContent);
-    // Owner 2026-11-25 (phone audit #41): Browse jobs / Shop Declutter live on the section cards only; no repeats here.
-    expect(starts).toEqual(["Post a job", "Sell something"]);
+    expect(screen.queryByTestId("landing-join-starts")).toBeNull();
+    expect(screen.getByTestId("landing-signup").textContent).toBe("Create your free account");
+    expect(screen.queryByRole("link", { name: /Post a job|Sell something/ })).toBeNull();
   });
 });

@@ -14,6 +14,12 @@ import { resetLargeTitles } from "@/lib/largeTitles";
 // StatusBar plugin doesn't surface a tap event, so this floating button is
 // the reachable equivalent.
 const REVEAL_AFTER_PX = 1200;
+/** Polish audit 11-27 #6: the button floated over Holiday Hub cards early on. It shows only after two screens (and never
+ *  before REVEAL_AFTER_PX), with no shadow. */
+const REVEAL_AFTER_SCREENS = 2;
+function revealAfter(viewport: number): number {
+  return Math.max(REVEAL_AFTER_PX, REVEAL_AFTER_SCREENS * viewport);
+}
 
 // Hidden while the signed-out site footer is on screen (owner, 2026-10-20):
 // the button sits bottom-right, exactly over the footer's Follow icons at 375,
@@ -216,7 +222,8 @@ const ScrollToTop = () => {
       // an entry left at the top came back mid-page (Q1312).
       if (currentKeyRef.current !== key) return;
       const pos = readPos();
-      setVisible(pos > REVEAL_AFTER_PX && !footerInView() && !onLanding(pathname) && !onHeartList(pathname));
+      const viewport = scroller ? scroller.clientHeight : window.innerHeight;
+      setVisible(pos > revealAfter(viewport) && !footerInView() && !onLanding(pathname) && !onHeartList(pathname));
       scrollPositions.set(key, pos);
     };
     onScroll();
@@ -286,10 +293,8 @@ const ScrollToTop = () => {
         color: "hsl(var(--olivewood))",
         backdropFilter: "blur(10px) saturate(150%)",
         WebkitBackdropFilter: "blur(10px) saturate(150%)",
-        boxShadow:
-          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-          "0 2px 6px hsl(var(--olivewood) / 0.10), " +
-          "0 8px 18px -6px hsl(var(--olivewood) / 0.16)",
+        // Polish audit 11-27 #6: flat, no shadow (it read as a card floating over the cards under it).
+        boxShadow: "none",
         opacity: shown ? 1 : 0,
         transform: shown ? undefined : hiddenTransform,
         pointerEvents: shown ? undefined : "none",

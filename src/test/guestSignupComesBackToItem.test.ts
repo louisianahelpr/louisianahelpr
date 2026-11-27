@@ -40,7 +40,7 @@ describe("AUD31-69: Sign up from a Declutter item says the guest comes back to i
   it("Log in from an item names the item, never the bare 'That page needs an account'", () => {
     const { notice } = loginNotice({ oauthError: null, connect: null, signedOutForInactivity: false, arrivedFromSignup: false,
       bouncedFromGatedRoute: true, redirect: "/declutter/item/00000000-0000-4000-8000-000000000001" });
-    expect(notice).toMatch(/item for sale on Declutter/);
+    expect(notice).toBe("Log in to see this item.");
     expect(notice).not.toMatch(/That page needs an account/);
   });
 });

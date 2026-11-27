@@ -132,7 +132,7 @@ export function guestJobFacts(job: GuestJob, firstPayoutFeeDollars = 0): Array<{
 /** F268a: "Log in" comes back to this job (src/lib/jobIntent.ts, so guest /browse names it without this dialog). */
 export { guestLogInUrl } from "@/lib/jobIntent";
 
-export function GuestJobPreview({ job, onClose, onSignUp, onLogIn }: {
+export function GuestJobPreview({ job, onClose, onSignUp }: {
   job: GuestJob;
   onClose: () => void;
   /** Sign up carrying this job (signupUrlFor(`/jobs/<id>`)), so the job is waiting after sign-up. */
@@ -161,15 +161,8 @@ export function GuestJobPreview({ job, onClose, onSignUp, onLogIn }: {
         <DialogFooter>
           <DialogPrimaryAction onClick={() => onSignUp(job.id)}>{wordInLang("pub.job.signUpApply", "Sign up to apply")}</DialogPrimaryAction>
         </DialogFooter>
-        {onLogIn && (
-          // F268a (audit 11-10): someone with an account had to find Log in behind the blur.
-          <p className="text-center font-sans text-ds-13 text-muted-foreground" data-guest-log-in="">
-            {wordInLang("pub.job.member", "Already a member?")}{" "}
-            <Button type="button" variant="link" size="sm" className="px-1 text-ds-13 font-semibold" onClick={() => onLogIn(job.id)}>
-              {wordInLang("pub.logIn", "Log in")}
-            </Button>
-          </p>
-        )}
+        {/* Polish audit 11-27 #5: one sign-up action per sheet. "Already a member? Log in" is gone; the header's Log in
+            covers it (F268a had added it). */}
       </DialogContent>
     </Dialog>
   );

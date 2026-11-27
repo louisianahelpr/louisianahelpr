@@ -2,13 +2,13 @@
  * Log in = board 37 (owner, 2026-10-20): the ROUND H app icon (never the
  * "Helpr" wordmark), "Log in" + "Welcome back, neighbor.", EMAIL + PASSWORD
  * FIRST with "Forgot password?" on the Password row and the Log in button,
- * then "or" and Apple/Google, then "Create an account". One column at every
+ * then "or" and Apple/Google (polish audit 11-27 #4: no closing "Create an account"; the tabs say it). One column at every
  * width (the lg two-panel split is gone). Restyle only: the form still submits
  * through handleLogin, and Log in and Create account stay separate flows.
  *
  * @mutate src/components/auth/AuthCardHead.tsx | <HelprMark to="/" size="lg" emblemOnly /> | <img src="/apple-touch-icon.png" alt="" className="w-16 h-16 rounded-full" />
  * @mutate src/pages/auth/Login.tsx | <AuthShell hideHeader hideBack centerColumn | <AuthShell hideHeader centerColumn
- * @mutate src/pages/auth/Login.tsx | import { AlertCircle, Clock, Info, Loader2, Eye, EyeOff, Check, ShieldCheck, X } from "lucide-react"; | import { AlertCircle, Clock, Info, Loader2, Eye, EyeOff, Check, ShieldCheck, X, Mail } from "lucide-react";
+ * @mutate src/pages/auth/Login.tsx | import { Loader2, Eye, EyeOff, Check, ShieldCheck, X } from "lucide-react"; | import { Loader2, Eye, EyeOff, Check, ShieldCheck, X, Mail } from "lucide-react";
  * @mutate src/components/auth/SocialAuthButtons.tsx | aria-label={loading ? t("auth.connecting") : undefined} | aria-label={loading ? t("auth.connecting") : label}
  * @mutate src/components/auth/SocialAuthButtons.tsx | <span className="font-sans font-semibold text-ds-15"> | <span aria-hidden className="font-sans font-semibold text-ds-15">
  * @mutate src/pages/auth/signup/SignupStep1.tsx | import { ArrowBigUp, Eye, EyeOff, Check, X } from "lucide-react"; | import { ArrowBigUp, Eye, EyeOff, Check, X, Lock } from "lucide-react";
@@ -63,7 +63,7 @@ describe("Log in matches board 37", () => {
     expect(src).not.toMatch(/<HelprMark(?![^>]*emblemOnly)/);
   });
 
-  it("email + password first, Forgot password on the Password row, Log in, then or + providers, then Create an account", () => {
+  it("email + password first, Forgot password on the Password row, Log in, then or + providers", () => {
     const order = [
       at('id="email"'),
       at('htmlFor="password"'),
@@ -73,11 +73,9 @@ describe("Log in matches board 37", () => {
       at('t("login.submit")'),
       at("<OrRule />"),
       at("<SocialAuthButtons"),
-      // The card's own Create an account closes it. AUD31-16 adds one more, above the card in the notice, only for a
-      // guest bounced from a Declutter page (loginNotice.test.ts); the card's order is read from its last one.
-      src.lastIndexOf('t("login.createAccount")'),
     ];
-    expect(src.split('t("login.createAccount")').length - 1).toBe(2);
+    // Polish audit 11-27 #4: no "Create an account" line closes the card or sits in the notice (the tabs cover it).
+    expect(src.split('t("login.createAccount")').length - 1).toBe(0);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 

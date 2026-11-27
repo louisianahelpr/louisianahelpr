@@ -1,12 +1,10 @@
 import { useIdCheckOnForViewer } from "@/lib/useIdCheckOnForViewer";
 import { lazy, Suspense, useEffect, useRef, useState, type RefObject } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
 import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
 import { APPROVAL_WINDOW_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
 import { useSectionsOpen, sectionIsComingSoon } from "./useSectionsOpen";
 import { goSignedInOr } from "./goSignedInOr";
-import { POST_JOB_PATH, POST_JOB_SIGNED_OUT, SELL_PATH, SELL_SIGNED_OUT } from "./HowItWorksSection";
 import { whenPageSettled } from "@/lib/routePrefetch";
 import { useGuestSpanish } from "./useGuestSpanish";
 
@@ -37,22 +35,6 @@ const COPY: Record<SectionKey, string> = {
   homes: "Rent from local owners, or list a home you own, in the app you already use.",
 };
 
-/**
- * Where an open section's card goes. Jobs: the public guest board, which a
- * signed-out visitor can read. Declutter: its own Browse, which a guest reads
- * too while Declutter is open to everyone (BUY-16, DeclutterGuestOrMember; the
- * card only links once that answer is in), so "Browse Declutter" goes straight
- * there, never through sign-up (owner 11-04). Shops and Homes sit behind
- * sign-in (ProtectedRoute), so a signed-out visitor goes to sign-up with the
- * section as the return path ("Join to browse Shops"), never a login wall; a
- * signed-in visitor's click goes straight to the section (cardClick below).
- */
-export function cardLinkFor(key: SectionKey, path: string, label: string): { to: string; text: string; signedIn: string } {
-  if (key === "jobs") return { to: "/browse", text: "Browse jobs", signedIn: path };
-  // D012 (11-10): the landing says "Shop Declutter" everywhere it links to Declutter.
-  if (key === "declutter") return { to: path, text: `Shop ${label}`, signedIn: path };
-  return { to: `/signup?redirect=${encodeURIComponent(path)}`, text: `Join to browse ${label}`, signedIn: path };
-}
 
 /** D002 (landing design audit 11-10): every landing H2 on the middle type step (.landing-h2, 32 -> 48px). */
 const H2_CLASS = "font-display landing-serif text-balance landing-h2";
@@ -126,7 +108,6 @@ export function SectionsShowcase() {
   // Declutter for ~2.7 s on a first visit, then jumped. Until the answer is in, no card is badged or dimmed; the
   // switched cards still have no link (fails closed: never a link to a section not yet known open).
   const pending = open === null;
-  const navigate = useNavigate();
   const { w, onTheWay } = useLandingWords();
 
   // D005 (landing design audit 11-10): "Four ways" was 1,245px tall at 375, ~465px of it two Coming soon cards. Now two
@@ -138,7 +119,6 @@ export function SectionsShowcase() {
     const Icon = s.icon;
     const soon = sectionIsComingSoon(s.feature, open);
     const badged = soon && !pending;
-    const link = cardLinkFor(s.key, s.path, s.navLabel);
     // All four sections are equal (design spec v2 §1): one card style, the white landing card with its soft shadow
     // (UI audit F004, 11-09: the How a job works cards' surface). A section not open yet is slightly dimmed and carries
     // its own "Coming soon" badge (owner 11-09, F002/F013, replacing the 10-21 one-line rule).
@@ -166,21 +146,8 @@ export function SectionsShowcase() {
         <p className="text-ds-15 leading-relaxed" style={{ color: "var(--lp-body)" }}>
           {w(`landing.blurb.${s.key}`, COPY[s.key])}
         </p>
-        {!soon && (
-          <Link
-            to={link.to}
-            onClick={(e) => {
-              e.preventDefault();
-              void goSignedInOr(navigate, link.signedIn, link.to);
-            }}
-            className="self-start mt-auto pt-1 inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold underline-offset-4 hover:underline after:absolute after:inset-0 after:rounded-[inherit]"
-            style={{ color: "var(--lp-action-strong)" }}
-            data-testid={`landing-browse-${s.key}`}
-          >
-            {s.key === "jobs" ? w("landing.browseJobs", link.text) : s.key === "declutter" ? w("landing.shopDeclutter", link.text) : link.text}
-            <ArrowRight className="w-4 h-4" aria-hidden />
-          </Link>
-        )}
+        {/* Polish audit 11-27 #16 (owner: remove the repeats): no "Browse jobs" / "Shop Declutter" link on these cards;
+            each is already under its own section above (the job list, the Declutter grid). */}
       </li>
     );
     return card;
@@ -305,14 +272,8 @@ export function TrustAndJoin() {
               <AppleSlot />
             )}
           </div>
-          {/* Owner #7 (11-09): the close names both open sections' first steps, quietly (links, not more buttons), in the
-              landing's one set of verbs (D012, 11-10). Owner 2026-11-25 (phone audit #41): "Browse jobs" and "Shop
-              Declutter" are each already on their section card above, so the close keeps only the two ways to START
-              (post, sell), one row; the "Already a member? Log in" line under it went too (Log in is in the top bar). */}
-          <nav aria-label={w("landing.startHere", "Start here")} className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-ds-15 font-semibold" data-testid="landing-join-starts">
-            <Link to={POST_JOB_SIGNED_OUT} onClick={(e) => { e.preventDefault(); void goSignedInOr(navigate, POST_JOB_PATH, POST_JOB_SIGNED_OUT); }} className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>{w("landing.postJob", "Post a job")}</Link>
-            <Link to={SELL_SIGNED_OUT} onClick={(e) => { e.preventDefault(); void goSignedInOr(navigate, SELL_PATH, SELL_SIGNED_OUT); }} className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>{w("landing.sell", "Sell something")}</Link>
-          </nav>
+          {/* Polish audit 11-27 #16 (owner: remove the repeats): the close is one "Create your free account" + Apple; no
+              "Post a job · Sell something" line under them (both are on the page above and in the top bar's Join). */}
         </div>
       </section>
     </>

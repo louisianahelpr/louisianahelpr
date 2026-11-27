@@ -26,8 +26,8 @@
  */
 // @mutate src/components/landing/useSectionsOpen.ts |   return open === null \|\| !open.has(feature); |   return open !== null && !open.has(feature);
 // @mutate src/lib/missingRpc.ts |   if (e.code !== "PGRST202") return false; |   return false;
-// @mutate src/components/landing/SectionsShowcase.tsx |   return { to: `/signup?redirect=${encodeURIComponent(path)}`, | return { to: path,
-// @mutate src/components/landing/SectionsShowcase.tsx |   if (key === "declutter") return { to: path, text: `Shop ${label}`, signedIn: path }; |
+// @mutate src/components/landing/SectionsShowcase.tsx |         {/* Polish audit 11-27 #16 (owner: remove the repeats): no "Browse jobs" | <a data-testid={`landing-browse-${s.key}`} />{/* x
+// @mutate src/components/landing/SectionsShowcase.tsx |     const soon = sectionIsComingSoon(s.feature, open); |     const soon = false;
 // @mutate src/lib/queryClient.ts |       if (query.meta?.reportsItself === true) return; |
 // @mutate src/components/landing/useSectionsOpen.ts |     meta: { persist: false, reportsItself: true }, |     meta: { reportsItself: true },
 // @mutate src/components/landing/useSectionsOpen.ts |   if (reported) return false; |
@@ -46,7 +46,6 @@ import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { reportSectionsOpenFailureOnce, sectionIsComingSoon } from "@/components/landing/useSectionsOpen";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
-import { cardLinkFor } from "@/components/landing/SectionsShowcase";
 
 const ROOT = process.cwd();
 const read = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));
@@ -83,23 +82,9 @@ describe("landing: the front door for all four sections", () => {
     expect(blocks).toMatch(/SECTIONS\.filter\(\(s\) => LANDING_CARD_KEYS\.includes\(s\.key\)\)\.map\(\(s\) =>/);
     // The mark comes from the fail-closed rule, nothing else.
     expect(blocks).toMatch(/const soon = sectionIsComingSoon\(s\.feature, open\);/);
-    expect(blocks).toMatch(/\{!soon && \(\s*<Link\s+to=\{link\.to\}/);
-    expect(blocks).toMatch(/goSignedInOr\(navigate, link\.signedIn, link\.to\)/);
-    for (const s of SECTIONS) {
-      const link = cardLinkFor(s.key, s.path, s.navLabel);
-      expect(link.signedIn, s.key).toBe(s.path);
-      if (s.key === "jobs") {
-        expect(link).toMatchObject({ to: "/browse", text: "Browse jobs" }); // the public guest board
-      } else if (s.key === "declutter") {
-        // Owner 11-04: guests read Declutter's Browse (BUY-16), so the card goes straight there, no sign-up.
-        // D012 (11-10): "Shop Declutter", the landing's one verb for Declutter.
-        expect(link).toMatchObject({ to: "/declutter", text: "Shop Declutter" });
-      } else {
-        // Shops/Homes are ProtectedRoute pages: sign-up, returning to the section.
-        expect(link.to, s.key).toBe(`/signup?redirect=${encodeURIComponent(s.path)}`);
-        expect(link.text, s.key).toBe(`Join to browse ${s.navLabel}`);
-      }
-    }
+    // Polish audit 11-27 #16 (owner: remove the repeats): the cards carry no "Browse jobs" / "Shop Declutter" link; each
+    // is under its own section above.
+    expect(blocks).not.toMatch(/data-testid=\{`landing-browse-\$\{s\.key\}`\}/);
   });
 
   it("a failed session check still navigates to the signed-out route", () => {

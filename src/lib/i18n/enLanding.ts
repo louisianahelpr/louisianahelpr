@@ -31,9 +31,6 @@ export const enLanding = {
   "landing.joinLead": "Join your neighbors on",
   "landing.joinSub": "One free account for jobs and Declutter.",
   "landing.createAccount": "Create your free account",
-  "landing.startHere": "Start here",
-  "landing.postJob": "Post a job",
-  "landing.sell": "Sell something",
   "landing.memberLogin": "Already a member? Log in",
   // How it works (HowItWorksSection.tsx; the hire steps are hireSteps.ts).
   "landing.how.title": "How it works",
@@ -42,8 +39,6 @@ export const enLanding = {
   "landing.how.side.work": "I want to work",
   "landing.how.side.sell": "Buy or sell",
   // Owner 11-20 (site polish B2): the button under the three cards follows the switch.
-  "landing.how.findWork": "Find work",
-  "landing.how.startSelling": "Start selling",
   "landing.how.hire1Title": "Post what you need",
   "landing.how.hire1Desc": "Describe the job and set your price.",
   "landing.how.hire2Title": "Pick your Helpr",

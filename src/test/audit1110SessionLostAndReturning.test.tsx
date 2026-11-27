@@ -10,7 +10,7 @@
  * @mutate src/components/ProtectedRoute.tsx |   if (user) hadUser.current = true; |
  * @mutate src/components/ProtectedRoute.tsx |     const lostMidUse = hadUser.current && !signedOutOnPurposeRecently(); |     const lostMidUse = hadUser.current;
  * @mutate src/lib/unexpectedSignOut.ts |   return since >= 0 && since < INTENTIONAL_WINDOW_MS; |   return since < INTENTIONAL_WINDOW_MS;
- * @mutate src/pages/auth/loginNotice.ts |   if (returning) return `${returning} ${LOG_BACK_IN}`; |
+ * @mutate src/pages/auth/loginNotice.ts |   if (returning) return returning; |
  * @mutate src/pages/auth/loginNotice.ts |   ["/complete-profile", "Log in to finish your profile."], |
  * @mutate src/components/profile/TwoFactorCard.tsx | Extra safety: a 6-digit app code when you | Authenticator code at
  */
@@ -76,7 +76,6 @@ describe("F260p/F487: a screen that loses its user mid-use says so on Login", ()
     // Login turns that into the signed-out line, not "needs an account".
     const n = loginNotice({ oauthError: null, connect: null, signedOutForInactivity: false, sessionLost: true, arrivedFromSignup: false, bouncedFromGatedRoute: true, redirect: "/profile?tab=settings" });
     expect(n.notice).toMatch(/^You were signed out on this browser\./);
-    expect(n.leadWithSignup).toBe(false);
   });
 
   it("a fresh visit with no session (storage cleared) keeps the plain gated bounce", () => {
@@ -105,17 +104,42 @@ describe("F260p/F487: a screen that loses its user mid-use says so on Login", ()
   });
 });
 
+// Polish audit 11-27 #4 (+ auth review 11-27): a first-time guest opening a plain /jobs sees the public list (/browse);
+// a browser that has held a session, and any /jobs link with a query (?job=, ?tab= from emails and pushes), still log
+// in and come back to it.
+describe("signed-out /jobs: the public list for a first-time guest, Log in for everyone else", () => {
+  const jobsTree = () => (
+    <Routes>
+      <Route path="/jobs" element={<ProtectedRoute><div>PROTECTED</div></ProtectedRoute>} />
+      <Route path="/browse" element={<LoginProbe />} />
+      <Route path="/login" element={<LoginProbe />} />
+    </Routes>
+  );
+  const at = (url: string) => {
+    useCurrentUserMock.mockReturnValue(signedOut);
+    render(<MemoryRouter initialEntries={[url]}>{jobsTree()}</MemoryRouter>);
+    const where = screen.getByTestId("login").textContent;
+    cleanup();
+    return where;
+  };
+  it("plain /jobs on a fresh browser -> /browse; ?job= or ?tab= links, or a known browser -> Log in", () => {
+    expect(at("/jobs")).toBe("/browse");
+    expect(at("/jobs?job=abc")).toBe("/login?redirect=%2Fjobs%3Fjob%3Dabc");
+    expect(at("/jobs?tab=posted")).toBe("/login?redirect=%2Fjobs%3Ftab%3Dposted");
+    localStorage.setItem("helpr_had_session", "1");
+    expect(at("/jobs")).toBe("/login?redirect=%2Fjobs");
+  });
+});
+
 describe("F252: pages only a member reaches say log in, not create an account", () => {
   const base = { oauthError: null, connect: null, signedOutForInactivity: false, arrivedFromSignup: false, bouncedFromGatedRoute: true };
   it("payment-success and complete-profile", () => {
-    expect(gatedPageNotice("/payment-success?session_id=cs_x")).toBe("Log in to see your payment. We'll take you straight back to it.");
-    expect(gatedPageNotice("/complete-profile")).toBe("Log in to finish your profile. We'll take you straight back to it.");
+    expect(gatedPageNotice("/payment-success?session_id=cs_x")).toBe("Log in to see your payment.");
+    expect(gatedPageNotice("/complete-profile")).toBe("Log in to finish your profile.");
     const pay = loginNotice({ ...base, redirect: "/payment-success?session_id=cs_x" });
     expect(pay.notice).toMatch(/^Log in to see your payment\./);
-    expect(pay.leadWithSignup).toBe(false);
-    // Other gated pages still lead with Create an account (F080).
-    const profile = loginNotice({ ...base, redirect: "/profile" });
-    expect(profile.leadWithSignup).toBe(true);
+    // Polish audit 11-27 #4: every gated page is one "Log in to …" line; none carries a Create an account link.
+    expect(loginNotice({ ...base, redirect: "/profile" }).notice).toBe("Log in to see your profile.");
     expect(gatedPageNotice("/payment-successish")).toBeNull();
   });
 });

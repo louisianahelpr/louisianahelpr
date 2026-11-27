@@ -9,7 +9,7 @@
 //
 // @mutate src/components/LoginRouteSkeleton.tsx | <div className="w-full max-w-sm"> | <div className="w-full page-measure">
 // @mutate src/pages/auth/Login.tsx | <div className="liquid-glass auth-card p-5 sm:p-6 lg:p-8 space-y-6"> | <div className="liquid-glass auth-card p-5 sm:p-6 lg:p-10 space-y-6">
-// @mutate src/components/LoginRouteSkeleton.tsx | <h1 className="text-page-title text-foreground max-[479px]:sr-only">Log in</h1> | <h1 className="text-page-title text-foreground max-[479px]:sr-only">Log In</h1>
+// @mutate src/components/LoginRouteSkeleton.tsx | <h1 className="sr-only">Log in</h1> | <h1 className="sr-only">Log In</h1>
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";

@@ -5,13 +5,13 @@
  * text: the owner's 2026-08-22 label-only rule for the auth screens), the
  * olive pill, ONE consent line that records both the agreement and the 18+
  * attestation, the plain "or" rule (no rust), Continue with Apple / Google,
- * "Already have an account? Log in". Sentence case throughout.
+ * (polish audit 11-27 #4: no "Already have an account? Log in"; the Log in tab covers it). Sentence case throughout.
  *
- * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="text-page-title text-foreground max-[479px]:sr-only">{t("signup.title")}</h1> | <h1 className="text-page-title text-foreground max-[479px]:sr-only">Create Account</h1>
+ * @mutate src/pages/auth/signup/SignupStep1.tsx | <h1 className="sr-only">{t("signup.title")}</h1> | <h1 className="sr-only">Create Account</h1>
  * @mutate src/pages/auth/signup/SignupStep1.tsx | <AuthCardMarkRow /> | <img src="/apple-touch-icon.png" alt="" className="w-16 h-16 rounded-full" />
  * @mutate src/pages/auth/signup/SignupStep1.tsx |           <OrRule />\n |           <div className="uppercase tracking-[0.2em]" style={{ color: "hsl(var(--accent-ink))" }}>or</div>\n
  * @mutate src/pages/auth/signup/SignupStep1.tsx |             setAgeConfirmed(checked === true);\n |             void 0;\n
- * @mutate src/pages/auth/signup/SignupStep1.tsx |           {t("login.submit")}\n        </Link> |           Log In\n        </Link>
+ * @mutate src/pages/auth/signup/SignupStep1.tsx |       {/* Polish audit 11-27 #4: no "Already have an account? Log in" line | <p>Already have an account? Log in</p>{/* x
  * @mutate src/pages/auth/signup/SignupStep1.tsx |         className="w-full rounded-full"\n        size="authMain"\n        onClick={handleContinue} |         className="w-full rounded-ds-md"\n        size="authMain"\n        onClick={handleContinue}
  * @mutate src/lib/i18n/enScreens.ts | "signup.subtitle": "One account to hire help, find work, and buy or sell nearby." | "signup.subtitle": "One account to hire help or find work."
  * @mutate src/pages/auth/Signup.tsx |       hideBack\n    > |       hideBack\n      title="Create Account"\n    >
@@ -98,6 +98,6 @@ describe("Create account matches board 55", () => {
     expect(set).toEqual({ policies: true, age: true });
     // First and last name are asked together on step 2 (owner 2026-10-25), not here.
     expect(container.querySelector("#signup-first-name")).toBeNull();
-    expect(container.textContent).toContain("Already have an account? Log in");
+    expect(container.textContent).not.toContain("Already have an account?");
   });
 });

@@ -23,7 +23,6 @@
  * @mutate src/lib/guestSellDraft.ts | export const GUEST_SELL_RESUME_PATH = "/declutter/sell?resume=draft"; | export const GUEST_SELL_RESUME_PATH = "/declutter/sell";
  * @mutate src/pages/declutter/DeclutterSellPage.tsx | if (isReady && !user && !guestCanSell(params)) { | if (false) {
  * @mutate src/App.tsx | <ProtectedRoute fullProfile allowGuest><DeclutterSellPage /></ProtectedRoute> | <ProtectedRoute fullProfile><DeclutterSellPage /></ProtectedRoute>
- * @mutate src/components/landing/HowItWorksSection.tsx | export const SELL_SIGNED_OUT = SELL_PATH; | export const SELL_SIGNED_OUT = "/signup?redirect=%2Fdeclutter%2Fsell";
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -99,7 +98,6 @@ import { wantsDraftResume } from "@/lib/guestPostDraft";
 import { postAuthDestination, rememberSignupRedirect, signupSubtitle } from "@/lib/jobIntent";
 import { safeStorage } from "@/lib/safeStorage";
 import { enCore } from "@/lib/i18n/enCore";
-import { SELL_PATH, SELL_SIGNED_OUT } from "@/components/landing/HowItWorksSection";
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 const Where = () => {
@@ -246,10 +244,9 @@ describe("a guest's Declutter listing survives sign-up and email verification (o
     expect((await store.load("u-new"))?.saved.userId).toBe(GUEST_SELLER);
   });
 
-  it("guests can open Sell: the route lets them in and the landing's Sell link goes straight to the form", () => {
+  it("guests can open Sell: the route lets them in (the landing's Sell links went in polish audit 11-27 #16)", () => {
     const routes = read("src/App.tsx");
     expect(routes).toContain("<ProtectedRoute fullProfile allowGuest><DeclutterSellPage /></ProtectedRoute>");
-    expect(SELL_SIGNED_OUT).toBe(SELL_PATH);
     // Inventory floor: the guest path names each server call it skips.
     const flow = read("src/components/declutter/useSellFlowState.ts");
     const skips = [/if \(!user \|\| urlItemId \|\| createdId/, /\(\) => \(!user \? null : itemId \?/, /if \(!user\) return;/].filter((re) => re.test(flow));

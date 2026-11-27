@@ -22,14 +22,9 @@ export const SAMS_MEMBERSHIP = {
 } as const;
 
 export const SAMS_BF_WORDS = {
-  joinKicker: "Members only",
-  joinTitle: "Join Sam's Club first",
-  joinLine: `These Black Friday prices are for Sam's Club members. Club membership is $${SAMS_MEMBERSHIP.clubPerYear} a year; Plus is $${SAMS_MEMBERSHIP.plusPerYear} a year.`,
-  joinCta: "Join Sam's Club",
-  // The cards show no why-line (owner 11-21), so the dates live here: Sam's Club's ad runs Nov 26-29; some prices on
-  // this page are Instant Savings that started earlier or run a few days longer (each row's line in the rows file says).
-  dates: "Black Friday sale: online from Thu, Nov 26 and in clubs from Fri, Nov 27, through Sun, Nov 29. A few of these prices started early or run a few days longer. While supplies last.",
+  // Polish audit 1127 #92: the one line at the top of the guide (the membership prices and the sale's days, Sam's Club's
+  // ad Nov 26-29; "Join" links). It was a 280px "Members only" card with the dates in a paragraph and a second olive pill.
+  tip: `Sam's Club members only ($${SAMS_MEMBERSHIP.clubPerYear}/yr, Plus $${SAMS_MEMBERSHIP.plusPerYear}) · Sale Nov 26–29 ·`,
+  joinShort: "Join",
   featureTitle: "Sam's Club Black Friday Deals",
-  featureLine: "The best Sam's Club Black Friday gifts, each with its sale price.",
-  featureCta: "See the deals",
 } as const;

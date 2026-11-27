@@ -20,8 +20,8 @@
  * Polish audit 11-27 #7 (owner rule 11-22: back + "Gift guides" + ≡ only): scrolling away still left two rows at the top,
  * so up to 767px the bar is not drawn on a guides page for a guest (its spacer shrinks to the safe area), and the ≡
  * menu's first row is "Join / Log in".
- * @mutate src/components/Navbar.tsx |         phoneHidden && "max-[767px]:hidden", |         false,
- * @mutate src/components/Navbar.tsx |   const phoneHidden = navSection(location.pathname) === "guides"; |   const phoneHidden = location.pathname === "/gift-guides";
+ * @mutate src/components/Navbar.tsx |         guidesPhoneNoBar && "max-[767px]:hidden", |         false,
+ * @mutate src/components/Navbar.tsx |   const guidesPhoneNoBar = navSection(location.pathname) === "guides"; |   const guidesPhoneNoBar = location.pathname === "/gift-guides";
  * @mutate src/components/marketing/PublicLayout.tsx | className={navSection(location.pathname) === "guides" ? "max-[767px]:!h-[var(--safe-area-top,0px)]" : undefined} | className={undefined}
  * @mutate src/pages/info/giftGuides/GiftGuidesPhoneSheet.tsx |           {join && <Link | {false && <Link
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg .gg-words.gg-banner-wrap .gg-banner h1{max-width:72%; | .gg .gg-words.gg-banner-wrap .gg-banner h1{max-width:100%;
@@ -205,7 +205,7 @@ describe("#48 the gift guides landing", () => {
     const h = outer[0] + outer[2] + inner[0] + inner[2] + heading + px(rule(".gg .gg-greet-p")["margin-top"]) + line;
     expect(h).toBeLessThanOrEqual(82);
     // Polish audit 11-27 #86: exactly two cards said nothing about the 8 more; two cards plus ~40px of the third now
-    // (at 375 the column is 335px: (335 - 72) / 2 = 131.5px cards, the third starts at 295px).
+    // (measured 2026-11-27 at a 375px phone: the column is 335px, so 131.5px cards and the third starts at 295px).
     expect(rule(".gg .gg-top10")["grid-auto-columns"]).toBe("calc((100% - 72px) / 2)");
     const name = rule(".gg .gg-top10 .gg-nm-name");
     expect([name["font-size"], name["font-weight"]]).toEqual(["15px", "600"]);

@@ -666,7 +666,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     state.job = row({ customer_id: ME, payment_status: "abandoned" });
     state.party = true;
     const { unmount } = renderPage();
-    expect(screen.getByText("Not paid yet. Helprs can't see this job until it's paid.")).toBeTruthy();
+    expect(screen.getByText("Not posted yet. Pay to post it so Helprs can see it.")).toBeTruthy();
     // JOBS-9: not "Waiting for Helprs to apply", and the button goes somewhere, not to a list without this job.
     expect(screen.queryByText("Waiting for Helprs to apply")).toBeNull();
     // Area 03 H2: "Pay to post", never "Post this job again" on a job that reads open.
@@ -1311,7 +1311,7 @@ describe("board 57: the poster's open job with no applicants", () => {
   it("an unpaid post, a post with a photo, or one with applicants does not claim it", async () => {
     state.job = row({ customer_id: ME, payment_status: "unpaid" });
     const { unmount } = renderPage();
-    expect(await screen.findByText(/Not paid yet\. Helprs/)).toBeTruthy();
+    expect(await screen.findByText(/Not posted yet\. Pay to post it/)).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "No applicants yet" })).toBeNull();
     unmount();
     state.job = row({ customer_id: ME, photos: ["a.jpg"] });
@@ -1646,6 +1646,30 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       : status === "cancelled" |       : false
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const draft = jobIsUnfundedDraft(job); |   const draft = false;
   // @mutate src/pages/jobs/jobPage/JobPage.tsx |     ? { label: t("jp.payToPost"), go: | ? { label: t("jp.postThisAgain"), go:
+  // Polish audit 11-27 #9 (shot jobs/combo-dogs.png): the unpaid job said "not posted" 4 times ("Not paid yet...",
+  // "Next: not posted yet: pay to post it", "Helprs see the job once it's paid.", the tracker's "Not posted yet") and
+  // showed "1 applicant" on a job nobody can see. Now ONE line under the price, then Pay to post.
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (progress.unpaid) return null; |   if (false) return null;
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | total > 0 && !unposted; | total > 0;
+  it("an unpaid job says 'Not posted yet' once, with no Next card, tracker label or applicant count", () => {
+    state.job = row({ customer_id: ME, payment_status: "unpaid" });
+    state.party = true;
+    state.applicants = { total: 1, pending: 1 };
+    try {
+      renderPage();
+      const text = document.body.textContent ?? "";
+      expect(screen.getByText("Not posted yet. Pay to post it so Helprs can see it.")).toBeTruthy();
+      expect(text.match(/not posted/gi) ?? []).toHaveLength(1);
+      expect(text).not.toMatch(/Next:|Helprs see the job once/);
+      expect(document.querySelector("[data-applicant-count]")).toBeNull();
+      expect(document.querySelector("[data-job-tracker]")).toBeNull();
+      // Floor: the one way forward is still there.
+      expect(screen.getByRole("button", { name: "Pay to post" })).toBeTruthy();
+    } finally {
+      state.applicants = { total: 0, pending: 0 };
+    }
+  });
+
   it("an unpaid draft (on no Posted list) offers Pay to post and no Edit or Cancel", () => {
     state.job = row({ customer_id: ME, payment_status: "unpaid" });
     renderPage();

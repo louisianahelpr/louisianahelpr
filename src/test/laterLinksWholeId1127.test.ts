@@ -16,7 +16,8 @@
 // @mutate src/content/giftGuidePicks/sams-club-black-friday.json | mavely.app.link/IFv8hieHm8b | mavely.app.link/Fv8hieHm8b
 // @mutate scripts/gift-guide-themes/sams-club-black-friday.json | mavely.app.link/T4WKEQiHm8b | mavely.app.link/4WKEQiHm8b
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { trackedFiles } from "./helpers/trackedFiles";
 
@@ -34,8 +35,8 @@ export function laterIds(text: string): { id: string; line: number }[] {
 
 const FILES = [
   ...trackedFiles("src/content").filter((f) => /\.(json|ts|mjs)$/.test(f)),
-  // scripts/ is not src/, so the plain directory listing is fine here (noSrcDirectoryWalksInTests).
-  ...readdirSync(resolve(ROOT, "scripts/gift-guide-themes")).filter((f) => f.endsWith(".json")).map((f) => `scripts/gift-guide-themes/${f}`),
+  // The theme rows files, from the git index (never a disk listing: noSrcDirectoryWalksInTests).
+  ...execFileSync("git", ["ls-files", "-z", "--", "scripts/gift-guide-themes"], { cwd: ROOT, encoding: "utf8" }).split("\0").filter((f) => f.endsWith(".json")),
   "scripts/gift-guide-deals-1121.json",
 ];
 
